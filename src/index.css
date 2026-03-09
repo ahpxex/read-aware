@@ -8,10 +8,13 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
 }
 
 * {
   box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 body {
@@ -19,6 +22,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background-color: #f5f1e8;
+  overscroll-behavior: none;
 }
 
 button {
@@ -27,4 +31,5 @@ button {
 
 #root {
   min-height: 100vh;
+  overscroll-behavior: none;
 }

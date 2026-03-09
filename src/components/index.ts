@@ -16,6 +16,7 @@ export { Divider } from "./Divider";
 export { TextField } from "./TextField";
 export { TextArea } from "./TextArea";
 export { Select } from "./Select";
+export { Skeleton } from "./Skeleton";
 export { Toggle } from "./Toggle";
 export { IconButton } from "./IconButton";
 export { Kbd } from "./Kbd";

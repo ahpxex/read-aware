@@ -21,6 +21,7 @@ export { IconButton } from "./IconButton";
 export { Kbd } from "./Kbd";
 export { DefinitionList } from "./DefinitionList";
 export { Stack } from "./Stack";
+export { Tabs } from "./Tabs";
 export { Dialog } from "./Dialog";
 export { Tooltip } from "./Tooltip";
 export { Sidebar } from "./Sidebar";

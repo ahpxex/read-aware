@@ -10,13 +10,15 @@ type ToggleProps = {
 
 export function Toggle({ label, checked, onChange, className }: ToggleProps) {
   const id = useId();
+  const labelId = `${id}-label`;
+
   return (
     <div className={cn("flex items-center gap-3", className)}>
       <button
-        id={id}
         type="button"
         role="switch"
         aria-checked={checked}
+        aria-labelledby={labelId}
         onClick={() => onChange(!checked)}
         className={cn(
           "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950",
@@ -30,12 +32,13 @@ export function Toggle({ label, checked, onChange, className }: ToggleProps) {
           )}
         />
       </button>
-      <label
-        htmlFor={id}
-        className="font-sans text-sm text-stone-700 select-none"
+      <span
+        id={labelId}
+        className="font-sans text-sm text-stone-700 select-none cursor-pointer"
+        onClick={() => onChange(!checked)}
       >
         {label}
-      </label>
+      </span>
     </div>
   );
 }

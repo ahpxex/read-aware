@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type ReactNode } from "react";
+import { useState, useRef, useEffect, useId, type ReactNode } from "react";
 import { cn } from "./lib/cn";
 
 type PopoverProps = {
@@ -11,6 +11,9 @@ type PopoverProps = {
 export function Popover({ trigger, children, align = "left", className }: PopoverProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const id = useId();
+  const panelId = `${id}-panel`;
 
   useEffect(() => {
     if (!open) return;
@@ -20,7 +23,10 @@ export function Popover({ trigger, children, align = "left", className }: Popove
       }
     }
     function handleEscape(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
     }
     document.addEventListener("mousedown", handleClick);
     document.addEventListener("keydown", handleEscape);
@@ -32,11 +38,20 @@ export function Popover({ trigger, children, align = "left", className }: Popove
 
   return (
     <div ref={containerRef} className={cn("relative inline-block", className)}>
-      <div onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-expanded={open}
+        aria-controls={open ? panelId : undefined}
+        onClick={() => setOpen((o) => !o)}
+        className="inline-flex"
+      >
         {trigger}
-      </div>
+      </button>
       {open && (
         <div
+          id={panelId}
+          role="dialog"
           className={cn(
             "absolute z-50 mt-2 min-w-[200px] border border-border bg-paper p-4 shadow-sm",
             align === "left" && "left-0",

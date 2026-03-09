@@ -31,3 +31,4 @@ export { Tooltip } from "./Tooltip";
 export { Sidebar } from "./Sidebar";
 export { Spinner } from "./Spinner";
 export { Checkbox } from "./Checkbox";
+export { Radio } from "./Radio";

@@ -1,89 +1,177 @@
-import { forwardRef, useId, type SelectHTMLAttributes } from "react";
+import { useState, useRef, useEffect, useId, useCallback } from "react";
 import { cn } from "./lib/cn";
+
+type SelectOption = { label: string; value: string };
 
 type SelectProps = {
   label: string;
-  options: Array<{ label: string; value: string }>;
+  options: SelectOption[];
+  value?: string;
+  defaultValue?: string;
+  onChange?: (value: string) => void;
   helperText?: string;
   error?: string;
   placeholder?: string;
   variant?: "underline" | "outlined";
-} & Omit<SelectHTMLAttributes<HTMLSelectElement>, "id" | "children">;
+  disabled?: boolean;
+  name?: string;
+  className?: string;
+};
 
-export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  function Select(
-    {
-      label,
-      options,
-      helperText,
-      error,
-      placeholder,
-      variant = "underline",
-      className,
-      ...props
+export function Select({
+  label,
+  options,
+  value: controlledValue,
+  defaultValue,
+  onChange,
+  helperText,
+  error,
+  placeholder,
+  variant = "underline",
+  disabled,
+  name,
+  className,
+}: SelectProps) {
+  const id = useId();
+  const hasError = !!error;
+  const [open, setOpen] = useState(false);
+  const [internalValue, setInternalValue] = useState(defaultValue ?? "");
+  const containerRef = useRef<HTMLDivElement>(null);
+  const listboxRef = useRef<HTMLUListElement>(null);
+  const [activeIndex, setActiveIndex] = useState(-1);
+
+  const currentValue = controlledValue !== undefined ? controlledValue : internalValue;
+  const selectedOption = options.find((o) => o.value === currentValue);
+  const displayText = selectedOption?.label ?? placeholder ?? "";
+  const isPlaceholder = !selectedOption;
+
+  const select = useCallback(
+    (val: string) => {
+      if (controlledValue === undefined) setInternalValue(val);
+      onChange?.(val);
+      setOpen(false);
     },
-    ref,
-  ) {
-    const id = useId();
-    const hasError = !!error;
+    [controlledValue, onChange],
+  );
 
-    return (
-      <div className={cn("flex flex-col gap-2", className)}>
-        <label
-          htmlFor={id}
+  // close on outside click / escape
+  useEffect(() => {
+    if (!open) return;
+    function onMouseDown(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onMouseDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onMouseDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  // scroll active option into view
+  useEffect(() => {
+    if (!open || activeIndex < 0) return;
+    const item = listboxRef.current?.children[activeIndex] as HTMLElement | undefined;
+    item?.scrollIntoView({ block: "nearest" });
+  }, [open, activeIndex]);
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (disabled) return;
+    switch (e.key) {
+      case "Enter":
+      case " ":
+        e.preventDefault();
+        if (open && activeIndex >= 0) {
+          select(options[activeIndex].value);
+        } else {
+          setOpen(true);
+          setActiveIndex(options.findIndex((o) => o.value === currentValue));
+        }
+        break;
+      case "ArrowDown":
+        e.preventDefault();
+        if (!open) {
+          setOpen(true);
+          setActiveIndex(options.findIndex((o) => o.value === currentValue));
+        } else {
+          setActiveIndex((i) => Math.min(i + 1, options.length - 1));
+        }
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        if (open) {
+          setActiveIndex((i) => Math.max(i - 1, 0));
+        }
+        break;
+    }
+  }
+
+  const activeDescendant =
+    open && activeIndex >= 0 ? `${id}-option-${activeIndex}` : undefined;
+
+  return (
+    <div ref={containerRef} className={cn("flex flex-col gap-1.5", className)}>
+      <label
+        id={`${id}-label`}
+        className={cn(
+          "font-sans text-eyebrow font-medium uppercase tracking-eyebrow",
+          hasError ? "text-red-700" : "text-stone-600",
+        )}
+      >
+        {label}
+      </label>
+
+      {/* hidden native input for form submission */}
+      {name && <input type="hidden" name={name} value={currentValue} />}
+
+      <div className="relative">
+        <button
+          type="button"
+          role="combobox"
+          id={id}
+          aria-expanded={open}
+          aria-haspopup="listbox"
+          aria-controls={`${id}-listbox`}
+          aria-labelledby={`${id}-label`}
+          aria-activedescendant={activeDescendant}
+          aria-invalid={hasError || undefined}
+          aria-describedby={
+            hasError ? `${id}-error` : helperText ? `${id}-helper` : undefined
+          }
+          disabled={disabled}
+          onClick={() => !disabled && setOpen((o) => !o)}
+          onKeyDown={handleKeyDown}
           className={cn(
-            "font-sans text-eyebrow font-medium uppercase tracking-eyebrow",
-            hasError ? "text-red-700" : "text-stone-600",
+            "flex w-full items-center justify-between bg-transparent text-left font-sans text-base outline-none",
+            isPlaceholder ? "text-stone-400" : "text-stone-950",
+            disabled && "cursor-not-allowed opacity-50",
+            variant === "underline" &&
+              cn(
+                "border-b pb-2",
+                hasError
+                  ? "border-red-400 focus:border-red-600"
+                  : "border-border focus:border-stone-950",
+              ),
+            variant === "outlined" &&
+              cn(
+                "border px-3 py-2",
+                hasError
+                  ? "border-red-400 focus:border-red-600"
+                  : "border-border focus:border-stone-950",
+              ),
           )}
         >
-          {label}
-        </label>
-        <div className="relative">
-          <select
-            ref={ref}
-            id={id}
-            aria-invalid={hasError || undefined}
-            aria-describedby={
-              hasError
-                ? `${id}-error`
-                : helperText
-                  ? `${id}-helper`
-                  : undefined
-            }
-            className={cn(
-              "w-full appearance-none bg-transparent pr-6 font-sans text-base text-stone-950 outline-none",
-              variant === "underline" &&
-                cn(
-                  "border-b pb-2",
-                  hasError
-                    ? "border-red-400 focus:border-red-600"
-                    : "border-border focus:border-stone-950",
-                ),
-              variant === "outlined" &&
-                cn(
-                  "border px-3 py-2",
-                  hasError
-                    ? "border-red-400 focus:border-red-600"
-                    : "border-border focus:border-stone-950",
-                ),
-            )}
-            {...props}
-          >
-            {placeholder && (
-              <option value="" disabled>
-                {placeholder}
-              </option>
-            )}
-            {options.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <span className="truncate">{displayText}</span>
           <svg
             className={cn(
-              "pointer-events-none absolute right-0 h-4 w-4 text-stone-400",
-              variant === "underline" ? "bottom-3" : "top-1/2 -translate-y-1/2",
+              "h-4 w-4 shrink-0 text-stone-400 transition-transform",
+              open && "rotate-180",
+              variant === "underline" ? "ml-2" : "ml-2",
             )}
             viewBox="0 0 16 16"
             fill="none"
@@ -92,18 +180,49 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           >
             <path d="M4 6l4 4 4-4" />
           </svg>
-        </div>
-        {hasError && (
-          <p id={`${id}-error`} className="text-caption text-red-700">
-            {error}
-          </p>
-        )}
-        {!hasError && helperText && (
-          <p id={`${id}-helper`} className="text-caption text-stone-500">
-            {helperText}
-          </p>
+        </button>
+
+        {open && (
+          <ul
+            ref={listboxRef}
+            id={`${id}-listbox`}
+            role="listbox"
+            aria-labelledby={`${id}-label`}
+            className="absolute z-50 mt-1 max-h-60 w-full overflow-auto border border-border bg-paper py-1 shadow-sm"
+          >
+            {options.map((opt, i) => (
+              <li
+                key={opt.value}
+                id={`${id}-option-${i}`}
+                role="option"
+                aria-selected={opt.value === currentValue}
+                onMouseEnter={() => setActiveIndex(i)}
+                onClick={() => select(opt.value)}
+                className={cn(
+                  "cursor-pointer px-3 py-1.5 text-sm",
+                  i === activeIndex && "bg-stone-100",
+                  opt.value === currentValue
+                    ? "font-medium text-stone-950"
+                    : "text-stone-700",
+                )}
+              >
+                {opt.label}
+              </li>
+            ))}
+          </ul>
         )}
       </div>
-    );
-  },
-);
+
+      {hasError && (
+        <p id={`${id}-error`} className="text-[11px] leading-tight text-red-700">
+          {error}
+        </p>
+      )}
+      {!hasError && helperText && (
+        <p id={`${id}-helper`} className="text-[11px] leading-tight text-stone-500">
+          {helperText}
+        </p>
+      )}
+    </div>
+  );
+}

@@ -28,7 +28,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
     const hasError = !!error;
 
     return (
-      <div className={cn("flex flex-col gap-2", className)}>
+      <div className={cn("flex flex-col gap-1.5", className)}>
         <label
           htmlFor={id}
           className={cn(
@@ -79,12 +79,12 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
           )}
         </div>
         {hasError && (
-          <p id={`${id}-error`} className="text-caption text-red-700">
+          <p id={`${id}-error`} className="text-[11px] leading-tight text-red-700">
             {error}
           </p>
         )}
         {!hasError && helperText && (
-          <p id={`${id}-helper`} className="text-caption text-stone-500">
+          <p id={`${id}-helper`} className="text-[11px] leading-tight text-stone-500">
             {helperText}
           </p>
         )}

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Select } from "./Select";
 
@@ -20,6 +21,7 @@ export const Default: Story = {
   args: {
     label: "Sort by",
     options: sampleOptions,
+    defaultValue: "date",
   },
 };
 
@@ -28,7 +30,6 @@ export const WithPlaceholder: Story = {
     label: "Category",
     options: sampleOptions,
     placeholder: "Choose a category...",
-    defaultValue: "",
   },
 };
 
@@ -36,6 +37,7 @@ export const WithHelperText: Story = {
   args: {
     label: "Sort by",
     options: sampleOptions,
+    defaultValue: "date",
     helperText: "Controls the order of your reading list",
   },
 };
@@ -45,7 +47,6 @@ export const WithError: Story = {
     label: "Genre",
     options: sampleOptions,
     placeholder: "Select a genre...",
-    defaultValue: "",
     error: "Please select a genre",
   },
 };
@@ -54,6 +55,7 @@ export const Outlined: Story = {
   args: {
     label: "Sort by",
     options: sampleOptions,
+    defaultValue: "date",
     variant: "outlined",
   },
 };
@@ -63,8 +65,37 @@ export const OutlinedWithError: Story = {
     label: "Genre",
     options: sampleOptions,
     placeholder: "Select a genre...",
-    defaultValue: "",
     variant: "outlined",
     error: "Please select a genre",
+  },
+};
+
+export const Controlled: Story = {
+  render: () => {
+    const [value, setValue] = useState("title");
+    return (
+      <div className="flex flex-col gap-4">
+        <Select
+          label="Sort by"
+          options={sampleOptions}
+          value={value}
+          onChange={setValue}
+        />
+        <p className="text-sm text-stone-500">Selected: {value}</p>
+      </div>
+    );
+  },
+  args: {
+    label: "",
+    options: [],
+  },
+};
+
+export const Disabled: Story = {
+  args: {
+    label: "Sort by",
+    options: sampleOptions,
+    defaultValue: "date",
+    disabled: true,
   },
 };

@@ -39,7 +39,7 @@ export function Accordion({
     <div className={cn("divide-y divide-border", className)}>
       {items.map((item, i) => (
         <AccordionItem
-          key={i}
+          key={item.label}
           label={item.label}
           content={item.content}
           open={openIndices.has(i)}
@@ -97,13 +97,18 @@ function AccordionItem({
         id={panelId}
         role="region"
         aria-labelledby={triggerId}
+        aria-hidden={!open}
         className={cn(
-          "overflow-hidden transition-all duration-200",
-          open ? "pb-4" : "h-0",
+          "overflow-hidden transition-[grid-template-rows] duration-200",
+          "grid",
+          open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
         )}
-        hidden={!open}
       >
-        <div className="text-sm leading-relaxed text-stone-700">{content}</div>
+        <div className="min-h-0">
+          <div className={cn("text-sm leading-relaxed text-stone-700", open && "pb-4")}>
+            {content}
+          </div>
+        </div>
       </div>
     </div>
   );

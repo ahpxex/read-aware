@@ -8,6 +8,7 @@ import {
   Divider,
   DefinitionList,
   Avatar,
+  TextField,
 } from "./components";
 import { SettingsView } from "./features/settings/SettingsView";
 import { Shelf } from "./features/shelf/components/Shelf";
@@ -74,10 +75,35 @@ function App() {
             </NavItem>
           ))}
 
+          <div
+            className={`ml-auto max-w-64 ${activeTopNav !== "shelf" ? "invisible" : ""}`}
+          >
+            <TextField
+              label=""
+              aria-label="Search shelf"
+              variant="outlined"
+              placeholder="Search shelf..."
+              tabIndex={activeTopNav !== "shelf" ? -1 : undefined}
+              leadingIcon={
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                >
+                  <circle cx="7" cy="7" r="4.5" />
+                  <path d="M10.5 10.5L14 14" />
+                </svg>
+              }
+            />
+          </div>
+
           <button
             type="button"
             onClick={() => setSettingsOpen(true)}
-            className="ml-auto -mr-2 flex items-center gap-2 rounded-full py-1 pl-3 pr-1 text-sm font-medium text-stone-600 transition-colors hover:bg-stone-200 hover:text-stone-950"
+            className="-mr-2 flex items-center gap-2 rounded-full py-1 pl-3 pr-1 text-sm font-medium text-stone-600 transition-colors hover:bg-stone-200 hover:text-stone-950"
           >
             <span>Jane Doe</span>
             <Avatar initials="JD" alt="Jane Doe" size="xs" />

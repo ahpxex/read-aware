@@ -29,18 +29,25 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
 
     return (
       <div className={cn("flex flex-col gap-1.5", className)}>
-        <label
-          htmlFor={id}
-          className={cn(
-            "font-sans text-eyebrow font-medium uppercase tracking-eyebrow",
-            hasError ? "text-red-700" : "text-stone-600",
-          )}
-        >
-          {label}
-        </label>
+        {label && (
+          <label
+            htmlFor={id}
+            className={cn(
+              "font-sans text-eyebrow font-medium uppercase tracking-eyebrow",
+              hasError ? "text-red-700" : "text-stone-600",
+            )}
+          >
+            {label}
+          </label>
+        )}
         <div className="relative flex items-center">
           {leadingIcon && (
-            <span className="pointer-events-none absolute left-0 text-stone-400">
+            <span
+              className={cn(
+                "pointer-events-none absolute text-stone-400",
+                variant === "outlined" ? "left-3" : "left-0",
+              )}
+            >
               {leadingIcon}
             </span>
           )}
@@ -62,7 +69,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
                 ),
               variant === "outlined" &&
                 cn(
-                  "border px-3 py-2",
+                  "rounded-md border px-3 py-2",
                   hasError
                     ? "border-red-400 focus:border-red-600"
                     : "border-border focus:border-stone-950",
@@ -73,7 +80,12 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
             {...props}
           />
           {trailingIcon && (
-            <span className="pointer-events-none absolute right-0 text-stone-400">
+            <span
+              className={cn(
+                "pointer-events-none absolute text-stone-400",
+                variant === "outlined" ? "right-3" : "right-0",
+              )}
+            >
               {trailingIcon}
             </span>
           )}

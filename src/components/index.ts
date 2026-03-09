@@ -18,6 +18,7 @@ export { TextArea } from "./TextArea";
 export { Select } from "./Select";
 export { Toggle } from "./Toggle";
 export { IconButton } from "./IconButton";
+export { Kbd } from "./Kbd";
 export { DefinitionList } from "./DefinitionList";
 export { Stack } from "./Stack";
 export { Dialog } from "./Dialog";

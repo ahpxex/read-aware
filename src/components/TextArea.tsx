@@ -12,7 +12,7 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
       <div className={cn("flex flex-col gap-2", className)}>
         <label
           htmlFor={id}
-          className="font-sans text-eyebrow font-medium uppercase tracking-eyebrow text-stone-500"
+          className="font-sans text-eyebrow font-medium uppercase tracking-eyebrow text-stone-600"
         >
           {label}
         </label>

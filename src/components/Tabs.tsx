@@ -1,4 +1,4 @@
-import { useState, useId, type ReactNode } from "react";
+import { useState, useId, useRef, type ReactNode } from "react";
 import { cn } from "./lib/cn";
 
 type TabItem = {
@@ -21,11 +21,40 @@ export function Tabs({
 }: TabsProps) {
   const [activeIndex, setActiveIndex] = useState(defaultIndex);
   const id = useId();
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  function moveFocus(index: number) {
+    setActiveIndex(index);
+    tabRefs.current[index]?.focus();
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    let next: number | null = null;
+    switch (e.key) {
+      case "ArrowRight":
+        next = (activeIndex + 1) % items.length;
+        break;
+      case "ArrowLeft":
+        next = (activeIndex - 1 + items.length) % items.length;
+        break;
+      case "Home":
+        next = 0;
+        break;
+      case "End":
+        next = items.length - 1;
+        break;
+      default:
+        return;
+    }
+    e.preventDefault();
+    moveFocus(next);
+  }
 
   return (
     <div className={className}>
       <div
         role="tablist"
+        onKeyDown={handleKeyDown}
         className={cn(
           "flex",
           variant === "underline" && "gap-6 border-b border-border",
@@ -40,6 +69,7 @@ export function Tabs({
           return (
             <button
               key={i}
+              ref={(el) => { tabRefs.current[i] = el; }}
               id={tabId}
               type="button"
               role="tab"

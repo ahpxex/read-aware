@@ -1,0 +1,60 @@
+import { Meta } from "@storybook/blocks";
+
+<Meta title="Design System/Guidelines/Colors" />
+
+# Colors
+
+RadAware uses a deliberately limited palette. The foundation is a warm paper tone
+with Tailwind's `stone` scale for text and UI elements.
+
+## Paper tones
+
+<div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem" }}>
+    <div style={{ width: 80, height: 80, backgroundColor: "#f5f1e8", border: "1px solid rgba(28,25,23,0.1)" }} />
+    <code style={{ fontSize: 12 }}>paper</code>
+    <span style={{ fontSize: 11, color: "#78716c" }}>#f5f1e8</span>
+  </div>
+  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem" }}>
+    <div style={{ width: 80, height: 80, backgroundColor: "#eee8d5", border: "1px solid rgba(28,25,23,0.1)" }} />
+    <code style={{ fontSize: 12 }}>paper-warm</code>
+    <span style={{ fontSize: 11, color: "#78716c" }}>#eee8d5</span>
+  </div>
+</div>
+
+## Stone scale (Tailwind built-in)
+
+<div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem", flexWrap: "wrap" }}>
+  {[
+    { name: "50", hex: "#fafaf9" },
+    { name: "100", hex: "#f5f5f4" },
+    { name: "200", hex: "#e7e5e4" },
+    { name: "300", hex: "#d6d3d1" },
+    { name: "400", hex: "#a8a29e" },
+    { name: "500", hex: "#78716c" },
+    { name: "600", hex: "#57534e" },
+    { name: "700", hex: "#44403c" },
+    { name: "800", hex: "#292524" },
+    { name: "900", hex: "#1c1917" },
+    { name: "950", hex: "#0c0a09" },
+  ].map((c) => (
+    <div key={c.name} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.25rem" }}>
+      <div style={{ width: 48, height: 48, backgroundColor: c.hex, border: "1px solid rgba(28,25,23,0.1)" }} />
+      <span style={{ fontSize: 10, color: "#78716c" }}>{c.name}</span>
+    </div>
+  ))}
+</div>
+
+## Border
+
+The standard border color is `border-border` which resolves to `rgb(28 25 23 / 0.1)` --
+stone-900 at 10% opacity. This keeps dividers visible but quiet.
+
+## Usage guidelines
+
+- **Backgrounds:** Use `bg-paper` for primary surfaces. Use `bg-paper-warm` sparingly
+  for subtle differentiation.
+- **Text:** `stone-950` for primary text, `stone-700` for body copy, `stone-500` for
+  secondary labels and captions.
+- **No accent colors.** The palette is intentionally monochrome. Color, if ever
+  introduced, should be used with extreme restraint.

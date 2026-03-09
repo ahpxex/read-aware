@@ -1,0 +1,48 @@
+import { Meta } from "@storybook/blocks";
+
+<Meta title="Design System/Guidelines/Spacing" />
+
+# Spacing
+
+RadAware uses Tailwind's default spacing scale. The rhythm is generous -- the
+interface breathes.
+
+## Common spacing values
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `gap-2` | 0.5rem (8px) | Tight grouping (label to input) |
+| `gap-4` | 1rem (16px) | Default component spacing |
+| `gap-6` | 1.5rem (24px) | Section padding, nav gaps |
+| `gap-8` | 2rem (32px) | Between content blocks |
+| `gap-10` | 2.5rem (40px) | Grid gaps in definition lists |
+| `py-16` | 4rem (64px) | Vertical page padding (mobile) |
+| `py-20` | 5rem (80px) | Vertical page padding (tablet) |
+| `py-24` | 6rem (96px) | Vertical page padding (desktop) |
+
+## Rhythm visualization
+
+<div style={{ display: "flex", flexDirection: "column", gap: "0.25rem", marginTop: "1rem" }}>
+  {[
+    { label: "gap-2 (8px)", width: 32 },
+    { label: "gap-4 (16px)", width: 64 },
+    { label: "gap-6 (24px)", width: 96 },
+    { label: "gap-8 (32px)", width: 128 },
+    { label: "gap-10 (40px)", width: 160 },
+    { label: "py-16 (64px)", width: 256 },
+    { label: "py-20 (80px)", width: 320 },
+    { label: "py-24 (96px)", width: 384 },
+  ].map((s) => (
+    <div key={s.label} style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+      <div style={{ width: s.width, height: 16, backgroundColor: "#d6d3d1" }} />
+      <span style={{ fontSize: 12, color: "#78716c", fontFamily: "monospace" }}>{s.label}</span>
+    </div>
+  ))}
+</div>
+
+## Guidelines
+
+- Prefer larger spacing. When in doubt, add more whitespace.
+- Use the `Stack` component with `gap` prop for consistent vertical/horizontal rhythm.
+- Page-level padding increases with viewport width (responsive `py-16 sm:py-20 lg:py-24`).
+- Avoid custom spacing values. The Tailwind scale provides enough granularity.

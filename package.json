@@ -7,11 +7,14 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-opener": "^2",
+    "clsx": "^2.1.1",
     "jotai": "^2.18.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
@@ -25,6 +28,17 @@
     "@vitejs/plugin-react": "^4.6.0",
     "tailwindcss": "^4.2.1",
     "typescript": "~5.8.3",
-    "vite": "^7.0.4"
+    "vite": "^7.0.4",
+    "storybook": "^10.2.16",
+    "@storybook/react-vite": "^10.2.16",
+    "@chromatic-com/storybook": "^5.0.1",
+    "@storybook/addon-vitest": "^10.2.16",
+    "@storybook/addon-a11y": "^10.2.16",
+    "@storybook/addon-docs": "^10.2.16",
+    "@storybook/addon-onboarding": "^10.2.16",
+    "vitest": "^4.0.18",
+    "playwright": "^1.58.2",
+    "@vitest/browser-playwright": "^4.0.18",
+    "@vitest/coverage-v8": "^4.0.18"
   }
 }

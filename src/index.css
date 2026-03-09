@@ -1,18 +1,45 @@
 @import "tailwindcss";
 
+@theme {
+  --color-paper: #f5f1e8;
+  --color-paper-warm: #eee8d5;
+  --color-border: rgb(28 25 23 / 0.1);
+
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+
+  --font-size-eyebrow: 0.6875rem;
+  --font-size-caption: 0.75rem;
+
+  --tracking-eyebrow: 0.28em;
+
+  --leading-display: 0.98;
+  --leading-body: 2rem;
+}
+
 :root {
   color-scheme: light;
-  background-color: #f5f1e8;
+  background-color: var(--color-paper);
   color: #1c1917;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+#root {
+  min-height: 100vh;
+  overscroll-behavior: none;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -21,15 +48,10 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #f5f1e8;
+  background-color: var(--color-paper);
   overscroll-behavior: none;
 }
 
 button {
   font: inherit;
-}
-
-#root {
-  min-height: 100vh;
-  overscroll-behavior: none;
 }

@@ -35,3 +35,4 @@ export { Radio } from "./Radio";
 export { Alert } from "./Alert";
 export { Tag } from "./Tag";
 export { DropdownMenu } from "./DropdownMenu";
+export { Popover } from "./Popover";

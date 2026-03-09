@@ -72,16 +72,18 @@ const accordionSections = [
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-screen bg-stone-100 text-stone-950">
-      <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-6 sm:px-10 sm:py-8 lg:px-14">
-        <header className="border-b border-border pb-4">
-          <nav aria-label="Primary" className="flex flex-wrap gap-6 sm:gap-8">
-            {navItems.map((item) => (
-              <NavItem key={item} active={item === "context"}>{item}</NavItem>
-            ))}
-          </nav>
-        </header>
-        {children}
+    <main className="flex h-screen flex-col bg-stone-100 text-stone-950">
+      <header className="shrink-0 border-b border-border bg-stone-100 px-6 pt-6 pb-4 sm:px-10 sm:pt-8 lg:px-14">
+        <nav aria-label="Primary" className="mx-auto flex max-w-5xl flex-wrap gap-6 sm:gap-8">
+          {navItems.map((item) => (
+            <NavItem key={item} active={item === "context"}>{item}</NavItem>
+          ))}
+        </nav>
+      </header>
+      <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-5xl px-6 sm:px-10 lg:px-14">
+          {children}
+        </div>
       </div>
     </main>
   );

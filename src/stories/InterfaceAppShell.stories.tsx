@@ -10,9 +10,11 @@ import {
   Kbd,
   Caption,
   Stack,
+  Avatar,
 } from "../components";
+import { SettingsView } from "../features/settings/SettingsView";
 
-const navItems = ["shelf", "context", "settings"] as const;
+const navItems = ["shelf", "context"] as const;
 
 const sectionContent: Record<
   (typeof navItems)[number],
@@ -38,40 +40,47 @@ const sectionContent: Record<
       { label: "Focus", value: "Each block is shortened to the essentials so interpretation feels effortless." },
     ],
   },
-  settings: {
-    eyebrow: "Settings",
-    title: "Settings recede until they are needed.",
-    body: "Preferences are presented as quiet editorial controls rather than a dashboard. The result feels deliberate, lightweight, and appropriately secondary to reading.",
-    notes: [
-      { label: "Priority", value: "Controls are demoted visually so content keeps the first and last word." },
-      { label: "Language", value: "Short labels and direct copy keep the interface clear without extra explanation." },
-      { label: "Restraint", value: "No badges, gradients, or ornamental highlights distract from the core tasks." },
-    ],
-  },
 };
 
 function AppShell() {
   const [active, setActive] = useState<(typeof navItems)[number]>("shelf");
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const section = sectionContent[active];
 
-  return (
-    <main className="min-h-screen bg-stone-100 text-stone-950">
-      <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-6 sm:px-10 sm:py-8 lg:px-14">
-        <header className="border-b border-border pb-4">
-          <nav aria-label="Primary" className="flex flex-wrap gap-6 sm:gap-8">
-            {navItems.map((item) => (
-              <NavItem
-                key={item}
-                active={item === active}
-                onClick={() => setActive(item)}
-              >
-                {item}
-              </NavItem>
-            ))}
-          </nav>
-        </header>
+  if (settingsOpen) {
+    return <SettingsView onBack={() => setSettingsOpen(false)} />;
+  }
 
-        <article className="flex flex-1 flex-col justify-center py-16 sm:py-20 lg:py-24">
+  return (
+    <main className="flex h-screen flex-col bg-stone-100 text-stone-950">
+      <header className="shrink-0 border-b border-border bg-stone-100 px-6 pt-6 pb-4 sm:px-10 sm:pt-8 lg:px-14">
+        <nav
+          aria-label="Primary"
+          className="mx-auto flex max-w-5xl items-center gap-6 sm:gap-8"
+        >
+          {navItems.map((item) => (
+            <NavItem
+              key={item}
+              active={item === active}
+              onClick={() => setActive(item)}
+            >
+              {item}
+            </NavItem>
+          ))}
+
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(true)}
+            className="ml-auto -mr-2 flex items-center gap-2 rounded-full py-1 pl-3 pr-1 text-sm font-medium text-stone-600 transition-colors hover:bg-stone-200 hover:text-stone-950"
+          >
+            <span>Jane Doe</span>
+            <Avatar initials="JD" alt="Jane Doe" size="xs" />
+          </button>
+        </nav>
+      </header>
+
+      <div className="flex-1 overflow-y-auto">
+        <article className="mx-auto flex min-h-full max-w-5xl flex-col justify-center px-6 py-16 sm:px-10 sm:py-20 lg:px-14 lg:py-24">
           <Eyebrow>{section.eyebrow}</Eyebrow>
           <Display as="h1" size="7xl" className="mt-6 max-w-4xl">
             {section.title}
@@ -84,10 +93,10 @@ function AppShell() {
           <DefinitionList items={section.notes} columns={3} className="pt-8" />
         </article>
 
-        <footer className="border-t border-border pt-4 pb-2">
+        <footer className="mx-auto max-w-5xl border-t border-border px-6 pt-4 pb-2 sm:px-10 lg:px-14">
           <Stack direction="horizontal" gap="lg">
             <Caption className="text-stone-600">
-              <Kbd>1</Kbd> <Kbd>2</Kbd> <Kbd>3</Kbd> switch sections
+              <Kbd>1</Kbd> <Kbd>2</Kbd> switch sections
             </Caption>
             <Caption className="text-stone-600">
               <Kbd>?</Kbd> shortcuts

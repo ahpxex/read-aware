@@ -17,7 +17,7 @@ import {
   Stack,
 } from "../components";
 
-const navItems = ["shelf", "context", "settings"] as const;
+const navItems = ["shelf", "context"] as const;
 
 interface Book {
   id: string;
@@ -66,17 +66,17 @@ function ShelfScreen() {
   const [search, setSearch] = useState("");
 
   return (
-    <main className="min-h-screen bg-stone-100 text-stone-950">
-      <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-6 sm:px-10 sm:py-8 lg:px-14">
-        <header className="border-b border-border pb-4">
-          <nav aria-label="Primary" className="flex flex-wrap gap-6 sm:gap-8">
-            {navItems.map((item) => (
-              <NavItem key={item} active={item === "shelf"}>{item}</NavItem>
-            ))}
-          </nav>
-        </header>
+    <main className="flex h-screen flex-col bg-stone-100 text-stone-950">
+      <header className="shrink-0 border-b border-border bg-stone-100 px-6 pt-6 pb-4 sm:px-10 sm:pt-8 lg:px-14">
+        <nav aria-label="Primary" className="mx-auto flex max-w-5xl flex-wrap gap-6 sm:gap-8">
+          {navItems.map((item) => (
+            <NavItem key={item} active={item === "shelf"}>{item}</NavItem>
+          ))}
+        </nav>
+      </header>
 
-        <div className="py-8">
+      <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-5xl px-6 py-8 sm:px-10 lg:px-14">
           <Stack direction="horizontal" gap="md" className="items-end justify-between">
             <div className="max-w-sm flex-1">
               <TextField
@@ -97,31 +97,31 @@ function ShelfScreen() {
               />
             </Stack>
           </Stack>
+
+          <section className="mt-4">
+            <Eyebrow>Currently Reading</Eyebrow>
+            <div className="mt-4">
+              {currentlyReading.map((book, i) => (
+                <div key={book.id}>
+                  <BookRow book={book} />
+                  {i < currentlyReading.length - 1 && <Divider />}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="mt-16">
+            <Eyebrow>Up Next</Eyebrow>
+            <div className="mt-4">
+              {upNext.map((book, i) => (
+                <div key={book.id}>
+                  <BookRow book={book} />
+                  {i < upNext.length - 1 && <Divider />}
+                </div>
+              ))}
+            </div>
+          </section>
         </div>
-
-        <section className="mt-4">
-          <Eyebrow>Currently Reading</Eyebrow>
-          <div className="mt-4">
-            {currentlyReading.map((book, i) => (
-              <div key={book.id}>
-                <BookRow book={book} />
-                {i < currentlyReading.length - 1 && <Divider />}
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="mt-16">
-          <Eyebrow>Up Next</Eyebrow>
-          <div className="mt-4">
-            {upNext.map((book, i) => (
-              <div key={book.id}>
-                <BookRow book={book} />
-                {i < upNext.length - 1 && <Divider />}
-              </div>
-            ))}
-          </div>
-        </section>
       </div>
     </main>
   );
@@ -129,23 +129,21 @@ function ShelfScreen() {
 
 function EmptyShelf() {
   return (
-    <main className="min-h-screen bg-stone-100 text-stone-950">
-      <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-6 sm:px-10 sm:py-8 lg:px-14">
-        <header className="border-b border-border pb-4">
-          <nav aria-label="Primary" className="flex flex-wrap gap-6 sm:gap-8">
-            {navItems.map((item) => (
-              <NavItem key={item} active={item === "shelf"}>{item}</NavItem>
-            ))}
-          </nav>
-        </header>
+    <main className="flex h-screen flex-col bg-stone-100 text-stone-950">
+      <header className="shrink-0 border-b border-border bg-stone-100 px-6 pt-6 pb-4 sm:px-10 sm:pt-8 lg:px-14">
+        <nav aria-label="Primary" className="mx-auto flex max-w-5xl flex-wrap gap-6 sm:gap-8">
+          {navItems.map((item) => (
+            <NavItem key={item} active={item === "shelf"}>{item}</NavItem>
+          ))}
+        </nav>
+      </header>
 
-        <div className="flex flex-1 items-center justify-center">
-          <EmptyState
-            title="Nothing on the shelf yet"
-            description="Add your first book to start building your reading collection."
-            action={<Button>Add a book</Button>}
-          />
-        </div>
+      <div className="flex flex-1 items-center justify-center overflow-y-auto">
+        <EmptyState
+          title="Nothing on the shelf yet"
+          description="Add your first book to start building your reading collection."
+          action={<Button>Add a book</Button>}
+        />
       </div>
     </main>
   );

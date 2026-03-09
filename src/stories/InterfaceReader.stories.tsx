@@ -25,19 +25,21 @@ const chapterText = [
 
 function ReaderScreen() {
   return (
-    <main className="min-h-screen bg-stone-100 text-stone-950">
-      <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-6 sm:px-10 sm:py-8 lg:px-14">
-        <header className="border-b border-border pb-4">
-          <nav aria-label="Primary" className="flex flex-wrap gap-6 sm:gap-8">
-            {navItems.map((item) => (
-              <NavItem key={item}>{item}</NavItem>
-            ))}
-          </nav>
-        </header>
+    <main className="flex h-screen flex-col bg-stone-100 text-stone-950">
+      <header className="shrink-0 border-b border-border bg-stone-100 px-6 pt-6 pb-4 sm:px-10 sm:pt-8 lg:px-14">
+        <nav aria-label="Primary" className="mx-auto flex max-w-5xl flex-wrap gap-6 sm:gap-8">
+          {navItems.map((item) => (
+            <NavItem key={item}>{item}</NavItem>
+          ))}
+        </nav>
+      </header>
 
-        <Progress value={64} size="sm" className="mt-1" />
+      <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-5xl px-6 sm:px-10 lg:px-14">
+          <Progress value={64} size="sm" className="mt-1" />
+        </div>
 
-        <div className="mx-auto w-full max-w-2xl flex-1 py-12 sm:py-16">
+        <div className="mx-auto w-full max-w-2xl flex-1 px-6 py-12 sm:px-10 sm:py-16">
           <Breadcrumb
             items={[
               { label: "Shelf", onClick: () => {} },

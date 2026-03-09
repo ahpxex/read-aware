@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { useId, type ReactNode, Children, cloneElement, isValidElement } from "react";
 import { cn } from "./lib/cn";
 
 const sideClasses = {
@@ -21,10 +21,21 @@ export function Tooltip({
   children,
   className,
 }: TooltipProps) {
+  const id = useId();
+  const tooltipId = `${id}-tooltip`;
+
+  // Clone the child to inject aria-describedby
+  const child = Children.only(children);
+  const trigger =
+    isValidElement<Record<string, unknown>>(child)
+      ? cloneElement(child, { "aria-describedby": tooltipId } as Record<string, unknown>)
+      : child;
+
   return (
     <span className={cn("group relative inline-flex", className)}>
-      {children}
+      {trigger}
       <span
+        id={tooltipId}
         role="tooltip"
         className={cn(
           "pointer-events-none absolute z-50 whitespace-nowrap rounded bg-stone-950 px-2 py-1 text-xs text-paper opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100",

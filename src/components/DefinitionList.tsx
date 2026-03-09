@@ -1,8 +1,9 @@
+import { type ReactNode } from "react";
 import { cn } from "./lib/cn";
 
 type DefinitionItem = {
   label: string;
-  value: string;
+  value: ReactNode;
 };
 
 type DefinitionListProps = {

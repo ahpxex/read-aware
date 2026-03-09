@@ -46,7 +46,7 @@ export function Progress({
         aria-valuenow={value}
         aria-valuemin={0}
         aria-valuemax={max}
-        aria-label={label}
+        aria-label={label ?? "Progress"}
         className={cn("w-full overflow-hidden rounded-full bg-stone-200", sizeClasses[size])}
       >
         <div

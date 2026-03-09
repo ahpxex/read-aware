@@ -5,10 +5,11 @@ type TagProps = {
   children: ReactNode;
   variant?: "default" | "outline";
   onRemove?: () => void;
+  removeLabel?: string;
   className?: string;
 };
 
-export function Tag({ children, variant = "default", onRemove, className }: TagProps) {
+export function Tag({ children, variant = "default", onRemove, removeLabel, className }: TagProps) {
   return (
     <span
       className={cn(
@@ -23,7 +24,7 @@ export function Tag({ children, variant = "default", onRemove, className }: TagP
         <button
           type="button"
           onClick={onRemove}
-          aria-label="Remove"
+          aria-label={removeLabel ?? `Remove ${typeof children === "string" ? children : ""}`}
           className="ml-0.5 text-stone-400 hover:text-stone-700"
         >
           <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">

@@ -17,7 +17,8 @@
     "clsx": "^2.1.1",
     "jotai": "^2.18.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^5.0.1",

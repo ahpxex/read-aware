@@ -169,9 +169,8 @@ export function Select({
           <span className="truncate">{displayText}</span>
           <svg
             className={cn(
-              "h-4 w-4 shrink-0 text-stone-400 transition-transform",
+              "ml-2 h-4 w-4 shrink-0 text-stone-400 transition-transform",
               open && "rotate-180",
-              variant === "underline" ? "ml-2" : "ml-2",
             )}
             viewBox="0 0 16 16"
             fill="none"

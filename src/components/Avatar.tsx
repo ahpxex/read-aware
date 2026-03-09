@@ -34,6 +34,24 @@ export function Avatar({
 }: AvatarProps) {
   const fallback = initials ?? (alt ? getInitials(alt) : "?");
 
+  if (src) {
+    return (
+      <span
+        className={cn(
+          "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-200",
+          sizeClasses[size],
+          className,
+        )}
+      >
+        <img
+          src={src}
+          alt={alt ?? "Avatar"}
+          className="h-full w-full object-cover"
+        />
+      </span>
+    );
+  }
+
   return (
     <span
       className={cn(
@@ -44,15 +62,7 @@ export function Avatar({
       role="img"
       aria-label={alt ?? initials ?? "Avatar"}
     >
-      {src ? (
-        <img
-          src={src}
-          alt={alt ?? ""}
-          className="h-full w-full object-cover"
-        />
-      ) : (
-        fallback
-      )}
+      {fallback}
     </span>
   );
 }

@@ -10,6 +10,7 @@ export { Button } from "./Button";
 export { Accordion } from "./Accordion";
 export { Avatar } from "./Avatar";
 export { Badge } from "./Badge";
+export { Breadcrumb } from "./Breadcrumb";
 export { Card } from "./Card";
 export { NavItem } from "./NavItem";
 export { Divider } from "./Divider";

@@ -34,3 +34,4 @@ export { Checkbox } from "./Checkbox";
 export { Radio } from "./Radio";
 export { Alert } from "./Alert";
 export { Tag } from "./Tag";
+export { DropdownMenu } from "./DropdownMenu";

@@ -35,7 +35,7 @@ export function Progress({
             </span>
           )}
           {showValue && (
-            <span className="font-sans text-caption text-stone-500">
+            <span className="font-sans text-caption text-stone-600">
               {Math.round(percent)}%
             </span>
           )}

@@ -13,7 +13,7 @@ export function Caption<T extends ElementType = "span">({
   const Tag = (as || "span") as ElementType;
   return (
     <Tag
-      className={cn("font-sans text-caption text-stone-500", className)}
+      className={cn("font-sans text-caption text-stone-600", className)}
       {...props}
     />
   );

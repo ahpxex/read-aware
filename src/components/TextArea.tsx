@@ -60,7 +60,7 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
           </p>
         )}
         {!hasError && helperText && (
-          <p id={`${id}-helper`} className="text-[11px] leading-tight text-stone-500">
+          <p id={`${id}-helper`} className="text-[11px] leading-tight text-stone-600">
             {helperText}
           </p>
         )}

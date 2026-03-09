@@ -54,14 +54,14 @@ export function Tabs({
                     "-mb-px border-b-2 pb-3",
                     isActive
                       ? "border-stone-950 text-stone-950"
-                      : "border-transparent text-stone-500 hover:text-stone-700",
+                      : "border-transparent text-stone-600 hover:text-stone-700",
                   ),
                 variant === "pill" &&
                   cn(
                     "rounded px-3 py-1.5",
                     isActive
                       ? "bg-paper text-stone-950"
-                      : "text-stone-500 hover:text-stone-700",
+                      : "text-stone-600 hover:text-stone-700",
                   ),
               )}
             >

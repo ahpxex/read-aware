@@ -40,7 +40,7 @@ export function Breadcrumb({
                 <a
                   href={item.href}
                   className={cn(
-                    "text-stone-500 transition-colors hover:text-stone-950",
+                    "text-stone-600 transition-colors hover:text-stone-950",
                     "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950",
                   )}
                 >
@@ -51,7 +51,7 @@ export function Breadcrumb({
                   type="button"
                   onClick={item.onClick}
                   className={cn(
-                    "bg-transparent p-0 text-stone-500 transition-colors hover:text-stone-950",
+                    "bg-transparent p-0 text-stone-600 transition-colors hover:text-stone-950",
                     "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950",
                   )}
                 >

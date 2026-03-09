@@ -84,7 +84,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
           </p>
         )}
         {!hasError && helperText && (
-          <p id={`${id}-helper`} className="text-[11px] leading-tight text-stone-500">
+          <p id={`${id}-helper`} className="text-[11px] leading-tight text-stone-600">
             {helperText}
           </p>
         )}

@@ -29,3 +29,4 @@ export { Tabs } from "./Tabs";
 export { Dialog } from "./Dialog";
 export { Tooltip } from "./Tooltip";
 export { Sidebar } from "./Sidebar";
+export { Spinner } from "./Spinner";

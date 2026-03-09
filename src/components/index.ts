@@ -8,6 +8,7 @@ export { Caption } from "./typography/Caption";
 // Components
 export { Button } from "./Button";
 export { Avatar } from "./Avatar";
+export { Card } from "./Card";
 export { NavItem } from "./NavItem";
 export { Divider } from "./Divider";
 export { TextField } from "./TextField";

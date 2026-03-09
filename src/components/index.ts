@@ -15,6 +15,7 @@ export { Card } from "./Card";
 export { NavItem } from "./NavItem";
 export { Progress } from "./Progress";
 export { Divider } from "./Divider";
+export { EmptyState } from "./EmptyState";
 export { TextField } from "./TextField";
 export { TextArea } from "./TextArea";
 export { Select } from "./Select";

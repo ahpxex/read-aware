@@ -1,7 +1,7 @@
 import { atom } from "jotai";
 
-export const focusTags = ["feature", "bug", "reader", "context", "desktop"] as const;
+export const topNavs = ["shelf", "context", "settings"] as const;
 
-export type FocusTag = (typeof focusTags)[number];
+export type TopNav = (typeof topNavs)[number];
 
-export const focusTagAtom = atom<FocusTag>("feature");
+export const activeTopNavAtom = atom<TopNav>("shelf");

@@ -1,117 +1,133 @@
 import { useAtom } from "jotai";
-import { focusTagAtom, focusTags } from "./state/ui";
+import { activeTopNavAtom, topNavs } from "./state/ui";
 
-const checkItems = [
-  "Tailwind utility classes are rendering",
-  "Responsive layout is active",
-  "Tauri + React shell is ready",
-];
-
-const focusCopy = {
-  feature: "Feature work can now be modeled with lightweight global state before you build the real reader flows.",
-  bug: "Bug triage views can share status across panels without prop drilling once Jotai atoms become your UI backbone.",
-  reader: "Reader-level preferences like density, theme, or reading mode fit naturally into small focused atoms.",
-  context: "Context state can be split into composable atoms so retrieval, notes, and highlights stay easy to reason about.",
-  desktop: "Desktop-specific UI state for Tauri windows and panels can stay local, explicit, and easy to test.",
-} satisfies Record<(typeof focusTags)[number], string>;
+const sectionCopy = {
+  shelf: {
+    eyebrow: "Shelf",
+    title: "A shelf that reads with the restraint of a printed page.",
+    body:
+      "The layout stays quiet so the collection can breathe. Titles, sequence, and open margins do the work without decorative chrome competing for attention.",
+    notes: [
+      {
+        label: "Rhythm",
+        value: "Wide spacing and a single left edge make the reading list easy to scan.",
+      },
+      {
+        label: "Surface",
+        value: "A paper-toned canvas replaces cards, glow, and extra containers.",
+      },
+      {
+        label: "Signal",
+        value: "Typography carries hierarchy so the interface can stay visually spare.",
+      },
+    ],
+  },
+  context: {
+    eyebrow: "Context",
+    title: "Context stays nearby, but never louder than the text itself.",
+    body:
+      "Supporting material sits in a calm, editorial frame. The emphasis stays on comprehension, with just enough structure to orient the reader when they need it.",
+    notes: [
+      {
+        label: "Placement",
+        value: "Contextual details sit in sequence instead of competing side panels.",
+      },
+      {
+        label: "Tone",
+        value: "The palette remains monochrome and warm, without gradients or accent glare.",
+      },
+      {
+        label: "Focus",
+        value: "Each block is shortened to the essentials so interpretation feels effortless.",
+      },
+    ],
+  },
+  settings: {
+    eyebrow: "Settings",
+    title: "Settings recede until they are needed.",
+    body:
+      "Preferences are presented as quiet editorial controls rather than a dashboard. The result feels deliberate, lightweight, and appropriately secondary to reading.",
+    notes: [
+      {
+        label: "Priority",
+        value: "Controls are demoted visually so content keeps the first and last word.",
+      },
+      {
+        label: "Language",
+        value: "Short labels and direct copy keep the interface clear without extra explanation.",
+      },
+      {
+        label: "Restraint",
+        value: "No badges, gradients, or ornamental highlights distract from the core tasks.",
+      },
+    ],
+  },
+} satisfies Record<
+  (typeof topNavs)[number],
+  {
+    eyebrow: string;
+    title: string;
+    body: string;
+    notes: Array<{
+      label: string;
+      value: string;
+    }>;
+  }
+>;
 
 function App() {
-  const [focusTag, setFocusTag] = useAtom(focusTagAtom);
+  const [activeTopNav, setActiveTopNav] = useAtom(activeTopNavAtom);
+  const activeSection = sectionCopy[activeTopNav];
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto flex min-h-screen max-w-6xl flex-col justify-center px-6 py-12">
-        <section className="overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl shadow-cyan-950/40 backdrop-blur">
-          <div className="border-b border-white/10 bg-gradient-to-r from-cyan-400/20 via-sky-400/10 to-transparent px-8 py-8 sm:px-10">
-            <div className="mb-4 flex flex-wrap gap-3 text-xs font-medium uppercase tracking-[0.22em] text-cyan-200/80">
-              <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1">Tauri</span>
-              <span className="rounded-full border border-sky-300/20 bg-sky-300/10 px-3 py-1">React</span>
-              <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1">Tailwind CSS</span>
-            </div>
+    <main className="min-h-screen bg-stone-100 text-stone-950">
+      <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-6 sm:px-10 sm:py-8 lg:px-14">
+        <header className="border-b border-stone-900/10 pb-4">
+          <nav aria-label="Primary" className="flex flex-wrap gap-6 sm:gap-8">
+            {topNavs.map((item) => {
+              const isActive = item === activeTopNav;
 
-            <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-              Tailwind is installed and styling your ReadAware shell.
-            </h1>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
-              This screen uses utility classes only, so if you see the gradient, spacing,
-              rounded surfaces, and badges below, the Tailwind setup is working.
-            </p>
-          </div>
+              return (
+                <button
+                  key={item}
+                  type="button"
+                  aria-current={isActive ? "page" : undefined}
+                  onClick={() => setActiveTopNav(item)}
+                  className={
+                    isActive
+                      ? "bg-transparent p-0 text-[11px] font-medium uppercase tracking-[0.28em] text-stone-950"
+                      : "bg-transparent p-0 text-[11px] font-medium uppercase tracking-[0.28em] text-stone-500 transition-colors hover:text-stone-950"
+                  }
+                >
+                  {item}
+                </button>
+              );
+            })}
+          </nav>
+        </header>
 
-          <div className="grid gap-6 px-8 py-8 sm:px-10 lg:grid-cols-[1.2fr_0.8fr]">
-            <section className="rounded-2xl border border-white/10 bg-slate-900/70 p-6">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-medium text-slate-400">Installation status</p>
-                  <h2 className="mt-1 text-2xl font-semibold text-white">Ready for Tailwind-driven UI work</h2>
-                </div>
-                <div className="inline-flex items-center rounded-full bg-emerald-400/15 px-3 py-1 text-sm font-medium text-emerald-300 ring-1 ring-inset ring-emerald-400/30">
-                  Success
-                </div>
+        <article className="flex flex-1 flex-col justify-center py-16 sm:py-20 lg:py-24">
+          <p className="text-[11px] uppercase tracking-[0.28em] text-stone-500">
+            {activeSection.eyebrow}
+          </p>
+          <h1 className="mt-6 max-w-4xl font-serif text-5xl leading-[0.98] tracking-tight text-stone-950 sm:text-6xl lg:text-7xl">
+            {activeSection.title}
+          </h1>
+          <p className="mt-8 max-w-2xl text-base leading-8 text-stone-700 sm:text-lg">
+            {activeSection.body}
+          </p>
+
+          <dl className="mt-16 grid gap-8 border-t border-stone-900/10 pt-8 sm:grid-cols-3 sm:gap-10">
+            {activeSection.notes.map((note) => (
+              <div key={note.label}>
+                <dt className="text-[11px] font-medium uppercase tracking-[0.28em] text-stone-500">
+                  {note.label}
+                </dt>
+                <dd className="mt-3 text-sm leading-7 text-stone-800">{note.value}</dd>
               </div>
-
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                {checkItems.map((item) => (
-                  <div
-                    key={item}
-                    className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200 shadow-lg shadow-slate-950/30"
-                  >
-                    <div className="mb-3 h-2 w-16 rounded-full bg-gradient-to-r from-cyan-400 to-sky-400" />
-                    {item}
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 flex flex-wrap gap-2">
-                {focusTags.map((chip) => (
-                  <button
-                    key={chip}
-                    type="button"
-                    onClick={() => setFocusTag(chip)}
-                    className={
-                      focusTag === chip
-                        ? "rounded-full border border-cyan-300/30 bg-cyan-300/15 px-3 py-1 text-sm text-cyan-100 transition"
-                        : "rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-slate-300 transition hover:border-cyan-300/20 hover:text-cyan-100"
-                    }
-                  >
-                    #{chip}
-                  </button>
-                ))}
-              </div>
-
-              <div className="mt-6 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm leading-6 text-cyan-50">
-                <div className="text-xs font-medium uppercase tracking-[0.22em] text-cyan-200/80">
-                  Jotai atom state
-                </div>
-                <div className="mt-2 text-base font-semibold text-white">Current focus: #{focusTag}</div>
-                <p className="mt-2 text-sm text-cyan-50/90">{focusCopy[focusTag]}</p>
-              </div>
-            </section>
-
-            <aside className="rounded-2xl border border-white/10 bg-slate-900/70 p-6">
-              <p className="text-sm font-medium text-slate-400">What changed</p>
-              <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-300">
-                <li className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-                  Added Tailwind’s official Vite plugin.
-                </li>
-                <li className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-                  Added Jotai and connected a simple atom-driven UI state.
-                </li>
-                <li className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-                  Imported Tailwind from a single app-wide stylesheet.
-                </li>
-                <li className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-                  Removed the default Tauri starter content.
-                </li>
-              </ul>
-
-              <div className="mt-6 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm text-cyan-100">
-                Next up, you can start replacing this validation screen with the actual
-                reader layout.
-              </div>
-            </aside>
-          </div>
-        </section>
+            ))}
+          </dl>
+        </article>
       </div>
     </main>
   );

@@ -9,6 +9,7 @@ export { Caption } from "./typography/Caption";
 export { Button } from "./Button";
 export { Accordion } from "./Accordion";
 export { Avatar } from "./Avatar";
+export { Badge } from "./Badge";
 export { Card } from "./Card";
 export { NavItem } from "./NavItem";
 export { Divider } from "./Divider";

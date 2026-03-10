@@ -62,7 +62,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
               "w-full bg-transparent font-sans text-base text-stone-950 outline-none placeholder:text-stone-400",
               variant === "underline" &&
                 cn(
-                  "border-b pb-2",
+                  "border-b pt-2 pb-2",
                   hasError
                     ? "border-red-400 focus:border-red-600"
                     : "border-border focus:border-stone-950",

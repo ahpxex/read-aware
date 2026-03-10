@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { useAtom } from "jotai";
 import { settingsOpenAtom } from "./state/ui";
-import { Avatar, TextField } from "./components";
+import { Avatar, Body, Button, Dialog } from "./components";
 import { SettingsView } from "./features/settings/SettingsView";
 import { Shelf } from "./features/shelf/components/Shelf";
 import type { Book } from "./features/shelf/components/BookCover";
@@ -32,6 +33,7 @@ const shelfSections = [
 
 function App() {
   const [settingsOpen, setSettingsOpen] = useAtom(settingsOpenAtom);
+  const [askOpen, setAskOpen] = useState(false);
 
   if (settingsOpen) {
     return <SettingsView onBack={() => setSettingsOpen(false)} />;
@@ -41,29 +43,26 @@ function App() {
     <main className="flex h-screen flex-col bg-stone-100 text-stone-950">
       <header className="shrink-0 border-b border-border bg-stone-100 px-6 pt-6 pb-4 sm:px-10 sm:pt-8 lg:px-14">
         <div className="mx-auto flex max-w-5xl items-center gap-6 sm:gap-8">
-          <div className="max-w-96">
-            <TextField
-              label=""
-              aria-label="Ask anything"
-              variant="underline"
-              placeholder="Ask anything..."
-              leadingIcon={
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                >
-                  <circle cx="7" cy="7" r="4.5" />
-                  <path d="M10.5 10.5L14 14" />
-                </svg>
-              }
-            />
-          </div>
+          <Button variant="ghost" size="sm">Import</Button>
 
-          <div className="ml-auto" />
+          <button
+            type="button"
+            onClick={() => setAskOpen(true)}
+            className="mx-auto flex w-full max-w-96 items-center gap-2 rounded-md border border-border bg-transparent px-3 py-2 text-base text-stone-400 transition-colors hover:border-stone-950"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
+              <circle cx="7" cy="7" r="4.5" />
+              <path d="M10.5 10.5L14 14" />
+            </svg>
+            <span>Ask anything...</span>
+          </button>
 
           <button
             type="button"
@@ -81,6 +80,10 @@ function App() {
           <Shelf sections={shelfSections} />
         </div>
       </div>
+
+      <Dialog open={askOpen} onClose={() => setAskOpen(false)} title="Ask anything">
+        <Body>This feature is coming soon.</Body>
+      </Dialog>
     </main>
   );
 }

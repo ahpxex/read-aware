@@ -76,10 +76,10 @@ function App() {
         <div className="flex select-none items-center justify-center py-1 text-[10px] font-medium tracking-eyebrow text-stone-400">
           ReadAware
         </div>
-        <header className="px-6 pt-3 pb-3 sm:px-10 sm:pt-4 sm:pb-4 lg:px-14">
+        <header className="pt-3 pb-3 sm:pt-4 sm:pb-4">
           <nav
             aria-label="Primary"
-            className="mx-auto flex max-w-5xl items-center gap-6 sm:gap-8"
+            className="mx-auto flex max-w-5xl items-center gap-6 px-6 sm:gap-8 sm:px-10 lg:px-14"
           >
             {topNavs.map((item) => (
               <NavItem

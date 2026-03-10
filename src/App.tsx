@@ -1,8 +1,16 @@
-import { useState, type MouseEvent } from "react";
+import { type MouseEvent } from "react";
 import { useAtom } from "jotai";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { settingsOpenAtom } from "./state/ui";
-import { Body, Button, Dialog } from "./components";
+import { activeTopNavAtom, settingsOpenAtom, topNavs } from "./state/ui";
+import {
+  Display,
+  Body,
+  Eyebrow,
+  NavItem,
+  Divider,
+  DefinitionList,
+  Button,
+} from "./components";
 import { SettingsView } from "./features/settings/SettingsView";
 import { Shelf } from "./features/shelf/components/Shelf";
 import type { Book } from "./features/shelf/components/BookCover";
@@ -32,9 +40,20 @@ const shelfSections = [
   { label: "Finished", books: finished },
 ];
 
+const contextCopy = {
+  eyebrow: "Context",
+  title: "Context stays nearby, but never louder than the text itself.",
+  body: "Supporting material sits in a calm, editorial frame. The emphasis stays on comprehension, with just enough structure to orient the reader when they need it.",
+  notes: [
+    { label: "Placement", value: "Contextual details sit in sequence instead of competing side panels." },
+    { label: "Tone", value: "The palette remains monochrome and warm, without gradients or accent glare." },
+    { label: "Focus", value: "Each block is shortened to the essentials so interpretation feels effortless." },
+  ],
+};
+
 function App() {
+  const [activeTopNav, setActiveTopNav] = useAtom(activeTopNavAtom);
   const [settingsOpen, setSettingsOpen] = useAtom(settingsOpenAtom);
-  const [askOpen, setAskOpen] = useState(false);
 
   if (settingsOpen) {
     return <SettingsView onBack={() => setSettingsOpen(false)} />;
@@ -54,42 +73,51 @@ function App() {
           }
         }}
       >
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-6 sm:gap-8">
-          <button
-            type="button"
-            onClick={() => setAskOpen(true)}
-            className="flex w-full max-w-lg items-center gap-2 rounded-md border border-border bg-transparent px-3 py-2 text-base text-stone-400 transition-colors hover:border-stone-950"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
+        <nav
+          aria-label="Primary"
+          className="mx-auto flex max-w-5xl items-center gap-6 sm:gap-8"
+        >
+          {topNavs.map((item) => (
+            <NavItem
+              key={item}
+              active={item === activeTopNav}
+              onClick={() => setActiveTopNav(item)}
             >
-              <circle cx="7" cy="7" r="4.5" />
-              <path d="M10.5 10.5L14 14" />
-            </svg>
-            <span>Ask anything...</span>
-          </button>
+              {item}
+            </NavItem>
+          ))}
 
-          <div className="flex items-center gap-4">
+          <div className="ml-auto flex items-center gap-4">
             <Button variant="ghost" size="sm">Import</Button>
             <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>Settings</Button>
           </div>
-        </div>
+        </nav>
       </header>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-5xl px-6 py-8 sm:px-10 sm:py-10 lg:px-14">
-          <Shelf sections={shelfSections} />
-        </div>
-      </div>
+        {activeTopNav === "shelf" ? (
+          <div className="mx-auto max-w-5xl px-6 py-8 sm:px-10 sm:py-10 lg:px-14">
+            <Shelf sections={shelfSections} />
+          </div>
+        ) : (
+          <article className="mx-auto flex min-h-full max-w-5xl flex-col justify-center px-6 py-16 sm:px-10 sm:py-20 lg:px-14 lg:py-24">
+            <Eyebrow>{contextCopy.eyebrow}</Eyebrow>
+            <Display as="h1" size="7xl" className="mt-6 max-w-4xl">
+              {contextCopy.title}
+            </Display>
+            <Body size="lg" className="mt-8 max-w-2xl">
+              {contextCopy.body}
+            </Body>
 
-      <Dialog open={askOpen} onClose={() => setAskOpen(false)} title="Ask anything">
-        <Body>This feature is coming soon.</Body>
-      </Dialog>
+            <Divider className="mt-16" />
+            <DefinitionList
+              items={contextCopy.notes}
+              columns={3}
+              className="pt-8"
+            />
+          </article>
+        )}
+      </div>
     </main>
   );
 }

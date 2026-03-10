@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAtom } from "jotai";
 import { settingsOpenAtom } from "./state/ui";
-import { Avatar, Body, Button, Dialog } from "./components";
+import { Body, Button, Dialog } from "./components";
 import { SettingsView } from "./features/settings/SettingsView";
 import { Shelf } from "./features/shelf/components/Shelf";
 import type { Book } from "./features/shelf/components/BookCover";
@@ -43,12 +43,10 @@ function App() {
     <main className="flex h-screen flex-col bg-stone-100 text-stone-950">
       <header className="shrink-0 border-b border-border bg-stone-100 px-6 pt-6 pb-4 sm:px-10 sm:pt-8 lg:px-14">
         <div className="mx-auto flex max-w-5xl items-center gap-6 sm:gap-8">
-          <Button variant="ghost" size="sm">Import</Button>
-
           <button
             type="button"
             onClick={() => setAskOpen(true)}
-            className="mx-auto flex w-full max-w-96 items-center gap-2 rounded-md border border-border bg-transparent px-3 py-2 text-base text-stone-400 transition-colors hover:border-stone-950"
+            className="flex w-full max-w-96 items-center justify-center gap-2 rounded-md border border-border bg-transparent px-3 py-2 text-base text-stone-400 transition-colors hover:border-stone-950"
           >
             <svg
               width="16"
@@ -64,14 +62,10 @@ function App() {
             <span>Ask anything...</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setSettingsOpen(true)}
-            className="-mr-2 flex items-center gap-2 rounded-full py-1 pl-3 pr-1 text-sm font-medium text-stone-600 transition-colors hover:bg-stone-200 hover:text-stone-950"
-          >
-            <span>Jane Doe</span>
-            <Avatar initials="JD" alt="Jane Doe" size="xs" />
-          </button>
+          <div className="ml-auto flex items-center gap-4">
+            <Button variant="ghost" size="sm">Import</Button>
+            <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>Settings</Button>
+          </div>
         </div>
       </header>
 

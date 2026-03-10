@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 import { useAtom } from "jotai";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { settingsOpenAtom } from "./state/ui";
 import { Body, Button, Dialog } from "./components";
 import { SettingsView } from "./features/settings/SettingsView";
@@ -41,7 +42,18 @@ function App() {
 
   return (
     <main className="flex h-screen flex-col bg-stone-100 text-stone-950">
-      <header className="shrink-0 border-b border-border bg-stone-100 px-6 py-3 sm:px-10 sm:py-4 lg:px-14">
+      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
+      <header
+        className="shrink-0 border-b border-border bg-stone-100 py-3 pr-6 pl-20 sm:py-4 sm:pr-10 lg:pr-14"
+        onMouseDown={(e: MouseEvent<HTMLElement>) => {
+          const tag = (e.target as HTMLElement).closest("button, a, input");
+          if (e.buttons === 1 && !tag) {
+            e.detail === 2
+              ? getCurrentWindow().toggleMaximize()
+              : getCurrentWindow().startDragging();
+          }
+        }}
+      >
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-6 sm:gap-8">
           <button
             type="button"

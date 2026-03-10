@@ -10,6 +10,75 @@
 - Bundler: `Vite`
 - Package manager: `bun`
 
+## AI Architecture Decisions
+
+- Product architecture: single-agent system
+- User experience: one persistent chat surface, not multiple conversation windows like ChatGPT
+- System model: memory-first, not transcript-first
+- Agent backend: `Python + LangGraph`
+- Frontend app shell: `React + TypeScript + Tauri`
+- Primary database: `Postgres`
+- Semantic memory retrieval layer: `Qdrant`
+
+### Agent Model
+
+- ReadAware uses one core agent that orchestrates the product's intelligence
+- This agent is responsible for:
+  - building and updating the user's profile
+  - updating user memory over time
+  - retrieving relevant book notes, highlights, and prior conversations
+  - assembling the right context for the current reading moment
+- Do not model the product as multiple user-visible agents unless the product direction explicitly changes
+
+### Memory and Context
+
+- The core system problem is memory management, not chat history management
+- User-visible chat should feel continuous, but the backend should not rely on dumping all prior messages into the prompt
+- Treat chat transcripts as raw source material, not as the memory layer itself
+- Memory should be modeled in layers:
+  - raw events
+  - working memory
+  - long-term user memory
+  - book / highlight / note memory
+  - exportable context bundles
+- Memory retrieval should consider more than semantic similarity, including:
+  - relevance to the current reading goal
+  - recency
+  - importance
+  - explicit user feedback
+  - repeated appearance across books or conversations
+
+### Storage Responsibilities
+
+- `Postgres` is the source of truth for structured application data:
+  - users
+  - books
+  - highlights
+  - notes
+  - chat events
+  - memory metadata
+  - context bundle versions
+- `Qdrant` is used for semantic retrieval over memories and reading artifacts
+- Do not treat the vector store as the primary database
+
+### Context Portability
+
+- Context must be dynamically updatable
+- Context must be exportable at any time
+- Exported context should be usable by external agents or systems
+- Prefer structured context bundles over ad hoc prompt strings
+- Likely bundle types include:
+  - `user_profile_context`
+  - `reading_intent_context`
+  - `book_memory_context`
+  - `conversation_insights_context`
+
+### Platform Direction
+
+- Do not use no-code / visual agent platforms as the core product architecture
+- Keep the AI layer code-first and product-native
+- Prefer explicit state, explicit memory writes, and explicit retrieval pipelines over opaque agent magic
+
 ## Design System
 
 The component library lives in `src/components/` with co-located Storybook stories. Run `bun run storybook` to browse.

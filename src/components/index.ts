@@ -12,7 +12,6 @@ export { Avatar } from "./Avatar";
 export { Badge } from "./Badge";
 export { Breadcrumb } from "./Breadcrumb";
 export { Card } from "./Card";
-export { NavItem } from "./NavItem";
 export { Progress } from "./Progress";
 export { Divider } from "./Divider";
 export { EmptyState } from "./EmptyState";

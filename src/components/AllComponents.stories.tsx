@@ -11,7 +11,6 @@ import { Avatar } from "./Avatar";
 import { Badge } from "./Badge";
 import { Breadcrumb } from "./Breadcrumb";
 import { Card } from "./Card";
-import { NavItem } from "./NavItem";
 import { Progress } from "./Progress";
 import { Divider } from "./Divider";
 import { EmptyState } from "./EmptyState";
@@ -102,11 +101,6 @@ function AllComponentsShowcase() {
 
       {/* Navigation */}
       <Section title="Navigation">
-        <div className="flex gap-6">
-          <NavItem active>Library</NavItem>
-          <NavItem>Discover</NavItem>
-          <NavItem>Settings</NavItem>
-        </div>
         <Breadcrumb
           items={[
             { label: "Home", href: "#" },

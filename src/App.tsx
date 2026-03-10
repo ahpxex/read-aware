@@ -41,12 +41,12 @@ function App() {
     <main className="flex h-screen flex-col bg-stone-100 text-stone-950">
       <header className="shrink-0 border-b border-border bg-stone-100 px-6 pt-6 pb-4 sm:px-10 sm:pt-8 lg:px-14">
         <div className="mx-auto flex max-w-5xl items-center gap-6 sm:gap-8">
-          <div className="ml-auto max-w-64">
+          <div className="max-w-96">
             <TextField
               label=""
-              aria-label="Search shelf"
-              variant="outlined"
-              placeholder="Search shelf..."
+              aria-label="Ask anything"
+              variant="underline"
+              placeholder="Ask anything..."
               leadingIcon={
                 <svg
                   width="16"
@@ -62,6 +62,8 @@ function App() {
               }
             />
           </div>
+
+          <div className="ml-auto" />
 
           <button
             type="button"

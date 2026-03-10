@@ -62,8 +62,8 @@ function App() {
   return (
     <main className="flex h-screen flex-col bg-stone-100 text-stone-950">
       {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
-      <header
-        className="shrink-0 border-b border-border bg-stone-100 py-3 pr-6 pl-20 sm:py-4 sm:pr-10 lg:pr-14"
+      <div
+        className="shrink-0 border-b border-border bg-stone-100"
         onMouseDown={(e: MouseEvent<HTMLElement>) => {
           const tag = (e.target as HTMLElement).closest("button, a, input");
           if (e.buttons === 1 && !tag) {
@@ -73,26 +73,31 @@ function App() {
           }
         }}
       >
-        <nav
-          aria-label="Primary"
-          className="mx-auto flex max-w-5xl items-center gap-6 sm:gap-8"
-        >
-          {topNavs.map((item) => (
-            <NavItem
-              key={item}
-              active={item === activeTopNav}
-              onClick={() => setActiveTopNav(item)}
-            >
-              {item}
-            </NavItem>
-          ))}
+        <div className="flex select-none items-center justify-center py-1 text-[10px] font-medium tracking-eyebrow text-stone-400">
+          ReadAware
+        </div>
+        <header className="px-6 pt-3 pb-3 sm:px-10 sm:pt-4 sm:pb-4 lg:px-14">
+          <nav
+            aria-label="Primary"
+            className="mx-auto flex max-w-5xl items-center gap-6 sm:gap-8"
+          >
+            {topNavs.map((item) => (
+              <NavItem
+                key={item}
+                active={item === activeTopNav}
+                onClick={() => setActiveTopNav(item)}
+              >
+                {item}
+              </NavItem>
+            ))}
 
-          <div className="ml-auto flex items-center gap-4">
-            <Button variant="ghost" size="sm">Import</Button>
-            <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>Settings</Button>
-          </div>
-        </nav>
-      </header>
+            <div className="ml-auto flex items-center gap-4">
+              <Button variant="ghost" size="sm">Import</Button>
+              <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>Settings</Button>
+            </div>
+          </nav>
+        </header>
+      </div>
 
       <div className="flex-1 overflow-y-auto">
         {activeTopNav === "shelf" ? (

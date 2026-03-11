@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { EpubReaderView } from "./EpubReaderView";
+import demoEpubUrl from "../../../../demo/ElonMusk.epub?url";
 
 const sampleBook = {
   id: "reader-story-book",
@@ -20,11 +21,14 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Empty: Story = {
-  args: {},
+  args: {
+    initialEpubUrl: demoEpubUrl,
+  },
 };
 
 export const FromShelfSelection: Story = {
   args: {
     selectedBook: sampleBook,
+    initialEpubUrl: demoEpubUrl,
   },
 };

@@ -34,6 +34,7 @@ type EpubFactory = (source: ArrayBuffer | string) => EpubBook;
 
 type EpubReaderViewProps = {
   selectedBook?: Book | null;
+  initialEpubUrl?: string;
 };
 
 function formatReaderError(error: unknown) {
@@ -43,6 +44,7 @@ function formatReaderError(error: unknown) {
 
 export function EpubReaderView({
   selectedBook = null,
+  initialEpubUrl,
 }: EpubReaderViewProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -53,6 +55,38 @@ export function EpubReaderView({
   const [isLoading, setIsLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!initialEpubUrl) return;
+
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    void (async () => {
+      try {
+        const response = await fetch(initialEpubUrl);
+        if (!response.ok) {
+          throw new Error(`Unable to fetch EPUB (${response.status})`);
+        }
+
+        const data = await response.arrayBuffer();
+        if (cancelled) return;
+
+        const fileName = initialEpubUrl.split("/").pop() ?? "demo.epub";
+        setLoadedEpub({ fileName, data });
+      } catch (nextError) {
+        if (!cancelled) {
+          setError(formatReaderError(nextError));
+          setIsLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialEpubUrl]);
 
   useEffect(() => {
     const element = viewportRef.current;

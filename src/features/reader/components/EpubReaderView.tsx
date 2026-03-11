@@ -117,6 +117,9 @@ export function EpubReaderView({
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const renditionRef = useRef<EpubRendition | null>(null);
   const lastCfiRef = useRef<string | null>(null);
+  const loadedEpubRef = useRef<LoadedEpub | null>(null);
+  const tocEntriesRef = useRef<TocEntry[]>([]);
+  const currentChapterHrefRef = useRef<string | null>(null);
 
   const [loadedEpub, setLoadedEpub] = useState<LoadedEpub | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -124,6 +127,18 @@ export function EpubReaderView({
   const [tocEntries, setTocEntries] = useState<TocEntry[]>([]);
   const [currentChapterHref, setCurrentChapterHref] = useState<string | null>(null);
   const [isChapterPickerOpen, setIsChapterPickerOpen] = useState(false);
+
+  useEffect(() => {
+    loadedEpubRef.current = loadedEpub;
+  }, [loadedEpub]);
+
+  useEffect(() => {
+    tocEntriesRef.current = tocEntries;
+  }, [tocEntries]);
+
+  useEffect(() => {
+    currentChapterHrefRef.current = currentChapterHref;
+  }, [currentChapterHref]);
 
   useEffect(() => {
     if (!initialEpubUrl) return;
@@ -170,32 +185,9 @@ export function EpubReaderView({
   }, []);
 
   useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (!loadedEpub) return;
-
-      if (event.key.toLowerCase() === "c" && !event.metaKey && !event.ctrlKey && !event.altKey) {
-        event.preventDefault();
-        setIsChapterPickerOpen((open) => !open);
-      }
-
-      if (event.key === "Escape") {
-        setIsChapterPickerOpen(false);
-      }
-
-      if (event.key === "[") {
-        event.preventDefault();
-        void goToAdjacentChapter(-1);
-      }
-
-      if (event.key === "]") {
-        event.preventDefault();
-        void goToAdjacentChapter(1);
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [loadedEpub, tocEntries, currentChapterHref]);
+    window.addEventListener("keydown", handleReaderKeyDown);
+    return () => window.removeEventListener("keydown", handleReaderKeyDown);
+  }, []);
 
   useEffect(() => {
     const element = viewportRef.current;
@@ -234,8 +226,9 @@ export function EpubReaderView({
         }
 
         rendition.hooks.content.register((contents) =>
-          contents.addStylesheetCss(
-            `
+          Promise.all([
+            contents.addStylesheetCss(
+              `
               html {
                 background: #f5f1e8 !important;
               }
@@ -303,8 +296,12 @@ export function EpubReaderView({
                 border-left: 1px solid rgba(28, 25, 23, 0.18) !important;
               }
             `,
-            "read-aware-reader-base",
-          ),
+              "read-aware-reader-base",
+            ),
+            Promise.resolve(
+              contents.document.addEventListener("keydown", handleReaderKeyDown),
+            ),
+          ]),
         );
 
         onRelocated = (nextLocation: EpubRelocation) => {
@@ -375,18 +372,51 @@ export function EpubReaderView({
   }
 
   async function goToAdjacentChapter(direction: -1 | 1) {
-    if (!tocEntries.length || !currentChapterHref) return;
+    if (!tocEntriesRef.current.length || !currentChapterHrefRef.current) return;
 
-    const currentIndex = tocEntries.findIndex((entry) =>
-      normalizeHref(entry.href) === normalizeHref(currentChapterHref),
+    const currentIndex = tocEntriesRef.current.findIndex((entry) =>
+      normalizeHref(entry.href) === normalizeHref(currentChapterHrefRef.current ?? ""),
     );
     if (currentIndex < 0) return;
 
     const nextIndex = currentIndex + direction;
-    const nextEntry = tocEntries[nextIndex];
+    const nextEntry = tocEntriesRef.current[nextIndex];
     if (!nextEntry) return;
 
     await goToChapter(nextEntry.href);
+  }
+
+  function shouldIgnoreHotkeyTarget(target: EventTarget | null) {
+    if (!(target instanceof HTMLElement)) return false;
+
+    if (target.isContentEditable) return true;
+
+    return !!target.closest("input, textarea, select, [contenteditable='true']");
+  }
+
+  function handleReaderKeyDown(event: KeyboardEvent) {
+    if (!loadedEpubRef.current) return;
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (shouldIgnoreHotkeyTarget(event.target)) return;
+
+    if (event.key.toLowerCase() === "c") {
+      event.preventDefault();
+      setIsChapterPickerOpen((open) => !open);
+    }
+
+    if (event.key === "Escape") {
+      setIsChapterPickerOpen(false);
+    }
+
+    if (event.key === "[") {
+      event.preventDefault();
+      void goToAdjacentChapter(-1);
+    }
+
+    if (event.key === "]") {
+      event.preventDefault();
+      void goToAdjacentChapter(1);
+    }
   }
 
   return (

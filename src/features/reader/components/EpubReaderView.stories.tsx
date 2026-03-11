@@ -15,6 +15,13 @@ const meta = {
   parameters: {
     layout: "fullscreen",
   },
+  decorators: [
+    (Story) => (
+      <div style={{ height: "100vh" }}>
+        <Story />
+      </div>
+    ),
+  ],
 } satisfies Meta<typeof EpubReaderView>;
 
 export default meta;

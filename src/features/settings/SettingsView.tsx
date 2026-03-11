@@ -38,9 +38,13 @@ export function SettingsView({ onBack }: SettingsViewProps) {
             "button, a, input, textarea, select, label, [role='tab'], [role='switch']",
           );
           if (e.buttons === 1 && !tag) {
-            e.detail === 2
-              ? getCurrentWindow().toggleMaximize()
-              : getCurrentWindow().startDragging();
+            try {
+              e.detail === 2
+                ? getCurrentWindow().toggleMaximize()
+                : getCurrentWindow().startDragging();
+            } catch {
+              // No Tauri runtime (e.g. Storybook) -- ignore
+            }
           }
         }}
       >

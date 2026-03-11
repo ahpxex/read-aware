@@ -1,4 +1,4 @@
-import { useState, useId, useRef } from "react";
+import { useState } from "react";
 import {
   Caption,
   Stack,
@@ -7,28 +7,9 @@ import {
   Radio,
   DefinitionList,
   Button,
+  Heading,
+  Tabs,
 } from "../../components";
-import { cn } from "../../components/lib/cn";
-
-function ArrowLeft() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M10 3L5 8l5 5" />
-    </svg>
-  );
-}
-
-const settingsTabs = ["Reading", "Display", "AI Context", "Account"] as const;
-type SettingsTab = (typeof settingsTabs)[number];
 
 function ReadingPanel() {
   const [fontSize, setFontSize] = useState("medium");
@@ -139,7 +120,7 @@ function AccountPanel() {
           { label: "Member since", value: "January 2026" },
         ]}
       />
-      <Stack direction="horizontal" gap="md" className="mt-8">
+      <Stack direction="horizontal" gap="md" className="mt-8 flex-wrap">
         <Button variant="outline" size="sm">
           Export data
         </Button>
@@ -151,110 +132,42 @@ function AccountPanel() {
   );
 }
 
-const panels: Record<SettingsTab, () => React.JSX.Element> = {
-  Reading: ReadingPanel,
-  Display: DisplayPanel,
-  "AI Context": AIContextPanel,
-  Account: AccountPanel,
-};
-
 type SettingsViewProps = {
   onBack: () => void;
 };
 
 export function SettingsView({ onBack }: SettingsViewProps) {
-  const [activeTab, setActiveTab] = useState<SettingsTab>("Reading");
-  const id = useId();
-  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-
-  const activeIndex = settingsTabs.indexOf(activeTab);
-  const ActivePanel = panels[activeTab];
-
-  function moveFocus(index: number) {
-    setActiveTab(settingsTabs[index]);
-    tabRefs.current[index]?.focus();
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    let next: number | null = null;
-    switch (e.key) {
-      case "ArrowRight":
-        next = (activeIndex + 1) % settingsTabs.length;
-        break;
-      case "ArrowLeft":
-        next = (activeIndex - 1 + settingsTabs.length) % settingsTabs.length;
-        break;
-      case "Home":
-        next = 0;
-        break;
-      case "End":
-        next = settingsTabs.length - 1;
-        break;
-      default:
-        return;
-    }
-    e.preventDefault();
-    moveFocus(next);
-  }
-
   return (
     <main className="flex h-screen flex-col bg-stone-100 text-stone-950">
       <header className="shrink-0 bg-stone-100 px-6 pt-6 sm:pt-8">
-        <div className="mx-auto max-w-screen-2xl">
-          <button
-            type="button"
+        <div className="mx-auto flex max-w-screen-2xl flex-col gap-4">
+          <Button
+            variant="link"
+            size="sm"
             onClick={onBack}
-            className="flex items-center gap-1.5 text-stone-600 transition-colors hover:text-stone-950"
+            className="w-fit text-stone-600 no-underline hover:text-stone-950 hover:no-underline"
           >
-            <ArrowLeft />
-            <span className="font-sans text-base font-semibold">Settings</span>
-          </button>
-
-          <div
-            role="tablist"
-            aria-label="Settings"
-            onKeyDown={handleKeyDown}
-            className="mt-4 flex gap-6 border-b border-border"
-          >
-            {settingsTabs.map((tab, i) => {
-              const isActive = tab === activeTab;
-              return (
-                <button
-                  key={tab}
-                  ref={(el) => {
-                    tabRefs.current[i] = el;
-                  }}
-                  id={`${id}-tab-${i}`}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  aria-controls={`${id}-panel-${i}`}
-                  tabIndex={isActive ? 0 : -1}
-                  onClick={() => setActiveTab(tab)}
-                  className={cn(
-                    "font-sans text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950",
-                    "-mb-px border-b-2 pb-3",
-                    isActive
-                      ? "border-stone-950 text-stone-950"
-                      : "border-transparent text-stone-600 hover:text-stone-700",
-                  )}
-                >
-                  {tab}
-                </button>
-              );
-            })}
-          </div>
+            Back to library
+          </Button>
+          <Heading as="h1" size="2xl">
+            Settings
+          </Heading>
         </div>
       </header>
 
       <div className="flex-1 overflow-y-auto">
-        <div
-          id={`${id}-panel-${activeIndex}`}
-          role="tabpanel"
-          aria-labelledby={`${id}-tab-${activeIndex}`}
-          className="mx-auto max-w-screen-2xl px-6 py-8 sm:py-10"
-        >
-          <ActivePanel />
+        <div className="mx-auto max-w-screen-2xl px-6 py-8 sm:py-10">
+          <Tabs
+            ariaLabel="Settings sections"
+            defaultIndex={0}
+            className="max-w-2xl"
+            items={[
+              { label: "Reading", content: <ReadingPanel /> },
+              { label: "Display", content: <DisplayPanel /> },
+              { label: "AI Context", content: <AIContextPanel /> },
+              { label: "Account", content: <AccountPanel /> },
+            ]}
+          />
         </div>
       </div>
     </main>

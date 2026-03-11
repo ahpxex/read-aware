@@ -10,6 +10,7 @@ type TabsProps = {
   items: TabItem[];
   defaultIndex?: number;
   variant?: "underline" | "pill";
+  ariaLabel?: string;
   className?: string;
 };
 
@@ -17,6 +18,7 @@ export function Tabs({
   items,
   defaultIndex = 0,
   variant = "underline",
+  ariaLabel = "Tabs",
   className,
 }: TabsProps) {
   const [activeIndex, setActiveIndex] = useState(defaultIndex);
@@ -54,6 +56,7 @@ export function Tabs({
     <div className={className}>
       <div
         role="tablist"
+        aria-label={ariaLabel}
         onKeyDown={handleKeyDown}
         className={cn(
           "flex",

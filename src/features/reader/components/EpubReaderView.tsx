@@ -200,31 +200,12 @@ function getTocEntryForSpineIndex(entries: TocEntry[], spineIndex: number) {
   return candidate;
 }
 
-async function resolveInitialDisplayTarget(
-  book: EpubBook,
+function resolveInitialDisplayTarget(
   entries: TocEntry[],
   spineEntries: SpineEntry[],
 ) {
   const initialEntry = pickInitialTocEntry(entries);
-  if (!initialEntry) {
-    return spineEntries[0]?.href;
-  }
-
-  try {
-    const document = await book.load(initialEntry.href);
-    const textLength =
-      document.documentElement.textContent?.replace(/\s+/g, " ").trim().length ?? 0;
-    const mediaCount = document.querySelectorAll("img, image, svg").length;
-
-    if (textLength < 120 && mediaCount > 0) {
-      return spineEntries.find((entry) => entry.index === initialEntry.spineIndex + 1)?.href
-        ?? initialEntry.href;
-    }
-  } catch {
-    return initialEntry.href;
-  }
-
-  return initialEntry.href;
+  return initialEntry?.href ?? spineEntries[0]?.href;
 }
 
 export function EpubReaderView({
@@ -332,9 +313,8 @@ export function EpubReaderView({
           width: "100%",
           height: "100%",
           flow: "scrolled-doc",
-          manager: "default",
+          manager: "continuous",
           spread: "none",
-          fullsize: true,
         });
         renditionRef.current = rendition;
 
@@ -345,7 +325,6 @@ export function EpubReaderView({
         book.spine.each((section) => {
           spineEntries.push({ href: section.href, index: section.index });
         });
-
         const navigation = await book.loaded.navigation;
         const flattenedToc = filterValidTocEntries(
           flattenToc(navigation.toc ?? []),
@@ -456,7 +435,7 @@ export function EpubReaderView({
 
         const initialTarget =
           lastCfiRef.current ??
-          (await resolveInitialDisplayTarget(book, flattenedToc, spineEntries)) ??
+          resolveInitialDisplayTarget(flattenedToc, spineEntries) ??
           spineEntries[0]?.href;
         await rendition.display(initialTarget);
       } catch (nextError) {

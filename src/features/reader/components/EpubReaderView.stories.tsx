@@ -36,6 +36,5 @@ export const Empty: Story = {
 export const FromShelfSelection: Story = {
   args: {
     selectedBook: sampleBook,
-    initialEpubUrl: demoEpubUrl,
   },
 };

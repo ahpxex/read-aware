@@ -13,7 +13,7 @@ function ShelfSection({ label, books, onSelect, className }: ShelfSectionProps) 
   return (
     <section className={className}>
       <Eyebrow>{label}</Eyebrow>
-      <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
         {books.map((book) => (
           <BookCover
             key={book.id}

@@ -11,6 +11,7 @@ type TabsProps = {
   defaultIndex?: number;
   variant?: "underline" | "pill";
   ariaLabel?: string;
+  stretch?: boolean;
   className?: string;
 };
 
@@ -19,6 +20,7 @@ export function Tabs({
   defaultIndex = 0,
   variant = "underline",
   ariaLabel = "Tabs",
+  stretch = false,
   className,
 }: TabsProps) {
   const [activeIndex, setActiveIndex] = useState(defaultIndex);
@@ -60,6 +62,7 @@ export function Tabs({
         onKeyDown={handleKeyDown}
         className={cn(
           "flex",
+          stretch && "w-full",
           variant === "underline" && "gap-6 border-b border-border",
           variant === "pill" && "gap-1 rounded bg-stone-100 p-1",
         )}
@@ -81,7 +84,8 @@ export function Tabs({
               tabIndex={isActive ? 0 : -1}
               onClick={() => setActiveIndex(i)}
               className={cn(
-                "font-sans text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950",
+                "inline-flex items-center whitespace-nowrap font-sans text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950",
+                stretch && "flex-1 justify-center text-center",
                 variant === "underline" &&
                   cn(
                     "-mb-px border-b-2 pb-3",

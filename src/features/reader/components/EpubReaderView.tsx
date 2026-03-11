@@ -9,14 +9,27 @@ type EpubRelocation = {
   };
 };
 
+type EpubRenderedView = {
+  element?: HTMLElement | null;
+};
+
 type EpubRendition = {
   display: (target?: string) => Promise<unknown>;
   next: () => Promise<unknown>;
   prev: () => Promise<unknown>;
-  on: (event: "relocated", listener: (location: EpubRelocation) => void) => void;
-  off: (event: "relocated", listener: (location: EpubRelocation) => void) => void;
+  on: {
+    (event: "relocated", listener: (location: EpubRelocation) => void): void;
+    (event: "rendered", listener: (section: unknown, view: EpubRenderedView) => void): void;
+  };
+  off: {
+    (event: "relocated", listener: (location: EpubRelocation) => void): void;
+    (event: "rendered", listener: (section: unknown, view: EpubRenderedView) => void): void;
+  };
   resize: () => void;
   destroy: () => void;
+  themes: {
+    default: (styles: Record<string, Record<string, string>>) => void;
+  };
 };
 
 type EpubBook = {
@@ -53,7 +66,6 @@ export function EpubReaderView({
 
   const [loadedEpub, setLoadedEpub] = useState<LoadedEpub | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -101,36 +113,17 @@ export function EpubReaderView({
   }, []);
 
   useEffect(() => {
-    if (!isReady) return;
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        void renditionRef.current?.prev();
-      }
-
-      if (event.key === "ArrowRight") {
-        event.preventDefault();
-        void renditionRef.current?.next();
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isReady]);
-
-  useEffect(() => {
     const element = viewportRef.current;
     if (!loadedEpub || !element) return;
 
     let cancelled = false;
     setIsLoading(true);
-    setIsReady(false);
     setError(null);
 
     let book: EpubBook | null = null;
     let rendition: EpubRendition | null = null;
     let onRelocated: ((location: EpubRelocation) => void) | null = null;
+    let onRendered: ((section: unknown, view: EpubRenderedView) => void) | null = null;
 
     void (async () => {
       try {
@@ -142,26 +135,78 @@ export function EpubReaderView({
         rendition = book.renderTo(element, {
           width: "100%",
           height: "100%",
-          flow: "paginated",
-          manager: "default",
-          spread: "auto",
+          flow: "scrolled-continuous",
+          manager: "continuous",
+          spread: "none",
+          fullsize: true,
         });
         renditionRef.current = rendition;
+
+        rendition.themes.default({
+          body: {
+            margin: "0 auto",
+            "max-width": "42rem",
+            padding: "4rem 2rem 6rem 2rem",
+            color: "#292524",
+            "font-family":
+              "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+            "font-size": "1.0625rem",
+            "line-height": "1.9",
+            "background-color": "#f5f1e8",
+          },
+          p: {
+            margin: "0 0 1.2rem 0",
+          },
+          h1: {
+            "font-size": "2.25rem",
+            "line-height": "1.05",
+            "margin-bottom": "1.5rem",
+          },
+          h2: {
+            "font-size": "1.75rem",
+            "line-height": "1.1",
+            "margin-top": "3rem",
+            "margin-bottom": "1.25rem",
+          },
+          h3: {
+            "font-size": "1.375rem",
+            "line-height": "1.2",
+            "margin-top": "2.5rem",
+            "margin-bottom": "1rem",
+          },
+          img: {
+            display: "block",
+            margin: "2rem auto",
+            "max-width": "100%",
+            height: "auto",
+          },
+          blockquote: {
+            margin: "2rem 0",
+            padding: "0 0 0 1.25rem",
+            "border-left": "1px solid rgba(28,25,23,0.18)",
+          },
+        });
 
         onRelocated = (nextLocation: EpubRelocation) => {
           if (cancelled) return;
           lastCfiRef.current = nextLocation.start?.cfi ?? null;
         };
 
+        onRendered = (_section, view) => {
+          const viewElement = view.element;
+          if (!viewElement) return;
+
+          viewElement.style.paddingBottom = "5rem";
+          viewElement.style.borderBottom = "1px solid rgba(28, 25, 23, 0.08)";
+        };
+
         rendition.on("relocated", onRelocated);
+        rendition.on("rendered", onRendered);
 
         await book.ready;
         if (cancelled) return;
 
         await rendition.display(lastCfiRef.current ?? undefined);
-        if (!cancelled) {
-          setIsReady(true);
-        }
       } catch (nextError) {
         if (!cancelled) {
           setError(formatReaderError(nextError));
@@ -177,6 +222,9 @@ export function EpubReaderView({
       cancelled = true;
       if (rendition && onRelocated) {
         rendition.off("relocated", onRelocated);
+      }
+      if (rendition && onRendered) {
+        rendition.off("rendered", onRendered);
       }
       rendition?.destroy();
       book?.destroy();

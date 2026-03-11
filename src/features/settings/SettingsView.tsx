@@ -8,11 +8,10 @@ import {
   Radio,
   DefinitionList,
   Button,
-  Heading,
   Tabs,
   Checkbox,
   TextField,
-  IconButton,
+  NavItem,
 } from "../../components";
 
 function ChevronLeft() {
@@ -405,17 +404,15 @@ export function SettingsView({ onBack }: SettingsViewProps) {
           }
         }}
       >
-        <div className="mx-auto flex max-w-screen-2xl items-center gap-1.5">
-          <IconButton
-            icon={<ChevronLeft />}
-            label="Back to library"
-            size="sm"
+        <div className="mx-auto flex max-w-screen-2xl">
+          <NavItem
+            active
             onClick={onBack}
-            className="text-stone-600 hover:text-stone-950"
-          />
-          <Heading as="h1" size="2xl">
+            className="inline-flex items-center gap-1.5"
+          >
+            <ChevronLeft />
             Settings
-          </Heading>
+          </NavItem>
         </div>
       </header>
 

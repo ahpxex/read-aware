@@ -28,10 +28,3 @@ export const FromShelfSelection: Story = {
     selectedBook: sampleBook,
   },
 };
-
-export const WithBackAction: Story = {
-  args: {
-    selectedBook: sampleBook,
-    onBackToShelf: () => {},
-  },
-};

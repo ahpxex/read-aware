@@ -111,7 +111,6 @@ function App() {
           selectedShelfBook ? (
             <EpubReaderView
               selectedBook={selectedShelfBook}
-              onBackToShelf={() => setSelectedShelfBook(null)}
             />
           ) : (
             <div className="mx-auto max-w-screen-2xl px-6 py-8 sm:py-10">

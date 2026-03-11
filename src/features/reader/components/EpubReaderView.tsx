@@ -25,6 +25,11 @@ type EpubRenderedView = {
   element?: HTMLElement | null;
 };
 
+type EpubContents = {
+  addStylesheetCss: (serializedCss: string, key: string) => Promise<boolean>;
+  document: Document;
+};
+
 type EpubRendition = {
   display: (target?: string) => Promise<unknown>;
   next: () => Promise<unknown>;
@@ -39,8 +44,10 @@ type EpubRendition = {
   };
   resize: () => void;
   destroy: () => void;
-  themes: {
-    default: (styles: Record<string, Record<string, string>>) => void;
+  hooks: {
+    content: {
+      register: (handler: (contents: EpubContents, view: unknown) => void | Promise<unknown>) => void;
+    };
   };
 };
 
@@ -203,7 +210,6 @@ export function EpubReaderView({
     let book: EpubBook | null = null;
     let rendition: EpubRendition | null = null;
     let onRelocated: ((location: EpubRelocation) => void) | null = null;
-    let onRendered: ((section: unknown, view: EpubRenderedView) => void) | null = null;
 
     void (async () => {
       try {
@@ -215,8 +221,8 @@ export function EpubReaderView({
         rendition = book.renderTo(element, {
           width: "100%",
           height: "100%",
-          flow: "scrolled-continuous",
-          manager: "continuous",
+          flow: "scrolled-doc",
+          manager: "default",
           spread: "none",
           fullsize: true,
         });
@@ -227,50 +233,79 @@ export function EpubReaderView({
           setTocEntries(flattenToc(navigation.toc ?? []));
         }
 
-        rendition.themes.default({
-          body: {
-            margin: "0 auto",
-            "max-width": "42rem",
-            padding: "4rem 2rem 6rem 2rem",
-            color: "#292524",
-            "font-family":
-              "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-            "font-size": "1.0625rem",
-            "line-height": "1.9",
-            "background-color": "#f5f1e8",
-          },
-          p: {
-            margin: "0 0 1.2rem 0",
-          },
-          h1: {
-            "font-size": "2.25rem",
-            "line-height": "1.05",
-            "margin-bottom": "1.5rem",
-          },
-          h2: {
-            "font-size": "1.75rem",
-            "line-height": "1.1",
-            "margin-top": "3rem",
-            "margin-bottom": "1.25rem",
-          },
-          h3: {
-            "font-size": "1.375rem",
-            "line-height": "1.2",
-            "margin-top": "2.5rem",
-            "margin-bottom": "1rem",
-          },
-          img: {
-            display: "block",
-            margin: "2rem auto",
-            "max-width": "100%",
-            height: "auto",
-          },
-          blockquote: {
-            margin: "2rem 0",
-            padding: "0 0 0 1.25rem",
-            "border-left": "1px solid rgba(28,25,23,0.18)",
-          },
-        });
+        rendition.hooks.content.register((contents) =>
+          contents.addStylesheetCss(
+            `
+              html {
+                background: #f5f1e8 !important;
+              }
+
+              body {
+                box-sizing: border-box !important;
+                width: min(100%, 56rem) !important;
+                max-width: 56rem !important;
+                margin: 0 auto !important;
+                padding: 2rem 1.5rem 4rem !important;
+                color: #292524 !important;
+                background: #f5f1e8 !important;
+                font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+                font-size: 1.0625rem !important;
+                line-height: 1.9 !important;
+              }
+
+              body > * {
+                max-width: 100% !important;
+              }
+
+              p,
+              ul,
+              ol,
+              blockquote {
+                margin: 0 0 1.25rem 0 !important;
+              }
+
+              h1 {
+                margin: 0 0 1.5rem 0 !important;
+                font-size: 2.25rem !important;
+                line-height: 1.05 !important;
+              }
+
+              h2 {
+                margin: 2.75rem 0 1.25rem 0 !important;
+                font-size: 1.75rem !important;
+                line-height: 1.12 !important;
+              }
+
+              h3 {
+                margin: 2.25rem 0 1rem 0 !important;
+                font-size: 1.375rem !important;
+                line-height: 1.18 !important;
+              }
+
+              img,
+              svg,
+              video,
+              canvas {
+                display: block !important;
+                width: auto !important;
+                max-width: min(100%, 32rem) !important;
+                height: auto !important;
+                margin: 1.75rem auto !important;
+              }
+
+              figure {
+                margin: 2rem auto !important;
+                max-width: min(100%, 32rem) !important;
+              }
+
+              blockquote {
+                padding-left: 1.25rem !important;
+                border-left: 1px solid rgba(28, 25, 23, 0.18) !important;
+              }
+            `,
+            "read-aware-reader-base",
+          ),
+        );
 
         onRelocated = (nextLocation: EpubRelocation) => {
           if (cancelled) return;
@@ -278,16 +313,7 @@ export function EpubReaderView({
           setCurrentChapterHref(nextLocation.start?.href ?? null);
         };
 
-        onRendered = (_section, view) => {
-          const viewElement = view.element;
-          if (!viewElement) return;
-
-          viewElement.style.paddingBottom = "5rem";
-          viewElement.style.borderBottom = "1px solid rgba(28, 25, 23, 0.08)";
-        };
-
         rendition.on("relocated", onRelocated);
-        rendition.on("rendered", onRendered);
 
         await book.ready;
         if (cancelled) return;
@@ -308,9 +334,6 @@ export function EpubReaderView({
       cancelled = true;
       if (rendition && onRelocated) {
         rendition.off("relocated", onRelocated);
-      }
-      if (rendition && onRendered) {
-        rendition.off("rendered", onRendered);
       }
       rendition?.destroy();
       book?.destroy();

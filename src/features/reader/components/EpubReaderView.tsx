@@ -1,12 +1,24 @@
 import { useEffect, useRef, useState } from "react";
-import { Body, Button } from "../../../components";
+import { Body, Button, Heading, Sidebar } from "../../../components";
 import { cn } from "../../../components/lib/cn";
 import type { Book } from "../../shelf/components/BookCover";
 
 type EpubRelocation = {
   start?: {
     cfi?: string;
+    href?: string;
   };
+};
+
+type EpubNavigationItem = {
+  id?: string;
+  href?: string;
+  label?: string;
+  subitems?: EpubNavigationItem[];
+};
+
+type EpubNavigation = {
+  toc?: EpubNavigationItem[];
 };
 
 type EpubRenderedView = {
@@ -35,6 +47,9 @@ type EpubRendition = {
 type EpubBook = {
   renderTo: (element: HTMLElement, options: Record<string, unknown>) => EpubRendition;
   ready: Promise<unknown>;
+  loaded: {
+    navigation: Promise<EpubNavigation>;
+  };
   destroy: () => void;
 };
 
@@ -45,6 +60,13 @@ type LoadedEpub = {
 
 type EpubFactory = (source: ArrayBuffer | string) => EpubBook;
 
+type TocEntry = {
+  id: string;
+  href: string;
+  label: string;
+  depth: number;
+};
+
 type EpubReaderViewProps = {
   selectedBook?: Book | null;
   initialEpubUrl?: string;
@@ -53,6 +75,31 @@ type EpubReaderViewProps = {
 function formatReaderError(error: unknown) {
   if (error instanceof Error && error.message) return error.message;
   return "Unable to load this EPUB file.";
+}
+
+function normalizeHref(href: string) {
+  return href.split("#")[0];
+}
+
+function flattenToc(items: EpubNavigationItem[], depth = 0): TocEntry[] {
+  const flattened: TocEntry[] = [];
+
+  for (const item of items) {
+    if (item.href) {
+      flattened.push({
+        id: item.id ?? `${item.href}-${depth}`,
+        href: item.href,
+        label: item.label?.trim() || "Untitled chapter",
+        depth,
+      });
+    }
+
+    if (item.subitems?.length) {
+      flattened.push(...flattenToc(item.subitems, depth + 1));
+    }
+  }
+
+  return flattened;
 }
 
 export function EpubReaderView({
@@ -67,6 +114,9 @@ export function EpubReaderView({
   const [loadedEpub, setLoadedEpub] = useState<LoadedEpub | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tocEntries, setTocEntries] = useState<TocEntry[]>([]);
+  const [currentChapterHref, setCurrentChapterHref] = useState<string | null>(null);
+  const [isChapterPickerOpen, setIsChapterPickerOpen] = useState(false);
 
   useEffect(() => {
     if (!initialEpubUrl) return;
@@ -113,12 +163,42 @@ export function EpubReaderView({
   }, []);
 
   useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (!loadedEpub) return;
+
+      if (event.key.toLowerCase() === "c" && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        event.preventDefault();
+        setIsChapterPickerOpen((open) => !open);
+      }
+
+      if (event.key === "Escape") {
+        setIsChapterPickerOpen(false);
+      }
+
+      if (event.key === "[") {
+        event.preventDefault();
+        void goToAdjacentChapter(-1);
+      }
+
+      if (event.key === "]") {
+        event.preventDefault();
+        void goToAdjacentChapter(1);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [loadedEpub, tocEntries, currentChapterHref]);
+
+  useEffect(() => {
     const element = viewportRef.current;
     if (!loadedEpub || !element) return;
 
     let cancelled = false;
     setIsLoading(true);
     setError(null);
+    setTocEntries([]);
+    setCurrentChapterHref(null);
 
     let book: EpubBook | null = null;
     let rendition: EpubRendition | null = null;
@@ -141,6 +221,11 @@ export function EpubReaderView({
           fullsize: true,
         });
         renditionRef.current = rendition;
+
+        const navigation = await book.loaded.navigation;
+        if (!cancelled) {
+          setTocEntries(flattenToc(navigation.toc ?? []));
+        }
 
         rendition.themes.default({
           body: {
@@ -190,6 +275,7 @@ export function EpubReaderView({
         onRelocated = (nextLocation: EpubRelocation) => {
           if (cancelled) return;
           lastCfiRef.current = nextLocation.start?.cfi ?? null;
+          setCurrentChapterHref(nextLocation.start?.href ?? null);
         };
 
         onRendered = (_section, view) => {
@@ -253,6 +339,33 @@ export function EpubReaderView({
     fileInputRef.current?.click();
   }
 
+  async function goToChapter(href: string) {
+    if (!renditionRef.current) return;
+
+    try {
+      setError(null);
+      await renditionRef.current.display(href);
+      setIsChapterPickerOpen(false);
+    } catch (nextError) {
+      setError(formatReaderError(nextError));
+    }
+  }
+
+  async function goToAdjacentChapter(direction: -1 | 1) {
+    if (!tocEntries.length || !currentChapterHref) return;
+
+    const currentIndex = tocEntries.findIndex((entry) =>
+      normalizeHref(entry.href) === normalizeHref(currentChapterHref),
+    );
+    if (currentIndex < 0) return;
+
+    const nextIndex = currentIndex + direction;
+    const nextEntry = tocEntries[nextIndex];
+    if (!nextEntry) return;
+
+    await goToChapter(nextEntry.href);
+  }
+
   return (
     <section className="relative h-full w-full bg-paper">
       <input
@@ -311,6 +424,52 @@ export function EpubReaderView({
           </div>
         </div>
       )}
+
+      <Sidebar
+        side="right"
+        open={isChapterPickerOpen}
+        onClose={() => setIsChapterPickerOpen(false)}
+        label="Chapters"
+        width="w-80"
+      >
+        <div className="flex h-full flex-col gap-4 p-6">
+          <Heading as="h2" size="xl">
+            Chapters
+          </Heading>
+          <Body className="text-sm text-stone-600">
+            Press `[` or `]` to move between chapters, or pick one below.
+          </Body>
+          <div className="min-h-0 flex-1 overflow-y-auto pr-2">
+            <div className="flex flex-col gap-1">
+              {tocEntries.length === 0 ? (
+                <Body className="text-sm text-stone-600">
+                  No chapter list is available for this EPUB.
+                </Body>
+              ) : (
+                tocEntries.map((entry) => (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    onClick={() => {
+                      void goToChapter(entry.href);
+                    }}
+                    className={cn(
+                      "w-full text-left font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950",
+                      normalizeHref(entry.href) === normalizeHref(currentChapterHref ?? "")
+                        ? "text-stone-950"
+                        : "text-stone-600 hover:text-stone-950",
+                      entry.depth === 1 && "pl-4",
+                      entry.depth >= 2 && "pl-8",
+                    )}
+                  >
+                    {entry.label}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </Sidebar>
     </section>
   );
 }

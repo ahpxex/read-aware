@@ -199,7 +199,7 @@ export function SettingsView({ onBack }: SettingsViewProps) {
 
   return (
     <main className="flex h-screen flex-col bg-stone-100 text-stone-950">
-      <header className="shrink-0 bg-stone-100 px-6 pt-6 sm:px-10 sm:pt-8 lg:px-14">
+      <header className="shrink-0 bg-stone-100 px-6 pt-6 sm:px-10 sm:pt-8">
         <div className="mx-auto max-w-5xl">
           <button
             type="button"
@@ -252,7 +252,7 @@ export function SettingsView({ onBack }: SettingsViewProps) {
           id={`${id}-panel-${activeIndex}`}
           role="tabpanel"
           aria-labelledby={`${id}-tab-${activeIndex}`}
-          className="mx-auto max-w-5xl px-6 py-8 sm:px-10 sm:py-10 lg:px-14"
+          className="mx-auto max-w-5xl px-6 py-8 sm:px-10 sm:py-10"
         >
           <ActivePanel />
         </div>

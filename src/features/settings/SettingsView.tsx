@@ -12,7 +12,26 @@ import {
   Tabs,
   Checkbox,
   TextField,
+  IconButton,
 } from "../../components";
+
+function ChevronLeft() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M10 3L5 8l5 5" />
+    </svg>
+  );
+}
 
 function ReadingPanel() {
   const [fontSize, setFontSize] = useState("medium");
@@ -386,15 +405,14 @@ export function SettingsView({ onBack }: SettingsViewProps) {
           }
         }}
       >
-        <div className="mx-auto flex max-w-screen-2xl flex-col gap-4">
-          <Button
-            variant="link"
+        <div className="mx-auto flex max-w-screen-2xl items-center gap-1.5">
+          <IconButton
+            icon={<ChevronLeft />}
+            label="Back to library"
             size="sm"
             onClick={onBack}
-            className="w-fit text-stone-600 no-underline hover:text-stone-950 hover:no-underline"
-          >
-            Back to library
-          </Button>
+            className="text-stone-600 hover:text-stone-950"
+          />
           <Heading as="h1" size="2xl">
             Settings
           </Heading>

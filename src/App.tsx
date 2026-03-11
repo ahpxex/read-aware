@@ -1,4 +1,4 @@
-import { type MouseEvent } from "react";
+import { type MouseEvent, useState } from "react";
 import { useAtom } from "jotai";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { activeTopNavAtom, settingsOpenAtom, topNavs } from "./state/ui";
@@ -55,6 +55,7 @@ const contextCopy = {
 function App() {
   const [activeTopNav, setActiveTopNav] = useAtom(activeTopNavAtom);
   const [settingsOpen, setSettingsOpen] = useAtom(settingsOpenAtom);
+  const [selectedShelfBook, setSelectedShelfBook] = useState<Book | null>(null);
 
   if (settingsOpen) {
     return <SettingsView onBack={() => setSettingsOpen(false)} />;
@@ -86,7 +87,12 @@ function App() {
               <NavItem
                 key={item}
                 active={item === activeTopNav}
-                onClick={() => setActiveTopNav(item)}
+                onClick={() => {
+                  setActiveTopNav(item);
+                  if (item !== "shelf") {
+                    setSelectedShelfBook(null);
+                  }
+                }}
               >
                 {item}
               </NavItem>
@@ -102,11 +108,19 @@ function App() {
 
       <div className="flex-1 overflow-y-auto">
         {activeTopNav === "shelf" ? (
-          <div className="mx-auto max-w-screen-2xl px-6 py-8 sm:py-10">
-            <Shelf sections={shelfSections} />
-          </div>
-        ) : activeTopNav === "reader" ? (
-          <EpubReaderView />
+          selectedShelfBook ? (
+            <EpubReaderView
+              selectedBook={selectedShelfBook}
+              onBackToShelf={() => setSelectedShelfBook(null)}
+            />
+          ) : (
+            <div className="mx-auto max-w-screen-2xl px-6 py-8 sm:py-10">
+              <Shelf
+                sections={shelfSections}
+                onSelect={(book) => setSelectedShelfBook(book)}
+              />
+            </div>
+          )
         ) : (
           <article className="mx-auto flex min-h-full max-w-screen-2xl flex-col justify-center px-6 py-16 sm:py-20 lg:py-24">
             <Eyebrow>{contextCopy.eyebrow}</Eyebrow>

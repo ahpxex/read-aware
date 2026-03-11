@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Body, Button, Divider, Eyebrow, Heading } from "../../../components";
 import { cn } from "../../../components/lib/cn";
+import type { Book } from "../../shelf/components/BookCover";
 
 type EpubNavigationItem = {
   id?: string;
@@ -134,7 +135,15 @@ function formatReaderError(error: unknown) {
   return "Unable to load this EPUB file.";
 }
 
-export function EpubReaderView() {
+type EpubReaderViewProps = {
+  selectedBook?: Book | null;
+  onBackToShelf?: () => void;
+};
+
+export function EpubReaderView({
+  selectedBook = null,
+  onBackToShelf,
+}: EpubReaderViewProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const renditionRef = useRef<EpubRendition | null>(null);
@@ -290,16 +299,21 @@ export function EpubReaderView() {
         <div className="min-w-0">
           <Eyebrow>Reader</Eyebrow>
           <Heading as="h1" size="3xl" className="mt-3">
-            EPUB
+            {selectedBook?.title ?? "EPUB"}
           </Heading>
           <Body className="mt-4 max-w-2xl">
-            Open an EPUB file to test the first unified reader engine slice.
-            PDF.js and secondary format conversion will be added in the next
-            steps.
+            {selectedBook
+              ? `Selected from shelf: ${selectedBook.author}. Open an EPUB file for this book to start reading.`
+              : "Open an EPUB file to test the first unified reader engine slice. PDF.js and secondary format conversion will be added in the next steps."}
           </Body>
         </div>
 
         <div className="ml-auto flex flex-wrap items-center gap-3">
+          {onBackToShelf && (
+            <Button variant="ghost" size="sm" onClick={onBackToShelf}>
+              Back to shelf
+            </Button>
+          )}
           <input
             ref={fileInputRef}
             type="file"

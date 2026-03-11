@@ -2,211 +2,30 @@ import { useEffect, useRef, useState } from "react";
 import { Body, Button, Heading, Sidebar } from "../../../components";
 import { cn } from "../../../components/lib/cn";
 import type { Book } from "../../shelf/components/BookCover";
-
-type EpubRelocation = {
-  start?: {
-    cfi?: string;
-    href?: string;
-  };
-};
-
-type EpubNavigationItem = {
-  id?: string;
-  href?: string;
-  label?: string;
-  subitems?: EpubNavigationItem[];
-};
-
-type EpubNavigation = {
-  toc?: EpubNavigationItem[];
-};
-
-type EpubRenderedView = {
-  element?: HTMLElement | null;
-};
-
-type EpubContents = {
-  addStylesheetCss: (serializedCss: string, key: string) => Promise<boolean>;
-  document: Document;
-};
-
-type EpubRendition = {
-  display: (target?: string) => Promise<unknown>;
-  next: () => Promise<unknown>;
-  prev: () => Promise<unknown>;
-  on: {
-    (event: "relocated", listener: (location: EpubRelocation) => void): void;
-    (event: "rendered", listener: (section: unknown, view: EpubRenderedView) => void): void;
-  };
-  off: {
-    (event: "relocated", listener: (location: EpubRelocation) => void): void;
-    (event: "rendered", listener: (section: unknown, view: EpubRenderedView) => void): void;
-  };
-  resize: () => void;
-  destroy: () => void;
-  hooks: {
-    content: {
-      register: (handler: (contents: EpubContents, view: unknown) => void | Promise<unknown>) => void;
-    };
-  };
-};
-
-type EpubBook = {
-  renderTo: (element: HTMLElement, options: Record<string, unknown>) => EpubRendition;
-  ready: Promise<unknown>;
-  loaded: {
-    navigation: Promise<EpubNavigation>;
-  };
-  load: (path: string) => Promise<Document>;
-  section: (target: string | number) => { href: string; index: number } | null;
-  spine: {
-    each: (handler: (section: { href: string; index: number }) => void) => void;
-  };
-  destroy: () => void;
-};
-
-type LoadedEpub = {
-  fileName: string;
-  data: ArrayBuffer;
-};
-
-type EpubFactory = (source: ArrayBuffer | string) => EpubBook;
-
-type TocEntry = {
-  id: string;
-  href: string;
-  label: string;
-  depth: number;
-  spineIndex: number;
-};
-
-type SpineEntry = {
-  href: string;
-  index: number;
-};
+import { formatReaderError } from "../lib/format-reader-error";
+import {
+  normalizeHref,
+  flattenToc,
+  filterValidTocEntries,
+  resolveInitialDisplayTarget,
+  findTocIndexForHref,
+  getTocEntryForSpineIndex,
+  hrefMatches,
+} from "../lib/epub-utils";
+import type {
+  EpubBook,
+  EpubFactory,
+  EpubRelocation,
+  EpubRendition,
+  LoadedEpub,
+  TocEntry,
+  SpineEntry,
+} from "../lib/epub-types";
 
 type EpubReaderViewProps = {
   selectedBook?: Book | null;
   initialEpubUrl?: string;
 };
-
-function formatReaderError(error: unknown) {
-  if (error instanceof Error && error.message) return error.message;
-  return "Unable to load this EPUB file.";
-}
-
-function normalizeHref(href: string) {
-  return href.split("#")[0];
-}
-
-function canonicalHref(href: string) {
-  return decodeURI(normalizeHref(href))
-    .replace(/^(\.\.\/)+/, "")
-    .replace(/^\/+/, "");
-}
-
-function hrefMatches(left: string, right: string) {
-  const normalizedLeft = canonicalHref(left);
-  const normalizedRight = canonicalHref(right);
-
-  return (
-    normalizedLeft === normalizedRight ||
-    normalizedLeft.endsWith(normalizedRight) ||
-    normalizedRight.endsWith(normalizedLeft)
-  );
-}
-
-function findTocIndexForHref(entries: TocEntry[], href: string | null) {
-  if (!href) return -1;
-  return entries.findIndex((entry) => hrefMatches(entry.href, href));
-}
-
-function flattenToc(items: EpubNavigationItem[], depth = 0): TocEntry[] {
-  const flattened: Omit<TocEntry, "spineIndex">[] = [];
-
-  for (const item of items) {
-    if (item.href) {
-      flattened.push({
-        id: item.id ?? `${item.href}-${depth}`,
-        href: item.href,
-        label: item.label?.trim() || "Untitled chapter",
-        depth,
-      });
-    }
-
-    if (item.subitems?.length) {
-      flattened.push(...flattenToc(item.subitems, depth + 1));
-    }
-  }
-
-  return flattened as TocEntry[];
-}
-
-function isFrontmatterEntry(label: string) {
-  const normalizedLabel = label.trim().toLowerCase();
-  return (
-    normalizedLabel === "cover" ||
-    normalizedLabel === "title page" ||
-    normalizedLabel === "epigraph" ||
-    normalizedLabel === "copyright" ||
-    normalizedLabel === "contents"
-  );
-}
-
-function filterValidTocEntries(
-  entries: TocEntry[],
-  spineEntries: SpineEntry[],
-) {
-  return entries
-    .map((entry) => {
-      const spineEntry = spineEntries.find((candidate) =>
-        hrefMatches(entry.href, candidate.href),
-      );
-      if (!spineEntry) return null;
-
-      return {
-        ...entry,
-        href: spineEntry.href,
-        spineIndex: spineEntry.index,
-      };
-    })
-    .filter((entry): entry is TocEntry => entry !== null);
-}
-
-function pickInitialTocEntry(entries: TocEntry[]) {
-  return (
-    entries.find((entry) => /^chapter\b/i.test(entry.label.trim())) ??
-    entries.find((entry) =>
-      /^(prologue|introduction|preface)\b/i.test(entry.label.trim()),
-    ) ??
-    entries.find((entry) => !isFrontmatterEntry(entry.label)) ??
-    entries[0] ??
-    null
-  );
-}
-
-function getTocEntryForSpineIndex(entries: TocEntry[], spineIndex: number) {
-  let candidate: TocEntry | null = null;
-
-  for (const entry of entries) {
-    if (entry.spineIndex <= spineIndex) {
-      candidate = entry;
-      continue;
-    }
-
-    break;
-  }
-
-  return candidate;
-}
-
-function resolveInitialDisplayTarget(
-  entries: TocEntry[],
-  spineEntries: SpineEntry[],
-) {
-  const initialEntry = pickInitialTocEntry(entries);
-  return initialEntry?.href ?? spineEntries[0]?.href;
-}
 
 export function EpubReaderView({
   selectedBook = null,

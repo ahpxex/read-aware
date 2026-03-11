@@ -2,67 +2,24 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Body, Button, Heading, Sidebar } from "../../../components";
 import { cn } from "../../../components/lib/cn";
 import type { Book } from "../../shelf/components/BookCover";
-
-type PdfDocument = {
-  numPages: number;
-  getPage: (pageNumber: number) => Promise<PdfPage>;
-  destroy: () => void;
-};
-
-type PdfPage = {
-  getViewport: (params: { scale: number }) => PdfViewport;
-  render: (params: {
-    canvasContext: CanvasRenderingContext2D;
-    viewport: PdfViewport;
-  }) => { promise: Promise<void>; cancel: () => void };
-  getTextContent: () => Promise<PdfTextContent>;
-  cleanup: () => boolean;
-};
-
-type PdfViewport = {
-  width: number;
-  height: number;
-};
-
-type PdfTextContent = {
-  items: unknown[];
-  styles: Record<string, unknown>;
-};
-
-type PdfTextLayerConstructor = new (params: {
-  textContentSource: PdfTextContent;
-  container: HTMLElement;
-  viewport: PdfViewport;
-}) => { render: () => Promise<void>; cancel: () => void };
-
-type PdfLoadingTask = {
-  promise: Promise<PdfDocument>;
-  destroy: () => void;
-};
-
-type LoadedPdf = {
-  fileName: string;
-  data: ArrayBuffer;
-};
-
-type PageDimensions = {
-  width: number;
-  height: number;
-};
-
-type PdfReaderViewProps = {
-  selectedBook?: Book | null;
-  initialPdfUrl?: string;
-};
+import { formatReaderError } from "../lib/format-reader-error";
+import { PageJumpInput } from "./PageJumpInput";
+import type {
+  PdfDocument,
+  PdfLoadingTask,
+  PdfTextLayerConstructor,
+  LoadedPdf,
+  PageDimensions,
+} from "../lib/pdf-types";
 
 const PAGE_GAP = 12;
 const RENDER_BUFFER = 2;
 const BASE_SCALE = 1.5;
 
-function formatReaderError(error: unknown) {
-  if (error instanceof Error && error.message) return error.message;
-  return "Unable to load this PDF file.";
-}
+type PdfReaderViewProps = {
+  selectedBook?: Book | null;
+  initialPdfUrl?: string;
+};
 
 export function PdfReaderView({
   selectedBook = null,
@@ -520,55 +477,5 @@ export function PdfReaderView({
         </div>
       </Sidebar>
     </section>
-  );
-}
-
-function PageJumpInput({
-  numPages,
-  currentPage,
-  onJump,
-}: {
-  numPages: number;
-  currentPage: number;
-  onJump: (page: number) => void;
-}) {
-  const [value, setValue] = useState(String(currentPage));
-  const inputRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    setValue(String(currentPage));
-  }, [currentPage]);
-
-  useEffect(() => {
-    inputRef.current?.focus();
-    inputRef.current?.select();
-  }, []);
-
-  function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
-    const parsed = parseInt(value, 10);
-    if (!Number.isNaN(parsed) && parsed >= 1 && parsed <= numPages) {
-      onJump(parsed);
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="flex gap-2">
-      <input
-        ref={inputRef}
-        type="number"
-        min={1}
-        max={numPages}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        className="w-full border border-stone-300 bg-white px-3 py-1.5 font-sans text-sm text-stone-950 focus:border-stone-950 focus:outline-none"
-      />
-      <button
-        type="submit"
-        className="shrink-0 border border-stone-300 px-3 py-1.5 font-sans text-sm font-medium text-stone-950 transition-colors hover:bg-stone-100"
-      >
-        Go
-      </button>
-    </form>
   );
 }

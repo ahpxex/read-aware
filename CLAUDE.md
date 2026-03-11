@@ -1,3 +1,7 @@
+## Workflow
+
+- Proactively commit after completing each meaningful unit of work. Do not wait for the user to ask. Only skip committing when the user explicitly says not to, or when the change is trivially incomplete (e.g. mid-edit across multiple files that would break the build).
+
 ## Project Context
 
 - Product: `RadAware`

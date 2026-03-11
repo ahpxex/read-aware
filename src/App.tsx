@@ -79,7 +79,7 @@ function App() {
         <header className="pt-3 pb-3 sm:pt-4 sm:pb-4">
           <nav
             aria-label="Primary"
-            className="mx-auto flex max-w-5xl items-center gap-6 px-6 sm:gap-8 xl:max-w-7xl 2xl:max-w-screen-2xl"
+            className="mx-auto flex max-w-screen-2xl items-center gap-6 px-6 sm:gap-8"
           >
             {topNavs.map((item) => (
               <NavItem
@@ -101,11 +101,11 @@ function App() {
 
       <div className="flex-1 overflow-y-auto">
         {activeTopNav === "shelf" ? (
-          <div className="mx-auto max-w-5xl px-6 py-8 sm:py-10 xl:max-w-7xl 2xl:max-w-screen-2xl">
+          <div className="mx-auto max-w-screen-2xl px-6 py-8 sm:py-10">
             <Shelf sections={shelfSections} />
           </div>
         ) : (
-          <article className="mx-auto flex min-h-full max-w-5xl flex-col justify-center px-6 py-16 sm:py-20 lg:py-24 xl:max-w-7xl 2xl:max-w-screen-2xl">
+          <article className="mx-auto flex min-h-full max-w-screen-2xl flex-col justify-center px-6 py-16 sm:py-20 lg:py-24">
             <Eyebrow>{contextCopy.eyebrow}</Eyebrow>
             <Display as="h1" size="7xl" className="mt-6 max-w-4xl">
               {contextCopy.title}

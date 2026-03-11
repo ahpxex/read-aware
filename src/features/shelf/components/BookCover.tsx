@@ -21,7 +21,7 @@ export function BookCover({ book, onClick, className }: BookCoverProps) {
       type="button"
       onClick={onClick}
       className={cn(
-        "group flex w-full flex-col text-left lg:max-w-44",
+        "group flex w-full max-w-32 justify-self-start flex-col text-left sm:max-w-36 lg:max-w-44",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-950 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-100",
         className,
       )}

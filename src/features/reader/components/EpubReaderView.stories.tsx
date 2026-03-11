@@ -27,7 +27,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Empty: Story = {
+export const Epub: Story = {
   args: {
     initialEpubUrl: demoEpubUrl,
   },

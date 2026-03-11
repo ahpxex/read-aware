@@ -79,6 +79,18 @@
 - Keep the AI layer code-first and product-native
 - Prefer explicit state, explicit memory writes, and explicit retrieval pipelines over opaque agent magic
 
+### Reader Engine Strategy
+
+- Primary reading engines:
+  - `epub.js` for EPUB rendering and navigation
+  - `pdf.js` for PDF rendering and text selection
+- Secondary formats:
+  - Accept `.mobi` and `.azw3` via ingestion and conversion to normalized EPUB using Calibre `ebook-convert`
+- Conversion boundaries:
+  - Do not convert EPUB <-> PDF
+  - Keep both original source files and normalized derivatives
+  - Surface DRM-protected files as unsupported with explicit UX messaging
+
 ## Design System
 
 The component library lives in `src/components/` with co-located Storybook stories. Run `bun run storybook` to browse.

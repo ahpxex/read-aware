@@ -14,6 +14,7 @@ import {
 import { SettingsView } from "./features/settings/SettingsView";
 import { Shelf } from "./features/shelf/components/Shelf";
 import type { Book } from "./features/shelf/components/BookCover";
+import { EpubReaderView } from "./features/reader/components/EpubReaderView";
 
 const currentlyReading: Book[] = [
   { id: "1", title: "The Master and Margarita", author: "Mikhail Bulgakov", progress: 64 },
@@ -104,6 +105,8 @@ function App() {
           <div className="mx-auto max-w-screen-2xl px-6 py-8 sm:py-10">
             <Shelf sections={shelfSections} />
           </div>
+        ) : activeTopNav === "reader" ? (
+          <EpubReaderView />
         ) : (
           <article className="mx-auto flex min-h-full max-w-screen-2xl flex-col justify-center px-6 py-16 sm:py-20 lg:py-24">
             <Eyebrow>{contextCopy.eyebrow}</Eyebrow>

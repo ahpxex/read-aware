@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { PdfReaderView } from "./PdfReaderView";
-import demoPdfUrl from "../../../../demo/dummy.pdf?url";
+import demoPdfUrl from "../../../../demo/AtomicHabits.pdf?url";
 
 const sampleBook = {
   id: "reader-story-book",
-  title: "Dummy PDF Document",
-  author: "W3C",
+  title: "Atomic Habits",
+  author: "James Clear",
   progress: 0,
 };
 

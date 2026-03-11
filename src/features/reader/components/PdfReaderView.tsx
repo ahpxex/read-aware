@@ -15,6 +15,7 @@ type PdfPage = {
     canvasContext: CanvasRenderingContext2D;
     viewport: PdfViewport;
   }) => { promise: Promise<void>; cancel: () => void };
+  getTextContent: () => Promise<PdfTextContent>;
   cleanup: () => boolean;
 };
 
@@ -22,6 +23,17 @@ type PdfViewport = {
   width: number;
   height: number;
 };
+
+type PdfTextContent = {
+  items: unknown[];
+  styles: Record<string, unknown>;
+};
+
+type PdfTextLayerConstructor = new (params: {
+  textContentSource: PdfTextContent;
+  container: HTMLElement;
+  viewport: PdfViewport;
+}) => { render: () => Promise<void>; cancel: () => void };
 
 type PdfLoadingTask = {
   promise: Promise<PdfDocument>;
@@ -59,8 +71,10 @@ export function PdfReaderView({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const pdfDocRef = useRef<PdfDocument | null>(null);
+  const textLayerClassRef = useRef<PdfTextLayerConstructor | null>(null);
   const loadingTaskRef = useRef<PdfLoadingTask | null>(null);
   const canvasMapRef = useRef<Map<number, HTMLCanvasElement>>(new Map());
+  const textLayerMapRef = useRef<Map<number, HTMLDivElement>>(new Map());
   const renderingPagesRef = useRef<Set<number>>(new Set());
   const renderedPagesRef = useRef<Set<number>>(new Set());
   const pageDimensionsRef = useRef<PageDimensions[]>([]);
@@ -157,7 +171,7 @@ export function PdfReaderView({
       const page = await doc.getPage(pageNum);
       const viewport = page.getViewport({ scale: BASE_SCALE });
 
-      let canvas = canvasMapRef.current.get(pageNum);
+      const canvas = canvasMapRef.current.get(pageNum);
       if (!canvas) return;
 
       const dpr = window.devicePixelRatio || 1;
@@ -172,6 +186,20 @@ export function PdfReaderView({
       ctx.scale(dpr, dpr);
 
       await page.render({ canvasContext: ctx, viewport }).promise;
+
+      const TextLayerClass = textLayerClassRef.current;
+      const textLayerDiv = textLayerMapRef.current.get(pageNum);
+      if (TextLayerClass && textLayerDiv) {
+        textLayerDiv.replaceChildren();
+        const textContent = await page.getTextContent();
+        const textLayer = new TextLayerClass({
+          textContentSource: textContent,
+          container: textLayerDiv,
+          viewport,
+        });
+        await textLayer.render();
+      }
+
       renderedPagesRef.current.add(pageNum);
       page.cleanup();
     } catch {
@@ -213,6 +241,7 @@ export function PdfReaderView({
     setNumPages(0);
     setCurrentPage(1);
     canvasMapRef.current.clear();
+    textLayerMapRef.current.clear();
     renderingPagesRef.current.clear();
     renderedPagesRef.current.clear();
     pageDimensionsRef.current = [];
@@ -227,6 +256,9 @@ export function PdfReaderView({
           "pdfjs-dist/build/pdf.worker.min.mjs",
           import.meta.url,
         ).href;
+
+        textLayerClassRef.current =
+          pdfjs.TextLayer as unknown as PdfTextLayerConstructor;
 
         const loadingTask = pdfjs.getDocument({
           data: loadedPdf.data.slice(0),
@@ -277,6 +309,7 @@ export function PdfReaderView({
       }
       pdfDocRef.current?.destroy();
       pdfDocRef.current = null;
+      textLayerClassRef.current = null;
       loadingTaskRef.current = null;
     };
   }, [loadedPdf]);
@@ -323,6 +356,14 @@ export function PdfReaderView({
     } else {
       canvasMapRef.current.delete(pageNum);
       renderedPagesRef.current.delete(pageNum);
+    }
+  }
+
+  function registerTextLayer(pageNum: number, div: HTMLDivElement | null) {
+    if (div) {
+      textLayerMapRef.current.set(pageNum, div);
+    } else {
+      textLayerMapRef.current.delete(pageNum);
     }
   }
 
@@ -387,16 +428,20 @@ export function PdfReaderView({
           {dims.map((dim, i) => (
             <div
               key={i}
+              className="relative shrink-0 bg-white shadow-sm"
               style={{
                 width: dim.width,
                 height: dim.height,
                 marginBottom: i < dims.length - 1 ? PAGE_GAP : 0,
               }}
-              className="shrink-0 bg-white shadow-sm"
             >
               <canvas
                 ref={(el) => registerCanvas(i + 1, el)}
                 style={{ width: dim.width, height: dim.height }}
+              />
+              <div
+                ref={(el) => registerTextLayer(i + 1, el)}
+                className="pdf-text-layer"
               />
             </div>
           ))}

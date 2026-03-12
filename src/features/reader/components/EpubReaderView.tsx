@@ -29,6 +29,12 @@ type EpubReaderViewProps = {
   onContentClick?: () => void;
   onContentScroll?: () => void;
   onPageChange?: (current: number, total: number) => void;
+  onTocChange?: (entries: TocEntry[]) => void;
+  onCurrentChapterChange?: (href: string | null) => void;
+  chapterNavigationRequest?: {
+    href: string;
+    requestId: number;
+  } | null;
 };
 
 export function EpubReaderView({
@@ -37,6 +43,9 @@ export function EpubReaderView({
   onContentClick,
   onContentScroll,
   onPageChange,
+  onTocChange,
+  onCurrentChapterChange,
+  chapterNavigationRequest = null,
 }: EpubReaderViewProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -61,6 +70,16 @@ export function EpubReaderView({
     onPageChangeRef.current = onPageChange;
   }, [onPageChange]);
 
+  const onTocChangeRef = useRef(onTocChange);
+  useEffect(() => {
+    onTocChangeRef.current = onTocChange;
+  }, [onTocChange]);
+
+  const onCurrentChapterChangeRef = useRef(onCurrentChapterChange);
+  useEffect(() => {
+    onCurrentChapterChangeRef.current = onCurrentChapterChange;
+  }, [onCurrentChapterChange]);
+
   const [loadedEpub, setLoadedEpub] = useLocalAtom<LoadedEpub | null>(null);
   const [isLoading, setIsLoading] = useLocalAtom(false);
   const [error, setError] = useLocalAtom<string | null>(null);
@@ -79,7 +98,15 @@ export function EpubReaderView({
   }, [tocEntries]);
 
   useEffect(() => {
+    onTocChangeRef.current?.(tocEntries);
+  }, [tocEntries]);
+
+  useEffect(() => {
     currentChapterHrefRef.current = currentChapterHref;
+  }, [currentChapterHref]);
+
+  useEffect(() => {
+    onCurrentChapterChangeRef.current?.(currentChapterHref);
   }, [currentChapterHref]);
 
   useEffect(() => {
@@ -359,6 +386,11 @@ export function EpubReaderView({
       setError(formatReaderError(nextError));
     }
   }
+
+  useEffect(() => {
+    if (!chapterNavigationRequest?.href) return;
+    void goToChapter(chapterNavigationRequest.href);
+  }, [chapterNavigationRequest?.href, chapterNavigationRequest?.requestId]);
 
   async function goToAdjacentChapter(direction: -1 | 1) {
     if (!tocEntriesRef.current.length) return;

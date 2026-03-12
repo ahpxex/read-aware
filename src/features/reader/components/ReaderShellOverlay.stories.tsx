@@ -3,6 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useLocalAtom } from "../../../state/local";
 import { ReaderShellOverlay } from "./ReaderShellOverlay";
 import { EpubReaderView } from "./EpubReaderView";
+import type { TocEntry } from "../lib/epub-types";
 import demoEpubUrl from "../../../../demo/ElonMusk.epub?url";
 
 const meta = {
@@ -16,8 +17,40 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+const demoToc: TocEntry[] = [
+  {
+    id: "intro",
+    href: "intro.xhtml",
+    label: "Introduction",
+    depth: 0,
+    spineIndex: 1,
+  },
+  {
+    id: "chapter-1",
+    href: "chapter-1.xhtml",
+    label: "Chapter 1. A difficult childhood",
+    depth: 0,
+    spineIndex: 2,
+  },
+  {
+    id: "chapter-1-section-1",
+    href: "chapter-1.xhtml#origins",
+    label: "Origins",
+    depth: 1,
+    spineIndex: 2,
+  },
+  {
+    id: "chapter-2",
+    href: "chapter-2.xhtml",
+    label: "Chapter 2. First principles",
+    depth: 0,
+    spineIndex: 3,
+  },
+];
+
 function ReaderShellDemo() {
   const [visible, setVisible] = useLocalAtom(false);
+  const [currentChapterHref, setCurrentChapterHref] = useLocalAtom("chapter-2.xhtml");
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -38,6 +71,9 @@ function ReaderShellDemo() {
         subtitle="Walter Isaacson"
         progress={0.12}
         currentPosition="Chapter 2 of 95"
+        tocEntries={demoToc}
+        currentChapterHref={currentChapterHref}
+        onChapterSelect={setCurrentChapterHref}
       />
 
       {!visible && (
@@ -60,6 +96,7 @@ export const Default: Story = {
 
 function InteractiveDemo() {
   const [visible, setVisible] = useLocalAtom(false);
+  const [currentChapterHref, setCurrentChapterHref] = useLocalAtom("chapter-2.xhtml");
   const toggle = useCallback(() => setVisible((v) => !v), []);
   const hide = useCallback(() => setVisible(false), []);
 
@@ -78,6 +115,9 @@ function InteractiveDemo() {
         subtitle="Walter Isaacson"
         progress={0.12}
         currentPosition="Chapter 2 of 95"
+        tocEntries={demoToc}
+        currentChapterHref={currentChapterHref}
+        onChapterSelect={setCurrentChapterHref}
       />
     </div>
   );

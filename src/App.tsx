@@ -21,6 +21,7 @@ import { Shelf } from "./features/shelf/components/Shelf";
 import type { Book } from "./features/shelf/components/BookCover";
 import { EpubReaderView } from "./features/reader/components/EpubReaderView";
 import { ReaderShellOverlay } from "./features/reader/components/ReaderShellOverlay";
+import type { TocEntry } from "./features/reader/lib/epub-types";
 import demoEpubUrl from "../demo/ElonMusk.epub?url";
 
 const currentlyReading: Book[] = [
@@ -66,6 +67,12 @@ function App() {
   const [selectedShelfBook, setSelectedShelfBook] = useLocalAtom<Book | null>(null);
   const [shellVisible, setShellVisible] = useLocalAtom(false);
   const [readerPage, setReaderPage] = useLocalAtom({ current: 0, total: 0 });
+  const [readerToc, setReaderToc] = useLocalAtom<TocEntry[]>([]);
+  const [currentChapterHref, setCurrentChapterHref] = useLocalAtom<string | null>(null);
+  const [chapterNavigationRequest, setChapterNavigationRequest] = useLocalAtom<{
+    href: string;
+    requestId: number;
+  } | null>(null);
   const [topNavIndicator, setTopNavIndicator] = useLocalAtom({
     x: 0,
     width: 0,
@@ -98,12 +105,38 @@ function App() {
   const openReader = useCallback((book: Book) => {
     setSelectedShelfBook(book);
     setReaderPage({ current: 0, total: 0 });
-  }, [setReaderPage, setSelectedShelfBook]);
+    setReaderToc([]);
+    setCurrentChapterHref(null);
+    setChapterNavigationRequest(null);
+  }, [
+    setChapterNavigationRequest,
+    setCurrentChapterHref,
+    setReaderPage,
+    setReaderToc,
+    setSelectedShelfBook,
+  ]);
 
   const closeReader = useCallback(() => {
     setSelectedShelfBook(null);
     setShellVisible(false);
-  }, [setSelectedShelfBook, setShellVisible]);
+    setReaderToc([]);
+    setCurrentChapterHref(null);
+    setChapterNavigationRequest(null);
+  }, [
+    setChapterNavigationRequest,
+    setCurrentChapterHref,
+    setReaderToc,
+    setSelectedShelfBook,
+    setShellVisible,
+  ]);
+
+  const handleChapterSelect = useCallback((href: string) => {
+    setChapterNavigationRequest((previous) => ({
+      href,
+      requestId: (previous?.requestId ?? 0) + 1,
+    }));
+    setShellVisible(false);
+  }, [setChapterNavigationRequest, setShellVisible]);
 
   const updateTopNavIndicator = useCallback(() => {
     const navList = topNavListRef.current;
@@ -152,6 +185,9 @@ function App() {
           onContentClick={toggleShell}
           onContentScroll={hideShell}
           onPageChange={handlePageChange}
+          onTocChange={setReaderToc}
+          onCurrentChapterChange={setCurrentChapterHref}
+          chapterNavigationRequest={chapterNavigationRequest}
         />
         <ReaderShellOverlay
           visible={shellVisible}
@@ -160,6 +196,9 @@ function App() {
           subtitle={selectedShelfBook.author}
           progress={readerPage.total > 0 ? readerPage.current / readerPage.total : undefined}
           currentPosition={readerPage.total > 0 ? `Page ${readerPage.current} of ${readerPage.total}` : undefined}
+          tocEntries={readerToc}
+          currentChapterHref={currentChapterHref}
+          onChapterSelect={handleChapterSelect}
         />
       </div>
     );

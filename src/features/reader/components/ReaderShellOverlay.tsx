@@ -97,7 +97,7 @@ export function ReaderShellOverlay({
           <section
             aria-label="Table of contents"
             className={cn(
-              "pointer-events-auto flex h-full min-h-0 w-full max-w-[18rem] flex-col border-r border-stone-200/60 bg-stone-100/45 transition-all duration-200 ease-out",
+              "pointer-events-auto flex h-full min-h-0 w-full max-w-[18rem] flex-col border-r border-stone-300/70 bg-[var(--ra-main-surface-color)] transition-all duration-200 ease-out",
               visible
                 ? "translate-x-0 opacity-100"
                 : "-translate-x-4 opacity-0 pointer-events-none",

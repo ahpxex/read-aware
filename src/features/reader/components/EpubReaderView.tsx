@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Body, Button, Heading, Sidebar } from "../../../components";
+import { Body, Button, Heading, ScrollArea, Sidebar } from "../../../components";
 import { cn } from "../../../components/lib/cn";
 import { useLocalAtom } from "../../../state/local";
 import type { Book } from "../../shelf/components/BookCover";
@@ -490,8 +490,8 @@ export function EpubReaderView({
           <Body className="text-sm text-stone-600">
             Press `[` or `]` to move between chapters, or pick one below.
           </Body>
-          <div className="min-h-0 flex-1 overflow-y-auto pr-2">
-            <div className="flex flex-col gap-1">
+          <ScrollArea className="min-h-0 flex-1">
+            <div className="flex flex-col gap-1 pr-2">
               {tocEntries.length === 0 ? (
                 <Body className="text-sm text-stone-600">
                   No chapter list is available for this EPUB.
@@ -518,7 +518,7 @@ export function EpubReaderView({
                 ))
               )}
             </div>
-          </div>
+          </ScrollArea>
         </div>
       </Sidebar>
     </section>

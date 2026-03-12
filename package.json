@@ -21,6 +21,7 @@
     "pdfjs-dist": "^5.5.207",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "simplebar-react": "^3.3.2",
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {

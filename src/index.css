@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "simplebar-react/dist/simplebar.min.css";
 
 @theme {
   --color-paper: #f5f1e8;
@@ -56,34 +57,72 @@ button {
   font: inherit;
 }
 
-/* Global minimalist scrollbar: thin, stable, and no hover expansion. */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: rgb(28 25 23 / 0.28) transparent;
+/* Non-native scrollbar used by ScrollArea/SimpleBar across web + Tauri webviews. */
+.ra-scrollarea .simplebar-track {
+  background: transparent;
 }
 
-*::-webkit-scrollbar {
+.ra-scrollarea .simplebar-track.simplebar-vertical {
+  top: 2px;
+  bottom: 2px;
   width: 6px;
+  right: 2px;
+}
+
+.ra-scrollarea .simplebar-track.simplebar-horizontal {
+  left: 2px;
+  right: 2px;
   height: 6px;
+  bottom: 2px;
 }
 
-*::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-*::-webkit-scrollbar-thumb {
+.ra-scrollarea .simplebar-scrollbar::before {
+  inset: 0;
   border-radius: 999px;
-  background-color: rgb(28 25 23 / 0.28);
+  background-color: rgb(28 25 23 / 0.42);
+  opacity: 1;
+  transition: none;
 }
 
-*::-webkit-scrollbar-thumb:hover,
-*::-webkit-scrollbar-thumb:active {
-  background-color: rgb(28 25 23 / 0.28);
+.ra-scrollarea .simplebar-scrollbar.simplebar-visible::before,
+.ra-scrollarea .simplebar-scrollbar:hover::before,
+.ra-scrollarea.simplebar-hover .simplebar-scrollbar::before,
+.ra-scrollarea.simplebar-dragging .simplebar-scrollbar::before {
+  background-color: rgb(28 25 23 / 0.42);
+  opacity: 1;
 }
 
-*::-webkit-scrollbar-track:hover,
-*::-webkit-scrollbar-track:active {
-  background: transparent;
+.ra-scrollarea .simplebar-track.simplebar-vertical .simplebar-scrollbar {
+  width: 100%;
+}
+
+.ra-scrollarea .simplebar-track.simplebar-horizontal .simplebar-scrollbar {
+  height: 100%;
+}
+
+/*
+  Tauri macOS (WKWebView) hardening:
+  1) force-hide native WebKit scrollbars
+  2) clip native scrollbar gutter so overlay bars cannot leak through
+*/
+html.tauri-wkwebview *::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+html.tauri-wkwebview .ra-scrollarea .simplebar-offset {
+  right: -16px !important;
+  bottom: -16px !important;
+}
+
+html.tauri-wkwebview .ra-scrollarea .simplebar-content-wrapper {
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: auto !important;
+  padding-right: 16px;
+  padding-bottom: 16px;
+  margin-right: -16px;
+  margin-bottom: -16px;
 }
 
 /* pdf.js text layer -- invisible text overlay for selection */

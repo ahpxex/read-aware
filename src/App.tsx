@@ -12,6 +12,7 @@ import {
   Divider,
   DefinitionList,
   IconButton,
+  ScrollArea,
   Tooltip,
 } from "./components";
 import { SettingsView } from "./features/settings/SettingsView";
@@ -186,7 +187,7 @@ function App() {
         </header>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <ScrollArea className="min-h-0 flex-1">
         {activeTopNav === "shelf" ? (
           <div className="mx-auto max-w-screen-2xl px-6 py-8 sm:py-10">
             <Shelf
@@ -212,7 +213,7 @@ function App() {
             />
           </article>
         )}
-      </div>
+      </ScrollArea>
 
       {settingsOpen && (
         <SettingsView onClose={() => setSettingsOpen(false)} />

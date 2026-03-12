@@ -1,6 +1,6 @@
 import { useEffect, useId } from "react";
 import { X } from "@phosphor-icons/react";
-import { IconButton, Tabs } from "../../components";
+import { IconButton, ScrollArea, Tabs } from "../../components";
 import { ReadingPanel } from "./components/ReadingPanel";
 import { DisplayPanel } from "./components/DisplayPanel";
 import { AIContextPanel } from "./components/AIContextPanel";
@@ -61,20 +61,22 @@ export function SettingsView({ onClose }: SettingsViewProps) {
           />
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-3 pb-8 sm:px-6 sm:pt-4 sm:pb-10">
-          <Tabs
-            ariaLabel="Settings sections"
-            defaultIndex={0}
-            variant="nav"
-            className="w-full"
-            items={[
-              { label: "Reading", content: <ReadingPanel /> },
-              { label: "Display", content: <DisplayPanel /> },
-              { label: "AI Context", content: <AIContextPanel /> },
-              { label: "Account", content: <AccountPanel /> },
-            ]}
-          />
-        </div>
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="px-5 pt-3 pb-8 sm:px-6 sm:pt-4 sm:pb-10">
+            <Tabs
+              ariaLabel="Settings sections"
+              defaultIndex={0}
+              variant="nav"
+              className="w-full"
+              items={[
+                { label: "Reading", content: <ReadingPanel /> },
+                { label: "Display", content: <DisplayPanel /> },
+                { label: "AI Context", content: <AIContextPanel /> },
+                { label: "Account", content: <AccountPanel /> },
+              ]}
+            />
+          </div>
+        </ScrollArea>
       </section>
     </div>
   );

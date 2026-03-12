@@ -1,6 +1,7 @@
 import { useRef, useEffect, useId, useCallback } from "react";
 import { useLocalAtom } from "../state/local";
 import { cn } from "./lib/cn";
+import { ScrollArea } from "./ScrollArea";
 
 type SelectOption = { label: string; value: string };
 
@@ -183,33 +184,34 @@ export function Select({
         </button>
 
         {open && (
-          <ul
-            ref={listboxRef}
-            id={`${id}-listbox`}
-            role="listbox"
-            aria-labelledby={`${id}-label`}
-            className="absolute z-50 mt-1 max-h-60 w-full overflow-auto border border-border bg-paper py-1 shadow-sm"
-          >
-            {options.map((opt, i) => (
-              <li
-                key={opt.value}
-                id={`${id}-option-${i}`}
-                role="option"
-                aria-selected={opt.value === currentValue}
-                onMouseEnter={() => setActiveIndex(i)}
-                onClick={() => select(opt.value)}
-                className={cn(
-                  "cursor-pointer px-3 py-1.5 text-sm",
-                  i === activeIndex && "bg-stone-100",
-                  opt.value === currentValue
-                    ? "font-medium text-stone-950"
-                    : "text-stone-700",
-                )}
-              >
-                {opt.label}
-              </li>
-            ))}
-          </ul>
+          <ScrollArea className="absolute z-50 mt-1 max-h-60 w-full border border-border bg-paper py-1 shadow-sm">
+            <ul
+              ref={listboxRef}
+              id={`${id}-listbox`}
+              role="listbox"
+              aria-labelledby={`${id}-label`}
+            >
+              {options.map((opt, i) => (
+                <li
+                  key={opt.value}
+                  id={`${id}-option-${i}`}
+                  role="option"
+                  aria-selected={opt.value === currentValue}
+                  onMouseEnter={() => setActiveIndex(i)}
+                  onClick={() => select(opt.value)}
+                  className={cn(
+                    "cursor-pointer px-3 py-1.5 text-sm",
+                    i === activeIndex && "bg-stone-100",
+                    opt.value === currentValue
+                      ? "font-medium text-stone-950"
+                      : "text-stone-700",
+                  )}
+                >
+                  {opt.label}
+                </li>
+              ))}
+            </ul>
+          </ScrollArea>
         )}
       </div>
 

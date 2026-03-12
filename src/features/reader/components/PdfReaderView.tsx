@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
-import { Body, Button, Heading, Sidebar } from "../../../components";
+import { Body, Button, Heading, ScrollArea, Sidebar } from "../../../components";
 import { cn } from "../../../components/lib/cn";
 import { useLocalAtom } from "../../../state/local";
 import type { Book } from "../../shelf/components/BookCover";
@@ -27,7 +27,7 @@ export function PdfReaderView({
   initialPdfUrl,
 }: PdfReaderViewProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const scrollContainerRef = useRef<HTMLElement | null>(null);
   const pdfDocRef = useRef<PdfDocument | null>(null);
   const textLayerClassRef = useRef<PdfTextLayerConstructor | null>(null);
   const loadingTaskRef = useRef<PdfLoadingTask | null>(null);
@@ -371,16 +371,16 @@ export function PdfReaderView({
         }}
       />
 
-      <div
-        ref={scrollContainerRef}
-        onScroll={handleScroll}
-        aria-label={
-          selectedBook?.title ?? loadedPdf?.fileName ?? "PDF reader"
-        }
+      <ScrollArea
         className={cn(
-          "h-full w-full overflow-y-auto",
+          "h-full w-full",
           (!loadedPdf || isLoading || !!error) && "opacity-0",
         )}
+        scrollableNodeProps={{
+          ref: scrollContainerRef,
+          onScroll: handleScroll,
+          "aria-label": selectedBook?.title ?? loadedPdf?.fileName ?? "PDF reader",
+        }}
       >
         <div className="mx-auto flex flex-col items-center py-6">
           {dims.map((dim, i) => (
@@ -404,7 +404,7 @@ export function PdfReaderView({
             </div>
           ))}
         </div>
-      </div>
+      </ScrollArea>
 
       {!loadedPdf && !isLoading && !error && (
         <button

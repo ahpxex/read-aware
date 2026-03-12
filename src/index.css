@@ -30,7 +30,8 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;
-  --ra-scrollbar-size: 4px;
+  --ra-scrollbar-size: 3px;
+  --ra-scrollbar-color: rgb(28 25 23 / 0.42);
 }
 
 *,
@@ -79,8 +80,8 @@ button {
 
 .ra-scrollarea .simplebar-scrollbar::before {
   inset: 0;
-  border-radius: 999px;
-  background-color: rgb(28 25 23 / 0.42);
+  border-radius: 0;
+  background-color: var(--ra-scrollbar-color);
   opacity: 1;
   transition: none;
 }
@@ -89,7 +90,7 @@ button {
 .ra-scrollarea .simplebar-scrollbar:hover::before,
 .ra-scrollarea.simplebar-hover .simplebar-scrollbar::before,
 .ra-scrollarea.simplebar-dragging .simplebar-scrollbar::before {
-  background-color: rgb(28 25 23 / 0.42);
+  background-color: var(--ra-scrollbar-color);
   opacity: 1;
 }
 

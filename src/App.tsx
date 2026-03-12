@@ -120,9 +120,9 @@ function App() {
   }
 
   return (
-    <main className="flex h-screen flex-col bg-stone-100 text-stone-950">
+    <main className="flex h-screen flex-col bg-[var(--ra-main-surface-color)] text-stone-950">
       <div
-        className="shrink-0 border-b border-border bg-stone-100"
+        className="shrink-0 border-b border-border bg-[var(--ra-main-surface-color)]"
         onMouseDown={(e: MouseEvent<HTMLElement>) => {
           const tag = (e.target as HTMLElement).closest("button, a, input");
           if (e.buttons === 1 && !tag) {

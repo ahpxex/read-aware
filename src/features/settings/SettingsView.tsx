@@ -32,7 +32,7 @@ export function SettingsView({ onClose }: SettingsViewProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/35 px-4 py-6 sm:p-8"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/35 backdrop-blur-sm px-4 py-6 sm:p-8"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
@@ -43,7 +43,7 @@ export function SettingsView({ onClose }: SettingsViewProps) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="flex h-[min(82vh,42rem)] w-full max-w-3xl flex-col border border-border bg-paper"
+        className="flex h-[min(82vh,42rem)] w-full max-w-3xl flex-col border border-border bg-[var(--ra-main-surface-color)]"
       >
         <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-3 sm:px-6 sm:py-4">
           <h2

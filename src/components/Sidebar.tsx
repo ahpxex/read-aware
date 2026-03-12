@@ -83,7 +83,7 @@ export function Sidebar({
     <>
       {open && (
         <div
-          className="fixed inset-0 z-40 bg-stone-950/10"
+          className="fixed inset-0 z-40 bg-stone-950/10 backdrop-blur-sm"
           onClick={onClose}
           aria-hidden
         />

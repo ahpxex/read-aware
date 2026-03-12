@@ -46,7 +46,7 @@ export function Dialog({
       aria-labelledby={title ? titleId : undefined}
       aria-label={!title ? ariaLabel : undefined}
       className={cn(
-        "m-auto max-w-lg border border-border bg-paper p-8 font-sans text-stone-950 backdrop:bg-stone-950/20",
+        "m-auto max-w-lg border border-border bg-[var(--ra-main-surface-color)] p-8 font-sans text-stone-950 backdrop:bg-stone-950/20 backdrop:backdrop-blur-sm",
         "open:flex open:flex-col open:gap-4",
         className,
       )}

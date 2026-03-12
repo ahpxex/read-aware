@@ -30,6 +30,7 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;
+  --ra-main-surface-color: #f5f5f4;
   --ra-scrollbar-size: 3px;
   --ra-scrollbar-color: rgb(28 25 23 / 0.42);
 }

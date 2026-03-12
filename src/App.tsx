@@ -12,6 +12,7 @@ import {
   Divider,
   DefinitionList,
   IconButton,
+  Tooltip,
 } from "./components";
 import { SettingsView } from "./features/settings/SettingsView";
 import { Shelf } from "./features/shelf/components/Shelf";
@@ -63,6 +64,8 @@ function App() {
   const [selectedShelfBook, setSelectedShelfBook] = useLocalAtom<Book | null>(null);
   const [shellVisible, setShellVisible] = useLocalAtom(false);
   const [readerPage, setReaderPage] = useLocalAtom({ current: 0, total: 0 });
+  const headerIconButtonClass =
+    "relative text-stone-500 hover:text-stone-950 before:absolute before:-inset-1 before:content-['']";
 
   const toggleShell = useCallback(() => setShellVisible((v) => !v), [setShellVisible]);
   const hideShell = useCallback(() => setShellVisible(false), [setShellVisible]);
@@ -158,25 +161,31 @@ function App() {
             ))}
 
             <div className="ml-auto flex items-center gap-4">
-              <IconButton
-                label="Search"
-                size="sm"
-                className="text-stone-500 hover:text-stone-950"
-                icon={<MagnifyingGlass size={14} weight="regular" aria-hidden="true" />}
-              />
-              <IconButton
-                label="Import"
-                size="sm"
-                className="text-stone-500 hover:text-stone-950"
-                icon={<Plus size={14} weight="regular" aria-hidden="true" />}
-              />
-              <IconButton
-                label="Settings"
-                size="sm"
-                onClick={() => setSettingsOpen(true)}
-                className="text-stone-500 hover:text-stone-950"
-                icon={<GearSix size={14} weight="regular" aria-hidden="true" />}
-              />
+              <Tooltip content="Search">
+                <IconButton
+                  label="Search"
+                  size="sm"
+                  className={headerIconButtonClass}
+                  icon={<MagnifyingGlass size={14} weight="regular" aria-hidden="true" />}
+                />
+              </Tooltip>
+              <Tooltip content="Import">
+                <IconButton
+                  label="Import"
+                  size="sm"
+                  className={headerIconButtonClass}
+                  icon={<Plus size={14} weight="regular" aria-hidden="true" />}
+                />
+              </Tooltip>
+              <Tooltip content="Settings">
+                <IconButton
+                  label="Settings"
+                  size="sm"
+                  onClick={() => setSettingsOpen(true)}
+                  className={headerIconButtonClass}
+                  icon={<GearSix size={14} weight="regular" aria-hidden="true" />}
+                />
+              </Tooltip>
             </div>
           </nav>
         </header>

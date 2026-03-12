@@ -26,12 +26,14 @@ type EpubReaderViewProps = {
   selectedBook?: Book | null;
   initialEpubUrl?: string;
   onContentClick?: () => void;
+  onContentScroll?: () => void;
 };
 
 export function EpubReaderView({
   selectedBook = null,
   initialEpubUrl,
   onContentClick,
+  onContentScroll,
 }: EpubReaderViewProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -45,6 +47,11 @@ export function EpubReaderView({
   useEffect(() => {
     onContentClickRef.current = onContentClick;
   }, [onContentClick]);
+
+  const onContentScrollRef = useRef(onContentScroll);
+  useEffect(() => {
+    onContentScrollRef.current = onContentScroll;
+  }, [onContentScroll]);
 
   const [loadedEpub, setLoadedEpub] = useState<LoadedEpub | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -107,6 +114,18 @@ export function EpubReaderView({
 
     observer.observe(element);
     return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const element = viewportRef.current;
+    if (!element) return;
+
+    function handleScroll() {
+      onContentScrollRef.current?.();
+    }
+
+    element.addEventListener("scroll", handleScroll, true);
+    return () => element.removeEventListener("scroll", handleScroll, true);
   }, []);
 
   useEffect(() => {

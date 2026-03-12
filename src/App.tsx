@@ -61,6 +61,7 @@ function App() {
   const [shellVisible, setShellVisible] = useState(false);
 
   const toggleShell = useCallback(() => setShellVisible((v) => !v), []);
+  const hideShell = useCallback(() => setShellVisible(false), []);
   const closeReader = useCallback(() => {
     setSelectedShelfBook(null);
     setShellVisible(false);
@@ -77,11 +78,11 @@ function App() {
           selectedBook={selectedShelfBook}
           initialEpubUrl={demoEpubUrl}
           onContentClick={toggleShell}
+          onContentScroll={hideShell}
         />
         <ReaderShellOverlay
           visible={shellVisible}
           onBack={closeReader}
-          onOverlayClick={toggleShell}
           title={selectedShelfBook.title}
           subtitle={selectedShelfBook.author}
           progress={selectedShelfBook.progress != null ? selectedShelfBook.progress / 100 : undefined}

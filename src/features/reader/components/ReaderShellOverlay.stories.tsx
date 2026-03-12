@@ -60,18 +60,19 @@ export const Default: Story = {
 function InteractiveDemo() {
   const [visible, setVisible] = useState(false);
   const toggle = useCallback(() => setVisible((v) => !v), []);
+  const hide = useCallback(() => setVisible(false), []);
 
   return (
     <div className="relative h-screen w-full">
       <EpubReaderView
         initialEpubUrl={demoEpubUrl}
         onContentClick={toggle}
+        onContentScroll={hide}
       />
 
       <ReaderShellOverlay
         visible={visible}
         onBack={() => {}}
-        onOverlayClick={toggle}
         title="Elon Musk"
         subtitle="Walter Isaacson"
         progress={0.12}

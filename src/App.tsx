@@ -1,6 +1,7 @@
 import { type MouseEvent, useCallback } from "react";
 import { useAtom } from "jotai";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { GearSix, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { useLocalAtom } from "./state/local";
 import { activeTopNavAtom, settingsOpenAtom, topNavs } from "./state/ui";
 import {
@@ -10,7 +11,7 @@ import {
   NavItem,
   Divider,
   DefinitionList,
-  Button,
+  IconButton,
 } from "./components";
 import { SettingsView } from "./features/settings/SettingsView";
 import { Shelf } from "./features/shelf/components/Shelf";
@@ -157,8 +158,25 @@ function App() {
             ))}
 
             <div className="ml-auto flex items-center gap-4">
-              <Button variant="ghost" size="sm">Import</Button>
-              <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>Settings</Button>
+              <IconButton
+                label="Search"
+                size="sm"
+                className="text-stone-500 hover:text-stone-950"
+                icon={<MagnifyingGlass size={14} weight="regular" aria-hidden="true" />}
+              />
+              <IconButton
+                label="Import"
+                size="sm"
+                className="text-stone-500 hover:text-stone-950"
+                icon={<Plus size={14} weight="regular" aria-hidden="true" />}
+              />
+              <IconButton
+                label="Settings"
+                size="sm"
+                onClick={() => setSettingsOpen(true)}
+                className="text-stone-500 hover:text-stone-950"
+                icon={<GearSix size={14} weight="regular" aria-hidden="true" />}
+              />
             </div>
           </nav>
         </header>

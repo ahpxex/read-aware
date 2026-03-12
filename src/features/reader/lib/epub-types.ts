@@ -22,7 +22,9 @@ export type EpubRenderedView = {
 
 export type EpubContents = {
   addStylesheetCss: (serializedCss: string, key: string) => Promise<boolean>;
+  cfiFromRange: (range: Range, ignoreClass?: string) => string;
   document: Document;
+  window: Window;
 };
 
 export type EpubRendition = {
@@ -32,11 +34,13 @@ export type EpubRendition = {
   on: {
     (event: "relocated", listener: (location: EpubRelocation) => void): void;
     (event: "rendered", listener: (section: unknown, view: EpubRenderedView) => void): void;
+    (event: "selected", listener: (cfiRange: string, contents: EpubContents) => void): void;
     (event: string, listener: (...args: unknown[]) => void): void;
   };
   off: {
     (event: "relocated", listener: (location: EpubRelocation) => void): void;
     (event: "rendered", listener: (section: unknown, view: EpubRenderedView) => void): void;
+    (event: "selected", listener: (cfiRange: string, contents: EpubContents) => void): void;
     (event: string, listener: (...args: unknown[]) => void): void;
   };
   resize: () => void;

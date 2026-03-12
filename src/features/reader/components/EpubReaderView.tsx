@@ -1,9 +1,14 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Body, Button, Heading, ScrollArea, Sidebar } from "../../../components";
 import { cn } from "../../../components/lib/cn";
 import { useLocalAtom } from "../../../state/local";
 import type { Book } from "../../shelf/components/BookCover";
 import { formatReaderError } from "../lib/format-reader-error";
+import {
+  getNormalizedSelectionText,
+  getSelectionOverlayRects,
+  type SelectionOverlayRect,
+} from "../lib/selection-overlay";
 import {
   normalizeHref,
   flattenToc,
@@ -21,7 +26,12 @@ import type {
   LoadedEpub,
   TocEntry,
   SpineEntry,
+  EpubContents,
 } from "../lib/epub-types";
+import {
+  ReaderSelectionOverlay,
+  type ReaderSelectionState,
+} from "./ReaderSelectionOverlay";
 
 type EpubReaderViewProps = {
   selectedBook?: Book | null;
@@ -37,6 +47,35 @@ type EpubReaderViewProps = {
   } | null;
 };
 
+const SELECTION_CLICK_SUPPRESSION_MS = 180;
+
+function clampRectToViewport(
+  rect: SelectionOverlayRect,
+  frameRect: DOMRect,
+  viewportRect: DOMRect,
+): SelectionOverlayRect | null {
+  const left = frameRect.left + rect.left - viewportRect.left;
+  const top = frameRect.top + rect.top - viewportRect.top;
+  const right = frameRect.left + rect.left + rect.width - viewportRect.left;
+  const bottom = frameRect.top + rect.top + rect.height - viewportRect.top;
+
+  const clippedLeft = Math.max(0, left);
+  const clippedTop = Math.max(0, top);
+  const clippedRight = Math.min(viewportRect.width, right);
+  const clippedBottom = Math.min(viewportRect.height, bottom);
+  const width = clippedRight - clippedLeft;
+  const height = clippedBottom - clippedTop;
+
+  if (width <= 0 || height <= 0) return null;
+
+  return {
+    left: clippedLeft,
+    top: clippedTop,
+    width,
+    height,
+  };
+}
+
 export function EpubReaderView({
   selectedBook = null,
   initialEpubUrl,
@@ -48,12 +87,17 @@ export function EpubReaderView({
   chapterNavigationRequest = null,
 }: EpubReaderViewProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const readerRootRef = useRef<HTMLElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const renditionRef = useRef<EpubRendition | null>(null);
   const lastCfiRef = useRef<string | null>(null);
   const loadedEpubRef = useRef<LoadedEpub | null>(null);
   const tocEntriesRef = useRef<TocEntry[]>([]);
   const currentChapterHrefRef = useRef<string | null>(null);
+  const selectionRef = useRef<ReaderSelectionState | null>(null);
+  const isPointerSelectingRef = useRef(false);
+  const suppressContentClickRef = useRef(false);
+  const suppressContentClickTimeoutRef = useRef<number | null>(null);
 
   const onContentClickRef = useRef(onContentClick);
   useEffect(() => {
@@ -88,6 +132,82 @@ export function EpubReaderView({
   const [isChapterPickerOpen, setIsChapterPickerOpen] = useLocalAtom(false);
   const [, setCurrentPage] = useLocalAtom(0);
   const [, setTotalPages] = useLocalAtom(0);
+  const [selection, setSelection] = useState<ReaderSelectionState | null>(null);
+
+  const clearSelection = useCallback(() => {
+    selectionRef.current = null;
+    isPointerSelectingRef.current = false;
+    suppressContentClickRef.current = false;
+    if (suppressContentClickTimeoutRef.current != null) {
+      window.clearTimeout(suppressContentClickTimeoutRef.current);
+      suppressContentClickTimeoutRef.current = null;
+    }
+    setSelection(null);
+  }, []);
+
+  const armContentClickSuppression = useCallback(() => {
+    suppressContentClickRef.current = true;
+    if (suppressContentClickTimeoutRef.current != null) {
+      window.clearTimeout(suppressContentClickTimeoutRef.current);
+    }
+    suppressContentClickTimeoutRef.current = window.setTimeout(() => {
+      suppressContentClickRef.current = false;
+      suppressContentClickTimeoutRef.current = null;
+    }, SELECTION_CLICK_SUPPRESSION_MS);
+  }, []);
+
+  const captureSelection = useCallback((
+    contents: EpubContents,
+    cfiRange: string | null,
+    { suppressContentClick = false }: { suppressContentClick?: boolean } = {},
+  ) => {
+    const readerRoot = readerRootRef.current;
+    const selectionInContents = contents.window.getSelection();
+    const frameElement = contents.window.frameElement;
+    if (!readerRoot || !(frameElement instanceof HTMLElement) || !selectionInContents) {
+      clearSelection();
+      return false;
+    }
+
+    const text = getNormalizedSelectionText(selectionInContents);
+    if (!text || selectionInContents.rangeCount === 0) {
+      clearSelection();
+      return false;
+    }
+
+    const range = selectionInContents.getRangeAt(0);
+    if (range.collapsed) {
+      clearSelection();
+      return false;
+    }
+
+    const viewportRect = readerRoot.getBoundingClientRect();
+    const frameRect = frameElement.getBoundingClientRect();
+    const rects = getSelectionOverlayRects(range)
+      .map((rect) => clampRectToViewport(rect, frameRect, viewportRect))
+      .filter((rect): rect is SelectionOverlayRect => rect != null);
+
+    if (rects.length === 0) {
+      clearSelection();
+      return false;
+    }
+
+    const nextSelection: ReaderSelectionState = {
+      anchorRect: rects[rects.length - 1] ?? null,
+      cfiRange: cfiRange ?? contents.cfiFromRange(range),
+      chapterHref: currentChapterHrefRef.current,
+      rects,
+      text,
+    };
+
+    selectionRef.current = nextSelection;
+    setSelection(nextSelection);
+    if (suppressContentClick) {
+      armContentClickSuppression();
+    }
+
+    return true;
+  }, [armContentClickSuppression, clearSelection]);
 
   useEffect(() => {
     loadedEpubRef.current = loadedEpub;
@@ -108,6 +228,14 @@ export function EpubReaderView({
   useEffect(() => {
     onCurrentChapterChangeRef.current?.(currentChapterHref);
   }, [currentChapterHref]);
+
+  useEffect(() => {
+    return () => {
+      if (suppressContentClickTimeoutRef.current != null) {
+        window.clearTimeout(suppressContentClickTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!initialEpubUrl) return;
@@ -146,24 +274,26 @@ export function EpubReaderView({
     if (!element) return;
 
     const observer = new ResizeObserver(() => {
+      clearSelection();
       renditionRef.current?.resize();
     });
 
     observer.observe(element);
     return () => observer.disconnect();
-  }, []);
+  }, [clearSelection]);
 
   useEffect(() => {
     const element = viewportRef.current;
     if (!element) return;
 
     function handleScroll() {
+      clearSelection();
       onContentScrollRef.current?.();
     }
 
     element.addEventListener("scroll", handleScroll, true);
     return () => element.removeEventListener("scroll", handleScroll, true);
-  }, []);
+  }, [clearSelection]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleReaderKeyDown);
@@ -175,6 +305,7 @@ export function EpubReaderView({
     if (!loadedEpub || !element) return;
 
     let cancelled = false;
+    clearSelection();
     setIsLoading(true);
     setError(null);
     setTocEntries([]);
@@ -185,6 +316,7 @@ export function EpubReaderView({
     let book: EpubBook | null = null;
     let rendition: EpubRendition | null = null;
     let onRelocated: ((location: EpubRelocation) => void) | null = null;
+    let onSelected: ((cfiRange: string, contents: EpubContents) => void) | null = null;
 
     void (async () => {
       try {
@@ -224,8 +356,35 @@ export function EpubReaderView({
 
         rendition.hooks.content.register((contents) => {
           contents.document.addEventListener("keydown", handleReaderKeyDown);
+          contents.document.addEventListener("selectionchange", () => {
+            if (!isPointerSelectingRef.current) return;
+            captureSelection(contents, null);
+          });
+          contents.document.addEventListener("pointerdown", () => {
+            suppressContentClickRef.current = false;
+            if (selectionRef.current) {
+              clearSelection();
+            }
+            isPointerSelectingRef.current = true;
+          }, true);
+          contents.document.addEventListener("pointerup", () => {
+            isPointerSelectingRef.current = false;
+          }, true);
+          contents.document.addEventListener("pointercancel", () => {
+            isPointerSelectingRef.current = false;
+          }, true);
 
           contents.document.addEventListener("click", () => {
+            if (suppressContentClickRef.current) {
+              suppressContentClickRef.current = false;
+              return;
+            }
+
+            if (selectionRef.current) {
+              clearSelection();
+              return;
+            }
+
             onContentClickRef.current?.();
           }, true);
 
@@ -302,8 +461,27 @@ export function EpubReaderView({
           );
         });
 
+        onSelected = (cfiRange, contents) => {
+          const didCaptureSelection = captureSelection(contents, cfiRange, {
+            suppressContentClick: true,
+          });
+          isPointerSelectingRef.current = false;
+          try {
+            contents.window.getSelection()?.removeAllRanges();
+          } catch {
+            // Some webviews can reject selection mutation during teardown.
+          }
+
+          if (!didCaptureSelection) {
+            clearSelection();
+          }
+        };
+
+        rendition.on("selected", onSelected);
+
         onRelocated = (nextLocation: EpubRelocation) => {
           if (cancelled) return;
+          clearSelection();
           lastCfiRef.current = nextLocation.start?.cfi ?? null;
           const relocatedHref = nextLocation.start?.href ?? null;
           const relocatedSpineIndex = spineEntries.find((entry) =>
@@ -348,13 +526,16 @@ export function EpubReaderView({
       if (rendition && onRelocated) {
         rendition.off("relocated", onRelocated);
       }
+      if (rendition && onSelected) {
+        rendition.off("selected", onSelected);
+      }
       rendition?.destroy();
       book?.destroy();
       if (renditionRef.current === rendition) {
         renditionRef.current = null;
       }
     };
-  }, [loadedEpub]);
+  }, [captureSelection, clearSelection, loadedEpub]);
 
   async function handleFileSelected(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0];
@@ -380,6 +561,7 @@ export function EpubReaderView({
 
     try {
       setError(null);
+      clearSelection();
       await renditionRef.current.display(href);
       setIsChapterPickerOpen(false);
     } catch (nextError) {
@@ -435,6 +617,7 @@ export function EpubReaderView({
     }
 
     if (event.key === "Escape") {
+      clearSelection();
       setIsChapterPickerOpen(false);
     }
 
@@ -450,7 +633,7 @@ export function EpubReaderView({
   }
 
   return (
-    <section className="relative h-full w-full bg-paper">
+    <section ref={readerRootRef} className="relative h-full w-full overflow-hidden bg-paper">
       <input
         ref={fileInputRef}
         type="file"
@@ -469,6 +652,7 @@ export function EpubReaderView({
           (!loadedEpub || isLoading || !!error) && "opacity-0",
         )}
       />
+      <ReaderSelectionOverlay selection={selection} />
 
       {!loadedEpub && !isLoading && !error && (
         <button

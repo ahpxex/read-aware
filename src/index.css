@@ -35,6 +35,7 @@
   --ra-ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
   --ra-scrollbar-size: 3px;
   --ra-scrollbar-color: rgb(28 25 23 / 0.42);
+  --ra-reader-selection-color: rgb(198 168 116 / 0.42);
 }
 
 *,
@@ -267,12 +268,18 @@ html.tauri-wkwebview .ra-scrollarea .simplebar-content-wrapper {
   cursor: default;
 }
 
-.pdf-text-layer ::selection {
-  background: color-mix(in srgb, AccentColor, transparent 75%);
+.pdf-text-layer span::selection,
+.pdf-text-layer span::-moz-selection,
+.pdf-text-layer .markedContent::selection,
+.pdf-text-layer .markedContent::-moz-selection {
+  background-color: var(--ra-reader-selection-color) !important;
+  color: #292524 !important;
+  -webkit-text-fill-color: #292524;
 }
 
-.pdf-text-layer br::selection {
-  background: transparent;
+.pdf-text-layer br::selection,
+.pdf-text-layer br::-moz-selection {
+  background-color: transparent !important;
 }
 
 .pdf-text-layer .endOfContent {

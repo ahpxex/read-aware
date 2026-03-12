@@ -27,6 +27,7 @@ type EpubReaderViewProps = {
   initialEpubUrl?: string;
   onContentClick?: () => void;
   onContentScroll?: () => void;
+  onPageChange?: (current: number, total: number) => void;
 };
 
 export function EpubReaderView({
@@ -34,6 +35,7 @@ export function EpubReaderView({
   initialEpubUrl,
   onContentClick,
   onContentScroll,
+  onPageChange,
 }: EpubReaderViewProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -53,12 +55,19 @@ export function EpubReaderView({
     onContentScrollRef.current = onContentScroll;
   }, [onContentScroll]);
 
+  const onPageChangeRef = useRef(onPageChange);
+  useEffect(() => {
+    onPageChangeRef.current = onPageChange;
+  }, [onPageChange]);
+
   const [loadedEpub, setLoadedEpub] = useState<LoadedEpub | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tocEntries, setTocEntries] = useState<TocEntry[]>([]);
   const [currentChapterHref, setCurrentChapterHref] = useState<string | null>(null);
   const [isChapterPickerOpen, setIsChapterPickerOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   useEffect(() => {
     loadedEpubRef.current = loadedEpub;
@@ -142,6 +151,8 @@ export function EpubReaderView({
     setError(null);
     setTocEntries([]);
     setCurrentChapterHref(null);
+    setCurrentPage(0);
+    setTotalPages(0);
 
     let book: EpubBook | null = null;
     let rendition: EpubRendition | null = null;
@@ -171,6 +182,9 @@ export function EpubReaderView({
         book.spine.each((section) => {
           spineEntries.push({ href: section.href, index: section.index });
         });
+        if (!cancelled) {
+          setTotalPages(spineEntries.length);
+        }
         const navigation = await book.loaded.navigation;
         const flattenedToc = filterValidTocEntries(
           flattenToc(navigation.toc ?? []),
@@ -272,6 +286,11 @@ export function EpubReaderView({
               ? getTocEntryForSpineIndex(flattenedToc, relocatedSpineIndex)
               : null;
           const tocIndex = findTocIndexForHref(flattenedToc, relocatedHref);
+          if (typeof relocatedSpineIndex === "number") {
+            const page = relocatedSpineIndex + 1;
+            setCurrentPage(page);
+            onPageChangeRef.current?.(page, spineEntries.length);
+          }
           setCurrentChapterHref(
             enclosingEntry?.href ??
               (tocIndex >= 0 ? flattenedToc[tocIndex].href : relocatedHref),

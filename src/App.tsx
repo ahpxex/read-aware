@@ -59,9 +59,13 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useAtom(settingsOpenAtom);
   const [selectedShelfBook, setSelectedShelfBook] = useState<Book | null>(null);
   const [shellVisible, setShellVisible] = useState(false);
+  const [readerPage, setReaderPage] = useState({ current: 0, total: 0 });
 
   const toggleShell = useCallback(() => setShellVisible((v) => !v), []);
   const hideShell = useCallback(() => setShellVisible(false), []);
+  const handlePageChange = useCallback((current: number, total: number) => {
+    setReaderPage({ current, total });
+  }, []);
   const closeReader = useCallback(() => {
     setSelectedShelfBook(null);
     setShellVisible(false);
@@ -79,13 +83,15 @@ function App() {
           initialEpubUrl={demoEpubUrl}
           onContentClick={toggleShell}
           onContentScroll={hideShell}
+          onPageChange={handlePageChange}
         />
         <ReaderShellOverlay
           visible={shellVisible}
           onBack={closeReader}
           title={selectedShelfBook.title}
           subtitle={selectedShelfBook.author}
-          progress={selectedShelfBook.progress != null ? selectedShelfBook.progress / 100 : undefined}
+          progress={readerPage.total > 0 ? readerPage.current / readerPage.total : undefined}
+          currentPosition={readerPage.total > 0 ? `Page ${readerPage.current} of ${readerPage.total}` : undefined}
         />
       </div>
     );

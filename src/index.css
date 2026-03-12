@@ -56,6 +56,36 @@ button {
   font: inherit;
 }
 
+/* Global minimalist scrollbar: thin, stable, and no hover expansion. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(28 25 23 / 0.28) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background-color: rgb(28 25 23 / 0.28);
+}
+
+*::-webkit-scrollbar-thumb:hover,
+*::-webkit-scrollbar-thumb:active {
+  background-color: rgb(28 25 23 / 0.28);
+}
+
+*::-webkit-scrollbar-track:hover,
+*::-webkit-scrollbar-track:active {
+  background: transparent;
+}
+
 /* pdf.js text layer -- invisible text overlay for selection */
 .pdf-text-layer {
   position: absolute;

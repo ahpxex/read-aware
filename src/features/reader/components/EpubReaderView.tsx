@@ -279,9 +279,13 @@ export function EpubReaderView({
           if (cancelled) return;
           lastCfiRef.current = nextLocation.start?.cfi ?? null;
           const relocatedHref = nextLocation.start?.href ?? null;
-          const relocatedSpineIndex = spineEntries.find((entry) =>
-            hrefMatches(entry.href, relocatedHref ?? ""),
-          )?.index;
+          const relocatedIndexValue = Number(nextLocation.start?.index);
+          const relocatedSpineIndex =
+            Number.isFinite(relocatedIndexValue)
+              ? relocatedIndexValue
+              : spineEntries.find((entry) =>
+                  hrefMatches(entry.href, relocatedHref ?? ""),
+                )?.index;
           const enclosingEntry =
             typeof relocatedSpineIndex === "number"
               ? getTocEntryForSpineIndex(flattenedToc, relocatedSpineIndex)

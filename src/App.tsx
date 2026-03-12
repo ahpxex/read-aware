@@ -121,7 +121,7 @@ function App() {
   return (
     <main className="flex h-screen flex-col bg-stone-100 text-stone-950">
       <div
-        className={`shrink-0 bg-stone-100 ${settingsOpen ? "" : "border-b border-border"}`}
+        className="shrink-0 border-b border-border bg-stone-100"
         onMouseDown={(e: MouseEvent<HTMLElement>) => {
           const tag = (e.target as HTMLElement).closest("button, a, input");
           if (e.buttons === 1 && !tag) {
@@ -138,86 +138,84 @@ function App() {
         <div className="flex select-none items-center justify-center py-1 text-[10px] font-medium tracking-eyebrow text-stone-400">
           ReadAware
         </div>
-        {!settingsOpen && (
-          <header className="pt-3 pb-3 sm:pt-4 sm:pb-4">
-            <nav
-              aria-label="Primary"
-              className="mx-auto flex max-w-screen-2xl items-center gap-6 px-6 sm:gap-8"
-            >
-              {topNavs.map((item) => (
-                <NavItem
-                  key={item}
-                  active={item === activeTopNav}
-                  onClick={() => {
-                    setActiveTopNav(item);
-                  }}
-                >
-                  {item}
-                </NavItem>
-              ))}
+        <header className="pt-3 pb-3 sm:pt-4 sm:pb-4">
+          <nav
+            aria-label="Primary"
+            className="mx-auto flex max-w-screen-2xl items-center gap-6 px-6 sm:gap-8"
+          >
+            {topNavs.map((item) => (
+              <NavItem
+                key={item}
+                active={item === activeTopNav}
+                onClick={() => {
+                  setActiveTopNav(item);
+                }}
+              >
+                {item}
+              </NavItem>
+            ))}
 
-              <div className="ml-auto flex items-center gap-4">
-                <Tooltip content="Search">
-                  <IconButton
-                    label="Search"
-                    size="sm"
-                    className={headerIconButtonClass}
-                    icon={<MagnifyingGlass size={14} weight="regular" aria-hidden="true" />}
-                  />
-                </Tooltip>
-                <Tooltip content="Import">
-                  <IconButton
-                    label="Import"
-                    size="sm"
-                    className={headerIconButtonClass}
-                    icon={<Plus size={14} weight="regular" aria-hidden="true" />}
-                  />
-                </Tooltip>
-                <Tooltip content="Settings">
-                  <IconButton
-                    label="Settings"
-                    size="sm"
-                    onClick={() => setSettingsOpen(true)}
-                    className={headerIconButtonClass}
-                    icon={<GearSix size={14} weight="regular" aria-hidden="true" />}
-                  />
-                </Tooltip>
-              </div>
-            </nav>
-          </header>
+            <div className="ml-auto flex items-center gap-4">
+              <Tooltip content="Search">
+                <IconButton
+                  label="Search"
+                  size="sm"
+                  className={headerIconButtonClass}
+                  icon={<MagnifyingGlass size={14} weight="regular" aria-hidden="true" />}
+                />
+              </Tooltip>
+              <Tooltip content="Import">
+                <IconButton
+                  label="Import"
+                  size="sm"
+                  className={headerIconButtonClass}
+                  icon={<Plus size={14} weight="regular" aria-hidden="true" />}
+                />
+              </Tooltip>
+              <Tooltip content="Settings">
+                <IconButton
+                  label="Settings"
+                  size="sm"
+                  onClick={() => setSettingsOpen(true)}
+                  className={headerIconButtonClass}
+                  icon={<GearSix size={14} weight="regular" aria-hidden="true" />}
+                />
+              </Tooltip>
+            </div>
+          </nav>
+        </header>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {activeTopNav === "shelf" ? (
+          <div className="mx-auto max-w-screen-2xl px-6 py-8 sm:py-10">
+            <Shelf
+              sections={shelfSections}
+              onSelect={openReader}
+            />
+          </div>
+        ) : (
+          <article className="mx-auto flex min-h-full max-w-screen-2xl flex-col justify-center px-6 py-16 sm:py-20 lg:py-24">
+            <Eyebrow>{contextCopy.eyebrow}</Eyebrow>
+            <Display as="h1" size="7xl" className="mt-6 max-w-4xl">
+              {contextCopy.title}
+            </Display>
+            <Body size="lg" className="mt-8 max-w-2xl">
+              {contextCopy.body}
+            </Body>
+
+            <Divider className="mt-16" />
+            <DefinitionList
+              items={contextCopy.notes}
+              columns={3}
+              className="pt-8"
+            />
+          </article>
         )}
       </div>
 
-      {settingsOpen ? (
-        <SettingsView />
-      ) : (
-        <div className="flex-1 overflow-y-auto">
-          {activeTopNav === "shelf" ? (
-            <div className="mx-auto max-w-screen-2xl px-6 py-8 sm:py-10">
-              <Shelf
-                sections={shelfSections}
-                onSelect={openReader}
-              />
-            </div>
-          ) : (
-            <article className="mx-auto flex min-h-full max-w-screen-2xl flex-col justify-center px-6 py-16 sm:py-20 lg:py-24">
-              <Eyebrow>{contextCopy.eyebrow}</Eyebrow>
-              <Display as="h1" size="7xl" className="mt-6 max-w-4xl">
-                {contextCopy.title}
-              </Display>
-              <Body size="lg" className="mt-8 max-w-2xl">
-                {contextCopy.body}
-              </Body>
-
-              <Divider className="mt-16" />
-              <DefinitionList
-                items={contextCopy.notes}
-                columns={3}
-                className="pt-8"
-              />
-            </article>
-          )}
-        </div>
+      {settingsOpen && (
+        <SettingsView onClose={() => setSettingsOpen(false)} />
       )}
     </main>
   );

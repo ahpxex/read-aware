@@ -30,7 +30,7 @@ type SettingsViewProps = {
 
 export function SettingsView({ onBack }: SettingsViewProps) {
   return (
-    <main className="flex h-screen flex-col bg-stone-100 text-stone-950">
+    <>
       <header
         className="shrink-0 border-b border-border bg-stone-100 px-6 pt-6 pb-5 sm:pt-8"
         onMouseDown={(e: MouseEvent<HTMLElement>) => {
@@ -76,6 +76,6 @@ export function SettingsView({ onBack }: SettingsViewProps) {
           />
         </div>
       </div>
-    </main>
+    </>
   );
 }

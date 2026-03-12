@@ -1,4 +1,4 @@
-import { type MouseEvent, useState } from "react";
+import { type MouseEvent, useCallback, useState } from "react";
 import { useAtom } from "jotai";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { activeTopNavAtom, settingsOpenAtom, topNavs } from "./state/ui";
@@ -15,6 +15,8 @@ import { SettingsView } from "./features/settings/SettingsView";
 import { Shelf } from "./features/shelf/components/Shelf";
 import type { Book } from "./features/shelf/components/BookCover";
 import { EpubReaderView } from "./features/reader/components/EpubReaderView";
+import { ReaderShellOverlay } from "./features/reader/components/ReaderShellOverlay";
+import demoEpubUrl from "../demo/ElonMusk.epub?url";
 
 const currentlyReading: Book[] = [
   { id: "1", title: "The Master and Margarita", author: "Mikhail Bulgakov", progress: 64 },
@@ -56,9 +58,36 @@ function App() {
   const [activeTopNav, setActiveTopNav] = useAtom(activeTopNavAtom);
   const [settingsOpen, setSettingsOpen] = useAtom(settingsOpenAtom);
   const [selectedShelfBook, setSelectedShelfBook] = useState<Book | null>(null);
+  const [shellVisible, setShellVisible] = useState(false);
+
+  const toggleShell = useCallback(() => setShellVisible((v) => !v), []);
+  const closeReader = useCallback(() => {
+    setSelectedShelfBook(null);
+    setShellVisible(false);
+  }, []);
 
   if (settingsOpen) {
     return <SettingsView onBack={() => setSettingsOpen(false)} />;
+  }
+
+  if (selectedShelfBook) {
+    return (
+      <div className="relative h-screen w-full">
+        <EpubReaderView
+          selectedBook={selectedShelfBook}
+          initialEpubUrl={demoEpubUrl}
+          onContentClick={toggleShell}
+        />
+        <ReaderShellOverlay
+          visible={shellVisible}
+          onBack={closeReader}
+          onOverlayClick={toggleShell}
+          title={selectedShelfBook.title}
+          subtitle={selectedShelfBook.author}
+          progress={selectedShelfBook.progress != null ? selectedShelfBook.progress / 100 : undefined}
+        />
+      </div>
+    );
   }
 
   return (
@@ -69,9 +98,13 @@ function App() {
         onMouseDown={(e: MouseEvent<HTMLElement>) => {
           const tag = (e.target as HTMLElement).closest("button, a, input");
           if (e.buttons === 1 && !tag) {
-            e.detail === 2
-              ? getCurrentWindow().toggleMaximize()
-              : getCurrentWindow().startDragging();
+            try {
+              e.detail === 2
+                ? getCurrentWindow().toggleMaximize()
+                : getCurrentWindow().startDragging();
+            } catch {
+              // No Tauri runtime
+            }
           }
         }}
       >
@@ -89,9 +122,6 @@ function App() {
                 active={item === activeTopNav}
                 onClick={() => {
                   setActiveTopNav(item);
-                  if (item !== "shelf") {
-                    setSelectedShelfBook(null);
-                  }
                 }}
               >
                 {item}
@@ -108,18 +138,12 @@ function App() {
 
       <div className="flex-1 overflow-y-auto">
         {activeTopNav === "shelf" ? (
-          selectedShelfBook ? (
-            <EpubReaderView
-              selectedBook={selectedShelfBook}
+          <div className="mx-auto max-w-screen-2xl px-6 py-8 sm:py-10">
+            <Shelf
+              sections={shelfSections}
+              onSelect={(book) => setSelectedShelfBook(book)}
             />
-          ) : (
-            <div className="mx-auto max-w-screen-2xl px-6 py-8 sm:py-10">
-              <Shelf
-                sections={shelfSections}
-                onSelect={(book) => setSelectedShelfBook(book)}
-              />
-            </div>
-          )
+          </div>
         ) : (
           <article className="mx-auto flex min-h-full max-w-screen-2xl flex-col justify-center px-6 py-16 sm:py-20 lg:py-24">
             <Eyebrow>{contextCopy.eyebrow}</Eyebrow>

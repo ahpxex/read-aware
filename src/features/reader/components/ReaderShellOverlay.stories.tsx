@@ -53,6 +53,7 @@ function ReaderShellDemo() {
 }
 
 export const Default: Story = {
+  args: { visible: false, onBack: () => {} },
   render: () => <ReaderShellDemo />,
 };
 
@@ -81,5 +82,6 @@ function InteractiveDemo() {
 }
 
 export const Interactive: Story = {
+  args: { visible: false, onBack: () => {} },
   render: () => <InteractiveDemo />,
 };

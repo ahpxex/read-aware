@@ -69,8 +69,7 @@ export function ReaderShellOverlay({
           {title && (
             <div className="min-w-0 flex-1 text-center">
               <Body
-                size="sm"
-                className="truncate font-medium text-stone-950"
+                className="truncate text-sm font-medium text-stone-950"
               >
                 {title}
               </Body>

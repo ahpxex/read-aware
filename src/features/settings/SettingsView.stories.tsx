@@ -7,9 +7,6 @@ const meta = {
   parameters: {
     layout: "fullscreen",
   },
-  args: {
-    onBack: () => {},
-  },
   decorators: [
     (Story) => (
       <div style={{ height: "100vh" }}>

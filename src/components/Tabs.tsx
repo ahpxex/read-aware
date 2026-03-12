@@ -10,7 +10,7 @@ type TabItem = {
 type TabsProps = {
   items: TabItem[];
   defaultIndex?: number;
-  variant?: "underline" | "pill";
+  variant?: "underline" | "pill" | "nav";
   ariaLabel?: string;
   stretch?: boolean;
   className?: string;
@@ -64,7 +64,7 @@ export function Tabs({
         className={cn(
           "flex",
           stretch && "w-full",
-          variant === "underline" && "gap-6 border-b border-border",
+          (variant === "underline" || variant === "nav") && "gap-6 border-b border-border",
           variant === "pill" && "gap-1 rounded bg-stone-100 p-1",
         )}
       >
@@ -93,6 +93,13 @@ export function Tabs({
                     isActive
                       ? "border-stone-950 text-stone-950"
                       : "border-transparent text-stone-600 hover:text-stone-700",
+                  ),
+                variant === "nav" &&
+                  cn(
+                    "-mb-px border-b-2 pb-3 text-eyebrow uppercase tracking-eyebrow",
+                    isActive
+                      ? "border-stone-950 text-stone-950"
+                      : "border-transparent text-stone-400 hover:text-stone-950",
                   ),
                 variant === "pill" &&
                   cn(

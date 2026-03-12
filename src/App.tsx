@@ -189,7 +189,7 @@ function App() {
       </div>
 
       {settingsOpen ? (
-        <SettingsView onBack={() => setSettingsOpen(false)} />
+        <SettingsView />
       ) : (
         <div className="flex-1 overflow-y-auto">
           {activeTopNav === "shelf" ? (

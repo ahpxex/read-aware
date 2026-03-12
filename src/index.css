@@ -31,6 +31,8 @@
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;
   --ra-main-surface-color: #f5f5f4;
+  --ra-ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ra-ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
   --ra-scrollbar-size: 3px;
   --ra-scrollbar-color: rgb(28 25 23 / 0.42);
 }
@@ -126,6 +128,82 @@ html.tauri-wkwebview .ra-scrollarea .simplebar-content-wrapper {
   padding-bottom: 16px;
   margin-right: -16px;
   margin-bottom: -16px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ra-motion-page-enter {
+    animation: ra-page-enter 280ms var(--ra-ease-out-quart);
+    will-change: transform, opacity;
+  }
+
+  .ra-motion-tab-panel-in-forward {
+    animation: ra-tab-panel-in-forward 240ms var(--ra-ease-out-quint);
+    will-change: transform, opacity;
+  }
+
+  .ra-motion-tab-panel-in-backward {
+    animation: ra-tab-panel-in-backward 240ms var(--ra-ease-out-quint);
+    will-change: transform, opacity;
+  }
+
+  .ra-motion-page-counter {
+    animation: ra-page-counter-in 180ms var(--ra-ease-out-quart);
+    will-change: transform, opacity;
+  }
+}
+
+@keyframes ra-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ra-tab-panel-in-forward {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes ra-tab-panel-in-backward {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes ra-page-counter-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ra-motion-page-enter,
+  .ra-motion-tab-panel-in-forward,
+  .ra-motion-tab-panel-in-backward,
+  .ra-motion-page-counter {
+    animation: none !important;
+    transform: none !important;
+  }
 }
 
 /* pdf.js text layer -- invisible text overlay for selection */

@@ -113,7 +113,7 @@ export function ReaderShellOverlay({
       >
         <div className="flex items-center gap-4">
           {currentPosition && (
-            <Caption className="shrink-0 text-stone-500">
+            <Caption key={currentPosition} className="ra-motion-page-counter shrink-0 text-stone-500">
               {currentPosition}
             </Caption>
           )}
@@ -126,7 +126,7 @@ export function ReaderShellOverlay({
                   style={{ width: `${percent}%` }}
                 />
               </div>
-              <Caption className="shrink-0 tabular-nums text-stone-500">
+              <Caption key={Math.round(percent)} className="ra-motion-page-counter shrink-0 tabular-nums text-stone-500">
                 {Math.round(percent)}%
               </Caption>
             </div>

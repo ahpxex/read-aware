@@ -189,14 +189,14 @@ function App() {
 
       <ScrollArea className="min-h-0 flex-1">
         {activeTopNav === "shelf" ? (
-          <div className="mx-auto max-w-screen-2xl px-6 py-8 sm:py-10">
+          <div key="shelf" className="ra-motion-page-enter mx-auto max-w-screen-2xl px-6 py-8 sm:py-10">
             <Shelf
               sections={shelfSections}
               onSelect={openReader}
             />
           </div>
         ) : (
-          <article className="mx-auto flex min-h-full max-w-screen-2xl flex-col justify-center px-6 py-16 sm:py-20 lg:py-24">
+          <article key="context" className="ra-motion-page-enter mx-auto flex min-h-full max-w-screen-2xl flex-col justify-center px-6 py-16 sm:py-20 lg:py-24">
             <Eyebrow>{contextCopy.eyebrow}</Eyebrow>
             <Display as="h1" size="7xl" className="mt-6 max-w-4xl">
               {contextCopy.title}

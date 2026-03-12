@@ -38,7 +38,7 @@ const finished: Book[] = [
   { id: "10", title: "The Plague", author: "Albert Camus", progress: 100 },
 ];
 
-const shelfSections = [
+const initialShelfSections = [
   { label: "Currently Reading", books: currentlyReading },
   { label: "Up Next", books: upNext },
   { label: "Finished", books: finished },
@@ -58,19 +58,39 @@ const contextCopy = {
 function App() {
   const [activeTopNav, setActiveTopNav] = useAtom(activeTopNavAtom);
   const [settingsOpen, setSettingsOpen] = useAtom(settingsOpenAtom);
+  const [shelfSections, setShelfSections] = useLocalAtom(initialShelfSections);
   const [selectedShelfBook, setSelectedShelfBook] = useLocalAtom<Book | null>(null);
   const [shellVisible, setShellVisible] = useLocalAtom(false);
   const [readerPage, setReaderPage] = useLocalAtom({ current: 0, total: 0 });
 
-  const toggleShell = useCallback(() => setShellVisible((v) => !v), []);
-  const hideShell = useCallback(() => setShellVisible(false), []);
+  const toggleShell = useCallback(() => setShellVisible((v) => !v), [setShellVisible]);
+  const hideShell = useCallback(() => setShellVisible(false), [setShellVisible]);
   const handlePageChange = useCallback((current: number, total: number) => {
     setReaderPage({ current, total });
-  }, []);
+    if (!selectedShelfBook || total <= 0) return;
+
+    const nextProgress = Math.round((current / total) * 100);
+    setShelfSections((sections) =>
+      sections.map((section) => ({
+        ...section,
+        books: section.books.map((book) =>
+          book.id === selectedShelfBook.id
+            ? { ...book, progress: nextProgress }
+            : book,
+        ),
+      })),
+    );
+  }, [selectedShelfBook, setReaderPage, setShelfSections]);
+
+  const openReader = useCallback((book: Book) => {
+    setSelectedShelfBook(book);
+    setReaderPage({ current: 0, total: 0 });
+  }, [setReaderPage, setSelectedShelfBook]);
+
   const closeReader = useCallback(() => {
     setSelectedShelfBook(null);
     setShellVisible(false);
-  }, []);
+  }, [setSelectedShelfBook, setShellVisible]);
 
   if (settingsOpen) {
     return <SettingsView onBack={() => setSettingsOpen(false)} />;
@@ -149,7 +169,7 @@ function App() {
           <div className="mx-auto max-w-screen-2xl px-6 py-8 sm:py-10">
             <Shelf
               sections={shelfSections}
-              onSelect={(book) => setSelectedShelfBook(book)}
+              onSelect={openReader}
             />
           </div>
         ) : (

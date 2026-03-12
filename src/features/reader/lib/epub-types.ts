@@ -2,7 +2,6 @@ export type EpubRelocation = {
   start?: {
     cfi?: string;
     href?: string;
-    index?: number | string;
   };
 };
 

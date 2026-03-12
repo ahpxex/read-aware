@@ -43,7 +43,12 @@ export function BookCover({ book, onClick, className }: BookCoverProps) {
       </div>
 
       {book.progress !== undefined && (
-        <Progress value={book.progress} size="sm" className="mt-2" />
+        <div className="mt-2">
+          <Progress value={book.progress} size="sm" />
+          <span className="mt-1 block font-sans text-[11px] tabular-nums text-stone-500">
+            {Math.round(book.progress)}%
+          </span>
+        </div>
       )}
     </button>
   );

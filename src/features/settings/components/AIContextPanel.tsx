@@ -12,7 +12,7 @@ export function AIContextPanel() {
   const [saveKeyInsights, setSaveKeyInsights] = useLocalAtom(true);
 
   return (
-    <div className="grid gap-x-10 gap-y-8 md:grid-cols-2">
+    <div className="grid gap-y-8">
       <Stack gap="lg">
         <Toggle
           label="Auto-generate context"

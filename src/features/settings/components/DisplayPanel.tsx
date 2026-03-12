@@ -12,7 +12,7 @@ export function DisplayPanel() {
   const [autoBrightness, setAutoBrightness] = useLocalAtom(true);
 
   return (
-    <div className="grid gap-x-10 gap-y-8 md:grid-cols-2">
+    <div className="grid gap-y-8">
       <Stack gap="lg">
         <fieldset>
           <Caption as="legend" className="mb-3 text-stone-600">

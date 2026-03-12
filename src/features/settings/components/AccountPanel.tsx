@@ -19,7 +19,7 @@ export function AccountPanel() {
   const [usageAnalytics, setUsageAnalytics] = useLocalAtom(true);
 
   return (
-    <div className="grid gap-x-10 gap-y-8 md:grid-cols-2">
+    <div className="grid gap-y-8">
       <Stack gap="lg">
         <TextField
           label="Display name"
@@ -78,7 +78,6 @@ export function AccountPanel() {
       </Stack>
 
       <DefinitionList
-        className="md:col-span-2"
         items={[
           { label: "Email", value: "reader@example.com" },
           { label: "Plan", value: "Personal" },
@@ -86,7 +85,7 @@ export function AccountPanel() {
         ]}
       />
 
-      <Stack direction="horizontal" gap="md" className="md:col-span-2 flex-wrap">
+      <Stack direction="horizontal" gap="md" className="flex-wrap">
         <Button variant="outline" size="sm">
           Export data
         </Button>

@@ -141,6 +141,7 @@ export function EpubReaderView({
           flow: "scrolled-doc",
           manager: "continuous",
           spread: "none",
+          allowScriptedContent: true,
         });
         renditionRef.current = rendition;
 
@@ -160,10 +161,15 @@ export function EpubReaderView({
           setTocEntries(flattenedToc);
         }
 
-        rendition.hooks.content.register((contents) =>
-          Promise.all([
-            contents.addStylesheetCss(
-              `
+        rendition.hooks.content.register((contents) => {
+          contents.document.addEventListener("keydown", handleReaderKeyDown);
+
+          contents.document.addEventListener("click", () => {
+            onContentClickRef.current?.();
+          }, true);
+
+          return contents.addStylesheetCss(
+            `
               html {
                 background: #f5f1e8 !important;
               }
@@ -231,18 +237,9 @@ export function EpubReaderView({
                 border-left: 1px solid rgba(28, 25, 23, 0.18) !important;
               }
             `,
-              "read-aware-reader-base",
-            ),
-            Promise.resolve(
-              contents.document.addEventListener("keydown", handleReaderKeyDown),
-            ),
-            Promise.resolve(
-              contents.document.addEventListener("click", () => {
-                onContentClickRef.current?.();
-              }),
-            ),
-          ]),
-        );
+            "read-aware-reader-base",
+          );
+        });
 
         onRelocated = (nextLocation: EpubRelocation) => {
           if (cancelled) return;

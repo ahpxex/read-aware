@@ -32,10 +32,12 @@ export type EpubRendition = {
   on: {
     (event: "relocated", listener: (location: EpubRelocation) => void): void;
     (event: "rendered", listener: (section: unknown, view: EpubRenderedView) => void): void;
+    (event: string, listener: (...args: unknown[]) => void): void;
   };
   off: {
     (event: "relocated", listener: (location: EpubRelocation) => void): void;
     (event: "rendered", listener: (section: unknown, view: EpubRenderedView) => void): void;
+    (event: string, listener: (...args: unknown[]) => void): void;
   };
   resize: () => void;
   destroy: () => void;

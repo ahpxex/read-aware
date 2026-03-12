@@ -97,11 +97,15 @@ export function ReaderShellOverlay({
           <section
             aria-label="Table of contents"
             className={cn(
-              "pointer-events-auto flex h-full min-h-0 w-full max-w-[18rem] flex-col border-r border-stone-300/70 bg-[var(--ra-main-surface-color)] transition-all duration-200 ease-out",
+              "pointer-events-auto flex h-full min-h-0 w-full max-w-[18rem] flex-col border-r border-stone-300/70 backdrop-blur-sm transition-all duration-200 ease-out",
               visible
                 ? "translate-x-0 opacity-100"
                 : "-translate-x-4 opacity-0 pointer-events-none",
             )}
+            style={{
+              backgroundColor:
+                "color-mix(in srgb, var(--ra-main-surface-color) 84%, transparent)",
+            }}
           >
             <ScrollArea className="h-full min-h-0 flex-1">
               <div className="flex flex-col px-3 py-4">

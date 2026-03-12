@@ -1,9 +1,10 @@
-import { type MouseEvent, useCallback } from "react";
+import { type MouseEvent, useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { useAtom } from "jotai";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { GearSix, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { useLocalAtom } from "./state/local";
 import { activeTopNavAtom, settingsOpenAtom, topNavs } from "./state/ui";
+import { cn } from "./components/lib/cn";
 import {
   Display,
   Body,
@@ -65,6 +66,13 @@ function App() {
   const [selectedShelfBook, setSelectedShelfBook] = useLocalAtom<Book | null>(null);
   const [shellVisible, setShellVisible] = useLocalAtom(false);
   const [readerPage, setReaderPage] = useLocalAtom({ current: 0, total: 0 });
+  const [topNavIndicator, setTopNavIndicator] = useLocalAtom({
+    x: 0,
+    width: 0,
+    ready: false,
+  });
+  const topNavListRef = useRef<HTMLDivElement | null>(null);
+  const topNavButtonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const headerIconButtonClass =
     "relative text-stone-500 hover:text-stone-950 before:absolute before:-inset-1 before:content-['']";
 
@@ -96,6 +104,44 @@ function App() {
     setSelectedShelfBook(null);
     setShellVisible(false);
   }, [setSelectedShelfBook, setShellVisible]);
+
+  const updateTopNavIndicator = useCallback(() => {
+    const navList = topNavListRef.current;
+    const activeIndex = topNavs.findIndex((item) => item === activeTopNav);
+    const activeButton = topNavButtonRefs.current[activeIndex];
+    if (!navList || !activeButton) return;
+
+    const listRect = navList.getBoundingClientRect();
+    const buttonRect = activeButton.getBoundingClientRect();
+    setTopNavIndicator({
+      x: buttonRect.left - listRect.left,
+      width: buttonRect.width,
+      ready: true,
+    });
+  }, [activeTopNav, setTopNavIndicator]);
+
+  useLayoutEffect(() => {
+    updateTopNavIndicator();
+  }, [updateTopNavIndicator]);
+
+  useEffect(() => {
+    const navList = topNavListRef.current;
+    if (!navList) return;
+
+    const observer = new ResizeObserver(() => {
+      updateTopNavIndicator();
+    });
+    observer.observe(navList);
+    topNavButtonRefs.current.forEach((button) => {
+      if (button) observer.observe(button);
+    });
+
+    window.addEventListener("resize", updateTopNavIndicator);
+    return () => {
+      window.removeEventListener("resize", updateTopNavIndicator);
+      observer.disconnect();
+    };
+  }, [updateTopNavIndicator]);
 
   if (selectedShelfBook) {
     return (
@@ -144,17 +190,33 @@ function App() {
             aria-label="Primary"
             className="mx-auto flex max-w-screen-2xl items-center gap-6 px-6 sm:gap-8"
           >
-            {topNavs.map((item) => (
-              <NavItem
-                key={item}
-                active={item === activeTopNav}
-                onClick={() => {
-                  setActiveTopNav(item);
+            <div ref={topNavListRef} className="relative flex items-center gap-6 sm:gap-8">
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "pointer-events-none absolute -bottom-[calc(theme(spacing.4)+1px)] left-0 h-0.5 bg-stone-950 transition-[transform,width,opacity] duration-250 ease-[var(--ra-ease-out-quint)] motion-reduce:transition-none",
+                  !topNavIndicator.ready && "opacity-0",
+                )}
+                style={{
+                  width: topNavIndicator.width,
+                  transform: `translateX(${topNavIndicator.x}px)`,
                 }}
-              >
-                {item}
-              </NavItem>
-            ))}
+              />
+              {topNavs.map((item, index) => (
+                <NavItem
+                  key={item}
+                  ref={(el) => {
+                    topNavButtonRefs.current[index] = el;
+                  }}
+                  active={item === activeTopNav}
+                  onClick={() => {
+                    setActiveTopNav(item);
+                  }}
+                >
+                  {item}
+                </NavItem>
+              ))}
+            </div>
 
             <div className="ml-auto flex items-center gap-4">
               <Tooltip content="Search">

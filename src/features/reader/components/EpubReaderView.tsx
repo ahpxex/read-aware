@@ -25,11 +25,13 @@ import type {
 type EpubReaderViewProps = {
   selectedBook?: Book | null;
   initialEpubUrl?: string;
+  onContentClick?: () => void;
 };
 
 export function EpubReaderView({
   selectedBook = null,
   initialEpubUrl,
+  onContentClick,
 }: EpubReaderViewProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -38,6 +40,11 @@ export function EpubReaderView({
   const loadedEpubRef = useRef<LoadedEpub | null>(null);
   const tocEntriesRef = useRef<TocEntry[]>([]);
   const currentChapterHrefRef = useRef<string | null>(null);
+
+  const onContentClickRef = useRef(onContentClick);
+  useEffect(() => {
+    onContentClickRef.current = onContentClick;
+  }, [onContentClick]);
 
   const [loadedEpub, setLoadedEpub] = useState<LoadedEpub | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -228,6 +235,11 @@ export function EpubReaderView({
             ),
             Promise.resolve(
               contents.document.addEventListener("keydown", handleReaderKeyDown),
+            ),
+            Promise.resolve(
+              contents.document.addEventListener("click", () => {
+                onContentClickRef.current?.();
+              }),
             ),
           ]),
         );

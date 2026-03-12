@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { ReaderShellOverlay } from "./ReaderShellOverlay";
 import { EpubReaderView } from "./EpubReaderView";
@@ -54,4 +54,32 @@ function ReaderShellDemo() {
 
 export const Default: Story = {
   render: () => <ReaderShellDemo />,
+};
+
+function InteractiveDemo() {
+  const [visible, setVisible] = useState(false);
+  const toggle = useCallback(() => setVisible((v) => !v), []);
+
+  return (
+    <div className="relative h-screen w-full">
+      <EpubReaderView
+        initialEpubUrl={demoEpubUrl}
+        onContentClick={toggle}
+      />
+
+      <ReaderShellOverlay
+        visible={visible}
+        onBack={() => {}}
+        onOverlayClick={toggle}
+        title="Elon Musk"
+        subtitle="Walter Isaacson"
+        progress={0.12}
+        currentPosition="Chapter 2 of 95"
+      />
+    </div>
+  );
+}
+
+export const Interactive: Story = {
+  render: () => <InteractiveDemo />,
 };

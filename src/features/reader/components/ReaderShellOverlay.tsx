@@ -22,6 +22,7 @@ function ChevronLeft() {
 type ReaderShellOverlayProps = {
   visible: boolean;
   onBack: () => void;
+  onOverlayClick?: () => void;
   title?: string;
   subtitle?: string;
   progress?: number;
@@ -31,6 +32,7 @@ type ReaderShellOverlayProps = {
 export function ReaderShellOverlay({
   visible,
   onBack,
+  onOverlayClick,
   title,
   subtitle,
   progress,
@@ -84,6 +86,14 @@ export function ReaderShellOverlay({
           <div className="w-16 shrink-0" />
         </div>
       </div>
+
+      {/* Middle tap zone -- dismisses overlay when visible */}
+      {visible && onOverlayClick && (
+        <div
+          className="pointer-events-auto flex-1"
+          onClick={onOverlayClick}
+        />
+      )}
 
       {/* Bottom bar */}
       <div

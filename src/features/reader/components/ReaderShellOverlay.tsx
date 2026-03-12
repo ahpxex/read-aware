@@ -1,3 +1,5 @@
+import type { MouseEvent } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { cn } from "../../../components/lib/cn";
 import { Body, Caption } from "../../../components";
 
@@ -48,13 +50,26 @@ export function ReaderShellOverlay({
       )}
     >
       {/* Top bar */}
+      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
       <div
         className={cn(
-          "pointer-events-auto border-b border-stone-200/60 bg-paper/90 px-5 py-3 backdrop-blur-sm transition-all duration-250 ease-out",
+          "pointer-events-auto border-b border-stone-200/60 bg-stone-100/90 px-5 py-3 backdrop-blur-sm transition-all duration-250 ease-out",
           visible
             ? "translate-y-0 opacity-100"
             : "-translate-y-full opacity-0 pointer-events-none",
         )}
+        onMouseDown={(e: MouseEvent<HTMLElement>) => {
+          const tag = (e.target as HTMLElement).closest("button, a, input");
+          if (e.buttons === 1 && !tag) {
+            try {
+              e.detail === 2
+                ? getCurrentWindow().toggleMaximize()
+                : getCurrentWindow().startDragging();
+            } catch {
+              // No Tauri runtime
+            }
+          }
+        }}
       >
         <div className="flex items-center gap-3">
           <button
@@ -97,7 +112,7 @@ export function ReaderShellOverlay({
       {/* Bottom bar */}
       <div
         className={cn(
-          "pointer-events-auto border-t border-stone-200/60 bg-paper/90 px-5 py-3 backdrop-blur-sm transition-all duration-250 ease-out",
+          "pointer-events-auto border-t border-stone-200/60 bg-stone-100/90 px-5 py-3 backdrop-blur-sm transition-all duration-250 ease-out",
           visible
             ? "translate-y-0 opacity-100"
             : "translate-y-full opacity-0 pointer-events-none",

@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useId, type ReactNode } from "react";
+import { useRef, useEffect, useId, type ReactNode } from "react";
+import { useLocalAtom } from "../state/local";
 import { cn } from "./lib/cn";
 
 type PopoverProps = {
@@ -9,7 +10,7 @@ type PopoverProps = {
 };
 
 export function Popover({ trigger, children, align = "left", className }: PopoverProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useLocalAtom(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const id = useId();

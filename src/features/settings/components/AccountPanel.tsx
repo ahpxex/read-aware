@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Stack,
   Select,
@@ -8,15 +7,16 @@ import {
   DefinitionList,
   Button,
 } from "../../../components";
+import { useLocalAtom } from "../../../state/local";
 
 export function AccountPanel() {
-  const [displayName, setDisplayName] = useState("Reader");
-  const [timezone, setTimezone] = useState("asia-shanghai");
-  const [dataExportFormat, setDataExportFormat] = useState("markdown");
-  const [syncFrequency, setSyncFrequency] = useState("hourly");
-  const [weeklyDigest, setWeeklyDigest] = useState(true);
-  const [productUpdates, setProductUpdates] = useState(false);
-  const [usageAnalytics, setUsageAnalytics] = useState(true);
+  const [displayName, setDisplayName] = useLocalAtom("Reader");
+  const [timezone, setTimezone] = useLocalAtom("asia-shanghai");
+  const [dataExportFormat, setDataExportFormat] = useLocalAtom("markdown");
+  const [syncFrequency, setSyncFrequency] = useLocalAtom("hourly");
+  const [weeklyDigest, setWeeklyDigest] = useLocalAtom(true);
+  const [productUpdates, setProductUpdates] = useLocalAtom(false);
+  const [usageAnalytics, setUsageAnalytics] = useLocalAtom(true);
 
   return (
     <div className="grid gap-x-10 gap-y-8 md:grid-cols-2">

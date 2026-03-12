@@ -1,15 +1,15 @@
-import { useState } from "react";
 import { Stack, Select, Toggle, Checkbox } from "../../../components";
+import { useLocalAtom } from "../../../state/local";
 
 export function ReadingPanel() {
-  const [fontSize, setFontSize] = useState("medium");
-  const [lineSpacing, setLineSpacing] = useState("comfortable");
-  const [readingWidth, setReadingWidth] = useState("balanced");
-  const [paragraphSpacing, setParagraphSpacing] = useState("balanced");
-  const [dailyGoal, setDailyGoal] = useState("30");
-  const [showProgressBar, setShowProgressBar] = useState(true);
-  const [resumeWhereLeftOff, setResumeWhereLeftOff] = useState(true);
-  const [showStreaks, setShowStreaks] = useState(true);
+  const [fontSize, setFontSize] = useLocalAtom("medium");
+  const [lineSpacing, setLineSpacing] = useLocalAtom("comfortable");
+  const [readingWidth, setReadingWidth] = useLocalAtom("balanced");
+  const [paragraphSpacing, setParagraphSpacing] = useLocalAtom("balanced");
+  const [dailyGoal, setDailyGoal] = useLocalAtom("30");
+  const [showProgressBar, setShowProgressBar] = useLocalAtom(true);
+  const [resumeWhereLeftOff, setResumeWhereLeftOff] = useLocalAtom(true);
+  const [showStreaks, setShowStreaks] = useLocalAtom(true);
 
   return (
     <div className="grid gap-x-10 gap-y-8 md:grid-cols-2">

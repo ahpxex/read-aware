@@ -1,5 +1,5 @@
-import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useLocalAtom } from "../state/local";
 import { Select } from "./Select";
 
 const sampleOptions = [
@@ -72,7 +72,7 @@ export const OutlinedWithError: Story = {
 
 export const Controlled: Story = {
   render: () => {
-    const [value, setValue] = useState("title");
+    const [value, setValue] = useLocalAtom("title");
     return (
       <div className="flex flex-col gap-4">
         <Select

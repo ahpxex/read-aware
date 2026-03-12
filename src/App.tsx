@@ -1,6 +1,7 @@
-import { type MouseEvent, useCallback, useState } from "react";
+import { type MouseEvent, useCallback } from "react";
 import { useAtom } from "jotai";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { useLocalAtom } from "./state/local";
 import { activeTopNavAtom, settingsOpenAtom, topNavs } from "./state/ui";
 import {
   Display,
@@ -57,9 +58,9 @@ const contextCopy = {
 function App() {
   const [activeTopNav, setActiveTopNav] = useAtom(activeTopNavAtom);
   const [settingsOpen, setSettingsOpen] = useAtom(settingsOpenAtom);
-  const [selectedShelfBook, setSelectedShelfBook] = useState<Book | null>(null);
-  const [shellVisible, setShellVisible] = useState(false);
-  const [readerPage, setReaderPage] = useState({ current: 0, total: 0 });
+  const [selectedShelfBook, setSelectedShelfBook] = useLocalAtom<Book | null>(null);
+  const [shellVisible, setShellVisible] = useLocalAtom(false);
+  const [readerPage, setReaderPage] = useLocalAtom({ current: 0, total: 0 });
 
   const toggleShell = useCallback(() => setShellVisible((v) => !v), []);
   const hideShell = useCallback(() => setShellVisible(false), []);

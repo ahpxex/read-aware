@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Body, Button, Heading, Sidebar } from "../../../components";
 import { cn } from "../../../components/lib/cn";
+import { useLocalAtom } from "../../../state/local";
 import type { Book } from "../../shelf/components/BookCover";
 import { formatReaderError } from "../lib/format-reader-error";
 import {
@@ -60,14 +61,14 @@ export function EpubReaderView({
     onPageChangeRef.current = onPageChange;
   }, [onPageChange]);
 
-  const [loadedEpub, setLoadedEpub] = useState<LoadedEpub | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [tocEntries, setTocEntries] = useState<TocEntry[]>([]);
-  const [currentChapterHref, setCurrentChapterHref] = useState<string | null>(null);
-  const [isChapterPickerOpen, setIsChapterPickerOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
+  const [loadedEpub, setLoadedEpub] = useLocalAtom<LoadedEpub | null>(null);
+  const [isLoading, setIsLoading] = useLocalAtom(false);
+  const [error, setError] = useLocalAtom<string | null>(null);
+  const [tocEntries, setTocEntries] = useLocalAtom<TocEntry[]>([]);
+  const [currentChapterHref, setCurrentChapterHref] = useLocalAtom<string | null>(null);
+  const [isChapterPickerOpen, setIsChapterPickerOpen] = useLocalAtom(false);
+  const [, setCurrentPage] = useLocalAtom(0);
+  const [, setTotalPages] = useLocalAtom(0);
 
   useEffect(() => {
     loadedEpubRef.current = loadedEpub;

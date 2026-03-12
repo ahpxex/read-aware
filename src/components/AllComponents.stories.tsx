@@ -1,5 +1,5 @@
-import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useLocalAtom } from "../state/local";
 import { Display } from "./typography/Display";
 import { Heading } from "./typography/Heading";
 import { Body } from "./typography/Body";
@@ -64,8 +64,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 /* ---- main showcase ---- */
 function AllComponentsShowcase() {
-  const [toggle1, setToggle1] = useState(false);
-  const [toggle2, setToggle2] = useState(true);
+  const [toggle1, setToggle1] = useLocalAtom(false);
+  const [toggle2, setToggle2] = useLocalAtom(true);
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-12 py-8">

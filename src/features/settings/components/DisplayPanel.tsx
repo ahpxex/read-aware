@@ -1,15 +1,15 @@
-import { useState } from "react";
 import { Caption, Stack, Select, Toggle, Radio } from "../../../components";
+import { useLocalAtom } from "../../../state/local";
 
 export function DisplayPanel() {
-  const [theme, setTheme] = useState("light");
-  const [bodyTypeface, setBodyTypeface] = useState("inter");
-  const [contrast, setContrast] = useState("standard");
-  const [pageDensity, setPageDensity] = useState("comfortable");
-  const [showPageNumbers, setShowPageNumbers] = useState(true);
-  const [reduceMotion, setReduceMotion] = useState(false);
-  const [justifyParagraphs, setJustifyParagraphs] = useState(false);
-  const [autoBrightness, setAutoBrightness] = useState(true);
+  const [theme, setTheme] = useLocalAtom("light");
+  const [bodyTypeface, setBodyTypeface] = useLocalAtom("inter");
+  const [contrast, setContrast] = useLocalAtom("standard");
+  const [pageDensity, setPageDensity] = useLocalAtom("comfortable");
+  const [showPageNumbers, setShowPageNumbers] = useLocalAtom(true);
+  const [reduceMotion, setReduceMotion] = useLocalAtom(false);
+  const [justifyParagraphs, setJustifyParagraphs] = useLocalAtom(false);
+  const [autoBrightness, setAutoBrightness] = useLocalAtom(true);
 
   return (
     <div className="grid gap-x-10 gap-y-8 md:grid-cols-2">

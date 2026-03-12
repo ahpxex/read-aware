@@ -1,5 +1,5 @@
-import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useLocalAtom } from "../state/local";
 import { Toggle } from "./Toggle";
 
 const meta = {
@@ -21,7 +21,7 @@ export const On: Story = {
 export const Interactive: Story = {
   args: { label: "Show annotations", checked: false, onChange: () => {} },
   render: (args) => {
-    const [checked, setChecked] = useState(args.checked);
+    const [checked, setChecked] = useLocalAtom(args.checked);
     return (
       <Toggle label={args.label} checked={checked} onChange={setChecked} />
     );

@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useId, useCallback, type ReactNode } from "react";
+import { useRef, useEffect, useId, useCallback, type ReactNode } from "react";
+import { useLocalAtom } from "../state/local";
 import { cn } from "./lib/cn";
 
 type DropdownItem = {
@@ -16,8 +17,8 @@ type DropdownMenuProps = {
 };
 
 export function DropdownMenu({ trigger, items, align = "left", className }: DropdownMenuProps) {
-  const [open, setOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
+  const [open, setOpen] = useLocalAtom(false);
+  const [activeIndex, setActiveIndex] = useLocalAtom(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);

@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useId, useCallback } from "react";
+import { useRef, useEffect, useId, useCallback } from "react";
+import { useLocalAtom } from "../state/local";
 import { cn } from "./lib/cn";
 
 type SelectOption = { label: string; value: string };
@@ -34,11 +35,11 @@ export function Select({
 }: SelectProps) {
   const id = useId();
   const hasError = !!error;
-  const [open, setOpen] = useState(false);
-  const [internalValue, setInternalValue] = useState(defaultValue ?? "");
+  const [open, setOpen] = useLocalAtom(false);
+  const [internalValue, setInternalValue] = useLocalAtom(defaultValue ?? "");
   const containerRef = useRef<HTMLDivElement>(null);
   const listboxRef = useRef<HTMLUListElement>(null);
-  const [activeIndex, setActiveIndex] = useState(-1);
+  const [activeIndex, setActiveIndex] = useLocalAtom(-1);
 
   const currentValue = controlledValue !== undefined ? controlledValue : internalValue;
   const selectedOption = options.find((o) => o.value === currentValue);

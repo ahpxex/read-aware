@@ -1,5 +1,5 @@
-import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useLocalAtom } from "../state/local";
 import { Sidebar } from "./Sidebar";
 import { Button } from "./Button";
 
@@ -23,7 +23,7 @@ export const Left: Story = {
     children: null,
   },
   render: (args) => {
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useLocalAtom(false);
     return (
       <>
         <Button onClick={() => setOpen(true)}>Open sidebar</Button>
@@ -47,7 +47,7 @@ export const Right: Story = {
     children: null,
   },
   render: (args) => {
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useLocalAtom(false);
     return (
       <>
         <Button onClick={() => setOpen(true)}>Open sidebar</Button>

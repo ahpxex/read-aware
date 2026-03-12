@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useLocalAtom } from "../../../state/local";
 import { ReaderShellOverlay } from "./ReaderShellOverlay";
 import { EpubReaderView } from "./EpubReaderView";
 import demoEpubUrl from "../../../../demo/ElonMusk.epub?url";
@@ -16,7 +17,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 function ReaderShellDemo() {
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useLocalAtom(false);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -58,7 +59,7 @@ export const Default: Story = {
 };
 
 function InteractiveDemo() {
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useLocalAtom(false);
   const toggle = useCallback(() => setVisible((v) => !v), []);
   const hide = useCallback(() => setVisible(false), []);
 

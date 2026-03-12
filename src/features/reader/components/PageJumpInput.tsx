@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import { useLocalAtom } from "../../../state/local";
 
 type PageJumpInputProps = {
   numPages: number;
@@ -11,7 +12,7 @@ export function PageJumpInput({
   currentPage,
   onJump,
 }: PageJumpInputProps) {
-  const [value, setValue] = useState(String(currentPage));
+  const [value, setValue] = useLocalAtom(String(currentPage));
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {

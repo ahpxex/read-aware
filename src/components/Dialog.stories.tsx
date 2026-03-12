@@ -1,5 +1,5 @@
-import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { useLocalAtom } from "../state/local";
 import { Dialog } from "./Dialog";
 import { Button } from "./Button";
 
@@ -29,7 +29,7 @@ export const Interactive: Story = {
     children: "Are you sure you want to proceed?",
   },
   render: (args) => {
-    const [open, setOpen] = useState(args.open);
+    const [open, setOpen] = useLocalAtom(args.open);
     return (
       <>
         <Button onClick={() => setOpen(true)}>Open dialog</Button>

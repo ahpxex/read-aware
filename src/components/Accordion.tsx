@@ -1,4 +1,5 @@
-import { useState, useId, type ReactNode } from "react";
+import { useId, type ReactNode } from "react";
+import { useLocalAtom } from "../state/local";
 import { cn } from "./lib/cn";
 
 type AccordionItemData = {
@@ -19,7 +20,7 @@ export function Accordion({
   defaultOpen = [],
   className,
 }: AccordionProps) {
-  const [openIndices, setOpenIndices] = useState<Set<number>>(
+  const [openIndices, setOpenIndices] = useLocalAtom<Set<number>>(
     new Set(defaultOpen),
   );
 

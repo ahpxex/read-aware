@@ -1,15 +1,15 @@
-import { useState } from "react";
 import { Stack, Select, Toggle } from "../../../components";
+import { useLocalAtom } from "../../../state/local";
 
 export function AIContextPanel() {
-  const [autoContext, setAutoContext] = useState(true);
-  const [showDefinitions, setShowDefinitions] = useState(true);
-  const [contextDepth, setContextDepth] = useState("standard");
-  const [citationStyle, setCitationStyle] = useState("inline");
-  const [recommendationCadence, setRecommendationCadence] = useState("balanced");
-  const [crossBookLinks, setCrossBookLinks] = useState(true);
-  const [askBeforeMemoryWrite, setAskBeforeMemoryWrite] = useState(false);
-  const [saveKeyInsights, setSaveKeyInsights] = useState(true);
+  const [autoContext, setAutoContext] = useLocalAtom(true);
+  const [showDefinitions, setShowDefinitions] = useLocalAtom(true);
+  const [contextDepth, setContextDepth] = useLocalAtom("standard");
+  const [citationStyle, setCitationStyle] = useLocalAtom("inline");
+  const [recommendationCadence, setRecommendationCadence] = useLocalAtom("balanced");
+  const [crossBookLinks, setCrossBookLinks] = useLocalAtom(true);
+  const [askBeforeMemoryWrite, setAskBeforeMemoryWrite] = useLocalAtom(false);
+  const [saveKeyInsights, setSaveKeyInsights] = useLocalAtom(true);
 
   return (
     <div className="grid gap-x-10 gap-y-8 md:grid-cols-2">

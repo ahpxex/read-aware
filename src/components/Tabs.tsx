@@ -1,4 +1,5 @@
-import { useState, useId, useRef, type ReactNode } from "react";
+import { useId, useRef, type ReactNode } from "react";
+import { useLocalAtom } from "../state/local";
 import { cn } from "./lib/cn";
 
 type TabItem = {
@@ -23,7 +24,7 @@ export function Tabs({
   stretch = false,
   className,
 }: TabsProps) {
-  const [activeIndex, setActiveIndex] = useState(defaultIndex);
+  const [activeIndex, setActiveIndex] = useLocalAtom(defaultIndex);
   const id = useId();
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 

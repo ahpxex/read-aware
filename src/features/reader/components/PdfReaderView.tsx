@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { Body, Button, Heading, Sidebar } from "../../../components";
 import { cn } from "../../../components/lib/cn";
+import { useLocalAtom } from "../../../state/local";
 import type { Book } from "../../shelf/components/BookCover";
 import { formatReaderError } from "../lib/format-reader-error";
 import { PageJumpInput } from "./PageJumpInput";
@@ -38,12 +39,12 @@ export function PdfReaderView({
   const pageOffsetsRef = useRef<number[]>([]);
   const rafRef = useRef<number | null>(null);
 
-  const [loadedPdf, setLoadedPdf] = useState<LoadedPdf | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [numPages, setNumPages] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isPagePickerOpen, setIsPagePickerOpen] = useState(false);
+  const [loadedPdf, setLoadedPdf] = useLocalAtom<LoadedPdf | null>(null);
+  const [isLoading, setIsLoading] = useLocalAtom(false);
+  const [error, setError] = useLocalAtom<string | null>(null);
+  const [numPages, setNumPages] = useLocalAtom(0);
+  const [currentPage, setCurrentPage] = useLocalAtom(1);
+  const [isPagePickerOpen, setIsPagePickerOpen] = useLocalAtom(false);
 
   useEffect(() => {
     if (!initialPdfUrl) return;

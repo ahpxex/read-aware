@@ -131,6 +131,12 @@ Use `cn()` from `src/components/lib/cn.ts` for className composition (clsx + tai
 - Serif for display, sans for everything else
 - `stone-600` minimum for text on paper backgrounds (WCAG AA)
 
+### Iconography Rule
+
+- Use `@phosphor-icons/react` for all product UI icons
+- Do not hand-draw inline SVG icons in feature or app code
+- Keep icons functional and quiet (avoid decorative icon usage)
+
 ## Project Structure
 
 ```

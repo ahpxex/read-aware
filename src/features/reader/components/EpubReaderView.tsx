@@ -158,6 +158,7 @@ export function EpubReaderView({
     let book: EpubBook | null = null;
     let rendition: EpubRendition | null = null;
     let onRelocated: ((location: EpubRelocation) => void) | null = null;
+    let onRendered: ((section: unknown) => void) | null = null;
 
     void (async () => {
       try {
@@ -275,26 +276,42 @@ export function EpubReaderView({
           );
         });
 
+        const resolveSpineIndex = (
+          indexValue: number | string | undefined,
+          hrefValue: string | null,
+        ) => {
+          const numericIndex = Number(indexValue);
+          if (Number.isFinite(numericIndex)) return numericIndex;
+          if (!hrefValue) return null;
+          return (
+            spineEntries.find((entry) => hrefMatches(entry.href, hrefValue))?.index ??
+            null
+          );
+        };
+
+        const syncReaderProgress = (spineIndex: number) => {
+          const total = spineEntries.length;
+          if (total <= 0) return;
+          const page = Math.min(total, Math.max(1, spineIndex + 1));
+          setCurrentPage(page);
+          onPageChangeRef.current?.(page, total);
+        };
+
         onRelocated = (nextLocation: EpubRelocation) => {
           if (cancelled) return;
           lastCfiRef.current = nextLocation.start?.cfi ?? null;
           const relocatedHref = nextLocation.start?.href ?? null;
-          const relocatedIndexValue = Number(nextLocation.start?.index);
-          const relocatedSpineIndex =
-            Number.isFinite(relocatedIndexValue)
-              ? relocatedIndexValue
-              : spineEntries.find((entry) =>
-                  hrefMatches(entry.href, relocatedHref ?? ""),
-                )?.index;
+          const relocatedSpineIndex = resolveSpineIndex(
+            nextLocation.start?.index,
+            relocatedHref,
+          );
           const enclosingEntry =
             typeof relocatedSpineIndex === "number"
               ? getTocEntryForSpineIndex(flattenedToc, relocatedSpineIndex)
               : null;
           const tocIndex = findTocIndexForHref(flattenedToc, relocatedHref);
           if (typeof relocatedSpineIndex === "number") {
-            const page = relocatedSpineIndex + 1;
-            setCurrentPage(page);
-            onPageChangeRef.current?.(page, spineEntries.length);
+            syncReaderProgress(relocatedSpineIndex);
           }
           setCurrentChapterHref(
             enclosingEntry?.href ??
@@ -302,12 +319,46 @@ export function EpubReaderView({
           );
         };
 
+        onRendered = (section) => {
+          if (cancelled) return;
+          const renderedSection = section as {
+            index?: number | string;
+            href?: string;
+          };
+          const renderedHref = renderedSection?.href ?? null;
+          const renderedSpineIndex = resolveSpineIndex(
+            renderedSection?.index,
+            renderedHref,
+          );
+          if (typeof renderedSpineIndex === "number") {
+            syncReaderProgress(renderedSpineIndex);
+          }
+          if (!currentChapterHrefRef.current && renderedHref) {
+            const tocIndex = findTocIndexForHref(flattenedToc, renderedHref);
+            setCurrentChapterHref(
+              tocIndex >= 0 ? flattenedToc[tocIndex].href : renderedHref,
+            );
+          }
+        };
+
         rendition.on("relocated", onRelocated);
+        rendition.on("rendered", onRendered);
 
         const initialTarget =
           lastCfiRef.current ??
           resolveInitialDisplayTarget(flattenedToc, spineEntries) ??
           spineEntries[0]?.href;
+
+        if (spineEntries.length > 0) {
+          const initialHref =
+            typeof initialTarget === "string" &&
+            !initialTarget.startsWith("epubcfi(")
+              ? initialTarget
+              : null;
+          const initialSpineIndex = resolveSpineIndex(undefined, initialHref);
+          syncReaderProgress(initialSpineIndex ?? 0);
+        }
+
         await rendition.display(initialTarget);
       } catch (nextError) {
         if (!cancelled) {
@@ -324,6 +375,9 @@ export function EpubReaderView({
       cancelled = true;
       if (rendition && onRelocated) {
         rendition.off("relocated", onRelocated);
+      }
+      if (rendition && onRendered) {
+        rendition.off("rendered", onRendered);
       }
       rendition?.destroy();
       book?.destroy();

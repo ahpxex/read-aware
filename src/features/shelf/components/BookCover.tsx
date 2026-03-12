@@ -24,7 +24,7 @@ export function BookCover({ book, onClick, className }: BookCoverProps) {
   return (
     <div
       className={cn(
-        "group flex w-full max-w-32 justify-self-start flex-col text-left sm:max-w-36 lg:max-w-44",
+        "group relative flex w-full max-w-32 justify-self-start flex-col text-left sm:max-w-36 lg:max-w-44",
         className,
       )}
     >
@@ -33,50 +33,55 @@ export function BookCover({ book, onClick, className }: BookCoverProps) {
         onClick={onClick}
         className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-950 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-100"
       >
-        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-sm transition-shadow group-hover:shadow-md">
+        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-sm transition-shadow group-hover:shadow-md group-focus-within:shadow-md">
           <img
             src={book.coverUrl ?? `https://picsum.photos/seed/${book.id}/240/360`}
             alt={`${book.title} cover`}
             className="h-full w-full object-cover"
           />
-          <div className="absolute inset-0 flex flex-col justify-end p-4 bg-stone-950/0 opacity-0 transition-all group-hover:bg-stone-950/60 group-hover:opacity-100">
-            <span className="font-serif text-sm leading-tight font-medium text-white/90">
-              {book.title}
-            </span>
-            <span className="mt-1 font-sans text-[11px] text-white/50">
-              {book.author}
-            </span>
-          </div>
         </div>
       </button>
 
-      <div className="mt-2 flex items-end gap-2">
-        <div className="min-w-0 flex-1">
-          {book.progress !== undefined && (
-            <>
-              <Progress value={book.progress} size="sm" />
-              <span className="mt-1 block font-sans text-[11px] tabular-nums text-stone-500">
-                {Math.round(book.progress)}%
-              </span>
-            </>
-          )}
+      <div className="pointer-events-none absolute inset-0 flex flex-col justify-between rounded-sm bg-stone-950/0 p-3 opacity-0 transition-all group-hover:bg-stone-950/80 group-hover:opacity-100 group-focus-within:bg-stone-950/80 group-focus-within:opacity-100">
+        <div className="min-w-0">
+          <span className="block text-left font-serif text-sm leading-tight font-medium break-words text-white/95">
+            {book.title}
+          </span>
+          <span className="mt-1 block truncate text-left font-sans text-[11px] text-white/70">
+            {book.author}
+          </span>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1">
-          <IconButton
-            label={`Info about ${book.title}`}
-            size="sm"
-            onClick={() => setInfoOpen(true)}
-            className="rounded-sm text-stone-500 hover:text-stone-950"
-            icon={<Info size={14} weight="regular" aria-hidden="true" />}
-          />
-          <IconButton
-            label={`Remove ${book.title}`}
-            size="sm"
-            onClick={() => setRemoveOpen(true)}
-            className="rounded-sm text-stone-500 hover:text-red-700"
-            icon={<Trash size={14} weight="regular" aria-hidden="true" />}
-          />
+        <div className="space-y-2">
+          <div className="pointer-events-auto flex justify-end gap-1">
+            <IconButton
+              label={`Info about ${book.title}`}
+              size="sm"
+              onClick={() => setInfoOpen(true)}
+              className="rounded-sm text-white/70 hover:text-white focus-visible:ring-white"
+              icon={<Info size={14} weight="regular" aria-hidden="true" />}
+            />
+            <IconButton
+              label={`Remove ${book.title}`}
+              size="sm"
+              onClick={() => setRemoveOpen(true)}
+              className="rounded-sm text-white/70 hover:text-red-300 focus-visible:ring-white"
+              icon={<Trash size={14} weight="regular" aria-hidden="true" />}
+            />
+          </div>
+
+          {book.progress !== undefined && (
+            <div>
+              <Progress
+                value={book.progress}
+                size="sm"
+                className="[&_[role='progressbar']]:bg-white/35 [&_[role='progressbar']>div]:bg-white"
+              />
+              <span className="mt-1 block font-sans text-[11px] tabular-nums text-white/75">
+                {Math.round(book.progress)}%
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

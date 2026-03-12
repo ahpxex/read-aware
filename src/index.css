@@ -30,6 +30,7 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;
+  --ra-scrollbar-size: 4px;
 }
 
 *,
@@ -65,15 +66,15 @@ button {
 .ra-scrollarea .simplebar-track.simplebar-vertical {
   top: 2px;
   bottom: 2px;
-  width: 6px;
-  right: 2px;
+  width: var(--ra-scrollbar-size);
+  right: 1px;
 }
 
 .ra-scrollarea .simplebar-track.simplebar-horizontal {
   left: 2px;
   right: 2px;
-  height: 6px;
-  bottom: 2px;
+  height: var(--ra-scrollbar-size);
+  bottom: 1px;
 }
 
 .ra-scrollarea .simplebar-scrollbar::before {

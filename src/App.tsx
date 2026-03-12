@@ -277,9 +277,7 @@ function App() {
         )}
       </ScrollArea>
 
-      {settingsOpen && (
-        <SettingsView onClose={() => setSettingsOpen(false)} />
-      )}
+      <SettingsView open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </main>
   );
 }

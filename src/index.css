@@ -150,6 +150,19 @@ html.tauri-wkwebview .ra-scrollarea .simplebar-content-wrapper {
     animation: ra-page-counter-in 180ms var(--ra-ease-out-quart);
     will-change: transform, opacity;
   }
+
+  .ra-dialog::backdrop {
+    background-color: rgb(28 25 23 / 0);
+    backdrop-filter: blur(0);
+    transition:
+      background-color 220ms var(--ra-ease-out-quart),
+      backdrop-filter 220ms var(--ra-ease-out-quart);
+  }
+
+  .ra-dialog[data-state="open"]::backdrop {
+    background-color: rgb(28 25 23 / 0.2);
+    backdrop-filter: blur(4px);
+  }
 }
 
 @keyframes ra-page-enter {
@@ -200,9 +213,11 @@ html.tauri-wkwebview .ra-scrollarea .simplebar-content-wrapper {
   .ra-motion-page-enter,
   .ra-motion-tab-panel-in-forward,
   .ra-motion-tab-panel-in-backward,
-  .ra-motion-page-counter {
+  .ra-motion-page-counter,
+  .ra-dialog::backdrop {
     animation: none !important;
     transform: none !important;
+    transition: none !important;
   }
 }
 

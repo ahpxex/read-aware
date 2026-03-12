@@ -8,6 +8,7 @@ const meta = {
     layout: "fullscreen",
   },
   args: {
+    open: true,
     onClose: () => {},
   },
   decorators: [

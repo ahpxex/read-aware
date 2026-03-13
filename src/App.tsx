@@ -1,6 +1,5 @@
-import { type MouseEvent, useCallback, useEffect, useLayoutEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { useAtom } from "jotai";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { GearSix, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { useLocalAtom } from "./state/local";
 import { activeTopNavAtom, settingsOpenAtom, topNavs } from "./state/ui";
@@ -206,22 +205,8 @@ function App() {
 
   return (
     <main className="flex h-screen flex-col bg-[var(--ra-main-surface-color)] text-stone-950">
-      <div
-        className="shrink-0 border-b border-border bg-[var(--ra-main-surface-color)]"
-        onMouseDown={(e: MouseEvent<HTMLElement>) => {
-          const tag = (e.target as HTMLElement).closest("button, a, input");
-          if (e.buttons === 1 && !tag) {
-            try {
-              e.detail === 2
-                ? getCurrentWindow().toggleMaximize()
-                : getCurrentWindow().startDragging();
-            } catch {
-              // No Tauri runtime
-            }
-          }
-        }}
-      >
-        <div className="flex select-none items-center justify-center py-1 text-[10px] font-medium tracking-eyebrow text-stone-400">
+      <div className="shrink-0 border-b border-border bg-[var(--ra-main-surface-color)]">
+        <div className="flex items-center justify-center py-1 text-[10px] font-medium tracking-eyebrow text-stone-400">
           ReadAware
         </div>
         <header className="pt-3 pb-3 sm:pt-4 sm:pb-4">
@@ -288,7 +273,7 @@ function App() {
         </header>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1">
+      <ScrollArea className="h-full min-h-0 flex-1">
         {activeTopNav === "shelf" ? (
           <div key="shelf" className="ra-motion-page-enter mx-auto max-w-screen-2xl px-6 py-8 sm:py-10">
             <Shelf

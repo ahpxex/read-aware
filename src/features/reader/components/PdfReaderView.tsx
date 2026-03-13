@@ -27,7 +27,7 @@ export function PdfReaderView({
   initialPdfUrl,
 }: PdfReaderViewProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const scrollContainerRef = useRef<HTMLElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const pdfDocRef = useRef<PdfDocument | null>(null);
   const textLayerClassRef = useRef<PdfTextLayerConstructor | null>(null);
   const loadingTaskRef = useRef<PdfLoadingTask | null>(null);

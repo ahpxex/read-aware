@@ -113,7 +113,7 @@ export function SettingsView({ open, onClose }: SettingsViewProps) {
           />
         </div>
 
-        <ScrollArea className="min-h-0 flex-1">
+        <ScrollArea className="h-full min-h-0 flex-1">
           <div className="px-5 pt-3 pb-8 sm:px-6 sm:pt-4 sm:pb-10">
             <Tabs
               ariaLabel="Settings sections"

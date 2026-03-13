@@ -1,21 +1,45 @@
-import { forwardRef, type ComponentPropsWithoutRef } from "react";
-import SimpleBar from "simplebar-react";
-import type SimpleBarCore from "simplebar-core";
+import { forwardRef, type ComponentPropsWithoutRef, type Ref } from "react";
 import { cn } from "./lib/cn";
 
-type ScrollAreaProps = Omit<ComponentPropsWithoutRef<typeof SimpleBar>, "autoHide">;
+type ScrollableNodeProps = Omit<ComponentPropsWithoutRef<"div">, "children"> & {
+  ref?: Ref<HTMLDivElement>;
+};
 
-export const ScrollArea = forwardRef<SimpleBarCore | null, ScrollAreaProps>(
-  function ScrollArea({ className, children, ...props }, ref) {
+type ScrollAreaProps = ComponentPropsWithoutRef<"div"> & {
+  scrollableNodeProps?: ScrollableNodeProps;
+};
+
+function assignRef<T>(ref: Ref<T> | undefined, value: T) {
+  if (typeof ref === "function") {
+    ref(value);
+    return;
+  }
+
+  if (ref) {
+    ref.current = value;
+  }
+}
+
+export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(
+  function ScrollArea({ className, children, scrollableNodeProps, ...props }, ref) {
+    const {
+      className: scrollableClassName,
+      ref: scrollableRef,
+      ...scrollableProps
+    } = scrollableNodeProps ?? {};
+
     return (
-      <SimpleBar
-        ref={ref}
-        autoHide={false}
-        className={cn("ra-scrollarea", className)}
+      <div
+        ref={(node) => {
+          assignRef(ref, node);
+          assignRef(scrollableRef, node);
+        }}
+        className={cn("ra-scrollarea overflow-auto", className, scrollableClassName)}
         {...props}
+        {...scrollableProps}
       >
         {children}
-      </SimpleBar>
+      </div>
     );
   },
 );

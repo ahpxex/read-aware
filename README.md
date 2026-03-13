@@ -1,7 +1,10 @@
-# Tauri + React + Typescript
+# ReadAware
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+ReadAware is the web client for an AI-native reading experience built with React, TypeScript, Vite, and Bun.
 
-## Recommended IDE Setup
+## Development
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+- `bun install`
+- `bun dev`
+- `bun build`
+- `bun run storybook`

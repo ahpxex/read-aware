@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "simplebar-react/dist/simplebar.min.css";
 
 @theme {
   --color-paper: #f5f1e8;
@@ -29,7 +28,6 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overscroll-behavior: none;
   --ra-main-surface-color: #f5f5f4;
   --ra-ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --ra-ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
@@ -46,9 +44,6 @@
 
 #root {
   min-height: 100vh;
-  overscroll-behavior: none;
-  user-select: none;
-  -webkit-user-select: none;
 }
 
 body {
@@ -56,79 +51,30 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background-color: var(--color-paper);
-  overscroll-behavior: none;
 }
 
 button {
   font: inherit;
 }
 
-/* Non-native scrollbar used by ScrollArea/SimpleBar across web + Tauri webviews. */
-.ra-scrollarea .simplebar-track {
+/* Native scrollbar styling shared across app panels and readers. */
+.ra-scrollarea {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ra-scrollbar-color) transparent;
+}
+
+.ra-scrollarea::-webkit-scrollbar {
+  width: var(--ra-scrollbar-size);
+  height: var(--ra-scrollbar-size);
+}
+
+.ra-scrollarea::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.ra-scrollarea .simplebar-track.simplebar-vertical {
-  top: 2px;
-  bottom: 2px;
-  width: var(--ra-scrollbar-size);
-  right: 1px;
-}
-
-.ra-scrollarea .simplebar-track.simplebar-horizontal {
-  left: 2px;
-  right: 2px;
-  height: var(--ra-scrollbar-size);
-  bottom: 1px;
-}
-
-.ra-scrollarea .simplebar-scrollbar::before {
-  inset: 0;
+.ra-scrollarea::-webkit-scrollbar-thumb {
+  background-color: var(--ra-scrollbar-color);
   border-radius: 0;
-  background-color: var(--ra-scrollbar-color);
-  opacity: 1;
-  transition: none;
-}
-
-.ra-scrollarea .simplebar-scrollbar.simplebar-visible::before,
-.ra-scrollarea .simplebar-scrollbar:hover::before,
-.ra-scrollarea.simplebar-hover .simplebar-scrollbar::before,
-.ra-scrollarea.simplebar-dragging .simplebar-scrollbar::before {
-  background-color: var(--ra-scrollbar-color);
-  opacity: 1;
-}
-
-.ra-scrollarea .simplebar-track.simplebar-vertical .simplebar-scrollbar {
-  width: 100%;
-}
-
-.ra-scrollarea .simplebar-track.simplebar-horizontal .simplebar-scrollbar {
-  height: 100%;
-}
-
-/*
-  Tauri macOS (WKWebView) hardening:
-  1) force-hide native WebKit scrollbars
-  2) clip native scrollbar gutter so overlay bars cannot leak through
-*/
-html.tauri-wkwebview *::-webkit-scrollbar {
-  width: 0 !important;
-  height: 0 !important;
-  display: none !important;
-}
-
-html.tauri-wkwebview .ra-scrollarea .simplebar-offset {
-  right: -16px !important;
-  bottom: -16px !important;
-}
-
-html.tauri-wkwebview .ra-scrollarea .simplebar-content-wrapper {
-  scrollbar-width: none !important;
-  -webkit-overflow-scrolling: auto !important;
-  padding-right: 16px;
-  padding-bottom: 16px;
-  margin-right: -16px;
-  margin-bottom: -16px;
 }
 
 @media (prefers-reduced-motion: no-preference) {

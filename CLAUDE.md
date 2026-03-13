@@ -3,7 +3,7 @@
 - Product: `RadAware`
 - Type: AI-native reading application
 - Core capability: context-rich reading and AI-assisted understanding
-- Runtime shell: `Tauri`
+- Runtime shell: `Web browser / PWA`
 - Frontend: `React 19`
 - Styling: `Tailwind CSS v4` (tokens via `@theme` in `src/index.css`)
 - State management: `Jotai`
@@ -16,7 +16,7 @@
 - User experience: one persistent chat surface, not multiple conversation windows like ChatGPT
 - System model: memory-first, not transcript-first
 - Agent backend: `Python + LangGraph`
-- Frontend app shell: `React + TypeScript + Tauri`
+- Frontend app shell: `React + TypeScript + web app`
 - Primary database: `Postgres`
 - Semantic memory retrieval layer: `Qdrant`
 

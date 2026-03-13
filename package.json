@@ -7,21 +7,17 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
-    "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-opener": "^2",
     "clsx": "^2.1.1",
     "epubjs": "^0.3.93",
     "jotai": "^2.18.0",
     "pdfjs-dist": "^5.5.207",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "simplebar-react": "^3.3.2",
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
@@ -32,7 +28,6 @@
     "@storybook/addon-vitest": "^10.2.16",
     "@storybook/react-vite": "^10.2.16",
     "@tailwindcss/vite": "^4.2.1",
-    "@tauri-apps/cli": "^2",
     "@types/bun": "latest",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",

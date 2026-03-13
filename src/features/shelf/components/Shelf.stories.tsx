@@ -1,24 +1,64 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { Shelf } from "./Shelf";
-import type { Book } from "./BookCover";
+import type { LibraryBook } from "../../library/lib/library-types";
 
-const currentlyReading: Book[] = [
-  { id: "1", title: "The Master and Margarita", author: "Mikhail Bulgakov", progress: 64 },
-  { id: "2", title: "Thinking, Fast and Slow", author: "Daniel Kahneman", progress: 23 },
+const currentlyReading: LibraryBook[] = [
+  {
+    id: "1",
+    title: "The Master and Margarita",
+    author: "Mikhail Bulgakov",
+    format: "epub",
+    fileName: "the-master-and-margarita.epub",
+    mimeType: "application/epub+zip",
+    fileSize: 1024,
+    createdAt: "2026-03-13T00:00:00.000Z",
+    updatedAt: "2026-03-13T00:00:00.000Z",
+    lastOpenedAt: "2026-03-13T03:00:00.000Z",
+    progressPercent: 64,
+    readingStatus: "reading",
+    progress: {
+      format: "epub",
+      currentLocation: 64,
+      totalLocations: 100,
+      progressPercent: 64,
+      cfi: "epubcfi(/6/2[chapter]!/4/2/6)",
+      href: "chapter-6.xhtml",
+    },
+  },
+  {
+    id: "2",
+    title: "Thinking, Fast and Slow",
+    author: "Daniel Kahneman",
+    format: "pdf",
+    fileName: "thinking-fast-and-slow.pdf",
+    mimeType: "application/pdf",
+    fileSize: 2048,
+    createdAt: "2026-03-13T00:00:00.000Z",
+    updatedAt: "2026-03-13T00:00:00.000Z",
+    lastOpenedAt: "2026-03-13T02:00:00.000Z",
+    progressPercent: 23,
+    readingStatus: "reading",
+    progress: {
+      format: "pdf",
+      currentPage: 23,
+      totalPages: 100,
+      progressPercent: 23,
+    },
+  },
 ];
 
-const upNext: Book[] = [
-  { id: "3", title: "Austerlitz", author: "W. G. Sebald" },
-  { id: "4", title: "The Structure of Scientific Revolutions", author: "Thomas S. Kuhn" },
-  { id: "5", title: "Invisible Cities", author: "Italo Calvino" },
-  { id: "6", title: "The Periodic Table", author: "Primo Levi" },
-  { id: "7", title: "Pale Fire", author: "Vladimir Nabokov" },
+const upNext: LibraryBook[] = [
+  { id: "3", title: "Austerlitz", author: "W. G. Sebald", format: "epub", fileName: "austerlitz.epub", mimeType: "application/epub+zip", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: null, progressPercent: 0, readingStatus: "unread", progress: null },
+  { id: "4", title: "The Structure of Scientific Revolutions", author: "Thomas S. Kuhn", format: "pdf", fileName: "the-structure-of-scientific-revolutions.pdf", mimeType: "application/pdf", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: null, progressPercent: 0, readingStatus: "unread", progress: null },
+  { id: "5", title: "Invisible Cities", author: "Italo Calvino", format: "epub", fileName: "invisible-cities.epub", mimeType: "application/epub+zip", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: null, progressPercent: 0, readingStatus: "unread", progress: null },
+  { id: "6", title: "The Periodic Table", author: "Primo Levi", format: "epub", fileName: "the-periodic-table.epub", mimeType: "application/epub+zip", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: null, progressPercent: 0, readingStatus: "unread", progress: null },
+  { id: "7", title: "Pale Fire", author: "Vladimir Nabokov", format: "pdf", fileName: "pale-fire.pdf", mimeType: "application/pdf", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: null, progressPercent: 0, readingStatus: "unread", progress: null },
 ];
 
-const finished: Book[] = [
-  { id: "8", title: "Blindness", author: "Jose Saramago", progress: 100 },
-  { id: "9", title: "If on a Winter's Night a Traveler", author: "Italo Calvino", progress: 100 },
-  { id: "10", title: "The Plague", author: "Albert Camus", progress: 100 },
+const finished: LibraryBook[] = [
+  { id: "8", title: "Blindness", author: "Jose Saramago", format: "epub", fileName: "blindness.epub", mimeType: "application/epub+zip", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: "2026-03-13T00:00:00.000Z", progressPercent: 100, readingStatus: "finished", progress: { format: "epub", currentLocation: 100, totalLocations: 100, progressPercent: 100, cfi: "epubcfi(/6/2[end]!/4/2/6)", href: "epilogue.xhtml" } },
+  { id: "9", title: "If on a Winter's Night a Traveler", author: "Italo Calvino", format: "epub", fileName: "if-on-a-winters-night-a-traveler.epub", mimeType: "application/epub+zip", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: "2026-03-13T00:00:00.000Z", progressPercent: 100, readingStatus: "finished", progress: { format: "epub", currentLocation: 100, totalLocations: 100, progressPercent: 100, cfi: "epubcfi(/6/2[end]!/4/2/6)", href: "end.xhtml" } },
+  { id: "10", title: "The Plague", author: "Albert Camus", format: "pdf", fileName: "the-plague.pdf", mimeType: "application/pdf", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: "2026-03-13T00:00:00.000Z", progressPercent: 100, readingStatus: "finished", progress: { format: "pdf", currentPage: 320, totalPages: 320, progressPercent: 100 } },
 ];
 
 const meta: Meta<typeof Shelf> = {

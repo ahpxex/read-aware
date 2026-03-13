@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from "react";
 import { Body, Button, Heading, ScrollArea, Sidebar } from "../../../components";
 import { cn } from "../../../components/lib/cn";
 import { useLocalAtom } from "../../../state/local";
-import type { Book } from "../../shelf/components/BookCover";
+import type { LibraryBook, PdfProgress } from "../../library/lib/library-types";
 import { formatReaderError } from "../lib/format-reader-error";
 import { PageJumpInput } from "./PageJumpInput";
 import type {
@@ -18,13 +18,19 @@ const RENDER_BUFFER = 2;
 const BASE_SCALE = 1.5;
 
 type PdfReaderViewProps = {
-  selectedBook?: Book | null;
+  selectedBook?: LibraryBook | null;
+  initialPdf?: LoadedPdf | null;
   initialPdfUrl?: string;
+  initialProgress?: PdfProgress | null;
+  onProgressChange?: (progress: PdfProgress) => void;
 };
 
 export function PdfReaderView({
   selectedBook = null,
+  initialPdf = null,
   initialPdfUrl,
+  initialProgress = null,
+  onProgressChange,
 }: PdfReaderViewProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -38,6 +44,11 @@ export function PdfReaderView({
   const pageDimensionsRef = useRef<PageDimensions[]>([]);
   const pageOffsetsRef = useRef<number[]>([]);
   const rafRef = useRef<number | null>(null);
+  const onProgressChangeRef = useRef(onProgressChange);
+
+  useEffect(() => {
+    onProgressChangeRef.current = onProgressChange;
+  }, [onProgressChange]);
 
   const [loadedPdf, setLoadedPdf] = useLocalAtom<LoadedPdf | null>(null);
   const [isLoading, setIsLoading] = useLocalAtom(false);
@@ -47,7 +58,14 @@ export function PdfReaderView({
   const [isPagePickerOpen, setIsPagePickerOpen] = useLocalAtom(false);
 
   useEffect(() => {
-    if (!initialPdfUrl) return;
+    if (!initialPdf) return;
+
+    setError(null);
+    setLoadedPdf(initialPdf);
+  }, [initialPdf, setError, setLoadedPdf]);
+
+  useEffect(() => {
+    if (initialPdf || !initialPdfUrl) return;
 
     let cancelled = false;
     setIsLoading(true);
@@ -76,7 +94,7 @@ export function PdfReaderView({
     return () => {
       cancelled = true;
     };
-  }, [initialPdfUrl]);
+  }, [initialPdf, initialPdfUrl, setError, setIsLoading, setLoadedPdf]);
 
   const getVisiblePageRange = useCallback(() => {
     const container = scrollContainerRef.current;
@@ -170,6 +188,14 @@ export function PdfReaderView({
   const updateVisiblePages = useCallback(() => {
     const { first, last, current } = getVisiblePageRange();
     setCurrentPage(current);
+    if (numPages > 0) {
+      onProgressChangeRef.current?.({
+        format: "pdf",
+        currentPage: current,
+        totalPages: numPages,
+        progressPercent: Math.round((current / numPages) * 100),
+      });
+    }
 
     const renderFirst = Math.max(1, first - RENDER_BUFFER);
     const renderLast = Math.min(numPages, last + RENDER_BUFFER);
@@ -276,11 +302,21 @@ export function PdfReaderView({
     if (numPages === 0 || isLoading) return;
 
     const timer = requestAnimationFrame(() => {
+      const targetPage = Math.min(
+        Math.max(initialProgress?.currentPage ?? 1, 1),
+        numPages,
+      );
+      const container = scrollContainerRef.current;
+      const offsets = pageOffsetsRef.current;
+      if (container && offsets.length > 0) {
+        container.scrollTop = offsets[targetPage - 1] ?? 0;
+      }
+      setCurrentPage(targetPage);
       updateVisiblePages();
     });
 
     return () => cancelAnimationFrame(timer);
-  }, [numPages, isLoading, updateVisiblePages]);
+  }, [initialProgress?.currentPage, isLoading, numPages, setCurrentPage, updateVisiblePages]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {

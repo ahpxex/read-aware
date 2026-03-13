@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Body, Button, Heading, ScrollArea, Sidebar } from "../../../components";
 import { cn } from "../../../components/lib/cn";
 import { useLocalAtom } from "../../../state/local";
-import type { Book } from "../../shelf/components/BookCover";
+import type { EpubProgress, LibraryBook } from "../../library/lib/library-types";
 import { formatReaderError } from "../lib/format-reader-error";
 import {
   getNormalizedSelectionText,
@@ -34,13 +34,16 @@ import { ReaderSelectionOverlay } from "./ReaderSelectionOverlay";
 import { ReaderSelectionMenu } from "./ReaderSelectionMenu";
 
 type EpubReaderViewProps = {
-  selectedBook?: Book | null;
+  selectedBook?: LibraryBook | null;
+  initialEpub?: LoadedEpub | null;
   initialEpubUrl?: string;
   onContentClick?: () => void;
   onContentScroll?: () => void;
   onPageChange?: (current: number, total: number) => void;
+  onProgressChange?: (progress: EpubProgress) => void;
   onTocChange?: (entries: TocEntry[]) => void;
   onCurrentChapterChange?: (href: string | null) => void;
+  initialProgress?: EpubProgress | null;
   chapterNavigationRequest?: {
     href: string;
     requestId: number;
@@ -115,19 +118,22 @@ function isShellOpenTarget(target: EventTarget | null, ownerDocument: Document) 
 
 export function EpubReaderView({
   selectedBook = null,
+  initialEpub = null,
   initialEpubUrl,
   onContentClick,
   onContentScroll,
   onPageChange,
+  onProgressChange,
   onTocChange,
   onCurrentChapterChange,
+  initialProgress = null,
   chapterNavigationRequest = null,
 }: EpubReaderViewProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const readerRootRef = useRef<HTMLElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const renditionRef = useRef<EpubRendition | null>(null);
-  const lastCfiRef = useRef<string | null>(null);
+  const lastLocationTargetRef = useRef<string | null>(null);
   const loadedEpubRef = useRef<LoadedEpub | null>(null);
   const tocEntriesRef = useRef<TocEntry[]>([]);
   const currentChapterHrefRef = useRef<string | null>(null);
@@ -152,6 +158,11 @@ export function EpubReaderView({
   useEffect(() => {
     onPageChangeRef.current = onPageChange;
   }, [onPageChange]);
+
+  const onProgressChangeRef = useRef(onProgressChange);
+  useEffect(() => {
+    onProgressChangeRef.current = onProgressChange;
+  }, [onProgressChange]);
 
   const onTocChangeRef = useRef(onTocChange);
   useEffect(() => {
@@ -308,20 +319,21 @@ export function EpubReaderView({
   }, [currentChapterHref]);
 
   useEffect(() => {
-    onCurrentChapterChangeRef.current?.(currentChapterHref);
-  }, [currentChapterHref]);
+    lastLocationTargetRef.current =
+      initialProgress?.cfi ??
+      initialProgress?.href ??
+      null;
+  }, [initialProgress?.cfi, initialProgress?.href]);
 
   useEffect(() => {
-    return () => {
-      cancelPendingShellOpen();
-      if (suppressContentClickTimeoutRef.current != null) {
-        window.clearTimeout(suppressContentClickTimeoutRef.current);
-      }
-    };
-  }, [cancelPendingShellOpen]);
+    if (!initialEpub) return;
+
+    setError(null);
+    setLoadedEpub(initialEpub);
+  }, [initialEpub, setError, setLoadedEpub]);
 
   useEffect(() => {
-    if (!initialEpubUrl) return;
+    if (initialEpub || !initialEpubUrl) return;
 
     let cancelled = false;
     setIsLoading(true);
@@ -350,7 +362,20 @@ export function EpubReaderView({
     return () => {
       cancelled = true;
     };
-  }, [initialEpubUrl]);
+  }, [initialEpub, initialEpubUrl, setError, setIsLoading, setLoadedEpub]);
+
+  useEffect(() => {
+    onCurrentChapterChangeRef.current?.(currentChapterHref);
+  }, [currentChapterHref]);
+
+  useEffect(() => {
+    return () => {
+      cancelPendingShellOpen();
+      if (suppressContentClickTimeoutRef.current != null) {
+        window.clearTimeout(suppressContentClickTimeoutRef.current);
+      }
+    };
+  }, [cancelPendingShellOpen]);
 
   useEffect(() => {
     const element = viewportRef.current;
@@ -623,7 +648,10 @@ export function EpubReaderView({
         onRelocated = (nextLocation: EpubRelocation) => {
           if (cancelled) return;
           clearSelection();
-          lastCfiRef.current = nextLocation.start?.cfi ?? null;
+          lastLocationTargetRef.current =
+            nextLocation.start?.cfi ??
+            nextLocation.start?.href ??
+            null;
           const relocatedHref = nextLocation.start?.href ?? null;
           const relocatedSpineIndex = spineEntries.find((entry) =>
             hrefMatches(entry.href, relocatedHref ?? ""),
@@ -635,8 +663,17 @@ export function EpubReaderView({
           const tocIndex = findTocIndexForHref(flattenedToc, relocatedHref);
           if (typeof relocatedSpineIndex === "number") {
             const page = relocatedSpineIndex + 1;
+            const progressPercent = Math.round((page / spineEntries.length) * 100);
             setCurrentPage(page);
             onPageChangeRef.current?.(page, spineEntries.length);
+            onProgressChangeRef.current?.({
+              format: "epub",
+              currentLocation: page,
+              totalLocations: spineEntries.length,
+              progressPercent,
+              cfi: nextLocation.start?.cfi ?? null,
+              href: relocatedHref,
+            });
           }
           setCurrentChapterHref(
             enclosingEntry?.href ??
@@ -647,7 +684,7 @@ export function EpubReaderView({
         rendition.on("relocated", onRelocated);
 
         const initialTarget =
-          lastCfiRef.current ??
+          lastLocationTargetRef.current ??
           resolveInitialDisplayTarget(flattenedToc, spineEntries) ??
           spineEntries[0]?.href;
         await rendition.display(initialTarget);

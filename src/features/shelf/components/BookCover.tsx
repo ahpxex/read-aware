@@ -2,22 +2,29 @@ import { Button, Dialog, IconButton, Progress } from "../../../components";
 import { Info, Trash } from "@phosphor-icons/react";
 import { cn } from "../../../components/lib/cn";
 import { useLocalAtom } from "../../../state/local";
-
-export interface Book {
-  id: string;
-  title: string;
-  author: string;
-  coverUrl?: string;
-  progress?: number;
-}
+import type { LibraryBook } from "../../library/lib/library-types";
 
 type BookCoverProps = {
-  book: Book;
+  book: LibraryBook;
   onClick?: () => void;
+  onRemove?: () => void;
   className?: string;
 };
 
-export function BookCover({ book, onClick, className }: BookCoverProps) {
+function formatLastOpenedAt(lastOpenedAt: string | null) {
+  if (!lastOpenedAt) return "Not opened yet";
+
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(lastOpenedAt));
+  } catch {
+    return lastOpenedAt;
+  }
+}
+
+export function BookCover({ book, onClick, onRemove, className }: BookCoverProps) {
   const [infoOpen, setInfoOpen] = useLocalAtom(false);
   const [removeOpen, setRemoveOpen] = useLocalAtom(false);
 
@@ -70,15 +77,15 @@ export function BookCover({ book, onClick, className }: BookCoverProps) {
             />
           </div>
 
-          {book.progress !== undefined && (
+          {book.progressPercent > 0 && (
             <div>
               <Progress
-                value={book.progress}
+                value={book.progressPercent}
                 size="sm"
                 className="[&_[role='progressbar']]:bg-white/35 [&_[role='progressbar']>div]:bg-white"
               />
               <span className="mt-1 block font-sans text-[11px] tabular-nums text-white/75">
-                {Math.round(book.progress)}%
+                {Math.round(book.progressPercent)}%
               </span>
             </div>
           )}
@@ -91,14 +98,19 @@ export function BookCover({ book, onClick, className }: BookCoverProps) {
         title="Book details"
       >
         <div className="space-y-3">
-          <p>This is mock book metadata until backend integration is ready.</p>
           <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-stone-700">
             <dt className="font-medium text-stone-600">Title</dt>
             <dd>{book.title}</dd>
             <dt className="font-medium text-stone-600">Author</dt>
             <dd>{book.author}</dd>
+            <dt className="font-medium text-stone-600">Format</dt>
+            <dd className="uppercase">{book.format}</dd>
+            <dt className="font-medium text-stone-600">File</dt>
+            <dd>{book.fileName}</dd>
             <dt className="font-medium text-stone-600">Progress</dt>
-            <dd>{book.progress !== undefined ? `${Math.round(book.progress)}%` : "Not started"}</dd>
+            <dd>{book.progressPercent > 0 ? `${Math.round(book.progressPercent)}%` : "Not started"}</dd>
+            <dt className="font-medium text-stone-600">Last opened</dt>
+            <dd>{formatLastOpenedAt(book.lastOpenedAt)}</dd>
           </dl>
           <div className="flex justify-end">
             <Button variant="ghost" size="sm" onClick={() => setInfoOpen(false)}>
@@ -115,14 +127,21 @@ export function BookCover({ book, onClick, className }: BookCoverProps) {
       >
         <div className="space-y-4">
           <p>
-            This is mock confirmation content. We will later wire this action to
-            remove <strong>{book.title}</strong> from your shelf.
+            Remove <strong>{book.title}</strong> from your library and delete its
+            stored file from this device?
           </p>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" size="sm" onClick={() => setRemoveOpen(false)}>
               Cancel
             </Button>
-            <Button variant="danger" size="sm" onClick={() => setRemoveOpen(false)}>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => {
+                setRemoveOpen(false);
+                onRemove?.();
+              }}
+            >
               Remove
             </Button>
           </div>

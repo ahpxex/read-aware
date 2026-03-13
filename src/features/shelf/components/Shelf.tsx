@@ -1,15 +1,17 @@
 import { Eyebrow } from "../../../components";
-import { BookCover, type Book } from "./BookCover";
 import { cn } from "../../../components/lib/cn";
+import type { LibraryBook, ShelfSection as LibraryShelfSection } from "../../library/lib/library-types";
+import { BookCover } from "./BookCover";
 
 type ShelfSectionProps = {
   label: string;
-  books: Book[];
-  onSelect?: (book: Book) => void;
+  books: LibraryBook[];
+  onSelect?: (book: LibraryBook) => void;
+  onRemove?: (book: LibraryBook) => void;
   className?: string;
 };
 
-function ShelfSection({ label, books, onSelect, className }: ShelfSectionProps) {
+function ShelfSection({ label, books, onSelect, onRemove, className }: ShelfSectionProps) {
   return (
     <section className={className}>
       <Eyebrow>{label}</Eyebrow>
@@ -19,6 +21,7 @@ function ShelfSection({ label, books, onSelect, className }: ShelfSectionProps) 
             key={book.id}
             book={book}
             onClick={() => onSelect?.(book)}
+            onRemove={() => onRemove?.(book)}
           />
         ))}
       </div>
@@ -27,12 +30,13 @@ function ShelfSection({ label, books, onSelect, className }: ShelfSectionProps) 
 }
 
 type ShelfProps = {
-  sections: { label: string; books: Book[] }[];
-  onSelect?: (book: Book) => void;
+  sections: LibraryShelfSection[];
+  onSelect?: (book: LibraryBook) => void;
+  onRemove?: (book: LibraryBook) => void;
   className?: string;
 };
 
-export function Shelf({ sections, onSelect, className }: ShelfProps) {
+export function Shelf({ sections, onSelect, onRemove, className }: ShelfProps) {
   return (
     <div className={cn("space-y-12", className)}>
       {sections.map((section) => (
@@ -41,6 +45,7 @@ export function Shelf({ sections, onSelect, className }: ShelfProps) {
           label={section.label}
           books={section.books}
           onSelect={onSelect}
+          onRemove={onRemove}
         />
       ))}
     </div>

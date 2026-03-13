@@ -1,52 +1,46 @@
-import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useAtom } from "jotai";
 import { GearSix, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { useLocalAtom } from "./state/local";
 import { activeTopNavAtom, settingsOpenAtom, topNavs } from "./state/ui";
 import { cn } from "./components/lib/cn";
 import {
-  Display,
+  Alert,
   Body,
-  Eyebrow,
-  NavItem,
-  Divider,
+  Button,
   DefinitionList,
+  Display,
+  Divider,
+  EmptyState,
+  Eyebrow,
   IconButton,
+  NavItem,
   ScrollArea,
   Tooltip,
 } from "./components";
 import { SettingsView } from "./features/settings/SettingsView";
 import { Shelf } from "./features/shelf/components/Shelf";
-import type { Book } from "./features/shelf/components/BookCover";
 import { EpubReaderView } from "./features/reader/components/EpubReaderView";
+import { PdfReaderView } from "./features/reader/components/PdfReaderView";
 import { ReaderShellOverlay } from "./features/reader/components/ReaderShellOverlay";
 import type { TocEntry } from "./features/reader/lib/epub-types";
-import demoEpubUrl from "../demo/ElonMusk.epub?url";
-
-const currentlyReading: Book[] = [
-  { id: "1", title: "The Master and Margarita", author: "Mikhail Bulgakov", progress: 64 },
-  { id: "2", title: "Thinking, Fast and Slow", author: "Daniel Kahneman", progress: 23 },
-];
-
-const upNext: Book[] = [
-  { id: "3", title: "Austerlitz", author: "W. G. Sebald" },
-  { id: "4", title: "The Structure of Scientific Revolutions", author: "Thomas S. Kuhn" },
-  { id: "5", title: "Invisible Cities", author: "Italo Calvino" },
-  { id: "6", title: "The Periodic Table", author: "Primo Levi" },
-  { id: "7", title: "Pale Fire", author: "Vladimir Nabokov" },
-];
-
-const finished: Book[] = [
-  { id: "8", title: "Blindness", author: "Jose Saramago", progress: 100 },
-  { id: "9", title: "If on a Winter's Night a Traveler", author: "Italo Calvino", progress: 100 },
-  { id: "10", title: "The Plague", author: "Albert Camus", progress: 100 },
-];
-
-const initialShelfSections = [
-  { label: "Currently Reading", books: currentlyReading },
-  { label: "Up Next", books: upNext },
-  { label: "Finished", books: finished },
-];
+import type { LoadedEpub } from "./features/reader/lib/epub-types";
+import type { LoadedPdf } from "./features/reader/lib/pdf-types";
+import {
+  getStoredBookBlob,
+  importBookFile,
+  listLibraryBooks,
+  markLibraryBookOpened,
+  removeLibraryBook,
+  updateLibraryBookProgress,
+} from "./features/library/lib/library-db";
+import { deriveShelfSections } from "./features/library/lib/derive-shelf-sections";
+import type {
+  BookProgress,
+  EpubProgress,
+  LibraryBook,
+  PdfProgress,
+} from "./features/library/lib/library-types";
 
 const contextCopy = {
   eyebrow: "Context",
@@ -59,11 +53,53 @@ const contextCopy = {
   ],
 };
 
+type ReaderSource =
+  | { format: "epub"; data: LoadedEpub }
+  | { format: "pdf"; data: LoadedPdf }
+  | null;
+
+function formatAppError(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return "Something went wrong while updating your library.";
+}
+
+function getReadingStatus(progressPercent: number) {
+  if (progressPercent >= 100) return "finished";
+  if (progressPercent > 0) return "reading";
+  return "unread";
+}
+
+function createProgressPatch(
+  book: LibraryBook,
+  progress: BookProgress,
+  timestamp = new Date().toISOString(),
+): LibraryBook {
+  const progressPercent = progress ? Math.max(0, Math.min(100, Math.round(progress.progressPercent))) : 0;
+
+  return {
+    ...book,
+    progress,
+    progressPercent,
+    readingStatus: getReadingStatus(progressPercent),
+    updatedAt: timestamp,
+    lastOpenedAt: timestamp,
+  };
+}
+
 function App() {
   const [activeTopNav, setActiveTopNav] = useAtom(activeTopNavAtom);
   const [settingsOpen, setSettingsOpen] = useAtom(settingsOpenAtom);
-  const [shelfSections, setShelfSections] = useLocalAtom(initialShelfSections);
-  const [selectedShelfBook, setSelectedShelfBook] = useLocalAtom<Book | null>(null);
+  const [selectedBook, setSelectedBook] = useState<LibraryBook | null>(null);
+  const [books, setBooks] = useState<LibraryBook[]>([]);
+  const [libraryReady, setLibraryReady] = useState(false);
+  const [libraryError, setLibraryError] = useState<string | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [readerSource, setReaderSource] = useState<ReaderSource>(null);
+  const [readerLoadError, setReaderLoadError] = useState<string | null>(null);
+  const [isReaderLoading, setIsReaderLoading] = useState(false);
   const [shellVisible, setShellVisible] = useLocalAtom(false);
   const [readerPage, setReaderPage] = useLocalAtom({ current: 0, total: 0 });
   const [readerToc, setReaderToc] = useLocalAtom<TocEntry[]>([]);
@@ -77,65 +113,120 @@ function App() {
     width: 0,
     ready: false,
   });
+  const importInputRef = useRef<HTMLInputElement | null>(null);
   const topNavListRef = useRef<HTMLDivElement | null>(null);
   const topNavButtonRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const readerLoadRequestIdRef = useRef(0);
+  const pendingProgressSaveRef = useRef<Map<string, number>>(new Map());
   const headerIconButtonClass =
     "relative text-stone-500 hover:text-stone-950 before:absolute before:-inset-1 before:content-['']";
 
-  const toggleShell = useCallback(() => setShellVisible((v) => !v), [setShellVisible]);
+  const shelfSections = deriveShelfSections(books);
+
+  const replaceBookInState = useCallback((nextBook: LibraryBook) => {
+    setBooks((currentBooks) => {
+      const hasMatch = currentBooks.some((book) => book.id === nextBook.id);
+      if (!hasMatch) return [nextBook, ...currentBooks];
+
+      return currentBooks.map((book) => (
+        book.id === nextBook.id ? nextBook : book
+      ));
+    });
+    setSelectedBook((currentBook) => (
+      currentBook?.id === nextBook.id ? nextBook : currentBook
+    ));
+  }, []);
+
+  const loadLibrary = useCallback(async () => {
+    try {
+      setLibraryError(null);
+      const nextBooks = await listLibraryBooks();
+      setBooks(nextBooks);
+    } catch (nextError) {
+      setLibraryError(formatAppError(nextError));
+    } finally {
+      setLibraryReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadLibrary();
+  }, [loadLibrary]);
+
+  useEffect(() => {
+    return () => {
+      pendingProgressSaveRef.current.forEach((timeoutId) => {
+        window.clearTimeout(timeoutId);
+      });
+      pendingProgressSaveRef.current.clear();
+    };
+  }, []);
+
+  const toggleShell = useCallback(() => setShellVisible((visible) => !visible), [setShellVisible]);
   const hideShell = useCallback(() => setShellVisible(false), [setShellVisible]);
-  const handlePageChange = useCallback((current: number, total: number) => {
-    setReaderPage({ current, total });
-    if (!selectedShelfBook || total <= 0) return;
 
-    const nextProgress = Math.round((current / total) * 100);
-    setShelfSections((sections) =>
-      sections.map((section) => ({
-        ...section,
-        books: section.books.map((book) =>
-          book.id === selectedShelfBook.id
-            ? { ...book, progress: nextProgress }
-            : book,
-        ),
-      })),
-    );
-  }, [selectedShelfBook, setReaderPage, setShelfSections]);
+  const queueProgressSave = useCallback((bookId: string, progress: BookProgress) => {
+    const existingTimeout = pendingProgressSaveRef.current.get(bookId);
+    if (existingTimeout != null) {
+      window.clearTimeout(existingTimeout);
+    }
 
-  const openReader = useCallback((book: Book) => {
-    setSelectedShelfBook(book);
-    setReaderPage({ current: 0, total: 0 });
-    setReaderToc([]);
-    setCurrentChapterHref(null);
-    setChapterNavigationRequest(null);
-  }, [
-    setChapterNavigationRequest,
-    setCurrentChapterHref,
-    setReaderPage,
-    setReaderToc,
-    setSelectedShelfBook,
-  ]);
+    const timeoutId = window.setTimeout(() => {
+      pendingProgressSaveRef.current.delete(bookId);
+      void updateLibraryBookProgress(bookId, progress)
+        .then((nextBook) => {
+          if (nextBook) {
+            replaceBookInState(nextBook);
+          }
+        })
+        .catch((nextError) => {
+          setLibraryError(formatAppError(nextError));
+        });
+    }, 250);
 
-  const closeReader = useCallback(() => {
-    setSelectedShelfBook(null);
-    setShellVisible(false);
-    setReaderToc([]);
-    setCurrentChapterHref(null);
-    setChapterNavigationRequest(null);
-  }, [
-    setChapterNavigationRequest,
-    setCurrentChapterHref,
-    setReaderToc,
-    setSelectedShelfBook,
-    setShellVisible,
-  ]);
+    pendingProgressSaveRef.current.set(bookId, timeoutId);
+  }, [replaceBookInState]);
 
-  const handleChapterSelect = useCallback((href: string) => {
-    setChapterNavigationRequest((previous) => ({
-      href,
-      requestId: (previous?.requestId ?? 0) + 1,
-    }));
-    setShellVisible(false);
-  }, [setChapterNavigationRequest, setShellVisible]);
+  const applyOptimisticProgress = useCallback((bookId: string, progress: BookProgress) => {
+    const timestamp = new Date().toISOString();
+
+    setBooks((currentBooks) => currentBooks.map((book) => (
+      book.id === bookId ? createProgressPatch(book, progress, timestamp) : book
+    )));
+    setSelectedBook((currentBook) => (
+      currentBook?.id === bookId
+        ? createProgressPatch(currentBook, progress, timestamp)
+        : currentBook
+    ));
+  }, []);
+
+  const handleEpubProgressChange = useCallback((progress: EpubProgress) => {
+    setReaderPage({
+      current: progress.currentLocation,
+      total: progress.totalLocations,
+    });
+
+    if (!selectedBook) return;
+
+    applyOptimisticProgress(selectedBook.id, progress);
+    queueProgressSave(selectedBook.id, progress);
+  }, [applyOptimisticProgress, queueProgressSave, selectedBook, setReaderPage]);
+
+  const handlePdfProgressChange = useCallback((progress: PdfProgress) => {
+    setReaderPage({
+      current: progress.currentPage,
+      total: progress.totalPages,
+    });
+
+    if (!selectedBook) return;
+
+    applyOptimisticProgress(selectedBook.id, progress);
+    queueProgressSave(selectedBook.id, progress);
+  }, [applyOptimisticProgress, queueProgressSave, selectedBook, setReaderPage]);
+
+  const openImportPicker = useCallback(() => {
+    importInputRef.current?.click();
+  }, []);
 
   const updateTopNavIndicator = useCallback(() => {
     const navList = topNavListRef.current;
@@ -175,29 +266,208 @@ function App() {
     };
   }, [updateTopNavIndicator]);
 
-  if (selectedShelfBook) {
+  const openReader = useCallback((book: LibraryBook) => {
+    const requestId = readerLoadRequestIdRef.current + 1;
+    readerLoadRequestIdRef.current = requestId;
+
+    setSelectedBook(book);
+    setReaderSource(null);
+    setReaderLoadError(null);
+    setIsReaderLoading(true);
+    setReaderPage({ current: 0, total: 0 });
+    setReaderToc([]);
+    setCurrentChapterHref(null);
+    setChapterNavigationRequest(null);
+    setShellVisible(book.format === "pdf");
+
+    void (async () => {
+      try {
+        const blob = await getStoredBookBlob(book.id);
+        if (!blob) {
+          throw new Error("The imported file for this book could not be found on this device.");
+        }
+
+        const data = await blob.arrayBuffer();
+        if (readerLoadRequestIdRef.current !== requestId) return;
+
+        const nextSource: ReaderSource = book.format === "epub"
+          ? {
+              format: "epub",
+              data: {
+                fileName: book.fileName,
+                data,
+              },
+            }
+          : {
+              format: "pdf",
+              data: {
+                fileName: book.fileName,
+                data,
+              },
+            };
+
+        setReaderSource(nextSource);
+        setIsReaderLoading(false);
+
+        void markLibraryBookOpened(book.id)
+          .then((nextBook) => {
+            if (nextBook) {
+              replaceBookInState(nextBook);
+            }
+          })
+          .catch((nextError) => {
+            setLibraryError(formatAppError(nextError));
+          });
+      } catch (nextError) {
+        if (readerLoadRequestIdRef.current !== requestId) return;
+        setReaderLoadError(formatAppError(nextError));
+        setIsReaderLoading(false);
+      }
+    })();
+  }, [
+    replaceBookInState,
+    setChapterNavigationRequest,
+    setCurrentChapterHref,
+    setReaderPage,
+    setReaderToc,
+    setShellVisible,
+  ]);
+
+  const closeReader = useCallback(() => {
+    readerLoadRequestIdRef.current += 1;
+    setSelectedBook(null);
+    setReaderSource(null);
+    setReaderLoadError(null);
+    setIsReaderLoading(false);
+    setReaderPage({ current: 0, total: 0 });
+    setShellVisible(false);
+    setReaderToc([]);
+    setCurrentChapterHref(null);
+    setChapterNavigationRequest(null);
+  }, [
+    setChapterNavigationRequest,
+    setCurrentChapterHref,
+    setReaderPage,
+    setReaderToc,
+    setShellVisible,
+  ]);
+
+  const handleChapterSelect = useCallback((href: string) => {
+    setChapterNavigationRequest((previous) => ({
+      href,
+      requestId: (previous?.requestId ?? 0) + 1,
+    }));
+    setShellVisible(false);
+  }, [setChapterNavigationRequest, setShellVisible]);
+
+  async function handleImportSelection(event: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.currentTarget.files ?? []);
+    if (files.length === 0) return;
+
+    setIsImporting(true);
+    setLibraryError(null);
+
+    try {
+      for (const file of files) {
+        await importBookFile(file);
+      }
+
+      const nextBooks = await listLibraryBooks();
+      setBooks(nextBooks);
+    } catch (nextError) {
+      setLibraryError(formatAppError(nextError));
+    } finally {
+      setIsImporting(false);
+      event.currentTarget.value = "";
+    }
+  }
+
+  const handleRemoveBook = useCallback((book: LibraryBook) => {
+    void removeLibraryBook(book.id)
+      .then(() => {
+        setBooks((currentBooks) => currentBooks.filter((entry) => entry.id !== book.id));
+      })
+      .catch((nextError) => {
+        setLibraryError(formatAppError(nextError));
+      });
+  }, []);
+
+  const selectedEpubProgress = selectedBook?.progress?.format === "epub"
+    ? selectedBook.progress
+    : null;
+  const selectedPdfProgress = selectedBook?.progress?.format === "pdf"
+    ? selectedBook.progress
+    : null;
+  const readerProgress = readerPage.total > 0
+    ? readerPage.current / readerPage.total
+    : selectedBook?.progressPercent
+      ? selectedBook.progressPercent / 100
+      : undefined;
+  const currentPosition = readerPage.total > 0
+    ? `Page ${readerPage.current} of ${readerPage.total}`
+    : undefined;
+
+  if (selectedBook) {
+    const overlayVisible = selectedBook.format === "pdf" ? true : shellVisible;
+
     return (
-      <div className="relative h-screen w-full">
-        <EpubReaderView
-          selectedBook={selectedShelfBook}
-          initialEpubUrl={demoEpubUrl}
-          onContentClick={toggleShell}
-          onContentScroll={hideShell}
-          onPageChange={handlePageChange}
-          onTocChange={setReaderToc}
-          onCurrentChapterChange={setCurrentChapterHref}
-          chapterNavigationRequest={chapterNavigationRequest}
-        />
+      <div className="relative h-screen w-full bg-paper">
+        {readerSource?.format === "epub" ? (
+          <EpubReaderView
+            selectedBook={selectedBook}
+            initialEpub={readerSource.data}
+            onContentClick={toggleShell}
+            onContentScroll={hideShell}
+            onPageChange={(current, total) => {
+              setReaderPage({ current, total });
+            }}
+            onProgressChange={handleEpubProgressChange}
+            onTocChange={setReaderToc}
+            onCurrentChapterChange={setCurrentChapterHref}
+            initialProgress={selectedEpubProgress}
+            chapterNavigationRequest={chapterNavigationRequest}
+          />
+        ) : null}
+
+        {readerSource?.format === "pdf" ? (
+          <PdfReaderView
+            selectedBook={selectedBook}
+            initialPdf={readerSource.data}
+            initialProgress={selectedPdfProgress}
+            onProgressChange={handlePdfProgressChange}
+          />
+        ) : null}
+
+        {!readerSource && (
+          <div className="absolute inset-0 flex items-center justify-center bg-paper px-8 text-center">
+            <div className="max-w-md space-y-4">
+              <Body className="text-sm text-stone-600">
+                {readerLoadError ?? `Opening ${selectedBook.title}...`}
+              </Body>
+              {readerLoadError && (
+                <div className="flex items-center justify-center gap-2">
+                  <Button size="sm" variant="outline" onClick={() => openReader(selectedBook)}>
+                    Try again
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={closeReader}>
+                    Back to library
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <ReaderShellOverlay
-          visible={shellVisible}
+          visible={!isReaderLoading && overlayVisible}
           onBack={closeReader}
-          title={selectedShelfBook.title}
-          subtitle={selectedShelfBook.author}
-          progress={readerPage.total > 0 ? readerPage.current / readerPage.total : undefined}
-          currentPosition={readerPage.total > 0 ? `Page ${readerPage.current} of ${readerPage.total}` : undefined}
-          tocEntries={readerToc}
-          currentChapterHref={currentChapterHref}
-          onChapterSelect={handleChapterSelect}
+          title={selectedBook.title}
+          subtitle={selectedBook.author}
+          progress={readerProgress}
+          currentPosition={currentPosition}
+          tocEntries={selectedBook.format === "epub" ? readerToc : []}
+          currentChapterHref={selectedBook.format === "epub" ? currentChapterHref : null}
+          onChapterSelect={selectedBook.format === "epub" ? handleChapterSelect : undefined}
         />
       </div>
     );
@@ -205,6 +475,17 @@ function App() {
 
   return (
     <main className="flex h-screen flex-col bg-[var(--ra-main-surface-color)] text-stone-950">
+      <input
+        ref={importInputRef}
+        type="file"
+        accept=".epub,.pdf,application/epub+zip,application/pdf"
+        multiple
+        className="hidden"
+        onChange={(event) => {
+          void handleImportSelection(event);
+        }}
+      />
+
       <div className="shrink-0 border-b border-border bg-[var(--ra-main-surface-color)]">
         <div className="flex items-center justify-center py-1 text-[10px] font-medium tracking-eyebrow text-stone-400">
           ReadAware
@@ -251,10 +532,12 @@ function App() {
                   icon={<MagnifyingGlass size={14} weight="regular" aria-hidden="true" />}
                 />
               </Tooltip>
-              <Tooltip content="Import">
+              <Tooltip content={isImporting ? "Importing..." : "Import"}>
                 <IconButton
                   label="Import"
                   size="sm"
+                  onClick={openImportPicker}
+                  disabled={isImporting}
                   className={headerIconButtonClass}
                   icon={<Plus size={14} weight="regular" aria-hidden="true" />}
                 />
@@ -276,10 +559,33 @@ function App() {
       <ScrollArea className="h-full min-h-0 flex-1">
         {activeTopNav === "shelf" ? (
           <div key="shelf" className="ra-motion-page-enter mx-auto max-w-screen-2xl px-6 py-8 sm:py-10">
-            <Shelf
-              sections={shelfSections}
-              onSelect={openReader}
-            />
+            {libraryError && (
+              <Alert variant="destructive" title="Library error" className="mb-6">
+                {libraryError}
+              </Alert>
+            )}
+
+            {!libraryReady ? (
+              <div className="py-16">
+                <Body className="text-sm text-stone-600">Loading your library...</Body>
+              </div>
+            ) : shelfSections.length === 0 ? (
+              <EmptyState
+                title="Import your first book"
+                description="ReadAware now keeps imported EPUB and PDF files locally in your browser, along with your last reading position."
+                action={(
+                  <Button size="sm" onClick={openImportPicker}>
+                    Import EPUB or PDF
+                  </Button>
+                )}
+              />
+            ) : (
+              <Shelf
+                sections={shelfSections}
+                onSelect={openReader}
+                onRemove={handleRemoveBook}
+              />
+            )}
           </div>
         ) : (
           <article key="context" className="ra-motion-page-enter mx-auto flex min-h-full max-w-screen-2xl flex-col justify-center px-6 py-16 sm:py-20 lg:py-24">

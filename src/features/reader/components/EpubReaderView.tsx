@@ -48,6 +48,7 @@ type EpubReaderViewProps = {
 };
 
 const SELECTION_CLICK_SUPPRESSION_MS = 180;
+const SHELL_DOUBLE_TAP_GUARD_MS = 260;
 const SHELL_TAP_MAX_DURATION_MS = 220;
 const SHELL_TAP_MAX_MOVE_PX = 6;
 
@@ -127,6 +128,7 @@ export function EpubReaderView({
   const clearNativeSelectionRef = useRef<(() => void) | null>(null);
   const suppressContentClickRef = useRef(false);
   const suppressContentClickTimeoutRef = useRef<number | null>(null);
+  const pendingShellOpenTimeoutRef = useRef<number | null>(null);
   const shellTapIntentRef = useRef<ShellTapIntent | null>(null);
   const shouldOpenShellOnClickRef = useRef(false);
 
@@ -178,7 +180,16 @@ export function EpubReaderView({
     }
   }, []);
 
+  const cancelPendingShellOpen = useCallback(() => {
+    if (pendingShellOpenTimeoutRef.current != null) {
+      window.clearTimeout(pendingShellOpenTimeoutRef.current);
+      pendingShellOpenTimeoutRef.current = null;
+    }
+    shouldOpenShellOnClickRef.current = false;
+  }, []);
+
   const clearSelection = useCallback(() => {
+    cancelPendingShellOpen();
     clearNativeSelection();
     selectionRef.current = null;
     setSelectionOverlayAppearance(null);
@@ -188,11 +199,11 @@ export function EpubReaderView({
       suppressContentClickTimeoutRef.current = null;
     }
     setSelection(null);
-  }, [clearNativeSelection]);
+  }, [cancelPendingShellOpen, clearNativeSelection]);
 
   const armContentClickSuppression = useCallback(() => {
     suppressContentClickRef.current = true;
-    shouldOpenShellOnClickRef.current = false;
+    cancelPendingShellOpen();
     if (suppressContentClickTimeoutRef.current != null) {
       window.clearTimeout(suppressContentClickTimeoutRef.current);
     }
@@ -200,7 +211,7 @@ export function EpubReaderView({
       suppressContentClickRef.current = false;
       suppressContentClickTimeoutRef.current = null;
     }, SELECTION_CLICK_SUPPRESSION_MS);
-  }, []);
+  }, [cancelPendingShellOpen]);
 
   const setSelectionAppearance = useCallback((appearance: ReaderSelectionAppearance) => {
     setSelection((currentSelection) => {
@@ -300,11 +311,12 @@ export function EpubReaderView({
 
   useEffect(() => {
     return () => {
+      cancelPendingShellOpen();
       if (suppressContentClickTimeoutRef.current != null) {
         window.clearTimeout(suppressContentClickTimeoutRef.current);
       }
     };
-  }, []);
+  }, [cancelPendingShellOpen]);
 
   useEffect(() => {
     if (!initialEpubUrl) return;
@@ -426,8 +438,8 @@ export function EpubReaderView({
         rendition.hooks.content.register((contents) => {
           contents.document.addEventListener("keydown", handleReaderKeyDown);
           contents.document.addEventListener("pointerdown", (event) => {
+            cancelPendingShellOpen();
             const hadSelection = !!selectionRef.current;
-            shouldOpenShellOnClickRef.current = false;
             shellTapIntentRef.current = {
               eligible: event.isPrimary && event.button === 0,
               moved: false,
@@ -463,13 +475,13 @@ export function EpubReaderView({
 
           contents.document.addEventListener("pointercancel", () => {
             shellTapIntentRef.current = null;
-            shouldOpenShellOnClickRef.current = false;
+            cancelPendingShellOpen();
           }, true);
 
           contents.document.addEventListener("pointerup", () => {
             const shellTapIntent = shellTapIntentRef.current;
             if (!shellTapIntent?.eligible) {
-              shouldOpenShellOnClickRef.current = false;
+              cancelPendingShellOpen();
               shellTapIntentRef.current = null;
               return;
             }
@@ -485,16 +497,15 @@ export function EpubReaderView({
             shellTapIntentRef.current = null;
           }, true);
 
-          contents.document.addEventListener("click", () => {
+          contents.document.addEventListener("click", (event) => {
             if (suppressContentClickRef.current) {
               suppressContentClickRef.current = false;
-              shouldOpenShellOnClickRef.current = false;
+              cancelPendingShellOpen();
               return;
             }
 
             if (selectionRef.current) {
               clearSelection();
-              shouldOpenShellOnClickRef.current = false;
               return;
             }
 
@@ -502,8 +513,17 @@ export function EpubReaderView({
               return;
             }
 
+            if (event.detail > 1) {
+              cancelPendingShellOpen();
+              return;
+            }
+
+            pendingShellOpenTimeoutRef.current = window.setTimeout(() => {
+              pendingShellOpenTimeoutRef.current = null;
+              if (selectionRef.current) return;
+              onContentClickRef.current?.();
+            }, SHELL_DOUBLE_TAP_GUARD_MS);
             shouldOpenShellOnClickRef.current = false;
-            onContentClickRef.current?.();
           }, true);
 
           return contents.addStylesheetCss(

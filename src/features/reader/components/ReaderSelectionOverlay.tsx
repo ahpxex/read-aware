@@ -1,19 +1,23 @@
-import type { SelectionOverlayRect } from "../lib/selection-overlay";
-
-export type ReaderSelectionState = {
-  anchorRect: SelectionOverlayRect | null;
-  cfiRange: string | null;
-  chapterHref: string | null;
-  rects: SelectionOverlayRect[];
-  text: string;
-};
+import type { ReaderSelectionAppearance, ReaderSelectionState } from "../lib/selection-overlay";
 
 type ReaderSelectionOverlayProps = {
+  appearance: Extract<ReaderSelectionAppearance, "highlight" | "underline"> | null;
   selection: ReaderSelectionState | null;
 };
 
-export function ReaderSelectionOverlay({ selection }: ReaderSelectionOverlayProps) {
+export function ReaderSelectionOverlay({
+  appearance,
+  selection,
+}: ReaderSelectionOverlayProps) {
   if (!selection?.rects.length) return null;
+  if (!appearance) return null;
+
+  const isUnderline = appearance === "underline";
+  const fillColor =
+    appearance === "highlight"
+      ? "var(--ra-reader-selection-highlight-color)"
+      : "var(--ra-reader-selection-color)";
+  const accentColor = "var(--ra-reader-selection-accent-color)";
 
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
@@ -26,7 +30,8 @@ export function ReaderSelectionOverlay({ selection }: ReaderSelectionOverlayProp
             top: `${rect.top}px`,
             width: `${rect.width}px`,
             height: `${rect.height}px`,
-            backgroundColor: "var(--ra-reader-selection-color)",
+            backgroundColor: isUnderline ? "transparent" : fillColor,
+            borderBottom: isUnderline ? `1.5px solid ${accentColor}` : undefined,
           }}
         />
       ))}

@@ -7,6 +7,8 @@ import { formatReaderError } from "../lib/format-reader-error";
 import {
   getNormalizedSelectionText,
   getSelectionOverlayRects,
+  type ReaderSelectionAppearance,
+  type ReaderSelectionState,
   type SelectionOverlayRect,
 } from "../lib/selection-overlay";
 import {
@@ -28,10 +30,8 @@ import type {
   SpineEntry,
   EpubContents,
 } from "../lib/epub-types";
-import {
-  ReaderSelectionOverlay,
-  type ReaderSelectionState,
-} from "./ReaderSelectionOverlay";
+import { ReaderSelectionOverlay } from "./ReaderSelectionOverlay";
+import { ReaderSelectionMenu } from "./ReaderSelectionMenu";
 
 type EpubReaderViewProps = {
   selectedBook?: Book | null;
@@ -48,6 +48,35 @@ type EpubReaderViewProps = {
 };
 
 const SELECTION_CLICK_SUPPRESSION_MS = 180;
+const SHELL_TAP_MAX_DURATION_MS = 220;
+const SHELL_TAP_MAX_MOVE_PX = 6;
+
+type ShellTapIntent = {
+  eligible: boolean;
+  moved: boolean;
+  startedAt: number;
+  startedWithSelection: boolean;
+  startX: number;
+  startY: number;
+};
+
+async function copyText(text: string) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  textarea.style.pointerEvents = "none";
+  document.body.append(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  textarea.remove();
+}
 
 function clampRectToViewport(
   rect: SelectionOverlayRect,
@@ -95,9 +124,11 @@ export function EpubReaderView({
   const tocEntriesRef = useRef<TocEntry[]>([]);
   const currentChapterHrefRef = useRef<string | null>(null);
   const selectionRef = useRef<ReaderSelectionState | null>(null);
-  const isPointerSelectingRef = useRef(false);
+  const clearNativeSelectionRef = useRef<(() => void) | null>(null);
   const suppressContentClickRef = useRef(false);
   const suppressContentClickTimeoutRef = useRef<number | null>(null);
+  const shellTapIntentRef = useRef<ShellTapIntent | null>(null);
+  const shouldOpenShellOnClickRef = useRef(false);
 
   const onContentClickRef = useRef(onContentClick);
   useEffect(() => {
@@ -133,20 +164,35 @@ export function EpubReaderView({
   const [, setCurrentPage] = useLocalAtom(0);
   const [, setTotalPages] = useLocalAtom(0);
   const [selection, setSelection] = useState<ReaderSelectionState | null>(null);
+  const [selectionOverlayAppearance, setSelectionOverlayAppearance] = useState<
+    Extract<ReaderSelectionAppearance, "highlight" | "underline"> | null
+  >(null);
+
+  const clearNativeSelection = useCallback(() => {
+    try {
+      clearNativeSelectionRef.current?.();
+    } catch {
+      // Selection cleanup can race with iframe teardown during chapter changes.
+    } finally {
+      clearNativeSelectionRef.current = null;
+    }
+  }, []);
 
   const clearSelection = useCallback(() => {
+    clearNativeSelection();
     selectionRef.current = null;
-    isPointerSelectingRef.current = false;
+    setSelectionOverlayAppearance(null);
     suppressContentClickRef.current = false;
     if (suppressContentClickTimeoutRef.current != null) {
       window.clearTimeout(suppressContentClickTimeoutRef.current);
       suppressContentClickTimeoutRef.current = null;
     }
     setSelection(null);
-  }, []);
+  }, [clearNativeSelection]);
 
   const armContentClickSuppression = useCallback(() => {
     suppressContentClickRef.current = true;
+    shouldOpenShellOnClickRef.current = false;
     if (suppressContentClickTimeoutRef.current != null) {
       window.clearTimeout(suppressContentClickTimeoutRef.current);
     }
@@ -155,6 +201,23 @@ export function EpubReaderView({
       suppressContentClickTimeoutRef.current = null;
     }, SELECTION_CLICK_SUPPRESSION_MS);
   }, []);
+
+  const setSelectionAppearance = useCallback((appearance: ReaderSelectionAppearance) => {
+    setSelection((currentSelection) => {
+      if (!currentSelection) return null;
+      const nextSelection = { ...currentSelection, appearance };
+      const nextOverlayAppearance =
+        appearance === "highlight" || appearance === "underline"
+          ? appearance
+          : null;
+      setSelectionOverlayAppearance(nextOverlayAppearance);
+      if (nextOverlayAppearance) {
+        clearNativeSelection();
+      }
+      selectionRef.current = nextSelection;
+      return nextSelection;
+    });
+  }, [clearNativeSelection]);
 
   const captureSelection = useCallback((
     contents: EpubContents,
@@ -181,6 +244,10 @@ export function EpubReaderView({
       return false;
     }
 
+    clearNativeSelectionRef.current = () => {
+      contents.window.getSelection()?.removeAllRanges();
+    };
+
     const viewportRect = readerRoot.getBoundingClientRect();
     const frameRect = frameElement.getBoundingClientRect();
     const rects = getSelectionOverlayRects(range)
@@ -194,12 +261,14 @@ export function EpubReaderView({
 
     const nextSelection: ReaderSelectionState = {
       anchorRect: rects[rects.length - 1] ?? null,
+      appearance: "selection",
       cfiRange: cfiRange ?? contents.cfiFromRange(range),
       chapterHref: currentChapterHrefRef.current,
       rects,
       text,
     };
 
+    setSelectionOverlayAppearance(null);
     selectionRef.current = nextSelection;
     setSelection(nextSelection);
     if (suppressContentClick) {
@@ -356,35 +425,84 @@ export function EpubReaderView({
 
         rendition.hooks.content.register((contents) => {
           contents.document.addEventListener("keydown", handleReaderKeyDown);
-          contents.document.addEventListener("selectionchange", () => {
-            if (!isPointerSelectingRef.current) return;
-            captureSelection(contents, null);
-          });
-          contents.document.addEventListener("pointerdown", () => {
-            suppressContentClickRef.current = false;
-            if (selectionRef.current) {
+          contents.document.addEventListener("pointerdown", (event) => {
+            const hadSelection = !!selectionRef.current;
+            shouldOpenShellOnClickRef.current = false;
+            shellTapIntentRef.current = {
+              eligible: event.isPrimary && event.button === 0,
+              moved: false,
+              startedAt: performance.now(),
+              startedWithSelection: hadSelection,
+              startX: event.clientX,
+              startY: event.clientY,
+            };
+
+            if (hadSelection) {
               clearSelection();
+              armContentClickSuppression();
+              return;
             }
-            isPointerSelectingRef.current = true;
+
+            suppressContentClickRef.current = false;
           }, true);
-          contents.document.addEventListener("pointerup", () => {
-            isPointerSelectingRef.current = false;
+
+          contents.document.addEventListener("pointermove", (event) => {
+            const shellTapIntent = shellTapIntentRef.current;
+            if (!shellTapIntent?.eligible || shellTapIntent.moved) return;
+
+            const distanceX = Math.abs(event.clientX - shellTapIntent.startX);
+            const distanceY = Math.abs(event.clientY - shellTapIntent.startY);
+            if (
+              distanceX > SHELL_TAP_MAX_MOVE_PX ||
+              distanceY > SHELL_TAP_MAX_MOVE_PX
+            ) {
+              shellTapIntent.moved = true;
+              shellTapIntent.eligible = false;
+            }
           }, true);
+
           contents.document.addEventListener("pointercancel", () => {
-            isPointerSelectingRef.current = false;
+            shellTapIntentRef.current = null;
+            shouldOpenShellOnClickRef.current = false;
+          }, true);
+
+          contents.document.addEventListener("pointerup", () => {
+            const shellTapIntent = shellTapIntentRef.current;
+            if (!shellTapIntent?.eligible) {
+              shouldOpenShellOnClickRef.current = false;
+              shellTapIntentRef.current = null;
+              return;
+            }
+
+            const wasQuickTap =
+              performance.now() - shellTapIntent.startedAt <=
+              SHELL_TAP_MAX_DURATION_MS;
+
+            shouldOpenShellOnClickRef.current =
+              wasQuickTap &&
+              !shellTapIntent.startedWithSelection &&
+              !selectionRef.current;
+            shellTapIntentRef.current = null;
           }, true);
 
           contents.document.addEventListener("click", () => {
             if (suppressContentClickRef.current) {
               suppressContentClickRef.current = false;
+              shouldOpenShellOnClickRef.current = false;
               return;
             }
 
             if (selectionRef.current) {
               clearSelection();
+              shouldOpenShellOnClickRef.current = false;
               return;
             }
 
+            if (!shouldOpenShellOnClickRef.current) {
+              return;
+            }
+
+            shouldOpenShellOnClickRef.current = false;
             onContentClickRef.current?.();
           }, true);
 
@@ -409,6 +527,17 @@ export function EpubReaderView({
 
               body > * {
                 max-width: 100% !important;
+              }
+
+              ::selection {
+                background: rgba(168, 162, 158, 0.34) !important;
+                color: #292524 !important;
+                -webkit-text-fill-color: #292524;
+              }
+
+              ::-moz-selection {
+                background: rgba(168, 162, 158, 0.34) !important;
+                color: #292524 !important;
               }
 
               p,
@@ -465,12 +594,6 @@ export function EpubReaderView({
           const didCaptureSelection = captureSelection(contents, cfiRange, {
             suppressContentClick: true,
           });
-          isPointerSelectingRef.current = false;
-          try {
-            contents.window.getSelection()?.removeAllRanges();
-          } catch {
-            // Some webviews can reject selection mutation during teardown.
-          }
 
           if (!didCaptureSelection) {
             clearSelection();
@@ -554,6 +677,17 @@ export function EpubReaderView({
 
   function openFilePicker() {
     fileInputRef.current?.click();
+  }
+
+  async function copySelectionToClipboard() {
+    const text = selectionRef.current?.text;
+    if (!text) return;
+
+    try {
+      await copyText(text);
+    } catch {
+      // Clipboard access can be unavailable outside a trusted user gesture.
+    }
   }
 
   async function goToChapter(href: string) {
@@ -652,7 +786,15 @@ export function EpubReaderView({
           (!loadedEpub || isLoading || !!error) && "opacity-0",
         )}
       />
-      <ReaderSelectionOverlay selection={selection} />
+      <ReaderSelectionOverlay
+        appearance={selectionOverlayAppearance}
+        selection={selection}
+      />
+      <ReaderSelectionMenu
+        selection={selection}
+        onCopy={copySelectionToClipboard}
+        onSetAppearance={setSelectionAppearance}
+      />
 
       {!loadedEpub && !isLoading && !error && (
         <button
@@ -706,7 +848,7 @@ export function EpubReaderView({
           <Body className="text-sm text-stone-600">
             Press `[` or `]` to move between chapters, or pick one below.
           </Body>
-          <ScrollArea className="min-h-0 flex-1">
+          <ScrollArea className="h-full min-h-0 flex-1">
             <div className="flex flex-col gap-1 pr-2">
               {tocEntries.length === 0 ? (
                 <Body className="text-sm text-stone-600">

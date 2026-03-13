@@ -5,6 +5,21 @@ export type SelectionOverlayRect = {
   height: number;
 };
 
+export type ReaderSelectionAppearance =
+  | "selection"
+  | "highlight"
+  | "underline"
+  | "note";
+
+export type ReaderSelectionState = {
+  anchorRect: SelectionOverlayRect | null;
+  appearance: ReaderSelectionAppearance;
+  cfiRange: string | null;
+  chapterHref: string | null;
+  rects: SelectionOverlayRect[];
+  text: string;
+};
+
 const MIN_RECT_SIDE = 1;
 
 export function getNormalizedSelectionText(selection: Selection | null) {

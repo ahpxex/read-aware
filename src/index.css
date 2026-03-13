@@ -33,7 +33,9 @@
   --ra-ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
   --ra-scrollbar-size: 3px;
   --ra-scrollbar-color: rgb(28 25 23 / 0.42);
-  --ra-reader-selection-color: rgb(198 168 116 / 0.42);
+  --ra-reader-selection-color: rgb(168 162 158 / 0.34);
+  --ra-reader-selection-highlight-color: rgb(168 162 158 / 0.44);
+  --ra-reader-selection-accent-color: rgb(120 113 108 / 0.82);
 }
 
 *,

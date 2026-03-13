@@ -48,7 +48,6 @@ type EpubReaderViewProps = {
 };
 
 const SELECTION_CLICK_SUPPRESSION_MS = 180;
-const SHELL_DOUBLE_TAP_GUARD_MS = 260;
 const SHELL_TAP_MAX_DURATION_MS = 220;
 const SHELL_TAP_MAX_MOVE_PX = 6;
 
@@ -106,6 +105,14 @@ function clampRectToViewport(
   };
 }
 
+function isShellOpenTarget(target: EventTarget | null, ownerDocument: Document) {
+  if (target === ownerDocument.body || target === ownerDocument.documentElement) {
+    return true;
+  }
+
+  return false;
+}
+
 export function EpubReaderView({
   selectedBook = null,
   initialEpubUrl,
@@ -128,7 +135,6 @@ export function EpubReaderView({
   const clearNativeSelectionRef = useRef<(() => void) | null>(null);
   const suppressContentClickRef = useRef(false);
   const suppressContentClickTimeoutRef = useRef<number | null>(null);
-  const pendingShellOpenTimeoutRef = useRef<number | null>(null);
   const shellTapIntentRef = useRef<ShellTapIntent | null>(null);
   const shouldOpenShellOnClickRef = useRef(false);
 
@@ -181,10 +187,6 @@ export function EpubReaderView({
   }, []);
 
   const cancelPendingShellOpen = useCallback(() => {
-    if (pendingShellOpenTimeoutRef.current != null) {
-      window.clearTimeout(pendingShellOpenTimeoutRef.current);
-      pendingShellOpenTimeoutRef.current = null;
-    }
     shouldOpenShellOnClickRef.current = false;
   }, []);
 
@@ -513,17 +515,13 @@ export function EpubReaderView({
               return;
             }
 
-            if (event.detail > 1) {
+            if (!isShellOpenTarget(event.target, contents.document)) {
               cancelPendingShellOpen();
               return;
             }
 
-            pendingShellOpenTimeoutRef.current = window.setTimeout(() => {
-              pendingShellOpenTimeoutRef.current = null;
-              if (selectionRef.current) return;
-              onContentClickRef.current?.();
-            }, SHELL_DOUBLE_TAP_GUARD_MS);
             shouldOpenShellOnClickRef.current = false;
+            onContentClickRef.current?.();
           }, true);
 
           return contents.addStylesheetCss(

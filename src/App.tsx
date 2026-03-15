@@ -90,6 +90,12 @@ function createProgressPatch(
 }
 
 function App() {
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      void import("react-grab");
+    }
+  }, []);
+
   const [activeTopNav, setActiveTopNav] = useAtom(activeTopNavAtom);
   const [settingsOpen, setSettingsOpen] = useAtom(settingsOpenAtom);
   const [selectedBook, setSelectedBook] = useState<LibraryBook | null>(null);

@@ -10,6 +10,10 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+.nitro
+.output
+.tanstack
+storybook-static
 .venv
 __pycache__/
 *.py[cod]

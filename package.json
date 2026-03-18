@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build && tsc --noEmit",
-    "preview": "vite preview",
+    "build": "NITRO_PRESET=cloudflare_pages vite build && tsc --noEmit",
+    "build:node": "vite build && tsc --noEmit",
+    "preview": "bun run build && bunx wrangler --cwd dist pages dev",
     "start": "node .output/server/index.mjs",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"

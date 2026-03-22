@@ -166,3 +166,11 @@ src/
 - All interactive components must be keyboard-navigable with proper ARIA
 - Stories co-located next to components: `Component.stories.tsx`
 - Storybook hierarchy: `Design System/Components/...`, `Design System/Guidelines/...`, `Interface/...`
+
+### Responsibility Boundaries
+
+- Every file must have one clear responsibility. Do not let rendering, state orchestration, DOM measurement, async data flows, and pure data transforms accumulate in the same file.
+- Components should focus on UI structure and prop composition. If a component starts owning non-trivial effects, async workflows, or cross-feature coordination, extract that logic into a hook.
+- Hooks should own stateful client logic, browser APIs, subscriptions, measurements, and async orchestration. If the logic does not need React, it should not live in a hook.
+- `lib/` and `utils/` modules should stay pure and reusable. Put formatting, derived data, mappers, and domain helpers there instead of inside components.
+- Before adding new code to an existing file, first decide whether it belongs in a component, a hook, or a util. Prefer extraction over growing a mixed-responsibility file.

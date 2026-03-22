@@ -28,7 +28,7 @@ export interface LibraryBook {
   fileName: string;
   mimeType: string;
   fileSize: number;
-  coverUrl?: string;
+  coverUrl?: string | null;
   createdAt: string;
   updatedAt: string;
   lastOpenedAt: string | null;

@@ -5,6 +5,7 @@ import type {
   ReadingStatus,
   StoredBookFile,
 } from "./library-types";
+import { extractBookCover } from "./library-cover";
 
 const DB_NAME = "read-aware-library";
 const DB_VERSION = 1;
@@ -102,7 +103,7 @@ function getReadingStatus(progressPercent: number): ReadingStatus {
   return "unread";
 }
 
-function createLibraryBook(file: File): LibraryBook {
+function createLibraryBook(file: File, format: BookFormat, coverUrl: string | null): LibraryBook {
   const now = new Date().toISOString();
   const { title, author } = parseFileName(file.name);
 
@@ -110,10 +111,11 @@ function createLibraryBook(file: File): LibraryBook {
     id: crypto.randomUUID(),
     title,
     author,
-    format: detectBookFormat(file),
+    format,
     fileName: file.name,
     mimeType: file.type || "application/octet-stream",
     fileSize: file.size,
+    coverUrl,
     createdAt: now,
     updatedAt: now,
     lastOpenedAt: null,
@@ -131,16 +133,45 @@ function sortBooks(books: LibraryBook[]) {
   });
 }
 
+async function saveBookRecord(book: LibraryBook) {
+  const db = await openLibraryDb();
+  const transaction = db.transaction(BOOKS_STORE, "readwrite");
+  transaction.objectStore(BOOKS_STORE).put(book);
+  await waitForTransaction(transaction);
+}
+
+async function hydrateMissingBookCovers(books: LibraryBook[]) {
+  const booksMissingCovers = books.filter((book) => book.coverUrl === undefined);
+  if (booksMissingCovers.length === 0) return books;
+
+  const repairedBooks = await Promise.all(booksMissingCovers.map(async (book) => {
+    const file = await getStoredBookBlob(book.id);
+    const coverUrl = file ? await extractBookCover(file, book.format) : null;
+    const nextBook: LibraryBook = {
+      ...book,
+      coverUrl,
+    };
+
+    await saveBookRecord(nextBook);
+    return nextBook;
+  }));
+
+  const repairedBookMap = new Map(repairedBooks.map((book) => [book.id, book]));
+  return books.map((book) => repairedBookMap.get(book.id) ?? book);
+}
+
 export async function listLibraryBooks() {
   const db = await openLibraryDb();
   const transaction = db.transaction(BOOKS_STORE, "readonly");
   const books = await requestToPromise(transaction.objectStore(BOOKS_STORE).getAll() as IDBRequest<LibraryBook[]>);
   await waitForTransaction(transaction);
-  return sortBooks(books);
+  return sortBooks(await hydrateMissingBookCovers(books));
 }
 
 export async function importBookFile(file: File) {
-  const book = createLibraryBook(file);
+  const format = detectBookFormat(file);
+  const coverUrl = await extractBookCover(file, format);
+  const book = createLibraryBook(file, format, coverUrl);
   const db = await openLibraryDb();
   const transaction = db.transaction([BOOKS_STORE, FILES_STORE], "readwrite");
   transaction.objectStore(BOOKS_STORE).put(book);

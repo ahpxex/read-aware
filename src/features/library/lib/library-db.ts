@@ -1,5 +1,4 @@
 import type {
-  BookFormat,
   BookProgress,
   LibraryBook,
   ReadingStatus,
@@ -79,17 +78,13 @@ function parseFileName(fileName: string) {
   return { title, author };
 }
 
-function detectBookFormat(file: File): BookFormat {
+function detectBookFormat(file: File): "epub" {
   const lowerName = file.name.toLowerCase();
   if (lowerName.endsWith(".epub") || file.type === "application/epub+zip") {
     return "epub";
   }
 
-  if (lowerName.endsWith(".pdf") || file.type === "application/pdf") {
-    return "pdf";
-  }
-
-  throw new Error(`Unsupported file type: ${file.name}. Import EPUB or PDF files.`);
+  throw new Error(`Unsupported file type: ${file.name}. Only EPUB files are supported.`);
 }
 
 function clampProgressPercent(value: number) {
@@ -103,7 +98,7 @@ function getReadingStatus(progressPercent: number): ReadingStatus {
   return "unread";
 }
 
-function createLibraryBook(file: File, format: BookFormat, coverUrl: string | null): LibraryBook {
+function createLibraryBook(file: File, coverUrl: string | null): LibraryBook {
   const now = new Date().toISOString();
   const { title, author } = parseFileName(file.name);
 
@@ -111,9 +106,9 @@ function createLibraryBook(file: File, format: BookFormat, coverUrl: string | nu
     id: crypto.randomUUID(),
     title,
     author,
-    format,
+    format: "epub",
     fileName: file.name,
-    mimeType: file.type || "application/octet-stream",
+    mimeType: file.type || "application/epub+zip",
     fileSize: file.size,
     coverUrl,
     createdAt: now,
@@ -146,7 +141,7 @@ async function hydrateMissingBookCovers(books: LibraryBook[]) {
 
   const repairedBooks = await Promise.all(booksMissingCovers.map(async (book) => {
     const file = await getStoredBookBlob(book.id);
-    const coverUrl = file ? await extractBookCover(file, book.format) : null;
+    const coverUrl = file ? await extractBookCover(file) : null;
     const nextBook: LibraryBook = {
       ...book,
       coverUrl,
@@ -169,9 +164,9 @@ export async function listLibraryBooks() {
 }
 
 export async function importBookFile(file: File) {
-  const format = detectBookFormat(file);
-  const coverUrl = await extractBookCover(file, format);
-  const book = createLibraryBook(file, format, coverUrl);
+  detectBookFormat(file);
+  const coverUrl = await extractBookCover(file);
+  const book = createLibraryBook(file, coverUrl);
   const db = await openLibraryDb();
   const transaction = db.transaction([BOOKS_STORE, FILES_STORE], "readwrite");
   transaction.objectStore(BOOKS_STORE).put(book);

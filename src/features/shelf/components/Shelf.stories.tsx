@@ -29,9 +29,9 @@ const currentlyReading: LibraryBook[] = [
     id: "2",
     title: "Thinking, Fast and Slow",
     author: "Daniel Kahneman",
-    format: "pdf",
-    fileName: "thinking-fast-and-slow.pdf",
-    mimeType: "application/pdf",
+    format: "epub",
+    fileName: "thinking-fast-and-slow.epub",
+    mimeType: "application/epub+zip",
     fileSize: 2048,
     createdAt: "2026-03-13T00:00:00.000Z",
     updatedAt: "2026-03-13T00:00:00.000Z",
@@ -39,26 +39,28 @@ const currentlyReading: LibraryBook[] = [
     progressPercent: 23,
     readingStatus: "reading",
     progress: {
-      format: "pdf",
-      currentPage: 23,
-      totalPages: 100,
+      format: "epub",
+      currentLocation: 23,
+      totalLocations: 100,
       progressPercent: 23,
+      cfi: "epubcfi(/6/2[chapter]!/4/2/6)",
+      href: "chapter-3.xhtml",
     },
   },
 ];
 
 const upNext: LibraryBook[] = [
   { id: "3", title: "Austerlitz", author: "W. G. Sebald", format: "epub", fileName: "austerlitz.epub", mimeType: "application/epub+zip", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: null, progressPercent: 0, readingStatus: "unread", progress: null },
-  { id: "4", title: "The Structure of Scientific Revolutions", author: "Thomas S. Kuhn", format: "pdf", fileName: "the-structure-of-scientific-revolutions.pdf", mimeType: "application/pdf", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: null, progressPercent: 0, readingStatus: "unread", progress: null },
+  { id: "4", title: "The Structure of Scientific Revolutions", author: "Thomas S. Kuhn", format: "epub", fileName: "the-structure-of-scientific-revolutions.epub", mimeType: "application/epub+zip", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: null, progressPercent: 0, readingStatus: "unread", progress: null },
   { id: "5", title: "Invisible Cities", author: "Italo Calvino", format: "epub", fileName: "invisible-cities.epub", mimeType: "application/epub+zip", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: null, progressPercent: 0, readingStatus: "unread", progress: null },
   { id: "6", title: "The Periodic Table", author: "Primo Levi", format: "epub", fileName: "the-periodic-table.epub", mimeType: "application/epub+zip", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: null, progressPercent: 0, readingStatus: "unread", progress: null },
-  { id: "7", title: "Pale Fire", author: "Vladimir Nabokov", format: "pdf", fileName: "pale-fire.pdf", mimeType: "application/pdf", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: null, progressPercent: 0, readingStatus: "unread", progress: null },
+  { id: "7", title: "Pale Fire", author: "Vladimir Nabokov", format: "epub", fileName: "pale-fire.epub", mimeType: "application/epub+zip", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: null, progressPercent: 0, readingStatus: "unread", progress: null },
 ];
 
 const finished: LibraryBook[] = [
   { id: "8", title: "Blindness", author: "Jose Saramago", format: "epub", fileName: "blindness.epub", mimeType: "application/epub+zip", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: "2026-03-13T00:00:00.000Z", progressPercent: 100, readingStatus: "finished", progress: { format: "epub", currentLocation: 100, totalLocations: 100, progressPercent: 100, cfi: "epubcfi(/6/2[end]!/4/2/6)", href: "epilogue.xhtml" } },
   { id: "9", title: "If on a Winter's Night a Traveler", author: "Italo Calvino", format: "epub", fileName: "if-on-a-winters-night-a-traveler.epub", mimeType: "application/epub+zip", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: "2026-03-13T00:00:00.000Z", progressPercent: 100, readingStatus: "finished", progress: { format: "epub", currentLocation: 100, totalLocations: 100, progressPercent: 100, cfi: "epubcfi(/6/2[end]!/4/2/6)", href: "end.xhtml" } },
-  { id: "10", title: "The Plague", author: "Albert Camus", format: "pdf", fileName: "the-plague.pdf", mimeType: "application/pdf", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: "2026-03-13T00:00:00.000Z", progressPercent: 100, readingStatus: "finished", progress: { format: "pdf", currentPage: 320, totalPages: 320, progressPercent: 100 } },
+  { id: "10", title: "The Plague", author: "Albert Camus", format: "epub", fileName: "the-plague.epub", mimeType: "application/epub+zip", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: "2026-03-13T00:00:00.000Z", progressPercent: 100, readingStatus: "finished", progress: { format: "epub", currentLocation: 320, totalLocations: 320, progressPercent: 100, cfi: "epubcfi(/6/2[end]!/4/2/6)", href: "end.xhtml" } },
 ];
 
 const meta: Meta<typeof Shelf> = {

@@ -3,10 +3,7 @@ import { X } from "@phosphor-icons/react";
 import { IconButton, ScrollArea, Tabs } from "../../components";
 import { cn } from "../../components/lib/cn";
 import { useLocalAtom } from "../../state/local";
-import { ReadingPanel } from "./components/ReadingPanel";
-import { DisplayPanel } from "./components/DisplayPanel";
-import { AIContextPanel } from "./components/AIContextPanel";
-import { AccountPanel } from "./components/AccountPanel";
+import { AIConfigPanel } from "./components/AIConfigPanel";
 
 type SettingsViewProps = {
   open: boolean;
@@ -121,10 +118,7 @@ export function SettingsView({ open, onClose }: SettingsViewProps) {
               variant="nav"
               className="w-full"
               items={[
-                { label: "Reading", content: <ReadingPanel /> },
-                { label: "Display", content: <DisplayPanel /> },
-                { label: "AI Context", content: <AIContextPanel /> },
-                { label: "Account", content: <AccountPanel /> },
+                { label: "AI Configuration", content: <AIConfigPanel /> },
               ]}
             />
           </div>

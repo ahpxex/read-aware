@@ -1,15 +1,12 @@
 import { Body, Button } from "../../../components";
-import type { LibraryBook, EpubProgress, PdfProgress } from "../../library/lib/library-types";
+import type { LibraryBook, EpubProgress } from "../../library/lib/library-types";
 import { EpubReaderView } from "./EpubReaderView";
-import { PdfReaderView } from "./PdfReaderView";
 import { ReaderShellOverlay } from "./ReaderShellOverlay";
 import type { TocEntry } from "../lib/epub-types";
 import type { LoadedEpub } from "../lib/epub-types";
-import type { LoadedPdf } from "../lib/pdf-types";
 
 type ReaderSource =
   | { format: "epub"; data: LoadedEpub }
-  | { format: "pdf"; data: LoadedPdf }
   | null;
 
 type ReaderWorkspaceProps = {
@@ -25,7 +22,6 @@ type ReaderWorkspaceProps = {
   } | null;
   overlayVisible: boolean;
   selectedEpubProgress: EpubProgress | null;
-  selectedPdfProgress: PdfProgress | null;
   readerProgress: number | undefined;
   currentPosition: string | undefined;
   onCloseReader: () => void;
@@ -34,7 +30,6 @@ type ReaderWorkspaceProps = {
   onHideShell: () => void;
   onReaderPageChange: (current: number, total: number) => void;
   onEpubProgressChange: (progress: EpubProgress) => void;
-  onPdfProgressChange: (progress: PdfProgress) => void;
   onTocChange: (entries: TocEntry[]) => void;
   onCurrentChapterChange: (href: string | null) => void;
   onChapterSelect: (href: string) => void;
@@ -50,7 +45,6 @@ export function ReaderWorkspace({
   chapterNavigationRequest,
   overlayVisible,
   selectedEpubProgress,
-  selectedPdfProgress,
   readerProgress,
   currentPosition,
   onCloseReader,
@@ -59,7 +53,6 @@ export function ReaderWorkspace({
   onHideShell,
   onReaderPageChange,
   onEpubProgressChange,
-  onPdfProgressChange,
   onTocChange,
   onCurrentChapterChange,
   onChapterSelect,
@@ -78,15 +71,6 @@ export function ReaderWorkspace({
           onCurrentChapterChange={onCurrentChapterChange}
           initialProgress={selectedEpubProgress}
           chapterNavigationRequest={chapterNavigationRequest}
-        />
-      ) : null}
-
-      {readerSource?.format === "pdf" ? (
-        <PdfReaderView
-          selectedBook={selectedBook}
-          initialPdf={readerSource.data}
-          initialProgress={selectedPdfProgress}
-          onProgressChange={onPdfProgressChange}
         />
       ) : null}
 
@@ -117,9 +101,9 @@ export function ReaderWorkspace({
         subtitle={selectedBook.author}
         progress={readerProgress}
         currentPosition={currentPosition}
-        tocEntries={selectedBook.format === "epub" ? readerToc : []}
-        currentChapterHref={selectedBook.format === "epub" ? currentChapterHref : null}
-        onChapterSelect={selectedBook.format === "epub" ? onChapterSelect : undefined}
+        tocEntries={readerToc}
+        currentChapterHref={currentChapterHref}
+        onChapterSelect={onChapterSelect}
       />
     </div>
   );

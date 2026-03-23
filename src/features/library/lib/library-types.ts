@@ -1,4 +1,4 @@
-export type BookFormat = "epub" | "pdf";
+export type BookFormat = "epub";
 
 export type ReadingStatus = "unread" | "reading" | "finished";
 
@@ -11,14 +11,7 @@ export type EpubProgress = {
   href: string | null;
 };
 
-export type PdfProgress = {
-  format: "pdf";
-  currentPage: number;
-  totalPages: number;
-  progressPercent: number;
-};
-
-export type BookProgress = EpubProgress | PdfProgress | null;
+export type BookProgress = EpubProgress | null;
 
 export interface LibraryBook {
   id: string;

@@ -32,6 +32,16 @@ import type {
 } from "../lib/epub-types";
 import { ReaderSelectionOverlay } from "./ReaderSelectionOverlay";
 import { ReaderSelectionMenu } from "./ReaderSelectionMenu";
+import { NoteEditor } from "../../annotations/components/NoteEditor";
+import { AIChatPanel } from "../../ai/components/AIChatPanel";
+import type { Note, AIChat } from "../../annotations/lib/annotation-types";
+import {
+  createHighlight,
+  createNote,
+  createAIChat,
+  addMessageToChat,
+  updateNote,
+} from "../../annotations/lib/annotation-db";
 
 type EpubReaderViewProps = {
   selectedBook?: LibraryBook | null;
@@ -186,6 +196,14 @@ export function EpubReaderView({
   const [selectionOverlayAppearance, setSelectionOverlayAppearance] = useState<
     Extract<ReaderSelectionAppearance, "highlight" | "underline"> | null
   >(null);
+
+  // Note editor state
+  const [noteEditorOpen, setNoteEditorOpen] = useState(false);
+  const [currentNote, setCurrentNote] = useState<Note | null>(null);
+
+  // AI Chat state
+  const [aiChatOpen, setAiChatOpen] = useState(false);
+  const [currentChat, setCurrentChat] = useState<AIChat | null>(null);
 
   const clearNativeSelection = useCallback(() => {
     try {
@@ -821,6 +839,95 @@ export function EpubReaderView({
     }
   }
 
+  // Handle highlight action
+  async function handleHighlight() {
+    if (!selection || !selectedBook) return;
+
+    try {
+      await createHighlight(
+        selectedBook.id,
+        selection.cfiRange,
+        selection.chapterHref,
+        selection.text,
+        "yellow"
+      );
+      clearSelection();
+    } catch (error) {
+      console.error("Failed to save highlight:", error);
+    }
+  }
+
+  // Handle add note action
+  function handleAddNote() {
+    if (!selection) return;
+    setCurrentNote(null);
+    setNoteEditorOpen(true);
+  }
+
+  // Handle save note
+  async function handleSaveNote(content: string) {
+    if (!selection || !selectedBook) return;
+
+    try {
+      if (currentNote) {
+        // Update existing note
+        await updateNote(currentNote.id, content);
+      } else {
+        // Create new note
+        await createNote(
+          selectedBook.id,
+          selection.cfiRange,
+          selection.chapterHref,
+          selection.text,
+          content
+        );
+      }
+      setNoteEditorOpen(false);
+      clearSelection();
+    } catch (error) {
+      console.error("Failed to save note:", error);
+    }
+  }
+
+  // Handle ask AI action
+  function handleAskAI() {
+    if (!selection || !selectedBook) return;
+    
+    // Create initial chat with the selected text as context
+    const initialMessage = `I'm reading this passage: "${selection.text}". What are your thoughts?`;
+    
+    void createAIChat(
+      selectedBook.id,
+      selection.cfiRange,
+      selection.chapterHref,
+      selection.text,
+      initialMessage
+    ).then((chat) => {
+      setCurrentChat(chat);
+      setAiChatOpen(true);
+      clearSelection();
+    });
+  }
+
+  // Handle sending message in AI chat
+  async function handleSendMessage(content: string) {
+    if (!currentChat) return;
+
+    try {
+      const updated = await addMessageToChat(currentChat.id, "user", content);
+      if (updated) {
+        setCurrentChat(updated);
+      }
+    } catch (error) {
+      console.error("Failed to send message:", error);
+    }
+  }
+
+  // Handle updating chat
+  function handleUpdateChat(chat: AIChat) {
+    setCurrentChat(chat);
+  }
+
   return (
     <section ref={readerRootRef} className="relative h-full w-full overflow-hidden bg-paper">
       <input
@@ -849,6 +956,9 @@ export function EpubReaderView({
         selection={selection}
         onCopy={copySelectionToClipboard}
         onSetAppearance={setSelectionAppearance}
+        onHighlight={handleHighlight}
+        onAddNote={handleAddNote}
+        onAskAI={handleAskAI}
       />
 
       {!loadedEpub && !isLoading && !error && (
@@ -934,6 +1044,33 @@ export function EpubReaderView({
           </ScrollArea>
         </div>
       </Sidebar>
+
+      {/* Note Editor Modal */}
+      <NoteEditor
+        isOpen={noteEditorOpen}
+        selectedText={selection?.text || ""}
+        initialContent={currentNote?.content || ""}
+        onSave={handleSaveNote}
+        onCancel={() => {
+          setNoteEditorOpen(false);
+          clearSelection();
+        }}
+        isEditing={!!currentNote}
+      />
+
+      {/* AI Chat Panel */}
+      <AIChatPanel
+        isOpen={aiChatOpen}
+        selectedText={currentChat?.text || ""}
+        bookTitle={selectedBook?.title || ""}
+        chat={currentChat}
+        onClose={() => {
+          setAiChatOpen(false);
+          setCurrentChat(null);
+        }}
+        onSendMessage={handleSendMessage}
+        onUpdateChat={handleUpdateChat}
+      />
     </section>
   );
 }

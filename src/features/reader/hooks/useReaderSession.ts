@@ -7,14 +7,11 @@ import type {
   BookProgress,
   EpubProgress,
   LibraryBook,
-  PdfProgress,
 } from "../../library/lib/library-types";
 import type { LoadedEpub, TocEntry } from "../lib/epub-types";
-import type { LoadedPdf } from "../lib/pdf-types";
 
 type ReaderSource =
   | { format: "epub"; data: LoadedEpub }
-  | { format: "pdf"; data: LoadedPdf }
   | null;
 
 type UseReaderSessionOptions = {
@@ -107,7 +104,7 @@ export function useReaderSession({
     readerLoadRequestIdRef.current = requestId;
 
     setSelectedBook(book);
-    setShellVisible(book.format === "pdf");
+    setShellVisible(false);
     resetReaderState();
     setIsReaderLoading(true);
 
@@ -121,21 +118,13 @@ export function useReaderSession({
         const data = await blob.arrayBuffer();
         if (readerLoadRequestIdRef.current !== requestId) return;
 
-        setReaderSource(book.format === "epub"
-          ? {
-              format: "epub",
-              data: {
-                fileName: book.fileName,
-                data,
-              },
-            }
-          : {
-              format: "pdf",
-              data: {
-                fileName: book.fileName,
-                data,
-              },
-            });
+        setReaderSource({
+          format: "epub",
+          data: {
+            fileName: book.fileName,
+            data,
+          },
+        });
         setIsReaderLoading(false);
 
         void markLibraryBookOpened(book.id)
@@ -187,16 +176,6 @@ export function useReaderSession({
     applyReaderProgress(selectedBook.id, progress);
   }, [applyReaderProgress, selectedBook, setReaderPage]);
 
-  const handlePdfProgressChange = useCallback((progress: PdfProgress) => {
-    setReaderPage({
-      current: progress.currentPage,
-      total: progress.totalPages,
-    });
-
-    if (!selectedBook) return;
-    applyReaderProgress(selectedBook.id, progress);
-  }, [applyReaderProgress, selectedBook, setReaderPage]);
-
   const handleChapterSelect = useCallback((href: string) => {
     setChapterNavigationRequest((previous) => ({
       href,
@@ -205,11 +184,8 @@ export function useReaderSession({
     setShellVisible(false);
   }, [setChapterNavigationRequest, setShellVisible]);
 
-  const overlayVisible = selectedBook?.format === "pdf" ? true : shellVisible;
+  const overlayVisible = shellVisible;
   const selectedEpubProgress = selectedBook?.progress?.format === "epub"
-    ? selectedBook.progress
-    : null;
-  const selectedPdfProgress = selectedBook?.progress?.format === "pdf"
     ? selectedBook.progress
     : null;
   const readerProgress = readerPage.total > 0
@@ -231,7 +207,6 @@ export function useReaderSession({
     chapterNavigationRequest,
     overlayVisible,
     selectedEpubProgress,
-    selectedPdfProgress,
     readerProgress,
     currentPosition,
     openReader,
@@ -240,7 +215,6 @@ export function useReaderSession({
     hideShell,
     handleReaderPageChange,
     handleEpubProgressChange,
-    handlePdfProgressChange,
     handleChapterSelect,
     setReaderToc,
     setCurrentChapterHref,

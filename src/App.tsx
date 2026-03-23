@@ -38,7 +38,6 @@ function App() {
         chapterNavigationRequest={reader.chapterNavigationRequest}
         overlayVisible={reader.overlayVisible}
         selectedEpubProgress={reader.selectedEpubProgress}
-        selectedPdfProgress={reader.selectedPdfProgress}
         readerProgress={reader.readerProgress}
         currentPosition={reader.currentPosition}
         onCloseReader={reader.closeReader}
@@ -47,7 +46,6 @@ function App() {
         onHideShell={reader.hideShell}
         onReaderPageChange={reader.handleReaderPageChange}
         onEpubProgressChange={reader.handleEpubProgressChange}
-        onPdfProgressChange={reader.handlePdfProgressChange}
         onTocChange={reader.setReaderToc}
         onCurrentChapterChange={reader.setCurrentChapterHref}
         onChapterSelect={reader.handleChapterSelect}
@@ -60,7 +58,7 @@ function App() {
       <input
         ref={library.importInputRef}
         type="file"
-        accept=".epub,.pdf,application/epub+zip,application/pdf"
+        accept=".epub,application/epub+zip"
         multiple
         className="hidden"
         onChange={(event) => {
@@ -82,6 +80,8 @@ function App() {
             isReady={library.libraryReady}
             error={library.libraryError}
             sections={library.shelfSections}
+            searchQuery={library.searchQuery}
+            onSearchChange={library.setSearchQuery}
             onImport={library.openImportPicker}
             onOpenBook={reader.openReader}
             onRemoveBook={library.handleRemoveBook}

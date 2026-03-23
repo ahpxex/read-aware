@@ -1,13 +1,17 @@
-import { Check, Copy, Highlighter, NotePencil, TextUnderline } from "@phosphor-icons/react";
+import { Check, Copy, Highlighter, NotePencil, ChatCircleDots } from "@phosphor-icons/react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { IconButton } from "../../../components";
 import { cn } from "../../../components/lib/cn";
+import { isAIConfigured } from "../../ai/lib/ai-service";
 import type { ReaderSelectionAppearance, ReaderSelectionState } from "../lib/selection-overlay";
 
 type ReaderSelectionMenuProps = {
   selection: ReaderSelectionState | null;
   onCopy: () => Promise<void> | void;
   onSetAppearance: (appearance: ReaderSelectionAppearance) => void;
+  onHighlight?: () => void;
+  onAddNote?: () => void;
+  onAskAI?: () => void;
 };
 
 type MenuPosition = {
@@ -22,12 +26,21 @@ export function ReaderSelectionMenu({
   selection,
   onCopy,
   onSetAppearance,
+  onHighlight,
+  onAddNote,
+  onAskAI,
 }: ReaderSelectionMenuProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const copyResetTimeoutRef = useRef<number | null>(null);
   const [position, setPosition] = useState<MenuPosition>({ left: EDGE_PADDING, top: EDGE_PADDING });
   const [copied, setCopied] = useState(false);
+  const [aiConfigured, setAiConfigured] = useState(false);
+
+  useEffect(() => {
+    // Check AI config on mount and when selection changes
+    setAiConfigured(isAIConfigured());
+  }, [selection?.cfiRange]);
 
   useEffect(() => {
     return () => {
@@ -89,6 +102,20 @@ export function ReaderSelectionMenu({
     }, 1200);
   }
 
+  function handleHighlight() {
+    onSetAppearance("highlight");
+    onHighlight?.();
+  }
+
+  function handleAddNote() {
+    onSetAppearance("note");
+    onAddNote?.();
+  }
+
+  function handleAskAI() {
+    onAskAI?.();
+  }
+
   const actionButtonClass =
     "rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-950 focus-visible:ring-stone-950";
 
@@ -122,7 +149,7 @@ export function ReaderSelectionMenu({
           label="Highlight selection"
           title="Highlight selection"
           size="sm"
-          onClick={() => onSetAppearance("highlight")}
+          onClick={handleHighlight}
           className={cn(
             actionButtonClass,
             selection.appearance === "highlight" && "bg-stone-100 text-stone-950",
@@ -130,27 +157,29 @@ export function ReaderSelectionMenu({
           icon={<Highlighter size={14} weight="regular" aria-hidden="true" />}
         />
         <IconButton
-          label="Underline selection"
-          title="Underline selection"
+          label="Add a note"
+          title="Add a note"
           size="sm"
-          onClick={() => onSetAppearance("underline")}
-          className={cn(
-            actionButtonClass,
-            selection.appearance === "underline" && "bg-stone-100 text-stone-950",
-          )}
-          icon={<TextUnderline size={14} weight="regular" aria-hidden="true" />}
-        />
-        <IconButton
-          label="Attach a note"
-          title="Attach a note"
-          size="sm"
-          onClick={() => onSetAppearance("note")}
+          onClick={handleAddNote}
           className={cn(
             actionButtonClass,
             selection.appearance === "note" && "bg-stone-100 text-stone-950",
           )}
           icon={<NotePencil size={14} weight="regular" aria-hidden="true" />}
         />
+        {aiConfigured && (
+          <IconButton
+            label="Ask AI about this"
+            title="Ask AI about this"
+            size="sm"
+            onClick={handleAskAI}
+            className={cn(
+              actionButtonClass,
+              "text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50",
+            )}
+            icon={<ChatCircleDots size={14} weight="regular" aria-hidden="true" />}
+          />
+        )}
       </div>
     </div>
   );

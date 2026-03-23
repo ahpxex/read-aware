@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAtom } from "jotai";
 import { ScrollArea } from "./components";
 import { ContextWorkspace } from "./features/context/components/ContextWorkspace";
@@ -8,9 +8,12 @@ import { AppHeader } from "./features/navigation/components/AppHeader";
 import { ReaderWorkspace } from "./features/reader/components/ReaderWorkspace";
 import { useReaderSession } from "./features/reader/hooks/useReaderSession";
 import { SettingsView } from "./features/settings/SettingsView";
+import { BookSearchModal } from "./features/library/components/BookSearchModal";
 import { activeTopNavAtom, settingsOpenAtom } from "./state/ui";
 
 function App() {
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+
   useEffect(() => {
     if (import.meta.env.DEV) {
       void import("react-grab");
@@ -25,6 +28,11 @@ function App() {
     replaceBookInState: library.replaceBookInState,
     reportError: library.reportError,
   });
+
+  // Handle book selection from search modal
+  const handleSelectBookFromSearch = (book: typeof library.books[0]) => {
+    reader.openReader(book);
+  };
 
   if (reader.selectedBook) {
     return (
@@ -71,6 +79,7 @@ function App() {
         isImporting={library.isImporting}
         onImport={library.openImportPicker}
         onOpenSettings={() => setSettingsOpen(true)}
+        onOpenSearch={() => setSearchModalOpen(true)}
         onTopNavChange={setActiveTopNav}
       />
 
@@ -80,8 +89,6 @@ function App() {
             isReady={library.libraryReady}
             error={library.libraryError}
             sections={library.shelfSections}
-            searchQuery={library.searchQuery}
-            onSearchChange={library.setSearchQuery}
             onImport={library.openImportPicker}
             onOpenBook={reader.openReader}
             onRemoveBook={library.handleRemoveBook}
@@ -92,6 +99,13 @@ function App() {
       </ScrollArea>
 
       <SettingsView open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+
+      <BookSearchModal
+        isOpen={searchModalOpen}
+        books={library.books}
+        onClose={() => setSearchModalOpen(false)}
+        onSelectBook={handleSelectBookFromSearch}
+      />
     </main>
   );
 }

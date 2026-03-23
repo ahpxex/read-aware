@@ -9,6 +9,7 @@ type AppHeaderProps = {
   isImporting: boolean;
   onImport: () => void;
   onOpenSettings: () => void;
+  onOpenSearch: () => void;
   onTopNavChange: (topNav: TopNav) => void;
 };
 
@@ -20,6 +21,7 @@ export function AppHeader({
   isImporting,
   onImport,
   onOpenSettings,
+  onOpenSearch,
   onTopNavChange,
 }: AppHeaderProps) {
   const { indicator, navListRef, navButtonRefs } = useTopNavIndicator(activeTopNav);
@@ -67,6 +69,7 @@ export function AppHeader({
               <IconButton
                 label="Search"
                 size="sm"
+                onClick={onOpenSearch}
                 className={headerIconButtonClass}
                 icon={<MagnifyingGlass size={14} weight="regular" aria-hidden="true" />}
               />

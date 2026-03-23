@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
 import { deriveShelfSections } from "../lib/derive-shelf-sections";
 import { formatLibraryError } from "../lib/format-library-error";
 import {
@@ -14,21 +14,9 @@ export function useLibraryController() {
   const [libraryReady, setLibraryReady] = useState(false);
   const [libraryError, setLibraryError] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const importInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Filter books based on search query
-  const filteredBooks = useMemo(() => {
-    if (!searchQuery.trim()) return books;
-    
-    const query = searchQuery.toLowerCase().trim();
-    return books.filter((book) => 
-      book.title.toLowerCase().includes(query) ||
-      book.author.toLowerCase().includes(query)
-    );
-  }, [books, searchQuery]);
-
-  const shelfSections = deriveShelfSections(filteredBooks);
+  const shelfSections = deriveShelfSections(books);
 
   const reportError = useCallback((error: unknown) => {
     setLibraryError(formatLibraryError(error));
@@ -105,13 +93,10 @@ export function useLibraryController() {
 
   return {
     books,
-    filteredBooks,
     shelfSections,
     libraryReady,
     libraryError,
     isImporting,
-    searchQuery,
-    setSearchQuery,
     importInputRef,
     openImportPicker,
     handleImportSelection,

@@ -33,20 +33,30 @@ import type {
 import { ReaderSelectionOverlay } from "./ReaderSelectionOverlay";
 import { ReaderSelectionMenu } from "./ReaderSelectionMenu";
 import { NoteEditor } from "../../annotations/components/NoteEditor";
+import { AnnotationsSidebar } from "../../annotations/components/AnnotationsSidebar";
 import { AIChatPanel } from "../../ai/components/AIChatPanel";
 import type { Note, AIChat } from "../../annotations/lib/annotation-types";
+import type { Highlight } from "../../annotations/lib/annotation-types";
 import {
   createHighlight,
   createNote,
   createAIChat,
   addMessageToChat,
   updateNote,
+  listHighlights,
 } from "../../annotations/lib/annotation-db";
+import { applyHighlights, applyHighlight } from "../lib/highlight-renderer";
+import { buildReaderContentCss } from "../../settings/lib/reader-css";
+import type { ReaderSettings } from "../../settings/lib/reader-settings";
+import { DEFAULT_READER_SETTINGS } from "../../settings/lib/reader-settings";
 
 type EpubReaderViewProps = {
   selectedBook?: LibraryBook | null;
   initialEpub?: LoadedEpub | null;
   initialEpubUrl?: string;
+  readerSettings?: ReaderSettings;
+  annotationsSidebarOpen?: boolean;
+  onAnnotationsSidebarClose?: () => void;
   onContentClick?: () => void;
   onContentScroll?: () => void;
   onPageChange?: (current: number, total: number) => void;
@@ -130,6 +140,9 @@ export function EpubReaderView({
   selectedBook = null,
   initialEpub = null,
   initialEpubUrl,
+  readerSettings = DEFAULT_READER_SETTINGS,
+  annotationsSidebarOpen = false,
+  onAnnotationsSidebarClose,
   onContentClick,
   onContentScroll,
   onPageChange,
@@ -153,6 +166,17 @@ export function EpubReaderView({
   const suppressContentClickTimeoutRef = useRef<number | null>(null);
   const shellTapIntentRef = useRef<ShellTapIntent | null>(null);
   const shouldOpenShellOnClickRef = useRef(false);
+  const activeContentsRef = useRef<Set<EpubContents>>(new Set());
+  const readerSettingsRef = useRef(readerSettings);
+  const highlightsRef = useRef<Highlight[]>([]);
+
+  useEffect(() => {
+    readerSettingsRef.current = readerSettings;
+    const css = buildReaderContentCss(readerSettings);
+    for (const contents of activeContentsRef.current) {
+      void contents.addStylesheetCss(css, "read-aware-reader-base");
+    }
+  }, [readerSettings]);
 
   const onContentClickRef = useRef(onContentClick);
   useEffect(() => {
@@ -204,6 +228,8 @@ export function EpubReaderView({
   // AI Chat state
   const [aiChatOpen, setAiChatOpen] = useState(false);
   const [currentChat, setCurrentChat] = useState<AIChat | null>(null);
+
+  // Annotations sidebar uses props: annotationsSidebarOpen, onAnnotationsSidebarClose
 
   const clearNativeSelection = useCallback(() => {
     try {
@@ -567,86 +593,9 @@ export function EpubReaderView({
             onContentClickRef.current?.();
           }, true);
 
+          activeContentsRef.current.add(contents);
           return contents.addStylesheetCss(
-            `
-              html {
-                background: #f5f1e8 !important;
-              }
-
-              body {
-                box-sizing: border-box !important;
-                width: min(100%, 56rem) !important;
-                max-width: 56rem !important;
-                margin: 0 auto !important;
-                padding: 2rem 1.5rem 4rem !important;
-                color: #292524 !important;
-                background: #f5f1e8 !important;
-                font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
-                font-size: 1.0625rem !important;
-                line-height: 1.9 !important;
-              }
-
-              body > * {
-                max-width: 100% !important;
-              }
-
-              ::selection {
-                background: rgba(168, 162, 158, 0.34) !important;
-                color: #292524 !important;
-                -webkit-text-fill-color: #292524;
-              }
-
-              ::-moz-selection {
-                background: rgba(168, 162, 158, 0.34) !important;
-                color: #292524 !important;
-              }
-
-              p,
-              ul,
-              ol,
-              blockquote {
-                margin: 0 0 1.25rem 0 !important;
-              }
-
-              h1 {
-                margin: 0 0 1.5rem 0 !important;
-                font-size: 2.25rem !important;
-                line-height: 1.05 !important;
-              }
-
-              h2 {
-                margin: 2.75rem 0 1.25rem 0 !important;
-                font-size: 1.75rem !important;
-                line-height: 1.12 !important;
-              }
-
-              h3 {
-                margin: 2.25rem 0 1rem 0 !important;
-                font-size: 1.375rem !important;
-                line-height: 1.18 !important;
-              }
-
-              img,
-              svg,
-              video,
-              canvas {
-                display: block !important;
-                width: auto !important;
-                max-width: min(100%, 32rem) !important;
-                height: auto !important;
-                margin: 1.75rem auto !important;
-              }
-
-              figure {
-                margin: 2rem auto !important;
-                max-width: min(100%, 32rem) !important;
-              }
-
-              blockquote {
-                padding-left: 1.25rem !important;
-                border-left: 1px solid rgba(28, 25, 23, 0.18) !important;
-              }
-            `,
+            buildReaderContentCss(readerSettingsRef.current),
             "read-aware-reader-base",
           );
         });
@@ -706,6 +655,17 @@ export function EpubReaderView({
           resolveInitialDisplayTarget(flattenedToc, spineEntries) ??
           spineEntries[0]?.href;
         await rendition.display(initialTarget);
+
+        // Load and apply existing highlights
+        if (selectedBook && rendition) {
+          try {
+            const highlights = await listHighlights(selectedBook.id);
+            highlightsRef.current = highlights;
+            applyHighlights(rendition, highlights);
+          } catch {
+            // Non-critical: highlights will be missing but reading continues
+          }
+        }
       } catch (nextError) {
         if (!cancelled) {
           setError(formatReaderError(nextError));
@@ -719,6 +679,8 @@ export function EpubReaderView({
 
     return () => {
       cancelled = true;
+      activeContentsRef.current.clear();
+      highlightsRef.current = [];
       if (rendition && onRelocated) {
         rendition.off("relocated", onRelocated);
       }
@@ -840,17 +802,21 @@ export function EpubReaderView({
   }
 
   // Handle highlight action
-  async function handleHighlight() {
+  async function handleHighlight(color: Highlight["color"] = "yellow") {
     if (!selection || !selectedBook) return;
 
     try {
-      await createHighlight(
+      const highlight = await createHighlight(
         selectedBook.id,
         selection.cfiRange,
         selection.chapterHref,
         selection.text,
-        "yellow"
+        color,
       );
+      highlightsRef.current = [...highlightsRef.current, highlight];
+      if (renditionRef.current) {
+        applyHighlight(renditionRef.current, highlight);
+      }
       clearSelection();
     } catch (error) {
       console.error("Failed to save highlight:", error);
@@ -929,7 +895,7 @@ export function EpubReaderView({
   }
 
   return (
-    <section ref={readerRootRef} className="relative h-full w-full overflow-hidden bg-paper">
+    <section ref={readerRootRef} className="relative h-full w-full overflow-hidden">
       <input
         ref={fileInputRef}
         type="file"
@@ -956,7 +922,7 @@ export function EpubReaderView({
         selection={selection}
         onCopy={copySelectionToClipboard}
         onSetAppearance={setSelectionAppearance}
-        onHighlight={handleHighlight}
+        onHighlight={(color) => { void handleHighlight(color); }}
         onAddNote={handleAddNote}
         onAskAI={handleAskAI}
       />
@@ -965,7 +931,7 @@ export function EpubReaderView({
         <button
           type="button"
           onClick={openFilePicker}
-          className="absolute inset-0 flex items-center justify-center bg-paper px-8 text-center transition-colors hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950"
+          className="absolute inset-0 flex items-center justify-center bg-inherit px-8 text-center transition-colors hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950"
         >
           <div className="flex flex-col items-center gap-4">
             <span className="inline-flex h-8 items-center justify-center border border-stone-300 px-4 font-sans text-sm font-medium text-stone-950">
@@ -981,7 +947,7 @@ export function EpubReaderView({
       )}
 
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-paper">
+        <div className="absolute inset-0 flex items-center justify-center bg-inherit">
           <Body className="text-sm text-stone-600">
             Opening {loadedEpub?.fileName ?? "EPUB"}...
           </Body>
@@ -989,7 +955,7 @@ export function EpubReaderView({
       )}
 
       {error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-paper px-8 text-center">
+        <div className="absolute inset-0 flex items-center justify-center bg-inherit px-8 text-center">
           <div className="flex max-w-md flex-col items-center gap-4">
             <Body className="text-sm text-red-800">{error}</Body>
             <Button variant="outline" size="sm" onClick={openFilePicker}>
@@ -1044,6 +1010,20 @@ export function EpubReaderView({
           </ScrollArea>
         </div>
       </Sidebar>
+
+      {/* Annotations Sidebar */}
+      <AnnotationsSidebar
+        bookId={selectedBook?.id ?? null}
+        open={annotationsSidebarOpen}
+        onClose={() => onAnnotationsSidebarClose?.()}
+        onNavigateTo={(cfiRange) => {
+          if (renditionRef.current) {
+            void renditionRef.current.display(cfiRange);
+            onAnnotationsSidebarClose?.();
+          }
+        }}
+        tocEntries={tocEntries}
+      />
 
       {/* Note Editor Modal */}
       <NoteEditor

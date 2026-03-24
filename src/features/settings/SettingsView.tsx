@@ -4,6 +4,7 @@ import { IconButton, ScrollArea, Tabs } from "../../components";
 import { cn } from "../../components/lib/cn";
 import { useLocalAtom } from "../../state/local";
 import { AIConfigPanel } from "./components/AIConfigPanel";
+import { ReaderDisplayPanel } from "./components/ReaderDisplayPanel";
 
 type SettingsViewProps = {
   open: boolean;
@@ -118,6 +119,7 @@ export function SettingsView({ open, onClose }: SettingsViewProps) {
               variant="nav"
               className="w-full"
               items={[
+                { label: "Reader Display", content: <ReaderDisplayPanel /> },
                 { label: "AI Configuration", content: <AIConfigPanel /> },
               ]}
             />

@@ -50,6 +50,16 @@ export type EpubRendition = {
       register: (handler: (contents: EpubContents, view: unknown) => void | Promise<unknown>) => void;
     };
   };
+  annotations: {
+    highlight: (
+      cfiRange: string,
+      data?: Record<string, unknown>,
+      cb?: (e: MouseEvent) => void,
+      className?: string,
+      styles?: Record<string, string>,
+    ) => void;
+    remove: (cfiRange: string, type: string) => void;
+  };
 };
 
 export type EpubBook = {

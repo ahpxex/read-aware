@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAtom } from "jotai";
 import { ScrollArea } from "./components";
-import { ContextWorkspace } from "./features/context/components/ContextWorkspace";
+import { NotesWorkspace } from "./features/notes/components/NotesWorkspace";
 import { LibraryWorkspace } from "./features/library/components/LibraryWorkspace";
 import { useLibraryController } from "./features/library/hooks/useLibraryController";
 import { AppHeader } from "./features/navigation/components/AppHeader";
@@ -94,7 +94,7 @@ function App() {
             onRemoveBook={library.handleRemoveBook}
           />
         ) : (
-          <ContextWorkspace />
+          <NotesWorkspace books={library.books} onOpenBook={reader.openReader} />
         )}
       </ScrollArea>
 

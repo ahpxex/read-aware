@@ -1,4 +1,4 @@
-import { CaretLeft } from "@phosphor-icons/react";
+import { CaretLeft, Highlighter } from "@phosphor-icons/react";
 import { cn } from "../../../components/lib/cn";
 import { Body, Caption, ScrollArea } from "../../../components";
 import { hrefMatches } from "../lib/epub-utils";
@@ -14,6 +14,7 @@ type ReaderShellOverlayProps = {
   tocEntries?: TocEntry[];
   currentChapterHref?: string | null;
   onChapterSelect?: (href: string) => void;
+  onToggleAnnotations?: () => void;
 };
 
 export function ReaderShellOverlay({
@@ -26,6 +27,7 @@ export function ReaderShellOverlay({
   tocEntries = [],
   currentChapterHref = null,
   onChapterSelect,
+  onToggleAnnotations,
 }: ReaderShellOverlayProps) {
   const percent =
     progress != null ? Math.min(100, Math.max(0, progress * 100)) : null;
@@ -71,8 +73,18 @@ export function ReaderShellOverlay({
             </div>
           )}
 
-          {/* Right spacer to keep title centered */}
-          <div className="w-16 shrink-0" />
+          <div className="flex w-16 shrink-0 justify-end">
+            {onToggleAnnotations && (
+              <button
+                type="button"
+                onClick={onToggleAnnotations}
+                className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-stone-500 transition-colors hover:text-stone-950 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950"
+                aria-label="Annotations"
+              >
+                <Highlighter size={16} weight="regular" aria-hidden="true" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

@@ -72,7 +72,7 @@ export function BookCover({ book, onClick, onRemove, className }: BookCoverProps
               label={`Remove ${book.title}`}
               size="sm"
               onClick={() => setRemoveOpen(true)}
-              className="rounded-sm text-white/70 hover:text-red-300 focus-visible:ring-white"
+              className="rounded-sm text-white/70 hover:text-red-400 focus-visible:ring-white"
               icon={<Trash size={14} weight="regular" aria-hidden="true" />}
             />
           </div>

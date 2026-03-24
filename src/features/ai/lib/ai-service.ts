@@ -4,6 +4,7 @@
  */
 
 import { getAIConfig, type AIConfig, type AIProvider } from "./ai-config";
+import { parseSSEStream } from "./parse-sse";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -189,6 +190,116 @@ export async function sendChatCompletion(
   });
 
   return parseOpenAIResponse(response);
+}
+
+export interface StreamingChatOptions {
+  messages: ChatMessage[];
+  temperature?: number;
+  maxTokens?: number;
+  onChunk: (text: string) => void;
+  signal?: AbortSignal;
+}
+
+export async function sendChatCompletionStreaming(
+  options: StreamingChatOptions,
+): Promise<ChatCompletionResponse> {
+  const config = getAIConfig();
+  if (!config) {
+    throw new AIError("AI not configured. Please set up your API key in settings.", "NOT_CONFIGURED");
+  }
+
+  const baseUrl = getBaseUrl(config);
+  const headers = getHeaders(config);
+  const messages = transformMessagesForProvider(options.messages, config.provider);
+  let fullContent = "";
+
+  if (config.provider === "anthropic") {
+    const anthropicBody: Record<string, unknown> = {
+      model: config.model,
+      messages: messages.filter((m) => m.role !== "system"),
+      max_tokens: options.maxTokens ?? 2000,
+      temperature: options.temperature ?? 0.7,
+      stream: true,
+    };
+    const systemMessage = messages.find((m) => m.role === "system");
+    if (systemMessage) {
+      anthropicBody.system = systemMessage.content;
+    }
+
+    const response = await fetch(`${baseUrl}/messages`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(anthropicBody),
+      signal: options.signal,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: { message: "Unknown error" } }));
+      throw new AIError(
+        error.error?.message || `HTTP ${response.status}`,
+        error.error?.type || "API_ERROR",
+        response.status,
+      );
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new AIError("No response body", "NO_BODY");
+
+    for await (const data of parseSSEStream(reader)) {
+      try {
+        const parsed = JSON.parse(data);
+        if (parsed.type === "content_block_delta" && parsed.delta?.text) {
+          fullContent += parsed.delta.text;
+          options.onChunk(parsed.delta.text);
+        }
+      } catch {
+        // Skip malformed JSON lines
+      }
+    }
+  } else {
+    const body: Record<string, unknown> = {
+      model: config.model,
+      messages,
+      temperature: options.temperature ?? 0.7,
+      max_tokens: options.maxTokens ?? 2000,
+      stream: true,
+    };
+
+    const endpoint = `${baseUrl}/chat/completions`;
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+      signal: options.signal,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: { message: "Unknown error" } }));
+      throw new AIError(
+        error.error?.message || `HTTP ${response.status}`,
+        error.error?.code || "API_ERROR",
+        response.status,
+      );
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new AIError("No response body", "NO_BODY");
+
+    for await (const data of parseSSEStream(reader)) {
+      try {
+        const parsed = JSON.parse(data);
+        const delta = parsed.choices?.[0]?.delta?.content;
+        if (delta) {
+          fullContent += delta;
+          options.onChunk(delta);
+        }
+      } catch {
+        // Skip malformed JSON lines
+      }
+    }
+  }
+
+  return { content: fullContent };
 }
 
 // Simple non-streaming chat for quick questions

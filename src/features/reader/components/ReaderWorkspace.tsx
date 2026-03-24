@@ -1,5 +1,9 @@
+import { useState } from "react";
+import { useAtomValue } from "jotai";
 import { Body, Button } from "../../../components";
+import { readerSettingsAtom } from "../../../state/ui";
 import type { LibraryBook, EpubProgress } from "../../library/lib/library-types";
+import { READER_THEME_BG } from "../../settings/lib/reader-css";
 import { EpubReaderView } from "./EpubReaderView";
 import { ReaderShellOverlay } from "./ReaderShellOverlay";
 import type { TocEntry } from "../lib/epub-types";
@@ -57,12 +61,19 @@ export function ReaderWorkspace({
   onCurrentChapterChange,
   onChapterSelect,
 }: ReaderWorkspaceProps) {
+  const readerSettings = useAtomValue(readerSettingsAtom);
+  const themeBg = READER_THEME_BG[readerSettings.theme];
+  const [annotationsSidebarOpen, setAnnotationsSidebarOpen] = useState(false);
+
   return (
-    <div className="relative h-screen w-full bg-paper">
+    <div className="relative h-screen w-full" style={{ backgroundColor: themeBg }}>
       {readerSource?.format === "epub" ? (
         <EpubReaderView
           selectedBook={selectedBook}
           initialEpub={readerSource.data}
+          readerSettings={readerSettings}
+          annotationsSidebarOpen={annotationsSidebarOpen}
+          onAnnotationsSidebarClose={() => setAnnotationsSidebarOpen(false)}
           onContentClick={onToggleShell}
           onContentScroll={onHideShell}
           onPageChange={onReaderPageChange}
@@ -75,7 +86,7 @@ export function ReaderWorkspace({
       ) : null}
 
       {!readerSource && (
-        <div className="absolute inset-0 flex items-center justify-center bg-paper px-8 text-center">
+        <div className="absolute inset-0 flex items-center justify-center px-8 text-center">
           <div className="max-w-md space-y-4">
             <Body className="text-sm text-stone-600">
               {readerLoadError ?? `Opening ${selectedBook.title}...`}
@@ -104,6 +115,7 @@ export function ReaderWorkspace({
         tocEntries={readerToc}
         currentChapterHref={currentChapterHref}
         onChapterSelect={onChapterSelect}
+        onToggleAnnotations={() => setAnnotationsSidebarOpen((prev) => !prev)}
       />
     </div>
   );

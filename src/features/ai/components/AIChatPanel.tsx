@@ -1,13 +1,10 @@
-/**
- * AI Chat Panel for discussing selected text
- */
-
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button, TextArea, Body, Heading, IconButton, Alert, Spinner } from "../../../components";
-import { X, PaperPlaneRight } from "@phosphor-icons/react";
+import { X, PaperPlaneRight, Stop } from "@phosphor-icons/react";
 import { cn } from "../../../components/lib/cn";
 import type { AIChat, AIChatMessage } from "../../annotations/lib/annotation-types";
-import { sendChatCompletion } from "../lib/ai-service";
+import { sendChatCompletionStreaming } from "../lib/ai-service";
+import type { ChatMessage } from "../lib/ai-service";
 
 export interface AIChatPanelProps {
   isOpen: boolean;
@@ -17,6 +14,15 @@ export interface AIChatPanelProps {
   onClose: () => void;
   onSendMessage: (content: string) => void;
   onUpdateChat: (chat: AIChat) => void;
+}
+
+function buildSystemPrompt(bookTitle: string, selectedText: string): string {
+  return (
+    `You are a thoughtful reading assistant helping someone reflect on what they're reading from "${bookTitle}". ` +
+    `The user has selected this text:\n\n"${selectedText}"\n\n` +
+    `Help them understand and reflect on this passage. Don't just summarize - ask questions that deepen their understanding. ` +
+    `Be concise but insightful. If they ask a question, provide a thoughtful response that encourages further reflection.`
+  );
 }
 
 export function AIChatPanel({
@@ -29,117 +35,104 @@ export function AIChatPanel({
   onUpdateChat,
 }: AIChatPanelProps) {
   const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingContent, setStreamingContent] = useState("");
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const hasTriggeredInitialRef = useRef<string | null>(null);
 
-  const messages = chat?.messages || [];
+  const messages = chat?.messages ?? [];
 
   useEffect(() => {
-    // Scroll to bottom when messages change
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, streamingContent]);
 
   useEffect(() => {
-    // Initial AI response when chat is first opened with no messages
-    if (isOpen && chat && messages.length === 1 && messages[0]?.role === "user" && !isLoading) {
-      void generateInitialResponse();
+    if (
+      isOpen &&
+      chat &&
+      messages.length === 1 &&
+      messages[0]?.role === "user" &&
+      !isStreaming &&
+      hasTriggeredInitialRef.current !== chat.id
+    ) {
+      hasTriggeredInitialRef.current = chat.id;
+      void streamResponse(
+        [
+          { role: "system", content: buildSystemPrompt(bookTitle, selectedText) },
+          { role: "user", content: messages[0].content },
+        ],
+      );
     }
   }, [isOpen, chat?.id]);
 
-  async function generateInitialResponse() {
+  const streamResponse = useCallback(async (apiMessages: ChatMessage[]) => {
     if (!chat) return;
-    setIsLoading(true);
+    setIsStreaming(true);
+    setStreamingContent("");
     setError(null);
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
-      const userMessage = messages[0]?.content || "";
-      const response = await sendChatCompletion({
-        messages: [
-          {
-            role: "system",
-            content:
-              `You are a thoughtful reading assistant helping someone reflect on what they're reading from "${bookTitle}". ` +
-              `The user has selected this text:\n\n"${selectedText}"\n\n` +
-              `Help them understand and reflect on this passage. Don't just summarize - ask questions that deepen their understanding. ` +
-              `Be concise but insightful. If they ask a question, provide a thoughtful response that encourages further reflection.`,
-          },
-          { role: "user", content: userMessage },
-        ],
+      const response = await sendChatCompletionStreaming({
+        messages: apiMessages,
         temperature: 0.7,
         maxTokens: 1000,
+        onChunk: (text) => {
+          setStreamingContent((prev) => prev + text);
+        },
+        signal: controller.signal,
       });
 
-      const updatedChat = await addMessageToChat("assistant", response.content);
-      if (updatedChat) {
-        onUpdateChat(updatedChat);
-      }
+      // Finalize: add complete message to chat
+      const updatedChat = appendMessageToChat(chat, "assistant", response.content);
+      onUpdateChat(updatedChat);
+      setStreamingContent("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to get AI response");
+      if (err instanceof DOMException && err.name === "AbortError") {
+        // User cancelled -- keep what was streamed so far
+        setStreamingContent((current) => {
+          if (current) {
+            const updatedChat = appendMessageToChat(chat, "assistant", current);
+            onUpdateChat(updatedChat);
+          }
+          return "";
+        });
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to get AI response");
+        setStreamingContent("");
+      }
     } finally {
-      setIsLoading(false);
+      setIsStreaming(false);
+      abortControllerRef.current = null;
     }
+  }, [chat, onUpdateChat]);
+
+  function handleAbort() {
+    abortControllerRef.current?.abort();
   }
 
   async function handleSendMessage() {
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isStreaming || !chat) return;
 
     const messageContent = input.trim();
     setInput("");
-    setIsLoading(true);
-    setError(null);
 
-    // Add user message
     onSendMessage(messageContent);
 
-    try {
-      const response = await sendChatCompletion({
-        messages: [
-          {
-            role: "system",
-            content:
-              `You are a thoughtful reading assistant helping someone reflect on what they're reading from "${bookTitle}". ` +
-              `The user is discussing this text:\n\n"${selectedText}"\n\n` +
-              `Help them understand and reflect on this passage. Don't just summarize - ask questions that deepen their understanding. ` +
-              `Be concise but insightful.`,
-          },
-          ...messages.map((m) => ({
-            role: m.role as "user" | "assistant",
-            content: m.content,
-          })),
-          { role: "user", content: messageContent },
-        ],
-        temperature: 0.7,
-        maxTokens: 1000,
-      });
+    const apiMessages: ChatMessage[] = [
+      { role: "system", content: buildSystemPrompt(bookTitle, selectedText) },
+      ...messages.map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      })),
+      { role: "user" as const, content: messageContent },
+    ];
 
-      const updatedChat = await addMessageToChat("assistant", response.content);
-      if (updatedChat) {
-        onUpdateChat(updatedChat);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to get AI response");
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  async function addMessageToChat(role: AIChatMessage["role"], content: string): Promise<AIChat | null> {
-    if (!chat) return null;
-    
-    const now = new Date().toISOString();
-    const newMessage: AIChatMessage = {
-      id: crypto.randomUUID(),
-      role,
-      content,
-      timestamp: now,
-    };
-
-    return {
-      ...chat,
-      messages: [...chat.messages, newMessage],
-      updatedAt: now,
-    };
+    await streamResponse(apiMessages);
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -156,22 +149,22 @@ export function AIChatPanel({
       <div
         className={cn(
           "flex h-[70vh] w-full flex-col border border-border bg-[var(--ra-main-surface-color)] shadow-[0_12px_32px_rgba(28,25,23,0.15)]",
-          "sm:h-[min(600px,80vh)] sm:w-[min(480px,100%)] sm:rounded-lg"
+          "sm:h-[min(600px,80vh)] sm:w-[min(480px,100%)] sm:rounded-lg",
         )}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <div>
+          <div className="min-w-0 flex-1">
             <Heading size="xl">Ask AI</Heading>
-            <Body className="text-xs text-stone-500 line-clamp-1">
-              About: "{selectedText.slice(0, 60)}{selectedText.length > 60 ? "..." : ""}"
+            <Body className="truncate text-xs text-stone-500">
+              About: &ldquo;{selectedText.slice(0, 60)}{selectedText.length > 60 ? "..." : ""}&rdquo;
             </Body>
           </div>
           <IconButton
             label="Close"
             size="sm"
             onClick={onClose}
-            className="text-stone-500 hover:text-stone-950"
+            className="ml-2 text-stone-500 hover:text-stone-950"
             icon={<X size={14} weight="regular" />}
           />
         </div>
@@ -182,42 +175,35 @@ export function AIChatPanel({
           </Alert>
         )}
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.length === 0 ? (
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {messages.length === 0 && !isStreaming ? (
             <div className="flex h-full items-center justify-center">
               <Body className="text-center text-stone-500">
                 Start a conversation about this passage.
               </Body>
             </div>
           ) : (
-            messages.map((message) => (
-              <div
-                key={message.id}
-                className={cn(
-                  "flex",
-                  message.role === "user" ? "justify-end" : "justify-start"
-                )}
-              >
-                <div
-                  className={cn(
-                    "max-w-[85%] rounded-lg px-3 py-2 text-sm",
-                    message.role === "user"
-                      ? "bg-stone-800 text-white"
-                      : "bg-stone-100 text-stone-800"
-                  )}
-                >
-                  {message.content}
+            <>
+              {messages.map((message) => (
+                <MessageBubble key={message.id} message={message} />
+              ))}
+              {isStreaming && streamingContent && (
+                <div className="flex justify-start">
+                  <div className="max-w-[85%] rounded-lg bg-stone-100 px-3 py-2 text-sm leading-relaxed text-stone-800 whitespace-pre-wrap">
+                    {streamingContent}
+                    <span className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-stone-400" />
+                  </div>
                 </div>
-              </div>
-            ))
-          )}
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="flex items-center gap-2 rounded-lg bg-stone-100 px-3 py-2">
-                <Spinner size="sm" />
-                <Body className="text-xs text-stone-500">AI is thinking...</Body>
-              </div>
-            </div>
+              )}
+              {isStreaming && !streamingContent && (
+                <div className="flex justify-start">
+                  <div className="flex items-center gap-2 rounded-lg bg-stone-100 px-3 py-2">
+                    <Spinner size="sm" />
+                    <Body className="text-xs text-stone-500">Thinking...</Body>
+                  </div>
+                </div>
+              )}
+            </>
           )}
           <div ref={messagesEndRef} />
         </div>
@@ -232,20 +218,64 @@ export function AIChatPanel({
               placeholder="Ask a question or share your thoughts..."
               rows={2}
               className="min-h-[60px] flex-1 resize-none"
+              disabled={isStreaming}
             />
-            <Button
-              onClick={() => void handleSendMessage()}
-              disabled={!input.trim() || isLoading}
-              className="self-end"
-            >
-              <PaperPlaneRight size={16} weight="regular" />
-            </Button>
+            {isStreaming ? (
+              <IconButton
+                label="Stop generating"
+                onClick={handleAbort}
+                className="self-end rounded-md border border-stone-300 text-stone-600 hover:bg-stone-100 hover:text-stone-950"
+                icon={<Stop size={16} weight="fill" />}
+              />
+            ) : (
+              <Button
+                onClick={() => void handleSendMessage()}
+                disabled={!input.trim()}
+                className="self-end"
+              >
+                <PaperPlaneRight size={16} weight="regular" />
+              </Button>
+            )}
           </div>
           <Body className="mt-2 text-[10px] text-stone-400">
-            Press Cmd+Enter to send
+            {isStreaming ? "Press Stop to cancel" : "Press Cmd+Enter to send"}
           </Body>
         </div>
       </div>
     </div>
   );
+}
+
+function MessageBubble({ message }: { message: AIChatMessage }) {
+  return (
+    <div className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}>
+      <div
+        className={cn(
+          "max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap",
+          message.role === "user"
+            ? "bg-stone-800 text-white"
+            : "bg-stone-100 text-stone-800",
+        )}
+      >
+        {message.content}
+      </div>
+    </div>
+  );
+}
+
+function appendMessageToChat(chat: AIChat, role: AIChatMessage["role"], content: string): AIChat {
+  const now = new Date().toISOString();
+  return {
+    ...chat,
+    messages: [
+      ...chat.messages,
+      {
+        id: crypto.randomUUID(),
+        role,
+        content,
+        timestamp: now,
+      },
+    ],
+    updatedAt: now,
+  };
 }

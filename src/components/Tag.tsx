@@ -1,4 +1,5 @@
 import { type ReactNode } from "react";
+import { X } from "@phosphor-icons/react";
 import { cn } from "./lib/cn";
 
 type TagProps = {
@@ -27,9 +28,7 @@ export function Tag({ children, variant = "default", onRemove, removeLabel, clas
           aria-label={removeLabel ?? `Remove ${typeof children === "string" ? children : ""}`}
           className="ml-0.5 text-stone-400 hover:text-stone-700"
         >
-          <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M3 3l6 6M9 3l-6 6" />
-          </svg>
+          <X size={12} weight="bold" />
         </button>
       )}
     </span>

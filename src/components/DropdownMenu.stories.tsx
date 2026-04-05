@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { DotsThreeVertical } from "@phosphor-icons/react";
 import { DropdownMenu } from "./DropdownMenu";
 import { Button } from "./Button";
 import { IconButton } from "./IconButton";
@@ -38,13 +39,7 @@ export const RightAligned: Story = {
   },
 };
 
-const MoreIcon = (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-    <circle cx="8" cy="3" r="1.5" />
-    <circle cx="8" cy="8" r="1.5" />
-    <circle cx="8" cy="13" r="1.5" />
-  </svg>
-);
+const MoreIcon = <DotsThreeVertical size={16} weight="bold" />;
 
 export const WithIconTrigger: Story = {
   args: {

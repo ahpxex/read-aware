@@ -1,4 +1,5 @@
 import { useRef, useEffect, useId, useCallback } from "react";
+import { CaretDown } from "@phosphor-icons/react";
 import { useLocalAtom } from "../state/local";
 import { cn } from "./lib/cn";
 import { ScrollArea } from "./ScrollArea";
@@ -169,18 +170,14 @@ export function Select({
           )}
         >
           <span className="truncate">{displayText}</span>
-          <svg
+          <CaretDown
+            size={16}
+            weight="bold"
             className={cn(
-              "ml-2 h-4 w-4 shrink-0 text-stone-400 transition-transform",
+              "ml-2 shrink-0 text-stone-400 transition-transform",
               open && "rotate-180",
             )}
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          >
-            <path d="M4 6l4 4 4-4" />
-          </svg>
+          />
         </button>
 
         {open && (

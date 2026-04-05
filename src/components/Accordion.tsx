@@ -1,4 +1,5 @@
 import { useId, type ReactNode } from "react";
+import { CaretDown } from "@phosphor-icons/react";
 import { useLocalAtom } from "../state/local";
 import { cn } from "./lib/cn";
 
@@ -78,20 +79,14 @@ function AccordionItem({
           className="flex w-full items-center justify-between py-4 text-left font-sans text-sm font-medium text-stone-950 transition-colors hover:text-stone-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950"
         >
           {label}
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
+          <CaretDown
+            size={16}
+            weight="bold"
             className={cn(
               "shrink-0 text-stone-400 transition-transform duration-200",
               open && "rotate-180",
             )}
-          >
-            <path d="M4 6l4 4 4-4" />
-          </svg>
+          />
         </button>
       </h3>
       <div

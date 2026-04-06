@@ -5,7 +5,7 @@ import {
   type ReaderSettings,
 } from "../features/settings/lib/reader-settings";
 
-export const topNavs = ["shelf", "notes"] as const;
+export const topNavs = ["shelf", "context"] as const;
 
 export type TopNav = (typeof topNavs)[number];
 

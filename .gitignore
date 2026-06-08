@@ -10,14 +10,17 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
-.nitro
-.output
 .tanstack
 storybook-static
-.venv
-__pycache__/
-*.py[cod]
 *.local
+
+# Turborepo
+.turbo
+
+# Tauri / Rust
+apps/desktop/src-tauri/target
+apps/desktop/src-tauri/gen
+target
 
 # Editor directories and files
 .vscode/*

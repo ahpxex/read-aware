@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useLocalAtom } from "../state/local";
+import { useLocalAtom } from "./lib/useLocalAtom";
 import { Dialog } from "./Dialog";
 import { Button } from "./Button";
 

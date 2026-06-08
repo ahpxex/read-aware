@@ -3,9 +3,9 @@
  */
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { IconButton, Body, Heading } from "../../../components";
+import { IconButton, Body, Heading } from "@read-aware/ui";
 import { X, MagnifyingGlass, Book } from "@phosphor-icons/react";
-import { cn } from "../../../components/lib/cn";
+import { cn } from "@read-aware/ui/cn";
 import type { LibraryBook } from "../lib/library-types";
 
 interface BookSearchModalProps {

@@ -1,8 +1,8 @@
 import { useEffect, useId, useRef } from "react";
 import { X } from "@phosphor-icons/react";
-import { IconButton, ScrollArea, Tabs } from "../../components";
-import { cn } from "../../components/lib/cn";
-import { useLocalAtom } from "../../state/local";
+import { IconButton, ScrollArea, Tabs } from "@read-aware/ui";
+import { cn } from "@read-aware/ui/cn";
+import { useLocalAtom } from "@read-aware/ui/state";
 import { AIConfigPanel } from "./components/AIConfigPanel";
 import { ReaderDisplayPanel } from "./components/ReaderDisplayPanel";
 

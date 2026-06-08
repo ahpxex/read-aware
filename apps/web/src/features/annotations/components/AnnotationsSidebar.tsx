@@ -1,6 +1,6 @@
 import { NotePencil, ChatCircleDots, Trash } from "@phosphor-icons/react";
-import { Body, Heading, IconButton, ScrollArea, Sidebar } from "../../../components";
-import { cn } from "../../../components/lib/cn";
+import { Body, Heading, IconButton, ScrollArea, Sidebar } from "@read-aware/ui";
+import { cn } from "@read-aware/ui/cn";
 import { HIGHLIGHT_COLORS } from "../../reader/lib/highlight-renderer";
 import { useBookAnnotations } from "../hooks/useBookAnnotations";
 import type { Annotation, Highlight, Note, AIChat } from "../lib/annotation-types";

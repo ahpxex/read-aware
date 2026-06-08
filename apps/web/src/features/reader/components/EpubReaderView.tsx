@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Body, Button, Heading, ScrollArea, Sidebar } from "../../../components";
-import { cn } from "../../../components/lib/cn";
-import { useLocalAtom } from "../../../state/local";
+import { Body, Button, Heading, ScrollArea, Sidebar } from "@read-aware/ui";
+import { cn } from "@read-aware/ui/cn";
+import { useLocalAtom } from "@read-aware/ui/state";
 import type { EpubProgress, LibraryBook } from "../../library/lib/library-types";
 import { formatReaderError } from "../lib/format-reader-error";
 import {

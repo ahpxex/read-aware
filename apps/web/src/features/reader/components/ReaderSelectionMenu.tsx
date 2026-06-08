@@ -1,7 +1,7 @@
 import { Check, Copy, Highlighter, NotePencil, ChatCircleDots } from "@phosphor-icons/react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { IconButton } from "../../../components";
-import { cn } from "../../../components/lib/cn";
+import { IconButton } from "@read-aware/ui";
+import { cn } from "@read-aware/ui/cn";
 import { isAIConfigured } from "../../ai/lib/ai-service";
 import type { Highlight } from "../../annotations/lib/annotation-types";
 import type { ReaderSelectionAppearance, ReaderSelectionState } from "../lib/selection-overlay";

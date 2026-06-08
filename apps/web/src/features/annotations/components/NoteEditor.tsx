@@ -3,9 +3,9 @@
  */
 
 import { useState, useEffect } from "react";
-import { Button, TextArea, Body, Heading, IconButton } from "../../../components";
+import { Button, TextArea, Body, Heading, IconButton } from "@read-aware/ui";
 import { X } from "@phosphor-icons/react";
-import { cn } from "../../../components/lib/cn";
+import { cn } from "@read-aware/ui/cn";
 
 export interface NoteEditorProps {
   isOpen: boolean;

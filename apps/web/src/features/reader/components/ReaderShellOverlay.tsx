@@ -1,6 +1,6 @@
 import { CaretLeft, Highlighter } from "@phosphor-icons/react";
-import { cn } from "../../../components/lib/cn";
-import { Body, Caption, ScrollArea } from "../../../components";
+import { cn } from "@read-aware/ui/cn";
+import { Body, Caption, ScrollArea } from "@read-aware/ui";
 import { hrefMatches } from "../lib/epub-utils";
 import type { TocEntry } from "../lib/epub-types";
 

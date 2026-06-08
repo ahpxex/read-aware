@@ -1,4 +1,4 @@
-import { Alert, Body, Button, EmptyState } from "../../../components";
+import { Alert, Body, Button, EmptyState } from "@read-aware/ui";
 import { Shelf } from "../../shelf/components/Shelf";
 import type { LibraryBook, ShelfSection } from "../lib/library-types";
 

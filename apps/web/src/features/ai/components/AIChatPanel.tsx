@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Button, TextArea, Body, Heading, IconButton, Alert, Spinner } from "../../../components";
+import { Button, TextArea, Body, Heading, IconButton, Alert, Spinner } from "@read-aware/ui";
 import { X, PaperPlaneRight, Stop } from "@phosphor-icons/react";
-import { cn } from "../../../components/lib/cn";
+import { cn } from "@read-aware/ui/cn";
 import type { AIChat, AIChatMessage } from "../../annotations/lib/annotation-types";
 import { sendChatCompletionStreaming } from "../lib/ai-service";
 import type { ChatMessage } from "../lib/ai-service";

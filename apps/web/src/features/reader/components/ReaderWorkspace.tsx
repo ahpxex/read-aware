@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAtomValue } from "jotai";
-import { Body, Button } from "../../../components";
+import { Body, Button } from "@read-aware/ui";
 import { readerSettingsAtom } from "../../../state/ui";
 import type { LibraryBook, EpubProgress } from "../../library/lib/library-types";
 import { READER_THEME_BG } from "../../settings/lib/reader-css";

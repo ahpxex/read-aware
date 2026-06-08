@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useLocalAtom } from "../../../state/local";
+import { useLocalAtom } from "@read-aware/ui/state";
 
 type PageJumpInputProps = {
   numPages: number;

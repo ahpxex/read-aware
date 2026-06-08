@@ -21,15 +21,14 @@
       "version": "0.1.0",
       "dependencies": {
         "@phosphor-icons/react": "^2.1.10",
+        "@read-aware/ui": "workspace:*",
         "@tanstack/react-router": "^1.132.23",
         "@tauri-apps/api": "^2.9.0",
-        "clsx": "^2.1.1",
         "epubjs": "^0.3.93",
         "jotai": "^2.18.0",
         "pdfjs-dist": "^5.5.207",
         "react": "^19.1.0",
         "react-dom": "^19.1.0",
-        "tailwind-merge": "^3.5.0",
       },
       "devDependencies": {
         "@chromatic-com/storybook": "^5.0.1",
@@ -55,9 +54,40 @@
         "vitest": "^4.0.18",
       },
     },
+    "packages/core": {
+      "name": "@read-aware/core",
+      "version": "0.1.0",
+      "devDependencies": {
+        "typescript": "~5.8.3",
+      },
+    },
     "packages/tsconfig": {
       "name": "@read-aware/tsconfig",
       "version": "0.1.0",
+    },
+    "packages/ui": {
+      "name": "@read-aware/ui",
+      "version": "0.1.0",
+      "dependencies": {
+        "@phosphor-icons/react": "^2.1.10",
+        "clsx": "^2.1.1",
+        "tailwind-merge": "^3.5.0",
+      },
+      "devDependencies": {
+        "@storybook/addon-docs": "^10.2.16",
+        "@storybook/react-vite": "^10.2.16",
+        "@types/react": "^19.1.8",
+        "@types/react-dom": "^19.1.6",
+        "jotai": "^2.18.0",
+        "react": "^19.1.0",
+        "react-dom": "^19.1.0",
+        "typescript": "~5.8.3",
+      },
+      "peerDependencies": {
+        "jotai": "^2.18.0",
+        "react": "^19.1.0",
+        "react-dom": "^19.1.0",
+      },
     },
   },
   "packages": {
@@ -213,9 +243,13 @@
 
     "@react-grab/cli": ["@react-grab/cli@0.1.27", "", { "dependencies": { "@antfu/ni": "^0.23.0", "commander": "^14.0.0", "ignore": "^7.0.5", "jsonc-parser": "^3.3.1", "ora": "^8.2.0", "picocolors": "^1.1.1", "prompts": "^2.4.2", "smol-toml": "^1.6.0" }, "bin": { "react-grab": "dist/cli.js" } }, "sha512-NaW5Jb5LtL35nuO33FFxKohvJCfoIgE/1nbzMVK1R0xhznlMtej0NodjlHGRJyKL3EU8FgVnigd9/Jt20Jjx+g=="],
 
+    "@read-aware/core": ["@read-aware/core@workspace:packages/core"],
+
     "@read-aware/desktop": ["@read-aware/desktop@workspace:apps/desktop"],
 
     "@read-aware/tsconfig": ["@read-aware/tsconfig@workspace:packages/tsconfig"],
+
+    "@read-aware/ui": ["@read-aware/ui@workspace:packages/ui"],
 
     "@read-aware/web": ["@read-aware/web@workspace:apps/web"],
 

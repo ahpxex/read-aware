@@ -1,7 +1,13 @@
 import type { StorybookConfig } from "@storybook/react-vite";
 
 const config: StorybookConfig = {
-  stories: ["../src/**/*.mdx", "../src/**/*.stories.@(ts|tsx)"],
+  stories: [
+    // Design system lives in @read-aware/ui; feature stories live in apps/web.
+    "../../../packages/ui/src/**/*.mdx",
+    "../../../packages/ui/src/**/*.stories.@(ts|tsx)",
+    "../src/**/*.mdx",
+    "../src/**/*.stories.@(ts|tsx)",
+  ],
   addons: [
     "@storybook/addon-a11y",
     "@storybook/addon-docs",

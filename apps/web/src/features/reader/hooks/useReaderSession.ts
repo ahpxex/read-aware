@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useLocalAtom } from "../../../state/local";
+import { useLocalAtom } from "@read-aware/ui/state";
 import { getStoredBookBlob, markLibraryBookOpened, updateLibraryBookProgress } from "../../library/lib/library-db";
 import { formatLibraryError } from "../../library/lib/format-library-error";
 import { createProgressPatch } from "../../library/lib/library-progress";

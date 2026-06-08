@@ -1,6 +1,6 @@
 import { useAtom } from "jotai";
-import { Stack } from "../../../components";
-import { cn } from "../../../components/lib/cn";
+import { Stack } from "@read-aware/ui";
+import { cn } from "@read-aware/ui/cn";
 import { readerSettingsAtom } from "../../../state/ui";
 import type { ReaderTheme, ReaderFontSize, ReaderLineSpacing } from "../lib/reader-settings";
 

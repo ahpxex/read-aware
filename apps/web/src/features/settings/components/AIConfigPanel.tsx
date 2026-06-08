@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { Button, Select, TextField, Stack, Alert } from "../../../components";
+import { Button, Select, TextField, Stack, Alert } from "@read-aware/ui";
 import {
   getAIConfig,
   saveAIConfig,

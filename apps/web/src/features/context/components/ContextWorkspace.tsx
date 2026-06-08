@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Highlighter, NotePencil, ChatCircleDots, Trash } from "@phosphor-icons/react";
-import { Body, Caption, EmptyState, Heading, IconButton } from "../../../components";
-import { cn } from "../../../components/lib/cn";
+import { Body, Caption, EmptyState, Heading, IconButton } from "@read-aware/ui";
+import { cn } from "@read-aware/ui/cn";
 import { listAnnotations, deleteAnnotation } from "../../annotations/lib/annotation-db";
 import { HIGHLIGHT_COLORS } from "../../reader/lib/highlight-renderer";
 import type { Annotation, Highlight, Note, AIChat } from "../../annotations/lib/annotation-types";

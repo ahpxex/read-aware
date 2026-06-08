@@ -119,7 +119,7 @@
 
 ## Design System
 
-The component library lives in `apps/web/src/components/` with co-located Storybook stories. Run `bun run storybook` to browse.
+The component library is its own package, `@read-aware/ui` (`packages/ui/`), with co-located Storybook stories. Run `bun run storybook` to browse (Storybook is hosted by `apps/web` and scans both `packages/ui` and feature stories).
 
 ### Design Tokens
 
@@ -143,11 +143,11 @@ Always use these components instead of raw HTML + Tailwind classes:
 **Feedback:** `Alert`, `EmptyState`, `Tooltip`
 **Overlays:** `Dialog`, `Sidebar`, `DropdownMenu`, `Popover`, `Accordion`
 
-Import from the `components` barrel (within `apps/web/src`): `import { Button, Card, Display } from "./components";`
+Import from the package barrel: `import { Button, Card, Display } from "@read-aware/ui";`
 
 ### Utility
 
-Use `cn()` from `apps/web/src/components/lib/cn.ts` for className composition (clsx + tailwind-merge).
+Use `cn()` from `@read-aware/ui/cn` for className composition (clsx + tailwind-merge). The `useLocalAtom` hook is available from `@read-aware/ui/state`.
 
 ### Design Principles
 
@@ -181,29 +181,30 @@ read-aware/
         main.tsx       # SPA mount (createRoot + RouterProvider)
         router.tsx     # Router factory + type registration
         routes/        # File-based routes (__root.tsx, index.tsx)
-        index.css      # Tailwind v4 @theme tokens
-        components/    # Design system (shared, reusable)
-          typography/  # Display, Heading, Body, Eyebrow, Caption
-          lib/cn.ts    # clsx + tailwind-merge utility
-          docs/        # Storybook MDX guidelines
-          index.ts     # Barrel export
-        features/      # Feature modules (domain-specific)
+        index.css      # Tailwind v4 @theme tokens (+ @source for packages/ui)
+        features/      # Feature modules (domain-specific UI)
           shelf/       # Book collection / library view
           reader/      # Reading experience
           context/     # AI-assisted context panel
-          notes/       # User annotations
+          annotations/ # User annotations
+          ai/          # AI chat panel
           settings/    # Preferences
           navigation/  # App-level nav
           library/     # Content management
-        state/         # Jotai atoms (ui.ts, local.ts)
+        state/         # Jotai UI atoms (ui.ts)
     desktop/           # Tauri 2 desktop shell (wraps apps/web)
       src-tauri/       # Rust crate, tauri.conf.json, capabilities, icons
   packages/
-    tsconfig/          # Shared TypeScript base config
+    ui/                # @read-aware/ui — design system (components, typography,
+                       #   cn, useLocalAtom) + co-located stories & MDX docs
+    core/              # @read-aware/core — local-first engine contracts:
+                       #   entities, event-sourced DomainEvent, StorageAdapter
+    tsconfig/          # @read-aware/tsconfig — shared TypeScript base config
 ```
 
-Note: design-system imports inside `apps/web` use the `./components` barrel, e.g.
-`import { Button, Card, Display } from "./components";`.
+Note: design-system imports use the `@read-aware/ui` package barrel, e.g.
+`import { Button, Card, Display } from "@read-aware/ui";` (and `@read-aware/ui/cn`,
+`@read-aware/ui/state`).
 
 ## Conventions
 

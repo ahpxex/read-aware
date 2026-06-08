@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* @read-aware/ui resolves through a node_modules symlink, which Tailwind v4
+   skips by default — scan its source explicitly so utility classes used only
+   by design-system components are generated. */
+@source "../../../packages/ui/src";
+
 @theme {
   --color-paper: #f5f1e8;
   --color-paper-warm: #eee8d5;

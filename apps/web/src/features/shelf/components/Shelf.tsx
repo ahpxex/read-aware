@@ -1,5 +1,5 @@
-import { Eyebrow } from "../../../components";
-import { cn } from "../../../components/lib/cn";
+import { Eyebrow } from "@read-aware/ui";
+import { cn } from "@read-aware/ui/cn";
 import type { LibraryBook, ShelfSection as LibraryShelfSection } from "../../library/lib/library-types";
 import { BookCover } from "./BookCover";
 

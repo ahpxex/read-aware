@@ -1,6 +1,6 @@
 import { useRef, useEffect, useId, useCallback } from "react";
 import { CaretDown } from "@phosphor-icons/react";
-import { useLocalAtom } from "../state/local";
+import { useLocalAtom } from "./lib/useLocalAtom";
 import { cn } from "./lib/cn";
 import { ScrollArea } from "./ScrollArea";
 

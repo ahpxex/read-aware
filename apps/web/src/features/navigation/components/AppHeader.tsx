@@ -1,6 +1,6 @@
 import { GearSix, MagnifyingGlass, Plus } from "@phosphor-icons/react";
-import { IconButton, NavItem, Tooltip } from "../../../components";
-import { cn } from "../../../components/lib/cn";
+import { IconButton, NavItem, Tooltip } from "@read-aware/ui";
+import { cn } from "@read-aware/ui/cn";
 import { topNavs, type TopNav } from "../../../state/ui";
 import { useTopNavIndicator } from "../hooks/useTopNavIndicator";
 

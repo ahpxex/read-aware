@@ -13,15 +13,14 @@
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
+    "@read-aware/ui": "workspace:*",
     "@tanstack/react-router": "^1.132.23",
     "@tauri-apps/api": "^2.9.0",
-    "clsx": "^2.1.1",
     "epubjs": "^0.3.93",
     "jotai": "^2.18.0",
     "pdfjs-dist": "^5.5.207",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "tailwind-merge": "^3.5.0"
+    "react-dom": "^19.1.0"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^5.0.1",

@@ -1,7 +1,7 @@
-import { Button, Dialog, IconButton, Progress } from "../../../components";
+import { Button, Dialog, IconButton, Progress } from "@read-aware/ui";
 import { Info, Trash } from "@phosphor-icons/react";
-import { cn } from "../../../components/lib/cn";
-import { useLocalAtom } from "../../../state/local";
+import { cn } from "@read-aware/ui/cn";
+import { useLocalAtom } from "@read-aware/ui/state";
 import type { LibraryBook } from "../../library/lib/library-types";
 
 type BookCoverProps = {

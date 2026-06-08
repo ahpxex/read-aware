@@ -1,5 +1,5 @@
 import { useRef, useEffect, useId, type ReactNode } from "react";
-import { useLocalAtom } from "../state/local";
+import { useLocalAtom } from "./lib/useLocalAtom";
 import { cn } from "./lib/cn";
 
 type PopoverProps = {

@@ -133,6 +133,7 @@ export function FoliateReaderView({
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<FoliateView | null>(null);
   const lastLocationTargetRef = useRef<string | null>(null);
+  const initialFractionRef = useRef(0);
   const loadedBookRef = useRef<LoadedBook | null>(null);
   const tocEntriesRef = useRef<TocEntry[]>([]);
   const currentChapterHrefRef = useRef<string | null>(null);
@@ -190,7 +191,11 @@ export function FoliateReaderView({
 
   useEffect(() => {
     lastLocationTargetRef.current = initialProgress?.cfi ?? initialProgress?.href ?? null;
-  }, [initialProgress?.cfi, initialProgress?.href]);
+    initialFractionRef.current =
+      initialProgress?.progressPercent != null
+        ? Math.max(0, Math.min(1, initialProgress.progressPercent / 100))
+        : 0;
+  }, [initialProgress?.cfi, initialProgress?.href, initialProgress?.progressPercent]);
 
   const clearNativeSelection = useCallback(() => {
     try {
@@ -577,10 +582,22 @@ export function FoliateReaderView({
         }
 
         const target = lastLocationTargetRef.current;
+        const savedFraction = initialFractionRef.current;
+        // A stored CFI/href can be unparseable for this engine (e.g. a legacy
+        // epub.js CFI from before the foliate migration), or simply absent for
+        // fixed-layout files. Fall back to the saved reading fraction so the
+        // position is still restored instead of snapping back to the start.
+        const restoreByFraction = async () => {
+          if (savedFraction > 0) {
+            await view?.goToFraction(savedFraction).catch(() => view?.renderer?.next?.());
+          } else {
+            await view?.renderer?.next?.();
+          }
+        };
         if (target) {
-          await view.goTo(target).catch(() => view?.renderer?.next?.());
+          await view.goTo(target).catch(restoreByFraction);
         } else {
-          await view.renderer?.next?.();
+          await restoreByFraction();
         }
         if (view) applyHighlights(view, highlightsRef.current);
       } catch (nextError) {

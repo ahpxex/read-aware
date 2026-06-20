@@ -10,6 +10,7 @@
     "beforeBuildCommand": "bun run --filter @read-aware/web build"
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
         "label": "main",

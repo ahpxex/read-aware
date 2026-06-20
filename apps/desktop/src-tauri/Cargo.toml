@@ -19,3 +19,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # Bundled SQLite — no system dependency; compiles SQLite from source.
 rusqlite = { version = "0.32", features = ["bundled"] }
+# Dev-only bridge that lets the Tauri MCP server drive/inspect the webview.
+# Linked in all builds (so its capability permission resolves) but only
+# initialized under debug_assertions — see lib.rs.
+tauri-plugin-mcp-bridge = "0.11"

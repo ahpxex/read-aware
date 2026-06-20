@@ -17,7 +17,6 @@ const currentlyReading: LibraryBook[] = [
     progressPercent: 64,
     readingStatus: "reading",
     progress: {
-      format: "epub",
       currentLocation: 64,
       totalLocations: 100,
       progressPercent: 64,
@@ -39,7 +38,6 @@ const currentlyReading: LibraryBook[] = [
     progressPercent: 23,
     readingStatus: "reading",
     progress: {
-      format: "epub",
       currentLocation: 23,
       totalLocations: 100,
       progressPercent: 23,
@@ -58,9 +56,9 @@ const upNext: LibraryBook[] = [
 ];
 
 const finished: LibraryBook[] = [
-  { id: "8", title: "Blindness", author: "Jose Saramago", format: "epub", fileName: "blindness.epub", mimeType: "application/epub+zip", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: "2026-03-13T00:00:00.000Z", progressPercent: 100, readingStatus: "finished", progress: { format: "epub", currentLocation: 100, totalLocations: 100, progressPercent: 100, cfi: "epubcfi(/6/2[end]!/4/2/6)", href: "epilogue.xhtml" } },
-  { id: "9", title: "If on a Winter's Night a Traveler", author: "Italo Calvino", format: "epub", fileName: "if-on-a-winters-night-a-traveler.epub", mimeType: "application/epub+zip", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: "2026-03-13T00:00:00.000Z", progressPercent: 100, readingStatus: "finished", progress: { format: "epub", currentLocation: 100, totalLocations: 100, progressPercent: 100, cfi: "epubcfi(/6/2[end]!/4/2/6)", href: "end.xhtml" } },
-  { id: "10", title: "The Plague", author: "Albert Camus", format: "epub", fileName: "the-plague.epub", mimeType: "application/epub+zip", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: "2026-03-13T00:00:00.000Z", progressPercent: 100, readingStatus: "finished", progress: { format: "epub", currentLocation: 320, totalLocations: 320, progressPercent: 100, cfi: "epubcfi(/6/2[end]!/4/2/6)", href: "end.xhtml" } },
+  { id: "8", title: "Blindness", author: "Jose Saramago", format: "epub", fileName: "blindness.epub", mimeType: "application/epub+zip", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: "2026-03-13T00:00:00.000Z", progressPercent: 100, readingStatus: "finished", progress: { currentLocation: 100, totalLocations: 100, progressPercent: 100, cfi: "epubcfi(/6/2[end]!/4/2/6)", href: "epilogue.xhtml" } },
+  { id: "9", title: "If on a Winter's Night a Traveler", author: "Italo Calvino", format: "epub", fileName: "if-on-a-winters-night-a-traveler.epub", mimeType: "application/epub+zip", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: "2026-03-13T00:00:00.000Z", progressPercent: 100, readingStatus: "finished", progress: { currentLocation: 100, totalLocations: 100, progressPercent: 100, cfi: "epubcfi(/6/2[end]!/4/2/6)", href: "end.xhtml" } },
+  { id: "10", title: "The Plague", author: "Albert Camus", format: "epub", fileName: "the-plague.epub", mimeType: "application/epub+zip", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: "2026-03-13T00:00:00.000Z", progressPercent: 100, readingStatus: "finished", progress: { currentLocation: 320, totalLocations: 320, progressPercent: 100, cfi: "epubcfi(/6/2[end]!/4/2/6)", href: "end.xhtml" } },
 ];
 
 const meta: Meta<typeof Shelf> = {

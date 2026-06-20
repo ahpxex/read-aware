@@ -4,14 +4,15 @@ import { getStoredBookBlob, markLibraryBookOpened, updateLibraryBookProgress } f
 import { formatLibraryError } from "../../library/lib/format-library-error";
 import { createProgressPatch } from "../../library/lib/library-progress";
 import type {
+  BookFormat,
   BookProgress,
-  EpubProgress,
   LibraryBook,
+  ReaderProgress,
 } from "../../library/lib/library-types";
-import type { LoadedEpub, TocEntry } from "../lib/epub-types";
+import type { LoadedBook, TocEntry } from "../lib/reader-types";
 
 type ReaderSource =
-  | { format: "epub"; data: LoadedEpub }
+  | { format: BookFormat; data: LoadedBook }
   | null;
 
 type UseReaderSessionOptions = {
@@ -114,15 +115,14 @@ export function useReaderSession({
         if (!blob) {
           throw new Error("The imported file for this book could not be found on this device.");
         }
-
-        const data = await blob.arrayBuffer();
         if (readerLoadRequestIdRef.current !== requestId) return;
 
         setReaderSource({
-          format: "epub",
+          format: book.format,
           data: {
             fileName: book.fileName,
-            data,
+            format: book.format,
+            file: blob,
           },
         });
         setIsReaderLoading(false);
@@ -166,7 +166,7 @@ export function useReaderSession({
     setReaderPage({ current, total });
   }, [setReaderPage]);
 
-  const handleEpubProgressChange = useCallback((progress: EpubProgress) => {
+  const handleEpubProgressChange = useCallback((progress: ReaderProgress) => {
     setReaderPage({
       current: progress.currentLocation,
       total: progress.totalLocations,
@@ -185,9 +185,7 @@ export function useReaderSession({
   }, [setChapterNavigationRequest, setShellVisible]);
 
   const overlayVisible = shellVisible;
-  const selectedEpubProgress = selectedBook?.progress?.format === "epub"
-    ? selectedBook.progress
-    : null;
+  const selectedEpubProgress = selectedBook?.progress ?? null;
   const readerProgress = readerPage.total > 0
     ? readerPage.current / readerPage.total
     : selectedBook?.progressPercent

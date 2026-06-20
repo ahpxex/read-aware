@@ -6,7 +6,7 @@ export type Id = string;
 /** ISO-8601 timestamp string. */
 export type IsoDate = string;
 
-export type BookFormat = "epub" | "pdf";
+export type BookFormat = "epub" | "mobi" | "azw3" | "fb2" | "pdf";
 
 export interface UserProfile {
   id: Id;

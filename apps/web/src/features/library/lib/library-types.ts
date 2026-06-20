@@ -1,9 +1,15 @@
-export type BookFormat = "epub";
+import type { BookFormat } from "@read-aware/core";
+
+export type { BookFormat };
 
 export type ReadingStatus = "unread" | "reading" | "finished";
 
-export type EpubProgress = {
-  format: "epub";
+/**
+ * Reading position for any format. Reflowable books (EPUB/MOBI/AZW3/FB2) carry a
+ * CFI anchor; fixed-layout books (PDF) leave `cfi` null and rely on the location
+ * index. `currentLocation`/`totalLocations` drive the "page/loc X of N" readout.
+ */
+export type ReaderProgress = {
   currentLocation: number;
   totalLocations: number;
   progressPercent: number;
@@ -11,7 +17,7 @@ export type EpubProgress = {
   href: string | null;
 };
 
-export type BookProgress = EpubProgress | null;
+export type BookProgress = ReaderProgress | null;
 
 export interface LibraryBook {
   id: string;

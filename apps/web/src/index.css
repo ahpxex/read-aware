@@ -41,6 +41,20 @@
   --ra-reader-selection-color: rgb(168 162 158 / 0.34);
   --ra-reader-selection-highlight-color: rgb(168 162 158 / 0.44);
   --ra-reader-selection-accent-color: rgb(120 113 108 / 0.82);
+
+  /* Custom window chrome. Zero by default (browser / non-mac) so the layout is
+     untouched; the desktop shell opts in via the data attributes below. */
+  --ra-titlebar-height: 0px;
+  --ra-traffic-light-inset: 0px;
+}
+
+/* macOS desktop (Tauri): the native title bar is hidden via titleBarStyle
+   "Overlay", so the webview extends to the top of the window and we render our
+   own draggable chrome. Reserve a titlebar band and horizontal clearance for
+   the native traffic lights that float over the top-left corner. */
+html[data-tauri="true"][data-os="mac"] {
+  --ra-titlebar-height: 2rem;
+  --ra-traffic-light-inset: 4.75rem;
 }
 
 *,

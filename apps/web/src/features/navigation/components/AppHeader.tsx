@@ -28,8 +28,12 @@ export function AppHeader({
 
   return (
     <div className="shrink-0 border-b border-border bg-[var(--ra-main-surface-color)]">
-      <div className="flex items-center justify-center py-1 text-eyebrow font-medium uppercase tracking-eyebrow text-stone-400">
-        ReadAware
+      <div
+        data-tauri-drag-region=""
+        style={{ minHeight: "var(--ra-titlebar-height)" }}
+        className="flex items-center justify-center py-1 text-eyebrow font-medium uppercase tracking-eyebrow text-stone-400"
+      >
+        <span className="pointer-events-none select-none">ReadAware</span>
       </div>
       <header className="pt-3 pb-3 sm:pt-4 sm:pb-4">
         <nav

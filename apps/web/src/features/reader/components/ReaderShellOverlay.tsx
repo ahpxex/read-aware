@@ -39,10 +39,16 @@ export function ReaderShellOverlay({
         "pointer-events-none fixed inset-0 z-50 flex min-h-0 flex-col overflow-hidden",
       )}
     >
-      {/* Top bar */}
+      {/* Top bar — doubles as the window drag region on desktop, with left
+          padding that clears the macOS traffic lights when present. */}
       <div
+        data-tauri-drag-region=""
+        style={{
+          paddingLeft: "max(1.25rem, var(--ra-traffic-light-inset))",
+          paddingRight: "1.25rem",
+        }}
         className={cn(
-          "pointer-events-auto shrink-0 border-b border-stone-200/60 bg-stone-100/90 px-5 py-3 backdrop-blur-sm transition-all duration-250 ease-out",
+          "pointer-events-auto shrink-0 border-b border-stone-200/60 bg-stone-100/90 py-3 backdrop-blur-sm transition-all duration-250 ease-out",
           visible
             ? "translate-y-0 opacity-100"
             : "-translate-y-full opacity-0 pointer-events-none",
@@ -59,7 +65,7 @@ export function ReaderShellOverlay({
           </button>
 
           {title && (
-            <div className="min-w-0 flex-1 text-center">
+            <div className="pointer-events-none min-w-0 flex-1 text-center">
               <Body
                 className="truncate text-sm font-medium text-stone-950"
               >

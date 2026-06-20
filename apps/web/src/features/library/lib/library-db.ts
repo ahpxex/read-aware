@@ -129,6 +129,7 @@ function createLibraryBook(
     mimeType: file.type || "",
     fileSize: file.size,
     coverUrl: metadata.coverUrl,
+    coverChecked: true,
     createdAt: now,
     updatedAt: now,
     lastOpenedAt: null,
@@ -154,16 +155,27 @@ async function saveBookRecord(book: LibraryBook) {
 }
 
 async function hydrateMissingBookCovers(books: LibraryBook[]) {
-  const booksMissingCovers = books.filter((book) => book.coverUrl === undefined);
+  // Re-extract covers for records that have no cover and were never checked:
+  // legacy books imported before cover extraction, or imports whose extraction
+  // failed transiently. `coverChecked` stops genuinely cover-less files from
+  // being re-parsed on every load.
+  const booksMissingCovers = books.filter(
+    (book) => !book.coverUrl && !book.coverChecked,
+  );
   if (booksMissingCovers.length === 0) return books;
 
   const repairedBooks = await Promise.all(booksMissingCovers.map(async (book) => {
     const blob = await getStoredBookBlob(book.id);
-    const file = blob ? new File([blob], book.fileName, { type: book.mimeType }) : null;
-    const coverUrl = file ? await extractBookCover(file) : null;
+    // No stored file yet — leave the record untouched so a later import of the
+    // file can still backfill the cover.
+    if (!blob) return book;
+
+    const file = new File([blob], book.fileName, { type: book.mimeType });
+    const coverUrl = await extractBookCover(file);
     const nextBook: LibraryBook = {
       ...book,
-      coverUrl,
+      coverUrl: coverUrl ?? null,
+      coverChecked: true,
     };
 
     await saveBookRecord(nextBook);

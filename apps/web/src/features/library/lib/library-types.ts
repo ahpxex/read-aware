@@ -28,6 +28,13 @@ export interface LibraryBook {
   mimeType: string;
   fileSize: number;
   coverUrl?: string | null;
+  /**
+   * Whether cover extraction has been attempted. Distinguishes "never tried"
+   * (legacy record or transient import failure — eligible for re-extraction)
+   * from "tried, file has no cover" (terminal — skip to avoid re-parsing the
+   * source on every library load).
+   */
+  coverChecked?: boolean;
   createdAt: string;
   updatedAt: string;
   lastOpenedAt: string | null;

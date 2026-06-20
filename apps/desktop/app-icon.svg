@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- ReadAware app icon. Editorial, paper-toned, monochrome stone.
+       Source of truth for the platform icons; regenerate by running the
+       tauri icon command (see apps/desktop README) against this file. -->
+  <rect x="64" y="64" width="896" height="896" rx="208" fill="#eee8d5"/>
+  <rect x="66.5" y="66.5" width="891" height="891" rx="205.5"
+        fill="none" stroke="#1c1917" stroke-opacity="0.12" stroke-width="5"/>
+
+  <!-- Open book: two paper pages on a warm cover, meeting at the spine -->
+  <g fill="#f7f3ec" stroke="#1c1917" stroke-width="38" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M512 400 C440 366 356 358 272 384 L272 648 C356 632 440 684 512 716 Z"/>
+    <path d="M512 400 C584 366 668 358 752 384 L752 648 C668 632 584 684 512 716 Z"/>
+  </g>
+
+  <!-- Faint text lines; only read at larger sizes, blur away when small -->
+  <g fill="none" stroke="#1c1917" stroke-opacity="0.55" stroke-width="18" stroke-linecap="round">
+    <path d="M336 466 C392 455 450 462 490 480"/>
+    <path d="M336 540 C392 529 450 536 490 554"/>
+    <path d="M688 466 C632 455 574 462 534 480"/>
+    <path d="M688 540 C632 529 574 536 534 554"/>
+  </g>
+</svg>

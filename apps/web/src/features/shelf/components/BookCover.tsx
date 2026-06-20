@@ -3,6 +3,7 @@ import { Info, Trash } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { useLocalAtom } from "@read-aware/ui/state";
 import type { LibraryBook } from "../../library/lib/library-types";
+import { BookCoverPlaceholder } from "./BookCoverPlaceholder";
 
 type BookCoverProps = {
   book: LibraryBook;
@@ -41,11 +42,19 @@ export function BookCover({ book, onClick, onRemove, className }: BookCoverProps
         className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-950 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-100"
       >
         <div className="relative aspect-[2/3] w-full overflow-hidden rounded-sm transition-shadow group-hover:shadow-md group-focus-within:shadow-md">
-          <img
-            src={book.coverUrl ?? `https://picsum.photos/seed/${book.id}/240/360`}
-            alt={`${book.title} cover`}
-            className="h-full w-full object-cover"
-          />
+          {book.coverUrl ? (
+            <img
+              src={book.coverUrl}
+              alt={`${book.title} cover`}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <BookCoverPlaceholder
+              title={book.title}
+              author={book.author}
+              format={book.format}
+            />
+          )}
         </div>
       </button>
 

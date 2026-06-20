@@ -4,7 +4,7 @@ import { cn } from "@read-aware/ui/cn";
 import { HIGHLIGHT_COLORS } from "../../reader/lib/highlight-renderer";
 import { useBookAnnotations } from "../hooks/useBookAnnotations";
 import type { Annotation, Highlight, Note, AIChat } from "../lib/annotation-types";
-import type { TocEntry } from "../../reader/lib/epub-types";
+import type { TocEntry } from "../../reader/lib/reader-types";
 import { normalizeHref } from "../../reader/lib/epub-utils";
 
 type AnnotationsSidebarProps = {

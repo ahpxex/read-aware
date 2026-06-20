@@ -1,0 +1,817 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Body, Heading, ScrollArea, Sidebar } from "@read-aware/ui";
+import { cn } from "@read-aware/ui/cn";
+import type { LibraryBook, ReaderProgress } from "../../library/lib/library-types";
+import { formatReaderError } from "../lib/format-reader-error";
+import {
+  getNormalizedSelectionText,
+  getSelectionOverlayRects,
+  type ReaderSelectionAppearance,
+  type ReaderSelectionState,
+  type SelectionOverlayRect,
+} from "../lib/selection-overlay";
+import { normalizeHref, flattenToc, findTocIndexForHref } from "../lib/epub-utils";
+import type { LoadedBook, TocEntry, TocNavItem } from "../lib/reader-types";
+import {
+  createFoliateView,
+  isFixedLayout as isFixedLayoutBook,
+  type FoliateLoadDetail,
+  type FoliateRelocateDetail,
+  type FoliateView,
+} from "../lib/foliate-engine";
+import { applyHighlight, applyHighlights, registerHighlightDrawing } from "../lib/highlight-renderer";
+import { ReaderSelectionOverlay } from "./ReaderSelectionOverlay";
+import { ReaderSelectionMenu } from "./ReaderSelectionMenu";
+import { NoteEditor } from "../../annotations/components/NoteEditor";
+import { AnnotationsSidebar } from "../../annotations/components/AnnotationsSidebar";
+import { AIChatPanel } from "../../ai/components/AIChatPanel";
+import type { Note, AIChat, Highlight } from "../../annotations/lib/annotation-types";
+import {
+  createHighlight,
+  createNote,
+  createAIChat,
+  addMessageToChat,
+  updateNote,
+  listHighlights,
+} from "../../annotations/lib/annotation-db";
+import { buildReaderContentCss } from "../../settings/lib/reader-css";
+import type { ReaderSettings } from "../../settings/lib/reader-settings";
+import { DEFAULT_READER_SETTINGS } from "../../settings/lib/reader-settings";
+
+type FoliateReaderViewProps = {
+  selectedBook?: LibraryBook | null;
+  initialBook?: LoadedBook | null;
+  readerSettings?: ReaderSettings;
+  annotationsSidebarOpen?: boolean;
+  onAnnotationsSidebarClose?: () => void;
+  onContentClick?: () => void;
+  onContentScroll?: () => void;
+  onPageChange?: (current: number, total: number) => void;
+  onProgressChange?: (progress: ReaderProgress) => void;
+  onTocChange?: (entries: TocEntry[]) => void;
+  onCurrentChapterChange?: (href: string | null) => void;
+  initialProgress?: ReaderProgress | null;
+  chapterNavigationRequest?: {
+    href: string;
+    requestId: number;
+  } | null;
+};
+
+const SELECTION_CLICK_SUPPRESSION_MS = 180;
+const SHELL_TAP_MAX_DURATION_MS = 220;
+const SHELL_TAP_MAX_MOVE_PX = 6;
+
+type ShellTapIntent = {
+  eligible: boolean;
+  moved: boolean;
+  startedAt: number;
+  startedWithSelection: boolean;
+  startX: number;
+  startY: number;
+};
+
+async function copyText(text: string) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  textarea.style.pointerEvents = "none";
+  document.body.append(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  textarea.remove();
+}
+
+function clampRectToViewport(
+  rect: SelectionOverlayRect,
+  frameRect: DOMRect,
+  viewportRect: DOMRect,
+): SelectionOverlayRect | null {
+  const left = frameRect.left + rect.left - viewportRect.left;
+  const top = frameRect.top + rect.top - viewportRect.top;
+  const right = frameRect.left + rect.left + rect.width - viewportRect.left;
+  const bottom = frameRect.top + rect.top + rect.height - viewportRect.top;
+
+  const clippedLeft = Math.max(0, left);
+  const clippedTop = Math.max(0, top);
+  const clippedRight = Math.min(viewportRect.width, right);
+  const clippedBottom = Math.min(viewportRect.height, bottom);
+  const width = clippedRight - clippedLeft;
+  const height = clippedBottom - clippedTop;
+
+  if (width <= 0 || height <= 0) return null;
+
+  return { left: clippedLeft, top: clippedTop, width, height };
+}
+
+function isShellOpenTarget(target: EventTarget | null, ownerDocument: Document) {
+  return target === ownerDocument.body || target === ownerDocument.documentElement;
+}
+
+export function FoliateReaderView({
+  selectedBook = null,
+  initialBook = null,
+  readerSettings = DEFAULT_READER_SETTINGS,
+  annotationsSidebarOpen = false,
+  onAnnotationsSidebarClose,
+  onContentClick,
+  onContentScroll,
+  onPageChange,
+  onProgressChange,
+  onTocChange,
+  onCurrentChapterChange,
+  initialProgress = null,
+  chapterNavigationRequest = null,
+}: FoliateReaderViewProps) {
+  const readerRootRef = useRef<HTMLElement | null>(null);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const viewRef = useRef<FoliateView | null>(null);
+  const lastLocationTargetRef = useRef<string | null>(null);
+  const loadedBookRef = useRef<LoadedBook | null>(null);
+  const tocEntriesRef = useRef<TocEntry[]>([]);
+  const currentChapterHrefRef = useRef<string | null>(null);
+  const selectionRef = useRef<ReaderSelectionState | null>(null);
+  const clearNativeSelectionRef = useRef<(() => void) | null>(null);
+  const suppressContentClickRef = useRef(false);
+  const suppressContentClickTimeoutRef = useRef<number | null>(null);
+  const shellTapIntentRef = useRef<ShellTapIntent | null>(null);
+  const shouldOpenShellOnClickRef = useRef(false);
+  const readerSettingsRef = useRef(readerSettings);
+  const highlightsRef = useRef<Highlight[]>([]);
+  const isFixedLayoutRef = useRef(false);
+
+  const onContentClickRef = useRef(onContentClick);
+  const onContentScrollRef = useRef(onContentScroll);
+  const onPageChangeRef = useRef(onPageChange);
+  const onProgressChangeRef = useRef(onProgressChange);
+  const onTocChangeRef = useRef(onTocChange);
+  const onCurrentChapterChangeRef = useRef(onCurrentChapterChange);
+
+  useEffect(() => { onContentClickRef.current = onContentClick; }, [onContentClick]);
+  useEffect(() => { onContentScrollRef.current = onContentScroll; }, [onContentScroll]);
+  useEffect(() => { onPageChangeRef.current = onPageChange; }, [onPageChange]);
+  useEffect(() => { onProgressChangeRef.current = onProgressChange; }, [onProgressChange]);
+  useEffect(() => { onTocChangeRef.current = onTocChange; }, [onTocChange]);
+  useEffect(() => { onCurrentChapterChangeRef.current = onCurrentChapterChange; }, [onCurrentChapterChange]);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [tocEntries, setTocEntries] = useState<TocEntry[]>([]);
+  const [currentChapterHref, setCurrentChapterHref] = useState<string | null>(null);
+  const [isChapterPickerOpen, setIsChapterPickerOpen] = useState(false);
+  const [isFixedLayout, setIsFixedLayout] = useState(false);
+  const [selection, setSelection] = useState<ReaderSelectionState | null>(null);
+  const [selectionOverlayAppearance, setSelectionOverlayAppearance] = useState<
+    Extract<ReaderSelectionAppearance, "highlight" | "underline"> | null
+  >(null);
+
+  const [noteEditorOpen, setNoteEditorOpen] = useState(false);
+  const [currentNote, setCurrentNote] = useState<Note | null>(null);
+  const [aiChatOpen, setAiChatOpen] = useState(false);
+  const [currentChat, setCurrentChat] = useState<AIChat | null>(null);
+
+  // Settings change -> re-inject reader CSS into all loaded sections.
+  useEffect(() => {
+    readerSettingsRef.current = readerSettings;
+    viewRef.current?.renderer?.setStyles?.(buildReaderContentCss(readerSettings));
+  }, [readerSettings]);
+
+  useEffect(() => { loadedBookRef.current = initialBook; }, [initialBook]);
+  useEffect(() => { tocEntriesRef.current = tocEntries; }, [tocEntries]);
+  useEffect(() => { onTocChangeRef.current?.(tocEntries); }, [tocEntries]);
+  useEffect(() => { currentChapterHrefRef.current = currentChapterHref; }, [currentChapterHref]);
+  useEffect(() => { onCurrentChapterChangeRef.current?.(currentChapterHref); }, [currentChapterHref]);
+
+  useEffect(() => {
+    lastLocationTargetRef.current = initialProgress?.cfi ?? initialProgress?.href ?? null;
+  }, [initialProgress?.cfi, initialProgress?.href]);
+
+  const clearNativeSelection = useCallback(() => {
+    try {
+      clearNativeSelectionRef.current?.();
+    } catch {
+      // Selection cleanup can race with section teardown during navigation.
+    } finally {
+      clearNativeSelectionRef.current = null;
+    }
+  }, []);
+
+  const cancelPendingShellOpen = useCallback(() => {
+    shouldOpenShellOnClickRef.current = false;
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    cancelPendingShellOpen();
+    clearNativeSelection();
+    selectionRef.current = null;
+    setSelectionOverlayAppearance(null);
+    suppressContentClickRef.current = false;
+    if (suppressContentClickTimeoutRef.current != null) {
+      window.clearTimeout(suppressContentClickTimeoutRef.current);
+      suppressContentClickTimeoutRef.current = null;
+    }
+    setSelection(null);
+  }, [cancelPendingShellOpen, clearNativeSelection]);
+
+  const armContentClickSuppression = useCallback(() => {
+    suppressContentClickRef.current = true;
+    cancelPendingShellOpen();
+    if (suppressContentClickTimeoutRef.current != null) {
+      window.clearTimeout(suppressContentClickTimeoutRef.current);
+    }
+    suppressContentClickTimeoutRef.current = window.setTimeout(() => {
+      suppressContentClickRef.current = false;
+      suppressContentClickTimeoutRef.current = null;
+    }, SELECTION_CLICK_SUPPRESSION_MS);
+  }, [cancelPendingShellOpen]);
+
+  const setSelectionAppearance = useCallback((appearance: ReaderSelectionAppearance) => {
+    setSelection((currentSelection) => {
+      if (!currentSelection) return null;
+      const nextSelection = { ...currentSelection, appearance };
+      const nextOverlayAppearance =
+        appearance === "highlight" || appearance === "underline" ? appearance : null;
+      setSelectionOverlayAppearance(nextOverlayAppearance);
+      if (nextOverlayAppearance) clearNativeSelection();
+      selectionRef.current = nextSelection;
+      return nextSelection;
+    });
+  }, [clearNativeSelection]);
+
+  const captureSelectionFromDoc = useCallback((
+    doc: Document,
+    index: number,
+    { suppressContentClick = false }: { suppressContentClick?: boolean } = {},
+  ) => {
+    const view = viewRef.current;
+    const readerRoot = readerRootRef.current;
+    const win = doc.defaultView;
+    const selectionInDoc = win?.getSelection?.() ?? doc.getSelection?.() ?? null;
+    const frameElement = win?.frameElement;
+    if (!view || !readerRoot || !(frameElement instanceof HTMLElement) || !selectionInDoc) {
+      clearSelection();
+      return false;
+    }
+
+    const text = getNormalizedSelectionText(selectionInDoc);
+    if (!text || selectionInDoc.rangeCount === 0) {
+      clearSelection();
+      return false;
+    }
+
+    const range = selectionInDoc.getRangeAt(0);
+    if (range.collapsed) {
+      clearSelection();
+      return false;
+    }
+
+    clearNativeSelectionRef.current = () => {
+      (win?.getSelection?.() ?? doc.getSelection?.())?.removeAllRanges();
+    };
+
+    const viewportRect = readerRoot.getBoundingClientRect();
+    const frameRect = frameElement.getBoundingClientRect();
+    const rects = getSelectionOverlayRects(range)
+      .map((rect) => clampRectToViewport(rect, frameRect, viewportRect))
+      .filter((rect): rect is SelectionOverlayRect => rect != null);
+
+    if (rects.length === 0) {
+      clearSelection();
+      return false;
+    }
+
+    let cfiRange: string | null = null;
+    try {
+      cfiRange = view.getCFI(index, range);
+    } catch {
+      cfiRange = null;
+    }
+
+    const nextSelection: ReaderSelectionState = {
+      anchorRect: rects[rects.length - 1] ?? null,
+      appearance: "selection",
+      cfiRange,
+      chapterHref: currentChapterHrefRef.current,
+      rects,
+      text,
+    };
+
+    setSelectionOverlayAppearance(null);
+    selectionRef.current = nextSelection;
+    setSelection(nextSelection);
+    if (suppressContentClick) armContentClickSuppression();
+
+    return true;
+  }, [armContentClickSuppression, clearSelection]);
+
+  // ----- chapter navigation (refs so stable across renders) -----------------
+
+  const goToChapter = useCallback(async (href: string) => {
+    const view = viewRef.current;
+    if (!view) return;
+    try {
+      setError(null);
+      clearSelection();
+      await view.goTo(href);
+      setIsChapterPickerOpen(false);
+    } catch (nextError) {
+      setError(formatReaderError(nextError));
+    }
+  }, [clearSelection]);
+
+  const goToAdjacentChapter = useCallback(async (direction: -1 | 1) => {
+    const entries = tocEntriesRef.current;
+    if (!entries.length) return;
+    const currentIndex = findTocIndexForHref(entries, currentChapterHrefRef.current);
+    if (currentIndex < 0) {
+      const fallback = direction === 1 ? entries[0] : entries[entries.length - 1];
+      if (fallback) await goToChapter(fallback.href);
+      return;
+    }
+    const nextEntry = entries[currentIndex + direction];
+    if (nextEntry) await goToChapter(nextEntry.href);
+  }, [goToChapter]);
+
+  const handleReaderKeyDown = useCallback((event: KeyboardEvent) => {
+    if (!loadedBookRef.current) return;
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    const target = event.target;
+    if (target instanceof HTMLElement &&
+      (target.isContentEditable || target.closest("input, textarea, select, [contenteditable='true']"))) {
+      return;
+    }
+
+    if (event.key.toLowerCase() === "c") {
+      event.preventDefault();
+      setIsChapterPickerOpen((open) => !open);
+    }
+    if (event.key === "Escape") {
+      clearSelection();
+      setIsChapterPickerOpen(false);
+    }
+    if (event.key === "[" || event.code === "BracketLeft") {
+      event.preventDefault();
+      void goToAdjacentChapter(-1);
+    }
+    if (event.key === "]" || event.code === "BracketRight") {
+      event.preventDefault();
+      void goToAdjacentChapter(1);
+    }
+  }, [clearSelection, goToAdjacentChapter]);
+
+  // ----- per-section listeners (attached on each `load`) --------------------
+
+  const attachDocListeners = useCallback((doc: Document, index: number) => {
+    doc.addEventListener("keydown", handleReaderKeyDown);
+
+    doc.addEventListener("pointerdown", (event) => {
+      cancelPendingShellOpen();
+      const hadSelection = !!selectionRef.current;
+      shellTapIntentRef.current = {
+        eligible: event.isPrimary && event.button === 0,
+        moved: false,
+        startedAt: performance.now(),
+        startedWithSelection: hadSelection,
+        startX: event.clientX,
+        startY: event.clientY,
+      };
+      if (hadSelection) {
+        clearSelection();
+        armContentClickSuppression();
+        return;
+      }
+      suppressContentClickRef.current = false;
+    }, true);
+
+    doc.addEventListener("pointermove", (event) => {
+      const intent = shellTapIntentRef.current;
+      if (!intent?.eligible || intent.moved) return;
+      if (
+        Math.abs(event.clientX - intent.startX) > SHELL_TAP_MAX_MOVE_PX ||
+        Math.abs(event.clientY - intent.startY) > SHELL_TAP_MAX_MOVE_PX
+      ) {
+        intent.moved = true;
+        intent.eligible = false;
+      }
+    }, true);
+
+    doc.addEventListener("pointercancel", () => {
+      shellTapIntentRef.current = null;
+      cancelPendingShellOpen();
+    }, true);
+
+    doc.addEventListener("pointerup", () => {
+      const intent = shellTapIntentRef.current;
+      shellTapIntentRef.current = null;
+
+      const sel = doc.defaultView?.getSelection?.() ?? doc.getSelection?.() ?? null;
+      const hasSelection =
+        !!sel &&
+        sel.rangeCount > 0 &&
+        !sel.getRangeAt(0).collapsed &&
+        getNormalizedSelectionText(sel).length > 0;
+
+      if (hasSelection) {
+        captureSelectionFromDoc(doc, index, { suppressContentClick: true });
+        shouldOpenShellOnClickRef.current = false;
+        return;
+      }
+
+      if (intent?.eligible) {
+        const wasQuickTap = performance.now() - intent.startedAt <= SHELL_TAP_MAX_DURATION_MS;
+        shouldOpenShellOnClickRef.current =
+          wasQuickTap && !intent.startedWithSelection && !selectionRef.current;
+      } else {
+        cancelPendingShellOpen();
+      }
+    }, true);
+
+    doc.addEventListener("click", (event) => {
+      if (suppressContentClickRef.current) {
+        suppressContentClickRef.current = false;
+        cancelPendingShellOpen();
+        return;
+      }
+      if (selectionRef.current) {
+        clearSelection();
+        return;
+      }
+      if (!shouldOpenShellOnClickRef.current) return;
+      if (!isShellOpenTarget(event.target, doc)) {
+        cancelPendingShellOpen();
+        return;
+      }
+      shouldOpenShellOnClickRef.current = false;
+      onContentClickRef.current?.();
+    }, true);
+
+    doc.addEventListener("scroll", () => {
+      clearSelection();
+      onContentScrollRef.current?.();
+    }, true);
+  }, [armContentClickSuppression, captureSelectionFromDoc, cancelPendingShellOpen, clearSelection, handleReaderKeyDown]);
+
+  // ----- global keydown + viewport resize -----------------------------------
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleReaderKeyDown);
+    return () => window.removeEventListener("keydown", handleReaderKeyDown);
+  }, [handleReaderKeyDown]);
+
+  useEffect(() => {
+    const element = viewportRef.current;
+    if (!element) return;
+    const observer = new ResizeObserver(() => clearSelection());
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [clearSelection]);
+
+  useEffect(() => {
+    return () => {
+      cancelPendingShellOpen();
+      if (suppressContentClickTimeoutRef.current != null) {
+        window.clearTimeout(suppressContentClickTimeoutRef.current);
+      }
+    };
+  }, [cancelPendingShellOpen]);
+
+  // ----- open the book ------------------------------------------------------
+
+  useEffect(() => {
+    const container = viewportRef.current;
+    if (!initialBook || !container) return;
+
+    let cancelled = false;
+    let view: FoliateView | null = null;
+    const cleanups: Array<() => void> = [];
+
+    clearSelection();
+    setIsLoading(true);
+    setError(null);
+    setTocEntries([]);
+    setCurrentChapterHref(null);
+    setIsFixedLayout(false);
+
+    void (async () => {
+      try {
+        const file =
+          initialBook.file instanceof File
+            ? initialBook.file
+            : new File([initialBook.file], initialBook.fileName, { type: initialBook.file.type });
+
+        view = await createFoliateView();
+        if (cancelled) return;
+        viewRef.current = view;
+        view.style.display = "block";
+        view.style.width = "100%";
+        view.style.height = "100%";
+        container.append(view);
+
+        await registerHighlightDrawing(view);
+        await view.open(file);
+        if (cancelled) return;
+
+        const book = view.book;
+        const fixedLayout = book ? isFixedLayoutBook(book) : false;
+        isFixedLayoutRef.current = fixedLayout;
+        setIsFixedLayout(fixedLayout);
+
+        // Continuous scroll for reflowable books (fixed-layout ignores `flow`).
+        view.renderer?.setAttribute("flow", "scrolled");
+        view.renderer?.setStyles?.(buildReaderContentCss(readerSettingsRef.current));
+
+        const entries = flattenToc((book?.toc ?? []) as unknown as TocNavItem[])
+          .map((entry, entryIndex) => ({ ...entry, spineIndex: entryIndex }));
+        if (!cancelled) setTocEntries(entries);
+
+        const onRelocate = (event: Event) => {
+          if (cancelled) return;
+          const detail = (event as CustomEvent<FoliateRelocateDetail>).detail;
+          clearSelection();
+          const fraction = Math.max(0, Math.min(1, detail.fraction ?? 0));
+          const current = detail.location?.current ?? 0;
+          const total = detail.location?.total ?? 0;
+          const cfi = detail.cfi ?? null;
+          const href = detail.tocItem?.href ?? null;
+          lastLocationTargetRef.current = cfi ?? href;
+          const progressPercent = Math.round(fraction * 100);
+          onPageChangeRef.current?.(current, total);
+          onProgressChangeRef.current?.({
+            currentLocation: current,
+            totalLocations: total,
+            progressPercent,
+            cfi,
+            href,
+          });
+          setCurrentChapterHref(href);
+        };
+
+        const onLoad = (event: Event) => {
+          const { doc, index } = (event as CustomEvent<FoliateLoadDetail>).detail;
+          attachDocListeners(doc, index);
+        };
+
+        const onCreateOverlay = () => {
+          if (view) applyHighlights(view, highlightsRef.current);
+        };
+
+        view.addEventListener("relocate", onRelocate);
+        view.addEventListener("load", onLoad);
+        view.addEventListener("create-overlay", onCreateOverlay);
+        cleanups.push(() => view?.removeEventListener("relocate", onRelocate));
+        cleanups.push(() => view?.removeEventListener("load", onLoad));
+        cleanups.push(() => view?.removeEventListener("create-overlay", onCreateOverlay));
+
+        if (selectedBook) {
+          try {
+            highlightsRef.current = await listHighlights(selectedBook.id);
+          } catch {
+            // Non-critical: highlights will be missing but reading continues.
+          }
+        }
+
+        const target = lastLocationTargetRef.current;
+        if (target) {
+          await view.goTo(target).catch(() => view?.renderer?.next?.());
+        } else {
+          await view.renderer?.next?.();
+        }
+        if (view) applyHighlights(view, highlightsRef.current);
+      } catch (nextError) {
+        if (!cancelled) setError(formatReaderError(nextError));
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      for (const cleanup of cleanups) cleanup();
+      highlightsRef.current = [];
+      try {
+        view?.renderer?.destroy?.();
+      } catch {
+        // Ignore teardown races.
+      }
+      view?.remove();
+      if (viewRef.current === view) viewRef.current = null;
+    };
+    // Keyed on selectedBook?.id (not the object): progress saves replace the
+    // selectedBook object each tick, and re-running this effect would tear down
+    // and rebuild the engine in a loop.
+  }, [attachDocListeners, clearSelection, initialBook, selectedBook?.id]);
+
+  useEffect(() => {
+    if (!chapterNavigationRequest?.href) return;
+    void goToChapter(chapterNavigationRequest.href);
+  }, [chapterNavigationRequest?.href, chapterNavigationRequest?.requestId, goToChapter]);
+
+  async function copySelectionToClipboard() {
+    const text = selectionRef.current?.text;
+    if (!text) return;
+    try {
+      await copyText(text);
+    } catch {
+      // Clipboard access can be unavailable outside a trusted user gesture.
+    }
+  }
+
+  async function handleHighlight(color: Highlight["color"] = "yellow") {
+    if (!selection || !selectedBook) return;
+    try {
+      const highlight = await createHighlight(
+        selectedBook.id,
+        selection.cfiRange,
+        selection.chapterHref,
+        selection.text,
+        color,
+      );
+      highlightsRef.current = [...highlightsRef.current, highlight];
+      if (viewRef.current) applyHighlight(viewRef.current, highlight);
+      clearSelection();
+    } catch (highlightError) {
+      console.error("Failed to save highlight:", highlightError);
+    }
+  }
+
+  function handleAddNote() {
+    if (!selection) return;
+    setCurrentNote(null);
+    setNoteEditorOpen(true);
+  }
+
+  async function handleSaveNote(content: string) {
+    if (!selection || !selectedBook) return;
+    try {
+      if (currentNote) {
+        await updateNote(currentNote.id, content);
+      } else {
+        await createNote(
+          selectedBook.id,
+          selection.cfiRange,
+          selection.chapterHref,
+          selection.text,
+          content,
+        );
+      }
+      setNoteEditorOpen(false);
+      clearSelection();
+    } catch (noteError) {
+      console.error("Failed to save note:", noteError);
+    }
+  }
+
+  function handleAskAI() {
+    if (!selection || !selectedBook) return;
+    const initialMessage = `I'm reading this passage: "${selection.text}". What are your thoughts?`;
+    void createAIChat(
+      selectedBook.id,
+      selection.cfiRange,
+      selection.chapterHref,
+      selection.text,
+      initialMessage,
+    ).then((chat) => {
+      setCurrentChat(chat);
+      setAiChatOpen(true);
+      clearSelection();
+    });
+  }
+
+  async function handleSendMessage(content: string) {
+    if (!currentChat) return;
+    try {
+      const updated = await addMessageToChat(currentChat.id, "user", content);
+      if (updated) setCurrentChat(updated);
+    } catch (messageError) {
+      console.error("Failed to send message:", messageError);
+    }
+  }
+
+  function handleUpdateChat(chat: AIChat) {
+    setCurrentChat(chat);
+  }
+
+  return (
+    <section ref={readerRootRef} className="relative h-full w-full overflow-hidden">
+      <div
+        ref={viewportRef}
+        aria-label={selectedBook?.title ?? initialBook?.fileName ?? "Book reader"}
+        className={cn("h-full w-full", (isLoading || !!error) && "opacity-0")}
+      />
+      <ReaderSelectionOverlay appearance={selectionOverlayAppearance} selection={selection} />
+      <ReaderSelectionMenu
+        selection={selection}
+        allowAnnotations={!isFixedLayout}
+        onCopy={copySelectionToClipboard}
+        onSetAppearance={setSelectionAppearance}
+        onHighlight={(color) => { void handleHighlight(color); }}
+        onAddNote={handleAddNote}
+        onAskAI={handleAskAI}
+      />
+
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-inherit">
+          <Body className="text-sm text-stone-600">
+            Opening {initialBook?.fileName ?? "book"}...
+          </Body>
+        </div>
+      )}
+
+      {error && (
+        <div className="absolute inset-0 flex items-center justify-center bg-inherit px-8 text-center">
+          <Body className="max-w-md text-sm text-red-800">{error}</Body>
+        </div>
+      )}
+
+      <Sidebar
+        side="right"
+        open={isChapterPickerOpen}
+        onClose={() => setIsChapterPickerOpen(false)}
+        label="Chapters"
+        width="w-80"
+      >
+        <div className="flex h-full flex-col gap-4 p-6">
+          <Heading as="h2" size="xl">
+            Chapters
+          </Heading>
+          <Body className="text-sm text-stone-600">
+            Press `[` or `]` to move between chapters, or pick one below.
+          </Body>
+          <ScrollArea className="h-full min-h-0 flex-1">
+            <div className="flex flex-col gap-1 pr-2">
+              {tocEntries.length === 0 ? (
+                <Body className="text-sm text-stone-600">
+                  No chapter list is available for this book.
+                </Body>
+              ) : (
+                tocEntries.map((entry) => (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    onClick={() => {
+                      void goToChapter(entry.href);
+                    }}
+                    className={cn(
+                      "w-full text-left font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950",
+                      normalizeHref(entry.href) === normalizeHref(currentChapterHref ?? "")
+                        ? "text-stone-950"
+                        : "text-stone-600 hover:text-stone-950",
+                      entry.depth === 1 && "pl-4",
+                      entry.depth >= 2 && "pl-8",
+                    )}
+                  >
+                    {entry.label}
+                  </button>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </div>
+      </Sidebar>
+
+      <AnnotationsSidebar
+        bookId={selectedBook?.id ?? null}
+        open={annotationsSidebarOpen}
+        onClose={() => onAnnotationsSidebarClose?.()}
+        onNavigateTo={(cfiRange) => {
+          if (viewRef.current && cfiRange) {
+            void viewRef.current.goTo(cfiRange);
+            onAnnotationsSidebarClose?.();
+          }
+        }}
+        tocEntries={tocEntries}
+      />
+
+      <NoteEditor
+        isOpen={noteEditorOpen}
+        selectedText={selection?.text || ""}
+        initialContent={currentNote?.content || ""}
+        onSave={handleSaveNote}
+        onCancel={() => {
+          setNoteEditorOpen(false);
+          clearSelection();
+        }}
+        isEditing={!!currentNote}
+      />
+
+      <AIChatPanel
+        isOpen={aiChatOpen}
+        selectedText={currentChat?.text || ""}
+        bookTitle={selectedBook?.title || ""}
+        chat={currentChat}
+        onClose={() => {
+          setAiChatOpen(false);
+          setCurrentChat(null);
+        }}
+        onSendMessage={handleSendMessage}
+        onUpdateChat={handleUpdateChat}
+      />
+    </section>
+  );
+}

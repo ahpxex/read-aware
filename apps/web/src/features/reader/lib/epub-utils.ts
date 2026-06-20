@@ -1,8 +1,8 @@
 import type {
-  EpubNavigationItem,
+  TocNavItem,
   TocEntry,
   SpineEntry,
-} from "./epub-types";
+} from "./reader-types";
 
 export function normalizeHref(href: string) {
   return href.split("#")[0];
@@ -31,7 +31,7 @@ export function findTocIndexForHref(entries: TocEntry[], href: string | null) {
 }
 
 export function flattenToc(
-  items: EpubNavigationItem[],
+  items: TocNavItem[],
   depth = 0,
 ): TocEntry[] {
   const flattened: Omit<TocEntry, "spineIndex">[] = [];

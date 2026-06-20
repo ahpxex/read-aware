@@ -2,20 +2,15 @@ import { useState } from "react";
 import { useAtomValue } from "jotai";
 import { Body, Button } from "@read-aware/ui";
 import { readerSettingsAtom } from "../../../state/ui";
-import type { LibraryBook, EpubProgress } from "../../library/lib/library-types";
+import type { BookFormat, LibraryBook, ReaderProgress } from "../../library/lib/library-types";
 import { READER_THEME_BG } from "../../settings/lib/reader-css";
-import { EpubReaderView } from "./EpubReaderView";
+import { FoliateReaderView } from "./FoliateReaderView";
 import { ReaderShellOverlay } from "./ReaderShellOverlay";
-import type { TocEntry } from "../lib/epub-types";
-import type { LoadedEpub } from "../lib/epub-types";
-
-type ReaderSource =
-  | { format: "epub"; data: LoadedEpub }
-  | null;
+import type { LoadedBook, TocEntry } from "../lib/reader-types";
 
 type ReaderWorkspaceProps = {
   selectedBook: LibraryBook;
-  readerSource: ReaderSource;
+  readerSource: { format: BookFormat; data: LoadedBook } | null;
   readerLoadError: string | null;
   isReaderLoading: boolean;
   readerToc: TocEntry[];
@@ -25,7 +20,7 @@ type ReaderWorkspaceProps = {
     requestId: number;
   } | null;
   overlayVisible: boolean;
-  selectedEpubProgress: EpubProgress | null;
+  selectedEpubProgress: ReaderProgress | null;
   readerProgress: number | undefined;
   currentPosition: string | undefined;
   onCloseReader: () => void;
@@ -33,7 +28,7 @@ type ReaderWorkspaceProps = {
   onToggleShell: () => void;
   onHideShell: () => void;
   onReaderPageChange: (current: number, total: number) => void;
-  onEpubProgressChange: (progress: EpubProgress) => void;
+  onEpubProgressChange: (progress: ReaderProgress) => void;
   onTocChange: (entries: TocEntry[]) => void;
   onCurrentChapterChange: (href: string | null) => void;
   onChapterSelect: (href: string) => void;
@@ -67,10 +62,10 @@ export function ReaderWorkspace({
 
   return (
     <div className="relative h-screen w-full" style={{ backgroundColor: themeBg }}>
-      {readerSource?.format === "epub" ? (
-        <EpubReaderView
+      {readerSource ? (
+        <FoliateReaderView
           selectedBook={selectedBook}
-          initialEpub={readerSource.data}
+          initialBook={readerSource.data}
           readerSettings={readerSettings}
           annotationsSidebarOpen={annotationsSidebarOpen}
           onAnnotationsSidebarClose={() => setAnnotationsSidebarOpen(false)}

@@ -14,6 +14,8 @@ type ReaderSelectionMenuProps = {
   onHighlight?: (color: Highlight["color"]) => void;
   onAddNote?: () => void;
   onAskAI?: () => void;
+  /** When false (e.g. fixed-layout PDF) only the copy action is offered. */
+  allowAnnotations?: boolean;
 };
 
 type MenuPosition = {
@@ -38,6 +40,7 @@ export function ReaderSelectionMenu({
   onHighlight,
   onAddNote,
   onAskAI,
+  allowAnnotations = true,
 }: ReaderSelectionMenuProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -180,40 +183,44 @@ export function ReaderSelectionMenu({
                 )
               }
             />
-            <IconButton
-              label="Highlight selection"
-              title="Highlight selection"
-              size="sm"
-              onClick={handleHighlightClick}
-              className={cn(
-                actionButtonClass,
-                selection.appearance === "highlight" && "bg-stone-100 text-stone-950",
-              )}
-              icon={<Highlighter size={14} weight="regular" aria-hidden="true" />}
-            />
-            <IconButton
-              label="Add a note"
-              title="Add a note"
-              size="sm"
-              onClick={handleAddNote}
-              className={cn(
-                actionButtonClass,
-                selection.appearance === "note" && "bg-stone-100 text-stone-950",
-              )}
-              icon={<NotePencil size={14} weight="regular" aria-hidden="true" />}
-            />
-            {aiConfigured && (
-              <IconButton
-                label="Ask AI about this"
-                title="Ask AI about this"
-                size="sm"
-                onClick={handleAskAI}
-                className={cn(
-                  actionButtonClass,
-                  "text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50",
+            {allowAnnotations && (
+              <>
+                <IconButton
+                  label="Highlight selection"
+                  title="Highlight selection"
+                  size="sm"
+                  onClick={handleHighlightClick}
+                  className={cn(
+                    actionButtonClass,
+                    selection.appearance === "highlight" && "bg-stone-100 text-stone-950",
+                  )}
+                  icon={<Highlighter size={14} weight="regular" aria-hidden="true" />}
+                />
+                <IconButton
+                  label="Add a note"
+                  title="Add a note"
+                  size="sm"
+                  onClick={handleAddNote}
+                  className={cn(
+                    actionButtonClass,
+                    selection.appearance === "note" && "bg-stone-100 text-stone-950",
+                  )}
+                  icon={<NotePencil size={14} weight="regular" aria-hidden="true" />}
+                />
+                {aiConfigured && (
+                  <IconButton
+                    label="Ask AI about this"
+                    title="Ask AI about this"
+                    size="sm"
+                    onClick={handleAskAI}
+                    className={cn(
+                      actionButtonClass,
+                      "text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50",
+                    )}
+                    icon={<ChatCircleDots size={14} weight="regular" aria-hidden="true" />}
+                  />
                 )}
-                icon={<ChatCircleDots size={14} weight="regular" aria-hidden="true" />}
-              />
+              </>
             )}
           </>
         )}

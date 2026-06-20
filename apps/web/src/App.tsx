@@ -66,7 +66,7 @@ function App() {
       <input
         ref={library.importInputRef}
         type="file"
-        accept=".epub,application/epub+zip"
+        accept=".epub,.mobi,.azw3,.fb2,.pdf,application/epub+zip,application/pdf,application/x-fictionbook+xml"
         multiple
         className="hidden"
         onChange={(event) => {

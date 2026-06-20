@@ -1,10 +1,12 @@
 import type {
+  BookFormat,
   BookProgress,
   LibraryBook,
   ReadingStatus,
   StoredBookFile,
 } from "./library-types";
-import { extractBookCover } from "./library-cover";
+import { extractBookCover, extractBookMetadata } from "./library-cover";
+import type { ExtractedBookMetadata } from "./library-cover";
 
 const DB_NAME = "read-aware-library";
 const DB_VERSION = 1;
@@ -78,13 +80,25 @@ function parseFileName(fileName: string) {
   return { title, author };
 }
 
-function detectBookFormat(file: File): "epub" {
-  const lowerName = file.name.toLowerCase();
-  if (lowerName.endsWith(".epub") || file.type === "application/epub+zip") {
-    return "epub";
+function detectBookFormat(file: File): BookFormat {
+  const name = file.name.toLowerCase();
+  const type = file.type;
+  if (name.endsWith(".epub") || type === "application/epub+zip") return "epub";
+  if (name.endsWith(".pdf") || type === "application/pdf") return "pdf";
+  if (name.endsWith(".mobi") || name.endsWith(".prc")) return "mobi";
+  if (name.endsWith(".azw3") || name.endsWith(".azw") || name.endsWith(".kf8")) return "azw3";
+  if (
+    name.endsWith(".fb2") ||
+    name.endsWith(".fb2.zip") ||
+    name.endsWith(".fbz") ||
+    type === "application/x-fictionbook+xml"
+  ) {
+    return "fb2";
   }
 
-  throw new Error(`Unsupported file type: ${file.name}. Only EPUB files are supported.`);
+  throw new Error(
+    `Unsupported file type: ${file.name}. Supported formats: EPUB, MOBI, AZW3, FB2, PDF.`,
+  );
 }
 
 function clampProgressPercent(value: number) {
@@ -98,19 +112,23 @@ function getReadingStatus(progressPercent: number): ReadingStatus {
   return "unread";
 }
 
-function createLibraryBook(file: File, coverUrl: string | null): LibraryBook {
+function createLibraryBook(
+  file: File,
+  format: BookFormat,
+  metadata: ExtractedBookMetadata,
+): LibraryBook {
   const now = new Date().toISOString();
-  const { title, author } = parseFileName(file.name);
+  const parsed = parseFileName(file.name);
 
   return {
     id: crypto.randomUUID(),
-    title,
-    author,
-    format: "epub",
+    title: metadata.title?.trim() || parsed.title,
+    author: metadata.author?.trim() || parsed.author,
+    format,
     fileName: file.name,
-    mimeType: file.type || "application/epub+zip",
+    mimeType: file.type || "",
     fileSize: file.size,
-    coverUrl,
+    coverUrl: metadata.coverUrl,
     createdAt: now,
     updatedAt: now,
     lastOpenedAt: null,
@@ -140,7 +158,8 @@ async function hydrateMissingBookCovers(books: LibraryBook[]) {
   if (booksMissingCovers.length === 0) return books;
 
   const repairedBooks = await Promise.all(booksMissingCovers.map(async (book) => {
-    const file = await getStoredBookBlob(book.id);
+    const blob = await getStoredBookBlob(book.id);
+    const file = blob ? new File([blob], book.fileName, { type: book.mimeType }) : null;
     const coverUrl = file ? await extractBookCover(file) : null;
     const nextBook: LibraryBook = {
       ...book,
@@ -164,9 +183,9 @@ export async function listLibraryBooks() {
 }
 
 export async function importBookFile(file: File) {
-  detectBookFormat(file);
-  const coverUrl = await extractBookCover(file);
-  const book = createLibraryBook(file, coverUrl);
+  const format = detectBookFormat(file);
+  const metadata = await extractBookMetadata(file);
+  const book = createLibraryBook(file, format, metadata);
   const db = await openLibraryDb();
   const transaction = db.transaction([BOOKS_STORE, FILES_STORE], "readwrite");
   transaction.objectStore(BOOKS_STORE).put(book);

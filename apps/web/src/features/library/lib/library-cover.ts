@@ -1,9 +1,12 @@
-const EPUB_COVER_ERROR_PREFIX = "Unable to extract EPUB cover";
+import { foliateAuthor, foliateTitle, makeFoliateBook } from "../../reader/lib/foliate-engine";
 
-type EpubBookLike = {
-  ready: Promise<unknown>;
-  coverUrl: () => Promise<string | null>;
-  destroy: () => void;
+const METADATA_ERROR_PREFIX = "Unable to read book metadata";
+const COVER_ERROR_PREFIX = "Unable to extract book cover";
+
+export type ExtractedBookMetadata = {
+  title: string | null;
+  author: string | null;
+  coverUrl: string | null;
 };
 
 function blobToDataUrl(blob: Blob) {
@@ -14,7 +17,6 @@ function blobToDataUrl(blob: Blob) {
         resolve(reader.result);
         return;
       }
-
       reject(new Error("Unable to read extracted cover data."));
     };
     reader.onerror = () => reject(reader.error ?? new Error("Unable to read extracted cover data."));
@@ -22,40 +24,33 @@ function blobToDataUrl(blob: Blob) {
   });
 }
 
-function revokeObjectUrl(url: string | null) {
-  if (url?.startsWith("blob:")) {
-    URL.revokeObjectURL(url);
-  }
-}
-
-async function extractEpubCover(file: Blob) {
-  const epubModule = await import("epubjs");
-  const createBook = epubModule.default as unknown as (input: ArrayBuffer) => EpubBookLike;
-  const book = createBook(await file.arrayBuffer());
-  let coverUrl: string | null = null;
-
+/**
+ * Parse a book file with the foliate engine to pull title, author, and a cover
+ * data URL. Works uniformly across EPUB / MOBI / AZW3 / FB2 / PDF. Best-effort —
+ * any failure degrades to nulls so import never blocks on a malformed file.
+ */
+export async function extractBookMetadata(file: File): Promise<ExtractedBookMetadata> {
   try {
-    await book.ready;
-    coverUrl = await book.coverUrl();
-    if (!coverUrl) return null;
+    const book = await makeFoliateBook(file);
+    const title = foliateTitle(book) || null;
+    const author = foliateAuthor(book) || null;
 
-    const response = await fetch(coverUrl);
-    if (!response.ok) {
-      throw new Error(`${EPUB_COVER_ERROR_PREFIX}: ${response.status}`);
+    let coverUrl: string | null = null;
+    try {
+      const cover = await book.getCover?.();
+      if (cover) coverUrl = await blobToDataUrl(cover);
+    } catch (error) {
+      console.warn(COVER_ERROR_PREFIX, error);
     }
 
-    return blobToDataUrl(await response.blob());
-  } finally {
-    revokeObjectUrl(coverUrl);
-    book.destroy();
+    return { title, author, coverUrl };
+  } catch (error) {
+    console.warn(METADATA_ERROR_PREFIX, error);
+    return { title: null, author: null, coverUrl: null };
   }
 }
 
-export async function extractBookCover(file: Blob) {
-  try {
-    return await extractEpubCover(file);
-  } catch (error) {
-    console.warn(EPUB_COVER_ERROR_PREFIX, error);
-    return null;
-  }
+/** Cover-only helper for back-filling existing library records. */
+export async function extractBookCover(file: File): Promise<string | null> {
+  return (await extractBookMetadata(file)).coverUrl;
 }

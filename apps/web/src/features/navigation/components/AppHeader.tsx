@@ -1,8 +1,7 @@
-import { GearSix, MagnifyingGlass, Plus } from "@phosphor-icons/react";
-import { IconButton, NavItem, Tooltip } from "@read-aware/ui";
+import { Cards, GearSix, MagnifyingGlass, Plus } from "@phosphor-icons/react";
+import { IconButton, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
-import { topNavs, type TopNav } from "../../../state/ui";
-import { useTopNavIndicator } from "../hooks/useTopNavIndicator";
+import type { TopNav } from "../../../state/ui";
 
 type AppHeaderProps = {
   activeTopNav: TopNav;
@@ -16,6 +15,11 @@ type AppHeaderProps = {
 const headerIconButtonClass =
   "relative text-stone-500 hover:text-stone-950 before:absolute before:-inset-1 before:content-['']";
 
+/**
+ * A single, draggable top bar — no separate title band, no tab switcher, no
+ * wordmark: just the native traffic lights on the left (the bar is the window
+ * drag region) and a right cluster of icon actions.
+ */
 export function AppHeader({
   activeTopNav,
   isImporting,
@@ -24,82 +28,58 @@ export function AppHeader({
   onOpenSearch,
   onTopNavChange,
 }: AppHeaderProps) {
-  const { indicator, navListRef, navButtonRefs } = useTopNavIndicator(activeTopNav);
+  const contextActive = activeTopNav === "context";
 
   return (
-    <div className="shrink-0 border-b border-border bg-[var(--ra-main-surface-color)]">
+    <header className="shrink-0 border-b border-border bg-[var(--ra-main-surface-color)]">
       <div
         data-tauri-drag-region=""
-        style={{ minHeight: "var(--ra-titlebar-height)" }}
-        className="flex items-center justify-center py-1 text-eyebrow font-medium uppercase tracking-eyebrow text-stone-400"
+        className="flex h-12 items-center px-5"
       >
-        <span className="pointer-events-none select-none">ReadAware</span>
-      </div>
-      <header className="pt-3 pb-3 sm:pt-4 sm:pb-4">
-        <nav
-          aria-label="Primary"
-          className="mx-auto flex max-w-screen-2xl items-center gap-6 px-6 sm:gap-8"
-        >
-          <div ref={navListRef} className="relative flex items-center gap-6 sm:gap-8">
-            <span
-              aria-hidden="true"
-              className={cn(
-                "pointer-events-none absolute -bottom-[calc(theme(spacing.4)+1px)] left-0 h-0.5 bg-stone-950 transition-[transform,width,opacity] duration-250 ease-[var(--ra-ease-out-quint)] motion-reduce:transition-none",
-                !indicator.ready && "opacity-0",
-              )}
-              style={{
-                width: indicator.width,
-                transform: `translateX(${indicator.x}px)`,
-              }}
+        <div className="ml-auto flex items-center gap-1.5">
+          <Tooltip content="Search">
+            <IconButton
+              label="Search"
+              size="sm"
+              onClick={onOpenSearch}
+              className={headerIconButtonClass}
+              icon={<MagnifyingGlass size={16} weight="regular" aria-hidden="true" />}
             />
-            {topNavs.map((item, index) => (
-              <NavItem
-                key={item}
-                ref={(element) => {
-                  navButtonRefs.current[index] = element;
-                }}
-                active={item === activeTopNav}
-                onClick={() => {
-                  onTopNavChange(item);
-                }}
-              >
-                {item}
-              </NavItem>
-            ))}
-          </div>
-
-          <div className="ml-auto flex items-center gap-4">
-            <Tooltip content="Search">
-              <IconButton
-                label="Search"
-                size="sm"
-                onClick={onOpenSearch}
-                className={headerIconButtonClass}
-                icon={<MagnifyingGlass size={14} weight="regular" aria-hidden="true" />}
-              />
-            </Tooltip>
-            <Tooltip content={isImporting ? "Importing..." : "Import"}>
-              <IconButton
-                label="Import"
-                size="sm"
-                onClick={onImport}
-                disabled={isImporting}
-                className={headerIconButtonClass}
-                icon={<Plus size={14} weight="regular" aria-hidden="true" />}
-              />
-            </Tooltip>
-            <Tooltip content="Settings">
-              <IconButton
-                label="Settings"
-                size="sm"
-                onClick={onOpenSettings}
-                className={headerIconButtonClass}
-                icon={<GearSix size={14} weight="regular" aria-hidden="true" />}
-              />
-            </Tooltip>
-          </div>
-        </nav>
-      </header>
-    </div>
+          </Tooltip>
+          <Tooltip content={isImporting ? "Importing..." : "Import"}>
+            <IconButton
+              label="Import"
+              size="sm"
+              onClick={onImport}
+              disabled={isImporting}
+              className={headerIconButtonClass}
+              icon={<Plus size={16} weight="regular" aria-hidden="true" />}
+            />
+          </Tooltip>
+          <Tooltip content="Context">
+            <IconButton
+              label="Context"
+              size="sm"
+              aria-pressed={contextActive}
+              onClick={() => onTopNavChange(contextActive ? "shelf" : "context")}
+              className={cn(
+                "relative before:absolute before:-inset-1 before:content-['']",
+                contextActive ? "text-stone-950" : "text-stone-500 hover:text-stone-950",
+              )}
+              icon={<Cards size={16} weight={contextActive ? "fill" : "regular"} aria-hidden="true" />}
+            />
+          </Tooltip>
+          <Tooltip content="Settings">
+            <IconButton
+              label="Settings"
+              size="sm"
+              onClick={onOpenSettings}
+              className={headerIconButtonClass}
+              icon={<GearSix size={16} weight="regular" aria-hidden="true" />}
+            />
+          </Tooltip>
+        </div>
+      </div>
+    </header>
   );
 }

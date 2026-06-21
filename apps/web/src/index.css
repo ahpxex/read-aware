@@ -25,6 +25,9 @@
 
 :root {
   color-scheme: light;
+  /* Suppress the rubber-band / scroll-chaining overscroll so the desktop
+     shell feels native (no document-edge bounce or pull-to-refresh). */
+  overscroll-behavior: none;
   background-color: var(--color-paper);
   color: #1c1917;
   font-family: var(--font-sans);
@@ -69,6 +72,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  overscroll-behavior: none;
   background-color: var(--color-paper);
 }
 

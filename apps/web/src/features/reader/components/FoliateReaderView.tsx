@@ -14,6 +14,7 @@ import { normalizeHref, flattenToc, findTocIndexForHref } from "../lib/epub-util
 import type { LoadedBook, TocEntry, TocNavItem } from "../lib/reader-types";
 import {
   createFoliateView,
+  getScrollEdges,
   isFixedLayout as isFixedLayoutBook,
   type FoliateLoadDetail,
   type FoliateRelocateDetail,
@@ -35,7 +36,7 @@ import {
   listHighlights,
 } from "../../annotations/lib/annotation-db";
 import { buildReaderContentCss } from "../../settings/lib/reader-css";
-import type { ReaderSettings } from "../../settings/lib/reader-settings";
+import type { ReaderSettings, ReadingMode } from "../../settings/lib/reader-settings";
 import { DEFAULT_READER_SETTINGS } from "../../settings/lib/reader-settings";
 
 type FoliateReaderViewProps = {
@@ -60,6 +61,34 @@ type FoliateReaderViewProps = {
 const SELECTION_CLICK_SUPPRESSION_MS = 180;
 const SHELL_TAP_MAX_DURATION_MS = 220;
 const SHELL_TAP_MAX_MOVE_PX = 6;
+// Fraction of the page width on each edge that acts as a page-turn tap zone;
+// the remaining center band toggles the reader shell.
+const TAP_TURN_ZONE_RATIO = 0.3;
+// Cooldown after crossing into an adjacent section, so one wheel gesture (many
+// events) advances a single section rather than racing through several.
+const SECTION_CROSS_COOLDOWN_MS = 350;
+// Scroll-mode section crossing is intentionally deliberate: once the viewport is
+// pinned at a section edge, the wheel must push past it by this much before the
+// adjacent section loads — so a gentle scroll to the end does not "turn" on its
+// own. The accumulator resets if the push pauses.
+const SECTION_CROSS_OVERSCROLL_PX = 260;
+const OVERSCROLL_RESET_MS = 220;
+
+/** Map a reading mode to the foliate renderer's `flow` + column attributes. */
+function layoutForReadingMode(mode: ReadingMode): {
+  flow: "scrolled" | "paginated";
+  maxColumnCount: number;
+} {
+  switch (mode) {
+    case "paginated-single":
+      return { flow: "paginated", maxColumnCount: 1 };
+    case "paginated-double":
+      return { flow: "paginated", maxColumnCount: 2 };
+    case "scroll":
+    default:
+      return { flow: "scrolled", maxColumnCount: 1 };
+  }
+}
 
 type ShellTapIntent = {
   eligible: boolean;
@@ -110,10 +139,6 @@ function clampRectToViewport(
   return { left: clippedLeft, top: clippedTop, width, height };
 }
 
-function isShellOpenTarget(target: EventTarget | null, ownerDocument: Document) {
-  return target === ownerDocument.body || target === ownerDocument.documentElement;
-}
-
 export function FoliateReaderView({
   selectedBook = null,
   initialBook = null,
@@ -146,6 +171,13 @@ export function FoliateReaderView({
   const readerSettingsRef = useRef(readerSettings);
   const highlightsRef = useRef<Highlight[]>([]);
   const isFixedLayoutRef = useRef(false);
+
+  const readingMode = readerSettings.readingMode;
+  const readingModeRef = useRef(readingMode);
+  const crossingSectionRef = useRef(false);
+  const overscrollRef = useRef(0);
+  const overscrollResetTimerRef = useRef<number | null>(null);
+  useEffect(() => { readingModeRef.current = readingMode; }, [readingMode]);
 
   const onContentClickRef = useRef(onContentClick);
   const onContentScrollRef = useRef(onContentScroll);
@@ -315,6 +347,43 @@ export function FoliateReaderView({
     return true;
   }, [armContentClickSuppression, clearSelection]);
 
+  // ----- page turning -------------------------------------------------------
+
+  const turnPage = useCallback(async (direction: -1 | 1) => {
+    const view = viewRef.current;
+    if (!view) return;
+    clearSelection();
+    try {
+      await (direction === 1 ? view.next() : view.prev());
+    } catch {
+      // At the first/last page, or a teardown race during navigation — no-op.
+    }
+  }, [clearSelection]);
+
+  // Kept in a ref so the per-section document listeners can call the latest
+  // `turnPage` without re-subscribing (which would tear down the engine).
+  const turnPageRef = useRef(turnPage);
+  useEffect(() => { turnPageRef.current = turnPage; }, [turnPage]);
+
+  // Continuous-scroll lazy loading: when the reader reaches the top/bottom of
+  // the current section and the wheel keeps pushing, load the adjacent section.
+  // The engine keeps only the current section live, so memory stays bounded.
+  const crossSection = useCallback(async (direction: -1 | 1) => {
+    if (crossingSectionRef.current) return;
+    const view = viewRef.current;
+    if (!view) return;
+    crossingSectionRef.current = true;
+    try {
+      await (direction === 1 ? view.next() : view.prev());
+    } catch {
+      // At the first/last section, or a teardown race — no-op.
+    } finally {
+      window.setTimeout(() => { crossingSectionRef.current = false; }, SECTION_CROSS_COOLDOWN_MS);
+    }
+  }, []);
+  const crossSectionRef = useRef(crossSection);
+  useEffect(() => { crossSectionRef.current = crossSection; }, [crossSection]);
+
   // ----- chapter navigation (refs so stable across renders) -----------------
 
   const goToChapter = useCallback(async (href: string) => {
@@ -368,7 +437,29 @@ export function FoliateReaderView({
       event.preventDefault();
       void goToAdjacentChapter(1);
     }
-  }, [clearSelection, goToAdjacentChapter]);
+    // Page turning. Left/right are direction-aware (RTL-correct); the vertical
+    // keys and space map to forward/back directly.
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      void viewRef.current?.goRight?.();
+    }
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      void viewRef.current?.goLeft?.();
+    }
+    if (event.key === "ArrowDown" || event.key === "PageDown") {
+      event.preventDefault();
+      void turnPage(1);
+    }
+    if (event.key === "ArrowUp" || event.key === "PageUp") {
+      event.preventDefault();
+      void turnPage(-1);
+    }
+    if (event.key === " " || event.code === "Space") {
+      event.preventDefault();
+      void turnPage(event.shiftKey ? -1 : 1);
+    }
+  }, [clearSelection, goToAdjacentChapter, turnPage]);
 
   // ----- per-section listeners (attached on each `load`) --------------------
 
@@ -448,18 +539,71 @@ export function FoliateReaderView({
         return;
       }
       if (!shouldOpenShellOnClickRef.current) return;
-      if (!isShellOpenTarget(event.target, doc)) {
-        cancelPendingShellOpen();
+      shouldOpenShellOnClickRef.current = false;
+
+      // Let in-book links and controls handle their own taps.
+      const target = event.target;
+      if (
+        target instanceof Element &&
+        target.closest("a, button, input, textarea, select, label, summary, [role='link'], [role='button']")
+      ) {
         return;
       }
-      shouldOpenShellOnClickRef.current = false;
-      onContentClickRef.current?.();
+
+      // Tap zones (paginated only): left edge turns back, right edge turns
+      // forward, center toggles the reader shell. In scroll mode every tap just
+      // toggles the shell, since scrolling — not tapping — drives navigation.
+      const paginated = readingModeRef.current !== "scroll";
+      const pageWidth = doc.documentElement.clientWidth || doc.body?.clientWidth || 0;
+      const x = (event as MouseEvent).clientX;
+      if (paginated && pageWidth > 0 && x < pageWidth * TAP_TURN_ZONE_RATIO) {
+        void turnPageRef.current(-1);
+      } else if (paginated && pageWidth > 0 && x > pageWidth * (1 - TAP_TURN_ZONE_RATIO)) {
+        void turnPageRef.current(1);
+      } else {
+        onContentClickRef.current?.();
+      }
     }, true);
 
     doc.addEventListener("scroll", () => {
       clearSelection();
       onContentScrollRef.current?.();
     }, true);
+
+    // Continuous-scroll mode: bridge section boundaries. Native scroll handles
+    // within a section; when the wheel pushes past the top/bottom edge, lazily
+    // load the adjacent section (the engine unloads the one left behind).
+    doc.addEventListener("wheel", (event) => {
+      if (readingModeRef.current !== "scroll") return;
+      const edges = getScrollEdges(viewRef.current);
+      if (!edges) return;
+
+      const pushingPastEnd = event.deltaY > 0 && edges.atBottom;
+      const pushingPastStart = event.deltaY < 0 && edges.atTop;
+      if (!pushingPastEnd && !pushingPastStart) {
+        // Scrolling within the section (or away from the edge): not a crossing.
+        overscrollRef.current = 0;
+        return;
+      }
+
+      // Accumulate the push past the edge; only cross after a deliberate amount,
+      // and reset the accumulator if the push pauses.
+      overscrollRef.current += event.deltaY;
+      if (overscrollResetTimerRef.current != null) {
+        window.clearTimeout(overscrollResetTimerRef.current);
+      }
+      overscrollResetTimerRef.current = window.setTimeout(() => {
+        overscrollRef.current = 0;
+      }, OVERSCROLL_RESET_MS);
+
+      if (overscrollRef.current >= SECTION_CROSS_OVERSCROLL_PX) {
+        overscrollRef.current = 0;
+        void crossSectionRef.current(1);
+      } else if (overscrollRef.current <= -SECTION_CROSS_OVERSCROLL_PX) {
+        overscrollRef.current = 0;
+        void crossSectionRef.current(-1);
+      }
+    }, { passive: true });
   }, [armContentClickSuppression, captureSelectionFromDoc, cancelPendingShellOpen, clearSelection, handleReaderKeyDown]);
 
   // ----- global keydown + viewport resize -----------------------------------
@@ -482,6 +626,9 @@ export function FoliateReaderView({
       cancelPendingShellOpen();
       if (suppressContentClickTimeoutRef.current != null) {
         window.clearTimeout(suppressContentClickTimeoutRef.current);
+      }
+      if (overscrollResetTimerRef.current != null) {
+        window.clearTimeout(overscrollResetTimerRef.current);
       }
     };
   }, [cancelPendingShellOpen]);
@@ -527,8 +674,12 @@ export function FoliateReaderView({
         isFixedLayoutRef.current = fixedLayout;
         setIsFixedLayout(fixedLayout);
 
-        // Continuous scroll for reflowable books (fixed-layout ignores `flow`).
-        view.renderer?.setAttribute("flow", "scrolled");
+        // Apply the chosen reading mode. In every mode the engine keeps only the
+        // current section live and unloads the rest, so memory stays bounded
+        // however long the book is. (Fixed-layout PDFs ignore `flow`.)
+        const { flow, maxColumnCount } = layoutForReadingMode(readingMode);
+        view.renderer?.setAttribute("flow", flow);
+        view.renderer?.setAttribute("max-column-count", String(maxColumnCount));
         view.renderer?.setStyles?.(buildReaderContentCss(readerSettingsRef.current));
 
         const entries = flattenToc((book?.toc ?? []) as unknown as TocNavItem[])
@@ -621,8 +772,9 @@ export function FoliateReaderView({
     };
     // Keyed on selectedBook?.id (not the object): progress saves replace the
     // selectedBook object each tick, and re-running this effect would tear down
-    // and rebuild the engine in a loop.
-  }, [attachDocListeners, clearSelection, initialBook, selectedBook?.id]);
+    // and rebuild the engine in a loop. `readingMode` is included so switching
+    // layout re-initializes the engine, restoring position from the live CFI.
+  }, [attachDocListeners, clearSelection, initialBook, selectedBook?.id, readingMode]);
 
   useEffect(() => {
     if (!chapterNavigationRequest?.href) return;

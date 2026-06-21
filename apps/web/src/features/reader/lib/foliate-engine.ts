@@ -76,6 +76,13 @@ export type FoliateView = HTMLElement & {
   renderer?: FoliateRenderer;
   goTo: (target: string | number | FoliateResolved) => Promise<FoliateResolved | undefined>;
   goToFraction: (fraction: number) => Promise<void>;
+  /** Turn to the next page; crosses into (and lazily loads) the next section at its end. */
+  next: (distance?: number) => Promise<void>;
+  /** Turn to the previous page; crosses into the previous section at its start. */
+  prev: (distance?: number) => Promise<void>;
+  /** Direction-aware page turn (maps to next/prev based on the book's reading direction). */
+  goLeft: () => Promise<void> | void;
+  goRight: () => Promise<void> | void;
   getCFI: (index: number, range: Range) => string;
   addAnnotation: (
     annotation: FoliateAnnotation,
@@ -147,6 +154,43 @@ export async function makeFoliateBook(file: Blob | File): Promise<FoliateBook> {
 export async function createFoliateView(): Promise<FoliateView> {
   await loadEngine();
   return document.createElement("foliate-view") as FoliateView;
+}
+
+// The paginator renders into a *closed* shadow root, so its scroll container is
+// unreachable from the app. Instead we read the renderer's public geometry
+// getters (`start`/`end`/`viewSize`) to tell when continuous scroll has reached
+// the top/bottom of the current section — the cue to lazily load the adjacent
+// one. foliate is pinned vendor code (see public/foliate-js/VENDOR.md), so this
+// coupling to its getter surface is acceptable.
+type FoliateScrollGeometry = {
+  scrolled?: boolean;
+  start?: number;
+  end?: number;
+  viewSize?: number;
+};
+
+const SCROLL_EDGE_EPSILON = 2;
+
+/**
+ * Whether the continuous-scroll viewport is at the top/bottom of the current
+ * section. Returns null when not in scrolled mode or geometry is unavailable.
+ */
+export function getScrollEdges(
+  view: FoliateView | null | undefined,
+): { atTop: boolean; atBottom: boolean } | null {
+  const renderer = view?.renderer as unknown as FoliateScrollGeometry | undefined;
+  if (!renderer?.scrolled) return null;
+  try {
+    const start = renderer.start ?? 0;
+    const end = renderer.end ?? 0;
+    const viewSize = renderer.viewSize ?? 0;
+    return {
+      atTop: start <= SCROLL_EDGE_EPSILON,
+      atBottom: viewSize - end <= SCROLL_EDGE_EPSILON,
+    };
+  } catch {
+    return null;
+  }
 }
 
 // ---- Metadata normalizers (title/author may be language maps) --------------

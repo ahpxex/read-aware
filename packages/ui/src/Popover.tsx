@@ -4,12 +4,23 @@ import { cn } from "./lib/cn";
 
 type PopoverProps = {
   trigger: ReactNode;
+  /** Accessible name for the (otherwise unlabeled) trigger button. */
+  triggerLabel?: string;
+  /** Override the trigger button styling (defaults to a bare inline-flex). */
+  triggerClassName?: string;
   children: ReactNode;
   align?: "left" | "right" | "center";
   className?: string;
 };
 
-export function Popover({ trigger, children, align = "left", className }: PopoverProps) {
+export function Popover({
+  trigger,
+  triggerLabel,
+  triggerClassName,
+  children,
+  align = "left",
+  className,
+}: PopoverProps) {
   const [open, setOpen] = useLocalAtom(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -42,10 +53,11 @@ export function Popover({ trigger, children, align = "left", className }: Popove
       <button
         ref={triggerRef}
         type="button"
+        aria-label={triggerLabel}
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex"
+        className={cn("inline-flex", triggerClassName)}
       >
         {trigger}
       </button>

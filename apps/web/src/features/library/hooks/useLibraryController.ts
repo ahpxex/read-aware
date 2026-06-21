@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
-import { deriveShelfSections } from "../lib/derive-shelf-sections";
 import { formatLibraryError } from "../lib/format-library-error";
 import {
   importBookFile,
@@ -15,8 +14,6 @@ export function useLibraryController() {
   const [libraryError, setLibraryError] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const importInputRef = useRef<HTMLInputElement | null>(null);
-
-  const shelfSections = deriveShelfSections(books);
 
   const reportError = useCallback((error: unknown) => {
     setLibraryError(formatLibraryError(error));
@@ -93,7 +90,6 @@ export function useLibraryController() {
 
   return {
     books,
-    shelfSections,
     libraryReady,
     libraryError,
     isImporting,

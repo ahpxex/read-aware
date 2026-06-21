@@ -4,6 +4,11 @@ import {
   saveReaderSettings,
   type ReaderSettings,
 } from "../features/settings/lib/reader-settings";
+import {
+  getShelfView,
+  saveShelfView,
+  type ShelfView,
+} from "../features/shelf/lib/shelf-view";
 
 export const topNavs = ["shelf", "context"] as const;
 
@@ -20,5 +25,15 @@ export const readerSettingsAtom = atom(
   (_get, set, next: ReaderSettings) => {
     set(readerSettingsBaseAtom, next);
     saveReaderSettings(next);
+  },
+);
+
+const shelfViewBaseAtom = atom<ShelfView>(getShelfView());
+
+export const shelfViewAtom = atom(
+  (get) => get(shelfViewBaseAtom),
+  (_get, set, next: ShelfView) => {
+    set(shelfViewBaseAtom, next);
+    saveShelfView(next);
   },
 );

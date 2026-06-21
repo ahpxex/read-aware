@@ -1,3 +1,4 @@
+import { type ReactNode } from "react";
 import { Cards, GearSix, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { IconButton, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
@@ -10,6 +11,8 @@ type AppHeaderProps = {
   onOpenSettings: () => void;
   onOpenSearch: () => void;
   onTopNavChange: (topNav: TopNav) => void;
+  /** Optional context-specific control (e.g. the shelf view menu) shown in the cluster. */
+  viewControl?: ReactNode;
 };
 
 const headerIconButtonClass =
@@ -27,6 +30,7 @@ export function AppHeader({
   onOpenSettings,
   onOpenSearch,
   onTopNavChange,
+  viewControl,
 }: AppHeaderProps) {
   const contextActive = activeTopNav === "context";
 
@@ -56,6 +60,7 @@ export function AppHeader({
               icon={<Plus size={16} weight="regular" aria-hidden="true" />}
             />
           </Tooltip>
+          {viewControl}
           <Tooltip content="Context" side="bottom">
             <IconButton
               label="Context"

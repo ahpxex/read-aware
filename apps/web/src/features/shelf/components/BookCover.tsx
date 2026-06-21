@@ -1,9 +1,10 @@
-import { Button, Dialog, IconButton, Progress } from "@read-aware/ui";
 import { Info, Trash } from "@phosphor-icons/react";
+import { IconButton, Progress } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useLocalAtom } from "@read-aware/ui/state";
 import type { LibraryBook } from "../../library/lib/library-types";
 import { BookCoverPlaceholder } from "./BookCoverPlaceholder";
+import { BookDetailsDialog, BookRemoveDialog } from "./BookDialogs";
 
 type BookCoverProps = {
   book: LibraryBook;
@@ -11,19 +12,6 @@ type BookCoverProps = {
   onRemove?: () => void;
   className?: string;
 };
-
-function formatLastOpenedAt(lastOpenedAt: string | null) {
-  if (!lastOpenedAt) return "Not opened yet";
-
-  try {
-    return new Intl.DateTimeFormat(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(new Date(lastOpenedAt));
-  } catch {
-    return lastOpenedAt;
-  }
-}
 
 export function BookCover({ book, onClick, onRemove, className }: BookCoverProps) {
   const [infoOpen, setInfoOpen] = useLocalAtom(false);
@@ -101,61 +89,16 @@ export function BookCover({ book, onClick, onRemove, className }: BookCoverProps
         </div>
       </div>
 
-      <Dialog
-        open={infoOpen}
-        onClose={() => setInfoOpen(false)}
-        title="Book details"
-      >
-        <div className="space-y-3">
-          <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-stone-700">
-            <dt className="font-medium text-stone-600">Title</dt>
-            <dd>{book.title}</dd>
-            <dt className="font-medium text-stone-600">Author</dt>
-            <dd>{book.author}</dd>
-            <dt className="font-medium text-stone-600">Format</dt>
-            <dd className="uppercase">{book.format}</dd>
-            <dt className="font-medium text-stone-600">File</dt>
-            <dd>{book.fileName}</dd>
-            <dt className="font-medium text-stone-600">Progress</dt>
-            <dd>{book.progressPercent > 0 ? `${Math.round(book.progressPercent)}%` : "Not started"}</dd>
-            <dt className="font-medium text-stone-600">Last opened</dt>
-            <dd>{formatLastOpenedAt(book.lastOpenedAt)}</dd>
-          </dl>
-          <div className="flex justify-end">
-            <Button variant="ghost" size="sm" onClick={() => setInfoOpen(false)}>
-              Close
-            </Button>
-          </div>
-        </div>
-      </Dialog>
-
-      <Dialog
+      <BookDetailsDialog book={book} open={infoOpen} onClose={() => setInfoOpen(false)} />
+      <BookRemoveDialog
+        book={book}
         open={removeOpen}
         onClose={() => setRemoveOpen(false)}
-        title="Remove book?"
-      >
-        <div className="space-y-4">
-          <p>
-            Remove <strong>{book.title}</strong> from your library and delete its
-            stored file from this device?
-          </p>
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setRemoveOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => {
-                setRemoveOpen(false);
-                onRemove?.();
-              }}
-            >
-              Remove
-            </Button>
-          </div>
-        </div>
-      </Dialog>
+        onConfirm={() => {
+          setRemoveOpen(false);
+          onRemove?.();
+        }}
+      />
     </div>
   );
 }

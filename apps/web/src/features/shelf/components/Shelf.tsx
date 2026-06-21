@@ -1,23 +1,23 @@
 import { Eyebrow } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import type { LibraryBook, ShelfSection as LibraryShelfSection } from "../../library/lib/library-types";
+import type { ShelfLayout } from "../lib/shelf-view";
 import { BookCover } from "./BookCover";
+import { BookRow } from "./BookRow";
 
-type ShelfSectionProps = {
-  label: string;
+type SectionBodyProps = {
   books: LibraryBook[];
+  layout: ShelfLayout;
   onSelect?: (book: LibraryBook) => void;
   onRemove?: (book: LibraryBook) => void;
-  className?: string;
 };
 
-function ShelfSection({ label, books, onSelect, onRemove, className }: ShelfSectionProps) {
-  return (
-    <section className={className}>
-      <Eyebrow>{label}</Eyebrow>
-      <div className="mt-4 grid grid-cols-3 gap-x-4 gap-y-8 sm:grid-cols-4 sm:gap-x-5 md:grid-cols-5 md:gap-x-6 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8">
+function SectionBody({ books, layout, onSelect, onRemove }: SectionBodyProps) {
+  if (layout === "list") {
+    return (
+      <div className="flex flex-col divide-y divide-border/60">
         {books.map((book) => (
-          <BookCover
+          <BookRow
             key={book.id}
             book={book}
             onClick={() => onSelect?.(book)}
@@ -25,28 +25,44 @@ function ShelfSection({ label, books, onSelect, onRemove, className }: ShelfSect
           />
         ))}
       </div>
-    </section>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-3 gap-x-4 gap-y-8 sm:grid-cols-4 sm:gap-x-5 md:grid-cols-5 md:gap-x-6 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8">
+      {books.map((book) => (
+        <BookCover
+          key={book.id}
+          book={book}
+          onClick={() => onSelect?.(book)}
+          onRemove={() => onRemove?.(book)}
+        />
+      ))}
+    </div>
   );
 }
 
 type ShelfProps = {
   sections: LibraryShelfSection[];
+  layout: ShelfLayout;
   onSelect?: (book: LibraryBook) => void;
   onRemove?: (book: LibraryBook) => void;
   className?: string;
 };
 
-export function Shelf({ sections, onSelect, onRemove, className }: ShelfProps) {
+export function Shelf({ sections, layout, onSelect, onRemove, className }: ShelfProps) {
   return (
-    <div className={cn("space-y-12", className)}>
-      {sections.map((section) => (
-        <ShelfSection
-          key={section.label}
-          label={section.label}
-          books={section.books}
-          onSelect={onSelect}
-          onRemove={onRemove}
-        />
+    <div className={cn(layout === "list" ? "space-y-8" : "space-y-12", className)}>
+      {sections.map((section, index) => (
+        <section key={section.label || `section-${index}`}>
+          {section.label && <Eyebrow className="mb-4 block">{section.label}</Eyebrow>}
+          <SectionBody
+            books={section.books}
+            layout={layout}
+            onSelect={onSelect}
+            onRemove={onRemove}
+          />
+        </section>
       ))}
     </div>
   );

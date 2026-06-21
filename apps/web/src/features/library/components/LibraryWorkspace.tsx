@@ -1,11 +1,14 @@
+import { useAtomValue } from "jotai";
 import { Alert, Body, Button, EmptyState } from "@read-aware/ui";
 import { Shelf } from "../../shelf/components/Shelf";
-import type { LibraryBook, ShelfSection } from "../lib/library-types";
+import { deriveShelfView } from "../../shelf/lib/derive-shelf-view";
+import { shelfViewAtom } from "../../../state/ui";
+import type { LibraryBook } from "../lib/library-types";
 
 type LibraryWorkspaceProps = {
   isReady: boolean;
   error: string | null;
-  sections: ShelfSection[];
+  books: LibraryBook[];
   onImport: () => void;
   onOpenBook: (book: LibraryBook) => void;
   onRemoveBook: (book: LibraryBook) => void;
@@ -14,11 +17,14 @@ type LibraryWorkspaceProps = {
 export function LibraryWorkspace({
   isReady,
   error,
-  sections,
+  books,
   onImport,
   onOpenBook,
   onRemoveBook,
 }: LibraryWorkspaceProps) {
+  const shelfView = useAtomValue(shelfViewAtom);
+  const sections = deriveShelfView(books, shelfView);
+
   return (
     <div className="ra-motion-page-enter mx-auto max-w-screen-2xl px-6 py-8 sm:py-10">
       {error && (
@@ -31,19 +37,20 @@ export function LibraryWorkspace({
         <div className="py-16">
           <Body className="text-sm text-stone-600">Loading your library...</Body>
         </div>
-      ) : sections.length === 0 ? (
+      ) : books.length === 0 ? (
         <EmptyState
           title="Import your first book"
-          description="ReadAware keeps imported EPUB files locally in your browser, along with your last reading position."
+          description="ReadAware keeps imported books on this device, along with your last reading position."
           action={(
             <Button size="sm" onClick={onImport}>
-              Import EPUB
+              Import a book
             </Button>
           )}
         />
       ) : (
         <Shelf
           sections={sections}
+          layout={shelfView.layout}
           onSelect={onOpenBook}
           onRemove={onRemoveBook}
         />

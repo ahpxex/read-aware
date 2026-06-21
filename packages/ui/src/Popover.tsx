@@ -66,10 +66,10 @@ export function Popover({
           id={panelId}
           role="dialog"
           className={cn(
-            "absolute z-50 mt-2 min-w-[200px] border border-border bg-paper p-4 shadow-sm",
-            align === "left" && "left-0",
-            align === "right" && "right-0",
-            align === "center" && "left-1/2 -translate-x-1/2",
+            "ra-motion-overlay-pop absolute z-50 mt-2 min-w-[200px] rounded-md border border-border bg-[var(--ra-main-surface-color)] p-4",
+            align === "left" && "left-0 origin-top-left",
+            align === "right" && "right-0 origin-top-right",
+            align === "center" && "left-1/2 -translate-x-1/2 origin-top",
           )}
         >
           {children}

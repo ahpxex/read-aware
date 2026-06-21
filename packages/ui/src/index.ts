@@ -36,4 +36,5 @@ export { Alert } from "./Alert";
 export { Tag } from "./Tag";
 export { DropdownMenu } from "./DropdownMenu";
 export { Popover } from "./Popover";
+export { ChoiceGroup } from "./ChoiceGroup";
 export { ScrollArea } from "./ScrollArea";

@@ -21,7 +21,7 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
         <label
           htmlFor={id}
           className={cn(
-            "font-sans text-eyebrow font-medium uppercase tracking-eyebrow",
+            "font-sans text-[13px] font-medium",
             hasError ? "text-red-700" : "text-stone-600",
           )}
         >

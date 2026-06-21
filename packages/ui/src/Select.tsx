@@ -122,7 +122,7 @@ export function Select({
       <label
         id={`${id}-label`}
         className={cn(
-          "font-sans text-eyebrow font-medium uppercase tracking-eyebrow",
+          "font-sans text-[13px] font-medium",
           hasError ? "text-red-700" : "text-stone-600",
         )}
       >
@@ -181,7 +181,7 @@ export function Select({
         </button>
 
         {open && (
-          <ScrollArea className="absolute z-50 mt-1 max-h-60 w-full border border-border bg-paper py-1 shadow-sm">
+          <ScrollArea className="ra-motion-overlay-pop absolute z-50 mt-1.5 max-h-60 w-full origin-top rounded-md border border-border bg-[var(--ra-main-surface-color)] p-1">
             <ul
               ref={listboxRef}
               id={`${id}-listbox`}
@@ -197,7 +197,7 @@ export function Select({
                   onMouseEnter={() => setActiveIndex(i)}
                   onClick={() => select(opt.value)}
                   className={cn(
-                    "cursor-pointer px-3 py-1.5 text-sm",
+                    "cursor-pointer rounded-md px-2.5 py-1.5 text-sm transition-colors",
                     i === activeIndex && "bg-stone-100",
                     opt.value === currentValue
                       ? "font-medium text-stone-950"

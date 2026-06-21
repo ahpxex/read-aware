@@ -5,6 +5,7 @@ import { cn } from "./lib/cn";
 type DropdownItem = {
   label: string;
   onClick: () => void;
+  icon?: ReactNode;
   destructive?: boolean;
   disabled?: boolean;
 };
@@ -127,8 +128,8 @@ export function DropdownMenu({ trigger, items, align = "left", className }: Drop
           role="menu"
           onKeyDown={handleMenuKeyDown}
           className={cn(
-            "absolute z-50 mt-1 min-w-[160px] border border-border bg-paper py-1 shadow-sm",
-            align === "left" ? "left-0" : "right-0",
+            "ra-motion-overlay-pop absolute z-50 mt-1.5 min-w-[184px] rounded-md border border-border bg-[var(--ra-main-surface-color)] p-1",
+            align === "left" ? "left-0 origin-top-left" : "right-0 origin-top-right",
           )}
         >
           {items.map((item, i) => (
@@ -144,15 +145,19 @@ export function DropdownMenu({ trigger, items, align = "left", className }: Drop
               }}
               onMouseEnter={() => setActiveIndex(i)}
               className={cn(
-                "w-full px-3 py-1.5 text-left text-sm outline-none",
-                i === activeIndex && "bg-stone-100",
+                "flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-sm outline-none transition-colors",
                 item.destructive
-                  ? "text-red-700 hover:bg-red-50 focus:bg-red-50"
-                  : "text-stone-700 hover:bg-stone-100 focus:bg-stone-100",
+                  ? cn("text-red-700", i === activeIndex ? "bg-red-50" : "hover:bg-red-50 focus:bg-red-50")
+                  : cn("text-stone-700", i === activeIndex ? "bg-stone-100 text-stone-950" : "hover:bg-stone-100 focus:bg-stone-100"),
                 item.disabled && "cursor-not-allowed opacity-50",
               )}
             >
-              {item.label}
+              {item.icon && (
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center text-stone-500">
+                  {item.icon}
+                </span>
+              )}
+              <span className="min-w-0 flex-1 truncate">{item.label}</span>
             </button>
           ))}
         </div>

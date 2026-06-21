@@ -1,13 +1,14 @@
-import { Check, Rows, SlidersHorizontal, SquaresFour, type Icon } from "@phosphor-icons/react";
-import { Popover } from "@read-aware/ui";
+import { type ReactNode } from "react";
+import { Check, Rows, SlidersHorizontal, SquaresFour } from "@phosphor-icons/react";
+import { ChoiceGroup, Popover } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useAtom } from "jotai";
 import { shelfViewAtom } from "../../../state/ui";
 import type { ShelfGroup, ShelfLayout, ShelfSort } from "../lib/shelf-view";
 
-const LAYOUT_OPTIONS: { value: ShelfLayout; label: string; icon: Icon }[] = [
-  { value: "grid", label: "Grid", icon: SquaresFour },
-  { value: "list", label: "List", icon: Rows },
+const LAYOUT_OPTIONS: { value: ShelfLayout; label: string; icon: ReactNode }[] = [
+  { value: "grid", label: "Grid", icon: <SquaresFour size={15} weight="regular" /> },
+  { value: "list", label: "List", icon: <Rows size={15} weight="regular" /> },
 ];
 
 const GROUP_OPTIONS: { value: ShelfGroup; label: string }[] = [
@@ -25,7 +26,7 @@ const SORT_OPTIONS: { value: ShelfSort; label: string }[] = [
   { value: "progress", label: "Progress" },
 ];
 
-const groupEyebrow = "mb-1.5 font-sans text-eyebrow font-medium uppercase tracking-eyebrow text-stone-500";
+const groupEyebrow = "mb-1.5 font-sans text-[13px] font-medium text-stone-500";
 
 type OptionRowsProps<T extends string> = {
   label: string;
@@ -38,7 +39,7 @@ function OptionRows<T extends string>({ label, value, options, onChange }: Optio
   return (
     <div>
       <p className={groupEyebrow}>{label}</p>
-      <div className="flex flex-col">
+      <div className="-mx-1.5 flex flex-col">
         {options.map((option) => {
           const active = option.value === value;
           return (
@@ -48,12 +49,12 @@ function OptionRows<T extends string>({ label, value, options, onChange }: Optio
               aria-pressed={active}
               onClick={() => onChange(option.value)}
               className={cn(
-                "flex items-center justify-between rounded-sm px-2 py-1.5 text-left font-sans text-sm transition-colors",
-                active ? "text-stone-950" : "text-stone-600 hover:bg-stone-100/70 hover:text-stone-950",
+                "flex items-center justify-between rounded-md px-1.5 py-1.5 text-left font-sans text-sm transition-colors",
+                active ? "font-medium text-stone-900" : "text-stone-500 hover:bg-stone-900/[0.04] hover:text-stone-900",
               )}
             >
               <span>{option.label}</span>
-              {active && <Check size={14} weight="bold" aria-hidden="true" />}
+              {active && <Check size={14} weight="bold" aria-hidden="true" className="text-stone-700" />}
             </button>
           );
         })}
@@ -73,32 +74,12 @@ export function ShelfViewMenu() {
       trigger={<SlidersHorizontal size={16} weight="regular" aria-hidden="true" />}
     >
       <div className="w-56 space-y-4">
-        <div>
-          <p className={groupEyebrow}>Layout</p>
-          <div className="flex gap-1.5">
-            {LAYOUT_OPTIONS.map(({ value, label, icon: LayoutIcon }) => {
-              const active = view.layout === value;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => setView({ ...view, layout: value })}
-                  className={cn(
-                    "flex flex-1 items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-sm font-medium transition-colors",
-                    active
-                      ? "border-stone-950 bg-stone-950 text-white"
-                      : "border-border text-stone-600 hover:border-stone-300 hover:text-stone-950",
-                  )}
-                >
-                  <LayoutIcon size={15} weight="regular" aria-hidden="true" />
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
+        <ChoiceGroup
+          label="Layout"
+          value={view.layout}
+          options={LAYOUT_OPTIONS}
+          onChange={(layout) => setView({ ...view, layout })}
+        />
         <OptionRows
           label="Group by"
           value={view.group}

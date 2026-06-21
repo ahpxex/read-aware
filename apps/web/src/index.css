@@ -19,8 +19,6 @@
   --font-size-eyebrow: 0.6875rem;
   --font-size-caption: 0.75rem;
 
-  --tracking-eyebrow: 0.28em;
-
   --leading-display: 0.98;
   --leading-body: 2rem;
 }
@@ -119,6 +117,11 @@ button {
     will-change: transform, opacity;
   }
 
+  .ra-motion-overlay-pop {
+    animation: ra-overlay-pop 150ms var(--ra-ease-out-quint);
+    will-change: transform, opacity;
+  }
+
   .ra-dialog::backdrop {
     background-color: rgb(28 25 23 / 0);
     backdrop-filter: blur(0);
@@ -177,11 +180,23 @@ button {
   }
 }
 
+@keyframes ra-overlay-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ra-motion-page-enter,
   .ra-motion-tab-panel-in-forward,
   .ra-motion-tab-panel-in-backward,
   .ra-motion-page-counter,
+  .ra-motion-overlay-pop,
   .ra-dialog::backdrop {
     animation: none !important;
     transform: none !important;

@@ -61,18 +61,31 @@ const finished: LibraryBook[] = [
   { id: "10", title: "The Plague", author: "Albert Camus", format: "epub", fileName: "the-plague.epub", mimeType: "application/epub+zip", fileSize: 1536, createdAt: "2026-03-13T00:00:00.000Z", updatedAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: "2026-03-13T00:00:00.000Z", progressPercent: 100, readingStatus: "finished", progress: { currentLocation: 320, totalLocations: 320, progressPercent: 100, cfi: "epubcfi(/6/2[end]!/4/2/6)", href: "end.xhtml" } },
 ];
 
+const allBooks = [...currentlyReading, ...upNext, ...finished];
+
 const meta: Meta<typeof Shelf> = {
   title: "Features/Shelf",
   component: Shelf,
   parameters: { layout: "padded" },
+  args: { onSelect: () => {}, onRemove: () => {} },
 };
 
 export default meta;
 
 type Story = StoryObj<typeof Shelf>;
 
-export const Default: Story = {
+/** The app default: a single unlabeled section in a grid (no status partitioning). */
+export const FlatGrid: Story = {
   args: {
+    layout: "grid",
+    sections: [{ label: "", books: allBooks }],
+  },
+};
+
+/** Grouped by reading status — an opt-in view from the shelf view menu. */
+export const GroupedGrid: Story = {
+  args: {
+    layout: "grid",
     sections: [
       { label: "Currently Reading", books: currentlyReading },
       { label: "Up Next", books: upNext },
@@ -81,10 +94,22 @@ export const Default: Story = {
   },
 };
 
-export const SingleSection: Story = {
+/** The list layout — compact rows with cover thumbnail, title/author, and progress. */
+export const ListLayout: Story = {
   args: {
+    layout: "list",
+    sections: [{ label: "", books: allBooks }],
+  },
+};
+
+/** List layout, grouped by status. */
+export const GroupedList: Story = {
+  args: {
+    layout: "list",
     sections: [
-      { label: "All Books", books: [...currentlyReading, ...upNext, ...finished] },
+      { label: "Currently Reading", books: currentlyReading },
+      { label: "Up Next", books: upNext },
+      { label: "Finished", books: finished },
     ],
   },
 };

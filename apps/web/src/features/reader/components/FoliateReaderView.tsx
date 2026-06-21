@@ -64,9 +64,13 @@ const SHELL_TAP_MAX_MOVE_PX = 6;
 // Fraction of the page width on each edge that acts as a page-turn tap zone;
 // the remaining center band toggles the reader shell.
 const TAP_TURN_ZONE_RATIO = 0.3;
-// Cooldown after crossing into an adjacent section, so one wheel gesture (many
-// events) advances a single section rather than racing through several.
-const SECTION_CROSS_COOLDOWN_MS = 350;
+// Cross-fade timing for section crossing: fade the current section out, swap in
+// the next while hidden, fade it back in. Smooths the otherwise abrupt swap.
+// Keep SECTION_CROSS_FADE_MS in step with the viewport's transition duration.
+const SECTION_CROSS_FADE_MS = 140;
+// Settle after a crossing so one wheel gesture (many events) advances a single
+// section rather than racing through several.
+const SECTION_CROSS_COOLDOWN_MS = 200;
 // Scroll-mode section crossing is intentionally deliberate: once the viewport is
 // pinned at a section edge, the wheel must push past it by this much before the
 // adjacent section loads — so a gentle scroll to the end does not "turn" on its
@@ -194,6 +198,7 @@ export function FoliateReaderView({
   useEffect(() => { onCurrentChapterChangeRef.current = onCurrentChapterChange; }, [onCurrentChapterChange]);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isCrossing, setIsCrossing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tocEntries, setTocEntries] = useState<TocEntry[]>([]);
   const [currentChapterHref, setCurrentChapterHref] = useState<string | null>(null);
@@ -349,40 +354,56 @@ export function FoliateReaderView({
 
   // ----- page turning -------------------------------------------------------
 
+  // Cross into the adjacent section with a cross-fade: fade the current section
+  // out, swap the next in while hidden, fade it back in. Used in scroll mode for
+  // the lazy section load (the engine keeps only one section live, so memory
+  // stays bounded), and smooths the otherwise abrupt chapter swap.
+  const crossSection = useCallback(async (direction: -1 | 1) => {
+    if (crossingSectionRef.current) return;
+    const view = viewRef.current;
+    if (!view) return;
+    crossingSectionRef.current = true;
+    setIsCrossing(true); // fade the current section out
+    try {
+      await new Promise((resolve) => window.setTimeout(resolve, SECTION_CROSS_FADE_MS));
+      await (direction === 1 ? view.next() : view.prev());
+    } catch {
+      // At the first/last section, or a teardown race — fall through to reveal.
+    }
+    // The adjacent section has rendered while hidden; reveal it on the next
+    // frame, then settle briefly so one push advances a single section.
+    window.requestAnimationFrame(() => setIsCrossing(false));
+    await new Promise((resolve) => window.setTimeout(resolve, SECTION_CROSS_COOLDOWN_MS));
+    crossingSectionRef.current = false;
+  }, []);
+  const crossSectionRef = useRef(crossSection);
+  useEffect(() => { crossSectionRef.current = crossSection; }, [crossSection]);
+
   const turnPage = useCallback(async (direction: -1 | 1) => {
     const view = viewRef.current;
     if (!view) return;
+    // In scroll mode, advancing at a section boundary should cross-fade into the
+    // next chapter; mid-section it just scrolls a viewport. Paginated modes flip
+    // pages directly.
+    if (readingModeRef.current === "scroll") {
+      const edges = getScrollEdges(view);
+      if ((direction === 1 && edges?.atBottom) || (direction === -1 && edges?.atTop)) {
+        void crossSection(direction);
+        return;
+      }
+    }
     clearSelection();
     try {
       await (direction === 1 ? view.next() : view.prev());
     } catch {
       // At the first/last page, or a teardown race during navigation — no-op.
     }
-  }, [clearSelection]);
+  }, [clearSelection, crossSection]);
 
   // Kept in a ref so the per-section document listeners can call the latest
   // `turnPage` without re-subscribing (which would tear down the engine).
   const turnPageRef = useRef(turnPage);
   useEffect(() => { turnPageRef.current = turnPage; }, [turnPage]);
-
-  // Continuous-scroll lazy loading: when the reader reaches the top/bottom of
-  // the current section and the wheel keeps pushing, load the adjacent section.
-  // The engine keeps only the current section live, so memory stays bounded.
-  const crossSection = useCallback(async (direction: -1 | 1) => {
-    if (crossingSectionRef.current) return;
-    const view = viewRef.current;
-    if (!view) return;
-    crossingSectionRef.current = true;
-    try {
-      await (direction === 1 ? view.next() : view.prev());
-    } catch {
-      // At the first/last section, or a teardown race — no-op.
-    } finally {
-      window.setTimeout(() => { crossingSectionRef.current = false; }, SECTION_CROSS_COOLDOWN_MS);
-    }
-  }, []);
-  const crossSectionRef = useRef(crossSection);
-  useEffect(() => { crossSectionRef.current = crossSection; }, [crossSection]);
 
   // ----- chapter navigation (refs so stable across renders) -----------------
 
@@ -871,7 +892,10 @@ export function FoliateReaderView({
       <div
         ref={viewportRef}
         aria-label={selectedBook?.title ?? initialBook?.fileName ?? "Book reader"}
-        className={cn("h-full w-full", (isLoading || !!error) && "opacity-0")}
+        className={cn(
+          "h-full w-full transition-opacity duration-150 ease-out",
+          (isLoading || !!error || isCrossing) && "opacity-0",
+        )}
       />
       <ReaderSelectionOverlay appearance={selectionOverlayAppearance} selection={selection} />
       <ReaderSelectionMenu

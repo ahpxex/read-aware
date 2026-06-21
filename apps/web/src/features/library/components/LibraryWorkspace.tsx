@@ -26,7 +26,7 @@ export function LibraryWorkspace({
   const sections = deriveShelfView(books, shelfView);
 
   return (
-    <div className="ra-motion-page-enter mx-auto max-w-screen-2xl px-6 py-8 sm:py-10">
+    <div className="ra-motion-page-enter mx-auto max-w-screen-2xl px-6 pb-8 pt-5 sm:pb-10 sm:pt-6">
       {error && (
         <Alert variant="destructive" title="Library error" className="mb-6">
           {error}

@@ -4,7 +4,7 @@
 - Type: AI-native reading application
 - Core capability: context-rich reading and AI-assisted understanding
 - Repo: `monorepo` managed by `Turborepo` over `bun` workspaces (`apps/*`, `packages/*`)
-- Runtime shells: `Web browser / PWA` and a `Tauri` desktop app that wraps the same web frontend
+- Runtime shell: a `Tauri` desktop app **only** (the shipping target) that wraps the React web frontend. The web build is just Tauri's bundled frontend plus local dev / Storybook — not a standalone browser or PWA product
 - Frontend: `React 19` as a client-rendered SPA (no SSR)
 - Routing: `TanStack Router` (file-based, via the Vite router plugin)
 - Styling: `Tailwind CSS v4` (tokens via `@theme` in `apps/web/src/index.css`)
@@ -17,7 +17,9 @@
 > **Implementation status:** The codebase is currently a frontend-only monorepo
 > (`apps/web` + `apps/desktop`); the Python backend has been removed. The
 > sections below are **decided direction** (local-first), not mere aspiration —
-> but most of the data/memory layer is not built yet.
+> but most of the data/memory layer is not built yet: today's persistence is an
+> interim IndexedDB + localStorage layer, with the target on-device schema
+> specified in `docs/data-model.md`.
 
 - Product architecture: single-agent system (one orchestrator over deterministic pipelines, not one LLM loop doing everything)
 - User experience: one persistent chat surface, not multiple conversation windows like ChatGPT
@@ -26,7 +28,7 @@
 - Two independent axes — keep them separate:
   - **Data + retrieval: local** (on-device store + embedded vector search)
   - **LLM inference: remote** (BYO API key or a thin proxy; no local model required)
-- Frontend app shells: `React + TypeScript` web SPA + `Tauri` desktop wrapper (desktop-first)
+- Frontend: a `React + TypeScript` SPA, shipped **only** inside the `Tauri` desktop app (desktop-only)
 - On-device storage: `SQLite` (source of truth) + `LanceDB` (embedded vector store)
 - Remote backend: sync + relay only (see Storage Responsibilities)
 
@@ -82,7 +84,7 @@
   - a change feed to sync event logs across devices
   - optionally, an LLM proxy (to hide / meter API keys)
 - The backend holds no business logic — consolidation, retrieval, and bundle assembly all run on-device
-- Reach storage through a pluggable `StorageAdapter` (native filesystem on desktop; OPFS / wa-sqlite in the browser) so the same engine can later run in a web client
+- Reach storage through a pluggable `StorageAdapter` (native filesystem + SQLite + LanceDB on desktop). The abstraction stays for testability and clean layering — **not** to support an in-browser engine port
 
 ### Context Portability
 
@@ -99,23 +101,24 @@
 ### Platform Direction
 
 - **Local-first**: the app must be fully usable offline against on-device data; the network is for sync and (optional) remote inference, not for core reads/writes
-- **Desktop-first**: target the Tauri desktop app first; the web SPA is a secondary shell that shares the same frontend and (eventually) the same engine via a WASM `StorageAdapter`
-- Conscious tradeoff — **E2E encryption vs a server-backed web client**: end-to-end encrypting synced data means the server cannot hold a cloud replica or run server-side search to feed a thin web client. Default to E2E-friendly design; revisit only if a richer web client becomes a priority
+- **Desktop-only**: the product ships as the Tauri desktop app. The web build exists only as Tauri's bundled frontend and for local dev / Storybook — there is no standalone browser app, PWA, or in-browser storage engine
+- **E2E by default**: end-to-end encrypt synced data. With no server-backed web client to feed, the server stays a dumb encrypted relay — there is no E2E-vs-web-client tradeoff to weigh
 - Do not use no-code / visual agent platforms as the core product architecture
 - Keep the AI layer code-first and product-native
 - Prefer explicit state, explicit memory writes, and explicit retrieval pipelines over opaque agent magic
 
 ### Reader Engine Strategy
 
-- Primary reading engines:
-  - `epub.js` for EPUB rendering and navigation
-  - `pdf.js` for PDF rendering and text selection
-- Secondary formats:
-  - Accept `.mobi` and `.azw3` via ingestion and conversion to normalized EPUB using Calibre `ebook-convert`
-- Conversion boundaries:
-  - Do not convert EPUB <-> PDF
-  - Keep both original source files and normalized derivatives
-  - Surface DRM-protected files as unsupported with explicit UX messaging
+- Single reading engine: **`foliate-js`** renders every supported format —
+  `EPUB`, `MOBI`, `AZW3`, `FB2`, `PDF` — under one selection / annotation / CFI /
+  progress model
+- The engine is **vendored**, served as a static ES-module tree from
+  `apps/web/public/foliate-js` and loaded at runtime via script injection (see
+  that folder's `VENDOR.md` and `features/reader/lib/foliate-engine.ts`); do not
+  bundle it
+- Read original files directly — **no format conversion, no Calibre, no
+  normalized derivatives**. Keep only the imported source file
+- Surface DRM-protected files as unsupported with explicit UX messaging
 
 ## Design System
 

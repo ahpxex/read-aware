@@ -3,13 +3,25 @@ mod storage;
 use std::sync::Mutex;
 
 use tauri::Manager;
+#[cfg(target_os = "macos")]
+use tauri_plugin_decorum::WebviewWindowExt;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default()
+        .plugin(tauri_plugin_decorum::init())
         .setup(|app| {
             let conn = storage::init_db(app.handle()).expect("failed to initialize database");
             app.manage(storage::Db(Mutex::new(conn)));
+
+            // macOS: the native title bar is hidden (titleBarStyle "Overlay"), so
+            // nudge the traffic lights down to sit centered in our custom top bar.
+            // Decorum keeps the inset across window resizes.
+            #[cfg(target_os = "macos")]
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.set_traffic_lights_inset(16.0, 18.0);
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

@@ -23,3 +23,6 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 # Linked in all builds (so its capability permission resolves) but only
 # initialized under debug_assertions — see lib.rs.
 tauri-plugin-mcp-bridge = "0.11"
+# macOS: reposition the native traffic lights to align with our custom top bar
+# (we only use set_traffic_lights_inset; not its overlay titlebar).
+tauri-plugin-decorum = "1"

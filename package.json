@@ -8,8 +8,10 @@
   "scripts": {
     "dev": "turbo run dev --filter=@read-aware/web",
     "dev:desktop": "turbo run dev --filter=@read-aware/desktop",
+    "dev:landing": "turbo run dev --filter=@read-aware/landing",
     "build": "turbo run build --filter=@read-aware/web",
     "build:desktop": "turbo run build --filter=@read-aware/desktop",
+    "build:landing": "turbo run build --filter=@read-aware/landing",
     "typecheck": "turbo run typecheck",
     "storybook": "turbo run storybook --filter=@read-aware/web",
     "build-storybook": "turbo run build-storybook --filter=@read-aware/web"

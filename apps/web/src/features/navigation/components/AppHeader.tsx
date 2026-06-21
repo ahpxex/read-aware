@@ -37,7 +37,7 @@ export function AppHeader({
         className="flex h-12 items-center px-5"
       >
         <div className="ml-auto flex items-center gap-1.5">
-          <Tooltip content="Search">
+          <Tooltip content="Search" side="bottom">
             <IconButton
               label="Search"
               size="sm"
@@ -46,7 +46,7 @@ export function AppHeader({
               icon={<MagnifyingGlass size={16} weight="regular" aria-hidden="true" />}
             />
           </Tooltip>
-          <Tooltip content={isImporting ? "Importing..." : "Import"}>
+          <Tooltip content={isImporting ? "Importing..." : "Import"} side="bottom">
             <IconButton
               label="Import"
               size="sm"
@@ -56,7 +56,7 @@ export function AppHeader({
               icon={<Plus size={16} weight="regular" aria-hidden="true" />}
             />
           </Tooltip>
-          <Tooltip content="Context">
+          <Tooltip content="Context" side="bottom">
             <IconButton
               label="Context"
               size="sm"
@@ -69,7 +69,7 @@ export function AppHeader({
               icon={<Cards size={16} weight={contextActive ? "fill" : "regular"} aria-hidden="true" />}
             />
           </Tooltip>
-          <Tooltip content="Settings">
+          <Tooltip content="Settings" side="bottom">
             <IconButton
               label="Settings"
               size="sm"

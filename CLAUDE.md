@@ -130,7 +130,6 @@ Defined in `apps/web/src/index.css` via `@theme` block:
 - Colors: `paper`, `paper-warm`, `border` (plus Tailwind's built-in `stone-*` palette)
 - Fonts: `sans` (Inter), `serif`, `mono`
 - Sizes: `text-eyebrow` (11px), `text-caption` (12px)
-- Tracking: `tracking-eyebrow` (0.28em)
 - Leading: `leading-display` (0.98), `leading-body` (2rem)
 
 ### Component Library

@@ -119,7 +119,7 @@ export function AnnotationsSidebar({
                 return (
                   <div key={href}>
                     {chapterLabel && (
-                      <p className="mb-2 font-sans text-eyebrow font-medium uppercase tracking-eyebrow text-stone-400">
+                      <p className="mb-2 font-sans text-[13px] font-medium text-stone-400">
                         {chapterLabel}
                       </p>
                     )}

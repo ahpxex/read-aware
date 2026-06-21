@@ -35,7 +35,7 @@ export const WithDescription: Story = {
 export const Group: Story = {
   render: () => (
     <fieldset>
-      <legend className="mb-3 font-sans text-eyebrow font-medium uppercase tracking-eyebrow text-stone-600">
+      <legend className="mb-3 font-sans text-[13px] font-medium text-stone-500">
         Reading speed
       </legend>
       <div className="flex flex-col gap-3">

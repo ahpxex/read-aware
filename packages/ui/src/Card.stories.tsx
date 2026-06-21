@@ -19,7 +19,7 @@ export const Outlined: Story = {
     children: (
       <>
         <Card.Header>
-          <p className="font-sans text-eyebrow font-medium uppercase tracking-eyebrow text-stone-600">
+          <p className="font-sans text-[13px] font-medium text-stone-500">
             Chapter 1
           </p>
           <h3 className="mt-1 text-lg font-semibold tracking-tight text-stone-950">

@@ -30,7 +30,7 @@ function RootErrorBoundary() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-paper px-6 text-center">
       <div className="max-w-md space-y-3">
-        <p className="text-[10px] font-medium tracking-eyebrow text-stone-400 uppercase">
+        <p className="text-[11px] font-medium text-stone-400">
           ReadAware
         </p>
         <h1 className="font-serif text-3xl leading-display text-stone-950">
@@ -48,7 +48,7 @@ function RootNotFound() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-paper px-6 text-center">
       <div className="max-w-md space-y-3">
-        <p className="text-[10px] font-medium tracking-eyebrow text-stone-400 uppercase">
+        <p className="text-[11px] font-medium text-stone-400">
           ReadAware
         </p>
         <h1 className="font-serif text-3xl leading-display text-stone-950">

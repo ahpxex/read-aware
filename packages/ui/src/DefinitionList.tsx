@@ -27,7 +27,7 @@ export function DefinitionList({
     <dl className={cn("grid gap-8 sm:gap-10", columnClasses[columns], className)}>
       {items.map((item) => (
         <div key={item.label}>
-          <dt className="font-sans text-eyebrow font-medium uppercase tracking-eyebrow text-stone-600">
+          <dt className="font-sans text-[13px] font-medium text-stone-500">
             {item.label}
           </dt>
           <dd className="mt-3 text-sm leading-7 text-stone-800">

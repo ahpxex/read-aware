@@ -14,7 +14,7 @@ function IndexRoutePending() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-paper px-6 text-center text-stone-950">
       <div className="max-w-sm space-y-4">
-        <p className="text-[10px] font-medium tracking-eyebrow text-stone-400 uppercase">
+        <p className="text-[11px] font-medium text-stone-400">
           ReadAware
         </p>
         <h1 className="font-serif text-4xl leading-display">

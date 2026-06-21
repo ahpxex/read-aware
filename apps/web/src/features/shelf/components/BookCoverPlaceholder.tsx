@@ -53,7 +53,7 @@ export function BookCoverPlaceholder({
       {format && (
         <span
           className={cn(
-            "font-sans text-[10px] font-medium uppercase tracking-eyebrow",
+            "font-sans text-[10px] font-medium uppercase tracking-wide",
             surface.meta,
           )}
         >

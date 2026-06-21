@@ -169,7 +169,7 @@ export function Tabs({
                   ),
                 variant === "nav" &&
                   cn(
-                    "pb-3 text-eyebrow uppercase tracking-eyebrow",
+                    "pb-3",
                     isActive
                       ? "text-stone-950"
                       : "text-stone-400 hover:text-stone-950",

@@ -14,7 +14,7 @@ system **serif** stack for display headings.
 | Display | Serif | 5xl / 6xl / 7xl | Normal | Tight | 0.98 | stone-950 |
 | Heading | Sans | xl / 2xl / 3xl / 4xl | Semibold | Tight | Default | stone-950 |
 | Body | Sans | base / lg | Normal | Default | 2rem | stone-700 |
-| Eyebrow | Sans | 11px | Medium | 0.28em | Default | stone-500 |
+| Eyebrow | Sans | 13px | Medium | Default | Default | stone-500 |
 | Caption | Sans | 12px | Normal | Default | Default | stone-500 |
 
 ## Design tokens
@@ -22,7 +22,6 @@ system **serif** stack for display headings.
 ```
 --font-size-eyebrow: 0.6875rem   (11px)
 --font-size-caption: 0.75rem     (12px)
---tracking-eyebrow: 0.28em
 --leading-display: 0.98
 --leading-body: 2rem
 ```
@@ -30,7 +29,7 @@ system **serif** stack for display headings.
 ## Guidelines
 
 - **Display** is reserved for hero-level headings. One per view maximum.
-- **Eyebrow** labels are always uppercase. They introduce sections and metadata.
+- **Eyebrow** labels are small, quiet section and metadata labels (sentence case, no wide tracking).
 - **Body** text uses generous line height (2rem) for comfortable reading.
 - Avoid mixing serif and sans within the same text block.
 - Never use bold for emphasis in body text -- use structure (headings, eyebrows)

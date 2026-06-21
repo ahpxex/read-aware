@@ -53,7 +53,7 @@ export function BookRow({ book, onClick, onRemove, className }: BookRowProps) {
               </span>
             </div>
           ) : (
-            <span className="font-sans text-[11px] uppercase tracking-eyebrow text-stone-400">
+            <span className="font-sans text-[11px] text-stone-400">
               {book.readingStatus === "finished" ? "Finished" : "Not started"}
             </span>
           )}

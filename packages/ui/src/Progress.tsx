@@ -30,7 +30,7 @@ export function Progress({
       {(label || showValue) && (
         <div className="flex items-center justify-between">
           {label && (
-            <span className="font-sans text-eyebrow font-medium uppercase tracking-eyebrow text-stone-600">
+            <span className="font-sans text-[13px] font-medium text-stone-600">
               {label}
             </span>
           )}

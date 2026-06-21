@@ -2,7 +2,7 @@ import { useAtom } from "jotai";
 import { Stack } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { readerSettingsAtom } from "../../../state/ui";
-import type { ReaderTheme, ReaderFontSize, ReaderLineSpacing } from "../lib/reader-settings";
+import type { ReaderTheme, ReaderFontSize, ReaderLineSpacing, ReadingMode } from "../lib/reader-settings";
 
 type OptionGroupProps<T extends string> = {
   label: string;
@@ -42,6 +42,12 @@ function OptionGroup<T extends string>({ label, value, options, onChange }: Opti
   );
 }
 
+const READING_MODE_OPTIONS: { value: ReadingMode; label: string }[] = [
+  { value: "scroll", label: "Scroll" },
+  { value: "paginated-single", label: "Single Page" },
+  { value: "paginated-double", label: "Two Pages" },
+];
+
 const THEME_OPTIONS: { value: ReaderTheme; label: string }[] = [
   { value: "light", label: "Light" },
   { value: "warm", label: "Warm" },
@@ -65,6 +71,12 @@ export function ReaderDisplayPanel() {
 
   return (
     <Stack gap="xl">
+      <OptionGroup
+        label="Reading Mode"
+        value={settings.readingMode}
+        options={READING_MODE_OPTIONS}
+        onChange={(readingMode) => setSettings({ ...settings, readingMode })}
+      />
       <OptionGroup
         label="Theme"
         value={settings.theme}

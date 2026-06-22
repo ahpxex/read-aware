@@ -34,6 +34,8 @@ export type TopNav = (typeof topNavs)[number];
 
 export const activeTopNavAtom = atom<TopNav>("shelf");
 
+export const settingsOpenAtom = atom(false);
+
 /** Resolved app chrome theme (`light`/`dark`), kept current by `useAppearance`. */
 export const resolvedAppThemeAtom = atom<"light" | "dark">(
   resolveAppTheme(getAppSettings().theme),

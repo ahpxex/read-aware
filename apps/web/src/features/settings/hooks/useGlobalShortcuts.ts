@@ -1,8 +1,8 @@
 import { useEffect } from "react";
-import { useNavigate } from "@tanstack/react-router";
 
 type GlobalShortcutHandlers = {
   onOpenSearch: () => void;
+  onOpenSettings: () => void;
 };
 
 /**
@@ -13,9 +13,7 @@ type GlobalShortcutHandlers = {
  * Reader page navigation and Esc-to-close are owned by the reader engine and
  * overlay surfaces respectively, so they are not handled here.
  */
-export function useGlobalShortcuts({ onOpenSearch }: GlobalShortcutHandlers): void {
-  const navigate = useNavigate();
-
+export function useGlobalShortcuts({ onOpenSearch, onOpenSettings }: GlobalShortcutHandlers): void {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       const mod = event.metaKey || event.ctrlKey;
@@ -27,11 +25,11 @@ export function useGlobalShortcuts({ onOpenSearch }: GlobalShortcutHandlers): vo
         onOpenSearch();
       } else if (event.key === ",") {
         event.preventDefault();
-        void navigate({ to: "/settings" });
+        onOpenSettings();
       }
     }
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [navigate, onOpenSearch]);
+  }, [onOpenSearch, onOpenSettings]);
 }

@@ -9,156 +9,38 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as SettingsIndexRouteImport } from './routes/settings.index'
-import { Route as SettingsShortcutsRouteImport } from './routes/settings.shortcuts'
-import { Route as SettingsReadingRouteImport } from './routes/settings.reading'
-import { Route as SettingsGeneralRouteImport } from './routes/settings.general'
-import { Route as SettingsDataRouteImport } from './routes/settings.data'
-import { Route as SettingsAppearanceRouteImport } from './routes/settings.appearance'
-import { Route as SettingsAiRouteImport } from './routes/settings.ai'
-import { Route as SettingsAboutRouteImport } from './routes/settings.about'
 
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsIndexRoute = SettingsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => SettingsRoute,
-} as any)
-const SettingsShortcutsRoute = SettingsShortcutsRouteImport.update({
-  id: '/shortcuts',
-  path: '/shortcuts',
-  getParentRoute: () => SettingsRoute,
-} as any)
-const SettingsReadingRoute = SettingsReadingRouteImport.update({
-  id: '/reading',
-  path: '/reading',
-  getParentRoute: () => SettingsRoute,
-} as any)
-const SettingsGeneralRoute = SettingsGeneralRouteImport.update({
-  id: '/general',
-  path: '/general',
-  getParentRoute: () => SettingsRoute,
-} as any)
-const SettingsDataRoute = SettingsDataRouteImport.update({
-  id: '/data',
-  path: '/data',
-  getParentRoute: () => SettingsRoute,
-} as any)
-const SettingsAppearanceRoute = SettingsAppearanceRouteImport.update({
-  id: '/appearance',
-  path: '/appearance',
-  getParentRoute: () => SettingsRoute,
-} as any)
-const SettingsAiRoute = SettingsAiRouteImport.update({
-  id: '/ai',
-  path: '/ai',
-  getParentRoute: () => SettingsRoute,
-} as any)
-const SettingsAboutRoute = SettingsAboutRouteImport.update({
-  id: '/about',
-  path: '/about',
-  getParentRoute: () => SettingsRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/settings': typeof SettingsRouteWithChildren
-  '/settings/about': typeof SettingsAboutRoute
-  '/settings/ai': typeof SettingsAiRoute
-  '/settings/appearance': typeof SettingsAppearanceRoute
-  '/settings/data': typeof SettingsDataRoute
-  '/settings/general': typeof SettingsGeneralRoute
-  '/settings/reading': typeof SettingsReadingRoute
-  '/settings/shortcuts': typeof SettingsShortcutsRoute
-  '/settings/': typeof SettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/settings/about': typeof SettingsAboutRoute
-  '/settings/ai': typeof SettingsAiRoute
-  '/settings/appearance': typeof SettingsAppearanceRoute
-  '/settings/data': typeof SettingsDataRoute
-  '/settings/general': typeof SettingsGeneralRoute
-  '/settings/reading': typeof SettingsReadingRoute
-  '/settings/shortcuts': typeof SettingsShortcutsRoute
-  '/settings': typeof SettingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/settings': typeof SettingsRouteWithChildren
-  '/settings/about': typeof SettingsAboutRoute
-  '/settings/ai': typeof SettingsAiRoute
-  '/settings/appearance': typeof SettingsAppearanceRoute
-  '/settings/data': typeof SettingsDataRoute
-  '/settings/general': typeof SettingsGeneralRoute
-  '/settings/reading': typeof SettingsReadingRoute
-  '/settings/shortcuts': typeof SettingsShortcutsRoute
-  '/settings/': typeof SettingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/settings'
-    | '/settings/about'
-    | '/settings/ai'
-    | '/settings/appearance'
-    | '/settings/data'
-    | '/settings/general'
-    | '/settings/reading'
-    | '/settings/shortcuts'
-    | '/settings/'
+  fullPaths: '/'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/settings/about'
-    | '/settings/ai'
-    | '/settings/appearance'
-    | '/settings/data'
-    | '/settings/general'
-    | '/settings/reading'
-    | '/settings/shortcuts'
-    | '/settings'
-  id:
-    | '__root__'
-    | '/'
-    | '/settings'
-    | '/settings/about'
-    | '/settings/ai'
-    | '/settings/appearance'
-    | '/settings/data'
-    | '/settings/general'
-    | '/settings/reading'
-    | '/settings/shortcuts'
-    | '/settings/'
+  to: '/'
+  id: '__root__' | '/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  SettingsRoute: typeof SettingsRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -166,94 +48,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/settings/': {
-      id: '/settings/'
-      path: '/'
-      fullPath: '/settings/'
-      preLoaderRoute: typeof SettingsIndexRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/settings/shortcuts': {
-      id: '/settings/shortcuts'
-      path: '/shortcuts'
-      fullPath: '/settings/shortcuts'
-      preLoaderRoute: typeof SettingsShortcutsRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/settings/reading': {
-      id: '/settings/reading'
-      path: '/reading'
-      fullPath: '/settings/reading'
-      preLoaderRoute: typeof SettingsReadingRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/settings/general': {
-      id: '/settings/general'
-      path: '/general'
-      fullPath: '/settings/general'
-      preLoaderRoute: typeof SettingsGeneralRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/settings/data': {
-      id: '/settings/data'
-      path: '/data'
-      fullPath: '/settings/data'
-      preLoaderRoute: typeof SettingsDataRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/settings/appearance': {
-      id: '/settings/appearance'
-      path: '/appearance'
-      fullPath: '/settings/appearance'
-      preLoaderRoute: typeof SettingsAppearanceRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/settings/ai': {
-      id: '/settings/ai'
-      path: '/ai'
-      fullPath: '/settings/ai'
-      preLoaderRoute: typeof SettingsAiRouteImport
-      parentRoute: typeof SettingsRoute
-    }
-    '/settings/about': {
-      id: '/settings/about'
-      path: '/about'
-      fullPath: '/settings/about'
-      preLoaderRoute: typeof SettingsAboutRouteImport
-      parentRoute: typeof SettingsRoute
-    }
   }
 }
 
-interface SettingsRouteChildren {
-  SettingsAboutRoute: typeof SettingsAboutRoute
-  SettingsAiRoute: typeof SettingsAiRoute
-  SettingsAppearanceRoute: typeof SettingsAppearanceRoute
-  SettingsDataRoute: typeof SettingsDataRoute
-  SettingsGeneralRoute: typeof SettingsGeneralRoute
-  SettingsReadingRoute: typeof SettingsReadingRoute
-  SettingsShortcutsRoute: typeof SettingsShortcutsRoute
-  SettingsIndexRoute: typeof SettingsIndexRoute
-}
-
-const SettingsRouteChildren: SettingsRouteChildren = {
-  SettingsAboutRoute: SettingsAboutRoute,
-  SettingsAiRoute: SettingsAiRoute,
-  SettingsAppearanceRoute: SettingsAppearanceRoute,
-  SettingsDataRoute: SettingsDataRoute,
-  SettingsGeneralRoute: SettingsGeneralRoute,
-  SettingsReadingRoute: SettingsReadingRoute,
-  SettingsShortcutsRoute: SettingsShortcutsRoute,
-  SettingsIndexRoute: SettingsIndexRoute,
-}
-
-const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
-  SettingsRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  SettingsRoute: SettingsRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

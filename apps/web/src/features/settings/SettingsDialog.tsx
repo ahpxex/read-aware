@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import {
   BookOpen,
   Database,
@@ -37,6 +37,7 @@ const SECTIONS: SettingsSection[] = [
 ];
 
 const EXIT_DURATION_MS = 220;
+const INDICATOR_HEIGHT = 18;
 
 type SettingsDialogProps = {
   open: boolean;
@@ -46,9 +47,13 @@ type SettingsDialogProps = {
 export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const titleId = useId();
   const closeTimerRef = useRef<number | null>(null);
+  const navRef = useRef<HTMLElement | null>(null);
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [isPresent, setIsPresent] = useState(open);
   const [isClosing, setIsClosing] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [direction, setDirection] = useState<"forward" | "backward">("forward");
+  const [indicatorY, setIndicatorY] = useState<number | null>(null);
 
   useEffect(() => {
     if (closeTimerRef.current != null) {
@@ -99,6 +104,23 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     };
   }, [isPresent, onClose]);
 
+  // Slide the active-section indicator to the centre of the active nav item.
+  useLayoutEffect(() => {
+    if (!isPresent) return;
+    const nav = navRef.current;
+    const item = itemRefs.current[activeIndex];
+    if (!nav || !item) return;
+    const navRect = nav.getBoundingClientRect();
+    const itemRect = item.getBoundingClientRect();
+    setIndicatorY(itemRect.top - navRect.top + itemRect.height / 2 - INDICATOR_HEIGHT / 2);
+  }, [activeIndex, isPresent]);
+
+  function selectSection(index: number) {
+    if (index === activeIndex) return;
+    setDirection(index > activeIndex ? "forward" : "backward");
+    setActiveIndex(index);
+  }
+
   if (!isPresent) return null;
 
   const isVisible = open && !isClosing;
@@ -128,32 +150,39 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         )}
       >
         <nav
+          ref={navRef}
           aria-label="Settings sections"
-          className="flex w-48 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-border/70 p-3"
+          className="relative flex w-48 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-border/70 p-3"
         >
           <h2 id={titleId} className="px-3 pb-2.5 pt-1.5 font-serif text-base font-medium text-fg">
             Settings
           </h2>
+
+          {indicatorY != null && (
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute left-1 top-0 w-[3px] rounded-full bg-fg transition-transform duration-300 ease-[var(--ra-ease-out-quint)] motion-reduce:transition-none"
+              style={{ height: INDICATOR_HEIGHT, transform: `translateY(${indicatorY}px)` }}
+            />
+          )}
+
           {SECTIONS.map((section, index) => {
             const active = index === activeIndex;
             const SectionIcon = section.icon;
             return (
               <button
                 key={section.label}
+                ref={(el) => {
+                  itemRefs.current[index] = el;
+                }}
                 type="button"
                 aria-current={active ? "page" : undefined}
-                onClick={() => setActiveIndex(index)}
+                onClick={() => selectSection(index)}
                 className={cn(
-                  "relative flex items-center gap-2.5 rounded-md px-3 py-2 text-left font-sans text-sm transition-colors",
+                  "flex items-center gap-2.5 rounded-md px-3 py-2 text-left font-sans text-sm transition-colors",
                   active ? "font-medium text-fg" : "text-fg-muted hover:text-fg",
                 )}
               >
-                {active && (
-                  <span
-                    aria-hidden="true"
-                    className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-fg"
-                  />
-                )}
                 <SectionIcon
                   size={16}
                   weight={active ? "fill" : "regular"}
@@ -176,7 +205,16 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             />
           </div>
           <ScrollArea className="min-h-0 flex-1">
-            <ActivePanel />
+            <div
+              key={activeIndex}
+              className={
+                direction === "forward"
+                  ? "ra-motion-tab-panel-in-forward"
+                  : "ra-motion-tab-panel-in-backward"
+              }
+            >
+              <ActivePanel />
+            </div>
           </ScrollArea>
         </div>
       </section>

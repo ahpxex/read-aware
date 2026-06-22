@@ -135,13 +135,13 @@ export function ReaderSelectionMenu({
   }
 
   const actionButtonClass =
-    "rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-950 focus-visible:ring-stone-950";
+    "rounded-full text-fg-muted hover:bg-fg/5 hover:text-fg focus-visible:ring-fg";
 
   return (
     <div ref={containerRef} aria-hidden="true" className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
       <div
         ref={menuRef}
-        className="pointer-events-auto absolute flex items-center gap-0.5 rounded-full border border-stone-200/90 bg-stone-50/96 p-1 shadow-[0_12px_32px_rgba(28,25,23,0.10)] backdrop-blur-sm"
+        className="pointer-events-auto absolute flex items-center gap-0.5 rounded-full border border-border/90 bg-fill/96 p-1 shadow-[0_12px_32px_rgba(28,25,23,0.10)] backdrop-blur-sm"
         style={position}
       >
         {showColors ? (
@@ -153,7 +153,7 @@ export function ReaderSelectionMenu({
                 aria-label={`Highlight ${option.label}`}
                 title={option.label}
                 onClick={() => handleColorSelect(option.value)}
-                className="flex h-7 w-7 items-center justify-center rounded-full transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950"
+                className="flex h-7 w-7 items-center justify-center rounded-full transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
               >
                 <span
                   className="block h-4 w-4 rounded-full border border-black/10"
@@ -173,7 +173,7 @@ export function ReaderSelectionMenu({
               }}
               className={cn(
                 actionButtonClass,
-                copied && "bg-stone-100 text-stone-950",
+                copied && "bg-fill-strong text-fg",
               )}
               icon={
                 copied ? (
@@ -192,7 +192,7 @@ export function ReaderSelectionMenu({
                   onClick={handleHighlightClick}
                   className={cn(
                     actionButtonClass,
-                    selection.appearance === "highlight" && "bg-stone-100 text-stone-950",
+                    selection.appearance === "highlight" && "bg-fill-strong text-fg",
                   )}
                   icon={<Highlighter size={14} weight="regular" aria-hidden="true" />}
                 />
@@ -203,7 +203,7 @@ export function ReaderSelectionMenu({
                   onClick={handleAddNote}
                   className={cn(
                     actionButtonClass,
-                    selection.appearance === "note" && "bg-stone-100 text-stone-950",
+                    selection.appearance === "note" && "bg-fill-strong text-fg",
                   )}
                   icon={<NotePencil size={14} weight="regular" aria-hidden="true" />}
                 />

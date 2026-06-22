@@ -48,7 +48,7 @@ export function ReaderShellOverlay({
           paddingRight: "1.25rem",
         }}
         className={cn(
-          "pointer-events-auto shrink-0 border-b border-stone-200/60 bg-stone-100/90 py-3 backdrop-blur-sm transition-all duration-250 ease-out",
+          "pointer-events-auto shrink-0 border-b border-border/60 bg-fill/90 py-3 backdrop-blur-sm transition-all duration-250 ease-out",
           visible
             ? "translate-y-0 opacity-100"
             : "-translate-y-full opacity-0 pointer-events-none",
@@ -58,7 +58,7 @@ export function ReaderShellOverlay({
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-1 text-stone-500 transition-colors hover:text-stone-950 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950"
+            className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-1 text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
           >
             <CaretLeft size={16} weight="regular" aria-hidden="true" />
             <span className="font-sans text-caption font-medium">Library</span>
@@ -67,12 +67,12 @@ export function ReaderShellOverlay({
           {title && (
             <div className="pointer-events-none min-w-0 flex-1 text-center">
               <Body
-                className="truncate text-sm font-medium text-stone-950"
+                className="truncate text-sm font-medium text-fg"
               >
                 {title}
               </Body>
               {subtitle && (
-                <Caption className="truncate text-stone-500">
+                <Caption className="truncate text-fg-muted">
                   {subtitle}
                 </Caption>
               )}
@@ -84,7 +84,7 @@ export function ReaderShellOverlay({
               <button
                 type="button"
                 onClick={onToggleAnnotations}
-                className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-stone-500 transition-colors hover:text-stone-950 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950"
+                className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
                 aria-label="Annotations"
               >
                 <Highlighter size={16} weight="regular" aria-hidden="true" />
@@ -100,7 +100,7 @@ export function ReaderShellOverlay({
           <section
             aria-label="Table of contents"
             className={cn(
-              "pointer-events-auto flex h-full min-h-0 w-full max-w-[18rem] flex-col border-r border-stone-300/70 backdrop-blur-sm transition-all duration-200 ease-out",
+              "pointer-events-auto flex h-full min-h-0 w-full max-w-[18rem] flex-col border-r border-border-strong/70 backdrop-blur-sm transition-all duration-200 ease-out",
               visible
                 ? "translate-x-0 opacity-100"
                 : "-translate-x-4 opacity-0 pointer-events-none",
@@ -113,7 +113,7 @@ export function ReaderShellOverlay({
             <ScrollArea className="h-full min-h-0 flex-1">
               <div className="flex flex-col px-3 py-4">
                 {tocEntries.length === 0 && (
-                  <Body className="px-2 py-2 text-sm text-stone-500">
+                  <Body className="px-2 py-2 text-sm text-fg-muted">
                     This file does not expose a navigable table of contents.
                   </Body>
                 )}
@@ -131,10 +131,10 @@ export function ReaderShellOverlay({
                       onClick={() => onChapterSelect?.(entry.href)}
                       aria-current={isActive ? "location" : undefined}
                       className={cn(
-                        "w-full border-l py-1.5 pr-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950",
+                        "w-full border-l py-1.5 pr-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
                         isActive
-                          ? "border-stone-400 text-stone-950"
-                          : "border-transparent text-stone-500 hover:text-stone-950",
+                          ? "border-border-strong text-fg"
+                          : "border-transparent text-fg-muted hover:text-fg",
                       )}
                       style={{
                         paddingLeft: `${1 + entry.depth * 0.85}rem`,
@@ -144,7 +144,7 @@ export function ReaderShellOverlay({
                         as="span"
                         className={cn(
                           "block min-w-0 text-sm leading-6",
-                          isActive ? "text-stone-950" : "text-inherit",
+                          isActive ? "text-fg" : "text-inherit",
                         )}
                       >
                         {entry.label}
@@ -161,7 +161,7 @@ export function ReaderShellOverlay({
       {/* Bottom bar */}
       <div
         className={cn(
-          "pointer-events-auto shrink-0 border-t border-stone-200/60 bg-stone-100/90 px-5 py-3 backdrop-blur-sm transition-all duration-250 ease-out",
+          "pointer-events-auto shrink-0 border-t border-border/60 bg-fill/90 px-5 py-3 backdrop-blur-sm transition-all duration-250 ease-out",
           visible
             ? "translate-y-0 opacity-100"
             : "translate-y-full opacity-0 pointer-events-none",
@@ -169,20 +169,20 @@ export function ReaderShellOverlay({
       >
         <div className="flex items-center gap-4">
           {currentPosition && (
-            <Caption key={currentPosition} className="ra-motion-page-counter shrink-0 text-stone-500">
+            <Caption key={currentPosition} className="ra-motion-page-counter shrink-0 text-fg-muted">
               {currentPosition}
             </Caption>
           )}
 
           {percent != null && (
             <div className="flex min-w-0 flex-1 items-center gap-3">
-              <div className="h-1 flex-1 overflow-hidden rounded-full bg-stone-200">
+              <div className="h-1 flex-1 overflow-hidden rounded-full bg-fill-strong">
                 <div
-                  className="h-full rounded-full bg-stone-400 transition-all duration-300"
+                  className="h-full rounded-full bg-fg-subtle transition-all duration-300"
                   style={{ width: `${percent}%` }}
                 />
               </div>
-              <Caption key={Math.round(percent)} className="ra-motion-page-counter shrink-0 tabular-nums text-stone-500">
+              <Caption key={Math.round(percent)} className="ra-motion-page-counter shrink-0 tabular-nums text-fg-muted">
                 {Math.round(percent)}%
               </Caption>
             </div>

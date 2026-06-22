@@ -20,14 +20,14 @@ export function BookRow({ book, onClick, onRemove, className }: BookRowProps) {
   return (
     <div
       className={cn(
-        "group flex items-center gap-4 rounded-sm px-2 py-2 transition-colors hover:bg-stone-100/70",
+        "group flex items-center gap-4 rounded-sm px-2 py-2 transition-colors hover:bg-fg/5",
         className,
       )}
     >
       <button
         type="button"
         onClick={onClick}
-        className="flex min-w-0 flex-1 items-center gap-4 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950 rounded-sm"
+        className="flex min-w-0 flex-1 items-center gap-4 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg rounded-sm"
       >
         <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-sm shadow-sm">
           {book.coverUrl ? (
@@ -37,10 +37,10 @@ export function BookRow({ book, onClick, onRemove, className }: BookRowProps) {
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <span className="block truncate font-serif text-sm font-medium text-stone-950">
+          <span className="block truncate font-serif text-sm font-medium text-fg">
             {book.title}
           </span>
-          <span className="mt-0.5 block truncate font-sans text-[13px] text-stone-500">
+          <span className="mt-0.5 block truncate font-sans text-[13px] text-fg-muted">
             {book.author}
           </span>
         </div>
@@ -48,12 +48,12 @@ export function BookRow({ book, onClick, onRemove, className }: BookRowProps) {
           {book.progressPercent > 0 ? (
             <div className="flex items-center gap-2">
               <Progress value={book.progressPercent} size="sm" className="flex-1" />
-              <span className="w-9 shrink-0 text-right font-sans text-[11px] tabular-nums text-stone-500">
+              <span className="w-9 shrink-0 text-right font-sans text-[11px] tabular-nums text-fg-muted">
                 {Math.round(book.progressPercent)}%
               </span>
             </div>
           ) : (
-            <span className="font-sans text-[11px] text-stone-400">
+            <span className="font-sans text-[11px] text-fg-subtle">
               {book.readingStatus === "finished" ? "Finished" : "Not started"}
             </span>
           )}

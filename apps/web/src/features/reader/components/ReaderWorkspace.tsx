@@ -83,7 +83,7 @@ export function ReaderWorkspace({
       {!readerSource && (
         <div className="absolute inset-0 flex items-center justify-center px-8 text-center">
           <div className="max-w-md space-y-4">
-            <Body className="text-sm text-stone-600">
+            <Body className="text-sm text-fg-muted">
               {readerLoadError ?? `Opening ${selectedBook.title}...`}
             </Body>
             {readerLoadError && (

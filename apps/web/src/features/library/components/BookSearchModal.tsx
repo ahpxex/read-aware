@@ -95,20 +95,20 @@ export function BookSearchModal({ isOpen, books, onClose, onSelectBook }: BookSe
       >
         {/* Search Input */}
         <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-          <MagnifyingGlass size={20} weight="regular" className="text-stone-400" />
+          <MagnifyingGlass size={20} weight="regular" className="text-fg-subtle" />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search books by title or author..."
-            className="flex-1 bg-transparent text-base text-stone-950 outline-none placeholder:text-stone-400"
+            className="flex-1 bg-transparent text-base text-fg outline-none placeholder:text-fg-subtle"
           />
           <IconButton
             label="Close"
             size="sm"
             onClick={onClose}
-            className="text-stone-400 hover:text-stone-600"
+            className="text-fg-subtle hover:text-fg-muted"
             icon={<X size={16} weight="regular" />}
           />
         </div>
@@ -117,8 +117,8 @@ export function BookSearchModal({ isOpen, books, onClose, onSelectBook }: BookSe
         <div className="max-h-[50vh] overflow-y-auto">
           {filteredBooks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-              <Book size={32} weight="regular" className="text-stone-300 mb-3" />
-              <Body className="text-stone-500">
+              <Book size={32} weight="regular" className="text-fg-subtle mb-3" />
+              <Body className="text-fg-muted">
                 {query.trim() ? `No books found for "${query}"` : "Start typing to search your library"}
               </Body>
             </div>
@@ -130,8 +130,8 @@ export function BookSearchModal({ isOpen, books, onClose, onSelectBook }: BookSe
                   className={cn(
                     "flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors",
                     index === selectedIndex
-                      ? "bg-stone-100"
-                      : "hover:bg-stone-50"
+                      ? "bg-fill"
+                      : "hover:bg-fg/5"
                   )}
                   onMouseEnter={() => setSelectedIndex(index)}
                   onClick={() => {
@@ -140,7 +140,7 @@ export function BookSearchModal({ isOpen, books, onClose, onSelectBook }: BookSe
                   }}
                 >
                   {/* Book Cover Thumbnail */}
-                  <div className="h-12 w-8 shrink-0 overflow-hidden rounded-sm bg-stone-200">
+                  <div className="h-12 w-8 shrink-0 overflow-hidden rounded-sm bg-fill-strong">
                     {book.coverUrl ? (
                       <img
                         src={book.coverUrl}
@@ -149,7 +149,7 @@ export function BookSearchModal({ isOpen, books, onClose, onSelectBook }: BookSe
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center">
-                        <Book size={16} className="text-stone-400" />
+                        <Book size={16} className="text-fg-subtle" />
                       </div>
                     )}
                   </div>
@@ -159,10 +159,10 @@ export function BookSearchModal({ isOpen, books, onClose, onSelectBook }: BookSe
                     <Heading size="xl" className="truncate text-base font-medium">
                       {book.title}
                     </Heading>
-                    <Body className="truncate text-sm text-stone-500">
+                    <Body className="truncate text-sm text-fg-muted">
                       {book.author}
                       {book.progressPercent > 0 && (
-                        <span className="ml-2 text-stone-400">
+                        <span className="ml-2 text-fg-subtle">
                           · {Math.round(book.progressPercent)}%
                         </span>
                       )}
@@ -171,12 +171,12 @@ export function BookSearchModal({ isOpen, books, onClose, onSelectBook }: BookSe
 
                   {/* Reading Status */}
                   {book.readingStatus === "reading" && (
-                    <span className="shrink-0 rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-600">
+                    <span className="shrink-0 rounded-full bg-fill px-2 py-0.5 text-xs text-fg-muted">
                       Reading
                     </span>
                   )}
                   {book.readingStatus === "finished" && (
-                    <span className="shrink-0 rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-600">
+                    <span className="shrink-0 rounded-full bg-fill px-2 py-0.5 text-xs text-fg-muted">
                       Finished
                     </span>
                   )}
@@ -187,7 +187,7 @@ export function BookSearchModal({ isOpen, books, onClose, onSelectBook }: BookSe
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-border px-4 py-2 text-xs text-stone-400">
+        <div className="flex items-center justify-between border-t border-border px-4 py-2 text-xs text-fg-subtle">
           <span>
             {filteredBooks.length} {filteredBooks.length === 1 ? "book" : "books"}
           </span>

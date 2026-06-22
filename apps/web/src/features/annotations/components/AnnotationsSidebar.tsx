@@ -42,7 +42,7 @@ function AnnotationIcon({ annotation }: { annotation: Annotation }) {
     );
   }
   if (annotation.type === "note") {
-    return <NotePencil size={14} weight="regular" className="mt-0.5 shrink-0 text-stone-400" />;
+    return <NotePencil size={14} weight="regular" className="mt-0.5 shrink-0 text-fg-subtle" />;
   }
   return <ChatCircleDots size={14} weight="regular" className="mt-0.5 shrink-0 text-indigo-400" />;
 }
@@ -51,14 +51,14 @@ function AnnotationPreview({ annotation }: { annotation: Annotation }) {
   if (annotation.type === "note") {
     const note = annotation as Note;
     return (
-      <p className="line-clamp-2 text-xs text-stone-600">{note.content}</p>
+      <p className="line-clamp-2 text-xs text-fg-muted">{note.content}</p>
     );
   }
   if (annotation.type === "ai-chat") {
     const chat = annotation as AIChat;
     const count = chat.messages.length;
     return (
-      <p className="text-xs text-stone-500">{count} message{count !== 1 ? "s" : ""}</p>
+      <p className="text-xs text-fg-muted">{count} message{count !== 1 ? "s" : ""}</p>
     );
   }
   return null;
@@ -95,16 +95,16 @@ export function AnnotationsSidebar({
           <Heading as="h2" size="xl">
             Annotations
           </Heading>
-          <span className="text-xs text-stone-400">
+          <span className="text-xs text-fg-subtle">
             {annotations.length} total
           </span>
         </div>
 
         {isLoading ? (
-          <Body className="text-sm text-stone-500">Loading...</Body>
+          <Body className="text-sm text-fg-muted">Loading...</Body>
         ) : annotations.length === 0 ? (
           <div className="flex flex-1 items-center justify-center">
-            <Body className="text-center text-sm text-stone-500">
+            <Body className="text-center text-sm text-fg-muted">
               No annotations yet. Select text in the reader to highlight, take notes, or ask AI.
             </Body>
           </div>
@@ -119,7 +119,7 @@ export function AnnotationsSidebar({
                 return (
                   <div key={href}>
                     {chapterLabel && (
-                      <p className="mb-2 font-sans text-[13px] font-medium text-stone-400">
+                      <p className="mb-2 font-sans text-[13px] font-medium text-fg-subtle">
                         {chapterLabel}
                       </p>
                     )}
@@ -135,16 +135,16 @@ export function AnnotationsSidebar({
                           }}
                           className={cn(
                             "group flex w-full gap-2 rounded-md p-2 text-left transition-colors",
-                            "hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950",
+                            "hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
                           )}
                         >
                           <AnnotationIcon annotation={annotation} />
                           <div className="min-w-0 flex-1">
-                            <p className="line-clamp-2 text-xs leading-relaxed text-stone-700">
+                            <p className="line-clamp-2 text-xs leading-relaxed text-fg-muted">
                               &ldquo;{annotation.text}&rdquo;
                             </p>
                             <AnnotationPreview annotation={annotation} />
-                            <p className="mt-1 text-[10px] text-stone-400">
+                            <p className="mt-1 text-[10px] text-fg-subtle">
                               {formatTimestamp(annotation.createdAt)}
                             </p>
                           </div>
@@ -155,7 +155,7 @@ export function AnnotationsSidebar({
                               e.stopPropagation();
                               void remove(annotation.id);
                             }}
-                            className="shrink-0 opacity-0 group-hover:opacity-100 text-stone-400 hover:text-red-600"
+                            className="shrink-0 opacity-0 group-hover:opacity-100 text-fg-subtle hover:text-red-600"
                             icon={<Trash size={12} weight="regular" />}
                           />
                         </button>

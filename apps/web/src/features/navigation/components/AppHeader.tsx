@@ -16,7 +16,7 @@ type AppHeaderProps = {
 };
 
 const headerIconButtonClass =
-  "relative text-stone-500 hover:text-stone-950 before:absolute before:-inset-1 before:content-['']";
+  "relative text-fg-muted hover:text-fg before:absolute before:-inset-1 before:content-['']";
 
 /**
  * A single, draggable top bar — no separate title band, no tab switcher, no
@@ -69,7 +69,7 @@ export function AppHeader({
               onClick={() => onTopNavChange(contextActive ? "shelf" : "context")}
               className={cn(
                 "relative before:absolute before:-inset-1 before:content-['']",
-                contextActive ? "text-stone-950" : "text-stone-500 hover:text-stone-950",
+                contextActive ? "text-fg" : "text-fg-muted hover:text-fg",
               )}
               icon={<Cards size={16} weight={contextActive ? "fill" : "regular"} aria-hidden="true" />}
             />

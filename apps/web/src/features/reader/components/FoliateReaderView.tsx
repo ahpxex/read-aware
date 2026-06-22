@@ -910,7 +910,7 @@ export function FoliateReaderView({
 
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-inherit">
-          <Body className="text-sm text-stone-600">
+          <Body className="text-sm text-fg-muted">
             Opening {initialBook?.fileName ?? "book"}...
           </Body>
         </div>
@@ -933,13 +933,13 @@ export function FoliateReaderView({
           <Heading as="h2" size="xl">
             Chapters
           </Heading>
-          <Body className="text-sm text-stone-600">
+          <Body className="text-sm text-fg-muted">
             Press `[` or `]` to move between chapters, or pick one below.
           </Body>
           <ScrollArea className="h-full min-h-0 flex-1">
             <div className="flex flex-col gap-1 pr-2">
               {tocEntries.length === 0 ? (
-                <Body className="text-sm text-stone-600">
+                <Body className="text-sm text-fg-muted">
                   No chapter list is available for this book.
                 </Body>
               ) : (
@@ -951,10 +951,10 @@ export function FoliateReaderView({
                       void goToChapter(entry.href);
                     }}
                     className={cn(
-                      "w-full text-left font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950",
+                      "w-full text-left font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
                       normalizeHref(entry.href) === normalizeHref(currentChapterHref ?? "")
-                        ? "text-stone-950"
-                        : "text-stone-600 hover:text-stone-950",
+                        ? "text-fg"
+                        : "text-fg-muted hover:text-fg",
                       entry.depth === 1 && "pl-4",
                       entry.depth >= 2 && "pl-8",
                     )}

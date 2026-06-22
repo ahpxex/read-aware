@@ -25,18 +25,18 @@ export function BookDetailsDialog({ book, open, onClose }: BookDetailsDialogProp
   return (
     <Dialog open={open} onClose={onClose} title="Book details">
       <div className="space-y-3">
-        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-stone-700">
-          <dt className="font-medium text-stone-600">Title</dt>
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-fg-muted">
+          <dt className="font-medium text-fg-muted">Title</dt>
           <dd>{book.title}</dd>
-          <dt className="font-medium text-stone-600">Author</dt>
+          <dt className="font-medium text-fg-muted">Author</dt>
           <dd>{book.author}</dd>
-          <dt className="font-medium text-stone-600">Format</dt>
+          <dt className="font-medium text-fg-muted">Format</dt>
           <dd className="uppercase">{book.format}</dd>
-          <dt className="font-medium text-stone-600">File</dt>
+          <dt className="font-medium text-fg-muted">File</dt>
           <dd>{book.fileName}</dd>
-          <dt className="font-medium text-stone-600">Progress</dt>
+          <dt className="font-medium text-fg-muted">Progress</dt>
           <dd>{book.progressPercent > 0 ? `${Math.round(book.progressPercent)}%` : "Not started"}</dd>
-          <dt className="font-medium text-stone-600">Last opened</dt>
+          <dt className="font-medium text-fg-muted">Last opened</dt>
           <dd>{formatLastOpenedAt(book.lastOpenedAt)}</dd>
         </dl>
         <div className="flex justify-end">

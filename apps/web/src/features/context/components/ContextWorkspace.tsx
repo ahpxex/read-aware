@@ -31,7 +31,7 @@ function AnnotationTypeIcon({ annotation }: { annotation: Annotation }) {
     );
   }
   if (annotation.type === "note") {
-    return <NotePencil size={14} weight="regular" className="mt-0.5 shrink-0 text-stone-400" />;
+    return <NotePencil size={14} weight="regular" className="mt-0.5 shrink-0 text-fg-subtle" />;
   }
   return <ChatCircleDots size={14} weight="regular" className="mt-0.5 shrink-0 text-indigo-400" />;
 }
@@ -74,7 +74,7 @@ export function ContextWorkspace({ books, onOpenBook }: ContextWorkspaceProps) {
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <Body className="text-sm text-stone-500">Loading context...</Body>
+        <Body className="text-sm text-fg-muted">Loading context...</Body>
       </div>
     );
   }
@@ -95,7 +95,7 @@ export function ContextWorkspace({ books, onOpenBook }: ContextWorkspaceProps) {
     <div className="ra-motion-page-enter mx-auto max-w-screen-2xl px-6 py-8 sm:py-10">
       <div className="mb-8">
         <Heading size="2xl">Context</Heading>
-        <Body className="mt-1 text-sm text-stone-500">
+        <Body className="mt-1 text-sm text-fg-muted">
           {annotations.length} context item{annotations.length !== 1 ? "s" : ""} across {grouped.size} book{grouped.size !== 1 ? "s" : ""}
         </Body>
       </div>
@@ -110,13 +110,13 @@ export function ContextWorkspace({ books, onOpenBook }: ContextWorkspaceProps) {
                 onClick={() => {
                   if (book) onOpenBook(book);
                 }}
-                className="mb-3 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950 rounded-md"
+                className="mb-3 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg rounded-md"
               >
-                <Heading size="xl" className="hover:text-stone-600 transition-colors">
+                <Heading size="xl" className="hover:text-fg-muted transition-colors">
                   {book?.title ?? "Unknown Book"}
                 </Heading>
                 {book?.author && (
-                  <Body className="text-xs text-stone-500">{book.author}</Body>
+                  <Body className="text-xs text-fg-muted">{book.author}</Body>
                 )}
               </button>
 
@@ -126,25 +126,25 @@ export function ContextWorkspace({ books, onOpenBook }: ContextWorkspaceProps) {
                     key={annotation.id}
                     className={cn(
                       "group flex gap-2 rounded-md p-2.5 transition-colors",
-                      "hover:bg-stone-100",
+                      "hover:bg-fg/5",
                     )}
                   >
                     <AnnotationTypeIcon annotation={annotation} />
                     <div className="min-w-0 flex-1">
-                      <Body className="line-clamp-2 text-sm text-stone-700">
+                      <Body className="line-clamp-2 text-sm text-fg-muted">
                         &ldquo;{annotation.text}&rdquo;
                       </Body>
                       {annotation.type === "note" && (
-                        <Caption className="mt-0.5 line-clamp-1 text-stone-500">
+                        <Caption className="mt-0.5 line-clamp-1 text-fg-muted">
                           {(annotation as Note).content}
                         </Caption>
                       )}
                       {annotation.type === "ai-chat" && (
-                        <Caption className="mt-0.5 text-stone-500">
+                        <Caption className="mt-0.5 text-fg-muted">
                           {(annotation as AIChat).messages.length} messages
                         </Caption>
                       )}
-                      <Caption className="mt-1 text-stone-400">
+                      <Caption className="mt-1 text-fg-subtle">
                         {formatDate(annotation.createdAt)}
                       </Caption>
                     </div>
@@ -152,7 +152,7 @@ export function ContextWorkspace({ books, onOpenBook }: ContextWorkspaceProps) {
                       label="Delete"
                       size="sm"
                       onClick={() => void handleDelete(annotation.id)}
-                      className="shrink-0 opacity-0 group-hover:opacity-100 text-stone-400 hover:text-red-600"
+                      className="shrink-0 opacity-0 group-hover:opacity-100 text-fg-subtle hover:text-red-600"
                       icon={<Trash size={12} weight="regular" />}
                     />
                   </div>

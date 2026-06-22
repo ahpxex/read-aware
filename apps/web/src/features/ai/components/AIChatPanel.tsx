@@ -156,7 +156,7 @@ export function AIChatPanel({
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <div className="min-w-0 flex-1">
             <Heading size="xl">Ask AI</Heading>
-            <Body className="truncate text-xs text-stone-500">
+            <Body className="truncate text-xs text-fg-muted">
               About: &ldquo;{selectedText.slice(0, 60)}{selectedText.length > 60 ? "..." : ""}&rdquo;
             </Body>
           </div>
@@ -164,7 +164,7 @@ export function AIChatPanel({
             label="Close"
             size="sm"
             onClick={onClose}
-            className="ml-2 text-stone-500 hover:text-stone-950"
+            className="ml-2 text-fg-muted hover:text-fg"
             icon={<X size={14} weight="regular" />}
           />
         </div>
@@ -178,7 +178,7 @@ export function AIChatPanel({
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {messages.length === 0 && !isStreaming ? (
             <div className="flex h-full items-center justify-center">
-              <Body className="text-center text-stone-500">
+              <Body className="text-center text-fg-muted">
                 Start a conversation about this passage.
               </Body>
             </div>
@@ -189,17 +189,17 @@ export function AIChatPanel({
               ))}
               {isStreaming && streamingContent && (
                 <div className="flex justify-start">
-                  <div className="max-w-[85%] rounded-lg bg-stone-100 px-3 py-2 text-sm leading-relaxed text-stone-800 whitespace-pre-wrap">
+                  <div className="max-w-[85%] rounded-lg bg-fill px-3 py-2 text-sm leading-relaxed text-fg whitespace-pre-wrap">
                     {streamingContent}
-                    <span className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-stone-400" />
+                    <span className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-fg-subtle" />
                   </div>
                 </div>
               )}
               {isStreaming && !streamingContent && (
                 <div className="flex justify-start">
-                  <div className="flex items-center gap-2 rounded-lg bg-stone-100 px-3 py-2">
+                  <div className="flex items-center gap-2 rounded-lg bg-fill px-3 py-2">
                     <Spinner size="sm" />
-                    <Body className="text-xs text-stone-500">Thinking...</Body>
+                    <Body className="text-xs text-fg-muted">Thinking...</Body>
                   </div>
                 </div>
               )}
@@ -224,7 +224,7 @@ export function AIChatPanel({
               <IconButton
                 label="Stop generating"
                 onClick={handleAbort}
-                className="self-end rounded-md border border-stone-300 text-stone-600 hover:bg-stone-100 hover:text-stone-950"
+                className="self-end rounded-md border border-border-strong text-fg-muted hover:bg-fg/5 hover:text-fg"
                 icon={<Stop size={16} weight="fill" />}
               />
             ) : (
@@ -237,7 +237,7 @@ export function AIChatPanel({
               </Button>
             )}
           </div>
-          <Body className="mt-2 text-[10px] text-stone-400">
+          <Body className="mt-2 text-[10px] text-fg-subtle">
             {isStreaming ? "Press Stop to cancel" : "Press Cmd+Enter to send"}
           </Body>
         </div>
@@ -253,8 +253,8 @@ function MessageBubble({ message }: { message: AIChatMessage }) {
         className={cn(
           "max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap",
           message.role === "user"
-            ? "bg-stone-800 text-white"
-            : "bg-stone-100 text-stone-800",
+            ? "bg-fg text-inverse-fg"
+            : "bg-fill text-fg",
         )}
       >
         {message.content}

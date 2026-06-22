@@ -51,14 +51,14 @@ export function NoteEditor({
             label="Close"
             size="sm"
             onClick={onCancel}
-            className="text-stone-500 hover:text-stone-950"
+            className="text-fg-muted hover:text-fg"
             icon={<X size={14} weight="regular" />}
           />
         </div>
 
         <div className="px-5 py-4">
-          <div className="mb-4 rounded-md border border-stone-200 bg-stone-50 p-3">
-            <Body className="text-sm text-stone-600 line-clamp-3">
+          <div className="mb-4 rounded-md border border-border bg-fill p-3">
+            <Body className="text-sm text-fg-muted line-clamp-3">
               &ldquo;{selectedText}&rdquo;
             </Body>
           </div>

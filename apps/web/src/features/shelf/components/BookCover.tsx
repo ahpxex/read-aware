@@ -27,7 +27,7 @@ export function BookCover({ book, onClick, onRemove, className }: BookCoverProps
       <button
         type="button"
         onClick={onClick}
-        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-950 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-100"
+        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg focus-visible:ring-offset-2 focus-visible:ring-offset-fill"
       >
         <div className="relative aspect-[2/3] w-full overflow-hidden rounded-sm transition-shadow group-hover:shadow-md group-focus-within:shadow-md">
           {book.coverUrl ? (

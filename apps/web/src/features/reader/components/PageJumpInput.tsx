@@ -41,11 +41,11 @@ export function PageJumpInput({
         max={numPages}
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        className="w-full border border-stone-300 bg-white px-3 py-1.5 font-sans text-sm text-stone-950 focus:border-stone-950 focus:outline-none"
+        className="w-full border border-border-strong bg-surface px-3 py-1.5 font-sans text-sm text-fg focus:border-fg focus:outline-none"
       />
       <button
         type="submit"
-        className="shrink-0 border border-stone-300 px-3 py-1.5 font-sans text-sm font-medium text-stone-950 transition-colors hover:bg-stone-100"
+        className="shrink-0 border border-border-strong px-3 py-1.5 font-sans text-sm font-medium text-fg transition-colors hover:bg-fg/5"
       >
         Go
       </button>

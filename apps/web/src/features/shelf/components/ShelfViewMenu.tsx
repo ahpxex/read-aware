@@ -26,7 +26,7 @@ const SORT_OPTIONS: { value: ShelfSort; label: string }[] = [
   { value: "progress", label: "Progress" },
 ];
 
-const groupEyebrow = "mb-1.5 font-sans text-[13px] font-medium text-stone-500";
+const groupEyebrow = "mb-1.5 font-sans text-[13px] font-medium text-fg-muted";
 
 type OptionRowsProps<T extends string> = {
   label: string;
@@ -50,11 +50,11 @@ function OptionRows<T extends string>({ label, value, options, onChange }: Optio
               onClick={() => onChange(option.value)}
               className={cn(
                 "flex items-center justify-between rounded-md px-1.5 py-1.5 text-left font-sans text-sm transition-colors",
-                active ? "font-medium text-stone-900" : "text-stone-500 hover:bg-stone-900/[0.04] hover:text-stone-900",
+                active ? "font-medium text-fg" : "text-fg-muted hover:bg-fg/5 hover:text-fg",
               )}
             >
               <span>{option.label}</span>
-              {active && <Check size={14} weight="bold" aria-hidden="true" className="text-stone-700" />}
+              {active && <Check size={14} weight="bold" aria-hidden="true" className="text-fg-muted" />}
             </button>
           );
         })}
@@ -70,7 +70,7 @@ export function ShelfViewMenu() {
     <Popover
       align="right"
       triggerLabel="Shelf view"
-      triggerClassName="h-7 w-7 items-center justify-center text-stone-500 transition-colors hover:text-stone-950 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950"
+      triggerClassName="h-7 w-7 items-center justify-center text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
       trigger={<SlidersHorizontal size={16} weight="regular" aria-hidden="true" />}
     >
       <div className="w-56 space-y-4">

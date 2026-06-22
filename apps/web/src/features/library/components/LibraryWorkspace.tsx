@@ -35,7 +35,7 @@ export function LibraryWorkspace({
 
       {!isReady ? (
         <div className="py-16">
-          <Body className="text-sm text-stone-600">Loading your library...</Body>
+          <Body className="text-sm text-fg-muted">Loading your library...</Body>
         </div>
       ) : books.length === 0 ? (
         <EmptyState

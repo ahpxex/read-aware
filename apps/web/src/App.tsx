@@ -66,7 +66,7 @@ function App() {
   }
 
   return (
-    <main className="flex h-screen flex-col bg-[var(--ra-main-surface-color)] text-stone-950">
+    <main className="flex h-screen flex-col bg-[var(--ra-main-surface-color)] text-fg">
       <input
         ref={library.importInputRef}
         type="file"

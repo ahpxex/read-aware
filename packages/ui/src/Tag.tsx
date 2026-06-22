@@ -15,8 +15,8 @@ export function Tag({ children, variant = "default", onRemove, removeLabel, clas
     <span
       className={cn(
         "inline-flex items-center gap-1 font-sans text-caption",
-        variant === "default" && "bg-stone-100 px-2 py-0.5 text-stone-700",
-        variant === "outline" && "border border-stone-200 px-2 py-0.5 text-stone-700",
+        variant === "default" && "bg-fill px-2 py-0.5 text-fg-muted",
+        variant === "outline" && "border border-border px-2 py-0.5 text-fg-muted",
         className,
       )}
     >
@@ -26,7 +26,7 @@ export function Tag({ children, variant = "default", onRemove, removeLabel, clas
           type="button"
           onClick={onRemove}
           aria-label={removeLabel ?? `Remove ${typeof children === "string" ? children : ""}`}
-          className="ml-0.5 text-stone-400 hover:text-stone-700"
+          className="ml-0.5 text-fg-subtle hover:text-fg-muted"
         >
           <X size={12} weight="bold" />
         </button>

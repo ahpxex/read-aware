@@ -115,7 +115,7 @@ export function Dialog({
         aria-labelledby={title ? titleId : undefined}
         aria-label={!title ? ariaLabel : undefined}
         className={cn(
-          "relative w-full max-w-lg rounded-md border border-border bg-[var(--ra-main-surface-color)] p-8 font-sans text-stone-950",
+          "relative w-full max-w-lg rounded-md border border-border bg-[var(--ra-main-surface-color)] p-8 font-sans text-fg",
           "transition-[opacity,transform] duration-280 ease-[var(--ra-ease-out-quint)] motion-reduce:transition-none",
           isVisible
             ? "translate-y-0 scale-100 opacity-100"
@@ -131,7 +131,7 @@ export function Dialog({
             {title}
           </h2>
         )}
-        <div className="text-sm leading-relaxed text-stone-700">{children}</div>
+        <div className="text-sm leading-relaxed text-fg-muted">{children}</div>
       </section>
     </div>,
     document.body,

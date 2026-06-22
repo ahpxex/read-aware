@@ -147,13 +147,18 @@ export function DropdownMenu({ trigger, items, align = "left", className }: Drop
               className={cn(
                 "flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-sm outline-none transition-colors",
                 item.destructive
-                  ? cn("text-red-700", i === activeIndex ? "bg-red-50" : "hover:bg-red-50 focus:bg-red-50")
-                  : cn("text-stone-700", i === activeIndex ? "bg-stone-100 text-stone-950" : "hover:bg-stone-100 focus:bg-stone-100"),
+                  ? cn(
+                      "text-red-700 dark:text-red-400",
+                      i === activeIndex
+                        ? "bg-red-50 dark:bg-red-500/15"
+                        : "hover:bg-red-50 focus:bg-red-50 dark:hover:bg-red-500/15 dark:focus:bg-red-500/15",
+                    )
+                  : cn("text-fg-muted", i === activeIndex ? "bg-fill text-fg" : "hover:bg-fill focus:bg-fill"),
                 item.disabled && "cursor-not-allowed opacity-50",
               )}
             >
               {item.icon && (
-                <span className="flex h-4 w-4 shrink-0 items-center justify-center text-stone-500">
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center text-fg-subtle">
                   {item.icon}
                 </span>
               )}

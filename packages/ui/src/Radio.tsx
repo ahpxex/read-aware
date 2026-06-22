@@ -17,15 +17,15 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>(
           id={id}
           type="radio"
           aria-describedby={description ? `${id}-desc` : undefined}
-          className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer appearance-none rounded-full border border-stone-300 bg-transparent checked:border-[5px] checked:border-stone-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-950"
+          className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer appearance-none rounded-full border border-border-strong bg-transparent checked:border-[5px] checked:border-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg"
           {...props}
         />
         <div className="flex flex-col">
-          <label htmlFor={id} className="cursor-pointer text-sm text-stone-950">
+          <label htmlFor={id} className="cursor-pointer text-sm text-fg">
             {label}
           </label>
           {description && (
-            <p id={`${id}-desc`} className="text-caption text-stone-600">
+            <p id={`${id}-desc`} className="text-caption text-fg-muted">
               {description}
             </p>
           )}

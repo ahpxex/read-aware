@@ -30,12 +30,12 @@ export function Progress({
       {(label || showValue) && (
         <div className="flex items-center justify-between">
           {label && (
-            <span className="font-sans text-[13px] font-medium text-stone-600">
+            <span className="font-sans text-[13px] font-medium text-fg-muted">
               {label}
             </span>
           )}
           {showValue && (
-            <span className="font-sans text-caption text-stone-600">
+            <span className="font-sans text-caption text-fg-muted">
               {Math.round(percent)}%
             </span>
           )}
@@ -47,10 +47,10 @@ export function Progress({
         aria-valuemin={0}
         aria-valuemax={max}
         aria-label={label ?? "Progress"}
-        className={cn("w-full overflow-hidden rounded-full bg-stone-200", sizeClasses[size])}
+        className={cn("w-full overflow-hidden rounded-full bg-fill-strong", sizeClasses[size])}
       >
         <div
-          className="h-full rounded-full bg-stone-950 transition-all duration-300"
+          className="h-full rounded-full bg-fg transition-all duration-300"
           style={{ width: `${percent}%` }}
         />
       </div>

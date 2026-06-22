@@ -125,14 +125,14 @@ export function Tabs({
           usesUnderlineIndicator && "relative",
           stretch && "w-full",
           (variant === "underline" || variant === "nav") && "gap-6 border-b border-border",
-          variant === "pill" && "gap-1 rounded bg-stone-100 p-1",
+          variant === "pill" && "gap-1 rounded bg-fill p-1",
         )}
       >
         {usesUnderlineIndicator && (
           <span
             aria-hidden="true"
             className={cn(
-              "pointer-events-none absolute -bottom-px left-0 h-0.5 bg-stone-950 transition-[transform,width,opacity] duration-250 ease-[var(--ra-ease-out-quint)] motion-reduce:transition-none",
+              "pointer-events-none absolute -bottom-px left-0 h-0.5 bg-fg transition-[transform,width,opacity] duration-250 ease-[var(--ra-ease-out-quint)] motion-reduce:transition-none",
               !indicatorStyle.ready && "opacity-0",
             )}
             style={{
@@ -158,28 +158,28 @@ export function Tabs({
               tabIndex={isActive ? 0 : -1}
               onClick={() => activateIndex(i)}
               className={cn(
-                "inline-flex items-center whitespace-nowrap font-sans text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950",
+                "inline-flex items-center whitespace-nowrap font-sans text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
                 stretch && "flex-1 justify-center text-center",
                 variant === "underline" &&
                   cn(
                     "pb-3",
                     isActive
-                      ? "text-stone-950"
-                      : "text-stone-600 hover:text-stone-700",
+                      ? "text-fg"
+                      : "text-fg-muted hover:text-fg",
                   ),
                 variant === "nav" &&
                   cn(
                     "pb-3",
                     isActive
-                      ? "text-stone-950"
-                      : "text-stone-400 hover:text-stone-950",
+                      ? "text-fg"
+                      : "text-fg-subtle hover:text-fg",
                   ),
                 variant === "pill" &&
                   cn(
                     "rounded px-3 py-1.5",
                     isActive
-                      ? "bg-paper text-stone-950"
-                      : "text-stone-600 hover:text-stone-700",
+                      ? "bg-surface text-fg"
+                      : "text-fg-muted hover:text-fg",
                   ),
               )}
             >

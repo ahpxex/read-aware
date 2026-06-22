@@ -24,7 +24,7 @@ export function Display<T extends ElementType = "h1">({
   return (
     <Tag
       className={cn(
-        "font-serif leading-display tracking-tight text-stone-950",
+        "font-serif leading-display tracking-tight text-fg",
         sizeClasses[size],
         className,
       )}

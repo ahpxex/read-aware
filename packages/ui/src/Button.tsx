@@ -2,15 +2,12 @@ import { forwardRef, type ButtonHTMLAttributes } from "react";
 import { cn } from "./lib/cn";
 
 const variantClasses = {
-  solid:
-    "bg-stone-950 text-paper px-4 hover:bg-stone-800 active:bg-stone-900",
+  solid: "bg-fg text-inverse-fg px-4 hover:bg-fg/90 active:bg-fg/80",
   outline:
-    "border border-stone-300 text-stone-950 px-4 hover:border-stone-500 hover:bg-stone-950/5 active:bg-stone-950/10",
-  ghost:
-    "text-stone-500 px-4 hover:text-stone-950 hover:bg-stone-950/5 active:bg-stone-950/10",
-  link: "text-stone-950 p-0 hover:text-stone-700 underline-offset-4 hover:underline",
-  danger:
-    "bg-red-900 text-paper px-4 hover:bg-red-800 active:bg-red-900",
+    "border border-border-strong text-fg px-4 hover:border-fg-subtle hover:bg-fg/5 active:bg-fg/10",
+  ghost: "text-fg-muted px-4 hover:text-fg hover:bg-fg/5 active:bg-fg/10",
+  link: "text-fg p-0 hover:text-fg-muted underline-offset-4 hover:underline",
+  danger: "bg-red-900 text-red-50 px-4 hover:bg-red-800 active:bg-red-900",
 } as const;
 
 const sizeClasses = {
@@ -34,7 +31,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={type}
         className={cn(
-          "inline-flex items-center justify-center font-sans font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950 disabled:pointer-events-none disabled:opacity-40",
+          "inline-flex items-center justify-center font-sans font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg disabled:pointer-events-none disabled:opacity-40",
           variantClasses[variant],
           sizeClasses[size],
           className,

@@ -76,14 +76,14 @@ function AccordionItem({
           aria-expanded={open}
           aria-controls={panelId}
           onClick={onToggle}
-          className="flex w-full items-center justify-between py-4 text-left font-sans text-sm font-medium text-stone-950 transition-colors hover:text-stone-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950"
+          className="flex w-full items-center justify-between py-4 text-left font-sans text-sm font-medium text-fg transition-colors hover:text-fg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
         >
           {label}
           <CaretDown
             size={16}
             weight="bold"
             className={cn(
-              "shrink-0 text-stone-400 transition-transform duration-200",
+              "shrink-0 text-fg-subtle transition-transform duration-200",
               open && "rotate-180",
             )}
           />
@@ -101,7 +101,7 @@ function AccordionItem({
         )}
       >
         <div className="min-h-0">
-          <div className={cn("text-sm leading-relaxed text-stone-700", open && "pb-4")}>
+          <div className={cn("text-sm leading-relaxed text-fg-muted", open && "pb-4")}>
             {content}
           </div>
         </div>

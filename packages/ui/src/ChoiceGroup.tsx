@@ -31,7 +31,7 @@ export function ChoiceGroup<T extends string>({
   return (
     <fieldset className={cn("min-w-0", className)}>
       {label && (
-        <legend className="mb-2 font-sans text-[13px] font-medium text-stone-500">
+        <legend className="mb-2 font-sans text-[13px] font-medium text-fg-muted">
           {label}
         </legend>
       )}
@@ -46,10 +46,10 @@ export function ChoiceGroup<T extends string>({
               onClick={() => onChange(option.value)}
               className={cn(
                 "group/choice relative inline-flex items-center gap-1.5 pb-1.5 font-sans text-sm transition-colors",
-                active ? "text-stone-900" : "text-stone-400 hover:text-stone-700",
+                active ? "text-fg" : "text-fg-subtle hover:text-fg-muted",
                 // Hairline underline that only renders under the active choice.
                 "after:absolute after:inset-x-0 after:bottom-0 after:h-px after:rounded-full after:transition-colors",
-                active ? "after:bg-stone-900" : "after:bg-transparent",
+                active ? "after:bg-fg" : "after:bg-transparent",
               )}
             >
               {option.icon && (

@@ -15,7 +15,7 @@ const sizeClasses = {
 export function Spinner({ size = "md", className, label = "Loading" }: SpinnerProps) {
   return (
     <svg
-      className={cn("animate-spin text-stone-400", sizeClasses[size], className)}
+      className={cn("animate-spin text-fg-subtle", sizeClasses[size], className)}
       viewBox="0 0 24 24"
       fill="none"
       role="status"

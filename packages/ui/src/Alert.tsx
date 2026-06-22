@@ -10,15 +10,17 @@ type AlertProps = {
 };
 
 const variantClasses = {
-  default: "border-stone-200 text-stone-700",
-  destructive: "border-red-200 bg-red-50 text-red-900",
-  success: "border-emerald-200 bg-emerald-50 text-emerald-900",
+  default: "border-border text-fg-muted",
+  destructive:
+    "border-red-200 bg-red-50 text-red-900 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200",
+  success:
+    "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200",
 };
 
 const titleClasses = {
-  default: "text-stone-950",
-  destructive: "text-red-950",
-  success: "text-emerald-950",
+  default: "text-fg",
+  destructive: "text-red-950 dark:text-red-100",
+  success: "text-emerald-950 dark:text-emerald-100",
 };
 
 export function Alert({

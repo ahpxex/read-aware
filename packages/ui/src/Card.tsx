@@ -47,7 +47,7 @@ function CardBody({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("text-sm leading-relaxed text-stone-700", className)} {...props} />;
+  return <div className={cn("text-sm leading-relaxed text-fg-muted", className)} {...props} />;
 }
 
 function CardFooter({

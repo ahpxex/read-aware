@@ -38,7 +38,7 @@ export function Tooltip({
         id={tooltipId}
         role="tooltip"
         className={cn(
-          "pointer-events-none absolute z-50 whitespace-nowrap rounded bg-stone-950 px-2 py-1 text-xs text-paper opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100",
+          "pointer-events-none absolute z-50 whitespace-nowrap rounded bg-fg px-2 py-1 text-xs text-inverse-fg opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100",
           sideClasses[side],
         )}
       >

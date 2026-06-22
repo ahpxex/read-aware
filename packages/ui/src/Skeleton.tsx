@@ -22,7 +22,7 @@ export function Skeleton({
           <div
             key={i}
             className={cn(
-              "h-4 animate-pulse rounded bg-stone-200",
+              "h-4 animate-pulse rounded bg-fill-strong",
               i === lines - 1 && "w-3/4",
             )}
             style={{ width: i < lines - 1 ? width : undefined }}
@@ -37,7 +37,7 @@ export function Skeleton({
       role="status"
       aria-label="Loading"
       className={cn(
-        "animate-pulse bg-stone-200",
+        "animate-pulse bg-fill-strong",
         variant === "text" && "h-4 rounded",
         variant === "circular" && "rounded-full",
         variant === "rectangular" && "rounded",

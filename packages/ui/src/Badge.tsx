@@ -1,9 +1,9 @@
 import { cn } from "./lib/cn";
 
 const variantClasses = {
-  default: "bg-stone-200 text-stone-700",
-  outline: "border border-stone-300 text-stone-600",
-  muted: "bg-stone-100 text-stone-500",
+  default: "bg-fill-strong text-fg-muted",
+  outline: "border border-border-strong text-fg-muted",
+  muted: "bg-fill text-fg-subtle",
 } as const;
 
 type BadgeProps = {

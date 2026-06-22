@@ -22,7 +22,7 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
           htmlFor={id}
           className={cn(
             "font-sans text-[13px] font-medium",
-            hasError ? "text-red-700" : "text-stone-600",
+            hasError ? "text-red-700 dark:text-red-400" : "text-fg-muted",
           )}
         >
           {label}
@@ -36,20 +36,20 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
             hasError ? `${id}-error` : helperText ? `${id}-helper` : undefined
           }
           className={cn(
-            "resize-y bg-transparent font-sans text-base text-stone-950 outline-none placeholder:text-stone-400",
+            "resize-y bg-transparent font-sans text-base text-fg outline-none placeholder:text-fg-subtle",
             variant === "underline" &&
               cn(
                 "border-b pb-2",
                 hasError
                   ? "border-red-400 focus:border-red-600"
-                  : "border-border focus:border-stone-950",
+                  : "border-border focus:border-fg",
               ),
             variant === "outlined" &&
               cn(
                 "border px-3 py-2",
                 hasError
                   ? "border-red-400 focus:border-red-600"
-                  : "border-border focus:border-stone-950",
+                  : "border-border focus:border-fg",
               ),
           )}
           {...props}
@@ -60,7 +60,7 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
           </p>
         )}
         {!hasError && helperText && (
-          <p id={`${id}-helper`} className="text-[11px] leading-tight text-stone-600">
+          <p id={`${id}-helper`} className="text-[11px] leading-tight text-fg-muted">
             {helperText}
           </p>
         )}

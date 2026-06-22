@@ -25,7 +25,7 @@ export function Heading<T extends ElementType = "h2">({
   return (
     <Tag
       className={cn(
-        "font-sans font-semibold tracking-tight text-stone-950",
+        "font-sans font-semibold tracking-tight text-fg",
         sizeClasses[size],
         className,
       )}

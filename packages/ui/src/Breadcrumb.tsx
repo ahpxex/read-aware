@@ -25,14 +25,14 @@ export function Breadcrumb({
           return (
             <li key={i} className="flex items-center gap-1.5">
               {i > 0 && (
-                <span aria-hidden className="text-stone-400">
+                <span aria-hidden className="text-fg-subtle">
                   {separator}
                 </span>
               )}
               {isLast ? (
                 <span
                   aria-current="page"
-                  className="text-stone-950 font-medium"
+                  className="text-fg font-medium"
                 >
                   {item.label}
                 </span>
@@ -40,8 +40,8 @@ export function Breadcrumb({
                 <a
                   href={item.href}
                   className={cn(
-                    "text-stone-600 transition-colors hover:text-stone-950",
-                    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950",
+                    "text-fg-muted transition-colors hover:text-fg",
+                    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
                   )}
                 >
                   {item.label}
@@ -51,8 +51,8 @@ export function Breadcrumb({
                   type="button"
                   onClick={item.onClick}
                   className={cn(
-                    "bg-transparent p-0 text-stone-600 transition-colors hover:text-stone-950",
-                    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-stone-950",
+                    "bg-transparent p-0 text-fg-muted transition-colors hover:text-fg",
+                    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
                   )}
                 >
                   {item.label}

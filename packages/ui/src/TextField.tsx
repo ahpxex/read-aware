@@ -34,7 +34,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
             htmlFor={id}
             className={cn(
               "font-sans text-[13px] font-medium",
-              hasError ? "text-red-700" : "text-stone-600",
+              hasError ? "text-red-700 dark:text-red-400" : "text-fg-muted",
             )}
           >
             {label}
@@ -44,7 +44,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
           {leadingIcon && (
             <span
               className={cn(
-                "pointer-events-none absolute text-stone-400",
+                "pointer-events-none absolute text-fg-subtle",
                 variant === "outlined" ? "left-3" : "left-0",
               )}
             >
@@ -59,20 +59,20 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
               hasError ? `${id}-error` : helperText ? `${id}-helper` : undefined
             }
             className={cn(
-              "w-full bg-transparent font-sans text-base text-stone-950 outline-none placeholder:text-stone-400",
+              "w-full bg-transparent font-sans text-base text-fg outline-none placeholder:text-fg-subtle",
               variant === "underline" &&
                 cn(
                   "border-b pt-2 pb-2",
                   hasError
                     ? "border-red-400 focus:border-red-600"
-                    : "border-border focus:border-stone-950",
+                    : "border-border focus:border-fg",
                 ),
               variant === "outlined" &&
                 cn(
                   "rounded-md border px-3 py-2",
                   hasError
                     ? "border-red-400 focus:border-red-600"
-                    : "border-border focus:border-stone-950",
+                    : "border-border focus:border-fg",
                 ),
               leadingIcon && (variant === "underline" ? "pl-6" : "pl-9"),
               trailingIcon && (variant === "underline" ? "pr-6" : "pr-9"),
@@ -82,7 +82,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
           {trailingIcon && (
             <span
               className={cn(
-                "pointer-events-none absolute text-stone-400",
+                "pointer-events-none absolute text-fg-subtle",
                 variant === "outlined" ? "right-3" : "right-0",
               )}
             >
@@ -96,7 +96,10 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
           </p>
         )}
         {!hasError && helperText && (
-          <p id={`${id}-helper`} className="text-[11px] leading-tight text-stone-600">
+          <p
+            id={`${id}-helper`}
+            className="text-[11px] leading-tight text-fg-muted"
+          >
             {helperText}
           </p>
         )}

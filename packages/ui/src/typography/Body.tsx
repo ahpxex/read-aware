@@ -23,7 +23,7 @@ export function Body<T extends ElementType = "p">({
   return (
     <Tag
       className={cn(
-        "font-sans leading-body text-stone-700",
+        "font-sans leading-body text-fg",
         sizeClasses[size],
         className,
       )}

@@ -123,7 +123,7 @@ export function Select({
         id={`${id}-label`}
         className={cn(
           "font-sans text-[13px] font-medium",
-          hasError ? "text-red-700" : "text-stone-600",
+          hasError ? "text-red-700 dark:text-red-400" : "text-fg-muted",
         )}
       >
         {label}
@@ -151,21 +151,21 @@ export function Select({
           onKeyDown={handleKeyDown}
           className={cn(
             "flex w-full items-center justify-between bg-transparent text-left font-sans text-base outline-none",
-            isPlaceholder ? "text-stone-400" : "text-stone-950",
+            isPlaceholder ? "text-fg-subtle" : "text-fg",
             disabled && "cursor-not-allowed opacity-50",
             variant === "underline" &&
               cn(
                 "border-b pb-2",
                 hasError
                   ? "border-red-400 focus:border-red-600"
-                  : "border-border focus:border-stone-950",
+                  : "border-border focus:border-fg",
               ),
             variant === "outlined" &&
               cn(
                 "border px-3 py-2",
                 hasError
                   ? "border-red-400 focus:border-red-600"
-                  : "border-border focus:border-stone-950",
+                  : "border-border focus:border-fg",
               ),
           )}
         >
@@ -174,7 +174,7 @@ export function Select({
             size={16}
             weight="bold"
             className={cn(
-              "ml-2 shrink-0 text-stone-400 transition-transform",
+              "ml-2 shrink-0 text-fg-subtle transition-transform",
               open && "rotate-180",
             )}
           />
@@ -198,10 +198,10 @@ export function Select({
                   onClick={() => select(opt.value)}
                   className={cn(
                     "cursor-pointer rounded-md px-2.5 py-1.5 text-sm transition-colors",
-                    i === activeIndex && "bg-stone-100",
+                    i === activeIndex && "bg-fill",
                     opt.value === currentValue
-                      ? "font-medium text-stone-950"
-                      : "text-stone-700",
+                      ? "font-medium text-fg"
+                      : "text-fg-muted",
                   )}
                 >
                   {opt.label}
@@ -218,7 +218,7 @@ export function Select({
         </p>
       )}
       {!hasError && helperText && (
-        <p id={`${id}-helper`} className="text-[11px] leading-tight text-stone-600">
+        <p id={`${id}-helper`} className="text-[11px] leading-tight text-fg-muted">
           {helperText}
         </p>
       )}

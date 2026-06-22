@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAtomValue } from "jotai";
 import { Body, Button } from "@read-aware/ui";
-import { readerSettingsAtom } from "../../../state/ui";
+import { effectiveReaderSettingsAtom } from "../../../state/ui";
 import type { BookFormat, LibraryBook, ReaderProgress } from "../../library/lib/library-types";
 import { READER_THEME_BG } from "../../settings/lib/reader-css";
 import { FoliateReaderView } from "./FoliateReaderView";
@@ -56,7 +56,7 @@ export function ReaderWorkspace({
   onCurrentChapterChange,
   onChapterSelect,
 }: ReaderWorkspaceProps) {
-  const readerSettings = useAtomValue(readerSettingsAtom);
+  const readerSettings = useAtomValue(effectiveReaderSettingsAtom);
   const themeBg = READER_THEME_BG[readerSettings.theme];
   const [annotationsSidebarOpen, setAnnotationsSidebarOpen] = useState(false);
 

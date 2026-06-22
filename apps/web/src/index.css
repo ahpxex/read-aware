@@ -5,10 +5,28 @@
    by design-system components are generated. */
 @source "../../../packages/ui/src";
 
+/* Drive the `dark:` variant from our explicit app theme attribute (set by
+   useAppearance) rather than the OS media query, so the in-app theme control
+   is authoritative. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 @theme {
   --color-paper: #f5f1e8;
   --color-paper-warm: #eee8d5;
   --color-border: rgb(28 25 23 / 0.1);
+
+  /* Semantic, theme-adaptive colors. Components reference these (text-fg,
+     bg-surface, border-border-strong, …) instead of hardcoded stone shades so
+     they invert automatically under html[data-theme="dark"]. Light values
+     below; dark overrides live in the [data-theme="dark"] block. */
+  --color-fg: #1c1917;
+  --color-fg-muted: #57534e;
+  --color-fg-subtle: #a8a29e;
+  --color-inverse-fg: #fafaf9;
+  --color-surface: #ffffff;
+  --color-fill: #f5f5f4;
+  --color-fill-strong: #e7e5e4;
+  --color-border-strong: #d6d3d1;
 
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -47,6 +65,45 @@
      untouched; the desktop shell opts in via the data attributes below. */
   --ra-titlebar-height: 0px;
   --ra-traffic-light-inset: 0px;
+}
+
+/* Dark app theme. Flips the token-driven surfaces (paper canvas, main surface,
+   hairline borders, scrollbar). Components built on these tokens and on `dark:`
+   utilities follow automatically. */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  background-color: #1c1917;
+  color: #f5f5f4;
+  --color-paper: #1c1917;
+  --color-paper-warm: #292524;
+  --color-border: rgb(231 229 228 / 0.12);
+  --color-fg: #f5f5f4;
+  --color-fg-muted: #a8a29e;
+  --color-fg-subtle: #78716c;
+  --color-inverse-fg: #1c1917;
+  --color-surface: #322d29;
+  --color-fill: #292524;
+  --color-fill-strong: #44403c;
+  --color-border-strong: rgb(231 229 228 / 0.18);
+  --ra-main-surface-color: #161311;
+  --ra-scrollbar-color: rgb(231 229 228 / 0.4);
+}
+
+html[data-theme="dark"] body {
+  background-color: #1c1917;
+}
+
+/* Forced reduced motion (Appearance → Motion = Reduced), independent of the OS
+   setting. Mirrors the prefers-reduced-motion reset below. */
+html[data-motion="reduced"] .ra-motion-page-enter,
+html[data-motion="reduced"] .ra-motion-tab-panel-in-forward,
+html[data-motion="reduced"] .ra-motion-tab-panel-in-backward,
+html[data-motion="reduced"] .ra-motion-page-counter,
+html[data-motion="reduced"] .ra-motion-overlay-pop,
+html[data-motion="reduced"] .ra-dialog::backdrop {
+  animation: none !important;
+  transform: none !important;
+  transition: none !important;
 }
 
 /* macOS desktop (Tauri): the native title bar is hidden via titleBarStyle

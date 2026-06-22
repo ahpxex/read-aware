@@ -10,6 +10,18 @@
   --color-paper-warm: #eee8d5;
   --color-border: rgb(28 25 23 / 0.1);
 
+  /* Semantic, theme-adaptive colors shared with @read-aware/ui. The landing
+     site is light-only, so these carry just the light values (the app defines
+     the dark overrides). Keep in sync with apps/web/src/index.css. */
+  --color-fg: #1c1917;
+  --color-fg-muted: #57534e;
+  --color-fg-subtle: #a8a29e;
+  --color-inverse-fg: #fafaf9;
+  --color-surface: #ffffff;
+  --color-fill: #f5f5f4;
+  --color-fill-strong: #e7e5e4;
+  --color-border-strong: #d6d3d1;
+
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;

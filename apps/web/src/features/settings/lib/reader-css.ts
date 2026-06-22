@@ -1,15 +1,42 @@
+import type { CSSProperties } from "react";
 import type { ReaderSettings } from "./reader-settings";
 
+const FONT_FAMILY_MAP = {
+  sans: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  serif:
+    '"Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, Cambria, "Times New Roman", serif',
+} as const;
+
 const FONT_SIZE_MAP = {
+  "x-small": "0.875rem",
   small: "0.9375rem",
   medium: "1.0625rem",
   large: "1.1875rem",
+  "x-large": "1.3125rem",
 } as const;
 
 const LINE_HEIGHT_MAP = {
-  compact: "1.65",
-  comfortable: "1.9",
+  compact: "1.55",
+  comfortable: "1.85",
   relaxed: "2.15",
+} as const;
+
+const PARAGRAPH_SPACING_MAP = {
+  tight: "0.6rem",
+  normal: "1.25rem",
+  loose: "1.9rem",
+} as const;
+
+const CONTENT_WIDTH_MAP = {
+  narrow: "38rem",
+  medium: "56rem",
+  wide: "72rem",
+} as const;
+
+const MARGIN_MAP = {
+  compact: "1rem",
+  normal: "1.5rem",
+  spacious: "3rem",
 } as const;
 
 const THEME_MAP = {
@@ -25,9 +52,14 @@ export const READER_THEME_BG = {
 } as const;
 
 export function buildReaderContentCss(settings: ReaderSettings): string {
+  const fontFamily = FONT_FAMILY_MAP[settings.fontFamily];
   const fontSize = FONT_SIZE_MAP[settings.fontSize];
   const lineHeight = LINE_HEIGHT_MAP[settings.lineSpacing];
+  const paragraphSpacing = PARAGRAPH_SPACING_MAP[settings.paragraphSpacing];
+  const contentWidth = CONTENT_WIDTH_MAP[settings.contentWidth];
+  const horizontalMargin = MARGIN_MAP[settings.margins];
   const theme = THEME_MAP[settings.theme];
+  const justified = settings.textAlign === "justify";
 
   return `
     html {
@@ -36,15 +68,17 @@ export function buildReaderContentCss(settings: ReaderSettings): string {
 
     body {
       box-sizing: border-box !important;
-      width: min(100%, 56rem) !important;
-      max-width: 56rem !important;
+      width: min(100%, ${contentWidth}) !important;
+      max-width: ${contentWidth} !important;
       margin: 0 auto !important;
-      padding: 2rem 1.5rem 4rem !important;
+      padding: 2rem ${horizontalMargin} 4rem !important;
       color: ${theme.text} !important;
       background: ${theme.bg} !important;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+      font-family: ${fontFamily} !important;
       font-size: ${fontSize} !important;
       line-height: ${lineHeight} !important;
+      text-align: ${justified ? "justify" : "start"} !important;
+      ${justified ? "hyphens: auto !important;\n      -webkit-hyphens: auto !important;" : ""}
     }
 
     body > * {
@@ -66,7 +100,7 @@ export function buildReaderContentCss(settings: ReaderSettings): string {
     ul,
     ol,
     blockquote {
-      margin: 0 0 1.25rem 0 !important;
+      margin: 0 0 ${paragraphSpacing} 0 !important;
     }
 
     h1 {
@@ -108,4 +142,21 @@ export function buildReaderContentCss(settings: ReaderSettings): string {
       border-left: 1px solid rgba(28, 25, 23, 0.18) !important;
     }
   `;
+}
+
+/**
+ * Inline style for the in-settings reading preview, mirroring the engine CSS
+ * above so the preview reflects the live settings without re-deriving values.
+ */
+export function getReaderPreviewStyle(settings: ReaderSettings): CSSProperties {
+  const theme = THEME_MAP[settings.theme];
+  return {
+    backgroundColor: theme.bg,
+    color: theme.text,
+    fontFamily: FONT_FAMILY_MAP[settings.fontFamily],
+    fontSize: FONT_SIZE_MAP[settings.fontSize],
+    lineHeight: LINE_HEIGHT_MAP[settings.lineSpacing],
+    textAlign: settings.textAlign === "justify" ? "justify" : "start",
+    hyphens: settings.textAlign === "justify" ? "auto" : "manual",
+  };
 }

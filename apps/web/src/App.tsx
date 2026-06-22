@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAtom } from "jotai";
+import { useNavigate } from "@tanstack/react-router";
 import { ScrollArea } from "@read-aware/ui";
 import { ContextWorkspace } from "./features/context/components/ContextWorkspace";
 import { LibraryWorkspace } from "./features/library/components/LibraryWorkspace";
@@ -8,12 +9,13 @@ import { AppHeader } from "./features/navigation/components/AppHeader";
 import { ShelfViewMenu } from "./features/shelf/components/ShelfViewMenu";
 import { ReaderWorkspace } from "./features/reader/components/ReaderWorkspace";
 import { useReaderSession } from "./features/reader/hooks/useReaderSession";
-import { SettingsView } from "./features/settings/SettingsView";
+import { useGlobalShortcuts } from "./features/settings/hooks/useGlobalShortcuts";
 import { BookSearchModal } from "./features/library/components/BookSearchModal";
-import { activeTopNavAtom, settingsOpenAtom } from "./state/ui";
+import { activeTopNavAtom } from "./state/ui";
 
 function App() {
   const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (import.meta.env.DEV) {
@@ -21,8 +23,9 @@ function App() {
     }
   }, []);
 
+  useGlobalShortcuts({ onOpenSearch: () => setSearchModalOpen(true) });
+
   const [activeTopNav, setActiveTopNav] = useAtom(activeTopNavAtom);
-  const [settingsOpen, setSettingsOpen] = useAtom(settingsOpenAtom);
   const library = useLibraryController();
   const reader = useReaderSession({
     applyOptimisticProgress: library.applyOptimisticProgress,
@@ -79,7 +82,7 @@ function App() {
         activeTopNav={activeTopNav}
         isImporting={library.isImporting}
         onImport={library.openImportPicker}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenSettings={() => void navigate({ to: "/settings" })}
         onOpenSearch={() => setSearchModalOpen(true)}
         onTopNavChange={setActiveTopNav}
         viewControl={activeTopNav === "shelf" ? <ShelfViewMenu /> : undefined}
@@ -99,8 +102,6 @@ function App() {
           <ContextWorkspace books={library.books} onOpenBook={reader.openReader} />
         )}
       </ScrollArea>
-
-      <SettingsView open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
       <BookSearchModal
         isOpen={searchModalOpen}

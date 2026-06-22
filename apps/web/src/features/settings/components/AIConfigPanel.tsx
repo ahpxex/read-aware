@@ -159,7 +159,7 @@ export function AIConfigPanel() {
             <button
               type="button"
               onClick={() => setShowKey(!showKey)}
-              className="text-xs text-stone-500 hover:text-stone-700"
+              className="text-xs text-fg-subtle hover:text-fg-muted"
             >
               {showKey ? "Hide" : "Show"}
             </button>
@@ -175,13 +175,13 @@ export function AIConfigPanel() {
         />
 
         {provider === "openai" && (
-          <p className="text-xs text-stone-500">
+          <p className="text-xs text-fg-muted">
             Get your API key from{" "}
             <a
               href="https://platform.openai.com/api-keys"
               target="_blank"
               rel="noopener noreferrer"
-              className="underline hover:text-stone-700"
+              className="underline hover:text-fg"
             >
               OpenAI Dashboard
             </a>
@@ -189,13 +189,13 @@ export function AIConfigPanel() {
         )}
 
         {provider === "anthropic" && (
-          <p className="text-xs text-stone-500">
+          <p className="text-xs text-fg-muted">
             Get your API key from{" "}
             <a
               href="https://console.anthropic.com/settings/keys"
               target="_blank"
               rel="noopener noreferrer"
-              className="underline hover:text-stone-700"
+              className="underline hover:text-fg"
             >
               Anthropic Console
             </a>
@@ -203,13 +203,13 @@ export function AIConfigPanel() {
         )}
 
         {provider === "openrouter" && (
-          <p className="text-xs text-stone-500">
+          <p className="text-xs text-fg-muted">
             Get your API key from{" "}
             <a
               href="https://openrouter.ai/keys"
               target="_blank"
               rel="noopener noreferrer"
-              className="underline hover:text-stone-700"
+              className="underline hover:text-fg"
             >
               OpenRouter
             </a>
@@ -238,8 +238,8 @@ export function AIConfigPanel() {
         )}
       </div>
 
-      <div className="rounded-md border border-stone-200 bg-stone-50 p-4 text-sm text-stone-600">
-        <p className="font-medium text-stone-700">About BYOK (Bring Your Own Key)</p>
+      <div className="rounded-md border border-border bg-fill p-4 text-sm text-fg-muted">
+        <p className="font-medium text-fg">About BYOK (Bring Your Own Key)</p>
         <p className="mt-1">
           ReadAware uses your own API key to access AI services. Your key is stored locally in your
           browser and is never sent to our servers. You are responsible for any API usage charges

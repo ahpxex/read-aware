@@ -1,4 +1,5 @@
 import { HeadContent, Outlet, createRootRoute } from "@tanstack/react-router";
+import { useAppearance } from "../features/settings/hooks/useAppearance";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -18,6 +19,8 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
+  useAppearance();
+
   return (
     <>
       <HeadContent />

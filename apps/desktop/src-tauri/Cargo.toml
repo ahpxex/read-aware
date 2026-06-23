@@ -26,3 +26,5 @@ tauri-plugin-mcp-bridge = "0.11"
 # macOS: reposition the native traffic lights to align with our custom top bar
 # (we only use set_traffic_lights_inset; not its overlay titlebar).
 tauri-plugin-decorum = "1"
+# Native OS file dialog for book import — the webview ignores HTML <input accept>.
+tauri-plugin-dialog = "2"

@@ -4,6 +4,7 @@ import { ScrollArea } from "@read-aware/ui";
 import { ContextWorkspace } from "./features/context/components/ContextWorkspace";
 import { LibraryWorkspace } from "./features/library/components/LibraryWorkspace";
 import { useLibraryController } from "./features/library/hooks/useLibraryController";
+import { BOOK_FILE_ACCEPT } from "./features/library/lib/pick-book-files";
 import { AppHeader } from "./features/navigation/components/AppHeader";
 import { ShelfViewMenu } from "./features/shelf/components/ShelfViewMenu";
 import { ReaderWorkspace } from "./features/reader/components/ReaderWorkspace";
@@ -71,7 +72,7 @@ function App() {
           <input
             ref={library.importInputRef}
             type="file"
-            accept=".epub,.mobi,.azw3,.fb2,.pdf,application/epub+zip,application/pdf,application/x-fictionbook+xml"
+            accept={BOOK_FILE_ACCEPT}
             multiple
             className="hidden"
             onChange={(event) => {

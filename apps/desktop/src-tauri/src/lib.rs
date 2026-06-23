@@ -6,10 +6,24 @@ use tauri::Manager;
 #[cfg(target_os = "macos")]
 use tauri_plugin_decorum::WebviewWindowExt;
 
+/// Read a user-selected book file from disk into raw bytes.
+///
+/// The path always originates from the native file dialog (an explicit user
+/// pick), so we read it directly instead of routing through the fs plugin's
+/// path scope. Returns an `ipc::Response` so large book files transfer to the
+/// webview as a binary ArrayBuffer rather than a JSON number array.
+#[tauri::command]
+fn read_book_file(path: String) -> Result<tauri::ipc::Response, String> {
+    std::fs::read(&path)
+        .map(tauri::ipc::Response::new)
+        .map_err(|err| format!("Failed to read {path}: {err}"))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_decorum::init())
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let conn = storage::init_db(app.handle()).expect("failed to initialize database");
             app.manage(storage::Db(Mutex::new(conn)));
@@ -32,6 +46,7 @@ pub fn run() {
             storage::delete_blob,
             storage::upsert_vectors,
             storage::query_vectors,
+            read_book_file,
         ]);
 
     // Dev-only: expose the MCP bridge so the Tauri MCP server can drive the

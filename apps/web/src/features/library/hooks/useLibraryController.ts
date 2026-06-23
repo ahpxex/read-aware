@@ -6,6 +6,7 @@ import {
   removeLibraryBook,
 } from "../lib/library-db";
 import { createProgressPatch } from "../lib/library-progress";
+import { canUseNativeFilePicker, pickBookFilesNative } from "../lib/pick-book-files";
 import type { BookProgress, LibraryBook } from "../lib/library-types";
 
 export function useLibraryController() {
@@ -53,12 +54,7 @@ export function useLibraryController() {
     void loadLibrary();
   }, [loadLibrary]);
 
-  const openImportPicker = useCallback(() => {
-    importInputRef.current?.click();
-  }, []);
-
-  const handleImportSelection = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.currentTarget.files ?? []);
+  const importFiles = useCallback(async (files: File[]) => {
     if (files.length === 0) return;
 
     setIsImporting(true);
@@ -74,9 +70,27 @@ export function useLibraryController() {
       reportError(error);
     } finally {
       setIsImporting(false);
-      event.currentTarget.value = "";
     }
   }, [reportError]);
+
+  const openImportPicker = useCallback(() => {
+    // Desktop: the webview ignores the <input accept> filter, so drive the
+    // native OS dialog (with a real Books format filter) instead. Web/dev falls
+    // back to the hidden file input.
+    if (canUseNativeFilePicker()) {
+      void pickBookFilesNative().then(importFiles).catch(reportError);
+      return;
+    }
+
+    importInputRef.current?.click();
+  }, [importFiles, reportError]);
+
+  const handleImportSelection = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const files = Array.from(input.files ?? []);
+    input.value = "";
+    await importFiles(files);
+  }, [importFiles]);
 
   const handleRemoveBook = useCallback((book: LibraryBook) => {
     void removeLibraryBook(book.id)

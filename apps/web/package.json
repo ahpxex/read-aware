@@ -17,6 +17,7 @@
     "@read-aware/ui": "workspace:*",
     "@tanstack/react-router": "^1.132.23",
     "@tauri-apps/api": "^2.9.0",
+    "@tauri-apps/plugin-dialog": "^2.7.1",
     "jotai": "^2.18.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"

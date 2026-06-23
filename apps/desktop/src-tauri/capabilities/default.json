@@ -6,6 +6,7 @@
   "permissions": [
     "core:default",
     "core:window:allow-start-dragging",
-    "mcp-bridge:default"
+    "mcp-bridge:default",
+    "dialog:allow-open"
   ]
 }

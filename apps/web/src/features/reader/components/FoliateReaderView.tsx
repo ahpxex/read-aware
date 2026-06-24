@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Body, Heading, ScrollArea, Sidebar } from "@read-aware/ui";
+import { Body, Heading, ScrollArea, Sidebar, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import type { LibraryBook, ReaderProgress } from "../../library/lib/library-types";
 import { formatReaderError } from "../lib/format-reader-error";
@@ -35,6 +35,8 @@ import {
   updateNote,
   listHighlights,
 } from "../../annotations/lib/annotation-db";
+import { suppressNativeContextMenu } from "../../../platform/environment";
+import { useDelayedFlag } from "../hooks/useDelayedFlag";
 import { buildReaderContentCss } from "../../settings/lib/reader-css";
 import type { ReaderSettings, ReadingMode } from "../../settings/lib/reader-settings";
 import { DEFAULT_READER_SETTINGS } from "../../settings/lib/reader-settings";
@@ -200,6 +202,9 @@ export function FoliateReaderView({
   const [isLoading, setIsLoading] = useState(false);
   const [isCrossing, setIsCrossing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Only surface the loader once a load is genuinely slow, so fast opens (the
+  // common case) fade straight in without a flashed indicator.
+  const showLoader = useDelayedFlag(isLoading, 250);
   const [tocEntries, setTocEntries] = useState<TocEntry[]>([]);
   const [currentChapterHref, setCurrentChapterHref] = useState<string | null>(null);
   const [isChapterPickerOpen, setIsChapterPickerOpen] = useState(false);
@@ -485,6 +490,9 @@ export function FoliateReaderView({
   // ----- per-section listeners (attached on each `load`) --------------------
 
   const attachDocListeners = useCallback((doc: Document, index: number) => {
+    // Desktop: kill the webview's native right-click menu inside book content too.
+    suppressNativeContextMenu(doc);
+
     doc.addEventListener("keydown", handleReaderKeyDown);
 
     doc.addEventListener("pointerdown", (event) => {
@@ -893,7 +901,7 @@ export function FoliateReaderView({
         ref={viewportRef}
         aria-label={selectedBook?.title ?? initialBook?.fileName ?? "Book reader"}
         className={cn(
-          "h-full w-full transition-opacity duration-150 ease-out",
+          "h-full w-full transition-opacity duration-500 ease-out",
           (isLoading || !!error || isCrossing) && "opacity-0",
         )}
       />
@@ -908,11 +916,9 @@ export function FoliateReaderView({
         onAskAI={handleAskAI}
       />
 
-      {isLoading && (
+      {showLoader && (
         <div className="absolute inset-0 flex items-center justify-center bg-inherit">
-          <Body className="text-sm text-fg-muted">
-            Opening {initialBook?.fileName ?? "book"}...
-          </Body>
+          <Spinner size="md" label={`Opening ${initialBook?.fileName ?? "book"}`} />
         </div>
       )}
 

@@ -384,6 +384,41 @@ export function FoliateReaderView({
   const crossSectionRef = useRef(crossSection);
   useEffect(() => { crossSectionRef.current = crossSection; }, [crossSection]);
 
+  // Shared wheel-crossing logic: checks scroll edges, accumulates overscroll,
+  // and triggers a section cross once past the threshold. Used both by the
+  // per-section iframe document listener and the viewport-level fallback for
+  // events on the empty area outside the iframe.
+  const handleWheelCrossing = useCallback((deltaY: number) => {
+    if (readingModeRef.current !== "scroll") return;
+    const edges = getScrollEdges(viewRef.current);
+    if (!edges) return;
+
+    const pushingPastEnd = deltaY > 0 && edges.atBottom;
+    const pushingPastStart = deltaY < 0 && edges.atTop;
+    if (!pushingPastEnd && !pushingPastStart) {
+      overscrollRef.current = 0;
+      return;
+    }
+
+    overscrollRef.current += deltaY;
+    if (overscrollResetTimerRef.current != null) {
+      window.clearTimeout(overscrollResetTimerRef.current);
+    }
+    overscrollResetTimerRef.current = window.setTimeout(() => {
+      overscrollRef.current = 0;
+    }, OVERSCROLL_RESET_MS);
+
+    if (overscrollRef.current >= SECTION_CROSS_OVERSCROLL_PX) {
+      overscrollRef.current = 0;
+      void crossSectionRef.current(1);
+    } else if (overscrollRef.current <= -SECTION_CROSS_OVERSCROLL_PX) {
+      overscrollRef.current = 0;
+      void crossSectionRef.current(-1);
+    }
+  }, []);
+  const handleWheelCrossingRef = useRef(handleWheelCrossing);
+  useEffect(() => { handleWheelCrossingRef.current = handleWheelCrossing; }, [handleWheelCrossing]);
+
   const turnPage = useCallback(async (direction: -1 | 1) => {
     const view = viewRef.current;
     if (!view) return;
@@ -603,35 +638,7 @@ export function FoliateReaderView({
     // within a section; when the wheel pushes past the top/bottom edge, lazily
     // load the adjacent section (the engine unloads the one left behind).
     doc.addEventListener("wheel", (event) => {
-      if (readingModeRef.current !== "scroll") return;
-      const edges = getScrollEdges(viewRef.current);
-      if (!edges) return;
-
-      const pushingPastEnd = event.deltaY > 0 && edges.atBottom;
-      const pushingPastStart = event.deltaY < 0 && edges.atTop;
-      if (!pushingPastEnd && !pushingPastStart) {
-        // Scrolling within the section (or away from the edge): not a crossing.
-        overscrollRef.current = 0;
-        return;
-      }
-
-      // Accumulate the push past the edge; only cross after a deliberate amount,
-      // and reset the accumulator if the push pauses.
-      overscrollRef.current += event.deltaY;
-      if (overscrollResetTimerRef.current != null) {
-        window.clearTimeout(overscrollResetTimerRef.current);
-      }
-      overscrollResetTimerRef.current = window.setTimeout(() => {
-        overscrollRef.current = 0;
-      }, OVERSCROLL_RESET_MS);
-
-      if (overscrollRef.current >= SECTION_CROSS_OVERSCROLL_PX) {
-        overscrollRef.current = 0;
-        void crossSectionRef.current(1);
-      } else if (overscrollRef.current <= -SECTION_CROSS_OVERSCROLL_PX) {
-        overscrollRef.current = 0;
-        void crossSectionRef.current(-1);
-      }
+      handleWheelCrossingRef.current(event.deltaY);
     }, { passive: true });
   }, [armContentClickSuppression, captureSelectionFromDoc, cancelPendingShellOpen, clearSelection, handleReaderKeyDown]);
 
@@ -648,6 +655,40 @@ export function FoliateReaderView({
     const observer = new ResizeObserver(() => clearSelection());
     observer.observe(element);
     return () => observer.disconnect();
+  }, [clearSelection]);
+
+  // Bridge wheel and click events that land on the empty area *outside* the
+  // iframe content. In scrolled mode the foliate engine sizes the section's
+  // iframe to the content height, which may be much shorter than the viewport.
+  // The iframe is an isolated browsing context — events inside it never reach
+  // the parent — so the empty space below a short section is dead: scrolling
+  // there does nothing and clicks are swallowed. Shadow-DOM events (the empty
+  // area around the iframe) DO bubble to this host element, so we catch them
+  // here and route them through the same crossing / shell-toggle logic.
+  useEffect(() => {
+    const root = readerRootRef.current;
+    if (!root) return;
+
+    const onWheel = (event: WheelEvent) => {
+      handleWheelCrossingRef.current(event.deltaY);
+    };
+
+    const onClick = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (!target || !viewportRef.current?.contains(target)) return;
+      if (selectionRef.current) {
+        clearSelection();
+        return;
+      }
+      onContentClickRef.current?.();
+    };
+
+    root.addEventListener("wheel", onWheel, { passive: true });
+    root.addEventListener("click", onClick);
+    return () => {
+      root.removeEventListener("wheel", onWheel);
+      root.removeEventListener("click", onClick);
+    };
   }, [clearSelection]);
 
   useEffect(() => {

@@ -119,7 +119,6 @@ export function ReaderWorkspace({
         onBack={onCloseReader}
         bookId={selectedBook.id}
         title={selectedBook.title}
-        subtitle={selectedBook.author}
         progress={readerProgress}
         currentPage={currentPage}
         totalPages={totalPages}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { CaretLeft, ListBullets, Notebook } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
-import { Body, Caption, IconButton, ScrollArea } from "@read-aware/ui";
+import { Body, IconButton, ScrollArea } from "@read-aware/ui";
 import { AnnotationsPanel } from "../../annotations/components/AnnotationsPanel";
 import { hrefMatches } from "../lib/epub-utils";
 import type { TocEntry } from "../lib/reader-types";
@@ -12,7 +12,6 @@ type ReaderShellOverlayProps = {
   onBack: () => void;
   bookId: string;
   title?: string;
-  subtitle?: string;
   progress?: number;
   currentPage?: number;
   totalPages?: number;
@@ -27,7 +26,6 @@ export function ReaderShellOverlay({
   onBack,
   bookId,
   title,
-  subtitle,
   progress,
   currentPage,
   totalPages,
@@ -72,8 +70,11 @@ export function ReaderShellOverlay({
       <div
         data-tauri-drag-region="deep"
         style={{
+          // Symmetric horizontal inset: the left must clear the macOS traffic
+          // lights, so mirror that clearance on the right to keep the two icon
+          // clusters equidistant from their edges.
           paddingLeft: "max(1.25rem, var(--ra-traffic-light-inset))",
-          paddingRight: "1.25rem",
+          paddingRight: "max(1.25rem, var(--ra-traffic-light-inset))",
         }}
         className={cn(
           "pointer-events-auto relative shrink-0 bg-fill py-3 backdrop-blur-sm transition-all duration-250 ease-out",
@@ -84,7 +85,7 @@ export function ReaderShellOverlay({
       >
         <div className="pointer-events-none flex items-center gap-3">
           {/* Left cluster: back to shelf + contents toggle */}
-          <div className="mt-1.5 flex shrink-0 items-center gap-0.5">
+          <div className="flex shrink-0 items-center gap-0.5">
             <IconButton
               size="sm"
               label="Back to shelf"
@@ -110,36 +111,24 @@ export function ReaderShellOverlay({
             />
           </div>
 
-          {/* Center: title + merged reading progress */}
+          {/* Center: title (prominent) with a small progress readout beneath. */}
           {title && (
             <div className="min-w-0 flex-1 px-2 text-center">
-              <Body className="truncate text-sm font-semibold text-fg">
+              <Body className="truncate text-[15px] font-semibold leading-tight text-fg">
                 {title}
               </Body>
-              {(subtitle || progressLabel) && (
-                <div className="mt-0.5 flex items-center justify-center gap-1.5">
-                  {subtitle && (
-                    <Caption className="min-w-0 truncate text-fg-muted">
-                      {subtitle}
-                    </Caption>
-                  )}
-                  {subtitle && progressLabel && (
-                    <span aria-hidden="true" className="shrink-0 text-fg-subtle">
-                      ·
-                    </span>
-                  )}
-                  {progressLabel && (
-                    <Caption className="shrink-0 tabular-nums text-fg-muted">
-                      {progressLabel}
-                    </Caption>
-                  )}
-                </div>
+              {/* Arbitrary px size: tailwind-merge would strip a custom
+                  `text-*` size token when a `text-*` color is also present. */}
+              {progressLabel && (
+                <span className="mt-0.5 block truncate font-sans text-[11px] leading-none tabular-nums text-fg-subtle">
+                  {progressLabel}
+                </span>
               )}
             </div>
           )}
 
           {/* Right cluster: appearance + notes */}
-          <div className="mt-1.5 flex shrink-0 items-center justify-end gap-0.5">
+          <div className="flex shrink-0 items-center justify-end gap-0.5">
             <ReaderAppearanceMenu
               bookId={bookId}
               open={appearanceOpen}

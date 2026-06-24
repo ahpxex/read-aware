@@ -120,6 +120,7 @@ export function ReaderWorkspace({
         currentChapterHref={currentChapterHref}
         onChapterSelect={onChapterSelect}
         onToggleAnnotations={() => setAnnotationsSidebarOpen((prev) => !prev)}
+        themeBg={themeBg}
       />
     </div>
   );

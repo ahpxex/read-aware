@@ -38,6 +38,10 @@ export function useReaderSession({
     href: string;
     requestId: number;
   } | null>(null);
+  const [annotationNavigationRequest, setAnnotationNavigationRequest] = useLocalAtom<{
+    cfiRange: string;
+    requestId: number;
+  } | null>(null);
   const readerLoadRequestIdRef = useRef(0);
   const pendingProgressSaveRef = useRef<Map<string, number>>(new Map());
 
@@ -58,7 +62,9 @@ export function useReaderSession({
     setReaderToc([]);
     setCurrentChapterHref(null);
     setChapterNavigationRequest(null);
+    setAnnotationNavigationRequest(null);
   }, [
+    setAnnotationNavigationRequest,
     setChapterNavigationRequest,
     setCurrentChapterHref,
     setReaderPage,
@@ -184,6 +190,14 @@ export function useReaderSession({
     setShellVisible(false);
   }, [setChapterNavigationRequest, setShellVisible]);
 
+  const handleAnnotationSelect = useCallback((cfiRange: string) => {
+    setAnnotationNavigationRequest((previous) => ({
+      cfiRange,
+      requestId: (previous?.requestId ?? 0) + 1,
+    }));
+    setShellVisible(false);
+  }, [setAnnotationNavigationRequest, setShellVisible]);
+
   const overlayVisible = shellVisible;
   const selectedEpubProgress = selectedBook?.progress ?? null;
   const readerProgress = readerPage.total > 0
@@ -191,9 +205,6 @@ export function useReaderSession({
     : selectedBook?.progressPercent
       ? selectedBook.progressPercent / 100
       : undefined;
-  const currentPosition = readerPage.total > 0
-    ? `Page ${readerPage.current} of ${readerPage.total}`
-    : undefined;
 
   return {
     selectedBook,
@@ -203,10 +214,12 @@ export function useReaderSession({
     readerToc,
     currentChapterHref,
     chapterNavigationRequest,
+    annotationNavigationRequest,
     overlayVisible,
     selectedEpubProgress,
     readerProgress,
-    currentPosition,
+    currentPage: readerPage.current,
+    totalPages: readerPage.total,
     openReader,
     closeReader,
     toggleShell,
@@ -214,6 +227,7 @@ export function useReaderSession({
     handleReaderPageChange,
     handleEpubProgressChange,
     handleChapterSelect,
+    handleAnnotationSelect,
     setReaderToc,
     setCurrentChapterHref,
   };

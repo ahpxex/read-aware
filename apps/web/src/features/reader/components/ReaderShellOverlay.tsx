@@ -1,37 +1,63 @@
-import { CaretLeft, Highlighter } from "@phosphor-icons/react";
+import { useEffect, useState } from "react";
+import { CaretLeft, ListBullets, Notebook } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
-import { Body, Caption, ScrollArea } from "@read-aware/ui";
+import { Body, Caption, IconButton, ScrollArea } from "@read-aware/ui";
+import { AnnotationsPanel } from "../../annotations/components/AnnotationsPanel";
 import { hrefMatches } from "../lib/epub-utils";
 import type { TocEntry } from "../lib/reader-types";
+import { ReaderAppearanceMenu } from "./ReaderAppearanceMenu";
 
 type ReaderShellOverlayProps = {
   visible: boolean;
   onBack: () => void;
+  bookId: string;
   title?: string;
   subtitle?: string;
   progress?: number;
-  currentPosition?: string;
+  currentPage?: number;
+  totalPages?: number;
   tocEntries?: TocEntry[];
   currentChapterHref?: string | null;
   onChapterSelect?: (href: string) => void;
-  onToggleAnnotations?: () => void;
+  onAnnotationSelect?: (cfiRange: string) => void;
 };
 
 export function ReaderShellOverlay({
   visible,
   onBack,
+  bookId,
   title,
   subtitle,
   progress,
-  currentPosition,
+  currentPage,
+  totalPages,
   tocEntries = [],
   currentChapterHref = null,
   onChapterSelect,
-  onToggleAnnotations,
+  onAnnotationSelect,
 }: ReaderShellOverlayProps) {
   const percent =
     progress != null ? Math.min(100, Math.max(0, progress * 100)) : null;
-  const shouldShowTocPanel = visible && (!!title || tocEntries.length > 0);
+  const roundedPercent = percent != null ? Math.round(percent) : null;
+  const hasPages = totalPages != null && totalPages > 0;
+  const progressLabel =
+    roundedPercent != null
+      ? hasPages
+        ? `${currentPage ?? 0} / ${totalPages} · ${roundedPercent}%`
+        : `${roundedPercent}%`
+      : null;
+
+  const [tocOpen, setTocOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
+
+  // The appearance popup is transient — it closes whenever the overlay is
+  // dismissed. The contents and notes panels are NOT reset: they keep their open
+  // state so dismissing then re-opening the header restores whatever the reader
+  // had revealed. (Reset state lives in the panels' `visible &&` reveal gate.)
+  useEffect(() => {
+    if (!visible) setAppearanceOpen(false);
+  }, [visible]);
 
   return (
     <div
@@ -39,8 +65,10 @@ export function ReaderShellOverlay({
         "pointer-events-none fixed inset-0 z-50 flex min-h-0 flex-col overflow-hidden",
       )}
     >
-      {/* Top bar — doubles as the window drag region on desktop, with left
-          padding that clears the macOS traffic lights when present. */}
+      {/* Top bar — doubles as the window drag region on desktop. Non-interactive
+          children stay pointer-events-none so a drag started anywhere but the
+          buttons falls through to this element; the buttons re-enable clicks.
+          Left padding clears the macOS traffic lights when present. */}
       <div
         data-tauri-drag-region="deep"
         style={{
@@ -48,146 +76,190 @@ export function ReaderShellOverlay({
           paddingRight: "1.25rem",
         }}
         className={cn(
-          "pointer-events-auto shrink-0 border-b border-border/60 bg-fill/90 py-3 backdrop-blur-sm transition-all duration-250 ease-out",
+          "pointer-events-auto relative shrink-0 bg-fill py-3 backdrop-blur-sm transition-all duration-250 ease-out",
           visible
             ? "translate-y-0 opacity-100"
             : "-translate-y-full opacity-0 pointer-events-none",
         )}
       >
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onBack}
-            className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-1 text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
-          >
-            <CaretLeft size={16} weight="regular" aria-hidden="true" />
-            <span className="font-sans text-caption font-medium">Shelf</span>
-          </button>
+        <div className="pointer-events-none flex items-center gap-3">
+          {/* Left cluster: back to shelf + contents toggle */}
+          <div className="mt-1.5 flex shrink-0 items-center gap-0.5">
+            <IconButton
+              size="sm"
+              label="Back to shelf"
+              title="Shelf"
+              onClick={onBack}
+              className="pointer-events-auto"
+              icon={<CaretLeft size={18} weight="regular" aria-hidden="true" />}
+            />
+            <IconButton
+              size="sm"
+              label="Table of contents"
+              title="Contents"
+              aria-pressed={tocOpen}
+              onClick={() => setTocOpen((open) => !open)}
+              className={cn("pointer-events-auto", tocOpen && "text-fg")}
+              icon={
+                <ListBullets
+                  size={18}
+                  weight={tocOpen ? "bold" : "regular"}
+                  aria-hidden="true"
+                />
+              }
+            />
+          </div>
 
+          {/* Center: title + merged reading progress */}
           {title && (
-            <div className="pointer-events-none min-w-0 flex-1 text-center">
-              <Body
-                className="truncate text-sm font-medium text-fg"
-              >
+            <div className="min-w-0 flex-1 px-2 text-center">
+              <Body className="truncate text-sm font-semibold text-fg">
                 {title}
               </Body>
-              {subtitle && (
-                <Caption className="truncate text-fg-muted">
-                  {subtitle}
-                </Caption>
+              {(subtitle || progressLabel) && (
+                <div className="mt-0.5 flex items-center justify-center gap-1.5">
+                  {subtitle && (
+                    <Caption className="min-w-0 truncate text-fg-muted">
+                      {subtitle}
+                    </Caption>
+                  )}
+                  {subtitle && progressLabel && (
+                    <span aria-hidden="true" className="shrink-0 text-fg-subtle">
+                      ·
+                    </span>
+                  )}
+                  {progressLabel && (
+                    <Caption className="shrink-0 tabular-nums text-fg-muted">
+                      {progressLabel}
+                    </Caption>
+                  )}
+                </div>
               )}
             </div>
           )}
 
-          <div className="flex w-16 shrink-0 justify-end">
-            {onToggleAnnotations && (
-              <button
-                type="button"
-                onClick={onToggleAnnotations}
-                className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
-                aria-label="Annotations"
-              >
-                <Highlighter size={16} weight="regular" aria-hidden="true" />
-              </button>
-            )}
+          {/* Right cluster: appearance + notes */}
+          <div className="mt-1.5 flex shrink-0 items-center justify-end gap-0.5">
+            <ReaderAppearanceMenu
+              bookId={bookId}
+              open={appearanceOpen}
+              onOpenChange={setAppearanceOpen}
+            />
+            <IconButton
+              size="sm"
+              label="Notes"
+              title="Notes"
+              aria-pressed={notesOpen}
+              onClick={() => setNotesOpen((open) => !open)}
+              className={cn("pointer-events-auto", notesOpen && "text-fg")}
+              icon={
+                <Notebook
+                  size={18}
+                  weight={notesOpen ? "bold" : "regular"}
+                  aria-hidden="true"
+                />
+              }
+            />
           </div>
         </div>
-      </div>
 
-      {/* Middle zone -- keeps overlay chrome interactive while letting the reader scroll underneath */}
-      <div className="pointer-events-none flex min-h-0 flex-1 items-stretch justify-start">
-        {shouldShowTocPanel && (
-          <section
-            aria-label="Table of contents"
-            className={cn(
-              "pointer-events-auto flex h-full min-h-0 w-full max-w-[18rem] flex-col border-r border-border-strong/70 backdrop-blur-sm transition-all duration-200 ease-out",
-              visible
-                ? "translate-x-0 opacity-100"
-                : "-translate-x-4 opacity-0 pointer-events-none",
-            )}
-            style={{
-              backgroundColor:
-                "color-mix(in srgb, var(--ra-main-surface-color) 84%, transparent)",
-            }}
-          >
-            <ScrollArea className="h-full min-h-0 flex-1">
-              <div className="flex flex-col px-3 py-4">
-                {tocEntries.length === 0 && (
-                  <Body className="px-2 py-2 text-sm text-fg-muted">
-                    This file does not expose a navigable table of contents.
-                  </Body>
-                )}
-
-                {tocEntries.map((entry) => {
-                  const isActive = hrefMatches(
-                    entry.href,
-                    currentChapterHref ?? "",
-                  );
-
-                  return (
-                    <button
-                      key={entry.id}
-                      type="button"
-                      onClick={() => onChapterSelect?.(entry.href)}
-                      aria-current={isActive ? "location" : undefined}
-                      className={cn(
-                        "w-full border-l py-1.5 pr-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
-                        isActive
-                          ? "border-border-strong text-fg"
-                          : "border-transparent text-fg-muted hover:text-fg",
-                      )}
-                      style={{
-                        paddingLeft: `${1 + entry.depth * 0.85}rem`,
-                      }}
-                    >
-                      <Body
-                        as="span"
-                        className={cn(
-                          "block min-w-0 text-sm leading-6",
-                          isActive ? "text-fg" : "text-inherit",
-                        )}
-                      >
-                        {entry.label}
-                      </Body>
-                    </button>
-                  );
-                })}
-              </div>
-            </ScrollArea>
-          </section>
-        )}
-      </div>
-
-      {/* Bottom bar */}
-      <div
-        className={cn(
-          "pointer-events-auto shrink-0 border-t border-border/60 bg-fill/90 px-5 py-3 backdrop-blur-sm transition-all duration-250 ease-out",
-          visible
-            ? "translate-y-0 opacity-100"
-            : "translate-y-full opacity-0 pointer-events-none",
-        )}
-      >
-        <div className="flex items-center gap-4">
-          {currentPosition && (
-            <Caption key={currentPosition} className="ra-motion-page-counter shrink-0 text-fg-muted">
-              {currentPosition}
-            </Caption>
-          )}
-
+        {/* Reading progress, merged into the header's bottom edge. */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-border/70">
           {percent != null && (
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <div className="h-1 flex-1 overflow-hidden rounded-full bg-fill-strong">
-                <div
-                  className="h-full rounded-full bg-fg-subtle transition-all duration-300"
-                  style={{ width: `${percent}%` }}
-                />
-              </div>
-              <Caption key={Math.round(percent)} className="ra-motion-page-counter shrink-0 tabular-nums text-fg-muted">
-                {Math.round(percent)}%
-              </Caption>
-            </div>
+            <div
+              className="h-full bg-fg-subtle transition-[width] duration-300"
+              style={{ width: `${percent}%` }}
+            />
           )}
         </div>
+      </div>
+
+      {/* Middle zone -- panels dock to the edges while the reader shows through.
+          The panels stay mounted and preserve their open state; `visible` only
+          gates whether they are revealed, so dismissing then re-opening the
+          header restores whatever was showing (and avoids a re-fetch flash). */}
+      <div className="pointer-events-none flex min-h-0 flex-1 items-stretch justify-between">
+        {/* Table of contents (left) */}
+        <section
+          aria-label="Table of contents"
+          className={cn(
+            "flex h-full min-h-0 w-full max-w-[18rem] flex-col border-r border-border-strong/70 backdrop-blur-sm transition-all duration-200 ease-out",
+            visible && tocOpen
+              ? "pointer-events-auto translate-x-0 opacity-100"
+              : "-translate-x-full opacity-0 pointer-events-none",
+          )}
+          style={{
+            backgroundColor:
+              "color-mix(in srgb, var(--ra-main-surface-color) 84%, transparent)",
+          }}
+        >
+          <ScrollArea className="h-full min-h-0 flex-1">
+            <div className="flex flex-col px-3 py-4">
+              {tocEntries.length === 0 && (
+                <Body className="px-2 py-2 text-sm text-fg-muted">
+                  This file does not expose a navigable table of contents.
+                </Body>
+              )}
+
+              {tocEntries.map((entry) => {
+                const isActive = hrefMatches(
+                  entry.href,
+                  currentChapterHref ?? "",
+                );
+
+                return (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    onClick={() => onChapterSelect?.(entry.href)}
+                    aria-current={isActive ? "location" : undefined}
+                    className={cn(
+                      "w-full border-l py-1.5 pr-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
+                      isActive
+                        ? "border-border-strong text-fg"
+                        : "border-transparent text-fg-muted hover:text-fg",
+                    )}
+                    style={{
+                      paddingLeft: `${1 + entry.depth * 0.85}rem`,
+                    }}
+                  >
+                    <Body
+                      as="span"
+                      className={cn(
+                        "block min-w-0 text-sm leading-6",
+                        isActive ? "text-fg" : "text-inherit",
+                      )}
+                    >
+                      {entry.label}
+                    </Body>
+                  </button>
+                );
+              })}
+            </div>
+          </ScrollArea>
+        </section>
+
+        {/* Notes & annotations (right) */}
+        <section
+          aria-label="Notes"
+          className={cn(
+            "flex h-full min-h-0 w-full max-w-[20rem] flex-col border-l border-border-strong/70 backdrop-blur-sm transition-all duration-200 ease-out",
+            visible && notesOpen
+              ? "pointer-events-auto translate-x-0 opacity-100"
+              : "translate-x-full opacity-0 pointer-events-none",
+          )}
+          style={{
+            backgroundColor:
+              "color-mix(in srgb, var(--ra-main-surface-color) 84%, transparent)",
+          }}
+        >
+          <AnnotationsPanel
+            bookId={bookId}
+            enabled={notesOpen}
+            tocEntries={tocEntries}
+            onNavigateTo={(cfiRange) => onAnnotationSelect?.(cfiRange)}
+          />
+        </section>
       </div>
     </div>
   );

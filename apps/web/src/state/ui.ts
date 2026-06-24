@@ -23,6 +23,11 @@ import {
   type ReaderSettingsPreferences,
 } from "../features/settings/lib/reader-settings";
 import {
+  getReaderOverrides,
+  saveReaderOverrides,
+  type ReaderOverrides,
+} from "../features/settings/lib/reader-overrides";
+import {
   getShelfView,
   saveShelfView,
   type ShelfView,
@@ -84,6 +89,17 @@ export const readerPreferencesAtom = atom(
 /** Render-ready reader settings — the `auto` page color resolved against the app theme. */
 export const effectiveReaderSettingsAtom = atom<ReaderSettings>((get) =>
   toEffectiveReaderSettings(get(readerPreferencesBaseAtom), get(resolvedAppThemeAtom)),
+);
+
+const readerOverridesBaseAtom = atom<ReaderOverrides>(getReaderOverrides());
+
+/** Per-book appearance overrides keyed by book id. See `useReaderAppearance`. */
+export const readerOverridesAtom = atom(
+  (get) => get(readerOverridesBaseAtom),
+  (_get, set, next: ReaderOverrides) => {
+    set(readerOverridesBaseAtom, next);
+    saveReaderOverrides(next);
+  },
 );
 
 const shelfViewBaseAtom = atom<ShelfView>(getShelfView());

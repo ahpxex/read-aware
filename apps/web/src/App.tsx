@@ -53,10 +53,12 @@ function App() {
           readerToc={reader.readerToc}
           currentChapterHref={reader.currentChapterHref}
           chapterNavigationRequest={reader.chapterNavigationRequest}
+          annotationNavigationRequest={reader.annotationNavigationRequest}
           overlayVisible={reader.overlayVisible}
           selectedEpubProgress={reader.selectedEpubProgress}
           readerProgress={reader.readerProgress}
-          currentPosition={reader.currentPosition}
+          currentPage={reader.currentPage}
+          totalPages={reader.totalPages}
           onCloseReader={reader.closeReader}
           onRetryOpen={reader.openReader}
           onToggleShell={reader.toggleShell}
@@ -66,6 +68,7 @@ function App() {
           onTocChange={reader.setReaderToc}
           onCurrentChapterChange={reader.setCurrentChapterHref}
           onChapterSelect={reader.handleChapterSelect}
+          onAnnotationSelect={reader.handleAnnotationSelect}
         />
       ) : (
         <main className="flex h-screen flex-col bg-[var(--ra-main-surface-color)] text-fg">

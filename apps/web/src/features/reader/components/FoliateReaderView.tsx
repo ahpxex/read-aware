@@ -24,7 +24,6 @@ import { applyHighlight, applyHighlights, registerHighlightDrawing } from "../li
 import { ReaderSelectionOverlay } from "./ReaderSelectionOverlay";
 import { ReaderSelectionMenu } from "./ReaderSelectionMenu";
 import { NoteEditor } from "../../annotations/components/NoteEditor";
-import { AnnotationsSidebar } from "../../annotations/components/AnnotationsSidebar";
 import { AIChatPanel } from "../../ai/components/AIChatPanel";
 import type { Note, AIChat, Highlight } from "../../annotations/lib/annotation-types";
 import {
@@ -45,8 +44,6 @@ type FoliateReaderViewProps = {
   selectedBook?: LibraryBook | null;
   initialBook?: LoadedBook | null;
   readerSettings?: ReaderSettings;
-  annotationsSidebarOpen?: boolean;
-  onAnnotationsSidebarClose?: () => void;
   onContentClick?: () => void;
   onContentScroll?: () => void;
   onPageChange?: (current: number, total: number) => void;
@@ -56,6 +53,10 @@ type FoliateReaderViewProps = {
   initialProgress?: ReaderProgress | null;
   chapterNavigationRequest?: {
     href: string;
+    requestId: number;
+  } | null;
+  annotationNavigationRequest?: {
+    cfiRange: string;
     requestId: number;
   } | null;
 };
@@ -149,8 +150,6 @@ export function FoliateReaderView({
   selectedBook = null,
   initialBook = null,
   readerSettings = DEFAULT_READER_SETTINGS,
-  annotationsSidebarOpen = false,
-  onAnnotationsSidebarClose,
   onContentClick,
   onContentScroll,
   onPageChange,
@@ -159,6 +158,7 @@ export function FoliateReaderView({
   onCurrentChapterChange,
   initialProgress = null,
   chapterNavigationRequest = null,
+  annotationNavigationRequest = null,
 }: FoliateReaderViewProps) {
   const readerRootRef = useRef<HTMLElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -851,6 +851,12 @@ export function FoliateReaderView({
     void goToChapter(chapterNavigationRequest.href);
   }, [chapterNavigationRequest?.href, chapterNavigationRequest?.requestId, goToChapter]);
 
+  useEffect(() => {
+    const cfiRange = annotationNavigationRequest?.cfiRange;
+    if (!cfiRange) return;
+    void viewRef.current?.goTo(cfiRange);
+  }, [annotationNavigationRequest?.cfiRange, annotationNavigationRequest?.requestId]);
+
   async function copySelectionToClipboard() {
     const text = selectionRef.current?.text;
     if (!text) return;
@@ -1015,19 +1021,6 @@ export function FoliateReaderView({
           </ScrollArea>
         </div>
       </Sidebar>
-
-      <AnnotationsSidebar
-        bookId={selectedBook?.id ?? null}
-        open={annotationsSidebarOpen}
-        onClose={() => onAnnotationsSidebarClose?.()}
-        onNavigateTo={(cfiRange) => {
-          if (viewRef.current && cfiRange) {
-            void viewRef.current.goTo(cfiRange);
-            onAnnotationsSidebarClose?.();
-          }
-        }}
-        tocEntries={tocEntries}
-      />
 
       <NoteEditor
         isOpen={noteEditorOpen}

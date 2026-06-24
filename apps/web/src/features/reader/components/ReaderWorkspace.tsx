@@ -1,10 +1,8 @@
-import { useState } from "react";
-import { useAtomValue } from "jotai";
 import { Body, Button, Spinner } from "@read-aware/ui";
-import { effectiveReaderSettingsAtom } from "../../../state/ui";
 import type { BookFormat, LibraryBook, ReaderProgress } from "../../library/lib/library-types";
 import { READER_THEME_BG } from "../../settings/lib/reader-css";
 import { useDelayedFlag } from "../hooks/useDelayedFlag";
+import { useReaderAppearance } from "../hooks/useReaderAppearance";
 import { FoliateReaderView } from "./FoliateReaderView";
 import { ReaderShellOverlay } from "./ReaderShellOverlay";
 import type { LoadedBook, TocEntry } from "../lib/reader-types";
@@ -20,10 +18,15 @@ type ReaderWorkspaceProps = {
     href: string;
     requestId: number;
   } | null;
+  annotationNavigationRequest: {
+    cfiRange: string;
+    requestId: number;
+  } | null;
   overlayVisible: boolean;
   selectedEpubProgress: ReaderProgress | null;
   readerProgress: number | undefined;
-  currentPosition: string | undefined;
+  currentPage: number;
+  totalPages: number;
   onCloseReader: () => void;
   onRetryOpen: (book: LibraryBook) => void;
   onToggleShell: () => void;
@@ -33,6 +36,7 @@ type ReaderWorkspaceProps = {
   onTocChange: (entries: TocEntry[]) => void;
   onCurrentChapterChange: (href: string | null) => void;
   onChapterSelect: (href: string) => void;
+  onAnnotationSelect: (cfiRange: string) => void;
 };
 
 export function ReaderWorkspace({
@@ -43,10 +47,12 @@ export function ReaderWorkspace({
   readerToc,
   currentChapterHref,
   chapterNavigationRequest,
+  annotationNavigationRequest,
   overlayVisible,
   selectedEpubProgress,
   readerProgress,
-  currentPosition,
+  currentPage,
+  totalPages,
   onCloseReader,
   onRetryOpen,
   onToggleShell,
@@ -56,10 +62,10 @@ export function ReaderWorkspace({
   onTocChange,
   onCurrentChapterChange,
   onChapterSelect,
+  onAnnotationSelect,
 }: ReaderWorkspaceProps) {
-  const readerSettings = useAtomValue(effectiveReaderSettingsAtom);
+  const { effective: readerSettings } = useReaderAppearance(selectedBook.id);
   const themeBg = READER_THEME_BG[readerSettings.theme];
-  const [annotationsSidebarOpen, setAnnotationsSidebarOpen] = useState(false);
   // Only surface the source loader once opening is genuinely slow, so fast opens
   // show nothing (themed background) instead of a flashed line of text.
   const showSourceLoader = useDelayedFlag(!readerSource && !readerLoadError, 250);
@@ -74,8 +80,6 @@ export function ReaderWorkspace({
           selectedBook={selectedBook}
           initialBook={readerSource.data}
           readerSettings={readerSettings}
-          annotationsSidebarOpen={annotationsSidebarOpen}
-          onAnnotationsSidebarClose={() => setAnnotationsSidebarOpen(false)}
           onContentClick={onToggleShell}
           onContentScroll={onHideShell}
           onPageChange={onReaderPageChange}
@@ -84,6 +88,7 @@ export function ReaderWorkspace({
           onCurrentChapterChange={onCurrentChapterChange}
           initialProgress={selectedEpubProgress}
           chapterNavigationRequest={chapterNavigationRequest}
+          annotationNavigationRequest={annotationNavigationRequest}
         />
       ) : null}
 
@@ -112,14 +117,16 @@ export function ReaderWorkspace({
       <ReaderShellOverlay
         visible={!isReaderLoading && overlayVisible}
         onBack={onCloseReader}
+        bookId={selectedBook.id}
         title={selectedBook.title}
         subtitle={selectedBook.author}
         progress={readerProgress}
-        currentPosition={currentPosition}
+        currentPage={currentPage}
+        totalPages={totalPages}
         tocEntries={readerToc}
         currentChapterHref={currentChapterHref}
         onChapterSelect={onChapterSelect}
-        onToggleAnnotations={() => setAnnotationsSidebarOpen((prev) => !prev)}
+        onAnnotationSelect={onAnnotationSelect}
       />
     </div>
   );

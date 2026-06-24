@@ -4,72 +4,17 @@ import { effectiveReaderSettingsAtom, readerPreferencesAtom } from "../../../sta
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { getReaderPreviewStyle } from "../lib/reader-css";
-import type {
-  ReaderContentWidth,
-  ReaderFontFamily,
-  ReaderFontSize,
-  ReaderLineSpacing,
-  ReaderMargins,
-  ReaderParagraphSpacing,
-  ReaderTextAlign,
-  ReaderThemePreference,
-  ReadingMode,
-} from "../lib/reader-settings";
-
-const FONT_FAMILY_OPTIONS: { value: ReaderFontFamily; label: string }[] = [
-  { value: "sans", label: "Sans" },
-  { value: "serif", label: "Serif" },
-];
-
-const FONT_SIZE_OPTIONS: { value: ReaderFontSize; label: string }[] = [
-  { value: "x-small", label: "XS" },
-  { value: "small", label: "Small" },
-  { value: "medium", label: "Medium" },
-  { value: "large", label: "Large" },
-  { value: "x-large", label: "XL" },
-];
-
-const LINE_SPACING_OPTIONS: { value: ReaderLineSpacing; label: string }[] = [
-  { value: "compact", label: "Compact" },
-  { value: "comfortable", label: "Comfortable" },
-  { value: "relaxed", label: "Relaxed" },
-];
-
-const PARAGRAPH_SPACING_OPTIONS: { value: ReaderParagraphSpacing; label: string }[] = [
-  { value: "tight", label: "Tight" },
-  { value: "normal", label: "Normal" },
-  { value: "loose", label: "Loose" },
-];
-
-const READING_MODE_OPTIONS: { value: ReadingMode; label: string }[] = [
-  { value: "scroll", label: "Scroll" },
-  { value: "paginated-single", label: "Single Page" },
-  { value: "paginated-double", label: "Two Pages" },
-];
-
-const CONTENT_WIDTH_OPTIONS: { value: ReaderContentWidth; label: string }[] = [
-  { value: "narrow", label: "Narrow" },
-  { value: "medium", label: "Medium" },
-  { value: "wide", label: "Wide" },
-];
-
-const MARGINS_OPTIONS: { value: ReaderMargins; label: string }[] = [
-  { value: "compact", label: "Compact" },
-  { value: "normal", label: "Normal" },
-  { value: "spacious", label: "Spacious" },
-];
-
-const TEXT_ALIGN_OPTIONS: { value: ReaderTextAlign; label: string }[] = [
-  { value: "start", label: "Left" },
-  { value: "justify", label: "Justified" },
-];
-
-const PAGE_COLOR_OPTIONS: { value: ReaderThemePreference; label: string }[] = [
-  { value: "auto", label: "Auto" },
-  { value: "light", label: "Light" },
-  { value: "warm", label: "Warm" },
-  { value: "dark", label: "Dark" },
-];
+import {
+  CONTENT_WIDTH_OPTIONS,
+  FONT_FAMILY_OPTIONS,
+  FONT_SIZE_OPTIONS,
+  LINE_SPACING_OPTIONS,
+  MARGINS_OPTIONS,
+  PAGE_COLOR_OPTIONS,
+  PARAGRAPH_SPACING_OPTIONS,
+  READING_MODE_OPTIONS,
+  TEXT_ALIGN_OPTIONS,
+} from "../lib/reader-setting-options";
 
 export function ReadingPanel() {
   const [prefs, setPrefs] = useAtom(readerPreferencesAtom);

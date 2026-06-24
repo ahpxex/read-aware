@@ -1,4 +1,4 @@
-import { useRef, useEffect, useId, type ReactNode } from "react";
+import { useRef, useEffect, useId, useCallback, type ReactNode } from "react";
 import { useLocalAtom } from "./lib/useLocalAtom";
 import { cn } from "./lib/cn";
 
@@ -11,6 +11,10 @@ type PopoverProps = {
   children: ReactNode;
   align?: "left" | "right" | "center";
   className?: string;
+  /** Controlled open state. Omit for uncontrolled (self-managed) behavior. */
+  open?: boolean;
+  /** Notified whenever the open state should change (both modes). */
+  onOpenChange?: (open: boolean) => void;
 };
 
 export function Popover({
@@ -20,12 +24,26 @@ export function Popover({
   children,
   align = "left",
   className,
+  open: openProp,
+  onOpenChange,
 }: PopoverProps) {
-  const [open, setOpen] = useLocalAtom(false);
+  const [internalOpen, setInternalOpen] = useLocalAtom(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const id = useId();
   const panelId = `${id}-panel`;
+
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? openProp : internalOpen;
+
+  const setOpen = useCallback(
+    (next: boolean | ((current: boolean) => boolean)) => {
+      const value = typeof next === "function" ? next(open) : next;
+      if (!isControlled) setInternalOpen(value);
+      onOpenChange?.(value);
+    },
+    [isControlled, onOpenChange, open, setInternalOpen],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -46,7 +64,7 @@ export function Popover({
       document.removeEventListener("mousedown", handleClick);
       document.removeEventListener("keydown", handleEscape);
     };
-  }, [open]);
+  }, [open, setOpen]);
 
   return (
     <div ref={containerRef} className={cn("relative inline-block", className)}>

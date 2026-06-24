@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import { Check, Rows, SlidersHorizontal, SquaresFour } from "@phosphor-icons/react";
-import { ChoiceGroup, Popover } from "@read-aware/ui";
+import { ChoiceGroup, Divider, Popover } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useAtom } from "jotai";
 import { shelfViewAtom } from "../../../state/ui";
@@ -73,19 +73,21 @@ export function ShelfViewMenu() {
       triggerClassName="h-7 w-7 items-center justify-center text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
       trigger={<SlidersHorizontal size={16} weight="regular" aria-hidden="true" />}
     >
-      <div className="w-56 space-y-4">
+      <div className="w-56">
         <ChoiceGroup
           label="Layout"
           value={view.layout}
           options={LAYOUT_OPTIONS}
           onChange={(layout) => setView({ ...view, layout })}
         />
+        <Divider className="-mx-4 my-3" />
         <OptionRows
           label="Group by"
           value={view.group}
           options={GROUP_OPTIONS}
           onChange={(group) => setView({ ...view, group })}
         />
+        <Divider className="-mx-4 my-3" />
         <OptionRows
           label="Sort by"
           value={view.sort}

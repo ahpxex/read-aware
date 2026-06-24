@@ -36,7 +36,7 @@ import {
 } from "../../annotations/lib/annotation-db";
 import { suppressNativeContextMenu } from "../../../platform/environment";
 import { useDelayedFlag } from "../hooks/useDelayedFlag";
-import { buildReaderContentCss } from "../../settings/lib/reader-css";
+import { buildReaderContentCss, computeReaderMaxInlineSize } from "../../settings/lib/reader-css";
 import type { ReaderSettings, ReadingMode } from "../../settings/lib/reader-settings";
 import { DEFAULT_READER_SETTINGS } from "../../settings/lib/reader-settings";
 
@@ -219,11 +219,28 @@ export function FoliateReaderView({
   const [aiChatOpen, setAiChatOpen] = useState(false);
   const [currentChat, setCurrentChat] = useState<AIChat | null>(null);
 
-  // Settings change -> re-inject reader CSS into all loaded sections.
+  // Drive the responsive text measure through foliate's `max-inline-size`
+  // attribute. The paginator caps the column to that value (px) and writes it
+  // onto the body with inline `!important`, so a width set via injected CSS is
+  // ignored — the attribute is the only lever, and it must be recomputed from
+  // the live reader width (it cannot use vw).
+  const applyReaderMaxInlineSize = useCallback(() => {
+    const renderer = viewRef.current?.renderer;
+    if (!renderer || isFixedLayoutRef.current) return;
+    const width =
+      readerRootRef.current?.clientWidth ??
+      viewportRef.current?.clientWidth ??
+      window.innerWidth;
+    const px = computeReaderMaxInlineSize(readerSettingsRef.current.contentWidth, width);
+    renderer.setAttribute("max-inline-size", `${px}px`);
+  }, []);
+
+  // Settings change -> re-inject reader CSS and refresh the text measure.
   useEffect(() => {
     readerSettingsRef.current = readerSettings;
     viewRef.current?.renderer?.setStyles?.(buildReaderContentCss(readerSettings));
-  }, [readerSettings]);
+    applyReaderMaxInlineSize();
+  }, [readerSettings, applyReaderMaxInlineSize]);
 
   useEffect(() => { loadedBookRef.current = initialBook; }, [initialBook]);
   useEffect(() => { tocEntriesRef.current = tocEntries; }, [tocEntries]);
@@ -652,10 +669,13 @@ export function FoliateReaderView({
   useEffect(() => {
     const element = viewportRef.current;
     if (!element) return;
-    const observer = new ResizeObserver(() => clearSelection());
+    const observer = new ResizeObserver(() => {
+      clearSelection();
+      applyReaderMaxInlineSize();
+    });
     observer.observe(element);
     return () => observer.disconnect();
-  }, [clearSelection]);
+  }, [clearSelection, applyReaderMaxInlineSize]);
 
   // Bridge wheel and click events that land on the empty area *outside* the
   // iframe content. In scrolled mode the foliate engine sizes the section's
@@ -750,6 +770,13 @@ export function FoliateReaderView({
         const { flow, maxColumnCount } = layoutForReadingMode(readingMode);
         view.renderer?.setAttribute("flow", flow);
         view.renderer?.setAttribute("max-column-count", String(maxColumnCount));
+        view.renderer?.setAttribute(
+          "max-inline-size",
+          `${computeReaderMaxInlineSize(
+            readerSettingsRef.current.contentWidth,
+            readerRootRef.current?.clientWidth ?? window.innerWidth,
+          )}px`,
+        );
         view.renderer?.setStyles?.(buildReaderContentCss(readerSettingsRef.current));
 
         const entries = flattenToc((book?.toc ?? []) as unknown as TocNavItem[])

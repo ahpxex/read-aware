@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { ReaderSettings } from "./reader-settings";
+import type { ReaderContentWidth, ReaderSettings } from "./reader-settings";
 
 const FONT_FAMILY_MAP = {
   sans: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
@@ -27,15 +27,40 @@ const PARAGRAPH_SPACING_MAP = {
   loose: "1.9rem",
 } as const;
 
-// Responsive measures: scale with the viewport (vw) between a readable floor and
-// a generous ceiling, so the reading column widens on large screens instead of
-// staying pinned to a fixed width. `body { width: min(100%, …) }` keeps small
-// windows from overflowing.
-const CONTENT_WIDTH_MAP = {
-  narrow: "clamp(28rem, 62vw, 54rem)",
-  medium: "clamp(32rem, 80vw, 84rem)",
-  wide: "clamp(38rem, 94vw, 120rem)",
-} as const;
+// Responsive text measure. foliate's paginator caps the column to its
+// `max-inline-size` (a px value it parses from the attribute) and writes that
+// onto the body with inline `!important`, which overrides any width we inject
+// via a stylesheet. So we drive the measure through the attribute instead —
+// scaling it with the live reader width between a readable floor and a generous
+// ceiling so the column widens on large screens. See `computeReaderMaxInlineSize`.
+const REM_PX = 16;
+
+const CONTENT_WIDTH_TIERS: Record<
+  ReaderContentWidth,
+  { minRem: number; viewportFraction: number; maxRem: number }
+> = {
+  narrow: { minRem: 28, viewportFraction: 0.62, maxRem: 54 },
+  medium: { minRem: 32, viewportFraction: 0.8, maxRem: 84 },
+  wide: { minRem: 38, viewportFraction: 0.94, maxRem: 120 },
+};
+
+/**
+ * Text measure (px) for foliate's `max-inline-size` attribute, derived from the
+ * chosen width tier and the live reader width so the column is responsive.
+ * Capped to the container so it never overflows a small window.
+ */
+export function computeReaderMaxInlineSize(
+  contentWidth: ReaderContentWidth,
+  containerWidthPx: number,
+): number {
+  const tier = CONTENT_WIDTH_TIERS[contentWidth];
+  const preferred = tier.viewportFraction * containerWidthPx;
+  const clamped = Math.max(
+    tier.minRem * REM_PX,
+    Math.min(preferred, tier.maxRem * REM_PX),
+  );
+  return Math.round(Math.min(clamped, containerWidthPx));
+}
 
 const MARGIN_MAP = {
   compact: "1rem",
@@ -60,7 +85,6 @@ export function buildReaderContentCss(settings: ReaderSettings): string {
   const fontSize = FONT_SIZE_MAP[settings.fontSize];
   const lineHeight = LINE_HEIGHT_MAP[settings.lineSpacing];
   const paragraphSpacing = PARAGRAPH_SPACING_MAP[settings.paragraphSpacing];
-  const contentWidth = CONTENT_WIDTH_MAP[settings.contentWidth];
   const horizontalMargin = MARGIN_MAP[settings.margins];
   const theme = THEME_MAP[settings.theme];
   const justified = settings.textAlign === "justify";
@@ -72,9 +96,6 @@ export function buildReaderContentCss(settings: ReaderSettings): string {
 
     body {
       box-sizing: border-box !important;
-      width: min(100%, ${contentWidth}) !important;
-      max-width: ${contentWidth} !important;
-      margin: 0 auto !important;
       padding: 2rem ${horizontalMargin} 4rem !important;
       color: ${theme.text} !important;
       background: ${theme.bg} !important;

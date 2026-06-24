@@ -42,7 +42,7 @@ export function ReaderShellOverlay({
       {/* Top bar — doubles as the window drag region on desktop, with left
           padding that clears the macOS traffic lights when present. */}
       <div
-        data-tauri-drag-region=""
+        data-tauri-drag-region="deep"
         style={{
           paddingLeft: "max(1.25rem, var(--ra-traffic-light-inset))",
           paddingRight: "1.25rem",

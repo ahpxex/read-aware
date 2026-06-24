@@ -183,7 +183,7 @@ export function ReaderShellOverlay({
         <section
           aria-label="Table of contents"
           className={cn(
-            "flex h-full min-h-0 w-full max-w-[18rem] flex-col border-r border-border-strong/70 backdrop-blur-sm transition-all duration-200 ease-out",
+            "flex h-full min-h-0 w-[clamp(16rem,24vw,30rem)] flex-col border-r border-border-strong/70 backdrop-blur-sm transition-all duration-200 ease-out",
             visible && tocOpen
               ? "pointer-events-auto translate-x-0 opacity-100"
               : "-translate-x-full opacity-0 pointer-events-none",
@@ -243,7 +243,7 @@ export function ReaderShellOverlay({
         <section
           aria-label="Notes"
           className={cn(
-            "flex h-full min-h-0 w-full max-w-[20rem] flex-col border-l border-border-strong/70 backdrop-blur-sm transition-all duration-200 ease-out",
+            "flex h-full min-h-0 w-[clamp(17rem,26vw,32rem)] flex-col border-l border-border-strong/70 backdrop-blur-sm transition-all duration-200 ease-out",
             visible && notesOpen
               ? "pointer-events-auto translate-x-0 opacity-100"
               : "translate-x-full opacity-0 pointer-events-none",

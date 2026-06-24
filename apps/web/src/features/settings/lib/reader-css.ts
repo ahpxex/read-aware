@@ -27,10 +27,14 @@ const PARAGRAPH_SPACING_MAP = {
   loose: "1.9rem",
 } as const;
 
+// Responsive measures: scale with the viewport (vw) between a readable floor and
+// a generous ceiling, so the reading column widens on large screens instead of
+// staying pinned to a fixed width. `body { width: min(100%, …) }` keeps small
+// windows from overflowing.
 const CONTENT_WIDTH_MAP = {
-  narrow: "38rem",
-  medium: "56rem",
-  wide: "72rem",
+  narrow: "clamp(28rem, 62vw, 54rem)",
+  medium: "clamp(32rem, 80vw, 84rem)",
+  wide: "clamp(38rem, 94vw, 120rem)",
 } as const;
 
 const MARGIN_MAP = {

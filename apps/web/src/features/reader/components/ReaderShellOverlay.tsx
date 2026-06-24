@@ -15,9 +15,6 @@ type ReaderShellOverlayProps = {
   currentChapterHref?: string | null;
   onChapterSelect?: (href: string) => void;
   onToggleAnnotations?: () => void;
-  /** Reader background colour (varies by reading theme) — used for the
-      gradient fades so the overlay bars blend seamlessly with the canvas. */
-  themeBg: string;
 };
 
 export function ReaderShellOverlay({
@@ -31,7 +28,6 @@ export function ReaderShellOverlay({
   currentChapterHref = null,
   onChapterSelect,
   onToggleAnnotations,
-  themeBg,
 }: ReaderShellOverlayProps) {
   const percent =
     progress != null ? Math.min(100, Math.max(0, progress * 100)) : null;
@@ -50,23 +46,22 @@ export function ReaderShellOverlay({
         style={{
           paddingLeft: "max(1.25rem, var(--ra-traffic-light-inset))",
           paddingRight: "1.25rem",
-          background: `linear-gradient(to bottom, ${themeBg}, ${themeBg} 55%, ${themeBg}00)`,
         }}
         className={cn(
-          "pointer-events-auto shrink-0 backdrop-blur-sm transition-all duration-250 ease-out",
+          "pointer-events-auto shrink-0 border-b border-border/60 bg-fill/90 py-3 backdrop-blur-sm transition-all duration-250 ease-out",
           visible
             ? "translate-y-0 opacity-100"
             : "-translate-y-full opacity-0 pointer-events-none",
         )}
       >
-        <div className="flex items-center gap-3 pt-2.5 pb-7">
+        <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={onBack}
             className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-1 text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
           >
             <CaretLeft size={16} weight="regular" aria-hidden="true" />
-            <span className="font-sans text-caption font-medium">Shelf</span>
+            <span className="font-sans text-caption font-medium">Library</span>
           </button>
 
           {title && (
@@ -165,17 +160,14 @@ export function ReaderShellOverlay({
 
       {/* Bottom bar */}
       <div
-        style={{
-          background: `linear-gradient(to top, ${themeBg}, ${themeBg} 55%, ${themeBg}00)`,
-        }}
         className={cn(
-          "pointer-events-auto shrink-0 backdrop-blur-sm transition-all duration-250 ease-out",
+          "pointer-events-auto shrink-0 border-t border-border/60 bg-fill/90 px-5 py-3 backdrop-blur-sm transition-all duration-250 ease-out",
           visible
             ? "translate-y-0 opacity-100"
             : "translate-y-full opacity-0 pointer-events-none",
         )}
       >
-        <div className="flex items-center gap-4 px-5 pt-7 pb-2.5">
+        <div className="flex items-center gap-4">
           {currentPosition && (
             <Caption key={currentPosition} className="ra-motion-page-counter shrink-0 text-fg-muted">
               {currentPosition}
@@ -184,7 +176,7 @@ export function ReaderShellOverlay({
 
           {percent != null && (
             <div className="flex min-w-0 flex-1 items-center gap-3">
-              <div className="h-px flex-1 overflow-hidden rounded-full bg-fill-strong">
+              <div className="h-1 flex-1 overflow-hidden rounded-full bg-fill-strong">
                 <div
                   className="h-full rounded-full bg-fg-subtle transition-all duration-300"
                   style={{ width: `${percent}%` }}

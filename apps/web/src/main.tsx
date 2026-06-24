@@ -2,10 +2,11 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
 import { createAppRouter } from "./router";
-import { applyPlatformAttributes } from "./platform/environment";
+import { applyPlatformAttributes, disableNativeContextMenu } from "./platform/environment";
 import "./index.css";
 
 applyPlatformAttributes();
+disableNativeContextMenu();
 
 const router = createAppRouter();
 

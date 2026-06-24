@@ -901,7 +901,8 @@ export function FoliateReaderView({
         ref={viewportRef}
         aria-label={selectedBook?.title ?? initialBook?.fileName ?? "Book reader"}
         className={cn(
-          "h-full w-full transition-opacity duration-500 ease-out",
+          "h-full w-full transition-opacity ease-out",
+          isCrossing ? "duration-150" : "duration-500",
           (isLoading || !!error || isCrossing) && "opacity-0",
         )}
       />

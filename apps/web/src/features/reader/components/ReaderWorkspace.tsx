@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useAtomValue } from "jotai";
-import { Body, Button } from "@read-aware/ui";
+import { Body, Button, Spinner } from "@read-aware/ui";
 import { effectiveReaderSettingsAtom } from "../../../state/ui";
 import type { BookFormat, LibraryBook, ReaderProgress } from "../../library/lib/library-types";
 import { READER_THEME_BG } from "../../settings/lib/reader-css";
+import { useDelayedFlag } from "../hooks/useDelayedFlag";
 import { FoliateReaderView } from "./FoliateReaderView";
 import { ReaderShellOverlay } from "./ReaderShellOverlay";
 import type { LoadedBook, TocEntry } from "../lib/reader-types";
@@ -59,9 +60,15 @@ export function ReaderWorkspace({
   const readerSettings = useAtomValue(effectiveReaderSettingsAtom);
   const themeBg = READER_THEME_BG[readerSettings.theme];
   const [annotationsSidebarOpen, setAnnotationsSidebarOpen] = useState(false);
+  // Only surface the source loader once opening is genuinely slow, so fast opens
+  // show nothing (themed background) instead of a flashed line of text.
+  const showSourceLoader = useDelayedFlag(!readerSource && !readerLoadError, 250);
 
   return (
-    <div className="relative h-screen w-full" style={{ backgroundColor: themeBg }}>
+    <div
+      className="ra-motion-reader-enter relative h-screen w-full"
+      style={{ backgroundColor: themeBg }}
+    >
       {readerSource ? (
         <FoliateReaderView
           selectedBook={selectedBook}
@@ -82,11 +89,9 @@ export function ReaderWorkspace({
 
       {!readerSource && (
         <div className="absolute inset-0 flex items-center justify-center px-8 text-center">
-          <div className="max-w-md space-y-4">
-            <Body className="text-sm text-fg-muted">
-              {readerLoadError ?? `Opening ${selectedBook.title}...`}
-            </Body>
-            {readerLoadError && (
+          {readerLoadError ? (
+            <div className="max-w-md space-y-4">
+              <Body className="text-sm text-fg-muted">{readerLoadError}</Body>
               <div className="flex items-center justify-center gap-2">
                 <Button size="sm" variant="outline" onClick={() => onRetryOpen(selectedBook)}>
                   Try again
@@ -95,8 +100,12 @@ export function ReaderWorkspace({
                   Back to library
                 </Button>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            showSourceLoader && (
+              <Spinner size="md" label={`Opening ${selectedBook.title}`} />
+            )
+          )}
         </div>
       )}
 

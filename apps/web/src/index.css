@@ -100,6 +100,7 @@ html[data-motion="reduced"] .ra-motion-tab-panel-in-forward,
 html[data-motion="reduced"] .ra-motion-tab-panel-in-backward,
 html[data-motion="reduced"] .ra-motion-page-counter,
 html[data-motion="reduced"] .ra-motion-overlay-pop,
+html[data-motion="reduced"] .ra-motion-reader-enter,
 html[data-motion="reduced"] .ra-dialog::backdrop {
   animation: none !important;
   transform: none !important;
@@ -183,6 +184,14 @@ button {
     will-change: transform, opacity;
   }
 
+  /* Reader entrance: a pure cross-fade (no transform — a full-screen translate
+     would reveal the edges) so opening a book eases in instead of hard-cutting
+     to an empty reading surface. */
+  .ra-motion-reader-enter {
+    animation: ra-reader-enter 320ms var(--ra-ease-out-quart);
+    will-change: opacity;
+  }
+
   .ra-dialog::backdrop {
     background-color: rgb(28 25 23 / 0);
     backdrop-filter: blur(0);
@@ -252,12 +261,22 @@ button {
   }
 }
 
+@keyframes ra-reader-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ra-motion-page-enter,
   .ra-motion-tab-panel-in-forward,
   .ra-motion-tab-panel-in-backward,
   .ra-motion-page-counter,
   .ra-motion-overlay-pop,
+  .ra-motion-reader-enter,
   .ra-dialog::backdrop {
     animation: none !important;
     transform: none !important;

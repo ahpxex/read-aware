@@ -61,7 +61,7 @@ export function ReaderShellOverlay({
             className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-1 text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
           >
             <CaretLeft size={16} weight="regular" aria-hidden="true" />
-            <span className="font-sans text-caption font-medium">Library</span>
+            <span className="font-sans text-caption font-medium">Shelf</span>
           </button>
 
           {title && (

@@ -117,6 +117,13 @@ type ShellTapIntent = {
   startY: number;
 };
 
+/** The text the selection / annotation menus act on (copy, note, look up, AI). */
+type ActionTarget = {
+  text: string;
+  cfiRange: string | null;
+  chapterHref: string | null;
+};
+
 async function copyText(text: string) {
   if (navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(text);
@@ -231,6 +238,7 @@ export function FoliateReaderView({
   const [dictionaryOpen, setDictionaryOpen] = useState(false);
   const [dictionaryWord, setDictionaryWord] = useState("");
 
+  const [noteTarget, setNoteTarget] = useState<ActionTarget | null>(null);
   const [noteEditorOpen, setNoteEditorOpen] = useState(false);
   const [currentNote, setCurrentNote] = useState<Note | null>(null);
   const [aiChatOpen, setAiChatOpen] = useState(false);
@@ -943,14 +951,41 @@ export function FoliateReaderView({
     void viewRef.current?.goTo(cfiRange);
   }, [annotationNavigationRequest?.cfiRange, annotationNavigationRequest?.requestId]);
 
-  async function copySelectionToClipboard() {
-    const text = selectionRef.current?.text;
+  // ----- text actions shared by the selection and annotation menus ----------
+
+  async function copyTargetText(text: string) {
     if (!text) return;
     try {
       await copyText(text);
     } catch {
       // Clipboard access can be unavailable outside a trusted user gesture.
     }
+  }
+
+  function openNoteEditorFor(target: ActionTarget) {
+    setNoteTarget(target);
+    setCurrentNote(null);
+    setNoteEditorOpen(true);
+  }
+
+  function lookUpText(text: string) {
+    setDictionaryWord(text);
+    setDictionaryOpen(true);
+  }
+
+  function startAIChatFor(target: ActionTarget) {
+    if (!selectedBook) return;
+    const initialMessage = `I'm reading this passage: "${target.text}". What are your thoughts?`;
+    void createAIChat(
+      selectedBook.id,
+      target.cfiRange,
+      target.chapterHref,
+      target.text,
+      initialMessage,
+    ).then((chat) => {
+      setCurrentChat(chat);
+      setAiChatOpen(true);
+    });
   }
 
   async function handleHighlight(
@@ -981,8 +1016,7 @@ export function FoliateReaderView({
 
   function handleLookUp() {
     if (!selection) return;
-    setDictionaryWord(selection.text);
-    setDictionaryOpen(true);
+    lookUpText(selection.text);
     clearSelection();
   }
 
@@ -1023,27 +1057,62 @@ export function FoliateReaderView({
     setActiveAnnotation(null);
   }
 
+  function activeAnnotationTarget(): ActionTarget | null {
+    const highlight = activeAnnotation?.highlight;
+    if (!highlight) return null;
+    return {
+      text: highlight.text,
+      cfiRange: highlight.cfiRange,
+      chapterHref: highlight.chapterHref,
+    };
+  }
+
+  function handleAddNoteForAnnotation() {
+    const target = activeAnnotationTarget();
+    if (!target) return;
+    openNoteEditorFor(target);
+    setActiveAnnotation(null);
+  }
+
+  function handleLookUpAnnotation() {
+    const target = activeAnnotationTarget();
+    if (!target) return;
+    lookUpText(target.text);
+    setActiveAnnotation(null);
+  }
+
+  function handleAskAIAboutAnnotation() {
+    const target = activeAnnotationTarget();
+    if (!target) return;
+    startAIChatFor(target);
+    setActiveAnnotation(null);
+  }
+
   function handleAddNote() {
     if (!selection) return;
-    setCurrentNote(null);
-    setNoteEditorOpen(true);
+    openNoteEditorFor({
+      text: selection.text,
+      cfiRange: selection.cfiRange,
+      chapterHref: selection.chapterHref,
+    });
   }
 
   async function handleSaveNote(content: string) {
-    if (!selection || !selectedBook) return;
+    if (!noteTarget || !selectedBook) return;
     try {
       if (currentNote) {
         await updateNote(currentNote.id, content);
       } else {
         await createNote(
           selectedBook.id,
-          selection.cfiRange,
-          selection.chapterHref,
-          selection.text,
+          noteTarget.cfiRange,
+          noteTarget.chapterHref,
+          noteTarget.text,
           content,
         );
       }
       setNoteEditorOpen(false);
+      setNoteTarget(null);
       clearSelection();
     } catch (noteError) {
       console.error("Failed to save note:", noteError);
@@ -1051,19 +1120,13 @@ export function FoliateReaderView({
   }
 
   function handleAskAI() {
-    if (!selection || !selectedBook) return;
-    const initialMessage = `I'm reading this passage: "${selection.text}". What are your thoughts?`;
-    void createAIChat(
-      selectedBook.id,
-      selection.cfiRange,
-      selection.chapterHref,
-      selection.text,
-      initialMessage,
-    ).then((chat) => {
-      setCurrentChat(chat);
-      setAiChatOpen(true);
-      clearSelection();
+    if (!selection) return;
+    startAIChatFor({
+      text: selection.text,
+      cfiRange: selection.cfiRange,
+      chapterHref: selection.chapterHref,
     });
+    clearSelection();
   }
 
   async function handleSendMessage(content: string) {
@@ -1094,7 +1157,7 @@ export function FoliateReaderView({
       <ReaderSelectionMenu
         selection={selection}
         allowAnnotations={!isFixedLayout}
-        onCopy={copySelectionToClipboard}
+        onCopy={() => copyTargetText(selectionRef.current?.text ?? "")}
         onHighlight={() => { void handleHighlight(); }}
         onUnderline={handleUnderline}
         onAddNote={handleAddNote}
@@ -1107,6 +1170,10 @@ export function FoliateReaderView({
         onRecolor={(color) => {
           void handleRecolorAnnotation(color);
         }}
+        onCopy={() => copyTargetText(activeAnnotation?.highlight.text ?? "")}
+        onAddNote={handleAddNoteForAnnotation}
+        onLookUp={handleLookUpAnnotation}
+        onAskAI={handleAskAIAboutAnnotation}
         onRemove={() => {
           void handleRemoveAnnotation();
         }}
@@ -1172,11 +1239,12 @@ export function FoliateReaderView({
 
       <NoteEditor
         isOpen={noteEditorOpen}
-        selectedText={selection?.text || ""}
+        selectedText={noteTarget?.text || ""}
         initialContent={currentNote?.content || ""}
         onSave={handleSaveNote}
         onCancel={() => {
           setNoteEditorOpen(false);
+          setNoteTarget(null);
           clearSelection();
         }}
         isEditing={!!currentNote}

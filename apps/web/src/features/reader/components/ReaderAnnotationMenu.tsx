@@ -1,6 +1,15 @@
-import { Trash } from "@phosphor-icons/react";
+import {
+  BookOpen,
+  ChatCircleDots,
+  Check,
+  Copy,
+  NotePencil,
+  Trash,
+} from "@phosphor-icons/react";
+import { useEffect, useRef, useState } from "react";
 import { IconButton } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
+import { isAIConfigured } from "../../ai/lib/ai-service";
 import type { Highlight } from "../../annotations/lib/annotation-types";
 import { useAnchoredMenuPosition } from "../hooks/useAnchoredMenuPosition";
 import { HIGHLIGHT_COLORS } from "../lib/highlight-renderer";
@@ -11,25 +20,76 @@ type ReaderAnnotationMenuProps = {
   anchorRect: SelectionOverlayRect | null;
   activeColor: Highlight["color"];
   onRecolor: (color: Highlight["color"]) => void;
+  onCopy: () => Promise<void> | void;
+  onAddNote: () => void;
+  onLookUp: () => void;
+  onAskAI: () => void;
   onRemove: () => void;
 };
 
 const COLOR_OPTIONS: Highlight["color"][] = ["yellow", "green", "blue", "pink"];
 
+/** Hairline divider separating action groups within the bar. */
+function MenuDivider() {
+  return <span aria-hidden="true" className="mx-0.5 h-5 w-px shrink-0 bg-border" />;
+}
+
 /**
- * Recolor/remove menu for an existing mark. Tapping a highlight or underline in
- * the reader anchors this over it; the swatches recolor it (the current color is
- * ringed), and the trash button removes it.
+ * Actions for an existing mark. Tapping a highlight or underline in the reader
+ * anchors this over it: recolor (the current colour is ringed), add a note, look
+ * up, copy, ask AI, and remove.
  */
 export function ReaderAnnotationMenu({
   anchorRect,
   activeColor,
   onRecolor,
+  onCopy,
+  onAddNote,
+  onLookUp,
+  onAskAI,
   onRemove,
 }: ReaderAnnotationMenuProps) {
   const { containerRef, menuRef, position } = useAnchoredMenuPosition(anchorRect);
+  const [copied, setCopied] = useState(false);
+  const [aiConfigured, setAiConfigured] = useState(false);
+  const copyResetTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    setAiConfigured(isAIConfigured());
+  }, [anchorRect]);
+
+  useEffect(() => {
+    setCopied(false);
+    if (copyResetTimeoutRef.current != null) {
+      window.clearTimeout(copyResetTimeoutRef.current);
+      copyResetTimeoutRef.current = null;
+    }
+  }, [anchorRect]);
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimeoutRef.current != null) {
+        window.clearTimeout(copyResetTimeoutRef.current);
+      }
+    };
+  }, []);
 
   if (!anchorRect) return null;
+
+  const actionButtonClass =
+    "rounded-md text-fg-muted hover:bg-fg/5 hover:text-fg focus-visible:ring-fg";
+
+  async function handleCopy() {
+    await onCopy();
+    setCopied(true);
+    if (copyResetTimeoutRef.current != null) {
+      window.clearTimeout(copyResetTimeoutRef.current);
+    }
+    copyResetTimeoutRef.current = window.setTimeout(() => {
+      setCopied(false);
+      copyResetTimeoutRef.current = null;
+    }, 1200);
+  }
 
   return (
     <div
@@ -60,13 +120,58 @@ export function ReaderAnnotationMenu({
             />
           </button>
         ))}
-        <span aria-hidden="true" className="mx-0.5 h-5 w-px shrink-0 bg-border" />
+
+        <MenuDivider />
+        <IconButton
+          label="Add a note"
+          title="Add a note"
+          size="sm"
+          onClick={onAddNote}
+          className={actionButtonClass}
+          icon={<NotePencil size={14} weight="regular" aria-hidden="true" />}
+        />
+        <IconButton
+          label="Look up"
+          title="Look up"
+          size="sm"
+          onClick={onLookUp}
+          className={actionButtonClass}
+          icon={<BookOpen size={14} weight="regular" aria-hidden="true" />}
+        />
+        <IconButton
+          label={copied ? "Copied" : "Copy"}
+          title={copied ? "Copied" : "Copy"}
+          size="sm"
+          onClick={() => {
+            void handleCopy();
+          }}
+          className={cn(actionButtonClass, copied && "bg-fill-strong text-fg")}
+          icon={
+            copied ? (
+              <Check size={14} weight="regular" aria-hidden="true" />
+            ) : (
+              <Copy size={14} weight="regular" aria-hidden="true" />
+            )
+          }
+        />
+        {aiConfigured && (
+          <IconButton
+            label="Ask AI about this"
+            title="Ask AI about this"
+            size="sm"
+            onClick={onAskAI}
+            className={actionButtonClass}
+            icon={<ChatCircleDots size={14} weight="regular" aria-hidden="true" />}
+          />
+        )}
+
+        <MenuDivider />
         <IconButton
           label="Remove"
           title="Remove"
           size="sm"
           onClick={onRemove}
-          className="rounded-md text-fg-muted hover:bg-fg/5 hover:text-fg focus-visible:ring-fg"
+          className={actionButtonClass}
           icon={<Trash size={14} weight="regular" aria-hidden="true" />}
         />
       </div>

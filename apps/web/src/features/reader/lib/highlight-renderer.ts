@@ -1,8 +1,11 @@
-import type { Highlight } from "../../annotations/lib/annotation-types";
+import type { Highlight, Note } from "../../annotations/lib/annotation-types";
 import type { FoliateAnnotation, FoliateDrawAnnotationDetail, FoliateView } from "./foliate-engine";
 import { loadDrawFns } from "./foliate-engine";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
+
+/** A note's marker is a neutral dashed underline — quietly distinct from marks. */
+const NOTE_STROKE = "#78716c";
 
 /** Swatch colors shown in the annotation menus (translucent, look right as dots). */
 export const HIGHLIGHT_COLORS: Record<Highlight["color"], string> = {
@@ -64,6 +67,32 @@ function drawUnderline(
   return group;
 }
 
+/** A noted passage's marker: a dashed underline, quietly set apart from marks. */
+function drawNote(
+  rects: Iterable<DOMRect>,
+  options: { color?: string } = {},
+): SVGGElement {
+  const { color = NOTE_STROKE } = options;
+  const group = document.createElementNS(SVG_NS, "g");
+  group.setAttribute("fill", "none");
+  group.setAttribute("stroke", color);
+  group.setAttribute("stroke-width", "2");
+  group.setAttribute("stroke-linecap", "round");
+  group.setAttribute("stroke-dasharray", "2 3.5");
+  group.style.opacity = "0.85";
+  for (const rect of rects) {
+    if (rect.width < 1) continue;
+    const y = rect.bottom - Math.min(5, rect.height * 0.16);
+    const line = document.createElementNS(SVG_NS, "line");
+    line.setAttribute("x1", String(rect.left + 0.75));
+    line.setAttribute("y1", String(y));
+    line.setAttribute("x2", String(rect.right - 0.75));
+    line.setAttribute("y2", String(y));
+    group.append(line);
+  }
+  return group;
+}
+
 function toFoliateAnnotation(highlight: Highlight): FoliateAnnotation | null {
   if (!highlight.cfiRange) return null;
   const isUnderline = highlight.style === "underline";
@@ -97,16 +126,44 @@ export function removeHighlight(view: FoliateView, cfiRange: string): void {
   });
 }
 
+/** Draw one note's dashed marker (no-op if its CFI is not in a loaded section). */
+export function applyNote(view: FoliateView, note: Note): void {
+  if (!note.cfiRange) return;
+  void view
+    .addAnnotation({ value: note.cfiRange, color: NOTE_STROKE, id: note.id, style: "note" })
+    .catch(() => {
+      // CFI may not resolve in the current layout — foliate ignores it.
+    });
+}
+
 /**
- * Wire the `draw-annotation` event once per view so foliate paints our marks:
- * a filled highlight or a custom underline rule, chosen per annotation. Must be
- * registered before any annotations are added.
+ * Draw note markers, skipping any note whose range is already highlighted: the
+ * highlight is the visual there, and foliate's overlayer keys by CFI so a note
+ * and a mark can't share one range. (The note stays reachable from the mark's
+ * menu.)
+ */
+export function applyNotes(view: FoliateView, notes: Note[], highlights: Highlight[]): void {
+  const highlighted = new Set(
+    highlights.map((highlight) => highlight.cfiRange).filter(Boolean),
+  );
+  for (const note of notes) {
+    if (!note.cfiRange || highlighted.has(note.cfiRange)) continue;
+    applyNote(view, note);
+  }
+}
+
+/**
+ * Wire the `draw-annotation` event once per view so foliate paints each
+ * annotation by style: a filled highlight, a solid underline rule, or a dashed
+ * note marker. Must be registered before any annotations are added.
  */
 export async function registerHighlightDrawing(view: FoliateView): Promise<void> {
   const { highlight } = await loadDrawFns();
   view.addEventListener("draw-annotation", (event) => {
     const detail = (event as CustomEvent<FoliateDrawAnnotationDetail>).detail;
-    const drawFn = detail.annotation.style === "underline" ? drawUnderline : highlight;
+    const style = detail.annotation.style;
+    const drawFn =
+      style === "underline" ? drawUnderline : style === "note" ? drawNote : highlight;
     detail.draw(drawFn, { color: detail.annotation.color });
   });
 }

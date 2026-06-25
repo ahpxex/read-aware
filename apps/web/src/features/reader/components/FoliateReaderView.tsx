@@ -23,6 +23,8 @@ import {
 import {
   applyHighlight,
   applyHighlights,
+  applyNote,
+  applyNotes,
   registerHighlightDrawing,
   removeHighlight,
 } from "../lib/highlight-renderer";
@@ -39,6 +41,7 @@ import {
   addMessageToChat,
   updateNote,
   listHighlights,
+  listNotes,
   saveAnnotation,
   deleteAnnotation,
 } from "../../annotations/lib/annotation-db";
@@ -199,6 +202,7 @@ export function FoliateReaderView({
   const shouldOpenShellOnClickRef = useRef(false);
   const readerSettingsRef = useRef(readerSettings);
   const highlightsRef = useRef<Highlight[]>([]);
+  const notesRef = useRef<Note[]>([]);
   // New one-click marks use this colour; recoloring a mark updates it (persisted).
   const defaultMarkColorRef = useRef<Highlight["color"]>(getDefaultMarkColor());
   const isFixedLayoutRef = useRef(false);
@@ -854,21 +858,39 @@ export function FoliateReaderView({
         };
 
         const onCreateOverlay = () => {
-          if (view) applyHighlights(view, highlightsRef.current);
+          if (!view) return;
+          applyHighlights(view, highlightsRef.current);
+          applyNotes(view, notesRef.current, highlightsRef.current);
         };
 
-        // Tapping an existing mark: anchor the recolor/remove menu over it.
+        // Tapping a mark anchors the recolor/remove menu over it; tapping a note
+        // marker opens that note for reading/editing.
         const onShowAnnotation = (event: Event) => {
           if (cancelled) return;
           const detail = (event as CustomEvent<FoliateShowAnnotationDetail>).detail;
-          const found = highlightsRef.current.find(
-            (highlight) => highlight.cfiRange === detail.value,
+          const highlight = highlightsRef.current.find(
+            (item) => item.cfiRange === detail.value,
           );
+          if (!highlight) {
+            const note = notesRef.current.find((item) => item.cfiRange === detail.value);
+            if (note) {
+              setNoteTarget({
+                text: note.text,
+                cfiRange: note.cfiRange,
+                chapterHref: note.chapterHref,
+              });
+              setCurrentNote(note);
+              setNoteEditorOpen(true);
+              clearSelection();
+            }
+            setActiveAnnotation(null);
+            return;
+          }
           const range = detail.range;
           const readerRoot = readerRootRef.current;
           const win = range?.startContainer?.ownerDocument?.defaultView;
           const frameElement = win?.frameElement;
-          if (!found || !range || !readerRoot || !(frameElement instanceof HTMLElement)) {
+          if (!range || !readerRoot || !(frameElement instanceof HTMLElement)) {
             setActiveAnnotation(null);
             return;
           }
@@ -882,7 +904,7 @@ export function FoliateReaderView({
             return;
           }
           clearSelection();
-          setActiveAnnotation({ highlight: found, anchorRect: rects[rects.length - 1] });
+          setActiveAnnotation({ highlight, anchorRect: rects[rects.length - 1] });
         };
 
         view.addEventListener("relocate", onRelocate);
@@ -897,8 +919,9 @@ export function FoliateReaderView({
         if (selectedBook) {
           try {
             highlightsRef.current = await listHighlights(selectedBook.id);
+            notesRef.current = await listNotes(selectedBook.id);
           } catch {
-            // Non-critical: highlights will be missing but reading continues.
+            // Non-critical: marks will be missing but reading continues.
           }
         }
 
@@ -920,7 +943,10 @@ export function FoliateReaderView({
         } else {
           await restoreByFraction();
         }
-        if (view) applyHighlights(view, highlightsRef.current);
+        if (view) {
+          applyHighlights(view, highlightsRef.current);
+          applyNotes(view, notesRef.current, highlightsRef.current);
+        }
       } catch (nextError) {
         if (!cancelled) setError(formatReaderError(nextError));
       } finally {
@@ -932,6 +958,7 @@ export function FoliateReaderView({
       cancelled = true;
       for (const cleanup of cleanups) cleanup();
       highlightsRef.current = [];
+      notesRef.current = [];
       try {
         view?.renderer?.destroy?.();
       } catch {
@@ -1079,7 +1106,20 @@ export function FoliateReaderView({
   function handleAddNoteForAnnotation() {
     const target = activeAnnotationTarget();
     if (!target) return;
-    openNoteEditorFor(target);
+    const existing = target.cfiRange
+      ? notesRef.current.find((note) => note.cfiRange === target.cfiRange)
+      : undefined;
+    if (existing) {
+      setNoteTarget({
+        text: existing.text,
+        cfiRange: existing.cfiRange,
+        chapterHref: existing.chapterHref,
+      });
+      setCurrentNote(existing);
+      setNoteEditorOpen(true);
+    } else {
+      openNoteEditorFor(target);
+    }
     setActiveAnnotation(null);
   }
 
@@ -1110,18 +1150,34 @@ export function FoliateReaderView({
     if (!noteTarget || !selectedBook) return;
     try {
       if (currentNote) {
-        await updateNote(currentNote.id, content);
+        const updated = await updateNote(currentNote.id, content);
+        if (updated) {
+          notesRef.current = notesRef.current.map((note) =>
+            note.id === updated.id ? updated : note,
+          );
+        }
       } else {
-        await createNote(
+        const note = await createNote(
           selectedBook.id,
           noteTarget.cfiRange,
           noteTarget.chapterHref,
           noteTarget.text,
           content,
         );
+        notesRef.current = [...notesRef.current, note];
+        // Draw the dashed marker unless the passage is already highlighted
+        // (the highlight is the visual there; see applyNotes).
+        if (
+          viewRef.current &&
+          note.cfiRange &&
+          !highlightsRef.current.some((highlight) => highlight.cfiRange === note.cfiRange)
+        ) {
+          applyNote(viewRef.current, note);
+        }
       }
       setNoteEditorOpen(false);
       setNoteTarget(null);
+      setCurrentNote(null);
       clearSelection();
     } catch (noteError) {
       console.error("Failed to save note:", noteError);
@@ -1254,6 +1310,7 @@ export function FoliateReaderView({
         onCancel={() => {
           setNoteEditorOpen(false);
           setNoteTarget(null);
+          setCurrentNote(null);
           clearSelection();
         }}
         isEditing={!!currentNote}

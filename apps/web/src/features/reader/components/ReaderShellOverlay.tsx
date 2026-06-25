@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CaretLeft, ListBullets, Notebook } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { Body, IconButton, ScrollArea } from "@read-aware/ui";
@@ -73,6 +73,19 @@ export function ReaderShellOverlay({
       setStatsOpen(false);
     }
   }, [visible]);
+
+  // Reveal the current chapter when the contents panel opens (or the chapter
+  // changes while it's open), centering it so it's easy to find.
+  const tocListRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!visible || !tocOpen) return;
+    const frame = window.requestAnimationFrame(() => {
+      tocListRef.current
+        ?.querySelector('[aria-current="location"]')
+        ?.scrollIntoView({ block: "center" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [visible, tocOpen, currentChapterHref]);
 
   return (
     <div
@@ -209,7 +222,7 @@ export function ReaderShellOverlay({
           }}
         >
           <ScrollArea className="h-full min-h-0 flex-1">
-            <div className="flex flex-col px-3 py-4">
+            <div ref={tocListRef} className="flex flex-col px-3 py-4">
               {tocEntries.length === 0 && (
                 <Body className="px-2 py-2 text-sm text-fg-muted">
                   This file does not expose a navigable table of contents.
@@ -229,9 +242,9 @@ export function ReaderShellOverlay({
                     onClick={() => onChapterSelect?.(entry.href)}
                     aria-current={isActive ? "location" : undefined}
                     className={cn(
-                      "w-full border-l py-1.5 pr-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
+                      "w-full border-l-2 py-1.5 pr-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
                       isActive
-                        ? "border-border-strong text-fg"
+                        ? "border-fg bg-fill text-fg"
                         : "border-transparent text-fg-muted hover:text-fg",
                     )}
                     style={{
@@ -242,7 +255,7 @@ export function ReaderShellOverlay({
                       as="span"
                       className={cn(
                         "block min-w-0 text-sm leading-6",
-                        isActive ? "text-fg" : "text-inherit",
+                        isActive ? "font-semibold text-fg" : "text-inherit",
                       )}
                     >
                       {entry.label}

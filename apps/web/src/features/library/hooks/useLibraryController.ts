@@ -9,11 +9,20 @@ import { createProgressPatch } from "../lib/library-progress";
 import { canUseNativeFilePicker, pickBookFilesNative } from "../lib/pick-book-files";
 import type { BookProgress, LibraryBook } from "../lib/library-types";
 
+function formatImportNotice(imported: number, duplicates: string[]): string {
+  const skipped =
+    duplicates.length === 1
+      ? `“${duplicates[0]}” is already in your library.`
+      : `Skipped ${duplicates.length} books already in your library.`;
+  return imported > 0 ? `${skipped} Imported ${imported} new.` : skipped;
+}
+
 export function useLibraryController() {
   const [books, setBooks] = useState<LibraryBook[]>([]);
   const [libraryReady, setLibraryReady] = useState(false);
   const [libraryError, setLibraryError] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [importNotice, setImportNotice] = useState<string | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
 
   const reportError = useCallback((error: unknown) => {
@@ -59,13 +68,21 @@ export function useLibraryController() {
 
     setIsImporting(true);
     setLibraryError(null);
+    setImportNotice(null);
 
+    let imported = 0;
+    const duplicates: string[] = [];
     try {
       for (const file of files) {
-        await importBookFile(file);
+        const result = await importBookFile(file);
+        if (result.status === "duplicate") duplicates.push(result.book.title);
+        else imported += 1;
       }
 
       setBooks(await listLibraryBooks());
+      if (duplicates.length > 0) {
+        setImportNotice(formatImportNotice(imported, duplicates));
+      }
     } catch (error) {
       reportError(error);
     } finally {
@@ -107,6 +124,7 @@ export function useLibraryController() {
     libraryReady,
     libraryError,
     isImporting,
+    importNotice,
     importInputRef,
     openImportPicker,
     handleImportSelection,

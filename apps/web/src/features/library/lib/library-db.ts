@@ -194,11 +194,39 @@ export async function listLibraryBooks() {
   return sortBooks(await hydrateMissingBookCovers(books));
 }
 
-export async function importBookFile(file: File) {
+/** Identity used to spot a re-import: same title + author + byte size. */
+function bookDedupeKey(book: Pick<LibraryBook, "title" | "author" | "fileSize">): string {
+  return `${book.title.trim().toLowerCase()}|${book.author.trim().toLowerCase()}|${book.fileSize}`;
+}
+
+export type ImportBookResult =
+  | { status: "imported"; book: LibraryBook }
+  | { status: "duplicate"; book: LibraryBook };
+
+export async function importBookFile(file: File): Promise<ImportBookResult> {
+  const db = await openLibraryDb();
+  const existing = await requestToPromise(
+    db
+      .transaction(BOOKS_STORE, "readonly")
+      .objectStore(BOOKS_STORE)
+      .getAll() as IDBRequest<LibraryBook[]>,
+  );
+
+  // Cheap pass: the identical file (same name + size) is already imported.
+  const byFile = existing.find(
+    (entry) => entry.fileName === file.name && entry.fileSize === file.size,
+  );
+  if (byFile) return { status: "duplicate", book: byFile };
+
   const format = detectBookFormat(file);
   const metadata = await extractBookMetadata(file);
   const book = createLibraryBook(file, format, metadata);
-  const db = await openLibraryDb();
+
+  // Metadata pass: same title + author + size catches a renamed re-import.
+  const key = bookDedupeKey(book);
+  const byMetadata = existing.find((entry) => bookDedupeKey(entry) === key);
+  if (byMetadata) return { status: "duplicate", book: byMetadata };
+
   const transaction = db.transaction([BOOKS_STORE, FILES_STORE], "readwrite");
   transaction.objectStore(BOOKS_STORE).put(book);
   transaction.objectStore(FILES_STORE).put({
@@ -206,7 +234,7 @@ export async function importBookFile(file: File) {
     blob: file,
   } satisfies StoredBookFile);
   await waitForTransaction(transaction);
-  return book;
+  return { status: "imported", book };
 }
 
 export async function getStoredBookBlob(bookId: string) {

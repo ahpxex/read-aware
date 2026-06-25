@@ -98,6 +98,7 @@ function App() {
               <LibraryWorkspace
                 isReady={library.libraryReady}
                 error={library.libraryError}
+                notice={library.importNotice}
                 books={library.books}
                 onImport={library.openImportPicker}
                 onOpenBook={reader.openReader}

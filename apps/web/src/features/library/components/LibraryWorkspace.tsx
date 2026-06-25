@@ -9,6 +9,7 @@ import type { LibraryBook } from "../lib/library-types";
 type LibraryWorkspaceProps = {
   isReady: boolean;
   error: string | null;
+  notice?: string | null;
   books: LibraryBook[];
   onImport: () => void;
   onOpenBook: (book: LibraryBook) => void;
@@ -18,6 +19,7 @@ type LibraryWorkspaceProps = {
 export function LibraryWorkspace({
   isReady,
   error,
+  notice,
   books,
   onImport,
   onOpenBook,
@@ -31,6 +33,12 @@ export function LibraryWorkspace({
       {error && (
         <Alert variant="destructive" title="Library error" className="mb-6">
           {error}
+        </Alert>
+      )}
+
+      {notice && (
+        <Alert variant="default" title="Import" className="mb-6">
+          {notice}
         </Alert>
       )}
 

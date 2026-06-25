@@ -19,6 +19,43 @@ fn read_book_file(path: String) -> Result<tauri::ipc::Response, String> {
         .map_err(|err| format!("Failed to read {path}: {err}"))
 }
 
+/// Show or hide the macOS traffic-light window buttons.
+///
+/// Gives the reader a clean immersive view: when the overlay header is dismissed
+/// the buttons are hidden, and they reappear (aligned in the bar) when the header
+/// is brought back up. The frontend only calls this on macOS desktop; off macOS
+/// it is a no-op so the command still resolves for `generate_handler!`.
+#[cfg(target_os = "macos")]
+#[tauri::command]
+fn set_traffic_lights_visible(window: tauri::WebviewWindow, visible: bool) {
+    use cocoa::appkit::{NSWindow, NSWindowButton};
+    use cocoa::base::{id, nil};
+    use objc::runtime::{BOOL, NO, YES};
+    use objc::{msg_send, sel, sel_impl};
+
+    let Ok(ns_window) = window.ns_window() else {
+        return;
+    };
+    let ns_window = ns_window as id;
+    let hidden: BOOL = if visible { NO } else { YES };
+    unsafe {
+        for button in [
+            NSWindowButton::NSWindowCloseButton,
+            NSWindowButton::NSWindowMiniaturizeButton,
+            NSWindowButton::NSWindowZoomButton,
+        ] {
+            let btn: id = ns_window.standardWindowButton_(button);
+            if btn != nil {
+                let _: () = msg_send![btn, setHidden: hidden];
+            }
+        }
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+#[tauri::command]
+fn set_traffic_lights_visible(_visible: bool) {}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default()
@@ -33,7 +70,7 @@ pub fn run() {
             // Decorum keeps the inset across window resizes.
             #[cfg(target_os = "macos")]
             if let Some(window) = app.get_webview_window("main") {
-                let _ = window.set_traffic_lights_inset(16.0, 18.0);
+                let _ = window.set_traffic_lights_inset(16.0, 23.5);
             }
 
             Ok(())
@@ -47,6 +84,7 @@ pub fn run() {
             storage::upsert_vectors,
             storage::query_vectors,
             read_book_file,
+            set_traffic_lights_visible,
         ]);
 
     // Dev-only: expose the MCP bridge so the Tauri MCP server can drive the

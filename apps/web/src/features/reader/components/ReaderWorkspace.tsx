@@ -2,6 +2,7 @@ import { Body, Button, Spinner } from "@read-aware/ui";
 import type { BookFormat, LibraryBook, ReaderProgress } from "../../library/lib/library-types";
 import { READER_THEME_BG } from "../../settings/lib/reader-css";
 import { useDelayedFlag } from "../hooks/useDelayedFlag";
+import { useImmersiveWindowControls } from "../hooks/useImmersiveWindowControls";
 import { useReaderAppearance } from "../hooks/useReaderAppearance";
 import { FoliateReaderView } from "./FoliateReaderView";
 import { ReaderShellOverlay } from "./ReaderShellOverlay";
@@ -70,6 +71,12 @@ export function ReaderWorkspace({
   // show nothing (themed background) instead of a flashed line of text.
   const showSourceLoader = useDelayedFlag(!readerSource && !readerLoadError, 250);
 
+  const headerVisible = !isReaderLoading && overlayVisible;
+  // Hide the native traffic lights only during true immersive reading (book
+  // rendered, header dismissed). While the book is still loading or errored
+  // there's no immersive view yet, so keep the window controls reachable.
+  useImmersiveWindowControls(overlayVisible || !readerSource);
+
   return (
     <div
       className="ra-motion-reader-enter relative h-screen w-full"
@@ -115,7 +122,7 @@ export function ReaderWorkspace({
       )}
 
       <ReaderShellOverlay
-        visible={!isReaderLoading && overlayVisible}
+        visible={headerVisible}
         onBack={onCloseReader}
         bookId={selectedBook.id}
         title={selectedBook.title}

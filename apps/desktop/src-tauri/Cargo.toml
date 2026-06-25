@@ -28,3 +28,9 @@ tauri-plugin-mcp-bridge = "0.11"
 tauri-plugin-decorum = "1"
 # Native OS file dialog for book import — the webview ignores HTML <input accept>.
 tauri-plugin-dialog = "2"
+
+# macOS only: toggle the native traffic-light buttons for the reader's immersive
+# view. Versions match what decorum/tauri already lock, so no new resolution.
+[target.'cfg(target_os = "macos")'.dependencies]
+cocoa = "0.25"
+objc = "0.2"

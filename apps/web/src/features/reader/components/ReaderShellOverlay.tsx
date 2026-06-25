@@ -70,22 +70,26 @@ export function ReaderShellOverlay({
       <div
         data-tauri-drag-region="deep"
         style={{
-          // Symmetric horizontal inset: the left must clear the macOS traffic
-          // lights, so mirror that clearance on the right to keep the two icon
-          // clusters equidistant from their edges.
+          // Left clears the macOS traffic lights; the right uses the plain edge
+          // inset so the appearance/notes cluster sits flush against the right
+          // edge instead of being pushed inward by a mirrored offset.
           paddingLeft: "max(1.25rem, var(--ra-traffic-light-inset))",
-          paddingRight: "max(1.25rem, var(--ra-traffic-light-inset))",
+          paddingRight: "1.25rem",
         }}
         className={cn(
-          "pointer-events-auto relative shrink-0 bg-fill py-3 backdrop-blur-sm transition-all duration-250 ease-out",
+          // Fixed h-12 band, matching the main AppHeader. Both bars then center
+          // their controls on the same 24px axis, so the single native
+          // traffic-light inset (tuned for that band) aligns with both. A taller
+          // bar would drop the controls below the lights.
+          "pointer-events-auto relative h-12 shrink-0 bg-fill backdrop-blur-sm transition-all duration-250 ease-out",
           visible
             ? "translate-y-0 opacity-100"
             : "-translate-y-full opacity-0 pointer-events-none",
         )}
       >
-        <div className="pointer-events-none flex items-center gap-3">
+        <div className="pointer-events-none flex h-full items-center gap-3">
           {/* Left cluster: back to shelf + contents toggle */}
-          <div className="flex shrink-0 items-center gap-0.5">
+          <div className="ml-2 flex shrink-0 items-center gap-0.5">
             <IconButton
               size="sm"
               label="Back to shelf"

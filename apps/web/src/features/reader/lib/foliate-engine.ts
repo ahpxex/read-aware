@@ -95,7 +95,13 @@ export type FoliateHighlightFn = unknown;
 
 type FoliateGlobal = {
   makeBook: (file: Blob | File | string) => Promise<FoliateBook>;
-  Overlayer: { highlight: FoliateHighlightFn };
+  Overlayer: { highlight: FoliateHighlightFn; underline: FoliateHighlightFn };
+};
+
+/** The overlay draw functions used by the `draw-annotation` event. */
+export type FoliateDrawFns = {
+  highlight: FoliateHighlightFn;
+  underline: FoliateHighlightFn;
 };
 
 // ---- Runtime loading -------------------------------------------------------
@@ -140,9 +146,10 @@ function loadEngine(): Promise<FoliateGlobal> {
   return enginePromise;
 }
 
-/** The `Overlayer.highlight` draw function used by the `draw-annotation` event. */
-export async function loadHighlightDrawFn(): Promise<FoliateHighlightFn> {
-  return (await loadEngine()).Overlayer.highlight;
+/** The overlay draw functions (`highlight`, `underline`) for `draw-annotation`. */
+export async function loadDrawFns(): Promise<FoliateDrawFns> {
+  const { Overlayer } = await loadEngine();
+  return { highlight: Overlayer.highlight, underline: Overlayer.underline };
 }
 
 /** Parse a book file into a foliate book object (auto-detects the format). */

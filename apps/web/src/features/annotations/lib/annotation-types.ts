@@ -21,6 +21,11 @@ export interface BaseAnnotation {
 export interface Highlight extends BaseAnnotation {
   type: "highlight";
   color: "yellow" | "green" | "blue" | "pink";
+  /**
+   * Visual treatment. A filled highlight or an underline rule. Absent on legacy
+   * records, which are treated as `"highlight"`.
+   */
+  style?: "highlight" | "underline";
 }
 
 export interface Note extends BaseAnnotation {

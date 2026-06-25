@@ -6,7 +6,6 @@ import { formatReaderError } from "../lib/format-reader-error";
 import {
   getNormalizedSelectionText,
   getSelectionOverlayRects,
-  type ReaderSelectionAppearance,
   type ReaderSelectionState,
   type SelectionOverlayRect,
 } from "../lib/selection-overlay";
@@ -21,7 +20,7 @@ import {
   type FoliateView,
 } from "../lib/foliate-engine";
 import { applyHighlight, applyHighlights, registerHighlightDrawing } from "../lib/highlight-renderer";
-import { ReaderSelectionOverlay } from "./ReaderSelectionOverlay";
+import { ReaderDictionaryModal } from "./ReaderDictionaryModal";
 import { ReaderSelectionMenu } from "./ReaderSelectionMenu";
 import { NoteEditor } from "../../annotations/components/NoteEditor";
 import { AIChatPanel } from "../../ai/components/AIChatPanel";
@@ -216,9 +215,8 @@ export function FoliateReaderView({
   const [isChapterPickerOpen, setIsChapterPickerOpen] = useState(false);
   const [isFixedLayout, setIsFixedLayout] = useState(false);
   const [selection, setSelection] = useState<ReaderSelectionState | null>(null);
-  const [selectionOverlayAppearance, setSelectionOverlayAppearance] = useState<
-    Extract<ReaderSelectionAppearance, "highlight" | "underline"> | null
-  >(null);
+  const [dictionaryOpen, setDictionaryOpen] = useState(false);
+  const [dictionaryWord, setDictionaryWord] = useState("");
 
   const [noteEditorOpen, setNoteEditorOpen] = useState(false);
   const [currentNote, setCurrentNote] = useState<Note | null>(null);
@@ -280,7 +278,6 @@ export function FoliateReaderView({
     cancelPendingShellOpen();
     clearNativeSelection();
     selectionRef.current = null;
-    setSelectionOverlayAppearance(null);
     suppressContentClickRef.current = false;
     if (suppressContentClickTimeoutRef.current != null) {
       window.clearTimeout(suppressContentClickTimeoutRef.current);
@@ -300,19 +297,6 @@ export function FoliateReaderView({
       suppressContentClickTimeoutRef.current = null;
     }, SELECTION_CLICK_SUPPRESSION_MS);
   }, [cancelPendingShellOpen]);
-
-  const setSelectionAppearance = useCallback((appearance: ReaderSelectionAppearance) => {
-    setSelection((currentSelection) => {
-      if (!currentSelection) return null;
-      const nextSelection = { ...currentSelection, appearance };
-      const nextOverlayAppearance =
-        appearance === "highlight" || appearance === "underline" ? appearance : null;
-      setSelectionOverlayAppearance(nextOverlayAppearance);
-      if (nextOverlayAppearance) clearNativeSelection();
-      selectionRef.current = nextSelection;
-      return nextSelection;
-    });
-  }, [clearNativeSelection]);
 
   const captureSelectionFromDoc = useCallback((
     doc: Document,
@@ -372,7 +356,6 @@ export function FoliateReaderView({
       text,
     };
 
-    setSelectionOverlayAppearance(null);
     selectionRef.current = nextSelection;
     setSelection(nextSelection);
     if (suppressContentClick) armContentClickSuppression();
@@ -913,7 +896,10 @@ export function FoliateReaderView({
     }
   }
 
-  async function handleHighlight(color: Highlight["color"] = "yellow") {
+  async function handleHighlight(
+    color: Highlight["color"] = "yellow",
+    style: NonNullable<Highlight["style"]> = "highlight",
+  ) {
     if (!selection || !selectedBook) return;
     try {
       const highlight = await createHighlight(
@@ -922,6 +908,7 @@ export function FoliateReaderView({
         selection.chapterHref,
         selection.text,
         color,
+        style,
       );
       highlightsRef.current = [...highlightsRef.current, highlight];
       if (viewRef.current) applyHighlight(viewRef.current, highlight);
@@ -929,6 +916,17 @@ export function FoliateReaderView({
     } catch (highlightError) {
       console.error("Failed to save highlight:", highlightError);
     }
+  }
+
+  function handleUnderline() {
+    void handleHighlight("yellow", "underline");
+  }
+
+  function handleLookUp() {
+    if (!selection) return;
+    setDictionaryWord(selection.text);
+    setDictionaryOpen(true);
+    clearSelection();
   }
 
   function handleAddNote() {
@@ -999,14 +997,14 @@ export function FoliateReaderView({
           (isLoading || !!error || isCrossing) && "opacity-0",
         )}
       />
-      <ReaderSelectionOverlay appearance={selectionOverlayAppearance} selection={selection} />
       <ReaderSelectionMenu
         selection={selection}
         allowAnnotations={!isFixedLayout}
         onCopy={copySelectionToClipboard}
-        onSetAppearance={setSelectionAppearance}
-        onHighlight={(color) => { void handleHighlight(color); }}
+        onHighlight={() => { void handleHighlight(); }}
+        onUnderline={handleUnderline}
         onAddNote={handleAddNote}
+        onLookUp={handleLookUp}
         onAskAI={handleAskAI}
       />
 
@@ -1091,6 +1089,12 @@ export function FoliateReaderView({
         }}
         onSendMessage={handleSendMessage}
         onUpdateChat={handleUpdateChat}
+      />
+
+      <ReaderDictionaryModal
+        open={dictionaryOpen}
+        word={dictionaryWord}
+        onClose={() => setDictionaryOpen(false)}
       />
     </section>
   );

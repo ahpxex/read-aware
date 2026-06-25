@@ -1,6 +1,10 @@
 import type { Highlight } from "../../annotations/lib/annotation-types";
 import type { FoliateAnnotation, FoliateDrawAnnotationDetail, FoliateView } from "./foliate-engine";
-import { loadHighlightDrawFn } from "./foliate-engine";
+import { loadDrawFns } from "./foliate-engine";
+
+/** Underlines render as a single neutral ink rule (no per-color choice yet). */
+const UNDERLINE_STROKE = "#78716c";
+const UNDERLINE_WIDTH = 2;
 
 /** Swatch colors shown in the selection menu (translucent, look right as dots). */
 export const HIGHLIGHT_COLORS: Record<Highlight["color"], string> = {
@@ -24,10 +28,14 @@ const HIGHLIGHT_FILL: Record<Highlight["color"], string> = {
 
 function toFoliateAnnotation(highlight: Highlight): FoliateAnnotation | null {
   if (!highlight.cfiRange) return null;
+  const isUnderline = highlight.style === "underline";
   return {
     value: highlight.cfiRange,
-    color: HIGHLIGHT_FILL[highlight.color] ?? HIGHLIGHT_FILL.yellow,
+    color: isUnderline
+      ? UNDERLINE_STROKE
+      : HIGHLIGHT_FILL[highlight.color] ?? HIGHLIGHT_FILL.yellow,
     id: highlight.id,
+    style: isUnderline ? "underline" : "highlight",
   };
 }
 
@@ -51,13 +59,18 @@ export function removeHighlight(view: FoliateView, cfiRange: string): void {
 }
 
 /**
- * Wire the `draw-annotation` event once per view so foliate actually paints our
- * highlights with the right fill. Must be registered before highlights are added.
+ * Wire the `draw-annotation` event once per view so foliate paints our marks:
+ * a filled highlight or an underline rule, chosen per annotation. Must be
+ * registered before any annotations are added.
  */
 export async function registerHighlightDrawing(view: FoliateView): Promise<void> {
-  const highlightFn = await loadHighlightDrawFn();
+  const { highlight, underline } = await loadDrawFns();
   view.addEventListener("draw-annotation", (event) => {
     const detail = (event as CustomEvent<FoliateDrawAnnotationDetail>).detail;
-    detail.draw(highlightFn, { color: detail.annotation.color });
+    const isUnderline = detail.annotation.style === "underline";
+    detail.draw(isUnderline ? underline : highlight, {
+      color: detail.annotation.color,
+      ...(isUnderline ? { width: UNDERLINE_WIDTH } : {}),
+    });
   });
 }

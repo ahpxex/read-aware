@@ -119,7 +119,8 @@ export async function createHighlight(
   cfiRange: string | null,
   chapterHref: string | null,
   text: string,
-  color: Highlight["color"] = "yellow"
+  color: Highlight["color"] = "yellow",
+  style: NonNullable<Highlight["style"]> = "highlight"
 ): Promise<Highlight> {
   const now = new Date().toISOString();
   const highlight: Highlight = {
@@ -130,6 +131,7 @@ export async function createHighlight(
     chapterHref,
     text,
     color,
+    style,
     createdAt: now,
     updatedAt: now,
   };

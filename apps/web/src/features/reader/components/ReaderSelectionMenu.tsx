@@ -7,10 +7,11 @@ import {
   NotePencil,
   TextUnderline,
 } from "@phosphor-icons/react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { IconButton } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { isAIConfigured } from "../../ai/lib/ai-service";
+import { useAnchoredMenuPosition } from "../hooks/useAnchoredMenuPosition";
 import type { ReaderSelectionState } from "../lib/selection-overlay";
 
 type ReaderSelectionMenuProps = {
@@ -25,14 +26,6 @@ type ReaderSelectionMenuProps = {
   /** When false (e.g. fixed-layout PDF) only the copy action is offered. */
   allowAnnotations?: boolean;
 };
-
-type MenuPosition = {
-  left: number;
-  top: number;
-};
-
-const EDGE_PADDING = 10;
-const MENU_OFFSET = 12;
 
 /** Hairline divider separating action groups within the bar. */
 function MenuDivider() {
@@ -49,10 +42,8 @@ export function ReaderSelectionMenu({
   onAskAI,
   allowAnnotations = true,
 }: ReaderSelectionMenuProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const menuRef = useRef<HTMLDivElement | null>(null);
+  const { containerRef, menuRef, position } = useAnchoredMenuPosition(selection?.anchorRect);
   const copyResetTimeoutRef = useRef<number | null>(null);
-  const [position, setPosition] = useState<MenuPosition>({ left: EDGE_PADDING, top: EDGE_PADDING });
   const [copied, setCopied] = useState(false);
   const [aiConfigured, setAiConfigured] = useState(false);
 
@@ -75,36 +66,6 @@ export function ReaderSelectionMenu({
       copyResetTimeoutRef.current = null;
     }
   }, [selection?.cfiRange, selection?.text]);
-
-  useLayoutEffect(() => {
-    const container = containerRef.current;
-    const menu = menuRef.current;
-    const anchorRect = selection?.anchorRect;
-    if (!container || !menu || !anchorRect) return;
-
-    const containerWidth = container.offsetWidth;
-    const containerHeight = container.offsetHeight;
-    const menuWidth = menu.offsetWidth;
-    const menuHeight = menu.offsetHeight;
-    const anchorCenterX = anchorRect.left + anchorRect.width / 2;
-    const preferredTop = anchorRect.top - menuHeight - MENU_OFFSET;
-    const fallbackTop = anchorRect.top + anchorRect.height + MENU_OFFSET;
-
-    const left = Math.min(
-      Math.max(EDGE_PADDING, anchorCenterX - menuWidth / 2),
-      Math.max(EDGE_PADDING, containerWidth - menuWidth - EDGE_PADDING),
-    );
-
-    const top =
-      preferredTop >= EDGE_PADDING
-        ? preferredTop
-        : Math.min(
-            fallbackTop,
-            Math.max(EDGE_PADDING, containerHeight - menuHeight - EDGE_PADDING),
-          );
-
-    setPosition({ left, top });
-  }, [selection]);
 
   if (!selection?.anchorRect) return null;
 

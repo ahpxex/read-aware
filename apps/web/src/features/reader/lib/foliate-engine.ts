@@ -63,11 +63,25 @@ export type FoliateShowAnnotationDetail = { value: string; index: number; range:
 
 export type FoliateResolved = { index: number; anchor: unknown };
 
+export type FoliateOverlayer = {
+  /** Returns `[cfiValue, range]` for an annotation under the point, else `[]`. */
+  hitTest: (point: { x: number; y: number }) => [string, Range] | [];
+  element: SVGElement;
+};
+
+export type FoliateContent = {
+  index: number;
+  overlayer?: FoliateOverlayer;
+  doc?: Document;
+};
+
 export type FoliateRenderer = {
   setAttribute: (name: string, value: string) => void;
   setStyles?: (css: string) => void;
   next: () => Promise<void> | void;
   destroy?: () => void;
+  /** Currently-rendered section contents (each with its overlayer + document). */
+  getContents?: () => FoliateContent[];
 };
 
 export type FoliateView = HTMLElement & {

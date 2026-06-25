@@ -17,9 +17,16 @@ import {
   isFixedLayout as isFixedLayoutBook,
   type FoliateLoadDetail,
   type FoliateRelocateDetail,
+  type FoliateShowAnnotationDetail,
   type FoliateView,
 } from "../lib/foliate-engine";
-import { applyHighlight, applyHighlights, registerHighlightDrawing } from "../lib/highlight-renderer";
+import {
+  applyHighlight,
+  applyHighlights,
+  registerHighlightDrawing,
+  removeHighlight,
+} from "../lib/highlight-renderer";
+import { ReaderAnnotationMenu } from "./ReaderAnnotationMenu";
 import { ReaderDictionaryModal } from "./ReaderDictionaryModal";
 import { ReaderSelectionMenu } from "./ReaderSelectionMenu";
 import { NoteEditor } from "../../annotations/components/NoteEditor";
@@ -32,6 +39,8 @@ import {
   addMessageToChat,
   updateNote,
   listHighlights,
+  saveAnnotation,
+  deleteAnnotation,
 } from "../../annotations/lib/annotation-db";
 import { suppressNativeContextMenu } from "../../../platform/environment";
 import { useDelayedFlag } from "../hooks/useDelayedFlag";
@@ -215,6 +224,10 @@ export function FoliateReaderView({
   const [isChapterPickerOpen, setIsChapterPickerOpen] = useState(false);
   const [isFixedLayout, setIsFixedLayout] = useState(false);
   const [selection, setSelection] = useState<ReaderSelectionState | null>(null);
+  const [activeAnnotation, setActiveAnnotation] = useState<{
+    highlight: Highlight;
+    anchorRect: SelectionOverlayRect;
+  } | null>(null);
   const [dictionaryOpen, setDictionaryOpen] = useState(false);
   const [dictionaryWord, setDictionaryWord] = useState("");
 
@@ -356,6 +369,7 @@ export function FoliateReaderView({
       text,
     };
 
+    setActiveAnnotation(null);
     selectionRef.current = nextSelection;
     setSelection(nextSelection);
     if (suppressContentClick) armContentClickSuppression();
@@ -612,6 +626,18 @@ export function FoliateReaderView({
     }, true);
 
     doc.addEventListener("click", (event) => {
+      // Tapping an existing mark opens its recolor menu (via `show-annotation`);
+      // skip the tap-to-toggle-shell handling so the two don't fight.
+      const hit = viewRef.current?.renderer
+        ?.getContents?.()
+        .find((content) => content.index === index)
+        ?.overlayer?.hitTest({ x: event.clientX, y: event.clientY });
+      if (hit && hit[0]) {
+        cancelPendingShellOpen();
+        return;
+      }
+      // A tap on empty content dismisses any open recolor menu.
+      setActiveAnnotation(null);
       if (suppressContentClickRef.current) {
         suppressContentClickRef.current = false;
         cancelPendingShellOpen();
@@ -789,6 +815,7 @@ export function FoliateReaderView({
           if (cancelled) return;
           const detail = (event as CustomEvent<FoliateRelocateDetail>).detail;
           clearSelection();
+          setActiveAnnotation(null);
           const fraction = Math.max(0, Math.min(1, detail.fraction ?? 0));
           const current = detail.location?.current ?? 0;
           const total = detail.location?.total ?? 0;
@@ -816,12 +843,42 @@ export function FoliateReaderView({
           if (view) applyHighlights(view, highlightsRef.current);
         };
 
+        // Tapping an existing mark: anchor the recolor/remove menu over it.
+        const onShowAnnotation = (event: Event) => {
+          if (cancelled) return;
+          const detail = (event as CustomEvent<FoliateShowAnnotationDetail>).detail;
+          const found = highlightsRef.current.find(
+            (highlight) => highlight.cfiRange === detail.value,
+          );
+          const range = detail.range;
+          const readerRoot = readerRootRef.current;
+          const win = range?.startContainer?.ownerDocument?.defaultView;
+          const frameElement = win?.frameElement;
+          if (!found || !range || !readerRoot || !(frameElement instanceof HTMLElement)) {
+            setActiveAnnotation(null);
+            return;
+          }
+          const viewportRect = readerRoot.getBoundingClientRect();
+          const frameRect = frameElement.getBoundingClientRect();
+          const rects = getSelectionOverlayRects(range)
+            .map((rect) => clampRectToViewport(rect, frameRect, viewportRect))
+            .filter((rect): rect is SelectionOverlayRect => rect != null);
+          if (rects.length === 0) {
+            setActiveAnnotation(null);
+            return;
+          }
+          clearSelection();
+          setActiveAnnotation({ highlight: found, anchorRect: rects[rects.length - 1] });
+        };
+
         view.addEventListener("relocate", onRelocate);
         view.addEventListener("load", onLoad);
         view.addEventListener("create-overlay", onCreateOverlay);
+        view.addEventListener("show-annotation", onShowAnnotation);
         cleanups.push(() => view?.removeEventListener("relocate", onRelocate));
         cleanups.push(() => view?.removeEventListener("load", onLoad));
         cleanups.push(() => view?.removeEventListener("create-overlay", onCreateOverlay));
+        cleanups.push(() => view?.removeEventListener("show-annotation", onShowAnnotation));
 
         if (selectedBook) {
           try {
@@ -929,6 +986,43 @@ export function FoliateReaderView({
     clearSelection();
   }
 
+  async function handleRecolorAnnotation(color: Highlight["color"]) {
+    if (!activeAnnotation) return;
+    const updated: Highlight = {
+      ...activeAnnotation.highlight,
+      color,
+      updatedAt: new Date().toISOString(),
+    };
+    try {
+      await saveAnnotation(updated);
+      highlightsRef.current = highlightsRef.current.map((highlight) =>
+        highlight.id === updated.id ? updated : highlight,
+      );
+      // Re-adding under the same CFI replaces the drawn mark in the new color.
+      if (viewRef.current) applyHighlight(viewRef.current, updated);
+    } catch (recolorError) {
+      console.error("Failed to recolor annotation:", recolorError);
+    }
+    setActiveAnnotation(null);
+  }
+
+  async function handleRemoveAnnotation() {
+    if (!activeAnnotation) return;
+    const { highlight } = activeAnnotation;
+    try {
+      await deleteAnnotation(highlight.id);
+      highlightsRef.current = highlightsRef.current.filter(
+        (item) => item.id !== highlight.id,
+      );
+      if (viewRef.current && highlight.cfiRange) {
+        removeHighlight(viewRef.current, highlight.cfiRange);
+      }
+    } catch (removeError) {
+      console.error("Failed to remove annotation:", removeError);
+    }
+    setActiveAnnotation(null);
+  }
+
   function handleAddNote() {
     if (!selection) return;
     setCurrentNote(null);
@@ -1006,6 +1100,16 @@ export function FoliateReaderView({
         onAddNote={handleAddNote}
         onLookUp={handleLookUp}
         onAskAI={handleAskAI}
+      />
+      <ReaderAnnotationMenu
+        anchorRect={activeAnnotation?.anchorRect ?? null}
+        activeColor={activeAnnotation?.highlight.color ?? "yellow"}
+        onRecolor={(color) => {
+          void handleRecolorAnnotation(color);
+        }}
+        onRemove={() => {
+          void handleRemoveAnnotation();
+        }}
       />
 
       {showLoader && (

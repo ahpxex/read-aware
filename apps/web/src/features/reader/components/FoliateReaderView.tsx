@@ -42,6 +42,10 @@ import {
   saveAnnotation,
   deleteAnnotation,
 } from "../../annotations/lib/annotation-db";
+import {
+  getDefaultMarkColor,
+  setDefaultMarkColor,
+} from "../../annotations/lib/annotation-prefs";
 import { suppressNativeContextMenu } from "../../../platform/environment";
 import { useDelayedFlag } from "../hooks/useDelayedFlag";
 import { buildReaderContentCss, computeReaderMaxInlineSize } from "../../settings/lib/reader-css";
@@ -195,6 +199,8 @@ export function FoliateReaderView({
   const shouldOpenShellOnClickRef = useRef(false);
   const readerSettingsRef = useRef(readerSettings);
   const highlightsRef = useRef<Highlight[]>([]);
+  // New one-click marks use this colour; recoloring a mark updates it (persisted).
+  const defaultMarkColorRef = useRef<Highlight["color"]>(getDefaultMarkColor());
   const isFixedLayoutRef = useRef(false);
 
   const readingMode = readerSettings.readingMode;
@@ -989,7 +995,7 @@ export function FoliateReaderView({
   }
 
   async function handleHighlight(
-    color: Highlight["color"] = "yellow",
+    color: Highlight["color"] = defaultMarkColorRef.current,
     style: NonNullable<Highlight["style"]> = "highlight",
   ) {
     if (!selection || !selectedBook) return;
@@ -1011,7 +1017,7 @@ export function FoliateReaderView({
   }
 
   function handleUnderline() {
-    void handleHighlight("yellow", "underline");
+    void handleHighlight(defaultMarkColorRef.current, "underline");
   }
 
   function handleLookUp() {
@@ -1022,6 +1028,9 @@ export function FoliateReaderView({
 
   async function handleRecolorAnnotation(color: Highlight["color"]) {
     if (!activeAnnotation) return;
+    // Remember the chosen colour as the default for new marks.
+    defaultMarkColorRef.current = color;
+    setDefaultMarkColor(color);
     const updated: Highlight = {
       ...activeAnnotation.highlight,
       color,

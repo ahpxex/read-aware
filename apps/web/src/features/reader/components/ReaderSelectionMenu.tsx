@@ -1,4 +1,11 @@
-import { Check, Copy, Highlighter, NotePencil, ChatCircleDots } from "@phosphor-icons/react";
+import {
+  CaretLeft,
+  ChatCircleDots,
+  Check,
+  Copy,
+  Highlighter,
+  NotePencil,
+} from "@phosphor-icons/react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { IconButton } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
@@ -32,6 +39,11 @@ const COLOR_OPTIONS: { value: Highlight["color"]; label: string }[] = [
   { value: "blue", label: "Blue" },
   { value: "pink", label: "Pink" },
 ];
+
+/** Hairline divider separating action groups within the bar. */
+function MenuDivider() {
+  return <span aria-hidden="true" className="mx-0.5 h-5 w-px shrink-0 bg-border" />;
+}
 
 export function ReaderSelectionMenu({
   selection,
@@ -134,18 +146,32 @@ export function ReaderSelectionMenu({
     onAskAI?.();
   }
 
+  // Quiet, monochrome ghost button — matches the design system's menu surfaces.
   const actionButtonClass =
-    "rounded-full text-fg-muted hover:bg-fg/5 hover:text-fg focus-visible:ring-fg";
+    "rounded-md text-fg-muted hover:bg-fg/5 hover:text-fg focus-visible:ring-fg";
 
   return (
-    <div ref={containerRef} aria-hidden="true" className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
+    <div
+      ref={containerRef}
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 z-20 overflow-hidden"
+    >
       <div
         ref={menuRef}
-        className="pointer-events-auto absolute flex items-center gap-0.5 rounded-full border border-border/90 bg-fill/96 p-1 shadow-[0_12px_32px_rgba(28,25,23,0.10)] backdrop-blur-sm"
+        className="ra-motion-overlay-pop pointer-events-auto absolute flex items-center gap-0.5 rounded-lg border border-border bg-[var(--ra-main-surface-color)] p-1 shadow-[0_4px_16px_-6px_rgba(28,25,23,0.25)]"
         style={position}
       >
         {showColors ? (
           <>
+            <IconButton
+              label="Back"
+              title="Back"
+              size="sm"
+              onClick={() => setShowColors(false)}
+              className={actionButtonClass}
+              icon={<CaretLeft size={14} weight="regular" aria-hidden="true" />}
+            />
+            <MenuDivider />
             {COLOR_OPTIONS.map((option) => (
               <button
                 key={option.value}
@@ -153,10 +179,10 @@ export function ReaderSelectionMenu({
                 aria-label={`Highlight ${option.label}`}
                 title={option.label}
                 onClick={() => handleColorSelect(option.value)}
-                className="flex h-7 w-7 items-center justify-center rounded-full transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
+                className="flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
               >
                 <span
-                  className="block h-4 w-4 rounded-full border border-black/10"
+                  className="block h-4 w-4 rounded-full ring-1 ring-inset ring-black/15 dark:ring-white/20"
                   style={{ backgroundColor: HIGHLIGHT_COLORS[option.value] }}
                 />
               </button>
@@ -171,10 +197,7 @@ export function ReaderSelectionMenu({
               onClick={() => {
                 void handleCopy();
               }}
-              className={cn(
-                actionButtonClass,
-                copied && "bg-fill-strong text-fg",
-              )}
+              className={cn(actionButtonClass, copied && "bg-fill-strong text-fg")}
               icon={
                 copied ? (
                   <Check size={14} weight="regular" aria-hidden="true" />
@@ -185,6 +208,7 @@ export function ReaderSelectionMenu({
             />
             {allowAnnotations && (
               <>
+                <MenuDivider />
                 <IconButton
                   label="Highlight selection"
                   title="Highlight selection"
@@ -208,17 +232,17 @@ export function ReaderSelectionMenu({
                   icon={<NotePencil size={14} weight="regular" aria-hidden="true" />}
                 />
                 {aiConfigured && (
-                  <IconButton
-                    label="Ask AI about this"
-                    title="Ask AI about this"
-                    size="sm"
-                    onClick={handleAskAI}
-                    className={cn(
-                      actionButtonClass,
-                      "text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50",
-                    )}
-                    icon={<ChatCircleDots size={14} weight="regular" aria-hidden="true" />}
-                  />
+                  <>
+                    <MenuDivider />
+                    <IconButton
+                      label="Ask AI about this"
+                      title="Ask AI about this"
+                      size="sm"
+                      onClick={handleAskAI}
+                      className={actionButtonClass}
+                      icon={<ChatCircleDots size={14} weight="regular" aria-hidden="true" />}
+                    />
+                  </>
                 )}
               </>
             )}

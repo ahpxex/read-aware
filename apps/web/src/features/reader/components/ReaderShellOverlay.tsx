@@ -3,15 +3,16 @@ import { CaretLeft, ListBullets, Notebook } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { Body, IconButton, ScrollArea } from "@read-aware/ui";
 import { AnnotationsPanel } from "../../annotations/components/AnnotationsPanel";
+import type { LibraryBook } from "../../library/lib/library-types";
 import { hrefMatches } from "../lib/epub-utils";
 import type { TocEntry } from "../lib/reader-types";
 import { ReaderAppearanceMenu } from "./ReaderAppearanceMenu";
+import { ReaderStatsMenu } from "./ReaderStatsMenu";
 
 type ReaderShellOverlayProps = {
   visible: boolean;
   onBack: () => void;
-  bookId: string;
-  title?: string;
+  book: LibraryBook;
   progress?: number;
   currentPage?: number;
   totalPages?: number;
@@ -24,8 +25,7 @@ type ReaderShellOverlayProps = {
 export function ReaderShellOverlay({
   visible,
   onBack,
-  bookId,
-  title,
+  book,
   progress,
   currentPage,
   totalPages,
@@ -34,6 +34,8 @@ export function ReaderShellOverlay({
   onChapterSelect,
   onAnnotationSelect,
 }: ReaderShellOverlayProps) {
+  const bookId = book.id;
+  const title = book.title;
   const percent =
     progress != null ? Math.min(100, Math.max(0, progress * 100)) : null;
   const roundedPercent = percent != null ? Math.round(percent) : null;
@@ -48,13 +50,28 @@ export function ReaderShellOverlay({
   const [tocOpen, setTocOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
+  const [statsOpen, setStatsOpen] = useState(false);
 
-  // The appearance popup is transient — it closes whenever the overlay is
-  // dismissed. The contents and notes panels are NOT reset: they keep their open
-  // state so dismissing then re-opening the header restores whatever the reader
-  // had revealed. (Reset state lives in the panels' `visible &&` reveal gate.)
+  // The two right-aligned popovers (appearance, stats) would overlap, so opening
+  // one closes the other.
+  const handleAppearanceOpenChange = (next: boolean) => {
+    setAppearanceOpen(next);
+    if (next) setStatsOpen(false);
+  };
+  const handleStatsOpenChange = (next: boolean) => {
+    setStatsOpen(next);
+    if (next) setAppearanceOpen(false);
+  };
+
+  // The popovers are transient — they close whenever the overlay is dismissed.
+  // The contents and notes panels are NOT reset: they keep their open state so
+  // dismissing then re-opening the header restores whatever the reader had
+  // revealed. (Reset state lives in the panels' `visible &&` reveal gate.)
   useEffect(() => {
-    if (!visible) setAppearanceOpen(false);
+    if (!visible) {
+      setAppearanceOpen(false);
+      setStatsOpen(false);
+    }
   }, [visible]);
 
   return (
@@ -131,12 +148,17 @@ export function ReaderShellOverlay({
             </div>
           )}
 
-          {/* Right cluster: appearance + notes */}
+          {/* Right cluster: stats + appearance + notes */}
           <div className="flex shrink-0 items-center justify-end gap-0.5">
+            <ReaderStatsMenu
+              book={book}
+              open={statsOpen}
+              onOpenChange={handleStatsOpenChange}
+            />
             <ReaderAppearanceMenu
               bookId={bookId}
               open={appearanceOpen}
-              onOpenChange={setAppearanceOpen}
+              onOpenChange={handleAppearanceOpenChange}
             />
             <IconButton
               size="sm"

@@ -1,9 +1,11 @@
+import { useCallback } from "react";
 import { Body, Button, Spinner } from "@read-aware/ui";
 import type { BookFormat, LibraryBook, ReaderProgress } from "../../library/lib/library-types";
 import { READER_THEME_BG } from "../../settings/lib/reader-css";
 import { useDelayedFlag } from "../hooks/useDelayedFlag";
 import { useImmersiveWindowControls } from "../hooks/useImmersiveWindowControls";
 import { useReaderAppearance } from "../hooks/useReaderAppearance";
+import { useReadingTimeTracker } from "../hooks/useReadingTimeTracker";
 import { FoliateReaderView } from "./FoliateReaderView";
 import { ReaderShellOverlay } from "./ReaderShellOverlay";
 import type { LoadedBook, TocEntry } from "../lib/reader-types";
@@ -77,6 +79,24 @@ export function ReaderWorkspace({
   // there's no immersive view yet, so keep the window controls reachable.
   useImmersiveWindowControls(overlayVisible || !readerSource);
 
+  // Track active reading time once the book is rendered. Reader relocate/page
+  // callbacks bump activity so in-iframe reading isn't mistaken for idle.
+  const { recordActivity } = useReadingTimeTracker(selectedBook.id, !!readerSource);
+  const handlePageChange = useCallback(
+    (current: number, total: number) => {
+      recordActivity();
+      onReaderPageChange(current, total);
+    },
+    [recordActivity, onReaderPageChange],
+  );
+  const handleProgressChange = useCallback(
+    (progress: ReaderProgress) => {
+      recordActivity();
+      onEpubProgressChange(progress);
+    },
+    [recordActivity, onEpubProgressChange],
+  );
+
   return (
     <div
       className="ra-motion-reader-enter relative h-screen w-full"
@@ -89,8 +109,8 @@ export function ReaderWorkspace({
           readerSettings={readerSettings}
           onContentClick={onToggleShell}
           onContentScroll={onHideShell}
-          onPageChange={onReaderPageChange}
-          onProgressChange={onEpubProgressChange}
+          onPageChange={handlePageChange}
+          onProgressChange={handleProgressChange}
           onTocChange={onTocChange}
           onCurrentChapterChange={onCurrentChapterChange}
           initialProgress={selectedEpubProgress}
@@ -124,8 +144,7 @@ export function ReaderWorkspace({
       <ReaderShellOverlay
         visible={headerVisible}
         onBack={onCloseReader}
-        bookId={selectedBook.id}
-        title={selectedBook.title}
+        book={selectedBook}
         progress={readerProgress}
         currentPage={currentPage}
         totalPages={totalPages}

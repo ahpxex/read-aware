@@ -28,6 +28,11 @@ import {
   type ReaderOverrides,
 } from "../features/settings/lib/reader-overrides";
 import {
+  getReadingStatsStore,
+  saveReadingStatsStore,
+  type ReadingStatsStore,
+} from "../features/reader/lib/reading-stats";
+import {
   getShelfView,
   saveShelfView,
   type ShelfView,
@@ -99,6 +104,27 @@ export const readerOverridesAtom = atom(
   (_get, set, next: ReaderOverrides) => {
     set(readerOverridesBaseAtom, next);
     saveReaderOverrides(next);
+  },
+);
+
+const readingStatsBaseAtom = atom<ReadingStatsStore>(getReadingStatsStore());
+
+/**
+ * Per-book reading-time stats (interim localStorage seam). Accepts a value or an
+ * updater so the tracker can increment without subscribing (write-only via
+ * `useSetAtom`); the stats popover reads the value for live figures.
+ */
+export const readingStatsAtom = atom(
+  (get) => get(readingStatsBaseAtom),
+  (
+    get,
+    set,
+    update: ReadingStatsStore | ((prev: ReadingStatsStore) => ReadingStatsStore),
+  ) => {
+    const next =
+      typeof update === "function" ? update(get(readingStatsBaseAtom)) : update;
+    set(readingStatsBaseAtom, next);
+    saveReadingStatsStore(next);
   },
 );
 

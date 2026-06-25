@@ -46,6 +46,9 @@ type FoliateReaderViewProps = {
   readerSettings?: ReaderSettings;
   onContentClick?: () => void;
   onContentScroll?: () => void;
+  /** Any interaction inside the book (pointer/keys/scroll) — used to keep the
+   *  reading-time tracker awake, since iframe events don't reach the window. */
+  onReadingActivity?: () => void;
   onPageChange?: (current: number, total: number) => void;
   onProgressChange?: (progress: ReaderProgress) => void;
   onTocChange?: (entries: TocEntry[]) => void;
@@ -152,6 +155,7 @@ export function FoliateReaderView({
   readerSettings = DEFAULT_READER_SETTINGS,
   onContentClick,
   onContentScroll,
+  onReadingActivity,
   onPageChange,
   onProgressChange,
   onTocChange,
@@ -187,6 +191,7 @@ export function FoliateReaderView({
 
   const onContentClickRef = useRef(onContentClick);
   const onContentScrollRef = useRef(onContentScroll);
+  const onReadingActivityRef = useRef(onReadingActivity);
   const onPageChangeRef = useRef(onPageChange);
   const onProgressChangeRef = useRef(onProgressChange);
   const onTocChangeRef = useRef(onTocChange);
@@ -194,6 +199,7 @@ export function FoliateReaderView({
 
   useEffect(() => { onContentClickRef.current = onContentClick; }, [onContentClick]);
   useEffect(() => { onContentScrollRef.current = onContentScroll; }, [onContentScroll]);
+  useEffect(() => { onReadingActivityRef.current = onReadingActivity; }, [onReadingActivity]);
   useEffect(() => { onPageChangeRef.current = onPageChange; }, [onPageChange]);
   useEffect(() => { onProgressChangeRef.current = onProgressChange; }, [onProgressChange]);
   useEffect(() => { onTocChangeRef.current = onTocChange; }, [onTocChange]);
@@ -544,6 +550,19 @@ export function FoliateReaderView({
   const attachDocListeners = useCallback((doc: Document, index: number) => {
     // Desktop: kill the webview's native right-click menu inside book content too.
     suppressNativeContextMenu(doc);
+
+    // Reading-activity signal for the time tracker. Pointer movement, keys,
+    // scrolling, and wheel inside the book all mean "still reading" — vital in
+    // scroll mode, where there are no page turns and a reader can linger on one
+    // screenful. These events never bubble out of the iframe, so they must be
+    // observed on the section document; capture+passive keeps it unobtrusive.
+    const bumpReadingActivity = () => onReadingActivityRef.current?.();
+    const activityOptions = { passive: true, capture: true } as const;
+    doc.addEventListener("pointermove", bumpReadingActivity, activityOptions);
+    doc.addEventListener("pointerdown", bumpReadingActivity, activityOptions);
+    doc.addEventListener("keydown", bumpReadingActivity, activityOptions);
+    doc.addEventListener("wheel", bumpReadingActivity, activityOptions);
+    doc.addEventListener("scroll", bumpReadingActivity, activityOptions);
 
     doc.addEventListener("keydown", handleReaderKeyDown);
 

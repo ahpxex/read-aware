@@ -109,6 +109,7 @@ export function ReaderWorkspace({
           readerSettings={readerSettings}
           onContentClick={onToggleShell}
           onContentScroll={onHideShell}
+          onReadingActivity={recordActivity}
           onPageChange={handlePageChange}
           onProgressChange={handleProgressChange}
           onTocChange={onTocChange}

@@ -48,8 +48,9 @@ export function ReaderAppearanceMenu({
       trigger={<TextAa size={18} weight="regular" aria-hidden="true" />}
       open={open}
       onOpenChange={onOpenChange}
+      panelClassName="max-h-[min(72vh,34rem)] w-80 overflow-y-auto"
     >
-      <div className="flex max-h-[min(72vh,34rem)] w-72 flex-col gap-5 overflow-y-auto pr-1">
+      <div className="flex w-full flex-col gap-5">
         <div>
           <ChoiceGroup
             label="Apply to"

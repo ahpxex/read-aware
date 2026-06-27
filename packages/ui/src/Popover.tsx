@@ -11,6 +11,11 @@ type PopoverProps = {
   children: ReactNode;
   align?: "left" | "right" | "center";
   className?: string;
+  /** Extra classes for the floating panel itself (the `role="dialog"` element),
+   *  as opposed to `className` which styles the inline-block trigger wrapper.
+   *  Use this to make the panel the scroll container so its scrollbar sits at the
+   *  panel edge rather than on an inset child. */
+  panelClassName?: string;
   /** Controlled open state. Omit for uncontrolled (self-managed) behavior. */
   open?: boolean;
   /** Notified whenever the open state should change (both modes). */
@@ -24,6 +29,7 @@ export function Popover({
   children,
   align = "left",
   className,
+  panelClassName,
   open: openProp,
   onOpenChange,
 }: PopoverProps) {
@@ -88,6 +94,7 @@ export function Popover({
             align === "left" && "left-0 origin-top-left",
             align === "right" && "right-0 origin-top-right",
             align === "center" && "left-1/2 -translate-x-1/2 origin-top",
+            panelClassName,
           )}
         >
           {children}

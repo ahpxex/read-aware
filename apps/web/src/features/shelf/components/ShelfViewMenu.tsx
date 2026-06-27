@@ -70,6 +70,7 @@ export function ShelfViewMenu() {
     <Popover
       align="right"
       triggerLabel="Shelf view"
+      triggerTooltip="Shelf view"
       triggerClassName="h-7 w-7 items-center justify-center text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
       trigger={<SlidersHorizontal size={16} weight="regular" aria-hidden="true" />}
     >

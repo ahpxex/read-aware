@@ -1,11 +1,17 @@
 import { useRef, useEffect, useId, useCallback, type ReactNode } from "react";
 import { useLocalAtom } from "./lib/useLocalAtom";
 import { cn } from "./lib/cn";
+import { Tooltip } from "./Tooltip";
 
 type PopoverProps = {
   trigger: ReactNode;
   /** Accessible name for the (otherwise unlabeled) trigger button. */
   triggerLabel?: string;
+  /** Visible hover/focus tooltip for the trigger, matching the icon buttons in
+   *  the same cluster. Wraps only the button, so the open panel doesn't trip it. */
+  triggerTooltip?: string;
+  /** Which side the trigger tooltip appears on (default "bottom"). */
+  triggerTooltipSide?: "top" | "bottom" | "left" | "right";
   /** Override the trigger button styling (defaults to a bare inline-flex). */
   triggerClassName?: string;
   children: ReactNode;
@@ -25,6 +31,8 @@ type PopoverProps = {
 export function Popover({
   trigger,
   triggerLabel,
+  triggerTooltip,
+  triggerTooltipSide = "bottom",
   triggerClassName,
   children,
   align = "left",
@@ -72,19 +80,29 @@ export function Popover({
     };
   }, [open, setOpen]);
 
+  const triggerButton = (
+    <button
+      ref={triggerRef}
+      type="button"
+      aria-label={triggerLabel}
+      aria-expanded={open}
+      aria-controls={open ? panelId : undefined}
+      onClick={() => setOpen((o) => !o)}
+      className={cn("inline-flex", triggerClassName)}
+    >
+      {trigger}
+    </button>
+  );
+
   return (
     <div ref={containerRef} className={cn("relative inline-block", className)}>
-      <button
-        ref={triggerRef}
-        type="button"
-        aria-label={triggerLabel}
-        aria-expanded={open}
-        aria-controls={open ? panelId : undefined}
-        onClick={() => setOpen((o) => !o)}
-        className={cn("inline-flex", triggerClassName)}
-      >
-        {trigger}
-      </button>
+      {triggerTooltip ? (
+        <Tooltip content={triggerTooltip} side={triggerTooltipSide}>
+          {triggerButton}
+        </Tooltip>
+      ) : (
+        triggerButton
+      )}
       {open && (
         <div
           id={panelId}

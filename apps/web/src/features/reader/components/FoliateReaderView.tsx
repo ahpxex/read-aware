@@ -59,7 +59,12 @@ type FoliateReaderViewProps = {
   selectedBook?: LibraryBook | null;
   initialBook?: LoadedBook | null;
   readerSettings?: ReaderSettings;
+  /** Whether the reader shell (header overlay) is currently open. Lets the view
+   *  reset its scroll-dismissal distance each time the shell appears. */
+  shellVisible?: boolean;
   onContentClick?: () => void;
+  /** Dismiss the reader shell. Fired once a scroll travels far enough (scroll
+   *  mode) or as soon as a page turn lands (paginated mode). */
   onContentScroll?: () => void;
   /** Any interaction inside the book (pointer/keys/scroll) — used to keep the
    *  reading-time tracker awake, since iframe events don't reach the window. */
@@ -98,6 +103,11 @@ const SECTION_CROSS_COOLDOWN_MS = 200;
 // own. The accumulator resets if the push pauses.
 const SECTION_CROSS_OVERSCROLL_PX = 260;
 const OVERSCROLL_RESET_MS = 220;
+// While the reader shell is open, a deliberate scroll dismisses it — but only
+// once the content has travelled this far (px), so a small nudge or pointer
+// jitter doesn't flash it away the instant you touch the wheel. Paginated page
+// turns dismiss immediately instead; they're already discrete, deliberate moves.
+const SHELL_DISMISS_SCROLL_PX = 160;
 
 /** Map a reading mode to the foliate renderer's `flow` + column attributes. */
 function layoutForReadingMode(mode: ReadingMode): {
@@ -175,6 +185,7 @@ export function FoliateReaderView({
   selectedBook = null,
   initialBook = null,
   readerSettings = DEFAULT_READER_SETTINGS,
+  shellVisible = false,
   onContentClick,
   onContentScroll,
   onReadingActivity,
@@ -213,6 +224,19 @@ export function FoliateReaderView({
   const overscrollRef = useRef(0);
   const overscrollResetTimerRef = useRef<number | null>(null);
   useEffect(() => { readingModeRef.current = readingMode; }, [readingMode]);
+
+  // Reader-shell auto-dismissal state. `shellScrollAccumRef` is the signed
+  // scroll distance since the shell opened (scroll mode); `prevReadingLocationRef`
+  // is the last reported page so a paginated turn can be detected on `relocate`.
+  const shellVisibleRef = useRef(shellVisible);
+  const shellScrollAccumRef = useRef(0);
+  const prevReadingLocationRef = useRef<{ current: number; cfi: string | null } | null>(null);
+  useEffect(() => {
+    shellVisibleRef.current = shellVisible;
+    // Every fresh open starts the dismissal distance from zero, so scroll that
+    // happened before the shell appeared can't dismiss it on the next tick.
+    if (shellVisible) shellScrollAccumRef.current = 0;
+  }, [shellVisible]);
 
   const onContentClickRef = useRef(onContentClick);
   const onContentScrollRef = useRef(onContentScroll);
@@ -457,9 +481,32 @@ export function FoliateReaderView({
   const handleWheelCrossingRef = useRef(handleWheelCrossing);
   useEffect(() => { handleWheelCrossingRef.current = handleWheelCrossing; }, [handleWheelCrossing]);
 
+  // Scroll-mode shell dismissal: accumulate the wheel's signed travel while the
+  // shell is open and dismiss once a deliberate scroll crosses the threshold.
+  // Signing the sum means jitter (down-then-up) cancels rather than racking up a
+  // false distance — only sustained movement in one direction dismisses.
+  const dismissShellOnScrollDistance = useCallback((deltaY: number) => {
+    if (!shellVisibleRef.current || readingModeRef.current !== "scroll") return;
+    shellScrollAccumRef.current += deltaY;
+    if (Math.abs(shellScrollAccumRef.current) >= SHELL_DISMISS_SCROLL_PX) {
+      shellScrollAccumRef.current = 0;
+      onContentScrollRef.current?.();
+    }
+  }, []);
+  const dismissShellOnScrollDistanceRef = useRef(dismissShellOnScrollDistance);
+  useEffect(() => {
+    dismissShellOnScrollDistanceRef.current = dismissShellOnScrollDistance;
+  }, [dismissShellOnScrollDistance]);
+
   const turnPage = useCallback(async (direction: -1 | 1) => {
     const view = viewRef.current;
     if (!view) return;
+    // A keyboard/space-driven move in scroll mode scrolls a whole viewport (or
+    // crosses a section) — clearly past any distance threshold, so dismiss the
+    // shell at once. Paginated turns are handled by the relocate position check.
+    if (shellVisibleRef.current && readingModeRef.current === "scroll") {
+      onContentScrollRef.current?.();
+    }
     // In scroll mode, advancing at a section boundary should cross-fade into the
     // next chapter; mid-section it just scrolls a viewport. Paginated modes flip
     // pages directly.
@@ -692,15 +739,19 @@ export function FoliateReaderView({
       }
     }, true);
 
+    // A native intra-section scroll (anchor jump, focus) should still drop a live
+    // selection; shell dismissal is driven by the wheel-distance accumulator and
+    // the relocate page check, not by the raw scroll event.
     doc.addEventListener("scroll", () => {
       clearSelection();
-      onContentScrollRef.current?.();
     }, true);
 
-    // Continuous-scroll mode: bridge section boundaries. Native scroll handles
-    // within a section; when the wheel pushes past the top/bottom edge, lazily
-    // load the adjacent section (the engine unloads the one left behind).
+    // Continuous-scroll mode: bridge section boundaries and feed the shell's
+    // scroll-distance dismissal. Native scroll handles movement within a section;
+    // when the wheel pushes past the top/bottom edge, lazily load the adjacent
+    // section (the engine unloads the one left behind).
     doc.addEventListener("wheel", (event) => {
+      dismissShellOnScrollDistanceRef.current(event.deltaY);
       handleWheelCrossingRef.current(event.deltaY);
     }, { passive: true });
   }, [armContentClickSuppression, captureSelectionFromDoc, cancelPendingShellOpen, clearSelection, handleReaderKeyDown]);
@@ -736,6 +787,7 @@ export function FoliateReaderView({
     if (!root) return;
 
     const onWheel = (event: WheelEvent) => {
+      dismissShellOnScrollDistanceRef.current(event.deltaY);
       handleWheelCrossingRef.current(event.deltaY);
     };
 
@@ -785,6 +837,10 @@ export function FoliateReaderView({
     setTocEntries([]);
     setCurrentChapterHref(null);
     setIsFixedLayout(false);
+    // Drop the previous book's position so its first relocate only sets a fresh
+    // baseline instead of reading as a page turn.
+    prevReadingLocationRef.current = null;
+    shellScrollAccumRef.current = 0;
 
     void (async () => {
       try {
@@ -850,6 +906,24 @@ export function FoliateReaderView({
             href,
           });
           setCurrentChapterHref(href);
+
+          // Paginated dismissal: a page turn lands as a new location here, so the
+          // shell hides the moment the position moves (covers taps, space, and
+          // the arrow keys alike). Scroll mode is left to the wheel-distance
+          // accumulator so a small scroll keeps the shell until it's gone far
+          // enough — matching the "after a distance, not on the first tick" rule.
+          const previousLocation = prevReadingLocationRef.current;
+          if (
+            shellVisibleRef.current &&
+            readingModeRef.current !== "scroll" &&
+            previousLocation != null
+          ) {
+            const movedPage = current !== previousLocation.current;
+            const movedCfi =
+              cfi != null && previousLocation.cfi != null && cfi !== previousLocation.cfi;
+            if (movedPage || movedCfi) onContentScrollRef.current?.();
+          }
+          prevReadingLocationRef.current = { current, cfi };
         };
 
         const onLoad = (event: Event) => {

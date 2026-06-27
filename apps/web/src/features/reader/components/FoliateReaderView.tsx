@@ -87,6 +87,11 @@ type FoliateReaderViewProps = {
 const SELECTION_CLICK_SUPPRESSION_MS = 180;
 const SHELL_TAP_MAX_DURATION_MS = 220;
 const SHELL_TAP_MAX_MOVE_PX = 6;
+// A center tap toggles the reader shell, but a double-click (to select a word)
+// begins with a single click too. Defer the toggle by this window so the second
+// click — or the resulting selection — can cancel it, instead of the shell
+// flashing up mid-selection. A genuine single tap just toggles after the wait.
+const SHELL_TOGGLE_DBLCLICK_GUARD_MS = 250;
 // Fraction of the page width on each edge that acts as a page-turn tap zone;
 // the remaining center band toggles the reader shell.
 const TAP_TURN_ZONE_RATIO = 0.3;
@@ -211,6 +216,7 @@ export function FoliateReaderView({
   const suppressContentClickTimeoutRef = useRef<number | null>(null);
   const shellTapIntentRef = useRef<ShellTapIntent | null>(null);
   const shouldOpenShellOnClickRef = useRef(false);
+  const pendingShellToggleTimerRef = useRef<number | null>(null);
   const readerSettingsRef = useRef(readerSettings);
   const highlightsRef = useRef<Highlight[]>([]);
   const notesRef = useRef<Note[]>([]);
@@ -327,6 +333,13 @@ export function FoliateReaderView({
 
   const cancelPendingShellOpen = useCallback(() => {
     shouldOpenShellOnClickRef.current = false;
+  }, []);
+
+  const cancelPendingShellToggle = useCallback(() => {
+    if (pendingShellToggleTimerRef.current != null) {
+      window.clearTimeout(pendingShellToggleTimerRef.current);
+      pendingShellToggleTimerRef.current = null;
+    }
   }, []);
 
   const clearSelection = useCallback(() => {
@@ -735,9 +748,30 @@ export function FoliateReaderView({
       } else if (paginated && pageWidth > 0 && x > pageWidth * (1 - TAP_TURN_ZONE_RATIO)) {
         void turnPageRef.current(1);
       } else {
-        onContentClickRef.current?.();
+        // Defer the chrome toggle: a double-click lands within the guard window
+        // (cancelled by the `dblclick` listener below) or leaves a selection
+        // behind, either of which suppresses the toggle so selecting a word no
+        // longer flashes the shell. A plain single tap toggles after the wait.
+        cancelPendingShellToggle();
+        pendingShellToggleTimerRef.current = window.setTimeout(() => {
+          pendingShellToggleTimerRef.current = null;
+          if (selectionRef.current) return;
+          const liveSelection = doc.defaultView?.getSelection?.();
+          if (
+            liveSelection &&
+            liveSelection.rangeCount > 0 &&
+            !liveSelection.getRangeAt(0).collapsed
+          ) {
+            return;
+          }
+          onContentClickRef.current?.();
+        }, SHELL_TOGGLE_DBLCLICK_GUARD_MS);
       }
     }, true);
+
+    // A double-click selects a word; cancel the toggle its first click queued so
+    // the shell doesn't flash up while you're selecting.
+    doc.addEventListener("dblclick", cancelPendingShellToggle, true);
 
     // A native intra-section scroll (anchor jump, focus) should still drop a live
     // selection; shell dismissal is driven by the wheel-distance accumulator and
@@ -754,7 +788,7 @@ export function FoliateReaderView({
       dismissShellOnScrollDistanceRef.current(event.deltaY);
       handleWheelCrossingRef.current(event.deltaY);
     }, { passive: true });
-  }, [armContentClickSuppression, captureSelectionFromDoc, cancelPendingShellOpen, clearSelection, handleReaderKeyDown]);
+  }, [armContentClickSuppression, captureSelectionFromDoc, cancelPendingShellOpen, cancelPendingShellToggle, clearSelection, handleReaderKeyDown]);
 
   // ----- global keydown + viewport resize -----------------------------------
 
@@ -812,6 +846,7 @@ export function FoliateReaderView({
   useEffect(() => {
     return () => {
       cancelPendingShellOpen();
+      cancelPendingShellToggle();
       if (suppressContentClickTimeoutRef.current != null) {
         window.clearTimeout(suppressContentClickTimeoutRef.current);
       }
@@ -819,7 +854,7 @@ export function FoliateReaderView({
         window.clearTimeout(overscrollResetTimerRef.current);
       }
     };
-  }, [cancelPendingShellOpen]);
+  }, [cancelPendingShellOpen, cancelPendingShellToggle]);
 
   // ----- open the book ------------------------------------------------------
 

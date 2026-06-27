@@ -87,8 +87,8 @@ export function AnnotationsPanel({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 p-5">
-      <div className="flex items-center justify-between">
+    <div className="flex h-full min-h-0 flex-col gap-4 py-5">
+      <div className="flex items-center justify-between px-5">
         <Heading as="h2" size="xl">
           Notes
         </Heading>
@@ -96,16 +96,16 @@ export function AnnotationsPanel({
       </div>
 
       {isLoading ? (
-        <Body className="text-sm text-fg-muted">Loading...</Body>
+        <Body className="px-5 text-sm text-fg-muted">Loading...</Body>
       ) : annotations.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center">
+        <div className="flex flex-1 items-center justify-center px-5">
           <Body className="text-center text-sm text-fg-muted">
             No notes yet. Select text in the reader to highlight, take notes, or ask AI.
           </Body>
         </div>
       ) : (
         <ScrollArea className="h-full min-h-0 flex-1">
-          <div className="flex flex-col gap-5 pr-2">
+          <div className="flex flex-col gap-5 px-5">
             {[...grouped.entries()].map(([href, items]) => {
               const chapterLabel = resolveChapterLabel(
                 href === "__unknown__" ? null : href,

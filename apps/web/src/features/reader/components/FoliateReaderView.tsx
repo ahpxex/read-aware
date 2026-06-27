@@ -1337,15 +1337,15 @@ export function FoliateReaderView({
         label="Chapters"
         width="w-80"
       >
-        <div className="flex h-full flex-col gap-4 p-6">
-          <Heading as="h2" size="xl">
+        <div className="flex h-full flex-col gap-4 py-6">
+          <Heading as="h2" size="xl" className="px-6">
             Chapters
           </Heading>
-          <Body className="text-sm text-fg-muted">
+          <Body className="px-6 text-sm text-fg-muted">
             Press `[` or `]` to move between chapters, or pick one below.
           </Body>
           <ScrollArea className="h-full min-h-0 flex-1">
-            <div className="flex flex-col gap-1 pr-2">
+            <div className="flex flex-col gap-1 px-6">
               {tocEntries.length === 0 ? (
                 <Body className="text-sm text-fg-muted">
                   No chapter list is available for this book.

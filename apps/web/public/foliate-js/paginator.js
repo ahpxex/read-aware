@@ -513,6 +513,28 @@ export class Paginator extends HTMLElement {
             grid-row: 1 / -1;
             overflow: auto;
         }
+        /* ReadAware patch: the scroll-mode scroller lives in this closed shadow
+           root, out of reach of the app's global scrollbar CSS — so mirror that
+           hairline scrollbar here (see apps/web/src/index.css). Custom properties
+           inherit across the shadow boundary, so the app tokens (and their dark
+           theme override) resolve; the fallbacks cover foliate running alone.
+           Note: we deliberately do NOT set scrollbar-width — a non-auto value
+           disables ::-webkit-scrollbar in WebKit/Chromium and brings the native
+           track + hover-thickening back. */
+        #container::-webkit-scrollbar {
+            width: var(--ra-scrollbar-size, 3px);
+            height: var(--ra-scrollbar-size, 3px);
+        }
+        #container::-webkit-scrollbar-track,
+        #container::-webkit-scrollbar-corner {
+            background: transparent;
+            border: 0;
+        }
+        #container::-webkit-scrollbar-thumb {
+            background-color: var(--ra-scrollbar-color, rgb(28 25 23 / 0.42));
+            border: 0;
+            border-radius: 9999px;
+        }
         #header {
             grid-column: 3 / 4;
             grid-row: 1;

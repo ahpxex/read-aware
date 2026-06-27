@@ -159,24 +159,32 @@ button {
   font: inherit;
 }
 
-/* Native scrollbar styling shared across app panels and readers. */
-.ra-scrollarea {
-  scrollbar-width: thin;
-  scrollbar-color: var(--ra-scrollbar-color) transparent;
-}
-
-.ra-scrollarea::-webkit-scrollbar {
+/* Global scrollbar styling — a hairline thumb on every scroll container.
+ *
+ * Deliberately NO `scrollbar-width` / `scrollbar-color` here: in WebKit (the
+ * Tauri webview) and Chromium, any non-`auto` `scrollbar-width` switches on the
+ * native thin scrollbar and *disables* the `::-webkit-scrollbar` pseudo-elements
+ * — which drags back the track "container" and the macOS hover-to-thicken
+ * growth. Leaving width at its `auto` default keeps the webkit pseudo-elements
+ * live, so we get a custom thumb that holds a fixed --ra-scrollbar-size width,
+ * has no track, and never expands on hover. (Verified in the desktop webview:
+ * `scrollbar-width: auto` reserves the 3px custom bar; `thin` renders 0px and
+ * reverts to the native overlay.) */
+*::-webkit-scrollbar {
   width: var(--ra-scrollbar-size);
   height: var(--ra-scrollbar-size);
 }
 
-.ra-scrollarea::-webkit-scrollbar-track {
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner {
   background: transparent;
+  border: 0;
 }
 
-.ra-scrollarea::-webkit-scrollbar-thumb {
+*::-webkit-scrollbar-thumb {
   background-color: var(--ra-scrollbar-color);
-  border-radius: 0;
+  border: 0;
+  border-radius: 9999px;
 }
 
 @media (prefers-reduced-motion: no-preference) {

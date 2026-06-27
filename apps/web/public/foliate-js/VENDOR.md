@@ -23,7 +23,15 @@ The typed wrapper that consumes this lives at
 
 - Removed the demo (`reader.js`, `reader.html`, `ui/`), tests, and build/lint config.
 - Removed `vendor/pdfjs/*.map` sourcemaps (~7.4 MB, runtime-unneeded).
-- Nothing else patched — all engine modules and `vendor/` are byte-for-byte upstream.
+- **`paginator.js` — local patch:** added `#container::-webkit-scrollbar*` rules
+  to the paginator's (closed) shadow-root `<style>` so the scroll-mode scrollbar
+  matches the app's hairline style. The scroller is sealed in a `mode: 'closed'`
+  shadow root, so app-level CSS cannot reach it and forcing the root open would
+  need a brittle global `attachShadow` monkey-patch; styling it at the source is
+  the clean fix. The rules read the app's `--ra-scrollbar-*` tokens (which
+  inherit across the shadow boundary) with standalone fallbacks. Re-apply this
+  after any upstream update.
+- Otherwise all engine modules and `vendor/` are byte-for-byte upstream.
 
 ## Updating
 

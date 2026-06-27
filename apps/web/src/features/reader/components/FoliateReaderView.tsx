@@ -17,6 +17,7 @@ import {
   isFixedLayout as isFixedLayoutBook,
   type FoliateLoadDetail,
   type FoliateRelocateDetail,
+  type FoliateRenderer,
   type FoliateShowAnnotationDetail,
   type FoliateView,
 } from "../lib/foliate-engine";
@@ -128,6 +129,24 @@ function layoutForReadingMode(mode: ReadingMode): {
     default:
       return { flow: "scrolled", maxColumnCount: 1 };
   }
+}
+
+/** Effective reduced-motion: the forced app setting (`data-motion="reduced"`) or
+ *  the OS preference when motion is left on `system`. */
+function prefersReducedMotion(): boolean {
+  if (typeof document === "undefined") return false;
+  if (document.documentElement.dataset.motion === "reduced") return true;
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+}
+
+/** Foliate animates page turns / viewport scrolls (its smooth `next`/`prev`) only
+ *  while the renderer carries the `animated` attribute; toggle it from the motion
+ *  preference so arrow-key paging glides instead of snapping — unless motion is
+ *  reduced, where the instant jump is the accessible choice. */
+function syncRendererAnimated(renderer: FoliateRenderer | undefined): void {
+  if (!renderer) return;
+  if (prefersReducedMotion()) renderer.removeAttribute("animated");
+  else renderer.setAttribute("animated", "");
 }
 
 type ShellTapIntent = {
@@ -614,9 +633,11 @@ export function FoliateReaderView({
       event.preventDefault();
       void turnPage(-1);
     }
+    // Space toggles the reader shell (the chrome), not the page — pressing it to
+    // peek at the controls shouldn't also advance your place.
     if (event.key === " " || event.code === "Space") {
       event.preventDefault();
-      void turnPage(event.shiftKey ? -1 : 1);
+      onContentClickRef.current?.();
     }
   }, [clearSelection, goToAdjacentChapter, turnPage]);
 
@@ -797,6 +818,24 @@ export function FoliateReaderView({
     return () => window.removeEventListener("keydown", handleReaderKeyDown);
   }, [handleReaderKeyDown]);
 
+  // Keep the renderer's `animated` flag in sync with the motion preference at
+  // runtime (the Reduce-motion toggle flips `data-motion`; the OS pref can change
+  // too), so smooth paging turns on/off without reopening the book.
+  useEffect(() => {
+    const sync = () => syncRendererAnimated(viewRef.current?.renderer);
+    const media = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+    media?.addEventListener?.("change", sync);
+    const observer = new MutationObserver(sync);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-motion"],
+    });
+    return () => {
+      media?.removeEventListener?.("change", sync);
+      observer.disconnect();
+    };
+  }, []);
+
   useEffect(() => {
     const element = viewportRef.current;
     if (!element) return;
@@ -915,6 +954,9 @@ export function FoliateReaderView({
           )}px`,
         );
         view.renderer?.setStyles?.(buildReaderContentCss(readerSettingsRef.current));
+        // Glide page turns / arrow-key scrolls instead of snapping (unless motion
+        // is reduced). The runtime watcher effect keeps this in sync afterwards.
+        syncRendererAnimated(view.renderer);
 
         const entries = flattenToc((book?.toc ?? []) as unknown as TocNavItem[])
           .map((entry, entryIndex) => ({ ...entry, spineIndex: entryIndex }));

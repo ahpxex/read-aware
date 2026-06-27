@@ -77,6 +77,7 @@ export type FoliateContent = {
 
 export type FoliateRenderer = {
   setAttribute: (name: string, value: string) => void;
+  removeAttribute: (name: string) => void;
   setStyles?: (css: string) => void;
   next: () => Promise<void> | void;
   destroy?: () => void;

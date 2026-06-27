@@ -111,7 +111,12 @@ export function ReaderShellOverlay({
           // their controls on the same 24px axis, so the single native
           // traffic-light inset (tuned for that band) aligns with both. A taller
           // bar would drop the controls below the lights.
-          "pointer-events-auto relative h-12 shrink-0 bg-fill backdrop-blur-sm transition-all duration-250 ease-out",
+          //
+          // z-20 keeps the bar above the docked panels (z-10): its `backdrop-blur`
+          // makes it a stacking context, so the appearance/stats popovers and the
+          // button tooltips nested inside it would otherwise be painted under the
+          // DOM-later Notes/contents panels. Lifting the whole band lifts them too.
+          "pointer-events-auto relative z-20 h-12 shrink-0 bg-fill backdrop-blur-sm transition-all duration-250 ease-out",
           visible
             ? "translate-y-0 opacity-100"
             : "-translate-y-full opacity-0 pointer-events-none",
@@ -208,7 +213,7 @@ export function ReaderShellOverlay({
           The panels stay mounted and preserve their open state; `visible` only
           gates whether they are revealed, so dismissing then re-opening the
           header restores whatever was showing (and avoids a re-fetch flash). */}
-      <div className="pointer-events-none flex min-h-0 flex-1 items-stretch justify-between">
+      <div className="pointer-events-none relative z-10 flex min-h-0 flex-1 items-stretch justify-between">
         {/* Table of contents (left) */}
         <section
           aria-label="Table of contents"

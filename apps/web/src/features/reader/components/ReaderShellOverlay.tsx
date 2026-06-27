@@ -5,6 +5,7 @@ import { Body, IconButton, ScrollArea, Tooltip } from "@read-aware/ui";
 import { AnnotationsPanel } from "../../annotations/components/AnnotationsPanel";
 import type { LibraryBook } from "../../library/lib/library-types";
 import { hrefMatches } from "../lib/epub-utils";
+import { useReaderPanelLayout } from "../hooks/useReaderPanelLayout";
 import type { TocEntry } from "../lib/reader-types";
 import { ReaderAppearanceMenu } from "./ReaderAppearanceMenu";
 import { ReaderStatsMenu } from "./ReaderStatsMenu";
@@ -47,8 +48,9 @@ export function ReaderShellOverlay({
         : `${roundedPercent}%`
       : null;
 
-  const [tocOpen, setTocOpen] = useState(false);
-  const [notesOpen, setNotesOpen] = useState(false);
+  // TOC + notes panels persist per book (restored when the book reopens); the
+  // appearance/stats popovers are transient and reset each session.
+  const { tocOpen, notesOpen, setTocOpen, setNotesOpen } = useReaderPanelLayout(bookId);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
 

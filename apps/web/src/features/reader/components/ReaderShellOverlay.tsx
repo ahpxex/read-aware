@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CaretLeft, ListBullets, Notebook } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
-import { Body, IconButton, ScrollArea } from "@read-aware/ui";
+import { Body, IconButton, ScrollArea, Tooltip } from "@read-aware/ui";
 import { AnnotationsPanel } from "../../annotations/components/AnnotationsPanel";
 import type { LibraryBook } from "../../library/lib/library-types";
 import { hrefMatches } from "../lib/epub-utils";
@@ -120,29 +120,30 @@ export function ReaderShellOverlay({
         <div className="pointer-events-none flex h-full items-center gap-3">
           {/* Left cluster: back to shelf + contents toggle */}
           <div className="ml-2 flex shrink-0 items-center gap-0.5">
-            <IconButton
-              size="sm"
-              label="Back to shelf"
-              title="Shelf"
-              onClick={onBack}
-              className="pointer-events-auto"
-              icon={<CaretLeft size={18} weight="regular" aria-hidden="true" />}
-            />
-            <IconButton
-              size="sm"
-              label="Table of contents"
-              title="Contents"
-              aria-pressed={tocOpen}
-              onClick={() => setTocOpen((open) => !open)}
-              className={cn("pointer-events-auto", tocOpen && "text-fg")}
-              icon={
-                <ListBullets
-                  size={18}
-                  weight={tocOpen ? "bold" : "regular"}
-                  aria-hidden="true"
-                />
-              }
-            />
+            <Tooltip content="Shelf" side="bottom" className="pointer-events-auto">
+              <IconButton
+                size="sm"
+                label="Back to shelf"
+                onClick={onBack}
+                icon={<CaretLeft size={18} weight="regular" aria-hidden="true" />}
+              />
+            </Tooltip>
+            <Tooltip content="Contents" side="bottom" className="pointer-events-auto">
+              <IconButton
+                size="sm"
+                label="Table of contents"
+                aria-pressed={tocOpen}
+                onClick={() => setTocOpen((open) => !open)}
+                className={cn(tocOpen && "text-fg")}
+                icon={
+                  <ListBullets
+                    size={18}
+                    weight={tocOpen ? "bold" : "regular"}
+                    aria-hidden="true"
+                  />
+                }
+              />
+            </Tooltip>
           </div>
 
           {/* Center: title (prominent) with a small progress readout beneath. */}
@@ -173,21 +174,22 @@ export function ReaderShellOverlay({
               open={appearanceOpen}
               onOpenChange={handleAppearanceOpenChange}
             />
-            <IconButton
-              size="sm"
-              label="Notes"
-              title="Notes"
-              aria-pressed={notesOpen}
-              onClick={() => setNotesOpen((open) => !open)}
-              className={cn("pointer-events-auto", notesOpen && "text-fg")}
-              icon={
-                <Notebook
-                  size={18}
-                  weight={notesOpen ? "bold" : "regular"}
-                  aria-hidden="true"
-                />
-              }
-            />
+            <Tooltip content="Notes" side="bottom" className="pointer-events-auto">
+              <IconButton
+                size="sm"
+                label="Notes"
+                aria-pressed={notesOpen}
+                onClick={() => setNotesOpen((open) => !open)}
+                className={cn(notesOpen && "text-fg")}
+                icon={
+                  <Notebook
+                    size={18}
+                    weight={notesOpen ? "bold" : "regular"}
+                    aria-hidden="true"
+                  />
+                }
+              />
+            </Tooltip>
           </div>
         </div>
 

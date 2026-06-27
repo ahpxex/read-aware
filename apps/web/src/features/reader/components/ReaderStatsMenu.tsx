@@ -46,6 +46,7 @@ export function ReaderStatsMenu({ book, open, onOpenChange }: ReaderStatsMenuPro
     <Popover
       align="right"
       triggerLabel="Reading stats"
+      triggerTooltip="Reading stats"
       className="pointer-events-auto"
       triggerClassName="h-7 w-7 items-center justify-center rounded-md text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
       trigger={<ChartBar size={18} weight="regular" aria-hidden="true" />}

@@ -44,7 +44,15 @@ export function toCuratedFont(id: string): `curated:${string}` {
 export function toSystemFont(family: string): `system:${string}` {
   return `${SYSTEM_FONT_PREFIX}${family}`;
 }
-export type ReaderFontSize = "x-small" | "small" | "medium" | "large" | "x-large";
+export type ReaderFontSize =
+  | "xx-small"
+  | "x-small"
+  | "small"
+  | "medium"
+  | "large"
+  | "x-large"
+  | "xx-large"
+  | "xxx-large";
 export type ReaderLineSpacing = "compact" | "comfortable" | "relaxed";
 export type ReaderParagraphSpacing = "tight" | "normal" | "loose";
 export type ReaderContentWidth = "narrow" | "medium" | "wide";
@@ -97,7 +105,7 @@ export const DEFAULT_READER_PREFERENCES: ReaderSettingsPreferences = {
 };
 
 /** Coerce a persisted font value to a valid selection, migrating legacy presets. */
-function normalizeFontFamily(value: unknown): ReaderFontFamily {
+export function normalizeFontFamily(value: unknown): ReaderFontFamily {
   if (typeof value === "string") {
     // Legacy presets predate the curated/system split.
     if (value === "sans") return "curated:inter";
@@ -112,6 +120,40 @@ function normalizeFontFamily(value: unknown): ReaderFontFamily {
   return DEFAULT_READER_SETTINGS.fontFamily;
 }
 
+const FONT_SIZES: ReaderFontSize[] = [
+  "xx-small",
+  "x-small",
+  "small",
+  "medium",
+  "large",
+  "x-large",
+  "xx-large",
+  "xxx-large",
+];
+// A brief interim build stored sizes as px strings; map them back to a tier.
+const LEGACY_PX_FONT_SIZE: Record<string, ReaderFontSize> = {
+  "13": "xx-small",
+  "14": "x-small",
+  "15": "small",
+  "16": "small",
+  "17": "medium",
+  "18": "medium",
+  "19": "large",
+  "20": "large",
+  "21": "x-large",
+  "24": "xx-large",
+  "28": "xxx-large",
+};
+
+/** Coerce a persisted font size to a valid tier. */
+export function normalizeFontSize(value: unknown): ReaderFontSize {
+  if (typeof value === "string") {
+    if ((FONT_SIZES as string[]).includes(value)) return value as ReaderFontSize;
+    if (value in LEGACY_PX_FONT_SIZE) return LEGACY_PX_FONT_SIZE[value];
+  }
+  return DEFAULT_READER_SETTINGS.fontSize;
+}
+
 export function getReaderPreferences(): ReaderSettingsPreferences {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -120,7 +162,7 @@ export function getReaderPreferences(): ReaderSettingsPreferences {
     return {
       theme: parsed.theme ?? DEFAULT_READER_PREFERENCES.theme,
       fontFamily: normalizeFontFamily(parsed.fontFamily),
-      fontSize: parsed.fontSize ?? DEFAULT_READER_PREFERENCES.fontSize,
+      fontSize: normalizeFontSize(parsed.fontSize),
       lineSpacing: parsed.lineSpacing ?? DEFAULT_READER_PREFERENCES.lineSpacing,
       paragraphSpacing: parsed.paragraphSpacing ?? DEFAULT_READER_PREFERENCES.paragraphSpacing,
       contentWidth: parsed.contentWidth ?? DEFAULT_READER_PREFERENCES.contentWidth,

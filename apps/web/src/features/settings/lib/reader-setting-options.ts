@@ -17,11 +17,14 @@ import type {
  */
 
 export const FONT_SIZE_OPTIONS: { value: ReaderFontSize; label: string }[] = [
+  { value: "xx-small", label: "XXS" },
   { value: "x-small", label: "XS" },
   { value: "small", label: "Small" },
   { value: "medium", label: "Medium" },
   { value: "large", label: "Large" },
   { value: "x-large", label: "XL" },
+  { value: "xx-large", label: "XXL" },
+  { value: "xxx-large", label: "XXXL" },
 ];
 
 export const LINE_SPACING_OPTIONS: { value: ReaderLineSpacing; label: string }[] = [

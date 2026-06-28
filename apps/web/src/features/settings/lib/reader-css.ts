@@ -44,11 +44,14 @@ export function resolveReaderFontStack(fontFamily: ReaderFontFamily): string {
 }
 
 const FONT_SIZE_MAP = {
+  "xx-small": "0.8125rem",
   "x-small": "0.875rem",
   small: "0.9375rem",
   medium: "1.0625rem",
   large: "1.1875rem",
   "x-large": "1.3125rem",
+  "xx-large": "1.5rem",
+  "xxx-large": "1.75rem",
 } as const;
 
 const LINE_HEIGHT_MAP = {

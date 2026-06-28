@@ -12,7 +12,14 @@ export type KeyChord = {
   key: string;
 };
 
-export type ShortcutId = "search" | "settings" | "next-page" | "prev-page";
+export type ShortcutId =
+  | "search"
+  | "settings"
+  | "next-page"
+  | "prev-page"
+  | "next-chapter"
+  | "prev-chapter"
+  | "toggle-controls";
 
 export type EditableShortcut = {
   id: ShortcutId;
@@ -42,11 +49,13 @@ export const EDITABLE_SHORTCUTS: EditableShortcut[] = [
   { id: "settings", category: "Global", label: "Open settings", defaultBinding: { mod: true, key: "," } },
   { id: "next-page", category: "Reading", label: "Next page", defaultBinding: { key: "ArrowRight" } },
   { id: "prev-page", category: "Reading", label: "Previous page", defaultBinding: { key: "ArrowLeft" } },
+  { id: "next-chapter", category: "Reading", label: "Next chapter", defaultBinding: { key: "]" } },
+  { id: "prev-chapter", category: "Reading", label: "Previous chapter", defaultBinding: { key: "[" } },
+  { id: "toggle-controls", category: "Reading", label: "Toggle reader controls", defaultBinding: { key: " " } },
 ];
 
 /** Fixed, non-rebindable shortcuts shown for reference. */
 export const INFO_SHORTCUTS: InfoShortcut[] = [
-  { id: "toggle-controls", category: "Reading", label: "Toggle reader controls", keys: ["Click"] },
   { id: "close", category: "Overlays", label: "Close dialog or overlay", keys: ["Esc"] },
 ];
 

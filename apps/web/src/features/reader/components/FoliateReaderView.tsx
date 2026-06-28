@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAtomValue } from "jotai";
-import { Body, Heading, ScrollArea, Sidebar, Spinner } from "@read-aware/ui";
+import { Body, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { shortcutBindingsAtom } from "../../../state/ui";
 import { chordMatchesEvent, resolveBinding } from "../../settings/lib/shortcuts";
@@ -12,7 +12,7 @@ import {
   type ReaderSelectionState,
   type SelectionOverlayRect,
 } from "../lib/selection-overlay";
-import { normalizeHref, flattenToc, findTocIndexForHref } from "../lib/epub-utils";
+import { flattenToc, findTocIndexForHref } from "../lib/epub-utils";
 import type { LoadedBook, TocEntry, TocNavItem } from "../lib/reader-types";
 import {
   createFoliateView,
@@ -291,7 +291,6 @@ export function FoliateReaderView({
   const showLoader = useDelayedFlag(isLoading, 250);
   const [tocEntries, setTocEntries] = useState<TocEntry[]>([]);
   const [currentChapterHref, setCurrentChapterHref] = useState<string | null>(null);
-  const [isChapterPickerOpen, setIsChapterPickerOpen] = useState(false);
   const [isFixedLayout, setIsFixedLayout] = useState(false);
   const [selection, setSelection] = useState<ReaderSelectionState | null>(null);
   const [activeAnnotation, setActiveAnnotation] = useState<{
@@ -598,7 +597,6 @@ export function FoliateReaderView({
       setError(null);
       clearSelection();
       await view.goTo(href);
-      setIsChapterPickerOpen(false);
     } catch (nextError) {
       setError(formatReaderError(nextError));
     }
@@ -625,8 +623,9 @@ export function FoliateReaderView({
       return;
     }
 
-    // Configurable page turns. Left/right are direction-aware (RTL-correct).
-    // Checked before the modifier guard so a rebinding may include modifiers.
+    // Configurable reader shortcuts, checked before the modifier guard so a
+    // rebinding may include modifiers. Left/right page turns are direction-aware
+    // (RTL-correct).
     const bindings = shortcutBindingsRef.current;
     if (chordMatchesEvent(resolveBinding("next-page", bindings), event)) {
       event.preventDefault();
@@ -638,26 +637,30 @@ export function FoliateReaderView({
       void viewRef.current?.goLeft?.();
       return;
     }
+    if (chordMatchesEvent(resolveBinding("next-chapter", bindings), event)) {
+      event.preventDefault();
+      void goToAdjacentChapter(1);
+      return;
+    }
+    if (chordMatchesEvent(resolveBinding("prev-chapter", bindings), event)) {
+      event.preventDefault();
+      void goToAdjacentChapter(-1);
+      return;
+    }
+    // Toggles the reader shell (the chrome), not the page — peeking at the
+    // controls shouldn't also advance your place.
+    if (chordMatchesEvent(resolveBinding("toggle-controls", bindings), event)) {
+      event.preventDefault();
+      onContentClickRef.current?.();
+      return;
+    }
 
     if (event.metaKey || event.ctrlKey || event.altKey) return;
 
-    if (event.key.toLowerCase() === "c") {
-      event.preventDefault();
-      setIsChapterPickerOpen((open) => !open);
-    }
     if (event.key === "Escape") {
       clearSelection();
-      setIsChapterPickerOpen(false);
     }
-    if (event.key === "[" || event.code === "BracketLeft") {
-      event.preventDefault();
-      void goToAdjacentChapter(-1);
-    }
-    if (event.key === "]" || event.code === "BracketRight") {
-      event.preventDefault();
-      void goToAdjacentChapter(1);
-    }
-    // Vertical keys and space map to forward/back directly.
+    // Vertical keys map to forward/back directly.
     if (event.key === "ArrowDown" || event.key === "PageDown") {
       event.preventDefault();
       void turnPage(1);
@@ -665,12 +668,6 @@ export function FoliateReaderView({
     if (event.key === "ArrowUp" || event.key === "PageUp") {
       event.preventDefault();
       void turnPage(-1);
-    }
-    // Space toggles the reader shell (the chrome), not the page — pressing it to
-    // peek at the controls shouldn't also advance your place.
-    if (event.key === " " || event.code === "Space") {
-      event.preventDefault();
-      onContentClickRef.current?.();
     }
   }, [clearSelection, goToAdjacentChapter, turnPage]);
 
@@ -1439,52 +1436,6 @@ export function FoliateReaderView({
           <Body className="max-w-md text-sm text-red-800">{error}</Body>
         </div>
       )}
-
-      <Sidebar
-        side="right"
-        open={isChapterPickerOpen}
-        onClose={() => setIsChapterPickerOpen(false)}
-        label="Chapters"
-        width="w-80"
-      >
-        <div className="flex h-full flex-col gap-4 py-6">
-          <Heading as="h2" size="xl" className="px-6">
-            Chapters
-          </Heading>
-          <Body className="px-6 text-sm text-fg-muted">
-            Press `[` or `]` to move between chapters, or pick one below.
-          </Body>
-          <ScrollArea className="h-full min-h-0 flex-1">
-            <div className="flex flex-col gap-1 px-6">
-              {tocEntries.length === 0 ? (
-                <Body className="text-sm text-fg-muted">
-                  No chapter list is available for this book.
-                </Body>
-              ) : (
-                tocEntries.map((entry) => (
-                  <button
-                    key={entry.id}
-                    type="button"
-                    onClick={() => {
-                      void goToChapter(entry.href);
-                    }}
-                    className={cn(
-                      "w-full text-left font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
-                      normalizeHref(entry.href) === normalizeHref(currentChapterHref ?? "")
-                        ? "text-fg"
-                        : "text-fg-muted hover:text-fg",
-                      entry.depth === 1 && "pl-4",
-                      entry.depth >= 2 && "pl-8",
-                    )}
-                  >
-                    {entry.label}
-                  </button>
-                ))
-              )}
-            </div>
-          </ScrollArea>
-        </div>
-      </Sidebar>
 
       <NoteEditor
         isOpen={noteEditorOpen}

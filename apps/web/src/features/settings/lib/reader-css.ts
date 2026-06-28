@@ -108,9 +108,30 @@ const MARGIN_MAP = {
 } as const;
 
 const THEME_MAP = {
-  light: { bg: "#ffffff", text: "#1c1917", selection: "rgba(168, 162, 158, 0.34)" },
-  warm: { bg: "#f5f1e8", text: "#292524", selection: "rgba(168, 162, 158, 0.34)" },
-  dark: { bg: "#1c1917", text: "#d6d3d1", selection: "rgba(168, 162, 158, 0.28)" },
+  light: {
+    bg: "#ffffff",
+    text: "#1c1917",
+    selection: "rgba(168, 162, 158, 0.34)",
+    rule: "rgba(28, 25, 23, 0.14)",
+    faint: "rgba(28, 25, 23, 0.05)",
+    muted: "rgba(28, 25, 23, 0.55)",
+  },
+  warm: {
+    bg: "#f5f1e8",
+    text: "#292524",
+    selection: "rgba(168, 162, 158, 0.34)",
+    rule: "rgba(41, 37, 36, 0.16)",
+    faint: "rgba(41, 37, 36, 0.05)",
+    muted: "rgba(41, 37, 36, 0.55)",
+  },
+  dark: {
+    bg: "#1c1917",
+    text: "#d6d3d1",
+    selection: "rgba(168, 162, 158, 0.28)",
+    rule: "rgba(214, 211, 209, 0.2)",
+    faint: "rgba(214, 211, 209, 0.07)",
+    muted: "rgba(214, 211, 209, 0.55)",
+  },
 } as const;
 
 export const READER_THEME_BG = {
@@ -209,9 +230,124 @@ export function buildReaderContentCss(settings: ReaderSettings, fontFaceCss = ""
       max-width: min(100%, 32rem) !important;
     }
 
+    h4 {
+      margin: 1.85rem 0 0.75rem 0 !important;
+      font-size: 1.15rem !important;
+      line-height: 1.25 !important;
+    }
+
+    h5,
+    h6 {
+      margin: 1.5rem 0 0.5rem 0 !important;
+      font-size: 1rem !important;
+      line-height: 1.3 !important;
+    }
+
+    /* Links read as body text with a quiet underline, not a bright accent. */
+    a {
+      color: inherit !important;
+      text-decoration: underline !important;
+      text-decoration-color: ${theme.muted} !important;
+      text-decoration-thickness: 0.06em !important;
+      text-underline-offset: 0.18em !important;
+    }
+
+    a:hover {
+      text-decoration-color: ${theme.text} !important;
+    }
+
+    ul,
+    ol {
+      padding-left: 1.6em !important;
+    }
+
+    ul {
+      list-style: disc !important;
+    }
+
+    ol {
+      list-style: decimal !important;
+    }
+
+    li {
+      margin: 0 0 0.4em 0 !important;
+      padding-left: 0.25em !important;
+    }
+
+    li::marker {
+      color: ${theme.muted} !important;
+    }
+
+    ul ul,
+    ul ol,
+    ol ul,
+    ol ol {
+      margin: 0.4em 0 0 0 !important;
+    }
+
+    code,
+    kbd,
+    samp {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace !important;
+      font-size: 0.875em !important;
+    }
+
+    :not(pre) > code {
+      padding: 0.1em 0.35em !important;
+      background: ${theme.faint} !important;
+      border-radius: 0.25rem !important;
+    }
+
+    pre {
+      margin: 0 0 ${paragraphSpacing} 0 !important;
+      padding: 1rem 1.15rem !important;
+      background: ${theme.faint} !important;
+      border-radius: 0.4rem !important;
+      line-height: 1.5 !important;
+      overflow-x: auto !important;
+    }
+
+    pre code {
+      padding: 0 !important;
+      background: none !important;
+      font-size: inherit !important;
+    }
+
+    hr {
+      margin: 2.5rem auto !important;
+      border: none !important;
+      border-top: 1px solid ${theme.rule} !important;
+    }
+
+    table {
+      width: 100% !important;
+      margin: 0 0 ${paragraphSpacing} 0 !important;
+      border-collapse: collapse !important;
+      font-size: 0.95em !important;
+    }
+
+    th,
+    td {
+      padding: 0.5em 0.7em !important;
+      border: 1px solid ${theme.rule} !important;
+      text-align: start !important;
+      vertical-align: top !important;
+    }
+
+    th {
+      font-weight: 600 !important;
+    }
+
+    figcaption {
+      margin-top: 0.6rem !important;
+      color: ${theme.muted} !important;
+      font-size: 0.85em !important;
+      text-align: center !important;
+    }
+
     blockquote {
       padding-left: 1.25rem !important;
-      border-left: 1px solid rgba(28, 25, 23, 0.18) !important;
+      border-left: 2px solid ${theme.rule} !important;
     }
   `;
 }

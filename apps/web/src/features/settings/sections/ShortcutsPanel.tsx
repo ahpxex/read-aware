@@ -117,12 +117,20 @@ export function ShortcutsPanel() {
                           startRecording(shortcut.id);
                         }}
                         className={cn(
-                          "rounded-md px-2 py-1 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
-                          recording ? "ring-1 ring-fg" : "hover:bg-fill",
+                          "rounded-md px-2 py-1 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
+                          recording ? "bg-fill" : "hover:bg-fill",
                         )}
                       >
                         {recording ? (
-                          <span className="font-sans text-[13px] text-fg-muted">Press keys…</span>
+                          <span className="flex items-center gap-1.5">
+                            <span
+                              aria-hidden="true"
+                              className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-fg-subtle"
+                            />
+                            <span className="font-sans text-[13px] text-fg-muted">
+                              Press a shortcut…
+                            </span>
+                          </span>
                         ) : (
                           <KeyTokens tokens={chordToTokens(binding)} />
                         )}

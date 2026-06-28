@@ -47,17 +47,6 @@ export function GeneralPanel() {
           }
         />
         <SettingsRow
-          title="Reopen last book"
-          description="Jump back into the book you were reading on launch."
-          control={
-            <Toggle
-              aria-label="Reopen last book"
-              checked={settings.reopenLastBook}
-              onChange={(reopenLastBook) => setSettings({ ...settings, reopenLastBook })}
-            />
-          }
-        />
-        <SettingsRow
           title="File associations"
           description="Open EPUB, MOBI, AZW3, FB2 and PDF files with ReadAware."
           control={

@@ -11,7 +11,6 @@ export type GeneralSettings = {
   crashReports: boolean;
   /** Desktop-shell preferences — persisted here, applied by the Tauri shell. */
   launchAtStartup: boolean;
-  reopenLastBook: boolean;
   fileAssociations: boolean;
   autoUpdate: boolean;
 };
@@ -21,7 +20,6 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   language: "en",
   crashReports: false,
   launchAtStartup: false,
-  reopenLastBook: true,
   fileAssociations: true,
   autoUpdate: true,
 };
@@ -36,7 +34,6 @@ export function getGeneralSettings(): GeneralSettings {
       language: parsed.language ?? DEFAULT_GENERAL_SETTINGS.language,
       crashReports: parsed.crashReports ?? DEFAULT_GENERAL_SETTINGS.crashReports,
       launchAtStartup: parsed.launchAtStartup ?? DEFAULT_GENERAL_SETTINGS.launchAtStartup,
-      reopenLastBook: parsed.reopenLastBook ?? DEFAULT_GENERAL_SETTINGS.reopenLastBook,
       fileAssociations: parsed.fileAssociations ?? DEFAULT_GENERAL_SETTINGS.fileAssociations,
       autoUpdate: parsed.autoUpdate ?? DEFAULT_GENERAL_SETTINGS.autoUpdate,
     };

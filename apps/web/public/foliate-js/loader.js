@@ -8,5 +8,6 @@
 // the entry points off the global for the app to pick up.
 import { makeBook } from "./view.js";
 import { Overlayer } from "./overlayer.js";
+import { FootnoteHandler } from "./footnotes.js";
 
-globalThis.__readawareFoliate = { makeBook, Overlayer };
+globalThis.__readawareFoliate = { makeBook, Overlayer, FootnoteHandler };

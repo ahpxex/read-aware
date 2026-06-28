@@ -108,9 +108,38 @@ export type FoliateView = HTMLElement & {
 
 export type FoliateHighlightFn = unknown;
 
+/** `link` event detail emitted by `<foliate-view>` for an in-book link click. */
+export type FoliateLinkDetail = { a: HTMLAnchorElement; href: string };
+
+/** `render` event detail from `FootnoteHandler` once a footnote is extracted. */
+export type FoliateFootnoteRenderDetail = {
+  /** A detached `<foliate-view>` holding the rendered footnote fragment. */
+  view: FoliateView;
+  href: string;
+  /** `footnote` | `endnote` | `note` | `definition` | `biblioentry` | null. */
+  type: string | null;
+  hidden: boolean;
+  target: Element | null;
+};
+
+/** `before-render` detail — fires before the footnote fragment is laid out. */
+export type FoliateFootnoteBeforeRenderDetail = { view: FoliateView };
+
+/**
+ * foliate-js footnote engine: given a `link` event, it decides whether the link
+ * is a footnote/endnote reference, extracts the target fragment (loading another
+ * section if needed), and dispatches `before-render` then `render` with a view
+ * holding the content. Regular links are left to navigate normally.
+ */
+export interface FoliateFootnoteHandler extends EventTarget {
+  detectFootnotes: boolean;
+  handle: (book: FoliateBook, event: Event) => Promise<unknown> | undefined;
+}
+
 type FoliateGlobal = {
   makeBook: (file: Blob | File | string) => Promise<FoliateBook>;
   Overlayer: { highlight: FoliateHighlightFn; underline: FoliateHighlightFn };
+  FootnoteHandler: new () => FoliateFootnoteHandler;
 };
 
 /** The overlay draw functions used by the `draw-annotation` event. */
@@ -176,6 +205,12 @@ export async function makeFoliateBook(file: Blob | File): Promise<FoliateBook> {
 export async function createFoliateView(): Promise<FoliateView> {
   await loadEngine();
   return document.createElement("foliate-view") as FoliateView;
+}
+
+/** Create a footnote handler for resolving in-book footnote/endnote links. */
+export async function createFootnoteHandler(): Promise<FoliateFootnoteHandler> {
+  const { FootnoteHandler } = await loadEngine();
+  return new FootnoteHandler();
 }
 
 // The paginator renders into a *closed* shadow root, so its scroll container is

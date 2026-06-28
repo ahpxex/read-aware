@@ -16,8 +16,13 @@ import { flattenToc, findTocIndexForHref } from "../lib/epub-utils";
 import type { LoadedBook, TocEntry, TocNavItem } from "../lib/reader-types";
 import {
   createFoliateView,
+  createFootnoteHandler,
   getScrollEdges,
   isFixedLayout as isFixedLayoutBook,
+  type FoliateFootnoteBeforeRenderDetail,
+  type FoliateFootnoteHandler,
+  type FoliateFootnoteRenderDetail,
+  type FoliateLinkDetail,
   type FoliateLoadDetail,
   type FoliateRelocateDetail,
   type FoliateRenderer,
@@ -34,6 +39,7 @@ import {
 } from "../lib/highlight-renderer";
 import { ReaderAnnotationMenu } from "./ReaderAnnotationMenu";
 import { ReaderDictionaryModal } from "./ReaderDictionaryModal";
+import { ReaderFootnotePopover } from "./ReaderFootnotePopover";
 import { ReaderSelectionMenu } from "./ReaderSelectionMenu";
 import { NoteEditor } from "../../annotations/components/NoteEditor";
 import { AIChatPanel } from "../../ai/components/AIChatPanel";
@@ -209,6 +215,22 @@ function clampRectToViewport(
   return { left: clippedLeft, top: clippedTop, width, height };
 }
 
+/** Human label for the eyebrow on the footnote popover, by reference type. */
+function footnoteLabel(type: string | null): string {
+  switch (type) {
+    case "footnote":
+      return "Footnote";
+    case "endnote":
+      return "Endnote";
+    case "biblioentry":
+      return "Reference";
+    case "definition":
+      return "Definition";
+    default:
+      return "Note";
+  }
+}
+
 export function FoliateReaderView({
   selectedBook = null,
   initialBook = null,
@@ -313,6 +335,76 @@ export function FoliateReaderView({
   useEffect(() => {
     shortcutBindingsRef.current = shortcutBindings;
   }, [shortcutBindings]);
+
+  // Footnote popover: the engine loads + extracts the note into an off-screen
+  // staging view; we read its text and show it in the popover.
+  const [footnote, setFootnote] = useState<{
+    anchorRect: SelectionOverlayRect | null;
+    label: string;
+    text: string;
+  } | null>(null);
+  const footnoteHandlerRef = useRef<FoliateFootnoteHandler | null>(null);
+  const footnoteAnchorRectRef = useRef<SelectionOverlayRect | null>(null);
+  const footnoteStageRef = useRef<HTMLDivElement | null>(null);
+  const closeFootnote = useCallback(() => setFootnote(null), []);
+
+  /** Map an in-book element's rect to reader-viewport coords for anchoring. */
+  const anchorRectForElement = useCallback((el: Element): SelectionOverlayRect | null => {
+    const readerRoot = readerRootRef.current;
+    const frameElement = el.ownerDocument?.defaultView?.frameElement;
+    if (!readerRoot || !(frameElement instanceof HTMLElement)) return null;
+    const rect = el.getBoundingClientRect();
+    return clampRectToViewport(
+      { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+      frameElement.getBoundingClientRect(),
+      readerRoot.getBoundingClientRect(),
+    );
+  }, []);
+
+  // Wire the footnote engine once: it turns footnote-reference clicks into a
+  // rendered fragment shown in the popover (regular links still navigate). The
+  // detached view is given the scrolled flow and the reader's content styles.
+  useEffect(() => {
+    let handler: FoliateFootnoteHandler | null = null;
+    let cancelled = false;
+
+    const onBeforeRender = (event: Event) => {
+      const { view } = (event as CustomEvent<FoliateFootnoteBeforeRenderDetail>).detail;
+      view.style.width = "100%";
+      view.style.height = "100%";
+      // Attach to the off-screen stage so the otherwise-detached view has a real
+      // size and actually loads the fragment (a 0-size view never fires `load`).
+      footnoteStageRef.current?.replaceChildren(view);
+    };
+    const onRender = (event: Event) => {
+      const detail = (event as CustomEvent<FoliateFootnoteRenderDetail>).detail;
+      const doc = detail.view.renderer?.getContents?.()?.[0]?.doc;
+      const text = (doc?.body?.textContent ?? "").replace(/\s+/g, " ").trim();
+      setFootnote({
+        anchorRect: footnoteAnchorRectRef.current,
+        label: footnoteLabel(detail.type),
+        text,
+      });
+      // Done with the engine's view — detach it from the stage and tear it down.
+      footnoteStageRef.current?.replaceChildren();
+      detail.view.renderer?.destroy?.();
+    };
+
+    void createFootnoteHandler().then((created) => {
+      if (cancelled) return;
+      handler = created;
+      handler.addEventListener("before-render", onBeforeRender);
+      handler.addEventListener("render", onRender);
+      footnoteHandlerRef.current = handler;
+    });
+
+    return () => {
+      cancelled = true;
+      handler?.removeEventListener("before-render", onBeforeRender);
+      handler?.removeEventListener("render", onRender);
+      footnoteHandlerRef.current = null;
+    };
+  }, []);
 
   // Drive the responsive text measure through foliate's `max-inline-size`
   // attribute. The paginator caps the column to that value (px) and writes it
@@ -1088,14 +1180,24 @@ export function FoliateReaderView({
           setActiveAnnotation({ highlight, anchorRect: rects[rects.length - 1] });
         };
 
+        // Footnote/endnote references open the popover; other links navigate.
+        const onLink = (event: Event) => {
+          const detail = (event as CustomEvent<FoliateLinkDetail>).detail;
+          if (detail?.a) footnoteAnchorRectRef.current = anchorRectForElement(detail.a);
+          const handler = footnoteHandlerRef.current;
+          if (handler && book) void handler.handle(book, event);
+        };
+
         view.addEventListener("relocate", onRelocate);
         view.addEventListener("load", onLoad);
         view.addEventListener("create-overlay", onCreateOverlay);
         view.addEventListener("show-annotation", onShowAnnotation);
+        view.addEventListener("link", onLink);
         cleanups.push(() => view?.removeEventListener("relocate", onRelocate));
         cleanups.push(() => view?.removeEventListener("load", onLoad));
         cleanups.push(() => view?.removeEventListener("create-overlay", onCreateOverlay));
         cleanups.push(() => view?.removeEventListener("show-annotation", onShowAnnotation));
+        cleanups.push(() => view?.removeEventListener("link", onLink));
 
         if (selectedBook) {
           try {
@@ -1410,6 +1512,20 @@ export function FoliateReaderView({
         onLookUp={handleLookUp}
         onAskAI={handleAskAI}
       />
+      {/* Off-screen stage where the engine loads + extracts a footnote fragment. */}
+      <div
+        ref={footnoteStageRef}
+        aria-hidden="true"
+        className="pointer-events-none fixed left-[-9999px] top-0 h-96 w-96 overflow-hidden"
+      />
+      {footnote && (
+        <ReaderFootnotePopover
+          anchorRect={footnote.anchorRect}
+          label={footnote.label}
+          text={footnote.text}
+          onClose={closeFootnote}
+        />
+      )}
       <ReaderAnnotationMenu
         anchorRect={activeAnnotation?.anchorRect ?? null}
         activeColor={activeAnnotation?.highlight.color ?? "yellow"}

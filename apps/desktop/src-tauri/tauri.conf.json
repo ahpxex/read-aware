@@ -24,8 +24,8 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' blob: data:; media-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'; worker-src 'self' blob:; connect-src 'self'",
-      "devCsp": "default-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data:; img-src 'self' blob: data: https: http:; media-src 'self' blob: data: https: http:; style-src 'self' 'unsafe-inline'; font-src 'self' data: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; worker-src 'self' blob:; connect-src 'self' ws: wss: http: https:"
+      "csp": "default-src 'self'; img-src 'self' blob: data:; media-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; font-src 'self' data: blob:; script-src 'self'; worker-src 'self' blob:; connect-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
+      "devCsp": "default-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data:; img-src 'self' blob: data: https: http:; media-src 'self' blob: data: https: http:; style-src 'self' 'unsafe-inline'; font-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; worker-src 'self' blob:; connect-src 'self' ws: wss: http: https:"
     }
   },
   "bundle": {

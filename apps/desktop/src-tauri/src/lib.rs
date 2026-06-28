@@ -56,6 +56,55 @@ fn set_traffic_lights_visible(window: tauri::WebviewWindow, visible: bool) {
 #[tauri::command]
 fn set_traffic_lights_visible(_visible: bool) {}
 
+/// Enumerate the user-facing font families installed on this machine, for the
+/// reader's font picker.
+///
+/// macOS asks `NSFontManager` for its menu-ready family names — the same list
+/// apps show in a font menu, with the dot-prefixed hidden system faces already
+/// excluded. Other platforms return an empty list for now, so the picker simply
+/// falls back to the built-in presets until native enumeration is added.
+#[cfg(target_os = "macos")]
+#[tauri::command]
+fn list_system_fonts() -> Vec<String> {
+    use cocoa::base::{id, nil};
+    use objc::{class, msg_send, sel, sel_impl};
+
+    let mut families: Vec<String> = Vec::new();
+    unsafe {
+        let manager: id = msg_send![class!(NSFontManager), sharedFontManager];
+        if manager == nil {
+            return families;
+        }
+        // NSArray<NSString *> of available family names.
+        let names: id = msg_send![manager, availableFontFamilies];
+        if names == nil {
+            return families;
+        }
+        let count: usize = msg_send![names, count];
+        families.reserve(count);
+        for index in 0..count {
+            let name: id = msg_send![names, objectAtIndex: index];
+            if name == nil {
+                continue;
+            }
+            let utf8: *const std::os::raw::c_char = msg_send![name, UTF8String];
+            if utf8.is_null() {
+                continue;
+            }
+            if let Ok(text) = std::ffi::CStr::from_ptr(utf8).to_str() {
+                families.push(text.to_owned());
+            }
+        }
+    }
+    families
+}
+
+#[cfg(not(target_os = "macos"))]
+#[tauri::command]
+fn list_system_fonts() -> Vec<String> {
+    Vec::new()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default()
@@ -85,6 +134,7 @@ pub fn run() {
             storage::query_vectors,
             read_book_file,
             set_traffic_lights_visible,
+            list_system_fonts,
         ]);
 
     // Dev-only: expose the MCP bridge so the Tauri MCP server can drive the

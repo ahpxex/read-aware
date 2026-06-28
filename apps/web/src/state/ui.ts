@@ -37,6 +37,11 @@ import {
   saveShelfView,
   type ShelfView,
 } from "../features/shelf/lib/shelf-view";
+import {
+  getShortcutBindings,
+  saveShortcutBindings,
+} from "../features/settings/lib/shortcut-bindings";
+import type { ShortcutBindings } from "../features/settings/lib/shortcuts";
 
 export const topNavs = ["shelf", "context"] as const;
 
@@ -135,5 +140,16 @@ export const shelfViewAtom = atom(
   (_get, set, next: ShelfView) => {
     set(shelfViewBaseAtom, next);
     saveShelfView(next);
+  },
+);
+
+const shortcutBindingsBaseAtom = atom<ShortcutBindings>(getShortcutBindings());
+
+/** User overrides for rebindable keyboard shortcuts. See `lib/shortcuts`. */
+export const shortcutBindingsAtom = atom(
+  (get) => get(shortcutBindingsBaseAtom),
+  (_get, set, next: ShortcutBindings) => {
+    set(shortcutBindingsBaseAtom, next);
+    saveShortcutBindings(next);
   },
 );

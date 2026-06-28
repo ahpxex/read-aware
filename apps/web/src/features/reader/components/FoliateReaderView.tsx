@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useAtomValue } from "jotai";
 import { Body, Heading, ScrollArea, Sidebar, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
+import { shortcutBindingsAtom } from "../../../state/ui";
+import { chordMatchesEvent, resolveBinding } from "../../settings/lib/shortcuts";
 import type { LibraryBook, ReaderProgress } from "../../library/lib/library-types";
 import { formatReaderError } from "../lib/format-reader-error";
 import {
@@ -303,6 +306,14 @@ export function FoliateReaderView({
   const [currentNote, setCurrentNote] = useState<Note | null>(null);
   const [aiChatOpen, setAiChatOpen] = useState(false);
   const [currentChat, setCurrentChat] = useState<AIChat | null>(null);
+
+  // Live page-turn key bindings, mirrored to a ref so the stable key handler
+  // reads the latest without being re-created on every edit.
+  const shortcutBindings = useAtomValue(shortcutBindingsAtom);
+  const shortcutBindingsRef = useRef(shortcutBindings);
+  useEffect(() => {
+    shortcutBindingsRef.current = shortcutBindings;
+  }, [shortcutBindings]);
 
   // Drive the responsive text measure through foliate's `max-inline-size`
   // attribute. The paginator caps the column to that value (px) and writes it
@@ -608,12 +619,27 @@ export function FoliateReaderView({
 
   const handleReaderKeyDown = useCallback((event: KeyboardEvent) => {
     if (!loadedBookRef.current) return;
-    if (event.metaKey || event.ctrlKey || event.altKey) return;
     const target = event.target;
     if (target instanceof HTMLElement &&
       (target.isContentEditable || target.closest("input, textarea, select, [contenteditable='true']"))) {
       return;
     }
+
+    // Configurable page turns. Left/right are direction-aware (RTL-correct).
+    // Checked before the modifier guard so a rebinding may include modifiers.
+    const bindings = shortcutBindingsRef.current;
+    if (chordMatchesEvent(resolveBinding("next-page", bindings), event)) {
+      event.preventDefault();
+      void viewRef.current?.goRight?.();
+      return;
+    }
+    if (chordMatchesEvent(resolveBinding("prev-page", bindings), event)) {
+      event.preventDefault();
+      void viewRef.current?.goLeft?.();
+      return;
+    }
+
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
 
     if (event.key.toLowerCase() === "c") {
       event.preventDefault();
@@ -631,16 +657,7 @@ export function FoliateReaderView({
       event.preventDefault();
       void goToAdjacentChapter(1);
     }
-    // Page turning. Left/right are direction-aware (RTL-correct); the vertical
-    // keys and space map to forward/back directly.
-    if (event.key === "ArrowRight") {
-      event.preventDefault();
-      void viewRef.current?.goRight?.();
-    }
-    if (event.key === "ArrowLeft") {
-      event.preventDefault();
-      void viewRef.current?.goLeft?.();
-    }
+    // Vertical keys and space map to forward/back directly.
     if (event.key === "ArrowDown" || event.key === "PageDown") {
       event.preventDefault();
       void turnPage(1);

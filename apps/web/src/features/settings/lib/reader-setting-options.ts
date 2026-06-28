@@ -1,6 +1,5 @@
 import type {
   ReaderContentWidth,
-  ReaderFontFamily,
   ReaderFontSize,
   ReaderLineSpacing,
   ReaderMargins,
@@ -13,13 +12,9 @@ import type {
 /**
  * Shared option lists for the reader appearance controls. Consumed by both the
  * global Reading settings panel and the in-reader appearance popover so the two
- * surfaces stay in lockstep.
+ * surfaces stay in lockstep. (The font picker is its own component — see
+ * `FontField` — because its options are dynamic.)
  */
-
-export const FONT_FAMILY_OPTIONS: { value: ReaderFontFamily; label: string }[] = [
-  { value: "sans", label: "Sans" },
-  { value: "serif", label: "Serif" },
-];
 
 export const FONT_SIZE_OPTIONS: { value: ReaderFontSize; label: string }[] = [
   { value: "x-small", label: "XS" },

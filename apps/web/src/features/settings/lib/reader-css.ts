@@ -1,11 +1,47 @@
 import type { CSSProperties } from "react";
-import type { ReaderContentWidth, ReaderSettings } from "./reader-settings";
+import {
+  curatedFontId,
+  systemFontFamily,
+  type ReaderContentWidth,
+  type ReaderFontFamily,
+  type ReaderSettings,
+} from "./reader-settings";
+import { curatedFallback, getCuratedFont } from "./curated-fonts";
 
-const FONT_FAMILY_MAP = {
-  sans: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-  serif:
-    '"Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, Cambria, "Times New Roman", serif',
-} as const;
+// Trailing fallbacks after a user-picked system family, so a missing glyph (or a
+// font that was later uninstalled) lands on a readable default.
+const SYSTEM_FONT_FALLBACK = "ui-sans-serif, system-ui, sans-serif";
+const DEFAULT_FONT_STACK = `ui-sans-serif, system-ui, ${SYSTEM_FONT_FALLBACK}`;
+
+/** Strip characters that could break out of the `font-family` declaration. */
+function sanitizeFamily(family: string): string {
+  return family.replace(/["\\;{}<>]/g, "").trim();
+}
+
+/**
+ * Resolve a stored font selection to a CSS `font-family` stack. Curated and
+ * system families are quoted and sanitized — the value is interpolated into a
+ * stylesheet we inject into the foliate iframe, so it must not be able to break
+ * out of the declaration. (Whether the curated webfont is actually loaded is the
+ * loader's concern; this only names it.)
+ */
+export function resolveReaderFontStack(fontFamily: ReaderFontFamily): string {
+  const curatedId = curatedFontId(fontFamily);
+  if (curatedId) {
+    const font = getCuratedFont(curatedId);
+    if (font) {
+      const safe = sanitizeFamily(font.family);
+      if (safe) return `"${safe}", ${curatedFallback(font.kind)}`;
+    }
+    return DEFAULT_FONT_STACK;
+  }
+  const family = systemFontFamily(fontFamily);
+  if (family) {
+    const safe = sanitizeFamily(family);
+    if (safe) return `"${safe}", ${SYSTEM_FONT_FALLBACK}`;
+  }
+  return DEFAULT_FONT_STACK;
+}
 
 const FONT_SIZE_MAP = {
   "x-small": "0.875rem",
@@ -80,8 +116,15 @@ export const READER_THEME_BG = {
   dark: "#1c1917",
 } as const;
 
-export function buildReaderContentCss(settings: ReaderSettings): string {
-  const fontFamily = FONT_FAMILY_MAP[settings.fontFamily];
+/**
+ * Build the stylesheet injected into the foliate section iframe.
+ *
+ * `fontFaceCss` carries the `@font-face` rules for the active curated font (with
+ * its on-demand blob URLs) so the book renders in that webfont; it's empty for
+ * system/preset fonts, which need no @font-face. See `curated-font-loader`.
+ */
+export function buildReaderContentCss(settings: ReaderSettings, fontFaceCss = ""): string {
+  const fontFamily = resolveReaderFontStack(settings.fontFamily);
   const fontSize = FONT_SIZE_MAP[settings.fontSize];
   const lineHeight = LINE_HEIGHT_MAP[settings.lineSpacing];
   const paragraphSpacing = PARAGRAPH_SPACING_MAP[settings.paragraphSpacing];
@@ -90,6 +133,7 @@ export function buildReaderContentCss(settings: ReaderSettings): string {
   const justified = settings.textAlign === "justify";
 
   return `
+    ${fontFaceCss}
     html {
       background: ${theme.bg} !important;
     }
@@ -178,7 +222,7 @@ export function getReaderPreviewStyle(settings: ReaderSettings): CSSProperties {
   return {
     backgroundColor: theme.bg,
     color: theme.text,
-    fontFamily: FONT_FAMILY_MAP[settings.fontFamily],
+    fontFamily: resolveReaderFontStack(settings.fontFamily),
     fontSize: FONT_SIZE_MAP[settings.fontSize],
     lineHeight: LINE_HEIGHT_MAP[settings.lineSpacing],
     textAlign: settings.textAlign === "justify" ? "justify" : "start",

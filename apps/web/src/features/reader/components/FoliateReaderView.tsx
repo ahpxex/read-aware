@@ -54,7 +54,8 @@ import { suppressNativeContextMenu } from "../../../platform/environment";
 import { useDelayedFlag } from "../hooks/useDelayedFlag";
 import { buildReaderContentCss, computeReaderMaxInlineSize } from "../../settings/lib/reader-css";
 import type { ReaderSettings, ReadingMode } from "../../settings/lib/reader-settings";
-import { DEFAULT_READER_SETTINGS } from "../../settings/lib/reader-settings";
+import { curatedFontId, DEFAULT_READER_SETTINGS } from "../../settings/lib/reader-settings";
+import { ensureCuratedFontFaceCss } from "../../settings/lib/curated-font-loader";
 
 type FoliateReaderViewProps = {
   selectedBook?: LibraryBook | null;
@@ -319,12 +320,27 @@ export function FoliateReaderView({
     renderer.setAttribute("max-inline-size", `${px}px`);
   }, []);
 
+  // Inject the reader stylesheet, first ensuring the active curated webfont is
+  // downloaded so its @font-face (with on-demand blob URLs) ships in the same
+  // CSS. System/preset fonts need no @font-face, so they apply immediately.
+  const injectReaderStyles = useCallback(
+    async (
+      settings: ReaderSettings,
+      renderer = viewRef.current?.renderer,
+    ) => {
+      const id = curatedFontId(settings.fontFamily);
+      const fontFaceCss = id ? await ensureCuratedFontFaceCss(id).catch(() => "") : "";
+      renderer?.setStyles?.(buildReaderContentCss(settings, fontFaceCss));
+    },
+    [],
+  );
+
   // Settings change -> re-inject reader CSS and refresh the text measure.
   useEffect(() => {
     readerSettingsRef.current = readerSettings;
-    viewRef.current?.renderer?.setStyles?.(buildReaderContentCss(readerSettings));
+    void injectReaderStyles(readerSettings);
     applyReaderMaxInlineSize();
-  }, [readerSettings, applyReaderMaxInlineSize]);
+  }, [readerSettings, applyReaderMaxInlineSize, injectReaderStyles]);
 
   useEffect(() => { loadedBookRef.current = initialBook; }, [initialBook]);
   useEffect(() => { tocEntriesRef.current = tocEntries; }, [tocEntries]);
@@ -953,7 +969,7 @@ export function FoliateReaderView({
             readerRootRef.current?.clientWidth ?? window.innerWidth,
           )}px`,
         );
-        view.renderer?.setStyles?.(buildReaderContentCss(readerSettingsRef.current));
+        void injectReaderStyles(readerSettingsRef.current, view.renderer);
         // Glide page turns / arrow-key scrolls instead of snapping (unless motion
         // is reduced). The runtime watcher effect keeps this in sync afterwards.
         syncRendererAnimated(view.renderer);

@@ -4,7 +4,46 @@ const STORAGE_KEY = "read-aware-reader-settings";
 export type ReaderTheme = "light" | "warm" | "dark";
 /** Stored page-color preference — `auto` follows the resolved app theme. */
 export type ReaderThemePreference = ReaderTheme | "auto";
-export type ReaderFontFamily = "sans" | "serif";
+/**
+ * The reader's body font. Two sources:
+ * - `curated:<id>` — one of our curated reading fonts, fetched and cached on
+ *   demand the first time it's used (see `curated-font-loader`).
+ * - `system:<family>` — a specific family installed on the user's device.
+ */
+export type ReaderFontFamily = `curated:${string}` | `system:${string}`;
+
+export const CURATED_FONT_PREFIX = "curated:";
+export const SYSTEM_FONT_PREFIX = "system:";
+
+/** True when `font` is one of the curated reading fonts. */
+export function isCuratedFont(font: ReaderFontFamily): font is `curated:${string}` {
+  return font.startsWith(CURATED_FONT_PREFIX);
+}
+
+/** True when `font` names a user-picked installed family. */
+export function isSystemFont(font: ReaderFontFamily): font is `system:${string}` {
+  return font.startsWith(SYSTEM_FONT_PREFIX);
+}
+
+/** The curated font id behind a `curated:` selection, or `null` otherwise. */
+export function curatedFontId(font: ReaderFontFamily): string | null {
+  return isCuratedFont(font) ? font.slice(CURATED_FONT_PREFIX.length) : null;
+}
+
+/** The bare family name behind a `system:` font, or `null` otherwise. */
+export function systemFontFamily(font: ReaderFontFamily): string | null {
+  return isSystemFont(font) ? font.slice(SYSTEM_FONT_PREFIX.length) : null;
+}
+
+/** Tag a curated font id as a reader font selection. */
+export function toCuratedFont(id: string): `curated:${string}` {
+  return `${CURATED_FONT_PREFIX}${id}`;
+}
+
+/** Tag an installed family name as a reader font selection. */
+export function toSystemFont(family: string): `system:${string}` {
+  return `${SYSTEM_FONT_PREFIX}${family}`;
+}
 export type ReaderFontSize = "x-small" | "small" | "medium" | "large" | "x-large";
 export type ReaderLineSpacing = "compact" | "comfortable" | "relaxed";
 export type ReaderParagraphSpacing = "tight" | "normal" | "loose";
@@ -42,7 +81,7 @@ export type ReaderSettingsPreferences = Omit<ReaderSettings, "theme"> & {
 
 export const DEFAULT_READER_SETTINGS: ReaderSettings = {
   theme: "warm",
-  fontFamily: "sans",
+  fontFamily: "curated:inter",
   fontSize: "medium",
   lineSpacing: "comfortable",
   paragraphSpacing: "normal",
@@ -57,6 +96,22 @@ export const DEFAULT_READER_PREFERENCES: ReaderSettingsPreferences = {
   theme: "warm",
 };
 
+/** Coerce a persisted font value to a valid selection, migrating legacy presets. */
+function normalizeFontFamily(value: unknown): ReaderFontFamily {
+  if (typeof value === "string") {
+    // Legacy presets predate the curated/system split.
+    if (value === "sans") return "curated:inter";
+    if (value === "serif") return "curated:literata";
+    if (value.startsWith(CURATED_FONT_PREFIX) && value.length > CURATED_FONT_PREFIX.length) {
+      return value as `curated:${string}`;
+    }
+    if (value.startsWith(SYSTEM_FONT_PREFIX) && value.length > SYSTEM_FONT_PREFIX.length) {
+      return value as `system:${string}`;
+    }
+  }
+  return DEFAULT_READER_SETTINGS.fontFamily;
+}
+
 export function getReaderPreferences(): ReaderSettingsPreferences {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -64,7 +119,7 @@ export function getReaderPreferences(): ReaderSettingsPreferences {
     const parsed = JSON.parse(raw) as Partial<ReaderSettingsPreferences>;
     return {
       theme: parsed.theme ?? DEFAULT_READER_PREFERENCES.theme,
-      fontFamily: parsed.fontFamily ?? DEFAULT_READER_PREFERENCES.fontFamily,
+      fontFamily: normalizeFontFamily(parsed.fontFamily),
       fontSize: parsed.fontSize ?? DEFAULT_READER_PREFERENCES.fontSize,
       lineSpacing: parsed.lineSpacing ?? DEFAULT_READER_PREFERENCES.lineSpacing,
       paragraphSpacing: parsed.paragraphSpacing ?? DEFAULT_READER_PREFERENCES.paragraphSpacing,

@@ -2,7 +2,6 @@ import { TextAa } from "@phosphor-icons/react";
 import { Caption, ChoiceGroup, Divider, Popover } from "@read-aware/ui";
 import {
   CONTENT_WIDTH_OPTIONS,
-  FONT_FAMILY_OPTIONS,
   FONT_SIZE_OPTIONS,
   LINE_SPACING_OPTIONS,
   MARGINS_OPTIONS,
@@ -11,6 +10,7 @@ import {
   READING_MODE_OPTIONS,
   TEXT_ALIGN_OPTIONS,
 } from "../../settings/lib/reader-setting-options";
+import { FontField } from "../../settings/components/FontField";
 import {
   useReaderAppearance,
   type ReaderAppearanceScope,
@@ -74,10 +74,8 @@ export function ReaderAppearanceMenu({
           options={PAGE_COLOR_OPTIONS}
           onChange={(theme) => updatePrefs({ ...prefs, theme })}
         />
-        <ChoiceGroup
-          label="Font"
+        <FontField
           value={prefs.fontFamily}
-          options={FONT_FAMILY_OPTIONS}
           onChange={(fontFamily) => updatePrefs({ ...prefs, fontFamily })}
         />
         <ChoiceGroup

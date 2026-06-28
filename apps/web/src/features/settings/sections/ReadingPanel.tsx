@@ -1,12 +1,12 @@
 import { useAtom, useAtomValue } from "jotai";
 import { ChoiceGroup, Stack } from "@read-aware/ui";
 import { effectiveReaderSettingsAtom, readerPreferencesAtom } from "../../../state/ui";
+import { FontField } from "../components/FontField";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { getReaderPreviewStyle } from "../lib/reader-css";
 import {
   CONTENT_WIDTH_OPTIONS,
-  FONT_FAMILY_OPTIONS,
   FONT_SIZE_OPTIONS,
   LINE_SPACING_OPTIONS,
   MARGINS_OPTIONS,
@@ -25,14 +25,18 @@ export function ReadingPanel() {
       title="Reading"
       description="How books render on the page. Changes apply live to the reader."
     >
-      <ReadingPreview style={getReaderPreviewStyle(effective)} />
+      {/* Live preview pinned to the top of the scroll area, so every control
+          below shows its effect without scrolling back up. The negative margins
+          bleed the opaque backdrop to the panel edges, covering controls that
+          scroll underneath. */}
+      <div className="sticky top-0 z-10 -mx-6 bg-[var(--ra-main-surface-color)] px-6 pb-4 sm:-mx-10 sm:px-10">
+        <ReadingPreview style={getReaderPreviewStyle(effective)} />
+      </div>
 
       <SettingsGroup title="Typography">
         <Stack gap="lg">
-          <ChoiceGroup
-            label="Font"
+          <FontField
             value={prefs.fontFamily}
-            options={FONT_FAMILY_OPTIONS}
             onChange={(fontFamily) => setPrefs({ ...prefs, fontFamily })}
           />
           <ChoiceGroup

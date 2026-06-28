@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { Cards, GearSix, MagnifyingGlass, Plus } from "@phosphor-icons/react";
+import { Cards, ChartLineUp, GearSix, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { IconButton, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import type { TopNav } from "../../../state/ui";
@@ -33,6 +33,7 @@ export function AppHeader({
   viewControl,
 }: AppHeaderProps) {
   const contextActive = activeTopNav === "context";
+  const statsActive = activeTopNav === "stats";
 
   return (
     <header className="shrink-0 border-b border-border bg-[var(--ra-main-surface-color)]">
@@ -72,6 +73,19 @@ export function AppHeader({
                 contextActive ? "text-fg" : "text-fg-muted hover:text-fg",
               )}
               icon={<Cards size={16} weight={contextActive ? "fill" : "regular"} aria-hidden="true" />}
+            />
+          </Tooltip>
+          <Tooltip content="Reading stats" side="bottom">
+            <IconButton
+              label="Reading stats"
+              size="sm"
+              aria-pressed={statsActive}
+              onClick={() => onTopNavChange(statsActive ? "shelf" : "stats")}
+              className={cn(
+                "relative before:absolute before:-inset-1 before:content-['']",
+                statsActive ? "text-fg" : "text-fg-muted hover:text-fg",
+              )}
+              icon={<ChartLineUp size={16} weight={statsActive ? "fill" : "regular"} aria-hidden="true" />}
             />
           </Tooltip>
           <Tooltip content="Settings" side="bottom">

@@ -8,6 +8,7 @@ import { BOOK_FILE_ACCEPT } from "./features/library/lib/pick-book-files";
 import { AppHeader } from "./features/navigation/components/AppHeader";
 import { ShelfViewMenu } from "./features/shelf/components/ShelfViewMenu";
 import { ReaderWorkspace } from "./features/reader/components/ReaderWorkspace";
+import { StatsWorkspace } from "./features/stats/components/StatsWorkspace";
 import { useReaderSession } from "./features/reader/hooks/useReaderSession";
 import { useGlobalShortcuts } from "./features/settings/hooks/useGlobalShortcuts";
 import { SettingsDialog } from "./features/settings/SettingsDialog";
@@ -104,8 +105,10 @@ function App() {
                 onOpenBook={reader.openReader}
                 onRemoveBook={library.handleRemoveBook}
               />
-            ) : (
+            ) : activeTopNav === "context" ? (
               <ContextWorkspace books={library.books} onOpenBook={reader.openReader} />
+            ) : (
+              <StatsWorkspace books={library.books} onOpenBook={reader.openReader} />
             )}
           </ScrollArea>
 

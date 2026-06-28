@@ -1,18 +1,6 @@
-import { Button, Dialog } from "@read-aware/ui";
+import { Button, Dialog, Divider } from "@read-aware/ui";
 import type { LibraryBook } from "../../library/lib/library-types";
-
-function formatLastOpenedAt(lastOpenedAt: string | null) {
-  if (!lastOpenedAt) return "Not opened yet";
-
-  try {
-    return new Intl.DateTimeFormat(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(new Date(lastOpenedAt));
-  } catch {
-    return lastOpenedAt;
-  }
-}
+import { BookStatsPanel } from "../../stats/components/BookStatsPanel";
 
 type BookDetailsDialogProps = {
   book: LibraryBook;
@@ -20,26 +8,34 @@ type BookDetailsDialogProps = {
   onClose: () => void;
 };
 
-/** Read-only metadata for a book. Shared by the grid cover and the list row. */
+/**
+ * Book metadata plus detailed reading statistics. Shared by the grid cover and
+ * the list row. The metadata list stays minimal; progress, streaks, time
+ * dimensions, notes/highlights, and the calendar heatmap live in `BookStatsPanel`.
+ */
 export function BookDetailsDialog({ book, open, onClose }: BookDetailsDialogProps) {
   return (
-    <Dialog open={open} onClose={onClose} title="Book details">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title="Book details"
+      className="max-w-xl max-h-[85vh] overflow-y-auto p-6"
+    >
       <div className="space-y-3">
-        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-fg-muted">
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-fg-muted">
           <dt className="font-medium text-fg-muted">Title</dt>
-          <dd>{book.title}</dd>
+          <dd className="truncate">{book.title}</dd>
           <dt className="font-medium text-fg-muted">Author</dt>
-          <dd>{book.author}</dd>
+          <dd className="truncate">{book.author}</dd>
           <dt className="font-medium text-fg-muted">Format</dt>
           <dd className="uppercase">{book.format}</dd>
-          <dt className="font-medium text-fg-muted">File</dt>
-          <dd>{book.fileName}</dd>
-          <dt className="font-medium text-fg-muted">Progress</dt>
-          <dd>{book.progressPercent > 0 ? `${Math.round(book.progressPercent)}%` : "Not started"}</dd>
-          <dt className="font-medium text-fg-muted">Last opened</dt>
-          <dd>{formatLastOpenedAt(book.lastOpenedAt)}</dd>
         </dl>
-        <div className="flex justify-end">
+
+        <Divider />
+
+        <BookStatsPanel book={book} />
+
+        <div className="flex justify-end pt-1">
           <Button variant="ghost" size="sm" onClick={onClose}>
             Close
           </Button>

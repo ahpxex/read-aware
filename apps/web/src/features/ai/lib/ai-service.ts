@@ -302,33 +302,6 @@ export async function sendChatCompletionStreaming(
   return { content: fullContent };
 }
 
-// Simple non-streaming chat for quick questions
-export async function askAI(question: string, context?: string): Promise<string> {
-  const messages: ChatMessage[] = [
-    {
-      role: "system",
-      content:
-        "You are a thoughtful reading assistant. Help the user understand and reflect on what they're reading. " +
-        "Be concise but insightful. Don't summarize; instead, ask questions that deepen understanding.",
-    },
-  ];
-
-  if (context) {
-    messages.push({
-      role: "user",
-      content: `I'm reading this text:\n\n"${context}"\n\n${question}`,
-    });
-  } else {
-    messages.push({
-      role: "user",
-      content: question,
-    });
-  }
-
-  const response = await sendChatCompletion({ messages, temperature: 0.7 });
-  return response.content;
-}
-
 // Check if AI is configured and the key seems valid (basic check)
 export function isAIConfigured(): boolean {
   const config = getAIConfig();

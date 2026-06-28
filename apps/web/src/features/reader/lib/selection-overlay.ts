@@ -36,28 +36,3 @@ export function getSelectionOverlayRects(range: Range) {
       height: rect.height,
     }));
 }
-
-export function paintSelectionOverlay(
-  root: HTMLElement,
-  ownerDocument: Document,
-  rects: SelectionOverlayRect[],
-  rectClassName: string,
-) {
-  root.replaceChildren();
-
-  if (rects.length === 0) return;
-
-  const fragment = ownerDocument.createDocumentFragment();
-
-  for (const rect of rects) {
-    const element = ownerDocument.createElement("div");
-    element.className = rectClassName;
-    element.style.left = `${rect.left}px`;
-    element.style.top = `${rect.top}px`;
-    element.style.width = `${rect.width}px`;
-    element.style.height = `${rect.height}px`;
-    fragment.append(element);
-  }
-
-  root.append(fragment);
-}

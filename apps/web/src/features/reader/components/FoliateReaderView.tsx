@@ -215,6 +215,42 @@ function clampRectToViewport(
   return { left: clippedLeft, top: clippedTop, width, height };
 }
 
+const INTERACTIVE_TAGS = new Set([
+  "a",
+  "button",
+  "input",
+  "textarea",
+  "select",
+  "label",
+  "summary",
+]);
+
+/**
+ * Whether a tap landed on (or inside) an interactive element. The target comes
+ * from the section iframe — a separate realm — so `instanceof Element` is always
+ * false here; we duck-type on `nodeType`/`localName` and walk the ancestor chain.
+ * (And `closest("a, …")` wouldn't help anyway: book content is XHTML, where a
+ * bare type selector doesn't match the namespaced anchor.) Without this, link
+ * taps fall through to the tap-to-toggle-shell handler.
+ */
+type DomLikeNode = {
+  nodeType: number;
+  localName?: string;
+  parentElement?: DomLikeNode | null;
+  getAttribute?: (name: string) => string | null;
+};
+
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  let node = target as DomLikeNode | null;
+  while (node && node.nodeType === 1) {
+    if (INTERACTIVE_TAGS.has(node.localName?.toLowerCase() ?? "")) return true;
+    const role = node.getAttribute?.("role");
+    if (role === "link" || role === "button") return true;
+    node = node.parentElement ?? null;
+  }
+  return false;
+}
+
 /** Human label for the eyebrow on the footnote popover, by reference type. */
 function footnoteLabel(type: string | null): string {
   switch (type) {
@@ -379,15 +415,23 @@ export function FoliateReaderView({
     const onRender = (event: Event) => {
       const detail = (event as CustomEvent<FoliateFootnoteRenderDetail>).detail;
       const doc = detail.view.renderer?.getContents?.()?.[0]?.doc;
-      const text = (doc?.body?.textContent ?? "").replace(/\s+/g, " ").trim();
+      const text = (doc?.body?.textContent ?? "")
+        .replace(/\s+/g, " ")
+        .trim()
+        // Drop the leading marker the source repeats ("[150]", "150.", "12) ")…
+        .replace(/^\[?\d+\]?[.):\s]+/, "")
+        // …and a trailing back-reference glyph, if any.
+        .replace(/\s*[↩↵⮌⤴]︎?\s*$/u, "")
+        .trim();
+      // Done with the engine's view — detach it from the stage and tear it down.
+      footnoteStageRef.current?.replaceChildren();
+      detail.view.renderer?.destroy?.();
+      if (!text) return;
       setFootnote({
         anchorRect: footnoteAnchorRectRef.current,
         label: footnoteLabel(detail.type),
         text,
       });
-      // Done with the engine's view — detach it from the stage and tear it down.
-      footnoteStageRef.current?.replaceChildren();
-      detail.view.renderer?.destroy?.();
     };
 
     void createFootnoteHandler().then((created) => {
@@ -871,12 +915,9 @@ export function FoliateReaderView({
       if (!shouldOpenShellOnClickRef.current) return;
       shouldOpenShellOnClickRef.current = false;
 
-      // Let in-book links and controls handle their own taps.
-      const target = event.target;
-      if (
-        target instanceof Element &&
-        target.closest("a, button, input, textarea, select, label, summary, [role='link'], [role='button']")
-      ) {
+      // Let in-book links and controls handle their own taps. (Book content is
+      // XHTML, so match by localName rather than a `closest("a, …")` selector.)
+      if (isInteractiveTarget(event.target)) {
         return;
       }
 

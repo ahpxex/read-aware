@@ -19,7 +19,13 @@ export type ShortcutId =
   | "prev-page"
   | "next-chapter"
   | "prev-chapter"
-  | "toggle-controls";
+  | "toggle-controls"
+  | "selection-copy"
+  | "selection-highlight"
+  | "selection-underline"
+  | "selection-add-note"
+  | "selection-look-up"
+  | "selection-ask-ai";
 
 export type EditableShortcut = {
   id: ShortcutId;
@@ -52,6 +58,15 @@ export const EDITABLE_SHORTCUTS: EditableShortcut[] = [
   { id: "next-chapter", category: "Reading", label: "Next chapter", defaultBinding: { key: "]" } },
   { id: "prev-chapter", category: "Reading", label: "Previous chapter", defaultBinding: { key: "[" } },
   { id: "toggle-controls", category: "Reading", label: "Toggle reader controls", defaultBinding: { key: " " } },
+  // Selection actions fire only while text is selected in the reader (the
+  // selection menu is up), so a bare letter is safe — it can't collide with
+  // typing or with the reading shortcuts above.
+  { id: "selection-copy", category: "Selection", label: "Copy", defaultBinding: { key: "c" } },
+  { id: "selection-highlight", category: "Selection", label: "Highlight", defaultBinding: { key: "h" } },
+  { id: "selection-underline", category: "Selection", label: "Underline", defaultBinding: { key: "u" } },
+  { id: "selection-add-note", category: "Selection", label: "Add note", defaultBinding: { key: "n" } },
+  { id: "selection-look-up", category: "Selection", label: "Look up", defaultBinding: { key: "l" } },
+  { id: "selection-ask-ai", category: "Selection", label: "Ask AI", defaultBinding: { key: "a" } },
 ];
 
 /** Fixed, non-rebindable shortcuts shown for reference. */

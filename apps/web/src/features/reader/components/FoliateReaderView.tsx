@@ -44,6 +44,7 @@ import { ReaderPageTurnControls } from "./ReaderPageTurnControls";
 import { ReaderSelectionMenu } from "./ReaderSelectionMenu";
 import { NoteEditor } from "../../annotations/components/NoteEditor";
 import { AIChatPanel } from "../../ai/components/AIChatPanel";
+import { isAIConfigured } from "../../ai/lib/ai-service";
 import type { Note, AIChat, Highlight } from "../../annotations/lib/annotation-types";
 import {
   createHighlight,
@@ -290,6 +291,17 @@ export function FoliateReaderView({
   const tocEntriesRef = useRef<TocEntry[]>([]);
   const currentChapterHrefRef = useRef<string | null>(null);
   const selectionRef = useRef<ReaderSelectionState | null>(null);
+  // Latest selection-menu actions, kept in a ref so the stable key handler can
+  // invoke them without depending on these per-render closures (which would
+  // re-subscribe the keydown listeners and tear down the engine).
+  const selectionActionsRef = useRef<{
+    copy: () => void;
+    highlight: () => void;
+    underline: () => void;
+    addNote: () => void;
+    lookUp: () => void;
+    askAI: () => void;
+  } | null>(null);
   const clearNativeSelectionRef = useRef<(() => void) | null>(null);
   const suppressContentClickRef = useRef(false);
   const suppressContentClickTimeoutRef = useRef<number | null>(null);
@@ -784,6 +796,45 @@ export function FoliateReaderView({
       return;
     }
 
+    // Selection actions — only while text is selected (the selection menu is
+    // up). Checked before the modifier guard so a rebinding may include
+    // modifiers. Mirrors the menu's gating: annotation actions need annotations
+    // allowed (not a fixed-layout PDF); Ask AI needs AI configured.
+    const selectionActions = selectionActionsRef.current;
+    if (selectionRef.current && selectionActions) {
+      const annotationsAllowed = !isFixedLayoutRef.current;
+      if (chordMatchesEvent(resolveBinding("selection-copy", bindings), event)) {
+        event.preventDefault();
+        selectionActions.copy();
+        return;
+      }
+      if (annotationsAllowed && chordMatchesEvent(resolveBinding("selection-highlight", bindings), event)) {
+        event.preventDefault();
+        selectionActions.highlight();
+        return;
+      }
+      if (annotationsAllowed && chordMatchesEvent(resolveBinding("selection-underline", bindings), event)) {
+        event.preventDefault();
+        selectionActions.underline();
+        return;
+      }
+      if (annotationsAllowed && chordMatchesEvent(resolveBinding("selection-add-note", bindings), event)) {
+        event.preventDefault();
+        selectionActions.addNote();
+        return;
+      }
+      if (chordMatchesEvent(resolveBinding("selection-look-up", bindings), event)) {
+        event.preventDefault();
+        selectionActions.lookUp();
+        return;
+      }
+      if (isAIConfigured() && chordMatchesEvent(resolveBinding("selection-ask-ai", bindings), event)) {
+        event.preventDefault();
+        selectionActions.askAI();
+        return;
+      }
+    }
+
     if (event.metaKey || event.ctrlKey || event.altKey) return;
 
     if (event.key === "Escape") {
@@ -799,6 +850,25 @@ export function FoliateReaderView({
       void turnPage(-1);
     }
   }, [clearSelection, goToAdjacentChapter, turnPage]);
+
+  // Keep the key handler's view of the selection actions current. These handlers
+  // are plain per-render closures over the live `selection`; refreshing the ref
+  // every render hands the stable key handler the latest ones with no staleness.
+  // Copy also clears the selection so a keyboard copy gives the same "done"
+  // feedback (menu dismissed) the other actions do; the rest clear themselves.
+  useEffect(() => {
+    selectionActionsRef.current = {
+      copy: () => {
+        void copyTargetText(selectionRef.current?.text ?? "");
+        clearSelection();
+      },
+      highlight: () => void handleHighlight(),
+      underline: handleUnderline,
+      addNote: handleAddNote,
+      lookUp: handleLookUp,
+      askAI: handleAskAI,
+    };
+  });
 
   // ----- per-section listeners (attached on each `load`) --------------------
 

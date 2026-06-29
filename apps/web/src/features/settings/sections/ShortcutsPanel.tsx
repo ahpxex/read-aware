@@ -18,7 +18,12 @@ import {
   type ShortcutId,
 } from "../lib/shortcuts";
 
-const CATEGORIES = ["Global", "Reading", "Overlays"] as const;
+const CATEGORIES = ["Global", "Reading", "Selection", "Overlays"] as const;
+
+/** Per-category helper text shown under the group title, where it helps. */
+const CATEGORY_DESCRIPTIONS: Partial<Record<(typeof CATEGORIES)[number], string>> = {
+  Selection: "Active while text is selected in the reader.",
+};
 
 function KeyTokens({ tokens }: { tokens: string[] }) {
   return (
@@ -84,7 +89,11 @@ export function ShortcutsPanel() {
         if (!editable.length && !info.length) return null;
 
         return (
-          <SettingsGroup key={category} title={category}>
+          <SettingsGroup
+            key={category}
+            title={category}
+            description={CATEGORY_DESCRIPTIONS[category]}
+          >
             {editable.map((shortcut, index) => {
               const binding = resolveBinding(shortcut.id, bindings);
               const overridden = bindings[shortcut.id] !== undefined;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { ScrollArea } from "@read-aware/ui";
 import { ContextWorkspace } from "./features/context/components/ContextWorkspace";
 import { LibraryWorkspace } from "./features/library/components/LibraryWorkspace";
@@ -12,8 +12,15 @@ import { StatsWorkspace } from "./features/stats/components/StatsWorkspace";
 import { useReaderSession } from "./features/reader/hooks/useReaderSession";
 import { useGlobalShortcuts } from "./features/settings/hooks/useGlobalShortcuts";
 import { SettingsDialog } from "./features/settings/SettingsDialog";
-import { BookSearchModal } from "./features/library/components/BookSearchModal";
-import { activeCollectionAtom, activeTopNavAtom, settingsOpenAtom, shelfSelectionAtom } from "./state/ui";
+import { CommandPalette } from "./features/command/components/CommandPalette";
+import type { CommandContext } from "./features/command/lib/build-commands";
+import {
+  activeCollectionAtom,
+  activeTopNavAtom,
+  settingsOpenAtom,
+  shelfSelectionAtom,
+  shelfViewAtom,
+} from "./state/ui";
 
 function App() {
   const [searchModalOpen, setSearchModalOpen] = useState(false);
@@ -32,7 +39,9 @@ function App() {
 
   const [activeTopNav, setActiveTopNav] = useAtom(activeTopNavAtom);
   const [activeCollectionId, setActiveCollectionId] = useAtom(activeCollectionAtom);
+  const [shelfView, setShelfView] = useAtom(shelfViewAtom);
   const shelfSelecting = useAtomValue(shelfSelectionAtom).active;
+  const setShelfSelection = useSetAtom(shelfSelectionAtom);
   const library = useLibraryController();
   const reader = useReaderSession({
     applyOptimisticProgress: library.applyOptimisticProgress,
@@ -68,9 +77,44 @@ function App() {
     setActiveCollectionId,
   ]);
 
-  // Handle book selection from search modal
-  const handleSelectBookFromSearch = (book: typeof library.books[0]) => {
-    reader.openReader(book);
+  const commandContext: CommandContext = {
+    activeTopNav,
+    shelfView,
+    collections: library.collections,
+    books: library.books,
+    openBook: (book) => reader.openReader(book),
+    openCollection: (id) => {
+      setActiveTopNav("shelf");
+      setActiveCollectionId(id);
+    },
+    goShelf: () => {
+      setActiveTopNav("shelf");
+      setActiveCollectionId(null);
+    },
+    goContext: () => setActiveTopNav("context"),
+    goStats: () => setActiveTopNav("stats"),
+    openSettings: () => setSettingsOpen(true),
+    importBook: () => {
+      setActiveTopNav("shelf");
+      library.openImportPicker();
+    },
+    startSelection: () => {
+      setActiveTopNav("shelf");
+      setActiveCollectionId(null);
+      setShelfSelection({ active: true, ids: [] });
+    },
+    setLayout: (layout) => {
+      setActiveTopNav("shelf");
+      setShelfView({ ...shelfView, layout });
+    },
+    setSort: (sort) => {
+      setActiveTopNav("shelf");
+      setShelfView({ ...shelfView, sort });
+    },
+    setGroup: (group) => {
+      setActiveTopNav("shelf");
+      setShelfView({ ...shelfView, group });
+    },
   };
 
   return (
@@ -149,11 +193,10 @@ function App() {
             )}
           </ScrollArea>
 
-          <BookSearchModal
+          <CommandPalette
             isOpen={searchModalOpen}
-            books={library.books}
             onClose={() => setSearchModalOpen(false)}
-            onSelectBook={handleSelectBookFromSearch}
+            ctx={commandContext}
           />
         </main>
       )}

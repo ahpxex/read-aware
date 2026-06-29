@@ -40,6 +40,7 @@ import {
 import { ReaderAnnotationMenu } from "./ReaderAnnotationMenu";
 import { ReaderDictionaryModal } from "./ReaderDictionaryModal";
 import { ReaderFootnotePopover } from "./ReaderFootnotePopover";
+import { ReaderPageTurnControls } from "./ReaderPageTurnControls";
 import { ReaderSelectionMenu } from "./ReaderSelectionMenu";
 import { NoteEditor } from "../../annotations/components/NoteEditor";
 import { AIChatPanel } from "../../ai/components/AIChatPanel";
@@ -103,9 +104,6 @@ const SHELL_TAP_MAX_MOVE_PX = 6;
 // click — or the resulting selection — can cancel it, instead of the shell
 // flashing up mid-selection. A genuine single tap just toggles after the wait.
 const SHELL_TOGGLE_DBLCLICK_GUARD_MS = 250;
-// Fraction of the page width on each edge that acts as a page-turn tap zone;
-// the remaining center band toggles the reader shell.
-const TAP_TURN_ZONE_RATIO = 0.3;
 // Cross-fade timing for section crossing: fade the current section out, swap in
 // the next while hidden, fade it back in. Smooths the otherwise abrupt swap.
 // Keep SECTION_CROSS_FADE_MS in step with the viewport's transition duration.
@@ -719,11 +717,6 @@ export function FoliateReaderView({
     }
   }, [clearSelection, crossSection]);
 
-  // Kept in a ref so the per-section document listeners can call the latest
-  // `turnPage` without re-subscribing (which would tear down the engine).
-  const turnPageRef = useRef(turnPage);
-  useEffect(() => { turnPageRef.current = turnPage; }, [turnPage]);
-
   // ----- chapter navigation (refs so stable across renders) -----------------
 
   const goToChapter = useCallback(async (href: string) => {
@@ -921,36 +914,28 @@ export function FoliateReaderView({
         return;
       }
 
-      // Tap zones (paginated only): left edge turns back, right edge turns
-      // forward, center toggles the reader shell. In scroll mode every tap just
-      // toggles the shell, since scrolling — not tapping — drives navigation.
-      const paginated = readingModeRef.current !== "scroll";
-      const pageWidth = doc.documentElement.clientWidth || doc.body?.clientWidth || 0;
-      const x = (event as MouseEvent).clientX;
-      if (paginated && pageWidth > 0 && x < pageWidth * TAP_TURN_ZONE_RATIO) {
-        void turnPageRef.current(-1);
-      } else if (paginated && pageWidth > 0 && x > pageWidth * (1 - TAP_TURN_ZONE_RATIO)) {
-        void turnPageRef.current(1);
-      } else {
-        // Defer the chrome toggle: a double-click lands within the guard window
-        // (cancelled by the `dblclick` listener below) or leaves a selection
-        // behind, either of which suppresses the toggle so selecting a word no
-        // longer flashes the shell. A plain single tap toggles after the wait.
-        cancelPendingShellToggle();
-        pendingShellToggleTimerRef.current = window.setTimeout(() => {
-          pendingShellToggleTimerRef.current = null;
-          if (selectionRef.current) return;
-          const liveSelection = doc.defaultView?.getSelection?.();
-          if (
-            liveSelection &&
-            liveSelection.rangeCount > 0 &&
-            !liveSelection.getRangeAt(0).collapsed
-          ) {
-            return;
-          }
-          onContentClickRef.current?.();
-        }, SHELL_TOGGLE_DBLCLICK_GUARD_MS);
-      }
+      // A tap on book content only toggles the reader shell — it never turns
+      // the page. Page turns are explicit (the edge buttons or keyboard), so a
+      // stray click while reading can't cost you your place.
+      //
+      // Defer the chrome toggle: a double-click lands within the guard window
+      // (cancelled by the `dblclick` listener below) or leaves a selection
+      // behind, either of which suppresses the toggle so selecting a word no
+      // longer flashes the shell. A plain single tap toggles after the wait.
+      cancelPendingShellToggle();
+      pendingShellToggleTimerRef.current = window.setTimeout(() => {
+        pendingShellToggleTimerRef.current = null;
+        if (selectionRef.current) return;
+        const liveSelection = doc.defaultView?.getSelection?.();
+        if (
+          liveSelection &&
+          liveSelection.rangeCount > 0 &&
+          !liveSelection.getRangeAt(0).collapsed
+        ) {
+          return;
+        }
+        onContentClickRef.current?.();
+      }, SHELL_TOGGLE_DBLCLICK_GUARD_MS);
     }, true);
 
     // A double-click selects a word; cancel the toggle its first click queued so
@@ -1531,6 +1516,12 @@ export function FoliateReaderView({
     setCurrentChat(chat);
   }
 
+  // Paginated layouts (and fixed-layout PDFs, which always paginate) turn by
+  // explicit controls now; scroll mode turns by scrolling. Only surface the
+  // edge buttons once the book is actually on screen.
+  const showPageTurnControls =
+    (readingMode !== "scroll" || isFixedLayout) && !isLoading && !error;
+
   return (
     <section ref={readerRootRef} className="relative h-full w-full overflow-hidden">
       <div
@@ -1541,6 +1532,11 @@ export function FoliateReaderView({
           isCrossing ? "duration-150" : "duration-500",
           (isLoading || !!error || isCrossing) && "opacity-0",
         )}
+      />
+      <ReaderPageTurnControls
+        visible={showPageTurnControls}
+        onPrev={() => void turnPage(-1)}
+        onNext={() => void turnPage(1)}
       />
       <ReaderSelectionMenu
         selection={selection}

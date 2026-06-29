@@ -5,6 +5,13 @@ function recentTime(book: LibraryBook): number {
   return new Date(book.lastOpenedAt ?? book.updatedAt).getTime();
 }
 
+/** Starred books sort ahead of the rest, then fall back to the chosen order. */
+function withStarredFirst(
+  next: (a: LibraryBook, b: LibraryBook) => number,
+): (a: LibraryBook, b: LibraryBook) => number {
+  return (a, b) => Number(Boolean(b.starred)) - Number(Boolean(a.starred)) || next(a, b);
+}
+
 function comparator(sort: ShelfSort): (a: LibraryBook, b: LibraryBook) => number {
   switch (sort) {
     case "added":
@@ -40,7 +47,7 @@ function groupLabel(book: LibraryBook, group: ShelfGroup): string {
  * is preserved within each section.
  */
 export function deriveShelfView(books: LibraryBook[], view: ShelfView): ShelfSection[] {
-  const sorted = [...books].sort(comparator(view.sort));
+  const sorted = [...books].sort(withStarredFirst(comparator(view.sort)));
 
   if (view.group === "none") {
     return sorted.length ? [{ label: "", books: sorted }] : [];

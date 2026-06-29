@@ -6,7 +6,7 @@ import { LibraryWorkspace } from "./features/library/components/LibraryWorkspace
 import { useLibraryController } from "./features/library/hooks/useLibraryController";
 import { BOOK_FILE_ACCEPT } from "./features/library/lib/pick-book-files";
 import { AppHeader } from "./features/navigation/components/AppHeader";
-import { ShelfViewMenu } from "./features/shelf/components/ShelfViewMenu";
+import { ShelfManagementMenu } from "./features/shelf/components/ShelfManagementMenu";
 import { ReaderWorkspace } from "./features/reader/components/ReaderWorkspace";
 import { StatsWorkspace } from "./features/stats/components/StatsWorkspace";
 import { useReaderSession } from "./features/reader/hooks/useReaderSession";
@@ -105,7 +105,7 @@ function App() {
             onOpenSettings={() => setSettingsOpen(true)}
             onOpenSearch={() => setSearchModalOpen(true)}
             onTopNavChange={setActiveTopNav}
-            viewControl={activeTopNav === "shelf" ? <ShelfViewMenu /> : undefined}
+            viewControl={activeTopNav === "shelf" ? <ShelfManagementMenu /> : undefined}
           />
 
           <ScrollArea className="h-full min-h-0 flex-1">
@@ -118,6 +118,7 @@ function App() {
                 onImport={library.openImportPicker}
                 onOpenBook={reader.openReader}
                 onRemoveBook={library.handleRemoveBook}
+                onToggleStar={library.handleToggleStar}
               />
             ) : activeTopNav === "context" ? (
               <ContextWorkspace books={library.books} onOpenBook={reader.openReader} />

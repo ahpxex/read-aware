@@ -10,9 +10,10 @@ type SectionBodyProps = {
   layout: ShelfLayout;
   onSelect?: (book: LibraryBook) => void;
   onRemove?: (book: LibraryBook) => void;
+  onToggleStar?: (book: LibraryBook) => void;
 };
 
-function SectionBody({ books, layout, onSelect, onRemove }: SectionBodyProps) {
+function SectionBody({ books, layout, onSelect, onRemove, onToggleStar }: SectionBodyProps) {
   if (layout === "list") {
     return (
       <div className="flex flex-col divide-y divide-border/60">
@@ -22,6 +23,7 @@ function SectionBody({ books, layout, onSelect, onRemove }: SectionBodyProps) {
             book={book}
             onClick={() => onSelect?.(book)}
             onRemove={() => onRemove?.(book)}
+            onToggleStar={() => onToggleStar?.(book)}
           />
         ))}
       </div>
@@ -36,6 +38,7 @@ function SectionBody({ books, layout, onSelect, onRemove }: SectionBodyProps) {
           book={book}
           onClick={() => onSelect?.(book)}
           onRemove={() => onRemove?.(book)}
+          onToggleStar={() => onToggleStar?.(book)}
         />
       ))}
     </div>
@@ -47,10 +50,11 @@ type ShelfProps = {
   layout: ShelfLayout;
   onSelect?: (book: LibraryBook) => void;
   onRemove?: (book: LibraryBook) => void;
+  onToggleStar?: (book: LibraryBook) => void;
   className?: string;
 };
 
-export function Shelf({ sections, layout, onSelect, onRemove, className }: ShelfProps) {
+export function Shelf({ sections, layout, onSelect, onRemove, onToggleStar, className }: ShelfProps) {
   return (
     <div className={cn(layout === "list" ? "space-y-8" : "space-y-12", className)}>
       {sections.map((section, index) => (
@@ -61,6 +65,7 @@ export function Shelf({ sections, layout, onSelect, onRemove, className }: Shelf
             layout={layout}
             onSelect={onSelect}
             onRemove={onRemove}
+            onToggleStar={onToggleStar}
           />
         </section>
       ))}

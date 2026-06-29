@@ -136,6 +136,7 @@ function createLibraryBook(
     progressPercent: 0,
     readingStatus: "unread",
     progress: null,
+    starred: false,
   };
 }
 
@@ -271,6 +272,21 @@ export async function updateLibraryBookProgress(bookId: string, progress: BookPr
     updatedAt: now,
     lastOpenedAt: now,
   };
+
+  const db = await openLibraryDb();
+  const transaction = db.transaction(BOOKS_STORE, "readwrite");
+  transaction.objectStore(BOOKS_STORE).put(nextBook);
+  await waitForTransaction(transaction);
+  return nextBook;
+}
+
+export async function setLibraryBookStarred(bookId: string, starred: boolean) {
+  const existingBook = await getBookRecord(bookId);
+  if (!existingBook) return null;
+
+  // Starring is metadata only — it must not bump recency (lastOpenedAt/updatedAt),
+  // or pinning a book would also reshuffle the "recently opened" ordering.
+  const nextBook: LibraryBook = { ...existingBook, starred };
 
   const db = await openLibraryDb();
   const transaction = db.transaction(BOOKS_STORE, "readwrite");

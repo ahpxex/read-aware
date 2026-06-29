@@ -63,14 +63,19 @@ function OptionRows<T extends string>({ label, value, options, onChange }: Optio
   );
 }
 
-export function ShelfViewMenu() {
+/**
+ * The shelf's management menu — layout, grouping, and sort controls today, and
+ * the home for further shelf-wide management (e.g. batch actions) as it grows.
+ * Starring is per-book and lives on the cards/rows, not here.
+ */
+export function ShelfManagementMenu() {
   const [view, setView] = useAtom(shelfViewAtom);
 
   return (
     <Popover
       align="right"
-      triggerLabel="Shelf view"
-      triggerTooltip="Shelf view"
+      triggerLabel="Shelf management"
+      triggerTooltip="Shelf management"
       triggerClassName="h-7 w-7 items-center justify-center text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
       trigger={<SlidersHorizontal size={16} weight="regular" aria-hidden="true" />}
     >

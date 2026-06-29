@@ -1,4 +1,4 @@
-import { Info, Trash } from "@phosphor-icons/react";
+import { Info, Star, Trash } from "@phosphor-icons/react";
 import { IconButton, Progress } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useLocalAtom } from "@read-aware/ui/state";
@@ -10,10 +10,11 @@ type BookRowProps = {
   book: LibraryBook;
   onClick?: () => void;
   onRemove?: () => void;
+  onToggleStar?: () => void;
   className?: string;
 };
 
-export function BookRow({ book, onClick, onRemove, className }: BookRowProps) {
+export function BookRow({ book, onClick, onRemove, onToggleStar, className }: BookRowProps) {
   const [infoOpen, setInfoOpen] = useLocalAtom(false);
   const [removeOpen, setRemoveOpen] = useLocalAtom(false);
 
@@ -60,20 +61,35 @@ export function BookRow({ book, onClick, onRemove, className }: BookRowProps) {
         </div>
       </button>
 
-      <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+      <div className="flex shrink-0 items-center gap-1">
         <IconButton
-          label={`Info about ${book.title}`}
+          label={book.starred ? `Unstar ${book.title}` : `Star ${book.title}`}
           size="sm"
-          onClick={() => setInfoOpen(true)}
-          icon={<Info size={16} weight="regular" aria-hidden="true" />}
+          aria-pressed={book.starred ?? false}
+          onClick={() => onToggleStar?.()}
+          className={cn(
+            "transition-opacity",
+            book.starred
+              ? "text-fg opacity-100"
+              : "text-fg-muted opacity-0 hover:text-fg group-hover:opacity-100 group-focus-within:opacity-100",
+          )}
+          icon={<Star size={16} weight={book.starred ? "fill" : "regular"} aria-hidden="true" />}
         />
-        <IconButton
-          label={`Remove ${book.title}`}
-          size="sm"
-          onClick={() => setRemoveOpen(true)}
-          className="hover:text-red-600"
-          icon={<Trash size={16} weight="regular" aria-hidden="true" />}
-        />
+        <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+          <IconButton
+            label={`Info about ${book.title}`}
+            size="sm"
+            onClick={() => setInfoOpen(true)}
+            icon={<Info size={16} weight="regular" aria-hidden="true" />}
+          />
+          <IconButton
+            label={`Remove ${book.title}`}
+            size="sm"
+            onClick={() => setRemoveOpen(true)}
+            className="hover:text-red-600"
+            icon={<Trash size={16} weight="regular" aria-hidden="true" />}
+          />
+        </div>
       </div>
 
       <BookDetailsDialog book={book} open={infoOpen} onClose={() => setInfoOpen(false)} />

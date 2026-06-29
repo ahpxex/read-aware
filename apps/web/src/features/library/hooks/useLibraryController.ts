@@ -4,6 +4,7 @@ import {
   importBookFile,
   listLibraryBooks,
   removeLibraryBook,
+  setLibraryBookStarred,
 } from "../lib/library-db";
 import { createProgressPatch } from "../lib/library-progress";
 import { canUseNativeFilePicker, pickBookFilesNative } from "../lib/pick-book-files";
@@ -109,6 +110,21 @@ export function useLibraryController() {
     await importFiles(files);
   }, [importFiles]);
 
+  const handleToggleStar = useCallback((book: LibraryBook) => {
+    const nextStarred = !book.starred;
+    // Optimistic: flip in state immediately so the shelf re-pins without waiting
+    // on IndexedDB; roll back if the write fails.
+    setBooks((currentBooks) =>
+      currentBooks.map((entry) => (entry.id === book.id ? { ...entry, starred: nextStarred } : entry)),
+    );
+    void setLibraryBookStarred(book.id, nextStarred).catch((error) => {
+      setBooks((currentBooks) =>
+        currentBooks.map((entry) => (entry.id === book.id ? { ...entry, starred: book.starred } : entry)),
+      );
+      reportError(error);
+    });
+  }, [reportError]);
+
   const handleRemoveBook = useCallback((book: LibraryBook) => {
     void removeLibraryBook(book.id)
       .then(() => {
@@ -129,6 +145,7 @@ export function useLibraryController() {
     openImportPicker,
     handleImportSelection,
     handleRemoveBook,
+    handleToggleStar,
     replaceBookInState,
     applyOptimisticProgress,
     reportError,

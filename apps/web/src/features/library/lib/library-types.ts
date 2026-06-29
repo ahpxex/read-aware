@@ -41,6 +41,8 @@ export interface LibraryBook {
   progressPercent: number;
   readingStatus: ReadingStatus;
   progress: BookProgress;
+  /** Pinned to the front of the shelf. Absent on legacy records (treated false). */
+  starred?: boolean;
 }
 
 export interface StoredBookFile {

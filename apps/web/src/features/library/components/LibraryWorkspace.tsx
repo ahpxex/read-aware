@@ -14,6 +14,7 @@ type LibraryWorkspaceProps = {
   onImport: () => void;
   onOpenBook: (book: LibraryBook) => void;
   onRemoveBook: (book: LibraryBook) => void;
+  onToggleStar: (book: LibraryBook) => void;
 };
 
 export function LibraryWorkspace({
@@ -24,6 +25,7 @@ export function LibraryWorkspace({
   onImport,
   onOpenBook,
   onRemoveBook,
+  onToggleStar,
 }: LibraryWorkspaceProps) {
   const shelfView = useAtomValue(shelfViewAtom);
   const sections = deriveShelfView(books, shelfView);
@@ -64,6 +66,7 @@ export function LibraryWorkspace({
           layout={shelfView.layout}
           onSelect={onOpenBook}
           onRemove={onRemoveBook}
+          onToggleStar={onToggleStar}
         />
       )}
     </div>

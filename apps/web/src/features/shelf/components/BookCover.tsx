@@ -1,4 +1,4 @@
-import { Info, Trash } from "@phosphor-icons/react";
+import { Info, Star, Trash } from "@phosphor-icons/react";
 import { IconButton, Progress } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useLocalAtom } from "@read-aware/ui/state";
@@ -10,10 +10,11 @@ type BookCoverProps = {
   book: LibraryBook;
   onClick?: () => void;
   onRemove?: () => void;
+  onToggleStar?: () => void;
   className?: string;
 };
 
-export function BookCover({ book, onClick, onRemove, className }: BookCoverProps) {
+export function BookCover({ book, onClick, onRemove, onToggleStar, className }: BookCoverProps) {
   const [infoOpen, setInfoOpen] = useLocalAtom(false);
   const [removeOpen, setRemoveOpen] = useLocalAtom(false);
 
@@ -59,6 +60,14 @@ export function BookCover({ book, onClick, onRemove, className }: BookCoverProps
         <div className="space-y-2">
           <div className="pointer-events-auto flex justify-end gap-1">
             <IconButton
+              label={book.starred ? `Unstar ${book.title}` : `Star ${book.title}`}
+              size="sm"
+              aria-pressed={book.starred ?? false}
+              onClick={() => onToggleStar?.()}
+              className="rounded-sm text-white/70 hover:text-white focus-visible:ring-white"
+              icon={<Star size={14} weight={book.starred ? "fill" : "regular"} aria-hidden="true" />}
+            />
+            <IconButton
               label={`Info about ${book.title}`}
               size="sm"
               onClick={() => setInfoOpen(true)}
@@ -88,6 +97,15 @@ export function BookCover({ book, onClick, onRemove, className }: BookCoverProps
           )}
         </div>
       </div>
+
+      {book.starred && (
+        <div
+          className="pointer-events-none absolute left-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-stone-950/55 text-white"
+          aria-hidden="true"
+        >
+          <Star size={11} weight="fill" />
+        </div>
+      )}
 
       <BookDetailsDialog book={book} open={infoOpen} onClose={() => setInfoOpen(false)} />
       <BookRemoveDialog

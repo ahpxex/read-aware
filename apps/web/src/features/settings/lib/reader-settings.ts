@@ -55,9 +55,6 @@ export type ReaderFontSize =
   | "xxx-large";
 export type ReaderLineSpacing = "compact" | "comfortable" | "relaxed";
 export type ReaderParagraphSpacing = "tight" | "normal" | "loose";
-export type ReaderContentWidth = "narrow" | "medium" | "wide";
-export type ReaderMargins = "compact" | "normal" | "spacious";
-export type ReaderTextAlign = "start" | "justify";
 /**
  * How the book is laid out and navigated:
  * - `scroll` — continuous vertical scroll, lazily loading sections as you go.
@@ -76,9 +73,6 @@ export type ReaderSettings = {
   fontSize: ReaderFontSize;
   lineSpacing: ReaderLineSpacing;
   paragraphSpacing: ReaderParagraphSpacing;
-  contentWidth: ReaderContentWidth;
-  margins: ReaderMargins;
-  textAlign: ReaderTextAlign;
   readingMode: ReadingMode;
 };
 
@@ -93,9 +87,6 @@ export const DEFAULT_READER_SETTINGS: ReaderSettings = {
   fontSize: "medium",
   lineSpacing: "comfortable",
   paragraphSpacing: "normal",
-  contentWidth: "medium",
-  margins: "normal",
-  textAlign: "start",
   readingMode: "scroll",
 };
 
@@ -165,9 +156,6 @@ export function getReaderPreferences(): ReaderSettingsPreferences {
       fontSize: normalizeFontSize(parsed.fontSize),
       lineSpacing: parsed.lineSpacing ?? DEFAULT_READER_PREFERENCES.lineSpacing,
       paragraphSpacing: parsed.paragraphSpacing ?? DEFAULT_READER_PREFERENCES.paragraphSpacing,
-      contentWidth: parsed.contentWidth ?? DEFAULT_READER_PREFERENCES.contentWidth,
-      margins: parsed.margins ?? DEFAULT_READER_PREFERENCES.margins,
-      textAlign: parsed.textAlign ?? DEFAULT_READER_PREFERENCES.textAlign,
       readingMode: parsed.readingMode ?? DEFAULT_READER_PREFERENCES.readingMode,
     };
   } catch {

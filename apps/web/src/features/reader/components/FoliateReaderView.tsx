@@ -462,7 +462,7 @@ export function FoliateReaderView({
       readerRootRef.current?.clientWidth ??
       viewportRef.current?.clientWidth ??
       window.innerWidth;
-    const px = computeReaderMaxInlineSize(readerSettingsRef.current.contentWidth, width);
+    const px = computeReaderMaxInlineSize(width);
     renderer.setAttribute("max-inline-size", `${px}px`);
   }, []);
 
@@ -1112,7 +1112,6 @@ export function FoliateReaderView({
         view.renderer?.setAttribute(
           "max-inline-size",
           `${computeReaderMaxInlineSize(
-            readerSettingsRef.current.contentWidth,
             readerRootRef.current?.clientWidth ?? window.innerWidth,
           )}px`,
         );

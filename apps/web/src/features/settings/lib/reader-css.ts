@@ -2,7 +2,6 @@ import type { CSSProperties } from "react";
 import {
   curatedFontId,
   systemFontFamily,
-  type ReaderContentWidth,
   type ReaderFontFamily,
   type ReaderSettings,
 } from "./reader-settings";
@@ -74,38 +73,29 @@ const PARAGRAPH_SPACING_MAP = {
 // ceiling so the column widens on large screens. See `computeReaderMaxInlineSize`.
 const REM_PX = 16;
 
-const CONTENT_WIDTH_TIERS: Record<
-  ReaderContentWidth,
-  { minRem: number; viewportFraction: number; maxRem: number }
-> = {
-  narrow: { minRem: 28, viewportFraction: 0.62, maxRem: 54 },
-  medium: { minRem: 32, viewportFraction: 0.8, maxRem: 84 },
-  wide: { minRem: 38, viewportFraction: 0.94, maxRem: 120 },
-};
+// Fixed reading measure: a readable floor, a viewport-scaled preferred width,
+// and a generous ceiling so the column widens on large screens without ever
+// running edge to edge.
+const MEASURE_MIN_REM = 32;
+const MEASURE_VIEWPORT_FRACTION = 0.8;
+const MEASURE_MAX_REM = 84;
 
 /**
  * Text measure (px) for foliate's `max-inline-size` attribute, derived from the
- * chosen width tier and the live reader width so the column is responsive.
- * Capped to the container so it never overflows a small window.
+ * live reader width so the column is responsive. Capped to the container so it
+ * never overflows a small window.
  */
-export function computeReaderMaxInlineSize(
-  contentWidth: ReaderContentWidth,
-  containerWidthPx: number,
-): number {
-  const tier = CONTENT_WIDTH_TIERS[contentWidth];
-  const preferred = tier.viewportFraction * containerWidthPx;
+export function computeReaderMaxInlineSize(containerWidthPx: number): number {
+  const preferred = MEASURE_VIEWPORT_FRACTION * containerWidthPx;
   const clamped = Math.max(
-    tier.minRem * REM_PX,
-    Math.min(preferred, tier.maxRem * REM_PX),
+    MEASURE_MIN_REM * REM_PX,
+    Math.min(preferred, MEASURE_MAX_REM * REM_PX),
   );
   return Math.round(Math.min(clamped, containerWidthPx));
 }
 
-const MARGIN_MAP = {
-  compact: "1rem",
-  normal: "1.5rem",
-  spacious: "3rem",
-} as const;
+// Fixed horizontal page margin (formerly the "normal" preset).
+const HORIZONTAL_MARGIN = "1.5rem";
 
 const THEME_MAP = {
   light: {
@@ -152,9 +142,7 @@ export function buildReaderContentCss(settings: ReaderSettings, fontFaceCss = ""
   const fontSize = FONT_SIZE_MAP[settings.fontSize];
   const lineHeight = LINE_HEIGHT_MAP[settings.lineSpacing];
   const paragraphSpacing = PARAGRAPH_SPACING_MAP[settings.paragraphSpacing];
-  const horizontalMargin = MARGIN_MAP[settings.margins];
   const theme = THEME_MAP[settings.theme];
-  const justified = settings.textAlign === "justify";
 
   return `
     ${fontFaceCss}
@@ -164,14 +152,13 @@ export function buildReaderContentCss(settings: ReaderSettings, fontFaceCss = ""
 
     body {
       box-sizing: border-box !important;
-      padding: 2rem ${horizontalMargin} 4rem !important;
+      padding: 2rem ${HORIZONTAL_MARGIN} 4rem !important;
       color: ${theme.text} !important;
       background: ${theme.bg} !important;
       font-family: ${fontFamily} !important;
       font-size: ${fontSize} !important;
       line-height: ${lineHeight} !important;
-      text-align: ${justified ? "justify" : "start"} !important;
-      ${justified ? "hyphens: auto !important;\n      -webkit-hyphens: auto !important;" : ""}
+      text-align: start !important;
     }
 
     body > * {
@@ -364,7 +351,6 @@ export function getReaderPreviewStyle(settings: ReaderSettings): CSSProperties {
     fontFamily: resolveReaderFontStack(settings.fontFamily),
     fontSize: FONT_SIZE_MAP[settings.fontSize],
     lineHeight: LINE_HEIGHT_MAP[settings.lineSpacing],
-    textAlign: settings.textAlign === "justify" ? "justify" : "start",
-    hyphens: settings.textAlign === "justify" ? "auto" : "manual",
+    textAlign: "start",
   };
 }

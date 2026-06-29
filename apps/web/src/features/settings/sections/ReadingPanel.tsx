@@ -6,14 +6,11 @@ import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { getReaderPreviewStyle } from "../lib/reader-css";
 import {
-  CONTENT_WIDTH_OPTIONS,
   FONT_SIZE_OPTIONS,
   LINE_SPACING_OPTIONS,
-  MARGINS_OPTIONS,
   PAGE_COLOR_OPTIONS,
   PARAGRAPH_SPACING_OPTIONS,
   READING_MODE_OPTIONS,
-  TEXT_ALIGN_OPTIONS,
 } from "../lib/reader-setting-options";
 
 export function ReadingPanel() {
@@ -67,24 +64,6 @@ export function ReadingPanel() {
             value={prefs.readingMode}
             options={READING_MODE_OPTIONS}
             onChange={(readingMode) => setPrefs({ ...prefs, readingMode })}
-          />
-          <ChoiceGroup
-            label="Content Width"
-            value={prefs.contentWidth}
-            options={CONTENT_WIDTH_OPTIONS}
-            onChange={(contentWidth) => setPrefs({ ...prefs, contentWidth })}
-          />
-          <ChoiceGroup
-            label="Page Margins"
-            value={prefs.margins}
-            options={MARGINS_OPTIONS}
-            onChange={(margins) => setPrefs({ ...prefs, margins })}
-          />
-          <ChoiceGroup
-            label="Text Alignment"
-            value={prefs.textAlign}
-            options={TEXT_ALIGN_OPTIONS}
-            onChange={(textAlign) => setPrefs({ ...prefs, textAlign })}
           />
         </Stack>
       </SettingsGroup>

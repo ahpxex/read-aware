@@ -1,14 +1,11 @@
 import { TextAa } from "@phosphor-icons/react";
 import { Caption, ChoiceGroup, Divider, Popover } from "@read-aware/ui";
 import {
-  CONTENT_WIDTH_OPTIONS,
   FONT_SIZE_OPTIONS,
   LINE_SPACING_OPTIONS,
-  MARGINS_OPTIONS,
   PAGE_COLOR_OPTIONS,
   PARAGRAPH_SPACING_OPTIONS,
   READING_MODE_OPTIONS,
-  TEXT_ALIGN_OPTIONS,
 } from "../../settings/lib/reader-setting-options";
 import { FontField } from "../../settings/components/FontField";
 import {
@@ -104,24 +101,6 @@ export function ReaderAppearanceMenu({
           value={prefs.readingMode}
           options={READING_MODE_OPTIONS}
           onChange={(readingMode) => updatePrefs({ ...prefs, readingMode })}
-        />
-        <ChoiceGroup
-          label="Content Width"
-          value={prefs.contentWidth}
-          options={CONTENT_WIDTH_OPTIONS}
-          onChange={(contentWidth) => updatePrefs({ ...prefs, contentWidth })}
-        />
-        <ChoiceGroup
-          label="Page Margins"
-          value={prefs.margins}
-          options={MARGINS_OPTIONS}
-          onChange={(margins) => updatePrefs({ ...prefs, margins })}
-        />
-        <ChoiceGroup
-          label="Text Alignment"
-          value={prefs.textAlign}
-          options={TEXT_ALIGN_OPTIONS}
-          onChange={(textAlign) => updatePrefs({ ...prefs, textAlign })}
         />
       </div>
     </Popover>

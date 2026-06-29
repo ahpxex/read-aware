@@ -1,10 +1,7 @@
 import type {
-  ReaderContentWidth,
   ReaderFontSize,
   ReaderLineSpacing,
-  ReaderMargins,
   ReaderParagraphSpacing,
-  ReaderTextAlign,
   ReaderThemePreference,
   ReadingMode,
 } from "./reader-settings";
@@ -43,23 +40,6 @@ export const READING_MODE_OPTIONS: { value: ReadingMode; label: string }[] = [
   { value: "scroll", label: "Scroll" },
   { value: "paginated-single", label: "Single Page" },
   { value: "paginated-double", label: "Two Pages" },
-];
-
-export const CONTENT_WIDTH_OPTIONS: { value: ReaderContentWidth; label: string }[] = [
-  { value: "narrow", label: "Narrow" },
-  { value: "medium", label: "Medium" },
-  { value: "wide", label: "Wide" },
-];
-
-export const MARGINS_OPTIONS: { value: ReaderMargins; label: string }[] = [
-  { value: "compact", label: "Compact" },
-  { value: "normal", label: "Normal" },
-  { value: "spacious", label: "Spacious" },
-];
-
-export const TEXT_ALIGN_OPTIONS: { value: ReaderTextAlign; label: string }[] = [
-  { value: "start", label: "Left" },
-  { value: "justify", label: "Justified" },
 ];
 
 export const PAGE_COLOR_OPTIONS: { value: ReaderThemePreference; label: string }[] = [

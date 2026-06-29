@@ -117,7 +117,7 @@ export function CommandPalette({ isOpen, onClose, ctx }: CommandPaletteProps) {
           ) : (
             groups.map((group) => (
               <div key={group.group} className="mb-1">
-                <div className="px-4 pb-1 pt-2 text-eyebrow font-medium uppercase tracking-wide text-fg-subtle">
+                <div className="px-4 pb-1 pt-2 text-xs lowercase text-fg-subtle">
                   {group.group}
                 </div>
                 {group.items.map((item) => {
@@ -129,18 +129,25 @@ export function CommandPalette({ isOpen, onClose, ctx }: CommandPaletteProps) {
                       key={item.id}
                       type="button"
                       data-index={index}
+                      aria-selected={selected}
                       onMouseMove={() => setSelectedIndex(index)}
                       onClick={() => run(item)}
                       className={cn(
-                        "flex w-full items-center gap-3 px-4 py-2 text-left transition-colors",
-                        selected ? "bg-fill" : "hover:bg-fg/5",
+                        "relative flex w-full items-center gap-3 px-4 py-2 text-left transition-colors",
+                        selected ? "bg-fg/[0.07]" : "hover:bg-fg/[0.04]",
                       )}
                     >
+                      {selected && (
+                        <span
+                          className="absolute inset-y-1 left-0 w-0.5 rounded-full bg-fg"
+                          aria-hidden="true"
+                        />
+                      )}
                       <span className="flex h-9 w-7 shrink-0 items-center justify-center overflow-hidden rounded-sm">
                         {item.kind === "book" && item.coverUrl ? (
                           <img src={item.coverUrl} alt="" className="h-full w-full object-cover" />
                         ) : (
-                          <span className="flex h-7 w-7 items-center justify-center rounded-sm bg-fill text-fg-muted">
+                          <span className="flex h-7 w-7 items-center justify-center text-fg-muted">
                             {item.icon}
                           </span>
                         )}
@@ -155,6 +162,11 @@ export function CommandPalette({ isOpen, onClose, ctx }: CommandPaletteProps) {
                           </span>
                         )}
                       </span>
+                      {selected && (
+                        <span className="shrink-0 text-xs text-fg-subtle" aria-hidden="true">
+                          ↵
+                        </span>
+                      )}
                     </button>
                   );
                 })}

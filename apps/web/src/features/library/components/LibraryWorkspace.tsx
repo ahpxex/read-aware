@@ -65,14 +65,13 @@ export function LibraryWorkspace({
     if (active && books.length === 0) exit();
   }, [active, books.length, exit]);
 
-  const visible = useMemo(() => {
-    const inScope = activeCollection
-      ? books.filter((b) => b.collectionId === activeCollection.id)
-      : books.filter((b) => !b.collectionId);
-    return shelfView.hideFinished
-      ? inScope.filter((b) => b.readingStatus !== "finished")
-      : inScope;
-  }, [activeCollection, books, shelfView.hideFinished]);
+  const visible = useMemo(
+    () =>
+      activeCollection
+        ? books.filter((b) => b.collectionId === activeCollection.id)
+        : books.filter((b) => !b.collectionId),
+    [activeCollection, books],
+  );
 
   const sections = deriveShelfView(visible, shelfView);
 
@@ -167,7 +166,6 @@ export function LibraryWorkspace({
               key={activeCollection.id}
               collection={activeCollection}
               count={collectionCount}
-              onBack={() => setActiveCollectionId(null)}
               onRename={(name) => onRenameCollection(activeCollection.id, name)}
               onDelete={() => {
                 onDeleteCollection(activeCollection.id);
@@ -178,10 +176,7 @@ export function LibraryWorkspace({
 
           {visible.length === 0 && collectionTiles.length === 0 ? (
             <Body className="py-16 text-center text-sm text-fg-muted">
-              {activeCollection
-                ? "No books in this collection."
-                : "Nothing to show."}
-              {shelfView.hideFinished ? " Finished books are hidden." : ""}
+              {activeCollection ? "No books in this collection." : "Nothing to show."}
             </Body>
           ) : (
             <Shelf

@@ -1,4 +1,4 @@
-import { CaretLeft, PencilSimple, Trash } from "@phosphor-icons/react";
+import { PencilSimple, Trash } from "@phosphor-icons/react";
 import { Body, Button, Dialog, Heading, IconButton, Tooltip } from "@read-aware/ui";
 import { useLocalAtom } from "@read-aware/ui/state";
 import type { Collection } from "../../library/lib/library-types";
@@ -6,17 +6,16 @@ import type { Collection } from "../../library/lib/library-types";
 type CollectionHeaderProps = {
   collection: Collection;
   count: number;
-  onBack: () => void;
   onRename: (name: string) => void;
   onDelete: () => void;
 };
 
 /**
- * Header for a single collection view: a breadcrumb back to the shelf, the
- * collection name (renamed inline), the book count, and a delete action.
+ * Header for a single collection view: the collection name (renamed inline), the
+ * book count, and a delete action. Back to the shelf lives in the app header.
  * Mount with a `key` of the collection id so the inline draft resets per group.
  */
-export function CollectionHeader({ collection, count, onBack, onRename, onDelete }: CollectionHeaderProps) {
+export function CollectionHeader({ collection, count, onRename, onDelete }: CollectionHeaderProps) {
   const [editing, setEditing] = useLocalAtom(false);
   const [draft, setDraft] = useLocalAtom(collection.name);
   const [deleteOpen, setDeleteOpen] = useLocalAtom(false);
@@ -29,15 +28,6 @@ export function CollectionHeader({ collection, count, onBack, onRename, onDelete
 
   return (
     <div className="mb-8">
-      <button
-        type="button"
-        onClick={onBack}
-        className="mb-3 inline-flex items-center gap-1 text-sm text-fg-muted transition-colors hover:text-fg"
-      >
-        <CaretLeft size={14} weight="bold" aria-hidden="true" />
-        All books
-      </button>
-
       <div className="flex items-center gap-2">
         {editing ? (
           <input

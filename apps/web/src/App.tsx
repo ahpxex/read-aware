@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { ScrollArea } from "@read-aware/ui";
 import { ContextWorkspace } from "./features/context/components/ContextWorkspace";
 import { LibraryWorkspace } from "./features/library/components/LibraryWorkspace";
@@ -13,7 +13,7 @@ import { useReaderSession } from "./features/reader/hooks/useReaderSession";
 import { useGlobalShortcuts } from "./features/settings/hooks/useGlobalShortcuts";
 import { SettingsDialog } from "./features/settings/SettingsDialog";
 import { BookSearchModal } from "./features/library/components/BookSearchModal";
-import { activeTopNavAtom, settingsOpenAtom } from "./state/ui";
+import { activeCollectionAtom, activeTopNavAtom, settingsOpenAtom, shelfSelectionAtom } from "./state/ui";
 
 function App() {
   const [searchModalOpen, setSearchModalOpen] = useState(false);
@@ -31,6 +31,8 @@ function App() {
   });
 
   const [activeTopNav, setActiveTopNav] = useAtom(activeTopNavAtom);
+  const [activeCollectionId, setActiveCollectionId] = useAtom(activeCollectionAtom);
+  const shelfSelecting = useAtomValue(shelfSelectionAtom).active;
   const library = useLibraryController();
   const reader = useReaderSession({
     applyOptimisticProgress: library.applyOptimisticProgress,
@@ -38,19 +40,33 @@ function App() {
     reportError: library.reportError,
   });
 
-  // Esc backs out of the standalone Context/Stats surfaces to the shelf. Skipped
-  // while reading (the engine owns Esc) or when a dialog is open (it owns its own).
+  // Esc backs out one pushed view at a time — a standalone Context/Stats surface
+  // to the shelf, or an open collection back to the full shelf. Skipped while
+  // reading (the engine owns Esc), while a dialog is open (it owns its own), and
+  // during selection mode (whose own surfaces handle Esc).
+  const inSecondary = activeTopNav !== "shelf";
+  const inCollection = activeTopNav === "shelf" && activeCollectionId !== null;
   useEffect(() => {
-    if (reader.selectedBook || activeTopNav === "shelf") return;
+    if (reader.selectedBook || (!inSecondary && !inCollection)) return;
     function onKeyDown(event: KeyboardEvent) {
       if (event.key !== "Escape" || event.defaultPrevented) return;
-      if (settingsOpen || searchModalOpen) return;
+      if (settingsOpen || searchModalOpen || shelfSelecting) return;
       event.preventDefault();
-      setActiveTopNav("shelf");
+      if (inSecondary) setActiveTopNav("shelf");
+      else setActiveCollectionId(null);
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [reader.selectedBook, activeTopNav, settingsOpen, searchModalOpen, setActiveTopNav]);
+  }, [
+    reader.selectedBook,
+    inSecondary,
+    inCollection,
+    settingsOpen,
+    searchModalOpen,
+    shelfSelecting,
+    setActiveTopNav,
+    setActiveCollectionId,
+  ]);
 
   // Handle book selection from search modal
   const handleSelectBookFromSearch = (book: typeof library.books[0]) => {

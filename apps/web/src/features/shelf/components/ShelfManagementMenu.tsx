@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Check, Rows, SlidersHorizontal, SquaresFour } from "@phosphor-icons/react";
-import { ChoiceGroup, Divider, Popover, Toggle } from "@read-aware/ui";
+import { ChoiceGroup, Divider, Popover } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useAtom } from "jotai";
 import { shelfViewAtom } from "../../../state/ui";
@@ -119,14 +119,6 @@ export function ShelfManagementMenu() {
             >
               Select books
             </button>
-            <div className="flex items-center justify-between rounded-md px-1.5 py-1.5">
-              <span className="font-sans text-sm text-fg-muted">Hide finished</span>
-              <Toggle
-                aria-label="Hide finished books"
-                checked={view.hideFinished}
-                onChange={(hideFinished) => setView({ ...view, hideFinished })}
-              />
-            </div>
           </div>
         </div>
       </div>

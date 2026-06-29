@@ -1,8 +1,9 @@
 import { type ReactNode } from "react";
+import { useAtom } from "jotai";
 import { Cards, CaretLeft, ChartLineUp, GearSix, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { IconButton, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
-import type { TopNav } from "../../../state/ui";
+import { activeCollectionAtom, type TopNav } from "../../../state/ui";
 
 type AppHeaderProps = {
   activeTopNav: TopNav;
@@ -34,9 +35,18 @@ export function AppHeader({
 }: AppHeaderProps) {
   const contextActive = activeTopNav === "context";
   const statsActive = activeTopNav === "stats";
-  // The secondary surfaces (Context, Stats) read as standalone pages, so give
-  // them a back affordance on the left — mirroring the reader's top bar.
-  const showBack = activeTopNav !== "shelf";
+  const [activeCollectionId, setActiveCollectionId] = useAtom(activeCollectionAtom);
+
+  // Standalone surfaces (Context, Stats) and an open collection all read as
+  // pushed views, so give them a back affordance on the left — mirroring the
+  // reader's top bar. Inside a collection, back returns to the full shelf.
+  const inCollection = activeTopNav === "shelf" && activeCollectionId !== null;
+  const showBack = activeTopNav !== "shelf" || inCollection;
+  const backLabel = inCollection ? "All books" : "Back to shelf";
+  const handleBack = () => {
+    if (inCollection) setActiveCollectionId(null);
+    else onTopNavChange("shelf");
+  };
 
   return (
     <header className="shrink-0 border-b border-border bg-[var(--ra-main-surface-color)]">
@@ -49,11 +59,11 @@ export function AppHeader({
         }}
       >
         {showBack && (
-          <Tooltip content="Back to shelf" side="bottom">
+          <Tooltip content={backLabel} side="bottom">
             <IconButton
-              label="Back to shelf"
+              label={backLabel}
               size="sm"
-              onClick={() => onTopNavChange("shelf")}
+              onClick={handleBack}
               className={headerIconButtonClass}
               icon={<CaretLeft size={18} weight="regular" aria-hidden="true" />}
             />

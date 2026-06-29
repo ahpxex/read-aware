@@ -38,6 +38,20 @@ function App() {
     reportError: library.reportError,
   });
 
+  // Esc backs out of the standalone Context/Stats surfaces to the shelf. Skipped
+  // while reading (the engine owns Esc) or when a dialog is open (it owns its own).
+  useEffect(() => {
+    if (reader.selectedBook || activeTopNav === "shelf") return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      if (settingsOpen || searchModalOpen) return;
+      event.preventDefault();
+      setActiveTopNav("shelf");
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [reader.selectedBook, activeTopNav, settingsOpen, searchModalOpen, setActiveTopNav]);
+
   // Handle book selection from search modal
   const handleSelectBookFromSearch = (book: typeof library.books[0]) => {
     reader.openReader(book);

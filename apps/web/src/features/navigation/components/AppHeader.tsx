@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { Cards, ChartLineUp, GearSix, MagnifyingGlass, Plus } from "@phosphor-icons/react";
+import { Cards, CaretLeft, ChartLineUp, GearSix, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { IconButton, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import type { TopNav } from "../../../state/ui";
@@ -34,13 +34,31 @@ export function AppHeader({
 }: AppHeaderProps) {
   const contextActive = activeTopNav === "context";
   const statsActive = activeTopNav === "stats";
+  // The secondary surfaces (Context, Stats) read as standalone pages, so give
+  // them a back affordance on the left — mirroring the reader's top bar.
+  const showBack = activeTopNav !== "shelf";
 
   return (
     <header className="shrink-0 border-b border-border bg-[var(--ra-main-surface-color)]">
       <div
         data-tauri-drag-region=""
-        className="flex h-12 items-center px-5"
+        className="flex h-12 items-center pr-5"
+        style={{
+          // Clear the macOS traffic lights only when the left cluster is present.
+          paddingLeft: showBack ? "max(1.25rem, var(--ra-traffic-light-inset))" : "1.25rem",
+        }}
       >
+        {showBack && (
+          <Tooltip content="Back to shelf" side="bottom">
+            <IconButton
+              label="Back to shelf"
+              size="sm"
+              onClick={() => onTopNavChange("shelf")}
+              className={headerIconButtonClass}
+              icon={<CaretLeft size={18} weight="regular" aria-hidden="true" />}
+            />
+          </Tooltip>
+        )}
         <div className="ml-auto flex items-center gap-1.5">
           <Tooltip content="Search" side="bottom">
             <IconButton

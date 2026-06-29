@@ -1,12 +1,7 @@
 import { Caption } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { formatReadingDuration, type DailyReadingMap } from "../../reader/lib/reading-stats";
-import {
-  buildHeatmapYears,
-  type HeatmapCell,
-  type HeatmapLevel,
-  type HeatmapYear,
-} from "../lib/reading-insights";
+import { buildHeatmapGrid, type HeatmapCell, type HeatmapLevel } from "../lib/reading-insights";
 
 type ReadingHeatmapProps = {
   daily: DailyReadingMap;
@@ -14,8 +9,6 @@ type ReadingHeatmapProps = {
   now?: number;
   /** Square size in px (default 10). */
   cell?: number;
-  /** Max height of the (vertically scrolling) year stack. */
-  maxHeightClass?: string;
   className?: string;
 };
 
@@ -45,18 +38,26 @@ function cellTitle(cell: HeatmapCell): string | undefined {
   return `${date} · ${formatReadingDuration(cell.ms)}`;
 }
 
-function YearGrid({ year, cell }: { year: HeatmapYear; cell: number }) {
+/**
+ * Calendar heatmap of reading time — one continuous GitHub-style grid ending on
+ * the current week, so today sits at the right edge. It spans at least the
+ * trailing year (and further back if there's older history), scrolling
+ * horizontally when the span exceeds the available width. Purely presentational:
+ * pass any `daily` map (one book's or the library-wide aggregate).
+ */
+export function ReadingHeatmap({ daily, now, cell = 10, className }: ReadingHeatmapProps) {
+  const { columns, monthLabels } = buildHeatmapGrid(daily, now ?? Date.now());
   const colW = cell + GAP;
-  const width = year.columns.length * colW;
+  const width = columns.length * colW;
+
   return (
-    <div>
-      <Caption className="mb-1 block font-medium text-fg-muted tabular-nums">{year.year}</Caption>
+    <div className={className}>
       <div className="overflow-x-auto pb-1">
         <div className="inline-block">
           <div className="flex" style={{ gap: AXIS_GAP }}>
             <div style={{ width: AXIS_W }} />
             <div className="relative" style={{ width, height: MONTH_ROW_H }}>
-              {year.monthLabels.map((label) => (
+              {monthLabels.map((label) => (
                 <span
                   key={`${label.col}-${label.label}`}
                   className="absolute top-0 whitespace-nowrap text-[10px] leading-none text-fg-subtle"
@@ -80,7 +81,7 @@ function YearGrid({ year, cell }: { year: HeatmapYear; cell: number }) {
               ))}
             </div>
             <div className="flex" style={{ gap: GAP }}>
-              {year.columns.map((column, col) => (
+              {columns.map((column, col) => (
                 <div key={col} className="flex flex-col" style={{ gap: GAP }}>
                   {column.map((day) => (
                     <div
@@ -99,33 +100,6 @@ function YearGrid({ year, cell }: { year: HeatmapYear; cell: number }) {
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Calendar heatmap of reading time, one GitHub-style grid per year (newest
- * first), spanning the full recorded history. Years stack vertically and each
- * scrolls horizontally, so any span — months or many years — renders without
- * clipping. Purely presentational: pass any `daily` map (one book's or the
- * library-wide aggregate).
- */
-export function ReadingHeatmap({
-  daily,
-  now,
-  cell = 10,
-  maxHeightClass = "max-h-72",
-  className,
-}: ReadingHeatmapProps) {
-  const years = buildHeatmapYears(daily, now ?? Date.now());
-
-  return (
-    <div className={className}>
-      <div className={cn("flex flex-col gap-4 overflow-y-auto pr-1", maxHeightClass)}>
-        {years.map((year) => (
-          <YearGrid key={year.year} year={year} cell={cell} />
-        ))}
       </div>
       <div className="mt-3 flex items-center justify-end gap-1.5">
         <Caption className="text-fg-subtle">Less</Caption>

@@ -68,7 +68,7 @@ export function BookStatsPanel({ book }: BookStatsPanelProps) {
 
       <div>
         <Caption className="mb-2 block text-fg-subtle">Reading calendar</Caption>
-        <ReadingHeatmap daily={stats.daily} now={now} cell={9} maxHeightClass="max-h-44" />
+        <ReadingHeatmap daily={stats.daily} now={now} cell={9} />
       </div>
     </div>
   );

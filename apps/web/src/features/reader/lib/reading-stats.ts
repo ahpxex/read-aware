@@ -17,6 +17,9 @@ const STORAGE_KEY = "read-aware-reading-stats";
 /** Milliseconds of reading keyed by local day, e.g. `{ "2026-06-25": 840000 }`. */
 export type DailyReadingMap = Record<string, number>;
 
+/** Reading time (ms) bucketed by local hour-of-day, a fixed 24-slot histogram. */
+export type HourlyReadingBuckets = number[];
+
 export type BookReadingStats = {
   bookId: string;
   /** Epoch ms when reading time was first recorded for this book. */
@@ -26,13 +29,27 @@ export type BookReadingStats = {
   /** Cumulative active reading time, in ms. */
   totalMs: number;
   daily: DailyReadingMap;
+  /** All-time reading time by local hour-of-day (length 24, index 0 = midnight). */
+  byHour: HourlyReadingBuckets;
 };
 
 /** All books' stats, keyed by library book id. */
 export type ReadingStatsStore = Record<string, BookReadingStats>;
 
+/** A fresh 24-slot hour histogram, all zero. */
+export function emptyHourBuckets(): HourlyReadingBuckets {
+  return new Array(24).fill(0);
+}
+
 export function emptyBookStats(bookId: string): BookReadingStats {
-  return { bookId, firstStartedAt: null, lastReadAt: null, totalMs: 0, daily: {} };
+  return {
+    bookId,
+    firstStartedAt: null,
+    lastReadAt: null,
+    totalMs: 0,
+    daily: {},
+    byHour: emptyHourBuckets(),
+  };
 }
 
 /** Local calendar day key (`YYYY-MM-DD`) for an epoch timestamp. */
@@ -43,6 +60,11 @@ export function localDayKey(epochMs: number): string {
   return `${d.getFullYear()}-${month}-${day}`;
 }
 
+/** Local hour-of-day (0–23) for an epoch timestamp. */
+export function localHour(epochMs: number): number {
+  return new Date(epochMs).getHours();
+}
+
 function normalizeDaily(value: unknown): DailyReadingMap {
   if (!value || typeof value !== "object") return {};
   const result: DailyReadingMap = {};
@@ -50,6 +72,17 @@ function normalizeDaily(value: unknown): DailyReadingMap {
     if (typeof ms === "number" && Number.isFinite(ms) && ms > 0) result[key] = ms;
   }
   return result;
+}
+
+/** Coerce stored hour data into a clean length-24 histogram (back-compat: absent → zeros). */
+function normalizeHourly(value: unknown): HourlyReadingBuckets {
+  const buckets = emptyHourBuckets();
+  if (!Array.isArray(value)) return buckets;
+  for (let h = 0; h < 24; h += 1) {
+    const ms = value[h];
+    if (typeof ms === "number" && Number.isFinite(ms) && ms > 0) buckets[h] = ms;
+  }
+  return buckets;
 }
 
 export function getReadingStatsStore(): ReadingStatsStore {
@@ -69,6 +102,7 @@ export function getReadingStatsStore(): ReadingStatsStore {
         lastReadAt: typeof v.lastReadAt === "number" ? v.lastReadAt : null,
         totalMs: typeof v.totalMs === "number" && v.totalMs >= 0 ? v.totalMs : 0,
         daily: normalizeDaily(v.daily),
+        byHour: normalizeHourly(v.byHour),
       };
     }
     return result;
@@ -102,6 +136,9 @@ export function addReadingTime(
   if (!(ms > 0)) return store;
   const prev = store[bookId] ?? emptyBookStats(bookId);
   const dayKey = localDayKey(now);
+  const hour = localHour(now);
+  const byHour = prev.byHour.slice();
+  byHour[hour] += ms;
   return {
     ...store,
     [bookId]: {
@@ -110,6 +147,7 @@ export function addReadingTime(
       lastReadAt: now,
       totalMs: prev.totalMs + ms,
       daily: { ...prev.daily, [dayKey]: (prev.daily[dayKey] ?? 0) + ms },
+      byHour,
     },
   };
 }

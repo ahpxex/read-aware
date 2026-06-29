@@ -43,6 +43,15 @@ export interface LibraryBook {
   progress: BookProgress;
   /** Pinned to the front of the shelf. Absent on legacy records (treated false). */
   starred?: boolean;
+  /** The collection this book belongs to, or null/absent when ungrouped. */
+  collectionId?: string | null;
+}
+
+/** A user-defined collection (single-membership folder) of books. */
+export interface Collection {
+  id: string;
+  name: string;
+  createdAt: string;
 }
 
 export interface StoredBookFile {

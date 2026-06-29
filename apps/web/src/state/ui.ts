@@ -143,6 +143,14 @@ export const shelfViewAtom = atom(
   },
 );
 
+/** Multi-select state for shelf batch management. Ephemeral — never persisted. */
+export type ShelfSelection = { active: boolean; ids: string[] };
+
+export const shelfSelectionAtom = atom<ShelfSelection>({ active: false, ids: [] });
+
+/** The collection currently being viewed on the shelf, or null at the top level. */
+export const activeCollectionAtom = atom<string | null>(null);
+
 const shortcutBindingsBaseAtom = atom<ShortcutBindings>(getShortcutBindings());
 
 /** User overrides for rebindable keyboard shortcuts. See `lib/shortcuts`. */

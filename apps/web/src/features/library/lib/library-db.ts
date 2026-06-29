@@ -1,6 +1,7 @@
 import type {
   BookFormat,
   BookProgress,
+  Collection,
   LibraryBook,
   ReadingStatus,
   StoredBookFile,
@@ -9,9 +10,10 @@ import { extractBookCover, extractBookMetadata } from "./library-cover";
 import type { ExtractedBookMetadata } from "./library-cover";
 
 const DB_NAME = "read-aware-library";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const BOOKS_STORE = "books";
 const FILES_STORE = "files";
+const COLLECTIONS_STORE = "collections";
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -46,9 +48,19 @@ function openLibraryDb() {
       if (!db.objectStoreNames.contains(FILES_STORE)) {
         db.createObjectStore(FILES_STORE, { keyPath: "bookId" });
       }
+
+      if (!db.objectStoreNames.contains(COLLECTIONS_STORE)) {
+        db.createObjectStore(COLLECTIONS_STORE, { keyPath: "id" });
+      }
     };
 
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => {
+      const db = request.result;
+      // Don't hold an old version open when another context (a reload after a
+      // schema bump, or a second tab) needs to upgrade — close so it isn't blocked.
+      db.onversionchange = () => db.close();
+      resolve(db);
+    };
     request.onerror = () =>
       reject(request.error ?? new Error("Unable to open the local library database."));
   });
@@ -137,6 +149,7 @@ function createLibraryBook(
     readingStatus: "unread",
     progress: null,
     starred: false,
+    collectionId: null,
   };
 }
 
@@ -293,6 +306,95 @@ export async function setLibraryBookStarred(bookId: string, starred: boolean) {
   transaction.objectStore(BOOKS_STORE).put(nextBook);
   await waitForTransaction(transaction);
   return nextBook;
+}
+
+export async function listCollections() {
+  const db = await openLibraryDb();
+  const transaction = db.transaction(COLLECTIONS_STORE, "readonly");
+  const collections = await requestToPromise(
+    transaction.objectStore(COLLECTIONS_STORE).getAll() as IDBRequest<Collection[]>,
+  );
+  await waitForTransaction(transaction);
+  return collections.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function createCollection(name: string): Promise<Collection> {
+  const collection: Collection = {
+    id: crypto.randomUUID(),
+    name: name.trim() || "Untitled collection",
+    createdAt: new Date().toISOString(),
+  };
+  const db = await openLibraryDb();
+  const transaction = db.transaction(COLLECTIONS_STORE, "readwrite");
+  transaction.objectStore(COLLECTIONS_STORE).put(collection);
+  await waitForTransaction(transaction);
+  return collection;
+}
+
+export async function renameCollection(id: string, name: string): Promise<Collection | null> {
+  const db = await openLibraryDb();
+  const existing = await requestToPromise(
+    db.transaction(COLLECTIONS_STORE, "readonly").objectStore(COLLECTIONS_STORE).get(id) as IDBRequest<
+      Collection | undefined
+    >,
+  );
+  if (!existing) return null;
+
+  const next: Collection = { ...existing, name: name.trim() || existing.name };
+  const transaction = db.transaction(COLLECTIONS_STORE, "readwrite");
+  transaction.objectStore(COLLECTIONS_STORE).put(next);
+  await waitForTransaction(transaction);
+  return next;
+}
+
+/** Delete a collection and clear its books' membership (the books stay). */
+export async function deleteCollection(id: string) {
+  const db = await openLibraryDb();
+  const all = await requestToPromise(
+    db.transaction(BOOKS_STORE, "readonly").objectStore(BOOKS_STORE).getAll() as IDBRequest<
+      LibraryBook[]
+    >,
+  );
+
+  const transaction = db.transaction([BOOKS_STORE, COLLECTIONS_STORE], "readwrite");
+  const books = transaction.objectStore(BOOKS_STORE);
+  for (const book of all) {
+    if (book.collectionId === id) books.put({ ...book, collectionId: null });
+  }
+  transaction.objectStore(COLLECTIONS_STORE).delete(id);
+  await waitForTransaction(transaction);
+}
+
+/** Assign a set of books to a collection (or null to ungroup them). */
+export async function setBooksCollection(bookIds: string[], collectionId: string | null) {
+  if (bookIds.length === 0) return;
+  const idSet = new Set(bookIds);
+  const db = await openLibraryDb();
+  const all = await requestToPromise(
+    db.transaction(BOOKS_STORE, "readonly").objectStore(BOOKS_STORE).getAll() as IDBRequest<
+      LibraryBook[]
+    >,
+  );
+
+  const transaction = db.transaction(BOOKS_STORE, "readwrite");
+  const store = transaction.objectStore(BOOKS_STORE);
+  for (const book of all) {
+    if (idSet.has(book.id)) store.put({ ...book, collectionId });
+  }
+  await waitForTransaction(transaction);
+}
+
+export async function removeLibraryBooks(bookIds: string[]) {
+  if (bookIds.length === 0) return;
+  const db = await openLibraryDb();
+  const transaction = db.transaction([BOOKS_STORE, FILES_STORE], "readwrite");
+  const books = transaction.objectStore(BOOKS_STORE);
+  const files = transaction.objectStore(FILES_STORE);
+  for (const id of bookIds) {
+    books.delete(id);
+    files.delete(id);
+  }
+  await waitForTransaction(transaction);
 }
 
 export async function markLibraryBookOpened(bookId: string) {

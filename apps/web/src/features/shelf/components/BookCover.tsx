@@ -1,4 +1,4 @@
-import { Info, Star, Trash } from "@phosphor-icons/react";
+import { Check, Info, Star, Trash } from "@phosphor-icons/react";
 import { IconButton, Progress } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useLocalAtom } from "@read-aware/ui/state";
@@ -8,13 +8,25 @@ import { BookDetailsDialog, BookRemoveDialog } from "./BookDialogs";
 
 type BookCoverProps = {
   book: LibraryBook;
+  selecting?: boolean;
+  selected?: boolean;
   onClick?: () => void;
   onRemove?: () => void;
   onToggleStar?: () => void;
+  onToggleSelect?: () => void;
   className?: string;
 };
 
-export function BookCover({ book, onClick, onRemove, onToggleStar, className }: BookCoverProps) {
+export function BookCover({
+  book,
+  selecting = false,
+  selected = false,
+  onClick,
+  onRemove,
+  onToggleStar,
+  onToggleSelect,
+  className,
+}: BookCoverProps) {
   const [infoOpen, setInfoOpen] = useLocalAtom(false);
   const [removeOpen, setRemoveOpen] = useLocalAtom(false);
 
@@ -27,7 +39,8 @@ export function BookCover({ book, onClick, onRemove, onToggleStar, className }: 
     >
       <button
         type="button"
-        onClick={onClick}
+        onClick={selecting ? onToggleSelect : onClick}
+        aria-pressed={selecting ? selected : undefined}
         className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg focus-visible:ring-offset-2 focus-visible:ring-offset-fill"
       >
         <div className="relative aspect-[2/3] w-full overflow-hidden rounded-sm transition-shadow group-hover:shadow-md group-focus-within:shadow-md">
@@ -44,67 +57,95 @@ export function BookCover({ book, onClick, onRemove, onToggleStar, className }: 
               format={book.format}
             />
           )}
+          {/* Dim unselected covers in selection mode so the chosen ones stand out. */}
+          {selecting && (
+            <div
+              className={cn(
+                "absolute inset-0 transition-colors",
+                selected ? "bg-transparent" : "bg-stone-950/35",
+              )}
+              aria-hidden="true"
+            />
+          )}
         </div>
       </button>
 
-      <div className="pointer-events-none absolute inset-0 flex flex-col justify-between rounded-sm bg-stone-950/0 p-3 opacity-0 transition-all group-hover:bg-stone-950/80 group-hover:opacity-100 group-focus-within:bg-stone-950/80 group-focus-within:opacity-100">
-        <div className="min-w-0">
-          <span className="block text-left font-serif text-sm leading-tight font-medium break-words text-white/95">
-            {book.title}
-          </span>
-          <span className="mt-1 block truncate text-left font-sans text-[11px] text-white/70">
-            {book.author}
-          </span>
-        </div>
-
-        <div className="space-y-2">
-          <div className="pointer-events-auto flex justify-end gap-1">
-            <IconButton
-              label={book.starred ? `Unstar ${book.title}` : `Star ${book.title}`}
-              size="sm"
-              aria-pressed={book.starred ?? false}
-              onClick={() => onToggleStar?.()}
-              className="rounded-sm text-white/70 hover:text-white focus-visible:ring-white"
-              icon={<Star size={14} weight={book.starred ? "fill" : "regular"} aria-hidden="true" />}
-            />
-            <IconButton
-              label={`Info about ${book.title}`}
-              size="sm"
-              onClick={() => setInfoOpen(true)}
-              className="rounded-sm text-white/70 hover:text-white focus-visible:ring-white"
-              icon={<Info size={14} weight="regular" aria-hidden="true" />}
-            />
-            <IconButton
-              label={`Remove ${book.title}`}
-              size="sm"
-              onClick={() => setRemoveOpen(true)}
-              className="rounded-sm text-white/70 hover:text-red-400 focus-visible:ring-white"
-              icon={<Trash size={14} weight="regular" aria-hidden="true" />}
-            />
+      {/* Hover detail + actions, suppressed while selecting (the card toggles instead). */}
+      {!selecting && (
+        <div className="pointer-events-none absolute inset-0 flex flex-col justify-between rounded-sm bg-stone-950/0 p-3 opacity-0 transition-all group-hover:bg-stone-950/80 group-hover:opacity-100 group-focus-within:bg-stone-950/80 group-focus-within:opacity-100">
+          <div className="min-w-0">
+            <span className="block text-left font-serif text-sm leading-tight font-medium break-words text-white/95">
+              {book.title}
+            </span>
+            <span className="mt-1 block truncate text-left font-sans text-[11px] text-white/70">
+              {book.author}
+            </span>
           </div>
 
-          {book.progressPercent > 0 && (
-            <div>
-              <Progress
-                value={book.progressPercent}
+          <div className="space-y-2">
+            <div className="pointer-events-auto flex justify-end gap-1">
+              <IconButton
+                label={book.starred ? `Unstar ${book.title}` : `Star ${book.title}`}
                 size="sm"
-                className="[&_[role='progressbar']]:bg-white/35 [&_[role='progressbar']>div]:bg-white"
+                aria-pressed={book.starred ?? false}
+                onClick={() => onToggleStar?.()}
+                className="rounded-sm text-white/70 hover:text-white focus-visible:ring-white"
+                icon={<Star size={14} weight={book.starred ? "fill" : "regular"} aria-hidden="true" />}
               />
-              <span className="mt-1 block font-sans text-[11px] tabular-nums text-white/75">
-                {Math.round(book.progressPercent)}%
-              </span>
+              <IconButton
+                label={`Info about ${book.title}`}
+                size="sm"
+                onClick={() => setInfoOpen(true)}
+                className="rounded-sm text-white/70 hover:text-white focus-visible:ring-white"
+                icon={<Info size={14} weight="regular" aria-hidden="true" />}
+              />
+              <IconButton
+                label={`Remove ${book.title}`}
+                size="sm"
+                onClick={() => setRemoveOpen(true)}
+                className="rounded-sm text-white/70 hover:text-red-400 focus-visible:ring-white"
+                icon={<Trash size={14} weight="regular" aria-hidden="true" />}
+              />
             </div>
-          )}
-        </div>
-      </div>
 
-      {book.starred && (
+            {book.progressPercent > 0 && (
+              <div>
+                <Progress
+                  value={book.progressPercent}
+                  size="sm"
+                  className="[&_[role='progressbar']]:bg-white/35 [&_[role='progressbar']>div]:bg-white"
+                />
+                <span className="mt-1 block font-sans text-[11px] tabular-nums text-white/75">
+                  {Math.round(book.progressPercent)}%
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Selection checkbox, or the persistent star badge when not selecting. */}
+      {selecting ? (
         <div
-          className="pointer-events-none absolute left-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-stone-950/55 text-white"
+          className={cn(
+            "pointer-events-none absolute left-2 top-2 flex h-5 w-5 items-center justify-center rounded-full transition-colors",
+            selected
+              ? "bg-fg text-inverse-fg shadow-sm"
+              : "border border-white/90 bg-stone-950/30 text-transparent",
+          )}
           aria-hidden="true"
         >
-          <Star size={11} weight="fill" />
+          <Check size={12} weight="bold" />
         </div>
+      ) : (
+        book.starred && (
+          <div
+            className="pointer-events-none absolute left-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-stone-950/55 text-white"
+            aria-hidden="true"
+          >
+            <Star size={11} weight="fill" />
+          </div>
+        )
       )}
 
       <BookDetailsDialog book={book} open={infoOpen} onClose={() => setInfoOpen(false)} />

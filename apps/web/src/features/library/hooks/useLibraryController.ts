@@ -1,14 +1,20 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
 import { formatLibraryError } from "../lib/format-library-error";
 import {
+  createCollection,
+  deleteCollection,
   importBookFile,
+  listCollections,
   listLibraryBooks,
   removeLibraryBook,
+  removeLibraryBooks,
+  renameCollection,
+  setBooksCollection,
   setLibraryBookStarred,
 } from "../lib/library-db";
 import { createProgressPatch } from "../lib/library-progress";
 import { canUseNativeFilePicker, pickBookFilesNative } from "../lib/pick-book-files";
-import type { BookProgress, LibraryBook } from "../lib/library-types";
+import type { BookProgress, Collection, LibraryBook } from "../lib/library-types";
 
 function formatImportNotice(imported: number, duplicates: string[]): string {
   const skipped =
@@ -20,6 +26,7 @@ function formatImportNotice(imported: number, duplicates: string[]): string {
 
 export function useLibraryController() {
   const [books, setBooks] = useState<LibraryBook[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [libraryReady, setLibraryReady] = useState(false);
   const [libraryError, setLibraryError] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
@@ -52,13 +59,73 @@ export function useLibraryController() {
   const loadLibrary = useCallback(async () => {
     try {
       setLibraryError(null);
-      setBooks(await listLibraryBooks());
+      const [loadedBooks, loadedCollections] = await Promise.all([
+        listLibraryBooks(),
+        listCollections(),
+      ]);
+      setBooks(loadedBooks);
+      setCollections(loadedCollections);
     } catch (error) {
       reportError(error);
     } finally {
       setLibraryReady(true);
     }
   }, [reportError]);
+
+  const sortCollections = (list: Collection[]) =>
+    [...list].sort((a, b) => a.name.localeCompare(b.name));
+
+  const handleCreateCollection = useCallback(
+    async (name: string): Promise<Collection | null> => {
+      try {
+        const collection = await createCollection(name);
+        setCollections((current) => sortCollections([...current, collection]));
+        return collection;
+      } catch (error) {
+        reportError(error);
+        return null;
+      }
+    },
+    [reportError],
+  );
+
+  const handleRenameCollection = useCallback((id: string, name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setCollections((current) =>
+      sortCollections(current.map((c) => (c.id === id ? { ...c, name: trimmed } : c))),
+    );
+    void renameCollection(id, trimmed).catch((error) => {
+      void loadLibrary();
+      reportError(error);
+    });
+  }, [loadLibrary, reportError]);
+
+  const handleDeleteCollection = useCallback((id: string) => {
+    setCollections((current) => current.filter((c) => c.id !== id));
+    setBooks((current) =>
+      current.map((book) => (book.collectionId === id ? { ...book, collectionId: null } : book)),
+    );
+    void deleteCollection(id).catch((error) => {
+      void loadLibrary();
+      reportError(error);
+    });
+  }, [loadLibrary, reportError]);
+
+  const handleSetBooksCollection = useCallback(
+    (ids: string[], collectionId: string | null) => {
+      if (ids.length === 0) return;
+      const idSet = new Set(ids);
+      setBooks((current) =>
+        current.map((book) => (idSet.has(book.id) ? { ...book, collectionId } : book)),
+      );
+      void setBooksCollection(ids, collectionId).catch((error) => {
+        void loadLibrary();
+        reportError(error);
+      });
+    },
+    [loadLibrary, reportError],
+  );
 
   useEffect(() => {
     void loadLibrary();
@@ -135,8 +202,21 @@ export function useLibraryController() {
       });
   }, [reportError]);
 
+  const handleRemoveMany = useCallback((ids: string[]) => {
+    if (ids.length === 0) return;
+    const idSet = new Set(ids);
+    void removeLibraryBooks(ids)
+      .then(() => {
+        setBooks((currentBooks) => currentBooks.filter((entry) => !idSet.has(entry.id)));
+      })
+      .catch((error) => {
+        reportError(error);
+      });
+  }, [reportError]);
+
   return {
     books,
+    collections,
     libraryReady,
     libraryError,
     isImporting,
@@ -146,6 +226,11 @@ export function useLibraryController() {
     handleImportSelection,
     handleRemoveBook,
     handleToggleStar,
+    handleRemoveMany,
+    handleCreateCollection,
+    handleRenameCollection,
+    handleDeleteCollection,
+    handleSetBooksCollection,
     replaceBookInState,
     applyOptimisticProgress,
     reportError,

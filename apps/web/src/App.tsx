@@ -115,10 +115,16 @@ function App() {
                 error={library.libraryError}
                 notice={library.importNotice}
                 books={library.books}
+                collections={library.collections}
                 onImport={library.openImportPicker}
                 onOpenBook={reader.openReader}
                 onRemoveBook={library.handleRemoveBook}
                 onToggleStar={library.handleToggleStar}
+                onBulkRemove={library.handleRemoveMany}
+                onCreateCollection={library.handleCreateCollection}
+                onRenameCollection={library.handleRenameCollection}
+                onDeleteCollection={library.handleDeleteCollection}
+                onSetBooksCollection={library.handleSetBooksCollection}
               />
             ) : activeTopNav === "context" ? (
               <ContextWorkspace books={library.books} onOpenBook={reader.openReader} />

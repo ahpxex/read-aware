@@ -73,3 +73,33 @@ export function BookRemoveDialog({ book, open, onClose, onConfirm }: BookRemoveD
     </Dialog>
   );
 }
+
+type BooksRemoveDialogProps = {
+  count: number;
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+};
+
+/** Bulk remove-from-library confirmation for the batch selection toolbar. */
+export function BooksRemoveDialog({ count, open, onClose, onConfirm }: BooksRemoveDialogProps) {
+  return (
+    <Dialog open={open} onClose={onClose} title={`Remove ${count} book${count === 1 ? "" : "s"}?`}>
+      <div className="space-y-4">
+        <p>
+          Remove {count === 1 ? "this book" : `these ${count} books`} from your library and delete
+          {count === 1 ? " its" : " their"} stored file{count === 1 ? "" : "s"} from this device?
+          This can’t be undone.
+        </p>
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="danger" size="sm" onClick={onConfirm}>
+            Remove
+          </Button>
+        </div>
+      </div>
+    </Dialog>
+  );
+}

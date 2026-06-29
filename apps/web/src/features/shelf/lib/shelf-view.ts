@@ -9,6 +9,8 @@ export type ShelfView = {
   layout: ShelfLayout;
   group: ShelfGroup;
   sort: ShelfSort;
+  /** Hide books marked finished from the shelf. */
+  hideFinished: boolean;
 };
 
 // Default is a flat grid sorted by most recently opened — no section partitioning.
@@ -16,6 +18,7 @@ export const DEFAULT_SHELF_VIEW: ShelfView = {
   layout: "grid",
   group: "none",
   sort: "recent",
+  hideFinished: false,
 };
 
 export function getShelfView(): ShelfView {
@@ -27,6 +30,7 @@ export function getShelfView(): ShelfView {
       layout: parsed.layout ?? DEFAULT_SHELF_VIEW.layout,
       group: parsed.group ?? DEFAULT_SHELF_VIEW.group,
       sort: parsed.sort ?? DEFAULT_SHELF_VIEW.sort,
+      hideFinished: parsed.hideFinished ?? DEFAULT_SHELF_VIEW.hideFinished,
     };
   } catch {
     return DEFAULT_SHELF_VIEW;

@@ -1,10 +1,11 @@
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Check, Rows, SlidersHorizontal, SquaresFour } from "@phosphor-icons/react";
-import { ChoiceGroup, Divider, Popover } from "@read-aware/ui";
+import { ChoiceGroup, Divider, Popover, Toggle } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useAtom } from "jotai";
 import { shelfViewAtom } from "../../../state/ui";
 import type { ShelfGroup, ShelfLayout, ShelfSort } from "../lib/shelf-view";
+import { useShelfSelection } from "../hooks/useShelfSelection";
 
 const LAYOUT_OPTIONS: { value: ShelfLayout; label: string; icon: ReactNode }[] = [
   { value: "grid", label: "Grid", icon: <SquaresFour size={15} weight="regular" /> },
@@ -70,9 +71,13 @@ function OptionRows<T extends string>({ label, value, options, onChange }: Optio
  */
 export function ShelfManagementMenu() {
   const [view, setView] = useAtom(shelfViewAtom);
+  const { enter } = useShelfSelection();
+  const [open, setOpen] = useState(false);
 
   return (
     <Popover
+      open={open}
+      onOpenChange={setOpen}
       align="right"
       triggerLabel="Shelf management"
       triggerTooltip="Shelf management"
@@ -100,6 +105,30 @@ export function ShelfManagementMenu() {
           options={SORT_OPTIONS}
           onChange={(sort) => setView({ ...view, sort })}
         />
+        <Divider className="-mx-4 my-3" />
+        <div>
+          <p className={groupEyebrow}>Management</p>
+          <div className="-mx-1.5 flex flex-col">
+            <button
+              type="button"
+              onClick={() => {
+                enter();
+                setOpen(false);
+              }}
+              className="flex items-center rounded-md px-1.5 py-1.5 text-left font-sans text-sm text-fg-muted transition-colors hover:bg-fg/5 hover:text-fg"
+            >
+              Select books
+            </button>
+            <div className="flex items-center justify-between rounded-md px-1.5 py-1.5">
+              <span className="font-sans text-sm text-fg-muted">Hide finished</span>
+              <Toggle
+                aria-label="Hide finished books"
+                checked={view.hideFinished}
+                onChange={(hideFinished) => setView({ ...view, hideFinished })}
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </Popover>
   );

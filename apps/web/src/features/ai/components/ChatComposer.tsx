@@ -37,7 +37,13 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
     const [value, setValue] = useState("");
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-    useImperativeHandle(ref, () => ({ focus: () => textareaRef.current?.focus() }), []);
+    // preventScroll: focusing while the panel is still sliding in (translated
+    // off-screen) would otherwise scroll it into view and drift the whole overlay.
+    useImperativeHandle(
+      ref,
+      () => ({ focus: () => textareaRef.current?.focus({ preventScroll: true }) }),
+      [],
+    );
 
     // Grow with content up to a cap, then let it scroll.
     useLayoutEffect(() => {

@@ -97,9 +97,12 @@ export function ReaderShellOverlay({
   }, [visible, tocOpen, currentChapterHref]);
 
   return (
+    // overflow-clip (not -hidden): clips the off-screen panels the same way, but
+    // is NOT a scroll container — so focusing/scrolling a panel that's still
+    // sliding in can't scroll this box sideways and drift the whole overlay.
     <div
       className={cn(
-        "pointer-events-none fixed inset-0 z-50 flex min-h-0 flex-col overflow-hidden",
+        "pointer-events-none fixed inset-0 z-50 flex min-h-0 flex-col overflow-clip",
       )}
     >
       {/* Top bar — doubles as the window drag region on desktop. Non-interactive

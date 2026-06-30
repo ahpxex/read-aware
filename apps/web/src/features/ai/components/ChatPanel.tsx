@@ -19,7 +19,7 @@ export function ChatPanel({
 }: {
   bookId: string;
   bookTitle: string;
-  /** Whether the Chat tab is the visible one — drives autofocus of the composer. */
+  /** Whether the chat panel is open and visible — drives autofocus of the composer. */
   active?: boolean;
 }) {
   const conversation = useBookConversation(bookId, bookTitle);
@@ -29,8 +29,8 @@ export function ChatPanel({
     useState<ChatSelectionAttachment | null>(null);
   const composerRef = useRef<ChatComposerHandle | null>(null);
 
-  // Autofocus the composer whenever the Chat tab becomes the shown one (a frame
-  // later, so the tab panel is no longer display:none).
+  // Autofocus the composer each time the panel becomes visible (a frame later,
+  // after the slide-in has started so focus lands cleanly).
   useEffect(() => {
     if (!active) return;
     const frame = requestAnimationFrame(() => composerRef.current?.focus());

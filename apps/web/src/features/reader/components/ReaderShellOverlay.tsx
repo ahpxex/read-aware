@@ -108,6 +108,7 @@ export function ReaderShellOverlay({
           Left padding clears the macOS traffic lights when present. */}
       <div
         data-tauri-drag-region="deep"
+        inert={!visible}
         style={{
           // Left clears the macOS traffic lights; the right uses the plain edge
           // inset so the appearance/notes cluster sits flush against the right
@@ -227,6 +228,7 @@ export function ReaderShellOverlay({
         {/* Table of contents (left) */}
         <section
           aria-label="Table of contents"
+          inert={!(visible && tocOpen)}
           className={cn(
             "flex h-full min-h-0 w-[clamp(16rem,24vw,30rem)] flex-col border-r border-border-strong/70 transition-all duration-200 ease-out",
             visible && tocOpen
@@ -279,6 +281,10 @@ export function ReaderShellOverlay({
         {/* AI conversation (right) */}
         <section
           aria-label="AI chat"
+          // Hidden via transforms (still in the DOM), so without `inert` a focused
+          // composer would keep receiving keystrokes off-screen; `inert` also
+          // blurs it and drops the panel out of the tab order while closed.
+          inert={!(visible && notesOpen)}
           className={cn(
             "flex h-full min-h-0 w-[clamp(17rem,26vw,32rem)] flex-col border-l border-border-strong/70 transition-all duration-200 ease-out",
             visible && notesOpen
@@ -287,7 +293,7 @@ export function ReaderShellOverlay({
           )}
           style={{ backgroundColor: "var(--ra-main-surface-color)" }}
         >
-          <ChatPanel bookId={bookId} bookTitle={title} active={notesOpen} />
+          <ChatPanel bookId={bookId} bookTitle={title} active={visible && notesOpen} />
         </section>
       </div>
     </div>

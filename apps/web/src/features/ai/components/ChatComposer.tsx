@@ -71,7 +71,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
             className="mb-2"
           />
         )}
-        <div className="flex items-end gap-1 rounded-lg border border-border-strong bg-surface px-2 py-1.5 transition-colors focus-within:border-fg-subtle">
+        <div className="flex items-end gap-1 rounded-lg bg-fg/5 px-2 py-1.5 transition-shadow focus-within:ring-1 focus-within:ring-fg/15">
           {/* min-h matches the button so a single line stays vertically centered;
               symmetric py keeps the placeholder centered and the auto-grow from
               jumping on first paint. */}
@@ -109,11 +109,6 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
             />
           )}
         </div>
-        <p className="mt-1.5 px-1 text-[10px] leading-none text-fg-subtle">
-          {isStreaming
-            ? "Generating… press stop to cancel"
-            : "Enter to send · Shift+Enter for a new line"}
-        </p>
       </div>
     );
   },

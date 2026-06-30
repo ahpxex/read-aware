@@ -1,14 +1,21 @@
 # ReadAware — Local Data Model & Schema (Design)
 
-> **Status:** Decided direction, **not yet implemented**. This document defines
-> the *target* on-device schema. The current app persists to IndexedDB +
-> localStorage (see [§8 Mapping](#8-mapping-from-the-current-storage)); the
-> actual database port (StorageAdapter implementations, projection rebuild,
-> migration) is **deliberately deferred**. This file is the contract we build
-> toward, the source of truth for *shape*, not a description of what ships today.
+> **Status:** Decided direction, implementation **deliberately deferred**. The
+> app still persists to IndexedDB + localStorage today (see
+> [§8 Mapping](#8-mapping-from-the-current-storage)); the database port
+> (StorageAdapter implementations, projection rebuild, migration) is not built
+> yet.
 >
-> Aligns with `CLAUDE.md` › *AI Architecture Decisions* and the existing
-> contracts in `packages/core` (`events.ts`, `entities.ts`, `storage.ts`).
+> **Single source of truth for the schema is
+> [`docs/sqlite-schema.sql`](./sqlite-schema.sql)** — the exact, field-level DDL
+> with per-column comments. The **event catalog's source of truth is
+> [`packages/core/src/events.ts`](../packages/core/src/events.ts)**, and the
+> domain types are [`packages/core/src/entities.ts`](../packages/core/src/entities.ts).
+> **This document is conceptual prose only** — it deliberately contains no
+> `CREATE TABLE` DDL, so it can never drift from the `.sql`. When the two
+> disagree, the `.sql` (for tables) and `events.ts` (for events) win.
+>
+> Aligns with `CLAUDE.md` › *AI Architecture Decisions*.
 
 ## Table of contents
 
@@ -20,7 +27,7 @@
 6. [Vector index (LanceDB)](#6-vector-index-lancedb)
 7. [Device-local config (never in the log)](#7-device-local-config-never-in-the-log)
 8. [Mapping from the current storage](#8-mapping-from-the-current-storage)
-9. [Sync model](#9-sync-model)
+9. [Sync model & the rebuild contract](#9-sync-model--the-rebuild-contract)
 10. [Open decisions](#10-open-decisions)
 
 ---
@@ -31,30 +38,36 @@
   and (optional) remote inference, never for core reads/writes.
 - **Two independent axes.** *Data + retrieval = local* (SQLite + LanceDB);
   *LLM inference = remote* (BYO key / proxy). Keep them separate.
-- **Event-sourced.** The append-only **event log is the true source of truth**
-  and the **unit of sync**. Every structured table and the vector index is a
-  **deterministic projection rebuilt from the log** — projections are recomputed
-  on-device and never synced directly.
+- **Event-sourced.** The append-only **event log (`domain_events`) is the true
+  source of truth** and the **unit of sync**. Every structured table and the
+  vector index is a **deterministic projection rebuilt from the log** —
+  projections are recomputed on-device and never synced directly.
 - **The backend is sync + relay only.** It stores the (preferably E2E-encrypted)
   event log + large blobs and exposes a change feed. It holds no business logic.
-- **Reach storage through a `StorageAdapter`** (native FS + SQLite + LanceDB on
-  desktop; OPFS + wa-sqlite + WASM vector index in the browser).
+  *The cloud relay is not built yet; the schema provisions for it but the app is
+  fully usable with sync disabled.*
+- **Reach storage through a `StorageAdapter`** (native FS/blob store + SQLite +
+  LanceDB in the Tauri desktop app).
 
 ### Conventions
 
-- IDs are UUIDv4 strings (`TEXT`). Timestamps are ISO-8601 strings (`TEXT`)
-  unless a column is explicitly an epoch-millis `INTEGER` (HLC `wall_ms`).
-- SQLite types used: `TEXT`, `INTEGER`, `REAL`, `BLOB`. Booleans are `INTEGER`
-  (0/1). Structured payloads are JSON in `TEXT` columns.
-- "Projection" tables carry **no authoritative state of their own**: dropping
-  and replaying the log must rebuild them byte-for-byte.
+- IDs are UUID strings (`TEXT`). Timestamps are **ISO-8601 UTC strings**
+  (`TEXT`) everywhere, with the **one documented exception** that *durations*
+  are epoch-millisecond `INTEGER`s (e.g. `reading_time_*.total_ms`, HLC
+  `wall_ms`). There are no mixed-affinity timestamp columns.
+- SQLite types used: `TEXT`, `INTEGER`, `REAL`. Booleans are `INTEGER` (0/1).
+  Structured payloads are JSON in `*_json TEXT` columns.
+- Every table in the `.sql` is tagged with one of four **classes** (see
+  [§9](#9-sync-model--the-rebuild-contract)): `[synced log]`, `[projection]`,
+  `[device-local]`, `[local index]`. The class governs whether it syncs and
+  whether a projection rebuild may touch it.
 
 ---
 
 ## 2. Layered model
 
 ```
-                          remote backend (sync + relay only)
+                          remote backend (sync + relay only — NOT BUILT YET)
                  ┌─────────────────────────────────────────────┐
                  │  encrypted event log replica · blobs · feed  │
                  └───────────────▲─────────────────────┬────────┘
@@ -62,14 +75,14 @@
 ON DEVICE                       │                      │
 ┌───────────────────────────────┴──────────────────────┴───────────────────┐
 │  EVENT LOG  (append-only, immutable, HLC-ordered)   ← source of truth      │
-│             the ONLY thing that is synced                                  │
+│             domain_events — the ONLY thing that is synced                   │
 └───────────────┬───────────────────────────────────────────────────────────┘
-                │ deterministic, on-device replay
+                │ deterministic, on-device replay (UPSERT/merge by stable id)
    ┌────────────┼───────────────────────────────┬──────────────────────────┐
    ▼            ▼                                ▼                          ▼
  SQLite      SQLite                          SQLite                    LanceDB
  core        memory                          context bundles           vector index
- tables      (long-term, working)            (versioned)               (derived embeds)
+ projections (long-term, working)            (versioned)               (derived embeds)
  (books,     ──────────────────              ──────────────            ───────────────
  highlights, promotion / decay /             user_profile_context,     semantic search
  notes,      conflict-res / dedup            book_memory_context, …    over memories +
@@ -83,312 +96,203 @@ ON DEVICE                       │                      │
 - **Context bundles** — exportable, versioned projections assembled for a moment.
 
 Everything below the event log is rebuildable; only the log is canonical.
+*Device-local config (settings, per-book overrides, sync state) is **not** in
+this picture — it lives beside the projections but is never derived from the log
+(see [§7](#7-device-local-config-never-in-the-log)).*
 
 ---
 
 ## 3. The event log — the source of truth
 
-One append-only table. Order is a Hybrid Logical Clock so two device logs merge
-deterministically. Matches `DomainEventEnvelope` + `HlcStamp` in
+One append-only table, `domain_events` (see the `.sql` for exact columns).
+Order is a **Hybrid Logical Clock** `(hlc_wall_ms, hlc_counter, hlc_device)` so
+two device logs merge deterministically; a `UNIQUE` index on that triple gives a
+total causal order. Matches `DomainEventEnvelope` + `HlcStamp` in
 `packages/core/src/events.ts`.
-
-```sql
-CREATE TABLE event_log (
-  id          TEXT    NOT NULL PRIMARY KEY,   -- event uuid (envelope.id)
-  type        TEXT    NOT NULL,               -- discriminator, e.g. 'highlight.created'
-  -- Hybrid Logical Clock (envelope.hlc) — total causal order across devices
-  hlc_wall_ms INTEGER NOT NULL,               -- wall-clock ms at emit
-  hlc_counter INTEGER NOT NULL,               -- tiebreaker within the same ms
-  hlc_device  TEXT    NOT NULL,               -- stable per-device id (final tiebreaker)
-  payload     TEXT    NOT NULL,               -- event-specific JSON
-  -- denormalized for cheap projection / pruning (all derivable from payload):
-  entity_id   TEXT,                           -- primary subject (bookId / highlightId / …)
-  ingested_at TEXT    NOT NULL                -- when this device first stored it
-);
-
--- Replay + incremental projection read events in HLC order:
-CREATE UNIQUE INDEX ix_event_log_hlc
-  ON event_log (hlc_wall_ms, hlc_counter, hlc_device);
-CREATE INDEX ix_event_log_entity ON event_log (entity_id);
-CREATE INDEX ix_event_log_type   ON event_log (type);
-```
 
 Rules:
 
 - **Immutable & append-only.** Never `UPDATE`/`DELETE` a row. Corrections are new
-  events (`*.updated`, `*.removed`).
-- **Never repurpose a `type`'s payload shape.** Add a new variant instead;
-  replay of historical events must never break.
-- **`readEventsSince(after?: HlcStamp)`** = `WHERE (hlc_wall_ms,hlc_counter,hlc_device) > after ORDER BY ix_event_log_hlc`.
-- **Projection checkpoint** records how far each projection has consumed the log,
-  so projections update incrementally and can be rebuilt from zero:
+  events (`*.metadataEdited`, `*.removed`, `*.recolored`, …).
+- **Never repurpose a `type`'s payload shape.** Bump `schema_version` and add a
+  new payload variant instead; replay of historical events must never break.
+- **Per-event sync state is a side table** (`event_sync_state`), so tracking
+  push/retry never mutates the immutable log.
+- **`readEventsSince(after?: HlcStamp)`** reads `WHERE (hlc_wall_ms, hlc_counter,
+  hlc_device) > after` in HLC order.
+- **`projection_checkpoints`** records how far each projection has consumed the
+  log, so projections update incrementally and can be rebuilt from zero.
 
-```sql
-CREATE TABLE projection_checkpoint (
-  projection   TEXT NOT NULL PRIMARY KEY,  -- e.g. 'books', 'long_term_memory'
-  hlc_wall_ms  INTEGER NOT NULL,
-  hlc_counter  INTEGER NOT NULL,
-  hlc_device   TEXT NOT NULL
-);
-```
+Every column a projection marks `NOT NULL` must be derivable from some event
+payload (or the envelope's HLC wall time). The event payloads in `events.ts`
+were sized to satisfy exactly that — e.g. `book.imported` carries
+`fileName`/`fileSize` because `books.file_name`/`file_size` are `NOT NULL`.
 
 ---
 
 ## 4. Event catalog
 
-`✓` = already declared in `packages/core/src/events.ts`. `+` = planned (add as a
-new `DomainEventEnvelope` variant; do not mutate existing ones).
+Canonical definitions live in `packages/core/src/events.ts` (the `DomainEvent`
+union). Naming is `aggregate.verbInPast` (dot + camelCase). Timestamps for
+projections come from the envelope HLC wall time unless a payload field is named.
 
-| Type | Status | Payload (JSON) |
-|------|:--:|----------------|
-| `book.imported` | ✓ | `{ bookId, title, author?, format, sourceBlobKey }` |
-| `book.removed` | ✓ | `{ bookId }` |
-| `highlight.created` | ✓ | `{ highlightId, bookId, anchor, text }` |
-| `highlight.removed` | ✓ | `{ highlightId }` |
-| `note.created` | ✓ | `{ noteId, bookId?, highlightId?, body }` |
-| `note.updated` | ✓ | `{ noteId, body }` |
-| `reading.progressed` | ✓ | `{ bookId, locator }` |
-| `book.metadataEdited` | + | `{ bookId, title?, author?, coverBlobKey? }` |
-| `note.removed` | + | `{ noteId }` |
-| `highlight.recolored` | + | `{ highlightId, color }` |
-| `aichat.started` | + | `{ chatId, bookId, anchor?, seedText }` |
-| `aichat.messageAppended` | + | `{ chatId, role, content }` |
-| `profile.updated` | + | `{ displayName?, traits? }` |
-| `memory.promoted` | + | `{ memoryId, kind, subject, content, importance, evidence[] }` |
-| `memory.revised` | + | `{ memoryId, content?, importance? }` |
-| `memory.superseded` | + | `{ memoryId, bySupersedingId }` |
-| `memory.feedback` | + | `{ memoryId, signal: 'pin'|'correct'|'reject', note? }` |
-| `memory.forgotten` | + | `{ memoryId, reason: 'decay'|'user' }` |
-| `entity.merged` | + | `{ keepId, mergedId }` |
-
-`locator` is a format-neutral position string (EPUB CFI, or a PDF page locator);
-`anchor` is the same idea for annotation ranges. See current `ReaderProgress` and
-`cfiRange` in [§8](#8-mapping-from-the-current-storage).
+| Type | Payload (JSON, summarized) |
+|------|----------------------------|
+| `book.imported` | `{ bookId, title, author?, format, fileName, mimeType?, fileSize, sourceBlobKey, sourceSha256? }` |
+| `book.metadataEdited` | `{ bookId, title?, author? }` |
+| `book.coverExtracted` | `{ bookId, status, coverBlobKey? }` |
+| `book.opened` | `{ bookId }` → drives `books.last_opened_at` |
+| `book.starred` | `{ bookId, starred }` |
+| `book.removed` | `{ bookId }` (tombstone) |
+| `collection.created` / `collection.renamed` / `collection.removed` | `{ collectionId, name? }` |
+| `book.addedToCollection` / `book.removedFromCollection` | `{ bookId, collectionId }` (set semantics → reconstructable as many-to-many later) |
+| `reading.progressed` | `{ bookId, locator, chapterHref?, currentLocation?, totalLocations?, progressPercent?, status? }` |
+| `reading.timeRecorded` | `{ bookId, ms, atEpochMs }` |
+| `highlight.created` | `{ highlightId, bookId, anchor?, chapterHref?, text, color?, style? }` |
+| `highlight.recolored` | `{ highlightId, color, style? }` |
+| `highlight.removed` | `{ highlightId }` |
+| `note.created` | `{ noteId, bookId, highlightId?, anchor?, chapterHref?, quotedText?, body }` |
+| `note.updated` / `note.removed` | `{ noteId, body? }` |
+| `aiConversation.started` | `{ conversationId, bookId, title? }` |
+| `aiMessage.appended` | `{ messageId, conversationId, role, seq, content, model?, attachments? }` |
+| `aiConversation.cleared` | `{ conversationId }` |
+| `profile.updated` | `{ displayName?, traits? }` |
+| `entity.resolved` / `entity.merged` | `{ entityId, … }` / `{ keepId, mergedId }` |
+| `memory.promoted` | `{ memoryId, kind, scope?, bookId?, entityId?, subject?, content, importance?, confidence?, evidence[] }` |
+| `memory.revised` / `memory.superseded` / `memory.feedback` / `memory.forgotten` | see `events.ts` |
 
 > **Consolidation as events.** Memory promotion/decay/conflict-resolution
 > decisions are themselves events (`memory.*`), so the memory projection is
 > reproducible and syncable. The *derivation logic* runs on-device; the
 > *outcomes* are logged.
+>
+> **Producer status.** Book / annotation / reading / AI-conversation events are
+> what the first cutover writes. `profile.*`, `entity.*`, and `memory.*` are
+> declared so the projection tables are well-defined, but **have no producer
+> yet** — the consolidation/embedding pipeline is future work
+> ([§10](#10-open-decisions)).
 
 ---
 
 ## 5. Projection tables (SQLite)
 
-All rebuildable from the log. Foreign keys express intent; because rows are
-written by replay (in HLC order), enforcement can be deferred or `DEFERRABLE`.
+All `[projection]` tables are rebuildable from the log; see the `.sql` for exact
+columns. This section describes intent only.
 
 ### 5.1 Core reading model
 
 Mirrors `packages/core/src/entities.ts`.
 
-```sql
-CREATE TABLE user_profile (
-  id           TEXT NOT NULL PRIMARY KEY,
-  display_name TEXT,
-  traits       TEXT,                 -- JSON: derived, stable preferences
-  created_at   TEXT NOT NULL,
-  updated_at   TEXT NOT NULL
-);
+- **`books`** — the shelf read-model. `cover_status` (`unchecked`/`ready`/`none`/
+  `failed`) + `cover_blob_key` replace the old `coverChecked` + `coverUrl` pair;
+  `starred`, `last_opened_at`, and a `removed_at` tombstone drive shelf sorting
+  and soft-delete. Original bytes live in the blob store, referenced by
+  `source_blob_key`.
+- **`collections`** + **`book_collection_memberships`** — a book belongs to at
+  most one collection today (`memberships` is keyed by `book_id`). The underlying
+  events are additive set operations, so widening to many-to-many later is a
+  projection change, not a data migration.
+- **`reading_positions`** — one current position per book (`cfi`/`href` +
+  `current/total_locations` + `progress_percent` + `reading_status`), updated by
+  `reading.progressed` / `book.opened`.
+- **`reading_time_totals` / `_daily` / `_hourly`** — active-reading-time
+  aggregates rebuilt from `reading.timeRecorded`. Durations are `INTEGER` ms;
+  the timestamp columns are ISO-8601 `TEXT` like everywhere else.
+- **`highlights`** / **`notes`** — annotations. `cfiRange` → `anchor`,
+  `Note.content` → `body`. A highlight's `anchor` may be null for unanchorable
+  formats; a note always belongs to a book (`book_id NOT NULL`), matching
+  `events.ts`.
 
-CREATE TABLE book (
-  id              TEXT NOT NULL PRIMARY KEY,
-  title           TEXT NOT NULL,
-  author          TEXT,
-  format          TEXT NOT NULL,     -- 'epub'|'mobi'|'azw3'|'fb2'|'pdf'
-  source_blob_key TEXT NOT NULL,     -- → blob.key (original file)
-  cover_blob_key  TEXT,              -- → blob.key (extracted cover; null = none)
-  added_at        TEXT NOT NULL,
-  removed_at      TEXT               -- soft tombstone (book.removed); null = active
-);
-CREATE INDEX ix_book_added ON book (added_at);
+### AI conversation (one persistent thread per book)
 
-CREATE TABLE highlight (
-  id           TEXT NOT NULL PRIMARY KEY,
-  book_id      TEXT NOT NULL REFERENCES book(id),
-  anchor       TEXT NOT NULL,        -- EPUB CFI / PDF locator (range)
-  chapter_href TEXT,
-  text         TEXT NOT NULL,
-  color        TEXT NOT NULL DEFAULT 'yellow',  -- 'yellow'|'green'|'blue'|'pink'
-  created_at   TEXT NOT NULL,
-  removed_at   TEXT
-);
-CREATE INDEX ix_highlight_book ON highlight (book_id);
-
-CREATE TABLE note (
-  id           TEXT NOT NULL PRIMARY KEY,
-  book_id      TEXT REFERENCES book(id),
-  highlight_id TEXT REFERENCES highlight(id),
-  anchor       TEXT,
-  chapter_href TEXT,
-  quoted_text  TEXT,                 -- the anchored excerpt, if any
-  body         TEXT NOT NULL,
-  created_at   TEXT NOT NULL,
-  updated_at   TEXT NOT NULL,
-  removed_at   TEXT
-);
-CREATE INDEX ix_note_book ON note (book_id);
-
--- One current position per (user, book). Updated by reading.progressed.
-CREATE TABLE reading_position (
-  book_id          TEXT NOT NULL PRIMARY KEY REFERENCES book(id),
-  locator          TEXT,             -- CFI / PDF locator (cfi/href)
-  current_location INTEGER,
-  total_locations  INTEGER,
-  progress_percent REAL NOT NULL DEFAULT 0,   -- 0–100
-  status           TEXT NOT NULL DEFAULT 'unread', -- 'unread'|'reading'|'finished'
-  last_read_at     TEXT
-);
-
--- AI chats threaded over a selection (annotation kind = ai-chat today).
-CREATE TABLE ai_chat (
-  id           TEXT NOT NULL PRIMARY KEY,
-  book_id      TEXT NOT NULL REFERENCES book(id),
-  anchor       TEXT,
-  chapter_href TEXT,
-  seed_text    TEXT,
-  created_at   TEXT NOT NULL,
-  updated_at   TEXT NOT NULL
-);
-CREATE TABLE ai_chat_message (
-  id        TEXT NOT NULL PRIMARY KEY,
-  chat_id   TEXT NOT NULL REFERENCES ai_chat(id),
-  role      TEXT NOT NULL,           -- 'user'|'assistant'
-  content   TEXT NOT NULL,
-  seq       INTEGER NOT NULL,        -- order within the chat
-  created_at TEXT NOT NULL
-);
-CREATE INDEX ix_chat_msg_chat ON ai_chat_message (chat_id, seq);
-```
+The product model is **one persistent conversation per book** — not a thread per
+selection. `ai_conversations` is keyed `UNIQUE(book_id)`; `ai_messages` holds the
+turns (`seq`-ordered), and `ai_message_attachments` holds the selection chips
+that "Ask AI about this" attaches to a user message. *Clearing* a conversation
+sets `cleared_at` and wipes its messages **in place** (the row and its id are
+kept), so the `started` projection must upsert/lookup by book and never blind-
+insert a fresh id.
 
 ### 5.2 Memory (long-term + working)
 
 The hard half (per CLAUDE.md): the write/consolidation pipeline is modeled as
-explicitly as retrieval — promotion, conflict resolution, decay, dedup/entity
-resolution.
+explicitly as retrieval. Tables (all forward-looking, no producer yet):
 
-```sql
--- Resolved entities behind "repeated appearance across books/conversations".
-CREATE TABLE entity (
-  id          TEXT NOT NULL PRIMARY KEY,
-  kind        TEXT NOT NULL,         -- 'person'|'concept'|'work'|'place'|…
-  canonical   TEXT NOT NULL,         -- canonical display name
-  aliases     TEXT,                  -- JSON string[]
-  created_at  TEXT NOT NULL
-);
-
-CREATE TABLE long_term_memory (
-  id           TEXT NOT NULL PRIMARY KEY,
-  kind         TEXT NOT NULL,        -- 'profile_fact'|'preference'|'insight'|'entity_fact'
-  entity_id    TEXT REFERENCES entity(id),
-  subject      TEXT,                 -- short subject/key for the memory
-  content      TEXT NOT NULL,        -- the consolidated statement
-  -- retrieval signals (CLAUDE.md › Memory and Context):
-  importance   REAL NOT NULL DEFAULT 0,  -- consolidated salience
-  confidence   REAL NOT NULL DEFAULT 0,
-  recency_at   TEXT NOT NULL,        -- last reinforced
-  hit_count    INTEGER NOT NULL DEFAULT 0,  -- repeated appearance counter
-  pinned       INTEGER NOT NULL DEFAULT 0,  -- explicit user feedback
-  status       TEXT NOT NULL DEFAULT 'active', -- 'active'|'superseded'|'forgotten'
-  superseded_by TEXT REFERENCES long_term_memory(id),
-  created_at   TEXT NOT NULL,
-  updated_at   TEXT NOT NULL
-);
-CREATE INDEX ix_ltm_status   ON long_term_memory (status);
-CREATE INDEX ix_ltm_entity   ON long_term_memory (entity_id);
-CREATE INDEX ix_ltm_importance ON long_term_memory (importance);
-
--- Provenance: which raw events / artifacts support a memory (dedup + audit).
-CREATE TABLE memory_evidence (
-  memory_id  TEXT NOT NULL REFERENCES long_term_memory(id),
-  source_kind TEXT NOT NULL,         -- 'event'|'highlight'|'note'|'ai_chat'|'book'
-  source_id  TEXT NOT NULL,
-  weight     REAL NOT NULL DEFAULT 1,
-  PRIMARY KEY (memory_id, source_kind, source_id)
-);
-
--- Short-horizon projection for the active session (cheap to rebuild/discard).
-CREATE TABLE working_memory (
-  id          TEXT NOT NULL PRIMARY KEY,
-  book_id     TEXT REFERENCES book(id),
-  content     TEXT NOT NULL,
-  salience    REAL NOT NULL DEFAULT 0,
-  expires_at  TEXT,                  -- decays out of the window
-  created_at  TEXT NOT NULL
-);
-```
+- **`entities`** + **`entity_aliases`** — resolved entities behind "repeated
+  appearance across books/conversations"; `entities.merged_into_id` records an
+  `entity.merged`.
+- **`memories`** — the consolidated statement plus retrieval signals
+  (`importance`, `confidence`, `recency_at`, `hit_count`, `pinned`, `status`,
+  `superseded_by`) so retrieval can blend similarity with relevance, recency,
+  importance, and explicit feedback — not similarity alone.
+- **`memory_evidence`** — provenance: which events/artifacts support a memory
+  (dedup + audit).
+- **`working_memory`** — short-horizon, decaying projection for the active
+  session (`salience`, `expires_at`); cheap to rebuild/discard.
 
 ### 5.3 Context bundles (versioned, exportable)
 
-Structured, exportable context — preferred over ad-hoc prompt strings. Each
-bundle key keeps a version history so exports are reproducible.
-
-```sql
-CREATE TABLE context_bundle (
-  id          TEXT NOT NULL PRIMARY KEY,
-  bundle_key  TEXT NOT NULL,         -- stable per (type, scope), e.g. 'book_memory:<bookId>'
-  type        TEXT NOT NULL,         -- 'user_profile_context'|'reading_intent_context'
-                                     -- |'book_memory_context'|'conversation_insights_context'
-  book_id     TEXT REFERENCES book(id),  -- null for user-level bundles
-  version     INTEGER NOT NULL,      -- monotonic per bundle_key
-  content     TEXT NOT NULL,         -- the assembled bundle (JSON), external-agent ready
-  checksum    TEXT NOT NULL,         -- content hash for dedup / change detection
-  assembled_at TEXT NOT NULL
-);
-CREATE UNIQUE INDEX ix_bundle_key_version ON context_bundle (bundle_key, version);
-```
+**`context_bundles`** keeps a version history per `bundle_key` (`type` +
+`scope_id`), so exports are reproducible; **`context_bundle_items`** records the
+ranked sources behind each version. External agents read the structured
+`content_json`, never the raw transcript. (Forward-looking.)
 
 ### 5.4 Blob registry
 
-Large bytes (book files, normalized derivatives, covers) live in the blob store
-(`StorageAdapter.putBlob/getBlob`), not in a SQLite column. This table is the
-on-device index of them.
-
-```sql
-CREATE TABLE blob (
-  key         TEXT NOT NULL PRIMARY KEY,  -- referenced by book.source_blob_key, cover_blob_key
-  kind        TEXT NOT NULL,         -- 'source'|'derivative'|'cover'
-  mime_type   TEXT,
-  byte_size   INTEGER,
-  created_at  TEXT NOT NULL
-);
-```
+Large bytes (book files, covers, font faces) live in the blob store on the
+filesystem via `StorageAdapter.putBlob/getBlob` — **never in a SQLite column**.
+**`blob_objects`** is the on-device index of them (`kind`, `mime_type`,
+`byte_size`, `sha256`, `storage_uri`, `sync_required`, soft-delete `deleted_at`).
+It is a `[device-local]` authoritative registry of local storage facts, *not* a
+projection — a projection rebuild must not touch it.
 
 ---
 
 ## 6. Vector index (LanceDB)
 
-A **derived** index, rebuilt on-device from the log / SQLite — never the primary
-store. Mirrors `VectorItem` / `VectorMatch` in `storage.ts`.
+A **derived** index, rebuilt on-device — never the primary store.
+**`vector_documents`** is the SQLite-side manifest (source, `content_hash`,
+`embedding_model`/`dimension`, `lance_table`, `indexed_at`/`stale_at`); the
+vectors themselves live in LanceDB. **`embedding_jobs`** is the local work queue.
 
-- **Indexed:** long-term memories, working memories, highlights, notes, AI-chat
-  turns — anything retrievable.
-- **Per item:** `id`, `embedding: number[]`, `metadata` (e.g.
-  `{ source_kind, book_id, importance, recency_at }`) so retrieval can blend
-  similarity with the [§5.2](#52-memory-long-term--working) signals (relevance to
-  the current reading goal, recency, importance, explicit feedback, repeated
-  appearance) rather than similarity alone.
-- **Rebuild:** drop + re-embed from SQLite; `embedding` is never the source of
-  truth and is never synced.
+- **Indexed:** long-term memories, working memories, highlights, notes, AI
+  messages, book sections — anything retrievable.
+- **Metadata-rich** so retrieval can blend similarity with the
+  [§5.2](#52-memory-long-term--working) signals.
+- **Rebuild:** drop + re-embed from SQLite; the embedding is never the source of
+  truth and is never synced. Mirrors `VectorItem` / `VectorMatch` in
+  `storage.ts`. (Forward-looking — no producer yet.)
 
 ---
 
 ## 7. Device-local config (never in the log)
 
 Settings and secrets are **not** domain events and are **not** synced by default
-— they stay device-local, outside the event log.
+— they stay device-local, outside the event log, and are **never recreated by a
+projection rebuild**.
 
-| Data | Today | Target | Synced? |
-|------|-------|--------|:--:|
-| Reader settings (`theme`, `fontSize`, `lineSpacing`, `readingMode`) | `localStorage['read-aware-reader-settings']` | `app_settings` row (or keep in a local KV) | No (device-local). Optional later: a `settings.changed` event stream if cross-device sync is wanted. |
-| AI provider config (`provider`, `apiKey`, `model`, `customBaseUrl`) | `localStorage['read-aware-ai-config']` (**plaintext key**) | OS keychain / secure store for the key; non-secret fields in `app_settings` | **Never.** Secret. Move off plaintext localStorage. |
+- **`settings`** — a single-row (`CHECK(id=1)`) table of **stable, validated**
+  preferences as typed columns (General / Appearance / Reading / AI features &
+  privacy / shelf view / panel widths). Adding a stable setting is an additive
+  `ADD COLUMN DEFAULT` (non-destructive).
+- **`app_kv`** — a key/value escape hatch for **high-churn or experimental**
+  flags that aren't worth a typed column yet, so they don't each require a
+  schema migration. Promote to a typed `settings` column once stable.
+- **`shortcut_bindings`** — per-action keybinding overrides; absent ids use the
+  code defaults.
+- **`ai_provider_configs`** — BYOK model connection config. Non-secret fields
+  (`provider`, `model`, `custom_base_url`) live here; the **API key lives in the
+  OS Keychain**, and SQLite stores only `api_key_ref`. Keyed by a `TEXT` id with
+  `role` (`chat`/`embedding`) + `is_default`, so a separate embedding provider
+  (needed by the vector index) costs nothing — even if v1 configures one row.
+- **`reader_book_overrides`** / **`reader_panel_layouts`** — per-book appearance
+  and panel state. These reference `books` only *logically* (no enforced FK) so a
+  projection rebuild of `books` can never cascade-delete this non-derivable local
+  state (see [§9](#9-sync-model--the-rebuild-contract)).
 
-```sql
--- Optional local KV for non-secret device config (not synced, not in the log).
-CREATE TABLE app_settings (
-  key   TEXT NOT NULL PRIMARY KEY,
-  value TEXT NOT NULL              -- JSON
-);
-```
+**AI provider key:** today's `read-aware-ai-config` stores the API key in
+**plaintext localStorage** — that must move to the Keychain on migration and
+**never** enter SQLite.
 
 ---
 
@@ -396,64 +300,110 @@ CREATE TABLE app_settings (
 
 What ships today → where it lands in the target. (Today's stores live in each
 feature's `lib/`; see `library-db.ts`, `annotation-db.ts`, `reader-settings.ts`,
-`ai-config.ts`.)
+`ai-config.ts`, the reading-stats / conversations / fonts modules.)
 
 | Today (IndexedDB / localStorage) | Target |
 |----------------------------------|--------|
-| `read-aware-library` › `books` (`LibraryBook`) | derived from `book.imported` / `book.metadataEdited` / `book.removed` → `book`; reading position → `reading_position`; cover data URL → `blob` (kind `cover`) + `book.cover_blob_key` |
-| `read-aware-library` › `files` (`StoredBookFile.blob`) | blob store + `blob` registry (kind `source`); `book.source_blob_key` |
-| `LibraryBook.coverUrl` / `coverChecked` | `book.cover_blob_key` (null = none); the "checked" flag becomes "a `cover` blob exists or import recorded none" |
-| `LibraryBook.progress` (`ReaderProgress`) | `reading_position` (locator = `cfi`/`href`, plus current/total/percent/status) |
-| `read-aware-annotations` › `annotations` (`Highlight`) | `highlight.created`/`removed` → `highlight` (`cfiRange`→`anchor`) |
-| …`annotations` (`Note`) | `note.created`/`updated`/`removed` → `note` (`content`→`body`) |
-| …`annotations` (`AIChat` + `messages[]`) | `aichat.started`/`messageAppended` → `ai_chat` + `ai_chat_message` |
-| `read-aware-reader-settings` | `app_settings` (device-local) — see [§7](#7-device-local-config-never-in-the-log) |
-| `read-aware-ai-config` | secure store (key) + `app_settings` (non-secret) — see [§7](#7-device-local-config-never-in-the-log) |
+| `read-aware-library` › `books` (`LibraryBook`) | `book.imported` / `metadataEdited` / `coverExtracted` / `starred` / `removed` → `books`; position → `reading_positions`; cover bytes → `blob_objects` (kind `cover_image`) + `books.cover_blob_key` |
+| `read-aware-library` › `files` (`StoredBookFile.blob`) | blob store + `blob_objects` (kind `book_source`); `books.source_blob_key` |
+| `LibraryBook.coverUrl` / `coverChecked` | `books.cover_blob_key` (null = none) + `cover_status` |
+| `LibraryBook.progress` (`ReaderProgress`) | `reading_positions` (cfi/href + current/total/percent/status) |
+| `read-aware-library` › `collections` (`Collection`) | `collection.*` / `book.addedToCollection` → `collections` + `book_collection_memberships` |
+| `read-aware-reading-stats` (`totalMs`/`byHour`/`daily`/…) | `reading.timeRecorded` → `reading_time_totals` / `_daily` / `_hourly` |
+| `read-aware-annotations` › highlights (`Highlight`, `cfiRange`) | `highlight.created`/`recolored`/`removed` → `highlights` (`cfiRange`→`anchor`) |
+| …notes (`Note`, `content`) | `note.created`/`updated`/`removed` → `notes` (`content`→`body`) |
+| `read-aware-conversations` (`bookId → messages[]`) | `aiConversation.started` / `aiMessage.appended` → `ai_conversations` (one per book) + `ai_messages` + `ai_message_attachments` |
+| `read-aware-fonts` (font `ArrayBuffer`) | `cached_font_faces` + `blob_objects` (kind `font_face`); `sync_required = 0` |
+| `read-aware-reader-settings` / `-app-settings` / `-general-settings` / `-ai-preferences` / `-shelf-view` | `settings` typed columns (high-churn flags → `app_kv`) — see [§7](#7-device-local-config-never-in-the-log) |
+| `read-aware-shortcuts` | `shortcut_bindings` |
+| `read-aware-reader-panels` + dragged panel widths | `reader_panel_layouts` + `settings.toc_panel_width_px` / `chat_panel_width_px` |
+| per-book appearance scope | `reader_book_overrides` |
+| `read-aware-ai-config` | Keychain (key) + `ai_provider_configs` (non-secret) — see [§7](#7-device-local-config-never-in-the-log) |
 
-Naming reconciliation: today's annotation `cfiRange` → core `anchor`; `Note.content`
-→ core `body`; the annotations table's `type` discriminator splits into the typed
-tables `highlight` / `note` / `ai_chat`.
+Naming reconciliation: today's annotation `cfiRange` → `anchor`; `Note.content`
+→ `body`; the annotations table's `type` discriminator splits into the typed
+tables `highlights` / `notes` / `ai_conversations`.
 
 ---
 
-## 9. Sync model
+## 9. Sync model & the rebuild contract
 
-- **Unit of sync = events.** Only `event_log` rows cross the wire. Projections,
-  the vector index, and device-local config are never synced — each device
-  rebuilds projections from the merged log.
+### Table classes
+
+| Class | Synced? | Rebuilt from log? | Examples |
+|-------|:--:|:--:|----------|
+| `[synced log]` | **yes** | n/a (it *is* the source) | `domain_events` |
+| `[projection]` | no | **yes** | `books`, `highlights`, `notes`, `memories`, `context_bundles` |
+| `[device-local]` | no | **no** (authoritative local) | `settings`, `ai_provider_configs`, `reader_book_overrides`, `blob_objects`, `sync_*`, `event_sync_state` |
+| `[local index]` | no | rebuilt from SQLite, not the log | `vector_documents`, `cached_font_faces` |
+
+### Sync
+
+- **Unit of sync = events.** Only `domain_events` rows cross the wire.
+  Projections, the vector index, and device-local config are never synced.
 - **Merge = HLC order.** Pulled events are appended and projections re-applied in
   `(hlc_wall_ms, hlc_counter, hlc_device)` order. Same log everywhere ⇒ identical
   projections.
-- **Blobs sync separately.** Book files / derivatives move as large (E2E-encrypted)
-  blobs keyed by `blob.key`, referenced from synced events; a new device
-  bootstraps by pulling the log, then lazily fetching blobs on demand.
-- **E2E by default.** The server stores ciphertext only and cannot run
-  server-side search or feed a thin web client — a conscious tradeoff
-  (`CLAUDE.md` › *Context Portability*). Revisit only if a richer server-backed
-  web client becomes a priority.
-- **Change feed.** The backend exposes "events after HLC X" so devices catch up
-  incrementally; `projection_checkpoint` tracks local apply progress.
+- **Blobs sync separately**, keyed by `blob_objects.key`, tracked by
+  `blob_sync_state`; a new device bootstraps from the log, then lazily fetches
+  blobs.
+- **E2E by default.** The relay stores ciphertext only. *(Not built yet.)*
+- **Change feed.** "events after HLC X"; `projection_checkpoints` tracks local
+  apply progress.
+
+### The rebuild contract
+
+A projection rebuild applies events by **`UPSERT`/merge keyed by the stable
+entity id — never `DROP`/`DELETE`-then-reinsert**, and touches **only
+`[projection]` tables**. Two consequences make this safe:
+
+1. `[device-local]` and `[local index]` tables are excluded from rebuild, so
+   non-derivable local state (per-book overrides, panel layouts, blob registry,
+   sync outbox) survives untouched.
+2. The two device-local satellites that key on a book id
+   (`reader_book_overrides`, `reader_panel_layouts`) deliberately carry **no
+   enforced FK** to `books`, so even a hypothetical `DELETE FROM books` can't
+   cascade into them. Orphan rows (book removed) are harmless and cleaned
+   opportunistically.
+
+### FK enforcement (integration requirement)
+
+`PRAGMA foreign_keys` is **per-connection** and not persisted in the file. The
+StorageAdapter **must** re-issue `PRAGMA foreign_keys = ON` on every connection
+(and assert it in a startup self-check), or all the `ON DELETE` actions become
+silent no-ops. Cross-aggregate FKs (everything referencing `blob_objects`,
+`memberships → collections`, the memory cross-refs) are
+`DEFERRABLE INITIALLY DEFERRED` so bulk migration / replay can insert in any
+order within a transaction.
 
 ---
 
 ## 10. Open decisions
 
-- **Reader settings: synced or device-local?** Defaulting to device-local
-  ([§7](#7-device-local-config-never-in-the-log)). Promote to a `settings.changed`
-  event stream only if users expect settings to follow them across devices.
 - **Progress: event vs. high-frequency projection.** `reading.progressed` can be
-  chatty. Options: debounce emission (already debounced in the UI), or keep a
-  fast-moving local `reading_position` and only emit a coarse event on
-  session-end / chapter change. Needs a rule so the log doesn't bloat.
-- **Memory schema depth.** [§5.2](#52-memory-long-term--working) is a starting
-  point; decay function, conflict-resolution policy, and entity-resolution
-  thresholds are pipeline decisions to spec separately.
-- **Context bundle retention.** How many versions to keep per `bundle_key` before
-  pruning (vs. full reproducibility from the log).
-- **`per-user` scoping.** Single-user on-device today; if multi-profile is ever
-  needed, add `user_id` to the scoped tables and to event payloads.
+  chatty. Today the UI debounces; the long-term rule (coarse event on
+  session-end / chapter change vs. fast local `reading_positions` + periodic
+  event) still needs to be fixed so the log doesn't bloat.
+- **Memory pipeline depth.** [§5.2](#52-memory-long-term--working) tables are
+  defined but unproduced; the decay function, conflict-resolution policy, and
+  entity-resolution thresholds are pipeline decisions to spec separately before
+  the `memory.*` / `entity.*` producers are built.
+- **Context bundle retention.** How many versions to keep per `bundle_key`
+  before pruning (vs. full reproducibility from the log).
+- **`per-user` scoping.** Single-user on-device today; multi-profile would add a
+  `user_id` to scoped tables and event payloads (cheap, because projections
+  rebuild). `domain_events.actor_id` already defaults to `'local'` so historical
+  events stay attributable.
+
+### Resolved (previously open)
+
+- **Reader settings are device-local**, in the typed `settings` table (+ `app_kv`
+  for experimental flags), not the event log — promote to a `settings.changed`
+  event stream only if cross-device settings sync is ever wanted.
+- **AI provider config supports multiple roles** (`chat` / `embedding`) via
+  `ai_provider_configs.role` + `is_default`, instead of a single hard-coded row.
 
 ---
 
-*Implementation (StorageAdapter for desktop/web, projection builders, IndexedDB→
+*Implementation (StorageAdapter for desktop, projection builders, IndexedDB→
 SQLite migration) is deferred — see the status note at the top.*

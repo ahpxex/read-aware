@@ -9,8 +9,10 @@ import { useBookAnnotations } from "../../annotations/hooks/useBookAnnotations";
 import type { LibraryBook } from "../../library/lib/library-types";
 import { hrefMatches } from "../lib/epub-utils";
 import { useReaderPanelLayout } from "../hooks/useReaderPanelLayout";
+import { useReaderPanelSizes } from "../hooks/useReaderPanelSizes";
 import type { TocEntry } from "../lib/reader-types";
 import { ReaderNotesPopover } from "./ReaderNotesPopover";
+import { ReaderResizeHandle } from "./ReaderResizeHandle";
 import { ReaderAppearanceMenu } from "./ReaderAppearanceMenu";
 
 type ReaderShellOverlayProps = {
@@ -54,6 +56,7 @@ export function ReaderShellOverlay({
   // TOC + chat panels persist per book (restored when the book reopens); the
   // appearance popover is transient and resets each session.
   const { tocOpen, notesOpen, setTocOpen, setNotesOpen } = useReaderPanelLayout(bookId);
+  const { sizes, adjust: adjustPanel, persist: persistPanelSizes } = useReaderPanelSizes();
   const [appearanceOpen, setAppearanceOpen] = useState(false);
 
   // The book's highlights and notes, shown in a popover opened from the header.
@@ -233,12 +236,12 @@ export function ReaderShellOverlay({
           aria-label="Table of contents"
           inert={!(visible && tocOpen)}
           className={cn(
-            "flex h-full min-h-0 w-[clamp(16rem,24vw,30rem)] flex-col border-r border-border-strong/70 transition-all duration-200 ease-out",
+            "relative flex h-full min-h-0 shrink-0 flex-col border-r border-border-strong/70 transition-[transform,opacity] duration-200 ease-out",
             visible && tocOpen
               ? "pointer-events-auto translate-x-0 opacity-100"
               : "-translate-x-full opacity-0 pointer-events-none",
           )}
-          style={{ backgroundColor: "var(--ra-main-surface-color)" }}
+          style={{ width: sizes.toc, backgroundColor: "var(--ra-main-surface-color)" }}
         >
           <ScrollArea className="h-full min-h-0 flex-1">
             <div ref={tocListRef} className="flex flex-col px-3 py-4">
@@ -279,6 +282,12 @@ export function ReaderShellOverlay({
               })}
             </div>
           </ScrollArea>
+          <ReaderResizeHandle
+            edge="right"
+            ariaLabel="Resize contents panel"
+            onResize={(delta) => adjustPanel("toc", delta)}
+            onCommit={persistPanelSizes}
+          />
         </section>
 
         {/* AI conversation (right) */}
@@ -289,13 +298,19 @@ export function ReaderShellOverlay({
           // blurs it and drops the panel out of the tab order while closed.
           inert={!(visible && notesOpen)}
           className={cn(
-            "flex h-full min-h-0 w-[clamp(17rem,26vw,32rem)] flex-col border-l border-border-strong/70 transition-all duration-200 ease-out",
+            "relative flex h-full min-h-0 shrink-0 flex-col border-l border-border-strong/70 transition-[transform,opacity] duration-200 ease-out",
             visible && notesOpen
               ? "pointer-events-auto translate-x-0 opacity-100"
               : "translate-x-full opacity-0 pointer-events-none",
           )}
-          style={{ backgroundColor: "var(--ra-main-surface-color)" }}
+          style={{ width: sizes.chat, backgroundColor: "var(--ra-main-surface-color)" }}
         >
+          <ReaderResizeHandle
+            edge="left"
+            ariaLabel="Resize chat panel"
+            onResize={(delta) => adjustPanel("chat", -delta)}
+            onCommit={persistPanelSizes}
+          />
           <ChatPanel bookId={bookId} bookTitle={title} active={visible && notesOpen} />
         </section>
       </div>

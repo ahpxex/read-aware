@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useAtomValue } from "jotai";
 import { useLocalAtom } from "@read-aware/ui/state";
+import { askAiRequestAtom } from "../../ai/state/chat-intent";
 import { getStoredBookBlob, markLibraryBookOpened, updateLibraryBookProgress } from "../../library/lib/library-db";
 import { formatLibraryError } from "../../library/lib/format-library-error";
 import { createProgressPatch } from "../../library/lib/library-progress";
@@ -44,6 +46,17 @@ export function useReaderSession({
   } | null>(null);
   const readerLoadRequestIdRef = useRef(0);
   const pendingProgressSaveRef = useRef<Map<string, number>>(new Map());
+
+  // "Ask AI about this" should reveal the reader shell even when the chrome is
+  // dismissed (immersive reading), so the chat panel it opens is actually shown.
+  const askAiRequest = useAtomValue(askAiRequestAtom);
+  const handledAskAiIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!askAiRequest || askAiRequest.bookId !== selectedBook?.id) return;
+    if (askAiRequest.id === handledAskAiIdRef.current) return;
+    handledAskAiIdRef.current = askAiRequest.id;
+    setShellVisible(true);
+  }, [askAiRequest, selectedBook?.id, setShellVisible]);
 
   useEffect(() => {
     return () => {

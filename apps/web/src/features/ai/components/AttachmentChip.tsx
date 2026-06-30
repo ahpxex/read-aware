@@ -20,7 +20,7 @@ export function AttachmentChip({
   return (
     <div
       className={cn(
-        "flex items-start gap-1.5 rounded-md border-l-2 border-border-strong bg-fill px-2.5 py-1.5",
+        "flex items-start gap-1.5 rounded-md bg-fill px-2.5 py-1.5",
         className,
       )}
     >

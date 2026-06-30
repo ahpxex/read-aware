@@ -347,6 +347,13 @@ button {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+/* Quotes read as quiet muted text, not a bordered "callout" strip. */
+.ra-chat-markdown blockquote {
+  border-left: 0;
+  padding-left: 0;
+  font-style: normal;
+  color: var(--color-fg-muted);
+}
 
 /* Streaming caret trailing the assistant reply while it types. */
 .ra-chat-caret {

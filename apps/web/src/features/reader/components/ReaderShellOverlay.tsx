@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useAtomValue } from "jotai";
-import { CaretLeft, ListBullets, Notebook } from "@phosphor-icons/react";
+import { CaretLeft, ChatCircle, ListBullets } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { Body, IconButton, ScrollArea, Tooltip } from "@read-aware/ui";
+import { ChatPanel } from "../../ai/components/ChatPanel";
 import { askAiRequestAtom } from "../../ai/state/chat-intent";
-import { ReaderNotePanel } from "./ReaderNotePanel";
+import { useBookAnnotations } from "../../annotations/hooks/useBookAnnotations";
 import type { LibraryBook } from "../../library/lib/library-types";
 import { hrefMatches } from "../lib/epub-utils";
 import { useReaderPanelLayout } from "../hooks/useReaderPanelLayout";
 import type { TocEntry } from "../lib/reader-types";
+import { ReaderNotesPopover } from "./ReaderNotesPopover";
 import { ReaderAppearanceMenu } from "./ReaderAppearanceMenu";
 import { ReaderStatsMenu } from "./ReaderStatsMenu";
 
@@ -52,15 +54,18 @@ export function ReaderShellOverlay({
 
   // TOC + notes panels persist per book (restored when the book reopens); the
   // appearance/stats popovers are transient and reset each session.
-  const { tocOpen, notesOpen, notesTab, setTocOpen, setNotesOpen, setNotesTab } =
-    useReaderPanelLayout(bookId);
+  const { tocOpen, notesOpen, setTocOpen, setNotesOpen } = useReaderPanelLayout(bookId);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
 
+  // The book's highlights and notes, shown in a popover opened from the header.
+  // Kept live as marks are made via the shared revision in useBookAnnotations.
+  const { annotations, remove: removeAnnotation } = useBookAnnotations(bookId);
+
   // "Ask AI about this" fires from the reader (a sibling component) via this
-  // atom. Reveal the panel and switch to the Chat tab; the chat panel itself
-  // adopts the passage. We track the handled id rather than clearing the atom so
-  // the panel can react to the same dispatch independently.
+  // atom. Reveal the chat panel; the chat panel itself adopts the passage. We
+  // track the handled id rather than clearing the atom so the panel can react to
+  // the same dispatch independently.
   const askAiRequest = useAtomValue(askAiRequestAtom);
   const handledAskAiIdRef = useRef<string | null>(null);
   useEffect(() => {
@@ -68,8 +73,7 @@ export function ReaderShellOverlay({
     if (askAiRequest.id === handledAskAiIdRef.current) return;
     handledAskAiIdRef.current = askAiRequest.id;
     setNotesOpen(true);
-    setNotesTab("chat");
-  }, [askAiRequest, bookId, setNotesOpen, setNotesTab]);
+  }, [askAiRequest, bookId, setNotesOpen]);
 
   // The two right-aligned popovers (appearance, stats) would overlap, so opening
   // one closes the other.
@@ -131,11 +135,11 @@ export function ReaderShellOverlay({
           // traffic-light inset (tuned for that band) aligns with both. A taller
           // bar would drop the controls below the lights.
           //
-          // z-20 keeps the bar above the docked panels (z-10): its `backdrop-blur`
-          // makes it a stacking context, so the appearance/stats popovers and the
-          // button tooltips nested inside it would otherwise be painted under the
-          // DOM-later Notes/contents panels. Lifting the whole band lifts them too.
-          "pointer-events-auto relative z-20 h-12 shrink-0 bg-fill backdrop-blur-sm transition-all duration-250 ease-out",
+          // z-20 (relative + z-index makes a stacking context) keeps the bar
+          // above the docked panels (z-10), so the appearance/stats popovers and
+          // button tooltips nested inside it aren't painted under the DOM-later
+          // contents/chat panels. Lifting the whole band lifts them too.
+          "pointer-events-auto relative z-20 h-12 shrink-0 bg-fill transition-all duration-250 ease-out",
           visible
             ? "translate-y-0 opacity-100"
             : "-translate-y-full opacity-0 pointer-events-none",
@@ -168,6 +172,12 @@ export function ReaderShellOverlay({
                 }
               />
             </Tooltip>
+            <ReaderNotesPopover
+              annotations={annotations}
+              tocEntries={tocEntries}
+              onNavigate={(cfiRange) => onAnnotationSelect?.(cfiRange)}
+              onDelete={(id) => void removeAnnotation(id)}
+            />
           </div>
 
           {/* Center: title (prominent) with a small progress readout beneath. */}
@@ -198,15 +208,15 @@ export function ReaderShellOverlay({
               open={appearanceOpen}
               onOpenChange={handleAppearanceOpenChange}
             />
-            <Tooltip content="Notes" side="bottom" className="pointer-events-auto">
+            <Tooltip content="Chat" side="bottom" className="pointer-events-auto">
               <IconButton
                 size="sm"
-                label="Notes"
+                label="Chat"
                 aria-pressed={notesOpen}
                 onClick={() => setNotesOpen((open) => !open)}
                 className={cn(notesOpen && "text-fg")}
                 icon={
-                  <Notebook
+                  <ChatCircle
                     size={18}
                     weight={notesOpen ? "bold" : "regular"}
                     aria-hidden="true"
@@ -237,15 +247,12 @@ export function ReaderShellOverlay({
         <section
           aria-label="Table of contents"
           className={cn(
-            "flex h-full min-h-0 w-[clamp(16rem,24vw,30rem)] flex-col border-r border-border-strong/70 backdrop-blur-sm transition-all duration-200 ease-out",
+            "flex h-full min-h-0 w-[clamp(16rem,24vw,30rem)] flex-col border-r border-border-strong/70 transition-all duration-200 ease-out",
             visible && tocOpen
               ? "pointer-events-auto translate-x-0 opacity-100"
               : "-translate-x-full opacity-0 pointer-events-none",
           )}
-          style={{
-            backgroundColor:
-              "color-mix(in srgb, var(--ra-main-surface-color) 84%, transparent)",
-          }}
+          style={{ backgroundColor: "var(--ra-main-surface-color)" }}
         >
           <ScrollArea className="h-full min-h-0 flex-1">
             <div ref={tocListRef} className="flex flex-col px-3 py-4">
@@ -256,10 +263,7 @@ export function ReaderShellOverlay({
               )}
 
               {tocEntries.map((entry) => {
-                const isActive = hrefMatches(
-                  entry.href,
-                  currentChapterHref ?? "",
-                );
+                const isActive = hrefMatches(entry.href, currentChapterHref ?? "");
 
                 return (
                   <button
@@ -273,9 +277,7 @@ export function ReaderShellOverlay({
                         ? "border-fg bg-fill text-fg"
                         : "border-transparent text-fg-muted hover:text-fg",
                     )}
-                    style={{
-                      paddingLeft: `${1 + entry.depth * 0.85}rem`,
-                    }}
+                    style={{ paddingLeft: `${1 + entry.depth * 0.85}rem` }}
                   >
                     <Body
                       as="span"
@@ -293,29 +295,18 @@ export function ReaderShellOverlay({
           </ScrollArea>
         </section>
 
-        {/* Notes & annotations (right) */}
+        {/* AI conversation (right) */}
         <section
-          aria-label="Notes"
+          aria-label="AI chat"
           className={cn(
-            "flex h-full min-h-0 w-[clamp(17rem,26vw,32rem)] flex-col border-l border-border-strong/70 backdrop-blur-sm transition-all duration-200 ease-out",
+            "flex h-full min-h-0 w-[clamp(17rem,26vw,32rem)] flex-col border-l border-border-strong/70 transition-all duration-200 ease-out",
             visible && notesOpen
               ? "pointer-events-auto translate-x-0 opacity-100"
               : "translate-x-full opacity-0 pointer-events-none",
           )}
-          style={{
-            backgroundColor:
-              "color-mix(in srgb, var(--ra-main-surface-color) 84%, transparent)",
-          }}
+          style={{ backgroundColor: "var(--ra-main-surface-color)" }}
         >
-          <ReaderNotePanel
-            bookId={bookId}
-            bookTitle={title}
-            enabled={notesOpen}
-            activeTab={notesTab}
-            onTabChange={setNotesTab}
-            tocEntries={tocEntries}
-            onNavigateTo={(cfiRange) => onAnnotationSelect?.(cfiRange)}
-          />
+          <ChatPanel bookId={bookId} bookTitle={title} active={notesOpen} />
         </section>
       </div>
     </div>

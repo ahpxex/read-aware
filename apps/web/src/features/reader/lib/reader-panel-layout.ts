@@ -7,20 +7,15 @@
 
 const STORAGE_KEY = "read-aware-reader-panels";
 
-/** Which surface the right-hand note panel shows. */
-export type NotesTab = "notes" | "chat";
-
 export type ReaderPanelLayout = {
   tocOpen: boolean;
+  /** Whether the right-hand AI chat panel is open. */
   notesOpen: boolean;
-  /** Active tab within the note panel (Notes / AI chat). */
-  notesTab: NotesTab;
 };
 
 export const DEFAULT_PANEL_LAYOUT: ReaderPanelLayout = {
   tocOpen: false,
   notesOpen: false,
-  notesTab: "notes",
 };
 
 type PanelLayoutStore = Record<string, ReaderPanelLayout>;
@@ -38,7 +33,6 @@ function readStore(): PanelLayoutStore {
       result[bookId] = {
         tocOpen: value.tocOpen === true,
         notesOpen: value.notesOpen === true,
-        notesTab: value.notesTab === "chat" ? "chat" : "notes",
       };
     }
     return result;
@@ -58,7 +52,6 @@ export function saveReaderPanelLayout(bookId: string, layout: ReaderPanelLayout)
     store[bookId] = {
       tocOpen: layout.tocOpen,
       notesOpen: layout.notesOpen,
-      notesTab: layout.notesTab,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
   } catch {

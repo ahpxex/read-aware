@@ -45,6 +45,7 @@ import { ReaderSelectionMenu } from "./ReaderSelectionMenu";
 import { NoteEditor } from "../../annotations/components/NoteEditor";
 import { useAskAiEnabled } from "../../ai/hooks/useAskAiEnabled";
 import { askAiRequestAtom } from "../../ai/state/chat-intent";
+import { annotationsRevisionAtom } from "../../annotations/state/annotations-revision";
 import type { Note, Highlight } from "../../annotations/lib/annotation-types";
 import {
   createHighlight,
@@ -375,6 +376,9 @@ export function FoliateReaderView({
   // adopts the passage. Whether the action is offered follows the user's
   // conversational-Q&A preference, mirrored to a ref for the stable key handler.
   const dispatchAskAi = useSetAtom(askAiRequestAtom);
+  // Notify annotation lists (TOC indicators, chapter flyout) to re-read when a
+  // mark is created/removed/recolored here, so they update live.
+  const bumpAnnotationsRevision = useSetAtom(annotationsRevisionAtom);
   const askAiEnabled = useAskAiEnabled();
   const askAiEnabledRef = useRef(askAiEnabled);
   useEffect(() => {
@@ -1421,6 +1425,7 @@ export function FoliateReaderView({
       );
       highlightsRef.current = [...highlightsRef.current, highlight];
       if (viewRef.current) applyHighlight(viewRef.current, highlight);
+      bumpAnnotationsRevision((c) => c + 1);
       clearSelection();
     } catch (highlightError) {
       console.error("Failed to save highlight:", highlightError);
@@ -1454,6 +1459,7 @@ export function FoliateReaderView({
       );
       // Re-adding under the same CFI replaces the drawn mark in the new color.
       if (viewRef.current) applyHighlight(viewRef.current, updated);
+      bumpAnnotationsRevision((c) => c + 1);
     } catch (recolorError) {
       console.error("Failed to recolor annotation:", recolorError);
     }
@@ -1471,6 +1477,7 @@ export function FoliateReaderView({
       if (viewRef.current && highlight.cfiRange) {
         removeHighlight(viewRef.current, highlight.cfiRange);
       }
+      bumpAnnotationsRevision((c) => c + 1);
     } catch (removeError) {
       console.error("Failed to remove annotation:", removeError);
     }
@@ -1559,6 +1566,7 @@ export function FoliateReaderView({
           applyNote(viewRef.current, note);
         }
       }
+      bumpAnnotationsRevision((c) => c + 1);
       setNoteEditorOpen(false);
       setNoteTarget(null);
       setCurrentNote(null);

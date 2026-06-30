@@ -12,7 +12,6 @@ import { useReaderPanelLayout } from "../hooks/useReaderPanelLayout";
 import type { TocEntry } from "../lib/reader-types";
 import { ReaderNotesPopover } from "./ReaderNotesPopover";
 import { ReaderAppearanceMenu } from "./ReaderAppearanceMenu";
-import { ReaderStatsMenu } from "./ReaderStatsMenu";
 
 type ReaderShellOverlayProps = {
   visible: boolean;
@@ -52,11 +51,10 @@ export function ReaderShellOverlay({
         : `${roundedPercent}%`
       : null;
 
-  // TOC + notes panels persist per book (restored when the book reopens); the
-  // appearance/stats popovers are transient and reset each session.
+  // TOC + chat panels persist per book (restored when the book reopens); the
+  // appearance popover is transient and resets each session.
   const { tocOpen, notesOpen, setTocOpen, setNotesOpen } = useReaderPanelLayout(bookId);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
-  const [statsOpen, setStatsOpen] = useState(false);
 
   // The book's highlights and notes, shown in a popover opened from the header.
   // Kept live as marks are made via the shared revision in useBookAnnotations.
@@ -75,25 +73,13 @@ export function ReaderShellOverlay({
     setNotesOpen(true);
   }, [askAiRequest, bookId, setNotesOpen]);
 
-  // The two right-aligned popovers (appearance, stats) would overlap, so opening
-  // one closes the other.
-  const handleAppearanceOpenChange = (next: boolean) => {
-    setAppearanceOpen(next);
-    if (next) setStatsOpen(false);
-  };
-  const handleStatsOpenChange = (next: boolean) => {
-    setStatsOpen(next);
-    if (next) setAppearanceOpen(false);
-  };
-
-  // The popovers are transient — they close whenever the overlay is dismissed.
-  // The contents and notes panels are NOT reset: they keep their open state so
-  // dismissing then re-opening the header restores whatever the reader had
-  // revealed. (Reset state lives in the panels' `visible &&` reveal gate.)
+  // The appearance popover is transient — it closes whenever the overlay is
+  // dismissed. The contents and chat panels are NOT reset: they keep their open
+  // state so dismissing then re-opening the header restores whatever the reader
+  // had revealed. (Reset state lives in the panels' `visible &&` reveal gate.)
   useEffect(() => {
     if (!visible) {
       setAppearanceOpen(false);
-      setStatsOpen(false);
     }
   }, [visible]);
 
@@ -196,17 +182,12 @@ export function ReaderShellOverlay({
             </div>
           )}
 
-          {/* Right cluster: stats + appearance + notes */}
+          {/* Right cluster: appearance + chat */}
           <div className="flex shrink-0 items-center justify-end gap-0.5">
-            <ReaderStatsMenu
-              book={book}
-              open={statsOpen}
-              onOpenChange={handleStatsOpenChange}
-            />
             <ReaderAppearanceMenu
               bookId={bookId}
               open={appearanceOpen}
-              onOpenChange={handleAppearanceOpenChange}
+              onOpenChange={setAppearanceOpen}
             />
             <Tooltip content="Chat" side="bottom" className="pointer-events-auto">
               <IconButton

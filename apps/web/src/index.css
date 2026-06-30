@@ -346,6 +346,16 @@ button {
 .ra-chat-markdown a {
   text-decoration: underline;
   text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+/* Re-enable text selection in the chat transcript — the app chrome is globally
+   non-selectable, and WebKit honors -webkit-user-select, so set both prefixes
+   (mirrors the editable-controls rule above). Inherited by descendant messages. */
+.ra-chat-selectable {
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: text;
 }
 /* Quotes read as quiet muted text, not a bordered "callout" strip. */
 .ra-chat-markdown blockquote {

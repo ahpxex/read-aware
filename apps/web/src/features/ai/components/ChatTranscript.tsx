@@ -52,7 +52,10 @@ export function ChatTranscript({
 
   return (
     <ScrollArea className="min-h-0 flex-1">
-      <div className="flex flex-col gap-4 px-4 py-4">
+      {/* ra-chat-selectable opts back into text selection (the app chrome is
+          globally non-selectable) so replies and quoted passages can be copied. */}
+      <div className="ra-chat-selectable flex flex-col gap-4 px-4 py-4">
+
         {messages.map((message) => (
           <ChatMessageItem key={message.id} message={message} />
         ))}

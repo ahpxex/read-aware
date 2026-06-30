@@ -38,10 +38,10 @@ export function ReaderNotePanel({
   return (
     <Tabs
       fill
-      stretch
       variant="underline"
       ariaLabel="Notes and AI chat"
-      className="pt-2"
+      className="pt-1"
+      tabListClassName="gap-5 px-4"
       activeIndex={activeIndex}
       onActiveIndexChange={(index) => onTabChange(TAB_ORDER[index] ?? "notes")}
       items={[

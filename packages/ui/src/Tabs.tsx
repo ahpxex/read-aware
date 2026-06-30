@@ -23,6 +23,9 @@ type TabsProps = {
    *  Without this, panels size to their content. */
   fill?: boolean;
   className?: string;
+  /** Extra classes for the tab strip (`role="tablist"`) — e.g. horizontal
+   *  padding to inset the labels while the underline rule stays full-width. */
+  tabListClassName?: string;
 };
 
 export function Tabs({
@@ -35,6 +38,7 @@ export function Tabs({
   stretch = false,
   fill = false,
   className,
+  tabListClassName,
 }: TabsProps) {
   const [internalIndex, setInternalIndex] = useLocalAtom(defaultIndex);
   const isControlled = controlledIndex != null;
@@ -142,6 +146,7 @@ export function Tabs({
           stretch && "w-full",
           (variant === "underline" || variant === "nav") && "gap-6 border-b border-border",
           variant === "pill" && "gap-1 rounded bg-fill p-1",
+          tabListClassName,
         )}
       >
         {usesUnderlineIndicator && (

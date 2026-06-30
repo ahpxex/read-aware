@@ -71,7 +71,10 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
             className="mb-2"
           />
         )}
-        <div className="flex items-end gap-2 rounded-lg border border-border-strong bg-surface px-2.5 py-1.5 transition-colors focus-within:border-fg-subtle">
+        <div className="flex items-end gap-1 rounded-lg border border-border-strong bg-surface px-2 py-1.5 transition-colors focus-within:border-fg-subtle">
+          {/* min-h matches the button so a single line stays vertically centered;
+              symmetric py keeps the placeholder centered and the auto-grow from
+              jumping on first paint. */}
           <textarea
             ref={textareaRef}
             rows={1}
@@ -82,8 +85,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
             placeholder={
               pendingAttachment ? "Ask about this passage…" : "Ask about this book…"
             }
-            className="min-h-[1.5rem] flex-1 resize-none bg-transparent py-1 text-sm leading-relaxed text-fg outline-none placeholder:text-fg-subtle"
-            style={{ maxHeight: MAX_HEIGHT }}
+            className="min-h-7 max-h-40 flex-1 resize-none bg-transparent px-1 py-0.5 text-sm leading-6 text-fg outline-none placeholder:text-fg-subtle"
           />
           {isStreaming ? (
             <IconButton
@@ -91,7 +93,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
               size="sm"
               onClick={onStop}
               className="shrink-0 rounded-md text-fg-muted hover:bg-fg/5 hover:text-fg"
-              icon={<Stop size={16} weight="fill" aria-hidden="true" />}
+              icon={<Stop size={15} weight="fill" aria-hidden="true" />}
             />
           ) : (
             <IconButton
@@ -100,10 +102,10 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
               onClick={submit}
               disabled={!canSend}
               className={cn(
-                "shrink-0 rounded-md",
-                canSend ? "bg-fg text-inverse-fg hover:bg-fg/90" : "text-fg-subtle",
+                "shrink-0 rounded-md transition-colors disabled:pointer-events-none",
+                canSend ? "text-fg hover:bg-fg/5" : "text-fg-subtle",
               )}
-              icon={<ArrowUp size={16} weight="bold" aria-hidden="true" />}
+              icon={<ArrowUp size={15} weight="bold" aria-hidden="true" />}
             />
           )}
         </div>

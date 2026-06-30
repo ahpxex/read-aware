@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getReaderPanelLayout,
   saveReaderPanelLayout,
+  type NotesTab,
   type ReaderPanelLayout,
 } from "../lib/reader-panel-layout";
 
@@ -33,7 +34,7 @@ export function useReaderPanelLayout(bookId: string) {
   }, [bookId]);
 
   const update = useCallback(
-    (key: keyof ReaderPanelLayout, next: BoolUpdater) => {
+    (key: "tocOpen" | "notesOpen", next: BoolUpdater) => {
       const prev = layoutRef.current;
       const value = typeof next === "function" ? next(prev[key]) : next;
       if (value === prev[key]) return;
@@ -48,10 +49,24 @@ export function useReaderPanelLayout(bookId: string) {
   const setTocOpen = useCallback((next: BoolUpdater) => update("tocOpen", next), [update]);
   const setNotesOpen = useCallback((next: BoolUpdater) => update("notesOpen", next), [update]);
 
+  const setNotesTab = useCallback(
+    (next: NotesTab) => {
+      const prev = layoutRef.current;
+      if (next === prev.notesTab) return;
+      const updated = { ...prev, notesTab: next };
+      layoutRef.current = updated;
+      saveReaderPanelLayout(bookId, updated);
+      setLayout(updated);
+    },
+    [bookId],
+  );
+
   return {
     tocOpen: layout.tocOpen,
     notesOpen: layout.notesOpen,
+    notesTab: layout.notesTab,
     setTocOpen,
     setNotesOpen,
+    setNotesTab,
   };
 }

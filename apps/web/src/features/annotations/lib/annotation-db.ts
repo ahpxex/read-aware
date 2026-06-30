@@ -1,8 +1,8 @@
 /**
- * IndexedDB storage for annotations (highlights, notes, AI chats)
+ * IndexedDB storage for annotations (highlights, notes)
  */
 
-import type { AIChat, AIChatMessage, Annotation, AnnotationFilters, Highlight, Note } from "./annotation-types";
+import type { Annotation, AnnotationFilters, Highlight, Note } from "./annotation-types";
 
 const DB_NAME = "read-aware-annotations";
 const DB_VERSION = 1;
@@ -181,63 +181,4 @@ export async function updateNote(id: string, content: string): Promise<Note | nu
 export async function listNotes(bookId?: string): Promise<Note[]> {
   const annotations = await listAnnotations({ bookId, type: "note" });
   return annotations as Note[];
-}
-
-// AI Chat operations
-export async function createAIChat(
-  bookId: string,
-  cfiRange: string | null,
-  chapterHref: string | null,
-  text: string,
-  initialMessage: string
-): Promise<AIChat> {
-  const now = new Date().toISOString();
-  const chat: AIChat = {
-    id: crypto.randomUUID(),
-    bookId,
-    type: "ai-chat",
-    cfiRange,
-    chapterHref,
-    text,
-    messages: [
-      {
-        id: crypto.randomUUID(),
-        role: "user",
-        content: initialMessage,
-        timestamp: now,
-      },
-    ],
-    createdAt: now,
-    updatedAt: now,
-  };
-  return saveAnnotation(chat) as Promise<AIChat>;
-}
-
-export async function addMessageToChat(
-  chatId: string,
-  role: AIChatMessage["role"],
-  content: string
-): Promise<AIChat | null> {
-  const chat = await getAnnotation(chatId);
-  if (!chat || chat.type !== "ai-chat") return null;
-  
-  const now = new Date().toISOString();
-  const newMessage: AIChatMessage = {
-    id: crypto.randomUUID(),
-    role,
-    content,
-    timestamp: now,
-  };
-  
-  const updated: AIChat = {
-    ...chat,
-    messages: [...chat.messages, newMessage],
-    updatedAt: now,
-  };
-  return saveAnnotation(updated) as Promise<AIChat>;
-}
-
-export async function listAIChats(bookId?: string): Promise<AIChat[]> {
-  const annotations = await listAnnotations({ bookId, type: "ai-chat" });
-  return annotations as AIChat[];
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useAtomValue } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { Body, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { shortcutBindingsAtom } from "../../../state/ui";
@@ -43,14 +43,12 @@ import { ReaderFootnotePopover } from "./ReaderFootnotePopover";
 import { ReaderPageTurnControls } from "./ReaderPageTurnControls";
 import { ReaderSelectionMenu } from "./ReaderSelectionMenu";
 import { NoteEditor } from "../../annotations/components/NoteEditor";
-import { AIChatPanel } from "../../ai/components/AIChatPanel";
-import { isAIConfigured } from "../../ai/lib/ai-service";
-import type { Note, AIChat, Highlight } from "../../annotations/lib/annotation-types";
+import { useAskAiEnabled } from "../../ai/hooks/useAskAiEnabled";
+import { askAiRequestAtom } from "../../ai/state/chat-intent";
+import type { Note, Highlight } from "../../annotations/lib/annotation-types";
 import {
   createHighlight,
   createNote,
-  createAIChat,
-  addMessageToChat,
   updateNote,
   listHighlights,
   listNotes,
@@ -371,8 +369,17 @@ export function FoliateReaderView({
   const [noteTarget, setNoteTarget] = useState<ActionTarget | null>(null);
   const [noteEditorOpen, setNoteEditorOpen] = useState(false);
   const [currentNote, setCurrentNote] = useState<Note | null>(null);
-  const [aiChatOpen, setAiChatOpen] = useState(false);
-  const [currentChat, setCurrentChat] = useState<AIChat | null>(null);
+
+  // "Ask AI about this" hands a passage to the note panel's chat (a sibling
+  // component) via this atom; the shell reveals the Chat tab and the chat panel
+  // adopts the passage. Whether the action is offered follows the user's
+  // conversational-Q&A preference, mirrored to a ref for the stable key handler.
+  const dispatchAskAi = useSetAtom(askAiRequestAtom);
+  const askAiEnabled = useAskAiEnabled();
+  const askAiEnabledRef = useRef(askAiEnabled);
+  useEffect(() => {
+    askAiEnabledRef.current = askAiEnabled;
+  }, [askAiEnabled]);
 
   // Live page-turn key bindings, mirrored to a ref so the stable key handler
   // reads the latest without being re-created on every edit.
@@ -828,7 +835,7 @@ export function FoliateReaderView({
         selectionActions.lookUp();
         return;
       }
-      if (isAIConfigured() && chordMatchesEvent(resolveBinding("selection-ask-ai", bindings), event)) {
+      if (askAiEnabledRef.current && chordMatchesEvent(resolveBinding("selection-ask-ai", bindings), event)) {
         event.preventDefault();
         selectionActions.askAI();
         return;
@@ -1384,18 +1391,17 @@ export function FoliateReaderView({
     setDictionaryOpen(true);
   }
 
-  function startAIChatFor(target: ActionTarget) {
+  function requestAskAi(target: ActionTarget) {
     if (!selectedBook) return;
-    const initialMessage = `I'm reading this passage: "${target.text}". What are your thoughts?`;
-    void createAIChat(
-      selectedBook.id,
-      target.cfiRange,
-      target.chapterHref,
-      target.text,
-      initialMessage,
-    ).then((chat) => {
-      setCurrentChat(chat);
-      setAiChatOpen(true);
+    dispatchAskAi({
+      id: crypto.randomUUID(),
+      bookId: selectedBook.id,
+      attachment: {
+        kind: "selection",
+        text: target.text,
+        cfiRange: target.cfiRange,
+        chapterHref: target.chapterHref,
+      },
     });
   }
 
@@ -1511,7 +1517,7 @@ export function FoliateReaderView({
   function handleAskAIAboutAnnotation() {
     const target = activeAnnotationTarget();
     if (!target) return;
-    startAIChatFor(target);
+    requestAskAi(target);
     setActiveAnnotation(null);
   }
 
@@ -1564,26 +1570,12 @@ export function FoliateReaderView({
 
   function handleAskAI() {
     if (!selection) return;
-    startAIChatFor({
+    requestAskAi({
       text: selection.text,
       cfiRange: selection.cfiRange,
       chapterHref: selection.chapterHref,
     });
     clearSelection();
-  }
-
-  async function handleSendMessage(content: string) {
-    if (!currentChat) return;
-    try {
-      const updated = await addMessageToChat(currentChat.id, "user", content);
-      if (updated) setCurrentChat(updated);
-    } catch (messageError) {
-      console.error("Failed to send message:", messageError);
-    }
-  }
-
-  function handleUpdateChat(chat: AIChat) {
-    setCurrentChat(chat);
   }
 
   // Paginated layouts (and fixed-layout PDFs, which always paginate) turn by
@@ -1671,19 +1663,6 @@ export function FoliateReaderView({
           clearSelection();
         }}
         isEditing={!!currentNote}
-      />
-
-      <AIChatPanel
-        isOpen={aiChatOpen}
-        selectedText={currentChat?.text || ""}
-        bookTitle={selectedBook?.title || ""}
-        chat={currentChat}
-        onClose={() => {
-          setAiChatOpen(false);
-          setCurrentChat(null);
-        }}
-        onSendMessage={handleSendMessage}
-        onUpdateChat={handleUpdateChat}
       />
 
       <ReaderDictionaryModal

@@ -5,6 +5,11 @@
    by design-system components are generated. */
 @source "../../../packages/ui/src";
 
+/* Streamdown renders AI replies with utility classes baked into its compiled
+   output; scan them so Tailwind generates the ones it uses (spacing, layout,
+   and the remapped colors below). */
+@source "../node_modules/streamdown/dist/*.js";
+
 /* Drive the `dark:` variant from our explicit app theme attribute (set by
    useAppearance) rather than the OS media query, so the in-app theme control
    is authoritative. */
@@ -39,6 +44,17 @@
 
   --leading-display: 0.98;
   --leading-body: 2rem;
+
+  /* Streamdown (AI reply Markdown) styles itself with shadcn-style token names.
+     Alias them onto our editorial palette — as `var()` references, so they
+     follow the dark-theme overrides below automatically — instead of pulling in
+     a second color vocabulary. */
+  --color-foreground: var(--color-fg);
+  --color-muted-foreground: var(--color-fg-muted);
+  --color-background: var(--color-surface);
+  --color-muted: var(--color-fill);
+  --color-sidebar: var(--color-fill);
+  --color-primary: var(--color-fg);
 }
 
 :root {
@@ -311,6 +327,49 @@ button {
     transform: none !important;
     transition: none !important;
   }
+}
+
+/* AI reply Markdown (Streamdown). Streamdown supplies block spacing via utility
+   classes; we only set the base reading size, collapse the outer margins so the
+   bubble padding stays even, and underline links for the monochrome palette. */
+.ra-chat-markdown {
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--color-fg);
+}
+.ra-chat-markdown > :first-child {
+  margin-top: 0;
+}
+.ra-chat-markdown > :last-child {
+  margin-bottom: 0;
+}
+.ra-chat-markdown a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Streaming caret trailing the assistant reply while it types. */
+.ra-chat-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background-color: var(--color-fg-subtle);
+  animation: ra-chat-caret-blink 1s steps(1) infinite;
+}
+@keyframes ra-chat-caret-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  50.01%,
+  100% {
+    opacity: 0;
+  }
+}
+html[data-motion="reduced"] .ra-chat-caret {
+  animation: none;
 }
 
 /* pdf.js text layer -- invisible text overlay for selection */

@@ -1,9 +1,9 @@
-import { NotePencil, ChatCircleDots, Trash } from "@phosphor-icons/react";
-import { Body, Heading, IconButton, ScrollArea } from "@read-aware/ui";
+import { NotePencil, Trash } from "@phosphor-icons/react";
+import { Body, IconButton, ScrollArea } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { HIGHLIGHT_COLORS } from "../../reader/lib/highlight-renderer";
 import { useBookAnnotations } from "../hooks/useBookAnnotations";
-import type { Annotation, Highlight, Note, AIChat } from "../lib/annotation-types";
+import type { Annotation, Highlight, Note } from "../lib/annotation-types";
 import type { TocEntry } from "../../reader/lib/reader-types";
 import { normalizeHref } from "../../reader/lib/epub-utils";
 
@@ -41,10 +41,7 @@ function AnnotationIcon({ annotation }: { annotation: Annotation }) {
       />
     );
   }
-  if (annotation.type === "note") {
-    return <NotePencil size={14} weight="regular" className="mt-0.5 shrink-0 text-fg-subtle" />;
-  }
-  return <ChatCircleDots size={14} weight="regular" className="mt-0.5 shrink-0 text-indigo-400" />;
+  return <NotePencil size={14} weight="regular" className="mt-0.5 shrink-0 text-fg-subtle" />;
 }
 
 function AnnotationPreview({ annotation }: { annotation: Annotation }) {
@@ -52,13 +49,6 @@ function AnnotationPreview({ annotation }: { annotation: Annotation }) {
     const note = annotation as Note;
     return (
       <p className="line-clamp-2 text-xs text-fg-muted">{note.content}</p>
-    );
-  }
-  if (annotation.type === "ai-chat") {
-    const chat = annotation as AIChat;
-    const count = chat.messages.length;
-    return (
-      <p className="text-xs text-fg-muted">{count} message{count !== 1 ? "s" : ""}</p>
     );
   }
   return null;
@@ -88,19 +78,18 @@ export function AnnotationsPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 py-5">
-      <div className="flex items-center justify-between px-5">
-        <Heading as="h2" size="xl">
-          Notes
-        </Heading>
-        <span className="text-xs text-fg-subtle">{annotations.length} total</span>
-      </div>
+      {annotations.length > 0 && (
+        <div className="flex items-center justify-end px-5">
+          <span className="text-xs text-fg-subtle">{annotations.length} total</span>
+        </div>
+      )}
 
       {isLoading ? (
         <Body className="px-5 text-sm text-fg-muted">Loading...</Body>
       ) : annotations.length === 0 ? (
         <div className="flex flex-1 items-center justify-center px-5">
           <Body className="text-center text-sm text-fg-muted">
-            No notes yet. Select text in the reader to highlight, take notes, or ask AI.
+            No notes yet. Select text in the reader to highlight or take a note.
           </Body>
         </div>
       ) : (

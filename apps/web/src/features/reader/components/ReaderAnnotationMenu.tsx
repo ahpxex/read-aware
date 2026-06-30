@@ -9,7 +9,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { IconButton } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
-import { isAIConfigured } from "../../ai/lib/ai-service";
+import { useAskAiEnabled } from "../../ai/hooks/useAskAiEnabled";
 import type { Highlight } from "../../annotations/lib/annotation-types";
 import { useAnchoredMenuPosition } from "../hooks/useAnchoredMenuPosition";
 import { HIGHLIGHT_COLORS } from "../lib/highlight-renderer";
@@ -51,12 +51,8 @@ export function ReaderAnnotationMenu({
 }: ReaderAnnotationMenuProps) {
   const { containerRef, menuRef, position } = useAnchoredMenuPosition(anchorRect);
   const [copied, setCopied] = useState(false);
-  const [aiConfigured, setAiConfigured] = useState(false);
+  const askEnabled = useAskAiEnabled();
   const copyResetTimeoutRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    setAiConfigured(isAIConfigured());
-  }, [anchorRect]);
 
   useEffect(() => {
     setCopied(false);
@@ -154,7 +150,7 @@ export function ReaderAnnotationMenu({
             )
           }
         />
-        {aiConfigured && (
+        {askEnabled && (
           <IconButton
             label="Ask AI about this"
             title="Ask AI about this"

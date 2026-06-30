@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
+import { useAtomValue } from "jotai";
 import { CaretLeft, ListBullets, Notebook } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { Body, IconButton, ScrollArea, Tooltip } from "@read-aware/ui";
-import { AnnotationsPanel } from "../../annotations/components/AnnotationsPanel";
+import { askAiRequestAtom } from "../../ai/state/chat-intent";
+import { ReaderNotePanel } from "./ReaderNotePanel";
 import type { LibraryBook } from "../../library/lib/library-types";
 import { hrefMatches } from "../lib/epub-utils";
 import { useReaderPanelLayout } from "../hooks/useReaderPanelLayout";
@@ -50,9 +52,24 @@ export function ReaderShellOverlay({
 
   // TOC + notes panels persist per book (restored when the book reopens); the
   // appearance/stats popovers are transient and reset each session.
-  const { tocOpen, notesOpen, setTocOpen, setNotesOpen } = useReaderPanelLayout(bookId);
+  const { tocOpen, notesOpen, notesTab, setTocOpen, setNotesOpen, setNotesTab } =
+    useReaderPanelLayout(bookId);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
+
+  // "Ask AI about this" fires from the reader (a sibling component) via this
+  // atom. Reveal the panel and switch to the Chat tab; the chat panel itself
+  // adopts the passage. We track the handled id rather than clearing the atom so
+  // the panel can react to the same dispatch independently.
+  const askAiRequest = useAtomValue(askAiRequestAtom);
+  const handledAskAiIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!askAiRequest || askAiRequest.bookId !== bookId) return;
+    if (askAiRequest.id === handledAskAiIdRef.current) return;
+    handledAskAiIdRef.current = askAiRequest.id;
+    setNotesOpen(true);
+    setNotesTab("chat");
+  }, [askAiRequest, bookId, setNotesOpen, setNotesTab]);
 
   // The two right-aligned popovers (appearance, stats) would overlap, so opening
   // one closes the other.
@@ -290,9 +307,12 @@ export function ReaderShellOverlay({
               "color-mix(in srgb, var(--ra-main-surface-color) 84%, transparent)",
           }}
         >
-          <AnnotationsPanel
+          <ReaderNotePanel
             bookId={bookId}
+            bookTitle={title}
             enabled={notesOpen}
+            activeTab={notesTab}
+            onTabChange={setNotesTab}
             tocEntries={tocEntries}
             onNavigateTo={(cfiRange) => onAnnotationSelect?.(cfiRange)}
           />

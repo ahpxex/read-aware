@@ -10,7 +10,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { IconButton } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
-import { isAIConfigured } from "../../ai/lib/ai-service";
+import { useAskAiEnabled } from "../../ai/hooks/useAskAiEnabled";
 import { useAnchoredMenuPosition } from "../hooks/useAnchoredMenuPosition";
 import type { ReaderSelectionState } from "../lib/selection-overlay";
 
@@ -45,11 +45,7 @@ export function ReaderSelectionMenu({
   const { containerRef, menuRef, position } = useAnchoredMenuPosition(selection?.anchorRect);
   const copyResetTimeoutRef = useRef<number | null>(null);
   const [copied, setCopied] = useState(false);
-  const [aiConfigured, setAiConfigured] = useState(false);
-
-  useEffect(() => {
-    setAiConfigured(isAIConfigured());
-  }, [selection?.cfiRange]);
+  const askEnabled = useAskAiEnabled();
 
   useEffect(() => {
     return () => {
@@ -150,7 +146,7 @@ export function ReaderSelectionMenu({
               className={actionButtonClass}
               icon={<BookOpen size={14} weight="regular" aria-hidden="true" />}
             />
-            {aiConfigured && (
+            {askEnabled && (
               <IconButton
                 label="Ask AI about this"
                 title="Ask AI about this"

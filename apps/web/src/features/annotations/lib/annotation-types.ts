@@ -2,10 +2,13 @@
  * Annotation types for ReadAware MVP
  * - Highlights: visual markers on text
  * - Notes: user annotations attached to text
- * - AIChats: conversation threads about selected text
+ *
+ * AI conversation is no longer modeled as a per-selection annotation: the book
+ * has one persistent conversation (see `features/ai`). "Ask AI about this" pulls
+ * a passage in as an attachment rather than creating an annotation here.
  */
 
-export type AnnotationType = "highlight" | "note" | "ai-chat";
+export type AnnotationType = "highlight" | "note";
 
 export interface BaseAnnotation {
   id: string;
@@ -33,19 +36,7 @@ export interface Note extends BaseAnnotation {
   content: string;
 }
 
-export interface AIChatMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  timestamp: string;
-}
-
-export interface AIChat extends BaseAnnotation {
-  type: "ai-chat";
-  messages: AIChatMessage[];
-}
-
-export type Annotation = Highlight | Note | AIChat;
+export type Annotation = Highlight | Note;
 
 export interface AnnotationFilters {
   bookId?: string;

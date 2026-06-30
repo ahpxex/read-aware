@@ -1,0 +1,51 @@
+import type { ChatMessage } from "./chat-types";
+
+/**
+ * Local persistence for the per-book conversation.
+ *
+ * Interim storage: a single localStorage record keyed by book id. The API is
+ * async on purpose so the swap to the event-sourced on-device store (or the
+ * sync backend) is invisible to callers — see `docs/data-model.md` (`ai_chat`,
+ * `ai_chat_message`). Conversations are local projections; nothing here is the
+ * source of truth once the event log exists.
+ */
+
+const STORAGE_KEY = "read-aware-conversations";
+
+type ConversationStore = Record<string, ChatMessage[]>;
+
+function readStore(): ConversationStore {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") return {};
+    return parsed as ConversationStore;
+  } catch {
+    return {};
+  }
+}
+
+function writeStore(store: ConversationStore): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  } catch {
+    // Best-effort: ignore quota / serialization failures.
+  }
+}
+
+export async function loadConversation(bookId: string): Promise<ChatMessage[]> {
+  return readStore()[bookId] ?? [];
+}
+
+export async function saveConversation(bookId: string, messages: ChatMessage[]): Promise<void> {
+  const store = readStore();
+  store[bookId] = messages;
+  writeStore(store);
+}
+
+export async function clearConversation(bookId: string): Promise<void> {
+  const store = readStore();
+  delete store[bookId];
+  writeStore(store);
+}

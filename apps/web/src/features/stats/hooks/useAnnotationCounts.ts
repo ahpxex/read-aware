@@ -23,8 +23,8 @@ const EMPTY: BookAnnotationCounts = { notes: 0, highlights: 0, total: 0 };
  * Library-wide note/highlight counts, loaded once on mount from the annotations
  * store. Annotations only change inside the reader, which unmounts the library
  * shell (and this hook with it); returning to the shelf remounts and reloads, so
- * the counts stay fresh without a reactive store. `ai-chat` records are excluded
- * — only user-authored notes and highlights are tallied.
+ * the counts stay fresh without a reactive store. Only notes and highlights are
+ * tallied; any legacy `ai-chat` records still in storage are skipped.
  */
 export function useAnnotationCounts(): AnnotationCounts {
   const [counts, setCounts] = useState<Omit<AnnotationCounts, "isLoading" | "refresh">>({

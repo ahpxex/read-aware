@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { Highlighter, NotePencil, ChatCircleDots, Trash } from "@phosphor-icons/react";
+import { Highlighter, NotePencil, Trash } from "@phosphor-icons/react";
 import { Body, Caption, EmptyState, Heading, IconButton } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { listAnnotations, deleteAnnotation } from "../../annotations/lib/annotation-db";
 import { HIGHLIGHT_COLORS } from "../../reader/lib/highlight-renderer";
-import type { Annotation, Highlight, Note, AIChat } from "../../annotations/lib/annotation-types";
+import type { Annotation, Highlight, Note } from "../../annotations/lib/annotation-types";
 import type { LibraryBook } from "../../library/lib/library-types";
 
 type ContextWorkspaceProps = {
@@ -30,10 +30,7 @@ function AnnotationTypeIcon({ annotation }: { annotation: Annotation }) {
       />
     );
   }
-  if (annotation.type === "note") {
-    return <NotePencil size={14} weight="regular" className="mt-0.5 shrink-0 text-fg-subtle" />;
-  }
-  return <ChatCircleDots size={14} weight="regular" className="mt-0.5 shrink-0 text-indigo-400" />;
+  return <NotePencil size={14} weight="regular" className="mt-0.5 shrink-0 text-fg-subtle" />;
 }
 
 export function ContextWorkspace({ books, onOpenBook }: ContextWorkspaceProps) {
@@ -85,7 +82,7 @@ export function ContextWorkspace({ books, onOpenBook }: ContextWorkspaceProps) {
         <EmptyState
           icon={<Highlighter size={32} weight="regular" />}
           title="No context yet"
-          description="Highlights, notes, and AI conversations from your reading will appear here."
+          description="Highlights and notes from your reading will appear here."
         />
       </div>
     );
@@ -137,11 +134,6 @@ export function ContextWorkspace({ books, onOpenBook }: ContextWorkspaceProps) {
                       {annotation.type === "note" && (
                         <Caption className="mt-0.5 line-clamp-1 text-fg-muted">
                           {(annotation as Note).content}
-                        </Caption>
-                      )}
-                      {annotation.type === "ai-chat" && (
-                        <Caption className="mt-0.5 text-fg-muted">
-                          {(annotation as AIChat).messages.length} messages
                         </Caption>
                       )}
                       <Caption className="mt-1 text-fg-subtle">

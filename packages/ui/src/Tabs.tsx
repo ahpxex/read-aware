@@ -10,21 +10,35 @@ type TabItem = {
 type TabsProps = {
   items: TabItem[];
   defaultIndex?: number;
+  /** Controlled active tab. When provided (with `onActiveIndexChange`), the
+   *  parent owns selection — useful for persisting it or switching tabs
+   *  programmatically. Omit for the default uncontrolled behavior. */
+  activeIndex?: number;
+  onActiveIndexChange?: (index: number) => void;
   variant?: "underline" | "pill" | "nav";
   ariaLabel?: string;
   stretch?: boolean;
+  /** Fill the parent's height: the tab strip stays fixed and the active panel
+   *  flexes to fill the remaining space (so its content can own scrolling).
+   *  Without this, panels size to their content. */
+  fill?: boolean;
   className?: string;
 };
 
 export function Tabs({
   items,
   defaultIndex = 0,
+  activeIndex: controlledIndex,
+  onActiveIndexChange,
   variant = "underline",
   ariaLabel = "Tabs",
   stretch = false,
+  fill = false,
   className,
 }: TabsProps) {
-  const [activeIndex, setActiveIndex] = useLocalAtom(defaultIndex);
+  const [internalIndex, setInternalIndex] = useLocalAtom(defaultIndex);
+  const isControlled = controlledIndex != null;
+  const activeIndex = isControlled ? controlledIndex : internalIndex;
   const [transitionDirection, setTransitionDirection] = useLocalAtom<"forward" | "backward">("forward");
   const [indicatorStyle, setIndicatorStyle] = useLocalAtom({
     x: 0,
@@ -38,7 +52,8 @@ export function Tabs({
   function activateIndex(nextIndex: number) {
     if (nextIndex === activeIndex) return;
     setTransitionDirection(nextIndex > activeIndex ? "forward" : "backward");
-    setActiveIndex(nextIndex);
+    if (!isControlled) setInternalIndex(nextIndex);
+    onActiveIndexChange?.(nextIndex);
   }
 
   const usesUnderlineIndicator = variant === "underline" || variant === "nav";
@@ -114,7 +129,7 @@ export function Tabs({
   }
 
   return (
-    <div className={className}>
+    <div className={cn(fill && "flex h-full min-h-0 flex-col", className)}>
       <div
         ref={tabListRef}
         role="tablist"
@@ -122,6 +137,7 @@ export function Tabs({
         onKeyDown={handleKeyDown}
         className={cn(
           "flex",
+          fill && "shrink-0",
           usesUnderlineIndicator && "relative",
           stretch && "w-full",
           (variant === "underline" || variant === "nav") && "gap-6 border-b border-border",
@@ -200,7 +216,7 @@ export function Tabs({
             aria-labelledby={tabId}
             hidden={i !== activeIndex}
             className={cn(
-              "pt-4",
+              fill ? "min-h-0 flex-1 overflow-hidden" : "pt-4",
               i === activeIndex &&
                 (transitionDirection === "forward"
                   ? "ra-motion-tab-panel-in-forward"

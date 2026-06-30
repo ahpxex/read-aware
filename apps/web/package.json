@@ -21,7 +21,8 @@
     "jotai": "^2.18.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "recharts": "^3.9.0"
+    "recharts": "^3.9.0",
+    "streamdown": "^2.5.0"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^5.0.1",

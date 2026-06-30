@@ -71,7 +71,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
             className="mb-2"
           />
         )}
-        <div className="flex items-end gap-1 rounded-lg bg-fg/5 px-2 py-1.5 transition-shadow focus-within:ring-1 focus-within:ring-fg/15">
+        <div className="flex items-end gap-1 rounded-md bg-fg/5 px-2 py-1.5 transition-shadow focus-within:ring-1 focus-within:ring-fg/15">
           {/* min-h matches the button so a single line stays vertically centered;
               symmetric py keeps the placeholder centered and the auto-grow from
               jumping on first paint. */}

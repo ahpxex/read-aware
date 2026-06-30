@@ -12,13 +12,30 @@ import { ChatTranscript } from "./ChatTranscript";
  * tab chrome). One persistent conversation per book; "Ask AI about this" feeds a
  * passage into the composer rather than opening a new thread.
  */
-export function ChatPanel({ bookId, bookTitle }: { bookId: string; bookTitle: string }) {
+export function ChatPanel({
+  bookId,
+  bookTitle,
+  active = false,
+}: {
+  bookId: string;
+  bookTitle: string;
+  /** Whether the Chat tab is the visible one — drives autofocus of the composer. */
+  active?: boolean;
+}) {
   const conversation = useBookConversation(bookId, bookTitle);
   const askAiRequest = useAtomValue(askAiRequestAtom);
   const lastConsumedIdRef = useRef<string | null>(null);
   const [pendingAttachment, setPendingAttachment] =
     useState<ChatSelectionAttachment | null>(null);
   const composerRef = useRef<ChatComposerHandle | null>(null);
+
+  // Autofocus the composer whenever the Chat tab becomes the shown one (a frame
+  // later, so the tab panel is no longer display:none).
+  useEffect(() => {
+    if (!active) return;
+    const frame = requestAnimationFrame(() => composerRef.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [active]);
 
   // Adopt an "Ask AI about this" dispatch: pull the passage into the composer
   // and focus it. We track the last id handled (rather than clearing the atom)

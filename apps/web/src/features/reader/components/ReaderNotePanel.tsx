@@ -4,8 +4,8 @@ import { ChatPanel } from "../../ai/components/ChatPanel";
 import type { NotesTab } from "../lib/reader-panel-layout";
 import type { TocEntry } from "../lib/reader-types";
 
-/** Tab order ↔ index mapping for the controlled `Tabs`. */
-const TAB_ORDER: NotesTab[] = ["notes", "chat"];
+/** Tab order ↔ index mapping for the controlled `Tabs` (Chat first, then Notes). */
+const TAB_ORDER: NotesTab[] = ["chat", "notes"];
 
 type ReaderNotePanelProps = {
   bookId: string;
@@ -41,10 +41,20 @@ export function ReaderNotePanel({
       variant="underline"
       ariaLabel="Notes and AI chat"
       className="pt-1"
-      tabListClassName="gap-5 px-4"
+      tabListClassName="justify-end gap-5 px-4"
       activeIndex={activeIndex}
       onActiveIndexChange={(index) => onTabChange(TAB_ORDER[index] ?? "notes")}
       items={[
+        {
+          label: "Chat",
+          content: (
+            <ChatPanel
+              bookId={bookId}
+              bookTitle={bookTitle}
+              active={enabled && activeTab === "chat"}
+            />
+          ),
+        },
         {
           label: "Notes",
           content: (
@@ -55,10 +65,6 @@ export function ReaderNotePanel({
               onNavigateTo={onNavigateTo}
             />
           ),
-        },
-        {
-          label: "Chat",
-          content: <ChatPanel bookId={bookId} bookTitle={bookTitle} />,
         },
       ]}
     />

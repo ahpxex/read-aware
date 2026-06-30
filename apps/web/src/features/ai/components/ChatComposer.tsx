@@ -60,9 +60,8 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
     }
 
     function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-      // Enter inserts a newline (it's a multi-line textarea); send with the
-      // button or ⌘/Ctrl+Enter.
-      if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+      // Enter sends; Shift+Enter inserts a newline.
+      if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
         submit();
       }

@@ -44,6 +44,10 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
       const el = textareaRef.current;
       if (!el) return;
       el.style.height = "auto";
+      // scrollHeight is 0 while the chat tab is display:none (not yet shown).
+      // Don't lock the height to 0 — leave it to the CSS min-height until the
+      // textarea is actually visible, then it sizes correctly on first edit.
+      if (el.scrollHeight === 0) return;
       el.style.height = `${Math.min(el.scrollHeight, MAX_HEIGHT)}px`;
     }, [value]);
 
@@ -56,7 +60,9 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
     }
 
     function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-      if (event.key === "Enter" && !event.shiftKey) {
+      // Enter inserts a newline (it's a multi-line textarea); send with the
+      // button or ⌘/Ctrl+Enter.
+      if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         submit();
       }
@@ -71,10 +77,11 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
             className="mb-2"
           />
         )}
-        <div className="flex items-end gap-1 rounded-md bg-fg/5 px-2 py-1.5 transition-shadow focus-within:ring-1 focus-within:ring-fg/15">
-          {/* min-h matches the button so a single line stays vertically centered;
-              symmetric py keeps the placeholder centered and the auto-grow from
-              jumping on first paint. */}
+        {/* Fully bare — no frame at rest or on focus. The textarea spans the full
+            width so its overflow scrollbar sits at the outer right edge instead
+            of wedged between the text and an inline button; the send button is
+            overlaid at the bottom-right, kept clear of the scrollbar. */}
+        <div className="relative">
           <textarea
             ref={textareaRef}
             rows={1}
@@ -85,14 +92,14 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
             placeholder={
               pendingAttachment ? "Ask about this passage…" : "Ask about this book…"
             }
-            className="min-h-7 max-h-40 flex-1 resize-none bg-transparent px-1 py-0.5 text-sm leading-6 text-fg outline-none placeholder:text-fg-subtle"
+            className="block max-h-40 min-h-8 w-full resize-none bg-transparent py-1 pr-9 text-sm leading-6 text-fg outline-none placeholder:text-fg-subtle"
           />
           {isStreaming ? (
             <IconButton
               label="Stop generating"
               size="sm"
               onClick={onStop}
-              className="shrink-0 rounded-md text-fg-muted hover:bg-fg/5 hover:text-fg"
+              className="absolute bottom-1 right-1 rounded-md text-fg-muted hover:bg-fg/5 hover:text-fg"
               icon={<Stop size={15} weight="fill" aria-hidden="true" />}
             />
           ) : (
@@ -102,7 +109,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
               onClick={submit}
               disabled={!canSend}
               className={cn(
-                "shrink-0 rounded-md transition-colors disabled:pointer-events-none",
+                "absolute bottom-1 right-1 rounded-md transition-colors disabled:pointer-events-none",
                 canSend ? "text-fg hover:bg-fg/5" : "text-fg-subtle",
               )}
               icon={<ArrowUp size={15} weight="bold" aria-hidden="true" />}

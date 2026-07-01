@@ -38,7 +38,7 @@ export interface Book {
   mimeType?: string;
   /** Original file size in bytes. */
   fileSize: number;
-  /** Storage key of the original source file (see StorageAdapter blobs). */
+  /** Storage key of the original source file in the blob store. */
   sourceBlobKey: string;
   /** Content hash of the source file, for duplicate detection. */
   sourceSha256?: string;

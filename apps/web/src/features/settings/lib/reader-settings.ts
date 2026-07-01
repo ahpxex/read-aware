@@ -1,3 +1,5 @@
+import { localKV } from "../../../platform/local-store";
+
 const STORAGE_KEY = "read-aware-reader-settings";
 
 /** Concrete, render-ready page color. */
@@ -147,7 +149,7 @@ export function normalizeFontSize(value: unknown): ReaderFontSize {
 
 export function getReaderPreferences(): ReaderSettingsPreferences {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localKV.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_READER_PREFERENCES;
     const parsed = JSON.parse(raw) as Partial<ReaderSettingsPreferences>;
     return {
@@ -164,7 +166,7 @@ export function getReaderPreferences(): ReaderSettingsPreferences {
 }
 
 export function saveReaderPreferences(prefs: ReaderSettingsPreferences): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+  localKV.setItem(STORAGE_KEY, JSON.stringify(prefs));
 }
 
 /** Resolve a (possibly `auto`) page color against the resolved app theme. */

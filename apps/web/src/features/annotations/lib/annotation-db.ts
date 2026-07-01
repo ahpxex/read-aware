@@ -1,8 +1,14 @@
 /**
- * IndexedDB storage for annotations (highlights, notes)
+ * Storage for annotations (highlights, notes).
+ *
+ * Resolves by `isTauri()`: desktop → native SQLite (Rust `annotation_*`
+ * commands); browser (vite dev / Storybook) → the existing IndexedDB code, kept
+ * byte-for-byte.
  */
 
+import { invoke } from "@tauri-apps/api/core";
 import type { Annotation, AnnotationFilters, Highlight, Note } from "./annotation-types";
+import { isTauri } from "../../../platform/environment";
 
 const DB_NAME = "read-aware-annotations";
 const DB_VERSION = 1;
@@ -50,8 +56,33 @@ function openAnnotationsDb() {
   return dbPromise;
 }
 
+/** Filter + newest-first sort applied to the SQLite result set (desktop path). */
+function filterAndSortAnnotations(
+  annotations: Annotation[],
+  filters?: AnnotationFilters,
+): Annotation[] {
+  let result = annotations;
+  if (filters?.bookId) result = result.filter((a) => a.bookId === filters.bookId);
+  if (filters?.type) result = result.filter((a) => a.type === filters.type);
+  if (filters?.searchQuery) {
+    const query = filters.searchQuery.toLowerCase();
+    result = result.filter(
+      (a) =>
+        a.text.toLowerCase().includes(query) ||
+        ("content" in a && a.content?.toLowerCase().includes(query)),
+    );
+  }
+  return [...result].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+}
+
 // Generic annotation operations
 export async function saveAnnotation(annotation: Annotation): Promise<Annotation> {
+  if (isTauri()) {
+    await invoke("annotation_put", { annotation });
+    return annotation;
+  }
   const db = await openAnnotationsDb();
   const transaction = db.transaction(ANNOTATIONS_STORE, "readwrite");
   transaction.objectStore(ANNOTATIONS_STORE).put(annotation);
@@ -60,6 +91,9 @@ export async function saveAnnotation(annotation: Annotation): Promise<Annotation
 }
 
 export async function getAnnotation(id: string): Promise<Annotation | null> {
+  if (isTauri()) {
+    return (await invoke<Annotation | null>("annotation_get", { id })) ?? null;
+  }
   const db = await openAnnotationsDb();
   const transaction = db.transaction(ANNOTATIONS_STORE, "readonly");
   const result = await requestToPromise(
@@ -70,6 +104,10 @@ export async function getAnnotation(id: string): Promise<Annotation | null> {
 }
 
 export async function deleteAnnotation(id: string): Promise<void> {
+  if (isTauri()) {
+    await invoke("annotation_delete", { id });
+    return;
+  }
   const db = await openAnnotationsDb();
   const transaction = db.transaction(ANNOTATIONS_STORE, "readwrite");
   transaction.objectStore(ANNOTATIONS_STORE).delete(id);
@@ -77,12 +115,17 @@ export async function deleteAnnotation(id: string): Promise<void> {
 }
 
 export async function listAnnotations(filters?: AnnotationFilters): Promise<Annotation[]> {
+  if (isTauri()) {
+    const all = await invoke<Annotation[]>("annotations_list");
+    return filterAndSortAnnotations(all, filters);
+  }
+
   const db = await openAnnotationsDb();
   const transaction = db.transaction(ANNOTATIONS_STORE, "readonly");
   const store = transaction.objectStore(ANNOTATIONS_STORE);
-  
+
   let annotations: Annotation[];
-  
+
   if (filters?.bookId && filters?.type) {
     const index = store.index("bookId_type");
     annotations = await requestToPromise(index.getAll([filters.bookId, filters.type]) as IDBRequest<Annotation[]>);
@@ -95,20 +138,20 @@ export async function listAnnotations(filters?: AnnotationFilters): Promise<Anno
   } else {
     annotations = await requestToPromise(store.getAll() as IDBRequest<Annotation[]>);
   }
-  
+
   await waitForTransaction(transaction);
-  
+
   // Apply search filter in memory
   if (filters?.searchQuery) {
     const query = filters.searchQuery.toLowerCase();
-    annotations = annotations.filter((a) => 
+    annotations = annotations.filter((a) =>
       a.text.toLowerCase().includes(query) ||
       ("content" in a && a.content?.toLowerCase().includes(query))
     );
   }
-  
+
   // Sort by creation time, newest first
-  return annotations.sort((a, b) => 
+  return annotations.sort((a, b) =>
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 }
@@ -169,7 +212,7 @@ export async function createNote(
 export async function updateNote(id: string, content: string): Promise<Note | null> {
   const note = await getAnnotation(id);
   if (!note || note.type !== "note") return null;
-  
+
   const updated: Note = {
     ...note,
     content,

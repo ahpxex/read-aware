@@ -1,16 +1,24 @@
 /**
  * Export / import / reset for all locally-persisted ReadAware settings.
  *
- * These keys are the full surface of the interim localStorage settings layer.
+ * These keys are the full surface of the device-local settings/prefs layer,
+ * reached through `localKV` (SQLite on desktop, localStorage in the browser).
  * Keep this list in sync as new settings stores are added.
  */
+import { localKV } from "../../../platform/local-store";
+
 const SETTINGS_KEYS = [
   "read-aware-reader-settings",
+  "read-aware-reader-overrides",
+  "read-aware-reader-panels",
+  "read-aware-reader-panel-sizes",
   "read-aware-app-settings",
   "read-aware-general-settings",
   "read-aware-ai-preferences",
   "read-aware-ai-config",
   "read-aware-shelf-view",
+  "read-aware-shortcuts",
+  "read-aware-default-mark-color",
 ] as const;
 
 export const SETTINGS_EXPORT_VERSION = 1;
@@ -26,7 +34,7 @@ type SettingsExport = {
 export function serializeSettings(): string {
   const data: Record<string, unknown> = {};
   for (const key of SETTINGS_KEYS) {
-    const raw = localStorage.getItem(key);
+    const raw = localKV.getItem(key);
     if (raw == null) continue;
     try {
       data[key] = JSON.parse(raw);
@@ -56,7 +64,7 @@ export function applySettings(json: string): number {
   for (const key of SETTINGS_KEYS) {
     if (!(key in parsed.data)) continue;
     const value = (parsed.data as Record<string, unknown>)[key];
-    localStorage.setItem(key, typeof value === "string" ? value : JSON.stringify(value));
+    localKV.setItem(key, typeof value === "string" ? value : JSON.stringify(value));
     applied += 1;
   }
   return applied;
@@ -65,6 +73,6 @@ export function applySettings(json: string): number {
 /** Remove every locally-persisted settings key. */
 export function resetAllSettings(): void {
   for (const key of SETTINGS_KEYS) {
-    localStorage.removeItem(key);
+    localKV.removeItem(key);
   }
 }

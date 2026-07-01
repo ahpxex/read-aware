@@ -1,22 +1,16 @@
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { RouterProvider } from "@tanstack/react-router";
-import { createAppRouter } from "./router";
 import { applyPlatformAttributes, disableNativeContextMenu } from "./platform/environment";
+import { hydrateLocalStore } from "./platform/local-store";
 import "./index.css";
 
 applyPlatformAttributes();
 disableNativeContextMenu();
 
-const router = createAppRouter();
-
-const rootElement = document.getElementById("root");
-if (!rootElement) {
-  throw new Error("Root element #root not found");
-}
-
-createRoot(rootElement).render(
-  <StrictMode>
-    <RouterProvider router={router} />
-  </StrictMode>,
-);
+// Hydrate the device-local config snapshot (SQLite on desktop; no-op in the
+// browser) BEFORE importing the app — its module graph seeds Jotai atoms
+// synchronously from that config, so it must not evaluate until the snapshot is
+// ready. `app-mount` is therefore a dynamic import.
+void (async () => {
+  await hydrateLocalStore();
+  const { mountApp } = await import("./app-mount");
+  mountApp();
+})();

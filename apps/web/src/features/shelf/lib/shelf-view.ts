@@ -1,3 +1,5 @@
+import { localKV } from "../../../platform/local-store";
+
 const STORAGE_KEY = "read-aware-shelf-view";
 
 export type ShelfLayout = "grid" | "list";
@@ -20,7 +22,7 @@ export const DEFAULT_SHELF_VIEW: ShelfView = {
 
 export function getShelfView(): ShelfView {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localKV.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_SHELF_VIEW;
     const parsed = JSON.parse(raw) as Partial<ShelfView>;
     return {
@@ -34,5 +36,5 @@ export function getShelfView(): ShelfView {
 }
 
 export function saveShelfView(view: ShelfView): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(view));
+  localKV.setItem(STORAGE_KEY, JSON.stringify(view));
 }

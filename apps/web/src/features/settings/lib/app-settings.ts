@@ -1,3 +1,5 @@
+import { localKV } from "../../../platform/local-store";
+
 const STORAGE_KEY = "read-aware-app-settings";
 
 /** App chrome theme. `system` follows the OS color scheme. */
@@ -17,7 +19,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
 
 export function getAppSettings(): AppSettings {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localKV.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_APP_SETTINGS;
     const parsed = JSON.parse(raw) as Partial<AppSettings>;
     return {
@@ -30,7 +32,7 @@ export function getAppSettings(): AppSettings {
 }
 
 export function saveAppSettings(settings: AppSettings): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  localKV.setItem(STORAGE_KEY, JSON.stringify(settings));
 }
 
 /** Resolve a theme preference to a concrete `light`/`dark` using the OS scheme. */

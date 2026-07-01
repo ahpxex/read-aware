@@ -6,13 +6,15 @@ import type { Highlight } from "./annotation-types";
  * colour the reader applied via the recolor menu.
  */
 
+import { localKV } from "../../../platform/local-store";
+
 const DEFAULT_COLOR_KEY = "read-aware-default-mark-color";
 const COLORS: Highlight["color"][] = ["yellow", "green", "blue", "pink"];
 const FALLBACK_COLOR: Highlight["color"] = "yellow";
 
 export function getDefaultMarkColor(): Highlight["color"] {
   try {
-    const raw = localStorage.getItem(DEFAULT_COLOR_KEY);
+    const raw = localKV.getItem(DEFAULT_COLOR_KEY);
     return COLORS.includes(raw as Highlight["color"])
       ? (raw as Highlight["color"])
       : FALLBACK_COLOR;
@@ -23,7 +25,7 @@ export function getDefaultMarkColor(): Highlight["color"] {
 
 export function setDefaultMarkColor(color: Highlight["color"]): void {
   try {
-    localStorage.setItem(DEFAULT_COLOR_KEY, color);
+    localKV.setItem(DEFAULT_COLOR_KEY, color);
   } catch {
     // Ignore persistence failures — the in-session ref still carries the value.
   }

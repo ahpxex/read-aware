@@ -1,3 +1,5 @@
+import { localKV } from "../../../platform/local-store";
+
 const STORAGE_KEY = "read-aware-general-settings";
 
 /** What the app shows on launch. */
@@ -26,7 +28,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
 
 export function getGeneralSettings(): GeneralSettings {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localKV.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_GENERAL_SETTINGS;
     const parsed = JSON.parse(raw) as Partial<GeneralSettings>;
     return {
@@ -43,5 +45,5 @@ export function getGeneralSettings(): GeneralSettings {
 }
 
 export function saveGeneralSettings(settings: GeneralSettings): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  localKV.setItem(STORAGE_KEY, JSON.stringify(settings));
 }

@@ -6,6 +6,8 @@ import { atom } from "jotai";
  * carries across books and sessions.
  */
 
+import { localKV } from "../../../platform/local-store";
+
 const STORAGE_KEY = "read-aware-reader-panel-sizes";
 
 export const MIN_PANEL_WIDTH = 240;
@@ -26,7 +28,7 @@ export function clampPanelWidth(px: number): number {
 
 function readSizes(): ReaderPanelSizes {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localKV.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_SIZES;
     const parsed = JSON.parse(raw) as Partial<ReaderPanelSizes>;
     return {
@@ -40,7 +42,7 @@ function readSizes(): ReaderPanelSizes {
 
 export function saveReaderPanelSizes(sizes: ReaderPanelSizes): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sizes));
+    localKV.setItem(STORAGE_KEY, JSON.stringify(sizes));
   } catch {
     // Best-effort: ignore quota / serialization failures.
   }

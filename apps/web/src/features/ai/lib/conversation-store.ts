@@ -1,4 +1,5 @@
 import type { ChatMessage } from "./chat-types";
+import { localKV } from "../../../platform/local-store";
 
 /**
  * Local persistence for the per-book conversation.
@@ -16,7 +17,7 @@ type ConversationStore = Record<string, ChatMessage[]>;
 
 function readStore(): ConversationStore {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localKV.getItem(STORAGE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw) as unknown;
     if (!parsed || typeof parsed !== "object") return {};
@@ -28,7 +29,7 @@ function readStore(): ConversationStore {
 
 function writeStore(store: ConversationStore): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+    localKV.setItem(STORAGE_KEY, JSON.stringify(store));
   } catch {
     // Best-effort: ignore quota / serialization failures.
   }

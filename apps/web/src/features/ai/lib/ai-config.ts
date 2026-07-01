@@ -11,24 +11,44 @@ export interface AIConfig {
   customBaseUrl?: string;
 }
 
-const STORAGE_KEY = "read-aware-ai-config";
+import { localKV } from "../../../platform/local-store";
+
+// Non-secret connection fields (provider/model/customBaseUrl) go through the
+// device-local store (SQLite on desktop). The API key is a secret and is kept
+// OUT of SQLite — it stays in localStorage until a Keychain path lands.
+const CONFIG_KEY = "read-aware-ai-config";
+const API_KEY_KEY = "read-aware-ai-key";
 
 export function getAIConfig(): AIConfig | null {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localKV.getItem(CONFIG_KEY);
     if (!stored) return null;
-    return JSON.parse(stored) as AIConfig;
+    const parsed = JSON.parse(stored) as Partial<AIConfig>;
+    if (!parsed.provider) return null;
+    // Read the key from its dedicated localStorage slot, falling back to a
+    // legacy combined blob's `apiKey` (pre-split records migrate on next save).
+    const apiKey = localStorage.getItem(API_KEY_KEY) ?? parsed.apiKey ?? "";
+    return {
+      provider: parsed.provider,
+      apiKey,
+      model: parsed.model ?? "",
+      customBaseUrl: parsed.customBaseUrl,
+    };
   } catch {
     return null;
   }
 }
 
 export function saveAIConfig(config: AIConfig): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+  const { apiKey, ...nonSecret } = config;
+  localKV.setItem(CONFIG_KEY, JSON.stringify(nonSecret));
+  if (apiKey) localStorage.setItem(API_KEY_KEY, apiKey);
+  else localStorage.removeItem(API_KEY_KEY);
 }
 
 export function clearAIConfig(): void {
-  localStorage.removeItem(STORAGE_KEY);
+  localKV.removeItem(CONFIG_KEY);
+  localStorage.removeItem(API_KEY_KEY);
 }
 
 export function hasAIConfig(): boolean {

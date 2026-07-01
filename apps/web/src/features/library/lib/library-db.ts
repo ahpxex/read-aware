@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import type {
   BookFormat,
   BookProgress,
@@ -8,12 +9,16 @@ import type {
 } from "./library-types";
 import { extractBookCover, extractBookMetadata } from "./library-cover";
 import type { ExtractedBookMetadata } from "./library-cover";
+import { isTauri } from "../../../platform/environment";
 
 const DB_NAME = "read-aware-library";
 const DB_VERSION = 2;
 const BOOKS_STORE = "books";
 const FILES_STORE = "files";
 const COLLECTIONS_STORE = "collections";
+
+/** Blob-store key for a book's original file bytes (desktop SQLite backend). */
+const bookFileKey = (bookId: string) => `bookfile:${bookId}`;
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -67,6 +72,102 @@ function openLibraryDb() {
 
   return dbPromise;
 }
+
+// --- Storage primitives ------------------------------------------------------
+// Each resolves by `isTauri()`: desktop → native SQLite (Rust commands + blob
+// store); browser (vite dev / Storybook) → the existing IndexedDB code, kept
+// byte-for-byte. Everything below (dedup, cover hydration, sorting) is pure and
+// backend-agnostic.
+
+async function getAllBookRecords(): Promise<LibraryBook[]> {
+  if (isTauri()) return invoke<LibraryBook[]>("library_load");
+  const db = await openLibraryDb();
+  const transaction = db.transaction(BOOKS_STORE, "readonly");
+  const books = await requestToPromise(
+    transaction.objectStore(BOOKS_STORE).getAll() as IDBRequest<LibraryBook[]>,
+  );
+  await waitForTransaction(transaction);
+  return books;
+}
+
+async function getBookRecord(bookId: string): Promise<LibraryBook | null> {
+  if (isTauri()) {
+    return (await invoke<LibraryBook | null>("library_get_book", { id: bookId })) ?? null;
+  }
+  const db = await openLibraryDb();
+  const transaction = db.transaction(BOOKS_STORE, "readonly");
+  const book = await requestToPromise(
+    transaction.objectStore(BOOKS_STORE).get(bookId) as IDBRequest<LibraryBook | undefined>,
+  );
+  await waitForTransaction(transaction);
+  return book ?? null;
+}
+
+async function putBookRecord(book: LibraryBook): Promise<void> {
+  if (isTauri()) {
+    await invoke("library_put_book", { book });
+    return;
+  }
+  const db = await openLibraryDb();
+  const transaction = db.transaction(BOOKS_STORE, "readwrite");
+  transaction.objectStore(BOOKS_STORE).put(book);
+  await waitForTransaction(transaction);
+}
+
+async function storeImportedBook(book: LibraryBook, file: File): Promise<void> {
+  if (isTauri()) {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    await invoke("put_blob", { key: bookFileKey(book.id), data: bytes });
+    await invoke("library_put_book", { book });
+    return;
+  }
+  const db = await openLibraryDb();
+  const transaction = db.transaction([BOOKS_STORE, FILES_STORE], "readwrite");
+  transaction.objectStore(BOOKS_STORE).put(book);
+  transaction.objectStore(FILES_STORE).put({ bookId: book.id, blob: file } satisfies StoredBookFile);
+  await waitForTransaction(transaction);
+}
+
+async function deleteBookRecords(bookIds: string[]): Promise<void> {
+  if (bookIds.length === 0) return;
+  if (isTauri()) {
+    await invoke("library_delete_books", { ids: bookIds });
+    return;
+  }
+  const db = await openLibraryDb();
+  const transaction = db.transaction([BOOKS_STORE, FILES_STORE], "readwrite");
+  const books = transaction.objectStore(BOOKS_STORE);
+  const files = transaction.objectStore(FILES_STORE);
+  for (const id of bookIds) {
+    books.delete(id);
+    files.delete(id);
+  }
+  await waitForTransaction(transaction);
+}
+
+async function getAllCollectionRecords(): Promise<Collection[]> {
+  if (isTauri()) return invoke<Collection[]>("library_list_collections");
+  const db = await openLibraryDb();
+  const transaction = db.transaction(COLLECTIONS_STORE, "readonly");
+  const collections = await requestToPromise(
+    transaction.objectStore(COLLECTIONS_STORE).getAll() as IDBRequest<Collection[]>,
+  );
+  await waitForTransaction(transaction);
+  return collections;
+}
+
+async function putCollectionRecord(collection: Collection): Promise<void> {
+  if (isTauri()) {
+    await invoke("library_put_collection", { collection });
+    return;
+  }
+  const db = await openLibraryDb();
+  const transaction = db.transaction(COLLECTIONS_STORE, "readwrite");
+  transaction.objectStore(COLLECTIONS_STORE).put(collection);
+  await waitForTransaction(transaction);
+}
+
+// --- Pure helpers (backend-agnostic) ----------------------------------------
 
 function stripFileExtension(fileName: string) {
   return fileName.replace(/\.[^.]+$/, "");
@@ -161,13 +262,6 @@ function sortBooks(books: LibraryBook[]) {
   });
 }
 
-async function saveBookRecord(book: LibraryBook) {
-  const db = await openLibraryDb();
-  const transaction = db.transaction(BOOKS_STORE, "readwrite");
-  transaction.objectStore(BOOKS_STORE).put(book);
-  await waitForTransaction(transaction);
-}
-
 async function hydrateMissingBookCovers(books: LibraryBook[]) {
   // Re-extract covers for records that have no cover and were never checked:
   // legacy books imported before cover extraction, or imports whose extraction
@@ -192,7 +286,7 @@ async function hydrateMissingBookCovers(books: LibraryBook[]) {
       coverChecked: true,
     };
 
-    await saveBookRecord(nextBook);
+    await putBookRecord(nextBook);
     return nextBook;
   }));
 
@@ -200,11 +294,10 @@ async function hydrateMissingBookCovers(books: LibraryBook[]) {
   return books.map((book) => repairedBookMap.get(book.id) ?? book);
 }
 
+// --- Public API --------------------------------------------------------------
+
 export async function listLibraryBooks() {
-  const db = await openLibraryDb();
-  const transaction = db.transaction(BOOKS_STORE, "readonly");
-  const books = await requestToPromise(transaction.objectStore(BOOKS_STORE).getAll() as IDBRequest<LibraryBook[]>);
-  await waitForTransaction(transaction);
+  const books = await getAllBookRecords();
   return sortBooks(await hydrateMissingBookCovers(books));
 }
 
@@ -218,13 +311,7 @@ export type ImportBookResult =
   | { status: "duplicate"; book: LibraryBook };
 
 export async function importBookFile(file: File): Promise<ImportBookResult> {
-  const db = await openLibraryDb();
-  const existing = await requestToPromise(
-    db
-      .transaction(BOOKS_STORE, "readonly")
-      .objectStore(BOOKS_STORE)
-      .getAll() as IDBRequest<LibraryBook[]>,
-  );
+  const existing = await getAllBookRecords();
 
   // Cheap pass: the identical file (same name + size) is already imported.
   const byFile = existing.find(
@@ -241,17 +328,15 @@ export async function importBookFile(file: File): Promise<ImportBookResult> {
   const byMetadata = existing.find((entry) => bookDedupeKey(entry) === key);
   if (byMetadata) return { status: "duplicate", book: byMetadata };
 
-  const transaction = db.transaction([BOOKS_STORE, FILES_STORE], "readwrite");
-  transaction.objectStore(BOOKS_STORE).put(book);
-  transaction.objectStore(FILES_STORE).put({
-    bookId: book.id,
-    blob: file,
-  } satisfies StoredBookFile);
-  await waitForTransaction(transaction);
+  await storeImportedBook(book, file);
   return { status: "imported", book };
 }
 
-export async function getStoredBookBlob(bookId: string) {
+export async function getStoredBookBlob(bookId: string): Promise<Blob | null> {
+  if (isTauri()) {
+    const bytes = await invoke<number[] | null>("get_blob", { key: bookFileKey(bookId) });
+    return bytes ? new Blob([new Uint8Array(bytes)]) : null;
+  }
   const db = await openLibraryDb();
   const transaction = db.transaction(FILES_STORE, "readonly");
   const storedFile = await requestToPromise(
@@ -259,16 +344,6 @@ export async function getStoredBookBlob(bookId: string) {
   );
   await waitForTransaction(transaction);
   return storedFile?.blob ?? null;
-}
-
-async function getBookRecord(bookId: string) {
-  const db = await openLibraryDb();
-  const transaction = db.transaction(BOOKS_STORE, "readonly");
-  const book = await requestToPromise(
-    transaction.objectStore(BOOKS_STORE).get(bookId) as IDBRequest<LibraryBook | undefined>,
-  );
-  await waitForTransaction(transaction);
-  return book ?? null;
 }
 
 export async function updateLibraryBookProgress(bookId: string, progress: BookProgress) {
@@ -286,10 +361,7 @@ export async function updateLibraryBookProgress(bookId: string, progress: BookPr
     lastOpenedAt: now,
   };
 
-  const db = await openLibraryDb();
-  const transaction = db.transaction(BOOKS_STORE, "readwrite");
-  transaction.objectStore(BOOKS_STORE).put(nextBook);
-  await waitForTransaction(transaction);
+  await putBookRecord(nextBook);
   return nextBook;
 }
 
@@ -301,20 +373,12 @@ export async function setLibraryBookStarred(bookId: string, starred: boolean) {
   // or pinning a book would also reshuffle the "recently opened" ordering.
   const nextBook: LibraryBook = { ...existingBook, starred };
 
-  const db = await openLibraryDb();
-  const transaction = db.transaction(BOOKS_STORE, "readwrite");
-  transaction.objectStore(BOOKS_STORE).put(nextBook);
-  await waitForTransaction(transaction);
+  await putBookRecord(nextBook);
   return nextBook;
 }
 
 export async function listCollections() {
-  const db = await openLibraryDb();
-  const transaction = db.transaction(COLLECTIONS_STORE, "readonly");
-  const collections = await requestToPromise(
-    transaction.objectStore(COLLECTIONS_STORE).getAll() as IDBRequest<Collection[]>,
-  );
-  await waitForTransaction(transaction);
+  const collections = await getAllCollectionRecords();
   return collections.sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -324,31 +388,25 @@ export async function createCollection(name: string): Promise<Collection> {
     name: name.trim() || "Untitled collection",
     createdAt: new Date().toISOString(),
   };
-  const db = await openLibraryDb();
-  const transaction = db.transaction(COLLECTIONS_STORE, "readwrite");
-  transaction.objectStore(COLLECTIONS_STORE).put(collection);
-  await waitForTransaction(transaction);
+  await putCollectionRecord(collection);
   return collection;
 }
 
 export async function renameCollection(id: string, name: string): Promise<Collection | null> {
-  const db = await openLibraryDb();
-  const existing = await requestToPromise(
-    db.transaction(COLLECTIONS_STORE, "readonly").objectStore(COLLECTIONS_STORE).get(id) as IDBRequest<
-      Collection | undefined
-    >,
-  );
+  const existing = (await getAllCollectionRecords()).find((c) => c.id === id);
   if (!existing) return null;
 
   const next: Collection = { ...existing, name: name.trim() || existing.name };
-  const transaction = db.transaction(COLLECTIONS_STORE, "readwrite");
-  transaction.objectStore(COLLECTIONS_STORE).put(next);
-  await waitForTransaction(transaction);
+  await putCollectionRecord(next);
   return next;
 }
 
 /** Delete a collection and clear its books' membership (the books stay). */
 export async function deleteCollection(id: string) {
+  if (isTauri()) {
+    await invoke("library_delete_collection", { id });
+    return;
+  }
   const db = await openLibraryDb();
   const all = await requestToPromise(
     db.transaction(BOOKS_STORE, "readonly").objectStore(BOOKS_STORE).getAll() as IDBRequest<
@@ -369,55 +427,32 @@ export async function deleteCollection(id: string) {
 export async function setBooksCollection(bookIds: string[], collectionId: string | null) {
   if (bookIds.length === 0) return;
   const idSet = new Set(bookIds);
-  const db = await openLibraryDb();
-  const all = await requestToPromise(
-    db.transaction(BOOKS_STORE, "readonly").objectStore(BOOKS_STORE).getAll() as IDBRequest<
-      LibraryBook[]
-    >,
-  );
-
-  const transaction = db.transaction(BOOKS_STORE, "readwrite");
-  const store = transaction.objectStore(BOOKS_STORE);
-  for (const book of all) {
-    if (idSet.has(book.id)) store.put({ ...book, collectionId });
+  const all = await getAllBookRecords();
+  const affected = all.filter((book) => idSet.has(book.id) && book.collectionId !== collectionId);
+  for (const book of affected) {
+    await putBookRecord({ ...book, collectionId });
   }
-  await waitForTransaction(transaction);
 }
 
 export async function removeLibraryBooks(bookIds: string[]) {
-  if (bookIds.length === 0) return;
-  const db = await openLibraryDb();
-  const transaction = db.transaction([BOOKS_STORE, FILES_STORE], "readwrite");
-  const books = transaction.objectStore(BOOKS_STORE);
-  const files = transaction.objectStore(FILES_STORE);
-  for (const id of bookIds) {
-    books.delete(id);
-    files.delete(id);
-  }
-  await waitForTransaction(transaction);
+  await deleteBookRecords(bookIds);
 }
 
 export async function markLibraryBookOpened(bookId: string) {
   const existingBook = await getBookRecord(bookId);
   if (!existingBook) return null;
 
+  const now = new Date().toISOString();
   const nextBook: LibraryBook = {
     ...existingBook,
-    lastOpenedAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    lastOpenedAt: now,
+    updatedAt: now,
   };
 
-  const db = await openLibraryDb();
-  const transaction = db.transaction(BOOKS_STORE, "readwrite");
-  transaction.objectStore(BOOKS_STORE).put(nextBook);
-  await waitForTransaction(transaction);
+  await putBookRecord(nextBook);
   return nextBook;
 }
 
 export async function removeLibraryBook(bookId: string) {
-  const db = await openLibraryDb();
-  const transaction = db.transaction([BOOKS_STORE, FILES_STORE], "readwrite");
-  transaction.objectStore(BOOKS_STORE).delete(bookId);
-  transaction.objectStore(FILES_STORE).delete(bookId);
-  await waitForTransaction(transaction);
+  await deleteBookRecords([bookId]);
 }

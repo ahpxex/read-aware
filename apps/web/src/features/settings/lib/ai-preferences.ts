@@ -1,3 +1,5 @@
+import { localKV } from "../../../platform/local-store";
+
 const STORAGE_KEY = "read-aware-ai-preferences";
 
 /** Reader-surfaced AI capabilities. Toggles gate features as they ship. */
@@ -60,7 +62,7 @@ export const DEFAULT_AI_PREFERENCES: AIPreferences = {
 
 export function getAIPreferences(): AIPreferences {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localKV.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_AI_PREFERENCES;
     const parsed = JSON.parse(raw) as Partial<AIPreferences>;
     return {
@@ -77,5 +79,5 @@ export function getAIPreferences(): AIPreferences {
 }
 
 export function saveAIPreferences(prefs: AIPreferences): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+  localKV.setItem(STORAGE_KEY, JSON.stringify(prefs));
 }

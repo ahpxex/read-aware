@@ -5,6 +5,8 @@ import {
   type ReaderSettingsPreferences,
 } from "./reader-settings";
 
+import { localKV } from "../../../platform/local-store";
+
 const STORAGE_KEY = "read-aware-reader-overrides";
 
 /**
@@ -42,7 +44,7 @@ function normalizeSettings(
 
 export function getReaderOverrides(): ReaderOverrides {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localKV.getItem(STORAGE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw) as Record<string, Partial<BookReaderOverride>>;
     if (!parsed || typeof parsed !== "object") return {};
@@ -62,5 +64,5 @@ export function getReaderOverrides(): ReaderOverrides {
 }
 
 export function saveReaderOverrides(overrides: ReaderOverrides): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
+  localKV.setItem(STORAGE_KEY, JSON.stringify(overrides));
 }

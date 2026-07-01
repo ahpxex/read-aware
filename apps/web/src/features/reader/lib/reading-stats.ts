@@ -12,6 +12,8 @@
  * by local calendar day so the weekly chart matches the reader's wall clock.
  */
 
+import { localKV } from "../../../platform/local-store";
+
 const STORAGE_KEY = "read-aware-reading-stats";
 
 /** Milliseconds of reading keyed by local day, e.g. `{ "2026-06-25": 840000 }`. */
@@ -87,7 +89,7 @@ function normalizeHourly(value: unknown): HourlyReadingBuckets {
 
 export function getReadingStatsStore(): ReadingStatsStore {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localKV.getItem(STORAGE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     if (!parsed || typeof parsed !== "object") return {};
@@ -112,7 +114,7 @@ export function getReadingStatsStore(): ReadingStatsStore {
 }
 
 export function saveReadingStatsStore(store: ReadingStatsStore): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  localKV.setItem(STORAGE_KEY, JSON.stringify(store));
 }
 
 export function getBookReadingStats(

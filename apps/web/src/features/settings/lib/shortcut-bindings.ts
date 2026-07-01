@@ -1,5 +1,7 @@
 import type { KeyChord, ShortcutBindings, ShortcutId } from "./shortcuts";
 
+import { localKV } from "../../../platform/local-store";
+
 const STORAGE_KEY = "read-aware-shortcuts";
 
 function isChord(value: unknown): value is KeyChord {
@@ -9,7 +11,7 @@ function isChord(value: unknown): value is KeyChord {
 /** Read the user's shortcut overrides (only the rebound ones are stored). */
 export function getShortcutBindings(): ShortcutBindings {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localKV.getItem(STORAGE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     if (!parsed || typeof parsed !== "object") return {};
@@ -24,5 +26,5 @@ export function getShortcutBindings(): ShortcutBindings {
 }
 
 export function saveShortcutBindings(bindings: ShortcutBindings): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(bindings));
+  localKV.setItem(STORAGE_KEY, JSON.stringify(bindings));
 }

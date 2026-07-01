@@ -11,7 +11,7 @@ import { ShelfSelectionToolbar } from "../../shelf/components/ShelfSelectionTool
 import { deriveShelfView } from "../../shelf/lib/derive-shelf-view";
 import { useShelfSelection } from "../../shelf/hooks/useShelfSelection";
 import { activeCollectionAtom, shelfViewAtom } from "../../../state/ui";
-import type { Collection, LibraryBook } from "../lib/library-types";
+import type { BookMetadataPatch, Collection, LibraryBook } from "../lib/library-types";
 
 type LibraryWorkspaceProps = {
   isReady: boolean;
@@ -23,6 +23,7 @@ type LibraryWorkspaceProps = {
   onOpenBook: (book: LibraryBook) => void;
   onRemoveBook: (book: LibraryBook) => void;
   onToggleStar: (book: LibraryBook) => void;
+  onUpdateBookMetadata: (book: LibraryBook, patch: BookMetadataPatch) => void;
   onBulkRemove: (ids: string[]) => void;
   onCreateCollection: (name: string) => Promise<Collection | null>;
   onRenameCollection: (id: string, name: string) => void;
@@ -40,6 +41,7 @@ export function LibraryWorkspace({
   onOpenBook,
   onRemoveBook,
   onToggleStar,
+  onUpdateBookMetadata,
   onBulkRemove,
   onCreateCollection,
   onRenameCollection,
@@ -191,6 +193,7 @@ export function LibraryWorkspace({
               onSelect={onOpenBook}
               onRemove={onRemoveBook}
               onToggleStar={onToggleStar}
+              onUpdateMetadata={onUpdateBookMetadata}
               onToggleSelect={(book) => toggle(book.id)}
             />
           )}

@@ -42,7 +42,10 @@
     "title": "Buchdetails",
     "fieldTitle": "Titel",
     "fieldAuthor": "Autor",
-    "fieldFormat": "Format"
+    "fieldFormat": "Format",
+    "fieldReading": "Lesezeit",
+    "edit": "Bearbeiten",
+    "save": "Speichern"
   },
   "removeBook": {
     "title": "Buch entfernen?",

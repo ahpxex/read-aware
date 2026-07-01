@@ -47,6 +47,15 @@ export interface LibraryBook {
   collectionId?: string | null;
 }
 
+/**
+ * User-editable bibliographic fields, for correcting metadata that auto-detection
+ * got wrong or couldn't read. Only existing `LibraryBook` fields — no schema change.
+ */
+export type BookMetadataPatch = {
+  title?: string;
+  author?: string;
+};
+
 /** A user-defined collection (single-membership folder) of books. */
 export interface Collection {
   id: string;

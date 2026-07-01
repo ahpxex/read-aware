@@ -180,6 +180,7 @@ function App() {
                 onOpenBook={reader.openReader}
                 onRemoveBook={library.handleRemoveBook}
                 onToggleStar={library.handleToggleStar}
+                onUpdateBookMetadata={library.handleUpdateBookMetadata}
                 onBulkRemove={library.handleRemoveMany}
                 onCreateCollection={library.handleCreateCollection}
                 onRenameCollection={library.handleRenameCollection}

@@ -46,7 +46,10 @@
     "title": "Сведения о книге",
     "fieldTitle": "Название",
     "fieldAuthor": "Автор",
-    "fieldFormat": "Формат"
+    "fieldFormat": "Формат",
+    "fieldReading": "Время чтения",
+    "edit": "Изменить",
+    "save": "Сохранить"
   },
   "removeBook": {
     "title": "Удалить книгу?",

@@ -13,10 +13,16 @@ import {
   renameCollection,
   setBooksCollection,
   setLibraryBookStarred,
+  updateBookMetadata,
 } from "../lib/library-db";
 import { createProgressPatch } from "../lib/library-progress";
 import { canUseNativeFilePicker, pickBookFilesNative } from "../lib/pick-book-files";
-import type { BookProgress, Collection, LibraryBook } from "../lib/library-types";
+import type {
+  BookMetadataPatch,
+  BookProgress,
+  Collection,
+  LibraryBook,
+} from "../lib/library-types";
 
 function formatImportNotice(
   imported: number,
@@ -204,6 +210,32 @@ export function useLibraryController() {
     });
   }, [reportError]);
 
+  const handleUpdateBookMetadata = useCallback(
+    (book: LibraryBook, patch: BookMetadataPatch) => {
+      const title = patch.title?.trim() || book.title;
+      const author = patch.author?.trim() || book.author;
+      if (title === book.title && author === book.author) return;
+
+      // Optimistic: reflect the edit immediately; roll back if the write fails.
+      setBooks((currentBooks) =>
+        currentBooks.map((entry) =>
+          entry.id === book.id ? { ...entry, title, author } : entry,
+        ),
+      );
+      void updateBookMetadata(book.id, { title, author }).catch((error) => {
+        setBooks((currentBooks) =>
+          currentBooks.map((entry) =>
+            entry.id === book.id
+              ? { ...entry, title: book.title, author: book.author }
+              : entry,
+          ),
+        );
+        reportError(error);
+      });
+    },
+    [reportError],
+  );
+
   const handleRemoveBook = useCallback((book: LibraryBook) => {
     void removeLibraryBook(book.id)
       .then(() => {
@@ -238,6 +270,7 @@ export function useLibraryController() {
     handleImportSelection,
     handleRemoveBook,
     handleToggleStar,
+    handleUpdateBookMetadata,
     handleRemoveMany,
     handleCreateCollection,
     handleRenameCollection,

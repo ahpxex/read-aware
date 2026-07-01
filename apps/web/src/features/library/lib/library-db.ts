@@ -367,6 +367,32 @@ export async function updateLibraryBookProgress(bookId: string, progress: BookPr
   return nextBook;
 }
 
+/**
+ * Update user-editable metadata (title/author). Empty input keeps the current
+ * value rather than blanking the field. Bumps `updatedAt` (a real modification)
+ * but not `lastOpenedAt`, so a metadata fix doesn't masquerade as a reading
+ * session. Uses only existing columns — no schema change.
+ */
+export async function updateBookMetadata(
+  bookId: string,
+  patch: { title?: string; author?: string },
+): Promise<LibraryBook | null> {
+  const existingBook = await getBookRecord(bookId);
+  if (!existingBook) return null;
+
+  const title = patch.title?.trim();
+  const author = patch.author?.trim();
+  const nextBook: LibraryBook = {
+    ...existingBook,
+    title: title || existingBook.title,
+    author: author || existingBook.author,
+    updatedAt: new Date().toISOString(),
+  };
+
+  await putBookRecord(nextBook);
+  return nextBook;
+}
+
 export async function setLibraryBookStarred(bookId: string, starred: boolean) {
   const existingBook = await getBookRecord(bookId);
   if (!existingBook) return null;

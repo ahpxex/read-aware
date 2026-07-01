@@ -1,6 +1,10 @@
 import { Eyebrow } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
-import type { LibraryBook, ShelfSection as LibraryShelfSection } from "../../library/lib/library-types";
+import type {
+  BookMetadataPatch,
+  LibraryBook,
+  ShelfSection as LibraryShelfSection,
+} from "../../library/lib/library-types";
 import type { ShelfLayout } from "../lib/shelf-view";
 import { BookCover } from "./BookCover";
 import { BookRow } from "./BookRow";
@@ -17,6 +21,7 @@ type SectionBodyProps = {
   onSelect?: (book: LibraryBook) => void;
   onRemove?: (book: LibraryBook) => void;
   onToggleStar?: (book: LibraryBook) => void;
+  onUpdateMetadata?: (book: LibraryBook, patch: BookMetadataPatch) => void;
   onToggleSelect?: (book: LibraryBook) => void;
 };
 
@@ -30,6 +35,7 @@ function SectionBody({
   onSelect,
   onRemove,
   onToggleStar,
+  onUpdateMetadata,
   onToggleSelect,
 }: SectionBodyProps) {
   const tiles = collections.map((data) => (
@@ -54,6 +60,7 @@ function SectionBody({
             onClick={() => onSelect?.(book)}
             onRemove={() => onRemove?.(book)}
             onToggleStar={() => onToggleStar?.(book)}
+            onUpdateMetadata={(patch) => onUpdateMetadata?.(book, patch)}
             onToggleSelect={() => onToggleSelect?.(book)}
           />
         ))}
@@ -73,6 +80,7 @@ function SectionBody({
           onClick={() => onSelect?.(book)}
           onRemove={() => onRemove?.(book)}
           onToggleStar={() => onToggleStar?.(book)}
+          onUpdateMetadata={(patch) => onUpdateMetadata?.(book, patch)}
           onToggleSelect={() => onToggleSelect?.(book)}
         />
       ))}
@@ -91,6 +99,7 @@ type ShelfProps = {
   onSelect?: (book: LibraryBook) => void;
   onRemove?: (book: LibraryBook) => void;
   onToggleStar?: (book: LibraryBook) => void;
+  onUpdateMetadata?: (book: LibraryBook, patch: BookMetadataPatch) => void;
   onToggleSelect?: (book: LibraryBook) => void;
   className?: string;
 };
@@ -105,6 +114,7 @@ export function Shelf({
   onSelect,
   onRemove,
   onToggleStar,
+  onUpdateMetadata,
   onToggleSelect,
   className,
 }: ShelfProps) {
@@ -128,6 +138,7 @@ export function Shelf({
             onSelect={onSelect}
             onRemove={onRemove}
             onToggleStar={onToggleStar}
+            onUpdateMetadata={onUpdateMetadata}
             onToggleSelect={onToggleSelect}
           />
         </section>

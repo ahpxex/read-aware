@@ -40,7 +40,10 @@
     "title": "本の詳細",
     "fieldTitle": "タイトル",
     "fieldAuthor": "著者",
-    "fieldFormat": "形式"
+    "fieldFormat": "形式",
+    "fieldReading": "読書時間",
+    "edit": "編集",
+    "save": "保存"
   },
   "removeBook": {
     "title": "本を削除しますか？",

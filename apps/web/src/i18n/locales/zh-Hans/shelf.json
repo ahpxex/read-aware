@@ -40,7 +40,10 @@
     "title": "书籍详情",
     "fieldTitle": "书名",
     "fieldAuthor": "作者",
-    "fieldFormat": "格式"
+    "fieldFormat": "格式",
+    "fieldReading": "阅读时间",
+    "edit": "编辑",
+    "save": "保存"
   },
   "removeBook": {
     "title": "移除书籍？",

@@ -3,7 +3,7 @@ import { IconButton, Progress } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useLocalAtom } from "@read-aware/ui/state";
 import { formatPercent, useTranslation } from "../../../i18n";
-import type { LibraryBook } from "../../library/lib/library-types";
+import type { BookMetadataPatch, LibraryBook } from "../../library/lib/library-types";
 import { BookCoverPlaceholder } from "./BookCoverPlaceholder";
 import { BookDetailsDialog, BookRemoveDialog } from "./BookDialogs";
 
@@ -14,6 +14,7 @@ type BookRowProps = {
   onClick?: () => void;
   onRemove?: () => void;
   onToggleStar?: () => void;
+  onUpdateMetadata?: (patch: BookMetadataPatch) => void;
   onToggleSelect?: () => void;
   className?: string;
 };
@@ -25,6 +26,7 @@ export function BookRow({
   onClick,
   onRemove,
   onToggleStar,
+  onUpdateMetadata,
   onToggleSelect,
   className,
 }: BookRowProps) {
@@ -121,7 +123,12 @@ export function BookRow({
         </div>
       )}
 
-      <BookDetailsDialog book={book} open={infoOpen} onClose={() => setInfoOpen(false)} />
+      <BookDetailsDialog
+        book={book}
+        open={infoOpen}
+        onClose={() => setInfoOpen(false)}
+        onUpdateMetadata={onUpdateMetadata}
+      />
       <BookRemoveDialog
         book={book}
         open={removeOpen}

@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Alert, Button } from "@read-aware/ui";
+import { Alert, Button, Dialog } from "@read-aware/ui";
 import { isTauri } from "../../../platform/environment";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
@@ -14,6 +14,7 @@ export function DataSyncPanel() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [busy, setBusy] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
 
   const handleExport = async () => {
     setBusy(true);
@@ -54,11 +55,8 @@ export function DataSyncPanel() {
     }
   };
 
-  const handleReset = () => {
-    const confirmed = window.confirm(
-      "Reset all ReadAware settings to their defaults? Your library and books are not affected.",
-    );
-    if (!confirmed) return;
+  const confirmReset = () => {
+    setResetOpen(false);
     resetAllSettings();
     window.location.reload();
   };
@@ -155,12 +153,29 @@ export function DataSyncPanel() {
           title="Reset all settings"
           description="Restore every preference to its default. Books and annotations are kept."
           control={
-            <Button variant="danger" size="sm" onClick={handleReset}>
+            <Button variant="danger" size="sm" onClick={() => setResetOpen(true)}>
               Reset settings
             </Button>
           }
         />
       </SettingsGroup>
+
+      <Dialog open={resetOpen} onClose={() => setResetOpen(false)} title="Reset all settings?">
+        <div className="space-y-4">
+          <p>
+            Restore every preference to its default. Your books and annotations are kept — only
+            settings are reset. This can’t be undone.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setResetOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="danger" size="sm" onClick={confirmReset}>
+              Reset settings
+            </Button>
+          </div>
+        </div>
+      </Dialog>
     </SettingsPage>
   );
 }

@@ -92,6 +92,7 @@ export function GeneralPanel() {
           />
         </div>
         <SettingsRow
+          borderless
           title={t("general.crashReports.title")}
           description={t("general.crashReports.description")}
           control={

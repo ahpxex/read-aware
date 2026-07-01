@@ -90,3 +90,29 @@ export async function hydrateLocalStore(): Promise<void> {
     }
   }
 }
+
+/** Snapshot every device-local `read-aware-*` value (for a full-backup export). */
+export async function dumpLocalKV(): Promise<Record<string, string>> {
+  if (isTauri()) return invoke<Record<string, string>>("load_kv_all");
+  const out: Record<string, string> = {};
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith("read-aware-")) {
+      const value = localStorage.getItem(key);
+      if (value != null) out[key] = value;
+    }
+  }
+  return out;
+}
+
+/** Merge KV entries into the device-local store, awaiting durability before reload. */
+export async function restoreLocalKV(entries: Record<string, string>): Promise<void> {
+  if (isTauri()) {
+    for (const [key, value] of Object.entries(entries)) {
+      (snapshot ??= new Map()).set(key, value);
+      await invoke("set_kv", { key, value });
+    }
+    return;
+  }
+  for (const [key, value] of Object.entries(entries)) localStorage.setItem(key, value);
+}

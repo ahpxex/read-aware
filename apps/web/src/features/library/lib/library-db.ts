@@ -456,3 +456,32 @@ export async function markLibraryBookOpened(bookId: string) {
 export async function removeLibraryBook(bookId: string) {
   await deleteBookRecords([bookId]);
 }
+
+// --- Restore (import a previously-exported bundle; ids preserved) ------------
+
+async function putBookFileBytes(bookId: string, bytes: Uint8Array): Promise<void> {
+  if (isTauri()) {
+    await invoke("put_blob", { key: bookFileKey(bookId), data: bytes });
+    return;
+  }
+  const db = await openLibraryDb();
+  const transaction = db.transaction(FILES_STORE, "readwrite");
+  transaction
+    .objectStore(FILES_STORE)
+    .put({ bookId, blob: new Blob([bytes]) } satisfies StoredBookFile);
+  await waitForTransaction(transaction);
+}
+
+/** Upsert a book record verbatim (id preserved) and, if given, its file bytes. */
+export async function restoreLibraryBook(
+  book: LibraryBook,
+  fileBytes: Uint8Array | null,
+): Promise<void> {
+  await putBookRecord(book);
+  if (fileBytes) await putBookFileBytes(book.id, fileBytes);
+}
+
+/** Upsert a collection record verbatim (id preserved). */
+export async function restoreCollection(collection: Collection): Promise<void> {
+  await putCollectionRecord(collection);
+}

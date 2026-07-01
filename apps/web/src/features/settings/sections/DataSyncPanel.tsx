@@ -5,38 +5,52 @@ import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
 import { PendingBadge } from "../components/PendingBadge";
-import { applySettings, resetAllSettings, serializeSettings } from "../lib/settings-io";
+import { resetAllSettings } from "../lib/settings-io";
+import { exportBackup, importBackup } from "../lib/backup-io";
 
 type Notice = { variant: "success" | "destructive"; message: string };
 
 export function DataSyncPanel() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const handleExport = () => {
-    const blob = new Blob([serializeSettings()], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = "readaware-settings.json";
-    anchor.click();
-    URL.revokeObjectURL(url);
-    setNotice({ variant: "success", message: "Settings exported to readaware-settings.json." });
+  const handleExport = async () => {
+    setBusy(true);
+    try {
+      const blob = new Blob([await exportBackup()], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "readaware-backup.json";
+      anchor.click();
+      URL.revokeObjectURL(url);
+      setNotice({ variant: "success", message: "Everything exported to readaware-backup.json." });
+    } catch (error) {
+      setNotice({
+        variant: "destructive",
+        message: error instanceof Error ? error.message : "Could not export your data.",
+      });
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleImportFile = async (file: File) => {
+    setBusy(true);
     try {
-      const applied = applySettings(await file.text());
+      const result = await importBackup(await file.text());
       setNotice({
         variant: "success",
-        message: `Imported ${applied} setting group${applied === 1 ? "" : "s"}. Reloading…`,
+        message: `Merged ${result.books} book${result.books === 1 ? "" : "s"}, ${result.annotations} annotation${result.annotations === 1 ? "" : "s"}, ${result.collections} collection${result.collections === 1 ? "" : "s"}, and ${result.settings} setting${result.settings === 1 ? "" : "s"}. Reloading…`,
       });
-      window.setTimeout(() => window.location.reload(), 700);
+      window.setTimeout(() => window.location.reload(), 900);
     } catch (error) {
       setNotice({
         variant: "destructive",
         message: error instanceof Error ? error.message : "Could not import this file.",
       });
+      setBusy(false);
     }
   };
 
@@ -100,19 +114,24 @@ export function DataSyncPanel() {
 
       <SettingsGroup
         title="Backup & export"
-        description="Export settings to move them to another device, or restore from a previous export."
+        description="Save everything on this device to a single file — move it to another device or keep it as a backup. Importing merges a backup back into your current data."
       >
         <SettingsRow
           borderless
-          title="Settings"
-          description="Download every preference as a portable JSON file, or import one."
+          title="Full backup"
+          description="Books, highlights, notes, collections, reading progress, and every preference, in one portable file."
           control={
             <span className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={busy}
+                onClick={() => fileInputRef.current?.click()}
+              >
                 Import
               </Button>
-              <Button size="sm" onClick={handleExport}>
-                Export
+              <Button size="sm" disabled={busy} onClick={() => void handleExport()}>
+                {busy ? "Working…" : "Export"}
               </Button>
               <input
                 ref={fileInputRef}
@@ -127,11 +146,6 @@ export function DataSyncPanel() {
               />
             </span>
           }
-        />
-        <SettingsRow
-          title="Library & annotations"
-          description="Export your books, highlights, notes, and context bundles."
-          control={<PendingBadge />}
         />
       </SettingsGroup>
 

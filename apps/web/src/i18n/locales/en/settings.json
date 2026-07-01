@@ -1,0 +1,311 @@
+{
+  "dialog": {
+    "title": "Settings",
+    "sectionsLabel": "Settings sections",
+    "close": "Close settings"
+  },
+  "sections": {
+    "general": "General",
+    "appearance": "Appearance",
+    "reading": "Reading",
+    "ai": "AI",
+    "shortcuts": "Shortcuts",
+    "dataSync": "Data & Sync",
+    "about": "About"
+  },
+  "general": {
+    "title": "General",
+    "description": "App-wide behavior — what opens on launch, language, and desktop integration.",
+    "onLaunch": "On launch",
+    "startView": "Start view",
+    "startViewOptions": {
+      "shelf": "Library shelf",
+      "resume": "Resume last book"
+    },
+    "desktopIntegration": {
+      "title": "Desktop integration",
+      "description": "Stored here and applied by the desktop app. No effect in the browser preview.",
+      "launchAtStartup": {
+        "title": "Launch at startup",
+        "description": "Open ReadAware automatically when you sign in."
+      },
+      "fileAssociations": {
+        "title": "File associations",
+        "description": "Open EPUB, MOBI, AZW3, FB2 and PDF files with ReadAware."
+      },
+      "autoUpdate": {
+        "title": "Automatic updates",
+        "description": "Download and install new versions in the background."
+      }
+    },
+    "languagePrivacy": "Language & privacy",
+    "language": "Language",
+    "crashReports": {
+      "title": "Send anonymous crash reports",
+      "description": "Share crash diagnostics to help fix stability issues. Off by default."
+    }
+  },
+  "appearance": {
+    "title": "Appearance",
+    "description": "How the app itself looks — independent of the book page color in Reading.",
+    "theme": {
+      "title": "Theme",
+      "description": "System follows your operating system's light or dark setting."
+    },
+    "themeOptions": {
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "motion": "Motion",
+    "reduceMotion": {
+      "title": "Reduce motion",
+      "description": "Turn off transitions and animation flourishes across the app."
+    }
+  },
+  "reading": {
+    "title": "Reading",
+    "description": "How books render on the page. Changes apply live to the reader.",
+    "previewLabel": "Reading preview",
+    "previewText": "She had read of such places, but had never thought to stand in one — a quiet room where the afternoon settled like dust, and every book on every shelf seemed to lean, just slightly, toward whoever was willing to listen.",
+    "typography": "Typography",
+    "fontSize": "Font Size",
+    "lineSpacing": "Line Spacing",
+    "paragraphSpacing": "Paragraph Spacing",
+    "layout": "Layout",
+    "readingMode": "Reading Mode",
+    "pageColor": {
+      "title": "Page Color",
+      "description": "The book's paper. Auto follows the app theme; the others are fixed."
+    }
+  },
+  "shortcuts": {
+    "title": "Shortcuts",
+    "description": "Click a shortcut to rebind it; press Esc while recording to cancel.",
+    "categories": {
+      "Global": "Global",
+      "Reading": "Reading",
+      "Selection": "Selection",
+      "Overlays": "Overlays"
+    },
+    "categoryDescriptions": {
+      "selection": "Active while text is selected in the reader."
+    },
+    "actions": {
+      "search": "Open search",
+      "settings": "Open settings",
+      "next-page": "Next page",
+      "prev-page": "Previous page",
+      "next-chapter": "Next chapter",
+      "prev-chapter": "Previous chapter",
+      "toggle-controls": "Toggle reader controls",
+      "selection-copy": "Copy",
+      "selection-highlight": "Highlight",
+      "selection-underline": "Underline",
+      "selection-add-note": "Add note",
+      "selection-look-up": "Look up",
+      "selection-ask-ai": "Ask AI",
+      "close": "Close dialog or overlay"
+    },
+    "recording": "Press a shortcut…",
+    "conflict": "Already used by “{{label}}”",
+    "rebind": "Rebind {{label}}",
+    "reset": "Reset {{label}}",
+    "resetAll": "Reset all to defaults"
+  },
+  "ai": {
+    "title": "AI",
+    "description": "Bring your own model key, then choose what the assistant can do and what it may see.",
+    "connection": "Connection",
+    "features": {
+      "title": "Features",
+      "description": "Reader assistance, switched on per capability as each one ships."
+    },
+    "featureList": {
+      "explainSelection": {
+        "label": "Explain selection",
+        "description": "Unpack a highlighted passage in plain language."
+      },
+      "defineTerm": {
+        "label": "Define term",
+        "description": "Inline definitions for a selected word or phrase."
+      },
+      "translate": {
+        "label": "Translate",
+        "description": "Translate a selection into your reading language."
+      },
+      "summarizeChapter": {
+        "label": "Summarize chapter",
+        "description": "Condense the current chapter into key points."
+      },
+      "askConversation": {
+        "label": "Conversational Q&A",
+        "description": "Ask follow-up questions grounded in the book and your notes."
+      }
+    },
+    "memory": "Memory",
+    "buildMemory": {
+      "title": "Build long-term memory",
+      "description": "Let ReadAware learn a durable profile from your reading and notes over time."
+    },
+    "storedMemory": {
+      "title": "Stored memory",
+      "description": "Review or erase everything ReadAware has remembered about you."
+    },
+    "clearMemory": "Clear memory",
+    "privacy": {
+      "title": "Privacy",
+      "description": "Control what leaves your device when an AI feature runs."
+    },
+    "sendHighlightedText": {
+      "title": "Send highlighted text",
+      "description": "Include the passage you selected in the request."
+    },
+    "sendSurroundingContext": {
+      "title": "Send surrounding context",
+      "description": "Include nearby paragraphs so answers stay grounded in the text."
+    },
+    "localOnly": {
+      "title": "Local-only mode",
+      "description": "Never call a remote model. AI features stay off until a local model is available."
+    }
+  },
+  "aiConfig": {
+    "configured": {
+      "title": "AI is configured",
+      "body": "Your API key is saved locally. You can use AI features in the reader."
+    },
+    "result": {
+      "success": "Success",
+      "error": "Error"
+    },
+    "provider": "AI Provider",
+    "customBaseUrl": {
+      "label": "Custom Base URL",
+      "helper": "Enter the base URL for your OpenAI-compatible API endpoint."
+    },
+    "apiKey": {
+      "label": "API Key",
+      "placeholder": "Enter your {{provider}} API key",
+      "helper": "Your API key is stored locally in your browser and never sent to our servers."
+    },
+    "show": "Show",
+    "hide": "Hide",
+    "model": "Model",
+    "modelDefault": "Default",
+    "getKey": {
+      "openai": "Get your API key from <link>OpenAI Dashboard</link>",
+      "anthropic": "Get your API key from <link>Anthropic Console</link>",
+      "openrouter": "Get your API key from <link>OpenRouter</link>"
+    },
+    "save": "Save Configuration",
+    "test": "Test Connection",
+    "testing": "Testing...",
+    "clear": "Clear",
+    "savedMessage": "Configuration saved successfully.",
+    "testSuccessMessage": "Test successful! Response: \"{{response}}\"",
+    "testEmptyMessage": "Test failed: Empty response from AI provider.",
+    "testUnknownError": "Unknown error during test.",
+    "byok": {
+      "title": "About BYOK (Bring Your Own Key)",
+      "body": "ReadAware uses your own API key to access AI services. Your key is stored locally in your browser and is never sent to our servers. You are responsible for any API usage charges incurred."
+    }
+  },
+  "font": {
+    "label": "Font",
+    "custom": "Custom",
+    "customAria": "Pick from fonts installed on this device",
+    "placeholderCurated": "Choose a curated font",
+    "placeholderCustom": "Choose an installed font"
+  },
+  "pendingBadge": {
+    "comingSoon": "Coming soon"
+  },
+  "dataSync": {
+    "title": "Data & Sync",
+    "description": "ReadAware is local-first: your data lives on this device. Sync is an encrypted relay, not a source of truth.",
+    "noticeDone": "Done",
+    "noticeError": "Error",
+    "exportSuccess": "Everything exported to {{file}}.",
+    "exportError": "Could not export your data.",
+    "importError": "Could not import this file.",
+    "merge": {
+      "books_one": "{{count}} book",
+      "books_other": "{{count}} books",
+      "annotations_one": "{{count}} annotation",
+      "annotations_other": "{{count}} annotations",
+      "collections_one": "{{count}} collection",
+      "collections_other": "{{count}} collections",
+      "settings_one": "{{count}} setting",
+      "settings_other": "{{count}} settings",
+      "summary": "Merged {{books}}, {{annotations}}, {{collections}}, and {{settings}}. Reloading…"
+    },
+    "sync": "Sync",
+    "account": {
+      "title": "Account",
+      "description": "Connect an account to sync your encrypted event log across devices."
+    },
+    "connectAccount": "Connect account",
+    "e2e": {
+      "title": "End-to-end encryption",
+      "description": "Synced data is encrypted on-device. Manage your passphrase and devices here."
+    },
+    "storage": "Storage",
+    "dataLocation": {
+      "title": "Data location",
+      "descTauri": "Stored in the ReadAware application data folder on this Mac.",
+      "descWeb": "Stored in this browser. The desktop app keeps data in a local folder you control."
+    },
+    "desktopBadge": "Desktop",
+    "reveal": "Reveal",
+    "backup": {
+      "title": "Backup & export",
+      "description": "Save everything on this device to a single file — move it to another device or keep it as a backup. Importing merges a backup back into your current data."
+    },
+    "fullBackup": {
+      "title": "Full backup",
+      "description": "Books, highlights, notes, collections, reading progress, and every preference, in one portable file."
+    },
+    "import": "Import",
+    "export": "Export",
+    "working": "Working…",
+    "dangerZone": "Danger zone",
+    "reset": {
+      "title": "Reset all settings",
+      "description": "Restore every preference to its default. Books and annotations are kept."
+    },
+    "resetButton": "Reset settings",
+    "resetDialog": {
+      "title": "Reset all settings?",
+      "body": "Restore every preference to its default. Your books and annotations are kept — only settings are reset. This can’t be undone.",
+      "cancel": "Cancel"
+    }
+  },
+  "about": {
+    "title": "About",
+    "description": "Version, build, and the engine that powers reading.",
+    "version": "Version",
+    "build": "Build",
+    "buildDesktop": "Desktop (Tauri)",
+    "buildWeb": "Web preview",
+    "updates": {
+      "title": "Updates",
+      "description": "Check for and install the latest release."
+    },
+    "checkUpdates": "Check for updates",
+    "engine": {
+      "title": "Reading engine",
+      "description": "Every format — EPUB, MOBI, AZW3, FB2, PDF — renders through one vendored engine."
+    },
+    "foliate": {
+      "description": "The open-source reading engine ReadAware is built on."
+    },
+    "vendored": "Vendored",
+    "help": "Help",
+    "feedback": {
+      "title": "Send feedback",
+      "description": "Report a bug or share what's not working."
+    },
+    "reportIssue": "Report an issue"
+  }
+}

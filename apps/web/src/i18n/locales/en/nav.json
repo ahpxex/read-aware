@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "description": "AI-native reading workspace for context-rich EPUB and PDF reading."
+  },
+  "header": {
+    "back": {
+      "allBooks": "All books",
+      "toShelf": "Back to shelf"
+    },
+    "search": "Search",
+    "import": "Import",
+    "importing": "Importing...",
+    "context": "Context",
+    "stats": "Reading stats",
+    "settings": "Settings"
+  },
+  "error": {
+    "title": "Something interrupted the reading flow.",
+    "body": "Refresh the page to continue. If the problem persists, reopen the book from your shelf."
+  },
+  "notFound": {
+    "title": "This page does not exist.",
+    "body": "Return to the main reading workspace and pick up where you left off."
+  },
+  "loading": {
+    "title": "Loading your reading workspace...",
+    "body": "Preparing your local library, reader state, and context surfaces."
+  }
+}

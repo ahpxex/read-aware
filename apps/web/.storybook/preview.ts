@@ -1,8 +1,15 @@
 import { createElement, type ReactNode } from "react";
 import type { Preview } from "@storybook/react-vite";
+import { initI18n } from "../src/i18n";
 import "../src/index.css";
 
 const preview: Preview = {
+  loaders: [
+    async () => {
+      await initI18n("en");
+      return {};
+    },
+  ],
   parameters: {
     backgrounds: { disable: true },
     controls: {

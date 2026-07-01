@@ -182,14 +182,11 @@ export function weeklyReadingBuckets(
   return buckets;
 }
 
-/** Compact human duration: `<1m`, `42m`, `3h`, `3h 20m`. */
-export function formatReadingDuration(ms: number): string {
-  if (!(ms > 0)) return "0m";
-  if (ms < 60_000) return "<1m";
-  const totalMinutes = Math.round(ms / 60_000);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  if (hours === 0) return `${minutes}m`;
-  if (minutes === 0) return `${hours}h`;
-  return `${hours}h ${minutes}m`;
-}
+/**
+ * Compact human duration: `<1m`, `42m`, `3h`, `3h 20m`.
+ *
+ * Delegates to the locale-aware formatter so unit abbreviations follow the app
+ * language. Kept as a re-export here so the many existing call sites (reader,
+ * stats, charts) localize with no change.
+ */
+export { formatDuration as formatReadingDuration } from "../../../i18n/format";

@@ -1,0 +1,51 @@
+{
+  "chat": {
+    "messageLabel": "Message",
+    "placeholder": "Ask about this book…",
+    "placeholderWithPassage": "Ask about this passage…",
+    "send": "Send",
+    "stopGenerating": "Stop generating",
+    "loadingConversation": "Loading conversation",
+    "thinking": "Thinking…",
+    "removePassage": "Remove passage",
+    "empty": {
+      "title": "Ask about this book",
+      "description": "Select a passage and choose Ask AI, or just start typing. This conversation stays with the book."
+    },
+    "error": {
+      "generic": "Something went wrong getting a reply."
+    }
+  },
+  "service": {
+    "notConfigured": "AI not configured. Please set up your API key in settings."
+  },
+  "note": {
+    "addTitle": "Add Note",
+    "editTitle": "Edit Note",
+    "close": "Close",
+    "bodyLabel": "Your note",
+    "placeholder": "What are your thoughts on this passage?",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "save": "Save",
+    "update": "Update"
+  },
+  "annotation": {
+    "delete": "Delete"
+  },
+  "context": {
+    "loading": "Loading context...",
+    "title": "Context",
+    "unknownBook": "Unknown Book",
+    "delete": "Delete",
+    "empty": {
+      "title": "No context yet",
+      "description": "Highlights and notes from your reading will appear here."
+    },
+    "contextItems_one": "{{count}} context item",
+    "contextItems_other": "{{count}} context items",
+    "books_one": "{{count}} book",
+    "books_other": "{{count}} books",
+    "summary": "{{items}} across {{books}}"
+  }
+}

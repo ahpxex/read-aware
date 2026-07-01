@@ -1,11 +1,16 @@
 import { localKV } from "../../../platform/local-store";
+import type { AppLocale } from "../../../i18n/config";
 
 const STORAGE_KEY = "read-aware-general-settings";
 
 /** What the app shows on launch. */
 export type StartView = "shelf" | "resume";
-/** Interface language. Only English ships today; the union is the extension point. */
-export type AppLanguage = "en";
+/**
+ * Interface language. `null` means "not yet chosen" — the boot sequence then
+ * auto-detects from the OS/browser (see `detectInitialLocale`). A concrete
+ * value is stored once the user picks one in Settings.
+ */
+export type AppLanguage = AppLocale | null;
 
 export type GeneralSettings = {
   startView: StartView;
@@ -19,7 +24,7 @@ export type GeneralSettings = {
 
 export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   startView: "shelf",
-  language: "en",
+  language: null,
   crashReports: false,
   launchAtStartup: false,
   fileAssociations: true,

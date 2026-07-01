@@ -1,0 +1,90 @@
+{
+  "title": "Reading stats",
+  "periodTablist": "Reading period",
+  "readingCalendar": "Reading calendar",
+  "empty": {
+    "title": "No reading yet",
+    "description": "Open a book — your reading time, streaks, and a calendar of your habit will build up here."
+  },
+  "summary": {
+    "books_one": "{{duration}} across {{count}} book",
+    "books_other": "{{duration}} across {{count}} books",
+    "streak_one": "{{count}}-day streak",
+    "streak_other": "{{count}}-day streak"
+  },
+  "period": {
+    "tab": {
+      "week": "Week",
+      "month": "Month",
+      "year": "Year",
+      "all": "All"
+    },
+    "range": {
+      "week": "Last 7 days",
+      "month": "Last 30 days",
+      "year": "Last 12 months",
+      "all": "All time"
+    }
+  },
+  "overview": {
+    "totalTime": "Total time",
+    "booksRead": "Books read",
+    "daysRead": "Days read",
+    "avgPerDay": "Avg / day",
+    "dailyReading": "Daily reading",
+    "monthlyReading": "Monthly reading",
+    "byBook": "By book",
+    "milestones": "Milestones",
+    "noBooksInPeriod": "No books read in this period."
+  },
+  "breakdown": {
+    "time": "Time",
+    "progress": "Progress",
+    "days": "Days",
+    "notes": "Notes"
+  },
+  "achievements": {
+    "totalReading": "Total reading",
+    "longestStreak": "Longest streak",
+    "bestDay": "Best day",
+    "daysRead": "Days read",
+    "booksRead": "Books read",
+    "mostRead": "Most read",
+    "next": "next {{duration}}",
+    "allPassed": "all milestones passed",
+    "current_one": "current {{count}}d",
+    "current_other": "current {{count}}d"
+  },
+  "rhythm": {
+    "byWeekday": "By weekday",
+    "byTimeOfDay": "By time of day",
+    "peak": "peak {{hour}}",
+    "buildsUp": "Builds up as you read."
+  },
+  "heatmap": {
+    "less": "Less",
+    "more": "More"
+  },
+  "weekly": {
+    "last7Days": "Last 7 days"
+  },
+  "delta": {
+    "vsPrevious": "vs. the previous period"
+  },
+  "book": {
+    "totalTime": "Total time",
+    "thisWeek": "This week",
+    "dayStreak": "Day streak",
+    "daysRead": "Days read",
+    "notes": "Notes",
+    "highlights": "Highlights",
+    "notStarted": "Not started",
+    "best_one": "best {{count}}d",
+    "best_other": "best {{count}}d",
+    "summary": "{{percent}} read · Started {{start}} · Last read {{last}}"
+  },
+  "days": {
+    "compact_one": "{{count}}d",
+    "compact_other": "{{count}}d"
+  }
+}

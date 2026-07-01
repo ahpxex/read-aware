@@ -1,0 +1,115 @@
+{
+  "shelf": "Shelf",
+  "backToShelf": "Back to shelf",
+  "contents": "Contents",
+  "tableOfContents": "Table of contents",
+  "chat": "Chat",
+  "aiChat": "AI chat",
+  "resizeContents": "Resize contents panel",
+  "resizeChat": "Resize chat panel",
+  "noToc": "This file does not expose a navigable table of contents.",
+  "progress": "{{page}} / {{total}} · {{percent}}",
+
+  "notes": "Notes",
+  "emptyNotes": "No highlights or notes yet. Select text in the reader to mark it.",
+
+  "previousPage": "Previous page",
+  "nextPage": "Next page",
+  "go": "Go",
+
+  "readerLabel": "Book reader",
+  "opening": "Opening {{name}}",
+  "book": "book",
+  "loadError": "Unable to load this file.",
+
+  "tryAgain": "Try again",
+  "backToLibrary": "Back to library",
+
+  "readingAppearance": "Reading appearance",
+  "applyTo": "Apply to",
+  "scopeHintBook": "Changes affect this book only.",
+  "scopeHintGlobal": "Changes affect every book that follows your global settings.",
+  "pageColor": "Page Color",
+  "fontSize": "Font Size",
+  "lineSpacing": "Line Spacing",
+  "paragraphSpacing": "Paragraph Spacing",
+  "readingMode": "Reading Mode",
+
+  "scope": {
+    "global": "All books",
+    "book": "This book"
+  },
+
+  "menu": {
+    "copied": "Copied",
+    "copySelection": "Copy selection",
+    "copy": "Copy",
+    "highlight": "Highlight",
+    "underline": "Underline",
+    "addNote": "Add a note",
+    "lookUp": "Look up",
+    "askAi": "Ask AI about this",
+    "remove": "Remove"
+  },
+
+  "recolor": "Recolor {{color}}",
+  "colors": {
+    "yellow": "yellow",
+    "green": "green",
+    "blue": "blue",
+    "pink": "pink"
+  },
+
+  "footnote": {
+    "footnote": "Footnote",
+    "endnote": "Endnote",
+    "reference": "Reference",
+    "definition": "Definition",
+    "note": "Note"
+  },
+  "dismissNote": "Dismiss note",
+  "closeNote": "Close note",
+
+  "dictionary": {
+    "title": "Dictionary",
+    "pos": {
+      "noun": "noun",
+      "verb": "verb"
+    },
+    "senseNoun": "A placeholder sense for “{{word}}.” The dictionary is a preview.",
+    "senseVerb": "To look up “{{word}}” — real definitions will appear here.",
+    "footer": "A placeholder entry — the dictionary is a preview; real definitions aren’t wired up yet."
+  },
+
+  "fontSizeOption": {
+    "xx-small": "XXS",
+    "x-small": "XS",
+    "small": "Small",
+    "medium": "Medium",
+    "large": "Large",
+    "x-large": "XL",
+    "xx-large": "XXL",
+    "xxx-large": "XXXL"
+  },
+  "lineSpacingOption": {
+    "compact": "Compact",
+    "comfortable": "Comfortable",
+    "relaxed": "Relaxed"
+  },
+  "paragraphSpacingOption": {
+    "tight": "Tight",
+    "normal": "Normal",
+    "loose": "Loose"
+  },
+  "readingModeOption": {
+    "scroll": "Scroll",
+    "paginated-single": "Single Page",
+    "paginated-double": "Two Pages"
+  },
+  "pageColorOption": {
+    "auto": "Auto",
+    "light": "Light",
+    "warm": "Warm",
+    "dark": "Dark"
+  }
+}

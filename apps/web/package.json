@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "i18n:extract": "i18next -c i18next-parser.config.js"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
@@ -18,9 +19,12 @@
     "@tanstack/react-router": "^1.132.23",
     "@tauri-apps/api": "^2.9.0",
     "@tauri-apps/plugin-dialog": "^2.7.1",
+    "i18next": "^26.3.4",
+    "i18next-resources-to-backend": "^1.2.1",
     "jotai": "^2.18.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-i18next": "^17.0.8",
     "recharts": "^3.9.0",
     "streamdown": "^2.5.0"
   },
@@ -39,6 +43,7 @@
     "@vitejs/plugin-react": "^4.6.0",
     "@vitest/browser-playwright": "^4.0.18",
     "@vitest/coverage-v8": "^4.0.18",
+    "i18next-parser": "^9.4.0",
     "playwright": "^1.58.2",
     "react-grab": "^0.1.27",
     "storybook": "^10.2.16",

@@ -1,0 +1,118 @@
+{
+  "actions": {
+    "import": "Import",
+    "create": "Create",
+    "cancel": "Cancel",
+    "remove": "Remove",
+    "delete": "Delete",
+    "close": "Close",
+    "done": "Done"
+  },
+  "books_one": "{{count}} book",
+  "books_other": "{{count}} books",
+  "workspace": {
+    "errorTitle": "Library error",
+    "importTitle": "Import",
+    "loading": "Loading your library...",
+    "emptyTitle": "Import your first book",
+    "emptyCollection": "No books in this collection.",
+    "nothingToShow": "Nothing to show."
+  },
+  "importNotice": {
+    "duplicate_one": "“{{title}}” is already in your library.",
+    "duplicate_other": "Skipped {{count}} books already in your library.",
+    "combined": "{{skipped}} Imported {{count}} new."
+  },
+  "importDialog": {
+    "title": "Import books",
+    "filterName": "Books"
+  },
+  "book": {
+    "cover": "{{title}} cover",
+    "star": "Star {{title}}",
+    "unstar": "Unstar {{title}}",
+    "info": "Info about {{title}}",
+    "remove": "Remove {{title}}"
+  },
+  "status": {
+    "finished": "Finished",
+    "notStarted": "Not started"
+  },
+  "details": {
+    "title": "Book details",
+    "fieldTitle": "Title",
+    "fieldAuthor": "Author",
+    "fieldFormat": "Format"
+  },
+  "removeBook": {
+    "title": "Remove book?",
+    "body": "Remove <strong>{{title}}</strong> from your library and delete its stored file from this device?"
+  },
+  "removeBooks": {
+    "title_one": "Remove {{count}} book?",
+    "title_other": "Remove {{count}} books?",
+    "body_one": "Remove this book from your library and delete its stored file from this device? This can’t be undone.",
+    "body_other": "Remove these {{count}} books from your library and delete their stored files from this device? This can’t be undone."
+  },
+  "collectionDialog": {
+    "title_one": "Add {{count}} book to…",
+    "title_other": "Add {{count}} books to…",
+    "newLabel": "New collection",
+    "newPlaceholder": "e.g. To read",
+    "removeFromCollection": "Remove from collection"
+  },
+  "collection": {
+    "nameLabel": "Collection name",
+    "rename": "Rename",
+    "renameAction": "Rename collection",
+    "deleteTooltip": "Delete collection",
+    "deleteAction": "Delete collection",
+    "deleteTitle": "Delete collection?",
+    "deleteBody": "Delete <strong>{{name}}</strong>? The books stay in your library — they’re just ungrouped."
+  },
+  "manage": {
+    "trigger": "Shelf management",
+    "layout": "Layout",
+    "groupBy": "Group by",
+    "sortBy": "Sort by",
+    "management": "Management",
+    "selectBooks": "Select books"
+  },
+  "layout": {
+    "grid": "Grid",
+    "list": "List"
+  },
+  "group": {
+    "none": "None",
+    "status": "Reading status",
+    "author": "Author",
+    "format": "Format"
+  },
+  "sort": {
+    "recent": "Recently opened",
+    "added": "Recently added",
+    "title": "Title",
+    "author": "Author",
+    "progress": "Progress"
+  },
+  "groupSection": {
+    "reading": "Currently Reading",
+    "unread": "Up Next",
+    "finished": "Finished",
+    "unknownAuthor": "Unknown author"
+  },
+  "toolbar": {
+    "selected_one": "{{count}} selected",
+    "selected_other": "{{count}} selected",
+    "clear": "Clear",
+    "selectAll": "Select all",
+    "addToCollection": "Add to collection",
+    "addSelected": "Add selected to collection",
+    "removeTooltip": "Remove",
+    "removeSelected": "Remove selected"
+  },
+  "errors": {
+    "generic": "Something went wrong while updating your library.",
+    "unsupportedFormat": "Unsupported file type: {{name}}. Supported formats: EPUB, MOBI, AZW3, FB2, PDF."
+  }
+}

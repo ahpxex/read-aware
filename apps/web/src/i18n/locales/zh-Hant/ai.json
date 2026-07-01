@@ -1,0 +1,49 @@
+{
+  "chat": {
+    "messageLabel": "訊息",
+    "placeholder": "詢問關於這本書…",
+    "placeholderWithPassage": "詢問關於這段文字…",
+    "send": "傳送",
+    "stopGenerating": "停止生成",
+    "loadingConversation": "正在載入對話",
+    "thinking": "思考中…",
+    "removePassage": "移除段落",
+    "empty": {
+      "title": "詢問關於這本書",
+      "description": "選取一段文字並選擇「詢問 AI」，或直接開始輸入。這段對話會與這本書一同保存。"
+    },
+    "error": {
+      "generic": "取得回覆時發生問題。"
+    }
+  },
+  "service": {
+    "notConfigured": "尚未設定 AI。請在設定中配置你的 API 金鑰。"
+  },
+  "note": {
+    "addTitle": "新增筆記",
+    "editTitle": "編輯筆記",
+    "close": "關閉",
+    "bodyLabel": "你的筆記",
+    "placeholder": "你對這段文字有什麼想法？",
+    "delete": "刪除",
+    "cancel": "取消",
+    "save": "儲存",
+    "update": "更新"
+  },
+  "annotation": {
+    "delete": "刪除"
+  },
+  "context": {
+    "loading": "正在載入上下文...",
+    "title": "上下文",
+    "unknownBook": "不明書籍",
+    "delete": "刪除",
+    "empty": {
+      "title": "尚無上下文",
+      "description": "你閱讀時的螢光標示與筆記將顯示於此。"
+    },
+    "contextItems_other": "{{count}} 項上下文",
+    "books_other": "{{count}} 本書",
+    "summary": "{{items}}，共 {{books}}"
+  }
+}

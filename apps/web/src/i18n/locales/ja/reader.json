@@ -1,0 +1,115 @@
+{
+  "shelf": "本棚",
+  "backToShelf": "本棚に戻る",
+  "contents": "目次",
+  "tableOfContents": "目次",
+  "chat": "チャット",
+  "aiChat": "AIチャット",
+  "resizeContents": "目次パネルのサイズを変更",
+  "resizeChat": "チャットパネルのサイズを変更",
+  "noToc": "このファイルには操作可能な目次がありません。",
+  "progress": "{{page}} / {{total}} · {{percent}}",
+
+  "notes": "メモ",
+  "emptyNotes": "ハイライトやメモはまだありません。リーダーでテキストを選択してマークしましょう。",
+
+  "previousPage": "前のページ",
+  "nextPage": "次のページ",
+  "go": "移動",
+
+  "readerLabel": "書籍リーダー",
+  "opening": "{{name}}を開いています",
+  "book": "本",
+  "loadError": "このファイルを読み込めませんでした。",
+
+  "tryAgain": "再試行",
+  "backToLibrary": "ライブラリに戻る",
+
+  "readingAppearance": "読書の外観",
+  "applyTo": "適用先",
+  "scopeHintBook": "この本のみに変更が適用されます。",
+  "scopeHintGlobal": "グローバル設定に従うすべての本に変更が適用されます。",
+  "pageColor": "ページの色",
+  "fontSize": "文字サイズ",
+  "lineSpacing": "行間",
+  "paragraphSpacing": "段落間隔",
+  "readingMode": "読書モード",
+
+  "scope": {
+    "global": "すべての本",
+    "book": "この本"
+  },
+
+  "menu": {
+    "copied": "コピーしました",
+    "copySelection": "選択範囲をコピー",
+    "copy": "コピー",
+    "highlight": "ハイライト",
+    "underline": "下線",
+    "addNote": "メモを追加",
+    "lookUp": "調べる",
+    "askAi": "これについてAIに質問",
+    "remove": "削除"
+  },
+
+  "recolor": "{{color}}に色を変更",
+  "colors": {
+    "yellow": "黄色",
+    "green": "緑",
+    "blue": "青",
+    "pink": "ピンク"
+  },
+
+  "footnote": {
+    "footnote": "脚注",
+    "endnote": "文末脚注",
+    "reference": "参照",
+    "definition": "定義",
+    "note": "注釈"
+  },
+  "dismissNote": "メモを閉じる",
+  "closeNote": "メモを閉じる",
+
+  "dictionary": {
+    "title": "辞書",
+    "pos": {
+      "noun": "名詞",
+      "verb": "動詞"
+    },
+    "senseNoun": "「{{word}}」のプレースホルダーの語義です。辞書はプレビューです。",
+    "senseVerb": "「{{word}}」を調べる — 実際の定義はここに表示されます。",
+    "footer": "プレースホルダーの項目です — 辞書はプレビューで、実際の定義はまだ接続されていません。"
+  },
+
+  "fontSizeOption": {
+    "xx-small": "XXS",
+    "x-small": "XS",
+    "small": "小",
+    "medium": "中",
+    "large": "大",
+    "x-large": "XL",
+    "xx-large": "XXL",
+    "xxx-large": "XXXL"
+  },
+  "lineSpacingOption": {
+    "compact": "狭い",
+    "comfortable": "標準",
+    "relaxed": "広い"
+  },
+  "paragraphSpacingOption": {
+    "tight": "狭い",
+    "normal": "標準",
+    "loose": "広い"
+  },
+  "readingModeOption": {
+    "scroll": "スクロール",
+    "paginated-single": "単ページ",
+    "paginated-double": "見開き"
+  },
+  "pageColorOption": {
+    "auto": "自動",
+    "light": "ライト",
+    "warm": "ウォーム",
+    "dark": "ダーク"
+  }
+}

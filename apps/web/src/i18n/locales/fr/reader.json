@@ -1,0 +1,115 @@
+{
+  "shelf": "Étagère",
+  "backToShelf": "Retour à l’étagère",
+  "contents": "Sommaire",
+  "tableOfContents": "Table des matières",
+  "chat": "Discussion",
+  "aiChat": "Discussion IA",
+  "resizeContents": "Redimensionner le panneau du sommaire",
+  "resizeChat": "Redimensionner le panneau de discussion",
+  "noToc": "Ce fichier ne propose pas de table des matières navigable.",
+  "progress": "{{page}} / {{total}} · {{percent}}",
+
+  "notes": "Notes",
+  "emptyNotes": "Aucun surlignage ni note pour l’instant. Sélectionnez du texte dans le lecteur pour le marquer.",
+
+  "previousPage": "Page précédente",
+  "nextPage": "Page suivante",
+  "go": "Aller",
+
+  "readerLabel": "Lecteur de livres",
+  "opening": "Ouverture de {{name}}",
+  "book": "livre",
+  "loadError": "Impossible de charger ce fichier.",
+
+  "tryAgain": "Réessayer",
+  "backToLibrary": "Retour à la bibliothèque",
+
+  "readingAppearance": "Apparence de lecture",
+  "applyTo": "Appliquer à",
+  "scopeHintBook": "Les modifications n’affectent que ce livre.",
+  "scopeHintGlobal": "Les modifications affectent tous les livres qui suivent vos paramètres globaux.",
+  "pageColor": "Couleur de la page",
+  "fontSize": "Taille de police",
+  "lineSpacing": "Interligne",
+  "paragraphSpacing": "Espacement des paragraphes",
+  "readingMode": "Mode de lecture",
+
+  "scope": {
+    "global": "Tous les livres",
+    "book": "Ce livre"
+  },
+
+  "menu": {
+    "copied": "Copié",
+    "copySelection": "Copier la sélection",
+    "copy": "Copier",
+    "highlight": "Surligner",
+    "underline": "Souligner",
+    "addNote": "Ajouter une note",
+    "lookUp": "Rechercher",
+    "askAi": "Interroger l’IA à ce sujet",
+    "remove": "Supprimer"
+  },
+
+  "recolor": "Recolorer en {{color}}",
+  "colors": {
+    "yellow": "jaune",
+    "green": "vert",
+    "blue": "bleu",
+    "pink": "rose"
+  },
+
+  "footnote": {
+    "footnote": "Note de bas de page",
+    "endnote": "Note de fin",
+    "reference": "Référence",
+    "definition": "Définition",
+    "note": "Note"
+  },
+  "dismissNote": "Ignorer la note",
+  "closeNote": "Fermer la note",
+
+  "dictionary": {
+    "title": "Dictionnaire",
+    "pos": {
+      "noun": "nom",
+      "verb": "verbe"
+    },
+    "senseNoun": "Un sens fictif pour « {{word}} ». Le dictionnaire est un aperçu.",
+    "senseVerb": "Rechercher « {{word}} » — les vraies définitions apparaîtront ici.",
+    "footer": "Une entrée fictive — le dictionnaire est un aperçu ; les vraies définitions ne sont pas encore connectées."
+  },
+
+  "fontSizeOption": {
+    "xx-small": "XXS",
+    "x-small": "XS",
+    "small": "Petite",
+    "medium": "Moyenne",
+    "large": "Grande",
+    "x-large": "XL",
+    "xx-large": "XXL",
+    "xxx-large": "XXXL"
+  },
+  "lineSpacingOption": {
+    "compact": "Compact",
+    "comfortable": "Confortable",
+    "relaxed": "Détendu"
+  },
+  "paragraphSpacingOption": {
+    "tight": "Serré",
+    "normal": "Normal",
+    "loose": "Large"
+  },
+  "readingModeOption": {
+    "scroll": "Défilement",
+    "paginated-single": "Page simple",
+    "paginated-double": "Deux pages"
+  },
+  "pageColorOption": {
+    "auto": "Auto",
+    "light": "Clair",
+    "warm": "Chaud",
+    "dark": "Sombre"
+  }
+}

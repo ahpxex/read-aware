@@ -1,0 +1,49 @@
+{
+  "chat": {
+    "messageLabel": "消息",
+    "placeholder": "询问关于本书的问题…",
+    "placeholderWithPassage": "询问关于这段文字的问题…",
+    "send": "发送",
+    "stopGenerating": "停止生成",
+    "loadingConversation": "正在加载对话",
+    "thinking": "思考中…",
+    "removePassage": "移除段落",
+    "empty": {
+      "title": "询问关于本书的问题",
+      "description": "选中一段文字并选择“询问 AI”，或直接开始输入。此对话会与本书一同保存。"
+    },
+    "error": {
+      "generic": "获取回复时出错。"
+    }
+  },
+  "service": {
+    "notConfigured": "AI 尚未配置。请在设置中设置你的 API 密钥。"
+  },
+  "note": {
+    "addTitle": "添加笔记",
+    "editTitle": "编辑笔记",
+    "close": "关闭",
+    "bodyLabel": "你的笔记",
+    "placeholder": "你对这段文字有什么想法？",
+    "delete": "删除",
+    "cancel": "取消",
+    "save": "保存",
+    "update": "更新"
+  },
+  "annotation": {
+    "delete": "删除"
+  },
+  "context": {
+    "loading": "正在加载上下文…",
+    "title": "上下文",
+    "unknownBook": "未知书籍",
+    "delete": "删除",
+    "empty": {
+      "title": "还没有上下文",
+      "description": "你阅读时的高亮和笔记会显示在这里。"
+    },
+    "contextItems_other": "{{count}} 个上下文条目",
+    "books_other": "{{count}} 本书",
+    "summary": "{{items}}，来自 {{books}}"
+  }
+}

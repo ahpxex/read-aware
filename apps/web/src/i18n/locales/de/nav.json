@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "description": "KI-nativer Lese-Arbeitsbereich für kontextreiches Lesen von EPUB und PDF."
+  },
+  "header": {
+    "back": {
+      "allBooks": "Alle Bücher",
+      "toShelf": "Zurück zum Regal"
+    },
+    "search": "Suchen",
+    "import": "Importieren",
+    "importing": "Wird importiert...",
+    "context": "Kontext",
+    "stats": "Lesestatistik",
+    "settings": "Einstellungen"
+  },
+  "error": {
+    "title": "Etwas hat den Lesefluss unterbrochen.",
+    "body": "Lade die Seite neu, um fortzufahren. Falls das Problem weiterhin besteht, öffne das Buch erneut aus deinem Regal."
+  },
+  "notFound": {
+    "title": "Diese Seite existiert nicht.",
+    "body": "Kehre zum Haupt-Lese-Arbeitsbereich zurück und mach dort weiter, wo du aufgehört hast."
+  },
+  "loading": {
+    "title": "Dein Lese-Arbeitsbereich wird geladen...",
+    "body": "Deine lokale Bibliothek, der Reader-Status und die Kontextflächen werden vorbereitet."
+  }
+}

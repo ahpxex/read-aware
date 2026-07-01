@@ -1,0 +1,307 @@
+{
+  "dialog": {
+    "title": "设置",
+    "sectionsLabel": "设置分区",
+    "close": "关闭设置"
+  },
+  "sections": {
+    "general": "通用",
+    "appearance": "外观",
+    "reading": "阅读",
+    "ai": "AI",
+    "shortcuts": "快捷键",
+    "dataSync": "数据与同步",
+    "about": "关于"
+  },
+  "general": {
+    "title": "通用",
+    "description": "全局行为——启动时打开的内容、语言以及桌面集成。",
+    "onLaunch": "启动时",
+    "startView": "起始视图",
+    "startViewOptions": {
+      "shelf": "书架",
+      "resume": "继续上次阅读"
+    },
+    "desktopIntegration": {
+      "title": "桌面集成",
+      "description": "保存在此处，由桌面应用生效。在浏览器预览中无效。",
+      "launchAtStartup": {
+        "title": "开机启动",
+        "description": "登录时自动打开 ReadAware。"
+      },
+      "fileAssociations": {
+        "title": "文件关联",
+        "description": "使用 ReadAware 打开 EPUB、MOBI、AZW3、FB2 和 PDF 文件。"
+      },
+      "autoUpdate": {
+        "title": "自动更新",
+        "description": "在后台下载并安装新版本。"
+      }
+    },
+    "languagePrivacy": "语言与隐私",
+    "language": "语言",
+    "crashReports": {
+      "title": "发送匿名崩溃报告",
+      "description": "分享崩溃诊断信息，帮助修复稳定性问题。默认关闭。"
+    }
+  },
+  "appearance": {
+    "title": "外观",
+    "description": "应用本身的外观——与阅读界面中的书页颜色无关。",
+    "theme": {
+      "title": "主题",
+      "description": "“跟随系统”会采用操作系统的浅色或深色设置。"
+    },
+    "themeOptions": {
+      "system": "跟随系统",
+      "light": "浅色",
+      "dark": "深色"
+    },
+    "motion": "动效",
+    "reduceMotion": {
+      "title": "减弱动效",
+      "description": "关闭应用中的过渡与动画效果。"
+    }
+  },
+  "reading": {
+    "title": "阅读",
+    "description": "书籍在页面上的呈现方式。更改会实时应用到阅读器。",
+    "previewLabel": "阅读预览",
+    "previewText": "她曾在书中读到过这样的地方，却从未想过自己会置身其中——一间安静的房间，午后的时光如尘埃般静静沉落，每一层书架上的每一本书，似乎都微微倾向着愿意倾听的人。",
+    "typography": "排版",
+    "fontSize": "字号",
+    "lineSpacing": "行距",
+    "paragraphSpacing": "段间距",
+    "layout": "布局",
+    "readingMode": "阅读模式",
+    "pageColor": {
+      "title": "页面颜色",
+      "description": "书页的纸张颜色。“自动”跟随应用主题，其余为固定颜色。"
+    }
+  },
+  "shortcuts": {
+    "title": "快捷键",
+    "description": "点击某个快捷键即可重新绑定；录制时按 Esc 取消。",
+    "categories": {
+      "Global": "全局",
+      "Reading": "阅读",
+      "Selection": "选中文本",
+      "Overlays": "浮层"
+    },
+    "categoryDescriptions": {
+      "selection": "在阅读器中选中文本时可用。"
+    },
+    "actions": {
+      "search": "打开搜索",
+      "settings": "打开设置",
+      "next-page": "下一页",
+      "prev-page": "上一页",
+      "next-chapter": "下一章",
+      "prev-chapter": "上一章",
+      "toggle-controls": "切换阅读器控件",
+      "selection-copy": "复制",
+      "selection-highlight": "高亮",
+      "selection-underline": "下划线",
+      "selection-add-note": "添加笔记",
+      "selection-look-up": "查词",
+      "selection-ask-ai": "询问 AI",
+      "close": "关闭对话框或浮层"
+    },
+    "recording": "请按下快捷键…",
+    "conflict": "已被“{{label}}”占用",
+    "rebind": "重新绑定 {{label}}",
+    "reset": "重置 {{label}}",
+    "resetAll": "全部重置为默认"
+  },
+  "ai": {
+    "title": "AI",
+    "description": "自带模型密钥，然后选择助手可以做什么、能看到什么。",
+    "connection": "连接",
+    "features": {
+      "title": "功能",
+      "description": "阅读辅助功能，随各项能力上线逐一开启。"
+    },
+    "featureList": {
+      "explainSelection": {
+        "label": "解释选中内容",
+        "description": "用通俗的语言解读高亮的段落。"
+      },
+      "defineTerm": {
+        "label": "释义术语",
+        "description": "为选中的词或短语提供内嵌释义。"
+      },
+      "translate": {
+        "label": "翻译",
+        "description": "将选中内容翻译为你的阅读语言。"
+      },
+      "summarizeChapter": {
+        "label": "总结章节",
+        "description": "将当前章节浓缩为要点。"
+      },
+      "askConversation": {
+        "label": "对话式问答",
+        "description": "结合书籍内容和你的笔记提出追问。"
+      }
+    },
+    "memory": "记忆",
+    "buildMemory": {
+      "title": "构建长期记忆",
+      "description": "让 ReadAware 随时间从你的阅读和笔记中学习，形成持久的个人画像。"
+    },
+    "storedMemory": {
+      "title": "已存储的记忆",
+      "description": "查看或清除 ReadAware 记住的所有关于你的信息。"
+    },
+    "clearMemory": "清除记忆",
+    "privacy": {
+      "title": "隐私",
+      "description": "控制 AI 功能运行时哪些内容会离开你的设备。"
+    },
+    "sendHighlightedText": {
+      "title": "发送高亮文本",
+      "description": "在请求中包含你选中的段落。"
+    },
+    "sendSurroundingContext": {
+      "title": "发送周围上下文",
+      "description": "包含附近的段落，让回答更贴合原文。"
+    },
+    "localOnly": {
+      "title": "仅本地模式",
+      "description": "绝不调用远程模型。在本地模型可用之前，AI 功能保持关闭。"
+    }
+  },
+  "aiConfig": {
+    "configured": {
+      "title": "AI 已配置",
+      "body": "你的 API 密钥已保存在本地。你可以在阅读器中使用 AI 功能。"
+    },
+    "result": {
+      "success": "成功",
+      "error": "错误"
+    },
+    "provider": "AI 提供方",
+    "customBaseUrl": {
+      "label": "自定义 Base URL",
+      "helper": "输入你的 OpenAI 兼容 API 端点的 Base URL。"
+    },
+    "apiKey": {
+      "label": "API 密钥",
+      "placeholder": "输入你的 {{provider}} API 密钥",
+      "helper": "你的 API 密钥仅存储在本地浏览器中，绝不会发送到我们的服务器。"
+    },
+    "show": "显示",
+    "hide": "隐藏",
+    "model": "模型",
+    "modelDefault": "默认",
+    "getKey": {
+      "openai": "从 <link>OpenAI 控制台</link> 获取你的 API 密钥",
+      "anthropic": "从 <link>Anthropic 控制台</link> 获取你的 API 密钥",
+      "openrouter": "从 <link>OpenRouter</link> 获取你的 API 密钥"
+    },
+    "save": "保存配置",
+    "test": "测试连接",
+    "testing": "测试中…",
+    "clear": "清除",
+    "savedMessage": "配置已成功保存。",
+    "testSuccessMessage": "测试成功！响应：“{{response}}”",
+    "testEmptyMessage": "测试失败：AI 提供方返回了空响应。",
+    "testUnknownError": "测试过程中发生未知错误。",
+    "byok": {
+      "title": "关于 BYOK（自带密钥）",
+      "body": "ReadAware 使用你自己的 API 密钥访问 AI 服务。你的密钥仅存储在本地浏览器中，绝不会发送到我们的服务器。你需自行承担产生的任何 API 使用费用。"
+    }
+  },
+  "font": {
+    "label": "字体",
+    "custom": "自定义",
+    "customAria": "从本设备已安装的字体中选择",
+    "placeholderCurated": "选择一款精选字体",
+    "placeholderCustom": "选择一款已安装的字体"
+  },
+  "pendingBadge": {
+    "comingSoon": "即将推出"
+  },
+  "dataSync": {
+    "title": "数据与同步",
+    "description": "ReadAware 采用本地优先：你的数据保存在本设备上。同步只是加密中继，而非事实来源。",
+    "noticeDone": "完成",
+    "noticeError": "错误",
+    "exportSuccess": "已全部导出至 {{file}}。",
+    "exportError": "无法导出你的数据。",
+    "importError": "无法导入此文件。",
+    "merge": {
+      "books_other": "{{count}} 本书",
+      "annotations_other": "{{count}} 条批注",
+      "collections_other": "{{count}} 个收藏集",
+      "settings_other": "{{count}} 项设置",
+      "summary": "已合并 {{books}}、{{annotations}}、{{collections}} 和 {{settings}}。正在重新加载…"
+    },
+    "sync": "同步",
+    "account": {
+      "title": "账户",
+      "description": "连接账户，以在多台设备间同步你的加密事件日志。"
+    },
+    "connectAccount": "连接账户",
+    "e2e": {
+      "title": "端到端加密",
+      "description": "同步的数据在设备本地加密。在此管理你的口令和设备。"
+    },
+    "storage": "存储",
+    "dataLocation": {
+      "title": "数据位置",
+      "descTauri": "保存在这台 Mac 的 ReadAware 应用数据文件夹中。",
+      "descWeb": "保存在此浏览器中。桌面应用会将数据保存在你可控的本地文件夹里。"
+    },
+    "desktopBadge": "桌面版",
+    "reveal": "在文件夹中显示",
+    "backup": {
+      "title": "备份与导出",
+      "description": "将本设备上的所有内容保存为单个文件——迁移到其他设备或用作备份。导入会将备份合并回你当前的数据。"
+    },
+    "fullBackup": {
+      "title": "完整备份",
+      "description": "书籍、高亮、笔记、收藏集、阅读进度以及每一项偏好设置，全部整合到一个便携文件中。"
+    },
+    "import": "导入",
+    "export": "导出",
+    "working": "处理中…",
+    "dangerZone": "危险区",
+    "reset": {
+      "title": "重置所有设置",
+      "description": "将每一项偏好恢复为默认值。书籍和批注会保留。"
+    },
+    "resetButton": "重置设置",
+    "resetDialog": {
+      "title": "重置所有设置？",
+      "body": "将每一项偏好恢复为默认值。你的书籍和批注会保留——仅重置设置。此操作无法撤销。",
+      "cancel": "取消"
+    }
+  },
+  "about": {
+    "title": "关于",
+    "description": "版本、构建，以及驱动阅读体验的引擎。",
+    "version": "版本",
+    "build": "构建",
+    "buildDesktop": "桌面版（Tauri）",
+    "buildWeb": "Web 预览",
+    "updates": {
+      "title": "更新",
+      "description": "检查并安装最新版本。"
+    },
+    "checkUpdates": "检查更新",
+    "engine": {
+      "title": "阅读引擎",
+      "description": "每一种格式——EPUB、MOBI、AZW3、FB2、PDF——都通过同一个内置引擎渲染。"
+    },
+    "foliate": {
+      "description": "ReadAware 所基于的开源阅读引擎。"
+    },
+    "vendored": "已内置",
+    "help": "帮助",
+    "feedback": {
+      "title": "发送反馈",
+      "description": "报告问题或告诉我们哪里不好用。"
+    },
+    "reportIssue": "报告问题"
+  }
+}

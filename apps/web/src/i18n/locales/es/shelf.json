@@ -1,0 +1,124 @@
+{
+  "actions": {
+    "import": "Importar",
+    "create": "Crear",
+    "cancel": "Cancelar",
+    "remove": "Quitar",
+    "delete": "Eliminar",
+    "close": "Cerrar",
+    "done": "Listo"
+  },
+  "books_one": "{{count}} libro",
+  "books_many": "{{count}} libros",
+  "books_other": "{{count}} libros",
+  "workspace": {
+    "errorTitle": "Error de la biblioteca",
+    "importTitle": "Importar",
+    "loading": "Cargando tu biblioteca...",
+    "emptyTitle": "Importa tu primer libro",
+    "emptyCollection": "No hay libros en esta colección.",
+    "nothingToShow": "No hay nada que mostrar."
+  },
+  "importNotice": {
+    "duplicate_one": "«{{title}}» ya está en tu biblioteca.",
+    "duplicate_many": "Se omitieron {{count}} libros que ya están en tu biblioteca.",
+    "duplicate_other": "Se omitieron {{count}} libros que ya están en tu biblioteca.",
+    "combined": "{{skipped}} Se importaron {{count}} nuevos."
+  },
+  "importDialog": {
+    "title": "Importar libros",
+    "filterName": "Libros"
+  },
+  "book": {
+    "cover": "Portada de {{title}}",
+    "star": "Destacar {{title}}",
+    "unstar": "Dejar de destacar {{title}}",
+    "info": "Información sobre {{title}}",
+    "remove": "Quitar {{title}}"
+  },
+  "status": {
+    "finished": "Terminado",
+    "notStarted": "Sin empezar"
+  },
+  "details": {
+    "title": "Detalles del libro",
+    "fieldTitle": "Título",
+    "fieldAuthor": "Autor",
+    "fieldFormat": "Formato"
+  },
+  "removeBook": {
+    "title": "¿Quitar el libro?",
+    "body": "¿Quitar <strong>{{title}}</strong> de tu biblioteca y eliminar su archivo guardado de este dispositivo?"
+  },
+  "removeBooks": {
+    "title_one": "¿Quitar {{count}} libro?",
+    "title_many": "¿Quitar {{count}} libros?",
+    "title_other": "¿Quitar {{count}} libros?",
+    "body_one": "¿Quitar este libro de tu biblioteca y eliminar su archivo guardado de este dispositivo? Esto no se puede deshacer.",
+    "body_many": "¿Quitar estos {{count}} libros de tu biblioteca y eliminar sus archivos guardados de este dispositivo? Esto no se puede deshacer.",
+    "body_other": "¿Quitar estos {{count}} libros de tu biblioteca y eliminar sus archivos guardados de este dispositivo? Esto no se puede deshacer."
+  },
+  "collectionDialog": {
+    "title_one": "Añadir {{count}} libro a…",
+    "title_many": "Añadir {{count}} libros a…",
+    "title_other": "Añadir {{count}} libros a…",
+    "newLabel": "Nueva colección",
+    "newPlaceholder": "p. ej. Por leer",
+    "removeFromCollection": "Quitar de la colección"
+  },
+  "collection": {
+    "nameLabel": "Nombre de la colección",
+    "rename": "Cambiar nombre",
+    "renameAction": "Cambiar el nombre de la colección",
+    "deleteTooltip": "Eliminar colección",
+    "deleteAction": "Eliminar colección",
+    "deleteTitle": "¿Eliminar la colección?",
+    "deleteBody": "¿Eliminar <strong>{{name}}</strong>? Los libros permanecen en tu biblioteca, solo se desagrupan."
+  },
+  "manage": {
+    "trigger": "Gestión de la estantería",
+    "layout": "Diseño",
+    "groupBy": "Agrupar por",
+    "sortBy": "Ordenar por",
+    "management": "Gestión",
+    "selectBooks": "Seleccionar libros"
+  },
+  "layout": {
+    "grid": "Cuadrícula",
+    "list": "Lista"
+  },
+  "group": {
+    "none": "Ninguno",
+    "status": "Estado de lectura",
+    "author": "Autor",
+    "format": "Formato"
+  },
+  "sort": {
+    "recent": "Abiertos recientemente",
+    "added": "Añadidos recientemente",
+    "title": "Título",
+    "author": "Autor",
+    "progress": "Progreso"
+  },
+  "groupSection": {
+    "reading": "Leyendo ahora",
+    "unread": "A continuación",
+    "finished": "Terminados",
+    "unknownAuthor": "Autor desconocido"
+  },
+  "toolbar": {
+    "selected_one": "{{count}} seleccionado",
+    "selected_many": "{{count}} seleccionados",
+    "selected_other": "{{count}} seleccionados",
+    "clear": "Limpiar",
+    "selectAll": "Seleccionar todo",
+    "addToCollection": "Añadir a colección",
+    "addSelected": "Añadir la selección a una colección",
+    "removeTooltip": "Quitar",
+    "removeSelected": "Quitar la selección"
+  },
+  "errors": {
+    "generic": "Algo salió mal al actualizar tu biblioteca.",
+    "unsupportedFormat": "Tipo de archivo no compatible: {{name}}. Formatos compatibles: EPUB, MOBI, AZW3, FB2, PDF."
+  }
+}

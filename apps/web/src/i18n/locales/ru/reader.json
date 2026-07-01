@@ -1,0 +1,115 @@
+{
+  "shelf": "Полка",
+  "backToShelf": "Назад на полку",
+  "contents": "Содержание",
+  "tableOfContents": "Оглавление",
+  "chat": "Чат",
+  "aiChat": "Чат с ИИ",
+  "resizeContents": "Изменить размер панели содержания",
+  "resizeChat": "Изменить размер панели чата",
+  "noToc": "Этот файл не содержит навигируемого оглавления.",
+  "progress": "{{page}} / {{total}} · {{percent}}",
+
+  "notes": "Заметки",
+  "emptyNotes": "Пока нет выделений или заметок. Выделите текст в читалке, чтобы отметить его.",
+
+  "previousPage": "Предыдущая страница",
+  "nextPage": "Следующая страница",
+  "go": "Перейти",
+
+  "readerLabel": "Читалка",
+  "opening": "Открытие: {{name}}",
+  "book": "книга",
+  "loadError": "Не удалось загрузить этот файл.",
+
+  "tryAgain": "Повторить",
+  "backToLibrary": "Назад в библиотеку",
+
+  "readingAppearance": "Внешний вид чтения",
+  "applyTo": "Применить к",
+  "scopeHintBook": "Изменения затрагивают только эту книгу.",
+  "scopeHintGlobal": "Изменения затрагивают все книги, следующие вашим глобальным настройкам.",
+  "pageColor": "Цвет страницы",
+  "fontSize": "Размер шрифта",
+  "lineSpacing": "Межстрочный интервал",
+  "paragraphSpacing": "Интервал между абзацами",
+  "readingMode": "Режим чтения",
+
+  "scope": {
+    "global": "Все книги",
+    "book": "Эта книга"
+  },
+
+  "menu": {
+    "copied": "Скопировано",
+    "copySelection": "Копировать выделение",
+    "copy": "Копировать",
+    "highlight": "Выделить",
+    "underline": "Подчеркнуть",
+    "addNote": "Добавить заметку",
+    "lookUp": "Найти в словаре",
+    "askAi": "Спросить ИИ об этом",
+    "remove": "Удалить"
+  },
+
+  "recolor": "Перекрасить в {{color}}",
+  "colors": {
+    "yellow": "жёлтый",
+    "green": "зелёный",
+    "blue": "синий",
+    "pink": "розовый"
+  },
+
+  "footnote": {
+    "footnote": "Сноска",
+    "endnote": "Концевая сноска",
+    "reference": "Ссылка",
+    "definition": "Определение",
+    "note": "Примечание"
+  },
+  "dismissNote": "Скрыть примечание",
+  "closeNote": "Закрыть примечание",
+
+  "dictionary": {
+    "title": "Словарь",
+    "pos": {
+      "noun": "сущ.",
+      "verb": "гл."
+    },
+    "senseNoun": "Заглушка значения для «{{word}}». Словарь находится в режиме предпросмотра.",
+    "senseVerb": "Найти «{{word}}» — здесь появятся настоящие определения.",
+    "footer": "Заглушка статьи — словарь в режиме предпросмотра; настоящие определения ещё не подключены."
+  },
+
+  "fontSizeOption": {
+    "xx-small": "XXS",
+    "x-small": "XS",
+    "small": "Мелкий",
+    "medium": "Средний",
+    "large": "Крупный",
+    "x-large": "XL",
+    "xx-large": "XXL",
+    "xxx-large": "XXXL"
+  },
+  "lineSpacingOption": {
+    "compact": "Компактный",
+    "comfortable": "Комфортный",
+    "relaxed": "Свободный"
+  },
+  "paragraphSpacingOption": {
+    "tight": "Плотный",
+    "normal": "Обычный",
+    "loose": "Просторный"
+  },
+  "readingModeOption": {
+    "scroll": "Прокрутка",
+    "paginated-single": "Одна страница",
+    "paginated-double": "Две страницы"
+  },
+  "pageColorOption": {
+    "auto": "Авто",
+    "light": "Светлый",
+    "warm": "Тёплый",
+    "dark": "Тёмный"
+  }
+}

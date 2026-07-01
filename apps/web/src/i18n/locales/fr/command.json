@@ -1,0 +1,74 @@
+{
+  "search": {
+    "placeholder": "Rechercher des livres, collections, commandes…"
+  },
+  "noMatches": "Aucun résultat pour « {{query}} »",
+  "results_one": "{{count}} résultat",
+  "results_many": "{{count}} résultats",
+  "results_other": "{{count}} résultats",
+  "footer": {
+    "navigate": "↑↓ Naviguer",
+    "run": "↵ Exécuter",
+    "close": "Esc Fermer"
+  },
+  "groups": {
+    "goto": "Aller à",
+    "shelf": "Étagère",
+    "collections": "Collections",
+    "books": "Livres"
+  },
+  "actions": {
+    "goShelf": {
+      "title": "Bibliothèque",
+      "keywords": "étagère livres accueil"
+    },
+    "goStats": {
+      "title": "Statistiques de lecture",
+      "keywords": "statistiques graphiques série temps"
+    },
+    "goContext": {
+      "title": "Contexte",
+      "keywords": "ia notes"
+    },
+    "openSettings": {
+      "title": "Paramètres",
+      "keywords": "préférences apparence"
+    },
+    "import": {
+      "title": "Importer un livre",
+      "keywords": "ajouter fichier epub pdf"
+    },
+    "select": {
+      "title": "Sélectionner des livres",
+      "keywords": "lot multiple gérer"
+    }
+  },
+  "layout": {
+    "grid": "Passer en vue grille",
+    "list": "Passer en vue liste",
+    "keywords": "disposition grille liste vue"
+  },
+  "sort": {
+    "keywords": "ordre trier",
+    "by": {
+      "recent": "Trier par récemment ouverts",
+      "added": "Trier par récemment ajoutés",
+      "title": "Trier par titre",
+      "author": "Trier par auteur",
+      "progress": "Trier par progression"
+    }
+  },
+  "group": {
+    "keywords": "grouper section",
+    "none": "Ne pas grouper",
+    "by": {
+      "status": "Grouper par statut de lecture",
+      "author": "Grouper par auteur",
+      "format": "Grouper par format"
+    }
+  },
+  "collection": {
+    "subtitle": "Collection",
+    "keywords": "collection dossier groupe"
+  }
+}

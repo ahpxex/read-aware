@@ -1,0 +1,85 @@
+{
+  "title": "阅读统计",
+  "periodTablist": "统计周期",
+  "readingCalendar": "阅读日历",
+  "empty": {
+    "title": "还没有阅读记录",
+    "description": "打开一本书——你的阅读时长、连续天数以及习惯日历都会在这里逐渐积累。"
+  },
+  "summary": {
+    "books_other": "{{duration}}，共 {{count}} 本书",
+    "streak_other": "连续 {{count}} 天"
+  },
+  "period": {
+    "tab": {
+      "week": "周",
+      "month": "月",
+      "year": "年",
+      "all": "全部"
+    },
+    "range": {
+      "week": "最近 7 天",
+      "month": "最近 30 天",
+      "year": "最近 12 个月",
+      "all": "全部时间"
+    }
+  },
+  "overview": {
+    "totalTime": "总时长",
+    "booksRead": "已读书籍",
+    "daysRead": "阅读天数",
+    "avgPerDay": "日均",
+    "dailyReading": "每日阅读",
+    "monthlyReading": "每月阅读",
+    "byBook": "按书籍",
+    "milestones": "里程碑",
+    "noBooksInPeriod": "此期间没有阅读任何书籍。"
+  },
+  "breakdown": {
+    "time": "时长",
+    "progress": "进度",
+    "days": "天数",
+    "notes": "笔记"
+  },
+  "achievements": {
+    "totalReading": "累计阅读",
+    "longestStreak": "最长连续",
+    "bestDay": "最佳单日",
+    "daysRead": "阅读天数",
+    "booksRead": "已读书籍",
+    "mostRead": "读得最多",
+    "next": "下一档 {{duration}}",
+    "allPassed": "已达成所有里程碑",
+    "current_other": "当前 {{count}} 天"
+  },
+  "rhythm": {
+    "byWeekday": "按星期",
+    "byTimeOfDay": "按时段",
+    "peak": "高峰 {{hour}}",
+    "buildsUp": "随着阅读逐渐累积。"
+  },
+  "heatmap": {
+    "less": "少",
+    "more": "多"
+  },
+  "weekly": {
+    "last7Days": "最近 7 天"
+  },
+  "delta": {
+    "vsPrevious": "较上一周期"
+  },
+  "book": {
+    "totalTime": "总时长",
+    "thisWeek": "本周",
+    "dayStreak": "连续天数",
+    "daysRead": "阅读天数",
+    "notes": "笔记",
+    "highlights": "高亮",
+    "notStarted": "未开始",
+    "best_other": "最佳 {{count}} 天",
+    "summary": "已读 {{percent}} · 开始于 {{start}} · 最后阅读 {{last}}"
+  },
+  "days": {
+    "compact_other": "{{count}} 天"
+  }
+}

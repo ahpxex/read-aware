@@ -1,0 +1,90 @@
+{
+  "title": "Lesestatistik",
+  "periodTablist": "Lesezeitraum",
+  "readingCalendar": "Lesekalender",
+  "empty": {
+    "title": "Noch nichts gelesen",
+    "description": "Öffne ein Buch — deine Lesezeit, deine Serien und ein Kalender deiner Gewohnheit bauen sich hier auf."
+  },
+  "summary": {
+    "books_one": "{{duration}} in {{count}} Buch",
+    "books_other": "{{duration}} in {{count}} Büchern",
+    "streak_one": "{{count}}-Tage-Serie",
+    "streak_other": "{{count}}-Tage-Serie"
+  },
+  "period": {
+    "tab": {
+      "week": "Woche",
+      "month": "Monat",
+      "year": "Jahr",
+      "all": "Alle"
+    },
+    "range": {
+      "week": "Letzte 7 Tage",
+      "month": "Letzte 30 Tage",
+      "year": "Letzte 12 Monate",
+      "all": "Gesamter Zeitraum"
+    }
+  },
+  "overview": {
+    "totalTime": "Gesamtzeit",
+    "booksRead": "Gelesene Bücher",
+    "daysRead": "Lesetage",
+    "avgPerDay": "Ø / Tag",
+    "dailyReading": "Tägliches Lesen",
+    "monthlyReading": "Monatliches Lesen",
+    "byBook": "Nach Buch",
+    "milestones": "Meilensteine",
+    "noBooksInPeriod": "In diesem Zeitraum keine Bücher gelesen."
+  },
+  "breakdown": {
+    "time": "Zeit",
+    "progress": "Fortschritt",
+    "days": "Tage",
+    "notes": "Notizen"
+  },
+  "achievements": {
+    "totalReading": "Gesamtes Lesen",
+    "longestStreak": "Längste Serie",
+    "bestDay": "Bester Tag",
+    "daysRead": "Lesetage",
+    "booksRead": "Gelesene Bücher",
+    "mostRead": "Am meisten gelesen",
+    "next": "nächste {{duration}}",
+    "allPassed": "alle Meilensteine erreicht",
+    "current_one": "aktuell {{count}} T",
+    "current_other": "aktuell {{count}} T"
+  },
+  "rhythm": {
+    "byWeekday": "Nach Wochentag",
+    "byTimeOfDay": "Nach Tageszeit",
+    "peak": "Spitze {{hour}}",
+    "buildsUp": "Baut sich beim Lesen auf."
+  },
+  "heatmap": {
+    "less": "Weniger",
+    "more": "Mehr"
+  },
+  "weekly": {
+    "last7Days": "Letzte 7 Tage"
+  },
+  "delta": {
+    "vsPrevious": "ggü. dem vorherigen Zeitraum"
+  },
+  "book": {
+    "totalTime": "Gesamtzeit",
+    "thisWeek": "Diese Woche",
+    "dayStreak": "Tage-Serie",
+    "daysRead": "Lesetage",
+    "notes": "Notizen",
+    "highlights": "Markierungen",
+    "notStarted": "Nicht begonnen",
+    "best_one": "beste {{count}} T",
+    "best_other": "beste {{count}} T",
+    "summary": "{{percent}} gelesen · Begonnen {{start}} · Zuletzt gelesen {{last}}"
+  },
+  "days": {
+    "compact_one": "{{count}} T",
+    "compact_other": "{{count}} T"
+  }
+}

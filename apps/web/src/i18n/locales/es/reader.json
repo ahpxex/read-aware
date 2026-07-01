@@ -1,0 +1,115 @@
+{
+  "shelf": "Estantería",
+  "backToShelf": "Volver a la estantería",
+  "contents": "Contenido",
+  "tableOfContents": "Índice",
+  "chat": "Chat",
+  "aiChat": "Chat con IA",
+  "resizeContents": "Redimensionar el panel de contenido",
+  "resizeChat": "Redimensionar el panel de chat",
+  "noToc": "Este archivo no incluye un índice navegable.",
+  "progress": "{{page}} / {{total}} · {{percent}}",
+
+  "notes": "Notas",
+  "emptyNotes": "Aún no hay resaltados ni notas. Selecciona texto en el lector para marcarlo.",
+
+  "previousPage": "Página anterior",
+  "nextPage": "Página siguiente",
+  "go": "Ir",
+
+  "readerLabel": "Lector de libros",
+  "opening": "Abriendo {{name}}",
+  "book": "libro",
+  "loadError": "No se puede cargar este archivo.",
+
+  "tryAgain": "Reintentar",
+  "backToLibrary": "Volver a la biblioteca",
+
+  "readingAppearance": "Apariencia de lectura",
+  "applyTo": "Aplicar a",
+  "scopeHintBook": "Los cambios afectan solo a este libro.",
+  "scopeHintGlobal": "Los cambios afectan a todos los libros que siguen tus ajustes globales.",
+  "pageColor": "Color de página",
+  "fontSize": "Tamaño de letra",
+  "lineSpacing": "Interlineado",
+  "paragraphSpacing": "Espacio entre párrafos",
+  "readingMode": "Modo de lectura",
+
+  "scope": {
+    "global": "Todos los libros",
+    "book": "Este libro"
+  },
+
+  "menu": {
+    "copied": "Copiado",
+    "copySelection": "Copiar selección",
+    "copy": "Copiar",
+    "highlight": "Resaltar",
+    "underline": "Subrayar",
+    "addNote": "Añadir una nota",
+    "lookUp": "Consultar",
+    "askAi": "Preguntar a la IA sobre esto",
+    "remove": "Quitar"
+  },
+
+  "recolor": "Cambiar a color {{color}}",
+  "colors": {
+    "yellow": "amarillo",
+    "green": "verde",
+    "blue": "azul",
+    "pink": "rosa"
+  },
+
+  "footnote": {
+    "footnote": "Nota al pie",
+    "endnote": "Nota final",
+    "reference": "Referencia",
+    "definition": "Definición",
+    "note": "Nota"
+  },
+  "dismissNote": "Descartar nota",
+  "closeNote": "Cerrar nota",
+
+  "dictionary": {
+    "title": "Diccionario",
+    "pos": {
+      "noun": "sustantivo",
+      "verb": "verbo"
+    },
+    "senseNoun": "Una acepción de ejemplo para «{{word}}». El diccionario es una vista previa.",
+    "senseVerb": "Consultar «{{word}}»: aquí aparecerán las definiciones reales.",
+    "footer": "Una entrada de ejemplo: el diccionario es una vista previa; las definiciones reales aún no están conectadas."
+  },
+
+  "fontSizeOption": {
+    "xx-small": "XXS",
+    "x-small": "XS",
+    "small": "Pequeña",
+    "medium": "Mediana",
+    "large": "Grande",
+    "x-large": "XL",
+    "xx-large": "XXL",
+    "xxx-large": "XXXL"
+  },
+  "lineSpacingOption": {
+    "compact": "Compacto",
+    "comfortable": "Cómodo",
+    "relaxed": "Holgado"
+  },
+  "paragraphSpacingOption": {
+    "tight": "Ajustado",
+    "normal": "Normal",
+    "loose": "Amplio"
+  },
+  "readingModeOption": {
+    "scroll": "Desplazamiento",
+    "paginated-single": "Una página",
+    "paginated-double": "Dos páginas"
+  },
+  "pageColorOption": {
+    "auto": "Automático",
+    "light": "Claro",
+    "warm": "Cálido",
+    "dark": "Oscuro"
+  }
+}

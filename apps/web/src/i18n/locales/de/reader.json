@@ -1,0 +1,115 @@
+{
+  "shelf": "Regal",
+  "backToShelf": "Zurück zum Regal",
+  "contents": "Inhalt",
+  "tableOfContents": "Inhaltsverzeichnis",
+  "chat": "Chat",
+  "aiChat": "KI-Chat",
+  "resizeContents": "Inhaltsbereich anpassen",
+  "resizeChat": "Chatbereich anpassen",
+  "noToc": "Diese Datei stellt kein navigierbares Inhaltsverzeichnis bereit.",
+  "progress": "{{page}} / {{total}} · {{percent}}",
+
+  "notes": "Notizen",
+  "emptyNotes": "Noch keine Markierungen oder Notizen. Wähle Text im Reader aus, um ihn zu markieren.",
+
+  "previousPage": "Vorherige Seite",
+  "nextPage": "Nächste Seite",
+  "go": "Los",
+
+  "readerLabel": "Buchreader",
+  "opening": "{{name}} wird geöffnet",
+  "book": "Buch",
+  "loadError": "Diese Datei konnte nicht geladen werden.",
+
+  "tryAgain": "Erneut versuchen",
+  "backToLibrary": "Zurück zur Bibliothek",
+
+  "readingAppearance": "Lesedarstellung",
+  "applyTo": "Anwenden auf",
+  "scopeHintBook": "Änderungen betreffen nur dieses Buch.",
+  "scopeHintGlobal": "Änderungen betreffen jedes Buch, das deinen globalen Einstellungen folgt.",
+  "pageColor": "Seitenfarbe",
+  "fontSize": "Schriftgröße",
+  "lineSpacing": "Zeilenabstand",
+  "paragraphSpacing": "Absatzabstand",
+  "readingMode": "Lesemodus",
+
+  "scope": {
+    "global": "Alle Bücher",
+    "book": "Dieses Buch"
+  },
+
+  "menu": {
+    "copied": "Kopiert",
+    "copySelection": "Auswahl kopieren",
+    "copy": "Kopieren",
+    "highlight": "Markieren",
+    "underline": "Unterstreichen",
+    "addNote": "Notiz hinzufügen",
+    "lookUp": "Nachschlagen",
+    "askAi": "KI dazu fragen",
+    "remove": "Entfernen"
+  },
+
+  "recolor": "In {{color}} umfärben",
+  "colors": {
+    "yellow": "Gelb",
+    "green": "Grün",
+    "blue": "Blau",
+    "pink": "Rosa"
+  },
+
+  "footnote": {
+    "footnote": "Fußnote",
+    "endnote": "Endnote",
+    "reference": "Referenz",
+    "definition": "Definition",
+    "note": "Notiz"
+  },
+  "dismissNote": "Notiz verwerfen",
+  "closeNote": "Notiz schließen",
+
+  "dictionary": {
+    "title": "Wörterbuch",
+    "pos": {
+      "noun": "Substantiv",
+      "verb": "Verb"
+    },
+    "senseNoun": "Ein Platzhalter-Eintrag für „{{word}}“. Das Wörterbuch ist eine Vorschau.",
+    "senseVerb": "„{{word}}“ nachschlagen — echte Definitionen erscheinen hier.",
+    "footer": "Ein Platzhaltereintrag — das Wörterbuch ist eine Vorschau; echte Definitionen sind noch nicht angebunden."
+  },
+
+  "fontSizeOption": {
+    "xx-small": "XXS",
+    "x-small": "XS",
+    "small": "Klein",
+    "medium": "Mittel",
+    "large": "Groß",
+    "x-large": "XL",
+    "xx-large": "XXL",
+    "xxx-large": "XXXL"
+  },
+  "lineSpacingOption": {
+    "compact": "Kompakt",
+    "comfortable": "Angenehm",
+    "relaxed": "Locker"
+  },
+  "paragraphSpacingOption": {
+    "tight": "Eng",
+    "normal": "Normal",
+    "loose": "Weit"
+  },
+  "readingModeOption": {
+    "scroll": "Scrollen",
+    "paginated-single": "Einzelseite",
+    "paginated-double": "Zwei Seiten"
+  },
+  "pageColorOption": {
+    "auto": "Auto",
+    "light": "Hell",
+    "warm": "Warm",
+    "dark": "Dunkel"
+  }
+}

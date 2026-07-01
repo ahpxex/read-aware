@@ -1,0 +1,73 @@
+{
+  "search": {
+    "placeholder": "Bücher, Sammlungen, Befehle suchen…"
+  },
+  "noMatches": "Keine Treffer für „{{query}}“",
+  "results_one": "{{count}} Ergebnis",
+  "results_other": "{{count}} Ergebnisse",
+  "footer": {
+    "navigate": "↑↓ Navigieren",
+    "run": "↵ Ausführen",
+    "close": "Esc Schließen"
+  },
+  "groups": {
+    "goto": "Gehe zu",
+    "shelf": "Regal",
+    "collections": "Sammlungen",
+    "books": "Bücher"
+  },
+  "actions": {
+    "goShelf": {
+      "title": "Bibliothek",
+      "keywords": "regal bücher start"
+    },
+    "goStats": {
+      "title": "Lesestatistik",
+      "keywords": "statistik diagramme serie zeit"
+    },
+    "goContext": {
+      "title": "Kontext",
+      "keywords": "ki notizen"
+    },
+    "openSettings": {
+      "title": "Einstellungen",
+      "keywords": "einstellungen präferenzen darstellung"
+    },
+    "import": {
+      "title": "Buch importieren",
+      "keywords": "hinzufügen datei epub pdf"
+    },
+    "select": {
+      "title": "Bücher auswählen",
+      "keywords": "stapel mehrere verwalten"
+    }
+  },
+  "layout": {
+    "grid": "Zur Rasteransicht wechseln",
+    "list": "Zur Listenansicht wechseln",
+    "keywords": "layout raster liste ansicht"
+  },
+  "sort": {
+    "keywords": "reihenfolge sortieren",
+    "by": {
+      "recent": "Nach zuletzt geöffnet sortieren",
+      "added": "Nach zuletzt hinzugefügt sortieren",
+      "title": "Nach Titel sortieren",
+      "author": "Nach Autor sortieren",
+      "progress": "Nach Fortschritt sortieren"
+    }
+  },
+  "group": {
+    "keywords": "gruppieren abschnitt",
+    "none": "Nicht gruppieren",
+    "by": {
+      "status": "Nach Lesestatus gruppieren",
+      "author": "Nach Autor gruppieren",
+      "format": "Nach Format gruppieren"
+    }
+  },
+  "collection": {
+    "subtitle": "Sammlung",
+    "keywords": "sammlung ordner gruppe"
+  }
+}

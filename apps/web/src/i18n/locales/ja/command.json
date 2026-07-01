@@ -1,0 +1,72 @@
+{
+  "search": {
+    "placeholder": "本、コレクション、コマンドを検索…"
+  },
+  "noMatches": "「{{query}}」に一致するものがありません",
+  "results_other": "{{count}}件の結果",
+  "footer": {
+    "navigate": "↑↓ 移動",
+    "run": "↵ 実行",
+    "close": "Esc 閉じる"
+  },
+  "groups": {
+    "goto": "移動先",
+    "shelf": "本棚",
+    "collections": "コレクション",
+    "books": "本"
+  },
+  "actions": {
+    "goShelf": {
+      "title": "ライブラリ",
+      "keywords": "本棚 蔵書 ホーム ライブラリ"
+    },
+    "goStats": {
+      "title": "読書統計",
+      "keywords": "統計 グラフ 連続 時間"
+    },
+    "goContext": {
+      "title": "コンテキスト",
+      "keywords": "AI メモ コンテキスト"
+    },
+    "openSettings": {
+      "title": "設定",
+      "keywords": "環境設定 外観 設定"
+    },
+    "import": {
+      "title": "本をインポート",
+      "keywords": "追加 ファイル EPUB PDF"
+    },
+    "select": {
+      "title": "本を選択",
+      "keywords": "一括 複数 管理 選択"
+    }
+  },
+  "layout": {
+    "grid": "グリッド表示に切り替え",
+    "list": "リスト表示に切り替え",
+    "keywords": "レイアウト グリッド リスト 表示"
+  },
+  "sort": {
+    "keywords": "並び順 並べ替え ソート",
+    "by": {
+      "recent": "最近開いた順で並べ替え",
+      "added": "最近追加した順で並べ替え",
+      "title": "タイトルで並べ替え",
+      "author": "著者で並べ替え",
+      "progress": "進捗で並べ替え"
+    }
+  },
+  "group": {
+    "keywords": "グループ セクション 分類",
+    "none": "グループ化しない",
+    "by": {
+      "status": "読書状況でグループ化",
+      "author": "著者でグループ化",
+      "format": "形式でグループ化"
+    }
+  },
+  "collection": {
+    "subtitle": "コレクション",
+    "keywords": "コレクション フォルダ グループ"
+  }
+}

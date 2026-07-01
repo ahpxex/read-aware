@@ -1,0 +1,55 @@
+{
+  "chat": {
+    "messageLabel": "Сообщение",
+    "placeholder": "Спросите об этой книге…",
+    "placeholderWithPassage": "Спросите об этом отрывке…",
+    "send": "Отправить",
+    "stopGenerating": "Остановить генерацию",
+    "loadingConversation": "Загрузка беседы",
+    "thinking": "Думаю…",
+    "removePassage": "Убрать отрывок",
+    "empty": {
+      "title": "Спросите об этой книге",
+      "description": "Выделите отрывок и выберите «Спросить ИИ» или просто начните печатать. Эта беседа сохраняется вместе с книгой."
+    },
+    "error": {
+      "generic": "Что-то пошло не так при получении ответа."
+    }
+  },
+  "service": {
+    "notConfigured": "ИИ не настроен. Пожалуйста, укажите ваш API-ключ в настройках."
+  },
+  "note": {
+    "addTitle": "Добавить заметку",
+    "editTitle": "Редактировать заметку",
+    "close": "Закрыть",
+    "bodyLabel": "Ваша заметка",
+    "placeholder": "Что вы думаете об этом отрывке?",
+    "delete": "Удалить",
+    "cancel": "Отмена",
+    "save": "Сохранить",
+    "update": "Обновить"
+  },
+  "annotation": {
+    "delete": "Удалить"
+  },
+  "context": {
+    "loading": "Загрузка контекста...",
+    "title": "Контекст",
+    "unknownBook": "Неизвестная книга",
+    "delete": "Удалить",
+    "empty": {
+      "title": "Пока нет контекста",
+      "description": "Здесь появятся выделения и заметки из вашего чтения."
+    },
+    "contextItems_one": "{{count}} элемент контекста",
+    "contextItems_few": "{{count}} элемента контекста",
+    "contextItems_many": "{{count}} элементов контекста",
+    "contextItems_other": "{{count}} элемента контекста",
+    "books_one": "{{count}} книга",
+    "books_few": "{{count}} книги",
+    "books_many": "{{count}} книг",
+    "books_other": "{{count}} книги",
+    "summary": "{{items}} · {{books}}"
+  }
+}

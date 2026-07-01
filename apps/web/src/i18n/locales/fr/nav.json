@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "description": "Espace de lecture natif IA pour une lecture riche en contexte des fichiers EPUB et PDF."
+  },
+  "header": {
+    "back": {
+      "allBooks": "Tous les livres",
+      "toShelf": "Retour à l’étagère"
+    },
+    "search": "Rechercher",
+    "import": "Importer",
+    "importing": "Importation…",
+    "context": "Contexte",
+    "stats": "Statistiques de lecture",
+    "settings": "Paramètres"
+  },
+  "error": {
+    "title": "Un incident a interrompu le fil de lecture.",
+    "body": "Actualisez la page pour continuer. Si le problème persiste, rouvrez le livre depuis votre étagère."
+  },
+  "notFound": {
+    "title": "Cette page n’existe pas.",
+    "body": "Revenez à l’espace de lecture principal et reprenez où vous en étiez."
+  },
+  "loading": {
+    "title": "Chargement de votre espace de lecture…",
+    "body": "Préparation de votre bibliothèque locale, de l’état du lecteur et des surfaces de contexte."
+  }
+}

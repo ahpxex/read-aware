@@ -1,0 +1,112 @@
+{
+  "actions": {
+    "import": "インポート",
+    "create": "作成",
+    "cancel": "キャンセル",
+    "remove": "削除",
+    "delete": "削除",
+    "close": "閉じる",
+    "done": "完了"
+  },
+  "books_other": "{{count}}冊の本",
+  "workspace": {
+    "errorTitle": "ライブラリエラー",
+    "importTitle": "インポート",
+    "loading": "ライブラリを読み込んでいます...",
+    "emptyTitle": "最初の本をインポート",
+    "emptyCollection": "このコレクションには本がありません。",
+    "nothingToShow": "表示するものがありません。"
+  },
+  "importNotice": {
+    "duplicate_other": "すでにライブラリにある{{count}}冊の本をスキップしました。",
+    "combined": "{{skipped}} 新たに{{count}}冊をインポートしました。"
+  },
+  "importDialog": {
+    "title": "本をインポート",
+    "filterName": "本"
+  },
+  "book": {
+    "cover": "{{title}}の表紙",
+    "star": "{{title}}にスターを付ける",
+    "unstar": "{{title}}のスターを外す",
+    "info": "{{title}}の情報",
+    "remove": "{{title}}を削除"
+  },
+  "status": {
+    "finished": "読了",
+    "notStarted": "未開始"
+  },
+  "details": {
+    "title": "本の詳細",
+    "fieldTitle": "タイトル",
+    "fieldAuthor": "著者",
+    "fieldFormat": "形式"
+  },
+  "removeBook": {
+    "title": "本を削除しますか？",
+    "body": "<strong>{{title}}</strong>をライブラリから削除し、この端末に保存されているファイルも削除しますか？"
+  },
+  "removeBooks": {
+    "title_other": "{{count}}冊の本を削除しますか？",
+    "body_other": "これら{{count}}冊の本をライブラリから削除し、この端末に保存されているファイルも削除しますか？この操作は取り消せません。"
+  },
+  "collectionDialog": {
+    "title_other": "{{count}}冊の本を追加…",
+    "newLabel": "新しいコレクション",
+    "newPlaceholder": "例：あとで読む",
+    "removeFromCollection": "コレクションから削除"
+  },
+  "collection": {
+    "nameLabel": "コレクション名",
+    "rename": "名前を変更",
+    "renameAction": "コレクションの名前を変更",
+    "deleteTooltip": "コレクションを削除",
+    "deleteAction": "コレクションを削除",
+    "deleteTitle": "コレクションを削除しますか？",
+    "deleteBody": "<strong>{{name}}</strong>を削除しますか？本はライブラリに残ります — グループ分けが解除されるだけです。"
+  },
+  "manage": {
+    "trigger": "本棚の管理",
+    "layout": "レイアウト",
+    "groupBy": "グループ化",
+    "sortBy": "並べ替え",
+    "management": "管理",
+    "selectBooks": "本を選択"
+  },
+  "layout": {
+    "grid": "グリッド",
+    "list": "リスト"
+  },
+  "group": {
+    "none": "なし",
+    "status": "読書状況",
+    "author": "著者",
+    "format": "形式"
+  },
+  "sort": {
+    "recent": "最近開いた順",
+    "added": "最近追加した順",
+    "title": "タイトル",
+    "author": "著者",
+    "progress": "進捗"
+  },
+  "groupSection": {
+    "reading": "読書中",
+    "unread": "次に読む",
+    "finished": "読了",
+    "unknownAuthor": "著者不明"
+  },
+  "toolbar": {
+    "selected_other": "{{count}}件選択中",
+    "clear": "クリア",
+    "selectAll": "すべて選択",
+    "addToCollection": "コレクションに追加",
+    "addSelected": "選択項目をコレクションに追加",
+    "removeTooltip": "削除",
+    "removeSelected": "選択項目を削除"
+  },
+  "errors": {
+    "generic": "ライブラリの更新中に問題が発生しました。",
+    "unsupportedFormat": "サポートされていないファイル形式：{{name}}。対応形式：EPUB、MOBI、AZW3、FB2、PDF。"
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "actions": {
+    "import": "导入",
+    "create": "创建",
+    "cancel": "取消",
+    "remove": "移除",
+    "delete": "删除",
+    "close": "关闭",
+    "done": "完成"
+  },
+  "books_other": "{{count}} 本书",
+  "workspace": {
+    "errorTitle": "书库错误",
+    "importTitle": "导入",
+    "loading": "正在加载你的书库…",
+    "emptyTitle": "导入你的第一本书",
+    "emptyCollection": "此收藏集中暂无书籍。",
+    "nothingToShow": "暂无内容。"
+  },
+  "importNotice": {
+    "duplicate_other": "已跳过 {{count}} 本已在你书库中的书籍。",
+    "combined": "{{skipped}} 已导入 {{count}} 本新书。"
+  },
+  "importDialog": {
+    "title": "导入书籍",
+    "filterName": "书籍"
+  },
+  "book": {
+    "cover": "{{title}} 封面",
+    "star": "收藏 {{title}}",
+    "unstar": "取消收藏 {{title}}",
+    "info": "关于 {{title}} 的信息",
+    "remove": "移除 {{title}}"
+  },
+  "status": {
+    "finished": "已读完",
+    "notStarted": "未开始"
+  },
+  "details": {
+    "title": "书籍详情",
+    "fieldTitle": "书名",
+    "fieldAuthor": "作者",
+    "fieldFormat": "格式"
+  },
+  "removeBook": {
+    "title": "移除书籍？",
+    "body": "将 <strong>{{title}}</strong> 从你的书库中移除，并从本设备删除其存储的文件？"
+  },
+  "removeBooks": {
+    "title_other": "移除 {{count}} 本书？",
+    "body_other": "将这 {{count}} 本书从你的书库中移除，并从本设备删除它们存储的文件？此操作无法撤销。"
+  },
+  "collectionDialog": {
+    "title_other": "将 {{count}} 本书加入…",
+    "newLabel": "新建收藏集",
+    "newPlaceholder": "例如：待读",
+    "removeFromCollection": "从收藏集中移除"
+  },
+  "collection": {
+    "nameLabel": "收藏集名称",
+    "rename": "重命名",
+    "renameAction": "重命名收藏集",
+    "deleteTooltip": "删除收藏集",
+    "deleteAction": "删除收藏集",
+    "deleteTitle": "删除收藏集？",
+    "deleteBody": "删除 <strong>{{name}}</strong>？书籍仍会保留在你的书库中——只是不再分组。"
+  },
+  "manage": {
+    "trigger": "书架管理",
+    "layout": "布局",
+    "groupBy": "分组方式",
+    "sortBy": "排序方式",
+    "management": "管理",
+    "selectBooks": "选择书籍"
+  },
+  "layout": {
+    "grid": "网格",
+    "list": "列表"
+  },
+  "group": {
+    "none": "不分组",
+    "status": "阅读状态",
+    "author": "作者",
+    "format": "格式"
+  },
+  "sort": {
+    "recent": "最近打开",
+    "added": "最近添加",
+    "title": "书名",
+    "author": "作者",
+    "progress": "进度"
+  },
+  "groupSection": {
+    "reading": "正在阅读",
+    "unread": "接下来读",
+    "finished": "已读完",
+    "unknownAuthor": "未知作者"
+  },
+  "toolbar": {
+    "selected_other": "已选 {{count}} 项",
+    "clear": "清除",
+    "selectAll": "全选",
+    "addToCollection": "加入收藏集",
+    "addSelected": "将所选加入收藏集",
+    "removeTooltip": "移除",
+    "removeSelected": "移除所选"
+  },
+  "errors": {
+    "generic": "更新书库时出错。",
+    "unsupportedFormat": "不支持的文件类型：{{name}}。支持的格式：EPUB、MOBI、AZW3、FB2、PDF。"
+  }
+}

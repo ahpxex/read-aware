@@ -1,0 +1,124 @@
+{
+  "actions": {
+    "import": "Importer",
+    "create": "Créer",
+    "cancel": "Annuler",
+    "remove": "Retirer",
+    "delete": "Supprimer",
+    "close": "Fermer",
+    "done": "Terminé"
+  },
+  "books_one": "{{count}} livre",
+  "books_many": "{{count}} livres",
+  "books_other": "{{count}} livres",
+  "workspace": {
+    "errorTitle": "Erreur de bibliothèque",
+    "importTitle": "Importer",
+    "loading": "Chargement de votre bibliothèque…",
+    "emptyTitle": "Importez votre premier livre",
+    "emptyCollection": "Aucun livre dans cette collection.",
+    "nothingToShow": "Rien à afficher."
+  },
+  "importNotice": {
+    "duplicate_one": "« {{title}} » est déjà dans votre bibliothèque.",
+    "duplicate_many": "{{count}} livres déjà présents dans votre bibliothèque ont été ignorés.",
+    "duplicate_other": "{{count}} livres déjà présents dans votre bibliothèque ont été ignorés.",
+    "combined": "{{skipped}} {{count}} nouveaux importés."
+  },
+  "importDialog": {
+    "title": "Importer des livres",
+    "filterName": "Livres"
+  },
+  "book": {
+    "cover": "Couverture de {{title}}",
+    "star": "Ajouter {{title}} aux favoris",
+    "unstar": "Retirer {{title}} des favoris",
+    "info": "Informations sur {{title}}",
+    "remove": "Retirer {{title}}"
+  },
+  "status": {
+    "finished": "Terminé",
+    "notStarted": "Non commencé"
+  },
+  "details": {
+    "title": "Détails du livre",
+    "fieldTitle": "Titre",
+    "fieldAuthor": "Auteur",
+    "fieldFormat": "Format"
+  },
+  "removeBook": {
+    "title": "Retirer le livre ?",
+    "body": "Retirer <strong>{{title}}</strong> de votre bibliothèque et supprimer son fichier stocké sur cet appareil ?"
+  },
+  "removeBooks": {
+    "title_one": "Retirer {{count}} livre ?",
+    "title_many": "Retirer {{count}} livres ?",
+    "title_other": "Retirer {{count}} livres ?",
+    "body_one": "Retirer ce livre de votre bibliothèque et supprimer son fichier stocké sur cet appareil ? Cette action est irréversible.",
+    "body_many": "Retirer ces {{count}} livres de votre bibliothèque et supprimer leurs fichiers stockés sur cet appareil ? Cette action est irréversible.",
+    "body_other": "Retirer ces {{count}} livres de votre bibliothèque et supprimer leurs fichiers stockés sur cet appareil ? Cette action est irréversible."
+  },
+  "collectionDialog": {
+    "title_one": "Ajouter {{count}} livre à…",
+    "title_many": "Ajouter {{count}} livres à…",
+    "title_other": "Ajouter {{count}} livres à…",
+    "newLabel": "Nouvelle collection",
+    "newPlaceholder": "ex. : À lire",
+    "removeFromCollection": "Retirer de la collection"
+  },
+  "collection": {
+    "nameLabel": "Nom de la collection",
+    "rename": "Renommer",
+    "renameAction": "Renommer la collection",
+    "deleteTooltip": "Supprimer la collection",
+    "deleteAction": "Supprimer la collection",
+    "deleteTitle": "Supprimer la collection ?",
+    "deleteBody": "Supprimer <strong>{{name}}</strong> ? Les livres restent dans votre bibliothèque — ils sont simplement dégroupés."
+  },
+  "manage": {
+    "trigger": "Gestion de l’étagère",
+    "layout": "Disposition",
+    "groupBy": "Grouper par",
+    "sortBy": "Trier par",
+    "management": "Gestion",
+    "selectBooks": "Sélectionner des livres"
+  },
+  "layout": {
+    "grid": "Grille",
+    "list": "Liste"
+  },
+  "group": {
+    "none": "Aucun",
+    "status": "Statut de lecture",
+    "author": "Auteur",
+    "format": "Format"
+  },
+  "sort": {
+    "recent": "Récemment ouverts",
+    "added": "Récemment ajoutés",
+    "title": "Titre",
+    "author": "Auteur",
+    "progress": "Progression"
+  },
+  "groupSection": {
+    "reading": "En cours de lecture",
+    "unread": "À suivre",
+    "finished": "Terminés",
+    "unknownAuthor": "Auteur inconnu"
+  },
+  "toolbar": {
+    "selected_one": "{{count}} sélectionné",
+    "selected_many": "{{count}} sélectionnés",
+    "selected_other": "{{count}} sélectionnés",
+    "clear": "Effacer",
+    "selectAll": "Tout sélectionner",
+    "addToCollection": "Ajouter à la collection",
+    "addSelected": "Ajouter la sélection à la collection",
+    "removeTooltip": "Retirer",
+    "removeSelected": "Retirer la sélection"
+  },
+  "errors": {
+    "generic": "Une erreur s’est produite lors de la mise à jour de votre bibliothèque.",
+    "unsupportedFormat": "Type de fichier non pris en charge : {{name}}. Formats pris en charge : EPUB, MOBI, AZW3, FB2, PDF."
+  }
+}

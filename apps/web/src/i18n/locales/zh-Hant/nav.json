@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "description": "AI 原生的閱讀工作空間，為 EPUB 與 PDF 帶來脈絡豐富的閱讀體驗。"
+  },
+  "header": {
+    "back": {
+      "allBooks": "所有書籍",
+      "toShelf": "返回書架"
+    },
+    "search": "搜尋",
+    "import": "匯入",
+    "importing": "匯入中...",
+    "context": "上下文",
+    "stats": "閱讀統計",
+    "settings": "設定"
+  },
+  "error": {
+    "title": "有狀況打斷了閱讀流程。",
+    "body": "重新整理頁面即可繼續。若問題持續，請從書架重新開啟該書。"
+  },
+  "notFound": {
+    "title": "此頁面不存在。",
+    "body": "返回主閱讀工作空間，接續你先前的進度。"
+  },
+  "loading": {
+    "title": "正在載入你的閱讀工作空間...",
+    "body": "正在準備你的本機書庫、閱讀器狀態與上下文介面。"
+  }
+}

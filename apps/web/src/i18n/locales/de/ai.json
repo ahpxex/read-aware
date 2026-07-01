@@ -1,0 +1,51 @@
+{
+  "chat": {
+    "messageLabel": "Nachricht",
+    "placeholder": "Frag etwas über dieses Buch…",
+    "placeholderWithPassage": "Frag etwas über diese Passage…",
+    "send": "Senden",
+    "stopGenerating": "Generierung stoppen",
+    "loadingConversation": "Unterhaltung wird geladen",
+    "thinking": "Denkt nach…",
+    "removePassage": "Passage entfernen",
+    "empty": {
+      "title": "Frag zu diesem Buch",
+      "description": "Wähle eine Passage aus und wähle „KI fragen“, oder tippe einfach los. Diese Unterhaltung bleibt beim Buch."
+    },
+    "error": {
+      "generic": "Beim Abrufen einer Antwort ist etwas schiefgelaufen."
+    }
+  },
+  "service": {
+    "notConfigured": "KI nicht konfiguriert. Bitte richte deinen API-Schlüssel in den Einstellungen ein."
+  },
+  "note": {
+    "addTitle": "Notiz hinzufügen",
+    "editTitle": "Notiz bearbeiten",
+    "close": "Schließen",
+    "bodyLabel": "Deine Notiz",
+    "placeholder": "Was denkst du über diese Passage?",
+    "delete": "Löschen",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "update": "Aktualisieren"
+  },
+  "annotation": {
+    "delete": "Löschen"
+  },
+  "context": {
+    "loading": "Kontext wird geladen...",
+    "title": "Kontext",
+    "unknownBook": "Unbekanntes Buch",
+    "delete": "Löschen",
+    "empty": {
+      "title": "Noch kein Kontext",
+      "description": "Markierungen und Notizen aus deinem Lesen erscheinen hier."
+    },
+    "contextItems_one": "{{count}} Kontextelement",
+    "contextItems_other": "{{count}} Kontextelemente",
+    "books_one": "{{count}} Buch",
+    "books_other": "{{count}} Bücher",
+    "summary": "{{items}} in {{books}}"
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "search": {
+    "placeholder": "搜索书籍、收藏集、命令…"
+  },
+  "noMatches": "没有匹配“{{query}}”的结果",
+  "results_other": "{{count}} 条结果",
+  "footer": {
+    "navigate": "↑↓ 导航",
+    "run": "↵ 运行",
+    "close": "Esc 关闭"
+  },
+  "groups": {
+    "goto": "前往",
+    "shelf": "书架",
+    "collections": "收藏集",
+    "books": "书籍"
+  },
+  "actions": {
+    "goShelf": {
+      "title": "书库",
+      "keywords": "shelf books home 书架 书籍 主页"
+    },
+    "goStats": {
+      "title": "阅读统计",
+      "keywords": "statistics charts streak time 统计 图表 连续 时间"
+    },
+    "goContext": {
+      "title": "上下文",
+      "keywords": "ai notes 笔记 上下文"
+    },
+    "openSettings": {
+      "title": "设置",
+      "keywords": "preferences appearance 偏好 外观 设置"
+    },
+    "import": {
+      "title": "导入书籍",
+      "keywords": "add file epub pdf 添加 文件 导入"
+    },
+    "select": {
+      "title": "选择书籍",
+      "keywords": "batch multiple manage 批量 多选 管理"
+    }
+  },
+  "layout": {
+    "grid": "切换到网格视图",
+    "list": "切换到列表视图",
+    "keywords": "layout grid list view 布局 网格 列表 视图"
+  },
+  "sort": {
+    "keywords": "order sort 排序 顺序",
+    "by": {
+      "recent": "按最近打开排序",
+      "added": "按最近添加排序",
+      "title": "按书名排序",
+      "author": "按作者排序",
+      "progress": "按进度排序"
+    }
+  },
+  "group": {
+    "keywords": "group section 分组 分区",
+    "none": "不分组",
+    "by": {
+      "status": "按阅读状态分组",
+      "author": "按作者分组",
+      "format": "按格式分组"
+    }
+  },
+  "collection": {
+    "subtitle": "收藏集",
+    "keywords": "collection folder group 收藏集 文件夹 分组"
+  }
+}

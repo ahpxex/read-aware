@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "description": "面向情境化 EPUB 与 PDF 阅读的 AI 原生阅读工作区。"
+  },
+  "header": {
+    "back": {
+      "allBooks": "所有书籍",
+      "toShelf": "返回书架"
+    },
+    "search": "搜索",
+    "import": "导入",
+    "importing": "导入中…",
+    "context": "上下文",
+    "stats": "阅读统计",
+    "settings": "设置"
+  },
+  "error": {
+    "title": "阅读流程被打断了。",
+    "body": "刷新页面即可继续。若问题持续存在，请从书架重新打开这本书。"
+  },
+  "notFound": {
+    "title": "此页面不存在。",
+    "body": "返回主阅读工作区，从上次的地方继续。"
+  },
+  "loading": {
+    "title": "正在加载你的阅读工作区…",
+    "body": "正在准备你的本地书库、阅读器状态和上下文界面。"
+  }
+}

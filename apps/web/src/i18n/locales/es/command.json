@@ -1,0 +1,74 @@
+{
+  "search": {
+    "placeholder": "Busca libros, colecciones, comandos…"
+  },
+  "noMatches": "No hay coincidencias para «{{query}}»",
+  "results_one": "{{count}} resultado",
+  "results_many": "{{count}} resultados",
+  "results_other": "{{count}} resultados",
+  "footer": {
+    "navigate": "↑↓ Navegar",
+    "run": "↵ Ejecutar",
+    "close": "Esc Cerrar"
+  },
+  "groups": {
+    "goto": "Ir a",
+    "shelf": "Estantería",
+    "collections": "Colecciones",
+    "books": "Libros"
+  },
+  "actions": {
+    "goShelf": {
+      "title": "Biblioteca",
+      "keywords": "estantería libros inicio"
+    },
+    "goStats": {
+      "title": "Estadísticas de lectura",
+      "keywords": "estadísticas gráficos racha tiempo"
+    },
+    "goContext": {
+      "title": "Contexto",
+      "keywords": "ia notas"
+    },
+    "openSettings": {
+      "title": "Ajustes",
+      "keywords": "preferencias apariencia"
+    },
+    "import": {
+      "title": "Importar libro",
+      "keywords": "añadir archivo epub pdf"
+    },
+    "select": {
+      "title": "Seleccionar libros",
+      "keywords": "lote múltiples gestionar"
+    }
+  },
+  "layout": {
+    "grid": "Cambiar a vista de cuadrícula",
+    "list": "Cambiar a vista de lista",
+    "keywords": "diseño cuadrícula lista vista"
+  },
+  "sort": {
+    "keywords": "orden ordenar",
+    "by": {
+      "recent": "Ordenar por abiertos recientemente",
+      "added": "Ordenar por añadidos recientemente",
+      "title": "Ordenar por título",
+      "author": "Ordenar por autor",
+      "progress": "Ordenar por progreso"
+    }
+  },
+  "group": {
+    "keywords": "agrupar sección",
+    "none": "No agrupar",
+    "by": {
+      "status": "Agrupar por estado de lectura",
+      "author": "Agrupar por autor",
+      "format": "Agrupar por formato"
+    }
+  },
+  "collection": {
+    "subtitle": "Colección",
+    "keywords": "colección carpeta grupo"
+  }
+}

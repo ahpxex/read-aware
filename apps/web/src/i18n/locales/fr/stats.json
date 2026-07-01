@@ -1,0 +1,95 @@
+{
+  "title": "Statistiques de lecture",
+  "periodTablist": "Période de lecture",
+  "readingCalendar": "Calendrier de lecture",
+  "empty": {
+    "title": "Aucune lecture pour l’instant",
+    "description": "Ouvrez un livre — votre temps de lecture, vos séries et un calendrier de vos habitudes s’accumuleront ici."
+  },
+  "summary": {
+    "books_one": "{{duration}} sur {{count}} livre",
+    "books_many": "{{duration}} sur {{count}} livres",
+    "books_other": "{{duration}} sur {{count}} livres",
+    "streak_one": "série de {{count}} jour",
+    "streak_many": "série de {{count}} jours",
+    "streak_other": "série de {{count}} jours"
+  },
+  "period": {
+    "tab": {
+      "week": "Semaine",
+      "month": "Mois",
+      "year": "Année",
+      "all": "Tout"
+    },
+    "range": {
+      "week": "7 derniers jours",
+      "month": "30 derniers jours",
+      "year": "12 derniers mois",
+      "all": "Depuis le début"
+    }
+  },
+  "overview": {
+    "totalTime": "Temps total",
+    "booksRead": "Livres lus",
+    "daysRead": "Jours de lecture",
+    "avgPerDay": "Moy. / jour",
+    "dailyReading": "Lecture quotidienne",
+    "monthlyReading": "Lecture mensuelle",
+    "byBook": "Par livre",
+    "milestones": "Jalons",
+    "noBooksInPeriod": "Aucun livre lu durant cette période."
+  },
+  "breakdown": {
+    "time": "Temps",
+    "progress": "Progression",
+    "days": "Jours",
+    "notes": "Notes"
+  },
+  "achievements": {
+    "totalReading": "Lecture totale",
+    "longestStreak": "Plus longue série",
+    "bestDay": "Meilleur jour",
+    "daysRead": "Jours de lecture",
+    "booksRead": "Livres lus",
+    "mostRead": "Le plus lu",
+    "next": "prochain {{duration}}",
+    "allPassed": "tous les jalons atteints",
+    "current_one": "actuel {{count}} j",
+    "current_many": "actuel {{count}} j",
+    "current_other": "actuel {{count}} j"
+  },
+  "rhythm": {
+    "byWeekday": "Par jour de la semaine",
+    "byTimeOfDay": "Par moment de la journée",
+    "peak": "pic {{hour}}",
+    "buildsUp": "S’enrichit à mesure que vous lisez."
+  },
+  "heatmap": {
+    "less": "Moins",
+    "more": "Plus"
+  },
+  "weekly": {
+    "last7Days": "7 derniers jours"
+  },
+  "delta": {
+    "vsPrevious": "vs la période précédente"
+  },
+  "book": {
+    "totalTime": "Temps total",
+    "thisWeek": "Cette semaine",
+    "dayStreak": "Série de jours",
+    "daysRead": "Jours de lecture",
+    "notes": "Notes",
+    "highlights": "Surlignages",
+    "notStarted": "Non commencé",
+    "best_one": "record {{count}} j",
+    "best_many": "record {{count}} j",
+    "best_other": "record {{count}} j",
+    "summary": "{{percent}} lu · Commencé {{start}} · Dernière lecture {{last}}"
+  },
+  "days": {
+    "compact_one": "{{count}} j",
+    "compact_many": "{{count}} j",
+    "compact_other": "{{count}} j"
+  }
+}

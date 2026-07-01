@@ -1,0 +1,100 @@
+{
+  "title": "Статистика чтения",
+  "periodTablist": "Период чтения",
+  "readingCalendar": "Календарь чтения",
+  "empty": {
+    "title": "Пока нет данных о чтении",
+    "description": "Откройте книгу — здесь будут накапливаться ваше время чтения, серии и календарь вашей привычки."
+  },
+  "summary": {
+    "books_one": "{{duration}} в {{count}} книге",
+    "books_few": "{{duration}} в {{count}} книгах",
+    "books_many": "{{duration}} в {{count}} книгах",
+    "books_other": "{{duration}} в {{count}} книгах",
+    "streak_one": "{{count}}-дневная серия",
+    "streak_few": "{{count}}-дневная серия",
+    "streak_many": "{{count}}-дневная серия",
+    "streak_other": "{{count}}-дневная серия"
+  },
+  "period": {
+    "tab": {
+      "week": "Неделя",
+      "month": "Месяц",
+      "year": "Год",
+      "all": "Всё"
+    },
+    "range": {
+      "week": "Последние 7 дней",
+      "month": "Последние 30 дней",
+      "year": "Последние 12 месяцев",
+      "all": "За всё время"
+    }
+  },
+  "overview": {
+    "totalTime": "Всего времени",
+    "booksRead": "Прочитано книг",
+    "daysRead": "Дней чтения",
+    "avgPerDay": "В среднем / день",
+    "dailyReading": "Чтение по дням",
+    "monthlyReading": "Чтение по месяцам",
+    "byBook": "По книгам",
+    "milestones": "Вехи",
+    "noBooksInPeriod": "За этот период книги не читались."
+  },
+  "breakdown": {
+    "time": "Время",
+    "progress": "Прогресс",
+    "days": "Дни",
+    "notes": "Заметки"
+  },
+  "achievements": {
+    "totalReading": "Всего прочитано",
+    "longestStreak": "Самая длинная серия",
+    "bestDay": "Лучший день",
+    "daysRead": "Дней чтения",
+    "booksRead": "Прочитано книг",
+    "mostRead": "Больше всего прочитано",
+    "next": "далее {{duration}}",
+    "allPassed": "все вехи пройдены",
+    "current_one": "сейчас {{count}} дн.",
+    "current_few": "сейчас {{count}} дн.",
+    "current_many": "сейчас {{count}} дн.",
+    "current_other": "сейчас {{count}} дн."
+  },
+  "rhythm": {
+    "byWeekday": "По дням недели",
+    "byTimeOfDay": "По времени суток",
+    "peak": "пик {{hour}}",
+    "buildsUp": "Накапливается по мере чтения."
+  },
+  "heatmap": {
+    "less": "Меньше",
+    "more": "Больше"
+  },
+  "weekly": {
+    "last7Days": "Последние 7 дней"
+  },
+  "delta": {
+    "vsPrevious": "по сравнению с предыдущим периодом"
+  },
+  "book": {
+    "totalTime": "Всего времени",
+    "thisWeek": "На этой неделе",
+    "dayStreak": "Серия дней",
+    "daysRead": "Дней чтения",
+    "notes": "Заметки",
+    "highlights": "Выделения",
+    "notStarted": "Не начато",
+    "best_one": "рекорд {{count}} дн.",
+    "best_few": "рекорд {{count}} дн.",
+    "best_many": "рекорд {{count}} дн.",
+    "best_other": "рекорд {{count}} дн.",
+    "summary": "Прочитано {{percent}} · Начато {{start}} · Последнее чтение {{last}}"
+  },
+  "days": {
+    "compact_one": "{{count}} дн.",
+    "compact_few": "{{count}} дн.",
+    "compact_many": "{{count}} дн.",
+    "compact_other": "{{count}} дн."
+  }
+}

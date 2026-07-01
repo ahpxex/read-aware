@@ -1,0 +1,53 @@
+{
+  "chat": {
+    "messageLabel": "Mensaje",
+    "placeholder": "Pregunta sobre este libro…",
+    "placeholderWithPassage": "Pregunta sobre este pasaje…",
+    "send": "Enviar",
+    "stopGenerating": "Detener la generación",
+    "loadingConversation": "Cargando la conversación",
+    "thinking": "Pensando…",
+    "removePassage": "Quitar el pasaje",
+    "empty": {
+      "title": "Pregunta sobre este libro",
+      "description": "Selecciona un pasaje y elige «Preguntar a la IA», o simplemente empieza a escribir. Esta conversación se queda con el libro."
+    },
+    "error": {
+      "generic": "Algo salió mal al obtener una respuesta."
+    }
+  },
+  "service": {
+    "notConfigured": "La IA no está configurada. Configura tu clave de API en los ajustes."
+  },
+  "note": {
+    "addTitle": "Añadir nota",
+    "editTitle": "Editar nota",
+    "close": "Cerrar",
+    "bodyLabel": "Tu nota",
+    "placeholder": "¿Qué opinas de este pasaje?",
+    "delete": "Eliminar",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "update": "Actualizar"
+  },
+  "annotation": {
+    "delete": "Eliminar"
+  },
+  "context": {
+    "loading": "Cargando el contexto...",
+    "title": "Contexto",
+    "unknownBook": "Libro desconocido",
+    "delete": "Eliminar",
+    "empty": {
+      "title": "Aún no hay contexto",
+      "description": "Aquí aparecerán los resaltados y las notas de tu lectura."
+    },
+    "contextItems_one": "{{count}} elemento de contexto",
+    "contextItems_many": "{{count}} elementos de contexto",
+    "contextItems_other": "{{count}} elementos de contexto",
+    "books_one": "{{count}} libro",
+    "books_many": "{{count}} libros",
+    "books_other": "{{count}} libros",
+    "summary": "{{items}} en {{books}}"
+  }
+}

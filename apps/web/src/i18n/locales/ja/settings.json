@@ -1,0 +1,307 @@
+{
+  "dialog": {
+    "title": "設定",
+    "sectionsLabel": "設定セクション",
+    "close": "設定を閉じる"
+  },
+  "sections": {
+    "general": "一般",
+    "appearance": "外観",
+    "reading": "読書",
+    "ai": "AI",
+    "shortcuts": "ショートカット",
+    "dataSync": "データと同期",
+    "about": "アプリについて"
+  },
+  "general": {
+    "title": "一般",
+    "description": "アプリ全体の動作 — 起動時に開く画面、言語、デスクトップ連携。",
+    "onLaunch": "起動時",
+    "startView": "開始画面",
+    "startViewOptions": {
+      "shelf": "ライブラリの本棚",
+      "resume": "前回の本を再開"
+    },
+    "desktopIntegration": {
+      "title": "デスクトップ連携",
+      "description": "ここに保存され、デスクトップアプリで適用されます。ブラウザのプレビューでは効果がありません。",
+      "launchAtStartup": {
+        "title": "起動時に自動で開く",
+        "description": "サインイン時にReadAwareを自動的に開きます。"
+      },
+      "fileAssociations": {
+        "title": "ファイルの関連付け",
+        "description": "EPUB、MOBI、AZW3、FB2、PDFファイルをReadAwareで開きます。"
+      },
+      "autoUpdate": {
+        "title": "自動更新",
+        "description": "新しいバージョンをバックグラウンドでダウンロードしてインストールします。"
+      }
+    },
+    "languagePrivacy": "言語とプライバシー",
+    "language": "言語",
+    "crashReports": {
+      "title": "匿名のクラッシュレポートを送信",
+      "description": "安定性の問題を修正するためにクラッシュ診断情報を共有します。既定ではオフです。"
+    }
+  },
+  "appearance": {
+    "title": "外観",
+    "description": "アプリ自体の見た目 — 読書中の本のページ色とは独立しています。",
+    "theme": {
+      "title": "テーマ",
+      "description": "「システム」はお使いのOSのライト/ダーク設定に従います。"
+    },
+    "themeOptions": {
+      "system": "システム",
+      "light": "ライト",
+      "dark": "ダーク"
+    },
+    "motion": "モーション",
+    "reduceMotion": {
+      "title": "モーションを減らす",
+      "description": "アプリ全体のトランジションやアニメーション演出をオフにします。"
+    }
+  },
+  "reading": {
+    "title": "読書",
+    "description": "本がページ上でどう表示されるか。変更はリーダーに即座に反映されます。",
+    "previewLabel": "読書プレビュー",
+    "previewText": "彼女はそんな場所のことを本で読んだことはあったが、自分がそこに立つとは思ってもいなかった — 午後の光が埃のように静かに降り積もり、棚に並ぶ一冊一冊の本が、耳を傾けようとする者の方へ、ほんの少しだけ身を寄せているような、静かな部屋。",
+    "typography": "タイポグラフィ",
+    "fontSize": "文字サイズ",
+    "lineSpacing": "行間",
+    "paragraphSpacing": "段落間隔",
+    "layout": "レイアウト",
+    "readingMode": "読書モード",
+    "pageColor": {
+      "title": "ページの色",
+      "description": "本の紙の色。「自動」はアプリのテーマに従い、その他は固定です。"
+    }
+  },
+  "shortcuts": {
+    "title": "ショートカット",
+    "description": "ショートカットをクリックして再設定できます。記録中にEscを押すとキャンセルします。",
+    "categories": {
+      "Global": "全体",
+      "Reading": "読書",
+      "Selection": "選択",
+      "Overlays": "オーバーレイ"
+    },
+    "categoryDescriptions": {
+      "selection": "リーダーでテキストを選択しているときに有効です。"
+    },
+    "actions": {
+      "search": "検索を開く",
+      "settings": "設定を開く",
+      "next-page": "次のページ",
+      "prev-page": "前のページ",
+      "next-chapter": "次の章",
+      "prev-chapter": "前の章",
+      "toggle-controls": "リーダーの操作を切り替え",
+      "selection-copy": "コピー",
+      "selection-highlight": "ハイライト",
+      "selection-underline": "下線",
+      "selection-add-note": "メモを追加",
+      "selection-look-up": "調べる",
+      "selection-ask-ai": "AIに質問",
+      "close": "ダイアログまたはオーバーレイを閉じる"
+    },
+    "recording": "ショートカットを押してください…",
+    "conflict": "すでに「{{label}}」で使用されています",
+    "rebind": "{{label}}を再設定",
+    "reset": "{{label}}をリセット",
+    "resetAll": "すべて既定値にリセット"
+  },
+  "ai": {
+    "title": "AI",
+    "description": "独自のモデルキーを設定し、アシスタントができることと参照できる内容を選びます。",
+    "connection": "接続",
+    "features": {
+      "title": "機能",
+      "description": "リーダーの補助機能。各機能が提供され次第、個別にオンにできます。"
+    },
+    "featureList": {
+      "explainSelection": {
+        "label": "選択範囲を説明",
+        "description": "ハイライトした一節をわかりやすい言葉で読み解きます。"
+      },
+      "defineTerm": {
+        "label": "用語を定義",
+        "description": "選択した単語やフレーズのインライン定義。"
+      },
+      "translate": {
+        "label": "翻訳",
+        "description": "選択範囲を読書言語に翻訳します。"
+      },
+      "summarizeChapter": {
+        "label": "章を要約",
+        "description": "現在の章を要点にまとめます。"
+      },
+      "askConversation": {
+        "label": "対話型Q&A",
+        "description": "本とメモに基づいて追加の質問ができます。"
+      }
+    },
+    "memory": "メモリ",
+    "buildMemory": {
+      "title": "長期メモリを構築",
+      "description": "ReadAwareが読書やメモから、時間をかけて永続的なプロフィールを学習します。"
+    },
+    "storedMemory": {
+      "title": "保存されたメモリ",
+      "description": "ReadAwareが記憶したあなたに関するすべての情報を確認または消去します。"
+    },
+    "clearMemory": "メモリを消去",
+    "privacy": {
+      "title": "プライバシー",
+      "description": "AI機能の実行時に端末から送信される内容を制御します。"
+    },
+    "sendHighlightedText": {
+      "title": "ハイライトしたテキストを送信",
+      "description": "選択した一節をリクエストに含めます。"
+    },
+    "sendSurroundingContext": {
+      "title": "周辺のコンテキストを送信",
+      "description": "回答が本文に基づくよう、近くの段落を含めます。"
+    },
+    "localOnly": {
+      "title": "ローカルのみモード",
+      "description": "リモートモデルを一切呼び出しません。ローカルモデルが利用可能になるまでAI機能はオフのままです。"
+    }
+  },
+  "aiConfig": {
+    "configured": {
+      "title": "AIは設定済みです",
+      "body": "APIキーはローカルに保存されています。リーダーでAI機能を利用できます。"
+    },
+    "result": {
+      "success": "成功",
+      "error": "エラー"
+    },
+    "provider": "AIプロバイダー",
+    "customBaseUrl": {
+      "label": "カスタムベースURL",
+      "helper": "OpenAI互換APIエンドポイントのベースURLを入力してください。"
+    },
+    "apiKey": {
+      "label": "APIキー",
+      "placeholder": "{{provider}}のAPIキーを入力",
+      "helper": "APIキーはブラウザにローカル保存され、当社のサーバーに送信されることはありません。"
+    },
+    "show": "表示",
+    "hide": "非表示",
+    "model": "モデル",
+    "modelDefault": "既定",
+    "getKey": {
+      "openai": "APIキーは<link>OpenAIダッシュボード</link>から取得できます",
+      "anthropic": "APIキーは<link>Anthropicコンソール</link>から取得できます",
+      "openrouter": "APIキーは<link>OpenRouter</link>から取得できます"
+    },
+    "save": "設定を保存",
+    "test": "接続をテスト",
+    "testing": "テスト中...",
+    "clear": "クリア",
+    "savedMessage": "設定を保存しました。",
+    "testSuccessMessage": "テスト成功！応答：「{{response}}」",
+    "testEmptyMessage": "テスト失敗：AIプロバイダーからの応答が空です。",
+    "testUnknownError": "テスト中に不明なエラーが発生しました。",
+    "byok": {
+      "title": "BYOK（自分のキーを使用）について",
+      "body": "ReadAwareはAIサービスへのアクセスにあなた自身のAPIキーを使用します。キーはブラウザにローカル保存され、当社のサーバーに送信されることはありません。API利用料金はご自身の負担となります。"
+    }
+  },
+  "font": {
+    "label": "フォント",
+    "custom": "カスタム",
+    "customAria": "この端末にインストールされたフォントから選択",
+    "placeholderCurated": "厳選フォントを選択",
+    "placeholderCustom": "インストール済みフォントを選択"
+  },
+  "pendingBadge": {
+    "comingSoon": "近日公開"
+  },
+  "dataSync": {
+    "title": "データと同期",
+    "description": "ReadAwareはローカルファースト：データはこの端末に保存されます。同期は暗号化された中継であり、信頼できる情報源ではありません。",
+    "noticeDone": "完了",
+    "noticeError": "エラー",
+    "exportSuccess": "すべてを{{file}}にエクスポートしました。",
+    "exportError": "データをエクスポートできませんでした。",
+    "importError": "このファイルをインポートできませんでした。",
+    "merge": {
+      "books_other": "{{count}}冊の本",
+      "annotations_other": "{{count}}件の注釈",
+      "collections_other": "{{count}}件のコレクション",
+      "settings_other": "{{count}}件の設定",
+      "summary": "{{books}}、{{annotations}}、{{collections}}、{{settings}}を統合しました。再読み込みしています…"
+    },
+    "sync": "同期",
+    "account": {
+      "title": "アカウント",
+      "description": "アカウントを接続して、暗号化されたイベントログを複数の端末間で同期します。"
+    },
+    "connectAccount": "アカウントを接続",
+    "e2e": {
+      "title": "エンドツーエンド暗号化",
+      "description": "同期されるデータは端末上で暗号化されます。パスフレーズと端末をここで管理します。"
+    },
+    "storage": "ストレージ",
+    "dataLocation": {
+      "title": "データの保存場所",
+      "descTauri": "このMacのReadAwareアプリケーションデータフォルダに保存されています。",
+      "descWeb": "このブラウザに保存されています。デスクトップアプリでは、あなたが管理するローカルフォルダにデータを保存します。"
+    },
+    "desktopBadge": "デスクトップ",
+    "reveal": "表示",
+    "backup": {
+      "title": "バックアップとエクスポート",
+      "description": "この端末上のすべてを1つのファイルに保存します — 別の端末に移したり、バックアップとして保管できます。インポートすると、バックアップが現在のデータに統合されます。"
+    },
+    "fullBackup": {
+      "title": "完全バックアップ",
+      "description": "本、ハイライト、メモ、コレクション、読書の進捗、すべての設定を、1つの持ち運び可能なファイルにまとめます。"
+    },
+    "import": "インポート",
+    "export": "エクスポート",
+    "working": "処理中…",
+    "dangerZone": "危険な操作",
+    "reset": {
+      "title": "すべての設定をリセット",
+      "description": "すべての設定を既定値に戻します。本と注釈は保持されます。"
+    },
+    "resetButton": "設定をリセット",
+    "resetDialog": {
+      "title": "すべての設定をリセットしますか？",
+      "body": "すべての設定を既定値に戻します。本と注釈は保持され、設定のみがリセットされます。この操作は取り消せません。",
+      "cancel": "キャンセル"
+    }
+  },
+  "about": {
+    "title": "アプリについて",
+    "description": "バージョン、ビルド、そして読書を支えるエンジン。",
+    "version": "バージョン",
+    "build": "ビルド",
+    "buildDesktop": "デスクトップ（Tauri）",
+    "buildWeb": "Webプレビュー",
+    "updates": {
+      "title": "更新",
+      "description": "最新リリースを確認してインストールします。"
+    },
+    "checkUpdates": "更新を確認",
+    "engine": {
+      "title": "読書エンジン",
+      "description": "すべての形式 — EPUB、MOBI、AZW3、FB2、PDF — は1つのベンダー化されたエンジンで表示されます。"
+    },
+    "foliate": {
+      "description": "ReadAwareの基盤となっているオープンソースの読書エンジン。"
+    },
+    "vendored": "ベンダー化",
+    "help": "ヘルプ",
+    "feedback": {
+      "title": "フィードバックを送信",
+      "description": "バグを報告したり、うまく動かない点を共有してください。"
+    },
+    "reportIssue": "問題を報告"
+  }
+}

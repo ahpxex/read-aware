@@ -1,0 +1,118 @@
+{
+  "actions": {
+    "import": "Importieren",
+    "create": "Erstellen",
+    "cancel": "Abbrechen",
+    "remove": "Entfernen",
+    "delete": "Löschen",
+    "close": "Schließen",
+    "done": "Fertig"
+  },
+  "books_one": "{{count}} Buch",
+  "books_other": "{{count}} Bücher",
+  "workspace": {
+    "errorTitle": "Bibliotheksfehler",
+    "importTitle": "Importieren",
+    "loading": "Deine Bibliothek wird geladen...",
+    "emptyTitle": "Importiere dein erstes Buch",
+    "emptyCollection": "Keine Bücher in dieser Sammlung.",
+    "nothingToShow": "Nichts anzuzeigen."
+  },
+  "importNotice": {
+    "duplicate_one": "„{{title}}“ ist bereits in deiner Bibliothek.",
+    "duplicate_other": "{{count}} Bücher übersprungen, die bereits in deiner Bibliothek sind.",
+    "combined": "{{skipped}} {{count}} neue importiert."
+  },
+  "importDialog": {
+    "title": "Bücher importieren",
+    "filterName": "Bücher"
+  },
+  "book": {
+    "cover": "Cover von {{title}}",
+    "star": "{{title}} mit Stern markieren",
+    "unstar": "Stern von {{title}} entfernen",
+    "info": "Informationen zu {{title}}",
+    "remove": "{{title}} entfernen"
+  },
+  "status": {
+    "finished": "Abgeschlossen",
+    "notStarted": "Nicht begonnen"
+  },
+  "details": {
+    "title": "Buchdetails",
+    "fieldTitle": "Titel",
+    "fieldAuthor": "Autor",
+    "fieldFormat": "Format"
+  },
+  "removeBook": {
+    "title": "Buch entfernen?",
+    "body": "<strong>{{title}}</strong> aus deiner Bibliothek entfernen und die gespeicherte Datei von diesem Gerät löschen?"
+  },
+  "removeBooks": {
+    "title_one": "{{count}} Buch entfernen?",
+    "title_other": "{{count}} Bücher entfernen?",
+    "body_one": "Dieses Buch aus deiner Bibliothek entfernen und seine gespeicherte Datei von diesem Gerät löschen? Dies kann nicht rückgängig gemacht werden.",
+    "body_other": "Diese {{count}} Bücher aus deiner Bibliothek entfernen und ihre gespeicherten Dateien von diesem Gerät löschen? Dies kann nicht rückgängig gemacht werden."
+  },
+  "collectionDialog": {
+    "title_one": "{{count}} Buch hinzufügen zu…",
+    "title_other": "{{count}} Bücher hinzufügen zu…",
+    "newLabel": "Neue Sammlung",
+    "newPlaceholder": "z. B. Zu lesen",
+    "removeFromCollection": "Aus Sammlung entfernen"
+  },
+  "collection": {
+    "nameLabel": "Sammlungsname",
+    "rename": "Umbenennen",
+    "renameAction": "Sammlung umbenennen",
+    "deleteTooltip": "Sammlung löschen",
+    "deleteAction": "Sammlung löschen",
+    "deleteTitle": "Sammlung löschen?",
+    "deleteBody": "<strong>{{name}}</strong> löschen? Die Bücher bleiben in deiner Bibliothek — sie sind nur nicht mehr gruppiert."
+  },
+  "manage": {
+    "trigger": "Regalverwaltung",
+    "layout": "Layout",
+    "groupBy": "Gruppieren nach",
+    "sortBy": "Sortieren nach",
+    "management": "Verwaltung",
+    "selectBooks": "Bücher auswählen"
+  },
+  "layout": {
+    "grid": "Raster",
+    "list": "Liste"
+  },
+  "group": {
+    "none": "Keine",
+    "status": "Lesestatus",
+    "author": "Autor",
+    "format": "Format"
+  },
+  "sort": {
+    "recent": "Zuletzt geöffnet",
+    "added": "Zuletzt hinzugefügt",
+    "title": "Titel",
+    "author": "Autor",
+    "progress": "Fortschritt"
+  },
+  "groupSection": {
+    "reading": "Gerade am Lesen",
+    "unread": "Als Nächstes",
+    "finished": "Abgeschlossen",
+    "unknownAuthor": "Unbekannter Autor"
+  },
+  "toolbar": {
+    "selected_one": "{{count}} ausgewählt",
+    "selected_other": "{{count}} ausgewählt",
+    "clear": "Aufheben",
+    "selectAll": "Alle auswählen",
+    "addToCollection": "Zur Sammlung hinzufügen",
+    "addSelected": "Auswahl zur Sammlung hinzufügen",
+    "removeTooltip": "Entfernen",
+    "removeSelected": "Auswahl entfernen"
+  },
+  "errors": {
+    "generic": "Beim Aktualisieren deiner Bibliothek ist etwas schiefgelaufen.",
+    "unsupportedFormat": "Nicht unterstützter Dateityp: {{name}}. Unterstützte Formate: EPUB, MOBI, AZW3, FB2, PDF."
+  }
+}

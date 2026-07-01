@@ -1,0 +1,85 @@
+{
+  "title": "読書統計",
+  "periodTablist": "読書期間",
+  "readingCalendar": "読書カレンダー",
+  "empty": {
+    "title": "まだ読書記録がありません",
+    "description": "本を開くと、読書時間、連続記録、習慣のカレンダーがここに積み上がっていきます。"
+  },
+  "summary": {
+    "books_other": "{{count}}冊で{{duration}}",
+    "streak_other": "{{count}}日連続"
+  },
+  "period": {
+    "tab": {
+      "week": "週",
+      "month": "月",
+      "year": "年",
+      "all": "全期間"
+    },
+    "range": {
+      "week": "過去7日間",
+      "month": "過去30日間",
+      "year": "過去12か月",
+      "all": "全期間"
+    }
+  },
+  "overview": {
+    "totalTime": "合計時間",
+    "booksRead": "読んだ本",
+    "daysRead": "読書日数",
+    "avgPerDay": "1日平均",
+    "dailyReading": "日別の読書",
+    "monthlyReading": "月別の読書",
+    "byBook": "本別",
+    "milestones": "マイルストーン",
+    "noBooksInPeriod": "この期間に読んだ本はありません。"
+  },
+  "breakdown": {
+    "time": "時間",
+    "progress": "進捗",
+    "days": "日数",
+    "notes": "メモ"
+  },
+  "achievements": {
+    "totalReading": "総読書時間",
+    "longestStreak": "最長連続記録",
+    "bestDay": "最も読んだ日",
+    "daysRead": "読書日数",
+    "booksRead": "読んだ本",
+    "mostRead": "最も読んだ本",
+    "next": "次まで{{duration}}",
+    "allPassed": "すべてのマイルストーン達成",
+    "current_other": "現在{{count}}日"
+  },
+  "rhythm": {
+    "byWeekday": "曜日別",
+    "byTimeOfDay": "時間帯別",
+    "peak": "ピーク{{hour}}",
+    "buildsUp": "読むほど蓄積されます。"
+  },
+  "heatmap": {
+    "less": "少ない",
+    "more": "多い"
+  },
+  "weekly": {
+    "last7Days": "過去7日間"
+  },
+  "delta": {
+    "vsPrevious": "前の期間との比較"
+  },
+  "book": {
+    "totalTime": "合計時間",
+    "thisWeek": "今週",
+    "dayStreak": "連続日数",
+    "daysRead": "読書日数",
+    "notes": "メモ",
+    "highlights": "ハイライト",
+    "notStarted": "未開始",
+    "best_other": "最高{{count}}日",
+    "summary": "{{percent}}読了・開始 {{start}}・最終読書 {{last}}"
+  },
+  "days": {
+    "compact_other": "{{count}}日"
+  }
+}

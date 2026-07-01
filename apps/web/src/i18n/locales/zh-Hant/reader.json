@@ -1,0 +1,115 @@
+{
+  "shelf": "書架",
+  "backToShelf": "返回書架",
+  "contents": "目錄",
+  "tableOfContents": "目錄",
+  "chat": "聊天",
+  "aiChat": "AI 聊天",
+  "resizeContents": "調整目錄面板大小",
+  "resizeChat": "調整聊天面板大小",
+  "noToc": "此檔案未提供可導覽的目錄。",
+  "progress": "{{page}} / {{total}} · {{percent}}",
+
+  "notes": "筆記",
+  "emptyNotes": "尚無螢光標示或筆記。在閱讀器中選取文字即可標記。",
+
+  "previousPage": "上一頁",
+  "nextPage": "下一頁",
+  "go": "前往",
+
+  "readerLabel": "書籍閱讀器",
+  "opening": "正在開啟 {{name}}",
+  "book": "書",
+  "loadError": "無法載入此檔案。",
+
+  "tryAgain": "重試",
+  "backToLibrary": "返回書庫",
+
+  "readingAppearance": "閱讀外觀",
+  "applyTo": "套用至",
+  "scopeHintBook": "變更僅影響這本書。",
+  "scopeHintGlobal": "變更會影響所有跟隨全域設定的書籍。",
+  "pageColor": "頁面顏色",
+  "fontSize": "字級大小",
+  "lineSpacing": "行距",
+  "paragraphSpacing": "段落間距",
+  "readingMode": "閱讀模式",
+
+  "scope": {
+    "global": "所有書籍",
+    "book": "這本書"
+  },
+
+  "menu": {
+    "copied": "已複製",
+    "copySelection": "複製選取內容",
+    "copy": "複製",
+    "highlight": "螢光標示",
+    "underline": "加底線",
+    "addNote": "新增筆記",
+    "lookUp": "查詢",
+    "askAi": "詢問 AI 關於此內容",
+    "remove": "移除"
+  },
+
+  "recolor": "改為{{color}}",
+  "colors": {
+    "yellow": "黃色",
+    "green": "綠色",
+    "blue": "藍色",
+    "pink": "粉紅色"
+  },
+
+  "footnote": {
+    "footnote": "註腳",
+    "endnote": "尾註",
+    "reference": "參考資料",
+    "definition": "定義",
+    "note": "註釋"
+  },
+  "dismissNote": "忽略註釋",
+  "closeNote": "關閉註釋",
+
+  "dictionary": {
+    "title": "字典",
+    "pos": {
+      "noun": "名詞",
+      "verb": "動詞"
+    },
+    "senseNoun": "「{{word}}」的預留釋義。字典功能仍為預覽版。",
+    "senseVerb": "查詢「{{word}}」 — 真正的定義將顯示於此。",
+    "footer": "預留項目 — 字典為預覽版；真正的定義尚未接上。"
+  },
+
+  "fontSizeOption": {
+    "xx-small": "XXS",
+    "x-small": "XS",
+    "small": "小",
+    "medium": "中",
+    "large": "大",
+    "x-large": "XL",
+    "xx-large": "XXL",
+    "xxx-large": "XXXL"
+  },
+  "lineSpacingOption": {
+    "compact": "緊湊",
+    "comfortable": "舒適",
+    "relaxed": "寬鬆"
+  },
+  "paragraphSpacingOption": {
+    "tight": "緊密",
+    "normal": "標準",
+    "loose": "寬鬆"
+  },
+  "readingModeOption": {
+    "scroll": "捲動",
+    "paginated-single": "單頁",
+    "paginated-double": "雙頁"
+  },
+  "pageColorOption": {
+    "auto": "自動",
+    "light": "淺色",
+    "warm": "暖色",
+    "dark": "深色"
+  }
+}

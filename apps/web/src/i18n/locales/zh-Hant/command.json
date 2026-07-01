@@ -1,0 +1,72 @@
+{
+  "search": {
+    "placeholder": "搜尋書籍、收藏、指令…"
+  },
+  "noMatches": "找不到「{{query}}」的相符結果",
+  "results_other": "{{count}} 項結果",
+  "footer": {
+    "navigate": "↑↓ 導覽",
+    "run": "↵ 執行",
+    "close": "Esc 關閉"
+  },
+  "groups": {
+    "goto": "前往",
+    "shelf": "書架",
+    "collections": "收藏",
+    "books": "書籍"
+  },
+  "actions": {
+    "goShelf": {
+      "title": "書庫",
+      "keywords": "書架 書籍 首頁 shelf books home"
+    },
+    "goStats": {
+      "title": "閱讀統計",
+      "keywords": "統計 圖表 連續 時間 statistics charts streak time"
+    },
+    "goContext": {
+      "title": "上下文",
+      "keywords": "AI 筆記 notes"
+    },
+    "openSettings": {
+      "title": "設定",
+      "keywords": "偏好 外觀 preferences appearance"
+    },
+    "import": {
+      "title": "匯入書籍",
+      "keywords": "新增 檔案 add file epub pdf"
+    },
+    "select": {
+      "title": "選取書籍",
+      "keywords": "批次 多選 管理 batch multiple manage"
+    }
+  },
+  "layout": {
+    "grid": "切換至格狀檢視",
+    "list": "切換至清單檢視",
+    "keywords": "版面 格狀 清單 檢視 layout grid list view"
+  },
+  "sort": {
+    "keywords": "排序 順序 order sort",
+    "by": {
+      "recent": "依最近開啟排序",
+      "added": "依最近新增排序",
+      "title": "依書名排序",
+      "author": "依作者排序",
+      "progress": "依進度排序"
+    }
+  },
+  "group": {
+    "keywords": "分組 區段 group section",
+    "none": "不分組",
+    "by": {
+      "status": "依閱讀狀態分組",
+      "author": "依作者分組",
+      "format": "依格式分組"
+    }
+  },
+  "collection": {
+    "subtitle": "收藏",
+    "keywords": "收藏 資料夾 群組 collection folder group"
+  }
+}

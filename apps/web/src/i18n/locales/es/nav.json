@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "description": "Espacio de lectura nativo de IA para leer EPUB y PDF con contexto enriquecido."
+  },
+  "header": {
+    "back": {
+      "allBooks": "Todos los libros",
+      "toShelf": "Volver a la estantería"
+    },
+    "search": "Buscar",
+    "import": "Importar",
+    "importing": "Importando...",
+    "context": "Contexto",
+    "stats": "Estadísticas de lectura",
+    "settings": "Ajustes"
+  },
+  "error": {
+    "title": "Algo interrumpió el flujo de lectura.",
+    "body": "Actualiza la página para continuar. Si el problema persiste, vuelve a abrir el libro desde tu estantería."
+  },
+  "notFound": {
+    "title": "Esta página no existe.",
+    "body": "Vuelve al espacio de lectura principal y retoma donde lo dejaste."
+  },
+  "loading": {
+    "title": "Cargando tu espacio de lectura...",
+    "body": "Preparando tu biblioteca local, el estado del lector y los paneles de contexto."
+  }
+}

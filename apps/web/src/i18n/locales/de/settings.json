@@ -1,0 +1,311 @@
+{
+  "dialog": {
+    "title": "Einstellungen",
+    "sectionsLabel": "Einstellungsbereiche",
+    "close": "Einstellungen schließen"
+  },
+  "sections": {
+    "general": "Allgemein",
+    "appearance": "Darstellung",
+    "reading": "Lesen",
+    "ai": "KI",
+    "shortcuts": "Tastenkürzel",
+    "dataSync": "Daten & Sync",
+    "about": "Über"
+  },
+  "general": {
+    "title": "Allgemein",
+    "description": "App-weites Verhalten — was beim Start geöffnet wird, Sprache und Desktop-Integration.",
+    "onLaunch": "Beim Start",
+    "startView": "Startansicht",
+    "startViewOptions": {
+      "shelf": "Bibliotheksregal",
+      "resume": "Letztes Buch fortsetzen"
+    },
+    "desktopIntegration": {
+      "title": "Desktop-Integration",
+      "description": "Hier gespeichert und von der Desktop-App angewendet. Ohne Wirkung in der Browservorschau.",
+      "launchAtStartup": {
+        "title": "Beim Anmelden starten",
+        "description": "ReadAware automatisch öffnen, wenn du dich anmeldest."
+      },
+      "fileAssociations": {
+        "title": "Dateizuordnungen",
+        "description": "EPUB-, MOBI-, AZW3-, FB2- und PDF-Dateien mit ReadAware öffnen."
+      },
+      "autoUpdate": {
+        "title": "Automatische Updates",
+        "description": "Neue Versionen im Hintergrund herunterladen und installieren."
+      }
+    },
+    "languagePrivacy": "Sprache & Datenschutz",
+    "language": "Sprache",
+    "crashReports": {
+      "title": "Anonyme Absturzberichte senden",
+      "description": "Absturzdiagnosen teilen, um Stabilitätsprobleme zu beheben. Standardmäßig deaktiviert."
+    }
+  },
+  "appearance": {
+    "title": "Darstellung",
+    "description": "Wie die App selbst aussieht — unabhängig von der Seitenfarbe des Buches im Lesemodus.",
+    "theme": {
+      "title": "Design",
+      "description": "„System“ folgt der Hell- oder Dunkeleinstellung deines Betriebssystems."
+    },
+    "themeOptions": {
+      "system": "System",
+      "light": "Hell",
+      "dark": "Dunkel"
+    },
+    "motion": "Bewegung",
+    "reduceMotion": {
+      "title": "Bewegung reduzieren",
+      "description": "Übergänge und Animationseffekte in der gesamten App deaktivieren."
+    }
+  },
+  "reading": {
+    "title": "Lesen",
+    "description": "Wie Bücher auf der Seite dargestellt werden. Änderungen wirken sich live auf den Reader aus.",
+    "previewLabel": "Lesevorschau",
+    "previewText": "Sie hatte von solchen Orten gelesen, aber nie daran gedacht, in einem zu stehen — ein stiller Raum, in dem sich der Nachmittag wie Staub niederließ und jedes Buch in jedem Regal sich, ganz leicht, jenem zuzuneigen schien, der bereit war zuzuhören.",
+    "typography": "Typografie",
+    "fontSize": "Schriftgröße",
+    "lineSpacing": "Zeilenabstand",
+    "paragraphSpacing": "Absatzabstand",
+    "layout": "Layout",
+    "readingMode": "Lesemodus",
+    "pageColor": {
+      "title": "Seitenfarbe",
+      "description": "Das Papier des Buches. „Auto“ folgt dem App-Design; die anderen sind fest."
+    }
+  },
+  "shortcuts": {
+    "title": "Tastenkürzel",
+    "description": "Klicke auf ein Kürzel, um es neu zu belegen; drücke während der Aufnahme Esc zum Abbrechen.",
+    "categories": {
+      "Global": "Global",
+      "Reading": "Lesen",
+      "Selection": "Auswahl",
+      "Overlays": "Overlays"
+    },
+    "categoryDescriptions": {
+      "selection": "Aktiv, während Text im Reader ausgewählt ist."
+    },
+    "actions": {
+      "search": "Suche öffnen",
+      "settings": "Einstellungen öffnen",
+      "next-page": "Nächste Seite",
+      "prev-page": "Vorherige Seite",
+      "next-chapter": "Nächstes Kapitel",
+      "prev-chapter": "Vorheriges Kapitel",
+      "toggle-controls": "Reader-Steuerung umschalten",
+      "selection-copy": "Kopieren",
+      "selection-highlight": "Markieren",
+      "selection-underline": "Unterstreichen",
+      "selection-add-note": "Notiz hinzufügen",
+      "selection-look-up": "Nachschlagen",
+      "selection-ask-ai": "KI fragen",
+      "close": "Dialog oder Overlay schließen"
+    },
+    "recording": "Kürzel drücken…",
+    "conflict": "Bereits verwendet von „{{label}}“",
+    "rebind": "{{label}} neu belegen",
+    "reset": "{{label}} zurücksetzen",
+    "resetAll": "Alle auf Standard zurücksetzen"
+  },
+  "ai": {
+    "title": "KI",
+    "description": "Bring deinen eigenen Modellschlüssel mit und wähle dann, was der Assistent tun darf und was er sehen kann.",
+    "connection": "Verbindung",
+    "features": {
+      "title": "Funktionen",
+      "description": "Lesehilfe, pro Fähigkeit aktivierbar, sobald sie verfügbar ist."
+    },
+    "featureList": {
+      "explainSelection": {
+        "label": "Auswahl erklären",
+        "description": "Eine markierte Passage in einfacher Sprache aufschlüsseln."
+      },
+      "defineTerm": {
+        "label": "Begriff definieren",
+        "description": "Inline-Definitionen für ein ausgewähltes Wort oder eine Phrase."
+      },
+      "translate": {
+        "label": "Übersetzen",
+        "description": "Eine Auswahl in deine Lesesprache übersetzen."
+      },
+      "summarizeChapter": {
+        "label": "Kapitel zusammenfassen",
+        "description": "Das aktuelle Kapitel auf die wichtigsten Punkte verdichten."
+      },
+      "askConversation": {
+        "label": "Dialogbasierte Fragen & Antworten",
+        "description": "Stelle Rückfragen, die im Buch und deinen Notizen verankert sind."
+      }
+    },
+    "memory": "Gedächtnis",
+    "buildMemory": {
+      "title": "Langzeitgedächtnis aufbauen",
+      "description": "Lass ReadAware mit der Zeit ein beständiges Profil aus deinem Lesen und deinen Notizen lernen."
+    },
+    "storedMemory": {
+      "title": "Gespeichertes Gedächtnis",
+      "description": "Überprüfe oder lösche alles, was sich ReadAware über dich gemerkt hat."
+    },
+    "clearMemory": "Gedächtnis löschen",
+    "privacy": {
+      "title": "Datenschutz",
+      "description": "Steuere, was dein Gerät verlässt, wenn eine KI-Funktion ausgeführt wird."
+    },
+    "sendHighlightedText": {
+      "title": "Markierten Text senden",
+      "description": "Die von dir ausgewählte Passage in die Anfrage einbeziehen."
+    },
+    "sendSurroundingContext": {
+      "title": "Umgebenden Kontext senden",
+      "description": "Benachbarte Absätze einbeziehen, damit Antworten im Text verankert bleiben."
+    },
+    "localOnly": {
+      "title": "Nur-lokal-Modus",
+      "description": "Niemals ein Remote-Modell aufrufen. KI-Funktionen bleiben deaktiviert, bis ein lokales Modell verfügbar ist."
+    }
+  },
+  "aiConfig": {
+    "configured": {
+      "title": "KI ist konfiguriert",
+      "body": "Dein API-Schlüssel ist lokal gespeichert. Du kannst KI-Funktionen im Reader nutzen."
+    },
+    "result": {
+      "success": "Erfolg",
+      "error": "Fehler"
+    },
+    "provider": "KI-Anbieter",
+    "customBaseUrl": {
+      "label": "Benutzerdefinierte Basis-URL",
+      "helper": "Gib die Basis-URL für deinen OpenAI-kompatiblen API-Endpunkt ein."
+    },
+    "apiKey": {
+      "label": "API-Schlüssel",
+      "placeholder": "Gib deinen {{provider}}-API-Schlüssel ein",
+      "helper": "Dein API-Schlüssel wird lokal in deinem Browser gespeichert und niemals an unsere Server gesendet."
+    },
+    "show": "Anzeigen",
+    "hide": "Verbergen",
+    "model": "Modell",
+    "modelDefault": "Standard",
+    "getKey": {
+      "openai": "Hol dir deinen API-Schlüssel im <link>OpenAI-Dashboard</link>",
+      "anthropic": "Hol dir deinen API-Schlüssel in der <link>Anthropic-Konsole</link>",
+      "openrouter": "Hol dir deinen API-Schlüssel bei <link>OpenRouter</link>"
+    },
+    "save": "Konfiguration speichern",
+    "test": "Verbindung testen",
+    "testing": "Wird getestet...",
+    "clear": "Löschen",
+    "savedMessage": "Konfiguration erfolgreich gespeichert.",
+    "testSuccessMessage": "Test erfolgreich! Antwort: „{{response}}“",
+    "testEmptyMessage": "Test fehlgeschlagen: Leere Antwort vom KI-Anbieter.",
+    "testUnknownError": "Unbekannter Fehler während des Tests.",
+    "byok": {
+      "title": "Über BYOK (Bring Your Own Key)",
+      "body": "ReadAware nutzt deinen eigenen API-Schlüssel für den Zugriff auf KI-Dienste. Dein Schlüssel wird lokal in deinem Browser gespeichert und niemals an unsere Server gesendet. Für anfallende API-Nutzungsgebühren bist du selbst verantwortlich."
+    }
+  },
+  "font": {
+    "label": "Schriftart",
+    "custom": "Benutzerdefiniert",
+    "customAria": "Aus auf diesem Gerät installierten Schriftarten wählen",
+    "placeholderCurated": "Kuratierte Schriftart wählen",
+    "placeholderCustom": "Installierte Schriftart wählen"
+  },
+  "pendingBadge": {
+    "comingSoon": "Demnächst"
+  },
+  "dataSync": {
+    "title": "Daten & Sync",
+    "description": "ReadAware ist lokal-first: Deine Daten liegen auf diesem Gerät. Sync ist ein verschlüsseltes Relay, keine Quelle der Wahrheit.",
+    "noticeDone": "Fertig",
+    "noticeError": "Fehler",
+    "exportSuccess": "Alles nach {{file}} exportiert.",
+    "exportError": "Deine Daten konnten nicht exportiert werden.",
+    "importError": "Diese Datei konnte nicht importiert werden.",
+    "merge": {
+      "books_one": "{{count}} Buch",
+      "books_other": "{{count}} Bücher",
+      "annotations_one": "{{count}} Anmerkung",
+      "annotations_other": "{{count}} Anmerkungen",
+      "collections_one": "{{count}} Sammlung",
+      "collections_other": "{{count}} Sammlungen",
+      "settings_one": "{{count}} Einstellung",
+      "settings_other": "{{count}} Einstellungen",
+      "summary": "{{books}}, {{annotations}}, {{collections}} und {{settings}} zusammengeführt. Wird neu geladen…"
+    },
+    "sync": "Sync",
+    "account": {
+      "title": "Konto",
+      "description": "Verbinde ein Konto, um dein verschlüsseltes Ereignisprotokoll geräteübergreifend zu synchronisieren."
+    },
+    "connectAccount": "Konto verbinden",
+    "e2e": {
+      "title": "Ende-zu-Ende-Verschlüsselung",
+      "description": "Synchronisierte Daten werden auf dem Gerät verschlüsselt. Verwalte hier deine Passphrase und deine Geräte."
+    },
+    "storage": "Speicher",
+    "dataLocation": {
+      "title": "Speicherort",
+      "descTauri": "Im ReadAware-Anwendungsdatenordner auf diesem Mac gespeichert.",
+      "descWeb": "In diesem Browser gespeichert. Die Desktop-App bewahrt Daten in einem lokalen Ordner auf, den du kontrollierst."
+    },
+    "desktopBadge": "Desktop",
+    "reveal": "Anzeigen",
+    "backup": {
+      "title": "Backup & Export",
+      "description": "Speichere alles auf diesem Gerät in einer einzigen Datei — verschiebe sie auf ein anderes Gerät oder bewahre sie als Backup auf. Beim Import wird ein Backup wieder in deine aktuellen Daten eingefügt."
+    },
+    "fullBackup": {
+      "title": "Vollständiges Backup",
+      "description": "Bücher, Markierungen, Notizen, Sammlungen, Lesefortschritt und jede Einstellung in einer portablen Datei."
+    },
+    "import": "Importieren",
+    "export": "Exportieren",
+    "working": "Wird ausgeführt…",
+    "dangerZone": "Gefahrenzone",
+    "reset": {
+      "title": "Alle Einstellungen zurücksetzen",
+      "description": "Jede Einstellung auf ihren Standard zurücksetzen. Bücher und Anmerkungen bleiben erhalten."
+    },
+    "resetButton": "Einstellungen zurücksetzen",
+    "resetDialog": {
+      "title": "Alle Einstellungen zurücksetzen?",
+      "body": "Jede Einstellung auf ihren Standard zurücksetzen. Deine Bücher und Anmerkungen bleiben erhalten — nur die Einstellungen werden zurückgesetzt. Dies kann nicht rückgängig gemacht werden.",
+      "cancel": "Abbrechen"
+    }
+  },
+  "about": {
+    "title": "Über",
+    "description": "Version, Build und die Engine, die das Lesen antreibt.",
+    "version": "Version",
+    "build": "Build",
+    "buildDesktop": "Desktop (Tauri)",
+    "buildWeb": "Web-Vorschau",
+    "updates": {
+      "title": "Updates",
+      "description": "Nach dem neuesten Release suchen und es installieren."
+    },
+    "checkUpdates": "Nach Updates suchen",
+    "engine": {
+      "title": "Lese-Engine",
+      "description": "Jedes Format — EPUB, MOBI, AZW3, FB2, PDF — wird über eine einzige mitgelieferte Engine gerendert."
+    },
+    "foliate": {
+      "description": "Die Open-Source-Lese-Engine, auf der ReadAware aufbaut."
+    },
+    "vendored": "Mitgeliefert",
+    "help": "Hilfe",
+    "feedback": {
+      "title": "Feedback senden",
+      "description": "Melde einen Fehler oder teile mit, was nicht funktioniert."
+    },
+    "reportIssue": "Problem melden"
+  }
+}

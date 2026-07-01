@@ -1,8 +1,18 @@
-import { useRef, useEffect, useId, useCallback } from "react";
+import { useRef, useEffect, useLayoutEffect, useId, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { CaretDown } from "@phosphor-icons/react";
 import { useLocalAtom } from "./lib/useLocalAtom";
 import { cn } from "./lib/cn";
 import { ScrollArea } from "./ScrollArea";
+
+/** Viewport-fixed coordinates for the portaled listbox. */
+type MenuPosition = {
+  top: number;
+  left: number;
+  width: number;
+  maxHeight: number;
+  placeBelow: boolean;
+};
 
 type SelectOption = { label: string; value: string };
 
@@ -40,8 +50,11 @@ export function Select({
   const [open, setOpen] = useLocalAtom(false);
   const [internalValue, setInternalValue] = useLocalAtom(defaultValue ?? "");
   const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
   const listboxRef = useRef<HTMLUListElement>(null);
   const [activeIndex, setActiveIndex] = useLocalAtom(-1);
+  const [position, setPosition] = useLocalAtom<MenuPosition | null>(null);
 
   const currentValue = controlledValue !== undefined ? controlledValue : internalValue;
   const selectedOption = options.find((o) => o.value === currentValue);
@@ -57,13 +70,16 @@ export function Select({
     [controlledValue, onChange],
   );
 
-  // close on outside click / escape
+  // close on outside click / escape — the listbox is portaled to <body>, so it
+  // is outside `containerRef`; treat `popupRef` as "inside" too or an option
+  // click would dismiss before it registers.
   useEffect(() => {
     if (!open) return;
     function onMouseDown(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      const target = e.target as Node;
+      if (containerRef.current?.contains(target)) return;
+      if (popupRef.current?.contains(target)) return;
+      setOpen(false);
     }
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
@@ -75,6 +91,36 @@ export function Select({
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [open]);
+
+  // Anchor the portaled listbox to the trigger with fixed coordinates, so it
+  // floats above any scroll container (e.g. a settings dialog) instead of
+  // extending its scroll area and shoving the layout. Flips above the trigger
+  // when there is more room there. Recomputed on scroll/resize while open;
+  // useLayoutEffect positions it before paint to avoid a flash.
+  const updatePosition = useCallback(() => {
+    const button = buttonRef.current;
+    if (!button) return;
+    const rect = button.getBoundingClientRect();
+    const gap = 6;
+    const spaceBelow = window.innerHeight - rect.bottom - gap;
+    const spaceAbove = rect.top - gap;
+    const placeBelow = spaceBelow >= spaceAbove;
+    const maxHeight = Math.max(96, Math.min(240, placeBelow ? spaceBelow : spaceAbove));
+    const top = placeBelow ? rect.bottom + gap : Math.max(gap, rect.top - gap - maxHeight);
+    setPosition({ top, left: rect.left, width: rect.width, maxHeight, placeBelow });
+  }, [setPosition]);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    updatePosition();
+    const reposition = () => updatePosition();
+    window.addEventListener("scroll", reposition, true);
+    window.addEventListener("resize", reposition);
+    return () => {
+      window.removeEventListener("scroll", reposition, true);
+      window.removeEventListener("resize", reposition);
+    };
+  }, [open, updatePosition]);
 
   // scroll active option into view
   useEffect(() => {
@@ -134,6 +180,7 @@ export function Select({
 
       <div className="relative">
         <button
+          ref={buttonRef}
           type="button"
           role="combobox"
           id={id}
@@ -180,36 +227,58 @@ export function Select({
           />
         </button>
 
-        {open && (
-          <ScrollArea className="ra-motion-overlay-pop absolute z-50 mt-1.5 max-h-60 w-full origin-top rounded-md border border-border bg-[var(--ra-main-surface-color)] p-1">
-            <ul
-              ref={listboxRef}
-              id={`${id}-listbox`}
-              role="listbox"
-              aria-labelledby={`${id}-label`}
+        {open &&
+          position &&
+          typeof document !== "undefined" &&
+          createPortal(
+            <div
+              ref={popupRef}
+              style={{
+                position: "fixed",
+                top: position.top,
+                left: position.left,
+                width: position.width,
+                zIndex: 80,
+              }}
+              className={cn(
+                "ra-motion-overlay-pop",
+                position.placeBelow ? "origin-top" : "origin-bottom",
+              )}
             >
-              {options.map((opt, i) => (
-                <li
-                  key={opt.value}
-                  id={`${id}-option-${i}`}
-                  role="option"
-                  aria-selected={opt.value === currentValue}
-                  onMouseEnter={() => setActiveIndex(i)}
-                  onClick={() => select(opt.value)}
-                  className={cn(
-                    "cursor-pointer rounded-md px-2.5 py-1.5 text-sm transition-colors",
-                    i === activeIndex && "bg-fill",
-                    opt.value === currentValue
-                      ? "font-medium text-fg"
-                      : "text-fg-muted",
-                  )}
+              <ScrollArea
+                style={{ maxHeight: position.maxHeight }}
+                className="w-full rounded-md border border-border bg-[var(--ra-main-surface-color)] p-1"
+              >
+                <ul
+                  ref={listboxRef}
+                  id={`${id}-listbox`}
+                  role="listbox"
+                  aria-labelledby={`${id}-label`}
                 >
-                  {opt.label}
-                </li>
-              ))}
-            </ul>
-          </ScrollArea>
-        )}
+                  {options.map((opt, i) => (
+                    <li
+                      key={opt.value}
+                      id={`${id}-option-${i}`}
+                      role="option"
+                      aria-selected={opt.value === currentValue}
+                      onMouseEnter={() => setActiveIndex(i)}
+                      onClick={() => select(opt.value)}
+                      className={cn(
+                        "cursor-pointer rounded-md px-2.5 py-1.5 text-sm transition-colors",
+                        i === activeIndex && "bg-fill",
+                        opt.value === currentValue
+                          ? "font-medium text-fg"
+                          : "text-fg-muted",
+                      )}
+                    >
+                      {opt.label}
+                    </li>
+                  ))}
+                </ul>
+              </ScrollArea>
+            </div>,
+            document.body,
+          )}
       </div>
 
       {hasError && (

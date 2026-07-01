@@ -2,10 +2,11 @@ import { useEffect, useMemo, useRef } from "react";
 import { useAtomValue, useSetAtom } from "jotai";
 import { ChartLineUp } from "@phosphor-icons/react";
 import { Body, EmptyState, Heading, Tabs } from "@read-aware/ui";
+import { useTranslation } from "../../../i18n";
 import { readingStatsAtom } from "../../../state/ui";
 import type { LibraryBook } from "../../library/lib/library-types";
 import { formatReadingDuration } from "../../reader/lib/reading-stats";
-import { computeGlobalInsights, PERIOD_TAB_LABELS, STATS_PERIODS } from "../lib/reading-insights";
+import { computeGlobalInsights, periodTabLabel, STATS_PERIODS } from "../lib/reading-insights";
 import { seedReadingStats } from "../lib/stats-mock";
 import { useAnnotationCounts } from "../hooks/useAnnotationCounts";
 import { PeriodOverview } from "./PeriodOverview";
@@ -16,6 +17,7 @@ type StatsWorkspaceProps = {
 };
 
 export function StatsWorkspace({ books, onOpenBook }: StatsWorkspaceProps) {
+  const { t, i18n } = useTranslation("stats");
   const store = useAtomValue(readingStatsAtom);
   const setStore = useSetAtom(readingStatsAtom);
   const annotations = useAnnotationCounts();
@@ -38,7 +40,7 @@ export function StatsWorkspace({ books, onOpenBook }: StatsWorkspaceProps) {
   const tabs = useMemo(
     () =>
       STATS_PERIODS.map((period) => ({
-        label: PERIOD_TAB_LABELS[period],
+        label: periodTabLabel(t, period),
         content: (
           <div className="pt-8">
             <PeriodOverview
@@ -52,7 +54,7 @@ export function StatsWorkspace({ books, onOpenBook }: StatsWorkspaceProps) {
           </div>
         ),
       })),
-    [store, books, annotations, now, onOpenBook],
+    [store, books, annotations, now, onOpenBook, t, i18n.language],
   );
 
   // Seeding momentarily — render nothing rather than flash sparse/empty content.
@@ -63,8 +65,8 @@ export function StatsWorkspace({ books, onOpenBook }: StatsWorkspaceProps) {
       <div className="ra-motion-page-enter mx-auto flex min-h-full max-w-5xl flex-col items-center justify-center px-6 py-16">
         <EmptyState
           icon={<ChartLineUp size={32} weight="regular" />}
-          title="No reading yet"
-          description="Open a book — your reading time, streaks, and a calendar of your habit will build up here."
+          title={t("empty.title")}
+          description={t("empty.description")}
         />
       </div>
     );
@@ -73,15 +75,19 @@ export function StatsWorkspace({ books, onOpenBook }: StatsWorkspaceProps) {
   return (
     <div className="ra-motion-page-enter mx-auto max-w-5xl px-6 py-8 sm:py-10">
       <div className="mb-6">
-        <Heading size="2xl">Reading stats</Heading>
+        <Heading size="2xl">{t("title")}</Heading>
         <Body className="mt-1 text-sm text-fg-muted">
-          {formatReadingDuration(insights.totalMs)} across {insights.booksWithReading} book
-          {insights.booksWithReading !== 1 ? "s" : ""}
-          {insights.currentStreak > 0 ? ` · ${insights.currentStreak}-day streak` : ""}
+          {t("summary.books", {
+            duration: formatReadingDuration(insights.totalMs),
+            count: insights.booksWithReading,
+          })}
+          {insights.currentStreak > 0
+            ? ` · ${t("summary.streak", { count: insights.currentStreak })}`
+            : ""}
         </Body>
       </div>
 
-      <Tabs items={tabs} variant="underline" ariaLabel="Reading period" />
+      <Tabs items={tabs} variant="underline" ariaLabel={t("periodTablist")} />
     </div>
   );
 }

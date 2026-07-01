@@ -10,32 +10,16 @@ export type AIFeatureKey =
   | "summarizeChapter"
   | "askConversation";
 
-export const AI_FEATURE_META: { key: AIFeatureKey; label: string; description: string }[] = [
-  {
-    key: "explainSelection",
-    label: "Explain selection",
-    description: "Unpack a highlighted passage in plain language.",
-  },
-  {
-    key: "defineTerm",
-    label: "Define term",
-    description: "Inline definitions for a selected word or phrase.",
-  },
-  {
-    key: "translate",
-    label: "Translate",
-    description: "Translate a selection into your reading language.",
-  },
-  {
-    key: "summarizeChapter",
-    label: "Summarize chapter",
-    description: "Condense the current chapter into key points.",
-  },
-  {
-    key: "askConversation",
-    label: "Conversational Q&A",
-    description: "Ask follow-up questions grounded in the book and your notes.",
-  },
+/**
+ * Reader-surfaced AI capabilities in display order. Labels and descriptions are
+ * localized — see the `settings` catalog under `ai.featureList.<key>`.
+ */
+export const AI_FEATURE_KEYS: AIFeatureKey[] = [
+  "explainSelection",
+  "defineTerm",
+  "translate",
+  "summarizeChapter",
+  "askConversation",
 ];
 
 export type AIPreferences = {

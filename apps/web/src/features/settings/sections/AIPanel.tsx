@@ -1,72 +1,77 @@
 import { useAtom } from "jotai";
 import { Button, Toggle } from "@read-aware/ui";
 import { aiPreferencesAtom } from "../../../state/ui";
+import { useTranslation } from "../../../i18n";
 import { AIConfigPanel } from "../components/AIConfigPanel";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
 import { PendingBadge } from "../components/PendingBadge";
-import { AI_FEATURE_META } from "../lib/ai-preferences";
+import { AI_FEATURE_KEYS } from "../lib/ai-preferences";
 
 export function AIPanel() {
+  const { t } = useTranslation("settings");
   const [prefs, setPrefs] = useAtom(aiPreferencesAtom);
 
   return (
     <SettingsPage
-      title="AI"
-      description="Bring your own model key, then choose what the assistant can do and what it may see."
+      title={t("ai.title")}
+      description={t("ai.description")}
     >
-      <SettingsGroup title="Connection">
+      <SettingsGroup title={t("ai.connection")}>
         <AIConfigPanel />
       </SettingsGroup>
 
       <SettingsGroup
-        title="Features"
-        description="Reader assistance, switched on per capability as each one ships."
+        title={t("ai.features.title")}
+        description={t("ai.features.description")}
       >
-        {AI_FEATURE_META.map((feature, index) => (
-          <SettingsRow
-            key={feature.key}
-            borderless={index === 0}
-            title={feature.label}
-            description={feature.description}
-            control={
-              <Toggle
-                aria-label={feature.label}
-                checked={prefs.features[feature.key]}
-                onChange={(enabled) =>
-                  setPrefs({
-                    ...prefs,
-                    features: { ...prefs.features, [feature.key]: enabled },
-                  })
-                }
-              />
-            }
-          />
-        ))}
+        {AI_FEATURE_KEYS.map((key, index) => {
+          const label = t(`ai.featureList.${key}.label`);
+          return (
+            <SettingsRow
+              key={key}
+              borderless={index === 0}
+              title={label}
+              description={t(`ai.featureList.${key}.description`)}
+              control={
+                <Toggle
+                  aria-label={label}
+                  checked={prefs.features[key]}
+                  onChange={(enabled) =>
+                    setPrefs({
+                      ...prefs,
+                      features: { ...prefs.features, [key]: enabled },
+                    })
+                  }
+                />
+              }
+            />
+          );
+        })}
       </SettingsGroup>
 
-      <SettingsGroup title="Memory">
+      <SettingsGroup title={t("ai.memory")}>
         <SettingsRow
           borderless
-          title="Build long-term memory"
-          description="Let ReadAware learn a durable profile from your reading and notes over time."
+          title={t("ai.buildMemory.title")}
+          description={t("ai.buildMemory.description")}
           control={
             <Toggle
-              aria-label="Build long-term memory"
+              aria-label={t("ai.buildMemory.title")}
               checked={prefs.buildMemory}
               onChange={(buildMemory) => setPrefs({ ...prefs, buildMemory })}
             />
           }
         />
         <SettingsRow
-          title="Stored memory"
-          description="Review or erase everything ReadAware has remembered about you."
+          title={t("ai.storedMemory.title")}
+          description={t("ai.storedMemory.description")}
           control={
             <span className="flex items-center gap-2">
               <PendingBadge />
               <Button variant="outline" size="sm" disabled>
-                Clear memory
+                {t("ai.clearMemory")}
               </Button>
             </span>
           }
@@ -74,27 +79,27 @@ export function AIPanel() {
       </SettingsGroup>
 
       <SettingsGroup
-        title="Privacy"
-        description="Control what leaves your device when an AI feature runs."
+        title={t("ai.privacy.title")}
+        description={t("ai.privacy.description")}
       >
         <SettingsRow
           borderless
-          title="Send highlighted text"
-          description="Include the passage you selected in the request."
+          title={t("ai.sendHighlightedText.title")}
+          description={t("ai.sendHighlightedText.description")}
           control={
             <Toggle
-              aria-label="Send highlighted text"
+              aria-label={t("ai.sendHighlightedText.title")}
               checked={prefs.sendHighlightedText}
               onChange={(sendHighlightedText) => setPrefs({ ...prefs, sendHighlightedText })}
             />
           }
         />
         <SettingsRow
-          title="Send surrounding context"
-          description="Include nearby paragraphs so answers stay grounded in the text."
+          title={t("ai.sendSurroundingContext.title")}
+          description={t("ai.sendSurroundingContext.description")}
           control={
             <Toggle
-              aria-label="Send surrounding context"
+              aria-label={t("ai.sendSurroundingContext.title")}
               checked={prefs.sendSurroundingContext}
               onChange={(sendSurroundingContext) =>
                 setPrefs({ ...prefs, sendSurroundingContext })
@@ -103,11 +108,11 @@ export function AIPanel() {
           }
         />
         <SettingsRow
-          title="Local-only mode"
-          description="Never call a remote model. AI features stay off until a local model is available."
+          title={t("ai.localOnly.title")}
+          description={t("ai.localOnly.description")}
           control={
             <Toggle
-              aria-label="Local-only mode"
+              aria-label={t("ai.localOnly.title")}
               checked={prefs.localOnly}
               onChange={(localOnly) => setPrefs({ ...prefs, localOnly })}
             />

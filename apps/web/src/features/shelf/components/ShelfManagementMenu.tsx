@@ -3,29 +3,18 @@ import { Check, Rows, SlidersHorizontal, SquaresFour } from "@phosphor-icons/rea
 import { ChoiceGroup, Divider, Popover } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useAtom } from "jotai";
+import { useTranslation } from "../../../i18n";
 import { shelfViewAtom } from "../../../state/ui";
 import type { ShelfGroup, ShelfLayout, ShelfSort } from "../lib/shelf-view";
 import { useShelfSelection } from "../hooks/useShelfSelection";
 
-const LAYOUT_OPTIONS: { value: ShelfLayout; label: string; icon: ReactNode }[] = [
-  { value: "grid", label: "Grid", icon: <SquaresFour size={15} weight="regular" /> },
-  { value: "list", label: "List", icon: <Rows size={15} weight="regular" /> },
+const LAYOUT_ICONS: { value: ShelfLayout; icon: ReactNode }[] = [
+  { value: "grid", icon: <SquaresFour size={15} weight="regular" /> },
+  { value: "list", icon: <Rows size={15} weight="regular" /> },
 ];
 
-const GROUP_OPTIONS: { value: ShelfGroup; label: string }[] = [
-  { value: "none", label: "None" },
-  { value: "status", label: "Reading status" },
-  { value: "author", label: "Author" },
-  { value: "format", label: "Format" },
-];
-
-const SORT_OPTIONS: { value: ShelfSort; label: string }[] = [
-  { value: "recent", label: "Recently opened" },
-  { value: "added", label: "Recently added" },
-  { value: "title", label: "Title" },
-  { value: "author", label: "Author" },
-  { value: "progress", label: "Progress" },
-];
+const GROUP_VALUES: ShelfGroup[] = ["none", "status", "author", "format"];
+const SORT_VALUES: ShelfSort[] = ["recent", "added", "title", "author", "progress"];
 
 const groupEyebrow = "mb-1.5 font-sans text-[13px] font-medium text-fg-muted";
 
@@ -70,44 +59,52 @@ function OptionRows<T extends string>({ label, value, options, onChange }: Optio
  * Starring is per-book and lives on the cards/rows, not here.
  */
 export function ShelfManagementMenu() {
+  const { t } = useTranslation("shelf");
   const [view, setView] = useAtom(shelfViewAtom);
   const { enter } = useShelfSelection();
   const [open, setOpen] = useState(false);
+
+  const layoutOptions = LAYOUT_ICONS.map((option) => ({
+    ...option,
+    label: t(`layout.${option.value}`),
+  }));
+  const groupOptions = GROUP_VALUES.map((value) => ({ value, label: t(`group.${value}`) }));
+  const sortOptions = SORT_VALUES.map((value) => ({ value, label: t(`sort.${value}`) }));
 
   return (
     <Popover
       open={open}
       onOpenChange={setOpen}
       align="right"
-      triggerLabel="Shelf management"
-      triggerTooltip="Shelf management"
+      triggerLabel={t("manage.trigger")}
+      triggerTooltip={t("manage.trigger")}
       triggerClassName="h-7 w-7 items-center justify-center text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
       trigger={<SlidersHorizontal size={16} weight="regular" aria-hidden="true" />}
     >
       <div className="w-56">
         <ChoiceGroup
-          label="Layout"
+          label={t("manage.layout")}
           value={view.layout}
-          options={LAYOUT_OPTIONS}
+          options={layoutOptions}
           onChange={(layout) => setView({ ...view, layout })}
         />
         <Divider className="-mx-4 my-3" />
         <OptionRows
-          label="Group by"
+          label={t("manage.groupBy")}
           value={view.group}
-          options={GROUP_OPTIONS}
+          options={groupOptions}
           onChange={(group) => setView({ ...view, group })}
         />
         <Divider className="-mx-4 my-3" />
         <OptionRows
-          label="Sort by"
+          label={t("manage.sortBy")}
           value={view.sort}
-          options={SORT_OPTIONS}
+          options={sortOptions}
           onChange={(sort) => setView({ ...view, sort })}
         />
         <Divider className="-mx-4 my-3" />
         <div>
-          <p className={groupEyebrow}>Management</p>
+          <p className={groupEyebrow}>{t("manage.management")}</p>
           <div className="-mx-1.5 flex flex-col">
             <button
               type="button"
@@ -117,7 +114,7 @@ export function ShelfManagementMenu() {
               }}
               className="flex items-center rounded-md px-1.5 py-1.5 text-left font-sans text-sm text-fg-muted transition-colors hover:bg-fg/5 hover:text-fg"
             >
-              Select books
+              {t("manage.selectBooks")}
             </button>
           </div>
         </div>

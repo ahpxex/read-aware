@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocalAtom } from "./lib/useLocalAtom";
 import { cn } from "./lib/cn";
 
@@ -34,12 +35,13 @@ export function Tabs({
   activeIndex: controlledIndex,
   onActiveIndexChange,
   variant = "underline",
-  ariaLabel = "Tabs",
+  ariaLabel,
   stretch = false,
   fill = false,
   className,
   tabListClassName,
 }: TabsProps) {
+  const { t } = useTranslation("ui");
   const [internalIndex, setInternalIndex] = useLocalAtom(defaultIndex);
   const isControlled = controlledIndex != null;
   const activeIndex = isControlled ? controlledIndex : internalIndex;
@@ -137,7 +139,7 @@ export function Tabs({
       <div
         ref={tabListRef}
         role="tablist"
-        aria-label={ariaLabel}
+        aria-label={ariaLabel ?? t("tabs")}
         onKeyDown={handleKeyDown}
         className={cn(
           "flex",

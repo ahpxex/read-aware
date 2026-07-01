@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
+import { useTranslation } from "../../../i18n";
 import { buildCommands, type CommandContext, type CommandItem } from "../lib/build-commands";
 import { filterCommands } from "../lib/filter-commands";
 
@@ -16,16 +17,18 @@ type CommandPaletteProps = {
  * context, ranked by query relevance, and grouped into sections.
  */
 export function CommandPalette({ isOpen, onClose, ctx }: CommandPaletteProps) {
+  const { t } = useTranslation("command");
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   const items = useMemo(
-    () => (isOpen ? buildCommands(ctx) : []),
-    // Rebuild only when the underlying data changes (actions are stable setters).
+    () => (isOpen ? buildCommands(ctx, t) : []),
+    // Rebuild when the underlying data changes (actions are stable setters) or
+    // the language switches (labels/keywords are translated).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isOpen, ctx.activeTopNav, ctx.shelfView, ctx.collections, ctx.books],
+    [isOpen, ctx.activeTopNav, ctx.shelfView, ctx.collections, ctx.books, t],
   );
   const groups = useMemo(() => filterCommands(items, query), [items, query]);
   const flat = useMemo(() => groups.flatMap((group) => group.items), [groups]);
@@ -104,7 +107,7 @@ export function CommandPalette({ isOpen, onClose, ctx }: CommandPaletteProps) {
             type="text"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search books, collections, commands…"
+            placeholder={t("search.placeholder")}
             className="flex-1 bg-transparent text-base text-fg outline-none placeholder:text-fg-subtle"
           />
         </div>
@@ -112,13 +115,13 @@ export function CommandPalette({ isOpen, onClose, ctx }: CommandPaletteProps) {
         <div ref={listRef} className="max-h-[55vh] overflow-y-auto py-2">
           {flat.length === 0 ? (
             <div className="px-4 py-12 text-center text-sm text-fg-muted">
-              No matches for “{query}”
+              {t("noMatches", { query })}
             </div>
           ) : (
             groups.map((group) => (
               <div key={group.group} className="mb-1">
                 <div className="px-4 pb-1 pt-2 text-xs lowercase text-fg-subtle">
-                  {group.group}
+                  {t(`groups.${group.group}`)}
                 </div>
                 {group.items.map((item) => {
                   runningIndex += 1;
@@ -176,11 +179,11 @@ export function CommandPalette({ isOpen, onClose, ctx }: CommandPaletteProps) {
         </div>
 
         <div className="flex items-center justify-between border-t border-border px-4 py-2 text-xs text-fg-subtle">
-          <span>{flat.length} result{flat.length === 1 ? "" : "s"}</span>
+          <span>{t("results", { count: flat.length })}</span>
           <div className="flex gap-3">
-            <span>↑↓ Navigate</span>
-            <span>↵ Run</span>
-            <span>Esc Close</span>
+            <span>{t("footer.navigate")}</span>
+            <span>{t("footer.run")}</span>
+            <span>{t("footer.close")}</span>
           </div>
         </div>
       </div>

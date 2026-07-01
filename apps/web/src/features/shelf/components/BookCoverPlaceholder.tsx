@@ -1,4 +1,5 @@
 import { cn } from "@read-aware/ui/cn";
+import { useTranslation } from "../../../i18n";
 import type { BookFormat } from "../../library/lib/library-types";
 
 type BookCoverPlaceholderProps = {
@@ -38,12 +39,13 @@ export function BookCoverPlaceholder({
   format,
   className,
 }: BookCoverPlaceholderProps) {
+  const { t } = useTranslation("shelf");
   const surface = surfaceForTitle(title || "Untitled");
 
   return (
     <div
       role="img"
-      aria-label={`${title} cover`}
+      aria-label={t("book.cover", { title })}
       className={cn(
         "flex h-full w-full select-none flex-col justify-between p-4",
         surface.bg,

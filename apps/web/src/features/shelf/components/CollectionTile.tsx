@@ -1,5 +1,6 @@
 import { CaretRight, FolderSimple } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
+import { useTranslation } from "../../../i18n";
 import type { ShelfLayout } from "../lib/shelf-view";
 
 export type CollectionTileData = {
@@ -44,7 +45,8 @@ function Montage({ coverUrls, className }: { coverUrls: string[]; className?: st
  * the collection on click.
  */
 export function CollectionTile({ data, layout, onOpen }: CollectionTileProps) {
-  const countLabel = `${data.count} book${data.count === 1 ? "" : "s"}`;
+  const { t } = useTranslation("shelf");
+  const countLabel = t("books", { count: data.count });
 
   if (layout === "list") {
     return (

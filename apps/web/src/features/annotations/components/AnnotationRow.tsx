@@ -1,5 +1,6 @@
 import { NotePencil, Trash } from "@phosphor-icons/react";
 import { IconButton } from "@read-aware/ui";
+import { formatDate, useTranslation } from "../../../i18n";
 import { HIGHLIGHT_COLORS } from "../../reader/lib/highlight-renderer";
 import type { Annotation, Highlight, Note } from "../lib/annotation-types";
 
@@ -18,7 +19,7 @@ function AnnotationIcon({ annotation }: { annotation: Annotation }) {
 }
 
 function formatTimestamp(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return formatDate(new Date(iso), { month: "short", day: "numeric" });
 }
 
 /**
@@ -35,6 +36,7 @@ export function AnnotationRow({
   onNavigate: (cfiRange: string) => void;
   onDelete: (id: string) => void;
 }) {
+  const { t } = useTranslation("ai");
   return (
     <div className="group flex items-start gap-2 rounded-md p-2 transition-colors hover:bg-fg/5">
       <button
@@ -60,7 +62,7 @@ export function AnnotationRow({
         </div>
       </button>
       <IconButton
-        label="Delete"
+        label={t("annotation.delete")}
         size="sm"
         onClick={() => onDelete(annotation.id)}
         className="shrink-0 text-fg-subtle opacity-0 hover:text-red-600 group-hover:opacity-100"

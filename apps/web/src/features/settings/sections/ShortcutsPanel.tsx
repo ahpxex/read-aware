@@ -4,6 +4,7 @@ import { useAtom } from "jotai";
 import { IconButton, Kbd } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { shortcutBindingsAtom } from "../../../state/ui";
+import { useTranslation } from "../../../i18n";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
@@ -20,9 +21,12 @@ import {
 
 const CATEGORIES = ["Global", "Reading", "Selection", "Overlays"] as const;
 
-/** Per-category helper text shown under the group title, where it helps. */
-const CATEGORY_DESCRIPTIONS: Partial<Record<(typeof CATEGORIES)[number], string>> = {
-  Selection: "Active while text is selected in the reader.",
+/** Catalog keys for per-category helper text, shown under the group title where
+ *  it helps. Categories without an entry render no description. */
+const CATEGORY_DESCRIPTION_KEYS: Partial<
+  Record<(typeof CATEGORIES)[number], "shortcuts.categoryDescriptions.selection">
+> = {
+  Selection: "shortcuts.categoryDescriptions.selection",
 };
 
 function KeyTokens({ tokens }: { tokens: string[] }) {
@@ -39,8 +43,9 @@ function KeyTokens({ tokens }: { tokens: string[] }) {
 }
 
 export function ShortcutsPanel() {
+  const { t } = useTranslation("settings");
   const [bindings, setBindings] = useAtom(shortcutBindingsAtom);
-  const [conflict, setConflict] = useState<{ id: ShortcutId; label: string } | null>(null);
+  const [conflict, setConflict] = useState<{ id: ShortcutId; conflictId: ShortcutId } | null>(null);
 
   const onCapture = useCallback(
     (id: ShortcutId, chord: KeyChord) => {
@@ -50,7 +55,7 @@ export function ShortcutsPanel() {
           shortcut.id !== id && chordSignature(resolveBinding(shortcut.id, bindings)) === signature,
       );
       if (clash) {
-        setConflict({ id, label: clash.label });
+        setConflict({ id, conflictId: clash.id });
         return;
       }
       setConflict(null);
@@ -80,35 +85,40 @@ export function ShortcutsPanel() {
 
   return (
     <SettingsPage
-      title="Shortcuts"
-      description="Click a shortcut to rebind it; press Esc while recording to cancel."
+      title={t("shortcuts.title")}
+      description={t("shortcuts.description")}
     >
       {CATEGORIES.map((category) => {
         const editable = EDITABLE_SHORTCUTS.filter((shortcut) => shortcut.category === category);
         const info = INFO_SHORTCUTS.filter((shortcut) => shortcut.category === category);
         if (!editable.length && !info.length) return null;
 
+        const descriptionKey = CATEGORY_DESCRIPTION_KEYS[category];
+
         return (
           <SettingsGroup
             key={category}
-            title={category}
-            description={CATEGORY_DESCRIPTIONS[category]}
+            title={t(`shortcuts.categories.${category}`)}
+            description={descriptionKey ? t(descriptionKey) : undefined}
           >
             {editable.map((shortcut, index) => {
               const binding = resolveBinding(shortcut.id, bindings);
               const overridden = bindings[shortcut.id] !== undefined;
               const recording = recordingId === shortcut.id;
               const showConflict = conflict?.id === shortcut.id;
+              const label = t(`shortcuts.actions.${shortcut.id}`);
 
               return (
                 <SettingsRow
                   key={shortcut.id}
                   borderless={index === 0}
-                  title={shortcut.label}
+                  title={label}
                   description={
-                    showConflict && !recording ? (
+                    showConflict && conflict && !recording ? (
                       <span className="text-red-600 dark:text-red-400">
-                        Already used by “{conflict?.label}”
+                        {t("shortcuts.conflict", {
+                          label: t(`shortcuts.actions.${conflict.conflictId}`),
+                        })}
                       </span>
                     ) : undefined
                   }
@@ -116,7 +126,7 @@ export function ShortcutsPanel() {
                     <span className="flex items-center gap-1.5">
                       <button
                         type="button"
-                        aria-label={`Rebind ${shortcut.label}`}
+                        aria-label={t("shortcuts.rebind", { label })}
                         onClick={() => {
                           if (recording) {
                             cancel();
@@ -137,7 +147,7 @@ export function ShortcutsPanel() {
                               className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-fg-subtle"
                             />
                             <span className="font-sans text-[13px] text-fg-muted">
-                              Press a shortcut…
+                              {t("shortcuts.recording")}
                             </span>
                           </span>
                         ) : (
@@ -146,7 +156,7 @@ export function ShortcutsPanel() {
                       </button>
                       {overridden && !recording && (
                         <IconButton
-                          label={`Reset ${shortcut.label}`}
+                          label={t("shortcuts.reset", { label })}
                           size="sm"
                           onClick={() => reset(shortcut.id)}
                           icon={<ArrowCounterClockwise size={14} aria-hidden="true" />}
@@ -162,7 +172,7 @@ export function ShortcutsPanel() {
               <SettingsRow
                 key={shortcut.id}
                 borderless={index === 0 && editable.length === 0}
-                title={shortcut.label}
+                title={t(`shortcuts.actions.${shortcut.id}`)}
                 control={<KeyTokens tokens={shortcut.keys} />}
               />
             ))}
@@ -176,7 +186,7 @@ export function ShortcutsPanel() {
           onClick={resetAll}
           className="font-sans text-[13px] text-fg-muted underline-offset-2 transition-colors hover:text-fg hover:underline"
         >
-          Reset all to defaults
+          {t("shortcuts.resetAll")}
         </button>
       )}
     </SettingsPage>

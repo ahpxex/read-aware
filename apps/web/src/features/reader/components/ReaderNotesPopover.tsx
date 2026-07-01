@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Notebook } from "@phosphor-icons/react";
 import { Body, Eyebrow, Popover } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
+import { formatNumber, useTranslation } from "../../../i18n";
 import { AnnotationRow } from "../../annotations/components/AnnotationRow";
 import type { Annotation } from "../../annotations/lib/annotation-types";
 import { normalizeHref } from "../lib/epub-utils";
@@ -50,6 +51,7 @@ export function ReaderNotesPopover({
   onNavigate,
   onDelete,
 }: ReaderNotesPopoverProps) {
+  const { t } = useTranslation("reader");
   const [open, setOpen] = useState(false);
   const groups = groupByTocOrder(annotations, tocEntries);
 
@@ -59,8 +61,8 @@ export function ReaderNotesPopover({
       onOpenChange={setOpen}
       align="left"
       className="pointer-events-auto"
-      triggerLabel="Notes"
-      triggerTooltip="Notes"
+      triggerLabel={t("notes")}
+      triggerTooltip={t("notes")}
       triggerClassName={cn(TRIGGER_CLASS, open && "text-fg")}
       trigger={
         <Notebook size={18} weight={open ? "bold" : "regular"} aria-hidden="true" />
@@ -68,14 +70,16 @@ export function ReaderNotesPopover({
       panelClassName="flex max-h-[min(28rem,70vh)] w-[clamp(18rem,28vw,26rem)] flex-col overflow-hidden p-0"
     >
       <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-2.5">
-        <Eyebrow as="span">Notes</Eyebrow>
-        <span className="text-xs tabular-nums text-fg-subtle">{annotations.length}</span>
+        <Eyebrow as="span">{t("notes")}</Eyebrow>
+        <span className="text-xs tabular-nums text-fg-subtle">
+          {formatNumber(annotations.length)}
+        </span>
       </div>
 
       {annotations.length === 0 ? (
         <div className="px-4 py-8">
           <Body className="text-center text-sm text-fg-muted">
-            No highlights or notes yet. Select text in the reader to mark it.
+            {t("emptyNotes")}
           </Body>
         </div>
       ) : (

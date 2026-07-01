@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { cn } from "./lib/cn";
 
 type SkeletonProps = {
@@ -15,9 +16,10 @@ export function Skeleton({
   lines = 1,
   className,
 }: SkeletonProps) {
+  const { t } = useTranslation("ui");
   if (variant === "text" && lines > 1) {
     return (
-      <div role="status" aria-label="Loading" className={cn("flex flex-col gap-2", className)}>
+      <div role="status" aria-label={t("loading")} className={cn("flex flex-col gap-2", className)}>
         {Array.from({ length: lines }).map((_, i) => (
           <div
             key={i}
@@ -35,7 +37,7 @@ export function Skeleton({
   return (
     <div
       role="status"
-      aria-label="Loading"
+      aria-label={t("loading")}
       className={cn(
         "animate-pulse bg-fill-strong",
         variant === "text" && "h-4 rounded",

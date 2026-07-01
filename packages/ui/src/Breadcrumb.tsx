@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { cn } from "./lib/cn";
 
 type BreadcrumbItem = {
@@ -17,8 +18,9 @@ export function Breadcrumb({
   separator = "/",
   className,
 }: BreadcrumbProps) {
+  const { t } = useTranslation("ui");
   return (
-    <nav aria-label="Breadcrumb" className={className}>
+    <nav aria-label={t("breadcrumb")} className={className}>
       <ol className="flex items-center gap-1.5 font-sans text-sm">
         {items.map((item, i) => {
           const isLast = i === items.length - 1;

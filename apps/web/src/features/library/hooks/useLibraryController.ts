@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
+import type { TFunction } from "i18next";
+import { useTranslation } from "../../../i18n";
 import { formatLibraryError } from "../lib/format-library-error";
 import {
   createCollection,
@@ -16,12 +18,16 @@ import { createProgressPatch } from "../lib/library-progress";
 import { canUseNativeFilePicker, pickBookFilesNative } from "../lib/pick-book-files";
 import type { BookProgress, Collection, LibraryBook } from "../lib/library-types";
 
-function formatImportNotice(imported: number, duplicates: string[]): string {
-  const skipped =
-    duplicates.length === 1
-      ? `“${duplicates[0]}” is already in your library.`
-      : `Skipped ${duplicates.length} books already in your library.`;
-  return imported > 0 ? `${skipped} Imported ${imported} new.` : skipped;
+function formatImportNotice(
+  imported: number,
+  duplicates: string[],
+  t: TFunction<"shelf">,
+): string {
+  const skipped = t("importNotice.duplicate", {
+    count: duplicates.length,
+    title: duplicates[0],
+  });
+  return imported > 0 ? t("importNotice.combined", { skipped, count: imported }) : skipped;
 }
 
 export function useLibraryController() {
@@ -33,8 +39,14 @@ export function useLibraryController() {
   const [importNotice, setImportNotice] = useState<string | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Keep the latest translator in a ref so the callbacks below stay stable
+  // (deps free of `t`) yet always format errors/notices in the active language.
+  const { t } = useTranslation("shelf");
+  const tRef = useRef(t);
+  tRef.current = t;
+
   const reportError = useCallback((error: unknown) => {
-    setLibraryError(formatLibraryError(error));
+    setLibraryError(formatLibraryError(error, tRef.current));
   }, []);
 
   const replaceBookInState = useCallback((nextBook: LibraryBook) => {
@@ -142,14 +154,14 @@ export function useLibraryController() {
     const duplicates: string[] = [];
     try {
       for (const file of files) {
-        const result = await importBookFile(file);
+        const result = await importBookFile(file, tRef.current);
         if (result.status === "duplicate") duplicates.push(result.book.title);
         else imported += 1;
       }
 
       setBooks(await listLibraryBooks());
       if (duplicates.length > 0) {
-        setImportNotice(formatImportNotice(imported, duplicates));
+        setImportNotice(formatImportNotice(imported, duplicates, tRef.current));
       }
     } catch (error) {
       reportError(error);
@@ -163,7 +175,7 @@ export function useLibraryController() {
     // native OS dialog (with a real Books format filter) instead. Web/dev falls
     // back to the hidden file input.
     if (canUseNativeFilePicker()) {
-      void pickBookFilesNative().then(importFiles).catch(reportError);
+      void pickBookFilesNative(tRef.current).then(importFiles).catch(reportError);
       return;
     }
 

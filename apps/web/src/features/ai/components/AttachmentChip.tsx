@@ -1,6 +1,7 @@
 import { Quotes, X } from "@phosphor-icons/react";
 import { IconButton } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
+import { useTranslation } from "../../../i18n";
 import type { ChatSelectionAttachment } from "../lib/chat-types";
 
 /**
@@ -17,6 +18,7 @@ export function AttachmentChip({
   onRemove?: () => void;
   className?: string;
 }) {
+  const { t } = useTranslation("ai");
   return (
     <div
       className={cn(
@@ -35,7 +37,7 @@ export function AttachmentChip({
       </span>
       {onRemove && (
         <IconButton
-          label="Remove passage"
+          label={t("chat.removePassage")}
           size="sm"
           onClick={onRemove}
           className="-my-0.5 -mr-1 shrink-0 text-fg-subtle hover:text-fg"

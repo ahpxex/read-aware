@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import type { LibraryBook, ShelfSection } from "../../library/lib/library-types";
 import type { ShelfGroup, ShelfSort, ShelfView } from "./shelf-view";
 
@@ -28,14 +29,21 @@ function comparator(sort: ShelfSort): (a: LibraryBook, b: LibraryBook) => number
   }
 }
 
-const STATUS_ORDER: { key: LibraryBook["readingStatus"]; label: string }[] = [
-  { key: "reading", label: "Currently Reading" },
-  { key: "unread", label: "Up Next" },
-  { key: "finished", label: "Finished" },
-];
+const STATUS_ORDER: LibraryBook["readingStatus"][] = ["reading", "unread", "finished"];
 
-function groupLabel(book: LibraryBook, group: ShelfGroup): string {
-  if (group === "author") return book.author || "Unknown author";
+function statusLabel(status: LibraryBook["readingStatus"], t: TFunction<"shelf">): string {
+  switch (status) {
+    case "reading":
+      return t("groupSection.reading");
+    case "unread":
+      return t("groupSection.unread");
+    case "finished":
+      return t("groupSection.finished");
+  }
+}
+
+function groupLabel(book: LibraryBook, group: ShelfGroup, t: TFunction<"shelf">): string {
+  if (group === "author") return book.author || t("groupSection.unknownAuthor");
   if (group === "format") return book.format.toUpperCase();
   return "";
 }
@@ -46,7 +54,11 @@ function groupLabel(book: LibraryBook, group: ShelfGroup): string {
  * groupings yield labeled sections. Books are sorted before grouping, so order
  * is preserved within each section.
  */
-export function deriveShelfView(books: LibraryBook[], view: ShelfView): ShelfSection[] {
+export function deriveShelfView(
+  books: LibraryBook[],
+  view: ShelfView,
+  t: TFunction<"shelf">,
+): ShelfSection[] {
   const sorted = [...books].sort(withStarredFirst(comparator(view.sort)));
 
   if (view.group === "none") {
@@ -55,14 +67,17 @@ export function deriveShelfView(books: LibraryBook[], view: ShelfView): ShelfSec
 
   if (view.group === "status") {
     return STATUS_ORDER
-      .map(({ key, label }) => ({ label, books: sorted.filter((book) => book.readingStatus === key) }))
+      .map((key) => ({
+        label: statusLabel(key, t),
+        books: sorted.filter((book) => book.readingStatus === key),
+      }))
       .filter((section) => section.books.length > 0);
   }
 
   // author / format: bucket in sorted order, then order the groups alphabetically.
   const groups = new Map<string, LibraryBook[]>();
   for (const book of sorted) {
-    const label = groupLabel(book, view.group);
+    const label = groupLabel(book, view.group, t);
     const bucket = groups.get(label);
     if (bucket) bucket.push(book);
     else groups.set(label, [book]);

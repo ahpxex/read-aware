@@ -1,68 +1,76 @@
 import { useAtom } from "jotai";
 import { ChoiceGroup, Select, Toggle } from "@read-aware/ui";
 import { generalSettingsAtom } from "../../../state/ui";
+import { LOCALES, LOCALE_LABELS, setLocale, useLocale, useTranslation } from "../../../i18n";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
 import type { StartView } from "../lib/general-settings";
 
-const START_VIEW_OPTIONS: { value: StartView; label: string }[] = [
-  { value: "shelf", label: "Library shelf" },
-  { value: "resume", label: "Resume last book" },
-];
+const START_VIEW_VALUES: StartView[] = ["shelf", "resume"];
 
-const LANGUAGE_OPTIONS = [{ value: "en", label: "English" }];
+const LANGUAGE_OPTIONS = LOCALES.map((locale) => ({
+  value: locale,
+  label: LOCALE_LABELS[locale],
+}));
 
 export function GeneralPanel() {
+  const { t } = useTranslation("settings");
   const [settings, setSettings] = useAtom(generalSettingsAtom);
+  const activeLocale = useLocale();
+
+  const startViewOptions = START_VIEW_VALUES.map((value) => ({
+    value,
+    label: t(`general.startViewOptions.${value}`),
+  }));
 
   return (
     <SettingsPage
-      title="General"
-      description="App-wide behavior — what opens on launch, language, and desktop integration."
+      title={t("general.title")}
+      description={t("general.description")}
     >
-      <SettingsGroup title="On launch">
+      <SettingsGroup title={t("general.onLaunch")}>
         <ChoiceGroup
-          label="Start view"
+          label={t("general.startView")}
           value={settings.startView}
-          options={START_VIEW_OPTIONS}
+          options={startViewOptions}
           onChange={(startView) => setSettings({ ...settings, startView })}
         />
       </SettingsGroup>
 
       <SettingsGroup
-        title="Desktop integration"
-        description="Stored here and applied by the desktop app. No effect in the browser preview."
+        title={t("general.desktopIntegration.title")}
+        description={t("general.desktopIntegration.description")}
       >
         <SettingsRow
           borderless
-          title="Launch at startup"
-          description="Open ReadAware automatically when you sign in."
+          title={t("general.desktopIntegration.launchAtStartup.title")}
+          description={t("general.desktopIntegration.launchAtStartup.description")}
           control={
             <Toggle
-              aria-label="Launch at startup"
+              aria-label={t("general.desktopIntegration.launchAtStartup.title")}
               checked={settings.launchAtStartup}
               onChange={(launchAtStartup) => setSettings({ ...settings, launchAtStartup })}
             />
           }
         />
         <SettingsRow
-          title="File associations"
-          description="Open EPUB, MOBI, AZW3, FB2 and PDF files with ReadAware."
+          title={t("general.desktopIntegration.fileAssociations.title")}
+          description={t("general.desktopIntegration.fileAssociations.description")}
           control={
             <Toggle
-              aria-label="File associations"
+              aria-label={t("general.desktopIntegration.fileAssociations.title")}
               checked={settings.fileAssociations}
               onChange={(fileAssociations) => setSettings({ ...settings, fileAssociations })}
             />
           }
         />
         <SettingsRow
-          title="Automatic updates"
-          description="Download and install new versions in the background."
+          title={t("general.desktopIntegration.autoUpdate.title")}
+          description={t("general.desktopIntegration.autoUpdate.description")}
           control={
             <Toggle
-              aria-label="Automatic updates"
+              aria-label={t("general.desktopIntegration.autoUpdate.title")}
               checked={settings.autoUpdate}
               onChange={(autoUpdate) => setSettings({ ...settings, autoUpdate })}
             />
@@ -70,22 +78,25 @@ export function GeneralPanel() {
         />
       </SettingsGroup>
 
-      <SettingsGroup title="Language & privacy">
+      <SettingsGroup title={t("general.languagePrivacy")}>
         <div className="pb-1">
           <Select
-            label="Language"
-            value={settings.language}
-            onChange={() => undefined}
+            label={t("general.language")}
+            value={settings.language ?? activeLocale}
+            onChange={(language) => {
+              const next = language as (typeof LOCALES)[number];
+              setSettings({ ...settings, language: next });
+              setLocale(next);
+            }}
             options={LANGUAGE_OPTIONS}
-            disabled
           />
         </div>
         <SettingsRow
-          title="Send anonymous crash reports"
-          description="Share crash diagnostics to help fix stability issues. Off by default."
+          title={t("general.crashReports.title")}
+          description={t("general.crashReports.description")}
           control={
             <Toggle
-              aria-label="Send anonymous crash reports"
+              aria-label={t("general.crashReports.title")}
               checked={settings.crashReports}
               onChange={(crashReports) => setSettings({ ...settings, crashReports })}
             />

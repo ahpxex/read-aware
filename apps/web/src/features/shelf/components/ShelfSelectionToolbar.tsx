@@ -2,6 +2,7 @@ import { createPortal } from "react-dom";
 import { FolderPlus, Trash } from "@phosphor-icons/react";
 import { Button, IconButton, Tooltip } from "@read-aware/ui";
 import { useLocalAtom } from "@read-aware/ui/state";
+import { useTranslation } from "../../../i18n";
 import type { Collection } from "../../library/lib/library-types";
 import { AddToCollectionDialog } from "./AddToCollectionDialog";
 import { BooksRemoveDialog } from "./BookDialogs";
@@ -37,6 +38,7 @@ export function ShelfSelectionToolbar({
   onRemove,
   onDone,
 }: ShelfSelectionToolbarProps) {
+  const { t } = useTranslation("shelf");
   const [removeOpen, setRemoveOpen] = useLocalAtom(false);
   const [collectionOpen, setCollectionOpen] = useLocalAtom(false);
   const allSelected = total > 0 && count === total;
@@ -45,29 +47,29 @@ export function ShelfSelectionToolbar({
   return createPortal(
     <div className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2">
       <div className="flex items-center gap-1 rounded-xl border border-border bg-[var(--ra-main-surface-color)] py-1.5 pl-4 pr-2 shadow-lg">
-        <span className="text-sm font-medium text-fg tabular-nums">{count} selected</span>
+        <span className="text-sm font-medium text-fg tabular-nums">{t("toolbar.selected", { count })}</span>
         <button
           type="button"
           onClick={allSelected ? onClear : onSelectAll}
           className="ml-2 text-sm text-fg-muted transition-colors hover:text-fg"
         >
-          {allSelected ? "Clear" : "Select all"}
+          {allSelected ? t("toolbar.clear") : t("toolbar.selectAll")}
         </button>
 
         <span className="mx-1.5 h-5 w-px bg-border" aria-hidden="true" />
 
-        <Tooltip content="Add to collection" side="top">
+        <Tooltip content={t("toolbar.addToCollection")} side="top">
           <IconButton
-            label="Add selected to collection"
+            label={t("toolbar.addSelected")}
             size="sm"
             disabled={disabled}
             onClick={() => setCollectionOpen(true)}
             icon={<FolderPlus size={16} weight="regular" aria-hidden="true" />}
           />
         </Tooltip>
-        <Tooltip content="Remove" side="top">
+        <Tooltip content={t("toolbar.removeTooltip")} side="top">
           <IconButton
-            label="Remove selected"
+            label={t("toolbar.removeSelected")}
             size="sm"
             disabled={disabled}
             onClick={() => setRemoveOpen(true)}
@@ -79,7 +81,7 @@ export function ShelfSelectionToolbar({
         <span className="mx-1.5 h-5 w-px bg-border" aria-hidden="true" />
 
         <Button variant="ghost" size="sm" onClick={onDone}>
-          Done
+          {t("actions.done")}
         </Button>
       </div>
 

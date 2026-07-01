@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { X } from "@phosphor-icons/react";
 import { IconButton } from "@read-aware/ui";
+import { useTranslation } from "../../../i18n";
 import { useAnchoredMenuPosition } from "../hooks/useAnchoredMenuPosition";
 import type { SelectionOverlayRect } from "../lib/selection-overlay";
 
@@ -23,6 +24,7 @@ export function ReaderFootnotePopover({
   text,
   onClose,
 }: ReaderFootnotePopoverProps) {
+  const { t } = useTranslation("reader");
   const { containerRef, menuRef, position } = useAnchoredMenuPosition(anchorRect);
 
   useEffect(() => {
@@ -40,7 +42,7 @@ export function ReaderFootnotePopover({
     <div ref={containerRef} className="absolute inset-0 z-30 overflow-hidden">
       <button
         type="button"
-        aria-label="Dismiss note"
+        aria-label={t("dismissNote")}
         className="absolute inset-0 cursor-default"
         onClick={onClose}
       />
@@ -56,7 +58,7 @@ export function ReaderFootnotePopover({
             {label}
           </span>
           <IconButton
-            label="Close note"
+            label={t("closeNote")}
             size="sm"
             onClick={onClose}
             icon={<X size={14} weight="regular" aria-hidden="true" />}

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Highlighter, NotePencil, Trash } from "@phosphor-icons/react";
 import { Body, Caption, EmptyState, Heading, IconButton } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
+import { formatDate, useTranslation } from "../../../i18n";
 import { listAnnotations, deleteAnnotation } from "../../annotations/lib/annotation-db";
 import { HIGHLIGHT_COLORS } from "../../reader/lib/highlight-renderer";
 import type { Annotation, Highlight, Note } from "../../annotations/lib/annotation-types";
@@ -11,14 +12,6 @@ type ContextWorkspaceProps = {
   books: LibraryBook[];
   onOpenBook: (book: LibraryBook) => void;
 };
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
 
 function AnnotationTypeIcon({ annotation }: { annotation: Annotation }) {
   if (annotation.type === "highlight") {
@@ -34,6 +27,7 @@ function AnnotationTypeIcon({ annotation }: { annotation: Annotation }) {
 }
 
 export function ContextWorkspace({ books, onOpenBook }: ContextWorkspaceProps) {
+  const { t } = useTranslation("ai");
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -71,7 +65,7 @@ export function ContextWorkspace({ books, onOpenBook }: ContextWorkspaceProps) {
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <Body className="text-sm text-fg-muted">Loading context...</Body>
+        <Body className="text-sm text-fg-muted">{t("context.loading")}</Body>
       </div>
     );
   }
@@ -81,8 +75,8 @@ export function ContextWorkspace({ books, onOpenBook }: ContextWorkspaceProps) {
       <div className="ra-motion-page-enter mx-auto flex min-h-full max-w-screen-2xl flex-col justify-center px-6 py-16">
         <EmptyState
           icon={<Highlighter size={32} weight="regular" />}
-          title="No context yet"
-          description="Highlights and notes from your reading will appear here."
+          title={t("context.empty.title")}
+          description={t("context.empty.description")}
         />
       </div>
     );
@@ -91,9 +85,12 @@ export function ContextWorkspace({ books, onOpenBook }: ContextWorkspaceProps) {
   return (
     <div className="ra-motion-page-enter mx-auto max-w-screen-2xl px-6 py-8 sm:py-10">
       <div className="mb-8">
-        <Heading size="2xl">Context</Heading>
+        <Heading size="2xl">{t("context.title")}</Heading>
         <Body className="mt-1 text-sm text-fg-muted">
-          {annotations.length} context item{annotations.length !== 1 ? "s" : ""} across {grouped.size} book{grouped.size !== 1 ? "s" : ""}
+          {t("context.summary", {
+            items: t("context.contextItems", { count: annotations.length }),
+            books: t("context.books", { count: grouped.size }),
+          })}
         </Body>
       </div>
 
@@ -110,7 +107,7 @@ export function ContextWorkspace({ books, onOpenBook }: ContextWorkspaceProps) {
                 className="mb-3 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg rounded-md"
               >
                 <Heading size="xl" className="hover:text-fg-muted transition-colors">
-                  {book?.title ?? "Unknown Book"}
+                  {book?.title ?? t("context.unknownBook")}
                 </Heading>
                 {book?.author && (
                   <Body className="text-xs text-fg-muted">{book.author}</Body>
@@ -137,11 +134,15 @@ export function ContextWorkspace({ books, onOpenBook }: ContextWorkspaceProps) {
                         </Caption>
                       )}
                       <Caption className="mt-1 text-fg-subtle">
-                        {formatDate(annotation.createdAt)}
+                        {formatDate(new Date(annotation.createdAt), {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
                       </Caption>
                     </div>
                     <IconButton
-                      label="Delete"
+                      label={t("context.delete")}
                       size="sm"
                       onClick={() => void handleDelete(annotation.id)}
                       className="shrink-0 opacity-0 group-hover:opacity-100 text-fg-subtle hover:text-red-600"

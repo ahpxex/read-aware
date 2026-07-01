@@ -1,5 +1,6 @@
 import { type ReactNode } from "react";
 import { X } from "@phosphor-icons/react";
+import { useTranslation } from "react-i18next";
 import { cn } from "./lib/cn";
 
 type TagProps = {
@@ -11,6 +12,7 @@ type TagProps = {
 };
 
 export function Tag({ children, variant = "default", onRemove, removeLabel, className }: TagProps) {
+  const { t } = useTranslation("ui");
   return (
     <span
       className={cn(
@@ -25,7 +27,7 @@ export function Tag({ children, variant = "default", onRemove, removeLabel, clas
         <button
           type="button"
           onClick={onRemove}
-          aria-label={removeLabel ?? `Remove ${typeof children === "string" ? children : ""}`}
+          aria-label={removeLabel ?? t("remove", { name: typeof children === "string" ? children : "" })}
           className="ml-0.5 text-fg-subtle hover:text-fg-muted"
         >
           <X size={12} weight="bold" />

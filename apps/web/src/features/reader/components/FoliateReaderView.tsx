@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { TFunction } from "i18next";
 import { useAtomValue, useSetAtom } from "jotai";
 import { Body, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
+import { useTranslation } from "../../../i18n";
 import { shortcutBindingsAtom } from "../../../state/ui";
 import { chordMatchesEvent, resolveBinding } from "../../settings/lib/shortcuts";
 import type { LibraryBook, ReaderProgress } from "../../library/lib/library-types";
@@ -250,18 +252,18 @@ function isInteractiveTarget(target: EventTarget | null): boolean {
 }
 
 /** Human label for the eyebrow on the footnote popover, by reference type. */
-function footnoteLabel(type: string | null): string {
+function footnoteLabel(type: string | null, t: TFunction<"reader">): string {
   switch (type) {
     case "footnote":
-      return "Footnote";
+      return t("footnote.footnote");
     case "endnote":
-      return "Endnote";
+      return t("footnote.endnote");
     case "biblioentry":
-      return "Reference";
+      return t("footnote.reference");
     case "definition":
-      return "Definition";
+      return t("footnote.definition");
     default:
-      return "Note";
+      return t("footnote.note");
   }
 }
 
@@ -281,6 +283,12 @@ export function FoliateReaderView({
   chapterNavigationRequest = null,
   annotationNavigationRequest = null,
 }: FoliateReaderViewProps) {
+  const { t } = useTranslation("reader");
+  // Held in a ref so the stable, mount-once engine effects and callbacks can
+  // read the latest translator without re-subscribing (which would tear down
+  // the reader). `t`'s identity changes on a language switch; the ref tracks it.
+  const tRef = useRef(t);
+  tRef.current = t;
   const readerRootRef = useRef<HTMLElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<FoliateView | null>(null);
@@ -450,7 +458,7 @@ export function FoliateReaderView({
       if (!text) return;
       setFootnote({
         anchorRect: footnoteAnchorRectRef.current,
-        label: footnoteLabel(detail.type),
+        label: footnoteLabel(detail.type, tRef.current),
         text,
       });
     };
@@ -750,7 +758,7 @@ export function FoliateReaderView({
       clearSelection();
       await view.goTo(href);
     } catch (nextError) {
-      setError(formatReaderError(nextError));
+      setError(formatReaderError(nextError, tRef.current));
     }
   }, [clearSelection]);
 
@@ -1337,7 +1345,7 @@ export function FoliateReaderView({
           applyNotes(view, notesRef.current, highlightsRef.current);
         }
       } catch (nextError) {
-        if (!cancelled) setError(formatReaderError(nextError));
+        if (!cancelled) setError(formatReaderError(nextError, tRef.current));
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -1596,7 +1604,7 @@ export function FoliateReaderView({
     <section ref={readerRootRef} className="relative h-full w-full overflow-hidden">
       <div
         ref={viewportRef}
-        aria-label={selectedBook?.title ?? initialBook?.fileName ?? "Book reader"}
+        aria-label={selectedBook?.title ?? initialBook?.fileName ?? t("readerLabel")}
         className={cn(
           "h-full w-full transition-opacity ease-out",
           isCrossing ? "duration-150" : "duration-500",
@@ -1649,7 +1657,7 @@ export function FoliateReaderView({
 
       {showLoader && (
         <div className="absolute inset-0 flex items-center justify-center bg-inherit">
-          <Spinner size="md" label={`Opening ${initialBook?.fileName ?? "book"}`} />
+          <Spinner size="md" label={t("opening", { name: initialBook?.fileName ?? t("book") })} />
         </div>
       )}
 

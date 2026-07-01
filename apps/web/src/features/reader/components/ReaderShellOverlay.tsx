@@ -3,6 +3,7 @@ import { useAtomValue } from "jotai";
 import { CaretLeft, ChatCircle, ListBullets } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { Body, IconButton, ScrollArea, Tooltip } from "@read-aware/ui";
+import { formatPercent, useTranslation } from "../../../i18n";
 import { ChatPanel } from "../../ai/components/ChatPanel";
 import { askAiRequestAtom } from "../../ai/state/chat-intent";
 import { useBookAnnotations } from "../../annotations/hooks/useBookAnnotations";
@@ -40,17 +41,21 @@ export function ReaderShellOverlay({
   onChapterSelect,
   onAnnotationSelect,
 }: ReaderShellOverlayProps) {
+  const { t } = useTranslation("reader");
   const bookId = book.id;
   const title = book.title;
   const percent =
     progress != null ? Math.min(100, Math.max(0, progress * 100)) : null;
-  const roundedPercent = percent != null ? Math.round(percent) : null;
   const hasPages = totalPages != null && totalPages > 0;
   const progressLabel =
-    roundedPercent != null
+    percent != null
       ? hasPages
-        ? `${currentPage ?? 0} / ${totalPages} · ${roundedPercent}%`
-        : `${roundedPercent}%`
+        ? t("progress", {
+            page: currentPage ?? 0,
+            total: totalPages,
+            percent: formatPercent(percent),
+          })
+        : formatPercent(percent)
       : null;
 
   // TOC + chat panels persist per book (restored when the book reopens); the
@@ -141,18 +146,18 @@ export function ReaderShellOverlay({
         <div className="pointer-events-none flex h-full items-center gap-3">
           {/* Left cluster: back to shelf + contents toggle */}
           <div className="ml-2 flex shrink-0 items-center gap-0.5">
-            <Tooltip content="Shelf" side="bottom" className="pointer-events-auto">
+            <Tooltip content={t("shelf")} side="bottom" className="pointer-events-auto">
               <IconButton
                 size="sm"
-                label="Back to shelf"
+                label={t("backToShelf")}
                 onClick={onBack}
                 icon={<CaretLeft size={18} weight="regular" aria-hidden="true" />}
               />
             </Tooltip>
-            <Tooltip content="Contents" side="bottom" className="pointer-events-auto">
+            <Tooltip content={t("contents")} side="bottom" className="pointer-events-auto">
               <IconButton
                 size="sm"
-                label="Table of contents"
+                label={t("tableOfContents")}
                 aria-pressed={tocOpen}
                 onClick={() => setTocOpen((open) => !open)}
                 className={cn(tocOpen && "text-fg")}
@@ -196,10 +201,10 @@ export function ReaderShellOverlay({
               open={appearanceOpen}
               onOpenChange={setAppearanceOpen}
             />
-            <Tooltip content="Chat" side="bottom" className="pointer-events-auto">
+            <Tooltip content={t("chat")} side="bottom" className="pointer-events-auto">
               <IconButton
                 size="sm"
-                label="Chat"
+                label={t("chat")}
                 aria-pressed={notesOpen}
                 onClick={() => setNotesOpen((open) => !open)}
                 className={cn(notesOpen && "text-fg")}
@@ -233,7 +238,7 @@ export function ReaderShellOverlay({
       <div className="pointer-events-none relative z-10 flex min-h-0 flex-1 items-stretch justify-between">
         {/* Table of contents (left) */}
         <section
-          aria-label="Table of contents"
+          aria-label={t("tableOfContents")}
           inert={!(visible && tocOpen)}
           className={cn(
             "relative flex h-full min-h-0 shrink-0 flex-col border-r border-border-strong/70 transition-[transform,opacity] duration-200 ease-out",
@@ -247,7 +252,7 @@ export function ReaderShellOverlay({
             <div ref={tocListRef} className="flex flex-col px-3 py-4">
               {tocEntries.length === 0 && (
                 <Body className="px-2 py-2 text-sm text-fg-muted">
-                  This file does not expose a navigable table of contents.
+                  {t("noToc")}
                 </Body>
               )}
 
@@ -284,7 +289,7 @@ export function ReaderShellOverlay({
           </ScrollArea>
           <ReaderResizeHandle
             edge="right"
-            ariaLabel="Resize contents panel"
+            ariaLabel={t("resizeContents")}
             onResize={(delta) => adjustPanel("toc", delta)}
             onCommit={persistPanelSizes}
           />
@@ -292,7 +297,7 @@ export function ReaderShellOverlay({
 
         {/* AI conversation (right) */}
         <section
-          aria-label="AI chat"
+          aria-label={t("aiChat")}
           // Hidden via transforms (still in the DOM), so without `inert` a focused
           // composer would keep receiving keystrokes off-screen; `inert` also
           // blurs it and drops the panel out of the tab order while closed.
@@ -307,7 +312,7 @@ export function ReaderShellOverlay({
         >
           <ReaderResizeHandle
             edge="left"
-            ariaLabel="Resize chat panel"
+            ariaLabel={t("resizeChat")}
             onResize={(delta) => adjustPanel("chat", -delta)}
             onCommit={persistPanelSizes}
           />

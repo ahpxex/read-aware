@@ -2,6 +2,7 @@ import { Check, Info, Star, Trash } from "@phosphor-icons/react";
 import { IconButton, Progress } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useLocalAtom } from "@read-aware/ui/state";
+import { formatPercent, useTranslation } from "../../../i18n";
 import type { LibraryBook } from "../../library/lib/library-types";
 import { BookCoverPlaceholder } from "./BookCoverPlaceholder";
 import { BookDetailsDialog, BookRemoveDialog } from "./BookDialogs";
@@ -27,6 +28,7 @@ export function BookRow({
   onToggleSelect,
   className,
 }: BookRowProps) {
+  const { t } = useTranslation("shelf");
   const [infoOpen, setInfoOpen] = useLocalAtom(false);
   const [removeOpen, setRemoveOpen] = useLocalAtom(false);
 
@@ -75,12 +77,12 @@ export function BookRow({
             <div className="flex items-center gap-2">
               <Progress value={book.progressPercent} size="sm" className="flex-1" />
               <span className="w-9 shrink-0 text-right font-sans text-[11px] tabular-nums text-fg-muted">
-                {Math.round(book.progressPercent)}%
+                {formatPercent(book.progressPercent)}
               </span>
             </div>
           ) : (
             <span className="font-sans text-[11px] text-fg-subtle">
-              {book.readingStatus === "finished" ? "Finished" : "Not started"}
+              {book.readingStatus === "finished" ? t("status.finished") : t("status.notStarted")}
             </span>
           )}
         </div>
@@ -89,7 +91,7 @@ export function BookRow({
       {!selecting && (
         <div className="flex shrink-0 items-center gap-1">
           <IconButton
-            label={book.starred ? `Unstar ${book.title}` : `Star ${book.title}`}
+            label={book.starred ? t("book.unstar", { title: book.title }) : t("book.star", { title: book.title })}
             size="sm"
             aria-pressed={book.starred ?? false}
             onClick={() => onToggleStar?.()}
@@ -103,13 +105,13 @@ export function BookRow({
           />
           <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
             <IconButton
-              label={`Info about ${book.title}`}
+              label={t("book.info", { title: book.title })}
               size="sm"
               onClick={() => setInfoOpen(true)}
               icon={<Info size={16} weight="regular" aria-hidden="true" />}
             />
             <IconButton
-              label={`Remove ${book.title}`}
+              label={t("book.remove", { title: book.title })}
               size="sm"
               onClick={() => setRemoveOpen(true)}
               className="hover:text-red-600"

@@ -2,6 +2,7 @@ import { Check, Info, Star, Trash } from "@phosphor-icons/react";
 import { IconButton, Progress } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useLocalAtom } from "@read-aware/ui/state";
+import { formatPercent, useTranslation } from "../../../i18n";
 import type { LibraryBook } from "../../library/lib/library-types";
 import { BookCoverPlaceholder } from "./BookCoverPlaceholder";
 import { BookDetailsDialog, BookRemoveDialog } from "./BookDialogs";
@@ -27,6 +28,7 @@ export function BookCover({
   onToggleSelect,
   className,
 }: BookCoverProps) {
+  const { t } = useTranslation("shelf");
   const [infoOpen, setInfoOpen] = useLocalAtom(false);
   const [removeOpen, setRemoveOpen] = useLocalAtom(false);
 
@@ -47,7 +49,7 @@ export function BookCover({
           {book.coverUrl ? (
             <img
               src={book.coverUrl}
-              alt={`${book.title} cover`}
+              alt={t("book.cover", { title: book.title })}
               className="h-full w-full object-cover"
             />
           ) : (
@@ -85,7 +87,7 @@ export function BookCover({
           <div className="space-y-2">
             <div className="pointer-events-auto flex justify-end gap-1">
               <IconButton
-                label={book.starred ? `Unstar ${book.title}` : `Star ${book.title}`}
+                label={book.starred ? t("book.unstar", { title: book.title }) : t("book.star", { title: book.title })}
                 size="sm"
                 aria-pressed={book.starred ?? false}
                 onClick={() => onToggleStar?.()}
@@ -93,14 +95,14 @@ export function BookCover({
                 icon={<Star size={14} weight={book.starred ? "fill" : "regular"} aria-hidden="true" />}
               />
               <IconButton
-                label={`Info about ${book.title}`}
+                label={t("book.info", { title: book.title })}
                 size="sm"
                 onClick={() => setInfoOpen(true)}
                 className="rounded-sm text-white/70 hover:text-white focus-visible:ring-white"
                 icon={<Info size={14} weight="regular" aria-hidden="true" />}
               />
               <IconButton
-                label={`Remove ${book.title}`}
+                label={t("book.remove", { title: book.title })}
                 size="sm"
                 onClick={() => setRemoveOpen(true)}
                 className="rounded-sm text-white/70 hover:text-red-400 focus-visible:ring-white"
@@ -116,7 +118,7 @@ export function BookCover({
                   className="[&_[role='progressbar']]:bg-white/35 [&_[role='progressbar']>div]:bg-white"
                 />
                 <span className="mt-1 block font-sans text-[11px] tabular-nums text-white/75">
-                  {Math.round(book.progressPercent)}%
+                  {formatPercent(book.progressPercent)}
                 </span>
               </div>
             )}

@@ -1,4 +1,5 @@
 import { Body, Caption, Dialog, Divider, Eyebrow, Heading } from "@read-aware/ui";
+import { useTranslation } from "../../../i18n";
 
 type ReaderDictionaryModalProps = {
   open: boolean;
@@ -12,6 +13,7 @@ type ReaderDictionaryModalProps = {
  * dictionary layout so the entry point and surface exist. Mock content only.
  */
 export function ReaderDictionaryModal({ open, word, onClose }: ReaderDictionaryModalProps) {
+  const { t } = useTranslation("reader");
   // Trim surrounding quotes/brackets/trailing punctuation so a word picked out
   // of dialogue ("“pig,”") reads as a clean headword.
   const cleaned = word
@@ -23,15 +25,15 @@ export function ReaderDictionaryModal({ open, word, onClose }: ReaderDictionaryM
   const firstWord = (term.split(" ")[0] || "word").toLowerCase();
 
   const senses = [
-    { pos: "noun", gloss: `A placeholder sense for “${firstWord}.” The dictionary is a preview.` },
-    { pos: "verb", gloss: `To look up “${firstWord}” — real definitions will appear here.` },
+    { id: "noun", pos: t("dictionary.pos.noun"), gloss: t("dictionary.senseNoun", { word: firstWord }) },
+    { id: "verb", pos: t("dictionary.pos.verb"), gloss: t("dictionary.senseVerb", { word: firstWord }) },
   ];
 
   return (
-    <Dialog open={open} onClose={onClose} aria-label="Dictionary">
+    <Dialog open={open} onClose={onClose} aria-label={t("dictionary.title")}>
       <div className="flex w-[min(90vw,27rem)] flex-col gap-5 p-6">
         <div className="flex flex-col gap-1.5">
-          <Eyebrow className="text-fg-subtle">Dictionary</Eyebrow>
+          <Eyebrow className="text-fg-subtle">{t("dictionary.title")}</Eyebrow>
           <Heading as="h2" size="2xl" className="font-serif leading-tight">
             {headword}
           </Heading>
@@ -42,7 +44,7 @@ export function ReaderDictionaryModal({ open, word, onClose }: ReaderDictionaryM
 
         <div className="flex flex-col gap-4">
           {senses.map((sense, index) => (
-            <div key={sense.pos} className="flex gap-3">
+            <div key={sense.id} className="flex gap-3">
               <span className="mt-0.5 font-mono text-xs tabular-nums text-fg-subtle">
                 {index + 1}
               </span>
@@ -57,7 +59,7 @@ export function ReaderDictionaryModal({ open, word, onClose }: ReaderDictionaryM
         <Divider />
 
         <Caption className="text-fg-subtle">
-          A placeholder entry — the dictionary is a preview; real definitions aren’t wired up yet.
+          {t("dictionary.footer")}
         </Caption>
       </div>
     </Dialog>

@@ -1,5 +1,6 @@
 import { Caption } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
+import { formatDate, getWeekdayNames, useTranslation } from "../../../i18n";
 import { formatReadingDuration, type DailyReadingMap } from "../../reader/lib/reading-stats";
 import { buildHeatmapGrid, type HeatmapCell, type HeatmapLevel } from "../lib/reading-insights";
 
@@ -26,11 +27,9 @@ const LEVEL_CLASS: Record<HeatmapLevel, string> = {
   4: "bg-fg",
 };
 
-const WEEKDAY_AXIS = ["", "Mon", "", "Wed", "", "Fri", ""];
-
 function cellTitle(cell: HeatmapCell): string | undefined {
   if (!cell.active) return undefined;
-  const date = cell.date.toLocaleDateString(undefined, {
+  const date = formatDate(cell.date, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -46,9 +45,12 @@ function cellTitle(cell: HeatmapCell): string | undefined {
  * pass any `daily` map (one book's or the library-wide aggregate).
  */
 export function ReadingHeatmap({ daily, now, cell = 10, className }: ReadingHeatmapProps) {
+  const { t } = useTranslation("stats");
   const { columns, monthLabels } = buildHeatmapGrid(daily, now ?? Date.now());
   const colW = cell + GAP;
   const width = columns.length * colW;
+  // Weekday axis: short names, blanking every other row (Mon / Wed / Fri shown).
+  const weekdayAxis = getWeekdayNames("short").map((label, i) => (i % 2 === 1 ? label : ""));
 
   return (
     <div className={className}>
@@ -70,7 +72,7 @@ export function ReadingHeatmap({ daily, now, cell = 10, className }: ReadingHeat
           </div>
           <div className="flex" style={{ gap: AXIS_GAP }}>
             <div className="flex flex-col" style={{ gap: GAP, width: AXIS_W }}>
-              {WEEKDAY_AXIS.map((label, row) => (
+              {weekdayAxis.map((label, row) => (
                 <span
                   key={row}
                   className="flex items-center text-[9px] leading-none text-fg-subtle"
@@ -102,7 +104,7 @@ export function ReadingHeatmap({ daily, now, cell = 10, className }: ReadingHeat
         </div>
       </div>
       <div className="mt-3 flex items-center justify-end gap-1.5">
-        <Caption className="text-fg-subtle">Less</Caption>
+        <Caption className="text-fg-subtle">{t("heatmap.less")}</Caption>
         {([0, 1, 2, 3, 4] as HeatmapLevel[]).map((level) => (
           <div
             key={level}
@@ -110,7 +112,7 @@ export function ReadingHeatmap({ daily, now, cell = 10, className }: ReadingHeat
             style={{ width: cell, height: cell }}
           />
         ))}
-        <Caption className="text-fg-subtle">More</Caption>
+        <Caption className="text-fg-subtle">{t("heatmap.more")}</Caption>
       </div>
     </div>
   );

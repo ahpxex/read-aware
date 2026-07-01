@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useAtomValue } from "jotai";
 import { Caption, Divider } from "@read-aware/ui";
+import { formatDate, formatPercent, useTranslation } from "../../../i18n";
 import { readingStatsAtom } from "../../../state/ui";
 import type { LibraryBook } from "../../library/lib/library-types";
 import { useBookAnnotations } from "../../annotations/hooks/useBookAnnotations";
@@ -16,7 +17,7 @@ type BookStatsPanelProps = {
 
 function formatDay(epoch: number | null): string {
   if (epoch === null) return "—";
-  return new Date(epoch).toLocaleDateString(undefined, {
+  return formatDate(epoch, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -29,6 +30,7 @@ function formatDay(epoch: number | null): string {
  * exhaustive breakdown lives on the Stats page; this stays scannable.
  */
 export function BookStatsPanel({ book }: BookStatsPanelProps) {
+  const { t } = useTranslation("stats");
   const store = useAtomValue(readingStatsAtom);
   const { annotations } = useBookAnnotations(book.id);
 
@@ -38,26 +40,34 @@ export function BookStatsPanel({ book }: BookStatsPanelProps) {
 
   const noteCount = annotations.filter((a) => a.type === "note").length;
   const highlightCount = annotations.filter((a) => a.type === "highlight").length;
-  const started = insights.firstStartedAt === null ? "Not started" : formatDay(insights.firstStartedAt);
+  const started =
+    insights.firstStartedAt === null ? t("book.notStarted") : formatDay(insights.firstStartedAt);
 
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-3 gap-x-4 gap-y-2.5">
-        <StatTile label="Total time" value={formatReadingDuration(insights.totalMs)} />
-        <StatTile label="This week" value={formatReadingDuration(insights.weekMs)} />
+        <StatTile label={t("book.totalTime")} value={formatReadingDuration(insights.totalMs)} />
+        <StatTile label={t("book.thisWeek")} value={formatReadingDuration(insights.weekMs)} />
         <StatTile
-          label="Day streak"
-          value={`${insights.currentStreak}d`}
-          hint={insights.longestStreak > 0 ? `best ${insights.longestStreak}d` : undefined}
+          label={t("book.dayStreak")}
+          value={t("days.compact", { count: insights.currentStreak })}
+          hint={
+            insights.longestStreak > 0
+              ? t("book.best", { count: insights.longestStreak })
+              : undefined
+          }
         />
-        <StatTile label="Days read" value={`${insights.daysRead}`} />
-        <StatTile label="Notes" value={`${noteCount}`} />
-        <StatTile label="Highlights" value={`${highlightCount}`} />
+        <StatTile label={t("book.daysRead")} value={`${insights.daysRead}`} />
+        <StatTile label={t("book.notes")} value={`${noteCount}`} />
+        <StatTile label={t("book.highlights")} value={`${highlightCount}`} />
       </div>
 
       <Caption className="block text-fg-subtle">
-        {Math.round(book.progressPercent)}% read · Started {started} · Last read{" "}
-        {formatDay(insights.lastReadAt)}
+        {t("book.summary", {
+          percent: formatPercent(book.progressPercent),
+          start: started,
+          last: formatDay(insights.lastReadAt),
+        })}
       </Caption>
 
       <Divider />
@@ -67,7 +77,7 @@ export function BookStatsPanel({ book }: BookStatsPanelProps) {
       <Divider />
 
       <div>
-        <Caption className="mb-2 block text-fg-subtle">Reading calendar</Caption>
+        <Caption className="mb-2 block text-fg-subtle">{t("readingCalendar")}</Caption>
         <ReadingHeatmap daily={stats.daily} now={now} cell={9} />
       </div>
     </div>

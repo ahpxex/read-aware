@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { ChatCircleDots } from "@phosphor-icons/react";
 import { Caption, EmptyState, ScrollArea, Spinner } from "@read-aware/ui";
+import { useTranslation } from "../../../i18n";
 import type { ChatMessage } from "../lib/chat-types";
 import { ChatMessageItem } from "./ChatMessageItem";
 
@@ -23,6 +24,7 @@ export function ChatTranscript({
   streamingText,
   status,
 }: ChatTranscriptProps) {
+  const { t } = useTranslation("ai");
   const endRef = useRef<HTMLDivElement | null>(null);
 
   // Keep the latest turn in view as messages arrive and the reply streams in.
@@ -33,7 +35,7 @@ export function ChatTranscript({
   if (isLoading) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <Spinner size="sm" label="Loading conversation" />
+        <Spinner size="sm" label={t("chat.loadingConversation")} />
       </div>
     );
   }
@@ -43,8 +45,8 @@ export function ChatTranscript({
       <div className="flex flex-1 items-center justify-center px-6 py-10">
         <EmptyState
           icon={<ChatCircleDots size={28} weight="regular" />}
-          title="Ask about this book"
-          description="Select a passage and choose Ask AI, or just start typing. This conversation stays with the book."
+          title={t("chat.empty.title")}
+          description={t("chat.empty.description")}
         />
       </div>
     );
@@ -74,7 +76,7 @@ export function ChatTranscript({
           ) : (
             <div className="flex items-center gap-2 text-fg-muted">
               <Spinner size="sm" />
-              <Caption>{status ?? "Thinking…"}</Caption>
+              <Caption>{status ?? t("chat.thinking")}</Caption>
             </div>
           ))}
 

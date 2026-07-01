@@ -12,6 +12,8 @@
  * up with the reader's wall clock and never drift across time zones.
  */
 
+import type { TFunction } from "i18next";
+import { getMonthNames, getWeekdayNames } from "../../../i18n";
 import {
   localDayKey,
   type BookReadingStats,
@@ -210,11 +212,6 @@ export type HeatmapGrid = {
   monthLabels: { col: number; label: string }[];
 };
 
-const MONTH_SHORT = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
-
 /** Minimum trailing span (week columns) so the grid always fills its width. */
 const MIN_WEEKS = 53;
 
@@ -249,6 +246,7 @@ export function buildHeatmapGrid(daily: DailyReadingMap, now: number): HeatmapGr
     }
   }
 
+  const monthShort = getMonthNames("short");
   const columns: HeatmapCell[][] = [];
   const monthLabels: { col: number; label: string }[] = [];
   let lastMonth = -1;
@@ -271,7 +269,7 @@ export function buildHeatmapGrid(daily: DailyReadingMap, now: number): HeatmapGr
     // Anchor a month label at the column where a new month starts (by its Sunday).
     const month = column[0].date.getMonth();
     if (month !== lastMonth) {
-      monthLabels.push({ col: colIndex, label: MONTH_SHORT[month] });
+      monthLabels.push({ col: colIndex, label: monthShort[month] });
       lastMonth = month;
     }
   }
@@ -292,21 +290,15 @@ const PERIOD_DAYS: Record<Exclude<StatsPeriod, "all">, number> = {
   year: 365,
 };
 
-export const PERIOD_TAB_LABELS: Record<StatsPeriod, string> = {
-  week: "Week",
-  month: "Month",
-  year: "Year",
-  all: "All",
-};
+/** Tab label for a period ("Week"/"Month"/…), resolved from the caller's `t`. */
+export function periodTabLabel(t: TFunction<"stats">, period: StatsPeriod): string {
+  return t(`period.tab.${period}`);
+}
 
-export const PERIOD_RANGE_LABELS: Record<StatsPeriod, string> = {
-  week: "Last 7 days",
-  month: "Last 30 days",
-  year: "Last 12 months",
-  all: "All time",
-};
-
-const WEEKDAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"]; // by Date.getDay() (Sun..Sat)
+/** Range label for a period ("Last 7 days"/…), resolved from the caller's `t`. */
+export function periodRangeLabel(t: TFunction<"stats">, period: StatsPeriod): string {
+  return t(`period.range.${period}`);
+}
 
 /** Sum of daily reading over `count` days starting `fromOffset` days ago. */
 function sumDailyWindow(
@@ -353,12 +345,13 @@ export type StatsBar = {
 function dailyBars(daily: DailyReadingMap, now: number, days: number): StatsBar[] {
   const todayKey = localDayKey(now);
   const dense = days > 10; // months label by day-of-month; weeks by weekday letter
+  const weekdayNarrow = getWeekdayNames("narrow");
   const bars: StatsBar[] = [];
   for (let i = days - 1; i >= 0; i -= 1) {
     const key = dayKeyAtOffset(now, i);
     const [y, m, d] = key.split("-").map(Number);
     const date = new Date(y, m - 1, d);
-    const label = dense ? String(date.getDate()) : WEEKDAY_LETTERS[date.getDay()];
+    const label = dense ? String(date.getDate()) : weekdayNarrow[date.getDay()];
     bars.push({ key, label, ms: daily[key] ?? 0, isCurrent: key === todayKey });
   }
   return bars;
@@ -367,6 +360,7 @@ function dailyBars(daily: DailyReadingMap, now: number, days: number): StatsBar[
 /** One bar per calendar month over the trailing `months` months, ending this month. */
 function monthlyBars(daily: DailyReadingMap, now: number, months: number): StatsBar[] {
   const byMonth = dailyByMonth(daily);
+  const monthShort = getMonthNames("short");
   const base = new Date(now);
   const curY = base.getFullYear();
   const curM = base.getMonth();
@@ -376,7 +370,7 @@ function monthlyBars(daily: DailyReadingMap, now: number, months: number): Stats
     const y = d.getFullYear();
     const m = d.getMonth();
     const mk = `${y}-${String(m + 1).padStart(2, "0")}`;
-    const label = m === 0 ? `${MONTH_SHORT[m]} ’${String(y).slice(2)}` : MONTH_SHORT[m];
+    const label = m === 0 ? `${monthShort[m]} ’${String(y).slice(2)}` : monthShort[m];
     bars.push({ key: mk, label, ms: byMonth.get(mk) ?? 0, isCurrent: i === 0 });
   }
   return bars;
@@ -394,18 +388,19 @@ function monthsSpan(daily: DailyReadingMap, now: number): number {
 export type WeekdayBucket = { label: string; full: string; ms: number };
 
 const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0]; // Mon..Sun, indexing Date.getDay()
-const WEEKDAY_FULL = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 /** Reading time summed by weekday (Mon→Sun) over the given daily map. */
 export function weekdayDistribution(daily: DailyReadingMap): WeekdayBucket[] {
+  const short = getWeekdayNames("short");
+  const narrow = getWeekdayNames("narrow");
   const byDow = new Array(7).fill(0);
   for (const [key, ms] of Object.entries(daily)) {
     const [y, m, d] = key.split("-").map(Number);
     byDow[new Date(y, m - 1, d).getDay()] += ms;
   }
   return WEEKDAY_ORDER.map((dow) => ({
-    label: WEEKDAY_FULL[dow].slice(0, 1),
-    full: WEEKDAY_FULL[dow],
+    label: narrow[dow],
+    full: short[dow],
     ms: byDow[dow],
   }));
 }
@@ -421,7 +416,6 @@ export function aggregateByHour(store: ReadingStatsStore): number[] {
 
 export type PeriodInsights = {
   period: StatsPeriod;
-  rangeLabel: string;
   totalMs: number;
   daysRead: number;
   booksRead: number;
@@ -451,7 +445,6 @@ export function computePeriodInsights(
     }
     return {
       period,
-      rangeLabel: PERIOD_RANGE_LABELS.all,
       totalMs,
       daysRead,
       booksRead,
@@ -488,7 +481,6 @@ export function computePeriodInsights(
 
   return {
     period,
-    rangeLabel: PERIOD_RANGE_LABELS[period],
     totalMs,
     daysRead,
     booksRead,

@@ -1,5 +1,6 @@
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Caption } from "@read-aware/ui";
+import { formatHour, useTranslation } from "../../../i18n";
 import type { WeekdayBucket } from "../lib/reading-insights";
 import { BAR_CURSOR, barFill, DurationTooltip, INK } from "./ChartKit";
 
@@ -7,17 +8,13 @@ const CHART_H = 110;
 /** Hour-axis ticks (others stay unlabelled). */
 const HOUR_TICKS = ["0", "6", "12", "18"];
 
-function formatHour(h: number): string {
-  const base = h % 12 === 0 ? 12 : h % 12;
-  return `${base}${h < 12 ? "am" : "pm"}`;
-}
-
 /**
  * Reading time by weekday (Mon→Sun), the busiest day inked darker. Only
  * meaningful once the window spans several weeks, so callers hide it on the
  * week view where it would just restate the daily bars.
  */
 export function WeekdayChart({ weekday, className }: { weekday: WeekdayBucket[]; className?: string }) {
+  const { t } = useTranslation("stats");
   const max = Math.max(1, ...weekday.map((d) => d.ms));
   const data = weekday.map((d) => ({
     key: d.full,
@@ -30,7 +27,7 @@ export function WeekdayChart({ weekday, className }: { weekday: WeekdayBucket[];
 
   return (
     <div className={className}>
-      <Caption className="mb-2 block text-fg-subtle">By weekday</Caption>
+      <Caption className="mb-2 block text-fg-subtle">{t("rhythm.byWeekday")}</Caption>
       <div style={{ height: CHART_H }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 6, right: 2, bottom: 0, left: 2 }} barCategoryGap="22%">
@@ -61,6 +58,7 @@ export function WeekdayChart({ weekday, className }: { weekday: WeekdayBucket[];
  * histogram accrues going forward; until it has data, shows a quiet note.
  */
 export function TimeOfDayChart({ byHour, className }: { byHour: number[]; className?: string }) {
+  const { t } = useTranslation("stats");
   const max = Math.max(1, ...byHour);
   const hasData = byHour.some((ms) => ms > 0);
   const peak = hasData ? byHour.indexOf(max) : -1;
@@ -74,8 +72,8 @@ export function TimeOfDayChart({ byHour, className }: { byHour: number[]; classN
   return (
     <div className={className}>
       <Caption className="mb-2 block text-fg-subtle">
-        By time of day
-        {peak >= 0 ? ` · peak ${formatHour(peak)}` : ""}
+        {t("rhythm.byTimeOfDay")}
+        {peak >= 0 ? ` · ${t("rhythm.peak", { hour: formatHour(peak) })}` : ""}
       </Caption>
       {hasData ? (
         <div style={{ height: CHART_H }}>
@@ -102,7 +100,7 @@ export function TimeOfDayChart({ byHour, className }: { byHour: number[]; classN
         </div>
       ) : (
         <div className="flex items-center text-fg-subtle" style={{ height: CHART_H }}>
-          <Caption>Builds up as you read.</Caption>
+          <Caption>{t("rhythm.buildsUp")}</Caption>
         </div>
       )}
     </div>

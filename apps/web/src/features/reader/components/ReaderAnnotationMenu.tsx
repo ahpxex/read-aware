@@ -9,6 +9,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { IconButton } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
+import { useTranslation } from "../../../i18n";
 import { useAskAiEnabled } from "../../ai/hooks/useAskAiEnabled";
 import type { Highlight } from "../../annotations/lib/annotation-types";
 import { useAnchoredMenuPosition } from "../hooks/useAnchoredMenuPosition";
@@ -49,6 +50,7 @@ export function ReaderAnnotationMenu({
   onAskAI,
   onRemove,
 }: ReaderAnnotationMenuProps) {
+  const { t } = useTranslation("reader");
   const { containerRef, menuRef, position } = useAnchoredMenuPosition(anchorRect);
   const [copied, setCopied] = useState(false);
   const askEnabled = useAskAiEnabled();
@@ -102,8 +104,8 @@ export function ReaderAnnotationMenu({
           <button
             key={color}
             type="button"
-            aria-label={`Recolor ${color}`}
-            title={color}
+            aria-label={t("recolor", { color: t(`colors.${color}`) })}
+            title={t(`colors.${color}`)}
             onClick={() => onRecolor(color)}
             className="flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
           >
@@ -119,24 +121,24 @@ export function ReaderAnnotationMenu({
 
         <MenuDivider />
         <IconButton
-          label="Add a note"
-          title="Add a note"
+          label={t("menu.addNote")}
+          title={t("menu.addNote")}
           size="sm"
           onClick={onAddNote}
           className={actionButtonClass}
           icon={<NotePencil size={14} weight="regular" aria-hidden="true" />}
         />
         <IconButton
-          label="Look up"
-          title="Look up"
+          label={t("menu.lookUp")}
+          title={t("menu.lookUp")}
           size="sm"
           onClick={onLookUp}
           className={actionButtonClass}
           icon={<BookOpen size={14} weight="regular" aria-hidden="true" />}
         />
         <IconButton
-          label={copied ? "Copied" : "Copy"}
-          title={copied ? "Copied" : "Copy"}
+          label={copied ? t("menu.copied") : t("menu.copy")}
+          title={copied ? t("menu.copied") : t("menu.copy")}
           size="sm"
           onClick={() => {
             void handleCopy();
@@ -152,8 +154,8 @@ export function ReaderAnnotationMenu({
         />
         {askEnabled && (
           <IconButton
-            label="Ask AI about this"
-            title="Ask AI about this"
+            label={t("menu.askAi")}
+            title={t("menu.askAi")}
             size="sm"
             onClick={onAskAI}
             className={actionButtonClass}
@@ -163,8 +165,8 @@ export function ReaderAnnotationMenu({
 
         <MenuDivider />
         <IconButton
-          label="Remove"
-          title="Remove"
+          label={t("menu.remove")}
+          title={t("menu.remove")}
           size="sm"
           onClick={onRemove}
           className={actionButtonClass}

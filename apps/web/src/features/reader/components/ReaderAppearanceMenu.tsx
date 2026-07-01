@@ -1,22 +1,18 @@
 import { TextAa } from "@phosphor-icons/react";
 import { Caption, ChoiceGroup, Divider, Popover } from "@read-aware/ui";
+import { useTranslation } from "../../../i18n";
 import {
-  FONT_SIZE_OPTIONS,
-  LINE_SPACING_OPTIONS,
-  PAGE_COLOR_OPTIONS,
-  PARAGRAPH_SPACING_OPTIONS,
-  READING_MODE_OPTIONS,
+  fontSizeOptions,
+  lineSpacingOptions,
+  pageColorOptions,
+  paragraphSpacingOptions,
+  readingModeOptions,
 } from "../../settings/lib/reader-setting-options";
 import { FontField } from "../../settings/components/FontField";
 import {
   useReaderAppearance,
   type ReaderAppearanceScope,
 } from "../hooks/useReaderAppearance";
-
-const SCOPE_OPTIONS: { value: ReaderAppearanceScope; label: string }[] = [
-  { value: "global", label: "All books" },
-  { value: "book", label: "This book" },
-];
 
 type ReaderAppearanceMenuProps = {
   bookId: string;
@@ -34,13 +30,19 @@ export function ReaderAppearanceMenu({
   open,
   onOpenChange,
 }: ReaderAppearanceMenuProps) {
+  const { t } = useTranslation("reader");
   const { scope, prefs, setScope, updatePrefs } = useReaderAppearance(bookId);
+
+  const scopeOptions: { value: ReaderAppearanceScope; label: string }[] = [
+    { value: "global", label: t("scope.global") },
+    { value: "book", label: t("scope.book") },
+  ];
 
   return (
     <Popover
       align="right"
-      triggerLabel="Reading appearance"
-      triggerTooltip="Reading appearance"
+      triggerLabel={t("readingAppearance")}
+      triggerTooltip={t("readingAppearance")}
       className="pointer-events-auto"
       triggerClassName="h-7 w-7 items-center justify-center rounded-md text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
       trigger={<TextAa size={18} weight="regular" aria-hidden="true" />}
@@ -51,24 +53,22 @@ export function ReaderAppearanceMenu({
       <div className="flex w-full flex-col gap-5">
         <div>
           <ChoiceGroup
-            label="Apply to"
+            label={t("applyTo")}
             value={scope}
-            options={SCOPE_OPTIONS}
+            options={scopeOptions}
             onChange={setScope}
           />
           <Caption className="mt-1.5 block text-fg-subtle">
-            {scope === "book"
-              ? "Changes affect this book only."
-              : "Changes affect every book that follows your global settings."}
+            {scope === "book" ? t("scopeHintBook") : t("scopeHintGlobal")}
           </Caption>
         </div>
 
         <Divider />
 
         <ChoiceGroup
-          label="Page Color"
+          label={t("pageColor")}
           value={prefs.theme}
-          options={PAGE_COLOR_OPTIONS}
+          options={pageColorOptions(t)}
           onChange={(theme) => updatePrefs({ ...prefs, theme })}
         />
         <FontField
@@ -76,30 +76,30 @@ export function ReaderAppearanceMenu({
           onChange={(fontFamily) => updatePrefs({ ...prefs, fontFamily })}
         />
         <ChoiceGroup
-          label="Font Size"
+          label={t("fontSize")}
           value={prefs.fontSize}
-          options={FONT_SIZE_OPTIONS}
+          options={fontSizeOptions(t)}
           onChange={(fontSize) => updatePrefs({ ...prefs, fontSize })}
         />
         <ChoiceGroup
-          label="Line Spacing"
+          label={t("lineSpacing")}
           value={prefs.lineSpacing}
-          options={LINE_SPACING_OPTIONS}
+          options={lineSpacingOptions(t)}
           onChange={(lineSpacing) => updatePrefs({ ...prefs, lineSpacing })}
         />
         <ChoiceGroup
-          label="Paragraph Spacing"
+          label={t("paragraphSpacing")}
           value={prefs.paragraphSpacing}
-          options={PARAGRAPH_SPACING_OPTIONS}
+          options={paragraphSpacingOptions(t)}
           onChange={(paragraphSpacing) => updatePrefs({ ...prefs, paragraphSpacing })}
         />
 
         <Divider />
 
         <ChoiceGroup
-          label="Reading Mode"
+          label={t("readingMode")}
           value={prefs.readingMode}
-          options={READING_MODE_OPTIONS}
+          options={readingModeOptions(t)}
           onChange={(readingMode) => updatePrefs({ ...prefs, readingMode })}
         />
       </div>

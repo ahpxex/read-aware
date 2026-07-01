@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { BookOpen } from "@phosphor-icons/react";
 import { Body, Caption } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
+import { formatPercent, useTranslation } from "../../../i18n";
 import type { LibraryBook } from "../../library/lib/library-types";
 import { formatReadingDuration, type ReadingStatsStore } from "../../reader/lib/reading-stats";
 import { bookWindowStats, type StatsPeriod } from "../lib/reading-insights";
@@ -38,6 +39,7 @@ export function BookBreakdown({
   annotations,
   onOpenBook,
 }: BookBreakdownProps) {
+  const { t } = useTranslation("stats");
   const bookMap = useMemo(() => new Map(books.map((b) => [b.id, b])), [books]);
 
   const ranked = useMemo(() => {
@@ -49,7 +51,7 @@ export function BookBreakdown({
   }, [store, bookMap, period, now]);
 
   if (ranked.length === 0) {
-    return <Caption className="block text-fg-subtle">No books read in this period.</Caption>;
+    return <Caption className="block text-fg-subtle">{t("overview.noBooksInPeriod")}</Caption>;
   }
 
   return (
@@ -84,13 +86,13 @@ export function BookBreakdown({
               )}
             </div>
             <div className="hidden shrink-0 items-center gap-6 sm:flex">
-              <Metric label="Time" value={formatReadingDuration(window.ms)} />
-              <Metric label="Progress" value={`${Math.round(book.progressPercent)}%`} />
-              <Metric label="Days" value={`${window.daysRead}`} />
-              <Metric label="Notes" value={`${counts?.notes ?? 0}`} />
+              <Metric label={t("breakdown.time")} value={formatReadingDuration(window.ms)} />
+              <Metric label={t("breakdown.progress")} value={formatPercent(book.progressPercent)} />
+              <Metric label={t("breakdown.days")} value={`${window.daysRead}`} />
+              <Metric label={t("breakdown.notes")} value={`${counts?.notes ?? 0}`} />
             </div>
             <div className="shrink-0 sm:hidden">
-              <Metric label="Time" value={formatReadingDuration(window.ms)} />
+              <Metric label={t("breakdown.time")} value={formatReadingDuration(window.ms)} />
             </div>
           </button>
         );

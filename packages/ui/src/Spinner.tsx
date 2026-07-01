@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { cn } from "./lib/cn";
 
 type SpinnerProps = {
@@ -12,14 +13,15 @@ const sizeClasses = {
   lg: "h-6 w-6",
 };
 
-export function Spinner({ size = "md", className, label = "Loading" }: SpinnerProps) {
+export function Spinner({ size = "md", className, label }: SpinnerProps) {
+  const { t } = useTranslation("ui");
   return (
     <svg
       className={cn("animate-spin text-fg-subtle", sizeClasses[size], className)}
       viewBox="0 0 24 24"
       fill="none"
       role="status"
-      aria-label={label}
+      aria-label={label ?? t("loading")}
     >
       <circle
         className="opacity-25"

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Select, Toggle } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
+import { useTranslation } from "../../../i18n";
 import {
   curatedFontId,
   isSystemFont,
@@ -32,6 +33,7 @@ type FontFieldProps = {
  * a new one is picked. Shared by the Reading panel and the in-reader popover.
  */
 export function FontField({ value, onChange, className }: FontFieldProps) {
+  const { t } = useTranslation("settings");
   const systemFonts = useSystemFonts();
   const [custom, setCustom] = useState(isSystemFont(value));
   // Download + inject the active curated font so the preview/UI render it.
@@ -59,18 +61,18 @@ export function FontField({ value, onChange, className }: FontFieldProps) {
   return (
     <div className={cn("relative", className)}>
       <label className="absolute right-0 top-0 z-[1] inline-flex cursor-pointer items-center gap-2">
-        <span className="font-sans text-[13px] text-fg-muted">Custom</span>
+        <span className="font-sans text-[13px] text-fg-muted">{t("font.custom")}</span>
         <Toggle
-          aria-label="Pick from fonts installed on this device"
+          aria-label={t("font.customAria")}
           checked={custom}
           onChange={setCustom}
         />
       </label>
       <Select
-        label="Font"
+        label={t("font.label")}
         value={selectValue}
         options={options}
-        placeholder={custom ? "Choose an installed font" : "Choose a curated font"}
+        placeholder={custom ? t("font.placeholderCustom") : t("font.placeholderCurated")}
         onChange={(next) => onChange(next as ReaderFontFamily)}
       />
     </div>

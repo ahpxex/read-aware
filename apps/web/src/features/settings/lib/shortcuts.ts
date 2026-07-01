@@ -30,15 +30,14 @@ export type ShortcutId =
 export type EditableShortcut = {
   id: ShortcutId;
   category: string;
-  label: string;
   defaultBinding: KeyChord;
 };
 
-/** A reference-only row whose action isn't a rebindable key chord. */
+/** A reference-only row whose action isn't a rebindable key chord. Action labels
+ *  live in the `settings` catalog under `shortcuts.actions.<id>`. */
 export type InfoShortcut = {
-  id: string;
+  id: "close";
   category: string;
-  label: string;
   keys: string[];
 };
 
@@ -51,27 +50,27 @@ export type ShortcutBindings = Partial<Record<ShortcutId, KeyChord>>;
  * live binding through `resolveBinding`, so edits take effect immediately.
  */
 export const EDITABLE_SHORTCUTS: EditableShortcut[] = [
-  { id: "search", category: "Global", label: "Open search", defaultBinding: { mod: true, key: "k" } },
-  { id: "settings", category: "Global", label: "Open settings", defaultBinding: { mod: true, key: "," } },
-  { id: "next-page", category: "Reading", label: "Next page", defaultBinding: { key: "ArrowRight" } },
-  { id: "prev-page", category: "Reading", label: "Previous page", defaultBinding: { key: "ArrowLeft" } },
-  { id: "next-chapter", category: "Reading", label: "Next chapter", defaultBinding: { key: "]" } },
-  { id: "prev-chapter", category: "Reading", label: "Previous chapter", defaultBinding: { key: "[" } },
-  { id: "toggle-controls", category: "Reading", label: "Toggle reader controls", defaultBinding: { key: " " } },
+  { id: "search", category: "Global", defaultBinding: { mod: true, key: "k" } },
+  { id: "settings", category: "Global", defaultBinding: { mod: true, key: "," } },
+  { id: "next-page", category: "Reading", defaultBinding: { key: "ArrowRight" } },
+  { id: "prev-page", category: "Reading", defaultBinding: { key: "ArrowLeft" } },
+  { id: "next-chapter", category: "Reading", defaultBinding: { key: "]" } },
+  { id: "prev-chapter", category: "Reading", defaultBinding: { key: "[" } },
+  { id: "toggle-controls", category: "Reading", defaultBinding: { key: " " } },
   // Selection actions fire only while text is selected in the reader (the
   // selection menu is up), so a bare letter is safe — it can't collide with
   // typing or with the reading shortcuts above.
-  { id: "selection-copy", category: "Selection", label: "Copy", defaultBinding: { key: "c" } },
-  { id: "selection-highlight", category: "Selection", label: "Highlight", defaultBinding: { key: "h" } },
-  { id: "selection-underline", category: "Selection", label: "Underline", defaultBinding: { key: "u" } },
-  { id: "selection-add-note", category: "Selection", label: "Add note", defaultBinding: { key: "n" } },
-  { id: "selection-look-up", category: "Selection", label: "Look up", defaultBinding: { key: "l" } },
-  { id: "selection-ask-ai", category: "Selection", label: "Ask AI", defaultBinding: { key: "a" } },
+  { id: "selection-copy", category: "Selection", defaultBinding: { key: "c" } },
+  { id: "selection-highlight", category: "Selection", defaultBinding: { key: "h" } },
+  { id: "selection-underline", category: "Selection", defaultBinding: { key: "u" } },
+  { id: "selection-add-note", category: "Selection", defaultBinding: { key: "n" } },
+  { id: "selection-look-up", category: "Selection", defaultBinding: { key: "l" } },
+  { id: "selection-ask-ai", category: "Selection", defaultBinding: { key: "a" } },
 ];
 
 /** Fixed, non-rebindable shortcuts shown for reference. */
 export const INFO_SHORTCUTS: InfoShortcut[] = [
-  { id: "close", category: "Overlays", label: "Close dialog or overlay", keys: ["Esc"] },
+  { id: "close", category: "Overlays", keys: ["Esc"] },
 ];
 
 const DEFAULT_BINDINGS = new Map<ShortcutId, KeyChord>(

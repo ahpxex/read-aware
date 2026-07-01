@@ -1,6 +1,7 @@
 import { PencilSimple, Trash } from "@phosphor-icons/react";
 import { Body, Button, Dialog, Heading, IconButton, Tooltip } from "@read-aware/ui";
 import { useLocalAtom } from "@read-aware/ui/state";
+import { Trans, useTranslation } from "../../../i18n";
 import type { Collection } from "../../library/lib/library-types";
 
 type CollectionHeaderProps = {
@@ -16,6 +17,7 @@ type CollectionHeaderProps = {
  * Mount with a `key` of the collection id so the inline draft resets per group.
  */
 export function CollectionHeader({ collection, count, onRename, onDelete }: CollectionHeaderProps) {
+  const { t } = useTranslation("shelf");
   const [editing, setEditing] = useLocalAtom(false);
   const [draft, setDraft] = useLocalAtom(collection.name);
   const [deleteOpen, setDeleteOpen] = useLocalAtom(false);
@@ -42,7 +44,7 @@ export function CollectionHeader({ collection, count, onRename, onDelete }: Coll
                 setEditing(false);
               }
             }}
-            aria-label="Collection name"
+            aria-label={t("collection.nameLabel")}
             className="min-w-0 flex-1 border-b border-border-strong bg-transparent font-serif text-2xl text-fg outline-none"
           />
         ) : (
@@ -51,9 +53,9 @@ export function CollectionHeader({ collection, count, onRename, onDelete }: Coll
           </Heading>
         )}
         {!editing && (
-          <Tooltip content="Rename" side="bottom">
+          <Tooltip content={t("collection.rename")} side="bottom">
             <IconButton
-              label="Rename collection"
+              label={t("collection.renameAction")}
               size="sm"
               onClick={() => {
                 setDraft(collection.name);
@@ -63,9 +65,9 @@ export function CollectionHeader({ collection, count, onRename, onDelete }: Coll
             />
           </Tooltip>
         )}
-        <Tooltip content="Delete collection" side="bottom">
+        <Tooltip content={t("collection.deleteTooltip")} side="bottom">
           <IconButton
-            label="Delete collection"
+            label={t("collection.deleteAction")}
             size="sm"
             className="hover:text-red-600"
             onClick={() => setDeleteOpen(true)}
@@ -75,18 +77,22 @@ export function CollectionHeader({ collection, count, onRename, onDelete }: Coll
       </div>
 
       <Body className="mt-1 text-sm tabular-nums text-fg-muted">
-        {count} book{count === 1 ? "" : "s"}
+        {t("books", { count })}
       </Body>
 
-      <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)} title="Delete collection?">
+      <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)} title={t("collection.deleteTitle")}>
         <div className="space-y-4">
           <p>
-            Delete <strong>{collection.name}</strong>? The books stay in your library — they’re just
-            ungrouped.
+            <Trans
+              ns="shelf"
+              i18nKey="collection.deleteBody"
+              values={{ name: collection.name }}
+              components={{ strong: <strong /> }}
+            />
           </p>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" size="sm" onClick={() => setDeleteOpen(false)}>
-              Cancel
+              {t("actions.cancel")}
             </Button>
             <Button
               variant="danger"
@@ -96,7 +102,7 @@ export function CollectionHeader({ collection, count, onRename, onDelete }: Coll
                 onDelete();
               }}
             >
-              Delete
+              {t("actions.delete")}
             </Button>
           </div>
         </div>

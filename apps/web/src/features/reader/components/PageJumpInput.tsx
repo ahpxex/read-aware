@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useLocalAtom } from "@read-aware/ui/state";
+import { useTranslation } from "../../../i18n";
 
 type PageJumpInputProps = {
   numPages: number;
@@ -12,6 +13,7 @@ export function PageJumpInput({
   currentPage,
   onJump,
 }: PageJumpInputProps) {
+  const { t } = useTranslation("reader");
   const [value, setValue] = useLocalAtom(String(currentPage));
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -47,7 +49,7 @@ export function PageJumpInput({
         type="submit"
         className="shrink-0 border border-border-strong px-3 py-1.5 font-sans text-sm font-medium text-fg transition-colors hover:bg-fg/5"
       >
-        Go
+        {t("go")}
       </button>
     </form>
   );

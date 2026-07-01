@@ -12,6 +12,7 @@ import {
 } from "@phosphor-icons/react";
 import { IconButton, ScrollArea } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
+import { useTranslation } from "../../i18n";
 import { AboutPanel } from "./sections/AboutPanel";
 import { AIPanel } from "./sections/AIPanel";
 import { AppearancePanel } from "./sections/AppearancePanel";
@@ -20,20 +21,29 @@ import { GeneralPanel } from "./sections/GeneralPanel";
 import { ReadingPanel } from "./sections/ReadingPanel";
 import { ShortcutsPanel } from "./sections/ShortcutsPanel";
 
+type SectionId =
+  | "general"
+  | "appearance"
+  | "reading"
+  | "ai"
+  | "shortcuts"
+  | "dataSync"
+  | "about";
+
 type SettingsSection = {
-  label: string;
+  id: SectionId;
   icon: Icon;
   Panel: () => React.JSX.Element;
 };
 
 const SECTIONS: SettingsSection[] = [
-  { label: "General", icon: SlidersHorizontal, Panel: GeneralPanel },
-  { label: "Appearance", icon: Palette, Panel: AppearancePanel },
-  { label: "Reading", icon: BookOpen, Panel: ReadingPanel },
-  { label: "AI", icon: Sparkle, Panel: AIPanel },
-  { label: "Shortcuts", icon: Keyboard, Panel: ShortcutsPanel },
-  { label: "Data & Sync", icon: Database, Panel: DataSyncPanel },
-  { label: "About", icon: Info, Panel: AboutPanel },
+  { id: "general", icon: SlidersHorizontal, Panel: GeneralPanel },
+  { id: "appearance", icon: Palette, Panel: AppearancePanel },
+  { id: "reading", icon: BookOpen, Panel: ReadingPanel },
+  { id: "ai", icon: Sparkle, Panel: AIPanel },
+  { id: "shortcuts", icon: Keyboard, Panel: ShortcutsPanel },
+  { id: "dataSync", icon: Database, Panel: DataSyncPanel },
+  { id: "about", icon: Info, Panel: AboutPanel },
 ];
 
 const EXIT_DURATION_MS = 220;
@@ -45,6 +55,7 @@ type SettingsDialogProps = {
 };
 
 export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
+  const { t } = useTranslation("settings");
   const titleId = useId();
   const closeTimerRef = useRef<number | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
@@ -151,11 +162,11 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       >
         <nav
           ref={navRef}
-          aria-label="Settings sections"
+          aria-label={t("dialog.sectionsLabel")}
           className="relative flex w-48 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-border/70 p-3"
         >
           <h2 id={titleId} className="px-3 pb-2.5 pt-1.5 font-serif text-base font-medium text-fg">
-            Settings
+            {t("dialog.title")}
           </h2>
 
           {indicatorY != null && (
@@ -171,7 +182,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             const SectionIcon = section.icon;
             return (
               <button
-                key={section.label}
+                key={section.id}
                 ref={(el) => {
                   itemRefs.current[index] = el;
                 }}
@@ -189,7 +200,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                   aria-hidden="true"
                   className="shrink-0"
                 />
-                {section.label}
+                {t(`sections.${section.id}`)}
               </button>
             );
           })}
@@ -198,7 +209,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex shrink-0 justify-end px-3 pt-3">
             <IconButton
-              label="Close settings"
+              label={t("dialog.close")}
               size="sm"
               onClick={onClose}
               icon={<X size={14} weight="regular" aria-hidden="true" />}

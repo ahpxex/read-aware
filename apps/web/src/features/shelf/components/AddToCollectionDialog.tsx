@@ -1,6 +1,7 @@
 import { Plus, Prohibit } from "@phosphor-icons/react";
 import { Button, Dialog, TextField } from "@read-aware/ui";
 import { useLocalAtom } from "@read-aware/ui/state";
+import { useTranslation } from "../../../i18n";
 import type { Collection } from "../../library/lib/library-types";
 
 type AddToCollectionDialogProps = {
@@ -23,6 +24,7 @@ export function AddToCollectionDialog({
   onAssign,
   onCreate,
 }: AddToCollectionDialogProps) {
+  const { t } = useTranslation("shelf");
   const [name, setName] = useLocalAtom("");
   const [creating, setCreating] = useLocalAtom(false);
 
@@ -47,15 +49,15 @@ export function AddToCollectionDialog({
     <Dialog
       open={open}
       onClose={onClose}
-      title={`Add ${count} book${count === 1 ? "" : "s"} to…`}
+      title={t("collectionDialog.title", { count })}
     >
       <div className="space-y-4">
         <div className="flex items-end gap-2">
           <div className="flex-1">
             <TextField
-              label="New collection"
+              label={t("collectionDialog.newLabel")}
               value={name}
-              placeholder="e.g. To read"
+              placeholder={t("collectionDialog.newPlaceholder")}
               onChange={(event) => setName(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") void createAndAssign();
@@ -69,7 +71,7 @@ export function AddToCollectionDialog({
             disabled={!name.trim() || creating}
           >
             <Plus size={15} weight="regular" aria-hidden="true" />
-            Create
+            {t("actions.create")}
           </Button>
         </div>
 
@@ -95,7 +97,7 @@ export function AddToCollectionDialog({
             className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left font-sans text-sm text-fg-muted transition-colors hover:bg-fg/5 hover:text-fg"
           >
             <Prohibit size={15} weight="regular" aria-hidden="true" />
-            Remove from collection
+            {t("collectionDialog.removeFromCollection")}
           </button>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { cn } from "./lib/cn";
 
 const sizeClasses = {
@@ -32,6 +33,7 @@ export function Avatar({
   size = "md",
   className,
 }: AvatarProps) {
+  const { t } = useTranslation("ui");
   const fallback = initials ?? (alt ? getInitials(alt) : "?");
 
   if (src) {
@@ -45,7 +47,7 @@ export function Avatar({
       >
         <img
           src={src}
-          alt={alt ?? "Avatar"}
+          alt={alt ?? t("avatar")}
           className="h-full w-full object-cover"
         />
       </span>
@@ -60,7 +62,7 @@ export function Avatar({
         className,
       )}
       role="img"
-      aria-label={alt ?? initials ?? "Avatar"}
+      aria-label={alt ?? initials ?? t("avatar")}
     >
       {fallback}
     </span>

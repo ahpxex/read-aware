@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from "react";
 import { Button, Select, TextField, Stack, Alert } from "@read-aware/ui";
+import { Trans, useTranslation } from "../../../i18n";
 import {
   getAIConfig,
   saveAIConfig,
@@ -17,6 +18,9 @@ import {
 import { sendChatCompletion } from "../../ai/lib/ai-service";
 
 export function AIConfigPanel() {
+  const { t } = useTranslation("settings");
+  // The `ai` namespace localizes error messages thrown by the AI service.
+  const { t: tAi } = useTranslation("ai");
   const [provider, setProvider] = useState<AIProvider>("openai");
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState(DEFAULT_MODELS.openai);
@@ -52,7 +56,7 @@ export function AIConfigPanel() {
     };
     saveAIConfig(config);
     setIsConfigured(true);
-    setTestResult({ success: true, message: "Configuration saved successfully." });
+    setTestResult({ success: true, message: t("aiConfig.savedMessage") });
   };
 
   const handleClear = () => {
@@ -84,24 +88,25 @@ export function AIConfigPanel() {
           { role: "user", content: "Say 'ReadAware AI is working!' in 10 words or less." },
         ],
         maxTokens: 50,
+        t: tAi,
       });
 
       if (response.content) {
         setTestResult({
           success: true,
-          message: `Test successful! Response: "${response.content.trim()}"`,
+          message: t("aiConfig.testSuccessMessage", { response: response.content.trim() }),
         });
         setIsConfigured(true);
       } else {
         setTestResult({
           success: false,
-          message: "Test failed: Empty response from AI provider.",
+          message: t("aiConfig.testEmptyMessage"),
         });
       }
     } catch (error) {
       setTestResult({
         success: false,
-        message: error instanceof Error ? error.message : "Unknown error during test.",
+        message: error instanceof Error ? error.message : t("aiConfig.testUnknownError"),
       });
     } finally {
       setIsTesting(false);
@@ -118,20 +123,23 @@ export function AIConfigPanel() {
   return (
     <Stack gap="xl">
       {isConfigured && (
-        <Alert variant="success" title="AI is configured">
-          Your API key is saved locally. You can use AI features in the reader.
+        <Alert variant="success" title={t("aiConfig.configured.title")}>
+          {t("aiConfig.configured.body")}
         </Alert>
       )}
 
       {testResult && (
-        <Alert variant={testResult.success ? "success" : "destructive"} title={testResult.success ? "Success" : "Error"}>
+        <Alert
+          variant={testResult.success ? "success" : "destructive"}
+          title={testResult.success ? t("aiConfig.result.success") : t("aiConfig.result.error")}
+        >
           {testResult.message}
         </Alert>
       )}
 
       <Stack gap="lg">
         <Select
-          label="AI Provider"
+          label={t("aiConfig.provider")}
           value={provider}
           onChange={(value) => setProvider(value as AIProvider)}
           options={providerOptions}
@@ -139,80 +147,95 @@ export function AIConfigPanel() {
 
         {provider === "custom" && (
           <TextField
-            label="Custom Base URL"
+            label={t("aiConfig.customBaseUrl.label")}
             type="url"
             value={customBaseUrl}
             onChange={(e) => setCustomBaseUrl(e.target.value)}
             placeholder="https://api.example.com/v1"
-            helperText="Enter the base URL for your OpenAI-compatible API endpoint."
+            helperText={t("aiConfig.customBaseUrl.helper")}
           />
         )}
 
         <TextField
-          label="API Key"
+          label={t("aiConfig.apiKey.label")}
           type={showKey ? "text" : "password"}
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
-          placeholder={`Enter your ${PROVIDER_LABELS[provider]} API key`}
-          helperText="Your API key is stored locally in your browser and never sent to our servers."
+          placeholder={t("aiConfig.apiKey.placeholder", { provider: PROVIDER_LABELS[provider] })}
+          helperText={t("aiConfig.apiKey.helper")}
           trailingIcon={
             <button
               type="button"
               onClick={() => setShowKey(!showKey)}
               className="text-xs text-fg-subtle hover:text-fg-muted"
             >
-              {showKey ? "Hide" : "Show"}
+              {showKey ? t("aiConfig.hide") : t("aiConfig.show")}
             </button>
           }
         />
 
         <Select
-          label="Model"
+          label={t("aiConfig.model")}
           value={model}
           onChange={setModel}
-          options={modelOptions.length > 0 ? modelOptions : [{ label: "Default", value: "" }]}
+          options={modelOptions.length > 0 ? modelOptions : [{ label: t("aiConfig.modelDefault"), value: "" }]}
           disabled={modelOptions.length === 0}
         />
 
         {provider === "openai" && (
           <p className="text-xs text-fg-muted">
-            Get your API key from{" "}
-            <a
-              href="https://platform.openai.com/api-keys"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-fg"
-            >
-              OpenAI Dashboard
-            </a>
+            <Trans
+              t={t}
+              i18nKey="aiConfig.getKey.openai"
+              components={{
+                link: (
+                  <a
+                    href="https://platform.openai.com/api-keys"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-fg"
+                  />
+                ),
+              }}
+            />
           </p>
         )}
 
         {provider === "anthropic" && (
           <p className="text-xs text-fg-muted">
-            Get your API key from{" "}
-            <a
-              href="https://console.anthropic.com/settings/keys"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-fg"
-            >
-              Anthropic Console
-            </a>
+            <Trans
+              t={t}
+              i18nKey="aiConfig.getKey.anthropic"
+              components={{
+                link: (
+                  <a
+                    href="https://console.anthropic.com/settings/keys"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-fg"
+                  />
+                ),
+              }}
+            />
           </p>
         )}
 
         {provider === "openrouter" && (
           <p className="text-xs text-fg-muted">
-            Get your API key from{" "}
-            <a
-              href="https://openrouter.ai/keys"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-fg"
-            >
-              OpenRouter
-            </a>
+            <Trans
+              t={t}
+              i18nKey="aiConfig.getKey.openrouter"
+              components={{
+                link: (
+                  <a
+                    href="https://openrouter.ai/keys"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-fg"
+                  />
+                ),
+              }}
+            />
           </p>
         )}
       </Stack>
@@ -222,29 +245,25 @@ export function AIConfigPanel() {
           onClick={handleSave}
           disabled={!apiKey.trim() || (provider === "custom" && !customBaseUrl.trim())}
         >
-          Save Configuration
+          {t("aiConfig.save")}
         </Button>
         <Button
           variant="outline"
           onClick={handleTest}
           disabled={!apiKey.trim() || isTesting || (provider === "custom" && !customBaseUrl.trim())}
         >
-          {isTesting ? "Testing..." : "Test Connection"}
+          {isTesting ? t("aiConfig.testing") : t("aiConfig.test")}
         </Button>
         {isConfigured && (
           <Button variant="ghost" onClick={handleClear}>
-            Clear
+            {t("aiConfig.clear")}
           </Button>
         )}
       </div>
 
       <div className="rounded-md border border-border bg-fill p-4 text-sm text-fg-muted">
-        <p className="font-medium text-fg">About BYOK (Bring Your Own Key)</p>
-        <p className="mt-1">
-          ReadAware uses your own API key to access AI services. Your key is stored locally in your
-          browser and is never sent to our servers. You are responsible for any API usage charges
-          incurred.
-        </p>
+        <p className="font-medium text-fg">{t("aiConfig.byok.title")}</p>
+        <p className="mt-1">{t("aiConfig.byok.body")}</p>
       </div>
     </Stack>
   );

@@ -3,6 +3,7 @@ import { useAtom } from "jotai";
 import { Cards, CaretLeft, ChartLineUp, GearSix, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { IconButton, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
+import { useTranslation } from "../../../i18n";
 import { activeCollectionAtom, type TopNav } from "../../../state/ui";
 
 type AppHeaderProps = {
@@ -33,6 +34,7 @@ export function AppHeader({
   onTopNavChange,
   viewControl,
 }: AppHeaderProps) {
+  const { t } = useTranslation("nav");
   const contextActive = activeTopNav === "context";
   const statsActive = activeTopNav === "stats";
   const [activeCollectionId, setActiveCollectionId] = useAtom(activeCollectionAtom);
@@ -42,7 +44,7 @@ export function AppHeader({
   // reader's top bar. Inside a collection, back returns to the full shelf.
   const inCollection = activeTopNav === "shelf" && activeCollectionId !== null;
   const showBack = activeTopNav !== "shelf" || inCollection;
-  const backLabel = inCollection ? "All books" : "Back to shelf";
+  const backLabel = inCollection ? t("header.back.allBooks") : t("header.back.toShelf");
   const handleBack = () => {
     if (inCollection) setActiveCollectionId(null);
     else onTopNavChange("shelf");
@@ -70,18 +72,18 @@ export function AppHeader({
           </Tooltip>
         )}
         <div className="ml-auto flex items-center gap-1.5">
-          <Tooltip content="Search" side="bottom">
+          <Tooltip content={t("header.search")} side="bottom">
             <IconButton
-              label="Search"
+              label={t("header.search")}
               size="sm"
               onClick={onOpenSearch}
               className={headerIconButtonClass}
               icon={<MagnifyingGlass size={16} weight="regular" aria-hidden="true" />}
             />
           </Tooltip>
-          <Tooltip content={isImporting ? "Importing..." : "Import"} side="bottom">
+          <Tooltip content={isImporting ? t("header.importing") : t("header.import")} side="bottom">
             <IconButton
-              label="Import"
+              label={t("header.import")}
               size="sm"
               onClick={onImport}
               disabled={isImporting}
@@ -90,9 +92,9 @@ export function AppHeader({
             />
           </Tooltip>
           {viewControl}
-          <Tooltip content="Context" side="bottom">
+          <Tooltip content={t("header.context")} side="bottom">
             <IconButton
-              label="Context"
+              label={t("header.context")}
               size="sm"
               aria-pressed={contextActive}
               onClick={() => onTopNavChange(contextActive ? "shelf" : "context")}
@@ -103,9 +105,9 @@ export function AppHeader({
               icon={<Cards size={16} weight={contextActive ? "fill" : "regular"} aria-hidden="true" />}
             />
           </Tooltip>
-          <Tooltip content="Reading stats" side="bottom">
+          <Tooltip content={t("header.stats")} side="bottom">
             <IconButton
-              label="Reading stats"
+              label={t("header.stats")}
               size="sm"
               aria-pressed={statsActive}
               onClick={() => onTopNavChange(statsActive ? "shelf" : "stats")}
@@ -116,9 +118,9 @@ export function AppHeader({
               icon={<ChartLineUp size={16} weight={statsActive ? "fill" : "regular"} aria-hidden="true" />}
             />
           </Tooltip>
-          <Tooltip content="Settings" side="bottom">
+          <Tooltip content={t("header.settings")} side="bottom">
             <IconButton
-              label="Settings"
+              label={t("header.settings")}
               size="sm"
               onClick={onOpenSettings}
               className={headerIconButtonClass}

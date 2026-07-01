@@ -3,8 +3,17 @@
  * Handles chat completion requests with user's own API key
  */
 
+import type { TFunction } from "i18next";
 import { getAIConfig, type AIConfig, type AIProvider } from "./ai-config";
 import { parseSSEStream } from "./parse-sse";
+
+const NOT_CONFIGURED_FALLBACK =
+  "AI not configured. Please set up your API key in settings.";
+
+/** Resolve the user-facing "not configured" message, localized when a `t` is passed. */
+function notConfiguredMessage(t?: TFunction<"ai">): string {
+  return t ? t("service.notConfigured") : NOT_CONFIGURED_FALLBACK;
+}
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -17,6 +26,8 @@ export interface ChatCompletionOptions {
   maxTokens?: number;
   stream?: boolean;
   onStreamChunk?: (chunk: string) => void;
+  /** Passed from the calling component to localize user-facing error messages. */
+  t?: TFunction<"ai">;
 }
 
 export interface ChatCompletionResponse {
@@ -139,7 +150,7 @@ export async function sendChatCompletion(
 ): Promise<ChatCompletionResponse> {
   const config = getAIConfig();
   if (!config) {
-    throw new AIError("AI not configured. Please set up your API key in settings.", "NOT_CONFIGURED");
+    throw new AIError(notConfiguredMessage(options.t), "NOT_CONFIGURED");
   }
 
   const baseUrl = getBaseUrl(config);
@@ -198,6 +209,8 @@ export interface StreamingChatOptions {
   maxTokens?: number;
   onChunk: (text: string) => void;
   signal?: AbortSignal;
+  /** Passed from the calling component to localize user-facing error messages. */
+  t?: TFunction<"ai">;
 }
 
 export async function sendChatCompletionStreaming(
@@ -205,7 +218,7 @@ export async function sendChatCompletionStreaming(
 ): Promise<ChatCompletionResponse> {
   const config = getAIConfig();
   if (!config) {
-    throw new AIError("AI not configured. Please set up your API key in settings.", "NOT_CONFIGURED");
+    throw new AIError(notConfiguredMessage(options.t), "NOT_CONFIGURED");
   }
 
   const baseUrl = getBaseUrl(config);

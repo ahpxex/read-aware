@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Alert, Button, Dialog } from "@read-aware/ui";
 import { isTauri } from "../../../platform/environment";
+import { useTranslation } from "../../../i18n";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
@@ -10,7 +11,10 @@ import { exportBackup, importBackup } from "../lib/backup-io";
 
 type Notice = { variant: "success" | "destructive"; message: string };
 
+const BACKUP_FILENAME = "readaware-backup.json";
+
 export function DataSyncPanel() {
+  const { t } = useTranslation("settings");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [busy, setBusy] = useState(false);
@@ -23,14 +27,17 @@ export function DataSyncPanel() {
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = "readaware-backup.json";
+      anchor.download = BACKUP_FILENAME;
       anchor.click();
       URL.revokeObjectURL(url);
-      setNotice({ variant: "success", message: "Everything exported to readaware-backup.json." });
+      setNotice({
+        variant: "success",
+        message: t("dataSync.exportSuccess", { file: BACKUP_FILENAME }),
+      });
     } catch (error) {
       setNotice({
         variant: "destructive",
-        message: error instanceof Error ? error.message : "Could not export your data.",
+        message: error instanceof Error ? error.message : t("dataSync.exportError"),
       });
     } finally {
       setBusy(false);
@@ -43,13 +50,18 @@ export function DataSyncPanel() {
       const result = await importBackup(await file.text());
       setNotice({
         variant: "success",
-        message: `Merged ${result.books} book${result.books === 1 ? "" : "s"}, ${result.annotations} annotation${result.annotations === 1 ? "" : "s"}, ${result.collections} collection${result.collections === 1 ? "" : "s"}, and ${result.settings} setting${result.settings === 1 ? "" : "s"}. Reloading…`,
+        message: t("dataSync.merge.summary", {
+          books: t("dataSync.merge.books", { count: result.books }),
+          annotations: t("dataSync.merge.annotations", { count: result.annotations }),
+          collections: t("dataSync.merge.collections", { count: result.collections }),
+          settings: t("dataSync.merge.settings", { count: result.settings }),
+        }),
       });
       window.setTimeout(() => window.location.reload(), 900);
     } catch (error) {
       setNotice({
         variant: "destructive",
-        message: error instanceof Error ? error.message : "Could not import this file.",
+        message: error instanceof Error ? error.message : t("dataSync.importError"),
       });
       setBusy(false);
     }
@@ -63,47 +75,48 @@ export function DataSyncPanel() {
 
   return (
     <SettingsPage
-      title="Data & Sync"
-      description="ReadAware is local-first: your data lives on this device. Sync is an encrypted relay, not a source of truth."
+      title={t("dataSync.title")}
+      description={t("dataSync.description")}
     >
       {notice && (
-        <Alert variant={notice.variant} title={notice.variant === "success" ? "Done" : "Error"}>
+        <Alert
+          variant={notice.variant}
+          title={notice.variant === "success" ? t("dataSync.noticeDone") : t("dataSync.noticeError")}
+        >
           {notice.message}
         </Alert>
       )}
 
-      <SettingsGroup title="Sync" aside={<PendingBadge />}>
+      <SettingsGroup title={t("dataSync.sync")} aside={<PendingBadge />}>
         <SettingsRow
           borderless
-          title="Account"
-          description="Connect an account to sync your encrypted event log across devices."
+          title={t("dataSync.account.title")}
+          description={t("dataSync.account.description")}
           control={
             <Button variant="outline" size="sm" disabled>
-              Connect account
+              {t("dataSync.connectAccount")}
             </Button>
           }
         />
         <SettingsRow
-          title="End-to-end encryption"
-          description="Synced data is encrypted on-device. Manage your passphrase and devices here."
+          title={t("dataSync.e2e.title")}
+          description={t("dataSync.e2e.description")}
           control={<PendingBadge />}
         />
       </SettingsGroup>
 
-      <SettingsGroup title="Storage">
+      <SettingsGroup title={t("dataSync.storage")}>
         <SettingsRow
           borderless
-          title="Data location"
+          title={t("dataSync.dataLocation.title")}
           description={
-            isTauri()
-              ? "Stored in the ReadAware application data folder on this Mac."
-              : "Stored in this browser. The desktop app keeps data in a local folder you control."
+            isTauri() ? t("dataSync.dataLocation.descTauri") : t("dataSync.dataLocation.descWeb")
           }
           control={
             <span className="flex items-center gap-2">
-              <PendingBadge>Desktop</PendingBadge>
+              <PendingBadge>{t("dataSync.desktopBadge")}</PendingBadge>
               <Button variant="outline" size="sm" disabled>
-                Reveal
+                {t("dataSync.reveal")}
               </Button>
             </span>
           }
@@ -111,13 +124,13 @@ export function DataSyncPanel() {
       </SettingsGroup>
 
       <SettingsGroup
-        title="Backup & export"
-        description="Save everything on this device to a single file — move it to another device or keep it as a backup. Importing merges a backup back into your current data."
+        title={t("dataSync.backup.title")}
+        description={t("dataSync.backup.description")}
       >
         <SettingsRow
           borderless
-          title="Full backup"
-          description="Books, highlights, notes, collections, reading progress, and every preference, in one portable file."
+          title={t("dataSync.fullBackup.title")}
+          description={t("dataSync.fullBackup.description")}
           control={
             <span className="flex items-center gap-2">
               <Button
@@ -126,10 +139,10 @@ export function DataSyncPanel() {
                 disabled={busy}
                 onClick={() => fileInputRef.current?.click()}
               >
-                Import
+                {t("dataSync.import")}
               </Button>
               <Button size="sm" disabled={busy} onClick={() => void handleExport()}>
-                {busy ? "Working…" : "Export"}
+                {busy ? t("dataSync.working") : t("dataSync.export")}
               </Button>
               <input
                 ref={fileInputRef}
@@ -147,31 +160,28 @@ export function DataSyncPanel() {
         />
       </SettingsGroup>
 
-      <SettingsGroup title="Danger zone">
+      <SettingsGroup title={t("dataSync.dangerZone")}>
         <SettingsRow
           borderless
-          title="Reset all settings"
-          description="Restore every preference to its default. Books and annotations are kept."
+          title={t("dataSync.reset.title")}
+          description={t("dataSync.reset.description")}
           control={
             <Button variant="danger" size="sm" onClick={() => setResetOpen(true)}>
-              Reset settings
+              {t("dataSync.resetButton")}
             </Button>
           }
         />
       </SettingsGroup>
 
-      <Dialog open={resetOpen} onClose={() => setResetOpen(false)} title="Reset all settings?">
+      <Dialog open={resetOpen} onClose={() => setResetOpen(false)} title={t("dataSync.resetDialog.title")}>
         <div className="space-y-4">
-          <p>
-            Restore every preference to its default. Your books and annotations are kept — only
-            settings are reset. This can’t be undone.
-          </p>
+          <p>{t("dataSync.resetDialog.body")}</p>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" size="sm" onClick={() => setResetOpen(false)}>
-              Cancel
+              {t("dataSync.resetDialog.cancel")}
             </Button>
             <Button variant="danger" size="sm" onClick={confirmReset}>
-              Reset settings
+              {t("dataSync.resetButton")}
             </Button>
           </div>
         </div>

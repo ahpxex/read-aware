@@ -1,11 +1,11 @@
-import { GROUP_ORDER, type CommandItem } from "./build-commands";
+import { GROUP_ORDER, type CommandGroupKey, type CommandItem } from "./build-commands";
 
 /** Books shown under an empty query (most-recent first); the rest on demand. */
 const EMPTY_BOOK_LIMIT = 5;
 /** Cap matched books so a large library can't flood the list. */
 const MATCH_BOOK_LIMIT = 30;
 
-export type CommandGroup = { group: string; items: CommandItem[] };
+export type CommandGroup = { group: CommandGroupKey; items: CommandItem[] };
 
 function isSubsequence(needle: string, hay: string): boolean {
   let i = 0;
@@ -27,8 +27,11 @@ function score(item: CommandItem, q: string): number | null {
   return null;
 }
 
-function bucket(items: CommandItem[], orderByScore: Map<string, number> | null): CommandGroup[] {
-  const groups = new Map<string, CommandItem[]>();
+function bucket(
+  items: CommandItem[],
+  orderByScore: Map<CommandGroupKey, number> | null,
+): CommandGroup[] {
+  const groups = new Map<CommandGroupKey, CommandItem[]>();
   for (const item of items) {
     const list = groups.get(item.group) ?? [];
     list.push(item);
@@ -75,7 +78,7 @@ export function filterCommands(items: CommandItem[], rawQuery: string): CommandG
     .filter((entry): entry is { item: CommandItem; value: number } => entry.value !== null)
     .sort((a, b) => b.value - a.value);
 
-  const bestByGroup = new Map<string, number>();
+  const bestByGroup = new Map<CommandGroupKey, number>();
   let books = 0;
   const visible: CommandItem[] = [];
   for (const { item, value } of scored) {

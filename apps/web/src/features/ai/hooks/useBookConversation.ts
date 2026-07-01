@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "../../../i18n";
 import { getChatTransport } from "../lib/chat-transport";
 import type { ChatAttachment, ChatMessage } from "../lib/chat-types";
 import {
@@ -28,6 +29,7 @@ export interface BookConversation {
  * components stay pure — all the async orchestration lives here.
  */
 export function useBookConversation(bookId: string, bookTitle: string): BookConversation {
+  const { t } = useTranslation("ai");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -112,7 +114,7 @@ export function useBookConversation(bookId: string, bookTitle: string): BookConv
             (err instanceof DOMException && err.name === "AbortError");
           if (!aborted) {
             setError(
-              err instanceof Error ? err.message : "Something went wrong getting a reply.",
+              err instanceof Error ? err.message : t("chat.error.generic"),
             );
           }
         } finally {
@@ -134,7 +136,7 @@ export function useBookConversation(bookId: string, bookTitle: string): BookConv
         }
       })();
     },
-    [bookId, bookTitle, isStreaming, persist],
+    [bookId, bookTitle, isStreaming, persist, t],
   );
 
   const stop = useCallback(() => {

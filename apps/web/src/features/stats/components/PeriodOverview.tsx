@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Caption, Divider, Heading } from "@read-aware/ui";
+import { useTranslation } from "../../../i18n";
 import type { LibraryBook } from "../../library/lib/library-types";
 import { formatReadingDuration, type ReadingStatsStore } from "../../reader/lib/reading-stats";
 import {
@@ -7,6 +8,7 @@ import {
   aggregateDaily,
   computeAchievements,
   computePeriodInsights,
+  periodRangeLabel,
   type StatsPeriod,
 } from "../lib/reading-insights";
 import type { AnnotationCounts } from "../hooks/useAnnotationCounts";
@@ -49,7 +51,12 @@ export function PeriodOverview({
   now,
   onOpenBook,
 }: PeriodOverviewProps) {
-  const insights = useMemo(() => computePeriodInsights(store, period, now), [store, period, now]);
+  const { t, i18n } = useTranslation("stats");
+  const insights = useMemo(
+    () => computePeriodInsights(store, period, now),
+    // `computePeriodInsights` reads the active locale for its bar/weekday labels.
+    [store, period, now, i18n.language],
+  );
   const byHour = useMemo(() => aggregateByHour(store), [store]);
   const daily = useMemo(() => aggregateDaily(store), [store]);
   const achievements = useMemo(
@@ -66,7 +73,8 @@ export function PeriodOverview({
   const barsBlock = (
     <div>
       <Caption className="mb-2 block text-fg-subtle">
-        {monthlyBars ? "Monthly reading" : "Daily reading"} · {insights.rangeLabel}
+        {t(monthlyBars ? "overview.monthlyReading" : "overview.dailyReading")} ·{" "}
+        {periodRangeLabel(t, period)}
       </Caption>
       <ReadingBars bars={insights.bars} height={isWeek ? 110 : 160} />
     </div>
@@ -76,13 +84,13 @@ export function PeriodOverview({
     <div className="ra-motion-page-enter space-y-8">
       <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
         <BigStat
-          label="Total time"
+          label={t("overview.totalTime")}
           value={formatReadingDuration(insights.totalMs)}
           delta={insights.deltaPct}
         />
-        <BigStat label="Books read" value={`${insights.booksRead}`} />
-        <BigStat label="Days read" value={`${insights.daysRead}`} />
-        <BigStat label="Avg / day" value={formatReadingDuration(insights.avgPerDayMs)} />
+        <BigStat label={t("overview.booksRead")} value={`${insights.booksRead}`} />
+        <BigStat label={t("overview.daysRead")} value={`${insights.daysRead}`} />
+        <BigStat label={t("overview.avgPerDay")} value={formatReadingDuration(insights.avgPerDayMs)} />
       </div>
 
       <Divider />
@@ -102,7 +110,7 @@ export function PeriodOverview({
             <>
               <Divider />
               <div>
-                <Caption className="mb-2 block text-fg-subtle">Reading calendar</Caption>
+                <Caption className="mb-2 block text-fg-subtle">{t("readingCalendar")}</Caption>
                 <ReadingHeatmap daily={daily} now={now} cell={12} />
               </div>
             </>
@@ -121,7 +129,7 @@ export function PeriodOverview({
 
       <div>
         <Heading size="xl" className="mb-3">
-          By book
+          {t("overview.byBook")}
         </Heading>
         <BookBreakdown
           books={books}
@@ -138,7 +146,7 @@ export function PeriodOverview({
           <Divider />
           <div>
             <Heading size="xl" className="mb-4">
-              Milestones
+              {t("overview.milestones")}
             </Heading>
             <Achievements facts={achievements} books={books} />
           </div>

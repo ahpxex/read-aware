@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import type {
   ReaderFontSize,
   ReaderLineSpacing,
@@ -11,40 +12,51 @@ import type {
  * global Reading settings panel and the in-reader appearance popover so the two
  * surfaces stay in lockstep. (The font picker is its own component — see
  * `FontField` — because its options are dynamic.)
+ *
+ * Each builder takes a `t` bound to the `reader` namespace and returns the
+ * options with localized labels, so the two surfaces share one set of strings.
  */
 
-export const FONT_SIZE_OPTIONS: { value: ReaderFontSize; label: string }[] = [
-  { value: "xx-small", label: "XXS" },
-  { value: "x-small", label: "XS" },
-  { value: "small", label: "Small" },
-  { value: "medium", label: "Medium" },
-  { value: "large", label: "Large" },
-  { value: "x-large", label: "XL" },
-  { value: "xx-large", label: "XXL" },
-  { value: "xxx-large", label: "XXXL" },
-];
+export function fontSizeOptions(
+  t: TFunction<"reader">,
+): { value: ReaderFontSize; label: string }[] {
+  return (
+    ["xx-small", "x-small", "small", "medium", "large", "x-large", "xx-large", "xxx-large"] as const
+  ).map((value) => ({ value, label: t(`fontSizeOption.${value}`) }));
+}
 
-export const LINE_SPACING_OPTIONS: { value: ReaderLineSpacing; label: string }[] = [
-  { value: "compact", label: "Compact" },
-  { value: "comfortable", label: "Comfortable" },
-  { value: "relaxed", label: "Relaxed" },
-];
+export function lineSpacingOptions(
+  t: TFunction<"reader">,
+): { value: ReaderLineSpacing; label: string }[] {
+  return (["compact", "comfortable", "relaxed"] as const).map((value) => ({
+    value,
+    label: t(`lineSpacingOption.${value}`),
+  }));
+}
 
-export const PARAGRAPH_SPACING_OPTIONS: { value: ReaderParagraphSpacing; label: string }[] = [
-  { value: "tight", label: "Tight" },
-  { value: "normal", label: "Normal" },
-  { value: "loose", label: "Loose" },
-];
+export function paragraphSpacingOptions(
+  t: TFunction<"reader">,
+): { value: ReaderParagraphSpacing; label: string }[] {
+  return (["tight", "normal", "loose"] as const).map((value) => ({
+    value,
+    label: t(`paragraphSpacingOption.${value}`),
+  }));
+}
 
-export const READING_MODE_OPTIONS: { value: ReadingMode; label: string }[] = [
-  { value: "scroll", label: "Scroll" },
-  { value: "paginated-single", label: "Single Page" },
-  { value: "paginated-double", label: "Two Pages" },
-];
+export function readingModeOptions(
+  t: TFunction<"reader">,
+): { value: ReadingMode; label: string }[] {
+  return (["scroll", "paginated-single", "paginated-double"] as const).map((value) => ({
+    value,
+    label: t(`readingModeOption.${value}`),
+  }));
+}
 
-export const PAGE_COLOR_OPTIONS: { value: ReaderThemePreference; label: string }[] = [
-  { value: "auto", label: "Auto" },
-  { value: "light", label: "Light" },
-  { value: "warm", label: "Warm" },
-  { value: "dark", label: "Dark" },
-];
+export function pageColorOptions(
+  t: TFunction<"reader">,
+): { value: ReaderThemePreference; label: string }[] {
+  return (["auto", "light", "warm", "dark"] as const).map((value) => ({
+    value,
+    label: t(`pageColorOption.${value}`),
+  }));
+}

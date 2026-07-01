@@ -3,6 +3,7 @@ import { useAtom, useAtomValue } from "jotai";
 import { Books } from "@phosphor-icons/react";
 import { Alert, Body, Button, EmptyState } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
+import { useTranslation } from "../../../i18n";
 import { Shelf } from "../../shelf/components/Shelf";
 import { CollectionHeader } from "../../shelf/components/CollectionHeader";
 import type { CollectionTileData } from "../../shelf/components/CollectionTile";
@@ -45,6 +46,7 @@ export function LibraryWorkspace({
   onDeleteCollection,
   onSetBooksCollection,
 }: LibraryWorkspaceProps) {
+  const { t } = useTranslation("shelf");
   const shelfView = useAtomValue(shelfViewAtom);
   const [activeCollectionId, setActiveCollectionId] = useAtom(activeCollectionAtom);
   const { active, ids, selectedIds, exit, clear, toggle, selectAll } = useShelfSelection();
@@ -73,7 +75,7 @@ export function LibraryWorkspace({
     [activeCollection, books],
   );
 
-  const sections = deriveShelfView(visible, shelfView);
+  const sections = deriveShelfView(visible, shelfView, t);
 
   // Collection tiles (top level only): true member counts and a cover montage.
   const collectionTiles: CollectionTileData[] = useMemo(() => {
@@ -112,13 +114,13 @@ export function LibraryWorkspace({
       )}
     >
       {error && (
-        <Alert variant="destructive" title="Library error" className="mb-6">
+        <Alert variant="destructive" title={t("workspace.errorTitle")} className="mb-6">
           {error}
         </Alert>
       )}
 
       {notice && (
-        <Alert variant="default" title="Import" className="mb-6">
+        <Alert variant="default" title={t("workspace.importTitle")} className="mb-6">
           {notice}
         </Alert>
       )}
@@ -145,16 +147,16 @@ export function LibraryWorkspace({
 
       {!isReady ? (
         <div className="flex flex-1 items-center justify-center py-16">
-          <Body className="text-sm text-fg-muted">Loading your library...</Body>
+          <Body className="text-sm text-fg-muted">{t("workspace.loading")}</Body>
         </div>
       ) : books.length === 0 ? (
         <div className="flex flex-1 items-center justify-center py-16">
           <EmptyState
             icon={<Books className="size-12 text-fg-subtle" weight="thin" />}
-            title="Import your first book"
+            title={t("workspace.emptyTitle")}
             action={(
               <Button size="sm" onClick={onImport}>
-                Import
+                {t("actions.import")}
               </Button>
             )}
           />
@@ -176,7 +178,7 @@ export function LibraryWorkspace({
 
           {visible.length === 0 && collectionTiles.length === 0 ? (
             <Body className="py-16 text-center text-sm text-fg-muted">
-              {activeCollection ? "No books in this collection." : "Nothing to show."}
+              {activeCollection ? t("workspace.emptyCollection") : t("workspace.nothingToShow")}
             </Body>
           ) : (
             <Shelf

@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { Button, TextArea, Body, Heading, IconButton } from "@read-aware/ui";
 import { X } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
+import { useTranslation } from "../../../i18n";
 
 export interface NoteEditorProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ export function NoteEditor({
   onDelete,
   isEditing = false,
 }: NoteEditorProps) {
+  const { t } = useTranslation("ai");
   const [content, setContent] = useState(initialContent);
 
   useEffect(() => {
@@ -46,9 +48,9 @@ export function NoteEditor({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-border px-5 py-3">
-          <Heading size="xl">{isEditing ? "Edit Note" : "Add Note"}</Heading>
+          <Heading size="xl">{isEditing ? t("note.editTitle") : t("note.addTitle")}</Heading>
           <IconButton
-            label="Close"
+            label={t("note.close")}
             size="sm"
             onClick={onCancel}
             className="text-fg-muted hover:text-fg"
@@ -64,10 +66,10 @@ export function NoteEditor({
           </div>
 
           <TextArea
-            label="Your note"
+            label={t("note.bodyLabel")}
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="What are your thoughts on this passage?"
+            placeholder={t("note.placeholder")}
             rows={6}
             autoFocus
           />
@@ -76,21 +78,21 @@ export function NoteEditor({
         <div className="flex items-center justify-between border-t border-border px-5 py-3">
           {isEditing && onDelete ? (
             <Button variant="danger" size="sm" onClick={onDelete}>
-              Delete
+              {t("note.delete")}
             </Button>
           ) : (
             <div />
           )}
           <div className="flex gap-2">
             <Button variant="ghost" size="sm" onClick={onCancel}>
-              Cancel
+              {t("note.cancel")}
             </Button>
             <Button
               size="sm"
               onClick={() => onSave(content)}
               disabled={!content.trim()}
             >
-              {isEditing ? "Update" : "Save"}
+              {isEditing ? t("note.update") : t("note.save")}
             </Button>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import type { TFunction } from "i18next";
 import type {
   BookFormat,
   BookProgress,
@@ -193,7 +194,7 @@ function parseFileName(fileName: string) {
   return { title, author };
 }
 
-function detectBookFormat(file: File): BookFormat {
+function detectBookFormat(file: File, t: TFunction<"shelf">): BookFormat {
   const name = file.name.toLowerCase();
   const type = file.type;
   if (name.endsWith(".epub") || type === "application/epub+zip") return "epub";
@@ -209,9 +210,7 @@ function detectBookFormat(file: File): BookFormat {
     return "fb2";
   }
 
-  throw new Error(
-    `Unsupported file type: ${file.name}. Supported formats: EPUB, MOBI, AZW3, FB2, PDF.`,
-  );
+  throw new Error(t("errors.unsupportedFormat", { name: file.name }));
 }
 
 function clampProgressPercent(value: number) {
@@ -310,7 +309,10 @@ export type ImportBookResult =
   | { status: "imported"; book: LibraryBook }
   | { status: "duplicate"; book: LibraryBook };
 
-export async function importBookFile(file: File): Promise<ImportBookResult> {
+export async function importBookFile(
+  file: File,
+  t: TFunction<"shelf">,
+): Promise<ImportBookResult> {
   const existing = await getAllBookRecords();
 
   // Cheap pass: the identical file (same name + size) is already imported.
@@ -319,7 +321,7 @@ export async function importBookFile(file: File): Promise<ImportBookResult> {
   );
   if (byFile) return { status: "duplicate", book: byFile };
 
-  const format = detectBookFormat(file);
+  const format = detectBookFormat(file, t);
   const metadata = await extractBookMetadata(file);
   const book = createLibraryBook(file, format, metadata);
 

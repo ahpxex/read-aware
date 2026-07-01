@@ -9,6 +9,7 @@ import {
 import { ArrowUp, Stop } from "@phosphor-icons/react";
 import { IconButton } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
+import { useTranslation } from "../../../i18n";
 import type { ChatSelectionAttachment } from "../lib/chat-types";
 import { AttachmentChip } from "./AttachmentChip";
 
@@ -34,6 +35,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
     { isStreaming, pendingAttachment, onRemoveAttachment, onSend, onStop },
     ref,
   ) {
+    const { t } = useTranslation("ai");
     const [value, setValue] = useState("");
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -93,15 +95,17 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
             value={value}
             onChange={(event) => setValue(event.target.value)}
             onKeyDown={handleKeyDown}
-            aria-label="Message"
+            aria-label={t("chat.messageLabel")}
             placeholder={
-              pendingAttachment ? "Ask about this passage…" : "Ask about this book…"
+              pendingAttachment
+                ? t("chat.placeholderWithPassage")
+                : t("chat.placeholder")
             }
             className="block max-h-40 min-h-8 w-full resize-none bg-transparent py-1 pr-9 text-sm leading-6 text-fg outline-none placeholder:text-fg-subtle"
           />
           {isStreaming ? (
             <IconButton
-              label="Stop generating"
+              label={t("chat.stopGenerating")}
               size="sm"
               onClick={onStop}
               className="absolute bottom-1 right-1 rounded-md text-fg-muted hover:bg-fg/5 hover:text-fg"
@@ -109,7 +113,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
             />
           ) : (
             <IconButton
-              label="Send"
+              label={t("chat.send")}
               size="sm"
               onClick={submit}
               disabled={!canSend}

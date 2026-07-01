@@ -1,5 +1,6 @@
 import { Caption } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
+import { getWeekdayNames, useTranslation } from "../../../i18n";
 import {
   emptyBookStats,
   formatReadingDuration,
@@ -15,17 +16,17 @@ type WeeklyBarsProps = {
   className?: string;
 };
 
-/** Single-letter weekday labels, indexed by `Date.getDay()` (Sun..Sat). */
-const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
-
 /** Last seven days of reading time as a quiet bar chart; today's bar reads darker. */
 export function WeeklyBars({ daily, now, height = 56, className }: WeeklyBarsProps) {
+  const { t } = useTranslation("stats");
   const week = weeklyReadingBuckets({ ...emptyBookStats(""), daily }, now);
   const maxMs = Math.max(1, ...week.map((day) => day.ms));
+  // Single-letter weekday labels, indexed by `Date.getDay()` (Sun..Sat).
+  const weekdayLabels = getWeekdayNames("narrow");
 
   return (
     <div className={className}>
-      <Caption className="mb-2 block text-fg-subtle">Last 7 days</Caption>
+      <Caption className="mb-2 block text-fg-subtle">{t("weekly.last7Days")}</Caption>
       <div className="flex items-end gap-1.5" style={{ height: height + 16 }}>
         {week.map((day) => {
           const barHeight =
@@ -49,7 +50,7 @@ export function WeeklyBars({ daily, now, height = 56, className }: WeeklyBarsPro
                   day.isToday ? "font-semibold text-fg" : "text-fg-subtle",
                 )}
               >
-                {WEEKDAY_LABELS[day.date.getDay()]}
+                {weekdayLabels[day.date.getDay()]}
               </span>
             </div>
           );

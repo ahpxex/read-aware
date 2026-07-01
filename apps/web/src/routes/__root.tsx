@@ -1,5 +1,6 @@
 import { HeadContent, Outlet, createRootRoute, useRouter } from "@tanstack/react-router";
 import { Button } from "@read-aware/ui";
+import { i18n, useTranslation } from "../i18n";
 import { useAppearance } from "../features/settings/hooks/useAppearance";
 
 export const Route = createRootRoute({
@@ -10,7 +11,7 @@ export const Route = createRootRoute({
       },
       {
         name: "description",
-        content: "AI-native reading workspace for context-rich EPUB and PDF reading.",
+        content: i18n.t("nav:meta.description"),
       },
     ],
   }),
@@ -31,6 +32,8 @@ function RootComponent() {
 }
 
 function RootErrorBoundary() {
+  const { t } = useTranslation(["nav", "common"]);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-paper px-6 text-center">
       <div className="max-w-md space-y-3">
@@ -38,14 +41,14 @@ function RootErrorBoundary() {
           ReadAware
         </p>
         <h1 className="font-serif text-3xl leading-display text-fg">
-          Something interrupted the reading flow.
+          {t("error.title")}
         </h1>
         <p className="text-sm leading-6 text-fg-muted">
-          Refresh the page to continue. If the problem persists, reopen the book from your shelf.
+          {t("error.body")}
         </p>
         <div className="pt-2">
           <Button size="sm" onClick={() => { window.location.assign("/"); }}>
-            Back to library
+            {t("common:actions.backToLibrary")}
           </Button>
         </div>
       </div>
@@ -55,6 +58,7 @@ function RootErrorBoundary() {
 
 function RootNotFound() {
   const router = useRouter();
+  const { t } = useTranslation(["nav", "common"]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-paper px-6 text-center">
@@ -63,14 +67,14 @@ function RootNotFound() {
           ReadAware
         </p>
         <h1 className="font-serif text-3xl leading-display text-fg">
-          This page does not exist.
+          {t("notFound.title")}
         </h1>
         <p className="text-sm leading-6 text-fg-muted">
-          Return to the main reading workspace and pick up where you left off.
+          {t("notFound.body")}
         </p>
         <div className="pt-2">
           <Button size="sm" onClick={() => { void router.navigate({ to: "/" }); }}>
-            Back to library
+            {t("common:actions.backToLibrary")}
           </Button>
         </div>
       </div>

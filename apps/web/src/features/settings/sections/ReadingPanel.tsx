@@ -1,26 +1,31 @@
 import { useAtom, useAtomValue } from "jotai";
 import { ChoiceGroup, Stack } from "@read-aware/ui";
+import { useTranslation } from "../../../i18n";
 import { effectiveReaderSettingsAtom, readerPreferencesAtom } from "../../../state/ui";
 import { FontField } from "../components/FontField";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { getReaderPreviewStyle } from "../lib/reader-css";
 import {
-  FONT_SIZE_OPTIONS,
-  LINE_SPACING_OPTIONS,
-  PAGE_COLOR_OPTIONS,
-  PARAGRAPH_SPACING_OPTIONS,
-  READING_MODE_OPTIONS,
+  fontSizeOptions,
+  lineSpacingOptions,
+  pageColorOptions,
+  paragraphSpacingOptions,
+  readingModeOptions,
 } from "../lib/reader-setting-options";
 
 export function ReadingPanel() {
+  const { t } = useTranslation("settings");
+  // Reader appearance option labels live in the `reader` namespace so this panel
+  // and the in-reader appearance popover share one set of strings.
+  const { t: tReader } = useTranslation("reader");
   const [prefs, setPrefs] = useAtom(readerPreferencesAtom);
   const effective = useAtomValue(effectiveReaderSettingsAtom);
 
   return (
     <SettingsPage
-      title="Reading"
-      description="How books render on the page. Changes apply live to the reader."
+      title={t("reading.title")}
+      description={t("reading.description")}
     >
       {/* Live preview pinned to the top of the scroll area, so every control
           below shows its effect without scrolling back up. The negative margins
@@ -30,51 +35,51 @@ export function ReadingPanel() {
         <ReadingPreview style={getReaderPreviewStyle(effective)} />
       </div>
 
-      <SettingsGroup title="Typography">
+      <SettingsGroup title={t("reading.typography")}>
         <Stack gap="lg">
           <FontField
             value={prefs.fontFamily}
             onChange={(fontFamily) => setPrefs({ ...prefs, fontFamily })}
           />
           <ChoiceGroup
-            label="Font Size"
+            label={t("reading.fontSize")}
             value={prefs.fontSize}
-            options={FONT_SIZE_OPTIONS}
+            options={fontSizeOptions(tReader)}
             onChange={(fontSize) => setPrefs({ ...prefs, fontSize })}
           />
           <ChoiceGroup
-            label="Line Spacing"
+            label={t("reading.lineSpacing")}
             value={prefs.lineSpacing}
-            options={LINE_SPACING_OPTIONS}
+            options={lineSpacingOptions(tReader)}
             onChange={(lineSpacing) => setPrefs({ ...prefs, lineSpacing })}
           />
           <ChoiceGroup
-            label="Paragraph Spacing"
+            label={t("reading.paragraphSpacing")}
             value={prefs.paragraphSpacing}
-            options={PARAGRAPH_SPACING_OPTIONS}
+            options={paragraphSpacingOptions(tReader)}
             onChange={(paragraphSpacing) => setPrefs({ ...prefs, paragraphSpacing })}
           />
         </Stack>
       </SettingsGroup>
 
-      <SettingsGroup title="Layout">
+      <SettingsGroup title={t("reading.layout")}>
         <Stack gap="lg">
           <ChoiceGroup
-            label="Reading Mode"
+            label={t("reading.readingMode")}
             value={prefs.readingMode}
-            options={READING_MODE_OPTIONS}
+            options={readingModeOptions(tReader)}
             onChange={(readingMode) => setPrefs({ ...prefs, readingMode })}
           />
         </Stack>
       </SettingsGroup>
 
       <SettingsGroup
-        title="Page Color"
-        description="The book's paper. Auto follows the app theme; the others are fixed."
+        title={t("reading.pageColor.title")}
+        description={t("reading.pageColor.description")}
       >
         <ChoiceGroup
           value={prefs.theme}
-          options={PAGE_COLOR_OPTIONS}
+          options={pageColorOptions(tReader)}
           onChange={(theme) => setPrefs({ ...prefs, theme })}
         />
       </SettingsGroup>
@@ -83,17 +88,14 @@ export function ReadingPanel() {
 }
 
 function ReadingPreview({ style }: { style: React.CSSProperties }) {
+  const { t } = useTranslation("settings");
   return (
     <div
       className="overflow-hidden rounded-md border border-border"
-      aria-label="Reading preview"
+      aria-label={t("reading.previewLabel")}
     >
       <div className="px-6 py-5 transition-colors" style={style}>
-        <p style={{ margin: 0 }}>
-          She had read of such places, but had never thought to stand in one — a quiet room
-          where the afternoon settled like dust, and every book on every shelf seemed to lean,
-          just slightly, toward whoever was willing to listen.
-        </p>
+        <p style={{ margin: 0 }}>{t("reading.previewText")}</p>
       </div>
     </div>
   );

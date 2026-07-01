@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import type { TFunction } from "i18next";
 import { isTauri } from "../../../platform/environment";
 
 /**
@@ -45,11 +46,11 @@ function fileNameFromPath(path: string): string {
  * filter and return the chosen files reconstructed as web `File` objects so the
  * rest of the import pipeline stays platform-agnostic.
  */
-export async function pickBookFilesNative(): Promise<File[]> {
+export async function pickBookFilesNative(t: TFunction<"shelf">): Promise<File[]> {
   const selection = await open({
     multiple: true,
-    title: "Import books",
-    filters: [{ name: "Books", extensions: [...BOOK_FILE_EXTENSIONS] }],
+    title: t("importDialog.title"),
+    filters: [{ name: t("importDialog.filterName"), extensions: [...BOOK_FILE_EXTENSIONS] }],
   });
 
   if (selection == null) return [];

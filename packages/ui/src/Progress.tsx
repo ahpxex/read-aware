@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { cn } from "./lib/cn";
 
 const sizeClasses = {
@@ -23,6 +24,7 @@ export function Progress({
   showValue = false,
   className,
 }: ProgressProps) {
+  const { t } = useTranslation("ui");
   const percent = Math.min(100, Math.max(0, (value / max) * 100));
 
   return (
@@ -46,7 +48,7 @@ export function Progress({
         aria-valuenow={value}
         aria-valuemin={0}
         aria-valuemax={max}
-        aria-label={label ?? "Progress"}
+        aria-label={label ?? t("progress")}
         className={cn("w-full overflow-hidden rounded-full bg-fill-strong", sizeClasses[size])}
       >
         <div

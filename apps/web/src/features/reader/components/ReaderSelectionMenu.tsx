@@ -10,6 +10,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { IconButton } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
+import { useTranslation } from "../../../i18n";
 import { useAskAiEnabled } from "../../ai/hooks/useAskAiEnabled";
 import { useAnchoredMenuPosition } from "../hooks/useAnchoredMenuPosition";
 import type { ReaderSelectionState } from "../lib/selection-overlay";
@@ -42,6 +43,7 @@ export function ReaderSelectionMenu({
   onAskAI,
   allowAnnotations = true,
 }: ReaderSelectionMenuProps) {
+  const { t } = useTranslation("reader");
   const { containerRef, menuRef, position } = useAnchoredMenuPosition(selection?.anchorRect);
   const copyResetTimeoutRef = useRef<number | null>(null);
   const [copied, setCopied] = useState(false);
@@ -93,8 +95,8 @@ export function ReaderSelectionMenu({
         style={position}
       >
         <IconButton
-          label={copied ? "Copied" : "Copy selection"}
-          title={copied ? "Copied" : "Copy selection"}
+          label={copied ? t("menu.copied") : t("menu.copySelection")}
+          title={copied ? t("menu.copied") : t("menu.copySelection")}
           size="sm"
           onClick={() => {
             void handleCopy();
@@ -113,24 +115,24 @@ export function ReaderSelectionMenu({
           <>
             <MenuDivider />
             <IconButton
-              label="Highlight"
-              title="Highlight"
+              label={t("menu.highlight")}
+              title={t("menu.highlight")}
               size="sm"
               onClick={() => onHighlight?.()}
               className={actionButtonClass}
               icon={<Highlighter size={14} weight="regular" aria-hidden="true" />}
             />
             <IconButton
-              label="Underline"
-              title="Underline"
+              label={t("menu.underline")}
+              title={t("menu.underline")}
               size="sm"
               onClick={() => onUnderline?.()}
               className={actionButtonClass}
               icon={<TextUnderline size={14} weight="regular" aria-hidden="true" />}
             />
             <IconButton
-              label="Add a note"
-              title="Add a note"
+              label={t("menu.addNote")}
+              title={t("menu.addNote")}
               size="sm"
               onClick={() => onAddNote?.()}
               className={actionButtonClass}
@@ -139,8 +141,8 @@ export function ReaderSelectionMenu({
 
             <MenuDivider />
             <IconButton
-              label="Look up"
-              title="Look up"
+              label={t("menu.lookUp")}
+              title={t("menu.lookUp")}
               size="sm"
               onClick={() => onLookUp?.()}
               className={actionButtonClass}
@@ -148,8 +150,8 @@ export function ReaderSelectionMenu({
             />
             {askEnabled && (
               <IconButton
-                label="Ask AI about this"
-                title="Ask AI about this"
+                label={t("menu.askAi")}
+                title={t("menu.askAi")}
                 size="sm"
                 onClick={() => onAskAI?.()}
                 className={actionButtonClass}

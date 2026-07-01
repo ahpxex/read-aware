@@ -1,5 +1,6 @@
 import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { IconButton } from "@read-aware/ui";
+import { useTranslation } from "../../../i18n";
 
 type ReaderPageTurnControlsProps = {
   /** Shown only in paginated layouts; scroll mode turns by scrolling. */
@@ -21,6 +22,7 @@ export function ReaderPageTurnControls({
   onPrev,
   onNext,
 }: ReaderPageTurnControlsProps) {
+  const { t } = useTranslation("reader");
   if (!visible) return null;
 
   const buttonClassName =
@@ -31,7 +33,7 @@ export function ReaderPageTurnControls({
       <div className="pointer-events-none absolute inset-y-0 left-0 z-30 flex items-center pl-1 sm:pl-3">
         <IconButton
           size="md"
-          label="Previous page"
+          label={t("previousPage")}
           onClick={onPrev}
           className={buttonClassName}
           icon={<CaretLeft size={24} weight="regular" aria-hidden="true" />}
@@ -40,7 +42,7 @@ export function ReaderPageTurnControls({
       <div className="pointer-events-none absolute inset-y-0 right-0 z-30 flex items-center pr-1 sm:pr-3">
         <IconButton
           size="md"
-          label="Next page"
+          label={t("nextPage")}
           onClick={onNext}
           className={buttonClassName}
           icon={<CaretRight size={24} weight="regular" aria-hidden="true" />}

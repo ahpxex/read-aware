@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { Body, Button, Spinner } from "@read-aware/ui";
+import { useTranslation } from "../../../i18n";
 import type { BookFormat, LibraryBook, ReaderProgress } from "../../library/lib/library-types";
 import { READER_THEME_BG } from "../../settings/lib/reader-css";
 import { useDelayedFlag } from "../hooks/useDelayedFlag";
@@ -67,6 +68,7 @@ export function ReaderWorkspace({
   onChapterSelect,
   onAnnotationSelect,
 }: ReaderWorkspaceProps) {
+  const { t } = useTranslation("reader");
   const { effective: readerSettings } = useReaderAppearance(selectedBook.id);
   const themeBg = READER_THEME_BG[readerSettings.theme];
   // Only surface the source loader once opening is genuinely slow, so fast opens
@@ -128,16 +130,16 @@ export function ReaderWorkspace({
               <Body className="text-sm text-fg-muted">{readerLoadError}</Body>
               <div className="flex items-center justify-center gap-2">
                 <Button size="sm" variant="outline" onClick={() => onRetryOpen(selectedBook)}>
-                  Try again
+                  {t("tryAgain")}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={onCloseReader}>
-                  Back to library
+                  {t("backToLibrary")}
                 </Button>
               </div>
             </div>
           ) : (
             showSourceLoader && (
-              <Spinner size="md" label={`Opening ${selectedBook.title}`} />
+              <Spinner size="md" label={t("opening", { name: selectedBook.title })} />
             )
           )}
         </div>

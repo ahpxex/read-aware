@@ -26,10 +26,10 @@
 - System model: memory-first, not transcript-first
 - Deployment model: **local-first** — data and retrieval live on-device; the remote backend is a sync/relay layer, not where business logic lives
 - Two independent axes — keep them separate:
-  - **Data + retrieval: local** (on-device store + embedded vector search)
+  - **Data + retrieval: local** (on-device store + SQLite FTS; no vector store — see Storage Responsibilities)
   - **LLM inference: remote** (BYO API key or a thin proxy; no local model required)
 - Frontend: a `React + TypeScript` SPA, shipped **only** inside the `Tauri` desktop app (desktop-only)
-- On-device storage: `SQLite` (source of truth) + `LanceDB` (embedded vector store)
+- On-device storage: `SQLite` only (source of truth + FTS retrieval). **No embeddings / vector store in the default architecture** (decided 2026-07-02, see `docs/agent-architecture.md` §4)
 - Remote backend: sync + relay only (see Storage Responsibilities)
 
 ### Agent Model
@@ -59,7 +59,7 @@
   - conflict resolution when new information contradicts old memory
   - decay / forgetting so memory does not grow into noise
   - dedup / entity resolution behind "repeated appearance across books or conversations"
-- Memory retrieval should consider more than semantic similarity, including:
+- Memory retrieval should consider more than text-match relevance, including:
   - relevance to the current reading goal
   - recency
   - importance
@@ -76,15 +76,15 @@
   - raw events (the append-only log)
   - memory metadata
   - context bundle versions
-- On-device `LanceDB` is the embedded vector store for semantic retrieval over memories and reading artifacts
-- Do not treat the vector store as the primary database; vectors are a derived index, rebuilt on-device from the event log / SQLite
+- **Retrieval is structured, not vector-based**: SQLite FTS + scope/recency/importance signals, plus agentic iterative search (the agent reformulates queries, walks the TOC, reads chapters). The product's unit of intelligence is the user's reading trace (annotations, questions, memories), not the book corpus — retrieval needs are deliberately lightweight
+- No embedding model, no LanceDB in the default build. If FTS + agentic search ever proves insufficient, the upgrade ladder is: embed memories + annotations first, full text last — and any vector index would be a derived, rebuildable, never-synced projection
 - The remote backend is **sync + relay only**, never a source of truth. Its only jobs:
   - identity / auth
   - durable storage of the (preferably E2E-encrypted) event log + large blobs (book files, derivatives) for multi-device merge and new-device bootstrap
   - a change feed to sync event logs across devices
   - optionally, an LLM proxy (to hide / meter API keys)
 - The backend holds no business logic — consolidation, retrieval, and bundle assembly all run on-device
-- Reach storage through a pluggable `StorageAdapter` (native filesystem + SQLite + LanceDB on desktop). The abstraction stays for testability and clean layering — **not** to support an in-browser engine port
+- Reach storage through a pluggable `StorageAdapter` (native filesystem + SQLite on desktop). The abstraction stays for testability and clean layering — **not** to support an in-browser engine port
 
 ### Context Portability
 

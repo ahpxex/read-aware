@@ -36,18 +36,19 @@
 
 - **Local-first.** Data and retrieval live on-device. The network is for sync
   and (optional) remote inference, never for core reads/writes.
-- **Two independent axes.** *Data + retrieval = local* (SQLite + LanceDB);
+- **Two independent axes.** *Data + retrieval = local* (SQLite incl. FTS —
+  **no vector store in the default architecture**, see [§6](#6-vector-index-lancedb));
   *LLM inference = remote* (BYO key / proxy). Keep them separate.
 - **Event-sourced.** The append-only **event log (`domain_events`) is the true
-  source of truth** and the **unit of sync**. Every structured table and the
-  vector index is a **deterministic projection rebuilt from the log** —
+  source of truth** and the **unit of sync**. Every structured table (and any
+  derived index) is a **deterministic projection rebuilt from the log** —
   projections are recomputed on-device and never synced directly.
 - **The backend is sync + relay only.** It stores the (preferably E2E-encrypted)
   event log + large blobs and exposes a change feed. It holds no business logic.
   *The cloud relay is not built yet; the schema provisions for it but the app is
   fully usable with sync disabled.*
-- **Reach storage through a `StorageAdapter`** (native FS/blob store + SQLite +
-  LanceDB in the Tauri desktop app).
+- **Reach storage through a `StorageAdapter`** (native FS/blob store + SQLite
+  in the Tauri desktop app).
 
 ### Conventions
 
@@ -80,13 +81,13 @@ ON DEVICE                       │                      │
                 │ deterministic, on-device replay (UPSERT/merge by stable id)
    ┌────────────┼───────────────────────────────┬──────────────────────────┐
    ▼            ▼                                ▼                          ▼
- SQLite      SQLite                          SQLite                    LanceDB
- core        memory                          context bundles           vector index
- projections (long-term, working)            (versioned)               (derived embeds)
- (books,     ──────────────────              ──────────────            ───────────────
- highlights, promotion / decay /             user_profile_context,     semantic search
- notes,      conflict-res / dedup            book_memory_context, …    over memories +
- progress)                                                             reading artifacts
+ SQLite      SQLite                          SQLite                    (optional
+ core        memory                          context bundles           fallback only:
+ projections (long-term, working)            (versioned)               vector index —
+ (books,     ──────────────────              ──────────────            NOT in default
+ highlights, promotion / decay /             user_profile_context,     build, see §6)
+ notes,      conflict-res / dedup            book_memory_context, …
+ progress)
 ```
 
 - **Raw events** — append-only, immutable. The unit of sync.
@@ -250,6 +251,14 @@ projection — a projection rebuild must not touch it.
 
 ## 6. Vector index (LanceDB)
 
+> **Not in the default architecture** (decided 2026-07-02, see
+> `docs/agent-architecture.md` §4). Default retrieval is SQLite FTS +
+> scope/recency/importance signals + agentic iterative search. This section is
+> retained as the spec for the **optional upgrade path** — if FTS ever proves
+> insufficient, embed memories + annotations first, full text last. The
+> `vector_documents` / `embedding_jobs` tables stay in the schema as dormant
+> provisions.
+
 A **derived** index, rebuilt on-device — never the primary store.
 **`vector_documents`** is the SQLite-side manifest (source, `content_hash`,
 `embedding_model`/`dimension`, `lance_table`, `indexed_at`/`stale_at`); the
@@ -284,7 +293,8 @@ projection rebuild**.
   (`provider`, `model`, `custom_base_url`) live here; the **API key lives in the
   OS Keychain**, and SQLite stores only `api_key_ref`. Keyed by a `TEXT` id with
   `role` (`chat`/`embedding`) + `is_default`, so a separate embedding provider
-  (needed by the vector index) costs nothing — even if v1 configures one row.
+  (only relevant if the optional vector fallback in [§6](#6-vector-index-lancedb)
+  is ever adopted) costs nothing — even if v1 configures one row.
 - **`reader_book_overrides`** / **`reader_panel_layouts`** — per-book appearance
   and panel state. These reference `books` only *logically* (no enforced FK) so a
   projection rebuild of `books` can never cascade-delete this non-derivable local

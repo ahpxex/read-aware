@@ -1,4 +1,4 @@
-import { NotePencil, Trash } from "@phosphor-icons/react";
+import { ChatCircleDots, NotePencil, Trash } from "@phosphor-icons/react";
 import { IconButton } from "@read-aware/ui";
 import { formatDate, useTranslation } from "../../../i18n";
 import { HIGHLIGHT_COLORS } from "../../reader/lib/highlight-renderer";
@@ -13,6 +13,11 @@ function AnnotationIcon({ annotation }: { annotation: Annotation }) {
         className="mt-0.5 block h-3 w-3 shrink-0 rounded-sm"
         style={{ backgroundColor: color }}
       />
+    );
+  }
+  if (annotation.type === "ask") {
+    return (
+      <ChatCircleDots size={14} weight="regular" className="mt-0.5 shrink-0 text-fg-subtle" />
     );
   }
   return <NotePencil size={14} weight="regular" className="mt-0.5 shrink-0 text-fg-subtle" />;
@@ -48,8 +53,9 @@ export function AnnotationRow({
       >
         <AnnotationIcon annotation={annotation} />
         <div className="min-w-0 flex-1">
+          {/* ask = 提问痕迹：text 是问题本身，不加引号（不是书里的原文） */}
           <p className="line-clamp-2 text-xs leading-relaxed text-fg-muted">
-            &ldquo;{annotation.text}&rdquo;
+            {annotation.type === "ask" ? annotation.text : <>&ldquo;{annotation.text}&rdquo;</>}
           </p>
           {annotation.type === "note" && (
             <p className="mt-0.5 line-clamp-2 text-xs text-fg-muted">

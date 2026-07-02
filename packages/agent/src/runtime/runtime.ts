@@ -4,6 +4,8 @@
  */
 import type { ThreadChunk } from "../chunks";
 import { createModelResolver, type LlmAccount, type RoleModels } from "../models/accounts";
+import { createCompleteFn, type CompleteFn } from "../models/complete";
+import { buildProviderRegistry } from "../models/registry";
 import type { RuntimeDeps } from "../ports";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { AgentThread, type SendTurnInput } from "./thread";
@@ -18,11 +20,14 @@ export interface AgentRuntimeOptions {
 export class AgentRuntime {
   private readonly options: AgentRuntimeOptions;
   private readonly resolveModel: ReturnType<typeof createModelResolver>;
+  private readonly completeFn: CompleteFn;
   private readonly threads = new Map<string, AgentThread>();
 
   constructor(options: AgentRuntimeOptions) {
     this.options = options;
-    this.resolveModel = createModelResolver(options.account, options.models);
+    const registry = buildProviderRegistry();
+    this.resolveModel = createModelResolver(options.account, options.models, registry);
+    this.completeFn = createCompleteFn(registry, options.account);
   }
 
   thread(scope: ThreadScope): AgentThread {
@@ -34,6 +39,7 @@ export class AgentRuntime {
         deps: this.options.deps,
         resolveModel: this.resolveModel,
         getApiKey: () => this.options.account.apiKey,
+        completeFn: this.completeFn,
         maxWindowTurns: this.options.maxWindowTurns,
       });
       this.threads.set(key, thread);
@@ -43,6 +49,11 @@ export class AgentRuntime {
 
   sendTurn(scope: ThreadScope, input: SendTurnInput): AsyncGenerator<ThreadChunk> {
     return this.thread(scope).sendTurn(input);
+  }
+
+  /** 等待所有线程的后台管道（记忆提炼）排空。 */
+  async flushBackgroundWork(): Promise<void> {
+    await Promise.all([...this.threads.values()].map((thread) => thread.flushBackgroundWork()));
   }
 }
 

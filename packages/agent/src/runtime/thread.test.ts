@@ -8,7 +8,8 @@ import {
 } from "@earendil-works/pi-ai/providers/faux";
 import type { Id } from "@read-aware/core";
 import type { ThreadChunk } from "../chunks";
-import type { AnnotationRecord, BookOverview, RuntimeDeps, TurnRecord } from "../ports";
+import type { AnnotationRecord, BookOverview, RuntimeDeps } from "../ports";
+import { createInMemoryDeps } from "../testing/fixtures";
 import { AgentThread } from "./thread";
 
 const BOOKS: BookOverview[] = [
@@ -22,30 +23,17 @@ const ANNOTATIONS: AnnotationRecord[] = [
 ];
 
 function makeDeps() {
-  const turns = new Map<string, TurnRecord[]>();
-  const deps: RuntimeDeps = {
-    library: {
-      listBooks: async () => BOOKS,
-      getBook: async (id) => BOOKS.find((book) => book.id === id),
-    },
-    annotations: {
-      listAnnotations: async (filter) =>
-        ANNOTATIONS.filter((a) => !filter?.bookId || a.bookId === filter.bookId),
-    },
-    conversations: {
-      load: async (key) => turns.get(key) ?? [],
-      append: async (key, turn) => {
-        const list = turns.get(key) ?? [];
-        list.push(turn);
-        turns.set(key, list);
-      },
-    },
-    profile: {
-      getProfileSummary: async () => "Prefers first-principles explanations.",
-    },
-  };
-  return { deps, turns };
+  const { deps, stores } = createInMemoryDeps({
+    books: BOOKS,
+    annotations: ANNOTATIONS,
+    profile: "Prefers first-principles explanations.",
+  });
+  return { deps, turns: stores.turns };
 }
+
+/** 提炼调用的空实现：永远返回"无候选"。 */
+const noopComplete = async () =>
+  fauxAssistantMessage('{"new": [], "reinforced": []}');
 
 function makeThread(deps: RuntimeDeps, model: Model<Api>, maxWindowTurns?: number) {
   return new AgentThread({
@@ -53,6 +41,7 @@ function makeThread(deps: RuntimeDeps, model: Model<Api>, maxWindowTurns?: numbe
     deps,
     resolveModel: () => model,
     getApiKey: () => "test-key",
+    completeFn: noopComplete,
     maxWindowTurns,
   });
 }

@@ -42,6 +42,53 @@ export interface LibraryPort {
 
 export interface AnnotationsPort {
   listAnnotations(filter?: { bookId?: Id; query?: string }): Promise<AnnotationRecord[]>;
+  /**
+   * 记录一条 ask-note（doc §7：书线程每个提问留痕；§10 第 5 步，轮末同步落）。
+   * 集成到产品时由实现翻译成 note.created {origin:"ask"} 事件。
+   */
+  recordAsk(input: { bookId: Id; question: string; anchor?: string; chapter?: string }): Promise<void>;
+}
+
+/** 记忆 scope：单库多 scope，线程按 scope 检索（doc §4）。 */
+export type MemoryScope = "user" | "global" | `book:${string}`;
+
+export type MemoryKind = "fact" | "preference" | "insight" | "summary";
+
+export interface MemoryRecord {
+  id: string;
+  scope: MemoryScope;
+  kind: MemoryKind;
+  content: string;
+  /** 0..1；初始低置信，随证据强化（doc §4 置信度） */
+  importance: number;
+  evidenceCount: number;
+  pinned?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NewMemoryInput {
+  scope: MemoryScope;
+  kind: MemoryKind;
+  content: string;
+  /** extraction = 逐轮提炼；agent = remember 工具显式写入 */
+  origin: "extraction" | "agent";
+  sourceThreadKey: string;
+}
+
+/**
+ * 记忆读写。实现方负责：初始置信度语义、检索排序
+ * （importance/recency/pinned/FTS），以及翻译成 memory.* 事件。
+ */
+export interface MemoryPort {
+  searchMemories(filter: {
+    scopes: MemoryScope[];
+    query?: string;
+    limit?: number;
+  }): Promise<MemoryRecord[]>;
+  saveMemory(input: NewMemoryInput): Promise<MemoryRecord>;
+  /** 提炼命中已有记忆 → 证据 +1（doc §4：反复出现才强化） */
+  reinforceMemory(id: string): Promise<void>;
 }
 
 /**
@@ -64,4 +111,5 @@ export interface RuntimeDeps {
   annotations: AnnotationsPort;
   conversations: ConversationPort;
   profile: ProfilePort;
+  memory: MemoryPort;
 }

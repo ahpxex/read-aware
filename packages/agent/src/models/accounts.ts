@@ -1,5 +1,5 @@
 import type { Api, Model } from "@earendil-works/pi-ai";
-import { buildProviderRegistry, type KnownProviderId } from "./registry";
+import { buildProviderRegistry, type KnownProviderId, type ProviderRegistry } from "./registry";
 import type { ModelRole, ResolveModel } from "./roles";
 
 /**
@@ -27,8 +27,12 @@ export interface RoleModels {
  * 配置的 model id 不在 pi 的静态目录里时，克隆同 provider 的任一模型并覆盖 id
  * （目录滞后于 provider 上新是常态，不该挡住用户）。
  */
-export function createModelResolver(account: LlmAccount, roles: RoleModels): ResolveModel {
-  const registry = buildProviderRegistry();
+export function createModelResolver(
+  account: LlmAccount,
+  roles: RoleModels,
+  sharedRegistry?: ProviderRegistry,
+): ResolveModel {
+  const registry = sharedRegistry ?? buildProviderRegistry();
   const cache = new Map<ModelRole, Model<Api>>();
   return (role) => {
     const cached = cache.get(role);

@@ -5,7 +5,8 @@
  */
 import { readPiCliKey } from "./dev-key";
 import { createAgentRuntime } from "./runtime/runtime";
-import type { AnnotationRecord, BookOverview, RuntimeDeps, TurnRecord } from "./ports";
+import type { AnnotationRecord, BookOverview } from "./ports";
+import { createInMemoryDeps } from "./testing/fixtures";
 import { threadScopeKey, type ThreadScope } from "./thread-scope";
 import type { Id } from "@read-aware/core";
 
@@ -49,34 +50,11 @@ const ANNOTATIONS: AnnotationRecord[] = [
   },
 ];
 
-const turns = new Map<string, TurnRecord[]>();
-const deps: RuntimeDeps = {
-  library: {
-    listBooks: async () => BOOKS,
-    getBook: async (id) => BOOKS.find((book) => book.id === id),
-  },
-  annotations: {
-    listAnnotations: async (filter) =>
-      ANNOTATIONS.filter(
-        (a) =>
-          (!filter?.bookId || a.bookId === filter.bookId) &&
-          (!filter?.query ||
-            a.text.includes(filter.query) ||
-            (a.content?.includes(filter.query) ?? false)),
-      ),
-  },
-  conversations: {
-    load: async (key) => turns.get(key) ?? [],
-    append: async (key, turn) => {
-      const list = turns.get(key) ?? [];
-      list.push(turn);
-      turns.set(key, list);
-    },
-  },
-  profile: {
-    getProfileSummary: async () => "偏好第一性原理式的深入讲解，讨厌空话。",
-  },
-};
+const { deps, stores } = createInMemoryDeps({
+  books: BOOKS,
+  annotations: ANNOTATIONS,
+  profile: "偏好第一性原理式的深入讲解，讨厌空话。",
+});
 
 const runtime = createAgentRuntime({
   deps,
@@ -96,7 +74,19 @@ async function run(scope: ThreadScope, text: string): Promise<void> {
 }
 
 await run({ kind: "book", bookId: "book-debt" as Id }, "我在这本书里划了哪些重点？共同主题是什么？");
-await run({ kind: "book", bookId: "book-debt" as Id }, "把刚才说的主题压缩成一句话。");
+await run(
+  { kind: "book", bookId: "book-debt" as Id },
+  "很好。顺便说一句，我读这本书是想搞清楚货币的政治属性，别给我讲太浅。",
+);
 await run({ kind: "global" }, "我书架上有哪几本书？哪本读得最深入？");
 
-console.log(`\n(persisted turns: ${[...turns.entries()].map(([k, v]) => `${k}=${v.length}`).join(", ")})`);
+console.log("\n⏳ waiting for background memory extraction …");
+await runtime.flushBackgroundWork();
+
+console.log(`\n=== persisted turns: ${[...stores.turns.entries()].map(([k, v]) => `${k}=${v.length}`).join(", ")}`);
+console.log(`=== ask-notes (${stores.asks.length}):`);
+for (const ask of stores.asks) console.log(`  · [${ask.anchor ?? "no-anchor"}] ${ask.question}`);
+console.log(`=== extracted memories (${stores.memories.length}):`);
+for (const memory of stores.memories) {
+  console.log(`  · [${memory.scope}] [${memory.kind}] ${memory.content} (importance ${memory.importance}, evidence ${memory.evidenceCount})`);
+}

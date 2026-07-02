@@ -6,10 +6,13 @@
 import { Agent, type AgentEvent } from "@earendil-works/pi-agent-core";
 import type { ThreadChunk } from "../chunks";
 import { buildSystemPrompt } from "../context/system-prompt";
+import { extractMemories } from "../memory/extraction";
+import type { CompleteFn } from "../models/complete";
 import type { ResolveModel } from "../models/roles";
 import type { RuntimeDeps } from "../ports";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { buildThreadTools } from "../tools/library-tools";
+import { buildMemoryTools, visibleScopes } from "../tools/memory-tools";
 import { AsyncQueue } from "./async-queue";
 import { lastAssistantText, turnRecordsToMessages } from "./history";
 import { windowByTurns } from "./windowing";
@@ -18,11 +21,15 @@ export interface SelectionAttachment {
   /** 选中的原文（"Ask AI about this" 的 context chip） */
   text: string;
   chapter?: string;
+  /** 选区锚点（CFI 等）；ask-note 优先锚在这里 */
+  anchor?: string;
 }
 
 export interface SendTurnInput {
   text: string;
   attachments?: SelectionAttachment[];
+  /** 发送时刻的当前阅读位置；无选区时 ask-note 锚在这里（doc §7） */
+  positionAnchor?: string;
   signal?: AbortSignal;
 }
 
@@ -31,6 +38,8 @@ export interface AgentThreadOptions {
   deps: RuntimeDeps;
   resolveModel: ResolveModel;
   getApiKey: (provider: string) => string | undefined;
+  /** 后台管道（记忆提炼）的补全调用，跑在 fast 档位上 */
+  completeFn: CompleteFn;
   /** transformContext 窗口大小（用户轮数），默认 12 */
   maxWindowTurns?: number;
 }
@@ -58,10 +67,12 @@ export class AgentThread {
   private readonly deps: RuntimeDeps;
   private readonly resolveModel: ResolveModel;
   private readonly getApiKey: (provider: string) => string | undefined;
+  private readonly completeFn: CompleteFn;
   private readonly maxWindowTurns: number;
 
   private agent: Agent | undefined;
   private busy = false;
+  private backgroundWork: Promise<void> = Promise.resolve();
 
   constructor(options: AgentThreadOptions) {
     this.scope = options.scope;
@@ -69,7 +80,13 @@ export class AgentThread {
     this.deps = options.deps;
     this.resolveModel = options.resolveModel;
     this.getApiKey = options.getApiKey;
+    this.completeFn = options.completeFn;
     this.maxWindowTurns = options.maxWindowTurns ?? DEFAULT_WINDOW_TURNS;
+  }
+
+  /** 等待后台管道（记忆提炼）排空 —— 测试与关闭线程时用。 */
+  flushBackgroundWork(): Promise<void> {
+    return this.backgroundWork;
   }
 
   /** 首次使用时创建 Agent 并从转录 store 水化历史。 */
@@ -80,7 +97,7 @@ export class AgentThread {
     const agent = new Agent({
       initialState: {
         model,
-        tools: buildThreadTools(this.scope, this.deps),
+        tools: [...buildThreadTools(this.scope, this.deps), ...buildMemoryTools(this.scope, this.deps)],
         messages: turnRecordsToMessages(records, model),
       },
       transformContext: async (messages) => windowByTurns(messages, this.maxWindowTurns),
@@ -91,15 +108,17 @@ export class AgentThread {
   }
 
   private async refreshSystemPrompt(agent: Agent): Promise<void> {
-    const [profile, book, shelf] = await Promise.all([
+    const [profile, book, shelf, memories] = await Promise.all([
       this.deps.profile.getProfileSummary(),
       this.scope.kind === "book" ? this.deps.library.getBook(this.scope.bookId) : undefined,
       this.scope.kind === "global" ? this.deps.library.listBooks() : undefined,
+      this.deps.memory.searchMemories({ scopes: visibleScopes(this.scope), limit: 8 }),
     ]);
     agent.state.systemPrompt = buildSystemPrompt(this.scope, {
       book,
       profile,
       shelfSize: shelf?.length,
+      memories,
     });
   }
 
@@ -165,9 +184,55 @@ export class AgentThread {
           createdAt: new Date().toISOString(),
         });
       }
+
+      // ask-note：书线程每个提问留痕（doc §7）；选区锚优先，退而锚当前阅读位置
+      if (this.scope.kind === "book") {
+        const firstAttachment = input.attachments?.[0];
+        await this.deps.annotations.recordAsk({
+          bookId: this.scope.bookId,
+          question: input.text,
+          anchor: firstAttachment?.anchor ?? input.positionAnchor,
+          chapter: firstAttachment?.chapter,
+        });
+      }
+
+      // 逐轮记忆提炼：异步、不阻塞、失败静默（doc §10 第 6 步）
+      this.scheduleExtraction(input.text, answer);
     } finally {
       unsubscribe?.();
       this.busy = false;
     }
+  }
+
+  private scheduleExtraction(userText: string, assistantText: string): void {
+    if (!assistantText) return;
+    this.backgroundWork = this.backgroundWork
+      .then(async () => {
+        const existing = await this.deps.memory.searchMemories({
+          scopes: visibleScopes(this.scope),
+          limit: 20,
+        });
+        const result = await extractMemories({
+          complete: this.completeFn,
+          model: this.resolveModel("fast"),
+          scope: this.scope,
+          userText,
+          assistantText,
+          existing,
+        });
+        for (const candidate of result.newMemories) {
+          await this.deps.memory.saveMemory({
+            ...candidate,
+            origin: "extraction",
+            sourceThreadKey: this.key,
+          });
+        }
+        for (const id of result.reinforcedIds) {
+          await this.deps.memory.reinforceMemory(id);
+        }
+      })
+      .catch(() => {
+        // 提炼失败绝不影响对话；巩固管道之后会有自己的重试语义
+      });
   }
 }

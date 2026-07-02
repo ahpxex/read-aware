@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./spike": "./src/spike.ts"
+    "./spike": "./src/spike.ts",
+    "./testing": "./src/testing/fixtures.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

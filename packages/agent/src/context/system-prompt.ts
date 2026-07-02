@@ -3,7 +3,7 @@
  * bundle 体系成型后（book_memory / reading_intent / conversation_insights）
  * 在这里逐段注入；每轮 sendTurn 前重建，保证 bundle 更新即时生效。
  */
-import type { BookOverview } from "../ports";
+import type { BookOverview, MemoryRecord } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 
 export interface SystemPromptInput {
@@ -13,6 +13,8 @@ export interface SystemPromptInput {
   profile?: string;
   /** global scope 的书架规模，帮模型建立范围感 */
   shelfSize?: number;
+  /** 注入的高置信记忆（book_memory / user 记忆 bundle 的 v0） */
+  memories?: MemoryRecord[];
 }
 
 const SHARED_RULES = `
@@ -49,6 +51,14 @@ export function buildSystemPrompt(scope: ThreadScope, input: SystemPromptInput):
 
   if (input.profile) {
     sections.push(`About the reader:\n${input.profile}`);
+  }
+
+  if (input.memories?.length) {
+    sections.push(
+      `What you remember from earlier conversations (long-term memory; treat as context, verify with tools when it matters):\n${input.memories
+        .map((memory) => `- [${memory.kind}] ${memory.content}`)
+        .join("\n")}`,
+    );
   }
 
   sections.push(SHARED_RULES);

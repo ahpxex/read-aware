@@ -4,10 +4,12 @@
   "version": "0.1.0",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./spike": "./src/spike.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "spike": "bun src/spike-run.ts"
   },
   "dependencies": {
     "@earendil-works/pi-agent-core": "^0.80.3",

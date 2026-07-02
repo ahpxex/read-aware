@@ -39,6 +39,11 @@ export async function loadConversation(bookId: string): Promise<ChatMessage[]> {
   return readStore()[bookId] ?? [];
 }
 
+/** 全量转录（agent 的 search_conversation 原话检索用）。 */
+export async function loadAllConversations(): Promise<Record<string, ChatMessage[]>> {
+  return readStore();
+}
+
 export async function saveConversation(bookId: string, messages: ChatMessage[]): Promise<void> {
   const store = readStore();
   store[bookId] = messages;

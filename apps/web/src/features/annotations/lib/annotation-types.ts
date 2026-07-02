@@ -6,9 +6,12 @@
  * AI conversation is no longer modeled as a per-selection annotation: the book
  * has one persistent conversation (see `features/ai`). "Ask AI about this" pulls
  * a passage in as an attachment rather than creating an annotation here.
+ * - Asks: passive traces of that conversation — every question asked in a book
+ *   thread leaves one, anchored at the selection or the reading position
+ *   (docs/agent-architecture.md §7). Written by the agent runtime, not the user.
  */
 
-export type AnnotationType = "highlight" | "note";
+export type AnnotationType = "highlight" | "note" | "ask";
 
 export interface BaseAnnotation {
   id: string;
@@ -36,7 +39,12 @@ export interface Note extends BaseAnnotation {
   content: string;
 }
 
-export type Annotation = Highlight | Note;
+/** 提问痕迹：`text` 是问题本身；锚点在 `cfiRange`（选区或提问时的阅读位置）。 */
+export interface Ask extends BaseAnnotation {
+  type: "ask";
+}
+
+export type Annotation = Highlight | Note | Ask;
 
 export interface AnnotationFilters {
   bookId?: string;

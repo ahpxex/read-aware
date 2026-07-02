@@ -7,14 +7,11 @@
  * spike 结论落地后此文件删除，不要在产品代码里引用。
  */
 import { Agent, type AgentTool } from "@earendil-works/pi-agent-core";
-import { createModels, Type, type Api, type Model } from "@earendil-works/pi-ai";
-import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
-import { openaiProvider } from "@earendil-works/pi-ai/providers/openai";
-import { openrouterProvider } from "@earendil-works/pi-ai/providers/openrouter";
-import { zaiCodingCnProvider } from "@earendil-works/pi-ai/providers/zai-coding-cn";
+import { Type, type Api, type Model } from "@earendil-works/pi-ai";
+import { buildProviderRegistry, type KnownProviderId, type ProviderRegistry } from "./models/registry";
 
 export interface SpikeConfig {
-  provider: "openai" | "anthropic" | "openrouter" | "zai-coding-cn";
+  provider: KnownProviderId;
   apiKey: string;
   model: string;
 }
@@ -30,19 +27,7 @@ export interface SpikeReport {
   agentEvents: string[];
 }
 
-function buildRegistry() {
-  const models = createModels();
-  models.setProvider(anthropicProvider());
-  models.setProvider(openaiProvider());
-  models.setProvider(openrouterProvider());
-  models.setProvider(zaiCodingCnProvider());
-  return models;
-}
-
-function resolveSpikeModel(
-  models: ReturnType<typeof buildRegistry>,
-  config: SpikeConfig,
-): Model<Api> {
+function resolveSpikeModel(models: ProviderRegistry, config: SpikeConfig): Model<Api> {
   const exact = models.getModel(config.provider, config.model);
   if (exact) return exact;
   // 配置里的 model id 不在 pi 的静态目录里时，克隆同 provider 的任一模型并覆盖 id
@@ -68,7 +53,7 @@ export async function runPiSpike(
   config: SpikeConfig,
   log: (line: string) => void = (line) => console.log(line),
 ): Promise<SpikeReport> {
-  const models = buildRegistry();
+  const models = buildProviderRegistry();
   const model = resolveSpikeModel(models, config);
   log(`[spike] model resolved: ${model.provider}/${model.id}`);
 

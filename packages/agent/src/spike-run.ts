@@ -3,9 +3,7 @@
  * key 解析顺序：`<PROVIDER>_API_KEY` 环境变量 → pi CLI 自己的 ~/.pi/agent/auth.json。
  * spike 结论落地后随 spike.ts 一起删除。
  */
-import { readFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
+import { readPiCliKey } from "./dev-key";
 import { runPiSpike, type SpikeConfig } from "./spike";
 
 const ENV_KEYS: Record<SpikeConfig["provider"], string> = {
@@ -21,17 +19,6 @@ const DEFAULT_MODELS: Record<SpikeConfig["provider"], string> = {
   openrouter: "openai/gpt-4o-mini",
   "zai-coding-cn": "glm-5-turbo",
 };
-
-function readPiCliKey(provider: string): string | undefined {
-  try {
-    const raw = readFileSync(join(homedir(), ".pi", "agent", "auth.json"), "utf8");
-    const auth = JSON.parse(raw) as Record<string, { type?: string; key?: string }>;
-    const entry = auth[provider];
-    return entry?.type === "api_key" ? entry.key : undefined;
-  } catch {
-    return undefined;
-  }
-}
 
 const provider = (process.argv[2] ?? "zai-coding-cn") as SpikeConfig["provider"];
 if (!(provider in ENV_KEYS)) {

@@ -9,7 +9,9 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "spike": "bun src/spike-run.ts"
+    "test": "bun test",
+    "spike": "bun src/spike-run.ts",
+    "demo": "bun src/demo-run.ts"
   },
   "dependencies": {
     "@earendil-works/pi-agent-core": "^0.80.3",

@@ -1,12 +1,19 @@
+/**
+ * Context 页 = 全局线程的主场（docs/agent-architecture.md §9）：
+ * 主体是跨书总对话（scope: global），右栏是记忆透明面板 + 跨书标注浏览。
+ */
 import { useCallback, useEffect, useState } from "react";
-import { Highlighter, NotePencil, Trash } from "@phosphor-icons/react";
-import { Body, Caption, EmptyState, Heading, IconButton } from "@read-aware/ui";
-import { cn } from "@read-aware/ui/cn";
+import { NotePencil, ChatCircleDots, Trash } from "@phosphor-icons/react";
+import { Alert, Body, Caption, Eyebrow, Heading, IconButton } from "@read-aware/ui";
 import { formatDate, useTranslation } from "../../../i18n";
 import { listAnnotations, deleteAnnotation } from "../../annotations/lib/annotation-db";
 import { HIGHLIGHT_COLORS } from "../../reader/lib/highlight-renderer";
 import type { Annotation, Highlight, Note } from "../../annotations/lib/annotation-types";
 import type { LibraryBook } from "../../library/lib/library-types";
+import { ChatComposer } from "../../ai/components/ChatComposer";
+import { ChatTranscript } from "../../ai/components/ChatTranscript";
+import { useGlobalConversation } from "../../ai/hooks/useGlobalConversation";
+import { MemoryPanel } from "./MemoryPanel";
 
 type ContextWorkspaceProps = {
   books: LibraryBook[];
@@ -23,23 +30,24 @@ function AnnotationTypeIcon({ annotation }: { annotation: Annotation }) {
       />
     );
   }
+  if (annotation.type === "ask") {
+    return (
+      <ChatCircleDots size={14} weight="regular" className="mt-0.5 shrink-0 text-fg-subtle" />
+    );
+  }
   return <NotePencil size={14} weight="regular" className="mt-0.5 shrink-0 text-fg-subtle" />;
 }
 
 export function ContextWorkspace({ books, onOpenBook }: ContextWorkspaceProps) {
   const { t } = useTranslation("ai");
+  const conversation = useGlobalConversation();
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   const load = useCallback(async () => {
-    setIsLoading(true);
     try {
-      const all = await listAnnotations();
-      setAnnotations(all);
+      setAnnotations(await listAnnotations());
     } catch {
       setAnnotations([]);
-    } finally {
-      setIsLoading(false);
     }
   }, []);
 
@@ -53,108 +61,113 @@ export function ContextWorkspace({ books, onOpenBook }: ContextWorkspaceProps) {
   }, []);
 
   const bookMap = new Map(books.map((b) => [b.id, b]));
-
-  // Group by book
   const grouped = new Map<string, Annotation[]>();
-  for (const a of annotations) {
-    const list = grouped.get(a.bookId) ?? [];
-    list.push(a);
-    grouped.set(a.bookId, list);
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <Body className="text-sm text-fg-muted">{t("context.loading")}</Body>
-      </div>
-    );
-  }
-
-  if (annotations.length === 0) {
-    return (
-      <div className="ra-motion-page-enter mx-auto flex min-h-full max-w-screen-2xl flex-col justify-center px-6 py-16">
-        <EmptyState
-          icon={<Highlighter size={32} weight="regular" />}
-          title={t("context.empty.title")}
-          description={t("context.empty.description")}
-        />
-      </div>
-    );
+  for (const annotation of annotations) {
+    const list = grouped.get(annotation.bookId) ?? [];
+    list.push(annotation);
+    grouped.set(annotation.bookId, list);
   }
 
   return (
-    <div className="ra-motion-page-enter mx-auto max-w-screen-2xl px-6 py-8 sm:py-10">
-      <div className="mb-8">
-        <Heading size="2xl">{t("context.title")}</Heading>
-        <Body className="mt-1 text-sm text-fg-muted">
-          {t("context.summary", {
-            items: t("context.contextItems", { count: annotations.length }),
-            books: t("context.books", { count: grouped.size }),
-          })}
-        </Body>
-      </div>
+    <div className="flex h-full min-h-0">
+      {/* 全局线程：跨书对话 */}
+      <section className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="flex shrink-0 items-baseline gap-3 border-b border-border px-6 py-3">
+          <Heading size="xl" className="font-serif">
+            {t("context.chat.title")}
+          </Heading>
+          <Caption className="text-fg-subtle">{t("context.chat.subtitle")}</Caption>
+        </div>
+        <div className="min-h-0 flex-1">
+          <ChatTranscript
+            messages={conversation.messages}
+            isLoading={conversation.isLoading}
+            isStreaming={conversation.isStreaming}
+            streamingText={conversation.streamingText}
+            status={conversation.status}
+          />
+        </div>
+        {conversation.error && (
+          <div className="shrink-0 px-6 pb-2">
+            <Alert variant="destructive">{conversation.error}</Alert>
+          </div>
+        )}
+        <div className="shrink-0 border-t border-border px-6 py-3">
+          <ChatComposer
+            isStreaming={conversation.isStreaming}
+            pendingAttachment={null}
+            onRemoveAttachment={() => {}}
+            onSend={(text) => conversation.send(text)}
+            onStop={conversation.stop}
+          />
+        </div>
+      </section>
 
-      <div className="flex flex-col gap-10">
-        {[...grouped.entries()].map(([bookId, items]) => {
-          const book = bookMap.get(bookId);
-          return (
-            <section key={bookId}>
-              <button
-                type="button"
-                onClick={() => {
-                  if (book) onOpenBook(book);
-                }}
-                className="mb-3 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg rounded-md"
-              >
-                <Heading size="xl" className="hover:text-fg-muted transition-colors">
-                  {book?.title ?? t("context.unknownBook")}
-                </Heading>
-                {book?.author && (
-                  <Body className="text-xs text-fg-muted">{book.author}</Body>
-                )}
-              </button>
-
-              <div className="flex flex-col gap-1">
-                {items.map((annotation) => (
-                  <div
-                    key={annotation.id}
-                    className={cn(
-                      "group flex gap-2 rounded-md p-2.5 transition-colors",
-                      "hover:bg-fg/5",
-                    )}
+      {/* 右栏：记忆透明面板 + 跨书标注 */}
+      <aside className="w-[24rem] shrink-0 overflow-y-auto border-l border-border">
+        <MemoryPanel />
+        <section className="px-4 py-4">
+          <Eyebrow className="mb-3 text-fg-muted">
+            {t("context.annotations.title")} · {annotations.length}
+          </Eyebrow>
+          {annotations.length === 0 && (
+            <Caption className="text-fg-subtle">{t("context.empty.description")}</Caption>
+          )}
+          <div className="flex flex-col gap-6">
+            {[...grouped.entries()].map(([bookId, items]) => {
+              const book = bookMap.get(bookId);
+              return (
+                <section key={bookId}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (book) onOpenBook(book);
+                    }}
+                    className="mb-2 rounded-md text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
                   >
-                    <AnnotationTypeIcon annotation={annotation} />
-                    <div className="min-w-0 flex-1">
-                      <Body className="line-clamp-2 text-sm text-fg-muted">
-                        &ldquo;{annotation.text}&rdquo;
-                      </Body>
-                      {annotation.type === "note" && (
-                        <Caption className="mt-0.5 line-clamp-1 text-fg-muted">
-                          {(annotation as Note).content}
-                        </Caption>
-                      )}
-                      <Caption className="mt-1 text-fg-subtle">
-                        {formatDate(new Date(annotation.createdAt), {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </Caption>
-                    </div>
-                    <IconButton
-                      label={t("context.delete")}
-                      size="sm"
-                      onClick={() => void handleDelete(annotation.id)}
-                      className="shrink-0 opacity-0 group-hover:opacity-100 text-fg-subtle hover:text-red-600"
-                      icon={<Trash size={12} weight="regular" />}
-                    />
+                    <Body className="font-serif text-sm text-fg hover:text-fg-muted">
+                      {book?.title ?? t("context.unknownBook")}
+                    </Body>
+                  </button>
+                  <div className="flex flex-col gap-1">
+                    {items.map((annotation) => (
+                      <div
+                        key={annotation.id}
+                        className="group flex gap-2 rounded-md p-2 transition-colors hover:bg-fg/5"
+                      >
+                        <AnnotationTypeIcon annotation={annotation} />
+                        <div className="min-w-0 flex-1">
+                          <Caption className="line-clamp-2 text-fg-muted">
+                            {annotation.type === "ask" ? annotation.text : `“${annotation.text}”`}
+                          </Caption>
+                          {annotation.type === "note" && (
+                            <Caption className="mt-0.5 line-clamp-1 text-fg-subtle">
+                              {(annotation as Note).content}
+                            </Caption>
+                          )}
+                          <Caption className="mt-0.5 text-fg-subtle">
+                            {formatDate(new Date(annotation.createdAt), {
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </Caption>
+                        </div>
+                        <IconButton
+                          label={t("context.delete")}
+                          size="sm"
+                          onClick={() => void handleDelete(annotation.id)}
+                          className="shrink-0 opacity-0 group-hover:opacity-100 text-fg-subtle hover:text-red-600"
+                          icon={<Trash size={12} weight="regular" />}
+                        />
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </section>
-          );
-        })}
-      </div>
+                </section>
+              );
+            })}
+          </div>
+        </section>
+      </aside>
     </div>
   );
 }

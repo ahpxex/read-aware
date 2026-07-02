@@ -46,6 +46,18 @@
     "contextItems_other": "{{count}} Kontextelemente",
     "books_one": "{{count}} Buch",
     "books_other": "{{count}} Bücher",
-    "summary": "{{items}} in {{books}}"
+    "summary": "{{items}} in {{books}}",
+    "chat": {
+      "title": "Quer durch Ihr Regal",
+      "subtitle": "Fragen Sie jedes Buch, oder verbinden Sie sie"
+    },
+    "memory": {
+      "title": "GEDÄCHTNIS",
+      "empty": "Noch nichts gemerkt — es wächst mit Ihrem Lesen und Fragen.",
+      "forget": "Vergessen"
+    },
+    "annotations": {
+      "title": "MARKIERUNGEN & NOTIZEN"
+    }
   }
 }

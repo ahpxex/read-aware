@@ -13,6 +13,9 @@ import { localKV } from "../../../platform/local-store";
 
 const STORAGE_KEY = "read-aware-conversations";
 
+/** 全局线程（跨书总对话，Context 页）的存储伪 id。 */
+export const GLOBAL_CONVERSATION_ID = "__global__";
+
 type ConversationStore = Record<string, ChatMessage[]>;
 
 function readStore(): ConversationStore {

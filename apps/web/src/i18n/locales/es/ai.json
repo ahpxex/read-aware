@@ -48,6 +48,18 @@
     "books_one": "{{count}} libro",
     "books_many": "{{count}} libros",
     "books_other": "{{count}} libros",
-    "summary": "{{items}} en {{books}}"
+    "summary": "{{items}} en {{books}}",
+    "chat": {
+      "title": "A través de tu estantería",
+      "subtitle": "Pregunta por cualquier libro, o conéctalos"
+    },
+    "memory": {
+      "title": "MEMORIA",
+      "empty": "Aún no hay recuerdos: crecen con tu lectura y tus preguntas.",
+      "forget": "Olvidar"
+    },
+    "annotations": {
+      "title": "SUBRAYADOS Y NOTAS"
+    }
   }
 }

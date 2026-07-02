@@ -28,7 +28,11 @@ export interface BookConversation {
  * the response seam, streams the reply, and persists each committed turn. The
  * components stay pure — all the async orchestration lives here.
  */
-export function useBookConversation(bookId: string, bookTitle: string): BookConversation {
+export function useBookConversation(
+  bookId: string,
+  bookTitle: string,
+  thread: "book" | "global" = "book",
+): BookConversation {
   const { t } = useTranslation("ai");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -96,7 +100,7 @@ export function useBookConversation(bookId: string, bookTitle: string): BookConv
         let assembled = "";
         try {
           const stream = getChatTransport().sendTurn(
-            { bookId, bookTitle, history, message: userMessage },
+            { bookId, bookTitle, history, message: userMessage, thread },
             controller.signal,
           );
           for await (const chunk of stream) {
@@ -136,7 +140,7 @@ export function useBookConversation(bookId: string, bookTitle: string): BookConv
         }
       })();
     },
-    [bookId, bookTitle, isStreaming, persist, t],
+    [bookId, bookTitle, thread, isStreaming, persist, t],
   );
 
   const stop = useCallback(() => {

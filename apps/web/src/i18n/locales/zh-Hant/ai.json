@@ -44,6 +44,18 @@
     },
     "contextItems_other": "{{count}} 項上下文",
     "books_other": "{{count}} 本書",
-    "summary": "{{items}}，共 {{books}}"
+    "summary": "{{items}}，共 {{books}}",
+    "chat": {
+      "title": "縱覽書架",
+      "subtitle": "問任何一本書，或讓它們彼此連接"
+    },
+    "memory": {
+      "title": "記憶",
+      "empty": "還沒有記憶——它會隨著你的閱讀和提問生長。",
+      "forget": "忘記"
+    },
+    "annotations": {
+      "title": "高亮與筆記"
+    }
   }
 }

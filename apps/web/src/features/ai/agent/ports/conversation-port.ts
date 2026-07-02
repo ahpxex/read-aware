@@ -6,11 +6,14 @@
  */
 import type { ConversationPort, TurnRecord } from "@read-aware/agent";
 import { localKV } from "../../../../platform/local-store";
-import { loadAllConversations, loadConversation } from "../../lib/conversation-store";
+import {
+  GLOBAL_CONVERSATION_ID,
+  loadAllConversations,
+  loadConversation,
+} from "../../lib/conversation-store";
 import type { ChatMessage } from "../../lib/chat-types";
 
-/** threadKey（book:<id> | global）↔ conversation-store 的存储键 */
-export const GLOBAL_CONVERSATION_ID = "__global__";
+export { GLOBAL_CONVERSATION_ID };
 
 function threadKeyToStoreId(threadKey: string): string {
   return threadKey === "global" ? GLOBAL_CONVERSATION_ID : threadKey.replace(/^book:/, "");

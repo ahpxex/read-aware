@@ -50,6 +50,18 @@
     "books_few": "{{count}} книги",
     "books_many": "{{count}} книг",
     "books_other": "{{count}} книги",
-    "summary": "{{items}} · {{books}}"
+    "summary": "{{items}} · {{books}}",
+    "chat": {
+      "title": "Сквозь всю полку",
+      "subtitle": "Спросите о любой книге или свяжите их"
+    },
+    "memory": {
+      "title": "ПАМЯТЬ",
+      "empty": "Пока ничего не запомнено — память растёт с чтением и вопросами.",
+      "forget": "Забыть"
+    },
+    "annotations": {
+      "title": "ВЫДЕЛЕНИЯ И ЗАМЕТКИ"
+    }
   }
 }

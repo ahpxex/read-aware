@@ -46,6 +46,18 @@
     "contextItems_other": "{{count}} context items",
     "books_one": "{{count}} book",
     "books_other": "{{count}} books",
-    "summary": "{{items}} across {{books}}"
+    "summary": "{{items}} across {{books}}",
+    "chat": {
+      "title": "Across your shelf",
+      "subtitle": "Ask about any book, or connect them"
+    },
+    "memory": {
+      "title": "MEMORY",
+      "empty": "Nothing remembered yet — it grows as you read and ask.",
+      "forget": "Forget"
+    },
+    "annotations": {
+      "title": "HIGHLIGHTS & NOTES"
+    }
   }
 }

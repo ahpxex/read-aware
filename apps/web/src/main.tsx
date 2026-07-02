@@ -1,5 +1,6 @@
 import { applyPlatformAttributes, disableNativeContextMenu } from "./platform/environment";
 import { hydrateLocalStore } from "./platform/local-store";
+import { registerAgentChatTransport } from "./features/ai/agent/register";
 import "./index.css";
 
 applyPlatformAttributes();
@@ -22,11 +23,9 @@ void (async () => {
   const { initI18n } = await import("./i18n");
   await initI18n(detectInitialLocale(getGeneralSettings().language));
 
+  // 真 agent 后端接上 ChatTransport seam（配置在每轮发送时读取）。
+  registerAgentChatTransport();
+
   const { mountApp } = await import("./app-mount");
   mountApp();
-
-  // 真 agent 后端接上 ChatTransport seam；无 BYOK 配置时逐轮回退 mock。
-  // 挂载后再动态引入，pi 及其 provider 依赖不进首屏 chunk。
-  const { registerAgentChatTransport } = await import("./features/ai/agent/register");
-  registerAgentChatTransport();
 })();

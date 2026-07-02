@@ -1,14 +1,12 @@
 /**
  * ChatTransport 的真实现（doc §5：唯一集成面）：把 UI 的一轮请求翻译给
  * AgentRuntime，把 ThreadChunk 流翻译回 ChatStreamChunk。
- * 没有可用的 BYOK 配置时逐轮回退到 mock —— 离线 demo 行为保持不变，
- * 配置好 key 的下一轮自动切到真 agent，无需重启。
+ * 未配置 BYOK 时直接抛错 —— 对话 hook 会把消息呈现给用户。
  */
 import type { SelectionAttachment, ThreadScope } from "@read-aware/agent";
 import type { Id } from "@read-aware/core";
 import type { ChatTransport } from "../lib/chat-transport";
 import type { ChatStreamChunk } from "../lib/chat-types";
-import { createMockChatTransport } from "../lib/mock-chat-transport";
 import { getAgentRuntime } from "./agent-runtime";
 
 const TOOL_LABELS: Record<string, string> = {
@@ -25,13 +23,11 @@ const TOOL_LABELS: Record<string, string> = {
 };
 
 export function createPiChatTransport(): ChatTransport {
-  const mock = createMockChatTransport();
   return {
     async *sendTurn(request, signal) {
       const runtime = getAgentRuntime();
       if (!runtime) {
-        yield* mock.sendTurn(request, signal);
-        return;
+        throw new Error("AI is not configured — add an API key in Settings → AI.");
       }
       const scope: ThreadScope =
         request.thread === "global"

@@ -24,4 +24,9 @@ void (async () => {
 
   const { mountApp } = await import("./app-mount");
   mountApp();
+
+  // 真 agent 后端接上 ChatTransport seam；无 BYOK 配置时逐轮回退 mock。
+  // 挂载后再动态引入，pi 及其 provider 依赖不进首屏 chunk。
+  const { registerAgentChatTransport } = await import("./features/ai/agent/register");
+  registerAgentChatTransport();
 })();

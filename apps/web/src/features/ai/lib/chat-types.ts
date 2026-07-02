@@ -46,6 +46,11 @@ export interface ChatTurnRequest {
   bookTitle: string;
   history: ChatMessage[];
   message: ChatMessage;
+  /**
+   * 线程 scope：缺省为书线程；"global" 是跨书总线程（Context 页），
+   * 此时 bookId 为伪 id（见 conversation-port 的 GLOBAL_CONVERSATION_ID）。
+   */
+  thread?: "book" | "global";
 }
 
 /**

@@ -9,16 +9,16 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "turbo run dev --filter=@read-aware/web",
-    "dev:desktop": "turbo run dev --filter=@read-aware/desktop",
+    "dev": "turbo run dev --filter=@read-aware/desktop",
+    "dev:web": "turbo run dev --filter=@read-aware/web",
     "dev:landing": "turbo run dev --filter=@read-aware/landing",
+    "lab": "turbo run dev --filter=@read-aware/agent-lab",
     "build": "turbo run build --filter=@read-aware/web",
     "build:desktop": "turbo run build --filter=@read-aware/desktop",
     "build:landing": "turbo run build --filter=@read-aware/landing",
     "typecheck": "turbo run typecheck",
     "storybook": "turbo run storybook --filter=@read-aware/web",
-    "build-storybook": "turbo run build-storybook --filter=@read-aware/web",
-    "lab": "turbo run dev --filter=@read-aware/agent-lab"
+    "build-storybook": "turbo run build-storybook --filter=@read-aware/web"
   },
   "devDependencies": {
     "@types/bun": "latest",

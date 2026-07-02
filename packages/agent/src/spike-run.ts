@@ -17,7 +17,7 @@ const DEFAULT_MODELS: Record<SpikeConfig["provider"], string> = {
   anthropic: "claude-3-5-haiku-20241022",
   openai: "gpt-4o-mini",
   openrouter: "openai/gpt-4o-mini",
-  "zai-coding-cn": "glm-5-turbo",
+  "zai-coding-cn": "glm-5.2",
 };
 
 const provider = (process.argv[2] ?? "zai-coding-cn") as SpikeConfig["provider"];

@@ -59,7 +59,7 @@ const { deps, stores } = createInMemoryDeps({
 const runtime = createAgentRuntime({
   deps,
   account: { kind: "api-key", provider: "zai-coding-cn", apiKey },
-  models: { smart: "glm-5-turbo", fast: "glm-4.5-air" },
+  models: { smart: "glm-5.2", fast: "glm-5.2" },
 });
 
 async function run(scope: ThreadScope, text: string): Promise<void> {

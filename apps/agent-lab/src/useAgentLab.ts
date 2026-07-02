@@ -1,13 +1,15 @@
 /**
- * Agent Workbench（dev-only）的状态编排：一个会话 = 内存 fixture 书架 +
- * AgentRuntime（@read-aware/agent）。聊天流、工具日志、记忆/ask-note 快照
- * 都在这里维护 —— 页面组件只做展示。产品集成走 ChatTransport，与本页无关。
+ * Agent Lab 的状态编排：一个会话 = 内存 fixture 书架 + AgentRuntime
+ * （@read-aware/agent）。聊天流、工具日志、记忆/ask-note 快照都在这里维护，
+ * 页面组件只做展示。凭证由 vite.config.ts 从 pi CLI 注入（dev only）。
  */
 import { useCallback, useRef, useState } from "react";
 import {
   createAgentRuntime,
   threadScopeKey,
   type AgentRuntime,
+  type AnnotationRecord,
+  type BookOverview,
   type KnownProviderId,
   type MemoryRecord,
   type ThreadScope,
@@ -17,10 +19,13 @@ import {
   type AskRecord,
   type InMemoryStores,
 } from "@read-aware/agent/testing";
-import type { AnnotationRecord, BookOverview } from "@read-aware/agent";
 import type { Id } from "@read-aware/core";
-import { getAIConfig } from "../../features/ai/lib/ai-config";
-import type { ChatMessage } from "../../features/ai/lib/chat-types";
+
+export interface LabMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+}
 
 const LAB_BOOKS: BookOverview[] = [
   { id: "book-debt" as Id, title: "债：第一个五千年", author: "大卫·格雷伯", progressFraction: 0.42 },
@@ -87,16 +92,12 @@ export const MODEL_DEFAULTS: Record<KnownProviderId, { smart: string; fast: stri
 };
 
 function initialConfig(): LabConfig {
-  const stored = getAIConfig();
-  const provider: KnownProviderId =
-    stored && stored.provider !== "custom" ? stored.provider : "zai-coding-cn";
-  const defaults = MODEL_DEFAULTS[provider];
-  return {
-    provider,
-    apiKey: stored?.apiKey ?? "",
-    smart: stored?.model || defaults.smart,
-    fast: defaults.fast,
-  };
+  const devKeys = __LAB_DEV_KEYS__;
+  const withKey = (Object.keys(MODEL_DEFAULTS) as KnownProviderId[]).find(
+    (provider) => devKeys[provider],
+  );
+  const provider = withKey ?? "zai-coding-cn";
+  return { provider, apiKey: devKeys[provider] ?? "", ...MODEL_DEFAULTS[provider] };
 }
 
 export interface ToolLogEntry {
@@ -111,7 +112,7 @@ export interface ToolLogEntry {
 export function useAgentLab() {
   const [config, setConfig] = useState<LabConfig>(initialConfig);
   const [threadKey, setThreadKey] = useState(LAB_THREADS[0].key);
-  const [messagesByThread, setMessagesByThread] = useState<Record<string, ChatMessage[]>>({});
+  const [messagesByThread, setMessagesByThread] = useState<Record<string, LabMessage[]>>({});
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingText, setStreamingText] = useState("");
   const [status, setStatus] = useState<string | null>(null);
@@ -162,18 +163,17 @@ export function useAgentLab() {
     (text: string) => {
       if (!text.trim() || isStreaming) return;
       if (!config.apiKey) {
-        setError("先填 API key（或在 Settings → AI 配置后刷新本页）");
+        setError("没有可用的 API key —— 填一个，或先用 pi CLI 登录再重启 lab");
         return;
       }
       const active = LAB_THREADS.find((thread) => thread.key === threadKey);
       if (!active) return;
       void (async () => {
         const { runtime, stores } = ensureSession();
-        const userMessage: ChatMessage = {
+        const userMessage: LabMessage = {
           id: crypto.randomUUID(),
           role: "user",
           content: text,
-          createdAt: new Date().toISOString(),
         };
         setMessagesByThread((prev) => ({
           ...prev,
@@ -210,11 +210,10 @@ export function useAgentLab() {
             }
           }
           if (accumulated) {
-            const assistantMessage: ChatMessage = {
+            const assistantMessage: LabMessage = {
               id: crypto.randomUUID(),
               role: "assistant",
               content: accumulated,
-              createdAt: new Date().toISOString(),
             };
             setMessagesByThread((prev) => ({
               ...prev,

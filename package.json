@@ -4,7 +4,10 @@
   "version": "0.1.0",
   "type": "module",
   "packageManager": "bun@1.3.13",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "turbo run dev --filter=@read-aware/web",
     "dev:desktop": "turbo run dev --filter=@read-aware/desktop",
@@ -14,7 +17,8 @@
     "build:landing": "turbo run build --filter=@read-aware/landing",
     "typecheck": "turbo run typecheck",
     "storybook": "turbo run storybook --filter=@read-aware/web",
-    "build-storybook": "turbo run build-storybook --filter=@read-aware/web"
+    "build-storybook": "turbo run build-storybook --filter=@read-aware/web",
+    "lab": "turbo run dev --filter=@read-aware/agent-lab"
   },
   "devDependencies": {
     "@types/bun": "latest",

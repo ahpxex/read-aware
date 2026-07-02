@@ -1,6 +1,7 @@
 /**
- * Agent Workbench（dev-only，/agent-lab）：左边和 agent 聊，右边看内部状态
- * （记忆提炼、ask-note、工具调用）。数据全在内存 fixture 里，不碰产品存储。
+ * Agent Lab：左边和 agent 聊，右边看内部状态（记忆提炼、ask-note、工具调用）。
+ * 数据全在内存 fixture 里 —— 这是 @read-aware/agent 的配套开发工具，
+ * 与产品（apps/web）完全无关；产品集成走 ChatTransport。
  */
 import { Brain, Flask } from "@phosphor-icons/react";
 import {
@@ -17,9 +18,9 @@ import {
   TextField,
 } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
-import { ChatComposer } from "../../features/ai/components/ChatComposer";
-import { ChatTranscript } from "../../features/ai/components/ChatTranscript";
 import { KNOWN_PROVIDERS, type KnownProviderId } from "@read-aware/agent";
+import { LabComposer } from "./components/LabComposer";
+import { LabTranscript } from "./components/LabTranscript";
 import { MODEL_DEFAULTS, useAgentLab } from "./useAgentLab";
 
 const PROVIDER_OPTIONS = KNOWN_PROVIDERS.map((provider) => ({
@@ -30,24 +31,16 @@ const PROVIDER_OPTIONS = KNOWN_PROVIDERS.map((provider) => ({
 export function AgentLabPage() {
   const lab = useAgentLab();
 
-  if (!import.meta.env.DEV) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Body className="text-fg-muted">Agent lab is dev-only.</Body>
-      </div>
-    );
-  }
-
   return (
     <div className="mx-auto flex h-screen max-w-screen-2xl flex-col gap-4 px-6 py-6">
       <header className="flex items-end justify-between">
         <div>
           <Eyebrow className="flex items-center gap-1.5 text-fg-muted">
-            <Flask size={12} weight="regular" /> AGENT LAB · DEV ONLY
+            <Flask size={12} weight="regular" /> READAWARE AGENT LAB
           </Eyebrow>
           <Heading size="2xl">Agent Workbench</Heading>
           <Caption className="text-fg-subtle">
-            内存 fixture 书架 · 不写产品数据 · 会话内状态右栏实时可见
+            内存 fixture 书架 · 不碰产品数据 · 会话内部状态右栏实时可见
           </Caption>
         </div>
         <Button variant="outline" size="sm" onClick={lab.reset} disabled={!lab.sessionStarted}>
@@ -64,7 +57,12 @@ export function AgentLabPage() {
             disabled={lab.sessionStarted}
             onChange={(value) => {
               const provider = value as KnownProviderId;
-              lab.setConfig((prev) => ({ ...prev, provider, ...MODEL_DEFAULTS[provider] }));
+              lab.setConfig((prev) => ({
+                ...prev,
+                provider,
+                apiKey: __LAB_DEV_KEYS__[provider] ?? "",
+                ...MODEL_DEFAULTS[provider],
+              }));
             }}
           />
           <TextField
@@ -73,6 +71,7 @@ export function AgentLabPage() {
             value={lab.config.apiKey}
             disabled={lab.sessionStarted}
             placeholder="sk-…"
+            helperText={lab.config.apiKey ? "已从 pi CLI 自动注入" : undefined}
             onChange={(event) =>
               lab.setConfig((prev) => ({ ...prev, apiKey: event.target.value }))
             }
@@ -95,7 +94,7 @@ export function AgentLabPage() {
       </Card>
 
       <div className="grid min-h-0 flex-1 grid-cols-5 gap-4">
-        <section className="col-span-3 flex min-h-0 flex-col rounded-lg border border-border bg-paper">
+        <section className="col-span-3 flex min-h-0 flex-col rounded-lg border border-border bg-surface">
           <div className="flex shrink-0 gap-1 border-b border-border px-3 py-2">
             {lab.threads.map((thread) => (
               <button
@@ -105,9 +104,7 @@ export function AgentLabPage() {
                 onClick={() => lab.setThreadKey(thread.key)}
                 className={cn(
                   "rounded-md px-2.5 py-1 text-sm transition-colors",
-                  thread.key === lab.threadKey
-                    ? "bg-fg/10 text-fg"
-                    : "text-fg-muted hover:bg-fg/5",
+                  thread.key === lab.threadKey ? "bg-fg/10 text-fg" : "text-fg-muted hover:bg-fg/5",
                 )}
               >
                 {thread.label}
@@ -115,9 +112,8 @@ export function AgentLabPage() {
             ))}
           </div>
           <div className="min-h-0 flex-1">
-            <ChatTranscript
+            <LabTranscript
               messages={lab.messages}
-              isLoading={false}
               isStreaming={lab.isStreaming}
               streamingText={lab.streamingText}
               status={lab.status}
@@ -131,13 +127,7 @@ export function AgentLabPage() {
             </div>
           )}
           <div className="shrink-0 border-t border-border p-3">
-            <ChatComposer
-              isStreaming={lab.isStreaming}
-              pendingAttachment={null}
-              onRemoveAttachment={() => {}}
-              onSend={lab.send}
-              onStop={lab.stop}
-            />
+            <LabComposer isStreaming={lab.isStreaming} onSend={lab.send} onStop={lab.stop} />
           </div>
         </section>
 
@@ -195,7 +185,9 @@ export function AgentLabPage() {
 
           <Card>
             <Card.Header>
-              <Heading size="xl">工具调用（{lab.toolLog.filter((e) => e.phase === "start").length}）</Heading>
+              <Heading size="xl">
+                工具调用（{lab.toolLog.filter((entry) => entry.phase === "start").length}）
+              </Heading>
             </Card.Header>
             <Card.Body className="flex flex-col gap-1">
               {lab.toolLog.length === 0 && (

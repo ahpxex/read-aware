@@ -10,6 +10,7 @@ const ENV_KEYS: Record<SpikeConfig["provider"], string> = {
   anthropic: "ANTHROPIC_API_KEY",
   openai: "OPENAI_API_KEY",
   openrouter: "OPENROUTER_API_KEY",
+  zai: "ZAI_API_KEY",
   "zai-coding-cn": "ZAI_CODING_CN_API_KEY",
 };
 
@@ -17,6 +18,7 @@ const DEFAULT_MODELS: Record<SpikeConfig["provider"], string> = {
   anthropic: "claude-3-5-haiku-20241022",
   openai: "gpt-4o-mini",
   openrouter: "openai/gpt-4o-mini",
+  zai: "glm-5.2",
   "zai-coding-cn": "glm-5.2",
 };
 

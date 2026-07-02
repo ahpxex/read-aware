@@ -17,6 +17,8 @@ const FAST_DEFAULTS: Record<string, string> = {
   openai: "gpt-4o-mini",
   anthropic: "claude-3-5-haiku-20241022",
   openrouter: "openai/gpt-4o-mini",
+  zai: "glm-5.2",
+  "zai-coding-cn": "glm-5.2",
 };
 
 let cached: { key: string; runtime: AgentRuntime } | null = null;

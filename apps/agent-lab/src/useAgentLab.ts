@@ -131,6 +131,7 @@ export const MODEL_DEFAULTS: Record<KnownProviderId, { smart: string; fast: stri
   anthropic: { smart: "claude-sonnet-4-6", fast: "claude-haiku-4-5-20251001" },
   openai: { smart: "gpt-4o", fast: "gpt-4o-mini" },
   openrouter: { smart: "openai/gpt-4o", fast: "openai/gpt-4o-mini" },
+  zai: { smart: "glm-5.2", fast: "glm-5.2" },
   "zai-coding-cn": { smart: "glm-5.2", fast: "glm-5.2" },
 };
 

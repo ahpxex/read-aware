@@ -2,7 +2,13 @@
  * AI Configuration storage and types for BYOK (Bring Your Own Key) model
  */
 
-export type AIProvider = "openai" | "anthropic" | "openrouter" | "custom";
+export type AIProvider =
+  | "openai"
+  | "anthropic"
+  | "openrouter"
+  | "zai"
+  | "zai-coding-cn"
+  | "custom";
 
 export interface AIConfig {
   provider: AIProvider;
@@ -60,6 +66,8 @@ export const DEFAULT_MODELS: Record<AIProvider, string> = {
   openai: "gpt-4o-mini",
   anthropic: "claude-3-5-haiku-20241022",
   openrouter: "openai/gpt-4o-mini",
+  zai: "glm-5.2",
+  "zai-coding-cn": "glm-5.2",
   custom: "",
 };
 
@@ -82,6 +90,18 @@ export const PROVIDER_MODELS: Record<AIProvider, { label: string; value: string 
     { label: "Claude 3.5 Haiku", value: "anthropic/claude-3.5-haiku" },
     { label: "DeepSeek V3", value: "deepseek/deepseek-chat" },
   ],
+  zai: [
+    { label: "GLM-5.2", value: "glm-5.2" },
+    { label: "GLM-5.1", value: "glm-5.1" },
+    { label: "GLM-5 Turbo", value: "glm-5-turbo" },
+    { label: "GLM-4.5 Air", value: "glm-4.5-air" },
+  ],
+  "zai-coding-cn": [
+    { label: "GLM-5.2", value: "glm-5.2" },
+    { label: "GLM-5.1", value: "glm-5.1" },
+    { label: "GLM-5 Turbo", value: "glm-5-turbo" },
+    { label: "GLM-4.5 Air", value: "glm-4.5-air" },
+  ],
   custom: [],
 };
 
@@ -89,5 +109,7 @@ export const PROVIDER_LABELS: Record<AIProvider, string> = {
   openai: "OpenAI",
   anthropic: "Anthropic",
   openrouter: "OpenRouter",
+  zai: "Z.ai (GLM Coding Plan)",
+  "zai-coding-cn": "智谱 GLM Coding Plan（国内）",
   custom: "Custom (OpenAI-compatible)",
 };

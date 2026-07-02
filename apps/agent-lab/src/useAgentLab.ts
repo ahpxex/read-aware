@@ -69,13 +69,28 @@ export interface LabThread {
   scope: ThreadScope;
 }
 
-export const LAB_THREADS: LabThread[] = (
-  [
-    { label: "《债》书线程", scope: { kind: "book", bookId: "book-debt" as Id } },
-    { label: "《人类简史》书线程", scope: { kind: "book", bookId: "book-sapiens" as Id } },
-    { label: "全局线程", scope: { kind: "global" } },
-  ] satisfies Omit<LabThread, "key">[]
-).map((thread) => ({ ...thread, key: threadScopeKey(thread.scope) }));
+/** 每本 fixture 书一个线程 + 一个全局线程；书架卡片就是线程切换器。 */
+export const LAB_THREADS: LabThread[] = [
+  ...LAB_BOOKS.map((book) => {
+    const scope: ThreadScope = { kind: "book", bookId: book.id };
+    return { key: threadScopeKey(scope), label: `《${book.title}》`, scope };
+  }),
+  { key: threadScopeKey({ kind: "global" }), label: "全局线程", scope: { kind: "global" } },
+];
+
+export interface LabShelfEntry {
+  book: BookOverview;
+  annotationCount: number;
+  threadKey: string;
+}
+
+export const LAB_SHELF: LabShelfEntry[] = LAB_BOOKS.map((book) => ({
+  book,
+  annotationCount: LAB_ANNOTATIONS.filter((a) => a.bookId === book.id).length,
+  threadKey: threadScopeKey({ kind: "book", bookId: book.id }),
+}));
+
+export const GLOBAL_THREAD_KEY = threadScopeKey({ kind: "global" });
 
 export interface LabConfig {
   provider: KnownProviderId;

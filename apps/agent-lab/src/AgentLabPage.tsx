@@ -3,7 +3,7 @@
  * 数据全在内存 fixture 里 —— 这是 @read-aware/agent 的配套开发工具，
  * 与产品（apps/web）完全无关；产品集成走 ChatTransport。
  */
-import { Brain, Flask } from "@phosphor-icons/react";
+import { Books, Brain, Flask } from "@phosphor-icons/react";
 import {
   Alert,
   Body,
@@ -21,7 +21,7 @@ import { cn } from "@read-aware/ui/cn";
 import { KNOWN_PROVIDERS, type KnownProviderId } from "@read-aware/agent";
 import { LabComposer } from "./components/LabComposer";
 import { LabTranscript } from "./components/LabTranscript";
-import { MODEL_DEFAULTS, useAgentLab } from "./useAgentLab";
+import { GLOBAL_THREAD_KEY, LAB_SHELF, MODEL_DEFAULTS, useAgentLab } from "./useAgentLab";
 
 const PROVIDER_OPTIONS = KNOWN_PROVIDERS.map((provider) => ({
   label: provider,
@@ -95,21 +95,58 @@ export function AgentLabPage() {
 
       <div className="grid min-h-0 flex-1 grid-cols-5 gap-4">
         <section className="col-span-3 flex min-h-0 flex-col rounded-lg border border-border bg-surface">
-          <div className="flex shrink-0 gap-1 border-b border-border px-3 py-2">
-            {lab.threads.map((thread) => (
+          {/* 书架即线程切换器：点一本书进它的线程，最后一张卡是全局线程 */}
+          <div className="flex shrink-0 gap-2 overflow-x-auto border-b border-border px-3 py-2.5">
+            {LAB_SHELF.map(({ book, annotationCount, threadKey }) => (
               <button
-                key={thread.key}
+                key={threadKey}
                 type="button"
                 disabled={lab.isStreaming}
-                onClick={() => lab.setThreadKey(thread.key)}
+                onClick={() => lab.setThreadKey(threadKey)}
                 className={cn(
-                  "rounded-md px-2.5 py-1 text-sm transition-colors",
-                  thread.key === lab.threadKey ? "bg-fg/10 text-fg" : "text-fg-muted hover:bg-fg/5",
+                  "flex shrink-0 items-center gap-2.5 rounded-md border px-2.5 py-1.5 text-left transition-colors",
+                  threadKey === lab.threadKey
+                    ? "border-border-strong bg-fg/5"
+                    : "border-border hover:bg-fg/5",
                 )}
               >
-                {thread.label}
+                <span
+                  aria-hidden
+                  className="flex h-10 w-7 shrink-0 items-center justify-center rounded-sm border border-border bg-paper-warm font-serif text-sm text-fg-muted"
+                >
+                  {book.title.charAt(0)}
+                </span>
+                <span className="flex flex-col">
+                  <span className="max-w-36 truncate text-sm text-fg">{book.title}</span>
+                  <Caption className="text-fg-subtle">
+                    {book.author} · {Math.round((book.progressFraction ?? 0) * 100)}% ·{" "}
+                    {annotationCount} 注
+                  </Caption>
+                </span>
               </button>
             ))}
+            <button
+              type="button"
+              disabled={lab.isStreaming}
+              onClick={() => lab.setThreadKey(GLOBAL_THREAD_KEY)}
+              className={cn(
+                "flex shrink-0 items-center gap-2.5 rounded-md border px-2.5 py-1.5 text-left transition-colors",
+                lab.threadKey === GLOBAL_THREAD_KEY
+                  ? "border-border-strong bg-fg/5"
+                  : "border-border hover:bg-fg/5",
+              )}
+            >
+              <span
+                aria-hidden
+                className="flex h-10 w-7 shrink-0 items-center justify-center rounded-sm border border-border bg-fill text-fg-muted"
+              >
+                <Books size={16} weight="regular" />
+              </span>
+              <span className="flex flex-col">
+                <span className="text-sm text-fg">全局线程</span>
+                <Caption className="text-fg-subtle">跨书 · Context 页形态</Caption>
+              </span>
+            </button>
           </div>
           <div className="min-h-0 flex-1">
             <LabTranscript

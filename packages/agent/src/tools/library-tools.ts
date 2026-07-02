@@ -8,13 +8,7 @@ import { Type } from "@earendil-works/pi-ai";
 import type { Id } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
-
-function textResult(value: unknown) {
-  return {
-    content: [{ type: "text" as const, text: JSON.stringify(value) }],
-    details: undefined,
-  };
-}
+import { textResult } from "./tool-result";
 
 export function buildThreadTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
   const defaultBookId = scope.kind === "book" ? scope.bookId : undefined;

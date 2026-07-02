@@ -171,6 +171,7 @@ export function useAgentLab() {
   const [isExtracting, setIsExtracting] = useState(false);
   const [sessionStarted, setSessionStarted] = useState(false);
   const [pendingQuote, setPendingQuote] = useState<ReaderQuote | null>(null);
+  const [insightsByThread, setInsightsByThread] = useState<Record<string, string>>({});
   /** 书 id → 实时进度（驱动书架栏渲染；LAB_BOOKS 本体也同步原地更新给端口） */
   const [progressById, setProgressById] = useState<Record<string, number>>({});
 
@@ -301,6 +302,7 @@ export function useAgentLab() {
           setIsExtracting(true);
           void runtime.flushBackgroundWork().then(() => {
             setMemories([...stores.memories]);
+            setInsightsByThread(Object.fromEntries(stores.insights));
             setIsExtracting(false);
           });
         }
@@ -327,6 +329,7 @@ export function useAgentLab() {
     memories,
     asks,
     isExtracting,
+    insights: insightsByThread[threadKey],
     pendingQuote,
     setPendingQuote,
     progressById,

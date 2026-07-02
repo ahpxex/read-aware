@@ -22,6 +22,7 @@ export interface AskRecord {
 
 export interface InMemoryStores {
   turns: Map<string, TurnRecord[]>;
+  insights: Map<string, string>;
   asks: AskRecord[];
   memories: MemoryRecord[];
   savedMemoryInputs: NewMemoryInput[];
@@ -53,6 +54,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
   const annotations = seed.annotations ?? [];
   const stores: InMemoryStores = {
     turns: new Map(),
+    insights: new Map(),
     asks: [],
     memories: [...(seed.memories ?? [])],
     savedMemoryInputs: [],
@@ -83,6 +85,20 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         const list = stores.turns.get(key) ?? [];
         list.push(turn);
         stores.turns.set(key, list);
+      },
+      searchTurns: async ({ query, threadKey, limit }) => {
+        const matches: Array<TurnRecord & { threadKey: string }> = [];
+        for (const [key, list] of stores.turns) {
+          if (threadKey && key !== threadKey) continue;
+          for (const turn of list) {
+            if (turn.content.includes(query)) matches.push({ ...turn, threadKey: key });
+          }
+        }
+        return matches.slice(0, limit ?? 20);
+      },
+      getInsights: async (key) => stores.insights.get(key),
+      putInsights: async (key, summary) => {
+        stores.insights.set(key, summary);
       },
     },
     profile: {

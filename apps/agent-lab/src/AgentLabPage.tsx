@@ -3,7 +3,15 @@
  * 这是 @read-aware/agent 的配套开发工具，与产品（apps/web）完全无关 ——
  * 产品集成走 ChatTransport。
  */
-import { Books, Brain, ChatCircleDots, Flask, NotePencil, Wrench } from "@phosphor-icons/react";
+import {
+  Article,
+  Books,
+  Brain,
+  ChatCircleDots,
+  Flask,
+  NotePencil,
+  Wrench,
+} from "@phosphor-icons/react";
 import {
   Alert,
   Body,
@@ -261,6 +269,19 @@ export function AgentLabPage() {
                 </div>
               ))}
             </div>
+          </section>
+
+          <section className="border-b border-border px-4 py-4">
+            <Eyebrow className="mb-3 flex items-center gap-1.5 text-fg-muted">
+              <Article size={12} weight="regular" /> 线程摘要
+            </Eyebrow>
+            {lab.insights ? (
+              <Body className="text-sm leading-relaxed text-fg-muted">{lab.insights}</Body>
+            ) : (
+              <Caption className="text-fg-subtle">
+                每轮结束后 fast 模型把对话折叠进滚动摘要 —— 长线程的压缩层。
+              </Caption>
+            )}
           </section>
 
           <section className="border-b border-border px-4 py-4">

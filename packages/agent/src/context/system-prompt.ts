@@ -15,6 +15,8 @@ export interface SystemPromptInput {
   shelfSize?: number;
   /** 注入的高置信记忆（book_memory / user 记忆 bundle 的 v0） */
   memories?: MemoryRecord[];
+  /** 本线程的滚动摘要（conversation_insights bundle v0）—— 窗口外历史经由它进入 */
+  conversationSummary?: string;
 }
 
 const SHARED_RULES = `
@@ -51,6 +53,12 @@ export function buildSystemPrompt(scope: ThreadScope, input: SystemPromptInput):
 
   if (input.profile) {
     sections.push(`About the reader:\n${input.profile}`);
+  }
+
+  if (input.conversationSummary) {
+    sections.push(
+      `Conversation so far (rolling summary — recent turns follow verbatim):\n${input.conversationSummary}`,
+    );
   }
 
   if (input.memories?.length) {

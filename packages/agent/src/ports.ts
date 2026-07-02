@@ -99,6 +99,18 @@ export interface MemoryPort {
 export interface ConversationPort {
   load(threadKey: string): Promise<TurnRecord[]>;
   append(threadKey: string, turn: TurnRecord): Promise<void>;
+  /**
+   * 历史对话原文检索（search_conversation 工具的后端；doc §6）。
+   * threadKey 缺省时检索全部线程。实现方决定匹配方式（目标态是 FTS）。
+   */
+  searchTurns(filter: {
+    query: string;
+    threadKey?: string;
+    limit?: number;
+  }): Promise<Array<TurnRecord & { threadKey: string }>>;
+  /** 线程的滚动摘要（conversation_insights bundle v0）；无则 undefined。 */
+  getInsights(threadKey: string): Promise<string | undefined>;
+  putInsights(threadKey: string, summary: string): Promise<void>;
 }
 
 /** 用户画像摘要（user_profile_context bundle 的 v0：一段文本，无则 undefined）。 */

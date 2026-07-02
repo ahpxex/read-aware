@@ -7,13 +7,7 @@ import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { Type } from "@earendil-works/pi-ai";
 import type { MemoryKind, MemoryScope, RuntimeDeps } from "../ports";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
-
-function textResult(value: unknown) {
-  return {
-    content: [{ type: "text" as const, text: JSON.stringify(value) }],
-    details: undefined,
-  };
-}
+import { textResult } from "./tool-result";
 
 /** 线程默认可见的 scope 集合（doc §3 的检索默认值）。 */
 export function visibleScopes(scope: ThreadScope): MemoryScope[] {

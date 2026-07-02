@@ -7,10 +7,12 @@ import { Agent, type AgentEvent } from "@earendil-works/pi-agent-core";
 import type { ThreadChunk } from "../chunks";
 import { buildSystemPrompt } from "../context/system-prompt";
 import { extractMemories } from "../memory/extraction";
+import { updateRollingSummary } from "../memory/rolling-summary";
 import type { CompleteFn } from "../models/complete";
 import type { ResolveModel } from "../models/roles";
 import type { RuntimeDeps } from "../ports";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
+import { buildConversationTools } from "../tools/conversation-tools";
 import { buildThreadTools } from "../tools/library-tools";
 import { buildMemoryTools, visibleScopes } from "../tools/memory-tools";
 import { AsyncQueue } from "./async-queue";
@@ -97,7 +99,11 @@ export class AgentThread {
     const agent = new Agent({
       initialState: {
         model,
-        tools: [...buildThreadTools(this.scope, this.deps), ...buildMemoryTools(this.scope, this.deps)],
+        tools: [
+          ...buildThreadTools(this.scope, this.deps),
+          ...buildMemoryTools(this.scope, this.deps),
+          ...buildConversationTools(this.scope, this.deps),
+        ],
         messages: turnRecordsToMessages(records, model),
       },
       transformContext: async (messages) => windowByTurns(messages, this.maxWindowTurns),
@@ -108,17 +114,19 @@ export class AgentThread {
   }
 
   private async refreshSystemPrompt(agent: Agent): Promise<void> {
-    const [profile, book, shelf, memories] = await Promise.all([
+    const [profile, book, shelf, memories, conversationSummary] = await Promise.all([
       this.deps.profile.getProfileSummary(),
       this.scope.kind === "book" ? this.deps.library.getBook(this.scope.bookId) : undefined,
       this.scope.kind === "global" ? this.deps.library.listBooks() : undefined,
       this.deps.memory.searchMemories({ scopes: visibleScopes(this.scope), limit: 8 }),
+      this.deps.conversations.getInsights(this.key),
     ]);
     agent.state.systemPrompt = buildSystemPrompt(this.scope, {
       book,
       profile,
       shelfSize: shelf?.length,
       memories,
+      conversationSummary,
     });
   }
 
@@ -196,16 +204,17 @@ export class AgentThread {
         });
       }
 
-      // 逐轮记忆提炼：异步、不阻塞、失败静默（doc §10 第 6 步）
-      this.scheduleExtraction(input.text, answer);
+      // 轮后管道：记忆提炼 + 滚动摘要。异步、不阻塞、失败静默（doc §10 第 6 步）
+      this.scheduleBackgroundPipeline(input.text, answer);
     } finally {
       unsubscribe?.();
       this.busy = false;
     }
   }
 
-  private scheduleExtraction(userText: string, assistantText: string): void {
+  private scheduleBackgroundPipeline(userText: string, assistantText: string): void {
     if (!assistantText) return;
+    const fast = () => this.resolveModel("fast");
     this.backgroundWork = this.backgroundWork
       .then(async () => {
         const existing = await this.deps.memory.searchMemories({
@@ -214,7 +223,7 @@ export class AgentThread {
         });
         const result = await extractMemories({
           complete: this.completeFn,
-          model: this.resolveModel("fast"),
+          model: fast(),
           scope: this.scope,
           userText,
           assistantText,
@@ -230,9 +239,21 @@ export class AgentThread {
         for (const id of result.reinforcedIds) {
           await this.deps.memory.reinforceMemory(id);
         }
+
+        const previous = await this.deps.conversations.getInsights(this.key);
+        const summary = await updateRollingSummary({
+          complete: this.completeFn,
+          model: fast(),
+          previous,
+          userText,
+          assistantText,
+        });
+        if (summary && summary !== previous) {
+          await this.deps.conversations.putInsights(this.key, summary);
+        }
       })
       .catch(() => {
-        // 提炼失败绝不影响对话；巩固管道之后会有自己的重试语义
+        // 轮后管道失败绝不影响对话；巩固管道之后会有自己的重试语义
       });
   }
 }

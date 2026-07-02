@@ -42,6 +42,7 @@ Hard rules:
 - Distinguish three kinds of speech: the reader's own statements (may become "user" scope), quoted book content (never a fact about the reader; at most a book-scope insight), and hypotheticals/rhetorical questions (never extract).
 - ${scopeLine}
 - If the exchange merely confirms or repeats a known memory, put that memory's id in "reinforced" instead of writing a duplicate.
+- A candidate substantially covered by a known memory — even under a DIFFERENT scope or wording — is NOT new. Reinforce the known id instead. Never store the same fact twice.
 - kind is one of: fact, preference, insight, summary.
 - Each content is one self-contained sentence, in the reader's language.
 

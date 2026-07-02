@@ -109,7 +109,7 @@ export const PROVIDER_LABELS: Record<AIProvider, string> = {
   openai: "OpenAI",
   anthropic: "Anthropic",
   openrouter: "OpenRouter",
-  zai: "Z.ai (GLM Coding Plan)",
-  "zai-coding-cn": "智谱 GLM Coding Plan（国内）",
+  zai: "Z.ai Coding Plan",
+  "zai-coding-cn": "Zhipu Coding Plan",
   custom: "Custom (OpenAI-compatible)",
 };

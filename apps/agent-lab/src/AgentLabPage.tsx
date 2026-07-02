@@ -1,15 +1,14 @@
 /**
- * Agent Lab：左边和 agent 聊，右边看内部状态（记忆提炼、ask-note、工具调用）。
- * 数据全在内存 fixture 里 —— 这是 @read-aware/agent 的配套开发工具，
- * 与产品（apps/web）完全无关；产品集成走 ChatTransport。
+ * Agent Lab：真书阅读 + agent 对话 + 内部状态检查器，三件事一屏。
+ * 这是 @read-aware/agent 的配套开发工具，与产品（apps/web）完全无关 ——
+ * 产品集成走 ChatTransport。
  */
-import { Books, Brain, Flask } from "@phosphor-icons/react";
+import { Books, Brain, ChatCircleDots, Flask, NotePencil, Wrench } from "@phosphor-icons/react";
 import {
   Alert,
   Body,
   Button,
   Caption,
-  Card,
   Eyebrow,
   Heading,
   Select,
@@ -20,41 +19,106 @@ import {
 import { cn } from "@read-aware/ui/cn";
 import { KNOWN_PROVIDERS, type KnownProviderId } from "@read-aware/agent";
 import { LabComposer } from "./components/LabComposer";
+import { LabReader } from "./components/LabReader";
 import { LabTranscript } from "./components/LabTranscript";
-import { GLOBAL_THREAD_KEY, LAB_SHELF, MODEL_DEFAULTS, useAgentLab } from "./useAgentLab";
+import {
+  annotationCount,
+  GLOBAL_THREAD_KEY,
+  MODEL_DEFAULTS,
+  useAgentLab,
+  type LabThread,
+} from "./useAgentLab";
 
 const PROVIDER_OPTIONS = KNOWN_PROVIDERS.map((provider) => ({
   label: provider,
   value: provider,
 }));
 
+function BookRailItem({
+  thread,
+  selected,
+  progress,
+  disabled,
+  onSelect,
+}: {
+  thread: LabThread;
+  selected: boolean;
+  progress: number;
+  disabled: boolean;
+  onSelect: () => void;
+}) {
+  const book = thread.book;
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onSelect}
+      className={cn(
+        "flex w-full items-center gap-3 border-l-2 px-4 py-3 text-left transition-colors",
+        selected
+          ? "border-l-fg bg-surface"
+          : "border-l-transparent hover:bg-fg/5",
+      )}
+    >
+      <span
+        aria-hidden
+        className={cn(
+          "flex h-12 w-9 shrink-0 items-center justify-center rounded-sm border border-border font-serif text-base",
+          book ? "bg-paper-warm text-fg-muted" : "bg-fill text-fg-muted",
+        )}
+      >
+        {book ? book.title.charAt(0) : <Books size={16} weight="regular" />}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-serif text-sm text-fg">{thread.label}</span>
+        {book ? (
+          <Caption className="text-fg-subtle">
+            {book.author} · {Math.round(progress * 100)}%
+            {annotationCount(book.id) > 0 ? ` · ${annotationCount(book.id)} 注` : ""}
+          </Caption>
+        ) : (
+          <Caption className="text-fg-subtle">跨书对话 · Context 页形态</Caption>
+        )}
+      </span>
+    </button>
+  );
+}
+
 export function AgentLabPage() {
   const lab = useAgentLab();
+  const activeThread = lab.threads.find((thread) => thread.key === lab.threadKey);
+  const activeBook = activeThread?.book;
 
   return (
-    <div className="mx-auto flex h-screen max-w-screen-2xl flex-col gap-4 px-6 py-6">
-      <header className="flex items-end justify-between">
-        <div>
-          <Eyebrow className="flex items-center gap-1.5 text-fg-muted">
-            <Flask size={12} weight="regular" /> READAWARE AGENT LAB
-          </Eyebrow>
-          <Heading size="2xl">Agent Workbench</Heading>
-          <Caption className="text-fg-subtle">
-            内存 fixture 书架 · 不碰产品数据 · 会话内部状态右栏实时可见
+    <div className="flex h-screen flex-col bg-paper">
+      <header className="flex shrink-0 items-center justify-between border-b border-border px-6 py-3">
+        <div className="flex items-baseline gap-3">
+          <Heading size="xl" className="flex items-center gap-2 font-serif">
+            <Flask size={16} weight="regular" className="text-fg-muted" />
+            Agent Lab
+          </Heading>
+          <Caption className="hidden text-fg-subtle sm:block">
+            真书书架 · 内存数据 · 不碰产品存储
           </Caption>
         </div>
-        <Button variant="outline" size="sm" onClick={lab.reset} disabled={!lab.sessionStarted}>
-          重置会话
-        </Button>
+        <div className="flex items-center gap-3">
+          {lab.sessionStarted && (
+            <Caption className="text-fg-subtle">
+              {lab.config.provider} · {lab.config.smart}
+            </Caption>
+          )}
+          <Button variant="outline" size="sm" onClick={lab.reset} disabled={!lab.sessionStarted}>
+            重置会话
+          </Button>
+        </div>
       </header>
 
-      <Card className="shrink-0">
-        <Card.Body className="grid grid-cols-2 gap-x-6 gap-y-3 py-4 sm:grid-cols-4">
+      {!lab.sessionStarted && (
+        <div className="grid shrink-0 grid-cols-2 gap-x-6 gap-y-2 border-b border-border bg-paper-warm/40 px-6 py-3 sm:grid-cols-4">
           <Select
             label="Provider"
             options={PROVIDER_OPTIONS}
             value={lab.config.provider}
-            disabled={lab.sessionStarted}
             onChange={(value) => {
               const provider = value as KnownProviderId;
               lab.setConfig((prev) => ({
@@ -69,84 +133,75 @@ export function AgentLabPage() {
             label="API key"
             type="password"
             value={lab.config.apiKey}
-            disabled={lab.sessionStarted}
             placeholder="sk-…"
             helperText={lab.config.apiKey ? "已从 pi CLI 自动注入" : undefined}
-            onChange={(event) =>
-              lab.setConfig((prev) => ({ ...prev, apiKey: event.target.value }))
-            }
+            onChange={(event) => lab.setConfig((prev) => ({ ...prev, apiKey: event.target.value }))}
           />
           <TextField
             label="smart 模型（聊天）"
             value={lab.config.smart}
-            disabled={lab.sessionStarted}
-            onChange={(event) =>
-              lab.setConfig((prev) => ({ ...prev, smart: event.target.value }))
-            }
+            onChange={(event) => lab.setConfig((prev) => ({ ...prev, smart: event.target.value }))}
           />
           <TextField
             label="fast 模型（记忆提炼）"
             value={lab.config.fast}
-            disabled={lab.sessionStarted}
             onChange={(event) => lab.setConfig((prev) => ({ ...prev, fast: event.target.value }))}
           />
-        </Card.Body>
-      </Card>
+        </div>
+      )}
 
-      <div className="grid min-h-0 flex-1 grid-cols-5 gap-4">
-        <section className="col-span-3 flex min-h-0 flex-col rounded-lg border border-border bg-surface">
-          {/* 书架即线程切换器：点一本书进它的线程，最后一张卡是全局线程 */}
-          <div className="flex shrink-0 gap-2 overflow-x-auto border-b border-border px-3 py-2.5">
-            {LAB_SHELF.map(({ book, annotationCount, threadKey }) => (
-              <button
-                key={threadKey}
-                type="button"
+      <div className="flex min-h-0 flex-1">
+        {/* 书架栏：点书进书线程（右侧同时打开阅读视图），底部是全局线程 */}
+        <nav className="flex w-60 shrink-0 flex-col border-r border-border">
+          <Eyebrow className="px-4 pb-1 pt-3 text-fg-subtle">书架</Eyebrow>
+          {lab.threads
+            .filter((thread) => thread.book)
+            .map((thread) => (
+              <BookRailItem
+                key={thread.key}
+                thread={thread}
+                selected={thread.key === lab.threadKey}
+                progress={
+                  lab.progressById[thread.book?.id ?? ""] ?? thread.book?.progressFraction ?? 0
+                }
                 disabled={lab.isStreaming}
-                onClick={() => lab.setThreadKey(threadKey)}
-                className={cn(
-                  "flex shrink-0 items-center gap-2.5 rounded-md border px-2.5 py-1.5 text-left transition-colors",
-                  threadKey === lab.threadKey
-                    ? "border-border-strong bg-fg/5"
-                    : "border-border hover:bg-fg/5",
-                )}
-              >
-                <span
-                  aria-hidden
-                  className="flex h-10 w-7 shrink-0 items-center justify-center rounded-sm border border-border bg-paper-warm font-serif text-sm text-fg-muted"
-                >
-                  {book.title.charAt(0)}
-                </span>
-                <span className="flex flex-col">
-                  <span className="max-w-36 truncate text-sm text-fg">{book.title}</span>
-                  <Caption className="text-fg-subtle">
-                    {book.author} · {Math.round((book.progressFraction ?? 0) * 100)}% ·{" "}
-                    {annotationCount} 注
-                  </Caption>
-                </span>
-              </button>
+                onSelect={() => lab.setThreadKey(thread.key)}
+              />
             ))}
-            <button
-              type="button"
+          <div className="mt-auto border-t border-border">
+            <BookRailItem
+              thread={lab.threads.find((thread) => thread.key === GLOBAL_THREAD_KEY)!}
+              selected={lab.threadKey === GLOBAL_THREAD_KEY}
+              progress={0}
               disabled={lab.isStreaming}
-              onClick={() => lab.setThreadKey(GLOBAL_THREAD_KEY)}
-              className={cn(
-                "flex shrink-0 items-center gap-2.5 rounded-md border px-2.5 py-1.5 text-left transition-colors",
-                lab.threadKey === GLOBAL_THREAD_KEY
-                  ? "border-border-strong bg-fg/5"
-                  : "border-border hover:bg-fg/5",
-              )}
-            >
-              <span
-                aria-hidden
-                className="flex h-10 w-7 shrink-0 items-center justify-center rounded-sm border border-border bg-fill text-fg-muted"
-              >
-                <Books size={16} weight="regular" />
-              </span>
-              <span className="flex flex-col">
-                <span className="text-sm text-fg">全局线程</span>
-                <Caption className="text-fg-subtle">跨书 · Context 页形态</Caption>
-              </span>
-            </button>
+              onSelect={() => lab.setThreadKey(GLOBAL_THREAD_KEY)}
+            />
+          </div>
+        </nav>
+
+        {/* 阅读视图：书线程才有；选中文字 → 引用到对话 */}
+        {activeBook && (
+          <section className="min-w-0 flex-1 border-r border-border">
+            <LabReader
+              key={activeBook.id}
+              url={activeBook.file}
+              onRelocate={(position) => lab.reportPosition(activeBook.id, position)}
+              onQuote={(quote) => lab.setPendingQuote(quote)}
+            />
+          </section>
+        )}
+
+        {/* 对话 */}
+        <section
+          className={cn(
+            "flex min-h-0 flex-col bg-paper",
+            activeBook ? "w-[26rem] shrink-0" : "min-w-0 flex-1",
+          )}
+        >
+          <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-2.5">
+            <ChatCircleDots size={14} weight="regular" className="text-fg-muted" />
+            <Body className="text-sm text-fg">{activeThread?.label}</Body>
+            <Tag className="ml-auto">{lab.threadKey}</Tag>
           </div>
           <div className="min-h-0 flex-1">
             <LabTranscript
@@ -157,78 +212,86 @@ export function AgentLabPage() {
             />
           </div>
           {lab.error && (
-            <div className="shrink-0 px-3 pb-2">
+            <div className="shrink-0 px-4 pb-2">
               <Alert variant="destructive" title="出错了">
                 {lab.error}
               </Alert>
             </div>
           )}
           <div className="shrink-0 border-t border-border p-3">
-            <LabComposer isStreaming={lab.isStreaming} onSend={lab.send} onStop={lab.stop} />
+            <LabComposer
+              isStreaming={lab.isStreaming}
+              pendingQuote={lab.pendingQuote}
+              onRemoveQuote={() => lab.setPendingQuote(null)}
+              onSend={lab.send}
+              onStop={lab.stop}
+            />
           </div>
         </section>
 
-        <aside className="col-span-2 flex min-h-0 flex-col gap-4 overflow-y-auto pr-1">
-          <Card>
-            <Card.Header className="flex items-center justify-between">
-              <Heading size="xl" className="flex items-center gap-1.5">
-                <Brain size={14} weight="regular" /> 记忆（{lab.memories.length}）
-              </Heading>
+        {/* 检查器：产品 UI 不会展示的内部状态 */}
+        <aside className="w-[21rem] shrink-0 overflow-y-auto border-l border-border">
+          <section className="border-b border-border px-4 py-4">
+            <div className="mb-3 flex items-center justify-between">
+              <Eyebrow className="flex items-center gap-1.5 text-fg-muted">
+                <Brain size={12} weight="regular" /> 记忆 · {lab.memories.length}
+              </Eyebrow>
               {lab.isExtracting && (
                 <Caption className="flex items-center gap-1 text-fg-subtle">
-                  <Spinner size="sm" /> 提炼中…
+                  <Spinner size="sm" /> 提炼中
                 </Caption>
               )}
-            </Card.Header>
-            <Card.Body className="flex flex-col gap-2.5">
+            </div>
+            <div className="flex flex-col gap-2">
               {lab.memories.length === 0 && !lab.isExtracting && (
                 <Caption className="text-fg-subtle">
-                  还没有记忆 —— 每轮对话结束后 fast 模型会异步提炼。
+                  还没有记忆 —— 每轮结束后 fast 模型异步提炼。
                 </Caption>
               )}
               {lab.memories.map((memory) => (
-                <div key={memory.id} className="rounded-md border border-border p-2.5">
-                  <div className="mb-1 flex items-center gap-1.5">
+                <div key={memory.id} className="rounded-md bg-surface p-2.5 shadow-sm">
+                  <Body className="text-sm leading-relaxed">{memory.content}</Body>
+                  <div className="mt-1.5 flex items-center gap-1.5">
                     <Tag>{memory.scope}</Tag>
                     <Tag>{memory.kind}</Tag>
                     <Caption className="ml-auto text-fg-subtle">
-                      置信 {memory.importance.toFixed(2)} · 证据 {memory.evidenceCount}
+                      {memory.importance.toFixed(2)} · ×{memory.evidenceCount}
                     </Caption>
                   </div>
-                  <Body className="text-sm">{memory.content}</Body>
                 </div>
               ))}
-            </Card.Body>
-          </Card>
+            </div>
+          </section>
 
-          <Card>
-            <Card.Header>
-              <Heading size="xl">Ask-notes（{lab.asks.length}）</Heading>
-            </Card.Header>
-            <Card.Body className="flex flex-col gap-2">
+          <section className="border-b border-border px-4 py-4">
+            <Eyebrow className="mb-3 flex items-center gap-1.5 text-fg-muted">
+              <NotePencil size={12} weight="regular" /> ASK-NOTES · {lab.asks.length}
+            </Eyebrow>
+            <div className="flex flex-col gap-2">
               {lab.asks.length === 0 && (
-                <Caption className="text-fg-subtle">书线程的每个提问会自动留痕在这里。</Caption>
+                <Caption className="text-fg-subtle">书线程的每个提问自动留痕在这里。</Caption>
               )}
               {lab.asks.map((ask, index) => (
-                <div key={index} className="rounded-md border border-border p-2.5">
+                <div key={index} className="rounded-md bg-surface p-2.5 shadow-sm">
                   <Body className="text-sm">{ask.question}</Body>
-                  <Caption className="mt-1 text-fg-subtle">
-                    {ask.bookId} · 锚点 {ask.anchor ?? "（无 — 自由提问且未传阅读位置）"}
+                  <Caption className="mt-1 block truncate text-fg-subtle">
+                    {ask.bookId}
+                    {ask.chapter ? ` · ${ask.chapter}` : ""} ·{" "}
+                    {ask.anchor ? `锚 ${ask.anchor}` : "未锚定"}
                   </Caption>
                 </div>
               ))}
-            </Card.Body>
-          </Card>
+            </div>
+          </section>
 
-          <Card>
-            <Card.Header>
-              <Heading size="xl">
-                工具调用（{lab.toolLog.filter((entry) => entry.phase === "start").length}）
-              </Heading>
-            </Card.Header>
-            <Card.Body className="flex flex-col gap-1">
+          <section className="px-4 py-4">
+            <Eyebrow className="mb-3 flex items-center gap-1.5 text-fg-muted">
+              <Wrench size={12} weight="regular" /> 工具调用 ·{" "}
+              {lab.toolLog.filter((entry) => entry.phase === "start").length}
+            </Eyebrow>
+            <div className="flex flex-col gap-1">
               {lab.toolLog.length === 0 && (
-                <Caption className="text-fg-subtle">agent 调用检索/记忆工具时会记录在这里。</Caption>
+                <Caption className="text-fg-subtle">agent 调用检索/记忆工具时记录在这里。</Caption>
               )}
               {lab.toolLog.map((entry) => (
                 <Caption key={entry.id} className="flex items-center gap-2 text-fg-muted">
@@ -241,11 +304,11 @@ export function AgentLabPage() {
                     {entry.phase}
                   </span>
                   <span className="font-mono">{entry.tool}</span>
-                  <span className="ml-auto text-fg-subtle">[{entry.threadKey}]</span>
+                  <span className="ml-auto truncate text-fg-subtle">{entry.threadKey}</span>
                 </Caption>
               ))}
-            </Card.Body>
-          </Card>
+            </div>
+          </section>
         </aside>
       </div>
     </div>

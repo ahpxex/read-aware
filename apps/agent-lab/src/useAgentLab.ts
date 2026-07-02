@@ -1,7 +1,8 @@
 /**
- * Agent Lab 的状态编排：一个会话 = 内存 fixture 书架 + AgentRuntime
- * （@read-aware/agent）。聊天流、工具日志、记忆/ask-note 快照都在这里维护，
- * 页面组件只做展示。凭证由 vite.config.ts 从 pi CLI 注入（dev only）。
+ * Agent Lab 的状态编排：一个会话 = 真书书架（public/books 的公版书）+
+ * AgentRuntime（@read-aware/agent）。聊天流、工具日志、记忆/ask-note 快照、
+ * 阅读位置与引用选区都在这里维护 —— 页面组件只做展示。
+ * 凭证由 vite.config.ts 从 pi CLI 注入（dev only）。
  */
 import { useCallback, useRef, useState } from "react";
 import {
@@ -20,44 +21,76 @@ import {
   type InMemoryStores,
 } from "@read-aware/agent/testing";
 import type { Id } from "@read-aware/core";
+import type { ReaderPosition, ReaderQuote } from "./components/LabReader";
 
-export interface LabMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
+export interface LabBook extends BookOverview {
+  /** public/ 下的真实 epub 路径 —— 阅读视图直接渲染它 */
+  file: string;
 }
 
-const LAB_BOOKS: BookOverview[] = [
-  { id: "book-debt" as Id, title: "债：第一个五千年", author: "大卫·格雷伯", progressFraction: 0.42 },
-  { id: "book-sapiens" as Id, title: "人类简史", author: "尤瓦尔·赫拉利", progressFraction: 0.9 },
-  { id: "book-scale" as Id, title: "规模", author: "杰弗里·韦斯特", progressFraction: 0.05 },
+/**
+ * 真书书架（epub 在 public/books/，版权内容不入库 —— 见该目录 README）。
+ * progressFraction 是活的：阅读视图 relocate 时原地更新，
+ * agent 经 LibraryPort 看到的就是你真实读到的位置。
+ */
+const LAB_BOOKS: LabBook[] = [
+  { id: "santi" as Id, title: "三体全集", author: "刘慈欣", progressFraction: 0, file: "/books/santi.epub" },
+  {
+    id: "cholera" as Id,
+    title: "霍乱时期的爱情",
+    author: "加西亚·马尔克斯",
+    progressFraction: 0,
+    file: "/books/cholera.epub",
+  },
+  {
+    id: "rich-dad" as Id,
+    title: "Rich Dad Poor Dad",
+    author: "Robert T. Kiyosaki",
+    progressFraction: 0,
+    file: "/books/rich-dad-poor-dad.epub",
+  },
+  {
+    id: "atomic-habits" as Id,
+    title: "Atomic Habits",
+    author: "James Clear",
+    progressFraction: 0,
+    file: "/books/atomic-habits.epub",
+  },
 ];
 
 const LAB_ANNOTATIONS: AnnotationRecord[] = [
   {
     id: "a1",
-    bookId: "book-debt" as Id,
+    bookId: "santi" as Id,
     kind: "highlight",
-    text: "经济学教科书里的物物交换起源故事，在人类学的田野记录中从未被观察到。",
-    chapter: "第二章",
+    text: "弱小和无知不是生存的障碍，傲慢才是。",
+    chapter: "死神永生",
     createdAt: "2026-06-20T10:00:00Z",
   },
   {
     id: "a2",
-    bookId: "book-debt" as Id,
+    bookId: "santi" as Id,
     kind: "highlight",
-    text: "信用记账早于铸币数千年出现，货币首先是债务的度量单位。",
-    chapter: "第三章",
+    text: "失去人性，失去很多；失去兽性，失去一切。",
+    chapter: "死神永生",
     createdAt: "2026-06-21T10:00:00Z",
   },
   {
     id: "a3",
-    bookId: "book-debt" as Id,
+    bookId: "santi" as Id,
     kind: "note",
-    text: "暴力与量化：把人从社会关系中抽离，才能被定价。",
-    content: "和《人类简史》讲虚构故事的部分对照读",
-    chapter: "第五章",
+    text: "把字刻在石头上。",
+    content: "文明的信息载体越先进越脆弱——和《人类简史》的知识外包论对照",
+    chapter: "死神永生",
     createdAt: "2026-06-22T10:00:00Z",
+  },
+  {
+    id: "a4",
+    bookId: "atomic-habits" as Id,
+    kind: "highlight",
+    text: "You do not rise to the level of your goals. You fall to the level of your systems.",
+    chapter: "Chapter 1",
+    createdAt: "2026-06-23T10:00:00Z",
   },
 ];
 
@@ -67,30 +100,22 @@ export interface LabThread {
   key: string;
   label: string;
   scope: ThreadScope;
+  book?: LabBook;
 }
 
-/** 每本 fixture 书一个线程 + 一个全局线程；书架卡片就是线程切换器。 */
 export const LAB_THREADS: LabThread[] = [
   ...LAB_BOOKS.map((book) => {
     const scope: ThreadScope = { kind: "book", bookId: book.id };
-    return { key: threadScopeKey(scope), label: `《${book.title}》`, scope };
+    return { key: threadScopeKey(scope), label: book.title, scope, book };
   }),
   { key: threadScopeKey({ kind: "global" }), label: "全局线程", scope: { kind: "global" } },
 ];
 
-export interface LabShelfEntry {
-  book: BookOverview;
-  annotationCount: number;
-  threadKey: string;
-}
-
-export const LAB_SHELF: LabShelfEntry[] = LAB_BOOKS.map((book) => ({
-  book,
-  annotationCount: LAB_ANNOTATIONS.filter((a) => a.bookId === book.id).length,
-  threadKey: threadScopeKey({ kind: "book", bookId: book.id }),
-}));
-
 export const GLOBAL_THREAD_KEY = threadScopeKey({ kind: "global" });
+
+export function annotationCount(bookId: Id): number {
+  return LAB_ANNOTATIONS.filter((a) => a.bookId === bookId).length;
+}
 
 export interface LabConfig {
   provider: KnownProviderId;
@@ -115,6 +140,14 @@ function initialConfig(): LabConfig {
   return { provider, apiKey: devKeys[provider] ?? "", ...MODEL_DEFAULTS[provider] };
 }
 
+export interface LabMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  /** 发送时引用的选区（展示用；runtime 会把它格式化进真正的消息） */
+  quote?: string;
+}
+
 export interface ToolLogEntry {
   id: string;
   threadKey: string;
@@ -137,9 +170,13 @@ export function useAgentLab() {
   const [asks, setAsks] = useState<AskRecord[]>([]);
   const [isExtracting, setIsExtracting] = useState(false);
   const [sessionStarted, setSessionStarted] = useState(false);
+  const [pendingQuote, setPendingQuote] = useState<ReaderQuote | null>(null);
+  /** 书 id → 实时进度（驱动书架栏渲染；LAB_BOOKS 本体也同步原地更新给端口） */
+  const [progressById, setProgressById] = useState<Record<string, number>>({});
 
   const sessionRef = useRef<{ runtime: AgentRuntime; stores: InMemoryStores } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const positionAnchors = useRef(new Map<string, string>());
 
   const ensureSession = useCallback(() => {
     if (!sessionRef.current) {
@@ -172,6 +209,15 @@ export function useAgentLab() {
     setStatus(null);
     setError(null);
     setIsExtracting(false);
+    setPendingQuote(null);
+  }, []);
+
+  /** 阅读视图的 relocate 回传：更新实时进度 + 记住当前位置锚点。 */
+  const reportPosition = useCallback((bookId: Id, position: ReaderPosition) => {
+    const book = LAB_BOOKS.find((entry) => entry.id === bookId);
+    if (book) book.progressFraction = position.fraction;
+    if (position.cfi) positionAnchors.current.set(bookId, position.cfi);
+    setProgressById((prev) => ({ ...prev, [bookId]: position.fraction }));
   }, []);
 
   const send = useCallback(
@@ -183,12 +229,15 @@ export function useAgentLab() {
       }
       const active = LAB_THREADS.find((thread) => thread.key === threadKey);
       if (!active) return;
+      const quote = pendingQuote;
+      setPendingQuote(null);
       void (async () => {
         const { runtime, stores } = ensureSession();
         const userMessage: LabMessage = {
           id: crypto.randomUUID(),
           role: "user",
           content: text,
+          quote: quote?.text,
         };
         setMessagesByThread((prev) => ({
           ...prev,
@@ -203,6 +252,13 @@ export function useAgentLab() {
         try {
           for await (const chunk of runtime.sendTurn(active.scope, {
             text,
+            attachments: quote
+              ? [{ text: quote.text, chapter: quote.chapter, anchor: quote.cfi }]
+              : undefined,
+            positionAnchor:
+              active.scope.kind === "book"
+                ? positionAnchors.current.get(active.scope.bookId)
+                : undefined,
             signal: abort.signal,
           })) {
             if (chunk.type === "text") {
@@ -250,7 +306,7 @@ export function useAgentLab() {
         }
       })();
     },
-    [config.apiKey, ensureSession, isStreaming, threadKey],
+    [config.apiKey, ensureSession, isStreaming, pendingQuote, threadKey],
   );
 
   const stop = useCallback(() => abortRef.current?.abort(), []);
@@ -271,6 +327,10 @@ export function useAgentLab() {
     memories,
     asks,
     isExtracting,
+    pendingQuote,
+    setPendingQuote,
+    progressById,
+    reportPosition,
     send,
     stop,
     reset,

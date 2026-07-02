@@ -17,6 +17,8 @@ export interface SystemPromptInput {
   memories?: MemoryRecord[];
   /** 本线程的滚动摘要（conversation_insights bundle v0）—— 窗口外历史经由它进入 */
   conversationSummary?: string;
+  /** 全局线程首次使用且画像为空 → 访谈模式（doc §9：onboarding 的对话半场） */
+  onboardingInterview?: boolean;
 }
 
 const SHARED_RULES = `
@@ -48,6 +50,11 @@ export function buildSystemPrompt(scope: ThreadScope, input: SystemPromptInput):
     );
     if (input.shelfSize !== undefined) {
       sections.push(`The shelf currently holds ${input.shelfSize} book(s).`);
+    }
+    if (input.onboardingInterview) {
+      sections.push(
+        `This is the reader's first session and you know nothing about them yet. Before answering at length, get to know them: ask 2-4 short, warm questions across the conversation (one at a time) about their reading goals, domain background, and how deep they like explanations. Use the remember tool to save what you learn (scope "user"). Do not interrogate — weave questions naturally, and stop once you have a working picture.`,
+      );
     }
   }
 

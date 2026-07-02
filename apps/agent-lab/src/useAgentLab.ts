@@ -11,6 +11,7 @@ import {
   type AgentRuntime,
   type AnnotationRecord,
   type BookOverview,
+  type ConsolidationReport,
   type KnownProviderId,
   type MemoryRecord,
   type ThreadScope,
@@ -18,10 +19,12 @@ import {
 import {
   createInMemoryDeps,
   type AskRecord,
+  type ChapterSeed,
   type InMemoryStores,
 } from "@read-aware/agent/testing";
 import type { Id } from "@read-aware/core";
 import type { ReaderPosition, ReaderQuote } from "./components/LabReader";
+import { extractChapters } from "./lib/extract-text";
 
 export interface LabBook extends BookOverview {
   /** public/ 下的真实 epub 路径 —— 阅读视图直接渲染它 */
@@ -172,12 +175,18 @@ export function useAgentLab() {
   const [sessionStarted, setSessionStarted] = useState(false);
   const [pendingQuote, setPendingQuote] = useState<ReaderQuote | null>(null);
   const [insightsByThread, setInsightsByThread] = useState<Record<string, string>>({});
+  const [chapterCounts, setChapterCounts] = useState<Record<string, number>>({});
+  const [isConsolidating, setIsConsolidating] = useState(false);
+  const [lastConsolidation, setLastConsolidation] = useState<ConsolidationReport | null>(null);
   /** 书 id → 实时进度（驱动书架栏渲染；LAB_BOOKS 本体也同步原地更新给端口） */
   const [progressById, setProgressById] = useState<Record<string, number>>({});
 
   const sessionRef = useRef<{ runtime: AgentRuntime; stores: InMemoryStores } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const positionAnchors = useRef(new Map<string, string>());
+  /** 正文抽取结果；会话创建时接到 stores.chapters 上，抽取先后无关紧要 */
+  const chaptersRef = useRef(new Map<string, ChapterSeed[]>());
+  const extracting = useRef(new Set<string>());
 
   const ensureSession = useCallback(() => {
     if (!sessionRef.current) {
@@ -186,6 +195,8 @@ export function useAgentLab() {
         annotations: LAB_ANNOTATIONS,
         profile: LAB_PROFILE,
       });
+      // BookTextPort 读的是 stores.chapters —— 换成 lab 的真抽取结果容器
+      stores.chapters = chaptersRef.current;
       const runtime = createAgentRuntime({
         deps,
         account: { kind: "api-key", provider: config.provider, apiKey: config.apiKey },
@@ -196,6 +207,40 @@ export function useAgentLab() {
     }
     return sessionRef.current;
   }, [config]);
+
+  /** 懒抽取：某本书第一次被打开时离屏抽正文，agent 随即可读章节。 */
+  const ensureBookText = useCallback((book: LabBook) => {
+    const key = String(book.id);
+    if (chaptersRef.current.has(key) || extracting.current.has(key)) return;
+    extracting.current.add(key);
+    void (async () => {
+      try {
+        const response = await fetch(book.file);
+        const chapters = await extractChapters(await response.blob(), book.file);
+        chaptersRef.current.set(key, chapters);
+        setChapterCounts((prev) => ({ ...prev, [key]: chapters.length }));
+      } catch {
+        // 抽取失败不影响其它功能；正文工具会如实报"未抽取"
+      } finally {
+        extracting.current.delete(key);
+      }
+    })();
+  }, []);
+
+  /** 巩固批处理：衰减、合并、矛盾、升格（doc §4 第 3 步）。 */
+  const consolidate = useCallback(() => {
+    const session = sessionRef.current;
+    if (!session || isConsolidating) return;
+    setIsConsolidating(true);
+    void session.runtime
+      .consolidate()
+      .then((report) => {
+        setLastConsolidation(report);
+        setMemories([...session.stores.memories.filter((m) => (m.status ?? "active") === "active")]);
+      })
+      .catch(() => {})
+      .finally(() => setIsConsolidating(false));
+  }, [isConsolidating]);
 
   const reset = useCallback(() => {
     abortRef.current?.abort();
@@ -211,6 +256,7 @@ export function useAgentLab() {
     setError(null);
     setIsExtracting(false);
     setPendingQuote(null);
+    setLastConsolidation(null);
   }, []);
 
   /** 阅读视图的 relocate 回传：更新实时进度 + 记住当前位置锚点。 */
@@ -301,7 +347,7 @@ export function useAgentLab() {
           setAsks([...stores.asks]);
           setIsExtracting(true);
           void runtime.flushBackgroundWork().then(() => {
-            setMemories([...stores.memories]);
+            setMemories(stores.memories.filter((m) => (m.status ?? "active") === "active"));
             setInsightsByThread(Object.fromEntries(stores.insights));
             setIsExtracting(false);
           });
@@ -333,7 +379,12 @@ export function useAgentLab() {
     pendingQuote,
     setPendingQuote,
     progressById,
+    chapterCounts,
+    isConsolidating,
+    lastConsolidation,
     reportPosition,
+    ensureBookText,
+    consolidate,
     send,
     stop,
     reset,

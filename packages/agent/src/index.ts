@@ -5,5 +5,7 @@ export * from "./models/roles";
 export * from "./models/accounts";
 export { KNOWN_PROVIDERS, type KnownProviderId } from "./models/registry";
 export type { CompleteFn } from "./models/complete";
+export * from "./onboarding";
+export type { ConsolidationReport } from "./memory/consolidation";
 export { AgentThread, type AgentThreadOptions, type SendTurnInput, type SelectionAttachment } from "./runtime/thread";
 export { AgentRuntime, createAgentRuntime, type AgentRuntimeOptions } from "./runtime/runtime";

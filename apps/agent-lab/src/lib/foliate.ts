@@ -54,3 +54,23 @@ export async function createFoliateView(): Promise<FoliateView> {
   await loadEngine();
   return document.createElement("foliate-view") as FoliateView;
 }
+
+export type FoliateSection = {
+  createDocument?: () => Promise<Document> | Document;
+  linear?: string;
+};
+
+export type FoliateBook = {
+  metadata?: unknown;
+  toc?: Array<{ label?: string; href?: string }> | null;
+  sections?: FoliateSection[];
+};
+
+/** 解析书文件为 foliate book 对象（离屏，不渲染）—— 正文抽取用。 */
+export async function makeFoliateBook(file: Blob | File): Promise<FoliateBook> {
+  await loadEngine();
+  const engine = (globalThis as Record<string, unknown>)[FOLIATE_GLOBAL_KEY] as {
+    makeBook: (file: Blob | File) => Promise<FoliateBook>;
+  };
+  return engine.makeBook(file);
+}

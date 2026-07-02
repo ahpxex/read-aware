@@ -12,6 +12,7 @@ import type { CompleteFn } from "../models/complete";
 import type { ResolveModel } from "../models/roles";
 import type { RuntimeDeps } from "../ports";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
+import { buildBookTextTools } from "../tools/book-text-tools";
 import { buildConversationTools } from "../tools/conversation-tools";
 import { buildThreadTools } from "../tools/library-tools";
 import { buildMemoryTools, visibleScopes } from "../tools/memory-tools";
@@ -103,6 +104,7 @@ export class AgentThread {
           ...buildThreadTools(this.scope, this.deps),
           ...buildMemoryTools(this.scope, this.deps),
           ...buildConversationTools(this.scope, this.deps),
+          ...buildBookTextTools(this.scope, this.deps),
         ],
         messages: turnRecordsToMessages(records, model),
       },
@@ -127,6 +129,9 @@ export class AgentThread {
       shelfSize: shelf?.length,
       memories,
       conversationSummary,
+      // 全局线程首次使用且画像为空 → 访谈模式（onboarding 的对话半场，doc §9）
+      onboardingInterview:
+        this.scope.kind === "global" && !profile && agent.state.messages.length === 0,
     });
   }
 

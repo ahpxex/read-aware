@@ -7,11 +7,17 @@ import type { Id } from "@read-aware/core";
 import type {
   AnnotationRecord,
   BookOverview,
+  ChapterRef,
   MemoryRecord,
   NewMemoryInput,
   RuntimeDeps,
   TurnRecord,
 } from "../ports";
+
+export interface ChapterSeed {
+  title?: string;
+  text: string;
+}
 
 export interface AskRecord {
   bookId: Id;
@@ -26,6 +32,9 @@ export interface InMemoryStores {
   asks: AskRecord[];
   memories: MemoryRecord[];
   savedMemoryInputs: NewMemoryInput[];
+  profile: { summary: string | undefined };
+  /** bookId → 章节文本（正文抽取的模拟；lab 里由真抽取填充） */
+  chapters: Map<string, ChapterSeed[]>;
 }
 
 export interface InMemorySeed {
@@ -33,6 +42,7 @@ export interface InMemorySeed {
   annotations?: AnnotationRecord[];
   profile?: string;
   memories?: MemoryRecord[];
+  chapters?: Record<string, ChapterSeed[]>;
 }
 
 export function seedMemory(partial: Partial<MemoryRecord> & Pick<MemoryRecord, "id" | "scope" | "content">): MemoryRecord {
@@ -58,8 +68,11 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
     asks: [],
     memories: [...(seed.memories ?? [])],
     savedMemoryInputs: [],
+    profile: { summary: seed.profile },
+    chapters: new Map(Object.entries(seed.chapters ?? {})),
   };
   let memoryCounter = 0;
+  const isActive = (memory: MemoryRecord) => (memory.status ?? "active") === "active";
 
   const deps: RuntimeDeps = {
     library: {
@@ -102,7 +115,10 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       },
     },
     profile: {
-      getProfileSummary: async () => seed.profile,
+      getProfileSummary: async () => stores.profile.summary,
+      putProfileSummary: async (summary) => {
+        stores.profile.summary = summary;
+      },
     },
     memory: {
       searchMemories: async (filter) => {
@@ -110,6 +126,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         return stores.memories
           .filter(
             (memory) =>
+              isActive(memory) &&
               scopes.has(memory.scope) &&
               (!filter.query || memory.content.includes(filter.query)),
           )
@@ -144,6 +161,67 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         memory.evidenceCount += 1;
         memory.importance = Math.min(1, memory.importance + 0.15);
         memory.updatedAt = new Date().toISOString();
+      },
+      listMemories: async () => stores.memories.filter(isActive),
+      applyMemoryChanges: async (changes) => {
+        const now = new Date().toISOString();
+        for (const change of changes) {
+          const memory = stores.memories.find((m) => m.id === change.id);
+          if (!memory) continue;
+          switch (change.type) {
+            case "supersede":
+              memory.status = "superseded";
+              if (change.byId) {
+                const winner = stores.memories.find((m) => m.id === change.byId);
+                if (winner) {
+                  winner.evidenceCount += 1;
+                  winner.importance = Math.min(1, winner.importance + 0.1);
+                  winner.updatedAt = now;
+                }
+              }
+              break;
+            case "forget":
+              memory.status = "forgotten";
+              break;
+            case "promote":
+              memory.scope = change.scope;
+              memory.updatedAt = now;
+              break;
+            case "decay":
+              memory.importance = change.importance;
+              break;
+          }
+        }
+      },
+    },
+    bookText: {
+      getToc: async (bookId) => {
+        const chapters = stores.chapters.get(bookId) ?? [];
+        return chapters.map<ChapterRef>((chapter, index) => ({ index, title: chapter.title }));
+      },
+      getChapterText: async (bookId, chapterIndex) =>
+        stores.chapters.get(bookId)?.[chapterIndex]?.text,
+      searchText: async ({ query, bookId, limit }) => {
+        const results: Array<{
+          bookId: Id;
+          chapterIndex: number;
+          chapterTitle?: string;
+          snippet: string;
+        }> = [];
+        for (const [id, chapters] of stores.chapters) {
+          if (bookId && id !== bookId) continue;
+          chapters.forEach((chapter, index) => {
+            const at = chapter.text.indexOf(query);
+            if (at === -1) return;
+            results.push({
+              bookId: id as Id,
+              chapterIndex: index,
+              chapterTitle: chapter.title,
+              snippet: chapter.text.slice(Math.max(0, at - 60), at + query.length + 60),
+            });
+          });
+        }
+        return results.slice(0, limit ?? 8);
       },
     },
   };

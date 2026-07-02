@@ -54,6 +54,8 @@ export type MemoryScope = "user" | "global" | `book:${string}`;
 
 export type MemoryKind = "fact" | "preference" | "insight" | "summary";
 
+export type MemoryStatus = "active" | "superseded" | "forgotten";
+
 export interface MemoryRecord {
   id: string;
   scope: MemoryScope;
@@ -63,6 +65,8 @@ export interface MemoryRecord {
   importance: number;
   evidenceCount: number;
   pinned?: boolean;
+  /** 缺省视为 active；superseded/forgotten 不参与检索与注入 */
+  status?: MemoryStatus;
   createdAt: string;
   updatedAt: string;
 }
@@ -71,10 +75,17 @@ export interface NewMemoryInput {
   scope: MemoryScope;
   kind: MemoryKind;
   content: string;
-  /** extraction = 逐轮提炼；agent = remember 工具显式写入 */
-  origin: "extraction" | "agent";
+  /** extraction = 逐轮提炼；agent = remember 工具；onboarding = 冷启动种子 */
+  origin: "extraction" | "agent" | "onboarding";
   sourceThreadKey: string;
 }
+
+/** 巩固批处理产出的变更（doc §4 第 3 步）；实现方翻译成 memory.* 事件。 */
+export type MemoryChange =
+  | { type: "supersede"; id: string; byId?: string }
+  | { type: "forget"; id: string }
+  | { type: "promote"; id: string; scope: MemoryScope }
+  | { type: "decay"; id: string; importance: number };
 
 /**
  * 记忆读写。实现方负责：初始置信度语义、检索排序
@@ -86,9 +97,12 @@ export interface MemoryPort {
     query?: string;
     limit?: number;
   }): Promise<MemoryRecord[]>;
+  /** 全量 active 记忆 —— 巩固批处理的输入。 */
+  listMemories(): Promise<MemoryRecord[]>;
   saveMemory(input: NewMemoryInput): Promise<MemoryRecord>;
   /** 提炼命中已有记忆 → 证据 +1（doc §4：反复出现才强化） */
   reinforceMemory(id: string): Promise<void>;
+  applyMemoryChanges(changes: MemoryChange[]): Promise<void>;
 }
 
 /**
@@ -116,6 +130,27 @@ export interface ConversationPort {
 /** 用户画像摘要（user_profile_context bundle 的 v0：一段文本，无则 undefined）。 */
 export interface ProfilePort {
   getProfileSummary(): Promise<string | undefined>;
+  /** onboarding 与渐进式画像的写入口；实现方翻译成 profile.updated 事件。 */
+  putProfileSummary(summary: string): Promise<void>;
+}
+
+export interface ChapterRef {
+  index: number;
+  title?: string;
+}
+
+/**
+ * 书籍正文访问（doc §11.5 抽取管道的读端）：导入时按章节抽取的纯文本。
+ * 实现方决定检索方式（目标态 SQLite FTS）；未抽取的书返回空。
+ */
+export interface BookTextPort {
+  getToc(bookId: Id): Promise<ChapterRef[]>;
+  getChapterText(bookId: Id, chapterIndex: number): Promise<string | undefined>;
+  searchText(filter: {
+    query: string;
+    bookId?: Id;
+    limit?: number;
+  }): Promise<Array<{ bookId: Id; chapterIndex: number; chapterTitle?: string; snippet: string }>>;
 }
 
 export interface RuntimeDeps {
@@ -124,4 +159,5 @@ export interface RuntimeDeps {
   conversations: ConversationPort;
   profile: ProfilePort;
   memory: MemoryPort;
+  bookText: BookTextPort;
 }

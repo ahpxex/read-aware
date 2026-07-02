@@ -3,6 +3,7 @@
  * 将来 apps/web 的适配器就是「new 一个 AgentRuntime + 映射 chunk 类型」这么薄。
  */
 import type { ThreadChunk } from "../chunks";
+import { runConsolidation, type ConsolidationReport } from "../memory/consolidation";
 import { createModelResolver, type LlmAccount, type RoleModels } from "../models/accounts";
 import { createCompleteFn, type CompleteFn } from "../models/complete";
 import { buildProviderRegistry } from "../models/registry";
@@ -51,9 +52,21 @@ export class AgentRuntime {
     return this.thread(scope).sendTurn(input);
   }
 
-  /** 等待所有线程的后台管道（记忆提炼）排空。 */
+  /** 等待所有线程的后台管道（记忆提炼 + 滚动摘要）排空。 */
   async flushBackgroundWork(): Promise<void> {
     await Promise.all([...this.threads.values()].map((thread) => thread.flushBackgroundWork()));
+  }
+
+  /**
+   * 巩固批处理（doc §4 第 3 步）：衰减、去重合并、矛盾消解、book→global 升格。
+   * 由宿主在空闲时调用（产品：空闲定时器；lab：手动按钮）。
+   */
+  consolidate(): Promise<ConsolidationReport> {
+    return runConsolidation({
+      memory: this.options.deps.memory,
+      complete: this.completeFn,
+      model: this.resolveModel("fast"),
+    });
   }
 }
 

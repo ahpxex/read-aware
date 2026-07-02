@@ -3,10 +3,12 @@
  * 这是 @read-aware/agent 的配套开发工具，与产品（apps/web）完全无关 ——
  * 产品集成走 ChatTransport。
  */
+import { useEffect } from "react";
 import {
   Article,
   Books,
   Brain,
+  Broom,
   ChatCircleDots,
   Flask,
   NotePencil,
@@ -96,6 +98,12 @@ export function AgentLabPage() {
   const lab = useAgentLab();
   const activeThread = lab.threads.find((thread) => thread.key === lab.threadKey);
   const activeBook = activeThread?.book;
+
+  // 打开某本书的线程 → 后台离屏抽取正文，agent 随即可用 get_toc/read_chapter
+  const ensureBookText = lab.ensureBookText;
+  useEffect(() => {
+    if (activeBook) ensureBookText(activeBook);
+  }, [activeBook, ensureBookText]);
 
   return (
     <div className="flex h-screen flex-col bg-paper">
@@ -209,6 +217,13 @@ export function AgentLabPage() {
           <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-2.5">
             <ChatCircleDots size={14} weight="regular" className="text-fg-muted" />
             <Body className="text-sm text-fg">{activeThread?.label}</Body>
+            {activeBook && (
+              <Caption className="text-fg-subtle">
+                {lab.chapterCounts[String(activeBook.id)] !== undefined
+                  ? `正文 ${lab.chapterCounts[String(activeBook.id)]} 章可读`
+                  : "正文抽取中…"}
+              </Caption>
+            )}
             <Tag className="ml-auto">{lab.threadKey}</Tag>
           </div>
           <div className="min-h-0 flex-1">
@@ -244,12 +259,30 @@ export function AgentLabPage() {
               <Eyebrow className="flex items-center gap-1.5 text-fg-muted">
                 <Brain size={12} weight="regular" /> 记忆 · {lab.memories.length}
               </Eyebrow>
-              {lab.isExtracting && (
-                <Caption className="flex items-center gap-1 text-fg-subtle">
-                  <Spinner size="sm" /> 提炼中
-                </Caption>
-              )}
+              <div className="flex items-center gap-2">
+                {lab.isExtracting && (
+                  <Caption className="flex items-center gap-1 text-fg-subtle">
+                    <Spinner size="sm" /> 提炼中
+                  </Caption>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={lab.consolidate}
+                  disabled={!lab.sessionStarted || lab.isConsolidating || lab.memories.length < 2}
+                >
+                  <Broom size={12} weight="regular" />
+                  {lab.isConsolidating ? "整理中…" : "整理"}
+                </Button>
+              </div>
             </div>
+            {lab.lastConsolidation && (
+              <Caption className="mb-2 text-fg-subtle">
+                上次整理：衰减 {lab.lastConsolidation.decayed} · 遗忘{" "}
+                {lab.lastConsolidation.forgotten} · 合并 {lab.lastConsolidation.merged} · 升格{" "}
+                {lab.lastConsolidation.promoted}
+              </Caption>
+            )}
             <div className="flex flex-col gap-2">
               {lab.memories.length === 0 && !lab.isExtracting && (
                 <Caption className="text-fg-subtle">

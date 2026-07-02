@@ -43,7 +43,11 @@
     "fieldFormat": "格式",
     "fieldReading": "阅读时间",
     "edit": "编辑",
-    "save": "保存"
+    "save": "保存",
+    "progress": "阅读进度",
+    "highlights": "高亮",
+    "notes": "笔记",
+    "annotations": "笔记与高亮"
   },
   "removeBook": {
     "title": "移除书籍？",

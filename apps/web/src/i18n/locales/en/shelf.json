@@ -45,7 +45,11 @@
     "fieldFormat": "Format",
     "fieldReading": "Reading time",
     "edit": "Edit",
-    "save": "Save"
+    "save": "Save",
+    "progress": "Progress",
+    "highlights": "Highlights",
+    "notes": "Notes",
+    "annotations": "Notes & highlights"
   },
   "removeBook": {
     "title": "Remove book?",

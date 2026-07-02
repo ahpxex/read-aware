@@ -47,7 +47,11 @@
     "fieldFormat": "Format",
     "fieldReading": "Temps de lecture",
     "edit": "Modifier",
-    "save": "Enregistrer"
+    "save": "Enregistrer",
+    "progress": "Progression",
+    "highlights": "Surlignages",
+    "notes": "Notes",
+    "annotations": "Notes et surlignages"
   },
   "removeBook": {
     "title": "Retirer le livre ?",

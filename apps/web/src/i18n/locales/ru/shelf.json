@@ -49,7 +49,11 @@
     "fieldFormat": "Формат",
     "fieldReading": "Время чтения",
     "edit": "Изменить",
-    "save": "Сохранить"
+    "save": "Сохранить",
+    "progress": "Прогресс",
+    "highlights": "Выделения",
+    "notes": "Заметки",
+    "annotations": "Заметки и выделения"
   },
   "removeBook": {
     "title": "Удалить книгу?",

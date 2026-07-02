@@ -45,7 +45,11 @@
     "fieldFormat": "Format",
     "fieldReading": "Lesezeit",
     "edit": "Bearbeiten",
-    "save": "Speichern"
+    "save": "Speichern",
+    "progress": "Fortschritt",
+    "highlights": "Markierungen",
+    "notes": "Notizen",
+    "annotations": "Notizen & Markierungen"
   },
   "removeBook": {
     "title": "Buch entfernen?",

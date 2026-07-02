@@ -43,7 +43,11 @@
     "fieldFormat": "格式",
     "fieldReading": "閱讀時間",
     "edit": "編輯",
-    "save": "儲存"
+    "save": "儲存",
+    "progress": "閱讀進度",
+    "highlights": "螢光標示",
+    "notes": "筆記",
+    "annotations": "筆記與螢光標示"
   },
   "removeBook": {
     "title": "移除書籍？",

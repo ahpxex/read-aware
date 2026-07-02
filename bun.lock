@@ -44,6 +44,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@phosphor-icons/react": "^2.1.10",
+        "@read-aware/agent": "workspace:*",
         "@read-aware/core": "workspace:*",
         "@read-aware/ui": "workspace:*",
         "@tanstack/react-router": "^1.132.23",

@@ -1006,12 +1006,23 @@ export function FoliateReaderView({
       // A tap on book content only toggles the reader shell — it never turns
       // the page. Page turns are explicit (the edge buttons or keyboard), so a
       // stray click while reading can't cost you your place.
-      //
-      // Defer the chrome toggle: a double-click lands within the guard window
+      cancelPendingShellToggle();
+
+      // Closing needs no double-click guard. The guard exists solely to stop a
+      // word-selecting double-click from flashing the shell *open* mid-select;
+      // dismissing it has no such hazard — the first click closes it as a smooth
+      // slide-out, and if the tap turns out to be a double-click, selecting the
+      // word underneath a dismissed shell is fine. Deferring the close would only
+      // make a single tap feel laggy, so close immediately.
+      if (shellVisibleRef.current) {
+        onContentClickRef.current?.();
+        return;
+      }
+
+      // Opening is deferred: a double-click lands within the guard window
       // (cancelled by the `dblclick` listener below) or leaves a selection
       // behind, either of which suppresses the toggle so selecting a word no
       // longer flashes the shell. A plain single tap toggles after the wait.
-      cancelPendingShellToggle();
       pendingShellToggleTimerRef.current = window.setTimeout(() => {
         pendingShellToggleTimerRef.current = null;
         if (selectionRef.current) return;

@@ -42,10 +42,6 @@
     "contextItems_other": "{{count}}件のコンテキスト項目",
     "books_other": "{{count}}冊の本",
     "summary": "{{books}}で{{items}}",
-    "chat": {
-      "title": "本棚を横断して",
-      "subtitle": "どの本についても質問し、つなげて考える"
-    },
     "memory": {
       "title": "メモリー",
       "empty": "まだ記憶はありません——読書と質問とともに育ちます。",

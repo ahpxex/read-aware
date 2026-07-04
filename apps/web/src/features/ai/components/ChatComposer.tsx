@@ -88,60 +88,65 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
     }
 
     return (
+      // The border-t spans the full surface width; the inner wrapper caps the
+      // content to the same measure as the transcript column (no-op in the
+      // reader panel, centers the composer on the wide Context page).
       <div className="shrink-0 border-t border-border px-3 py-3">
-        {pendingAttachment && (
-          <AttachmentChip
-            attachment={pendingAttachment}
-            onRemove={onRemoveAttachment}
-            className="mb-2"
-          />
-        )}
-        {/* Fully bare — no frame at rest or on focus. The textarea spans the full
-            width so its overflow scrollbar sits at the outer right edge instead
-            of wedged between the text and an inline button; the send button is
-            overlaid at the bottom-right, kept clear of the scrollbar. */}
-        <div className="relative">
-          <textarea
-            ref={textareaRef}
-            rows={1}
-            value={value}
-            onChange={(event) => setValue(event.target.value)}
-            onKeyDown={handleKeyDown}
-            onCompositionStart={() => {
-              composingRef.current = true;
-            }}
-            onCompositionEnd={() => {
-              composingRef.current = false;
-            }}
-            aria-label={t("chat.messageLabel")}
-            placeholder={
-              pendingAttachment
-                ? t("chat.placeholderWithPassage")
-                : t("chat.placeholder")
-            }
-            className="block max-h-40 min-h-8 w-full resize-none bg-transparent py-1 pr-9 text-sm leading-6 text-fg outline-none placeholder:text-fg-subtle"
-          />
-          {isStreaming ? (
-            <IconButton
-              label={t("chat.stopGenerating")}
-              size="sm"
-              onClick={onStop}
-              className="absolute bottom-1 right-1 rounded-md text-fg-muted hover:bg-fg/5 hover:text-fg"
-              icon={<Stop size={15} weight="fill" aria-hidden="true" />}
-            />
-          ) : (
-            <IconButton
-              label={t("chat.send")}
-              size="sm"
-              onClick={submit}
-              disabled={!canSend}
-              className={cn(
-                "absolute bottom-1 right-1 rounded-md transition-colors disabled:pointer-events-none",
-                canSend ? "text-fg hover:bg-fg/5" : "text-fg-subtle",
-              )}
-              icon={<ArrowUp size={15} weight="bold" aria-hidden="true" />}
+        <div className="mx-auto w-full max-w-2xl">
+          {pendingAttachment && (
+            <AttachmentChip
+              attachment={pendingAttachment}
+              onRemove={onRemoveAttachment}
+              className="mb-2"
             />
           )}
+          {/* Fully bare — no frame at rest or on focus. The textarea spans the full
+              width so its overflow scrollbar sits at the outer right edge instead
+              of wedged between the text and an inline button; the send button is
+              overlaid at the bottom-right, kept clear of the scrollbar. */}
+          <div className="relative">
+            <textarea
+              ref={textareaRef}
+              rows={1}
+              value={value}
+              onChange={(event) => setValue(event.target.value)}
+              onKeyDown={handleKeyDown}
+              onCompositionStart={() => {
+                composingRef.current = true;
+              }}
+              onCompositionEnd={() => {
+                composingRef.current = false;
+              }}
+              aria-label={t("chat.messageLabel")}
+              placeholder={
+                pendingAttachment
+                  ? t("chat.placeholderWithPassage")
+                  : t("chat.placeholder")
+              }
+              className="block max-h-40 min-h-8 w-full resize-none bg-transparent py-1 pr-9 text-sm leading-6 text-fg outline-none placeholder:text-fg-subtle"
+            />
+            {isStreaming ? (
+              <IconButton
+                label={t("chat.stopGenerating")}
+                size="sm"
+                onClick={onStop}
+                className="absolute bottom-1 right-1 rounded-md text-fg-muted hover:bg-fg/5 hover:text-fg"
+                icon={<Stop size={15} weight="fill" aria-hidden="true" />}
+              />
+            ) : (
+              <IconButton
+                label={t("chat.send")}
+                size="sm"
+                onClick={submit}
+                disabled={!canSend}
+                className={cn(
+                  "absolute bottom-1 right-1 rounded-md transition-colors disabled:pointer-events-none",
+                  canSend ? "text-fg hover:bg-fg/5" : "text-fg-subtle",
+                )}
+                icon={<ArrowUp size={15} weight="bold" aria-hidden="true" />}
+              />
+            )}
+          </div>
         </div>
       </div>
     );

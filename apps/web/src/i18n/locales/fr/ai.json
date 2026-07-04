@@ -46,17 +46,13 @@
     "books_many": "{{count}} livres",
     "books_other": "{{count}} livres",
     "summary": "{{items}} dans {{books}}",
-    "chat": {
-      "title": "À travers votre bibliothèque",
-      "subtitle": "Interrogez chaque livre, ou reliez-les"
-    },
     "memory": {
-      "title": "MÉMOIRE",
+      "title": "Mémoire",
       "empty": "Rien en mémoire pour l'instant — elle grandit au fil de vos lectures.",
       "forget": "Oublier"
     },
     "annotations": {
-      "title": "SURLIGNAGES ET NOTES"
+      "title": "Surlignages et notes"
     }
   }
 }

@@ -42,10 +42,6 @@
     "contextItems_other": "{{count}} 个上下文条目",
     "books_other": "{{count}} 本书",
     "summary": "{{items}}，来自 {{books}}",
-    "chat": {
-      "title": "纵览书架",
-      "subtitle": "问任何一本书，或让它们彼此连接"
-    },
     "memory": {
       "title": "记忆",
       "empty": "还没有记忆——它会随着你的阅读和提问生长。",

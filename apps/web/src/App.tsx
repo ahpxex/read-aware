@@ -29,6 +29,11 @@ const ContextWorkspace = lazy(() =>
     default: m.ContextWorkspace,
   })),
 );
+const ContextHeaderActions = lazy(() =>
+  import("./features/context/components/ContextHeaderActions").then((m) => ({
+    default: m.ContextHeaderActions,
+  })),
+);
 const StatsWorkspace = lazy(() =>
   import("./features/stats/components/StatsWorkspace").then((m) => ({
     default: m.StatsWorkspace,
@@ -256,6 +261,13 @@ function App() {
             onOpenSearch={() => setSearchModalOpen(true)}
             onTopNavChange={setActiveTopNav}
             viewControl={activeTopNav === "shelf" ? <ShelfManagementMenu /> : undefined}
+            actions={
+              activeTopNav === "context" ? (
+                <Suspense fallback={null}>
+                  <ContextHeaderActions books={library.books} onOpenBook={handleOpenBook} />
+                </Suspense>
+              ) : undefined
+            }
           />
 
           <ScrollArea className="h-full min-h-0 flex-1">
@@ -280,7 +292,7 @@ function App() {
               />
             ) : activeTopNav === "context" ? (
               <Suspense fallback={null}>
-                <ContextWorkspace books={library.books} onOpenBook={handleOpenBook} />
+                <ContextWorkspace />
               </Suspense>
             ) : (
               <Suspense fallback={null}>

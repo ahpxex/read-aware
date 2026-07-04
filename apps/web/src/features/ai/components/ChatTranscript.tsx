@@ -55,8 +55,11 @@ export function ChatTranscript({
   return (
     <ScrollArea className="min-h-0 flex-1">
       {/* ra-chat-selectable opts back into text selection (the app chrome is
-          globally non-selectable) so replies and quoted passages can be copied. */}
-      <div className="ra-chat-selectable flex flex-col gap-4 px-4 py-4">
+          globally non-selectable) so replies and quoted passages can be copied.
+          max-w-2xl caps line length for readability on wide surfaces (the
+          Context page); the ScrollArea stays full-width so the scrollbar sits
+          at the surface edge. In the reader panel the cap is a no-op. */}
+      <div className="ra-chat-selectable mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 py-4">
 
         {messages.map((message) => (
           <ChatMessageItem key={message.id} message={message} />

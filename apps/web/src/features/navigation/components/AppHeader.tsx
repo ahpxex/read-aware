@@ -15,6 +15,9 @@ type AppHeaderProps = {
   onTopNavChange: (topNav: TopNav) => void;
   /** Optional context-specific control (e.g. the shelf view menu) shown in the cluster. */
   viewControl?: ReactNode;
+  /** When set, replaces the default right-hand icon cluster entirely — the
+   *  Context page uses this to show only its memory / annotations popovers. */
+  actions?: ReactNode;
 };
 
 const headerIconButtonClass =
@@ -33,6 +36,7 @@ export function AppHeader({
   onOpenSearch,
   onTopNavChange,
   viewControl,
+  actions,
 }: AppHeaderProps) {
   const { t } = useTranslation("nav");
   const contextActive = activeTopNav === "context";
@@ -72,61 +76,65 @@ export function AppHeader({
           </Tooltip>
         )}
         <div className="ml-auto flex items-center gap-1.5">
-          <Tooltip content={t("header.search")} side="bottom">
-            <IconButton
-              label={t("header.search")}
-              size="sm"
-              onClick={onOpenSearch}
-              className={headerIconButtonClass}
-              icon={<MagnifyingGlass size={16} weight="regular" aria-hidden="true" />}
-            />
-          </Tooltip>
-          <Tooltip content={isImporting ? t("header.importing") : t("header.import")} side="bottom">
-            <IconButton
-              label={t("header.import")}
-              size="sm"
-              onClick={onImport}
-              disabled={isImporting}
-              className={headerIconButtonClass}
-              icon={<Plus size={16} weight="regular" aria-hidden="true" />}
-            />
-          </Tooltip>
-          {viewControl}
-          <Tooltip content={t("header.context")} side="bottom">
-            <IconButton
-              label={t("header.context")}
-              size="sm"
-              aria-pressed={contextActive}
-              onClick={() => onTopNavChange(contextActive ? "shelf" : "context")}
-              className={cn(
-                "relative before:absolute before:-inset-1 before:content-['']",
-                contextActive ? "text-fg" : "text-fg-muted hover:text-fg",
-              )}
-              icon={<Cards size={16} weight={contextActive ? "fill" : "regular"} aria-hidden="true" />}
-            />
-          </Tooltip>
-          <Tooltip content={t("header.stats")} side="bottom">
-            <IconButton
-              label={t("header.stats")}
-              size="sm"
-              aria-pressed={statsActive}
-              onClick={() => onTopNavChange(statsActive ? "shelf" : "stats")}
-              className={cn(
-                "relative before:absolute before:-inset-1 before:content-['']",
-                statsActive ? "text-fg" : "text-fg-muted hover:text-fg",
-              )}
-              icon={<ChartLineUp size={16} weight={statsActive ? "fill" : "regular"} aria-hidden="true" />}
-            />
-          </Tooltip>
-          <Tooltip content={t("header.settings")} side="bottom">
-            <IconButton
-              label={t("header.settings")}
-              size="sm"
-              onClick={onOpenSettings}
-              className={headerIconButtonClass}
-              icon={<GearSix size={16} weight="regular" aria-hidden="true" />}
-            />
-          </Tooltip>
+          {actions ?? (
+            <>
+              <Tooltip content={t("header.search")} side="bottom">
+                <IconButton
+                  label={t("header.search")}
+                  size="sm"
+                  onClick={onOpenSearch}
+                  className={headerIconButtonClass}
+                  icon={<MagnifyingGlass size={16} weight="regular" aria-hidden="true" />}
+                />
+              </Tooltip>
+              <Tooltip content={isImporting ? t("header.importing") : t("header.import")} side="bottom">
+                <IconButton
+                  label={t("header.import")}
+                  size="sm"
+                  onClick={onImport}
+                  disabled={isImporting}
+                  className={headerIconButtonClass}
+                  icon={<Plus size={16} weight="regular" aria-hidden="true" />}
+                />
+              </Tooltip>
+              {viewControl}
+              <Tooltip content={t("header.context")} side="bottom">
+                <IconButton
+                  label={t("header.context")}
+                  size="sm"
+                  aria-pressed={contextActive}
+                  onClick={() => onTopNavChange(contextActive ? "shelf" : "context")}
+                  className={cn(
+                    "relative before:absolute before:-inset-1 before:content-['']",
+                    contextActive ? "text-fg" : "text-fg-muted hover:text-fg",
+                  )}
+                  icon={<Cards size={16} weight={contextActive ? "fill" : "regular"} aria-hidden="true" />}
+                />
+              </Tooltip>
+              <Tooltip content={t("header.stats")} side="bottom">
+                <IconButton
+                  label={t("header.stats")}
+                  size="sm"
+                  aria-pressed={statsActive}
+                  onClick={() => onTopNavChange(statsActive ? "shelf" : "stats")}
+                  className={cn(
+                    "relative before:absolute before:-inset-1 before:content-['']",
+                    statsActive ? "text-fg" : "text-fg-muted hover:text-fg",
+                  )}
+                  icon={<ChartLineUp size={16} weight={statsActive ? "fill" : "regular"} aria-hidden="true" />}
+                />
+              </Tooltip>
+              <Tooltip content={t("header.settings")} side="bottom" align="end">
+                <IconButton
+                  label={t("header.settings")}
+                  size="sm"
+                  onClick={onOpenSettings}
+                  className={headerIconButtonClass}
+                  icon={<GearSix size={16} weight="regular" aria-hidden="true" />}
+                />
+              </Tooltip>
+            </>
+          )}
         </div>
       </div>
     </header>

@@ -22,7 +22,7 @@ export function ChatMessageItem({
           <AttachmentChip key={i} attachment={attachment} className="max-w-[90%]" />
         ))}
         {hasText && (
-          <div className="max-w-[90%] whitespace-pre-wrap rounded-lg bg-fill px-3 py-2 text-sm leading-relaxed text-fg">
+          <div className="max-w-[90%] whitespace-pre-wrap rounded-lg bg-fill-strong px-3 py-2 text-sm leading-relaxed text-fg">
             {message.content}
           </div>
         )}

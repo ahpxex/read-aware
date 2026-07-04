@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAtomValue } from "jotai";
 import { CaretLeft, ChatCircle, ListBullets } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
+import { usePhoneViewport } from "@read-aware/ui/media";
 import { Body, IconButton, ScrollArea, Tooltip } from "@read-aware/ui";
 import { formatPercent, useTranslation } from "../../../i18n";
 import { ChatPanel } from "../../ai/components/ChatPanel";
@@ -64,6 +65,20 @@ export function ReaderShellOverlay({
   const { sizes, adjust: adjustPanel, persist: persistPanelSizes } = useReaderPanelSizes();
   const [appearanceOpen, setAppearanceOpen] = useState(false);
 
+  // Phone-width: the side docks become full-screen sheets (below the top bar),
+  // so only one can be open at a time and resizing is meaningless.
+  const isPhone = usePhoneViewport();
+  const toggleToc = () => {
+    const next = !tocOpen;
+    setTocOpen(next);
+    if (next && isPhone) setNotesOpen(false);
+  };
+  const toggleNotes = () => {
+    const next = !notesOpen;
+    setNotesOpen(next);
+    if (next && isPhone) setTocOpen(false);
+  };
+
   // The book's highlights and notes, shown in a popover opened from the header.
   // Kept live as marks are made via the shared revision in useBookAnnotations.
   const { annotations, remove: removeAnnotation } = useBookAnnotations(bookId);
@@ -79,7 +94,9 @@ export function ReaderShellOverlay({
     if (askAiRequest.id === handledAskAiIdRef.current) return;
     handledAskAiIdRef.current = askAiRequest.id;
     setNotesOpen(true);
-  }, [askAiRequest, bookId, setNotesOpen]);
+    // Full-screen sheets are exclusive on phones — chat replaces the TOC.
+    if (isPhone) setTocOpen(false);
+  }, [askAiRequest, bookId, setNotesOpen, setTocOpen, isPhone]);
 
   // The appearance popover is transient — it closes whenever the overlay is
   // dismissed. The contents and chat panels are NOT reset: they keep their open
@@ -123,13 +140,17 @@ export function ReaderShellOverlay({
         style={{
           // Left clears the macOS traffic lights; the right uses the plain edge
           // inset so the appearance/notes cluster sits flush against the right
-          // edge instead of being pushed inward by a mirrored offset.
-          paddingLeft: "max(1.25rem, var(--ra-traffic-light-inset))",
-          paddingRight: "1.25rem",
+          // edge instead of being pushed inward by a mirrored offset. On mobile
+          // both sides also clear the display-cutout safe areas, and the bar
+          // grows downward past the status bar (content stays a 3rem band).
+          paddingLeft: "max(1.25rem, var(--ra-traffic-light-inset), var(--ra-safe-left))",
+          paddingRight: "max(1.25rem, var(--ra-safe-right))",
+          paddingTop: "var(--ra-safe-top)",
+          height: "calc(3rem + var(--ra-safe-top))",
         }}
         className={cn(
-          // Fixed h-12 band, matching the main AppHeader. Both bars then center
-          // their controls on the same 24px axis, so the single native
+          // Fixed 3rem content band, matching the main AppHeader. Both bars then
+          // center their controls on the same 24px axis, so the single native
           // traffic-light inset (tuned for that band) aligns with both. A taller
           // bar would drop the controls below the lights.
           //
@@ -137,7 +158,7 @@ export function ReaderShellOverlay({
           // above the docked panels (z-10), so the appearance/stats popovers and
           // button tooltips nested inside it aren't painted under the DOM-later
           // contents/chat panels. Lifting the whole band lifts them too.
-          "pointer-events-auto relative z-20 h-12 shrink-0 bg-fill transition-all duration-250 ease-out",
+          "pointer-events-auto relative z-20 shrink-0 bg-fill transition-all duration-250 ease-out",
           visible
             ? "translate-y-0 opacity-100"
             : "-translate-y-full opacity-0 pointer-events-none",
@@ -159,7 +180,7 @@ export function ReaderShellOverlay({
                 size="sm"
                 label={t("tableOfContents")}
                 aria-pressed={tocOpen}
-                onClick={() => setTocOpen((open) => !open)}
+                onClick={toggleToc}
                 className={cn(tocOpen && "text-fg")}
                 icon={
                   <ListBullets
@@ -206,7 +227,7 @@ export function ReaderShellOverlay({
                 size="sm"
                 label={t("chat")}
                 aria-pressed={notesOpen}
-                onClick={() => setNotesOpen((open) => !open)}
+                onClick={toggleNotes}
                 className={cn(notesOpen && "text-fg")}
                 icon={
                   <ChatCircle
@@ -241,15 +262,25 @@ export function ReaderShellOverlay({
           aria-label={t("tableOfContents")}
           inert={!(visible && tocOpen)}
           className={cn(
-            "relative flex h-full min-h-0 shrink-0 flex-col border-r border-border-strong/70 transition-[transform,opacity] duration-200 ease-out",
+            "flex min-h-0 flex-col transition-[transform,opacity] duration-200 ease-out",
+            isPhone
+              ? // Full-screen sheet below the top bar; no divider, no resize.
+                "absolute inset-0"
+              : "relative h-full shrink-0 border-r border-border-strong/70",
             visible && tocOpen
               ? "pointer-events-auto translate-x-0 opacity-100"
               : "-translate-x-full opacity-0 pointer-events-none",
           )}
-          style={{ width: sizes.toc, backgroundColor: "var(--ra-main-surface-color)" }}
+          style={{
+            width: isPhone ? undefined : sizes.toc,
+            backgroundColor: "var(--ra-main-surface-color)",
+          }}
         >
           <ScrollArea className="h-full min-h-0 flex-1">
-            <div ref={tocListRef} className="flex flex-col px-3 py-4">
+            <div
+              ref={tocListRef}
+              className="flex flex-col px-3 py-4 pb-[calc(1rem+var(--ra-safe-bottom))]"
+            >
               {tocEntries.length === 0 && (
                 <Body className="px-2 py-2 text-sm text-fg-muted">
                   {t("noToc")}
@@ -263,7 +294,11 @@ export function ReaderShellOverlay({
                   <button
                     key={entry.id}
                     type="button"
-                    onClick={() => onChapterSelect?.(entry.href)}
+                    onClick={() => {
+                      onChapterSelect?.(entry.href);
+                      // A full-screen sheet would hide the jump it just made.
+                      if (isPhone) setTocOpen(false);
+                    }}
                     aria-current={isActive ? "location" : undefined}
                     className={cn(
                       "w-full border-l-2 py-1.5 pr-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
@@ -287,12 +322,14 @@ export function ReaderShellOverlay({
               })}
             </div>
           </ScrollArea>
-          <ReaderResizeHandle
-            edge="right"
-            ariaLabel={t("resizeContents")}
-            onResize={(delta) => adjustPanel("toc", delta)}
-            onCommit={persistPanelSizes}
-          />
+          {!isPhone && (
+            <ReaderResizeHandle
+              edge="right"
+              ariaLabel={t("resizeContents")}
+              onResize={(delta) => adjustPanel("toc", delta)}
+              onCommit={persistPanelSizes}
+            />
+          )}
         </section>
 
         {/* AI conversation (right) */}
@@ -303,19 +340,30 @@ export function ReaderShellOverlay({
           // blurs it and drops the panel out of the tab order while closed.
           inert={!(visible && notesOpen)}
           className={cn(
-            "relative flex h-full min-h-0 shrink-0 flex-col border-l border-border-strong/70 transition-[transform,opacity] duration-200 ease-out",
+            "flex min-h-0 flex-col transition-[transform,opacity] duration-200 ease-out",
+            isPhone
+              ? "absolute inset-0"
+              : "relative h-full shrink-0 border-l border-border-strong/70",
             visible && notesOpen
               ? "pointer-events-auto translate-x-0 opacity-100"
               : "translate-x-full opacity-0 pointer-events-none",
           )}
-          style={{ width: sizes.chat, backgroundColor: "var(--ra-main-surface-color)" }}
+          style={{
+            width: isPhone ? undefined : sizes.chat,
+            backgroundColor: "var(--ra-main-surface-color)",
+            // Full-screen sheet reaches the screen bottom — keep the composer
+            // above the home indicator. (Desktop resolves to 0.)
+            paddingBottom: isPhone ? "var(--ra-safe-bottom)" : undefined,
+          }}
         >
-          <ReaderResizeHandle
-            edge="left"
-            ariaLabel={t("resizeChat")}
-            onResize={(delta) => adjustPanel("chat", -delta)}
-            onCommit={persistPanelSizes}
-          />
+          {!isPhone && (
+            <ReaderResizeHandle
+              edge="left"
+              ariaLabel={t("resizeChat")}
+              onResize={(delta) => adjustPanel("chat", -delta)}
+              onCommit={persistPanelSizes}
+            />
+          )}
           <ChatPanel bookId={bookId} bookTitle={title} active={visible && notesOpen} />
         </section>
       </div>

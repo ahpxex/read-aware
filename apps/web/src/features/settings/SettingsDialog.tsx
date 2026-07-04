@@ -140,7 +140,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   return (
     <div
       className={cn(
-        "fixed inset-0 z-[60] flex items-center justify-center bg-stone-950/35 backdrop-blur-sm px-4 py-6 sm:p-8",
+        "fixed inset-0 z-[60] flex items-center justify-center bg-stone-950/35 backdrop-blur-sm px-4 py-6 max-md:p-0 sm:p-8",
         "transition-[opacity,backdrop-filter] duration-220 ease-[var(--ra-ease-out-quart)] motion-reduce:transition-none",
         isVisible ? "opacity-100" : "opacity-0",
       )}
@@ -156,6 +156,9 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         aria-labelledby={titleId}
         className={cn(
           "flex h-[min(85vh,42rem)] w-full max-w-3xl overflow-hidden rounded-md border border-border bg-[var(--ra-main-surface-color)] text-fg",
+          // Phone: full-screen, sections as a horizontal top rail instead of
+          // a side column.
+          "max-md:h-full max-md:max-w-none max-md:flex-col max-md:rounded-none max-md:border-0",
           "transition-[opacity,transform] duration-260 ease-[var(--ra-ease-out-quint)] motion-reduce:transition-none",
           isVisible ? "translate-y-0 scale-100 opacity-100" : "translate-y-2 scale-[0.985] opacity-0",
         )}
@@ -163,16 +166,24 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         <nav
           ref={navRef}
           aria-label={t("dialog.sectionsLabel")}
-          className="relative flex w-48 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-border/70 p-3"
+          className={cn(
+            "relative flex w-48 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-border/70 p-3",
+            "max-md:w-full max-md:flex-row max-md:items-center max-md:gap-1 max-md:overflow-x-auto max-md:overflow-y-visible max-md:border-r-0 max-md:border-b max-md:p-2 max-md:pt-[calc(0.5rem+var(--ra-safe-top))]",
+          )}
         >
-          <h2 id={titleId} className="px-3 pb-2.5 pt-1.5 font-serif text-base font-medium text-fg">
+          <h2
+            id={titleId}
+            className="px-3 pb-2.5 pt-1.5 font-serif text-base font-medium text-fg max-md:shrink-0 max-md:p-0 max-md:px-2"
+          >
             {t("dialog.title")}
           </h2>
 
+          {/* Vertical position indicator — meaningless in the phone top rail
+              (active state carries the emphasis there). */}
           {indicatorY != null && (
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute left-1 top-0 w-[3px] rounded-full bg-fg transition-transform duration-300 ease-[var(--ra-ease-out-quint)] motion-reduce:transition-none"
+              className="pointer-events-none absolute left-1 top-0 w-[3px] rounded-full bg-fg transition-transform duration-300 ease-[var(--ra-ease-out-quint)] motion-reduce:transition-none max-md:hidden"
               style={{ height: INDICATOR_HEIGHT, transform: `translateY(${indicatorY}px)` }}
             />
           )}
@@ -191,6 +202,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 onClick={() => selectSection(index)}
                 className={cn(
                   "flex items-center gap-2.5 rounded-md px-3 py-2 text-left font-sans text-sm transition-colors",
+                  "max-md:shrink-0 max-md:gap-1.5 max-md:px-2.5",
                   active ? "font-medium text-fg" : "text-fg-muted hover:text-fg",
                 )}
               >
@@ -218,11 +230,12 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           <ScrollArea className="min-h-0 flex-1">
             <div
               key={activeIndex}
-              className={
+              className={cn(
                 direction === "forward"
                   ? "ra-motion-tab-panel-in-forward"
-                  : "ra-motion-tab-panel-in-backward"
-              }
+                  : "ra-motion-tab-panel-in-backward",
+                "max-md:pb-[var(--ra-safe-bottom)]",
+              )}
             >
               <ActivePanel />
             </div>

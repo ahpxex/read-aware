@@ -12,7 +12,7 @@ export function scheduleIdleWarmup(): void {
   const warm = () => {
     void import("./features/reader/components/ReaderWorkspace");
     void import("./features/context/components/ContextWorkspace");
-    void import("./features/context/components/ContextHeaderActions");
+    void import("./features/context/components/AnnotationsPopover");
     void import("./features/stats/components/StatsWorkspace");
     void import("./features/settings/SettingsDialog");
     void import("./features/reader/lib/foliate-engine").then((engine) => {

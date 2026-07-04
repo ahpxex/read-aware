@@ -46,11 +46,6 @@
     "books_many": "{{count}} livres",
     "books_other": "{{count}} livres",
     "summary": "{{items}} dans {{books}}",
-    "memory": {
-      "title": "Mémoire",
-      "empty": "Rien en mémoire pour l'instant — elle grandit au fil de vos lectures.",
-      "forget": "Oublier"
-    },
     "annotations": {
       "title": "Surlignages et notes"
     }

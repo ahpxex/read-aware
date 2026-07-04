@@ -1,7 +1,8 @@
 /**
  * Context 页 = 全局线程的主场（docs/agent-architecture.md §9）：一个跨书总对话
  * （scope: global），与 reader 的 ChatPanel 同样极简 — 无标题带、无侧栏、无多
- * 线程。记忆与标注从 AppHeader 的图标弹出（见 ContextHeaderActions）。
+ * 线程。标注从 AppHeader 的图标弹出（见 AnnotationsPopover）；记忆不设 GUI，
+ * 想知道 agent 记住了什么，直接在对话里问它。
  */
 import { useEffect, useRef } from "react";
 import { Alert } from "@read-aware/ui";

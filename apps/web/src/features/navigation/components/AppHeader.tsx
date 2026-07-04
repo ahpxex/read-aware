@@ -16,7 +16,7 @@ type AppHeaderProps = {
   /** Optional context-specific control (e.g. the shelf view menu) shown in the cluster. */
   viewControl?: ReactNode;
   /** When set, replaces the default right-hand icon cluster entirely — the
-   *  Context page uses this to show only its memory / annotations popovers. */
+   *  Context page uses this to show only its annotations popover. */
   actions?: ReactNode;
 };
 

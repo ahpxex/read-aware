@@ -42,11 +42,6 @@
     "contextItems_other": "{{count}}件のコンテキスト項目",
     "books_other": "{{count}}冊の本",
     "summary": "{{books}}で{{items}}",
-    "memory": {
-      "title": "メモリー",
-      "empty": "まだ記憶はありません——読書と質問とともに育ちます。",
-      "forget": "忘れる"
-    },
     "annotations": {
       "title": "ハイライトとメモ"
     }

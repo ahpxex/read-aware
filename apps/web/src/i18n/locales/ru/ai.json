@@ -48,11 +48,6 @@
     "books_many": "{{count}} книг",
     "books_other": "{{count}} книги",
     "summary": "{{items}} · {{books}}",
-    "memory": {
-      "title": "Память",
-      "empty": "Пока ничего не запомнено — память растёт с чтением и вопросами.",
-      "forget": "Забыть"
-    },
     "annotations": {
       "title": "Выделения и заметки"
     }

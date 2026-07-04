@@ -29,9 +29,9 @@ const ContextWorkspace = lazy(() =>
     default: m.ContextWorkspace,
   })),
 );
-const ContextHeaderActions = lazy(() =>
-  import("./features/context/components/ContextHeaderActions").then((m) => ({
-    default: m.ContextHeaderActions,
+const AnnotationsPopover = lazy(() =>
+  import("./features/context/components/AnnotationsPopover").then((m) => ({
+    default: m.AnnotationsPopover,
   })),
 );
 const StatsWorkspace = lazy(() =>
@@ -264,7 +264,7 @@ function App() {
             actions={
               activeTopNav === "context" ? (
                 <Suspense fallback={null}>
-                  <ContextHeaderActions books={library.books} onOpenBook={handleOpenBook} />
+                  <AnnotationsPopover books={library.books} onOpenBook={handleOpenBook} />
                 </Suspense>
               ) : undefined
             }

@@ -384,6 +384,17 @@ button {
   text-underline-offset: 2px;
   cursor: pointer;
 }
+/* Streamdown renders h2 as text-2xl (1.5rem) — far too loud next to 0.875rem
+   body text. Pull headings down to editorial subtitle scale so assistant replies
+   read like prose, not document sections. */
+.ra-chat-markdown h1,
+.ra-chat-markdown h2,
+.ra-chat-markdown h3 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.375rem;
+}
 
 /* Re-enable text selection in the chat transcript — the app chrome is globally
    non-selectable, and WebKit honors -webkit-user-select, so set both prefixes

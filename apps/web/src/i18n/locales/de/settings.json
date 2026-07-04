@@ -171,10 +171,6 @@
     }
   },
   "aiConfig": {
-    "result": {
-      "success": "Erfolg",
-      "error": "Fehler"
-    },
     "provider": "KI-Anbieter",
     "customBaseUrl": {
       "label": "Benutzerdefinierte Basis-URL",

@@ -171,10 +171,6 @@
     }
   },
   "aiConfig": {
-    "result": {
-      "success": "Succès",
-      "error": "Erreur"
-    },
     "provider": "Fournisseur d’IA",
     "customBaseUrl": {
       "label": "URL de base personnalisée",

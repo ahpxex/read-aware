@@ -5,7 +5,8 @@
 
 import { useState, useEffect } from "react";
 import { testLlmConnection } from "@read-aware/agent";
-import { Button, Select, TextField, Stack, Alert } from "@read-aware/ui";
+import { Button, Select, TextField, Stack } from "@read-aware/ui";
+import { cn } from "@read-aware/ui/cn";
 import { Trans, useTranslation } from "../../../i18n";
 import { accountFromConfig } from "../../ai/agent/account";
 import {
@@ -48,6 +49,7 @@ export function AIConfigPanel() {
     const next = value as AIProvider;
     setProvider(next);
     setModel(DEFAULT_MODELS[next]);
+    setTestResult(null);
   };
 
   const handleSave = () => {
@@ -116,15 +118,6 @@ export function AIConfigPanel() {
 
   return (
     <Stack gap="xl">
-      {testResult && (
-        <Alert
-          variant={testResult.success ? "success" : "destructive"}
-          title={testResult.success ? t("aiConfig.result.success") : t("aiConfig.result.error")}
-        >
-          {testResult.message}
-        </Alert>
-      )}
-
       <Stack gap="lg">
         <Select
           label={t("aiConfig.provider")}
@@ -138,7 +131,10 @@ export function AIConfigPanel() {
             label={t("aiConfig.customBaseUrl.label")}
             type="url"
             value={customBaseUrl}
-            onChange={(e) => setCustomBaseUrl(e.target.value)}
+            onChange={(e) => {
+              setCustomBaseUrl(e.target.value);
+              setTestResult(null);
+            }}
             placeholder="https://api.example.com/v1"
             helperText={t("aiConfig.customBaseUrl.helper")}
           />
@@ -148,7 +144,10 @@ export function AIConfigPanel() {
           label={t("aiConfig.apiKey.label")}
           type={showKey ? "text" : "password"}
           value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
+          onChange={(e) => {
+            setApiKey(e.target.value);
+            setTestResult(null);
+          }}
           placeholder={t("aiConfig.apiKey.placeholder", { provider: PROVIDER_LABELS[provider] })}
           helperText={t("aiConfig.apiKey.helper")}
           trailingIcon={
@@ -165,7 +164,10 @@ export function AIConfigPanel() {
         <Select
           label={t("aiConfig.model")}
           value={model}
-          onChange={setModel}
+          onChange={(value) => {
+            setModel(value);
+            setTestResult(null);
+          }}
           options={modelOptions.length > 0 ? modelOptions : [{ label: t("aiConfig.modelDefault"), value: "" }]}
           disabled={modelOptions.length === 0}
         />
@@ -228,26 +230,39 @@ export function AIConfigPanel() {
         )}
       </Stack>
 
-      <div className="flex gap-3">
-        <Button
-          onClick={handleSave}
-          disabled={!apiKey.trim() || (provider === "custom" && !customBaseUrl.trim())}
-        >
-          {t("aiConfig.save")}
-        </Button>
-        <Button
-          variant="outline"
-          onClick={handleTest}
-          disabled={!apiKey.trim() || isTesting || (provider === "custom" && !customBaseUrl.trim())}
-        >
-          {isTesting ? t("aiConfig.testing") : t("aiConfig.test")}
-        </Button>
-        {isConfigured && (
-          <Button variant="ghost" onClick={handleClear}>
-            {t("aiConfig.clear")}
+      <Stack gap="sm">
+        <div className="flex gap-3">
+          <Button
+            onClick={handleSave}
+            disabled={!apiKey.trim() || (provider === "custom" && !customBaseUrl.trim())}
+          >
+            {t("aiConfig.save")}
           </Button>
+          <Button
+            variant="outline"
+            onClick={handleTest}
+            disabled={!apiKey.trim() || isTesting || (provider === "custom" && !customBaseUrl.trim())}
+          >
+            {isTesting ? t("aiConfig.testing") : t("aiConfig.test")}
+          </Button>
+          {isConfigured && (
+            <Button variant="ghost" onClick={handleClear}>
+              {t("aiConfig.clear")}
+            </Button>
+          )}
+        </div>
+        {testResult && (
+          <p
+            role="status"
+            className={cn(
+              "text-xs leading-relaxed",
+              testResult.success ? "text-fg-muted" : "text-red-700 dark:text-red-400",
+            )}
+          >
+            {testResult.message}
+          </p>
         )}
-      </div>
+      </Stack>
 
       <div className="rounded-md border border-border bg-fill p-4 text-sm text-fg-muted">
         <p className="font-medium text-fg">{t("aiConfig.byok.title")}</p>

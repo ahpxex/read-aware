@@ -171,10 +171,6 @@
     }
   },
   "aiConfig": {
-    "result": {
-      "success": "成功",
-      "error": "エラー"
-    },
     "provider": "AIプロバイダー",
     "customBaseUrl": {
       "label": "カスタムベースURL",

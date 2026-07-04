@@ -171,10 +171,6 @@
     }
   },
   "aiConfig": {
-    "result": {
-      "success": "成功",
-      "error": "错误"
-    },
     "provider": "AI 提供方",
     "customBaseUrl": {
       "label": "自定义 Base URL",

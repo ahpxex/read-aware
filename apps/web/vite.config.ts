@@ -9,7 +9,10 @@ export default defineConfig({
   plugins: [
     tailwindcss(),
     // Router plugin must run before the React plugin so generated routes are transformed.
-    !isStorybook && tanstackRouter({ target: "react", autoCodeSplitting: true }),
+    // autoCodeSplitting stays OFF: this is a single-route app, so a per-route
+    // chunk only adds a boot roundtrip (and a flash of pending UI) — heavy
+    // surfaces are split at the component level in App.tsx instead.
+    !isStorybook && tanstackRouter({ target: "react", autoCodeSplitting: false }),
     react(),
   ].filter(Boolean),
   server: {

@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Self-hosted Inter (400/500/600): bundled woff2 served same-origin, so text
+   renders offline, passes the desktop CSP (font-src 'self'), and never blocks
+   first paint on a network stylesheet. */
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+
 /* @read-aware/ui resolves through a node_modules symlink, which Tailwind v4
    skips by default — scan its source explicitly so utility classes used only
    by design-system components are generated. */

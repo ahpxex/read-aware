@@ -13,6 +13,7 @@
     "i18n:extract": "i18next -c i18next-parser.config.js"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.8",
     "@phosphor-icons/react": "^2.1.10",
     "@read-aware/agent": "workspace:*",
     "@read-aware/core": "workspace:*",

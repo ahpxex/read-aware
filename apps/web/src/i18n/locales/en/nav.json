@@ -21,9 +21,5 @@
   "notFound": {
     "title": "This page does not exist.",
     "body": "Return to the main reading workspace and pick up where you left off."
-  },
-  "loading": {
-    "title": "Loading your reading workspace...",
-    "body": "Preparing your local library, reader state, and context surfaces."
   }
 }

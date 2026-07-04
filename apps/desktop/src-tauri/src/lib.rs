@@ -122,6 +122,17 @@ pub fn run() {
                 let _ = window.set_traffic_lights_inset(16.0, 23.5);
             }
 
+            // The config paints the window light-paper before the webview's
+            // first frame; on a dark-scheme OS swap that for dark paper so a
+            // dark-theme boot never flashes light. (Values mirror
+            // --color-paper in apps/web/src/index.css.)
+            if let Some(window) = app.get_webview_window("main") {
+                if matches!(window.theme(), Ok(tauri::Theme::Dark)) {
+                    let _ = window
+                        .set_background_color(Some(tauri::window::Color(0x1c, 0x19, 0x17, 0xff)));
+                }
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

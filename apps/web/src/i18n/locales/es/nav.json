@@ -21,9 +21,5 @@
   "notFound": {
     "title": "Esta página no existe.",
     "body": "Vuelve al espacio de lectura principal y retoma donde lo dejaste."
-  },
-  "loading": {
-    "title": "Cargando tu espacio de lectura...",
-    "body": "Preparando tu biblioteca local, el estado del lector y los paneles de contexto."
   }
 }

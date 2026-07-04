@@ -38,6 +38,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
     const { t } = useTranslation("ai");
     const [value, setValue] = useState("");
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+    const composingRef = useRef(false);
 
     // preventScroll: focusing while the panel is still sliding in (translated
     // off-screen) would otherwise scroll it into view and drift the whole overlay.
@@ -70,6 +71,17 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
     function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
       // Enter sends; Shift+Enter inserts a newline.
       if (event.key === "Enter" && !event.shiftKey) {
+        // The Enter that confirms an IME candidate must not send the message.
+        // keyCode 229 is the decisive signal on WebKit (where compositionend
+        // can fire before this keydown), isComposing covers Chrome/Firefox,
+        // and the ref is a redundant guard tracked via compositionstart/end.
+        if (
+          composingRef.current ||
+          event.nativeEvent.isComposing ||
+          event.keyCode === 229
+        ) {
+          return;
+        }
         event.preventDefault();
         submit();
       }
@@ -95,6 +107,12 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
             value={value}
             onChange={(event) => setValue(event.target.value)}
             onKeyDown={handleKeyDown}
+            onCompositionStart={() => {
+              composingRef.current = true;
+            }}
+            onCompositionEnd={() => {
+              composingRef.current = false;
+            }}
             aria-label={t("chat.messageLabel")}
             placeholder={
               pendingAttachment

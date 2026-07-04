@@ -2960,6 +2960,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-decorum",
  "tauri-plugin-dialog",
+ "tauri-plugin-fs",
  "tauri-plugin-mcp-bridge",
 ]
 

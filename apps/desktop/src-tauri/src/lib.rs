@@ -9,14 +9,28 @@ use tauri_plugin_decorum::WebviewWindowExt;
 /// Read a user-selected book file from disk into raw bytes.
 ///
 /// The path always originates from the native file dialog (an explicit user
-/// pick), so we read it directly instead of routing through the fs plugin's
-/// path scope. Returns an `ipc::Response` so large book files transfer to the
-/// webview as a binary ArrayBuffer rather than a JSON number array.
+/// pick). It routes through the fs plugin's cross-platform `open` so Android
+/// `content://` URIs resolve just like ordinary paths; desktop paths hit the
+/// filesystem directly. Returns an `ipc::Response` so large book files transfer
+/// to the webview as a binary ArrayBuffer rather than a JSON number array.
 #[tauri::command]
-fn read_book_file(path: String) -> Result<tauri::ipc::Response, String> {
-    std::fs::read(&path)
-        .map(tauri::ipc::Response::new)
-        .map_err(|err| format!("Failed to read {path}: {err}"))
+fn read_book_file(app: tauri::AppHandle, path: String) -> Result<tauri::ipc::Response, String> {
+    use std::io::Read;
+    use tauri_plugin_fs::{FsExt, OpenOptions};
+
+    let file_path = path
+        .parse::<tauri_plugin_fs::FilePath>()
+        .map_err(|err| format!("Invalid file path {path}: {err}"))?;
+    let mut options = OpenOptions::new();
+    options.read(true);
+    let mut file = app
+        .fs()
+        .open(file_path, options)
+        .map_err(|err| format!("Failed to open {path}: {err}"))?;
+    let mut bytes = Vec::new();
+    file.read_to_end(&mut bytes)
+        .map_err(|err| format!("Failed to read {path}: {err}"))?;
+    Ok(tauri::ipc::Response::new(bytes))
 }
 
 /// Show or hide the macOS traffic-light window buttons.
@@ -139,9 +153,16 @@ fn boot_theme_script(theme: &str) -> String {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let mut builder = tauri::Builder::default()
-        .plugin(tauri_plugin_decorum::init())
+    let builder = tauri::Builder::default();
+    // Desktop-only window chrome (macOS traffic-light repositioning); the
+    // crate is not compiled for Android/iOS, where the webview is fullscreen.
+    #[cfg(desktop)]
+    let builder = builder.plugin(tauri_plugin_decorum::init());
+    // `mut` is only exercised by the desktop-only MCP-bridge block below.
+    #[cfg_attr(mobile, allow(unused_mut))]
+    let mut builder = builder
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .setup(|app| {
             let conn = storage::init_db(app.handle()).expect("failed to initialize database");
             // Read the persisted theme preference BEFORE the main window exists
@@ -219,7 +240,8 @@ pub fn run() {
 
     // Dev-only: expose the MCP bridge so the Tauri MCP server can drive the
     // webview. Bound to localhost only; never initialized in release builds.
-    #[cfg(debug_assertions)]
+    // Desktop-only: the crate is not part of the mobile dependency set.
+    #[cfg(all(debug_assertions, desktop))]
     {
         builder = builder.plugin(
             tauri_plugin_mcp_bridge::Builder::new()

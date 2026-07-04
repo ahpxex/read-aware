@@ -296,8 +296,14 @@ pub fn put_blob(request: tauri::ipc::Request<'_>, db: State<'_, Db>) -> Result<(
         .and_then(|value| value.to_str().ok())
         .ok_or_else(|| format!("put_blob: missing {BLOB_KEY_HEADER} header"))?
         .to_string();
-    let tauri::ipc::InvokeBody::Raw(data) = request.body() else {
-        return Err("put_blob: expected a raw binary body".to_string());
+    // Desktop delivers the payload as a true raw body. Android cannot: the
+    // WebView's request interception never exposes POST bodies, so Tauri falls
+    // back to JSON there and the bytes arrive as a JSON number array (the
+    // official fs plugin's write_file accepts both for the same reason).
+    let data: Vec<u8> = match request.body() {
+        tauri::ipc::InvokeBody::Raw(data) => data.clone(),
+        tauri::ipc::InvokeBody::Json(value) => serde_json::from_value(value.clone())
+            .map_err(|e| format!("put_blob: unsupported JSON body: {e}"))?,
     };
     let conn = db.0.lock().map_err(|e| e.to_string())?;
     conn.execute(

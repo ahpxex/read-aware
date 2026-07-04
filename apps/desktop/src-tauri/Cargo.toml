@@ -19,15 +19,22 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # Bundled SQLite — no system dependency; compiles SQLite from source.
 rusqlite = { version = "0.32", features = ["bundled"] }
+# Native OS file dialog for book import — the webview ignores HTML <input accept>.
+tauri-plugin-dialog = "2"
+# Filesystem access that understands mobile paths (Android content:// URIs);
+# read_book_file routes through it so book import works on every platform.
+tauri-plugin-fs = "2"
+
+# Desktop only: window-chrome helpers and the dev-time MCP bridge. Neither
+# compiles for (or makes sense on) Android/iOS, where the webview is fullscreen.
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 # Dev-only bridge that lets the Tauri MCP server drive/inspect the webview.
-# Linked in all builds (so its capability permission resolves) but only
+# Linked in all desktop builds (so its capability permission resolves) but only
 # initialized under debug_assertions — see lib.rs.
 tauri-plugin-mcp-bridge = "0.11"
 # macOS: reposition the native traffic lights to align with our custom top bar
 # (we only use set_traffic_lights_inset; not its overlay titlebar).
 tauri-plugin-decorum = "1"
-# Native OS file dialog for book import — the webview ignores HTML <input accept>.
-tauri-plugin-dialog = "2"
 
 # macOS only: toggle the native traffic-light buttons for the reader's immersive
 # view. Versions match what decorum/tauri already lock, so no new resolution.

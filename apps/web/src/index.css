@@ -88,6 +88,14 @@
      untouched; the desktop shell opts in via the data attributes below. */
   --ra-titlebar-height: 0px;
   --ra-traffic-light-inset: 0px;
+
+  /* Mobile safe areas (iOS notch / home indicator, Android system bars).
+     Resolve to 0px on desktop and in browsers, so fixed chrome can pad with
+     these unconditionally. Requires viewport-fit=cover (set in index.html). */
+  --ra-safe-top: env(safe-area-inset-top, 0px);
+  --ra-safe-right: env(safe-area-inset-right, 0px);
+  --ra-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --ra-safe-left: env(safe-area-inset-left, 0px);
 }
 
 /* Dark app theme. Flips the token-driven surfaces (paper canvas, main surface,

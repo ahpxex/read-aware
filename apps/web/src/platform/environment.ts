@@ -11,18 +11,42 @@ export function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
 
-/** True when the host OS is macOS. */
+/** True when the host OS is Android. */
+export function isAndroid(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /\bAndroid\b/i.test(navigator.userAgent);
+}
+
+/**
+ * True when the host OS is iOS / iPadOS. Modern iPadOS masquerades as
+ * "MacIntel", so a Mac platform with a touchscreen is treated as iPad.
+ */
+export function isIOS(): boolean {
+  if (typeof navigator === "undefined") return false;
+  if (/\b(iPhone|iPad|iPod)\b/.test(navigator.userAgent)) return true;
+  const platform = (navigator.platform || "").toLowerCase();
+  return platform.includes("mac") && navigator.maxTouchPoints > 1;
+}
+
+/** True when the host OS is macOS (excluding iPadOS masquerading as Mac). */
 export function isMacOS(): boolean {
   if (typeof navigator === "undefined") return false;
+  if (isIOS()) return false;
   const platform = (navigator.platform || "").toLowerCase();
   if (platform) return platform.includes("mac");
   return /\bMac\b/.test(navigator.userAgent);
 }
 
+/** True on a phone/tablet OS, where the Tauri shell is the mobile app. */
+export function isMobileOS(): boolean {
+  return isAndroid() || isIOS();
+}
+
 /**
  * Tag the document root with platform data attributes so CSS can react to the
- * desktop shell and host OS — e.g. reserving a draggable titlebar band and
- * clearance for the macOS traffic lights once the native title bar is hidden.
+ * shell and host OS — e.g. reserving a draggable titlebar band and clearance
+ * for the macOS traffic lights once the native title bar is hidden, or mobile
+ * safe-area padding.
  *
  * Call once at startup, before the app renders.
  */
@@ -30,7 +54,9 @@ export function applyPlatformAttributes(): void {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
   if (isTauri()) root.dataset.tauri = "true";
-  if (isMacOS()) root.dataset.os = "mac";
+  if (isAndroid()) root.dataset.os = "android";
+  else if (isIOS()) root.dataset.os = "ios";
+  else if (isMacOS()) root.dataset.os = "mac";
 }
 
 function preventContextMenu(event: MouseEvent): void {

@@ -1,14 +1,18 @@
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { ScrollArea } from "@read-aware/ui";
+import { cn } from "@read-aware/ui/cn";
 import { scheduleIdleWarmup } from "./app-warmup";
+import { dismissBootSplash } from "./boot-splash";
 import { LibraryWorkspace } from "./features/library/components/LibraryWorkspace";
 import { useLibraryController } from "./features/library/hooks/useLibraryController";
 import { BOOK_FILE_ACCEPT } from "./features/library/lib/pick-book-files";
+import type { LibraryBook } from "./features/library/lib/library-types";
 import { AppHeader } from "./features/navigation/components/AppHeader";
 import { ShelfManagementMenu } from "./features/shelf/components/ShelfManagementMenu";
 import { useReaderSession } from "./features/reader/hooks/useReaderSession";
 import { useGlobalShortcuts } from "./features/settings/hooks/useGlobalShortcuts";
+import { useSurfaceHandoff } from "./hooks/useSurfaceHandoff";
 import { CommandPalette } from "./features/command/components/CommandPalette";
 import type { CommandContext } from "./features/command/lib/build-commands";
 
@@ -55,6 +59,7 @@ function App() {
   }, [settingsOpen]);
 
   useEffect(() => {
+    dismissBootSplash();
     scheduleIdleWarmup();
   }, []);
 
@@ -80,6 +85,31 @@ function App() {
     replaceBookInState: library.replaceBookInState,
     reportError: library.reportError,
   });
+
+  // Shelf ⇄ reader surface handoff: opaque-incoming / fading-outgoing, with
+  // the open-direction fade deferred until the reader has rendered and the
+  // main thread can animate again. See useSurfaceHandoff for the rules.
+  const { shelfHandoff, readerExiting, openBook, closeBook } = useSurfaceHandoff(reader);
+
+  // While the shelf holds over the opening reader it must stay VISUALLY
+  // frozen: opening bumps lastOpenedAt, and the recency sort would otherwise
+  // jump the clicked book to the front mid-handoff. Snapshot the books at
+  // click time and render the held shelf from the snapshot; the live order
+  // returns once the handoff ends (so closing shows the final order at once).
+  const [heldShelfBooks, setHeldShelfBooks] = useState<LibraryBook[] | null>(null);
+  const handleOpenBook = useCallback(
+    (book: LibraryBook) => {
+      setHeldShelfBooks(library.books);
+      openBook(book);
+    },
+    [library.books, openBook],
+  );
+  useEffect(() => {
+    if (shelfHandoff === "idle") setHeldShelfBooks(null);
+  }, [shelfHandoff]);
+
+  // Spinner feedback on the clicked cover while the shelf holds.
+  const openingBookId = shelfHandoff !== "idle" ? reader.selectedBook?.id ?? null : null;
 
   // Esc backs out one pushed view at a time — a standalone Context/Stats surface
   // to the shelf, or an open collection back to the full shelf. Skipped while
@@ -114,7 +144,7 @@ function App() {
     shelfView,
     collections: library.collections,
     books: library.books,
-    openBook: (book) => reader.openReader(book),
+    openBook: handleOpenBook,
     openCollection: (id) => {
       setActiveTopNav("shelf");
       setActiveCollectionId(id);
@@ -151,9 +181,17 @@ function App() {
 
   return (
     <>
-      {reader.selectedBook ? (
-        // Fallback shows only if warmup hasn't fetched the chunk yet (rare):
-        // a quiet paper surface, matching the reader's own pre-render state.
+      {reader.selectedBook && (
+        // While closing, the reader becomes a fixed overlay dissolving over
+        // the (opaque) shelf that has already remounted underneath.
+        <div
+          className={cn(
+            readerExiting &&
+              "ra-motion-surface-exit pointer-events-none fixed inset-0 z-40",
+          )}
+        >
+        {/* Fallback shows only if warmup hasn't fetched the chunk yet (rare):
+            a quiet paper surface, matching the reader's own pre-render state. */}
         <Suspense fallback={<div className="h-screen w-full bg-paper" />}>
         <ReaderWorkspace
           selectedBook={reader.selectedBook}
@@ -169,8 +207,8 @@ function App() {
           readerProgress={reader.readerProgress}
           currentPage={reader.currentPage}
           totalPages={reader.totalPages}
-          onCloseReader={reader.closeReader}
-          onRetryOpen={reader.openReader}
+          onCloseReader={closeBook}
+          onRetryOpen={handleOpenBook}
           onToggleShell={reader.toggleShell}
           onHideShell={reader.hideShell}
           onReaderPageChange={reader.handleReaderPageChange}
@@ -181,8 +219,24 @@ function App() {
           onAnnotationSelect={reader.handleAnnotationSelect}
         />
         </Suspense>
-      ) : (
-        <main className="flex h-screen flex-col bg-[var(--ra-main-surface-color)] text-fg">
+        </div>
+      )}
+
+      {/* Also rendered during either handoff: while a book opens it holds
+          opaque (then dissolves) as a fixed overlay above the reader; while
+          the reader exits it is the opaque in-flow surface underneath. */}
+      {(!reader.selectedBook || shelfHandoff !== "idle" || readerExiting) && (
+        <main
+          className={cn(
+            "flex h-screen flex-col bg-[var(--ra-main-surface-color)] text-fg",
+            reader.selectedBook &&
+              shelfHandoff !== "idle" &&
+              "pointer-events-none fixed inset-0 z-40",
+            reader.selectedBook &&
+              shelfHandoff === "fading" &&
+              "ra-motion-surface-exit",
+          )}
+        >
           <input
             ref={library.importInputRef}
             type="file"
@@ -210,10 +264,11 @@ function App() {
                 isReady={library.libraryReady}
                 error={library.libraryError}
                 notice={library.importNotice}
-                books={library.books}
+                books={heldShelfBooks ?? library.books}
                 collections={library.collections}
+                openingBookId={openingBookId}
                 onImport={library.openImportPicker}
-                onOpenBook={reader.openReader}
+                onOpenBook={handleOpenBook}
                 onRemoveBook={library.handleRemoveBook}
                 onToggleStar={library.handleToggleStar}
                 onUpdateBookMetadata={library.handleUpdateBookMetadata}
@@ -225,11 +280,11 @@ function App() {
               />
             ) : activeTopNav === "context" ? (
               <Suspense fallback={null}>
-                <ContextWorkspace books={library.books} onOpenBook={reader.openReader} />
+                <ContextWorkspace books={library.books} onOpenBook={handleOpenBook} />
               </Suspense>
             ) : (
               <Suspense fallback={null}>
-                <StatsWorkspace books={library.books} onOpenBook={reader.openReader} />
+                <StatsWorkspace books={library.books} onOpenBook={handleOpenBook} />
               </Suspense>
             )}
           </ScrollArea>
@@ -241,6 +296,7 @@ function App() {
           />
         </main>
       )}
+
 
       {settingsMounted && (
         <Suspense fallback={null}>

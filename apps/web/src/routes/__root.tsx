@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import { HeadContent, Outlet, createRootRoute, useRouter } from "@tanstack/react-router";
 import { Button } from "@read-aware/ui";
+import { dismissBootSplash } from "../boot-splash";
 import { i18n, useTranslation } from "../i18n";
 import { useAppearance } from "../features/settings/hooks/useAppearance";
 
@@ -34,6 +36,12 @@ function RootComponent() {
 function RootErrorBoundary() {
   const { t } = useTranslation(["nav", "common"]);
 
+  // A boot failure means App never mounts — clear the splash overlay here so
+  // it can't mask the error screen.
+  useEffect(() => {
+    dismissBootSplash();
+  }, []);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-paper px-6 text-center">
       <div className="max-w-md space-y-3">
@@ -59,6 +67,11 @@ function RootErrorBoundary() {
 function RootNotFound() {
   const router = useRouter();
   const { t } = useTranslation(["nav", "common"]);
+
+  // Same as the error boundary: never leave the splash covering this screen.
+  useEffect(() => {
+    dismissBootSplash();
+  }, []);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-paper px-6 text-center">

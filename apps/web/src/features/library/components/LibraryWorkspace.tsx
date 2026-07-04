@@ -19,6 +19,8 @@ type LibraryWorkspaceProps = {
   notice?: string | null;
   books: LibraryBook[];
   collections: Collection[];
+  /** Book currently being opened (spinner feedback on its cover). */
+  openingBookId?: string | null;
   onImport: () => void;
   onOpenBook: (book: LibraryBook) => void;
   onRemoveBook: (book: LibraryBook) => void;
@@ -37,6 +39,7 @@ export function LibraryWorkspace({
   notice,
   books,
   collections,
+  openingBookId,
   onImport,
   onOpenBook,
   onRemoveBook,
@@ -159,7 +162,7 @@ export function LibraryWorkspace({
           ))}
         </div>
       ) : books.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center py-16">
+        <div className="ra-motion-fade-in flex flex-1 items-center justify-center py-16">
           <EmptyState
             icon={<Books className="size-12 text-fg-subtle" weight="thin" />}
             title={t("workspace.emptyTitle")}
@@ -171,7 +174,9 @@ export function LibraryWorkspace({
           />
         </div>
       ) : (
-        <>
+        // Fades in over the skeleton it replaces (same grid geometry), so the
+        // ready swap reads as the shelf resolving rather than a hard cut.
+        <div className="ra-motion-fade-in">
           {activeCollection && (
             <CollectionHeader
               key={activeCollection.id}
@@ -194,6 +199,7 @@ export function LibraryWorkspace({
               sections={sections}
               layout={shelfView.layout}
               collections={collectionTiles}
+              openingBookId={openingBookId}
               onOpenCollection={(id) => setActiveCollectionId(id)}
               selecting={active}
               selectedIds={selectedIds}
@@ -204,7 +210,7 @@ export function LibraryWorkspace({
               onToggleSelect={(book) => toggle(book.id)}
             />
           )}
-        </>
+        </div>
       )}
     </div>
   );

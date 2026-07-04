@@ -101,7 +101,11 @@ export function ReaderWorkspace({
 
   return (
     <div
-      className="ra-motion-reader-enter relative h-screen w-full"
+      // Deliberately no entrance fade: the shelf dissolves ON TOP of this
+      // surface when a book opens (see App.tsx), and a cross-fade only reads
+      // cleanly when the incoming layer is already opaque — two simultaneous
+      // fades let the body background flash through.
+      className="relative h-screen w-full"
       style={{ backgroundColor: themeBg }}
     >
       {readerSource ? (

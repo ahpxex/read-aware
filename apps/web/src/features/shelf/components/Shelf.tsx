@@ -23,6 +23,8 @@ type SectionBodyProps = {
   onToggleStar?: (book: LibraryBook) => void;
   onUpdateMetadata?: (book: LibraryBook, patch: BookMetadataPatch) => void;
   onToggleSelect?: (book: LibraryBook) => void;
+  /** Book currently being opened (spinner feedback on its cover). */
+  openingBookId?: string | null;
 };
 
 function SectionBody({
@@ -37,6 +39,7 @@ function SectionBody({
   onToggleStar,
   onUpdateMetadata,
   onToggleSelect,
+  openingBookId,
 }: SectionBodyProps) {
   const tiles = collections.map((data) => (
     <CollectionTile
@@ -57,6 +60,7 @@ function SectionBody({
             book={book}
             selecting={selecting}
             selected={selectedIds?.has(book.id) ?? false}
+            opening={book.id === openingBookId}
             onClick={() => onSelect?.(book)}
             onRemove={() => onRemove?.(book)}
             onToggleStar={() => onToggleStar?.(book)}
@@ -77,6 +81,7 @@ function SectionBody({
           book={book}
           selecting={selecting}
           selected={selectedIds?.has(book.id) ?? false}
+          opening={book.id === openingBookId}
           onClick={() => onSelect?.(book)}
           onRemove={() => onRemove?.(book)}
           onToggleStar={() => onToggleStar?.(book)}
@@ -101,6 +106,8 @@ type ShelfProps = {
   onToggleStar?: (book: LibraryBook) => void;
   onUpdateMetadata?: (book: LibraryBook, patch: BookMetadataPatch) => void;
   onToggleSelect?: (book: LibraryBook) => void;
+  /** Book currently being opened (spinner feedback on its cover). */
+  openingBookId?: string | null;
   className?: string;
 };
 
@@ -116,6 +123,7 @@ export function Shelf({
   onToggleStar,
   onUpdateMetadata,
   onToggleSelect,
+  openingBookId,
   className,
 }: ShelfProps) {
   // Collections lead the first section so they sit in the same grid as the books;
@@ -140,6 +148,7 @@ export function Shelf({
             onToggleStar={onToggleStar}
             onUpdateMetadata={onUpdateMetadata}
             onToggleSelect={onToggleSelect}
+            openingBookId={openingBookId}
           />
         </section>
       ))}

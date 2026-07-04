@@ -123,11 +123,17 @@ html[data-motion="reduced"] .ra-motion-tab-panel-in-forward,
 html[data-motion="reduced"] .ra-motion-tab-panel-in-backward,
 html[data-motion="reduced"] .ra-motion-page-counter,
 html[data-motion="reduced"] .ra-motion-overlay-pop,
-html[data-motion="reduced"] .ra-motion-reader-enter,
+html[data-motion="reduced"] .ra-motion-fade-in,
 html[data-motion="reduced"] .ra-dialog::backdrop {
   animation: none !important;
   transform: none !important;
   transition: none !important;
+}
+
+/* The exit overlay covers the incoming surface at full opacity; with its fade
+   disabled it must disappear entirely, not linger. */
+html[data-motion="reduced"] .ra-motion-surface-exit {
+  display: none !important;
 }
 
 /* macOS desktop (Tauri): the native title bar is hidden via titleBarStyle
@@ -236,12 +242,20 @@ button {
     will-change: transform, opacity;
   }
 
-  /* Reader entrance: a pure cross-fade (no transform — a full-screen translate
-     would reveal the edges) so opening a book eases in instead of hard-cutting
-     to an empty reading surface. */
-  .ra-motion-reader-enter {
-    animation: ra-reader-enter 320ms var(--ra-ease-out-quart);
+  /* Outgoing surface (the shelf while a book opens, or the reader while it
+     closes): kept mounted briefly as a fixed overlay and dissolved over the
+     incoming surface, so the old view fades away instead of vanishing in a
+     single frame. The incoming surface underneath stays fully opaque — only
+     ONE layer may fade, or the body background flashes through the overlap.
+     `forwards` holds it transparent until React unmounts it. */
+  .ra-motion-surface-exit {
+    animation: ra-surface-exit 240ms var(--ra-ease-out-quart) forwards;
     will-change: opacity;
+  }
+
+  /* Quiet fade for same-layout content swaps (skeleton shelf → real shelf). */
+  .ra-motion-fade-in {
+    animation: ra-fade-in 200ms var(--ra-ease-out-quart);
   }
 
   .ra-dialog::backdrop {
@@ -313,7 +327,16 @@ button {
   }
 }
 
-@keyframes ra-reader-enter {
+@keyframes ra-surface-exit {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes ra-fade-in {
   from {
     opacity: 0;
   }
@@ -328,11 +351,17 @@ button {
   .ra-motion-tab-panel-in-backward,
   .ra-motion-page-counter,
   .ra-motion-overlay-pop,
-  .ra-motion-reader-enter,
+  .ra-motion-fade-in,
   .ra-dialog::backdrop {
     animation: none !important;
     transform: none !important;
     transition: none !important;
+  }
+
+  /* See the data-motion="reduced" note: the exit overlay must vanish, not sit
+     opaque over the incoming surface. */
+  .ra-motion-surface-exit {
+    display: none !important;
   }
 }
 

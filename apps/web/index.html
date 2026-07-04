@@ -20,7 +20,12 @@
          preference is "system", or this runs in the browser dev build — the
          prefers-color-scheme fallback follows the OS. The wordmark fades in
          after a short delay so a fast boot shows quiet paper, never a flash
-         of text. -->
+         of text.
+
+         The splash lives OUTSIDE #root as a topmost overlay: React mounts the
+         app underneath it, then dismissBootSplash() (src/boot-splash.ts) adds
+         .ra-splash-leave to dissolve it over the already-painted shelf — a
+         cross-fade instead of a single-frame swap. -->
     <style>
       html {
         background: #f5f1e8;
@@ -28,12 +33,18 @@
       #ra-splash {
         position: fixed;
         inset: 0;
+        z-index: 50;
         display: flex;
         align-items: center;
         justify-content: center;
         background: #f5f1e8;
         color: #1c1917;
         font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+        transition: opacity 260ms cubic-bezier(0.25, 1, 0.5, 1);
+      }
+      #ra-splash.ra-splash-leave {
+        opacity: 0;
+        pointer-events: none;
       }
       #ra-splash span {
         font-size: 1.75rem;
@@ -73,9 +84,8 @@
     </style>
   </head>
   <body>
-    <div id="root">
-      <div id="ra-splash"><span>ReadAware</span></div>
-    </div>
+    <div id="root"></div>
+    <div id="ra-splash"><span>ReadAware</span></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

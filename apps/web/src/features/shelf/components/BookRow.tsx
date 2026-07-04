@@ -1,5 +1,5 @@
 import { Check, Info, Star, Trash } from "@phosphor-icons/react";
-import { IconButton, Progress } from "@read-aware/ui";
+import { IconButton, Progress, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useLocalAtom } from "@read-aware/ui/state";
 import { formatPercent, useTranslation } from "../../../i18n";
@@ -16,6 +16,8 @@ type BookRowProps = {
   onToggleStar?: () => void;
   onUpdateMetadata?: (patch: BookMetadataPatch) => void;
   onToggleSelect?: () => void;
+  /** This book is being opened: show a quiet spinner over the thumbnail. */
+  opening?: boolean;
   className?: string;
 };
 
@@ -28,6 +30,7 @@ export function BookRow({
   onToggleStar,
   onUpdateMetadata,
   onToggleSelect,
+  opening = false,
   className,
 }: BookRowProps) {
   const { t } = useTranslation("shelf");
@@ -64,6 +67,15 @@ export function BookRow({
             <img src={book.coverUrl} alt="" className="h-full w-full object-cover" />
           ) : (
             <BookCoverPlaceholder title={book.title} author={book.author} format={book.format} />
+          )}
+          {/* Opening feedback while the shelf holds over the mounting reader. */}
+          {opening && (
+            <span
+              className="ra-motion-fade-in absolute inset-0 flex items-center justify-center bg-paper/60"
+              style={{ animationDelay: "150ms", animationFillMode: "backwards" }}
+            >
+              <Spinner size="sm" className="text-fg" />
+            </span>
           )}
         </div>
         <div className="min-w-0 flex-1">

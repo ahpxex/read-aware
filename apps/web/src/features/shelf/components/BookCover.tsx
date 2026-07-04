@@ -1,5 +1,5 @@
 import { Check, Info, Star, Trash } from "@phosphor-icons/react";
-import { IconButton, Progress } from "@read-aware/ui";
+import { IconButton, Progress, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useLocalAtom } from "@read-aware/ui/state";
 import { formatPercent, useTranslation } from "../../../i18n";
@@ -16,6 +16,8 @@ type BookCoverProps = {
   onToggleStar?: () => void;
   onUpdateMetadata?: (patch: BookMetadataPatch) => void;
   onToggleSelect?: () => void;
+  /** This book is being opened: show a quiet spinner over the cover. */
+  opening?: boolean;
   className?: string;
 };
 
@@ -28,6 +30,7 @@ export function BookCover({
   onToggleStar,
   onUpdateMetadata,
   onToggleSelect,
+  opening = false,
   className,
 }: BookCoverProps) {
   const { t } = useTranslation("shelf");
@@ -70,6 +73,16 @@ export function BookCover({
               )}
               aria-hidden="true"
             />
+          )}
+          {/* Opening feedback while the shelf holds over the mounting reader.
+              The delayed fade keeps fast opens spinner-free. */}
+          {opening && (
+            <span
+              className="ra-motion-fade-in absolute inset-0 flex items-center justify-center bg-paper/60"
+              style={{ animationDelay: "150ms", animationFillMode: "backwards" }}
+            >
+              <Spinner size="sm" className="text-fg" />
+            </span>
           )}
         </div>
       </button>

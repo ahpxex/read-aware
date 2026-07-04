@@ -278,28 +278,50 @@ pub fn read_events_since(after: Option<Hlc>, db: State<'_, Db>) -> Result<Vec<Ev
 }
 
 // --- Blobs (book files + derivatives) ---
+//
+// Blob bytes cross the IPC bridge RAW (`tauri::ipc::Request` / `Response`),
+// never as JSON. A serde `Vec<u8>` would serialize a book file into a JSON
+// array of numbers — tens of millions of tokens to stringify, parse, and box
+// for one open, which froze the webview main thread on large books.
+
+/// Header carrying the blob key on raw-body `put_blob` requests (the body is
+/// the payload itself, so the key can't ride in JSON args).
+const BLOB_KEY_HEADER: &str = "x-blob-key";
 
 #[tauri::command]
-pub fn put_blob(key: String, data: Vec<u8>, db: State<'_, Db>) -> Result<(), String> {
+pub fn put_blob(request: tauri::ipc::Request<'_>, db: State<'_, Db>) -> Result<(), String> {
+    let key = request
+        .headers()
+        .get(BLOB_KEY_HEADER)
+        .and_then(|value| value.to_str().ok())
+        .ok_or_else(|| format!("put_blob: missing {BLOB_KEY_HEADER} header"))?
+        .to_string();
+    let tauri::ipc::InvokeBody::Raw(data) = request.body() else {
+        return Err("put_blob: expected a raw binary body".to_string());
+    };
     let conn = db.0.lock().map_err(|e| e.to_string())?;
     conn.execute(
         "INSERT OR REPLACE INTO blobs (key, data) VALUES (?1, ?2)",
-        params![key, data],
+        params![key, data.as_slice()],
     )
     .map_err(|e| e.to_string())?;
     Ok(())
 }
 
+/// Returns the blob's bytes as a raw (non-JSON) IPC response. A missing key
+/// yields an EMPTY body — the JS wrapper maps zero length back to `null`.
+/// (A raw `Response` cannot express `Option`, and no real payload here is
+/// zero-length: book files and derivatives are never empty.)
 #[tauri::command]
-pub fn get_blob(key: String, db: State<'_, Db>) -> Result<Option<Vec<u8>>, String> {
+pub fn get_blob(key: String, db: State<'_, Db>) -> Result<tauri::ipc::Response, String> {
     let conn = db.0.lock().map_err(|e| e.to_string())?;
     match conn.query_row(
         "SELECT data FROM blobs WHERE key = ?1",
         params![key],
         |row| row.get::<_, Vec<u8>>(0),
     ) {
-        Ok(data) => Ok(Some(data)),
-        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Ok(data) => Ok(tauri::ipc::Response::new(data)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(tauri::ipc::Response::new(Vec::new())),
         Err(e) => Err(e.to_string()),
     }
 }

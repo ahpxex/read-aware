@@ -12,6 +12,7 @@
  * Desktop-only: `hydrateLocalStore()` only calls this under Tauri.
  */
 import { invoke } from "@tauri-apps/api/core";
+import { putDesktopBlob } from "./blob-store";
 
 const MIGRATED_FLAG = "read-aware-migrated-v1";
 const AI_CONFIG_KEY = "read-aware-ai-config";
@@ -107,7 +108,7 @@ async function importLibrary(): Promise<void> {
     for (const file of files) {
       if (!file?.bookId || !file.blob) continue;
       const bytes = new Uint8Array(await file.blob.arrayBuffer());
-      await invoke("put_blob", { key: `bookfile:${file.bookId}`, data: bytes });
+      await putDesktopBlob(`bookfile:${file.bookId}`, bytes);
     }
   } finally {
     db.close();

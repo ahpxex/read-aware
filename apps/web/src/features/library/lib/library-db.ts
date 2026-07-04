@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { TFunction } from "i18next";
+import { getDesktopBlob, putDesktopBlob } from "../../../platform/blob-store";
 import type {
   BookFormat,
   BookProgress,
@@ -118,7 +119,7 @@ async function putBookRecord(book: LibraryBook): Promise<void> {
 async function storeImportedBook(book: LibraryBook, file: File): Promise<void> {
   if (isTauri()) {
     const bytes = new Uint8Array(await file.arrayBuffer());
-    await invoke("put_blob", { key: bookFileKey(book.id), data: bytes });
+    await putDesktopBlob(bookFileKey(book.id), bytes);
     await invoke("library_put_book", { book });
     return;
   }
@@ -336,8 +337,8 @@ export async function importBookFile(
 
 export async function getStoredBookBlob(bookId: string): Promise<Blob | null> {
   if (isTauri()) {
-    const bytes = await invoke<number[] | null>("get_blob", { key: bookFileKey(bookId) });
-    return bytes ? new Blob([new Uint8Array(bytes)]) : null;
+    const bytes = await getDesktopBlob(bookFileKey(bookId));
+    return bytes ? new Blob([bytes]) : null;
   }
   const db = await openLibraryDb();
   const transaction = db.transaction(FILES_STORE, "readonly");
@@ -489,7 +490,7 @@ export async function removeLibraryBook(bookId: string) {
 
 async function putBookFileBytes(bookId: string, bytes: Uint8Array): Promise<void> {
   if (isTauri()) {
-    await invoke("put_blob", { key: bookFileKey(bookId), data: bytes });
+    await putDesktopBlob(bookFileKey(bookId), bytes);
     return;
   }
   const db = await openLibraryDb();

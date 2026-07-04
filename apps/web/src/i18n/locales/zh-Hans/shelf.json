@@ -29,7 +29,14 @@
     "star": "收藏 {{title}}",
     "unstar": "取消收藏 {{title}}",
     "info": "关于 {{title}} 的信息",
-    "remove": "移除 {{title}}"
+    "remove": "移除 {{title}}",
+    "menu": {
+      "star": "标星",
+      "unstar": "取消标星",
+      "info": "图书信息",
+      "remove": "移除",
+      "label": "图书操作"
+    }
   },
   "status": {
     "finished": "已读完",

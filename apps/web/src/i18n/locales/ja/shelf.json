@@ -29,7 +29,14 @@
     "star": "{{title}}にスターを付ける",
     "unstar": "{{title}}のスターを外す",
     "info": "{{title}}の情報",
-    "remove": "{{title}}を削除"
+    "remove": "{{title}}を削除",
+    "menu": {
+      "star": "スターを付ける",
+      "unstar": "スターを外す",
+      "info": "書籍情報",
+      "remove": "削除",
+      "label": "書籍の操作"
+    }
   },
   "status": {
     "finished": "読了",

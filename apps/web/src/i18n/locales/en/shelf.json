@@ -31,7 +31,14 @@
     "star": "Star {{title}}",
     "unstar": "Unstar {{title}}",
     "info": "Info about {{title}}",
-    "remove": "Remove {{title}}"
+    "remove": "Remove {{title}}",
+    "menu": {
+      "star": "Star",
+      "unstar": "Unstar",
+      "info": "Book info",
+      "remove": "Remove",
+      "label": "Book actions"
+    }
   },
   "status": {
     "finished": "Finished",

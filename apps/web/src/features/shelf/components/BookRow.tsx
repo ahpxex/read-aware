@@ -113,11 +113,12 @@ export function BookRow({
               "transition-opacity",
               book.starred
                 ? "text-fg opacity-100"
-                : "text-fg-muted opacity-0 hover:text-fg group-hover:opacity-100 group-focus-within:opacity-100",
+                : "text-fg-muted opacity-0 hover:text-fg group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100",
             )}
             icon={<Star size={16} weight={book.starred ? "fill" : "regular"} aria-hidden="true" />}
           />
-          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+          {/* pointer-coarse: no hover on touch — keep the actions visible. */}
+          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100">
             <IconButton
               label={t("book.info", { title: book.title })}
               size="sm"

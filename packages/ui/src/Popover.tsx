@@ -112,7 +112,7 @@ export function Popover({
           id={panelId}
           role="dialog"
           className={cn(
-            "ra-motion-overlay-pop absolute z-50 mt-2 min-w-[200px] rounded-md border border-border bg-[var(--ra-main-surface-color)] p-4",
+            "ra-motion-overlay-pop absolute z-50 mt-2 min-w-[200px] max-w-[calc(100vw-1rem)] rounded-md border border-border bg-[var(--ra-main-surface-color)] p-4",
             align === "left" && "left-0 origin-top-left",
             align === "right" && "right-0 origin-top-right",
             align === "center" && "left-1/2 -translate-x-1/2 origin-top",

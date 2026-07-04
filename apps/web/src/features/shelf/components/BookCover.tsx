@@ -1,5 +1,5 @@
-import { Check, Info, Star, Trash } from "@phosphor-icons/react";
-import { IconButton, Progress, Spinner } from "@read-aware/ui";
+import { Check, DotsThreeVertical, Info, Star, Trash } from "@phosphor-icons/react";
+import { DropdownMenu, IconButton, Progress, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useLocalAtom } from "@read-aware/ui/state";
 import { formatPercent, useTranslation } from "../../../i18n";
@@ -138,6 +138,34 @@ export function BookCover({
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Touch: hover can't reveal the action overlay above, so coarse-pointer
+          devices get an always-visible corner menu with the same actions. */}
+      {!selecting && (
+        <div className="absolute right-1.5 top-1.5 hidden pointer-coarse:block">
+          <DropdownMenu
+            align="right"
+            trigger={
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-stone-950/55 text-white">
+                <DotsThreeVertical size={14} weight="bold" aria-hidden="true" />
+                <span className="sr-only">{t("book.menu.label")}</span>
+              </span>
+            }
+            items={[
+              {
+                label: book.starred ? t("book.menu.unstar") : t("book.menu.star"),
+                onClick: () => onToggleStar?.(),
+              },
+              { label: t("book.menu.info"), onClick: () => setInfoOpen(true) },
+              {
+                label: t("book.menu.remove"),
+                onClick: () => setRemoveOpen(true),
+                destructive: true,
+              },
+            ]}
+          />
         </div>
       )}
 

@@ -128,7 +128,7 @@ export function DropdownMenu({ trigger, items, align = "left", className }: Drop
           role="menu"
           onKeyDown={handleMenuKeyDown}
           className={cn(
-            "ra-motion-overlay-pop absolute z-50 mt-1.5 min-w-[184px] rounded-md border border-border bg-[var(--ra-main-surface-color)] p-1",
+            "ra-motion-overlay-pop absolute z-50 mt-1.5 min-w-[184px] max-w-[calc(100vw-1rem)] rounded-md border border-border bg-[var(--ra-main-surface-color)] p-1",
             align === "left" ? "left-0 origin-top-left" : "right-0 origin-top-right",
           )}
         >

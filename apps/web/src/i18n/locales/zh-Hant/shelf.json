@@ -29,7 +29,14 @@
     "star": "為 {{title}} 加星號",
     "unstar": "取消 {{title}} 的星號",
     "info": "關於 {{title}} 的資訊",
-    "remove": "移除 {{title}}"
+    "remove": "移除 {{title}}",
+    "menu": {
+      "star": "標星",
+      "unstar": "取消標星",
+      "info": "圖書資訊",
+      "remove": "移除",
+      "label": "圖書操作"
+    }
   },
   "status": {
     "finished": "已讀完",

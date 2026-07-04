@@ -33,7 +33,14 @@
     "star": "Ajouter {{title}} aux favoris",
     "unstar": "Retirer {{title}} des favoris",
     "info": "Informations sur {{title}}",
-    "remove": "Retirer {{title}}"
+    "remove": "Retirer {{title}}",
+    "menu": {
+      "star": "Épingler",
+      "unstar": "Désépingler",
+      "info": "Infos du livre",
+      "remove": "Retirer",
+      "label": "Actions du livre"
+    }
   },
   "status": {
     "finished": "Terminé",

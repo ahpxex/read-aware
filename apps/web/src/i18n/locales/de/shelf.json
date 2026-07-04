@@ -31,7 +31,14 @@
     "star": "{{title}} mit Stern markieren",
     "unstar": "Stern von {{title}} entfernen",
     "info": "Informationen zu {{title}}",
-    "remove": "{{title}} entfernen"
+    "remove": "{{title}} entfernen",
+    "menu": {
+      "star": "Markieren",
+      "unstar": "Markierung entfernen",
+      "info": "Buchinfo",
+      "remove": "Entfernen",
+      "label": "Buchaktionen"
+    }
   },
   "status": {
     "finished": "Abgeschlossen",

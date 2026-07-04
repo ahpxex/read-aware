@@ -50,7 +50,9 @@ export function Tooltip({
         id={tooltipId}
         role="tooltip"
         className={cn(
-          "pointer-events-none absolute z-50 whitespace-nowrap rounded bg-fg px-2 py-1 text-xs text-inverse-fg opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100",
+          // pointer-coarse: touch has no hover, and a tap's lingering focus
+          // would pin the tooltip open — suppress it entirely there.
+          "pointer-events-none absolute z-50 whitespace-nowrap rounded bg-fg px-2 py-1 text-xs text-inverse-fg opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:hidden",
           sideClasses[side],
           (side === "top" || side === "bottom") && alignClasses[align],
         )}

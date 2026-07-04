@@ -71,7 +71,7 @@ export function AnnotationRow({
         label={t("annotation.delete")}
         size="sm"
         onClick={() => onDelete(annotation.id)}
-        className="shrink-0 text-fg-subtle opacity-0 hover:text-red-600 group-hover:opacity-100"
+        className="shrink-0 text-fg-subtle opacity-0 hover:text-red-600 group-hover:opacity-100 pointer-coarse:opacity-100"
         icon={<Trash size={12} weight="regular" />}
       />
     </div>

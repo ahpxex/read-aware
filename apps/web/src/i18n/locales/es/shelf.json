@@ -33,7 +33,14 @@
     "star": "Destacar {{title}}",
     "unstar": "Dejar de destacar {{title}}",
     "info": "Información sobre {{title}}",
-    "remove": "Quitar {{title}}"
+    "remove": "Quitar {{title}}",
+    "menu": {
+      "star": "Destacar",
+      "unstar": "Quitar destacado",
+      "info": "Información del libro",
+      "remove": "Eliminar",
+      "label": "Acciones del libro"
+    }
   },
   "status": {
     "finished": "Terminado",

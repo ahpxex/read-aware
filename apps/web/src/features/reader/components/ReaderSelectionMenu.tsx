@@ -91,7 +91,7 @@ export function ReaderSelectionMenu({
     >
       <div
         ref={menuRef}
-        className="ra-motion-overlay-pop pointer-events-auto absolute flex items-center gap-0.5 rounded-lg border border-border bg-[var(--ra-main-surface-color)] p-1 shadow-[0_4px_16px_-6px_rgba(28,25,23,0.25)]"
+        className="ra-motion-overlay-pop pointer-events-auto absolute flex max-w-[calc(100vw-1.25rem)] flex-wrap items-center gap-0.5 rounded-lg border border-border bg-[var(--ra-main-surface-color)] p-1 shadow-[0_4px_16px_-6px_rgba(28,25,23,0.25)]"
         style={position}
       >
         <IconButton

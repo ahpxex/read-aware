@@ -12,6 +12,9 @@ type PopoverProps = {
   triggerTooltip?: string;
   /** Which side the trigger tooltip appears on (default "bottom"). */
   triggerTooltipSide?: "top" | "bottom" | "left" | "right";
+  /** Horizontal alignment of the trigger tooltip (default "center"); use "end"
+   *  for triggers at the window's right edge so the tooltip stays inside. */
+  triggerTooltipAlign?: "start" | "center" | "end";
   /** Override the trigger button styling (defaults to a bare inline-flex). */
   triggerClassName?: string;
   children: ReactNode;
@@ -33,6 +36,7 @@ export function Popover({
   triggerLabel,
   triggerTooltip,
   triggerTooltipSide = "bottom",
+  triggerTooltipAlign = "center",
   triggerClassName,
   children,
   align = "left",
@@ -97,7 +101,7 @@ export function Popover({
   return (
     <div ref={containerRef} className={cn("relative inline-block", className)}>
       {triggerTooltip ? (
-        <Tooltip content={triggerTooltip} side={triggerTooltipSide}>
+        <Tooltip content={triggerTooltip} side={triggerTooltipSide} align={triggerTooltipAlign}>
           {triggerButton}
         </Tooltip>
       ) : (

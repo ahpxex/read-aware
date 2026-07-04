@@ -2,15 +2,26 @@ import { useId, type ReactNode, Children, cloneElement, isValidElement } from "r
 import { cn } from "./lib/cn";
 
 const sideClasses = {
-  top: "bottom-full left-1/2 mb-2 -translate-x-1/2",
-  bottom: "top-full left-1/2 mt-2 -translate-x-1/2",
+  top: "bottom-full mb-2",
+  bottom: "top-full mt-2",
   left: "right-full top-1/2 mr-2 -translate-y-1/2",
   right: "left-full top-1/2 ml-2 -translate-y-1/2",
+} as const;
+
+// Horizontal alignment for top/bottom tooltips (left/right sides center on the
+// cross axis and ignore it). The tooltip box is always laid out (hidden via
+// opacity), so a centered tooltip on a window-edge trigger would poke past the
+// viewport — "start"/"end" pin it to the trigger's edge instead.
+const alignClasses = {
+  start: "left-0",
+  center: "left-1/2 -translate-x-1/2",
+  end: "right-0",
 } as const;
 
 type TooltipProps = {
   content: string;
   side?: keyof typeof sideClasses;
+  align?: keyof typeof alignClasses;
   children: ReactNode;
   className?: string;
 };
@@ -18,6 +29,7 @@ type TooltipProps = {
 export function Tooltip({
   content,
   side = "top",
+  align = "center",
   children,
   className,
 }: TooltipProps) {
@@ -40,6 +52,7 @@ export function Tooltip({
         className={cn(
           "pointer-events-none absolute z-50 whitespace-nowrap rounded bg-fg px-2 py-1 text-xs text-inverse-fg opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100",
           sideClasses[side],
+          (side === "top" || side === "bottom") && alignClasses[align],
         )}
       >
         {content}

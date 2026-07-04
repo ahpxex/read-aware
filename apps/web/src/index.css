@@ -145,6 +145,15 @@ html[data-tauri="true"][data-os="mac"] {
   --ra-traffic-light-inset: 4.75rem;
 }
 
+/* The desktop app is an app shell, not a document: every surface scrolls
+   internally, so the document itself must never grow scrollbars. `clip` also
+   keeps absolutely-positioned decorations near the window edge (tooltips,
+   popovers) from conjuring document overflow — anything outside is clipped.
+   Scoped to the Tauri shell so Storybook's preview document still scrolls. */
+html[data-tauri="true"] {
+  overflow: clip;
+}
+
 *,
 *::before,
 *::after {

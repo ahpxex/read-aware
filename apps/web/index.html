@@ -11,11 +11,16 @@
     />
     <!-- Boot splash: pure inline CSS so it paints as soon as the document
          parses, before any JS loads. React replaces #root's children on mount.
-         Colors mirror --color-paper / --color-fg in src/index.css; the theme
-         follows the OS scheme here (the persisted in-app preference lives in
-         SQLite and isn't readable pre-JS — a forced-opposite theme mismatches
-         only for these first frames). The wordmark fades in after a short
-         delay so a fast boot shows quiet paper, never a flash of text. -->
+         Colors mirror --color-paper / --color-fg in src/index.css.
+
+         Theme: the desktop shell reads the persisted in-app preference from
+         SQLite and stamps `data-theme` on <html> via an initialization script
+         BEFORE the document parses (see lib.rs `boot_theme_script`), so a
+         forced light/dark choice wins here. When nothing is stamped — the
+         preference is "system", or this runs in the browser dev build — the
+         prefers-color-scheme fallback follows the OS. The wordmark fades in
+         after a short delay so a fast boot shows quiet paper, never a flash
+         of text. -->
     <style>
       html {
         background: #f5f1e8;
@@ -41,14 +46,23 @@
           opacity: 0.85;
         }
       }
+      /* System preference (nothing stamped): follow the OS scheme. */
       @media (prefers-color-scheme: dark) {
-        html {
+        html:not([data-theme="light"]) {
           background: #1c1917;
         }
-        #ra-splash {
+        html:not([data-theme="light"]) #ra-splash {
           background: #1c1917;
           color: #f5f5f4;
         }
+      }
+      /* Forced dark, stamped by the shell — wins regardless of OS scheme. */
+      html[data-theme="dark"] {
+        background: #1c1917;
+      }
+      html[data-theme="dark"] #ra-splash {
+        background: #1c1917;
+        color: #f5f5f4;
       }
       @media (prefers-reduced-motion: reduce) {
         #ra-splash span {

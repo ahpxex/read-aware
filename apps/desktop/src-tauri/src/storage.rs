@@ -336,6 +336,27 @@ pub fn delete_blob(key: String, db: State<'_, Db>) -> Result<(), String> {
 
 // --- Device-local key/value config (backs the settings seam) ---
 
+/// The persisted app theme preference, read straight off the connection during
+/// setup — BEFORE the main window (and its boot splash) exists. Returns
+/// `"light"` / `"dark"` for an explicit choice, `None` for "system", an unset
+/// key, or an unreadable value — the caller then follows the OS scheme.
+/// Key/shape mirror `features/settings/lib/app-settings.ts`.
+pub fn read_boot_theme(conn: &Connection) -> Option<&'static str> {
+    let value: String = conn
+        .query_row(
+            "SELECT value_json FROM app_kv WHERE key = 'read-aware-app-settings'",
+            [],
+            |row| row.get(0),
+        )
+        .ok()?;
+    let parsed: Value = serde_json::from_str(&value).ok()?;
+    match parsed.get("theme").and_then(|theme| theme.as_str()) {
+        Some("light") => Some("light"),
+        Some("dark") => Some("dark"),
+        _ => None,
+    }
+}
+
 /// Load the entire `app_kv` store as a `{ key: value_json }` map. Called once at
 /// boot to hydrate the synchronous in-memory snapshot the settings modules read.
 #[tauri::command]

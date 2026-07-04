@@ -105,6 +105,38 @@ fn list_system_fonts() -> Vec<String> {
     Vec::new()
 }
 
+/// Paper-tone window background (mirrors `--color-paper` in
+/// `apps/web/src/index.css`), painted before the webview's first frame.
+fn paper_color(dark: bool) -> tauri::window::Color {
+    if dark {
+        tauri::window::Color(0x1c, 0x19, 0x17, 0xff)
+    } else {
+        tauri::window::Color(0xf5, 0xf1, 0xe8, 0xff)
+    }
+}
+
+/// Initialization script stamping the forced theme on `<html>` before the
+/// document parses. `documentElement` may not exist yet at injection time, so
+/// fall back to observing the document until the parser creates it.
+fn boot_theme_script(theme: &str) -> String {
+    format!(
+        r#"(function () {{
+  var apply = function () {{
+    var root = document.documentElement;
+    if (!root) return false;
+    root.setAttribute("data-theme", "{theme}");
+    root.style.colorScheme = "{theme}";
+    return true;
+  }};
+  if (!apply()) {{
+    new MutationObserver(function (_, observer) {{
+      if (apply()) observer.disconnect();
+    }}).observe(document, {{ childList: true }});
+  }}
+}})();"#
+    )
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default()
@@ -112,25 +144,48 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let conn = storage::init_db(app.handle()).expect("failed to initialize database");
+            // Read the persisted theme preference BEFORE the main window exists
+            // so the very first frame — window background and boot splash —
+            // honors the in-app setting, not just the OS scheme. `None` means
+            // "system" (or nothing stored): follow the OS.
+            let boot_theme = storage::read_boot_theme(&conn);
             app.manage(storage::Db(Mutex::new(conn)));
+
+            // The main window is declared in tauri.conf.json with `create:
+            // false` and built here instead: an initialization script can only
+            // be attached before creation, and it needs the stored theme.
+            let window_config = app
+                .config()
+                .app
+                .windows
+                .iter()
+                .find(|window| window.label == "main")
+                .expect("main window missing from tauri.conf.json")
+                .clone();
+            let mut builder =
+                tauri::WebviewWindowBuilder::from_config(app.handle(), &window_config)?;
+            if let Some(theme) = boot_theme {
+                // Stamp <html data-theme> before the document parses so the
+                // splash CSS (keyed on the attribute) applies the forced theme
+                // from its first paint. For "system" nothing is stamped — the
+                // splash's prefers-color-scheme fallback already follows the OS.
+                builder = builder
+                    .initialization_script(boot_theme_script(theme))
+                    .background_color(paper_color(theme == "dark"));
+            }
+            let window = builder.build()?;
 
             // macOS: the native title bar is hidden (titleBarStyle "Overlay"), so
             // nudge the traffic lights down to sit centered in our custom top bar.
             // Decorum keeps the inset across window resizes.
             #[cfg(target_os = "macos")]
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.set_traffic_lights_inset(16.0, 23.5);
-            }
+            let _ = window.set_traffic_lights_inset(16.0, 23.5);
 
-            // The config paints the window light-paper before the webview's
-            // first frame; on a dark-scheme OS swap that for dark paper so a
-            // dark-theme boot never flashes light. (Values mirror
-            // --color-paper in apps/web/src/index.css.)
-            if let Some(window) = app.get_webview_window("main") {
-                if matches!(window.theme(), Ok(tauri::Theme::Dark)) {
-                    let _ = window
-                        .set_background_color(Some(tauri::window::Color(0x1c, 0x19, 0x17, 0xff)));
-                }
+            // No forced preference: the config painted light paper, so swap in
+            // dark paper when the OS scheme is dark and a dark boot never
+            // flashes light.
+            if boot_theme.is_none() && matches!(window.theme(), Ok(tauri::Theme::Dark)) {
+                let _ = window.set_background_color(Some(paper_color(true)));
             }
 
             Ok(())

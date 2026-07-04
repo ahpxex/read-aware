@@ -16,9 +16,6 @@
       "generic": "返信の取得中に問題が発生しました。"
     }
   },
-  "service": {
-    "notConfigured": "AIが設定されていません。設定でAPIキーを設定してください。"
-  },
   "note": {
     "addTitle": "メモを追加",
     "editTitle": "メモを編集",

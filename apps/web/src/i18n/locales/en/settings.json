@@ -171,10 +171,6 @@
     }
   },
   "aiConfig": {
-    "configured": {
-      "title": "AI is configured",
-      "body": "Your API key is saved locally. You can use AI features in the reader."
-    },
     "result": {
       "success": "Success",
       "error": "Error"

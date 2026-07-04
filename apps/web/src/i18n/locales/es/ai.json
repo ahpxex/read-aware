@@ -16,9 +16,6 @@
       "generic": "Algo salió mal al obtener una respuesta."
     }
   },
-  "service": {
-    "notConfigured": "La IA no está configurada. Configura tu clave de API en los ajustes."
-  },
   "note": {
     "addTitle": "Añadir nota",
     "editTitle": "Editar nota",

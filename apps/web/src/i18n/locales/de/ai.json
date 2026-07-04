@@ -16,9 +16,6 @@
       "generic": "Beim Abrufen einer Antwort ist etwas schiefgelaufen."
     }
   },
-  "service": {
-    "notConfigured": "KI nicht konfiguriert. Bitte richte deinen API-Schlüssel in den Einstellungen ein."
-  },
   "note": {
     "addTitle": "Notiz hinzufügen",
     "editTitle": "Notiz bearbeiten",

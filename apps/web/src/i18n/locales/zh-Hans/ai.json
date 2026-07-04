@@ -16,9 +16,6 @@
       "generic": "获取回复时出错。"
     }
   },
-  "service": {
-    "notConfigured": "AI 尚未配置。请在设置中设置你的 API 密钥。"
-  },
   "note": {
     "addTitle": "添加笔记",
     "editTitle": "编辑笔记",

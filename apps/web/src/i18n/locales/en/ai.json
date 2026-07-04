@@ -16,9 +16,6 @@
       "generic": "Something went wrong getting a reply."
     }
   },
-  "service": {
-    "notConfigured": "AI not configured. Please set up your API key in settings."
-  },
   "note": {
     "addTitle": "Add Note",
     "editTitle": "Edit Note",

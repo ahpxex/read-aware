@@ -16,9 +16,6 @@
       "generic": "取得回覆時發生問題。"
     }
   },
-  "service": {
-    "notConfigured": "尚未設定 AI。請在設定中配置你的 API 金鑰。"
-  },
   "note": {
     "addTitle": "新增筆記",
     "editTitle": "編輯筆記",

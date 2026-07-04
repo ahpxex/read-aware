@@ -4,8 +4,10 @@
  */
 
 import { useState, useEffect } from "react";
+import { testLlmConnection } from "@read-aware/agent";
 import { Button, Select, TextField, Stack, Alert } from "@read-aware/ui";
 import { Trans, useTranslation } from "../../../i18n";
+import { accountFromConfig } from "../../ai/agent/account";
 import {
   getAIConfig,
   saveAIConfig,
@@ -15,12 +17,9 @@ import {
   PROVIDER_LABELS,
   type AIProvider,
 } from "../../ai/lib/ai-config";
-import { sendChatCompletion } from "../../ai/lib/ai-service";
 
 export function AIConfigPanel() {
   const { t } = useTranslation("settings");
-  // The `ai` namespace localizes error messages thrown by the AI service.
-  const { t: tAi } = useTranslation("ai");
   const [provider, setProvider] = useState<AIProvider>("openai");
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState(DEFAULT_MODELS.openai);
@@ -42,10 +41,14 @@ export function AIConfigPanel() {
     }
   }, []);
 
-  // Update model when provider changes
-  useEffect(() => {
-    setModel(DEFAULT_MODELS[provider]);
-  }, [provider]);
+  // Switching provider resets the model to that provider's default. Done in
+  // the change handler (not an effect) so loading a saved config on mount
+  // doesn't clobber the stored model choice.
+  const handleProviderChange = (value: string) => {
+    const next = value as AIProvider;
+    setProvider(next);
+    setModel(DEFAULT_MODELS[next]);
+  };
 
   const handleSave = () => {
     const config = {
@@ -72,31 +75,22 @@ export function AIConfigPanel() {
     setIsTesting(true);
     setTestResult(null);
 
-    // Temporarily save config for testing
-    const config = {
-      provider,
-      apiKey: apiKey.trim(),
-      model,
-      customBaseUrl: provider === "custom" ? customBaseUrl.trim() : undefined,
-    };
-    saveAIConfig(config);
-
     try {
-      const response = await sendChatCompletion({
-        messages: [
-          { role: "system", content: "You are a helpful assistant." },
-          { role: "user", content: "Say 'ReadAware AI is working!' in 10 words or less." },
-        ],
-        maxTokens: 50,
-        t: tAi,
+      // Same provider stack as real chat (pi-ai), against the form values —
+      // testing neither saves the config nor depends on a saved one.
+      const { account, models } = accountFromConfig({
+        provider,
+        apiKey: apiKey.trim(),
+        model,
+        customBaseUrl: provider === "custom" ? customBaseUrl.trim() : undefined,
       });
+      const response = await testLlmConnection(account, models.smart);
 
-      if (response.content) {
+      if (response) {
         setTestResult({
           success: true,
-          message: t("aiConfig.testSuccessMessage", { response: response.content.trim() }),
+          message: t("aiConfig.testSuccessMessage", { response }),
         });
-        setIsConfigured(true);
       } else {
         setTestResult({
           success: false,
@@ -122,12 +116,6 @@ export function AIConfigPanel() {
 
   return (
     <Stack gap="xl">
-      {isConfigured && (
-        <Alert variant="success" title={t("aiConfig.configured.title")}>
-          {t("aiConfig.configured.body")}
-        </Alert>
-      )}
-
       {testResult && (
         <Alert
           variant={testResult.success ? "success" : "destructive"}
@@ -141,7 +129,7 @@ export function AIConfigPanel() {
         <Select
           label={t("aiConfig.provider")}
           value={provider}
-          onChange={(value) => setProvider(value as AIProvider)}
+          onChange={handleProviderChange}
           options={providerOptions}
         />
 

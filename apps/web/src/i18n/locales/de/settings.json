@@ -171,10 +171,6 @@
     }
   },
   "aiConfig": {
-    "configured": {
-      "title": "KI ist konfiguriert",
-      "body": "Dein API-Schlüssel ist lokal gespeichert. Du kannst KI-Funktionen im Reader nutzen."
-    },
     "result": {
       "success": "Erfolg",
       "error": "Fehler"

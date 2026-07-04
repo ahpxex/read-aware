@@ -171,10 +171,6 @@
     }
   },
   "aiConfig": {
-    "configured": {
-      "title": "AI 已配置",
-      "body": "你的 API 密钥已保存在本地。你可以在阅读器中使用 AI 功能。"
-    },
     "result": {
       "success": "成功",
       "error": "错误"

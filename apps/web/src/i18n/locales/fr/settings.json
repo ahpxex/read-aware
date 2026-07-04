@@ -171,10 +171,6 @@
     }
   },
   "aiConfig": {
-    "configured": {
-      "title": "L’IA est configurée",
-      "body": "Votre clé API est enregistrée localement. Vous pouvez utiliser les fonctionnalités d’IA dans le lecteur."
-    },
     "result": {
       "success": "Succès",
       "error": "Erreur"

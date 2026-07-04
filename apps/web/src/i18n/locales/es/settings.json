@@ -171,10 +171,6 @@
     }
   },
   "aiConfig": {
-    "configured": {
-      "title": "La IA está configurada",
-      "body": "Tu clave de API se guarda localmente. Puedes usar las funciones de IA en el lector."
-    },
     "result": {
       "success": "Correcto",
       "error": "Error"

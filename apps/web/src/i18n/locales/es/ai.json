@@ -34,7 +34,6 @@
     "loading": "Cargando el contexto...",
     "title": "Contexto",
     "unknownBook": "Libro desconocido",
-    "delete": "Eliminar",
     "empty": {
       "title": "Aún no hay contexto",
       "description": "Aquí aparecerán los resaltados y las notas de tu lectura."

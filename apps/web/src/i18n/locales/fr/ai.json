@@ -34,7 +34,6 @@
     "loading": "Chargement du contexte…",
     "title": "Contexte",
     "unknownBook": "Livre inconnu",
-    "delete": "Supprimer",
     "empty": {
       "title": "Aucun contexte pour l’instant",
       "description": "Les surlignages et notes de vos lectures apparaîtront ici."

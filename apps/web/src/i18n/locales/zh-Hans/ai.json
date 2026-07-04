@@ -34,7 +34,6 @@
     "loading": "正在加载上下文…",
     "title": "上下文",
     "unknownBook": "未知书籍",
-    "delete": "删除",
     "empty": {
       "title": "还没有上下文",
       "description": "你阅读时的高亮和笔记会显示在这里。"

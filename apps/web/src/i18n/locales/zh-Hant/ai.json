@@ -34,7 +34,6 @@
     "loading": "正在載入上下文...",
     "title": "上下文",
     "unknownBook": "不明書籍",
-    "delete": "刪除",
     "empty": {
       "title": "尚無上下文",
       "description": "你閱讀時的螢光標示與筆記將顯示於此。"

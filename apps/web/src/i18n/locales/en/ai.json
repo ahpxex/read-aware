@@ -34,7 +34,6 @@
     "loading": "Loading context...",
     "title": "Context",
     "unknownBook": "Unknown Book",
-    "delete": "Delete",
     "empty": {
       "title": "No context yet",
       "description": "Highlights and notes from your reading will appear here."

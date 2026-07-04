@@ -34,7 +34,6 @@
     "loading": "Kontext wird geladen...",
     "title": "Kontext",
     "unknownBook": "Unbekanntes Buch",
-    "delete": "Löschen",
     "empty": {
       "title": "Noch kein Kontext",
       "description": "Markierungen und Notizen aus deinem Lesen erscheinen hier."

@@ -1,15 +1,15 @@
 /**
  * 跨书标注浏览，以 AppHeader 图标弹层呈现（与 reader 顶栏的 ReaderNotesPopover
- * 同一交互）：按书分组列出高亮 / 笔记 / 提问，点书名跳回该书。
+ * 同一交互与行样式）：按书分组列出高亮 / 笔记 / 提问，点书名或任一条目跳回该书。
  */
 import { useCallback, useEffect, useState } from "react";
-import { ChatCircleDots, NotePencil, Notebook, Trash } from "@phosphor-icons/react";
-import { Body, Caption, Eyebrow, IconButton, Popover } from "@read-aware/ui";
+import { Notebook } from "@phosphor-icons/react";
+import { Body, Eyebrow, Popover } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
-import { formatDate, formatNumber, useTranslation } from "../../../i18n";
+import { formatNumber, useTranslation } from "../../../i18n";
+import { AnnotationRow } from "../../annotations/components/AnnotationRow";
 import { deleteAnnotation, listAnnotations } from "../../annotations/lib/annotation-db";
-import { HIGHLIGHT_COLORS } from "../../reader/lib/highlight-renderer";
-import type { Annotation, Highlight, Note } from "../../annotations/lib/annotation-types";
+import type { Annotation } from "../../annotations/lib/annotation-types";
 import type { LibraryBook } from "../../library/lib/library-types";
 
 type AnnotationsPopoverProps = {
@@ -20,24 +20,6 @@ type AnnotationsPopoverProps = {
 // Mirrors the AppHeader icon buttons so the trigger sits flush with them.
 const TRIGGER_CLASS =
   "relative h-7 w-7 items-center justify-center text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg before:absolute before:-inset-1 before:content-['']";
-
-function AnnotationTypeIcon({ annotation }: { annotation: Annotation }) {
-  if (annotation.type === "highlight") {
-    const color = HIGHLIGHT_COLORS[(annotation as Highlight).color] ?? HIGHLIGHT_COLORS.yellow;
-    return (
-      <span
-        className="mt-0.5 block h-2.5 w-2.5 shrink-0 rounded-sm"
-        style={{ backgroundColor: color }}
-      />
-    );
-  }
-  if (annotation.type === "ask") {
-    return (
-      <ChatCircleDots size={12} weight="regular" className="mt-0.5 shrink-0 text-fg-subtle" />
-    );
-  }
-  return <NotePencil size={12} weight="regular" className="mt-0.5 shrink-0 text-fg-subtle" />;
-}
 
 export function AnnotationsPopover({ books, onOpenBook }: AnnotationsPopoverProps) {
   const { t } = useTranslation("ai");
@@ -100,50 +82,30 @@ export function AnnotationsPopover({ books, onOpenBook }: AnnotationsPopoverProp
           <div className="flex flex-col gap-4 px-3 py-3">
             {[...grouped.entries()].map(([bookId, items]) => {
               const book = bookMap.get(bookId);
+              const openBook = () => {
+                if (!book) return;
+                onOpenBook(book);
+                setOpen(false);
+              };
               return (
                 <section key={bookId}>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (book) onOpenBook(book);
-                    }}
+                    onClick={openBook}
                     className="mb-1 rounded-md px-2 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
                   >
                     <Body className="font-serif text-sm text-fg hover:text-fg-muted">
                       {book?.title ?? t("context.unknownBook")}
                     </Body>
                   </button>
-                  <div className="flex flex-col gap-0.5">
+                  <div className="flex flex-col gap-1">
                     {items.map((annotation) => (
-                      <div
+                      <AnnotationRow
                         key={annotation.id}
-                        className="group flex gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-fg/5"
-                      >
-                        <AnnotationTypeIcon annotation={annotation} />
-                        <div className="min-w-0 flex-1">
-                          <Caption className="line-clamp-2 text-fg-muted">
-                            {annotation.type === "ask" ? annotation.text : `“${annotation.text}”`}
-                          </Caption>
-                          {annotation.type === "note" && (
-                            <Caption className="mt-0.5 line-clamp-1 text-fg-subtle">
-                              {(annotation as Note).content}
-                            </Caption>
-                          )}
-                          <Caption className="mt-0.5 text-fg-subtle">
-                            {formatDate(new Date(annotation.createdAt), {
-                              month: "short",
-                              day: "numeric",
-                            })}
-                          </Caption>
-                        </div>
-                        <IconButton
-                          label={t("context.delete")}
-                          size="sm"
-                          onClick={() => void handleDelete(annotation.id)}
-                          className="shrink-0 text-fg-subtle opacity-0 group-hover:opacity-100 hover:text-red-600"
-                          icon={<Trash size={12} weight="regular" />}
-                        />
-                      </div>
+                        annotation={annotation}
+                        onNavigate={openBook}
+                        onDelete={(id) => void handleDelete(id)}
+                      />
                     ))}
                   </div>
                 </section>

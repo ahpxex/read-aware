@@ -55,13 +55,21 @@ export function AppHeader({
   };
 
   return (
-    <header className="shrink-0 border-b border-border bg-[var(--ra-main-surface-color)]">
+    <header
+      className="shrink-0 border-b border-border bg-[var(--ra-main-surface-color)]"
+      // Mobile: keep the bar clear of the status bar / notch. Zero on desktop.
+      style={{ paddingTop: "var(--ra-safe-top)" }}
+    >
       <div
         data-tauri-drag-region=""
-        className="flex h-12 items-center pr-5"
+        className="flex h-12 items-center"
         style={{
-          // Clear the macOS traffic lights only when the left cluster is present.
-          paddingLeft: showBack ? "max(1.25rem, var(--ra-traffic-light-inset))" : "1.25rem",
+          // Clear the macOS traffic lights only when the left cluster is
+          // present; on mobile, clear the display-cutout safe areas.
+          paddingLeft: showBack
+            ? "max(1.25rem, var(--ra-traffic-light-inset), var(--ra-safe-left))"
+            : "max(1.25rem, var(--ra-safe-left))",
+          paddingRight: "max(1.25rem, var(--ra-safe-right))",
         }}
       >
         {showBack && (
@@ -98,6 +106,9 @@ export function AppHeader({
                 />
               </Tooltip>
               {viewControl}
+              {/* On phone widths these three live in the bottom tab bar
+                  (MobileNavBar); the header keeps only contextual actions. */}
+              <div className="contents max-md:hidden">
               <Tooltip content={t("header.context")} side="bottom">
                 <IconButton
                   label={t("header.context")}
@@ -133,6 +144,7 @@ export function AppHeader({
                   icon={<GearSix size={16} weight="regular" aria-hidden="true" />}
                 />
               </Tooltip>
+              </div>
             </>
           )}
         </div>

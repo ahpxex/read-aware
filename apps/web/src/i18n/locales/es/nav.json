@@ -14,6 +14,12 @@
     "stats": "Estadísticas de lectura",
     "settings": "Ajustes"
   },
+  "tabs": {
+    "shelf": "Estantería",
+    "context": "Contexto",
+    "stats": "Estadísticas",
+    "settings": "Ajustes"
+  },
   "error": {
     "title": "Algo interrumpió el flujo de lectura.",
     "body": "Actualiza la página para continuar. Si el problema persiste, vuelve a abrir el libro desde tu estantería."

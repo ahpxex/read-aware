@@ -14,6 +14,12 @@
     "stats": "Statistiques de lecture",
     "settings": "Paramètres"
   },
+  "tabs": {
+    "shelf": "Étagère",
+    "context": "Contexte",
+    "stats": "Statistiques",
+    "settings": "Réglages"
+  },
   "error": {
     "title": "Un incident a interrompu le fil de lecture.",
     "body": "Actualisez la page pour continuer. Si le problème persiste, rouvrez le livre depuis votre étagère."

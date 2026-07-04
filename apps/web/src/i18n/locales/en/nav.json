@@ -14,6 +14,12 @@
     "stats": "Reading stats",
     "settings": "Settings"
   },
+  "tabs": {
+    "shelf": "Shelf",
+    "context": "Context",
+    "stats": "Stats",
+    "settings": "Settings"
+  },
   "error": {
     "title": "Something interrupted the reading flow.",
     "body": "Refresh the page to continue. If the problem persists, reopen the book from your shelf."

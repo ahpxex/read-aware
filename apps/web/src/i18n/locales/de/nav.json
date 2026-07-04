@@ -14,6 +14,12 @@
     "stats": "Lesestatistik",
     "settings": "Einstellungen"
   },
+  "tabs": {
+    "shelf": "Regal",
+    "context": "Kontext",
+    "stats": "Statistik",
+    "settings": "Einstellungen"
+  },
   "error": {
     "title": "Etwas hat den Lesefluss unterbrochen.",
     "body": "Lade die Seite neu, um fortzufahren. Falls das Problem weiterhin besteht, öffne das Buch erneut aus deinem Regal."

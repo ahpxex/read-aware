@@ -7,11 +7,16 @@ import { ScrollArea } from "./ScrollArea";
 
 /** Viewport-fixed coordinates for the portaled listbox. */
 type MenuPosition = {
-  top: number;
   left: number;
   width: number;
   maxHeight: number;
   placeBelow: boolean;
+  /**
+   * Distance from the viewport edge the menu grows away from: `top` when
+   * placed below the trigger, `bottom` when placed above. Anchoring the
+   * near edge keeps the menu hugging the trigger whatever its content height.
+   */
+  offset: number;
 };
 
 type SelectOption = { label: string; value: string };
@@ -102,12 +107,15 @@ export function Select({
     if (!button) return;
     const rect = button.getBoundingClientRect();
     const gap = 6;
+    const menuCap = 240;
     const spaceBelow = window.innerHeight - rect.bottom - gap;
     const spaceAbove = rect.top - gap;
-    const placeBelow = spaceBelow >= spaceAbove;
-    const maxHeight = Math.max(96, Math.min(240, placeBelow ? spaceBelow : spaceAbove));
-    const top = placeBelow ? rect.bottom + gap : Math.max(gap, rect.top - gap - maxHeight);
-    setPosition({ top, left: rect.left, width: rect.width, maxHeight, placeBelow });
+    // Prefer below; flip above only when a full-height menu can't fit below
+    // AND above actually offers more room.
+    const placeBelow = spaceBelow >= menuCap || spaceBelow >= spaceAbove;
+    const maxHeight = Math.max(96, Math.min(menuCap, placeBelow ? spaceBelow : spaceAbove));
+    const offset = placeBelow ? rect.bottom + gap : window.innerHeight - rect.top + gap;
+    setPosition({ left: rect.left, width: rect.width, maxHeight, placeBelow, offset });
   }, [setPosition]);
 
   useLayoutEffect(() => {
@@ -235,7 +243,9 @@ export function Select({
               ref={popupRef}
               style={{
                 position: "fixed",
-                top: position.top,
+                ...(position.placeBelow
+                  ? { top: position.offset }
+                  : { bottom: position.offset }),
                 left: position.left,
                 width: position.width,
                 zIndex: 80,

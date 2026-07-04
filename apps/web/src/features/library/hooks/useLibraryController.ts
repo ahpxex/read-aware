@@ -52,6 +52,9 @@ export function useLibraryController() {
   tRef.current = t;
 
   const reportError = useCallback((error: unknown) => {
+    // The banner shows a translated summary; keep the underlying cause
+    // inspectable in the console/logcat for diagnosis.
+    console.error("[library]", error);
     setLibraryError(formatLibraryError(error, tRef.current));
   }, []);
 
@@ -176,12 +179,24 @@ export function useLibraryController() {
     }
   }, [reportError]);
 
+  // One native picker at a time: a re-trigger while a dialog is pending would
+  // start a second concurrent importFiles flow, and the import dedupe reads
+  // the library before either flow has written — the same book lands twice.
+  const pickerPendingRef = useRef(false);
+
   const openImportPicker = useCallback(() => {
     // Desktop: the webview ignores the <input accept> filter, so drive the
     // native OS dialog (with a real Books format filter) instead. Web/dev falls
     // back to the hidden file input.
     if (canUseNativeFilePicker()) {
-      void pickBookFilesNative(tRef.current).then(importFiles).catch(reportError);
+      if (pickerPendingRef.current) return;
+      pickerPendingRef.current = true;
+      void pickBookFilesNative(tRef.current)
+        .then(importFiles)
+        .catch(reportError)
+        .finally(() => {
+          pickerPendingRef.current = false;
+        });
       return;
     }
 

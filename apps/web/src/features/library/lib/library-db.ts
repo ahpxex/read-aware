@@ -11,6 +11,7 @@ import type {
 } from "./library-types";
 import { extractBookCover, extractBookMetadata } from "./library-cover";
 import type { ExtractedBookMetadata } from "./library-cover";
+import { sniffBookFormat } from "./book-format-sniff";
 import { isTauri } from "../../../platform/environment";
 
 const DB_NAME = "read-aware-library";
@@ -195,7 +196,7 @@ function parseFileName(fileName: string) {
   return { title, author };
 }
 
-function detectBookFormat(file: File, t: TFunction<"shelf">): BookFormat {
+async function detectBookFormat(file: File, t: TFunction<"shelf">): Promise<BookFormat> {
   const name = file.name.toLowerCase();
   const type = file.type;
   if (name.endsWith(".epub") || type === "application/epub+zip") return "epub";
@@ -210,6 +211,11 @@ function detectBookFormat(file: File, t: TFunction<"shelf">): BookFormat {
   ) {
     return "fb2";
   }
+
+  // No usable extension or MIME type — Android SAF picks arrive as opaque
+  // content:// names — so fall back to sniffing the file's magic bytes.
+  const sniffed = await sniffBookFormat(file);
+  if (sniffed) return sniffed;
 
   throw new Error(t("errors.unsupportedFormat", { name: file.name }));
 }
@@ -322,7 +328,7 @@ export async function importBookFile(
   );
   if (byFile) return { status: "duplicate", book: byFile };
 
-  const format = detectBookFormat(file, t);
+  const format = await detectBookFormat(file, t);
   const metadata = await extractBookMetadata(file);
   const book = createLibraryBook(file, format, metadata);
 

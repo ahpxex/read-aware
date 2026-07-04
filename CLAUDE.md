@@ -102,6 +102,7 @@
 
 - **Local-first**: the app must be fully usable offline against on-device data; the network is for sync and (optional) remote inference, not for core reads/writes
 - **Desktop-only**: the product ships as the Tauri desktop app. The web build exists only as Tauri's bundled frontend and for local dev / Storybook — there is no standalone browser app, PWA, or in-browser storage engine
+- **Verify against the desktop app, never the web build in a browser**: outside the Tauri shell the app is UI shell only — no Tauri IPC, no SQLite/FS storage, no raw-IPC book blobs — so anything exercised in a plain browser (imports, reading, persistence, CSP, AI calls) proves nothing about product behavior. Exercise changes in the running Tauri app (see the Tauri MCP bridge); anything gated on the packaged build (e.g. the production CSP) needs a real `bun run build:desktop` build
 - **E2E by default**: end-to-end encrypt synced data. With no server-backed web client to feed, the server stays a dumb encrypted relay — there is no E2E-vs-web-client tradeoff to weigh
 - Do not use no-code / visual agent platforms as the core product architecture
 - Keep the AI layer code-first and product-native

@@ -15,7 +15,6 @@
   "workspace": {
     "errorTitle": "Ошибка библиотеки",
     "importTitle": "Импорт",
-    "loading": "Загрузка вашей библиотеки...",
     "emptyTitle": "Импортируйте свою первую книгу",
     "emptyCollection": "В этой коллекции нет книг.",
     "nothingToShow": "Нечего показать."

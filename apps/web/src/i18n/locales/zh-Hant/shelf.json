@@ -12,7 +12,6 @@
   "workspace": {
     "errorTitle": "書庫錯誤",
     "importTitle": "匯入",
-    "loading": "正在載入你的書庫...",
     "emptyTitle": "匯入你的第一本書",
     "emptyCollection": "此收藏中沒有書籍。",
     "nothingToShow": "沒有可顯示的內容。"

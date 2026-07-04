@@ -187,7 +187,21 @@ function loadEngine(): Promise<FoliateGlobal> {
       reject(new Error("Failed to load the reading engine.")));
     document.head.append(script);
   });
+  // Don't cache a failure: drop the promise so the next open (or the idle
+  // warmup) retries with a fresh script tag instead of replaying the rejection.
+  enginePromise.catch(() => {
+    enginePromise = null;
+  });
   return enginePromise;
+}
+
+/**
+ * Kick off the engine's script-injection load without needing it yet — called
+ * from the idle warmup so the first book open doesn't pay for fetching the
+ * whole vendored module tree. Failures are swallowed; a real open retries.
+ */
+export function preloadFoliateEngine(): void {
+  void loadEngine().catch(() => {});
 }
 
 /** The overlay draw functions (`highlight`, `underline`) for `draw-annotation`. */

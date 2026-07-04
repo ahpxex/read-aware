@@ -12,7 +12,6 @@
   "workspace": {
     "errorTitle": "ライブラリエラー",
     "importTitle": "インポート",
-    "loading": "ライブラリを読み込んでいます...",
     "emptyTitle": "最初の本をインポート",
     "emptyCollection": "このコレクションには本がありません。",
     "nothingToShow": "表示するものがありません。"

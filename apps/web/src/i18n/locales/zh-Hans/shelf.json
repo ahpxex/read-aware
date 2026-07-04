@@ -12,7 +12,6 @@
   "workspace": {
     "errorTitle": "书库错误",
     "importTitle": "导入",
-    "loading": "正在加载你的书库…",
     "emptyTitle": "导入你的第一本书",
     "emptyCollection": "此收藏集中暂无书籍。",
     "nothingToShow": "暂无内容。"

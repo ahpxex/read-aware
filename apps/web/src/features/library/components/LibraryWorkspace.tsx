@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import { Books } from "@phosphor-icons/react";
-import { Alert, Body, Button, EmptyState } from "@read-aware/ui";
+import { Alert, Body, Button, EmptyState, Skeleton } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import { Shelf } from "../../shelf/components/Shelf";
@@ -148,8 +148,15 @@ export function LibraryWorkspace({
       )}
 
       {!isReady ? (
-        <div className="flex flex-1 items-center justify-center py-16">
-          <Body className="text-sm text-fg-muted">{t("workspace.loading")}</Body>
+        // Skeleton shelf mirroring the real grid (see Shelf.tsx), so the load
+        // reads as the shelf taking shape rather than a bare loading notice.
+        <div className="grid grid-cols-3 gap-x-4 gap-y-8 sm:grid-cols-4 sm:gap-x-5 md:grid-cols-5 md:gap-x-6 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8">
+          {Array.from({ length: 12 }).map((_, index) => (
+            <div key={index} className="space-y-2.5">
+              <Skeleton variant="rectangular" className="aspect-[2/3] w-full rounded-sm" />
+              <Skeleton variant="text" className="w-3/4" />
+            </div>
+          ))}
         </div>
       ) : books.length === 0 ? (
         <div className="flex flex-1 items-center justify-center py-16">

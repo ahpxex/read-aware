@@ -14,7 +14,6 @@
   "workspace": {
     "errorTitle": "Error de la biblioteca",
     "importTitle": "Importar",
-    "loading": "Cargando tu biblioteca...",
     "emptyTitle": "Importa tu primer libro",
     "emptyCollection": "No hay libros en esta colección.",
     "nothingToShow": "No hay nada que mostrar."

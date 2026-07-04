@@ -1,19 +1,40 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { ScrollArea } from "@read-aware/ui";
-import { ContextWorkspace } from "./features/context/components/ContextWorkspace";
+import { scheduleIdleWarmup } from "./app-warmup";
 import { LibraryWorkspace } from "./features/library/components/LibraryWorkspace";
 import { useLibraryController } from "./features/library/hooks/useLibraryController";
 import { BOOK_FILE_ACCEPT } from "./features/library/lib/pick-book-files";
 import { AppHeader } from "./features/navigation/components/AppHeader";
 import { ShelfManagementMenu } from "./features/shelf/components/ShelfManagementMenu";
-import { ReaderWorkspace } from "./features/reader/components/ReaderWorkspace";
-import { StatsWorkspace } from "./features/stats/components/StatsWorkspace";
 import { useReaderSession } from "./features/reader/hooks/useReaderSession";
 import { useGlobalShortcuts } from "./features/settings/hooks/useGlobalShortcuts";
-import { SettingsDialog } from "./features/settings/SettingsDialog";
 import { CommandPalette } from "./features/command/components/CommandPalette";
 import type { CommandContext } from "./features/command/lib/build-commands";
+
+// The shelf is the boot-critical surface; everything below is split out of its
+// chunk and prefetched on idle (see app-warmup.ts), so cold start parses less
+// JS but the panels still open instantly.
+const ReaderWorkspace = lazy(() =>
+  import("./features/reader/components/ReaderWorkspace").then((m) => ({
+    default: m.ReaderWorkspace,
+  })),
+);
+const ContextWorkspace = lazy(() =>
+  import("./features/context/components/ContextWorkspace").then((m) => ({
+    default: m.ContextWorkspace,
+  })),
+);
+const StatsWorkspace = lazy(() =>
+  import("./features/stats/components/StatsWorkspace").then((m) => ({
+    default: m.StatsWorkspace,
+  })),
+);
+const SettingsDialog = lazy(() =>
+  import("./features/settings/SettingsDialog").then((m) => ({
+    default: m.SettingsDialog,
+  })),
+);
 import {
   activeCollectionAtom,
   activeTopNavAtom,
@@ -25,6 +46,17 @@ import {
 function App() {
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useAtom(settingsOpenAtom);
+  // Latch: mount the (lazy) settings dialog on first open and keep it mounted,
+  // preserving the always-mounted dialog's state/exit-animation behavior while
+  // keeping its chunk out of the boot path.
+  const [settingsMounted, setSettingsMounted] = useState(false);
+  useEffect(() => {
+    if (settingsOpen) setSettingsMounted(true);
+  }, [settingsOpen]);
+
+  useEffect(() => {
+    scheduleIdleWarmup();
+  }, []);
 
   useEffect(() => {
     if (import.meta.env.DEV) {
@@ -120,6 +152,9 @@ function App() {
   return (
     <>
       {reader.selectedBook ? (
+        // Fallback shows only if warmup hasn't fetched the chunk yet (rare):
+        // a quiet paper surface, matching the reader's own pre-render state.
+        <Suspense fallback={<div className="h-screen w-full bg-paper" />}>
         <ReaderWorkspace
           selectedBook={reader.selectedBook}
           readerSource={reader.readerSource}
@@ -145,6 +180,7 @@ function App() {
           onChapterSelect={reader.handleChapterSelect}
           onAnnotationSelect={reader.handleAnnotationSelect}
         />
+        </Suspense>
       ) : (
         <main className="flex h-screen flex-col bg-[var(--ra-main-surface-color)] text-fg">
           <input
@@ -188,9 +224,13 @@ function App() {
                 onSetBooksCollection={library.handleSetBooksCollection}
               />
             ) : activeTopNav === "context" ? (
-              <ContextWorkspace books={library.books} onOpenBook={reader.openReader} />
+              <Suspense fallback={null}>
+                <ContextWorkspace books={library.books} onOpenBook={reader.openReader} />
+              </Suspense>
             ) : (
-              <StatsWorkspace books={library.books} onOpenBook={reader.openReader} />
+              <Suspense fallback={null}>
+                <StatsWorkspace books={library.books} onOpenBook={reader.openReader} />
+              </Suspense>
             )}
           </ScrollArea>
 
@@ -202,7 +242,11 @@ function App() {
         </main>
       )}
 
-      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      {settingsMounted && (
+        <Suspense fallback={null}>
+          <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+        </Suspense>
+      )}
     </>
   );
 }

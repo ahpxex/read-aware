@@ -19,7 +19,10 @@ storybook-static
 
 # Tauri / Rust
 apps/desktop/src-tauri/target
-apps/desktop/src-tauri/gen
+# Generated IPC permission schemas only — gen/android and gen/apple are the
+# mobile project templates and are meant to be committed (each carries its own
+# .gitignore for build outputs).
+apps/desktop/src-tauri/gen/schemas
 target
 
 # Editor directories and files

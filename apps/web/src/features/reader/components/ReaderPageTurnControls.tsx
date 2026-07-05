@@ -16,6 +16,9 @@ type ReaderPageTurnControlsProps = {
  * keyboard shortcuts) are how the mouse turns pages. Each button lives inside a
  * non-interactive edge strip, so the surrounding gutter still falls through to
  * the shell toggle underneath.
+ *
+ * Hidden on coarse pointers: touch turns pages by swiping, and dropping the
+ * edge chrome keeps the text immersive.
  */
 export function ReaderPageTurnControls({
   visible,
@@ -30,7 +33,7 @@ export function ReaderPageTurnControls({
 
   return (
     <>
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-30 flex items-center pl-1 sm:pl-3">
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-30 flex items-center pl-1 sm:pl-3 pointer-coarse:hidden">
         <IconButton
           size="md"
           label={t("previousPage")}
@@ -39,7 +42,7 @@ export function ReaderPageTurnControls({
           icon={<CaretLeft size={24} weight="regular" aria-hidden="true" />}
         />
       </div>
-      <div className="pointer-events-none absolute inset-y-0 right-0 z-30 flex items-center pr-1 sm:pr-3">
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-30 flex items-center pr-1 sm:pr-3 pointer-coarse:hidden">
         <IconButton
           size="md"
           label={t("nextPage")}

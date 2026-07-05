@@ -66,9 +66,12 @@ export function Popover({
   useEffect(() => {
     if (!open) return;
     function handleClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      const target = e.target as Node;
+      if (containerRef.current?.contains(target)) return;
+      // Clicks inside body-portaled floating UI (e.g. a Select listbox opened
+      // from within this popover) are logically inside, not a dismissal.
+      if (target instanceof Element && target.closest("[data-ui-portal]")) return;
+      setOpen(false);
     }
     function handleEscape(e: KeyboardEvent) {
       if (e.key === "Escape") {

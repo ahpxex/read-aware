@@ -241,6 +241,9 @@ export function Select({
           createPortal(
             <div
               ref={popupRef}
+              // Marks body-portaled floating UI: ancestor popovers/menus must
+              // not treat clicks in here as "outside" (see Popover/DropdownMenu).
+              data-ui-portal=""
               style={{
                 position: "fixed",
                 ...(position.placeBelow

@@ -58,10 +58,12 @@ export function DropdownMenu({
   useEffect(() => {
     if (!open) return;
     function handleClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-        setActiveIndex(-1);
-      }
+      const target = e.target as Node;
+      if (containerRef.current?.contains(target)) return;
+      // Body-portaled floating UI opened from a menu item is logically inside.
+      if (target instanceof Element && target.closest("[data-ui-portal]")) return;
+      setOpen(false);
+      setActiveIndex(-1);
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);

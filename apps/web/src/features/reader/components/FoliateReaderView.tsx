@@ -62,7 +62,7 @@ import {
   getDefaultMarkColor,
   setDefaultMarkColor,
 } from "../../annotations/lib/annotation-prefs";
-import { suppressNativeContextMenu } from "../../../platform/environment";
+import { hasCoarsePointer, suppressNativeContextMenu } from "../../../platform/environment";
 import { useDelayedFlag } from "../hooks/useDelayedFlag";
 import { buildReaderContentCss, computeReaderMaxInlineSize } from "../../settings/lib/reader-css";
 import type { ReaderSettings, ReadingMode } from "../../settings/lib/reader-settings";
@@ -496,7 +496,16 @@ export function FoliateReaderView({
       readerRootRef.current?.clientWidth ??
       viewportRef.current?.clientWidth ??
       window.innerWidth;
-    const px = computeReaderMaxInlineSize(width);
+    const height =
+      readerRootRef.current?.clientHeight ??
+      viewportRef.current?.clientHeight ??
+      window.innerHeight;
+    const { maxColumnCount } = layoutForReadingMode(readingModeRef.current);
+    // foliate renders a single column in portrait containers regardless of
+    // max-column-count, so size the measure for the columns that will
+    // actually show — halving it in portrait would just shrink the one column.
+    const effectiveColumns = width > height ? maxColumnCount : 1;
+    const px = computeReaderMaxInlineSize(width, hasCoarsePointer(), effectiveColumns);
     renderer.setAttribute("max-inline-size", `${px}px`);
   }, []);
 
@@ -510,7 +519,9 @@ export function FoliateReaderView({
     ) => {
       const id = curatedFontId(settings.fontFamily);
       const fontFaceCss = id ? await ensureCuratedFontFaceCss(id).catch(() => "") : "";
-      renderer?.setStyles?.(buildReaderContentCss(settings, fontFaceCss));
+      renderer?.setStyles?.(
+        buildReaderContentCss(settings, fontFaceCss, hasCoarsePointer()),
+      );
     },
     [],
   );
@@ -1248,12 +1259,21 @@ export function FoliateReaderView({
         const { flow, maxColumnCount } = layoutForReadingMode(readingMode);
         view.renderer?.setAttribute("flow", flow);
         view.renderer?.setAttribute("max-column-count", String(maxColumnCount));
-        view.renderer?.setAttribute(
-          "max-inline-size",
-          `${computeReaderMaxInlineSize(
-            readerRootRef.current?.clientWidth ?? window.innerWidth,
-          )}px`,
-        );
+        // Touch devices read with tighter page margins: the paginator's gap
+        // (7% of the container by default) is the dominant edge margin once
+        // the text measure fills the container, so pull it in as well.
+        view.renderer?.setAttribute("gap", hasCoarsePointer() ? "3%" : "7%");
+        {
+          const width = readerRootRef.current?.clientWidth ?? window.innerWidth;
+          const height = readerRootRef.current?.clientHeight ?? window.innerHeight;
+          // Portrait containers render a single column regardless of
+          // max-column-count (see applyReaderMaxInlineSize).
+          const effectiveColumns = width > height ? maxColumnCount : 1;
+          view.renderer?.setAttribute(
+            "max-inline-size",
+            `${computeReaderMaxInlineSize(width, hasCoarsePointer(), effectiveColumns)}px`,
+          );
+        }
         void injectReaderStyles(readerSettingsRef.current, view.renderer);
         // Glide page turns / arrow-key scrolls instead of snapping (unless motion
         // is reduced). The runtime watcher effect keeps this in sync afterwards.

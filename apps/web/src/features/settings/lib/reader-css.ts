@@ -84,9 +84,23 @@ const MEASURE_MAX_REM = 84;
  * Text measure (px) for foliate's `max-inline-size` attribute, derived from the
  * live reader width so the column is responsive. Capped to the container so it
  * never overflows a small window.
+ *
+ * `compactMargins` (touch devices) lets the columns fill the container — the
+ * generous 80% desktop measure reads as oversized page margins on a tablet,
+ * where the paginator gap and body padding alone are the intended margins.
+ * The measure is per column, and foliate derives the column count from it
+ * (`ceil(container / measure)` capped at max-column-count), so the compact
+ * measure divides by the requested columns — a full-container measure would
+ * collapse two-page mode to a single column.
  */
-export function computeReaderMaxInlineSize(containerWidthPx: number): number {
-  const preferred = MEASURE_VIEWPORT_FRACTION * containerWidthPx;
+export function computeReaderMaxInlineSize(
+  containerWidthPx: number,
+  compactMargins = false,
+  columnCount = 1,
+): number {
+  const preferred = compactMargins
+    ? containerWidthPx / Math.max(1, columnCount)
+    : MEASURE_VIEWPORT_FRACTION * containerWidthPx;
   const clamped = Math.max(
     MEASURE_MIN_REM * REM_PX,
     Math.min(preferred, MEASURE_MAX_REM * REM_PX),
@@ -94,8 +108,10 @@ export function computeReaderMaxInlineSize(containerWidthPx: number): number {
   return Math.round(Math.min(clamped, containerWidthPx));
 }
 
-// Fixed horizontal page margin (formerly the "normal" preset).
+// Fixed horizontal page margin (formerly the "normal" preset); touch devices
+// use the tighter mobile-typical margin.
 const HORIZONTAL_MARGIN = "1.5rem";
+const HORIZONTAL_MARGIN_COMPACT = "0.75rem";
 
 const THEME_MAP = {
   light: {
@@ -137,11 +153,16 @@ export const READER_THEME_BG = {
  * its on-demand blob URLs) so the book renders in that webfont; it's empty for
  * system/preset fonts, which need no @font-face. See `curated-font-loader`.
  */
-export function buildReaderContentCss(settings: ReaderSettings, fontFaceCss = ""): string {
+export function buildReaderContentCss(
+  settings: ReaderSettings,
+  fontFaceCss = "",
+  compactMargins = false,
+): string {
   const fontFamily = resolveReaderFontStack(settings.fontFamily);
   const fontSize = FONT_SIZE_MAP[settings.fontSize];
   const lineHeight = LINE_HEIGHT_MAP[settings.lineSpacing];
   const paragraphSpacing = PARAGRAPH_SPACING_MAP[settings.paragraphSpacing];
+  const horizontalMargin = compactMargins ? HORIZONTAL_MARGIN_COMPACT : HORIZONTAL_MARGIN;
   const theme = THEME_MAP[settings.theme];
 
   return `
@@ -152,7 +173,7 @@ export function buildReaderContentCss(settings: ReaderSettings, fontFaceCss = ""
 
     body {
       box-sizing: border-box !important;
-      padding: 2rem ${HORIZONTAL_MARGIN} 4rem !important;
+      padding: 2rem ${horizontalMargin} 4rem !important;
       color: ${theme.text} !important;
       background: ${theme.bg} !important;
       font-family: ${fontFamily} !important;

@@ -43,6 +43,18 @@ export function isMobileOS(): boolean {
 }
 
 /**
+ * True when the primary pointer is coarse (a touchscreen). Layout code uses
+ * this for touch-specific ergonomics that aren't about viewport width — e.g.
+ * tighter reading margins on tablets.
+ */
+export function hasCoarsePointer(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(pointer: coarse)").matches === true
+  );
+}
+
+/**
  * Tag the document root with platform data attributes so CSS can react to the
  * shell and host OS — e.g. reserving a draggable titlebar band and clearance
  * for the macOS traffic lights once the native title bar is hidden, or mobile

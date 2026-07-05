@@ -1,9 +1,10 @@
-import { Check, DotsThreeVertical, Info, Star, Trash } from "@phosphor-icons/react";
+import { Check, Info, Star, Trash } from "@phosphor-icons/react";
 import { DropdownMenu, IconButton, Progress, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useLocalAtom } from "@read-aware/ui/state";
 import { formatPercent, useTranslation } from "../../../i18n";
 import type { BookMetadataPatch, LibraryBook } from "../../library/lib/library-types";
+import { useLongPress } from "../hooks/useLongPress";
 import { BookCoverPlaceholder } from "./BookCoverPlaceholder";
 import { BookDetailsDialog, BookRemoveDialog } from "./BookDialogs";
 
@@ -36,6 +37,12 @@ export function BookCover({
   const { t } = useTranslation("shelf");
   const [infoOpen, setInfoOpen] = useLocalAtom(false);
   const [removeOpen, setRemoveOpen] = useLocalAtom(false);
+  // Touch: no hover to reveal the action overlay, so a long press opens the
+  // same actions as a floating menu instead (mouse input never triggers it).
+  const [menuOpen, setMenuOpen] = useLocalAtom(false);
+  const longPress = useLongPress(() => {
+    if (!selecting) setMenuOpen(true);
+  });
 
   return (
     <div
@@ -49,8 +56,11 @@ export function BookCover({
         onClick={selecting ? onToggleSelect : onClick}
         aria-pressed={selecting ? selected : undefined}
         className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg focus-visible:ring-offset-2 focus-visible:ring-offset-fill"
+        {...longPress}
       >
-        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-sm transition-shadow group-hover:shadow-md group-focus-within:shadow-md">
+        {/* Hover shadow is a pointer-fine affordance; on touch a tap's focus
+            would pin it on, so gate both reveals behind a fine pointer. */}
+        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-sm transition-shadow pointer-fine:group-hover:shadow-md pointer-fine:group-focus-within:shadow-md">
           {book.coverUrl ? (
             <img
               src={book.coverUrl}
@@ -87,9 +97,11 @@ export function BookCover({
         </div>
       </button>
 
-      {/* Hover detail + actions, suppressed while selecting (the card toggles instead). */}
+      {/* Hover detail + actions, suppressed while selecting (the card toggles
+          instead). Fine pointers only: on touch a tap's lingering focus would
+          flash the overlay, and the long-press menu covers these actions. */}
       {!selecting && (
-        <div className="pointer-events-none absolute inset-0 flex flex-col justify-between rounded-sm bg-stone-950/0 p-3 opacity-0 transition-all group-hover:bg-stone-950/80 group-hover:opacity-100 group-focus-within:bg-stone-950/80 group-focus-within:opacity-100">
+        <div className="pointer-events-none absolute inset-0 hidden flex-col justify-between rounded-sm bg-stone-950/0 p-3 opacity-0 transition-all pointer-fine:flex pointer-fine:group-hover:bg-stone-950/80 pointer-fine:group-hover:opacity-100 pointer-fine:group-focus-within:bg-stone-950/80 pointer-fine:group-focus-within:opacity-100">
           <div className="min-w-0">
             <span className="block text-left font-serif text-sm leading-tight font-medium break-words text-white/95">
               {book.title}
@@ -141,26 +153,35 @@ export function BookCover({
         </div>
       )}
 
-      {/* Touch: hover can't reveal the action overlay above, so coarse-pointer
-          devices get an always-visible corner menu with the same actions. */}
+      {/* Touch: long-pressing the cover opens the same actions as a floating
+          menu, anchored to the cover's top edge. */}
       {!selecting && (
-        <div className="absolute right-1.5 top-1.5 hidden pointer-coarse:block">
+        <div className="absolute inset-x-2 top-10">
           <DropdownMenu
-            align="right"
-            trigger={
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-stone-950/55 text-white">
-                <DotsThreeVertical size={14} weight="bold" aria-hidden="true" />
-                <span className="sr-only">{t("book.menu.label")}</span>
-              </span>
-            }
+            align="left"
+            className="block"
+            open={menuOpen}
+            onOpenChange={setMenuOpen}
             items={[
               {
                 label: book.starred ? t("book.menu.unstar") : t("book.menu.star"),
+                icon: (
+                  <Star
+                    size={14}
+                    weight={book.starred ? "fill" : "regular"}
+                    aria-hidden="true"
+                  />
+                ),
                 onClick: () => onToggleStar?.(),
               },
-              { label: t("book.menu.info"), onClick: () => setInfoOpen(true) },
+              {
+                label: t("book.menu.info"),
+                icon: <Info size={14} weight="regular" aria-hidden="true" />,
+                onClick: () => setInfoOpen(true),
+              },
               {
                 label: t("book.menu.remove"),
+                icon: <Trash size={14} weight="regular" aria-hidden="true" />,
                 onClick: () => setRemoveOpen(true),
                 destructive: true,
               },

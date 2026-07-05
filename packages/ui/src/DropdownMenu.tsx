@@ -11,14 +11,27 @@ type DropdownItem = {
 };
 
 type DropdownMenuProps = {
-  trigger: ReactNode;
+  /** Omit to run fully controlled (e.g. a long-press-opened menu). */
+  trigger?: ReactNode;
   items: DropdownItem[];
   align?: "left" | "right";
   className?: string;
+  /** Controlled open state; leave undefined for internal (trigger-driven) state. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
-export function DropdownMenu({ trigger, items, align = "left", className }: DropdownMenuProps) {
-  const [open, setOpen] = useLocalAtom(false);
+export function DropdownMenu({
+  trigger,
+  items,
+  align = "left",
+  className,
+  open: controlledOpen,
+  onOpenChange,
+}: DropdownMenuProps) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useLocalAtom(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : uncontrolledOpen;
   const [activeIndex, setActiveIndex] = useLocalAtom(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -26,11 +39,21 @@ export function DropdownMenu({ trigger, items, align = "left", className }: Drop
   const id = useId();
   const menuId = `${id}-menu`;
 
+  const onOpenChangeRef = useRef(onOpenChange);
+  onOpenChangeRef.current = onOpenChange;
+  const setOpen = useCallback(
+    (next: boolean) => {
+      if (!isControlled) setUncontrolledOpen(next);
+      onOpenChangeRef.current?.(next);
+    },
+    [isControlled],
+  );
+
   const close = useCallback(() => {
     setOpen(false);
     setActiveIndex(-1);
     triggerRef.current?.focus();
-  }, []);
+  }, [setOpen]);
 
   useEffect(() => {
     if (!open) return;
@@ -42,7 +65,7 @@ export function DropdownMenu({ trigger, items, align = "left", className }: Drop
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
-  }, [open]);
+  }, [open, setOpen]);
 
   // Focus active item
   useEffect(() => {
@@ -103,25 +126,27 @@ export function DropdownMenu({ trigger, items, align = "left", className }: Drop
 
   return (
     <div ref={containerRef} className={cn("relative inline-block", className)}>
-      <button
-        ref={triggerRef}
-        type="button"
-        aria-expanded={open}
-        aria-haspopup="menu"
-        aria-controls={open ? menuId : undefined}
-        onClick={() => {
-          if (open) {
-            close();
-          } else {
-            setOpen(true);
-            setActiveIndex(findNextEnabled(-1, 1));
-          }
-        }}
-        onKeyDown={handleTriggerKeyDown}
-        className="inline-flex"
-      >
-        {trigger}
-      </button>
+      {trigger != null && (
+        <button
+          ref={triggerRef}
+          type="button"
+          aria-expanded={open}
+          aria-haspopup="menu"
+          aria-controls={open ? menuId : undefined}
+          onClick={() => {
+            if (open) {
+              close();
+            } else {
+              setOpen(true);
+              setActiveIndex(findNextEnabled(-1, 1));
+            }
+          }}
+          onKeyDown={handleTriggerKeyDown}
+          className="inline-flex"
+        >
+          {trigger}
+        </button>
+      )}
       {open && (
         <div
           id={menuId}

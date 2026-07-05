@@ -1,8 +1,17 @@
 import { type ReactNode } from "react";
 import { useAtom } from "jotai";
-import { Cards, CaretLeft, ChartLineUp, GearSix, MagnifyingGlass, Plus } from "@phosphor-icons/react";
-import { IconButton, Tooltip } from "@read-aware/ui";
+import {
+  Cards,
+  CaretLeft,
+  ChartLineUp,
+  DotsThreeVertical,
+  GearSix,
+  MagnifyingGlass,
+  Plus,
+} from "@phosphor-icons/react";
+import { DropdownMenu, IconButton, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
+import { usePhoneViewport } from "@read-aware/ui/media";
 import { useTranslation } from "../../../i18n";
 import { activeCollectionAtom, type TopNav } from "../../../state/ui";
 
@@ -16,7 +25,8 @@ type AppHeaderProps = {
   /** Optional context-specific control (e.g. the shelf view menu) shown in the cluster. */
   viewControl?: ReactNode;
   /** When set, replaces the default right-hand icon cluster entirely — the
-   *  Context page uses this to show only its annotations popover. */
+   *  Context page uses this to show only its annotations popover. On phones it
+   *  renders between the search field and the overflow menu instead. */
   actions?: ReactNode;
 };
 
@@ -27,6 +37,9 @@ const headerIconButtonClass =
  * A single, draggable top bar — no separate title band, no tab switcher, no
  * wordmark: just the native traffic lights on the left (the bar is the window
  * drag region) and a right cluster of icon actions.
+ *
+ * Phone widths swap the icon cluster for a prominent search field plus one
+ * overflow menu carrying import / context / stats / settings.
  */
 export function AppHeader({
   activeTopNav,
@@ -39,6 +52,7 @@ export function AppHeader({
   actions,
 }: AppHeaderProps) {
   const { t } = useTranslation("nav");
+  const isPhone = usePhoneViewport();
   const contextActive = activeTopNav === "context";
   const statsActive = activeTopNav === "stats";
   const [activeCollectionId, setActiveCollectionId] = useAtom(activeCollectionAtom);
@@ -54,22 +68,106 @@ export function AppHeader({
     else onTopNavChange("shelf");
   };
 
+  if (isPhone) {
+    return (
+      <header
+        className="shrink-0 border-b border-border bg-[var(--ra-main-surface-color)]"
+        // Keep the bar clear of the status bar / notch and display cutouts.
+        style={{ paddingTop: "var(--ra-safe-top)" }}
+      >
+        <div
+          className="flex h-12 items-center gap-1.5"
+          style={{
+            paddingLeft: "max(0.75rem, var(--ra-safe-left))",
+            paddingRight: "max(0.75rem, var(--ra-safe-right))",
+          }}
+        >
+          {showBack && (
+            <IconButton
+              label={backLabel}
+              size="sm"
+              onClick={handleBack}
+              className={cn(headerIconButtonClass, "shrink-0")}
+              icon={<CaretLeft size={18} weight="regular" aria-hidden="true" />}
+            />
+          )}
+          {/* Faux search field: visually an input, but tapping it opens the
+              command palette — the real search surface. */}
+          <button
+            type="button"
+            onClick={onOpenSearch}
+            // Pill with a quiet translucent fill (bg-fill would vanish against
+            // the header, which shares its color in light mode).
+            className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-full bg-fg/[0.06] px-3.5 text-left transition-colors active:bg-fg/10"
+          >
+            <MagnifyingGlass size={14} className="shrink-0 text-fg-subtle" aria-hidden="true" />
+            <span className="truncate text-sm text-fg-subtle">{t("header.search")}</span>
+          </button>
+          {actions}
+          <DropdownMenu
+            align="right"
+            className="shrink-0"
+            trigger={
+              <span className="flex h-8 w-8 items-center justify-center rounded-md text-fg-muted">
+                <DotsThreeVertical size={18} weight="bold" aria-hidden="true" />
+                <span className="sr-only">{t("header.more")}</span>
+              </span>
+            }
+            items={[
+              {
+                label: isImporting ? t("header.importing") : t("header.import"),
+                icon: <Plus size={16} weight="regular" aria-hidden="true" />,
+                onClick: onImport,
+                disabled: isImporting,
+              },
+              {
+                label: t("header.context"),
+                icon: (
+                  <Cards
+                    size={16}
+                    weight={contextActive ? "fill" : "regular"}
+                    aria-hidden="true"
+                  />
+                ),
+                onClick: () => onTopNavChange("context"),
+              },
+              {
+                label: t("header.stats"),
+                icon: (
+                  <ChartLineUp
+                    size={16}
+                    weight={statsActive ? "fill" : "regular"}
+                    aria-hidden="true"
+                  />
+                ),
+                onClick: () => onTopNavChange("stats"),
+              },
+              {
+                label: t("header.settings"),
+                icon: <GearSix size={16} weight="regular" aria-hidden="true" />,
+                onClick: onOpenSettings,
+              },
+            ]}
+          />
+        </div>
+      </header>
+    );
+  }
+
   return (
     <header
       className="shrink-0 border-b border-border bg-[var(--ra-main-surface-color)]"
-      // Mobile: keep the bar clear of the status bar / notch. Zero on desktop.
       style={{ paddingTop: "var(--ra-safe-top)" }}
     >
       <div
         data-tauri-drag-region=""
         className="flex h-12 items-center"
         style={{
-          // Clear the macOS traffic lights only when the left cluster is
-          // present; on mobile, clear the display-cutout safe areas.
+          // Clear the macOS traffic lights only when the left cluster is present.
           paddingLeft: showBack
-            ? "max(1.25rem, var(--ra-traffic-light-inset), var(--ra-safe-left))"
-            : "max(1.25rem, var(--ra-safe-left))",
-          paddingRight: "max(1.25rem, var(--ra-safe-right))",
+            ? "max(1.25rem, var(--ra-traffic-light-inset))"
+            : "1.25rem",
+          paddingRight: "1.25rem",
         }}
       >
         {showBack && (
@@ -106,9 +204,6 @@ export function AppHeader({
                 />
               </Tooltip>
               {viewControl}
-              {/* On phone widths these three live in the bottom tab bar
-                  (MobileNavBar); the header keeps only contextual actions. */}
-              <div className="contents max-md:hidden">
               <Tooltip content={t("header.context")} side="bottom">
                 <IconButton
                   label={t("header.context")}
@@ -144,7 +239,6 @@ export function AppHeader({
                   icon={<GearSix size={16} weight="regular" aria-hidden="true" />}
                 />
               </Tooltip>
-              </div>
             </>
           )}
         </div>

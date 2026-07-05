@@ -12,13 +12,8 @@
     "importing": "Importando...",
     "context": "Contexto",
     "stats": "Estadísticas de lectura",
-    "settings": "Ajustes"
-  },
-  "tabs": {
-    "shelf": "Estantería",
-    "context": "Contexto",
-    "stats": "Estadísticas",
-    "settings": "Ajustes"
+    "settings": "Ajustes",
+    "more": "Más"
   },
   "error": {
     "title": "Algo interrumpió el flujo de lectura.",

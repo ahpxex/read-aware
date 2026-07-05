@@ -91,7 +91,10 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
       // The border-t spans the full surface width; the inner wrapper caps the
       // content to the same measure as the transcript column (no-op in the
       // reader panel, centers the composer on the wide Context page).
-      <div className="shrink-0 border-t border-border px-3 py-3">
+      // The composer always sits at the very bottom of its surface (Context
+      // page and reader chat sheet alike), so it pads itself clear of the
+      // home indicator; --ra-safe-bottom is zero on desktop.
+      <div className="shrink-0 border-t border-border px-3 pt-3 pb-[calc(0.75rem+var(--ra-safe-bottom))]">
         <div className="mx-auto w-full max-w-2xl">
           {pendingAttachment && (
             <AttachmentChip

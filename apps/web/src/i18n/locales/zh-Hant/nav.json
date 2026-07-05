@@ -12,13 +12,8 @@
     "importing": "匯入中...",
     "context": "上下文",
     "stats": "閱讀統計",
-    "settings": "設定"
-  },
-  "tabs": {
-    "shelf": "書架",
-    "context": "上下文",
-    "stats": "統計",
-    "settings": "設定"
+    "settings": "設定",
+    "more": "更多"
   },
   "error": {
     "title": "有狀況打斷了閱讀流程。",

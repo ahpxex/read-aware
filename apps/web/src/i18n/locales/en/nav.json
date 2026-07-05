@@ -12,13 +12,8 @@
     "importing": "Importing...",
     "context": "Context",
     "stats": "Reading stats",
-    "settings": "Settings"
-  },
-  "tabs": {
-    "shelf": "Shelf",
-    "context": "Context",
-    "stats": "Stats",
-    "settings": "Settings"
+    "settings": "Settings",
+    "more": "More"
   },
   "error": {
     "title": "Something interrupted the reading flow.",

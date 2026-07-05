@@ -12,13 +12,8 @@
     "importing": "Wird importiert...",
     "context": "Kontext",
     "stats": "Lesestatistik",
-    "settings": "Einstellungen"
-  },
-  "tabs": {
-    "shelf": "Regal",
-    "context": "Kontext",
-    "stats": "Statistik",
-    "settings": "Einstellungen"
+    "settings": "Einstellungen",
+    "more": "Mehr"
   },
   "error": {
     "title": "Etwas hat den Lesefluss unterbrochen.",

@@ -351,9 +351,6 @@ export function ReaderShellOverlay({
           style={{
             width: isPhone ? undefined : sizes.chat,
             backgroundColor: "var(--ra-main-surface-color)",
-            // Full-screen sheet reaches the screen bottom — keep the composer
-            // above the home indicator. (Desktop resolves to 0.)
-            paddingBottom: isPhone ? "var(--ra-safe-bottom)" : undefined,
           }}
         >
           {!isPhone && (

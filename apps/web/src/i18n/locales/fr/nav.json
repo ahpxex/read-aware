@@ -12,13 +12,8 @@
     "importing": "Importation…",
     "context": "Contexte",
     "stats": "Statistiques de lecture",
-    "settings": "Paramètres"
-  },
-  "tabs": {
-    "shelf": "Étagère",
-    "context": "Contexte",
-    "stats": "Statistiques",
-    "settings": "Réglages"
+    "settings": "Paramètres",
+    "more": "Plus"
   },
   "error": {
     "title": "Un incident a interrompu le fil de lecture.",

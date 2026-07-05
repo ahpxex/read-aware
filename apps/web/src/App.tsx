@@ -2,7 +2,6 @@ import { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { ScrollArea } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
-import { usePhoneViewport } from "@read-aware/ui/media";
 import { scheduleIdleWarmup } from "./app-warmup";
 import { dismissBootSplash } from "./boot-splash";
 import { LibraryWorkspace } from "./features/library/components/LibraryWorkspace";
@@ -10,7 +9,6 @@ import { useLibraryController } from "./features/library/hooks/useLibraryControl
 import { BOOK_FILE_ACCEPT } from "./features/library/lib/pick-book-files";
 import type { LibraryBook } from "./features/library/lib/library-types";
 import { AppHeader } from "./features/navigation/components/AppHeader";
-import { MobileNavBar } from "./features/navigation/components/MobileNavBar";
 import { ShelfManagementMenu } from "./features/shelf/components/ShelfManagementMenu";
 import { useReaderSession } from "./features/reader/hooks/useReaderSession";
 import { useGlobalShortcuts } from "./features/settings/hooks/useGlobalShortcuts";
@@ -80,10 +78,6 @@ function App() {
     onOpenSearch: () => setSearchModalOpen(true),
     onOpenSettings: () => setSettingsOpen(true),
   });
-
-  // Phone-width layout: primary navigation moves from the header icon cluster
-  // to a bottom tab bar, and docked panels render as full-screen sheets.
-  const isPhone = usePhoneViewport();
 
   const [activeTopNav, setActiveTopNav] = useAtom(activeTopNavAtom);
   const [activeCollectionId, setActiveCollectionId] = useAtom(activeCollectionAtom);
@@ -306,17 +300,6 @@ function App() {
               </Suspense>
             )}
           </ScrollArea>
-
-          {isPhone && (
-            <MobileNavBar
-              activeTopNav={activeTopNav}
-              onTopNavChange={(topNav) => {
-                setActiveTopNav(topNav);
-                if (topNav === "shelf") setActiveCollectionId(null);
-              }}
-              onOpenSettings={() => setSettingsOpen(true)}
-            />
-          )}
 
           <CommandPalette
             isOpen={searchModalOpen}

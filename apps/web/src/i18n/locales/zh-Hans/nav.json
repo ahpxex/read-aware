@@ -12,13 +12,8 @@
     "importing": "导入中…",
     "context": "上下文",
     "stats": "阅读统计",
-    "settings": "设置"
-  },
-  "tabs": {
-    "shelf": "书架",
-    "context": "上下文",
-    "stats": "统计",
-    "settings": "设置"
+    "settings": "设置",
+    "more": "更多"
   },
   "error": {
     "title": "阅读流程被打断了。",

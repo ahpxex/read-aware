@@ -9,22 +9,17 @@
   "resizeChat": "チャットパネルのサイズを変更",
   "noToc": "このファイルには操作可能な目次がありません。",
   "progress": "{{page}} / {{total}} · {{percent}}",
-
   "notes": "メモ",
   "emptyNotes": "ハイライトやメモはまだありません。リーダーでテキストを選択してマークしましょう。",
-
   "previousPage": "前のページ",
   "nextPage": "次のページ",
   "go": "移動",
-
   "readerLabel": "書籍リーダー",
   "opening": "{{name}}を開いています",
   "book": "本",
   "loadError": "このファイルを読み込めませんでした。",
-
   "tryAgain": "再試行",
   "backToLibrary": "ライブラリに戻る",
-
   "readingAppearance": "読書の外観",
   "applyTo": "適用先",
   "scopeHintBook": "この本のみに変更が適用されます。",
@@ -34,12 +29,10 @@
   "lineSpacing": "行間",
   "paragraphSpacing": "段落間隔",
   "readingMode": "読書モード",
-
   "scope": {
     "global": "すべての本",
     "book": "この本"
   },
-
   "menu": {
     "copied": "コピーしました",
     "copySelection": "選択範囲をコピー",
@@ -51,7 +44,6 @@
     "askAi": "これについてAIに質問",
     "remove": "削除"
   },
-
   "recolor": "{{color}}に色を変更",
   "colors": {
     "yellow": "黄色",
@@ -59,7 +51,6 @@
     "blue": "青",
     "pink": "ピンク"
   },
-
   "footnote": {
     "footnote": "脚注",
     "endnote": "文末脚注",
@@ -69,7 +60,6 @@
   },
   "dismissNote": "メモを閉じる",
   "closeNote": "メモを閉じる",
-
   "dictionary": {
     "title": "辞書",
     "pos": {
@@ -80,7 +70,6 @@
     "senseVerb": "「{{word}}」を調べる — 実際の定義はここに表示されます。",
     "footer": "プレースホルダーの項目です — 辞書はプレビューで、実際の定義はまだ接続されていません。"
   },
-
   "fontSizeOption": {
     "xx-small": "XXS",
     "x-small": "XS",
@@ -100,6 +89,12 @@
     "tight": "狭い",
     "normal": "標準",
     "loose": "広い"
+  },
+  "pageMargins": "余白",
+  "pageMarginsOption": {
+    "narrow": "狭い",
+    "medium": "標準",
+    "wide": "広い"
   },
   "readingModeOption": {
     "scroll": "スクロール",

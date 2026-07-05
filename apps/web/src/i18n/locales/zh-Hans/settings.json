@@ -77,7 +77,8 @@
     "pageColor": {
       "title": "页面颜色",
       "description": "书页的纸张颜色。“自动”跟随应用主题，其余为固定颜色。"
-    }
+    },
+    "pageMargins": "页边距"
   },
   "shortcuts": {
     "title": "快捷键",

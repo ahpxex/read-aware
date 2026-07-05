@@ -9,22 +9,17 @@
   "resizeChat": "Chatbereich anpassen",
   "noToc": "Diese Datei stellt kein navigierbares Inhaltsverzeichnis bereit.",
   "progress": "{{page}} / {{total}} · {{percent}}",
-
   "notes": "Notizen",
   "emptyNotes": "Noch keine Markierungen oder Notizen. Wähle Text im Reader aus, um ihn zu markieren.",
-
   "previousPage": "Vorherige Seite",
   "nextPage": "Nächste Seite",
   "go": "Los",
-
   "readerLabel": "Buchreader",
   "opening": "{{name}} wird geöffnet",
   "book": "Buch",
   "loadError": "Diese Datei konnte nicht geladen werden.",
-
   "tryAgain": "Erneut versuchen",
   "backToLibrary": "Zurück zur Bibliothek",
-
   "readingAppearance": "Lesedarstellung",
   "applyTo": "Anwenden auf",
   "scopeHintBook": "Änderungen betreffen nur dieses Buch.",
@@ -34,12 +29,10 @@
   "lineSpacing": "Zeilenabstand",
   "paragraphSpacing": "Absatzabstand",
   "readingMode": "Lesemodus",
-
   "scope": {
     "global": "Alle Bücher",
     "book": "Dieses Buch"
   },
-
   "menu": {
     "copied": "Kopiert",
     "copySelection": "Auswahl kopieren",
@@ -51,7 +44,6 @@
     "askAi": "KI dazu fragen",
     "remove": "Entfernen"
   },
-
   "recolor": "In {{color}} umfärben",
   "colors": {
     "yellow": "Gelb",
@@ -59,7 +51,6 @@
     "blue": "Blau",
     "pink": "Rosa"
   },
-
   "footnote": {
     "footnote": "Fußnote",
     "endnote": "Endnote",
@@ -69,7 +60,6 @@
   },
   "dismissNote": "Notiz verwerfen",
   "closeNote": "Notiz schließen",
-
   "dictionary": {
     "title": "Wörterbuch",
     "pos": {
@@ -80,7 +70,6 @@
     "senseVerb": "„{{word}}“ nachschlagen — echte Definitionen erscheinen hier.",
     "footer": "Ein Platzhaltereintrag — das Wörterbuch ist eine Vorschau; echte Definitionen sind noch nicht angebunden."
   },
-
   "fontSizeOption": {
     "xx-small": "XXS",
     "x-small": "XS",
@@ -100,6 +89,12 @@
     "tight": "Eng",
     "normal": "Normal",
     "loose": "Weit"
+  },
+  "pageMargins": "Seitenränder",
+  "pageMarginsOption": {
+    "narrow": "Schmal",
+    "medium": "Mittel",
+    "wide": "Breit"
   },
   "readingModeOption": {
     "scroll": "Scrollen",

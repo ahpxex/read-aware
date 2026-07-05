@@ -77,7 +77,8 @@
     "pageColor": {
       "title": "ページの色",
       "description": "本の紙の色。「自動」はアプリのテーマに従い、その他は固定です。"
-    }
+    },
+    "pageMargins": "余白"
   },
   "shortcuts": {
     "title": "ショートカット",

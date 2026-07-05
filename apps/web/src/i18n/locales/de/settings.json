@@ -77,7 +77,8 @@
     "pageColor": {
       "title": "Seitenfarbe",
       "description": "Das Papier des Buches. „Auto“ folgt dem App-Design; die anderen sind fest."
-    }
+    },
+    "pageMargins": "Seitenränder"
   },
   "shortcuts": {
     "title": "Tastenkürzel",

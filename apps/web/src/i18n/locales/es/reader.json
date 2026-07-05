@@ -9,22 +9,17 @@
   "resizeChat": "Redimensionar el panel de chat",
   "noToc": "Este archivo no incluye un índice navegable.",
   "progress": "{{page}} / {{total}} · {{percent}}",
-
   "notes": "Notas",
   "emptyNotes": "Aún no hay resaltados ni notas. Selecciona texto en el lector para marcarlo.",
-
   "previousPage": "Página anterior",
   "nextPage": "Página siguiente",
   "go": "Ir",
-
   "readerLabel": "Lector de libros",
   "opening": "Abriendo {{name}}",
   "book": "libro",
   "loadError": "No se puede cargar este archivo.",
-
   "tryAgain": "Reintentar",
   "backToLibrary": "Volver a la biblioteca",
-
   "readingAppearance": "Apariencia de lectura",
   "applyTo": "Aplicar a",
   "scopeHintBook": "Los cambios afectan solo a este libro.",
@@ -34,12 +29,10 @@
   "lineSpacing": "Interlineado",
   "paragraphSpacing": "Espacio entre párrafos",
   "readingMode": "Modo de lectura",
-
   "scope": {
     "global": "Todos los libros",
     "book": "Este libro"
   },
-
   "menu": {
     "copied": "Copiado",
     "copySelection": "Copiar selección",
@@ -51,7 +44,6 @@
     "askAi": "Preguntar a la IA sobre esto",
     "remove": "Quitar"
   },
-
   "recolor": "Cambiar a color {{color}}",
   "colors": {
     "yellow": "amarillo",
@@ -59,7 +51,6 @@
     "blue": "azul",
     "pink": "rosa"
   },
-
   "footnote": {
     "footnote": "Nota al pie",
     "endnote": "Nota final",
@@ -69,7 +60,6 @@
   },
   "dismissNote": "Descartar nota",
   "closeNote": "Cerrar nota",
-
   "dictionary": {
     "title": "Diccionario",
     "pos": {
@@ -80,7 +70,6 @@
     "senseVerb": "Consultar «{{word}}»: aquí aparecerán las definiciones reales.",
     "footer": "Una entrada de ejemplo: el diccionario es una vista previa; las definiciones reales aún no están conectadas."
   },
-
   "fontSizeOption": {
     "xx-small": "XXS",
     "x-small": "XS",
@@ -100,6 +89,12 @@
     "tight": "Ajustado",
     "normal": "Normal",
     "loose": "Amplio"
+  },
+  "pageMargins": "Márgenes de página",
+  "pageMarginsOption": {
+    "narrow": "Estrechos",
+    "medium": "Medios",
+    "wide": "Anchos"
   },
   "readingModeOption": {
     "scroll": "Desplazamiento",

@@ -9,22 +9,17 @@
   "resizeChat": "调整对话面板大小",
   "noToc": "此文件未提供可导航的目录。",
   "progress": "{{page}} / {{total}} · {{percent}}",
-
   "notes": "笔记",
   "emptyNotes": "还没有高亮或笔记。在阅读器中选中文本即可标记。",
-
   "previousPage": "上一页",
   "nextPage": "下一页",
   "go": "跳转",
-
   "readerLabel": "图书阅读器",
   "opening": "正在打开 {{name}}",
   "book": "书籍",
   "loadError": "无法加载此文件。",
-
   "tryAgain": "重试",
   "backToLibrary": "返回书库",
-
   "readingAppearance": "阅读外观",
   "applyTo": "应用到",
   "scopeHintBook": "更改仅影响本书。",
@@ -34,12 +29,10 @@
   "lineSpacing": "行距",
   "paragraphSpacing": "段间距",
   "readingMode": "阅读模式",
-
   "scope": {
     "global": "所有书籍",
     "book": "本书"
   },
-
   "menu": {
     "copied": "已复制",
     "copySelection": "复制选中内容",
@@ -51,7 +44,6 @@
     "askAi": "就此询问 AI",
     "remove": "移除"
   },
-
   "recolor": "改为{{color}}",
   "colors": {
     "yellow": "黄色",
@@ -59,7 +51,6 @@
     "blue": "蓝色",
     "pink": "粉色"
   },
-
   "footnote": {
     "footnote": "脚注",
     "endnote": "尾注",
@@ -69,7 +60,6 @@
   },
   "dismissNote": "忽略注释",
   "closeNote": "关闭注释",
-
   "dictionary": {
     "title": "词典",
     "pos": {
@@ -80,7 +70,6 @@
     "senseVerb": "查询“{{word}}”——真正的释义将显示在这里。",
     "footer": "占位条目——词典功能尚为预览，真正的释义还未接入。"
   },
-
   "fontSizeOption": {
     "xx-small": "极小",
     "x-small": "特小",
@@ -100,6 +89,12 @@
     "tight": "紧凑",
     "normal": "正常",
     "loose": "宽松"
+  },
+  "pageMargins": "页边距",
+  "pageMarginsOption": {
+    "narrow": "窄",
+    "medium": "适中",
+    "wide": "宽"
   },
   "readingModeOption": {
     "scroll": "滚动",

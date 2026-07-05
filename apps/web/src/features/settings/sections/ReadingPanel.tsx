@@ -10,6 +10,7 @@ import {
   fontSizeOptions,
   lineSpacingOptions,
   pageColorOptions,
+  pageMarginsOptions,
   paragraphSpacingOptions,
   readingModeOptions,
 } from "../lib/reader-setting-options";
@@ -69,6 +70,12 @@ export function ReadingPanel() {
             value={prefs.readingMode}
             options={readingModeOptions(tReader)}
             onChange={(readingMode) => setPrefs({ ...prefs, readingMode })}
+          />
+          <ChoiceGroup
+            label={t("reading.pageMargins")}
+            value={prefs.pageMargins}
+            options={pageMarginsOptions(tReader)}
+            onChange={(pageMargins) => setPrefs({ ...prefs, pageMargins })}
           />
         </Stack>
       </SettingsGroup>

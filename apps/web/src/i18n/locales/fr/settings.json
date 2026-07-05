@@ -77,7 +77,8 @@
     "pageColor": {
       "title": "Couleur de la page",
       "description": "Le papier du livre. Auto suit le thème de l’application ; les autres sont fixes."
-    }
+    },
+    "pageMargins": "Marges de page"
   },
   "shortcuts": {
     "title": "Raccourcis",

@@ -9,22 +9,17 @@
   "resizeChat": "調整聊天面板大小",
   "noToc": "此檔案未提供可導覽的目錄。",
   "progress": "{{page}} / {{total}} · {{percent}}",
-
   "notes": "筆記",
   "emptyNotes": "尚無螢光標示或筆記。在閱讀器中選取文字即可標記。",
-
   "previousPage": "上一頁",
   "nextPage": "下一頁",
   "go": "前往",
-
   "readerLabel": "書籍閱讀器",
   "opening": "正在開啟 {{name}}",
   "book": "書",
   "loadError": "無法載入此檔案。",
-
   "tryAgain": "重試",
   "backToLibrary": "返回書庫",
-
   "readingAppearance": "閱讀外觀",
   "applyTo": "套用至",
   "scopeHintBook": "變更僅影響這本書。",
@@ -34,12 +29,10 @@
   "lineSpacing": "行距",
   "paragraphSpacing": "段落間距",
   "readingMode": "閱讀模式",
-
   "scope": {
     "global": "所有書籍",
     "book": "這本書"
   },
-
   "menu": {
     "copied": "已複製",
     "copySelection": "複製選取內容",
@@ -51,7 +44,6 @@
     "askAi": "詢問 AI 關於此內容",
     "remove": "移除"
   },
-
   "recolor": "改為{{color}}",
   "colors": {
     "yellow": "黃色",
@@ -59,7 +51,6 @@
     "blue": "藍色",
     "pink": "粉紅色"
   },
-
   "footnote": {
     "footnote": "註腳",
     "endnote": "尾註",
@@ -69,7 +60,6 @@
   },
   "dismissNote": "忽略註釋",
   "closeNote": "關閉註釋",
-
   "dictionary": {
     "title": "字典",
     "pos": {
@@ -80,7 +70,6 @@
     "senseVerb": "查詢「{{word}}」 — 真正的定義將顯示於此。",
     "footer": "預留項目 — 字典為預覽版；真正的定義尚未接上。"
   },
-
   "fontSizeOption": {
     "xx-small": "XXS",
     "x-small": "XS",
@@ -100,6 +89,12 @@
     "tight": "緊密",
     "normal": "標準",
     "loose": "寬鬆"
+  },
+  "pageMargins": "頁邊距",
+  "pageMarginsOption": {
+    "narrow": "窄",
+    "medium": "適中",
+    "wide": "寬"
   },
   "readingModeOption": {
     "scroll": "捲動",

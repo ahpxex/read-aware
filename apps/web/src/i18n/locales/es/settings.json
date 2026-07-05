@@ -77,7 +77,8 @@
     "pageColor": {
       "title": "Color de página",
       "description": "El papel del libro. «Automático» sigue el tema de la app; los demás son fijos."
-    }
+    },
+    "pageMargins": "Márgenes de página"
   },
   "shortcuts": {
     "title": "Atajos",

@@ -2,6 +2,7 @@ import type { TFunction } from "i18next";
 import type {
   ReaderFontSize,
   ReaderLineSpacing,
+  ReaderPageMargins,
   ReaderParagraphSpacing,
   ReaderThemePreference,
   ReadingMode,
@@ -40,6 +41,15 @@ export function paragraphSpacingOptions(
   return (["tight", "normal", "loose"] as const).map((value) => ({
     value,
     label: t(`paragraphSpacingOption.${value}`),
+  }));
+}
+
+export function pageMarginsOptions(
+  t: TFunction<"reader">,
+): { value: ReaderPageMargins; label: string }[] {
+  return (["narrow", "medium", "wide"] as const).map((value) => ({
+    value,
+    label: t(`pageMarginsOption.${value}`),
   }));
 }
 

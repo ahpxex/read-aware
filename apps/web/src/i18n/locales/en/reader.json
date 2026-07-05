@@ -9,22 +9,17 @@
   "resizeChat": "Resize chat panel",
   "noToc": "This file does not expose a navigable table of contents.",
   "progress": "{{page}} / {{total}} · {{percent}}",
-
   "notes": "Notes",
   "emptyNotes": "No highlights or notes yet. Select text in the reader to mark it.",
-
   "previousPage": "Previous page",
   "nextPage": "Next page",
   "go": "Go",
-
   "readerLabel": "Book reader",
   "opening": "Opening {{name}}",
   "book": "book",
   "loadError": "Unable to load this file.",
-
   "tryAgain": "Try again",
   "backToLibrary": "Back to library",
-
   "readingAppearance": "Reading appearance",
   "applyTo": "Apply to",
   "scopeHintBook": "Changes affect this book only.",
@@ -34,12 +29,10 @@
   "lineSpacing": "Line Spacing",
   "paragraphSpacing": "Paragraph Spacing",
   "readingMode": "Reading Mode",
-
   "scope": {
     "global": "All books",
     "book": "This book"
   },
-
   "menu": {
     "copied": "Copied",
     "copySelection": "Copy selection",
@@ -51,7 +44,6 @@
     "askAi": "Ask AI about this",
     "remove": "Remove"
   },
-
   "recolor": "Recolor {{color}}",
   "colors": {
     "yellow": "yellow",
@@ -59,7 +51,6 @@
     "blue": "blue",
     "pink": "pink"
   },
-
   "footnote": {
     "footnote": "Footnote",
     "endnote": "Endnote",
@@ -69,7 +60,6 @@
   },
   "dismissNote": "Dismiss note",
   "closeNote": "Close note",
-
   "dictionary": {
     "title": "Dictionary",
     "pos": {
@@ -80,7 +70,6 @@
     "senseVerb": "To look up “{{word}}” — real definitions will appear here.",
     "footer": "A placeholder entry — the dictionary is a preview; real definitions aren’t wired up yet."
   },
-
   "fontSizeOption": {
     "xx-small": "XXS",
     "x-small": "XS",
@@ -100,6 +89,12 @@
     "tight": "Tight",
     "normal": "Normal",
     "loose": "Loose"
+  },
+  "pageMargins": "Page margins",
+  "pageMarginsOption": {
+    "narrow": "Narrow",
+    "medium": "Medium",
+    "wide": "Wide"
   },
   "readingModeOption": {
     "scroll": "Scroll",

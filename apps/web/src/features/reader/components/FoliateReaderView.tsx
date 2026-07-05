@@ -62,9 +62,13 @@ import {
   getDefaultMarkColor,
   setDefaultMarkColor,
 } from "../../annotations/lib/annotation-prefs";
-import { hasCoarsePointer, suppressNativeContextMenu } from "../../../platform/environment";
+import { suppressNativeContextMenu } from "../../../platform/environment";
 import { useDelayedFlag } from "../hooks/useDelayedFlag";
-import { buildReaderContentCss, computeReaderMaxInlineSize } from "../../settings/lib/reader-css";
+import {
+  buildReaderContentCss,
+  computeReaderMaxInlineSize,
+  readerGapForMargins,
+} from "../../settings/lib/reader-css";
 import type { ReaderSettings, ReadingMode } from "../../settings/lib/reader-settings";
 import { curatedFontId, DEFAULT_READER_SETTINGS } from "../../settings/lib/reader-settings";
 import { ensureCuratedFontFaceCss } from "../../settings/lib/curated-font-loader";
@@ -505,8 +509,10 @@ export function FoliateReaderView({
     // max-column-count, so size the measure for the columns that will
     // actually show — halving it in portrait would just shrink the one column.
     const effectiveColumns = width > height ? maxColumnCount : 1;
-    const px = computeReaderMaxInlineSize(width, hasCoarsePointer(), effectiveColumns);
+    const margins = readerSettingsRef.current.pageMargins;
+    const px = computeReaderMaxInlineSize(width, margins, effectiveColumns);
     renderer.setAttribute("max-inline-size", `${px}px`);
+    renderer.setAttribute("gap", readerGapForMargins(margins));
   }, []);
 
   // Inject the reader stylesheet, first ensuring the active curated webfont is
@@ -519,9 +525,7 @@ export function FoliateReaderView({
     ) => {
       const id = curatedFontId(settings.fontFamily);
       const fontFaceCss = id ? await ensureCuratedFontFaceCss(id).catch(() => "") : "";
-      renderer?.setStyles?.(
-        buildReaderContentCss(settings, fontFaceCss, hasCoarsePointer()),
-      );
+      renderer?.setStyles?.(buildReaderContentCss(settings, fontFaceCss));
     },
     [],
   );
@@ -1259,19 +1263,18 @@ export function FoliateReaderView({
         const { flow, maxColumnCount } = layoutForReadingMode(readingMode);
         view.renderer?.setAttribute("flow", flow);
         view.renderer?.setAttribute("max-column-count", String(maxColumnCount));
-        // Touch devices read with tighter page margins: the paginator's gap
-        // (7% of the container by default) is the dominant edge margin once
-        // the text measure fills the container, so pull it in as well.
-        view.renderer?.setAttribute("gap", hasCoarsePointer() ? "3%" : "7%");
         {
+          // The margin preset drives the text measure and the paginator gap
+          // together (see reader-css.ts). Portrait containers render a single
+          // column regardless of max-column-count (see applyReaderMaxInlineSize).
           const width = readerRootRef.current?.clientWidth ?? window.innerWidth;
           const height = readerRootRef.current?.clientHeight ?? window.innerHeight;
-          // Portrait containers render a single column regardless of
-          // max-column-count (see applyReaderMaxInlineSize).
           const effectiveColumns = width > height ? maxColumnCount : 1;
+          const margins = readerSettingsRef.current.pageMargins;
+          view.renderer?.setAttribute("gap", readerGapForMargins(margins));
           view.renderer?.setAttribute(
             "max-inline-size",
-            `${computeReaderMaxInlineSize(width, hasCoarsePointer(), effectiveColumns)}px`,
+            `${computeReaderMaxInlineSize(width, margins, effectiveColumns)}px`,
           );
         }
         void injectReaderStyles(readerSettingsRef.current, view.renderer);

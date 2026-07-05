@@ -1,3 +1,4 @@
+import { hasCoarsePointer } from "../../../platform/environment";
 import { localKV } from "../../../platform/local-store";
 
 const STORAGE_KEY = "read-aware-reader-settings";
@@ -58,6 +59,13 @@ export type ReaderFontSize =
 export type ReaderLineSpacing = "compact" | "comfortable" | "relaxed";
 export type ReaderParagraphSpacing = "tight" | "normal" | "loose";
 /**
+ * Page margin presets — each drives the text measure, the paginator gap, and
+ * the body padding together (see `reader-css.ts`). The default is
+ * device-appropriate: mobile-typical tight margins on touch screens, the
+ * roomier editorial measure on desktop.
+ */
+export type ReaderPageMargins = "narrow" | "medium" | "wide";
+/**
  * How the book is laid out and navigated:
  * - `scroll` — continuous vertical scroll, lazily loading sections as you go.
  * - `paginated-single` — page turning, one column.
@@ -75,6 +83,7 @@ export type ReaderSettings = {
   fontSize: ReaderFontSize;
   lineSpacing: ReaderLineSpacing;
   paragraphSpacing: ReaderParagraphSpacing;
+  pageMargins: ReaderPageMargins;
   readingMode: ReadingMode;
 };
 
@@ -89,6 +98,9 @@ export const DEFAULT_READER_SETTINGS: ReaderSettings = {
   fontSize: "medium",
   lineSpacing: "comfortable",
   paragraphSpacing: "normal",
+  // Touch screens read with mobile-typical tight margins by default; desktop
+  // keeps the roomier editorial measure. Evaluated once — it's a device trait.
+  pageMargins: hasCoarsePointer() ? "narrow" : "wide",
   readingMode: "scroll",
 };
 
@@ -147,6 +159,12 @@ export function normalizeFontSize(value: unknown): ReaderFontSize {
   return DEFAULT_READER_SETTINGS.fontSize;
 }
 
+/** Coerce a persisted page-margin preset to a valid value. */
+export function normalizePageMargins(value: unknown): ReaderPageMargins {
+  if (value === "narrow" || value === "medium" || value === "wide") return value;
+  return DEFAULT_READER_SETTINGS.pageMargins;
+}
+
 export function getReaderPreferences(): ReaderSettingsPreferences {
   try {
     const raw = localKV.getItem(STORAGE_KEY);
@@ -158,6 +176,7 @@ export function getReaderPreferences(): ReaderSettingsPreferences {
       fontSize: normalizeFontSize(parsed.fontSize),
       lineSpacing: parsed.lineSpacing ?? DEFAULT_READER_PREFERENCES.lineSpacing,
       paragraphSpacing: parsed.paragraphSpacing ?? DEFAULT_READER_PREFERENCES.paragraphSpacing,
+      pageMargins: normalizePageMargins(parsed.pageMargins),
       readingMode: parsed.readingMode ?? DEFAULT_READER_PREFERENCES.readingMode,
     };
   } catch {

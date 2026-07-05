@@ -77,7 +77,8 @@
     "pageColor": {
       "title": "Page Color",
       "description": "The book's paper. Auto follows the app theme; the others are fixed."
-    }
+    },
+    "pageMargins": "Page margins"
   },
   "shortcuts": {
     "title": "Shortcuts",

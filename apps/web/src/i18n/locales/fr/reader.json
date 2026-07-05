@@ -9,22 +9,17 @@
   "resizeChat": "Redimensionner le panneau de discussion",
   "noToc": "Ce fichier ne propose pas de table des matières navigable.",
   "progress": "{{page}} / {{total}} · {{percent}}",
-
   "notes": "Notes",
   "emptyNotes": "Aucun surlignage ni note pour l’instant. Sélectionnez du texte dans le lecteur pour le marquer.",
-
   "previousPage": "Page précédente",
   "nextPage": "Page suivante",
   "go": "Aller",
-
   "readerLabel": "Lecteur de livres",
   "opening": "Ouverture de {{name}}",
   "book": "livre",
   "loadError": "Impossible de charger ce fichier.",
-
   "tryAgain": "Réessayer",
   "backToLibrary": "Retour à la bibliothèque",
-
   "readingAppearance": "Apparence de lecture",
   "applyTo": "Appliquer à",
   "scopeHintBook": "Les modifications n’affectent que ce livre.",
@@ -34,12 +29,10 @@
   "lineSpacing": "Interligne",
   "paragraphSpacing": "Espacement des paragraphes",
   "readingMode": "Mode de lecture",
-
   "scope": {
     "global": "Tous les livres",
     "book": "Ce livre"
   },
-
   "menu": {
     "copied": "Copié",
     "copySelection": "Copier la sélection",
@@ -51,7 +44,6 @@
     "askAi": "Interroger l’IA à ce sujet",
     "remove": "Supprimer"
   },
-
   "recolor": "Recolorer en {{color}}",
   "colors": {
     "yellow": "jaune",
@@ -59,7 +51,6 @@
     "blue": "bleu",
     "pink": "rose"
   },
-
   "footnote": {
     "footnote": "Note de bas de page",
     "endnote": "Note de fin",
@@ -69,7 +60,6 @@
   },
   "dismissNote": "Ignorer la note",
   "closeNote": "Fermer la note",
-
   "dictionary": {
     "title": "Dictionnaire",
     "pos": {
@@ -80,7 +70,6 @@
     "senseVerb": "Rechercher « {{word}} » — les vraies définitions apparaîtront ici.",
     "footer": "Une entrée fictive — le dictionnaire est un aperçu ; les vraies définitions ne sont pas encore connectées."
   },
-
   "fontSizeOption": {
     "xx-small": "XXS",
     "x-small": "XS",
@@ -100,6 +89,12 @@
     "tight": "Serré",
     "normal": "Normal",
     "loose": "Large"
+  },
+  "pageMargins": "Marges de page",
+  "pageMarginsOption": {
+    "narrow": "Étroites",
+    "medium": "Moyennes",
+    "wide": "Larges"
   },
   "readingModeOption": {
     "scroll": "Défilement",

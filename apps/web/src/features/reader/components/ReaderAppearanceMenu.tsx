@@ -5,6 +5,7 @@ import {
   fontSizeOptions,
   lineSpacingOptions,
   pageColorOptions,
+  pageMarginsOptions,
   paragraphSpacingOptions,
   readingModeOptions,
 } from "../../settings/lib/reader-setting-options";
@@ -92,6 +93,12 @@ export function ReaderAppearanceMenu({
           value={prefs.paragraphSpacing}
           options={paragraphSpacingOptions(t)}
           onChange={(paragraphSpacing) => updatePrefs({ ...prefs, paragraphSpacing })}
+        />
+        <ChoiceGroup
+          label={t("pageMargins")}
+          value={prefs.pageMargins}
+          options={pageMarginsOptions(t)}
+          onChange={(pageMargins) => updatePrefs({ ...prefs, pageMargins })}
         />
 
         <Divider />

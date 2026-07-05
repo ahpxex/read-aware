@@ -33,6 +33,74 @@ fn read_book_file(app: tauri::AppHandle, path: String) -> Result<tauri::ipc::Res
     Ok(tauri::ipc::Response::new(bytes))
 }
 
+/// Book files staged in memory for chunked transfer to the webview, keyed by
+/// the picked path. Mobile only: Android's IPC injects responses via
+/// `evaluateJavascript`, which chokes on multi-megabyte payloads (and Channel
+/// messages don't arrive at all there), so the webview pulls the file in
+/// small raw-response chunks instead. Entries are dropped by
+/// `book_read_close` once the transfer finishes.
+#[derive(Default)]
+pub struct BookReadSessions(Mutex<std::collections::HashMap<String, Vec<u8>>>);
+
+/// Read the whole book into a staging buffer and return its byte length.
+/// `path` may be an ordinary filesystem path or an Android `content://` URI.
+#[tauri::command]
+fn book_read_open(
+    app: tauri::AppHandle,
+    sessions: tauri::State<'_, BookReadSessions>,
+    path: String,
+) -> Result<usize, String> {
+    use std::io::Read;
+    use tauri_plugin_fs::{FsExt, OpenOptions};
+
+    let file_path = path
+        .parse::<tauri_plugin_fs::FilePath>()
+        .map_err(|err| format!("Invalid file path {path}: {err}"))?;
+    let mut options = OpenOptions::new();
+    options.read(true);
+    let mut file = app
+        .fs()
+        .open(file_path, options)
+        .map_err(|err| format!("Failed to open {path}: {err}"))?;
+    let mut bytes = Vec::new();
+    file.read_to_end(&mut bytes)
+        .map_err(|err| format!("Failed to read {path}: {err}"))?;
+    let len = bytes.len();
+    sessions
+        .0
+        .lock()
+        .map_err(|e| e.to_string())?
+        .insert(path, bytes);
+    Ok(len)
+}
+
+/// Return one chunk of a staged book as a raw binary response.
+#[tauri::command]
+fn book_read_chunk(
+    sessions: tauri::State<'_, BookReadSessions>,
+    path: String,
+    offset: usize,
+    length: usize,
+) -> Result<tauri::ipc::Response, String> {
+    let map = sessions.0.lock().map_err(|e| e.to_string())?;
+    let bytes = map
+        .get(&path)
+        .ok_or_else(|| format!("book_read_chunk: no open session for {path}"))?;
+    let start = offset.min(bytes.len());
+    let end = offset.saturating_add(length).min(bytes.len());
+    Ok(tauri::ipc::Response::new(bytes[start..end].to_vec()))
+}
+
+/// Drop a staged book once the webview has pulled every chunk.
+#[tauri::command]
+fn book_read_close(
+    sessions: tauri::State<'_, BookReadSessions>,
+    path: String,
+) -> Result<(), String> {
+    sessions.0.lock().map_err(|e| e.to_string())?.remove(&path);
+    Ok(())
+}
+
 /// Show or hide the macOS traffic-light window buttons.
 ///
 /// Gives the reader a clean immersive view: when the overlay header is dismissed
@@ -163,6 +231,7 @@ pub fn run() {
     let mut builder = builder
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .manage(BookReadSessions::default())
         .setup(|app| {
             let conn = storage::init_db(app.handle()).expect("failed to initialize database");
             // Read the persisted theme preference BEFORE the main window exists
@@ -234,6 +303,9 @@ pub fn run() {
             storage::upsert_vectors,
             storage::query_vectors,
             read_book_file,
+            book_read_open,
+            book_read_chunk,
+            book_read_close,
             set_traffic_lights_visible,
             list_system_fonts,
         ]);

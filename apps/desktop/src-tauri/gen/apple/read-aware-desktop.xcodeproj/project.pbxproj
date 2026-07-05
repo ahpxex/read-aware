@@ -10,12 +10,14 @@
 		120B736DD72258D669D18C0C /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 06D3D83C88B01F463DF0A80F /* MetalKit.framework */; };
 		125E8521F6CC2F91549968D3 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 31CAA29798863E73C43A1101 /* Security.framework */; };
 		3DAB6AFA7119FF13D7868ABD /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3C7CF31FE35AD3898F3D11A4 /* UIKit.framework */; };
+		4A12475C1416AB923AD065D2 /* StatusBarBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = 8EB76D97869CAEE9CE62CCCC /* StatusBarBridge.m */; };
 		4CDC2CA84B7E28E5F01ACE05 /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = E9E54330BBC53503FC062EB8 /* main.mm */; };
 		4F9E33CCF781F045E9A75D99 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = A56A034A5C62A4A142838976 /* assets */; };
 		8F62EB0E27B8B4025E51B164 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8752B87697F8220799BB13E8 /* Metal.framework */; };
 		9417AC75AE7C3CE71E0D7509 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0843E91F9CBA9111716694E9 /* QuartzCore.framework */; };
 		9970771AC71A9BF56602E740 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 99B3E6DD7281927706328695 /* Assets.xcassets */; };
 		9F23E963020B7BE0A03269FF /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4C6A229412AA829510DEF77 /* WebKit.framework */; };
+		A72ABE156428ED6DE409652E /* libapp.a in Resources */ = {isa = PBXBuildFile; fileRef = 0D766573EDF74AE92171CF46 /* libapp.a */; };
 		B4F45C35973D8838DF65B8ED /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9007086C0316C5D10BFD5572 /* LaunchScreen.storyboard */; };
 		C0AC3AEAA8B07444E7148F23 /* libapp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = CD72F3B7A06AF8FB57B58C07 /* libapp.a */; };
 		D8DD20EDDDE75B7A0E4D4B3A /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CFD80631408159271A8893D0 /* CoreGraphics.framework */; };
@@ -24,6 +26,7 @@
 /* Begin PBXFileReference section */
 		06D3D83C88B01F463DF0A80F /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		0843E91F9CBA9111716694E9 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		0D766573EDF74AE92171CF46 /* libapp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libapp.a; sourceTree = "<group>"; };
 		31CAA29798863E73C43A1101 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		3C7CF31FE35AD3898F3D11A4 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		4046B69FFA4DC7EDA5FE465A /* main.rs */ = {isa = PBXFileReference; path = main.rs; sourceTree = "<group>"; };
@@ -31,6 +34,7 @@
 		65A5D2799FF0E01B99278870 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		697CD9036FA2FC1314B923C3 /* storage.rs */ = {isa = PBXFileReference; path = storage.rs; sourceTree = "<group>"; };
 		8752B87697F8220799BB13E8 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		8EB76D97869CAEE9CE62CCCC /* StatusBarBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = StatusBarBridge.m; sourceTree = "<group>"; };
 		9007086C0316C5D10BFD5572 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		99B3E6DD7281927706328695 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A56A034A5C62A4A142838976 /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = assets; sourceTree = SOURCE_ROOT; };
@@ -81,6 +85,7 @@
 			isa = PBXGroup;
 			children = (
 				E9E54330BBC53503FC062EB8 /* main.mm */,
+				8EB76D97869CAEE9CE62CCCC /* StatusBarBridge.m */,
 				9CDD7A92070BBE3EDC8CB180 /* bindings */,
 			);
 			path = "read-aware-desktop";
@@ -89,6 +94,7 @@
 		266382CB2522020EA283D2F1 /* Externals */ = {
 			isa = PBXGroup;
 			children = (
+				5D9C80BEE138611E92C465CC /* arm64 */,
 			);
 			path = Externals;
 			sourceTree = "<group>";
@@ -114,6 +120,22 @@
 				15D051950C0C62BC8916964E /* read-aware-desktop */,
 			);
 			path = Sources;
+			sourceTree = "<group>";
+		};
+		5D9C80BEE138611E92C465CC /* arm64 */ = {
+			isa = PBXGroup;
+			children = (
+				78A5BB68BDB2C0A27F616002 /* debug */,
+			);
+			path = arm64;
+			sourceTree = "<group>";
+		};
+		78A5BB68BDB2C0A27F616002 /* debug */ = {
+			isa = PBXGroup;
+			children = (
+				0D766573EDF74AE92171CF46 /* libapp.a */,
+			);
+			path = debug;
 			sourceTree = "<group>";
 		};
 		7DE8A5EA67D5B151E144821B /* src */ = {
@@ -150,6 +172,13 @@
 				C2905B32D99EDF19A45BFE17 /* read-aware-desktop_iOS.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		"TEMP_D8ECA104-3B96-4F65-BA60-2E7224BBF3AA" /* x86_64 */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = x86_64;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -213,6 +242,7 @@
 				9970771AC71A9BF56602E740 /* Assets.xcassets in Resources */,
 				B4F45C35973D8838DF65B8ED /* LaunchScreen.storyboard in Resources */,
 				4F9E33CCF781F045E9A75D99 /* assets in Resources */,
+				A72ABE156428ED6DE409652E /* libapp.a in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -247,6 +277,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4A12475C1416AB923AD065D2 /* StatusBarBridge.m in Sources */,
 				4CDC2CA84B7E28E5F01ACE05 /* main.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -341,7 +372,7 @@
 				"LIBRARY_SEARCH_PATHS[arch=arm64]" = "$(inherited) $(PROJECT_DIR)/Externals/arm64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
 				"LIBRARY_SEARCH_PATHS[arch=x86_64]" = "$(inherited) $(PROJECT_DIR)/Externals/x86_64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.readaware.app;
-				PRODUCT_NAME = ReadAware;
+				PRODUCT_NAME = "ReadAware";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = arm64;
@@ -428,7 +459,7 @@
 				"LIBRARY_SEARCH_PATHS[arch=arm64]" = "$(inherited) $(PROJECT_DIR)/Externals/arm64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
 				"LIBRARY_SEARCH_PATHS[arch=x86_64]" = "$(inherited) $(PROJECT_DIR)/Externals/x86_64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.readaware.app;
-				PRODUCT_NAME = ReadAware;
+				PRODUCT_NAME = "ReadAware";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = arm64;

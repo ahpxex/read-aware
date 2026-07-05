@@ -135,7 +135,31 @@ fn set_status_bar_hidden(app: tauri::AppHandle, hidden: bool) -> Result<(), Stri
     .map_err(|e| e.to_string())
 }
 
-#[cfg(not(target_os = "android"))]
+/// iOS counterpart: a small ObjC bridge in the Xcode project (see
+/// gen/apple/Sources/read-aware-desktop/StatusBarBridge.m) installs a
+/// `prefersStatusBarHidden` override on wry's root view controller and hops
+/// to the main queue itself. The bridge lives in the app binary, which links
+/// AFTER cargo builds this crate's cdylib — so the symbol is resolved at
+/// runtime via dlsym instead of at link time.
+#[cfg(target_os = "ios")]
+#[tauri::command]
+fn set_status_bar_hidden(hidden: bool) {
+    use std::os::raw::{c_char, c_void};
+    unsafe extern "C" {
+        fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c_void;
+    }
+    // Apple's RTLD_DEFAULT: search every image in the process.
+    const RTLD_DEFAULT: *mut c_void = -2isize as *mut c_void;
+    let ptr = unsafe { dlsym(RTLD_DEFAULT, c"ra_set_status_bar_hidden".as_ptr()) };
+    if ptr.is_null() {
+        eprintln!("set_status_bar_hidden: StatusBarBridge symbol not found");
+        return;
+    }
+    let bridge: extern "C" fn(bool) = unsafe { std::mem::transmute(ptr) };
+    bridge(hidden);
+}
+
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 #[tauri::command]
 fn set_status_bar_hidden(_hidden: bool) {}
 

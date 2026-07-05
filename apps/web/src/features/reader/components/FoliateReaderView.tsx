@@ -1725,7 +1725,10 @@ export function FoliateReaderView({
         ref={viewportRef}
         aria-label={selectedBook?.title ?? initialBook?.fileName ?? t("readerLabel")}
         className={cn(
-          "h-full w-full transition-opacity ease-out",
+          // Safe-area padding keeps the book content clear of the display
+          // cutout (Dynamic Island / punch-hole) and the home indicator while
+          // the reader runs immersive; env() resolves to 0 on desktop.
+          "h-full w-full pt-[var(--ra-safe-top)] pb-[var(--ra-safe-bottom)] transition-opacity ease-out",
           isCrossing ? "duration-150" : "duration-500",
           (isLoading || !!error || isCrossing) && "opacity-0",
         )}

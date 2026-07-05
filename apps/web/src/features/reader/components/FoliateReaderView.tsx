@@ -118,6 +118,11 @@ const SECTION_CROSS_COOLDOWN_MS = 200;
 // adjacent section loads — so a gentle scroll to the end does not "turn" on its
 // own. The accumulator resets if the push pauses.
 const SECTION_CROSS_OVERSCROLL_PX = 260;
+// Touch uses a lower threshold: wheel deltas are synthetic momentum units, but
+// a finger drag maps 1:1 to CSS pixels, loses the system's touch slop, and a
+// device-pixel swipe halves again through the density divisor — 260 CSS px of
+// pull is over half a screen. 120px is still a deliberate pull, not a graze.
+const TOUCH_SECTION_CROSS_OVERSCROLL_PX = 120;
 const OVERSCROLL_RESET_MS = 220;
 // While the reader shell is open, a deliberate scroll dismisses it — but only
 // once the content has travelled this far (px), so a small nudge or pointer
@@ -673,7 +678,10 @@ export function FoliateReaderView({
   // and triggers a section cross once past the threshold. Used both by the
   // per-section iframe document listener and the viewport-level fallback for
   // events on the empty area outside the iframe.
-  const handleWheelCrossing = useCallback((deltaY: number) => {
+  const handleWheelCrossing = useCallback((
+    deltaY: number,
+    threshold: number = SECTION_CROSS_OVERSCROLL_PX,
+  ) => {
     if (readingModeRef.current !== "scroll") return;
     const edges = getScrollEdges(viewRef.current);
     if (!edges) return;
@@ -693,10 +701,10 @@ export function FoliateReaderView({
       overscrollRef.current = 0;
     }, OVERSCROLL_RESET_MS);
 
-    if (overscrollRef.current >= SECTION_CROSS_OVERSCROLL_PX) {
+    if (overscrollRef.current >= threshold) {
       overscrollRef.current = 0;
       void crossSectionRef.current(1);
-    } else if (overscrollRef.current <= -SECTION_CROSS_OVERSCROLL_PX) {
+    } else if (overscrollRef.current <= -threshold) {
       overscrollRef.current = 0;
       void crossSectionRef.current(-1);
     }
@@ -1057,6 +1065,28 @@ export function FoliateReaderView({
       dismissShellOnScrollDistanceRef.current(event.deltaY);
       handleWheelCrossingRef.current(event.deltaY);
     }, { passive: true });
+
+    // Touch counterpart of the wheel bridge: a finger drag scrolls natively
+    // inside the section, but at the top/bottom edge the drag moves nothing and
+    // emits no wheel events — so without this, touch could never cross into the
+    // adjacent chapter. Feed the drag's travel into the same overscroll
+    // accumulator (finger up = content forward = positive wheel delta). Uses
+    // screenY so the value is unaffected by any scrolling of the frame itself.
+    let lastTouchY: number | null = null;
+    doc.addEventListener("touchstart", (event) => {
+      lastTouchY = event.touches.length === 1 ? event.touches[0].screenY : null;
+    }, { passive: true });
+    doc.addEventListener("touchmove", (event) => {
+      if (lastTouchY == null || event.touches.length !== 1) return;
+      const y = event.touches[0].screenY;
+      const deltaY = lastTouchY - y;
+      lastTouchY = y;
+      dismissShellOnScrollDistanceRef.current(deltaY);
+      handleWheelCrossingRef.current(deltaY, TOUCH_SECTION_CROSS_OVERSCROLL_PX);
+    }, { passive: true });
+    doc.addEventListener("touchend", () => {
+      lastTouchY = null;
+    });
   }, [armContentClickSuppression, captureSelectionFromDoc, cancelPendingShellOpen, cancelPendingShellToggle, clearSelection, handleReaderKeyDown]);
 
   // ----- global keydown + viewport resize -----------------------------------
@@ -1112,6 +1142,24 @@ export function FoliateReaderView({
       handleWheelCrossingRef.current(event.deltaY);
     };
 
+    // Touch parallel for the same dead zone (see the iframe-document listener
+    // for the sign convention).
+    let lastTouchY: number | null = null;
+    const onTouchStart = (event: TouchEvent) => {
+      lastTouchY = event.touches.length === 1 ? event.touches[0].screenY : null;
+    };
+    const onTouchMove = (event: TouchEvent) => {
+      if (lastTouchY == null || event.touches.length !== 1) return;
+      const y = event.touches[0].screenY;
+      const deltaY = lastTouchY - y;
+      lastTouchY = y;
+      dismissShellOnScrollDistanceRef.current(deltaY);
+      handleWheelCrossingRef.current(deltaY, TOUCH_SECTION_CROSS_OVERSCROLL_PX);
+    };
+    const onTouchEnd = () => {
+      lastTouchY = null;
+    };
+
     const onClick = (event: MouseEvent) => {
       const target = event.target as Node | null;
       if (!target || !viewportRef.current?.contains(target)) return;
@@ -1123,9 +1171,15 @@ export function FoliateReaderView({
     };
 
     root.addEventListener("wheel", onWheel, { passive: true });
+    root.addEventListener("touchstart", onTouchStart, { passive: true });
+    root.addEventListener("touchmove", onTouchMove, { passive: true });
+    root.addEventListener("touchend", onTouchEnd);
     root.addEventListener("click", onClick);
     return () => {
       root.removeEventListener("wheel", onWheel);
+      root.removeEventListener("touchstart", onTouchStart);
+      root.removeEventListener("touchmove", onTouchMove);
+      root.removeEventListener("touchend", onTouchEnd);
       root.removeEventListener("click", onClick);
     };
   }, [clearSelection]);

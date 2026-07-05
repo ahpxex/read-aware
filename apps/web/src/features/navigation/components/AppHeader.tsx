@@ -96,9 +96,10 @@ export function AppHeader({
           <button
             type="button"
             onClick={onOpenSearch}
-            // Pill with a quiet translucent fill (bg-fill would vanish against
-            // the header, which shares its color in light mode).
-            className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-full bg-fg/[0.06] px-3.5 text-left transition-colors active:bg-fg/10"
+            // Quiet input look: small radius, hairline border, faintly dimmed
+            // fill (bg-fill would vanish against the header, which shares its
+            // color in light mode).
+            className="flex h-8 min-w-0 flex-1 items-center gap-2 rounded-sm border border-border bg-fg/[0.03] px-3 text-left transition-colors active:bg-fg/[0.07]"
           >
             <MagnifyingGlass size={14} className="shrink-0 text-fg-subtle" aria-hidden="true" />
             <span className="truncate text-sm text-fg-subtle">{t("header.search")}</span>

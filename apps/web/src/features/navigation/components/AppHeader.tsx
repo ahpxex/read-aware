@@ -91,19 +91,14 @@ export function AppHeader({
               icon={<CaretLeft size={18} weight="regular" aria-hidden="true" />}
             />
           )}
-          {/* Faux search field: visually an input, but tapping it opens the
-              command palette — the real search surface. */}
-          <button
-            type="button"
+          <div className="ml-auto flex items-center gap-1.5">
+          <IconButton
+            label={t("header.search")}
+            size="sm"
             onClick={onOpenSearch}
-            // Quiet input look: small radius, hairline border, faintly dimmed
-            // fill (bg-fill would vanish against the header, which shares its
-            // color in light mode).
-            className="flex h-8 min-w-0 flex-1 items-center gap-2 rounded-sm border border-border bg-fg/[0.03] px-3 text-left transition-colors active:bg-fg/[0.07]"
-          >
-            <MagnifyingGlass size={14} className="shrink-0 text-fg-subtle" aria-hidden="true" />
-            <span className="truncate text-sm text-fg-subtle">{t("header.search")}</span>
-          </button>
+            className={cn(headerIconButtonClass, "shrink-0")}
+            icon={<MagnifyingGlass size={18} weight="regular" aria-hidden="true" />}
+          />
           {actions}
           <DropdownMenu
             align="right"
@@ -150,6 +145,7 @@ export function AppHeader({
               },
             ]}
           />
+          </div>
         </div>
       </header>
     );

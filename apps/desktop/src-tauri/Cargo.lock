@@ -2952,10 +2952,12 @@ name = "read-aware-desktop"
 version = "0.1.0"
 dependencies = [
  "cocoa",
+ "jni",
  "objc",
  "rusqlite",
  "serde",
  "serde_json",
+ "tao",
  "tauri",
  "tauri-build",
  "tauri-plugin-decorum",

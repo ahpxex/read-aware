@@ -41,3 +41,11 @@ tauri-plugin-decorum = "1"
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.25"
 objc = "0.2"
+
+# Android only: reach MainActivity over JNI to toggle the system status bar
+# for the reader's immersive view. `tao` (already in tauri's tree, same
+# version) exposes the activity's JavaVM/jobject via main_android_context —
+# the ndk-context crate's global is NOT initialized under tauri and panics.
+[target.'cfg(target_os = "android")'.dependencies]
+jni = "0.21"
+tao = "0.35"

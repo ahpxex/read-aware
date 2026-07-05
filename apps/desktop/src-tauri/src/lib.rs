@@ -101,6 +101,44 @@ fn book_read_close(
     Ok(())
 }
 
+/// Show or hide the Android system status bar for the reader's immersive
+/// view. Calls into `MainActivity.setStatusBarHidden` over JNI (which hops to
+/// the UI thread itself); the webview's safe-area insets update automatically,
+/// so the reader chrome reclaims the space. Off Android it is a no-op so the
+/// command still resolves for `generate_handler!`.
+#[cfg(target_os = "android")]
+#[tauri::command]
+fn set_status_bar_hidden(app: tauri::AppHandle, hidden: bool) -> Result<(), String> {
+    app.run_on_main_thread(move || {
+        use tao::platform::android::prelude::main_android_context;
+        let Some(ctx) = main_android_context() else {
+            eprintln!("setStatusBarHidden: no android context yet");
+            return;
+        };
+        let Ok(vm) = (unsafe { jni::JavaVM::from_raw(ctx.java_vm.cast()) }) else {
+            return;
+        };
+        let Ok(mut env) = vm.attach_current_thread() else {
+            return;
+        };
+        let activity = unsafe { jni::objects::JObject::from_raw(ctx.context_jobject.cast()) };
+        if let Err(err) = env.call_method(
+            &activity,
+            "setStatusBarHidden",
+            "(Z)V",
+            &[jni::objects::JValue::Bool(hidden as u8)],
+        ) {
+            eprintln!("setStatusBarHidden JNI call failed: {err}");
+            let _ = env.exception_clear();
+        }
+    })
+    .map_err(|e| e.to_string())
+}
+
+#[cfg(not(target_os = "android"))]
+#[tauri::command]
+fn set_status_bar_hidden(_hidden: bool) {}
+
 /// Show or hide the macOS traffic-light window buttons.
 ///
 /// Gives the reader a clean immersive view: when the overlay header is dismissed
@@ -306,6 +344,7 @@ pub fn run() {
             book_read_open,
             book_read_chunk,
             book_read_close,
+            set_status_bar_hidden,
             set_traffic_lights_visible,
             list_system_fonts,
         ]);

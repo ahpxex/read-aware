@@ -62,7 +62,7 @@ import {
   getDefaultMarkColor,
   setDefaultMarkColor,
 } from "../../annotations/lib/annotation-prefs";
-import { suppressNativeContextMenu } from "../../../platform/environment";
+import { hasCoarsePointer, suppressNativeContextMenu } from "../../../platform/environment";
 import { useDelayedFlag } from "../hooks/useDelayedFlag";
 import {
   buildReaderContentCss,
@@ -104,6 +104,9 @@ type FoliateReaderViewProps = {
 
 const SELECTION_CLICK_SUPPRESSION_MS = 180;
 const SHELL_TAP_MAX_DURATION_MS = 220;
+// Touch selection settles (handles released, no further changes) for this long
+// before the selection menu appears; each drag of a handle defers it again.
+const TOUCH_SELECTION_SETTLE_MS = 350;
 const SHELL_TAP_MAX_MOVE_PX = 6;
 // A center tap toggles the reader shell, but a double-click (to select a word)
 // begins with a single click too. Defer the toggle by this window so the second
@@ -932,6 +935,34 @@ export function FoliateReaderView({
     doc.addEventListener("scroll", bumpReadingActivity, activityOptions);
 
     doc.addEventListener("keydown", handleReaderKeyDown);
+
+    // Touch selection: long-pressing hands the gesture to the system's
+    // selection handles and our pointer stream ends in `pointercancel`, so the
+    // pointerup capture below never sees a touch-made selection. Watch
+    // selectionchange instead and surface the menu once the handles rest;
+    // dragging a handle keeps deferring it, releasing re-anchors the menu.
+    if (hasCoarsePointer()) {
+      let settleTimer: number | null = null;
+      doc.addEventListener("selectionchange", () => {
+        if (settleTimer != null) window.clearTimeout(settleTimer);
+        settleTimer = window.setTimeout(() => {
+          settleTimer = null;
+          const sel = doc.getSelection?.();
+          const hasSelection =
+            !!sel &&
+            sel.rangeCount > 0 &&
+            !sel.getRangeAt(0).collapsed &&
+            getNormalizedSelectionText(sel).length > 0;
+          if (hasSelection) {
+            captureSelectionFromDoc(doc, index, { suppressContentClick: true });
+          } else if (selectionRef.current) {
+            // The system selection was dismissed (tap elsewhere, Cut/Copy…);
+            // don't leave our menu floating over nothing.
+            clearSelection();
+          }
+        }, TOUCH_SELECTION_SETTLE_MS);
+      });
+    }
 
     doc.addEventListener("pointerdown", (event) => {
       cancelPendingShellOpen();

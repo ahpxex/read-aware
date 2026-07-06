@@ -8,9 +8,11 @@
  * collections / progress reconnect to their books. This is the local-first
  * backup/restore story until the encrypted sync relay lands.
  *
- * Scope: all user data as today's projections + KV. It does not capture the raw
- * `events` log or device identity — those aren't user data (and the event log is
- * empty until the event-sourced write path exists).
+ * Scope: all user data as today's projections + KV. It does not capture the
+ * `domain_events` log or device identity: events are device-scoped sync state
+ * (per-device HLC stamps), not portable user data. Restored rows the target
+ * device's log has never seen get creation events synthesized by the boot-time
+ * genesis reconciliation (platform/event-genesis.ts) on the next launch.
  *
  * Scale note: the whole thing (incl. book bytes) is held in memory as one JSON
  * string. Fine for a personal shelf; a very large library would want a streamed

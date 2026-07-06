@@ -2,8 +2,8 @@
 import { getDefaultStore } from "jotai";
 import type { AnnotationRecord, AnnotationsPort } from "@read-aware/agent";
 import type { Id } from "@read-aware/core";
-import { listAnnotations, saveAnnotation } from "../../../annotations/lib/annotation-db";
-import type { Annotation, Ask } from "../../../annotations/lib/annotation-types";
+import { createAsk, listAnnotations } from "../../../annotations/lib/annotation-db";
+import type { Annotation } from "../../../annotations/lib/annotation-types";
 import { annotationsRevisionAtom } from "../../../annotations/state/annotations-revision";
 
 function toRecord(annotation: Annotation): AnnotationRecord {
@@ -28,18 +28,7 @@ export function createAnnotationsPort(): AnnotationsPort {
         })
       ).map(toRecord),
     recordAsk: async ({ bookId, question, anchor, chapter }) => {
-      const now = new Date().toISOString();
-      const ask: Ask = {
-        id: crypto.randomUUID(),
-        bookId: String(bookId),
-        type: "ask",
-        cfiRange: anchor ?? null,
-        chapterHref: chapter ?? null,
-        text: question,
-        createdAt: now,
-        updatedAt: now,
-      };
-      await saveAnnotation(ask);
+      await createAsk(String(bookId), anchor ?? null, chapter ?? null, question);
       // 标注列表靠 revision 计数保活（reader 内外的列表都会重读）
       const store = getDefaultStore();
       store.set(annotationsRevisionAtom, store.get(annotationsRevisionAtom) + 1);

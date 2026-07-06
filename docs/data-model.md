@@ -1,10 +1,18 @@
 # ReadAware — Local Data Model & Schema (Design)
 
-> **Status:** Decided direction, implementation **deliberately deferred**. The
-> app still persists to IndexedDB + localStorage today (see
-> [§8 Mapping](#8-mapping-from-the-current-storage)); the database port
-> (StorageAdapter implementations, projection rebuild, migration) is not built
-> yet.
+> **Status:** Decided direction; the sync foundation is **now live on desktop**
+> (2026-07). The Tauri app persists to SQLite; schema migration v3 brings the
+> live database to this document's sync shape: `domain_events` (full envelope) +
+> `event_sync_state` / `blob_sync_state` outboxes + the `blob_objects` registry,
+> with blob **bytes on the filesystem** (`<app_data>/blobs/`), WAL journaling,
+> and a stable `local_device` identity. Events are **dual-written** from every
+> UX persistence seam (library, annotations, reading time), and a boot-time
+> **genesis reconciliation** synthesizes creation events for any projection row
+> the log has never seen (pre-event-era data, old backup restores). Still not
+> built: the relay itself, projection replay/rebuild from the log, and the
+> normalized projection tables (the interim denormalized `books`/`annotations`
+> tables from migration v2 remain the read models; [§8](#8-mapping-from-the-current-storage)
+> documents the remaining mapping).
 >
 > **Single source of truth for the schema is
 > [`docs/sqlite-schema.sql`](./sqlite-schema.sql)** — the exact, field-level DDL
@@ -135,7 +143,9 @@ were sized to satisfy exactly that — e.g. `book.imported` carries
 
 Canonical definitions live in `packages/core/src/events.ts` (the `DomainEvent`
 union). Naming is `aggregate.verbInPast` (dot + camelCase). Timestamps for
-projections come from the envelope HLC wall time unless a payload field is named.
+projections come from the envelope `createdAt` — which defaults to the HLC wall
+time, and diverges from it only on genesis-synthesized events, which carry the
+row's historical timestamp while their HLC is stamped at synthesis time.
 
 | Type | Payload (JSON, summarized) |
 |------|----------------------------|
@@ -148,12 +158,13 @@ projections come from the envelope HLC wall time unless a payload field is named
 | `collection.created` / `collection.renamed` / `collection.removed` | `{ collectionId, name? }` |
 | `book.addedToCollection` / `book.removedFromCollection` | `{ bookId, collectionId }` (set semantics → reconstructable as many-to-many later) |
 | `reading.progressed` | `{ bookId, locator, chapterHref?, currentLocation?, totalLocations?, progressPercent?, status? }` |
-| `reading.timeRecorded` | `{ bookId, ms, atEpochMs }` |
+| `reading.timeRecorded` | `{ bookId, ms, atEpochMs, localDay, localHour }` — day/hour buckets are stamped at **record** time in the recording device's timezone; deriving them at replay time would shift history across timezones |
 | `highlight.created` | `{ highlightId, bookId, anchor?, chapterHref?, text, color?, style? }` |
 | `highlight.recolored` | `{ highlightId, color, style? }` |
 | `highlight.removed` | `{ highlightId }` |
 | `note.created` | `{ noteId, bookId, highlightId?, anchor?, chapterHref?, quotedText?, body }` |
 | `note.updated` / `note.removed` | `{ noteId, body? }` |
+| `ask.recorded` / `ask.removed` | `{ askId, bookId, anchor?, chapterHref?, text }` / `{ askId }` — passive traces of the book thread (agent-architecture §7) |
 | `aiConversation.started` | `{ conversationId, bookId, title? }` |
 | `aiMessage.appended` | `{ messageId, conversationId, role, seq, content, model?, attachments? }` |
 | `aiConversation.cleared` | `{ conversationId }` |
@@ -167,11 +178,13 @@ projections come from the envelope HLC wall time unless a payload field is named
 > reproducible and syncable. The *derivation logic* runs on-device; the
 > *outcomes* are logged.
 >
-> **Producer status.** Book / annotation / reading / AI-conversation events are
-> what the first cutover writes. `profile.*`, `entity.*`, and `memory.*` are
+> **Producer status.** Book / collection / annotation / ask / reading events are
+> **live**: the UX persistence seams dual-write them (event first, projection
+> second), and boot-time genesis reconciliation backfills creation events for
+> rows that predate the write path. AI-conversation events await the chat
+> layer's move off localStorage. `profile.*`, `entity.*`, and `memory.*` are
 > declared so the projection tables are well-defined, but **have no producer
-> yet** — the consolidation/embedding pipeline is future work
-> ([§10](#10-open-decisions)).
+> yet** — the consolidation pipeline is future work ([§10](#10-open-decisions)).
 
 ---
 
@@ -203,6 +216,9 @@ Mirrors `packages/core/src/entities.ts`.
   `Note.content` → `body`. A highlight's `anchor` may be null for unanchorable
   formats; a note always belongs to a book (`book_id NOT NULL`), matching
   `events.ts`.
+- **`asks`** — passive traces of the book thread (one row per question asked;
+  agent-architecture §7), rebuilt from `ask.recorded` / `ask.removed`. Written
+  by the agent runtime, not the user.
 
 ### AI conversation (one persistent thread per book)
 
@@ -357,9 +373,32 @@ tables `highlights` / `notes` / `ai_conversations`.
 - **Blobs sync separately**, keyed by `blob_objects.key`, tracked by
   `blob_sync_state`; a new device bootstraps from the log, then lazily fetches
   blobs.
-- **E2E by default.** The relay stores ciphertext only. *(Not built yet.)*
+- **Blob bootstrap contract.** `books.source_blob_key` (and every other
+  blob-key FK) points at `blob_objects`, which is `[device-local]` — so on a
+  fresh device, replay must **materialize the blob manifest row first**:
+  when an event referencing a blob key is applied (e.g. `book.imported`'s
+  `sourceBlobKey`), upsert a `blob_objects` row with `storage_uri = NULL`
+  ("known remotely, not fetched") before or with the projection row, then let
+  the blob fetcher fill in the bytes and the `storage_uri` lazily. A `NULL`
+  `storage_uri` therefore means *not present on this device* — readers treat
+  it as a cache miss, never an error.
+- **E2E envelope (decided 2026-07).** The relay stores ciphertext only, and the
+  **encrypted envelope covers everything that describes behavior**: `type`,
+  `schema_version`, `aggregate_type`/`aggregate_id`, `payload_json`,
+  `created_at`. If only the payload were encrypted, the plaintext event types
+  alone would hand the relay a complete timeline of reading activity. The
+  relay sees just what routing needs: event `id`, `hlc_device`, its own server
+  sequence, ciphertext size. (Relay itself not built yet; this contract is
+  fixed now so `event_sync_state`/the feed aren't designed against a leakier
+  shape.)
 - **Change feed.** "events after HLC X"; `projection_checkpoints` tracks local
   apply progress.
+- **Deterministic replay caveats.** Anything a projection derives must not
+  depend on replay-time environment: `reading_time_daily/hourly` bucket by the
+  `localDay`/`localHour` **carried in the event payload** (never recomputed
+  from `atEpochMs` in the current timezone), and `ai_messages.seq` is assigned
+  from HLC order on conflict (two offline devices can mint the same seq; the
+  event-carried seq is a hint, the HLC is the truth).
 
 ### The rebuild contract
 

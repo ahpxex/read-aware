@@ -48,14 +48,24 @@ export interface DomainEventEnvelope<T extends string = string, P = unknown> {
   schemaVersion?: number;
   /** Operator identity; `"local"` on the single-user desktop app today. */
   actorId?: Id;
+  /**
+   * When the recorded fact happened (ISO-8601 UTC), for display and audit.
+   * Usually equals the HLC wall time and may be omitted (the store derives it
+   * from the HLC). It diverges on genesis backfill: events synthesized for
+   * pre-event-era rows carry the row's historical timestamp here while their
+   * HLC is stamped at synthesis time (the HLC orders the log, it is not a
+   * display time — and reusing historical millis would risk colliding with
+   * stamps already handed out).
+   */
+  createdAt?: string;
   /** Event-specific data. */
   payload: P;
 }
 
 // Append new variants below; never repurpose or mutate an existing variant's
 // shape (it breaks replay). Projection timestamps (created_at / updated_at /
-// last_opened_at …) are derived from the envelope HLC wall time unless a
-// payload field is called out explicitly.
+// last_opened_at …) are derived from the envelope `createdAt` (which defaults
+// to the HLC wall time) unless a payload field is called out explicitly.
 export type DomainEvent =
   // --- Books -------------------------------------------------------------
   | DomainEventEnvelope<
@@ -114,10 +124,23 @@ export type DomainEvent =
         status?: ReadingStatus;
       }
     >
-  /** Active reading time; `ms` is a duration, `atEpochMs` the local instant. */
+  /**
+   * Active reading time; `ms` is a duration, `atEpochMs` the local instant.
+   * `localDay` (YYYY-MM-DD) and `localHour` (0-23) are stamped at RECORD time
+   * in the recording device's timezone: the reading_time_daily/hourly
+   * projections bucket by local day, and deriving the bucket at replay time
+   * from `atEpochMs` would shift history when a rebuild runs in a different
+   * timezone.
+   */
   | DomainEventEnvelope<
       "reading.timeRecorded",
-      { bookId: Id; ms: number; atEpochMs: number }
+      {
+        bookId: Id;
+        ms: number;
+        atEpochMs: number;
+        localDay: string;
+        localHour: number;
+      }
     >
   // --- Annotations -------------------------------------------------------
   | DomainEventEnvelope<
@@ -152,6 +175,16 @@ export type DomainEvent =
     >
   | DomainEventEnvelope<"note.updated", { noteId: Id; body: string }>
   | DomainEventEnvelope<"note.removed", { noteId: Id }>
+  /**
+   * A question asked in the book thread leaves a passive trace anchored at the
+   * selection or reading position (docs/agent-architecture.md §7). Written by
+   * the agent runtime, not the user.
+   */
+  | DomainEventEnvelope<
+      "ask.recorded",
+      { askId: Id; bookId: Id; anchor?: string; chapterHref?: string; text: string }
+    >
+  | DomainEventEnvelope<"ask.removed", { askId: Id }>
   // --- AI conversation (one persistent thread per book) ------------------
   | DomainEventEnvelope<
       "aiConversation.started",

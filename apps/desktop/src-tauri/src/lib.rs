@@ -295,13 +295,15 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .manage(BookReadSessions::default())
         .setup(|app| {
-            let conn = storage::init_db(app.handle()).expect("failed to initialize database");
+            let (conn, data_dir) =
+                storage::init_db(app.handle()).expect("failed to initialize database");
             // Read the persisted theme preference BEFORE the main window exists
             // so the very first frame — window background and boot splash —
             // honors the in-app setting, not just the OS scheme. `None` means
             // "system" (or nothing stored): follow the OS.
             let boot_theme = storage::read_boot_theme(&conn);
             app.manage(storage::Db(Mutex::new(conn)));
+            app.manage(storage::DataDir(data_dir));
 
             // The main window is declared in tauri.conf.json with `create:
             // false` and built here instead: an initialization script can only
@@ -345,6 +347,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             storage::append_events,
             storage::read_events_since,
+            storage::list_event_aggregate_ids,
+            storage::local_device_get,
             storage::put_blob,
             storage::get_blob,
             storage::delete_blob,
@@ -362,8 +366,6 @@ pub fn run() {
             storage::annotation_get,
             storage::annotation_put,
             storage::annotation_delete,
-            storage::upsert_vectors,
-            storage::query_vectors,
             read_book_file,
             book_read_open,
             book_read_chunk,

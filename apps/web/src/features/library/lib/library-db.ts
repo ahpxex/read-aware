@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { TFunction } from "i18next";
 import { getDesktopBlob, putDesktopBlob } from "../../../platform/blob-store";
+import { emitDomainEvents } from "../../../platform/domain-events";
 import type {
   BookFormat,
   BookProgress,
@@ -120,7 +121,25 @@ async function putBookRecord(book: LibraryBook): Promise<void> {
 async function storeImportedBook(book: LibraryBook, file: File): Promise<void> {
   if (isTauri()) {
     const bytes = new Uint8Array(await file.arrayBuffer());
-    await putDesktopBlob(bookFileKey(book.id), bytes);
+    const { sha256 } = await putDesktopBlob(
+      bookFileKey(book.id),
+      bytes,
+      book.mimeType || undefined,
+    );
+    emitDomainEvents({
+      type: "book.imported",
+      payload: {
+        bookId: book.id,
+        title: book.title,
+        author: book.author,
+        format: book.format,
+        fileName: book.fileName,
+        mimeType: book.mimeType || undefined,
+        fileSize: book.fileSize,
+        sourceBlobKey: bookFileKey(book.id),
+        sourceSha256: sha256,
+      },
+    });
     await invoke("library_put_book", { book });
     return;
   }
@@ -133,6 +152,9 @@ async function storeImportedBook(book: LibraryBook, file: File): Promise<void> {
 
 async function deleteBookRecords(bookIds: string[]): Promise<void> {
   if (bookIds.length === 0) return;
+  emitDomainEvents(
+    ...bookIds.map((bookId) => ({ type: "book.removed" as const, payload: { bookId } })),
+  );
   if (isTauri()) {
     await invoke("library_delete_books", { ids: bookIds });
     return;
@@ -370,6 +392,18 @@ export async function updateLibraryBookProgress(bookId: string, progress: BookPr
     lastOpenedAt: now,
   };
 
+  emitDomainEvents({
+    type: "reading.progressed",
+    payload: {
+      bookId,
+      locator: progress?.cfi ?? progress?.href ?? "",
+      chapterHref: progress?.href ?? undefined,
+      currentLocation: progress?.currentLocation,
+      totalLocations: progress?.totalLocations,
+      progressPercent,
+      status: nextBook.readingStatus,
+    },
+  });
   await putBookRecord(nextBook);
   return nextBook;
 }
@@ -396,6 +430,16 @@ export async function updateBookMetadata(
     updatedAt: new Date().toISOString(),
   };
 
+  if (nextBook.title !== existingBook.title || nextBook.author !== existingBook.author) {
+    emitDomainEvents({
+      type: "book.metadataEdited",
+      payload: {
+        bookId,
+        ...(nextBook.title !== existingBook.title ? { title: nextBook.title } : {}),
+        ...(nextBook.author !== existingBook.author ? { author: nextBook.author } : {}),
+      },
+    });
+  }
   await putBookRecord(nextBook);
   return nextBook;
 }
@@ -408,6 +452,7 @@ export async function setLibraryBookStarred(bookId: string, starred: boolean) {
   // or pinning a book would also reshuffle the "recently opened" ordering.
   const nextBook: LibraryBook = { ...existingBook, starred };
 
+  emitDomainEvents({ type: "book.starred", payload: { bookId, starred } });
   await putBookRecord(nextBook);
   return nextBook;
 }
@@ -423,6 +468,10 @@ export async function createCollection(name: string): Promise<Collection> {
     name: name.trim() || "Untitled collection",
     createdAt: new Date().toISOString(),
   };
+  emitDomainEvents({
+    type: "collection.created",
+    payload: { collectionId: collection.id, name: collection.name },
+  });
   await putCollectionRecord(collection);
   return collection;
 }
@@ -432,12 +481,21 @@ export async function renameCollection(id: string, name: string): Promise<Collec
   if (!existing) return null;
 
   const next: Collection = { ...existing, name: name.trim() || existing.name };
+  emitDomainEvents({
+    type: "collection.renamed",
+    payload: { collectionId: id, name: next.name },
+  });
   await putCollectionRecord(next);
   return next;
 }
 
-/** Delete a collection and clear its books' membership (the books stay). */
+/**
+ * Delete a collection and clear its books' membership (the books stay).
+ * `collection.removed` implies the membership clearing on replay — no per-book
+ * `book.removedFromCollection` events are emitted for it.
+ */
 export async function deleteCollection(id: string) {
+  emitDomainEvents({ type: "collection.removed", payload: { collectionId: id } });
   if (isTauri()) {
     await invoke("library_delete_collection", { id });
     return;
@@ -464,6 +522,20 @@ export async function setBooksCollection(bookIds: string[], collectionId: string
   const idSet = new Set(bookIds);
   const all = await getAllBookRecords();
   const affected = all.filter((book) => idSet.has(book.id) && book.collectionId !== collectionId);
+  emitDomainEvents(
+    ...affected.map((book) =>
+      collectionId
+        ? {
+            type: "book.addedToCollection" as const,
+            payload: { bookId: book.id, collectionId },
+          }
+        : {
+            type: "book.removedFromCollection" as const,
+            // Ungrouping: the membership being removed is the book's current one.
+            payload: { bookId: book.id, collectionId: book.collectionId as string },
+          },
+    ),
+  );
   for (const book of affected) {
     await putBookRecord({ ...book, collectionId });
   }
@@ -484,6 +556,7 @@ export async function markLibraryBookOpened(bookId: string) {
     updatedAt: now,
   };
 
+  emitDomainEvents({ type: "book.opened", payload: { bookId } });
   await putBookRecord(nextBook);
   return nextBook;
 }
@@ -507,7 +580,12 @@ async function putBookFileBytes(bookId: string, bytes: Uint8Array): Promise<void
   await waitForTransaction(transaction);
 }
 
-/** Upsert a book record verbatim (id preserved) and, if given, its file bytes. */
+/**
+ * Upsert a book record verbatim (id preserved) and, if given, its file bytes.
+ * Restores deliberately emit no events: rows a backup brings in that the log
+ * has never seen get their creation events synthesized by the boot-time
+ * genesis reconciliation (platform/event-genesis.ts) on the next launch.
+ */
 export async function restoreLibraryBook(
   book: LibraryBook,
   fileBytes: Uint8Array | null,

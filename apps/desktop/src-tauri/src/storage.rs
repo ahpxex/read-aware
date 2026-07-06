@@ -1,17 +1,22 @@
-// Local-first storage backend (desktop) — SQLite event log + blob store.
+// Local-first storage backend (desktop) — SQLite + filesystem blob store.
 //
-// This is the desktop implementation of @read-aware/core's `StorageAdapter`.
-// The event log is the source of truth and the unit of sync; structured tables
-// and the vector index are derived projections rebuilt from it.
+// This is the desktop implementation of @read-aware/core's storage contracts.
+// `domain_events` is the append-only source of truth and the unit of sync;
+// the typed tables (books/collections/annotations) are projections kept in
+// step by the frontend's dual writes. Blob BYTES live on the filesystem under
+// `<app_data>/blobs/`; SQLite holds only the `blob_objects` registry (key,
+// kind, sha256, size, storage_uri) — see docs/sqlite-schema.sql.
 //
-// Vector search (upsert/query) is stubbed until an embedding pipeline exists;
-// it will be backed by LanceDB. See CLAUDE.md > Storage Responsibilities.
+// Retrieval is FTS + structured signals per docs/agent-architecture.md §4 —
+// there is no vector store in the default architecture.
 
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Manager, State};
 
 /// Hybrid logical clock stamp. Mirrors `HlcStamp` in @read-aware/core.
@@ -24,32 +29,34 @@ pub struct Hlc {
 }
 
 /// One row of the append-only event log. Mirrors `DomainEventEnvelope`.
+/// The optional fields default at insert time (`schema_version` 1, `actor_id`
+/// 'local', `created_at` derived from the HLC wall time).
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EventRow {
     pub id: String,
     #[serde(rename = "type")]
     pub event_type: String,
     pub hlc: Hlc,
+    #[serde(default)]
+    pub schema_version: Option<i64>,
+    #[serde(default)]
+    pub aggregate_type: Option<String>,
+    #[serde(default)]
+    pub aggregate_id: Option<String>,
+    #[serde(default)]
+    pub actor_id: Option<String>,
+    #[serde(default)]
+    pub created_at: Option<String>,
     pub payload: Value,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct VectorItem {
-    pub id: String,
-    pub embedding: Vec<f32>,
-    pub metadata: Option<Value>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct VectorMatch {
-    pub id: String,
-    pub score: f32,
-    pub metadata: Option<Value>,
 }
 
 /// Managed Tauri state: the single SQLite connection behind a mutex.
 pub struct Db(pub Mutex<Connection>);
+
+/// Managed Tauri state: the app-data directory. Blob bytes live in
+/// `<data_dir>/blobs/`; `blob_objects.storage_uri` is relative to this root.
+pub struct DataDir(pub PathBuf);
 
 /// Ordered schema migrations. Each `(version, name, sql)` is applied once, in
 /// version order, inside a transaction, and recorded in `schema_migrations`.
@@ -58,11 +65,6 @@ pub struct Db(pub Mutex<Connection>);
 /// evolve the schema by appending a new `(version, ...)` entry. Statements are
 /// `IF NOT EXISTS` so first-run on a database created by the old ad-hoc
 /// `init_db` (bare `events`/`blobs`) is idempotent and never wipes data.
-///
-/// Faithful to docs/sqlite-schema.sql for the columns v1 uses. Pragmatic v1
-/// deviations (documented): bytes live inline in `blobs`, so blob-key columns
-/// are plain TEXT (no `blob_objects` FK yet), and the memory/vector/sync tables
-/// (no producer yet) are omitted.
 const MIGRATIONS: &[(i64, &str, &str)] = &[
     (
         1,
@@ -107,7 +109,7 @@ const MIGRATIONS: &[(i64, &str, &str)] = &[
         //     inline instead of in reading_positions / book_collection_memberships,
         //     mirroring the interim LibraryBook shape for a zero-risk swap.
         //   - covers stay inline data URLs (`cover_url`); only the large book file
-        //     goes to the blob store (`blobs`, key `bookfile:<id>`).
+        //     goes to the blob store (key `bookfile:<id>`).
         //   - highlights + notes share one typed `annotations` table (the current
         //     unified store), not separate highlights/notes tables.
         //   - no cross-table FKs yet (matches the current FK-less IndexedDB).
@@ -151,10 +153,92 @@ const MIGRATIONS: &[(i64, &str, &str)] = &[
          );
          CREATE INDEX IF NOT EXISTS ix_annotations_book_type ON annotations (book_id, type);",
     ),
+    (
+        3,
+        "domain_events_blob_registry_outbox",
+        // Cloud-readiness pass. Brings the live database up to the target
+        // sync-infrastructure shape (docs/sqlite-schema.sql):
+        //   - `domain_events` replaces the bare `events` table (full envelope:
+        //     schema_version, aggregate, actor, created_at vs ingested_at).
+        //     Existing rows (none in practice — the old log had no producers)
+        //     are carried over, then the old table is dropped.
+        //   - `event_sync_state` / `blob_sync_state` are the push outboxes; the
+        //     sync engine (not yet built) consumes them. Rows accumulate as
+        //     'pending' until then — that is the point of an outbox.
+        //   - `blob_objects` is the blob registry; BYTES move out of SQLite to
+        //     `<app_data>/blobs/` (see `externalize_inline_blobs`, which runs
+        //     right after this migration and drops the inline `blobs` table).
+        //   - On a fresh install v1 creates `events`/`blobs` and this migration
+        //     immediately retires them — a harmless one-time quirk, cheaper than
+        //     editing the already-shipped v1 SQL.
+        "CREATE TABLE IF NOT EXISTS domain_events (
+            id             TEXT PRIMARY KEY,
+            type           TEXT NOT NULL,
+            schema_version INTEGER NOT NULL DEFAULT 1,
+            hlc_wall_ms    INTEGER NOT NULL,
+            hlc_counter    INTEGER NOT NULL,
+            hlc_device     TEXT NOT NULL,
+            aggregate_type TEXT,
+            aggregate_id   TEXT,
+            payload_json   TEXT NOT NULL,
+            actor_id       TEXT NOT NULL DEFAULT 'local',
+            created_at     TEXT NOT NULL,
+            ingested_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+         );
+         CREATE UNIQUE INDEX IF NOT EXISTS ix_domain_events_hlc
+            ON domain_events (hlc_wall_ms, hlc_counter, hlc_device);
+         CREATE INDEX IF NOT EXISTS ix_domain_events_type ON domain_events (type);
+         CREATE INDEX IF NOT EXISTS ix_domain_events_aggregate
+            ON domain_events (aggregate_type, aggregate_id);
+         INSERT OR IGNORE INTO domain_events
+            (id, type, schema_version, hlc_wall_ms, hlc_counter, hlc_device,
+             payload_json, actor_id, created_at)
+            SELECT id, type, 1, hlc_wall, hlc_counter, hlc_device, payload, 'local',
+                   strftime('%Y-%m-%dT%H:%M:%fZ', hlc_wall / 1000.0, 'unixepoch')
+            FROM events;
+         DROP TABLE IF EXISTS events;
+         CREATE TABLE IF NOT EXISTS event_sync_state (
+            event_id   TEXT PRIMARY KEY REFERENCES domain_events(id) ON DELETE CASCADE,
+            push_state TEXT NOT NULL DEFAULT 'pending',
+            pushed_at  TEXT,
+            remote_id  TEXT,
+            last_error TEXT,
+            updated_at TEXT NOT NULL
+         );
+         CREATE INDEX IF NOT EXISTS ix_event_sync_state_push
+            ON event_sync_state (push_state, updated_at)
+            WHERE push_state IN ('pending','failed');
+         CREATE TABLE IF NOT EXISTS blob_objects (
+            key              TEXT PRIMARY KEY,
+            kind             TEXT NOT NULL,
+            mime_type        TEXT,
+            byte_size        INTEGER,
+            sha256           TEXT,
+            storage_uri      TEXT,
+            sync_required    INTEGER NOT NULL DEFAULT 1,
+            created_at       TEXT NOT NULL,
+            last_accessed_at TEXT,
+            deleted_at       TEXT
+         );
+         CREATE INDEX IF NOT EXISTS ix_blob_objects_kind ON blob_objects (kind);
+         CREATE INDEX IF NOT EXISTS ix_blob_objects_sha256 ON blob_objects (sha256);
+         CREATE TABLE IF NOT EXISTS blob_sync_state (
+            blob_key   TEXT PRIMARY KEY REFERENCES blob_objects(key) ON DELETE CASCADE,
+            push_state TEXT NOT NULL DEFAULT 'pending',
+            pushed_at  TEXT,
+            remote_uri TEXT,
+            last_error TEXT,
+            updated_at TEXT NOT NULL
+         );
+         CREATE INDEX IF NOT EXISTS ix_blob_sync_state_push
+            ON blob_sync_state (push_state, updated_at)
+            WHERE push_state IN ('pending','failed');",
+    ),
 ];
 
-/// Apply any migrations newer than the highest recorded version.
-fn run_migrations(conn: &mut Connection) -> Result<(), String> {
+/// Apply migrations newer than the highest recorded version, up to `max_version`
+/// (`i64::MAX` in production; tests use lower caps to stage old databases).
+fn run_migrations_up_to(conn: &mut Connection, max_version: i64) -> Result<(), String> {
     conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS schema_migrations (
             version    INTEGER PRIMARY KEY,
@@ -171,7 +255,7 @@ fn run_migrations(conn: &mut Connection) -> Result<(), String> {
         )
         .map_err(|e| e.to_string())?;
     for (version, name, sql) in MIGRATIONS {
-        if *version > current {
+        if *version > current && *version <= max_version {
             let tx = conn.transaction().map_err(|e| e.to_string())?;
             tx.execute_batch(sql).map_err(|e| e.to_string())?;
             tx.execute(
@@ -185,60 +269,388 @@ fn run_migrations(conn: &mut Connection) -> Result<(), String> {
     Ok(())
 }
 
-/// Open (creating if needed) the app database, enforce foreign keys, and run
-/// migrations. The connection is long-lived (managed Tauri state), so asserting
-/// `PRAGMA foreign_keys = ON` once here holds for the process — the per-
-/// connection FK requirement docs/sqlite-schema.sql calls out.
-pub fn init_db(app: &AppHandle) -> Result<Connection, String> {
+fn run_migrations(conn: &mut Connection) -> Result<(), String> {
+    run_migrations_up_to(conn, i64::MAX)
+}
+
+/// Connection baseline, applied to EVERY connection at open (none of these
+/// persist in the database file):
+///   - WAL: readers don't block the writer; a multi-MB blob-era import no
+///     longer wrote double through a rollback journal.
+///   - synchronous=NORMAL: the safe pairing with WAL (durable at checkpoint).
+///   - busy_timeout: a second process (or a checkpoint) briefly holding the
+///     lock waits instead of failing with SQLITE_BUSY.
+///   - foreign_keys: per-connection flag; the schema's FKs are inert without it.
+fn apply_connection_pragmas(conn: &Connection) -> Result<(), String> {
+    // journal_mode returns the resulting mode as a row, so query it.
+    conn.query_row("PRAGMA journal_mode = WAL", [], |row| {
+        row.get::<_, String>(0)
+    })
+    .map_err(|e| e.to_string())?;
+    conn.execute_batch(
+        "PRAGMA synchronous = NORMAL;
+         PRAGMA busy_timeout = 5000;
+         PRAGMA foreign_keys = ON;",
+    )
+    .map_err(|e| e.to_string())
+}
+
+// --- Device identity (HLC + sync attribution) --------------------------------
+
+/// Ensure the single `local_device` row exists and return its stable device id,
+/// generating one on first run. Bumps `last_opened_at` on every boot.
+pub fn ensure_local_device(conn: &Connection) -> Result<String, String> {
+    let existing: Option<String> = conn
+        .query_row("SELECT device_id FROM local_device WHERE id = 1", [], |row| {
+            row.get(0)
+        })
+        .map(Some)
+        .or_else(|e| match e {
+            rusqlite::Error::QueryReturnedNoRows => Ok(None),
+            other => Err(other.to_string()),
+        })?;
+    if let Some(device_id) = existing {
+        conn.execute(
+            "UPDATE local_device SET last_opened_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+             WHERE id = 1",
+            [],
+        )
+        .map_err(|e| e.to_string())?;
+        return Ok(device_id);
+    }
+    let device_id = uuid::Uuid::new_v4().to_string();
+    conn.execute(
+        "INSERT INTO local_device (id, device_id, created_at, last_opened_at)
+         VALUES (1, ?1, strftime('%Y-%m-%dT%H:%M:%fZ','now'),
+                 strftime('%Y-%m-%dT%H:%M:%fZ','now'))",
+        params![device_id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(device_id)
+}
+
+/// Boot info for the frontend HLC: the stable device id plus the highest HLC
+/// this device ever persisted, so the clock can reseed monotonically across
+/// restarts even if the wall clock stepped backwards.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalDeviceInfo {
+    pub device_id: String,
+    pub last_hlc_wall_ms: Option<i64>,
+    pub last_hlc_counter: Option<i64>,
+}
+
+#[tauri::command]
+pub fn local_device_get(db: State<'_, Db>) -> Result<LocalDeviceInfo, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    let device_id = ensure_local_device(&conn)?;
+    let last = conn
+        .query_row(
+            "SELECT hlc_wall_ms, hlc_counter FROM domain_events WHERE hlc_device = ?1
+             ORDER BY hlc_wall_ms DESC, hlc_counter DESC LIMIT 1",
+            params![device_id],
+            |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
+        )
+        .map(Some)
+        .or_else(|e| match e {
+            rusqlite::Error::QueryReturnedNoRows => Ok(None),
+            other => Err(other.to_string()),
+        })?;
+    Ok(LocalDeviceInfo {
+        device_id,
+        last_hlc_wall_ms: last.map(|(wall, _)| wall),
+        last_hlc_counter: last.map(|(_, counter)| counter),
+    })
+}
+
+// --- Filesystem blob store ----------------------------------------------------
+//
+// Bytes live as ordinary files under `<data_dir>/blobs/`; SQLite keeps only the
+// `blob_objects` registry row (kind, mime, size, sha256, storage_uri) plus the
+// `blob_sync_state` outbox. Payloads still cross the IPC bridge RAW
+// (`tauri::ipc::Request` / `Response`), never as JSON — a serde `Vec<u8>` would
+// serialize a book file into a JSON array of numbers, which froze the webview
+// main thread on large books.
+
+/// Header carrying the blob key on raw-body `put_blob` requests (the body is
+/// the payload itself, so the key can't ride in JSON args).
+const BLOB_KEY_HEADER: &str = "x-blob-key";
+/// Optional header carrying the payload MIME type on `put_blob` requests.
+const BLOB_MIME_HEADER: &str = "x-blob-mime";
+
+/// Map a blob key's prefix to its registry `kind` and whether it should sync
+/// to the relay (font caches are re-downloadable; everything else is user data).
+fn blob_kind(key: &str) -> (&'static str, bool) {
+    match key.split(':').next() {
+        Some("bookfile") => ("book_source", true),
+        Some("cover") => ("cover_image", true),
+        Some("font") => ("font_face", false),
+        _ => ("unknown", true),
+    }
+}
+
+/// Filesystem-safe file name for a blob key: percent-encode every byte outside
+/// `[A-Za-z0-9._-]`. Injective (no two keys share a file) and reversible, so a
+/// stray file in `blobs/` can always be traced back to its key.
+fn blob_file_name(key: &str) -> String {
+    let mut out = String::with_capacity(key.len());
+    for byte in key.bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'.' | b'_' | b'-' => {
+                out.push(byte as char)
+            }
+            other => out.push_str(&format!("%{other:02X}")),
+        }
+    }
+    out
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BlobPutResult {
+    pub sha256: String,
+    pub byte_size: i64,
+}
+
+fn put_blob_inner(
+    conn: &Connection,
+    data_dir: &Path,
+    key: &str,
+    mime_type: Option<&str>,
+    data: &[u8],
+) -> Result<BlobPutResult, String> {
+    let blobs_dir = data_dir.join("blobs");
+    std::fs::create_dir_all(&blobs_dir).map_err(|e| e.to_string())?;
+    let file_name = blob_file_name(key);
+    // Write-then-rename so a crash mid-write never leaves a torn blob behind
+    // a committed registry row.
+    let tmp_path = blobs_dir.join(format!("{file_name}.tmp"));
+    let final_path = blobs_dir.join(&file_name);
+    std::fs::write(&tmp_path, data).map_err(|e| e.to_string())?;
+    std::fs::rename(&tmp_path, &final_path).map_err(|e| e.to_string())?;
+
+    let sha256 = format!("{:x}", Sha256::digest(data));
+    let byte_size = data.len() as i64;
+    let (kind, sync_required) = blob_kind(key);
+    let storage_uri = format!("blobs/{file_name}");
+    conn.execute(
+        "INSERT INTO blob_objects
+            (key, kind, mime_type, byte_size, sha256, storage_uri, sync_required, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+         ON CONFLICT(key) DO UPDATE SET
+            kind = excluded.kind,
+            mime_type = COALESCE(excluded.mime_type, blob_objects.mime_type),
+            byte_size = excluded.byte_size,
+            sha256 = excluded.sha256,
+            storage_uri = excluded.storage_uri,
+            sync_required = excluded.sync_required,
+            deleted_at = NULL",
+        params![key, kind, mime_type, byte_size, sha256, storage_uri, sync_required as i64],
+    )
+    .map_err(|e| e.to_string())?;
+    if sync_required {
+        // (Re)writes reset the outbox: changed content must push again.
+        conn.execute(
+            "INSERT INTO blob_sync_state (blob_key, updated_at)
+             VALUES (?1, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+             ON CONFLICT(blob_key) DO UPDATE SET
+                push_state = 'pending',
+                pushed_at = NULL,
+                updated_at = excluded.updated_at",
+            params![key],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+    Ok(BlobPutResult { sha256, byte_size })
+}
+
+/// Empty vec means "no such blob" (the raw-response contract; no real payload
+/// is zero-length). A registry row whose file went missing is treated the same.
+fn get_blob_inner(conn: &Connection, data_dir: &Path, key: &str) -> Result<Vec<u8>, String> {
+    let storage_uri: Option<String> = conn
+        .query_row(
+            "SELECT storage_uri FROM blob_objects
+             WHERE key = ?1 AND deleted_at IS NULL AND storage_uri IS NOT NULL",
+            params![key],
+            |row| row.get(0),
+        )
+        .map(Some)
+        .or_else(|e| match e {
+            rusqlite::Error::QueryReturnedNoRows => Ok(None),
+            other => Err(other.to_string()),
+        })?;
+    let Some(storage_uri) = storage_uri else {
+        return Ok(Vec::new());
+    };
+    match std::fs::read(data_dir.join(&storage_uri)) {
+        Ok(bytes) => Ok(bytes),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Vec::new()),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+/// Remove the bytes and tombstone the registry row (`deleted_at` set,
+/// `storage_uri` cleared, outbox row dropped). The tombstone keeps sync and
+/// backup-restore from resurrecting a deliberately deleted file.
+fn delete_blob_inner(conn: &Connection, data_dir: &Path, key: &str) -> Result<(), String> {
+    let storage_uri: Option<String> = conn
+        .query_row(
+            "SELECT storage_uri FROM blob_objects WHERE key = ?1",
+            params![key],
+            |row| row.get(0),
+        )
+        .or_else(|e| match e {
+            rusqlite::Error::QueryReturnedNoRows => Ok(None),
+            other => Err(other.to_string()),
+        })?;
+    if let Some(uri) = storage_uri {
+        match std::fs::remove_file(data_dir.join(&uri)) {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(e.to_string()),
+        }
+    }
+    conn.execute(
+        "UPDATE blob_objects SET
+            deleted_at = strftime('%Y-%m-%dT%H:%M:%fZ','now'),
+            storage_uri = NULL
+         WHERE key = ?1",
+        params![key],
+    )
+    .map_err(|e| e.to_string())?;
+    conn.execute(
+        "DELETE FROM blob_sync_state WHERE blob_key = ?1",
+        params![key],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// One-time data migration: move any bytes still inline in the pre-v3 `blobs`
+/// table out to `<data_dir>/blobs/` files + `blob_objects` rows, then drop the
+/// table. Runs on every boot but is a no-op once the table is gone. Idempotent
+/// under crashes: file writes are keyed deterministically and registry rows are
+/// upserts, so a re-run after a partial pass simply overwrites its own work
+/// before dropping the table.
+fn externalize_inline_blobs(conn: &Connection, data_dir: &Path) -> Result<(), String> {
+    let has_inline_table: bool = conn
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'blobs')",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|e| e.to_string())?;
+    if !has_inline_table {
+        return Ok(());
+    }
+    {
+        let mut stmt = conn
+            .prepare("SELECT key, data FROM blobs")
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, Vec<u8>>(1)?))
+            })
+            .map_err(|e| e.to_string())?;
+        for row in rows {
+            let (key, data) = row.map_err(|e| e.to_string())?;
+            put_blob_inner(conn, data_dir, &key, None, &data)?;
+        }
+    }
+    conn.execute_batch("DROP TABLE blobs;").map_err(|e| e.to_string())?;
+    // The inline pages are gone but the file doesn't shrink by itself; with the
+    // library's book bytes leaving the database this is the one reclaim that is
+    // actually worth a VACUUM.
+    conn.execute_batch("VACUUM;").map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Open (creating if needed) the app database, apply the connection PRAGMA
+/// baseline (WAL et al — see `apply_connection_pragmas`), run migrations,
+/// externalize any pre-v3 inline blobs, and ensure the device identity row.
+/// Returns the connection plus the app-data dir the blob store roots at.
+pub fn init_db(app: &AppHandle) -> Result<(Connection, PathBuf), String> {
     let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let mut conn = Connection::open(dir.join("read-aware.db")).map_err(|e| e.to_string())?;
-    conn.execute_batch("PRAGMA foreign_keys = ON;")
-        .map_err(|e| e.to_string())?;
+    apply_connection_pragmas(&conn)?;
     run_migrations(&mut conn)?;
-    Ok(conn)
+    externalize_inline_blobs(&conn, &dir)?;
+    ensure_local_device(&conn)?;
+    Ok((conn, dir))
 }
 
 fn row_to_event(row: &rusqlite::Row) -> rusqlite::Result<EventRow> {
-    let payload_str: String = row.get(5)?;
+    let payload_str: String = row.get("payload_json")?;
     let payload: Value = serde_json::from_str(&payload_str).unwrap_or(Value::Null);
     Ok(EventRow {
-        id: row.get(0)?,
-        event_type: row.get(1)?,
+        id: row.get("id")?,
+        event_type: row.get("type")?,
         hlc: Hlc {
-            wall_ms: row.get(2)?,
-            counter: row.get(3)?,
-            device_id: row.get(4)?,
+            wall_ms: row.get("hlc_wall_ms")?,
+            counter: row.get("hlc_counter")?,
+            device_id: row.get("hlc_device")?,
         },
+        schema_version: row.get("schema_version")?,
+        aggregate_type: row.get("aggregate_type")?,
+        aggregate_id: row.get("aggregate_id")?,
+        actor_id: row.get("actor_id")?,
+        created_at: row.get("created_at")?,
         payload,
     })
 }
 
 // --- Event log (the sync unit) ---
 
-#[tauri::command]
-pub fn append_events(events: Vec<EventRow>, db: State<'_, Db>) -> Result<(), String> {
-    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+fn append_events_inner(conn: &mut Connection, events: &[EventRow]) -> Result<(), String> {
     let tx = conn.transaction().map_err(|e| e.to_string())?;
-    for ev in &events {
+    for ev in events {
         let payload = serde_json::to_string(&ev.payload).map_err(|e| e.to_string())?;
-        tx.execute(
-            "INSERT OR IGNORE INTO events
-                (id, type, hlc_wall, hlc_counter, hlc_device, payload)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            params![
-                ev.id,
-                ev.event_type,
-                ev.hlc.wall_ms,
-                ev.hlc.counter,
-                ev.hlc.device_id,
-                payload
-            ],
-        )
-        .map_err(|e| e.to_string())?;
+        // `?4` (HLC wall ms) is reused to derive created_at when the caller
+        // didn't stamp one. INSERT OR IGNORE keeps replays/dup deliveries
+        // idempotent by event id (and by the unique HLC index).
+        let inserted = tx
+            .execute(
+                "INSERT OR IGNORE INTO domain_events
+                    (id, type, schema_version, hlc_wall_ms, hlc_counter, hlc_device,
+                     aggregate_type, aggregate_id, payload_json, actor_id, created_at)
+                 VALUES (?1, ?2, COALESCE(?3, 1), ?4, ?5, ?6, ?7, ?8, ?9,
+                         COALESCE(?10, 'local'),
+                         COALESCE(?11, strftime('%Y-%m-%dT%H:%M:%fZ', ?4 / 1000.0, 'unixepoch')))",
+                params![
+                    ev.id,
+                    ev.event_type,
+                    ev.schema_version,
+                    ev.hlc.wall_ms,
+                    ev.hlc.counter,
+                    ev.hlc.device_id,
+                    ev.aggregate_type,
+                    ev.aggregate_id,
+                    payload,
+                    ev.actor_id,
+                    ev.created_at,
+                ],
+            )
+            .map_err(|e| e.to_string())?;
+        // Locally-appended events enter the push outbox; ignored duplicates
+        // (already logged, possibly already pushed) must not re-enter it.
+        if inserted > 0 {
+            tx.execute(
+                "INSERT OR IGNORE INTO event_sync_state (event_id, updated_at)
+                 VALUES (?1, strftime('%Y-%m-%dT%H:%M:%fZ','now'))",
+                params![ev.id],
+            )
+            .map_err(|e| e.to_string())?;
+        }
     }
     tx.commit().map_err(|e| e.to_string())?;
     Ok(())
+}
+
+#[tauri::command]
+pub fn append_events(events: Vec<EventRow>, db: State<'_, Db>) -> Result<(), String> {
+    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+    append_events_inner(&mut conn, &events)
 }
 
 #[tauri::command]
@@ -249,9 +661,9 @@ pub fn read_events_since(after: Option<Hlc>, db: State<'_, Db>) -> Result<Vec<Ev
         Some(a) => {
             let mut stmt = conn
                 .prepare(
-                    "SELECT id, type, hlc_wall, hlc_counter, hlc_device, payload FROM events
-                     WHERE (hlc_wall, hlc_counter, hlc_device) > (?1, ?2, ?3)
-                     ORDER BY hlc_wall, hlc_counter, hlc_device",
+                    "SELECT * FROM domain_events
+                     WHERE (hlc_wall_ms, hlc_counter, hlc_device) > (?1, ?2, ?3)
+                     ORDER BY hlc_wall_ms, hlc_counter, hlc_device",
                 )
                 .map_err(|e| e.to_string())?;
             let iter = stmt
@@ -264,8 +676,8 @@ pub fn read_events_since(after: Option<Hlc>, db: State<'_, Db>) -> Result<Vec<Ev
         None => {
             let mut stmt = conn
                 .prepare(
-                    "SELECT id, type, hlc_wall, hlc_counter, hlc_device, payload FROM events
-                     ORDER BY hlc_wall, hlc_counter, hlc_device",
+                    "SELECT * FROM domain_events
+                     ORDER BY hlc_wall_ms, hlc_counter, hlc_device",
                 )
                 .map_err(|e| e.to_string())?;
             let iter = stmt.query_map([], row_to_event).map_err(|e| e.to_string())?;
@@ -277,25 +689,55 @@ pub fn read_events_since(after: Option<Hlc>, db: State<'_, Db>) -> Result<Vec<Ev
     Ok(out)
 }
 
-// --- Blobs (book files + derivatives) ---
-//
-// Blob bytes cross the IPC bridge RAW (`tauri::ipc::Request` / `Response`),
-// never as JSON. A serde `Vec<u8>` would serialize a book file into a JSON
-// array of numbers — tens of millions of tokens to stringify, parse, and box
-// for one open, which froze the webview main thread on large books.
+/// Distinct aggregate ids that already have an event of one of the given types.
+/// Backs the boot-time genesis reconciliation: the frontend synthesizes
+/// creation events for projection rows whose aggregate never entered the log.
+#[tauri::command]
+pub fn list_event_aggregate_ids(
+    types: Vec<String>,
+    db: State<'_, Db>,
+) -> Result<Vec<String>, String> {
+    if types.is_empty() {
+        return Ok(Vec::new());
+    }
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    let placeholders = vec!["?"; types.len()].join(", ");
+    let sql = format!(
+        "SELECT DISTINCT aggregate_id FROM domain_events
+         WHERE aggregate_id IS NOT NULL AND type IN ({placeholders})"
+    );
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+    let iter = stmt
+        .query_map(rusqlite::params_from_iter(types.iter()), |row| {
+            row.get::<_, String>(0)
+        })
+        .map_err(|e| e.to_string())?;
+    let mut out = Vec::new();
+    for r in iter {
+        out.push(r.map_err(|e| e.to_string())?);
+    }
+    Ok(out)
+}
 
-/// Header carrying the blob key on raw-body `put_blob` requests (the body is
-/// the payload itself, so the key can't ride in JSON args).
-const BLOB_KEY_HEADER: &str = "x-blob-key";
+// --- Blob commands (book files + derivatives) ---
 
 #[tauri::command]
-pub fn put_blob(request: tauri::ipc::Request<'_>, db: State<'_, Db>) -> Result<(), String> {
+pub fn put_blob(
+    request: tauri::ipc::Request<'_>,
+    db: State<'_, Db>,
+    data_dir: State<'_, DataDir>,
+) -> Result<BlobPutResult, String> {
     let key = request
         .headers()
         .get(BLOB_KEY_HEADER)
         .and_then(|value| value.to_str().ok())
         .ok_or_else(|| format!("put_blob: missing {BLOB_KEY_HEADER} header"))?
         .to_string();
+    let mime_type = request
+        .headers()
+        .get(BLOB_MIME_HEADER)
+        .and_then(|value| value.to_str().ok())
+        .map(|value| value.to_string());
     // Desktop delivers the payload as a true raw body. Android cannot: the
     // WebView's request interception never exposes POST bodies, so Tauri falls
     // back to JSON there and the bytes arrive as a JSON number array (the
@@ -306,12 +748,7 @@ pub fn put_blob(request: tauri::ipc::Request<'_>, db: State<'_, Db>) -> Result<(
             .map_err(|e| format!("put_blob: unsupported JSON body: {e}"))?,
     };
     let conn = db.0.lock().map_err(|e| e.to_string())?;
-    conn.execute(
-        "INSERT OR REPLACE INTO blobs (key, data) VALUES (?1, ?2)",
-        params![key, data.as_slice()],
-    )
-    .map_err(|e| e.to_string())?;
-    Ok(())
+    put_blob_inner(&conn, &data_dir.0, &key, mime_type.as_deref(), &data)
 }
 
 /// Returns the blob's bytes as a raw (non-JSON) IPC response. A missing key
@@ -319,25 +756,23 @@ pub fn put_blob(request: tauri::ipc::Request<'_>, db: State<'_, Db>) -> Result<(
 /// (A raw `Response` cannot express `Option`, and no real payload here is
 /// zero-length: book files and derivatives are never empty.)
 #[tauri::command]
-pub fn get_blob(key: String, db: State<'_, Db>) -> Result<tauri::ipc::Response, String> {
+pub fn get_blob(
+    key: String,
+    db: State<'_, Db>,
+    data_dir: State<'_, DataDir>,
+) -> Result<tauri::ipc::Response, String> {
     let conn = db.0.lock().map_err(|e| e.to_string())?;
-    match conn.query_row(
-        "SELECT data FROM blobs WHERE key = ?1",
-        params![key],
-        |row| row.get::<_, Vec<u8>>(0),
-    ) {
-        Ok(data) => Ok(tauri::ipc::Response::new(data)),
-        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(tauri::ipc::Response::new(Vec::new())),
-        Err(e) => Err(e.to_string()),
-    }
+    get_blob_inner(&conn, &data_dir.0, &key).map(tauri::ipc::Response::new)
 }
 
 #[tauri::command]
-pub fn delete_blob(key: String, db: State<'_, Db>) -> Result<(), String> {
+pub fn delete_blob(
+    key: String,
+    db: State<'_, Db>,
+    data_dir: State<'_, DataDir>,
+) -> Result<(), String> {
     let conn = db.0.lock().map_err(|e| e.to_string())?;
-    conn.execute("DELETE FROM blobs WHERE key = ?1", params![key])
-        .map_err(|e| e.to_string())?;
-    Ok(())
+    delete_blob_inner(&conn, &data_dir.0, &key)
 }
 
 // --- Device-local key/value config (backs the settings seam) ---
@@ -409,7 +844,7 @@ pub fn delete_kv(key: String, db: State<'_, Db>) -> Result<(), String> {
     Ok(())
 }
 
-// --- Library projection (books + collections; book-file bytes via `blobs`) ---
+// --- Library projection (books + collections; book-file bytes via blob store) ---
 
 /// Mirrors `LibraryBook` in apps/web (…/library/lib/library-types.ts). The nested
 /// `progress` (ReaderProgress | null) is carried verbatim as JSON.
@@ -549,16 +984,16 @@ pub fn library_put_book(book: LibraryBook, db: State<'_, Db>) -> Result<(), Stri
 }
 
 #[tauri::command]
-pub fn library_delete_books(ids: Vec<String>, db: State<'_, Db>) -> Result<(), String> {
+pub fn library_delete_books(
+    ids: Vec<String>,
+    db: State<'_, Db>,
+    data_dir: State<'_, DataDir>,
+) -> Result<(), String> {
     let conn = db.0.lock().map_err(|e| e.to_string())?;
     for id in &ids {
         conn.execute("DELETE FROM books WHERE id = ?1", params![id])
             .map_err(|e| e.to_string())?;
-        conn.execute(
-            "DELETE FROM blobs WHERE key = ?1",
-            params![format!("bookfile:{id}")],
-        )
-        .map_err(|e| e.to_string())?;
+        delete_blob_inner(&conn, &data_dir.0, &format!("bookfile:{id}"))?;
     }
     Ok(())
 }
@@ -613,7 +1048,7 @@ pub fn library_delete_collection(id: String, db: State<'_, Db>) -> Result<(), St
     Ok(())
 }
 
-// --- Annotations projection (highlights + notes; one typed table) ---
+// --- Annotations projection (highlights + notes + asks; one typed table) ---
 
 /// Mirrors the `Annotation` union in apps/web (…/annotations/lib/annotation-types.ts).
 #[derive(Debug, Serialize, Deserialize)]
@@ -723,16 +1158,221 @@ pub fn annotation_delete(id: String, db: State<'_, Db>) -> Result<(), String> {
     Ok(())
 }
 
-// --- Vector index (stubbed; LanceDB-backed later) ---
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[tauri::command]
-pub fn upsert_vectors(_items: Vec<VectorItem>) -> Result<(), String> {
-    // TODO(local-first): persist into LanceDB once an embedding pipeline exists.
-    Ok(())
-}
+    fn test_conn() -> Connection {
+        let conn = Connection::open_in_memory().expect("open in-memory db");
+        apply_connection_pragmas(&conn).expect("pragmas");
+        conn
+    }
 
-#[tauri::command]
-pub fn query_vectors(_embedding: Vec<f32>, _k: u32) -> Result<Vec<VectorMatch>, String> {
-    // TODO(local-first): query LanceDB. No-op until vectors are written.
-    Ok(Vec::new())
+    fn migrated_conn() -> Connection {
+        let mut conn = test_conn();
+        run_migrations(&mut conn).expect("migrate");
+        conn
+    }
+
+    fn table_exists(conn: &Connection, name: &str) -> bool {
+        conn.query_row(
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?1)",
+            params![name],
+            |row| row.get(0),
+        )
+        .unwrap()
+    }
+
+    fn event(id: &str, wall: i64, counter: i64) -> EventRow {
+        EventRow {
+            id: id.to_string(),
+            event_type: "book.imported".to_string(),
+            hlc: Hlc {
+                wall_ms: wall,
+                counter,
+                device_id: "device-a".to_string(),
+            },
+            schema_version: None,
+            aggregate_type: Some("book".to_string()),
+            aggregate_id: Some(format!("agg-{id}")),
+            actor_id: None,
+            created_at: None,
+            payload: serde_json::json!({ "bookId": format!("agg-{id}") }),
+        }
+    }
+
+    #[test]
+    fn fresh_migrate_reaches_v3_and_retires_interim_tables() {
+        let conn = migrated_conn();
+        let version: i64 = conn
+            .query_row("SELECT MAX(version) FROM schema_migrations", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(version, 3);
+        for table in [
+            "domain_events",
+            "event_sync_state",
+            "blob_objects",
+            "blob_sync_state",
+            "books",
+            "annotations",
+            "app_kv",
+            "local_device",
+        ] {
+            assert!(table_exists(&conn, table), "missing table {table}");
+        }
+        // The bare v1 `events` table is retired by v3; `blobs` survives until
+        // `externalize_inline_blobs` runs (it needs the filesystem root).
+        assert!(!table_exists(&conn, "events"));
+        assert!(table_exists(&conn, "blobs"));
+    }
+
+    #[test]
+    fn v3_carries_old_events_forward() {
+        let mut conn = test_conn();
+        run_migrations_up_to(&mut conn, 2).expect("stage v2");
+        conn.execute(
+            "INSERT INTO events (id, type, hlc_wall, hlc_counter, hlc_device, payload)
+             VALUES ('old-1', 'book.imported', 1700000000000, 0, 'dev', '{\"bookId\":\"b1\"}')",
+            [],
+        )
+        .unwrap();
+        run_migrations(&mut conn).expect("migrate to v3");
+        let (event_type, created_at): (String, String) = conn
+            .query_row(
+                "SELECT type, created_at FROM domain_events WHERE id = 'old-1'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(event_type, "book.imported");
+        assert!(created_at.starts_with("2023-11-14T"), "got {created_at}");
+        assert!(!table_exists(&conn, "events"));
+    }
+
+    #[test]
+    fn externalize_moves_inline_blobs_to_files_and_drops_table() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let mut conn = test_conn();
+        run_migrations(&mut conn).expect("migrate");
+        conn.execute(
+            "INSERT INTO blobs (key, data) VALUES ('bookfile:b1', X'DEADBEEF')",
+            [],
+        )
+        .unwrap();
+
+        externalize_inline_blobs(&conn, dir.path()).expect("externalize");
+
+        assert!(!table_exists(&conn, "blobs"));
+        let bytes = get_blob_inner(&conn, dir.path(), "bookfile:b1").unwrap();
+        assert_eq!(bytes, vec![0xDE, 0xAD, 0xBE, 0xEF]);
+        let (kind, size, sha, uri): (String, i64, String, String) = conn
+            .query_row(
+                "SELECT kind, byte_size, sha256, storage_uri FROM blob_objects
+                 WHERE key = 'bookfile:b1'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .unwrap();
+        assert_eq!(kind, "book_source");
+        assert_eq!(size, 4);
+        assert_eq!(
+            sha,
+            "5f78c33274e43fa9de5659265c1d917e25c03722dcb0b8d27db8d5feaa813953"
+        );
+        assert_eq!(uri, "blobs/bookfile%3Ab1");
+        assert!(dir.path().join(&uri).is_file());
+        // Externalized user blobs enter the push outbox.
+        let pending: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM blob_sync_state WHERE blob_key = 'bookfile:b1'
+                 AND push_state = 'pending'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(pending, 1);
+        // Second run is a no-op (table gone).
+        externalize_inline_blobs(&conn, dir.path()).expect("idempotent");
+    }
+
+    #[test]
+    fn blob_put_get_delete_roundtrip() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let conn = migrated_conn();
+        let payload = b"hello book".to_vec();
+
+        let result =
+            put_blob_inner(&conn, dir.path(), "bookfile:b2", Some("application/epub+zip"), &payload)
+                .expect("put");
+        assert_eq!(result.byte_size, 10);
+        assert_eq!(get_blob_inner(&conn, dir.path(), "bookfile:b2").unwrap(), payload);
+
+        delete_blob_inner(&conn, dir.path(), "bookfile:b2").expect("delete");
+        assert!(get_blob_inner(&conn, dir.path(), "bookfile:b2").unwrap().is_empty());
+        // Tombstone survives; bytes and outbox row are gone.
+        let (deleted_at, uri): (Option<String>, Option<String>) = conn
+            .query_row(
+                "SELECT deleted_at, storage_uri FROM blob_objects WHERE key = 'bookfile:b2'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert!(deleted_at.is_some());
+        assert!(uri.is_none());
+        let outbox: i64 = conn
+            .query_row("SELECT COUNT(*) FROM blob_sync_state", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(outbox, 0);
+        // Re-putting the same key clears the tombstone (a re-import revives it).
+        put_blob_inner(&conn, dir.path(), "bookfile:b2", None, &payload).expect("re-put");
+        assert_eq!(get_blob_inner(&conn, dir.path(), "bookfile:b2").unwrap(), payload);
+    }
+
+    #[test]
+    fn append_events_fills_envelope_and_outbox_once() {
+        let mut conn = migrated_conn();
+        append_events_inner(&mut conn, &[event("e1", 1_700_000_000_000, 0)]).expect("append");
+        // Duplicate delivery (same id) is ignored and does not re-enter the outbox.
+        append_events_inner(&mut conn, &[event("e1", 1_700_000_000_000, 0)]).expect("re-append");
+
+        let (schema_version, actor, created_at, aggregate_id): (i64, String, String, String) =
+            conn.query_row(
+                "SELECT schema_version, actor_id, created_at, aggregate_id
+                 FROM domain_events WHERE id = 'e1'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .unwrap();
+        assert_eq!(schema_version, 1);
+        assert_eq!(actor, "local");
+        assert!(created_at.starts_with("2023-11-14T"), "got {created_at}");
+        assert_eq!(aggregate_id, "agg-e1");
+
+        let events: i64 = conn
+            .query_row("SELECT COUNT(*) FROM domain_events", [], |row| row.get(0))
+            .unwrap();
+        let outbox: i64 = conn
+            .query_row("SELECT COUNT(*) FROM event_sync_state", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(events, 1);
+        assert_eq!(outbox, 1);
+    }
+
+    #[test]
+    fn ensure_local_device_is_stable() {
+        let conn = migrated_conn();
+        let first = ensure_local_device(&conn).expect("first");
+        let second = ensure_local_device(&conn).expect("second");
+        assert_eq!(first, second);
+        assert!(!first.is_empty());
+    }
+
+    #[test]
+    fn blob_file_names_are_safe_and_injective() {
+        assert_eq!(blob_file_name("bookfile:b1"), "bookfile%3Ab1");
+        assert_ne!(blob_file_name("a:b"), blob_file_name("a%3Ab"));
+        assert!(blob_file_name("font:https://x/y?z=1")
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || "._-%".contains(c)));
+    }
 }

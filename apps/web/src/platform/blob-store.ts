@@ -6,15 +6,25 @@
  * stringifying/parsing tens of millions of array elements froze the webview
  * main thread every time a large book was opened. `get_blob` returns a raw
  * `tauri::ipc::Response` (an `ArrayBuffer` here); `put_blob` sends the payload
- * as the raw request body with the key riding in a header.
+ * as the raw request body with the key (and optional MIME type) riding in
+ * headers.
+ *
+ * Storage side (see src-tauri/storage.rs): bytes land as files under
+ * `<app_data>/blobs/`, registered in the SQLite `blob_objects` table with
+ * their sha256 — which `put_blob` returns, so import paths can stamp
+ * `book.imported.sourceSha256` without hashing twice.
  *
  * Desktop-only — browser dev builds keep their IndexedDB paths in
  * `library-db.ts` and never call these.
  */
 import { invoke } from "@tauri-apps/api/core";
 
-/** Must match `BLOB_KEY_HEADER` in `apps/desktop/src-tauri/src/storage.rs`. */
+/** Must match `BLOB_KEY_HEADER` / `BLOB_MIME_HEADER` in storage.rs. */
 const BLOB_KEY_HEADER = "x-blob-key";
+const BLOB_MIME_HEADER = "x-blob-mime";
+
+/** What the Rust side recorded about the stored payload. */
+export type BlobPutResult = { sha256: string; byteSize: number };
 
 /**
  * Fetch a blob's bytes. An empty body means "no such key" (see the Rust
@@ -27,6 +37,15 @@ export async function getDesktopBlob(key: string): Promise<Uint8Array | null> {
 }
 
 /** Store a blob's bytes under `key`, transferred as a raw binary body. */
-export async function putDesktopBlob(key: string, data: Uint8Array): Promise<void> {
-  await invoke("put_blob", data, { headers: { [BLOB_KEY_HEADER]: key } });
+export async function putDesktopBlob(
+  key: string,
+  data: Uint8Array,
+  mimeType?: string,
+): Promise<BlobPutResult> {
+  return invoke<BlobPutResult>("put_blob", data, {
+    headers: {
+      [BLOB_KEY_HEADER]: key,
+      ...(mimeType ? { [BLOB_MIME_HEADER]: mimeType } : {}),
+    },
+  });
 }

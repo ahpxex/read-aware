@@ -21,6 +21,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "./environment";
 import { importDesktopDataIntoSqlite } from "./desktop-import";
+import { reconcileGenesisEvents } from "./event-genesis";
 
 const MIGRATED_FLAG = "read-aware-migrated-v1";
 
@@ -89,6 +90,13 @@ export async function hydrateLocalStore(): Promise<void> {
       console.error("[local-store] one-time import failed; will retry next launch", err);
     }
   }
+
+  // Off the boot-critical path: synthesize creation events for projection rows
+  // the event log has never seen (pre-event-era data, v1 backup restores,
+  // dropped best-effort appends). Idempotent; a failure retries next launch.
+  void reconcileGenesisEvents().catch((err) => {
+    console.error("[local-store] genesis event reconciliation failed", err);
+  });
 }
 
 /** Snapshot every device-local `read-aware-*` value (for a full-backup export). */

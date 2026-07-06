@@ -55,7 +55,7 @@ import {
   updateNote,
   listHighlights,
   listNotes,
-  saveAnnotation,
+  recolorHighlight,
   deleteAnnotation,
 } from "../../annotations/lib/annotation-db";
 import {
@@ -1574,13 +1574,8 @@ export function FoliateReaderView({
     // Remember the chosen colour as the default for new marks.
     defaultMarkColorRef.current = color;
     setDefaultMarkColor(color);
-    const updated: Highlight = {
-      ...activeAnnotation.highlight,
-      color,
-      updatedAt: new Date().toISOString(),
-    };
     try {
-      await saveAnnotation(updated);
+      const updated = await recolorHighlight(activeAnnotation.highlight, color);
       highlightsRef.current = highlightsRef.current.map((highlight) =>
         highlight.id === updated.id ? updated : highlight,
       );

@@ -83,6 +83,9 @@ export type FoliateRenderer = {
   destroy?: () => void;
   /** Currently-rendered section contents (each with its overlayer + document). */
   getContents?: () => FoliateContent[];
+  /** Bring an in-section anchor into view: flips to its page when paginated,
+   *  scrolls its start to the viewport top in scrolled mode. */
+  scrollToAnchor?: (anchor: Range | Element | number) => Promise<void> | void;
 };
 
 export type FoliateView = HTMLElement & {

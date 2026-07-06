@@ -44,6 +44,13 @@
     "askAi": "Preguntar a la IA sobre esto",
     "remove": "Quitar"
   },
+  "navigator": {
+    "title": "Navegador de frases",
+    "enable": "Activar el navegador de frases",
+    "exit": "Salir del navegador de frases",
+    "prevSentence": "Frase anterior",
+    "nextSentence": "Frase siguiente"
+  },
   "recolor": "Cambiar a color {{color}}",
   "colors": {
     "yellow": "amarillo",

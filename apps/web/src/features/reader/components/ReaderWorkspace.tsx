@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Body, Button, Spinner } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import type { BookFormat, LibraryBook, ReaderProgress } from "../../library/lib/library-types";
@@ -81,6 +81,22 @@ export function ReaderWorkspace({
   // there's no immersive view yet, so keep the window controls reachable.
   useImmersiveWindowControls(overlayVisible || !readerSource);
 
+  // Sentence navigator mode. Owned here so the shell header's toggle and the
+  // reader view (wash + floating bar + shortcuts) stay in sync; each book
+  // starts with the mode off. Fixed-layout books (PDF/CBZ) can't host it.
+  const [navigatorActive, setNavigatorActive] = useState(false);
+  const [isFixedLayout, setIsFixedLayout] = useState(false);
+  useEffect(() => {
+    setNavigatorActive(false);
+  }, [selectedBook.id]);
+  const toggleNavigator = useCallback(() => {
+    setNavigatorActive((active) => !active);
+    // Entering the mode is a "start reading" gesture — drop the chrome so the
+    // wash and the floating bar take over immediately.
+    if (!navigatorActive) onHideShell();
+  }, [navigatorActive, onHideShell]);
+  const exitNavigator = useCallback(() => setNavigatorActive(false), []);
+
   // Track active reading time once the book is rendered. Reader relocate/page
   // callbacks bump activity so in-iframe reading isn't mistaken for idle.
   const { recordActivity } = useReadingTimeTracker(selectedBook.id, !!readerSource);
@@ -121,6 +137,9 @@ export function ReaderWorkspace({
           onProgressChange={handleProgressChange}
           onTocChange={onTocChange}
           onCurrentChapterChange={onCurrentChapterChange}
+          onFixedLayoutChange={setIsFixedLayout}
+          navigatorActive={navigatorActive}
+          onExitNavigator={exitNavigator}
           initialProgress={selectedEpubProgress}
           chapterNavigationRequest={chapterNavigationRequest}
           annotationNavigationRequest={annotationNavigationRequest}
@@ -160,6 +179,9 @@ export function ReaderWorkspace({
         currentChapterHref={currentChapterHref}
         onChapterSelect={onChapterSelect}
         onAnnotationSelect={onAnnotationSelect}
+        navigatorAvailable={!isFixedLayout}
+        navigatorActive={navigatorActive}
+        onToggleNavigator={toggleNavigator}
       />
     </div>
   );

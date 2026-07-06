@@ -44,6 +44,13 @@
     "askAi": "就此询问 AI",
     "remove": "移除"
   },
+  "navigator": {
+    "title": "逐句导航",
+    "enable": "开启逐句导航",
+    "exit": "退出逐句导航",
+    "prevSentence": "上一句",
+    "nextSentence": "下一句"
+  },
   "recolor": "改为{{color}}",
   "colors": {
     "yellow": "黄色",

@@ -86,11 +86,13 @@
     "categories": {
       "Global": "Global",
       "Reading": "Reading",
+      "Navigator": "Sentence navigator",
       "Selection": "Selection",
       "Overlays": "Overlays"
     },
     "categoryDescriptions": {
-      "selection": "Active while text is selected in the reader."
+      "selection": "Active while text is selected in the reader.",
+      "navigator": "Active while the sentence navigator is on. The selection shortcuts also act on the current sentence."
     },
     "actions": {
       "search": "Open search",
@@ -100,6 +102,8 @@
       "next-chapter": "Next chapter",
       "prev-chapter": "Previous chapter",
       "toggle-controls": "Toggle reader controls",
+      "navigator-next-sentence": "Next sentence",
+      "navigator-prev-sentence": "Previous sentence",
       "selection-copy": "Copy",
       "selection-highlight": "Highlight",
       "selection-underline": "Underline",

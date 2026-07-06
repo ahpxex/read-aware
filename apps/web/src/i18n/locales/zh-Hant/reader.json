@@ -44,6 +44,13 @@
     "askAi": "詢問 AI 關於此內容",
     "remove": "移除"
   },
+  "navigator": {
+    "title": "逐句導航",
+    "enable": "開啟逐句導航",
+    "exit": "退出逐句導航",
+    "prevSentence": "上一句",
+    "nextSentence": "下一句"
+  },
   "recolor": "改為{{color}}",
   "colors": {
     "yellow": "黃色",

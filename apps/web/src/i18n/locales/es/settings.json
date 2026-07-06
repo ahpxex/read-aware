@@ -86,11 +86,13 @@
     "categories": {
       "Global": "Globales",
       "Reading": "Lectura",
+      "Navigator": "Navegador de frases",
       "Selection": "Selección",
       "Overlays": "Superposiciones"
     },
     "categoryDescriptions": {
-      "selection": "Activo mientras hay texto seleccionado en el lector."
+      "selection": "Activo mientras hay texto seleccionado en el lector.",
+      "navigator": "Activo mientras el navegador de frases está encendido. Los atajos de selección también actúan sobre la frase actual."
     },
     "actions": {
       "search": "Abrir la búsqueda",
@@ -100,6 +102,8 @@
       "next-chapter": "Capítulo siguiente",
       "prev-chapter": "Capítulo anterior",
       "toggle-controls": "Mostrar u ocultar los controles del lector",
+      "navigator-next-sentence": "Frase siguiente",
+      "navigator-prev-sentence": "Frase anterior",
       "selection-copy": "Copiar",
       "selection-highlight": "Resaltar",
       "selection-underline": "Subrayar",

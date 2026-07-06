@@ -39,9 +39,11 @@ import {
   registerHighlightDrawing,
   removeHighlight,
 } from "../lib/highlight-renderer";
+import { useSentenceNavigator } from "../hooks/useSentenceNavigator";
 import { ReaderAnnotationMenu } from "./ReaderAnnotationMenu";
 import { ReaderDictionaryModal } from "./ReaderDictionaryModal";
 import { ReaderFootnotePopover } from "./ReaderFootnotePopover";
+import { ReaderNavigatorBar } from "./ReaderNavigatorBar";
 import { ReaderPageTurnControls } from "./ReaderPageTurnControls";
 import { ReaderSelectionMenu } from "./ReaderSelectionMenu";
 import { NoteEditor } from "../../annotations/components/NoteEditor";
@@ -91,6 +93,14 @@ type FoliateReaderViewProps = {
   onProgressChange?: (progress: ReaderProgress) => void;
   onTocChange?: (entries: TocEntry[]) => void;
   onCurrentChapterChange?: (href: string | null) => void;
+  /** Fixed-layout books (PDF/CBZ) can't host annotations or the sentence
+   *  navigator; lets the shell hide the affordances that don't apply. */
+  onFixedLayoutChange?: (fixedLayout: boolean) => void;
+  /** Sentence navigator mode: step through the book sentence by sentence with
+   *  a resting wash and the floating bottom bar. Owned by the workspace so the
+   *  shell header's toggle and this view stay in sync. */
+  navigatorActive?: boolean;
+  onExitNavigator?: () => void;
   initialProgress?: ReaderProgress | null;
   chapterNavigationRequest?: {
     href: string;
@@ -291,6 +301,9 @@ export function FoliateReaderView({
   onProgressChange,
   onTocChange,
   onCurrentChapterChange,
+  onFixedLayoutChange,
+  navigatorActive = false,
+  onExitNavigator,
   initialProgress = null,
   chapterNavigationRequest = null,
   annotationNavigationRequest = null,
@@ -670,8 +683,10 @@ export function FoliateReaderView({
   // Cross into the adjacent section with a cross-fade: fade the current section
   // out, swap the next in while hidden, fade it back in. Used in scroll mode for
   // the lazy section load (the engine keeps only one section live, so memory
-  // stays bounded), and smooths the otherwise abrupt chapter swap.
-  const crossSection = useCallback(async (direction: -1 | 1) => {
+  // stays bounded), and smooths the otherwise abrupt chapter swap. An explicit
+  // `targetSection` jumps straight to that spine index instead of relying on
+  // next/prev — which only cross once the viewport is pinned at a section edge.
+  const crossSection = useCallback(async (direction: -1 | 1, targetSection?: number) => {
     if (crossingSectionRef.current) return;
     const view = viewRef.current;
     if (!view) return;
@@ -679,7 +694,8 @@ export function FoliateReaderView({
     setIsCrossing(true); // fade the current section out
     try {
       await new Promise((resolve) => window.setTimeout(resolve, SECTION_CROSS_FADE_MS));
-      await (direction === 1 ? view.next() : view.prev());
+      if (targetSection != null) await view.goTo(targetSection);
+      else await (direction === 1 ? view.next() : view.prev());
     } catch {
       // At the first/last section, or a teardown race — fall through to reveal.
     }
@@ -801,6 +817,86 @@ export function FoliateReaderView({
     if (nextEntry) await goToChapter(nextEntry.href);
   }, [goToChapter]);
 
+  // ----- sentence navigator ---------------------------------------------------
+
+  // Fixed-layout books have no reflowable text to segment; the mode never
+  // activates there (the shell hides its toggle via onFixedLayoutChange).
+  const sentenceNavigatorActive = navigatorActive && !isFixedLayout;
+
+  const onFixedLayoutChangeRef = useRef(onFixedLayoutChange);
+  useEffect(() => { onFixedLayoutChangeRef.current = onFixedLayoutChange; }, [onFixedLayoutChange]);
+  useEffect(() => { onFixedLayoutChangeRef.current?.(isFixedLayout); }, [isFixedLayout]);
+
+  const onExitNavigatorRef = useRef(onExitNavigator);
+  useEffect(() => { onExitNavigatorRef.current = onExitNavigator; }, [onExitNavigator]);
+  const navigatorActiveStateRef = useRef(sentenceNavigatorActive);
+  useEffect(() => {
+    navigatorActiveStateRef.current = sentenceNavigatorActive;
+  }, [sentenceNavigatorActive]);
+
+  // Leaving a sentence removes the navigator's wash by CFI — which also erases
+  // the drawing of any user mark saved on that exact range (the overlayer keys
+  // drawings by CFI). Re-draw it from the stores.
+  const restoreAnnotationAt = useCallback((cfiRange: string) => {
+    const view = viewRef.current;
+    if (!view) return;
+    const highlight = highlightsRef.current.find((item) => item.cfiRange === cfiRange);
+    if (highlight) {
+      applyHighlight(view, highlight);
+      return;
+    }
+    const note = notesRef.current.find((item) => item.cfiRange === cfiRange);
+    if (note) applyNote(view, note);
+  }, []);
+
+  // Stepping off either end of a section: scroll mode gets the cross-fade with
+  // an explicit spine target (next/prev only cross when pinned at an edge);
+  // paginated modes flip like a page turn, crossing at the section's last page.
+  const navigatorCrossSection = useCallback(
+    async (direction: -1 | 1, fromSectionIndex: number | null) => {
+      const view = viewRef.current;
+      if (!view) return;
+      if (readingModeRef.current === "scroll") {
+        await crossSection(
+          direction,
+          fromSectionIndex != null ? fromSectionIndex + direction : undefined,
+        );
+        return;
+      }
+      try {
+        await (direction === 1 ? view.next() : view.prev());
+      } catch {
+        // At the first/last section — stay put.
+      }
+    },
+    [crossSection],
+  );
+
+  const sentenceNavigator = useSentenceNavigator({
+    active: sentenceNavigatorActive,
+    viewRef,
+    readerRootRef,
+    crossSection: navigatorCrossSection,
+    restoreAnnotationAt,
+  });
+  // The engine's mount-once effect and the stable key handler reach the
+  // navigator through this ref (its identity changes every render).
+  const sentenceNavigatorRef = useRef(sentenceNavigator);
+  useEffect(() => { sentenceNavigatorRef.current = sentenceNavigator; });
+
+  // Latest navigator actions for the stable key handler (see selectionActionsRef).
+  const navigatorActionsRef = useRef<{
+    hasTarget: boolean;
+    next: () => void;
+    prev: () => void;
+    copy: () => void;
+    highlight: () => void;
+    underline: () => void;
+    addNote: () => void;
+    lookUp: () => void;
+    askAI: () => void;
+  } | null>(null);
+
   const handleReaderKeyDown = useCallback((event: KeyboardEvent) => {
     if (!loadedBookRef.current) return;
     const target = event.target;
@@ -839,6 +935,56 @@ export function FoliateReaderView({
       event.preventDefault();
       onContentClickRef.current?.();
       return;
+    }
+
+    // Sentence navigator — only while the mode is on. The step keys intercept
+    // ahead of the hardcoded ArrowUp/Down page scroll below; the selection
+    // action keys double as actions on the resting sentence while no text is
+    // selected (a live selection keeps first claim on them, further down).
+    const navigatorActions = navigatorActionsRef.current;
+    if (navigatorActiveStateRef.current && navigatorActions) {
+      if (chordMatchesEvent(resolveBinding("navigator-next-sentence", bindings), event)) {
+        event.preventDefault();
+        navigatorActions.next();
+        return;
+      }
+      if (chordMatchesEvent(resolveBinding("navigator-prev-sentence", bindings), event)) {
+        event.preventDefault();
+        navigatorActions.prev();
+        return;
+      }
+      if (!selectionRef.current && navigatorActions.hasTarget) {
+        if (chordMatchesEvent(resolveBinding("selection-copy", bindings), event)) {
+          event.preventDefault();
+          navigatorActions.copy();
+          return;
+        }
+        if (chordMatchesEvent(resolveBinding("selection-highlight", bindings), event)) {
+          event.preventDefault();
+          navigatorActions.highlight();
+          return;
+        }
+        if (chordMatchesEvent(resolveBinding("selection-underline", bindings), event)) {
+          event.preventDefault();
+          navigatorActions.underline();
+          return;
+        }
+        if (chordMatchesEvent(resolveBinding("selection-add-note", bindings), event)) {
+          event.preventDefault();
+          navigatorActions.addNote();
+          return;
+        }
+        if (chordMatchesEvent(resolveBinding("selection-look-up", bindings), event)) {
+          event.preventDefault();
+          navigatorActions.lookUp();
+          return;
+        }
+        if (askAiEnabledRef.current && chordMatchesEvent(resolveBinding("selection-ask-ai", bindings), event)) {
+          event.preventDefault();
+          navigatorActions.askAI();
+          return;
+        }
+      }
     }
 
     // Selection actions — only while text is selected (the selection menu is
@@ -883,7 +1029,8 @@ export function FoliateReaderView({
     if (event.metaKey || event.ctrlKey || event.altKey) return;
 
     if (event.key === "Escape") {
-      clearSelection();
+      if (selectionRef.current) clearSelection();
+      else if (navigatorActiveStateRef.current) onExitNavigatorRef.current?.();
     }
     // Vertical keys map to forward/back directly.
     if (event.key === "ArrowDown" || event.key === "PageDown") {
@@ -912,6 +1059,17 @@ export function FoliateReaderView({
       addNote: handleAddNote,
       lookUp: handleLookUp,
       askAI: handleAskAI,
+    };
+    navigatorActionsRef.current = {
+      hasTarget: !!sentenceNavigator.current,
+      next: sentenceNavigator.next,
+      prev: sentenceNavigator.prev,
+      copy: () => void copyTargetText(sentenceNavigator.current?.text ?? ""),
+      highlight: () => void handleNavigatorMark("highlight"),
+      underline: () => void handleNavigatorMark("underline"),
+      addNote: handleNavigatorAddNote,
+      lookUp: handleNavigatorLookUp,
+      askAI: handleNavigatorAskAI,
     };
   });
 
@@ -1356,11 +1514,13 @@ export function FoliateReaderView({
             if (movedPage || movedCfi) onContentScrollRef.current?.();
           }
           prevReadingLocationRef.current = { current, cfi };
+          sentenceNavigatorRef.current.handleRelocate(detail);
         };
 
         const onLoad = (event: Event) => {
           const { doc, index } = (event as CustomEvent<FoliateLoadDetail>).detail;
           attachDocListeners(doc, index);
+          sentenceNavigatorRef.current.handleSectionLoad(doc, index);
         };
 
         const onCreateOverlay = () => {
@@ -1536,27 +1696,43 @@ export function FoliateReaderView({
     });
   }
 
-  async function handleHighlight(
-    color: Highlight["color"] = defaultMarkColorRef.current,
-    style: NonNullable<Highlight["style"]> = "highlight",
-  ) {
-    if (!selection || !selectedBook) return;
+  /** Persist and draw a mark over a passage. Returns whether it saved. */
+  async function saveMark(
+    target: ActionTarget,
+    color: Highlight["color"],
+    style: NonNullable<Highlight["style"]>,
+  ): Promise<boolean> {
+    if (!selectedBook) return false;
     try {
       const highlight = await createHighlight(
         selectedBook.id,
-        selection.cfiRange,
-        selection.chapterHref,
-        selection.text,
+        target.cfiRange,
+        target.chapterHref,
+        target.text,
         color,
         style,
       );
       highlightsRef.current = [...highlightsRef.current, highlight];
       if (viewRef.current) applyHighlight(viewRef.current, highlight);
       bumpAnnotationsRevision((c) => c + 1);
-      clearSelection();
+      return true;
     } catch (highlightError) {
       console.error("Failed to save highlight:", highlightError);
+      return false;
     }
+  }
+
+  async function handleHighlight(
+    color: Highlight["color"] = defaultMarkColorRef.current,
+    style: NonNullable<Highlight["style"]> = "highlight",
+  ) {
+    if (!selection) return;
+    const saved = await saveMark(
+      { text: selection.text, cfiRange: selection.cfiRange, chapterHref: selection.chapterHref },
+      color,
+      style,
+    );
+    if (saved) clearSelection();
   }
 
   function handleUnderline() {
@@ -1616,9 +1792,8 @@ export function FoliateReaderView({
     };
   }
 
-  function handleAddNoteForAnnotation() {
-    const target = activeAnnotationTarget();
-    if (!target) return;
+  /** Open the note editor for a passage — editing the note already on it, if any. */
+  function openNoteEditorForPassage(target: ActionTarget) {
     const existing = target.cfiRange
       ? notesRef.current.find((note) => note.cfiRange === target.cfiRange)
       : undefined;
@@ -1633,6 +1808,12 @@ export function FoliateReaderView({
     } else {
       openNoteEditorFor(target);
     }
+  }
+
+  function handleAddNoteForAnnotation() {
+    const target = activeAnnotationTarget();
+    if (!target) return;
+    openNoteEditorForPassage(target);
     setActiveAnnotation(null);
   }
 
@@ -1708,6 +1889,42 @@ export function FoliateReaderView({
     clearSelection();
   }
 
+  // ----- the same actions, applied to the navigator's resting sentence -------
+
+  function navigatorTarget(): ActionTarget | null {
+    const sentence = sentenceNavigator.current;
+    if (!sentence) return null;
+    return {
+      text: sentence.text,
+      cfiRange: sentence.cfiRange,
+      chapterHref: currentChapterHrefRef.current,
+    };
+  }
+
+  async function handleNavigatorMark(style: NonNullable<Highlight["style"]>) {
+    const target = navigatorTarget();
+    if (!target) return;
+    await saveMark(target, defaultMarkColorRef.current, style);
+  }
+
+  function handleNavigatorAddNote() {
+    const target = navigatorTarget();
+    if (!target) return;
+    openNoteEditorForPassage(target);
+  }
+
+  function handleNavigatorLookUp() {
+    const target = navigatorTarget();
+    if (!target) return;
+    lookUpText(target.text);
+  }
+
+  function handleNavigatorAskAI() {
+    const target = navigatorTarget();
+    if (!target) return;
+    requestAskAi(target);
+  }
+
   // Paginated layouts (and fixed-layout PDFs, which always paginate) turn by
   // explicit controls now; scroll mode turns by scrolling. Only surface the
   // edge buttons once the book is actually on screen.
@@ -1742,6 +1959,23 @@ export function FoliateReaderView({
         onAddNote={handleAddNote}
         onLookUp={handleLookUp}
         onAskAI={handleAskAI}
+      />
+      <ReaderNavigatorBar
+        visible={sentenceNavigatorActive && !isLoading && !error}
+        sentenceKey={
+          sentenceNavigator.current
+            ? sentenceNavigator.current.cfiRange ?? sentenceNavigator.current.text
+            : null
+        }
+        onPrev={sentenceNavigator.prev}
+        onNext={sentenceNavigator.next}
+        onCopy={() => copyTargetText(sentenceNavigator.current?.text ?? "")}
+        onHighlight={() => { void handleNavigatorMark("highlight"); }}
+        onUnderline={() => { void handleNavigatorMark("underline"); }}
+        onAddNote={handleNavigatorAddNote}
+        onLookUp={handleNavigatorLookUp}
+        onAskAI={handleNavigatorAskAI}
+        onExit={() => onExitNavigatorRef.current?.()}
       />
       {/* Off-screen stage where the engine loads + extracts a footnote fragment. */}
       <div

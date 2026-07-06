@@ -86,11 +86,13 @@
     "categories": {
       "Global": "全局",
       "Reading": "阅读",
+      "Navigator": "逐句导航",
       "Selection": "选中文本",
       "Overlays": "浮层"
     },
     "categoryDescriptions": {
-      "selection": "在阅读器中选中文本时可用。"
+      "selection": "在阅读器中选中文本时可用。",
+      "navigator": "逐句导航开启时可用；选中文本的快捷键也会作用于当前句子。"
     },
     "actions": {
       "search": "打开搜索",
@@ -100,6 +102,8 @@
       "next-chapter": "下一章",
       "prev-chapter": "上一章",
       "toggle-controls": "切换阅读器控件",
+      "navigator-next-sentence": "下一句",
+      "navigator-prev-sentence": "上一句",
       "selection-copy": "复制",
       "selection-highlight": "高亮",
       "selection-underline": "下划线",

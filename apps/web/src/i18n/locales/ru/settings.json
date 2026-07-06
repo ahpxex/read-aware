@@ -86,11 +86,13 @@
     "categories": {
       "Global": "Общие",
       "Reading": "Чтение",
+      "Navigator": "Навигатор предложений",
       "Selection": "Выделение",
       "Overlays": "Всплывающие окна"
     },
     "categoryDescriptions": {
-      "selection": "Активно, пока в читалке выделен текст."
+      "selection": "Активно, пока в читалке выделен текст.",
+      "navigator": "Работает, пока включён навигатор предложений. Сочетания клавиш выделения действуют на текущее предложение."
     },
     "actions": {
       "search": "Открыть поиск",
@@ -100,6 +102,8 @@
       "next-chapter": "Следующая глава",
       "prev-chapter": "Предыдущая глава",
       "toggle-controls": "Показать/скрыть элементы управления",
+      "navigator-next-sentence": "Следующее предложение",
+      "navigator-prev-sentence": "Предыдущее предложение",
       "selection-copy": "Копировать",
       "selection-highlight": "Выделить",
       "selection-underline": "Подчеркнуть",

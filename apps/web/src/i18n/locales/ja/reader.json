@@ -44,6 +44,13 @@
     "askAi": "これについてAIに質問",
     "remove": "削除"
   },
+  "navigator": {
+    "title": "文ナビゲーター",
+    "enable": "文ナビゲーターをオンにする",
+    "exit": "文ナビゲーターを終了",
+    "prevSentence": "前の文",
+    "nextSentence": "次の文"
+  },
   "recolor": "{{color}}に色を変更",
   "colors": {
     "yellow": "黄色",

@@ -19,13 +19,17 @@ import {
   type ShortcutId,
 } from "../lib/shortcuts";
 
-const CATEGORIES = ["Global", "Reading", "Selection", "Overlays"] as const;
+const CATEGORIES = ["Global", "Reading", "Navigator", "Selection", "Overlays"] as const;
 
 /** Catalog keys for per-category helper text, shown under the group title where
  *  it helps. Categories without an entry render no description. */
 const CATEGORY_DESCRIPTION_KEYS: Partial<
-  Record<(typeof CATEGORIES)[number], "shortcuts.categoryDescriptions.selection">
+  Record<
+    (typeof CATEGORIES)[number],
+    "shortcuts.categoryDescriptions.selection" | "shortcuts.categoryDescriptions.navigator"
+  >
 > = {
+  Navigator: "shortcuts.categoryDescriptions.navigator",
   Selection: "shortcuts.categoryDescriptions.selection",
 };
 

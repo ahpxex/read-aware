@@ -86,11 +86,13 @@
     "categories": {
       "Global": "全域",
       "Reading": "閱讀",
+      "Navigator": "逐句導航",
       "Selection": "選取",
       "Overlays": "覆蓋層"
     },
     "categoryDescriptions": {
-      "selection": "在閱讀器中選取文字時生效。"
+      "selection": "在閱讀器中選取文字時生效。",
+      "navigator": "逐句導航開啟時可用；選取文字的快捷鍵也會作用於目前句子。"
     },
     "actions": {
       "search": "開啟搜尋",
@@ -100,6 +102,8 @@
       "next-chapter": "下一章",
       "prev-chapter": "上一章",
       "toggle-controls": "切換閱讀器控制項",
+      "navigator-next-sentence": "下一句",
+      "navigator-prev-sentence": "上一句",
       "selection-copy": "複製",
       "selection-highlight": "螢光標示",
       "selection-underline": "加底線",

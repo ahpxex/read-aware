@@ -86,11 +86,13 @@
     "categories": {
       "Global": "Global",
       "Reading": "Lecture",
+      "Navigator": "Navigateur de phrases",
       "Selection": "Sélection",
       "Overlays": "Superpositions"
     },
     "categoryDescriptions": {
-      "selection": "Actif lorsque du texte est sélectionné dans le lecteur."
+      "selection": "Actif lorsque du texte est sélectionné dans le lecteur.",
+      "navigator": "Actif lorsque le navigateur de phrases est activé. Les raccourcis de sélection agissent aussi sur la phrase courante."
     },
     "actions": {
       "search": "Ouvrir la recherche",
@@ -100,6 +102,8 @@
       "next-chapter": "Chapitre suivant",
       "prev-chapter": "Chapitre précédent",
       "toggle-controls": "Afficher/masquer les commandes du lecteur",
+      "navigator-next-sentence": "Phrase suivante",
+      "navigator-prev-sentence": "Phrase précédente",
       "selection-copy": "Copier",
       "selection-highlight": "Surligner",
       "selection-underline": "Souligner",

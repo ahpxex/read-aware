@@ -86,11 +86,13 @@
     "categories": {
       "Global": "Global",
       "Reading": "Lesen",
+      "Navigator": "Satznavigator",
       "Selection": "Auswahl",
       "Overlays": "Overlays"
     },
     "categoryDescriptions": {
-      "selection": "Aktiv, während Text im Reader ausgewählt ist."
+      "selection": "Aktiv, während Text im Reader ausgewählt ist.",
+      "navigator": "Aktiv, solange der Satznavigator eingeschaltet ist. Die Auswahl-Kurzbefehle wirken dann auf den aktuellen Satz."
     },
     "actions": {
       "search": "Suche öffnen",
@@ -100,6 +102,8 @@
       "next-chapter": "Nächstes Kapitel",
       "prev-chapter": "Vorheriges Kapitel",
       "toggle-controls": "Reader-Steuerung umschalten",
+      "navigator-next-sentence": "Nächster Satz",
+      "navigator-prev-sentence": "Vorheriger Satz",
       "selection-copy": "Kopieren",
       "selection-highlight": "Markieren",
       "selection-underline": "Unterstreichen",

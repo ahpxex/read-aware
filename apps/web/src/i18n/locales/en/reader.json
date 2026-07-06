@@ -44,6 +44,13 @@
     "askAi": "Ask AI about this",
     "remove": "Remove"
   },
+  "navigator": {
+    "title": "Sentence navigator",
+    "enable": "Turn on sentence navigator",
+    "exit": "Exit sentence navigator",
+    "prevSentence": "Previous sentence",
+    "nextSentence": "Next sentence"
+  },
   "recolor": "Recolor {{color}}",
   "colors": {
     "yellow": "yellow",

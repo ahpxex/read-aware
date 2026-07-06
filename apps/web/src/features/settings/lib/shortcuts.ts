@@ -20,6 +20,8 @@ export type ShortcutId =
   | "next-chapter"
   | "prev-chapter"
   | "toggle-controls"
+  | "navigator-next-sentence"
+  | "navigator-prev-sentence"
   | "selection-copy"
   | "selection-highlight"
   | "selection-underline"
@@ -57,6 +59,10 @@ export const EDITABLE_SHORTCUTS: EditableShortcut[] = [
   { id: "next-chapter", category: "Reading", defaultBinding: { key: "]" } },
   { id: "prev-chapter", category: "Reading", defaultBinding: { key: "[" } },
   { id: "toggle-controls", category: "Reading", defaultBinding: { key: " " } },
+  // Navigator steps fire only while the sentence navigator is on; they take
+  // the arrow keys over the page-scroll fallback for the mode's duration.
+  { id: "navigator-next-sentence", category: "Navigator", defaultBinding: { key: "ArrowDown" } },
+  { id: "navigator-prev-sentence", category: "Navigator", defaultBinding: { key: "ArrowUp" } },
   // Selection actions fire only while text is selected in the reader (the
   // selection menu is up), so a bare letter is safe — it can't collide with
   // typing or with the reading shortcuts above.

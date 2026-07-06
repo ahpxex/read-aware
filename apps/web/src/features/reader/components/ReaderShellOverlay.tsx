@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useAtomValue } from "jotai";
-import { CaretLeft, ChatCircle, ListBullets } from "@phosphor-icons/react";
+import { CaretLeft, ChatCircle, ListBullets, Rows } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { usePhoneViewport } from "@read-aware/ui/media";
 import { Body, IconButton, ScrollArea, Tooltip } from "@read-aware/ui";
@@ -28,6 +28,10 @@ type ReaderShellOverlayProps = {
   currentChapterHref?: string | null;
   onChapterSelect?: (href: string) => void;
   onAnnotationSelect?: (cfiRange: string) => void;
+  /** Sentence navigator toggle. Unavailable for fixed-layout books. */
+  navigatorAvailable?: boolean;
+  navigatorActive?: boolean;
+  onToggleNavigator?: () => void;
 };
 
 export function ReaderShellOverlay({
@@ -41,6 +45,9 @@ export function ReaderShellOverlay({
   currentChapterHref = null,
   onChapterSelect,
   onAnnotationSelect,
+  navigatorAvailable = true,
+  navigatorActive = false,
+  onToggleNavigator,
 }: ReaderShellOverlayProps) {
   const { t } = useTranslation("reader");
   const bookId = book.id;
@@ -215,8 +222,30 @@ export function ReaderShellOverlay({
             </div>
           )}
 
-          {/* Right cluster: appearance + chat */}
+          {/* Right cluster: sentence navigator + appearance + chat */}
           <div className="flex shrink-0 items-center justify-end gap-0.5">
+            {navigatorAvailable && (
+              <Tooltip
+                content={t("navigator.title")}
+                side="bottom"
+                className="pointer-events-auto"
+              >
+                <IconButton
+                  size="sm"
+                  label={navigatorActive ? t("navigator.exit") : t("navigator.enable")}
+                  aria-pressed={navigatorActive}
+                  onClick={onToggleNavigator}
+                  className={cn(navigatorActive && "text-fg")}
+                  icon={
+                    <Rows
+                      size={18}
+                      weight={navigatorActive ? "bold" : "regular"}
+                      aria-hidden="true"
+                    />
+                  }
+                />
+              </Tooltip>
+            )}
             <ReaderAppearanceMenu
               bookId={bookId}
               open={appearanceOpen}

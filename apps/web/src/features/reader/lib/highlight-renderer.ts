@@ -7,6 +7,10 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 /** A note's marker is a neutral dashed underline — quietly distinct from marks. */
 const NOTE_STROKE = "#78716c";
 
+/** The sentence navigator's resting wash — monochrome stone, not a mark color,
+ *  so it can't be mistaken for a saved highlight. */
+const NAVIGATOR_FILL = "#a8a29e";
+
 /** Swatch colors shown in the annotation menus (translucent, look right as dots). */
 export const HIGHLIGHT_COLORS: Record<Highlight["color"], string> = {
   yellow: "rgba(250, 204, 21, 0.35)",
@@ -93,6 +97,32 @@ function drawNote(
   return group;
 }
 
+/**
+ * The sentence navigator's current-sentence wash: soft rounded rects behind the
+ * text. Deliberately quieter than a highlight (lower opacity, stone tint) —
+ * it marks a reading position, not saved content.
+ */
+function drawNavigatorSentence(
+  rects: Iterable<DOMRect>,
+  options: { color?: string } = {},
+): SVGGElement {
+  const { color = NAVIGATOR_FILL } = options;
+  const group = document.createElementNS(SVG_NS, "g");
+  group.setAttribute("fill", color);
+  group.style.opacity = "0.25";
+  for (const rect of rects) {
+    if (rect.width < 1) continue;
+    const el = document.createElementNS(SVG_NS, "rect");
+    el.setAttribute("x", String(rect.left - 2));
+    el.setAttribute("y", String(rect.top - 1));
+    el.setAttribute("width", String(rect.width + 4));
+    el.setAttribute("height", String(rect.height + 2));
+    el.setAttribute("rx", "3");
+    group.append(el);
+  }
+  return group;
+}
+
 function toFoliateAnnotation(highlight: Highlight): FoliateAnnotation | null {
   if (!highlight.cfiRange) return null;
   const isUnderline = highlight.style === "underline";
@@ -153,9 +183,29 @@ export function applyNotes(view: FoliateView, notes: Note[], highlights: Highlig
 }
 
 /**
+ * Draw the sentence navigator's wash over the sentence at `cfiRange`. Rendered
+ * through the same overlayer as marks, so it follows the text through page
+ * turns, scrolling, and re-layout for free.
+ */
+export function applyNavigatorHighlight(view: FoliateView, cfiRange: string): void {
+  void view
+    .addAnnotation({ value: cfiRange, style: "navigator" })
+    .catch(() => {
+      // CFI may not resolve in the current layout — foliate ignores it.
+    });
+}
+
+export function removeNavigatorHighlight(view: FoliateView, cfiRange: string): void {
+  void view.deleteAnnotation({ value: cfiRange }).catch(() => {
+    // Ignore removal errors (e.g. section not currently rendered).
+  });
+}
+
+/**
  * Wire the `draw-annotation` event once per view so foliate paints each
- * annotation by style: a filled highlight, a solid underline rule, or a dashed
- * note marker. Must be registered before any annotations are added.
+ * annotation by style: a filled highlight, a solid underline rule, a dashed
+ * note marker, or the navigator's sentence wash. Must be registered before any
+ * annotations are added.
  */
 export async function registerHighlightDrawing(view: FoliateView): Promise<void> {
   const { highlight } = await loadDrawFns();
@@ -163,7 +213,13 @@ export async function registerHighlightDrawing(view: FoliateView): Promise<void>
     const detail = (event as CustomEvent<FoliateDrawAnnotationDetail>).detail;
     const style = detail.annotation.style;
     const drawFn =
-      style === "underline" ? drawUnderline : style === "note" ? drawNote : highlight;
+      style === "underline"
+        ? drawUnderline
+        : style === "note"
+          ? drawNote
+          : style === "navigator"
+            ? drawNavigatorSentence
+            : highlight;
     detail.draw(drawFn, { color: detail.annotation.color });
   });
 }

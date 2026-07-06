@@ -1,4 +1,5 @@
 import { applyPlatformAttributes, disableNativeContextMenu } from "./platform/environment";
+import { syncAndroidSafeArea } from "./platform/safe-area";
 import { hydrateLocalStore } from "./platform/local-store";
 import { getAppSettings, resolveAppTheme } from "./features/settings/lib/app-settings";
 import { getGeneralSettings } from "./features/settings/lib/general-settings";
@@ -8,6 +9,7 @@ import "./index.css";
 
 applyPlatformAttributes();
 disableNativeContextMenu();
+syncAndroidSafeArea();
 
 // Boot order matters, but only ONE await gates on IPC and only ONE dynamic
 // import remains on the critical path:

@@ -132,6 +132,23 @@ export async function deleteAnnotation(id: string): Promise<void> {
 
 export async function listAnnotations(filters?: AnnotationFilters): Promise<Annotation[]> {
   if (isTauri()) {
+    const query = filters?.searchQuery?.trim();
+    if (query) {
+      // FTS5-backed (annotations_fts, CJK bigram segmentation — see
+      // storage.rs migration v4): word/bigram matching with English prefix
+      // support, instead of loading every annotation and substring-scanning.
+      const matched = await invoke<Annotation[]>("annotations_search", {
+        query,
+        bookId: filters?.bookId ?? null,
+        kind: filters?.type ?? null,
+      });
+      // Rust returns relevance (BM25) order; the annotation lists render
+      // newest-first, so re-sort here (searchQuery already applied).
+      return filterAndSortAnnotations(matched, {
+        bookId: filters?.bookId,
+        type: filters?.type,
+      });
+    }
     const all = await invoke<Annotation[]>("annotations_list");
     return filterAndSortAnnotations(all, filters);
   }

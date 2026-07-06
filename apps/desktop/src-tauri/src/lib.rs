@@ -363,6 +363,7 @@ pub fn run() {
             storage::library_put_collection,
             storage::library_delete_collection,
             storage::annotations_list,
+            storage::annotations_search,
             storage::annotation_get,
             storage::annotation_put,
             storage::annotation_delete,

@@ -18,7 +18,9 @@ tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # Bundled SQLite — no system dependency; compiles SQLite from source.
-rusqlite = { version = "0.32", features = ["bundled"] }
+# `functions` lets us register ra_fts_segment (CJK bigram segmentation) as a
+# SQL function so the FTS triggers can call it.
+rusqlite = { version = "0.32", features = ["bundled", "functions"] }
 # Content hashes for the blob registry (dedupe, integrity, sync reconciliation).
 sha2 = "0.10"
 # Stable per-install device id (HLC tiebreaker + sync attribution).

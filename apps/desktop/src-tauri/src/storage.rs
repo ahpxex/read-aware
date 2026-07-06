@@ -234,6 +234,58 @@ const MIGRATIONS: &[(i64, &str, &str)] = &[
             ON blob_sync_state (push_state, updated_at)
             WHERE push_state IN ('pending','failed');",
     ),
+    (
+        4,
+        "annotations_fts_index",
+        // [local index] Full-text search over annotations (highlights, notes,
+        // asks) — the retrieval half of "FTS + structured signals" (no vector
+        // store; docs/agent-architecture.md §4).
+        //
+        // CJK handling: fts5's unicode61 tokenizer does not segment CJK (a han
+        // run becomes ONE token) and trigram needs >= 3 chars per query — but
+        // the most common Chinese query is a 2-char word. So text is
+        // pre-segmented by `ra_fts_segment` (a registered SQL function) into
+        // overlapping CJK bigrams plus plain alphanumeric words
+        // ("养成好习惯" -> "养成 成好 好习 习惯"); queries run through the same
+        // segmentation (see `fts_match_expr`), giving exact 2-char matches,
+        // prefix matches for single CJK chars, and word/prefix for English.
+        //
+        // A plain fts5 table (id UNINDEXED) rather than external-content: the
+        // content option couples to rowids, which VACUUM may renumber for
+        // TEXT-pk tables. Deletes scan by id — fine at annotation scale.
+        // Droppable/rebuildable: the DELETE+INSERT pair below is also the
+        // repair recipe. Kept in sync by triggers; writes from a bare sqlite3
+        // shell (no ra_fts_segment) will fail — use the app's connection.
+        "CREATE VIRTUAL TABLE IF NOT EXISTS annotations_fts USING fts5(
+            id UNINDEXED,
+            book_id UNINDEXED,
+            type UNINDEXED,
+            text,
+            content,
+            tokenize = 'unicode61'
+         );
+         CREATE TRIGGER IF NOT EXISTS trg_annotations_fts_insert
+         AFTER INSERT ON annotations BEGIN
+            INSERT INTO annotations_fts (id, book_id, type, text, content)
+            VALUES (new.id, new.book_id, new.type,
+                    ra_fts_segment(new.text), ra_fts_segment(COALESCE(new.content, '')));
+         END;
+         CREATE TRIGGER IF NOT EXISTS trg_annotations_fts_update
+         AFTER UPDATE ON annotations BEGIN
+            DELETE FROM annotations_fts WHERE id = old.id;
+            INSERT INTO annotations_fts (id, book_id, type, text, content)
+            VALUES (new.id, new.book_id, new.type,
+                    ra_fts_segment(new.text), ra_fts_segment(COALESCE(new.content, '')));
+         END;
+         CREATE TRIGGER IF NOT EXISTS trg_annotations_fts_delete
+         AFTER DELETE ON annotations BEGIN
+            DELETE FROM annotations_fts WHERE id = old.id;
+         END;
+         DELETE FROM annotations_fts;
+         INSERT INTO annotations_fts (id, book_id, type, text, content)
+            SELECT id, book_id, type, ra_fts_segment(text), ra_fts_segment(COALESCE(content, ''))
+            FROM annotations;",
+    ),
 ];
 
 /// Apply migrations newer than the highest recorded version, up to `max_version`
@@ -291,6 +343,142 @@ fn apply_connection_pragmas(conn: &Connection) -> Result<(), String> {
         "PRAGMA synchronous = NORMAL;
          PRAGMA busy_timeout = 5000;
          PRAGMA foreign_keys = ON;",
+    )
+    .map_err(|e| e.to_string())
+}
+
+// --- FTS segmentation (CJK bigrams + word tokens) -----------------------------
+
+/// CJK scripts that unicode61 cannot segment into words: Han (+ extensions),
+/// kana, hangul. Everything else goes through the plain word path.
+fn is_cjk(c: char) -> bool {
+    matches!(u32::from(c),
+        0x3400..=0x4DBF   // CJK ext A
+        | 0x4E00..=0x9FFF // CJK unified
+        | 0xF900..=0xFAFF // CJK compat
+        | 0x20000..=0x2FA1F // CJK ext B..F + compat supplement
+        | 0x3040..=0x30FF // hiragana + katakana
+        | 0x31F0..=0x31FF // katakana phonetic extensions
+        | 0xAC00..=0xD7AF // hangul syllables
+        | 0x1100..=0x11FF // hangul jamo
+    )
+}
+
+/// Emit a CJK run as overlapping bigrams ("养成好习惯" → 养成/成好/好习/习惯);
+/// a lone char stays a single token so 1-char runs remain searchable.
+fn flush_cjk_run(tokens: &mut Vec<String>, run: &mut Vec<char>) {
+    match run.len() {
+        0 => {}
+        1 => tokens.push(run[0].to_string()),
+        n => {
+            for i in 0..n - 1 {
+                tokens.push(run[i..i + 2].iter().collect());
+            }
+        }
+    }
+    run.clear();
+}
+
+/// Split text into FTS tokens: CJK runs become overlapping bigrams, other
+/// alphanumeric runs stay whole words, everything else separates. unicode61
+/// then tokenizes the emitted stream verbatim (plus its own case/diacritic
+/// folding), so bigrams land as consecutive tokens — which is what lets the
+/// query side use phrase matches for longer CJK spans.
+fn fts_tokens(text: &str) -> Vec<String> {
+    let mut tokens: Vec<String> = Vec::new();
+    let mut cjk_run: Vec<char> = Vec::new();
+    let mut word = String::new();
+    for c in text.chars() {
+        if is_cjk(c) {
+            if !word.is_empty() {
+                tokens.push(std::mem::take(&mut word));
+            }
+            cjk_run.push(c);
+        } else if c.is_alphanumeric() {
+            flush_cjk_run(&mut tokens, &mut cjk_run);
+            word.push(c);
+        } else {
+            if !word.is_empty() {
+                tokens.push(std::mem::take(&mut word));
+            }
+            flush_cjk_run(&mut tokens, &mut cjk_run);
+        }
+    }
+    if !word.is_empty() {
+        tokens.push(word);
+    }
+    flush_cjk_run(&mut tokens, &mut cjk_run);
+    tokens
+}
+
+/// The `ra_fts_segment` SQL function body: index-side segmentation.
+fn fts_segment(text: &str) -> String {
+    fts_tokens(text).join(" ")
+}
+
+/// Build an fts5 MATCH expression from a user query, mirroring the index-side
+/// segmentation. Each CJK run becomes a quoted PHRASE of its bigrams (they are
+/// consecutive tokens in the index); each word / lone CJK char becomes a quoted
+/// prefix token (`"hab"*` matches "habits", `"习"*` matches the bigram 习惯).
+/// Quoting every token also neutralizes fts5 operators (AND/OR/NEAR/parens) in
+/// user input. Returns None when the query has no indexable tokens.
+fn fts_match_expr(query: &str) -> Option<String> {
+    fn quote(token: &str) -> String {
+        format!("\"{}\"", token.replace('"', "\"\""))
+    }
+    fn flush_word(parts: &mut Vec<String>, word: &mut String) {
+        if !word.is_empty() {
+            parts.push(format!("{}*", quote(word)));
+            word.clear();
+        }
+    }
+    fn flush_cjk(parts: &mut Vec<String>, run: &mut Vec<char>) {
+        let mut bigrams: Vec<String> = Vec::new();
+        flush_cjk_run(&mut bigrams, run);
+        match bigrams.as_slice() {
+            [] => {}
+            // Lone CJK char: prefix-match so it still hits bigram tokens.
+            [only] if only.chars().count() == 1 => parts.push(format!("{}*", quote(only))),
+            _ => parts.push(quote(&bigrams.join(" "))),
+        }
+    }
+
+    let mut parts: Vec<String> = Vec::new();
+    let mut cjk_run: Vec<char> = Vec::new();
+    let mut word = String::new();
+    for c in query.chars() {
+        if is_cjk(c) {
+            flush_word(&mut parts, &mut word);
+            cjk_run.push(c);
+        } else if c.is_alphanumeric() {
+            flush_cjk(&mut parts, &mut cjk_run);
+            word.push(c);
+        } else {
+            flush_word(&mut parts, &mut word);
+            flush_cjk(&mut parts, &mut cjk_run);
+        }
+    }
+    flush_word(&mut parts, &mut word);
+    flush_cjk(&mut parts, &mut cjk_run);
+    if parts.is_empty() {
+        None
+    } else {
+        Some(parts.join(" ")) // implicit AND
+    }
+}
+
+/// Register app SQL functions on a connection. Must run BEFORE migrations
+/// (v4's initial populate and the FTS triggers call `ra_fts_segment`).
+pub fn register_sql_functions(conn: &Connection) -> Result<(), String> {
+    use rusqlite::functions::FunctionFlags;
+    conn.create_scalar_function(
+        "ra_fts_segment",
+        1,
+        FunctionFlags::SQLITE_UTF8 | FunctionFlags::SQLITE_DETERMINISTIC,
+        |ctx| {
+            let text: String = ctx.get(0)?;
+            Ok(fts_segment(&text))
+        },
     )
     .map_err(|e| e.to_string())
 }
@@ -574,6 +762,7 @@ pub fn init_db(app: &AppHandle) -> Result<(Connection, PathBuf), String> {
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let mut conn = Connection::open(dir.join("read-aware.db")).map_err(|e| e.to_string())?;
     apply_connection_pragmas(&conn)?;
+    register_sql_functions(&conn)?;
     run_migrations(&mut conn)?;
     externalize_inline_blobs(&conn, &dir)?;
     ensure_local_device(&conn)?;
@@ -1158,6 +1347,56 @@ pub fn annotation_delete(id: String, db: State<'_, Db>) -> Result<(), String> {
     Ok(())
 }
 
+fn annotations_search_inner(
+    conn: &Connection,
+    query: &str,
+    book_id: Option<&str>,
+    kind: Option<&str>,
+) -> Result<Vec<Annotation>, String> {
+    let Some(expr) = fts_match_expr(query) else {
+        // Nothing indexable in the query (punctuation only) — no matches.
+        return Ok(Vec::new());
+    };
+    let mut sql = String::from(
+        "SELECT a.* FROM annotations_fts
+         JOIN annotations a ON a.id = annotations_fts.id
+         WHERE annotations_fts MATCH ?1",
+    );
+    let mut binds: Vec<String> = vec![expr];
+    if let Some(book_id) = book_id {
+        binds.push(book_id.to_string());
+        sql.push_str(&format!(" AND a.book_id = ?{}", binds.len()));
+    }
+    if let Some(kind) = kind {
+        binds.push(kind.to_string());
+        sql.push_str(&format!(" AND a.type = ?{}", binds.len()));
+    }
+    sql.push_str(" ORDER BY bm25(annotations_fts)");
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map(rusqlite::params_from_iter(binds.iter()), row_to_annotation)
+        .map_err(|e| e.to_string())?;
+    let mut out = Vec::new();
+    for r in rows {
+        out.push(r.map_err(|e| e.to_string())?);
+    }
+    Ok(out)
+}
+
+/// Full-text search over annotations (best matches first, BM25). The query is
+/// segmented exactly like the indexed text (CJK bigrams + word prefixes), so
+/// 2-char Chinese words match exactly and English words match by prefix.
+#[tauri::command]
+pub fn annotations_search(
+    query: String,
+    book_id: Option<String>,
+    kind: Option<String>,
+    db: State<'_, Db>,
+) -> Result<Vec<Annotation>, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    annotations_search_inner(&conn, &query, book_id.as_deref(), kind.as_deref())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1165,6 +1404,7 @@ mod tests {
     fn test_conn() -> Connection {
         let conn = Connection::open_in_memory().expect("open in-memory db");
         apply_connection_pragmas(&conn).expect("pragmas");
+        register_sql_functions(&conn).expect("sql functions");
         conn
     }
 
@@ -1202,17 +1442,18 @@ mod tests {
     }
 
     #[test]
-    fn fresh_migrate_reaches_v3_and_retires_interim_tables() {
+    fn fresh_migrate_reaches_latest_and_retires_interim_tables() {
         let conn = migrated_conn();
         let version: i64 = conn
             .query_row("SELECT MAX(version) FROM schema_migrations", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(version, 3);
+        assert_eq!(version, 4);
         for table in [
             "domain_events",
             "event_sync_state",
             "blob_objects",
             "blob_sync_state",
+            "annotations_fts",
             "books",
             "annotations",
             "app_kv",
@@ -1365,6 +1606,90 @@ mod tests {
         let second = ensure_local_device(&conn).expect("second");
         assert_eq!(first, second);
         assert!(!first.is_empty());
+    }
+
+    #[test]
+    fn fts_segment_bigrams_cjk_and_keeps_words() {
+        assert_eq!(fts_segment("养成好习惯"), "养成 成好 好习 习惯");
+        assert_eq!(fts_segment("read 好书 now"), "read 好书 now");
+        assert_eq!(fts_segment("书"), "书");
+        assert_eq!(fts_segment("読み方"), "読み み方"); // kana + han mix is one run
+        assert_eq!(fts_segment("a,b"), "a b");
+        assert_eq!(fts_segment("!!"), "");
+    }
+
+    #[test]
+    fn fts_match_expr_phrases_and_prefixes() {
+        assert_eq!(fts_match_expr("习惯").as_deref(), Some("\"习惯\""));
+        assert_eq!(fts_match_expr("养成好").as_deref(), Some("\"养成 成好\""));
+        assert_eq!(fts_match_expr("hab").as_deref(), Some("\"hab\"*"));
+        assert_eq!(fts_match_expr("习").as_deref(), Some("\"习\"*"));
+        assert_eq!(
+            fts_match_expr("习惯 habit").as_deref(),
+            Some("\"习惯\" \"habit\"*")
+        );
+        // fts5 operators in user input are neutralized by quoting.
+        assert_eq!(fts_match_expr("AND").as_deref(), Some("\"AND\"*"));
+        assert_eq!(fts_match_expr("!!").as_deref(), None);
+    }
+
+    fn insert_annotation(conn: &Connection, id: &str, kind: &str, text: &str, content: Option<&str>) {
+        conn.execute(
+            "INSERT INTO annotations
+                (id, book_id, type, text, content, created_at, updated_at)
+             VALUES (?1, 'book-1', ?2, ?3, ?4, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
+            params![id, kind, text, content],
+        )
+        .expect("insert annotation");
+    }
+
+    fn search_ids(conn: &Connection, query: &str) -> Vec<String> {
+        annotations_search_inner(conn, query, None, None)
+            .expect("search")
+            .into_iter()
+            .map(|a| a.id)
+            .collect()
+    }
+
+    #[test]
+    fn fts_search_matches_chinese_and_english_via_triggers() {
+        let conn = migrated_conn();
+        insert_annotation(&conn, "h1", "highlight", "养成好习惯需要时间", None);
+        insert_annotation(&conn, "n1", "note", "quoted passage", Some("thoughts on habits"));
+        insert_annotation(&conn, "a1", "ask", "什么是复利效应", None);
+
+        assert_eq!(search_ids(&conn, "习惯"), vec!["h1"]);
+        assert_eq!(search_ids(&conn, "习"), vec!["h1"]); // 1-char prefix hits bigram
+        assert_eq!(search_ids(&conn, "habit"), vec!["n1"]); // note CONTENT indexed, prefix
+        assert_eq!(search_ids(&conn, "复利"), vec!["a1"]);
+        assert!(search_ids(&conn, "不存在的词").is_empty());
+        assert!(search_ids(&conn, "??").is_empty());
+
+        // Filters compose with MATCH.
+        let only_notes = annotations_search_inner(&conn, "habit", None, Some("note")).unwrap();
+        assert_eq!(only_notes.len(), 1);
+        let wrong_book = annotations_search_inner(&conn, "习惯", Some("book-2"), None).unwrap();
+        assert!(wrong_book.is_empty());
+
+        // Update re-indexes; delete drops the row from the index.
+        conn.execute(
+            "UPDATE annotations SET text = '完全不同的内容' WHERE id = 'h1'",
+            [],
+        )
+        .unwrap();
+        assert!(search_ids(&conn, "习惯").is_empty());
+        assert_eq!(search_ids(&conn, "不同"), vec!["h1"]);
+        conn.execute("DELETE FROM annotations WHERE id = 'h1'", []).unwrap();
+        assert!(search_ids(&conn, "不同").is_empty());
+    }
+
+    #[test]
+    fn fts_migration_populates_existing_rows() {
+        let mut conn = test_conn();
+        run_migrations_up_to(&mut conn, 3).expect("stage v3");
+        insert_annotation(&conn, "old-h", "highlight", "旧数据里的习惯养成", None);
+        run_migrations(&mut conn).expect("migrate to v4");
+        assert_eq!(search_ids(&conn, "习惯"), vec!["old-h"]);
     }
 
     #[test]

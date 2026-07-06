@@ -263,6 +263,36 @@ filesystem via `StorageAdapter.putBlob/getBlob` — **never in a SQLite column**
 It is a `[device-local]` authoritative registry of local storage facts, *not* a
 projection — a projection rebuild must not touch it.
 
+### 5.5 Full-text index (FTS5) — the default retrieval
+
+**Live since desktop migration v4.** Default retrieval is **FTS + structured
+signals** (no vector store); `annotations_fts` is the first index —
+highlights/notes/asks text, `[local index]` class (droppable, rebuildable,
+never synced), maintained by triggers, ranked by BM25.
+
+**CJK contract** (the part that is easy to get wrong):
+
+- fts5's `unicode61` tokenizer does not segment CJK — a han run becomes one
+  giant token, so "习惯" would never match "养成好习惯". The `trigram`
+  tokenizer handles substrings but needs **≥ 3 chars per query**, while the
+  most common Chinese query is a **2-char word**.
+- So text is **pre-segmented into overlapping CJK bigrams** by
+  `ra_fts_segment`, a SQL function the storage layer registers on every
+  connection ("养成好习惯" → `养成 成好 好习 习惯`); non-CJK words pass through
+  whole. Queries run through the same segmentation (`fts_match_expr`): a CJK
+  run becomes a quoted **phrase** of its bigrams (they are consecutive tokens),
+  a lone CJK char or an English word becomes a quoted **prefix** token
+  (`"习"*` hits the bigram 习惯, `"hab"*` hits "habits"). Quoting everything
+  also neutralizes fts5 operators in user input.
+- Consequence: writes to the indexed tables from a bare `sqlite3` shell fail
+  (no `ra_fts_segment`); use the app connection, or drop + repopulate.
+
+**Rebuild recipe** (also the repair path): `DELETE FROM annotations_fts;
+INSERT INTO annotations_fts SELECT … ra_fts_segment(text) … FROM annotations;`
+
+`memories_fts` and `ai_messages_fts` follow the same contract when those
+tables gain producers.
+
 ---
 
 ## 6. Vector index (LanceDB)

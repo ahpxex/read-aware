@@ -142,3 +142,23 @@ export async function importDesktopDataIntoSqlite(): Promise<void> {
   await importAnnotations();
   await invoke("set_kv", { key: MIGRATED_FLAG, value: "1" });
 }
+
+const MEMORIES_DB = "read-aware-memories";
+
+/**
+ * Second-wave one-time import (own flag in local-store): agent memories moved
+ * from webview IndexedDB to the SQLite `memories` table after v1 shipped.
+ * Upserts, so retry-after-partial-failure is safe.
+ */
+export async function importWebviewMemoriesIntoSqlite(): Promise<void> {
+  const db = await openExistingIdb(MEMORIES_DB);
+  if (!db) return;
+  try {
+    const memories = await idbGetAll<Record<string, unknown>>(db, "memories");
+    for (const memory of memories) {
+      await invoke("memory_put", { memory });
+    }
+  } finally {
+    db.close();
+  }
+}

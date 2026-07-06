@@ -36,6 +36,11 @@ export async function getDesktopBlob(key: string): Promise<Uint8Array | null> {
   return buffer.byteLength > 0 ? new Uint8Array(buffer) : null;
 }
 
+/** Remove a blob (bytes + registry row). Missing keys are a no-op. */
+export async function deleteDesktopBlob(key: string): Promise<void> {
+  await invoke("delete_blob", { key });
+}
+
 /** Store a blob's bytes under `key`, transferred as a raw binary body. */
 export async function putDesktopBlob(
   key: string,

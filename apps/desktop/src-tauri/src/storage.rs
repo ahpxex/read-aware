@@ -286,6 +286,30 @@ const MIGRATIONS: &[(i64, &str, &str)] = &[
             SELECT id, book_id, type, ra_fts_segment(text), ra_fts_segment(COALESCE(content, ''))
             FROM annotations;",
     ),
+    (
+        5,
+        "memories_projection",
+        // Agent long-term memory (docs/data-model.md §5.2), replacing the
+        // webview-IndexedDB interim store. Pragmatic v1 of the documented
+        // shape: today's runtime signals only (importance/evidence/pinned/
+        // status); confidence, recency_at, superseded_by and memory_evidence
+        // arrive with the consolidation pipeline that produces them.
+        // Rows are soft-state: superseded/forgotten stay for auditability.
+        "CREATE TABLE IF NOT EXISTS memories (
+            id             TEXT PRIMARY KEY,
+            scope          TEXT NOT NULL,
+            kind           TEXT NOT NULL,
+            content        TEXT NOT NULL,
+            importance     REAL NOT NULL,
+            evidence_count INTEGER NOT NULL,
+            pinned         INTEGER NOT NULL DEFAULT 0,
+            status         TEXT NOT NULL DEFAULT 'active',
+            created_at     TEXT NOT NULL,
+            updated_at     TEXT NOT NULL
+         );
+         CREATE INDEX IF NOT EXISTS ix_memories_scope_status
+            ON memories (scope, status);",
+    ),
 ];
 
 /// Apply migrations newer than the highest recorded version, up to `max_version`
@@ -1397,6 +1421,103 @@ pub fn annotations_search(
     annotations_search_inner(&conn, &query, book_id.as_deref(), kind.as_deref())
 }
 
+// --- Memories projection (agent long-term memory; docs/data-model.md §5.2) ---
+
+/// Mirrors `MemoryRecord` in packages/agent (…/src/ports.ts).
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Memory {
+    pub id: String,
+    pub scope: String,
+    pub kind: String,
+    pub content: String,
+    pub importance: f64,
+    pub evidence_count: i64,
+    #[serde(default)]
+    pub pinned: bool,
+    #[serde(default = "default_memory_status")]
+    pub status: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+fn default_memory_status() -> String {
+    "active".to_string()
+}
+
+fn row_to_memory(row: &rusqlite::Row) -> rusqlite::Result<Memory> {
+    Ok(Memory {
+        id: row.get("id")?,
+        scope: row.get("scope")?,
+        kind: row.get("kind")?,
+        content: row.get("content")?,
+        importance: row.get("importance")?,
+        evidence_count: row.get("evidence_count")?,
+        pinned: row.get::<_, i64>("pinned")? != 0,
+        status: row.get("status")?,
+        created_at: row.get("created_at")?,
+        updated_at: row.get("updated_at")?,
+    })
+}
+
+#[tauri::command]
+pub fn memories_list_all(db: State<'_, Db>) -> Result<Vec<Memory>, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    let mut stmt = conn
+        .prepare("SELECT * FROM memories")
+        .map_err(|e| e.to_string())?;
+    let rows = stmt.query_map([], row_to_memory).map_err(|e| e.to_string())?;
+    let mut out = Vec::new();
+    for r in rows {
+        out.push(r.map_err(|e| e.to_string())?);
+    }
+    Ok(out)
+}
+
+#[tauri::command]
+pub fn memory_get(id: String, db: State<'_, Db>) -> Result<Option<Memory>, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    match conn.query_row(
+        "SELECT * FROM memories WHERE id = ?1",
+        params![id],
+        row_to_memory,
+    ) {
+        Ok(m) => Ok(Some(m)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+#[tauri::command]
+pub fn memory_put(memory: Memory, db: State<'_, Db>) -> Result<(), String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "INSERT INTO memories
+            (id, scope, kind, content, importance, evidence_count, pinned, status,
+             created_at, updated_at)
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)
+         ON CONFLICT(id) DO UPDATE SET
+            scope=excluded.scope, kind=excluded.kind, content=excluded.content,
+            importance=excluded.importance, evidence_count=excluded.evidence_count,
+            pinned=excluded.pinned, status=excluded.status,
+            created_at=excluded.created_at, updated_at=excluded.updated_at",
+        params![
+            memory.id,
+            memory.scope,
+            memory.kind,
+            memory.content,
+            memory.importance,
+            memory.evidence_count,
+            memory.pinned as i64,
+            memory.status,
+            memory.created_at,
+            memory.updated_at,
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1447,7 +1568,7 @@ mod tests {
         let version: i64 = conn
             .query_row("SELECT MAX(version) FROM schema_migrations", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(version, 4);
+        assert_eq!(version, 5);
         for table in [
             "domain_events",
             "event_sync_state",
@@ -1456,6 +1577,7 @@ mod tests {
             "annotations_fts",
             "books",
             "annotations",
+            "memories",
             "app_kv",
             "local_device",
         ] {
@@ -1488,6 +1610,38 @@ mod tests {
         assert_eq!(event_type, "book.imported");
         assert!(created_at.starts_with("2023-11-14T"), "got {created_at}");
         assert!(!table_exists(&conn, "events"));
+    }
+
+    #[test]
+    fn memory_upsert_roundtrips_and_updates() {
+        let conn = migrated_conn();
+        let insert = |importance: f64, evidence: i64| {
+            conn.execute(
+                "INSERT INTO memories
+                    (id, scope, kind, content, importance, evidence_count, pinned, status,
+                     created_at, updated_at)
+                 VALUES ('m1','user','preference','喜欢陀思妥耶夫斯基',?1,?2,0,'active',
+                         '2026-07-01T00:00:00Z','2026-07-01T00:00:00Z')
+                 ON CONFLICT(id) DO UPDATE SET
+                    importance=excluded.importance, evidence_count=excluded.evidence_count",
+                params![importance, evidence],
+            )
+            .unwrap();
+        };
+        insert(0.35, 1);
+        insert(0.5, 2); // reinforce 语义：同 id 覆盖
+
+        let memory = conn
+            .query_row("SELECT * FROM memories WHERE id = 'm1'", [], row_to_memory)
+            .unwrap();
+        assert_eq!(memory.scope, "user");
+        assert_eq!(memory.evidence_count, 2);
+        assert!(!memory.pinned);
+        assert_eq!(memory.status, "active");
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM memories", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(count, 1);
     }
 
     #[test]

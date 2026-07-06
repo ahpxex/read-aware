@@ -1,13 +1,13 @@
 /**
  * 书籍正文抽取与持久化（docs/agent-architecture.md §11.5 的产品侧 v2）。
- * 导入时抽取一次、按设备持久化；agent 的 BookTextPort 只读这里，首次对话
- * 不再付整书离屏解析的代价。存储介质：桌面走 blob store（`booktext:<id>`
- * 的 JSON 字节），浏览器 dev 走独立 IndexedDB 库。
+ * 导入时抽取一次、持久化到桌面 blob store（`booktext:<id>` 的 JSON 字节，
+ * SQLite blob_objects 登记）；agent 的 BookTextPort 只读这里，首次对话不再付
+ * 整书离屏解析的代价。
  *
- * 桌面端 blob store 尚无删除命令 —— 删书后正文 blob 成为孤儿（无害，
- * 等事件日志/GC 接管）；浏览器路径会同步删除。
+ * 无浏览器持久化 —— agent 只在桌面壳里运行，浏览器构建是纯 UI；非 Tauri 下
+ * 读返回 null、写是空操作（抽取仍可跑，只是不落盘，靠端口的会话缓存）。
  */
-import { getDesktopBlob, putDesktopBlob } from "../../../platform/blob-store";
+import { deleteDesktopBlob, getDesktopBlob, putDesktopBlob } from "../../../platform/blob-store";
 import { isTauri } from "../../../platform/environment";
 import { makeFoliateBook } from "../../reader/lib/foliate-engine";
 import { getStoredBookBlob } from "./library-db";
@@ -29,71 +29,28 @@ interface PersistedBookText {
 
 const blobKey = (bookId: string) => `booktext:${bookId}`;
 
-// ── 浏览器 dev 介质：独立 IndexedDB（模式同 memory-store） ──
-
-const DB_NAME = "read-aware-book-text";
-const STORE = "chapters";
-
-function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 1);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE)) {
-        db.createObjectStore(STORE, { keyPath: "bookId" });
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-async function withStore<T>(
-  mode: IDBTransactionMode,
-  run: (store: IDBObjectStore) => IDBRequest<T>,
-): Promise<T> {
-  const db = await openDb();
-  try {
-    return await new Promise<T>((resolve, reject) => {
-      const request = run(db.transaction(STORE, mode).objectStore(STORE));
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-  } finally {
-    db.close();
-  }
-}
-
-// ── 持久化读写 ──
-
 async function readPersisted(bookId: string): Promise<PersistedBookText | null> {
-  if (isTauri()) {
-    const bytes = await getDesktopBlob(blobKey(bookId));
-    if (!bytes) return null;
-    try {
-      return JSON.parse(new TextDecoder().decode(bytes)) as PersistedBookText;
-    } catch {
-      return null;
-    }
+  if (!isTauri()) return null;
+  const bytes = await getDesktopBlob(blobKey(bookId));
+  if (!bytes) return null;
+  try {
+    return JSON.parse(new TextDecoder().decode(bytes)) as PersistedBookText;
+  } catch {
+    return null;
   }
-  return ((await withStore("readonly", (store) => store.get(bookId))) ??
-    null) as PersistedBookText | null;
 }
 
 async function writePersisted(record: PersistedBookText): Promise<void> {
-  if (isTauri()) {
-    const bytes = new TextEncoder().encode(JSON.stringify(record));
-    await putDesktopBlob(blobKey(record.bookId), bytes, "application/json");
-    return;
-  }
-  await withStore("readwrite", (store) => store.put(record));
+  if (!isTauri()) return;
+  const bytes = new TextEncoder().encode(JSON.stringify(record));
+  await putDesktopBlob(blobKey(record.bookId), bytes, "application/json");
 }
 
-/** 删书时清理（仅浏览器介质可删；见文件头）。 */
+/** 删书时清理对应的正文 blob。 */
 export async function deleteBookText(bookIds: string[]): Promise<void> {
-  if (isTauri() || bookIds.length === 0) return;
+  if (!isTauri()) return;
   for (const bookId of bookIds) {
-    await withStore("readwrite", (store) => store.delete(bookId));
+    await deleteDesktopBlob(blobKey(bookId));
   }
 }
 

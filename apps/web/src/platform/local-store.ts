@@ -20,10 +20,11 @@
  */
 import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "./environment";
-import { importDesktopDataIntoSqlite } from "./desktop-import";
+import { importDesktopDataIntoSqlite, importWebviewMemoriesIntoSqlite } from "./desktop-import";
 import { reconcileGenesisEvents } from "./event-genesis";
 
 const MIGRATED_FLAG = "read-aware-migrated-v1";
+const MEMORIES_MIGRATED_FLAG = "read-aware-migrated-memories-v1";
 
 let snapshot: Map<string, string> | null = null;
 let hydrated = false;
@@ -88,6 +89,18 @@ export async function hydrateLocalStore(): Promise<void> {
       snapshot = await loadKvSnapshot();
     } catch (err) {
       console.error("[local-store] one-time import failed; will retry next launch", err);
+    }
+  }
+
+  // Second wave: agent memories moved from webview IndexedDB into the SQLite
+  // `memories` table (migration v5). Same guarded once-only pattern.
+  if (snapshot && !snapshot.get(MEMORIES_MIGRATED_FLAG)) {
+    try {
+      await importWebviewMemoriesIntoSqlite();
+      await invoke("set_kv", { key: MEMORIES_MIGRATED_FLAG, value: "1" });
+      snapshot.set(MEMORIES_MIGRATED_FLAG, "1");
+    } catch (err) {
+      console.error("[local-store] memories import failed; will retry next launch", err);
     }
   }
 

@@ -5,11 +5,7 @@ import {
   applyNavigatorHighlight,
   removeNavigatorHighlight,
 } from "../lib/highlight-renderer";
-import {
-  anchorSentenceIndex,
-  buildSentenceRanges,
-  rangesIntersect,
-} from "../lib/sentence-index";
+import { anchorSentenceIndex, buildSentenceRanges } from "../lib/sentence-index";
 
 /** The sentence the navigator rests on — the target for the bar's actions. */
 export type NavigatorSentence = {
@@ -38,21 +34,19 @@ type UseSentenceNavigatorOptions = {
   restoreAnnotationAt: (cfiRange: string) => void;
 };
 
-// Manual moves re-anchor the wash to the first visible sentence, but only once
-// the relocation stream settles — scroll mode emits relocate per tick.
-const REANCHOR_DEBOUNCE_MS = 200;
-// Relocations caused by the navigator's own scroll-into-view are not manual
-// moves; ignore them for this long after each self-initiated scroll.
-const SELF_SCROLL_SUPPRESS_MS = 600;
-
 const normalizeText = (value: string) => value.replace(/\s+/g, " ").trim();
 
 /**
  * Sentence-by-sentence reading position over the foliate view. Owns the
  * sentence index for the loaded section, the current-sentence wash (drawn via
- * the engine's overlayer so it survives page turns and re-layout), stepping —
- * including crossing into adjacent sections at either end — and re-anchoring
- * after the reader is moved by other means (page turn, chapter jump, scroll).
+ * the engine's overlayer so it survives page turns and re-layout), and
+ * stepping — including crossing into adjacent sections at either end.
+ *
+ * Manual moves (page turns, scrolling, chapter jumps) never displace the
+ * navigator: the wash keeps its sentence, off-screen if need be, and is
+ * restored when its section is flipped back into view. Only stepping — or
+ * stepping for the first time inside a section the wash isn't in, which
+ * re-enters at the first visible sentence — moves it.
  */
 export function useSentenceNavigator({
   active,
@@ -70,24 +64,18 @@ export function useSentenceNavigator({
   const appliedCfiRef = useRef<string | null>(null);
   const visibleRangeRef = useRef<Range | null>(null);
   // Sentence to land on once the relocate that follows a section load fires
-  // (layout is settled there; at `load` time geometry is not yet trustworthy).
-  const pendingAnchorRef = useRef<number | null>(null);
+  // (layout is settled there; at `load` time the overlayer doesn't exist yet).
+  const pendingAnchorRef = useRef<{ index: number; scroll: boolean } | null>(null);
   // Direction of an in-flight section cross initiated by stepping off the end.
   const pendingCrossRef = useRef<-1 | 1 | null>(null);
-  const selfScrollUntilRef = useRef(0);
-  const reanchorTimerRef = useRef<number | null>(null);
+  // Where the navigator rests, by section + ordinal — remembered across
+  // section unloads so flipping away and back restores the wash in place.
+  const restingRef = useRef<{ sectionIndex: number; ordinal: number } | null>(null);
 
   const crossSectionRef = useRef(crossSection);
   useEffect(() => { crossSectionRef.current = crossSection; }, [crossSection]);
   const restoreAnnotationAtRef = useRef(restoreAnnotationAt);
   useEffect(() => { restoreAnnotationAtRef.current = restoreAnnotationAt; }, [restoreAnnotationAt]);
-
-  const cancelReanchor = useCallback(() => {
-    if (reanchorTimerRef.current != null) {
-      window.clearTimeout(reanchorTimerRef.current);
-      reanchorTimerRef.current = null;
-    }
-  }, []);
 
   /** Remove the wash, re-drawing any user mark that shared its CFI. */
   const clearWash = useCallback(() => {
@@ -127,9 +115,9 @@ export function useSentenceNavigator({
       const section = sectionRef.current;
       const range = sentencesRef.current?.[index];
       if (!view || !section || !range) return;
-      cancelReanchor();
       clearWash();
       currentIndexRef.current = index;
+      restingRef.current = { sectionIndex: section.index, ordinal: index };
       let cfi: string | null = null;
       try {
         cfi = view.getCFI(section.index, range);
@@ -142,7 +130,6 @@ export function useSentenceNavigator({
       }
       setCurrent({ text: normalizeText(range.toString()), cfiRange: cfi });
       if (scroll && !rangeFullyVisible(range)) {
-        selfScrollUntilRef.current = performance.now() + SELF_SCROLL_SUPPRESS_MS;
         try {
           void view.renderer?.scrollToAnchor?.(range);
         } catch {
@@ -150,7 +137,7 @@ export function useSentenceNavigator({
         }
       }
     },
-    [cancelReanchor, clearWash, rangeFullyVisible, viewRef],
+    [clearWash, rangeFullyVisible, viewRef],
   );
 
   const buildSentences = useCallback((): Range[] => {
@@ -175,7 +162,10 @@ export function useSentenceNavigator({
         return;
       }
       if (currentIndexRef.current < 0) {
-        applyIndex(direction === 1 ? 0 : sentences.length - 1);
+        // The wash rests in another section (or nowhere yet): stepping
+        // re-enters navigation here, at the first sentence still in view.
+        const index = anchorSentenceIndex(sentences, visibleRangeRef.current);
+        if (index >= 0) applyIndex(index, { scroll: false });
         return;
       }
       const nextIndex = currentIndexRef.current + direction;
@@ -197,7 +187,6 @@ export function useSentenceNavigator({
       sentencesRef.current = null;
       currentIndexRef.current = -1;
       visibleRangeRef.current = null;
-      cancelReanchor();
       if (!activeRef.current) {
         pendingCrossRef.current = null;
         return;
@@ -211,13 +200,26 @@ export function useSentenceNavigator({
       }
       // Landing position is only settled at the relocate that follows the
       // load, so record the intent and apply it there. A cross initiated by
-      // stepping enters at the near end; other loads (chapter jump, reopen)
-      // anchor to whatever ends up visible.
-      pendingAnchorRef.current = cross === -1 ? sentences.length - 1 : cross === 1 ? 0 : null;
+      // stepping enters at the near end (and may need a scroll to reach it);
+      // returning to the section the navigator rests in re-draws the wash on
+      // its remembered sentence, in place. Any other section leaves the
+      // navigator where it was — the wash simply isn't here.
+      const resting = restingRef.current;
+      pendingAnchorRef.current =
+        cross === -1
+          ? { index: sentences.length - 1, scroll: true }
+          : cross === 1
+            ? { index: 0, scroll: true }
+            : resting?.sectionIndex === index
+              ? { index: Math.min(resting.ordinal, sentences.length - 1), scroll: false }
+              : null;
+      if (pendingAnchorRef.current == null) setCurrent(null);
     },
-    [buildSentences, cancelReanchor],
+    [buildSentences],
   );
 
+  // Manual moves never displace the navigator; relocates only feed the visible
+  // range (for first-anchor and re-entry) and land a deferred section anchor.
   const handleRelocate = useCallback(
     (detail: FoliateRelocateDetail) => {
       if (detail.range) visibleRangeRef.current = detail.range;
@@ -226,29 +228,10 @@ export function useSentenceNavigator({
       const pendingAnchor = pendingAnchorRef.current;
       if (pendingAnchor != null) {
         pendingAnchorRef.current = null;
-        applyIndex(pendingAnchor);
-        return;
+        applyIndex(pendingAnchor.index, { scroll: pendingAnchor.scroll });
       }
-
-      if (performance.now() < selfScrollUntilRef.current) return;
-
-      // A move the navigator didn't make (page turn, scroll, chapter jump):
-      // once it settles, re-anchor the wash to the first sentence in view —
-      // unless the current sentence is still showing.
-      cancelReanchor();
-      reanchorTimerRef.current = window.setTimeout(() => {
-        reanchorTimerRef.current = null;
-        if (!activeRef.current) return;
-        const sentences = sentencesRef.current;
-        const visible = visibleRangeRef.current;
-        if (!sentences?.length || !visible) return;
-        const currentRange = sentences[currentIndexRef.current];
-        if (currentRange && rangesIntersect(currentRange, visible)) return;
-        const index = anchorSentenceIndex(sentences, visible);
-        if (index >= 0) applyIndex(index, { scroll: false });
-      }, REANCHOR_DEBOUNCE_MS);
     },
-    [applyIndex, cancelReanchor],
+    [applyIndex],
   );
 
   // Activation: index the loaded section and rest on the first visible
@@ -264,16 +247,14 @@ export function useSentenceNavigator({
       else setCurrent(null);
       return;
     }
-    cancelReanchor();
     clearWash();
     sentencesRef.current = null;
     currentIndexRef.current = -1;
+    restingRef.current = null;
     pendingAnchorRef.current = null;
     pendingCrossRef.current = null;
     setCurrent(null);
-  }, [active, applyIndex, buildSentences, cancelReanchor, clearWash]);
-
-  useEffect(() => cancelReanchor, [cancelReanchor]);
+  }, [active, applyIndex, buildSentences, clearWash]);
 
   const next = useCallback(() => step(1), [step]);
   const prev = useCallback(() => step(-1), [step]);

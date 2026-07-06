@@ -177,18 +177,6 @@ export function buildSentenceRanges(doc: Document): Range[] {
   return sentences;
 }
 
-/** Whether two ranges (from the same document) overlap. */
-export function rangesIntersect(a: Range, b: Range): boolean {
-  try {
-    return (
-      a.compareBoundaryPoints(Range.START_TO_END, b) > 0 &&
-      a.compareBoundaryPoints(Range.END_TO_START, b) < 0
-    );
-  } catch {
-    return false;
-  }
-}
-
 /**
  * The sentence to rest on for a given visible range: the first sentence still
  * (at least partly) in view — i.e. whose end lies past the viewport start.

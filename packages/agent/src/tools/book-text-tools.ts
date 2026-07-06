@@ -1,7 +1,8 @@
 /**
  * 正文工具（doc §6 / §11.5 的读端）：目录、按章节读正文、全文检索。
- * 章节可能很长，read_chapter 按 part 窗口化返回，agent 需要更多就翻 part ——
- * 这本身就是"agent 迭代检索替代向量召回"的机制之一。
+ * 章节按 part 窗口化返回（12k 字符 —— 绝大多数章节一片读完），检索一次收
+ * 多个查询变体并回报命中所在的 part —— 都是为了压掉模型的额外往返：
+ * 换词重试和逐片翻页每次都是一个完整的 LLM round trip。
  */
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { Type } from "@earendil-works/pi-ai";
@@ -10,7 +11,7 @@ import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { textResult } from "./tool-result";
 
-const CHAPTER_PART_CHARS = 4000;
+const CHAPTER_PART_CHARS = 12000;
 
 export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
   const defaultBookId = scope.kind === "book" ? scope.bookId : undefined;
@@ -25,7 +26,7 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps): Agent
     name: "get_toc",
     label: "Table of contents",
     description:
-      "Get a book's table of contents (chapter index + title). Empty when the book's text has not been extracted. bookId defaults to the current book.",
+      "Get a book's table of contents (chapter index, title, and text length in chars — one read_chapter part covers 12000 chars, so you can budget how many parts a chapter needs). Empty when the book's text has not been extracted. bookId defaults to the current book.",
     parameters: Type.Object({
       bookId: Type.Optional(Type.String()),
     }),
@@ -39,7 +40,7 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps): Agent
     name: "read_chapter",
     label: "Read chapter",
     description:
-      "Read one chapter's actual text, windowed into parts. Start at part 0; the result tells you totalParts — request further parts when you need more. bookId defaults to the current book.",
+      "Read one chapter's actual text, windowed into parts of 12000 chars (most chapters fit in one part). Start at part 0; the result tells you totalParts. Need several chapters? Issue the read_chapter calls together in one batch — they run in parallel. bookId defaults to the current book.",
     parameters: Type.Object({
       chapterIndex: Type.Number({ description: "Chapter index from get_toc" }),
       part: Type.Optional(Type.Number({ description: "Window index, default 0" })),
@@ -72,17 +73,34 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps): Agent
     name: "search_book_text",
     label: "Search book text",
     description:
-      "Full-text search inside the books' actual prose. Try several phrasings if the first query misses — recall depends on wording. bookId defaults to the current book; omit bookId in the global thread to search the whole shelf.",
+      "Full-text search inside the books' actual prose. Pass SEVERAL phrasings/synonyms in `queries` in this ONE call (results are merged and deduped) instead of retrying one query at a time — recall depends on wording and each retry costs a whole round trip. Exact matches come first; token-level fallback matches are marked \"partial\". Each hit reports the read_chapter `part` it falls in, so you can jump straight to it. bookId defaults to the current book; omit bookId in the global thread to search the whole shelf.",
     parameters: Type.Object({
-      query: Type.String(),
+      queries: Type.Array(Type.String(), {
+        minItems: 1,
+        maxItems: 5,
+        description: "1-5 query variants, searched together",
+      }),
       bookId: Type.Optional(Type.String()),
     }),
     execute: async (_id, params) => {
-      const { query, bookId } = params as { query: string; bookId?: string };
+      const { queries, bookId } = params as { queries: string[]; bookId?: string };
       const target = bookId ?? defaultBookId;
-      return textResult(
-        await deps.bookText.searchText({ query, bookId: target as Id | undefined, limit: 8 }),
-      );
+      const hits = await deps.bookText.searchText({
+        queries,
+        bookId: target as Id | undefined,
+        limit: 16,
+      });
+      return textResult({
+        totalHits: hits.length,
+        hits: hits.map((hit) => ({
+          bookId: hit.bookId,
+          chapterIndex: hit.chapterIndex,
+          chapterTitle: hit.chapterTitle,
+          part: Math.floor(hit.offset / CHAPTER_PART_CHARS),
+          match: hit.match,
+          snippet: hit.snippet,
+        })),
+      });
     },
   };
 

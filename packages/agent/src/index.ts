@@ -1,6 +1,7 @@
 export * from "./thread-scope";
 export * from "./chunks";
 export * from "./ports";
+export { searchChapters, type ChapterLike, type ChapterHit } from "./text/search";
 export * from "./models/roles";
 export * from "./models/accounts";
 export { KNOWN_PROVIDERS, type KnownProviderId } from "./models/registry";

@@ -124,6 +124,10 @@ const RESET = "\x1b[0m";
 
 async function runTurn(scope: ThreadScope, text: string): Promise<void> {
   const toolStarts = new Map<string, number>();
+  const turnStartedAt = performance.now();
+  // 轮末汇总：往返数 + token 总账
+  let rounds = 0;
+  const totals = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
   // 当前流的通道：thinking 与 text 交错时负责换行与去/加 dim
   let channel: "idle" | "thinking" | "text" = "idle";
   const switchChannel = (next: "thinking" | "text") => {
@@ -131,6 +135,11 @@ async function runTurn(scope: ThreadScope, text: string): Promise<void> {
     if (channel !== "idle") process.stdout.write(`${RESET}\n`);
     if (next === "thinking") process.stdout.write(`${DIM}[thinking] `);
     channel = next;
+  };
+  const meta = (line: string) => {
+    if (channel !== "idle") process.stdout.write(`${RESET}\n`);
+    channel = "idle";
+    process.stdout.write(`${DIM}${line}${RESET}\n`);
   };
 
   try {
@@ -145,25 +154,40 @@ async function runTurn(scope: ThreadScope, text: string): Promise<void> {
           process.stdout.write(chunk.text);
           break;
         case "tool-step":
-          if (channel !== "idle") process.stdout.write(`${RESET}\n`);
-          channel = "idle";
           if (chunk.phase === "start") {
             toolStarts.set(chunk.id, performance.now());
             const args = chunk.args === undefined ? "" : ` ${JSON.stringify(chunk.args)}`;
-            process.stdout.write(`${DIM}[tool] ${chunk.tool}${args}${RESET}\n`);
+            meta(`[tool] ${chunk.tool}${args}`);
           } else {
             const started = toolStarts.get(chunk.id);
             const elapsed = started === undefined ? "" : ` ${Math.round(performance.now() - started)}ms`;
-            const status = chunk.isError ? "failed" : "ok";
-            process.stdout.write(`${DIM}[tool] ${chunk.tool} → ${status}${elapsed}${RESET}\n`);
+            meta(`[tool] ${chunk.tool} → ${chunk.isError ? "failed" : "ok"}${elapsed}`);
           }
           break;
+        case "metric": {
+          rounds = Math.max(rounds, chunk.round);
+          if (chunk.tokens) {
+            totals.input += chunk.tokens.input;
+            totals.output += chunk.tokens.output;
+            totals.cacheRead += chunk.tokens.cacheRead;
+            totals.cacheWrite += chunk.tokens.cacheWrite;
+          }
+          const tokens = chunk.tokens
+            ? ` · in ${chunk.tokens.input + chunk.tokens.cacheRead}tk (cache ${chunk.tokens.cacheRead}) · out ${chunk.tokens.output}tk`
+            : "";
+          meta(`[llm] round ${chunk.round} · ttfb ${chunk.ttfbMs}ms · total ${chunk.totalMs}ms${tokens}`);
+          break;
+        }
         default:
           break;
       }
     }
   } finally {
     if (channel !== "idle") process.stdout.write(`${RESET}\n`);
+    const wall = ((performance.now() - turnStartedAt) / 1000).toFixed(1);
+    process.stdout.write(
+      `${DIM}[turn] ${wall}s · ${rounds} round-trips · in ${totals.input + totals.cacheRead}tk (cache ${totals.cacheRead}) · out ${totals.output}tk${RESET}\n`,
+    );
   }
 }
 

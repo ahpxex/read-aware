@@ -137,20 +137,35 @@ export interface ProfilePort {
 export interface ChapterRef {
   index: number;
   title?: string;
+  /** 章节纯文本长度 —— 模型据此预算 read_chapter 要翻几片 */
+  chars: number;
+}
+
+export interface BookTextHit {
+  bookId: Id;
+  chapterIndex: number;
+  chapterTitle?: string;
+  snippet: string;
+  /** 命中在章节文本内的字符偏移（工具层换算成 read_chapter 的 part） */
+  offset: number;
+  /** exact = 原样子串；partial = 词元级回退匹配 */
+  match: "exact" | "partial";
 }
 
 /**
  * 书籍正文访问（doc §11.5 抽取管道的读端）：导入时按章节抽取的纯文本。
- * 实现方决定检索方式（目标态 SQLite FTS）；未抽取的书返回空。
+ * 实现方决定检索方式（目标态 SQLite FTS；现状是 text/search.ts 的共享
+ * 多查询扫描）；未抽取的书返回空。
  */
 export interface BookTextPort {
   getToc(bookId: Id): Promise<ChapterRef[]>;
   getChapterText(bookId: Id, chapterIndex: number): Promise<string | undefined>;
+  /** 一次接收多个查询变体，合并去重后的命中（减少模型的换词重试往返）。 */
   searchText(filter: {
-    query: string;
+    queries: string[];
     bookId?: Id;
     limit?: number;
-  }): Promise<Array<{ bookId: Id; chapterIndex: number; chapterTitle?: string; snippet: string }>>;
+  }): Promise<BookTextHit[]>;
 }
 
 export interface RuntimeDeps {

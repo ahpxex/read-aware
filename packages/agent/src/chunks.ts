@@ -18,4 +18,19 @@ export type ThreadChunk =
       args?: unknown;
       /** 仅 end。 */
       isError?: boolean;
+    }
+  /** 每次模型往返结束时的度量（repl/诊断用；UI 可忽略）。 */
+  | {
+      type: "metric";
+      /** 本轮 sendTurn 内第几次模型往返（1 起） */
+      round: number;
+      /** 请求发出到第一个增量的毫秒数 */
+      ttfbMs: number;
+      totalMs: number;
+      tokens?: {
+        input: number;
+        output: number;
+        cacheRead: number;
+        cacheWrite: number;
+      };
     };

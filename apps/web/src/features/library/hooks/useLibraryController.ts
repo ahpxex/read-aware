@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "reac
 import type { TFunction } from "i18next";
 import { useTranslation } from "../../../i18n";
 import { formatLibraryError } from "../lib/format-library-error";
+import { deleteBookText, ensureBookTextExtracted } from "../lib/book-text-store";
 import {
   createCollection,
   deleteCollection,
@@ -165,7 +166,12 @@ export function useLibraryController() {
       for (const file of files) {
         const result = await importBookFile(file, tRef.current);
         if (result.status === "duplicate") duplicates.push(result.book.title);
-        else imported += 1;
+        else {
+          imported += 1;
+          // 正文抽取管道（§11.5）：导入即抽取并持久化，agent 首次对话不用等
+          // 整书解析。后台跑，失败静默 —— 端口会在需要时懒回填。
+          void ensureBookTextExtracted(result.book.id).catch(() => {});
+        }
       }
 
       setBooks(await listLibraryBooks());
@@ -255,6 +261,7 @@ export function useLibraryController() {
     void removeLibraryBook(book.id)
       .then(() => {
         setBooks((currentBooks) => currentBooks.filter((entry) => entry.id !== book.id));
+        void deleteBookText([book.id]).catch(() => {});
       })
       .catch((error) => {
         reportError(error);
@@ -267,6 +274,7 @@ export function useLibraryController() {
     void removeLibraryBooks(ids)
       .then(() => {
         setBooks((currentBooks) => currentBooks.filter((entry) => !idSet.has(entry.id)));
+        void deleteBookText(ids).catch(() => {});
       })
       .catch((error) => {
         reportError(error);

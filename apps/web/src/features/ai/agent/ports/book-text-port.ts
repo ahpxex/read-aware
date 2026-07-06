@@ -1,96 +1,68 @@
 /**
- * BookTextPort：正文抽取的产品侧 v1 —— 惰性抽取 + 会话内缓存。
- * 第一次被工具问到某本书时，从 blob store 取原文件、foliate 离屏解析出
- * 章节纯文本（同 lab 的实现）。目标态是导入时抽取并持久化
- * （docs/agent-architecture.md §11.5），这里的缓存只活在会话内。
+ * BookTextPort：正文的读端。抽取与持久化归 library 的 book-text-store
+ * （导入时抽取；老书首次被问到时懒回填），这里只做会话内缓存 + 检索。
+ * 检索用 @read-aware/agent 的共享 searchChapters（多查询 + 词元回退），
+ * 与 repl fixture 行为一致；目标态被 SQLite FTS 替换。
  */
-import type { BookTextPort, ChapterRef } from "@read-aware/agent";
+import { searchChapters, type BookTextHit, type BookTextPort, type ChapterRef } from "@read-aware/agent";
 import type { Id } from "@read-aware/core";
-import { getStoredBookBlob } from "../../../library/lib/library-db";
-import { makeFoliateBook } from "../../../reader/lib/foliate-engine";
+import {
+  ensureBookTextExtracted,
+  getPersistedBookText,
+  type ExtractedChapter,
+} from "../../../library/lib/book-text-store";
+import { listLibraryBooks } from "../../../library/lib/library-db";
 
-interface ExtractedChapter {
-  title?: string;
-  text: string;
-}
+const sessionCache = new Map<string, ExtractedChapter[]>();
 
-type FoliateSectionLike = {
-  createDocument?: () => Promise<Document> | Document;
-  linear?: string;
-};
-
-const cache = new Map<string, ExtractedChapter[]>();
-const inflight = new Map<string, Promise<ExtractedChapter[]>>();
-
-async function extract(bookId: string): Promise<ExtractedChapter[]> {
-  const blob = await getStoredBookBlob(bookId);
-  if (!blob) return [];
-  const book = await makeFoliateBook(new File([blob], `${bookId}.book`));
-  const tocLabels = (book.toc ?? [])
-    .map((item) => item.label?.trim())
-    .filter(Boolean) as string[];
-  const chapters: ExtractedChapter[] = [];
-  for (const section of (book.sections ?? []) as FoliateSectionLike[]) {
-    if (section.linear === "no" || !section.createDocument) continue;
-    try {
-      const doc = await section.createDocument();
-      const text = (doc.body?.textContent ?? "").replace(/\s+/g, " ").trim();
-      if (text.length < 40) continue;
-      chapters.push({ title: tocLabels[chapters.length], text });
-    } catch {
-      // 单个 section 失败不拖垮整本书
-    }
-  }
+async function chaptersOf(bookId: Id): Promise<ExtractedChapter[]> {
+  const key = String(bookId);
+  const cached = sessionCache.get(key);
+  if (cached) return cached;
+  const chapters = await ensureBookTextExtracted(key);
+  if (chapters.length > 0) sessionCache.set(key, chapters);
   return chapters;
 }
 
-async function ensureChapters(bookId: Id): Promise<ExtractedChapter[]> {
-  const key = String(bookId);
-  const cached = cache.get(key);
+/** 已持久化才参与（全书架路径绝不触发批量抽取）。 */
+async function persistedChaptersOf(bookId: string): Promise<ExtractedChapter[] | null> {
+  const cached = sessionCache.get(bookId);
   if (cached) return cached;
-  let pending = inflight.get(key);
-  if (!pending) {
-    pending = extract(key)
-      .then((chapters) => {
-        cache.set(key, chapters);
-        return chapters;
-      })
-      .finally(() => inflight.delete(key));
-    inflight.set(key, pending);
-  }
-  return pending;
+  const chapters = await getPersistedBookText(bookId);
+  if (chapters) sessionCache.set(bookId, chapters);
+  return chapters;
 }
 
 export function createBookTextPort(): BookTextPort {
   return {
     getToc: async (bookId) =>
-      (await ensureChapters(bookId)).map<ChapterRef>((chapter, index) => ({
+      (await chaptersOf(bookId)).map<ChapterRef>((chapter, index) => ({
         index,
         title: chapter.title,
+        chars: chapter.text.length,
       })),
     getChapterText: async (bookId, chapterIndex) =>
-      (await ensureChapters(bookId))[chapterIndex]?.text,
-    searchText: async ({ query, bookId, limit }) => {
-      // v1 只支持单书检索（全书架检索要等抽取结果持久化，否则会全量解析书架）
-      if (!bookId) return [];
-      const chapters = await ensureChapters(bookId);
-      const results: Array<{
-        bookId: Id;
-        chapterIndex: number;
-        chapterTitle?: string;
-        snippet: string;
-      }> = [];
-      chapters.forEach((chapter, index) => {
-        const at = chapter.text.indexOf(query);
-        if (at === -1) return;
-        results.push({
-          bookId,
-          chapterIndex: index,
-          chapterTitle: chapter.title,
-          snippet: chapter.text.slice(Math.max(0, at - 60), at + query.length + 60),
-        });
-      });
-      return results.slice(0, limit ?? 8);
+      (await chaptersOf(bookId))[chapterIndex]?.text,
+    searchText: async ({ queries, bookId, limit }) => {
+      const max = limit ?? 16;
+      const results: BookTextHit[] = [];
+      if (bookId) {
+        const chapters = await chaptersOf(bookId);
+        for (const hit of searchChapters(chapters, queries, max)) {
+          results.push({ bookId, ...hit });
+        }
+        return results;
+      }
+      // 全局线程：检索整个书架里已抽取的书
+      for (const book of await listLibraryBooks()) {
+        const chapters = await persistedChaptersOf(book.id);
+        if (!chapters) continue;
+        for (const hit of searchChapters(chapters, queries, max)) {
+          results.push({ bookId: book.id as Id, ...hit });
+        }
+        if (results.length >= max) break;
+      }
+      return results.slice(0, max);
     },
   };
 }

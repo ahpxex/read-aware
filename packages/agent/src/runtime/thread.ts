@@ -4,6 +4,8 @@
  * 把 pi 的事件流翻译成 ThreadChunk、轮末持久化两条 TurnRecord（doc §10）。
  */
 import { Agent, type AgentEvent } from "@earendil-works/pi-agent-core";
+import { streamSimple } from "@earendil-works/pi-ai/compat";
+import type { Usage } from "@earendil-works/pi-ai";
 import type { ThreadChunk } from "../chunks";
 import { buildSystemPrompt } from "../context/system-prompt";
 import { extractMemories } from "../memory/extraction";
@@ -17,6 +19,7 @@ import { buildConversationTools } from "../tools/conversation-tools";
 import { buildThreadTools } from "../tools/library-tools";
 import { buildMemoryTools, visibleScopes } from "../tools/memory-tools";
 import { AsyncQueue } from "./async-queue";
+import { elideStaleToolResults } from "./context-slim";
 import { lastAssistantText, turnRecordsToMessages } from "./history";
 import { windowByTurns } from "./windowing";
 
@@ -108,7 +111,13 @@ export class AgentThread {
         ],
         messages: turnRecordsToMessages(records, model),
       },
-      transformContext: async (messages) => windowByTurns(messages, this.maxWindowTurns),
+      transformContext: async (messages) =>
+        elideStaleToolResults(windowByTurns(messages, this.maxWindowTurns)),
+      // Agent 不转发 cacheRetention，只能在 streamFn 这层补：一轮多次往返共享
+      // 同一前缀（system prompt 轮内稳定），Anthropic 式显式缓存在这里全是净赚；
+      // 不支持的 provider 由 pi 忽略。
+      streamFn: (model, context, options) =>
+        streamSimple(model, context, { ...options, cacheRetention: "short" }),
       getApiKey: this.getApiKey,
     });
     this.agent = agent;
@@ -163,9 +172,36 @@ export class AgentThread {
         });
 
       yield { type: "status", status: "thinking" };
+      // 每次模型往返的度量：turn_start 起表、首个增量记 TTFB、turn_end 报 usage
+      let round = 0;
+      let roundStartedAt = 0;
+      let firstDeltaAt = 0;
       for await (const event of queue) {
         switch (event.type) {
+          case "turn_start":
+            round += 1;
+            roundStartedAt = performance.now();
+            firstDeltaAt = 0;
+            break;
+          case "turn_end": {
+            const usage = (event.message as { usage?: Usage }).usage;
+            const now = performance.now();
+            yield {
+              type: "metric",
+              round,
+              ttfbMs: Math.round((firstDeltaAt || now) - roundStartedAt),
+              totalMs: Math.round(now - roundStartedAt),
+              tokens: usage && {
+                input: usage.input,
+                output: usage.output,
+                cacheRead: usage.cacheRead,
+                cacheWrite: usage.cacheWrite,
+              },
+            };
+            break;
+          }
           case "message_update":
+            if (!firstDeltaAt) firstDeltaAt = performance.now();
             if (event.assistantMessageEvent.type === "text_delta") {
               yield { type: "text", text: event.assistantMessageEvent.delta };
             } else if (event.assistantMessageEvent.type === "thinking_delta") {

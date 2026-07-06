@@ -16,7 +16,8 @@ const noop: CompleteFn = async () => fauxAssistantMessage('{"new": [], "reinforc
 
 const CHAPTERS = {
   b1: [
-    { title: "第一章", text: "货币起源于债务记账。" + "填充".repeat(3000) },
+    // 12k 窗口下仍要分片，正文得够长
+    { title: "第一章", text: "货币起源于债务记账。" + "填充".repeat(8000) },
     { title: "第二章", text: "物物交换神话在田野记录中从未被观察到。" },
   ],
 };
@@ -79,9 +80,10 @@ describe("book text tools", () => {
   test("search_book_text finds prose with a snippet", async () => {
     let payload = "";
     const { thread } = setup([
-      fauxAssistantMessage([fauxToolCall("search_book_text", { query: "物物交换" })], {
-        stopReason: "toolUse",
-      }),
+      fauxAssistantMessage(
+        [fauxToolCall("search_book_text", { queries: ["物物交换", "以物易物"] })],
+        { stopReason: "toolUse" },
+      ),
       (context: Context) => {
         payload = JSON.stringify(context.messages[context.messages.length - 1]);
         return fauxAssistantMessage("找到了。");

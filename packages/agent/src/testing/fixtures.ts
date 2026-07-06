@@ -7,12 +7,14 @@ import type { Id } from "@read-aware/core";
 import type {
   AnnotationRecord,
   BookOverview,
+  BookTextHit,
   ChapterRef,
   MemoryRecord,
   NewMemoryInput,
   RuntimeDeps,
   TurnRecord,
 } from "../ports";
+import { searchChapters } from "../text/search";
 
 export interface ChapterSeed {
   title?: string;
@@ -197,31 +199,23 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
     bookText: {
       getToc: async (bookId) => {
         const chapters = stores.chapters.get(bookId) ?? [];
-        return chapters.map<ChapterRef>((chapter, index) => ({ index, title: chapter.title }));
+        return chapters.map<ChapterRef>((chapter, index) => ({
+          index,
+          title: chapter.title,
+          chars: chapter.text.length,
+        }));
       },
       getChapterText: async (bookId, chapterIndex) =>
         stores.chapters.get(bookId)?.[chapterIndex]?.text,
-      searchText: async ({ query, bookId, limit }) => {
-        const results: Array<{
-          bookId: Id;
-          chapterIndex: number;
-          chapterTitle?: string;
-          snippet: string;
-        }> = [];
+      searchText: async ({ queries, bookId, limit }) => {
+        const results: BookTextHit[] = [];
         for (const [id, chapters] of stores.chapters) {
           if (bookId && id !== bookId) continue;
-          chapters.forEach((chapter, index) => {
-            const at = chapter.text.indexOf(query);
-            if (at === -1) return;
-            results.push({
-              bookId: id as Id,
-              chapterIndex: index,
-              chapterTitle: chapter.title,
-              snippet: chapter.text.slice(Math.max(0, at - 60), at + query.length + 60),
-            });
-          });
+          for (const hit of searchChapters(chapters, queries, limit ?? 16)) {
+            results.push({ bookId: id as Id, ...hit });
+          }
         }
-        return results.slice(0, limit ?? 8);
+        return results.slice(0, limit ?? 16);
       },
     },
   };

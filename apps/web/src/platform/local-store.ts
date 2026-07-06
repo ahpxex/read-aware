@@ -20,11 +20,16 @@
  */
 import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "./environment";
-import { importDesktopDataIntoSqlite, importWebviewMemoriesIntoSqlite } from "./desktop-import";
+import {
+  importDesktopDataIntoSqlite,
+  importKvConversationsIntoSqlite,
+  importWebviewMemoriesIntoSqlite,
+} from "./desktop-import";
 import { reconcileGenesisEvents } from "./event-genesis";
 
 const MIGRATED_FLAG = "read-aware-migrated-v1";
 const MEMORIES_MIGRATED_FLAG = "read-aware-migrated-memories-v1";
+const CONVERSATIONS_KV_KEY = "read-aware-conversations";
 
 let snapshot: Map<string, string> | null = null;
 let hydrated = false;
@@ -101,6 +106,20 @@ export async function hydrateLocalStore(): Promise<void> {
       snapshot.set(MEMORIES_MIGRATED_FLAG, "1");
     } catch (err) {
       console.error("[local-store] memories import failed; will retry next launch", err);
+    }
+  }
+
+  // Third wave: chat transcripts moved from the app_kv JSON blob into the
+  // ai_conversations/ai_messages tables (migration v6). The old key's presence
+  // is the trigger; deleting it after import is what makes this once-only.
+  const legacyConversations = snapshot?.get(CONVERSATIONS_KV_KEY);
+  if (snapshot && legacyConversations) {
+    try {
+      await importKvConversationsIntoSqlite(legacyConversations);
+      await invoke("delete_kv", { key: CONVERSATIONS_KV_KEY });
+      snapshot.delete(CONVERSATIONS_KV_KEY);
+    } catch (err) {
+      console.error("[local-store] conversations import failed; will retry next launch", err);
     }
   }
 

@@ -146,6 +146,48 @@ export async function importDesktopDataIntoSqlite(): Promise<void> {
 const MEMORIES_DB = "read-aware-memories";
 
 /**
+ * Third wave: chat transcripts moved from one app_kv JSON blob into the
+ * `ai_conversations` / `ai_messages` tables (migration v6). Takes the raw kv
+ * value (the caller already holds the snapshot); the caller deletes the key
+ * once this resolves, which is what makes it once-only.
+ */
+export async function importKvConversationsIntoSqlite(raw: string): Promise<void> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return; // malformed blob — nothing to carry forward
+  }
+  if (!parsed || typeof parsed !== "object") return;
+  for (const [conversationId, messages] of Object.entries(parsed as Record<string, unknown>)) {
+    if (!Array.isArray(messages)) continue;
+    await invoke("ai_chat_replace", {
+      conversationId,
+      messages: messages.map((message, seq) => {
+        const m = message as {
+          id?: string;
+          role?: string;
+          content?: string;
+          createdAt?: string;
+          attachments?: unknown;
+          parts?: unknown;
+        };
+        return {
+          id: m.id ?? `imported-${conversationId}-${seq}`,
+          conversationId,
+          role: m.role ?? "user",
+          seq,
+          content: m.content ?? "",
+          createdAt: m.createdAt ?? new Date(0).toISOString(),
+          attachmentsJson: m.attachments ? JSON.stringify(m.attachments) : undefined,
+          partsJson: m.parts ? JSON.stringify(m.parts) : undefined,
+        };
+      }),
+    });
+  }
+}
+
+/**
  * Second-wave one-time import (own flag in local-store): agent memories moved
  * from webview IndexedDB to the SQLite `memories` table after v1 shipped.
  * Upserts, so retry-after-partial-failure is safe.

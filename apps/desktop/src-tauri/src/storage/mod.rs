@@ -310,6 +310,37 @@ const MIGRATIONS: &[(i64, &str, &str)] = &[
          CREATE INDEX IF NOT EXISTS ix_memories_scope_status
             ON memories (scope, status);",
     ),
+    (
+        6,
+        "ai_chat_projections",
+        // AI 对话转录（docs/sqlite-schema.sql 的 ai_conversations/ai_messages），
+        // 替代 app_kv 里一个 key 装整个 conversations map 的 JSON。务实 v1，
+        // 偏差有意为之：
+        //   - id 即今天的存储 id（bookId 或 "__global__"），不设 book_id 列/FK
+        //     （全局线程无书；与现有 FK-less 投影表一致）。
+        //   - attachments/parts 内联 JSON 列，不建 ai_message_attachments 表 ——
+        //     事件溯源落地时随重放一起规范化。
+        //   - 无 status/model 列（流式恢复/审计特性到来时追加）。
+        //   - 清空对话 = 删 messages + 在会话行留 cleared_at 墓碑（同步语义照文档）。
+        "CREATE TABLE IF NOT EXISTS ai_conversations (
+            id         TEXT PRIMARY KEY,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            cleared_at TEXT
+         );
+         CREATE TABLE IF NOT EXISTS ai_messages (
+            id               TEXT PRIMARY KEY,
+            conversation_id  TEXT NOT NULL,
+            role             TEXT NOT NULL,
+            seq              INTEGER NOT NULL,
+            content          TEXT NOT NULL,
+            created_at       TEXT NOT NULL,
+            attachments_json TEXT,
+            parts_json       TEXT
+         );
+         CREATE UNIQUE INDEX IF NOT EXISTS ix_ai_messages_conversation_seq
+            ON ai_messages (conversation_id, seq);",
+    ),
 ];
 
 /// Apply migrations newer than the highest recorded version, up to `max_version`
@@ -513,9 +544,11 @@ pub fn register_sql_functions(conn: &Connection) -> Result<(), String> {
 /// generating one on first run. Bumps `last_opened_at` on every boot.
 pub fn ensure_local_device(conn: &Connection) -> Result<String, String> {
     let existing: Option<String> = conn
-        .query_row("SELECT device_id FROM local_device WHERE id = 1", [], |row| {
-            row.get(0)
-        })
+        .query_row(
+            "SELECT device_id FROM local_device WHERE id = 1",
+            [],
+            |row| row.get(0),
+        )
         .map(Some)
         .or_else(|e| match e {
             rusqlite::Error::QueryReturnedNoRows => Ok(None),
@@ -608,9 +641,7 @@ fn blob_file_name(key: &str) -> String {
     let mut out = String::with_capacity(key.len());
     for byte in key.bytes() {
         match byte {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'.' | b'_' | b'-' => {
-                out.push(byte as char)
-            }
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'.' | b'_' | b'-' => out.push(byte as char),
             other => out.push_str(&format!("%{other:02X}")),
         }
     }
@@ -657,7 +688,15 @@ fn put_blob_inner(
             storage_uri = excluded.storage_uri,
             sync_required = excluded.sync_required,
             deleted_at = NULL",
-        params![key, kind, mime_type, byte_size, sha256, storage_uri, sync_required as i64],
+        params![
+            key,
+            kind,
+            mime_type,
+            byte_size,
+            sha256,
+            storage_uri,
+            sync_required as i64
+        ],
     )
     .map_err(|e| e.to_string())?;
     if sync_required {
@@ -769,7 +808,8 @@ fn externalize_inline_blobs(conn: &Connection, data_dir: &Path) -> Result<(), St
             put_blob_inner(conn, data_dir, &key, None, &data)?;
         }
     }
-    conn.execute_batch("DROP TABLE blobs;").map_err(|e| e.to_string())?;
+    conn.execute_batch("DROP TABLE blobs;")
+        .map_err(|e| e.to_string())?;
     // The inline pages are gone but the file doesn't shrink by itself; with the
     // library's book bytes leaving the database this is the one reclaim that is
     // actually worth a VACUUM.
@@ -893,7 +933,9 @@ pub fn read_events_since(after: Option<Hlc>, db: State<'_, Db>) -> Result<Vec<Ev
                      ORDER BY hlc_wall_ms, hlc_counter, hlc_device",
                 )
                 .map_err(|e| e.to_string())?;
-            let iter = stmt.query_map([], row_to_event).map_err(|e| e.to_string())?;
+            let iter = stmt
+                .query_map([], row_to_event)
+                .map_err(|e| e.to_string())?;
             for r in iter {
                 out.push(r.map_err(|e| e.to_string())?);
             }
@@ -1110,7 +1152,9 @@ fn row_to_library_book(row: &rusqlite::Row) -> rusqlite::Result<LibraryBook> {
         author: row.get("author")?,
         format: row.get("format")?,
         file_name: row.get("file_name")?,
-        mime_type: row.get::<_, Option<String>>("mime_type")?.unwrap_or_default(),
+        mime_type: row
+            .get::<_, Option<String>>("mime_type")?
+            .unwrap_or_default(),
         file_size: row.get("file_size")?,
         cover_url: row.get("cover_url")?,
         cover_checked: Some(row.get::<_, i64>("cover_checked")? != 0),
@@ -1128,7 +1172,9 @@ fn row_to_library_book(row: &rusqlite::Row) -> rusqlite::Result<LibraryBook> {
 #[tauri::command]
 pub fn library_load(db: State<'_, Db>) -> Result<Vec<LibraryBook>, String> {
     let conn = db.0.lock().map_err(|e| e.to_string())?;
-    let mut stmt = conn.prepare("SELECT * FROM books").map_err(|e| e.to_string())?;
+    let mut stmt = conn
+        .prepare("SELECT * FROM books")
+        .map_err(|e| e.to_string())?;
     let rows = stmt
         .query_map([], row_to_library_book)
         .map_err(|e| e.to_string())?;
@@ -1142,7 +1188,11 @@ pub fn library_load(db: State<'_, Db>) -> Result<Vec<LibraryBook>, String> {
 #[tauri::command]
 pub fn library_get_book(id: String, db: State<'_, Db>) -> Result<Option<LibraryBook>, String> {
     let conn = db.0.lock().map_err(|e| e.to_string())?;
-    match conn.query_row("SELECT * FROM books WHERE id = ?1", params![id], row_to_library_book) {
+    match conn.query_row(
+        "SELECT * FROM books WHERE id = ?1",
+        params![id],
+        row_to_library_book,
+    ) {
         Ok(book) => Ok(Some(book)),
         Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
         Err(e) => Err(e.to_string()),
@@ -1466,7 +1516,9 @@ pub fn memories_list_all(db: State<'_, Db>) -> Result<Vec<Memory>, String> {
     let mut stmt = conn
         .prepare("SELECT * FROM memories")
         .map_err(|e| e.to_string())?;
-    let rows = stmt.query_map([], row_to_memory).map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], row_to_memory)
+        .map_err(|e| e.to_string())?;
     let mut out = Vec::new();
     for r in rows {
         out.push(r.map_err(|e| e.to_string())?);
@@ -1518,340 +1570,138 @@ pub fn memory_put(memory: Memory, db: State<'_, Db>) -> Result<(), String> {
     Ok(())
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+// --- AI chat transcripts (per-book conversations + the global thread) ---
 
-    fn test_conn() -> Connection {
-        let conn = Connection::open_in_memory().expect("open in-memory db");
-        apply_connection_pragmas(&conn).expect("pragmas");
-        register_sql_functions(&conn).expect("sql functions");
-        conn
-    }
-
-    fn migrated_conn() -> Connection {
-        let mut conn = test_conn();
-        run_migrations(&mut conn).expect("migrate");
-        conn
-    }
-
-    fn table_exists(conn: &Connection, name: &str) -> bool {
-        conn.query_row(
-            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?1)",
-            params![name],
-            |row| row.get(0),
-        )
-        .unwrap()
-    }
-
-    fn event(id: &str, wall: i64, counter: i64) -> EventRow {
-        EventRow {
-            id: id.to_string(),
-            event_type: "book.imported".to_string(),
-            hlc: Hlc {
-                wall_ms: wall,
-                counter,
-                device_id: "device-a".to_string(),
-            },
-            schema_version: None,
-            aggregate_type: Some("book".to_string()),
-            aggregate_id: Some(format!("agg-{id}")),
-            actor_id: None,
-            created_at: None,
-            payload: serde_json::json!({ "bookId": format!("agg-{id}") }),
-        }
-    }
-
-    #[test]
-    fn fresh_migrate_reaches_latest_and_retires_interim_tables() {
-        let conn = migrated_conn();
-        let version: i64 = conn
-            .query_row("SELECT MAX(version) FROM schema_migrations", [], |r| r.get(0))
-            .unwrap();
-        assert_eq!(version, 5);
-        for table in [
-            "domain_events",
-            "event_sync_state",
-            "blob_objects",
-            "blob_sync_state",
-            "annotations_fts",
-            "books",
-            "annotations",
-            "memories",
-            "app_kv",
-            "local_device",
-        ] {
-            assert!(table_exists(&conn, table), "missing table {table}");
-        }
-        // The bare v1 `events` table is retired by v3; `blobs` survives until
-        // `externalize_inline_blobs` runs (it needs the filesystem root).
-        assert!(!table_exists(&conn, "events"));
-        assert!(table_exists(&conn, "blobs"));
-    }
-
-    #[test]
-    fn v3_carries_old_events_forward() {
-        let mut conn = test_conn();
-        run_migrations_up_to(&mut conn, 2).expect("stage v2");
-        conn.execute(
-            "INSERT INTO events (id, type, hlc_wall, hlc_counter, hlc_device, payload)
-             VALUES ('old-1', 'book.imported', 1700000000000, 0, 'dev', '{\"bookId\":\"b1\"}')",
-            [],
-        )
-        .unwrap();
-        run_migrations(&mut conn).expect("migrate to v3");
-        let (event_type, created_at): (String, String) = conn
-            .query_row(
-                "SELECT type, created_at FROM domain_events WHERE id = 'old-1'",
-                [],
-                |row| Ok((row.get(0)?, row.get(1)?)),
-            )
-            .unwrap();
-        assert_eq!(event_type, "book.imported");
-        assert!(created_at.starts_with("2023-11-14T"), "got {created_at}");
-        assert!(!table_exists(&conn, "events"));
-    }
-
-    #[test]
-    fn memory_upsert_roundtrips_and_updates() {
-        let conn = migrated_conn();
-        let insert = |importance: f64, evidence: i64| {
-            conn.execute(
-                "INSERT INTO memories
-                    (id, scope, kind, content, importance, evidence_count, pinned, status,
-                     created_at, updated_at)
-                 VALUES ('m1','user','preference','喜欢陀思妥耶夫斯基',?1,?2,0,'active',
-                         '2026-07-01T00:00:00Z','2026-07-01T00:00:00Z')
-                 ON CONFLICT(id) DO UPDATE SET
-                    importance=excluded.importance, evidence_count=excluded.evidence_count",
-                params![importance, evidence],
-            )
-            .unwrap();
-        };
-        insert(0.35, 1);
-        insert(0.5, 2); // reinforce 语义：同 id 覆盖
-
-        let memory = conn
-            .query_row("SELECT * FROM memories WHERE id = 'm1'", [], row_to_memory)
-            .unwrap();
-        assert_eq!(memory.scope, "user");
-        assert_eq!(memory.evidence_count, 2);
-        assert!(!memory.pinned);
-        assert_eq!(memory.status, "active");
-        let count: i64 = conn
-            .query_row("SELECT COUNT(*) FROM memories", [], |r| r.get(0))
-            .unwrap();
-        assert_eq!(count, 1);
-    }
-
-    #[test]
-    fn externalize_moves_inline_blobs_to_files_and_drops_table() {
-        let dir = tempfile::tempdir().expect("tempdir");
-        let mut conn = test_conn();
-        run_migrations(&mut conn).expect("migrate");
-        conn.execute(
-            "INSERT INTO blobs (key, data) VALUES ('bookfile:b1', X'DEADBEEF')",
-            [],
-        )
-        .unwrap();
-
-        externalize_inline_blobs(&conn, dir.path()).expect("externalize");
-
-        assert!(!table_exists(&conn, "blobs"));
-        let bytes = get_blob_inner(&conn, dir.path(), "bookfile:b1").unwrap();
-        assert_eq!(bytes, vec![0xDE, 0xAD, 0xBE, 0xEF]);
-        let (kind, size, sha, uri): (String, i64, String, String) = conn
-            .query_row(
-                "SELECT kind, byte_size, sha256, storage_uri FROM blob_objects
-                 WHERE key = 'bookfile:b1'",
-                [],
-                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
-            )
-            .unwrap();
-        assert_eq!(kind, "book_source");
-        assert_eq!(size, 4);
-        assert_eq!(
-            sha,
-            "5f78c33274e43fa9de5659265c1d917e25c03722dcb0b8d27db8d5feaa813953"
-        );
-        assert_eq!(uri, "blobs/bookfile%3Ab1");
-        assert!(dir.path().join(&uri).is_file());
-        // Externalized user blobs enter the push outbox.
-        let pending: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM blob_sync_state WHERE blob_key = 'bookfile:b1'
-                 AND push_state = 'pending'",
-                [],
-                |row| row.get(0),
-            )
-            .unwrap();
-        assert_eq!(pending, 1);
-        // Second run is a no-op (table gone).
-        externalize_inline_blobs(&conn, dir.path()).expect("idempotent");
-    }
-
-    #[test]
-    fn blob_put_get_delete_roundtrip() {
-        let dir = tempfile::tempdir().expect("tempdir");
-        let conn = migrated_conn();
-        let payload = b"hello book".to_vec();
-
-        let result =
-            put_blob_inner(&conn, dir.path(), "bookfile:b2", Some("application/epub+zip"), &payload)
-                .expect("put");
-        assert_eq!(result.byte_size, 10);
-        assert_eq!(get_blob_inner(&conn, dir.path(), "bookfile:b2").unwrap(), payload);
-
-        delete_blob_inner(&conn, dir.path(), "bookfile:b2").expect("delete");
-        assert!(get_blob_inner(&conn, dir.path(), "bookfile:b2").unwrap().is_empty());
-        // Tombstone survives; bytes and outbox row are gone.
-        let (deleted_at, uri): (Option<String>, Option<String>) = conn
-            .query_row(
-                "SELECT deleted_at, storage_uri FROM blob_objects WHERE key = 'bookfile:b2'",
-                [],
-                |row| Ok((row.get(0)?, row.get(1)?)),
-            )
-            .unwrap();
-        assert!(deleted_at.is_some());
-        assert!(uri.is_none());
-        let outbox: i64 = conn
-            .query_row("SELECT COUNT(*) FROM blob_sync_state", [], |row| row.get(0))
-            .unwrap();
-        assert_eq!(outbox, 0);
-        // Re-putting the same key clears the tombstone (a re-import revives it).
-        put_blob_inner(&conn, dir.path(), "bookfile:b2", None, &payload).expect("re-put");
-        assert_eq!(get_blob_inner(&conn, dir.path(), "bookfile:b2").unwrap(), payload);
-    }
-
-    #[test]
-    fn append_events_fills_envelope_and_outbox_once() {
-        let mut conn = migrated_conn();
-        append_events_inner(&mut conn, &[event("e1", 1_700_000_000_000, 0)]).expect("append");
-        // Duplicate delivery (same id) is ignored and does not re-enter the outbox.
-        append_events_inner(&mut conn, &[event("e1", 1_700_000_000_000, 0)]).expect("re-append");
-
-        let (schema_version, actor, created_at, aggregate_id): (i64, String, String, String) =
-            conn.query_row(
-                "SELECT schema_version, actor_id, created_at, aggregate_id
-                 FROM domain_events WHERE id = 'e1'",
-                [],
-                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
-            )
-            .unwrap();
-        assert_eq!(schema_version, 1);
-        assert_eq!(actor, "local");
-        assert!(created_at.starts_with("2023-11-14T"), "got {created_at}");
-        assert_eq!(aggregate_id, "agg-e1");
-
-        let events: i64 = conn
-            .query_row("SELECT COUNT(*) FROM domain_events", [], |row| row.get(0))
-            .unwrap();
-        let outbox: i64 = conn
-            .query_row("SELECT COUNT(*) FROM event_sync_state", [], |row| row.get(0))
-            .unwrap();
-        assert_eq!(events, 1);
-        assert_eq!(outbox, 1);
-    }
-
-    #[test]
-    fn ensure_local_device_is_stable() {
-        let conn = migrated_conn();
-        let first = ensure_local_device(&conn).expect("first");
-        let second = ensure_local_device(&conn).expect("second");
-        assert_eq!(first, second);
-        assert!(!first.is_empty());
-    }
-
-    #[test]
-    fn fts_segment_bigrams_cjk_and_keeps_words() {
-        assert_eq!(fts_segment("养成好习惯"), "养成 成好 好习 习惯");
-        assert_eq!(fts_segment("read 好书 now"), "read 好书 now");
-        assert_eq!(fts_segment("书"), "书");
-        assert_eq!(fts_segment("読み方"), "読み み方"); // kana + han mix is one run
-        assert_eq!(fts_segment("a,b"), "a b");
-        assert_eq!(fts_segment("!!"), "");
-    }
-
-    #[test]
-    fn fts_match_expr_phrases_and_prefixes() {
-        assert_eq!(fts_match_expr("习惯").as_deref(), Some("\"习惯\""));
-        assert_eq!(fts_match_expr("养成好").as_deref(), Some("\"养成 成好\""));
-        assert_eq!(fts_match_expr("hab").as_deref(), Some("\"hab\"*"));
-        assert_eq!(fts_match_expr("习").as_deref(), Some("\"习\"*"));
-        assert_eq!(
-            fts_match_expr("习惯 habit").as_deref(),
-            Some("\"习惯\" \"habit\"*")
-        );
-        // fts5 operators in user input are neutralized by quoting.
-        assert_eq!(fts_match_expr("AND").as_deref(), Some("\"AND\"*"));
-        assert_eq!(fts_match_expr("!!").as_deref(), None);
-    }
-
-    fn insert_annotation(conn: &Connection, id: &str, kind: &str, text: &str, content: Option<&str>) {
-        conn.execute(
-            "INSERT INTO annotations
-                (id, book_id, type, text, content, created_at, updated_at)
-             VALUES (?1, 'book-1', ?2, ?3, ?4, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')",
-            params![id, kind, text, content],
-        )
-        .expect("insert annotation");
-    }
-
-    fn search_ids(conn: &Connection, query: &str) -> Vec<String> {
-        annotations_search_inner(conn, query, None, None)
-            .expect("search")
-            .into_iter()
-            .map(|a| a.id)
-            .collect()
-    }
-
-    #[test]
-    fn fts_search_matches_chinese_and_english_via_triggers() {
-        let conn = migrated_conn();
-        insert_annotation(&conn, "h1", "highlight", "养成好习惯需要时间", None);
-        insert_annotation(&conn, "n1", "note", "quoted passage", Some("thoughts on habits"));
-        insert_annotation(&conn, "a1", "ask", "什么是复利效应", None);
-
-        assert_eq!(search_ids(&conn, "习惯"), vec!["h1"]);
-        assert_eq!(search_ids(&conn, "习"), vec!["h1"]); // 1-char prefix hits bigram
-        assert_eq!(search_ids(&conn, "habit"), vec!["n1"]); // note CONTENT indexed, prefix
-        assert_eq!(search_ids(&conn, "复利"), vec!["a1"]);
-        assert!(search_ids(&conn, "不存在的词").is_empty());
-        assert!(search_ids(&conn, "??").is_empty());
-
-        // Filters compose with MATCH.
-        let only_notes = annotations_search_inner(&conn, "habit", None, Some("note")).unwrap();
-        assert_eq!(only_notes.len(), 1);
-        let wrong_book = annotations_search_inner(&conn, "习惯", Some("book-2"), None).unwrap();
-        assert!(wrong_book.is_empty());
-
-        // Update re-indexes; delete drops the row from the index.
-        conn.execute(
-            "UPDATE annotations SET text = '完全不同的内容' WHERE id = 'h1'",
-            [],
-        )
-        .unwrap();
-        assert!(search_ids(&conn, "习惯").is_empty());
-        assert_eq!(search_ids(&conn, "不同"), vec!["h1"]);
-        conn.execute("DELETE FROM annotations WHERE id = 'h1'", []).unwrap();
-        assert!(search_ids(&conn, "不同").is_empty());
-    }
-
-    #[test]
-    fn fts_migration_populates_existing_rows() {
-        let mut conn = test_conn();
-        run_migrations_up_to(&mut conn, 3).expect("stage v3");
-        insert_annotation(&conn, "old-h", "highlight", "旧数据里的习惯养成", None);
-        run_migrations(&mut conn).expect("migrate to v4");
-        assert_eq!(search_ids(&conn, "习惯"), vec!["old-h"]);
-    }
-
-    #[test]
-    fn blob_file_names_are_safe_and_injective() {
-        assert_eq!(blob_file_name("bookfile:b1"), "bookfile%3Ab1");
-        assert_ne!(blob_file_name("a:b"), blob_file_name("a%3Ab"));
-        assert!(blob_file_name("font:https://x/y?z=1")
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || "._-%".contains(c)));
-    }
+/// Mirrors `ChatMessage` in apps/web (…/ai/lib/chat-types.ts); attachments and
+/// the assistant part timeline ride as opaque JSON strings until the
+/// event-sourced normalization lands.
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiMessage {
+    pub id: String,
+    pub conversation_id: String,
+    pub role: String,
+    pub seq: i64,
+    pub content: String,
+    pub created_at: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attachments_json: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parts_json: Option<String>,
 }
+
+fn row_to_ai_message(row: &rusqlite::Row) -> rusqlite::Result<AiMessage> {
+    Ok(AiMessage {
+        id: row.get("id")?,
+        conversation_id: row.get("conversation_id")?,
+        role: row.get("role")?,
+        seq: row.get("seq")?,
+        content: row.get("content")?,
+        created_at: row.get("created_at")?,
+        attachments_json: row.get("attachments_json")?,
+        parts_json: row.get("parts_json")?,
+    })
+}
+
+#[tauri::command]
+pub fn ai_chat_load(conversation_id: String, db: State<'_, Db>) -> Result<Vec<AiMessage>, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    let mut stmt = conn
+        .prepare("SELECT * FROM ai_messages WHERE conversation_id = ?1 ORDER BY seq")
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map(params![conversation_id], row_to_ai_message)
+        .map_err(|e| e.to_string())?;
+    let mut out = Vec::new();
+    for r in rows {
+        out.push(r.map_err(|e| e.to_string())?);
+    }
+    Ok(out)
+}
+
+#[tauri::command]
+pub fn ai_chat_load_all(db: State<'_, Db>) -> Result<Vec<AiMessage>, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    let mut stmt = conn
+        .prepare("SELECT * FROM ai_messages ORDER BY conversation_id, seq")
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], row_to_ai_message)
+        .map_err(|e| e.to_string())?;
+    let mut out = Vec::new();
+    for r in rows {
+        out.push(r.map_err(|e| e.to_string())?);
+    }
+    Ok(out)
+}
+
+/// Whole-transcript replace, mirroring the store's save semantics (the hook
+/// persists the full message array after each committed turn). `seq` is
+/// assigned here from array order.
+#[tauri::command]
+pub fn ai_chat_replace(
+    conversation_id: String,
+    messages: Vec<AiMessage>,
+    db: State<'_, Db>,
+) -> Result<(), String> {
+    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+    tx.execute(
+        "INSERT INTO ai_conversations (id, created_at, updated_at, cleared_at)
+         VALUES (?1, strftime('%Y-%m-%dT%H:%M:%fZ','now'),
+                 strftime('%Y-%m-%dT%H:%M:%fZ','now'), NULL)
+         ON CONFLICT(id) DO UPDATE SET
+            updated_at = excluded.updated_at, cleared_at = NULL",
+        params![conversation_id],
+    )
+    .map_err(|e| e.to_string())?;
+    tx.execute(
+        "DELETE FROM ai_messages WHERE conversation_id = ?1",
+        params![conversation_id],
+    )
+    .map_err(|e| e.to_string())?;
+    for (seq, message) in messages.iter().enumerate() {
+        tx.execute(
+            "INSERT INTO ai_messages
+                (id, conversation_id, role, seq, content, created_at,
+                 attachments_json, parts_json)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8)",
+            params![
+                message.id,
+                conversation_id,
+                message.role,
+                seq as i64,
+                message.content,
+                message.created_at,
+                message.attachments_json,
+                message.parts_json,
+            ],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+    tx.commit().map_err(|e| e.to_string())
+}
+
+/// Clear = delete the messages, keep the conversation row with a `cleared_at`
+/// tombstone (cross-device clear semantics per docs/sqlite-schema.sql).
+#[tauri::command]
+pub fn ai_chat_clear(conversation_id: String, db: State<'_, Db>) -> Result<(), String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "DELETE FROM ai_messages WHERE conversation_id = ?1",
+        params![conversation_id],
+    )
+    .map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE ai_conversations
+         SET cleared_at = strftime('%Y-%m-%dT%H:%M:%fZ','now'),
+             updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+         WHERE id = ?1",
+        params![conversation_id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests;

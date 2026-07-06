@@ -1,9 +1,9 @@
 /**
- * Storage for annotations (highlights, notes).
- *
- * Resolves by `isTauri()`: desktop → native SQLite (Rust `annotation_*`
- * commands); browser (vite dev / Storybook) → the existing IndexedDB code, kept
- * byte-for-byte.
+ * Storage for annotations (highlights, notes, asks): the desktop SQLite
+ * `annotations` table (Rust `annotation_*` commands; search is FTS5-backed).
+ * Desktop-only — the browser build is a pure UI shell (Storybook feeds
+ * components fixture props): reads come back empty so surfaces render their
+ * empty states, writes throw instead of pretending to persist.
  */
 
 import { invoke } from "@tauri-apps/api/core";
@@ -11,53 +11,13 @@ import type { Annotation, AnnotationFilters, Ask, Highlight, Note } from "./anno
 import { isTauri } from "../../../platform/environment";
 import { emitDomainEvents } from "../../../platform/domain-events";
 
-const DB_NAME = "read-aware-annotations";
-const DB_VERSION = 1;
-const ANNOTATIONS_STORE = "annotations";
-
-let dbPromise: Promise<IDBDatabase> | null = null;
-
-function requestToPromise<T>(request: IDBRequest<T>) {
-  return new Promise<T>((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error("IndexedDB request failed."));
-  });
+function assertDesktop(what: string): never | void {
+  if (!isTauri()) {
+    throw new Error(`${what} is desktop-only — the browser build is a UI shell without storage.`);
+  }
 }
 
-function waitForTransaction(transaction: IDBTransaction) {
-  return new Promise<void>((resolve, reject) => {
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error ?? new Error("IndexedDB transaction failed."));
-    transaction.onabort = () => reject(transaction.error ?? new Error("IndexedDB transaction was aborted."));
-  });
-}
-
-function openAnnotationsDb() {
-  if (dbPromise) return dbPromise;
-
-  dbPromise = new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-    request.onupgradeneeded = () => {
-      const db = request.result;
-
-      if (!db.objectStoreNames.contains(ANNOTATIONS_STORE)) {
-        const store = db.createObjectStore(ANNOTATIONS_STORE, { keyPath: "id" });
-        store.createIndex("bookId", "bookId", { unique: false });
-        store.createIndex("type", "type", { unique: false });
-        store.createIndex("bookId_type", ["bookId", "type"], { unique: false });
-      }
-    };
-
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () =>
-      reject(request.error ?? new Error("Unable to open the annotations database."));
-  });
-
-  return dbPromise;
-}
-
-/** Filter + newest-first sort applied to the SQLite result set (desktop path). */
+/** Filter + newest-first sort applied to the SQLite result set. */
 function filterAndSortAnnotations(
   annotations: Annotation[],
   filters?: AnnotationFilters,
@@ -86,31 +46,18 @@ function filterAndSortAnnotations(
 // `createNote`, `updateNote`, `createAsk`, `deleteAnnotation`) are the seams
 // that dual-write the domain-event log; new call sites should use those.
 export async function saveAnnotation(annotation: Annotation): Promise<Annotation> {
-  if (isTauri()) {
-    await invoke("annotation_put", { annotation });
-    return annotation;
-  }
-  const db = await openAnnotationsDb();
-  const transaction = db.transaction(ANNOTATIONS_STORE, "readwrite");
-  transaction.objectStore(ANNOTATIONS_STORE).put(annotation);
-  await waitForTransaction(transaction);
+  assertDesktop("Saving an annotation");
+  await invoke("annotation_put", { annotation });
   return annotation;
 }
 
 export async function getAnnotation(id: string): Promise<Annotation | null> {
-  if (isTauri()) {
-    return (await invoke<Annotation | null>("annotation_get", { id })) ?? null;
-  }
-  const db = await openAnnotationsDb();
-  const transaction = db.transaction(ANNOTATIONS_STORE, "readonly");
-  const result = await requestToPromise(
-    transaction.objectStore(ANNOTATIONS_STORE).get(id) as IDBRequest<Annotation | undefined>,
-  );
-  await waitForTransaction(transaction);
-  return result ?? null;
+  if (!isTauri()) return null;
+  return (await invoke<Annotation | null>("annotation_get", { id })) ?? null;
 }
 
 export async function deleteAnnotation(id: string): Promise<void> {
+  assertDesktop("Deleting an annotation");
   // Read-before-delete so the removal event carries the right variant.
   const existing = await getAnnotation(id);
   if (existing?.type === "highlight") {
@@ -120,73 +67,30 @@ export async function deleteAnnotation(id: string): Promise<void> {
   } else if (existing?.type === "ask") {
     emitDomainEvents({ type: "ask.removed", payload: { askId: id } });
   }
-  if (isTauri()) {
-    await invoke("annotation_delete", { id });
-    return;
-  }
-  const db = await openAnnotationsDb();
-  const transaction = db.transaction(ANNOTATIONS_STORE, "readwrite");
-  transaction.objectStore(ANNOTATIONS_STORE).delete(id);
-  await waitForTransaction(transaction);
+  await invoke("annotation_delete", { id });
 }
 
 export async function listAnnotations(filters?: AnnotationFilters): Promise<Annotation[]> {
-  if (isTauri()) {
-    const query = filters?.searchQuery?.trim();
-    if (query) {
-      // FTS5-backed (annotations_fts, CJK bigram segmentation — see
-      // storage.rs migration v4): word/bigram matching with English prefix
-      // support, instead of loading every annotation and substring-scanning.
-      const matched = await invoke<Annotation[]>("annotations_search", {
-        query,
-        bookId: filters?.bookId ?? null,
-        kind: filters?.type ?? null,
-      });
-      // Rust returns relevance (BM25) order; the annotation lists render
-      // newest-first, so re-sort here (searchQuery already applied).
-      return filterAndSortAnnotations(matched, {
-        bookId: filters?.bookId,
-        type: filters?.type,
-      });
-    }
-    const all = await invoke<Annotation[]>("annotations_list");
-    return filterAndSortAnnotations(all, filters);
+  if (!isTauri()) return [];
+  const query = filters?.searchQuery?.trim();
+  if (query) {
+    // FTS5-backed (annotations_fts, CJK bigram segmentation — see storage.rs
+    // migration v4): word/bigram matching with English prefix support, instead
+    // of loading every annotation and substring-scanning.
+    const matched = await invoke<Annotation[]>("annotations_search", {
+      query,
+      bookId: filters?.bookId ?? null,
+      kind: filters?.type ?? null,
+    });
+    // Rust returns relevance (BM25) order; the annotation lists render
+    // newest-first, so re-sort here (searchQuery already applied).
+    return filterAndSortAnnotations(matched, {
+      bookId: filters?.bookId,
+      type: filters?.type,
+    });
   }
-
-  const db = await openAnnotationsDb();
-  const transaction = db.transaction(ANNOTATIONS_STORE, "readonly");
-  const store = transaction.objectStore(ANNOTATIONS_STORE);
-
-  let annotations: Annotation[];
-
-  if (filters?.bookId && filters?.type) {
-    const index = store.index("bookId_type");
-    annotations = await requestToPromise(index.getAll([filters.bookId, filters.type]) as IDBRequest<Annotation[]>);
-  } else if (filters?.bookId) {
-    const index = store.index("bookId");
-    annotations = await requestToPromise(index.getAll(filters.bookId) as IDBRequest<Annotation[]>);
-  } else if (filters?.type) {
-    const index = store.index("type");
-    annotations = await requestToPromise(index.getAll(filters.type) as IDBRequest<Annotation[]>);
-  } else {
-    annotations = await requestToPromise(store.getAll() as IDBRequest<Annotation[]>);
-  }
-
-  await waitForTransaction(transaction);
-
-  // Apply search filter in memory
-  if (filters?.searchQuery) {
-    const query = filters.searchQuery.toLowerCase();
-    annotations = annotations.filter((a) =>
-      a.text.toLowerCase().includes(query) ||
-      ("content" in a && a.content?.toLowerCase().includes(query))
-    );
-  }
-
-  // Sort by creation time, newest first
-  return annotations.sort((a, b) =>
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  const all = await invoke<Annotation[]>("annotations_list");
+  return filterAndSortAnnotations(all, filters);
 }
 
 // Highlight operations

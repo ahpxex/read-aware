@@ -8,188 +8,85 @@ import type {
   Collection,
   LibraryBook,
   ReadingStatus,
-  StoredBookFile,
 } from "./library-types";
 import { extractBookCover, extractBookMetadata } from "./library-cover";
 import type { ExtractedBookMetadata } from "./library-cover";
 import { sniffBookFormat } from "./book-format-sniff";
 import { isTauri } from "../../../platform/environment";
 
-const DB_NAME = "read-aware-library";
-const DB_VERSION = 2;
-const BOOKS_STORE = "books";
-const FILES_STORE = "files";
-const COLLECTIONS_STORE = "collections";
-
 /** Blob-store key for a book's original file bytes (desktop SQLite backend). */
 const bookFileKey = (bookId: string) => `bookfile:${bookId}`;
 
-let dbPromise: Promise<IDBDatabase> | null = null;
-
-function requestToPromise<T>(request: IDBRequest<T>) {
-  return new Promise<T>((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error("IndexedDB request failed."));
-  });
-}
-
-function waitForTransaction(transaction: IDBTransaction) {
-  return new Promise<void>((resolve, reject) => {
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error ?? new Error("IndexedDB transaction failed."));
-    transaction.onabort = () => reject(transaction.error ?? new Error("IndexedDB transaction was aborted."));
-  });
-}
-
-function openLibraryDb() {
-  if (dbPromise) return dbPromise;
-
-  dbPromise = new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-    request.onupgradeneeded = () => {
-      const db = request.result;
-
-      if (!db.objectStoreNames.contains(BOOKS_STORE)) {
-        db.createObjectStore(BOOKS_STORE, { keyPath: "id" });
-      }
-
-      if (!db.objectStoreNames.contains(FILES_STORE)) {
-        db.createObjectStore(FILES_STORE, { keyPath: "bookId" });
-      }
-
-      if (!db.objectStoreNames.contains(COLLECTIONS_STORE)) {
-        db.createObjectStore(COLLECTIONS_STORE, { keyPath: "id" });
-      }
-    };
-
-    request.onsuccess = () => {
-      const db = request.result;
-      // Don't hold an old version open when another context (a reload after a
-      // schema bump, or a second tab) needs to upgrade — close so it isn't blocked.
-      db.onversionchange = () => db.close();
-      resolve(db);
-    };
-    request.onerror = () =>
-      reject(request.error ?? new Error("Unable to open the local library database."));
-  });
-
-  return dbPromise;
-}
-
 // --- Storage primitives ------------------------------------------------------
-// Each resolves by `isTauri()`: desktop → native SQLite (Rust commands + blob
-// store); browser (vite dev / Storybook) → the existing IndexedDB code, kept
-// byte-for-byte. Everything below (dedup, cover hydration, sorting) is pure and
-// backend-agnostic.
+// Desktop-only: native SQLite (Rust commands) + blob store. The browser build
+// is a pure UI shell (Storybook feeds components fixture props) — reads come
+// back empty so surfaces render their empty states, writes throw instead of
+// pretending to persist. Everything below (dedup, cover hydration, sorting) is
+// pure and backend-agnostic.
+
+function assertDesktop(what: string): never | void {
+  if (!isTauri()) {
+    throw new Error(`${what} is desktop-only — the browser build is a UI shell without storage.`);
+  }
+}
 
 async function getAllBookRecords(): Promise<LibraryBook[]> {
-  if (isTauri()) return invoke<LibraryBook[]>("library_load");
-  const db = await openLibraryDb();
-  const transaction = db.transaction(BOOKS_STORE, "readonly");
-  const books = await requestToPromise(
-    transaction.objectStore(BOOKS_STORE).getAll() as IDBRequest<LibraryBook[]>,
-  );
-  await waitForTransaction(transaction);
-  return books;
+  if (!isTauri()) return [];
+  return invoke<LibraryBook[]>("library_load");
 }
 
 async function getBookRecord(bookId: string): Promise<LibraryBook | null> {
-  if (isTauri()) {
-    return (await invoke<LibraryBook | null>("library_get_book", { id: bookId })) ?? null;
-  }
-  const db = await openLibraryDb();
-  const transaction = db.transaction(BOOKS_STORE, "readonly");
-  const book = await requestToPromise(
-    transaction.objectStore(BOOKS_STORE).get(bookId) as IDBRequest<LibraryBook | undefined>,
-  );
-  await waitForTransaction(transaction);
-  return book ?? null;
+  if (!isTauri()) return null;
+  return (await invoke<LibraryBook | null>("library_get_book", { id: bookId })) ?? null;
 }
 
 async function putBookRecord(book: LibraryBook): Promise<void> {
-  if (isTauri()) {
-    await invoke("library_put_book", { book });
-    return;
-  }
-  const db = await openLibraryDb();
-  const transaction = db.transaction(BOOKS_STORE, "readwrite");
-  transaction.objectStore(BOOKS_STORE).put(book);
-  await waitForTransaction(transaction);
+  assertDesktop("Saving a book");
+  await invoke("library_put_book", { book });
 }
 
 async function storeImportedBook(book: LibraryBook, file: File): Promise<void> {
-  if (isTauri()) {
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const { sha256 } = await putDesktopBlob(
-      bookFileKey(book.id),
-      bytes,
-      book.mimeType || undefined,
-    );
-    emitDomainEvents({
-      type: "book.imported",
-      payload: {
-        bookId: book.id,
-        title: book.title,
-        author: book.author,
-        format: book.format,
-        fileName: book.fileName,
-        mimeType: book.mimeType || undefined,
-        fileSize: book.fileSize,
-        sourceBlobKey: bookFileKey(book.id),
-        sourceSha256: sha256,
-      },
-    });
-    await invoke("library_put_book", { book });
-    return;
-  }
-  const db = await openLibraryDb();
-  const transaction = db.transaction([BOOKS_STORE, FILES_STORE], "readwrite");
-  transaction.objectStore(BOOKS_STORE).put(book);
-  transaction.objectStore(FILES_STORE).put({ bookId: book.id, blob: file } satisfies StoredBookFile);
-  await waitForTransaction(transaction);
+  assertDesktop("Importing a book");
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const { sha256 } = await putDesktopBlob(
+    bookFileKey(book.id),
+    bytes,
+    book.mimeType || undefined,
+  );
+  emitDomainEvents({
+    type: "book.imported",
+    payload: {
+      bookId: book.id,
+      title: book.title,
+      author: book.author,
+      format: book.format,
+      fileName: book.fileName,
+      mimeType: book.mimeType || undefined,
+      fileSize: book.fileSize,
+      sourceBlobKey: bookFileKey(book.id),
+      sourceSha256: sha256,
+    },
+  });
+  await invoke("library_put_book", { book });
 }
 
 async function deleteBookRecords(bookIds: string[]): Promise<void> {
   if (bookIds.length === 0) return;
+  assertDesktop("Removing books");
   emitDomainEvents(
     ...bookIds.map((bookId) => ({ type: "book.removed" as const, payload: { bookId } })),
   );
-  if (isTauri()) {
-    await invoke("library_delete_books", { ids: bookIds });
-    return;
-  }
-  const db = await openLibraryDb();
-  const transaction = db.transaction([BOOKS_STORE, FILES_STORE], "readwrite");
-  const books = transaction.objectStore(BOOKS_STORE);
-  const files = transaction.objectStore(FILES_STORE);
-  for (const id of bookIds) {
-    books.delete(id);
-    files.delete(id);
-  }
-  await waitForTransaction(transaction);
+  await invoke("library_delete_books", { ids: bookIds });
 }
 
 async function getAllCollectionRecords(): Promise<Collection[]> {
-  if (isTauri()) return invoke<Collection[]>("library_list_collections");
-  const db = await openLibraryDb();
-  const transaction = db.transaction(COLLECTIONS_STORE, "readonly");
-  const collections = await requestToPromise(
-    transaction.objectStore(COLLECTIONS_STORE).getAll() as IDBRequest<Collection[]>,
-  );
-  await waitForTransaction(transaction);
-  return collections;
+  if (!isTauri()) return [];
+  return invoke<Collection[]>("library_list_collections");
 }
 
 async function putCollectionRecord(collection: Collection): Promise<void> {
-  if (isTauri()) {
-    await invoke("library_put_collection", { collection });
-    return;
-  }
-  const db = await openLibraryDb();
-  const transaction = db.transaction(COLLECTIONS_STORE, "readwrite");
-  transaction.objectStore(COLLECTIONS_STORE).put(collection);
-  await waitForTransaction(transaction);
+  assertDesktop("Saving a collection");
+  await invoke("library_put_collection", { collection });
 }
 
 // --- Pure helpers (backend-agnostic) ----------------------------------------
@@ -364,17 +261,9 @@ export async function importBookFile(
 }
 
 export async function getStoredBookBlob(bookId: string): Promise<Blob | null> {
-  if (isTauri()) {
-    const bytes = await getDesktopBlob(bookFileKey(bookId));
-    return bytes ? new Blob([bytes]) : null;
-  }
-  const db = await openLibraryDb();
-  const transaction = db.transaction(FILES_STORE, "readonly");
-  const storedFile = await requestToPromise(
-    transaction.objectStore(FILES_STORE).get(bookId) as IDBRequest<StoredBookFile | undefined>,
-  );
-  await waitForTransaction(transaction);
-  return storedFile?.blob ?? null;
+  if (!isTauri()) return null;
+  const bytes = await getDesktopBlob(bookFileKey(bookId));
+  return bytes ? new Blob([bytes]) : null;
 }
 
 export async function updateLibraryBookProgress(bookId: string, progress: BookProgress) {
@@ -495,25 +384,9 @@ export async function renameCollection(id: string, name: string): Promise<Collec
  * `book.removedFromCollection` events are emitted for it.
  */
 export async function deleteCollection(id: string) {
+  assertDesktop("Deleting a collection");
   emitDomainEvents({ type: "collection.removed", payload: { collectionId: id } });
-  if (isTauri()) {
-    await invoke("library_delete_collection", { id });
-    return;
-  }
-  const db = await openLibraryDb();
-  const all = await requestToPromise(
-    db.transaction(BOOKS_STORE, "readonly").objectStore(BOOKS_STORE).getAll() as IDBRequest<
-      LibraryBook[]
-    >,
-  );
-
-  const transaction = db.transaction([BOOKS_STORE, COLLECTIONS_STORE], "readwrite");
-  const books = transaction.objectStore(BOOKS_STORE);
-  for (const book of all) {
-    if (book.collectionId === id) books.put({ ...book, collectionId: null });
-  }
-  transaction.objectStore(COLLECTIONS_STORE).delete(id);
-  await waitForTransaction(transaction);
+  await invoke("library_delete_collection", { id });
 }
 
 /** Assign a set of books to a collection (or null to ungroup them). */
@@ -568,16 +441,8 @@ export async function removeLibraryBook(bookId: string) {
 // --- Restore (import a previously-exported bundle; ids preserved) ------------
 
 async function putBookFileBytes(bookId: string, bytes: Uint8Array): Promise<void> {
-  if (isTauri()) {
-    await putDesktopBlob(bookFileKey(bookId), bytes);
-    return;
-  }
-  const db = await openLibraryDb();
-  const transaction = db.transaction(FILES_STORE, "readwrite");
-  transaction
-    .objectStore(FILES_STORE)
-    .put({ bookId, blob: new Blob([bytes]) } satisfies StoredBookFile);
-  await waitForTransaction(transaction);
+  assertDesktop("Restoring a book file");
+  await putDesktopBlob(bookFileKey(bookId), bytes);
 }
 
 /**

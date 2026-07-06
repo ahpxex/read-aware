@@ -46,8 +46,10 @@
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
 
-  --font-size-eyebrow: 0.6875rem;
-  --font-size-caption: 0.75rem;
+  /* Font-size utilities generate from the --text-* namespace in Tailwind v4
+     (--font-size-* is not a recognized theme namespace and produces nothing). */
+  --text-eyebrow: 0.6875rem;
+  --text-caption: 0.75rem;
 
   --leading-display: 0.98;
   --leading-body: 2rem;
@@ -416,6 +418,140 @@ button {
   padding-left: 0;
   font-style: normal;
   color: var(--color-fg-muted);
+}
+
+/* Headings scaled for a 14px conversational measure (Streamdown ships
+   document-scale text-3xl/2xl/xl defaults, far too loud inside a reply). */
+.ra-chat-markdown h1 {
+  font-size: 1.1875rem;
+  margin-top: 1.25rem;
+}
+.ra-chat-markdown h2 {
+  font-size: 1.0625rem;
+  margin-top: 1.25rem;
+}
+.ra-chat-markdown h3 {
+  font-size: 0.9375rem;
+  margin-top: 1rem;
+}
+.ra-chat-markdown h4,
+.ra-chat-markdown h5,
+.ra-chat-markdown h6 {
+  font-size: 0.875rem;
+  margin-top: 1rem;
+}
+
+/* Code blocks: one quiet surface card. Streamdown's default is a double frame
+   (fill-toned outer shell + a second bordered box inside); collapse it to a
+   single hairline container and let the header read as an eyebrow. */
+.ra-chat-markdown [data-streamdown="code-block"] {
+  margin-block: 0.75rem;
+  gap: 0;
+  padding: 0;
+  border-radius: 0.5rem;
+  border-color: var(--color-border);
+  background-color: var(--color-surface);
+  overflow: hidden;
+}
+.ra-chat-markdown [data-streamdown="code-block-header"] {
+  padding: 0.5rem 0.875rem 0;
+  color: var(--color-fg-subtle);
+  font-size: var(--text-caption);
+}
+.ra-chat-markdown [data-streamdown="code-block-body"] {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0.625rem 0.875rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+/* Shiki paints its theme background inline on the <pre>; the card already
+   provides the surface, so strip it in both themes. */
+.ra-chat-markdown [data-streamdown="code-block-body"] pre {
+  background: transparent !important;
+}
+/* Streamdown only marks its per-line spans `block` when line numbers are on
+   (the class rides along with the counter chrome); with lineNumbers={false}
+   the spans stay inline and every line collapses onto one row. Restore the
+   line grid ourselves; empty lines keep their height via min-height. */
+.ra-chat-markdown [data-streamdown="code-block-body"] code > span {
+  display: block;
+  min-height: 1.6em;
+}
+
+/* Inline code: a shade the eye can find on the fill-toned canvas, sized to the
+   surrounding prose instead of Streamdown's document-scale text-sm. */
+.ra-chat-markdown [data-streamdown="inline-code"] {
+  background-color: var(--color-fill-strong);
+  border-radius: 0.25rem;
+  padding: 0.0625rem 0.3125rem;
+  font-size: 0.8125em;
+}
+
+/* Tables: hairline card, caption-toned header, row separators only — no inner
+   vertical grid. Like the code block, Streamdown double-frames tables (padded
+   wrapper + a second bordered scroll div inside); the wrapper keeps the one
+   hairline and the inner div goes frameless. */
+.ra-chat-markdown [data-streamdown="table-wrapper"] {
+  margin-block: 0.75rem;
+  padding: 0;
+  gap: 0;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  overflow: hidden;
+}
+.ra-chat-markdown [data-streamdown="table-wrapper"] > div {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow-x: auto;
+}
+.ra-chat-markdown [data-streamdown="table"] {
+  border: 0;
+  width: 100%;
+  font-size: 0.8125rem;
+}
+.ra-chat-markdown [data-streamdown="table-header"] {
+  background: transparent;
+}
+.ra-chat-markdown [data-streamdown="table-header-cell"] {
+  padding: 0.4375rem 0.875rem;
+  font-size: var(--text-caption);
+  font-weight: 500;
+  color: var(--color-fg-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+.ra-chat-markdown [data-streamdown="table-cell"] {
+  padding: 0.4375rem 0.875rem;
+  vertical-align: top;
+}
+.ra-chat-markdown [data-streamdown="table-body"] [data-streamdown="table-row"]:not(:first-child) {
+  border-top: 1px solid var(--color-border);
+}
+
+/* Soft pulse on the "Thinking…" disclosure label while reasoning streams. */
+.ra-chat-pulse {
+  animation: ra-chat-pulse 1.8s ease-in-out infinite;
+}
+@keyframes ra-chat-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+html[data-motion="reduced"] .ra-chat-pulse {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ra-chat-pulse {
+    animation: none;
+  }
 }
 
 /* Streaming caret trailing the assistant reply while it types. */

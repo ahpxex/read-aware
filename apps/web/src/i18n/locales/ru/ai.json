@@ -7,6 +7,21 @@
     "stopGenerating": "Остановить генерацию",
     "loadingConversation": "Загрузка беседы",
     "thinking": "Думаю…",
+    "thought": "Ход размышлений",
+    "tools": {
+      "search_memory": "Вспоминаю",
+      "remember": "Сохраняю в память",
+      "search_conversation": "Ищу в прошлых беседах",
+      "get_conversation_insights": "Просматриваю обсуждение книги",
+      "list_books": "Просматриваю полку",
+      "get_book_overview": "Смотрю сведения о книге",
+      "get_annotations": "Читаю ваши выделения",
+      "get_toc": "Читаю оглавление",
+      "read_chapter": "Читаю главу",
+      "search_book_text": "Ищу в тексте",
+      "fallback": "Работаю",
+      "failed": "не удалось"
+    },
     "removePassage": "Убрать отрывок",
     "empty": {
       "title": "Спросите об этой книге",

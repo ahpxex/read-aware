@@ -7,6 +7,21 @@
     "stopGenerating": "Stop generating",
     "loadingConversation": "Loading conversation",
     "thinking": "Thinking…",
+    "thought": "Thought process",
+    "tools": {
+      "search_memory": "Recalling memories",
+      "remember": "Saving a memory",
+      "search_conversation": "Searching past conversations",
+      "get_conversation_insights": "Reviewing the book's thread",
+      "list_books": "Scanning the shelf",
+      "get_book_overview": "Looking up the book",
+      "get_annotations": "Reading your highlights",
+      "get_toc": "Reading the table of contents",
+      "read_chapter": "Reading a chapter",
+      "search_book_text": "Searching the text",
+      "fallback": "Working",
+      "failed": "failed"
+    },
     "removePassage": "Remove passage",
     "empty": {
       "title": "Ask about this book",

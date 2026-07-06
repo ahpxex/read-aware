@@ -25,6 +25,33 @@ export interface ChatSelectionAttachment {
 
 export type ChatAttachment = ChatSelectionAttachment;
 
+/** A run of visible reply prose (rendered as Markdown). */
+export interface ChatTextPart {
+  type: "text";
+  text: string;
+}
+
+/** A run of model reasoning — shown collapsed, never part of `content`. */
+export interface ChatThinkingPart {
+  type: "thinking";
+  text: string;
+}
+
+/**
+ * One tool call in the turn. `detail` is a short human-readable argument
+ * summary (e.g. the search query) distilled by the transport; the UI maps
+ * `tool` to a localized label.
+ */
+export interface ChatToolPart {
+  type: "tool";
+  id: string;
+  tool: string;
+  detail?: string;
+  state: "running" | "done" | "error";
+}
+
+export type ChatAssistantPart = ChatTextPart | ChatThinkingPart | ChatToolPart;
+
 export interface ChatMessage {
   id: string;
   role: ChatRole;
@@ -33,6 +60,13 @@ export interface ChatMessage {
   createdAt: string;
   /** Passages attached to a turn — only present on user messages. */
   attachments?: ChatAttachment[];
+  /**
+   * The assistant turn as an ordered timeline (prose, thinking, tool calls).
+   * `content` stays the plain-text reply — the projection older messages,
+   * persistence consumers and the agent's own history read. Absent on user
+   * messages and on messages persisted before parts existed.
+   */
+  parts?: ChatAssistantPart[];
 }
 
 /**
@@ -55,13 +89,17 @@ export interface ChatTurnRequest {
 
 /**
  * Incremental output from the transport.
- * - `text`   — a delta to append to the assistant message.
- * - `status` — optional human-readable progress (e.g. "Searching your notes…").
+ * - `text`     — a delta to append to the visible reply.
+ * - `thinking` — a delta of model reasoning (rendered collapsed).
+ * - `tool`     — a tool call starting or ending, paired by `id`.
+ * - `status`   — optional human-readable progress fallback.
  *
- * The union is intentionally open: an agent backend can add richer events
- * (citations, tool steps) later, and the UI's exhaustive `switch` will simply
- * ignore what it doesn't yet render.
+ * The union stays open: a backend can add richer events (citations, images)
+ * later, and the UI's `switch` will simply ignore what it doesn't yet render.
  */
 export type ChatStreamChunk =
   | { type: "text"; text: string }
+  | { type: "thinking"; text: string }
+  | { type: "tool"; phase: "start"; id: string; tool: string; detail?: string }
+  | { type: "tool"; phase: "end"; id: string; isError: boolean }
   | { type: "status"; status: string };

@@ -2,26 +2,27 @@ import { useEffect, useRef } from "react";
 import { ChatCircleDots } from "@phosphor-icons/react";
 import { Caption, EmptyState, ScrollArea, Spinner } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
-import type { ChatMessage } from "../lib/chat-types";
+import type { ChatAssistantPart, ChatMessage } from "../lib/chat-types";
 import { ChatMessageItem } from "./ChatMessageItem";
 
 type ChatTranscriptProps = {
   messages: ChatMessage[];
   isLoading: boolean;
   isStreaming: boolean;
-  streamingText: string;
+  streamingParts: ChatAssistantPart[];
   status: string | null;
 };
 
 /**
- * The scrolling conversation: prior turns, the in-progress assistant reply, and
- * a "thinking" indicator before the first token. Owns auto-scroll-to-bottom.
+ * The scrolling conversation: prior turns, the in-progress assistant turn
+ * (thinking, tool steps and prose as they happen), and a "thinking" indicator
+ * before the first event. Owns auto-scroll-to-bottom.
  */
 export function ChatTranscript({
   messages,
   isLoading,
   isStreaming,
-  streamingText,
+  streamingParts,
   status,
 }: ChatTranscriptProps) {
   const { t } = useTranslation("ai");
@@ -30,7 +31,7 @@ export function ChatTranscript({
   // Keep the latest turn in view as messages arrive and the reply streams in.
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
-  }, [messages, streamingText, isStreaming]);
+  }, [messages, streamingParts, isStreaming]);
 
   if (isLoading) {
     return (
@@ -66,12 +67,13 @@ export function ChatTranscript({
         ))}
 
         {isStreaming &&
-          (streamingText ? (
+          (streamingParts.length > 0 ? (
             <ChatMessageItem
               message={{
                 id: "__streaming__",
                 role: "assistant",
-                content: streamingText,
+                content: "",
+                parts: streamingParts,
                 createdAt: "",
               }}
               streaming

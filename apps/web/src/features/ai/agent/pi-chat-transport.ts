@@ -1,26 +1,16 @@
 /**
  * ChatTransport 的真实现（doc §5：唯一集成面）：把 UI 的一轮请求翻译给
- * AgentRuntime，把 ThreadChunk 流翻译回 ChatStreamChunk。
+ * AgentRuntime，把 ThreadChunk 流翻译回 ChatStreamChunk —— text/thinking
+ * 直通，tool-step 靠 id 配对并把入参提炼成一行 detail；工具名的本地化标签
+ * 归 UI（ChatToolStep），这里不产任何人类可读文案。
  * 未配置 BYOK 时直接抛错 —— 对话 hook 会把消息呈现给用户。
  */
 import type { SelectionAttachment, ThreadScope } from "@read-aware/agent";
 import type { Id } from "@read-aware/core";
 import type { ChatTransport } from "../lib/chat-transport";
+import { toolStepDetail } from "../lib/chat-stream";
 import type { ChatStreamChunk } from "../lib/chat-types";
 import { getAgentRuntime } from "./agent-runtime";
-
-const TOOL_LABELS: Record<string, string> = {
-  search_memory: "Recalling…",
-  remember: "Remembering…",
-  search_conversation: "Checking what was said…",
-  get_conversation_insights: "Reading the book thread…",
-  list_books: "Looking at the shelf…",
-  get_book_overview: "Looking at the book…",
-  get_annotations: "Reading your highlights…",
-  get_toc: "Opening the book…",
-  read_chapter: "Reading the text…",
-  search_book_text: "Searching the text…",
-};
 
 export function createPiChatTransport(): ChatTransport {
   return {
@@ -45,15 +35,35 @@ export function createPiChatTransport(): ChatTransport {
         attachments,
         signal,
       })) {
-        if (chunk.type === "text") {
-          yield { type: "text", text: chunk.text } satisfies ChatStreamChunk;
-        } else if (chunk.type === "status") {
-          yield { type: "status", status: "Thinking…" } satisfies ChatStreamChunk;
-        } else if (chunk.phase === "start") {
-          yield {
-            type: "status",
-            status: TOOL_LABELS[chunk.tool] ?? "Working…",
-          } satisfies ChatStreamChunk;
+        switch (chunk.type) {
+          case "text":
+            yield { type: "text", text: chunk.text } satisfies ChatStreamChunk;
+            break;
+          case "thinking":
+            yield { type: "thinking", text: chunk.text } satisfies ChatStreamChunk;
+            break;
+          case "tool-step":
+            if (chunk.phase === "start") {
+              yield {
+                type: "tool",
+                phase: "start",
+                id: chunk.id,
+                tool: chunk.tool,
+                detail: toolStepDetail(chunk.tool, chunk.args),
+              } satisfies ChatStreamChunk;
+            } else {
+              yield {
+                type: "tool",
+                phase: "end",
+                id: chunk.id,
+                isError: chunk.isError ?? false,
+              } satisfies ChatStreamChunk;
+            }
+            break;
+          default:
+            // "status" carries no user-facing text anymore; the transcript
+            // shows its own localized "Thinking…" until the first part lands.
+            break;
         }
       }
     },

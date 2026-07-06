@@ -62,7 +62,7 @@ export function ChatPanel({
         messages={conversation.messages}
         isLoading={conversation.isLoading}
         isStreaming={conversation.isStreaming}
-        streamingText={conversation.streamingText}
+        streamingParts={conversation.streamingParts}
         status={conversation.status}
       />
       {conversation.error && (

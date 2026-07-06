@@ -7,6 +7,21 @@
     "stopGenerating": "Detener la generación",
     "loadingConversation": "Cargando la conversación",
     "thinking": "Pensando…",
+    "thought": "Razonamiento",
+    "tools": {
+      "search_memory": "Recordando",
+      "remember": "Guardando un recuerdo",
+      "search_conversation": "Buscando en conversaciones pasadas",
+      "get_conversation_insights": "Revisando el hilo del libro",
+      "list_books": "Revisando la estantería",
+      "get_book_overview": "Consultando el libro",
+      "get_annotations": "Leyendo tus subrayados",
+      "get_toc": "Leyendo el índice",
+      "read_chapter": "Leyendo un capítulo",
+      "search_book_text": "Buscando en el texto",
+      "fallback": "Trabajando",
+      "failed": "falló"
+    },
     "removePassage": "Quitar el pasaje",
     "empty": {
       "title": "Pregunta sobre este libro",

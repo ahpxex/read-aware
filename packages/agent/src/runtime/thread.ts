@@ -168,13 +168,27 @@ export class AgentThread {
           case "message_update":
             if (event.assistantMessageEvent.type === "text_delta") {
               yield { type: "text", text: event.assistantMessageEvent.delta };
+            } else if (event.assistantMessageEvent.type === "thinking_delta") {
+              yield { type: "thinking", text: event.assistantMessageEvent.delta };
             }
             break;
           case "tool_execution_start":
-            yield { type: "tool-step", phase: "start", tool: event.toolName };
+            yield {
+              type: "tool-step",
+              phase: "start",
+              id: event.toolCallId,
+              tool: event.toolName,
+              args: event.args,
+            };
             break;
           case "tool_execution_end":
-            yield { type: "tool-step", phase: "end", tool: event.toolName, isError: event.isError };
+            yield {
+              type: "tool-step",
+              phase: "end",
+              id: event.toolCallId,
+              tool: event.toolName,
+              isError: event.isError,
+            };
             break;
           default:
             break;

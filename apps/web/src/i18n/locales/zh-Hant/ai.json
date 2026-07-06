@@ -7,6 +7,21 @@
     "stopGenerating": "停止生成",
     "loadingConversation": "正在載入對話",
     "thinking": "思考中…",
+    "thought": "思考過程",
+    "tools": {
+      "search_memory": "正在回憶",
+      "remember": "正在記下這一點",
+      "search_conversation": "正在檢索過往對話",
+      "get_conversation_insights": "正在查看這本書的對話",
+      "list_books": "正在查看書架",
+      "get_book_overview": "正在查看書籍資訊",
+      "get_annotations": "正在閱讀你的標註",
+      "get_toc": "正在閱讀目錄",
+      "read_chapter": "正在閱讀章節",
+      "search_book_text": "正在檢索內文",
+      "fallback": "處理中",
+      "failed": "失敗"
+    },
     "removePassage": "移除段落",
     "empty": {
       "title": "詢問關於這本書",

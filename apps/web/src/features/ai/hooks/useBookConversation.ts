@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "../../../i18n";
+import { appendStreamChunk, finalizeParts, partsText } from "../lib/chat-stream";
 import { getChatTransport } from "../lib/chat-transport";
-import type { ChatAttachment, ChatMessage } from "../lib/chat-types";
+import type { ChatAssistantPart, ChatAttachment, ChatMessage } from "../lib/chat-types";
 import {
   clearConversation,
   loadConversation,
@@ -13,8 +14,8 @@ export interface BookConversation {
   /** Initial load of the persisted conversation. */
   isLoading: boolean;
   isStreaming: boolean;
-  /** The assistant reply assembled so far this turn (empty when idle). */
-  streamingText: string;
+  /** The assistant turn assembled so far — prose, thinking and tool steps in order. */
+  streamingParts: ChatAssistantPart[];
   /** Human-readable progress from the transport (e.g. "Thinking…"). */
   status: string | null;
   error: string | null;
@@ -37,7 +38,7 @@ export function useBookConversation(
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [streamingText, setStreamingText] = useState("");
+  const [streamingParts, setStreamingParts] = useState<ChatAssistantPart[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,7 +90,7 @@ export function useBookConversation(
       persist(withUser);
 
       setError(null);
-      setStreamingText("");
+      setStreamingParts([]);
       setStatus(null);
       setIsStreaming(true);
 
@@ -97,7 +98,7 @@ export function useBookConversation(
       abortRef.current = controller;
 
       void (async () => {
-        let assembled = "";
+        let assembled: ChatAssistantPart[] = [];
         try {
           const stream = getChatTransport().sendTurn(
             { bookId, bookTitle, history, message: userMessage, thread },
@@ -105,11 +106,11 @@ export function useBookConversation(
           );
           for await (const chunk of stream) {
             if (controller.signal.aborted) break;
-            if (chunk.type === "text") {
-              assembled += chunk.text;
-              setStreamingText(assembled);
-            } else if (chunk.type === "status") {
+            if (chunk.type === "status") {
               setStatus(chunk.status);
+            } else {
+              assembled = appendStreamChunk(assembled, chunk);
+              setStreamingParts(assembled);
             }
           }
         } catch (err) {
@@ -124,16 +125,19 @@ export function useBookConversation(
         } finally {
           // Commit whatever was produced — even a partial reply after a stop —
           // so the conversation stays a faithful record.
-          if (assembled.trim()) {
+          const parts = finalizeParts(assembled);
+          const content = partsText(parts);
+          if (content) {
             const assistantMessage: ChatMessage = {
               id: crypto.randomUUID(),
               role: "assistant",
-              content: assembled,
+              content,
               createdAt: new Date().toISOString(),
+              parts,
             };
             persist([...withUser, assistantMessage]);
           }
-          setStreamingText("");
+          setStreamingParts([]);
           setStatus(null);
           setIsStreaming(false);
           abortRef.current = null;
@@ -153,5 +157,5 @@ export function useBookConversation(
     void clearConversation(bookId);
   }, [bookId]);
 
-  return { messages, isLoading, isStreaming, streamingText, status, error, send, stop, clear };
+  return { messages, isLoading, isStreaming, streamingParts, status, error, send, stop, clear };
 }

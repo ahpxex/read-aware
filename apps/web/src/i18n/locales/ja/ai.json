@@ -7,6 +7,21 @@
     "stopGenerating": "生成を停止",
     "loadingConversation": "会話を読み込み中",
     "thinking": "考え中…",
+    "thought": "思考の過程",
+    "tools": {
+      "search_memory": "記憶を呼び出しています",
+      "remember": "記憶を保存しています",
+      "search_conversation": "過去の会話を検索しています",
+      "get_conversation_insights": "本のスレッドを確認しています",
+      "list_books": "本棚を確認しています",
+      "get_book_overview": "本の情報を調べています",
+      "get_annotations": "ハイライトを読んでいます",
+      "get_toc": "目次を読んでいます",
+      "read_chapter": "章を読んでいます",
+      "search_book_text": "本文を検索しています",
+      "fallback": "処理中",
+      "failed": "失敗"
+    },
     "removePassage": "一節を削除",
     "empty": {
       "title": "この本について質問",

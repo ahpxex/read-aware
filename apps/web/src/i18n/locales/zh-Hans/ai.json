@@ -7,6 +7,21 @@
     "stopGenerating": "停止生成",
     "loadingConversation": "正在加载对话",
     "thinking": "思考中…",
+    "thought": "思考过程",
+    "tools": {
+      "search_memory": "正在回忆",
+      "remember": "正在记下这一点",
+      "search_conversation": "正在检索过往对话",
+      "get_conversation_insights": "正在查看这本书的对话",
+      "list_books": "正在查看书架",
+      "get_book_overview": "正在查看书籍信息",
+      "get_annotations": "正在阅读你的标注",
+      "get_toc": "正在阅读目录",
+      "read_chapter": "正在阅读章节",
+      "search_book_text": "正在检索正文",
+      "fallback": "处理中",
+      "failed": "失败"
+    },
     "removePassage": "移除段落",
     "empty": {
       "title": "询问关于本书的问题",

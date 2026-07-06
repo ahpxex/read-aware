@@ -314,7 +314,7 @@ export function useAgentLab() {
               setStreamingText(accumulated);
             } else if (chunk.type === "status") {
               setStatus(chunk.status);
-            } else {
+            } else if (chunk.type === "tool-step") {
               setToolLog((prev) => [
                 ...prev,
                 {

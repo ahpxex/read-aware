@@ -7,6 +7,21 @@
     "stopGenerating": "Generierung stoppen",
     "loadingConversation": "Unterhaltung wird geladen",
     "thinking": "Denkt nach…",
+    "thought": "Gedankengang",
+    "tools": {
+      "search_memory": "Ruft Erinnerungen ab",
+      "remember": "Speichert eine Erinnerung",
+      "search_conversation": "Durchsucht frühere Gespräche",
+      "get_conversation_insights": "Sieht den Buch-Thread durch",
+      "list_books": "Sieht das Regal durch",
+      "get_book_overview": "Schlägt das Buch nach",
+      "get_annotations": "Liest deine Markierungen",
+      "get_toc": "Liest das Inhaltsverzeichnis",
+      "read_chapter": "Liest ein Kapitel",
+      "search_book_text": "Durchsucht den Text",
+      "fallback": "Arbeitet",
+      "failed": "fehlgeschlagen"
+    },
     "removePassage": "Passage entfernen",
     "empty": {
       "title": "Frag zu diesem Buch",

@@ -7,6 +7,21 @@
     "stopGenerating": "Arrêter la génération",
     "loadingConversation": "Chargement de la conversation",
     "thinking": "Réflexion…",
+    "thought": "Cheminement de pensée",
+    "tools": {
+      "search_memory": "Rappel des souvenirs",
+      "remember": "Enregistrement d'un souvenir",
+      "search_conversation": "Recherche dans les conversations passées",
+      "get_conversation_insights": "Relecture du fil du livre",
+      "list_books": "Parcours de la bibliothèque",
+      "get_book_overview": "Consultation du livre",
+      "get_annotations": "Lecture de vos surlignages",
+      "get_toc": "Lecture de la table des matières",
+      "read_chapter": "Lecture d'un chapitre",
+      "search_book_text": "Recherche dans le texte",
+      "fallback": "En cours",
+      "failed": "échec"
+    },
     "removePassage": "Retirer le passage",
     "empty": {
       "title": "Posez une question sur ce livre",

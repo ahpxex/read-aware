@@ -28,8 +28,8 @@
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
 
-  --font-size-eyebrow: 0.6875rem;
-  --font-size-caption: 0.75rem;
+  --text-eyebrow: 0.6875rem;
+  --text-caption: 0.75rem;
 
   --leading-display: 0.98;
   --leading-body: 2rem;

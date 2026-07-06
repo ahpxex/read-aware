@@ -21,6 +21,7 @@
     "@read-aware/core": "workspace:*"
   },
   "devDependencies": {
+    "fflate": "^0.8.3",
     "typescript": "~5.8.3"
   }
 }

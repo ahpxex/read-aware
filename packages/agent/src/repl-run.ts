@@ -1,7 +1,8 @@
 /**
  * Headless 交互调试台：`bun run repl [provider] [model]`（packages/agent 下）。
- * 不经过任何 UI —— fixture 书架 + 内存 store + 真模型，逐轮流式打印
- * thinking / 工具调用（含入参与耗时）/ 正文，并提供检查内部状态的命令：
+ * 不经过任何 UI —— 真书 fixture（fixtures/karamazov.epub，启动时抽取全书正文）
+ * + 内存 store + 真模型，逐轮流式打印 thinking / 工具调用（含入参与耗时）/
+ * 正文，并提供检查内部状态的命令：
  *
  *   :books              fixture 书架
  *   :book <id>          切到某本书的线程
@@ -18,13 +19,15 @@
  * ~/.pi/agent/auth.json。
  */
 import readline from "node:readline/promises";
+import { fileURLToPath } from "node:url";
 import type { Id } from "@read-aware/core";
 import { buildSystemPrompt } from "./context/system-prompt";
 import { readPiCliKey } from "./dev-key";
 import type { KnownProviderId } from "./models/registry";
 import type { AnnotationRecord, BookOverview } from "./ports";
 import { createAgentRuntime } from "./runtime/runtime";
-import { createInMemoryDeps, type ChapterSeed } from "./testing/fixtures";
+import { loadEpubFixture } from "./testing/epub-fixture";
+import { createInMemoryDeps } from "./testing/fixtures";
 import { threadScopeKey, type ThreadScope } from "./thread-scope";
 import { visibleScopes } from "./tools/memory-tools";
 
@@ -55,59 +58,56 @@ if (!apiKey) {
   process.exit(1);
 }
 
-// ── fixture 世界：与 demo-run 同一批书 + 少量正文，让全部工具都有的可查 ──
+// ── fixture 世界：真书全文（headless 抽取）+ 从正文派生的标注 ──
+
+const BOOK_ID = "book-karamazov" as Id;
+const EPUB_PATH = fileURLToPath(new URL("../fixtures/karamazov.epub", import.meta.url));
+
+const epub = loadEpubFixture(EPUB_PATH);
+// Calibre 元数据的书名带一长串营销文案，截到第一个全角括号前
+const bookTitle = epub.title.split("【")[0].trim();
 
 const BOOKS: BookOverview[] = [
-  { id: "book-debt" as Id, title: "债：第一个五千年", author: "大卫·格雷伯", progressFraction: 0.42 },
-  { id: "book-sapiens" as Id, title: "人类简史", author: "尤瓦尔·赫拉利", progressFraction: 0.9 },
-  { id: "book-scale" as Id, title: "规模", author: "杰弗里·韦斯特", progressFraction: 0.05 },
+  { id: BOOK_ID, title: bookTitle, author: epub.author, progressFraction: 0.35 },
 ];
+
+/** 从章节正文里取一句 20–80 字的完整句，保证标注与书文本一致（可被全文检索命中）。 */
+function pickSentence(chapterIndex: number): { sentence: string; chapter?: string } {
+  const chapter = epub.chapters[chapterIndex];
+  const sentence = chapter.text
+    .split(/(?<=[。！？])/)
+    .map((part) => part.trim())
+    .find((part) => part.length >= 20 && part.length <= 80);
+  return { sentence: sentence ?? chapter.text.slice(0, 60), chapter: chapter.title };
+}
+
+const highlightA = pickSentence(Math.floor(epub.chapters.length / 4));
+const highlightB = pickSentence(Math.floor(epub.chapters.length / 2));
 
 const ANNOTATIONS: AnnotationRecord[] = [
   {
     id: "a1",
-    bookId: "book-debt" as Id,
+    bookId: BOOK_ID,
     kind: "highlight",
-    text: "经济学教科书里的物物交换起源故事，在人类学的田野记录中从未被观察到。",
-    chapter: "第二章",
+    text: highlightA.sentence,
+    chapter: highlightA.chapter,
     createdAt: "2026-06-20T10:00:00Z",
   },
   {
     id: "a2",
-    bookId: "book-debt" as Id,
-    kind: "highlight",
-    text: "信用记账早于铸币数千年出现，货币首先是债务的度量单位。",
-    chapter: "第三章",
-    createdAt: "2026-06-21T10:00:00Z",
-  },
-  {
-    id: "a3",
-    bookId: "book-debt" as Id,
+    bookId: BOOK_ID,
     kind: "note",
-    text: "暴力与量化：把人从社会关系中抽离，才能被定价。",
-    content: "和《人类简史》讲虚构故事的部分对照读",
-    chapter: "第五章",
+    text: highlightB.sentence,
+    content: "这里的叙述者口吻值得回头再读一遍",
+    chapter: highlightB.chapter,
     createdAt: "2026-06-22T10:00:00Z",
   },
 ];
 
-const CHAPTERS: Record<string, ChapterSeed[]> = {
-  "book-debt": [
-    {
-      title: "第一章 论道德混乱的经验",
-      text: "欠债还钱是道德常识，但历史上每一次债务危机都以某种形式的豁免收场。本章从 2008 年金融危机谈起，追问为什么欠钱不还在道德上如此难以辩护，而放贷者的责任却很少被讨论。",
-    },
-    {
-      title: "第二章 以物易物的神话",
-      text: "亚当·斯密设想的以物易物经济从未在任何田野记录中被观察到。人类学家发现的是信用、礼物与再分配。物物交换只发生在陌生人之间或货币体系崩溃之后，它是货币的产物而非起源。",
-    },
-  ],
-};
-
 const { deps, stores } = createInMemoryDeps({
   books: BOOKS,
   annotations: ANNOTATIONS,
-  chapters: CHAPTERS,
+  chapters: { [BOOK_ID]: epub.chapters },
   profile: "偏好第一性原理式的深入讲解，讨厌空话。",
 });
 
@@ -209,8 +209,12 @@ const HELP = `commands: :books, :book <id>, :global, :sys, :memories, :turns, :a
 
 // ── REPL 主循环 ──
 
-let scope: ThreadScope = { kind: "global" };
-console.log(`agent repl — ${provider}/${model}, scope ${threadScopeKey(scope)}`);
+// 默认就在真书的线程里 —— repl 的主用途是对着这本书调 agent
+let scope: ThreadScope = { kind: "book", bookId: BOOK_ID };
+const totalChars = epub.chapters.reduce((sum, chapter) => sum + chapter.text.length, 0);
+console.log(
+  `agent repl — ${provider}/${model}\nbook: ${bookTitle}（${epub.author ?? "unknown"}）— ${epub.chapters.length} chapters, ${Math.round(totalChars / 10000)}万字`,
+);
 console.log(HELP);
 
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });

@@ -38,9 +38,11 @@ export type EditableShortcut = {
 /** A reference-only row whose action isn't a rebindable key chord. Action labels
  *  live in the `settings` catalog under `shortcuts.actions.<id>`. */
 export type InfoShortcut = {
-  id: "close";
+  id: "close" | "navigator-volume-keys";
   category: string;
   keys: string[];
+  /** Shown only on Android (hardware keys the other platforms don't capture). */
+  androidOnly?: boolean;
 };
 
 /** Overrides keyed by shortcut id; a missing id falls back to its default. */
@@ -76,6 +78,12 @@ export const EDITABLE_SHORTCUTS: EditableShortcut[] = [
 
 /** Fixed, non-rebindable shortcuts shown for reference. */
 export const INFO_SHORTCUTS: InfoShortcut[] = [
+  {
+    id: "navigator-volume-keys",
+    category: "Navigator",
+    keys: ["Vol −", "Vol +"],
+    androidOnly: true,
+  },
   { id: "close", category: "Overlays", keys: ["Esc"] },
 ];
 

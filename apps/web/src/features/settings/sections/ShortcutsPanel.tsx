@@ -4,6 +4,7 @@ import { useAtom } from "jotai";
 import { IconButton, Kbd } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { shortcutBindingsAtom } from "../../../state/ui";
+import { isAndroid } from "../../../platform/environment";
 import { useTranslation } from "../../../i18n";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
@@ -94,7 +95,10 @@ export function ShortcutsPanel() {
     >
       {CATEGORIES.map((category) => {
         const editable = EDITABLE_SHORTCUTS.filter((shortcut) => shortcut.category === category);
-        const info = INFO_SHORTCUTS.filter((shortcut) => shortcut.category === category);
+        const info = INFO_SHORTCUTS.filter(
+          (shortcut) =>
+            shortcut.category === category && (!shortcut.androidOnly || isAndroid()),
+        );
         if (!editable.length && !info.length) return null;
 
         const descriptionKey = CATEGORY_DESCRIPTION_KEYS[category];

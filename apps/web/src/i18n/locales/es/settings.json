@@ -104,6 +104,7 @@
       "toggle-controls": "Mostrar u ocultar los controles del lector",
       "navigator-next-sentence": "Frase siguiente",
       "navigator-prev-sentence": "Frase anterior",
+      "navigator-volume-keys": "Recorrer frases con las teclas de volumen",
       "selection-copy": "Copiar",
       "selection-highlight": "Resaltar",
       "selection-underline": "Subrayar",

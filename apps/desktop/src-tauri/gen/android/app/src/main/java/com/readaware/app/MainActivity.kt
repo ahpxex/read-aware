@@ -1,6 +1,7 @@
 package com.readaware.app
 
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
@@ -11,6 +12,10 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 
 class MainActivity : TauriActivity() {
+  /** While true, volume keys step the reader's sentence navigator instead of
+   *  changing the volume. Toggled from Rust (`set_volume_key_capture`) as the
+   *  navigator mode starts/stops, so media volume works normally otherwise. */
+  @Volatile private var volumeKeysCaptured = false
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
@@ -56,6 +61,34 @@ class MainActivity : TauriActivity() {
    */
   fun syncSafeArea() {
     runOnUiThread { findViewById<View>(android.R.id.content).requestApplyInsets() }
+  }
+
+  /** Called from Rust (the `set_volume_key_capture` command). */
+  fun setVolumeKeyCapture(captured: Boolean) {
+    volumeKeysCaptured = captured
+  }
+
+  /**
+   * While captured, turn volume-key presses into sentence-navigator steps:
+   * volume down moves forward, volume up moves back (the e-reader convention).
+   * Key auto-repeat comes through as repeated ACTION_DOWNs, so holding a key
+   * steps continuously. Both actions are consumed so the volume HUD stays away;
+   * everything else falls through to the system.
+   */
+  override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+    val isVolumeKey =
+      event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN ||
+        event.keyCode == KeyEvent.KEYCODE_VOLUME_UP
+    if (!volumeKeysCaptured || !isVolumeKey) return super.dispatchKeyEvent(event)
+    if (event.action == KeyEvent.ACTION_DOWN) {
+      val direction = if (event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) "next" else "prev"
+      // Keep the event name in step with platform/volume-keys.ts.
+      findWebView(findViewById(android.R.id.content))?.evaluateJavascript(
+        "window.dispatchEvent(new CustomEvent('ra-volume-step', { detail: '$direction' }));",
+        null,
+      )
+    }
+    return true
   }
 
   /** Push the system-bar + cutout insets into the web layer's CSS variables. */

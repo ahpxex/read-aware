@@ -104,6 +104,7 @@
       "toggle-controls": "切換閱讀器控制項",
       "navigator-next-sentence": "下一句",
       "navigator-prev-sentence": "上一句",
+      "navigator-volume-keys": "用音量鍵逐句移動",
       "selection-copy": "複製",
       "selection-highlight": "螢光標示",
       "selection-underline": "加底線",

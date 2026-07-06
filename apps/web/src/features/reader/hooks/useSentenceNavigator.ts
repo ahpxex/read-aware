@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
+import {
+  setVolumeKeyCapture,
+  VOLUME_STEP_EVENT,
+  type VolumeStepDirection,
+} from "../../../platform/volume-keys";
 import type { FoliateRelocateDetail, FoliateView } from "../lib/foliate-engine";
 import {
   applyNavigatorHighlight,
@@ -255,6 +260,32 @@ export function useSentenceNavigator({
     pendingCrossRef.current = null;
     setCurrent(null);
   }, [active, applyIndex, buildSentences, clearWash]);
+
+  // Android: while the mode is on, the volume keys step sentences (volume
+  // down = forward). The shell captures them only for the mode's duration and
+  // relays presses as VOLUME_STEP_EVENT; off Android both calls no-op.
+  useEffect(() => {
+    if (!active) return;
+    const onVolumeStep = (event: Event) => {
+      const focused = document.activeElement;
+      // Don't steal the keys mid-typing (note editor, chat composer).
+      if (
+        focused instanceof HTMLElement &&
+        (focused.isContentEditable ||
+          focused.closest("input, textarea, select, [contenteditable='true']"))
+      ) {
+        return;
+      }
+      const direction = (event as CustomEvent<VolumeStepDirection>).detail;
+      step(direction === "prev" ? -1 : 1);
+    };
+    setVolumeKeyCapture(true);
+    window.addEventListener(VOLUME_STEP_EVENT, onVolumeStep);
+    return () => {
+      window.removeEventListener(VOLUME_STEP_EVENT, onVolumeStep);
+      setVolumeKeyCapture(false);
+    };
+  }, [active, step]);
 
   const next = useCallback(() => step(1), [step]);
   const prev = useCallback(() => step(-1), [step]);

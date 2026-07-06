@@ -170,6 +170,44 @@ fn sync_safe_area(app: tauri::AppHandle) -> Result<(), String> {
 #[tauri::command]
 fn sync_safe_area() {}
 
+/// While the reader's sentence navigator is on, Android's volume keys step
+/// between sentences instead of changing the volume (see
+/// `MainActivity.dispatchKeyEvent`). The frontend toggles the capture as the
+/// mode starts/stops. Off Android it is a no-op so the command still resolves
+/// for `generate_handler!` — iOS offers no public API for volume-key capture.
+#[cfg(target_os = "android")]
+#[tauri::command]
+fn set_volume_key_capture(app: tauri::AppHandle, captured: bool) -> Result<(), String> {
+    app.run_on_main_thread(move || {
+        use tao::platform::android::prelude::main_android_context;
+        let Some(ctx) = main_android_context() else {
+            eprintln!("setVolumeKeyCapture: no android context yet");
+            return;
+        };
+        let Ok(vm) = (unsafe { jni::JavaVM::from_raw(ctx.java_vm.cast()) }) else {
+            return;
+        };
+        let Ok(mut env) = vm.attach_current_thread() else {
+            return;
+        };
+        let activity = unsafe { jni::objects::JObject::from_raw(ctx.context_jobject.cast()) };
+        if let Err(err) = env.call_method(
+            &activity,
+            "setVolumeKeyCapture",
+            "(Z)V",
+            &[jni::objects::JValue::Bool(captured as u8)],
+        ) {
+            eprintln!("setVolumeKeyCapture JNI call failed: {err}");
+            let _ = env.exception_clear();
+        }
+    })
+    .map_err(|e| e.to_string())
+}
+
+#[cfg(not(target_os = "android"))]
+#[tauri::command]
+fn set_volume_key_capture(_captured: bool) {}
+
 /// iOS counterpart: a small ObjC bridge in the Xcode project (see
 /// gen/apple/Sources/read-aware-desktop/StatusBarBridge.m) installs a
 /// `prefersStatusBarHidden` override on wry's root view controller and hops
@@ -408,6 +446,7 @@ pub fn run() {
             book_read_close,
             set_status_bar_hidden,
             sync_safe_area,
+            set_volume_key_capture,
             set_traffic_lights_visible,
             list_system_fonts,
         ]);

@@ -104,6 +104,7 @@
       "toggle-controls": "切换阅读器控件",
       "navigator-next-sentence": "下一句",
       "navigator-prev-sentence": "上一句",
+      "navigator-volume-keys": "用音量键逐句移动",
       "selection-copy": "复制",
       "selection-highlight": "高亮",
       "selection-underline": "下划线",

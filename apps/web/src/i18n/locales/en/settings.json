@@ -104,6 +104,7 @@
       "toggle-controls": "Toggle reader controls",
       "navigator-next-sentence": "Next sentence",
       "navigator-prev-sentence": "Previous sentence",
+      "navigator-volume-keys": "Step sentences with the volume keys",
       "selection-copy": "Copy",
       "selection-highlight": "Highlight",
       "selection-underline": "Underline",

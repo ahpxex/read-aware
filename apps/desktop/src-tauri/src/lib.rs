@@ -478,6 +478,7 @@ pub fn run() {
             storage::memory_put,
             storage::ai_chat_load,
             storage::ai_chat_load_all,
+            storage::ai_chat_list,
             storage::ai_chat_replace,
             storage::ai_chat_clear,
             read_book_file,

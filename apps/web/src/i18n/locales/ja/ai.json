@@ -46,6 +46,11 @@
     "delete": "削除"
   },
   "context": {
+    "threads": {
+      "title": "スレッド",
+      "new": "新しいスレッド",
+      "untitled": "新しい会話"
+    },
     "loading": "コンテキストを読み込み中...",
     "title": "コンテキスト",
     "unknownBook": "不明な本",

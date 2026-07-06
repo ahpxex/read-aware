@@ -1682,6 +1682,50 @@ pub fn ai_chat_replace(
     tx.commit().map_err(|e| e.to_string())
 }
 
+/// One row per non-empty conversation, newest-activity first: id, activity
+/// timestamp, message count, and the first user message as a title preview.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiChatSummary {
+    pub id: String,
+    pub updated_at: String,
+    pub message_count: i64,
+    pub preview: Option<String>,
+}
+
+#[tauri::command]
+pub fn ai_chat_list(db: State<'_, Db>) -> Result<Vec<AiChatSummary>, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    let mut stmt = conn
+        .prepare(
+            "SELECT c.id, c.updated_at, COUNT(m.id) AS message_count,
+                    (SELECT content FROM ai_messages
+                     WHERE conversation_id = c.id AND role = 'user'
+                     ORDER BY seq LIMIT 1) AS preview
+             FROM ai_conversations c
+             LEFT JOIN ai_messages m ON m.conversation_id = c.id
+             GROUP BY c.id
+             HAVING COUNT(m.id) > 0
+             ORDER BY c.updated_at DESC",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |row| {
+            Ok(AiChatSummary {
+                id: row.get(0)?,
+                updated_at: row.get(1)?,
+                message_count: row.get(2)?,
+                preview: row.get(3)?,
+            })
+        })
+        .map_err(|e| e.to_string())?;
+    let mut out = Vec::new();
+    for r in rows {
+        out.push(r.map_err(|e| e.to_string())?);
+    }
+    Ok(out)
+}
+
 /// Clear = delete the messages, keep the conversation row with a `cleared_at`
 /// tombstone (cross-device clear semantics per docs/sqlite-schema.sql).
 #[tauri::command]

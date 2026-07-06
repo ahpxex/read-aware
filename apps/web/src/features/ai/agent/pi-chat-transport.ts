@@ -21,7 +21,8 @@ export function createPiChatTransport(): ChatTransport {
       }
       const scope: ThreadScope =
         request.thread === "global"
-          ? { kind: "global" }
+          ? // 全局线程的会话 id 就是 threadId（沿用 ChatTurnRequest 的 bookId 字段承载）
+            { kind: "global", threadId: request.bookId }
           : { kind: "book", bookId: request.bookId as Id };
       const attachments: SelectionAttachment[] | undefined = request.message.attachments?.map(
         (attachment) => ({

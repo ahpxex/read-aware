@@ -46,6 +46,11 @@
     "delete": "Supprimer"
   },
   "context": {
+    "threads": {
+      "title": "Fils",
+      "new": "Nouveau fil",
+      "untitled": "Nouvelle conversation"
+    },
     "loading": "Chargement du contexte…",
     "title": "Contexte",
     "unknownBook": "Livre inconnu",

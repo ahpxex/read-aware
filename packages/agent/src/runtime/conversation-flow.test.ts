@@ -14,7 +14,7 @@ import type { ThreadScope } from "../thread-scope";
 import { AgentThread } from "./thread";
 
 const BOOK: ThreadScope = { kind: "book", bookId: "b1" as Id };
-const GLOBAL: ThreadScope = { kind: "global" };
+const GLOBAL: ThreadScope = { kind: "global", threadId: "t1" };
 
 /** 后台管道的假补全：按 systemPrompt 区分提炼与摘要两类调用。 */
 const pipelineComplete: CompleteFn = async (_model, context) =>
@@ -98,6 +98,62 @@ describe("conversation flow", () => {
 
     expect(toolResultPayload).toContain("利贝特实验");
     expect(toolResultPayload).toContain("350");
+  });
+
+  test("book thread is stateless: prompt carries only the one-turn tail, not the full history", async () => {
+    const model = makeFaux();
+    let captured: Context | undefined;
+    faux.setResponses([
+      (context) => {
+        captured = context;
+        return fauxAssistantMessage("好的");
+      },
+    ]);
+    const { deps, stores } = createInMemoryDeps();
+    stores.turns.set("book:b1", [
+      { role: "user", content: "第一个问题", createdAt: "2026-06-01T00:00:00Z" },
+      { role: "assistant", content: "第一个回答", createdAt: "2026-06-01T00:00:05Z" },
+      { role: "user", content: "第二个问题", createdAt: "2026-06-02T00:00:00Z" },
+      { role: "assistant", content: "第二个回答", createdAt: "2026-06-02T00:00:05Z" },
+    ]);
+    const thread = makeThread(BOOK, deps, model);
+
+    await drain(thread, "那你刚才说的呢？");
+
+    const payload = JSON.stringify(captured?.messages);
+    // 尾巴 = 最后一轮完整交换 + 当前消息；更早的轮次不进 prompt
+    expect(payload).toContain("第二个问题");
+    expect(payload).toContain("第二个回答");
+    expect(payload).not.toContain("第一个问题");
+    expect(payload).not.toContain("第一个回答");
+    expect(payload).toContain("那你刚才说的呢？");
+  });
+
+  test("get_recent_turns rewinds verbatim history on demand", async () => {
+    const model = makeFaux();
+    let toolResultPayload = "";
+    faux.setResponses([
+      fauxAssistantMessage([fauxToolCall("get_recent_turns", { n: 4 })], {
+        stopReason: "toolUse",
+      }),
+      (context) => {
+        toolResultPayload = JSON.stringify(context.messages[context.messages.length - 1]);
+        return fauxAssistantMessage("想起来了");
+      },
+    ]);
+    const { deps, stores } = createInMemoryDeps();
+    stores.turns.set("book:b1", [
+      { role: "user", content: "开头的问题", createdAt: "2026-06-01T00:00:00Z" },
+      { role: "assistant", content: "开头的回答", createdAt: "2026-06-01T00:00:05Z" },
+      { role: "user", content: "中间的问题", createdAt: "2026-06-02T00:00:00Z" },
+      { role: "assistant", content: "中间的回答", createdAt: "2026-06-02T00:00:05Z" },
+    ]);
+    const thread = makeThread(BOOK, deps, model);
+
+    await drain(thread, "回到最开始聊的");
+
+    expect(toolResultPayload).toContain("开头的问题");
+    expect(toolResultPayload).toContain("中间的回答");
   });
 
   test("get_conversation_insights lets the global thread read a book thread's summary", async () => {

@@ -46,6 +46,11 @@
     "delete": "Eliminar"
   },
   "context": {
+    "threads": {
+      "title": "Hilos",
+      "new": "Nuevo hilo",
+      "untitled": "Nueva conversación"
+    },
     "loading": "Cargando el contexto...",
     "title": "Contexto",
     "unknownBook": "Libro desconocido",

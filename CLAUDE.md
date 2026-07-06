@@ -22,7 +22,7 @@
 > specified in `docs/data-model.md`.
 
 - Product architecture: single-agent system (one orchestrator over deterministic pipelines, not one LLM loop doing everything)
-- User experience: one persistent chat surface, not multiple conversation windows like ChatGPT
+- User experience: the in-book chat is one persistent surface per book (prompt assembly is stateless per turn — continuity lives in the memory layer, not the transcript); the global (Context page) chat supports multiple user-created threads. Memory never splits per thread
 - System model: memory-first, not transcript-first
 - Deployment model: **local-first** — data and retrieval live on-device; the remote backend is a sync/relay layer, not where business logic lives
 - Two independent axes — keep them separate:

@@ -8,6 +8,7 @@ import type { ConversationPort, TurnRecord } from "@read-aware/agent";
 import { localKV } from "../../../../platform/local-store";
 import {
   GLOBAL_CONVERSATION_ID,
+  isGlobalThreadId,
   loadAllConversations,
   loadConversation,
 } from "../../lib/conversation-store";
@@ -15,12 +16,13 @@ import type { ChatMessage } from "../../lib/chat-types";
 
 export { GLOBAL_CONVERSATION_ID };
 
+/** threadKey（`book:<id>` | `global:<threadId>`）↔ 会话存储 id（前缀剥掉）。 */
 function threadKeyToStoreId(threadKey: string): string {
-  return threadKey === "global" ? GLOBAL_CONVERSATION_ID : threadKey.replace(/^book:/, "");
+  return threadKey.replace(/^(book|global):/, "");
 }
 
 function storeIdToThreadKey(storeId: string): string {
-  return storeId === GLOBAL_CONVERSATION_ID ? "global" : `book:${storeId}`;
+  return isGlobalThreadId(storeId) ? `global:${storeId}` : `book:${storeId}`;
 }
 
 function toTurns(messages: ChatMessage[]): TurnRecord[] {
@@ -59,7 +61,14 @@ export function createConversationPort(): ConversationPort {
       }
       return matches.slice(0, limit ?? 20);
     },
-    getInsights: async (threadKey) => readInsights()[threadKey],
+    getInsights: async (threadKey) => {
+      const insights = readInsights();
+      // 多线程化前全局线程的 key 是裸 "global"——老摘要按新 key 兜底读一次
+      return (
+        insights[threadKey] ??
+        (threadKey === `global:${GLOBAL_CONVERSATION_ID}` ? insights.global : undefined)
+      );
+    },
     putInsights: async (threadKey, summary) => {
       const insights = readInsights();
       insights[threadKey] = summary;

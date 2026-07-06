@@ -7,7 +7,7 @@ import { extractMemories } from "./extraction";
 
 const MODEL = { id: "fake", provider: "fake", api: "fake" } as unknown as Model<Api>;
 const BOOK_SCOPE = { kind: "book", bookId: "b1" as Id } as const;
-const GLOBAL_SCOPE = { kind: "global" } as const;
+const GLOBAL_SCOPE = { kind: "global", threadId: "t1" } as const;
 
 function completeWith(text: string) {
   return async () => fauxAssistantMessage(text);

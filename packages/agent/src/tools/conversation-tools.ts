@@ -38,6 +38,26 @@ export function buildConversationTools(scope: ThreadScope, deps: RuntimeDeps): A
     },
   };
 
+  const getRecentTurns: AgentTool = {
+    name: "get_recent_turns",
+    label: "Recent turns",
+    description:
+      "Rewind: fetch the last N verbatim messages of this conversation. Your context only carries the immediately previous exchange — when the user follows up on anything older (\"你上次说的那个…\", \"back to your earlier point\"), call this FIRST instead of answering from guesswork. bookId reads another book thread's tail (global thread only).",
+    parameters: Type.Object({
+      n: Type.Optional(
+        Type.Number({ description: "How many recent messages to fetch (default 6, max 20)" }),
+      ),
+      bookId: Type.Optional(Type.String({ description: "Book id (global thread only)" })),
+    }),
+    execute: async (_id, params) => {
+      const { n = 6, bookId } = params as { n?: number; bookId?: string };
+      const key = bookId ? `book:${bookId}` : threadScopeKey(scope);
+      const records = await deps.conversations.load(key);
+      const clamped = Math.min(Math.max(1, Math.floor(n)), 20);
+      return textResult(records.slice(-clamped));
+    },
+  };
+
   const getConversationInsights: AgentTool = {
     name: "get_conversation_insights",
     label: "Book conversation summary",
@@ -55,5 +75,5 @@ export function buildConversationTools(scope: ThreadScope, deps: RuntimeDeps): A
     },
   };
 
-  return [searchConversation, getConversationInsights];
+  return [searchConversation, getRecentTurns, getConversationInsights];
 }

@@ -46,6 +46,11 @@
     "delete": "刪除"
   },
   "context": {
+    "threads": {
+      "title": "討論串",
+      "new": "新增討論串",
+      "untitled": "新對話"
+    },
     "loading": "正在載入上下文...",
     "title": "上下文",
     "unknownBook": "不明書籍",

@@ -15,7 +15,7 @@ import type { ThreadScope } from "../thread-scope";
 import { AgentThread } from "./thread";
 
 const BOOK: ThreadScope = { kind: "book", bookId: "b1" as Id };
-const GLOBAL: ThreadScope = { kind: "global" };
+const GLOBAL: ThreadScope = { kind: "global", threadId: "t1" };
 
 describe("memory write path", () => {
   let faux: FauxProviderRegistration;

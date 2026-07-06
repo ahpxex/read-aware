@@ -66,7 +66,9 @@ export function buildSystemPrompt(scope: ThreadScope, input: SystemPromptInput):
 
   if (input.conversationSummary) {
     sections.push(
-      `Conversation so far (rolling summary — recent turns follow verbatim):\n${input.conversationSummary}`,
+      scope.kind === "book"
+        ? `Conversation so far (rolling summary — only the immediately previous exchange follows verbatim; call get_recent_turns or search_conversation to revisit anything older):\n${input.conversationSummary}`
+        : `Conversation so far (rolling summary — recent turns follow verbatim):\n${input.conversationSummary}`,
     );
   }
 

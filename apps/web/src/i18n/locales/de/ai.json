@@ -46,6 +46,11 @@
     "delete": "Löschen"
   },
   "context": {
+    "threads": {
+      "title": "Threads",
+      "new": "Neuer Thread",
+      "untitled": "Neue Unterhaltung"
+    },
     "loading": "Kontext wird geladen...",
     "title": "Kontext",
     "unknownBook": "Unbekanntes Buch",

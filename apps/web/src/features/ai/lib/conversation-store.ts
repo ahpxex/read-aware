@@ -14,8 +14,26 @@ import type { ChatAssistantPart, ChatAttachment, ChatMessage } from "./chat-type
  * transport only needs the transcript to survive within the session.
  */
 
-/** 全局线程（跨书总对话，Context 页）的存储伪 id。 */
+/** 首个全局线程的存储 id（历史遗留名；新建的全局线程用 thread-<uuid>）。 */
 export const GLOBAL_CONVERSATION_ID = "__global__";
+
+/** 全局线程的 id 形状 —— 借此把书线程（裸 bookId）和全局线程区分开。 */
+export function isGlobalThreadId(id: string): boolean {
+  return id === GLOBAL_CONVERSATION_ID || id.startsWith("thread-");
+}
+
+/** 新建全局线程的 id（会话行在第一条消息落库时才产生）。 */
+export function newGlobalThreadId(): string {
+  return `thread-${crypto.randomUUID()}`;
+}
+
+export interface ConversationSummary {
+  id: string;
+  updatedAt: string;
+  messageCount: number;
+  /** 首条用户消息，线程列表当标题用。 */
+  preview?: string;
+}
 
 /** Row shape of the SQLite `ai_messages` projection (see storage.rs). */
 interface AiMessageRow {
@@ -100,4 +118,21 @@ export async function clearConversation(conversationId: string): Promise<void> {
     return;
   }
   await invoke("ai_chat_clear", { conversationId });
+}
+
+/** 全局线程列表（非空会话，按最近活动排序）。 */
+export async function listGlobalThreads(): Promise<ConversationSummary[]> {
+  if (!isTauri()) {
+    return [...memoryStore.entries()]
+      .filter(([id, messages]) => isGlobalThreadId(id) && messages.length > 0)
+      .map(([id, messages]) => ({
+        id,
+        updatedAt: messages[messages.length - 1]?.createdAt ?? "",
+        messageCount: messages.length,
+        preview: messages.find((m) => m.role === "user")?.content,
+      }))
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }
+  const all = await invoke<ConversationSummary[]>("ai_chat_list");
+  return all.filter((summary) => isGlobalThreadId(summary.id));
 }

@@ -38,6 +38,21 @@ export function turnRecordsToMessages(records: TurnRecord[], model: Model<Api>):
   });
 }
 
+/**
+ * 书线程无状态装配的"一轮尾巴"：最后一次完整的 user↔assistant 交换。
+ * 明显的 follow-up 几乎总是指向紧邻的上一轮 —— 用极小的固定成本覆盖它，
+ * 更早的历史靠 get_recent_turns / search_conversation 按需取。
+ */
+export function lastTurnTail(records: TurnRecord[]): TurnRecord[] {
+  for (let i = records.length - 1; i >= 0; i--) {
+    if (records[i].role === "assistant") {
+      const start = records[i - 1]?.role === "user" ? i - 1 : i;
+      return records.slice(start, i + 1);
+    }
+  }
+  return [];
+}
+
 export function lastAssistantText(messages: AgentMessage[]): string {
   for (let i = messages.length - 1; i >= 0; i--) {
     const message = messages[i];

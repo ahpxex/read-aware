@@ -51,7 +51,7 @@ describe("onboarding", () => {
     ]);
     const { deps } = createInMemoryDeps(); // 无画像
     const thread = new AgentThread({
-      scope: { kind: "global" },
+      scope: { kind: "global", threadId: "t1" },
       deps,
       resolveModel: () => model,
       getApiKey: () => "k",
@@ -82,7 +82,7 @@ describe("onboarding", () => {
     ]);
     const { deps } = createInMemoryDeps({ profile: "工程背景，偏好深挖" });
     const thread = new AgentThread({
-      scope: { kind: "global" },
+      scope: { kind: "global", threadId: "t1" },
       deps,
       resolveModel: () => model,
       getApiKey: () => "k",

@@ -78,7 +78,7 @@ await run(
   { kind: "book", bookId: "book-debt" as Id },
   "很好。顺便说一句，我读这本书是想搞清楚货币的政治属性，别给我讲太浅。",
 );
-await run({ kind: "global" }, "我书架上有哪几本书？哪本读得最深入？");
+await run({ kind: "global", threadId: "demo" }, "我书架上有哪几本书？哪本读得最深入？");
 
 console.log("\n⏳ waiting for background memory extraction …");
 await runtime.flushBackgroundWork();

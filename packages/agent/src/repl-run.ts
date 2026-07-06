@@ -6,7 +6,7 @@
  *
  *   :books              fixture 书架
  *   :book <id>          切到某本书的线程
- *   :global             切回全局线程（默认）
+ *   :global             切到全局线程
  *   :sys                打印当前 scope 下一轮将使用的 system prompt
  *   :memories           长期记忆 store
  *   :turns              各线程已持久化的轮数
@@ -277,7 +277,7 @@ for (;;) {
         break;
       }
       case ":global":
-        scope = { kind: "global" };
+        scope = { kind: "global", threadId: "repl" };
         break;
       case ":sys":
         await printSystemPrompt(scope);

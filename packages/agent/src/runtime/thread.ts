@@ -20,7 +20,7 @@ import { buildThreadTools } from "../tools/library-tools";
 import { buildMemoryTools, visibleScopes } from "../tools/memory-tools";
 import { AsyncQueue } from "./async-queue";
 import { elideStaleToolResults } from "./context-slim";
-import { lastAssistantText, turnRecordsToMessages } from "./history";
+import { lastAssistantText, lastTurnTail, turnRecordsToMessages } from "./history";
 import { windowByTurns } from "./windowing";
 
 export interface SelectionAttachment {
@@ -95,11 +95,15 @@ export class AgentThread {
     return this.backgroundWork;
   }
 
-  /** 首次使用时创建 Agent 并从转录 store 水化历史。 */
+  /**
+   * 首次使用时创建 Agent。全局线程从转录 store 水化历史（线程内连续）；
+   * 书线程不水化 —— 无状态装配，每轮 sendTurn 重置为"一轮尾巴"。
+   */
   private async ensureAgent(): Promise<Agent> {
     if (this.agent) return this.agent;
     const model = this.resolveModel("smart");
-    const records = await this.deps.conversations.load(this.key);
+    const records =
+      this.scope.kind === "book" ? [] : await this.deps.conversations.load(this.key);
     const agent = new Agent({
       initialState: {
         model,
@@ -152,6 +156,18 @@ export class AgentThread {
     try {
       const agent = await this.ensureAgent();
       await this.refreshSystemPrompt(agent);
+      if (this.scope.kind === "book") {
+        // 书线程无状态装配（doc §3）：prompt ≠ 转录回放。每轮重置为上一轮
+        // user↔assistant 原文（覆盖"那第二点呢？"式的明显 follow-up），
+        // 加上 system prompt 里的滚动摘要；更早的历史 agent 用
+        // get_recent_turns / search_conversation 拉取。UI 的连续转录在
+        // 持久层，不受影响。
+        const records = await this.deps.conversations.load(this.key);
+        agent.state.messages = turnRecordsToMessages(
+          lastTurnTail(records),
+          this.resolveModel("smart"),
+        );
+      }
       unsubscribe = agent.subscribe((event) => queue.push(event));
 
       const onAbort = () => agent.abort();

@@ -33,7 +33,7 @@ export interface InMemoryStores {
   memories: MemoryRecord[];
   savedMemoryInputs: NewMemoryInput[];
   profile: { summary: string | undefined };
-  /** bookId → 章节文本（正文抽取的模拟；lab 里由真抽取填充） */
+  /** bookId → 章节文本（正文抽取的模拟） */
   chapters: Map<string, ChapterSeed[]>;
 }
 

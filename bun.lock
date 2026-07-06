@@ -9,29 +9,6 @@
         "turbo": "^2.5.6",
       },
     },
-    "apps/agent-lab": {
-      "name": "@read-aware/agent-lab",
-      "version": "0.1.0",
-      "dependencies": {
-        "@phosphor-icons/react": "^2.1.10",
-        "@read-aware/agent": "workspace:*",
-        "@read-aware/core": "workspace:*",
-        "@read-aware/ui": "workspace:*",
-        "react": "^19.1.0",
-        "react-dom": "^19.1.0",
-        "streamdown": "^2.5.0",
-      },
-      "devDependencies": {
-        "@tailwindcss/vite": "^4.2.1",
-        "@types/node": "^24.6.0",
-        "@types/react": "^19.1.8",
-        "@types/react-dom": "^19.1.6",
-        "@vitejs/plugin-react": "^4.6.0",
-        "tailwindcss": "^4.2.1",
-        "typescript": "~5.8.3",
-        "vite": "^7.0.4",
-      },
-    },
     "apps/desktop": {
       "name": "@read-aware/desktop",
       "version": "0.1.0",
@@ -390,8 +367,6 @@
     "@react-grab/cli": ["@react-grab/cli@0.1.27", "", { "dependencies": { "@antfu/ni": "^0.23.0", "commander": "^14.0.0", "ignore": "^7.0.5", "jsonc-parser": "^3.3.1", "ora": "^8.2.0", "picocolors": "^1.1.1", "prompts": "^2.4.2", "smol-toml": "^1.6.0" }, "bin": { "react-grab": "dist/cli.js" } }, "sha512-NaW5Jb5LtL35nuO33FFxKohvJCfoIgE/1nbzMVK1R0xhznlMtej0NodjlHGRJyKL3EU8FgVnigd9/Jt20Jjx+g=="],
 
     "@read-aware/agent": ["@read-aware/agent@workspace:packages/agent"],
-
-    "@read-aware/agent-lab": ["@read-aware/agent-lab@workspace:apps/agent-lab"],
 
     "@read-aware/core": ["@read-aware/core@workspace:packages/core"],
 

@@ -12,7 +12,6 @@
     "dev": "turbo run dev --filter=@read-aware/desktop",
     "dev:web": "turbo run dev --filter=@read-aware/web",
     "dev:landing": "turbo run dev --filter=@read-aware/landing",
-    "lab": "turbo run dev --filter=@read-aware/agent-lab",
     "build": "turbo run build --filter=@read-aware/web",
     "build:desktop": "turbo run build --filter=@read-aware/desktop",
     "build:landing": "turbo run build --filter=@read-aware/landing",

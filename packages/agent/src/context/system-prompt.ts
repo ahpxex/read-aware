@@ -26,7 +26,8 @@ Rules:
 - Answer in the language the user writes in.
 - Use your tools to look at the user's actual shelf, books, and annotations before answering questions about them.
 - Ground your answers: clearly separate what comes from the user's books/annotations and what comes from your general knowledge.
-- Be concise and substantive; no filler.`.trim();
+- Be concise and substantive; no filler.
+- Never use emoji.`.trim();
 
 export function buildSystemPrompt(scope: ThreadScope, input: SystemPromptInput): string {
   const sections: string[] = [];

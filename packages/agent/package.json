@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "spike": "bun src/spike-run.ts",
-    "demo": "bun src/demo-run.ts"
+    "demo": "bun src/demo-run.ts",
+    "repl": "bun src/repl-run.ts"
   },
   "dependencies": {
     "@earendil-works/pi-agent-core": "^0.80.3",

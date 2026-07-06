@@ -59,7 +59,7 @@ export class AgentRuntime {
 
   /**
    * 巩固批处理（doc §4 第 3 步）：衰减、去重合并、矛盾消解、book→global 升格。
-   * 由宿主在空闲时调用（产品：空闲定时器；lab：手动按钮）。
+   * 由宿主在空闲时调用（产品：空闲定时器；repl：`:consolidate` 命令）。
    */
   consolidate(): Promise<ConsolidationReport> {
     return runConsolidation({

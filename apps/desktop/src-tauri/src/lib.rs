@@ -208,6 +208,39 @@ fn set_volume_key_capture(app: tauri::AppHandle, captured: bool) -> Result<(), S
 #[tauri::command]
 fn set_volume_key_capture(_captured: bool) {}
 
+/// Move the Android task to the background (like pressing Home), keeping the
+/// process — and the loaded book — warm for an instant return. The web layer
+/// calls this when the back button unwinds past the shelf root; letting the
+/// system finish() the activity instead would tear down the whole Tauri
+/// process and turn every return into a cold start. No-op off Android.
+#[cfg(target_os = "android")]
+#[tauri::command]
+fn move_task_to_back(app: tauri::AppHandle) -> Result<(), String> {
+    app.run_on_main_thread(move || {
+        use tao::platform::android::prelude::main_android_context;
+        let Some(ctx) = main_android_context() else {
+            eprintln!("moveTaskToBack: no android context yet");
+            return;
+        };
+        let Ok(vm) = (unsafe { jni::JavaVM::from_raw(ctx.java_vm.cast()) }) else {
+            return;
+        };
+        let Ok(mut env) = vm.attach_current_thread() else {
+            return;
+        };
+        let activity = unsafe { jni::objects::JObject::from_raw(ctx.context_jobject.cast()) };
+        if let Err(err) = env.call_method(&activity, "sendToBackground", "()V", &[]) {
+            eprintln!("sendToBackground JNI call failed: {err}");
+            let _ = env.exception_clear();
+        }
+    })
+    .map_err(|e| e.to_string())
+}
+
+#[cfg(not(target_os = "android"))]
+#[tauri::command]
+fn move_task_to_back() {}
+
 /// iOS counterpart: a small ObjC bridge in the Xcode project (see
 /// gen/apple/Sources/read-aware-desktop/StatusBarBridge.m) installs a
 /// `prefersStatusBarHidden` override on wry's root view controller and hops
@@ -447,6 +480,7 @@ pub fn run() {
             set_status_bar_hidden,
             sync_safe_area,
             set_volume_key_capture,
+            move_task_to_back,
             set_traffic_lights_visible,
             list_system_fonts,
         ]);

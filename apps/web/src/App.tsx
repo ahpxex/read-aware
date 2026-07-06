@@ -13,6 +13,7 @@ import { ShelfManagementMenu } from "./features/shelf/components/ShelfManagement
 import { useReaderSession } from "./features/reader/hooks/useReaderSession";
 import { useGlobalShortcuts } from "./features/settings/hooks/useGlobalShortcuts";
 import { useSurfaceHandoff } from "./hooks/useSurfaceHandoff";
+import { BACK_REQUEST_EVENT, sendAppToBackground } from "./platform/back-navigation";
 import { CommandPalette } from "./features/command/components/CommandPalette";
 import type { CommandContext } from "./features/command/lib/build-commands";
 
@@ -140,6 +141,58 @@ function App() {
     settingsOpen,
     searchModalOpen,
     shelfSelecting,
+    setActiveTopNav,
+    setActiveCollectionId,
+  ]);
+
+  // Android back button/gesture, relayed by the shell as BACK_REQUEST_EVENT.
+  // Unwind one layer per press — dialogs and selection first, then the open
+  // book, then pushed shelf surfaces — and at the shelf root background the
+  // app with the process kept warm (never finish(), which would tear down the
+  // Tauri process and make every return a cold start). A surface owning a
+  // deeper layer may consume the event with preventDefault() before us.
+  useEffect(() => {
+    function onBackRequest(event: Event) {
+      if (event.defaultPrevented) return;
+      event.preventDefault();
+      if (settingsOpen) {
+        setSettingsOpen(false);
+        return;
+      }
+      if (searchModalOpen) {
+        setSearchModalOpen(false);
+        return;
+      }
+      if (shelfSelecting) {
+        setShelfSelection({ active: false, ids: [] });
+        return;
+      }
+      if (reader.selectedBook) {
+        closeBook();
+        return;
+      }
+      if (inSecondary) {
+        setActiveTopNav("shelf");
+        return;
+      }
+      if (inCollection) {
+        setActiveCollectionId(null);
+        return;
+      }
+      sendAppToBackground();
+    }
+    window.addEventListener(BACK_REQUEST_EVENT, onBackRequest);
+    return () => window.removeEventListener(BACK_REQUEST_EVENT, onBackRequest);
+  }, [
+    settingsOpen,
+    searchModalOpen,
+    shelfSelecting,
+    reader.selectedBook,
+    inSecondary,
+    inCollection,
+    closeBook,
+    setSettingsOpen,
+    setShelfSelection,
     setActiveTopNav,
     setActiveCollectionId,
   ]);

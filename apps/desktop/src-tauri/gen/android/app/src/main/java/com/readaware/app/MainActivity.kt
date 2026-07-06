@@ -5,6 +5,7 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -32,6 +33,30 @@ class MainActivity : TauriActivity() {
       applySafeAreaToWebView(insets)
       insets
     }
+    // Hand the back button/gesture to the web layer, which unwinds its own
+    // navigation one layer at a time (dialogs → reader → shelf surfaces) and
+    // calls `move_task_to_back` at the root. The default would finish() the
+    // activity — tearing down the whole Tauri process, so every return to the
+    // app became a cold start. (TauriActivity opts out of wry's own handler
+    // via handleBackNavigation = false; the SPA has no WebView history anyway.)
+    onBackPressedDispatcher.addCallback(
+      this,
+      object : OnBackPressedCallback(true) {
+        override fun handleOnBackPressed() {
+          // Keep the event name in step with platform/back-navigation.ts.
+          findWebView(findViewById(android.R.id.content))?.evaluateJavascript(
+            "window.dispatchEvent(new CustomEvent('ra-back-request', { cancelable: true }));",
+            null,
+          )
+        }
+      },
+    )
+  }
+
+  /** Called from Rust (the `move_task_to_back` command): background the app
+   *  like Home does, keeping the process (and the loaded book) warm. */
+  fun sendToBackground() {
+    runOnUiThread { moveTaskToBack(true) }
   }
 
   /**

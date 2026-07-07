@@ -49,7 +49,8 @@
     "threads": {
       "title": "线程",
       "new": "新建线程",
-      "untitled": "新对话"
+      "untitled": "新对话",
+      "delete": "删除线程"
     },
     "loading": "正在加载上下文…",
     "title": "上下文",

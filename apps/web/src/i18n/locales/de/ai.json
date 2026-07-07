@@ -49,7 +49,8 @@
     "threads": {
       "title": "Threads",
       "new": "Neuer Thread",
-      "untitled": "Neue Unterhaltung"
+      "untitled": "Neue Unterhaltung",
+      "delete": "Thread löschen"
     },
     "loading": "Kontext wird geladen...",
     "title": "Kontext",

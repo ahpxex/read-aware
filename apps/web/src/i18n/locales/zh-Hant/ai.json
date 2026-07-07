@@ -49,7 +49,8 @@
     "threads": {
       "title": "討論串",
       "new": "新增討論串",
-      "untitled": "新對話"
+      "untitled": "新對話",
+      "delete": "刪除討論串"
     },
     "loading": "正在載入上下文...",
     "title": "上下文",

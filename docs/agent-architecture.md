@@ -71,7 +71,7 @@ type ThreadScope =
 
 | | 书线程（每本书一个） | 全局线程（**多个**，用户自建） |
 |---|---|---|
-| UI 挂载点 | Reader 右侧面板（`ChatPanel`，不动） | Context 页（§9），左侧线程列新建/切换 |
+| UI 挂载点 | Reader 右侧面板（`ChatPanel`，不动） | Context 页（§9），AppHeader 线程弹层新建/切换 |
 | System prompt 角色 | *这本书*里的阅读伴侣 | 整个书架的图书馆员 |
 | 默认检索 scope | `book:<id>` + `user` + `global` | 全部 scope |
 | 工具 | 同一套注册表，book scope 默认值 | 同一套注册表，跨书默认值 |

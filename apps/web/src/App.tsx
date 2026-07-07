@@ -35,6 +35,11 @@ const AnnotationsPopover = lazy(() =>
     default: m.AnnotationsPopover,
   })),
 );
+const ThreadsPopover = lazy(() =>
+  import("./features/context/components/ThreadsPopover").then((m) => ({
+    default: m.ThreadsPopover,
+  })),
+);
 const StatsWorkspace = lazy(() =>
   import("./features/stats/components/StatsWorkspace").then((m) => ({
     default: m.StatsWorkspace,
@@ -317,6 +322,7 @@ function App() {
             actions={
               activeTopNav === "context" ? (
                 <Suspense fallback={null}>
+                  <ThreadsPopover />
                   <AnnotationsPopover books={library.books} onOpenBook={handleOpenBook} />
                 </Suspense>
               ) : undefined

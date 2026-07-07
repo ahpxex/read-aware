@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { ScrollArea } from "@read-aware/ui";
+import { ScrollArea, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { scheduleIdleWarmup } from "./app-warmup";
 import { dismissBootSplash } from "./boot-splash";
@@ -40,6 +40,15 @@ const ThreadsPopover = lazy(() =>
     default: m.ThreadsPopover,
   })),
 );
+
+/** 懒面冷加载时的占位：安静的居中 spinner，而不是一片空白。 */
+function SurfaceFallback() {
+  return (
+    <div className="flex h-full min-h-[50vh] items-center justify-center">
+      <Spinner size="sm" />
+    </div>
+  );
+}
 const StatsWorkspace = lazy(() =>
   import("./features/stats/components/StatsWorkspace").then((m) => ({
     default: m.StatsWorkspace,
@@ -350,11 +359,11 @@ function App() {
                 onSetBooksCollection={library.handleSetBooksCollection}
               />
             ) : activeTopNav === "context" ? (
-              <Suspense fallback={null}>
+              <Suspense fallback={<SurfaceFallback />}>
                 <ContextWorkspace />
               </Suspense>
             ) : (
-              <Suspense fallback={null}>
+              <Suspense fallback={<SurfaceFallback />}>
                 <StatsWorkspace books={library.books} onOpenBook={handleOpenBook} />
               </Suspense>
             )}

@@ -1,5 +1,6 @@
 {
   "actions": {
-    "backToLibrary": "ライブラリに戻る"
+    "backToLibrary": "ライブラリに戻る",
+    "dismiss": "閉じる"
   }
 }

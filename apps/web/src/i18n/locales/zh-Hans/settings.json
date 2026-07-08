@@ -219,7 +219,10 @@
     "custom": "自定义",
     "customAria": "从本设备已安装的字体中选择",
     "placeholderCurated": "选择一款精选字体",
-    "placeholderCustom": "选择一款已安装的字体"
+    "placeholderCustom": "选择一款已安装的字体",
+    "downloading": "正在下载字体 · {{percent}}%",
+    "downloadFailed": "字体下载失败——请检查网络。",
+    "retry": "重试"
   },
   "pendingBadge": {
     "comingSoon": "即将推出"

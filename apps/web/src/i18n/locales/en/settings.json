@@ -219,7 +219,10 @@
     "custom": "Custom",
     "customAria": "Pick from fonts installed on this device",
     "placeholderCurated": "Choose a curated font",
-    "placeholderCustom": "Choose an installed font"
+    "placeholderCustom": "Choose an installed font",
+    "downloading": "Downloading font · {{percent}}%",
+    "downloadFailed": "Font download failed — check your network.",
+    "retry": "Retry"
   },
   "pendingBadge": {
     "comingSoon": "Coming soon"

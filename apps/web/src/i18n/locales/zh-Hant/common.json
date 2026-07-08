@@ -1,5 +1,6 @@
 {
   "actions": {
-    "backToLibrary": "返回書庫"
+    "backToLibrary": "返回書庫",
+    "dismiss": "關閉"
   }
 }

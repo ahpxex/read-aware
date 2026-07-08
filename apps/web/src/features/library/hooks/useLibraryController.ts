@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
 import type { TFunction } from "i18next";
+import { useToast } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { formatLibraryError } from "../lib/format-library-error";
 import { deleteBookText, ensureBookTextExtracted } from "../lib/book-text-store";
@@ -41,10 +42,9 @@ export function useLibraryController() {
   const [books, setBooks] = useState<LibraryBook[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [libraryReady, setLibraryReady] = useState(false);
-  const [libraryError, setLibraryError] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
-  const [importNotice, setImportNotice] = useState<string | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
+  const { toast } = useToast();
 
   // Keep the latest translator in a ref so the callbacks below stay stable
   // (deps free of `t`) yet always format errors/notices in the active language.
@@ -52,12 +52,19 @@ export function useLibraryController() {
   const tRef = useRef(t);
   tRef.current = t;
 
-  const reportError = useCallback((error: unknown) => {
-    // The banner shows a translated summary; keep the underlying cause
-    // inspectable in the console/logcat for diagnosis.
-    console.error("[library]", error);
-    setLibraryError(formatLibraryError(error, tRef.current));
-  }, []);
+  const reportError = useCallback(
+    (error: unknown) => {
+      // The toast shows a translated summary; keep the underlying cause
+      // inspectable in the console/logcat for diagnosis.
+      console.error("[library]", error);
+      toast({
+        variant: "destructive",
+        title: tRef.current("workspace.errorTitle"),
+        description: formatLibraryError(error, tRef.current),
+      });
+    },
+    [toast],
+  );
 
   const replaceBookInState = useCallback((nextBook: LibraryBook) => {
     setBooks((currentBooks) => {
@@ -80,7 +87,6 @@ export function useLibraryController() {
 
   const loadLibrary = useCallback(async () => {
     try {
-      setLibraryError(null);
       const [loadedBooks, loadedCollections] = await Promise.all([
         listLibraryBooks(),
         listCollections(),
@@ -157,8 +163,6 @@ export function useLibraryController() {
     if (files.length === 0) return;
 
     setIsImporting(true);
-    setLibraryError(null);
-    setImportNotice(null);
 
     let imported = 0;
     const duplicates: string[] = [];
@@ -176,14 +180,17 @@ export function useLibraryController() {
 
       setBooks(await listLibraryBooks());
       if (duplicates.length > 0) {
-        setImportNotice(formatImportNotice(imported, duplicates, tRef.current));
+        toast({
+          title: tRef.current("workspace.importTitle"),
+          description: formatImportNotice(imported, duplicates, tRef.current),
+        });
       }
     } catch (error) {
       reportError(error);
     } finally {
       setIsImporting(false);
     }
-  }, [reportError]);
+  }, [reportError, toast]);
 
   // One native picker at a time: a re-trigger while a dialog is pending would
   // start a second concurrent importFiles flow, and the import dedupe reads
@@ -285,9 +292,7 @@ export function useLibraryController() {
     books,
     collections,
     libraryReady,
-    libraryError,
     isImporting,
-    importNotice,
     importInputRef,
     openImportPicker,
     handleImportSelection,

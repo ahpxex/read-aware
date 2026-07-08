@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import { Books } from "@phosphor-icons/react";
-import { Alert, Body, Button, EmptyState, Skeleton } from "@read-aware/ui";
+import { Body, Button, EmptyState, Skeleton } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import { Shelf } from "../../shelf/components/Shelf";
@@ -15,8 +15,6 @@ import type { BookMetadataPatch, Collection, LibraryBook } from "../lib/library-
 
 type LibraryWorkspaceProps = {
   isReady: boolean;
-  error: string | null;
-  notice?: string | null;
   books: LibraryBook[];
   collections: Collection[];
   /** Book currently being opened (spinner feedback on its cover). */
@@ -35,8 +33,6 @@ type LibraryWorkspaceProps = {
 
 export function LibraryWorkspace({
   isReady,
-  error,
-  notice,
   books,
   collections,
   openingBookId,
@@ -118,18 +114,6 @@ export function LibraryWorkspace({
         active ? "pb-28" : "pb-8 sm:pb-10",
       )}
     >
-      {error && (
-        <Alert variant="destructive" title={t("workspace.errorTitle")} className="mb-6">
-          {error}
-        </Alert>
-      )}
-
-      {notice && (
-        <Alert variant="default" title={t("workspace.importTitle")} className="mb-6">
-          {notice}
-        </Alert>
-      )}
-
       {active && books.length > 0 && (
         <ShelfSelectionToolbar
           count={ids.length}

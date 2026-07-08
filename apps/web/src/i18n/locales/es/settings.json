@@ -219,7 +219,10 @@
     "custom": "Personalizada",
     "customAria": "Elige entre las fuentes instaladas en este dispositivo",
     "placeholderCurated": "Elige una fuente seleccionada",
-    "placeholderCustom": "Elige una fuente instalada"
+    "placeholderCustom": "Elige una fuente instalada",
+    "downloading": "Descargando fuente · {{percent}}%",
+    "downloadFailed": "No se pudo descargar la fuente — revisa tu red.",
+    "retry": "Reintentar"
   },
   "pendingBadge": {
     "comingSoon": "Próximamente"

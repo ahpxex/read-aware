@@ -219,7 +219,10 @@
     "custom": "自訂",
     "customAria": "從此裝置已安裝的字型中挑選",
     "placeholderCurated": "選擇精選字型",
-    "placeholderCustom": "選擇已安裝的字型"
+    "placeholderCustom": "選擇已安裝的字型",
+    "downloading": "正在下載字型 · {{percent}}%",
+    "downloadFailed": "字型下載失敗——請檢查網路。",
+    "retry": "重試"
   },
   "pendingBadge": {
     "comingSoon": "即將推出"

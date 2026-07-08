@@ -1,17 +1,32 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { curatedFontId, type ReaderFontFamily } from "../lib/reader-settings";
-import { injectCuratedFontFace } from "../lib/curated-font-loader";
+import {
+  getCuratedFontProgress,
+  injectCuratedFontFace,
+  subscribeCuratedFontProgress,
+} from "../lib/curated-font-loader";
 
 export type CuratedFontStatus = "idle" | "loading" | "ready" | "error";
+
+export interface CuratedFontFaceState {
+  status: CuratedFontStatus;
+  /** 下载进度 0..1（分片计数）；非 loading 状态下无意义。 */
+  progress: number;
+  /** 失败后手动重试（加载器不缓存失败,重试即重新下载）。 */
+  retry: () => void;
+}
 
 /**
  * Loads the active curated font (downloading + caching on first use) and injects
  * its `@font-face` into the app document, so the preview and UI render it. System
- * fonts need no loading, so they stay `idle`. Returns status for a download hint.
+ * fonts need no loading, so they stay `idle`. Exposes download progress and a
+ * retry for the failure case (e.g. the font CDN is unreachable).
  */
-export function useCuratedFontFace(fontFamily: ReaderFontFamily): CuratedFontStatus {
+export function useCuratedFontFace(fontFamily: ReaderFontFamily): CuratedFontFaceState {
   const id = curatedFontId(fontFamily);
   const [status, setStatus] = useState<CuratedFontStatus>("idle");
+  const [progress, setProgress] = useState(0);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!id) {
@@ -20,13 +35,21 @@ export function useCuratedFontFace(fontFamily: ReaderFontFamily): CuratedFontSta
     }
     let active = true;
     setStatus("loading");
+    const initial = getCuratedFontProgress(id);
+    setProgress(initial && initial.total > 0 ? initial.done / initial.total : 0);
+    const unsubscribe = subscribeCuratedFontProgress(id, ({ done, total }) => {
+      if (active && total > 0) setProgress(done / total);
+    });
     injectCuratedFontFace(id)
       .then(() => active && setStatus("ready"))
       .catch(() => active && setStatus("error"));
     return () => {
       active = false;
+      unsubscribe();
     };
-  }, [id]);
+  }, [id, attempt]);
 
-  return status;
+  const retry = useCallback(() => setAttempt((n) => n + 1), []);
+
+  return { status, progress, retry };
 }

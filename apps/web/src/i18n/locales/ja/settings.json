@@ -219,7 +219,10 @@
     "custom": "カスタム",
     "customAria": "この端末にインストールされたフォントから選択",
     "placeholderCurated": "厳選フォントを選択",
-    "placeholderCustom": "インストール済みフォントを選択"
+    "placeholderCustom": "インストール済みフォントを選択",
+    "downloading": "フォントをダウンロード中 · {{percent}}%",
+    "downloadFailed": "フォントのダウンロードに失敗しました。ネットワークをご確認ください。",
+    "retry": "再試行"
   },
   "pendingBadge": {
     "comingSoon": "近日公開"

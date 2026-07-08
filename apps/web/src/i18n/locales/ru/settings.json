@@ -219,7 +219,10 @@
     "custom": "Пользовательский",
     "customAria": "Выбрать из шрифтов, установленных на этом устройстве",
     "placeholderCurated": "Выберите подобранный шрифт",
-    "placeholderCustom": "Выберите установленный шрифт"
+    "placeholderCustom": "Выберите установленный шрифт",
+    "downloading": "Загрузка шрифта · {{percent}}%",
+    "downloadFailed": "Не удалось загрузить шрифт — проверьте сеть.",
+    "retry": "Повторить"
   },
   "pendingBadge": {
     "comingSoon": "Скоро"

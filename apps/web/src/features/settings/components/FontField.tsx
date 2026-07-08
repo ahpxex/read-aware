@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Select, Toggle } from "@read-aware/ui";
+import { Button, Caption, Select, Spinner, Toggle } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import {
@@ -37,7 +37,7 @@ export function FontField({ value, onChange, className }: FontFieldProps) {
   const systemFonts = useSystemFonts();
   const [custom, setCustom] = useState(isSystemFont(value));
   // Download + inject the active curated font so the preview/UI render it.
-  useCuratedFontFace(value);
+  const fontFace = useCuratedFontFace(value);
 
   const systemOptions = useMemo(() => {
     const opts = systemFonts.map((family) => ({ value: toSystemFont(family), label: family }));
@@ -75,6 +75,24 @@ export function FontField({ value, onChange, className }: FontFieldProps) {
         placeholder={custom ? t("font.placeholderCustom") : t("font.placeholderCurated")}
         onChange={(next) => onChange(next as ReaderFontFamily)}
       />
+      {/* Download feedback for curated fonts — fetched from a CDN on first use,
+          which can be slow or unreachable; silence here read as a broken picker. */}
+      {fontFace.status === "loading" && (
+        <div className="mt-1.5 flex items-center gap-2 text-fg-muted">
+          <Spinner size="sm" className="h-3 w-3" />
+          <Caption>
+            {t("font.downloading", { percent: Math.round(fontFace.progress * 100) })}
+          </Caption>
+        </div>
+      )}
+      {fontFace.status === "error" && (
+        <div className="mt-1.5 flex items-center gap-2">
+          <Caption className="text-red-800">{t("font.downloadFailed")}</Caption>
+          <Button size="sm" variant="link" onClick={fontFace.retry}>
+            {t("font.retry")}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

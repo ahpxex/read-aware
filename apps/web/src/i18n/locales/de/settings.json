@@ -219,7 +219,10 @@
     "custom": "Benutzerdefiniert",
     "customAria": "Aus auf diesem Gerät installierten Schriftarten wählen",
     "placeholderCurated": "Kuratierte Schriftart wählen",
-    "placeholderCustom": "Installierte Schriftart wählen"
+    "placeholderCustom": "Installierte Schriftart wählen",
+    "downloading": "Schriftart wird geladen · {{percent}} %",
+    "downloadFailed": "Schriftart konnte nicht geladen werden — Netzwerk prüfen.",
+    "retry": "Erneut versuchen"
   },
   "pendingBadge": {
     "comingSoon": "Demnächst"

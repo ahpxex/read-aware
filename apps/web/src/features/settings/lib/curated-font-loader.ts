@@ -46,6 +46,9 @@ function idbPut(database: IDBDatabase, key: string, value: ArrayBuffer): Promise
   });
 }
 
+/** 每个分片的下载时限 —— CDN 被墙时 fetch 会挂到操作系统级超时,必须自己兜底。 */
+const FACE_FETCH_TIMEOUT_MS = 20_000;
+
 /** Fetch a face's bytes, served from the IndexedDB cache when present. */
 async function loadFaceBytes(face: CuratedFontFace): Promise<ArrayBuffer> {
   const database = await db().catch(() => null);
@@ -53,7 +56,7 @@ async function loadFaceBytes(face: CuratedFontFace): Promise<ArrayBuffer> {
     const cached = await idbGet(database, face.url).catch(() => undefined);
     if (cached) return cached;
   }
-  const res = await fetch(face.url);
+  const res = await fetch(face.url, { signal: AbortSignal.timeout(FACE_FETCH_TIMEOUT_MS) });
   if (!res.ok) throw new Error(`Font fetch failed (${res.status}) for ${face.url}`);
   const bytes = await res.arrayBuffer();
   if (database) await idbPut(database, face.url, bytes).catch(() => undefined);
@@ -66,6 +69,39 @@ function faceRule(face: CuratedFontFace, blobUrl: string): string {
 }
 
 const faceCssMemo = new Map<string, Promise<string>>();
+
+// ── 下载进度广播：UI 据此渲染"正在下载 · N%"。按 fontId 订阅。 ──
+export interface CuratedFontProgress {
+  done: number;
+  total: number;
+}
+
+const progressState = new Map<string, CuratedFontProgress>();
+const progressListeners = new Map<string, Set<(progress: CuratedFontProgress) => void>>();
+
+export function getCuratedFontProgress(fontId: string): CuratedFontProgress | undefined {
+  return progressState.get(fontId);
+}
+
+export function subscribeCuratedFontProgress(
+  fontId: string,
+  listener: (progress: CuratedFontProgress) => void,
+): () => void {
+  let set = progressListeners.get(fontId);
+  if (!set) {
+    set = new Set();
+    progressListeners.set(fontId, set);
+  }
+  set.add(listener);
+  return () => {
+    set.delete(listener);
+  };
+}
+
+function reportProgress(fontId: string, progress: CuratedFontProgress): void {
+  progressState.set(fontId, progress);
+  progressListeners.get(fontId)?.forEach((listener) => listener(progress));
+}
 
 // CJK fonts split into ~100 unicode-range chunks per weight, so a font can carry
 // a couple hundred faces. Cap concurrent fetches so selecting one doesn't fire
@@ -91,6 +127,8 @@ async function mapLimit<T, R>(
 
 async function buildFaceCss(fontId: string): Promise<string> {
   const faces = curatedFacesFor(fontId);
+  let done = 0;
+  reportProgress(fontId, { done: 0, total: faces.length });
   const rules = await mapLimit(faces, FETCH_CONCURRENCY, async (face) => {
     try {
       const bytes = await loadFaceBytes(face);
@@ -99,21 +137,33 @@ async function buildFaceCss(fontId: string): Promise<string> {
     } catch {
       // A dropped chunk just means those glyphs fall back — don't fail the font.
       return "";
+    } finally {
+      done += 1;
+      reportProgress(fontId, { done, total: faces.length });
     }
   });
-  return rules.filter(Boolean).join("\n");
+  const css = rules.filter(Boolean).join("\n");
+  // 一个分片都没拿到 = 下载整体失败（典型场景：CDN 不可达/被墙）。
+  // 必须抛出而不是返回空串,否则失败会被当成"成功的空结果"静默呈现。
+  if (!css && faces.length > 0) {
+    throw new Error(`curated font ${fontId}: all ${faces.length} face fetches failed`);
+  }
+  return css;
 }
 
 /**
  * Ensure a curated font is downloaded + cached and return its `@font-face` CSS
  * (with blob URLs), ready to inject. Memoized per session, so repeat calls — and
  * the app-document vs iframe injection sites — share one download and one set of
- * blob URLs.
+ * blob URLs. Failures are NOT memoized: re-selecting the font retries.
  */
 export function ensureCuratedFontFaceCss(fontId: string): Promise<string> {
   let pending = faceCssMemo.get(fontId);
   if (!pending) {
-    pending = buildFaceCss(fontId);
+    pending = buildFaceCss(fontId).catch((error: unknown) => {
+      faceCssMemo.delete(fontId);
+      throw error;
+    });
     faceCssMemo.set(fontId, pending);
   }
   return pending;

@@ -342,8 +342,6 @@ function App() {
             {activeTopNav === "shelf" ? (
               <LibraryWorkspace
                 isReady={library.libraryReady}
-                error={library.libraryError}
-                notice={library.importNotice}
                 books={heldShelfBooks ?? library.books}
                 collections={library.collections}
                 openingBookId={openingBookId}

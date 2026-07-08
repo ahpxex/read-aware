@@ -1,5 +1,6 @@
 {
   "actions": {
-    "backToLibrary": "Back to library"
+    "backToLibrary": "Back to library",
+    "dismiss": "Dismiss"
   }
 }

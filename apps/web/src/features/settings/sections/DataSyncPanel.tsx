@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Alert, Button, Dialog } from "@read-aware/ui";
+import { Button, Dialog, useToast } from "@read-aware/ui";
 import { isTauri } from "../../../platform/environment";
 import { useTranslation } from "../../../i18n";
 import { SettingsGroup } from "../components/SettingsGroup";
@@ -9,14 +9,12 @@ import { PendingBadge } from "../components/PendingBadge";
 import { resetAllSettings } from "../lib/settings-io";
 import { exportBackup, importBackup } from "../lib/backup-io";
 
-type Notice = { variant: "success" | "destructive"; message: string };
-
 const BACKUP_FILENAME = "readaware-backup.json";
 
 export function DataSyncPanel() {
   const { t } = useTranslation("settings");
+  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [notice, setNotice] = useState<Notice | null>(null);
   const [busy, setBusy] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
 
@@ -30,14 +28,16 @@ export function DataSyncPanel() {
       anchor.download = BACKUP_FILENAME;
       anchor.click();
       URL.revokeObjectURL(url);
-      setNotice({
+      toast({
         variant: "success",
-        message: t("dataSync.exportSuccess", { file: BACKUP_FILENAME }),
+        title: t("dataSync.noticeDone"),
+        description: t("dataSync.exportSuccess", { file: BACKUP_FILENAME }),
       });
     } catch (error) {
-      setNotice({
+      toast({
         variant: "destructive",
-        message: error instanceof Error ? error.message : t("dataSync.exportError"),
+        title: t("dataSync.noticeError"),
+        description: error instanceof Error ? error.message : t("dataSync.exportError"),
       });
     } finally {
       setBusy(false);
@@ -48,9 +48,10 @@ export function DataSyncPanel() {
     setBusy(true);
     try {
       const result = await importBackup(await file.text());
-      setNotice({
+      toast({
         variant: "success",
-        message: t("dataSync.merge.summary", {
+        title: t("dataSync.noticeDone"),
+        description: t("dataSync.merge.summary", {
           books: t("dataSync.merge.books", { count: result.books }),
           annotations: t("dataSync.merge.annotations", { count: result.annotations }),
           collections: t("dataSync.merge.collections", { count: result.collections }),
@@ -59,9 +60,10 @@ export function DataSyncPanel() {
       });
       window.setTimeout(() => window.location.reload(), 900);
     } catch (error) {
-      setNotice({
+      toast({
         variant: "destructive",
-        message: error instanceof Error ? error.message : t("dataSync.importError"),
+        title: t("dataSync.noticeError"),
+        description: error instanceof Error ? error.message : t("dataSync.importError"),
       });
       setBusy(false);
     }
@@ -78,15 +80,6 @@ export function DataSyncPanel() {
       title={t("dataSync.title")}
       description={t("dataSync.description")}
     >
-      {notice && (
-        <Alert
-          variant={notice.variant}
-          title={notice.variant === "success" ? t("dataSync.noticeDone") : t("dataSync.noticeError")}
-        >
-          {notice.message}
-        </Alert>
-      )}
-
       <SettingsGroup title={t("dataSync.sync")} aside={<PendingBadge />}>
         <SettingsRow
           borderless

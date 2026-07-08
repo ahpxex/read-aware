@@ -1,5 +1,6 @@
 {
   "actions": {
-    "backToLibrary": "Retour à la bibliothèque"
+    "backToLibrary": "Retour à la bibliothèque",
+    "dismiss": "Fermer"
   }
 }

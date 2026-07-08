@@ -219,7 +219,10 @@
     "custom": "Personnalisée",
     "customAria": "Choisir parmi les polices installées sur cet appareil",
     "placeholderCurated": "Choisir une police sélectionnée",
-    "placeholderCustom": "Choisir une police installée"
+    "placeholderCustom": "Choisir une police installée",
+    "downloading": "Téléchargement de la police · {{percent}} %",
+    "downloadFailed": "Échec du téléchargement de la police — vérifiez votre réseau.",
+    "retry": "Réessayer"
   },
   "pendingBadge": {
     "comingSoon": "Bientôt disponible"

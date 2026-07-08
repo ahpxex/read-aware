@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { HeadContent, Outlet, createRootRoute, useRouter } from "@tanstack/react-router";
-import { Button } from "@read-aware/ui";
+import { Button, ToastProvider } from "@read-aware/ui";
 import { dismissBootSplash } from "../boot-splash";
 import { i18n, useTranslation } from "../i18n";
 import { useAppearance } from "../features/settings/hooks/useAppearance";
@@ -24,11 +24,14 @@ export const Route = createRootRoute({
 
 function RootComponent() {
   useAppearance();
+  const { t } = useTranslation("common");
 
   return (
     <>
       <HeadContent />
-      <Outlet />
+      <ToastProvider closeLabel={t("actions.dismiss")}>
+        <Outlet />
+      </ToastProvider>
     </>
   );
 }

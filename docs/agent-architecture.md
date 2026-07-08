@@ -188,11 +188,16 @@ packages/agent  @read-aware/agent （新包）
 无状态基线：
 
 ```
-system prompt（角色 framing + 画像 + 记忆 + 滚动摘要）
+system prompt（角色 framing + 画像 + 记忆 + 滚动摘要 + 阅读位置）
 + 上一轮 user↔assistant 原文（"尾巴"——覆盖明显的 follow-up）
 + 当前这轮（+ 选区 attachment）
 + 循环过程中的工具结果
 ```
+
+阅读位置的锚定：每轮请求携带的章节 href（选区优先，退回当前阅读位置，
+再退回会话章节）经 `findChapterByHref` 反查抽取章节（靠 §11.5 v2 的
+`hrefs`），在 system prompt 里写明 "currently reading chapter #N" ——
+"这一章"从此是一次 `read_chapter`，而不是拿进度百分比猜。
 
 边界信号是每轮请求携带的章节 href：选区 attachment 的章节优先于当前阅读
 位置（问的是哪段话，会话就属于哪一章）；章节未知不算换章。会话是纯内存
@@ -363,7 +368,10 @@ type LlmAccount =
    merged` —— 全部已在 `packages/core/src/events.ts` 声明。
 5. **书籍正文抽取**（`read_passage` 与章节级 FTS 的前置条件）：导入时
    按章节抽取纯文本（foliate 离屏加载），经 blob registry 存储。需要单独
-   一份小设计文档；当前 schema 未覆盖。
+   一份小设计文档；当前 schema 未覆盖。现状 v2（`book-text-store.ts`）：
+   TOC 条目经 `book.resolveHref` 定位到 spine section、按归属合并跨文件
+   章节，每章记录覆盖的 `hrefs` —— 这是阅读位置 / 选区 href 反查章节索引
+   的 join key（标题按位置硬拉链的 v1 会整体错位，已废弃）。
 6. **`ai_messages` 全文索引。** `search_conversation` 工具需要在
    `ai_messages` 上建 FTS 索引。
 

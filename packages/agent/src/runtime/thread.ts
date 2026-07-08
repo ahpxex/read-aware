@@ -14,6 +14,7 @@ import { updateRollingSummary } from "../memory/rolling-summary";
 import type { CompleteFn } from "../models/complete";
 import type { ResolveModel } from "../models/roles";
 import type { RuntimeDeps } from "../ports";
+import { findChapterByHref } from "../text/chapter-lookup";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { buildBookTextTools } from "../tools/book-text-tools";
 import { buildConversationTools } from "../tools/conversation-tools";
@@ -138,16 +139,24 @@ export class AgentThread {
     return agent;
   }
 
-  private async refreshSystemPrompt(agent: Agent): Promise<void> {
-    const [profile, book, shelf, memories, conversationSummary] = await Promise.all([
+  private async refreshSystemPrompt(agent: Agent, currentChapterHref?: string): Promise<void> {
+    const wantsPosition = this.scope.kind === "book" && !!currentChapterHref;
+    const [profile, book, shelf, memories, conversationSummary, toc] = await Promise.all([
       this.deps.profile.getProfileSummary(),
       this.scope.kind === "book" ? this.deps.library.getBook(this.scope.bookId) : undefined,
       this.scope.kind === "global" ? this.deps.library.listBooks() : undefined,
       this.deps.memory.searchMemories({ scopes: visibleScopes(this.scope), limit: 8 }),
       this.deps.conversations.getInsights(this.key),
+      // 位置反查要 hrefs，只有书线程带着章节 href 时才取目录
+      wantsPosition && this.scope.kind === "book"
+        ? this.deps.bookText.getToc(this.scope.bookId).catch(() => undefined)
+        : undefined,
     ]);
+    const chapter =
+      toc && currentChapterHref ? findChapterByHref(toc, currentChapterHref) : undefined;
     agent.state.systemPrompt = buildSystemPrompt(this.scope, {
       book,
+      currentChapter: chapter && { index: chapter.index, title: chapter.title },
       profile,
       shelfSize: shelf?.length,
       memories,
@@ -168,7 +177,10 @@ export class AgentThread {
     let turnCompleted = false;
     try {
       const agent = await this.ensureAgent();
-      await this.refreshSystemPrompt(agent);
+      // 本轮所在章节：选区的章节优先于阅读位置（问哪段话,会话就属于哪章）。
+      // 双重职责：章节会话的边界信号 + system prompt 的阅读位置锚定。
+      const turnChapter = input.attachments?.[0]?.chapter ?? input.chapter;
+      await this.refreshSystemPrompt(agent, turnChapter ?? this.sessionChapter);
       if (this.scope.kind === "book") {
         // 书线程章节会话（doc §5）：同章节内的轮次共享同一个上下文树
         // （agent.state 连续累积，windowByTurns 封顶）；当且仅当这条消息
@@ -177,7 +189,6 @@ export class AgentThread {
         // system prompt 里的滚动摘要；更早的历史 agent 用 get_recent_turns /
         // search_conversation 拉取。章节未知（选区与阅读位置都没带 href）
         // 不算换章。UI 的连续转录在持久层，不受影响。
-        const turnChapter = input.attachments?.[0]?.chapter ?? input.chapter;
         const crossedChapter =
           turnChapter !== undefined &&
           this.sessionChapter !== undefined &&

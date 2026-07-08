@@ -169,6 +169,31 @@ describe("AgentThread", () => {
     expect(contentText).toContain("这段怎么理解？");
   });
 
+  test("grounds the reading position in the system prompt via the chapter href", async () => {
+    const { faux, model } = makeFaux();
+    let captured: Context | undefined;
+    faux.setResponses([
+      (context) => {
+        captured = context;
+        return fauxAssistantMessage("ok");
+      },
+    ]);
+    const { deps } = createInMemoryDeps({
+      books: BOOKS,
+      chapters: {
+        b1: [
+          { title: "Intro", text: "x".repeat(50), hrefs: ["intro.xhtml"] },
+          { title: "Chapter 2", text: "y".repeat(50), hrefs: ["text/ch2.xhtml"] },
+        ],
+      },
+    });
+    const thread = makeThread(deps, model);
+
+    await collect(thread.sendTurn({ text: "这一章讲什么？", chapter: "text/ch2.xhtml#p3" }));
+
+    expect(captured?.systemPrompt).toContain('chapter #1 ("Chapter 2")');
+  });
+
   test("chapter session: turns in the same chapter share the accumulated context", async () => {
     const { faux, model } = makeFaux();
     const contexts: Context[] = [];

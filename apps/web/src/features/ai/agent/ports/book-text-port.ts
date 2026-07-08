@@ -40,6 +40,7 @@ export function createBookTextPort(): BookTextPort {
         index,
         title: chapter.title,
         chars: chapter.text.length,
+        hrefs: chapter.hrefs,
       })),
     getChapterText: async (bookId, chapterIndex) =>
       (await chaptersOf(bookId))[chapterIndex]?.text,

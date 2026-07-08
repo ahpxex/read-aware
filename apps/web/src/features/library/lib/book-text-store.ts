@@ -9,16 +9,23 @@
  */
 import { deleteDesktopBlob, getDesktopBlob, putDesktopBlob } from "../../../platform/blob-store";
 import { isTauri } from "../../../platform/environment";
+import { flattenToc } from "../../reader/lib/epub-utils";
 import { makeFoliateBook } from "../../reader/lib/foliate-engine";
+import type { TocNavItem } from "../../reader/lib/reader-types";
 import { getStoredBookBlob } from "./library-db";
 
 export interface ExtractedChapter {
   title?: string;
   text: string;
+  /**
+   * 本章覆盖的 hrefs：归属 TOC 条目的 href + 各 spine section 的 id。
+   * 阅读位置 / 选区的 chapter href 靠它反查到章节索引。
+   */
+  hrefs?: string[];
 }
 
-/** 持久化格式带版本号：抽取逻辑变了可整体重抽。 */
-const FORMAT_VERSION = 1;
+/** 持久化格式带版本号：抽取逻辑变了可整体重抽。v2：TOC 对齐 + hrefs。 */
+const FORMAT_VERSION = 2;
 
 interface PersistedBookText {
   bookId: string;
@@ -57,29 +64,96 @@ export async function deleteBookText(bookIds: string[]): Promise<void> {
 // ── 抽取 ──
 
 type FoliateSectionLike = {
+  id?: string;
   createDocument?: () => Promise<Document> | Document;
   linear?: string;
 };
 
+type FoliateResolvedLike = { index?: number } | null | undefined;
+
+/**
+ * 抽取 v2。v1 把拍平的 TOC 标签按序号硬配给留下来的 section（spine 文件数
+ * ≠ TOC 条目数,必然错位）。v2 用 book.resolveHref 把每个 TOC 条目（含嵌套
+ * 子项）定位到它真正指向的 section,按归属把跨文件的章节合并成一条,并记下
+ * 每章覆盖的 hrefs 作为阅读位置的反查键。
+ */
 async function extract(bookId: string): Promise<ExtractedChapter[]> {
   const blob = await getStoredBookBlob(bookId);
   if (!blob) return [];
-  const book = await makeFoliateBook(new File([blob], `${bookId}.book`));
-  const tocLabels = (book.toc ?? [])
-    .map((item) => item.label?.trim())
-    .filter(Boolean) as string[];
-  const chapters: ExtractedChapter[] = [];
-  for (const section of (book.sections ?? []) as FoliateSectionLike[]) {
+  const book = (await makeFoliateBook(new File([blob], `${bookId}.book`))) as {
+    toc?: unknown;
+    sections?: FoliateSectionLike[];
+    resolveHref?: (href: string) => FoliateResolvedLike | Promise<FoliateResolvedLike>;
+  };
+  const sections = book.sections ?? [];
+  const entries = flattenToc((book.toc ?? []) as TocNavItem[]);
+
+  // section → 归属 TOC 条目：条目解析到的 section 先到先得（指进同一文件的
+  // 子条目不抢所有权）,没有条目直指的 section 归前一个有主的条目（跨文件章节）。
+  const ownerOf: (number | undefined)[] = new Array(sections.length).fill(undefined);
+  for (let entryIndex = 0; entryIndex < entries.length; entryIndex++) {
+    try {
+      const resolved = await book.resolveHref?.(entries[entryIndex].href);
+      const sectionIndex = resolved?.index;
+      if (
+        typeof sectionIndex === "number" &&
+        sectionIndex >= 0 &&
+        sectionIndex < sections.length &&
+        ownerOf[sectionIndex] === undefined
+      ) {
+        ownerOf[sectionIndex] = entryIndex;
+      }
+    } catch {
+      // 解析失败的条目不参与归属
+    }
+  }
+  for (let i = 1; i < sections.length; i++) {
+    if (ownerOf[i] === undefined) ownerOf[i] = ownerOf[i - 1];
+  }
+
+  // 逐 section 抽文本（线性阅读顺序）,再按归属合并
+  const pieces: { owner: number | undefined; href?: string; text: string }[] = [];
+  for (let i = 0; i < sections.length; i++) {
+    const section = sections[i];
     if (section.linear === "no" || !section.createDocument) continue;
+    let text = "";
     try {
       const doc = await section.createDocument();
-      const text = (doc.body?.textContent ?? "").replace(/\s+/g, " ").trim();
-      if (text.length < 40) continue;
-      chapters.push({ title: tocLabels[chapters.length], text });
+      text = (doc.body?.textContent ?? "").replace(/\s+/g, " ").trim();
     } catch {
       // 单个 section 失败不拖垮整本书
     }
+    pieces.push({ owner: ownerOf[i], href: section.id, text });
   }
+
+  const chapters: ExtractedChapter[] = [];
+  let current: { owner: number | undefined; title?: string; hrefs: string[]; texts: string[] } | null =
+    null;
+  const flush = () => {
+    if (!current) return;
+    const text = current.texts.filter(Boolean).join(" ").trim();
+    if (text.length >= 40) {
+      const hrefs = [...new Set(current.hrefs)];
+      chapters.push({ title: current.title, text, hrefs: hrefs.length ? hrefs : undefined });
+    }
+    current = null;
+  };
+  for (const piece of pieces) {
+    const merges = current !== null && piece.owner !== undefined && piece.owner === current.owner;
+    if (!merges) {
+      flush();
+      const entry = piece.owner !== undefined ? entries[piece.owner] : undefined;
+      current = {
+        owner: piece.owner,
+        title: entry?.label,
+        hrefs: entry?.href ? [entry.href] : [],
+        texts: [],
+      };
+    }
+    if (piece.href) current!.hrefs.push(piece.href);
+    current!.texts.push(piece.text);
+  }
+  flush();
   return chapters;
 }
 

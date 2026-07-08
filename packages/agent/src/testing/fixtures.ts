@@ -19,6 +19,8 @@ import { searchChapters } from "../text/search";
 export interface ChapterSeed {
   title?: string;
   text: string;
+  /** 章节覆盖的 hrefs（阅读位置反查用,同 ChapterRef.hrefs） */
+  hrefs?: string[];
 }
 
 export interface AskRecord {
@@ -203,6 +205,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
           index,
           title: chapter.title,
           chars: chapter.text.length,
+          hrefs: chapter.hrefs,
         }));
       },
       getChapterText: async (bookId, chapterIndex) =>

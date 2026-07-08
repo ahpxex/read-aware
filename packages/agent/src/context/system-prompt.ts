@@ -9,6 +9,12 @@ import type { ThreadScope } from "../thread-scope";
 export interface SystemPromptInput {
   /** book scope 的当前书；global scope 不传 */
   book?: BookOverview;
+  /**
+   * 当前阅读位置所在的抽取章节（book scope；由每轮的 chapter href 经
+   * findChapterByHref 反查）。有它,"这一章"就是一次 read_chapter,
+   * 而不是拿进度百分比猜。
+   */
+  currentChapter?: { index: number; title?: string };
   /** user_profile_context v0：一段画像摘要文本 */
   profile?: string;
   /** global scope 的书架规模，帮模型建立范围感 */
@@ -42,8 +48,13 @@ export function buildSystemPrompt(scope: ThreadScope, input: SystemPromptInput):
         input.book.progressFraction !== undefined
           ? ` The reader is about ${Math.round(input.book.progressFraction * 100)}% through.`
           : "";
+      const position = input.currentChapter
+        ? ` They are currently reading chapter #${input.currentChapter.index}${
+            input.currentChapter.title ? ` ("${input.currentChapter.title}")` : ""
+          } — read_chapter ${input.currentChapter.index} returns its text; treat "this chapter" as that one.`
+        : "";
       sections.push(
-        `Current book: "${input.book.title}"${input.book.author ? ` by ${input.book.author}` : ""}.${progress}`,
+        `Current book: "${input.book.title}"${input.book.author ? ` by ${input.book.author}` : ""}.${progress}${position}`,
       );
     }
   } else {

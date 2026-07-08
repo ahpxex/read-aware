@@ -32,7 +32,9 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps): Agent
     }),
     execute: async (_id, params) => {
       const { bookId } = params as { bookId?: string };
-      return textResult(await deps.bookText.getToc(resolveBookId(bookId)));
+      const toc = await deps.bookText.getToc(resolveBookId(bookId));
+      // hrefs 是运行时的反查键（阅读位置 → 章节），对模型是纯噪音
+      return textResult(toc.map(({ index, title, chars }) => ({ index, title, chars })));
     },
   };
 

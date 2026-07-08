@@ -139,6 +139,12 @@ export interface ChapterRef {
   title?: string;
   /** 章节纯文本长度 —— 模型据此预算 read_chapter 要翻几片 */
   chars: number;
+  /**
+   * 本章覆盖的 hrefs（TOC 条目 href + 各 spine section id）。运行时用来把
+   * 阅读位置 / 选区的 chapter href 反查到章节索引（见 text/chapter-lookup）；
+   * 不进 get_toc 的工具输出 —— 对模型是纯噪音。
+   */
+  hrefs?: string[];
 }
 
 export interface BookTextHit {

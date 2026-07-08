@@ -20,7 +20,8 @@
   "importNotice": {
     "duplicate_one": "“{{title}}” is already in your library.",
     "duplicate_other": "Skipped {{count}} books already in your library.",
-    "combined": "{{skipped}} Imported {{count}} new."
+    "combined": "{{skipped}} Imported {{count}} new.",
+    "pickerLost": "No file was received from the picker. If you did choose a book, tap Import and try again."
   },
   "importDialog": {
     "title": "Import books",

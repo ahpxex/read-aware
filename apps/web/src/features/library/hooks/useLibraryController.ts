@@ -196,6 +196,9 @@ export function useLibraryController() {
   // start a second concurrent importFiles flow, and the import dedupe reads
   // the library before either flow has written — the same book lands twice.
   const pickerPendingRef = useRef(false);
+  // Increments whenever a pending pick is written off as lost; a stale pick
+  // that settles later is discarded instead of racing a newer attempt.
+  const pickerGenerationRef = useRef(0);
 
   const openImportPicker = useCallback(() => {
     // Desktop: the webview ignores the <input accept> filter, so drive the
@@ -204,17 +207,52 @@ export function useLibraryController() {
     if (canUseNativeFilePicker()) {
       if (pickerPendingRef.current) return;
       pickerPendingRef.current = true;
-      void pickBookFilesNative(tRef.current)
-        .then(importFiles)
-        .catch(reportError)
-        .finally(() => {
+      const generation = ++pickerGenerationRef.current;
+      const isCurrent = () => pickerGenerationRef.current === generation;
+
+      // On Android, the dialog plugin's response occasionally never arrives
+      // after the system picker hands control back (the invoke callback is
+      // lost across the activity round-trip). Without a watchdog that lost
+      // response would leave pickerPendingRef locked forever — import looks
+      // dead until the app is killed. Signal: the app regains foreground
+      // focus (picker closed) but the promise still hasn't settled shortly
+      // after → declare it lost, unlock, tell the user to retry.
+      let watchdog: number | undefined;
+      const onRefocus = () => {
+        if (document.visibilityState !== "visible") return;
+        window.clearTimeout(watchdog);
+        watchdog = window.setTimeout(() => {
+          if (!isCurrent() || !pickerPendingRef.current) return;
+          pickerGenerationRef.current += 1;
           pickerPendingRef.current = false;
+          // Neutral, not destructive: a lost response is indistinguishable
+          // from a plain cancel (whose response the Android dialog plugin
+          // also drops), and scolding a cancel would be wrong.
+          toast({
+            title: tRef.current("workspace.importTitle"),
+            description: tRef.current("importNotice.pickerLost"),
+          });
+        }, 5_000);
+      };
+      document.addEventListener("visibilitychange", onRefocus);
+
+      void pickBookFilesNative(tRef.current)
+        .then((files) => {
+          if (isCurrent()) return importFiles(files);
+        })
+        .catch((error) => {
+          if (isCurrent()) reportError(error);
+        })
+        .finally(() => {
+          document.removeEventListener("visibilitychange", onRefocus);
+          window.clearTimeout(watchdog);
+          if (isCurrent()) pickerPendingRef.current = false;
         });
       return;
     }
 
     importInputRef.current?.click();
-  }, [importFiles, reportError]);
+  }, [importFiles, reportError, toast]);
 
   const handleImportSelection = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
     const input = event.currentTarget;

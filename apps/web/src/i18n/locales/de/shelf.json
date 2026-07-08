@@ -20,7 +20,8 @@
   "importNotice": {
     "duplicate_one": "„{{title}}“ ist bereits in deiner Bibliothek.",
     "duplicate_other": "{{count}} Bücher übersprungen, die bereits in deiner Bibliothek sind.",
-    "combined": "{{skipped}} {{count}} neue importiert."
+    "combined": "{{skipped}} {{count}} neue importiert.",
+    "pickerLost": "Es wurde keine Datei übermittelt. Falls du ein Buch gewählt hast, tippe erneut auf Importieren."
   },
   "importDialog": {
     "title": "Bücher importieren",

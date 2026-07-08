@@ -124,7 +124,7 @@ function ThreadRow({
         aria-current={active ? "true" : undefined}
         onClick={onSelect}
         className={cn(
-          "min-w-0 flex-1 truncate px-2 py-1.5 text-left font-sans text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
+          "min-w-0 flex-1 truncate px-2 py-1.5 text-left font-sans text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
           active ? "text-fg" : "text-fg-muted group-hover:text-fg",
         )}
       >

@@ -14,7 +14,7 @@ export function Eyebrow<T extends ElementType = "p">({
   return (
     <Tag
       className={cn(
-        "font-sans text-[13px] font-medium text-fg-muted",
+        "font-sans text-eyebrow font-medium text-fg-muted",
         className,
       )}
       {...props}

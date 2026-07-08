@@ -1,0 +1,138 @@
+# Release builds — run ONLY when a version tag (v*) is pushed.
+# Android: signed arm64 APK. Desktop: macOS universal .dmg, Windows x64
+# .msi/.exe, Linux x64 .AppImage/.deb/.rpm. Every job attaches its bundles to
+# the GitHub release for the tag (created on first upload).
+#
+# Android signing comes from two repository secrets:
+#   ANDROID_KEYSTORE_B64      — base64 of the release keystore (.jks)
+#   ANDROID_KEYSTORE_PASSWORD — store/key password (alias is "readaware")
+# Desktop bundles are unsigned for now (no Apple/Windows signing certs).
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  NDK_VERSION: 28.2.13676358
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Require signing secrets
+        run: |
+          if [ -z "${{ secrets.ANDROID_KEYSTORE_B64 }}" ] || [ -z "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" ]; then
+            echo "ANDROID_KEYSTORE_B64 / ANDROID_KEYSTORE_PASSWORD secrets are missing" >&2
+            exit 1
+          fi
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install NDK
+        run: sdkmanager "ndk;${{ env.NDK_VERSION }}"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Configure signing
+        env:
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          echo "$ANDROID_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          cat > apps/desktop/src-tauri/gen/android/keystore.properties <<EOF
+          keyAlias=readaware
+          password=$ANDROID_KEYSTORE_PASSWORD
+          storeFile=$RUNNER_TEMP/release.jks
+          EOF
+
+      - name: Build APK (arm64 release)
+        working-directory: apps/desktop
+        run: NDK_HOME="$ANDROID_HOME/ndk/$NDK_VERSION" bun run tauri android build --apk --target aarch64
+
+      - name: Rename artifact
+        run: |
+          cp apps/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk \
+             "ReadAware-${{ github.ref_name }}-arm64.apk"
+
+      - name: Attach to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ReadAware-${{ github.ref_name }}-arm64.apk
+          generate_release_notes: true
+
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: universal-apple-darwin
+            rust-targets: aarch64-apple-darwin,x86_64-apple-darwin
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            rust-targets: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            rust-targets: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux system dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
+            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build desktop bundles
+        working-directory: apps/desktop
+        run: bun run tauri build --target ${{ matrix.target }}
+
+      - name: Attach to release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            apps/desktop/src-tauri/target/*/release/bundle/dmg/*.dmg
+            apps/desktop/src-tauri/target/*/release/bundle/msi/*.msi
+            apps/desktop/src-tauri/target/*/release/bundle/nsis/*.exe
+            apps/desktop/src-tauri/target/*/release/bundle/appimage/*.AppImage
+            apps/desktop/src-tauri/target/*/release/bundle/deb/*.deb
+            apps/desktop/src-tauri/target/*/release/bundle/rpm/*.rpm

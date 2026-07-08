@@ -164,47 +164,45 @@ html[data-tauri="true"] {
   overflow: clip;
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
+/* App-shell defaults belong in the `base` layer: unlayered rules outrank every
+   @layer — including utilities — so element selectors here would silently veto
+   any `cursor-*` / `select-*` / font utility a component sets on the same
+   element. In `base` they come after Tailwind's preflight (same layer, later
+   source order) but stay overridable per-element. Preflight already supplies
+   box-sizing and body margin resets. */
+@layer base {
+  #root {
+    min-height: 100vh;
+  }
 
-#root {
-  min-height: 100vh;
-}
+  body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    overscroll-behavior: none;
+    background-color: var(--color-paper);
+    /* Native-app feel: text in the app chrome (shelf, headers, menus, panels,
+       labels) isn't selectable, so click/double-click never leaves a stray text
+       highlight. The reading surface is exempt for free — book text (EPUB, PDF,
+       …) renders inside the foliate-js iframes, separate documents this
+       host-level rule can't reach, so selecting passages there keeps working. */
+    -webkit-user-select: none;
+    user-select: none;
+    /* …and keep the pointer an arrow over that text instead of the I-beam.
+       `cursor` inherits, so this cascades to all chrome text; buttons and links
+       keep their own pointer, editable controls re-claim the text caret below. */
+    cursor: default;
+  }
 
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  overscroll-behavior: none;
-  background-color: var(--color-paper);
-  /* Native-app feel: text in the app chrome (shelf, headers, menus, panels,
-     labels) isn't selectable, so click/double-click never leaves a stray text
-     highlight. The reading surface is exempt for free — book text (EPUB, PDF,
-     …) renders inside the foliate-js iframes, separate documents this
-     host-level rule can't reach, so selecting passages there keeps working. */
-  -webkit-user-select: none;
-  user-select: none;
-  /* …and keep the pointer an arrow over that text instead of the I-beam.
-     `cursor` inherits, so this cascades to all chrome text; buttons and links
-     keep their own pointer, editable controls re-claim the text caret below. */
-  cursor: default;
-}
-
-/* Re-enable selection on editable controls so text fields, search boxes, and
-   the AI composer stay usable (caret placement, drag-select, copy). */
-input,
-textarea,
-[contenteditable]:not([contenteditable="false"]) {
-  -webkit-user-select: text;
-  user-select: text;
-  cursor: text;
-}
-
-button {
-  font: inherit;
+  /* Re-enable selection on editable controls so text fields, search boxes, and
+     the AI composer stay usable (caret placement, drag-select, copy). */
+  input,
+  textarea,
+  [contenteditable]:not([contenteditable="false"]) {
+    -webkit-user-select: text;
+    user-select: text;
+    cursor: text;
+  }
 }
 
 /* Global scrollbar styling — a hairline thumb on every scroll container.

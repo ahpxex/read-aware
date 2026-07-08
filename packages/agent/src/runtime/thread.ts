@@ -1,7 +1,8 @@
 /**
  * 一个线程 = 一个 pi Agent 实例（doc §5 runtime/）。
- * 职责：从 ConversationPort 水化转录、每轮重建 system prompt、
- * 把 pi 的事件流翻译成 ThreadChunk、轮末持久化两条 TurnRecord（doc §10）。
+ * 职责：从 ConversationPort 水化转录、装配 system prompt（书线程每个章节
+ * 会话一次、会话内冻结；全局线程每轮重建）、把 pi 的事件流翻译成
+ * ThreadChunk、轮末持久化两条 TurnRecord（doc §10）。
  * 书线程按**章节会话**装配上下文：同章节连续，换章节发新消息才重置（doc §5）。
  */
 import { Agent, type AgentEvent } from "@earendil-works/pi-agent-core";
@@ -180,7 +181,6 @@ export class AgentThread {
       // 本轮所在章节：选区的章节优先于阅读位置（问哪段话,会话就属于哪章）。
       // 双重职责：章节会话的边界信号 + system prompt 的阅读位置锚定。
       const turnChapter = input.attachments?.[0]?.chapter ?? input.chapter;
-      await this.refreshSystemPrompt(agent, turnChapter ?? this.sessionChapter);
       if (this.scope.kind === "book") {
         // 书线程章节会话（doc §5）：同章节内的轮次共享同一个上下文树
         // （agent.state 连续累积，windowByTurns 封顶）；当且仅当这条消息
@@ -194,6 +194,11 @@ export class AgentThread {
           this.sessionChapter !== undefined &&
           turnChapter !== this.sessionChapter;
         if (!this.sessionStarted || crossedChapter) {
+          // system prompt 只在会话开始装配一次（含阅读位置快照），会话内
+          // 冻结 —— 前缀头部字节级稳定，同章追问跨轮命中 provider 缓存
+          // （中段靠 context-slim 存根的确定性保持稳定）。中途提炼的记忆 /
+          // 进度漂移下个会话才进 prompt；滚动摘要正是在这里被重新读入。
+          await this.refreshSystemPrompt(agent, turnChapter ?? this.sessionChapter);
           const records = await this.deps.conversations.load(this.key);
           agent.state.messages = turnRecordsToMessages(
             lastTurnTail(records),
@@ -202,6 +207,9 @@ export class AgentThread {
           this.sessionStarted = true;
         }
         if (turnChapter !== undefined) this.sessionChapter = turnChapter;
+      } else {
+        // 全局线程无会话概念：长期存续、记忆与摘要的更新更要紧，维持每轮重建
+        await this.refreshSystemPrompt(agent);
       }
       unsubscribe = agent.subscribe((event) => queue.push(event));
 

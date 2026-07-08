@@ -44,13 +44,13 @@ describe("conversation flow", () => {
     });
   }
 
-  async function drain(thread: AgentThread, text: string): Promise<void> {
-    for await (const _ of thread.sendTurn({ text })) {
+  async function drain(thread: AgentThread, text: string, chapter?: string): Promise<void> {
+    for await (const _ of thread.sendTurn({ text, chapter })) {
       // drain
     }
   }
 
-  test("rolling summary is stored after the turn and injected into the next prompt", async () => {
+  test("rolling summary is stored after the turn and injected at the next session start", async () => {
     const model = makeFaux();
     let captured: Context | undefined;
     faux.setResponses([
@@ -63,11 +63,13 @@ describe("conversation flow", () => {
     const { deps, stores } = createInMemoryDeps();
     const thread = makeThread(BOOK, deps, model);
 
-    await drain(thread, "自由意志存在吗？");
+    await drain(thread, "自由意志存在吗？", "ch1.xhtml");
     await thread.flushBackgroundWork();
     expect(stores.insights.get("book:b1")).toBe("摘要：读者在追问自由意志与利贝特实验。");
 
-    await drain(thread, "继续");
+    // system prompt 在会话内冻结；换章重置才重新装配 —— 摘要恰在此刻被读入,
+    // 接住被扔掉的旧会话（doc §5）
+    await drain(thread, "继续", "ch2.xhtml");
     expect(captured?.systemPrompt).toContain("摘要：读者在追问自由意志与利贝特实验。");
   });
 

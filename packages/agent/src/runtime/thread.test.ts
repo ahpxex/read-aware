@@ -194,6 +194,37 @@ describe("AgentThread", () => {
     expect(captured?.systemPrompt).toContain('chapter #1 ("Chapter 2")');
   });
 
+  test("freezes the system prompt within a chapter session, rebuilds on crossing", async () => {
+    const { faux, model } = makeFaux();
+    const prompts: (string | undefined)[] = [];
+    faux.setResponses([
+      (context) => { prompts.push(context.systemPrompt); return fauxAssistantMessage("a1"); },
+      (context) => { prompts.push(context.systemPrompt); return fauxAssistantMessage("a2"); },
+      (context) => { prompts.push(context.systemPrompt); return fauxAssistantMessage("a3"); },
+    ]);
+    const { deps, stores } = createInMemoryDeps({
+      books: BOOKS,
+      profile: "old profile",
+      chapters: {
+        b1: [
+          { title: "Chapter 1", text: "x".repeat(50), hrefs: ["ch1.xhtml"] },
+          { title: "Chapter 2", text: "y".repeat(50), hrefs: ["ch2.xhtml"] },
+        ],
+      },
+    });
+    const thread = makeThread(deps, model);
+
+    await collect(thread.sendTurn({ text: "q1", chapter: "ch1.xhtml" }));
+    // 会话中途画像变了 —— 冻结的 prompt 不该看到它
+    stores.profile.summary = "NEW PROFILE";
+    await collect(thread.sendTurn({ text: "q2", chapter: "ch1.xhtml" }));
+    expect(prompts[1]).toBe(prompts[0]!);
+    // 换章 → 会话重置 → prompt 重建：新画像与新章节一起生效
+    await collect(thread.sendTurn({ text: "q3", chapter: "ch2.xhtml" }));
+    expect(prompts[2]).toContain("NEW PROFILE");
+    expect(prompts[2]).toContain('chapter #1 ("Chapter 2")');
+  });
+
   test("chapter session: turns in the same chapter share the accumulated context", async () => {
     const { faux, model } = makeFaux();
     const contexts: Context[] = [];

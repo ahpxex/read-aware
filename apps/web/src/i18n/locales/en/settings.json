@@ -149,6 +149,11 @@
         "description": "Ask follow-up questions grounded in the book and your notes."
       }
     },
+    "chat": "Chat",
+    "followStreaming": {
+      "title": "Follow streaming replies",
+      "description": "Scroll along as the reply streams in. Off keeps the view anchored where the reply begins."
+    },
     "memory": "Memory",
     "buildMemory": {
       "title": "Build long-term memory",

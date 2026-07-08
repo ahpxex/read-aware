@@ -116,6 +116,19 @@ export const StreamingToolStep: Story = {
   },
 };
 
+/** Between rounds: every tool settled, next model response not started — the
+    thinking row keeps the turn visibly alive. */
+export const AwaitingNextRound: Story = {
+  args: {
+    messages: [userTurn],
+    isStreaming: true,
+    streamingParts: [
+      { type: "tool", id: "t1", tool: "search_memory", detail: "reading goals", state: "done" },
+      { type: "tool", id: "t2", tool: "get_annotations", state: "done" },
+    ],
+  },
+};
+
 /** Legacy message shape (content only, no parts) still renders as plain Markdown. */
 export const LegacyContentOnly: Story = {
   args: {

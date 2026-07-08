@@ -149,6 +149,11 @@
         "description": "Stelle Rückfragen, die im Buch und deinen Notizen verankert sind."
       }
     },
+    "chat": "Chat",
+    "followStreaming": {
+      "title": "Streaming-Antworten folgen",
+      "description": "Scrollt automatisch mit, während die Antwort eintrifft. Deaktiviert bleibt die Ansicht am Anfang der Antwort."
+    },
     "memory": "Gedächtnis",
     "buildMemory": {
       "title": "Langzeitgedächtnis aufbauen",

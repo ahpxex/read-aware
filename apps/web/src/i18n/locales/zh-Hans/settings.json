@@ -149,6 +149,11 @@
         "description": "结合书籍内容和你的笔记提出追问。"
       }
     },
+    "chat": "对话",
+    "followStreaming": {
+      "title": "跟随流式回答滚动",
+      "description": "回答生成时自动滚动到最新内容；关闭时视图停留在回答开头。"
+    },
     "memory": "记忆",
     "buildMemory": {
       "title": "构建长期记忆",

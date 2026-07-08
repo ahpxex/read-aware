@@ -51,6 +51,21 @@ export function AIPanel() {
         })}
       </SettingsGroup>
 
+      <SettingsGroup title={t("ai.chat")}>
+        <SettingsRow
+          borderless
+          title={t("ai.followStreaming.title")}
+          description={t("ai.followStreaming.description")}
+          control={
+            <Toggle
+              aria-label={t("ai.followStreaming.title")}
+              checked={prefs.followStreaming}
+              onChange={(followStreaming) => setPrefs({ ...prefs, followStreaming })}
+            />
+          }
+        />
+      </SettingsGroup>
+
       <SettingsGroup title={t("ai.memory")}>
         <SettingsRow
           borderless

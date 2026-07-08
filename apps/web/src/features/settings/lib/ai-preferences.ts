@@ -28,6 +28,12 @@ export type AIPreferences = {
   sendHighlightedText: boolean;
   sendSurroundingContext: boolean;
   localOnly: boolean;
+  /**
+   * Auto-scroll the chat transcript while a reply streams in. Off (default)
+   * keeps the view anchored where the reply begins — nobody reads at token
+   * speed. Even when on, a user scroll-up suspends following for that turn.
+   */
+  followStreaming: boolean;
 };
 
 export const DEFAULT_AI_PREFERENCES: AIPreferences = {
@@ -42,6 +48,7 @@ export const DEFAULT_AI_PREFERENCES: AIPreferences = {
   sendHighlightedText: true,
   sendSurroundingContext: true,
   localOnly: false,
+  followStreaming: false,
 };
 
 export function getAIPreferences(): AIPreferences {
@@ -56,6 +63,7 @@ export function getAIPreferences(): AIPreferences {
       sendSurroundingContext:
         parsed.sendSurroundingContext ?? DEFAULT_AI_PREFERENCES.sendSurroundingContext,
       localOnly: parsed.localOnly ?? DEFAULT_AI_PREFERENCES.localOnly,
+      followStreaming: parsed.followStreaming ?? DEFAULT_AI_PREFERENCES.followStreaming,
     };
   } catch {
     return DEFAULT_AI_PREFERENCES;

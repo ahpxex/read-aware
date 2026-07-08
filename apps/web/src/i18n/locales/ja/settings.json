@@ -149,6 +149,11 @@
         "description": "本とメモに基づいて追加の質問ができます。"
       }
     },
+    "chat": "チャット",
+    "followStreaming": {
+      "title": "ストリーミング返信に追従",
+      "description": "返信の生成に合わせて自動でスクロールします。オフの場合は返信の冒頭に留まります。"
+    },
     "memory": "メモリ",
     "buildMemory": {
       "title": "長期メモリを構築",

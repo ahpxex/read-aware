@@ -149,6 +149,11 @@
         "description": "Poser des questions de suivi ancrées dans le livre et vos notes."
       }
     },
+    "chat": "Discussion",
+    "followStreaming": {
+      "title": "Suivre les réponses en continu",
+      "description": "Fait défiler la vue au fil de la réponse. Désactivé, la vue reste au début de la réponse."
+    },
     "memory": "Mémoire",
     "buildMemory": {
       "title": "Construire une mémoire à long terme",

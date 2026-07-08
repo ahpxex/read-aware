@@ -149,6 +149,11 @@
         "description": "根據書籍內容與你的筆記提出追問。"
       }
     },
+    "chat": "對話",
+    "followStreaming": {
+      "title": "跟隨串流回覆捲動",
+      "description": "回覆生成時自動捲動至最新內容；關閉時檢視停留在回覆開頭。"
+    },
     "memory": "記憶",
     "buildMemory": {
       "title": "建立長期記憶",

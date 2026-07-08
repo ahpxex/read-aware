@@ -149,6 +149,11 @@
         "description": "Haz preguntas de seguimiento basadas en el libro y tus notas."
       }
     },
+    "chat": "Chat",
+    "followStreaming": {
+      "title": "Seguir las respuestas en streaming",
+      "description": "Desplaza la vista mientras llega la respuesta. Desactivado, la vista permanece al inicio de la respuesta."
+    },
     "memory": "Memoria",
     "buildMemory": {
       "title": "Crear memoria a largo plazo",

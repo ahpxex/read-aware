@@ -1,7 +1,7 @@
-import { useEffect, useRef } from "react";
 import { ChatCircleDots } from "@phosphor-icons/react";
 import { Caption, EmptyState, ScrollArea, Spinner } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
+import { useTranscriptAutoScroll } from "../hooks/useTranscriptAutoScroll";
 import type { ChatAssistantPart, ChatMessage } from "../lib/chat-types";
 import { ChatMessageItem } from "./ChatMessageItem";
 
@@ -13,10 +13,22 @@ type ChatTranscriptProps = {
   status: string | null;
 };
 
+/** The quiet activity row shown while the model is between visible outputs. */
+function ThinkingRow({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2 text-fg-muted">
+      <Spinner size="sm" />
+      <Caption>{label}</Caption>
+    </div>
+  );
+}
+
 /**
  * The scrolling conversation: prior turns, the in-progress assistant turn
  * (thinking, tool steps and prose as they happen), and a "thinking" indicator
- * before the first event. Owns auto-scroll-to-bottom.
+ * whenever the model is working but nothing is streaming — before the first
+ * event, and in the gap after a round's tools finish. Scroll policy lives in
+ * useTranscriptAutoScroll (anchored by default, opt-in follow).
  */
 export function ChatTranscript({
   messages,
@@ -26,12 +38,12 @@ export function ChatTranscript({
   status,
 }: ChatTranscriptProps) {
   const { t } = useTranslation("ai");
-  const endRef = useRef<HTMLDivElement | null>(null);
-
-  // Keep the latest turn in view as messages arrive and the reply streams in.
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
-  }, [messages, streamingParts, isStreaming]);
+  const { containerRef, liveTurnRef, liveTurnId, liveTurnMinHeight } = useTranscriptAutoScroll({
+    messages,
+    streamingParts,
+    isStreaming,
+    isLoading,
+  });
 
   if (isLoading) {
     return (
@@ -53,8 +65,42 @@ export function ChatTranscript({
     );
   }
 
+  // After a round's tool calls settle, the model is composing its next step —
+  // without this the transcript would sit visually dead until the next chunk.
+  const lastPart = streamingParts[streamingParts.length - 1];
+  const awaitingNextRound =
+    isStreaming &&
+    lastPart?.type === "tool" &&
+    !streamingParts.some((part) => part.type === "tool" && part.state === "running");
+
+  const liveTurnIndex = liveTurnId
+    ? messages.findIndex((message) => message.id === liveTurnId)
+    : -1;
+  const settledMessages = liveTurnIndex >= 0 ? messages.slice(0, liveTurnIndex) : messages;
+  const liveMessages = liveTurnIndex >= 0 ? messages.slice(liveTurnIndex) : [];
+
+  const streamingBlock = isStreaming && (
+    <>
+      {streamingParts.length > 0 ? (
+        <ChatMessageItem
+          message={{
+            id: "__streaming__",
+            role: "assistant",
+            content: "",
+            parts: streamingParts,
+            createdAt: "",
+          }}
+          streaming
+        />
+      ) : null}
+      {(streamingParts.length === 0 || awaitingNextRound) && (
+        <ThinkingRow label={status ?? t("chat.thinking")} />
+      )}
+    </>
+  );
+
   return (
-    <ScrollArea className="min-h-0 flex-1">
+    <ScrollArea ref={containerRef} className="min-h-0 flex-1">
       {/* ra-chat-selectable opts back into text selection (the app chrome is
           globally non-selectable) so replies and quoted passages can be copied.
           max-w-2xl caps line length for readability on wide surfaces (the
@@ -62,30 +108,27 @@ export function ChatTranscript({
           at the surface edge. In the reader panel the cap is a no-op. */}
       <div className="ra-chat-selectable mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 py-4">
 
-        {messages.map((message) => (
+        {settledMessages.map((message) => (
           <ChatMessageItem key={message.id} message={message} />
         ))}
 
-        {isStreaming &&
-          (streamingParts.length > 0 ? (
-            <ChatMessageItem
-              message={{
-                id: "__streaming__",
-                role: "assistant",
-                content: "",
-                parts: streamingParts,
-                createdAt: "",
-              }}
-              streaming
-            />
-          ) : (
-            <div className="flex items-center gap-2 text-fg-muted">
-              <Spinner size="sm" />
-              <Caption>{status ?? t("chat.thinking")}</Caption>
-            </div>
-          ))}
-
-        <div ref={endRef} />
+        {liveTurnIndex >= 0 ? (
+          /* The live turn: the pinned question plus the reply streaming under
+             it. Its min-height (anchored mode) reserves the space the reply
+             streams into, so the view never has to chase it. */
+          <div
+            ref={liveTurnRef}
+            className="flex flex-col gap-4"
+            style={liveTurnMinHeight ? { minHeight: liveTurnMinHeight } : undefined}
+          >
+            {liveMessages.map((message) => (
+              <ChatMessageItem key={message.id} message={message} />
+            ))}
+            {streamingBlock}
+          </div>
+        ) : (
+          streamingBlock
+        )}
       </div>
     </ScrollArea>
   );

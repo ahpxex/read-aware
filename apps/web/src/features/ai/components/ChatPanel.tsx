@@ -16,13 +16,16 @@ export function ChatPanel({
   bookId,
   bookTitle,
   active = false,
+  chapterHref = null,
 }: {
   bookId: string;
   bookTitle: string;
   /** Whether the chat panel is open and visible — drives autofocus of the composer. */
   active?: boolean;
+  /** The reader's current chapter — stamps each turn for the agent's chapter session. */
+  chapterHref?: string | null;
 }) {
-  const conversation = useBookConversation(bookId, bookTitle);
+  const conversation = useBookConversation(bookId, bookTitle, "book", chapterHref);
   const askAiRequest = useAtomValue(askAiRequestAtom);
   const lastConsumedIdRef = useRef<string | null>(null);
   const [pendingAttachment, setPendingAttachment] =

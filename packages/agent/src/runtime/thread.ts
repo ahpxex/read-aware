@@ -2,6 +2,7 @@
  * 一个线程 = 一个 pi Agent 实例（doc §5 runtime/）。
  * 职责：从 ConversationPort 水化转录、每轮重建 system prompt、
  * 把 pi 的事件流翻译成 ThreadChunk、轮末持久化两条 TurnRecord（doc §10）。
+ * 书线程按**章节会话**装配上下文：同章节连续，换章节发新消息才重置（doc §5）。
  */
 import { Agent, type AgentEvent } from "@earendil-works/pi-agent-core";
 import { streamSimple } from "@earendil-works/pi-ai/compat";
@@ -36,6 +37,8 @@ export interface SendTurnInput {
   attachments?: SelectionAttachment[];
   /** 发送时刻的当前阅读位置；无选区时 ask-note 锚在这里（doc §7） */
   positionAnchor?: string;
+  /** 发送时刻所在章节（href）—— 书线程章节会话的边界信号（doc §5） */
+  chapter?: string;
   signal?: AbortSignal;
 }
 
@@ -79,6 +82,13 @@ export class AgentThread {
   private agent: Agent | undefined;
   private busy = false;
   private backgroundWork: Promise<void> = Promise.resolve();
+  /**
+   * 书线程的章节会话（doc §5）：会话内 agent.state 连续累积（含工具调用的
+   * 完整上下文树）；仅当用户在**另一个章节**发出新消息时才重置回无状态基线。
+   * 纯内存 —— 运行时重建/重启后自然回落到基线装配。
+   */
+  private sessionStarted = false;
+  private sessionChapter: string | undefined;
 
   constructor(options: AgentThreadOptions) {
     this.scope = options.scope;
@@ -97,7 +107,7 @@ export class AgentThread {
 
   /**
    * 首次使用时创建 Agent。全局线程从转录 store 水化历史（线程内连续）；
-   * 书线程不水化 —— 无状态装配，每轮 sendTurn 重置为"一轮尾巴"。
+   * 书线程不水化 —— 章节会话首轮由 sendTurn 重置为"一轮尾巴"基线。
    */
   private async ensureAgent(): Promise<Agent> {
     if (this.agent) return this.agent;
@@ -153,20 +163,34 @@ export class AgentThread {
     this.busy = true;
     const queue = new AsyncQueue<AgentEvent>();
     let unsubscribe: (() => void) | undefined;
+    // 只有干净收尾的轮次才留在章节会话里；中断/报错后 agent.state 形状
+    // 不可信，下一轮从持久记录重建基线（等价于今天的无状态装配）。
+    let turnCompleted = false;
     try {
       const agent = await this.ensureAgent();
       await this.refreshSystemPrompt(agent);
       if (this.scope.kind === "book") {
-        // 书线程无状态装配（doc §3）：prompt ≠ 转录回放。每轮重置为上一轮
-        // user↔assistant 原文（覆盖"那第二点呢？"式的明显 follow-up），
-        // 加上 system prompt 里的滚动摘要；更早的历史 agent 用
-        // get_recent_turns / search_conversation 拉取。UI 的连续转录在
-        // 持久层，不受影响。
-        const records = await this.deps.conversations.load(this.key);
-        agent.state.messages = turnRecordsToMessages(
-          lastTurnTail(records),
-          this.resolveModel("smart"),
-        );
+        // 书线程章节会话（doc §5）：同章节内的轮次共享同一个上下文树
+        // （agent.state 连续累积，windowByTurns 封顶）；当且仅当这条消息
+        // 发自另一个章节时，才把 state 重置回无状态基线 —— 上一轮
+        // user↔assistant 原文（覆盖"那第二点呢？"式的明显 follow-up）加上
+        // system prompt 里的滚动摘要；更早的历史 agent 用 get_recent_turns /
+        // search_conversation 拉取。章节未知（选区与阅读位置都没带 href）
+        // 不算换章。UI 的连续转录在持久层，不受影响。
+        const turnChapter = input.attachments?.[0]?.chapter ?? input.chapter;
+        const crossedChapter =
+          turnChapter !== undefined &&
+          this.sessionChapter !== undefined &&
+          turnChapter !== this.sessionChapter;
+        if (!this.sessionStarted || crossedChapter) {
+          const records = await this.deps.conversations.load(this.key);
+          agent.state.messages = turnRecordsToMessages(
+            lastTurnTail(records),
+            this.resolveModel("smart"),
+          );
+          this.sessionStarted = true;
+        }
+        if (turnChapter !== undefined) this.sessionChapter = turnChapter;
       }
       unsubscribe = agent.subscribe((event) => queue.push(event));
 
@@ -277,7 +301,9 @@ export class AgentThread {
 
       // 轮后管道：记忆提炼 + 滚动摘要。异步、不阻塞、失败静默（doc §10 第 6 步）
       this.scheduleBackgroundPipeline(input.text, answer);
+      turnCompleted = true;
     } finally {
+      if (this.scope.kind === "book" && !turnCompleted) this.sessionStarted = false;
       unsubscribe?.();
       this.busy = false;
     }

@@ -169,6 +169,89 @@ describe("AgentThread", () => {
     expect(contentText).toContain("这段怎么理解？");
   });
 
+  test("chapter session: turns in the same chapter share the accumulated context", async () => {
+    const { faux, model } = makeFaux();
+    const contexts: Context[] = [];
+    faux.setResponses([
+      (context) => { contexts.push(context); return fauxAssistantMessage("a1"); },
+      (context) => { contexts.push(context); return fauxAssistantMessage("a2"); },
+      (context) => { contexts.push(context); return fauxAssistantMessage("a3"); },
+    ]);
+    const { deps } = makeDeps();
+    const thread = makeThread(deps, model);
+
+    await collect(thread.sendTurn({ text: "q1", chapter: "ch1.xhtml" }));
+    await collect(thread.sendTurn({ text: "q2", chapter: "ch1.xhtml" }));
+    await collect(thread.sendTurn({ text: "q3", chapter: "ch1.xhtml" }));
+
+    // 会话内连续：第三轮带完整累积（u1,a1,u2,a2,u3），而不是一轮尾巴的 3 条
+    expect(contexts[2]?.messages).toHaveLength(5);
+  });
+
+  test("chapter session: first message from another chapter resets to the one-turn tail", async () => {
+    const { faux, model } = makeFaux();
+    const contexts: Context[] = [];
+    faux.setResponses([
+      (context) => { contexts.push(context); return fauxAssistantMessage("a1"); },
+      (context) => { contexts.push(context); return fauxAssistantMessage("a2"); },
+      (context) => { contexts.push(context); return fauxAssistantMessage("a3"); },
+      (context) => { contexts.push(context); return fauxAssistantMessage("a4"); },
+    ]);
+    const { deps } = makeDeps();
+    const thread = makeThread(deps, model);
+
+    await collect(thread.sendTurn({ text: "q1", chapter: "ch1.xhtml" }));
+    await collect(thread.sendTurn({ text: "q2", chapter: "ch1.xhtml" }));
+    // 换章发新消息 → 旧 state 扔掉，重置为持久记录的一轮尾巴（q2,a2）+ 本轮
+    await collect(thread.sendTurn({ text: "q3", chapter: "ch2.xhtml" }));
+    expect(contexts[2]?.messages).toHaveLength(3);
+    // 新章节里继续 → 又开始累积（q2,a2,u3,a3,u4）
+    await collect(thread.sendTurn({ text: "q4", chapter: "ch2.xhtml" }));
+    expect(contexts[3]?.messages).toHaveLength(5);
+  });
+
+  test("chapter session: a turn without chapter info stays in the current session", async () => {
+    const { faux, model } = makeFaux();
+    const contexts: Context[] = [];
+    faux.setResponses([
+      (context) => { contexts.push(context); return fauxAssistantMessage("a1"); },
+      (context) => { contexts.push(context); return fauxAssistantMessage("a2"); },
+      (context) => { contexts.push(context); return fauxAssistantMessage("a3"); },
+    ]);
+    const { deps } = makeDeps();
+    const thread = makeThread(deps, model);
+
+    await collect(thread.sendTurn({ text: "q1", chapter: "ch1.xhtml" }));
+    await collect(thread.sendTurn({ text: "q2", chapter: "ch1.xhtml" }));
+    // 章节未知 ≠ 换章：会话保持连续
+    await collect(thread.sendTurn({ text: "q3" }));
+    expect(contexts[2]?.messages).toHaveLength(5);
+  });
+
+  test("chapter session: the selection attachment's chapter is the boundary signal", async () => {
+    const { faux, model } = makeFaux();
+    const contexts: Context[] = [];
+    faux.setResponses([
+      (context) => { contexts.push(context); return fauxAssistantMessage("a1"); },
+      (context) => { contexts.push(context); return fauxAssistantMessage("a2"); },
+      (context) => { contexts.push(context); return fauxAssistantMessage("a3"); },
+    ]);
+    const { deps } = makeDeps();
+    const thread = makeThread(deps, model);
+
+    await collect(thread.sendTurn({ text: "q1", chapter: "ch1.xhtml" }));
+    await collect(thread.sendTurn({ text: "q2", chapter: "ch1.xhtml" }));
+    // 选区来自 ch2（attachment 的 chapter 优先于阅读位置）→ 视为换章
+    await collect(
+      thread.sendTurn({
+        text: "q3",
+        chapter: "ch1.xhtml",
+        attachments: [{ text: "quoted", chapter: "ch2.xhtml" }],
+      }),
+    );
+    expect(contexts[2]?.messages).toHaveLength(3);
+  });
+
   test("rejects a second turn while one is streaming", async () => {
     const { faux, model } = makeFaux();
     faux.setResponses([fauxAssistantMessage("first answer")]);

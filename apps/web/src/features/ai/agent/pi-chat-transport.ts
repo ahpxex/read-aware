@@ -34,6 +34,7 @@ export function createPiChatTransport(): ChatTransport {
       for await (const chunk of runtime.sendTurn(scope, {
         text: request.message.content,
         attachments,
+        chapter: request.chapterHref ?? undefined,
         signal,
       })) {
         switch (chunk.type) {

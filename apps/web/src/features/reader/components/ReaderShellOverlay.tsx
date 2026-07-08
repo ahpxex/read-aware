@@ -390,7 +390,12 @@ export function ReaderShellOverlay({
               onCommit={persistPanelSizes}
             />
           )}
-          <ChatPanel bookId={bookId} bookTitle={title} active={visible && notesOpen} />
+          <ChatPanel
+            bookId={bookId}
+            bookTitle={title}
+            active={visible && notesOpen}
+            chapterHref={currentChapterHref}
+          />
         </section>
       </div>
     </div>

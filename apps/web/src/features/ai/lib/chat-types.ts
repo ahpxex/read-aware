@@ -85,6 +85,11 @@ export interface ChatTurnRequest {
    * 此时 bookId 为伪 id（见 conversation-port 的 GLOBAL_CONVERSATION_ID）。
    */
   thread?: "book" | "global";
+  /**
+   * 发送时刻阅读器所在章节（href）。书线程的章节会话边界信号：同章节的
+   * 轮次共享上下文，换章节发新消息才重置（agent 包 doc §5）。全局线程忽略。
+   */
+  chapterHref?: string | null;
 }
 
 /**

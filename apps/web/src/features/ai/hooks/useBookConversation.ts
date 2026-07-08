@@ -33,6 +33,11 @@ export function useBookConversation(
   bookId: string,
   bookTitle: string,
   thread: "book" | "global" = "book",
+  /**
+   * The reader's current chapter (href) — sampled at send time and stamped on
+   * each turn so the agent can scope its chapter session. Book thread only.
+   */
+  chapterHref: string | null = null,
 ): BookConversation {
   const { t } = useTranslation("ai");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -46,6 +51,9 @@ export function useBookConversation(
   // Latest committed messages, reachable synchronously inside the async turn.
   const messagesRef = useRef<ChatMessage[]>([]);
   messagesRef.current = messages;
+  // Sampled at send time via a ref so `send` stays stable across page turns.
+  const chapterHrefRef = useRef<string | null>(chapterHref);
+  chapterHrefRef.current = chapterHref;
 
   // (Re)load the persisted conversation when the book changes; abort any
   // in-flight turn from the previous book.
@@ -101,7 +109,14 @@ export function useBookConversation(
         let assembled: ChatAssistantPart[] = [];
         try {
           const stream = getChatTransport().sendTurn(
-            { bookId, bookTitle, history, message: userMessage, thread },
+            {
+              bookId,
+              bookTitle,
+              history,
+              message: userMessage,
+              thread,
+              chapterHref: chapterHrefRef.current,
+            },
             controller.signal,
           );
           for await (const chunk of stream) {

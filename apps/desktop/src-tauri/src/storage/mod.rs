@@ -1030,6 +1030,138 @@ pub fn delete_blob(
     delete_blob_inner(&conn, &data_dir.0, &key)
 }
 
+// --- Staged blob transfers (mobile) ---
+//
+// The raw-body/raw-response fast paths above don't exist on Android: the
+// WebView never exposes POST bodies (uploads fall back to a JSON number
+// array — parsing tens of millions of array elements stalls for minutes on a
+// whole book), and IPC responses are injected via `evaluateJavascript`, which
+// chokes on multi-megabyte payloads. Mirroring the `book_read_*` commands in
+// lib.rs, mobile moves blobs through small staged chunks instead: downloads
+// pull raw-response slices; uploads push base64 strings (one JSON string
+// parses orders of magnitude faster than the number-array fallback).
+
+/// Blobs staged for chunked download, keyed by blob key.
+#[derive(Default)]
+pub struct BlobReadSessions(Mutex<std::collections::HashMap<String, Vec<u8>>>);
+
+/// Upload buffers accumulating base64 chunks until commit, keyed by blob key.
+#[derive(Default)]
+pub struct BlobWriteSessions(Mutex<std::collections::HashMap<String, Vec<u8>>>);
+
+/// Stage a blob for chunked download and return its byte length.
+/// 0 = no such key (same convention as `get_blob`'s empty body).
+#[tauri::command]
+pub fn blob_read_open(
+    key: String,
+    sessions: State<'_, BlobReadSessions>,
+    db: State<'_, Db>,
+    data_dir: State<'_, DataDir>,
+) -> Result<usize, String> {
+    let bytes = {
+        let conn = db.0.lock().map_err(|e| e.to_string())?;
+        get_blob_inner(&conn, &data_dir.0, &key)?
+    };
+    let len = bytes.len();
+    if len > 0 {
+        sessions
+            .0
+            .lock()
+            .map_err(|e| e.to_string())?
+            .insert(key, bytes);
+    }
+    Ok(len)
+}
+
+/// Return one chunk of a staged blob as a raw binary response.
+#[tauri::command]
+pub fn blob_read_chunk(
+    key: String,
+    offset: usize,
+    length: usize,
+    sessions: State<'_, BlobReadSessions>,
+) -> Result<tauri::ipc::Response, String> {
+    let map = sessions.0.lock().map_err(|e| e.to_string())?;
+    let bytes = map
+        .get(&key)
+        .ok_or_else(|| format!("blob_read_chunk: no open session for {key}"))?;
+    let start = offset.min(bytes.len());
+    let end = offset.saturating_add(length).min(bytes.len());
+    Ok(tauri::ipc::Response::new(bytes[start..end].to_vec()))
+}
+
+/// Drop a staged download once the webview has pulled every chunk.
+#[tauri::command]
+pub fn blob_read_close(
+    key: String,
+    sessions: State<'_, BlobReadSessions>,
+) -> Result<(), String> {
+    sessions.0.lock().map_err(|e| e.to_string())?.remove(&key);
+    Ok(())
+}
+
+/// Open (or reset) an upload buffer for `key`.
+#[tauri::command]
+pub fn blob_write_open(
+    key: String,
+    sessions: State<'_, BlobWriteSessions>,
+) -> Result<(), String> {
+    sessions
+        .0
+        .lock()
+        .map_err(|e| e.to_string())?
+        .insert(key, Vec::new());
+    Ok(())
+}
+
+/// Append one base64-encoded chunk to an open upload buffer.
+#[tauri::command]
+pub fn blob_write_chunk(
+    key: String,
+    chunk_base64: String,
+    sessions: State<'_, BlobWriteSessions>,
+) -> Result<(), String> {
+    use base64::Engine;
+    let chunk = base64::engine::general_purpose::STANDARD
+        .decode(chunk_base64.as_bytes())
+        .map_err(|e| format!("blob_write_chunk: invalid base64: {e}"))?;
+    let mut map = sessions.0.lock().map_err(|e| e.to_string())?;
+    let buffer = map
+        .get_mut(&key)
+        .ok_or_else(|| format!("blob_write_chunk: no open session for {key}"))?;
+    buffer.extend_from_slice(&chunk);
+    Ok(())
+}
+
+/// Persist an upload buffer through the regular blob store path.
+#[tauri::command]
+pub fn blob_write_commit(
+    key: String,
+    mime_type: Option<String>,
+    sessions: State<'_, BlobWriteSessions>,
+    db: State<'_, Db>,
+    data_dir: State<'_, DataDir>,
+) -> Result<BlobPutResult, String> {
+    let data = sessions
+        .0
+        .lock()
+        .map_err(|e| e.to_string())?
+        .remove(&key)
+        .ok_or_else(|| format!("blob_write_commit: no open session for {key}"))?;
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    put_blob_inner(&conn, &data_dir.0, &key, mime_type.as_deref(), &data)
+}
+
+/// Discard an upload buffer after a failed transfer.
+#[tauri::command]
+pub fn blob_write_abort(
+    key: String,
+    sessions: State<'_, BlobWriteSessions>,
+) -> Result<(), String> {
+    sessions.0.lock().map_err(|e| e.to_string())?.remove(&key);
+    Ok(())
+}
+
 // --- Device-local key/value config (backs the settings seam) ---
 
 /// The persisted app theme preference, read straight off the connection during

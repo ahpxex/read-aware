@@ -400,6 +400,8 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .manage(BookReadSessions::default())
+        .manage(storage::BlobReadSessions::default())
+        .manage(storage::BlobWriteSessions::default())
         .setup(|app| {
             let (conn, data_dir) =
                 storage::init_db(app.handle()).expect("failed to initialize database");
@@ -458,6 +460,13 @@ pub fn run() {
             storage::put_blob,
             storage::get_blob,
             storage::delete_blob,
+            storage::blob_read_open,
+            storage::blob_read_chunk,
+            storage::blob_read_close,
+            storage::blob_write_open,
+            storage::blob_write_chunk,
+            storage::blob_write_commit,
+            storage::blob_write_abort,
             storage::load_kv_all,
             storage::set_kv,
             storage::delete_kv,

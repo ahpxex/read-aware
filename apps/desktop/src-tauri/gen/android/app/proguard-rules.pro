@@ -19,3 +19,16 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Rust and the Android WebView call these MainActivity methods by exact names
+# (JNI strings / @JavascriptInterface). R8 cannot see those native edges, so
+# release minification must keep the members and their runtime annotations.
+-keepattributes RuntimeVisibleAnnotations
+-keepclassmembers class com.readaware.app.MainActivity {
+    public void sendToBackground();
+    public void setStatusBarHidden(boolean);
+    public void syncSafeArea();
+    public void setVolumeKeyCapture(boolean);
+    public void startBookPick(int);
+    public java.lang.String takeBookPickResult();
+}

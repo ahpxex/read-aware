@@ -3,6 +3,17 @@ import { open } from "@tauri-apps/plugin-dialog";
 import type { TFunction } from "i18next";
 import { isAndroid, isMobileOS, isTauri } from "../../../platform/environment";
 
+type AndroidBookPickBridge = {
+  startBookPick?: (generation: number) => void;
+  takeBookPickResult?: () => string | null;
+};
+
+declare global {
+  interface Window {
+    ReadAwareAndroid?: AndroidBookPickBridge;
+  }
+}
+
 /**
  * Extensions accepted by the importer. Single source of truth shared by the
  * native dialog filter and the web `<input accept>` fallback. Mirrors the
@@ -84,26 +95,47 @@ const PICK_POLL_TIMEOUT_MS = 10 * 60 * 1000;
 
 let pickGenerationCounter = 0;
 
+function getAndroidBookPickBridge(): AndroidBookPickBridge | null {
+  if (typeof window === "undefined") return null;
+  const bridge = window.ReadAwareAndroid;
+  return bridge?.startBookPick && bridge.takeBookPickResult ? bridge : null;
+}
+
+async function startBookPickAndroid(generation: number): Promise<void> {
+  const bridge = getAndroidBookPickBridge();
+  if (bridge) {
+    bridge.startBookPick?.(generation);
+    return;
+  }
+  await invoke("book_pick_start", { generation });
+}
+
+async function pollBookPickAndroid(): Promise<string | null> {
+  const bridge = getAndroidBookPickBridge();
+  if (bridge) return bridge.takeBookPickResult?.() ?? null;
+  return await invoke<string | null>("book_pick_poll");
+}
+
 /**
- * Android book picking WITHOUT tauri-plugin-dialog. The plugin delivers the
- * picker's activity result through a single mutable callback slot pushed to a
- * possibly-still-paused webview — a cancel's response is lost nearly every
- * time and a successful pick's intermittently, freezing the import flow. Our
- * `MainActivity` instead parks the result natively, and this poll loop
- * collects it over ordinary request/response IPC, which never drops.
+ * Android book picking WITHOUT tauri-plugin-dialog. MainActivity parks the
+ * result natively and this loop polls it. Prefer the direct Android JS bridge:
+ * it avoids the Rust→JNI hop for opening the picker, while preserving the Tauri
+ * invoke fallback for older shells.
  * Resolves to the picked `content://` URIs, or `null` on cancel.
  */
 async function pickBookUrisAndroid(): Promise<string[] | null> {
   const generation = ++pickGenerationCounter;
-  await invoke("book_pick_start", { generation });
+  await startBookPickAndroid(generation);
   const deadline = performance.now() + PICK_POLL_TIMEOUT_MS;
   while (performance.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, PICK_POLL_INTERVAL_MS));
-    const parked = await invoke<string | null>("book_pick_poll");
+    const parked = await pollBookPickAndroid();
     if (parked == null) continue;
     const [parkedGeneration, ...uris] = parked.split("\n").filter(Boolean);
     // A stale result from an earlier, written-off attempt: keep waiting.
     if (Number(parkedGeneration) !== generation) continue;
+    const nativeError = uris.find((uri) => uri.startsWith("__ERROR__:"));
+    if (nativeError) throw new Error(nativeError.slice("__ERROR__:".length));
     return uris.length > 0 ? uris : null;
   }
   return null;

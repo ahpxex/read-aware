@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
@@ -70,6 +71,7 @@ class MainActivity : TauriActivity() {
         }
       },
     )
+    installBookPickBridge()
   }
 
   /** Called from Rust (the `move_task_to_back` command): background the app
@@ -112,36 +114,46 @@ class MainActivity : TauriActivity() {
     volumeKeysCaptured = captured
   }
 
-  /** Called from Rust (`book_pick_start`): launch the system document picker
+  /** Called from Rust (`book_pick_start`) or the webview JS bridge: launch the system document picker
    *  for book files. The result is parked in [bookPickResult] rather than
    *  pushed to the webview — see that field's comment. */
+  @JavascriptInterface
   fun startBookPick(generation: Int) {
+    bookPickGeneration = generation
+    bookPickResult = null
     runOnUiThread {
-      bookPickGeneration = generation
-      bookPickResult = null
-      val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-        addCategory(Intent.CATEGORY_OPENABLE)
-        type = "*/*"
-        putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-        putExtra(
-          Intent.EXTRA_MIME_TYPES,
-          arrayOf(
-            "application/epub+zip",
-            "application/pdf",
-            "application/x-mobipocket-ebook",
-            "application/vnd.amazon.ebook",
-            "application/x-fictionbook+xml",
-            "application/octet-stream",
-          ),
-        )
+      try {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+          addCategory(Intent.CATEGORY_OPENABLE)
+          type = "*/*"
+          putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+          putExtra(
+            Intent.EXTRA_MIME_TYPES,
+            arrayOf(
+              "application/epub+zip",
+              "application/pdf",
+              "application/x-mobipocket-ebook",
+              "application/vnd.amazon.ebook",
+              "application/x-fictionbook+xml",
+              "application/octet-stream",
+            ),
+          )
+        }
+        @Suppress("DEPRECATION")
+        startActivityForResult(intent, BOOK_PICK_REQUEST)
+      } catch (error: Throwable) {
+        bookPickResult = listOf(
+          generation.toString(),
+          "__ERROR__:${error.message ?: error.javaClass.name}",
+        ).joinToString("\n")
+        bookPickGeneration = 0
       }
-      @Suppress("DEPRECATION")
-      startActivityForResult(intent, BOOK_PICK_REQUEST)
     }
   }
 
-  /** Called from Rust (`book_pick_poll`): hand over the parked pick result
+  /** Called from Rust (`book_pick_poll`) or the webview JS bridge: hand over the parked pick result
    *  (and clear it), or null while the picker is still open. */
+  @JavascriptInterface
   fun takeBookPickResult(): String? {
     val result = bookPickResult
     if (result != null) bookPickResult = null
@@ -187,6 +199,19 @@ class MainActivity : TauriActivity() {
       )
     }
     return true
+  }
+
+  private fun installBookPickBridge() {
+    val root = findViewById<View>(android.R.id.content)
+    fun install(attemptsLeft: Int) {
+      val webView = findWebView(root)
+      if (webView != null) {
+        webView.addJavascriptInterface(this, "ReadAwareAndroid")
+        return
+      }
+      if (attemptsLeft > 0) root.postDelayed({ install(attemptsLeft - 1) }, 50)
+    }
+    install(20)
   }
 
   /** Push the system-bar + cutout insets into the web layer's CSS variables. */

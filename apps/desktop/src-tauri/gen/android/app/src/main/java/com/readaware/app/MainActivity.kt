@@ -49,7 +49,14 @@ class MainActivity : TauriActivity() {
     // (not the decor view) so the window's own insets handling is untouched.
     ViewCompat.setOnApplyWindowInsetsListener(
       findViewById<View>(android.R.id.content)
-    ) { _, insets ->
+    ) { view, insets ->
+      // Keyboard avoidance: edge-to-edge opts the window out of adjustResize,
+      // so the IME just overlays the webview and bottom-anchored inputs (the
+      // chat composer, search fields) end up behind it — the webview never
+      // learns the keyboard exists. Shrink it ourselves: pad the content view
+      // by the IME inset so the app-shell layout reflows above the keyboard.
+      val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+      view.setPadding(0, 0, 0, ime.bottom)
       applySafeAreaToWebView(insets)
       insets
     }
@@ -219,6 +226,12 @@ class MainActivity : TauriActivity() {
     val bars = insets.getInsets(
       WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
     )
+    // While the IME is up, the content view is already padded past it (see the
+    // insets listener), so the webview's bottom edge sits above the keyboard —
+    // and above the nav bar the keyboard covers. Keeping the nav-bar value in
+    // --ra-safe-bottom would double the clearance under bottom-anchored chrome.
+    val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+    val safeBottom = maxOf(bars.bottom - ime.bottom, 0)
     // WebView CSS pixels are physical pixels over the display density.
     val density = resources.displayMetrics.density
     val js = """
@@ -226,7 +239,7 @@ class MainActivity : TauriActivity() {
         var s = document.documentElement.style;
         s.setProperty('--ra-safe-top', '${bars.top / density}px');
         s.setProperty('--ra-safe-right', '${bars.right / density}px');
-        s.setProperty('--ra-safe-bottom', '${bars.bottom / density}px');
+        s.setProperty('--ra-safe-bottom', '${safeBottom / density}px');
         s.setProperty('--ra-safe-left', '${bars.left / density}px');
       })();
     """.trimIndent()

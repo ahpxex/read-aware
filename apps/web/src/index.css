@@ -233,6 +233,14 @@ html[data-tauri="true"] {
   border-radius: 9999px;
 }
 
+/* Recharts 3's accessibility layer puts tabIndex=0 on the chart <svg> for
+   keyboard navigation, and WebKit draws its default focus ring even on mouse
+   click — an outline around the whole chart. Suppress the ring for pointer
+   focus only; keyboard focus (:focus-visible) keeps the default outline. */
+.recharts-wrapper svg:focus:not(:focus-visible) {
+  outline: none;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .ra-motion-page-enter {
     animation: ra-page-enter 280ms var(--ra-ease-out-quart);

@@ -1,5 +1,6 @@
 package com.readaware.app
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
@@ -13,6 +14,24 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 
 class MainActivity : TauriActivity() {
+  companion object {
+    /** Classic requestCode for the book picker — distinct from the
+     *  ActivityResult launchers Tauri's PluginManager registers. */
+    private const val BOOK_PICK_REQUEST = 51733
+  }
+
+  /** Generation of the pick currently in flight; 0 = none. */
+  @Volatile private var bookPickGeneration = 0
+
+  /** Parked pick result: "<generation>" alone = cancelled, else
+   *  "<generation>\n<uri>\n<uri>…". The webview collects it by POLLING
+   *  (`book_pick_poll` over ordinary request/response IPC) instead of
+   *  receiving a push: Tauri's own dialog plugin delivers activity results
+   *  through a single mutable callback slot whose response can be dropped
+   *  while the webview is paused mid round-trip — a cancel is lost nearly
+   *  every time, a successful pick intermittently. Parked state + polling
+   *  cannot lose the result. */
+  @Volatile private var bookPickResult: String? = null
   /** While true, volume keys step the reader's sentence navigator instead of
    *  changing the volume. Toggled from Rust (`set_volume_key_capture`) as the
    *  navigator mode starts/stops, so media volume works normally otherwise. */
@@ -91,6 +110,60 @@ class MainActivity : TauriActivity() {
   /** Called from Rust (the `set_volume_key_capture` command). */
   fun setVolumeKeyCapture(captured: Boolean) {
     volumeKeysCaptured = captured
+  }
+
+  /** Called from Rust (`book_pick_start`): launch the system document picker
+   *  for book files. The result is parked in [bookPickResult] rather than
+   *  pushed to the webview — see that field's comment. */
+  fun startBookPick(generation: Int) {
+    runOnUiThread {
+      bookPickGeneration = generation
+      bookPickResult = null
+      val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+        addCategory(Intent.CATEGORY_OPENABLE)
+        type = "*/*"
+        putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+        putExtra(
+          Intent.EXTRA_MIME_TYPES,
+          arrayOf(
+            "application/epub+zip",
+            "application/pdf",
+            "application/x-mobipocket-ebook",
+            "application/vnd.amazon.ebook",
+            "application/x-fictionbook+xml",
+            "application/octet-stream",
+          ),
+        )
+      }
+      @Suppress("DEPRECATION")
+      startActivityForResult(intent, BOOK_PICK_REQUEST)
+    }
+  }
+
+  /** Called from Rust (`book_pick_poll`): hand over the parked pick result
+   *  (and clear it), or null while the picker is still open. */
+  fun takeBookPickResult(): String? {
+    val result = bookPickResult
+    if (result != null) bookPickResult = null
+    return result
+  }
+
+  @Deprecated("classic result API is intentional here")
+  override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+    @Suppress("DEPRECATION")
+    super.onActivityResult(requestCode, resultCode, data)
+    if (requestCode != BOOK_PICK_REQUEST) return
+    val uris = mutableListOf<String>()
+    if (resultCode == RESULT_OK && data != null) {
+      val clip = data.clipData
+      if (clip != null) {
+        for (i in 0 until clip.itemCount) uris.add(clip.getItemAt(i).uri.toString())
+      } else {
+        data.data?.let { uris.add(it.toString()) }
+      }
+    }
+    bookPickResult = (listOf(bookPickGeneration.toString()) + uris).joinToString("\n")
+    bookPickGeneration = 0
   }
 
   /**

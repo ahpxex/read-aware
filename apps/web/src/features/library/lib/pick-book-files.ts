@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { TFunction } from "i18next";
-import { isMobileOS, isTauri } from "../../../platform/environment";
+import { isAndroid, isMobileOS, isTauri } from "../../../platform/environment";
 
 /**
  * Extensions accepted by the importer. Single source of truth shared by the
@@ -78,20 +78,58 @@ async function readPickedBookBytes(path: string): Promise<Uint8Array> {
   }
 }
 
+/** Poll cadence + ceiling for the Android pick flow. */
+const PICK_POLL_INTERVAL_MS = 300;
+const PICK_POLL_TIMEOUT_MS = 10 * 60 * 1000;
+
+let pickGenerationCounter = 0;
+
 /**
- * Open the native OS file dialog (desktop only) with a real "Books" format
- * filter and return the chosen files reconstructed as web `File` objects so the
- * rest of the import pipeline stays platform-agnostic.
+ * Android book picking WITHOUT tauri-plugin-dialog. The plugin delivers the
+ * picker's activity result through a single mutable callback slot pushed to a
+ * possibly-still-paused webview — a cancel's response is lost nearly every
+ * time and a successful pick's intermittently, freezing the import flow. Our
+ * `MainActivity` instead parks the result natively, and this poll loop
+ * collects it over ordinary request/response IPC, which never drops.
+ * Resolves to the picked `content://` URIs, or `null` on cancel.
+ */
+async function pickBookUrisAndroid(): Promise<string[] | null> {
+  const generation = ++pickGenerationCounter;
+  await invoke("book_pick_start", { generation });
+  const deadline = performance.now() + PICK_POLL_TIMEOUT_MS;
+  while (performance.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, PICK_POLL_INTERVAL_MS));
+    const parked = await invoke<string | null>("book_pick_poll");
+    if (parked == null) continue;
+    const [parkedGeneration, ...uris] = parked.split("\n").filter(Boolean);
+    // A stale result from an earlier, written-off attempt: keep waiting.
+    if (Number(parkedGeneration) !== generation) continue;
+    return uris.length > 0 ? uris : null;
+  }
+  return null;
+}
+
+/**
+ * Open the native OS file dialog with a real "Books" format filter and return
+ * the chosen files reconstructed as web `File` objects so the rest of the
+ * import pipeline stays platform-agnostic. Android routes around the dialog
+ * plugin entirely (see pickBookUrisAndroid).
  */
 export async function pickBookFilesNative(t: TFunction<"shelf">): Promise<File[]> {
-  const selection = await open({
-    multiple: true,
-    title: t("importDialog.title"),
-    filters: [{ name: t("importDialog.filterName"), extensions: [...BOOK_FILE_EXTENSIONS] }],
-  });
-
-  if (selection == null) return [];
-  const paths = Array.isArray(selection) ? selection : [selection];
+  let paths: string[];
+  if (isAndroid()) {
+    const uris = await pickBookUrisAndroid();
+    if (uris == null) return [];
+    paths = uris;
+  } else {
+    const selection = await open({
+      multiple: true,
+      title: t("importDialog.title"),
+      filters: [{ name: t("importDialog.filterName"), extensions: [...BOOK_FILE_EXTENSIONS] }],
+    });
+    if (selection == null) return [];
+    paths = Array.isArray(selection) ? selection : [selection];
+  }
 
   return Promise.all(
     paths.map(async (path) => {

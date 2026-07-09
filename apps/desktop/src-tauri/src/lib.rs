@@ -241,6 +241,88 @@ fn move_task_to_back(app: tauri::AppHandle) -> Result<(), String> {
 #[tauri::command]
 fn move_task_to_back() {}
 
+/// Launch the Android system document picker for book files (see
+/// `MainActivity.startBookPick`). The result is NOT pushed back over the
+/// plugin activity-result channel — that path drops responses across the
+/// picker round-trip (a cancel almost always, a pick intermittently), which
+/// is why this exists instead of tauri-plugin-dialog on Android. The webview
+/// collects the outcome by polling `book_pick_poll`. No-op off Android.
+#[cfg(target_os = "android")]
+#[tauri::command]
+fn book_pick_start(app: tauri::AppHandle, generation: i32) -> Result<(), String> {
+    app.run_on_main_thread(move || {
+        use tao::platform::android::prelude::main_android_context;
+        let Some(ctx) = main_android_context() else {
+            eprintln!("bookPickStart: no android context yet");
+            return;
+        };
+        let Ok(vm) = (unsafe { jni::JavaVM::from_raw(ctx.java_vm.cast()) }) else {
+            return;
+        };
+        let Ok(mut env) = vm.attach_current_thread() else {
+            return;
+        };
+        let activity = unsafe { jni::objects::JObject::from_raw(ctx.context_jobject.cast()) };
+        if let Err(err) = env.call_method(
+            &activity,
+            "startBookPick",
+            "(I)V",
+            &[jni::objects::JValue::Int(generation)],
+        ) {
+            eprintln!("startBookPick JNI call failed: {err}");
+            let _ = env.exception_clear();
+        }
+    })
+    .map_err(|e| e.to_string())
+}
+
+#[cfg(not(target_os = "android"))]
+#[tauri::command]
+fn book_pick_start(_generation: i32) {}
+
+/// Collect (and clear) the parked book-pick result. `None` while the picker
+/// is still open; `Some("<generation>")` = cancelled; otherwise
+/// `Some("<generation>\n<uri>…")`. Plain request/response IPC — the reliable
+/// channel — so the result cannot be lost the way pushed responses are.
+#[cfg(target_os = "android")]
+#[tauri::command]
+fn book_pick_poll(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    let (tx, rx) = std::sync::mpsc::channel::<Option<String>>();
+    app.run_on_main_thread(move || {
+        let result = (|| -> Option<String> {
+            use tao::platform::android::prelude::main_android_context;
+            let ctx = main_android_context()?;
+            let vm = unsafe { jni::JavaVM::from_raw(ctx.java_vm.cast()) }.ok()?;
+            let mut env = vm.attach_current_thread().ok()?;
+            let activity = unsafe { jni::objects::JObject::from_raw(ctx.context_jobject.cast()) };
+            let value = env
+                .call_method(&activity, "takeBookPickResult", "()Ljava/lang/String;", &[])
+                .map_err(|err| {
+                    eprintln!("takeBookPickResult JNI call failed: {err}");
+                    let _ = env.exception_clear();
+                })
+                .ok()?;
+            let obj = value.l().ok()?;
+            if obj.is_null() {
+                return None;
+            }
+            let jstr = jni::objects::JString::from(obj);
+            let text = env.get_string(&jstr).ok()?;
+            Some(text.into())
+        })();
+        let _ = tx.send(result);
+    })
+    .map_err(|e| e.to_string())?;
+    rx.recv_timeout(std::time::Duration::from_secs(2))
+        .map_err(|e| e.to_string())
+}
+
+#[cfg(not(target_os = "android"))]
+#[tauri::command]
+fn book_pick_poll() -> Option<String> {
+    None
+}
+
 /// iOS counterpart: a small ObjC bridge in the Xcode project (see
 /// gen/apple/Sources/read-aware-desktop/StatusBarBridge.m) installs a
 /// `prefersStatusBarHidden` override on wry's root view controller and hops
@@ -498,6 +580,8 @@ pub fn run() {
             sync_safe_area,
             set_volume_key_capture,
             move_task_to_back,
+            book_pick_start,
+            book_pick_poll,
             set_traffic_lights_visible,
             list_system_fonts,
         ]);

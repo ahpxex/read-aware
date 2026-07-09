@@ -18,8 +18,7 @@
   },
   "importNotice": {
     "duplicate_other": "已跳过 {{count}} 本已在你书库中的书籍。",
-    "combined": "{{skipped}} 已导入 {{count}} 本新书。",
-    "pickerLost": "没有收到所选文件。如果你刚才选择了书籍,请再次点击导入重试。"
+    "combined": "{{skipped}} 已导入 {{count}} 本新书。"
   },
   "importDialog": {
     "title": "导入书籍",

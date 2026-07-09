@@ -22,8 +22,7 @@
     "duplicate_one": "« {{title}} » est déjà dans votre bibliothèque.",
     "duplicate_many": "{{count}} livres déjà présents dans votre bibliothèque ont été ignorés.",
     "duplicate_other": "{{count}} livres déjà présents dans votre bibliothèque ont été ignorés.",
-    "combined": "{{skipped}} {{count}} nouveaux importés.",
-    "pickerLost": "Aucun fichier reçu du sélecteur. Si vous aviez choisi un livre, relancez l'import."
+    "combined": "{{skipped}} {{count}} nouveaux importés."
   },
   "importDialog": {
     "title": "Importer des livres",

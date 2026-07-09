@@ -18,8 +18,7 @@
   },
   "importNotice": {
     "duplicate_other": "すでにライブラリにある{{count}}冊の本をスキップしました。",
-    "combined": "{{skipped}} 新たに{{count}}冊をインポートしました。",
-    "pickerLost": "ファイルを受け取れませんでした。本を選択していた場合は、もう一度インポートしてください。"
+    "combined": "{{skipped}} 新たに{{count}}冊をインポートしました。"
   },
   "importDialog": {
     "title": "本をインポート",

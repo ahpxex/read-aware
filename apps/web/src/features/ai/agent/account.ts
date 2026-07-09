@@ -4,16 +4,7 @@
  * （custom = OpenAI 兼容端点 → openai provider + baseUrl）。
  */
 import type { LlmAccount, RoleModels } from "@read-aware/agent";
-import { DEFAULT_MODELS, type AIConfig } from "../lib/ai-config";
-
-/** fast 档位的默认模型；Settings 里的独立选项属于后续产品细节。 */
-const FAST_DEFAULTS: Record<string, string> = {
-  openai: "gpt-4o-mini",
-  anthropic: "claude-3-5-haiku-20241022",
-  openrouter: "openai/gpt-4o-mini",
-  zai: "glm-5.2",
-  "zai-coding-cn": "glm-5.2",
-};
+import { DEFAULT_MODELS, FAST_DEFAULT_MODELS, type AIConfig } from "../lib/ai-config";
 
 export function accountFromConfig(config: AIConfig): { account: LlmAccount; models: RoleModels } {
   const account: LlmAccount =
@@ -25,10 +16,16 @@ export function accountFromConfig(config: AIConfig): { account: LlmAccount; mode
           baseUrl: config.customBaseUrl,
         }
       : { kind: "api-key", provider: config.provider, apiKey: config.apiKey };
+
   const smart = config.model || DEFAULT_MODELS[config.provider];
-  const models: RoleModels = {
-    smart,
-    fast: config.provider === "custom" ? smart : (FAST_DEFAULTS[config.provider] ?? smart),
-  };
+  // A custom (single) endpoint has no second catalog to draw a cheaper model
+  // from, so fast falls back to smart. Everywhere else: the user's Fast choice,
+  // then the per-provider fast default, then smart.
+  const fast =
+    config.provider === "custom"
+      ? config.fastModel || smart
+      : config.fastModel || FAST_DEFAULT_MODELS[config.provider] || smart;
+
+  const models: RoleModels = { smart, fast };
   return { account, models };
 }

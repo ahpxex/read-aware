@@ -199,7 +199,8 @@
     "getKey": {
       "openai": "APIキーは<link>OpenAIダッシュボード</link>から取得できます",
       "anthropic": "APIキーは<link>Anthropicコンソール</link>から取得できます",
-      "openrouter": "APIキーは<link>OpenRouter</link>から取得できます"
+      "openrouter": "APIキーは<link>OpenRouter</link>から取得できます",
+      "generic": "{{provider}} のコンソールで API キーを取得：<link>開く</link>。"
     },
     "save": "設定を保存",
     "test": "接続をテスト",
@@ -212,7 +213,13 @@
     "byok": {
       "title": "BYOK（自分のキーを使用）について",
       "body": "ReadAwareはAIサービスへのアクセスにあなた自身のAPIキーを使用します。キーはブラウザにローカル保存され、当社のサーバーに送信されることはありません。API利用料金はご自身の負担となります。"
-    }
+    },
+    "smartModel": "スマートモデル",
+    "fastModel": "高速モデル",
+    "smartModelHelper": "チャット・オンボーディング・横断的な統合など、遅くて賢い段階。",
+    "fastModelHelper": "辞書・記憶・要約など、安くて速い段階。",
+    "modelPlaceholder": "例：gpt-4o-mini",
+    "fastModelCustomPlaceholder": "空欄の場合はスマートモデルと同じ"
   },
   "font": {
     "label": "フォント",

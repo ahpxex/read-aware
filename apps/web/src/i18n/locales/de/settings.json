@@ -199,7 +199,8 @@
     "getKey": {
       "openai": "Hol dir deinen API-Schlüssel im <link>OpenAI-Dashboard</link>",
       "anthropic": "Hol dir deinen API-Schlüssel in der <link>Anthropic-Konsole</link>",
-      "openrouter": "Hol dir deinen API-Schlüssel bei <link>OpenRouter</link>"
+      "openrouter": "Hol dir deinen API-Schlüssel bei <link>OpenRouter</link>",
+      "generic": "Hol deinen {{provider}}-API-Schlüssel aus <link>der Anbieter-Konsole</link>."
     },
     "save": "Konfiguration speichern",
     "test": "Verbindung testen",
@@ -212,7 +213,13 @@
     "byok": {
       "title": "Über BYOK (Bring Your Own Key)",
       "body": "ReadAware nutzt deinen eigenen API-Schlüssel für den Zugriff auf KI-Dienste. Dein Schlüssel wird lokal in deinem Browser gespeichert und niemals an unsere Server gesendet. Für anfallende API-Nutzungsgebühren bist du selbst verantwortlich."
-    }
+    },
+    "smartModel": "Smart-Modell",
+    "fastModel": "Fast-Modell",
+    "smartModelHelper": "Chat, Onboarding und buchübergreifende Synthese – die langsamere, leistungsfähigere Stufe.",
+    "fastModelHelper": "Wörterbuch, Gedächtnis und Zusammenfassungen – die günstigere, schnellere Stufe.",
+    "modelPlaceholder": "z. B. gpt-4o-mini",
+    "fastModelCustomPlaceholder": "Leer lassen, um das Smart-Modell zu verwenden"
   },
   "font": {
     "label": "Schriftart",

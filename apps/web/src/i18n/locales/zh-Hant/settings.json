@@ -199,7 +199,8 @@
     "getKey": {
       "openai": "從 <link>OpenAI Dashboard</link> 取得你的 API 金鑰",
       "anthropic": "從 <link>Anthropic Console</link> 取得你的 API 金鑰",
-      "openrouter": "從 <link>OpenRouter</link> 取得你的 API 金鑰"
+      "openrouter": "從 <link>OpenRouter</link> 取得你的 API 金鑰",
+      "generic": "從 {{provider}} 主控台取得 API 金鑰：<link>前往</link>。"
     },
     "save": "儲存設定",
     "test": "測試連線",
@@ -212,7 +213,13 @@
     "byok": {
       "title": "關於 BYOK（自備金鑰）",
       "body": "ReadAware 使用你自己的 API 金鑰來存取 AI 服務。你的金鑰儲存在瀏覽器本機，絕不會傳送到我們的伺服器。你需自行負擔所產生的任何 API 使用費用。"
-    }
+    },
+    "smartModel": "Smart 模型",
+    "fastModel": "Fast 模型",
+    "smartModelHelper": "聊天、引導訪談、跨書綜合——較慢、較聰明的檔位。",
+    "fastModelHelper": "查字典、記憶提煉、摘要——較便宜、較快的檔位。",
+    "modelPlaceholder": "例如 gpt-4o-mini",
+    "fastModelCustomPlaceholder": "留空則與 Smart 模型相同"
   },
   "font": {
     "label": "字型",

@@ -199,7 +199,8 @@
     "getKey": {
       "openai": "Obtén tu clave de API en <link>el panel de OpenAI</link>",
       "anthropic": "Obtén tu clave de API en <link>la consola de Anthropic</link>",
-      "openrouter": "Obtén tu clave de API en <link>OpenRouter</link>"
+      "openrouter": "Obtén tu clave de API en <link>OpenRouter</link>",
+      "generic": "Consigue tu clave de API de {{provider}} en <link>la consola del proveedor</link>."
     },
     "save": "Guardar configuración",
     "test": "Probar conexión",
@@ -212,7 +213,13 @@
     "byok": {
       "title": "Acerca de BYOK (usa tu propia clave)",
       "body": "ReadAware usa tu propia clave de API para acceder a los servicios de IA. Tu clave se guarda localmente en tu navegador y nunca se envía a nuestros servidores. Eres responsable de los cargos por uso de la API que se generen."
-    }
+    },
+    "smartModel": "Modelo inteligente",
+    "fastModel": "Modelo rápido",
+    "smartModelHelper": "Chat, incorporación y síntesis entre libros: el nivel más lento y capaz.",
+    "fastModelHelper": "Diccionario, memoria y resúmenes: el nivel más barato y rápido.",
+    "modelPlaceholder": "p. ej. gpt-4o-mini",
+    "fastModelCustomPlaceholder": "Déjalo vacío para usar el modelo inteligente"
   },
   "font": {
     "label": "Fuente",

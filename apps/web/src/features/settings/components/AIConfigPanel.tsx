@@ -14,8 +14,10 @@ import {
   saveAIConfig,
   clearAIConfig,
   DEFAULT_MODELS,
+  FAST_DEFAULT_MODELS,
   PROVIDER_MODELS,
   PROVIDER_LABELS,
+  PROVIDER_KEY_URLS,
   type AIProvider,
 } from "../../ai/lib/ai-config";
 
@@ -24,6 +26,7 @@ export function AIConfigPanel() {
   const [provider, setProvider] = useState<AIProvider>("openai");
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState(DEFAULT_MODELS.openai);
+  const [fastModel, setFastModel] = useState(FAST_DEFAULT_MODELS.openai);
   const [customBaseUrl, setCustomBaseUrl] = useState("");
   const [isConfigured, setIsConfigured] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
@@ -37,18 +40,20 @@ export function AIConfigPanel() {
       setProvider(config.provider);
       setApiKey(config.apiKey);
       setModel(config.model);
+      setFastModel(config.fastModel ?? FAST_DEFAULT_MODELS[config.provider] ?? "");
       setCustomBaseUrl(config.customBaseUrl || "");
       setIsConfigured(true);
     }
   }, []);
 
-  // Switching provider resets the model to that provider's default. Done in
+  // Switching provider resets both tiers to that provider's defaults. Done in
   // the change handler (not an effect) so loading a saved config on mount
-  // doesn't clobber the stored model choice.
+  // doesn't clobber the stored model choices.
   const handleProviderChange = (value: string) => {
     const next = value as AIProvider;
     setProvider(next);
     setModel(DEFAULT_MODELS[next]);
+    setFastModel(FAST_DEFAULT_MODELS[next]);
     setTestResult(null);
   };
 
@@ -56,7 +61,8 @@ export function AIConfigPanel() {
     const config = {
       provider,
       apiKey: apiKey.trim(),
-      model,
+      model: model.trim(),
+      fastModel: fastModel.trim() || undefined,
       customBaseUrl: provider === "custom" ? customBaseUrl.trim() : undefined,
     };
     saveAIConfig(config);
@@ -68,6 +74,7 @@ export function AIConfigPanel() {
     clearAIConfig();
     setApiKey("");
     setModel(DEFAULT_MODELS.openai);
+    setFastModel(FAST_DEFAULT_MODELS.openai);
     setCustomBaseUrl("");
     setIsConfigured(false);
     setTestResult(null);
@@ -79,11 +86,13 @@ export function AIConfigPanel() {
 
     try {
       // Same provider stack as real chat (pi-ai), against the form values —
-      // testing neither saves the config nor depends on a saved one.
+      // testing neither saves the config nor depends on a saved one. Exercises
+      // the smart tier (the model the chat turn uses).
       const { account, models } = accountFromConfig({
         provider,
         apiKey: apiKey.trim(),
-        model,
+        model: model.trim(),
+        fastModel: fastModel.trim() || undefined,
         customBaseUrl: provider === "custom" ? customBaseUrl.trim() : undefined,
       });
       const response = await testLlmConnection(account, models.smart);
@@ -115,6 +124,8 @@ export function AIConfigPanel() {
   }));
 
   const modelOptions = PROVIDER_MODELS[provider] || [];
+  const hasModelCatalog = modelOptions.length > 0;
+  const keyUrl = PROVIDER_KEY_URLS[provider];
 
   return (
     <Stack gap="xl">
@@ -161,64 +172,67 @@ export function AIConfigPanel() {
           }
         />
 
-        <Select
-          label={t("aiConfig.model")}
-          value={model}
-          onChange={(value) => {
-            setModel(value);
-            setTestResult(null);
-          }}
-          options={modelOptions.length > 0 ? modelOptions : [{ label: t("aiConfig.modelDefault"), value: "" }]}
-          disabled={modelOptions.length === 0}
-        />
-
-        {provider === "openai" && (
-          <p className="text-xs text-fg-muted">
-            <Trans
-              t={t}
-              i18nKey="aiConfig.getKey.openai"
-              components={{
-                link: (
-                  <a
-                    href="https://platform.openai.com/api-keys"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline hover:text-fg"
-                  />
-                ),
+        {/* Two model tiers. `smart` runs chat turns; `fast` runs the cheaper
+            background/dictionary work. Providers with a catalog get dropdowns;
+            a custom OpenAI-compatible endpoint gets free-text fields. */}
+        {hasModelCatalog ? (
+          <>
+            <Select
+              label={t("aiConfig.smartModel")}
+              value={model}
+              onChange={(value) => {
+                setModel(value);
+                setTestResult(null);
               }}
+              options={modelOptions}
+              helperText={t("aiConfig.smartModelHelper")}
             />
-          </p>
+            <Select
+              label={t("aiConfig.fastModel")}
+              value={fastModel}
+              onChange={(value) => {
+                setFastModel(value);
+                setTestResult(null);
+              }}
+              options={modelOptions}
+              helperText={t("aiConfig.fastModelHelper")}
+            />
+          </>
+        ) : (
+          <>
+            <TextField
+              label={t("aiConfig.smartModel")}
+              value={model}
+              onChange={(e) => {
+                setModel(e.target.value);
+                setTestResult(null);
+              }}
+              placeholder={t("aiConfig.modelPlaceholder")}
+              helperText={t("aiConfig.smartModelHelper")}
+            />
+            <TextField
+              label={t("aiConfig.fastModel")}
+              value={fastModel}
+              onChange={(e) => {
+                setFastModel(e.target.value);
+                setTestResult(null);
+              }}
+              placeholder={t("aiConfig.fastModelCustomPlaceholder")}
+              helperText={t("aiConfig.fastModelHelper")}
+            />
+          </>
         )}
 
-        {provider === "anthropic" && (
+        {keyUrl && (
           <p className="text-xs text-fg-muted">
             <Trans
               t={t}
-              i18nKey="aiConfig.getKey.anthropic"
+              i18nKey="aiConfig.getKey.generic"
+              values={{ provider: PROVIDER_LABELS[provider] }}
               components={{
                 link: (
                   <a
-                    href="https://console.anthropic.com/settings/keys"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline hover:text-fg"
-                  />
-                ),
-              }}
-            />
-          </p>
-        )}
-
-        {provider === "openrouter" && (
-          <p className="text-xs text-fg-muted">
-            <Trans
-              t={t}
-              i18nKey="aiConfig.getKey.openrouter"
-              components={{
-                link: (
-                  <a
-                    href="https://openrouter.ai/keys"
+                    href={keyUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="underline hover:text-fg"

@@ -12,14 +12,26 @@ const ENV_KEYS: Record<SpikeConfig["provider"], string> = {
   openrouter: "OPENROUTER_API_KEY",
   zai: "ZAI_API_KEY",
   "zai-coding-cn": "ZAI_CODING_CN_API_KEY",
+  google: "GOOGLE_API_KEY",
+  deepseek: "DEEPSEEK_API_KEY",
+  xai: "XAI_API_KEY",
+  groq: "GROQ_API_KEY",
+  mistral: "MISTRAL_API_KEY",
+  moonshotai: "MOONSHOTAI_API_KEY",
 };
 
 const DEFAULT_MODELS: Record<SpikeConfig["provider"], string> = {
-  anthropic: "claude-3-5-haiku-20241022",
-  openai: "gpt-4o-mini",
-  openrouter: "openai/gpt-4o-mini",
+  anthropic: "claude-haiku-4-5",
+  openai: "gpt-5-mini",
+  openrouter: "openai/gpt-5-mini",
   zai: "glm-5.2",
   "zai-coding-cn": "glm-5.2",
+  google: "gemini-2.5-flash",
+  deepseek: "deepseek-v4-flash",
+  xai: "grok-3-fast",
+  groq: "llama-3.1-8b-instant",
+  mistral: "ministral-8b-latest",
+  moonshotai: "kimi-k2-turbo-preview",
 };
 
 const provider = (process.argv[2] ?? "zai-coding-cn") as SpikeConfig["provider"];

@@ -66,6 +66,13 @@
     "summary": "{{items}} across {{books}}",
     "annotations": {
       "title": "Highlights & notes"
+    },
+    "vocabulary": {
+      "title": "Vocabulary",
+      "empty": "No saved words yet. Look up a word while reading and tap the bookmark to save it.",
+      "remove": "Remove",
+      "contextLabel": "In context",
+      "etymologyLabel": "Origin"
     }
   }
 }

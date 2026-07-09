@@ -69,13 +69,21 @@
   "closeNote": "Cerrar nota",
   "dictionary": {
     "title": "Diccionario",
-    "pos": {
-      "noun": "sustantivo",
-      "verb": "verbo"
-    },
-    "senseNoun": "Una acepción de ejemplo para «{{word}}». El diccionario es una vista previa.",
-    "senseVerb": "Consultar «{{word}}»: aquí aparecerán las definiciones reales.",
-    "footer": "Una entrada de ejemplo: el diccionario es una vista previa; las definiciones reales aún no están conectadas."
+    "loading": "Buscando…",
+    "error": "No se pudo buscar. Revisa tu proveedor de IA en Ajustes e inténtalo de nuevo.",
+    "retry": "Reintentar",
+    "unconfigured": "Conecta un proveedor de IA en Ajustes para activar las definiciones.",
+    "empty": "No se encontró ninguna definición para este término.",
+    "contextLabel": "En este pasaje",
+    "etymologyLabel": "Origen",
+    "explainInLabel": "Explicar en",
+    "languageAuto": "Seguir el idioma de la app",
+    "footer": "Generado por IA: las definiciones pueden ser imperfectas.",
+    "regenerate": "Regenerar",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "addToVocab": "Añadir al vocabulario",
+    "inVocab": "En el vocabulario"
   },
   "fontSizeOption": {
     "xx-small": "XXS",

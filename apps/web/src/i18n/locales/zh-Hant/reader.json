@@ -69,13 +69,21 @@
   "closeNote": "關閉註釋",
   "dictionary": {
     "title": "字典",
-    "pos": {
-      "noun": "名詞",
-      "verb": "動詞"
-    },
-    "senseNoun": "「{{word}}」的預留釋義。字典功能仍為預覽版。",
-    "senseVerb": "查詢「{{word}}」 — 真正的定義將顯示於此。",
-    "footer": "預留項目 — 字典為預覽版；真正的定義尚未接上。"
+    "loading": "正在查詢…",
+    "error": "查詢失敗。請檢查設定裡的 AI 供應商後重試。",
+    "retry": "重試",
+    "unconfigured": "在設定裡連接一個 AI 供應商即可啟用釋義。",
+    "empty": "找不到這個詞條的釋義。",
+    "contextLabel": "在此段落中",
+    "etymologyLabel": "詞源",
+    "explainInLabel": "解釋語言",
+    "languageAuto": "跟隨應用程式語言",
+    "footer": "由 AI 生成，釋義可能不完美。",
+    "regenerate": "重新生成",
+    "copy": "複製",
+    "copied": "已複製",
+    "addToVocab": "加入詞彙表",
+    "inVocab": "已在詞彙表"
   },
   "fontSizeOption": {
     "xx-small": "XXS",

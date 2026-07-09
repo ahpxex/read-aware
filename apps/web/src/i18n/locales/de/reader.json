@@ -69,13 +69,21 @@
   "closeNote": "Notiz schließen",
   "dictionary": {
     "title": "Wörterbuch",
-    "pos": {
-      "noun": "Substantiv",
-      "verb": "Verb"
-    },
-    "senseNoun": "Ein Platzhalter-Eintrag für „{{word}}“. Das Wörterbuch ist eine Vorschau.",
-    "senseVerb": "„{{word}}“ nachschlagen — echte Definitionen erscheinen hier.",
-    "footer": "Ein Platzhaltereintrag — das Wörterbuch ist eine Vorschau; echte Definitionen sind noch nicht angebunden."
+    "loading": "Wird nachgeschlagen…",
+    "error": "Konnte nicht nachgeschlagen werden. Prüfe deinen KI-Anbieter in den Einstellungen und versuche es erneut.",
+    "retry": "Erneut versuchen",
+    "unconfigured": "Verbinde in den Einstellungen einen KI-Anbieter, um Definitionen zu aktivieren.",
+    "empty": "Keine Definition für diesen Begriff gefunden.",
+    "contextLabel": "In dieser Passage",
+    "etymologyLabel": "Herkunft",
+    "explainInLabel": "Erklären auf",
+    "languageAuto": "App-Sprache verwenden",
+    "footer": "KI-generiert – Definitionen können ungenau sein.",
+    "regenerate": "Neu generieren",
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "addToVocab": "Zum Vokabular hinzufügen",
+    "inVocab": "Im Vokabular"
   },
   "fontSizeOption": {
     "xx-small": "XXS",

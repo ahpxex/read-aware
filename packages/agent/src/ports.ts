@@ -174,6 +174,30 @@ export interface BookTextPort {
   }): Promise<BookTextHit[]>;
 }
 
+/**
+ * 词汇表条目：用户从阅读器词典保存的生词（vocabulary bundle / get_vocabulary
+ * 工具的读端）。给 agent 用的精简视图 —— 词 + 简明释义 + 出处。
+ */
+export interface VocabularyEntry {
+  term: string;
+  /** 解释语言（人类可读名，如 "Simplified Chinese"）。 */
+  language: string;
+  /** 主要释义（首个义项的简明说明）。 */
+  definition: string;
+  /** 出处书名（可选）。 */
+  bookTitle?: string;
+  /** ISO 时间戳。 */
+  addedAt: string;
+}
+
+/**
+ * 词汇表读端（只读：保存由阅读器词典的 UI 负责，不是 agent 的事）。
+ * 实现方从产品的本地词汇表投影里取，按最近优先返回。
+ */
+export interface VocabularyPort {
+  listVocabulary(filter?: { query?: string; limit?: number }): Promise<VocabularyEntry[]>;
+}
+
 export interface RuntimeDeps {
   library: LibraryPort;
   annotations: AnnotationsPort;
@@ -181,4 +205,5 @@ export interface RuntimeDeps {
   profile: ProfilePort;
   memory: MemoryPort;
   bookText: BookTextPort;
+  vocabulary: VocabularyPort;
 }

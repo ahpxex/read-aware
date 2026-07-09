@@ -21,6 +21,7 @@ import { buildBookTextTools } from "../tools/book-text-tools";
 import { buildConversationTools } from "../tools/conversation-tools";
 import { buildThreadTools } from "../tools/library-tools";
 import { buildMemoryTools, visibleScopes } from "../tools/memory-tools";
+import { buildVocabularyTools } from "../tools/vocabulary-tools";
 import { AsyncQueue } from "./async-queue";
 import { elideStaleToolResults } from "./context-slim";
 import { lastAssistantText, lastTurnTail, turnRecordsToMessages } from "./history";
@@ -124,6 +125,7 @@ export class AgentThread {
           ...buildMemoryTools(this.scope, this.deps),
           ...buildConversationTools(this.scope, this.deps),
           ...buildBookTextTools(this.scope, this.deps),
+          ...buildVocabularyTools(this.deps),
         ],
         messages: turnRecordsToMessages(records, model),
       },

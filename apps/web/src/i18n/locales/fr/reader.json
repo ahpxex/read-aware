@@ -69,13 +69,21 @@
   "closeNote": "Fermer la note",
   "dictionary": {
     "title": "Dictionnaire",
-    "pos": {
-      "noun": "nom",
-      "verb": "verbe"
-    },
-    "senseNoun": "Un sens fictif pour « {{word}} ». Le dictionnaire est un aperçu.",
-    "senseVerb": "Rechercher « {{word}} » — les vraies définitions apparaîtront ici.",
-    "footer": "Une entrée fictive — le dictionnaire est un aperçu ; les vraies définitions ne sont pas encore connectées."
+    "loading": "Recherche en cours…",
+    "error": "Recherche impossible. Vérifiez votre fournisseur d'IA dans les Réglages, puis réessayez.",
+    "retry": "Réessayer",
+    "unconfigured": "Connectez un fournisseur d'IA dans les Réglages pour activer les définitions.",
+    "empty": "Aucune définition trouvée pour ce terme.",
+    "contextLabel": "Dans ce passage",
+    "etymologyLabel": "Origine",
+    "explainInLabel": "Expliquer en",
+    "languageAuto": "Suivre la langue de l'app",
+    "footer": "Généré par IA — les définitions peuvent être imparfaites.",
+    "regenerate": "Régénérer",
+    "copy": "Copier",
+    "copied": "Copié",
+    "addToVocab": "Ajouter au lexique",
+    "inVocab": "Dans le lexique"
   },
   "fontSizeOption": {
     "xx-small": "XXS",

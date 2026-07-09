@@ -10,6 +10,7 @@ import type { LibraryBook, ReaderProgress } from "../../library/lib/library-type
 import { formatReaderError } from "../lib/format-reader-error";
 import {
   getNormalizedSelectionText,
+  getSelectionContext,
   getSelectionOverlayRects,
   type ReaderSelectionState,
   type SelectionOverlayRect,
@@ -399,6 +400,7 @@ export function FoliateReaderView({
   } | null>(null);
   const [dictionaryOpen, setDictionaryOpen] = useState(false);
   const [dictionaryWord, setDictionaryWord] = useState("");
+  const [dictionaryContext, setDictionaryContext] = useState<string | undefined>(undefined);
 
   const [noteTarget, setNoteTarget] = useState<ActionTarget | null>(null);
   const [noteEditorOpen, setNoteEditorOpen] = useState(false);
@@ -668,6 +670,7 @@ export function FoliateReaderView({
       chapterHref: currentChapterHrefRef.current,
       rects,
       text,
+      context: getSelectionContext(range, text),
     };
 
     setActiveAnnotation(null);
@@ -1677,8 +1680,9 @@ export function FoliateReaderView({
     setNoteEditorOpen(true);
   }
 
-  function lookUpText(text: string) {
+  function lookUpText(text: string, context?: string) {
     setDictionaryWord(text);
+    setDictionaryContext(context);
     setDictionaryOpen(true);
   }
 
@@ -1741,7 +1745,7 @@ export function FoliateReaderView({
 
   function handleLookUp() {
     if (!selection) return;
-    lookUpText(selection.text);
+    lookUpText(selection.text, selection.context);
     clearSelection();
   }
 
@@ -2035,6 +2039,8 @@ export function FoliateReaderView({
       <ReaderDictionaryModal
         open={dictionaryOpen}
         word={dictionaryWord}
+        context={dictionaryContext}
+        bookTitle={selectedBook?.title}
         onClose={() => setDictionaryOpen(false)}
       />
     </section>

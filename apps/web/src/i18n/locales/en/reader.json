@@ -69,13 +69,21 @@
   "closeNote": "Close note",
   "dictionary": {
     "title": "Dictionary",
-    "pos": {
-      "noun": "noun",
-      "verb": "verb"
-    },
-    "senseNoun": "A placeholder sense for “{{word}}.” The dictionary is a preview.",
-    "senseVerb": "To look up “{{word}}” — real definitions will appear here.",
-    "footer": "A placeholder entry — the dictionary is a preview; real definitions aren’t wired up yet."
+    "loading": "Looking it up…",
+    "error": "Couldn't look this up. Check your AI provider in Settings and try again.",
+    "retry": "Try again",
+    "unconfigured": "Connect an AI provider in Settings to enable definitions.",
+    "empty": "No definition found for this term.",
+    "contextLabel": "In this passage",
+    "etymologyLabel": "Origin",
+    "explainInLabel": "Explain in",
+    "languageAuto": "Match app language",
+    "footer": "AI-generated — definitions may be imperfect.",
+    "regenerate": "Regenerate",
+    "copy": "Copy",
+    "copied": "Copied",
+    "addToVocab": "Add to vocabulary",
+    "inVocab": "In vocabulary"
   },
   "fontSizeOption": {
     "xx-small": "XXS",

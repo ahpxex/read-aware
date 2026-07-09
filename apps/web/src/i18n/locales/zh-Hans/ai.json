@@ -64,6 +64,13 @@
     "summary": "{{items}}，来自 {{books}}",
     "annotations": {
       "title": "高亮与笔记"
+    },
+    "vocabulary": {
+      "title": "词汇表",
+      "empty": "还没有保存的词。阅读时查一个词，点书签即可保存。",
+      "remove": "移除",
+      "contextLabel": "语境释义",
+      "etymologyLabel": "词源"
     }
   }
 }

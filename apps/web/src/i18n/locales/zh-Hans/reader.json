@@ -69,13 +69,21 @@
   "closeNote": "关闭注释",
   "dictionary": {
     "title": "词典",
-    "pos": {
-      "noun": "名词",
-      "verb": "动词"
-    },
-    "senseNoun": "“{{word}}”的占位释义。词典功能尚为预览。",
-    "senseVerb": "查询“{{word}}”——真正的释义将显示在这里。",
-    "footer": "占位条目——词典功能尚为预览，真正的释义还未接入。"
+    "loading": "正在查询…",
+    "error": "查询失败。请检查设置里的 AI 提供方后重试。",
+    "retry": "重试",
+    "unconfigured": "在设置里连接一个 AI 提供方即可启用释义。",
+    "empty": "未找到该词条的释义。",
+    "contextLabel": "在此段落中",
+    "etymologyLabel": "词源",
+    "explainInLabel": "解释语言",
+    "languageAuto": "跟随应用语言",
+    "footer": "由 AI 生成，释义可能不完美。",
+    "regenerate": "重新生成",
+    "copy": "复制",
+    "copied": "已复制",
+    "addToVocab": "加入词汇表",
+    "inVocab": "已在词汇表"
   },
   "fontSizeOption": {
     "xx-small": "极小",

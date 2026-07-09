@@ -66,6 +66,13 @@
     "summary": "{{items}} in {{books}}",
     "annotations": {
       "title": "Markierungen & Notizen"
+    },
+    "vocabulary": {
+      "title": "Vokabular",
+      "empty": "Noch keine gespeicherten Wörter. Schlage beim Lesen ein Wort nach und tippe auf das Lesezeichen zum Speichern.",
+      "remove": "Entfernen",
+      "contextLabel": "Im Kontext",
+      "etymologyLabel": "Herkunft"
     }
   }
 }

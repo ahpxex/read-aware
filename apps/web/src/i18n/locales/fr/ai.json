@@ -68,6 +68,13 @@
     "summary": "{{items}} dans {{books}}",
     "annotations": {
       "title": "Surlignages et notes"
+    },
+    "vocabulary": {
+      "title": "Lexique",
+      "empty": "Aucun mot enregistré. Cherchez un mot pendant la lecture et touchez le signet pour l'enregistrer.",
+      "remove": "Retirer",
+      "contextLabel": "En contexte",
+      "etymologyLabel": "Origine"
     }
   }
 }

@@ -69,13 +69,21 @@
   "closeNote": "メモを閉じる",
   "dictionary": {
     "title": "辞書",
-    "pos": {
-      "noun": "名詞",
-      "verb": "動詞"
-    },
-    "senseNoun": "「{{word}}」のプレースホルダーの語義です。辞書はプレビューです。",
-    "senseVerb": "「{{word}}」を調べる — 実際の定義はここに表示されます。",
-    "footer": "プレースホルダーの項目です — 辞書はプレビューで、実際の定義はまだ接続されていません。"
+    "loading": "調べています…",
+    "error": "調べられませんでした。設定で AI プロバイダーを確認して、もう一度お試しください。",
+    "retry": "再試行",
+    "unconfigured": "設定で AI プロバイダーを接続すると、語義を表示できます。",
+    "empty": "この語の語義が見つかりませんでした。",
+    "contextLabel": "この文脈での意味",
+    "etymologyLabel": "語源",
+    "explainInLabel": "説明する言語",
+    "languageAuto": "アプリの言語に合わせる",
+    "footer": "AI が生成した内容です。語義は不正確な場合があります。",
+    "regenerate": "再生成",
+    "copy": "コピー",
+    "copied": "コピーしました",
+    "addToVocab": "単語帳に追加",
+    "inVocab": "単語帳に登録済み"
   },
   "fontSizeOption": {
     "xx-small": "XXS",

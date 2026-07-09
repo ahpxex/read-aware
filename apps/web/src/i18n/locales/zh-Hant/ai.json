@@ -64,6 +64,13 @@
     "summary": "{{items}}，共 {{books}}",
     "annotations": {
       "title": "高亮與筆記"
+    },
+    "vocabulary": {
+      "title": "詞彙表",
+      "empty": "還沒有儲存的詞。閱讀時查一個詞，點書籤即可儲存。",
+      "remove": "移除",
+      "contextLabel": "語境釋義",
+      "etymologyLabel": "詞源"
     }
   }
 }

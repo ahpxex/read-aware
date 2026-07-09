@@ -64,6 +64,13 @@
     "summary": "{{books}}で{{items}}",
     "annotations": {
       "title": "ハイライトとメモ"
+    },
+    "vocabulary": {
+      "title": "単語帳",
+      "empty": "まだ保存された単語はありません。読書中に単語を調べ、ブックマークをタップして保存できます。",
+      "remove": "削除",
+      "contextLabel": "文脈での意味",
+      "etymologyLabel": "語源"
     }
   }
 }

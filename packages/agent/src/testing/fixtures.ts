@@ -13,6 +13,7 @@ import type {
   NewMemoryInput,
   RuntimeDeps,
   TurnRecord,
+  VocabularyEntry,
 } from "../ports";
 import { searchChapters } from "../text/search";
 
@@ -47,6 +48,7 @@ export interface InMemorySeed {
   profile?: string;
   memories?: MemoryRecord[];
   chapters?: Record<string, ChapterSeed[]>;
+  vocabulary?: VocabularyEntry[];
 }
 
 export function seedMemory(partial: Partial<MemoryRecord> & Pick<MemoryRecord, "id" | "scope" | "content">): MemoryRecord {
@@ -219,6 +221,18 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
           }
         }
         return results.slice(0, limit ?? 16);
+      },
+    },
+    vocabulary: {
+      listVocabulary: async ({ query, limit } = {}) => {
+        const needle = query?.trim().toLowerCase();
+        const entries = (seed.vocabulary ?? []).filter(
+          (entry) =>
+            !needle ||
+            entry.term.toLowerCase().includes(needle) ||
+            entry.definition.toLowerCase().includes(needle),
+        );
+        return typeof limit === "number" ? entries.slice(0, limit) : entries;
       },
     },
   };

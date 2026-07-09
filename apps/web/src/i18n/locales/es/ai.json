@@ -68,6 +68,13 @@
     "summary": "{{items}} en {{books}}",
     "annotations": {
       "title": "Subrayados y notas"
+    },
+    "vocabulary": {
+      "title": "Vocabulario",
+      "empty": "Aún no hay palabras guardadas. Busca una palabra al leer y toca el marcador para guardarla.",
+      "remove": "Quitar",
+      "contextLabel": "En contexto",
+      "etymologyLabel": "Origen"
     }
   }
 }

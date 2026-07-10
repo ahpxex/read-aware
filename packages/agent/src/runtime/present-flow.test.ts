@@ -182,12 +182,16 @@ describe("present flow", () => {
 
   test("lookup_word emits a lookup-sourced word card and keeps its tool step visible", async () => {
     const { faux, model } = makeFaux();
+    let secondRound: Context | undefined;
     faux.setResponses([
       fauxAssistantMessage(
         [fauxToolCall("lookup_word", { term: "serendipity", context: "It was pure serendipity." })],
         { stopReason: "toolUse" },
       ),
-      fauxAssistantMessage("A lovely word."),
+      (context) => {
+        secondRound = context;
+        return fauxAssistantMessage("A lovely word.");
+      },
     ]);
     const { deps } = createInMemoryDeps({
       books: BOOKS,
@@ -204,5 +208,16 @@ describe("present flow", () => {
     if (payload?.kind !== "words") throw new Error("expected a words payload");
     expect(payload.words[0].source).toBe("lookup");
     expect(payload.words[0].entry.etymology).toContain("Serendip");
+    // 模型只拿一句要义，完整词条（词源等）不回流 —— 否则它会在正文里复述。
+    // 只断言 toolResult 的 content（唯一上行 provider 的部分）；details 留在
+    // pi 内部消息里供 UI/日志用，wire 转换不带它（openai-completions.js）。
+    const toolResultText = (secondRound?.messages ?? [])
+      .filter((message) => "role" in message && message.role === "toolResult")
+      .flatMap((message) => (message as { content: Array<{ type: string; text?: string }> }).content)
+      .filter((block) => block.type === "text")
+      .map((block) => block.text ?? "")
+      .join("\n");
+    expect(toolResultText).toContain("a happy accident");
+    expect(toolResultText).not.toContain("Horace Walpole");
   });
 });

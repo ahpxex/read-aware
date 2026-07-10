@@ -2974,6 +2974,7 @@ dependencies = [
  "tauri-plugin-mcp-bridge",
  "tempfile",
  "uuid",
+ "windows 0.61.3",
 ]
 
 [[package]]

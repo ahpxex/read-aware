@@ -49,6 +49,15 @@ tauri-plugin-decorum = "1"
 cocoa = "0.25"
 objc = "0.2"
 
+# Windows only: DirectWrite enumeration of installed font families for the
+# reader's font picker. Same `windows` version wry/tao already lock — the
+# feature flags are additive, no second copy in the graph.
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.61", features = [
+  "Win32_Graphics_DirectWrite",
+  "Win32_Globalization",
+] }
+
 [dev-dependencies]
 # Scratch dirs for the filesystem blob-store tests.
 tempfile = "3"

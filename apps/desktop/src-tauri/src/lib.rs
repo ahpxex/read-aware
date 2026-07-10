@@ -393,8 +393,9 @@ fn set_traffic_lights_visible(_visible: bool) {}
 ///
 /// macOS asks `NSFontManager` for its menu-ready family names — the same list
 /// apps show in a font menu, with the dot-prefixed hidden system faces already
-/// excluded. Other platforms return an empty list for now, so the picker simply
-/// falls back to the built-in presets until native enumeration is added.
+/// excluded. Windows walks DirectWrite's system font collection; Linux asks
+/// fontconfig via `fc-list`. Anywhere else returns an empty list and the picker
+/// falls back to the built-in presets. The frontend dedupes and sorts.
 #[cfg(target_os = "macos")]
 #[tauri::command]
 fn list_system_fonts() -> Vec<String> {
@@ -431,7 +432,94 @@ fn list_system_fonts() -> Vec<String> {
     families
 }
 
-#[cfg(not(target_os = "macos"))]
+/// Windows: DirectWrite's system font collection. Family names prefer the
+/// user's locale (a zh-CN system shows 中文 names, matching every native font
+/// menu), then "en-us", then the first localized name DirectWrite has.
+#[cfg(target_os = "windows")]
+#[tauri::command]
+fn list_system_fonts() -> Vec<String> {
+    use windows::core::{w, BOOL};
+    use windows::Win32::Globalization::GetUserDefaultLocaleName;
+    use windows::Win32::Graphics::DirectWrite::{
+        DWriteCreateFactory, IDWriteFactory, DWRITE_FACTORY_TYPE_SHARED,
+    };
+
+    let mut families: Vec<String> = Vec::new();
+    unsafe {
+        let Ok(factory) = DWriteCreateFactory::<IDWriteFactory>(DWRITE_FACTORY_TYPE_SHARED) else {
+            return families;
+        };
+        let mut collection = None;
+        if factory.GetSystemFontCollection(&mut collection, false).is_err() {
+            return families;
+        }
+        let Some(collection) = collection else {
+            return families;
+        };
+
+        // LOCALE_NAME_MAX_LENGTH buffer; > 1 means a real locale came back
+        // (the count includes the NUL terminator).
+        let mut locale_buf = [0u16; 85];
+        let locale_len = GetUserDefaultLocaleName(&mut locale_buf);
+        let user_locale =
+            (locale_len > 1).then(|| windows::core::PCWSTR(locale_buf.as_ptr()));
+
+        let count = collection.GetFontFamilyCount();
+        families.reserve(count as usize);
+        for index in 0..count {
+            let Ok(family) = collection.GetFontFamily(index) else {
+                continue;
+            };
+            let Ok(names) = family.GetFamilyNames() else {
+                continue;
+            };
+            let mut name_index = 0u32;
+            let mut exists = BOOL::default();
+            if let Some(locale) = user_locale {
+                let _ = names.FindLocaleName(locale, &mut name_index, &mut exists);
+            }
+            if !exists.as_bool() {
+                let _ = names.FindLocaleName(w!("en-us"), &mut name_index, &mut exists);
+            }
+            if !exists.as_bool() {
+                name_index = 0;
+            }
+            let Ok(len) = names.GetStringLength(name_index) else {
+                continue;
+            };
+            let mut buf = vec![0u16; len as usize + 1];
+            if names.GetString(name_index, &mut buf).is_ok() {
+                buf.truncate(len as usize);
+                families.push(String::from_utf16_lossy(&buf));
+            }
+        }
+    }
+    families
+}
+
+/// Linux: fontconfig owns the installed set; `fc-list` ships with it. A
+/// missing binary (headless container) degrades to the built-in presets.
+#[cfg(target_os = "linux")]
+#[tauri::command]
+fn list_system_fonts() -> Vec<String> {
+    let Ok(output) = std::process::Command::new("fc-list")
+        .args(["--format", "%{family[0]}\n"])
+        .output()
+    else {
+        return Vec::new();
+    };
+    if !output.status.success() {
+        return Vec::new();
+    }
+    String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .map(str::to_owned)
+        .collect()
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
 #[tauri::command]
 fn list_system_fonts() -> Vec<String> {
     Vec::new()

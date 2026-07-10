@@ -6,9 +6,10 @@ let cache: Promise<string[]> | null = null;
 /**
  * Font families installed on the user's machine, for the reader font picker.
  *
- * Desktop-only: the Tauri shell enumerates them natively (`list_system_fonts`).
- * There is no cross-platform browser API we can rely on — WKWebView, the macOS
- * webview, has no `queryLocalFonts` — so in the browser preview / Storybook this
+ * Desktop-only: the Tauri shell enumerates them natively (`list_system_fonts` —
+ * NSFontManager on macOS, DirectWrite on Windows, fc-list on Linux). There is
+ * no cross-platform browser API we can rely on — WKWebView, the macOS webview,
+ * has no `queryLocalFonts` — so in the browser preview / Storybook this
  * resolves to an empty list and the picker falls back to the built-in presets.
  *
  * Cached for the session; the installed set doesn't change while the app runs.

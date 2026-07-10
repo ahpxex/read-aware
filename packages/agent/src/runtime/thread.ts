@@ -241,6 +241,19 @@ export class AgentThread {
       input.signal?.addEventListener("abort", onAbort, { once: true });
 
       const userText = formatUserMessage(input);
+      // UI 在流开始前就把本轮用户消息持久化（retry 的截断可见性依赖这一点）。
+      // 全局线程水化 / 未来任何全量重建会把它带进 state，而 prompt() 马上又
+      // 注入同一条 —— 尾部等值的 user 消息属于本轮，丢弃避免问题被喂两遍。
+      const tail = agent.state.messages[agent.state.messages.length - 1];
+      if (
+        tail &&
+        "role" in tail &&
+        tail.role === "user" &&
+        typeof tail.content === "string" &&
+        (tail.content === input.text || tail.content === userText)
+      ) {
+        agent.state.messages = agent.state.messages.slice(0, -1);
+      }
       const startedAt = new Date().toISOString();
       let runError: unknown;
       const run = agent

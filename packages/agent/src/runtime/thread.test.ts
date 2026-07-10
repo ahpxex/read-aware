@@ -354,6 +354,36 @@ describe("AgentThread", () => {
     expect(contexts[1]?.messages).toHaveLength(1);
   });
 
+  test("a pre-persisted current user message is not double-fed (global hydration)", async () => {
+    const { faux, model } = makeFaux();
+    let captured: Context | undefined;
+    faux.setResponses([
+      (context) => {
+        captured = context;
+        return fauxAssistantMessage("ok");
+      },
+    ]);
+    const { deps, turns } = makeDeps();
+    // UI 在流开始前 persist 了 [历史..., 本轮 q]；全局线程首轮水化会读到它
+    turns.set("global:t1", [
+      { role: "user", content: "old q", createdAt: "2026-06-01T00:00:00Z" },
+      { role: "assistant", content: "old a", createdAt: "2026-06-01T00:00:05Z" },
+      { role: "user", content: "new q", createdAt: "2026-06-02T00:00:00Z" },
+    ]);
+    const thread = new AgentThread({
+      scope: { kind: "global", threadId: "t1" },
+      deps,
+      resolveModel: () => model,
+      getApiKey: () => "test-key",
+      completeFn: noopComplete,
+    });
+
+    await collect(thread.sendTurn({ text: "new q" }));
+
+    // [old q, old a, new q]，而不是 [old q, old a, new q, new q]
+    expect(captured?.messages).toHaveLength(3);
+  });
+
   test("rejects a second turn while one is streaming", async () => {
     const { faux, model } = makeFaux();
     faux.setResponses([fauxAssistantMessage("first answer")]);

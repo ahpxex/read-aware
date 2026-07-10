@@ -88,7 +88,7 @@ export function buildPresentTools(deps: RuntimeDeps): AgentTool[] {
     name: "present_words",
     label: "Show words",
     description:
-      "Show up to 6 of the reader's saved vocabulary words as expandable word cards inside your reply. Only for words already in their vocabulary (see get_vocabulary) — to define and show any other word, use lookup_word instead. Never present the same word twice in one reply.",
+      "Show up to 6 of the reader's saved vocabulary words as expandable word cards inside your reply. Only for words already in their vocabulary — ALWAYS call get_vocabulary first to see the current list (memories about saved words go stale). To define and show any other word, use lookup_word instead. Never present the same word twice in one reply.",
     parameters: Type.Object({
       terms: Type.Array(Type.String({ description: "A word exactly as saved in the vocabulary" }), {
         minItems: 1,

@@ -19,6 +19,8 @@ type LibraryWorkspaceProps = {
   collections: Collection[];
   /** Book currently being opened (spinner feedback on its cover). */
   openingBookId?: string | null;
+  /** Files currently in the import pipeline — each shows a skeleton card. */
+  importingCount?: number;
   onImport: () => void;
   onOpenBook: (book: LibraryBook) => void;
   onRemoveBook: (book: LibraryBook) => void;
@@ -36,6 +38,7 @@ export function LibraryWorkspace({
   books,
   collections,
   openingBookId,
+  importingCount = 0,
   onImport,
   onOpenBook,
   onRemoveBook,
@@ -145,7 +148,7 @@ export function LibraryWorkspace({
             </div>
           ))}
         </div>
-      ) : books.length === 0 ? (
+      ) : books.length === 0 && importingCount === 0 ? (
         <div className="ra-motion-fade-in flex flex-1 items-center justify-center py-16">
           <EmptyState
             icon={<Books className="size-12 text-fg-subtle" weight="thin" />}
@@ -161,6 +164,18 @@ export function LibraryWorkspace({
         // Fades in over the skeleton it replaces (same grid geometry), so the
         // ready swap reads as the shelf resolving rather than a hard cut.
         <div className="ra-motion-fade-in">
+          {importingCount > 0 && (
+            // One skeleton card per file still in the import pipeline — the
+            // book's spot on the shelf, taking shape while the bytes land.
+            <div className="mb-8 grid grid-cols-3 gap-x-4 gap-y-8 sm:grid-cols-4 sm:gap-x-5 md:grid-cols-5 md:gap-x-6 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8">
+              {Array.from({ length: Math.min(importingCount, 8) }).map((_, index) => (
+                <div key={index} className="space-y-2.5">
+                  <Skeleton variant="rectangular" className="aspect-[2/3] w-full rounded-sm" />
+                  <Skeleton variant="text" className="w-3/4" />
+                </div>
+              ))}
+            </div>
+          )}
           {activeCollection && (
             <CollectionHeader
               key={activeCollection.id}

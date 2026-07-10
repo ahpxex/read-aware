@@ -355,6 +355,7 @@ function App() {
                 books={heldShelfBooks ?? library.books}
                 collections={library.collections}
                 openingBookId={openingBookId}
+                importingCount={library.importingCount}
                 onImport={library.openImportPicker}
                 onOpenBook={handleOpenBook}
                 onRemoveBook={library.handleRemoveBook}

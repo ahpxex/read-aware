@@ -1140,6 +1140,34 @@ pub fn blob_write_chunk(
     Ok(())
 }
 
+/// Append one raw-body chunk to an open upload buffer. The desktop twin of
+/// `blob_write_chunk`: one 80MB `put_blob` body saturates the WKWebView main
+/// thread for seconds, so large desktop uploads stream through this in slices
+/// (the key rides the same header as `put_blob`).
+#[tauri::command]
+pub fn blob_write_chunk_raw(
+    request: tauri::ipc::Request<'_>,
+    sessions: State<'_, BlobWriteSessions>,
+) -> Result<(), String> {
+    let key = request
+        .headers()
+        .get(BLOB_KEY_HEADER)
+        .and_then(|value| value.to_str().ok())
+        .ok_or_else(|| format!("blob_write_chunk_raw: missing {BLOB_KEY_HEADER} header"))?
+        .to_string();
+    let chunk: Vec<u8> = match request.body() {
+        tauri::ipc::InvokeBody::Raw(data) => data.clone(),
+        tauri::ipc::InvokeBody::Json(value) => serde_json::from_value(value.clone())
+            .map_err(|e| format!("blob_write_chunk_raw: unsupported JSON body: {e}"))?,
+    };
+    let mut map = sessions.0.lock().map_err(|e| e.to_string())?;
+    let buffer = map
+        .get_mut(&key)
+        .ok_or_else(|| format!("blob_write_chunk_raw: no open session for {key}"))?;
+    buffer.extend_from_slice(&chunk);
+    Ok(())
+}
+
 /// Persist an upload buffer through the regular blob store path.
 #[tauri::command]
 pub fn blob_write_commit(

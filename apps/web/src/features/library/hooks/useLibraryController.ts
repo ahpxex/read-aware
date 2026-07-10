@@ -43,7 +43,10 @@ export function useLibraryController() {
   const [books, setBooks] = useState<LibraryBook[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [libraryReady, setLibraryReady] = useState(false);
-  const [isImporting, setIsImporting] = useState(false);
+  // Files still in the import fast path — drives the header's disabled state
+  // and one shelf skeleton card per pending file.
+  const [importingCount, setImportingCount] = useState(0);
+  const isImporting = importingCount > 0;
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const { toast } = useToast();
 
@@ -197,19 +200,24 @@ export function useLibraryController() {
   const importFiles = useCallback(async (files: File[]) => {
     if (files.length === 0) return;
 
-    setIsImporting(true);
+    setImportingCount(files.length);
 
     let imported = 0;
     const duplicates: string[] = [];
     try {
       for (const file of files) {
-        const result = await importBookFile(file, tRef.current);
-        if (result.status === "duplicate") duplicates.push(result.book.title);
-        else {
-          imported += 1;
-          // 立即上架（占位封面 + 文件名标题）,重活全部进后台队列
-          setBooks((current) => [result.book, ...current]);
-          enqueueEnrichment(result.book, file);
+        try {
+          const result = await importBookFile(file, tRef.current);
+          if (result.status === "duplicate") duplicates.push(result.book.title);
+          else {
+            imported += 1;
+            // 立即上架（占位封面 + 文件名标题）,重活全部进后台队列
+            setBooks((current) => [result.book, ...current]);
+            enqueueEnrichment(result.book, file);
+          }
+        } finally {
+          // 每本落地就撤掉对应的骨架卡，而不是等整批
+          setImportingCount((current) => Math.max(0, current - 1));
         }
       }
 
@@ -222,7 +230,7 @@ export function useLibraryController() {
     } catch (error) {
       reportError(error);
     } finally {
-      setIsImporting(false);
+      setImportingCount(0);
     }
   }, [enqueueEnrichment, reportError, toast]);
 
@@ -330,6 +338,7 @@ export function useLibraryController() {
     collections,
     libraryReady,
     isImporting,
+    importingCount,
     importInputRef,
     openImportPicker,
     handleImportSelection,

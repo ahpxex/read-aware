@@ -635,6 +635,7 @@ pub fn run() {
             storage::blob_read_close,
             storage::blob_write_open,
             storage::blob_write_chunk,
+            storage::blob_write_chunk_raw,
             storage::blob_write_commit,
             storage::blob_write_abort,
             storage::load_kv_all,

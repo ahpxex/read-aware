@@ -1187,6 +1187,33 @@ export function FoliateReaderView({
       }
     }, true);
 
+    // 掌阅式内联脚注（<img zy-footnote="注文" class="epub-footnote">）：注文
+    // 就在属性里 —— 点击直接进现有的脚注弹层。链接式 noteref 走 foliate 的
+    // link 事件路径,互不相扰。先于下面的 shell-toggle click 注册,拦下命中。
+    doc.addEventListener(
+      "click",
+      (event) => {
+        const target = event.target instanceof Element ? event.target : null;
+        const marker = target?.closest?.(
+          "img[zy-footnote], img.epub-footnote, img.zhangyue-footnote",
+        );
+        if (!marker) return;
+        const text = (
+          marker.getAttribute("zy-footnote") ?? marker.getAttribute("alt") ?? ""
+        ).trim();
+        if (!text) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        cancelPendingShellToggle();
+        setFootnote({
+          anchorRect: anchorRectForElement(marker),
+          label: footnoteLabel("footnote", tRef.current),
+          text,
+        });
+      },
+      true,
+    );
+
     doc.addEventListener("click", (event) => {
       // Tapping an existing mark opens its recolor menu (via `show-annotation`);
       // skip the tap-to-toggle-shell handling so the two don't fight.
@@ -1294,7 +1321,7 @@ export function FoliateReaderView({
     doc.addEventListener("touchend", () => {
       lastTouchY = null;
     });
-  }, [armContentClickSuppression, captureSelectionFromDoc, cancelPendingShellOpen, cancelPendingShellToggle, clearSelection, handleReaderKeyDown]);
+  }, [anchorRectForElement, armContentClickSuppression, captureSelectionFromDoc, cancelPendingShellOpen, cancelPendingShellToggle, clearSelection, handleReaderKeyDown]);
 
   // ----- global keydown + viewport resize -----------------------------------
 

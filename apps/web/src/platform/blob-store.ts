@@ -36,6 +36,15 @@ const BLOB_MIME_HEADER = "x-blob-mime";
 /** Chunk size for staged mobile transfers (matches BOOK_READ_CHUNK_BYTES). */
 const BLOB_CHUNK_BYTES = 256 * 1024;
 
+/**
+ * Desktop uploads above this stream as raw chunks instead of one body: a
+ * single ~80MB `put_blob` body saturates the WKWebView main thread for
+ * seconds (~10MB/s through the IPC scheme handler), while 4MB slices cost
+ * ~0.4s each with the event loop breathing between awaits.
+ */
+const DESKTOP_ONESHOT_MAX_BYTES = 8 * 1024 * 1024;
+const DESKTOP_RAW_CHUNK_BYTES = 4 * 1024 * 1024;
+
 /** What the Rust side recorded about the stored payload. */
 export type BlobPutResult = { sha256: string; byteSize: number };
 
@@ -107,6 +116,29 @@ export async function deleteDesktopBlob(key: string): Promise<void> {
   await invoke("delete_blob", { key });
 }
 
+/** Desktop staged upload: raw binary slices through the write session. */
+async function putBlobChunkedRaw(
+  key: string,
+  data: Uint8Array,
+  mimeType?: string,
+): Promise<BlobPutResult> {
+  await invoke("blob_write_open", { key });
+  try {
+    for (let offset = 0; offset < data.length; offset += DESKTOP_RAW_CHUNK_BYTES) {
+      await invoke("blob_write_chunk_raw", data.subarray(offset, offset + DESKTOP_RAW_CHUNK_BYTES), {
+        headers: { [BLOB_KEY_HEADER]: key },
+      });
+    }
+    return await invoke<BlobPutResult>("blob_write_commit", {
+      key,
+      mimeType: mimeType ?? null,
+    });
+  } catch (error) {
+    void invoke("blob_write_abort", { key }).catch(() => {});
+    throw error;
+  }
+}
+
 /** Store a blob's bytes under `key`, transferred as a raw binary body. */
 export async function putDesktopBlob(
   key: string,
@@ -114,6 +146,7 @@ export async function putDesktopBlob(
   mimeType?: string,
 ): Promise<BlobPutResult> {
   if (isMobileOS()) return putBlobChunked(key, data, mimeType);
+  if (data.length > DESKTOP_ONESHOT_MAX_BYTES) return putBlobChunkedRaw(key, data, mimeType);
   return invoke<BlobPutResult>("put_blob", data, {
     headers: {
       [BLOB_KEY_HEADER]: key,

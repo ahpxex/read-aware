@@ -71,20 +71,33 @@ type FoliateSectionLike = {
 
 type FoliateResolvedLike = { index?: number } | null | undefined;
 
+type FoliateBookLike = {
+  toc?: unknown;
+  sections?: FoliateSectionLike[];
+  resolveHref?: (href: string) => FoliateResolvedLike | Promise<FoliateResolvedLike>;
+};
+
+/** 让出主线程一拍 —— 抽取是导入后的后台活，逐章喘气比冻住 UI 重要。 */
+const yieldToUi = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
 /**
  * 抽取 v2。v1 把拍平的 TOC 标签按序号硬配给留下来的 section（spine 文件数
  * ≠ TOC 条目数,必然错位）。v2 用 book.resolveHref 把每个 TOC 条目（含嵌套
  * 子项）定位到它真正指向的 section,按归属把跨文件的章节合并成一条,并记下
  * 每章覆盖的 hrefs 作为阅读位置的反查键。
+ *
+ * `preopened`：导入富化已经解析过一次的 foliate book —— 复用它省掉第二次
+ * 整书解析（MOBI/AZW3 开卷即全文解压,解析两遍代价加倍）。
  */
-async function extract(bookId: string): Promise<ExtractedChapter[]> {
-  const blob = await getStoredBookBlob(bookId);
-  if (!blob) return [];
-  const book = (await makeFoliateBook(new File([blob], `${bookId}.book`))) as {
-    toc?: unknown;
-    sections?: FoliateSectionLike[];
-    resolveHref?: (href: string) => FoliateResolvedLike | Promise<FoliateResolvedLike>;
-  };
+async function extract(bookId: string, preopened?: unknown): Promise<ExtractedChapter[]> {
+  let book: FoliateBookLike;
+  if (preopened) {
+    book = preopened as FoliateBookLike;
+  } else {
+    const blob = await getStoredBookBlob(bookId);
+    if (!blob) return [];
+    book = (await makeFoliateBook(new File([blob], `${bookId}.book`))) as FoliateBookLike;
+  }
   const sections = book.sections ?? [];
   const entries = flattenToc((book.toc ?? []) as TocNavItem[]);
 
@@ -111,11 +124,13 @@ async function extract(bookId: string): Promise<ExtractedChapter[]> {
     if (ownerOf[i] === undefined) ownerOf[i] = ownerOf[i - 1];
   }
 
-  // 逐 section 抽文本（线性阅读顺序）,再按归属合并
+  // 逐 section 抽文本（线性阅读顺序）,再按归属合并。每个 section 一次
+  // DOMParser 是纯 CPU 块 —— 章节之间让出主线程,大书抽取不再冻 UI。
   const pieces: { owner: number | undefined; href?: string; text: string }[] = [];
   for (let i = 0; i < sections.length; i++) {
     const section = sections[i];
     if (section.linear === "no" || !section.createDocument) continue;
+    await yieldToUi();
     let text = "";
     try {
       const doc = await section.createDocument();
@@ -167,15 +182,18 @@ export async function getPersistedBookText(bookId: string): Promise<ExtractedCha
 
 /**
  * 确保某本书的正文已抽取并持久化：导入后台任务与端口的懒回填共用。
- * 并发去重；抽取失败返回空数组（下次再试）。
+ * 并发去重；抽取失败返回空数组（下次再试）。`preopened` 见 extract。
  */
-export async function ensureBookTextExtracted(bookId: string): Promise<ExtractedChapter[]> {
+export async function ensureBookTextExtracted(
+  bookId: string,
+  preopened?: unknown,
+): Promise<ExtractedChapter[]> {
   const persisted = await getPersistedBookText(bookId);
   if (persisted) return persisted;
 
   let pending = inflight.get(bookId);
   if (!pending) {
-    pending = extract(bookId)
+    pending = extract(bookId, preopened)
       .then(async (chapters) => {
         if (chapters.length > 0) {
           await writePersisted({

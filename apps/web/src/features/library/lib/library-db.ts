@@ -9,8 +9,7 @@ import type {
   LibraryBook,
   ReadingStatus,
 } from "./library-types";
-import { extractBookCover, extractBookMetadata } from "./library-cover";
-import type { ExtractedBookMetadata } from "./library-cover";
+import { extractBookCover, openBookWithMetadata } from "./library-cover";
 import { sniffBookFormat } from "./book-format-sniff";
 import { isTauri } from "../../../platform/environment";
 
@@ -150,24 +149,28 @@ function getReadingStatus(progressPercent: number): ReadingStatus {
   return "unread";
 }
 
-function createLibraryBook(
-  file: File,
-  format: BookFormat,
-  metadata: ExtractedBookMetadata,
-): LibraryBook {
+/**
+ * The record as it lands on the shelf the instant a file is picked: title and
+ * author parsed from the file name, no cover yet. The real metadata arrives
+ * via `enrichImportedBook` — parsing a large book takes seconds of main-thread
+ * time, so it never sits on the import path. `coverChecked: false` doubles as
+ * the safety net: if enrichment never runs (app quit), the lazy cover repair
+ * in `listLibraryBooks` still picks the record up.
+ */
+function createLibraryBook(file: File, format: BookFormat): LibraryBook {
   const now = new Date().toISOString();
   const parsed = parseFileName(file.name);
 
   return {
     id: crypto.randomUUID(),
-    title: metadata.title?.trim() || parsed.title,
-    author: metadata.author?.trim() || parsed.author,
+    title: parsed.title,
+    author: parsed.author,
     format,
     fileName: file.name,
     mimeType: file.type || "",
     fileSize: file.size,
-    coverUrl: metadata.coverUrl,
-    coverChecked: true,
+    coverUrl: null,
+    coverChecked: false,
     createdAt: now,
     updatedAt: now,
     lastOpenedAt: null,
@@ -235,6 +238,12 @@ export type ImportBookResult =
   | { status: "imported"; book: LibraryBook }
   | { status: "duplicate"; book: LibraryBook };
 
+/**
+ * The fast import path: sniff the format, store the bytes, put a record built
+ * from the file name — no book parsing. The book is on the shelf (placeholder
+ * cover) the moment this resolves; call `enrichImportedBook` afterwards to
+ * fill in real metadata, the cover, and the renamed-re-import dedupe.
+ */
 export async function importBookFile(
   file: File,
   t: TFunction<"shelf">,
@@ -248,16 +257,65 @@ export async function importBookFile(
   if (byFile) return { status: "duplicate", book: byFile };
 
   const format = await detectBookFormat(file, t);
-  const metadata = await extractBookMetadata(file);
-  const book = createLibraryBook(file, format, metadata);
-
-  // Metadata pass: same title + author + size catches a renamed re-import.
-  const key = bookDedupeKey(book);
-  const byMetadata = existing.find((entry) => bookDedupeKey(entry) === key);
-  if (byMetadata) return { status: "duplicate", book: byMetadata };
-
+  const book = createLibraryBook(file, format);
   await storeImportedBook(book, file);
   return { status: "imported", book };
+}
+
+export type EnrichBookResult =
+  | { status: "enriched"; book: LibraryBook; foliateBook: unknown | null }
+  | { status: "duplicate"; book: LibraryBook }
+  | { status: "removed" };
+
+/**
+ * The slow half of an import, run off the critical path: one foliate parse
+ * yields real title/author and the cover (the returned `foliateBook` lets the
+ * caller feed the same parse into text extraction). The metadata dedupe that
+ * used to gate the import happens here — a renamed re-import only becomes
+ * recognizable once the real metadata is known — and rolls the new record
+ * back. "removed" means the user deleted the book while it was being parsed.
+ */
+export async function enrichImportedBook(
+  imported: LibraryBook,
+  file: File,
+): Promise<EnrichBookResult> {
+  const { book: foliateBook, metadata } = await openBookWithMetadata(file);
+
+  // Re-read after the (long) parse so lastOpenedAt/progress written meanwhile
+  // survive the merge — and so a mid-parse delete stays deleted.
+  const current = await getBookRecord(imported.id);
+  if (!current) return { status: "removed" };
+
+  const enriched: LibraryBook = {
+    ...current,
+    title: metadata.title?.trim() || current.title,
+    author: metadata.author?.trim() || current.author,
+    coverUrl: metadata.coverUrl ?? current.coverUrl ?? null,
+    coverChecked: true,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const key = bookDedupeKey(enriched);
+  const duplicateOf = (await getAllBookRecords()).find(
+    (entry) => entry.id !== imported.id && bookDedupeKey(entry) === key,
+  );
+  if (duplicateOf) {
+    await removeLibraryBook(imported.id);
+    return { status: "duplicate", book: duplicateOf };
+  }
+
+  if (enriched.title !== current.title || enriched.author !== current.author) {
+    emitDomainEvents({
+      type: "book.metadataEdited",
+      payload: {
+        bookId: imported.id,
+        ...(enriched.title !== current.title ? { title: enriched.title } : {}),
+        ...(enriched.author !== current.author ? { author: enriched.author } : {}),
+      },
+    });
+  }
+  await putBookRecord(enriched);
+  return { status: "enriched", book: enriched, foliateBook };
 }
 
 export async function getStoredBookBlob(bookId: string): Promise<Blob | null> {

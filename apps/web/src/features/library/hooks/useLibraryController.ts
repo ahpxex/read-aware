@@ -7,6 +7,7 @@ import { deleteBookText, ensureBookTextExtracted } from "../lib/book-text-store"
 import {
   createCollection,
   deleteCollection,
+  enrichImportedBook,
   importBookFile,
   listCollections,
   listLibraryBooks,
@@ -159,6 +160,40 @@ export function useLibraryController() {
     void loadLibrary();
   }, [loadLibrary]);
 
+  /**
+   * 后台富化（一次 foliate 解析 → 真实元数据/封面 → 正文抽取）逐本排队：
+   * 解析是主线程上的秒级 CPU 块,串行让 UI 的卡顿窗口一次只有一本书,
+   * 也避免和后续导入抢主线程。跨批次共享同一条链。
+   */
+  const enrichChainRef = useRef<Promise<void>>(Promise.resolve());
+
+  const enqueueEnrichment = useCallback((book: LibraryBook, file: File) => {
+    enrichChainRef.current = enrichChainRef.current.then(async () => {
+      try {
+        const result = await enrichImportedBook(book, file);
+        if (result.status === "removed") return;
+        if (result.status === "duplicate") {
+          // 换名重导：真实元数据到手才认得出来 —— 记录已回滚,书架同步撤下
+          setBooks((current) => current.filter((entry) => entry.id !== book.id));
+          toast({
+            title: tRef.current("workspace.importTitle"),
+            description: formatImportNotice(0, [result.book.title], tRef.current),
+          });
+          return;
+        }
+        setBooks((current) =>
+          current.map((entry) => (entry.id === book.id ? result.book : entry)),
+        );
+        // 正文抽取管道（§11.5）：导入即抽取并持久化，agent 首次对话不用等
+        // 整书解析。复用富化那次 parse；失败静默 —— 端口会在需要时懒回填。
+        await ensureBookTextExtracted(book.id, result.foliateBook ?? undefined).catch(() => {});
+      } catch (error) {
+        // 富化失败不撤书：文件名标题照用,封面由 listLibraryBooks 的懒回填兜底
+        console.warn("[library] enrich failed", error);
+      }
+    });
+  }, [toast]);
+
   const importFiles = useCallback(async (files: File[]) => {
     if (files.length === 0) return;
 
@@ -172,13 +207,12 @@ export function useLibraryController() {
         if (result.status === "duplicate") duplicates.push(result.book.title);
         else {
           imported += 1;
-          // 正文抽取管道（§11.5）：导入即抽取并持久化，agent 首次对话不用等
-          // 整书解析。后台跑，失败静默 —— 端口会在需要时懒回填。
-          void ensureBookTextExtracted(result.book.id).catch(() => {});
+          // 立即上架（占位封面 + 文件名标题）,重活全部进后台队列
+          setBooks((current) => [result.book, ...current]);
+          enqueueEnrichment(result.book, file);
         }
       }
 
-      setBooks(await listLibraryBooks());
       if (duplicates.length > 0) {
         toast({
           title: tRef.current("workspace.importTitle"),
@@ -190,7 +224,7 @@ export function useLibraryController() {
     } finally {
       setIsImporting(false);
     }
-  }, [reportError, toast]);
+  }, [enqueueEnrichment, reportError, toast]);
 
   // One native picker at a time: a re-trigger while a dialog is pending would
   // start a second concurrent importFiles flow, and the import dedupe reads

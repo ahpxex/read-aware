@@ -111,7 +111,10 @@ export function ChatTranscript({
   );
 
   return (
-    <ScrollArea ref={containerRef} className="min-h-0 flex-1">
+    // overflow-x-hidden: the transcript must never scroll sideways — wide
+    // content (code blocks, tables) scrolls inside its own streamdown frame,
+    // and edge-hugging tooltip bubbles must not widen the scroll area.
+    <ScrollArea ref={containerRef} className="min-h-0 flex-1 overflow-x-hidden">
       {/* ra-chat-selectable opts back into text selection (the app chrome is
           globally non-selectable) so replies and quoted passages can be copied.
           max-w-2xl caps line length for readability on wide surfaces (the

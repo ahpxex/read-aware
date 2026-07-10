@@ -27,6 +27,11 @@ export function ChatMessageActions({
   const { copied, copy } = useCopyToClipboard();
   if (!text && !onRetry) return null;
 
+  // The tooltip bubble is always laid out (opacity-hidden) and, centered on a
+  // panel-edge button, would poke past the transcript and conjure a horizontal
+  // scrollbar — pin it to the message's edge instead (see Tooltip's align).
+  const tooltipAlign = align;
+
   return (
     <div
       className={cn(
@@ -36,7 +41,10 @@ export function ChatMessageActions({
       )}
     >
       {text && (
-        <Tooltip content={copied ? t("chat.message.copied") : t("chat.message.copy")}>
+        <Tooltip
+          content={copied ? t("chat.message.copied") : t("chat.message.copy")}
+          align={tooltipAlign}
+        >
           <IconButton
             size="sm"
             className="h-6 w-6"
@@ -47,7 +55,7 @@ export function ChatMessageActions({
         </Tooltip>
       )}
       {onRetry && (
-        <Tooltip content={t("chat.message.regenerate")}>
+        <Tooltip content={t("chat.message.regenerate")} align={tooltipAlign}>
           <IconButton
             size="sm"
             className="h-6 w-6"

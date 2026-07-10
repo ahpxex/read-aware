@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "ReadAware",
-  "version": "0.1.2+001",
+  "version": "0.2.0",
   "identifier": "com.readaware.app",
   "build": {
     "frontendDist": "../../web/dist",
@@ -37,7 +37,7 @@
     "active": true,
     "targets": "all",
     "android": {
-      "versionCode": 1002001
+      "versionCode": 2000000
     },
     "icon": [
       "icons/32x32.png",

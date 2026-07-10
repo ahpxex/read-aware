@@ -1,8 +1,9 @@
-/** RuntimeDeps 装配：六个端口全部接产品存储。 */
+/** RuntimeDeps 装配：全部端口都接产品存储。 */
 import type { RuntimeDeps } from "@read-aware/agent";
 import { createAnnotationsPort } from "./annotations-port";
 import { createBookTextPort } from "./book-text-port";
 import { createConversationPort } from "./conversation-port";
+import { createDictionaryPort } from "./dictionary-port";
 import { createLibraryPort } from "./library-port";
 import { createMemoryPort } from "./memory-port";
 import { createProfilePort } from "./profile-port";
@@ -19,5 +20,6 @@ export function buildRuntimeDeps(): RuntimeDeps {
     memory: createMemoryPort(),
     bookText: createBookTextPort(),
     vocabulary: createVocabularyPort(),
+    dictionary: createDictionaryPort(),
   };
 }

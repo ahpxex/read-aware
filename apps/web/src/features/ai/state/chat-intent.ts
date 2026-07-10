@@ -23,3 +23,16 @@ export interface AskAiRequest {
  * react to the same dispatch without a clear-vs-read race.
  */
 export const askAiRequestAtom = atom<AskAiRequest | null>(null);
+
+/**
+ * A pending "open this book" dispatch from a chat book card. The reader session
+ * lives far up the tree (App); cards live inside whichever chat surface is
+ * mounted — an atom bridges them the same way askAiRequestAtom does.
+ */
+export interface OpenBookRequest {
+  /** Unique per dispatch, so clicking the same card twice re-fires. */
+  id: string;
+  bookId: string;
+}
+
+export const openBookRequestAtom = atom<OpenBookRequest | null>(null);

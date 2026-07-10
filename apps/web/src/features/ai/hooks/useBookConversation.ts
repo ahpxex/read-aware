@@ -142,7 +142,10 @@ export function useBookConversation(
           // so the conversation stays a faithful record.
           const parts = finalizeParts(assembled);
           const content = partsText(parts);
-          if (content) {
+          // Reference parts contribute nothing to `content` — a cards-only
+          // reply must still persist.
+          const hasReference = parts.some((part) => part.type === "reference");
+          if (content || hasReference) {
             const assistantMessage: ChatMessage = {
               id: crypto.randomUUID(),
               role: "assistant",

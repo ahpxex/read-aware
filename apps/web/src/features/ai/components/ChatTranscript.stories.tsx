@@ -20,6 +20,18 @@ const richParts: ChatAssistantPart[] = [
   { type: "tool", id: "t1", tool: "search_memory", detail: "reading goals", state: "done" },
   { type: "tool", id: "t2", tool: "get_annotations", state: "done" },
   { type: "tool", id: "t3", tool: "search_book_text", detail: "deliberate practice", state: "error" },
+  { type: "text", text: "Two books on your shelf circle the same argument:" },
+  {
+    type: "reference",
+    id: "r1",
+    reference: {
+      kind: "books",
+      books: [
+        { bookId: "b1", title: "Atomic Habits", author: "James Clear" },
+        { bookId: "b2", title: "Peak", author: "Anders Ericsson" },
+      ],
+    },
+  },
   {
     type: "text",
     text: [

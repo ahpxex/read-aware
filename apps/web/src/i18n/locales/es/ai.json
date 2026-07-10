@@ -19,8 +19,18 @@
       "get_toc": "Leyendo el índice",
       "read_chapter": "Leyendo un capítulo",
       "search_book_text": "Buscando en el texto",
+      "get_vocabulary": "Leyendo tu vocabulario",
+      "lookup_word": "Buscando una palabra",
       "fallback": "Trabajando",
       "failed": "falló"
+    },
+    "references": {
+      "showAll": "Mostrar los {{count}}",
+      "showFewer": "Mostrar menos",
+      "missingBook": "Ya no está en la estantería",
+      "openBook": "Abrir {{title}}",
+      "saveWord": "Añadir al vocabulario",
+      "removeWord": "Quitar del vocabulario"
     },
     "removePassage": "Quitar el pasaje",
     "empty": {

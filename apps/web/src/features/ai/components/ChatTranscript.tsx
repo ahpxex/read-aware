@@ -67,10 +67,12 @@ export function ChatTranscript({
 
   // After a round's tool calls settle, the model is composing its next step —
   // without this the transcript would sit visually dead until the next chunk.
+  // A reference stack can also end a round (suppressed present_* calls leave
+  // no tool row behind, only the cards).
   const lastPart = streamingParts[streamingParts.length - 1];
   const awaitingNextRound =
     isStreaming &&
-    lastPart?.type === "tool" &&
+    (lastPart?.type === "tool" || lastPart?.type === "reference") &&
     !streamingParts.some((part) => part.type === "tool" && part.state === "running");
 
   const liveTurnIndex = liveTurnId

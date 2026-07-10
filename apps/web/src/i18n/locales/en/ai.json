@@ -19,8 +19,18 @@
       "get_toc": "Reading the table of contents",
       "read_chapter": "Reading a chapter",
       "search_book_text": "Searching the text",
+      "get_vocabulary": "Reading your vocabulary",
+      "lookup_word": "Looking up a word",
       "fallback": "Working",
       "failed": "failed"
+    },
+    "references": {
+      "showAll": "Show all {{count}}",
+      "showFewer": "Show fewer",
+      "missingBook": "No longer on the shelf",
+      "openBook": "Open {{title}}",
+      "saveWord": "Add to vocabulary",
+      "removeWord": "Remove from vocabulary"
     },
     "removePassage": "Remove passage",
     "empty": {

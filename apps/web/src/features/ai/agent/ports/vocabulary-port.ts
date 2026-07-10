@@ -18,6 +18,9 @@ function toEntry(item: VocabularyItem): VocabularyEntry {
     definition,
     bookTitle: item.bookTitle,
     addedAt: new Date(item.addedAt).toISOString(),
+    // 完整词条只进 present_words 的卡片 payload；工具层负责在给模型的
+    // 列表里剥掉它（vocabulary-tools）。
+    entry: item.entry,
   };
 }
 

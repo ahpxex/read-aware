@@ -19,8 +19,18 @@
       "get_toc": "目次を読んでいます",
       "read_chapter": "章を読んでいます",
       "search_book_text": "本文を検索しています",
+      "get_vocabulary": "単語帳を確認しています",
+      "lookup_word": "単語を調べています",
       "fallback": "処理中",
       "failed": "失敗"
+    },
+    "references": {
+      "showAll": "すべて表示（{{count}}）",
+      "showFewer": "折りたたむ",
+      "missingBook": "本棚にはもうありません",
+      "openBook": "『{{title}}』を開く",
+      "saveWord": "単語帳に追加",
+      "removeWord": "単語帳から削除"
     },
     "removePassage": "一節を削除",
     "empty": {

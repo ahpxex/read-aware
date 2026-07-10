@@ -19,8 +19,18 @@
       "get_toc": "Liest das Inhaltsverzeichnis",
       "read_chapter": "Liest ein Kapitel",
       "search_book_text": "Durchsucht den Text",
+      "get_vocabulary": "Liest dein Vokabular",
+      "lookup_word": "Schlägt ein Wort nach",
       "fallback": "Arbeitet",
       "failed": "fehlgeschlagen"
+    },
+    "references": {
+      "showAll": "Alle {{count}} anzeigen",
+      "showFewer": "Weniger anzeigen",
+      "missingBook": "Nicht mehr im Regal",
+      "openBook": "{{title}} öffnen",
+      "saveWord": "Zum Vokabular hinzufügen",
+      "removeWord": "Aus dem Vokabular entfernen"
     },
     "removePassage": "Passage entfernen",
     "empty": {

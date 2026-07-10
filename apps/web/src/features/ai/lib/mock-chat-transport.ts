@@ -1,5 +1,5 @@
 import type { ChatTransport } from "./chat-transport";
-import type { ChatStreamChunk, ChatTurnRequest } from "./chat-types";
+import type { ChatReference, ChatStreamChunk, ChatTurnRequest } from "./chat-types";
 
 /**
  * A local, offline stand-in for the real assistant backend. It streams a
@@ -33,10 +33,65 @@ export function createMockChatTransport(): ChatTransport {
       );
       if (signal?.aborted) return;
 
+      // Interleaving demo: prose → a book-card stack → prose → a word card,
+      // exercising both card kinds and the snapshot fallback (in the browser
+      // there is no shelf to hydrate from, so cards render their snapshots).
+      yield* streamText("text", "Two books from your shelf speak to this directly:", signal);
+      if (signal?.aborted) return;
+      yield { type: "reference", id: crypto.randomUUID(), reference: mockBooks(request) };
       yield* streamText("text", composeReply(request), signal);
+      if (signal?.aborted) return;
+      yield { type: "reference", id: crypto.randomUUID(), reference: MOCK_WORD };
+      yield* streamText(
+        "text",
+        "_“Serendipity” above is the kind of word card real lookups produce._",
+        signal,
+      );
     },
   };
 }
+
+function mockBooks(request: ChatTurnRequest): ChatReference {
+  return {
+    kind: "books",
+    books: [
+      { bookId: request.bookId, title: request.bookTitle || "This book" },
+      { bookId: "mock-second-book", title: "A Second Sample Book", author: "Jane Author" },
+    ],
+  };
+}
+
+const MOCK_WORD: ChatReference = {
+  kind: "words",
+  words: [
+    {
+      term: "serendipity",
+      language: "English",
+      source: "lookup",
+      entry: {
+        headword: "serendipity",
+        pronunciation: "/ˌsɛɹ.ənˈdɪp.ɪ.ti/",
+        senses: [
+          {
+            partOfSpeech: "noun",
+            definition:
+              "The faculty of making fortunate discoveries by accident; a happy, unplanned finding.",
+            examples: ["Meeting her at the library was pure serendipity."],
+          },
+          {
+            partOfSpeech: "noun",
+            definition: "An instance of such a discovery.",
+            examples: [],
+          },
+        ],
+        etymology:
+          "Coined by Horace Walpole in 1754 after 'The Three Princes of Serendip', whose heroes kept making discoveries by accident.",
+        contextualMeaning:
+          "Here it names the pleasant surprise of stumbling onto exactly the right book.",
+      },
+    },
+  ],
+};
 
 /** One start/end tool pair with a believable pause in between. */
 async function* toolStep(

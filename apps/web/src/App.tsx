@@ -10,6 +10,7 @@ import { BOOK_FILE_ACCEPT } from "./features/library/lib/pick-book-files";
 import type { LibraryBook } from "./features/library/lib/library-types";
 import { AppHeader } from "./features/navigation/components/AppHeader";
 import { ShelfManagementMenu } from "./features/shelf/components/ShelfManagementMenu";
+import { useOpenBookRequestHandler } from "./features/ai/hooks/useOpenBookRequest";
 import { useReaderSession } from "./features/reader/hooks/useReaderSession";
 import { useGlobalShortcuts } from "./features/settings/hooks/useGlobalShortcuts";
 import { useSurfaceHandoff } from "./hooks/useSurfaceHandoff";
@@ -132,6 +133,9 @@ function App() {
   useEffect(() => {
     if (shelfHandoff === "idle") setHeldShelfBooks(null);
   }, [shelfHandoff]);
+
+  // Chat book cards → open the reader (the cards dispatch via an atom).
+  useOpenBookRequestHandler(library.books, handleOpenBook, reader.selectedBook?.id ?? null);
 
   // Spinner feedback on the clicked cover while the shelf holds.
   const openingBookId = shelfHandoff !== "idle" ? reader.selectedBook?.id ?? null : null;

@@ -19,6 +19,8 @@ const TOOL_LABEL_KEYS = {
   get_toc: "chat.tools.get_toc",
   read_chapter: "chat.tools.read_chapter",
   search_book_text: "chat.tools.search_book_text",
+  get_vocabulary: "chat.tools.get_vocabulary",
+  lookup_word: "chat.tools.lookup_word",
 } as const;
 
 /**

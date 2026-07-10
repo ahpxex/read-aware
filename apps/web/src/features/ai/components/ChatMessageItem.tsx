@@ -3,6 +3,7 @@ import { AttachmentChip } from "./AttachmentChip";
 import { ChatThinking } from "./ChatThinking";
 import { ChatToolStep } from "./ChatToolStep";
 import { Markdown } from "./Markdown";
+import { ReferenceStack } from "./references/ReferenceStack";
 
 /**
  * One turn in the conversation. User turns sit right-aligned in a quiet chip
@@ -46,6 +47,9 @@ export function ChatMessageItem({
       {parts.map((part, i) => {
         if (part.type === "tool") {
           return <ChatToolStep key={part.id} part={part} />;
+        }
+        if (part.type === "reference") {
+          return <ReferenceStack key={part.id} part={part} />;
         }
         if (part.type === "thinking") {
           return <ChatThinking key={i} text={part.text} streaming={streaming && i === lastIndex} />;

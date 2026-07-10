@@ -31,6 +31,11 @@ export function appendStreamChunk(
           : part,
       );
     }
+    case "reference": {
+      // One part per producing tool call, idempotent by id; stacks never merge.
+      if (parts.some((part) => part.type === "reference" && part.id === chunk.id)) return parts;
+      return [...parts, { type: "reference", id: chunk.id, reference: chunk.reference }];
+    }
     default:
       // `status` (and any future chunk kinds) don't shape the timeline.
       return parts;
@@ -44,7 +49,10 @@ export function appendStreamChunk(
  */
 export function finalizeParts(parts: ChatAssistantPart[]): ChatAssistantPart[] {
   return parts
-    .filter((part) => part.type === "tool" || part.text.trim().length > 0)
+    .filter(
+      (part) =>
+        part.type === "tool" || part.type === "reference" || part.text.trim().length > 0,
+    )
     .map((part) =>
       part.type === "tool" && part.state === "running" ? { ...part, state: "done" } : part,
     );
@@ -85,6 +93,9 @@ export function toolStepDetail(tool: string, args: unknown): string | undefined 
   if (tool === "read_chapter" && typeof record.chapterIndex === "number") {
     const part = typeof record.part === "number" && record.part > 0 ? ` · ${record.part + 1}` : "";
     return `#${record.chapterIndex}${part}`;
+  }
+  if (tool === "lookup_word" && typeof record.term === "string" && record.term.trim()) {
+    return truncate(record.term);
   }
   return undefined;
 }

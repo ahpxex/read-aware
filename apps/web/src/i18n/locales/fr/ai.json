@@ -19,8 +19,18 @@
       "get_toc": "Lecture de la table des matières",
       "read_chapter": "Lecture d'un chapitre",
       "search_book_text": "Recherche dans le texte",
+      "get_vocabulary": "Lecture de votre lexique",
+      "lookup_word": "Recherche d'un mot",
       "fallback": "En cours",
       "failed": "échec"
+    },
+    "references": {
+      "showAll": "Tout afficher ({{count}})",
+      "showFewer": "Afficher moins",
+      "missingBook": "N'est plus dans la bibliothèque",
+      "openBook": "Ouvrir {{title}}",
+      "saveWord": "Ajouter au lexique",
+      "removeWord": "Retirer du lexique"
     },
     "removePassage": "Retirer le passage",
     "empty": {

@@ -19,8 +19,18 @@
       "get_toc": "Читаю оглавление",
       "read_chapter": "Читаю главу",
       "search_book_text": "Ищу в тексте",
+      "get_vocabulary": "Читаю ваш словарь",
+      "lookup_word": "Ищу слово в словаре",
       "fallback": "Работаю",
       "failed": "не удалось"
+    },
+    "references": {
+      "showAll": "Показать все {{count}}",
+      "showFewer": "Свернуть",
+      "missingBook": "Больше нет на полке",
+      "openBook": "Открыть «{{title}}»",
+      "saveWord": "В словарь",
+      "removeWord": "Убрать из словаря"
     },
     "removePassage": "Убрать отрывок",
     "empty": {

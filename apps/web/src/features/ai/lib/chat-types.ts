@@ -8,6 +8,8 @@
  * persona, retrieval and memory all live behind the seam, not here.
  */
 
+import type { DictionaryEntry } from "@read-aware/agent";
+
 /** A speaking role in the conversation. */
 export type ChatRole = "user" | "assistant";
 
@@ -50,7 +52,52 @@ export interface ChatToolPart {
   state: "running" | "done" | "error";
 }
 
-export type ChatAssistantPart = ChatTextPart | ChatThinkingPart | ChatToolPart;
+/**
+ * A shelf book the assistant chose to show as a card. Only a light snapshot is
+ * persisted — cover art and live progress hydrate at render time by `bookId`
+ * (covers are multi-KB data URLs; embedding them per message would bloat the
+ * transcript), with the snapshot as the fallback when the book was removed.
+ */
+export interface ChatBookReference {
+  bookId: string;
+  title: string;
+  author?: string;
+}
+
+/**
+ * A word card, self-contained: the full dictionary entry travels with the
+ * message so the card renders identically for vocabulary words and live
+ * lookups, and survives the word being removed from the vocabulary.
+ */
+export interface ChatWordReference {
+  term: string;
+  /** Explanation language (human-readable name) — the vocabulary identity key. */
+  language: string;
+  entry: DictionaryEntry;
+  source: "vocabulary" | "lookup";
+}
+
+export type ChatReference =
+  | { kind: "books"; books: ChatBookReference[] }
+  | { kind: "words"; words: ChatWordReference[] };
+
+/**
+ * A stack of reference cards the assistant chose to show (via its present /
+ * lookup tools), placed in the timeline where the tool was called — between
+ * prose blocks. Contributes nothing to `content`.
+ */
+export interface ChatReferencePart {
+  type: "reference";
+  /** Id of the producing tool call — stable render key and dedupe identity. */
+  id: string;
+  reference: ChatReference;
+}
+
+export type ChatAssistantPart =
+  | ChatTextPart
+  | ChatThinkingPart
+  | ChatToolPart
+  | ChatReferencePart;
 
 export interface ChatMessage {
   id: string;
@@ -94,10 +141,11 @@ export interface ChatTurnRequest {
 
 /**
  * Incremental output from the transport.
- * - `text`     — a delta to append to the visible reply.
- * - `thinking` — a delta of model reasoning (rendered collapsed).
- * - `tool`     — a tool call starting or ending, paired by `id`.
- * - `status`   — optional human-readable progress fallback.
+ * - `text`      — a delta to append to the visible reply.
+ * - `thinking`  — a delta of model reasoning (rendered collapsed).
+ * - `tool`      — a tool call starting or ending, paired by `id`.
+ * - `reference` — a stack of book/word cards the assistant chose to show.
+ * - `status`    — optional human-readable progress fallback.
  *
  * The union stays open: a backend can add richer events (citations, images)
  * later, and the UI's `switch` will simply ignore what it doesn't yet render.
@@ -107,4 +155,5 @@ export type ChatStreamChunk =
   | { type: "thinking"; text: string }
   | { type: "tool"; phase: "start"; id: string; tool: string; detail?: string }
   | { type: "tool"; phase: "end"; id: string; isError: boolean }
+  | { type: "reference"; id: string; reference: ChatReference }
   | { type: "status"; status: string };

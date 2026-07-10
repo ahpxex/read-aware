@@ -4,6 +4,7 @@
  * 实现这些端口，测试用内存假实现。方法都是异步的，为的是不限定实现形态。
  */
 import type { Id } from "@read-aware/core";
+import type { DictionaryEntry } from "./models/dictionary";
 
 export interface BookOverview {
   id: Id;
@@ -188,6 +189,11 @@ export interface VocabularyEntry {
   bookTitle?: string;
   /** ISO 时间戳。 */
   addedAt: string;
+  /**
+   * 保存时的完整词条（有则 present_words 用它渲染富卡片）。
+   * 不进 get_vocabulary 的工具输出 —— 对模型是纯 token 膨胀。
+   */
+  entry?: DictionaryEntry;
 }
 
 /**
@@ -198,6 +204,20 @@ export interface VocabularyPort {
   listVocabulary(filter?: { query?: string; limit?: number }): Promise<VocabularyEntry[]>;
 }
 
+export interface DictionaryLookupResult {
+  entry: DictionaryEntry;
+  /** 实际采用的解释语言（人类可读名）。 */
+  language: string;
+}
+
+/**
+ * 现场查词（lookup_word 工具的后端）。实现方拥有解释语言偏好、查词缓存与
+ * LLM account —— 全在实现侧（web），不把模型解析穿进工具层。失败时抛出。
+ */
+export interface DictionaryPort {
+  lookUp(input: { term: string; context?: string; bookTitle?: string }): Promise<DictionaryLookupResult>;
+}
+
 export interface RuntimeDeps {
   library: LibraryPort;
   annotations: AnnotationsPort;
@@ -206,4 +226,5 @@ export interface RuntimeDeps {
   memory: MemoryPort;
   bookText: BookTextPort;
   vocabulary: VocabularyPort;
+  dictionary: DictionaryPort;
 }

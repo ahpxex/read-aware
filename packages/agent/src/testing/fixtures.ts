@@ -4,6 +4,7 @@
  * 检索按 pinned/importance/recency 排序。
  */
 import type { Id } from "@read-aware/core";
+import type { DictionaryEntry } from "../models/dictionary";
 import type {
   AnnotationRecord,
   BookOverview,
@@ -49,6 +50,8 @@ export interface InMemorySeed {
   memories?: MemoryRecord[];
   chapters?: Record<string, ChapterSeed[]>;
   vocabulary?: VocabularyEntry[];
+  /** lookup_word 的假词典：term（小写）→ 词条；未命中时合成 stub。 */
+  dictionary?: Record<string, DictionaryEntry>;
 }
 
 export function seedMemory(partial: Partial<MemoryRecord> & Pick<MemoryRecord, "id" | "scope" | "content">): MemoryRecord {
@@ -234,6 +237,15 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         );
         return typeof limit === "number" ? entries.slice(0, limit) : entries;
       },
+    },
+    dictionary: {
+      lookUp: async ({ term }) => ({
+        entry: seed.dictionary?.[term.toLowerCase()] ?? {
+          headword: term,
+          senses: [{ partOfSpeech: "", definition: `stub definition of ${term}`, examples: [] }],
+        },
+        language: "English",
+      }),
     },
   };
   return { deps, stores };

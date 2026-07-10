@@ -308,6 +308,52 @@ describe("AgentThread", () => {
     expect(contexts[2]?.messages).toHaveLength(3);
   });
 
+  test("a failed turn does not pollute the next turn's context (global thread)", async () => {
+    const { faux, model } = makeFaux();
+    let captured: Context | undefined;
+    faux.setResponses([
+      fauxAssistantMessage("", { stopReason: "error", errorMessage: "boom" }),
+      (context) => {
+        captured = context;
+        return fauxAssistantMessage("ok");
+      },
+    ]);
+    const { deps } = makeDeps();
+    const thread = new AgentThread({
+      scope: { kind: "global", threadId: "t1" },
+      deps,
+      resolveModel: () => model,
+      getApiKey: () => "test-key",
+      completeFn: noopComplete,
+    });
+
+    await expect(collect(thread.sendTurn({ text: "q1" }))).rejects.toThrow("boom");
+    await collect(thread.sendTurn({ text: "q2" }));
+
+    // 失败轮既没持久化也不留在内存态：重建后上下文只有本轮的用户消息
+    expect(captured?.messages).toHaveLength(1);
+  });
+
+  test("reset discards the in-memory session and rebuilds from the persisted transcript", async () => {
+    const { faux, model } = makeFaux();
+    const contexts: Context[] = [];
+    faux.setResponses([
+      (context) => { contexts.push(context); return fauxAssistantMessage("a1"); },
+      (context) => { contexts.push(context); return fauxAssistantMessage("a2"); },
+    ]);
+    const { deps, turns } = makeDeps();
+    const thread = makeThread(deps, model);
+
+    await collect(thread.sendTurn({ text: "q1", chapter: "ch1.xhtml" }));
+    // UI 的 retry：先截断持久转录（丢掉 q1/a1），再带 reset 重发
+    turns.set("book:b1", []);
+    await collect(thread.sendTurn({ text: "q1-retry", chapter: "ch1.xhtml", reset: true }));
+
+    // 无 reset 时章节会话延续，上下文会是 [q1, a1, q1-retry]；
+    // reset 后从截断的持久层重建 —— 只剩本轮
+    expect(contexts[1]?.messages).toHaveLength(1);
+  });
+
   test("rejects a second turn while one is streaming", async () => {
     const { faux, model } = makeFaux();
     faux.setResponses([fauxAssistantMessage("first answer")]);

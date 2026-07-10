@@ -19,8 +19,10 @@ import { findChapterByHref } from "../text/chapter-lookup";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { buildBookTextTools } from "../tools/book-text-tools";
 import { buildConversationTools } from "../tools/conversation-tools";
+import { buildDictionaryTools } from "../tools/dictionary-tools";
 import { buildThreadTools } from "../tools/library-tools";
 import { buildMemoryTools, visibleScopes } from "../tools/memory-tools";
+import { buildPresentTools, referenceFromToolDetails } from "../tools/present-tools";
 import { buildVocabularyTools } from "../tools/vocabulary-tools";
 import { AsyncQueue } from "./async-queue";
 import { elideStaleToolResults } from "./context-slim";
@@ -43,6 +45,11 @@ export interface SendTurnInput {
   /** 发送时刻所在章节（href）—— 书线程章节会话的边界信号（doc §5） */
   chapter?: string;
   signal?: AbortSignal;
+  /**
+   * 丢弃线程内存态（pi Agent 实例与章节会话），本轮从持久转录重建。
+   * UI 的 retry/regenerate 在截断并持久化转录之后带上它。
+   */
+  reset?: boolean;
 }
 
 export interface AgentThreadOptions {
@@ -109,6 +116,17 @@ export class AgentThread {
   }
 
   /**
+   * 丢弃 pi Agent 与章节会话标记；下一轮 ensureAgent() / 会话装配从
+   * ConversationPort 重新水化。丢弃廉价：工具是重建的闭包，全局线程的
+   * 重水化只是一次 conversations.load。
+   */
+  private discardAgent(): void {
+    this.agent = undefined;
+    this.sessionStarted = false;
+    this.sessionChapter = undefined;
+  }
+
+  /**
    * 首次使用时创建 Agent。全局线程从转录 store 水化历史（线程内连续）；
    * 书线程不水化 —— 章节会话首轮由 sendTurn 重置为"一轮尾巴"基线。
    */
@@ -126,6 +144,8 @@ export class AgentThread {
           ...buildConversationTools(this.scope, this.deps),
           ...buildBookTextTools(this.scope, this.deps),
           ...buildVocabularyTools(this.deps),
+          ...buildPresentTools(this.deps),
+          ...buildDictionaryTools(this.scope, this.deps),
         ],
         messages: turnRecordsToMessages(records, model),
       },
@@ -173,6 +193,8 @@ export class AgentThread {
   async *sendTurn(input: SendTurnInput): AsyncGenerator<ThreadChunk> {
     if (this.busy) throw new Error(`thread ${this.key} is already streaming a turn`);
     this.busy = true;
+    // retry/regenerate：UI 已截断并持久化转录，丢内存态从持久层重建本轮
+    if (input.reset) this.discardAgent();
     const queue = new AsyncQueue<AgentEvent>();
     let unsubscribe: (() => void) | undefined;
     // 只有干净收尾的轮次才留在章节会话里；中断/报错后 agent.state 形状
@@ -278,7 +300,7 @@ export class AgentThread {
               args: event.args,
             };
             break;
-          case "tool_execution_end":
+          case "tool_execution_end": {
             yield {
               type: "tool-step",
               phase: "end",
@@ -286,7 +308,18 @@ export class AgentThread {
               tool: event.toolName,
               isError: event.isError,
             };
+            // 展示类工具（present_* / lookup_word）把卡片 payload 放在
+            // AgentToolResult.details 里 —— 这里转成 reference chunk 流给 UI
+            if (!event.isError) {
+              const reference = referenceFromToolDetails(
+                (event.result as { details?: unknown } | undefined)?.details,
+              );
+              if (reference) {
+                yield { type: "reference", id: event.toolCallId, reference };
+              }
+            }
             break;
+          }
           default:
             break;
         }
@@ -324,7 +357,10 @@ export class AgentThread {
       this.scheduleBackgroundPipeline(input.text, answer);
       turnCompleted = true;
     } finally {
-      if (this.scope.kind === "book" && !turnCompleted) this.sessionStarted = false;
+      // 中断/报错后 agent.state 不可信 —— pi 会把 stopReason=error/aborted 的
+      // 助手消息连同本轮用户消息留在 state.messages 里。两种线程都整体丢弃，
+      // 下一轮从持久转录重建（书线程回到会话基线，全局线程 ensureAgent 重水化）。
+      if (!turnCompleted) this.discardAgent();
       unsubscribe?.();
       this.busy = false;
     }

@@ -3,6 +3,28 @@
  * apps/web 的 PiChatTransport 适配器把它映射到 ChatStreamChunk：
  * text/thinking 直通增量，tool-step 靠 id 配对 start/end（§5 的开放 union）。
  */
+import type { DictionaryEntry } from "./models/dictionary";
+
+/** 被展示的书架书快照；封面与实时进度由 UI 侧按 bookId 水合。 */
+export interface BookReference {
+  bookId: string;
+  title: string;
+  author?: string;
+}
+
+/** 一张单词卡：完整词条快照 —— 生词本与现场查词同一形状。 */
+export interface WordReference {
+  term: string;
+  /** 解释语言（人类可读名，如 "Simplified Chinese"）—— 与生词本去重口径一致。 */
+  language: string;
+  entry: DictionaryEntry;
+  source: "vocabulary" | "lookup";
+}
+
+export type ReferencePayload =
+  | { kind: "books"; books: BookReference[] }
+  | { kind: "words"; words: WordReference[] };
+
 export type ThreadChunk =
   | { type: "status"; status: string }
   | { type: "text"; text: string }
@@ -18,6 +40,13 @@ export type ThreadChunk =
       args?: unknown;
       /** 仅 end。 */
       isError?: boolean;
+    }
+  /** present_* / lookup_word 主动展示的结构化引用 —— UI 渲染成卡片叠。 */
+  | {
+      type: "reference";
+      /** 产生它的工具调用 id（pi toolCallId）—— 消费端的稳定 key。 */
+      id: string;
+      reference: ReferencePayload;
     }
   /** 每次模型往返结束时的度量（repl/诊断用；UI 可忽略）。 */
   | {

@@ -23,7 +23,9 @@ export function buildVocabularyTools(deps: RuntimeDeps): AgentTool[] {
     }),
     execute: async (_id, params) => {
       const { query } = params as { query?: string };
-      return textResult(await deps.vocabulary.listVocabulary({ query }));
+      const entries = await deps.vocabulary.listVocabulary({ query });
+      // 完整词条只服务卡片（present_words）；给模型的列表剥掉它，免得 token 膨胀
+      return textResult(entries.map(({ entry: _entry, ...lean }) => lean));
     },
   };
 

@@ -16,7 +16,7 @@ export function buildDictionaryTools(scope: ThreadScope, deps: RuntimeDeps): Age
     name: "lookup_word",
     label: "Look up word",
     description:
-      "Look up a word or short phrase in the AI dictionary and show the reader a word card with the full entry (pronunciation, senses, examples, etymology). Use it when the reader asks what a word means or when a precise definition genuinely helps; pass the surrounding sentence as context when you have it. The card is already visible to the reader — do not restate the entry in prose, add only what the discussion needs.",
+      "Look up a word or short phrase in the AI dictionary and show the reader a word card with the full entry (pronunciation, senses, examples, etymology). Use it when the reader asks what a word means or when a precise definition genuinely helps; pass the surrounding sentence as context when you have it. The card is already visible to the reader — do not restate the entry in prose, add only what the discussion needs. One lookup per word per reply: never call it again for a word whose card is already showing in this reply.",
     parameters: Type.Object({
       term: Type.String({
         description: "The word or short phrase to define, in its original language",

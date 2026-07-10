@@ -1,4 +1,35 @@
-import type { ChatAssistantPart, ChatStreamChunk } from "./chat-types";
+import type { ChatAssistantPart, ChatReference, ChatStreamChunk } from "./chat-types";
+
+/**
+ * "Never present the same item twice in one reply" is a stated tool rule, but
+ * the model can slip (e.g. calling lookup_word twice for one word). This is
+ * the mechanical guarantee: drop items already shown by an earlier reference
+ * part of the same turn; a fully-duplicate stack appends nothing.
+ */
+function dedupeReference(
+  parts: ChatAssistantPart[],
+  reference: ChatReference,
+): ChatReference | undefined {
+  const seen = new Set<string>();
+  for (const part of parts) {
+    if (part.type !== "reference") continue;
+    if (part.reference.kind === "books") {
+      for (const book of part.reference.books) seen.add(`book:${book.bookId}`);
+    } else {
+      for (const word of part.reference.words) {
+        seen.add(`word:${word.language} ${word.term.toLowerCase()}`);
+      }
+    }
+  }
+  if (reference.kind === "books") {
+    const books = reference.books.filter((book) => !seen.has(`book:${book.bookId}`));
+    return books.length > 0 ? { kind: "books", books } : undefined;
+  }
+  const words = reference.words.filter(
+    (word) => !seen.has(`word:${word.language} ${word.term.toLowerCase()}`),
+  );
+  return words.length > 0 ? { kind: "words", words } : undefined;
+}
 
 /**
  * Pure assembly of the assistant turn: folds transport chunks into the ordered
@@ -34,7 +65,9 @@ export function appendStreamChunk(
     case "reference": {
       // One part per producing tool call, idempotent by id; stacks never merge.
       if (parts.some((part) => part.type === "reference" && part.id === chunk.id)) return parts;
-      return [...parts, { type: "reference", id: chunk.id, reference: chunk.reference }];
+      const reference = dedupeReference(parts, chunk.reference);
+      if (!reference) return parts;
+      return [...parts, { type: "reference", id: chunk.id, reference }];
     }
     default:
       // `status` (and any future chunk kinds) don't shape the timeline.

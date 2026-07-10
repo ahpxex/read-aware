@@ -13,8 +13,11 @@ import type { RuntimeDeps } from "../ports";
 
 export const PRESENT_TOOL_NAMES = ["present_books", "present_words"] as const;
 
-/** 一叠卡片的条目上限 —— 工具描述与 system prompt 与此保持一致。 */
-export const MAX_PRESENTED_ITEMS = 6;
+/**
+ * 一叠卡片的硬性兜底（UI 折叠成 3 张 + 展开行，多不致噪）。推荐类回答该
+ * 克制（提示词管），但"书架上有哪些书"这类列举理应整架出卡。
+ */
+export const MAX_PRESENTED_ITEMS = 24;
 
 /** present 工具放进 AgentToolResult.details 的形状。 */
 export interface ReferenceToolDetails {
@@ -56,7 +59,7 @@ export function buildPresentTools(deps: RuntimeDeps): AgentTool[] {
     name: "present_books",
     label: "Show books",
     description:
-      "Show the reader up to 6 books from their shelf as visual cards inside your reply. Call it when your answer recommends or discusses specific shelf books. The cards render at the point of the call, between your paragraphs — still name the books briefly in prose. Never present the same book twice in one reply.",
+      "Show the reader books from their shelf as visual cards inside your reply. Use it whenever your answer lists, recommends, or discusses shelf books — including \"what's on my shelf\", where you present the whole shelf in one call. Get ids from a fresh list_books call in this conversation (ids remembered from earlier go stale). The cards render at the point of the call, between your paragraphs — keep prose mentions brief; don't repeat the list as text. Never present the same book twice in one reply.",
     parameters: Type.Object({
       bookIds: Type.Array(
         Type.String({ description: "Book id, as returned by list_books / get_book_overview" }),
@@ -88,7 +91,7 @@ export function buildPresentTools(deps: RuntimeDeps): AgentTool[] {
     name: "present_words",
     label: "Show words",
     description:
-      "Show up to 6 of the reader's saved vocabulary words as expandable word cards inside your reply. Only for words already in their vocabulary — ALWAYS call get_vocabulary first to see the current list (memories about saved words go stale). To define and show any other word, use lookup_word instead. Never present the same word twice in one reply.",
+      "Show the reader's saved vocabulary words as expandable word cards inside your reply — the whole list when they ask what they've saved, or just the relevant ones. Only for words already in their vocabulary — ALWAYS call get_vocabulary first to see the current list (memories about saved words go stale). To define and show any other word, use lookup_word instead. Never present the same word twice in one reply.",
     parameters: Type.Object({
       terms: Type.Array(Type.String({ description: "A word exactly as saved in the vocabulary" }), {
         minItems: 1,

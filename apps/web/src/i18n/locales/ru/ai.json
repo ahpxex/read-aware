@@ -8,6 +8,7 @@
     "loadingConversation": "Загрузка беседы",
     "thinking": "Думаю…",
     "thought": "Ход размышлений",
+    "steps": "Шагов: {{count}}",
     "tools": {
       "search_memory": "Вспоминаю",
       "remember": "Сохраняю в память",

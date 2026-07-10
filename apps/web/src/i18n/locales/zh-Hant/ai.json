@@ -8,6 +8,7 @@
     "loadingConversation": "正在載入對話",
     "thinking": "思考中…",
     "thought": "思考過程",
+    "steps": "{{count}} 個步驟",
     "tools": {
       "search_memory": "正在回憶",
       "remember": "正在記下這一點",

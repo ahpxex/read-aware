@@ -8,6 +8,7 @@
     "loadingConversation": "Loading conversation",
     "thinking": "Thinking…",
     "thought": "Thought process",
+    "steps": "{{count}} steps",
     "tools": {
       "search_memory": "Recalling memories",
       "remember": "Saving a memory",

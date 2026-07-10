@@ -8,6 +8,7 @@
     "loadingConversation": "Cargando la conversación",
     "thinking": "Pensando…",
     "thought": "Razonamiento",
+    "steps": "{{count}} pasos",
     "tools": {
       "search_memory": "Recordando",
       "remember": "Guardando un recuerdo",

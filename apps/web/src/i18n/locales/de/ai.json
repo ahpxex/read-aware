@@ -8,6 +8,7 @@
     "loadingConversation": "Unterhaltung wird geladen",
     "thinking": "Denkt nach…",
     "thought": "Gedankengang",
+    "steps": "{{count}} Schritte",
     "tools": {
       "search_memory": "Ruft Erinnerungen ab",
       "remember": "Speichert eine Erinnerung",

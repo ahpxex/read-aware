@@ -8,6 +8,7 @@
     "loadingConversation": "会話を読み込み中",
     "thinking": "考え中…",
     "thought": "思考の過程",
+    "steps": "{{count}} ステップ",
     "tools": {
       "search_memory": "記憶を呼び出しています",
       "remember": "記憶を保存しています",

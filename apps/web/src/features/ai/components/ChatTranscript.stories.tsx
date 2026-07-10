@@ -101,7 +101,8 @@ export const WaitingForFirstToken: Story = {
   },
 };
 
-/** Mid-turn: reasoning is streaming in, collapsed behind the pulsing label. */
+/** Mid-turn: the thought's tail streams live under the pulsing label
+    (bottom-anchored, fading out at the top once it overflows). */
 export const StreamingThinking: Story = {
   args: {
     messages: [userTurn],
@@ -109,7 +110,11 @@ export const StreamingThinking: Story = {
     streamingParts: [
       {
         type: "thinking",
-        text: "Let me look at what I already know about this reader before answering…",
+        text: [
+          "Let me look at what I already know about this reader before answering.",
+          "They prefer primary sources and are reading toward a thesis on habit formation, so the answer should lean on the book's own case studies rather than secondary summaries.",
+          "I should check their highlights first — if they marked the deliberate-practice passage, that's the thread to pull on.",
+        ].join(" "),
       },
     ],
   },

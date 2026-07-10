@@ -1,7 +1,9 @@
+import { groupSettledParts, type AssistantRenderItem } from "../lib/chat-stream";
 import type { ChatAssistantPart, ChatMessage } from "../lib/chat-types";
 import { AttachmentChip } from "./AttachmentChip";
 import { ChatMessageActions, ChatMessageError } from "./ChatMessageActions";
 import { ChatThinking } from "./ChatThinking";
+import { ChatToolGroup } from "./ChatToolGroup";
 import { ChatToolStep } from "./ChatToolStep";
 import { Markdown } from "./Markdown";
 import { ReferenceStack } from "./references/ReferenceStack";
@@ -58,9 +60,19 @@ export function ChatMessageItem({
         : [];
   const lastIndex = parts.length - 1;
 
+  // Streaming: every part renders live, in order — the intermediate process.
+  // Settled: consecutive tool runs fold behind a "N steps" disclosure.
+  const items: AssistantRenderItem[] = streaming
+    ? parts.map((part, index) => ({ kind: "part", part, index }))
+    : groupSettledParts(parts);
+
   return (
     <div className="group/message flex max-w-full flex-col gap-2">
-      {parts.map((part, i) => {
+      {items.map((item) => {
+        if (item.kind === "tool-group") {
+          return <ChatToolGroup key={item.parts[0].id} parts={item.parts} />;
+        }
+        const { part, index } = item;
         if (part.type === "tool") {
           return <ChatToolStep key={part.id} part={part} />;
         }
@@ -68,12 +80,20 @@ export function ChatMessageItem({
           return <ReferenceStack key={part.id} part={part} />;
         }
         if (part.type === "thinking") {
-          return <ChatThinking key={i} text={part.text} streaming={streaming && i === lastIndex} />;
+          return (
+            <ChatThinking
+              key={index}
+              text={part.text}
+              streaming={streaming && index === lastIndex}
+            />
+          );
         }
         return (
-          <div key={i} className="max-w-full">
+          <div key={index} className="max-w-full">
             <Markdown>{part.text}</Markdown>
-            {streaming && i === lastIndex && <span className="ra-chat-caret" aria-hidden="true" />}
+            {streaming && index === lastIndex && (
+              <span className="ra-chat-caret" aria-hidden="true" />
+            )}
           </div>
         );
       })}

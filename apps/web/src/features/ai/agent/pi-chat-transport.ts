@@ -42,6 +42,7 @@ export function createPiChatTransport(): ChatTransport {
         attachments,
         chapter: request.chapterHref ?? undefined,
         signal,
+        reset: request.reset,
       })) {
         switch (chunk.type) {
           case "text":

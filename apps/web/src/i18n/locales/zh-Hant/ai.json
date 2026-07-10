@@ -32,6 +32,13 @@
       "saveWord": "加入詞彙表",
       "removeWord": "從詞彙表移除"
     },
+    "message": {
+      "copy": "複製訊息",
+      "copied": "已複製",
+      "regenerate": "重新生成回覆",
+      "retry": "重試",
+      "failed": "生成失敗"
+    },
     "removePassage": "移除段落",
     "empty": {
       "title": "詢問關於這本書",

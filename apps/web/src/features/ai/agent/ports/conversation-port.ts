@@ -26,11 +26,15 @@ function storeIdToThreadKey(storeId: string): string {
 }
 
 function toTurns(messages: ChatMessage[]): TurnRecord[] {
-  return messages.map((message) => ({
-    role: message.role,
-    content: message.content,
-    createdAt: message.createdAt,
-  }));
+  // 失败标记的消息不进 agent 的水化与原话检索：空 stub 会变成空助手轮，
+  // 半截回答会与重试后的正式回答重复。
+  return messages
+    .filter((message) => !message.error)
+    .map((message) => ({
+      role: message.role,
+      content: message.content,
+      createdAt: message.createdAt,
+    }));
 }
 
 const INSIGHTS_KEY = "read-aware-agent-insights";

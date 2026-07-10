@@ -32,6 +32,13 @@
       "saveWord": "Add to vocabulary",
       "removeWord": "Remove from vocabulary"
     },
+    "message": {
+      "copy": "Copy message",
+      "copied": "Copied",
+      "regenerate": "Regenerate response",
+      "retry": "Retry",
+      "failed": "Generation failed"
+    },
     "removePassage": "Remove passage",
     "empty": {
       "title": "Ask about this book",

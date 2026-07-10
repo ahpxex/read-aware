@@ -141,6 +141,44 @@ export const AwaitingNextRound: Story = {
   },
 };
 
+/** A failed turn with a partial reply: inline error row + retry on the message. */
+export const FailedTurnPartialReply: Story = {
+  args: {
+    messages: [
+      userTurn,
+      {
+        id: "a1",
+        role: "assistant",
+        content: "Here's what I know so far — before the connection dropped mid-",
+        createdAt: askedAt,
+        parts: [
+          { type: "tool", id: "t1", tool: "search_memory", detail: "reading goals", state: "done" },
+          { type: "text", text: "Here's what I know so far — before the connection dropped mid-" },
+        ],
+        error: "network error: connection reset",
+      },
+    ],
+    onRetry: () => {},
+  },
+};
+
+/** A failure before any prose (e.g. no API key): an error-only stub message. */
+export const FailedBeforeFirstToken: Story = {
+  args: {
+    messages: [
+      userTurn,
+      {
+        id: "a1",
+        role: "assistant",
+        content: "",
+        createdAt: askedAt,
+        error: "AI is not configured — add an API key in Settings → AI.",
+      },
+    ],
+    onRetry: () => {},
+  },
+};
+
 /** Legacy message shape (content only, no parts) still renders as plain Markdown. */
 export const LegacyContentOnly: Story = {
   args: {

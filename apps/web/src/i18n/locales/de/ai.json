@@ -32,6 +32,13 @@
       "saveWord": "Zum Vokabular hinzufügen",
       "removeWord": "Aus dem Vokabular entfernen"
     },
+    "message": {
+      "copy": "Nachricht kopieren",
+      "copied": "Kopiert",
+      "regenerate": "Antwort neu generieren",
+      "retry": "Erneut versuchen",
+      "failed": "Generierung fehlgeschlagen"
+    },
     "removePassage": "Passage entfernen",
     "empty": {
       "title": "Frag zu diesem Buch",

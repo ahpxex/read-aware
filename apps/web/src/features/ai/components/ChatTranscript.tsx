@@ -11,6 +11,8 @@ type ChatTranscriptProps = {
   isStreaming: boolean;
   streamingParts: ChatAssistantPart[];
   status: string | null;
+  /** Re-run the last turn; offered only on the transcript's last message. */
+  onRetry?: () => void;
 };
 
 /** The quiet activity row shown while the model is between visible outputs. */
@@ -36,6 +38,7 @@ export function ChatTranscript({
   isStreaming,
   streamingParts,
   status,
+  onRetry,
 }: ChatTranscriptProps) {
   const { t } = useTranslation("ai");
   const { containerRef, liveTurnRef, liveTurnId, liveTurnMinHeight } = useTranscriptAutoScroll({
@@ -81,6 +84,12 @@ export function ChatTranscript({
   const settledMessages = liveTurnIndex >= 0 ? messages.slice(0, liveTurnIndex) : messages;
   const liveMessages = liveTurnIndex >= 0 ? messages.slice(liveTurnIndex) : [];
 
+  // Retry only ever targets the LAST message (any role — a transcript can end
+  // on a user turn after an abort with no reply), and never mid-stream.
+  const lastMessageId = messages[messages.length - 1]?.id;
+  const retryFor = (message: ChatMessage) =>
+    onRetry && !isStreaming && message.id === lastMessageId ? onRetry : undefined;
+
   const streamingBlock = isStreaming && (
     <>
       {streamingParts.length > 0 ? (
@@ -111,7 +120,7 @@ export function ChatTranscript({
       <div className="ra-chat-selectable mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 py-4">
 
         {settledMessages.map((message) => (
-          <ChatMessageItem key={message.id} message={message} />
+          <ChatMessageItem key={message.id} message={message} onRetry={retryFor(message)} />
         ))}
 
         {liveTurnIndex >= 0 ? (
@@ -124,7 +133,7 @@ export function ChatTranscript({
             style={liveTurnMinHeight ? { minHeight: liveTurnMinHeight } : undefined}
           >
             {liveMessages.map((message) => (
-              <ChatMessageItem key={message.id} message={message} />
+              <ChatMessageItem key={message.id} message={message} onRetry={retryFor(message)} />
             ))}
             {streamingBlock}
           </div>

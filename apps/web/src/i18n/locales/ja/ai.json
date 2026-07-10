@@ -32,6 +32,13 @@
       "saveWord": "単語帳に追加",
       "removeWord": "単語帳から削除"
     },
+    "message": {
+      "copy": "メッセージをコピー",
+      "copied": "コピーしました",
+      "regenerate": "回答を再生成",
+      "retry": "再試行",
+      "failed": "生成に失敗しました"
+    },
     "removePassage": "一節を削除",
     "empty": {
       "title": "この本について質問",

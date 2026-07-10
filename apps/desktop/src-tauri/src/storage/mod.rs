@@ -341,6 +341,13 @@ const MIGRATIONS: &[(i64, &str, &str)] = &[
          CREATE UNIQUE INDEX IF NOT EXISTS ix_ai_messages_conversation_seq
             ON ai_messages (conversation_id, seq);",
     ),
+    (
+        7,
+        "ai_message_error",
+        // 消息级失败标记（失败的轮次直接显形在消息上，带内联重试）；
+        // NULL = 正常消息。
+        "ALTER TABLE ai_messages ADD COLUMN error TEXT;",
+    ),
 ];
 
 /// Apply migrations newer than the highest recorded version, up to `max_version`
@@ -1720,6 +1727,8 @@ pub struct AiMessage {
     pub attachments_json: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub parts_json: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
 }
 
 fn row_to_ai_message(row: &rusqlite::Row) -> rusqlite::Result<AiMessage> {
@@ -1732,6 +1741,7 @@ fn row_to_ai_message(row: &rusqlite::Row) -> rusqlite::Result<AiMessage> {
         created_at: row.get("created_at")?,
         attachments_json: row.get("attachments_json")?,
         parts_json: row.get("parts_json")?,
+        error: row.get("error")?,
     })
 }
 
@@ -1796,8 +1806,8 @@ pub fn ai_chat_replace(
         tx.execute(
             "INSERT INTO ai_messages
                 (id, conversation_id, role, seq, content, created_at,
-                 attachments_json, parts_json)
-             VALUES (?1,?2,?3,?4,?5,?6,?7,?8)",
+                 attachments_json, parts_json, error)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
             params![
                 message.id,
                 conversation_id,
@@ -1807,6 +1817,7 @@ pub fn ai_chat_replace(
                 message.created_at,
                 message.attachments_json,
                 message.parts_json,
+                message.error,
             ],
         )
         .map_err(|e| e.to_string())?;

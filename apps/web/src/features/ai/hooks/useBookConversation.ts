@@ -18,8 +18,13 @@ export interface BookConversation {
   streamingParts: ChatAssistantPart[];
   /** Human-readable progress from the transport (e.g. "Thinking…"). */
   status: string | null;
-  error: string | null;
   send: (text: string, attachments?: ChatAttachment[]) => void;
+  /**
+   * Re-run the last user turn: drops whatever reply followed it (failed or
+   * not), persists the truncation, and regenerates with the agent's thread
+   * memory reset. No-op while streaming or on an empty transcript.
+   */
+  retry: () => void;
   stop: () => void;
   clear: () => void;
 }
@@ -28,6 +33,10 @@ export interface BookConversation {
  * Owns the per-book conversation: loads it from the store, sends a turn through
  * the response seam, streams the reply, and persists each committed turn. The
  * components stay pure — all the async orchestration lives here.
+ *
+ * Failures live on the message, not the conversation: a failed turn commits an
+ * assistant message carrying `error` (possibly with a partial reply), and the
+ * transcript renders the inline error row + retry on it.
  */
 export function useBookConversation(
   bookId: string,
@@ -45,7 +54,6 @@ export function useBookConversation(
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingParts, setStreamingParts] = useState<ChatAssistantPart[]>([]);
   const [status, setStatus] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
   // Latest committed messages, reachable synchronously inside the async turn.
@@ -60,7 +68,6 @@ export function useBookConversation(
   useEffect(() => {
     let alive = true;
     setIsLoading(true);
-    setError(null);
     void loadConversation(bookId).then((loaded) => {
       if (!alive) return;
       setMessages(loaded);
@@ -75,29 +82,22 @@ export function useBookConversation(
   const persist = useCallback(
     (next: ChatMessage[]) => {
       setMessages(next);
-      void saveConversation(bookId, next);
+      return saveConversation(bookId, next); // best-effort internally
     },
     [bookId],
   );
 
-  const send = useCallback(
-    (text: string, attachments?: ChatAttachment[]) => {
-      const trimmed = text.trim();
-      const hasAttachment = !!attachments && attachments.length > 0;
-      if ((!trimmed && !hasAttachment) || isStreaming) return;
-
-      const userMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: "user",
-        content: trimmed,
-        createdAt: new Date().toISOString(),
-        attachments: hasAttachment ? attachments : undefined,
-      };
-      const history = messagesRef.current;
+  /**
+   * The shared turn body: persist the user turn, stream the reply, commit the
+   * assistant message. `reset` (retry/regenerate) makes the transport discard
+   * the agent's thread memory so the turn rebuilds from the persisted
+   * transcript — which is why the persist is awaited before the stream starts.
+   */
+  const runTurn = useCallback(
+    (history: ChatMessage[], userMessage: ChatMessage, reset = false) => {
       const withUser = [...history, userMessage];
-      persist(withUser);
+      const persisted = persist(withUser);
 
-      setError(null);
       setStreamingParts([]);
       setStatus(null);
       setIsStreaming(true);
@@ -107,7 +107,11 @@ export function useBookConversation(
 
       void (async () => {
         let assembled: ChatAssistantPart[] = [];
+        let failure: string | null = null;
         try {
+          // The truncated transcript must be on disk before the agent
+          // rehydrates from it (load-bearing for retry on the global thread).
+          await persisted;
           const stream = getChatTransport().sendTurn(
             {
               bookId,
@@ -116,6 +120,7 @@ export function useBookConversation(
               message: userMessage,
               thread,
               chapterHref: chapterHrefRef.current,
+              reset,
             },
             controller.signal,
           );
@@ -133,27 +138,28 @@ export function useBookConversation(
             controller.signal.aborted ||
             (err instanceof DOMException && err.name === "AbortError");
           if (!aborted) {
-            setError(
-              err instanceof Error ? err.message : t("chat.error.generic"),
-            );
+            failure =
+              err instanceof Error && err.message ? err.message : t("chat.error.generic");
           }
         } finally {
           // Commit whatever was produced — even a partial reply after a stop —
-          // so the conversation stays a faithful record.
+          // so the conversation stays a faithful record. Reference parts
+          // contribute nothing to `content`, so a cards-only reply must still
+          // persist; a failure with no output persists an error-only stub so
+          // the retry affordance has a message to live on.
           const parts = finalizeParts(assembled);
           const content = partsText(parts);
-          // Reference parts contribute nothing to `content` — a cards-only
-          // reply must still persist.
           const hasReference = parts.some((part) => part.type === "reference");
-          if (content || hasReference) {
+          if (content || hasReference || failure) {
             const assistantMessage: ChatMessage = {
               id: crypto.randomUUID(),
               role: "assistant",
               content,
               createdAt: new Date().toISOString(),
-              parts,
+              parts: parts.length > 0 ? parts : undefined,
+              error: failure ?? undefined,
             };
-            persist([...withUser, assistantMessage]);
+            void persist([...withUser, assistantMessage]);
           }
           setStreamingParts([]);
           setStatus(null);
@@ -162,8 +168,41 @@ export function useBookConversation(
         }
       })();
     },
-    [bookId, bookTitle, thread, isStreaming, persist, t],
+    [bookId, bookTitle, thread, persist, t],
   );
+
+  const send = useCallback(
+    (text: string, attachments?: ChatAttachment[]) => {
+      const trimmed = text.trim();
+      const hasAttachment = !!attachments && attachments.length > 0;
+      if ((!trimmed && !hasAttachment) || isStreaming) return;
+
+      const userMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "user",
+        content: trimmed,
+        createdAt: new Date().toISOString(),
+        attachments: hasAttachment ? attachments : undefined,
+      };
+      runTurn(messagesRef.current, userMessage);
+    },
+    [isStreaming, runTurn],
+  );
+
+  const retry = useCallback(() => {
+    if (isStreaming) return;
+    const current = messagesRef.current;
+    let lastUserIndex = -1;
+    for (let i = current.length - 1; i >= 0; i -= 1) {
+      if (current[i].role === "user") {
+        lastUserIndex = i;
+        break;
+      }
+    }
+    if (lastUserIndex < 0) return;
+    // Same user message object — id, attachments and timestamp preserved.
+    runTurn(current.slice(0, lastUserIndex), current[lastUserIndex], true);
+  }, [isStreaming, runTurn]);
 
   const stop = useCallback(() => {
     abortRef.current?.abort();
@@ -173,7 +212,10 @@ export function useBookConversation(
     abortRef.current?.abort();
     setMessages([]);
     void clearConversation(bookId);
+    // TODO: the agent thread's in-memory state survives a clear until the next
+    // reset turn or app restart — route clears through SendTurnInput.reset (or
+    // a runtime-level discard) when clearing becomes thread-aware.
   }, [bookId]);
 
-  return { messages, isLoading, isStreaming, streamingParts, status, error, send, stop, clear };
+  return { messages, isLoading, isStreaming, streamingParts, status, send, retry, stop, clear };
 }

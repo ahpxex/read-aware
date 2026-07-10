@@ -45,6 +45,7 @@ interface AiMessageRow {
   createdAt: string;
   attachmentsJson?: string;
   partsJson?: string;
+  error?: string;
 }
 
 function rowToMessage(row: AiMessageRow): ChatMessage {
@@ -57,6 +58,7 @@ function rowToMessage(row: AiMessageRow): ChatMessage {
       ? (JSON.parse(row.attachmentsJson) as ChatAttachment[])
       : undefined,
     parts: row.partsJson ? (JSON.parse(row.partsJson) as ChatAssistantPart[]) : undefined,
+    error: row.error || undefined,
   };
 }
 
@@ -70,6 +72,7 @@ function messageToRow(conversationId: string, message: ChatMessage, seq: number)
     createdAt: message.createdAt,
     attachmentsJson: message.attachments ? JSON.stringify(message.attachments) : undefined,
     partsJson: message.parts ? JSON.stringify(message.parts) : undefined,
+    error: message.error,
   };
 }
 

@@ -7,7 +7,6 @@
  */
 import { useEffect, useRef } from "react";
 import { useAtomValue } from "jotai";
-import { Alert } from "@read-aware/ui";
 import { ChatComposer, type ChatComposerHandle } from "../../ai/components/ChatComposer";
 import { ChatTranscript } from "../../ai/components/ChatTranscript";
 import { useGlobalConversation } from "../../ai/hooks/useGlobalConversation";
@@ -35,12 +34,8 @@ export function ContextWorkspace() {
         isStreaming={conversation.isStreaming}
         streamingParts={conversation.streamingParts}
         status={conversation.status}
+        onRetry={conversation.retry}
       />
-      {conversation.error && (
-        <div className="mx-auto w-full max-w-2xl px-3 pb-2">
-          <Alert variant="destructive">{conversation.error}</Alert>
-        </div>
-      )}
       <ChatComposer
         ref={composerRef}
         isStreaming={conversation.isStreaming}

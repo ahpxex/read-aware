@@ -50,7 +50,7 @@ fn fresh_migrate_reaches_latest_and_retires_interim_tables() {
             r.get(0)
         })
         .unwrap();
-    assert_eq!(version, 6);
+    assert_eq!(version, 7);
     for table in [
         "domain_events",
         "event_sync_state",
@@ -158,6 +158,48 @@ fn ai_chat_replace_orders_by_seq_and_clear_leaves_tombstone() {
         .unwrap();
     assert_eq!(count, 0);
     assert!(cleared.is_some());
+}
+
+#[test]
+fn ai_message_error_column_roundtrips() {
+    let conn = migrated_conn();
+    conn.execute(
+        "INSERT INTO ai_conversations (id, created_at, updated_at)
+         VALUES ('book-1', '2026-07-10T00:00:00Z', '2026-07-10T00:00:00Z')",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO ai_messages
+            (id, conversation_id, role, seq, content, created_at, error)
+         VALUES ('m1', 'book-1', 'assistant', 0, '', '2026-07-10T00:00:00Z', 'network reset')",
+        [],
+    )
+    .unwrap();
+    let error: Option<String> = conn
+        .query_row(
+            "SELECT error FROM ai_messages WHERE id = 'm1'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(error.as_deref(), Some("network reset"));
+    // 旧行（无 error）读出 NULL
+    conn.execute(
+        "INSERT INTO ai_messages
+            (id, conversation_id, role, seq, content, created_at)
+         VALUES ('m2', 'book-1', 'user', 1, 'q', '2026-07-10T00:00:00Z')",
+        [],
+    )
+    .unwrap();
+    let none: Option<String> = conn
+        .query_row(
+            "SELECT error FROM ai_messages WHERE id = 'm2'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert!(none.is_none());
 }
 
 #[test]

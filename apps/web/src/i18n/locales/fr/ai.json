@@ -32,6 +32,13 @@
       "saveWord": "Ajouter au lexique",
       "removeWord": "Retirer du lexique"
     },
+    "message": {
+      "copy": "Copier le message",
+      "copied": "Copié",
+      "regenerate": "Régénérer la réponse",
+      "retry": "Réessayer",
+      "failed": "Échec de la génération"
+    },
     "removePassage": "Retirer le passage",
     "empty": {
       "title": "Posez une question sur ce livre",

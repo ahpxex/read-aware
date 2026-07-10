@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { useAtomValue } from "jotai";
-import { Alert } from "@read-aware/ui";
 import { useBookConversation } from "../hooks/useBookConversation";
 import type { ChatSelectionAttachment } from "../lib/chat-types";
 import { askAiRequestAtom } from "../state/chat-intent";
@@ -67,12 +66,8 @@ export function ChatPanel({
         isStreaming={conversation.isStreaming}
         streamingParts={conversation.streamingParts}
         status={conversation.status}
+        onRetry={conversation.retry}
       />
-      {conversation.error && (
-        <Alert variant="destructive" className="mx-3 mb-2">
-          {conversation.error}
-        </Alert>
-      )}
       <ChatComposer
         ref={composerRef}
         isStreaming={conversation.isStreaming}

@@ -15,6 +15,14 @@
     "settings": "Ajustes",
     "more": "Más"
   },
+  "update": {
+    "available": "Actualización disponible",
+    "availableVersion": "La versión {{version}} está lista para instalar",
+    "downloading": "Descargando actualización...",
+    "downloadingProgress": "Descargando {{progress}}%",
+    "installing": "Instalando actualización...",
+    "failed": "Error al actualizar. Reintentar"
+  },
   "error": {
     "title": "Algo interrumpió el flujo de lectura.",
     "body": "Actualiza la página para continuar. Si el problema persiste, vuelve a abrir el libro desde tu estantería."

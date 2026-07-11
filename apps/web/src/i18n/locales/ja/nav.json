@@ -15,6 +15,14 @@
     "settings": "設定",
     "more": "その他"
   },
+  "update": {
+    "available": "アップデートがあります",
+    "availableVersion": "バージョン {{version}} をインストールできます",
+    "downloading": "アップデートをダウンロード中…",
+    "downloadingProgress": "ダウンロード中 {{progress}}%",
+    "installing": "アップデートをインストール中…",
+    "failed": "アップデートに失敗しました。再試行"
+  },
   "error": {
     "title": "読書の流れが中断されました。",
     "body": "ページを再読み込みして続行してください。問題が解決しない場合は、本棚から本を開き直してください。"

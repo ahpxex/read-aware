@@ -15,6 +15,14 @@
     "settings": "Paramètres",
     "more": "Plus"
   },
+  "update": {
+    "available": "Mise à jour disponible",
+    "availableVersion": "La version {{version}} est prête à installer",
+    "downloading": "Téléchargement de la mise à jour...",
+    "downloadingProgress": "Téléchargement {{progress}}%",
+    "installing": "Installation de la mise à jour...",
+    "failed": "Échec de la mise à jour. Réessayer"
+  },
   "error": {
     "title": "Un incident a interrompu le fil de lecture.",
     "body": "Actualisez la page pour continuer. Si le problème persiste, rouvrez le livre depuis votre étagère."

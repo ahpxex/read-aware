@@ -34,8 +34,8 @@
         "description": "使用 ReadAware 開啟 EPUB、MOBI、AZW3、FB2 與 PDF 檔案。"
       },
       "autoUpdate": {
-        "title": "自動更新",
-        "description": "在背景下載並安裝新版本。"
+        "title": "自動檢查更新",
+        "description": "發現新版本時，在主介面安靜地顯示提示。"
       }
     },
     "languagePrivacy": "語言與隱私",
@@ -302,6 +302,17 @@
       "description": "檢查並安裝最新版本。"
     },
     "checkUpdates": "檢查更新",
+    "checkingUpdates": "正在檢查…",
+    "installUpdate": "安裝更新",
+    "versionUnknown": "未知",
+    "updateStatus": {
+      "upToDate": "已是最新版本",
+      "available": "版本 {{version}} 可用",
+      "downloading": "正在下載…",
+      "downloadingProgress": "正在下載 {{progress}}%",
+      "installing": "正在安裝…",
+      "failed": "更新失敗"
+    },
     "engine": {
       "title": "閱讀引擎",
       "description": "所有格式 — EPUB、MOBI、AZW3、FB2、PDF — 都透過單一內建引擎呈現。"

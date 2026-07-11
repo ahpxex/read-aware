@@ -22,6 +22,8 @@ type AppHeaderProps = {
   onOpenSettings: () => void;
   onOpenSearch: () => void;
   onTopNavChange: (topNav: TopNav) => void;
+  /** Quiet status/action rendered beside the native window controls. */
+  leadingStatus?: ReactNode;
   /** Optional context-specific control (e.g. the shelf view menu) shown in the cluster. */
   viewControl?: ReactNode;
   /** When set, replaces the default right-hand icon cluster entirely — the
@@ -48,6 +50,7 @@ export function AppHeader({
   onOpenSettings,
   onOpenSearch,
   onTopNavChange,
+  leadingStatus,
   viewControl,
   actions,
 }: AppHeaderProps) {
@@ -91,6 +94,7 @@ export function AppHeader({
               icon={<CaretLeft size={18} weight="regular" aria-hidden="true" />}
             />
           )}
+          {leadingStatus}
           <div className="ml-auto flex items-center gap-1.5">
           <IconButton
             label={t("header.search")}
@@ -160,8 +164,8 @@ export function AppHeader({
         data-tauri-drag-region=""
         className="flex h-12 items-center"
         style={{
-          // Clear the macOS traffic lights only when the left cluster is present.
-          paddingLeft: showBack
+          // Clear the macOS traffic lights whenever left-side content is present.
+          paddingLeft: showBack || leadingStatus
             ? "max(1.25rem, var(--ra-traffic-light-inset))"
             : "1.25rem",
           paddingRight: "1.25rem",
@@ -178,6 +182,7 @@ export function AppHeader({
             />
           </Tooltip>
         )}
+        {leadingStatus}
         <div className="ml-auto flex items-center gap-1.5">
           {actions ?? (
             <>

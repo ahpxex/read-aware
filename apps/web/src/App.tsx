@@ -9,6 +9,8 @@ import { useLibraryController } from "./features/library/hooks/useLibraryControl
 import { BOOK_FILE_ACCEPT } from "./features/library/lib/pick-book-files";
 import type { LibraryBook } from "./features/library/lib/library-types";
 import { AppHeader } from "./features/navigation/components/AppHeader";
+import { UpdateIndicator } from "./features/update/components/UpdateIndicator";
+import { useSoftwareUpdate } from "./features/update/hooks/useSoftwareUpdate";
 import { ShelfManagementMenu } from "./features/shelf/components/ShelfManagementMenu";
 import { useOpenBookRequestHandler } from "./features/ai/hooks/useOpenBookRequest";
 import { useReaderSession } from "./features/reader/hooks/useReaderSession";
@@ -68,6 +70,7 @@ const SettingsDialog = lazy(() =>
 import {
   activeCollectionAtom,
   activeTopNavAtom,
+  generalSettingsAtom,
   settingsOpenAtom,
   shelfSelectionAtom,
   shelfViewAtom,
@@ -76,6 +79,8 @@ import {
 function App() {
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useAtom(settingsOpenAtom);
+  const generalSettings = useAtomValue(generalSettingsAtom);
+  const softwareUpdate = useSoftwareUpdate();
   // Latch: mount the (lazy) settings dialog on first open and keep it mounted,
   // preserving the always-mounted dialog's state/exit-animation behavior while
   // keeping its chunk out of the boot path.
@@ -88,6 +93,14 @@ function App() {
     dismissBootSplash();
     scheduleIdleWarmup();
   }, []);
+
+  useEffect(() => {
+    void softwareUpdate.loadCurrentVersion();
+  }, [softwareUpdate.loadCurrentVersion]);
+
+  useEffect(() => {
+    if (generalSettings.autoUpdate) void softwareUpdate.checkForUpdates();
+  }, [generalSettings.autoUpdate, softwareUpdate.checkForUpdates]);
 
   useEffect(() => {
     if (import.meta.env.DEV) {
@@ -337,6 +350,7 @@ function App() {
             onOpenSettings={() => setSettingsOpen(true)}
             onOpenSearch={() => setSearchModalOpen(true)}
             onTopNavChange={setActiveTopNav}
+            leadingStatus={<UpdateIndicator />}
             viewControl={activeTopNav === "shelf" ? <ShelfManagementMenu /> : undefined}
             actions={
               activeTopNav === "context" ? (

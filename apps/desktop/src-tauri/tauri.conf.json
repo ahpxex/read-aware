@@ -36,6 +36,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "android": {
       "versionCode": 2000000
     },
@@ -46,5 +47,16 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDNCNTBDNjU1QzE1RkNENkYKUldSdnpWL0JWY1pRTytYRE5xNE5tekRQVG9UcWcvbGpNWTdJdGwwejB1WUtrdjlycTdaWEhvUmIK",
+      "endpoints": [
+        "https://github.com/ahpxex/read-aware/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

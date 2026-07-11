@@ -34,8 +34,8 @@
         "description": "EPUB、MOBI、AZW3、FB2、PDFファイルをReadAwareで開きます。"
       },
       "autoUpdate": {
-        "title": "自動更新",
-        "description": "新しいバージョンをバックグラウンドでダウンロードしてインストールします。"
+        "title": "アップデートを自動確認",
+        "description": "新しいバージョンがあるとき、メイン画面に控えめな通知を表示します。"
       }
     },
     "languagePrivacy": "言語とプライバシー",
@@ -302,6 +302,17 @@
       "description": "最新リリースを確認してインストールします。"
     },
     "checkUpdates": "更新を確認",
+    "checkingUpdates": "確認中…",
+    "installUpdate": "アップデートをインストール",
+    "versionUnknown": "不明",
+    "updateStatus": {
+      "upToDate": "最新版です",
+      "available": "バージョン {{version}} が利用できます",
+      "downloading": "ダウンロード中…",
+      "downloadingProgress": "ダウンロード中 {{progress}}%",
+      "installing": "インストール中…",
+      "failed": "アップデートに失敗しました"
+    },
     "engine": {
       "title": "読書エンジン",
       "description": "すべての形式 — EPUB、MOBI、AZW3、FB2、PDF — は1つのベンダー化されたエンジンで表示されます。"

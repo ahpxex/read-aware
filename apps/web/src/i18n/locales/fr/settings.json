@@ -34,8 +34,8 @@
         "description": "Ouvrir les fichiers EPUB, MOBI, AZW3, FB2 et PDF avec ReadAware."
       },
       "autoUpdate": {
-        "title": "Mises à jour automatiques",
-        "description": "Télécharger et installer les nouvelles versions en arrière-plan."
+        "title": "Rechercher automatiquement les mises à jour",
+        "description": "Afficher un avis discret dans la fenêtre principale lorsqu’une nouvelle version est disponible."
       }
     },
     "languagePrivacy": "Langue et confidentialité",
@@ -310,6 +310,17 @@
       "description": "Rechercher et installer la dernière version."
     },
     "checkUpdates": "Rechercher des mises à jour",
+    "checkingUpdates": "Recherche...",
+    "installUpdate": "Installer la mise à jour",
+    "versionUnknown": "Inconnue",
+    "updateStatus": {
+      "upToDate": "À jour",
+      "available": "Version {{version}} disponible",
+      "downloading": "Téléchargement...",
+      "downloadingProgress": "Téléchargement {{progress}}%",
+      "installing": "Installation...",
+      "failed": "Échec de la mise à jour"
+    },
     "engine": {
       "title": "Moteur de lecture",
       "description": "Chaque format — EPUB, MOBI, AZW3, FB2, PDF — s’affiche via un seul moteur intégré."

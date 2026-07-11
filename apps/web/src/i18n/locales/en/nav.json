@@ -15,6 +15,14 @@
     "settings": "Settings",
     "more": "More"
   },
+  "update": {
+    "available": "Update available",
+    "availableVersion": "Version {{version}} is ready to install",
+    "downloading": "Downloading update...",
+    "downloadingProgress": "Downloading {{progress}}%",
+    "installing": "Installing update...",
+    "failed": "Update failed. Retry"
+  },
   "error": {
     "title": "Something interrupted the reading flow.",
     "body": "Refresh the page to continue. If the problem persists, reopen the book from your shelf."

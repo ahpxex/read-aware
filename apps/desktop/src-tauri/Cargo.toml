@@ -41,6 +41,10 @@ tauri-plugin-fs = "2"
 # Desktop only: window-chrome helpers and the dev-time MCP bridge. Neither
 # compiles for (or makes sense on) Android/iOS, where the webview is fullscreen.
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+# Signed desktop release checks and installation. The updater is unsupported on
+# mobile, where store-managed updates remain the platform-native path.
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 # Dev-only bridge that lets the Tauri MCP server drive/inspect the webview.
 # Linked in all desktop builds (so its capability permission resolves) but only
 # initialized under debug_assertions — see lib.rs.

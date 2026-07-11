@@ -15,6 +15,14 @@
     "settings": "设置",
     "more": "更多"
   },
+  "update": {
+    "available": "有可用更新",
+    "availableVersion": "版本 {{version}} 已可安装",
+    "downloading": "正在下载更新…",
+    "downloadingProgress": "正在下载 {{progress}}%",
+    "installing": "正在安装更新…",
+    "failed": "更新失败，重试"
+  },
   "error": {
     "title": "阅读流程被打断了。",
     "body": "刷新页面即可继续。若问题持续存在，请从书架重新打开这本书。"

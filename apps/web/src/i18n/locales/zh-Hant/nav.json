@@ -15,6 +15,14 @@
     "settings": "設定",
     "more": "更多"
   },
+  "update": {
+    "available": "有可用更新",
+    "availableVersion": "版本 {{version}} 已可安裝",
+    "downloading": "正在下載更新…",
+    "downloadingProgress": "正在下載 {{progress}}%",
+    "installing": "正在安裝更新…",
+    "failed": "更新失敗，重試"
+  },
   "error": {
     "title": "有狀況打斷了閱讀流程。",
     "body": "重新整理頁面即可繼續。若問題持續，請從書架重新開啟該書。"

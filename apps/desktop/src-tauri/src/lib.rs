@@ -578,7 +578,10 @@ pub fn run() {
     // Desktop-only window chrome (macOS traffic-light repositioning); the
     // crate is not compiled for Android/iOS, where the webview is fullscreen.
     #[cfg(desktop)]
-    let builder = builder.plugin(tauri_plugin_decorum::init());
+    let builder = builder
+        .plugin(tauri_plugin_decorum::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init());
     // `mut` is only exercised by the desktop-only MCP-bridge block below.
     #[cfg_attr(mobile, allow(unused_mut))]
     let mut builder = builder

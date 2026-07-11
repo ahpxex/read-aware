@@ -8,6 +8,10 @@
     },
     "build": {
       "dependsOn": ["^build"],
+      "passThroughEnv": [
+        "TAURI_SIGNING_PRIVATE_KEY",
+        "TAURI_SIGNING_PRIVATE_KEY_PASSWORD"
+      ],
       "outputs": ["dist/**", "src-tauri/target/**", "src-tauri/gen/**"]
     },
     "typecheck": {

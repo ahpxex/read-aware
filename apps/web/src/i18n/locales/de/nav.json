@@ -15,6 +15,14 @@
     "settings": "Einstellungen",
     "more": "Mehr"
   },
+  "update": {
+    "available": "Update verfügbar",
+    "availableVersion": "Version {{version}} ist installationsbereit",
+    "downloading": "Update wird heruntergeladen...",
+    "downloadingProgress": "Download {{progress}}%",
+    "installing": "Update wird installiert...",
+    "failed": "Update fehlgeschlagen. Erneut versuchen"
+  },
   "error": {
     "title": "Etwas hat den Lesefluss unterbrochen.",
     "body": "Lade die Seite neu, um fortzufahren. Falls das Problem weiterhin besteht, öffne das Buch erneut aus deinem Regal."

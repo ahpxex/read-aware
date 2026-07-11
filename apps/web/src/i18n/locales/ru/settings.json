@@ -34,8 +34,8 @@
         "description": "Открывать файлы EPUB, MOBI, AZW3, FB2 и PDF в ReadAware."
       },
       "autoUpdate": {
-        "title": "Автоматические обновления",
-        "description": "Загружать и устанавливать новые версии в фоновом режиме."
+        "title": "Автоматически проверять обновления",
+        "description": "Показывать ненавязчивое уведомление в главном окне, когда доступна новая версия."
       }
     },
     "languagePrivacy": "Язык и конфиденциальность",
@@ -314,6 +314,17 @@
       "description": "Проверьте и установите последний выпуск."
     },
     "checkUpdates": "Проверить обновления",
+    "checkingUpdates": "Проверка...",
+    "installUpdate": "Установить обновление",
+    "versionUnknown": "Неизвестно",
+    "updateStatus": {
+      "upToDate": "Установлена последняя версия",
+      "available": "Доступна версия {{version}}",
+      "downloading": "Загрузка...",
+      "downloadingProgress": "Загрузка {{progress}}%",
+      "installing": "Установка...",
+      "failed": "Не удалось обновить"
+    },
     "engine": {
       "title": "Движок чтения",
       "description": "Каждый формат — EPUB, MOBI, AZW3, FB2, PDF — отображается через один встроенный движок."

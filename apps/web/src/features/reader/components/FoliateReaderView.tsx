@@ -25,6 +25,7 @@ import {
   type FoliateFootnoteBeforeRenderDetail,
   type FoliateFootnoteHandler,
   type FoliateFootnoteRenderDetail,
+  type FoliateBook,
   type FoliateLinkDetail,
   type FoliateLoadDetail,
   type FoliateRelocateDetail,
@@ -94,6 +95,8 @@ type FoliateReaderViewProps = {
   onProgressChange?: (progress: ReaderProgress) => void;
   onTocChange?: (entries: TocEntry[]) => void;
   onCurrentChapterChange?: (href: string | null) => void;
+  /** Parsed foliate book, shared with lazy metadata/text enrichment. */
+  onBookReady?: (book: FoliateBook) => void;
   /** Fixed-layout books (PDF/CBZ) can't host annotations or the sentence
    *  navigator; lets the shell hide the affordances that don't apply. */
   onFixedLayoutChange?: (fixedLayout: boolean) => void;
@@ -302,6 +305,7 @@ export function FoliateReaderView({
   onProgressChange,
   onTocChange,
   onCurrentChapterChange,
+  onBookReady,
   onFixedLayoutChange,
   navigatorActive = false,
   onExitNavigator,
@@ -375,6 +379,7 @@ export function FoliateReaderView({
   const onProgressChangeRef = useRef(onProgressChange);
   const onTocChangeRef = useRef(onTocChange);
   const onCurrentChapterChangeRef = useRef(onCurrentChapterChange);
+  const onBookReadyRef = useRef(onBookReady);
 
   useEffect(() => { onContentClickRef.current = onContentClick; }, [onContentClick]);
   useEffect(() => { onContentScrollRef.current = onContentScroll; }, [onContentScroll]);
@@ -383,6 +388,7 @@ export function FoliateReaderView({
   useEffect(() => { onProgressChangeRef.current = onProgressChange; }, [onProgressChange]);
   useEffect(() => { onTocChangeRef.current = onTocChange; }, [onTocChange]);
   useEffect(() => { onCurrentChapterChangeRef.current = onCurrentChapterChange; }, [onCurrentChapterChange]);
+  useEffect(() => { onBookReadyRef.current = onBookReady; }, [onBookReady]);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isCrossing, setIsCrossing] = useState(false);
@@ -1653,6 +1659,9 @@ export function FoliateReaderView({
           applyHighlights(view, highlightsRef.current);
           applyNotes(view, notesRef.current, highlightsRef.current);
         }
+        // The first page is now visible. Only now start non-critical metadata
+        // and text enrichment so it cannot delay the reader's initial paint.
+        if (book) onBookReadyRef.current?.(book);
       } catch (nextError) {
         if (!cancelled) setError(formatReaderError(nextError, tRef.current));
       } finally {

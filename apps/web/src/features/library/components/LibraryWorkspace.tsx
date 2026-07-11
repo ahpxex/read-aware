@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import { Books } from "@phosphor-icons/react";
 import { Body, Button, EmptyState, Skeleton } from "@read-aware/ui";
@@ -54,6 +54,23 @@ export function LibraryWorkspace({
   const shelfView = useAtomValue(shelfViewAtom);
   const [activeCollectionId, setActiveCollectionId] = useAtom(activeCollectionAtom);
   const { active, ids, selectedIds, exit, clear, toggle, selectAll } = useShelfSelection();
+  const [showImportPlaceholders, setShowImportPlaceholders] = useState(false);
+
+  // Native-path imports normally finish inside one perceptual beat. Avoid a
+  // skeleton flash and two grid shifts for that fast path; genuinely slower
+  // copies still get feedback after a short delay. An empty library shows its
+  // first pending slot immediately rather than becoming a blank page.
+  useEffect(() => {
+    if (importingCount === 0) {
+      setShowImportPlaceholders(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setShowImportPlaceholders(true), 300);
+    return () => window.clearTimeout(timer);
+  }, [importingCount]);
+  const visibleImportingCount = books.length === 0 || showImportPlaceholders
+    ? importingCount
+    : 0;
 
   const activeCollection = activeCollectionId
     ? collections.find((c) => c.id === activeCollectionId) ?? null
@@ -164,18 +181,6 @@ export function LibraryWorkspace({
         // Fades in over the skeleton it replaces (same grid geometry), so the
         // ready swap reads as the shelf resolving rather than a hard cut.
         <div className="ra-motion-fade-in">
-          {importingCount > 0 && (
-            // One skeleton card per file still in the import pipeline — the
-            // book's spot on the shelf, taking shape while the bytes land.
-            <div className="mb-8 grid grid-cols-3 gap-x-4 gap-y-8 sm:grid-cols-4 sm:gap-x-5 md:grid-cols-5 md:gap-x-6 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8">
-              {Array.from({ length: Math.min(importingCount, 8) }).map((_, index) => (
-                <div key={index} className="space-y-2.5">
-                  <Skeleton variant="rectangular" className="aspect-[2/3] w-full rounded-sm" />
-                  <Skeleton variant="text" className="w-3/4" />
-                </div>
-              ))}
-            </div>
-          )}
           {activeCollection && (
             <CollectionHeader
               key={activeCollection.id}
@@ -198,6 +203,7 @@ export function LibraryWorkspace({
               sections={sections}
               layout={shelfView.layout}
               collections={collectionTiles}
+              importingCount={visibleImportingCount}
               openingBookId={openingBookId}
               onOpenCollection={(id) => setActiveCollectionId(id)}
               selecting={active}

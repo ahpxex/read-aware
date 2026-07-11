@@ -1,17 +1,23 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { TFunction } from "i18next";
-import { getDesktopBlob, putDesktopBlob } from "../../../platform/blob-store";
+import {
+  getDesktopBlob,
+  putDesktopBlob,
+  putDesktopBlobFromPath,
+} from "../../../platform/blob-store";
 import { emitDomainEvents } from "../../../platform/domain-events";
 import type {
   BookFormat,
+  BookImportSource,
   BookProgress,
   Collection,
   LibraryBook,
   ReadingStatus,
 } from "./library-types";
-import { extractBookCover, openBookWithMetadata } from "./library-cover";
+import { extractOpenedBookMetadata } from "./library-cover";
 import { sniffBookFormat } from "./book-format-sniff";
 import { isTauri } from "../../../platform/environment";
+import type { FoliateBook } from "../../reader/lib/foliate-engine";
 
 /** Blob-store key for a book's original file bytes (desktop SQLite backend). */
 const bookFileKey = (bookId: string) => `bookfile:${bookId}`;
@@ -44,14 +50,19 @@ async function putBookRecord(book: LibraryBook): Promise<void> {
   await invoke("library_put_book", { book });
 }
 
-async function storeImportedBook(book: LibraryBook, file: File): Promise<void> {
+async function storeImportedBook(book: LibraryBook, source: BookImportSource): Promise<void> {
   assertDesktop("Importing a book");
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const { sha256 } = await putDesktopBlob(
-    bookFileKey(book.id),
-    bytes,
-    book.mimeType || undefined,
-  );
+  const { sha256 } = source.kind === "native-path"
+    ? await putDesktopBlobFromPath(
+        bookFileKey(book.id),
+        source.path,
+        book.mimeType || undefined,
+      )
+    : await putDesktopBlob(
+        bookFileKey(book.id),
+        new Uint8Array(await source.file.arrayBuffer()),
+        book.mimeType || undefined,
+      );
   emitDomainEvents({
     type: "book.imported",
     payload: {
@@ -114,9 +125,16 @@ function parseFileName(fileName: string) {
   return { title, author };
 }
 
-async function detectBookFormat(file: File, t: TFunction<"shelf">): Promise<BookFormat> {
-  const name = file.name.toLowerCase();
-  const type = file.type;
+function sourceFileInfo(source: BookImportSource) {
+  return source.kind === "native-path"
+    ? { name: source.name, size: source.size, type: "" }
+    : { name: source.file.name, size: source.file.size, type: source.file.type };
+}
+
+async function detectBookFormat(source: BookImportSource, t: TFunction<"shelf">): Promise<BookFormat> {
+  const info = sourceFileInfo(source);
+  const name = info.name.toLowerCase();
+  const type = info.type;
   if (name.endsWith(".epub") || type === "application/epub+zip") return "epub";
   if (name.endsWith(".pdf") || type === "application/pdf") return "pdf";
   if (name.endsWith(".mobi") || name.endsWith(".prc")) return "mobi";
@@ -132,10 +150,10 @@ async function detectBookFormat(file: File, t: TFunction<"shelf">): Promise<Book
 
   // No usable extension or MIME type — Android SAF picks arrive as opaque
   // content:// names — so fall back to sniffing the file's magic bytes.
-  const sniffed = await sniffBookFormat(file);
+  const sniffed = source.kind === "file" ? await sniffBookFormat(source.file) : null;
   if (sniffed) return sniffed;
 
-  throw new Error(t("errors.unsupportedFormat", { name: file.name }));
+  throw new Error(t("errors.unsupportedFormat", { name: info.name }));
 }
 
 function clampProgressPercent(value: number) {
@@ -151,14 +169,13 @@ function getReadingStatus(progressPercent: number): ReadingStatus {
 
 /**
  * The record as it lands on the shelf the instant a file is picked: title and
- * author parsed from the file name, no cover yet. The real metadata arrives
- * via `enrichImportedBook` — parsing a large book takes seconds of main-thread
- * time, so it never sits on the import path. `coverChecked: false` doubles as
- * the safety net: if enrichment never runs (app quit), the lazy cover repair
- * in `listLibraryBooks` still picks the record up.
+ * author parsed from the file name, no cover yet. Real metadata and cover are
+ * filled from the reader's already-open foliate book on first open. Import must
+ * never start a seconds-long parser task on the UI thread.
  */
-function createLibraryBook(file: File, format: BookFormat): LibraryBook {
+function createLibraryBook(source: BookImportSource, format: BookFormat): LibraryBook {
   const now = new Date().toISOString();
+  const file = sourceFileInfo(source);
   const parsed = parseFileName(file.name);
 
   return {
@@ -190,43 +207,10 @@ function sortBooks(books: LibraryBook[]) {
   });
 }
 
-async function hydrateMissingBookCovers(books: LibraryBook[]) {
-  // Re-extract covers for records that have no cover and were never checked:
-  // legacy books imported before cover extraction, or imports whose extraction
-  // failed transiently. `coverChecked` stops genuinely cover-less files from
-  // being re-parsed on every load.
-  const booksMissingCovers = books.filter(
-    (book) => !book.coverUrl && !book.coverChecked,
-  );
-  if (booksMissingCovers.length === 0) return books;
-
-  const repairedBooks = await Promise.all(booksMissingCovers.map(async (book) => {
-    const blob = await getStoredBookBlob(book.id);
-    // No stored file yet — leave the record untouched so a later import of the
-    // file can still backfill the cover.
-    if (!blob) return book;
-
-    const file = new File([blob], book.fileName, { type: book.mimeType });
-    const coverUrl = await extractBookCover(file);
-    const nextBook: LibraryBook = {
-      ...book,
-      coverUrl: coverUrl ?? null,
-      coverChecked: true,
-    };
-
-    await putBookRecord(nextBook);
-    return nextBook;
-  }));
-
-  const repairedBookMap = new Map(repairedBooks.map((book) => [book.id, book]));
-  return books.map((book) => repairedBookMap.get(book.id) ?? book);
-}
-
 // --- Public API --------------------------------------------------------------
 
 export async function listLibraryBooks() {
-  const books = await getAllBookRecords();
-  return sortBooks(await hydrateMissingBookCovers(books));
+  return sortBooks(await getAllBookRecords());
 }
 
 /** Identity used to spot a re-import: same title + author + byte size. */
@@ -241,14 +225,15 @@ export type ImportBookResult =
 /**
  * The fast import path: sniff the format, store the bytes, put a record built
  * from the file name — no book parsing. The book is on the shelf (placeholder
- * cover) the moment this resolves; call `enrichImportedBook` afterwards to
- * fill in real metadata, the cover, and the renamed-re-import dedupe.
+ * cover) the moment this resolves. The first reader open fills metadata and the
+ * cover from its already-parsed foliate object.
  */
-export async function importBookFile(
-  file: File,
+export async function importBookSource(
+  source: BookImportSource,
   t: TFunction<"shelf">,
 ): Promise<ImportBookResult> {
   const existing = await getAllBookRecords();
+  const file = sourceFileInfo(source);
 
   // Cheap pass: the identical file (same name + size) is already imported.
   const byFile = existing.find(
@@ -256,30 +241,29 @@ export async function importBookFile(
   );
   if (byFile) return { status: "duplicate", book: byFile };
 
-  const format = await detectBookFormat(file, t);
-  const book = createLibraryBook(file, format);
-  await storeImportedBook(book, file);
+  const format = await detectBookFormat(source, t);
+  const book = createLibraryBook(source, format);
+  await storeImportedBook(book, source);
   return { status: "imported", book };
 }
 
 export type EnrichBookResult =
-  | { status: "enriched"; book: LibraryBook; foliateBook: unknown | null }
+  | { status: "enriched"; book: LibraryBook }
   | { status: "duplicate"; book: LibraryBook }
   | { status: "removed" };
 
-/**
- * The slow half of an import, run off the critical path: one foliate parse
- * yields real title/author and the cover (the returned `foliateBook` lets the
- * caller feed the same parse into text extraction). The metadata dedupe that
- * used to gate the import happens here — a renamed re-import only becomes
- * recognizable once the real metadata is known — and rolls the new record
- * back. "removed" means the user deleted the book while it was being parsed.
- */
-export async function enrichImportedBook(
+/** Enrich lazily from the reader's already-open foliate book, without parsing twice. */
+export async function enrichOpenedBook(
   imported: LibraryBook,
-  file: File,
+  foliateBook: FoliateBook,
 ): Promise<EnrichBookResult> {
-  const { book: foliateBook, metadata } = await openBookWithMetadata(file);
+  return enrichParsedBook(imported, await extractOpenedBookMetadata(foliateBook));
+}
+
+async function enrichParsedBook(
+  imported: LibraryBook,
+  metadata: { title: string | null; author: string | null; coverUrl: string | null },
+): Promise<EnrichBookResult> {
 
   // Re-read after the (long) parse so lastOpenedAt/progress written meanwhile
   // survive the merge — and so a mid-parse delete stays deleted.
@@ -315,7 +299,7 @@ export async function enrichImportedBook(
     });
   }
   await putBookRecord(enriched);
-  return { status: "enriched", book: enriched, foliateBook };
+  return { status: "enriched", book: enriched };
 }
 
 export async function getStoredBookBlob(bookId: string): Promise<Blob | null> {

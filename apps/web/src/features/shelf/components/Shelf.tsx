@@ -1,4 +1,4 @@
-import { Eyebrow } from "@read-aware/ui";
+import { Eyebrow, Skeleton } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import type {
   BookMetadataPatch,
@@ -15,6 +15,7 @@ type SectionBodyProps = {
   layout: ShelfLayout;
   /** Collection tiles rendered as peers ahead of the books (top-level only). */
   collections?: CollectionTileData[];
+  importingCount?: number;
   onOpenCollection?: (id: string) => void;
   selecting?: boolean;
   selectedIds?: Set<string>;
@@ -31,6 +32,7 @@ function SectionBody({
   books,
   layout,
   collections = [],
+  importingCount = 0,
   onOpenCollection,
   selecting,
   selectedIds,
@@ -50,10 +52,28 @@ function SectionBody({
     />
   ));
 
+  const importing = Array.from({ length: Math.min(importingCount, 8) }).map((_, index) => (
+    layout === "list" ? (
+      <div key={`import-${index}`} aria-hidden="true" className="flex items-center gap-4 py-3">
+        <Skeleton variant="rectangular" className="h-16 w-11 shrink-0 rounded-sm" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <Skeleton variant="text" className="w-1/3" />
+          <Skeleton variant="text" className="w-1/5" />
+        </div>
+      </div>
+    ) : (
+      <div key={`import-${index}`} aria-hidden="true" className="space-y-2.5">
+        <Skeleton variant="rectangular" className="aspect-[2/3] w-full rounded-sm" />
+        <Skeleton variant="text" className="w-3/4" />
+      </div>
+    )
+  ));
+
   if (layout === "list") {
     return (
       <div className="flex flex-col divide-y divide-border/60">
         {tiles}
+        {importing}
         {books.map((book) => (
           <BookRow
             key={book.id}
@@ -75,6 +95,7 @@ function SectionBody({
   return (
     <div className="grid grid-cols-3 gap-x-4 gap-y-8 sm:grid-cols-4 sm:gap-x-5 md:grid-cols-5 md:gap-x-6 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8">
       {tiles}
+      {importing}
       {books.map((book) => (
         <BookCover
           key={book.id}
@@ -98,6 +119,8 @@ type ShelfProps = {
   layout: ShelfLayout;
   /** Collection tiles to lead the grid (top-level view only). */
   collections?: CollectionTileData[];
+  /** Pending imports rendered as peers in the first existing shelf section. */
+  importingCount?: number;
   onOpenCollection?: (id: string) => void;
   selecting?: boolean;
   selectedIds?: Set<string>;
@@ -115,6 +138,7 @@ export function Shelf({
   sections,
   layout,
   collections = [],
+  importingCount = 0,
   onOpenCollection,
   selecting,
   selectedIds,
@@ -129,7 +153,11 @@ export function Shelf({
   // Collections lead the first section so they sit in the same grid as the books;
   // when there are no book sections they get a section of their own.
   const effectiveSections =
-    sections.length > 0 ? sections : collections.length > 0 ? [{ label: "", books: [] }] : [];
+    sections.length > 0
+      ? sections
+      : collections.length > 0 || importingCount > 0
+        ? [{ label: "", books: [] }]
+      : [];
 
   return (
     <div className={cn(layout === "list" ? "space-y-8" : "space-y-12", className)}>
@@ -140,6 +168,7 @@ export function Shelf({
             books={section.books}
             layout={layout}
             collections={index === 0 ? collections : []}
+            importingCount={index === 0 ? importingCount : 0}
             onOpenCollection={onOpenCollection}
             selecting={selecting}
             selectedIds={selectedIds}

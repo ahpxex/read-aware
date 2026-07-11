@@ -296,6 +296,7 @@ function App() {
           onEpubProgressChange={reader.handleEpubProgressChange}
           onTocChange={reader.setReaderToc}
           onCurrentChapterChange={reader.setCurrentChapterHref}
+          onBookReady={library.handleBookReady}
           onChapterSelect={reader.handleChapterSelect}
           onAnnotationSelect={reader.handleAnnotationSelect}
         />

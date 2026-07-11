@@ -10,6 +10,7 @@ import { useReadingTimeTracker } from "../hooks/useReadingTimeTracker";
 import { FoliateReaderView } from "./FoliateReaderView";
 import { ReaderShellOverlay } from "./ReaderShellOverlay";
 import type { LoadedBook, TocEntry } from "../lib/reader-types";
+import type { FoliateBook } from "../lib/foliate-engine";
 
 type ReaderWorkspaceProps = {
   selectedBook: LibraryBook;
@@ -39,6 +40,7 @@ type ReaderWorkspaceProps = {
   onEpubProgressChange: (progress: ReaderProgress) => void;
   onTocChange: (entries: TocEntry[]) => void;
   onCurrentChapterChange: (href: string | null) => void;
+  onBookReady: (book: LibraryBook, foliateBook: FoliateBook) => void;
   onChapterSelect: (href: string) => void;
   onAnnotationSelect: (cfiRange: string) => void;
 };
@@ -65,6 +67,7 @@ export function ReaderWorkspace({
   onEpubProgressChange,
   onTocChange,
   onCurrentChapterChange,
+  onBookReady,
   onChapterSelect,
   onAnnotationSelect,
 }: ReaderWorkspaceProps) {
@@ -137,6 +140,7 @@ export function ReaderWorkspace({
           onProgressChange={handleProgressChange}
           onTocChange={onTocChange}
           onCurrentChapterChange={onCurrentChapterChange}
+          onBookReady={(foliateBook) => onBookReady(selectedBook, foliateBook)}
           onFixedLayoutChange={setIsFixedLayout}
           navigatorActive={navigatorActive}
           onExitNavigator={exitNavigator}

@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { TFunction } from "i18next";
 import { isAndroid, isMobileOS, isTauri } from "../../../platform/environment";
+import type { BookImportSource } from "./library-types";
 
 type AndroidBookPickBridge = {
   startBookPick?: (generation: number) => void;
@@ -142,12 +143,12 @@ async function pickBookUrisAndroid(): Promise<string[] | null> {
 }
 
 /**
- * Open the native OS file dialog with a real "Books" format filter and return
- * the chosen files reconstructed as web `File` objects so the rest of the
- * import pipeline stays platform-agnostic. Android routes around the dialog
- * plugin entirely (see pickBookUrisAndroid).
+ * Open the native OS file dialog with a real "Books" format filter. Desktop
+ * returns lightweight path descriptors so Rust can copy directly; mobile
+ * reconstructs `File` objects because content URIs are not durable paths.
+ * Android routes around the dialog plugin entirely (see pickBookUrisAndroid).
  */
-export async function pickBookFilesNative(t: TFunction<"shelf">): Promise<File[]> {
+export async function pickBookFilesNative(t: TFunction<"shelf">): Promise<BookImportSource[]> {
   let paths: string[];
   if (isAndroid()) {
     const uris = await pickBookUrisAndroid();
@@ -163,10 +164,20 @@ export async function pickBookFilesNative(t: TFunction<"shelf">): Promise<File[]
     paths = Array.isArray(selection) ? selection : [selection];
   }
 
-  return Promise.all(
-    paths.map(async (path) => {
-      const bytes = await readPickedBookBytes(path);
-      return new File([bytes as BlobPart], fileNameFromPath(path));
-    }),
-  );
+  if (!isMobileOS()) {
+    return Promise.all(paths.map(async (path) => ({
+      kind: "native-path" as const,
+      path,
+      name: fileNameFromPath(path),
+      size: await invoke<number>("book_file_size", { path }),
+    })));
+  }
+
+  return Promise.all(paths.map(async (path) => {
+    const bytes = await readPickedBookBytes(path);
+    return {
+      kind: "file" as const,
+      file: new File([bytes as BlobPart], fileNameFromPath(path)),
+    };
+  }));
 }

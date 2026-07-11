@@ -327,6 +327,36 @@ fn blob_put_get_delete_roundtrip() {
 }
 
 #[test]
+fn blob_file_import_uses_native_copy_and_registers_hash() {
+    let data_dir = tempfile::tempdir().expect("data dir");
+    let source_dir = tempfile::tempdir().expect("source dir");
+    let source_path = source_dir.path().join("large.epub");
+    let payload = vec![0xA5; 3 * 1024 * 1024 + 17];
+    std::fs::write(&source_path, &payload).expect("write source");
+    let conn = migrated_conn();
+
+    let result = put_blob_from_file_inner(
+        &conn,
+        data_dir.path(),
+        "bookfile:streamed",
+        Some("application/epub+zip"),
+        &source_path,
+    )
+    .expect("stream import");
+
+    assert_eq!(result.byte_size, payload.len() as i64);
+    assert_eq!(
+        result.sha256,
+        format!("{:x}", Sha256::digest(&payload))
+    );
+    assert_eq!(
+        get_blob_inner(&conn, data_dir.path(), "bookfile:streamed").unwrap(),
+        payload
+    );
+    assert!(!data_dir.path().join("blobs/bookfile%3Astreamed.tmp").exists());
+}
+
+#[test]
 fn append_events_fills_envelope_and_outbox_once() {
     let mut conn = migrated_conn();
     append_events_inner(&mut conn, &[event("e1", 1_700_000_000_000, 0)]).expect("append");

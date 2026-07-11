@@ -10,6 +10,7 @@
 // Retrieval is FTS + structured signals per docs/agent-architecture.md §4 —
 // there is no vector store in the default architecture.
 
+use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
@@ -681,6 +682,17 @@ fn put_blob_inner(
 
     let sha256 = format!("{:x}", Sha256::digest(data));
     let byte_size = data.len() as i64;
+    register_blob_inner(conn, key, mime_type, byte_size, sha256, file_name)
+}
+
+fn register_blob_inner(
+    conn: &Connection,
+    key: &str,
+    mime_type: Option<&str>,
+    byte_size: i64,
+    sha256: String,
+    file_name: String,
+) -> Result<BlobPutResult, String> {
     let (kind, sync_required) = blob_kind(key);
     let storage_uri = format!("blobs/{file_name}");
     conn.execute(
@@ -720,6 +732,64 @@ fn put_blob_inner(
         .map_err(|e| e.to_string())?;
     }
     Ok(BlobPutResult { sha256, byte_size })
+}
+
+/// Copy a user-selected desktop file straight into the managed blob directory,
+/// then hash the staged copy. `std::fs::copy` deliberately stays intact here:
+/// it uses fclonefileat/fcopyfile on macOS, copy_file_range on Linux, and
+/// CopyFileEx on Windows instead of forcing every platform through a userspace
+/// read/write loop.
+fn copy_blob_from_file(
+    data_dir: &Path,
+    key: &str,
+    source_path: &Path,
+) -> Result<(String, i64, String), String> {
+    let blobs_dir = data_dir.join("blobs");
+    std::fs::create_dir_all(&blobs_dir).map_err(|e| e.to_string())?;
+    let file_name = blob_file_name(key);
+    let tmp_path = blobs_dir.join(format!("{file_name}.tmp"));
+    let final_path = blobs_dir.join(&file_name);
+
+    let copy_result = (|| -> Result<(String, i64), String> {
+        let byte_size = std::fs::copy(source_path, &tmp_path).map_err(|e| {
+            format!("Failed to copy selected book {}: {e}", source_path.display())
+        })?;
+        let staged = std::fs::File::open(&tmp_path).map_err(|e| e.to_string())?;
+        let mut reader = BufReader::new(staged);
+        let mut hasher = Sha256::new();
+        let mut buffer = vec![0_u8; 1024 * 1024];
+
+        loop {
+            let read = reader.read(&mut buffer).map_err(|e| e.to_string())?;
+            if read == 0 {
+                break;
+            }
+            hasher.update(&buffer[..read]);
+        }
+        std::fs::rename(&tmp_path, &final_path).map_err(|e| e.to_string())?;
+        Ok((format!("{:x}", hasher.finalize()), byte_size as i64))
+    })();
+
+    let (sha256, byte_size) = match copy_result {
+        Ok(result) => result,
+        Err(error) => {
+            let _ = std::fs::remove_file(&tmp_path);
+            return Err(error);
+        }
+    };
+    Ok((sha256, byte_size, file_name))
+}
+
+#[cfg(test)]
+fn put_blob_from_file_inner(
+    conn: &Connection,
+    data_dir: &Path,
+    key: &str,
+    mime_type: Option<&str>,
+    source_path: &Path,
+) -> Result<BlobPutResult, String> {
+    let (sha256, byte_size, file_name) = copy_blob_from_file(data_dir, key, source_path)?;
+    register_blob_inner(conn, key, mime_type, byte_size, sha256, file_name)
 }
 
 /// Empty vec means "no such blob" (the raw-response contract; no real payload
@@ -1011,6 +1081,34 @@ pub fn put_blob(
     };
     let conn = db.0.lock().map_err(|e| e.to_string())?;
     put_blob_inner(&conn, &data_dir.0, &key, mime_type.as_deref(), &data)
+}
+
+/// Native desktop import path. File copying and hashing run on Tauri's blocking
+/// pool, not the window thread, and no source bytes cross IPC.
+#[tauri::command]
+pub async fn put_blob_from_file(
+    app: AppHandle,
+    path: String,
+    key: String,
+    mime_type: Option<String>,
+) -> Result<BlobPutResult, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let data_dir = app.state::<DataDir>().0.clone();
+        let (sha256, byte_size, file_name) =
+            copy_blob_from_file(&data_dir, &key, Path::new(&path))?;
+        let db = app.state::<Db>();
+        let conn = db.0.lock().map_err(|e| e.to_string())?;
+        register_blob_inner(
+            &conn,
+            &key,
+            mime_type.as_deref(),
+            byte_size,
+            sha256,
+            file_name,
+        )
+    })
+    .await
+    .map_err(|e| format!("put_blob_from_file task failed: {e}"))?
 }
 
 /// Returns the blob's bytes as a raw (non-JSON) IPC response. A missing key

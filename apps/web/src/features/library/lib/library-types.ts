@@ -2,6 +2,15 @@ import type { BookFormat } from "@read-aware/core";
 
 export type { BookFormat };
 
+/**
+ * A user-picked source. Desktop keeps the native path so Rust can copy it
+ * directly; mobile/web retain a File because content URIs and input elements
+ * do not expose a durable filesystem path to the frontend.
+ */
+export type BookImportSource =
+  | { kind: "native-path"; path: string; name: string; size: number }
+  | { kind: "file"; file: File };
+
 export type ReadingStatus = "unread" | "reading" | "finished";
 
 /**
@@ -29,10 +38,9 @@ export interface LibraryBook {
   fileSize: number;
   coverUrl?: string | null;
   /**
-   * Whether cover extraction has been attempted. Distinguishes "never tried"
-   * (legacy record or transient import failure — eligible for re-extraction)
-   * from "tried, file has no cover" (terminal — skip to avoid re-parsing the
-   * source on every library load).
+   * Whether cover extraction has been attempted. A false/absent value is
+   * enriched from the reader's parsed book on first open; true also covers the
+   * terminal "this file has no cover" result.
    */
   coverChecked?: boolean;
   createdAt: string;

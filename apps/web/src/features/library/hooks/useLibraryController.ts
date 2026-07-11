@@ -7,8 +7,8 @@ import { deleteBookText, ensureBookTextExtracted } from "../lib/book-text-store"
 import {
   createCollection,
   deleteCollection,
-  enrichImportedBook,
-  importBookFile,
+  enrichOpenedBook,
+  importBookSource,
   listCollections,
   listLibraryBooks,
   removeLibraryBook,
@@ -22,10 +22,12 @@ import { createProgressPatch } from "../lib/library-progress";
 import { canUseNativeFilePicker, pickBookFilesNative } from "../lib/pick-book-files";
 import type {
   BookMetadataPatch,
+  BookImportSource,
   BookProgress,
   Collection,
   LibraryBook,
 } from "../lib/library-types";
+import type { FoliateBook } from "../../reader/lib/foliate-engine";
 
 function formatImportNotice(
   imported: number,
@@ -163,20 +165,20 @@ export function useLibraryController() {
     void loadLibrary();
   }, [loadLibrary]);
 
-  /**
-   * 后台富化（一次 foliate 解析 → 真实元数据/封面 → 正文抽取）逐本排队：
-   * 解析是主线程上的秒级 CPU 块,串行让 UI 的卡顿窗口一次只有一本书,
-   * 也避免和后续导入抢主线程。跨批次共享同一条链。
-   */
-  const enrichChainRef = useRef<Promise<void>>(Promise.resolve());
+  const bookReadyPendingRef = useRef(new Set<string>());
 
-  const enqueueEnrichment = useCallback((book: LibraryBook, file: File) => {
-    enrichChainRef.current = enrichChainRef.current.then(async () => {
-      try {
-        const result = await enrichImportedBook(book, file);
+  /**
+   * Metadata, cover, and text enrichment now reuse the reader's parsed book.
+   * Import never runs foliate on the UI thread just because a file was picked.
+   */
+  const handleBookReady = useCallback((book: LibraryBook, foliateBook: FoliateBook) => {
+    if (bookReadyPendingRef.current.has(book.id)) return;
+    bookReadyPendingRef.current.add(book.id);
+    void (async () => {
+      if (!book.coverChecked) {
+        const result = await enrichOpenedBook(book, foliateBook);
         if (result.status === "removed") return;
         if (result.status === "duplicate") {
-          // 换名重导：真实元数据到手才认得出来 —— 记录已回滚,书架同步撤下
           setBooks((current) => current.filter((entry) => entry.id !== book.id));
           toast({
             title: tRef.current("workspace.importTitle"),
@@ -187,33 +189,29 @@ export function useLibraryController() {
         setBooks((current) =>
           current.map((entry) => (entry.id === book.id ? result.book : entry)),
         );
-        // 正文抽取管道（§11.5）：导入即抽取并持久化，agent 首次对话不用等
-        // 整书解析。复用富化那次 parse；失败静默 —— 端口会在需要时懒回填。
-        await ensureBookTextExtracted(book.id, result.foliateBook ?? undefined).catch(() => {});
-      } catch (error) {
-        // 富化失败不撤书：文件名标题照用,封面由 listLibraryBooks 的懒回填兜底
-        console.warn("[library] enrich failed", error);
       }
-    });
+      await ensureBookTextExtracted(book.id, foliateBook);
+    })()
+      .catch((error) => console.warn("[library] lazy enrich failed", error))
+      .finally(() => bookReadyPendingRef.current.delete(book.id));
   }, [toast]);
 
-  const importFiles = useCallback(async (files: File[]) => {
-    if (files.length === 0) return;
+  const importSources = useCallback(async (sources: BookImportSource[]) => {
+    if (sources.length === 0) return;
 
-    setImportingCount(files.length);
+    setImportingCount(sources.length);
 
     let imported = 0;
     const duplicates: string[] = [];
     try {
-      for (const file of files) {
+      for (const source of sources) {
         try {
-          const result = await importBookFile(file, tRef.current);
+          const result = await importBookSource(source, tRef.current);
           if (result.status === "duplicate") duplicates.push(result.book.title);
           else {
             imported += 1;
-            // 立即上架（占位封面 + 文件名标题）,重活全部进后台队列
+            // Native bytes are already in managed storage; no parsing follows.
             setBooks((current) => [result.book, ...current]);
-            enqueueEnrichment(result.book, file);
           }
         } finally {
           // 每本落地就撤掉对应的骨架卡，而不是等整批
@@ -232,10 +230,10 @@ export function useLibraryController() {
     } finally {
       setImportingCount(0);
     }
-  }, [enqueueEnrichment, reportError, toast]);
+  }, [reportError, toast]);
 
   // One native picker at a time: a re-trigger while a dialog is pending would
-  // start a second concurrent importFiles flow, and the import dedupe reads
+  // start a second concurrent import flow, and the import dedupe reads
   // the library before either flow has written — the same book lands twice.
   // (Safe to guard on the promise: Android routes around the dialog plugin's
   // lossy response channel via park-and-poll in pick-book-files.ts, so the
@@ -250,7 +248,7 @@ export function useLibraryController() {
       if (pickerPendingRef.current) return;
       pickerPendingRef.current = true;
       void pickBookFilesNative(tRef.current)
-        .then(importFiles)
+        .then(importSources)
         .catch(reportError)
         .finally(() => {
           pickerPendingRef.current = false;
@@ -259,14 +257,15 @@ export function useLibraryController() {
     }
 
     importInputRef.current?.click();
-  }, [importFiles, reportError]);
+  }, [importSources, reportError]);
 
   const handleImportSelection = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
     const input = event.currentTarget;
-    const files = Array.from(input.files ?? []);
+    const sources: BookImportSource[] = Array.from(input.files ?? [])
+      .map((file) => ({ kind: "file", file }));
     input.value = "";
-    await importFiles(files);
-  }, [importFiles]);
+    await importSources(sources);
+  }, [importSources]);
 
   const handleToggleStar = useCallback((book: LibraryBook) => {
     const nextStarred = !book.starred;
@@ -352,6 +351,7 @@ export function useLibraryController() {
     handleSetBooksCollection,
     replaceBookInState,
     applyOptimisticProgress,
+    handleBookReady,
     reportError,
   };
 }

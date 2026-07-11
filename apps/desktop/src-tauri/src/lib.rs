@@ -33,6 +33,19 @@ fn read_book_file(app: tauri::AppHandle, path: String) -> Result<tauri::ipc::Res
     Ok(tauri::ipc::Response::new(bytes))
 }
 
+/// Cheap descriptor for a desktop picker result. The webview needs the size for
+/// duplicate detection and shelf metadata, but must not read the file to learn it.
+#[tauri::command]
+async fn book_file_size(path: String) -> Result<u64, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        std::fs::metadata(&path)
+            .map(|metadata| metadata.len())
+            .map_err(|err| format!("Failed to inspect selected book {path}: {err}"))
+    })
+    .await
+    .map_err(|err| format!("book_file_size task failed: {err}"))?
+}
+
 /// Book files staged in memory for chunked transfer to the webview, keyed by
 /// the picked path. Mobile only: Android's IPC injects responses via
 /// `evaluateJavascript`, which chokes on multi-megabyte payloads (and Channel
@@ -628,6 +641,7 @@ pub fn run() {
             storage::list_event_aggregate_ids,
             storage::local_device_get,
             storage::put_blob,
+            storage::put_blob_from_file,
             storage::get_blob,
             storage::delete_blob,
             storage::blob_read_open,
@@ -662,6 +676,7 @@ pub fn run() {
             storage::ai_chat_replace,
             storage::ai_chat_clear,
             read_book_file,
+            book_file_size,
             book_read_open,
             book_read_chunk,
             book_read_close,

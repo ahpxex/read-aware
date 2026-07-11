@@ -62,6 +62,12 @@ windows = { version = "0.61", features = [
 # Scratch dirs for the filesystem blob-store tests.
 tempfile = "3"
 
+# Hashing large imported books is user-facing even in `tauri dev`. Optimizing
+# only sha2 keeps normal debug compilation fast while avoiding a 10x+ debug-mode
+# penalty that made an 88 MB import take seconds instead of milliseconds.
+[profile.dev.package.sha2]
+opt-level = 3
+
 # Android only: reach MainActivity over JNI to toggle the system status bar
 # for the reader's immersive view. `tao` (already in tauri's tree, same
 # version) exposes the activity's JavaVM/jobject via main_android_context —

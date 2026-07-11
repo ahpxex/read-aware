@@ -376,9 +376,11 @@ type LlmAccount =
 4. **Memory 事件迎来第一批生产者。** `memory.promoted / revised /
    superseded / feedback / forgotten`、`profile.updated`、`entity.resolved /
    merged` —— 全部已在 `packages/core/src/events.ts` 声明。
-5. **书籍正文抽取**（`read_passage` 与章节级 FTS 的前置条件）：导入时
-   按章节抽取纯文本（foliate 离屏加载），经 blob registry 存储。需要单独
-   一份小设计文档；当前 schema 未覆盖。现状 v2（`book-text-store.ts`）：
+5. **书籍正文抽取**（`read_passage` 与章节级 FTS 的前置条件）：首次打开书时
+   复用阅读器已经解析的 foliate book 按章节抽取纯文本；若尚未打开，则在 agent
+   首次需要时懒回填，经 blob registry 存储。导入阶段不运行 foliate，以免大书
+   的同步解析阻塞 UI。需要单独一份小设计文档；当前 schema 未覆盖。现状 v2
+   （`book-text-store.ts`）：
    TOC 条目经 `book.resolveHref` 定位到 spine section、按归属合并跨文件
    章节，每章记录覆盖的 `hrefs` —— 这是阅读位置 / 选区 href 反查章节索引
    的 join key（标题按位置硬拉链的 v1 会整体错位，已废弃）。

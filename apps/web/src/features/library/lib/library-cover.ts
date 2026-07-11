@@ -1,6 +1,5 @@
-import { foliateAuthor, foliateTitle, makeFoliateBook } from "../../reader/lib/foliate-engine";
+import { foliateAuthor, foliateTitle, type FoliateBook } from "../../reader/lib/foliate-engine";
 
-const METADATA_ERROR_PREFIX = "Unable to read book metadata";
 const COVER_ERROR_PREFIX = "Unable to extract book cover";
 
 export type ExtractedBookMetadata = {
@@ -24,49 +23,21 @@ function blobToDataUrl(blob: Blob) {
   });
 }
 
-export type OpenedBookMetadata = {
-  /**
-   * The parsed foliate book, so callers can reuse the (expensive — MOBI/AZW3
-   * decompress their whole text up front) parse for text extraction instead of
-   * opening the file a second time. Null when parsing failed.
-   */
-  book: unknown | null;
-  metadata: ExtractedBookMetadata;
+type FoliateMetadataSource = {
+  getCover?: () => Promise<Blob | null | undefined> | Blob | null | undefined;
 };
 
-/**
- * Parse a book file with the foliate engine to pull title, author, and a cover
- * data URL — and hand back the parsed book itself for reuse. Works uniformly
- * across EPUB / MOBI / AZW3 / FB2 / PDF. Best-effort — any failure degrades to
- * nulls so import never blocks on a malformed file.
- */
-export async function openBookWithMetadata(file: File): Promise<OpenedBookMetadata> {
+/** Pull metadata from a foliate book that the reader has already parsed. */
+export async function extractOpenedBookMetadata(book: FoliateBook): Promise<ExtractedBookMetadata> {
+  const opened = book as FoliateMetadataSource;
+  const title = foliateTitle(book) || null;
+  const author = foliateAuthor(book) || null;
+  let coverUrl: string | null = null;
   try {
-    const book = await makeFoliateBook(file);
-    const title = foliateTitle(book) || null;
-    const author = foliateAuthor(book) || null;
-
-    let coverUrl: string | null = null;
-    try {
-      const cover = await book.getCover?.();
-      if (cover) coverUrl = await blobToDataUrl(cover);
-    } catch (error) {
-      console.warn(COVER_ERROR_PREFIX, error);
-    }
-
-    return { book, metadata: { title, author, coverUrl } };
+    const cover = await opened.getCover?.();
+    if (cover) coverUrl = await blobToDataUrl(cover);
   } catch (error) {
-    console.warn(METADATA_ERROR_PREFIX, error);
-    return { book: null, metadata: { title: null, author: null, coverUrl: null } };
+    console.warn(COVER_ERROR_PREFIX, error);
   }
-}
-
-/** Metadata-only view of `openBookWithMetadata` (cover backfill paths). */
-export async function extractBookMetadata(file: File): Promise<ExtractedBookMetadata> {
-  return (await openBookWithMetadata(file)).metadata;
-}
-
-/** Cover-only helper for back-filling existing library records. */
-export async function extractBookCover(file: File): Promise<string | null> {
-  return (await extractBookMetadata(file)).coverUrl;
+  return { title, author, coverUrl };
 }

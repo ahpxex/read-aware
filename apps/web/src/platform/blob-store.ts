@@ -154,3 +154,16 @@ export async function putDesktopBlob(
     },
   });
 }
+
+/** Copy a native file into managed storage without sending its bytes through JS. */
+export function putDesktopBlobFromPath(
+  key: string,
+  path: string,
+  mimeType?: string,
+): Promise<BlobPutResult> {
+  return invoke<BlobPutResult>("put_blob_from_file", {
+    key,
+    path,
+    mimeType: mimeType ?? null,
+  });
+}

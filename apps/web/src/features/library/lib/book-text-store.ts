@@ -1,8 +1,8 @@
 /**
  * 书籍正文抽取与持久化（docs/agent-architecture.md §11.5 的产品侧 v2）。
- * 导入时抽取一次、持久化到桌面 blob store（`booktext:<id>` 的 JSON 字节，
- * SQLite blob_objects 登记）；agent 的 BookTextPort 只读这里，首次对话不再付
- * 整书离屏解析的代价。
+ * 阅读器首次打开时复用已经解析的 foliate book 抽取并持久化到桌面 blob store
+ *（`booktext:<id>` 的 JSON 字节，SQLite blob_objects 登记）；若尚未打开，则
+ * agent 的 BookTextPort 在首次需要时懒回填。导入本身绝不启动主线程全书解析。
  *
  * 无浏览器持久化 —— agent 只在桌面壳里运行，浏览器构建是纯 UI；非 Tauri 下
  * 读返回 null、写是空操作（抽取仍可跑，只是不落盘，靠端口的会话缓存）。
@@ -86,8 +86,8 @@ const yieldToUi = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
  * 子项）定位到它真正指向的 section,按归属把跨文件的章节合并成一条,并记下
  * 每章覆盖的 hrefs 作为阅读位置的反查键。
  *
- * `preopened`：导入富化已经解析过一次的 foliate book —— 复用它省掉第二次
- * 整书解析（MOBI/AZW3 开卷即全文解压,解析两遍代价加倍）。
+ * `preopened`：阅读器已经解析过的 foliate book —— 复用它省掉第二次整书解析
+ *（MOBI/AZW3 开卷即全文解压,解析两遍代价加倍）。
  */
 async function extract(bookId: string, preopened?: unknown): Promise<ExtractedChapter[]> {
   let book: FoliateBookLike;
@@ -181,7 +181,7 @@ export async function getPersistedBookText(bookId: string): Promise<ExtractedCha
 }
 
 /**
- * 确保某本书的正文已抽取并持久化：导入后台任务与端口的懒回填共用。
+ * 确保某本书的正文已抽取并持久化：阅读器首开与端口的懒回填共用。
  * 并发去重；抽取失败返回空数组（下次再试）。`preopened` 见 extract。
  */
 export async function ensureBookTextExtracted(

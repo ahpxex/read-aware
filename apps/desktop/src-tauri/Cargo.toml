@@ -24,6 +24,12 @@ base64 = "0.22"
 rusqlite = { version = "0.32", features = ["bundled", "functions"] }
 # Content hashes for the blob registry (dedupe, integrity, sync reconciliation).
 sha2 = "0.10"
+# EPUB metadata is a few small ZIP entries (container.xml, OPF, cover). Reading
+# those directly avoids opening the whole book in the webview just to paint a
+# shelf cover.
+zip = { version = "2.2", default-features = false, features = ["deflate"] }
+quick-xml = "0.39"
+percent-encoding = "2"
 # Stable per-install device id (HLC tiebreaker + sync attribution).
 uuid = { version = "1", features = ["v4"] }
 # Native OS file dialog for book import — the webview ignores HTML <input accept>.

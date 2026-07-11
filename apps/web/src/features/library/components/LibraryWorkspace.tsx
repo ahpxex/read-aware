@@ -16,10 +16,12 @@ import type { BookMetadataPatch, Collection, LibraryBook } from "../lib/library-
 type LibraryWorkspaceProps = {
   isReady: boolean;
   books: LibraryBook[];
+  /** Prepared imports whose files are not durable yet. */
+  pendingBooks?: LibraryBook[];
   collections: Collection[];
   /** Book currently being opened (spinner feedback on its cover). */
   openingBookId?: string | null;
-  /** Files currently in the import pipeline — each shows a skeleton card. */
+  /** Files currently in the import pipeline; also keeps an empty shelf out of its empty state. */
   importingCount?: number;
   onImport: () => void;
   onOpenBook: (book: LibraryBook) => void;
@@ -36,6 +38,7 @@ type LibraryWorkspaceProps = {
 export function LibraryWorkspace({
   isReady,
   books,
+  pendingBooks = [],
   collections,
   openingBookId,
   importingCount = 0,
@@ -54,23 +57,36 @@ export function LibraryWorkspace({
   const shelfView = useAtomValue(shelfViewAtom);
   const [activeCollectionId, setActiveCollectionId] = useAtom(activeCollectionAtom);
   const { active, ids, selectedIds, exit, clear, toggle, selectAll } = useShelfSelection();
-  const [showImportPlaceholders, setShowImportPlaceholders] = useState(false);
+  const [showPendingBooks, setShowPendingBooks] = useState(false);
 
-  // Native-path imports normally finish inside one perceptual beat. Avoid a
-  // skeleton flash and two grid shifts for that fast path; genuinely slower
-  // copies still get feedback after a short delay. An empty library shows its
-  // first pending slot immediately rather than becoming a blank page.
+  // Native imports normally finish before feedback is useful. Slow imports use
+  // their fully prepared book record as a sorted placeholder, so the reserved
+  // slot and the committed book's final slot are identical.
   useEffect(() => {
-    if (importingCount === 0) {
-      setShowImportPlaceholders(false);
+    if (pendingBooks.length === 0) {
+      setShowPendingBooks(false);
       return;
     }
-    const timer = window.setTimeout(() => setShowImportPlaceholders(true), 300);
+    if (books.length === 0) {
+      setShowPendingBooks(true);
+      return;
+    }
+    const timer = window.setTimeout(() => setShowPendingBooks(true), 450);
     return () => window.clearTimeout(timer);
-  }, [importingCount]);
-  const visibleImportingCount = books.length === 0 || showImportPlaceholders
-    ? importingCount
-    : 0;
+  }, [books.length, pendingBooks.length]);
+
+  const visiblePendingBooks = useMemo(
+    () => books.length === 0 || showPendingBooks ? pendingBooks : [],
+    [books.length, pendingBooks, showPendingBooks],
+  );
+  const pendingBookIds = useMemo(
+    () => new Set(visiblePendingBooks.map((book) => book.id)),
+    [visiblePendingBooks],
+  );
+  const shelfBooks = useMemo(
+    () => [...books, ...visiblePendingBooks],
+    [books, visiblePendingBooks],
+  );
 
   const activeCollection = activeCollectionId
     ? collections.find((c) => c.id === activeCollectionId) ?? null
@@ -91,9 +107,9 @@ export function LibraryWorkspace({
   const visible = useMemo(
     () =>
       activeCollection
-        ? books.filter((b) => b.collectionId === activeCollection.id)
-        : books.filter((b) => !b.collectionId),
-    [activeCollection, books],
+        ? shelfBooks.filter((b) => b.collectionId === activeCollection.id)
+        : shelfBooks.filter((b) => !b.collectionId),
+    [activeCollection, shelfBooks],
   );
 
   const sections = deriveShelfView(visible, shelfView, t);
@@ -203,7 +219,7 @@ export function LibraryWorkspace({
               sections={sections}
               layout={shelfView.layout}
               collections={collectionTiles}
-              importingCount={visibleImportingCount}
+              pendingBookIds={pendingBookIds}
               openingBookId={openingBookId}
               onOpenCollection={(id) => setActiveCollectionId(id)}
               selecting={active}

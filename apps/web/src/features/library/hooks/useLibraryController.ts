@@ -5,12 +5,13 @@ import { useTranslation } from "../../../i18n";
 import { formatLibraryError } from "../lib/format-library-error";
 import { deleteBookText, ensureBookTextExtracted } from "../lib/book-text-store";
 import {
+  commitBookImport,
   createCollection,
   deleteCollection,
   enrichOpenedBook,
-  importBookSource,
   listCollections,
   listLibraryBooks,
+  prepareBookImport,
   removeLibraryBook,
   removeLibraryBooks,
   renameCollection,
@@ -43,10 +44,17 @@ function formatImportNotice(
 
 export function useLibraryController() {
   const [books, setBooks] = useState<LibraryBook[]>([]);
+  const booksRef = useRef(books);
+  booksRef.current = books;
+  // Prepared imports carry their final id and metadata while their source file
+  // is still being copied. Rendering them through the normal shelf sorter keeps
+  // the reserved slot identical to the committed book's final slot.
+  const [pendingBooks, setPendingBooks] = useState<LibraryBook[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [libraryReady, setLibraryReady] = useState(false);
-  // Files still in the import fast path — drives the header's disabled state
-  // and one shelf skeleton card per pending file.
+  // Files still in the import pipeline drive the header's disabled state and
+  // keep an empty library out of its empty state. Prepared records below drive
+  // any delayed shelf feedback at their real sorted positions.
   const [importingCount, setImportingCount] = useState(0);
   const isImporting = importingCount > 0;
   const importInputRef = useRef<HTMLInputElement | null>(null);
@@ -203,18 +211,27 @@ export function useLibraryController() {
 
     let imported = 0;
     const duplicates: string[] = [];
+    const knownBooks = [...booksRef.current];
     try {
       for (const source of sources) {
+        let pendingBookId: string | null = null;
         try {
-          const result = await importBookSource(source, tRef.current);
+          const result = await prepareBookImport(source, tRef.current, knownBooks);
           if (result.status === "duplicate") duplicates.push(result.book.title);
           else {
+            pendingBookId = result.book.id;
+            setPendingBooks((current) => [...current, result.book]);
+            await commitBookImport(result.book, source);
             imported += 1;
-            // Native bytes are already in managed storage; no parsing follows.
+            // Swap the pending entry for the durable book in one React batch.
+            // The id and all sort fields stay identical, so its grid slot does not move.
             setBooks((current) => [result.book, ...current]);
+            knownBooks.unshift(result.book);
           }
         } finally {
-          // 每本落地就撤掉对应的骨架卡，而不是等整批
+          if (pendingBookId) {
+            setPendingBooks((current) => current.filter((book) => book.id !== pendingBookId));
+          }
           setImportingCount((current) => Math.max(0, current - 1));
         }
       }
@@ -334,6 +351,7 @@ export function useLibraryController() {
 
   return {
     books,
+    pendingBooks,
     collections,
     libraryReady,
     isImporting,

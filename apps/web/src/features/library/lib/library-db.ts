@@ -15,6 +15,10 @@ import type {
   ReadingStatus,
 } from "./library-types";
 import { extractOpenedBookMetadata } from "./library-cover";
+import {
+  extractNativeEpubMetadata,
+  type NativeBookMetadata,
+} from "./native-book-metadata";
 import { sniffBookFormat } from "./book-format-sniff";
 import { isTauri } from "../../../platform/environment";
 import type { FoliateBook } from "../../reader/lib/foliate-engine";
@@ -168,26 +172,29 @@ function getReadingStatus(progressPercent: number): ReadingStatus {
 }
 
 /**
- * The record as it lands on the shelf the instant a file is picked: title and
- * author parsed from the file name, no cover yet. Real metadata and cover are
- * filled from the reader's already-open foliate book on first open. Import must
- * never start a seconds-long parser task on the UI thread.
+ * Build the shelf record from lightweight native EPUB metadata when available,
+ * otherwise from the file name. Missing fields are filled from the reader's
+ * already-open foliate book later; import never starts the full parser itself.
  */
-function createLibraryBook(source: BookImportSource, format: BookFormat): LibraryBook {
+function createLibraryBook(
+  source: BookImportSource,
+  format: BookFormat,
+  metadata: NativeBookMetadata | null = null,
+): LibraryBook {
   const now = new Date().toISOString();
   const file = sourceFileInfo(source);
   const parsed = parseFileName(file.name);
 
   return {
     id: crypto.randomUUID(),
-    title: parsed.title,
-    author: parsed.author,
+    title: metadata?.title?.trim() || parsed.title,
+    author: metadata?.author?.trim() || parsed.author,
     format,
     fileName: file.name,
     mimeType: file.type || "",
     fileSize: file.size,
-    coverUrl: null,
-    coverChecked: false,
+    coverUrl: metadata?.coverUrl ?? null,
+    coverChecked: Boolean(metadata?.coverUrl),
     createdAt: now,
     updatedAt: now,
     lastOpenedAt: null,
@@ -218,21 +225,21 @@ function bookDedupeKey(book: Pick<LibraryBook, "title" | "author" | "fileSize">)
   return `${book.title.trim().toLowerCase()}|${book.author.trim().toLowerCase()}|${book.fileSize}`;
 }
 
-export type ImportBookResult =
-  | { status: "imported"; book: LibraryBook }
+export type PrepareBookImportResult =
+  | { status: "prepared"; book: LibraryBook }
   | { status: "duplicate"; book: LibraryBook };
 
 /**
- * The fast import path: sniff the format, store the bytes, put a record built
- * from the file name — no book parsing. The book is on the shelf (placeholder
- * cover) the moment this resolves. The first reader open fills metadata and the
- * cover from its already-parsed foliate object.
+ * The preparation phase: desktop EPUBs read only their ZIP directory, OPF, and
+ * cover entry in Rust; other formats fall back to file-name metadata. No full
+ * book parse runs during import. The first reader open fills anything the
+ * lightweight extractor could not find from its already-parsed foliate object.
  */
-export async function importBookSource(
+export async function prepareBookImport(
   source: BookImportSource,
   t: TFunction<"shelf">,
-): Promise<ImportBookResult> {
-  const existing = await getAllBookRecords();
+  existing: LibraryBook[],
+): Promise<PrepareBookImportResult> {
   const file = sourceFileInfo(source);
 
   // Cheap pass: the identical file (same name + size) is already imported.
@@ -242,9 +249,18 @@ export async function importBookSource(
   if (byFile) return { status: "duplicate", book: byFile };
 
   const format = await detectBookFormat(source, t);
-  const book = createLibraryBook(source, format);
+  const metadata = format === "epub" && source.kind === "native-path"
+    ? await extractNativeEpubMetadata(source.path)
+    : null;
+  const book = createLibraryBook(source, format, metadata);
+  const byMetadata = existing.find((entry) => bookDedupeKey(entry) === bookDedupeKey(book));
+  if (byMetadata) return { status: "duplicate", book: byMetadata };
+  return { status: "prepared", book };
+}
+
+/** Make a prepared import durable without changing its shelf identity/order. */
+export async function commitBookImport(book: LibraryBook, source: BookImportSource): Promise<void> {
   await storeImportedBook(book, source);
-  return { status: "imported", book };
 }
 
 export type EnrichBookResult =

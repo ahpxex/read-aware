@@ -354,6 +354,7 @@ function App() {
               <LibraryWorkspace
                 isReady={library.libraryReady}
                 books={heldShelfBooks ?? library.books}
+                pendingBooks={heldShelfBooks ? [] : library.pendingBooks}
                 collections={library.collections}
                 openingBookId={openingBookId}
                 importingCount={library.importingCount}

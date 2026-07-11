@@ -15,7 +15,7 @@ type SectionBodyProps = {
   layout: ShelfLayout;
   /** Collection tiles rendered as peers ahead of the books (top-level only). */
   collections?: CollectionTileData[];
-  importingCount?: number;
+  pendingBookIds?: ReadonlySet<string>;
   onOpenCollection?: (id: string) => void;
   selecting?: boolean;
   selectedIds?: Set<string>;
@@ -28,11 +28,35 @@ type SectionBodyProps = {
   openingBookId?: string | null;
 };
 
+function PendingBookPlaceholder({ layout }: { layout: ShelfLayout }) {
+  if (layout === "list") {
+    return (
+      <div aria-hidden="true" className="flex items-center gap-4 rounded-sm px-2 py-2">
+        <Skeleton variant="rectangular" className="h-16 w-11 shrink-0 rounded-sm" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <Skeleton variant="text" className="w-1/3" />
+          <Skeleton variant="text" className="w-1/5" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      aria-hidden="true"
+      className="w-full max-w-32 justify-self-start space-y-2.5 sm:max-w-36 lg:max-w-44"
+    >
+      <Skeleton variant="rectangular" className="aspect-[2/3] w-full rounded-sm" />
+      <Skeleton variant="text" className="w-3/4" />
+    </div>
+  );
+}
+
 function SectionBody({
   books,
   layout,
   collections = [],
-  importingCount = 0,
+  pendingBookIds,
   onOpenCollection,
   selecting,
   selectedIds,
@@ -52,30 +76,40 @@ function SectionBody({
     />
   ));
 
-  const importing = Array.from({ length: Math.min(importingCount, 8) }).map((_, index) => (
-    layout === "list" ? (
-      <div key={`import-${index}`} aria-hidden="true" className="flex items-center gap-4 py-3">
-        <Skeleton variant="rectangular" className="h-16 w-11 shrink-0 rounded-sm" />
-        <div className="min-w-0 flex-1 space-y-2">
-          <Skeleton variant="text" className="w-1/3" />
-          <Skeleton variant="text" className="w-1/5" />
-        </div>
-      </div>
-    ) : (
-      <div key={`import-${index}`} aria-hidden="true" className="space-y-2.5">
-        <Skeleton variant="rectangular" className="aspect-[2/3] w-full rounded-sm" />
-        <Skeleton variant="text" className="w-3/4" />
-      </div>
-    )
-  ));
-
   if (layout === "list") {
     return (
       <div className="flex flex-col divide-y divide-border/60">
         {tiles}
-        {importing}
         {books.map((book) => (
-          <BookRow
+          pendingBookIds?.has(book.id) ? (
+            <PendingBookPlaceholder key={book.id} layout={layout} />
+          ) : (
+            <BookRow
+              key={book.id}
+              book={book}
+              selecting={selecting}
+              selected={selectedIds?.has(book.id) ?? false}
+              opening={book.id === openingBookId}
+              onClick={() => onSelect?.(book)}
+              onRemove={() => onRemove?.(book)}
+              onToggleStar={() => onToggleStar?.(book)}
+              onUpdateMetadata={(patch) => onUpdateMetadata?.(book, patch)}
+              onToggleSelect={() => onToggleSelect?.(book)}
+            />
+          )
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-3 gap-x-4 gap-y-8 sm:grid-cols-4 sm:gap-x-5 md:grid-cols-5 md:gap-x-6 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8">
+      {tiles}
+      {books.map((book) => (
+        pendingBookIds?.has(book.id) ? (
+          <PendingBookPlaceholder key={book.id} layout={layout} />
+        ) : (
+          <BookCover
             key={book.id}
             book={book}
             selecting={selecting}
@@ -87,28 +121,7 @@ function SectionBody({
             onUpdateMetadata={(patch) => onUpdateMetadata?.(book, patch)}
             onToggleSelect={() => onToggleSelect?.(book)}
           />
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-3 gap-x-4 gap-y-8 sm:grid-cols-4 sm:gap-x-5 md:grid-cols-5 md:gap-x-6 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8">
-      {tiles}
-      {importing}
-      {books.map((book) => (
-        <BookCover
-          key={book.id}
-          book={book}
-          selecting={selecting}
-          selected={selectedIds?.has(book.id) ?? false}
-          opening={book.id === openingBookId}
-          onClick={() => onSelect?.(book)}
-          onRemove={() => onRemove?.(book)}
-          onToggleStar={() => onToggleStar?.(book)}
-          onUpdateMetadata={(patch) => onUpdateMetadata?.(book, patch)}
-          onToggleSelect={() => onToggleSelect?.(book)}
-        />
+        )
       ))}
     </div>
   );
@@ -119,8 +132,8 @@ type ShelfProps = {
   layout: ShelfLayout;
   /** Collection tiles to lead the grid (top-level view only). */
   collections?: CollectionTileData[];
-  /** Pending imports rendered as peers in the first existing shelf section. */
-  importingCount?: number;
+  /** Prepared imports rendered in their real sorted positions. */
+  pendingBookIds?: ReadonlySet<string>;
   onOpenCollection?: (id: string) => void;
   selecting?: boolean;
   selectedIds?: Set<string>;
@@ -138,7 +151,7 @@ export function Shelf({
   sections,
   layout,
   collections = [],
-  importingCount = 0,
+  pendingBookIds,
   onOpenCollection,
   selecting,
   selectedIds,
@@ -155,9 +168,9 @@ export function Shelf({
   const effectiveSections =
     sections.length > 0
       ? sections
-      : collections.length > 0 || importingCount > 0
+      : collections.length > 0
         ? [{ label: "", books: [] }]
-      : [];
+        : [];
 
   return (
     <div className={cn(layout === "list" ? "space-y-8" : "space-y-12", className)}>
@@ -168,7 +181,7 @@ export function Shelf({
             books={section.books}
             layout={layout}
             collections={index === 0 ? collections : []}
-            importingCount={index === 0 ? importingCount : 0}
+            pendingBookIds={pendingBookIds}
             onOpenCollection={onOpenCollection}
             selecting={selecting}
             selectedIds={selectedIds}

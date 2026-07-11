@@ -80,6 +80,8 @@ export type FoliateContent = {
 export type FoliateRenderer = {
   setAttribute: (name: string, value: string) => void;
   removeAttribute: (name: string) => void;
+  /** Atomically configure a fixed-layout renderer before its first navigation. */
+  setLayout?: (flow: string, maxColumnCount: number) => void;
   setStyles?: (css: string) => void;
   next: () => Promise<void> | void;
   destroy?: () => void;

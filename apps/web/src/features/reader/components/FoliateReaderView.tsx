@@ -1482,12 +1482,28 @@ export function FoliateReaderView({
         isFixedLayoutRef.current = fixedLayout;
         setIsFixedLayout(fixedLayout);
 
-        // Apply the chosen reading mode. In every mode the engine keeps only the
-        // current section live and unloads the rest, so memory stays bounded
-        // however long the book is. (Fixed-layout PDFs ignore `flow`.)
+        // Apply the chosen reading mode. Both the reflowable paginator and the
+        // fixed-layout PDF renderer honor these attributes; each keeps only the
+        // current section/spread live, so memory stays bounded.
         const { flow, maxColumnCount } = layoutForReadingMode(readingMode);
-        view.renderer?.setAttribute("flow", flow);
-        view.renderer?.setAttribute("max-column-count", String(maxColumnCount));
+        if (fixedLayout && view.renderer?.setLayout) {
+          // WebKit may defer custom-element attribute reactions until after the
+          // first navigation. Configure fixed layout atomically so that first
+          // paint cannot race against the old, paired-spread model.
+          view.renderer.setLayout(flow, maxColumnCount);
+        } else {
+          view.renderer?.setAttribute("flow", flow);
+          view.renderer?.setAttribute("max-column-count", String(maxColumnCount));
+        }
+        const firstFixedLayoutRender = fixedLayout && view.renderer
+          ? new Promise<void>((resolve) => {
+              (view?.renderer as unknown as EventTarget).addEventListener(
+                "rendered",
+                () => resolve(),
+                { once: true },
+              );
+            })
+          : null;
         {
           // The margin preset drives the text measure and the paginator gap
           // together (see reader-css.ts). Portrait containers render a single
@@ -1659,9 +1675,17 @@ export function FoliateReaderView({
           applyHighlights(view, highlightsRef.current);
           applyNotes(view, notesRef.current, highlightsRef.current);
         }
-        // The first page is now visible. Only now start non-critical metadata
-        // and text enrichment so it cannot delay the reader's initial paint.
-        if (book) onBookReadyRef.current?.(book);
+        // Fixed-layout navigation resolves when its iframe loads, before PDF.js
+        // has painted the canvas. Delay non-critical metadata/cover work until
+        // that first paint so cover rendering cannot compete with the visible
+        // page on PDF.js's worker. Reflowable sections are already painted here.
+        if (book && firstFixedLayoutRender) {
+          void firstFixedLayoutRender.then(() => {
+            if (!cancelled) onBookReadyRef.current?.(book);
+          });
+        } else if (book) {
+          onBookReadyRef.current?.(book);
+        }
       } catch (nextError) {
         if (!cancelled) setError(formatReaderError(nextError, tRef.current));
       } finally {
@@ -1965,11 +1989,10 @@ export function FoliateReaderView({
     requestAskAi(target);
   }
 
-  // Paginated layouts (and fixed-layout PDFs, which always paginate) turn by
-  // explicit controls now; scroll mode turns by scrolling. Only surface the
-  // edge buttons once the book is actually on screen.
+  // Paginated layouts turn by explicit controls; scroll mode uses the native
+  // scroller and crosses pages at its edges.
   const showPageTurnControls =
-    (readingMode !== "scroll" || isFixedLayout) && !isLoading && !error;
+    readingMode !== "scroll" && !isLoading && !error;
 
   return (
     <section ref={readerRootRef} className="relative h-full w-full overflow-hidden">

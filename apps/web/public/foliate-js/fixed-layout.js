@@ -30,7 +30,7 @@ const getViewport = (doc, viewport) => {
 }
 
 export class FixedLayout extends HTMLElement {
-    static observedAttributes = ['zoom']
+    static observedAttributes = ['zoom', 'flow', 'max-column-count']
     #root = this.attachShadow({ mode: 'closed' })
     #observer = new ResizeObserver(() => this.#render())
     #spreads
@@ -43,6 +43,8 @@ export class FixedLayout extends HTMLElement {
     #center
     #side
     #zoom
+    #flow
+    #maxColumnCount
     constructor() {
         super()
 
@@ -55,6 +57,11 @@ export class FixedLayout extends HTMLElement {
             justify-content: center;
             align-items: center;
             overflow: auto;
+        }
+        :host([flow="scrolled"]) {
+            justify-content: flex-start;
+            align-items: flex-start;
+            overscroll-behavior: contain;
         }`)
 
         this.#observer.observe(this)
@@ -65,6 +72,19 @@ export class FixedLayout extends HTMLElement {
                 this.#zoom = value !== 'fit-width' && value !== 'fit-page'
                     ? parseFloat(value) : value
                 this.#render()
+                break
+            case 'flow':
+                if (value === this.#flow) break
+                this.#flow = value
+                this.#rebuildSpreads()
+                break
+            case 'max-column-count':
+                {
+                    const maxColumnCount = parseInt(value)
+                    if (maxColumnCount === this.#maxColumnCount) break
+                    this.#maxColumnCount = maxColumnCount
+                    this.#rebuildSpreads()
+                }
                 break
         }
     }
@@ -91,6 +111,11 @@ export class FixedLayout extends HTMLElement {
         return new Promise(resolve => {
             iframe.addEventListener('load', () => {
                 const doc = iframe.contentDocument
+                doc.addEventListener('wheel', event => {
+                    if (!this.scrolled) return
+                    event.preventDefault()
+                    this.scrollBy({ top: event.deltaY, left: event.deltaX })
+                }, { passive: false })
                 this.dispatchEvent(new CustomEvent('load', { detail: { doc, index } }))
                 const { width, height } = getViewport(doc, this.defaultViewport)
                 resolve({
@@ -109,33 +134,40 @@ export class FixedLayout extends HTMLElement {
         const right = this.#center ?? this.#right ?? {}
         const target = side === 'left' ? left : right
         const { width, height } = this.getBoundingClientRect()
-        const portrait = this.spread !== 'both' && this.spread !== 'portrait'
+        const portrait = !this.scrolled
+            && this.spread !== 'both' && this.spread !== 'portrait'
             && height > width
         this.#portrait = portrait
         const blankWidth = left.width ?? right.width ?? 0
         const blankHeight = left.height ?? right.height ?? 0
 
-        const scale = typeof this.#zoom === 'number' && !isNaN(this.#zoom)
-            ? this.#zoom
-            : (this.#zoom === 'fit-width'
-                ? (portrait || this.#center
-                    ? width / (target.width ?? blankWidth)
-                    : width / ((left.width ?? blankWidth) + (right.width ?? blankWidth)))
-                : (portrait || this.#center
-                    ? Math.min(
-                        width / (target.width ?? blankWidth),
-                        height / (target.height ?? blankHeight))
-                    : Math.min(
-                        width / ((left.width ?? blankWidth) + (right.width ?? blankWidth)),
-                        height / Math.max(
-                            left.height ?? blankHeight,
-                            right.height ?? blankHeight)))
-            ) || 1
+        const scale = this.scrolled
+            ? width / (target.width ?? blankWidth)
+            : typeof this.#zoom === 'number' && !isNaN(this.#zoom)
+                ? this.#zoom
+                : (this.#zoom === 'fit-width'
+                    ? (portrait || this.#center
+                        ? width / (target.width ?? blankWidth)
+                        : width / ((left.width ?? blankWidth) + (right.width ?? blankWidth)))
+                    : (portrait || this.#center
+                        ? Math.min(
+                            width / (target.width ?? blankWidth),
+                            height / (target.height ?? blankHeight))
+                        : Math.min(
+                            width / ((left.width ?? blankWidth) + (right.width ?? blankWidth)),
+                            height / Math.max(
+                                left.height ?? blankHeight,
+                                right.height ?? blankHeight)))
+                ) || 1
 
         const transform = frame => {
             let { element, iframe, width, height, blank, onZoom } = frame
             if (!iframe) return
-            if (onZoom) onZoom({ doc: frame.iframe.contentDocument, scale })
+            if (onZoom) {
+                onZoom({ doc: frame.iframe.contentDocument, scale })
+                    .then(() => this.dispatchEvent(new Event('rendered')))
+                    .catch(error => console.error(error))
+            }
             const iframeScale = onZoom ? scale : 1
             Object.assign(iframe.style, {
                 width: `${width * iframeScale}px`,
@@ -150,7 +182,7 @@ export class FixedLayout extends HTMLElement {
                 overflow: 'hidden',
                 display: 'block',
                 flexShrink: '0',
-                marginBlock: 'auto',
+                marginBlock: this.scrolled ? '0' : 'auto',
             })
             if (portrait && frame !== target) {
                 element.style.display = 'none'
@@ -201,16 +233,29 @@ export class FixedLayout extends HTMLElement {
     open(book) {
         this.book = book
         const { rendition } = book
-        this.spread = rendition?.spread
         this.defaultViewport = rendition?.viewport
 
         const rtl = book.dir === 'rtl'
-        const ltr = !rtl
         this.rtl = rtl
 
-        if (rendition?.spread === 'none')
-            this.#spreads = book.sections.map(section => ({ center: section }))
-        else this.#spreads = book.sections.reduce((arr, section, i) => {
+        this.#buildSpreads()
+    }
+    #buildSpreads() {
+        if (!this.book) return
+        const { rendition } = this.book
+        const maxColumnCount = this.#maxColumnCount
+            ?? parseInt(this.getAttribute('max-column-count'))
+        const singlePage = this.scrolled || maxColumnCount === 1
+            || !maxColumnCount && rendition?.spread === 'none'
+        this.spread = singlePage ? 'none'
+            : rendition?.spread === 'none' ? undefined : rendition?.spread
+
+        const rtl = this.rtl
+        const ltr = !rtl
+
+        if (singlePage)
+            this.#spreads = this.book.sections.map(section => ({ center: section }))
+        else this.#spreads = this.book.sections.reduce((arr, section, i) => {
             const last = arr[arr.length - 1]
             const { pageSpread } = section
             const newSpread = () => {
@@ -243,9 +288,36 @@ export class FixedLayout extends HTMLElement {
             return arr
         }, [{}])
     }
+    #rebuildSpreads() {
+        if (!this.book) return
+        const currentIndex = this.index
+        this.#buildSpreads()
+        this.#index = -1
+        if (currentIndex >= 0) void this.goTo({ index: currentIndex })
+    }
+    setLayout(flow, maxColumnCount) {
+        this.#flow = flow
+        this.#maxColumnCount = maxColumnCount
+        this.setAttribute('flow', flow)
+        this.setAttribute('max-column-count', String(maxColumnCount))
+        this.#rebuildSpreads()
+    }
+    get scrolled() {
+        return (this.#flow ?? this.getAttribute('flow')) === 'scrolled'
+    }
+    get start() {
+        return this.scrollTop
+    }
+    get end() {
+        return this.scrollTop + this.clientHeight
+    }
+    get viewSize() {
+        return this.scrollHeight
+    }
     get index() {
         const spread = this.#spreads[this.#index]
-        const section = spread?.center ?? (this.#side === 'left'
+        if (!spread) return -1
+        const section = spread.center ?? (this.#side === 'left'
             ? spread.left ?? spread.right : spread.right ?? spread.left)
         return this.book.sections.indexOf(section)
     }
@@ -299,11 +371,17 @@ export class FixedLayout extends HTMLElement {
     }
     async next() {
         const s = this.rtl ? this.#goLeft() : this.#goRight()
-        if (!s) return this.goToSpread(this.#index + 1, this.rtl ? 'right' : 'left', 'page')
+        if (!s) {
+            await this.goToSpread(this.#index + 1, this.rtl ? 'right' : 'left', 'page')
+            if (this.scrolled) this.scrollTop = 0
+        }
     }
     async prev() {
         const s = this.rtl ? this.#goRight() : this.#goLeft()
-        if (!s) return this.goToSpread(this.#index - 1, this.rtl ? 'left' : 'right', 'page')
+        if (!s) {
+            await this.goToSpread(this.#index - 1, this.rtl ? 'left' : 'right', 'page')
+            if (this.scrolled) this.scrollTop = Math.max(0, this.scrollHeight - this.clientHeight)
+        }
     }
     getContents() {
         return Array.from(this.#root.querySelectorAll('iframe'), frame => ({

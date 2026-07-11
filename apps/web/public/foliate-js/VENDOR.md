@@ -47,6 +47,15 @@ The typed wrapper that consumes this lives at
   the clean fix. The rules read the app's `--ra-scrollbar-*` tokens (which
   inherit across the shadow boundary) with standalone fallbacks. Re-apply this
   after any upstream update.
+- **`fixed-layout.js` — local patch:** made the fixed-layout renderer honor
+  ReadAware's `flow` and `max-column-count` attributes. `scrolled` uses a
+  fit-width, single-page native scroller with bounded page crossing;
+  `max-column-count=1` builds single-page spreads and `=2` builds paired
+  spreads. The public `setLayout()` applies both values atomically before first
+  navigation, avoiding WebKit custom-element reaction races, and a `rendered`
+  event lets the app defer cover work until the visible PDF page is painted.
+  This is what makes PDF scroll/single/double modes real rather than changing a
+  setting that the upstream renderer ignores. Re-apply after any upstream update.
 - Otherwise all engine modules and `vendor/` are byte-for-byte upstream.
 
 ## Updating

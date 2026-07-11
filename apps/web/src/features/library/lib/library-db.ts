@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type { TFunction } from "i18next";
 import {
   getDesktopBlob,
+  openDesktopBlobFile,
   putDesktopBlob,
   putDesktopBlobFromPath,
 } from "../../../platform/blob-store";
@@ -22,6 +23,7 @@ import {
 import { sniffBookFormat } from "./book-format-sniff";
 import { isTauri } from "../../../platform/environment";
 import type { FoliateBook } from "../../reader/lib/foliate-engine";
+import type { BookFileSource } from "../../reader/lib/reader-types";
 
 /** Blob-store key for a book's original file bytes (desktop SQLite backend). */
 const bookFileKey = (bookId: string) => `bookfile:${bookId}`;
@@ -291,7 +293,13 @@ async function enrichParsedBook(
     title: metadata.title?.trim() || current.title,
     author: metadata.author?.trim() || current.author,
     coverUrl: metadata.coverUrl ?? current.coverUrl ?? null,
-    coverChecked: true,
+    // A PDF cover render is intentionally time-budgeted. If a complex or
+    // blank leading page exceeds that budget, keep it eligible for a later
+    // open: by then the reader may already have a meaningful page canvas that
+    // the PDF adapter can reuse at effectively zero cost.
+    coverChecked: imported.format === "pdf" && !metadata.coverUrl
+      ? current.coverChecked
+      : true,
     updatedAt: new Date().toISOString(),
   };
 
@@ -322,6 +330,27 @@ export async function getStoredBookBlob(bookId: string): Promise<Blob | null> {
   if (!isTauri()) return null;
   const bytes = await getDesktopBlob(bookFileKey(bookId));
   return bytes ? new Blob([bytes]) : null;
+}
+
+/**
+ * Reader source for an imported book. PDFs stay file-backed and random-access;
+ * the other parsers still receive an ordinary Blob until they expose the same
+ * structural range contract end to end.
+ */
+export async function getStoredBookFile(
+  bookOrId: Pick<LibraryBook, "id" | "format" | "fileName" | "mimeType"> | string,
+): Promise<BookFileSource | null> {
+  if (!isTauri()) return null;
+  const book = typeof bookOrId === "string" ? await getBookRecord(bookOrId) : bookOrId;
+  if (!book) return null;
+  if (book.format === "pdf") {
+    return openDesktopBlobFile(
+      bookFileKey(book.id),
+      book.fileName,
+      book.mimeType || "application/pdf",
+    );
+  }
+  return getStoredBookBlob(book.id);
 }
 
 export async function updateLibraryBookProgress(bookId: string, progress: BookProgress) {

@@ -47,6 +47,64 @@ const DESKTOP_RAW_CHUNK_BYTES = 4 * 1024 * 1024;
 
 /** What the Rust side recorded about the stored payload. */
 export type BlobPutResult = { sha256: string; byteSize: number };
+type BlobInfo = { byteSize: number; mimeType: string | null };
+
+/** Blob-compatible random-access source backed by a managed desktop file. */
+export interface DesktopBlobFile {
+  readonly name: string;
+  readonly size: number;
+  readonly type: string;
+  arrayBuffer(): Promise<ArrayBuffer>;
+  slice(start?: number, end?: number, contentType?: string): DesktopBlobFile;
+}
+
+function sliceIndex(value: number | undefined, size: number, fallback: number): number {
+  if (value === undefined) return fallback;
+  if (Number.isNaN(value)) return 0;
+  const integer = Number.isFinite(value) ? Math.trunc(value) : value < 0 ? -size : size;
+  return integer < 0 ? Math.max(size + integer, 0) : Math.min(integer, size);
+}
+
+class ManagedBlobSlice implements DesktopBlobFile {
+  readonly size: number;
+
+  constructor(
+    private readonly key: string,
+    readonly name: string,
+    readonly type: string,
+    private readonly offset: number,
+    size: number,
+  ) {
+    this.size = size;
+  }
+
+  async arrayBuffer(): Promise<ArrayBuffer> {
+    if (this.size === 0) return new ArrayBuffer(0);
+    const buffer = await invoke<ArrayBuffer>("get_blob_range", {
+      key: this.key,
+      offset: this.offset,
+      length: this.size,
+    });
+    if (buffer.byteLength !== this.size) {
+      throw new Error(
+        `Managed book file became unavailable while reading ${this.offset}-${this.offset + this.size}.`,
+      );
+    }
+    return buffer;
+  }
+
+  slice(start?: number, end?: number, contentType = ""): DesktopBlobFile {
+    const relativeStart = sliceIndex(start, this.size, 0);
+    const relativeEnd = sliceIndex(end, this.size, this.size);
+    return new ManagedBlobSlice(
+      this.key,
+      this.name,
+      contentType.toLowerCase(),
+      this.offset + relativeStart,
+      Math.max(relativeEnd - relativeStart, 0),
+    );
+  }
+}
 
 async function getBlobChunked(key: string): Promise<Uint8Array | null> {
   const total = await invoke<number>("blob_read_open", { key });
@@ -109,6 +167,27 @@ export async function getDesktopBlob(key: string): Promise<Uint8Array | null> {
   if (isMobileOS()) return getBlobChunked(key);
   const buffer = await invoke<ArrayBuffer>("get_blob", { key });
   return buffer.byteLength > 0 ? new Uint8Array(buffer) : null;
+}
+
+/**
+ * Open a managed blob as a lazy, Blob-compatible file. Only requested slices
+ * cross IPC, which lets PDF.js render from its native range transport without
+ * first allocating another full copy of a large PDF inside WKWebView.
+ */
+export async function openDesktopBlobFile(
+  key: string,
+  name: string,
+  fallbackType = "",
+): Promise<DesktopBlobFile | null> {
+  const info = await invoke<BlobInfo | null>("get_blob_info", { key });
+  if (!info || info.byteSize <= 0) return null;
+  return new ManagedBlobSlice(
+    key,
+    name,
+    info.mimeType || fallbackType,
+    0,
+    info.byteSize,
+  );
 }
 
 /** Remove a blob (bytes + registry row). Missing keys are a no-op. */

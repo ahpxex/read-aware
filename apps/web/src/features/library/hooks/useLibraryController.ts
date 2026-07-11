@@ -198,7 +198,16 @@ export function useLibraryController() {
           current.map((entry) => (entry.id === book.id ? result.book : entry)),
         );
       }
-      await ensureBookTextExtracted(book.id, foliateBook);
+      // Full PDF text extraction is deliberately lazy for very large/scanned
+      // documents. Starting hundreds of page decodes immediately after the
+      // first paint would make "open book" feel busy again; the agent's text
+      // port will trigger the same extraction only when whole-book context is
+      // actually requested.
+      const pageCount = foliateBook.sections?.length ?? 0;
+      const eagerPdfText = book.fileSize <= 64 * 1024 * 1024 && pageCount <= 300;
+      if (book.format !== "pdf" || eagerPdfText) {
+        await ensureBookTextExtracted(book.id, foliateBook);
+      }
     })()
       .catch((error) => console.warn("[library] lazy enrich failed", error))
       .finally(() => bookReadyPendingRef.current.delete(book.id));

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useAtomValue } from "jotai";
 import { useLocalAtom } from "@read-aware/ui/state";
 import { askAiRequestAtom } from "../../ai/state/chat-intent";
-import { getStoredBookBlob, markLibraryBookOpened, updateLibraryBookProgress } from "../../library/lib/library-db";
+import { getStoredBookFile, markLibraryBookOpened, updateLibraryBookProgress } from "../../library/lib/library-db";
 import { formatLibraryError } from "../../library/lib/format-library-error";
 import { createProgressPatch } from "../../library/lib/library-progress";
 import type {
@@ -130,8 +130,8 @@ export function useReaderSession({
 
     void (async () => {
       try {
-        const blob = await getStoredBookBlob(book.id);
-        if (!blob) {
+        const file = await getStoredBookFile(book);
+        if (!file) {
           throw new Error("The imported file for this book could not be found on this device.");
         }
         if (readerLoadRequestIdRef.current !== requestId) return;
@@ -141,7 +141,7 @@ export function useReaderSession({
           data: {
             fileName: book.fileName,
             format: book.format,
-            file: blob,
+            file,
           },
         });
         setIsReaderLoading(false);

@@ -1,15 +1,24 @@
 import type { BookFormat } from "../../library/lib/library-types";
 
+/** Minimal Blob/File surface consumed by foliate's format sniffers and parsers. */
+export interface BookFileSource {
+  readonly name?: string;
+  readonly size: number;
+  readonly type: string;
+  arrayBuffer(): Promise<ArrayBuffer>;
+  slice(start?: number, end?: number, contentType?: string): BookFileSource;
+}
+
 /**
  * A book file pulled from local storage, ready to hand to the foliate engine
  * (`makeBook`). foliate auto-detects the format from the bytes, but we keep the
- * stored `format` for routing/UX. The raw `Blob` is passed straight through —
- * no ArrayBuffer copy.
+ * stored `format` for routing/UX. PDFs use a native random-access source so
+ * PDF.js can request byte ranges; other formats currently pass a normal Blob.
  */
 export type LoadedBook = {
   fileName: string;
   format: BookFormat;
-  file: Blob;
+  file: BookFileSource;
 };
 
 /** A flattened table-of-contents entry backing the chapter list. */

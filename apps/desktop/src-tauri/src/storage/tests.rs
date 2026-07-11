@@ -327,6 +327,40 @@ fn blob_put_get_delete_roundtrip() {
 }
 
 #[test]
+fn blob_range_reads_only_the_requested_bytes() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let conn = migrated_conn();
+    let payload = b"0123456789abcdef";
+    put_blob_inner(
+        &conn,
+        dir.path(),
+        "bookfile:range",
+        Some("application/pdf"),
+        payload,
+    )
+    .expect("put");
+
+    let (_, info) = get_blob_record_inner(&conn, dir.path(), "bookfile:range")
+        .expect("info")
+        .expect("record");
+    assert_eq!(info.byte_size, payload.len() as u64);
+    assert_eq!(info.mime_type.as_deref(), Some("application/pdf"));
+    assert_eq!(
+        get_blob_range_inner(&conn, dir.path(), "bookfile:range", 4, 6).unwrap(),
+        b"456789"
+    );
+    assert_eq!(
+        get_blob_range_inner(&conn, dir.path(), "bookfile:range", 14, 20).unwrap(),
+        b"ef"
+    );
+    assert!(
+        get_blob_range_inner(&conn, dir.path(), "bookfile:range", 99, 4)
+            .unwrap()
+            .is_empty()
+    );
+}
+
+#[test]
 fn blob_file_import_uses_native_copy_and_registers_hash() {
     let data_dir = tempfile::tempdir().expect("data dir");
     let source_dir = tempfile::tempdir().expect("source dir");

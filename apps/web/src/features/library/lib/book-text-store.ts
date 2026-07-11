@@ -12,7 +12,7 @@ import { isTauri } from "../../../platform/environment";
 import { flattenToc } from "../../reader/lib/epub-utils";
 import { makeFoliateBook } from "../../reader/lib/foliate-engine";
 import type { TocNavItem } from "../../reader/lib/reader-types";
-import { getStoredBookBlob } from "./library-db";
+import { getStoredBookFile } from "./library-db";
 
 export interface ExtractedChapter {
   title?: string;
@@ -24,7 +24,7 @@ export interface ExtractedChapter {
   hrefs?: string[];
 }
 
-/** 持久化格式带版本号：抽取逻辑变了可整体重抽。v2：TOC 对齐 + hrefs。 */
+/** 持久化格式带版本号。PDF 复用 v2 结构；旧实现不会写入空的 PDF 记录。 */
 const FORMAT_VERSION = 2;
 
 interface PersistedBookText {
@@ -64,8 +64,9 @@ export async function deleteBookText(bookIds: string[]): Promise<void> {
 // ── 抽取 ──
 
 type FoliateSectionLike = {
-  id?: string;
+  id?: string | number;
   createDocument?: () => Promise<Document> | Document;
+  getText?: () => Promise<string> | string;
   linear?: string;
 };
 
@@ -94,9 +95,9 @@ async function extract(bookId: string, preopened?: unknown): Promise<ExtractedCh
   if (preopened) {
     book = preopened as FoliateBookLike;
   } else {
-    const blob = await getStoredBookBlob(bookId);
-    if (!blob) return [];
-    book = (await makeFoliateBook(new File([blob], `${bookId}.book`))) as FoliateBookLike;
+    const file = await getStoredBookFile(bookId);
+    if (!file) return [];
+    book = (await makeFoliateBook(file)) as FoliateBookLike;
   }
   const sections = book.sections ?? [];
   const entries = flattenToc((book.toc ?? []) as TocNavItem[]);
@@ -126,35 +127,76 @@ async function extract(bookId: string, preopened?: unknown): Promise<ExtractedCh
 
   // 逐 section 抽文本（线性阅读顺序）,再按归属合并。每个 section 一次
   // DOMParser 是纯 CPU 块 —— 章节之间让出主线程,大书抽取不再冻 UI。
-  const pieces: { owner: number | undefined; href?: string; text: string }[] = [];
+  const isPageTextBook = sections.some((section) => typeof section.getText === "function");
+  const pieces: {
+    owner: number | undefined;
+    href?: string;
+    sectionIndex: number;
+    text: string;
+  }[] = [];
   for (let i = 0; i < sections.length; i++) {
     const section = sections[i];
-    if (section.linear === "no" || !section.createDocument) continue;
+    if (
+      section.linear === "no" ||
+      (typeof section.getText !== "function" && typeof section.createDocument !== "function")
+    ) continue;
     await yieldToUi();
     let text = "";
     try {
-      const doc = await section.createDocument();
-      text = (doc.body?.textContent ?? "").replace(/\s+/g, " ").trim();
+      if (section.getText) {
+        text = (await section.getText()).replace(/\s+/g, " ").trim();
+      } else if (section.createDocument) {
+        const doc = await section.createDocument();
+        text = (doc.body?.textContent ?? "").replace(/\s+/g, " ").trim();
+      }
     } catch {
       // 单个 section 失败不拖垮整本书
     }
-    pieces.push({ owner: ownerOf[i], href: section.id, text });
+    pieces.push({
+      owner: ownerOf[i],
+      href: section.id == null ? undefined : String(section.id),
+      sectionIndex: i,
+      text,
+    });
   }
 
   const chapters: ExtractedChapter[] = [];
-  let current: { owner: number | undefined; title?: string; hrefs: string[]; texts: string[] } | null =
-    null;
+  let current: {
+    owner: number | undefined;
+    title?: string;
+    hrefs: string[];
+    texts: string[];
+    firstSection: number;
+    lastSection: number;
+    textLength: number;
+  } | null = null;
   const flush = () => {
     if (!current) return;
     const text = current.texts.filter(Boolean).join(" ").trim();
     if (text.length >= 40) {
       const hrefs = [...new Set(current.hrefs)];
-      chapters.push({ title: current.title, text, hrefs: hrefs.length ? hrefs : undefined });
+      const pageTitle = current.firstSection === current.lastSection
+        ? `Page ${current.firstSection + 1}`
+        : `Pages ${current.firstSection + 1}-${current.lastSection + 1}`;
+      chapters.push({
+        title: current.title ?? (isPageTextBook ? pageTitle : undefined),
+        text,
+        hrefs: hrefs.length ? hrefs : undefined,
+      });
     }
     current = null;
   };
   for (const piece of pieces) {
-    const merges = current !== null && piece.owner !== undefined && piece.owner === current.owner;
+    const sameTocOwner =
+      current !== null && piece.owner !== undefined && piece.owner === current.owner;
+    const samePdfChunk =
+      current !== null &&
+      isPageTextBook &&
+      piece.owner === undefined &&
+      current.owner === undefined &&
+      current.texts.length < 8 &&
+      current.textLength < 16_000;
+    const merges = sameTocOwner || samePdfChunk;
     if (!merges) {
       flush();
       const entry = piece.owner !== undefined ? entries[piece.owner] : undefined;
@@ -163,10 +205,15 @@ async function extract(bookId: string, preopened?: unknown): Promise<ExtractedCh
         title: entry?.label,
         hrefs: entry?.href ? [entry.href] : [],
         texts: [],
+        firstSection: piece.sectionIndex,
+        lastSection: piece.sectionIndex,
+        textLength: 0,
       };
     }
     if (piece.href) current!.hrefs.push(piece.href);
     current!.texts.push(piece.text);
+    current!.lastSection = piece.sectionIndex;
+    current!.textLength += piece.text.length;
   }
   flush();
   return chapters;

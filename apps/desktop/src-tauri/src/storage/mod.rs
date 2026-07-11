@@ -10,7 +10,7 @@
 // Retrieval is FTS + structured signals per docs/agent-architecture.md §4 —
 // there is no vector store in the default architecture.
 
-use std::io::{BufReader, Read};
+use std::io::{BufReader, Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
@@ -663,6 +663,13 @@ pub struct BlobPutResult {
     pub byte_size: i64,
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BlobInfo {
+    pub byte_size: u64,
+    pub mime_type: Option<String>,
+}
+
 fn put_blob_inner(
     conn: &Connection,
     data_dir: &Path,
@@ -792,29 +799,90 @@ fn put_blob_from_file_inner(
     register_blob_inner(conn, key, mime_type, byte_size, sha256, file_name)
 }
 
-/// Empty vec means "no such blob" (the raw-response contract; no real payload
-/// is zero-length). A registry row whose file went missing is treated the same.
-fn get_blob_inner(conn: &Connection, data_dir: &Path, key: &str) -> Result<Vec<u8>, String> {
-    let storage_uri: Option<String> = conn
+fn get_blob_record_inner(
+    conn: &Connection,
+    data_dir: &Path,
+    key: &str,
+) -> Result<Option<(PathBuf, BlobInfo)>, String> {
+    let record: Option<(String, Option<String>)> = conn
         .query_row(
-            "SELECT storage_uri FROM blob_objects
+            "SELECT storage_uri, mime_type FROM blob_objects
              WHERE key = ?1 AND deleted_at IS NULL AND storage_uri IS NOT NULL",
             params![key],
-            |row| row.get(0),
+            |row| Ok((row.get(0)?, row.get(1)?)),
         )
         .map(Some)
         .or_else(|e| match e {
             rusqlite::Error::QueryReturnedNoRows => Ok(None),
             other => Err(other.to_string()),
         })?;
-    let Some(storage_uri) = storage_uri else {
+    let Some((storage_uri, mime_type)) = record else {
+        return Ok(None);
+    };
+
+    let relative = Path::new(&storage_uri);
+    if relative.is_absolute()
+        || relative.components().any(|component| {
+            matches!(
+                component,
+                std::path::Component::ParentDir
+                    | std::path::Component::RootDir
+                    | std::path::Component::Prefix(_)
+            )
+        })
+    {
+        return Err(format!("Invalid managed blob path for {key}"));
+    }
+
+    let path = data_dir.join(relative);
+    let metadata = match std::fs::metadata(&path) {
+        Ok(metadata) => metadata,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(e.to_string()),
+    };
+    Ok(Some((
+        path,
+        BlobInfo {
+            byte_size: metadata.len(),
+            mime_type,
+        },
+    )))
+}
+
+/// Empty vec means "no such blob" (the raw-response contract; no real payload
+/// is zero-length). A registry row whose file went missing is treated the same.
+fn get_blob_inner(conn: &Connection, data_dir: &Path, key: &str) -> Result<Vec<u8>, String> {
+    let Some((path, _)) = get_blob_record_inner(conn, data_dir, key)? else {
         return Ok(Vec::new());
     };
-    match std::fs::read(data_dir.join(&storage_uri)) {
-        Ok(bytes) => Ok(bytes),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Vec::new()),
-        Err(e) => Err(e.to_string()),
+    std::fs::read(path).map_err(|e| e.to_string())
+}
+
+fn get_blob_range_inner(
+    conn: &Connection,
+    data_dir: &Path,
+    key: &str,
+    offset: u64,
+    length: u64,
+) -> Result<Vec<u8>, String> {
+    let Some((path, info)) = get_blob_record_inner(conn, data_dir, key)? else {
+        return Ok(Vec::new());
+    };
+    if offset >= info.byte_size || length == 0 {
+        return Ok(Vec::new());
     }
+
+    let read_len = length.min(info.byte_size - offset);
+    let capacity = usize::try_from(read_len)
+        .map_err(|_| format!("Requested blob range is too large: {read_len} bytes"))?;
+    let mut file = std::fs::File::open(path).map_err(|e| e.to_string())?;
+    file.seek(SeekFrom::Start(offset))
+        .map_err(|e| e.to_string())?;
+    let mut bytes = Vec::with_capacity(capacity);
+    file.take(read_len)
+        .read_to_end(&mut bytes)
+        .map_err(|e| e.to_string())?;
+    Ok(bytes)
 }
 
 /// Remove the bytes and tombstone the registry row (`deleted_at` set,
@@ -1123,6 +1191,39 @@ pub fn get_blob(
 ) -> Result<tauri::ipc::Response, String> {
     let conn = db.0.lock().map_err(|e| e.to_string())?;
     get_blob_inner(&conn, &data_dir.0, &key).map(tauri::ipc::Response::new)
+}
+
+/// Metadata-only lookup used to create a random-access book source in the
+/// webview without first transferring the whole file.
+#[tauri::command]
+pub fn get_blob_info(
+    key: String,
+    db: State<'_, Db>,
+    data_dir: State<'_, DataDir>,
+) -> Result<Option<BlobInfo>, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    Ok(get_blob_record_inner(&conn, &data_dir.0, &key)?.map(|(_, info)| info))
+}
+
+/// Read only one byte range from a managed blob. PDF.js drives this through
+/// its range transport, so opening a large PDF no longer copies the entire
+/// source file into WKWebView before the first page can render.
+#[tauri::command]
+pub async fn get_blob_range(
+    app: AppHandle,
+    key: String,
+    offset: u64,
+    length: u64,
+) -> Result<tauri::ipc::Response, String> {
+    let bytes = tauri::async_runtime::spawn_blocking(move || {
+        let db = app.state::<Db>();
+        let data_dir = app.state::<DataDir>();
+        let conn = db.0.lock().map_err(|e| e.to_string())?;
+        get_blob_range_inner(&conn, &data_dir.0, &key, offset, length)
+    })
+    .await
+    .map_err(|e| format!("get_blob_range task failed: {e}"))??;
+    Ok(tauri::ipc::Response::new(bytes))
 }
 
 #[tauri::command]

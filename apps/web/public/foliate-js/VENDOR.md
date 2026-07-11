@@ -23,6 +23,22 @@ The typed wrapper that consumes this lives at
 
 - Removed the demo (`reader.js`, `reader.html`, `ui/`), tests, and build/lint config.
 - Removed `vendor/pdfjs/*.map` sourcemaps (~7.4 MB, runtime-unneeded).
+- **PDF.js compatibility patch:** replaced PDF.js 5.5.207's modern
+  `build/pdf*.mjs` files with the matching official `legacy/build/pdf*.mjs`
+  files. The modern build requires JavaScript APIs that are not yet available
+  in Tauri's macOS WKWebView (notably `Map.prototype.getOrInsertComputed`),
+  while Mozilla's legacy build exposes the same API with its supported
+  compatibility layer. Also vendored PDF.js's `wasm/` assets and configured
+  `wasmUrl` in `pdf.js` so image decoders do not depend on missing runtime
+  files. Re-apply both changes after any upstream update.
+- **`pdf.js` — local PDF experience patches:** each page section exposes a
+  lightweight `getText()` path for on-device AI/search extraction without
+  rendering a canvas; page ids are stable `page:N` locators; cover generation
+  reuses already-rendered reader canvases, otherwise renders bounded thumbnails
+  under a fixed time budget, and skips up to four blank leading leaves. The
+  existing PDF.js range transport is intentionally preserved so desktop can
+  feed it native file slices instead of copying an entire large PDF into the
+  webview. Re-apply these changes after any upstream update.
 - **`paginator.js` — local patch:** added `#container::-webkit-scrollbar*` rules
   to the paginator's (closed) shadow-root `<style>` so the scroll-mode scrollbar
   matches the app's hairline style. The scroller is sealed in a `mode: 'closed'`
@@ -36,4 +52,6 @@ The typed wrapper that consumes this lives at
 ## Updating
 
 Re-clone upstream at the desired commit, copy the top-level `*.js` modules (minus the
-demo/config) and `vendor/`, drop the `.map` files, and update the pinned commit above.
+demo/config) and `vendor/`, replace the PDF.js modern build with the same version's
+official legacy build, include its `wasm/` assets, drop the `.map` files, and update
+the pinned commit above.

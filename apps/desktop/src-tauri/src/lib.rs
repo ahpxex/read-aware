@@ -645,6 +645,8 @@ pub fn run() {
             storage::put_blob,
             storage::put_blob_from_file,
             storage::get_blob,
+            storage::get_blob_info,
+            storage::get_blob_range,
             storage::delete_blob,
             storage::blob_read_open,
             storage::blob_read_chunk,

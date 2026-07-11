@@ -1460,10 +1460,10 @@ export function FoliateReaderView({
 
     void (async () => {
       try {
-        const file =
-          initialBook.file instanceof File
-            ? initialBook.file
-            : new File([initialBook.file], initialBook.fileName, { type: initialBook.file.type });
+        const source = initialBook.file;
+        const file = typeof source.name === "string"
+          ? source
+          : new File([source as Blob], initialBook.fileName, { type: source.type });
 
         view = await createFoliateView();
         if (cancelled) return;

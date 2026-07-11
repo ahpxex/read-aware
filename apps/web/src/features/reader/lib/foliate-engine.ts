@@ -8,6 +8,8 @@
  * so the interfaces below cover only the surface this app uses.
  */
 
+import type { BookFileSource } from "./reader-types";
+
 const FOLIATE_BASE = "/foliate-js";
 
 // ---- Engine type surface (minimal, hand-written) ---------------------------
@@ -89,7 +91,7 @@ export type FoliateRenderer = {
 };
 
 export type FoliateView = HTMLElement & {
-  open: (book: Blob | File | string | FoliateBook) => Promise<void>;
+  open: (book: BookFileSource | string | FoliateBook) => Promise<void>;
   book?: FoliateBook;
   renderer?: FoliateRenderer;
   goTo: (target: string | number | FoliateResolved) => Promise<FoliateResolved | undefined>;
@@ -140,7 +142,7 @@ export interface FoliateFootnoteHandler extends EventTarget {
 }
 
 type FoliateGlobal = {
-  makeBook: (file: Blob | File | string) => Promise<FoliateBook>;
+  makeBook: (file: BookFileSource | string) => Promise<FoliateBook>;
   Overlayer: { highlight: FoliateHighlightFn; underline: FoliateHighlightFn };
   FootnoteHandler: new () => FoliateFootnoteHandler;
 };
@@ -214,7 +216,7 @@ export async function loadDrawFns(): Promise<FoliateDrawFns> {
 }
 
 /** Parse a book file into a foliate book object (auto-detects the format). */
-export async function makeFoliateBook(file: Blob | File): Promise<FoliateBook> {
+export async function makeFoliateBook(file: BookFileSource): Promise<FoliateBook> {
   return (await loadEngine()).makeBook(file);
 }
 

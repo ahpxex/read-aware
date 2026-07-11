@@ -1,4 +1,5 @@
 mod book_metadata;
+mod pdf_metadata;
 mod storage;
 
 use std::sync::Mutex;
@@ -638,6 +639,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             book_metadata::extract_epub_metadata,
+            pdf_metadata::extract_pdf_metadata,
             storage::append_events,
             storage::read_events_since,
             storage::list_event_aggregate_ids,

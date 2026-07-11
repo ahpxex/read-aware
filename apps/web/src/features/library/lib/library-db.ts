@@ -18,6 +18,7 @@ import type {
 import { extractOpenedBookMetadata } from "./library-cover";
 import {
   extractNativeEpubMetadata,
+  extractNativePdfMetadata,
   type NativeBookMetadata,
 } from "./native-book-metadata";
 import { sniffBookFormat } from "./book-format-sniff";
@@ -233,9 +234,10 @@ export type PrepareBookImportResult =
 
 /**
  * The preparation phase: desktop EPUBs read only their ZIP directory, OPF, and
- * cover entry in Rust; other formats fall back to file-name metadata. No full
- * book parse runs during import. The first reader open fills anything the
- * lightweight extractor could not find from its already-parsed foliate object.
+ * cover entry in Rust; macOS PDFs use PDFKit for bounded metadata and cover
+ * extraction. Other formats fall back to file-name metadata. No foliate parser
+ * runs during import. The first reader open fills anything the lightweight
+ * extractors could not find from its already-parsed foliate object.
  */
 export async function prepareBookImport(
   source: BookImportSource,
@@ -251,8 +253,12 @@ export async function prepareBookImport(
   if (byFile) return { status: "duplicate", book: byFile };
 
   const format = await detectBookFormat(source, t);
-  const metadata = format === "epub" && source.kind === "native-path"
-    ? await extractNativeEpubMetadata(source.path)
+  const metadata = source.kind === "native-path"
+    ? format === "epub"
+      ? await extractNativeEpubMetadata(source.path)
+      : format === "pdf"
+        ? await extractNativePdfMetadata(source.path)
+        : null
     : null;
   const book = createLibraryBook(source, format, metadata);
   const byMetadata = existing.find((entry) => bookDedupeKey(entry) === bookDedupeKey(book));

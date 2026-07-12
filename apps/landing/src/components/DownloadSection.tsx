@@ -1,22 +1,5 @@
-import {
-  AndroidLogo,
-  AppleLogo,
-  LinuxLogo,
-  WindowsLogo,
-  type Icon,
-} from "@phosphor-icons/react";
-import { Body, Caption, Eyebrow, Heading, Stack } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
-import { LinkButton } from "./LinkButton";
 import { RELEASES_URL, type PlatformDownload, type PlatformId } from "../lib/releases";
-
-const PLATFORM_ICON: Record<PlatformId, Icon> = {
-  macos: AppleLogo,
-  ios: AppleLogo,
-  windows: WindowsLogo,
-  linux: LinuxLogo,
-  android: AndroidLogo,
-};
 
 type DownloadSectionProps = {
   downloads: PlatformDownload[];
@@ -26,87 +9,74 @@ type DownloadSectionProps = {
 
 export function DownloadSection({ downloads, platform, tag }: DownloadSectionProps) {
   return (
-    <section id="download" className="mx-auto max-w-5xl scroll-mt-20 px-6 py-20 sm:py-24">
-      <Stack gap="sm" className="max-w-2xl">
-        <Eyebrow>Get the app</Eyebrow>
-        <Heading as="h2" size="3xl">
-          Download ReadAware
-        </Heading>
-        <Body className="text-stone-600">
-          Free and local-first. Bring your own AI key — your library and memory
-          stay on your device.
-          {tag ? ` Latest release ${tag}.` : ""}
-        </Body>
-      </Stack>
+    <section id="download" className="mt-20 max-w-[36rem] scroll-mt-8 sm:mt-24">
+      <h2 className="text-[clamp(1.5rem,3vw,1.9rem)] font-normal leading-[1.18] tracking-[-0.01em]">
+        Get ReadAware
+      </h2>
+      <p className="mt-5 text-[1.0625rem] leading-[1.75] text-fg">
+        Free and local-first. Bring your own API key; your library and memory
+        stay on your device.
+        {tag ? ` The latest release is ${tag}.` : ""}
+      </p>
 
-      <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {downloads.map((download) => {
-          const PlatformIcon = PLATFORM_ICON[download.id];
+      <ul className="mt-8">
+        {downloads.map((download, index) => {
           const recommended = download.id === platform;
           const href = download.primary?.url ?? RELEASES_URL;
           const isPage = !download.primary;
 
           return (
-            <div
+            <li
               key={download.id}
               className={cn(
-                "flex flex-col gap-4 rounded-lg border p-5",
-                recommended
-                  ? "border-fg-subtle bg-paper-warm"
-                  : "border-border bg-surface",
+                "flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 py-4",
+                index > 0 && "border-t border-border",
               )}
             >
-              <div className="flex items-center gap-3">
-                <PlatformIcon
-                  size={22}
-                  weight="regular"
-                  aria-hidden="true"
-                  className="text-stone-700"
-                />
-                <Heading as="h3" size="xl">
-                  {download.name}
-                </Heading>
+              <span className="text-[1.0625rem]">
+                {download.name}
                 {recommended && (
-                  <Caption className="ml-auto text-stone-500">
-                    Your platform
-                  </Caption>
+                  <span className="ml-2 text-[0.875rem] text-fg-subtle">
+                    — your platform
+                  </span>
                 )}
-              </div>
+              </span>
 
               {download.comingSoon ? (
-                <Caption className="text-stone-400">Coming soon</Caption>
+                <span className="text-[0.9375rem] italic text-fg-subtle">
+                  Coming soon
+                </span>
               ) : (
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                  <LinkButton
+                <span className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[0.9375rem]">
+                  <a
                     href={href}
-                    variant={recommended ? "solid" : "outline"}
-                    size="sm"
+                    className="underline underline-offset-4 transition-colors hover:text-fg-muted"
                     {...(isPage
                       ? { target: "_blank", rel: "noopener noreferrer" }
                       : {})}
                   >
                     {download.primary?.label ?? "Download"}
-                  </LinkButton>
+                  </a>
                   {download.extras.map((extra) => (
                     <a
                       key={extra.url}
                       href={extra.url}
-                      className="font-sans text-sm text-stone-500 underline underline-offset-4 transition-colors hover:text-stone-800"
+                      className="text-fg-subtle underline underline-offset-4 transition-colors hover:text-fg-muted"
                     >
                       {extra.label}
                     </a>
                   ))}
-                </div>
+                </span>
               )}
-            </div>
+            </li>
           );
         })}
-      </div>
+      </ul>
 
-      <Caption className="mt-6 block text-stone-400">
-        Desktop builds aren't OS-code-signed yet — macOS and Windows may ask you
-        to confirm the app on first launch.
-      </Caption>
+      <p className="mt-6 text-[0.875rem] italic leading-relaxed text-fg-muted">
+        Desktop builds aren't code-signed yet; macOS and Windows may ask you to
+        confirm the app on first launch.
+      </p>
     </section>
   );
 }

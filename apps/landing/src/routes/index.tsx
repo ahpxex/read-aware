@@ -1,23 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  Books,
-  Brain,
-  DownloadSimple,
-  GithubLogo,
-  HardDrives,
-  type Icon,
-} from "@phosphor-icons/react";
-import {
-  Body,
-  Caption,
-  Display,
-  Divider,
-  Eyebrow,
-  Heading,
-  Stack,
-} from "@read-aware/ui";
-import { cn } from "@read-aware/ui/cn";
-import { LinkButton } from "../components/LinkButton";
+import { DownloadMenu } from "../components/DownloadMenu";
 import { DownloadSection } from "../components/DownloadSection";
 import { useLatestRelease } from "../hooks/useLatestRelease";
 import { REPO_URL } from "../lib/releases";
@@ -28,232 +10,205 @@ export const Route = createFileRoute("/")({
 
 const CONTACT_EMAIL = "hi@ahpx.me";
 
-const PILLARS: { title: string; body: string; icon: Icon }[] = [
+const NOTES: { title: string; body: string }[] = [
   {
     title: "One engine, every format",
-    body: "EPUB, MOBI, AZW3, FB2, and PDF render through a single reading engine — the same selection, highlights, and progress, with no conversion.",
-    icon: Books,
+    body: "EPUB, MOBI, AZW3, FB2, and PDF open in the same reader, with the same selection, highlights, and progress. Nothing is converted; the original file is what you keep.",
   },
   {
     title: "Memory, not transcripts",
-    body: "Your reading becomes durable memory. ReadAware consolidates what matters and resurfaces it when it's relevant — not a wall of old chat.",
-    icon: Brain,
+    body: "Reading becomes memory the app can hold onto. ReadAware keeps what matters and brings it back when it's relevant, instead of replaying a long chat history.",
   },
   {
     title: "Local-first and private",
-    body: "Your library and memory live on your device. Bring your own API key; the cloud is only a quiet sync relay.",
-    icon: HardDrives,
+    body: "Your library and your memory live on your device. You bring your own API key, and the cloud is only there to sync between machines.",
   },
 ];
 
-function Screenshot({
+// A screenshot printed as a plate: a hairline frame does the separating, and a
+// plain caption says what it is. No shadow, no border-radius, no figure number.
+function Plate({
   src,
   alt,
+  caption,
   eager = false,
-  className,
 }: {
   src: string;
   alt: string;
+  caption: string;
   eager?: boolean;
-  className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        "overflow-hidden rounded-xl border border-border bg-paper-warm shadow-[0_1px_2px_rgba(28,25,23,0.04),0_18px_50px_-16px_rgba(28,25,23,0.22)]",
-        className,
-      )}
-    >
+    <figure className="m-0">
       <img
         src={src}
         alt={alt}
         width={2400}
         height={1600}
         loading={eager ? "eager" : "lazy"}
-        className="block w-full"
+        className="block w-full border border-border-strong"
       />
-    </div>
+      <figcaption className="mt-3 text-[0.9375rem] italic leading-normal text-fg-muted">
+        {caption}
+      </figcaption>
+    </figure>
   );
 }
 
 function LandingPage() {
   const release = useLatestRelease();
-  const detected = release.platform
-    ? release.downloads.find((download) => download.id === release.platform)
-    : undefined;
-  const heroDownload =
-    detected && detected.primary && !detected.comingSoon
-      ? { label: `Download for ${detected.name}`, url: detected.primary.url }
-      : null;
 
   return (
-    <div className="min-h-screen bg-paper text-stone-950">
-      <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
-        <span className="font-serif text-lg font-medium tracking-tight text-stone-950">
-          ReadAware
-        </span>
-        <nav className="flex items-center gap-1">
-          <a
-            href={REPO_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="ReadAware on GitHub"
-            className="flex h-9 w-9 items-center justify-center rounded-md text-stone-500 transition-colors hover:bg-fg/5 hover:text-stone-900"
-          >
-            <GithubLogo size={20} weight="regular" aria-hidden="true" />
+    <div className="min-h-screen bg-paper text-fg">
+      <div className="mx-auto max-w-3xl px-6">
+        <header className="flex items-center justify-between py-7">
+          <a href="#top" className="flex items-center gap-2.5">
+            <img src="/favicon.png" alt="" width={26} height={26} className="h-[26px] w-[26px]" />
+            <span className="text-[1.0625rem] font-medium tracking-tight">
+              ReadAware
+            </span>
           </a>
-          <LinkButton href="#download" size="sm">
-            Download
-          </LinkButton>
-        </nav>
-      </header>
-
-      <main>
-        {/* Hero */}
-        <section className="mx-auto max-w-5xl px-6 pb-16 pt-16 sm:pt-24">
-          <Stack gap="lg" className="max-w-2xl">
-            <Eyebrow>AI-native reading</Eyebrow>
-            <Display size="6xl" className="max-w-[15ch]">
-              Reading that remembers.
-            </Display>
-            <Body size="lg" className="max-w-xl text-stone-600">
-              ReadAware reads alongside you — building memory across your books,
-              highlights, and conversations, so every page arrives with the
-              context it deserves.
-            </Body>
-            <div className="flex flex-wrap items-center gap-3 pt-1">
-              <LinkButton
-                href={heroDownload?.url ?? "#download"}
-                size="lg"
-                variant="solid"
-              >
-                <DownloadSimple size={18} weight="bold" aria-hidden="true" />
-                {heroDownload?.label ?? "Download"}
-              </LinkButton>
-              <LinkButton href="#download" size="lg" variant="outline">
-                All platforms
-              </LinkButton>
-            </div>
-            <Caption className="text-stone-400">
-              {release.tag ? `${release.tag} · ` : ""}
-              Free · local-first · bring your own AI key
-            </Caption>
-          </Stack>
-
-          <div className="mt-14">
-            <Screenshot
-              src="/screenshots/shelf.webp"
-              alt="The ReadAware library — a shelf of book covers across many languages and formats."
-              eager
-            />
-            <Caption className="mt-3 block text-stone-400">
-              EPUB · MOBI · AZW3 · FB2 · PDF — one reading experience.
-            </Caption>
-          </div>
-        </section>
-
-        <Divider className="mx-auto max-w-5xl" />
-
-        {/* Showcase: reading */}
-        <section className="mx-auto max-w-5xl px-6 py-20 sm:py-24">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            <Stack gap="md" className="max-w-md">
-              <Eyebrow>The reading surface</Eyebrow>
-              <Heading as="h2" size="3xl">
-                A calm place to read anything.
-              </Heading>
-              <Body className="text-stone-600">
-                Import a file and start reading — no conversion, no cloud upload.
-                Highlights, notes, and progress attach to the original text and
-                stay exactly where you left them, whatever the format.
-              </Body>
-            </Stack>
-            <Screenshot
-              src="/screenshots/reader.webp"
-              alt="A chapter of a biography open in the ReadAware reader, set in a serif typeface."
-            />
-          </div>
-        </section>
-
-        {/* Showcase: memory / AI */}
-        <section className="mx-auto max-w-5xl px-6 pb-20 sm:pb-24">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            <Screenshot
-              src="/screenshots/context.webp"
-              alt="The ReadAware assistant recalling the reader's whole library, reading progress, and preferences."
-              className="lg:order-2"
-            />
-            <Stack gap="md" className="max-w-md lg:order-1">
-              <Eyebrow>Context &amp; memory</Eyebrow>
-              <Heading as="h2" size="3xl">
-                An assistant that remembers your reading.
-              </Heading>
-              <Body className="text-stone-600">
-                Ask about a passage, a book, or your whole shelf. ReadAware pulls
-                from your highlights, notes, and past conversations — and keeps a
-                durable memory of what matters, so it picks up where you left off.
-              </Body>
-            </Stack>
-          </div>
-        </section>
-
-        <Divider className="mx-auto max-w-5xl" />
-
-        {/* Pillars */}
-        <section className="mx-auto max-w-5xl px-6 py-20">
-          <div className="grid gap-12 sm:grid-cols-3">
-            {PILLARS.map(({ title, body, icon: PillarIcon }) => (
-              <Stack key={title} gap="sm">
-                <PillarIcon
-                  size={24}
-                  weight="light"
-                  aria-hidden="true"
-                  className="text-stone-500"
-                />
-                <Heading as="h3" size="xl">
-                  {title}
-                </Heading>
-                <Body className="text-stone-600">{body}</Body>
-              </Stack>
-            ))}
-          </div>
-        </section>
-
-        <Divider className="mx-auto max-w-5xl" />
-
-        {/* Download */}
-        <DownloadSection
-          downloads={release.downloads}
-          platform={release.platform}
-          tag={release.tag}
-        />
-      </main>
-
-      <footer className="mx-auto max-w-5xl px-6 py-10">
-        <Divider className="mb-8" />
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <span className="font-serif text-sm font-medium text-stone-700">
-            ReadAware
-          </span>
-          <div className="flex items-center gap-5">
+          <nav className="flex items-center gap-6 text-[0.9375rem] text-fg-muted">
+            <a href="#download" className="transition-colors hover:text-fg">
+              Download
+            </a>
             <a
               href={REPO_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-sans text-sm text-stone-500 transition-colors hover:text-stone-900"
+              className="transition-colors hover:text-fg"
+            >
+              GitHub
+            </a>
+          </nav>
+        </header>
+
+        <main id="top">
+          {/* Title */}
+          <section className="max-w-[36rem] pt-12 sm:pt-16">
+            <h1 className="text-[clamp(2.1rem,4.8vw,3rem)] font-normal leading-[1.12] tracking-[-0.01em]">
+              Reading that remembers
+            </h1>
+            <p className="mt-6 text-[1.1875rem] leading-[1.75] text-fg">
+              ReadAware reads alongside you. It builds memory across your books,
+              highlights, and conversations, so every page arrives with the
+              context it deserves.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
+              <DownloadMenu
+                downloads={release.downloads}
+                platform={release.platform}
+              />
+              <span className="text-[0.9375rem] text-fg-muted">
+                Free and local-first{release.tag ? `. ${release.tag}.` : "."}
+              </span>
+            </div>
+          </section>
+
+          {/* Plate: the shelf */}
+          <div className="mt-14 sm:mt-16">
+            <Plate
+              src="/screenshots/shelf.webp"
+              alt="The ReadAware library — a grid of book covers across many languages and formats."
+              caption="Your library — every format in one place."
+              eager
+            />
+          </div>
+
+          {/* The page */}
+          <section className="mt-20 max-w-[36rem] sm:mt-24">
+            <h2 className="text-[clamp(1.5rem,3vw,1.9rem)] font-normal leading-[1.18] tracking-[-0.01em]">
+              A calm place to read anything
+            </h2>
+            <p className="mt-5 text-[1.0625rem] leading-[1.75] text-fg">
+              Import a file and start reading. There is no conversion and no
+              cloud upload; your highlights, notes, and place in the book attach
+              to the original text and stay where you left them, in any format.
+            </p>
+          </section>
+          <div className="mt-10">
+            <Plate
+              src="/screenshots/reader.webp"
+              alt="A chapter of a biography open in the ReadAware reader, set in a serif typeface."
+              caption="A chapter of Isaacson's Musk, open in the reader."
+            />
+          </div>
+
+          {/* The memory */}
+          <section className="mt-20 max-w-[36rem] sm:mt-24">
+            <h2 className="text-[clamp(1.5rem,3vw,1.9rem)] font-normal leading-[1.18] tracking-[-0.01em]">
+              It remembers what you read
+            </h2>
+            <p className="mt-5 text-[1.0625rem] leading-[1.75] text-fg">
+              Ask about a passage, a book, or your whole shelf. ReadAware draws
+              on your highlights, notes, and earlier conversations, and keeps a
+              durable memory of what matters, so it picks up where you left off.
+            </p>
+          </section>
+          <div className="mt-10">
+            <Plate
+              src="/screenshots/context.webp"
+              alt="The ReadAware assistant recalling the reader's whole library, reading progress, and preferences."
+              caption="The assistant, working from your own reading."
+            />
+          </div>
+
+          {/* In short */}
+          <section className="mt-20 max-w-[36rem] sm:mt-24">
+            <h2 className="text-[clamp(1.5rem,3vw,1.9rem)] font-normal leading-[1.18] tracking-[-0.01em]">
+              In short
+            </h2>
+            <dl className="mt-8">
+              {NOTES.map(({ title, body }, index) => (
+                <div
+                  key={title}
+                  className={
+                    index === 0
+                      ? "py-5"
+                      : "border-t border-border py-5"
+                  }
+                >
+                  <dt className="text-[1.0625rem] font-medium">{title}</dt>
+                  <dd className="mt-1.5 text-[1.0625rem] leading-[1.7] text-fg-muted">
+                    {body}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+
+          {/* Download */}
+          <DownloadSection
+            downloads={release.downloads}
+            platform={release.platform}
+            tag={release.tag}
+          />
+        </main>
+
+        <footer className="mt-8 flex flex-col gap-3 border-t border-border py-8 text-[0.9375rem] text-fg-muted sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2.5">
+            <img src="/favicon.png" alt="" width={20} height={20} className="h-5 w-5" />
+            <span className="text-fg">ReadAware</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
+            <a
+              href={REPO_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-colors hover:text-fg"
             >
               GitHub
             </a>
             <a
               href={`mailto:${CONTACT_EMAIL}`}
-              className="font-sans text-sm text-stone-500 transition-colors hover:text-stone-900"
+              className="transition-colors hover:text-fg"
             >
               {CONTACT_EMAIL}
             </a>
-            <Caption className="text-stone-400">Local-first. Yours.</Caption>
+            <span>Local-first. Yours.</span>
           </div>
-        </div>
-      </footer>
+        </footer>
+      </div>
     </div>
   );
 }

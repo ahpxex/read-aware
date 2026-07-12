@@ -35,6 +35,10 @@
   --leading-body: 2rem;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 :root {
   color-scheme: light;
   background-color: var(--color-paper);

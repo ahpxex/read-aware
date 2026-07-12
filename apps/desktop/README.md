@@ -33,12 +33,14 @@ then produces native installers.
 
 ## Icons
 
-`app-icon.svg` is the source of truth — an editorial, paper-toned open-book
-mark. `src-tauri/icons/*` are the platform icons generated from it. After
-editing the SVG, regenerate (run from this directory):
+`app-icon.png` is the source of truth — a paper-toned rounded square with
+fanned pages and a winding gold-tipped path (1024x1024, transparent outside
+the rounded square, content inset 64px on each side). `src-tauri/icons/*`
+are the platform icons generated from it. After replacing the PNG,
+regenerate (run from this directory):
 
 ```sh
-bun run tauri icon app-icon.svg
+bun run tauri icon app-icon.png
 ```
 
 `tauri icon` also emits iOS/Android/Windows-Store assets; this desktop app only

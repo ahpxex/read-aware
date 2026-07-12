@@ -324,10 +324,13 @@
     },
     "vendored": "已内置",
     "help": "帮助",
-    "feedback": {
-      "title": "发送反馈",
-      "description": "报告问题或告诉我们哪里不好用。"
+    "website": {
+      "title": "官网",
+      "description": "产品动态、下载与文档。"
     },
-    "reportIssue": "报告问题"
+    "contact": {
+      "title": "联系",
+      "description": "有疑问、Bug 或反馈，欢迎直接联系。"
+    }
   }
 }

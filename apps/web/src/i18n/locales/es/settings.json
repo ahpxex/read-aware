@@ -332,10 +332,13 @@
     },
     "vendored": "Vendorizado",
     "help": "Ayuda",
-    "feedback": {
-      "title": "Enviar comentarios",
-      "description": "Informa de un error o cuéntanos qué no funciona."
+    "website": {
+      "title": "Sitio web",
+      "description": "Novedades, descargas y documentación."
     },
-    "reportIssue": "Informar de un problema"
+    "contact": {
+      "title": "Contacto",
+      "description": "Preguntas, errores o comentarios — escríbenos directamente."
+    }
   }
 }

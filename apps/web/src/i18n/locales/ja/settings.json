@@ -324,10 +324,13 @@
     },
     "vendored": "ベンダー化",
     "help": "ヘルプ",
-    "feedback": {
-      "title": "フィードバックを送信",
-      "description": "バグを報告したり、うまく動かない点を共有してください。"
+    "website": {
+      "title": "ウェブサイト",
+      "description": "製品情報、ダウンロード、ドキュメント。"
     },
-    "reportIssue": "問題を報告"
+    "contact": {
+      "title": "お問い合わせ",
+      "description": "質問・バグ・フィードバックはお気軽にどうぞ。"
+    }
   }
 }

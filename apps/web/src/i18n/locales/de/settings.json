@@ -328,10 +328,13 @@
     },
     "vendored": "Mitgeliefert",
     "help": "Hilfe",
-    "feedback": {
-      "title": "Feedback senden",
-      "description": "Melde einen Fehler oder teile mit, was nicht funktioniert."
+    "website": {
+      "title": "Website",
+      "description": "Neuigkeiten, Downloads und Dokumentation."
     },
-    "reportIssue": "Problem melden"
+    "contact": {
+      "title": "Kontakt",
+      "description": "Fragen, Fehler oder Feedback — melde dich direkt."
+    }
   }
 }

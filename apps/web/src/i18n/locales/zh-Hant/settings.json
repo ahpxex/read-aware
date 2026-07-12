@@ -324,10 +324,13 @@
     },
     "vendored": "內建",
     "help": "說明",
-    "feedback": {
-      "title": "傳送意見回饋",
-      "description": "回報錯誤或分享無法運作的問題。"
+    "website": {
+      "title": "官方網站",
+      "description": "產品消息、下載與文件。"
     },
-    "reportIssue": "回報問題"
+    "contact": {
+      "title": "聯絡",
+      "description": "有疑問、錯誤或意見，歡迎直接聯絡。"
+    }
   }
 }

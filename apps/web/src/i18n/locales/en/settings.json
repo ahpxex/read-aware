@@ -328,10 +328,13 @@
     },
     "vendored": "Vendored",
     "help": "Help",
-    "feedback": {
-      "title": "Send feedback",
-      "description": "Report a bug or share what's not working."
+    "website": {
+      "title": "Website",
+      "description": "Product news, downloads, and docs."
     },
-    "reportIssue": "Report an issue"
+    "contact": {
+      "title": "Contact",
+      "description": "Questions, bugs, or feedback — reach out directly."
+    }
   }
 }

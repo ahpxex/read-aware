@@ -6,10 +6,22 @@ import { useSoftwareUpdate } from "../../update/hooks/useSoftwareUpdate";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
-import { PendingBadge } from "../components/PendingBadge";
 
 function valueText(text: string) {
   return <span className="font-sans text-sm text-fg-muted">{text}</span>;
+}
+
+function linkValue(href: string, label: string) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="font-sans text-sm text-fg-muted underline underline-offset-2 transition-colors hover:text-fg"
+    >
+      {label}
+    </a>
+  );
 }
 
 export function AboutPanel() {
@@ -101,16 +113,14 @@ export function AboutPanel() {
       <SettingsGroup title={t("about.help")}>
         <SettingsRow
           borderless
-          title={t("about.feedback.title")}
-          description={t("about.feedback.description")}
-          control={
-            <span className="flex items-center gap-2">
-              <PendingBadge />
-              <Button variant="outline" size="sm" disabled>
-                {t("about.reportIssue")}
-              </Button>
-            </span>
-          }
+          title={t("about.website.title")}
+          description={t("about.website.description")}
+          control={linkValue("https://readaware.app", "readaware.app")}
+        />
+        <SettingsRow
+          title={t("about.contact.title")}
+          description={t("about.contact.description")}
+          control={linkValue("mailto:hi@ahpx.me", "hi@ahpx.me")}
         />
       </SettingsGroup>
     </SettingsPage>

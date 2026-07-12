@@ -311,6 +311,8 @@
       "downloading": "ダウンロード中…",
       "downloadingProgress": "ダウンロード中 {{progress}}%",
       "installing": "インストール中…",
+      "permissionRequired": "Androidの設定でインストールを許可してください",
+      "installerOpen": "システムインストーラーを開きました",
       "failed": "アップデートに失敗しました"
     },
     "engine": {

@@ -25,6 +25,8 @@
 # release minification must keep the members and their runtime annotations.
 -keepattributes RuntimeVisibleAnnotations
 -keepclassmembers class com.readaware.app.MainActivity {
+    java.lang.String installUpdateApk(java.lang.String);
+    long installedVersionCode();
     public void sendToBackground();
     public void setStatusBarHidden(boolean);
     public void syncSafeArea();

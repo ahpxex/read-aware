@@ -319,6 +319,8 @@
       "downloading": "Téléchargement...",
       "downloadingProgress": "Téléchargement {{progress}}%",
       "installing": "Installation...",
+      "permissionRequired": "Autorisez l’installation dans les réglages Android",
+      "installerOpen": "Programme d’installation système ouvert",
       "failed": "Échec de la mise à jour"
     },
     "engine": {

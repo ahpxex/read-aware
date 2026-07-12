@@ -7,6 +7,8 @@ export type SoftwareUpdatePhase =
   | "available"
   | "downloading"
   | "installing"
+  | "permission-required"
+  | "installer-open"
   | "error";
 
 export type SoftwareUpdateState = {

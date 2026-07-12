@@ -315,6 +315,8 @@
       "downloading": "Downloading...",
       "downloadingProgress": "Downloading {{progress}}%",
       "installing": "Installing...",
+      "permissionRequired": "Allow installation in Android settings",
+      "installerOpen": "System installer opened",
       "failed": "Update failed"
     },
     "engine": {

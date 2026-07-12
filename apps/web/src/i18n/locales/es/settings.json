@@ -319,6 +319,8 @@
       "downloading": "Descargando...",
       "downloadingProgress": "Descargando {{progress}}%",
       "installing": "Instalando...",
+      "permissionRequired": "Permite la instalación en los ajustes de Android",
+      "installerOpen": "Instalador del sistema abierto",
       "failed": "Error al actualizar"
     },
     "engine": {

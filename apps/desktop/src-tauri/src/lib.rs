@@ -1,3 +1,4 @@
+mod android_update;
 mod book_metadata;
 mod pdf_metadata;
 mod storage;
@@ -587,6 +588,7 @@ pub fn run() {
     let mut builder = builder
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .manage(android_update::AndroidUpdateState::default())
         .manage(BookReadSessions::default())
         .manage(storage::BlobReadSessions::default())
         .manage(storage::BlobWriteSessions::default())
@@ -689,6 +691,8 @@ pub fn run() {
             book_read_open,
             book_read_chunk,
             book_read_close,
+            android_update::android_update_check,
+            android_update::android_update_install,
             set_status_bar_hidden,
             sync_safe_area,
             set_volume_key_capture,

@@ -1,7 +1,10 @@
 package com.readaware.app
 
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
@@ -9,10 +12,12 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
+import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import java.io.File
 
 class MainActivity : TauriActivity() {
   companion object {
@@ -37,6 +42,9 @@ class MainActivity : TauriActivity() {
    *  changing the volume. Toggled from Rust (`set_volume_key_capture`) as the
    *  navigator mode starts/stops, so media volume works normally otherwise. */
   @Volatile private var volumeKeysCaptured = false
+  /** APK waiting for the user to grant this app install-source permission. */
+  @Volatile private var pendingUpdateApkPath: String? = null
+
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
@@ -119,6 +127,76 @@ class MainActivity : TauriActivity() {
   /** Called from Rust (the `set_volume_key_capture` command). */
   fun setVolumeKeyCapture(captured: Boolean) {
     volumeKeysCaptured = captured
+  }
+
+  /** Current Android build number, used to reject non-upgrade release APKs. */
+  fun installedVersionCode(): Long {
+    @Suppress("DEPRECATION")
+    val packageInfo = packageManager.getPackageInfo(packageName, 0)
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+      packageInfo.longVersionCode
+    } else {
+      @Suppress("DEPRECATION")
+      packageInfo.versionCode.toLong()
+    }
+  }
+
+  /** Open Android's system package installer for an update verified by Rust. */
+  fun installUpdateApk(apkPath: String): String {
+    val apk = File(apkPath)
+    if (!apk.isFile) return "error:Downloaded update APK does not exist"
+
+    pendingUpdateApkPath = apkPath
+    if (
+      Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+        !packageManager.canRequestPackageInstalls()
+    ) {
+      return try {
+        startActivity(
+          Intent(
+            Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+            Uri.parse("package:$packageName"),
+          ),
+        )
+        "permission-required"
+      } catch (error: Throwable) {
+        pendingUpdateApkPath = null
+        "error:${error.message ?: error.javaClass.name}"
+      }
+    }
+
+    return openPackageInstaller(apk)
+  }
+
+  override fun onResume() {
+    super.onResume()
+    val apkPath = pendingUpdateApkPath ?: return
+    if (
+      Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
+        packageManager.canRequestPackageInstalls()
+    ) {
+      openPackageInstaller(File(apkPath))
+    }
+  }
+
+  private fun openPackageInstaller(apk: File): String {
+    pendingUpdateApkPath = null
+    return try {
+      val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", apk)
+      startActivity(
+        Intent(Intent.ACTION_VIEW).apply {
+          setDataAndType(uri, "application/vnd.android.package-archive")
+          addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        },
+      )
+      findWebView(findViewById(android.R.id.content))?.evaluateJavascript(
+        "window.dispatchEvent(new CustomEvent('ra-android-installer-opened'));",
+        null,
+      )
+      "installer-started"
+    } catch (error: Throwable) {
+      "error:${error.message ?: error.javaClass.name}"
+    }
   }
 
   /** Called from Rust (`book_pick_start`) or the webview JS bridge: launch the system document picker

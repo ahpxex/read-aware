@@ -8,8 +8,12 @@ export function UpdateIndicator() {
   const { state, checkForUpdates, installUpdate } = useSoftwareUpdate();
 
   const installFailed = state.phase === "error" && state.errorStage === "install";
-  const visible =
+  const installReady =
     state.phase === "available" ||
+    state.phase === "permission-required" ||
+    state.phase === "installer-open";
+  const visible =
+    installReady ||
     state.phase === "downloading" ||
     state.phase === "installing" ||
     installFailed;
@@ -28,7 +32,7 @@ export function UpdateIndicator() {
           : t("update.available");
 
   const tooltip =
-    state.phase === "available" && state.availableVersion
+    installReady && state.availableVersion
       ? t("update.availableVersion", { version: state.availableVersion })
       : installFailed && state.error
         ? state.error
@@ -37,7 +41,7 @@ export function UpdateIndicator() {
   const busy = state.phase === "downloading" || state.phase === "installing";
   const handleClick = () => {
     if (installFailed) void checkForUpdates();
-    else if (state.phase === "available") void installUpdate();
+    else if (installReady) void installUpdate();
   };
 
   return (

@@ -1,5 +1,5 @@
 import type { DownloadEvent, Update } from "@tauri-apps/plugin-updater";
-import { isMobileOS, isTauri } from "../../../platform/environment";
+import { isAndroid, isMobileOS, isTauri } from "../../../platform/environment";
 
 export type AvailableSoftwareUpdate = {
   currentVersion: string;
@@ -11,10 +11,12 @@ export type DownloadProgress = {
   progress: number | null;
 };
 
+export type InstallSoftwareUpdateResult = "installer-started" | "permission-required";
+
 let pendingUpdate: Update | null = null;
 
 export function canUseSoftwareUpdater(): boolean {
-  return isTauri() && !isMobileOS();
+  return isTauri() && (isAndroid() || !isMobileOS());
 }
 
 export async function readCurrentAppVersion(): Promise<string | null> {
@@ -25,6 +27,11 @@ export async function readCurrentAppVersion(): Promise<string | null> {
 
 export async function findSoftwareUpdate(): Promise<AvailableSoftwareUpdate | null> {
   if (!canUseSoftwareUpdater()) return null;
+
+  if (isAndroid()) {
+    const { invoke } = await import("@tauri-apps/api/core");
+    return invoke<AvailableSoftwareUpdate | null>("android_update_check");
+  }
 
   if (pendingUpdate) {
     await pendingUpdate.close();
@@ -43,7 +50,13 @@ export async function findSoftwareUpdate(): Promise<AvailableSoftwareUpdate | nu
 
 export async function installSoftwareUpdate(
   onProgress: (progress: DownloadProgress) => void,
-): Promise<void> {
+): Promise<InstallSoftwareUpdateResult> {
+  if (isAndroid()) {
+    onProgress({ phase: "downloading", progress: null });
+    const { invoke } = await import("@tauri-apps/api/core");
+    return invoke<InstallSoftwareUpdateResult>("android_update_install");
+  }
+
   if (!pendingUpdate) throw new Error("No software update is ready to install.");
 
   let downloaded = 0;
@@ -74,4 +87,5 @@ export async function installSoftwareUpdate(
   pendingUpdate = null;
   const { relaunch } = await import("@tauri-apps/plugin-process");
   await relaunch();
+  return "installer-started";
 }

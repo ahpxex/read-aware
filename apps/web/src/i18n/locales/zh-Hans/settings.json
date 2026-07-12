@@ -311,6 +311,8 @@
       "downloading": "正在下载…",
       "downloadingProgress": "正在下载 {{progress}}%",
       "installing": "正在安装…",
+      "permissionRequired": "请在 Android 设置中允许安装",
+      "installerOpen": "已打开系统安装器",
       "failed": "更新失败"
     },
     "engine": {

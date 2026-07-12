@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useAtom } from "jotai";
 import {
   canUseSoftwareUpdater,
@@ -18,6 +18,14 @@ function errorMessage(error: unknown): string {
 export function useSoftwareUpdate() {
   const [state, setState] = useAtom(softwareUpdateAtom);
   const supported = canUseSoftwareUpdater();
+
+  useEffect(() => {
+    const handleInstallerOpened = () => {
+      setState((previous) => ({ ...previous, phase: "installer-open", progress: null }));
+    };
+    window.addEventListener("ra-android-installer-opened", handleInstallerOpened);
+    return () => window.removeEventListener("ra-android-installer-opened", handleInstallerOpened);
+  }, [setState]);
 
   const loadCurrentVersion = useCallback(async () => {
     try {
@@ -87,9 +95,14 @@ export function useSoftwareUpdate() {
         errorStage: null,
       }));
       try {
-        await installSoftwareUpdate(({ phase, progress }) => {
+        const result = await installSoftwareUpdate(({ phase, progress }) => {
           setState((previous) => ({ ...previous, phase, progress }));
         });
+        setState((previous) => ({
+          ...previous,
+          phase: result === "permission-required" ? "permission-required" : "installer-open",
+          progress: null,
+        }));
       } catch (error) {
         setState((previous) => ({
           ...previous,

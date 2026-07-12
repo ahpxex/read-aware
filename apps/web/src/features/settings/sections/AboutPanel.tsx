@@ -24,7 +24,10 @@ export function AboutPanel() {
     update.state.phase === "checking" ||
     update.state.phase === "downloading" ||
     update.state.phase === "installing";
-  const updateAvailable = update.state.phase === "available";
+  const updateAvailable =
+    update.state.phase === "available" ||
+    update.state.phase === "permission-required" ||
+    update.state.phase === "installer-open";
   const status =
     update.state.phase === "up-to-date"
       ? t("about.updateStatus.upToDate")
@@ -36,9 +39,13 @@ export function AboutPanel() {
             : t("about.updateStatus.downloadingProgress", { progress: update.state.progress })
           : update.state.phase === "installing"
             ? t("about.updateStatus.installing")
-            : update.state.phase === "error"
-              ? t("about.updateStatus.failed")
-              : null;
+            : update.state.phase === "permission-required"
+              ? t("about.updateStatus.permissionRequired")
+              : update.state.phase === "installer-open"
+                ? t("about.updateStatus.installerOpen")
+                : update.state.phase === "error"
+                  ? t("about.updateStatus.failed")
+                  : null;
 
   return (
     <SettingsPage title={t("about.title")} description={t("about.description")}>

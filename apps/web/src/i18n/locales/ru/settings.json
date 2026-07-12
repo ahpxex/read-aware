@@ -323,6 +323,8 @@
       "downloading": "Загрузка...",
       "downloadingProgress": "Загрузка {{progress}}%",
       "installing": "Установка...",
+      "permissionRequired": "Разрешите установку в настройках Android",
+      "installerOpen": "Системный установщик открыт",
       "failed": "Не удалось обновить"
     },
     "engine": {

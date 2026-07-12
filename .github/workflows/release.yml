@@ -58,6 +58,14 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Verify tag matches the Android app version
+        run: |
+          APP_VERSION="$(bun -e "console.log(require('./apps/desktop/src-tauri/tauri.conf.json').version)")"
+          if [ "${GITHUB_REF_NAME#v}" != "$APP_VERSION" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match tauri.conf.json version $APP_VERSION" >&2
+            exit 1
+          fi
+
       - name: Configure signing
         env:
           ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
@@ -74,15 +82,27 @@ jobs:
         working-directory: apps/desktop
         run: NDK_HOME="$ANDROID_HOME/ndk/$NDK_VERSION" bun run tauri android build --apk --target aarch64
 
-      - name: Rename artifact
+      - name: Prepare update artifacts
         run: |
-          cp apps/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk \
-             "ReadAware-${{ github.ref_name }}-arm64.apk"
+          APK="ReadAware-${{ github.ref_name }}-arm64.apk"
+          cp apps/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk "$APK"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
+          "$APKSIGNER" verify --verbose "$APK"
+          VERSION="$(bun -e "console.log(require('./apps/desktop/src-tauri/tauri.conf.json').version)")"
+          VERSION_CODE="$(bun -e "console.log(require('./apps/desktop/src-tauri/tauri.conf.json').bundle.android.versionCode)")"
+          SHA256="$(sha256sum "$APK" | cut -d ' ' -f 1)"
+          SIZE="$(stat -c %s "$APK")"
+          APK_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${APK}"
+          VERSION="$VERSION" VERSION_CODE="$VERSION_CODE" SHA256="$SHA256" SIZE="$SIZE" APK_URL="$APK_URL" \
+            bun -e 'console.log(JSON.stringify({ version: process.env.VERSION, versionCode: Number(process.env.VERSION_CODE), url: process.env.APK_URL, sha256: process.env.SHA256, size: Number(process.env.SIZE) }, null, 2))' \
+            > latest-android.json
 
       - name: Attach to release
         uses: softprops/action-gh-release@v2
         with:
-          files: ReadAware-${{ github.ref_name }}-arm64.apk
+          files: |
+            ReadAware-${{ github.ref_name }}-arm64.apk
+            latest-android.json
           generate_release_notes: true
 
   desktop:

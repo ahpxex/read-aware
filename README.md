@@ -3,80 +3,108 @@
   <h1>ReadAware</h1>
   <p><strong>Reading that remembers.</strong></p>
   <p>
-    A local-first reading app that connects books, highlights, notes, and
-    conversations into context you can carry forward.
+    A modern, meticulously tuned reader with an agent that understands your
+    books, your annotations, and the ideas you keep returning to.
   </p>
   <p>
     <a href="https://readaware.app">Website</a> ·
-    <a href="https://github.com/ahpxex/read-aware/releases/latest">Download</a>
+    <a href="https://github.com/ahpxex/read-aware/releases/latest">Download</a> ·
+    <a href="https://linux.do/">Community support</a>
   </p>
 </div>
 
 ![A multilingual library in ReadAware](apps/landing/public/screenshots/shelf.webp)
 
-## What ReadAware is
+## Read beautifully. Remember deeply.
 
-ReadAware is an AI-native reader for people who want more than a transcript
-beside a book. It keeps the reading trace itself — the passages you mark, the
-questions you ask, the ideas that recur — and uses that context when it becomes
-relevant again.
+ReadAware is a free and open-source reader for macOS, Windows, Linux, Android,
+and iOS. It combines a carefully crafted reading experience with a built-in
+agent that can use tools, answer questions in context, and build an evolving
+memory from the books, passages, notes, and conversations that matter to you.
 
-- **One reader, every format.** EPUB, MOBI, AZW3, FB2, and PDF share one reading,
-  selection, annotation, and progress model. Original files are opened directly;
-  there is no conversion pipeline.
-- **Memory, not an endless chat log.** Conversations are source material. The
-  durable layer is structured memory scoped to the reader and their books.
-- **Local-first by default.** Books, annotations, progress, conversations, and
-  memory live on the device in SQLite and the native filesystem.
-- **Bring your own model.** Inference is remote, but provider credentials and
-  product data stay under the reader's control.
-- **A quiet reading surface.** AI is available from the page without turning the
-  page into an AI dashboard.
+- **Stay with the sentence.** Sentence-by-sentence reading keeps the page calm,
+  focused, and ADHD-friendly.
+- **Mark things your way.** Underline, highlight, and write notes without
+  breaking your reading flow.
+- **Ask from the page.** Chat with AI about an unfamiliar passage, follow an
+  idea further, or look up a word without leaving the book.
+- **Keep words for later.** Annotate vocabulary as you read so it can become
+  useful review material instead of a one-off lookup.
+- **Make the page yours.** Switch languages, color themes, fonts, type sizes,
+  spacing, and other reading settings.
+- **See the habit forming.** Reading-time statistics make progress visible
+  across books and sessions.
+- **Bring almost any book.** EPUB, MOBI, AZW3, FB2, and PDF share one reading,
+  selection, annotation, and progress model, with no format conversion.
 
 <table>
   <tr>
-    <td width="50%"><img src="apps/landing/public/screenshots/reader.webp" alt="ReadAware reader" /></td>
+    <td width="50%"><img src="apps/landing/public/screenshots/reader.webp" alt="ReadAware sentence-by-sentence reader" /></td>
     <td width="50%"><img src="apps/landing/public/screenshots/context.webp" alt="ReadAware context-aware assistant" /></td>
   </tr>
 </table>
 
-## System model
+## Why it feels different
 
-ReadAware ships as a Tauri application. The React app is the product interface;
-Tauri owns the native filesystem, SQLite database, window integration, and
-platform capabilities. The browser build exists for local UI development and
-Storybook, not as a separate web product.
+The interface has been tuned down to the pixel. Almost none of the code was
+written by hand, but every product decision was still judged by a human. The
+result is intentionally quiet, coherent, and free of AI slop.
+
+AI stays beside the reading experience rather than taking it over. The agent
+can retrieve context, call tools, and update memory, while the page remains a
+page: typography first, controls only when they are useful, and details that
+reward long reading sessions.
+
+## Platforms
+
+| Platform | Status |
+| --- | --- |
+| macOS | Available |
+| Android | Available |
+| Windows | Available; broader real-world testing is welcome |
+| Linux | Available; broader real-world testing is welcome |
+| iOS | Supported; App Store distribution is not available yet |
+
+Cross-device sync is planned. Today, ReadAware is local-first: books, reading
+progress, annotations, conversations, and memory stay on the device, while
+remote model inference remains optional and provider-controlled.
+
+## How it works
+
+ReadAware uses one agent to orchestrate retrieval, context assembly, tool use,
+and memory updates. Chat transcripts are source material rather than the memory
+system itself: durable context is built from the reader's ongoing trace across
+books.
 
 ```text
-Tauri app
+ReadAware app
 ├── React interface          shelf, reader, annotations, chat, settings
-├── Local agent runtime      retrieval, context assembly, memory writes
+├── Local agent runtime      tools, retrieval, context, memory updates
 ├── SQLite                   product data, event log, FTS, projections
-└── Native filesystem        imported book files and large blobs
+└── Native filesystem        imported books and large blobs
 
 Remote services
-├── Model provider           inference through the reader's own account
-└── Sync relay               encrypted event log and blobs; no business logic
+├── Model provider           optional inference through the reader's account
+└── Sync relay               planned encrypted event and blob transport
 ```
 
-The central invariant is simple: **raw domain events are the syncable record;
-memory and search state are local, rebuildable projections.** Retrieval uses
-SQLite FTS plus scope, recency, and importance signals rather than a default
-vector database.
+The source of truth is local. Raw domain events form the syncable record;
+memory and search state are rebuildable projections. Retrieval uses SQLite FTS
+plus scope, recency, and importance signals rather than requiring a vector
+database.
 
 ## Repository
 
-This is a Bun workspace monorepo orchestrated by Turborepo.
+ReadAware is a Bun workspace monorepo orchestrated by Turborepo.
 
 | Path | Responsibility |
 | --- | --- |
-| `apps/web` | React 19 SPA, TanStack Router, Jotai, Tailwind CSS v4 |
-| `apps/desktop` | Tauri 2 shell and Rust-native storage/platform commands |
+| `apps/web` | React 19 interface, TanStack Router, Jotai, Tailwind CSS v4 |
+| `apps/desktop` | Tauri 2 shell and native storage/platform commands |
 | `apps/landing` | Public website and release downloads |
-| `packages/agent` | Single-agent runtime, model adapters, retrieval, and memory pipelines |
+| `packages/agent` | Agent runtime, model adapters, retrieval, and memory pipelines |
 | `packages/core` | Domain entities, events, and storage contracts |
 | `packages/ui` | Shared design system and co-located Storybook stories |
-| `packages/tsconfig` | Shared TypeScript configuration |
 
 Architecture decisions and target data contracts live in
 [`docs/agent-architecture.md`](docs/agent-architecture.md) and
@@ -92,8 +120,7 @@ bun install
 bun run dev
 ```
 
-`bun run dev` launches the real Tauri app and starts the Vite frontend through
-Tauri's `beforeDevCommand`. Useful workspace commands:
+Useful workspace commands:
 
 | Command | Purpose |
 | --- | --- |
@@ -111,10 +138,16 @@ the shipped application.
 
 ## Releases
 
-Tagged releases build macOS, Windows, Linux, and Android artifacts through
-`.github/workflows/release.yml`. The workflow also produces signed desktop
-updater artifacts and a verified Android update manifest.
+Version tags build macOS, Windows, Linux, and Android artifacts through
+`.github/workflows/release.yml`. See the
+[latest release](https://github.com/ahpxex/read-aware/releases/latest) for
+current downloads and installation files.
 
-ReadAware is under active development. See the
-[latest release](https://github.com/ahpxex/read-aware/releases/latest) for the
-currently packaged platforms and installation files.
+## Community
+
+Questions, ideas, bug reports, and reading stories are welcome in the
+[LINUX DO community](https://linux.do/).
+
+## License
+
+ReadAware is free and open source under the [MIT License](LICENSE).

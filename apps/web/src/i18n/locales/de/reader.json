@@ -49,7 +49,8 @@
     "enable": "Satznavigator einschalten",
     "exit": "Satznavigator beenden",
     "prevSentence": "Vorheriger Satz",
-    "nextSentence": "Nächster Satz"
+    "nextSentence": "Nächster Satz",
+    "returnToSentence": "Zurück zum aktuellen Satz"
   },
   "recolor": "In {{color}} umfärben",
   "colors": {

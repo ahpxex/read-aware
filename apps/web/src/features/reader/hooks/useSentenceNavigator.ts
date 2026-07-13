@@ -10,6 +10,11 @@ import {
   applyNavigatorHighlight,
   removeNavigatorHighlight,
 } from "../lib/highlight-renderer";
+import {
+  readNavigatorState,
+  writeNavigatorState,
+  type NavigatorResting,
+} from "../lib/navigator-prefs";
 import { anchorSentenceIndex, buildSentenceRanges } from "../lib/sentence-index";
 
 /** The sentence the navigator rests on — the target for the bar's actions. */
@@ -22,13 +27,26 @@ export type SentenceNavigator = {
   current: NavigatorSentence | null;
   next: () => void;
   prev: () => void;
+  /** Bring the reader back to the sentence the navigator rests on — even when
+   *  page turns or chapter jumps have carried the view somewhere else. */
+  returnToSentence: () => void;
+  /** Whether the navigator has a resting sentence to return to. */
+  canReturn: boolean;
   /** Engine bridges — invoke from the reader's `load` / `relocate` handlers. */
   handleSectionLoad: (doc: Document, index: number) => void;
   handleRelocate: (detail: FoliateRelocateDetail) => void;
+  /** Invoke from the reader's `create-overlay` handler: the engine rebuilds a
+   *  section's overlayer from scratch on re-layout (style injection, resize,
+   *  reopen), and the wash must be re-drawn alongside the user's marks or it
+   *  silently vanishes. */
+  handleOverlayReady: () => void;
 };
 
 type UseSentenceNavigatorOptions = {
   active: boolean;
+  /** Persistence scope: the resting sentence (and the mode itself) is
+   *  remembered per book, so closing and reopening the book resumes in place. */
+  bookId: string | null;
   viewRef: RefObject<FoliateView | null>;
   readerRootRef: RefObject<HTMLElement | null>;
   /** Cross into the adjacent spine section, with the mode's transition. */
@@ -55,12 +73,14 @@ const normalizeText = (value: string) => value.replace(/\s+/g, " ").trim();
  */
 export function useSentenceNavigator({
   active,
+  bookId,
   viewRef,
   readerRootRef,
   crossSection,
   restoreAnnotationAt,
 }: UseSentenceNavigatorOptions): SentenceNavigator {
   const [current, setCurrent] = useState<NavigatorSentence | null>(null);
+  const [canReturn, setCanReturn] = useState(false);
 
   const activeRef = useRef(active);
   const sectionRef = useRef<{ doc: Document; index: number } | null>(null);
@@ -75,12 +95,47 @@ export function useSentenceNavigator({
   const pendingCrossRef = useRef<-1 | 1 | null>(null);
   // Where the navigator rests, by section + ordinal — remembered across
   // section unloads so flipping away and back restores the wash in place.
-  const restingRef = useRef<{ sectionIndex: number; ordinal: number } | null>(null);
+  // Persisted per book, so it also survives closing and reopening the book.
+  const restingRef = useRef<NavigatorResting | null>(null);
+  const bookIdRef = useRef(bookId);
 
   const crossSectionRef = useRef(crossSection);
   useEffect(() => { crossSectionRef.current = crossSection; }, [crossSection]);
   const restoreAnnotationAtRef = useRef(restoreAnnotationAt);
   useEffect(() => { restoreAnnotationAtRef.current = restoreAnnotationAt; }, [restoreAnnotationAt]);
+
+  const setResting = useCallback((resting: NavigatorResting | null) => {
+    restingRef.current = resting;
+    setCanReturn(resting != null);
+  }, []);
+
+  // Book switch: seed the resting sentence from the book's persisted state
+  // BEFORE its sections load, so the load handler can restore the wash in
+  // place — and drop every reference into the outgoing book, so an activation
+  // that fires before the new book's first section load can't index a dead
+  // document. (Runs ahead of the activation effect below — order matters when
+  // a restored book comes up with the mode already on.)
+  useEffect(() => {
+    bookIdRef.current = bookId;
+    sectionRef.current = null;
+    sentencesRef.current = null;
+    currentIndexRef.current = -1;
+    visibleRangeRef.current = null;
+    appliedCfiRef.current = null;
+    pendingAnchorRef.current = null;
+    pendingCrossRef.current = null;
+    setCurrent(null);
+    setResting(bookId ? readNavigatorState(bookId).resting : null);
+  }, [bookId, setResting]);
+
+  const persistState = useCallback(() => {
+    const id = bookIdRef.current;
+    if (!id) return;
+    writeNavigatorState(id, {
+      active: activeRef.current,
+      resting: restingRef.current,
+    });
+  }, []);
 
   /** Remove the wash, re-drawing any user mark that shared its CFI. */
   const clearWash = useCallback(() => {
@@ -122,13 +177,14 @@ export function useSentenceNavigator({
       if (!view || !section || !range) return;
       clearWash();
       currentIndexRef.current = index;
-      restingRef.current = { sectionIndex: section.index, ordinal: index };
       let cfi: string | null = null;
       try {
         cfi = view.getCFI(section.index, range);
       } catch {
         cfi = null;
       }
+      setResting({ sectionIndex: section.index, ordinal: index, cfiRange: cfi });
+      persistState();
       if (cfi) {
         appliedCfiRef.current = cfi;
         applyNavigatorHighlight(view, cfi);
@@ -142,7 +198,7 @@ export function useSentenceNavigator({
         }
       }
     },
-    [clearWash, rangeFullyVisible, viewRef],
+    [clearWash, persistState, rangeFullyVisible, setResting, viewRef],
   );
 
   const buildSentences = useCallback((): Range[] => {
@@ -239,15 +295,24 @@ export function useSentenceNavigator({
     [applyIndex],
   );
 
-  // Activation: index the loaded section and rest on the first visible
-  // sentence in place (no scroll — the reader is already where the user left
-  // it). Deactivation: clear the wash and forget the index.
+  // Activation: index the loaded section and rest on the persisted sentence if
+  // it lives here (a restored session), else on the first visible sentence in
+  // place (no scroll — the reader is already where the user left it).
+  // Deactivation: clear the wash, forget the index, and drop the persisted
+  // state — an explicit exit means "start fresh next time". A book switch or
+  // unmount never runs this with the old book's id: the seed effect above has
+  // already moved `bookIdRef` on by the time this one fires.
   useEffect(() => {
     activeRef.current = active;
     if (active) {
+      persistState();
       if (!sectionRef.current) return;
       const sentences = sentencesRef.current ?? buildSentences();
-      const index = anchorSentenceIndex(sentences, visibleRangeRef.current);
+      const resting = restingRef.current;
+      const index =
+        resting?.sectionIndex === sectionRef.current.index
+          ? Math.min(resting.ordinal, sentences.length - 1)
+          : anchorSentenceIndex(sentences, visibleRangeRef.current);
       if (index >= 0) applyIndex(index, { scroll: false });
       else setCurrent(null);
       return;
@@ -255,11 +320,12 @@ export function useSentenceNavigator({
     clearWash();
     sentencesRef.current = null;
     currentIndexRef.current = -1;
-    restingRef.current = null;
+    setResting(null);
+    persistState();
     pendingAnchorRef.current = null;
     pendingCrossRef.current = null;
     setCurrent(null);
-  }, [active, applyIndex, buildSentences, clearWash]);
+  }, [active, applyIndex, buildSentences, clearWash, persistState, setResting]);
 
   // Android: while the mode is on, the volume keys step sentences (volume
   // down = forward). The shell captures them only for the mode's duration and
@@ -290,5 +356,46 @@ export function useSentenceNavigator({
   const next = useCallback(() => step(1), [step]);
   const prev = useCallback(() => step(-1), [step]);
 
-  return { current, next, prev, handleSectionLoad, handleRelocate };
+  // A fresh overlayer starts empty — re-draw the wash the navigator believes
+  // is applied (the reader re-applies the user's marks in the same event).
+  const handleOverlayReady = useCallback(() => {
+    if (!activeRef.current) return;
+    const view = viewRef.current;
+    const cfi = appliedCfiRef.current;
+    if (!view || !cfi) return;
+    applyNavigatorHighlight(view, cfi);
+  }, [viewRef]);
+
+  // Bring the reader back to the resting sentence. Same section: re-apply the
+  // wash and scroll it into view. Another section: navigate to the sentence's
+  // CFI — the section-load handler then restores the wash in place.
+  const returnToSentence = useCallback(() => {
+    if (!activeRef.current) return;
+    const view = viewRef.current;
+    const resting = restingRef.current;
+    if (!view || !resting) return;
+    const section = sectionRef.current;
+    const sentences = sentencesRef.current;
+    if (section && sentences?.length && resting.sectionIndex === section.index) {
+      applyIndex(Math.min(resting.ordinal, sentences.length - 1));
+      return;
+    }
+    if (resting.cfiRange) {
+      void view.goTo(resting.cfiRange).catch(() => {
+        // An unparseable stored CFI — the wash restores whenever its section
+        // is next loaded; there is just nothing to jump to.
+      });
+    }
+  }, [applyIndex, viewRef]);
+
+  return {
+    current,
+    next,
+    prev,
+    returnToSentence,
+    canReturn,
+    handleSectionLoad,
+    handleRelocate,
+    handleOverlayReady,
+  };
 }

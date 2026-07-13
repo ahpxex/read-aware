@@ -46,6 +46,7 @@ import { ReaderAnnotationMenu } from "./ReaderAnnotationMenu";
 import { ReaderDictionaryModal } from "./ReaderDictionaryModal";
 import { ReaderFootnotePopover } from "./ReaderFootnotePopover";
 import { ReaderNavigatorBar } from "./ReaderNavigatorBar";
+import { ReaderNavigatorStepButtons } from "./ReaderNavigatorStepButtons";
 import { ReaderPageTurnControls } from "./ReaderPageTurnControls";
 import { ReaderSelectionMenu } from "./ReaderSelectionMenu";
 import { NoteEditor } from "../../annotations/components/NoteEditor";
@@ -883,6 +884,7 @@ export function FoliateReaderView({
 
   const sentenceNavigator = useSentenceNavigator({
     active: sentenceNavigatorActive,
+    bookId: selectedBook?.id ?? null,
     viewRef,
     readerRootRef,
     crossSection: navigatorCrossSection,
@@ -1579,6 +1581,7 @@ export function FoliateReaderView({
           if (!view) return;
           applyHighlights(view, highlightsRef.current);
           applyNotes(view, notesRef.current, highlightsRef.current);
+          sentenceNavigatorRef.current.handleOverlayReady();
         };
 
         // Tapping a mark anchors the recolor/remove menu over it; tapping a note
@@ -2030,8 +2033,11 @@ export function FoliateReaderView({
             ? sentenceNavigator.current.cfiRange ?? sentenceNavigator.current.text
             : null
         }
+        containerRef={readerRootRef}
+        canReturn={sentenceNavigator.canReturn}
         onPrev={sentenceNavigator.prev}
         onNext={sentenceNavigator.next}
+        onReturnToSentence={sentenceNavigator.returnToSentence}
         onCopy={() => copyTargetText(sentenceNavigator.current?.text ?? "")}
         onHighlight={() => { void handleNavigatorMark("highlight"); }}
         onUnderline={() => { void handleNavigatorMark("underline"); }}
@@ -2039,6 +2045,12 @@ export function FoliateReaderView({
         onLookUp={handleNavigatorLookUp}
         onAskAI={handleNavigatorAskAI}
         onExit={() => onExitNavigatorRef.current?.()}
+      />
+      <ReaderNavigatorStepButtons
+        visible={sentenceNavigatorActive && !isLoading && !error}
+        containerRef={readerRootRef}
+        onPrev={sentenceNavigator.prev}
+        onNext={sentenceNavigator.next}
       />
       {/* Off-screen stage where the engine loads + extracts a footnote fragment. */}
       <div

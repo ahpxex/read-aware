@@ -4,6 +4,7 @@ import { useTranslation } from "../../../i18n";
 import type { BookFormat, LibraryBook, ReaderProgress } from "../../library/lib/library-types";
 import { READER_THEME_BG } from "../../settings/lib/reader-css";
 import { useDelayedFlag } from "../hooks/useDelayedFlag";
+import { readNavigatorState } from "../lib/navigator-prefs";
 import { useImmersiveWindowControls } from "../hooks/useImmersiveWindowControls";
 import { useReaderAppearance } from "../hooks/useReaderAppearance";
 import { useReadingTimeTracker } from "../hooks/useReadingTimeTracker";
@@ -85,12 +86,17 @@ export function ReaderWorkspace({
   useImmersiveWindowControls(overlayVisible || !readerSource);
 
   // Sentence navigator mode. Owned here so the shell header's toggle and the
-  // reader view (wash + floating bar + shortcuts) stay in sync; each book
-  // starts with the mode off. Fixed-layout books (PDF/CBZ) can't host it.
-  const [navigatorActive, setNavigatorActive] = useState(false);
+  // reader view (wash + floating bar + shortcuts) stay in sync. The mode is
+  // sticky per book — closing a book (or the app) mid-navigation and reopening
+  // it resumes sentence-by-sentence reading where it stopped (the resting
+  // sentence itself is restored by useSentenceNavigator from the same store).
+  // Fixed-layout books (PDF/CBZ) can't host it.
+  const [navigatorActive, setNavigatorActive] = useState(
+    () => readNavigatorState(selectedBook.id).active,
+  );
   const [isFixedLayout, setIsFixedLayout] = useState(false);
   useEffect(() => {
-    setNavigatorActive(false);
+    setNavigatorActive(readNavigatorState(selectedBook.id).active);
   }, [selectedBook.id]);
   const toggleNavigator = useCallback(() => {
     setNavigatorActive((active) => !active);

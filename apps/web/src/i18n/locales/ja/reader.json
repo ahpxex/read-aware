@@ -49,7 +49,8 @@
     "enable": "文ナビゲーターをオンにする",
     "exit": "文ナビゲーターを終了",
     "prevSentence": "前の文",
-    "nextSentence": "次の文"
+    "nextSentence": "次の文",
+    "returnToSentence": "現在の文に戻る"
   },
   "recolor": "{{color}}に色を変更",
   "colors": {

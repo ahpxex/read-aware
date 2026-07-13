@@ -49,7 +49,8 @@
     "enable": "Turn on sentence navigator",
     "exit": "Exit sentence navigator",
     "prevSentence": "Previous sentence",
-    "nextSentence": "Next sentence"
+    "nextSentence": "Next sentence",
+    "returnToSentence": "Back to current sentence"
   },
   "recolor": "Recolor {{color}}",
   "colors": {

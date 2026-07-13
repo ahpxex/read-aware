@@ -49,7 +49,8 @@
     "enable": "開啟逐句導航",
     "exit": "退出逐句導航",
     "prevSentence": "上一句",
-    "nextSentence": "下一句"
+    "nextSentence": "下一句",
+    "returnToSentence": "回到閱讀處"
   },
   "recolor": "改為{{color}}",
   "colors": {

@@ -49,7 +49,8 @@
     "enable": "Activar el navegador de frases",
     "exit": "Salir del navegador de frases",
     "prevSentence": "Frase anterior",
-    "nextSentence": "Frase siguiente"
+    "nextSentence": "Frase siguiente",
+    "returnToSentence": "Volver a la frase actual"
   },
   "recolor": "Cambiar a color {{color}}",
   "colors": {

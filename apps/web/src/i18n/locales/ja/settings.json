@@ -295,6 +295,8 @@
     "description": "バージョン、ビルド、そして読書を支えるエンジン。",
     "version": "バージョン",
     "build": "ビルド",
+    "buildAndroid": "Android（Tauri）",
+    "buildIos": "iOS（Tauri）",
     "buildDesktop": "デスクトップ（Tauri）",
     "buildWeb": "Webプレビュー",
     "updates": {

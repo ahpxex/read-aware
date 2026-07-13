@@ -307,6 +307,8 @@
     "description": "Версия, сборка и движок, обеспечивающий чтение.",
     "version": "Версия",
     "build": "Сборка",
+    "buildAndroid": "Android (Tauri)",
+    "buildIos": "iOS (Tauri)",
     "buildDesktop": "Настольная версия (Tauri)",
     "buildWeb": "Веб-предпросмотр",
     "updates": {

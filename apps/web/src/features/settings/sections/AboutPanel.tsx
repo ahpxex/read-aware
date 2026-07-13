@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Button, Spinner } from "@read-aware/ui";
-import { isTauri } from "../../../platform/environment";
+import { isAndroid, isIOS, isTauri } from "../../../platform/environment";
 import { useTranslation } from "../../../i18n";
 import { useSoftwareUpdate } from "../../update/hooks/useSoftwareUpdate";
 import { SettingsGroup } from "../components/SettingsGroup";
@@ -27,6 +27,13 @@ function linkValue(href: string, label: string) {
 export function AboutPanel() {
   const { t } = useTranslation("settings");
   const update = useSoftwareUpdate();
+  const buildLabel = !isTauri()
+    ? t("about.buildWeb")
+    : isAndroid()
+      ? t("about.buildAndroid")
+      : isIOS()
+        ? t("about.buildIos")
+        : t("about.buildDesktop");
 
   useEffect(() => {
     void update.loadCurrentVersion();
@@ -69,7 +76,7 @@ export function AboutPanel() {
         />
         <SettingsRow
           title={t("about.build")}
-          control={valueText(isTauri() ? t("about.buildDesktop") : t("about.buildWeb"))}
+          control={valueText(buildLabel)}
         />
         <SettingsRow
           title={t("about.updates.title")}

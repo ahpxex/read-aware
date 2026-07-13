@@ -303,6 +303,8 @@
     "description": "Version, build et le moteur qui alimente la lecture.",
     "version": "Version",
     "build": "Build",
+    "buildAndroid": "Android (Tauri)",
+    "buildIos": "iOS (Tauri)",
     "buildDesktop": "Bureau (Tauri)",
     "buildWeb": "Aperçu web",
     "updates": {

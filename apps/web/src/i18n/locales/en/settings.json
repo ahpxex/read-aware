@@ -299,6 +299,8 @@
     "description": "Version, build, and the engine that powers reading.",
     "version": "Version",
     "build": "Build",
+    "buildAndroid": "Android (Tauri)",
+    "buildIos": "iOS (Tauri)",
     "buildDesktop": "Desktop (Tauri)",
     "buildWeb": "Web preview",
     "updates": {

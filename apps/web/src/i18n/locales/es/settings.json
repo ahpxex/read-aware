@@ -303,6 +303,8 @@
     "description": "Versión, compilación y el motor que impulsa la lectura.",
     "version": "Versión",
     "build": "Compilación",
+    "buildAndroid": "Android (Tauri)",
+    "buildIos": "iOS (Tauri)",
     "buildDesktop": "Escritorio (Tauri)",
     "buildWeb": "Vista previa web",
     "updates": {

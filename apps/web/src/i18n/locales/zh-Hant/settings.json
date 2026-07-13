@@ -295,6 +295,8 @@
     "description": "版本、組建，以及驅動閱讀的引擎。",
     "version": "版本",
     "build": "組建",
+    "buildAndroid": "Android 版（Tauri）",
+    "buildIos": "iOS 版（Tauri）",
     "buildDesktop": "桌面版（Tauri）",
     "buildWeb": "網頁預覽",
     "updates": {

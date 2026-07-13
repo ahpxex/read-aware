@@ -72,10 +72,23 @@ fn validate_manifest(manifest: &AndroidUpdateManifest) -> Result<(), String> {
 
 #[cfg(target_os = "android")]
 fn client(current_version: &str, timeout: std::time::Duration) -> Result<reqwest::Client, String> {
-    if rustls::crypto::CryptoProvider::get_default().is_none() {
-        let _ = rustls::crypto::ring::default_provider().install_default();
-    }
+    // reqwest's default rustls verifier here is rustls-platform-verifier, which
+    // on Android requires a JVM context that is never initialized under Tauri —
+    // the first TLS handshake then panics inside the command, and a panicked
+    // command never resolves its invoke (the UI sat on "checking" forever).
+    // Hand reqwest a fully explicit rustls config instead: ring provider +
+    // bundled Mozilla roots, which covers the GitHub release endpoints.
+    let mut roots = rustls::RootCertStore::empty();
+    roots.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+    let tls = rustls::ClientConfig::builder_with_provider(std::sync::Arc::new(
+        rustls::crypto::ring::default_provider(),
+    ))
+    .with_safe_default_protocol_versions()
+    .map_err(|err| format!("Failed to configure TLS for Android updates: {err}"))?
+    .with_root_certificates(roots)
+    .with_no_client_auth();
     reqwest::Client::builder()
+        .tls_backend_preconfigured(tls)
         .user_agent(format!("ReadAware/{current_version}"))
         .timeout(timeout)
         .build()

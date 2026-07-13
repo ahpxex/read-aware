@@ -86,5 +86,10 @@ opt-level = 3
 jni = "0.21"
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls-no-provider"] }
 rustls = { version = "0.23", default-features = false, features = ["ring"] }
+# Trust anchors for the updater's TLS. reqwest's default rustls verifier on
+# Android (rustls-platform-verifier) needs a JVM context Tauri never gives it
+# and panics mid-handshake, so android_update.rs builds its own rustls config
+# against these bundled Mozilla roots instead.
+webpki-roots = "1"
 semver = "1"
 tao = "0.35"

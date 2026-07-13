@@ -13,6 +13,31 @@ export type DownloadProgress = {
 
 export type InstallSoftwareUpdateResult = "installer-started" | "permission-required";
 
+// The Rust commands bound their own network timeouts (15s manifest / 300s APK),
+// so these only fire if the invoke response itself is lost — a real Android IPC
+// failure mode (and, historically, a panicked command). Without them the UI
+// would sit on "checking"/"downloading" forever with no way to retry.
+const ANDROID_CHECK_TIMEOUT_MS = 45_000;
+const ANDROID_INSTALL_TIMEOUT_MS = 6 * 60_000;
+
+async function invokeWithTimeout<T>(command: string, timeoutMs: number): Promise<T> {
+  const { invoke } = await import("@tauri-apps/api/core");
+  let timer: number | undefined;
+  try {
+    return await Promise.race([
+      invoke<T>(command),
+      new Promise<never>((_, reject) => {
+        timer = window.setTimeout(
+          () => reject(new Error("The update service did not respond in time.")),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 let pendingUpdate: Update | null = null;
 
 export function canUseSoftwareUpdater(): boolean {
@@ -29,8 +54,10 @@ export async function findSoftwareUpdate(): Promise<AvailableSoftwareUpdate | nu
   if (!canUseSoftwareUpdater()) return null;
 
   if (isAndroid()) {
-    const { invoke } = await import("@tauri-apps/api/core");
-    return invoke<AvailableSoftwareUpdate | null>("android_update_check");
+    return invokeWithTimeout<AvailableSoftwareUpdate | null>(
+      "android_update_check",
+      ANDROID_CHECK_TIMEOUT_MS,
+    );
   }
 
   if (pendingUpdate) {
@@ -53,8 +80,10 @@ export async function installSoftwareUpdate(
 ): Promise<InstallSoftwareUpdateResult> {
   if (isAndroid()) {
     onProgress({ phase: "downloading", progress: null });
-    const { invoke } = await import("@tauri-apps/api/core");
-    return invoke<InstallSoftwareUpdateResult>("android_update_install");
+    return invokeWithTimeout<InstallSoftwareUpdateResult>(
+      "android_update_install",
+      ANDROID_INSTALL_TIMEOUT_MS,
+    );
   }
 
   if (!pendingUpdate) throw new Error("No software update is ready to install.");

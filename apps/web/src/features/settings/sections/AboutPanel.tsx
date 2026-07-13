@@ -63,7 +63,9 @@ export function AboutPanel() {
               : update.state.phase === "installer-open"
                 ? t("about.updateStatus.installerOpen")
                 : update.state.phase === "error"
-                  ? t("about.updateStatus.failed")
+                  ? update.state.error
+                    ? `${t("about.updateStatus.failed")} — ${update.state.error}`
+                    : t("about.updateStatus.failed")
                   : null;
 
   return (
@@ -83,7 +85,11 @@ export function AboutPanel() {
           description={t("about.updates.description")}
           control={
             <span className="flex items-center gap-2">
-              {status && <span className="text-caption text-fg-muted">{status}</span>}
+              {status && (
+                <span className="line-clamp-3 max-w-64 text-right text-caption text-fg-muted">
+                  {status}
+                </span>
+              )}
               <Button
                 variant="outline"
                 size="sm"

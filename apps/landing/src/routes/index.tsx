@@ -9,6 +9,8 @@ export const Route = createFileRoute("/")({
 });
 
 const CONTACT_EMAIL = "hi@ahpx.me";
+const HEADER_ICON_URL = "/favicon.png?v=2235eb1";
+const SHELF_SCREENSHOT_URL = "/screenshots/shelf.webp?v=b2e29b2";
 
 const NOTES: { title: string; body: string }[] = [
   {
@@ -63,7 +65,7 @@ function LandingPage() {
       <div className="mx-auto max-w-3xl px-6">
         <header className="flex items-center justify-between py-7">
           <a href="#top" className="flex items-center gap-2.5">
-            <img src="/favicon.png" alt="" width={26} height={26} className="h-[26px] w-[26px]" />
+            <img src={HEADER_ICON_URL} alt="" width={26} height={26} className="h-[26px] w-[26px]" />
             <span className="text-[1.0625rem] font-medium tracking-tight">
               ReadAware
             </span>
@@ -108,7 +110,7 @@ function LandingPage() {
           {/* Plate: the shelf */}
           <div className="mt-14 sm:mt-16">
             <Plate
-              src="/screenshots/shelf.webp"
+              src={SHELF_SCREENSHOT_URL}
               alt="The ReadAware library — a grid of book covers across many languages and formats."
               caption="Your library — every format in one place."
               eager
@@ -187,7 +189,7 @@ function LandingPage() {
 
         <footer className="mt-8 flex flex-col gap-3 border-t border-border py-8 text-[0.9375rem] text-fg-muted sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2.5">
-            <img src="/favicon.png" alt="" width={20} height={20} className="h-5 w-5" />
+            <img src={HEADER_ICON_URL} alt="" width={20} height={20} className="h-5 w-5" />
             <span className="text-fg">ReadAware</span>
           </div>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-1">

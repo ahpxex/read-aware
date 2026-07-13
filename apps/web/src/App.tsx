@@ -102,12 +102,6 @@ function App() {
     if (generalSettings.autoUpdate) void softwareUpdate.checkForUpdates();
   }, [generalSettings.autoUpdate, softwareUpdate.checkForUpdates]);
 
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      void import("react-grab");
-    }
-  }, []);
-
   useGlobalShortcuts({
     onOpenSearch: () => setSearchModalOpen(true),
     onOpenSettings: () => setSettingsOpen(true),

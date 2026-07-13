@@ -37,7 +37,6 @@
     "@storybook/addon-a11y": "^10.2.16",
     "@storybook/addon-docs": "^10.2.16",
     "@storybook/addon-onboarding": "^10.2.16",
-    "@storybook/addon-vitest": "^10.2.16",
     "@storybook/react-vite": "^10.2.16",
     "@tailwindcss/vite": "^4.2.1",
     "@tanstack/router-plugin": "^1.132.23",
@@ -45,15 +44,10 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
-    "@vitest/browser-playwright": "^4.0.18",
-    "@vitest/coverage-v8": "^4.0.18",
     "i18next-parser": "^9.4.0",
-    "playwright": "^1.58.2",
-    "react-grab": "^0.1.27",
     "storybook": "^10.2.16",
     "tailwindcss": "^4.2.1",
     "typescript": "~5.8.3",
-    "vite": "^7.0.4",
-    "vitest": "^4.0.18"
+    "vite": "^7.0.4"
   }
 }

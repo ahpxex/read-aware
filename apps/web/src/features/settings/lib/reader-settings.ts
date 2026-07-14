@@ -101,7 +101,10 @@ export const DEFAULT_READER_SETTINGS: ReaderSettings = {
   // Touch screens read with mobile-typical tight margins by default; desktop
   // keeps the roomier editorial measure. Evaluated once — it's a device trait.
   pageMargins: hasCoarsePointer() ? "narrow" : "wide",
-  readingMode: "scroll",
+  // Same device split: phones page one column at a time, desktop opens as a
+  // two-page spread (the renderer already folds a spread to one column while
+  // the viewport is portrait, so narrow desktop windows stay readable).
+  readingMode: hasCoarsePointer() ? "paginated-single" : "paginated-double",
 };
 
 export const DEFAULT_READER_PREFERENCES: ReaderSettingsPreferences = {

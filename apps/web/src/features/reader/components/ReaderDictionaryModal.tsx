@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSetAtom } from "jotai";
 import {
   ArrowsClockwise,
   BookmarkSimple,
@@ -20,6 +21,7 @@ import {
   Spinner,
 } from "@read-aware/ui";
 import { LOCALE_LABELS, LOCALES, useLocale, useTranslation } from "../../../i18n";
+import { settingsOpenAtom, settingsSectionRequestAtom } from "../../../state/ui";
 import { useDictionaryLookup } from "../hooks/useDictionaryLookup";
 import type { DictionaryEntry } from "@read-aware/agent";
 import {
@@ -77,8 +79,10 @@ export function ReaderDictionaryModal({
   bookTitle,
   onClose,
 }: ReaderDictionaryModalProps) {
-  const { t } = useTranslation("reader");
+  const { t } = useTranslation(["reader", "common"]);
   const appLocale = useLocale();
+  const setSettingsOpen = useSetAtom(settingsOpenAtom);
+  const setSettingsSection = useSetAtom(settingsSectionRequestAtom);
   const [language, setLanguage] = useState<DictionaryLanguage>(() => getDictionaryLanguage());
   const [copied, setCopied] = useState(false);
   const [inVocab, setInVocab] = useState(false);
@@ -235,9 +239,21 @@ export function ReaderDictionaryModal({
         )}
 
         {state.status === "unconfigured" && (
-          <Body className="py-2 text-sm leading-relaxed text-fg-muted">
-            {t("dictionary.unconfigured")}
-          </Body>
+          <div className="flex flex-col items-start gap-3 py-2">
+            <Body className="text-sm leading-relaxed text-fg-muted">
+              {t("dictionary.unconfigured")}
+            </Body>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSettingsSection("ai");
+                setSettingsOpen(true);
+              }}
+            >
+              {t("common:actions.openSettings")}
+            </Button>
+          </div>
         )}
 
         {state.status === "error" && (

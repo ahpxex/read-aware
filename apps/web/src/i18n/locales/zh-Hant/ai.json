@@ -46,7 +46,8 @@
       "description": "選取一段文字並選擇「詢問 AI」，或直接開始輸入。這段對話會與這本書一同保存。"
     },
     "error": {
-      "generic": "取得回覆時發生問題。"
+      "generic": "取得回覆時發生問題。",
+      "notConfigured": "尚未設定 AI，新增 API 金鑰後即可開始對話。"
     }
   },
   "note": {

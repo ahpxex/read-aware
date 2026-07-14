@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "../../../i18n";
+import { AiNotConfiguredError } from "../lib/ai-errors";
 import { appendStreamChunk, finalizeParts, partsText } from "../lib/chat-stream";
 import { getChatTransport } from "../lib/chat-transport";
 import type { ChatAssistantPart, ChatAttachment, ChatMessage } from "../lib/chat-types";
@@ -108,6 +109,7 @@ export function useBookConversation(
       void (async () => {
         let assembled: ChatAssistantPart[] = [];
         let failure: string | null = null;
+        let failureCode: string | undefined;
         try {
           // The truncated transcript must be on disk before the agent
           // rehydrates from it (load-bearing for retry on the global thread).
@@ -140,6 +142,7 @@ export function useBookConversation(
           if (!aborted) {
             failure =
               err instanceof Error && err.message ? err.message : t("chat.error.generic");
+            if (err instanceof AiNotConfiguredError) failureCode = err.code;
           }
         } finally {
           // Commit whatever was produced — even a partial reply after a stop —
@@ -158,6 +161,7 @@ export function useBookConversation(
               createdAt: new Date().toISOString(),
               parts: parts.length > 0 ? parts : undefined,
               error: failure ?? undefined,
+              errorCode: failure ? failureCode : undefined,
             };
             void persist([...withUser, assistantMessage]);
           }

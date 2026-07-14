@@ -121,6 +121,12 @@ export interface ChatMessage {
    * agent's history hydration (see the conversation port).
    */
   error?: string;
+  /**
+   * Structured code for a recognized failure (see `ai-errors.ts`). The UI
+   * renders localized copy and a fix affordance from the code; `error` keeps
+   * the raw thrown message as the fallback for unrecognized failures.
+   */
+  errorCode?: string;
 }
 
 /**

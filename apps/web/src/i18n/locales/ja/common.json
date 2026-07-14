@@ -1,6 +1,7 @@
 {
   "actions": {
     "backToLibrary": "ライブラリに戻る",
-    "dismiss": "閉じる"
+    "dismiss": "閉じる",
+    "openSettings": "設定を開く"
   }
 }

@@ -12,6 +12,7 @@ import {
   resolveExplanationLanguageName,
 } from "../../../reader/lib/dictionary-prefs";
 import { getAIConfig } from "../../lib/ai-config";
+import { AiNotConfiguredError } from "../../lib/ai-errors";
 import { accountFromConfig } from "../account";
 
 export function createDictionaryPort(): DictionaryPort {
@@ -23,7 +24,7 @@ export function createDictionaryPort(): DictionaryPort {
       if (cached) return { entry: cached, language };
       const config = getAIConfig();
       if (!config?.apiKey) {
-        throw new Error("AI is not configured — add an API key in Settings → AI.");
+        throw new AiNotConfiguredError();
       }
       const { account, models } = accountFromConfig(config);
       const entry = await lookUpWord(account, models, {

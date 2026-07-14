@@ -46,7 +46,8 @@
       "description": "Select a passage and choose Ask AI, or just start typing. This conversation stays with the book."
     },
     "error": {
-      "generic": "Something went wrong getting a reply."
+      "generic": "Something went wrong getting a reply.",
+      "notConfigured": "AI isn't set up yet — add an API key to start chatting."
     }
   },
   "note": {

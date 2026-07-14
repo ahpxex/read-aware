@@ -167,7 +167,9 @@ export const FailedTurnPartialReply: Story = {
   },
 };
 
-/** A failure before any prose (e.g. no API key): an error-only stub message. */
+/** A failure before any prose with a recognized code (no API key): the stub
+ *  renders localized copy plus the "open settings" fix instead of the raw
+ *  thrown message. */
 export const FailedBeforeFirstToken: Story = {
   args: {
     messages: [
@@ -178,6 +180,7 @@ export const FailedBeforeFirstToken: Story = {
         content: "",
         createdAt: askedAt,
         error: "AI is not configured — add an API key in Settings → AI.",
+        errorCode: "ai-not-configured",
       },
     ],
     onRetry: () => {},

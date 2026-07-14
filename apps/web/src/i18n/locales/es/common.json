@@ -1,6 +1,7 @@
 {
   "actions": {
     "backToLibrary": "Volver a la biblioteca",
-    "dismiss": "Cerrar"
+    "dismiss": "Cerrar",
+    "openSettings": "Abrir ajustes"
   }
 }

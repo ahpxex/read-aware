@@ -97,7 +97,9 @@ export function ChatMessageItem({
           </div>
         );
       })}
-      {message.error && <ChatMessageError message={message.error} onRetry={onRetry} />}
+      {message.error && (
+        <ChatMessageError message={message.error} code={message.errorCode} onRetry={onRetry} />
+      )}
       {!streaming && (
         <ChatMessageActions
           text={message.content || undefined}

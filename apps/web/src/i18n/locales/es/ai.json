@@ -46,7 +46,8 @@
       "description": "Selecciona un pasaje y elige «Preguntar a la IA», o simplemente empieza a escribir. Esta conversación se queda con el libro."
     },
     "error": {
-      "generic": "Algo salió mal al obtener una respuesta."
+      "generic": "Algo salió mal al obtener una respuesta.",
+      "notConfigured": "La IA aún no está configurada; añade una clave de API para empezar a conversar."
     }
   },
   "note": {

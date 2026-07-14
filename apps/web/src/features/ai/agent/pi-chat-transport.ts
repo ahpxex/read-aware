@@ -7,6 +7,7 @@
  */
 import { PRESENT_TOOL_NAMES, type SelectionAttachment, type ThreadScope } from "@read-aware/agent";
 import type { Id } from "@read-aware/core";
+import { AiNotConfiguredError } from "../lib/ai-errors";
 import type { ChatTransport } from "../lib/chat-transport";
 import { toolStepDetail } from "../lib/chat-stream";
 import type { ChatReference, ChatStreamChunk } from "../lib/chat-types";
@@ -23,7 +24,7 @@ export function createPiChatTransport(): ChatTransport {
     async *sendTurn(request, signal) {
       const runtime = getAgentRuntime();
       if (!runtime) {
-        throw new Error("AI is not configured — add an API key in Settings → AI.");
+        throw new AiNotConfiguredError();
       }
       const scope: ThreadScope =
         request.thread === "global"

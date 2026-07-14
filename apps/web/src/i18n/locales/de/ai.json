@@ -46,7 +46,8 @@
       "description": "Wähle eine Passage aus und wähle „KI fragen“, oder tippe einfach los. Diese Unterhaltung bleibt beim Buch."
     },
     "error": {
-      "generic": "Beim Abrufen einer Antwort ist etwas schiefgelaufen."
+      "generic": "Beim Abrufen einer Antwort ist etwas schiefgelaufen.",
+      "notConfigured": "KI ist noch nicht eingerichtet — fügen Sie einen API-Schlüssel hinzu, um zu chatten."
     }
   },
   "note": {

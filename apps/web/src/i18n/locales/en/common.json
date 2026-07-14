@@ -1,6 +1,7 @@
 {
   "actions": {
     "backToLibrary": "Back to library",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "openSettings": "Open settings"
   }
 }

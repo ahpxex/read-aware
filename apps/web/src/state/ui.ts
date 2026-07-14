@@ -51,6 +51,23 @@ export const activeTopNavAtom = atom<TopNav>("shelf");
 
 export const settingsOpenAtom = atom(false);
 
+/** The settings dialog's sections, for deep-links from elsewhere in the app. */
+export type SettingsSectionId =
+  | "general"
+  | "appearance"
+  | "reading"
+  | "ai"
+  | "shortcuts"
+  | "dataSync"
+  | "about";
+
+/**
+ * One-shot deep-link request: the section the settings dialog should land on
+ * when it next opens (set alongside `settingsOpenAtom`, e.g. by an error's
+ * "open settings" action). The dialog consumes and clears it.
+ */
+export const settingsSectionRequestAtom = atom<SettingsSectionId | null>(null);
+
 /** Resolved app chrome theme (`light`/`dark`), kept current by `useAppearance`. */
 export const resolvedAppThemeAtom = atom<"light" | "dark">(
   resolveAppTheme(getAppSettings().theme),

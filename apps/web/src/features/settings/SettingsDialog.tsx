@@ -12,10 +12,12 @@ import {
   X,
   type Icon,
 } from "@phosphor-icons/react";
+import { useAtom } from "jotai";
 import { IconButton, ScrollArea } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { usePhoneViewport } from "@read-aware/ui/media";
 import { useTranslation } from "../../i18n";
+import { settingsSectionRequestAtom, type SettingsSectionId } from "../../state/ui";
 import { AboutPanel } from "./sections/AboutPanel";
 import { AIPanel } from "./sections/AIPanel";
 import { AppearancePanel } from "./sections/AppearancePanel";
@@ -24,14 +26,9 @@ import { GeneralPanel } from "./sections/GeneralPanel";
 import { ReadingPanel } from "./sections/ReadingPanel";
 import { ShortcutsPanel } from "./sections/ShortcutsPanel";
 
-type SectionId =
-  | "general"
-  | "appearance"
-  | "reading"
-  | "ai"
-  | "shortcuts"
-  | "dataSync"
-  | "about";
+// Deep-linkable from anywhere via `settingsSectionRequestAtom` — the id union
+// lives with the atom so requesters don't import the dialog.
+type SectionId = SettingsSectionId;
 
 type SettingsSection = {
   id: SectionId;
@@ -75,6 +72,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const [phoneSectionIndex, setPhoneSectionIndex] = useState<number | null>(null);
   // The list page only animates when returning from a panel, not on open.
   const returnedFromPanelRef = useRef(false);
+  const [sectionRequest, setSectionRequest] = useAtom(settingsSectionRequestAtom);
 
   useEffect(() => {
     if (closeTimerRef.current != null) {
@@ -99,6 +97,20 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       closeTimerRef.current = null;
     }, EXIT_DURATION_MS);
   }, [open, isPresent]);
+
+  // Deep-link: land on the requested section (drilled straight in on phones).
+  // Declared AFTER the open-reset effect above so it runs later in the same
+  // commit — the reset's `setPhoneSectionIndex(null)` cannot undo the drill-in.
+  // One-shot: clearing the atom re-runs this effect, which bails immediately.
+  useEffect(() => {
+    if (!open || !sectionRequest) return;
+    const index = SECTIONS.findIndex((section) => section.id === sectionRequest);
+    if (index >= 0) {
+      setActiveIndex(index);
+      if (isPhone) setPhoneSectionIndex(index);
+    }
+    setSectionRequest(null);
+  }, [open, sectionRequest, isPhone, setSectionRequest]);
 
   useEffect(() => {
     return () => {

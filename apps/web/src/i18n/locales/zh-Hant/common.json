@@ -1,6 +1,7 @@
 {
   "actions": {
     "backToLibrary": "返回書庫",
-    "dismiss": "關閉"
+    "dismiss": "關閉",
+    "openSettings": "開啟設定"
   }
 }

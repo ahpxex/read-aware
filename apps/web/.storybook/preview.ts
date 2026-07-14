@@ -1,4 +1,5 @@
 import { createElement, type ReactNode } from "react";
+import { Provider as JotaiProvider } from "jotai";
 import type { Preview } from "@storybook/react-vite";
 import { initI18n } from "../src/i18n";
 import "../src/index.css";
@@ -44,13 +45,21 @@ const preview: Preview = {
         document.documentElement.dataset.theme = theme;
         document.documentElement.style.colorScheme = theme;
       }
+      // A fresh jotai store per story mount: atom-reading components render
+      // against defaults instead of state another story left behind. (Writes
+      // that go through storage-backed atoms still hit this origin's
+      // localStorage — isolation here is for in-memory atom state.)
       return createElement(
-        "div",
-        {
-          className: "bg-paper text-fg",
-          style: { minHeight: "100vh", padding: "2rem" },
-        },
-        Story() as ReactNode,
+        JotaiProvider,
+        null,
+        createElement(
+          "div",
+          {
+            className: "bg-paper text-fg",
+            style: { minHeight: "100vh", padding: "2rem" },
+          },
+          Story() as ReactNode,
+        ),
       );
     },
   ],

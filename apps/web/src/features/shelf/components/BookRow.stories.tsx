@@ -17,15 +17,18 @@ const base: LibraryBook = {
   progressPercent: 0,
   readingStatus: "unread",
   progress: null,
+  starred: false,
 };
 
 const meta = {
-  title: "Features/Shelf/BookRow",
+  title: "Interface/Shelf/BookRow",
   component: BookRow,
   parameters: { layout: "padded" },
   args: {
     onClick: () => {},
     onRemove: () => {},
+    onToggleStar: () => {},
+    onToggleSelect: () => {},
   },
   decorators: [
     (Story) => (
@@ -39,6 +42,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/** A book in progress: cover thumbnail, title/author, and a progress bar. */
 export const Reading: Story = {
   args: {
     book: {
@@ -51,12 +55,52 @@ export const Reading: Story = {
   },
 };
 
+/** An unread book: "not started" text in place of the progress bar. */
 export const Unread: Story = {
   args: {
     book: { ...base, title: "Austerlitz", author: "W. G. Sebald" },
   },
 };
 
+/** Selection mode, not yet selected: empty checkbox, row actions hidden. */
+export const SelectingUnchecked: Story = {
+  args: {
+    book: { ...base, title: "Austerlitz", author: "W. G. Sebald" },
+    selecting: true,
+  },
+};
+
+/** Selection mode, selected: filled checkbox and tinted row background. */
+export const Selected: Story = {
+  args: {
+    book: { ...base, title: "Austerlitz", author: "W. G. Sebald" },
+    selecting: true,
+    selected: true,
+  },
+};
+
+/** A starred book: the filled star stays visible without hover. */
+export const Starred: Story = {
+  args: {
+    book: { ...base, title: "Invisible Cities", author: "Italo Calvino", starred: true },
+  },
+};
+
+/** Opening state: a delayed spinner overlays the thumbnail while the reader mounts. */
+export const Opening: Story = {
+  args: {
+    book: {
+      ...base,
+      title: "The Master and Margarita",
+      author: "Mikhail Bulgakov",
+      progressPercent: 64,
+      readingStatus: "reading",
+    },
+    opening: true,
+  },
+};
+
+/** Several rows stacked as they appear in the shelf's list layout. */
 export const List: Story = {
   args: { book: base },
   render: () => {

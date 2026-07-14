@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { WordReferenceCard } from "./WordReferenceCard";
 
 const meta = {
-  title: "Features/AI/WordReferenceCard",
+  title: "Interface/AI/References/WordReferenceCard",
   component: WordReferenceCard,
   decorators: [
     (Story) => (

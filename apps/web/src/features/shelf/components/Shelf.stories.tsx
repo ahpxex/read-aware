@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Shelf } from "./Shelf";
+import type { CollectionTileData } from "./CollectionTile";
 import type { LibraryBook } from "../../library/lib/library-types";
 
 const currentlyReading: LibraryBook[] = [
@@ -16,6 +17,7 @@ const currentlyReading: LibraryBook[] = [
     lastOpenedAt: "2026-03-13T03:00:00.000Z",
     progressPercent: 64,
     readingStatus: "reading",
+    starred: true,
     progress: {
       currentLocation: 64,
       totalLocations: 100,
@@ -63,8 +65,22 @@ const finished: LibraryBook[] = [
 
 const allBooks = [...currentlyReading, ...upNext, ...finished];
 
+// Self-contained fake covers so the collection montages need no network images.
+const fakeCover = (fill: string) =>
+  `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='360'%3E%3Crect width='240' height='360' fill='%23${fill}'/%3E%3C/svg%3E`;
+
+const collections: CollectionTileData[] = [
+  {
+    id: "c1",
+    name: "Italian Fiction",
+    count: 4,
+    coverUrls: [fakeCover("1c1917"), fakeCover("44403c"), fakeCover("78716c")],
+  },
+  { id: "c2", name: "To Read in 2026", count: 2, coverUrls: [] },
+];
+
 const meta: Meta<typeof Shelf> = {
-  title: "Features/Shelf",
+  title: "Interface/Shelf/Shelf",
   component: Shelf,
   parameters: { layout: "padded" },
   args: { onSelect: () => {}, onRemove: () => {} },
@@ -111,5 +127,44 @@ export const GroupedList: Story = {
       { label: "Up Next", books: upNext },
       { label: "Finished", books: finished },
     ],
+  },
+};
+
+/** Selection mode: unselected covers dim, checkboxes appear, a few books selected. */
+export const SelectionMode: Story = {
+  args: {
+    layout: "grid",
+    sections: [{ label: "", books: allBooks }],
+    selecting: true,
+    selectedIds: new Set(["2", "5", "8"]),
+    onToggleSelect: () => {},
+  },
+};
+
+/** Collection tiles lead the first section as grid peers of the books. */
+export const WithCollections: Story = {
+  args: {
+    layout: "grid",
+    sections: [{ label: "", books: allBooks }],
+    collections,
+    onOpenCollection: () => {},
+  },
+};
+
+/** Imports in flight: pending books render as skeleton placeholders in their sorted slots. */
+export const ImportingPending: Story = {
+  args: {
+    layout: "grid",
+    sections: [{ label: "", books: allBooks }],
+    pendingBookIds: new Set(["4", "6"]),
+  },
+};
+
+/** One book being opened: its cover shows the quiet opening spinner. */
+export const OpeningBook: Story = {
+  args: {
+    layout: "grid",
+    sections: [{ label: "", books: allBooks }],
+    openingBookId: "1",
   },
 };

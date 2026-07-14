@@ -48,7 +48,7 @@ const MINIMAL_WORD: ChatWordReference = {
 };
 
 const meta = {
-  title: "Features/AI/ReferenceStack",
+  title: "Interface/AI/References/ReferenceStack",
   component: ReferenceStack,
   decorators: [
     (Story) => (

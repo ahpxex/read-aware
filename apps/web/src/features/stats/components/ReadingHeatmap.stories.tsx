@@ -21,7 +21,7 @@ function sampleDaily(days: number, density = 5): DailyReadingMap {
 }
 
 const meta = {
-  title: "Features/Stats/ReadingHeatmap",
+  title: "Interface/Stats/ReadingHeatmap",
   component: ReadingHeatmap,
   parameters: { layout: "padded" },
   args: { now: NOW },

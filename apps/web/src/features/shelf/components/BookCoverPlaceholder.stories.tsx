@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { BookCoverPlaceholder } from "./BookCoverPlaceholder";
 
 const meta = {
-  title: "Features/Shelf/BookCoverPlaceholder",
+  title: "Interface/Shelf/BookCoverPlaceholder",
   component: BookCoverPlaceholder,
   parameters: { layout: "centered" },
 } satisfies Meta<typeof BookCoverPlaceholder>;
@@ -18,6 +18,7 @@ function Frame({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Title, author, and format badge on the deterministic spine tone. */
 export const Default: Story = {
   args: { title: "The Master and Margarita", author: "Mikhail Bulgakov", format: "epub" },
   render: (args) => (
@@ -27,6 +28,7 @@ export const Default: Story = {
   ),
 };
 
+/** A long title wrapping within the fixed 2:3 cover frame. */
 export const LongTitle: Story = {
   args: {
     title: "The Structure of Scientific Revolutions",
@@ -40,6 +42,7 @@ export const LongTitle: Story = {
   ),
 };
 
+/** Title only — no author or format metadata. */
 export const NoAuthor: Story = {
   args: { title: "Invisible Cities" },
   render: (args) => (

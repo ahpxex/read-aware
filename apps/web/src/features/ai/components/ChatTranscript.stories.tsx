@@ -68,7 +68,7 @@ const conversation: ChatMessage[] = [
 ];
 
 const meta = {
-  title: "Features/AI/ChatTranscript",
+  title: "Interface/AI/ChatTranscript",
   component: ChatTranscript,
   parameters: { layout: "fullscreen" },
   args: {

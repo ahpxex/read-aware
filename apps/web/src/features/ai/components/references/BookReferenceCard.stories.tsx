@@ -19,7 +19,7 @@ const HYDRATED: LibraryBook = {
 };
 
 const meta = {
-  title: "Features/AI/BookReferenceCard",
+  title: "Interface/AI/References/BookReferenceCard",
   component: BookReferenceCard,
   decorators: [
     (Story) => (

@@ -22,12 +22,12 @@ export const Large: Story = {
 };
 
 export const CustomColor: Story = {
-  args: { className: "text-stone-950" },
+  args: { className: "text-fg" },
 };
 
 export const WithLabel: Story = {
   render: (args) => (
-    <div className="flex items-center gap-2 text-sm text-stone-500">
+    <div className="flex items-center gap-2 text-sm text-fg-muted">
       <Spinner {...args} />
       <span>Loading your library...</span>
     </div>

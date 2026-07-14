@@ -2,9 +2,9 @@ import { Meta } from "@storybook/addon-docs/blocks";
 
 <Meta title="Design System/Guidelines/Overview" />
 
-# RadAware Design System
+# ReadAware Design System
 
-RadAware is an editorial reading application. The design language draws from print
+ReadAware is an editorial reading application. The design language draws from print
 publishing: warm paper tones, generous whitespace, serif display type, and extreme
 restraint.
 
@@ -22,17 +22,18 @@ typical software. The result feels approachable without being loud.
 **Typography does the work.** Size, weight, and spacing carry hierarchy. The
 interface stays visually spare because the type system handles structure.
 
-## The "no" list
+## Restraint in practice
 
-These elements are intentionally excluded from the design system:
-
-- No gradients
-- No badges or pills
-- No ornamental highlights or accent colors
-- No card containers with shadows
-- No rounded corners on content containers
-- No decorative icons
-- No drop shadows on overlays
+- **Badge and Tag exist, but stay quiet.** They are hairline-bordered, stone-toned
+  metadata markers -- never colored pills or attention magnets.
+- **Color is functional, never ornamental.** The two accents in the system are
+  state colors: emerald for success (`Alert` / `Toast` success variants) and red
+  for the destructive `Button` `danger` variant. Errors themselves stay in the
+  stone palette -- the `destructive` variants of `Alert` and `Toast` use a firmer
+  border and full-value title, not a red tint.
+- **One shadow in the whole system.** `Toast` floats over content and carries a
+  `shadow-sm`; everything else separates with hairline borders and fills.
+- No gradients, no ornamental highlights, no decorative icons.
 
 ## When in doubt
 
@@ -44,3 +45,10 @@ with less visual weight.
 - Use `@phosphor-icons/react` for all UI icons.
 - Avoid hand-authored inline SVG icons in feature code.
 - Icons should be functional, not decorative.
+
+## Story organization
+
+- **`Design System/…`** -- stories and docs from this package (`@read-aware/ui`):
+  components, typography, and these guideline pages.
+- **`Interface/…`** -- feature stories co-located in `apps/web` (shelf, reader,
+  context panel, …) that compose the design system into product surfaces.

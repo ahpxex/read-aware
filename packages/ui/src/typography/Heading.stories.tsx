@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Heading } from "./Heading";
 
 const meta = {
-  title: "Design System/Typography/Heading",
+  title: "Design System/Components/Typography/Heading",
   component: Heading,
   argTypes: {
     size: { control: "select", options: ["xl", "2xl", "3xl", "4xl"] },

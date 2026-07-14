@@ -19,9 +19,9 @@ export const Vertical: Story = {
     gap: "md",
     children: (
       <>
-        <div className="h-8 rounded bg-stone-200" />
-        <div className="h-8 rounded bg-stone-200" />
-        <div className="h-8 rounded bg-stone-200" />
+        <div className="h-8 rounded bg-fill-strong" />
+        <div className="h-8 rounded bg-fill-strong" />
+        <div className="h-8 rounded bg-fill-strong" />
       </>
     ),
   },
@@ -33,9 +33,9 @@ export const Horizontal: Story = {
     gap: "lg",
     children: (
       <>
-        <div className="h-8 w-20 rounded bg-stone-200" />
-        <div className="h-8 w-20 rounded bg-stone-200" />
-        <div className="h-8 w-20 rounded bg-stone-200" />
+        <div className="h-8 w-20 rounded bg-fill-strong" />
+        <div className="h-8 w-20 rounded bg-fill-strong" />
+        <div className="h-8 w-20 rounded bg-fill-strong" />
       </>
     ),
   },

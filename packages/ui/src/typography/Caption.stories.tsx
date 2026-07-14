@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Caption } from "./Caption";
 
 const meta = {
-  title: "Design System/Typography/Caption",
+  title: "Design System/Components/Typography/Caption",
   component: Caption,
   argTypes: {
     as: { control: "select", options: ["span", "p", "small"] },

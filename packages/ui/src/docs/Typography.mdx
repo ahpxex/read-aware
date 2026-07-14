@@ -4,24 +4,30 @@ import { Meta } from "@storybook/addon-docs/blocks";
 
 # Typography
 
-RadAware uses two typefaces: **Inter** (sans-serif) for UI and body text, and the
+ReadAware uses two typefaces: **Inter** (sans-serif) for UI and body text, and the
 system **serif** stack for display headings.
 
 ## Type scale
 
 | Component | Font | Size | Weight | Tracking | Leading | Color |
 |-----------|------|------|--------|----------|---------|-------|
-| Display | Serif | 5xl / 6xl / 7xl | Normal | Tight | 0.98 | stone-950 |
-| Heading | Sans | xl / 2xl / 3xl / 4xl | Semibold | Tight | Default | stone-950 |
-| Body | Sans | base / lg | Normal | Default | 2rem | stone-700 |
-| Eyebrow | Sans | 13px | Medium | Default | Default | stone-500 |
-| Caption | Sans | 12px | Normal | Default | Default | stone-500 |
+| Display | Serif | 5xl / 6xl / 7xl | Normal | Tight | 0.98 | `text-fg` |
+| Heading | Sans | xl / 2xl / 3xl / 4xl | Semibold | Tight | Default | `text-fg` |
+| Body | Sans | base / lg | Normal | Default | 2rem | `text-fg` |
+| Eyebrow | Sans | 11px | Medium | Default | Default | `text-fg-muted` |
+| Caption | Sans | 12px | Normal | Default | Default | `text-fg-muted` |
+
+Colors are the semantic tokens from the Colors guideline, so the whole type
+system adapts to the dark theme for free -- no `dark:` variants needed.
 
 ## Design tokens
 
+Font sizes live in Tailwind v4's `--text-*` theme namespace (there is no
+`--font-size-*` namespace):
+
 ```
---font-size-eyebrow: 0.6875rem   (11px)
---font-size-caption: 0.75rem     (12px)
+--text-eyebrow: 0.6875rem   (11px)
+--text-caption: 0.75rem     (12px)
 --leading-display: 0.98
 --leading-body: 2rem
 ```

@@ -28,7 +28,7 @@ export const WithIcon: Story = {
   args: {
     icon: <BookIcon />,
     title: "Your shelf is empty",
-    description: "Add your first book to get started with RadAware.",
+    description: "Add your first book to get started with ReadAware.",
   },
 };
 

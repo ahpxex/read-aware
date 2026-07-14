@@ -3,9 +3,9 @@ import { Accordion } from "./Accordion";
 
 const faqItems = [
   {
-    label: "What is RadAware?",
+    label: "What is ReadAware?",
     content:
-      "RadAware is an AI-native reading application designed for context-rich reading and AI-assisted understanding.",
+      "ReadAware is an AI-native reading application designed for context-rich reading and AI-assisted understanding.",
   },
   {
     label: "How does the shelf work?",

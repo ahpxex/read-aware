@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Body } from "./Body";
 
 const meta = {
-  title: "Design System/Typography/Body",
+  title: "Design System/Components/Typography/Body",
   component: Body,
   argTypes: {
     size: { control: "select", options: ["base", "lg"] },

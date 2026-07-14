@@ -12,7 +12,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   render: () => (
     <ScrollArea className="h-48 w-64 border border-border p-4">
-      <div className="flex flex-col gap-2 font-sans text-sm text-stone-700">
+      <div className="flex flex-col gap-2 font-sans text-sm text-fg-muted">
         {Array.from({ length: 20 }, (_, i) => (
           <p key={i}>Item {i + 1}</p>
         ))}
@@ -28,7 +28,7 @@ export const Horizontal: Story = {
         {Array.from({ length: 12 }, (_, i) => (
           <div
             key={i}
-            className="flex h-12 w-16 shrink-0 items-center justify-center bg-stone-100 font-sans text-caption text-stone-500"
+            className="flex h-12 w-16 shrink-0 items-center justify-center bg-fill font-sans text-caption text-fg-muted"
           >
             {i + 1}
           </div>

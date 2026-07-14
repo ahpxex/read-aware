@@ -15,7 +15,7 @@ export const SingleKey: Story = {
 
 export const Combination: Story = {
   render: () => (
-    <span className="flex items-center gap-1 text-sm text-stone-500">
+    <span className="flex items-center gap-1 text-sm text-fg-muted">
       <Kbd>Cmd</Kbd>
       <span>+</span>
       <Kbd>K</Kbd>
@@ -26,7 +26,7 @@ export const Combination: Story = {
 
 export const InContext: Story = {
   render: () => (
-    <p className="text-sm text-stone-700">
+    <p className="text-sm text-fg-muted">
       Press <Kbd>Esc</Kbd> to close or <Kbd>Cmd</Kbd>+<Kbd>Enter</Kbd> to
       confirm.
     </p>

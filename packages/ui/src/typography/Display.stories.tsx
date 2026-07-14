@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Display } from "./Display";
 
 const meta = {
-  title: "Design System/Typography/Display",
+  title: "Design System/Components/Typography/Display",
   component: Display,
   argTypes: {
     size: { control: "select", options: ["5xl", "6xl", "7xl"] },

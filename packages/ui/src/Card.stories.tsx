@@ -19,10 +19,10 @@ export const Outlined: Story = {
     children: (
       <>
         <Card.Header>
-          <p className="font-sans text-[13px] font-medium text-stone-500">
+          <p className="font-sans text-[13px] font-medium text-fg-muted">
             Chapter 1
           </p>
-          <h3 className="mt-1 text-lg font-semibold tracking-tight text-stone-950">
+          <h3 className="mt-1 text-lg font-semibold tracking-tight text-fg">
             The White Album
           </h3>
         </Card.Header>
@@ -42,7 +42,7 @@ export const Filled: Story = {
     children: (
       <>
         <Card.Header>
-          <h3 className="text-lg font-semibold tracking-tight text-stone-950">
+          <h3 className="text-lg font-semibold tracking-tight text-fg">
             Reading progress
           </h3>
         </Card.Header>
@@ -59,7 +59,7 @@ export const WithFooter: Story = {
     children: (
       <>
         <Card.Header>
-          <h3 className="text-lg font-semibold tracking-tight text-stone-950">
+          <h3 className="text-lg font-semibold tracking-tight text-fg">
             Remove from shelf?
           </h3>
         </Card.Header>
@@ -98,7 +98,7 @@ export const AsArticle: Story = {
     children: (
       <>
         <Card.Header>
-          <h3 className="text-lg font-semibold tracking-tight text-stone-950">
+          <h3 className="text-lg font-semibold tracking-tight text-fg">
             Semantic HTML
           </h3>
         </Card.Header>

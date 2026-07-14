@@ -4,57 +4,61 @@ import { Meta } from "@storybook/addon-docs/blocks";
 
 # Colors
 
-RadAware uses a deliberately limited palette. The foundation is a warm paper tone
-with Tailwind's `stone` scale for text and UI elements.
+ReadAware's palette is built from **semantic, theme-adaptive tokens** defined in
+the `@theme` block of `apps/web/src/index.css`. Components reference the semantic
+tokens (`text-fg`, `bg-surface`, `border-border-strong`, …) instead of raw
+`stone-*` shades, so every surface inverts automatically when
+`html[data-theme="dark"]` swaps the token values.
 
-## Paper tones
+## Semantic tokens
 
-<div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
-  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem" }}>
-    <div style={{ width: 80, height: 80, backgroundColor: "#f5f1e8", border: "1px solid rgba(28,25,23,0.1)" }} />
-    <code style={{ fontSize: 12 }}>paper</code>
-    <span style={{ fontSize: 11, color: "#78716c" }}>#f5f1e8</span>
-  </div>
-  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem" }}>
-    <div style={{ width: 80, height: 80, backgroundColor: "#eee8d5", border: "1px solid rgba(28,25,23,0.1)" }} />
-    <code style={{ fontSize: 12 }}>paper-warm</code>
-    <span style={{ fontSize: 11, color: "#78716c" }}>#eee8d5</span>
-  </div>
-</div>
-
-## Stone scale (Tailwind built-in)
+| Token | Utility | Light | Dark | Role |
+|-------|---------|-------|------|------|
+| `--color-fg` | `text-fg` | `#1c1917` | `#f5f5f4` | Primary text, solid button fill |
+| `--color-fg-muted` | `text-fg-muted` | `#57534e` | `#a8a29e` | Secondary text, labels, captions |
+| `--color-fg-subtle` | `text-fg-subtle` | `#a8a29e` | `#78716c` | Tertiary text, placeholders |
+| `--color-inverse-fg` | `text-inverse-fg` | `#fafaf9` | `#1c1917` | Text on `fg`-colored fills |
+| `--color-surface` | `bg-surface` | `#ffffff` | `#322d29` | Raised surfaces (cards, popovers) |
+| `--color-fill` | `bg-fill` | `#f5f5f4` | `#292524` | Quiet fills, hover washes |
+| `--color-fill-strong` | `bg-fill-strong` | `#e7e5e4` | `#44403c` | Firmer fills (kbd, inline code) |
+| `--color-border` | `border-border` | `rgb(28 25 23 / 0.1)` | `rgb(231 229 228 / 0.12)` | Hairline dividers |
+| `--color-border-strong` | `border-border-strong` | `#d6d3d1` | `rgb(231 229 228 / 0.18)` | Firmer borders (inputs, emphasis) |
+| `--color-paper` | `bg-paper` | `#f5f1e8` | `#1c1917` | App canvas |
+| `--color-paper-warm` | `bg-paper-warm` | `#eee8d5` | `#292524` | Warm canvas variation |
 
 <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem", flexWrap: "wrap" }}>
-  {[
-    { name: "50", hex: "#fafaf9" },
-    { name: "100", hex: "#f5f5f4" },
-    { name: "200", hex: "#e7e5e4" },
-    { name: "300", hex: "#d6d3d1" },
-    { name: "400", hex: "#a8a29e" },
-    { name: "500", hex: "#78716c" },
-    { name: "600", hex: "#57534e" },
-    { name: "700", hex: "#44403c" },
-    { name: "800", hex: "#292524" },
-    { name: "900", hex: "#1c1917" },
-    { name: "950", hex: "#0c0a09" },
-  ].map((c) => (
-    <div key={c.name} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.25rem" }}>
-      <div style={{ width: 48, height: 48, backgroundColor: c.hex, border: "1px solid rgba(28,25,23,0.1)" }} />
-      <span style={{ fontSize: 10, color: "#78716c" }}>{c.name}</span>
+  {["fg", "fg-muted", "fg-subtle", "inverse-fg", "surface", "fill", "fill-strong", "border-strong", "paper", "paper-warm"].map((t) => (
+    <div key={t} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.25rem" }}>
+      <div style={{ width: 56, height: 56, backgroundColor: `var(--color-${t})`, border: "1px solid var(--color-border)" }} />
+      <code style={{ fontSize: 10, color: "var(--color-fg-muted)" }}>{t}</code>
     </div>
   ))}
 </div>
 
-## Border
+The swatches above are painted with the live `var(--color-*)` values -- flip the
+theme toolbar control and they follow.
 
-The standard border color is `border-border` which resolves to `rgb(28 25 23 / 0.1)` --
-stone-900 at 10% opacity. This keeps dividers visible but quiet.
+## Dark theme
 
-## Usage guidelines
+`html[data-theme="dark"]` (set by the in-app appearance control, not the OS media
+query) overrides every token above. There is no second component API for dark
+mode: a component written against the semantic tokens is dark-ready by
+construction. **Never hardcode raw `stone-*` classes in components or story
+harnesses** -- they do not invert and break one of the two themes.
 
-- **Backgrounds:** Use `bg-paper` for primary surfaces. Use `bg-paper-warm` sparingly
-  for subtle differentiation.
-- **Text:** `stone-950` for primary text, `stone-700` for body copy, `stone-500` for
-  secondary labels and captions.
-- **No accent colors.** The palette is intentionally monochrome. Color, if ever
-  introduced, should be used with extreme restraint.
+## Functional accents
+
+Two colors exist outside the stone range, both strictly functional:
+
+- **Emerald** for success (`Alert` / `Toast` `success` variants).
+- **Red** for the destructive `Button` `danger` variant.
+
+Errors themselves are not red: the `destructive` variants of `Alert` and `Toast`
+stay in the stone palette (firmer border, full-value title). No other accent
+color may be introduced without a state to justify it.
+
+## Verifying
+
+The **Design System/Guidelines/Theme Audit** story renders every control on one
+token-driven canvas. Use it (with the theme toolbar toggle) to confirm nothing
+goes dark-on-dark or light-on-light.

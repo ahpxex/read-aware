@@ -34,10 +34,13 @@ export function DataSyncPanel() {
         description: t("dataSync.exportSuccess", { file: BACKUP_FILENAME }),
       });
     } catch (error) {
+      // The localized line is the user-facing message; the raw error goes to
+      // the console for diagnostics instead of leaking English into the toast.
+      console.error("[data-sync] export failed", error);
       toast({
         variant: "destructive",
         title: t("dataSync.noticeError"),
-        description: error instanceof Error ? error.message : t("dataSync.exportError"),
+        description: t("dataSync.exportError"),
       });
     } finally {
       setBusy(false);
@@ -60,10 +63,11 @@ export function DataSyncPanel() {
       });
       window.setTimeout(() => window.location.reload(), 900);
     } catch (error) {
+      console.error("[data-sync] import failed", error);
       toast({
         variant: "destructive",
         title: t("dataSync.noticeError"),
-        description: error instanceof Error ? error.message : t("dataSync.importError"),
+        description: t("dataSync.importError"),
       });
       setBusy(false);
     }

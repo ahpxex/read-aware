@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAtomValue } from "jotai";
+import { useTranslation } from "../../../i18n";
 import { useLocalAtom } from "@read-aware/ui/state";
 import { askAiRequestAtom } from "../../ai/state/chat-intent";
 import { getStoredBookFile, markLibraryBookOpened, updateLibraryBookProgress } from "../../library/lib/library-db";
@@ -28,6 +29,8 @@ export function useReaderSession({
   replaceBookInState,
   reportError,
 }: UseReaderSessionOptions) {
+  // For localizing load-failure fallbacks (formatLibraryError's generic line).
+  const { t } = useTranslation("shelf");
   const [selectedBook, setSelectedBook] = useState<LibraryBook | null>(null);
   const [readerSource, setReaderSource] = useState<ReaderSource>(null);
   const [readerLoadError, setReaderLoadError] = useState<string | null>(null);
@@ -160,11 +163,11 @@ export function useReaderSession({
           });
       } catch (error) {
         if (readerLoadRequestIdRef.current !== requestId) return;
-        setReaderLoadError(formatLibraryError(error));
+        setReaderLoadError(formatLibraryError(error, t));
         setIsReaderLoading(false);
       }
     })();
-  }, [replaceBookInState, reportError, resetReaderState, setShellVisible]);
+  }, [replaceBookInState, reportError, resetReaderState, setShellVisible, t]);
 
   const closeReader = useCallback(() => {
     readerLoadRequestIdRef.current += 1;

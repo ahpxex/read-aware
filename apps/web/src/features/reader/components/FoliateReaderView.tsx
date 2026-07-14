@@ -2091,7 +2091,7 @@ export function FoliateReaderView({
 
       {error && (
         <div className="absolute inset-0 flex items-center justify-center bg-inherit px-8 text-center">
-          <Body className="max-w-md text-sm text-red-800">{error}</Body>
+          <Body className="max-w-md text-sm text-fg-muted">{error}</Body>
         </div>
       )}
 

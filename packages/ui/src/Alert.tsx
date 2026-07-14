@@ -9,17 +9,18 @@ type AlertProps = {
   className?: string;
 };
 
+// Errors stay in the editorial stone palette — a firmer border and full-value
+// title carry the weight; no tinted fills (the house style bans loud panels).
 const variantClasses = {
   default: "border-border text-fg-muted",
-  destructive:
-    "border-red-200 bg-red-50 text-red-900 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200",
+  destructive: "border-border-strong bg-fill/60 text-fg-muted",
   success:
     "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200",
 };
 
 const titleClasses = {
   default: "text-fg",
-  destructive: "text-red-950 dark:text-red-100",
+  destructive: "text-fg",
   success: "text-emerald-950 dark:text-emerald-100",
 };
 

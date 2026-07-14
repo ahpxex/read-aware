@@ -55,6 +55,9 @@ type UseSentenceNavigatorOptions = {
    *  (the overlayer keys drawings by CFI, so leaving a sentence the user
    *  highlighted verbatim would otherwise erase their mark's visual). */
   restoreAnnotationAt: (cfiRange: string) => void;
+  /** The reader's page color — the fill of the dimming veil drawn around the
+   *  resting sentence so the rest of the page recedes while navigating. */
+  veilColor: string;
 };
 
 const normalizeText = (value: string) => value.replace(/\s+/g, " ").trim();
@@ -78,6 +81,7 @@ export function useSentenceNavigator({
   readerRootRef,
   crossSection,
   restoreAnnotationAt,
+  veilColor,
 }: UseSentenceNavigatorOptions): SentenceNavigator {
   const [current, setCurrent] = useState<NavigatorSentence | null>(null);
   const [canReturn, setCanReturn] = useState(false);
@@ -103,6 +107,19 @@ export function useSentenceNavigator({
   useEffect(() => { crossSectionRef.current = crossSection; }, [crossSection]);
   const restoreAnnotationAtRef = useRef(restoreAnnotationAt);
   useEffect(() => { restoreAnnotationAtRef.current = restoreAnnotationAt; }, [restoreAnnotationAt]);
+  // A theme change swaps the veil color but does NOT rebuild the overlayer —
+  // the drawn annotation keeps the options it was added with. Re-apply the
+  // wash in place (add on an existing CFI replaces the drawing) so the veil
+  // doesn't keep washing the page with the previous theme's paper color.
+  const veilColorRef = useRef(veilColor);
+  useEffect(() => {
+    veilColorRef.current = veilColor;
+    if (!activeRef.current) return;
+    const view = viewRef.current;
+    const cfi = appliedCfiRef.current;
+    if (!view || !cfi) return;
+    applyNavigatorHighlight(view, cfi, veilColor);
+  }, [veilColor, viewRef]);
 
   const setResting = useCallback((resting: NavigatorResting | null) => {
     restingRef.current = resting;
@@ -187,7 +204,7 @@ export function useSentenceNavigator({
       persistState();
       if (cfi) {
         appliedCfiRef.current = cfi;
-        applyNavigatorHighlight(view, cfi);
+        applyNavigatorHighlight(view, cfi, veilColorRef.current);
       }
       setCurrent({ text: normalizeText(range.toString()), cfiRange: cfi });
       if (scroll && !rangeFullyVisible(range)) {
@@ -363,7 +380,7 @@ export function useSentenceNavigator({
     const view = viewRef.current;
     const cfi = appliedCfiRef.current;
     if (!view || !cfi) return;
-    applyNavigatorHighlight(view, cfi);
+    applyNavigatorHighlight(view, cfi, veilColorRef.current);
   }, [viewRef]);
 
   // Bring the reader back to the resting sentence. Same section: re-apply the

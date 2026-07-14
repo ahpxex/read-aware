@@ -97,29 +97,68 @@ function drawNote(
   return group;
 }
 
+/** How strongly the focus veil washes the surrounding text toward the page
+ *  color. Tuned visually: context stays readable, the resting sentence just
+ *  reads a clear step brighter. */
+const VEIL_OPACITY = "0.6";
+/** The veil's outer bounds — far past any section's layout, so one fixed
+ *  path covers the whole overlay without measuring it. */
+const VEIL_EXTENT = 1e6;
+
+/**
+ * The dimming veil around the navigator's sentence: one page-toned translucent
+ * path covering everything except windows over the sentence's line boxes. The
+ * overlay SVG paints above the text, so the fill reads as the text fading into
+ * the page. Windows are cut with counterclockwise subpaths under the nonzero
+ * fill rule — overlapping line boxes merge instead of XOR-ing back to filled
+ * (which fill-rule="evenodd" would do).
+ */
+function drawNavigatorVeil(rects: DOMRect[], color: string): SVGPathElement {
+  let d = `M ${-VEIL_EXTENT} ${-VEIL_EXTENT} H ${VEIL_EXTENT} V ${VEIL_EXTENT} H ${-VEIL_EXTENT} Z`;
+  for (const rect of rects) {
+    const x = rect.left - 4;
+    const y = rect.top - 2;
+    const w = rect.width + 8;
+    const h = rect.height + 4;
+    d += ` M ${x} ${y} v ${h} h ${w} v ${-h} Z`;
+  }
+  const veil = document.createElementNS(SVG_NS, "path");
+  veil.setAttribute("d", d);
+  veil.setAttribute("fill", color);
+  veil.setAttribute("fill-rule", "nonzero");
+  veil.style.opacity = VEIL_OPACITY;
+  return veil;
+}
+
 /**
  * The sentence navigator's current-sentence wash: soft rounded rects behind the
  * text. Deliberately quieter than a highlight (lower opacity, stone tint) —
- * it marks a reading position, not saved content.
+ * it marks a reading position, not saved content. When a veil color is given
+ * (the reader's page color), everything around the sentence is additionally
+ * washed toward the page so the resting sentence carries the focus.
  */
 function drawNavigatorSentence(
   rects: Iterable<DOMRect>,
   options: { color?: string } = {},
 ): SVGGElement {
-  const { color = NAVIGATOR_FILL } = options;
+  const { color: veilColor } = options;
   const group = document.createElementNS(SVG_NS, "g");
-  group.setAttribute("fill", color);
-  group.style.opacity = "0.25";
-  for (const rect of rects) {
-    if (rect.width < 1) continue;
+  const lineRects = Array.from(rects).filter((rect) => rect.width >= 1);
+  // No line boxes to spare — drawing the veil would dim the sentence itself.
+  if (veilColor && lineRects.length) group.append(drawNavigatorVeil(lineRects, veilColor));
+  const wash = document.createElementNS(SVG_NS, "g");
+  wash.setAttribute("fill", NAVIGATOR_FILL);
+  wash.style.opacity = "0.25";
+  for (const rect of lineRects) {
     const el = document.createElementNS(SVG_NS, "rect");
     el.setAttribute("x", String(rect.left - 2));
     el.setAttribute("y", String(rect.top - 1));
     el.setAttribute("width", String(rect.width + 4));
     el.setAttribute("height", String(rect.height + 2));
     el.setAttribute("rx", "3");
-    group.append(el);
+    wash.append(el);
   }
+  group.append(wash);
   return group;
 }
 
@@ -183,13 +222,18 @@ export function applyNotes(view: FoliateView, notes: Note[], highlights: Highlig
 }
 
 /**
- * Draw the sentence navigator's wash over the sentence at `cfiRange`. Rendered
- * through the same overlayer as marks, so it follows the text through page
- * turns, scrolling, and re-layout for free.
+ * Draw the sentence navigator's wash over the sentence at `cfiRange` — plus,
+ * when `veilColor` (the reader's page color) is given, the dimming veil over
+ * everything else. Rendered through the same overlayer as marks, so it follows
+ * the text through page turns, scrolling, and re-layout for free.
  */
-export function applyNavigatorHighlight(view: FoliateView, cfiRange: string): void {
+export function applyNavigatorHighlight(
+  view: FoliateView,
+  cfiRange: string,
+  veilColor?: string,
+): void {
   void view
-    .addAnnotation({ value: cfiRange, style: "navigator" })
+    .addAnnotation({ value: cfiRange, style: "navigator", color: veilColor })
     .catch(() => {
       // CFI may not resolve in the current layout — foliate ignores it.
     });

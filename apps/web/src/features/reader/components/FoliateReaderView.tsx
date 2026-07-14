@@ -73,6 +73,7 @@ import {
   buildReaderContentCss,
   computeReaderMaxInlineSize,
   readerGapForMargins,
+  READER_THEME_BG,
 } from "../../settings/lib/reader-css";
 import type { ReaderSettings, ReadingMode } from "../../settings/lib/reader-settings";
 import { curatedFontId, DEFAULT_READER_SETTINGS } from "../../settings/lib/reader-settings";
@@ -889,6 +890,7 @@ export function FoliateReaderView({
     readerRootRef,
     crossSection: navigatorCrossSection,
     restoreAnnotationAt,
+    veilColor: READER_THEME_BG[readerSettings.theme],
   });
   // The engine's mount-once effect and the stable key handler reach the
   // navigator through this ref (its identity changes every render).

@@ -38,7 +38,7 @@ export const UserTurnWithAttachment: Story = {
   },
 };
 
-/** A settled assistant turn: the run of ≥2 consecutive tool parts folds behind "N steps", prose follows. */
+/** A settled assistant turn: thinking, each tool call as its own row, prose after. */
 export const SettledAssistantTurn: Story = {
   args: {
     message: {

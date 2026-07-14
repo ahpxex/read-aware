@@ -1,9 +1,7 @@
-import { groupSettledParts, type AssistantRenderItem } from "../lib/chat-stream";
 import type { ChatAssistantPart, ChatMessage } from "../lib/chat-types";
 import { AttachmentChip } from "./AttachmentChip";
 import { ChatMessageActions, ChatMessageError } from "./ChatMessageActions";
 import { ChatThinking } from "./ChatThinking";
-import { ChatToolGroup } from "./ChatToolGroup";
 import { ChatToolStep } from "./ChatToolStep";
 import { Markdown } from "./Markdown";
 import { ReferenceStack } from "./references/ReferenceStack";
@@ -11,9 +9,10 @@ import { ReferenceStack } from "./references/ReferenceStack";
 /**
  * One turn in the conversation. User turns sit right-aligned in a quiet chip
  * (with any attached passages above); assistant turns read as a left-aligned
- * timeline — thinking disclosures, tool-step rows and reference-card stacks
- * interleaved with Markdown prose, in the order they happened — closer to a
- * reading companion than a messaging app.
+ * timeline — thinking disclosures, individual tool-step rows and
+ * reference-card stacks interleaved with Markdown prose, in the order they
+ * happened — closer to a reading companion than a messaging app. Streaming
+ * and settled turns render identically; nothing folds after the fact.
  *
  * Every settled message grows a hover-revealed action row (copy; regenerate
  * when `onRetry` is passed — the transcript only passes it on the last
@@ -60,19 +59,9 @@ export function ChatMessageItem({
         : [];
   const lastIndex = parts.length - 1;
 
-  // Streaming: every part renders live, in order — the intermediate process.
-  // Settled: consecutive tool runs fold behind a "N steps" disclosure.
-  const items: AssistantRenderItem[] = streaming
-    ? parts.map((part, index) => ({ kind: "part", part, index }))
-    : groupSettledParts(parts);
-
   return (
     <div className="group/message flex max-w-full flex-col gap-2">
-      {items.map((item) => {
-        if (item.kind === "tool-group") {
-          return <ChatToolGroup key={item.parts[0].id} parts={item.parts} />;
-        }
-        const { part, index } = item;
+      {parts.map((part, index) => {
         if (part.type === "tool") {
           return <ChatToolStep key={part.id} part={part} />;
         }

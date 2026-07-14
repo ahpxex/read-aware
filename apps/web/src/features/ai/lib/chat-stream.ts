@@ -2,41 +2,7 @@ import type {
   ChatAssistantPart,
   ChatReference,
   ChatStreamChunk,
-  ChatToolPart,
 } from "./chat-types";
-
-/**
- * Render-shaping for a settled assistant message: runs of ≥2 consecutive tool
- * parts fold into one group (a single quiet row stays as it is). Streaming
- * turns skip this — the live rows ARE the intermediate process the reader
- * watches; folding happens when the message settles.
- */
-export type AssistantRenderItem =
-  | { kind: "part"; part: ChatAssistantPart; index: number }
-  | { kind: "tool-group"; parts: ChatToolPart[] };
-
-export function groupSettledParts(parts: ChatAssistantPart[]): AssistantRenderItem[] {
-  const items: AssistantRenderItem[] = [];
-  let run: Array<{ part: ChatToolPart; index: number }> = [];
-  const flush = () => {
-    if (run.length >= 2) {
-      items.push({ kind: "tool-group", parts: run.map((entry) => entry.part) });
-    } else {
-      for (const entry of run) items.push({ kind: "part", part: entry.part, index: entry.index });
-    }
-    run = [];
-  };
-  parts.forEach((part, index) => {
-    if (part.type === "tool") {
-      run.push({ part, index });
-      return;
-    }
-    flush();
-    items.push({ kind: "part", part, index });
-  });
-  flush();
-  return items;
-}
 
 /**
  * "Never present the same item twice in one reply" is a stated tool rule, but

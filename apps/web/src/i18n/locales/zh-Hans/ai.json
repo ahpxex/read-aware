@@ -8,7 +8,6 @@
     "loadingConversation": "正在加载对话",
     "thinking": "思考中…",
     "thought": "思考过程",
-    "steps": "{{count}} 个步骤",
     "tools": {
       "search_memory": "正在回忆",
       "remember": "正在记下这一点",

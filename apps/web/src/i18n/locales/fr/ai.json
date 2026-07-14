@@ -8,7 +8,6 @@
     "loadingConversation": "Chargement de la conversation",
     "thinking": "Réflexion…",
     "thought": "Cheminement de pensée",
-    "steps": "{{count}} étapes",
     "tools": {
       "search_memory": "Rappel des souvenirs",
       "remember": "Enregistrement d'un souvenir",

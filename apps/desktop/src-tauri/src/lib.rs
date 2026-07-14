@@ -575,6 +575,16 @@ fn boot_theme_script(theme: &str) -> String {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Our reqwest `rustls-no-provider` feature choice unifies onto every other
+    // reqwest build in the tree — including wry's Android dev-server proxy
+    // (RustWebViewClient.shouldInterceptRequest), which constructs a plain
+    // `reqwest::Client`. Without a process-wide crypto provider that
+    // construction is an abort (a panic in a nounwind JNI frame), killing the
+    // app on its first intercepted request. Install ring once, up front — the
+    // same provider android_update.rs configures explicitly for the updater.
+    #[cfg(target_os = "android")]
+    let _ = rustls::crypto::ring::default_provider().install_default();
+
     let builder = tauri::Builder::default();
     // Desktop-only window chrome (macOS traffic-light repositioning); the
     // crate is not compiled for Android/iOS, where the webview is fullscreen.

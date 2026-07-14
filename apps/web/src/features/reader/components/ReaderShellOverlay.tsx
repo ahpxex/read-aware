@@ -9,6 +9,7 @@ import { ChatPanel } from "../../ai/components/ChatPanel";
 import { askAiRequestAtom } from "../../ai/state/chat-intent";
 import { useBookAnnotations } from "../../annotations/hooks/useBookAnnotations";
 import type { LibraryBook } from "../../library/lib/library-types";
+import { useBackInterceptor } from "../../../hooks/useBackInterceptor";
 import { hrefMatches } from "../lib/epub-utils";
 import { useReaderPanelLayout } from "../hooks/useReaderPanelLayout";
 import { useReaderPanelSizes } from "../hooks/useReaderPanelSizes";
@@ -85,6 +86,23 @@ export function ReaderShellOverlay({
     setNotesOpen(next);
     if (next && isPhone) setTocOpen(false);
   };
+
+  // Android back gesture: a phone full-screen sheet is a deeper layer, so back
+  // closes it (chat first — it renders on top) instead of unwinding the whole
+  // reader back to the shelf. Docked desktop/tablet panels don't occlude the
+  // page, so there back keeps its usual close-the-book meaning.
+  useBackInterceptor(() => {
+    if (!visible || !isPhone) return false;
+    if (notesOpen) {
+      setNotesOpen(false);
+      return true;
+    }
+    if (tocOpen) {
+      setTocOpen(false);
+      return true;
+    }
+    return false;
+  });
 
   // The book's highlights and notes, shown in a popover opened from the header.
   // Kept live as marks are made via the shared revision in useBookAnnotations.

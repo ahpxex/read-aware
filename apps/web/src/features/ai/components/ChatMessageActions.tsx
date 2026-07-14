@@ -5,13 +5,13 @@
  * so a bare group here would pin every tooltip open on message hover.
  * `ChatMessageError` is the always-visible failure notice on a failed turn — a
  * compact rounded block in the assistant timeline, kept in the app's quiet
- * stone palette (the icon and title carry the semantics; no red tint): a short
- * title, the failure detail allowed to wrap (clamped, full text on hover), and
- * the recovery actions. A recognized failure code renders localized copy and
- * its fix (e.g. not-configured → open Settings → AI) instead of the raw
- * thrown message.
+ * stone palette (typography carries the semantics; no icon, no red tint): the
+ * title line with retry on its right, then the failure detail allowed to wrap
+ * (clamped, full text on hover). A recognized failure code renders localized
+ * copy with its fix inline at the end of the sentence (e.g. not-configured →
+ * an "open settings" link) instead of the raw thrown message.
  */
-import { ArrowsClockwise, Check, Copy, WarningCircle } from "@phosphor-icons/react";
+import { ArrowsClockwise, Check, Copy } from "@phosphor-icons/react";
 import { useSetAtom } from "jotai";
 import { Button, IconButton, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
@@ -94,53 +94,51 @@ export function ChatMessageError({
   const notConfigured = code === AI_NOT_CONFIGURED;
   // For a recognized code the localized copy replaces the raw message; for
   // anything else the raw detail IS the actionable part — let it wrap instead
-  // of truncating, clamped so a stack trace can't swallow the panel.
+  // of truncating, clamped so a stack trace can't swallow the panel. (Known
+  // codes carry one short sentence, so the inline fix link never clamps.)
   const detail = notConfigured ? t("ai:chat.error.notConfigured") : message;
   return (
     <div
       role="alert"
-      className="flex max-w-full items-start gap-2.5 rounded-lg border border-border bg-fill/60 py-2.5 pl-3 pr-2"
+      className="max-w-full rounded-lg border border-border bg-fill/60 px-3.5 py-2.5"
     >
-      <WarningCircle
-        size={15}
-        aria-hidden="true"
-        className="mt-0.5 shrink-0 text-fg-subtle"
-      />
-      <div className="min-w-0 flex-1">
+      <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-medium leading-5 text-fg">
           {t("ai:chat.message.failed")}
         </p>
-        <p
-          className="mt-0.5 line-clamp-3 text-xs leading-relaxed text-fg-muted [overflow-wrap:anywhere]"
-          title={detail}
-        >
-          {detail}
-        </p>
-        {notConfigured && (
+        {onRetry && (
           <Button
             size="sm"
-            variant="outline"
-            className="mt-2 h-7 px-2.5 text-xs"
-            onClick={() => {
-              setSettingsSection("ai");
-              setSettingsOpen(true);
-            }}
+            variant="ghost"
+            onClick={onRetry}
+            className="-my-1 -mr-1.5 h-7 shrink-0 gap-1 px-2 text-xs text-fg-muted hover:text-fg"
           >
-            {t("common:actions.openSettings")}
+            <ArrowsClockwise size={13} aria-hidden="true" />
+            {t("ai:chat.message.retry")}
           </Button>
         )}
       </div>
-      {onRetry && (
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={onRetry}
-          className="-mt-0.5 h-7 shrink-0 gap-1 px-2 text-xs text-fg-muted hover:text-fg"
-        >
-          <ArrowsClockwise size={13} aria-hidden="true" />
-          {t("ai:chat.message.retry")}
-        </Button>
-      )}
+      <p
+        className="mt-0.5 line-clamp-3 text-xs leading-relaxed text-fg-muted [overflow-wrap:anywhere]"
+        title={detail}
+      >
+        {detail}
+        {notConfigured && (
+          <>
+            {" "}
+            <Button
+              variant="link"
+              onClick={() => {
+                setSettingsSection("ai");
+                setSettingsOpen(true);
+              }}
+              className="h-auto p-0 align-baseline text-xs underline underline-offset-2"
+            >
+              {t("common:actions.openSettings")}
+            </Button>
+          </>
+        )}
+      </p>
     </div>
   );
 }

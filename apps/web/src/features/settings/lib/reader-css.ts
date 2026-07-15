@@ -197,6 +197,24 @@ export function buildReaderContentCss(settings: ReaderSettings, fontFaceCss = ""
       text-align: start !important;
     }
 
+    /* Publisher stylesheets routinely declare font-family directly on p / h1 /
+       div / classes (often naming an embedded font), which beats inheritance
+       from body — so the picked font must be forced onto every element, not
+       just the root. :where() keeps specificity at the bare "body" level so
+       the monospace and MathML exceptions below can still win by source order.
+       (foliate appends this sheet after the publisher's, so equal-specificity
+       !important conflicts also resolve our way.) */
+    body :where(*) {
+      font-family: ${fontFamily} !important;
+    }
+
+    /* MathML draws from the UA's math font; forcing a text face breaks
+       formula rendering, so revert the override inside math subtrees. */
+    math,
+    math :where(*) {
+      font-family: revert !important;
+    }
+
     body > * {
       max-width: 100% !important;
     }
@@ -322,10 +340,19 @@ export function buildReaderContentCss(settings: ReaderSettings, fontFaceCss = ""
       margin: 0.4em 0 0 0 !important;
     }
 
+    /* Must stay below the body-wide font-family override: equal specificity,
+       so these win by source order. pre is listed for its bare text nodes —
+       the UA's monospace default loses to the author-important override. */
+    pre,
     code,
     kbd,
     samp {
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace !important;
+    }
+
+    code,
+    kbd,
+    samp {
       font-size: 0.875em !important;
     }
 

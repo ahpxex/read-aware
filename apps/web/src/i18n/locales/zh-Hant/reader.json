@@ -56,7 +56,9 @@
     "granularityOption": {
       "sentence": "逐句",
       "paragraph": "逐段"
-    }
+    },
+    "moreActions": "更多操作",
+    "collapseActions": "收起操作"
   },
   "recolor": "改為{{color}}",
   "colors": {

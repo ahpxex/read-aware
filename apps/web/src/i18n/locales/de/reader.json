@@ -56,7 +56,9 @@
     "granularityOption": {
       "sentence": "Satzweise",
       "paragraph": "Absatzweise"
-    }
+    },
+    "moreActions": "Weitere Aktionen",
+    "collapseActions": "Aktionen einklappen"
   },
   "recolor": "In {{color}} umfärben",
   "colors": {

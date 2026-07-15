@@ -56,7 +56,9 @@
     "granularityOption": {
       "sentence": "文ごと",
       "paragraph": "段落ごと"
-    }
+    },
+    "moreActions": "その他の操作",
+    "collapseActions": "操作を折りたたむ"
   },
   "recolor": "{{color}}に色を変更",
   "colors": {

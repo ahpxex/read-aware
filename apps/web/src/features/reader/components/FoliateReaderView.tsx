@@ -1165,11 +1165,19 @@ export function FoliateReaderView({
 
     // While tap-to-advance is on, rapid stepping clicks must not turn into a
     // word-selecting double-click (selection is mousedown's default action at
-    // detail > 1). Drag and long-press selection still work, and the resting
-    // unit already carries copy/annotate actions for precise grabs.
+    // detail > 1) — except over a drawn range (the navigator's resting wash or
+    // a user mark), where single clicks don't step anyway (the click handler's
+    // hit test swallows them), so double-click keeps selecting words there.
+    // Drag and long-press selection still work everywhere.
     doc.addEventListener("mousedown", (event) => {
       if (!navigatorActiveStateRef.current || !tapToAdvanceRef.current) return;
-      if (event.detail > 1) event.preventDefault();
+      if (event.detail <= 1) return;
+      const hit = viewRef.current?.renderer
+        ?.getContents?.()
+        .find((content) => content.index === index)
+        ?.overlayer?.hitTest({ x: event.clientX, y: event.clientY });
+      if (hit && hit[0]) return;
+      event.preventDefault();
     }, true);
 
     doc.addEventListener("pointermove", (event) => {

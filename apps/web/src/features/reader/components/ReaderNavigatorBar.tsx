@@ -7,6 +7,7 @@ import {
   Copy,
   Crosshair,
   DotsSixVertical,
+  DotsThree,
   Highlighter,
   Layout,
   NotePencil,
@@ -15,12 +16,17 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
-import type { RefObject } from "react";
-import { IconButton } from "@read-aware/ui";
+import type { ReactElement, RefObject } from "react";
+import { IconButton, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
+import { hasCoarsePointer } from "../../../platform/environment";
 import { useAskAiEnabled } from "../../ai/hooks/useAskAiEnabled";
 import { useDraggableFloat } from "../hooks/useDraggableFloat";
+import {
+  readNavigatorBarExpanded,
+  writeNavigatorBarExpanded,
+} from "../lib/navigator-prefs";
 import type { NavigatorGranularity } from "../lib/sentence-index";
 
 type ReaderNavigatorBarProps = {
@@ -55,13 +61,47 @@ function BarDivider() {
   return <span aria-hidden="true" className="mx-0.5 h-5 w-px shrink-0 bg-border" />;
 }
 
+/** Icon-button-with-tooltip — every control in the bar reads the same way. */
+function BarButton({
+  label,
+  disabled,
+  pressed,
+  onClick,
+  icon,
+  className,
+}: {
+  label: string;
+  disabled?: boolean;
+  pressed?: boolean;
+  onClick: () => void;
+  icon: ReactElement;
+  className: string;
+}) {
+  return (
+    <Tooltip content={label} side="top">
+      <IconButton
+        label={label}
+        size="sm"
+        disabled={disabled}
+        aria-pressed={pressed}
+        onClick={onClick}
+        className={cn(className, pressed && "bg-fill-strong text-fg")}
+        icon={icon}
+      />
+    </Tooltip>
+  );
+}
+
 /**
  * The sentence navigator's floating control strip — by default pinned to the
  * bottom center of the reader: step to the previous / next sentence, jump back
- * to the resting sentence, plus the selection menu's actions applied to the
- * sentence the wash is resting on. On coarse-pointer devices the step buttons
- * move out to their own thumb-sized floats (ReaderNavigatorStepButtons) and
- * the bar grows a grip that drags it anywhere; the spot sticks per device.
+ * to the resting sentence, switch the step unit, plus the selection menu's
+ * actions applied to the sentence the wash is resting on. The action cluster
+ * collapses behind a "more" toggle (collapsed by default on touch screens,
+ * where the full strip crowds the page); the choice sticks per device. On
+ * coarse-pointer devices the step buttons move out to their own thumb-sized
+ * floats (ReaderNavigatorStepButtons) and the bar grows a grip that drags it
+ * anywhere; the spot sticks per device.
  */
 export function ReaderNavigatorBar({
   visible,
@@ -86,6 +126,9 @@ export function ReaderNavigatorBar({
   const askEnabled = useAskAiEnabled();
   const copyResetTimeoutRef = useRef<number | null>(null);
   const [copied, setCopied] = useState(false);
+  const [expanded, setExpanded] = useState(() =>
+    readNavigatorBarExpanded(!hasCoarsePointer()),
+  );
   const float = useDraggableFloat({ containerRef, controlId: "navigator-bar" });
 
   useEffect(() => {
@@ -117,6 +160,13 @@ export function ReaderNavigatorBar({
       setCopied(false);
       copyResetTimeoutRef.current = null;
     }, 1200);
+  }
+
+  function toggleExpanded() {
+    setExpanded((value) => {
+      writeNavigatorBarExpanded(!value);
+      return !value;
+    });
   }
 
   const hasSentence = sentenceKey != null;
@@ -157,18 +207,14 @@ export function ReaderNavigatorBar({
           </span>
 
           <div className="flex items-center gap-0.5 pointer-coarse:hidden">
-            <IconButton
+            <BarButton
               label={t("navigator.prevSentence")}
-              title={t("navigator.prevSentence")}
-              size="sm"
               onClick={onPrev}
               className={actionButtonClass}
               icon={<CaretLeft size={16} weight="regular" aria-hidden="true" />}
             />
-            <IconButton
+            <BarButton
               label={t("navigator.nextSentence")}
-              title={t("navigator.nextSentence")}
-              size="sm"
               onClick={onNext}
               className={actionButtonClass}
               icon={<CaretRight size={16} weight="regular" aria-hidden="true" />}
@@ -176,111 +222,106 @@ export function ReaderNavigatorBar({
             <BarDivider />
           </div>
 
-          <IconButton
+          <BarButton
             label={t("navigator.returnToSentence")}
-            title={t("navigator.returnToSentence")}
-            size="sm"
             disabled={!canReturn}
             onClick={onReturnToSentence}
             className={actionButtonClass}
             icon={<Crosshair size={14} weight="regular" aria-hidden="true" />}
           />
-
-          <BarDivider />
-          <IconButton
-            label={copied ? t("menu.copied") : t("menu.copy")}
-            title={copied ? t("menu.copied") : t("menu.copy")}
-            size="sm"
-            disabled={!hasSentence}
-            onClick={() => {
-              void handleCopy();
-            }}
-            className={cn(actionButtonClass, copied && "bg-fill-strong text-fg")}
-            icon={
-              copied ? (
-                <Check size={14} weight="regular" aria-hidden="true" />
-              ) : (
-                <Copy size={14} weight="regular" aria-hidden="true" />
-              )
-            }
-          />
-          <IconButton
-            label={t("menu.highlight")}
-            title={t("menu.highlight")}
-            size="sm"
-            disabled={!hasSentence}
-            onClick={onHighlight}
+          <BarButton
+            label={t("navigator.paragraphMode")}
+            pressed={granularity === "paragraph"}
+            onClick={onToggleGranularity}
             className={actionButtonClass}
-            icon={<Highlighter size={14} weight="regular" aria-hidden="true" />}
-          />
-          <IconButton
-            label={t("menu.underline")}
-            title={t("menu.underline")}
-            size="sm"
-            disabled={!hasSentence}
-            onClick={onUnderline}
-            className={actionButtonClass}
-            icon={<TextUnderline size={14} weight="regular" aria-hidden="true" />}
-          />
-          <IconButton
-            label={t("menu.addNote")}
-            title={t("menu.addNote")}
-            size="sm"
-            disabled={!hasSentence}
-            onClick={onAddNote}
-            className={actionButtonClass}
-            icon={<NotePencil size={14} weight="regular" aria-hidden="true" />}
+            icon={<Paragraph size={14} weight="regular" aria-hidden="true" />}
           />
 
-          <BarDivider />
-          <IconButton
-            label={t("menu.lookUp")}
-            title={t("menu.lookUp")}
-            size="sm"
-            disabled={!hasSentence}
-            onClick={onLookUp}
-            className={actionButtonClass}
-            icon={<BookOpen size={14} weight="regular" aria-hidden="true" />}
-          />
-          {askEnabled && (
-            <IconButton
-              label={t("menu.askAi")}
-              title={t("menu.askAi")}
-              size="sm"
-              disabled={!hasSentence}
-              onClick={onAskAI}
-              className={actionButtonClass}
-              icon={<ChatCircleDots size={14} weight="regular" aria-hidden="true" />}
-            />
+          {expanded && (
+            <>
+              <BarDivider />
+              <BarButton
+                label={copied ? t("menu.copied") : t("menu.copy")}
+                disabled={!hasSentence}
+                pressed={copied}
+                onClick={() => {
+                  void handleCopy();
+                }}
+                className={actionButtonClass}
+                icon={
+                  copied ? (
+                    <Check size={14} weight="regular" aria-hidden="true" />
+                  ) : (
+                    <Copy size={14} weight="regular" aria-hidden="true" />
+                  )
+                }
+              />
+              <BarButton
+                label={t("menu.highlight")}
+                disabled={!hasSentence}
+                onClick={onHighlight}
+                className={actionButtonClass}
+                icon={<Highlighter size={14} weight="regular" aria-hidden="true" />}
+              />
+              <BarButton
+                label={t("menu.underline")}
+                disabled={!hasSentence}
+                onClick={onUnderline}
+                className={actionButtonClass}
+                icon={<TextUnderline size={14} weight="regular" aria-hidden="true" />}
+              />
+              <BarButton
+                label={t("menu.addNote")}
+                disabled={!hasSentence}
+                onClick={onAddNote}
+                className={actionButtonClass}
+                icon={<NotePencil size={14} weight="regular" aria-hidden="true" />}
+              />
+
+              <BarDivider />
+              <BarButton
+                label={t("menu.lookUp")}
+                disabled={!hasSentence}
+                onClick={onLookUp}
+                className={actionButtonClass}
+                icon={<BookOpen size={14} weight="regular" aria-hidden="true" />}
+              />
+              {askEnabled && (
+                <BarButton
+                  label={t("menu.askAi")}
+                  disabled={!hasSentence}
+                  onClick={onAskAI}
+                  className={actionButtonClass}
+                  icon={<ChatCircleDots size={14} weight="regular" aria-hidden="true" />}
+                />
+              )}
+            </>
           )}
 
           <BarDivider />
-          <IconButton
-            label={t("navigator.paragraphMode")}
-            title={t("navigator.paragraphMode")}
-            size="sm"
-            aria-pressed={granularity === "paragraph"}
-            onClick={onToggleGranularity}
-            className={cn(
-              actionButtonClass,
-              granularity === "paragraph" && "bg-fill-strong text-fg",
-            )}
-            icon={<Paragraph size={14} weight="regular" aria-hidden="true" />}
-          />
-          <IconButton
+          <Tooltip
+            content={expanded ? t("navigator.collapseActions") : t("navigator.moreActions")}
+            side="top"
+          >
+            <IconButton
+              label={expanded ? t("navigator.collapseActions") : t("navigator.moreActions")}
+              size="sm"
+              aria-expanded={expanded}
+              onClick={toggleExpanded}
+              className={cn(actionButtonClass, expanded && "bg-fill-strong text-fg")}
+              icon={<DotsThree size={16} weight="bold" aria-hidden="true" />}
+            />
+          </Tooltip>
+          <BarButton
             label={t("navigator.showToolbars")}
-            title={t("navigator.showToolbars")}
-            size="sm"
             onClick={onToggleToolbars}
             className={actionButtonClass}
             icon={<Layout size={14} weight="regular" aria-hidden="true" />}
           />
 
           <BarDivider />
-          <IconButton
+          <BarButton
             label={t("navigator.exit")}
-            title={t("navigator.exit")}
-            size="sm"
             onClick={onExit}
             className={actionButtonClass}
             icon={<X size={14} weight="regular" aria-hidden="true" />}

@@ -56,7 +56,9 @@
     "granularityOption": {
       "sentence": "Por frase",
       "paragraph": "Por párrafo"
-    }
+    },
+    "moreActions": "Más acciones",
+    "collapseActions": "Contraer acciones"
   },
   "recolor": "Cambiar a color {{color}}",
   "colors": {

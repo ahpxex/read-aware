@@ -1,7 +1,10 @@
 # Release builds — run ONLY when a version tag (v*) is pushed.
-# Android: signed arm64 APK. Desktop: macOS universal .dmg, Windows x64
-# .msi/.exe, Linux x64 .AppImage/.deb/.rpm. Every job attaches its bundles to
-# the GitHub release for the tag (created on first upload).
+# Android: signed arm64 APK. Desktop: macOS .dmg/.app.zip per chip (Apple
+# Silicon + Intel, no universal), Windows x64 .msi/.exe, Linux x64
+# .AppImage/.deb/.rpm. Every artifact is renamed to carry its platform
+# (ReadAware-vX.Y.Z-<platform>-<arch>.<ext>) before it is attached to the
+# GitHub release for the tag (created on first upload). The updater-manifest
+# job then assembles latest.json from the uploaded updater payloads.
 #
 # Android signing comes from two repository secrets:
 #   ANDROID_KEYSTORE_B64      — base64 of the release keystore (.jks)
@@ -84,7 +87,7 @@ jobs:
 
       - name: Prepare update artifacts
         run: |
-          APK="ReadAware-${{ github.ref_name }}-arm64.apk"
+          APK="ReadAware-${{ github.ref_name }}-android-arm64.apk"
           cp apps/desktop/src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk "$APK"
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
           "$APKSIGNER" verify --verbose "$APK"
@@ -100,8 +103,9 @@ jobs:
       - name: Attach to release
         uses: softprops/action-gh-release@v2
         with:
+          name: ReadAware ${{ github.ref_name }}
           files: |
-            ReadAware-${{ github.ref_name }}-arm64.apk
+            ReadAware-${{ github.ref_name }}-android-arm64.apk
             latest-android.json
           generate_release_notes: true
 
@@ -111,14 +115,17 @@ jobs:
       matrix:
         include:
           - os: macos-latest
-            target: universal-apple-darwin
-            rust-targets: aarch64-apple-darwin,x86_64-apple-darwin
+            target: aarch64-apple-darwin
+            platform: macos-arm64
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            platform: macos-x64
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            rust-targets: x86_64-unknown-linux-gnu
+            platform: linux-x64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            rust-targets: x86_64-pc-windows-msvc
+            platform: windows-x64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -134,11 +141,12 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.rust-targets }}
+          targets: ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: apps/desktop/src-tauri
+          key: ${{ matrix.target }}
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -152,15 +160,109 @@ jobs:
             exit 1
           fi
 
-      - name: Build and attach signed desktop update artifacts
-        uses: tauri-apps/tauri-action@v1
+      - name: Build desktop bundles
+        working-directory: apps/desktop
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: bun run tauri build --target ${{ matrix.target }}
+
+      # One naming scheme for everything on the release page:
+      #   ReadAware-vX.Y.Z-<platform>-<arch>.<ext>
+      # macOS additionally ships the .app as a plain .zip alongside the .dmg.
+      # The .app.tar.gz (+ .sig) files are the signed updater payloads that
+      # latest.json points at — renamed to the same scheme, they stay per-chip.
+      - name: Collect release assets
+        shell: bash
+        run: |
+          BUNDLE="apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle"
+          BASE="ReadAware-${{ github.ref_name }}-${{ matrix.platform }}"
+          mkdir -p release-assets
+          case "${{ matrix.platform }}" in
+            macos-*)
+              cp "$BUNDLE"/dmg/*.dmg "release-assets/$BASE.dmg"
+              ditto -c -k --sequesterRsrc --keepParent "$BUNDLE/macos/ReadAware.app" "release-assets/$BASE.zip"
+              cp "$BUNDLE"/macos/*.app.tar.gz "release-assets/$BASE.app.tar.gz"
+              cp "$BUNDLE"/macos/*.app.tar.gz.sig "release-assets/$BASE.app.tar.gz.sig"
+              ;;
+            linux-*)
+              cp "$BUNDLE"/appimage/*.AppImage "release-assets/$BASE.AppImage"
+              cp "$BUNDLE"/appimage/*.AppImage.sig "release-assets/$BASE.AppImage.sig"
+              cp "$BUNDLE"/deb/*.deb "release-assets/$BASE.deb"
+              cp "$BUNDLE"/deb/*.deb.sig "release-assets/$BASE.deb.sig"
+              cp "$BUNDLE"/rpm/*.rpm "release-assets/$BASE.rpm"
+              cp "$BUNDLE"/rpm/*.rpm.sig "release-assets/$BASE.rpm.sig"
+              ;;
+            windows-*)
+              cp "$BUNDLE"/nsis/*-setup.exe "release-assets/$BASE-setup.exe"
+              cp "$BUNDLE"/nsis/*-setup.exe.sig "release-assets/$BASE-setup.exe.sig"
+              cp "$BUNDLE"/msi/*.msi "release-assets/$BASE.msi"
+              cp "$BUNDLE"/msi/*.msi.sig "release-assets/$BASE.msi.sig"
+              ;;
+          esac
+          ls -la release-assets
+
+      - name: Attach to release
+        uses: softprops/action-gh-release@v2
         with:
-          projectPath: apps/desktop
-          tagName: ${{ github.ref_name }}
-          releaseName: ReadAware ${{ github.ref_name }}
-          generateReleaseNotes: true
-          args: --target ${{ matrix.target }}
+          name: ReadAware ${{ github.ref_name }}
+          files: release-assets/*
+          generate_release_notes: true
+
+  # latest.json must exist once, after every desktop artifact is uploaded —
+  # composing it in a dedicated job avoids the cross-job merge races the
+  # per-job approach would have. Mirrors the platform-key shape tauri-action
+  # produced, with darwin split per chip now that universal is gone.
+  updater-manifest:
+    needs: desktop
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Compose and upload latest.json
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          BASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}"
+          mkdir sigs && cd sigs
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern '*.sig'
+          cd ..
+          PUB_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" TAG="$TAG" VERSION="$VERSION" BASE_URL="$BASE_URL" python3 - <<'EOF'
+          import json, os
+
+          tag = os.environ["TAG"]
+          base = os.environ["BASE_URL"]
+
+          def entry(name):
+              with open(f"sigs/{name}.sig", encoding="utf-8") as f:
+                  return {"signature": f.read(), "url": f"{base}/{name}"}
+
+          arm = entry(f"ReadAware-{tag}-macos-arm64.app.tar.gz")
+          intel = entry(f"ReadAware-{tag}-macos-x64.app.tar.gz")
+          appimage = entry(f"ReadAware-{tag}-linux-x64.AppImage")
+          deb = entry(f"ReadAware-{tag}-linux-x64.deb")
+          rpm = entry(f"ReadAware-{tag}-linux-x64.rpm")
+          msi = entry(f"ReadAware-{tag}-windows-x64.msi")
+          nsis = entry(f"ReadAware-{tag}-windows-x64-setup.exe")
+
+          manifest = {
+              "version": os.environ["VERSION"],
+              "notes": "",
+              "pub_date": os.environ["PUB_DATE"],
+              "platforms": {
+                  "darwin-aarch64": arm,
+                  "darwin-x86_64": intel,
+                  "linux-x86_64": appimage,
+                  "linux-x86_64-appimage": appimage,
+                  "linux-x86_64-deb": deb,
+                  "linux-x86_64-rpm": rpm,
+                  "windows-x86_64": msi,
+                  "windows-x86_64-msi": msi,
+                  "windows-x86_64-nsis": nsis,
+              },
+          }
+          with open("latest.json", "w", encoding="utf-8") as f:
+              json.dump(manifest, f, indent=2)
+          EOF
+          python3 -m json.tool latest.json
+          gh release upload "$TAG" latest.json --repo "$GITHUB_REPOSITORY" --clobber

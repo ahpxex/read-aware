@@ -57,11 +57,16 @@ fn validate_manifest(manifest: &AndroidUpdateManifest) -> Result<(), String> {
 
     let url = reqwest::Url::parse(&manifest.url)
         .map_err(|err| format!("Invalid Android update URL: {err}"))?;
-    let expected_path =
+    // Release assets carry the platform in the name since v0.2.8; the legacy
+    // name stays accepted so an older manifest (or a rollback) still validates.
+    let expected_path = format!(
+        "/ahpxex/read-aware/releases/download/v{version}/ReadAware-v{version}-android-arm64.apk"
+    );
+    let legacy_path =
         format!("/ahpxex/read-aware/releases/download/v{version}/ReadAware-v{version}-arm64.apk");
     if url.scheme() != "https"
         || url.host_str() != Some("github.com")
-        || url.path() != expected_path
+        || (url.path() != expected_path && url.path() != legacy_path)
         || url.query().is_some()
         || url.fragment().is_some()
     {
@@ -139,7 +144,7 @@ async fn download_apk(
         .app_cache_dir()
         .map_err(|err| format!("Failed to locate the Android update cache: {err}"))?
         .join("updates");
-    let apk_path = update_dir.join(format!("ReadAware-v{}-arm64.apk", manifest.version));
+    let apk_path = update_dir.join(format!("ReadAware-v{}-android-arm64.apk", manifest.version));
 
     if let Ok(bytes) = std::fs::read(&apk_path) {
         let digest = format!("{:x}", Sha256::digest(&bytes));

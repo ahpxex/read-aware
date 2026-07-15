@@ -68,6 +68,11 @@ function toLink(
  * Map release assets to per-platform downloads. Signatures (`.sig`), the updater
  * manifests (`.json`), and the macOS `.app.tar.gz` (an updater payload, not a
  * user installer) are filtered out; installers are matched by extension.
+ *
+ * macOS ships per chip since v0.2.8 (`-macos-arm64` / `-macos-x64`); Apple
+ * Silicon leads and the Intel build is the alternative. A release predating
+ * the split (a single universal `.dmg`) still resolves through the plain
+ * extension match.
  */
 export function buildDownloads(assets: ReleaseAsset[]): PlatformDownload[] {
   const installers = assets.filter(
@@ -77,6 +82,8 @@ export function buildDownloads(assets: ReleaseAsset[]): PlatformDownload[] {
       !/\.app\.tar\.gz$/i.test(asset.name),
   );
 
+  const dmgAppleSilicon = pick(installers, /macos-arm64\.dmg$/i);
+  const dmgIntel = pick(installers, /macos-x64\.dmg$/i);
   const dmg = pick(installers, /\.dmg$/i);
   const exe = pick(installers, /-setup\.exe$/i) ?? pick(installers, /\.exe$/i);
   const msi = pick(installers, /\.msi$/i);
@@ -89,8 +96,12 @@ export function buildDownloads(assets: ReleaseAsset[]): PlatformDownload[] {
     {
       id: "macos",
       name: "macOS",
-      primary: toLink(dmg, "Download .dmg"),
-      extras: [],
+      primary:
+        toLink(dmgAppleSilicon, "Download .dmg (Apple Silicon)") ??
+        toLink(dmg, "Download .dmg"),
+      extras: [toLink(dmgIntel, "Intel .dmg")].filter(
+        (l): l is DownloadLink => l !== null,
+      ),
     },
     {
       id: "windows",

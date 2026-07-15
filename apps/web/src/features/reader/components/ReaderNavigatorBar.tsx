@@ -23,11 +23,13 @@ import { useTranslation } from "../../../i18n";
 import { hasCoarsePointer } from "../../../platform/environment";
 import { useAskAiEnabled } from "../../ai/hooks/useAskAiEnabled";
 import { useDraggableFloat } from "../hooks/useDraggableFloat";
-import {
-  readNavigatorBarExpanded,
-  writeNavigatorBarExpanded,
-} from "../lib/navigator-prefs";
 import type { NavigatorGranularity } from "../lib/sentence-index";
+
+// Collapsing is a touch-only affordance — desktop has room for the full strip
+// and always shows it. The choice lives for the session only (module scope so
+// it survives the bar remounting between books); a restart returns to the
+// collapsed default rather than writing UI minutiae into storage.
+let expandedCache: boolean | null = null;
 
 type ReaderNavigatorBarProps = {
   visible: boolean;
@@ -126,8 +128,9 @@ export function ReaderNavigatorBar({
   const askEnabled = useAskAiEnabled();
   const copyResetTimeoutRef = useRef<number | null>(null);
   const [copied, setCopied] = useState(false);
+  const collapsible = hasCoarsePointer();
   const [expanded, setExpanded] = useState(() =>
-    readNavigatorBarExpanded(!hasCoarsePointer()),
+    collapsible ? expandedCache ?? false : true,
   );
   const float = useDraggableFloat({ containerRef, controlId: "navigator-bar" });
 
@@ -164,7 +167,7 @@ export function ReaderNavigatorBar({
 
   function toggleExpanded() {
     setExpanded((value) => {
-      writeNavigatorBarExpanded(!value);
+      expandedCache = !value;
       return !value;
     });
   }
@@ -299,10 +302,7 @@ export function ReaderNavigatorBar({
           )}
 
           <BarDivider />
-          <Tooltip
-            content={expanded ? t("navigator.collapseActions") : t("navigator.moreActions")}
-            side="top"
-          >
+          {collapsible && (
             <IconButton
               label={expanded ? t("navigator.collapseActions") : t("navigator.moreActions")}
               size="sm"
@@ -311,7 +311,7 @@ export function ReaderNavigatorBar({
               className={cn(actionButtonClass, expanded && "bg-fill-strong text-fg")}
               icon={<DotsThree size={16} weight="bold" aria-hidden="true" />}
             />
-          </Tooltip>
+          )}
           <BarButton
             label={t("navigator.showToolbars")}
             onClick={onToggleToolbars}

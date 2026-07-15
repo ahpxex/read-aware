@@ -113,29 +113,6 @@ export function writeNavigatorBehaviorPrefs(prefs: NavigatorBehaviorPrefs): void
   }
 }
 
-// Whether the floating bar shows its full action set or just the navigation
-// essentials. Per device, like the float positions — how much bar fits
-// comfortably is a screen trait, not user data worth syncing.
-const BAR_EXPANDED_KEY = "read-aware-navigator-bar-expanded";
-
-export function readNavigatorBarExpanded(defaultValue: boolean): boolean {
-  try {
-    const raw = localKV.getItem(BAR_EXPANDED_KEY);
-    if (raw == null) return defaultValue;
-    return raw === "true";
-  } catch {
-    return defaultValue;
-  }
-}
-
-export function writeNavigatorBarExpanded(expanded: boolean): void {
-  try {
-    localKV.setItem(BAR_EXPANDED_KEY, String(expanded));
-  } catch {
-    // Ignore persistence failures — the in-session state still applies.
-  }
-}
-
 /** Center of a floating control, as fractions of the reader viewport (0..1). */
 export type FloatPosition = { x: number; y: number };
 

@@ -16,6 +16,7 @@ import { useAtom } from "jotai";
 import { IconButton, ScrollArea } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { usePhoneViewport } from "@read-aware/ui/media";
+import { useBackInterceptor } from "../../hooks/useBackInterceptor";
 import { useTranslation } from "../../i18n";
 import { settingsSectionRequestAtom, type SettingsSectionId } from "../../state/ui";
 import { AboutPanel } from "./sections/AboutPanel";
@@ -73,6 +74,16 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   // The list page only animates when returning from a panel, not on open.
   const returnedFromPanelRef = useRef(false);
   const [sectionRequest, setSectionRequest] = useAtom(settingsSectionRequestAtom);
+
+  // Android back gesture: a drilled-in section is a deeper layer, so back
+  // returns to the section list; at the list level the event falls through and
+  // the app-level handler closes the dialog itself.
+  useBackInterceptor(() => {
+    if (!open || !isPhone || phoneSectionIndex == null) return false;
+    returnedFromPanelRef.current = true;
+    setPhoneSectionIndex(null);
+    return true;
+  });
 
   useEffect(() => {
     if (closeTimerRef.current != null) {

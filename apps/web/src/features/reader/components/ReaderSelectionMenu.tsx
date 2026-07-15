@@ -8,7 +8,7 @@ import {
   TextUnderline,
 } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
-import { IconButton } from "@read-aware/ui";
+import { IconButton, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import { useAskAiEnabled } from "../../ai/hooks/useAskAiEnabled";
@@ -94,69 +94,75 @@ export function ReaderSelectionMenu({
         className="ra-motion-overlay-pop pointer-events-auto absolute flex max-w-[calc(100vw-1.25rem)] flex-wrap items-center gap-0.5 rounded-lg border border-border bg-[var(--ra-main-surface-color)] p-1 shadow-[0_4px_16px_-6px_rgba(28,25,23,0.25)]"
         style={position}
       >
-        <IconButton
-          label={copied ? t("menu.copied") : t("menu.copySelection")}
-          title={copied ? t("menu.copied") : t("menu.copySelection")}
-          size="sm"
-          onClick={() => {
-            void handleCopy();
-          }}
-          className={cn(actionButtonClass, copied && "bg-fill-strong text-fg")}
-          icon={
-            copied ? (
-              <Check size={14} weight="regular" aria-hidden="true" />
-            ) : (
-              <Copy size={14} weight="regular" aria-hidden="true" />
-            )
-          }
-        />
+        <Tooltip content={copied ? t("menu.copied") : t("menu.copySelection")} side="top">
+          <IconButton
+            label={copied ? t("menu.copied") : t("menu.copySelection")}
+            size="sm"
+            onClick={() => {
+              void handleCopy();
+            }}
+            className={cn(actionButtonClass, copied && "bg-fill-strong text-fg")}
+            icon={
+              copied ? (
+                <Check size={14} weight="regular" aria-hidden="true" />
+              ) : (
+                <Copy size={14} weight="regular" aria-hidden="true" />
+              )
+            }
+          />
+        </Tooltip>
 
         {allowAnnotations && (
           <>
             <MenuDivider />
-            <IconButton
-              label={t("menu.highlight")}
-              title={t("menu.highlight")}
-              size="sm"
-              onClick={() => onHighlight?.()}
-              className={actionButtonClass}
-              icon={<Highlighter size={14} weight="regular" aria-hidden="true" />}
-            />
-            <IconButton
-              label={t("menu.underline")}
-              title={t("menu.underline")}
-              size="sm"
-              onClick={() => onUnderline?.()}
-              className={actionButtonClass}
-              icon={<TextUnderline size={14} weight="regular" aria-hidden="true" />}
-            />
-            <IconButton
-              label={t("menu.addNote")}
-              title={t("menu.addNote")}
-              size="sm"
-              onClick={() => onAddNote?.()}
-              className={actionButtonClass}
-              icon={<NotePencil size={14} weight="regular" aria-hidden="true" />}
-            />
+            <Tooltip content={t("menu.highlight")} side="top">
+              <IconButton
+                label={t("menu.highlight")}
+                size="sm"
+                onClick={() => onHighlight?.()}
+                className={actionButtonClass}
+                icon={<Highlighter size={14} weight="regular" aria-hidden="true" />}
+              />
+            </Tooltip>
+            <Tooltip content={t("menu.underline")} side="top">
+              <IconButton
+                label={t("menu.underline")}
+                size="sm"
+                onClick={() => onUnderline?.()}
+                className={actionButtonClass}
+                icon={<TextUnderline size={14} weight="regular" aria-hidden="true" />}
+              />
+            </Tooltip>
+            <Tooltip content={t("menu.addNote")} side="top">
+              <IconButton
+                label={t("menu.addNote")}
+                size="sm"
+                onClick={() => onAddNote?.()}
+                className={actionButtonClass}
+                icon={<NotePencil size={14} weight="regular" aria-hidden="true" />}
+              />
+            </Tooltip>
 
             <MenuDivider />
-            <IconButton
-              label={t("menu.lookUp")}
-              title={t("menu.lookUp")}
-              size="sm"
-              onClick={() => onLookUp?.()}
-              className={actionButtonClass}
-              icon={<BookOpen size={14} weight="regular" aria-hidden="true" />}
-            />
-            {askEnabled && (
+            <Tooltip content={t("menu.lookUp")} side="top">
               <IconButton
-                label={t("menu.askAi")}
-                title={t("menu.askAi")}
+                label={t("menu.lookUp")}
                 size="sm"
-                onClick={() => onAskAI?.()}
+                onClick={() => onLookUp?.()}
                 className={actionButtonClass}
-                icon={<ChatCircleDots size={14} weight="regular" aria-hidden="true" />}
+                icon={<BookOpen size={14} weight="regular" aria-hidden="true" />}
               />
+            </Tooltip>
+            {askEnabled && (
+              <Tooltip content={t("menu.askAi")} side="top">
+                <IconButton
+                  label={t("menu.askAi")}
+                  size="sm"
+                  onClick={() => onAskAI?.()}
+                  className={actionButtonClass}
+                  icon={<ChatCircleDots size={14} weight="regular" aria-hidden="true" />}
+                />
+              </Tooltip>
             )}
           </>
         )}

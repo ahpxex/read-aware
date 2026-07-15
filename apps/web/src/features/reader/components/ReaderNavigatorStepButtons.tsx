@@ -62,7 +62,6 @@ export function ReaderNavigatorStepButtons({
         >
           <IconButton
             label={t("navigator.prevSentence")}
-            title={t("navigator.prevSentence")}
             size="md"
             onClick={step(onPrev)}
             className={stepButtonClass}
@@ -71,7 +70,6 @@ export function ReaderNavigatorStepButtons({
           <span aria-hidden="true" className="mx-0.5 h-6 w-px shrink-0 bg-border" />
           <IconButton
             label={t("navigator.nextSentence")}
-            title={t("navigator.nextSentence")}
             size="md"
             onClick={step(onNext)}
             className={stepButtonClass}

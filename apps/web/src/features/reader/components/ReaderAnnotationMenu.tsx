@@ -7,7 +7,7 @@ import {
   Trash,
 } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
-import { IconButton } from "@read-aware/ui";
+import { IconButton, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import { useAskAiEnabled } from "../../ai/hooks/useAskAiEnabled";
@@ -101,77 +101,82 @@ export function ReaderAnnotationMenu({
         style={position}
       >
         {COLOR_OPTIONS.map((color) => (
-          <button
-            key={color}
-            type="button"
-            aria-label={t("recolor", { color: t(`colors.${color}`) })}
-            title={t(`colors.${color}`)}
-            onClick={() => onRecolor(color)}
-            className="flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
-          >
-            <span
-              className={cn(
-                "block h-4 w-4 rounded-full ring-1 ring-inset",
-                color === activeColor ? "ring-fg" : "ring-black/15 dark:ring-white/20",
-              )}
-              style={{ backgroundColor: HIGHLIGHT_COLORS[color] }}
-            />
-          </button>
+          <Tooltip key={color} content={t(`colors.${color}`)} side="top">
+            <button
+              type="button"
+              aria-label={t("recolor", { color: t(`colors.${color}`) })}
+              onClick={() => onRecolor(color)}
+              className="flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
+            >
+              <span
+                className={cn(
+                  "block h-4 w-4 rounded-full ring-1 ring-inset",
+                  color === activeColor ? "ring-fg" : "ring-black/15 dark:ring-white/20",
+                )}
+                style={{ backgroundColor: HIGHLIGHT_COLORS[color] }}
+              />
+            </button>
+          </Tooltip>
         ))}
 
         <MenuDivider />
-        <IconButton
-          label={t("menu.addNote")}
-          title={t("menu.addNote")}
-          size="sm"
-          onClick={onAddNote}
-          className={actionButtonClass}
-          icon={<NotePencil size={14} weight="regular" aria-hidden="true" />}
-        />
-        <IconButton
-          label={t("menu.lookUp")}
-          title={t("menu.lookUp")}
-          size="sm"
-          onClick={onLookUp}
-          className={actionButtonClass}
-          icon={<BookOpen size={14} weight="regular" aria-hidden="true" />}
-        />
-        <IconButton
-          label={copied ? t("menu.copied") : t("menu.copy")}
-          title={copied ? t("menu.copied") : t("menu.copy")}
-          size="sm"
-          onClick={() => {
-            void handleCopy();
-          }}
-          className={cn(actionButtonClass, copied && "bg-fill-strong text-fg")}
-          icon={
-            copied ? (
-              <Check size={14} weight="regular" aria-hidden="true" />
-            ) : (
-              <Copy size={14} weight="regular" aria-hidden="true" />
-            )
-          }
-        />
-        {askEnabled && (
+        <Tooltip content={t("menu.addNote")} side="top">
           <IconButton
-            label={t("menu.askAi")}
-            title={t("menu.askAi")}
+            label={t("menu.addNote")}
             size="sm"
-            onClick={onAskAI}
+            onClick={onAddNote}
             className={actionButtonClass}
-            icon={<ChatCircleDots size={14} weight="regular" aria-hidden="true" />}
+            icon={<NotePencil size={14} weight="regular" aria-hidden="true" />}
           />
+        </Tooltip>
+        <Tooltip content={t("menu.lookUp")} side="top">
+          <IconButton
+            label={t("menu.lookUp")}
+            size="sm"
+            onClick={onLookUp}
+            className={actionButtonClass}
+            icon={<BookOpen size={14} weight="regular" aria-hidden="true" />}
+          />
+        </Tooltip>
+        <Tooltip content={copied ? t("menu.copied") : t("menu.copy")} side="top">
+          <IconButton
+            label={copied ? t("menu.copied") : t("menu.copy")}
+            size="sm"
+            onClick={() => {
+              void handleCopy();
+            }}
+            className={cn(actionButtonClass, copied && "bg-fill-strong text-fg")}
+            icon={
+              copied ? (
+                <Check size={14} weight="regular" aria-hidden="true" />
+              ) : (
+                <Copy size={14} weight="regular" aria-hidden="true" />
+              )
+            }
+          />
+        </Tooltip>
+        {askEnabled && (
+          <Tooltip content={t("menu.askAi")} side="top">
+            <IconButton
+              label={t("menu.askAi")}
+              size="sm"
+              onClick={onAskAI}
+              className={actionButtonClass}
+              icon={<ChatCircleDots size={14} weight="regular" aria-hidden="true" />}
+            />
+          </Tooltip>
         )}
 
         <MenuDivider />
-        <IconButton
-          label={t("menu.remove")}
-          title={t("menu.remove")}
-          size="sm"
-          onClick={onRemove}
-          className={actionButtonClass}
-          icon={<Trash size={14} weight="regular" aria-hidden="true" />}
-        />
+        <Tooltip content={t("menu.remove")} side="top">
+          <IconButton
+            label={t("menu.remove")}
+            size="sm"
+            onClick={onRemove}
+            className={actionButtonClass}
+            icon={<Trash size={14} weight="regular" aria-hidden="true" />}
+          />
+        </Tooltip>
       </div>
     </div>
   );

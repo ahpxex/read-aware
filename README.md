@@ -9,7 +9,10 @@
   <p>
     <a href="https://readaware.app">Website</a> ·
     <a href="https://github.com/ahpxex/read-aware/releases/latest">Download</a> ·
-    <a href="https://linux.do/">Community support</a>
+    <a href="https://discord.gg/whDrKXwHWU">Discord</a>
+  </p>
+  <p>
+    English · <a href="README.zh-CN.md">简体中文</a> · <a href="README.ja.md">日本語</a>
   </p>
 </div>
 
@@ -145,8 +148,8 @@ current downloads and installation files.
 
 ## Community
 
-Questions, ideas, bug reports, and reading stories are welcome in the
-[LINUX DO community](https://linux.do/).
+Questions, ideas, bug reports, and reading stories are welcome on the
+[ReadAware Discord](https://discord.gg/whDrKXwHWU).
 
 ## License
 

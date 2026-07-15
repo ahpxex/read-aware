@@ -50,7 +50,13 @@
     "exit": "退出逐句导航",
     "prevSentence": "上一句",
     "nextSentence": "下一句",
-    "returnToSentence": "回到阅读处"
+    "returnToSentence": "回到阅读处",
+    "paragraphMode": "逐段模式",
+    "showToolbars": "显示工具栏",
+    "granularityOption": {
+      "sentence": "逐句",
+      "paragraph": "逐段"
+    }
   },
   "recolor": "改为{{color}}",
   "colors": {

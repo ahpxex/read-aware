@@ -50,7 +50,13 @@
     "exit": "Exit sentence navigator",
     "prevSentence": "Previous sentence",
     "nextSentence": "Next sentence",
-    "returnToSentence": "Back to current sentence"
+    "returnToSentence": "Back to current sentence",
+    "paragraphMode": "Paragraph mode",
+    "showToolbars": "Show toolbars",
+    "granularityOption": {
+      "sentence": "By sentence",
+      "paragraph": "By paragraph"
+    }
   },
   "recolor": "Recolor {{color}}",
   "colors": {

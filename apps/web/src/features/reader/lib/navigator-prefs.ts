@@ -1,16 +1,19 @@
 /**
- * Sticky sentence-navigator state (interim localStorage/KV). Two concerns:
+ * Sticky sentence-navigator state (interim localStorage/KV). Three concerns:
  *
  * - Per-book navigator state: whether the mode is on and which sentence the
  *   wash rests on, so closing a book (or the app) and reopening it resumes
  *   sentence-by-sentence reading exactly where it stopped. Exiting the mode
  *   explicitly forgets the position — re-entering starts at the visible text.
+ * - Navigator behavior preferences (app-level, not per book): the step
+ *   granularity and whether a tap on book content steps forward.
  * - Floating-control positions: where the user dragged the navigator's
  *   floating step buttons / action bar, stored per control as fractions of the
  *   reader viewport so they survive resizes and device rotation.
  */
 
 import { localKV } from "../../../platform/local-store";
+import type { NavigatorGranularity } from "./sentence-index";
 
 export type NavigatorResting = {
   sectionIndex: number;
@@ -21,9 +24,17 @@ export type NavigatorResting = {
 export type PersistedNavigatorState = {
   active: boolean;
   resting: NavigatorResting | null;
+  /** Granularity the resting ordinal was computed under. An ordinal only
+   *  addresses a unit within one segmentation — restored under another
+   *  granularity it would land on an unrelated spot. */
+  granularity: NavigatorGranularity;
 };
 
-const INACTIVE_STATE: PersistedNavigatorState = { active: false, resting: null };
+const INACTIVE_STATE: PersistedNavigatorState = {
+  active: false,
+  resting: null,
+  granularity: "sentence",
+};
 
 const stateKey = (bookId: string) => `read-aware-navigator-state:${bookId}`;
 
@@ -45,6 +56,8 @@ export function readNavigatorState(bookId: string): PersistedNavigatorState {
               cfiRange: typeof resting.cfiRange === "string" ? resting.cfiRange : null,
             }
           : null,
+      // States written before granularity existed were all sentence-based.
+      granularity: parsed.granularity === "paragraph" ? "paragraph" : "sentence",
     };
   } catch {
     return INACTIVE_STATE;
@@ -60,6 +73,43 @@ export function writeNavigatorState(bookId: string, state: PersistedNavigatorSta
     localKV.setItem(stateKey(bookId), JSON.stringify(state));
   } catch {
     // Ignore persistence failures — the in-session refs still carry the state.
+  }
+}
+
+/** App-level navigator behavior — how stepping works, across all books. */
+export type NavigatorBehaviorPrefs = {
+  granularity: NavigatorGranularity;
+  /** A quick tap on book content steps forward while the mode is on (the
+   *  shell toggle moves to the floating bar's toolbars button meanwhile). */
+  tapToAdvance: boolean;
+};
+
+export const DEFAULT_NAVIGATOR_BEHAVIOR_PREFS: NavigatorBehaviorPrefs = {
+  granularity: "sentence",
+  tapToAdvance: true,
+};
+
+const BEHAVIOR_PREFS_KEY = "read-aware-navigator-prefs";
+
+export function readNavigatorBehaviorPrefs(): NavigatorBehaviorPrefs {
+  try {
+    const raw = localKV.getItem(BEHAVIOR_PREFS_KEY);
+    if (!raw) return DEFAULT_NAVIGATOR_BEHAVIOR_PREFS;
+    const parsed = JSON.parse(raw) as Partial<NavigatorBehaviorPrefs>;
+    return {
+      granularity: parsed.granularity === "paragraph" ? "paragraph" : "sentence",
+      tapToAdvance: parsed.tapToAdvance !== false,
+    };
+  } catch {
+    return DEFAULT_NAVIGATOR_BEHAVIOR_PREFS;
+  }
+}
+
+export function writeNavigatorBehaviorPrefs(prefs: NavigatorBehaviorPrefs): void {
+  try {
+    localKV.setItem(BEHAVIOR_PREFS_KEY, JSON.stringify(prefs));
+  } catch {
+    // Ignore persistence failures — the atom still carries the value in session.
   }
 }
 

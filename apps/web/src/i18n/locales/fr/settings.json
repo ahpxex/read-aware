@@ -78,7 +78,16 @@
       "title": "Couleur de la page",
       "description": "Le papier du livre. Auto suit le thème de l’application ; les autres sont fixes."
     },
-    "pageMargins": "Marges de page"
+    "pageMargins": "Marges de page",
+    "navigator": {
+      "title": "Navigateur de phrases",
+      "description": "Comment le navigateur de phrases progresse dans le livre.",
+      "granularity": "Unité de progression",
+      "tapToAdvance": {
+        "title": "Toucher pour avancer",
+        "description": "Quand le navigateur est actif, toucher la page fait avancer d’un pas. Les barres d’outils s’ouvrent depuis la barre flottante."
+      }
+    }
   },
   "shortcuts": {
     "title": "Raccourcis",

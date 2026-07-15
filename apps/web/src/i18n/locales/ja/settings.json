@@ -78,7 +78,16 @@
       "title": "ページの色",
       "description": "本の紙の色。「自動」はアプリのテーマに従い、その他は固定です。"
     },
-    "pageMargins": "余白"
+    "pageMargins": "余白",
+    "navigator": {
+      "title": "文ナビゲーター",
+      "description": "文ナビゲーターの進み方の設定。",
+      "granularity": "ステップ単位",
+      "tapToAdvance": {
+        "title": "タップで進む",
+        "description": "ナビゲーターがオンの間、ページをタップすると次へ進みます。ツールバーはフローティングバーのボタンから開きます。"
+      }
+    }
   },
   "shortcuts": {
     "title": "ショートカット",

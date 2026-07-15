@@ -50,7 +50,13 @@
     "exit": "文ナビゲーターを終了",
     "prevSentence": "前の文",
     "nextSentence": "次の文",
-    "returnToSentence": "現在の文に戻る"
+    "returnToSentence": "現在の文に戻る",
+    "paragraphMode": "段落モード",
+    "showToolbars": "ツールバーを表示",
+    "granularityOption": {
+      "sentence": "文ごと",
+      "paragraph": "段落ごと"
+    }
   },
   "recolor": "{{color}}に色を変更",
   "colors": {

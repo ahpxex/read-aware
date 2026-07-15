@@ -50,7 +50,13 @@
     "exit": "Satznavigator beenden",
     "prevSentence": "Vorheriger Satz",
     "nextSentence": "Nächster Satz",
-    "returnToSentence": "Zurück zum aktuellen Satz"
+    "returnToSentence": "Zurück zum aktuellen Satz",
+    "paragraphMode": "Absatzmodus",
+    "showToolbars": "Symbolleisten einblenden",
+    "granularityOption": {
+      "sentence": "Satzweise",
+      "paragraph": "Absatzweise"
+    }
   },
   "recolor": "In {{color}} umfärben",
   "colors": {

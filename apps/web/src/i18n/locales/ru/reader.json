@@ -50,7 +50,13 @@
     "exit": "Выйти из навигатора предложений",
     "prevSentence": "Предыдущее предложение",
     "nextSentence": "Следующее предложение",
-    "returnToSentence": "Вернуться к текущему предложению"
+    "returnToSentence": "Вернуться к текущему предложению",
+    "paragraphMode": "Режим абзацев",
+    "showToolbars": "Показать панели",
+    "granularityOption": {
+      "sentence": "По предложениям",
+      "paragraph": "По абзацам"
+    }
   },
   "recolor": "Перекрасить в {{color}}",
   "colors": {

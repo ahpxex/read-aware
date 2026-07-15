@@ -15,7 +15,11 @@ import {
   writeNavigatorState,
   type NavigatorResting,
 } from "../lib/navigator-prefs";
-import { anchorSentenceIndex, buildSentenceRanges } from "../lib/sentence-index";
+import {
+  anchorSentenceIndex,
+  buildSentenceRanges,
+  type NavigatorGranularity,
+} from "../lib/sentence-index";
 
 /** The sentence the navigator rests on — the target for the bar's actions. */
 export type NavigatorSentence = {
@@ -47,6 +51,9 @@ type UseSentenceNavigatorOptions = {
   /** Persistence scope: the resting sentence (and the mode itself) is
    *  remembered per book, so closing and reopening the book resumes in place. */
   bookId: string | null;
+  /** Step unit — sentence or paragraph. Switching re-segments the loaded
+   *  section and re-anchors the wash at the unit containing its old start. */
+  granularity: NavigatorGranularity;
   viewRef: RefObject<FoliateView | null>;
   readerRootRef: RefObject<HTMLElement | null>;
   /** Cross into the adjacent spine section, with the mode's transition. */
@@ -61,6 +68,13 @@ type UseSentenceNavigatorOptions = {
 };
 
 const normalizeText = (value: string) => value.replace(/\s+/g, " ").trim();
+
+// Scroll-mode comfort band: how far above the viewport bottom the resting unit
+// may sink before a step scrolls. Sized to clear the floating bar / bottom
+// toolbar (which overlay the page) with breathing room on any screen height.
+const SCROLL_COMFORT_BOTTOM_FRACTION = 0.2;
+const SCROLL_COMFORT_BOTTOM_MIN_PX = 72;
+const SCROLL_COMFORT_BOTTOM_MAX_PX = 240;
 
 /**
  * Sentence-by-sentence reading position over the foliate view. Owns the
@@ -77,6 +91,7 @@ const normalizeText = (value: string) => value.replace(/\s+/g, " ").trim();
 export function useSentenceNavigator({
   active,
   bookId,
+  granularity,
   viewRef,
   readerRootRef,
   crossSection,
@@ -102,6 +117,7 @@ export function useSentenceNavigator({
   // Persisted per book, so it also survives closing and reopening the book.
   const restingRef = useRef<NavigatorResting | null>(null);
   const bookIdRef = useRef(bookId);
+  const granularityRef = useRef(granularity);
 
   const crossSectionRef = useRef(crossSection);
   useEffect(() => { crossSectionRef.current = crossSection; }, [crossSection]);
@@ -142,7 +158,15 @@ export function useSentenceNavigator({
     pendingAnchorRef.current = null;
     pendingCrossRef.current = null;
     setCurrent(null);
-    setResting(bookId ? readNavigatorState(bookId).resting : null);
+    // A resting ordinal only means something under the granularity it was
+    // written with — under another one, restore from scratch (the reader's own
+    // progress still opens the book in place).
+    const persisted = bookId ? readNavigatorState(bookId) : null;
+    setResting(
+      persisted && persisted.granularity === granularityRef.current
+        ? persisted.resting
+        : null,
+    );
   }, [bookId, setResting]);
 
   const persistState = useCallback(() => {
@@ -151,6 +175,7 @@ export function useSentenceNavigator({
     writeNavigatorState(id, {
       active: activeRef.current,
       resting: restingRef.current,
+      granularity: granularityRef.current,
     });
   }, []);
 
@@ -165,8 +190,14 @@ export function useSentenceNavigator({
     restoreAnnotationAtRef.current(cfi);
   }, [viewRef]);
 
-  /** Whether every rect of the range sits inside the reader viewport. */
-  const rangeFullyVisible = useCallback((range: Range): boolean => {
+  /** Whether every rect of the range sits inside the comfortable part of the
+   *  reader viewport. In scroll mode the bottom is inset by a comfort band
+   *  (the shell's bottom toolbar and the floating bar overlay the page there,
+   *  and reading pinned to the last line is unpleasant anyway), so stepping
+   *  scrolls before the unit actually reaches the edge. Paginated modes keep
+   *  the exact bounds: a clipped unit means "on the next page", and anything
+   *  short of clipped cannot be scrolled to — only flipped. */
+  const rangeComfortablyVisible = useCallback((range: Range): boolean => {
     const root = readerRootRef.current;
     const frame = range.startContainer?.ownerDocument?.defaultView?.frameElement;
     if (!root || !(frame instanceof HTMLElement)) return true;
@@ -176,14 +207,23 @@ export function useSentenceNavigator({
     if (!rects.length) return true;
     const rootRect = root.getBoundingClientRect();
     const frameRect = frame.getBoundingClientRect();
+    const comfortBottom = viewRef.current?.renderer?.scrolled
+      ? Math.min(
+          SCROLL_COMFORT_BOTTOM_MAX_PX,
+          Math.max(
+            SCROLL_COMFORT_BOTTOM_MIN_PX,
+            rootRect.height * SCROLL_COMFORT_BOTTOM_FRACTION,
+          ),
+        )
+      : 0;
     return rects.every(
       (rect) =>
         frameRect.top + rect.top >= rootRect.top - 1 &&
-        frameRect.top + rect.bottom <= rootRect.bottom + 1 &&
+        frameRect.top + rect.bottom <= rootRect.bottom - comfortBottom + 1 &&
         frameRect.left + rect.left >= rootRect.left - 1 &&
         frameRect.left + rect.right <= rootRect.right + 1,
     );
-  }, [readerRootRef]);
+  }, [readerRootRef, viewRef]);
 
   /** Rest on sentence `index`: move the wash and (optionally) bring it into view. */
   const applyIndex = useCallback(
@@ -207,7 +247,7 @@ export function useSentenceNavigator({
         applyNavigatorHighlight(view, cfi, veilColorRef.current);
       }
       setCurrent({ text: normalizeText(range.toString()), cfiRange: cfi });
-      if (scroll && !rangeFullyVisible(range)) {
+      if (scroll && !rangeComfortablyVisible(range)) {
         try {
           void view.renderer?.scrollToAnchor?.(range);
         } catch {
@@ -215,14 +255,14 @@ export function useSentenceNavigator({
         }
       }
     },
-    [clearWash, persistState, rangeFullyVisible, setResting, viewRef],
+    [clearWash, persistState, rangeComfortablyVisible, setResting, viewRef],
   );
 
   const buildSentences = useCallback((): Range[] => {
     const section = sectionRef.current;
     if (!section) return (sentencesRef.current = []);
     try {
-      return (sentencesRef.current = buildSentenceRanges(section.doc));
+      return (sentencesRef.current = buildSentenceRanges(section.doc, granularityRef.current));
     } catch {
       return (sentencesRef.current = []);
     }
@@ -343,6 +383,32 @@ export function useSentenceNavigator({
     pendingCrossRef.current = null;
     setCurrent(null);
   }, [active, applyIndex, buildSentences, clearWash, persistState, setResting]);
+
+  // Granularity switch: re-segment the loaded section under the new unit.
+  // A wash resting here re-anchors to the unit containing its old start (the
+  // paragraph around the sentence, or the first sentence of the paragraph).
+  // A wash resting in another section is dropped instead — its ordinal was
+  // computed under the old segmentation and no longer addresses anything.
+  useEffect(() => {
+    if (granularityRef.current === granularity) return;
+    granularityRef.current = granularity;
+    const previousRange =
+      currentIndexRef.current >= 0
+        ? sentencesRef.current?.[currentIndexRef.current] ?? null
+        : null;
+    sentencesRef.current = null;
+    currentIndexRef.current = -1;
+    if (!activeRef.current || !sectionRef.current || !previousRange) {
+      setResting(null);
+      persistState();
+      if (activeRef.current) setCurrent(null);
+      return;
+    }
+    const sentences = buildSentences();
+    const index = anchorSentenceIndex(sentences, previousRange);
+    if (index >= 0) applyIndex(index, { scroll: false });
+    else setCurrent(null);
+  }, [granularity, applyIndex, buildSentences, persistState, setResting]);
 
   // Android: while the mode is on, the volume keys step sentences (volume
   // down = forward). The shell captures them only for the mode's duration and

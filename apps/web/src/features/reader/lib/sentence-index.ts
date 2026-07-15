@@ -1,16 +1,21 @@
 /**
- * Sentence segmentation for the reader's sentence navigator.
+ * Reading-unit segmentation for the reader's sentence navigator.
  *
- * Builds an ordered list of DOM Ranges — one per sentence — for a loaded
- * section document. Segmentation runs per block element (mirroring the block
- * walk in the vendored foliate-js `tts.js`): treating the whole document as one
- * string would fuse a heading into the first sentence of the paragraph after
- * it, since headings rarely end with sentence punctuation.
+ * Builds an ordered list of DOM Ranges — one per unit — for a loaded section
+ * document. Segmentation runs per block element (mirroring the block walk in
+ * the vendored foliate-js `tts.js`): treating the whole document as one string
+ * would fuse a heading into the first sentence of the paragraph after it,
+ * since headings rarely end with sentence punctuation.
  *
- * Within a block, sentences come from `Intl.Segmenter` (locale-aware, handles
- * CJK 。！？ boundaries). Where the API is unavailable, each block falls back
- * to a single "sentence".
+ * Two granularities share the same block walk:
+ * - `sentence` — within a block, sentences come from `Intl.Segmenter`
+ *   (locale-aware, handles CJK 。！？ boundaries). Where the API is
+ *   unavailable, each block falls back to a single "sentence".
+ * - `paragraph` — each block is one unit, no further splitting.
  */
+
+/** The navigator's step unit: one sentence, or one whole block element. */
+export type NavigatorGranularity = "sentence" | "paragraph";
 
 // Minimal Intl.Segmenter surface — the workspace TS lib (ES2020) predates its
 // typings, but every shipping webview (WKWebView 16.4+, Chromium 87+) has it.
@@ -149,13 +154,17 @@ function segmentsToRanges(nodes: Node[], segments: Segment[]): Range[] {
 }
 
 /**
- * All sentences of a section document, in reading order, as live DOM Ranges.
- * The document's `lang` (set by the engine from book metadata) picks the
- * segmentation locale.
+ * All reading units of a section document, in reading order, as live DOM
+ * Ranges. The document's `lang` (set by the engine from book metadata) picks
+ * the segmentation locale; `paragraph` granularity skips sentence splitting
+ * entirely and yields one (trimmed) unit per block.
  */
-export function buildSentenceRanges(doc: Document): Range[] {
+export function buildSentenceRanges(
+  doc: Document,
+  granularity: NavigatorGranularity = "sentence",
+): Range[] {
   let segmenter: SentenceSegmenter | null = null;
-  const Segmenter = segmenterConstructor();
+  const Segmenter = granularity === "paragraph" ? null : segmenterConstructor();
   if (Segmenter) {
     const lang = doc.documentElement?.lang || undefined;
     try {

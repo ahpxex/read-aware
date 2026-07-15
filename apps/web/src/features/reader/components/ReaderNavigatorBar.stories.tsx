@@ -27,6 +27,9 @@ const meta = {
     // Placeholder only — FramedNavigatorBar substitutes its live ref.
     containerRef: { current: null },
     canReturn: true,
+    granularity: "sentence",
+    onToggleGranularity: () => {},
+    onToggleToolbars: () => {},
     onPrev: () => {},
     onNext: () => {},
     onReturnToSentence: () => {},
@@ -50,4 +53,9 @@ export const OnSentence: Story = {};
 /** No resting sentence: sentence-scoped actions disabled; stepping and exit stay live. */
 export const NoRestingSentence: Story = {
   args: { sentenceKey: null, canReturn: false },
+};
+
+/** Paragraph granularity engaged: the quick toggle shows its pressed state. */
+export const ParagraphMode: Story = {
+  args: { granularity: "paragraph" },
 };

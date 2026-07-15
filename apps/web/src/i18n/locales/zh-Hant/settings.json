@@ -78,7 +78,16 @@
       "title": "頁面顏色",
       "description": "書籍的紙張。「自動」會跟隨應用程式主題；其餘為固定顏色。"
     },
-    "pageMargins": "頁邊距"
+    "pageMargins": "頁邊距",
+    "navigator": {
+      "title": "逐句導航",
+      "description": "逐句導航的步進方式。",
+      "granularity": "步進單位",
+      "tapToAdvance": {
+        "title": "點按前進",
+        "description": "逐句導航開啟時，點按內文前進一步；工具列改由浮動列上的按鈕開啟。"
+      }
+    }
   },
   "shortcuts": {
     "title": "快捷鍵",

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { TFunction } from "i18next";
-import { useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { Body, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
-import { shortcutBindingsAtom } from "../../../state/ui";
+import { navigatorPrefsAtom, shortcutBindingsAtom } from "../../../state/ui";
 import { chordMatchesEvent, resolveBinding } from "../../settings/lib/shortcuts";
 import type { LibraryBook, ReaderProgress } from "../../library/lib/library-types";
 import { formatReaderError } from "../lib/format-reader-error";
@@ -845,6 +845,14 @@ export function FoliateReaderView({
     navigatorActiveStateRef.current = sentenceNavigatorActive;
   }, [sentenceNavigatorActive]);
 
+  // Navigator behavior prefs (step unit, tap-to-advance) — app-level, shared
+  // with the settings panel. Read through refs by the stable doc listeners.
+  const [navigatorPrefs, setNavigatorPrefs] = useAtom(navigatorPrefsAtom);
+  const tapToAdvanceRef = useRef(navigatorPrefs.tapToAdvance);
+  useEffect(() => {
+    tapToAdvanceRef.current = navigatorPrefs.tapToAdvance;
+  }, [navigatorPrefs.tapToAdvance]);
+
   // Leaving a sentence removes the navigator's wash by CFI — which also erases
   // the drawing of any user mark saved on that exact range (the overlayer keys
   // drawings by CFI). Re-draw it from the stores.
@@ -886,6 +894,7 @@ export function FoliateReaderView({
   const sentenceNavigator = useSentenceNavigator({
     active: sentenceNavigatorActive,
     bookId: selectedBook?.id ?? null,
+    granularity: navigatorPrefs.granularity,
     viewRef,
     readerRootRef,
     crossSection: navigatorCrossSection,
@@ -1154,6 +1163,15 @@ export function FoliateReaderView({
       suppressContentClickRef.current = false;
     }, true);
 
+    // While tap-to-advance is on, rapid stepping clicks must not turn into a
+    // word-selecting double-click (selection is mousedown's default action at
+    // detail > 1). Drag and long-press selection still work, and the resting
+    // unit already carries copy/annotate actions for precise grabs.
+    doc.addEventListener("mousedown", (event) => {
+      if (!navigatorActiveStateRef.current || !tapToAdvanceRef.current) return;
+      if (event.detail > 1) event.preventDefault();
+    }, true);
+
     doc.addEventListener("pointermove", (event) => {
       const intent = shellTapIntentRef.current;
       if (!intent?.eligible || intent.moved) return;
@@ -1268,6 +1286,17 @@ export function FoliateReaderView({
       // make a single tap feel laggy, so close immediately.
       if (shellVisibleRef.current) {
         onContentClickRef.current?.();
+        return;
+      }
+
+      // Navigator tap-to-advance: while the mode is on, a quick tap on the
+      // page is the step-forward gesture (immediately — the double-click guard
+      // below would make rapid stepping feel laggy; word selection by double
+      // click is disarmed for the mode's duration in the mousedown listener).
+      // The dismissed-shell branch above still wins, so a tap with the chrome
+      // open closes it first and the next tap steps.
+      if (navigatorActiveStateRef.current && tapToAdvanceRef.current) {
+        navigatorActionsRef.current?.next();
         return;
       }
 
@@ -1409,6 +1438,16 @@ export function FoliateReaderView({
       if (!target || !viewportRef.current?.contains(target)) return;
       if (selectionRef.current) {
         clearSelection();
+        return;
+      }
+      // Same tap-to-advance routing as clicks inside the book content: the
+      // empty area below a short section is still "the page" to a reader.
+      if (navigatorActiveStateRef.current && tapToAdvanceRef.current) {
+        if (shellVisibleRef.current) {
+          onContentClickRef.current?.();
+          return;
+        }
+        navigatorActionsRef.current?.next();
         return;
       }
       onContentClickRef.current?.();
@@ -2037,6 +2076,14 @@ export function FoliateReaderView({
         }
         containerRef={readerRootRef}
         canReturn={sentenceNavigator.canReturn}
+        granularity={navigatorPrefs.granularity}
+        onToggleGranularity={() =>
+          setNavigatorPrefs({
+            ...navigatorPrefs,
+            granularity: navigatorPrefs.granularity === "sentence" ? "paragraph" : "sentence",
+          })
+        }
+        onToggleToolbars={() => onContentClickRef.current?.()}
         onPrev={sentenceNavigator.prev}
         onNext={sentenceNavigator.next}
         onReturnToSentence={sentenceNavigator.returnToSentence}

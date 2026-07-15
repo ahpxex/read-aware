@@ -1,4 +1,5 @@
 import type { TFunction } from "i18next";
+import type { NavigatorGranularity } from "../../reader/lib/sentence-index";
 import type {
   ReaderFontSize,
   ReaderLineSpacing,
@@ -68,5 +69,14 @@ export function pageColorOptions(
   return (["auto", "light", "warm", "dark"] as const).map((value) => ({
     value,
     label: t(`pageColorOption.${value}`),
+  }));
+}
+
+export function navigatorGranularityOptions(
+  t: TFunction<"reader">,
+): { value: NavigatorGranularity; label: string }[] {
+  return (["sentence", "paragraph"] as const).map((value) => ({
+    value,
+    label: t(`navigator.granularityOption.${value}`),
   }));
 }

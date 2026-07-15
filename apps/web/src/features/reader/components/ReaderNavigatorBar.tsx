@@ -8,7 +8,9 @@ import {
   Crosshair,
   DotsSixVertical,
   Highlighter,
+  Layout,
   NotePencil,
+  Paragraph,
   TextUnderline,
   X,
 } from "@phosphor-icons/react";
@@ -19,6 +21,7 @@ import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import { useAskAiEnabled } from "../../ai/hooks/useAskAiEnabled";
 import { useDraggableFloat } from "../hooks/useDraggableFloat";
+import type { NavigatorGranularity } from "../lib/sentence-index";
 
 type ReaderNavigatorBarProps = {
   visible: boolean;
@@ -28,6 +31,13 @@ type ReaderNavigatorBarProps = {
   containerRef: RefObject<HTMLElement | null>;
   /** Whether the navigator has a resting sentence to jump back to. */
   canReturn: boolean;
+  /** Step unit; the bar carries a quick toggle so switching doesn't require
+   *  a trip into Settings. */
+  granularity: NavigatorGranularity;
+  onToggleGranularity: () => void;
+  /** Re-open the reader shell — while tap-to-advance claims the page tap,
+   *  this button is the way back to the chrome. */
+  onToggleToolbars: () => void;
   onPrev: () => void;
   onNext: () => void;
   onReturnToSentence: () => void;
@@ -58,6 +68,9 @@ export function ReaderNavigatorBar({
   sentenceKey,
   containerRef,
   canReturn,
+  granularity,
+  onToggleGranularity,
+  onToggleToolbars,
   onPrev,
   onNext,
   onReturnToSentence,
@@ -240,6 +253,28 @@ export function ReaderNavigatorBar({
               icon={<ChatCircleDots size={14} weight="regular" aria-hidden="true" />}
             />
           )}
+
+          <BarDivider />
+          <IconButton
+            label={t("navigator.paragraphMode")}
+            title={t("navigator.paragraphMode")}
+            size="sm"
+            aria-pressed={granularity === "paragraph"}
+            onClick={onToggleGranularity}
+            className={cn(
+              actionButtonClass,
+              granularity === "paragraph" && "bg-fill-strong text-fg",
+            )}
+            icon={<Paragraph size={14} weight="regular" aria-hidden="true" />}
+          />
+          <IconButton
+            label={t("navigator.showToolbars")}
+            title={t("navigator.showToolbars")}
+            size="sm"
+            onClick={onToggleToolbars}
+            className={actionButtonClass}
+            icon={<Layout size={14} weight="regular" aria-hidden="true" />}
+          />
 
           <BarDivider />
           <IconButton

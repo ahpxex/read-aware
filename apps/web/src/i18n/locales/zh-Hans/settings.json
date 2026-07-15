@@ -78,7 +78,16 @@
       "title": "页面颜色",
       "description": "书页的纸张颜色。“自动”跟随应用主题，其余为固定颜色。"
     },
-    "pageMargins": "页边距"
+    "pageMargins": "页边距",
+    "navigator": {
+      "title": "逐句导航",
+      "description": "逐句导航的步进方式。",
+      "granularity": "步进单位",
+      "tapToAdvance": {
+        "title": "点按前进",
+        "description": "逐句导航开启时，点按正文前进一步；工具栏改由浮动条上的按钮打开。"
+      }
+    }
   },
   "shortcuts": {
     "title": "快捷键",

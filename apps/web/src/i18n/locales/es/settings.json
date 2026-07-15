@@ -78,7 +78,16 @@
       "title": "Color de página",
       "description": "El papel del libro. «Automático» sigue el tema de la app; los demás son fijos."
     },
-    "pageMargins": "Márgenes de página"
+    "pageMargins": "Márgenes de página",
+    "navigator": {
+      "title": "Navegador de frases",
+      "description": "Cómo avanza el navegador de frases por el libro.",
+      "granularity": "Unidad de paso",
+      "tapToAdvance": {
+        "title": "Tocar para avanzar",
+        "description": "Con el navegador activo, tocar la página avanza un paso. Las barras de herramientas se abren desde la barra flotante."
+      }
+    }
   },
   "shortcuts": {
     "title": "Atajos",

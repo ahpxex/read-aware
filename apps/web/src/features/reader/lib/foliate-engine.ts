@@ -90,6 +90,8 @@ export type FoliateRenderer = {
   /** Bring an in-section anchor into view: flips to its page when paginated,
    *  scrolls its start to the viewport top in scrolled mode. */
   scrollToAnchor?: (anchor: Range | Element | number) => Promise<void> | void;
+  /** True while the paginator runs the continuous-scroll flow. */
+  scrolled?: boolean;
 };
 
 export type FoliateView = HTMLElement & {

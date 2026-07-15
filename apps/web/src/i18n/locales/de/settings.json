@@ -78,7 +78,16 @@
       "title": "Seitenfarbe",
       "description": "Das Papier des Buches. „Auto“ folgt dem App-Design; die anderen sind fest."
     },
-    "pageMargins": "Seitenränder"
+    "pageMargins": "Seitenränder",
+    "navigator": {
+      "title": "Satznavigator",
+      "description": "Wie der Satznavigator durch das Buch schreitet.",
+      "granularity": "Schritteinheit",
+      "tapToAdvance": {
+        "title": "Tippen zum Weitergehen",
+        "description": "Solange der Navigator aktiv ist, springt ein Tippen auf die Seite einen Schritt weiter. Die Symbolleisten öffnen sich stattdessen über die schwebende Leiste."
+      }
+    }
   },
   "shortcuts": {
     "title": "Tastenkürzel",

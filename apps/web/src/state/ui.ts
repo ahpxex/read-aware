@@ -33,6 +33,11 @@ import {
   type ReadingStatsStore,
 } from "../features/reader/lib/reading-stats";
 import {
+  readNavigatorBehaviorPrefs,
+  writeNavigatorBehaviorPrefs,
+  type NavigatorBehaviorPrefs,
+} from "../features/reader/lib/navigator-prefs";
+import {
   getShelfView,
   saveShelfView,
   type ShelfView,
@@ -116,6 +121,17 @@ export const readerPreferencesAtom = atom(
 /** Render-ready reader settings — the `auto` page color resolved against the app theme. */
 export const effectiveReaderSettingsAtom = atom<ReaderSettings>((get) =>
   toEffectiveReaderSettings(get(readerPreferencesBaseAtom), get(resolvedAppThemeAtom)),
+);
+
+const navigatorPrefsBaseAtom = atom<NavigatorBehaviorPrefs>(readNavigatorBehaviorPrefs());
+
+/** Sentence-navigator behavior: step granularity and tap-to-advance. */
+export const navigatorPrefsAtom = atom(
+  (get) => get(navigatorPrefsBaseAtom),
+  (_get, set, next: NavigatorBehaviorPrefs) => {
+    set(navigatorPrefsBaseAtom, next);
+    writeNavigatorBehaviorPrefs(next);
+  },
 );
 
 const readerOverridesBaseAtom = atom<ReaderOverrides>(getReaderOverrides());

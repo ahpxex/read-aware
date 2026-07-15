@@ -1,14 +1,20 @@
 import { useAtom, useAtomValue } from "jotai";
-import { ChoiceGroup, Stack } from "@read-aware/ui";
+import { ChoiceGroup, Stack, Toggle } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
-import { effectiveReaderSettingsAtom, readerPreferencesAtom } from "../../../state/ui";
+import {
+  effectiveReaderSettingsAtom,
+  navigatorPrefsAtom,
+  readerPreferencesAtom,
+} from "../../../state/ui";
 import { FontField } from "../components/FontField";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
+import { SettingsRow } from "../components/SettingsRow";
 import { getReaderPreviewStyle } from "../lib/reader-css";
 import {
   fontSizeOptions,
   lineSpacingOptions,
+  navigatorGranularityOptions,
   pageColorOptions,
   pageMarginsOptions,
   paragraphSpacingOptions,
@@ -21,6 +27,7 @@ export function ReadingPanel() {
   // and the in-reader appearance popover share one set of strings.
   const { t: tReader } = useTranslation("reader");
   const [prefs, setPrefs] = useAtom(readerPreferencesAtom);
+  const [navigatorPrefs, setNavigatorPrefs] = useAtom(navigatorPrefsAtom);
   const effective = useAtomValue(effectiveReaderSettingsAtom);
 
   return (
@@ -89,6 +96,36 @@ export function ReadingPanel() {
           options={pageColorOptions(tReader)}
           onChange={(theme) => setPrefs({ ...prefs, theme })}
         />
+      </SettingsGroup>
+
+      <SettingsGroup
+        title={t("reading.navigator.title")}
+        description={t("reading.navigator.description")}
+      >
+        <Stack gap="lg">
+          <ChoiceGroup
+            label={t("reading.navigator.granularity")}
+            value={navigatorPrefs.granularity}
+            options={navigatorGranularityOptions(tReader)}
+            onChange={(granularity) =>
+              setNavigatorPrefs({ ...navigatorPrefs, granularity })
+            }
+          />
+          <SettingsRow
+            borderless
+            title={t("reading.navigator.tapToAdvance.title")}
+            description={t("reading.navigator.tapToAdvance.description")}
+            control={
+              <Toggle
+                aria-label={t("reading.navigator.tapToAdvance.title")}
+                checked={navigatorPrefs.tapToAdvance}
+                onChange={(tapToAdvance) =>
+                  setNavigatorPrefs({ ...navigatorPrefs, tapToAdvance })
+                }
+              />
+            }
+          />
+        </Stack>
       </SettingsGroup>
     </SettingsPage>
   );

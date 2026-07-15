@@ -50,7 +50,13 @@
     "exit": "Quitter le navigateur de phrases",
     "prevSentence": "Phrase précédente",
     "nextSentence": "Phrase suivante",
-    "returnToSentence": "Revenir à la phrase actuelle"
+    "returnToSentence": "Revenir à la phrase actuelle",
+    "paragraphMode": "Mode paragraphe",
+    "showToolbars": "Afficher les barres d’outils",
+    "granularityOption": {
+      "sentence": "Par phrase",
+      "paragraph": "Par paragraphe"
+    }
   },
   "recolor": "Recolorer en {{color}}",
   "colors": {

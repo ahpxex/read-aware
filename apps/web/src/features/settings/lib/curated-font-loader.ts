@@ -125,8 +125,23 @@ async function mapLimit<T, R>(
   return results;
 }
 
-async function buildFaceCss(fontId: string): Promise<string> {
-  const faces = curatedFacesFor(fontId);
+/**
+ * The faces to fetch for a font, narrowed to the requested numeric weights.
+ * CJK fonts carry ~100 unicode-range chunks per weight, so fetching only the
+ * weights a session needs (see `readerFontWeightsNeeded`) is what keeps adding
+ * weight presets from multiplying the download. No `weights` — or a filter
+ * that matches nothing (a weight the family doesn't ship) — means every face.
+ */
+function facesFor(fontId: string, weights?: readonly number[]): CuratedFontFace[] {
+  const all = curatedFacesFor(fontId);
+  if (!weights || weights.length === 0) return all;
+  const wanted = new Set(weights);
+  const filtered = all.filter((face) => wanted.has(face.weight));
+  return filtered.length > 0 ? filtered : all;
+}
+
+async function buildFaceCss(fontId: string, weights?: readonly number[]): Promise<string> {
+  const faces = facesFor(fontId, weights);
   let done = 0;
   reportProgress(fontId, { done: 0, total: faces.length });
   const rules = await mapLimit(faces, FETCH_CONCURRENCY, async (face) => {
@@ -151,27 +166,43 @@ async function buildFaceCss(fontId: string): Promise<string> {
   return css;
 }
 
+/** One memo entry per (font, weight set) — different sets are different CSS. */
+function memoKey(fontId: string, weights?: readonly number[]): string {
+  if (!weights || weights.length === 0) return fontId;
+  return `${fontId}@${[...weights].sort((a, b) => a - b).join(",")}`;
+}
+
 /**
  * Ensure a curated font is downloaded + cached and return its `@font-face` CSS
- * (with blob URLs), ready to inject. Memoized per session, so repeat calls — and
- * the app-document vs iframe injection sites — share one download and one set of
- * blob URLs. Failures are NOT memoized: re-selecting the font retries.
+ * (with blob URLs), ready to inject. `weights` narrows the faces to those
+ * numeric weights (weights the family doesn't ship are simply absent — the
+ * renderer falls back to the nearest face). Memoized per session and per weight
+ * set, so repeat calls — and the app-document vs iframe injection sites — share
+ * one download and one set of blob URLs; overlapping sets still share bytes
+ * through the IndexedDB cache. Failures are NOT memoized: re-selecting retries.
  */
-export function ensureCuratedFontFaceCss(fontId: string): Promise<string> {
-  let pending = faceCssMemo.get(fontId);
+export function ensureCuratedFontFaceCss(
+  fontId: string,
+  weights?: readonly number[],
+): Promise<string> {
+  const key = memoKey(fontId, weights);
+  let pending = faceCssMemo.get(key);
   if (!pending) {
-    pending = buildFaceCss(fontId).catch((error: unknown) => {
-      faceCssMemo.delete(fontId);
+    pending = buildFaceCss(fontId, weights).catch((error: unknown) => {
+      faceCssMemo.delete(key);
       throw error;
     });
-    faceCssMemo.set(fontId, pending);
+    faceCssMemo.set(key, pending);
   }
   return pending;
 }
 
 /** Inject a curated font's `@font-face` into the app document (UI + preview). */
-export async function injectCuratedFontFace(fontId: string): Promise<void> {
-  const css = await ensureCuratedFontFaceCss(fontId);
+export async function injectCuratedFontFace(
+  fontId: string,
+  weights?: readonly number[],
+): Promise<void> {
+  const css = await ensureCuratedFontFaceCss(fontId, weights);
   if (!css) return;
   const elementId = `curated-font-${fontId}`;
   let style = document.getElementById(elementId) as HTMLStyleElement | null;

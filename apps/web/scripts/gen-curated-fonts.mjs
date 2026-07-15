@@ -33,10 +33,26 @@ function fetchText(url) {
 
 // Latin curated families, fetched from Google Fonts (gstatic woff2). We keep the
 // `latin` and `latin-ext` subsets — enough for Western European reading.
+// Weights cover the reader's weight presets (300/400/500/600) plus 700 for bold
+// text, capped by what each family ships upstream: Lora starts at 400 and
+// Atkinson Hyperlegible only has 400/700 — missing weights fall back to the
+// nearest face at render time.
 const GOOGLE = [
-  { id: "inter", family: "Inter", q: "Inter:ital,wght@0,400;0,700;1,400;1,700" },
-  { id: "literata", family: "Literata", q: "Literata:ital,wght@0,400;0,700;1,400;1,700" },
-  { id: "lora", family: "Lora", q: "Lora:ital,wght@0,400;0,700;1,400;1,700" },
+  {
+    id: "inter",
+    family: "Inter",
+    q: "Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700",
+  },
+  {
+    id: "literata",
+    family: "Literata",
+    q: "Literata:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700",
+  },
+  {
+    id: "lora",
+    family: "Lora",
+    q: "Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700",
+  },
   {
     id: "atkinson",
     family: "Atkinson Hyperlegible",
@@ -47,12 +63,15 @@ const KEEP_SUBSETS = new Set(["latin", "latin-ext"]);
 
 // LXGW WenKai (霞鹜文楷) — a CJK reading face, not on Google Fonts. Sourced from
 // its OFL webfont distribution on jsDelivr, already split into unicode-range
-// chunks so only the glyphs a page uses get fetched.
+// chunks so only the glyphs a page uses get fetched. The family ships
+// Light (300) / Regular (400) / Bold (700) only — the runtime loader filters to
+// the weights a session actually needs, so listing all of them here is free.
 const LXGW = [
   {
     id: "lxgw",
     family: "LXGW WenKai",
     cssUrls: [
+      "https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont/lxgwwenkai-light.css",
       "https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont/lxgwwenkai-regular.css",
       "https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont/lxgwwenkai-bold.css",
     ],

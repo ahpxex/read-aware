@@ -9,6 +9,7 @@ export const Route = createFileRoute("/")({
 });
 
 const CONTACT_EMAIL = "hi@ahpx.me";
+const DISCORD_URL = "https://discord.gg/whDrKXwHWU";
 const HEADER_ICON_URL = "/favicon.png?v=2235eb1";
 const SHELF_SCREENSHOT_URL = "/screenshots/shelf.webp?v=b2e29b2";
 
@@ -81,6 +82,14 @@ function LandingPage() {
               className="transition-colors hover:text-fg"
             >
               GitHub
+            </a>
+            <a
+              href={DISCORD_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-colors hover:text-fg"
+            >
+              Discord
             </a>
           </nav>
         </header>
@@ -200,6 +209,14 @@ function LandingPage() {
               className="transition-colors hover:text-fg"
             >
               GitHub
+            </a>
+            <a
+              href={DISCORD_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-colors hover:text-fg"
+            >
+              Discord
             </a>
             <a
               href={`mailto:${CONTACT_EMAIL}`}

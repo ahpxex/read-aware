@@ -9,6 +9,7 @@ import {
   toCuratedFont,
   toSystemFont,
   type ReaderFontFamily,
+  type ReaderFontWeight,
 } from "../lib/reader-settings";
 import { CURATED_FONTS } from "../lib/curated-fonts";
 import { useSystemFonts } from "../hooks/useSystemFonts";
@@ -22,6 +23,8 @@ const CURATED_OPTIONS: { value: string; label: string }[] = CURATED_FONTS.map((f
 type FontFieldProps = {
   value: ReaderFontFamily;
   onChange: (value: ReaderFontFamily) => void;
+  /** Active weight preset — decides which weights the curated download fetches. */
+  fontWeight?: ReaderFontWeight;
   className?: string;
 };
 
@@ -32,12 +35,12 @@ type FontFieldProps = {
  * this device. Switching source is non-destructive: the current font stays until
  * a new one is picked. Shared by the Reading panel and the in-reader popover.
  */
-export function FontField({ value, onChange, className }: FontFieldProps) {
+export function FontField({ value, onChange, fontWeight, className }: FontFieldProps) {
   const { t } = useTranslation("settings");
   const systemFonts = useSystemFonts();
   const [custom, setCustom] = useState(isSystemFont(value));
   // Download + inject the active curated font so the preview/UI render it.
-  const fontFace = useCuratedFontFace(value);
+  const fontFace = useCuratedFontFace(value, fontWeight);
 
   const systemOptions = useMemo(() => {
     const opts = systemFonts.map((family) => ({ value: toSystemFont(family), label: family }));

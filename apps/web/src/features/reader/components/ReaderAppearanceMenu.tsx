@@ -3,6 +3,7 @@ import { Caption, ChoiceGroup, Divider, Popover } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import {
   fontSizeOptions,
+  fontWeightOptions,
   lineSpacingOptions,
   pageColorOptions,
   pageMarginsOptions,
@@ -74,6 +75,7 @@ export function ReaderAppearanceMenu({
         />
         <FontField
           value={prefs.fontFamily}
+          fontWeight={prefs.fontWeight}
           onChange={(fontFamily) => updatePrefs({ ...prefs, fontFamily })}
         />
         <ChoiceGroup
@@ -81,6 +83,12 @@ export function ReaderAppearanceMenu({
           value={prefs.fontSize}
           options={fontSizeOptions(t)}
           onChange={(fontSize) => updatePrefs({ ...prefs, fontSize })}
+        />
+        <ChoiceGroup
+          label={t("fontWeight")}
+          value={prefs.fontWeight}
+          options={fontWeightOptions(t)}
+          onChange={(fontWeight) => updatePrefs({ ...prefs, fontWeight })}
         />
         <ChoiceGroup
           label={t("lineSpacing")}

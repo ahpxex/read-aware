@@ -72,6 +72,7 @@ import { useDelayedFlag } from "../hooks/useDelayedFlag";
 import {
   buildReaderContentCss,
   computeReaderMaxInlineSize,
+  readerFontWeightsNeeded,
   readerGapForMargins,
   READER_THEME_BG,
 } from "../../settings/lib/reader-css";
@@ -550,7 +551,11 @@ export function FoliateReaderView({
       renderer = viewRef.current?.renderer,
     ) => {
       const id = curatedFontId(settings.fontFamily);
-      const fontFaceCss = id ? await ensureCuratedFontFaceCss(id).catch(() => "") : "";
+      const fontFaceCss = id
+        ? await ensureCuratedFontFaceCss(id, readerFontWeightsNeeded(settings.fontWeight)).catch(
+            () => "",
+          )
+        : "";
       renderer?.setStyles?.(buildReaderContentCss(settings, fontFaceCss));
     },
     [],

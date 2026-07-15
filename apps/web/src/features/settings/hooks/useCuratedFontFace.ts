@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { curatedFontId, type ReaderFontFamily } from "../lib/reader-settings";
+import {
+  curatedFontId,
+  type ReaderFontFamily,
+  type ReaderFontWeight,
+} from "../lib/reader-settings";
+import { readerFontWeightsNeeded } from "../lib/reader-css";
 import {
   getCuratedFontProgress,
   injectCuratedFontFace,
@@ -18,12 +23,19 @@ export interface CuratedFontFaceState {
 
 /**
  * Loads the active curated font (downloading + caching on first use) and injects
- * its `@font-face` into the app document, so the preview and UI render it. System
- * fonts need no loading, so they stay `idle`. Exposes download progress and a
- * retry for the failure case (e.g. the font CDN is unreachable).
+ * its `@font-face` into the app document, so the preview and UI render it.
+ * `fontWeight` decides which numeric weights get fetched — the same set the
+ * reader itself needs, so the preview download is also the reader's download.
+ * System fonts need no loading, so they stay `idle`. Exposes download progress
+ * and a retry for the failure case (e.g. the font CDN is unreachable).
  */
-export function useCuratedFontFace(fontFamily: ReaderFontFamily): CuratedFontFaceState {
+export function useCuratedFontFace(
+  fontFamily: ReaderFontFamily,
+  fontWeight: ReaderFontWeight = "regular",
+): CuratedFontFaceState {
   const id = curatedFontId(fontFamily);
+  // Serialized so the effect keys on the set's value, not array identity.
+  const weightsKey = readerFontWeightsNeeded(fontWeight).join(",");
   const [status, setStatus] = useState<CuratedFontStatus>("idle");
   const [progress, setProgress] = useState(0);
   const [attempt, setAttempt] = useState(0);
@@ -40,14 +52,14 @@ export function useCuratedFontFace(fontFamily: ReaderFontFamily): CuratedFontFac
     const unsubscribe = subscribeCuratedFontProgress(id, ({ done, total }) => {
       if (active && total > 0) setProgress(done / total);
     });
-    injectCuratedFontFace(id)
+    injectCuratedFontFace(id, weightsKey.split(",").map(Number))
       .then(() => active && setStatus("ready"))
       .catch(() => active && setStatus("error"));
     return () => {
       active = false;
       unsubscribe();
     };
-  }, [id, attempt]);
+  }, [id, weightsKey, attempt]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 

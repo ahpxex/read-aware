@@ -26,6 +26,7 @@
   "scopeHintGlobal": "Änderungen betreffen jedes Buch, das deinen globalen Einstellungen folgt.",
   "pageColor": "Seitenfarbe",
   "fontSize": "Schriftgröße",
+  "fontWeight": "Schriftstärke",
   "lineSpacing": "Zeilenabstand",
   "paragraphSpacing": "Absatzabstand",
   "readingMode": "Lesemodus",
@@ -103,6 +104,12 @@
     "x-large": "XL",
     "xx-large": "XXL",
     "xxx-large": "XXXL"
+  },
+  "fontWeightOption": {
+    "light": "Leicht",
+    "regular": "Normal",
+    "medium": "Mittel",
+    "bold": "Fett"
   },
   "lineSpacingOption": {
     "compact": "Kompakt",

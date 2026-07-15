@@ -26,6 +26,7 @@
   "scopeHintGlobal": "Los cambios afectan a todos los libros que siguen tus ajustes globales.",
   "pageColor": "Color de página",
   "fontSize": "Tamaño de letra",
+  "fontWeight": "Grosor de letra",
   "lineSpacing": "Interlineado",
   "paragraphSpacing": "Espacio entre párrafos",
   "readingMode": "Modo de lectura",
@@ -103,6 +104,12 @@
     "x-large": "XL",
     "xx-large": "XXL",
     "xxx-large": "XXXL"
+  },
+  "fontWeightOption": {
+    "light": "Fina",
+    "regular": "Normal",
+    "medium": "Media",
+    "bold": "Negrita"
   },
   "lineSpacingOption": {
     "compact": "Compacto",

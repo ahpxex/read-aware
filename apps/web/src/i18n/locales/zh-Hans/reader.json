@@ -26,6 +26,7 @@
   "scopeHintGlobal": "更改会影响所有采用全局设置的书籍。",
   "pageColor": "页面颜色",
   "fontSize": "字号",
+  "fontWeight": "字重",
   "lineSpacing": "行距",
   "paragraphSpacing": "段间距",
   "readingMode": "阅读模式",
@@ -103,6 +104,12 @@
     "x-large": "特大",
     "xx-large": "超大",
     "xxx-large": "巨大"
+  },
+  "fontWeightOption": {
+    "light": "细",
+    "regular": "标准",
+    "medium": "中等",
+    "bold": "加粗"
   },
   "lineSpacingOption": {
     "compact": "紧凑",

@@ -26,6 +26,7 @@
   "scopeHintGlobal": "Изменения затрагивают все книги, следующие вашим глобальным настройкам.",
   "pageColor": "Цвет страницы",
   "fontSize": "Размер шрифта",
+  "fontWeight": "Насыщенность",
   "lineSpacing": "Межстрочный интервал",
   "paragraphSpacing": "Интервал между абзацами",
   "readingMode": "Режим чтения",
@@ -103,6 +104,12 @@
     "x-large": "XL",
     "xx-large": "XXL",
     "xxx-large": "XXXL"
+  },
+  "fontWeightOption": {
+    "light": "Тонкий",
+    "regular": "Обычный",
+    "medium": "Средний",
+    "bold": "Жирный"
   },
   "lineSpacingOption": {
     "compact": "Компактный",

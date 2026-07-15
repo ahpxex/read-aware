@@ -56,6 +56,12 @@ export type ReaderFontSize =
   | "x-large"
   | "xx-large"
   | "xxx-large";
+/**
+ * Body-text weight presets. Each maps to a numeric CSS weight in
+ * `reader-css.ts`; fonts that lack a face for the exact number render the
+ * nearest available weight (standard CSS font matching).
+ */
+export type ReaderFontWeight = "light" | "regular" | "medium" | "bold";
 export type ReaderLineSpacing = "compact" | "comfortable" | "relaxed";
 export type ReaderParagraphSpacing = "tight" | "normal" | "loose";
 /**
@@ -81,6 +87,7 @@ export type ReaderSettings = {
   theme: ReaderTheme;
   fontFamily: ReaderFontFamily;
   fontSize: ReaderFontSize;
+  fontWeight: ReaderFontWeight;
   lineSpacing: ReaderLineSpacing;
   paragraphSpacing: ReaderParagraphSpacing;
   pageMargins: ReaderPageMargins;
@@ -96,6 +103,7 @@ export const DEFAULT_READER_SETTINGS: ReaderSettings = {
   theme: "warm",
   fontFamily: "curated:inter",
   fontSize: "medium",
+  fontWeight: "regular",
   lineSpacing: "comfortable",
   paragraphSpacing: "normal",
   // Touch screens read with mobile-typical tight margins by default; desktop
@@ -168,6 +176,14 @@ export function normalizePageMargins(value: unknown): ReaderPageMargins {
   return DEFAULT_READER_SETTINGS.pageMargins;
 }
 
+/** Coerce a persisted font-weight preset to a valid value. */
+export function normalizeFontWeight(value: unknown): ReaderFontWeight {
+  if (value === "light" || value === "regular" || value === "medium" || value === "bold") {
+    return value;
+  }
+  return DEFAULT_READER_SETTINGS.fontWeight;
+}
+
 export function getReaderPreferences(): ReaderSettingsPreferences {
   try {
     const raw = localKV.getItem(STORAGE_KEY);
@@ -177,6 +193,7 @@ export function getReaderPreferences(): ReaderSettingsPreferences {
       theme: parsed.theme ?? DEFAULT_READER_PREFERENCES.theme,
       fontFamily: normalizeFontFamily(parsed.fontFamily),
       fontSize: normalizeFontSize(parsed.fontSize),
+      fontWeight: normalizeFontWeight(parsed.fontWeight),
       lineSpacing: parsed.lineSpacing ?? DEFAULT_READER_PREFERENCES.lineSpacing,
       paragraphSpacing: parsed.paragraphSpacing ?? DEFAULT_READER_PREFERENCES.paragraphSpacing,
       pageMargins: normalizePageMargins(parsed.pageMargins),

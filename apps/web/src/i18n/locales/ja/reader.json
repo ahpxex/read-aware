@@ -26,6 +26,7 @@
   "scopeHintGlobal": "グローバル設定に従うすべての本に変更が適用されます。",
   "pageColor": "ページの色",
   "fontSize": "文字サイズ",
+  "fontWeight": "字の太さ",
   "lineSpacing": "行間",
   "paragraphSpacing": "段落間隔",
   "readingMode": "読書モード",
@@ -103,6 +104,12 @@
     "x-large": "XL",
     "xx-large": "XXL",
     "xxx-large": "XXXL"
+  },
+  "fontWeightOption": {
+    "light": "細め",
+    "regular": "標準",
+    "medium": "中太",
+    "bold": "太め"
   },
   "lineSpacingOption": {
     "compact": "狭い",

@@ -13,6 +13,7 @@ import { SettingsRow } from "../components/SettingsRow";
 import { getReaderPreviewStyle } from "../lib/reader-css";
 import {
   fontSizeOptions,
+  fontWeightOptions,
   lineSpacingOptions,
   navigatorGranularityOptions,
   pageColorOptions,
@@ -47,6 +48,7 @@ export function ReadingPanel() {
         <Stack gap="lg">
           <FontField
             value={prefs.fontFamily}
+            fontWeight={prefs.fontWeight}
             onChange={(fontFamily) => setPrefs({ ...prefs, fontFamily })}
           />
           <ChoiceGroup
@@ -54,6 +56,12 @@ export function ReadingPanel() {
             value={prefs.fontSize}
             options={fontSizeOptions(tReader)}
             onChange={(fontSize) => setPrefs({ ...prefs, fontSize })}
+          />
+          <ChoiceGroup
+            label={t("reading.fontWeight")}
+            value={prefs.fontWeight}
+            options={fontWeightOptions(tReader)}
+            onChange={(fontWeight) => setPrefs({ ...prefs, fontWeight })}
           />
           <ChoiceGroup
             label={t("reading.lineSpacing")}

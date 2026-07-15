@@ -3,6 +3,7 @@ import {
   curatedFontId,
   systemFontFamily,
   type ReaderFontFamily,
+  type ReaderFontWeight,
   type ReaderPageMargins,
   type ReaderSettings,
 } from "./reader-settings";
@@ -41,6 +42,27 @@ export function resolveReaderFontStack(fontFamily: ReaderFontFamily): string {
     if (safe) return `"${safe}", ${SYSTEM_FONT_FALLBACK}`;
   }
   return DEFAULT_FONT_STACK;
+}
+
+/**
+ * Numeric CSS weight behind each preset. "bold" is 600 (not 700) so bold body
+ * text stays a notch lighter than strong/heading text; fonts without the exact
+ * face render the nearest available weight.
+ */
+const FONT_WEIGHT_MAP = {
+  light: 300,
+  regular: 400,
+  medium: 500,
+  bold: 600,
+} as const satisfies Record<ReaderFontWeight, number>;
+
+/**
+ * The numeric weights a session must have faces for: the body preset itself,
+ * 400 as the regular/italic anchor, and 700 for strong text and headings.
+ * Drives the curated-font loader so only these weights get downloaded.
+ */
+export function readerFontWeightsNeeded(fontWeight: ReaderFontWeight): number[] {
+  return [...new Set([FONT_WEIGHT_MAP[fontWeight], 400, 700])].sort((a, b) => a - b);
 }
 
 const FONT_SIZE_MAP = {
@@ -175,6 +197,7 @@ export const READER_THEME_BG = {
 export function buildReaderContentCss(settings: ReaderSettings, fontFaceCss = ""): string {
   const fontFamily = resolveReaderFontStack(settings.fontFamily);
   const fontSize = FONT_SIZE_MAP[settings.fontSize];
+  const fontWeight = FONT_WEIGHT_MAP[settings.fontWeight];
   const lineHeight = LINE_HEIGHT_MAP[settings.lineSpacing];
   const paragraphSpacing = PARAGRAPH_SPACING_MAP[settings.paragraphSpacing];
   const horizontalMargin = READER_MARGIN_PRESETS[settings.pageMargins].horizontalPadding;
@@ -193,6 +216,7 @@ export function buildReaderContentCss(settings: ReaderSettings, fontFaceCss = ""
       background: ${theme.bg} !important;
       font-family: ${fontFamily} !important;
       font-size: ${fontSize} !important;
+      font-weight: ${fontWeight} !important;
       line-height: ${lineHeight} !important;
       text-align: start !important;
     }
@@ -427,6 +451,7 @@ export function getReaderPreviewStyle(settings: ReaderSettings): CSSProperties {
     color: theme.text,
     fontFamily: resolveReaderFontStack(settings.fontFamily),
     fontSize: FONT_SIZE_MAP[settings.fontSize],
+    fontWeight: FONT_WEIGHT_MAP[settings.fontWeight],
     lineHeight: LINE_HEIGHT_MAP[settings.lineSpacing],
     textAlign: "start",
   };

@@ -26,6 +26,7 @@
   "scopeHintGlobal": "變更會影響所有跟隨全域設定的書籍。",
   "pageColor": "頁面顏色",
   "fontSize": "字級大小",
+  "fontWeight": "字重",
   "lineSpacing": "行距",
   "paragraphSpacing": "段落間距",
   "readingMode": "閱讀模式",
@@ -103,6 +104,12 @@
     "x-large": "XL",
     "xx-large": "XXL",
     "xxx-large": "XXXL"
+  },
+  "fontWeightOption": {
+    "light": "細",
+    "regular": "標準",
+    "medium": "中等",
+    "bold": "加粗"
   },
   "lineSpacingOption": {
     "compact": "緊湊",

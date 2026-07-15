@@ -2,6 +2,7 @@ import {
   DEFAULT_READER_PREFERENCES,
   normalizeFontFamily,
   normalizeFontSize,
+  normalizeFontWeight,
   type ReaderSettingsPreferences,
 } from "./reader-settings";
 
@@ -39,6 +40,7 @@ function normalizeSettings(
     ...merged,
     fontFamily: normalizeFontFamily(merged.fontFamily),
     fontSize: normalizeFontSize(merged.fontSize),
+    fontWeight: normalizeFontWeight(merged.fontWeight),
   };
 }
 

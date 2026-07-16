@@ -51,6 +51,8 @@
     "exit": "Exit reading by sentence or paragraph",
     "prevSentence": "Previous sentence",
     "nextSentence": "Next sentence",
+    "prevParagraph": "Previous paragraph",
+    "nextParagraph": "Next paragraph",
     "returnToSentence": "Back to current sentence",
     "paragraphMode": "Paragraph mode",
     "showToolbars": "Show toolbars",

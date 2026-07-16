@@ -4,11 +4,14 @@ import { IconButton } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import { useDraggableFloat } from "../hooks/useDraggableFloat";
+import type { NavigatorGranularity } from "../lib/sentence-index";
 
 type ReaderNavigatorStepButtonsProps = {
   visible: boolean;
   /** Coordinate space the control floats in (the reader root). */
   containerRef: RefObject<HTMLElement | null>;
+  /** Step unit — the labels name what a step actually moves. */
+  granularity: NavigatorGranularity;
   onPrev: () => void;
   onNext: () => void;
 };
@@ -23,10 +26,12 @@ type ReaderNavigatorStepButtonsProps = {
 export function ReaderNavigatorStepButtons({
   visible,
   containerRef,
+  granularity,
   onPrev,
   onNext,
 }: ReaderNavigatorStepButtonsProps) {
   const { t } = useTranslation("reader");
+  const byParagraph = granularity === "paragraph";
   const float = useDraggableFloat({
     containerRef,
     controlId: "navigator-steps",
@@ -61,7 +66,7 @@ export function ReaderNavigatorStepButtons({
           )}
         >
           <IconButton
-            label={t("navigator.prevSentence")}
+            label={byParagraph ? t("navigator.prevParagraph") : t("navigator.prevSentence")}
             size="md"
             onClick={step(onPrev)}
             className={stepButtonClass}
@@ -69,7 +74,7 @@ export function ReaderNavigatorStepButtons({
           />
           <span aria-hidden="true" className="mx-0.5 h-6 w-px shrink-0 bg-border" />
           <IconButton
-            label={t("navigator.nextSentence")}
+            label={byParagraph ? t("navigator.nextParagraph") : t("navigator.nextSentence")}
             size="md"
             onClick={step(onNext)}
             className={stepButtonClass}

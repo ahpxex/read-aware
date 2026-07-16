@@ -173,6 +173,13 @@ export function ReaderNavigatorBar({
   }
 
   const hasSentence = sentenceKey != null;
+  const byParagraph = granularity === "paragraph";
+  const prevStepLabel = byParagraph
+    ? t("navigator.prevParagraph")
+    : t("navigator.prevSentence");
+  const nextStepLabel = byParagraph
+    ? t("navigator.nextParagraph")
+    : t("navigator.nextSentence");
   // Quiet, monochrome ghost buttons — same surface language as the selection
   // menu. Touch gets a taller target without widening the desktop bar; width
   // stays at 36px so the full strip still fits a phone screen in one row.
@@ -211,13 +218,13 @@ export function ReaderNavigatorBar({
 
           <div className="flex items-center gap-0.5 pointer-coarse:hidden">
             <BarButton
-              label={t("navigator.prevSentence")}
+              label={prevStepLabel}
               onClick={onPrev}
               className={actionButtonClass}
               icon={<CaretLeft size={16} weight="regular" aria-hidden="true" />}
             />
             <BarButton
-              label={t("navigator.nextSentence")}
+              label={nextStepLabel}
               onClick={onNext}
               className={actionButtonClass}
               icon={<CaretRight size={16} weight="regular" aria-hidden="true" />}

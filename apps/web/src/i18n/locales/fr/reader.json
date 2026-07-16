@@ -51,6 +51,8 @@
     "exit": "Quitter la lecture par phrase ou paragraphe",
     "prevSentence": "Phrase précédente",
     "nextSentence": "Phrase suivante",
+    "prevParagraph": "Paragraphe précédent",
+    "nextParagraph": "Paragraphe suivant",
     "returnToSentence": "Revenir à la phrase actuelle",
     "paragraphMode": "Mode paragraphe",
     "showToolbars": "Afficher les barres d’outils",

@@ -51,6 +51,8 @@
     "exit": "Satz- oder absatzweises Lesen beenden",
     "prevSentence": "Vorheriger Satz",
     "nextSentence": "Nächster Satz",
+    "prevParagraph": "Vorheriger Absatz",
+    "nextParagraph": "Nächster Absatz",
     "returnToSentence": "Zurück zum aktuellen Satz",
     "paragraphMode": "Absatzmodus",
     "showToolbars": "Symbolleisten einblenden",

@@ -51,6 +51,8 @@
     "exit": "文・段落ナビゲーターを終了",
     "prevSentence": "前の文",
     "nextSentence": "次の文",
+    "prevParagraph": "前の段落",
+    "nextParagraph": "次の段落",
     "returnToSentence": "現在の文に戻る",
     "paragraphMode": "段落モード",
     "showToolbars": "ツールバーを表示",

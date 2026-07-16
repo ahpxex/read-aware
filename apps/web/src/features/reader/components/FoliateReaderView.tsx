@@ -2137,6 +2137,7 @@ export function FoliateReaderView({
       <ReaderNavigatorStepButtons
         visible={sentenceNavigatorActive && !isLoading && !error}
         containerRef={readerRootRef}
+        granularity={navigatorPrefs.granularity}
         onPrev={sentenceNavigator.prev}
         onNext={sentenceNavigator.next}
       />

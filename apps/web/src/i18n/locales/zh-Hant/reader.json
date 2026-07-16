@@ -46,9 +46,9 @@
     "remove": "移除"
   },
   "navigator": {
-    "title": "逐句導航",
-    "enable": "開啟逐句導航",
-    "exit": "退出逐句導航",
+    "title": "逐句/逐段閱讀",
+    "enable": "開啟逐句/逐段閱讀",
+    "exit": "退出逐句/逐段閱讀",
     "prevSentence": "上一句",
     "nextSentence": "下一句",
     "returnToSentence": "回到閱讀處",

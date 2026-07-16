@@ -81,8 +81,8 @@
     },
     "pageMargins": "Márgenes de página",
     "navigator": {
-      "title": "Navegador de frases",
-      "description": "Cómo avanza el navegador de frases por el libro.",
+      "title": "Leer por frase o párrafo",
+      "description": "Cómo avanza la lectura por frase o párrafo por el libro.",
       "granularity": "Unidad de paso",
       "tapToAdvance": {
         "title": "Tocar para avanzar",
@@ -96,13 +96,13 @@
     "categories": {
       "Global": "Globales",
       "Reading": "Lectura",
-      "Navigator": "Navegador de frases",
+      "Navigator": "Leer por frase o párrafo",
       "Selection": "Selección",
       "Overlays": "Superposiciones"
     },
     "categoryDescriptions": {
       "selection": "Activo mientras hay texto seleccionado en el lector.",
-      "navigator": "Activo mientras el navegador de frases está encendido. Los atajos de selección también actúan sobre la frase actual."
+      "navigator": "Activo mientras la lectura por frase o párrafo está encendida. Los atajos de selección también actúan sobre la frase o el párrafo actual."
     },
     "actions": {
       "search": "Abrir la búsqueda",

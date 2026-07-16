@@ -81,8 +81,8 @@
     },
     "pageMargins": "頁邊距",
     "navigator": {
-      "title": "逐句導航",
-      "description": "逐句導航的步進方式。",
+      "title": "逐句/逐段閱讀",
+      "description": "逐句/逐段閱讀的步進方式。",
       "granularity": "步進單位",
       "tapToAdvance": {
         "title": "點按前進",
@@ -96,13 +96,13 @@
     "categories": {
       "Global": "全域",
       "Reading": "閱讀",
-      "Navigator": "逐句導航",
+      "Navigator": "逐句/逐段閱讀",
       "Selection": "選取",
       "Overlays": "覆蓋層"
     },
     "categoryDescriptions": {
       "selection": "在閱讀器中選取文字時生效。",
-      "navigator": "逐句導航開啟時可用；選取文字的快捷鍵也會作用於目前句子。"
+      "navigator": "逐句/逐段閱讀開啟時可用；選取文字的快捷鍵也會作用於目前句子或段落。"
     },
     "actions": {
       "search": "開啟搜尋",

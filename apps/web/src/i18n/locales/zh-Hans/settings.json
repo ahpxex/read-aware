@@ -81,8 +81,8 @@
     },
     "pageMargins": "页边距",
     "navigator": {
-      "title": "逐句导航",
-      "description": "逐句导航的步进方式。",
+      "title": "逐句/逐段阅读",
+      "description": "逐句/逐段阅读的步进方式。",
       "granularity": "步进单位",
       "tapToAdvance": {
         "title": "点按前进",
@@ -96,13 +96,13 @@
     "categories": {
       "Global": "全局",
       "Reading": "阅读",
-      "Navigator": "逐句导航",
+      "Navigator": "逐句/逐段阅读",
       "Selection": "选中文本",
       "Overlays": "浮层"
     },
     "categoryDescriptions": {
       "selection": "在阅读器中选中文本时可用。",
-      "navigator": "逐句导航开启时可用；选中文本的快捷键也会作用于当前句子。"
+      "navigator": "逐句/逐段阅读开启时可用；选中文本的快捷键也会作用于当前句子或段落。"
     },
     "actions": {
       "search": "打开搜索",

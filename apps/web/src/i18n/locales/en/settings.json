@@ -81,8 +81,8 @@
     },
     "pageMargins": "Page margins",
     "navigator": {
-      "title": "Sentence navigator",
-      "description": "How the sentence navigator steps through the book.",
+      "title": "Read by sentence or paragraph",
+      "description": "How reading by sentence or paragraph steps through the book.",
       "granularity": "Step unit",
       "tapToAdvance": {
         "title": "Tap to advance",
@@ -96,13 +96,13 @@
     "categories": {
       "Global": "Global",
       "Reading": "Reading",
-      "Navigator": "Sentence navigator",
+      "Navigator": "Read by sentence or paragraph",
       "Selection": "Selection",
       "Overlays": "Overlays"
     },
     "categoryDescriptions": {
       "selection": "Active while text is selected in the reader.",
-      "navigator": "Active while the sentence navigator is on. The selection shortcuts also act on the current sentence."
+      "navigator": "Active while reading by sentence or paragraph. The selection shortcuts also act on the current sentence or paragraph."
     },
     "actions": {
       "search": "Open search",

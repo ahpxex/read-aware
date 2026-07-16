@@ -46,9 +46,9 @@
     "remove": "削除"
   },
   "navigator": {
-    "title": "文ナビゲーター",
-    "enable": "文ナビゲーターをオンにする",
-    "exit": "文ナビゲーターを終了",
+    "title": "文・段落ナビゲーター",
+    "enable": "文・段落ナビゲーターをオンにする",
+    "exit": "文・段落ナビゲーターを終了",
     "prevSentence": "前の文",
     "nextSentence": "次の文",
     "returnToSentence": "現在の文に戻る",

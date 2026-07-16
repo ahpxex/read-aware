@@ -46,9 +46,9 @@
     "remove": "Quitar"
   },
   "navigator": {
-    "title": "Navegador de frases",
-    "enable": "Activar el navegador de frases",
-    "exit": "Salir del navegador de frases",
+    "title": "Leer por frase o párrafo",
+    "enable": "Empezar a leer por frase o párrafo",
+    "exit": "Salir de la lectura por frase o párrafo",
     "prevSentence": "Frase anterior",
     "nextSentence": "Frase siguiente",
     "returnToSentence": "Volver a la frase actual",

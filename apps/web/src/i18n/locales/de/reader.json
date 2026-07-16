@@ -46,9 +46,9 @@
     "remove": "Entfernen"
   },
   "navigator": {
-    "title": "Satznavigator",
-    "enable": "Satznavigator einschalten",
-    "exit": "Satznavigator beenden",
+    "title": "Satz- oder absatzweise lesen",
+    "enable": "Satz- oder absatzweises Lesen starten",
+    "exit": "Satz- oder absatzweises Lesen beenden",
     "prevSentence": "Vorheriger Satz",
     "nextSentence": "Nächster Satz",
     "returnToSentence": "Zurück zum aktuellen Satz",

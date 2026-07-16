@@ -46,9 +46,9 @@
     "remove": "Remove"
   },
   "navigator": {
-    "title": "Sentence navigator",
-    "enable": "Turn on sentence navigator",
-    "exit": "Exit sentence navigator",
+    "title": "Read by sentence or paragraph",
+    "enable": "Start reading by sentence or paragraph",
+    "exit": "Exit reading by sentence or paragraph",
     "prevSentence": "Previous sentence",
     "nextSentence": "Next sentence",
     "returnToSentence": "Back to current sentence",

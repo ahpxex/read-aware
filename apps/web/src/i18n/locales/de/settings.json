@@ -81,8 +81,8 @@
     },
     "pageMargins": "Seitenränder",
     "navigator": {
-      "title": "Satznavigator",
-      "description": "Wie der Satznavigator durch das Buch schreitet.",
+      "title": "Satz- oder absatzweise lesen",
+      "description": "Wie das satz- oder absatzweise Lesen durch das Buch schreitet.",
       "granularity": "Schritteinheit",
       "tapToAdvance": {
         "title": "Tippen zum Weitergehen",
@@ -96,13 +96,13 @@
     "categories": {
       "Global": "Global",
       "Reading": "Lesen",
-      "Navigator": "Satznavigator",
+      "Navigator": "Satz- oder absatzweise lesen",
       "Selection": "Auswahl",
       "Overlays": "Overlays"
     },
     "categoryDescriptions": {
       "selection": "Aktiv, während Text im Reader ausgewählt ist.",
-      "navigator": "Aktiv, solange der Satznavigator eingeschaltet ist. Die Auswahl-Kurzbefehle wirken dann auf den aktuellen Satz."
+      "navigator": "Aktiv, solange satz- oder absatzweises Lesen eingeschaltet ist. Die Auswahl-Kurzbefehle wirken dann auf den aktuellen Satz oder Absatz."
     },
     "actions": {
       "search": "Suche öffnen",

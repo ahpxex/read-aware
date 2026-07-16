@@ -81,8 +81,8 @@
     },
     "pageMargins": "余白",
     "navigator": {
-      "title": "文ナビゲーター",
-      "description": "文ナビゲーターの進み方の設定。",
+      "title": "文・段落ナビゲーター",
+      "description": "文・段落ナビゲーターの進み方の設定。",
       "granularity": "ステップ単位",
       "tapToAdvance": {
         "title": "タップで進む",
@@ -96,13 +96,13 @@
     "categories": {
       "Global": "全体",
       "Reading": "読書",
-      "Navigator": "文ナビゲーター",
+      "Navigator": "文・段落ナビゲーター",
       "Selection": "選択",
       "Overlays": "オーバーレイ"
     },
     "categoryDescriptions": {
       "selection": "リーダーでテキストを選択しているときに有効です。",
-      "navigator": "文ナビゲーターがオンの間に有効です。選択のショートカットは現在の文にも作用します。"
+      "navigator": "文・段落ナビゲーターがオンの間に有効です。選択のショートカットは現在の文や段落にも作用します。"
     },
     "actions": {
       "search": "検索を開く",

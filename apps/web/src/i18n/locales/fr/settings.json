@@ -81,8 +81,8 @@
     },
     "pageMargins": "Marges de page",
     "navigator": {
-      "title": "Navigateur de phrases",
-      "description": "Comment le navigateur de phrases progresse dans le livre.",
+      "title": "Lire par phrase ou paragraphe",
+      "description": "Comment la lecture par phrase ou paragraphe progresse dans le livre.",
       "granularity": "Unité de progression",
       "tapToAdvance": {
         "title": "Toucher pour avancer",
@@ -96,13 +96,13 @@
     "categories": {
       "Global": "Global",
       "Reading": "Lecture",
-      "Navigator": "Navigateur de phrases",
+      "Navigator": "Lire par phrase ou paragraphe",
       "Selection": "Sélection",
       "Overlays": "Superpositions"
     },
     "categoryDescriptions": {
       "selection": "Actif lorsque du texte est sélectionné dans le lecteur.",
-      "navigator": "Actif lorsque le navigateur de phrases est activé. Les raccourcis de sélection agissent aussi sur la phrase courante."
+      "navigator": "Actif lorsque la lecture par phrase ou paragraphe est activée. Les raccourcis de sélection agissent aussi sur la phrase ou le paragraphe courant."
     },
     "actions": {
       "search": "Ouvrir la recherche",

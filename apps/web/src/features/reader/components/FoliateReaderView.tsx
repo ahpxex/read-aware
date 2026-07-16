@@ -911,6 +911,26 @@ export function FoliateReaderView({
   const sentenceNavigatorRef = useRef(sentenceNavigator);
   useEffect(() => { sentenceNavigatorRef.current = sentenceNavigator; });
 
+  // Stepping to another sentence dismisses the overlays raised for the one
+  // left behind (dictionary, footnote, annotation menu) — their content is
+  // stale the moment the wash moves on. Keyed on the resting sentence so every
+  // step entry point (bar, step floats, keyboard, volume keys, tap-to-advance)
+  // is covered. The note editor is deliberately spared: auto-closing it would
+  // discard whatever the user has typed.
+  const navigatorSentenceKey = sentenceNavigator.current
+    ? sentenceNavigator.current.cfiRange ?? sentenceNavigator.current.text
+    : null;
+  const previousNavigatorSentenceKeyRef = useRef(navigatorSentenceKey);
+  useEffect(() => {
+    if (previousNavigatorSentenceKeyRef.current === navigatorSentenceKey) return;
+    previousNavigatorSentenceKeyRef.current = navigatorSentenceKey;
+    // Losing the sentence (deactivation, section unload) is not a step.
+    if (navigatorSentenceKey == null) return;
+    setDictionaryOpen(false);
+    setFootnote(null);
+    setActiveAnnotation(null);
+  }, [navigatorSentenceKey]);
+
   // Latest navigator actions for the stable key handler (see selectionActionsRef).
   const navigatorActionsRef = useRef<{
     hasTarget: boolean;
@@ -2082,11 +2102,7 @@ export function FoliateReaderView({
       />
       <ReaderNavigatorBar
         visible={sentenceNavigatorActive && !isLoading && !error}
-        sentenceKey={
-          sentenceNavigator.current
-            ? sentenceNavigator.current.cfiRange ?? sentenceNavigator.current.text
-            : null
-        }
+        sentenceKey={navigatorSentenceKey}
         containerRef={readerRootRef}
         canReturn={sentenceNavigator.canReturn}
         granularity={navigatorPrefs.granularity}

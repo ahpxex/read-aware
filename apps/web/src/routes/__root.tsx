@@ -3,6 +3,7 @@ import { HeadContent, Outlet, createRootRoute, useRouter } from "@tanstack/react
 import { Button, ToastProvider } from "@read-aware/ui";
 import { dismissBootSplash } from "../boot-splash";
 import { i18n, useTranslation } from "../i18n";
+import { WindowResizeEdges } from "../features/navigation/components/WindowResizeEdges";
 import { useAppearance } from "../features/settings/hooks/useAppearance";
 
 export const Route = createRootRoute({
@@ -32,6 +33,7 @@ function RootComponent() {
       <ToastProvider closeLabel={t("actions.dismiss")}>
         <Outlet />
       </ToastProvider>
+      <WindowResizeEdges />
     </>
   );
 }

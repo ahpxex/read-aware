@@ -13,7 +13,9 @@ import { DropdownMenu, IconButton, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { usePhoneViewport } from "@read-aware/ui/media";
 import { useTranslation } from "../../../i18n";
+import { desktopChromeKind } from "../../../platform/environment";
 import { activeCollectionAtom, type TopNav } from "../../../state/ui";
+import { WindowCaptionControls } from "./WindowCaptionControls";
 
 type AppHeaderProps = {
   activeTopNav: TopNav;
@@ -56,6 +58,10 @@ export function AppHeader({
 }: AppHeaderProps) {
   const { t } = useTranslation("nav");
   const isPhone = usePhoneViewport();
+  // Frameless Windows/Linux: the caption controls own the top-right corner, so
+  // the icon cluster moves to the LEFT (the platform-native arrangement).
+  // macOS keeps it on the right, mirroring the traffic lights.
+  const customChrome = desktopChromeKind() === "custom";
   const contextActive = activeTopNav === "context";
   const statsActive = activeTopNav === "stats";
   const [activeCollectionId, setActiveCollectionId] = useAtom(activeCollectionAtom);
@@ -74,7 +80,7 @@ export function AppHeader({
   if (isPhone) {
     return (
       <header
-        className="shrink-0 border-b border-border bg-[var(--ra-main-surface-color)]"
+        className="relative shrink-0 border-b border-border bg-[var(--ra-main-surface-color)]"
         // Keep the bar clear of the status bar / notch and display cutouts.
         style={{ paddingTop: "var(--ra-safe-top)" }}
       >
@@ -82,7 +88,10 @@ export function AppHeader({
           className="flex h-12 items-center gap-1.5"
           style={{
             paddingLeft: "max(0.75rem, var(--ra-safe-left))",
-            paddingRight: "max(0.75rem, var(--ra-safe-right))",
+            // A narrow desktop window uses this layout too — keep clear of the
+            // self-drawn caption controls on frameless platforms.
+            paddingRight:
+              "calc(max(0.75rem, var(--ra-safe-right)) + var(--ra-window-controls-inset))",
           }}
         >
           {showBack && (
@@ -151,13 +160,14 @@ export function AppHeader({
           />
           </div>
         </div>
+        <WindowCaptionControls />
       </header>
     );
   }
 
   return (
     <header
-      className="shrink-0 border-b border-border bg-[var(--ra-main-surface-color)]"
+      className="relative shrink-0 border-b border-border bg-[var(--ra-main-surface-color)]"
       style={{ paddingTop: "var(--ra-safe-top)" }}
     >
       <div
@@ -168,7 +178,8 @@ export function AppHeader({
           paddingLeft: showBack || leadingStatus
             ? "max(1.25rem, var(--ra-traffic-light-inset))"
             : "1.25rem",
-          paddingRight: "1.25rem",
+          // Clear the self-drawn caption controls on frameless platforms.
+          paddingRight: "calc(1.25rem + var(--ra-window-controls-inset))",
         }}
       >
         {showBack && (
@@ -183,7 +194,7 @@ export function AppHeader({
           </Tooltip>
         )}
         {leadingStatus}
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className={cn("flex items-center gap-1.5", !customChrome && "ml-auto")}>
           {actions ?? (
             <>
               <Tooltip content={t("header.search")} side="bottom">
@@ -245,6 +256,7 @@ export function AppHeader({
           )}
         </div>
       </div>
+      <WindowCaptionControls />
     </header>
   );
 }

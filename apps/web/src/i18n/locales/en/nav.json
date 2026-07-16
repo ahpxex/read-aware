@@ -30,5 +30,11 @@
   "notFound": {
     "title": "This page does not exist.",
     "body": "Return to the main reading workspace and pick up where you left off."
+  },
+  "window": {
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "restore": "Restore",
+    "close": "Close window"
   }
 }

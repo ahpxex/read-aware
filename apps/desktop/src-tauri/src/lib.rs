@@ -626,6 +626,15 @@ pub fn run() {
                 .clone();
             let mut builder =
                 tauri::WebviewWindowBuilder::from_config(app.handle(), &window_config)?;
+            // Windows/Linux: no native frame — the web layer draws its own
+            // caption controls in the header's top-right (WindowCaptionControls)
+            // and, on Linux, edge resize zones (WindowResizeEdges). Windows
+            // keeps native edge resizing through the window shadow. macOS stays
+            // on the overlay title bar + traffic lights path below.
+            #[cfg(any(target_os = "windows", target_os = "linux"))]
+            {
+                builder = builder.decorations(false);
+            }
             if let Some(theme) = boot_theme {
                 // Stamp <html data-theme> before the document parses so the
                 // splash CSS (keyed on the attribute) applies the forced theme

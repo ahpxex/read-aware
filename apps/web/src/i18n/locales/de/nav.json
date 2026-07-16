@@ -30,5 +30,11 @@
   "notFound": {
     "title": "Diese Seite existiert nicht.",
     "body": "Kehre zum Haupt-Lese-Arbeitsbereich zurück und mach dort weiter, wo du aufgehört hast."
+  },
+  "window": {
+    "minimize": "Minimieren",
+    "maximize": "Maximieren",
+    "restore": "Wiederherstellen",
+    "close": "Fenster schließen"
   }
 }

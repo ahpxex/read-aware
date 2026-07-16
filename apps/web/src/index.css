@@ -90,6 +90,7 @@
      untouched; the desktop shell opts in via the data attributes below. */
   --ra-titlebar-height: 0px;
   --ra-traffic-light-inset: 0px;
+  --ra-window-controls-inset: 0px;
 
   /* Mobile safe areas (iOS notch / home indicator, Android system bars).
      Resolve to 0px on desktop and in browsers, so fixed chrome can pad with
@@ -153,6 +154,16 @@ html[data-motion="reduced"] .ra-motion-surface-exit {
 html[data-tauri="true"][data-os="mac"] {
   --ra-titlebar-height: 2rem;
   --ra-traffic-light-inset: 4.75rem;
+}
+
+/* Windows / Linux desktop (Tauri): the window is frameless (decorations off),
+   so the app draws its own caption controls — minimize / maximize / close —
+   flush against the header's top-right corner. Reserve their width so header
+   content never slides underneath. */
+html[data-tauri="true"][data-os="windows"],
+html[data-tauri="true"][data-os="linux"] {
+  --ra-titlebar-height: 2rem;
+  --ra-window-controls-inset: 8.25rem;
 }
 
 /* The desktop app is an app shell, not a document: every surface scrolls

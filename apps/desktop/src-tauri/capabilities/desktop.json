@@ -6,6 +6,12 @@
   "platforms": ["macOS", "windows", "linux"],
   "permissions": [
     "core:window:allow-start-dragging",
+    "core:window:allow-start-resize-dragging",
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-is-maximized",
+    "core:window:allow-close",
+    "decorum:allow-show-snap-overlay",
     "updater:default",
     "process:allow-restart",
     "mcp-bridge:default"

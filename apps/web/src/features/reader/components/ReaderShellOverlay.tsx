@@ -165,9 +165,11 @@ export function ReaderShellOverlay({
         data-tauri-drag-region="deep"
         inert={!visible}
         style={{
-          // Left clears the macOS traffic lights; the right uses the plain edge
-          // inset so the appearance/notes cluster sits flush against the right
-          // edge instead of being pushed inward by a mirrored offset. On mobile
+          // Left clears the macOS traffic lights (zero on Windows/Linux, where
+          // the frameless reader keeps no window controls at all — immersive
+          // reading stays chrome-free); the right uses the plain edge inset so
+          // the appearance/notes cluster sits flush against the right edge
+          // instead of being pushed inward by a mirrored offset. On mobile
           // both sides also clear the display-cutout safe areas, and the bar
           // grows downward past the status bar (content stays a 3rem band).
           paddingLeft: "max(1.25rem, var(--ra-traffic-light-inset), var(--ra-safe-left))",

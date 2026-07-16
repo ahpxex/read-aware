@@ -30,5 +30,11 @@
   "notFound": {
     "title": "此頁面不存在。",
     "body": "返回主閱讀工作空間，接續你先前的進度。"
+  },
+  "window": {
+    "minimize": "最小化",
+    "maximize": "最大化",
+    "restore": "還原",
+    "close": "關閉視窗"
   }
 }

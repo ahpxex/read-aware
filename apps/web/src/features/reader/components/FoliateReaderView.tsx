@@ -108,6 +108,10 @@ type FoliateReaderViewProps = {
    *  shell header's toggle and this view stay in sync. */
   navigatorActive?: boolean;
   onExitNavigator?: () => void;
+  /** The navigator's wash moved to another sentence — a "resume reading"
+   *  gesture; the workspace uses it to drop the shell chrome (and with it the
+   *  TOC / chat panels) so the page takes the stage again. */
+  onNavigatorStep?: () => void;
   initialProgress?: ReaderProgress | null;
   chapterNavigationRequest?: {
     href: string;
@@ -312,6 +316,7 @@ export function FoliateReaderView({
   onFixedLayoutChange,
   navigatorActive = false,
   onExitNavigator,
+  onNavigatorStep,
   initialProgress = null,
   chapterNavigationRequest = null,
   annotationNavigationRequest = null,
@@ -845,6 +850,8 @@ export function FoliateReaderView({
 
   const onExitNavigatorRef = useRef(onExitNavigator);
   useEffect(() => { onExitNavigatorRef.current = onExitNavigator; }, [onExitNavigator]);
+  const onNavigatorStepRef = useRef(onNavigatorStep);
+  useEffect(() => { onNavigatorStepRef.current = onNavigatorStep; }, [onNavigatorStep]);
   const navigatorActiveStateRef = useRef(sentenceNavigatorActive);
   useEffect(() => {
     navigatorActiveStateRef.current = sentenceNavigatorActive;
@@ -911,12 +918,14 @@ export function FoliateReaderView({
   const sentenceNavigatorRef = useRef(sentenceNavigator);
   useEffect(() => { sentenceNavigatorRef.current = sentenceNavigator; });
 
-  // Stepping to another sentence dismisses the overlays raised for the one
-  // left behind (dictionary, footnote, annotation menu) — their content is
-  // stale the moment the wash moves on. Keyed on the resting sentence so every
-  // step entry point (bar, step floats, keyboard, volume keys, tap-to-advance)
-  // is covered. The note editor is deliberately spared: auto-closing it would
-  // discard whatever the user has typed.
+  // Stepping to another sentence is a "resume reading" gesture: it dismisses
+  // the overlays raised for the one left behind (dictionary, footnote,
+  // annotation menu — their content is stale the moment the wash moves on) and
+  // hands the workspace the cue to drop the shell chrome, taking the TOC/chat
+  // panels with it. Keyed on the resting sentence so every step entry point
+  // (bar, step floats, keyboard, volume keys, tap-to-advance) is covered. The
+  // note editor is deliberately spared: auto-closing it would discard whatever
+  // the user has typed.
   const navigatorSentenceKey = sentenceNavigator.current
     ? sentenceNavigator.current.cfiRange ?? sentenceNavigator.current.text
     : null;
@@ -929,6 +938,7 @@ export function FoliateReaderView({
     setDictionaryOpen(false);
     setFootnote(null);
     setActiveAnnotation(null);
+    onNavigatorStepRef.current?.();
   }, [navigatorSentenceKey]);
 
   // Latest navigator actions for the stable key handler (see selectionActionsRef).

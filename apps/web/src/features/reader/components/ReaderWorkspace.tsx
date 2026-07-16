@@ -150,6 +150,7 @@ export function ReaderWorkspace({
           onFixedLayoutChange={setIsFixedLayout}
           navigatorActive={navigatorActive}
           onExitNavigator={exitNavigator}
+          onNavigatorStep={onHideShell}
           initialProgress={selectedEpubProgress}
           chapterNavigationRequest={chapterNavigationRequest}
           annotationNavigationRequest={annotationNavigationRequest}

@@ -10,7 +10,7 @@ import { askAiRequestAtom } from "../../ai/state/chat-intent";
 import { useBookAnnotations } from "../../annotations/hooks/useBookAnnotations";
 import type { LibraryBook } from "../../library/lib/library-types";
 import { useBackInterceptor } from "../../../hooks/useBackInterceptor";
-import { hrefMatches } from "../lib/epub-utils";
+import { findTocIndexForHref } from "../lib/epub-utils";
 import { useReaderPanelLayout } from "../hooks/useReaderPanelLayout";
 import { useReaderPanelSizes } from "../hooks/useReaderPanelSizes";
 import type { TocEntry } from "../lib/reader-types";
@@ -107,6 +107,8 @@ export function ReaderShellOverlay({
   // The book's highlights and notes, shown in a popover opened from the header.
   // Kept live as marks are made via the shared revision in useBookAnnotations.
   const { annotations, remove: removeAnnotation } = useBookAnnotations(bookId);
+
+  const activeTocIndex = findTocIndexForHref(tocEntries, currentChapterHref);
 
   // "Ask AI about this" fires from the reader (a sibling component) via this
   // atom. Reveal the chat panel; the chat panel itself adopts the passage. We
@@ -334,8 +336,10 @@ export function ReaderShellOverlay({
                 </Body>
               )}
 
-              {tocEntries.map((entry) => {
-                const isActive = hrefMatches(entry.href, currentChapterHref ?? "");
+              {tocEntries.map((entry, index) => {
+                // A single resolved index (fragment-aware) — per-entry loose
+                // matching lit up every chapter sharing the current spine file.
+                const isActive = index === activeTocIndex;
 
                 return (
                   <button

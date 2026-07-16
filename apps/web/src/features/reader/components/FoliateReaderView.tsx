@@ -22,6 +22,7 @@ import {
   createFootnoteHandler,
   getScrollEdges,
   isFixedLayout as isFixedLayoutBook,
+  makeFoliateBook,
   type FoliateFootnoteBeforeRenderDetail,
   type FoliateFootnoteHandler,
   type FoliateFootnoteRenderDetail,
@@ -41,6 +42,7 @@ import {
   registerHighlightDrawing,
   removeHighlight,
 } from "../lib/highlight-renderer";
+import { ensureUsableToc } from "../lib/toc-synthesis";
 import { useSentenceNavigator } from "../hooks/useSentenceNavigator";
 import { ReaderAnnotationMenu } from "./ReaderAnnotationMenu";
 import { ReaderDictionaryModal } from "./ReaderDictionaryModal";
@@ -1560,7 +1562,14 @@ export function FoliateReaderView({
         container.append(view);
 
         await registerHighlightDrawing(view);
-        await view.open(file);
+        // Parse first, then repair a deficient nav BEFORE the view opens —
+        // foliate builds its TOC progress (relocate's tocItem) from book.toc
+        // at open time, so the synthesized map has to be in place already.
+        const parsedBook = await makeFoliateBook(file);
+        if (cancelled) return;
+        await ensureUsableToc(parsedBook);
+        if (cancelled) return;
+        await view.open(parsedBook);
         if (cancelled) return;
 
         const book = view.book;

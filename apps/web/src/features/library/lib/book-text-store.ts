@@ -11,6 +11,7 @@ import { deleteDesktopBlob, getDesktopBlob, putDesktopBlob } from "../../../plat
 import { isTauri } from "../../../platform/environment";
 import { flattenToc } from "../../reader/lib/epub-utils";
 import { makeFoliateBook } from "../../reader/lib/foliate-engine";
+import { ensureUsableToc } from "../../reader/lib/toc-synthesis";
 import type { TocNavItem } from "../../reader/lib/reader-types";
 import { getStoredBookFile } from "./library-db";
 
@@ -24,8 +25,10 @@ export interface ExtractedChapter {
   hrefs?: string[];
 }
 
-/** 持久化格式带版本号。PDF 复用 v2 结构；旧实现不会写入空的 PDF 记录。 */
-const FORMAT_VERSION = 2;
+/** 持久化格式带版本号。PDF 复用 v2 结构；旧实现不会写入空的 PDF 记录。
+ *  v3：抽取前先 ensureUsableToc 修复残缺目录 —— 结构未变，但残缺 nav 的书
+ *  此前被合并成一整章，需要按修复后的目录重抽。 */
+const FORMAT_VERSION = 3;
 
 interface PersistedBookText {
   bookId: string;
@@ -93,11 +96,14 @@ const yieldToUi = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 async function extract(bookId: string, preopened?: unknown): Promise<ExtractedChapter[]> {
   let book: FoliateBookLike;
   if (preopened) {
+    // 阅读器传来的 book 已经过 ensureUsableToc（开卷前修复残缺目录）。
     book = preopened as FoliateBookLike;
   } else {
     const file = await getStoredBookFile(bookId);
     if (!file) return [];
     book = (await makeFoliateBook(file)) as FoliateBookLike;
+    // 懒回填路径同样先修目录，否则残缺 nav 会把整本书合并成一章。
+    await ensureUsableToc(book);
   }
   const sections = book.sections ?? [];
   const entries = flattenToc((book.toc ?? []) as TocNavItem[]);

@@ -6,7 +6,7 @@
  */
 import { lookUpWord, type DictionaryPort } from "@read-aware/agent";
 import { DEFAULT_LOCALE, i18n, isAppLocale } from "../../../../i18n";
-import { getCachedEntry, putCachedEntry } from "../../../reader/lib/dictionary-cache";
+import { getCachedLookup, putCachedLookup } from "../../../reader/lib/dictionary-cache";
 import {
   getDictionaryLanguage,
   resolveExplanationLanguageName,
@@ -20,8 +20,10 @@ export function createDictionaryPort(): DictionaryPort {
     lookUp: async ({ term, context, bookTitle }) => {
       const locale = i18n.language && isAppLocale(i18n.language) ? i18n.language : DEFAULT_LOCALE;
       const language = resolveExplanationLanguageName(getDictionaryLanguage(), locale);
-      const cached = getCachedEntry(term, language, context);
-      if (cached) return { entry: cached, language };
+      // The tool always wants a term entry — a sentence-mode record under the
+      // same key (same text looked up from the reader) doesn't satisfy it.
+      const cached = getCachedLookup(term, language, context);
+      if (cached?.kind === "term") return { entry: cached.entry, language };
       const config = getAIConfig();
       if (!config?.apiKey) {
         throw new AiNotConfiguredError();
@@ -33,7 +35,7 @@ export function createDictionaryPort(): DictionaryPort {
         bookTitle,
         explanationLanguage: language,
       });
-      putCachedEntry(term, language, context, entry);
+      putCachedLookup(term, language, context, { kind: "term", entry });
       return { entry, language };
     },
   };

@@ -9,9 +9,15 @@ export type { CompleteFn } from "./models/complete";
 export { testLlmConnection } from "./models/test-connection";
 export {
   lookUpWord,
+  explainSentence,
+  isSentenceLookup,
   type DictionaryEntry,
   type DictionarySense,
+  type DictionaryLookupResult,
   type LookUpInput,
+  type ExplainSentenceInput,
+  type SentenceExplanation,
+  type SentenceGloss,
 } from "./models/dictionary";
 export * from "./onboarding";
 export type { ConsolidationReport } from "./memory/consolidation";

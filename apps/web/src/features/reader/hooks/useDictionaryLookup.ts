@@ -1,22 +1,29 @@
 /**
  * Drives an AI dictionary look-up for the reader modal. Owns the async lifecycle
- * (unconfigured / loading / ready / error) and re-runs whenever the term,
- * context, or explanation language changes. Uses the same BYOK provider stack as
- * chat via `accountFromConfig`; the *fast* tier does the work (see the agent
- * package's `lookUpWord`). No network client of its own.
+ * (unconfigured / loading / ready / error) and re-runs whenever the source text,
+ * context, or explanation language changes. Words and short phrases get a
+ * dictionary entry (`lookUpWord`); whole sentences get a translation plus
+ * per-word glosses (`explainSentence`) — `isSentenceLookup` decides. Uses the
+ * same BYOK provider stack as chat via `accountFromConfig`; the *fast* tier does
+ * the work. No network client of its own.
  */
 import { useEffect, useRef, useState } from "react";
-import { lookUpWord, type DictionaryEntry } from "@read-aware/agent";
+import {
+  explainSentence,
+  isSentenceLookup,
+  lookUpWord,
+  type DictionaryLookupResult,
+} from "@read-aware/agent";
 import { getAIConfig } from "../../ai/lib/ai-config";
 import { accountFromConfig } from "../../ai/agent/account";
-import { getCachedEntry, putCachedEntry } from "../lib/dictionary-cache";
+import { getCachedLookup, putCachedLookup } from "../lib/dictionary-cache";
 
 export type DictionaryLookupState =
   | { status: "idle" }
   | { status: "unconfigured" }
   | { status: "loading" }
   | { status: "error"; message: string }
-  | { status: "ready"; entry: DictionaryEntry };
+  | { status: "ready"; result: DictionaryLookupResult };
 
 export interface DictionaryLookupArgs {
   open: boolean;
@@ -55,9 +62,9 @@ export function useDictionaryLookup(args: DictionaryLookupArgs): {
     }
 
     if (!force) {
-      const cached = getCachedEntry(term, explanationLanguage, context);
+      const cached = getCachedLookup(term, explanationLanguage, context);
       if (cached) {
-        setState({ status: "ready", entry: cached });
+        setState({ status: "ready", result: cached });
         return;
       }
     }
@@ -66,14 +73,25 @@ export function useDictionaryLookup(args: DictionaryLookupArgs): {
     setState({ status: "loading" });
 
     const { account, models } = accountFromConfig(config);
-    lookUpWord(account, models, { term, context, bookTitle, explanationLanguage })
-      .then((entry) => {
+    const generate: Promise<DictionaryLookupResult> = isSentenceLookup(term)
+      ? explainSentence(account, models, { sentence: term, bookTitle, explanationLanguage }).then(
+          (explanation) => ({ kind: "sentence", explanation }),
+        )
+      : lookUpWord(account, models, { term, context, bookTitle, explanationLanguage }).then(
+          (entry) => ({ kind: "term", entry }),
+        );
+
+    generate
+      .then((result) => {
         if (cancelled) return;
-        putCachedEntry(term, explanationLanguage, context, entry);
-        setState({ status: "ready", entry });
+        putCachedLookup(term, explanationLanguage, context, result);
+        setState({ status: "ready", result });
       })
       .catch((error: unknown) => {
         if (cancelled) return;
+        // Surface the real failure — the modal shows a generic line, and a
+        // swallowed provider/parse error is undiagnosable.
+        console.error("Dictionary lookup failed:", error);
         setState({
           status: "error",
           message: error instanceof Error ? error.message : "lookup failed",

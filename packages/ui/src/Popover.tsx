@@ -1,6 +1,7 @@
 import { useRef, useEffect, useId, useCallback, type ReactNode } from "react";
 import { useLocalAtom } from "./lib/useLocalAtom";
 import { cn } from "./lib/cn";
+import { useHorizontalViewportCollision } from "./lib/useHorizontalViewportCollision";
 import { Tooltip } from "./Tooltip";
 
 type PopoverProps = {
@@ -53,6 +54,7 @@ export function Popover({
 
   const isControlled = openProp !== undefined;
   const open = isControlled ? openProp : internalOpen;
+  const { floatingRef, positionStyle } = useHorizontalViewportCollision(open, align);
 
   const setOpen = useCallback(
     (next: boolean | ((current: boolean) => boolean)) => {
@@ -112,17 +114,26 @@ export function Popover({
       )}
       {open && (
         <div
-          id={panelId}
-          role="dialog"
+          ref={floatingRef}
+          style={positionStyle}
           className={cn(
-            "ra-motion-overlay-pop absolute z-50 mt-2 min-w-[200px] max-w-[calc(100vw-1rem)] rounded-md border border-border bg-[var(--ra-main-surface-color)] p-4",
-            align === "left" && "left-0 origin-top-left",
-            align === "right" && "right-0 origin-top-right",
-            align === "center" && "left-1/2 -translate-x-1/2 origin-top",
-            panelClassName,
+            "absolute z-50 mt-2 w-max max-w-[calc(100vw-1rem)]",
+            align === "center" && "-translate-x-1/2",
           )}
         >
-          {children}
+          <div
+            id={panelId}
+            role="dialog"
+            className={cn(
+              "ra-motion-overlay-pop max-h-[calc(100dvh-3.5rem)] min-w-[200px] max-w-full overflow-y-auto rounded-md border border-border bg-[var(--ra-main-surface-color)] p-4",
+              align === "left" && "origin-top-left",
+              align === "right" && "origin-top-right",
+              align === "center" && "origin-top",
+              panelClassName,
+            )}
+          >
+            {children}
+          </div>
         </div>
       )}
     </div>

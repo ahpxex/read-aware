@@ -1,14 +1,35 @@
-// Live download links, resolved from the project's latest GitHub release. Asset
-// names are version-stamped (e.g. `ReadAware_0.2.3_universal.dmg`), so the URLs
-// can't be hard-coded — they're read from the release at runtime and mapped to
-// each platform by file extension. If the API is unreachable, callers fall back
-// to the releases page (see `RELEASES_URL`), so every button still works.
+// Download links for the latest GitHub release. The release workflow uploads
+// every installer twice: version-stamped (`ReadAware-v0.2.9-macos-arm64.dmg`)
+// and under a stable alias (`ReadAware-macos-arm64.dmg`), so the alias URLs via
+// `releases/latest/download/` can be hard-coded and always resolve — no API
+// call needed (see `stableDownloads`). The GitHub API is only a progressive
+// enhancement: when it responds it supplies the release tag and swaps in the
+// version-stamped assets. It is unauthenticated and rate-limited per client IP
+// (60/h — routinely exhausted behind shared proxy egress), so it must never be
+// the thing download buttons depend on.
 
 const REPO = "ahpxex/read-aware";
 
 export const REPO_URL = `https://github.com/${REPO}`;
 export const RELEASES_URL = `${REPO_URL}/releases/latest`;
+const LATEST_DOWNLOAD_URL = `${REPO_URL}/releases/latest/download`;
 const API_URL = `https://api.github.com/repos/${REPO}/releases/latest`;
+
+/**
+ * Stable, version-less asset aliases the release workflow attaches to every
+ * release (see `.github/workflows/release.yml`, "Collect release assets").
+ * Must stay in sync with that naming scheme.
+ */
+const STABLE_ASSET_NAMES = [
+  "ReadAware-macos-arm64.dmg",
+  "ReadAware-macos-x64.dmg",
+  "ReadAware-windows-x64-setup.exe",
+  "ReadAware-windows-x64.msi",
+  "ReadAware-linux-x64.AppImage",
+  "ReadAware-linux-x64.deb",
+  "ReadAware-linux-x64.rpm",
+  "ReadAware-android-arm64.apk",
+];
 
 export type PlatformId = "macos" | "windows" | "linux" | "android" | "ios";
 
@@ -46,6 +67,9 @@ export async function fetchLatestRelease(
       .filter((a): a is { name: string; browser_download_url: string } =>
         Boolean(a.name && a.browser_download_url),
       )
+      // Drop the stable aliases: they duplicate the version-stamped assets,
+      // sort ahead of them, and would otherwise win every `pick`.
+      .filter((a) => !STABLE_ASSET_NAMES.includes(a.name))
       .map((a) => ({ name: a.name, url: a.browser_download_url }));
     return { tag: data.tag_name, assets };
   } catch {
@@ -125,6 +149,19 @@ export function buildDownloads(assets: ReleaseAsset[]): PlatformDownload[] {
     },
     { id: "ios", name: "iOS", primary: null, extras: [], comingSoon: true },
   ];
+}
+
+/**
+ * Downloads built from the stable alias URLs — always valid, no network round
+ * trip. This is the default set; the API-resolved set only refines it.
+ */
+export function stableDownloads(): PlatformDownload[] {
+  return buildDownloads(
+    STABLE_ASSET_NAMES.map((name) => ({
+      name,
+      url: `${LATEST_DOWNLOAD_URL}/${name}`,
+    })),
+  );
 }
 
 /** Best-effort OS guess from the user agent, to feature the right download. */

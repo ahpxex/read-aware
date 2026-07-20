@@ -3071,6 +3071,7 @@ name = "read-aware-desktop"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
+ "block",
  "cocoa",
  "jni 0.21.1",
  "objc",

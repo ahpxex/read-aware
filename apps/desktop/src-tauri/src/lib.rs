@@ -404,6 +404,75 @@ fn set_traffic_lights_visible(window: tauri::WebviewWindow, visible: bool) {
 #[tauri::command]
 fn set_traffic_lights_visible(_visible: bool) {}
 
+/// Feed the webview ground-truth trackpad gesture phases.
+///
+/// A trackpad swipe reaches the DOM as an anonymous stream of wheel deltas:
+/// the drag and its momentum tail are indistinguishable there, and the one bit
+/// that separates "the same swipe still coasting" from "a new swipe" — whether
+/// fingers are on the pad — is never exposed to JS. AppKit knows it exactly,
+/// so a local NSEvent monitor watches every scroll-wheel event before dispatch
+/// and emits just the transitions the reader's wheel-gesture logic needs:
+///
+/// - `"touch"`    — fingers landed on the pad (phase MayBegin/Began); this
+///                  contact also cancels any running momentum
+/// - `"momentum"` — fingers lifted and the momentum tail began
+/// - `"end"`      — the momentum tail finished (or was cancelled)
+///
+/// A drag's own Ended phase is deliberately silent: momentum may still follow
+/// it, and treating it as "gesture over" would free the gesture latch against
+/// the swipe's leftover momentum. Legacy mouse wheels report no phases and
+/// emit nothing — the JS side treats a phase-less stream as discrete notches.
+///
+/// The monitor runs in the app process, so these signals stay accurate even
+/// while the webview's main thread is busy animating a page turn — the jank
+/// that defeats any timing heuristic applied to the DOM delta stream.
+#[cfg(target_os = "macos")]
+fn install_scroll_phase_monitor(app: tauri::AppHandle) {
+    use block::ConcreteBlock;
+    use cocoa::base::id;
+    use objc::{class, msg_send, sel, sel_impl};
+    use tauri::Emitter;
+
+    // NSEventMask bit for scroll-wheel events (1 << NSEventTypeScrollWheel).
+    const SCROLL_WHEEL_MASK: u64 = 1 << 22;
+    // NSEventPhase bits.
+    const PHASE_BEGAN: u64 = 1 << 0;
+    const PHASE_ENDED: u64 = 1 << 3;
+    const PHASE_CANCELLED: u64 = 1 << 4;
+    const PHASE_MAY_BEGIN: u64 = 1 << 5;
+
+    let handler = ConcreteBlock::new(move |event: id| -> id {
+        let phase: u64 = unsafe { msg_send![event, phase] };
+        let momentum: u64 = unsafe { msg_send![event, momentumPhase] };
+        let edge = if phase & (PHASE_MAY_BEGIN | PHASE_BEGAN) != 0 {
+            Some("touch")
+        } else if momentum & PHASE_BEGAN != 0 {
+            Some("momentum")
+        } else if momentum & (PHASE_ENDED | PHASE_CANCELLED) != 0 {
+            Some("end")
+        } else {
+            None
+        };
+        if let Some(edge) = edge {
+            let _ = app.emit("ra-wheel-phase", edge);
+        }
+        event
+    })
+    .copy();
+    let monitor: id = unsafe {
+        msg_send![
+            class!(NSEvent),
+            addLocalMonitorForEventsMatchingMask: SCROLL_WHEEL_MASK
+            handler: &*handler
+        ]
+    };
+    // Monitor and handler live for the whole app. The returned monitor object
+    // is autoreleased, so retain it; there is no teardown path where
+    // removeMonitor: would run before exit.
+    let _: id = unsafe { msg_send![monitor, retain] };
+    std::mem::forget(handler);
+}
+
 /// Enumerate the user-facing font families installed on this machine, for the
 /// reader's font picker.
 ///
@@ -651,6 +720,11 @@ pub fn run() {
             // Decorum keeps the inset across window resizes.
             #[cfg(target_os = "macos")]
             let _ = window.set_traffic_lights_inset(16.0, 23.5);
+
+            // macOS: real trackpad gesture phases for the reader's wheel
+            // gestures (one page turn per physical swipe).
+            #[cfg(target_os = "macos")]
+            install_scroll_phase_monitor(app.handle().clone());
 
             // No forced preference: the config painted light paper, so swap in
             // dark paper when the OS scheme is dark and a dark boot never

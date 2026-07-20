@@ -70,6 +70,7 @@ import {
   setDefaultMarkColor,
 } from "../../annotations/lib/annotation-prefs";
 import { hasCoarsePointer, suppressNativeContextMenu } from "../../../platform/environment";
+import { subscribeWheelPhaseEdges } from "../../../platform/wheel-phase";
 import { useDelayedFlag } from "../hooks/useDelayedFlag";
 import {
   buildReaderContentCss,
@@ -1009,6 +1010,19 @@ export function FoliateReaderView({
       pageTurn: createWheelGesture({ threshold: WHEEL_PAGE_TURN_THRESHOLD_PX }),
     };
   }
+
+  // Ground-truth gesture phases from the shell (macOS): both machines learn
+  // when fingers touch and when momentum starts/ends, which replaces their
+  // timing heuristics with exact once-per-swipe behavior. Elsewhere no edges
+  // ever arrive and the machines keep their heuristics.
+  useEffect(() => {
+    const gestures = wheelGesturesRef.current;
+    if (!gestures) return;
+    return subscribeWheelPhaseEdges((edge) => {
+      gestures.step.notifyPhase(edge);
+      gestures.pageTurn.notifyPhase(edge);
+    });
+  }, []);
 
   // One clock for the gesture machines, anchored to the main window's
   // performance.now(). `event.timeStamp` is relative to each document's own

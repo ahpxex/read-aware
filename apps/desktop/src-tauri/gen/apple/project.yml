@@ -30,7 +30,13 @@ targets:
     sources:
       - path: Sources
       - path: Assets.xcassets
+      # Build artifacts land here (libapp.a per arch/config). Keep them out of
+      # every build phase: regenerating the project while Externals/ holds a
+      # stale artifact once baked a debug libapp.a into Copy Bundle Resources,
+      # which broke clean-machine (CI) release archives — the debug path never
+      # exists there. Linking finds libapp.a via LIBRARY_SEARCH_PATHS instead.
       - path: Externals
+        buildPhase: none
       - path: read-aware-desktop_iOS
       - path: assets
         buildPhase: resources

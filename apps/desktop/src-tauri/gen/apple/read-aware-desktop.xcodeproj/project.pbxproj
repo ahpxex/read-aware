@@ -17,7 +17,6 @@
 		9417AC75AE7C3CE71E0D7509 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0843E91F9CBA9111716694E9 /* QuartzCore.framework */; };
 		9970771AC71A9BF56602E740 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 99B3E6DD7281927706328695 /* Assets.xcassets */; };
 		9F23E963020B7BE0A03269FF /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4C6A229412AA829510DEF77 /* WebKit.framework */; };
-		A72ABE156428ED6DE409652E /* libapp.a in Resources */ = {isa = PBXBuildFile; fileRef = 0D766573EDF74AE92171CF46 /* libapp.a */; };
 		B4F45C35973D8838DF65B8ED /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9007086C0316C5D10BFD5572 /* LaunchScreen.storyboard */; };
 		C0AC3AEAA8B07444E7148F23 /* libapp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = CD72F3B7A06AF8FB57B58C07 /* libapp.a */; };
 		D8DD20EDDDE75B7A0E4D4B3A /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CFD80631408159271A8893D0 /* CoreGraphics.framework */; };
@@ -26,7 +25,6 @@
 /* Begin PBXFileReference section */
 		06D3D83C88B01F463DF0A80F /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		0843E91F9CBA9111716694E9 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
-		0D766573EDF74AE92171CF46 /* libapp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libapp.a; sourceTree = "<group>"; };
 		31CAA29798863E73C43A1101 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		3C7CF31FE35AD3898F3D11A4 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		4046B69FFA4DC7EDA5FE465A /* main.rs */ = {isa = PBXFileReference; path = main.rs; sourceTree = "<group>"; };
@@ -94,7 +92,6 @@
 		266382CB2522020EA283D2F1 /* Externals */ = {
 			isa = PBXGroup;
 			children = (
-				5D9C80BEE138611E92C465CC /* arm64 */,
 			);
 			path = Externals;
 			sourceTree = "<group>";
@@ -120,22 +117,6 @@
 				15D051950C0C62BC8916964E /* read-aware-desktop */,
 			);
 			path = Sources;
-			sourceTree = "<group>";
-		};
-		5D9C80BEE138611E92C465CC /* arm64 */ = {
-			isa = PBXGroup;
-			children = (
-				78A5BB68BDB2C0A27F616002 /* debug */,
-			);
-			path = arm64;
-			sourceTree = "<group>";
-		};
-		78A5BB68BDB2C0A27F616002 /* debug */ = {
-			isa = PBXGroup;
-			children = (
-				0D766573EDF74AE92171CF46 /* libapp.a */,
-			);
-			path = debug;
 			sourceTree = "<group>";
 		};
 		7DE8A5EA67D5B151E144821B /* src */ = {
@@ -242,7 +223,6 @@
 				9970771AC71A9BF56602E740 /* Assets.xcassets in Resources */,
 				B4F45C35973D8838DF65B8ED /* LaunchScreen.storyboard in Resources */,
 				4F9E33CCF781F045E9A75D99 /* assets in Resources */,
-				A72ABE156428ED6DE409652E /* libapp.a in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

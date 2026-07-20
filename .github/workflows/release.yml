@@ -159,6 +159,16 @@ jobs:
         working-directory: apps/desktop
         run: bun run tauri ios build --no-sign --ci
 
+      # The tauri CLI runs xcodebuild with -quiet, so an archive failure hides
+      # the real error (script-phase output included). The activity log has it.
+      - name: Dump Xcode activity logs on failure
+        if: failure()
+        run: |
+          find "$HOME/Library/Developer/Xcode/DerivedData" -name "*.xcactivitylog" 2>/dev/null | while read -r log; do
+            echo "=== $log ==="
+            gunzip -c "$log" | tr '\r' '\n' | tail -300 || true
+          done
+
       - name: Collect release assets
         run: |
           IPA="apps/desktop/src-tauri/gen/apple/build/arm64/ReadAware.ipa"

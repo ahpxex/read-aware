@@ -1010,6 +1010,31 @@ export function FoliateReaderView({
     };
   }
 
+  // One clock for the gesture machines, anchored to the main window's
+  // performance.now(). `event.timeStamp` is relative to each document's own
+  // time origin — a section iframe's clock starts near zero when the section
+  // loads, while the reader root's counts from app launch — so a gesture whose
+  // events straddle the two listener surfaces (or a section swap mid-momentum)
+  // would jump the raw clock by minutes, which the machine reads as a quiet
+  // gap: it unlatches against the swipe's leftover momentum and fires a
+  // second, phantom turn. Translate every timestamp with a min-tracked
+  // per-target offset instead of stamping arrival time directly: within one
+  // document the hardware spacing is preserved (a delivery stall can only
+  // overestimate an offset candidate, never shrink the tracked minimum), and
+  // across documents the origins line up on one axis.
+  const wheelClockOffsetsRef = useRef(new WeakMap<EventTarget, number>());
+  const wheelEventTime = useCallback((event: WheelEvent): number => {
+    const target = event.currentTarget;
+    const now = performance.now();
+    if (!target) return now;
+    const offsets = wheelClockOffsetsRef.current;
+    const candidate = now - event.timeStamp;
+    const known = offsets.get(target);
+    const offset = known == null ? candidate : Math.min(known, candidate);
+    offsets.set(target, offset);
+    return event.timeStamp + offset;
+  }, []);
+
   // Route a wheel event by axis and mode:
   // - Paginated layouts: a mostly-horizontal delta is a trackpad two-finger
   //   swipe — turn one page per gesture, in the swipe's physical direction
@@ -1028,7 +1053,7 @@ export function FoliateReaderView({
       // Without preventDefault the webview may read the swipe as overscroll
       // or a history-navigation gesture.
       if (event.cancelable) event.preventDefault();
-      const turned = gestures.pageTurn.feed(event.deltaX, event.timeStamp);
+      const turned = gestures.pageTurn.feed(event.deltaX, wheelEventTime(event));
       if (turned !== 0) {
         clearSelection();
         enqueuePageTurn(() =>
@@ -1039,13 +1064,13 @@ export function FoliateReaderView({
     }
     if (navigatorActiveStateRef.current && scrollToStepRef.current) {
       if (event.cancelable) event.preventDefault();
-      const stepped = gestures.step.feed(event.deltaY, event.timeStamp);
+      const stepped = gestures.step.feed(event.deltaY, wheelEventTime(event));
       if (stepped !== 0) navigatorActionsRef.current?.[stepped > 0 ? "next" : "prev"]();
       return;
     }
     dismissShellOnScrollDistanceRef.current(event.deltaY);
     handleWheelCrossingRef.current(event.deltaY);
-  }, [clearSelection, enqueuePageTurn]);
+  }, [clearSelection, enqueuePageTurn, wheelEventTime]);
   const handleWheelEventRef = useRef(handleWheelEvent);
   useEffect(() => { handleWheelEventRef.current = handleWheelEvent; }, [handleWheelEvent]);
 

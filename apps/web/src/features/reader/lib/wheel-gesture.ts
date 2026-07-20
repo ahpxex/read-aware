@@ -15,8 +15,13 @@
  *   ("armed"), two consecutive meaningful rises read as a new swipe. A steady
  *   continuous scroll never dips, never arms, and so still fires only once.
  *
- * Purely timestamp-driven (no timers): feed each event's delta with its
- * `timeStamp` and act on the returned direction.
+ * Purely timestamp-driven (no timers): feed each event's delta with a time
+ * reading and act on the returned direction. All feeds into one instance MUST
+ * share a single monotonic clock. Raw `event.timeStamp` is NOT such a clock
+ * when events come from more than one document — each document stamps against
+ * its own time origin (a section iframe starts near zero), and an origin jump
+ * mid-gesture reads as a quiet gap, unlatching against leftover momentum.
+ * See `wheelEventTime` in FoliateReaderView for the normalization.
  */
 
 export type WheelGestureStep = -1 | 0 | 1;

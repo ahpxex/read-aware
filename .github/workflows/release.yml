@@ -1,7 +1,8 @@
 # Release builds — run ONLY when a version tag (v*) is pushed.
-# Android: signed arm64 APK. Desktop: macOS .dmg/.app.zip per chip (Apple
-# Silicon + Intel, no universal), Windows x64 .msi/.exe, Linux x64
-# .AppImage/.deb/.rpm. Every artifact is renamed to carry its platform
+# Android: signed arm64 APK. iOS: unsigned arm64 IPA for sideloading (AltStore
+# / SideStore / Sideloadly re-sign it with the user's own Apple ID). Desktop:
+# macOS .dmg/.app.zip per chip (Apple Silicon + Intel, no universal), Windows
+# x64 .msi/.exe, Linux x64 .AppImage/.deb/.rpm. Every artifact is renamed to carry its platform
 # (ReadAware-vX.Y.Z-<platform>-<arch>.<ext>) before it is attached to the
 # GitHub release for the tag (created on first upload). Every installer is
 # additionally uploaded under a version-less stable alias
@@ -114,6 +115,66 @@ jobs:
             ReadAware-${{ github.ref_name }}-android-arm64.apk
             ReadAware-android-arm64.apk
             latest-android.json
+          generate_release_notes: true
+
+  # iOS: unsigned arm64 IPA via `tauri ios build --no-sign` (the CLI overrides
+  # the codesigning identity to "" and still runs beforeBuildCommand plus the
+  # Rust build through its Xcode options server, so the whole pipeline stays
+  # the supported one). The IPA carries no signature at all — sideloading
+  # tools (AltStore, SideStore, Sideloadly) re-sign it on install.
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+          key: aarch64-apple-ios
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Verify tag matches the iOS app version
+        run: |
+          APP_VERSION="$(bun -e "console.log(require('./apps/desktop/src-tauri/tauri.conf.json').version)")"
+          if [ "${GITHUB_REF_NAME#v}" != "$APP_VERSION" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match tauri.conf.json version $APP_VERSION" >&2
+            exit 1
+          fi
+          PLIST="apps/desktop/src-tauri/gen/apple/read-aware-desktop_iOS/Info.plist"
+          IOS_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PLIST")"
+          if [ "${GITHUB_REF_NAME#v}" != "$IOS_VERSION" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match iOS Info.plist version $IOS_VERSION" >&2
+            exit 1
+          fi
+
+      - name: Build unsigned IPA
+        working-directory: apps/desktop
+        run: bun run tauri ios build --no-sign --ci
+
+      - name: Collect release assets
+        run: |
+          IPA="apps/desktop/src-tauri/gen/apple/build/arm64/ReadAware.ipa"
+          unzip -q "$IPA" -d "$RUNNER_TEMP/ipa-check"
+          codesign -dv "$RUNNER_TEMP/ipa-check/Payload/ReadAware.app" 2>&1 | grep -q "not signed" \
+            || { echo "expected an unsigned IPA" >&2; exit 1; }
+          mkdir -p release-assets
+          cp "$IPA" "release-assets/ReadAware-${{ github.ref_name }}-ios-arm64.ipa"
+          cp "$IPA" release-assets/ReadAware-ios-arm64.ipa
+          ls -la release-assets
+
+      - name: Attach to release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ReadAware ${{ github.ref_name }}
+          files: release-assets/*
           generate_release_notes: true
 
   desktop:

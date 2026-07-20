@@ -49,9 +49,8 @@ memory from the books, passages, notes, and conversations that matter to you.
 
 ## Why it feels different
 
-The interface has been tuned down to the pixel. Almost none of the code was
-written by hand, but every product decision was still judged by a human. The
-result is intentionally quiet, coherent, and free of AI slop.
+The interface has been tuned down to the pixel. The result is intentionally
+quiet, coherent, and free of AI slop.
 
 AI stays beside the reading experience rather than taking it over. The agent
 can retrieve context, call tools, and update memory, while the page remains a

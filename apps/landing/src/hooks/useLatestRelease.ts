@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import {
+  BAKED_VERSION,
   buildDownloads,
   detectPlatform,
-  fetchLatestRelease,
-  stableDownloads,
+  fetchLatestVersion,
   type PlatformDownload,
   type PlatformId,
 } from "../lib/releases";
 
 export type LatestReleaseState = {
-  /** Release tag (e.g. "v0.2.3"), or null until the API responds. */
+  /** Release tag (e.g. "v0.2.3"). */
   tag: string | null;
   downloads: PlatformDownload[];
   /** The visitor's detected OS, used to feature the right download. */
@@ -18,29 +18,29 @@ export type LatestReleaseState = {
 };
 
 /**
- * Download links for the latest GitHub release. Starts with the stable alias
- * URLs, which are direct installer downloads with no network round trip; the
- * GitHub API then refines them with the release tag and version-stamped
- * filenames. A failed API request (it's rate-limited per client IP) keeps the
- * stable set — the buttons still download directly.
+ * Download links for the latest GitHub release. Starts from the build-time
+ * baked version — direct version-stamped installer URLs, no network round
+ * trip. The GitHub API then refines them when it responds (it may know a newer
+ * release than this deployed landing); a failed API request (it's rate-limited
+ * per client IP) keeps the baked set — the buttons still download directly.
  */
 export function useLatestRelease(): LatestReleaseState {
   const [state, setState] = useState<LatestReleaseState>(() => ({
-    tag: null,
-    downloads: stableDownloads(),
+    tag: `v${BAKED_VERSION}`,
+    downloads: buildDownloads(BAKED_VERSION),
     platform: detectPlatform(),
     loading: true,
   }));
 
   useEffect(() => {
     const controller = new AbortController();
-    void fetchLatestRelease(controller.signal).then((release) => {
+    void fetchLatestVersion(controller.signal).then((version) => {
       if (controller.signal.aborted) return;
       setState((previous) => ({
         ...previous,
         loading: false,
-        tag: release?.tag ?? previous.tag,
-        downloads: release ? buildDownloads(release.assets) : previous.downloads,
+        tag: version ? `v${version}` : previous.tag,
+        downloads: version ? buildDownloads(version) : previous.downloads,
       }));
     });
     return () => controller.abort();

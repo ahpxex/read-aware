@@ -1,35 +1,31 @@
-// Download links for the latest GitHub release. The release workflow uploads
-// every installer twice: version-stamped (`ReadAware-v0.2.9-macos-arm64.dmg`)
-// and under a stable alias (`ReadAware-macos-arm64.dmg`), so the alias URLs via
-// `releases/latest/download/` can be hard-coded and always resolve — no API
-// call needed (see `stableDownloads`). The GitHub API is only a progressive
-// enhancement: when it responds it supplies the release tag and swaps in the
-// version-stamped assets. It is unauthenticated and rate-limited per client IP
-// (60/h — routinely exhausted behind shared proxy egress), so it must never be
-// the thing download buttons depend on.
+// Download links for the latest GitHub release, built without depending on any
+// network call. Every release ships one deterministic set of asset names —
+// `ReadAware-vX.Y.Z-<platform>-<arch>.<ext>` (see .github/workflows/release.yml,
+// "Collect release assets") — so knowing the version is knowing every URL.
+//
+// The version is baked in at build time from the desktop app's own config
+// (`__READAWARE_VERSION__`, see vite.config.ts): the landing lives in the same
+// monorepo, and every release bumps that config in the same commit as the tag.
+// A landing build that lags the newest tag still serves working links — old
+// tags keep their assets forever, and the installed app self-updates.
+//
+// The GitHub API refines this at runtime when it happens to respond (it may
+// know a newer release than the deployed landing). It is unauthenticated and
+// rate-limited per client IP (60/h — routinely exhausted behind shared proxy
+// egress), so it must never be the thing download buttons depend on: it broke
+// the buttons once already. Fetching `releases/latest/download/latest.json`
+// directly is not an option either — github.com serves that redirect without
+// CORS headers, so browsers refuse it (plain <a href> navigation is exempt,
+// which is why version-stamped hrefs work at all).
 
 const REPO = "ahpxex/read-aware";
 
 export const REPO_URL = `https://github.com/${REPO}`;
 export const RELEASES_URL = `${REPO_URL}/releases/latest`;
-const LATEST_DOWNLOAD_URL = `${REPO_URL}/releases/latest/download`;
 const API_URL = `https://api.github.com/repos/${REPO}/releases/latest`;
 
-/**
- * Stable, version-less asset aliases the release workflow attaches to every
- * release (see `.github/workflows/release.yml`, "Collect release assets").
- * Must stay in sync with that naming scheme.
- */
-const STABLE_ASSET_NAMES = [
-  "ReadAware-macos-arm64.dmg",
-  "ReadAware-macos-x64.dmg",
-  "ReadAware-windows-x64-setup.exe",
-  "ReadAware-windows-x64.msi",
-  "ReadAware-linux-x64.AppImage",
-  "ReadAware-linux-x64.deb",
-  "ReadAware-linux-x64.rpm",
-  "ReadAware-android-arm64.apk",
-];
+/** App version this build advertises (e.g. "0.2.10"), baked at build time. */
+export const BAKED_VERSION: string = __READAWARE_VERSION__;
 
 export type PlatformId = "macos" | "windows" | "linux" | "android" | "ios";
 
@@ -46,122 +42,73 @@ export type PlatformDownload = {
   comingSoon?: boolean;
 };
 
-export type ReleaseAsset = { name: string; url: string };
-export type LatestRelease = { tag: string; assets: ReleaseAsset[] };
-
-export async function fetchLatestRelease(
+/**
+ * Latest release version according to the GitHub API, or null when the API is
+ * unavailable (rate limit, offline). Purely a refinement over BAKED_VERSION.
+ */
+export async function fetchLatestVersion(
   signal?: AbortSignal,
-): Promise<LatestRelease | null> {
+): Promise<string | null> {
   try {
     const response = await fetch(API_URL, {
       headers: { Accept: "application/vnd.github+json" },
       signal,
     });
     if (!response.ok) return null;
-    const data = (await response.json()) as {
-      tag_name?: string;
-      assets?: { name?: string; browser_download_url?: string }[];
-    };
-    if (!data.tag_name || !Array.isArray(data.assets)) return null;
-    const assets: ReleaseAsset[] = data.assets
-      .filter((a): a is { name: string; browser_download_url: string } =>
-        Boolean(a.name && a.browser_download_url),
-      )
-      // Drop the stable aliases: they duplicate the version-stamped assets,
-      // sort ahead of them, and would otherwise win every `pick`.
-      .filter((a) => !STABLE_ASSET_NAMES.includes(a.name))
-      .map((a) => ({ name: a.name, url: a.browser_download_url }));
-    return { tag: data.tag_name, assets };
+    const data = (await response.json()) as { tag_name?: unknown };
+    if (typeof data.tag_name !== "string") return null;
+    const version = data.tag_name.replace(/^v/, "");
+    return version.length > 0 ? version : null;
   } catch {
     return null;
   }
 }
 
-function pick(assets: ReleaseAsset[], pattern: RegExp): ReleaseAsset | undefined {
-  return assets.find((asset) => pattern.test(asset.name));
-}
-
-function toLink(
-  asset: ReleaseAsset | undefined,
-  label: string,
-): DownloadLink | null {
-  return asset ? { label, url: asset.url } : null;
-}
-
 /**
- * Map release assets to per-platform downloads. Signatures (`.sig`), the updater
- * manifests (`.json`), and the macOS `.app.tar.gz` (an updater payload, not a
- * user installer) are filtered out; installers are matched by extension.
- *
- * macOS ships per chip since v0.2.8 (`-macos-arm64` / `-macos-x64`); Apple
- * Silicon leads and the Intel build is the alternative. A release predating
- * the split (a single universal `.dmg`) still resolves through the plain
- * extension match.
+ * Per-platform downloads with version-stamped URLs, derived from the release
+ * naming scheme. Must stay in sync with the workflow's "Collect release
+ * assets" step.
  */
-export function buildDownloads(assets: ReleaseAsset[]): PlatformDownload[] {
-  const installers = assets.filter(
-    (asset) =>
-      !/\.sig$/i.test(asset.name) &&
-      !/\.json$/i.test(asset.name) &&
-      !/\.app\.tar\.gz$/i.test(asset.name),
-  );
+export function buildDownloads(version: string): PlatformDownload[] {
+  const link = (label: string, suffix: string): DownloadLink => ({
+    label,
+    url: `${REPO_URL}/releases/download/v${version}/ReadAware-v${version}-${suffix}`,
+  });
 
-  const dmgAppleSilicon = pick(installers, /macos-arm64\.dmg$/i);
-  const dmgIntel = pick(installers, /macos-x64\.dmg$/i);
-  const dmg = pick(installers, /\.dmg$/i);
-  const exe = pick(installers, /-setup\.exe$/i) ?? pick(installers, /\.exe$/i);
-  const msi = pick(installers, /\.msi$/i);
-  const appImage = pick(installers, /\.AppImage$/i);
-  const deb = pick(installers, /\.deb$/i);
-  const rpm = pick(installers, /\.rpm$/i);
-  const apk = pick(installers, /\.apk$/i);
+  const windowsExtras = [link(".msi", "windows-x64.msi")];
+  // v0.2.10 predates the portable bundle — drop this guard once any newer
+  // release has shipped.
+  if (version !== "0.2.10") {
+    windowsExtras.push(link("Portable .zip", "windows-x64-portable.zip"));
+  }
 
   return [
     {
       id: "macos",
       name: "macOS",
-      primary:
-        toLink(dmgAppleSilicon, "Download .dmg (Apple Silicon)") ??
-        toLink(dmg, "Download .dmg"),
-      extras: [toLink(dmgIntel, "Intel .dmg")].filter(
-        (l): l is DownloadLink => l !== null,
-      ),
+      primary: link("Download .dmg (Apple Silicon)", "macos-arm64.dmg"),
+      extras: [link("Intel .dmg", "macos-x64.dmg")],
     },
     {
       id: "windows",
       name: "Windows",
-      primary: toLink(exe, "Download installer"),
-      extras: [toLink(msi, ".msi")].filter((l): l is DownloadLink => l !== null),
+      primary: link("Download installer", "windows-x64-setup.exe"),
+      extras: windowsExtras,
     },
     {
       id: "linux",
       name: "Linux",
-      primary: toLink(appImage, "Download .AppImage"),
-      extras: [toLink(deb, ".deb"), toLink(rpm, ".rpm")].filter(
-        (l): l is DownloadLink => l !== null,
-      ),
+      primary: link("Download .AppImage", "linux-x64.AppImage"),
+      extras: [link(".deb", "linux-x64.deb"), link(".rpm", "linux-x64.rpm")],
     },
     {
       id: "android",
       name: "Android",
-      primary: toLink(apk, "Download .apk"),
+      primary: link("Download .apk", "android-arm64.apk"),
       extras: [],
     },
     { id: "ios", name: "iOS", primary: null, extras: [], comingSoon: true },
   ];
-}
-
-/**
- * Downloads built from the stable alias URLs — always valid, no network round
- * trip. This is the default set; the API-resolved set only refines it.
- */
-export function stableDownloads(): PlatformDownload[] {
-  return buildDownloads(
-    STABLE_ASSET_NAMES.map((name) => ({
-      name,
-      url: `${LATEST_DOWNLOAD_URL}/${name}`,
-    })),
-  );
 }
 
 /** Best-effort OS guess from the user agent, to feature the right download. */

@@ -18,6 +18,10 @@
 
 ![A multilingual library in ReadAware](apps/landing/public/screenshots/shelf.webp)
 
+> ReadAware is free and built in the open. If it makes your reading better,
+> [give it a star](https://github.com/ahpxex/read-aware) — stars are how new
+> readers find the project.
+
 ## Read beautifully. Remember deeply.
 
 ReadAware is a free and open-source reader for macOS, Windows, Linux, Android,

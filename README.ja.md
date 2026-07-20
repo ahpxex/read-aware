@@ -18,6 +18,10 @@
 
 ![ReadAware の多言語ライブラリ](apps/landing/public/screenshots/shelf.webp)
 
+> ReadAware は無料で、オープンに開発されています。読書がより良くなったと
+> 感じたら、[スターを付けて](https://github.com/ahpxex/read-aware)応援して
+> ください。新しい読者がプロジェクトを見つける一番の手がかりになります。
+
 ## 美しく読む。深く覚える。
 
 ReadAware は macOS、Windows、Linux、Android、iOS で使える無料のオープン

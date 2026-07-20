@@ -19,6 +19,10 @@
 
 ![ReadAware 中的多语言书架](apps/landing/public/screenshots/shelf.webp)
 
+> ReadAware 免费且完全开源。如果它让你的阅读更好，欢迎给项目
+> [点一个 Star](https://github.com/ahpxex/read-aware)——这是新读者发现
+> ReadAware 最重要的途径。
+
 ## 读得优雅，记得深。
 
 ReadAware 是一款免费开源的阅读器，支持 macOS、Windows、Linux、Android 和

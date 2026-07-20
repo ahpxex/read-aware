@@ -87,6 +87,10 @@
       "tapToAdvance": {
         "title": "Tocar para avanzar",
         "description": "Con el navegador activo, tocar la página avanza un paso. Las barras de herramientas se abren desde la barra flotante."
+      },
+      "scrollToStep": {
+        "title": "Deslizar por pasos",
+        "description": "Con el navegador activo, deslizar o desplazarse mueve un paso en lugar de desplazar la página — un paso por gesto: hacia arriba para el siguiente, hacia abajo para el anterior."
       }
     }
   },

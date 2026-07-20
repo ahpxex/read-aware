@@ -82,11 +82,16 @@ export type NavigatorBehaviorPrefs = {
   /** A quick tap on book content steps forward while the mode is on (the
    *  shell toggle moves to the floating bar's toolbars button meanwhile). */
   tapToAdvance: boolean;
+  /** Swiping / scrolling steps the navigator instead of scrolling the page —
+   *  one step per gesture (swipe up / scroll down = forward). Works with both
+   *  touch swipes and the desktop wheel/trackpad. */
+  scrollToStep: boolean;
 };
 
 export const DEFAULT_NAVIGATOR_BEHAVIOR_PREFS: NavigatorBehaviorPrefs = {
   granularity: "sentence",
   tapToAdvance: true,
+  scrollToStep: false,
 };
 
 const BEHAVIOR_PREFS_KEY = "read-aware-navigator-prefs";
@@ -99,6 +104,7 @@ export function readNavigatorBehaviorPrefs(): NavigatorBehaviorPrefs {
     return {
       granularity: parsed.granularity === "paragraph" ? "paragraph" : "sentence",
       tapToAdvance: parsed.tapToAdvance !== false,
+      scrollToStep: parsed.scrollToStep === true,
     };
   } catch {
     return DEFAULT_NAVIGATOR_BEHAVIOR_PREFS;

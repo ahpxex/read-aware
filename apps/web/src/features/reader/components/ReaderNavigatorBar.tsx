@@ -39,6 +39,10 @@ type ReaderNavigatorBarProps = {
   containerRef: RefObject<HTMLElement | null>;
   /** Whether the navigator has a resting sentence to jump back to. */
   canReturn: boolean;
+  /** Whether a page tap steps forward. On touch screens that makes the page
+   *  itself the forward affordance, so the bar keeps only the back-step;
+   *  with the tap disarmed it carries both step buttons. */
+  tapToAdvance: boolean;
   /** Step unit; the bar carries a quick toggle so switching doesn't require
    *  a trip into Settings. */
   granularity: NavigatorGranularity;
@@ -101,15 +105,16 @@ function BarButton({
  * actions applied to the sentence the wash is resting on. The action cluster
  * collapses behind a "more" toggle (collapsed by default on touch screens,
  * where the full strip crowds the page); the choice sticks per device. On
- * coarse-pointer devices the step buttons move out to their own thumb-sized
- * floats (ReaderNavigatorStepButtons) and the bar grows a grip that drags it
- * anywhere; the spot sticks per device.
+ * coarse-pointer devices the bar keeps only the back-step while tap-to-advance
+ * owns the forward step (a tap anywhere on the page), and it grows a grip that
+ * drags it anywhere; the spot sticks per device.
  */
 export function ReaderNavigatorBar({
   visible,
   sentenceKey,
   containerRef,
   canReturn,
+  tapToAdvance,
   granularity,
   onToggleGranularity,
   onToggleToolbars,
@@ -128,7 +133,11 @@ export function ReaderNavigatorBar({
   const askEnabled = useAskAiEnabled();
   const copyResetTimeoutRef = useRef<number | null>(null);
   const [copied, setCopied] = useState(false);
-  const collapsible = hasCoarsePointer();
+  const coarsePointer = hasCoarsePointer();
+  const collapsible = coarsePointer;
+  // While a page tap steps forward on touch, a next button would only repeat
+  // it — the bar carries the back-step alone. Disarm the tap and it returns.
+  const showNextStep = !coarsePointer || !tapToAdvance;
   const [expanded, setExpanded] = useState(() =>
     collapsible ? expandedCache ?? false : true,
   );
@@ -216,21 +225,21 @@ export function ReaderNavigatorBar({
             <DotsSixVertical size={16} weight="bold" aria-hidden="true" />
           </span>
 
-          <div className="flex items-center gap-0.5 pointer-coarse:hidden">
-            <BarButton
-              label={prevStepLabel}
-              onClick={onPrev}
-              className={actionButtonClass}
-              icon={<CaretLeft size={16} weight="regular" aria-hidden="true" />}
-            />
+          <BarButton
+            label={prevStepLabel}
+            onClick={onPrev}
+            className={actionButtonClass}
+            icon={<CaretLeft size={16} weight="regular" aria-hidden="true" />}
+          />
+          {showNextStep && (
             <BarButton
               label={nextStepLabel}
               onClick={onNext}
               className={actionButtonClass}
               icon={<CaretRight size={16} weight="regular" aria-hidden="true" />}
             />
-            <BarDivider />
-          </div>
+          )}
+          <BarDivider />
 
           <BarButton
             label={t("navigator.returnToSentence")}

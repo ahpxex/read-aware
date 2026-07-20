@@ -87,6 +87,10 @@
       "tapToAdvance": {
         "title": "Tippen zum Weitergehen",
         "description": "Solange der Navigator aktiv ist, springt ein Tippen auf die Seite einen Schritt weiter. Die Symbolleisten öffnen sich stattdessen über die schwebende Leiste."
+      },
+      "scrollToStep": {
+        "title": "Schrittweise wischen",
+        "description": "Solange der Navigator aktiv ist, bewegt Wischen oder Scrollen einen Schritt, statt die Seite zu scrollen — genau ein Schritt pro Geste: nach oben für den nächsten, nach unten für den vorherigen."
       }
     }
   },

@@ -133,6 +133,19 @@ export function ReadingPanel() {
               />
             }
           />
+          <SettingsRow
+            title={t("reading.navigator.scrollToStep.title")}
+            description={t("reading.navigator.scrollToStep.description")}
+            control={
+              <Toggle
+                aria-label={t("reading.navigator.scrollToStep.title")}
+                checked={navigatorPrefs.scrollToStep}
+                onChange={(scrollToStep) =>
+                  setNavigatorPrefs({ ...navigatorPrefs, scrollToStep })
+                }
+              />
+            }
+          />
         </Stack>
       </SettingsGroup>
     </SettingsPage>

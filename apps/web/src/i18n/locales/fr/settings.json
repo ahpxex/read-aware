@@ -87,6 +87,10 @@
       "tapToAdvance": {
         "title": "Toucher pour avancer",
         "description": "Quand le navigateur est actif, toucher la page fait avancer d’un pas. Les barres d’outils s’ouvrent depuis la barre flottante."
+      },
+      "scrollToStep": {
+        "title": "Balayer pas à pas",
+        "description": "Quand le navigateur est actif, balayer ou faire défiler avance d'un pas au lieu de faire défiler la page — un pas par geste : vers le haut pour le suivant, vers le bas pour le précédent."
       }
     }
   },

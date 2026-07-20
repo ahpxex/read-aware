@@ -44,11 +44,11 @@ import {
 } from "../lib/highlight-renderer";
 import { ensureUsableToc } from "../lib/toc-synthesis";
 import { useSentenceNavigator } from "../hooks/useSentenceNavigator";
+import { createWheelGesture, type WheelGesture } from "../lib/wheel-gesture";
 import { ReaderAnnotationMenu } from "./ReaderAnnotationMenu";
 import { ReaderDictionaryModal } from "./ReaderDictionaryModal";
 import { ReaderFootnotePopover } from "./ReaderFootnotePopover";
 import { ReaderNavigatorBar } from "./ReaderNavigatorBar";
-import { ReaderNavigatorStepButtons } from "./ReaderNavigatorStepButtons";
 import { ReaderPageTurnControls } from "./ReaderPageTurnControls";
 import { ReaderSelectionMenu } from "./ReaderSelectionMenu";
 import { NoteEditor } from "../../annotations/components/NoteEditor";
@@ -159,6 +159,14 @@ const OVERSCROLL_RESET_MS = 220;
 // jitter doesn't flash it away the instant you touch the wheel. Paginated page
 // turns dismiss immediately instead; they're already discrete, deliberate moves.
 const SHELL_DISMISS_SCROLL_PX = 160;
+// Discrete wheel gestures (see wheel-gesture.ts): travel that fires a navigator
+// step while its scroll-to-step option claims the wheel, and travel that turns
+// a page on a horizontal trackpad swipe in paginated layouts.
+const WHEEL_STEP_THRESHOLD_PX = 48;
+const WHEEL_PAGE_TURN_THRESHOLD_PX = 60;
+// Touch swipe-to-step is simpler — one touch is one gesture: this much mostly-
+// vertical travel steps once, and the touch is latched until the finger lifts.
+const TOUCH_STEP_THRESHOLD_PX = 48;
 
 /** Map a reading mode to the foliate renderer's `flow` + column attributes. */
 function layoutForReadingMode(mode: ReadingMode): {
@@ -859,13 +867,16 @@ export function FoliateReaderView({
     navigatorActiveStateRef.current = sentenceNavigatorActive;
   }, [sentenceNavigatorActive]);
 
-  // Navigator behavior prefs (step unit, tap-to-advance) — app-level, shared
-  // with the settings panel. Read through refs by the stable doc listeners.
+  // Navigator behavior prefs (step unit, tap-to-advance, scroll-to-step) —
+  // app-level, shared with the settings panel. Read through refs by the stable
+  // doc listeners.
   const [navigatorPrefs, setNavigatorPrefs] = useAtom(navigatorPrefsAtom);
   const tapToAdvanceRef = useRef(navigatorPrefs.tapToAdvance);
+  const scrollToStepRef = useRef(navigatorPrefs.scrollToStep);
   useEffect(() => {
     tapToAdvanceRef.current = navigatorPrefs.tapToAdvance;
-  }, [navigatorPrefs.tapToAdvance]);
+    scrollToStepRef.current = navigatorPrefs.scrollToStep;
+  }, [navigatorPrefs.tapToAdvance, navigatorPrefs.scrollToStep]);
 
   // Leaving a sentence removes the navigator's wash by CFI — which also erases
   // the drawing of any user mark saved on that exact range (the overlayer keys
@@ -925,7 +936,7 @@ export function FoliateReaderView({
   // annotation menu — their content is stale the moment the wash moves on) and
   // hands the workspace the cue to drop the shell chrome, taking the TOC/chat
   // panels with it. Keyed on the resting sentence so every step entry point
-  // (bar, step floats, keyboard, volume keys, tap-to-advance) is covered. The
+  // (bar, keyboard, volume keys, tap-to-advance, scroll-to-step) is covered. The
   // note editor is deliberately spared: auto-closing it would discard whatever
   // the user has typed.
   const navigatorSentenceKey = sentenceNavigator.current
@@ -955,6 +966,103 @@ export function FoliateReaderView({
     lookUp: () => void;
     askAI: () => void;
   } | null>(null);
+
+  // ----- wheel / touch navigation routing -----------------------------------
+
+  // Discrete-gesture state for the wheel stream, shared by every surface the
+  // wheel handler is attached to (section documents + the reader root).
+  const wheelGesturesRef = useRef<{ step: WheelGesture; pageTurn: WheelGesture } | null>(null);
+  if (wheelGesturesRef.current == null) {
+    wheelGesturesRef.current = {
+      step: createWheelGesture({ threshold: WHEEL_STEP_THRESHOLD_PX }),
+      pageTurn: createWheelGesture({ threshold: WHEEL_PAGE_TURN_THRESHOLD_PX }),
+    };
+  }
+
+  // Route a wheel event by axis and mode:
+  // - Paginated layouts: a mostly-horizontal delta is a trackpad two-finger
+  //   swipe — turn one page per gesture, in the swipe's physical direction
+  //   (goLeft/goRight keep it correct in RTL books).
+  // - Navigator with scroll-to-step on: the wheel is claimed for stepping —
+  //   one step per gesture (scroll down / swipe up = forward), never a scroll.
+  // - Otherwise: scroll mode's shell-dismissal and section-crossing
+  //   accumulators, as before (both no-op in paginated layouts).
+  const handleWheelEvent = useCallback((event: WheelEvent) => {
+    const gestures = wheelGesturesRef.current;
+    if (!gestures) return;
+    if (
+      readingModeRef.current !== "scroll" &&
+      Math.abs(event.deltaX) > Math.abs(event.deltaY)
+    ) {
+      // Without preventDefault the webview may read the swipe as overscroll
+      // or a history-navigation gesture.
+      if (event.cancelable) event.preventDefault();
+      const turned = gestures.pageTurn.feed(event.deltaX, event.timeStamp);
+      if (turned !== 0) {
+        clearSelection();
+        void (turned > 0 ? viewRef.current?.goRight?.() : viewRef.current?.goLeft?.());
+      }
+      return;
+    }
+    if (navigatorActiveStateRef.current && scrollToStepRef.current) {
+      if (event.cancelable) event.preventDefault();
+      const stepped = gestures.step.feed(event.deltaY, event.timeStamp);
+      if (stepped !== 0) navigatorActionsRef.current?.[stepped > 0 ? "next" : "prev"]();
+      return;
+    }
+    dismissShellOnScrollDistanceRef.current(event.deltaY);
+    handleWheelCrossingRef.current(event.deltaY);
+  }, [clearSelection]);
+  const handleWheelEventRef = useRef(handleWheelEvent);
+  useEffect(() => { handleWheelEventRef.current = handleWheelEvent; }, [handleWheelEvent]);
+
+  // Touch counterpart, one tracker per surface. A finger drag scrolls natively
+  // inside a section, but at the top/bottom edge it moves nothing and emits no
+  // wheel events — so the drag's travel feeds the same crossing/dismissal
+  // accumulators (finger up = content forward = positive wheel delta; screenY
+  // so the value is unaffected by any scrolling of the frame itself). While the
+  // navigator's scroll-to-step option is on, the swipe is claimed instead: no
+  // native scroll, and one step per touch once the drag travels far enough and
+  // is clearly vertical — mostly-horizontal drags stay with the paginator's
+  // own page-drag handling.
+  const createTouchNavHandlers = useCallback(() => {
+    let touch: { startX: number; startY: number; lastY: number; stepped: boolean } | null =
+      null;
+    return {
+      onTouchStart: (event: TouchEvent) => {
+        const point = event.touches.length === 1 ? event.touches[0] : null;
+        touch = point
+          ? { startX: point.screenX, startY: point.screenY, lastY: point.screenY, stepped: false }
+          : null;
+      },
+      onTouchMove: (event: TouchEvent) => {
+        if (!touch || event.touches.length !== 1) return;
+        const point = event.touches[0];
+        const deltaY = touch.lastY - point.screenY;
+        touch.lastY = point.screenY;
+        if (navigatorActiveStateRef.current && scrollToStepRef.current) {
+          if (event.cancelable) event.preventDefault();
+          if (touch.stepped) return;
+          const travelY = touch.startY - point.screenY;
+          const travelX = touch.startX - point.screenX;
+          if (
+            Math.abs(travelY) < TOUCH_STEP_THRESHOLD_PX ||
+            Math.abs(travelY) <= Math.abs(travelX)
+          ) {
+            return;
+          }
+          touch.stepped = true;
+          navigatorActionsRef.current?.[travelY > 0 ? "next" : "prev"]();
+          return;
+        }
+        dismissShellOnScrollDistanceRef.current(deltaY);
+        handleWheelCrossingRef.current(deltaY, TOUCH_SECTION_CROSS_OVERSCROLL_PX);
+      },
+      onTouchEnd: () => {
+        touch = null;
+      },
+    };
+  }, []);
 
   const handleReaderKeyDown = useCallback((event: KeyboardEvent) => {
     if (!loadedBookRef.current) return;
@@ -1375,37 +1483,24 @@ export function FoliateReaderView({
       clearSelection();
     }, true);
 
-    // Continuous-scroll mode: bridge section boundaries and feed the shell's
-    // scroll-distance dismissal. Native scroll handles movement within a section;
-    // when the wheel pushes past the top/bottom edge, lazily load the adjacent
-    // section (the engine unloads the one left behind).
-    doc.addEventListener("wheel", (event) => {
-      dismissShellOnScrollDistanceRef.current(event.deltaY);
-      handleWheelCrossingRef.current(event.deltaY);
-    }, { passive: true });
+    // Wheel routing (see handleWheelEvent): trackpad page turns in paginated
+    // layouts, scroll-to-step while the navigator claims the wheel, and in
+    // continuous-scroll mode the section-boundary bridge + the shell's
+    // scroll-distance dismissal. Non-passive: the first two must preventDefault.
+    doc.addEventListener(
+      "wheel",
+      (event) => handleWheelEventRef.current(event),
+      { passive: false },
+    );
 
-    // Touch counterpart of the wheel bridge: a finger drag scrolls natively
-    // inside the section, but at the top/bottom edge the drag moves nothing and
-    // emits no wheel events — so without this, touch could never cross into the
-    // adjacent chapter. Feed the drag's travel into the same overscroll
-    // accumulator (finger up = content forward = positive wheel delta). Uses
-    // screenY so the value is unaffected by any scrolling of the frame itself.
-    let lastTouchY: number | null = null;
-    doc.addEventListener("touchstart", (event) => {
-      lastTouchY = event.touches.length === 1 ? event.touches[0].screenY : null;
-    }, { passive: true });
-    doc.addEventListener("touchmove", (event) => {
-      if (lastTouchY == null || event.touches.length !== 1) return;
-      const y = event.touches[0].screenY;
-      const deltaY = lastTouchY - y;
-      lastTouchY = y;
-      dismissShellOnScrollDistanceRef.current(deltaY);
-      handleWheelCrossingRef.current(deltaY, TOUCH_SECTION_CROSS_OVERSCROLL_PX);
-    }, { passive: true });
-    doc.addEventListener("touchend", () => {
-      lastTouchY = null;
-    });
-  }, [anchorRectForElement, armContentClickSuppression, captureSelectionFromDoc, cancelPendingShellOpen, cancelPendingShellToggle, clearSelection, handleReaderKeyDown]);
+    // Touch counterpart (see createTouchNavHandlers): without it, touch could
+    // never cross into the adjacent chapter in scroll mode, and swipe-to-step
+    // would have no touch gesture. Non-passive for the same reason as wheel.
+    const touchNav = createTouchNavHandlers();
+    doc.addEventListener("touchstart", touchNav.onTouchStart, { passive: true });
+    doc.addEventListener("touchmove", touchNav.onTouchMove, { passive: false });
+    doc.addEventListener("touchend", touchNav.onTouchEnd);
+  }, [anchorRectForElement, armContentClickSuppression, captureSelectionFromDoc, cancelPendingShellOpen, cancelPendingShellToggle, clearSelection, createTouchNavHandlers, handleReaderKeyDown]);
 
   // ----- global keydown + viewport resize -----------------------------------
 
@@ -1455,28 +1550,10 @@ export function FoliateReaderView({
     const root = readerRootRef.current;
     if (!root) return;
 
-    const onWheel = (event: WheelEvent) => {
-      dismissShellOnScrollDistanceRef.current(event.deltaY);
-      handleWheelCrossingRef.current(event.deltaY);
-    };
+    const onWheel = (event: WheelEvent) => handleWheelEventRef.current(event);
 
-    // Touch parallel for the same dead zone (see the iframe-document listener
-    // for the sign convention).
-    let lastTouchY: number | null = null;
-    const onTouchStart = (event: TouchEvent) => {
-      lastTouchY = event.touches.length === 1 ? event.touches[0].screenY : null;
-    };
-    const onTouchMove = (event: TouchEvent) => {
-      if (lastTouchY == null || event.touches.length !== 1) return;
-      const y = event.touches[0].screenY;
-      const deltaY = lastTouchY - y;
-      lastTouchY = y;
-      dismissShellOnScrollDistanceRef.current(deltaY);
-      handleWheelCrossingRef.current(deltaY, TOUCH_SECTION_CROSS_OVERSCROLL_PX);
-    };
-    const onTouchEnd = () => {
-      lastTouchY = null;
-    };
+    // Touch parallel for the same dead zone, with its own per-surface tracker.
+    const { onTouchStart, onTouchMove, onTouchEnd } = createTouchNavHandlers();
 
     const onClick = (event: MouseEvent) => {
       const target = event.target as Node | null;
@@ -1498,9 +1575,9 @@ export function FoliateReaderView({
       onContentClickRef.current?.();
     };
 
-    root.addEventListener("wheel", onWheel, { passive: true });
+    root.addEventListener("wheel", onWheel, { passive: false });
     root.addEventListener("touchstart", onTouchStart, { passive: true });
-    root.addEventListener("touchmove", onTouchMove, { passive: true });
+    root.addEventListener("touchmove", onTouchMove, { passive: false });
     root.addEventListener("touchend", onTouchEnd);
     root.addEventListener("click", onClick);
     return () => {
@@ -1510,7 +1587,7 @@ export function FoliateReaderView({
       root.removeEventListener("touchend", onTouchEnd);
       root.removeEventListener("click", onClick);
     };
-  }, [clearSelection]);
+  }, [clearSelection, createTouchNavHandlers]);
 
   useEffect(() => {
     return () => {
@@ -2124,6 +2201,7 @@ export function FoliateReaderView({
         sentenceKey={navigatorSentenceKey}
         containerRef={readerRootRef}
         canReturn={sentenceNavigator.canReturn}
+        tapToAdvance={navigatorPrefs.tapToAdvance}
         granularity={navigatorPrefs.granularity}
         onToggleGranularity={() =>
           setNavigatorPrefs({
@@ -2142,13 +2220,6 @@ export function FoliateReaderView({
         onLookUp={handleNavigatorLookUp}
         onAskAI={handleNavigatorAskAI}
         onExit={() => onExitNavigatorRef.current?.()}
-      />
-      <ReaderNavigatorStepButtons
-        visible={sentenceNavigatorActive && !isLoading && !error}
-        containerRef={readerRootRef}
-        granularity={navigatorPrefs.granularity}
-        onPrev={sentenceNavigator.prev}
-        onNext={sentenceNavigator.next}
       />
       {/* Off-screen stage where the engine loads + extracts a footnote fragment. */}
       <div

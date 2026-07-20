@@ -87,6 +87,10 @@
       "tapToAdvance": {
         "title": "Tap to advance",
         "description": "While the navigator is on, tapping the page steps forward. Toolbars open from the floating bar instead."
+      },
+      "scrollToStep": {
+        "title": "Swipe to step",
+        "description": "While the navigator is on, swiping or scrolling moves one step instead of scrolling the page — one step per gesture: swipe up for the next unit, down for the previous."
       }
     }
   },

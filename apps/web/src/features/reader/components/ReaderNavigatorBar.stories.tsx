@@ -27,6 +27,7 @@ const meta = {
     // Placeholder only — FramedNavigatorBar substitutes its live ref.
     containerRef: { current: null },
     canReturn: true,
+    tapToAdvance: true,
     granularity: "sentence",
     onToggleGranularity: () => {},
     onToggleToolbars: () => {},

@@ -1,0 +1,28 @@
+ReadAware — if macOS blocks the app
+===================================
+
+ReadAware is free and open source. This build is not notarized with
+Apple yet, so the first launch may be blocked with a message like
+"ReadAware cannot be opened" or "ReadAware is damaged".
+
+The app is safe, and every line of it can be inspected:
+https://github.com/ahpxex/read-aware
+
+Fix A — no Terminal needed
+--------------------------
+1. Double-click ReadAware once and let macOS block it.
+2. Open System Settings -> Privacy & Security.
+3. Scroll down to "ReadAware was blocked" and click "Open Anyway".
+
+Fix B — one Terminal command
+----------------------------
+1. Make sure ReadAware.app has been dragged into Applications.
+2. Open Terminal (press Cmd+Space and type "Terminal").
+3. Paste the line below and press Return:
+
+xattr -cr /Applications/ReadAware.app
+
+4. Launch ReadAware normally.
+
+Questions or trouble? We are around on Discord:
+https://discord.gg/whDrKXwHWU

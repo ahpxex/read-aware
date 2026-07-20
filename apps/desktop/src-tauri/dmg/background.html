@@ -1,0 +1,112 @@
+<!doctype html>
+<!--
+  Source for the DMG background. Rendered to background.png by
+  generate-background.sh (headless Chrome at 2x, then stamped to 144 dpi so
+  Finder draws it at 660x440 points). Keep the geometry in sync with the
+  bundle.macOS.dmg section of tauri.conf.json and with the icon position set
+  in finalize-dmg.sh.
+-->
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  /* Canvas is 660x438: the Finder window is 660x471 (tauri.conf.json), the
+     Tahoe title bar eats 32pt, so the viewport is 439pt — the canvas stays
+     1pt shorter so PNG dpi rounding can never push it into scroll overflow. */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 660px; height: 438px; }
+  body {
+    position: relative;
+    overflow: hidden;
+    background: #f5f1e8;
+    font-family: Inter, -apple-system, "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wordmark {
+    position: absolute;
+    top: 26px;
+    left: 36px;
+    font-family: "New York", ui-serif, Georgia, serif;
+    font-size: 20px;
+    letter-spacing: -0.01em;
+    color: #1c1917;
+  }
+  .tagline {
+    position: absolute;
+    top: 32px;
+    right: 36px;
+    font-family: "New York", ui-serif, Georgia, serif;
+    font-style: italic;
+    font-size: 13px;
+    color: #a8a29e;
+  }
+  .arrow {
+    position: absolute;
+    top: 158px;
+    left: 250px;
+    width: 160px;
+    height: 24px;
+  }
+  .strip {
+    position: absolute;
+    top: 272px;
+    left: 0;
+    width: 660px;
+    height: 166px;
+    background: #eee8d5;
+    border-top: 1px solid rgba(28, 25, 23, 0.12);
+  }
+  /* Keep critical content above y=425 so it clears the viewport on every
+     title-bar height. */
+  .notes {
+    position: absolute;
+    top: 288px;
+    left: 36px;
+    width: 450px;
+  }
+  .notes .head {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1c1917;
+    margin-bottom: 9px;
+  }
+  .notes p {
+    font-size: 12px;
+    line-height: 1.7;
+    color: #57534e;
+  }
+  .notes .cmd {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px;
+    color: #1c1917;
+    background: rgba(255, 255, 255, 0.65);
+    border: 1px solid rgba(28, 25, 23, 0.1);
+    border-radius: 3px;
+    padding: 1px 6px;
+    white-space: nowrap;
+  }
+  .notes .aside {
+    margin-top: 9px;
+    font-size: 11px;
+    color: #a8a29e;
+  }
+</style>
+</head>
+<body>
+  <div class="wordmark">ReadAware</div>
+  <div class="tagline">Reading that remembers.</div>
+
+  <svg class="arrow" viewBox="0 0 160 24" fill="none">
+    <line x1="4" y1="12" x2="140" y2="12" stroke="#a8a29e" stroke-width="2" stroke-linecap="round" />
+    <path d="M132 4 L148 12 L132 20" stroke="#a8a29e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+  </svg>
+
+  <div class="strip"></div>
+  <div class="notes">
+    <div class="head">macOS may block the first launch &mdash; this build is not notarized yet.</div>
+    <p>1&nbsp;&nbsp;System Settings &rarr; Privacy &amp; Security &rarr; scroll down &rarr; Open Anyway.</p>
+    <p>2&nbsp;&nbsp;Or paste into Terminal: <span class="cmd">xattr -cr /Applications/ReadAware.app</span></p>
+    <div class="aside">The command is ready to copy inside READ ME.txt, on the right.</div>
+  </div>
+</body>
+</html>

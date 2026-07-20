@@ -794,6 +794,41 @@ export function FoliateReaderView({
     dismissShellOnScrollDistanceRef.current = dismissShellOnScrollDistance;
   }, [dismissShellOnScrollDistance]);
 
+  // The paginator animates a turn over ~300ms and silently drops any
+  // navigation issued while one is in flight (its internal lock) — so a second
+  // gesture or key press mid-animation would simply vanish. Run turns through
+  // a one-slot queue instead: a request made mid-animation lands the moment
+  // the current turn settles. The slot keeps only the NEWEST waiting turn —
+  // a reversal replaces a stale queued turn rather than playing after it (no
+  // bounce), and a held key's auto-repeat can't build a runaway backlog.
+  const pageTurnQueueRef = useRef<{
+    running: boolean;
+    next: (() => Promise<unknown> | void) | null;
+  }>({ running: false, next: null });
+  const enqueuePageTurn = useCallback((turn: () => Promise<unknown> | void) => {
+    const queue = pageTurnQueueRef.current;
+    if (queue.running) {
+      queue.next = turn;
+      return;
+    }
+    queue.running = true;
+    const run = async (current: () => Promise<unknown> | void): Promise<void> => {
+      try {
+        await current();
+      } catch {
+        // At the first/last page, or a teardown race during navigation — no-op.
+      }
+      // Drain whatever is waiting now — unless this queue was abandoned by a
+      // book switch, in which case the new book starts from a clean slot.
+      if (pageTurnQueueRef.current !== queue) return;
+      const next = queue.next;
+      queue.next = null;
+      if (next) return run(next);
+      queue.running = false;
+    };
+    void run(turn);
+  }, []);
+
   const turnPage = useCallback(async (direction: -1 | 1) => {
     const view = viewRef.current;
     if (!view) return;
@@ -814,12 +849,8 @@ export function FoliateReaderView({
       }
     }
     clearSelection();
-    try {
-      await (direction === 1 ? view.next() : view.prev());
-    } catch {
-      // At the first/last page, or a teardown race during navigation — no-op.
-    }
-  }, [clearSelection, crossSection]);
+    enqueuePageTurn(() => (direction === 1 ? viewRef.current?.next() : viewRef.current?.prev()));
+  }, [clearSelection, crossSection, enqueuePageTurn]);
 
   // ----- chapter navigation (refs so stable across renders) -----------------
 
@@ -1000,7 +1031,9 @@ export function FoliateReaderView({
       const turned = gestures.pageTurn.feed(event.deltaX, event.timeStamp);
       if (turned !== 0) {
         clearSelection();
-        void (turned > 0 ? viewRef.current?.goRight?.() : viewRef.current?.goLeft?.());
+        enqueuePageTurn(() =>
+          turned > 0 ? viewRef.current?.goRight?.() : viewRef.current?.goLeft?.(),
+        );
       }
       return;
     }
@@ -1012,7 +1045,7 @@ export function FoliateReaderView({
     }
     dismissShellOnScrollDistanceRef.current(event.deltaY);
     handleWheelCrossingRef.current(event.deltaY);
-  }, [clearSelection]);
+  }, [clearSelection, enqueuePageTurn]);
   const handleWheelEventRef = useRef(handleWheelEvent);
   useEffect(() => { handleWheelEventRef.current = handleWheelEvent; }, [handleWheelEvent]);
 
@@ -1078,12 +1111,12 @@ export function FoliateReaderView({
     const bindings = shortcutBindingsRef.current;
     if (chordMatchesEvent(resolveBinding("next-page", bindings), event)) {
       event.preventDefault();
-      void viewRef.current?.goRight?.();
+      enqueuePageTurn(() => viewRef.current?.goRight?.());
       return;
     }
     if (chordMatchesEvent(resolveBinding("prev-page", bindings), event)) {
       event.preventDefault();
-      void viewRef.current?.goLeft?.();
+      enqueuePageTurn(() => viewRef.current?.goLeft?.());
       return;
     }
     if (chordMatchesEvent(resolveBinding("next-chapter", bindings), event)) {
@@ -1208,7 +1241,7 @@ export function FoliateReaderView({
       event.preventDefault();
       void turnPage(-1);
     }
-  }, [clearSelection, goToAdjacentChapter, turnPage]);
+  }, [clearSelection, enqueuePageTurn, goToAdjacentChapter, turnPage]);
 
   // Keep the key handler's view of the selection actions current. These handlers
   // are plain per-render closures over the live `selection`; refreshing the ref
@@ -1622,6 +1655,9 @@ export function FoliateReaderView({
     // baseline instead of reading as a page turn.
     prevReadingLocationRef.current = null;
     shellScrollAccumRef.current = 0;
+    // Abandon the previous engine's turn queue — a turn that never settled
+    // (teardown race) must not wedge the running flag against the new book.
+    pageTurnQueueRef.current = { running: false, next: null };
 
     void (async () => {
       try {

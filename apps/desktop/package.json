@@ -4,7 +4,7 @@
   "version": "0.1.2+001",
   "type": "module",
   "scripts": {
-    "dev": "tauri dev",
+    "dev": "tauri dev --config src-tauri/tauri.dev.conf.json",
     "build": "tauri build",
     "tauri": "tauri"
   },

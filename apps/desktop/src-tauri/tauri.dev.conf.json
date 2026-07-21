@@ -1,0 +1,5 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "identifier": "com.readaware.app.dev",
+  "productName": "ReadAware Dev"
+}

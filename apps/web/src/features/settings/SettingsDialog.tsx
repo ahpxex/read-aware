@@ -8,6 +8,7 @@ import {
   Keyboard,
   Palette,
   PuzzlePiece,
+  Rows,
   SlidersHorizontal,
   Sparkle,
   X,
@@ -25,6 +26,7 @@ import { AIPanel } from "./sections/AIPanel";
 import { AppearancePanel } from "./sections/AppearancePanel";
 import { DataSyncPanel } from "./sections/DataSyncPanel";
 import { GeneralPanel } from "./sections/GeneralPanel";
+import { MenusPanel } from "./sections/MenusPanel";
 import { PluginsPanel } from "./sections/PluginsPanel";
 import { ReadingPanel } from "./sections/ReadingPanel";
 import { ShortcutsPanel } from "./sections/ShortcutsPanel";
@@ -45,6 +47,7 @@ const SECTIONS: SettingsSection[] = [
   { id: "reading", icon: BookOpen, Panel: ReadingPanel },
   { id: "ai", icon: Sparkle, Panel: AIPanel },
   { id: "plugins", icon: PuzzlePiece, Panel: PluginsPanel },
+  { id: "menus", icon: Rows, Panel: MenusPanel },
   { id: "shortcuts", icon: Keyboard, Panel: ShortcutsPanel },
   { id: "dataSync", icon: Database, Panel: DataSyncPanel },
   { id: "about", icon: Info, Panel: AboutPanel },

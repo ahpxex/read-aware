@@ -1,20 +1,18 @@
 /**
  * Settings → Plugins: Installed / Marketplace tabs. The active tab's primary
  * action (install from folder, refresh registry) sits on the tab strip's
- * trailing edge; both lists are searchable. Placement (pinning) stays with
- * the installed list — it configures what the user already has
- * (docs/plugin-system.md §7).
+ * trailing edge; both lists are searchable. Arrangement moved to the Menus
+ * settings page (docs/plugin-system.md §7).
  */
 import { useState } from "react";
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtomValue } from "jotai";
 import { Badge, Button, Caption, Tabs, Toggle, useToast } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { isTauri } from "../../../platform/environment";
 import { PluginMarketplace } from "../../plugins/components/PluginMarketplace";
 import { PluginSearchInput } from "../../plugins/components/PluginSearchInput";
 import { parseManifestJson } from "../../plugins/lib/manifest";
-import { renderPluginIcon } from "../../plugins/lib/plugin-icons";
 import { matchesPluginQuery } from "../../plugins/lib/search";
 import type { PluginPermission } from "../../plugins/lib/plugin-types";
 import { readPluginManifestFromDir } from "../../plugins/runtime/plugin-backend";
@@ -24,16 +22,9 @@ import {
   uninstallPlugin,
 } from "../../plugins/runtime/plugin-host";
 import {
-  HEADER_PIN_LIMIT,
-  SELECTION_PIN_LIMIT,
-  headerActionsAtom,
   installedPluginsAtom,
-  pluginPlacementAtom,
   requestInstallConsent,
-  selectionActionsAtom,
-  type PluginPlacement,
 } from "../../plugins/state/plugin-store";
-import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
 
@@ -45,9 +36,6 @@ export function PluginsPanel() {
   const { t } = useTranslation("plugins");
   const { toast } = useToast();
   const installed = useAtomValue(installedPluginsAtom);
-  const headerActions = useAtomValue(headerActionsAtom);
-  const selectionActions = useAtomValue(selectionActionsAtom);
-  const [placement, setPlacement] = useAtom(pluginPlacementAtom);
   const [activeTab, setActiveTab] = useState(0);
   const [installedQuery, setInstalledQuery] = useState("");
   const [installing, setInstalling] = useState(false);
@@ -92,17 +80,6 @@ export function PluginsPanel() {
     }
   }
 
-  function togglePin(surface: keyof PluginPlacement, key: string, limit: number) {
-    const current = placement[surface];
-    if (current.includes(key)) {
-      setPlacement({ ...placement, [surface]: current.filter((entry) => entry !== key) });
-    } else if (current.length >= limit) {
-      toast({ description: t("settings.pinLimit", { count: limit }) });
-    } else {
-      setPlacement({ ...placement, [surface]: [...current, key] });
-    }
-  }
-
   const filteredInstalled = installed.filter((plugin) =>
     matchesPluginQuery(
       installedQuery,
@@ -112,25 +89,6 @@ export function PluginsPanel() {
       plugin.manifest.author,
     ),
   );
-
-  const placementSections: {
-    surface: keyof PluginPlacement;
-    limit: number;
-    items: { key: string; title: string; icon?: string; pluginName: string }[];
-  }[] = [
-    {
-      surface: "shelfHeader",
-      limit: HEADER_PIN_LIMIT,
-      items: headerActions.filter((action) => action.surface === "shelf"),
-    },
-    {
-      surface: "readerHeader",
-      limit: HEADER_PIN_LIMIT,
-      items: headerActions.filter((action) => action.surface === "reader"),
-    },
-    { surface: "selection", limit: SELECTION_PIN_LIMIT, items: selectionActions },
-  ];
-  const hasPlacementItems = placementSections.some((section) => section.items.length > 0);
 
   const installedTab = (
     <>
@@ -207,46 +165,6 @@ export function PluginsPanel() {
         )}
       </div>
 
-      {hasPlacementItems && (
-        <SettingsGroup
-          title={t("settings.placement")}
-          description={t("settings.placementHint")}
-          className="mt-6"
-        >
-          {placementSections.map((section) =>
-            section.items.length === 0 ? null : (
-              <div key={section.surface} className="border-t border-border py-3 first:border-t-0">
-                <Caption className="text-fg-subtle">
-                  {t(`settings.surface.${section.surface}`)}
-                </Caption>
-                <div className="mt-2 flex flex-col gap-1.5">
-                  {section.items.map((item) => {
-                    const pinned = placement[section.surface].includes(item.key);
-                    return (
-                      <div key={item.key} className="flex items-center gap-2.5">
-                        <span className="text-fg-muted">{renderPluginIcon(item.icon, 15)}</span>
-                        <span className="min-w-0 flex-1 truncate font-sans text-sm text-fg">
-                          {item.title}
-                          <Caption className="ml-2 inline text-fg-subtle">
-                            {item.pluginName}
-                          </Caption>
-                        </span>
-                        <Button
-                          size="sm"
-                          variant={pinned ? "solid" : "outline"}
-                          onClick={() => togglePin(section.surface, item.key, section.limit)}
-                        >
-                          {pinned ? t("settings.unpin") : t("settings.pin")}
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ),
-          )}
-        </SettingsGroup>
-      )}
     </>
   );
 

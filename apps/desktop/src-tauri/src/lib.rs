@@ -56,6 +56,39 @@ async fn book_file_size(path: String) -> Result<u64, String> {
 /// messages don't arrive at all there), so the webview pulls the file in
 /// small raw-response chunks instead. Entries are dropped by
 /// `book_read_close` once the transfer finishes.
+#[cfg(target_os = "macos")]
+fn inherit_system_proxy() {
+    if std::env::var_os("HTTP_PROXY").is_some()
+        || std::env::var_os("HTTPS_PROXY").is_some()
+        || std::env::var_os("http_proxy").is_some()
+        || std::env::var_os("https_proxy").is_some()
+    {
+        return;
+    }
+    let Ok(output) = std::process::Command::new("scutil").arg("--proxy").output() else {
+        return;
+    };
+    let text = String::from_utf8_lossy(&output.stdout);
+    let get = |key: &str| -> Option<String> {
+        text.lines()
+            .find(|line| line.trim_start().starts_with(key))
+            .and_then(|line| line.split(':').nth(1))
+            .map(|value| value.trim().to_string())
+    };
+    let enabled = |key: &str| get(key).as_deref() == Some("1");
+    if enabled("HTTPSEnable") {
+        if let (Some(host), Some(port)) = (get("HTTPSProxy"), get("HTTPSPort")) {
+            std::env::set_var("HTTPS_PROXY", format!("http://{host}:{port}"));
+        }
+    }
+    if enabled("HTTPEnable") {
+        if let (Some(host), Some(port)) = (get("HTTPProxy"), get("HTTPPort")) {
+            std::env::set_var("HTTP_PROXY", format!("http://{host}:{port}"));
+        }
+    }
+    std::env::set_var("NO_PROXY", "localhost,127.0.0.1,::1");
+}
+
 #[derive(Default)]
 pub struct BookReadSessions(Mutex<std::collections::HashMap<String, Vec<u8>>>);
 
@@ -654,6 +687,12 @@ pub fn run() {
     // same provider android_update.rs configures explicitly for the updater.
     #[cfg(target_os = "android")]
     let _ = rustls::crypto::ring::default_provider().install_default();
+
+    // Inherit the macOS system proxy (Clash & co.): reqwest only reads env
+    // vars, so mirror scutil's settings into the process env before any HTTP
+    // client is built. Explicit env from the launcher always wins.
+    #[cfg(target_os = "macos")]
+    inherit_system_proxy();
 
     let builder = tauri::Builder::default();
     // Desktop-only window chrome (macOS traffic-light repositioning); the

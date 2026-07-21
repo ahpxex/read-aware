@@ -149,17 +149,3 @@ export function resolveSurfaceLayout(
   return { visible, overflow };
 }
 
-/**
- * Widget items host their own anchored popover. They drag anywhere in the
- * editor like everything else; at render time a surface pulls them out of the
- * overflow and shows them inline just before the dots trigger.
- */
-export const WIDGET_ITEMS = new Set(["core:viewControl", "core:appearance"]);
-
-/** Split a resolved layout for rendering: widgets never render in overflow. */
-export function renderableLayout(layout: SurfaceLayout): SurfaceLayout {
-  return {
-    visible: [...layout.visible, ...layout.overflow.filter((id) => WIDGET_ITEMS.has(id))],
-    overflow: layout.overflow.filter((id) => !WIDGET_ITEMS.has(id)),
-  };
-}

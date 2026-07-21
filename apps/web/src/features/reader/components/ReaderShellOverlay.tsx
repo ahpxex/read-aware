@@ -16,7 +16,6 @@ import {
   CORE_MENU_DEFAULTS,
   menuConfigAtom,
   pluginMenuId,
-  renderableLayout,
   resolveSurfaceLayout,
 } from "../../menus/state/menu-config";
 import { PluginHeaderItem } from "../../plugins/components/PluginHeaderCluster";
@@ -127,10 +126,10 @@ export function ReaderShellOverlay({
   const readerPluginActions = useAtomValue(headerActionsAtom).filter(
     (action) => action.surface === "reader",
   );
-  const readerLayout = renderableLayout(resolveSurfaceLayout(menuConfig.readerHeader, [
+  const readerLayout = resolveSurfaceLayout(menuConfig.readerHeader, [
     ...CORE_MENU_DEFAULTS.readerHeader,
     ...readerPluginActions.map((action) => pluginMenuId(action.key)),
-  ]));
+  ]);
 
   const coreReaderNodes: Record<string, React.ReactNode | null> = {
     "core:navigator": navigatorAvailable ? (
@@ -190,8 +189,16 @@ export function ReaderShellOverlay({
         };
       }
       const meta = coreMenuMeta("readerHeader", id);
+      if (!meta) return null;
+      if (id === "core:appearance") {
+        return {
+          id,
+          label: String(tMenus(`menus.items.${meta.labelKey}` as never)),
+          node: coreReaderNodes["core:appearance"],
+        };
+      }
       const run = coreReaderRun[id];
-      if (!meta || !run) return null;
+      if (!run) return null;
       return {
         id,
         label: String(tMenus(`menus.items.${meta.labelKey}` as never)),

@@ -13,8 +13,12 @@ import { useTranslation } from "../../../i18n";
 export type MenuOverflowEntry = {
   id: string;
   label: string;
-  icon: ReactNode;
-  run: () => void;
+  icon?: ReactNode;
+  /** Plain action: runs and closes the menu. */
+  run?: () => void;
+  /** Widget row: rendered as-is (label + the widget's own trigger); its
+   *  popover opens inside this panel, so the menu stays open. */
+  node?: ReactNode;
 };
 
 type MenuOverflowProps = {
@@ -59,17 +63,26 @@ export function MenuOverflow({
       <ul className="flex flex-col">
         {entries.map((entry) => (
           <li key={entry.id}>
+            {entry.node ? (
+              <div className="flex items-center gap-2 rounded-md px-2 py-1">
+                <span className="min-w-0 flex-1 truncate font-sans text-sm text-fg">
+                  {entry.label}
+                </span>
+                {entry.node}
+              </div>
+            ) : (
             <button
               type="button"
               onClick={() => {
                 setOpen(false);
-                entry.run();
+                entry.run?.();
               }}
               className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-fg transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
             >
               <span className="text-fg-muted">{entry.icon}</span>
               <span className="min-w-0 flex-1 truncate">{entry.label}</span>
             </button>
+            )}
           </li>
         ))}
       </ul>

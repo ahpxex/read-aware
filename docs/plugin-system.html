@@ -566,6 +566,10 @@
   <li>官方插件与第三方插件走同一套机制、同一个 API —— 官方插件是 API 的第一批真实用户（dogfooding），不开后门。</li>
 </ul>
 
+<h3>分发：插件市场（Raycast 模式）</h3>
+<p>社区插件收录在独立仓库 <a href="https://github.com/ahpxex/readaware-plugins"><code>ahpxex/readaware-plugins</code></a>：插件代码直接住在仓库里，开发者以 Pull Request 提交与更新；CI（<code>scripts/validate.mjs</code>）强制 registry 与 manifest 的一致性、id 形状、权限白名单与文件存在性。</p>
+<p>应用内设置页分 <strong>Installed / Marketplace</strong> 两个标签：市场读仓库的 <code>registry.json</code> 索引（raw.githubusercontent 优先,jsDelivr 镜像兜底），一键安装 = 前端拉取插件文本文件 → Rust <code>plugins_install_files</code> 落盘（严格路径白名单）→ 立即启用激活。安装前权限徽章先行可见。</p>
+
 <div class="fig">
   <div class="figframe">
     <div class="flow">
@@ -808,8 +812,8 @@
 
 <p><strong>规则：</strong></p>
 <ul>
-  <li>顶栏可见插件按钮设上限；未钉选的收进「更多」溢出菜单。</li>
-  <li>选区菜单空间更小：插件动作<strong>默认进溢出</strong>，用户在设置里手动提拔最常用的几个到一级。</li>
+  <li>顶栏可见插件按钮设上限（每个表面 5 个 —— 上限是护栏不是策展，用户自己看着办，超过才折叠）；未钉选的收进「更多」溢出菜单。</li>
+  <li>选区菜单：插件动作<strong>默认进溢出</strong>，用户在设置里手动提拔常用项到一级（同样至多 5 个）。</li>
   <li>所有插件动作无条件进命令面板 —— 它是「装了但没钉按钮」的动作的兜底入口（把 <code>buildCommands</code> 的闭合集合改成可追加注册表后近乎免费）。</li>
   <li>钉选与排序持久化在应用侧（<code>localKV</code>），不归插件管。</li>
 </ul>

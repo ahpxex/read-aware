@@ -145,16 +145,24 @@ pub fn plugins_install_files(
         return Err("manifest.id does not match the requested plugin id".into());
     }
 
+    // Strict positive validation: forward-slash-separated components of
+    // [A-Za-z0-9._-] only, never starting with a dot. This excludes absolute
+    // paths, `..`, backslashes, and Windows drive-relative forms (`C:x`) by
+    // construction rather than by enumerating bad shapes.
+    fn valid_payload_path(path: &str) -> bool {
+        !path.is_empty()
+            && path.len() <= 256
+            && path.split('/').all(|part| {
+                !part.is_empty()
+                    && !part.starts_with('.')
+                    && part
+                        .chars()
+                        .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
+            })
+    }
     for file in &files {
-        let path = &file.path;
-        if path.is_empty()
-            || path.len() > 256
-            || path.contains("..")
-            || path.starts_with('/')
-            || path.contains('\\')
-            || path.split('/').any(|part| part.is_empty() || part.starts_with('.'))
-        {
-            return Err(format!("invalid file path in plugin payload: {path}"));
+        if !valid_payload_path(&file.path) {
+            return Err(format!("invalid file path in plugin payload: {}", file.path));
         }
     }
 

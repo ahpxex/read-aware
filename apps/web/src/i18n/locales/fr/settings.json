@@ -6,15 +6,14 @@
   },
   "sections": {
     "general": "Général",
-    "appearance": "Apparence",
+    "appearance": "Thème",
     "reading": "Lecture",
     "ai": "IA",
     "shortcuts": "Raccourcis",
     "dataSync": "Données et synchronisation",
     "about": "À propos",
     "plugins": "Extensions",
-    "menus": "Menus",
-    "customize": "Personnaliser"
+    "menus": "Personnaliser"
   },
   "general": {
     "title": "Général",
@@ -361,7 +360,7 @@
     }
   },
   "menus": {
-    "title": "Menus",
+    "title": "Personnaliser",
     "description": "Personnalisez les barres et le menu de sélection : glissez les éléments entre Affichés et le menu de dépassement.",
     "more": "Plus",
     "shown": "Affichés",

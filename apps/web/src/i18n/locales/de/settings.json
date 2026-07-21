@@ -6,15 +6,14 @@
   },
   "sections": {
     "general": "Allgemein",
-    "appearance": "Darstellung",
+    "appearance": "Design",
     "reading": "Lesen",
     "ai": "KI",
     "shortcuts": "Tastenkürzel",
     "dataSync": "Daten & Sync",
     "about": "Über",
     "plugins": "Plugins",
-    "menus": "Menüs",
-    "customize": "Anpassen"
+    "menus": "Anpassen"
   },
   "general": {
     "title": "Allgemein",
@@ -357,7 +356,7 @@
     }
   },
   "menus": {
-    "title": "Menüs",
+    "title": "Anpassen",
     "description": "Kopfleisten und Auswahlmenü anpassen: Einträge zwischen Sichtbar und Überlaufmenü ziehen und ordnen.",
     "more": "Mehr",
     "shown": "Sichtbar",

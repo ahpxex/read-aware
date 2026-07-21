@@ -6,15 +6,14 @@
   },
   "sections": {
     "general": "General",
-    "appearance": "Apariencia",
+    "appearance": "Tema",
     "reading": "Lectura",
     "ai": "IA",
     "shortcuts": "Atajos",
     "dataSync": "Datos y sincronización",
     "about": "Acerca de",
     "plugins": "Plugins",
-    "menus": "Menús",
-    "customize": "Personalizar"
+    "menus": "Personalizar"
   },
   "general": {
     "title": "General",
@@ -361,7 +360,7 @@
     }
   },
   "menus": {
-    "title": "Menús",
+    "title": "Personalizar",
     "description": "Personaliza las barras y el menú de selección: arrastra elementos entre zonas y reordénalos.",
     "more": "Más",
     "shown": "Mostrados",

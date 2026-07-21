@@ -6,15 +6,14 @@
   },
   "sections": {
     "general": "General",
-    "appearance": "Appearance",
+    "appearance": "Theme",
     "reading": "Reading",
     "ai": "AI",
     "shortcuts": "Shortcuts",
     "dataSync": "Data & Sync",
     "about": "About",
     "plugins": "Plugins",
-    "menus": "Menus",
-    "customize": "Customize"
+    "menus": "Customize"
   },
   "general": {
     "title": "General",
@@ -357,7 +356,7 @@
     }
   },
   "menus": {
-    "title": "Menus",
+    "title": "Customize",
     "description": "Arrange the header bars and the selection menu: drag items between Shown and the overflow menu, and reorder them.",
     "more": "More",
     "shown": "Shown",

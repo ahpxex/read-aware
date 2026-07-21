@@ -6,15 +6,14 @@
   },
   "sections": {
     "general": "一般",
-    "appearance": "外観",
+    "appearance": "テーマ",
     "reading": "読書",
     "ai": "AI",
     "shortcuts": "ショートカット",
     "dataSync": "データと同期",
     "about": "アプリについて",
     "plugins": "プラグイン",
-    "menus": "メニュー",
-    "customize": "カスタマイズ"
+    "menus": "カスタマイズ"
   },
   "general": {
     "title": "一般",
@@ -353,7 +352,7 @@
     }
   },
   "menus": {
-    "title": "メニュー",
+    "title": "カスタマイズ",
     "description": "ヘッダーバーと選択メニューをカスタマイズ:項目を「表示」とオーバーフローの間でドラッグし、並べ替えます。",
     "more": "その他",
     "shown": "表示",

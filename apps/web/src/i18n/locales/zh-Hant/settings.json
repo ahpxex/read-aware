@@ -6,15 +6,14 @@
   },
   "sections": {
     "general": "一般",
-    "appearance": "外觀",
+    "appearance": "主題",
     "reading": "閱讀",
     "ai": "AI",
     "shortcuts": "快捷鍵",
     "dataSync": "資料與同步",
     "about": "關於",
     "plugins": "外掛",
-    "menus": "選單",
-    "customize": "自訂"
+    "menus": "自訂"
   },
   "general": {
     "title": "一般",
@@ -353,7 +352,7 @@
     }
   },
   "menus": {
-    "title": "選單",
+    "title": "自訂",
     "description": "自訂頂欄與選取選單:在「顯示」與「更多選單」之間拖曳項目並調整順序。",
     "more": "更多",
     "shown": "顯示",

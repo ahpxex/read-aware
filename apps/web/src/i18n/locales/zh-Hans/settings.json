@@ -6,15 +6,14 @@
   },
   "sections": {
     "general": "通用",
-    "appearance": "外观",
+    "appearance": "主题",
     "reading": "阅读",
     "ai": "AI",
     "shortcuts": "快捷键",
     "dataSync": "数据与同步",
     "about": "关于",
     "plugins": "插件",
-    "menus": "菜单",
-    "customize": "自定义"
+    "menus": "自定义"
   },
   "general": {
     "title": "通用",
@@ -353,7 +352,7 @@
     }
   },
   "menus": {
-    "title": "菜单",
+    "title": "自定义",
     "description": "自定义顶栏与选区菜单:在「显示」与「更多菜单」之间拖动条目并调整顺序。",
     "more": "更多",
     "shown": "显示",

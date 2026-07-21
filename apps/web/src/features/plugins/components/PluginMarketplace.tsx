@@ -13,10 +13,10 @@ import { matchesPluginQuery } from "../lib/search";
 import {
   MARKETPLACE_REPO,
   fetchMarketplaceRegistry,
-  installFromMarketplace,
+  prepareMarketplaceInstall,
   type MarketplaceEntry,
 } from "../runtime/marketplace";
-import { installedPluginsAtom } from "../state/plugin-store";
+import { installedPluginsAtom, requestInstallConsent } from "../state/plugin-store";
 import { PluginSearchInput } from "./PluginSearchInput";
 
 function errorMessage(error: unknown): string {
@@ -58,7 +58,9 @@ export function PluginMarketplace({ refreshToken = 0 }: PluginMarketplaceProps) 
   async function handleInstall(entry: MarketplaceEntry) {
     setBusyId(entry.id);
     try {
-      const plugin = await installFromMarketplace(entry);
+      const { manifest, complete } = await prepareMarketplaceInstall(entry);
+      if (!(await requestInstallConsent(manifest))) return;
+      const plugin = await complete();
       toast({
         description: t("settings.installedToast", { name: plugin.manifest.name }),
         variant: "success",

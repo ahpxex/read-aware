@@ -25,7 +25,9 @@
       "reading-data": "讀取書籍、螢光標記與筆記",
       "network": "存取網路",
       "ai": "註冊 AI 助手工具",
-      "clipboard": "寫入剪貼簿"
+      "clipboard": "寫入剪貼簿",
+      "dictionary": "使用內建字典(消耗你的 AI 額度)",
+      "llm": "使用你設定的模型發起 AI 呼叫"
     },
     "activationError": "啟用失敗:{{message}}",
     "placement": "釘選按鈕",
@@ -50,6 +52,11 @@
     "marketplaceEmpty": "市集裡還沒有外掛。",
     "marketplaceHint": "社群外掛透過 Pull Request 提交到",
     "searchPlaceholder": "搜尋外掛…",
-    "noMatches": "沒有符合的外掛。"
+    "noMatches": "沒有符合的外掛。",
+    "installConfirm": {
+      "title": "安裝 {{name}}?",
+      "confirm": "安裝",
+      "cancel": "取消"
+    }
   }
 }

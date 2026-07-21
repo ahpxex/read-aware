@@ -25,7 +25,9 @@
       "reading-data": "Lire les livres, surlignages et notes",
       "network": "Accéder au réseau",
       "ai": "Enregistrer des outils d'agent IA",
-      "clipboard": "Écrire dans le presse-papiers"
+      "clipboard": "Écrire dans le presse-papiers",
+      "dictionary": "Utiliser le dictionnaire intégré (via votre modèle IA)",
+      "llm": "Effectuer des requêtes IA avec votre modèle"
     },
     "activationError": "Échec de l'activation : {{message}}",
     "placement": "Boutons épinglés",
@@ -50,6 +52,11 @@
     "marketplaceEmpty": "Aucune extension publiée pour le moment.",
     "marketplaceHint": "Les extensions communautaires sont soumises par pull request à",
     "searchPlaceholder": "Rechercher des extensions…",
-    "noMatches": "Aucune extension ne correspond."
+    "noMatches": "Aucune extension ne correspond.",
+    "installConfirm": {
+      "title": "Installer {{name}} ?",
+      "confirm": "Installer",
+      "cancel": "Annuler"
+    }
   }
 }

@@ -14,7 +14,14 @@
  */
 
 /** Permission domains a manifest may declare (docs/plugin-system.md §4). */
-export const PLUGIN_PERMISSIONS = ["reading-data", "network", "ai", "clipboard"] as const;
+export const PLUGIN_PERMISSIONS = [
+  "reading-data",
+  "network",
+  "ai",
+  "dictionary",
+  "llm",
+  "clipboard",
+] as const;
 
 export type PluginPermission = (typeof PLUGIN_PERMISSIONS)[number];
 
@@ -225,9 +232,41 @@ export type PluginContext = {
     listBooks(): Promise<PluginBookOverview[]>;
     listAnnotations(filter?: { bookId?: string }): Promise<PluginAnnotation[]>;
   };
+  /**
+   * Requires the `dictionary` permission. The app's built-in dictionary —
+   * shares its cache with the reader's own look-ups. Uses the user's
+   * configured AI model; rejects when AI is not configured.
+   */
+  dictionary?: {
+    lookUp(input: {
+      term: string;
+      context?: string;
+      bookTitle?: string;
+    }): Promise<PluginDictionaryResult>;
+  };
+  /**
+   * Requires the `llm` permission. A one-shot model call on the user's
+   * configured account (fast tier) — no thread, no memory, no tools.
+   * Rejects when AI is not configured.
+   */
+  llm?: {
+    ask(input: { prompt: string; system?: string }): Promise<string>;
+  };
   /** Requires the `clipboard` permission. */
   clipboard?: {
     writeText(text: string): Promise<void>;
+  };
+};
+
+export type PluginDictionaryResult = {
+  /** The explanation language the entry was produced in. */
+  language: string;
+  entry: {
+    headword: string;
+    pronunciation?: string;
+    senses: { partOfSpeech: string; definition: string; examples: string[] }[];
+    etymology?: string;
+    contextualMeaning?: string;
   };
 };
 

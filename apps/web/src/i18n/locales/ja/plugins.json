@@ -25,7 +25,9 @@
       "reading-data": "書籍・ハイライト・メモの読み取り",
       "network": "ネットワークへのアクセス",
       "ai": "AI エージェントツールの登録",
-      "clipboard": "クリップボードへの書き込み"
+      "clipboard": "クリップボードへの書き込み",
+      "dictionary": "内蔵辞書を使用(AI モデルを消費)",
+      "llm": "設定済みモデルで AI リクエストを実行"
     },
     "activationError": "有効化に失敗しました:{{message}}",
     "placement": "ピン留めボタン",
@@ -50,6 +52,11 @@
     "marketplaceEmpty": "まだプラグインが公開されていません。",
     "marketplaceHint": "コミュニティプラグインはプルリクエストで提出します:",
     "searchPlaceholder": "プラグインを検索…",
-    "noMatches": "一致するプラグインがありません。"
+    "noMatches": "一致するプラグインがありません。",
+    "installConfirm": {
+      "title": "{{name}} をインストールしますか?",
+      "confirm": "インストール",
+      "cancel": "キャンセル"
+    }
   }
 }

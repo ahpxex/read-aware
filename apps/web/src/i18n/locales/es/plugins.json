@@ -25,7 +25,9 @@
       "reading-data": "Leer libros, subrayados y notas",
       "network": "Acceder a la red",
       "ai": "Registrar herramientas del agente de IA",
-      "clipboard": "Escribir en el portapapeles"
+      "clipboard": "Escribir en el portapapeles",
+      "dictionary": "Usar el diccionario integrado (con tu modelo de IA)",
+      "llm": "Hacer solicitudes de IA con tu modelo"
     },
     "activationError": "Error al activar: {{message}}",
     "placement": "Botones fijados",
@@ -50,6 +52,11 @@
     "marketplaceEmpty": "Aún no hay plugins publicados.",
     "marketplaceHint": "Los plugins de la comunidad se envían por pull request a",
     "searchPlaceholder": "Buscar plugins…",
-    "noMatches": "Ningún plugin coincide."
+    "noMatches": "Ningún plugin coincide.",
+    "installConfirm": {
+      "title": "¿Instalar {{name}}?",
+      "confirm": "Instalar",
+      "cancel": "Cancelar"
+    }
   }
 }

@@ -63,6 +63,21 @@ export class AgentRuntime {
   }
 
   /**
+   * 一次性快问（无线程、无记忆、无工具）：宿主的轻量 LLM 入口 ——
+   * 产品侧用于插件的 `llm` 权限域。走 fast 档模型。
+   */
+  async ask(input: { prompt: string; system?: string }): Promise<string> {
+    const message = await this.completeFn(this.resolveModel("fast"), {
+      systemPrompt: input.system,
+      messages: [{ role: "user", content: input.prompt, timestamp: Date.now() }],
+    });
+    return message.content
+      .filter((block): block is { type: "text"; text: string } => block.type === "text")
+      .map((block) => block.text)
+      .join("");
+  }
+
+  /**
    * 巩固批处理（doc §4 第 3 步）：衰减、去重合并、矛盾消解、book→global 升格。
    * 由宿主在空闲时调用（产品：空闲定时器；repl：`:consolidate` 命令）。
    */

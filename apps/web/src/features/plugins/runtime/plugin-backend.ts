@@ -16,6 +16,11 @@ export function installPluginFromDir(srcDir: string): Promise<PluginDiskEntry> {
   return invoke<PluginDiskEntry>("plugins_install", { srcDir });
 }
 
+/** Raw manifest.json text of a candidate folder — read before consent/copy. */
+export function readPluginManifestFromDir(srcDir: string): Promise<string> {
+  return invoke<string>("plugins_read_manifest", { srcDir });
+}
+
 export type PluginFilePayload = { path: string; content: string };
 
 export function installPluginFilesCmd(

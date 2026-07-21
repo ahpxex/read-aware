@@ -191,3 +191,31 @@ export const pluginDialogAtom = atom<PluginDialogRequest | null>(null);
 export function openPluginDialog(request: PluginDialogRequest): void {
   store.set(pluginDialogAtom, request);
 }
+
+// ─── Install consent (docs/plugin-system.md §2/§4) ───────────────────────────
+
+import type { PluginManifest } from "../lib/plugin-types";
+
+export type PluginInstallConsentRequest = {
+  manifest: PluginManifest;
+  resolve: (approved: boolean) => void;
+};
+
+/** The pending consent dialog request; the host component consumes it. */
+export const pluginInstallConsentAtom = atom<PluginInstallConsentRequest | null>(null);
+
+/**
+ * Every install path funnels through this gate: show the manifest's declared
+ * permissions and resolve with the user's decision before any activation.
+ */
+export function requestInstallConsent(manifest: PluginManifest): Promise<boolean> {
+  return new Promise((resolve) => {
+    store.set(pluginInstallConsentAtom, {
+      manifest,
+      resolve: (approved) => {
+        store.set(pluginInstallConsentAtom, null);
+        resolve(approved);
+      },
+    });
+  });
+}

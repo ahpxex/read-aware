@@ -801,6 +801,7 @@ pub fn run() {
             set_traffic_lights_visible,
             list_system_fonts,
             plugins::plugins_list,
+            plugins::plugins_read_manifest,
             plugins::plugins_install,
             plugins::plugins_install_files,
             plugins::plugins_uninstall,

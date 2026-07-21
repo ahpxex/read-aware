@@ -25,7 +25,9 @@
       "reading-data": "读取书籍、高亮与笔记",
       "network": "访问网络",
       "ai": "注册 AI 助手工具",
-      "clipboard": "写入剪贴板"
+      "clipboard": "写入剪贴板",
+      "dictionary": "使用内置词典(消耗你的 AI 额度)",
+      "llm": "使用你配置的模型发起 AI 调用"
     },
     "activationError": "启用失败:{{message}}",
     "placement": "钉选按钮",
@@ -50,6 +52,11 @@
     "marketplaceEmpty": "市场里还没有插件。",
     "marketplaceHint": "社区插件通过 Pull Request 提交到",
     "searchPlaceholder": "搜索插件…",
-    "noMatches": "没有匹配的插件。"
+    "noMatches": "没有匹配的插件。",
+    "installConfirm": {
+      "title": "安装 {{name}}?",
+      "confirm": "安装",
+      "cancel": "取消"
+    }
   }
 }

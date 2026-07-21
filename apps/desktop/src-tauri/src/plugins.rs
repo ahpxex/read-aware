@@ -116,6 +116,18 @@ fn copy_dir(src: &Path, dest: &Path) -> Result<(), String> {
     Ok(())
 }
 
+/// Read a candidate folder's manifest WITHOUT installing — the consent dialog
+/// must show permissions before any files are copied.
+#[tauri::command]
+pub fn plugins_read_manifest(src_dir: String) -> Result<String, String> {
+    let src = PathBuf::from(&src_dir);
+    if !src.is_dir() {
+        return Err("the selected path is not a folder".into());
+    }
+    fs::read_to_string(src.join("manifest.json"))
+        .map_err(|_| "manifest.json not found in the selected folder".to_string())
+}
+
 #[derive(serde::Deserialize)]
 pub struct PluginFile {
     pub path: String,

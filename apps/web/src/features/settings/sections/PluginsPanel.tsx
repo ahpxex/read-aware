@@ -13,9 +13,11 @@ import { useTranslation } from "../../../i18n";
 import { isTauri } from "../../../platform/environment";
 import { PluginMarketplace } from "../../plugins/components/PluginMarketplace";
 import { PluginSearchInput } from "../../plugins/components/PluginSearchInput";
+import { parseManifestJson } from "../../plugins/lib/manifest";
 import { renderPluginIcon } from "../../plugins/lib/plugin-icons";
 import { matchesPluginQuery } from "../../plugins/lib/search";
 import type { PluginPermission } from "../../plugins/lib/plugin-types";
+import { readPluginManifestFromDir } from "../../plugins/runtime/plugin-backend";
 import {
   installPlugin,
   setPluginEnabled,
@@ -27,6 +29,7 @@ import {
   headerActionsAtom,
   installedPluginsAtom,
   pluginPlacementAtom,
+  requestInstallConsent,
   selectionActionsAtom,
   type PluginPlacement,
 } from "../../plugins/state/plugin-store";
@@ -57,6 +60,9 @@ export function PluginsPanel() {
     try {
       const picked = await openFileDialog({ directory: true, multiple: false });
       if (typeof picked === "string" && picked) {
+        // Consent before any copy: read + validate the manifest in place.
+        const manifest = parseManifestJson(await readPluginManifestFromDir(picked));
+        if (!(await requestInstallConsent(manifest))) return;
         const plugin = await installPlugin(picked);
         toast({
           description: t("settings.installedToast", { name: plugin.manifest.name }),

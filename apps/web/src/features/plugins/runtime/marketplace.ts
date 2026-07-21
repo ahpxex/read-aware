@@ -7,7 +7,12 @@
  * Two mirrors, tried in order: raw.githubusercontent.com is always fresh but
  * unreachable on some networks; jsDelivr is widely reachable but caches ~12h.
  */
-import { PLUGIN_PERMISSIONS, type InstalledPlugin, type PluginPermission } from "../lib/plugin-types";
+import {
+  PLUGIN_PERMISSIONS,
+  type InstalledPlugin,
+  type PluginManifest,
+  type PluginPermission,
+} from "../lib/plugin-types";
 import { PluginManifestError, parseManifestJson } from "../lib/manifest";
 import { installPluginFiles } from "./plugin-host";
 import type { PluginFilePayload } from "./plugin-backend";
@@ -101,13 +106,15 @@ export async function fetchMarketplaceRegistry(): Promise<MarketplaceEntry[]> {
 }
 
 /**
- * Download a marketplace plugin's files and install them. The manifest is
- * re-validated against the entry — the registry index is a claim, the
- * manifest in the folder is the authority.
+ * Two-step marketplace install so the consent dialog sits between them:
+ * fetch + validate the real manifest first (the registry index is a claim,
+ * the manifest in the folder is the authority), then — only after the user
+ * approves — download the remaining files and install.
  */
-export async function installFromMarketplace(
-  entry: MarketplaceEntry,
-): Promise<InstalledPlugin> {
+export async function prepareMarketplaceInstall(entry: MarketplaceEntry): Promise<{
+  manifest: PluginManifest;
+  complete: () => Promise<InstalledPlugin>;
+}> {
   const manifestText = await fetchText(`plugins/${entry.id}/manifest.json`);
   const manifest = parseManifestJson(manifestText);
   if (manifest.id !== entry.id) {
@@ -115,11 +122,15 @@ export async function installFromMarketplace(
       `marketplace manifest id "${manifest.id}" does not match listing "${entry.id}"`,
     );
   }
-
-  const fileNames = [manifest.main ?? "main.js", ...(entry.files ?? [])];
-  const files: PluginFilePayload[] = [{ path: "manifest.json", content: manifestText }];
-  for (const name of [...new Set(fileNames)]) {
-    files.push({ path: name, content: await fetchText(`plugins/${entry.id}/${name}`) });
-  }
-  return installPluginFiles(manifest.id, files);
+  return {
+    manifest,
+    complete: async () => {
+      const fileNames = [manifest.main ?? "main.js", ...(entry.files ?? [])];
+      const files: PluginFilePayload[] = [{ path: "manifest.json", content: manifestText }];
+      for (const name of [...new Set(fileNames)]) {
+        files.push({ path: name, content: await fetchText(`plugins/${entry.id}/${name}`) });
+      }
+      return installPluginFiles(manifest.id, files);
+    },
+  };
 }

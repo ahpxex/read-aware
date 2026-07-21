@@ -5,7 +5,9 @@
  * boundary is installation itself (§2).
  */
 import { localKV } from "../../../platform/local-store";
+import { getAgentRuntime } from "../../ai/agent/agent-runtime";
 import { createAnnotationsPort } from "../../ai/agent/ports/annotations-port";
+import { createDictionaryPort } from "../../ai/agent/ports/dictionary-port";
 import { createLibraryPort } from "../../ai/agent/ports/library-port";
 import { showPluginToast } from "../lib/plugin-toast";
 import {
@@ -130,6 +132,26 @@ export function buildPluginContext(
           chapter: annotation.chapter,
           createdAt: annotation.createdAt,
         })),
+    };
+  }
+
+  if (permissions.has("dictionary")) {
+    const dictionary = createDictionaryPort();
+    ctx.dictionary = {
+      lookUp: async ({ term, context, bookTitle }) => {
+        const result = await dictionary.lookUp({ term: String(term), context, bookTitle });
+        return { language: result.language, entry: result.entry };
+      },
+    };
+  }
+
+  if (permissions.has("llm")) {
+    ctx.llm = {
+      ask: async (input) => {
+        const runtime = getAgentRuntime();
+        if (!runtime) throw new Error("AI is not configured");
+        return runtime.ask({ prompt: String(input.prompt), system: input.system });
+      },
     };
   }
 

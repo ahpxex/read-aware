@@ -20,6 +20,7 @@ import { BACK_REQUEST_EVENT, sendAppToBackground } from "./platform/back-navigat
 import { CommandPalette } from "./features/command/components/CommandPalette";
 import type { CommandContext } from "./features/command/lib/build-commands";
 import { PluginDialogHost } from "./features/plugins/components/PluginDialogHost";
+import { PluginInstallConsentDialog } from "./features/plugins/components/PluginInstallConsentDialog";
 import { PluginPageHost } from "./features/plugins/components/PluginPageHost";
 import { PluginToastBridge } from "./features/plugins/components/PluginToastBridge";
 import { usePluginCommandItems } from "./features/plugins/hooks/usePluginCommandItems";
@@ -421,6 +422,7 @@ function App() {
 
       <PluginToastBridge />
       <PluginDialogHost />
+      <PluginInstallConsentDialog />
     </>
   );
 }

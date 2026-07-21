@@ -25,7 +25,9 @@
       "reading-data": "Read books, highlights, and notes",
       "network": "Access the network",
       "ai": "Register AI agent tools",
-      "clipboard": "Write to the clipboard"
+      "clipboard": "Write to the clipboard",
+      "dictionary": "Use the built-in dictionary (runs on your AI model)",
+      "llm": "Make AI requests with your configured model"
     },
     "activationError": "Activation failed: {{message}}",
     "placement": "Pinned buttons",
@@ -50,6 +52,11 @@
     "marketplaceEmpty": "No plugins published yet.",
     "marketplaceHint": "Community plugins are submitted by pull request to",
     "searchPlaceholder": "Search plugins…",
-    "noMatches": "No plugins match your search."
+    "noMatches": "No plugins match your search.",
+    "installConfirm": {
+      "title": "Install {{name}}?",
+      "confirm": "Install",
+      "cancel": "Cancel"
+    }
   }
 }

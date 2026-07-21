@@ -25,7 +25,9 @@
       "reading-data": "Bücher, Markierungen und Notizen lesen",
       "network": "Auf das Netzwerk zugreifen",
       "ai": "KI-Agent-Werkzeuge registrieren",
-      "clipboard": "In die Zwischenablage schreiben"
+      "clipboard": "In die Zwischenablage schreiben",
+      "dictionary": "Integriertes Wörterbuch nutzen (läuft über dein KI-Modell)",
+      "llm": "KI-Anfragen mit deinem Modell stellen"
     },
     "activationError": "Aktivierung fehlgeschlagen: {{message}}",
     "placement": "Angeheftete Schaltflächen",
@@ -50,6 +52,11 @@
     "marketplaceEmpty": "Noch keine Plugins veröffentlicht.",
     "marketplaceHint": "Community-Plugins werden per Pull Request eingereicht bei",
     "searchPlaceholder": "Plugins durchsuchen…",
-    "noMatches": "Keine passenden Plugins."
+    "noMatches": "Keine passenden Plugins.",
+    "installConfirm": {
+      "title": "{{name}} installieren?",
+      "confirm": "Installieren",
+      "cancel": "Abbrechen"
+    }
   }
 }

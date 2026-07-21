@@ -150,6 +150,18 @@ function PluginBlockBody({
   if (block.kind === "markdown") {
     return <Markdown className="text-sm leading-6">{block.markdown}</Markdown>;
   }
+  if (block.kind === "heading") {
+    return (
+      <div className="flex flex-col gap-0.5 pt-1">
+        <span className="font-sans text-[11px] font-medium uppercase tracking-[0.14em] text-fg-subtle">
+          {block.text}
+        </span>
+        {block.caption && (
+          <span className="font-sans text-xs text-fg-muted">{block.caption}</span>
+        )}
+      </div>
+    );
+  }
   if (block.kind === "dictionary") {
     return (
       <div className="flex flex-col gap-3">

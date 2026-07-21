@@ -112,6 +112,8 @@ export type PluginBlocksView = {
 
 export type PluginBlock =
   | { kind: "markdown"; markdown: string }
+  /** A section header: quiet eyebrow caption over an optional line of text. */
+  | { kind: "heading"; text: string; caption?: string }
   /** A dictionary entry, rendered with the app's own dictionary UX. */
   | { kind: "dictionary"; entry: PluginDictionaryEntry }
   /** Label/value rows (provenance, metadata) in a quiet definition list. */

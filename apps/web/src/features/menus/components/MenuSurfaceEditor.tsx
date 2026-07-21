@@ -1,12 +1,14 @@
 /**
- * Drag-to-arrange editor for one surface's menu layout: two zones (shown /
- * overflow), native HTML5 drag between and within them. Core and plugin items
- * are peers; widget items (locked) can be reordered but not overflowed.
+ * Drag-to-arrange editor for one surface's menu layout, rendered as the real
+ * thing: a bar of icon buttons (the surface as it looks live, dots trigger at
+ * the end) with the overflow panel opened beneath it. Items drag directly
+ * between bar and panel; hover tooltips name them. Widget items (locked)
+ * reorder but never overflow.
  */
-import { DotsSixVertical } from "@phosphor-icons/react";
+import { DotsThreeVertical } from "@phosphor-icons/react";
 import { useState, type ReactNode } from "react";
 import { useAtom, useAtomValue } from "jotai";
-import { Button, Caption } from "@read-aware/ui";
+import { Button, Caption, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import { renderPluginIcon } from "../../plugins/lib/plugin-icons";
@@ -40,29 +42,21 @@ export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
 
   const pluginItems: EditorItem[] = (
     surface === "selection"
-      ? selectionActions.map((action) => ({
-          id: pluginMenuId(action.key),
-          label: action.title,
-          caption: action.pluginName,
-          icon: renderPluginIcon(action.icon, 15),
-          locked: false,
-        }))
-      : headerActions
-          .filter((action) =>
-            surface === "shelfHeader" ? action.surface === "shelf" : action.surface === "reader",
-          )
-          .map((action) => ({
-            id: pluginMenuId(action.key),
-            label: action.title,
-            caption: action.pluginName,
-            icon: renderPluginIcon(action.icon, 15),
-            locked: false,
-          }))
-  );
+      ? selectionActions
+      : headerActions.filter((action) =>
+          surface === "shelfHeader" ? action.surface === "shelf" : action.surface === "reader",
+        )
+  ).map((action) => ({
+    id: pluginMenuId(action.key),
+    label: action.title,
+    caption: action.pluginName,
+    icon: renderPluginIcon(action.icon, 16),
+    locked: false,
+  }));
   const coreItems: EditorItem[] = CORE_MENU_ITEMS[surface].map((meta) => ({
     id: meta.id,
     label: String(t(`menus.items.${meta.labelKey}` as never)),
-    icon: <meta.Icon size={15} weight="regular" aria-hidden="true" />,
+    icon: <meta.Icon size={16} weight="regular" aria-hidden="true" />,
     locked: LOCKED_VISIBLE.has(meta.id),
   }));
   const itemById = new Map([...coreItems, ...pluginItems].map((item) => [item.id, item]));
@@ -71,10 +65,6 @@ export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
     ...CORE_MENU_DEFAULTS[surface],
     ...pluginItems.map((item) => item.id),
   ]);
-
-  function commit(visible: string[], overflow: string[]) {
-    setConfig({ ...config, [surface]: { visible, overflow } });
-  }
 
   /** Drop `dragId` into `zone`, before `beforeId` (or at the end). */
   function drop(zone: Zone, beforeId: string | null) {
@@ -88,79 +78,111 @@ export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
     const index = beforeId ? target.indexOf(beforeId) : -1;
     if (index >= 0) target.splice(index, 0, dragId);
     else target.push(dragId);
-    commit(next.visible, next.overflow);
+    setConfig({ ...config, [surface]: next });
   }
 
-  function renderRow(id: string, zone: Zone) {
-    const item = itemById.get(id);
-    if (!item) return null;
-    return (
-      <div
-        key={id}
-        draggable
-        onDragStart={(event) => {
-          setDragId(id);
-          event.dataTransfer.effectAllowed = "move";
-        }}
-        onDragEnd={() => setDragId(null)}
-        onDragOver={(event) => event.preventDefault()}
-        onDrop={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          drop(zone, id);
-          setDragId(null);
-        }}
-        className={cn(
-          "flex cursor-grab items-center gap-2 rounded-md border border-border bg-[var(--ra-main-surface-color)] px-2 py-1.5",
-          dragId === id && "opacity-40",
-        )}
-      >
-        <DotsSixVertical size={14} weight="bold" className="shrink-0 text-fg-subtle" aria-hidden="true" />
-        <span className="text-fg-muted">{item.icon}</span>
-        <span className="min-w-0 flex-1 truncate font-sans text-sm text-fg">
-          {item.label}
-          {item.caption && (
-            <Caption className="ml-2 inline text-fg-subtle">{item.caption}</Caption>
-          )}
-        </span>
-        {item.locked && <Caption className="shrink-0 text-fg-subtle">{t("menus.shown")}</Caption>}
-      </div>
-    );
-  }
-
-  function renderZone(zone: Zone, ids: string[], title: string) {
-    return (
-      <div
-        className="min-w-0 flex-1"
-        onDragOver={(event) => event.preventDefault()}
-        onDrop={(event) => {
-          event.preventDefault();
-          drop(zone, null);
-          setDragId(null);
-        }}
-      >
-        <Caption className="mb-1.5 block text-fg-subtle">{title}</Caption>
-        <div className="flex min-h-[3rem] flex-col gap-1 rounded-md border border-dashed border-border p-1.5">
-          {ids.map((id) => renderRow(id, zone))}
-          {ids.length === 0 && (
-            <Caption className="px-1 py-2 text-fg-subtle">—</Caption>
-          )}
-        </div>
-      </div>
-    );
-  }
+  const dragProps = (id: string, zone: Zone) => ({
+    draggable: true,
+    onDragStart: (event: React.DragEvent) => {
+      setDragId(id);
+      event.dataTransfer.effectAllowed = "move";
+    },
+    onDragEnd: () => setDragId(null),
+    onDragOver: (event: React.DragEvent) => event.preventDefault(),
+    onDrop: (event: React.DragEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      drop(zone, id);
+      setDragId(null);
+    },
+  });
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-        {renderZone("visible", layout.visible, t("menus.shown"))}
-        {renderZone("overflow", layout.overflow, t("menus.overflow"))}
-      </div>
-      <div className="flex items-center justify-between gap-4">
-        <Caption className="text-fg-subtle">{t("menus.dragHint")}</Caption>
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        {/* The bar, as it renders live: icon buttons + the dots trigger. */}
+        <div
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={(event) => {
+            event.preventDefault();
+            drop("visible", null);
+            setDragId(null);
+          }}
+          className="flex min-h-[2.5rem] min-w-0 flex-1 items-center gap-0.5 rounded-lg border border-border bg-[var(--ra-main-surface-color)] px-1.5 py-1"
+        >
+          {layout.visible.map((id) => {
+            const item = itemById.get(id);
+            if (!item) return null;
+            return (
+              <Tooltip
+                key={id}
+                content={item.caption ? `${item.label} · ${item.caption}` : item.label}
+                side="top"
+              >
+                <span
+                  {...dragProps(id, "visible")}
+                  className={cn(
+                    "flex h-8 w-8 shrink-0 cursor-grab items-center justify-center rounded-md text-fg-muted hover:bg-fg/5 hover:text-fg",
+                    dragId === id && "opacity-40",
+                  )}
+                >
+                  {item.icon}
+                </span>
+              </Tooltip>
+            );
+          })}
+          <span
+            aria-hidden="true"
+            className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center text-fg-subtle"
+          >
+            <DotsThreeVertical size={18} weight="bold" />
+          </span>
+        </div>
         <Button size="sm" variant="ghost" onClick={() => resetSurfaceLayout(surface)}>
           {t("menus.reset")}
         </Button>
+      </div>
+
+      {/* The overflow menu, opened beneath the dots — drop here to tuck away. */}
+      <div
+        onDragOver={(event) => event.preventDefault()}
+        onDrop={(event) => {
+          event.preventDefault();
+          drop("overflow", null);
+          setDragId(null);
+        }}
+        className={cn(
+          "ml-auto mr-12 w-56 rounded-lg border bg-[var(--ra-main-surface-color)] p-1",
+          layout.overflow.length === 0
+            ? "border-dashed border-border"
+            : "border-border shadow-[0_4px_16px_-6px_rgba(28,25,23,0.15)]",
+        )}
+      >
+        {layout.overflow.map((id) => {
+          const item = itemById.get(id);
+          if (!item) return null;
+          return (
+            <div
+              key={id}
+              {...dragProps(id, "overflow")}
+              className={cn(
+                "flex cursor-grab items-center gap-2 rounded-md px-2 py-1.5 hover:bg-fg/5",
+                dragId === id && "opacity-40",
+              )}
+            >
+              <span className="text-fg-muted">{item.icon}</span>
+              <span className="min-w-0 flex-1 truncate font-sans text-sm text-fg">
+                {item.label}
+                {item.caption && (
+                  <Caption className="ml-2 inline text-fg-subtle">{item.caption}</Caption>
+                )}
+              </span>
+            </div>
+          );
+        })}
+        {layout.overflow.length === 0 && (
+          <div className="px-2 py-1.5 text-center font-sans text-xs text-fg-subtle">—</div>
+        )}
       </div>
     </div>
   );

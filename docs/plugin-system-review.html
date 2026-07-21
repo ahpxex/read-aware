@@ -69,7 +69,8 @@
 
 <h2>二、缺口清单</h2>
 
-<h3><span class="p0">第一档:明显的能力空洞(建议尽快补)</span></h3>
+<h3><span class="p0">第一档:明显的能力空洞 —— 已全部补齐(2026-07-21 晚)</span></h3>
+<p><strong>已落地:</strong>事件系统(ctx.events,6 类事件,annotation-* 挂 reading-data)、书内容读取(getToc/getChapterText)、阅读器导航(ctx.reader.openBook/goTo)、退出时 deactivate;另新增 <code>library-write</code> 权限域与 <code>ctx.library.importBook</code> —— 插件可把自建文件导入为书架上的真书(RSS 阅读器路径)。二档中表单增强、标注更新、llm 档位、声明式插件设置(manifest.settings)也已完成。原文保留如下作记录:</p>
 <ul>
 <li><strong>没有事件系统。</strong>插件完全是被动的:感知不到"翻开了一本书 / 划了一条高亮 / 读完一章 / 选中了文字"。做不了自动化类插件(自动同步、阅读提醒、读完统计)。这是和 Obsidian 差距最大的一块——建议 <code>ctx.events.on("book-opened" | "annotation-created" | "selection-changed" | …)</code>,返回 disposable。</li>
 <li><strong>读不到书的内容。</strong>agent 有 bookText 端口(目录 + 章节文本),插件没有。"导出全书笔记带上下文"、"全文分析"类插件做不了。建议 <code>ctx.reading.getToc / getChapterText</code>(挂 reading-data)。</li>

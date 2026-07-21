@@ -13,8 +13,8 @@
     --muted: #57534e;
     --faint: #79716b;
     --hairline: #e7e5e4;
-    --accent: #292524;
     --code-bg: #f0eeea;
+    --sel: #eadfbf;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -25,8 +25,8 @@
       --muted: #a8a29e;
       --faint: #79716b;
       --hairline: #37322e;
-      --accent: #e7e5e4;
       --code-bg: #26221f;
+      --sel: #4a4433;
     }
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -40,6 +40,9 @@
     padding: 4.5rem 1.5rem 8rem;
   }
   main { max-width: 44rem; margin: 0 auto; }
+  [hidden] { display: none !important; }
+  button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+  button:focus-visible { outline: 1.5px solid var(--faint); outline-offset: 2px; }
 
   .eyebrow {
     font-size: 11px;
@@ -82,11 +85,6 @@
     display: block;
     margin-bottom: 0.35rem;
   }
-  h3 {
-    font-size: 1rem;
-    font-weight: 600;
-    margin: 2rem 0 0.6rem;
-  }
   p { margin-bottom: 1.1rem; }
   p, li { color: var(--ink-soft); }
   strong { color: var(--ink); font-weight: 600; }
@@ -110,12 +108,7 @@
     color: var(--faint);
     margin-bottom: 0.8rem;
   }
-  .toc ol {
-    margin: 0;
-    padding-left: 1.3rem;
-    columns: 2;
-    column-gap: 2.5rem;
-  }
+  .toc ol { margin: 0; padding-left: 1.3rem; columns: 2; column-gap: 2.5rem; }
   .toc li { margin-bottom: 0.15rem; break-inside: avoid; }
   .toc a { color: var(--ink-soft); text-decoration: none; border-bottom: none; }
   .toc a:hover { color: var(--ink); border-bottom: 1px solid var(--faint); }
@@ -124,24 +117,15 @@
   a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--faint); }
 
   .tablewrap { overflow-x: auto; margin: 1.4rem 0 1.6rem; }
-  table {
-    border-collapse: collapse;
-    width: 100%;
-    font-size: 0.9rem;
-    line-height: 1.75;
-  }
+  table { border-collapse: collapse; width: 100%; font-size: 0.9rem; line-height: 1.75; }
   th, td {
-    text-align: left;
-    vertical-align: top;
+    text-align: left; vertical-align: top;
     padding: 0.55rem 0.9rem;
     border-bottom: 1px solid var(--hairline);
   }
   th {
-    font-size: 11px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    font-weight: 600;
-    color: var(--faint);
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    font-weight: 600; color: var(--faint);
     border-bottom: 1px solid var(--ink-soft);
   }
   td { color: var(--ink-soft); }
@@ -174,6 +158,320 @@
     color: var(--muted);
   }
   .note p { margin-bottom: 0; color: var(--muted); }
+
+  /* ---------- figures ---------- */
+  .fig { margin: 2rem 0 2.4rem; }
+  .figcap {
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--faint); text-align: center; margin-top: 1rem;
+  }
+  .figframe {
+    border: 1px solid var(--hairline);
+    border-radius: 8px;
+    background: var(--paper-warm);
+    padding: 1.6rem 1.4rem;
+    overflow-x: auto;
+  }
+
+  /* fig 1 flow */
+  .flow { display: flex; flex-direction: column; align-items: center; font-size: 0.85rem; line-height: 1.7; }
+  .fbox {
+    border: 1px solid var(--hairline); border-radius: 6px;
+    background: var(--paper); color: var(--ink-soft);
+    padding: 0.55rem 1.1rem; text-align: center; max-width: 34rem;
+  }
+  .fline { width: 1px; height: 12px; background: var(--faint); }
+  .fhead { width: 0; height: 0; border-left: 3.5px solid transparent; border-right: 3.5px solid transparent; border-top: 5px solid var(--faint); }
+  .flabel { font-size: 0.72rem; color: var(--faint); margin: 0.1rem 0 0.15rem; text-align: center; }
+  .fanout { position: relative; margin-top: 14px; padding-top: 14px; display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
+  .fanout::before { content: ""; position: absolute; top: 0; left: 8%; right: 8%; height: 1px; background: var(--faint); }
+  .fanout::after { content: ""; position: absolute; top: -14px; left: 50%; width: 1px; height: 14px; background: var(--faint); }
+  .fchip {
+    position: relative;
+    border: 1px solid var(--hairline); border-radius: 999px;
+    background: var(--paper); color: var(--ink-soft);
+    padding: 0.15rem 0.8rem; font-size: 0.78rem; margin-top: 10px;
+  }
+  .fchip::before { content: ""; position: absolute; top: -11px; left: 50%; width: 1px; height: 10px; background: var(--faint); }
+
+  /* mock widgets shared */
+  .chip {
+    display: inline-block; border: 1px solid var(--hairline); border-radius: 999px;
+    padding: 0 0.6rem; font-size: 0.75rem; color: var(--muted); line-height: 1.7;
+    margin-right: 0.3rem; background: var(--paper);
+  }
+  .btn-solid {
+    background: var(--ink); color: var(--paper);
+    border-radius: 5px; padding: 0.3rem 1rem; font-size: 0.85rem;
+  }
+  .btn-ghost {
+    border: 1px solid var(--hairline); border-radius: 5px;
+    padding: 0.3rem 1rem; font-size: 0.85rem; color: var(--muted);
+  }
+  .tgl {
+    width: 34px; height: 20px; border-radius: 999px;
+    border: 1px solid var(--hairline); background: var(--code-bg);
+    position: relative; transition: background 0.15s ease; flex: none;
+  }
+  .tgl::after {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--paper); border: 1px solid var(--hairline);
+    transition: transform 0.15s ease;
+  }
+  .tgl.on { background: var(--ink); border-color: var(--ink); }
+  .tgl.on::after { transform: translateX(14px); border-color: var(--ink); }
+  .linklike { font-size: 0.82rem; color: var(--muted); border-bottom: 1px solid var(--hairline); }
+
+  /* fig 2 install */
+  .mockdialog {
+    max-width: 26rem; margin: 0 auto;
+    border: 1px solid var(--hairline); border-radius: 8px;
+    background: var(--paper); padding: 1.3rem 1.5rem;
+    font-size: 0.9rem; line-height: 1.8;
+  }
+  .mockdialog h4 { font-size: 1rem; font-weight: 600; margin-bottom: 0.1rem; }
+  .md-sub { color: var(--faint); font-size: 0.8rem; margin-bottom: 0.8rem; }
+  .md-warn {
+    border-left: 2px solid var(--faint); background: var(--paper-warm);
+    padding: 0.5rem 0.9rem; font-size: 0.82rem; color: var(--muted);
+    margin-bottom: 1rem; line-height: 1.7;
+  }
+  .md-perm { list-style: none; padding: 0; margin: 0 0 1.2rem; }
+  .md-perm li {
+    display: flex; gap: 0.7rem; align-items: baseline;
+    padding: 0.4rem 0; margin: 0; border-bottom: 1px solid var(--hairline);
+    font-size: 0.84rem;
+  }
+  .md-perm li:last-child { border-bottom: none; }
+  .md-perm code { flex: none; }
+  .md-actions { display: flex; justify-content: flex-end; gap: 0.6rem; }
+  .md-row { display: flex; align-items: center; gap: 0.8rem; }
+  .md-row .grow { flex: 1; }
+  .md-state { color: var(--faint); font-size: 0.8rem; }
+
+  /* fig 3 explorer */
+  .wf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+  @media (max-width: 640px) { .wf-grid { grid-template-columns: 1fr; } }
+  .wf-cap { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); margin-bottom: 0.5rem; }
+  .wf-frame {
+    position: relative; border: 1px solid var(--hairline); border-radius: 8px;
+    background: var(--paper); overflow: hidden; font-size: 10px;
+  }
+  .wf-titlebar { display: flex; gap: 4px; padding: 7px 9px; border-bottom: 1px solid var(--hairline); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--hairline); }
+  .wf-header { display: flex; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--hairline); }
+  .wf-title { color: var(--muted); font-size: 10px; }
+  .wf-sp { flex: 1; }
+  .sq { width: 14px; height: 14px; border: 1px solid var(--hairline); border-radius: 3px; margin-left: 4px; background: var(--paper-warm); }
+  .wf-body { padding: 10px; }
+  .cmdk {
+    margin: 6px auto 10px; width: 72%;
+    border: 1px solid var(--hairline); border-radius: 5px; background: var(--paper-warm);
+    color: var(--faint); padding: 3px 8px; font-size: 9px;
+  }
+  .covers { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .cover { aspect-ratio: 3/4; background: var(--code-bg); border-radius: 3px; }
+  .rd-cols { display: flex; gap: 10px; }
+  .rd-text { flex: 1; }
+  .ph { height: 5px; border-radius: 2px; background: var(--code-bg); margin-bottom: 6px; }
+  .ph.w60 { width: 60%; } .ph.w85 { width: 85%; } .ph.w75 { width: 75%; }
+  .rd-selline { margin-bottom: 6px; line-height: 1; font-size: 0; }
+  .rd-sel { display: inline-block; height: 5px; border-radius: 2px; background: var(--sel); width: 55%; }
+  .rd-selrest { display: inline-block; height: 5px; border-radius: 2px; background: var(--code-bg); width: 30%; margin-left: 4px; }
+  .minimenu {
+    display: inline-flex; gap: 6px; align-items: center;
+    border: 1px solid var(--hairline); border-radius: 999px; background: var(--paper);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    padding: 2px 8px; font-size: 8px; color: var(--muted); margin: 2px 0 8px;
+  }
+  .rd-chat { width: 32%; border-left: 1px solid var(--hairline); padding-left: 8px; }
+  .toolrow {
+    border: 1px solid var(--hairline); border-radius: 4px;
+    padding: 2px 5px; font-size: 7.5px; color: var(--faint); margin-bottom: 6px;
+    background: var(--paper-warm); white-space: nowrap; overflow: hidden;
+  }
+  .hs {
+    position: absolute; z-index: 2;
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 1px solid var(--ink-soft); background: var(--paper);
+    color: var(--ink); font-size: 11px; line-height: 18px; text-align: center;
+    padding: 0;
+  }
+  .hs:hover { background: var(--paper-warm); }
+  .hs.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .hs-detail {
+    margin-top: 1.2rem; border: 1px solid var(--hairline); border-radius: 8px;
+    background: var(--paper); padding: 1rem 1.3rem; font-size: 0.88rem; line-height: 1.9;
+  }
+  .hs-detail h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; }
+  .hs-detail h4 span { color: var(--faint); font-weight: 400; font-size: 0.8rem; margin-left: 0.5rem; }
+  .hsd-row { display: flex; gap: 0.8rem; border-bottom: 1px solid var(--hairline); padding: 0.25rem 0; }
+  .hsd-row:last-of-type { border-bottom: none; }
+  .hsd-k { flex: none; width: 3.5em; color: var(--faint); font-size: 0.78rem; padding-top: 0.15em; }
+  .hsd-v { color: var(--ink-soft); }
+  .hsd-note { color: var(--muted); font-size: 0.82rem; margin-top: 0.5rem; }
+
+  /* fig 4 vocab */
+  .vtabs { display: flex; gap: 0.4rem; justify-content: center; margin-bottom: 1rem; }
+  .vtab {
+    border: 1px solid var(--hairline); border-radius: 999px;
+    padding: 0.15rem 0.9rem; font-size: 0.82rem; color: var(--muted); background: var(--paper);
+  }
+  .vtab.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .vdialog {
+    max-width: 24rem; margin: 0 auto;
+    border: 1px solid var(--hairline); border-radius: 8px; background: var(--paper);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    overflow: hidden;
+  }
+  .vd-title {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.55rem 1.1rem; border-bottom: 1px solid var(--hairline);
+    font-size: 0.82rem; color: var(--muted);
+  }
+  .vd-x { color: var(--faint); font-size: 0.9rem; }
+  .vd-body { padding: 1.1rem 1.3rem; font-size: 0.88rem; line-height: 1.85; min-height: 13rem; }
+  .vd-body h5 {
+    font-family: Georgia, "Songti SC", "Noto Serif SC", serif;
+    font-size: 1.25rem; font-weight: 500; margin-bottom: 0.1rem;
+  }
+  .vd-phon { color: var(--faint); font-size: 0.8rem; margin-bottom: 0.6rem; }
+  .vd-body ol { margin-bottom: 0.6rem; }
+  .vd-body li { font-size: 0.85rem; margin-bottom: 0.2rem; }
+  .vd-quote {
+    border-left: 2px solid var(--hairline); padding-left: 0.8rem;
+    color: var(--muted); font-size: 0.82rem;
+  }
+  .vlist { list-style: none; padding: 0; margin: 0; }
+  .vlist li { margin: 0; }
+  .vitem {
+    display: flex; align-items: center; gap: 0.8rem; width: 100%; text-align: left;
+    padding: 0.55rem 0.2rem; border-bottom: 1px solid var(--hairline); font-size: 0.86rem;
+  }
+  .vitem:hover { background: var(--paper-warm); }
+  .glyph {
+    flex: none; width: 26px; height: 26px; border: 1px solid var(--hairline); border-radius: 5px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px; color: var(--muted); background: var(--paper-warm);
+  }
+  .vi-sub { display: block; color: var(--faint); font-size: 0.76rem; line-height: 1.4; }
+  .vi-arrow { margin-left: auto; color: var(--faint); }
+  .vback { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.6rem; display: inline-block; }
+  .vfield { margin-bottom: 0.9rem; }
+  .vfield label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 0.25rem; }
+  .mock-input {
+    width: 100%; border: 1px solid var(--hairline); border-radius: 5px;
+    background: var(--paper); color: var(--ink);
+    padding: 0.35rem 0.6rem; font-size: 0.85rem; font-family: inherit;
+  }
+  .mock-input:focus { outline: 1.5px solid var(--faint); outline-offset: 1px; }
+  .vrow { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .vfoot { display: flex; justify-content: flex-end; margin-top: 1.1rem; }
+  .vres { text-align: center; padding-top: 1.6rem; }
+  .vres .ok {
+    display: inline-flex; width: 30px; height: 30px; border-radius: 50%;
+    border: 1px solid var(--ink-soft); align-items: center; justify-content: center;
+    margin-bottom: 0.8rem;
+  }
+  .vocab-note { text-align: center; color: var(--faint); font-size: 0.8rem; margin-top: 0.9rem; }
+
+  /* fig 5 pin */
+  .mock-toolbar {
+    display: flex; align-items: center; gap: 4px;
+    border: 1px solid var(--hairline); border-radius: 8px; background: var(--paper);
+    padding: 8px 12px; margin-bottom: 0.4rem; position: relative;
+  }
+  .mt-title { font-size: 0.82rem; color: var(--muted); margin-right: auto; }
+  .mbtn {
+    width: 26px; height: 26px; border: 1px solid transparent; border-radius: 5px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--muted); font-size: 12px;
+  }
+  .mbtn:hover { background: var(--paper-warm); border-color: var(--hairline); }
+  .mbtn.plug { border-color: var(--hairline); background: var(--paper-warm); color: var(--ink-soft); }
+  .mt-div { width: 1px; height: 16px; background: var(--hairline); margin: 0 4px; }
+  .ovf-wrap { position: relative; }
+  .ovf-menu {
+    position: absolute; right: 0; top: 32px; z-index: 5; min-width: 11rem;
+    border: 1px solid var(--hairline); border-radius: 7px; background: var(--paper);
+    box-shadow: 0 3px 12px rgba(0,0,0,0.08); padding: 0.3rem;
+  }
+  .ovf-menu button {
+    display: flex; align-items: center; gap: 0.6rem; width: 100%; text-align: left;
+    padding: 0.35rem 0.6rem; border-radius: 5px; font-size: 0.82rem; color: var(--ink-soft);
+  }
+  .ovf-menu button:hover { background: var(--paper-warm); }
+  .ovf-empty { color: var(--faint); font-size: 0.78rem; padding: 0.35rem 0.6rem; }
+  .pin-hint {
+    font-size: 0.78rem; color: var(--muted);
+    border: 1px solid var(--hairline); border-radius: 5px; background: var(--paper-warm);
+    padding: 0.3rem 0.8rem; margin: 0.5rem 0; text-align: center;
+    opacity: 0; transition: opacity 0.25s ease;
+  }
+  .pin-hint.show { opacity: 1; }
+  .pin-list { list-style: none; padding: 0; margin: 0.8rem 0 0; }
+  .pin-list li {
+    display: flex; align-items: center; gap: 0.8rem; margin: 0;
+    padding: 0.5rem 0.2rem; border-bottom: 1px solid var(--hairline); font-size: 0.86rem;
+  }
+  .pin-list li:last-child { border-bottom: none; }
+  .pin-list .grow { flex: 1; }
+  .pin-src { color: var(--faint); font-size: 0.74rem; }
+  .pinbtn {
+    border: 1px solid var(--hairline); border-radius: 999px;
+    padding: 0.05rem 0.7rem; font-size: 0.76rem; color: var(--muted);
+  }
+  .pinbtn.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+  /* fig 6 chat */
+  .chatdemo { max-width: 26rem; margin: 0 auto; font-size: 0.88rem; }
+  .chat-user {
+    background: var(--paper); border: 1px solid var(--hairline);
+    border-radius: 10px 10px 3px 10px;
+    padding: 0.5rem 0.9rem; margin-left: 4rem; margin-bottom: 0.9rem;
+    color: var(--ink-soft); line-height: 1.8;
+  }
+  .chat-tool {
+    display: flex; align-items: center; gap: 0.55rem;
+    font-size: 0.8rem; color: var(--muted); margin-bottom: 0.7rem;
+  }
+  .chat-tool .ct-name { color: var(--ink-soft); }
+  .chat-tool .ct-detail { color: var(--faint); }
+  .spin {
+    width: 12px; height: 12px; border-radius: 50%; flex: none;
+    border: 1.5px solid var(--hairline); border-top-color: var(--ink-soft);
+    animation: rot 0.8s linear infinite;
+  }
+  @keyframes rot { to { transform: rotate(360deg); } }
+  .ct-ok { flex: none; display: inline-flex; color: var(--ink-soft); }
+  .chat-text { color: var(--ink-soft); line-height: 1.95; min-height: 4.5rem; }
+  .chat-text .cursor { display: inline-block; width: 1px; height: 1em; background: var(--faint); vertical-align: -0.15em; animation: blink 1s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .chat-replay { display: flex; justify-content: center; margin-top: 0.8rem; }
+
+  /* fig 7 phases */
+  .phases { list-style: none; padding: 0; margin: 1.6rem 0 0.4rem; display: flex; gap: 0; }
+  .phases li { flex: 1; position: relative; text-align: center; padding: 0 0.4rem; margin: 0; }
+  .phases li::before {
+    content: ""; position: absolute; top: 13px; left: -50%; width: 100%; height: 1px; background: var(--hairline);
+  }
+  .phases li:first-child::before { display: none; }
+  .pnum {
+    position: relative; z-index: 1;
+    display: inline-flex; width: 27px; height: 27px; border-radius: 50%;
+    border: 1px solid var(--ink-soft); background: var(--paper);
+    align-items: center; justify-content: center; font-size: 12px; color: var(--ink);
+    margin-bottom: 0.5rem;
+  }
+  .pname { display: block; font-size: 0.82rem; color: var(--ink); font-weight: 600; line-height: 1.5; }
+  .psub { display: block; font-size: 0.72rem; color: var(--faint); line-height: 1.6; margin-top: 0.15rem; }
+  @media (max-width: 640px) {
+    .phases { flex-direction: column; gap: 1rem; }
+    .phases li { text-align: left; display: flex; gap: 0.9rem; align-items: baseline; }
+    .phases li::before { display: none; }
+    .pnum { flex: none; }
+  }
 </style>
 </head>
 <body>
@@ -268,6 +566,31 @@
   <li>官方插件与第三方插件走同一套机制、同一个 API —— 官方插件是 API 的第一批真实用户（dogfooding），不开后门。</li>
 </ul>
 
+<div class="fig">
+  <div class="figframe">
+    <div class="flow">
+      <div class="fbox"><code>&lt;app_data&gt;/plugins/&lt;id&gt;/</code>&ensp;manifest.json + main.js</div>
+      <div class="flabel">Rust 自定义 scheme 伺服插件目录 · CSP <code>script-src</code> 追加</div>
+      <div class="fline"></div><div class="fhead"></div>
+      <div class="fbox"><code>import("raplugin://&lt;id&gt;/main.js")</code></div>
+      <div class="flabel">manifest 校验 · 按权限域装配 <code>ctx</code></div>
+      <div class="fline"></div><div class="fhead"></div>
+      <div class="fbox"><code>activate(ctx)</code> —— <code>ctx.register*</code>，每个注册返回 disposable</div>
+      <div class="flabel">启停即增删 · UI 响应式更新</div>
+      <div class="fline"></div><div class="fhead"></div>
+      <div class="fbox">贡献注册表（Jotai atoms）</div>
+      <div class="fanout">
+        <span class="fchip">Reader 选区菜单</span>
+        <span class="fchip">Reader 顶栏</span>
+        <span class="fchip">书架顶栏</span>
+        <span class="fchip">命令面板</span>
+        <span class="fchip">AI 工具</span>
+      </div>
+    </div>
+  </div>
+  <div class="figcap">图 1 · 从磁盘到挂载点：插件的一生</div>
+</div>
+
 <h2 id="s4"><span class="no">§ 4</span>权限域</h2>
 
 <p>manifest 声明，安装时逐条展示给用户，设置页里可整体启停插件。<code>storage</code>（命名空间 KV）不算权限，所有插件默认拥有。</p>
@@ -284,6 +607,45 @@
 
 <p>选区文本不设独立权限：选区动作被用户手动触发时天然获得当次选区，这本身就是用户授权动作。</p>
 
+<div class="fig">
+  <div class="figframe">
+    <div class="mockdialog" id="inst">
+      <div id="inst-s1">
+        <h4>安装第三方插件</h4>
+        <div class="md-sub">Douban Marks · v0.1.0 · 来源：本地文件夹</div>
+        <div class="md-warn">第三方插件与应用运行在同一环境，能够读取你的数据。仅安装你信任的来源，风险自担。</div>
+        <ul class="md-perm">
+          <li><code>network</code><span>访问网络（通过 <code>ctx.fetch</code>）</span></li>
+          <li><code>reading-data</code><span>读取书籍元数据、标注与笔记（只读）</span></li>
+          <li><code>ai</code><span>向阅读 agent 注册工具</span></li>
+        </ul>
+        <div class="md-actions">
+          <button class="btn-ghost" id="inst-cancel">取消</button>
+          <button class="btn-solid" id="inst-ok">仍要安装</button>
+        </div>
+      </div>
+      <div id="inst-s2" hidden>
+        <div class="md-row">
+          <span class="glyph">豆</span>
+          <div class="grow">
+            <div><strong>Douban Marks</strong></div>
+            <div class="md-state" id="inst-state">已安装 · 已启用</div>
+          </div>
+          <button class="tgl on" id="inst-tgl" aria-label="启停插件"></button>
+        </div>
+        <div style="text-align:right; margin-top:0.9rem"><button class="linklike" id="inst-replay">重放安装流程</button></div>
+      </div>
+      <div id="inst-s0" hidden>
+        <div class="md-row">
+          <div class="grow"><span class="md-state">已取消安装。</span></div>
+          <button class="linklike" id="inst-replay0">重放安装流程</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="figcap">图 2 · 安装即信任：权限逐条展示（可点击）</div>
+</div>
+
 <h2 id="s5"><span class="no">§ 5</span>挂载点矩阵</h2>
 
 <div class="tablewrap">
@@ -295,6 +657,69 @@
   <tr><td>命令面板</td><td>（自动）所有插件动作自动注册</td><td>—</td><td>随原动作</td></tr>
   <tr><td>AI agent</td><td>工具</td><td>agent 传入的参数</td><td>聊天内通用工具步呈现</td></tr>
 </table>
+</div>
+
+<div class="fig">
+  <div class="figframe">
+    <div class="wf-grid">
+      <div>
+        <div class="wf-cap">书架</div>
+        <div class="wf-frame">
+          <div class="wf-titlebar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+          <div class="wf-header">
+            <span class="wf-title">我的书架</span>
+            <span class="wf-sp"></span>
+            <span class="sq"></span><span class="sq"></span><span class="sq"></span>
+            <button class="hs" data-hs="3" style="position:static; margin-left:6px">3</button>
+          </div>
+          <div class="wf-body">
+            <div style="position:relative">
+              <div class="cmdk">⌘K&ensp;命令面板…</div>
+              <button class="hs" data-hs="4" style="top:-4px; right:8%">4</button>
+            </div>
+            <div class="covers">
+              <span class="cover"></span><span class="cover"></span><span class="cover"></span>
+              <span class="cover"></span><span class="cover"></span><span class="cover"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="wf-cap">阅读器</div>
+        <div class="wf-frame">
+          <div class="wf-titlebar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+          <div class="wf-header">
+            <span class="wf-title">走出唯一真理观 · 42%</span>
+            <span class="wf-sp"></span>
+            <span class="sq"></span><span class="sq"></span>
+            <button class="hs" data-hs="2" style="position:static; margin-left:6px">2</button>
+          </div>
+          <div class="wf-body">
+            <div class="rd-cols">
+              <div class="rd-text" style="position:relative">
+                <div class="ph w85"></div>
+                <div class="ph"></div>
+                <div class="rd-selline"><span class="rd-sel"></span><span class="rd-selrest"></span></div>
+                <div class="minimenu"><span>复制</span><span>高亮</span><span>笔记</span><span>问 AI</span><span>⋯</span></div>
+                <button class="hs" data-hs="1" style="top:34px; left:58%">1</button>
+                <div class="ph w75"></div>
+                <div class="ph w60"></div>
+              </div>
+              <div class="rd-chat" style="position:relative">
+                <div class="ph w85"></div>
+                <div class="toolrow">调用工具 · anki_sync</div>
+                <div class="ph"></div>
+                <div class="ph w60"></div>
+                <button class="hs" data-hs="5" style="top:42px; right:6px">5</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="hs-detail" id="hs-detail"></div>
+  </div>
+  <div class="figcap">图 3 · 挂载点分布 —— 点击编号查看该挂载点的契约</div>
 </div>
 
 <p><strong>容器语义：</strong></p>
@@ -316,13 +741,60 @@
   <li><strong>表单</strong> —— 少量字段类型（文本、选择、开关）+ 提交动作；提交后可接一个结果视图。</li>
 </ul>
 
-<p><strong>配套约定：</strong></p>
-<ul>
-  <li>视图可以链式：列表项 → Markdown 详情；表单提交 → Markdown 结果。</li>
-  <li>异步加载态（spinner / skeleton）由应用统一处理，插件只返回 Promise。</li>
-  <li>图标只能按名字从 <code>@phosphor-icons/react</code> 选，不接受自绘 SVG（与图标规则一致）。</li>
-  <li>轻提示复用 <code>@read-aware/ui</code> 的 <code>Toast</code>。</li>
-</ul>
+<div class="fig">
+  <div class="figframe">
+    <div class="vtabs">
+      <button class="vtab on" data-v="md">Markdown 详情</button>
+      <button class="vtab" data-v="list">列表</button>
+      <button class="vtab" data-v="form">表单</button>
+    </div>
+    <div class="vdialog">
+      <div class="vd-title"><span id="vd-name">Dictionary+ · 查词</span><span class="vd-x">×</span></div>
+      <div class="vd-body">
+        <div id="v-md">
+          <h5>serendipity</h5>
+          <div class="vd-phon">/ˌsɛrənˈdɪpɪti/ · 名词</div>
+          <ol>
+            <li>意外发现珍奇事物的运气；机缘巧合。</li>
+            <li>（文学）不期而遇的美好。</li>
+          </ol>
+          <div class="vd-quote">出自本书第 4 章你的选区：&ldquo;…a fortunate stroke of serendipity brought them together.&rdquo;</div>
+        </div>
+        <div id="v-list" hidden>
+          <ul class="vlist">
+            <li><button class="vitem" data-item="0"><span class="glyph">词</span><span>serendipity<span class="vi-sub">第 4 章 · 已加入生词本</span></span><span class="vi-arrow">›</span></button></li>
+            <li><button class="vitem" data-item="1"><span class="glyph">词</span><span>ephemeral<span class="vi-sub">第 5 章 · 出现 2 次</span></span><span class="vi-arrow">›</span></button></li>
+            <li><button class="vitem" data-item="2"><span class="glyph">词</span><span>ubiquitous<span class="vi-sub">第 7 章 · 昨天标注</span></span><span class="vi-arrow">›</span></button></li>
+          </ul>
+        </div>
+        <div id="v-list-detail" hidden>
+          <button class="vback" id="v-list-back">‹ 返回列表</button>
+          <h5 id="vld-word">ephemeral</h5>
+          <div class="vd-phon" id="vld-phon">/ɪˈfɛmərəl/ · 形容词</div>
+          <p style="font-size:0.85rem" id="vld-def">朝生暮死的；转瞬即逝的。</p>
+          <div class="vd-quote">列表项下钻到 Markdown 详情 —— 同一套视图词汇的链式跳转。</div>
+        </div>
+        <div id="v-form" hidden>
+          <div class="vfield"><label>Anki 连接地址</label><input class="mock-input" value="http://127.0.0.1:8765" /></div>
+          <div class="vfield"><label>目标牌组</label>
+            <select class="mock-input"><option>英语精读</option><option>默认牌组</option></select>
+          </div>
+          <div class="vrow"><label style="font-size:0.85rem; color:var(--ink-soft)">同时写入例句</label><button class="tgl on" id="vf-tgl" aria-label="同时写入例句"></button></div>
+          <div class="vfoot"><button class="btn-solid" id="vf-submit">提交</button></div>
+        </div>
+        <div id="v-form-result" hidden>
+          <div class="vres">
+            <span class="ok"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <p style="font-size:0.88rem">已加入 3 张卡片到「英语精读」。</p>
+            <button class="linklike" id="vf-again">重新填写</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="vocab-note">同一份声明可渲染进 Popup、Dialog 或 Page —— 容器由挂载点决定，内容词汇不变。</div>
+  </div>
+  <div class="figcap">图 4 · 三种视图词汇与链式跳转（可交互）</div>
+</div>
 
 <p>插件作者失去「随便画界面」的自由，换来零设计成本与永远一致的观感 —— 对编辑式克制的设计方向，这个交换是划算的。</p>
 
@@ -342,6 +814,27 @@
   <li>钉选与排序持久化在应用侧（<code>localKV</code>），不归插件管。</li>
 </ul>
 
+<div class="fig">
+  <div class="figframe">
+    <div class="mock-toolbar">
+      <span class="mt-title">我的书架</span>
+      <span class="mbtn" title="搜索"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.3"/><path d="m10.5 10.5 3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+      <span class="mbtn" title="导入"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 3v7M5 7.5 8 10.5 11 7.5M3.5 13h9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="mt-div"></span>
+      <span id="pin-slots" style="display:inline-flex; gap:4px"></span>
+      <span class="ovf-wrap">
+        <button class="mbtn" id="ovf-btn" title="更多插件动作">⋯</button>
+        <div class="ovf-menu" id="ovf-menu" hidden></div>
+      </span>
+      <span class="mt-div"></span>
+      <span class="mbtn" title="设置"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 5h10M3 11h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6" cy="5" r="1.5" fill="var(--paper)" stroke="currentColor" stroke-width="1.3"/><circle cx="10" cy="11" r="1.5" fill="var(--paper)" stroke="currentColor" stroke-width="1.3"/></svg></span>
+    </div>
+    <div class="pin-hint" id="pin-hint">顶栏最多钉选 3 个插件按钮 —— 先取下一个，或让它留在溢出菜单里。</div>
+    <ul class="pin-list" id="pin-list"></ul>
+  </div>
+  <div class="figcap">图 5 · 摆放权在用户：钉选、上限与溢出（试试钉满三个再钉第四个）</div>
+</div>
+
 <h2 id="s8"><span class="no">§ 8</span>AI 扩展点：插件工具</h2>
 
 <p><strong>V1 就做。</strong>这是长远看最有价值的挂载点：ReadAware 是 AI-native 阅读器，插件给 agent 提供工具（「查询我的 Anki 词库」「读取我的豆瓣标记」），比贡献按钮的天花板高得多。</p>
@@ -355,6 +848,23 @@
   <li><strong>呈现</strong>：插件工具调用走现成的通用工具步 UI，用户在聊天里看得见「正在调用 × 插件的 × 工具」（与显式状态的架构哲学一致，不进 <code>SUPPRESSED_TOOLS</code>）。</li>
   <li><strong>开关</strong>：设置页里按插件整体启停其工具；更细粒度（按书、按线程）留作后续。</li>
 </ul>
+
+<div class="fig">
+  <div class="figframe">
+    <div class="chatdemo">
+      <div class="chat-user">帮我把这一章的生词都加进 Anki。</div>
+      <div class="chat-tool" id="ct-tool" hidden>
+        <span class="spin" id="ct-spin"></span>
+        <span class="ct-ok" id="ct-okmark" hidden><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="ct-name">Anki Sync · add_notes</span>
+        <span class="ct-detail" id="ct-detail">12 个生词</span>
+      </div>
+      <div class="chat-text" id="ct-text"></div>
+      <div class="chat-replay"><button class="btn-ghost" id="ct-replay">重放这一轮</button></div>
+    </div>
+  </div>
+  <div class="figcap">图 6 · 插件工具在聊天中的呈现：调用过程始终可见（点击重放）</div>
+</div>
 
 <div class="note"><p><strong>V1 只做 pull 不做 push</strong>：工具是 agent 主动拉取的上下文源，已覆盖绝大多数场景；「每轮自动注入上下文」的 push 式 context provider 涉及提示组装管线，留到有真实需求再开，避免第一版 API 面过大收不回来。</p></div>
 
@@ -389,6 +899,17 @@
 
 <p>全部属于 V1，仅为实施顺序：</p>
 
+<div class="fig">
+  <ol class="phases">
+    <li><span class="pnum">1</span><span class="pname">菜单数据化</span><span class="psub">贡献点注册表 · 纯内部重构</span></li>
+    <li><span class="pnum">2</span><span class="pname">插件运行时</span><span class="psub">加载 · 生命周期 · 权限 · 设置页</span></li>
+    <li><span class="pnum">3</span><span class="pname">UI 词汇渲染器</span><span class="psub">三视图 × 三容器</span></li>
+    <li><span class="pnum">4</span><span class="pname">AI 工具挂载点</span><span class="psub">registerTool → buildThreadTools</span></li>
+    <li><span class="pnum">5</span><span class="pname">官方插件与模板</span><span class="psub">用真实插件检验 API</span></li>
+  </ol>
+  <div class="figcap">图 7 · 实施顺序 —— 阶段 1 独立成立，即使后续暂缓代码也变好</div>
+</div>
+
 <ol>
   <li><strong>菜单数据化 + 贡献点注册表</strong> —— 纯内部重构，无用户可见变化；独立成立，即使插件系统暂缓代码也变好。</li>
   <li><strong>插件运行时</strong> —— manifest 校验、Rust scheme + 加载器、<code>activate/deactivate</code> 生命周期、权限域门控、设置页（安装 / 列表 / 启停 / 权限展示 / 钉选摆放）、命名空间 KV。</li>
@@ -409,5 +930,204 @@
 </ul>
 
 </main>
+
+<script>
+(function () {
+  "use strict";
+  function $(id) { return document.getElementById(id); }
+
+  /* ---------- fig 2: install click-through ---------- */
+  function instShow(state) {
+    $("inst-s1").hidden = state !== 1;
+    $("inst-s2").hidden = state !== 2;
+    $("inst-s0").hidden = state !== 0;
+  }
+  $("inst-ok").addEventListener("click", function () { instShow(2); });
+  $("inst-cancel").addEventListener("click", function () { instShow(0); });
+  $("inst-replay").addEventListener("click", function () { instShow(1); });
+  $("inst-replay0").addEventListener("click", function () { instShow(1); });
+  $("inst-tgl").addEventListener("click", function () {
+    this.classList.toggle("on");
+    $("inst-state").textContent = this.classList.contains("on") ? "已安装 · 已启用" : "已安装 · 已停用（贡献即时移除）";
+  });
+
+  /* ---------- fig 3: mount-point explorer ---------- */
+  var HS = {
+    1: {
+      title: "Reader 选区菜单", tag: "选中文本后的动作菜单",
+      reg: "选区动作（声明式：id · label · icon · onClick）",
+      input: "选中文本 + CFI + 当前书元数据",
+      containers: ["无界面 + Toast", "Dialog"],
+      note: "插件动作默认进溢出，用户在设置里提拔常用项。绝不暴露 iframe DOM —— API 停在「选区事件 + 文本 + CFI」层。"
+    },
+    2: {
+      title: "Reader 顶栏", tag: "ReaderShellOverlay",
+      reg: "Icon button（图标按名字取自 Phosphor）",
+      input: "当前书元数据",
+      containers: ["仅 Popup（Popover）"],
+      note: "阅读中不允许整页打断 —— 这是 Reader 侧不开放 Page 容器的原因。"
+    },
+    3: {
+      title: "书架顶栏", tag: "AppHeader",
+      reg: "Icon button",
+      input: "—",
+      containers: ["Popup", "Page"],
+      note: "Page 等同 Stats 整页：占用 activeTopNav、有明确返回，不是路由页面。钉选上限与溢出规则见 §7。"
+    },
+    4: {
+      title: "命令面板", tag: "buildCommands 注册表",
+      reg: "自动 —— 所有插件动作无条件注册进命令面板",
+      input: "—",
+      containers: ["随原动作"],
+      note: "「装了但没钉按钮」的动作的兜底入口，近乎零成本。"
+    },
+    5: {
+      title: "AI agent", tag: "buildThreadTools 追加",
+      reg: "工具：ctx.ai.registerTool({name, label, description, parameters, execute})",
+      input: "agent 传入的参数（JSON Schema 校验）",
+      containers: ["聊天内通用工具步呈现"],
+      note: "实际工具名带命名空间 plugin_<id>_<name>；调用过程在聊天里始终可见，不进 SUPPRESSED_TOOLS。"
+    }
+  };
+  function hsRender(n) {
+    var d = HS[n];
+    var chips = d.containers.map(function (c) { return '<span class="chip">' + c + "</span>"; }).join("");
+    $("hs-detail").innerHTML =
+      "<h4>" + n + " · " + d.title + "<span>" + d.tag + "</span></h4>" +
+      '<div class="hsd-row"><span class="hsd-k">注册物</span><span class="hsd-v">' + d.reg + "</span></div>" +
+      '<div class="hsd-row"><span class="hsd-k">输入</span><span class="hsd-v">' + d.input + "</span></div>" +
+      '<div class="hsd-row"><span class="hsd-k">容器</span><span class="hsd-v">' + chips + "</span></div>" +
+      '<div class="hsd-note">' + d.note + "</div>";
+    var all = document.querySelectorAll(".hs");
+    for (var i = 0; i < all.length; i++) {
+      all[i].classList.toggle("on", all[i].getAttribute("data-hs") === String(n));
+    }
+  }
+  var hsBtns = document.querySelectorAll(".hs");
+  for (var i = 0; i < hsBtns.length; i++) {
+    hsBtns[i].addEventListener("click", function () { hsRender(this.getAttribute("data-hs")); });
+  }
+  hsRender(1);
+
+  /* ---------- fig 4: UI vocabulary ---------- */
+  var vPanes = ["v-md", "v-list", "v-list-detail", "v-form", "v-form-result"];
+  var vNames = { md: "Dictionary+ · 查词", list: "Vocab Book · 本书生词", form: "Anki Sync · 设置目标" };
+  function vShow(pane) {
+    for (var i = 0; i < vPanes.length; i++) $(vPanes[i]).hidden = vPanes[i] !== pane;
+  }
+  var vtabs = document.querySelectorAll(".vtab");
+  function vTab(v) {
+    for (var i = 0; i < vtabs.length; i++) vtabs[i].classList.toggle("on", vtabs[i].getAttribute("data-v") === v);
+    $("vd-name").textContent = vNames[v];
+    vShow(v === "md" ? "v-md" : v === "list" ? "v-list" : "v-form");
+  }
+  for (var j = 0; j < vtabs.length; j++) {
+    vtabs[j].addEventListener("click", function () { vTab(this.getAttribute("data-v")); });
+  }
+  var WORDS = [
+    { w: "serendipity", p: "/ˌsɛrənˈdɪpɪti/ · 名词", d: "意外发现珍奇事物的运气；机缘巧合。" },
+    { w: "ephemeral", p: "/ɪˈfɛmərəl/ · 形容词", d: "朝生暮死的；转瞬即逝的。" },
+    { w: "ubiquitous", p: "/juːˈbɪkwɪtəs/ · 形容词", d: "无所不在的；普遍存在的。" }
+  ];
+  var vitems = document.querySelectorAll(".vitem");
+  for (var k = 0; k < vitems.length; k++) {
+    vitems[k].addEventListener("click", function () {
+      var it = WORDS[Number(this.getAttribute("data-item"))];
+      $("vld-word").textContent = it.w;
+      $("vld-phon").textContent = it.p;
+      $("vld-def").textContent = it.d;
+      vShow("v-list-detail");
+    });
+  }
+  $("v-list-back").addEventListener("click", function () { vShow("v-list"); });
+  $("vf-tgl").addEventListener("click", function () { this.classList.toggle("on"); });
+  $("vf-submit").addEventListener("click", function () { vShow("v-form-result"); });
+  $("vf-again").addEventListener("click", function () { vShow("v-form"); });
+
+  /* ---------- fig 5: pin & overflow ---------- */
+  var ACTIONS = [
+    { id: "anki", glyph: "词", name: "Anki 生词本", src: "Anki Sync" },
+    { id: "md", glyph: "导", name: "导出 Markdown", src: "MD Export" },
+    { id: "db", glyph: "豆", name: "豆瓣标记", src: "Douban Marks" },
+    { id: "tr", glyph: "译", name: "全文翻译", src: "Translate+" }
+  ];
+  var PIN_MAX = 3;
+  var pinned = ["anki", "md"];
+  var hintTimer = null;
+
+  function pinRender() {
+    var slots = "", menu = "", list = "";
+    for (var i = 0; i < ACTIONS.length; i++) {
+      var a = ACTIONS[i];
+      var isPinned = pinned.indexOf(a.id) !== -1;
+      if (isPinned) slots += '<span class="mbtn plug" title="' + a.name + '">' + a.glyph + "</span>";
+      else menu += '<button type="button"><span class="glyph">' + a.glyph + "</span>" + a.name + "</button>";
+      list +=
+        '<li><span class="glyph">' + a.glyph + "</span>" +
+        '<span class="grow">' + a.name + ' <span class="pin-src">· 来自 ' + a.src + "</span></span>" +
+        '<button class="pinbtn' + (isPinned ? " on" : "") + '" data-pin="' + a.id + '">' + (isPinned ? "已钉选" : "钉选") + "</button></li>";
+    }
+    $("pin-slots").innerHTML = slots;
+    $("ovf-menu").innerHTML = menu || '<div class="ovf-empty">全部已钉选</div>';
+    $("pin-list").innerHTML = list;
+    var btns = document.querySelectorAll("[data-pin]");
+    for (var b = 0; b < btns.length; b++) {
+      btns[b].addEventListener("click", function () {
+        var id = this.getAttribute("data-pin");
+        var at = pinned.indexOf(id);
+        if (at !== -1) { pinned.splice(at, 1); }
+        else if (pinned.length >= PIN_MAX) { pinHint(); return; }
+        else { pinned.push(id); }
+        pinRender();
+      });
+    }
+  }
+  function pinHint() {
+    var h = $("pin-hint");
+    h.classList.add("show");
+    if (hintTimer) clearTimeout(hintTimer);
+    hintTimer = setTimeout(function () { h.classList.remove("show"); }, 2600);
+  }
+  $("ovf-btn").addEventListener("click", function (e) {
+    e.stopPropagation();
+    $("ovf-menu").hidden = !$("ovf-menu").hidden;
+  });
+  document.addEventListener("click", function (e) {
+    if (!$("ovf-menu").hidden && !$("ovf-menu").contains(e.target)) $("ovf-menu").hidden = true;
+  });
+  pinRender();
+
+  /* ---------- fig 6: chat tool-step replay ---------- */
+  var CT_TEXT = "已把本章 12 个生词加入牌组「英语精读」。其中 3 个词在你过去的标注里出现过两次以上，我把你标注处的原句一并写进了卡片背面。";
+  var ctTimers = [];
+  function ctClear() {
+    for (var i = 0; i < ctTimers.length; i++) clearTimeout(ctTimers[i]);
+    ctTimers = [];
+    $("ct-tool").hidden = true;
+    $("ct-spin").hidden = false;
+    $("ct-okmark").hidden = true;
+    $("ct-text").innerHTML = "";
+  }
+  function ctPlay() {
+    ctClear();
+    ctTimers.push(setTimeout(function () { $("ct-tool").hidden = false; }, 350));
+    ctTimers.push(setTimeout(function () {
+      $("ct-spin").hidden = true;
+      $("ct-okmark").hidden = false;
+    }, 1900));
+    ctTimers.push(setTimeout(function () {
+      var el = $("ct-text"), n = 0;
+      var iv = setInterval(function () {
+        n++;
+        el.innerHTML = CT_TEXT.slice(0, n) + (n < CT_TEXT.length ? '<span class="cursor"></span>' : "");
+        if (n >= CT_TEXT.length) clearInterval(iv);
+      }, 26);
+      ctTimers.push(iv);
+    }, 2200));
+  }
+  $("ct-replay").addEventListener("click", ctPlay);
+  ctPlay();
+})();
+</script>
 </body>
 </html>

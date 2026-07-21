@@ -57,6 +57,11 @@ export class AgentRuntime {
     await Promise.all([...this.threads.values()].map((thread) => thread.flushBackgroundWork()));
   }
 
+  /** 工具集变化（如插件启停）后调用：所有线程下一轮以新工具重建 Agent。 */
+  invalidateAgents(): void {
+    for (const thread of this.threads.values()) thread.invalidateAgent();
+  }
+
   /**
    * 巩固批处理（doc §4 第 3 步）：衰减、去重合并、矛盾消解、book→global 升格。
    * 由宿主在空闲时调用（产品：空闲定时器；repl：`:consolidate` 命令）。

@@ -1,5 +1,6 @@
 /** RuntimeDeps 装配：全部端口都接产品存储。 */
 import type { RuntimeDeps } from "@read-aware/agent";
+import { getPluginAgentTools } from "../../../plugins/runtime/plugin-tools";
 import { createAnnotationsPort } from "./annotations-port";
 import { createBookTextPort } from "./book-text-port";
 import { createConversationPort } from "./conversation-port";
@@ -21,5 +22,6 @@ export function buildRuntimeDeps(): RuntimeDeps {
     bookText: createBookTextPort(),
     vocabulary: createVocabularyPort(),
     dictionary: createDictionaryPort(),
+    extraTools: getPluginAgentTools,
   };
 }

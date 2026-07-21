@@ -116,6 +116,14 @@ export class AgentThread {
   }
 
   /**
+   * 工具集失效（如插件启停）：丢弃缓存的 Agent，下一轮 ensureAgent() 以
+   * 最新的 extraTools 快照重建。转录在 store 里，无损。
+   */
+  invalidateAgent(): void {
+    this.discardAgent();
+  }
+
+  /**
    * 丢弃 pi Agent 与章节会话标记；下一轮 ensureAgent() / 会话装配从
    * ConversationPort 重新水化。丢弃廉价：工具是重建的闭包，全局线程的
    * 重水化只是一次 conversations.load。
@@ -146,6 +154,7 @@ export class AgentThread {
           ...buildVocabularyTools(this.deps),
           ...buildPresentTools(this.deps),
           ...buildDictionaryTools(this.scope, this.deps),
+          ...(this.deps.extraTools?.() ?? []),
         ],
         messages: turnRecordsToMessages(records, model),
       },

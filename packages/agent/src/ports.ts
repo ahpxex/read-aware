@@ -3,6 +3,7 @@
  * agent 包不接触任何具体存储；apps/web 将来用它的投影（IndexedDB / SQLite）
  * 实现这些端口，测试用内存假实现。方法都是异步的，为的是不限定实现形态。
  */
+import type { AgentTool } from "@earendil-works/pi-agent-core";
 import type { Id } from "@read-aware/core";
 import type { DictionaryEntry } from "./models/dictionary";
 
@@ -227,4 +228,10 @@ export interface RuntimeDeps {
   bookText: BookTextPort;
   vocabulary: VocabularyPort;
   dictionary: DictionaryPort;
+  /**
+   * 宿主注入的额外工具（产品侧：用户插件注册的 agent 工具）。每次 Agent
+   * 组装时取一次快照；集合变化后宿主调用 `AgentRuntime.invalidateAgents()`
+   * 让下一轮重建。
+   */
+  extraTools?: () => AgentTool[];
 }

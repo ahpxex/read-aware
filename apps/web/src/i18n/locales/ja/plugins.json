@@ -37,6 +37,7 @@
     },
     "pinLimit": "ピン留めは最大 {{count}} 個です。先に外してください。",
     "pin": "ピン留め",
-    "unpin": "ピン留め解除"
+    "unpin": "ピン留め解除",
+    "uninstallConfirmShort": "削除を確認"
   }
 }

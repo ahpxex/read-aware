@@ -11,7 +11,8 @@
     "ai": "IA",
     "shortcuts": "Raccourcis",
     "dataSync": "Données et synchronisation",
-    "about": "À propos"
+    "about": "À propos",
+    "plugins": "Extensions"
   },
   "general": {
     "title": "Général",

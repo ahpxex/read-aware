@@ -37,6 +37,7 @@
     },
     "pinLimit": "Höchstens {{count}} angeheftet — löse zuerst eines.",
     "pin": "Anheften",
-    "unpin": "Lösen"
+    "unpin": "Lösen",
+    "uninstallConfirmShort": "Wirklich entfernen"
   }
 }

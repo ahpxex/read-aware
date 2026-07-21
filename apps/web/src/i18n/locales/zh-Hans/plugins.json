@@ -37,6 +37,7 @@
     },
     "pinLimit": "最多钉选 {{count}} 个,请先取下一个。",
     "pin": "钉选",
-    "unpin": "取消钉选"
+    "unpin": "取消钉选",
+    "uninstallConfirmShort": "确认卸载"
   }
 }

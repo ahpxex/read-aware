@@ -11,7 +11,8 @@
     "ai": "KI",
     "shortcuts": "Tastenkürzel",
     "dataSync": "Daten & Sync",
-    "about": "Über"
+    "about": "Über",
+    "plugins": "Plugins"
   },
   "general": {
     "title": "Allgemein",

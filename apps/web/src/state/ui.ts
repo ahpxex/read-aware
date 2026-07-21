@@ -67,6 +67,7 @@ export type SettingsSectionId =
   | "appearance"
   | "reading"
   | "ai"
+  | "plugins"
   | "shortcuts"
   | "dataSync"
   | "about";

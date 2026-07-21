@@ -37,6 +37,7 @@
     },
     "pinLimit": "Up to {{count}} pinned — unpin one first.",
     "pin": "Pin",
-    "unpin": "Unpin"
+    "unpin": "Unpin",
+    "uninstallConfirmShort": "Confirm uninstall"
   }
 }

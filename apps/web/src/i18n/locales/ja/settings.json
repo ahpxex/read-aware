@@ -11,7 +11,8 @@
     "ai": "AI",
     "shortcuts": "ショートカット",
     "dataSync": "データと同期",
-    "about": "アプリについて"
+    "about": "アプリについて",
+    "plugins": "プラグイン"
   },
   "general": {
     "title": "一般",

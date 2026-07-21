@@ -11,7 +11,8 @@
     "ai": "AI",
     "shortcuts": "Shortcuts",
     "dataSync": "Data & Sync",
-    "about": "About"
+    "about": "About",
+    "plugins": "Plugins"
   },
   "general": {
     "title": "General",

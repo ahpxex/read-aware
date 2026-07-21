@@ -7,6 +7,7 @@
  */
 
 import { invoke } from "@tauri-apps/api/core";
+import { emitAppEvent } from "../../../platform/app-events";
 import type { Annotation, AnnotationFilters, Ask, Highlight, Note } from "./annotation-types";
 import { isTauri } from "../../../platform/environment";
 import { emitDomainEvents } from "../../../platform/domain-events";
@@ -68,6 +69,7 @@ export async function deleteAnnotation(id: string): Promise<void> {
     emitDomainEvents({ type: "ask.removed", payload: { askId: id } });
   }
   await invoke("annotation_delete", { id });
+  emitAppEvent("annotation-deleted", { id });
 }
 
 export async function listAnnotations(filters?: AnnotationFilters): Promise<Annotation[]> {
@@ -127,7 +129,9 @@ export async function createHighlight(
       style,
     },
   });
-  return saveAnnotation(highlight) as Promise<Highlight>;
+  const saved = (await saveAnnotation(highlight)) as Highlight;
+  emitAppEvent("annotation-created", { annotation: saved });
+  return saved;
 }
 
 /** Recolor / restyle an existing highlight (the reader's mark menu). */
@@ -183,7 +187,9 @@ export async function createNote(
       body: content,
     },
   });
-  return saveAnnotation(note) as Promise<Note>;
+  const saved = (await saveAnnotation(note)) as Note;
+  emitAppEvent("annotation-created", { annotation: saved });
+  return saved;
 }
 
 export async function updateNote(id: string, content: string): Promise<Note | null> {
@@ -232,5 +238,7 @@ export async function createAsk(
       text,
     },
   });
-  return saveAnnotation(ask) as Promise<Ask>;
+  const saved = (await saveAnnotation(ask)) as Ask;
+  emitAppEvent("annotation-created", { annotation: saved });
+  return saved;
 }

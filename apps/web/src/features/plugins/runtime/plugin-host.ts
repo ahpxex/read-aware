@@ -97,6 +97,12 @@ export async function initializePlugins(): Promise<void> {
       .filter((plugin) => plugin.enabled && !plugin.error)
       .map((plugin) => activatePlugin(plugin.manifest)),
   );
+
+  // Best-effort teardown on app quit — disposables run synchronously; async
+  // deactivate() work races the process, which is the platform's nature.
+  window.addEventListener("pagehide", () => {
+    for (const id of [...active.keys()]) void deactivatePlugin(id);
+  });
 }
 
 /** Load + activate one plugin; failures are recorded on its settings entry. */

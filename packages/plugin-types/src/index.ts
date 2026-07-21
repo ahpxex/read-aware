@@ -216,6 +216,24 @@ export type PluginToolDefinition = {
   execute: (params: Record<string, unknown>) => unknown | Promise<unknown>;
 };
 
+// ─── Events ──────────────────────────────────────────────────────────────────
+
+/**
+ * What a plugin can observe. Reading-data-bearing events (`annotation-*`)
+ * require the `reading-data` permission; the rest are ambient.
+ */
+export type PluginEventMap = {
+  "book-opened": { book: { id: string; title: string; author?: string } };
+  "book-closed": { bookId: string };
+  "chapter-changed": { bookId: string; chapterHref: string | null };
+  /** Fires on page turns; fraction is 0..1. */
+  "reading-progress": { bookId: string; fraction: number };
+  "annotation-created": { annotation: PluginAnnotation };
+  "annotation-deleted": { id: string };
+};
+
+export type PluginEventName = keyof PluginEventMap;
+
 // ─── Context handed to activate() ────────────────────────────────────────────
 
 export type PluginStorage = {
@@ -259,6 +277,17 @@ export type PluginContext = {
     registerHeaderAction(action: PluginHeaderAction): PluginDisposable;
     registerCommand(command: PluginCommand): PluginDisposable;
     showToast(message: string): void;
+  };
+  /**
+   * Subscribe to app events; the disposable (also reclaimed on deactivate)
+   * unsubscribes. `annotation-*` events need the `reading-data` permission —
+   * subscribing without it throws at registration.
+   */
+  events: {
+    on<K extends PluginEventName>(
+      event: K,
+      handler: (payload: PluginEventMap[K]) => void,
+    ): PluginDisposable;
   };
   /** Requires the `ai` permission. */
   ai?: {

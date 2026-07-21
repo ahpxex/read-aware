@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { ScrollArea, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
@@ -16,6 +16,7 @@ import { useOpenBookRequestHandler } from "./features/ai/hooks/useOpenBookReques
 import { useReaderSession } from "./features/reader/hooks/useReaderSession";
 import { useGlobalShortcuts } from "./features/settings/hooks/useGlobalShortcuts";
 import { useSurfaceHandoff } from "./hooks/useSurfaceHandoff";
+import { emitAppEvent } from "./platform/app-events";
 import { BACK_REQUEST_EVENT, sendAppToBackground } from "./platform/back-navigation";
 import { CommandPalette } from "./features/command/components/CommandPalette";
 import type { CommandContext } from "./features/command/lib/build-commands";
@@ -101,14 +102,6 @@ function App() {
     void initializePlugins();
   }, []);
 
-  useEffect(() => {
-    void softwareUpdate.loadCurrentVersion();
-  }, [softwareUpdate.loadCurrentVersion]);
-
-  useEffect(() => {
-    if (generalSettings.autoUpdate) void softwareUpdate.checkForUpdates();
-  }, [generalSettings.autoUpdate, softwareUpdate.checkForUpdates]);
-
   useGlobalShortcuts({
     onOpenSearch: () => setSearchModalOpen(true),
     onOpenSettings: () => setSettingsOpen(true),
@@ -130,6 +123,45 @@ function App() {
   // the open-direction fade deferred until the reader has rendered and the
   // main thread can animate again. See useSurfaceHandoff for the rules.
   const { shelfHandoff, readerExiting, openBook, closeBook } = useSurfaceHandoff(reader);
+
+  // Observation seam for plugins: book open/close, chapter, progress.
+  const openedBookRef = useRef<{ id: string; title: string; author?: string } | null>(null);
+  useEffect(() => {
+    const book = reader.selectedBook;
+    if (book && openedBookRef.current?.id !== book.id) {
+      if (openedBookRef.current) {
+        emitAppEvent("book-closed", { bookId: openedBookRef.current.id });
+      }
+      openedBookRef.current = { id: book.id, title: book.title, author: book.author };
+      emitAppEvent("book-opened", { book: openedBookRef.current });
+    } else if (!book && openedBookRef.current) {
+      emitAppEvent("book-closed", { bookId: openedBookRef.current.id });
+      openedBookRef.current = null;
+    }
+  }, [reader.selectedBook]);
+  useEffect(() => {
+    if (!openedBookRef.current) return;
+    emitAppEvent("chapter-changed", {
+      bookId: openedBookRef.current.id,
+      chapterHref: reader.currentChapterHref,
+    });
+  }, [reader.currentChapterHref]);
+  useEffect(() => {
+    if (!openedBookRef.current || reader.readerProgress == null) return;
+    emitAppEvent("reading-progress", {
+      bookId: openedBookRef.current.id,
+      fraction: reader.readerProgress,
+    });
+  }, [reader.readerProgress]);
+
+  useEffect(() => {
+    void softwareUpdate.loadCurrentVersion();
+  }, [softwareUpdate.loadCurrentVersion]);
+
+  useEffect(() => {
+    if (generalSettings.autoUpdate) void softwareUpdate.checkForUpdates();
+  }, [generalSettings.autoUpdate, softwareUpdate.checkForUpdates]);
+
 
   // While the shelf holds over the opening reader it must stay VISUALLY
   // frozen: opening bumps lastOpenedAt, and the recency sort would otherwise

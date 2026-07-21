@@ -5,6 +5,7 @@
  * boundary is installation itself (§2).
  */
 import { getDefaultStore } from "jotai";
+import { onAppEvent } from "../../../platform/app-events";
 import { localKV } from "../../../platform/local-store";
 import { getAgentRuntime } from "../../ai/agent/agent-runtime";
 import { createAnnotationsPort } from "../../ai/agent/ports/annotations-port";
@@ -103,6 +104,46 @@ export function buildPluginContext(
           }),
         ),
       showToast: (message) => showPluginToast(String(message)),
+    },
+    events: {
+      on: (event, handler) => {
+        if (event.startsWith("annotation") && !permissions.has("reading-data")) {
+          throw new Error(`subscribing to "${event}" requires the reading-data permission`);
+        }
+        const off = onAppEvent(event as never, ((payload: unknown) => {
+          try {
+            if (event === "annotation-created") {
+              const { annotation } = payload as {
+                annotation: {
+                  id: string;
+                  bookId: string;
+                  type: "highlight" | "note" | "ask";
+                  text: string;
+                  content?: string;
+                  chapterHref: string | null;
+                  createdAt: string;
+                };
+              };
+              handler({
+                annotation: {
+                  id: annotation.id,
+                  bookId: annotation.bookId,
+                  kind: annotation.type,
+                  text: annotation.text,
+                  content: annotation.content,
+                  chapter: annotation.chapterHref ?? undefined,
+                  createdAt: annotation.createdAt,
+                },
+              } as never);
+            } else {
+              handler(payload as never);
+            }
+          } catch (error) {
+            console.error(`[plugins] event handler from "${manifest.id}" failed`, error);
+          }
+        }) as never);
+        return track({ dispose: off });
+      },
     },
   };
 

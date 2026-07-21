@@ -41,12 +41,14 @@ type SettingsSection = {
   Panel: () => React.JSX.Element;
 };
 
+// Three bands: what the product is (general/reading/ai/plugins), making it
+// yours (theme/customize/shortcuts), then system & meta.
 const SECTIONS: SettingsSection[] = [
   { id: "general", icon: SlidersHorizontal, Panel: GeneralPanel },
-  { id: "appearance", icon: Palette, Panel: AppearancePanel },
   { id: "reading", icon: BookOpen, Panel: ReadingPanel },
   { id: "ai", icon: Sparkle, Panel: AIPanel },
   { id: "plugins", icon: PuzzlePiece, Panel: PluginsPanel },
+  { id: "appearance", icon: Palette, Panel: AppearancePanel },
   { id: "menus", icon: Rows, Panel: MenusPanel },
   { id: "shortcuts", icon: Keyboard, Panel: ShortcutsPanel },
   { id: "dataSync", icon: Database, Panel: DataSyncPanel },

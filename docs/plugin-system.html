@@ -930,7 +930,7 @@
   <li><strong>插件自身设置</strong>：插件大概率需要自己的配置项（如 Anki 地址）。倾向复用表单视图声明一节「插件设置」，V1 先不承诺。</li>
   <li><strong>插件 i18n</strong>：插件字符串的多语言机制未定，V1 按插件自理。</li>
   <li><strong>更新机制</strong>：V1 手动重装；后续再议版本检查。</li>
-  <li><strong>TypeScript 类型包</strong>：给插件作者发一个 <code>@read-aware/plugin-types</code>（只有类型，无运行时），降低写插件门槛；随阶段 5 一起出。</li>
+  <li><strong>TypeScript 类型包 —— 已落地</strong>：<code>packages/plugin-types</code>（<code>@read-aware/plugin-types</code>）是插件 API 的唯一真源，应用 re-export 它；市场仓库携带其声明镜像与 TS 模板（<code>template/</code>，<code>bun build src/main.ts</code> 产出 <code>main.js</code>）。<strong>TypeScript 是推荐的插件编写方式</strong>，运行时装载的始终是构建产物 <code>main.js</code>；官方插件均以 TS 编写并连同构建产物一起提交，CI 对每个 PR 附加 <code>tsc --noEmit</code> 检查。</li>
 </ul>
 
 </main>

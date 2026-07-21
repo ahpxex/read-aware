@@ -385,13 +385,15 @@ export function buildPluginContext(
         };
         const existingId = findVirtualBookId(binding);
         if (existingId) {
-          await updateVirtualLibraryBookTitle(existingId, String(input.title), input.author);
-          emitAppEvent("library-changed", {});
-          return {
-            id: existingId,
-            title: String(input.title),
-            author: input.author,
-          };
+          // The binding may be an orphan (book deleted before cleanup
+          // existed, or through an untracked path) — verify the record.
+          const alive = (await listLibraryBooks()).some((b) => b.id === existingId);
+          if (alive) {
+            await updateVirtualLibraryBookTitle(existingId, String(input.title), input.author);
+            emitAppEvent("library-changed", {});
+            return { id: existingId, title: String(input.title), author: input.author };
+          }
+          unbindVirtualBook(existingId);
         }
         const book = await addVirtualLibraryBook({
           title: String(input.title),

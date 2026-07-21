@@ -24,10 +24,13 @@ import {
   updateInstalledPlugin,
 } from "../state/plugin-store";
 import {
+  installPluginFilesCmd,
   installPluginFromDir,
   listPluginEntries,
   pluginModuleUrl,
   uninstallPluginFiles,
+  type PluginDiskEntry,
+  type PluginFilePayload,
 } from "./plugin-backend";
 import { buildPluginContext } from "./plugin-context";
 
@@ -152,12 +155,12 @@ export async function setPluginEnabled(id: string, enabled: boolean): Promise<vo
 }
 
 /**
- * Install (or replace) from a local folder: copy via Rust, validate the
- * manifest properly, enable, and activate. Throws with a readable message —
- * the settings panel surfaces it.
+ * Adopt a freshly written plugin folder: validate the manifest properly,
+ * replace any running instance, enable, and activate. Shared by both install
+ * paths (local folder and marketplace). Throws with a readable message — the
+ * settings panel surfaces it.
  */
-export async function installPlugin(srcDir: string): Promise<InstalledPlugin> {
-  const entry = await installPluginFromDir(srcDir);
+async function adoptDiskEntry(entry: PluginDiskEntry): Promise<InstalledPlugin> {
   const manifest = parseManifestJson(entry.manifest);
   if (manifest.id !== entry.id) {
     throw new PluginManifestError(
@@ -178,6 +181,19 @@ export async function installPlugin(srcDir: string): Promise<InstalledPlugin> {
 
   const after = getInstalled().find((existing) => existing.manifest.id === manifest.id);
   return after ?? plugin;
+}
+
+/** Install (or replace) from a local folder picked by the user. */
+export function installPlugin(srcDir: string): Promise<InstalledPlugin> {
+  return installPluginFromDir(srcDir).then(adoptDiskEntry);
+}
+
+/** Install (or replace) from fetched file contents (the marketplace path). */
+export function installPluginFiles(
+  id: string,
+  files: PluginFilePayload[],
+): Promise<InstalledPlugin> {
+  return installPluginFilesCmd(id, files).then(adoptDiskEntry);
 }
 
 /** Remove the plugin's files; its namespaced storage is deliberately kept. */

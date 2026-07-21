@@ -38,6 +38,16 @@
     "pinLimit": "ピン留めは最大 {{count}} 個です。先に外してください。",
     "pin": "ピン留め",
     "unpin": "ピン留め解除",
-    "uninstallConfirmShort": "削除を確認"
+    "uninstallConfirmShort": "削除を確認",
+    "tabInstalled": "インストール済み",
+    "tabMarketplace": "マーケットプレイス",
+    "marketplaceError": "マーケットプレイスを読み込めませんでした:{{message}}",
+    "retry": "再試行",
+    "refresh": "更新",
+    "installFromMarketplace": "インストール",
+    "installedBadge": "インストール済み",
+    "update": "アップデート",
+    "marketplaceEmpty": "まだプラグインが公開されていません。",
+    "marketplaceHint": "コミュニティプラグインはプルリクエストで提出します:"
   }
 }

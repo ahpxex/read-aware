@@ -116,6 +116,62 @@ fn copy_dir(src: &Path, dest: &Path) -> Result<(), String> {
     Ok(())
 }
 
+#[derive(serde::Deserialize)]
+pub struct PluginFile {
+    pub path: String,
+    pub content: String,
+}
+
+/// Marketplace install: the webview fetches the plugin's text files (CSP owns
+/// the network policy) and hands them here to be written under plugins/<id>.
+#[tauri::command]
+pub fn plugins_install_files(
+    app: tauri::AppHandle,
+    id: String,
+    files: Vec<PluginFile>,
+) -> Result<PluginEntry, String> {
+    if !valid_plugin_id(&id) {
+        return Err("invalid plugin id".into());
+    }
+    let manifest = files
+        .iter()
+        .find(|file| file.path == "manifest.json")
+        .ok_or_else(|| "manifest.json missing".to_string())?
+        .content
+        .clone();
+    let parsed: serde_json::Value =
+        serde_json::from_str(&manifest).map_err(|e| format!("manifest.json is not valid JSON: {e}"))?;
+    if parsed.get("id").and_then(|v| v.as_str()) != Some(id.as_str()) {
+        return Err("manifest.id does not match the requested plugin id".into());
+    }
+
+    for file in &files {
+        let path = &file.path;
+        if path.is_empty()
+            || path.len() > 256
+            || path.contains("..")
+            || path.starts_with('/')
+            || path.contains('\\')
+            || path.split('/').any(|part| part.is_empty() || part.starts_with('.'))
+        {
+            return Err(format!("invalid file path in plugin payload: {path}"));
+        }
+    }
+
+    let dest = plugins_dir(&app)?.join(&id);
+    if dest.exists() {
+        fs::remove_dir_all(&dest).map_err(|e| e.to_string())?;
+    }
+    for file in &files {
+        let target = dest.join(&file.path);
+        if let Some(parent) = target.parent() {
+            fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        }
+        fs::write(&target, file.content.as_bytes()).map_err(|e| e.to_string())?;
+    }
+    Ok(PluginEntry { id, manifest })
+}
+
 #[tauri::command]
 pub fn plugins_uninstall(app: tauri::AppHandle, id: String) -> Result<(), String> {
     if !valid_plugin_id(&id) {

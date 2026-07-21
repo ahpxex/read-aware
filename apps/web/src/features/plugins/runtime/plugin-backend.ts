@@ -16,6 +16,15 @@ export function installPluginFromDir(srcDir: string): Promise<PluginDiskEntry> {
   return invoke<PluginDiskEntry>("plugins_install", { srcDir });
 }
 
+export type PluginFilePayload = { path: string; content: string };
+
+export function installPluginFilesCmd(
+  id: string,
+  files: PluginFilePayload[],
+): Promise<PluginDiskEntry> {
+  return invoke<PluginDiskEntry>("plugins_install_files", { id, files });
+}
+
 export function uninstallPluginFiles(id: string): Promise<void> {
   return invoke("plugins_uninstall", { id });
 }

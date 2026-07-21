@@ -38,6 +38,16 @@
     "pinLimit": "Au plus {{count}} épinglés — détachez-en un d'abord.",
     "pin": "Épingler",
     "unpin": "Détacher",
-    "uninstallConfirmShort": "Confirmer"
+    "uninstallConfirmShort": "Confirmer",
+    "tabInstalled": "Installées",
+    "tabMarketplace": "Marché",
+    "marketplaceError": "Impossible de charger le marché : {{message}}",
+    "retry": "Réessayer",
+    "refresh": "Actualiser",
+    "installFromMarketplace": "Installer",
+    "installedBadge": "Installée",
+    "update": "Mettre à jour",
+    "marketplaceEmpty": "Aucune extension publiée pour le moment.",
+    "marketplaceHint": "Les extensions communautaires sont soumises par pull request à"
   }
 }

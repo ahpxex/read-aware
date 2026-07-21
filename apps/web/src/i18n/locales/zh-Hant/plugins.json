@@ -38,6 +38,16 @@
     "pinLimit": "最多釘選 {{count}} 個,請先取下一個。",
     "pin": "釘選",
     "unpin": "取消釘選",
-    "uninstallConfirmShort": "確認解除安裝"
+    "uninstallConfirmShort": "確認解除安裝",
+    "tabInstalled": "已安裝",
+    "tabMarketplace": "外掛市集",
+    "marketplaceError": "無法載入外掛市集:{{message}}",
+    "retry": "重試",
+    "refresh": "重新整理",
+    "installFromMarketplace": "安裝",
+    "installedBadge": "已安裝",
+    "update": "更新",
+    "marketplaceEmpty": "市集裡還沒有外掛。",
+    "marketplaceHint": "社群外掛透過 Pull Request 提交到"
   }
 }

@@ -129,10 +129,13 @@ export function forgetPluginEnabled(id: string): void {
 
 // ─── Placement (user-owned pinning; docs/plugin-system.md §7) ────────────────
 
-/** Max pinned plugin buttons per header bar. */
-export const HEADER_PIN_LIMIT = 3;
+/**
+ * Pin caps are a sanity rail, not a curation stance — the user arranges their
+ * own bars, folding starts only past this count.
+ */
+export const HEADER_PIN_LIMIT = 5;
 /** Max selection-menu actions promoted to the first row. */
-export const SELECTION_PIN_LIMIT = 2;
+export const SELECTION_PIN_LIMIT = 5;
 
 export type PluginPlacement = {
   shelfHeader: ContributionKey[];

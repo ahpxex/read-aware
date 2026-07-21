@@ -38,6 +38,16 @@
     "pinLimit": "最多钉选 {{count}} 个,请先取下一个。",
     "pin": "钉选",
     "unpin": "取消钉选",
-    "uninstallConfirmShort": "确认卸载"
+    "uninstallConfirmShort": "确认卸载",
+    "tabInstalled": "已安装",
+    "tabMarketplace": "插件市场",
+    "marketplaceError": "无法加载插件市场:{{message}}",
+    "retry": "重试",
+    "refresh": "刷新",
+    "installFromMarketplace": "安装",
+    "installedBadge": "已安装",
+    "update": "更新",
+    "marketplaceEmpty": "市场里还没有插件。",
+    "marketplaceHint": "社区插件通过 Pull Request 提交到"
   }
 }

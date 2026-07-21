@@ -38,6 +38,16 @@
     "pinLimit": "Не больше {{count}} закреплённых — сначала открепите одно.",
     "pin": "Закрепить",
     "unpin": "Открепить",
-    "uninstallConfirmShort": "Подтвердить"
+    "uninstallConfirmShort": "Подтвердить",
+    "tabInstalled": "Установленные",
+    "tabMarketplace": "Каталог",
+    "marketplaceError": "Не удалось загрузить каталог: {{message}}",
+    "retry": "Повторить",
+    "refresh": "Обновить",
+    "installFromMarketplace": "Установить",
+    "installedBadge": "Установлен",
+    "update": "Обновить",
+    "marketplaceEmpty": "Плагины ещё не опубликованы.",
+    "marketplaceHint": "Плагины сообщества отправляются пулл-реквестом в"
   }
 }

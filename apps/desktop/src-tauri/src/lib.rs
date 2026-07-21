@@ -802,6 +802,7 @@ pub fn run() {
             list_system_fonts,
             plugins::plugins_list,
             plugins::plugins_install,
+            plugins::plugins_install_files,
             plugins::plugins_uninstall,
         ]);
 

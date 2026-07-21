@@ -7,9 +7,10 @@
 import { useState } from "react";
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { useAtom, useAtomValue } from "jotai";
-import { Badge, Button, Caption, Toggle, useToast } from "@read-aware/ui";
+import { Badge, Button, Caption, Tabs, Toggle, useToast } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { isTauri } from "../../../platform/environment";
+import { PluginMarketplace } from "../../plugins/components/PluginMarketplace";
 import { renderPluginIcon } from "../../plugins/lib/plugin-icons";
 import type { PluginPermission } from "../../plugins/lib/plugin-types";
 import {
@@ -109,9 +110,9 @@ export function PluginsPanel() {
   ];
   const hasPlacementItems = placementSections.some((section) => section.items.length > 0);
 
-  return (
-    <SettingsPage title={t("settings.title")} description={t("settings.trustWarning")}>
-      <SettingsGroup title={t("settings.title")}>
+  const installedTab = (
+    <>
+      <SettingsGroup title={t("settings.tabInstalled")}>
         <div className="flex items-center justify-between gap-4 pb-3">
           <Caption className="text-fg-subtle">
             {installed.length === 0 ? t("settings.empty") : null}
@@ -225,6 +226,18 @@ export function PluginsPanel() {
           )}
         </SettingsGroup>
       )}
+    </>
+  );
+
+  return (
+    <SettingsPage title={t("settings.title")} description={t("settings.trustWarning")}>
+      <Tabs
+        ariaLabel={t("settings.title")}
+        items={[
+          { label: t("settings.tabInstalled"), content: installedTab },
+          { label: t("settings.tabMarketplace"), content: <PluginMarketplace /> },
+        ]}
+      />
     </SettingsPage>
   );
 }

@@ -38,6 +38,16 @@
     "pinLimit": "Höchstens {{count}} angeheftet — löse zuerst eines.",
     "pin": "Anheften",
     "unpin": "Lösen",
-    "uninstallConfirmShort": "Wirklich entfernen"
+    "uninstallConfirmShort": "Wirklich entfernen",
+    "tabInstalled": "Installiert",
+    "tabMarketplace": "Marktplatz",
+    "marketplaceError": "Marktplatz konnte nicht geladen werden: {{message}}",
+    "retry": "Erneut versuchen",
+    "refresh": "Aktualisieren",
+    "installFromMarketplace": "Installieren",
+    "installedBadge": "Installiert",
+    "update": "Aktualisieren",
+    "marketplaceEmpty": "Noch keine Plugins veröffentlicht.",
+    "marketplaceHint": "Community-Plugins werden per Pull Request eingereicht bei"
   }
 }

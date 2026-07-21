@@ -38,6 +38,16 @@
     "pinLimit": "Up to {{count}} pinned — unpin one first.",
     "pin": "Pin",
     "unpin": "Unpin",
-    "uninstallConfirmShort": "Confirm uninstall"
+    "uninstallConfirmShort": "Confirm uninstall",
+    "tabInstalled": "Installed",
+    "tabMarketplace": "Marketplace",
+    "marketplaceError": "Could not load the marketplace: {{message}}",
+    "retry": "Retry",
+    "refresh": "Refresh",
+    "installFromMarketplace": "Install",
+    "installedBadge": "Installed",
+    "update": "Update",
+    "marketplaceEmpty": "No plugins published yet.",
+    "marketplaceHint": "Community plugins are submitted by pull request to"
   }
 }

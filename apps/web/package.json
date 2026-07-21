@@ -30,7 +30,8 @@
     "react-dom": "^19.1.0",
     "react-i18next": "^17.0.8",
     "recharts": "^3.9.0",
-    "streamdown": "^2.5.0"
+    "streamdown": "^2.5.0",
+    "@read-aware/plugin-types": "workspace:*"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^5.0.1",

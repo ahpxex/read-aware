@@ -27,6 +27,9 @@ type TabsProps = {
   /** Extra classes for the tab strip (`role="tablist"`) — e.g. horizontal
    *  padding to inset the labels while the underline rule stays full-width. */
   tabListClassName?: string;
+  /** Actions rendered at the trailing edge of the tab strip row (e.g. the
+   *  active panel's primary action). Not part of the tab order semantics. */
+  trailing?: ReactNode;
 };
 
 export function Tabs({
@@ -40,6 +43,7 @@ export function Tabs({
   fill = false,
   className,
   tabListClassName,
+  trailing,
 }: TabsProps) {
   const { t } = useTranslation("ui");
   const [internalIndex, setInternalIndex] = useLocalAtom(defaultIndex);
@@ -210,6 +214,9 @@ export function Tabs({
             </button>
           );
         })}
+        {trailing && (
+          <div className="ml-auto flex items-center gap-2 self-start">{trailing}</div>
+        )}
       </div>
       {items.map((item, i) => {
         const tabId = `${id}-tab-${i}`;

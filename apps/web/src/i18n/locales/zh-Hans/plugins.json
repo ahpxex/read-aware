@@ -48,6 +48,8 @@
     "installedBadge": "已安装",
     "update": "更新",
     "marketplaceEmpty": "市场里还没有插件。",
-    "marketplaceHint": "社区插件通过 Pull Request 提交到"
+    "marketplaceHint": "社区插件通过 Pull Request 提交到",
+    "searchPlaceholder": "搜索插件…",
+    "noMatches": "没有匹配的插件。"
   }
 }

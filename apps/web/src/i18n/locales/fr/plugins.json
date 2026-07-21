@@ -48,6 +48,8 @@
     "installedBadge": "Installée",
     "update": "Mettre à jour",
     "marketplaceEmpty": "Aucune extension publiée pour le moment.",
-    "marketplaceHint": "Les extensions communautaires sont soumises par pull request à"
+    "marketplaceHint": "Les extensions communautaires sont soumises par pull request à",
+    "searchPlaceholder": "Rechercher des extensions…",
+    "noMatches": "Aucune extension ne correspond."
   }
 }

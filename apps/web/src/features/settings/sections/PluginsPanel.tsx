@@ -1,8 +1,9 @@
 /**
- * Settings → Plugins: install (folder picker), enable/disable, permission
- * display, uninstall, and the user-owned placement controls (which actions are
- * pinned to which surface — docs/plugin-system.md §7). The trust warning is
- * the page description: installation is the security boundary (§2).
+ * Settings → Plugins: Installed / Marketplace tabs. The active tab's primary
+ * action (install from folder, refresh registry) sits on the tab strip's
+ * trailing edge; both lists are searchable. Placement (pinning) stays with
+ * the installed list — it configures what the user already has
+ * (docs/plugin-system.md §7).
  */
 import { useState } from "react";
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
@@ -11,7 +12,9 @@ import { Badge, Button, Caption, Tabs, Toggle, useToast } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { isTauri } from "../../../platform/environment";
 import { PluginMarketplace } from "../../plugins/components/PluginMarketplace";
+import { PluginSearchInput } from "../../plugins/components/PluginSearchInput";
 import { renderPluginIcon } from "../../plugins/lib/plugin-icons";
+import { matchesPluginQuery } from "../../plugins/lib/search";
 import type { PluginPermission } from "../../plugins/lib/plugin-types";
 import {
   installPlugin,
@@ -42,8 +45,11 @@ export function PluginsPanel() {
   const headerActions = useAtomValue(headerActionsAtom);
   const selectionActions = useAtomValue(selectionActionsAtom);
   const [placement, setPlacement] = useAtom(pluginPlacementAtom);
+  const [activeTab, setActiveTab] = useState(0);
+  const [installedQuery, setInstalledQuery] = useState("");
   const [installing, setInstalling] = useState(false);
   const [confirmingUninstall, setConfirmingUninstall] = useState<string | null>(null);
+  const [marketRefreshToken, setMarketRefreshToken] = useState(0);
   const desktop = isTauri();
 
   async function handleInstall() {
@@ -91,6 +97,16 @@ export function PluginsPanel() {
     }
   }
 
+  const filteredInstalled = installed.filter((plugin) =>
+    matchesPluginQuery(
+      installedQuery,
+      plugin.manifest.name,
+      plugin.manifest.id,
+      plugin.manifest.description,
+      plugin.manifest.author,
+    ),
+  );
+
   const placementSections: {
     surface: keyof PluginPlacement;
     limit: number;
@@ -112,85 +128,84 @@ export function PluginsPanel() {
 
   const installedTab = (
     <>
-      <SettingsGroup title={t("settings.tabInstalled")}>
-        <div className="flex items-center justify-between gap-4 pb-3">
-          <Caption className="text-fg-subtle">
-            {installed.length === 0 ? t("settings.empty") : null}
-          </Caption>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={!desktop || installing}
-            onClick={() => void handleInstall()}
-          >
-            {installing ? t("settings.installing") : t("settings.install")}
-          </Button>
-        </div>
+      <PluginSearchInput
+        value={installedQuery}
+        onChange={setInstalledQuery}
+        placeholder={t("settings.searchPlaceholder")}
+      />
 
-        {installed.map((plugin, index) => {
-          const { manifest } = plugin;
-          const permissions = manifest.permissions ?? [];
-          return (
-            <SettingsRow
-              key={manifest.id}
-              borderless={index === 0}
-              title={
-                <span className="flex items-center gap-2">
-                  <span>{manifest.name}</span>
-                  <Caption className="text-fg-subtle">v{manifest.version}</Caption>
-                </span>
-              }
-              description={
-                <span className="flex flex-col gap-1.5">
-                  {manifest.description && <span>{manifest.description}</span>}
-                  <span className="flex flex-wrap items-center gap-1">
-                    {permissions.length === 0 ? (
-                      <Caption className="text-fg-subtle">
-                        {t("settings.noPermissions")}
-                      </Caption>
-                    ) : (
-                      permissions.map((permission: PluginPermission) => (
-                        <Badge key={permission} className="text-[11px]">
-                          {t(`settings.permission.${permission}`)}
-                        </Badge>
-                      ))
+      <div className="mt-1">
+        {installed.length === 0 ? (
+          <Caption className="block py-4 text-fg-subtle">{t("settings.empty")}</Caption>
+        ) : filteredInstalled.length === 0 ? (
+          <Caption className="block py-4 text-fg-subtle">{t("settings.noMatches")}</Caption>
+        ) : (
+          filteredInstalled.map((plugin, index) => {
+            const { manifest } = plugin;
+            const permissions = manifest.permissions ?? [];
+            return (
+              <SettingsRow
+                key={manifest.id}
+                borderless={index === 0}
+                title={
+                  <span className="flex items-center gap-2">
+                    <span>{manifest.name}</span>
+                    <Caption className="text-fg-subtle">v{manifest.version}</Caption>
+                  </span>
+                }
+                description={
+                  <span className="flex flex-col gap-1.5">
+                    {manifest.description && <span>{manifest.description}</span>}
+                    <span className="flex flex-wrap items-center gap-1">
+                      {permissions.length === 0 ? (
+                        <Caption className="text-fg-subtle">
+                          {t("settings.noPermissions")}
+                        </Caption>
+                      ) : (
+                        permissions.map((permission: PluginPermission) => (
+                          <Badge key={permission} className="text-[11px]">
+                            {t(`settings.permission.${permission}`)}
+                          </Badge>
+                        ))
+                      )}
+                    </span>
+                    {plugin.error && (
+                      <span className="text-xs text-red-700 dark:text-red-400">
+                        {t("settings.activationError", { message: plugin.error })}
+                      </span>
                     )}
                   </span>
-                  {plugin.error && (
-                    <span className="text-xs text-red-700 dark:text-red-400">
-                      {t("settings.activationError", { message: plugin.error })}
-                    </span>
-                  )}
-                </span>
-              }
-              control={
-                <span className="flex shrink-0 items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant={confirmingUninstall === manifest.id ? "danger" : "ghost"}
-                    onClick={() => void handleUninstall(manifest.id)}
-                    onBlur={() => setConfirmingUninstall(null)}
-                  >
-                    {confirmingUninstall === manifest.id
-                      ? t("settings.uninstallConfirmShort")
-                      : t("settings.uninstall")}
-                  </Button>
-                  <Toggle
-                    aria-label={t("settings.enabled")}
-                    checked={plugin.enabled}
-                    onChange={(enabled) => void setPluginEnabled(manifest.id, enabled)}
-                  />
-                </span>
-              }
-            />
-          );
-        })}
-      </SettingsGroup>
+                }
+                control={
+                  <span className="flex shrink-0 items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant={confirmingUninstall === manifest.id ? "danger" : "ghost"}
+                      onClick={() => void handleUninstall(manifest.id)}
+                      onBlur={() => setConfirmingUninstall(null)}
+                    >
+                      {confirmingUninstall === manifest.id
+                        ? t("settings.uninstallConfirmShort")
+                        : t("settings.uninstall")}
+                    </Button>
+                    <Toggle
+                      aria-label={t("settings.enabled")}
+                      checked={plugin.enabled}
+                      onChange={(enabled) => void setPluginEnabled(manifest.id, enabled)}
+                    />
+                  </span>
+                }
+              />
+            );
+          })
+        )}
+      </div>
 
       {hasPlacementItems && (
         <SettingsGroup
           title={t("settings.placement")}
           description={t("settings.placementHint")}
+          className="mt-6"
         >
           {placementSections.map((section) =>
             section.items.length === 0 ? null : (
@@ -233,9 +248,34 @@ export function PluginsPanel() {
     <SettingsPage title={t("settings.title")} description={t("settings.trustWarning")}>
       <Tabs
         ariaLabel={t("settings.title")}
+        activeIndex={activeTab}
+        onActiveIndexChange={setActiveTab}
+        trailing={
+          activeTab === 0 ? (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!desktop || installing}
+              onClick={() => void handleInstall()}
+            >
+              {installing ? t("settings.installing") : t("settings.install")}
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setMarketRefreshToken((token) => token + 1)}
+            >
+              {t("settings.refresh")}
+            </Button>
+          )
+        }
         items={[
           { label: t("settings.tabInstalled"), content: installedTab },
-          { label: t("settings.tabMarketplace"), content: <PluginMarketplace /> },
+          {
+            label: t("settings.tabMarketplace"),
+            content: <PluginMarketplace refreshToken={marketRefreshToken} />,
+          },
         ]}
       />
     </SettingsPage>

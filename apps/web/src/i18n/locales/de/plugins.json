@@ -48,6 +48,8 @@
     "installedBadge": "Installiert",
     "update": "Aktualisieren",
     "marketplaceEmpty": "Noch keine Plugins veröffentlicht.",
-    "marketplaceHint": "Community-Plugins werden per Pull Request eingereicht bei"
+    "marketplaceHint": "Community-Plugins werden per Pull Request eingereicht bei",
+    "searchPlaceholder": "Plugins durchsuchen…",
+    "noMatches": "Keine passenden Plugins."
   }
 }

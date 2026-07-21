@@ -47,6 +47,7 @@
         "@phosphor-icons/react": "^2.1.10",
         "@read-aware/agent": "workspace:*",
         "@read-aware/core": "workspace:*",
+        "@read-aware/plugin-types": "workspace:*",
         "@read-aware/ui": "workspace:*",
         "@tanstack/react-router": "^1.132.23",
         "@tauri-apps/api": "^2.9.0",
@@ -96,6 +97,13 @@
     },
     "packages/core": {
       "name": "@read-aware/core",
+      "version": "0.1.0",
+      "devDependencies": {
+        "typescript": "~5.8.3",
+      },
+    },
+    "packages/plugin-types": {
+      "name": "@read-aware/plugin-types",
       "version": "0.1.0",
       "devDependencies": {
         "typescript": "~5.8.3",
@@ -360,6 +368,8 @@
     "@read-aware/desktop": ["@read-aware/desktop@workspace:apps/desktop"],
 
     "@read-aware/landing": ["@read-aware/landing@workspace:apps/landing"],
+
+    "@read-aware/plugin-types": ["@read-aware/plugin-types@workspace:packages/plugin-types"],
 
     "@read-aware/tsconfig": ["@read-aware/tsconfig@workspace:packages/tsconfig"],
 

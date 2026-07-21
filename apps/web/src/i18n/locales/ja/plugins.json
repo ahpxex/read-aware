@@ -48,6 +48,8 @@
     "installedBadge": "インストール済み",
     "update": "アップデート",
     "marketplaceEmpty": "まだプラグインが公開されていません。",
-    "marketplaceHint": "コミュニティプラグインはプルリクエストで提出します:"
+    "marketplaceHint": "コミュニティプラグインはプルリクエストで提出します:",
+    "searchPlaceholder": "プラグインを検索…",
+    "noMatches": "一致するプラグインがありません。"
   }
 }

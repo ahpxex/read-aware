@@ -9,6 +9,7 @@ import { useAtomValue } from "jotai";
 import { Badge, Button, Caption, Spinner, useToast } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { isTauri } from "../../../platform/environment";
+import { matchesPluginQuery } from "../lib/search";
 import {
   MARKETPLACE_REPO,
   fetchMarketplaceRegistry,
@@ -16,6 +17,7 @@ import {
   type MarketplaceEntry,
 } from "../runtime/marketplace";
 import { installedPluginsAtom } from "../state/plugin-store";
+import { PluginSearchInput } from "./PluginSearchInput";
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -26,12 +28,18 @@ type LoadState =
   | { status: "error"; message: string }
   | { status: "ready"; entries: MarketplaceEntry[] };
 
-export function PluginMarketplace() {
+type PluginMarketplaceProps = {
+  /** Bumped by the hosting panel's Refresh action to re-fetch the registry. */
+  refreshToken?: number;
+};
+
+export function PluginMarketplace({ refreshToken = 0 }: PluginMarketplaceProps) {
   const { t } = useTranslation("plugins");
   const { toast } = useToast();
   const installed = useAtomValue(installedPluginsAtom);
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const desktop = isTauri();
 
   const load = useCallback(async () => {
@@ -45,7 +53,7 @@ export function PluginMarketplace() {
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, refreshToken]);
 
   async function handleInstall(entry: MarketplaceEntry) {
     setBusyId(entry.id);
@@ -86,19 +94,26 @@ export function PluginMarketplace() {
     );
   }
 
+  const filtered = state.entries.filter((entry) =>
+    matchesPluginQuery(query, entry.name, entry.id, entry.description, entry.author),
+  );
+
   return (
     <div className="flex flex-col">
-      <div className="flex items-center justify-end pb-2">
-        <Button size="sm" variant="ghost" onClick={() => void load()}>
-          {t("settings.refresh")}
-        </Button>
-      </div>
+      <PluginSearchInput
+        value={query}
+        onChange={setQuery}
+        placeholder={t("settings.searchPlaceholder")}
+        className="mb-3"
+      />
 
-      {state.entries.length === 0 && (
+      {state.entries.length === 0 ? (
         <Caption className="py-6 text-fg-subtle">{t("settings.marketplaceEmpty")}</Caption>
-      )}
+      ) : filtered.length === 0 ? (
+        <Caption className="py-6 text-fg-subtle">{t("settings.noMatches")}</Caption>
+      ) : null}
 
-      {state.entries.map((entry) => {
+      {filtered.map((entry) => {
         const installedPlugin = installed.find((p) => p.manifest.id === entry.id);
         const upToDate = installedPlugin?.manifest.version === entry.version;
         return (

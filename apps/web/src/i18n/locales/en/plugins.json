@@ -48,6 +48,8 @@
     "installedBadge": "Installed",
     "update": "Update",
     "marketplaceEmpty": "No plugins published yet.",
-    "marketplaceHint": "Community plugins are submitted by pull request to"
+    "marketplaceHint": "Community plugins are submitted by pull request to",
+    "searchPlaceholder": "Search plugins…",
+    "noMatches": "No plugins match your search."
   }
 }

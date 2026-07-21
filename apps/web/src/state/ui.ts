@@ -64,14 +64,21 @@ export const settingsOpenAtom = atom(false);
 /** The settings dialog's sections, for deep-links from elsewhere in the app. */
 export type SettingsSectionId =
   | "general"
+  | "customize"
+  // Legacy deep-link targets — the dialog maps them onto a Customize tab.
   | "appearance"
   | "reading"
+  | "menus"
   | "ai"
   | "plugins"
-  | "menus"
   | "shortcuts"
   | "dataSync"
   | "about";
+
+export type CustomizeTabId = "appearance" | "reading" | "menus";
+
+/** Which Customize tab to land on when the section opens (one-shot). */
+export const customizeTabRequestAtom = atom<CustomizeTabId | null>(null);
 
 /**
  * One-shot deep-link request: the section the settings dialog should land on

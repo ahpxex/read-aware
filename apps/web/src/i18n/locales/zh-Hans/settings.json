@@ -13,7 +13,8 @@
     "dataSync": "数据与同步",
     "about": "关于",
     "plugins": "插件",
-    "menus": "菜单"
+    "menus": "菜单",
+    "customize": "自定义"
   },
   "general": {
     "title": "通用",

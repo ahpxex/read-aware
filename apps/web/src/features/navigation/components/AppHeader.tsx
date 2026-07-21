@@ -22,6 +22,7 @@ import {
   CORE_MENU_DEFAULTS,
   menuConfigAtom,
   pluginMenuId,
+  renderableLayout,
   resolveSurfaceLayout,
 } from "../../menus/state/menu-config";
 import { PluginHeaderItem } from "../../plugins/components/PluginHeaderCluster";
@@ -91,7 +92,7 @@ export function AppHeader({
   const knownShelfIds = onShelf
     ? [...CORE_MENU_DEFAULTS.shelfHeader, ...shelfPluginActions.map((a) => pluginMenuId(a.key))]
     : CORE_MENU_DEFAULTS.shelfHeader;
-  const shelfLayout = resolveSurfaceLayout(menuConfig.shelfHeader, knownShelfIds);
+  const shelfLayout = renderableLayout(resolveSurfaceLayout(menuConfig.shelfHeader, knownShelfIds));
 
   const coreShelfNodes: Record<string, ReactNode | null> = {
     "core:search": (

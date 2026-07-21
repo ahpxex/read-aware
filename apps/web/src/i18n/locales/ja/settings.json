@@ -13,7 +13,8 @@
     "dataSync": "データと同期",
     "about": "アプリについて",
     "plugins": "プラグイン",
-    "menus": "メニュー"
+    "menus": "メニュー",
+    "customize": "カスタマイズ"
   },
   "general": {
     "title": "一般",

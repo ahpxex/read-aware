@@ -58,13 +58,6 @@ export const CORE_MENU_ITEMS: Record<MenuSurface, CoreMenuItemMeta[]> = {
   ],
 };
 
-/**
- * Widget items host their own popover/panel and can't collapse into the
- * overflow menu — the editor keeps them in the visible zone (reorder only),
- * and resolution treats an overflowed widget as visible.
- */
-export const LOCKED_VISIBLE = new Set(["core:viewControl", "core:appearance", "core:notes"]);
-
 export function coreMenuMeta(surface: MenuSurface, id: string): CoreMenuItemMeta | undefined {
   return CORE_MENU_ITEMS[surface].find((item) => item.id === id);
 }

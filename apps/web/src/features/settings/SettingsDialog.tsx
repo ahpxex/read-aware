@@ -1,6 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import {
-  BookOpen,
   CaretLeft,
   CaretRight,
   Database,
@@ -8,27 +7,28 @@ import {
   Keyboard,
   Palette,
   PuzzlePiece,
-  Rows,
   SlidersHorizontal,
   Sparkle,
   X,
   type Icon,
 } from "@phosphor-icons/react";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import { IconButton, ScrollArea } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { usePhoneViewport } from "@read-aware/ui/media";
 import { useBackInterceptor } from "../../hooks/useBackInterceptor";
 import { useTranslation } from "../../i18n";
-import { settingsSectionRequestAtom, type SettingsSectionId } from "../../state/ui";
+import {
+  customizeTabRequestAtom,
+  settingsSectionRequestAtom,
+  type SettingsSectionId,
+} from "../../state/ui";
 import { AboutPanel } from "./sections/AboutPanel";
 import { AIPanel } from "./sections/AIPanel";
-import { AppearancePanel } from "./sections/AppearancePanel";
+import { CustomizePanel } from "./sections/CustomizePanel";
 import { DataSyncPanel } from "./sections/DataSyncPanel";
 import { GeneralPanel } from "./sections/GeneralPanel";
-import { MenusPanel } from "./sections/MenusPanel";
 import { PluginsPanel } from "./sections/PluginsPanel";
-import { ReadingPanel } from "./sections/ReadingPanel";
 import { ShortcutsPanel } from "./sections/ShortcutsPanel";
 
 // Deep-linkable from anywhere via `settingsSectionRequestAtom` — the id union
@@ -43,11 +43,9 @@ type SettingsSection = {
 
 const SECTIONS: SettingsSection[] = [
   { id: "general", icon: SlidersHorizontal, Panel: GeneralPanel },
-  { id: "appearance", icon: Palette, Panel: AppearancePanel },
-  { id: "reading", icon: BookOpen, Panel: ReadingPanel },
+  { id: "customize", icon: Palette, Panel: CustomizePanel },
   { id: "ai", icon: Sparkle, Panel: AIPanel },
   { id: "plugins", icon: PuzzlePiece, Panel: PluginsPanel },
-  { id: "menus", icon: Rows, Panel: MenusPanel },
   { id: "shortcuts", icon: Keyboard, Panel: ShortcutsPanel },
   { id: "dataSync", icon: Database, Panel: DataSyncPanel },
   { id: "about", icon: Info, Panel: AboutPanel },
@@ -80,6 +78,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   // The list page only animates when returning from a panel, not on open.
   const returnedFromPanelRef = useRef(false);
   const [sectionRequest, setSectionRequest] = useAtom(settingsSectionRequestAtom);
+  const setCustomizeTabRequest = useSetAtom(customizeTabRequestAtom);
 
   // Android back gesture: a drilled-in section is a deeper layer, so back
   // returns to the section list; at the list level the event falls through and
@@ -121,7 +120,14 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   // One-shot: clearing the atom re-runs this effect, which bails immediately.
   useEffect(() => {
     if (!open || !sectionRequest) return;
-    const index = SECTIONS.findIndex((section) => section.id === sectionRequest);
+    // Legacy standalone sections now live as Customize tabs.
+    const legacyTabs = ["appearance", "reading", "menus"] as const;
+    const isLegacy = (legacyTabs as readonly string[]).includes(sectionRequest);
+    if (isLegacy) {
+      setCustomizeTabRequest(sectionRequest as (typeof legacyTabs)[number]);
+    }
+    const target = isLegacy ? "customize" : sectionRequest;
+    const index = SECTIONS.findIndex((section) => section.id === target);
     if (index >= 0) {
       setActiveIndex(index);
       if (isPhone) setPhoneSectionIndex(index);

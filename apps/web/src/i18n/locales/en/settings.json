@@ -13,7 +13,8 @@
     "dataSync": "Data & Sync",
     "about": "About",
     "plugins": "Plugins",
-    "menus": "Menus"
+    "menus": "Menus",
+    "customize": "Customize"
   },
   "general": {
     "title": "General",

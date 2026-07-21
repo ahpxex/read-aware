@@ -2,8 +2,8 @@
  * Drag-to-arrange editor for one surface's menu layout, rendered as the real
  * thing: a bar of icon buttons (the surface as it looks live, dots trigger at
  * the end) with the overflow panel opened beneath it. Items drag directly
- * between bar and panel; hover tooltips name them. Widget items (locked)
- * reorder but never overflow.
+ * between bar and panel; hover tooltips name them. Everything drags; widget
+ * items placed in the overflow still render inline live (renderableLayout).
  */
 import { DotsThreeVertical } from "@phosphor-icons/react";
 import { useState, type ReactNode } from "react";
@@ -13,7 +13,7 @@ import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import { renderPluginIcon } from "../../plugins/lib/plugin-icons";
 import { headerActionsAtom, selectionActionsAtom } from "../../plugins/state/plugin-store";
-import { CORE_MENU_ITEMS, LOCKED_VISIBLE } from "../lib/menu-registry";
+import { CORE_MENU_ITEMS } from "../lib/menu-registry";
 import {
   CORE_MENU_DEFAULTS,
   menuConfigAtom,
@@ -57,7 +57,7 @@ export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
     id: meta.id,
     label: String(t(`menus.items.${meta.labelKey}` as never)),
     icon: <meta.Icon size={16} weight="regular" aria-hidden="true" />,
-    locked: LOCKED_VISIBLE.has(meta.id),
+    locked: false,
   }));
   const itemById = new Map([...coreItems, ...pluginItems].map((item) => [item.id, item]));
 
@@ -69,9 +69,7 @@ export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
   /** Drop `dragId` into `zone`, before `beforeId` (or at the end). */
   function drop(zone: Zone, beforeId: string | null) {
     if (!dragId || dragId === beforeId) return;
-    const item = itemById.get(dragId);
-    if (!item) return;
-    if (zone === "overflow" && item.locked) return;
+    if (!itemById.has(dragId)) return;
     const without = (list: string[]) => list.filter((id) => id !== dragId);
     const next = { visible: without(layout.visible), overflow: without(layout.overflow) };
     const target = next[zone];

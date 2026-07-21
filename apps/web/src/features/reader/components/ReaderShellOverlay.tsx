@@ -16,6 +16,7 @@ import {
   CORE_MENU_DEFAULTS,
   menuConfigAtom,
   pluginMenuId,
+  renderableLayout,
   resolveSurfaceLayout,
 } from "../../menus/state/menu-config";
 import { PluginHeaderItem } from "../../plugins/components/PluginHeaderCluster";
@@ -126,10 +127,10 @@ export function ReaderShellOverlay({
   const readerPluginActions = useAtomValue(headerActionsAtom).filter(
     (action) => action.surface === "reader",
   );
-  const readerLayout = resolveSurfaceLayout(menuConfig.readerHeader, [
+  const readerLayout = renderableLayout(resolveSurfaceLayout(menuConfig.readerHeader, [
     ...CORE_MENU_DEFAULTS.readerHeader,
     ...readerPluginActions.map((action) => pluginMenuId(action.key)),
-  ]);
+  ]));
 
   const coreReaderNodes: Record<string, React.ReactNode | null> = {
     "core:navigator": navigatorAvailable ? (

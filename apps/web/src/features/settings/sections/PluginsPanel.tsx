@@ -254,7 +254,7 @@ export function PluginsPanel() {
           activeTab === 0 ? (
             <Button
               size="sm"
-              variant="outline"
+              variant="ghost"
               disabled={!desktop || installing}
               onClick={() => void handleInstall()}
             >
@@ -263,7 +263,7 @@ export function PluginsPanel() {
           ) : (
             <Button
               size="sm"
-              variant="outline"
+              variant="ghost"
               onClick={() => setMarketRefreshToken((token) => token + 1)}
             >
               {t("settings.refresh")}

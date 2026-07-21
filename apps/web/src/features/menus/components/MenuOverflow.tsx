@@ -71,11 +71,23 @@ export function MenuOverflow({
         {entries.map((entry) => (
           <li key={entry.id}>
             {entry.node ? (
-              <div className="flex items-center gap-2 rounded-md px-2 py-1">
-                <span className="min-w-0 flex-1 truncate font-sans text-sm text-fg">
-                  {entry.label}
+              // Reads exactly like an action row; the widget's real trigger is
+              // hidden inside and clicked through, its popover anchoring here.
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    const host = event.currentTarget.nextElementSibling;
+                    host?.querySelector("button")?.click();
+                  }}
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-fg transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
+                >
+                  <span className="text-fg-muted">{entry.icon}</span>
+                  <span className="min-w-0 flex-1 truncate">{entry.label}</span>
+                </button>
+                <span className="absolute right-1 top-full [&>div>button]:hidden">
+                  {entry.node}
                 </span>
-                {entry.node}
               </div>
             ) : (
             <button

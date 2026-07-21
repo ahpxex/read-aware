@@ -194,6 +194,7 @@ export function ReaderShellOverlay({
         return {
           id,
           label: String(tMenus(`menus.items.${meta.labelKey}` as never)),
+          icon: <meta.Icon size={16} weight="regular" aria-hidden="true" />,
           node: coreReaderNodes["core:appearance"],
         };
       }

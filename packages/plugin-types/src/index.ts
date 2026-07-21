@@ -246,6 +246,8 @@ export type PluginEventMap = {
   "chapter-changed": { bookId: string; chapterHref: string | null };
   /** Fires on page turns; fraction is 0..1. */
   "reading-progress": { bookId: string; fraction: number };
+  /** A book was deleted from the shelf — any path, including the shelf UI. */
+  "book-removed": { bookId: string };
   "annotation-created": { annotation: PluginAnnotation };
   "annotation-deleted": { id: string };
 };

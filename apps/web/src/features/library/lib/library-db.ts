@@ -25,6 +25,7 @@ import { sniffBookFormat } from "./book-format-sniff";
 import { isTauri } from "../../../platform/environment";
 import type { FoliateBook } from "../../reader/lib/foliate-engine";
 import type { BookFileSource } from "../../reader/lib/reader-types";
+import { emitAppEvent } from "../../../platform/app-events";
 
 /** Blob-store key for a book's original file bytes (desktop SQLite backend). */
 const bookFileKey = (bookId: string) => `bookfile:${bookId}`;
@@ -93,6 +94,7 @@ async function deleteBookRecords(bookIds: string[]): Promise<void> {
   emitDomainEvents(
     ...bookIds.map((bookId) => ({ type: "book.removed" as const, payload: { bookId } })),
   );
+  for (const bookId of bookIds) emitAppEvent("book-removed", { bookId });
   await invoke("library_delete_books", { ids: bookIds });
 }
 

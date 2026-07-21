@@ -14,6 +14,8 @@ export type AppEventMap = {
   "reading-progress": { bookId: string; fraction: number };
   "annotation-created": { annotation: Annotation };
   "annotation-deleted": { id: string };
+  /** A book row was deleted (any path — shelf UI included). */
+  "book-removed": { bookId: string };
   /** Library contents changed outside the controller (e.g. plugin import). */
   "library-changed": Record<string, never>;
 };

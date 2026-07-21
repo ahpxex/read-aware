@@ -33,6 +33,8 @@ import {
   type PluginFilePayload,
 } from "./plugin-backend";
 import { buildPluginContext } from "./plugin-context";
+import { onAppEvent } from "../../../platform/app-events";
+import { unbindVirtualBook } from "../lib/virtual-books";
 
 type ActivePlugin = {
   manifest: PluginManifest;
@@ -97,6 +99,10 @@ export async function initializePlugins(): Promise<void> {
       .filter((plugin) => plugin.enabled && !plugin.error)
       .map((plugin) => activatePlugin(plugin.manifest)),
   );
+
+  // Any deletion path (shelf UI included) must release the virtual-book
+  // binding, or the registry leaks dead entries.
+  onAppEvent("book-removed", ({ bookId }) => unbindVirtualBook(bookId));
 
   // Best-effort teardown on app quit — disposables run synchronously; async
   // deactivate() work races the process, which is the platform's nature.

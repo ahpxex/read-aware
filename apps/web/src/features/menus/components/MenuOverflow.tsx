@@ -85,7 +85,7 @@ export function MenuOverflow({
                   <span className="text-fg-muted">{entry.icon}</span>
                   <span className="min-w-0 flex-1 truncate">{entry.label}</span>
                 </button>
-                <span className="absolute right-1 top-full [&>div>button]:hidden">
+                <span className="absolute right-1 top-full [&>div>button]:hidden [&>div>span]:hidden">
                   {entry.node}
                 </span>
               </div>

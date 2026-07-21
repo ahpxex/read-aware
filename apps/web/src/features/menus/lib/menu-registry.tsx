@@ -20,7 +20,7 @@ import {
   NotePencil,
   Plus,
   Rows,
-  SquaresFour,
+  SlidersHorizontal,
   TextAa,
   TextUnderline,
   type Icon,
@@ -38,7 +38,7 @@ export const CORE_MENU_ITEMS: Record<MenuSurface, CoreMenuItemMeta[]> = {
   shelfHeader: [
     { id: "core:search", labelKey: "search", Icon: MagnifyingGlass },
     { id: "core:import", labelKey: "import", Icon: Plus },
-    { id: "core:viewControl", labelKey: "viewControl", Icon: SquaresFour },
+    { id: "core:viewControl", labelKey: "viewControl", Icon: SlidersHorizontal },
     { id: "core:context", labelKey: "context", Icon: Cards },
     { id: "core:stats", labelKey: "stats", Icon: ChartLineUp },
     { id: "core:settings", labelKey: "settings", Icon: GearSix },

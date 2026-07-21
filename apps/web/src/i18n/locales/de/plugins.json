@@ -58,6 +58,9 @@
       "title": "{{name}} installieren?",
       "confirm": "Installieren",
       "cancel": "Abbrechen"
-    }
+    },
+    "configure": "Einstellungen",
+    "configureSave": "Speichern",
+    "configureSaved": "Plugin-Einstellungen gespeichert"
   }
 }

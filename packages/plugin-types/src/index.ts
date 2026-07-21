@@ -38,6 +38,12 @@ export type PluginManifest = {
   permissions?: PluginPermission[];
   /** Entry module relative to the plugin folder. Defaults to "main.js". */
   main?: string;
+  /**
+   * Declarative settings: rendered by the app from the Plugins panel; values
+   * persist as one object under the plugin's storage key `settings`
+   * (read with `ctx.storage.get("settings")`).
+   */
+  settings?: PluginFormField[];
 };
 
 /** Returned by every `register*` call; disposing removes the contribution. */
@@ -71,6 +77,8 @@ export type PluginListView = {
 
 export type PluginFormField =
   | { kind: "text"; id: string; label: string; value?: string; placeholder?: string }
+  | { kind: "textarea"; id: string; label: string; value?: string; placeholder?: string; rows?: number }
+  | { kind: "number"; id: string; label: string; value?: number; min?: number; max?: number; step?: number }
   | {
       kind: "select";
       id: string;
@@ -80,7 +88,7 @@ export type PluginFormField =
     }
   | { kind: "toggle"; id: string; label: string; value?: boolean };
 
-export type PluginFormValues = Record<string, string | boolean>;
+export type PluginFormValues = Record<string, string | boolean | number>;
 
 export type PluginFormView = {
   kind: "form";
@@ -136,13 +144,20 @@ export type PluginView =
  * - `undefined` / `null` — nothing happens (surface stays as is);
  * - `{ toast }` — a transient notice;
  * - `{ view }` — open (or push onto) the surface with this view;
- * - `{ close: true }` — dismiss the surface (composable with `toast`).
+ * - `{ close: true }` — dismiss the surface (composable with `toast`);
+ * - `{ fieldErrors }` (from a form submit) — stay on the form and show the
+ *   errors under their fields.
  */
 export type PluginViewResult =
   | void
   | undefined
   | null
-  | { toast?: string; view?: PluginView; close?: boolean };
+  | {
+      toast?: string;
+      view?: PluginView;
+      close?: boolean;
+      fieldErrors?: Record<string, string>;
+    };
 
 // ─── Contributions ───────────────────────────────────────────────────────────
 
@@ -321,6 +336,11 @@ export type PluginContext = {
       chapterHref?: string | null;
     }): Promise<PluginAnnotation>;
     deleteAnnotation(id: string): Promise<void>;
+    updateNote(id: string, content: string): Promise<void>;
+    recolorHighlight(
+      id: string,
+      color: "yellow" | "green" | "blue" | "pink",
+    ): Promise<void>;
     /** Chapter list of a book's extracted text (extraction runs on demand). */
     getToc(bookId: string): Promise<PluginChapterRef[]>;
     /** Plain text of one chapter by its toc index; null when unavailable. */
@@ -355,7 +375,12 @@ export type PluginContext = {
    * Rejects when AI is not configured.
    */
   llm?: {
-    ask(input: { prompt: string; system?: string }): Promise<string>;
+    ask(input: {
+      prompt: string;
+      system?: string;
+      /** Model tier on the user's account; defaults to "fast". */
+      model?: "fast" | "smart";
+    }): Promise<string>;
   };
   /**
    * Requires the `library-write` permission: add real books to the shelf.

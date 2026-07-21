@@ -13,6 +13,7 @@ import { isTauri } from "../../../platform/environment";
 import { PluginMarketplace } from "../../plugins/components/PluginMarketplace";
 import { PluginSearchInput } from "../../plugins/components/PluginSearchInput";
 import { parseManifestJson } from "../../plugins/lib/manifest";
+import { buildPluginSettingsView } from "../../plugins/lib/plugin-settings";
 import { matchesPluginQuery } from "../../plugins/lib/search";
 import type { PluginPermission } from "../../plugins/lib/plugin-types";
 import { readPluginManifestFromDir } from "../../plugins/runtime/plugin-backend";
@@ -23,6 +24,7 @@ import {
 } from "../../plugins/runtime/plugin-host";
 import {
   installedPluginsAtom,
+  openPluginDialog,
   requestInstallConsent,
 } from "../../plugins/state/plugin-store";
 import { SettingsPage } from "../components/SettingsPage";
@@ -142,6 +144,28 @@ export function PluginsPanel() {
                 }
                 control={
                   <span className="flex shrink-0 items-center gap-2">
+                    {manifest.settings && manifest.settings.length > 0 && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          const view = buildPluginSettingsView(
+                            manifest,
+                            t("settings.configureSave"),
+                            t("settings.configureSaved"),
+                          );
+                          if (view) {
+                            openPluginDialog({
+                              pluginId: manifest.id,
+                              pluginName: manifest.name,
+                              view,
+                            });
+                          }
+                        }}
+                      >
+                        {t("settings.configure")}
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant={confirmingUninstall === manifest.id ? "danger" : "ghost"}

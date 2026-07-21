@@ -66,8 +66,12 @@ export class AgentRuntime {
    * 一次性快问（无线程、无记忆、无工具）：宿主的轻量 LLM 入口 ——
    * 产品侧用于插件的 `llm` 权限域。走 fast 档模型。
    */
-  async ask(input: { prompt: string; system?: string }): Promise<string> {
-    const message = await this.completeFn(this.resolveModel("fast"), {
+  async ask(input: {
+    prompt: string;
+    system?: string;
+    model?: "fast" | "smart";
+  }): Promise<string> {
+    const message = await this.completeFn(this.resolveModel(input.model ?? "fast"), {
       systemPrompt: input.system,
       messages: [{ role: "user", content: input.prompt, timestamp: Date.now() }],
     });

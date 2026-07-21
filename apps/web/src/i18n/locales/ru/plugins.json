@@ -58,6 +58,9 @@
       "title": "Установить {{name}}?",
       "confirm": "Установить",
       "cancel": "Отмена"
-    }
+    },
+    "configure": "Настройки",
+    "configureSave": "Сохранить",
+    "configureSaved": "Настройки плагина сохранены"
   }
 }

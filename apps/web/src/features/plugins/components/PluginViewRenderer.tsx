@@ -6,7 +6,7 @@
  */
 import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
-import { Body, Button, IconButton, Select, Spinner, TextField, Toggle } from "@read-aware/ui";
+import { Body, Button, IconButton, Select, Spinner, TextArea, TextField, Toggle } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import { Markdown } from "../../ai/components/Markdown";
@@ -43,21 +43,28 @@ export function PluginViewRenderer({ view, onClose, className }: PluginViewRende
 
   const current = stack.length > 0 ? stack[stack.length - 1] : null;
 
-  async function handleResult(run: () => PluginViewResult | Promise<PluginViewResult>) {
+  async function handleResult(
+    run: () => PluginViewResult | Promise<PluginViewResult>,
+  ): Promise<PluginViewResult> {
     setBusy(true);
     try {
       const result = await run();
       if (result) {
         if (result.toast) showPluginToast(result.toast);
-        if (result.view) {
-          const next = result.view;
-          setStack((prev) => [...prev, next]);
-        } else if (result.close) {
-          onClose?.();
+        // Field errors keep the form open; nothing else happens this round.
+        if (!result.fieldErrors) {
+          if (result.view) {
+            const next = result.view;
+            setStack((prev) => [...prev, next]);
+          } else if (result.close) {
+            onClose?.();
+          }
         }
       }
+      return result;
     } catch (error) {
       showPluginToast(error instanceof Error ? error.message : String(error));
+      return null;
     } finally {
       setBusy(false);
     }
@@ -220,7 +227,7 @@ function PluginListViewBody({
 }: {
   view: PluginListView;
   busy: boolean;
-  onResult: (run: () => PluginViewResult | Promise<PluginViewResult>) => void;
+  onResult: (run: () => PluginViewResult | Promise<PluginViewResult>) => Promise<PluginViewResult> | void;
 }) {
   const { t } = useTranslation("plugins");
   if (view.items.length === 0) {
@@ -280,13 +287,19 @@ function PluginFormViewBody({
 }: {
   view: PluginFormView;
   busy: boolean;
-  onResult: (run: () => PluginViewResult | Promise<PluginViewResult>) => void;
+  onResult: (run: () => PluginViewResult | Promise<PluginViewResult>) => Promise<PluginViewResult> | void;
 }) {
   const { t } = useTranslation("plugins");
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [values, setValues] = useState<PluginFormValues>(() => {
     const initial: PluginFormValues = {};
     for (const field of view.fields) {
-      initial[field.id] = field.kind === "toggle" ? (field.value ?? false) : (field.value ?? "");
+      initial[field.id] =
+        field.kind === "toggle"
+          ? (field.value ?? false)
+          : field.kind === "number"
+            ? (field.value ?? 0)
+            : (field.value ?? "");
     }
     return initial;
   });
@@ -296,7 +309,11 @@ function PluginFormViewBody({
       className="flex flex-col gap-4 px-0.5 py-1"
       onSubmit={(event) => {
         event.preventDefault();
-        onResult(() => view.onSubmit({ ...values }));
+        setErrors({});
+        void (async () => {
+          const result = await onResult(() => view.onSubmit({ ...values }));
+          if (result?.fieldErrors) setErrors(result.fieldErrors);
+        })();
       }}
     >
       {view.fields.map((field) => {
@@ -307,9 +324,43 @@ function PluginFormViewBody({
               label={field.label}
               variant="outlined"
               placeholder={field.placeholder}
+              error={errors[field.id]}
               value={String(values[field.id] ?? "")}
               onChange={(event) =>
                 setValues((prev) => ({ ...prev, [field.id]: event.target.value }))
+              }
+            />
+          );
+        }
+        if (field.kind === "textarea") {
+          return (
+            <TextArea
+              key={field.id}
+              label={field.label}
+              placeholder={field.placeholder}
+              rows={field.rows ?? 4}
+              error={errors[field.id]}
+              value={String(values[field.id] ?? "")}
+              onChange={(event) =>
+                setValues((prev) => ({ ...prev, [field.id]: event.target.value }))
+              }
+            />
+          );
+        }
+        if (field.kind === "number") {
+          return (
+            <TextField
+              key={field.id}
+              label={field.label}
+              variant="outlined"
+              type="number"
+              min={field.min}
+              max={field.max}
+              step={field.step}
+              error={errors[field.id]}
+              value={String(values[field.id] ?? 0)}
+              onChange={(event) =>
+                setValues((prev) => ({ ...prev, [field.id]: Number(event.target.value) }))
               }
             />
           );

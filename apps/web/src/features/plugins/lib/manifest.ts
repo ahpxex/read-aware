@@ -88,6 +88,30 @@ export function validateManifest(raw: unknown): PluginManifest {
     permissions = [...new Set(rawPermissions as PluginPermission[])];
   }
 
+  let settings: PluginManifest["settings"];
+  if (record.settings != null) {
+    if (!Array.isArray(record.settings)) {
+      throw new PluginManifestError("manifest.settings must be an array of fields");
+    }
+    const kinds = new Set(["text", "textarea", "number", "select", "toggle"]);
+    for (const field of record.settings as Record<string, unknown>[]) {
+      if (
+        typeof field !== "object" || field === null ||
+        !kinds.has(String(field.kind)) ||
+        typeof field.id !== "string" || field.id.trim() === "" ||
+        typeof field.label !== "string" || field.label.trim() === ""
+      ) {
+        throw new PluginManifestError(
+          "manifest.settings entries need a valid kind, id, and label",
+        );
+      }
+      if (field.kind === "select" && !Array.isArray(field.options)) {
+        throw new PluginManifestError("manifest.settings select fields need options");
+      }
+    }
+    settings = record.settings as PluginManifest["settings"];
+  }
+
   const main = optionalString(record, "main");
   if (main && (main.includes("..") || main.startsWith("/") || main.includes("\\"))) {
     throw new PluginManifestError("manifest.main must be a plain relative file name");
@@ -102,6 +126,7 @@ export function validateManifest(raw: unknown): PluginManifest {
     minAppVersion: optionalString(record, "minAppVersion"),
     permissions,
     main,
+    settings,
   };
 }
 

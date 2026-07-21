@@ -58,6 +58,9 @@
       "title": "Installer {{name}} ?",
       "confirm": "Installer",
       "cancel": "Annuler"
-    }
+    },
+    "configure": "Réglages",
+    "configureSave": "Enregistrer",
+    "configureSaved": "Réglages enregistrés"
   }
 }

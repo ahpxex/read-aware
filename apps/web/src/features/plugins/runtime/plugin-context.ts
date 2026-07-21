@@ -24,6 +24,9 @@ import {
   createHighlight,
   createNote,
   deleteAnnotation,
+  getAnnotation,
+  recolorHighlight,
+  updateNote,
 } from "../../annotations/lib/annotation-db";
 import { annotationsRevisionAtom } from "../../annotations/state/annotations-revision";
 import {
@@ -235,6 +238,18 @@ export function buildPluginContext(
         await deleteAnnotation(String(id));
         bumpAnnotationsRevision();
       },
+      updateNote: async (id, content) => {
+        await updateNote(String(id), String(content));
+        bumpAnnotationsRevision();
+      },
+      recolorHighlight: async (id, color) => {
+        const existing = await getAnnotation(String(id));
+        if (!existing || existing.type !== "highlight") {
+          throw new Error(`highlight not found: ${id}`);
+        }
+        await recolorHighlight(existing, color);
+        bumpAnnotationsRevision();
+      },
       getToc: async (bookId) =>
         (await bookText.getToc(bookId)).map((chapter) => ({
           index: chapter.index,
@@ -314,7 +329,11 @@ export function buildPluginContext(
       ask: async (input) => {
         const runtime = getAgentRuntime();
         if (!runtime) throw new Error("AI is not configured");
-        return runtime.ask({ prompt: String(input.prompt), system: input.system });
+        return runtime.ask({
+          prompt: String(input.prompt),
+          system: input.system,
+          model: input.model === "smart" ? "smart" : "fast",
+        });
       },
     };
   }

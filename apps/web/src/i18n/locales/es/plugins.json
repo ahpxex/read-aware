@@ -58,6 +58,9 @@
       "title": "¿Instalar {{name}}?",
       "confirm": "Instalar",
       "cancel": "Cancelar"
-    }
+    },
+    "configure": "Ajustes",
+    "configureSave": "Guardar",
+    "configureSaved": "Ajustes del plugin guardados"
   }
 }

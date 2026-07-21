@@ -602,7 +602,7 @@
 <div class="tablewrap">
 <table>
   <tr><th>权限域</th><th>授予的能力面</th></tr>
-  <tr><td><code>reading-data</code></td><td>读书籍元数据、标注、笔记（只读；写入走各自的显式 API 再议）</td></tr>
+  <tr><td><code>reading-data</code></td><td>读写阅读数据:书籍(读)、高亮/笔记(创建/删除)、内置生词本(读写,与阅读器词典同一份存储)</td></tr>
   <tr><td><code>network</code></td><td><code>ctx.fetch</code>（CSP <code>connect-src</code> 已含 <code>https:</code>，门控在 API 层）</td></tr>
   <tr><td><code>ai</code></td><td>注册 agent 工具（§8）</td></tr>
   <tr><td><code>dictionary</code></td><td>应用内置词典 <code>ctx.dictionary.lookUp</code>（与阅读器查词共享缓存；消耗用户 AI 额度）</td></tr>

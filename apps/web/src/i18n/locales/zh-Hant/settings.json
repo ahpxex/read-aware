@@ -12,7 +12,8 @@
     "shortcuts": "快捷鍵",
     "dataSync": "資料與同步",
     "about": "關於",
-    "plugins": "外掛"
+    "plugins": "外掛",
+    "menus": "選單"
   },
   "general": {
     "title": "一般",
@@ -348,6 +349,39 @@
     "contact": {
       "title": "聯絡",
       "description": "有疑問、錯誤或意見，歡迎直接聯絡。"
+    }
+  },
+  "menus": {
+    "title": "選單",
+    "description": "自訂頂欄與選取選單:在「顯示」與「更多選單」之間拖曳項目並調整順序。",
+    "more": "更多",
+    "shown": "顯示",
+    "overflow": "更多選單",
+    "reset": "恢復預設",
+    "dragHint": "拖曳可排序或在區域間移動。小工具類項目固定內聯顯示。",
+    "surface": {
+      "shelfHeader": "書架頂欄",
+      "readerHeader": "閱讀器頂欄",
+      "selection": "選取選單"
+    },
+    "items": {
+      "search": "搜尋",
+      "import": "匯入書籍",
+      "viewControl": "書架檢視",
+      "context": "Context",
+      "stats": "閱讀統計",
+      "settings": "設定",
+      "toc": "目錄",
+      "notes": "筆記",
+      "navigator": "逐句導覽",
+      "appearance": "外觀",
+      "chat": "聊天",
+      "copy": "複製",
+      "highlight": "螢光標記",
+      "underline": "底線",
+      "addNote": "新增筆記",
+      "lookUp": "查詞",
+      "askAI": "問 AI"
     }
   }
 }

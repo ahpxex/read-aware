@@ -12,7 +12,8 @@
     "shortcuts": "快捷键",
     "dataSync": "数据与同步",
     "about": "关于",
-    "plugins": "插件"
+    "plugins": "插件",
+    "menus": "菜单"
   },
   "general": {
     "title": "通用",
@@ -348,6 +349,39 @@
     "contact": {
       "title": "联系",
       "description": "有疑问、Bug 或反馈，欢迎直接联系。"
+    }
+  },
+  "menus": {
+    "title": "菜单",
+    "description": "自定义顶栏与选区菜单:在「显示」与「更多菜单」之间拖动条目并调整顺序。",
+    "more": "更多",
+    "shown": "显示",
+    "overflow": "更多菜单",
+    "reset": "恢复默认",
+    "dragHint": "拖动可排序或在区域间移动。挂件类条目固定内联显示。",
+    "surface": {
+      "shelfHeader": "书架顶栏",
+      "readerHeader": "阅读器顶栏",
+      "selection": "选区菜单"
+    },
+    "items": {
+      "search": "搜索",
+      "import": "导入书籍",
+      "viewControl": "书架视图",
+      "context": "Context",
+      "stats": "阅读统计",
+      "settings": "设置",
+      "toc": "目录",
+      "notes": "笔记",
+      "navigator": "逐句导航",
+      "appearance": "外观",
+      "chat": "聊天",
+      "copy": "复制",
+      "highlight": "高亮",
+      "underline": "下划线",
+      "addNote": "添加笔记",
+      "lookUp": "查词",
+      "askAI": "问 AI"
     }
   }
 }

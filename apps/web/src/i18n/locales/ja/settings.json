@@ -12,7 +12,8 @@
     "shortcuts": "ショートカット",
     "dataSync": "データと同期",
     "about": "アプリについて",
-    "plugins": "プラグイン"
+    "plugins": "プラグイン",
+    "menus": "メニュー"
   },
   "general": {
     "title": "一般",
@@ -348,6 +349,39 @@
     "contact": {
       "title": "お問い合わせ",
       "description": "質問・バグ・フィードバックはお気軽にどうぞ。"
+    }
+  },
+  "menus": {
+    "title": "メニュー",
+    "description": "ヘッダーバーと選択メニューをカスタマイズ:項目を「表示」とオーバーフローの間でドラッグし、並べ替えます。",
+    "more": "その他",
+    "shown": "表示",
+    "overflow": "オーバーフローメニュー",
+    "reset": "デフォルトに戻す",
+    "dragHint": "ドラッグで並べ替え・移動。ウィジェット項目はインライン固定です。",
+    "surface": {
+      "shelfHeader": "本棚ヘッダー",
+      "readerHeader": "リーダーヘッダー",
+      "selection": "選択メニュー"
+    },
+    "items": {
+      "search": "検索",
+      "import": "書籍を追加",
+      "viewControl": "本棚ビュー",
+      "context": "Context",
+      "stats": "読書統計",
+      "settings": "設定",
+      "toc": "目次",
+      "notes": "ノート",
+      "navigator": "文ナビゲーター",
+      "appearance": "外観",
+      "chat": "チャット",
+      "copy": "コピー",
+      "highlight": "ハイライト",
+      "underline": "下線",
+      "addNote": "ノート追加",
+      "lookUp": "辞書",
+      "askAI": "AI に聞く"
     }
   }
 }

@@ -128,6 +128,43 @@ export function PluginHeaderCluster({
   );
 }
 
+/**
+ * One plugin header action as an inline button: page actions navigate, popup
+ * actions open an anchored Popover. The menu-config surfaces render these
+ * directly; the legacy cluster above composes them too.
+ */
+export function PluginHeaderItem({
+  action,
+  input = {},
+  onOpenPage,
+  buttonClassName,
+}: {
+  action: RegisteredHeaderAction;
+  input?: HeaderActionInput;
+  onOpenPage?: (key: string) => void;
+  buttonClassName?: string;
+}) {
+  if (action.surface === "shelf" && action.presentation === "page") {
+    return (
+      <Tooltip content={action.title} side="bottom">
+        <IconButton
+          label={action.title}
+          size="sm"
+          onClick={() => onOpenPage?.(action.key)}
+          className={cn(
+            "relative text-fg-muted hover:text-fg before:absolute before:-inset-1 before:content-['']",
+            buttonClassName,
+          )}
+          icon={renderPluginIcon(action.icon, 16)}
+        />
+      </Tooltip>
+    );
+  }
+  return (
+    <PluginHeaderPopupButton action={action} input={input} buttonClassName={buttonClassName} />
+  );
+}
+
 /** A pinned popup action: anchored Popover whose view loads when opened. */
 function PluginHeaderPopupButton({
   action,

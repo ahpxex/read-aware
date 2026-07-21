@@ -16,7 +16,15 @@ import { useAtomValue } from "jotai";
 import { useTranslation } from "../../../i18n";
 import { desktopChromeKind } from "../../../platform/environment";
 import { activeCollectionAtom, type TopNav } from "../../../state/ui";
-import { PluginHeaderCluster } from "../../plugins/components/PluginHeaderCluster";
+import { MenuOverflow, type MenuOverflowEntry } from "../../menus/components/MenuOverflow";
+import { coreMenuMeta } from "../../menus/lib/menu-registry";
+import {
+  CORE_MENU_DEFAULTS,
+  menuConfigAtom,
+  pluginMenuId,
+  resolveSurfaceLayout,
+} from "../../menus/state/menu-config";
+import { PluginHeaderItem } from "../../plugins/components/PluginHeaderCluster";
 import { openHeaderActionDialog } from "../../plugins/lib/open-header-action";
 import { renderPluginIcon } from "../../plugins/lib/plugin-icons";
 import { headerActionsAtom } from "../../plugins/state/plugin-store";
@@ -75,6 +83,117 @@ export function AppHeader({
   const shelfPluginActions = useAtomValue(headerActionsAtom).filter(
     (action) => action.surface === "shelf",
   );
+
+  // User-arranged layout: visible items inline (core + plugin interleaved in
+  // the user's order), the rest behind the vertical-dots overflow.
+  const { t: tMenus } = useTranslation("settings");
+  const menuConfig = useAtomValue(menuConfigAtom);
+  const knownShelfIds = onShelf
+    ? [...CORE_MENU_DEFAULTS.shelfHeader, ...shelfPluginActions.map((a) => pluginMenuId(a.key))]
+    : CORE_MENU_DEFAULTS.shelfHeader;
+  const shelfLayout = resolveSurfaceLayout(menuConfig.shelfHeader, knownShelfIds);
+
+  const coreShelfNodes: Record<string, ReactNode | null> = {
+    "core:search": (
+      <Tooltip content={t("header.search")} side="bottom">
+        <IconButton
+          label={t("header.search")}
+          size="sm"
+          onClick={onOpenSearch}
+          className={headerIconButtonClass}
+          icon={<MagnifyingGlass size={16} weight="regular" aria-hidden="true" />}
+        />
+      </Tooltip>
+    ),
+    "core:import": (
+      <Tooltip content={isImporting ? t("header.importing") : t("header.import")} side="bottom">
+        <IconButton
+          label={t("header.import")}
+          size="sm"
+          onClick={onImport}
+          disabled={isImporting}
+          className={headerIconButtonClass}
+          icon={<Plus size={16} weight="regular" aria-hidden="true" />}
+        />
+      </Tooltip>
+    ),
+    "core:viewControl": viewControl ?? null,
+    "core:context": (
+      <Tooltip content={t("header.context")} side="bottom">
+        <IconButton
+          label={t("header.context")}
+          size="sm"
+          aria-pressed={contextActive}
+          onClick={() => onTopNavChange(contextActive ? "shelf" : "context")}
+          className={cn(
+            "relative before:absolute before:-inset-1 before:content-['']",
+            contextActive ? "text-fg" : "text-fg-muted hover:text-fg",
+          )}
+          icon={<Cards size={16} weight={contextActive ? "fill" : "regular"} aria-hidden="true" />}
+        />
+      </Tooltip>
+    ),
+    "core:stats": (
+      <Tooltip content={t("header.stats")} side="bottom">
+        <IconButton
+          label={t("header.stats")}
+          size="sm"
+          aria-pressed={statsActive}
+          onClick={() => onTopNavChange(statsActive ? "shelf" : "stats")}
+          className={cn(
+            "relative before:absolute before:-inset-1 before:content-['']",
+            statsActive ? "text-fg" : "text-fg-muted hover:text-fg",
+          )}
+          icon={<ChartLineUp size={16} weight={statsActive ? "fill" : "regular"} aria-hidden="true" />}
+        />
+      </Tooltip>
+    ),
+    "core:settings": (
+      <Tooltip content={t("header.settings")} side="bottom" align="end">
+        <IconButton
+          label={t("header.settings")}
+          size="sm"
+          onClick={onOpenSettings}
+          className={headerIconButtonClass}
+          icon={<GearSix size={16} weight="regular" aria-hidden="true" />}
+        />
+      </Tooltip>
+    ),
+  };
+
+  const coreShelfRun: Record<string, () => void> = {
+    "core:search": onOpenSearch,
+    "core:import": onImport,
+    "core:context": () => onTopNavChange(contextActive ? "shelf" : "context"),
+    "core:stats": () => onTopNavChange(statsActive ? "shelf" : "stats"),
+    "core:settings": onOpenSettings,
+  };
+  const shelfOverflowEntries = shelfLayout.overflow
+    .map((id): MenuOverflowEntry | null => {
+      if (id.startsWith("plugin:")) {
+        const action = shelfPluginActions.find((entry) => pluginMenuId(entry.key) === id);
+        if (!action) return null;
+        return {
+          id,
+          label: action.title,
+          icon: renderPluginIcon(action.icon, 16),
+          run: () => {
+            if (action.presentation === "page") onTopNavChange(`plugin:${action.key}`);
+            else void openHeaderActionDialog(action, {});
+          },
+        };
+      }
+      const meta = coreMenuMeta("shelfHeader", id);
+      const run = coreShelfRun[id];
+      if (!meta || !run) return null;
+      return {
+        id,
+        label: String(tMenus(`menus.items.${meta.labelKey}` as never)),
+        icon: <meta.Icon size={16} weight="regular" aria-hidden="true" />,
+        run,
+      };
+    })
+    .filter((entry): entry is MenuOverflowEntry => entry !== null);
 
   // Standalone surfaces (Context, Stats) and an open collection all read as
   // pushed views, so give them a back affordance on the left — mirroring the
@@ -222,67 +341,23 @@ export function AppHeader({
         <div className={cn("flex items-center gap-1.5", !customChrome && "ml-auto")}>
           {actions ?? (
             <>
-              <Tooltip content={t("header.search")} side="bottom">
-                <IconButton
-                  label={t("header.search")}
-                  size="sm"
-                  onClick={onOpenSearch}
-                  className={headerIconButtonClass}
-                  icon={<MagnifyingGlass size={16} weight="regular" aria-hidden="true" />}
-                />
-              </Tooltip>
-              <Tooltip content={isImporting ? t("header.importing") : t("header.import")} side="bottom">
-                <IconButton
-                  label={t("header.import")}
-                  size="sm"
-                  onClick={onImport}
-                  disabled={isImporting}
-                  className={headerIconButtonClass}
-                  icon={<Plus size={16} weight="regular" aria-hidden="true" />}
-                />
-              </Tooltip>
-              {viewControl}
-              {onShelf && (
-                <PluginHeaderCluster
-                  surface="shelf"
-                  onOpenPage={(key) => onTopNavChange(`plugin:${key}`)}
-                />
-              )}
-              <Tooltip content={t("header.context")} side="bottom">
-                <IconButton
-                  label={t("header.context")}
-                  size="sm"
-                  aria-pressed={contextActive}
-                  onClick={() => onTopNavChange(contextActive ? "shelf" : "context")}
-                  className={cn(
-                    "relative before:absolute before:-inset-1 before:content-['']",
-                    contextActive ? "text-fg" : "text-fg-muted hover:text-fg",
-                  )}
-                  icon={<Cards size={16} weight={contextActive ? "fill" : "regular"} aria-hidden="true" />}
-                />
-              </Tooltip>
-              <Tooltip content={t("header.stats")} side="bottom">
-                <IconButton
-                  label={t("header.stats")}
-                  size="sm"
-                  aria-pressed={statsActive}
-                  onClick={() => onTopNavChange(statsActive ? "shelf" : "stats")}
-                  className={cn(
-                    "relative before:absolute before:-inset-1 before:content-['']",
-                    statsActive ? "text-fg" : "text-fg-muted hover:text-fg",
-                  )}
-                  icon={<ChartLineUp size={16} weight={statsActive ? "fill" : "regular"} aria-hidden="true" />}
-                />
-              </Tooltip>
-              <Tooltip content={t("header.settings")} side="bottom" align="end">
-                <IconButton
-                  label={t("header.settings")}
-                  size="sm"
-                  onClick={onOpenSettings}
-                  className={headerIconButtonClass}
-                  icon={<GearSix size={16} weight="regular" aria-hidden="true" />}
-                />
-              </Tooltip>
+              {shelfLayout.visible.map((id) => {
+                if (id.startsWith("plugin:")) {
+                  const action = shelfPluginActions.find(
+                    (entry) => pluginMenuId(entry.key) === id,
+                  );
+                  return action ? (
+                    <PluginHeaderItem
+                      key={id}
+                      action={action}
+                      onOpenPage={(key) => onTopNavChange(`plugin:${key}`)}
+                    />
+                  ) : null;
+                }
+                const node = coreShelfNodes[id];
+                return node ? <span key={id} className="contents">{node}</span> : null;
+              })}
+              <MenuOverflow entries={shelfOverflowEntries} />
             </>
           )}
         </div>

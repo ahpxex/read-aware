@@ -12,7 +12,8 @@
     "shortcuts": "Atajos",
     "dataSync": "Datos y sincronización",
     "about": "Acerca de",
-    "plugins": "Plugins"
+    "plugins": "Plugins",
+    "menus": "Menús"
   },
   "general": {
     "title": "General",
@@ -356,6 +357,39 @@
     "contact": {
       "title": "Contacto",
       "description": "Preguntas, errores o comentarios — escríbenos directamente."
+    }
+  },
+  "menus": {
+    "title": "Menús",
+    "description": "Personaliza las barras y el menú de selección: arrastra elementos entre zonas y reordénalos.",
+    "more": "Más",
+    "shown": "Mostrados",
+    "overflow": "Menú de desbordamiento",
+    "reset": "Restablecer",
+    "dragHint": "Arrastra para reordenar o mover. Los widgets quedan en línea.",
+    "surface": {
+      "shelfHeader": "Barra de la estantería",
+      "readerHeader": "Barra del lector",
+      "selection": "Menú de selección"
+    },
+    "items": {
+      "search": "Buscar",
+      "import": "Importar",
+      "viewControl": "Vista",
+      "context": "Context",
+      "stats": "Estadísticas",
+      "settings": "Ajustes",
+      "toc": "Índice",
+      "notes": "Notas",
+      "navigator": "Navegador",
+      "appearance": "Apariencia",
+      "chat": "Chat",
+      "copy": "Copiar",
+      "highlight": "Subrayar",
+      "underline": "Subrayado",
+      "addNote": "Añadir nota",
+      "lookUp": "Buscar palabra",
+      "askAI": "Preguntar a la IA"
     }
   }
 }

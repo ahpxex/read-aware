@@ -12,7 +12,8 @@
     "shortcuts": "Shortcuts",
     "dataSync": "Data & Sync",
     "about": "About",
-    "plugins": "Plugins"
+    "plugins": "Plugins",
+    "menus": "Menus"
   },
   "general": {
     "title": "General",
@@ -352,6 +353,39 @@
     "contact": {
       "title": "Contact",
       "description": "Questions, bugs, or feedback — reach out directly."
+    }
+  },
+  "menus": {
+    "title": "Menus",
+    "description": "Arrange the header bars and the selection menu: drag items between Shown and the overflow menu, and reorder them.",
+    "more": "More",
+    "shown": "Shown",
+    "overflow": "Overflow menu",
+    "reset": "Reset to defaults",
+    "dragHint": "Drag to reorder or move between zones. Widget items stay inline.",
+    "surface": {
+      "shelfHeader": "Shelf header",
+      "readerHeader": "Reader header",
+      "selection": "Selection menu"
+    },
+    "items": {
+      "search": "Search",
+      "import": "Import book",
+      "viewControl": "Shelf view",
+      "context": "Context",
+      "stats": "Reading stats",
+      "settings": "Settings",
+      "toc": "Table of contents",
+      "notes": "Notes",
+      "navigator": "Sentence navigator",
+      "appearance": "Appearance",
+      "chat": "Chat",
+      "copy": "Copy",
+      "highlight": "Highlight",
+      "underline": "Underline",
+      "addNote": "Add note",
+      "lookUp": "Look up",
+      "askAI": "Ask AI"
     }
   }
 }

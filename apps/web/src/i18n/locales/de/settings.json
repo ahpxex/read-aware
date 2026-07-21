@@ -12,7 +12,8 @@
     "shortcuts": "Tastenkürzel",
     "dataSync": "Daten & Sync",
     "about": "Über",
-    "plugins": "Plugins"
+    "plugins": "Plugins",
+    "menus": "Menüs"
   },
   "general": {
     "title": "Allgemein",
@@ -352,6 +353,39 @@
     "contact": {
       "title": "Kontakt",
       "description": "Fragen, Fehler oder Feedback — melde dich direkt."
+    }
+  },
+  "menus": {
+    "title": "Menüs",
+    "description": "Kopfleisten und Auswahlmenü anpassen: Einträge zwischen Sichtbar und Überlaufmenü ziehen und ordnen.",
+    "more": "Mehr",
+    "shown": "Sichtbar",
+    "overflow": "Überlaufmenü",
+    "reset": "Zurücksetzen",
+    "dragHint": "Ziehen zum Ordnen oder Verschieben. Widgets bleiben inline.",
+    "surface": {
+      "shelfHeader": "Regal-Kopfleiste",
+      "readerHeader": "Reader-Kopfleiste",
+      "selection": "Auswahlmenü"
+    },
+    "items": {
+      "search": "Suche",
+      "import": "Importieren",
+      "viewControl": "Ansicht",
+      "context": "Context",
+      "stats": "Statistik",
+      "settings": "Einstellungen",
+      "toc": "Inhalt",
+      "notes": "Notizen",
+      "navigator": "Satznavigator",
+      "appearance": "Darstellung",
+      "chat": "Chat",
+      "copy": "Kopieren",
+      "highlight": "Markieren",
+      "underline": "Unterstreichen",
+      "addNote": "Notiz",
+      "lookUp": "Nachschlagen",
+      "askAI": "KI fragen"
     }
   }
 }

@@ -85,7 +85,9 @@ export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
     draggable: true,
     onDragStart: (event: React.DragEvent) => {
       setDragId(id);
-      event.dataTransfer.effectAllowed = "move";
+      // WebKit refuses to start a drag without payload data.
+      event.dataTransfer?.setData("text/plain", id);
+      if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
     },
     onDragEnd: () => setDragId(null),
     onDragOver: (event: React.DragEvent) => event.preventDefault(),
@@ -122,7 +124,7 @@ export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
                 <span
                   {...dragProps(id, "visible")}
                   className={cn(
-                    "flex h-8 w-8 shrink-0 cursor-grab items-center justify-center rounded-md text-fg-muted hover:bg-fg/5 hover:text-fg",
+                    "flex h-8 w-8 shrink-0 cursor-grab select-none items-center justify-center rounded-md text-fg-muted hover:bg-fg/5 hover:text-fg",
                     dragId === id && "opacity-40",
                   )}
                 >
@@ -166,7 +168,7 @@ export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
               key={id}
               {...dragProps(id, "overflow")}
               className={cn(
-                "flex cursor-grab items-center gap-2 rounded-md px-2 py-1.5 hover:bg-fg/5",
+                "flex cursor-grab select-none items-center gap-2 rounded-md px-2 py-1.5 hover:bg-fg/5",
                 dragId === id && "opacity-40",
               )}
             >

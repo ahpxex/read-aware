@@ -37,6 +37,7 @@ tauri-plugin-dialog = "2"
 # Filesystem access that understands mobile paths (Android content:// URIs);
 # read_book_file routes through it so book import works on every platform.
 tauri-plugin-fs = "2"
+tauri-plugin-http = "2.5.9"
 
 # Desktop only: window-chrome helpers and the dev-time MCP bridge. Neither
 # compiles for (or makes sense on) Android/iOS, where the webview is fullscreen.

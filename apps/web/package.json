@@ -17,10 +17,12 @@
     "@phosphor-icons/react": "^2.1.10",
     "@read-aware/agent": "workspace:*",
     "@read-aware/core": "workspace:*",
+    "@read-aware/plugin-types": "workspace:*",
     "@read-aware/ui": "workspace:*",
     "@tanstack/react-router": "^1.132.23",
     "@tauri-apps/api": "^2.9.0",
     "@tauri-apps/plugin-dialog": "^2.7.1",
+    "@tauri-apps/plugin-http": "^2.5.9",
     "@tauri-apps/plugin-process": "^2.3.1",
     "@tauri-apps/plugin-updater": "^2.10.1",
     "i18next": "^26.3.4",
@@ -30,8 +32,7 @@
     "react-dom": "^19.1.0",
     "react-i18next": "^17.0.8",
     "recharts": "^3.9.0",
-    "streamdown": "^2.5.0",
-    "@read-aware/plugin-types": "workspace:*"
+    "streamdown": "^2.5.0"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^5.0.1",

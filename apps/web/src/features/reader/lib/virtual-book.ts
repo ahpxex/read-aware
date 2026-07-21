@@ -12,11 +12,34 @@ export type VirtualBookContent = {
   sections: { id?: string; title?: string; html: string }[];
 };
 
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+/**
+ * Provider HTML is untrusted (feeds, remote articles): strip active content
+ * before it reaches the reader iframe. Escape-interpolate everything else.
+ */
+function sanitizeSectionHtml(html: string): string {
+  return html
+    .replace(/<script\b[\s\S]*?<\/script\s*>/gi, "")
+    .replace(/<(iframe|object|embed|form)\b[\s\S]*?<\/\1\s*>/gi, "")
+    .replace(/\son\w+\s*=\s*"[^"]*"/gi, "")
+    .replace(/\son\w+\s*=\s*'[^']*'/gi, "")
+    .replace(/\son\w+\s*=\s*[^\s>]+/gi, "")
+    .replace(/(href|src)\s*=\s*(["']?)\s*javascript:[^"'\s>]*\2/gi, "");
+}
+
 function wrapSectionHtml(html: string, title: string | undefined, language: string): string {
+  const lang = /^[A-Za-z-]{2,35}$/.test(language) ? language : "en";
   return `<!DOCTYPE html>
-<html lang="${language}">
-<head><meta charset="utf-8">${title ? `<title>${title}</title>` : ""}</head>
-<body>${title ? `<h2>${title}</h2>` : ""}${html}</body>
+<html lang="${lang}">
+<head><meta charset="utf-8">${title ? `<title>${escapeHtml(title)}</title>` : ""}</head>
+<body>${title ? `<h2>${escapeHtml(title)}</h2>` : ""}${sanitizeSectionHtml(html)}</body>
 </html>`;
 }
 

@@ -668,6 +668,9 @@ pub fn run() {
     let mut builder = builder
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        // Plugin ctx.fetch routes through Rust (no webview CORS constraints);
+        // scope below is ACL-gated in capabilities/default.json.
+        .plugin(tauri_plugin_http::init())
         // User plugins: serve <app_data>/plugins/ as same-scheme ES modules
         // (CSP script-src allowlists this scheme; see docs/plugin-system.md §9).
         .register_uri_scheme_protocol("raplugin", |ctx, request| {

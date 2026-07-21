@@ -605,9 +605,13 @@
   <tr><td><code>reading-data</code></td><td>读书籍元数据、标注、笔记（只读；写入走各自的显式 API 再议）</td></tr>
   <tr><td><code>network</code></td><td><code>ctx.fetch</code>（CSP <code>connect-src</code> 已含 <code>https:</code>，门控在 API 层）</td></tr>
   <tr><td><code>ai</code></td><td>注册 agent 工具（§8）</td></tr>
+  <tr><td><code>dictionary</code></td><td>应用内置词典 <code>ctx.dictionary.lookUp</code>（与阅读器查词共享缓存；消耗用户 AI 额度）</td></tr>
+  <tr><td><code>llm</code></td><td><code>ctx.llm.ask</code> —— 用用户配置的模型做一次性调用（fast 档，无线程无记忆无工具）</td></tr>
   <tr><td><code>clipboard</code></td><td>写剪贴板</td></tr>
 </table>
 </div>
+
+<p><strong>安装即明示：</strong>所有安装路径（本地文件夹与市场）在复制任何文件、执行任何代码之前，都会弹出确认对话框，逐条列出 manifest 声明的权限及其人话描述，用户点「安装」才继续 —— 即图 2 所画的那道门，现已实装。</p>
 
 <p>选区文本不设独立权限：选区动作被用户手动触发时天然获得当次选区，这本身就是用户授权动作。</p>
 

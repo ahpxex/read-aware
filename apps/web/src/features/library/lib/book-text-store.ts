@@ -241,6 +241,13 @@ export async function ensureBookTextExtracted(
   bookId: string,
   preopened?: unknown,
 ): Promise<ExtractedChapter[]> {
+  // Virtual (plugin-provided) books have no blob to extract from.
+  {
+    const { listLibraryBooks } = await import("./library-db");
+    const record = (await listLibraryBooks()).find((b) => b.id === String(bookId));
+    if (record?.format === "virtual") return [];
+  }
+
   const persisted = await getPersistedBookText(bookId);
   if (persisted) return persisted;
 

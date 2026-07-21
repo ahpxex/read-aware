@@ -15,10 +15,19 @@ import { createDictionaryPort } from "../../ai/agent/ports/dictionary-port";
 import { createLibraryPort } from "../../ai/agent/ports/library-port";
 import { openBookRequestAtom } from "../../ai/state/chat-intent";
 import {
+  addVirtualLibraryBook,
   commitBookImport,
   listLibraryBooks,
   prepareBookImport,
+  removeLibraryBook,
+  updateVirtualLibraryBookTitle,
 } from "../../library/lib/library-db";
+import {
+  bindVirtualBook,
+  findVirtualBookId,
+  registerContentProviderContribution,
+  unbindVirtualBook,
+} from "../lib/virtual-books";
 import { requestPluginReaderNav } from "../state/reader-nav";
 import {
   createHighlight,
@@ -358,6 +367,60 @@ export function buildPluginContext(
           addedAt: book.createdAt,
           lastOpenedAt: book.lastOpenedAt ?? undefined,
         };
+      },
+      registerContentProvider: (provider) =>
+        track(
+          registerContentProviderContribution({
+            key: `${manifest.id}:${provider.id}`,
+            pluginId: manifest.id,
+            providerId: String(provider.id),
+            load: (bookKey: string) => Promise.resolve(provider.load(bookKey)),
+          }),
+        ),
+      addVirtualBook: async (input) => {
+        const binding = {
+          pluginId: manifest.id,
+          providerId: String(input.providerId),
+          key: String(input.key),
+        };
+        const existingId = findVirtualBookId(binding);
+        if (existingId) {
+          await updateVirtualLibraryBookTitle(existingId, String(input.title), input.author);
+          emitAppEvent("library-changed", {});
+          return {
+            id: existingId,
+            title: String(input.title),
+            author: input.author,
+          };
+        }
+        const book = await addVirtualLibraryBook({
+          title: String(input.title),
+          author: input.author,
+        });
+        bindVirtualBook(book.id, binding);
+        emitAppEvent("library-changed", {});
+        return {
+          id: book.id,
+          title: book.title,
+          author: book.author || undefined,
+          progressFraction: 0,
+          addedAt: book.createdAt,
+        };
+      },
+      removeVirtualBook: async (input) => {
+        const bookId = findVirtualBookId({
+          pluginId: manifest.id,
+          providerId: String(input.providerId),
+          key: String(input.key),
+        });
+        if (!bookId) return;
+        try {
+          await removeLibraryBook(bookId);
+        } catch (error) {
+          console.error("[plugins] virtual book removal", error);
+        }
+        unbindVirtualBook(bookId);
+        emitAppEvent("library-changed", {});
       },
     };
   }

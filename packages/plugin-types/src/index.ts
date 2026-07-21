@@ -393,6 +393,25 @@ export type PluginContext = {
       fileName: string;
       data: ArrayBuffer | Uint8Array;
     }): Promise<PluginBookOverview>;
+    /**
+     * Content-provider path — no file at all. Register a provider, then add
+     * virtual books bound to it: shelf entries whose content the plugin
+     * serves at open time (sections of HTML). The reader paginates,
+     * annotates, and tracks progress on them like any book. An RSS feed as
+     * a book is exactly this.
+     */
+    registerContentProvider(provider: {
+      id: string;
+      load(key: string): Promise<PluginBookContent>;
+    }): PluginDisposable;
+    addVirtualBook(input: {
+      providerId: string;
+      /** Stable identity within the provider (e.g. the feed URL). */
+      key: string;
+      title: string;
+      author?: string;
+    }): Promise<PluginBookOverview>;
+    removeVirtualBook(input: { providerId: string; key: string }): Promise<void>;
   };
   /**
    * Ambient reader control (user-visible, no data exposure): open a book,
@@ -407,6 +426,13 @@ export type PluginContext = {
   clipboard?: {
     writeText(text: string): Promise<void>;
   };
+};
+
+export type PluginBookContent = {
+  title?: string;
+  author?: string;
+  language?: string;
+  sections: { id?: string; title?: string; html: string }[];
 };
 
 export type PluginChapterRef = {

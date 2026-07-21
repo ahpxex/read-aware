@@ -82,6 +82,8 @@ import {
 import type { ReaderSettings, ReadingMode } from "../../settings/lib/reader-settings";
 import { curatedFontId, DEFAULT_READER_SETTINGS } from "../../settings/lib/reader-settings";
 import { ensureCuratedFontFaceCss } from "../../settings/lib/curated-font-loader";
+import { buildVirtualFoliateBook } from "../lib/virtual-book";
+import { resolveContentProvider } from "../../plugins/lib/virtual-books";
 
 type FoliateReaderViewProps = {
   selectedBook?: LibraryBook | null;
@@ -1700,11 +1702,6 @@ export function FoliateReaderView({
 
     void (async () => {
       try {
-        const source = initialBook.file;
-        const file = typeof source.name === "string"
-          ? source
-          : new File([source as Blob], initialBook.fileName, { type: source.type });
-
         view = await createFoliateView();
         if (cancelled) return;
         viewRef.current = view;
@@ -1714,14 +1711,34 @@ export function FoliateReaderView({
         container.append(view);
 
         await registerHighlightDrawing(view);
-        // Parse first, then repair a deficient nav BEFORE the view opens —
-        // foliate builds its TOC progress (relocate's tocItem) from book.toc
-        // at open time, so the synthesized map has to be in place already.
-        const parsedBook = await makeFoliateBook(file);
+        let parsedBook: unknown;
+        if (initialBook.virtual) {
+          // Plugin-provided book: resolve the content provider and build a
+          // foliate-conforming object — no file, no parser.
+          const provider = resolveContentProvider(initialBook.virtual);
+          if (!provider) {
+            throw new Error(
+              "The plugin providing this book is disabled or uninstalled.",
+            );
+          }
+          const content = await provider.load(initialBook.virtual.key);
+          if (cancelled) return;
+          parsedBook = buildVirtualFoliateBook(content);
+        } else {
+          const source = initialBook.file;
+          if (!source) throw new Error("Missing book file.");
+          const file = typeof source.name === "string"
+            ? source
+            : new File([source as Blob], initialBook.fileName, { type: source.type });
+          // Parse first, then repair a deficient nav BEFORE the view opens —
+          // foliate builds its TOC progress (relocate's tocItem) from book.toc
+          // at open time, so the synthesized map has to be in place already.
+          parsedBook = await makeFoliateBook(file);
+          if (cancelled) return;
+          await ensureUsableToc(parsedBook);
+        }
         if (cancelled) return;
-        await ensureUsableToc(parsedBook);
-        if (cancelled) return;
-        await view.open(parsedBook);
+        await view.open(parsedBook as FoliateBook);
         if (cancelled) return;
 
         const book = view.book;

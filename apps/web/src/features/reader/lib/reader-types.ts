@@ -15,10 +15,18 @@ export interface BookFileSource {
  * stored `format` for routing/UX. PDFs use a native random-access source so
  * PDF.js can request byte ranges; other formats currently pass a normal Blob.
  */
+export type VirtualBookRef = {
+  pluginId: string;
+  providerId: string;
+  key: string;
+};
+
 export type LoadedBook = {
   fileName: string;
   format: BookFormat;
-  file: BookFileSource;
+  /** Absent for virtual books (content comes from a plugin provider). */
+  file?: BookFileSource;
+  virtual?: VirtualBookRef;
 };
 
 /** A flattened table-of-contents entry backing the chapter list. */

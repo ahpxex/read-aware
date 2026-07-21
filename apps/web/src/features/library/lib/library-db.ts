@@ -219,6 +219,50 @@ function sortBooks(books: LibraryBook[]) {
 
 // --- Public API --------------------------------------------------------------
 
+/**
+ * A plugin-provided (virtual) shelf entry: no blob, content resolved by the
+ * plugin's content provider at open time. `coverChecked: true` keeps the
+ * reader's lazy metadata enrichment away from it.
+ */
+export async function addVirtualLibraryBook(input: {
+  title: string;
+  author?: string;
+}): Promise<LibraryBook> {
+  assertDesktop("Adding a virtual book");
+  const now = new Date().toISOString();
+  const book: LibraryBook = {
+    id: crypto.randomUUID(),
+    title: input.title.trim() || "Untitled",
+    author: input.author?.trim() || "",
+    format: "virtual",
+    fileName: "",
+    mimeType: "",
+    fileSize: 0,
+    coverUrl: null,
+    coverChecked: true,
+    createdAt: now,
+    updatedAt: now,
+    lastOpenedAt: null,
+    progressPercent: 0,
+    readingStatus: "unread",
+    progress: null,
+    starred: false,
+    collectionId: null,
+  };
+  await putBookRecord(book);
+  return book;
+}
+
+export async function updateVirtualLibraryBookTitle(
+  bookId: string,
+  title: string,
+  author?: string,
+): Promise<void> {
+  const book = await getBookRecord(bookId);
+  if (!book || book.format !== "virtual") return;
+  await putBookRecord({ ...book, title, author: author ?? book.author, updatedAt: new Date().toISOString() });
+}
+
 export async function listLibraryBooks() {
   return sortBooks(await getAllBookRecords());
 }

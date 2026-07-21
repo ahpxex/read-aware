@@ -8,7 +8,11 @@ export type Id = string;
 /** ISO-8601 timestamp string (UTC). */
 export type IsoDate = string;
 
-export type BookFormat = "epub" | "mobi" | "azw3" | "fb2" | "pdf";
+/**
+ * "virtual" marks a plugin-provided book: no imported file, content served by
+ * a registered content provider at open time.
+ */
+export type BookFormat = "epub" | "mobi" | "azw3" | "fb2" | "pdf" | "virtual";
 
 /** Cover-extraction outcome; replaces the old coverChecked + coverUrl pair. */
 export type CoverStatus = "unchecked" | "ready" | "none" | "failed";

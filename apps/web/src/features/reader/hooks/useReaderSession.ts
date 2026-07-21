@@ -13,6 +13,7 @@ import type {
   ReaderProgress,
 } from "../../library/lib/library-types";
 import type { LoadedBook, TocEntry } from "../lib/reader-types";
+import { getVirtualBookBinding } from "../../plugins/lib/virtual-books";
 
 type ReaderSource =
   | { format: BookFormat; data: LoadedBook }
@@ -133,6 +134,18 @@ export function useReaderSession({
 
     void (async () => {
       try {
+        if (book.format === "virtual") {
+          const binding = getVirtualBookBinding(book.id);
+          if (!binding) {
+            throw new Error("This book's plugin content source is not available.");
+          }
+          if (readerLoadRequestIdRef.current !== requestId) return;
+          setReaderSource({
+            format: book.format,
+            data: { fileName: book.title, format: book.format, virtual: binding },
+          });
+          setIsReaderLoading(false);
+        } else {
         const file = await getStoredBookFile(book);
         if (!file) {
           throw new Error("The imported file for this book could not be found on this device.");
@@ -148,6 +161,7 @@ export function useReaderSession({
           },
         });
         setIsReaderLoading(false);
+        }
 
         void markLibraryBookOpened(book.id)
           .then((nextBook) => {

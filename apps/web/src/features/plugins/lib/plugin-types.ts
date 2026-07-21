@@ -214,7 +214,7 @@ export type PluginContext = {
     registerTool(tool: PluginToolDefinition): PluginDisposable;
   };
   /** Requires the `network` permission. */
-  fetch?: typeof globalThis.fetch;
+  fetch?: (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
   /** Requires the `reading-data` permission (read-only). */
   reading?: {
     listBooks(): Promise<PluginBookOverview[]>;

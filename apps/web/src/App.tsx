@@ -23,6 +23,7 @@ import { PluginDialogHost } from "./features/plugins/components/PluginDialogHost
 import { PluginPageHost } from "./features/plugins/components/PluginPageHost";
 import { PluginToastBridge } from "./features/plugins/components/PluginToastBridge";
 import { usePluginCommandItems } from "./features/plugins/hooks/usePluginCommandItems";
+import { initializePlugins } from "./features/plugins/runtime/plugin-host";
 
 // The shelf is the boot-critical surface; everything below is split out of its
 // chunk and prefetched on idle (see app-warmup.ts), so cold start parses less
@@ -96,6 +97,7 @@ function App() {
   useEffect(() => {
     dismissBootSplash();
     scheduleIdleWarmup();
+    void initializePlugins();
   }, []);
 
   useEffect(() => {

@@ -1,6 +1,7 @@
 mod android_update;
 mod book_metadata;
 mod pdf_metadata;
+mod plugins;
 mod storage;
 
 use std::sync::Mutex;
@@ -667,6 +668,11 @@ pub fn run() {
     let mut builder = builder
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        // User plugins: serve <app_data>/plugins/ as same-scheme ES modules
+        // (CSP script-src allowlists this scheme; see docs/plugin-system.md §9).
+        .register_uri_scheme_protocol("raplugin", |ctx, request| {
+            plugins::serve_plugin_asset(ctx.app_handle(), request)
+        })
         .manage(android_update::AndroidUpdateState::default())
         .manage(BookReadSessions::default())
         .manage(storage::BlobReadSessions::default())
@@ -794,6 +800,9 @@ pub fn run() {
             book_pick_poll,
             set_traffic_lights_visible,
             list_system_fonts,
+            plugins::plugins_list,
+            plugins::plugins_install,
+            plugins::plugins_uninstall,
         ]);
 
     // Dev-only: expose the MCP bridge so the Tauri MCP server can drive the

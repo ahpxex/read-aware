@@ -58,7 +58,14 @@ export function MenuOverflow({
           <DotsThreeVertical size={size === "md" ? 18 : 16} weight="bold" aria-hidden="true" />
         </span>
       }
-      panelClassName="max-h-72 w-56 overflow-y-auto p-1"
+      // Widget rows open their own popover FROM this panel — it must not clip,
+      // so the nested panel grows outward past the menu bounds. Scroll capping
+      // only applies to plain action lists.
+      panelClassName={
+        entries.some((entry) => entry.node)
+          ? "w-56 overflow-visible p-1"
+          : "max-h-72 w-56 overflow-y-auto p-1"
+      }
     >
       <ul className="flex flex-col">
         {entries.map((entry) => (

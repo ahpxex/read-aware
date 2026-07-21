@@ -16,7 +16,8 @@
     "goto": "Перейти к",
     "shelf": "Полка",
     "collections": "Коллекции",
-    "books": "Книги"
+    "books": "Книги",
+    "plugins": "Плагины"
   },
   "actions": {
     "goShelf": {

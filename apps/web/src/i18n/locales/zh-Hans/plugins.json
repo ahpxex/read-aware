@@ -1,0 +1,42 @@
+{
+  "viewer": {
+    "back": "返回",
+    "submit": "提交",
+    "loading": "加载中…",
+    "empty": "这里还没有内容"
+  },
+  "menu": {
+    "actions": "插件动作"
+  },
+  "settings": {
+    "title": "插件",
+    "trustWarning": "插件与应用运行在同一环境,拥有与应用相同的数据访问能力。请只安装你信任的插件。",
+    "install": "安装插件…",
+    "installing": "安装中…",
+    "installedToast": "{{name}} 已安装并启用",
+    "installFailed": "安装失败:{{message}}",
+    "empty": "尚未安装插件。插件是一个包含 manifest.json 和 main.js 的文件夹。",
+    "uninstall": "卸载",
+    "uninstallConfirm": "卸载 {{name}}?插件文件将被删除,其存储的数据会保留。",
+    "enabled": "已启用",
+    "permissions": "权限",
+    "noPermissions": "无额外权限",
+    "permission": {
+      "reading-data": "读取书籍、高亮与笔记",
+      "network": "访问网络",
+      "ai": "注册 AI 助手工具",
+      "clipboard": "写入剪贴板"
+    },
+    "activationError": "启用失败:{{message}}",
+    "placement": "钉选按钮",
+    "placementHint": "钉选的动作以按钮显示,其余收在溢出菜单和命令面板中。",
+    "surface": {
+      "shelfHeader": "书架顶栏",
+      "readerHeader": "阅读器顶栏",
+      "selection": "选区菜单"
+    },
+    "pinLimit": "最多钉选 {{count}} 个,请先取下一个。",
+    "pin": "钉选",
+    "unpin": "取消钉选"
+  }
+}

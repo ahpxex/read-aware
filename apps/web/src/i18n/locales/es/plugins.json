@@ -1,0 +1,42 @@
+{
+  "viewer": {
+    "back": "Atrás",
+    "submit": "Enviar",
+    "loading": "Cargando…",
+    "empty": "Aún no hay nada aquí"
+  },
+  "menu": {
+    "actions": "Acciones de plugins"
+  },
+  "settings": {
+    "title": "Plugins",
+    "trustWarning": "Los plugins se ejecutan dentro de la aplicación con el mismo acceso que ella. Instala solo plugins de confianza.",
+    "install": "Instalar plugin…",
+    "installing": "Instalando…",
+    "installedToast": "{{name}} instalado y activado",
+    "installFailed": "Error al instalar: {{message}}",
+    "empty": "No hay plugins instalados. Un plugin es una carpeta con manifest.json y main.js.",
+    "uninstall": "Desinstalar",
+    "uninstallConfirm": "¿Desinstalar {{name}}? Se eliminarán sus archivos; sus datos guardados se conservan.",
+    "enabled": "Activado",
+    "permissions": "Permisos",
+    "noPermissions": "Sin permisos adicionales",
+    "permission": {
+      "reading-data": "Leer libros, subrayados y notas",
+      "network": "Acceder a la red",
+      "ai": "Registrar herramientas del agente de IA",
+      "clipboard": "Escribir en el portapapeles"
+    },
+    "activationError": "Error al activar: {{message}}",
+    "placement": "Botones fijados",
+    "placementHint": "Las acciones fijadas aparecen como botones; el resto queda en el menú de desbordamiento y la paleta de comandos.",
+    "surface": {
+      "shelfHeader": "Barra de la estantería",
+      "readerHeader": "Barra del lector",
+      "selection": "Menú de selección"
+    },
+    "pinLimit": "Máximo {{count}} fijados: quita uno primero.",
+    "pin": "Fijar",
+    "unpin": "Soltar"
+  }
+}

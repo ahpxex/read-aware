@@ -15,7 +15,8 @@
     "goto": "Aller à",
     "shelf": "Étagère",
     "collections": "Collections",
-    "books": "Livres"
+    "books": "Livres",
+    "plugins": "Extensions"
   },
   "actions": {
     "goShelf": {

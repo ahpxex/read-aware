@@ -13,7 +13,8 @@
     "goto": "前往",
     "shelf": "書架",
     "collections": "收藏",
-    "books": "書籍"
+    "books": "書籍",
+    "plugins": "外掛"
   },
   "actions": {
     "goShelf": {

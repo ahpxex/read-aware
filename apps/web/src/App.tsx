@@ -19,6 +19,8 @@ import { useSurfaceHandoff } from "./hooks/useSurfaceHandoff";
 import { BACK_REQUEST_EVENT, sendAppToBackground } from "./platform/back-navigation";
 import { CommandPalette } from "./features/command/components/CommandPalette";
 import type { CommandContext } from "./features/command/lib/build-commands";
+import { PluginDialogHost } from "./features/plugins/components/PluginDialogHost";
+import { PluginToastBridge } from "./features/plugins/components/PluginToastBridge";
 
 // The shelf is the boot-critical surface; everything below is split out of its
 // chunk and prefetched on idle (see app-warmup.ts), so cold start parses less
@@ -402,6 +404,9 @@ function App() {
           <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
         </Suspense>
       )}
+
+      <PluginToastBridge />
+      <PluginDialogHost />
     </>
   );
 }

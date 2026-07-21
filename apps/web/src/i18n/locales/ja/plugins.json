@@ -1,0 +1,42 @@
+{
+  "viewer": {
+    "back": "戻る",
+    "submit": "送信",
+    "loading": "読み込み中…",
+    "empty": "まだ何もありません"
+  },
+  "menu": {
+    "actions": "プラグイン操作"
+  },
+  "settings": {
+    "title": "プラグイン",
+    "trustWarning": "プラグインはアプリと同じ環境で動作し、アプリと同じデータへアクセスできます。信頼できるプラグインだけをインストールしてください。",
+    "install": "プラグインをインストール…",
+    "installing": "インストール中…",
+    "installedToast": "{{name}} をインストールして有効化しました",
+    "installFailed": "インストールに失敗しました:{{message}}",
+    "empty": "プラグインはまだありません。プラグインは manifest.json と main.js を含むフォルダです。",
+    "uninstall": "アンインストール",
+    "uninstallConfirm": "{{name}} をアンインストールしますか?ファイルは削除されますが、保存されたデータは残ります。",
+    "enabled": "有効",
+    "permissions": "権限",
+    "noPermissions": "追加の権限なし",
+    "permission": {
+      "reading-data": "書籍・ハイライト・メモの読み取り",
+      "network": "ネットワークへのアクセス",
+      "ai": "AI エージェントツールの登録",
+      "clipboard": "クリップボードへの書き込み"
+    },
+    "activationError": "有効化に失敗しました:{{message}}",
+    "placement": "ピン留めボタン",
+    "placementHint": "ピン留めした操作はボタンとして表示され、それ以外はオーバーフローメニューとコマンドパレットに入ります。",
+    "surface": {
+      "shelfHeader": "本棚のヘッダー",
+      "readerHeader": "リーダーのヘッダー",
+      "selection": "選択メニュー"
+    },
+    "pinLimit": "ピン留めは最大 {{count}} 個です。先に外してください。",
+    "pin": "ピン留め",
+    "unpin": "ピン留め解除"
+  }
+}

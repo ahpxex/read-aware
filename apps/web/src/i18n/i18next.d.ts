@@ -15,6 +15,7 @@ import type stats from "./locales/en/stats.json";
 import type ai from "./locales/en/ai.json";
 import type command from "./locales/en/command.json";
 import type nav from "./locales/en/nav.json";
+import type plugins from "./locales/en/plugins.json";
 
 declare module "i18next" {
   interface CustomTypeOptions {
@@ -29,6 +30,7 @@ declare module "i18next" {
       ai: typeof ai;
       command: typeof command;
       nav: typeof nav;
+      plugins: typeof plugins;
     };
   }
 }

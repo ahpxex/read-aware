@@ -13,7 +13,8 @@
     "goto": "移動先",
     "shelf": "本棚",
     "collections": "コレクション",
-    "books": "本"
+    "books": "本",
+    "plugins": "プラグイン"
   },
   "actions": {
     "goShelf": {

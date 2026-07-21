@@ -1,0 +1,42 @@
+{
+  "viewer": {
+    "back": "Zurück",
+    "submit": "Absenden",
+    "loading": "Wird geladen…",
+    "empty": "Hier ist noch nichts"
+  },
+  "menu": {
+    "actions": "Plugin-Aktionen"
+  },
+  "settings": {
+    "title": "Plugins",
+    "trustWarning": "Plugins laufen in der App mit demselben Zugriff wie die App selbst. Installiere nur Plugins, denen du vertraust.",
+    "install": "Plugin installieren…",
+    "installing": "Wird installiert…",
+    "installedToast": "{{name}} installiert und aktiviert",
+    "installFailed": "Installation fehlgeschlagen: {{message}}",
+    "empty": "Keine Plugins installiert. Ein Plugin ist ein Ordner mit manifest.json und main.js.",
+    "uninstall": "Deinstallieren",
+    "uninstallConfirm": "{{name}} deinstallieren? Die Dateien werden entfernt; gespeicherte Daten bleiben erhalten.",
+    "enabled": "Aktiviert",
+    "permissions": "Berechtigungen",
+    "noPermissions": "Keine zusätzlichen Berechtigungen",
+    "permission": {
+      "reading-data": "Bücher, Markierungen und Notizen lesen",
+      "network": "Auf das Netzwerk zugreifen",
+      "ai": "KI-Agent-Werkzeuge registrieren",
+      "clipboard": "In die Zwischenablage schreiben"
+    },
+    "activationError": "Aktivierung fehlgeschlagen: {{message}}",
+    "placement": "Angeheftete Schaltflächen",
+    "placementHint": "Angeheftete Aktionen erscheinen als Schaltflächen; alles andere bleibt im Überlaufmenü und in der Befehlspalette.",
+    "surface": {
+      "shelfHeader": "Kopfleiste des Regals",
+      "readerHeader": "Kopfleiste des Readers",
+      "selection": "Auswahlmenü"
+    },
+    "pinLimit": "Höchstens {{count}} angeheftet — löse zuerst eines.",
+    "pin": "Anheften",
+    "unpin": "Lösen"
+  }
+}

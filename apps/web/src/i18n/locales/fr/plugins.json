@@ -1,0 +1,42 @@
+{
+  "viewer": {
+    "back": "Retour",
+    "submit": "Envoyer",
+    "loading": "Chargement…",
+    "empty": "Rien ici pour l'instant"
+  },
+  "menu": {
+    "actions": "Actions des extensions"
+  },
+  "settings": {
+    "title": "Extensions",
+    "trustWarning": "Les extensions s'exécutent dans l'application avec le même accès qu'elle. N'installez que des extensions de confiance.",
+    "install": "Installer une extension…",
+    "installing": "Installation…",
+    "installedToast": "{{name}} installée et activée",
+    "installFailed": "Échec de l'installation : {{message}}",
+    "empty": "Aucune extension installée. Une extension est un dossier contenant manifest.json et main.js.",
+    "uninstall": "Désinstaller",
+    "uninstallConfirm": "Désinstaller {{name}} ? Ses fichiers seront supprimés ; ses données conservées.",
+    "enabled": "Activée",
+    "permissions": "Autorisations",
+    "noPermissions": "Aucune autorisation supplémentaire",
+    "permission": {
+      "reading-data": "Lire les livres, surlignages et notes",
+      "network": "Accéder au réseau",
+      "ai": "Enregistrer des outils d'agent IA",
+      "clipboard": "Écrire dans le presse-papiers"
+    },
+    "activationError": "Échec de l'activation : {{message}}",
+    "placement": "Boutons épinglés",
+    "placementHint": "Les actions épinglées apparaissent comme boutons ; le reste va dans le menu de dépassement et la palette de commandes.",
+    "surface": {
+      "shelfHeader": "Barre de la bibliothèque",
+      "readerHeader": "Barre du lecteur",
+      "selection": "Menu de sélection"
+    },
+    "pinLimit": "Au plus {{count}} épinglés — détachez-en un d'abord.",
+    "pin": "Épingler",
+    "unpin": "Détacher"
+  }
+}

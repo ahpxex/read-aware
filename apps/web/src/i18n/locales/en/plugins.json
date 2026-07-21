@@ -1,0 +1,42 @@
+{
+  "viewer": {
+    "back": "Back",
+    "submit": "Submit",
+    "loading": "Loading…",
+    "empty": "Nothing here yet"
+  },
+  "menu": {
+    "actions": "Plugin actions"
+  },
+  "settings": {
+    "title": "Plugins",
+    "trustWarning": "Plugins run inside the app with the same access as the app itself. Install only plugins you trust.",
+    "install": "Install plugin…",
+    "installing": "Installing…",
+    "installedToast": "{{name}} installed and enabled",
+    "installFailed": "Install failed: {{message}}",
+    "empty": "No plugins installed. A plugin is a folder with a manifest.json and a main.js.",
+    "uninstall": "Uninstall",
+    "uninstallConfirm": "Uninstall {{name}}? Its files are removed; its stored data is kept.",
+    "enabled": "Enabled",
+    "permissions": "Permissions",
+    "noPermissions": "No extra permissions",
+    "permission": {
+      "reading-data": "Read books, highlights, and notes",
+      "network": "Access the network",
+      "ai": "Register AI agent tools",
+      "clipboard": "Write to the clipboard"
+    },
+    "activationError": "Activation failed: {{message}}",
+    "placement": "Pinned buttons",
+    "placementHint": "Pinned actions show as buttons; everything else stays in the overflow menu and the command palette.",
+    "surface": {
+      "shelfHeader": "Shelf header",
+      "readerHeader": "Reader header",
+      "selection": "Selection menu"
+    },
+    "pinLimit": "Up to {{count}} pinned — unpin one first.",
+    "pin": "Pin",
+    "unpin": "Unpin"
+  }
+}

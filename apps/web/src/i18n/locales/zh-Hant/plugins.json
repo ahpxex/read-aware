@@ -1,0 +1,42 @@
+{
+  "viewer": {
+    "back": "返回",
+    "submit": "提交",
+    "loading": "載入中…",
+    "empty": "這裡還沒有內容"
+  },
+  "menu": {
+    "actions": "外掛動作"
+  },
+  "settings": {
+    "title": "外掛",
+    "trustWarning": "外掛與應用程式在同一環境中執行,擁有與應用程式相同的資料存取能力。請只安裝你信任的外掛。",
+    "install": "安裝外掛…",
+    "installing": "安裝中…",
+    "installedToast": "{{name}} 已安裝並啟用",
+    "installFailed": "安裝失敗:{{message}}",
+    "empty": "尚未安裝外掛。外掛是一個包含 manifest.json 和 main.js 的資料夾。",
+    "uninstall": "解除安裝",
+    "uninstallConfirm": "解除安裝 {{name}}?外掛檔案將被刪除,其儲存的資料會保留。",
+    "enabled": "已啟用",
+    "permissions": "權限",
+    "noPermissions": "無額外權限",
+    "permission": {
+      "reading-data": "讀取書籍、螢光標記與筆記",
+      "network": "存取網路",
+      "ai": "註冊 AI 助手工具",
+      "clipboard": "寫入剪貼簿"
+    },
+    "activationError": "啟用失敗:{{message}}",
+    "placement": "釘選按鈕",
+    "placementHint": "釘選的動作以按鈕顯示,其餘收在溢位選單和命令面板中。",
+    "surface": {
+      "shelfHeader": "書架頂欄",
+      "readerHeader": "閱讀器頂欄",
+      "selection": "選取選單"
+    },
+    "pinLimit": "最多釘選 {{count}} 個,請先取下一個。",
+    "pin": "釘選",
+    "unpin": "取消釘選"
+  }
+}

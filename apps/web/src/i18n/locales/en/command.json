@@ -14,7 +14,8 @@
     "goto": "Go to",
     "shelf": "Shelf",
     "collections": "Collections",
-    "books": "Books"
+    "books": "Books",
+    "plugins": "Plugins"
   },
   "actions": {
     "goShelf": {

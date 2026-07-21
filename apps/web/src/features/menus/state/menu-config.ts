@@ -35,7 +35,8 @@ export const CORE_MENU_DEFAULTS: Record<MenuSurface, string[]> = {
     "core:stats",
     "core:settings",
   ],
-  readerHeader: ["core:toc", "core:notes", "core:navigator", "core:appearance", "core:chat"],
+  // Right cluster only — back/TOC/notes stay fixed on the left.
+  readerHeader: ["core:navigator", "core:appearance", "core:chat"],
   selection: [
     "core:copy",
     "core:highlight",

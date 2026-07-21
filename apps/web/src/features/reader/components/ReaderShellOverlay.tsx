@@ -10,7 +10,18 @@ import { askAiRequestAtom } from "../../ai/state/chat-intent";
 import { useBookAnnotations } from "../../annotations/hooks/useBookAnnotations";
 import type { LibraryBook } from "../../library/lib/library-types";
 import { useBackInterceptor } from "../../../hooks/useBackInterceptor";
-import { PluginHeaderCluster } from "../../plugins/components/PluginHeaderCluster";
+import { MenuOverflow, type MenuOverflowEntry } from "../../menus/components/MenuOverflow";
+import { coreMenuMeta } from "../../menus/lib/menu-registry";
+import {
+  CORE_MENU_DEFAULTS,
+  menuConfigAtom,
+  pluginMenuId,
+  resolveSurfaceLayout,
+} from "../../menus/state/menu-config";
+import { PluginHeaderItem } from "../../plugins/components/PluginHeaderCluster";
+import { openHeaderActionDialog } from "../../plugins/lib/open-header-action";
+import { renderPluginIcon } from "../../plugins/lib/plugin-icons";
+import { headerActionsAtom } from "../../plugins/state/plugin-store";
 import { findTocIndexForHref } from "../lib/epub-utils";
 import { useReaderPanelLayout } from "../hooks/useReaderPanelLayout";
 import { useReaderPanelSizes } from "../hooks/useReaderPanelSizes";
@@ -108,6 +119,86 @@ export function ReaderShellOverlay({
   // The book's highlights and notes, shown in a popover opened from the header.
   // Kept live as marks are made via the shared revision in useBookAnnotations.
   const { annotations, remove: removeAnnotation } = useBookAnnotations(bookId);
+
+  // User-arranged right cluster (settings → Menus).
+  const { t: tMenus } = useTranslation("settings");
+  const menuConfig = useAtomValue(menuConfigAtom);
+  const readerPluginActions = useAtomValue(headerActionsAtom).filter(
+    (action) => action.surface === "reader",
+  );
+  const readerLayout = resolveSurfaceLayout(menuConfig.readerHeader, [
+    ...CORE_MENU_DEFAULTS.readerHeader,
+    ...readerPluginActions.map((action) => pluginMenuId(action.key)),
+  ]);
+
+  const coreReaderNodes: Record<string, React.ReactNode | null> = {
+    "core:navigator": navigatorAvailable ? (
+      <Tooltip content={t("navigator.title")} side="bottom" className="pointer-events-auto">
+        <IconButton
+          size="sm"
+          label={navigatorActive ? t("navigator.exit") : t("navigator.enable")}
+          aria-pressed={navigatorActive}
+          onClick={onToggleNavigator}
+          className={cn(navigatorActive && "text-fg")}
+          icon={
+            <Rows size={18} weight={navigatorActive ? "bold" : "regular"} aria-hidden="true" />
+          }
+        />
+      </Tooltip>
+    ) : null,
+    "core:appearance": (
+      <ReaderAppearanceMenu
+        bookId={bookId}
+        open={appearanceOpen}
+        onOpenChange={setAppearanceOpen}
+      />
+    ),
+    "core:chat": (
+      <Tooltip content={t("chat")} side="bottom" className="pointer-events-auto">
+        <IconButton
+          size="sm"
+          label={t("chat")}
+          aria-pressed={notesOpen}
+          onClick={toggleNotes}
+          className={cn(notesOpen && "text-fg")}
+          icon={
+            <ChatCircle size={18} weight={notesOpen ? "bold" : "regular"} aria-hidden="true" />
+          }
+        />
+      </Tooltip>
+    ),
+  };
+
+  const coreReaderRun: Record<string, (() => void) | undefined> = {
+    "core:navigator": navigatorAvailable ? onToggleNavigator : undefined,
+    "core:chat": toggleNotes,
+  };
+  const readerOverflowEntries = readerLayout.overflow
+    .map((id): MenuOverflowEntry | null => {
+      if (id.startsWith("plugin:")) {
+        const action = readerPluginActions.find((entry) => pluginMenuId(entry.key) === id);
+        if (!action) return null;
+        return {
+          id,
+          label: action.title,
+          icon: renderPluginIcon(action.icon, 16),
+          run: () =>
+            void openHeaderActionDialog(action, {
+              book: { id: book.id, title: book.title, author: book.author },
+            }),
+        };
+      }
+      const meta = coreMenuMeta("readerHeader", id);
+      const run = coreReaderRun[id];
+      if (!meta || !run) return null;
+      return {
+        id,
+        label: String(tMenus(`menus.items.${meta.labelKey}` as never)),
+        icon: <meta.Icon size={16} weight="regular" aria-hidden="true" />,
+        run,
+      };
+    })
+    .filter((entry): entry is MenuOverflowEntry => entry !== null);
 
   const activeTocIndex = findTocIndexForHref(tocEntries, currentChapterHref);
 
@@ -245,56 +336,30 @@ export function ReaderShellOverlay({
             </div>
           )}
 
-          {/* Right cluster: sentence navigator + appearance + chat */}
+          {/* Right cluster: user-arranged (navigator/appearance/chat + plugin
+              items), remainder behind the vertical-dots overflow. */}
           <div className="flex shrink-0 items-center justify-end gap-0.5">
-            {navigatorAvailable && (
-              <Tooltip
-                content={t("navigator.title")}
-                side="bottom"
-                className="pointer-events-auto"
-              >
-                <IconButton
-                  size="sm"
-                  label={navigatorActive ? t("navigator.exit") : t("navigator.enable")}
-                  aria-pressed={navigatorActive}
-                  onClick={onToggleNavigator}
-                  className={cn(navigatorActive && "text-fg")}
-                  icon={
-                    <Rows
-                      size={18}
-                      weight={navigatorActive ? "bold" : "regular"}
-                      aria-hidden="true"
-                    />
-                  }
-                />
-              </Tooltip>
-            )}
-            <PluginHeaderCluster
-              surface="reader"
-              input={{ book: { id: book.id, title: book.title, author: book.author } }}
-              buttonClassName="pointer-events-auto"
-            />
-            <ReaderAppearanceMenu
-              bookId={bookId}
-              open={appearanceOpen}
-              onOpenChange={setAppearanceOpen}
-            />
-            <Tooltip content={t("chat")} side="bottom" className="pointer-events-auto">
-              <IconButton
-                size="sm"
-                label={t("chat")}
-                aria-pressed={notesOpen}
-                onClick={toggleNotes}
-                className={cn(notesOpen && "text-fg")}
-                icon={
-                  <ChatCircle
-                    size={18}
-                    weight={notesOpen ? "bold" : "regular"}
-                    aria-hidden="true"
+            {readerLayout.visible.map((id) => {
+              if (id.startsWith("plugin:")) {
+                const action = readerPluginActions.find(
+                  (entry) => pluginMenuId(entry.key) === id,
+                );
+                return action ? (
+                  <PluginHeaderItem
+                    key={id}
+                    action={action}
+                    input={{ book: { id: book.id, title: book.title, author: book.author } }}
+                    buttonClassName="pointer-events-auto"
                   />
-                }
-              />
-            </Tooltip>
+                ) : null;
+              }
+              const node = coreReaderNodes[id];
+              return node ? <span key={id} className="contents">{node}</span> : null;
+            })}
+            <MenuOverflow
+              entries={readerOverflowEntries}
+              className="pointer-events-auto"
+            />
           </div>
         </div>
 

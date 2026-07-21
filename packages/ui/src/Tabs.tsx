@@ -215,7 +215,16 @@ export function Tabs({
           );
         })}
         {trailing && (
-          <div className="ml-auto flex items-center gap-2 self-start">{trailing}</div>
+          <div
+            className={cn(
+              "ml-auto flex items-center gap-2",
+              // Underline/nav labels are a 20px line over pb-3; pull the (taller)
+              // actions up so their text centers on the same 10px axis.
+              usesUnderlineIndicator ? "-mt-1.5 self-start" : "self-center",
+            )}
+          >
+            {trailing}
+          </div>
         )}
       </div>
       {items.map((item, i) => {

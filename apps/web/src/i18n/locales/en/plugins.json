@@ -27,7 +27,8 @@
       "ai": "Register AI agent tools",
       "clipboard": "Write to the clipboard",
       "dictionary": "Use the built-in dictionary (runs on your AI model)",
-      "llm": "Make AI requests with your configured model"
+      "llm": "Make AI requests with your configured model",
+      "library-write": "Add books to the shelf"
     },
     "activationError": "Activation failed: {{message}}",
     "placement": "Pinned buttons",

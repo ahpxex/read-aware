@@ -27,7 +27,8 @@
       "ai": "KI-Agent-Werkzeuge registrieren",
       "clipboard": "In die Zwischenablage schreiben",
       "dictionary": "Integriertes Wörterbuch nutzen (läuft über dein KI-Modell)",
-      "llm": "KI-Anfragen mit deinem Modell stellen"
+      "llm": "KI-Anfragen mit deinem Modell stellen",
+      "library-write": "Bücher zum Regal hinzufügen"
     },
     "activationError": "Aktivierung fehlgeschlagen: {{message}}",
     "placement": "Angeheftete Schaltflächen",

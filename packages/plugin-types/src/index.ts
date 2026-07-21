@@ -16,6 +16,7 @@
 /** Permission domains a manifest may declare (docs/plugin-system.md §4). */
 export const PLUGIN_PERMISSIONS = [
   "reading-data",
+  "library-write",
   "network",
   "ai",
   "dictionary",
@@ -320,6 +321,10 @@ export type PluginContext = {
       chapterHref?: string | null;
     }): Promise<PluginAnnotation>;
     deleteAnnotation(id: string): Promise<void>;
+    /** Chapter list of a book's extracted text (extraction runs on demand). */
+    getToc(bookId: string): Promise<PluginChapterRef[]>;
+    /** Plain text of one chapter by its toc index; null when unavailable. */
+    getChapterText(bookId: string, chapterIndex: number): Promise<string | null>;
     vocabulary: {
       list(filter?: { query?: string; limit?: number }): Promise<PluginVocabularyEntry[]>;
       add(input: {
@@ -352,10 +357,38 @@ export type PluginContext = {
   llm?: {
     ask(input: { prompt: string; system?: string }): Promise<string>;
   };
+  /**
+   * Requires the `library-write` permission: add real books to the shelf.
+   * This is how content-provider plugins work (an RSS reader builds an EPUB
+   * from fetched articles and imports it) — the reader, annotations, and AI
+   * all treat the result as a first-class book.
+   */
+  library?: {
+    importBook(input: {
+      fileName: string;
+      data: ArrayBuffer | Uint8Array;
+    }): Promise<PluginBookOverview>;
+  };
+  /**
+   * Ambient reader control (user-visible, no data exposure): open a book,
+   * jump to a CFI or chapter href. `goTo` without `bookId` targets the open
+   * book; with one, it opens that book first.
+   */
+  reader: {
+    openBook(bookId: string): void;
+    goTo(target: { bookId?: string; cfi?: string; href?: string }): void;
+  };
   /** Requires the `clipboard` permission. */
   clipboard?: {
     writeText(text: string): Promise<void>;
   };
+};
+
+export type PluginChapterRef = {
+  index: number;
+  title?: string;
+  /** Plain-text length, for budgeting reads. */
+  chars: number;
 };
 
 export type PluginDictionaryEntry = {

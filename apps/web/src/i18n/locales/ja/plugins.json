@@ -27,7 +27,8 @@
       "ai": "AI エージェントツールの登録",
       "clipboard": "クリップボードへの書き込み",
       "dictionary": "内蔵辞書を使用(AI モデルを消費)",
-      "llm": "設定済みモデルで AI リクエストを実行"
+      "llm": "設定済みモデルで AI リクエストを実行",
+      "library-write": "本棚への書籍追加"
     },
     "activationError": "有効化に失敗しました:{{message}}",
     "placement": "ピン留めボタン",

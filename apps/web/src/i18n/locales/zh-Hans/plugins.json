@@ -27,7 +27,8 @@
       "ai": "注册 AI 助手工具",
       "clipboard": "写入剪贴板",
       "dictionary": "使用内置词典(消耗你的 AI 额度)",
-      "llm": "使用你配置的模型发起 AI 调用"
+      "llm": "使用你配置的模型发起 AI 调用",
+      "library-write": "向书架添加书籍"
     },
     "activationError": "启用失败:{{message}}",
     "placement": "钉选按钮",

@@ -5,12 +5,21 @@
  * boundary is installation itself (§2).
  */
 import { getDefaultStore } from "jotai";
-import { onAppEvent } from "../../../platform/app-events";
+import { i18n } from "../../../i18n";
+import { emitAppEvent, onAppEvent } from "../../../platform/app-events";
 import { localKV } from "../../../platform/local-store";
 import { getAgentRuntime } from "../../ai/agent/agent-runtime";
 import { createAnnotationsPort } from "../../ai/agent/ports/annotations-port";
+import { createBookTextPort } from "../../ai/agent/ports/book-text-port";
 import { createDictionaryPort } from "../../ai/agent/ports/dictionary-port";
 import { createLibraryPort } from "../../ai/agent/ports/library-port";
+import { openBookRequestAtom } from "../../ai/state/chat-intent";
+import {
+  commitBookImport,
+  listLibraryBooks,
+  prepareBookImport,
+} from "../../library/lib/library-db";
+import { requestPluginReaderNav } from "../state/reader-nav";
 import {
   createHighlight,
   createNote,
@@ -105,6 +114,21 @@ export function buildPluginContext(
         ),
       showToast: (message) => showPluginToast(String(message)),
     },
+    reader: {
+      openBook: (bookId) => {
+        getDefaultStore().set(openBookRequestAtom, {
+          id: crypto.randomUUID(),
+          bookId: String(bookId),
+        });
+      },
+      goTo: (target) => {
+        requestPluginReaderNav({
+          bookId: target.bookId ? String(target.bookId) : undefined,
+          cfi: target.cfi ? String(target.cfi) : undefined,
+          href: target.href ? String(target.href) : undefined,
+        });
+      },
+    },
     events: {
       on: (event, handler) => {
         if (event.startsWith("annotation") && !permissions.has("reading-data")) {
@@ -167,6 +191,7 @@ export function buildPluginContext(
   if (permissions.has("reading-data")) {
     const library = createLibraryPort();
     const annotations = createAnnotationsPort();
+    const bookText = createBookTextPort();
     ctx.reading = {
       createHighlight: async (input) => {
         const highlight = await createHighlight(
@@ -210,6 +235,14 @@ export function buildPluginContext(
         await deleteAnnotation(String(id));
         bumpAnnotationsRevision();
       },
+      getToc: async (bookId) =>
+        (await bookText.getToc(bookId)).map((chapter) => ({
+          index: chapter.index,
+          title: chapter.title,
+          chars: chapter.chars,
+        })),
+      getChapterText: async (bookId, chapterIndex) =>
+        (await bookText.getChapterText(bookId, Number(chapterIndex))) ?? null,
       vocabulary: {
         list: async (filter) => {
           const needle = filter?.query?.trim().toLowerCase();
@@ -282,6 +315,30 @@ export function buildPluginContext(
         const runtime = getAgentRuntime();
         if (!runtime) throw new Error("AI is not configured");
         return runtime.ask({ prompt: String(input.prompt), system: input.system });
+      },
+    };
+  }
+
+  if (permissions.has("library-write")) {
+    ctx.library = {
+      importBook: async (input) => {
+        const file = new File([input.data], String(input.fileName));
+        const t = i18n.getFixedT(null, "shelf");
+        const existing = await listLibraryBooks();
+        const result = await prepareBookImport({ kind: "file", file }, t, existing);
+        const book = result.book;
+        if (result.status === "prepared") {
+          await commitBookImport(book, { kind: "file", file });
+          emitAppEvent("library-changed", {});
+        }
+        return {
+          id: book.id,
+          title: book.title,
+          author: book.author || undefined,
+          progressFraction: (book.progressPercent ?? 0) / 100,
+          addedAt: book.createdAt,
+          lastOpenedAt: book.lastOpenedAt ?? undefined,
+        };
       },
     };
   }

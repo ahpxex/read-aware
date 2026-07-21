@@ -29,6 +29,7 @@ import type {
   LibraryBook,
 } from "../lib/library-types";
 import type { FoliateBook } from "../../reader/lib/foliate-engine";
+import { onAppEvent } from "../../../platform/app-events";
 
 function formatImportNotice(
   imported: number,
@@ -113,6 +114,9 @@ export function useLibraryController() {
       setLibraryReady(true);
     }
   }, [reportError]);
+
+  // Plugin imports (and any out-of-band writer) announce via the event bus.
+  useEffect(() => onAppEvent("library-changed", () => void loadLibrary()), [loadLibrary]);
 
   const sortCollections = (list: Collection[]) =>
     [...list].sort((a, b) => a.name.localeCompare(b.name));

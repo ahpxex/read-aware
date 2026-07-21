@@ -27,7 +27,8 @@
       "ai": "Registrar herramientas del agente de IA",
       "clipboard": "Escribir en el portapapeles",
       "dictionary": "Usar el diccionario integrado (con tu modelo de IA)",
-      "llm": "Hacer solicitudes de IA con tu modelo"
+      "llm": "Hacer solicitudes de IA con tu modelo",
+      "library-write": "Añadir libros a la estantería"
     },
     "activationError": "Error al activar: {{message}}",
     "placement": "Botones fijados",

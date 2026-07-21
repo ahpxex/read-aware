@@ -27,7 +27,8 @@
       "ai": "Enregistrer des outils d'agent IA",
       "clipboard": "Écrire dans le presse-papiers",
       "dictionary": "Utiliser le dictionnaire intégré (via votre modèle IA)",
-      "llm": "Effectuer des requêtes IA avec votre modèle"
+      "llm": "Effectuer des requêtes IA avec votre modèle",
+      "library-write": "Ajouter des livres à la bibliothèque"
     },
     "activationError": "Échec de l'activation : {{message}}",
     "placement": "Boutons épinglés",

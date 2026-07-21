@@ -22,7 +22,7 @@
     "permissions": "Permissions",
     "noPermissions": "No extra permissions",
     "permission": {
-      "reading-data": "Read books, highlights, and notes",
+      "reading-data": "Read and write reading data: books, highlights, notes, vocabulary",
       "network": "Access the network",
       "ai": "Register AI agent tools",
       "clipboard": "Write to the clipboard",

@@ -4,11 +4,29 @@
  * here is API-level — it prevents accidental overreach, not malice; the trust
  * boundary is installation itself (§2).
  */
+import { getDefaultStore } from "jotai";
 import { localKV } from "../../../platform/local-store";
 import { getAgentRuntime } from "../../ai/agent/agent-runtime";
 import { createAnnotationsPort } from "../../ai/agent/ports/annotations-port";
 import { createDictionaryPort } from "../../ai/agent/ports/dictionary-port";
 import { createLibraryPort } from "../../ai/agent/ports/library-port";
+import {
+  createHighlight,
+  createNote,
+  deleteAnnotation,
+} from "../../annotations/lib/annotation-db";
+import { annotationsRevisionAtom } from "../../annotations/state/annotations-revision";
+import {
+  addToVocabulary,
+  getVocabulary,
+  removeFromVocabulary,
+} from "../../reader/lib/vocabulary";
+
+/** Reader/context annotation lists re-read on this revision counter. */
+function bumpAnnotationsRevision(): void {
+  const store = getDefaultStore();
+  store.set(annotationsRevisionAtom, store.get(annotationsRevisionAtom) + 1);
+}
 import { showPluginToast } from "../lib/plugin-toast";
 import {
   contributionKey,
@@ -109,6 +127,78 @@ export function buildPluginContext(
     const library = createLibraryPort();
     const annotations = createAnnotationsPort();
     ctx.reading = {
+      createHighlight: async (input) => {
+        const highlight = await createHighlight(
+          String(input.bookId),
+          input.cfiRange ?? null,
+          input.chapterHref ?? null,
+          String(input.text),
+          input.color ?? "yellow",
+          input.style ?? "highlight",
+        );
+        bumpAnnotationsRevision();
+        return {
+          id: highlight.id,
+          bookId: highlight.bookId,
+          kind: "highlight",
+          text: highlight.text,
+          chapter: highlight.chapterHref ?? undefined,
+          createdAt: highlight.createdAt,
+        };
+      },
+      createNote: async (input) => {
+        const note = await createNote(
+          String(input.bookId),
+          input.cfiRange ?? null,
+          input.chapterHref ?? null,
+          String(input.text),
+          String(input.content),
+        );
+        bumpAnnotationsRevision();
+        return {
+          id: note.id,
+          bookId: note.bookId,
+          kind: "note",
+          text: note.text,
+          content: note.content,
+          chapter: note.chapterHref ?? undefined,
+          createdAt: note.createdAt,
+        };
+      },
+      deleteAnnotation: async (id) => {
+        await deleteAnnotation(String(id));
+        bumpAnnotationsRevision();
+      },
+      vocabulary: {
+        list: async (filter) => {
+          const needle = filter?.query?.trim().toLowerCase();
+          const items = [...getVocabulary()]
+            .sort((a, b) => b.addedAt - a.addedAt)
+            .filter((item) => !needle || item.term.toLowerCase().includes(needle))
+            .map((item) => ({
+              term: item.term,
+              language: item.language,
+              definition: item.entry.senses[0]?.definition ?? item.entry.contextualMeaning ?? "",
+              bookTitle: item.bookTitle,
+              context: item.context,
+              addedAt: new Date(item.addedAt).toISOString(),
+              entry: item.entry,
+            }));
+          return typeof filter?.limit === "number" ? items.slice(0, filter.limit) : items;
+        },
+        add: async (input) => {
+          addToVocabulary({
+            term: String(input.term),
+            language: String(input.language),
+            entry: input.entry,
+            context: input.context,
+            bookTitle: input.bookTitle,
+          });
+        },
+        remove: async (term, language) => {
+          removeFromVocabulary(String(term), String(language));
+        },
+      },
       listBooks: async () =>
         (await library.listBooks()).map((book) => ({
           id: String(book.id),

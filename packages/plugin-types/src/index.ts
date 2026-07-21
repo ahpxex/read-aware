@@ -89,7 +89,46 @@ export type PluginFormView = {
   onSubmit: (values: PluginFormValues) => PluginViewResult | Promise<PluginViewResult>;
 };
 
-export type PluginView = PluginMarkdownView | PluginListView | PluginFormView;
+/**
+ * The compositional view: an ordered sequence of blocks. This is the growth
+ * path of the vocabulary — richer surfaces come from new block kinds, not
+ * from plugins drawing their own UI. The single-kind views above remain as
+ * shorthands for one-block pages.
+ */
+export type PluginBlocksView = {
+  kind: "blocks";
+  title?: string;
+  blocks: PluginBlock[];
+};
+
+export type PluginBlock =
+  | { kind: "markdown"; markdown: string }
+  /** A dictionary entry, rendered with the app's own dictionary UX. */
+  | { kind: "dictionary"; entry: PluginDictionaryEntry }
+  /** Label/value rows (provenance, metadata) in a quiet definition list. */
+  | { kind: "keyValue"; rows: { label: string; value: string }[] }
+  /** A quoted passage with an optional attribution line. */
+  | { kind: "quote"; text: string; caption?: string }
+  /** A row of buttons; each runs like any other contribution outcome. */
+  | {
+      kind: "actions";
+      actions: {
+        id: string;
+        label: string;
+        icon?: string;
+        variant?: "solid" | "outline" | "ghost" | "danger";
+        run: () => PluginViewResult | Promise<PluginViewResult>;
+      }[];
+    }
+  | { kind: "divider" }
+  | PluginListView
+  | PluginFormView;
+
+export type PluginView =
+  | PluginMarkdownView
+  | PluginListView
+  | PluginFormView
+  | PluginBlocksView;
 
 /**
  * What an action / list-select / form-submit may produce:
@@ -227,10 +266,42 @@ export type PluginContext = {
   };
   /** Requires the `network` permission. */
   fetch?: (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
-  /** Requires the `reading-data` permission (read-only). */
+  /**
+   * Requires the `reading-data` permission — read AND write access to the
+   * app's reading data: books (read), annotations (create/delete), and the
+   * built-in vocabulary notebook (list/add/remove — the same store the
+   * reader's dictionary saves into).
+   */
   reading?: {
     listBooks(): Promise<PluginBookOverview[]>;
     listAnnotations(filter?: { bookId?: string }): Promise<PluginAnnotation[]>;
+    createHighlight(input: {
+      bookId: string;
+      text: string;
+      cfiRange?: string | null;
+      chapterHref?: string | null;
+      color?: "yellow" | "green" | "blue" | "pink";
+      style?: "highlight" | "underline";
+    }): Promise<PluginAnnotation>;
+    createNote(input: {
+      bookId: string;
+      text: string;
+      content: string;
+      cfiRange?: string | null;
+      chapterHref?: string | null;
+    }): Promise<PluginAnnotation>;
+    deleteAnnotation(id: string): Promise<void>;
+    vocabulary: {
+      list(filter?: { query?: string; limit?: number }): Promise<PluginVocabularyEntry[]>;
+      add(input: {
+        term: string;
+        language: string;
+        entry: PluginDictionaryEntry;
+        context?: string;
+        bookTitle?: string;
+      }): Promise<void>;
+      remove(term: string, language: string): Promise<void>;
+    };
   };
   /**
    * Requires the `dictionary` permission. The app's built-in dictionary —
@@ -258,16 +329,29 @@ export type PluginContext = {
   };
 };
 
+export type PluginDictionaryEntry = {
+  headword: string;
+  pronunciation?: string;
+  senses: { partOfSpeech: string; definition: string; examples: string[] }[];
+  etymology?: string;
+  contextualMeaning?: string;
+};
+
 export type PluginDictionaryResult = {
   /** The explanation language the entry was produced in. */
   language: string;
-  entry: {
-    headword: string;
-    pronunciation?: string;
-    senses: { partOfSpeech: string; definition: string; examples: string[] }[];
-    etymology?: string;
-    contextualMeaning?: string;
-  };
+  entry: PluginDictionaryEntry;
+};
+
+export type PluginVocabularyEntry = {
+  term: string;
+  language: string;
+  /** One-line rendering of the first sense. */
+  definition: string;
+  bookTitle?: string;
+  context?: string;
+  addedAt: string;
+  entry: PluginDictionaryEntry;
 };
 
 /** The default export of a plugin's entry module. */

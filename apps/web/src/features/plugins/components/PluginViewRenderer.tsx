@@ -10,9 +10,11 @@ import { Body, Button, IconButton, Select, Spinner, TextField, Toggle } from "@r
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import { Markdown } from "../../ai/components/Markdown";
+import { DictionaryEntryBody } from "../../reader/components/DictionaryEntryBody";
 import { showPluginToast } from "../lib/plugin-toast";
 import { renderPluginIcon } from "../lib/plugin-icons";
 import type {
+  PluginBlock,
   PluginFormValues,
   PluginFormView,
   PluginListView,
@@ -104,6 +106,19 @@ export function PluginViewRenderer({ view, onClose, className }: PluginViewRende
             onResult={handleResult}
           />
         )}
+        {current.kind === "blocks" && (
+          <div className="flex flex-col gap-4">
+            {current.blocks.map((block, index) => (
+              <PluginBlockBody
+                key={index}
+                block={block}
+                stackDepth={stack.length}
+                busy={busy}
+                onResult={handleResult}
+              />
+            ))}
+          </div>
+        )}
         {busy && (
           <div className="absolute inset-0 flex items-center justify-center bg-[var(--ra-main-surface-color)]/60">
             <Spinner size="sm" />
@@ -112,6 +127,90 @@ export function PluginViewRenderer({ view, onClose, className }: PluginViewRende
       </div>
     </div>
   );
+}
+
+function PluginBlockBody({
+  block,
+  stackDepth,
+  busy,
+  onResult,
+}: {
+  block: PluginBlock;
+  stackDepth: number;
+  busy: boolean;
+  onResult: (run: () => PluginViewResult | Promise<PluginViewResult>) => void;
+}) {
+  if (block.kind === "markdown") {
+    return <Markdown className="text-sm leading-6">{block.markdown}</Markdown>;
+  }
+  if (block.kind === "dictionary") {
+    return (
+      <div className="flex flex-col gap-3">
+        <div className="flex items-baseline gap-2.5">
+          <span className="font-serif text-xl font-medium text-fg">
+            {block.entry.headword}
+          </span>
+          {block.entry.pronunciation && (
+            <span className="font-mono text-xs text-fg-subtle">
+              {block.entry.pronunciation}
+            </span>
+          )}
+        </div>
+        <DictionaryEntryBody entry={block.entry} />
+      </div>
+    );
+  }
+  if (block.kind === "keyValue") {
+    return (
+      <dl className="flex flex-col gap-1">
+        {block.rows.map((row, index) => (
+          <div key={index} className="flex gap-3 text-sm">
+            <dt className="w-24 shrink-0 text-fg-subtle">{row.label}</dt>
+            <dd className="min-w-0 flex-1 text-fg">{row.value}</dd>
+          </div>
+        ))}
+      </dl>
+    );
+  }
+  if (block.kind === "quote") {
+    return (
+      <figure className="border-l-2 border-border pl-3">
+        <blockquote className="font-serif text-sm italic leading-relaxed text-fg-muted">
+          {block.text}
+        </blockquote>
+        {block.caption && (
+          <figcaption className="mt-1 text-xs text-fg-subtle">{block.caption}</figcaption>
+        )}
+      </figure>
+    );
+  }
+  if (block.kind === "actions") {
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        {block.actions.map((action) => (
+          <Button
+            key={action.id}
+            size="sm"
+            variant={action.variant ?? "outline"}
+            disabled={busy}
+            onClick={() => onResult(action.run)}
+          >
+            {action.icon && (
+              <span className="mr-1 inline-flex">{renderPluginIcon(action.icon, 14)}</span>
+            )}
+            {action.label}
+          </Button>
+        ))}
+      </div>
+    );
+  }
+  if (block.kind === "divider") {
+    return <hr className="border-border" />;
+  }
+  if (block.kind === "list") {
+    return <PluginListViewBody view={block} busy={busy} onResult={onResult} />;
+  }
+  return <PluginFormViewBody key={stackDepth} view={block} busy={busy} onResult={onResult} />;
 }
 
 function PluginListViewBody({

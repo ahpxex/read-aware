@@ -22,7 +22,7 @@
     "permissions": "權限",
     "noPermissions": "無額外權限",
     "permission": {
-      "reading-data": "讀取書籍、螢光標記與筆記",
+      "reading-data": "讀寫閱讀資料:書籍、螢光標記、筆記、生詞本",
       "network": "存取網路",
       "ai": "註冊 AI 助手工具",
       "clipboard": "寫入剪貼簿",

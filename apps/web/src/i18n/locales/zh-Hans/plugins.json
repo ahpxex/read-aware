@@ -22,7 +22,7 @@
     "permissions": "权限",
     "noPermissions": "无额外权限",
     "permission": {
-      "reading-data": "读取书籍、高亮与笔记",
+      "reading-data": "读写阅读数据:书籍、高亮、笔记、生词本",
       "network": "访问网络",
       "ai": "注册 AI 助手工具",
       "clipboard": "写入剪贴板",

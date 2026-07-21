@@ -22,7 +22,7 @@
     "permissions": "Permisos",
     "noPermissions": "Sin permisos adicionales",
     "permission": {
-      "reading-data": "Leer libros, subrayados y notas",
+      "reading-data": "Leer y escribir datos de lectura: libros, subrayados, notas, vocabulario",
       "network": "Acceder a la red",
       "ai": "Registrar herramientas del agente de IA",
       "clipboard": "Escribir en el portapapeles",

@@ -22,7 +22,7 @@
     "permissions": "権限",
     "noPermissions": "追加の権限なし",
     "permission": {
-      "reading-data": "書籍・ハイライト・メモの読み取り",
+      "reading-data": "読書データの読み書き:書籍・ハイライト・メモ・単語帳",
       "network": "ネットワークへのアクセス",
       "ai": "AI エージェントツールの登録",
       "clipboard": "クリップボードへの書き込み",

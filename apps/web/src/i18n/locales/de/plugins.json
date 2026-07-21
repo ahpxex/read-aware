@@ -22,7 +22,7 @@
     "permissions": "Berechtigungen",
     "noPermissions": "Keine zusätzlichen Berechtigungen",
     "permission": {
-      "reading-data": "Bücher, Markierungen und Notizen lesen",
+      "reading-data": "Lesedaten lesen und schreiben: Bücher, Markierungen, Notizen, Vokabeln",
       "network": "Auf das Netzwerk zugreifen",
       "ai": "KI-Agent-Werkzeuge registrieren",
       "clipboard": "In die Zwischenablage schreiben",

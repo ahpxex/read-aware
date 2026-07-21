@@ -22,7 +22,7 @@
     "permissions": "Autorisations",
     "noPermissions": "Aucune autorisation supplémentaire",
     "permission": {
-      "reading-data": "Lire les livres, surlignages et notes",
+      "reading-data": "Lire et écrire les données de lecture : livres, surlignages, notes, vocabulaire",
       "network": "Accéder au réseau",
       "ai": "Enregistrer des outils d'agent IA",
       "clipboard": "Écrire dans le presse-papiers",

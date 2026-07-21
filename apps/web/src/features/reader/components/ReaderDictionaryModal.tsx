@@ -23,6 +23,7 @@ import {
 import { LOCALE_LABELS, LOCALES, useLocale, useTranslation } from "../../../i18n";
 import { settingsOpenAtom, settingsSectionRequestAtom } from "../../../state/ui";
 import { useDictionaryLookup } from "../hooks/useDictionaryLookup";
+import { DictionaryEntryBody } from "./DictionaryEntryBody";
 import type { DictionaryEntry, SentenceExplanation, SentenceGloss } from "@read-aware/agent";
 import {
   getDictionaryLanguage,
@@ -315,49 +316,7 @@ export function ReaderDictionaryModal({
         )}
 
         {showActions && entry && (
-          <div className="flex flex-col gap-4">
-            {entry?.senses.map((sense, index) => (
-              <div key={index} className="flex gap-3">
-                <span className="mt-0.5 font-mono text-xs tabular-nums text-fg-subtle">
-                  {index + 1}
-                </span>
-                <div className="flex flex-col gap-1.5">
-                  {sense.partOfSpeech && (
-                    <span className="font-serif text-sm italic text-fg-muted">
-                      {sense.partOfSpeech}
-                    </span>
-                  )}
-                  <Body className="text-sm leading-relaxed text-fg">{sense.definition}</Body>
-                  {sense.examples.length > 0 && (
-                    <ul className="mt-0.5 flex flex-col gap-1">
-                      {sense.examples.map((example, exampleIndex) => (
-                        <li
-                          key={exampleIndex}
-                          className="border-l-2 border-border pl-2 font-serif text-sm italic leading-relaxed text-fg-muted"
-                        >
-                          {example}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {entry?.contextualMeaning && (
-              <div className="flex flex-col gap-1 rounded-md bg-fill p-3">
-                <Eyebrow className="text-fg-subtle">{t("dictionary.contextLabel")}</Eyebrow>
-                <Body className="text-sm leading-relaxed text-fg">{entry.contextualMeaning}</Body>
-              </div>
-            )}
-
-            {entry?.etymology && (
-              <div className="flex flex-col gap-1">
-                <Eyebrow className="text-fg-subtle">{t("dictionary.etymologyLabel")}</Eyebrow>
-                <Body className="text-sm leading-relaxed text-fg-muted">{entry.etymology}</Body>
-              </div>
-            )}
-          </div>
+          <DictionaryEntryBody entry={entry} />
         )}
 
         {showActions && (

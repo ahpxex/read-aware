@@ -36,9 +36,15 @@ function sanitizeSectionHtml(html: string): string {
 
 function wrapSectionHtml(html: string, title: string | undefined, language: string): string {
   const lang = /^[A-Za-z-]{2,35}$/.test(language) ? language : "en";
+  // The document-level CSP is the hard guarantee: with no script-src and
+  // default-src 'none', no script executes in the section iframe even if the
+  // regex strip above is bypassed. Inline styles stay allowed (foliate
+  // injects the reader's styles as <style> elements); images may load.
+  const csp =
+    "default-src 'none'; img-src data: https: http:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'";
   return `<!DOCTYPE html>
 <html lang="${lang}">
-<head><meta charset="utf-8">${title ? `<title>${escapeHtml(title)}</title>` : ""}</head>
+<head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${csp}">${title ? `<title>${escapeHtml(title)}</title>` : ""}</head>
 <body>${title ? `<h2>${escapeHtml(title)}</h2>` : ""}${sanitizeSectionHtml(html)}</body>
 </html>`;
 }

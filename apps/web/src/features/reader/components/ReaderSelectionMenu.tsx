@@ -12,6 +12,8 @@ import { IconButton, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import { useAskAiEnabled } from "../../ai/hooks/useAskAiEnabled";
+import { PluginSelectionCluster } from "../../plugins/components/PluginSelectionCluster";
+import type { SelectionActionInput } from "../../plugins/lib/plugin-types";
 import { useAnchoredMenuPosition } from "../hooks/useAnchoredMenuPosition";
 import type { ReaderSelectionState } from "../lib/selection-overlay";
 
@@ -26,6 +28,8 @@ type ReaderSelectionMenuProps = {
   onAskAI?: () => void;
   /** When false (e.g. fixed-layout PDF) only the copy action is offered. */
   allowAnnotations?: boolean;
+  /** Selection context for plugin-contributed actions (null hides them). */
+  pluginInput?: SelectionActionInput | null;
 };
 
 /** Hairline divider separating action groups within the bar. */
@@ -42,6 +46,7 @@ export function ReaderSelectionMenu({
   onLookUp,
   onAskAI,
   allowAnnotations = true,
+  pluginInput = null,
 }: ReaderSelectionMenuProps) {
   const { t } = useTranslation("reader");
   const { containerRef, menuRef, position } = useAnchoredMenuPosition(selection?.anchorRect);
@@ -166,6 +171,7 @@ export function ReaderSelectionMenu({
             )}
           </>
         )}
+        <PluginSelectionCluster input={pluginInput} divider={<MenuDivider />} />
       </div>
     </div>
   );

@@ -21,7 +21,7 @@ import type { TopNav } from "../../../state/ui";
 export type CommandKind = "action" | "collection" | "book";
 
 /** Stable section identity (kept out of copy so it survives translation). */
-export type CommandGroupKey = "goto" | "shelf" | "collections" | "books";
+export type CommandGroupKey = "goto" | "shelf" | "collections" | "books" | "plugins";
 
 export type CommandItem = {
   id: string;
@@ -39,7 +39,13 @@ export type CommandItem = {
 };
 
 /** Fixed section order in the palette. */
-export const GROUP_ORDER: readonly CommandGroupKey[] = ["goto", "shelf", "collections", "books"];
+export const GROUP_ORDER: readonly CommandGroupKey[] = [
+  "goto",
+  "shelf",
+  "plugins",
+  "collections",
+  "books",
+];
 
 export type CommandActions = {
   openBook: (book: LibraryBook) => void;

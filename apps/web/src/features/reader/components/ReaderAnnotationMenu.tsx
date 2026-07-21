@@ -12,6 +12,8 @@ import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import { useAskAiEnabled } from "../../ai/hooks/useAskAiEnabled";
 import type { Highlight } from "../../annotations/lib/annotation-types";
+import { PluginSelectionCluster } from "../../plugins/components/PluginSelectionCluster";
+import type { SelectionActionInput } from "../../plugins/lib/plugin-types";
 import { useAnchoredMenuPosition } from "../hooks/useAnchoredMenuPosition";
 import { HIGHLIGHT_COLORS } from "../lib/highlight-renderer";
 import type { SelectionOverlayRect } from "../lib/selection-overlay";
@@ -26,6 +28,8 @@ type ReaderAnnotationMenuProps = {
   onLookUp: () => void;
   onAskAI: () => void;
   onRemove: () => void;
+  /** Annotation context for plugin-contributed actions (null hides them). */
+  pluginInput?: SelectionActionInput | null;
 };
 
 const COLOR_OPTIONS: Highlight["color"][] = ["yellow", "green", "blue", "pink"];
@@ -49,6 +53,7 @@ export function ReaderAnnotationMenu({
   onLookUp,
   onAskAI,
   onRemove,
+  pluginInput = null,
 }: ReaderAnnotationMenuProps) {
   const { t } = useTranslation("reader");
   const { containerRef, menuRef, position } = useAnchoredMenuPosition(anchorRect);
@@ -166,6 +171,8 @@ export function ReaderAnnotationMenu({
             />
           </Tooltip>
         )}
+
+        <PluginSelectionCluster input={pluginInput} divider={<MenuDivider />} />
 
         <MenuDivider />
         <Tooltip content={t("menu.remove")} side="top">

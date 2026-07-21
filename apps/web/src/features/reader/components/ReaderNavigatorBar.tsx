@@ -22,6 +22,8 @@ import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import { hasCoarsePointer } from "../../../platform/environment";
 import { useAskAiEnabled } from "../../ai/hooks/useAskAiEnabled";
+import { PluginSelectionCluster } from "../../plugins/components/PluginSelectionCluster";
+import type { SelectionActionInput } from "../../plugins/lib/plugin-types";
 import { useDraggableFloat } from "../hooks/useDraggableFloat";
 import type { NavigatorGranularity } from "../lib/sentence-index";
 
@@ -60,6 +62,8 @@ type ReaderNavigatorBarProps = {
   onLookUp: () => void;
   onAskAI: () => void;
   onExit: () => void;
+  /** Resting-sentence context for plugin-contributed actions (null hides them). */
+  pluginInput?: SelectionActionInput | null;
 };
 
 /** Hairline divider separating action groups within the bar. */
@@ -128,6 +132,7 @@ export function ReaderNavigatorBar({
   onLookUp,
   onAskAI,
   onExit,
+  pluginInput = null,
 }: ReaderNavigatorBarProps) {
   const { t } = useTranslation("reader");
   const askEnabled = useAskAiEnabled();
@@ -314,6 +319,10 @@ export function ReaderNavigatorBar({
                   icon={<ChatCircleDots size={14} weight="regular" aria-hidden="true" />}
                 />
               )}
+              <PluginSelectionCluster
+                input={hasSentence ? pluginInput : null}
+                divider={<BarDivider />}
+              />
             </>
           )}
 

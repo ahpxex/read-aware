@@ -10,6 +10,7 @@ import { askAiRequestAtom } from "../../ai/state/chat-intent";
 import { useBookAnnotations } from "../../annotations/hooks/useBookAnnotations";
 import type { LibraryBook } from "../../library/lib/library-types";
 import { useBackInterceptor } from "../../../hooks/useBackInterceptor";
+import { PluginHeaderCluster } from "../../plugins/components/PluginHeaderCluster";
 import { findTocIndexForHref } from "../lib/epub-utils";
 import { useReaderPanelLayout } from "../hooks/useReaderPanelLayout";
 import { useReaderPanelSizes } from "../hooks/useReaderPanelSizes";
@@ -268,6 +269,11 @@ export function ReaderShellOverlay({
                 />
               </Tooltip>
             )}
+            <PluginHeaderCluster
+              surface="reader"
+              input={{ book: { id: book.id, title: book.title, author: book.author } }}
+              buttonClassName="pointer-events-auto"
+            />
             <ReaderAppearanceMenu
               bookId={bookId}
               open={appearanceOpen}

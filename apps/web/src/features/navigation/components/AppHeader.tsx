@@ -12,9 +12,14 @@ import {
 import { DropdownMenu, IconButton, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { usePhoneViewport } from "@read-aware/ui/media";
+import { useAtomValue } from "jotai";
 import { useTranslation } from "../../../i18n";
 import { desktopChromeKind } from "../../../platform/environment";
 import { activeCollectionAtom, type TopNav } from "../../../state/ui";
+import { PluginHeaderCluster } from "../../plugins/components/PluginHeaderCluster";
+import { openHeaderActionDialog } from "../../plugins/lib/open-header-action";
+import { renderPluginIcon } from "../../plugins/lib/plugin-icons";
+import { headerActionsAtom } from "../../plugins/state/plugin-store";
 import { WindowCaptionControls } from "./WindowCaptionControls";
 
 type AppHeaderProps = {
@@ -65,6 +70,11 @@ export function AppHeader({
   const contextActive = activeTopNav === "context";
   const statsActive = activeTopNav === "stats";
   const [activeCollectionId, setActiveCollectionId] = useAtom(activeCollectionAtom);
+  // Plugin buttons live on the shelf header only (docs/plugin-system.md §5).
+  const onShelf = activeTopNav === "shelf";
+  const shelfPluginActions = useAtomValue(headerActionsAtom).filter(
+    (action) => action.surface === "shelf",
+  );
 
   // Standalone surfaces (Context, Stats) and an open collection all read as
   // pushed views, so give them a back affordance on the left — mirroring the
@@ -156,6 +166,21 @@ export function AppHeader({
                 icon: <GearSix size={16} weight="regular" aria-hidden="true" />,
                 onClick: onOpenSettings,
               },
+              // Plugin actions collapse into the phone overflow menu; popups
+              // open in the Dialog host (no anchor to speak of on phones).
+              ...(onShelf
+                ? shelfPluginActions.map((action) => ({
+                    label: action.title,
+                    icon: renderPluginIcon(action.icon, 16),
+                    onClick: () => {
+                      if (action.presentation === "page") {
+                        onTopNavChange(`plugin:${action.key}`);
+                      } else {
+                        void openHeaderActionDialog(action, {});
+                      }
+                    },
+                  }))
+                : []),
             ]}
           />
           </div>
@@ -217,6 +242,12 @@ export function AppHeader({
                 />
               </Tooltip>
               {viewControl}
+              {onShelf && (
+                <PluginHeaderCluster
+                  surface="shelf"
+                  onOpenPage={(key) => onTopNavChange(`plugin:${key}`)}
+                />
+              )}
               <Tooltip content={t("header.context")} side="bottom">
                 <IconButton
                   label={t("header.context")}

@@ -20,7 +20,9 @@ import { BACK_REQUEST_EVENT, sendAppToBackground } from "./platform/back-navigat
 import { CommandPalette } from "./features/command/components/CommandPalette";
 import type { CommandContext } from "./features/command/lib/build-commands";
 import { PluginDialogHost } from "./features/plugins/components/PluginDialogHost";
+import { PluginPageHost } from "./features/plugins/components/PluginPageHost";
 import { PluginToastBridge } from "./features/plugins/components/PluginToastBridge";
+import { usePluginCommandItems } from "./features/plugins/hooks/usePluginCommandItems";
 
 // The shelf is the boot-critical surface; everything below is split out of its
 // chunk and prefetched on idle (see app-warmup.ts), so cold start parses less
@@ -229,6 +231,10 @@ function App() {
     setActiveCollectionId,
   ]);
 
+  const pluginCommandItems = usePluginCommandItems(
+    useCallback((key: string) => setActiveTopNav(`plugin:${key}`), [setActiveTopNav]),
+  );
+
   const commandContext: CommandContext = {
     activeTopNav,
     shelfView,
@@ -383,10 +389,15 @@ function App() {
               <Suspense fallback={<SurfaceFallback />}>
                 <ContextWorkspace />
               </Suspense>
-            ) : (
+            ) : activeTopNav === "stats" ? (
               <Suspense fallback={<SurfaceFallback />}>
                 <StatsWorkspace books={library.books} onOpenBook={handleOpenBook} />
               </Suspense>
+            ) : (
+              <PluginPageHost
+                navKey={activeTopNav}
+                onExit={() => setActiveTopNav("shelf")}
+              />
             )}
           </ScrollArea>
 
@@ -394,6 +405,7 @@ function App() {
             isOpen={searchModalOpen}
             onClose={() => setSearchModalOpen(false)}
             ctx={commandContext}
+            extraItems={pluginCommandItems}
           />
         </main>
       )}

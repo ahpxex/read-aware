@@ -9,6 +9,8 @@ type CommandPaletteProps = {
   isOpen: boolean;
   onClose: () => void;
   ctx: CommandContext;
+  /** Externally contributed items (e.g. plugin actions), appended to the set. */
+  extraItems?: CommandItem[];
 };
 
 /**
@@ -16,7 +18,7 @@ type CommandPaletteProps = {
  * shelf controls. The available commands are built dynamically from the current
  * context, ranked by query relevance, and grouped into sections.
  */
-export function CommandPalette({ isOpen, onClose, ctx }: CommandPaletteProps) {
+export function CommandPalette({ isOpen, onClose, ctx, extraItems }: CommandPaletteProps) {
   const { t } = useTranslation("command");
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -24,11 +26,11 @@ export function CommandPalette({ isOpen, onClose, ctx }: CommandPaletteProps) {
   const listRef = useRef<HTMLDivElement>(null);
 
   const items = useMemo(
-    () => (isOpen ? buildCommands(ctx, t) : []),
+    () => (isOpen ? [...buildCommands(ctx, t), ...(extraItems ?? [])] : []),
     // Rebuild when the underlying data changes (actions are stable setters) or
     // the language switches (labels/keywords are translated).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isOpen, ctx.activeTopNav, ctx.shelfView, ctx.collections, ctx.books, t],
+    [isOpen, ctx.activeTopNav, ctx.shelfView, ctx.collections, ctx.books, extraItems, t],
   );
   const groups = useMemo(() => filterCommands(items, query), [items, query]);
   const flat = useMemo(() => groups.flatMap((group) => group.items), [groups]);

@@ -50,7 +50,12 @@ import type { ShortcutBindings } from "../features/settings/lib/shortcuts";
 
 export const topNavs = ["shelf", "context", "stats"] as const;
 
-export type TopNav = (typeof topNavs)[number];
+/**
+ * The active top-level surface. Beyond the fixed three, a plugin page occupies
+ * this state as `plugin:<contributionKey>` (docs/plugin-system.md §5 — a page
+ * is a pushed view with the header's back affordance, not a route).
+ */
+export type TopNav = (typeof topNavs)[number] | `plugin:${string}`;
 
 export const activeTopNavAtom = atom<TopNav>("shelf");
 

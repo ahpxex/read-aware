@@ -144,6 +144,7 @@ export type PluginHeaderAction = {
 export type PluginCommand = {
   id: string;
   title: string;
+  icon?: string;
   /** Extra text folded into palette matching. */
   keywords?: string;
   run: () => PluginViewResult | Promise<PluginViewResult>;

@@ -2270,6 +2270,21 @@ export function FoliateReaderView({
         onAddNote={handleAddNote}
         onLookUp={handleLookUp}
         onAskAI={handleAskAI}
+        pluginInput={
+          selectedBook && selection
+            ? {
+                text: selection.text,
+                cfiRange: selection.cfiRange,
+                chapterHref: selection.chapterHref,
+                book: {
+                  id: selectedBook.id,
+                  title: selectedBook.title,
+                  author: selectedBook.author,
+                },
+                source: "selection",
+              }
+            : null
+        }
       />
       <ReaderNavigatorBar
         visible={sentenceNavigatorActive && !isLoading && !error}
@@ -2295,6 +2310,21 @@ export function FoliateReaderView({
         onLookUp={handleNavigatorLookUp}
         onAskAI={handleNavigatorAskAI}
         onExit={() => onExitNavigatorRef.current?.()}
+        pluginInput={
+          selectedBook && sentenceNavigator.current
+            ? {
+                text: sentenceNavigator.current.text,
+                cfiRange: sentenceNavigator.current.cfiRange,
+                chapterHref: currentChapterHrefRef.current,
+                book: {
+                  id: selectedBook.id,
+                  title: selectedBook.title,
+                  author: selectedBook.author,
+                },
+                source: "navigator",
+              }
+            : null
+        }
       />
       {/* Off-screen stage where the engine loads + extracts a footnote fragment. */}
       <div
@@ -2323,6 +2353,21 @@ export function FoliateReaderView({
         onRemove={() => {
           void handleRemoveAnnotation();
         }}
+        pluginInput={
+          selectedBook && activeAnnotation
+            ? {
+                text: activeAnnotation.highlight.text,
+                cfiRange: activeAnnotation.highlight.cfiRange,
+                chapterHref: activeAnnotation.highlight.chapterHref,
+                book: {
+                  id: selectedBook.id,
+                  title: selectedBook.title,
+                  author: selectedBook.author,
+                },
+                source: "annotation",
+              }
+            : null
+        }
       />
 
       {showLoader && (

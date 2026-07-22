@@ -75,3 +75,151 @@ button {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Long-form prose for docs pages and blog posts. Pages write plain semantic
+   HTML inside `<article class="doc-prose">`; everything below keeps that HTML
+   in the landing's editorial voice without per-element utility classes, so
+   documentation stays easy to write and revise. */
+.doc-prose {
+  font-size: 1.0625rem;
+  line-height: 1.75;
+}
+
+.doc-prose > :first-child {
+  margin-top: 0;
+}
+
+.doc-prose h1 {
+  margin: 0;
+  font-size: clamp(1.75rem, 3.6vw, 2.2rem);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.doc-prose h2 {
+  margin: 2.75rem 0 0;
+  font-size: 1.375rem;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.doc-prose h3 {
+  margin: 2rem 0 0;
+  font-size: 1.125rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.doc-prose p {
+  margin: 1.1rem 0 0;
+}
+
+.doc-prose .lead {
+  color: var(--color-fg-muted);
+}
+
+/* Tailwind's preflight strips list markers; restore them for prose. */
+.doc-prose ul,
+.doc-prose ol {
+  margin: 1.1rem 0 0;
+  padding-left: 1.4rem;
+}
+
+.doc-prose ul {
+  list-style: disc;
+}
+
+.doc-prose ol {
+  list-style: decimal;
+}
+
+.doc-prose li {
+  margin-top: 0.45rem;
+}
+
+.doc-prose li > ul,
+.doc-prose li > ol {
+  margin-top: 0.45rem;
+}
+
+.doc-prose a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  transition: color 0.15s;
+}
+
+.doc-prose a:hover {
+  color: var(--color-fg-muted);
+}
+
+.doc-prose strong {
+  font-weight: 500;
+}
+
+.doc-prose code {
+  padding: 0.1em 0.35em;
+  border-radius: 0.25rem;
+  background: var(--color-fill);
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+
+.doc-prose pre {
+  margin: 1.25rem 0 0;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.65;
+}
+
+.doc-prose pre code {
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  font-size: inherit;
+}
+
+.doc-prose table {
+  margin: 1.25rem 0 0;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.doc-prose th {
+  padding: 0.5rem 1.25rem 0.5rem 0;
+  border-bottom: 1px solid var(--color-border-strong);
+  text-align: left;
+  font-weight: 500;
+}
+
+.doc-prose td {
+  padding: 0.55rem 1.25rem 0.55rem 0;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+}
+
+.doc-prose th:last-child,
+.doc-prose td:last-child {
+  padding-right: 0;
+}
+
+.doc-prose blockquote {
+  margin: 1.25rem 0 0;
+  padding-left: 1.1rem;
+  border-left: 2px solid var(--color-border-strong);
+  color: var(--color-fg-muted);
+  font-style: italic;
+}
+
+.doc-prose hr {
+  margin: 2.5rem 0 0;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}

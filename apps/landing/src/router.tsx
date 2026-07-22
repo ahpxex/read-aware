@@ -1,11 +1,16 @@
-import { createRouter } from "@tanstack/react-router";
+import { createRouter, type RouterHistory } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
-export function createAppRouter() {
+/**
+ * The browser SPA calls this bare; the prerender entry (entry-server.tsx)
+ * passes a memory history to render a specific URL server-side.
+ */
+export function createAppRouter(options?: { history?: RouterHistory }) {
   return createRouter({
     routeTree,
     defaultPreload: "intent",
     scrollRestoration: true,
+    history: options?.history,
   });
 }
 

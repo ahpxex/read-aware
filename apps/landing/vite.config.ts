@@ -13,7 +13,7 @@ const { version: appVersion } = JSON.parse(
   readFileSync(new URL("../desktop/src-tauri/tauri.conf.json", import.meta.url), "utf8"),
 ) as { version: string };
 
-export default defineConfig({
+export default defineConfig(({ isSsrBuild }) => ({
   define: {
     __READAWARE_VERSION__: JSON.stringify(appVersion),
   },
@@ -23,9 +23,14 @@ export default defineConfig({
     tanstackRouter({ target: "react", autoCodeSplitting: true }),
     react(),
   ],
+  build: {
+    // The SSR pass only produces the prerender entry (scripts/prerender.mjs);
+    // static assets already live in the client dist/.
+    copyPublicDir: !isSsrBuild,
+  },
   server: {
     // Distinct from the web app (5173) so both can run side by side.
     port: 5175,
     strictPort: true,
   },
-});
+}));

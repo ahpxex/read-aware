@@ -9,38 +9,199 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as DocsRouteImport } from './routes/docs'
+import { Route as BlogRouteImport } from './routes/blog'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DocsIndexRouteImport } from './routes/docs/index'
+import { Route as BlogIndexRouteImport } from './routes/blog/index'
+import { Route as DocsInstallRouteImport } from './routes/docs/install'
+import { Route as DocsGettingStartedRouteImport } from './routes/docs/getting-started'
+import { Route as BlogReadingThatRemembersRouteImport } from './routes/blog/reading-that-remembers'
+import { Route as BlogPluginsV1RouteImport } from './routes/blog/plugins-v1'
+import { Route as BlogLocalFirstRouteImport } from './routes/blog/local-first'
+import { Route as DocsPluginsIndexRouteImport } from './routes/docs/plugins/index'
+import { Route as DocsPluginsPublishingRouteImport } from './routes/docs/plugins/publishing'
+import { Route as DocsPluginsApiRouteImport } from './routes/docs/plugins/api'
 
+const DocsRoute = DocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogRoute = BlogRouteImport.update({
+  id: '/blog',
+  path: '/blog',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocsIndexRoute = DocsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DocsRoute,
+} as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => BlogRoute,
+} as any)
+const DocsInstallRoute = DocsInstallRouteImport.update({
+  id: '/install',
+  path: '/install',
+  getParentRoute: () => DocsRoute,
+} as any)
+const DocsGettingStartedRoute = DocsGettingStartedRouteImport.update({
+  id: '/getting-started',
+  path: '/getting-started',
+  getParentRoute: () => DocsRoute,
+} as any)
+const BlogReadingThatRemembersRoute =
+  BlogReadingThatRemembersRouteImport.update({
+    id: '/reading-that-remembers',
+    path: '/reading-that-remembers',
+    getParentRoute: () => BlogRoute,
+  } as any)
+const BlogPluginsV1Route = BlogPluginsV1RouteImport.update({
+  id: '/plugins-v1',
+  path: '/plugins-v1',
+  getParentRoute: () => BlogRoute,
+} as any)
+const BlogLocalFirstRoute = BlogLocalFirstRouteImport.update({
+  id: '/local-first',
+  path: '/local-first',
+  getParentRoute: () => BlogRoute,
+} as any)
+const DocsPluginsIndexRoute = DocsPluginsIndexRouteImport.update({
+  id: '/plugins/',
+  path: '/plugins/',
+  getParentRoute: () => DocsRoute,
+} as any)
+const DocsPluginsPublishingRoute = DocsPluginsPublishingRouteImport.update({
+  id: '/plugins/publishing',
+  path: '/plugins/publishing',
+  getParentRoute: () => DocsRoute,
+} as any)
+const DocsPluginsApiRoute = DocsPluginsApiRouteImport.update({
+  id: '/plugins/api',
+  path: '/plugins/api',
+  getParentRoute: () => DocsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/blog': typeof BlogRouteWithChildren
+  '/docs': typeof DocsRouteWithChildren
+  '/blog/local-first': typeof BlogLocalFirstRoute
+  '/blog/plugins-v1': typeof BlogPluginsV1Route
+  '/blog/reading-that-remembers': typeof BlogReadingThatRemembersRoute
+  '/docs/getting-started': typeof DocsGettingStartedRoute
+  '/docs/install': typeof DocsInstallRoute
+  '/blog/': typeof BlogIndexRoute
+  '/docs/': typeof DocsIndexRoute
+  '/docs/plugins/api': typeof DocsPluginsApiRoute
+  '/docs/plugins/publishing': typeof DocsPluginsPublishingRoute
+  '/docs/plugins/': typeof DocsPluginsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/blog/local-first': typeof BlogLocalFirstRoute
+  '/blog/plugins-v1': typeof BlogPluginsV1Route
+  '/blog/reading-that-remembers': typeof BlogReadingThatRemembersRoute
+  '/docs/getting-started': typeof DocsGettingStartedRoute
+  '/docs/install': typeof DocsInstallRoute
+  '/blog': typeof BlogIndexRoute
+  '/docs': typeof DocsIndexRoute
+  '/docs/plugins/api': typeof DocsPluginsApiRoute
+  '/docs/plugins/publishing': typeof DocsPluginsPublishingRoute
+  '/docs/plugins': typeof DocsPluginsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/blog': typeof BlogRouteWithChildren
+  '/docs': typeof DocsRouteWithChildren
+  '/blog/local-first': typeof BlogLocalFirstRoute
+  '/blog/plugins-v1': typeof BlogPluginsV1Route
+  '/blog/reading-that-remembers': typeof BlogReadingThatRemembersRoute
+  '/docs/getting-started': typeof DocsGettingStartedRoute
+  '/docs/install': typeof DocsInstallRoute
+  '/blog/': typeof BlogIndexRoute
+  '/docs/': typeof DocsIndexRoute
+  '/docs/plugins/api': typeof DocsPluginsApiRoute
+  '/docs/plugins/publishing': typeof DocsPluginsPublishingRoute
+  '/docs/plugins/': typeof DocsPluginsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/blog'
+    | '/docs'
+    | '/blog/local-first'
+    | '/blog/plugins-v1'
+    | '/blog/reading-that-remembers'
+    | '/docs/getting-started'
+    | '/docs/install'
+    | '/blog/'
+    | '/docs/'
+    | '/docs/plugins/api'
+    | '/docs/plugins/publishing'
+    | '/docs/plugins/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/blog/local-first'
+    | '/blog/plugins-v1'
+    | '/blog/reading-that-remembers'
+    | '/docs/getting-started'
+    | '/docs/install'
+    | '/blog'
+    | '/docs'
+    | '/docs/plugins/api'
+    | '/docs/plugins/publishing'
+    | '/docs/plugins'
+  id:
+    | '__root__'
+    | '/'
+    | '/blog'
+    | '/docs'
+    | '/blog/local-first'
+    | '/blog/plugins-v1'
+    | '/blog/reading-that-remembers'
+    | '/docs/getting-started'
+    | '/docs/install'
+    | '/blog/'
+    | '/docs/'
+    | '/docs/plugins/api'
+    | '/docs/plugins/publishing'
+    | '/docs/plugins/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BlogRoute: typeof BlogRouteWithChildren
+  DocsRoute: typeof DocsRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog': {
+      id: '/blog'
+      path: '/blog'
+      fullPath: '/blog'
+      preLoaderRoute: typeof BlogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +209,119 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/docs/': {
+      id: '/docs/'
+      path: '/'
+      fullPath: '/docs/'
+      preLoaderRoute: typeof DocsIndexRouteImport
+      parentRoute: typeof DocsRoute
+    }
+    '/blog/': {
+      id: '/blog/'
+      path: '/'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof BlogRoute
+    }
+    '/docs/install': {
+      id: '/docs/install'
+      path: '/install'
+      fullPath: '/docs/install'
+      preLoaderRoute: typeof DocsInstallRouteImport
+      parentRoute: typeof DocsRoute
+    }
+    '/docs/getting-started': {
+      id: '/docs/getting-started'
+      path: '/getting-started'
+      fullPath: '/docs/getting-started'
+      preLoaderRoute: typeof DocsGettingStartedRouteImport
+      parentRoute: typeof DocsRoute
+    }
+    '/blog/reading-that-remembers': {
+      id: '/blog/reading-that-remembers'
+      path: '/reading-that-remembers'
+      fullPath: '/blog/reading-that-remembers'
+      preLoaderRoute: typeof BlogReadingThatRemembersRouteImport
+      parentRoute: typeof BlogRoute
+    }
+    '/blog/plugins-v1': {
+      id: '/blog/plugins-v1'
+      path: '/plugins-v1'
+      fullPath: '/blog/plugins-v1'
+      preLoaderRoute: typeof BlogPluginsV1RouteImport
+      parentRoute: typeof BlogRoute
+    }
+    '/blog/local-first': {
+      id: '/blog/local-first'
+      path: '/local-first'
+      fullPath: '/blog/local-first'
+      preLoaderRoute: typeof BlogLocalFirstRouteImport
+      parentRoute: typeof BlogRoute
+    }
+    '/docs/plugins/': {
+      id: '/docs/plugins/'
+      path: '/plugins'
+      fullPath: '/docs/plugins/'
+      preLoaderRoute: typeof DocsPluginsIndexRouteImport
+      parentRoute: typeof DocsRoute
+    }
+    '/docs/plugins/publishing': {
+      id: '/docs/plugins/publishing'
+      path: '/plugins/publishing'
+      fullPath: '/docs/plugins/publishing'
+      preLoaderRoute: typeof DocsPluginsPublishingRouteImport
+      parentRoute: typeof DocsRoute
+    }
+    '/docs/plugins/api': {
+      id: '/docs/plugins/api'
+      path: '/plugins/api'
+      fullPath: '/docs/plugins/api'
+      preLoaderRoute: typeof DocsPluginsApiRouteImport
+      parentRoute: typeof DocsRoute
+    }
   }
 }
 
+interface BlogRouteChildren {
+  BlogLocalFirstRoute: typeof BlogLocalFirstRoute
+  BlogPluginsV1Route: typeof BlogPluginsV1Route
+  BlogReadingThatRemembersRoute: typeof BlogReadingThatRemembersRoute
+  BlogIndexRoute: typeof BlogIndexRoute
+}
+
+const BlogRouteChildren: BlogRouteChildren = {
+  BlogLocalFirstRoute: BlogLocalFirstRoute,
+  BlogPluginsV1Route: BlogPluginsV1Route,
+  BlogReadingThatRemembersRoute: BlogReadingThatRemembersRoute,
+  BlogIndexRoute: BlogIndexRoute,
+}
+
+const BlogRouteWithChildren = BlogRoute._addFileChildren(BlogRouteChildren)
+
+interface DocsRouteChildren {
+  DocsGettingStartedRoute: typeof DocsGettingStartedRoute
+  DocsInstallRoute: typeof DocsInstallRoute
+  DocsIndexRoute: typeof DocsIndexRoute
+  DocsPluginsApiRoute: typeof DocsPluginsApiRoute
+  DocsPluginsPublishingRoute: typeof DocsPluginsPublishingRoute
+  DocsPluginsIndexRoute: typeof DocsPluginsIndexRoute
+}
+
+const DocsRouteChildren: DocsRouteChildren = {
+  DocsGettingStartedRoute: DocsGettingStartedRoute,
+  DocsInstallRoute: DocsInstallRoute,
+  DocsIndexRoute: DocsIndexRoute,
+  DocsPluginsApiRoute: DocsPluginsApiRoute,
+  DocsPluginsPublishingRoute: DocsPluginsPublishingRoute,
+  DocsPluginsIndexRoute: DocsPluginsIndexRoute,
+}
+
+const DocsRouteWithChildren = DocsRoute._addFileChildren(DocsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BlogRoute: BlogRouteWithChildren,
+  DocsRoute: DocsRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

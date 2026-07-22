@@ -1,16 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { DownloadMenu } from "../components/DownloadMenu";
 import { DownloadSection } from "../components/DownloadSection";
+import { SiteFooter } from "../components/SiteFooter";
+import { SiteHeader } from "../components/SiteHeader";
 import { useLatestRelease } from "../hooks/useLatestRelease";
-import { REPO_URL } from "../lib/releases";
 
 export const Route = createFileRoute("/")({
   component: LandingPage,
 });
 
-const CONTACT_EMAIL = "hi@ahpx.me";
-const DISCORD_URL = "https://discord.gg/whDrKXwHWU";
-const HEADER_ICON_URL = "/favicon.png?v=2235eb1";
 const SHELF_SCREENSHOT_URL = "/screenshots/shelf.webp?v=b2e29b2";
 
 const NOTES: { title: string; body: string }[] = [
@@ -64,35 +62,7 @@ function LandingPage() {
   return (
     <div className="min-h-screen bg-paper text-fg">
       <div className="mx-auto max-w-3xl px-6">
-        <header className="flex items-center justify-between py-7">
-          <a href="#top" className="flex items-center gap-2.5">
-            <img src={HEADER_ICON_URL} alt="" width={26} height={26} className="h-[26px] w-[26px]" />
-            <span className="text-[1.0625rem] font-medium tracking-tight">
-              ReadAware
-            </span>
-          </a>
-          <nav className="flex items-center gap-6 text-[0.9375rem] text-fg-muted">
-            <a href="#download" className="transition-colors hover:text-fg">
-              Download
-            </a>
-            <a
-              href={REPO_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="transition-colors hover:text-fg"
-            >
-              GitHub
-            </a>
-            <a
-              href={DISCORD_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="transition-colors hover:text-fg"
-            >
-              Discord
-            </a>
-          </nav>
-        </header>
+        <SiteHeader />
 
         <main id="top">
           {/* Title */}
@@ -196,37 +166,7 @@ function LandingPage() {
           />
         </main>
 
-        <footer className="mt-8 flex flex-col gap-3 border-t border-border py-8 text-[0.9375rem] text-fg-muted sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2.5">
-            <img src={HEADER_ICON_URL} alt="" width={20} height={20} className="h-5 w-5" />
-            <span className="text-fg">ReadAware</span>
-          </div>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
-            <a
-              href={REPO_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="transition-colors hover:text-fg"
-            >
-              GitHub
-            </a>
-            <a
-              href={DISCORD_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="transition-colors hover:text-fg"
-            >
-              Discord
-            </a>
-            <a
-              href={`mailto:${CONTACT_EMAIL}`}
-              className="transition-colors hover:text-fg"
-            >
-              {CONTACT_EMAIL}
-            </a>
-            <span>Local-first. Yours.</span>
-          </div>
-        </footer>
+        <SiteFooter />
       </div>
     </div>
   );

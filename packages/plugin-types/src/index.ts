@@ -29,14 +29,26 @@
  */
 
 import type {
+  AnnotationItem,
+  AskItem,
   BookFormat,
+  BookSummary,
+  ChapterRef,
+  ChatMessageSummary,
+  CollectionSummary,
   DictionaryEntrySnapshot,
   DomainEvent,
   DomainEventType,
   EventOrigin,
   HighlightColor,
+  HighlightItem,
   HighlightStyle,
+  NoteItem,
+  ReadingState,
   ReadingStatus,
+  ReadingTime,
+  ThreadSummary,
+  VocabularySummary,
 } from "@read-aware/core";
 
 // Re-exported so plugin authors can name the underlying vocabulary without
@@ -364,90 +376,28 @@ export type PluginSessionEventMap = {
 export type PluginSessionEventName = keyof PluginSessionEventMap;
 
 // ─── Read models (projections as plugins see them) ───────────────────────────
+//
+// These are the CANONICAL domain read models from @read-aware/core
+// (read-models.ts), re-exported under this contract's public names — the
+// same shapes the app's own surfaces and the agent's ports consume, so the
+// three actors cannot drift apart.
 
-export type PluginBook = {
-  id: string;
-  title: string;
-  author?: string;
-  format: BookFormat;
-  starred: boolean;
-  /** Single-membership collection, or null when ungrouped. */
-  collectionId: string | null;
-  addedAt: string;
-  updatedAt: string;
-  lastOpenedAt?: string;
-  /** Original import file name/size; absent on virtual books. */
-  fileName?: string;
-  fileSize?: number;
-};
+export type PluginBook = BookSummary;
 
-export type PluginCollection = {
-  id: string;
-  name: string;
-  createdAt: string;
-};
+export type PluginCollection = CollectionSummary;
 
-export type PluginHighlight = {
-  kind: "highlight";
-  id: string;
-  bookId: string;
-  text: string;
-  /** Range anchor (EPUB CFI / PDF locator); absent when unanchorable. */
-  anchor?: string;
-  chapterHref?: string;
-  color: HighlightColor;
-  style: HighlightStyle;
-  createdAt: string;
-  updatedAt: string;
-};
+export type PluginHighlight = HighlightItem;
 
-export type PluginNote = {
-  kind: "note";
-  id: string;
-  bookId: string;
-  /** The passage the note anchors to, when it quotes one. */
-  quotedText?: string;
-  body: string;
-  anchor?: string;
-  chapterHref?: string;
-  createdAt: string;
-  updatedAt: string;
-};
+export type PluginNote = NoteItem;
 
 /** A passive trace of a question asked in the book thread (agent-written). */
-export type PluginAsk = {
-  kind: "ask";
-  id: string;
-  bookId: string;
-  text: string;
-  anchor?: string;
-  chapterHref?: string;
-  createdAt: string;
-};
+export type PluginAsk = AskItem;
 
-export type PluginAnnotation = PluginHighlight | PluginNote | PluginAsk;
+export type PluginAnnotation = AnnotationItem;
 
-export type PluginReadingState = {
-  bookId: string;
-  /** 0..100. */
-  progressPercent: number;
-  status: ReadingStatus;
-  /** Format-neutral position (EPUB CFI or PDF locator), when recorded. */
-  locator?: string;
-  chapterHref?: string;
-  currentLocation?: number;
-  totalLocations?: number;
-};
+export type PluginReadingState = ReadingState;
 
-export type PluginReadingTime = {
-  bookId: string;
-  /** Cumulative active reading time in ms. */
-  totalMs: number;
-  firstReadAt?: string;
-  lastReadAt?: string;
-  /** Active ms per local day, keyed YYYY-MM-DD. */
-  daily: Record<string, number>;
-};
+export type PluginReadingTime = ReadingTime;
 
 export type PluginDictionaryEntry = DictionaryEntrySnapshot;
 
@@ -457,37 +407,13 @@ export type PluginDictionaryResult = {
   entry: PluginDictionaryEntry;
 };
 
-export type PluginVocabularyEntry = {
-  term: string;
-  language: string;
-  /** One-line rendering of the first sense. */
-  definition: string;
-  entry: PluginDictionaryEntry;
-  context?: string;
-  bookId?: string;
-  bookTitle?: string;
-  addedAt: string;
-};
+export type PluginVocabularyEntry = VocabularySummary;
 
-export type PluginChatMessage = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  createdAt: string;
-};
+export type PluginChatMessage = ChatMessageSummary;
 
-export type PluginThreadSummary = {
-  id: string;
-  title?: string;
-  updatedAt?: string;
-};
+export type PluginThreadSummary = ThreadSummary;
 
-export type PluginChapterRef = {
-  index: number;
-  title?: string;
-  /** Plain-text length, for budgeting reads. */
-  chars: number;
-};
+export type PluginChapterRef = ChapterRef;
 
 export type PluginBookContent = {
   title?: string;

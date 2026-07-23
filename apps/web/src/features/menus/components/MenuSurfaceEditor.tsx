@@ -12,7 +12,11 @@ import { Button, Caption, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import { renderPluginIcon } from "../../plugins/lib/plugin-icons";
-import { headerActionsAtom, selectionActionsAtom } from "../../plugins/state/plugin-store";
+import {
+  headerActionsAtom,
+  selectionActionsAtom,
+  textUnitReaderModeAtom,
+} from "../../plugins/state/plugin-store";
 import { CORE_MENU_ITEMS } from "../lib/menu-registry";
 import {
   CORE_MENU_DEFAULTS,
@@ -38,6 +42,7 @@ export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
   const [config, setConfig] = useAtom(menuConfigAtom);
   const headerActions = useAtomValue(headerActionsAtom);
   const selectionActions = useAtomValue(selectionActionsAtom);
+  const textUnitReaderMode = useAtomValue(textUnitReaderModeAtom);
   const [dragId, setDragId] = useState<string | null>(null);
 
   const pluginItems: EditorItem[] = (
@@ -53,16 +58,22 @@ export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
     icon: renderPluginIcon(action.icon, 16),
     locked: false,
   }));
-  const coreItems: EditorItem[] = CORE_MENU_ITEMS[surface].map((meta) => ({
-    id: meta.id,
-    label: String(t(`menus.items.${meta.labelKey}` as never)),
-    icon: <meta.Icon size={16} weight="regular" aria-hidden="true" />,
-    locked: false,
-  }));
+  const coreItems: EditorItem[] = CORE_MENU_ITEMS[surface]
+    .filter((meta) =>
+      meta.id !== "core:navigator" || textUnitReaderMode !== null,
+    )
+    .map((meta) => ({
+      id: meta.id,
+      label: String(t(`menus.items.${meta.labelKey}` as never)),
+      icon: <meta.Icon size={16} weight="regular" aria-hidden="true" />,
+      locked: false,
+    }));
   const itemById = new Map([...coreItems, ...pluginItems].map((item) => [item.id, item]));
 
   const layout = resolveSurfaceLayout(config[surface], [
-    ...CORE_MENU_DEFAULTS[surface],
+    ...CORE_MENU_DEFAULTS[surface].filter(
+      (id) => id !== "core:navigator" || textUnitReaderMode !== null,
+    ),
     ...pluginItems.map((item) => item.id),
   ]);
 

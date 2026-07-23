@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useAtomValue } from "jotai";
 import { Body, Button, Spinner } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import type { BookFormat, LibraryBook, ReaderProgress } from "../../library/lib/library-types";
@@ -12,6 +13,7 @@ import { FoliateReaderView } from "./FoliateReaderView";
 import { ReaderShellOverlay } from "./ReaderShellOverlay";
 import type { LoadedBook, TocEntry } from "../lib/reader-types";
 import type { FoliateBook } from "../lib/foliate-engine";
+import { textUnitReaderModeAtom } from "../../plugins/state/plugin-store";
 
 type ReaderWorkspaceProps = {
   selectedBook: LibraryBook;
@@ -85,12 +87,14 @@ export function ReaderWorkspace({
   // there's no immersive view yet, so keep the window controls reachable.
   useImmersiveWindowControls(overlayVisible || !readerSource);
 
-  // Sentence navigator mode. Owned here so the shell header's toggle and the
-  // reader view (wash + floating bar + shortcuts) stay in sync. The mode is
+  // The official plugin supplies sentence segmentation; the host still owns
+  // the engine bridge and every control. State lives here so the shell header
+  // and reader view (wash + floating bar + shortcuts) stay in sync. The mode is
   // sticky per book — closing a book (or the app) mid-navigation and reopening
   // it resumes sentence-by-sentence reading where it stopped (the resting
   // sentence itself is restored by useSentenceNavigator from the same store).
   // Fixed-layout books (PDF/CBZ) can't host it.
+  const navigatorMode = useAtomValue(textUnitReaderModeAtom);
   const [navigatorActive, setNavigatorActive] = useState(
     () => readNavigatorState(selectedBook.id).active,
   );
@@ -149,6 +153,7 @@ export function ReaderWorkspace({
           onBookReady={(foliateBook) => onBookReady(selectedBook, foliateBook)}
           onFixedLayoutChange={setIsFixedLayout}
           navigatorActive={navigatorActive}
+          navigatorMode={navigatorMode}
           onExitNavigator={exitNavigator}
           onNavigatorStep={onHideShell}
           initialProgress={selectedEpubProgress}
@@ -190,7 +195,8 @@ export function ReaderWorkspace({
         currentChapterHref={currentChapterHref}
         onChapterSelect={onChapterSelect}
         onAnnotationSelect={onAnnotationSelect}
-        navigatorAvailable={!isFixedLayout}
+        navigatorAvailable={navigatorMode !== null && !isFixedLayout}
+        navigatorInstalled={navigatorMode !== null}
         navigatorActive={navigatorActive}
         onToggleNavigator={toggleNavigator}
       />

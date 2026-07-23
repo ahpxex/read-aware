@@ -21,13 +21,15 @@
  *    tool mount (`agent:tools`) are separate permission families.
  * 3. **Origin on every write.** Plugin writes are stamped
  *    `plugin:<id>` in the event log — auditable, compensatable.
- * 4. **Device-local state and presentation stay closed.** View preferences,
+ * 4. **Device-local state and presentation stay host-owned.** View preferences,
  *    reader appearance, layouts, sync internals are not plugin surface; UI is
  *    declared as a host component tree (markdown / list / form / detail /
  *    compositional blocks) and rendered by the app's design system. Layout is
  *    expressed through bounded Stack/Section/Columns semantics, never CSS.
  *    Plugins never render JSX or HTML, and declarations are validated again
- *    at runtime before React sees them.
+ *    at runtime before React sees them. Reader-mode plugins supply plain-text
+ *    offset segmentation only; DOM, engine objects, input, and controls stay
+ *    inside the host.
  */
 
 import type {
@@ -71,6 +73,7 @@ export type {
  *
  * - `<domain>:read` / `<domain>:write` — data access per domain; write
  *   implies the domain's read surface.
+ * - `reader:modes` — privileged host-rendered reader-mode registration.
  * - `agent:tools` — register tools on the reading agent.
  * - `service:*` — platform and AI services (network, one-shot LLM, the
  *   built-in dictionary, clipboard).
@@ -79,6 +82,7 @@ export type {
  * control are not permissions — every plugin has them.
  */
 export const PLUGIN_PERMISSIONS = [
+  "reader:modes",
   "books:read",
   "books:write",
   "collections:read",
@@ -442,6 +446,48 @@ export type PluginHeaderAction = {
   view: (input: HeaderActionInput) => PluginView | Promise<PluginView>;
 };
 
+// ─── Reader-mode contributions ──────────────────────────────────────────────
+
+/** The host-supported unit sizes for guided text navigation. */
+export type PluginReaderUnitGranularity = "sentence" | "paragraph";
+
+/**
+ * One half-open span (`start <= offset < end`) inside a text block supplied by
+ * the reader host. The host maps offsets back to Foliate DOM Ranges; plugins
+ * never receive a Document, Range, iframe, or engine instance.
+ */
+export type PluginReaderTextSegment = {
+  start: number;
+  end: number;
+};
+
+export type PluginReaderTextSegmentInput = {
+  /** Plain text from one host-detected block in the current reflowable section. */
+  text: string;
+  /** The section document's language tag, when the book declares one. */
+  language?: string;
+  granularity: PluginReaderUnitGranularity;
+};
+
+/**
+ * A guided reader mode over host-owned text units. The plugin supplies only
+ * segmentation policy; ReadAware owns section traversal, CFI mapping,
+ * overlays, input capture, persistence, actions, settings, and every control.
+ *
+ * `reader:modes` is currently reserved for bundled first-party plugins while
+ * this privileged lifecycle contract settles.
+ */
+export type PluginReaderMode = {
+  id: string;
+  kind: "text-unit-navigator";
+  /** Granularities the host may expose in its standard mode controls. */
+  granularities: PluginReaderUnitGranularity[];
+  /** Segment one block. Results must be ordered, non-overlapping spans. */
+  segmentText(
+    input: PluginReaderTextSegmentInput,
+  ): PluginReaderTextSegment[];
+};
+
 /** A command-palette entry. */
 export type PluginCommand = {
   id: string;
@@ -796,6 +842,10 @@ export type PluginContext = {
   reader: {
     openBook(bookId: string): void;
     goTo(target: { bookId?: string; cfi?: string; href?: string }): void;
+    /** `reader:modes` — bundled plugins may register a host-rendered reader mode. */
+    modes?: {
+      register(mode: PluginReaderMode): PluginDisposable;
+    };
   };
   /** Session facts of the open reader (ambient, permission-free). */
   session: {

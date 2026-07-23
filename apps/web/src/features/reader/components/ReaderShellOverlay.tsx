@@ -42,6 +42,7 @@ type ReaderShellOverlayProps = {
   onChapterSelect?: (href: string) => void;
   onAnnotationSelect?: (cfiRange: string) => void;
   /** Sentence navigator toggle. Unavailable for fixed-layout books. */
+  navigatorInstalled?: boolean;
   navigatorAvailable?: boolean;
   navigatorActive?: boolean;
   onToggleNavigator?: () => void;
@@ -58,6 +59,7 @@ export function ReaderShellOverlay({
   currentChapterHref = null,
   onChapterSelect,
   onAnnotationSelect,
+  navigatorInstalled = true,
   navigatorAvailable = true,
   navigatorActive = false,
   onToggleNavigator,
@@ -126,8 +128,11 @@ export function ReaderShellOverlay({
   const readerPluginActions = useAtomValue(headerActionsAtom).filter(
     (action) => action.surface === "reader",
   );
+  const readerCoreItems = CORE_MENU_DEFAULTS.readerHeader.filter(
+    (id) => id !== "core:navigator" || navigatorInstalled,
+  );
   const readerLayout = resolveSurfaceLayout(menuConfig.readerHeader, [
-    ...CORE_MENU_DEFAULTS.readerHeader,
+    ...readerCoreItems,
     ...readerPluginActions.map((action) => pluginMenuId(action.key)),
   ]);
 

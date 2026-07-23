@@ -37,6 +37,7 @@
     "permissions": "権限",
     "noPermissions": "追加の権限なし",
     "permission": {
+      "reader_modes": "アプリが描画するガイド付き読書モードの追加",
       "books_read": "本棚の読み取り：書籍・目次・本文",
       "books_write": "本棚の書籍の追加・編集・削除",
       "collections_read": "本棚のコレクションの読み取り",

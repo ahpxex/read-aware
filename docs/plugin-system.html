@@ -507,7 +507,7 @@
 <p><strong>目标：</strong></p>
 <ul>
   <li>用户可以自己写插件、自己安装；官方也提供一批插件。</li>
-  <li>插件能贡献：Reader 选区动作、Reader 顶栏按钮、书架顶栏按钮或整页、命令面板命令、<strong>AI agent 工具</strong>（V1 就做，这是最重要的挂载点）。</li>
+  <li>插件能贡献：Reader 选区动作、Reader 顶栏按钮、书架顶栏按钮或整页、受限 Reader Mode、命令面板命令与 <strong>AI agent 工具</strong>。</li>
   <li>插件界面永远看起来像原生功能 —— 观感由应用统治，插件只声明内容。</li>
 </ul>
 
@@ -563,7 +563,7 @@
 <ul>
   <li><code>activate</code> 里通过 <code>ctx.register*</code> 注册贡献；每个注册返回 disposable，应用在禁用或卸载时统一回收（<code>deactivate</code> 只处理插件自己的外部资源）。</li>
   <li>启用、禁用在设置页操作，即时生效，不要求重启。</li>
-  <li>官方插件与第三方插件走同一套机制、同一个 API —— 官方插件是 API 的第一批真实用户（dogfooding），不开后门。</li>
+  <li>官方插件与第三方插件走同一套加载器、生命周期和公开类型；唯一暂时保留的特权能力是 <code>reader:modes</code>，待阅读引擎契约稳定后再决定是否开放给市场插件。</li>
 </ul>
 
 <h3>分发：插件市场（Raycast 模式）</h3>
@@ -586,6 +586,7 @@
       <div class="fanout">
         <span class="fchip">Reader 选区菜单</span>
         <span class="fchip">Reader 顶栏</span>
+        <span class="fchip">Reader Mode</span>
         <span class="fchip">书架顶栏</span>
         <span class="fchip">命令面板</span>
         <span class="fchip">AI 工具</span>
@@ -602,6 +603,7 @@
 <div class="tablewrap">
 <table>
   <tr><th>权限域</th><th>授予的能力面</th></tr>
+  <tr><td><code>reader:modes</code></td><td><code>ctx.reader.modes.register</code>：注册宿主渲染的文本单元阅读模式；插件只返回纯文本 offset，DOM、Foliate、输入与控件仍归应用</td></tr>
   <tr><td><code>reading-data</code></td><td>读写阅读数据:书籍(读)、高亮/笔记(创建/删除)、内置生词本(读写,与阅读器词典同一份存储)</td></tr>
   <tr><td><code>library-write</code></td><td><code>ctx.library.importBook</code>(导入文件)+ <strong>内容提供者</strong>:<code>registerContentProvider</code> / <code>addVirtualBook</code> —— 虚拟书:书架条目由插件在打开时供给 HTML 章节,免转换,阅读/标注/进度全原生(RSS 即此路)</td></tr>
   <tr><td><code>network</code></td><td><code>ctx.fetch</code>（CSP <code>connect-src</code> 已含 <code>https:</code>，门控在 API 层）</td></tr>
@@ -662,6 +664,7 @@
   <tr><th>挂载点</th><th>插件注册什么</th><th>输入</th><th>允许的容器</th></tr>
   <tr><td>Reader 选区菜单</td><td>选区动作</td><td>选中文本 + CFI + 当前书元数据</td><td>无界面（执行 + Toast）／ Dialog</td></tr>
   <tr><td>Reader 顶栏</td><td>Icon button</td><td>当前书元数据</td><td>仅 Popup（Popover）</td></tr>
+  <tr><td>Reader Mode</td><td>文本单元分段策略</td><td>宿主提供的 block 纯文本、语言与粒度</td><td>宿主固定顶栏、浮动 Toolbar、设置与快捷键</td></tr>
   <tr><td>书架顶栏</td><td>Icon button</td><td>—</td><td>Popup ／ Page</td></tr>
   <tr><td>命令面板</td><td>（自动）所有插件动作自动注册</td><td>—</td><td>随原动作</td></tr>
   <tr><td>AI agent</td><td>工具</td><td>agent 传入的参数</td><td>聊天内通用工具步呈现</td></tr>

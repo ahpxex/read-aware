@@ -37,6 +37,7 @@
     "permissions": "权限",
     "noPermissions": "无额外权限",
     "permission": {
+      "reader_modes": "添加由应用渲染并控制引导导航的阅读模式",
       "books_read": "读取书架：书籍、目录与章节全文",
       "books_write": "添加、编辑与删除书架上的书",
       "collections_read": "读取书架分组",

@@ -15,6 +15,7 @@ import type {
   PluginView,
   RegisteredCommand,
   RegisteredHeaderAction,
+  RegisteredReaderMode,
   RegisteredSelectionAction,
   RegisteredTool,
 } from "../lib/plugin-types";
@@ -25,6 +26,7 @@ const store = getDefaultStore();
 
 export const selectionActionsAtom = atom<RegisteredSelectionAction[]>([]);
 export const headerActionsAtom = atom<RegisteredHeaderAction[]>([]);
+export const readerModesAtom = atom<RegisteredReaderMode[]>([]);
 export const pluginCommandsAtom = atom<RegisteredCommand[]>([]);
 export const pluginToolsAtom = atom<RegisteredTool[]>([]);
 
@@ -65,6 +67,12 @@ export function registerHeaderActionContribution(
   return register(headerActionsAtom, item);
 }
 
+export function registerReaderModeContribution(
+  item: RegisteredReaderMode,
+): PluginDisposable {
+  return register(readerModesAtom, item);
+}
+
 export function registerCommandContribution(item: RegisteredCommand): PluginDisposable {
   return register(pluginCommandsAtom, item);
 }
@@ -77,6 +85,11 @@ export function registerToolContribution(item: RegisteredTool): PluginDisposable
 export function getRegisteredPluginTools(): RegisteredTool[] {
   return store.get(pluginToolsAtom);
 }
+
+/** The single host-supported text-unit mode, or null while its plugin is off. */
+export const textUnitReaderModeAtom = atom((get) =>
+  get(readerModesAtom).find((mode) => mode.kind === "text-unit-navigator") ?? null,
+);
 
 export function setInstalledPlugins(plugins: InstalledPlugin[]): void {
   store.set(installedPluginsAtom, plugins);

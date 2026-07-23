@@ -37,6 +37,7 @@
     "permissions": "Autorisations",
     "noPermissions": "Aucune autorisation supplémentaire",
     "permission": {
+      "reader_modes": "Ajouter un mode de lecture guidée rendu par l’application",
       "books_read": "Lire votre bibliothèque : livres, sommaires et texte des chapitres",
       "books_write": "Ajouter, modifier et supprimer des livres de la bibliothèque",
       "collections_read": "Lire vos collections",

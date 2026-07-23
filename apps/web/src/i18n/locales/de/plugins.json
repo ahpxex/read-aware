@@ -37,6 +37,7 @@
     "permissions": "Berechtigungen",
     "noPermissions": "Keine zusätzlichen Berechtigungen",
     "permission": {
+      "reader_modes": "Einen von der App gerenderten geführten Lesemodus hinzufügen",
       "books_read": "Regal lesen: Bücher, Inhaltsverzeichnisse und Kapiteltext",
       "books_write": "Bücher im Regal hinzufügen, bearbeiten und entfernen",
       "collections_read": "Regal-Sammlungen lesen",

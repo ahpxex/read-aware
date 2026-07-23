@@ -123,6 +123,10 @@ async function activatePlugin(manifest: PluginManifest): Promise<void> {
     if (manifest.minAppVersion && !versionSatisfies(appVersion, manifest.minAppVersion)) {
       throw new Error(`requires app version ${manifest.minAppVersion} or newer`);
     }
+    const installed = getInstalled().find((plugin) => plugin.manifest.id === manifest.id);
+    if (manifest.permissions?.includes("reader:modes") && !installed?.builtin) {
+      throw new Error("reader:modes is currently reserved for built-in plugins");
+    }
     const url = pluginModuleUrl(manifest.id, manifest.main ?? "main.js");
     const loaded = (await import(/* @vite-ignore */ url)) as { default?: PluginModule };
     const entry = loaded.default;

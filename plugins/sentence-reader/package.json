@@ -1,0 +1,20 @@
+{
+  "name": "@read-aware/plugin-sentence-reader",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "bun run ../../scripts/build-plugin.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@read-aware/plugin-types": "workspace:*",
+    "@read-aware/tsconfig": "workspace:*",
+    "@types/bun": "latest",
+    "typescript": "~5.8.3"
+  }
+}

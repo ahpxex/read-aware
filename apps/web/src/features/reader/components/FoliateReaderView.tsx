@@ -84,6 +84,7 @@ import { curatedFontId, DEFAULT_READER_SETTINGS } from "../../settings/lib/reade
 import { ensureCuratedFontFaceCss } from "../../settings/lib/curated-font-loader";
 import { buildVirtualFoliateBook } from "../lib/virtual-book";
 import { resolveContentProvider } from "../../plugins/lib/virtual-books";
+import type { RegisteredReaderMode } from "../../plugins/lib/plugin-types";
 
 type FoliateReaderViewProps = {
   selectedBook?: LibraryBook | null;
@@ -112,6 +113,8 @@ type FoliateReaderViewProps = {
    *  a resting wash and the floating bottom bar. Owned by the workspace so the
    *  shell header's toggle and this view stay in sync. */
   navigatorActive?: boolean;
+  /** Enabled plugin contribution supplying text segmentation policy. */
+  navigatorMode?: RegisteredReaderMode | null;
   onExitNavigator?: () => void;
   /** The navigator's wash moved to another sentence — a "resume reading"
    *  gesture; the workspace uses it to drop the shell chrome (and with it the
@@ -129,6 +132,7 @@ type FoliateReaderViewProps = {
 };
 
 const SELECTION_CLICK_SUPPRESSION_MS = 180;
+const EMPTY_READER_SEGMENTER: RegisteredReaderMode["segmentText"] = () => [];
 const SHELL_TAP_MAX_DURATION_MS = 220;
 // Touch selection settles (handles released, no further changes) for this long
 // before the selection menu appears; each drag of a handle defers it again.
@@ -328,6 +332,7 @@ export function FoliateReaderView({
   onBookReady,
   onFixedLayoutChange,
   navigatorActive = false,
+  navigatorMode = null,
   onExitNavigator,
   onNavigatorStep,
   initialProgress = null,
@@ -886,7 +891,8 @@ export function FoliateReaderView({
 
   // Fixed-layout books have no reflowable text to segment; the mode never
   // activates there (the shell hides its toggle via onFixedLayoutChange).
-  const sentenceNavigatorActive = navigatorActive && !isFixedLayout;
+  const sentenceNavigatorActive = navigatorActive && navigatorMode !== null && !isFixedLayout;
+  const sentenceNavigatorSuspended = navigatorActive && navigatorMode === null;
 
   const onFixedLayoutChangeRef = useRef(onFixedLayoutChange);
   useEffect(() => { onFixedLayoutChangeRef.current = onFixedLayoutChange; }, [onFixedLayoutChange]);
@@ -952,8 +958,10 @@ export function FoliateReaderView({
 
   const sentenceNavigator = useSentenceNavigator({
     active: sentenceNavigatorActive,
+    suspended: sentenceNavigatorSuspended,
     bookId: selectedBook?.id ?? null,
     granularity: navigatorPrefs.granularity,
+    segmentText: navigatorMode?.segmentText ?? EMPTY_READER_SEGMENTER,
     viewRef,
     readerRootRef,
     crossSection: navigatorCrossSection,

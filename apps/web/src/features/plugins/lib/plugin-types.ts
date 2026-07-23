@@ -8,6 +8,7 @@ import type {
   PluginCommand,
   PluginHeaderAction,
   PluginManifest,
+  PluginReaderMode,
   PluginSelectionAction,
   PluginToolDefinition,
 } from "@read-aware/plugin-types";
@@ -37,6 +38,12 @@ export type RegisteredSelectionAction = PluginSelectionAction & {
 };
 
 export type RegisteredHeaderAction = PluginHeaderAction & {
+  key: ContributionKey;
+  pluginId: string;
+  pluginName: string;
+};
+
+export type RegisteredReaderMode = PluginReaderMode & {
   key: ContributionKey;
   pluginId: string;
   pluginName: string;

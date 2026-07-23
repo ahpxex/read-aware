@@ -31,6 +31,7 @@ import {
   unbindVirtualBook,
 } from "../lib/virtual-books";
 import { showPluginToast } from "../lib/plugin-toast";
+import { normalizeReaderMode } from "../lib/reader-mode";
 import {
   contributionKey,
   type PluginContext,
@@ -50,6 +51,7 @@ import {
 import {
   registerCommandContribution,
   registerHeaderActionContribution,
+  registerReaderModeContribution,
   registerSelectionActionContribution,
   registerToolContribution,
 } from "../state/plugin-store";
@@ -201,6 +203,20 @@ export function buildPluginContext(
           href: target.href ? String(target.href) : undefined,
         });
       },
+      modes: permissions.has("reader:modes")
+        ? {
+            register: (mode) => {
+              const normalized = normalizeReaderMode(mode);
+              return track(
+                registerReaderModeContribution({
+                  ...normalized,
+                  ...brand,
+                  key: contributionKey(manifest.id, normalized.id),
+                }),
+              );
+            },
+          }
+        : undefined,
     },
     session: {
       on: (event, handler) => {

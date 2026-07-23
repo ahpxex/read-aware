@@ -37,6 +37,7 @@
     "permissions": "Permissions",
     "noPermissions": "No extra permissions",
     "permission": {
+      "reader_modes": "Add a host-rendered reading mode that controls guided navigation",
       "books_read": "Read your shelf: books, tables of contents, chapter text",
       "books_write": "Add, edit, and remove books on your shelf",
       "collections_read": "Read your shelf collections",

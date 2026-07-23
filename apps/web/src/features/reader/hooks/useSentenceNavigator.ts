@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
+import type { PluginReaderMode } from "../../plugins/lib/plugin-types";
 import {
   setVolumeKeyCapture,
   VOLUME_STEP_EVENT,
@@ -48,12 +49,18 @@ export type SentenceNavigator = {
 
 type UseSentenceNavigatorOptions = {
   active: boolean;
+  /** Temporarily unavailable because its plugin is disabled. The engine-side
+   *  affordances are removed, but the persisted resting place is retained so
+   *  re-enabling the plugin resumes exactly where it stopped. */
+  suspended?: boolean;
   /** Persistence scope: the resting sentence (and the mode itself) is
    *  remembered per book, so closing and reopening the book resumes in place. */
   bookId: string | null;
   /** Step unit — sentence or paragraph. Switching re-segments the loaded
    *  section and re-anchors the wash at the unit containing its old start. */
   granularity: NavigatorGranularity;
+  /** Plugin-owned segmentation policy; the host maps its offsets to Ranges. */
+  segmentText: PluginReaderMode["segmentText"];
   viewRef: RefObject<FoliateView | null>;
   readerRootRef: RefObject<HTMLElement | null>;
   /** Cross into the adjacent spine section, with the mode's transition. */
@@ -90,8 +97,10 @@ const SCROLL_COMFORT_BOTTOM_MAX_PX = 240;
  */
 export function useSentenceNavigator({
   active,
+  suspended = false,
   bookId,
   granularity,
+  segmentText,
   viewRef,
   readerRootRef,
   crossSection,
@@ -102,6 +111,9 @@ export function useSentenceNavigator({
   const [canReturn, setCanReturn] = useState(false);
 
   const activeRef = useRef(active);
+  const persistedActiveRef = useRef(active || suspended);
+  const segmentTextRef = useRef(segmentText);
+  segmentTextRef.current = segmentText;
   const sectionRef = useRef<{ doc: Document; index: number } | null>(null);
   const sentencesRef = useRef<Range[] | null>(null);
   const currentIndexRef = useRef(-1);
@@ -173,7 +185,7 @@ export function useSentenceNavigator({
     const id = bookIdRef.current;
     if (!id) return;
     writeNavigatorState(id, {
-      active: activeRef.current,
+      active: persistedActiveRef.current,
       resting: restingRef.current,
       granularity: granularityRef.current,
     });
@@ -262,7 +274,11 @@ export function useSentenceNavigator({
     const section = sectionRef.current;
     if (!section) return (sentencesRef.current = []);
     try {
-      return (sentencesRef.current = buildSentenceRanges(section.doc, granularityRef.current));
+      return (sentencesRef.current = buildSentenceRanges(
+        section.doc,
+        granularityRef.current,
+        segmentTextRef.current,
+      ));
     } catch {
       return (sentencesRef.current = []);
     }
@@ -361,6 +377,7 @@ export function useSentenceNavigator({
   // already moved `bookIdRef` on by the time this one fires.
   useEffect(() => {
     activeRef.current = active;
+    persistedActiveRef.current = active || suspended;
     if (active) {
       persistState();
       if (!sectionRef.current) return;
@@ -377,12 +394,12 @@ export function useSentenceNavigator({
     clearWash();
     sentencesRef.current = null;
     currentIndexRef.current = -1;
-    setResting(null);
+    if (!suspended) setResting(null);
     persistState();
     pendingAnchorRef.current = null;
     pendingCrossRef.current = null;
     setCurrent(null);
-  }, [active, applyIndex, buildSentences, clearWash, persistState, setResting]);
+  }, [active, suspended, applyIndex, buildSentences, clearWash, persistState, setResting]);
 
   // Granularity switch: re-segment the loaded section under the new unit.
   // A wash resting here re-anchors to the unit containing its old start (the

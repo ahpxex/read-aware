@@ -69,7 +69,9 @@
       "../../../plugins/dictionary/dist/main.js": "bundled-plugins/dictionary/main.js",
       "../../../plugins/dictionary/dist/manifest.json": "bundled-plugins/dictionary/manifest.json",
       "../../../plugins/rss-reader/dist/main.js": "bundled-plugins/rss-reader/main.js",
-      "../../../plugins/rss-reader/dist/manifest.json": "bundled-plugins/rss-reader/manifest.json"
+      "../../../plugins/rss-reader/dist/manifest.json": "bundled-plugins/rss-reader/manifest.json",
+      "../../../plugins/sentence-reader/dist/main.js": "bundled-plugins/sentence-reader/main.js",
+      "../../../plugins/sentence-reader/dist/manifest.json": "bundled-plugins/sentence-reader/manifest.json"
     }
   },
   "plugins": {

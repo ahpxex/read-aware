@@ -1,11 +1,12 @@
 import { Fragment, useCallback, useState } from "react";
 import { ArrowCounterClockwise } from "@phosphor-icons/react";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { IconButton, Kbd } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { shortcutBindingsAtom } from "../../../state/ui";
 import { isAndroid } from "../../../platform/environment";
 import { useTranslation } from "../../../i18n";
+import { textUnitReaderModeAtom } from "../../plugins/state/plugin-store";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
@@ -50,6 +51,7 @@ function KeyTokens({ tokens }: { tokens: string[] }) {
 export function ShortcutsPanel() {
   const { t } = useTranslation("settings");
   const [bindings, setBindings] = useAtom(shortcutBindingsAtom);
+  const navigatorMode = useAtomValue(textUnitReaderModeAtom);
   const [conflict, setConflict] = useState<{ id: ShortcutId; conflictId: ShortcutId } | null>(null);
 
   const onCapture = useCallback(
@@ -57,6 +59,7 @@ export function ShortcutsPanel() {
       const signature = chordSignature(chord);
       const clash = EDITABLE_SHORTCUTS.find(
         (shortcut) =>
+          (shortcut.category !== "Navigator" || navigatorMode !== null) &&
           shortcut.id !== id && chordSignature(resolveBinding(shortcut.id, bindings)) === signature,
       );
       if (clash) {
@@ -66,7 +69,7 @@ export function ShortcutsPanel() {
       setConflict(null);
       setBindings({ ...bindings, [id]: chord });
     },
-    [bindings, setBindings],
+    [bindings, navigatorMode, setBindings],
   );
 
   const { recordingId, startRecording, cancel } = useShortcutRecorder(onCapture);
@@ -94,10 +97,15 @@ export function ShortcutsPanel() {
       description={t("shortcuts.description")}
     >
       {CATEGORIES.map((category) => {
-        const editable = EDITABLE_SHORTCUTS.filter((shortcut) => shortcut.category === category);
+        const modeCategoryAvailable = category !== "Navigator" || navigatorMode !== null;
+        const editable = modeCategoryAvailable
+          ? EDITABLE_SHORTCUTS.filter((shortcut) => shortcut.category === category)
+          : [];
         const info = INFO_SHORTCUTS.filter(
           (shortcut) =>
-            shortcut.category === category && (!shortcut.androidOnly || isAndroid()),
+            modeCategoryAvailable &&
+            shortcut.category === category &&
+            (!shortcut.androidOnly || isAndroid()),
         );
         if (!editable.length && !info.length) return null;
 

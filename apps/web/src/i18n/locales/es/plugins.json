@@ -37,6 +37,7 @@
     "permissions": "Permisos",
     "noPermissions": "Sin permisos adicionales",
     "permission": {
+      "reader_modes": "Añadir un modo de lectura guiada renderizado por la aplicación",
       "books_read": "Leer tu estantería: libros, índices y texto de capítulos",
       "books_write": "Añadir, editar y eliminar libros de la estantería",
       "collections_read": "Leer tus colecciones",

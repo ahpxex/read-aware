@@ -37,6 +37,7 @@
     "permissions": "權限",
     "noPermissions": "無額外權限",
     "permission": {
+      "reader_modes": "新增由應用程式渲染並控制引導導覽的閱讀模式",
       "books_read": "讀取書架：書籍、目錄與章節全文",
       "books_write": "新增、編輯與刪除書架上的書",
       "collections_read": "讀取書架分組",

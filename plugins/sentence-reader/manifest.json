@@ -1,0 +1,10 @@
+{
+  "id": "sentence-reader",
+  "name": "Sentence Reader",
+  "version": "1.0.0",
+  "minAppVersion": "0.3.0",
+  "description": "Read reflowable books one sentence or paragraph at a time with guided focus and step controls.",
+  "author": "ReadAware",
+  "permissions": ["reader:modes"],
+  "main": "main.js"
+}

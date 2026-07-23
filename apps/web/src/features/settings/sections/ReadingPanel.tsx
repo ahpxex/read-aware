@@ -1,6 +1,7 @@
 import { useAtom, useAtomValue } from "jotai";
 import { ChoiceGroup, Stack, Toggle } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
+import { textUnitReaderModeAtom } from "../../plugins/state/plugin-store";
 import {
   effectiveReaderSettingsAtom,
   navigatorPrefsAtom,
@@ -30,6 +31,7 @@ export function ReadingPanel() {
   const [prefs, setPrefs] = useAtom(readerPreferencesAtom);
   const [navigatorPrefs, setNavigatorPrefs] = useAtom(navigatorPrefsAtom);
   const effective = useAtomValue(effectiveReaderSettingsAtom);
+  const navigatorMode = useAtomValue(textUnitReaderModeAtom);
 
   return (
     <SettingsPage
@@ -106,48 +108,52 @@ export function ReadingPanel() {
         />
       </SettingsGroup>
 
-      <SettingsGroup
-        title={t("reading.navigator.title")}
-        description={t("reading.navigator.description")}
-      >
-        <Stack gap="lg">
-          <ChoiceGroup
-            label={t("reading.navigator.granularity")}
-            value={navigatorPrefs.granularity}
-            options={navigatorGranularityOptions(tReader)}
-            onChange={(granularity) =>
-              setNavigatorPrefs({ ...navigatorPrefs, granularity })
-            }
-          />
-          <SettingsRow
-            borderless
-            title={t("reading.navigator.tapToAdvance.title")}
-            description={t("reading.navigator.tapToAdvance.description")}
-            control={
-              <Toggle
-                aria-label={t("reading.navigator.tapToAdvance.title")}
-                checked={navigatorPrefs.tapToAdvance}
-                onChange={(tapToAdvance) =>
-                  setNavigatorPrefs({ ...navigatorPrefs, tapToAdvance })
-                }
-              />
-            }
-          />
-          <SettingsRow
-            title={t("reading.navigator.scrollToStep.title")}
-            description={t("reading.navigator.scrollToStep.description")}
-            control={
-              <Toggle
-                aria-label={t("reading.navigator.scrollToStep.title")}
-                checked={navigatorPrefs.scrollToStep}
-                onChange={(scrollToStep) =>
-                  setNavigatorPrefs({ ...navigatorPrefs, scrollToStep })
-                }
-              />
-            }
-          />
-        </Stack>
-      </SettingsGroup>
+      {navigatorMode && (
+        <SettingsGroup
+          title={t("reading.navigator.title")}
+          description={t("reading.navigator.description")}
+        >
+          <Stack gap="lg">
+            <ChoiceGroup
+              label={t("reading.navigator.granularity")}
+              value={navigatorPrefs.granularity}
+              options={navigatorGranularityOptions(tReader).filter((option) =>
+                navigatorMode.granularities.includes(option.value),
+              )}
+              onChange={(granularity) =>
+                setNavigatorPrefs({ ...navigatorPrefs, granularity })
+              }
+            />
+            <SettingsRow
+              borderless
+              title={t("reading.navigator.tapToAdvance.title")}
+              description={t("reading.navigator.tapToAdvance.description")}
+              control={
+                <Toggle
+                  aria-label={t("reading.navigator.tapToAdvance.title")}
+                  checked={navigatorPrefs.tapToAdvance}
+                  onChange={(tapToAdvance) =>
+                    setNavigatorPrefs({ ...navigatorPrefs, tapToAdvance })
+                  }
+                />
+              }
+            />
+            <SettingsRow
+              title={t("reading.navigator.scrollToStep.title")}
+              description={t("reading.navigator.scrollToStep.description")}
+              control={
+                <Toggle
+                  aria-label={t("reading.navigator.scrollToStep.title")}
+                  checked={navigatorPrefs.scrollToStep}
+                  onChange={(scrollToStep) =>
+                    setNavigatorPrefs({ ...navigatorPrefs, scrollToStep })
+                  }
+                />
+              }
+            />
+          </Stack>
+        </SettingsGroup>
+      )}
     </SettingsPage>
   );
 }

@@ -1,5 +1,5 @@
 /**
- * Reading-unit segmentation for the reader's sentence navigator.
+ * Host-side DOM mapping for plugin-defined text-unit reader modes.
  *
  * Builds an ordered list of DOM Ranges — one per unit — for a loaded section
  * document. Segmentation runs per block element (mirroring the block walk in
@@ -7,29 +7,18 @@
  * would fuse a heading into the first sentence of the paragraph after it,
  * since headings rarely end with sentence punctuation.
  *
- * Two granularities share the same block walk:
- * - `sentence` — within a block, sentences come from `Intl.Segmenter`
- *   (locale-aware, handles CJK 。！？ boundaries). Where the API is
- *   unavailable, each block falls back to a single "sentence".
- * - `paragraph` — each block is one unit, no further splitting.
+ * The plugin receives only one block's plain text and returns offset spans.
+ * This module keeps the Foliate document and live DOM Ranges inside the host.
  */
 
+import type {
+  PluginReaderMode,
+  PluginReaderUnitGranularity,
+} from "../../plugins/lib/plugin-types";
+import { normalizeReaderTextSegments } from "../../plugins/lib/reader-mode";
+
 /** The navigator's step unit: one sentence, or one whole block element. */
-export type NavigatorGranularity = "sentence" | "paragraph";
-
-// Minimal Intl.Segmenter surface — the workspace TS lib (ES2020) predates its
-// typings, but every shipping webview (WKWebView 16.4+, Chromium 87+) has it.
-type SentenceSegments = Iterable<{ index: number; segment: string }>;
-type SentenceSegmenter = { segment: (input: string) => SentenceSegments };
-type SegmenterConstructor = new (
-  locales?: string,
-  options?: { granularity?: "grapheme" | "word" | "sentence" },
-) => SentenceSegmenter;
-
-function segmenterConstructor(): SegmenterConstructor | null {
-  if (typeof Intl === "undefined") return null;
-  return (Intl as { Segmenter?: SegmenterConstructor }).Segmenter ?? null;
-}
+export type NavigatorGranularity = PluginReaderUnitGranularity;
 
 /** Block-level tags that reset sentence segmentation (from foliate's tts.js). */
 const BLOCK_TAGS = new Set([
@@ -95,31 +84,11 @@ function collectTextNodes(range: Range): Node[] {
   return nodes;
 }
 
-type Segment = { start: number; end: number };
-
-/** Sentence boundaries within `text`, trimmed of surrounding whitespace. */
-function segmentSentences(text: string, segmenter: SentenceSegmenter | null): Segment[] {
-  // Book source is often pretty-printed with hard line wraps, and UAX #29
-  // treats a bare line break as a mandatory sentence boundary — which would
-  // shred sentences into source lines. Substitute paragraph separators with
-  // spaces (same length, so every offset still maps onto the original nodes).
-  const segmentable = text.replace(/[\r\n\u0085\u2028\u2029]/g, " ");
-  const spans: Array<{ index: number; segment: string }> = segmenter
-    ? Array.from(segmenter.segment(segmentable))
-    : [{ index: 0, segment: segmentable }];
-  const out: Segment[] = [];
-  for (const { index, segment } of spans) {
-    const leading = segment.length - segment.trimStart().length;
-    const trailing = segment.length - segment.trimEnd().length;
-    const start = index + leading;
-    const end = index + segment.length - trailing;
-    if (end > start) out.push({ start, end });
-  }
-  return out;
-}
-
 /** Map trimmed segment offsets back onto the block's text nodes as Ranges. */
-function segmentsToRanges(nodes: Node[], segments: Segment[]): Range[] {
+function segmentsToRanges(
+  nodes: Node[],
+  segments: ReturnType<PluginReaderMode["segmentText"]>,
+): Range[] {
   // Cumulative start offset of each node's text within the joined block string.
   const starts: number[] = [];
   let total = 0;
@@ -161,27 +130,21 @@ function segmentsToRanges(nodes: Node[], segments: Segment[]): Range[] {
  */
 export function buildSentenceRanges(
   doc: Document,
-  granularity: NavigatorGranularity = "sentence",
+  granularity: NavigatorGranularity,
+  segmentText: PluginReaderMode["segmentText"],
 ): Range[] {
-  let segmenter: SentenceSegmenter | null = null;
-  const Segmenter = granularity === "paragraph" ? null : segmenterConstructor();
-  if (Segmenter) {
-    const lang = doc.documentElement?.lang || undefined;
-    try {
-      segmenter = new Segmenter(lang, { granularity: "sentence" });
-    } catch {
-      // An invalid book language tag — fall back to the default locale.
-      segmenter = new Segmenter(undefined, { granularity: "sentence" });
-    }
-  }
-
   const sentences: Range[] = [];
+  const language = doc.documentElement?.lang || undefined;
   for (const block of blockRanges(doc)) {
     const nodes = collectTextNodes(block);
     if (!nodes.length) continue;
     const text = nodes.map((node) => node.nodeValue ?? "").join("");
     if (!text.trim()) continue;
-    sentences.push(...segmentsToRanges(nodes, segmentSentences(text, segmenter)));
+    const segments = normalizeReaderTextSegments(
+      segmentText({ text, language, granularity }),
+      text.length,
+    );
+    sentences.push(...segmentsToRanges(nodes, segments));
   }
   return sentences;
 }

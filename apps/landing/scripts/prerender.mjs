@@ -18,6 +18,43 @@ const { render, staticPaths } = await import(
 
 const template = await readFile(join(distDir, "index.html"), "utf8");
 const paths = staticPaths();
+const pathSet = new Set(paths);
+
+const SITE_ORIGIN = "https://readaware.app";
+// Locale prefixes must mirror src/lib/i18n.ts.
+const LOCALES = [
+  { locale: "en", prefix: "", hreflang: "en" },
+  { locale: "zh", prefix: "/zh", hreflang: "zh-CN" },
+  { locale: "ja", prefix: "/ja", hreflang: "ja" },
+];
+
+function localeOf(routePath) {
+  return (
+    LOCALES.find(
+      ({ prefix }) =>
+        prefix && (routePath === prefix || routePath.startsWith(`${prefix}/`)),
+    ) ?? LOCALES[0]
+  );
+}
+
+/** <link rel="alternate" hreflang> tags for pages that exist in every locale. */
+function alternateLinks(routePath) {
+  const { prefix } = localeOf(routePath);
+  const base = prefix ? routePath.slice(prefix.length) || "/" : routePath;
+  const variants = LOCALES.map((entry) => ({
+    ...entry,
+    path: entry.prefix ? `${entry.prefix}${base}` : base,
+  })).filter((entry) => pathSet.has(entry.path));
+  if (variants.length < 2) return "";
+  const links = variants.map(
+    (entry) =>
+      `<link rel="alternate" hreflang="${entry.hreflang}" href="${SITE_ORIGIN}${entry.path}" />`,
+  );
+  links.push(
+    `<link rel="alternate" hreflang="x-default" href="${SITE_ORIGIN}${base}" />`,
+  );
+  return `    ${links.join("\n    ")}\n  `;
+}
 
 for (const routePath of paths) {
   let body = await render(routePath);
@@ -39,6 +76,13 @@ for (const routePath of paths) {
   }
   if (description) {
     html = html.replace(/<meta[^>]*name="description"[^>]*>/, () => description);
+  }
+  html = html.replace('<html lang="en">', () => {
+    return `<html lang="${localeOf(routePath).hreflang}">`;
+  });
+  const alternates = alternateLinks(routePath);
+  if (alternates) {
+    html = html.replace("</head>", () => `${alternates}</head>`);
   }
 
   const outFile =

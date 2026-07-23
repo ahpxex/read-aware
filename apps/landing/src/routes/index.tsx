@@ -3,6 +3,7 @@ import { DownloadMenu } from "../components/DownloadMenu";
 import { DownloadSection } from "../components/DownloadSection";
 import { SiteFooter } from "../components/SiteFooter";
 import { SiteHeader } from "../components/SiteHeader";
+import { useDocumentLang } from "../hooks/useDocumentLang";
 import { useLatestRelease } from "../hooks/useLatestRelease";
 
 export const Route = createFileRoute("/")({
@@ -57,6 +58,7 @@ function Plate({
 }
 
 function LandingPage() {
+  useDocumentLang("en");
   const release = useLatestRelease();
 
   return (

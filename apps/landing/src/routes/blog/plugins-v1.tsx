@@ -10,8 +10,8 @@ export const Route = createFileRoute("/blog/plugins-v1")({
     const post = getPost(SLUG);
     return {
       meta: [
-        { title: `${post.title} — ReadAware Blog` },
-        { name: "description", content: post.description },
+        { title: `${post.text.en.title} — ReadAware Blog` },
+        { name: "description", content: post.text.en.description },
       ],
     };
   },

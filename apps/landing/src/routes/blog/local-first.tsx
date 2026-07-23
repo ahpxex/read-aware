@@ -9,8 +9,8 @@ export const Route = createFileRoute("/blog/local-first")({
     const post = getPost(SLUG);
     return {
       meta: [
-        { title: `${post.title} — ReadAware Blog` },
-        { name: "description", content: post.description },
+        { title: `${post.text.en.title} — ReadAware Blog` },
+        { name: "description", content: post.text.en.description },
       ],
     };
   },

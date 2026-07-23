@@ -45,11 +45,11 @@ function BlogIndex() {
                 to={`/blog/${post.slug}`}
                 className="transition-colors hover:text-fg-muted"
               >
-                {post.title}
+                {post.text.en.title}
               </Link>
             </h2>
             <p className="mt-2 text-[1.0625rem] leading-[1.7] text-fg-muted">
-              {post.description}
+              {post.text.en.description}
             </p>
           </li>
         ))}

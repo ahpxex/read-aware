@@ -6,7 +6,13 @@
   "scripts": {
     "dev": "tauri dev --config src-tauri/tauri.dev.conf.json",
     "build": "tauri build",
+    "prepare:plugins": "bun run --filter '../../plugins/*' --if-present build",
+    "dev:frontend": "bun run prepare:plugins && bun run --filter @read-aware/web dev",
+    "build:frontend": "bun run prepare:plugins && bun run --filter @read-aware/web build",
     "tauri": "tauri"
+  },
+  "dependencies": {
+    "@read-aware/plugin-dictionary": "workspace:*"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.9.1"

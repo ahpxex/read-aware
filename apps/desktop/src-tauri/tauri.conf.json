@@ -6,8 +6,8 @@
   "build": {
     "frontendDist": "../../web/dist",
     "devUrl": "http://localhost:5173",
-    "beforeDevCommand": "bun run --filter @read-aware/web dev",
-    "beforeBuildCommand": "bun run --filter @read-aware/web build"
+    "beforeDevCommand": "bun run dev:frontend",
+    "beforeBuildCommand": "bun run build:frontend"
   },
   "app": {
     "withGlobalTauri": true,
@@ -66,7 +66,8 @@
       "icons/icon.ico"
     ],
     "resources": {
-      "bundled-plugins/": "bundled-plugins/"
+      "../../../plugins/dictionary/dist/main.js": "bundled-plugins/dictionary/main.js",
+      "../../../plugins/dictionary/dist/manifest.json": "bundled-plugins/dictionary/manifest.json"
     }
   },
   "plugins": {

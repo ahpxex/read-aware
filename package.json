@@ -6,7 +6,8 @@
   "packageManager": "bun@1.3.13",
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "plugins/*"
   ],
   "scripts": {
     "dev": "turbo run dev --filter=@read-aware/desktop",
@@ -15,6 +16,7 @@
     "build": "turbo run build --filter=@read-aware/web",
     "build:desktop": "turbo run build --filter=@read-aware/desktop",
     "build:landing": "turbo run build --filter=@read-aware/landing",
+    "test": "turbo run test",
     "typecheck": "turbo run typecheck",
     "storybook": "turbo run storybook --filter=@read-aware/web",
     "build-storybook": "turbo run build-storybook --filter=@read-aware/web"

@@ -1,0 +1,7 @@
+{
+  "extends": "@read-aware/tsconfig/base.json",
+  "compilerOptions": {
+    "types": ["bun"]
+  },
+  "include": ["scripts", "src", "tests"]
+}

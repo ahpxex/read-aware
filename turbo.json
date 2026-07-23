@@ -17,6 +17,9 @@
     "typecheck": {
       "dependsOn": ["^build"]
     },
+    "test": {
+      "dependsOn": ["^build"]
+    },
     "preview": {
       "cache": false,
       "persistent": true

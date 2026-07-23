@@ -1,20 +1,27 @@
 /**
- * Per-book reading-time stats — interim localStorage seam.
+ * Per-book reading-time stats.
  *
  * This is the storage boundary the rest of the app talks to for "how long has
- * this book been read." Today it is a single JSON blob in localStorage; the
- * local-first target (see docs/data-model.md) is to derive these figures as a
- * projection over the event log. Keeping every caller behind these typed
- * functions means that swap touches only this file — the atom, the tracking
- * hook, and the stats UI stay put.
+ * this book been read." The projection is the SQLite `reading_time_totals` /
+ * `reading_time_daily` / `reading_time_hourly` tables (migration v9); the
+ * `reading.timeRecorded` events already dual-write in the tracker. Boot reads
+ * the tables into the platform snapshot (interim-projections); after boot the
+ * live figures accumulate in the readingStatsAtom, and each tracker tick
+ * write-throughs its delta with `recordReadingTime`. The browser shell keeps
+ * no durable stats (pure UI shell).
  *
  * All durations are milliseconds of *active* reading time. Day buckets are keyed
  * by local calendar day so the weekly chart matches the reader's wall clock.
  */
 
-import { localKV } from "../../../platform/local-store";
-
-const STORAGE_KEY = "read-aware-reading-stats";
+import { isTauri } from "../../../platform/environment";
+import {
+  getReadingTimeSnapshot,
+  importReadingTime,
+  loadReadingTime,
+  recordReadingTimeDelta,
+  type ReadingTimeWire,
+} from "../../../platform/interim-projections";
 
 /** Milliseconds of reading keyed by local day, e.g. `{ "2026-06-25": 840000 }`. */
 export type DailyReadingMap = Record<string, number>;
@@ -67,54 +74,65 @@ export function localHour(epochMs: number): number {
   return new Date(epochMs).getHours();
 }
 
-function normalizeDaily(value: unknown): DailyReadingMap {
-  if (!value || typeof value !== "object") return {};
-  const result: DailyReadingMap = {};
-  for (const [key, ms] of Object.entries(value as Record<string, unknown>)) {
-    if (typeof ms === "number" && Number.isFinite(ms) && ms > 0) result[key] = ms;
+/** Assemble the typed store from the three-table wire shape. */
+export function storeFromWire(wire: ReadingTimeWire): ReadingStatsStore {
+  const result: ReadingStatsStore = {};
+  const of = (bookId: string): BookReadingStats =>
+    (result[bookId] ??= emptyBookStats(bookId));
+  for (const row of wire.totals) {
+    const stats = of(row.bookId);
+    stats.totalMs = row.totalMs;
+    stats.firstStartedAt = row.firstStartedAt ?? null;
+    stats.lastReadAt = row.lastReadAt ?? null;
+  }
+  for (const row of wire.daily) of(row.bookId).daily[row.localDay] = row.ms;
+  for (const row of wire.hourly) {
+    if (row.localHour >= 0 && row.localHour < 24) of(row.bookId).byHour[row.localHour] = row.ms;
   }
   return result;
 }
 
-/** Coerce stored hour data into a clean length-24 histogram (back-compat: absent → zeros). */
-function normalizeHourly(value: unknown): HourlyReadingBuckets {
-  const buckets = emptyHourBuckets();
-  if (!Array.isArray(value)) return buckets;
-  for (let h = 0; h < 24; h += 1) {
-    const ms = value[h];
-    if (typeof ms === "number" && Number.isFinite(ms) && ms > 0) buckets[h] = ms;
-  }
-  return buckets;
-}
-
+/** Boot snapshot of the SQLite projection (empty in the browser shell). */
 export function getReadingStatsStore(): ReadingStatsStore {
-  try {
-    const raw = localKV.getItem(STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    if (!parsed || typeof parsed !== "object") return {};
-
-    const result: ReadingStatsStore = {};
-    for (const [bookId, value] of Object.entries(parsed)) {
-      if (!value || typeof value !== "object") continue;
-      const v = value as Partial<BookReadingStats>;
-      result[bookId] = {
-        bookId,
-        firstStartedAt: typeof v.firstStartedAt === "number" ? v.firstStartedAt : null,
-        lastReadAt: typeof v.lastReadAt === "number" ? v.lastReadAt : null,
-        totalMs: typeof v.totalMs === "number" && v.totalMs >= 0 ? v.totalMs : 0,
-        daily: normalizeDaily(v.daily),
-        byHour: normalizeHourly(v.byHour),
-      };
-    }
-    return result;
-  } catch {
-    return {};
-  }
+  if (!isTauri()) return {};
+  return storeFromWire(getReadingTimeSnapshot());
 }
 
-export function saveReadingStatsStore(store: ReadingStatsStore): void {
-  localKV.setItem(STORAGE_KEY, JSON.stringify(store));
+/** Fresh async read of the SQLite projection (the reading domain's `getTime`). */
+export async function loadReadingStatsStore(): Promise<ReadingStatsStore> {
+  return storeFromWire(await loadReadingTime());
+}
+
+/** Write-through one tracker tick (the event dual-write stays in the tracker). */
+export function recordReadingTime(bookId: string, ms: number, atEpochMs: number): void {
+  if (!isTauri()) return;
+  recordReadingTimeDelta(bookId, ms, atEpochMs, localDayKey(atEpochMs), localHour(atEpochMs));
+}
+
+/** Bulk replace (the stats demo seed). */
+export function replaceReadingStatsStore(store: ReadingStatsStore): void {
+  if (!isTauri()) return;
+  const books = Object.values(store);
+  importReadingTime({
+    totals: books.map((book) => ({
+      bookId: book.bookId,
+      totalMs: book.totalMs,
+      firstStartedAt: book.firstStartedAt,
+      lastReadAt: book.lastReadAt,
+    })),
+    daily: books.flatMap((book) =>
+      Object.entries(book.daily).map(([localDay, ms]) => ({
+        bookId: book.bookId,
+        localDay,
+        ms,
+      })),
+    ),
+    hourly: books.flatMap((book) =>
+      book.byHour.flatMap((ms, localHour) =>
+        ms > 0 ? [{ bookId: book.bookId, localHour, ms }] : [],
+      ),
+    ),
+  });
 }
 
 export function getBookReadingStats(

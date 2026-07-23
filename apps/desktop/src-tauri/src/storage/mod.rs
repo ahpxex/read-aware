@@ -359,6 +359,45 @@ const MIGRATIONS: &[(i64, &str, &str)] = &[
         // （操作者身份）正交；插件写入的审计与卸载补偿都建立在这一列上。
         "ALTER TABLE domain_events ADD COLUMN origin TEXT NOT NULL DEFAULT 'user';",
     ),
+    (
+        9,
+        "vocabulary_reading_time_projections",
+        // 生词本与阅读时长的 SQLite 投影（docs/sqlite-schema.sql）：
+        // 替代 app_kv 里的 read-aware-vocabulary / read-aware-reading-stats
+        // JSON blob。两者的事件（vocabulary.*、reading.timeRecorded）已在
+        // 日志双写；这些表是可重放的读模型。
+        "CREATE TABLE IF NOT EXISTS vocabulary_entries (
+            id         TEXT NOT NULL PRIMARY KEY,
+            term       TEXT NOT NULL,
+            language   TEXT NOT NULL,
+            entry_json TEXT NOT NULL,
+            context    TEXT,
+            book_id    TEXT,
+            book_title TEXT,
+            added_at   TEXT NOT NULL,
+            removed_at TEXT
+         );
+         CREATE INDEX IF NOT EXISTS ix_vocabulary_added
+            ON vocabulary_entries (added_at);
+         CREATE TABLE IF NOT EXISTS reading_time_totals (
+            book_id          TEXT NOT NULL PRIMARY KEY,
+            total_ms         INTEGER NOT NULL DEFAULT 0,
+            first_started_at INTEGER,
+            last_read_at     INTEGER
+         );
+         CREATE TABLE IF NOT EXISTS reading_time_daily (
+            book_id   TEXT NOT NULL,
+            local_day TEXT NOT NULL,
+            ms        INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (book_id, local_day)
+         );
+         CREATE TABLE IF NOT EXISTS reading_time_hourly (
+            book_id    TEXT NOT NULL,
+            local_hour INTEGER NOT NULL,
+            ms         INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (book_id, local_hour)
+         );",
+    ),
 ];
 
 /// Apply migrations newer than the highest recorded version, up to `max_version`
@@ -2127,6 +2166,310 @@ pub fn ai_chat_clear(conversation_id: String, db: State<'_, Db>) -> Result<(), S
         params![conversation_id],
     )
     .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+// --- Vocabulary projection (migration v9) ---
+
+/// One vocabulary-notebook entry; mirrors the web `VocabularyEntryRow` wire shape.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VocabularyEntryRow {
+    pub id: String,
+    pub term: String,
+    pub language: String,
+    pub entry_json: String,
+    #[serde(default)]
+    pub context: Option<String>,
+    #[serde(default)]
+    pub book_id: Option<String>,
+    #[serde(default)]
+    pub book_title: Option<String>,
+    pub added_at: String,
+}
+
+fn row_to_vocabulary(row: &rusqlite::Row) -> rusqlite::Result<VocabularyEntryRow> {
+    Ok(VocabularyEntryRow {
+        id: row.get("id")?,
+        term: row.get("term")?,
+        language: row.get("language")?,
+        entry_json: row.get("entry_json")?,
+        context: row.get("context")?,
+        book_id: row.get("book_id")?,
+        book_title: row.get("book_title")?,
+        added_at: row.get("added_at")?,
+    })
+}
+
+#[tauri::command]
+pub fn vocabulary_list(db: State<'_, Db>) -> Result<Vec<VocabularyEntryRow>, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, term, language, entry_json, context, book_id, book_title, added_at
+             FROM vocabulary_entries WHERE removed_at IS NULL ORDER BY added_at DESC",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], row_to_vocabulary)
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+    Ok(rows)
+}
+
+fn vocabulary_put_inner(conn: &Connection, entry: &VocabularyEntryRow) -> Result<(), String> {
+    conn.execute(
+        "INSERT INTO vocabulary_entries
+            (id, term, language, entry_json, context, book_id, book_title, added_at, removed_at)
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,NULL)
+         ON CONFLICT(id) DO UPDATE SET
+            term=excluded.term, language=excluded.language,
+            entry_json=excluded.entry_json, context=excluded.context,
+            book_id=excluded.book_id, book_title=excluded.book_title,
+            added_at=excluded.added_at, removed_at=NULL",
+        params![
+            entry.id,
+            entry.term,
+            entry.language,
+            entry.entry_json,
+            entry.context,
+            entry.book_id,
+            entry.book_title,
+            entry.added_at,
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn vocabulary_put(entry: VocabularyEntryRow, db: State<'_, Db>) -> Result<(), String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    vocabulary_put_inner(&conn, &entry)
+}
+
+/// Soft delete — the tombstone keeps future sync merges resolvable.
+#[tauri::command]
+pub fn vocabulary_remove(id: String, db: State<'_, Db>) -> Result<(), String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE vocabulary_entries
+         SET removed_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+         WHERE id = ?1",
+        params![id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Bulk seed for the one-time app_kv → SQLite migration (INSERT-only, keeps
+/// any rows the table already has).
+#[tauri::command]
+pub fn vocabulary_import(
+    entries: Vec<VocabularyEntryRow>,
+    db: State<'_, Db>,
+) -> Result<(), String> {
+    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+    for entry in &entries {
+        tx.execute(
+            "INSERT OR IGNORE INTO vocabulary_entries
+                (id, term, language, entry_json, context, book_id, book_title, added_at)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8)",
+            params![
+                entry.id,
+                entry.term,
+                entry.language,
+                entry.entry_json,
+                entry.context,
+                entry.book_id,
+                entry.book_title,
+                entry.added_at,
+            ],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+    tx.commit().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+// --- Reading-time projection (migration v9) ---
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReadingTimeTotalRow {
+    pub book_id: String,
+    pub total_ms: i64,
+    #[serde(default)]
+    pub first_started_at: Option<i64>,
+    #[serde(default)]
+    pub last_read_at: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReadingTimeDailyRow {
+    pub book_id: String,
+    pub local_day: String,
+    pub ms: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReadingTimeHourlyRow {
+    pub book_id: String,
+    pub local_hour: i64,
+    pub ms: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReadingTimeWire {
+    pub totals: Vec<ReadingTimeTotalRow>,
+    pub daily: Vec<ReadingTimeDailyRow>,
+    pub hourly: Vec<ReadingTimeHourlyRow>,
+}
+
+#[tauri::command]
+pub fn reading_time_load(db: State<'_, Db>) -> Result<ReadingTimeWire, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    let totals = {
+        let mut stmt = conn
+            .prepare("SELECT book_id, total_ms, first_started_at, last_read_at FROM reading_time_totals")
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok(ReadingTimeTotalRow {
+                    book_id: row.get(0)?,
+                    total_ms: row.get(1)?,
+                    first_started_at: row.get(2)?,
+                    last_read_at: row.get(3)?,
+                })
+            })
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+        rows
+    };
+    let daily = {
+        let mut stmt = conn
+            .prepare("SELECT book_id, local_day, ms FROM reading_time_daily")
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok(ReadingTimeDailyRow {
+                    book_id: row.get(0)?,
+                    local_day: row.get(1)?,
+                    ms: row.get(2)?,
+                })
+            })
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+        rows
+    };
+    let hourly = {
+        let mut stmt = conn
+            .prepare("SELECT book_id, local_hour, ms FROM reading_time_hourly")
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok(ReadingTimeHourlyRow {
+                    book_id: row.get(0)?,
+                    local_hour: row.get(1)?,
+                    ms: row.get(2)?,
+                })
+            })
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+        rows
+    };
+    Ok(ReadingTimeWire { totals, daily, hourly })
+}
+
+fn reading_time_record_inner(
+    conn: &Connection,
+    book_id: &str,
+    ms: i64,
+    at_epoch_ms: i64,
+    local_day: &str,
+    local_hour: i64,
+) -> Result<(), String> {
+    conn.execute(
+        "INSERT INTO reading_time_totals (book_id, total_ms, first_started_at, last_read_at)
+         VALUES (?1, ?2, ?3, ?3)
+         ON CONFLICT(book_id) DO UPDATE SET
+            total_ms = total_ms + excluded.total_ms,
+            first_started_at = COALESCE(first_started_at, excluded.first_started_at),
+            last_read_at = MAX(COALESCE(last_read_at, 0), excluded.last_read_at)",
+        params![book_id, ms, at_epoch_ms],
+    )
+    .map_err(|e| e.to_string())?;
+    conn.execute(
+        "INSERT INTO reading_time_daily (book_id, local_day, ms) VALUES (?1, ?2, ?3)
+         ON CONFLICT(book_id, local_day) DO UPDATE SET ms = ms + excluded.ms",
+        params![book_id, local_day, ms],
+    )
+    .map_err(|e| e.to_string())?;
+    conn.execute(
+        "INSERT INTO reading_time_hourly (book_id, local_hour, ms) VALUES (?1, ?2, ?3)
+         ON CONFLICT(book_id, local_hour) DO UPDATE SET ms = ms + excluded.ms",
+        params![book_id, local_hour, ms],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// One active-reading delta (the tracker's tick), bucketed at record time.
+#[tauri::command]
+pub fn reading_time_record(
+    book_id: String,
+    ms: i64,
+    at_epoch_ms: i64,
+    local_day: String,
+    local_hour: i64,
+    db: State<'_, Db>,
+) -> Result<(), String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    reading_time_record_inner(&conn, &book_id, ms, at_epoch_ms, &local_day, local_hour)
+}
+
+/// Bulk replace (one-time app_kv migration; the stats demo seed).
+#[tauri::command]
+pub fn reading_time_import(wire: ReadingTimeWire, db: State<'_, Db>) -> Result<(), String> {
+    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+    tx.execute_batch(
+        "DELETE FROM reading_time_totals;
+         DELETE FROM reading_time_daily;
+         DELETE FROM reading_time_hourly;",
+    )
+    .map_err(|e| e.to_string())?;
+    for row in &wire.totals {
+        tx.execute(
+            "INSERT INTO reading_time_totals (book_id, total_ms, first_started_at, last_read_at)
+             VALUES (?1,?2,?3,?4)",
+            params![row.book_id, row.total_ms, row.first_started_at, row.last_read_at],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+    for row in &wire.daily {
+        tx.execute(
+            "INSERT INTO reading_time_daily (book_id, local_day, ms) VALUES (?1,?2,?3)",
+            params![row.book_id, row.local_day, row.ms],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+    for row in &wire.hourly {
+        tx.execute(
+            "INSERT INTO reading_time_hourly (book_id, local_hour, ms) VALUES (?1,?2,?3)",
+            params![row.book_id, row.local_hour, row.ms],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+    tx.commit().map_err(|e| e.to_string())?;
     Ok(())
 }
 

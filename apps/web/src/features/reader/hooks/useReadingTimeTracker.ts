@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useSetAtom } from "jotai";
 import { readingStatsAtom } from "../../../state/ui";
-import { addReadingTime, localDayKey, localHour } from "../lib/reading-stats";
+import {
+  addReadingTime,
+  localDayKey,
+  localHour,
+  recordReadingTime,
+} from "../lib/reading-stats";
 import { emitDomainEvents } from "../../../platform/domain-events";
 
 /** How often accumulated time is flushed to the stats seam. */
@@ -59,6 +64,8 @@ export function useReadingTimeTracker(bookId: string | null, active: boolean) {
     lastTickRef.current = now;
     if (delta > 0) {
       setStats((prev) => addReadingTime(prev, bookId, delta, now));
+      // Write-through into the SQLite projection (the atom is memory-only).
+      recordReadingTime(bookId, delta, now);
       // Dual-write into the event log (the sync unit). Local day/hour are
       // stamped NOW, in this device's timezone — replaying later elsewhere
       // must not re-bucket history (see reading.timeRecorded in events.ts).

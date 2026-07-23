@@ -7,10 +7,7 @@
 import type { EventOrigin, ReadingState, ReadingTime } from "@read-aware/core";
 import { listLibraryBooks } from "../features/library/lib/library-db";
 import type { LibraryBook } from "../features/library/lib/library-types";
-import {
-  getBookReadingStats,
-  getReadingStatsStore,
-} from "../features/reader/lib/reading-stats";
+import { loadReadingStatsStore } from "../features/reader/lib/reading-stats";
 import { READING_EVENTS, domainSubscribe, type DomainEventSubscribe } from "./events";
 
 export function toReadingState(book: LibraryBook): ReadingState {
@@ -40,9 +37,9 @@ export function createReadingDomain(origin: EventOrigin): ReadingDomain {
     },
     listStates: async () => (await listLibraryBooks()).map(toReadingState),
     getTime: async (bookId) => {
-      const store = getReadingStatsStore();
-      if (!store[String(bookId)]) return null;
-      const stats = getBookReadingStats(store, String(bookId));
+      const store = await loadReadingStatsStore();
+      const stats = store[String(bookId)];
+      if (!stats) return null;
       return {
         bookId: stats.bookId,
         totalMs: stats.totalMs,

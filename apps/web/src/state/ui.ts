@@ -29,7 +29,6 @@ import {
 } from "../features/settings/lib/reader-overrides";
 import {
   getReadingStatsStore,
-  saveReadingStatsStore,
   type ReadingStatsStore,
 } from "../features/reader/lib/reading-stats";
 import {
@@ -155,9 +154,11 @@ export const readerOverridesAtom = atom(
 const readingStatsBaseAtom = atom<ReadingStatsStore>(getReadingStatsStore());
 
 /**
- * Per-book reading-time stats (interim localStorage seam). Accepts a value or an
- * updater so the tracker can increment without subscribing (write-only via
- * `useSetAtom`); the stats popover reads the value for live figures.
+ * Per-book reading-time stats, seeded from the SQLite projection at boot.
+ * Memory-only here: persistence is explicit at the intent sites — the
+ * tracker write-throughs each tick's delta (`recordReadingTime`), the stats
+ * demo seed bulk-replaces (`replaceReadingStatsStore`). Accepts a value or
+ * an updater so the tracker can increment without subscribing.
  */
 export const readingStatsAtom = atom(
   (get) => get(readingStatsBaseAtom),
@@ -169,7 +170,6 @@ export const readingStatsAtom = atom(
     const next =
       typeof update === "function" ? update(get(readingStatsBaseAtom)) : update;
     set(readingStatsBaseAtom, next);
-    saveReadingStatsStore(next);
   },
 );
 

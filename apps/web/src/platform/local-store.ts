@@ -26,6 +26,7 @@ import {
   importWebviewMemoriesIntoSqlite,
 } from "./desktop-import";
 import { reconcileGenesisEvents } from "./event-genesis";
+import { hydrateInterimProjections } from "./interim-projections";
 
 const MIGRATED_FLAG = "read-aware-migrated-v1";
 const MEMORIES_MIGRATED_FLAG = "read-aware-migrated-memories-v1";
@@ -122,6 +123,11 @@ export async function hydrateLocalStore(): Promise<void> {
       console.error("[local-store] conversations import failed; will retry next launch", err);
     }
   }
+
+  // Fourth wave: vocabulary + reading-time move from app_kv JSON blobs into
+  // their SQLite projection tables (migration v9), then hydrate the sync
+  // snapshots feature code reads at module-eval.
+  await hydrateInterimProjections();
 
   // Off the boot-critical path: synthesize creation events for projection rows
   // the event log has never seen (pre-event-era data, v1 backup restores,

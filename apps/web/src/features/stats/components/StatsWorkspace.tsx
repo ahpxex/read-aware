@@ -5,7 +5,10 @@ import { Body, EmptyState, Heading, Tabs } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { readingStatsAtom } from "../../../state/ui";
 import type { LibraryBook } from "../../library/lib/library-types";
-import { formatReadingDuration } from "../../reader/lib/reading-stats";
+import {
+  formatReadingDuration,
+  replaceReadingStatsStore,
+} from "../../reader/lib/reading-stats";
 import { computeGlobalInsights, periodTabLabel, STATS_PERIODS } from "../lib/reading-insights";
 import { seedReadingStats } from "../lib/stats-mock";
 import { useAnnotationCounts } from "../hooks/useAnnotationCounts";
@@ -34,7 +37,9 @@ export function StatsWorkspace({ books, onOpenBook }: StatsWorkspaceProps) {
   useEffect(() => {
     if (!willAutoSeed || seededRef.current) return;
     seededRef.current = true;
-    setStore(seedReadingStats(books, Date.now()));
+    const seeded = seedReadingStats(books, Date.now());
+    setStore(seeded);
+    replaceReadingStatsStore(seeded);
   }, [willAutoSeed, books, setStore]);
 
   const tabs = useMemo(

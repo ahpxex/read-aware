@@ -1,10 +1,10 @@
 {
   "id": "annotation-tools",
   "name": "Annotation Tools",
-  "version": "0.1.0",
-  "minAppVersion": "0.2.0",
+  "version": "0.2.0",
+  "minAppVersion": "0.3.0",
   "description": "Gives the reading agent tools to count and list your annotations.",
   "author": "ReadAware",
-  "permissions": ["ai", "reading-data"],
+  "permissions": ["agent:tools", "annotations:read"],
   "main": "main.js"
 }

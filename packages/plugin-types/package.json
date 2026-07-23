@@ -9,6 +9,9 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@read-aware/core": "workspace:*"
+  },
   "devDependencies": {
     "typescript": "~5.8.3"
   }

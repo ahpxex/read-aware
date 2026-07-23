@@ -15,7 +15,7 @@ import { PluginSearchInput } from "../../plugins/components/PluginSearchInput";
 import { parseManifestJson } from "../../plugins/lib/manifest";
 import { buildPluginSettingsView } from "../../plugins/lib/plugin-settings";
 import { matchesPluginQuery } from "../../plugins/lib/search";
-import type { PluginPermission } from "../../plugins/lib/plugin-types";
+import { permissionLabelKey, type PluginPermission } from "../../plugins/lib/plugin-types";
 import { readPluginManifestFromDir } from "../../plugins/runtime/plugin-backend";
 import {
   installPlugin,
@@ -130,7 +130,7 @@ export function PluginsPanel() {
                       ) : (
                         permissions.map((permission: PluginPermission) => (
                           <Badge key={permission} className="text-[11px]">
-                            {t(`settings.permission.${permission}`)}
+                            {t(permissionLabelKey(permission) as never)}
                           </Badge>
                         ))
                       )}

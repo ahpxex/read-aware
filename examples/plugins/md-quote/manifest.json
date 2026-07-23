@@ -1,10 +1,10 @@
 {
   "id": "md-quote",
   "name": "Markdown Quote",
-  "version": "0.1.0",
-  "minAppVersion": "0.2.0",
+  "version": "0.2.0",
+  "minAppVersion": "0.3.0",
   "description": "Copy selected passages as Markdown blockquotes, with a configurable citation line.",
   "author": "ReadAware",
-  "permissions": ["clipboard"],
+  "permissions": ["service:clipboard"],
   "main": "main.js"
 }

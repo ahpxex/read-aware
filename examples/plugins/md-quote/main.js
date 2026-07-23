@@ -3,7 +3,7 @@
  *
  * Demonstrates: a selection action with a silent (toast) outcome, a reader
  * header popup, a command-palette command opening a settings form, namespaced
- * storage, and the `clipboard` permission.
+ * storage, and the `service:clipboard` permission.
  */
 
 /** @param {string} text @param {{ title: string, author?: string }} book @param {boolean} cite */

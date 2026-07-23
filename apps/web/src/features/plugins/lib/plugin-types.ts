@@ -21,6 +21,15 @@ export function contributionKey(pluginId: string, id: string): ContributionKey {
   return `${pluginId}:${id}`;
 }
 
+/**
+ * i18n catalog key for a permission's human label. Permission ids contain ":"
+ * (i18next's namespace separator), so catalog keys use the "_" form:
+ * `books:read` → `settings.permission.books_read`.
+ */
+export function permissionLabelKey(permission: string): string {
+  return `settings.permission.${permission.replace(/:/g, "_")}`;
+}
+
 export type RegisteredSelectionAction = PluginSelectionAction & {
   key: ContributionKey;
   pluginId: string;

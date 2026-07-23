@@ -106,6 +106,9 @@
     "packages/plugin-types": {
       "name": "@read-aware/plugin-types",
       "version": "0.1.0",
+      "dependencies": {
+        "@read-aware/core": "workspace:*",
+      },
       "devDependencies": {
         "typescript": "~5.8.3",
       },

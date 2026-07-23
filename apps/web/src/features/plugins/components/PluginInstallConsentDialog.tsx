@@ -6,6 +6,7 @@
 import { useAtomValue } from "jotai";
 import { Badge, Button, Caption, Dialog } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
+import { permissionLabelKey } from "../lib/plugin-types";
 import { pluginInstallConsentAtom } from "../state/plugin-store";
 
 export function PluginInstallConsentDialog() {
@@ -43,7 +44,7 @@ export function PluginInstallConsentDialog() {
                 <div key={permission} className="flex items-baseline gap-2">
                   <Badge className="shrink-0 text-[11px]">{permission}</Badge>
                   <span className="font-sans text-xs leading-5 text-fg-muted">
-                    {t(`settings.permission.${permission}`)}
+                    {t(permissionLabelKey(permission) as never)}
                   </span>
                 </div>
               ))

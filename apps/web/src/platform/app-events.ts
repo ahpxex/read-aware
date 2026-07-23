@@ -1,19 +1,18 @@
 /**
- * The app-wide event bus — the observation seam core code emits into and the
- * plugin runtime subscribes through. Lives in platform/ so feature libs
- * (annotation-db, reader session) can emit without depending on the plugins
- * feature. Handlers are isolated: one throwing never breaks the emitter or
- * its peers.
+ * The app-wide event bus for SESSION facts — runtime state of the open
+ * reader and cross-feature notifications. Lives in platform/ so feature libs
+ * (library-db, reader session) can emit without depending on consumers.
+ * Handlers are isolated: one throwing never breaks the emitter or its peers.
+ *
+ * Domain facts do NOT go through here — they are domain events
+ * (platform/domain-events.ts), which plugins observe via the in-app
+ * broadcast under their canonical names.
  */
-import type { Annotation } from "../features/annotations/lib/annotation-types";
-
 export type AppEventMap = {
   "book-opened": { book: { id: string; title: string; author?: string } };
   "book-closed": { bookId: string };
   "chapter-changed": { bookId: string; chapterHref: string | null };
   "reading-progress": { bookId: string; fraction: number };
-  "annotation-created": { annotation: Annotation };
-  "annotation-deleted": { id: string };
   /** A book row was deleted (any path — shelf UI included). */
   "book-removed": { bookId: string };
   /** Library contents changed outside the controller (e.g. plugin import). */

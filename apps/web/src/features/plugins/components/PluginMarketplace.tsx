@@ -16,6 +16,7 @@ import {
   prepareMarketplaceInstall,
   type MarketplaceEntry,
 } from "../runtime/marketplace";
+import { permissionLabelKey } from "../lib/plugin-types";
 import { installedPluginsAtom, requestInstallConsent } from "../state/plugin-store";
 import { PluginSearchInput } from "./PluginSearchInput";
 
@@ -135,7 +136,7 @@ export function PluginMarketplace({ refreshToken = 0 }: PluginMarketplaceProps) 
               <span className="mt-1.5 flex flex-wrap items-center gap-1">
                 {(entry.permissions ?? []).map((permission) => (
                   <Badge key={permission} className="text-[11px]">
-                    {t(`settings.permission.${permission}`)}
+                    {t(permissionLabelKey(permission) as never)}
                   </Badge>
                 ))}
               </span>

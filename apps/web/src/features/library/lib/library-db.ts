@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import type { EventOrigin } from "@read-aware/core";
 import type { TFunction } from "i18next";
 import {
   getDesktopBlob,
@@ -58,7 +59,11 @@ async function putBookRecord(book: LibraryBook): Promise<void> {
   await invoke("library_put_book", { book });
 }
 
-async function storeImportedBook(book: LibraryBook, source: BookImportSource): Promise<void> {
+async function storeImportedBook(
+  book: LibraryBook,
+  source: BookImportSource,
+  origin?: EventOrigin,
+): Promise<void> {
   assertDesktop("Importing a book");
   const { sha256 } = source.kind === "native-path"
     ? await putDesktopBlobFromPath(
@@ -84,15 +89,16 @@ async function storeImportedBook(book: LibraryBook, source: BookImportSource): P
       sourceBlobKey: bookFileKey(book.id),
       sourceSha256: sha256,
     },
+    origin,
   });
   await invoke("library_put_book", { book });
 }
 
-async function deleteBookRecords(bookIds: string[]): Promise<void> {
+async function deleteBookRecords(bookIds: string[], origin?: EventOrigin): Promise<void> {
   if (bookIds.length === 0) return;
   assertDesktop("Removing books");
   emitDomainEvents(
-    ...bookIds.map((bookId) => ({ type: "book.removed" as const, payload: { bookId } })),
+    ...bookIds.map((bookId) => ({ type: "book.removed" as const, payload: { bookId }, origin })),
   );
   for (const bookId of bookIds) emitAppEvent("book-removed", { bookId });
   await invoke("library_delete_books", { ids: bookIds });
@@ -313,8 +319,12 @@ export async function prepareBookImport(
 }
 
 /** Make a prepared import durable without changing its shelf identity/order. */
-export async function commitBookImport(book: LibraryBook, source: BookImportSource): Promise<void> {
-  await storeImportedBook(book, source);
+export async function commitBookImport(
+  book: LibraryBook,
+  source: BookImportSource,
+  origin?: EventOrigin,
+): Promise<void> {
+  await storeImportedBook(book, source, origin);
 }
 
 export type EnrichBookResult =
@@ -372,6 +382,8 @@ async function enrichParsedBook(
         ...(enriched.title !== current.title ? { title: enriched.title } : {}),
         ...(enriched.author !== current.author ? { author: enriched.author } : {}),
       },
+      // Parsed-metadata enrichment is app machinery, not a user edit.
+      origin: "system",
     });
   }
   await putBookRecord(enriched);
@@ -445,6 +457,7 @@ export async function updateLibraryBookProgress(bookId: string, progress: BookPr
 export async function updateBookMetadata(
   bookId: string,
   patch: { title?: string; author?: string },
+  origin?: EventOrigin,
 ): Promise<LibraryBook | null> {
   const existingBook = await getBookRecord(bookId);
   if (!existingBook) return null;
@@ -466,13 +479,18 @@ export async function updateBookMetadata(
         ...(nextBook.title !== existingBook.title ? { title: nextBook.title } : {}),
         ...(nextBook.author !== existingBook.author ? { author: nextBook.author } : {}),
       },
+      origin,
     });
   }
   await putBookRecord(nextBook);
   return nextBook;
 }
 
-export async function setLibraryBookStarred(bookId: string, starred: boolean) {
+export async function setLibraryBookStarred(
+  bookId: string,
+  starred: boolean,
+  origin?: EventOrigin,
+) {
   const existingBook = await getBookRecord(bookId);
   if (!existingBook) return null;
 
@@ -480,7 +498,7 @@ export async function setLibraryBookStarred(bookId: string, starred: boolean) {
   // or pinning a book would also reshuffle the "recently opened" ordering.
   const nextBook: LibraryBook = { ...existingBook, starred };
 
-  emitDomainEvents({ type: "book.starred", payload: { bookId, starred } });
+  emitDomainEvents({ type: "book.starred", payload: { bookId, starred }, origin });
   await putBookRecord(nextBook);
   return nextBook;
 }
@@ -490,7 +508,7 @@ export async function listCollections() {
   return collections.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export async function createCollection(name: string): Promise<Collection> {
+export async function createCollection(name: string, origin?: EventOrigin): Promise<Collection> {
   const collection: Collection = {
     id: crypto.randomUUID(),
     name: name.trim() || "Untitled collection",
@@ -499,12 +517,17 @@ export async function createCollection(name: string): Promise<Collection> {
   emitDomainEvents({
     type: "collection.created",
     payload: { collectionId: collection.id, name: collection.name },
+    origin,
   });
   await putCollectionRecord(collection);
   return collection;
 }
 
-export async function renameCollection(id: string, name: string): Promise<Collection | null> {
+export async function renameCollection(
+  id: string,
+  name: string,
+  origin?: EventOrigin,
+): Promise<Collection | null> {
   const existing = (await getAllCollectionRecords()).find((c) => c.id === id);
   if (!existing) return null;
 
@@ -512,6 +535,7 @@ export async function renameCollection(id: string, name: string): Promise<Collec
   emitDomainEvents({
     type: "collection.renamed",
     payload: { collectionId: id, name: next.name },
+    origin,
   });
   await putCollectionRecord(next);
   return next;
@@ -522,14 +546,18 @@ export async function renameCollection(id: string, name: string): Promise<Collec
  * `collection.removed` implies the membership clearing on replay — no per-book
  * `book.removedFromCollection` events are emitted for it.
  */
-export async function deleteCollection(id: string) {
+export async function deleteCollection(id: string, origin?: EventOrigin) {
   assertDesktop("Deleting a collection");
-  emitDomainEvents({ type: "collection.removed", payload: { collectionId: id } });
+  emitDomainEvents({ type: "collection.removed", payload: { collectionId: id }, origin });
   await invoke("library_delete_collection", { id });
 }
 
 /** Assign a set of books to a collection (or null to ungroup them). */
-export async function setBooksCollection(bookIds: string[], collectionId: string | null) {
+export async function setBooksCollection(
+  bookIds: string[],
+  collectionId: string | null,
+  origin?: EventOrigin,
+) {
   if (bookIds.length === 0) return;
   const idSet = new Set(bookIds);
   const all = await getAllBookRecords();
@@ -540,11 +568,13 @@ export async function setBooksCollection(bookIds: string[], collectionId: string
         ? {
             type: "book.addedToCollection" as const,
             payload: { bookId: book.id, collectionId },
+            origin,
           }
         : {
             type: "book.removedFromCollection" as const,
             // Ungrouping: the membership being removed is the book's current one.
             payload: { bookId: book.id, collectionId: book.collectionId as string },
+            origin,
           },
     ),
   );
@@ -553,8 +583,8 @@ export async function setBooksCollection(bookIds: string[], collectionId: string
   }
 }
 
-export async function removeLibraryBooks(bookIds: string[]) {
-  await deleteBookRecords(bookIds);
+export async function removeLibraryBooks(bookIds: string[], origin?: EventOrigin) {
+  await deleteBookRecords(bookIds, origin);
 }
 
 export async function markLibraryBookOpened(bookId: string) {
@@ -573,8 +603,8 @@ export async function markLibraryBookOpened(bookId: string) {
   return nextBook;
 }
 
-export async function removeLibraryBook(bookId: string) {
-  await deleteBookRecords([bookId]);
+export async function removeLibraryBook(bookId: string, origin?: EventOrigin) {
+  await deleteBookRecords([bookId], origin);
 }
 
 // --- Restore (import a previously-exported bundle; ids preserved) ------------

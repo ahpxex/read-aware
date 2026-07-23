@@ -16,16 +16,24 @@
  * the browser shell has no event log, and its IndexedDB paths are dev scaffolding.
  */
 import { invoke } from "@tauri-apps/api/core";
-import type { DomainEvent, DomainEventEnvelope, DomainEventType, HlcStamp } from "@read-aware/core";
+import type {
+  DomainEvent,
+  DomainEventEnvelope,
+  DomainEventType,
+  EventOrigin,
+  HlcStamp,
+} from "@read-aware/core";
 import { isTauri } from "./environment";
 
 /**
  * What a call site provides: the typed event minus everything this module
  * fills in. `createdAt` is only passed by genesis backfill (historical rows).
+ * `origin` defaults to `"user"`; seams reachable by the agent runtime or the
+ * plugin data API thread the caller's origin through.
  */
 export type DomainEventDraft = DomainEvent extends infer E
   ? E extends DomainEventEnvelope<infer T, infer P>
-    ? { type: T; payload: P; createdAt?: string }
+    ? { type: T; payload: P; createdAt?: string; origin?: EventOrigin }
     : never
   : never;
 
@@ -57,6 +65,8 @@ const AGGREGATE_ROUTES: Record<DomainEventType, { type: string; idKey: string } 
   "note.removed": { type: "note", idKey: "noteId" },
   "ask.recorded": { type: "ask", idKey: "askId" },
   "ask.removed": { type: "ask", idKey: "askId" },
+  "vocabulary.added": { type: "vocabulary", idKey: "entryId" },
+  "vocabulary.removed": { type: "vocabulary", idKey: "entryId" },
   "aiConversation.started": { type: "conversation", idKey: "conversationId" },
   "aiMessage.appended": { type: "conversation", idKey: "conversationId" },
   "aiConversation.cleared": { type: "conversation", idKey: "conversationId" },
@@ -77,6 +87,7 @@ type EventRowWire = {
   hlc: HlcStamp;
   aggregateType?: string;
   aggregateId?: string;
+  origin?: string;
   createdAt?: string;
   payload: unknown;
 };
@@ -124,9 +135,60 @@ function toEventRow(draft: DomainEventDraft, deviceId: string): EventRowWire {
     hlc: nextHlc(deviceId),
     aggregateType: route?.type,
     aggregateId: typeof aggregateId === "string" ? aggregateId : undefined,
+    origin: draft.origin,
     createdAt: draft.createdAt,
     payload: draft.payload,
   };
+}
+
+// --- In-app broadcast (the observation seam over the same vocabulary) --------
+
+/**
+ * A just-emitted domain event as in-app observers (the plugin runtime's domain
+ * subscriptions) see it: the canonical type + payload with origin and display
+ * time, minus persistence internals (HLC, ids). Broadcast happens on the UX
+ * emit path only — genesis backfill replays history and must not fire live
+ * observers.
+ */
+export type DomainEventBroadcast = {
+  [K in DomainEventType]: {
+    type: K;
+    payload: Extract<DomainEvent, { type: K }>["payload"];
+    createdAt: string;
+    origin: EventOrigin;
+  };
+}[DomainEventType];
+
+const domainListeners = new Set<(event: DomainEventBroadcast) => void>();
+
+/** Observe every UX-emitted domain event; returns the unsubscribe. */
+export function onDomainEventBroadcast(
+  listener: (event: DomainEventBroadcast) => void,
+): () => void {
+  domainListeners.add(listener);
+  return () => {
+    domainListeners.delete(listener);
+  };
+}
+
+function broadcastDomainEvents(drafts: DomainEventDraft[]): void {
+  if (domainListeners.size === 0) return;
+  const now = new Date().toISOString();
+  for (const draft of drafts) {
+    const event = {
+      type: draft.type,
+      payload: draft.payload,
+      createdAt: draft.createdAt ?? now,
+      origin: draft.origin ?? "user",
+    } as DomainEventBroadcast;
+    for (const listener of [...domainListeners]) {
+      try {
+        listener(event);
+      } catch (error) {
+        console.error(`[domain-events] broadcast listener for "${draft.type}" failed`, error);
+      }
+    }
+  }
 }
 
 /**
@@ -148,6 +210,7 @@ export async function appendDomainEvents(drafts: DomainEventDraft[]): Promise<vo
  * projections are themselves replayed from the log.
  */
 export function emitDomainEvents(...drafts: DomainEventDraft[]): void {
+  broadcastDomainEvents(drafts);
   void appendDomainEvents(drafts).catch((error) => {
     console.error("[domain-events] append failed; projections now lead the log", error);
   });

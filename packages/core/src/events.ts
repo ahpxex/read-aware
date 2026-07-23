@@ -13,6 +13,8 @@
 import type {
   BookFormat,
   CoverStatus,
+  DictionaryEntrySnapshot,
+  EventOrigin,
   HighlightColor,
   HighlightStyle,
   Id,
@@ -48,6 +50,14 @@ export interface DomainEventEnvelope<T extends string = string, P = unknown> {
   schemaVersion?: number;
   /** Operator identity; `"local"` on the single-user desktop app today. */
   actorId?: Id;
+  /**
+   * Which software actor produced the event (user action, agent runtime,
+   * background machinery, or a plugin write). Orthogonal to `actorId` — the
+   * operator stays the same person when a plugin writes on their behalf.
+   * Defaults to `"user"`. This is what makes plugin writes auditable and
+   * per-plugin compensation (e.g. cleanup after uninstall) possible.
+   */
+  origin?: EventOrigin;
   /**
    * When the recorded fact happened (ISO-8601 UTC), for display and audit.
    * Usually equals the HLC wall time and may be omitted (the store derives it
@@ -185,6 +195,24 @@ export type DomainEvent =
       { askId: Id; bookId: Id; anchor?: string; chapterHref?: string; text: string }
     >
   | DomainEventEnvelope<"ask.removed", { askId: Id }>
+  // --- Vocabulary (the reader dictionary's saved-words notebook) ----------
+  /**
+   * `entryId` is the dedupe identity `<language> <term.lowercase>`; re-adding
+   * an existing term replaces its snapshot on replay (upsert semantics).
+   */
+  | DomainEventEnvelope<
+      "vocabulary.added",
+      {
+        entryId: Id;
+        term: string;
+        language: string;
+        entry: DictionaryEntrySnapshot;
+        context?: string;
+        bookId?: Id;
+        bookTitle?: string;
+      }
+    >
+  | DomainEventEnvelope<"vocabulary.removed", { entryId: Id }>
   // --- AI conversation (one persistent thread per book) ------------------
   | DomainEventEnvelope<
       "aiConversation.started",

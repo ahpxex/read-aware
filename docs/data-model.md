@@ -165,6 +165,8 @@ row's historical timestamp while their HLC is stamped at synthesis time.
 | `note.created` | `{ noteId, bookId, highlightId?, anchor?, chapterHref?, quotedText?, body }` |
 | `note.updated` / `note.removed` | `{ noteId, body? }` |
 | `ask.recorded` / `ask.removed` | `{ askId, bookId, anchor?, chapterHref?, text }` / `{ askId }` — passive traces of the book thread (agent-architecture §7) |
+| `vocabulary.added` | `{ entryId, term, language, entry, context?, bookId?, bookTitle? }` — `entryId` is the dedupe identity `<language> <term.lowercase>`; re-adding replaces the snapshot on replay (upsert semantics) |
+| `vocabulary.removed` | `{ entryId }` |
 | `aiConversation.started` | `{ conversationId, bookId, title? }` |
 | `aiMessage.appended` | `{ messageId, conversationId, role, seq, content, model?, attachments? }` |
 | `aiConversation.cleared` | `{ conversationId }` |
@@ -178,13 +180,20 @@ row's historical timestamp while their HLC is stamped at synthesis time.
 > reproducible and syncable. The *derivation logic* runs on-device; the
 > *outcomes* are logged.
 >
-> **Producer status.** Book / collection / annotation / ask / reading events are
-> **live**: the UX persistence seams dual-write them (event first, projection
-> second), and boot-time genesis reconciliation backfills creation events for
-> rows that predate the write path. AI-conversation events await the chat
-> layer's move off localStorage. `profile.*`, `entity.*`, and `memory.*` are
-> declared so the projection tables are well-defined, but **have no producer
-> yet** — the consolidation pipeline is future work ([§10](#10-open-decisions)).
+> **Producer status.** Book / collection / annotation / ask / reading /
+> vocabulary events are **live**: the UX persistence seams dual-write them
+> (event first, projection second), and boot-time genesis reconciliation
+> backfills creation events for rows that predate the write path.
+> AI-conversation events still await dual-write in the chat layer (its
+> projections moved to SQLite, but writes bypass the log). `profile.*`,
+> `entity.*`, and `memory.*` are declared so the projection tables are
+> well-defined, but **have no producer yet** — the consolidation pipeline is
+> future work ([§10](#10-open-decisions)).
+>
+> **Origin.** Every envelope carries `origin` — which software actor produced
+> the event: `user` (default), `agent`, `system`, or `plugin:<id>` (plugin
+> data-API writes). Orthogonal to `actorId` (operator identity). This is what
+> makes plugin writes auditable and per-plugin compensation possible.
 
 ---
 

@@ -7,7 +7,7 @@
  */
 
 import { invoke } from "@tauri-apps/api/core";
-import { emitAppEvent } from "../../../platform/app-events";
+import type { EventOrigin } from "@read-aware/core";
 import type { Annotation, AnnotationFilters, Ask, Highlight, Note } from "./annotation-types";
 import { isTauri } from "../../../platform/environment";
 import { emitDomainEvents } from "../../../platform/domain-events";
@@ -57,19 +57,18 @@ export async function getAnnotation(id: string): Promise<Annotation | null> {
   return (await invoke<Annotation | null>("annotation_get", { id })) ?? null;
 }
 
-export async function deleteAnnotation(id: string): Promise<void> {
+export async function deleteAnnotation(id: string, origin?: EventOrigin): Promise<void> {
   assertDesktop("Deleting an annotation");
   // Read-before-delete so the removal event carries the right variant.
   const existing = await getAnnotation(id);
   if (existing?.type === "highlight") {
-    emitDomainEvents({ type: "highlight.removed", payload: { highlightId: id } });
+    emitDomainEvents({ type: "highlight.removed", payload: { highlightId: id }, origin });
   } else if (existing?.type === "note") {
-    emitDomainEvents({ type: "note.removed", payload: { noteId: id } });
+    emitDomainEvents({ type: "note.removed", payload: { noteId: id }, origin });
   } else if (existing?.type === "ask") {
-    emitDomainEvents({ type: "ask.removed", payload: { askId: id } });
+    emitDomainEvents({ type: "ask.removed", payload: { askId: id }, origin });
   }
   await invoke("annotation_delete", { id });
-  emitAppEvent("annotation-deleted", { id });
 }
 
 export async function listAnnotations(filters?: AnnotationFilters): Promise<Annotation[]> {
@@ -102,7 +101,8 @@ export async function createHighlight(
   chapterHref: string | null,
   text: string,
   color: Highlight["color"] = "yellow",
-  style: NonNullable<Highlight["style"]> = "highlight"
+  style: NonNullable<Highlight["style"]> = "highlight",
+  origin?: EventOrigin,
 ): Promise<Highlight> {
   const now = new Date().toISOString();
   const highlight: Highlight = {
@@ -128,9 +128,9 @@ export async function createHighlight(
       color,
       style,
     },
+    origin,
   });
   const saved = (await saveAnnotation(highlight)) as Highlight;
-  emitAppEvent("annotation-created", { annotation: saved });
   return saved;
 }
 
@@ -138,6 +138,7 @@ export async function createHighlight(
 export async function recolorHighlight(
   highlight: Highlight,
   color: Highlight["color"],
+  origin?: EventOrigin,
 ): Promise<Highlight> {
   const updated: Highlight = {
     ...highlight,
@@ -147,6 +148,7 @@ export async function recolorHighlight(
   emitDomainEvents({
     type: "highlight.recolored",
     payload: { highlightId: highlight.id, color, style: highlight.style },
+    origin,
   });
   return saveAnnotation(updated) as Promise<Highlight>;
 }
@@ -162,7 +164,8 @@ export async function createNote(
   cfiRange: string | null,
   chapterHref: string | null,
   text: string,
-  content: string
+  content: string,
+  origin?: EventOrigin,
 ): Promise<Note> {
   const now = new Date().toISOString();
   const note: Note = {
@@ -186,13 +189,17 @@ export async function createNote(
       quotedText: text || undefined,
       body: content,
     },
+    origin,
   });
   const saved = (await saveAnnotation(note)) as Note;
-  emitAppEvent("annotation-created", { annotation: saved });
   return saved;
 }
 
-export async function updateNote(id: string, content: string): Promise<Note | null> {
+export async function updateNote(
+  id: string,
+  content: string,
+  origin?: EventOrigin,
+): Promise<Note | null> {
   const note = await getAnnotation(id);
   if (!note || note.type !== "note") return null;
 
@@ -201,7 +208,7 @@ export async function updateNote(id: string, content: string): Promise<Note | nu
     content,
     updatedAt: new Date().toISOString(),
   };
-  emitDomainEvents({ type: "note.updated", payload: { noteId: id, body: content } });
+  emitDomainEvents({ type: "note.updated", payload: { noteId: id, body: content }, origin });
   return saveAnnotation(updated) as Promise<Note>;
 }
 
@@ -237,8 +244,9 @@ export async function createAsk(
       chapterHref: chapterHref ?? undefined,
       text,
     },
+    // Asks are the agent runtime's passive traces — never a direct user write.
+    origin: "agent",
   });
   const saved = (await saveAnnotation(ask)) as Ask;
-  emitAppEvent("annotation-created", { annotation: saved });
   return saved;
 }

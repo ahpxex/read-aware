@@ -48,6 +48,8 @@ pub struct EventRow {
     #[serde(default)]
     pub actor_id: Option<String>,
     #[serde(default)]
+    pub origin: Option<String>,
+    #[serde(default)]
     pub created_at: Option<String>,
     pub payload: Value,
 }
@@ -348,6 +350,14 @@ const MIGRATIONS: &[(i64, &str, &str)] = &[
         // 消息级失败标记（失败的轮次直接显形在消息上，带内联重试）；
         // NULL = 正常消息。
         "ALTER TABLE ai_messages ADD COLUMN error TEXT;",
+    ),
+    (
+        8,
+        "domain_events_origin",
+        // 事件的软件行为体来源：'user'（用户直接操作）、'agent'（阅读 agent）、
+        // 'system'（后台机制）、'plugin:<id>'（插件数据 API 写入）。与 actor_id
+        // （操作者身份）正交；插件写入的审计与卸载补偿都建立在这一列上。
+        "ALTER TABLE domain_events ADD COLUMN origin TEXT NOT NULL DEFAULT 'user';",
     ),
 ];
 
@@ -993,6 +1003,7 @@ fn row_to_event(row: &rusqlite::Row) -> rusqlite::Result<EventRow> {
         aggregate_type: row.get("aggregate_type")?,
         aggregate_id: row.get("aggregate_id")?,
         actor_id: row.get("actor_id")?,
+        origin: row.get("origin")?,
         created_at: row.get("created_at")?,
         payload,
     })
@@ -1011,10 +1022,11 @@ fn append_events_inner(conn: &mut Connection, events: &[EventRow]) -> Result<(),
             .execute(
                 "INSERT OR IGNORE INTO domain_events
                     (id, type, schema_version, hlc_wall_ms, hlc_counter, hlc_device,
-                     aggregate_type, aggregate_id, payload_json, actor_id, created_at)
+                     aggregate_type, aggregate_id, payload_json, actor_id, origin, created_at)
                  VALUES (?1, ?2, COALESCE(?3, 1), ?4, ?5, ?6, ?7, ?8, ?9,
                          COALESCE(?10, 'local'),
-                         COALESCE(?11, strftime('%Y-%m-%dT%H:%M:%fZ', ?4 / 1000.0, 'unixepoch')))",
+                         COALESCE(?11, 'user'),
+                         COALESCE(?12, strftime('%Y-%m-%dT%H:%M:%fZ', ?4 / 1000.0, 'unixepoch')))",
                 params![
                     ev.id,
                     ev.event_type,
@@ -1026,6 +1038,7 @@ fn append_events_inner(conn: &mut Connection, events: &[EventRow]) -> Result<(),
                     ev.aggregate_id,
                     payload,
                     ev.actor_id,
+                    ev.origin,
                     ev.created_at,
                 ],
             )

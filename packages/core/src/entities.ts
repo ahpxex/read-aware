@@ -25,6 +25,45 @@ export type HighlightStyle = "highlight" | "underline";
 /** Explicit user feedback on a long-term memory. */
 export type MemoryFeedbackSignal = "pin" | "correct" | "reject";
 
+/**
+ * Which software actor produced an event, orthogonal to `actorId` (operator
+ * identity). "user" = a direct user action through the app UI; "agent" = the
+ * reading agent's runtime; "system" = background machinery (cover extraction,
+ * migrations); "plugin:<id>" = a plugin write through the plugin data API.
+ */
+export type EventOrigin = "user" | "agent" | "system" | `plugin:${string}`;
+
+/**
+ * Snapshot of a dictionary entry as embedded in vocabulary events. Structurally
+ * mirrors the dictionary feature's entry shape — the log must stay
+ * self-contained, so the payload carries the full snapshot instead of a
+ * reference into a rebuildable cache.
+ */
+export interface DictionaryEntrySnapshot {
+  headword: string;
+  pronunciation?: string;
+  senses: { partOfSpeech: string; definition: string; examples: string[] }[];
+  etymology?: string;
+  contextualMeaning?: string;
+}
+
+/**
+ * A saved vocabulary-notebook entry (the store the reader's dictionary saves
+ * into). Identity is `id` = `<language> <term.lowercase>` — re-adding the same
+ * term replaces the snapshot.
+ */
+export interface VocabularyEntry {
+  id: Id;
+  term: string;
+  language: string;
+  entry: DictionaryEntrySnapshot;
+  /** The passage the word was met in, when known. */
+  context?: string;
+  bookId?: Id;
+  bookTitle?: string;
+  addedAt: IsoDate;
+}
+
 export interface UserProfile {
   id: Id;
   displayName?: string;

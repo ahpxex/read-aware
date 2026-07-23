@@ -21,11 +21,13 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
   BookFormat,
+  DictionaryEntrySnapshot,
   HighlightColor,
   HighlightStyle,
   ReadingStatus,
 } from "@read-aware/core";
 import { isTauri } from "./environment";
+import { localKV } from "./local-store";
 import {
   appendDomainEvents,
   listEventAggregateIds,
@@ -39,6 +41,7 @@ const CREATION_TYPES = [
   "highlight.created",
   "note.created",
   "ask.recorded",
+  "vocabulary.added",
 ] as const;
 
 // Raw wire shapes of the Rust projection commands (subset of fields used here).
@@ -65,6 +68,31 @@ type BookRow = {
   collectionId?: string | null;
 };
 type CollectionRow = { id: string; name: string; createdAt: string };
+/**
+ * Interim vocabulary-notebook item (localKV `read-aware-vocabulary`), read
+ * directly here — platform code must not import feature libs, and genesis
+ * already reads the other projections at the wire level.
+ */
+type VocabularyRow = {
+  id: string;
+  term: string;
+  language: string;
+  entry: DictionaryEntrySnapshot;
+  context?: string;
+  bookId?: string;
+  bookTitle?: string;
+  addedAt: number;
+};
+
+function readVocabularyRows(): VocabularyRow[] {
+  try {
+    const raw = localKV.getItem("read-aware-vocabulary");
+    const items = raw ? (JSON.parse(raw) as VocabularyRow[]) : [];
+    return Array.isArray(items) ? items : [];
+  } catch {
+    return [];
+  }
+}
 type AnnotationRow = {
   id: string;
   bookId: string;
@@ -206,6 +234,22 @@ export async function reconcileGenesisEvents(): Promise<void> {
     if (covered.has(annotation.id)) continue;
     const draft = annotationDraft(annotation);
     if (draft) drafts.push(draft);
+  }
+  for (const item of [...readVocabularyRows()].sort((a, b) => a.addedAt - b.addedAt)) {
+    if (covered.has(item.id)) continue;
+    drafts.push({
+      type: "vocabulary.added",
+      createdAt: new Date(item.addedAt).toISOString(),
+      payload: {
+        entryId: item.id,
+        term: item.term,
+        language: item.language,
+        entry: item.entry,
+        context: item.context,
+        bookId: item.bookId,
+        bookTitle: item.bookTitle,
+      },
+    });
   }
 
   if (drafts.length === 0) return;

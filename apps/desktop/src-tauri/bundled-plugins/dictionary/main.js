@@ -1,11 +1,11 @@
 /**
- * Vocabulary — the built-in vocabulary notebook, as a plugin.
+ * Dictionary — the built-in dictionary, as a plugin.
  *
- * The full vertical lives here: look a word up from the selection, save it
- * with its dictionary entry and provenance, browse and remove saved words,
- * and expose the notebook to the reading agent. Words are plugin documents
- * (collection "words", keyed `<language> <term>` so re-saving a word updates
- * it across books); the dictionary itself stays an app service.
+ * Looking a word up is an app service (service:dictionary); this plugin owns
+ * the vertical around it: a "look up & save" selection action, the Vocabulary
+ * notebook (saved words as plugin documents in the "words" collection, keyed
+ * `<language> <term>` so re-saving updates the entry across books), and the
+ * agent tools that read and write it. A Dictionary has a Vocabulary.
  */
 
 const WORDS = "words";
@@ -23,6 +23,13 @@ function definitionOf(entry) {
   return first.partOfSpeech ? `(${first.partOfSpeech}) ${first.definition}` : first.definition;
 }
 
+function formatDate(iso) {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? ""
+    : d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+
 /** @param {import("read-aware").PluginContext} ctx */
 async function saveWord(ctx, input) {
   const term = input.text.trim().slice(0, 60);
@@ -31,19 +38,40 @@ async function saveWord(ctx, input) {
     context: input.context,
     bookTitle: input.bookTitle,
   });
+  // Keep the source passage only when it's more than the word itself.
+  const passage =
+    input.context && input.context.trim().toLowerCase() !== term.toLowerCase()
+      ? input.context.trim()
+      : undefined;
   await words(ctx).put(
     idFor(term, language),
-    {
-      term: term,
-      language,
-      entry,
-      context: input.context,
-      bookTitle: input.bookTitle,
-      addedAt: new Date().toISOString(),
-    },
+    { term, language, entry, context: passage, bookTitle: input.bookTitle, addedAt: new Date().toISOString() },
     { bookId: input.bookId },
   );
   return { term, language, entry };
+}
+
+/** The shared entry layout: the definition, its provenance, and remove. */
+function wordBlocks(w, onRemove) {
+  const provenance = [
+    ...(w.bookTitle ? [{ label: "Book", value: w.bookTitle }] : []),
+    ...(formatDate(w.addedAt) ? [{ label: "Added", value: formatDate(w.addedAt) }] : []),
+  ];
+  // Only a real passage, not the word echoed back (guards legacy data too).
+  const passage =
+    w.context && w.context.trim().toLowerCase() !== (w.term ?? "").trim().toLowerCase()
+      ? w.context
+      : undefined;
+  return [
+    { kind: "dictionary", entry: w.entry },
+    ...(passage ? [{ kind: "quote", text: passage, caption: w.bookTitle }] : []),
+    ...(provenance.length > 0 ? [{ kind: "divider" }, { kind: "keyValue", rows: provenance }] : []),
+    { kind: "divider" },
+    {
+      kind: "actions",
+      actions: [{ id: "remove", label: "Remove", icon: "trash", variant: "danger", run: onRemove }],
+    },
+  ];
 }
 
 /** @param {import("read-aware").PluginContext} ctx */
@@ -51,51 +79,12 @@ async function wordDetailView(ctx, doc) {
   const w = doc.data;
   return {
     kind: "blocks",
-    title: w.term,
-    blocks: [
-      { kind: "dictionary", entry: w.entry },
-      // Provenance and the passage sit side by side — the metadata is
-      // narrow, the quote wants the room (weight 2), and on a narrow surface
-      // the row self-collapses into a stack.
-      {
-        kind: "row",
-        align: "start",
-        cells: [
-          {
-            weight: 1,
-            block: {
-              kind: "keyValue",
-              rows: [
-                { label: "Language", value: w.language },
-                { label: "Added", value: (w.addedAt ?? "").slice(0, 10) },
-                ...(w.bookTitle ? [{ label: "Book", value: w.bookTitle }] : []),
-              ],
-            },
-          },
-          {
-            weight: 2,
-            block: w.context
-              ? { kind: "quote", text: w.context, caption: w.bookTitle }
-              : { kind: "markdown", markdown: "_No source passage saved._" },
-          },
-        ],
-      },
-      { kind: "divider" },
-      {
-        kind: "actions",
-        actions: [
-          {
-            id: "remove",
-            label: "Remove",
-            variant: "danger",
-            run: async () => {
-              await words(ctx).delete(doc.id);
-              return { toast: `Removed “${w.term}”`, view: await notebookView(ctx) };
-            },
-          },
-        ],
-      },
-    ],
+    // No title — the dictionary block already leads with the headword; a title
+    // here would repeat it in the back-nav breadcrumb.
+    blocks: wordBlocks(w, async () => {
+      await words(ctx).delete(doc.id);
+      return { toast: `Removed “${w.term}”`, view: await notebookView(ctx) };
+    }),
   };
 }
 
@@ -104,15 +93,13 @@ async function notebookView(ctx) {
   const saved = await words(ctx).list();
   return {
     kind: "list",
-    title: `${saved.length} word${saved.length === 1 ? "" : "s"}`,
-    emptyText: "Nothing saved yet — select a word while reading.",
+    title: saved.length === 0 ? undefined : `${saved.length} word${saved.length === 1 ? "" : "s"}`,
+    emptyText: "No saved words yet. Select a word while reading and choose “Look up & save”.",
     items: saved.map((doc) => ({
       id: doc.id,
       title: doc.data.term,
-      subtitle: [definitionOf(doc.data.entry).slice(0, 60), doc.data.bookTitle]
-        .filter(Boolean)
-        .join(" · "),
-      icon: "notebook",
+      subtitle: definitionOf(doc.data.entry),
+      icon: "book-bookmark",
       onSelect: async () => ({ view: await wordDetailView(ctx, doc) }),
     })),
   };
@@ -122,47 +109,34 @@ export default {
   /** @param {import("read-aware").PluginContext} ctx */
   activate(ctx) {
     ctx.ui.registerSelectionAction({
-      id: "save-word",
-      title: "Save to vocabulary",
-      icon: "notebook",
+      id: "lookup-save",
+      title: "Look up & save",
+      icon: "book-bookmark",
       run: async (input) => {
-        const { term, language, entry } = await saveWord(ctx, {
+        const { term, language } = await saveWord(ctx, {
           text: input.text,
           context: input.text.trim().slice(0, 300),
           bookId: input.book.id,
           bookTitle: input.book.title,
         });
+        const doc = await words(ctx).get(idFor(term, language));
         return {
           toast: `Saved “${term}”`,
           view: {
             kind: "blocks",
-            title: term,
-            blocks: [
-              { kind: "dictionary", entry },
-              {
-                kind: "actions",
-                actions: [
-                  {
-                    id: "undo",
-                    label: "Remove from vocabulary",
-                    variant: "ghost",
-                    run: async () => {
-                      await words(ctx).delete(idFor(term, language));
-                      return { close: true, toast: `Removed “${term}”` };
-                    },
-                  },
-                ],
-              },
-            ],
+            blocks: wordBlocks(doc.data, async () => {
+              await words(ctx).delete(idFor(term, language));
+              return { close: true, toast: `Removed “${term}”` };
+            }),
           },
         };
       },
     });
 
     ctx.ui.registerHeaderAction({
-      id: "notebook",
+      id: "vocabulary",
       title: "Vocabulary",
-      icon: "notebook",
+      icon: "book-bookmark",
       surface: "shelf",
       presentation: "page",
       view: () => notebookView(ctx),
@@ -171,7 +145,7 @@ export default {
     ctx.ui.registerCommand({
       id: "open",
       title: "Vocabulary: saved words",
-      icon: "notebook",
+      icon: "book-bookmark",
       keywords: "vocabulary words dictionary notebook",
       run: async () => ({ view: await notebookView(ctx) }),
     });
@@ -190,8 +164,7 @@ export default {
         additionalProperties: false,
       },
       execute: async (params) => {
-        const needle =
-          typeof params.query === "string" ? params.query.trim().toLowerCase() : "";
+        const needle = typeof params.query === "string" ? params.query.trim().toLowerCase() : "";
         const limit =
           typeof params.limit === "number" && params.limit > 0
             ? Math.min(200, Math.floor(params.limit))

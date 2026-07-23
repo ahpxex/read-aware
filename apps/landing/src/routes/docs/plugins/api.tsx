@@ -593,8 +593,8 @@ await ctx.books?.write?.addVirtualBook({
         optional <code>bookId</code> / <code>anchor</code> provenance you can
         filter by. Provenance is an index, not ownership: documents survive
         the referenced book's deletion, and the collection's lifecycle belongs
-        to the plugin (uninstall clears it). The built-in Vocabulary plugin is
-        built entirely on this tier.
+        to the plugin (uninstall clears it). The built-in Dictionary plugin (which
+        owns the vocabulary notebook) is built entirely on this tier.
       </p>
 
       <h2>Ambient context</h2>

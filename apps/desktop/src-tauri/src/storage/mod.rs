@@ -2318,7 +2318,7 @@ pub fn plugin_docs_clear(plugin_id: String, db: State<'_, Db>) -> Result<(), Str
 }
 
 /// One-time migration: the retired core vocabulary projection moves into the
-/// built-in vocabulary plugin's document collection (vocabulary/words), then
+/// built-in dictionary plugin's document collection (dictionary/words), then
 /// the source rows are deleted. Idempotent (second run finds no rows).
 #[tauri::command]
 pub fn vocabulary_migrate_to_plugin_documents(db: State<'_, Db>) -> Result<i64, String> {
@@ -2362,7 +2362,7 @@ pub fn vocabulary_migrate_to_plugin_documents(db: State<'_, Db>) -> Result<i64, 
             tx.execute(
                 "INSERT OR IGNORE INTO plugin_documents
                     (plugin_id, collection, id, json, book_id, anchor, updated_at)
-                 VALUES ('vocabulary', 'words', ?1, ?2, ?3, NULL, ?4)",
+                 VALUES ('dictionary', 'words', ?1, ?2, ?3, NULL, ?4)",
                 params![id, doc.to_string(), book_id, added_at],
             )
             .map_err(|e| e.to_string())?;

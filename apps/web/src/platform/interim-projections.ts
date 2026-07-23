@@ -50,7 +50,7 @@ async function migrateVocabularyKv(): Promise<void> {
     if (Array.isArray(items)) {
       for (const item of items) {
         await invoke("plugin_docs_put", {
-          pluginId: "vocabulary",
+          pluginId: "dictionary",
           collection: "words",
           id: item.id,
           json: JSON.stringify({
@@ -126,7 +126,7 @@ export async function hydrateInterimProjections(): Promise<void> {
   await migrateVocabularyKv();
   await migrateReadingStatsKv();
   // Wave 5: the retired core vocabulary projection moves into the built-in
-  // vocabulary plugin's document collection (idempotent; empty second run).
+  // dictionary plugin's document collection (idempotent; empty second run).
   try {
     const moved = await invoke<number>("vocabulary_migrate_to_plugin_documents");
     if (moved > 0) console.info(`[interim-projections] moved ${moved} vocabulary entries to the plugin`);

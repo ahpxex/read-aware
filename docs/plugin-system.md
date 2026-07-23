@@ -77,7 +77,7 @@ plugins/
   "minAppVersion": "0.3.0",
   "description": "把选中的生词发送到 Anki",
   "author": "…",
-  "permissions": ["service:network", "vocabulary:read", "agent:tools"],
+  "permissions": ["service:network", "agent:tools"],
   "main": "main.js"
 }
 ```
@@ -155,9 +155,9 @@ UI 贡献、会话事实、阅读器环境控制（`ctx.reader.openBook/goTo`）
 
 **内置插件（bundled plugins）**：垂直功能默认以插件形态构建（构造规则
 第五条），随应用打包分发（`bundled-plugins/` 资源目录）、默认启用、可禁
-用、不可卸载、走与第三方完全相同的契约。第一个住户是 **Vocabulary**
-（生词本）：选区查词保存、生词页、agent 工具，数据整个活在它自己的文档
-集合里——生词本不再是核心域。
+用、不可卸载、走与第三方完全相同的契约。第一个住户是 **Dictionary**
+（词典，内含 Vocabulary 生词本）：选区查词保存、生词页、agent 工具，数据
+整个活在它自己的文档集合里——词典与生词本不再是核心功能/核心域。
 
 | 权限 | 授予的能力面 |
 |---|---|

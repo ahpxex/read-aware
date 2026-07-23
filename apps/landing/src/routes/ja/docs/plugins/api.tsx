@@ -8,7 +8,7 @@ export const Route = createFileRoute("/ja/docs/plugins/api")({
       {
         name: "description",
         content:
-          "ReadAwareプラグイン作成の契約。マニフェスト、ライフサイクル、権限、コントリビューション、ビュー、イベント。",
+          "ReadAwareプラグイン作成の契約。マニフェスト、ライフサイクル、ドメイン由来の権限、データAPI、コントリビューション、ビュー、イベント。",
       },
     ],
   }),
@@ -40,7 +40,8 @@ function PluginApiPage() {
         はライフサイクルオブジェクトをデフォルトエクスポートします。プラグインが触れられるものはすべて、
         <code>activate</code>
         に渡されるコンテキスト経由で手に入ります。すべての<code>register*</code>
-        呼び出しはdisposableを返し、プラグインが無効化またはアンインストールされたときにアプリが回収します。そのため
+        と<code>on</code>
+        の呼び出しはdisposableを返し、プラグインが無効化またはアンインストールされたときにアプリが回収します。そのため
         <code>deactivate</code>
         で解放する必要があるのは、プラグイン自身の外部リソースだけです。
       </p>
@@ -66,10 +67,10 @@ function PluginApiPage() {
   "id": "anki-sync",
   "name": "Anki Sync",
   "version": "0.1.0",
-  "minAppVersion": "0.2.0",
+  "minAppVersion": "0.3.0",
   "description": "Send looked-up words to Anki.",
   "author": "you",
-  "permissions": ["network", "reading-data"],
+  "permissions": ["service:network", "vocabulary:read"],
   "main": "main.js"
 }`}</code>
       </pre>
@@ -100,14 +101,17 @@ function PluginApiPage() {
               <td>
                 <code>minAppVersion</code>
               </td>
-              <td>プラグインが対応する最低アプリバージョン。</td>
+              <td>
+                プラグインが対応する最低アプリバージョン。この契約には
+                <code>0.3.0</code>以降が必要です。
+              </td>
             </tr>
             <tr>
               <td>
                 <code>permissions</code>
               </td>
               <td>
-                プラグインが使う機能ドメイン（下の表）。インストール前にユーザーへ表示されます。
+                プラグインが使うもの（下の表）。インストール前にユーザーへ表示されます。
               </td>
             </tr>
             <tr>
@@ -132,10 +136,43 @@ function PluginApiPage() {
         </table>
       </div>
 
+      <h2>ドメインモデル</h2>
+      <p>
+        データサーフェスは、アプリのドメインモデルの傍らで別途書き起こされたものではなく、ドメインモデルそのものから導出されています。各ドメイン
+        — <code>books</code>、<code>collections</code>、
+        <code>annotations</code>、<code>reading</code>、
+        <code>vocabulary</code>、<code>conversations</code> —は
+        <code>ctx</code>上の名前空間で、次の3つを公開します。
+      </p>
+      <ul>
+        <li>
+          <strong>reads</strong> —ドメインの読み取りモデル（アプリ自身のサーフェスが描画しているのと同じもの）。
+        </li>
+        <li>
+          <strong>writes</strong> — <code>.write</code>
+          の下のコマンド。ドメインのイベント動詞と正確に対応し、アプリ自身のイベントソーシングされた書き込み経路を通ります。イベントログには
+          <code>plugin:&lt;id&gt;</code>
+          と刻印されるため、プラグインによる書き込みはすべて出所をたどれます。
+        </li>
+        <li>
+          <strong>subscriptions</strong> —{" "}
+          <code>.on(event, handler)</code>
+          で、そのドメインのイベントを正準名（<code>book.starred</code>、
+          <code>highlight.created</code>
+          など）で購読します。アプリ自身が記録しているのと同じ語彙です。
+        </li>
+      </ul>
+      <p>
+        権限も同じ形に従います。<code>&lt;domain&gt;:read</code> /{" "}
+        <code>&lt;domain&gt;:write</code>で、同一ドメイン内では
+        <strong>writeはreadを含みます</strong>
+        。デバイスローカルな状態（表示設定、リーダーの外観、同期の内部状態）と自由形式の描画は、意図的にプラグインのサーフェスから外しています。UIは後述の宣言的なビューを通ります。
+      </p>
+
       <h2>権限</h2>
       <p>
         <code>ctx</code>
-        上の機能グループは、権限が宣言されていなければそもそも存在しません。意図しない越権をAPIレベルで防ぐ仕組みです。名前空間付きストレージは権限ではなく、すべてのプラグインが持っています。
+        上の機能グループは、権限が宣言されていなければそもそも存在しません。意図しない越権をAPIレベルで防ぐ仕組みです。名前空間付きストレージ、UIコントリビューション、セッションイベント、リーダーのナビゲーションは権限ではなく、すべてのプラグインが持っています。
       </p>
       <div className="overflow-x-auto">
         <table>
@@ -148,48 +185,79 @@ function PluginApiPage() {
           <tbody>
             <tr>
               <td>
-                <code>reading-data</code>
+                <code>books:read</code>
               </td>
               <td>
-                <code>ctx.reading</code> —本（読み取り）、注釈（作成・削除）、章テキスト、内蔵の単語帳。
-                <code>annotation-*</code>イベントにも必要です。
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>library-write</code>
-              </td>
-              <td>
-                <code>ctx.library</code> —書籍ファイルのインポートと、仮想ブックの提供（コンテンツプロバイダー）。
+                <code>ctx.books</code> —本棚の本、本の目次と章テキスト。
               </td>
             </tr>
             <tr>
               <td>
-                <code>network</code>
+                <code>books:write</code>
               </td>
               <td>
-                <code>ctx.fetch</code> — 外向きのHTTP。
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>ai</code>
-              </td>
-              <td>
-                <code>ctx.ai.registerTool</code> — 読書アシスタント用のツール。
+                <code>ctx.books.write</code> —ファイルのインポート、メタデータの編集、スター、削除。加えてコンテンツプロバイダーと仮想ブック。
               </td>
             </tr>
             <tr>
               <td>
-                <code>dictionary</code>
+                <code>collections:read</code> / <code>collections:write</code>
               </td>
               <td>
-                <code>ctx.dictionary.lookUp</code> —アプリの辞書（リーダーとキャッシュを共有し、ユーザーのAIを使います）。
+                <code>ctx.collections</code> —本棚のユーザー定義グループ。一覧と所属の読み取り。作成、名前変更、削除、本の割り当て。
               </td>
             </tr>
             <tr>
               <td>
-                <code>llm</code>
+                <code>annotations:read</code> / <code>annotations:write</code>
+              </td>
+              <td>
+                <code>ctx.annotations</code> —ハイライト、メモ、そして尋ねられた質問（ask）。ハイライトとメモの作成・色の変更・編集・削除ができます（askはエージェントが書き込むもので、読み取り専用です）。
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code>reading:read</code>
+              </td>
+              <td>
+                <code>ctx.reading</code> —読書位置、ステータス、読書時間。設計上読み取り専用です。そのイベントはリーダーの活動を記録した事実であって、ユーザーのコマンドではないからです。
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code>vocabulary:read</code> / <code>vocabulary:write</code>
+              </td>
+              <td>
+                <code>ctx.vocabulary</code> —リーダーの辞書が保存先にしている単語帳。
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code>conversations:read</code>
+              </td>
+              <td>
+                <code>ctx.conversations</code> —本ごとのAIスレッドとグローバルスレッド（読み取り専用）。
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code>agent:tools</code>
+              </td>
+              <td>
+                <code>ctx.agent.registerTool</code> —読書アシスタント用のツール。
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code>service:network</code>
+              </td>
+              <td>
+                <code>ctx.network.fetch</code> — 外向きのHTTP。
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code>service:llm</code>
               </td>
               <td>
                 <code>ctx.llm.ask</code> —ユーザーが設定したアカウントでのワンショットのモデル呼び出し。スレッドもメモリもツールもありません。
@@ -197,7 +265,15 @@ function PluginApiPage() {
             </tr>
             <tr>
               <td>
-                <code>clipboard</code>
+                <code>service:dictionary</code>
+              </td>
+              <td>
+                <code>ctx.dictionary.lookUp</code> —アプリの辞書（リーダーとキャッシュを共有し、ユーザーのAIを使います）。
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code>service:clipboard</code>
               </td>
               <td>
                 <code>ctx.clipboard.writeText</code>。
@@ -227,7 +303,7 @@ function PluginApiPage() {
 
       <h3>ヘッダーアクション</h3>
       <p>
-        ヘッダーバーに置かれるアイコンボタンです。リーダーのサーフェスでは、ビューはアンカー付きのポップオーバーとして開きます。本棚では
+        トップバーに置かれるアイコンボタンです。リーダーのサーフェスでは、ビューはアンカー付きのポップオーバーとして開きます。本棚では
         <code>presentation</code>
         に応じてポップオーバーまたはページ全体として開きます。リーダーがページ全体の割り込みを許すことはありません。
       </p>
@@ -260,15 +336,15 @@ function PluginApiPage() {
 
       <h3>エージェントツール</h3>
       <p>
-        読書アシスタントがチャット中に呼び出せるツールです（<code>ai</code>
-        権限が必要）。<code>parameters</code>
+        読書アシスタントがチャット中に呼び出せるツールです（
+        <code>agent:tools</code>権限が必要）。<code>parameters</code>
         は引数オブジェクトを表すただのJSON
         Schemaで、引数のないツールでは省略します。ツール名はモデルに届く前に
         <code>plugin_&lt;pluginId&gt;_&lt;name&gt;</code>
         という名前空間が付けられ、呼び出しはチャット内のツールステップとしてユーザーに見えます。
       </p>
       <pre>
-        <code>{`ctx.ai?.registerTool({
+        <code>{`ctx.agent?.registerTool({
   name: "search_deck",
   label: "Searching your Anki deck",
   description: "Search the user's Anki collection for a term.",
@@ -278,7 +354,7 @@ function PluginApiPage() {
     required: ["query"],
   },
   execute: async ({ query }) => {
-    const res = await ctx.fetch("http://127.0.0.1:8765", {
+    const res = await ctx.network.fetch("http://127.0.0.1:8765", {
       method: "POST",
       body: JSON.stringify({ action: "findNotes", query }),
     });
@@ -317,7 +393,7 @@ function PluginApiPage() {
       <ul>
         <li>何も返さない — サーフェスは現状のまま。</li>
         <li>
-          <code>{"{ toast: \"…\" }"}</code> — 一時的な通知。
+          <code>{'{ toast: "…" }'}</code> — 一時的な通知。
         </li>
         <li>
           <code>{"{ view }"}</code> — サーフェスを開く、またはその上に積む。
@@ -334,17 +410,75 @@ function PluginApiPage() {
         非同期処理は特別なことではありません。Promiseを返せば、アプリが読み込み状態を表示します。アイコンはアプリが厳選したPhosphorセットから名前で選びます。カスタムSVGはありません。
       </p>
 
+      <h2>ドメインデータ</h2>
+      <p>
+        許可された各ドメインの名前空間は、読み取り、正準イベントの購読、そして（write権限があれば）コマンドを提供します。要点は次のとおりです。
+      </p>
+      <ul>
+        <li>
+          <code>ctx.books</code> — <code>list()</code>、<code>get(id)</code>、
+          <code>getToc(id)</code>、<code>getChapterText(id, index)</code>
+          。write: <code>import</code>、<code>editMetadata</code>、
+          <code>setStarred</code>、<code>remove</code>
+          、加えてコンテンツプロバイダー（後述）。
+        </li>
+        <li>
+          <code>ctx.collections</code> — <code>list()</code>、
+          <code>booksIn(id)</code>。write: <code>create</code>、
+          <code>rename</code>、<code>remove</code>、
+          <code>assignBooks(bookIds, collectionId | null)</code>。
+        </li>
+        <li>
+          <code>ctx.annotations</code> —{" "}
+          <code>list({"{ bookId?, kind?, query? }"})</code>
+          はハイライト・メモ・askの判別可能なユニオンを返します。write:{" "}
+          <code>createHighlight</code>、<code>recolorHighlight</code>、
+          <code>removeHighlight</code>、<code>createNote</code>、
+          <code>updateNote</code>、<code>removeNote</code>。
+        </li>
+        <li>
+          <code>ctx.reading</code> — <code>getState(bookId)</code>、
+          <code>listStates()</code>、<code>getTime(bookId)</code>。
+        </li>
+        <li>
+          <code>ctx.vocabulary</code> — <code>list(filter?)</code>。write:{" "}
+          <code>add</code>、<code>remove</code>
+          。リーダーの辞書が保存先にしているのと同じ単語帳です。
+        </li>
+        <li>
+          <code>ctx.conversations</code> —{" "}
+          <code>getBookThread(bookId)</code>、<code>listThreads()</code>、
+          <code>getThread(id)</code>。
+        </li>
+      </ul>
+
       <h2>イベント</h2>
       <p>
-        <code>ctx.events.on(event, handler)</code>はdisposableを返します。
-        <code>annotation-*</code>イベントには<code>reading-data</code>
-        権限が必要で、それ以外は常時利用できます。
+        イベントには、意図的に分けられた2つの種類があります。
+        <strong>ドメインイベント</strong>
+        はアプリが記録する事実です。ドメインごとに、正準名で、そのドメインのread権限のもとで購読します。届くのはそれぞれ
+        <code>{"{ type, payload, createdAt, origin }"}</code>
+        で、originはその事実を生み出したソフトウェア上のアクター（
+        <code>user</code>、<code>agent</code>、<code>system</code>、
+        <code>plugin:&lt;id&gt;</code>のいずれか）を示します。
+      </p>
+      <pre>
+        <code>{`ctx.annotations?.on("highlight.created", ({ payload, origin }) => {
+  // payload: { highlightId, bookId, text, color?, … }
+});
+ctx.books?.on("book.removed", ({ payload }) => { /* { bookId } */ });
+ctx.vocabulary?.on("vocabulary.added", ({ payload }) => { /* { term, … } */ });`}</code>
+      </pre>
+      <p>
+        <strong>セッションファクト</strong>
+        は、いま画面に何が映っているかを表します。イベントログには決して入らず、権限も不要です。
+        <code>ctx.session.on(event, handler)</code>で購読します。
       </p>
       <div className="overflow-x-auto">
         <table>
           <thead>
             <tr>
-              <th>イベント</th>
+              <th>セッションイベント</th>
               <th>ペイロード</th>
             </tr>
           </thead>
@@ -381,68 +515,21 @@ function PluginApiPage() {
                 <code>{"{ bookId, fraction }"}</code> —ページをめくるたびに発火します。fractionは0..1です
               </td>
             </tr>
-            <tr>
-              <td>
-                <code>book-removed</code>
-              </td>
-              <td>
-                <code>{"{ bookId }"}</code>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>annotation-created</code>
-              </td>
-              <td>
-                <code>{"{ annotation }"}</code>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>annotation-deleted</code>
-              </td>
-              <td>
-                <code>{"{ id }"}</code>
-              </td>
-            </tr>
           </tbody>
         </table>
       </div>
 
-      <h2>読書データ</h2>
+      <h2>コンテンツプロバイダーと仮想ブック</h2>
       <p>
-        <code>reading-data</code>があると、<code>ctx.reading</code>
-        からユーザーの読書の足跡にアクセスできます。
-      </p>
-      <ul>
-        <li>
-          <code>listBooks()</code>、<code>listAnnotations(filter?)</code>。
-        </li>
-        <li>
-          <code>createHighlight(…)</code>、<code>createNote(…)</code>、
-          <code>updateNote(…)</code>、<code>recolorHighlight(…)</code>、
-          <code>deleteAnnotation(id)</code>。
-        </li>
-        <li>
-          <code>getToc(bookId)</code>と
-          <code>getChapterText(bookId, index)</code> —本の章リストとプレーンテキスト（抽出はオンデマンドで実行されます）。
-        </li>
-        <li>
-          <code>vocabulary.list / add / remove</code> —リーダーの辞書が保存先にしているのと同じ単語帳。
-        </li>
-      </ul>
-
-      <h2>ライブラリと仮想ブック</h2>
-      <p>
-        <code>library-write</code>
-        があると、プラグインは本物の本を本棚に置けます。<code>importBook</code>
+        <code>books:write</code>
+        があると、プラグインは本物の本を本棚に置けます。<code>import</code>
         はファイルのバイト列を受け取ります。コンテンツプロバイダーはファイルを完全に省略します。プロバイダーを登録し、それに紐づく仮想ブックを追加し、本が開かれたときにHTMLセクションを供給します。リーダーはほかの本と同じようにページ分割し、注釈を付け、進捗を記録します。本としてのRSSフィードは、まさにこの仕組みです。
       </p>
       <pre>
-        <code>{`ctx.library?.registerContentProvider({
+        <code>{`ctx.books?.write?.registerContentProvider({
   id: "rss",
   async load(key) {
-    const feed = await fetchFeed(key); // 自分のコード（ctx.fetch経由）
+    const feed = await fetchFeed(key); // 自分のコード（ctx.network.fetch経由）
     return {
       title: feed.title,
       sections: feed.items.map((item) => ({
@@ -453,7 +540,7 @@ function PluginApiPage() {
   },
 });
 
-await ctx.library?.addVirtualBook({
+await ctx.books?.write?.addVirtualBook({
   providerId: "rss",
   key: "https://example.com/feed.xml",
   title: "Example Weekly",
@@ -481,6 +568,9 @@ await ctx.library?.addVirtualBook({
           <code>ctx.ui.showToast(message)</code>。
         </li>
         <li>
+          <code>ctx.session.on(…)</code> — 上記のセッションファクト。
+        </li>
+        <li>
           <code>ctx.reader.openBook(bookId)</code>と
           <code>ctx.reader.goTo({"{ bookId?, cfi?, href? }"})</code> —リーダーを操作します（ユーザーに見える操作のみで、データは公開しません）。
         </li>
@@ -488,7 +578,7 @@ await ctx.library?.addVirtualBook({
 
       <h2>安定性</h2>
       <p>
-        APIサーフェスは意図的に小さく保たれ、追加によってのみ成長します。新しいブロック種、新しいイベント、新しい機能グループという形です。ここに記載された内容への破壊的変更はバグとして扱います。最近の追加機能に依存する場合は
+        これは契約v2で、アプリ0.3.0から提供されています。サーフェス全体をドメインモデルから導出するために行った、意図的な破壊的再構築です（v1のマニフェストは、読める形のエラーとともにインストールに失敗します）。ここから先、APIは追加によってのみ成長します。新しいドメイン、新しいイベント名、新しいブロック種という形です。ここに記載された内容への破壊的変更はバグとして扱います。最近の追加機能に依存する場合は
         <code>minAppVersion</code>を宣言してください。
       </p>
     </article>

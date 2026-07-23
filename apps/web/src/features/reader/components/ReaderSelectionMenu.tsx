@@ -212,8 +212,11 @@ export function ReaderSelectionMenu({
           label: action.title,
           icon: renderPluginIcon(action.icon, 15),
           run: () =>
-            void runPluginContribution(action.pluginId, action.pluginName, () =>
-              action.run(pluginInput),
+            void runPluginContribution(
+              action.pluginId,
+              action.pluginName,
+              () => action.run(pluginInput),
+              { presentation: action.presentation },
             ),
         };
       }
@@ -256,8 +259,11 @@ export function ReaderSelectionMenu({
                     label={action.title}
                     size="sm"
                     onClick={() =>
-                      void runPluginContribution(action.pluginId, action.pluginName, () =>
-                        action.run(pluginInput),
+                      void runPluginContribution(
+                        action.pluginId,
+                        action.pluginName,
+                        () => action.run(pluginInput),
+                        { presentation: action.presentation },
                       )
                     }
                     className={actionButtonClass}

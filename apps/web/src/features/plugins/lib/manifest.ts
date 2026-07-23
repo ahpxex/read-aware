@@ -93,7 +93,15 @@ export function validateManifest(raw: unknown): PluginManifest {
     if (!Array.isArray(record.settings)) {
       throw new PluginManifestError("manifest.settings must be an array of fields");
     }
-    const kinds = new Set(["text", "textarea", "number", "select", "toggle"]);
+    const kinds = new Set([
+      "text",
+      "textarea",
+      "number",
+      "select",
+      "toggle",
+      "checkbox",
+      "choice",
+    ]);
     for (const field of record.settings as Record<string, unknown>[]) {
       if (
         typeof field !== "object" || field === null ||
@@ -105,8 +113,8 @@ export function validateManifest(raw: unknown): PluginManifest {
           "manifest.settings entries need a valid kind, id, and label",
         );
       }
-      if (field.kind === "select" && !Array.isArray(field.options)) {
-        throw new PluginManifestError("manifest.settings select fields need options");
+      if ((field.kind === "select" || field.kind === "choice") && !Array.isArray(field.options)) {
+        throw new PluginManifestError(`manifest.settings ${field.kind} fields need options`);
       }
     }
     settings = record.settings as PluginManifest["settings"];

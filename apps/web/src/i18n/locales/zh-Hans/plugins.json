@@ -3,7 +3,21 @@
     "back": "返回",
     "submit": "提交",
     "loading": "加载中…",
-    "empty": "这里还没有内容"
+    "empty": "这里还没有内容",
+    "search": "搜索",
+    "noMatches": "没有匹配项目",
+    "invalidView": "插件返回了无效界面",
+    "detail": "详情",
+    "timeline": {
+      "filter": "时间范围",
+      "today": "今天",
+      "week": "本周",
+      "month": "本月",
+      "all": "全部",
+      "yesterday": "昨天",
+      "unknownDate": "日期未知",
+      "noItems": "这个时间段还没有单词"
+    }
   },
   "menu": {
     "actions": "插件动作"

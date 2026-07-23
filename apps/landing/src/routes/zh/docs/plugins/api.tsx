@@ -290,12 +290,15 @@ function PluginApiPage() {
         阅读器选区菜单与标注菜单中的条目。处理函数会收到选中的文本、它的 CFI
         范围、所在章节和书籍。在阅读器内，一个动作要么静默执行（返回
         toast），要么打开对话框（返回视图）——只有这两种结果。
+        异步动作声明 <code>presentation: "dialog"</code> 后，宿主会立刻打开
+        加载态对话框，并在 <code>run</code> 完成时把结果填入同一次请求。
       </p>
       <pre>
         <code>{`ctx.ui.registerSelectionAction({
   id: "save-quote",
   title: "Save quote",
   icon: "quotes",
+  presentation: "dialog",
   run: (input) => {
     // input: { text, cfiRange, chapterHref, book, source }
     return { toast: "Quote saved." };
@@ -366,25 +369,29 @@ function PluginApiPage() {
 
       <h2>视图</h2>
       <p>
-        插件以声明的方式描述界面，由应用负责渲染。共四种：
+        插件声明的是宿主组件树，由应用渲染所有视觉原语和控件；插件不能提供 JSX、HTML、CSS 或 className。
       </p>
       <ul>
         <li>
           <code>markdown</code>——一个 markdown 字符串，由应用排版。
         </li>
         <li>
-          <code>list</code>——条目为{" "}
-          <code>{"{ id, title, subtitle?, icon?, onSelect? }"}</code>；
-          <code>onSelect</code> 可以返回另一个视图，逐层深入。
+          <code>list</code>——宿主提供固定 debounce 的搜索、keywords、
+          accessories 与空状态；<code>timeline</code> 提供今天／本周／本月／
+          全部筛选和本地日期分组，条目可用 <code>presentation: "dialog"</code>
+          在列表上方打开返回视图，而不是下钻成子页面。
         </li>
         <li>
-          <code>form</code>——字段（text、textarea、number、select、toggle）加上{" "}
+          <code>form</code>——使用 ReadAware 组件库的 text、textarea、number、select、choice、checkbox、toggle，加上{" "}
           <code>onSubmit</code>
           ；后者接收表单值，可返回结果视图或字段错误。
         </li>
         <li>
+          <code>detail</code>——Raycast 式主内容、metadata 与宿主 actions；宿主把 actions 渲染成内容标题右侧的图标按钮，把来源、日期和 tags 等 metadata 收进安静的内容底部。
+        </li>
+        <li>
           <code>blocks</code>
-          ——有序的区块序列：markdown、标题、词典词条、键值行、引文、动作按钮、分隔线，受约束的 <code>row</code>（2–4 个并排 cell，用相对 <code>weight</code> 定列宽，窄容器下降级为堆叠），或内嵌的列表/表单。这是通往更丰富页面的成长路径——布局以设计系统仍掌管的受约束区块形式到来，绝非裸 flexbox。
+          ——宿主 typography、markdown、词典、metadata、引文、动作、指标、进度、标签、提示、section、group 与响应式 <code>columns</code>。columns 只开放相对 weight、间距档位、最小宽度档位和语义对齐，具体 CSS 与换行仍归设计系统；所有声明都会在运行时校验并限制嵌套深度。
         </li>
       </ul>
       <p>
@@ -400,6 +407,10 @@ function PluginApiPage() {
         </li>
         <li>
           <code>{"{ view }"}</code>——打开界面，或在其上推入一层新视图；
+        </li>
+        <li>
+          <code>{'{ view, navigation: "replace" | "reset" }'}</code>
+          ——替换当前视图，或回到一棵新的根视图；
         </li>
         <li>
           <code>{"{ close: true }"}</code>——关闭界面（可与{" "}

@@ -138,11 +138,11 @@ Defined in `apps/web/src/index.css` via `@theme` block:
 Always use these components instead of raw HTML + Tailwind classes:
 
 **Typography:** `Display`, `Heading`, `Body`, `Eyebrow`, `Caption`
-**Form controls:** `TextField`, `TextArea`, `Select`, `Checkbox`, `Radio`, `Toggle`
+**Form controls:** `TextField`, `SearchField`, `TextArea`, `Select`, `Checkbox`, `Radio`, `Toggle`, `ChoiceGroup`
 **Buttons:** `Button` (solid/outline/ghost/link/danger), `IconButton`
 **Navigation:** `NavItem`, `Breadcrumb`, `Tabs`
-**Data display:** `Avatar`, `Badge`, `Tag`, `Kbd`, `DefinitionList`, `Progress`, `Skeleton`, `Spinner`
-**Layout:** `Stack`, `Divider`, `Card` (compound: Header/Body/Footer)
+**Data display:** `Avatar`, `Badge`, `Tag`, `Kbd`, `DefinitionList`, `Metadata`, `Metric`, `Progress`, `Quote`, `ItemList`, `Skeleton`, `Spinner`
+**Layout:** `Stack`, `Columns`, `Section`, `Detail`, `Divider`, `Card` (compound: Header/Body/Footer)
 **Feedback:** `Alert`, `EmptyState`, `Tooltip`
 **Overlays:** `Dialog`, `Sidebar`, `DropdownMenu`, `Popover`, `Accordion`
 

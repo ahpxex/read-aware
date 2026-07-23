@@ -94,7 +94,9 @@ export function Dialog({
     panelRef.current?.focus();
   }, [isVisible]);
 
-  if (!isPresent) return null;
+  // Render on the same commit that `open` flips true. Waiting for the presence
+  // effect made async-backed dialogs feel inert until a later render.
+  if (!open && !isPresent) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-[70] flex items-center justify-center px-4 py-6 sm:p-8">

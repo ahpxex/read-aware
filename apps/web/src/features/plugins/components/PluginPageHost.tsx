@@ -5,9 +5,9 @@
  * affordance, and renders its view vocabulary in a centered column. If the
  * plugin vanishes (disabled/uninstalled) the page exits to the shelf.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAtomValue } from "jotai";
-import { Caption, Heading } from "@read-aware/ui";
+import { Caption, Heading, Stack } from "@read-aware/ui";
 import { showPluginToast } from "../lib/plugin-toast";
 import type { PluginView } from "../lib/plugin-types";
 import { headerActionsAtom } from "../state/plugin-store";
@@ -28,41 +28,66 @@ export function PluginPageHost({ navKey, onExit }: PluginPageHostProps) {
   const actions = useAtomValue(headerActionsAtom);
   const action = actions.find((entry) => entry.key === key && entry.surface === "shelf") ?? null;
   const [view, setView] = useState<PluginView | null>(null);
+  const [viewDepth, setViewDepth] = useState(0);
+  const loadRequestIdRef = useRef(0);
 
   useEffect(() => {
     if (!action) {
       onExit();
       return;
     }
-    let cancelled = false;
+    const requestId = ++loadRequestIdRef.current;
     setView(null);
+    setViewDepth(0);
     Promise.resolve(action.view({}))
       .then((next) => {
-        if (!cancelled) setView(next);
+        if (loadRequestIdRef.current === requestId) setView(next);
       })
       .catch((error) => {
         console.error(`[plugins] page "${key}" failed`, error);
         showPluginToast(
           `${action.pluginName}: ${error instanceof Error ? error.message : String(error)}`,
         );
-        if (!cancelled) onExit();
+        if (loadRequestIdRef.current === requestId) onExit();
       });
     return () => {
-      cancelled = true;
+      if (loadRequestIdRef.current === requestId) loadRequestIdRef.current += 1;
     };
     // Refetch only when the target action changes, not on unrelated re-renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [action?.key]);
 
+  const refreshView = () => {
+    if (!action) return;
+    const requestId = ++loadRequestIdRef.current;
+    Promise.resolve(action.view({}))
+      .then((next) => {
+        if (loadRequestIdRef.current === requestId) setView(next);
+      })
+      .catch((error) => {
+        console.error(`[plugins] page "${key}" refresh failed`, error);
+        showPluginToast(
+          `${action.pluginName}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      });
+  };
+
   if (!action) return null;
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-6 py-8 pb-[calc(2rem+var(--ra-safe-bottom))]">
-      <div className="mb-6 flex flex-col gap-1">
-        <Heading as="h1">{action.title}</Heading>
-        <Caption className="text-fg-subtle">{action.pluginName}</Caption>
-      </div>
-      <PluginViewRenderer view={view} onClose={onExit} />
-    </div>
+    <Stack className="mx-auto w-full max-w-5xl px-6 py-8 pb-[calc(2rem+var(--ra-safe-bottom))]">
+      {viewDepth <= 1 && (
+        <Stack gap="xs" className="mb-6">
+          <Heading as="h1">{action.title}</Heading>
+          <Caption className="text-fg-subtle">{action.pluginName}</Caption>
+        </Stack>
+      )}
+      <PluginViewRenderer
+        view={view}
+        onClose={onExit}
+        onDepthChange={setViewDepth}
+        onRequestRefresh={refreshView}
+      />
+    </Stack>
   );
 }

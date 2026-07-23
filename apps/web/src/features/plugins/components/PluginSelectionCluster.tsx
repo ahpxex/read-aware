@@ -5,9 +5,8 @@
  * Renders nothing when no plugin contributes — the menus stay untouched.
  */
 import { PuzzlePiece } from "@phosphor-icons/react";
-import { useState } from "react";
 import { useAtomValue } from "jotai";
-import { IconButton, Popover, Tooltip } from "@read-aware/ui";
+import { DropdownMenu, IconButton, Tooltip } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { renderPluginIcon } from "../lib/plugin-icons";
 import { runPluginContribution } from "../lib/run-result";
@@ -33,7 +32,6 @@ export function PluginSelectionCluster({ input, divider }: PluginSelectionCluste
   const { t } = useTranslation("plugins");
   const actions = useAtomValue(selectionActionsAtom);
   const placement = useAtomValue(pluginPlacementAtom);
-  const [overflowOpen, setOverflowOpen] = useState(false);
 
   if (actions.length === 0 || !input) return null;
 
@@ -44,8 +42,12 @@ export function PluginSelectionCluster({ input, divider }: PluginSelectionCluste
   const overflow = actions.filter((action) => !pinnedKeys.includes(action.key));
 
   const run = (action: RegisteredSelectionAction) => {
-    setOverflowOpen(false);
-    void runPluginContribution(action.pluginId, action.pluginName, () => action.run(input));
+    void runPluginContribution(
+      action.pluginId,
+      action.pluginName,
+      () => action.run(input),
+      { presentation: action.presentation },
+    );
   };
 
   return (
@@ -63,13 +65,9 @@ export function PluginSelectionCluster({ input, divider }: PluginSelectionCluste
         </Tooltip>
       ))}
       {overflow.length > 0 && (
-        <Popover
-          open={overflowOpen}
-          onOpenChange={setOverflowOpen}
+        <DropdownMenu
           align="right"
           triggerLabel={t("menu.actions")}
-          triggerTooltip={t("menu.actions")}
-          triggerTooltipSide="top"
           trigger={
             <span
               className={`flex h-7 w-7 items-center justify-center ${actionButtonClass}`}
@@ -77,23 +75,12 @@ export function PluginSelectionCluster({ input, divider }: PluginSelectionCluste
               <PuzzlePiece size={14} weight="regular" aria-hidden="true" />
             </span>
           }
-          panelClassName="max-h-64 w-52 overflow-y-auto p-1"
-        >
-          <ul className="flex flex-col">
-            {overflow.map((action) => (
-              <li key={action.key}>
-                <button
-                  type="button"
-                  onClick={() => run(action)}
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-fg transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
-                >
-                  <span className="text-fg-muted">{renderPluginIcon(action.icon, 15)}</span>
-                  <span className="min-w-0 flex-1 truncate">{action.title}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </Popover>
+          items={overflow.map((action) => ({
+            label: action.title,
+            icon: renderPluginIcon(action.icon, 15),
+            onClick: () => run(action),
+          }))}
+        />
       )}
     </>
   );

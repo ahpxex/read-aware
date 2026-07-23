@@ -3,7 +3,21 @@
     "back": "Zurück",
     "submit": "Absenden",
     "loading": "Wird geladen…",
-    "empty": "Hier ist noch nichts"
+    "empty": "Hier ist noch nichts",
+    "search": "Suchen",
+    "noMatches": "Keine passenden Einträge",
+    "invalidView": "Dieses Plugin hat eine ungültige Ansicht zurückgegeben",
+    "detail": "Details",
+    "timeline": {
+      "filter": "Zeitraum",
+      "today": "Heute",
+      "week": "Diese Woche",
+      "month": "Dieser Monat",
+      "all": "Alle",
+      "yesterday": "Gestern",
+      "unknownDate": "Unbekanntes Datum",
+      "noItems": "Keine Wörter in diesem Zeitraum"
+    }
   },
   "menu": {
     "actions": "Plugin-Aktionen"

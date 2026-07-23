@@ -10,6 +10,7 @@ import {
   BookOpen,
   Books,
   Brain,
+  CalendarBlank,
   Cards,
   ChartLineUp,
   ChatCircleDots,
@@ -39,6 +40,7 @@ import {
   Tag,
   TextAa,
   Translate,
+  Trash,
   UploadSimple,
   type Icon,
 } from "@phosphor-icons/react";
@@ -51,6 +53,7 @@ const PLUGIN_ICONS: Record<string, Icon> = {
   "book-open": BookOpen,
   books: Books,
   brain: Brain,
+  calendar: CalendarBlank,
   cards: Cards,
   "chart-line-up": ChartLineUp,
   "chat-circle-dots": ChatCircleDots,
@@ -80,6 +83,7 @@ const PLUGIN_ICONS: Record<string, Icon> = {
   tag: Tag,
   "text-aa": TextAa,
   translate: Translate,
+  trash: Trash,
   "upload-simple": UploadSimple,
 };
 

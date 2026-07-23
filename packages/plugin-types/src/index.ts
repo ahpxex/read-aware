@@ -23,9 +23,11 @@
  *    `plugin:<id>` in the event log — auditable, compensatable.
  * 4. **Device-local state and presentation stay closed.** View preferences,
  *    reader appearance, layouts, sync internals are not plugin surface; UI is
- *    declared with the constrained view vocabulary below (markdown / list /
- *    form / blocks) and rendered by the app's design system — plugin surfaces
- *    always look native. Plugins never render JSX or HTML.
+ *    declared as a host component tree (markdown / list / form / detail /
+ *    compositional blocks) and rendered by the app's design system. Layout is
+ *    expressed through bounded Stack/Section/Columns semantics, never CSS.
+ *    Plugins never render JSX or HTML, and declarations are validated again
+ *    at runtime before React sees them.
  */
 
 import type {
@@ -127,13 +129,36 @@ export type PluginMarkdownView = {
   markdown: string;
 };
 
+/** An app-rendered action. Plugins provide behavior and content, never UI. */
+export type PluginAction = {
+  id: string;
+  label: string;
+  /** Icon name from the curated Phosphor set. */
+  icon?: string;
+  variant?: "solid" | "outline" | "ghost" | "danger";
+  run: () => PluginViewResult | Promise<PluginViewResult>;
+};
+
+export type PluginListAccessory =
+  | { kind: "text"; text: string }
+  | { kind: "tag"; text: string }
+  | { kind: "icon"; icon: string; label?: string };
+
 export type PluginListItem = {
   id: string;
   title: string;
   subtitle?: string;
+  /** ISO timestamp used by the host timeline, never formatted by the plugin. */
+  timestamp?: string;
   /** Icon name from the curated Phosphor set. */
   icon?: string;
-  /** Optional drill-down: return `{ view }` to push a detail view. */
+  /** Additional terms used by the host's built-in filtering. */
+  keywords?: string[];
+  /** Quiet, host-rendered values at the trailing edge of the item. */
+  accessories?: PluginListAccessory[];
+  /** Open returned views in-place or in a host-owned modal Dialog. */
+  presentation?: "push" | "dialog";
+  /** Optional drill-down: return `{ view }` for the selected item. */
   onSelect?: () => PluginViewResult | Promise<PluginViewResult>;
 };
 
@@ -143,12 +168,45 @@ export type PluginListView = {
   items: PluginListItem[];
   /** Shown when `items` is empty. */
   emptyText?: string;
+  /** Adds host-rendered local filtering over title, subtitle, and keywords. */
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  /**
+   * Sort and group items by `timestamp`, with host-owned Today / This week /
+   * This month / All tabs. Search is debounced by the host.
+   */
+  timeline?: boolean;
 };
 
 export type PluginFormField =
-  | { kind: "text"; id: string; label: string; value?: string; placeholder?: string }
-  | { kind: "textarea"; id: string; label: string; value?: string; placeholder?: string; rows?: number }
-  | { kind: "number"; id: string; label: string; value?: number; min?: number; max?: number; step?: number }
+  | {
+      kind: "text";
+      id: string;
+      label: string;
+      value?: string;
+      placeholder?: string;
+      helperText?: string;
+      inputMode?: "text" | "email" | "url" | "password";
+    }
+  | {
+      kind: "textarea";
+      id: string;
+      label: string;
+      value?: string;
+      placeholder?: string;
+      helperText?: string;
+      rows?: number;
+    }
+  | {
+      kind: "number";
+      id: string;
+      label: string;
+      value?: number;
+      helperText?: string;
+      min?: number;
+      max?: number;
+      step?: number;
+    }
   | {
       kind: "select";
       id: string;
@@ -156,7 +214,15 @@ export type PluginFormField =
       value?: string;
       options: { value: string; label: string }[];
     }
-  | { kind: "toggle"; id: string; label: string; value?: boolean };
+  | { kind: "toggle"; id: string; label: string; value?: boolean }
+  | { kind: "checkbox"; id: string; label: string; description?: string; value?: boolean }
+  | {
+      kind: "choice";
+      id: string;
+      label: string;
+      value?: string;
+      options: { value: string; label: string; icon?: string }[];
+    };
 
 export type PluginFormValues = Record<string, string | boolean | number>;
 
@@ -180,40 +246,91 @@ export type PluginBlocksView = {
   blocks: PluginBlock[];
 };
 
+/** Host detail: primary content, top icon actions, and footer metadata. */
+export type PluginDetailView = {
+  kind: "detail";
+  title?: string;
+  content: PluginBlock[];
+  metadata?: PluginMetadataItem[];
+  actions?: PluginAction[];
+};
+
+export type PluginMetadataItem =
+  | { kind: "label"; label: string; value: string; icon?: string }
+  | { kind: "tags"; label: string; values: string[] }
+  | { kind: "divider" };
+
+export type PluginLayoutGap = "tight" | "normal" | "relaxed";
+
 export type PluginBlock =
   | { kind: "markdown"; markdown: string }
+  /** Host typography; plugins choose semantic emphasis, never classes. */
+  | {
+      kind: "text";
+      text: string;
+      variant?: "body" | "caption" | "eyebrow" | "heading";
+      tone?: "default" | "muted" | "subtle";
+    }
   /** A section header: quiet eyebrow caption over an optional line of text. */
   | { kind: "heading"; text: string; caption?: string }
   /** A dictionary entry, rendered with the app's own dictionary UX. */
   | { kind: "dictionary"; entry: PluginDictionaryEntry }
   /** Label/value rows (provenance, metadata) in a quiet definition list. */
-  | { kind: "keyValue"; rows: { label: string; value: string }[] }
+  | {
+      kind: "keyValue";
+      rows: { label: string; value: string }[];
+      layout?: "stacked" | "inline";
+      columns?: 1 | 2 | 3;
+    }
   /** A quoted passage with an optional attribution line. */
   | { kind: "quote"; text: string; caption?: string }
-  /** A row of buttons; each runs like any other contribution outcome. */
+  /** A row of host buttons; each runs like any other contribution outcome. */
+  | { kind: "actions"; actions: PluginAction[]; align?: "start" | "end" }
+  | { kind: "metric"; label: string; value: string; description?: string }
+  | { kind: "progress"; value: number; max?: number; label?: string; showValue?: boolean }
+  | { kind: "tags"; label?: string; values: string[] }
   | {
-      kind: "actions";
-      actions: {
-        id: string;
-        label: string;
-        icon?: string;
-        variant?: "solid" | "outline" | "ghost" | "danger";
-        run: () => PluginViewResult | Promise<PluginViewResult>;
-      }[];
+      kind: "alert";
+      title?: string;
+      message: string;
+      variant?: "default" | "destructive" | "success";
     }
   | { kind: "divider" }
+  /** A titled vertical group with design-system-owned hierarchy and spacing. */
+  | {
+      kind: "section";
+      title?: string;
+      description?: string;
+      blocks: PluginBlock[];
+      gap?: PluginLayoutGap;
+    }
+  /** A vertical group for composing blocks without introducing raw layout. */
+  | { kind: "group"; blocks: PluginBlock[]; gap?: PluginLayoutGap }
   /**
-   * A constrained horizontal layout — 2–4 cells side by side, each holding
-   * its own block, with relative `weight` (default 1) sizing the columns.
-   * This is how layout enters the vocabulary: not raw flexbox, but a bounded
-   * row the design system still owns — it sets the gaps, vertical alignment,
-   * and (below a narrow width) collapses the cells back into a vertical
-   * stack so the surface stays legible on any container. Cells hold ordinary
-   * blocks; a cell's block may NOT itself be a `row` (one level deep).
+   * Responsive, host-owned columns. Plugins may choose relative weight,
+   * minimum-width preset, spacing, and vertical alignment; wrapping and exact
+   * CSS remain owned by the design system. Nesting is allowed to a bounded
+   * depth and is validated at runtime.
+   */
+  | {
+      kind: "columns";
+      cells: PluginColumnCell[];
+      gap?: PluginLayoutGap;
+      align?: "start" | "center" | "baseline" | "stretch";
+    }
+  /**
+   * Backward-compatible single-block columns. Prefer `columns`, whose cells
+   * may contain a composed block sequence.
    */
   | { kind: "row"; cells: PluginRowCell[]; align?: "start" | "center" | "baseline" }
   | PluginListView
   | PluginFormView;
+
+export type PluginColumnCell = {
+  weight?: number;
+  minWidth?: "compact" | "standard" | "wide";
+  blocks: PluginBlock[];
+};
 
 /** One column of a `row` block. */
 export type PluginRowCell = {
@@ -222,20 +339,23 @@ export type PluginRowCell = {
   block: PluginRowCellBlock;
 };
 
-/** Blocks allowed inside a row cell — every block kind except a nested row. */
-export type PluginRowCellBlock = Exclude<PluginBlock, { kind: "row" }>;
+/** Legacy row cells stay single-block; runtime validation bounds recursion. */
+export type PluginRowCellBlock = PluginBlock;
 
 export type PluginView =
   | PluginMarkdownView
   | PluginListView
   | PluginFormView
-  | PluginBlocksView;
+  | PluginBlocksView
+  | PluginDetailView;
 
 /**
  * What an action / list-select / form-submit may produce:
  * - `undefined` / `null` — nothing happens (surface stays as is);
  * - `{ toast }` — a transient notice;
  * - `{ view }` — open (or push onto) the surface with this view;
+ * - `{ view, navigation: "replace" | "reset" }` — replace the current view
+ *   or return the surface to a new root view;
  * - `{ close: true }` — dismiss the surface (composable with `toast`);
  * - `{ fieldErrors }` (from a form submit) — stay on the form and show the
  *   errors under their fields.
@@ -247,6 +367,7 @@ export type PluginViewResult =
   | {
       toast?: string;
       view?: PluginView;
+      navigation?: "push" | "replace" | "reset";
       close?: boolean;
       fieldErrors?: Record<string, string>;
     };
@@ -274,6 +395,8 @@ export type PluginSelectionAction = {
   id: string;
   title: string;
   icon?: string;
+  /** Opens the host Dialog immediately in a loading state before `run` resolves. */
+  presentation?: "dialog";
   run: (input: SelectionActionInput) => PluginViewResult | Promise<PluginViewResult>;
 };
 

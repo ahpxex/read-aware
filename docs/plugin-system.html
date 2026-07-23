@@ -742,13 +742,19 @@
 
 <h2 id="s6"><span class="no">§ 6</span>UI 词汇：Raycast 式受限视图</h2>
 
-<p>插件不写 JSX、不写 HTML。容器里的内容只能从三种视图声明里选，全部由应用用 <code>@read-aware/ui</code> 渲染，观感永远原生：</p>
+<p>插件不写 JSX、不写 HTML，也不传 <code>className</code> / <code>style</code>。它声明宿主组件树；每一个视觉原语和交互控件都由 <code>@read-aware/ui</code> 或应用已有的规范领域组件渲染：</p>
 
 <ul>
   <li><strong>Markdown 详情</strong> —— 插件返回 Markdown 字符串，应用排版（复用聊天里现成的 <code>Markdown</code> 组件）。覆盖大半场景：查词、翻译、AI 生成内容、统计摘要。</li>
-  <li><strong>列表</strong> —— 条目数组 <code>{id, title, subtitle?, icon?, onSelect?}</code>；条目可下钻到另一个视图。</li>
-  <li><strong>表单</strong> —— 少量字段类型（文本、选择、开关）+ 提交动作；提交后可接一个结果视图。</li>
+  <li><strong>列表</strong> —— 宿主提供带 debounce 的搜索、keywords、accessories、空状态与下钻；<code>timeline</code> 提供今天／本周／本月／全部筛选与日期分组，列表项可用 <code>presentation: "dialog"</code> 在原列表上打开宿主 Dialog。</li>
+  <li><strong>表单</strong> —— text / textarea / number / select / choice / checkbox / toggle 全部映射到组件库控件。</li>
+  <li><strong>Detail</strong> —— Raycast 式主内容、metadata 与宿主 actions；宿主把 actions 渲染成内容标题右侧的图标按钮，把来源、日期和 tags 等 metadata 收进内容底部。</li>
+  <li><strong>Blocks</strong> —— typography、词典、引文、指标、进度、标签、提示、section、group 与响应式 columns。</li>
 </ul>
+
+<p><strong>布局不开放裸 flex。</strong> <code>group</code>、<code>section</code> 与 <code>columns</code> 只开放语义间距、相对 weight、最小宽度档位和少量对齐；像素、换行与断点归设计系统。所有声明进入 React 前都会运行时校验，并限制嵌套深度与 children 数量。</p>
+
+<p>视图默认以 <code>push</code> 下钻；返回 <code>{ view, navigation: "replace" | "reset" }</code> 可以替换当前层，或在删除等操作后回到一棵新的根视图。选区动作声明 <code>presentation: "dialog"</code> 时，宿主会先立即显示加载态 Dialog，再把异步结果填入同一次请求。</p>
 
 <div class="fig">
   <div class="figframe">
@@ -802,7 +808,7 @@
     </div>
     <div class="vocab-note">同一份声明可渲染进 Popup、Dialog 或 Page —— 容器由挂载点决定，内容词汇不变。</div>
   </div>
-  <div class="figcap">图 4 · 三种视图词汇与链式跳转（可交互）</div>
+  <div class="figcap">图 4 · 宿主组件词汇与链式跳转（可交互）</div>
 </div>
 
 <p>插件作者失去「随便画界面」的自由，换来零设计成本与永远一致的观感 —— 对编辑式克制的设计方向，这个交换是划算的。</p>
@@ -912,7 +918,7 @@
   <ol class="phases">
     <li><span class="pnum">1</span><span class="pname">菜单数据化</span><span class="psub">贡献点注册表 · 纯内部重构</span></li>
     <li><span class="pnum">2</span><span class="pname">插件运行时</span><span class="psub">加载 · 生命周期 · 权限 · 设置页</span></li>
-    <li><span class="pnum">3</span><span class="pname">UI 词汇渲染器</span><span class="psub">三视图 × 三容器</span></li>
+    <li><span class="pnum">3</span><span class="pname">UI 词汇渲染器</span><span class="psub">宿主组件树 × 三容器</span></li>
     <li><span class="pnum">4</span><span class="pname">AI 工具挂载点</span><span class="psub">registerTool → buildThreadTools</span></li>
     <li><span class="pnum">5</span><span class="pname">官方插件与模板</span><span class="psub">用真实插件检验 API</span></li>
   </ol>
@@ -922,7 +928,7 @@
 <ol>
   <li><strong>菜单数据化 + 贡献点注册表</strong> —— 纯内部重构，无用户可见变化；独立成立，即使插件系统暂缓代码也变好。</li>
   <li><strong>插件运行时</strong> —— manifest 校验、Rust scheme + 加载器、<code>activate/deactivate</code> 生命周期、权限域门控、设置页（安装 / 列表 / 启停 / 权限展示 / 钉选摆放）、命名空间 KV。</li>
-  <li><strong>UI 词汇渲染器</strong> —— Popup / Dialog / Page 容器 + Markdown / 列表 / 表单三种视图。</li>
+  <li><strong>UI 词汇渲染器</strong> —— Popup / Dialog / Page 容器 + Markdown / List / Form / Detail / 组合 Blocks 宿主组件树。</li>
   <li><strong>AI 工具挂载点</strong> —— <code>ctx.ai.registerTool</code> → <code>buildThreadTools</code> 追加 + 启停刷新。</li>
   <li><strong>官方插件 × 2–3 + 插件模板仓库</strong> —— 既是功能也是 API 的真实性检验（候选：导出 Markdown、查词典扩展、Anki 生词本）。</li>
 </ol>

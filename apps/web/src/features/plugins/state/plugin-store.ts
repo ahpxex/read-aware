@@ -185,15 +185,36 @@ export const pluginPlacementAtom = atom(
  * the host component consumes and clears it.
  */
 export type PluginDialogRequest = {
+  requestId: string;
   pluginId: string;
   pluginName: string;
-  view: PluginView;
+  /** Null while the contribution is still resolving its host-rendered view. */
+  view: PluginView | null;
 };
 
 export const pluginDialogAtom = atom<PluginDialogRequest | null>(null);
 
-export function openPluginDialog(request: PluginDialogRequest): void {
-  store.set(pluginDialogAtom, request);
+export function openPluginDialog(
+  request: Omit<PluginDialogRequest, "requestId">,
+): string {
+  const requestId = crypto.randomUUID();
+  store.set(pluginDialogAtom, { ...request, requestId });
+  return requestId;
+}
+
+/** Fill a pending Dialog only if it still belongs to this request. */
+export function resolvePluginDialog(requestId: string, view: PluginView): boolean {
+  const current = store.get(pluginDialogAtom);
+  if (current?.requestId !== requestId) return false;
+  store.set(pluginDialogAtom, { ...current, view });
+  return true;
+}
+
+/** Close a pending Dialog without disturbing a newer request. */
+export function closePluginDialog(requestId: string): boolean {
+  if (store.get(pluginDialogAtom)?.requestId !== requestId) return false;
+  store.set(pluginDialogAtom, null);
+  return true;
 }
 
 // ─── Install consent (docs/plugin-system.md §2/§4) ───────────────────────────

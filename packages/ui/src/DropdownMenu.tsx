@@ -13,6 +13,8 @@ type DropdownItem = {
 type DropdownMenuProps = {
   /** Omit to run fully controlled (e.g. a long-press-opened menu). */
   trigger?: ReactNode;
+  /** Accessible name for an icon-only trigger. */
+  triggerLabel?: string;
   items: DropdownItem[];
   align?: "left" | "right";
   className?: string;
@@ -23,6 +25,7 @@ type DropdownMenuProps = {
 
 export function DropdownMenu({
   trigger,
+  triggerLabel,
   items,
   align = "left",
   className,
@@ -134,6 +137,8 @@ export function DropdownMenu({
           type="button"
           aria-expanded={open}
           aria-haspopup="menu"
+          aria-label={triggerLabel}
+          title={triggerLabel}
           aria-controls={open ? menuId : undefined}
           onClick={() => {
             if (open) {

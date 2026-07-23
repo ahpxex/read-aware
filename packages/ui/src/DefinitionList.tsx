@@ -9,6 +9,7 @@ type DefinitionItem = {
 type DefinitionListProps = {
   items: DefinitionItem[];
   columns?: 1 | 2 | 3;
+  variant?: "stacked" | "inline";
   className?: string;
 };
 
@@ -21,16 +22,34 @@ const columnClasses = {
 export function DefinitionList({
   items,
   columns = 1,
+  variant = "stacked",
   className,
 }: DefinitionListProps) {
   return (
-    <dl className={cn("grid gap-8 sm:gap-10", columnClasses[columns], className)}>
+    <dl
+      className={cn(
+        "grid",
+        variant === "stacked" ? "gap-6 sm:gap-8" : "gap-x-6 gap-y-2",
+        columnClasses[columns],
+        className,
+      )}
+    >
       {items.map((item) => (
-        <div key={item.label}>
-          <dt className="font-sans text-[13px] font-medium text-fg-muted">
+        <div
+          key={item.label}
+          className={cn(
+            variant === "inline" && "grid grid-cols-[minmax(5rem,auto)_minmax(0,1fr)] gap-4",
+          )}
+        >
+          <dt className="font-sans text-[13px] font-medium text-fg-subtle">
             {item.label}
           </dt>
-          <dd className="mt-3 text-sm leading-7 text-fg">
+          <dd
+            className={cn(
+              "min-w-0 text-sm text-fg",
+              variant === "stacked" ? "mt-1.5 leading-6" : "leading-5",
+            )}
+          >
             {item.value}
           </dd>
         </div>

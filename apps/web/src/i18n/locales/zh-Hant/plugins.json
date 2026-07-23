@@ -3,7 +3,21 @@
     "back": "返回",
     "submit": "提交",
     "loading": "載入中…",
-    "empty": "這裡還沒有內容"
+    "empty": "這裡還沒有內容",
+    "search": "搜尋",
+    "noMatches": "沒有符合項目",
+    "invalidView": "外掛回傳了無效介面",
+    "detail": "詳情",
+    "timeline": {
+      "filter": "時間範圍",
+      "today": "今天",
+      "week": "本週",
+      "month": "本月",
+      "all": "全部",
+      "yesterday": "昨天",
+      "unknownDate": "日期未知",
+      "noItems": "這個時間範圍還沒有單詞"
+    }
   },
   "menu": {
     "actions": "外掛動作"

@@ -9,7 +9,7 @@
 import { PuzzlePiece } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { useAtomValue } from "jotai";
-import { IconButton, Popover, Tooltip } from "@read-aware/ui";
+import { DropdownMenu, IconButton, Popover, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import { openHeaderActionDialog } from "../lib/open-header-action";
@@ -47,7 +47,6 @@ export function PluginHeaderCluster({
   const { t } = useTranslation("plugins");
   const allActions = useAtomValue(headerActionsAtom);
   const placement = useAtomValue(pluginPlacementAtom);
-  const [overflowOpen, setOverflowOpen] = useState(false);
 
   const actions = allActions.filter((action) => action.surface === surface);
   if (actions.length === 0) return null;
@@ -90,39 +89,24 @@ export function PluginHeaderCluster({
         ),
       )}
       {overflow.length > 0 && (
-        <Popover
-          open={overflowOpen}
-          onOpenChange={setOverflowOpen}
+        <DropdownMenu
           align="right"
           triggerLabel={t("menu.actions")}
-          triggerTooltip={t("menu.actions")}
           className={buttonClassName}
           trigger={
             <span className="flex h-8 w-8 items-center justify-center rounded-md text-fg-muted hover:text-fg">
               <PuzzlePiece size={16} weight="regular" aria-hidden="true" />
             </span>
           }
-          panelClassName="max-h-72 w-56 overflow-y-auto p-1"
-        >
-          <ul className="flex flex-col">
-            {overflow.map((action) => (
-              <li key={action.key}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOverflowOpen(false);
-                    if (opensPage(action)) onOpenPage?.(action.key);
-                    else void openHeaderActionDialog(action, input);
-                  }}
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-fg transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
-                >
-                  <span className="text-fg-muted">{renderPluginIcon(action.icon, 15)}</span>
-                  <span className="min-w-0 flex-1 truncate">{action.title}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </Popover>
+          items={overflow.map((action) => ({
+            label: action.title,
+            icon: renderPluginIcon(action.icon, 15),
+            onClick: () => {
+              if (opensPage(action)) onOpenPage?.(action.key);
+              else void openHeaderActionDialog(action, input);
+            },
+          }))}
+        />
       )}
     </>
   );
@@ -217,7 +201,11 @@ function PluginHeaderPopupButton({
       }
       panelClassName="w-80 max-w-[calc(100vw-2rem)] p-3"
     >
-      <PluginViewRenderer view={view} onClose={() => setOpen(false)} className="max-h-80" />
+      <PluginViewRenderer
+        view={view}
+        onClose={() => setOpen(false)}
+        className="max-h-80"
+      />
     </Popover>
   );
 }

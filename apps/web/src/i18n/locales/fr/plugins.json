@@ -3,7 +3,21 @@
     "back": "Retour",
     "submit": "Envoyer",
     "loading": "Chargement…",
-    "empty": "Rien ici pour l'instant"
+    "empty": "Rien ici pour l'instant",
+    "search": "Rechercher",
+    "noMatches": "Aucun élément correspondant",
+    "invalidView": "Cette extension a renvoyé une vue non valide",
+    "detail": "Détails",
+    "timeline": {
+      "filter": "Période",
+      "today": "Aujourd'hui",
+      "week": "Cette semaine",
+      "month": "Ce mois-ci",
+      "all": "Tout",
+      "yesterday": "Hier",
+      "unknownDate": "Date inconnue",
+      "noItems": "Aucun mot pour cette période"
+    }
   },
   "menu": {
     "actions": "Actions des extensions"

@@ -15,14 +15,13 @@ import {
   Divider,
   DropdownMenu,
   Eyebrow,
-  Heading,
   IconButton,
   Spinner,
 } from "@read-aware/ui";
 import { LOCALE_LABELS, LOCALES, useLocale, useTranslation } from "../../../i18n";
 import { settingsOpenAtom, settingsSectionRequestAtom } from "../../../state/ui";
 import { useDictionaryLookup } from "../hooks/useDictionaryLookup";
-import { DictionaryEntryBody } from "./DictionaryEntryBody";
+import { DictionaryEntryBody, DictionaryEntryHeading } from "./DictionaryEntryBody";
 import type { DictionaryEntry, SentenceExplanation } from "@read-aware/agent";
 import {
   getDictionaryLanguage,
@@ -202,16 +201,7 @@ export function ReaderDictionaryModal({
         </div>
 
         <div className="mt-1.5 flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <Heading as="h2" size="2xl" className="font-serif leading-tight">
-              {headword}
-            </Heading>
-            {entry?.pronunciation && (
-              <span className="mt-1 block font-mono text-sm text-fg-muted">
-                {entry.pronunciation}
-              </span>
-            )}
-          </div>
+          <DictionaryEntryHeading headword={headword} pronunciation={entry?.pronunciation} />
           {showActions && (
             <div className="flex shrink-0 items-center gap-0.5">
               <IconButton

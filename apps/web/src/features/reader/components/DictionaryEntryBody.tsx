@@ -7,7 +7,7 @@
  */
 import { Fragment, type ReactNode } from "react";
 import type { DictionaryEntry } from "@read-aware/agent";
-import { Body, Eyebrow } from "@read-aware/ui";
+import { Body, Caption, Eyebrow, Heading, Stack } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 
 /**
@@ -29,6 +29,25 @@ function inlineEmphasis(text: string): ReactNode {
   }
   if (last < text.length) parts.push(text.slice(last));
   return parts.map((part, index) => <Fragment key={index}>{part}</Fragment>);
+}
+
+export function DictionaryEntryHeading({
+  headword,
+  pronunciation,
+}: {
+  headword: string;
+  pronunciation?: string;
+}) {
+  return (
+    <Stack gap="xs" className="min-w-0">
+      <Heading as="h2" size="2xl" className="font-serif leading-tight">
+        {headword}
+      </Heading>
+      {pronunciation && (
+        <Caption className="font-mono text-sm text-fg-muted">{pronunciation}</Caption>
+      )}
+    </Stack>
+  );
 }
 
 export function DictionaryEntryBody({ entry }: { entry: DictionaryEntry }) {

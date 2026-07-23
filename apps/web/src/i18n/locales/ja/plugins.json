@@ -3,7 +3,21 @@
     "back": "戻る",
     "submit": "送信",
     "loading": "読み込み中…",
-    "empty": "まだ何もありません"
+    "empty": "まだ何もありません",
+    "search": "検索",
+    "noMatches": "一致する項目がありません",
+    "invalidView": "このプラグインは無効なビューを返しました",
+    "detail": "詳細",
+    "timeline": {
+      "filter": "期間",
+      "today": "今日",
+      "week": "今週",
+      "month": "今月",
+      "all": "すべて",
+      "yesterday": "昨日",
+      "unknownDate": "日付不明",
+      "noItems": "この期間には単語がありません"
+    }
   },
   "menu": {
     "actions": "プラグイン操作"

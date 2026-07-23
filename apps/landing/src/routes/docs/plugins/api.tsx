@@ -304,12 +304,16 @@ function PluginApiPage() {
         receives the selected text, its CFI range, the chapter, and the book.
         Inside the reader an action either runs silently (return a toast) or
         opens a dialog (return a view) — those are the only two outcomes.
+        Declare <code>presentation: "dialog"</code> when the handler is async:
+        the host opens its loading shell immediately and fills the same request
+        when <code>run</code> resolves.
       </p>
       <pre>
         <code>{`ctx.ui.registerSelectionAction({
   id: "save-quote",
   title: "Save quote",
   icon: "quotes",
+  presentation: "dialog",
   run: (input) => {
     // input: { text, cfiRange, chapterHref, book, source }
     return { toast: "Quote saved." };
@@ -383,31 +387,38 @@ function PluginApiPage() {
 
       <h2>Views</h2>
       <p>
-        Plugins describe interfaces declaratively; the app renders them. Four
-        kinds:
+        Plugins declare a tree of host components; the app renders every visual
+        primitive and control. Plugins never provide JSX, HTML, CSS, or classes.
       </p>
       <ul>
         <li>
           <code>markdown</code> — a markdown string, typeset by the app.
         </li>
         <li>
-          <code>list</code> — items{" "}
-          <code>{"{ id, title, subtitle?, icon?, onSelect? }"}</code>;{" "}
-          <code>onSelect</code> may return another view to drill down.
+          <code>list</code> — searchable host lists with fixed debounce,
+          keywords, accessories, and empty states. <code>timeline</code> adds
+          Today / This week / This month / All filters and local-date groups;
+          an item can use <code>presentation: "dialog"</code> to show its
+          returned view over the list instead of pushing a child page.
         </li>
         <li>
-          <code>form</code> — fields (text, textarea, number, select, toggle)
-          plus <code>onSubmit</code>, which receives the values and may return
-          a result view or field errors.
+          <code>form</code> — text, textarea, number, select, choice, checkbox,
+          and toggle controls from the ReadAware component library, plus{" "}
+          <code>onSubmit</code>.
         </li>
         <li>
-          <code>blocks</code> — an ordered sequence of blocks: markdown,
-          heading, dictionary entry, key-value rows, quote, action buttons,
-          divider, a constrained <code>row</code> (2–4 side-by-side cells with
-          relative <code>weight</code>, collapsing to a stack on a narrow
-          surface), or nested list/form. This is the growth path for richer
-          pages — layout arrives as bounded blocks the design system still
-          owns, never as raw flexbox.
+          <code>detail</code> — Raycast-style primary content, metadata, and
+          host-rendered actions. The host places actions as icon buttons beside
+          the content heading and keeps provenance, dates, and tags in a quiet
+          footer.
+        </li>
+        <li>
+          <code>blocks</code> — host typography, markdown, dictionary content,
+          metadata, quotes, actions, metrics, progress, tags, alerts, sections,
+          groups, and responsive <code>columns</code>. Columns expose only
+          bounded weight, spacing, minimum-width presets, and semantic
+          alignment. Exact CSS and wrapping stay inside the design system;
+          declarations are runtime-validated and nesting is capped.
         </li>
       </ul>
       <p>
@@ -423,6 +434,10 @@ function PluginApiPage() {
         </li>
         <li>
           <code>{"{ view }"}</code> — open, or push onto, the surface;
+        </li>
+        <li>
+          <code>{'{ view, navigation: "replace" | "reset" }'}</code> —
+          replace the current view, or return to a new root view;
         </li>
         <li>
           <code>{"{ close: true }"}</code> — dismiss the surface (composable

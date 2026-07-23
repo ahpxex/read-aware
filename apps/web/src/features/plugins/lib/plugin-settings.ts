@@ -40,7 +40,7 @@ export function buildPluginSettingsView(
     title: manifest.name,
     fields: fields.map((field) => {
       const value = stored[field.id];
-      if (field.kind === "toggle") {
+      if (field.kind === "toggle" || field.kind === "checkbox") {
         return { ...field, value: typeof value === "boolean" ? value : field.value };
       }
       if (field.kind === "number") {

@@ -280,12 +280,14 @@ function PluginApiPage() {
       <h3>選択アクション</h3>
       <p>
         リーダーの選択メニューと注釈メニューに入る項目です。ハンドラーは選択されたテキスト、そのCFI範囲、章、本を受け取ります。リーダー内でのアクションの結末は、静かに実行される（トーストを返す）か、ダイアログを開く（ビューを返す）かの2通りだけです。
+        非同期アクションに <code>presentation: "dialog"</code> を指定すると、ホストは読み込み中のダイアログを即座に開き、<code>run</code> の完了後に同じリクエストへ結果を表示します。
       </p>
       <pre>
         <code>{`ctx.ui.registerSelectionAction({
   id: "save-quote",
   title: "Save quote",
   icon: "quotes",
+  presentation: "dialog",
   run: (input) => {
     // input: { text, cfiRange, chapterHref, book, source }
     return { toast: "Quote saved." };
@@ -357,25 +359,25 @@ function PluginApiPage() {
 
       <h2>ビュー</h2>
       <p>
-        プラグインはインターフェイスを宣言的に記述し、アプリが描画します。4種類あります。
+        プラグインはホストコンポーネントのツリーを宣言し、視覚要素とコントロールはすべてアプリが描画します。JSX、HTML、CSS、className は渡せません。
       </p>
       <ul>
         <li>
           <code>markdown</code> — マークダウン文字列。アプリが組版します。
         </li>
         <li>
-          <code>list</code> — 項目は
-          <code>{"{ id, title, subtitle?, icon?, onSelect? }"}</code>。
-          <code>onSelect</code>
-          が別のビューを返せば、ドリルダウンできます。
+          <code>list</code> — 固定 debounce の検索、keywords、accessories、空状態。<code>timeline</code> は今日／今週／今月／すべての絞り込みとローカル日付のグループを追加し、項目の <code>presentation: "dialog"</code> で子ページではなく一覧の上に結果を表示できます。
         </li>
         <li>
-          <code>form</code> —フィールド（text、textarea、number、select、toggle）と
+          <code>form</code> — ReadAware コンポーネントの text、textarea、number、select、choice、checkbox、toggle と
           <code>onSubmit</code>
           。値を受け取り、結果のビューまたはフィールドエラーを返せます。
         </li>
         <li>
-          <code>blocks</code> —ブロックの順序付きの並びです。マークダウン、見出し、辞書エントリー、キーと値の行、引用、アクションボタン、区切り線、制約された <code>row</code>（2〜4 個の横並びセル、相対的な <code>weight</code> で列幅を決め、狭い表示幅ではスタックに折り返します）、あるいは入れ子のリスト/フォーム。より豊かなページへの成長経路です。レイアウトは生の flexbox ではなく、デザインシステムが管理する制約されたブロックとして加わります。
+          <code>detail</code> — Raycast 型のメインコンテンツ、メタデータ、ホストアクション。ホストはアクションを見出し横のアイコンボタンとして描画し、出典、日付、タグなどのメタデータを静かなフッターにまとめます。
+        </li>
+        <li>
+          <code>blocks</code> — ホストの typography、markdown、辞書、metadata、引用、アクション、指標、進捗、タグ、アラート、section、group、レスポンシブな <code>columns</code>。columns が公開するのは weight、間隔プリセット、最小幅プリセット、意味的な配置だけで、CSS と折り返しはデザインシステムが所有します。宣言は実行時に検証され、ネスト深度も制限されます。
         </li>
       </ul>
       <p>
@@ -389,6 +391,10 @@ function PluginApiPage() {
         </li>
         <li>
           <code>{"{ view }"}</code> — サーフェスを開く、またはその上に積む。
+        </li>
+        <li>
+          <code>{'{ view, navigation: "replace" | "reset" }'}</code> —
+          現在のビューを置き換える、または新しいルートビューへ戻る。
         </li>
         <li>
           <code>{"{ close: true }"}</code> — サーフェスを閉じる（

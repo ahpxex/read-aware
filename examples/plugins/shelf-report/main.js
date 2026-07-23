@@ -1,9 +1,9 @@
 /**
  * Shelf Report — an official example plugin.
  *
- * Demonstrates: a shelf header action registered as a full Page, the list
- * view with drill-down into a markdown detail, and read access across three
- * domains (`books:read`, `reading:read`, `annotations:read`).
+ * Demonstrates: a searchable host list, semantic detail/metadata, responsive
+ * columns, and read access across three domains (`books:read`, `reading:read`,
+ * `annotations:read`).
  */
 
 /** @param {number | undefined} percent */
@@ -32,11 +32,17 @@ export default {
         return {
           kind: "list",
           emptyText: "No books on the shelf yet.",
+          searchable: true,
+          searchPlaceholder: "Search shelf report",
           items: books.map((book) => ({
             id: book.id,
             title: book.title,
-            subtitle: `${book.author ?? "Unknown author"} · ${progressLabel(progressByBook.get(book.id))}`,
+            subtitle: book.author ?? "Unknown author",
             icon: "book-open",
+            keywords: [book.author ?? "", book.format],
+            accessories: [
+              { kind: "tag", text: progressLabel(progressByBook.get(book.id)) },
+            ],
             onSelect: async () => {
               const annotations = await ctx.annotations.list({ bookId: book.id });
               const highlights = annotations.filter((a) => a.kind === "highlight").length;
@@ -44,19 +50,30 @@ export default {
               const asks = annotations.filter((a) => a.kind === "ask").length;
               return {
                 view: {
-                  kind: "markdown",
+                  kind: "detail",
                   title: book.title,
-                  markdown: [
-                    `**${book.title}**`,
-                    book.author ? `by ${book.author}` : null,
-                    "",
-                    `- Progress: ${progressLabel(progressByBook.get(book.id))}`,
-                    `- Highlights: ${highlights}`,
-                    `- Notes: ${notes}`,
-                    `- Questions asked: ${asks}`,
-                  ]
-                    .filter((line) => line !== null)
-                    .join("\n"),
+                  content: [
+                    {
+                      kind: "columns",
+                      cells: [
+                        { blocks: [{ kind: "metric", label: "Highlights", value: String(highlights) }] },
+                        { blocks: [{ kind: "metric", label: "Notes", value: String(notes) }] },
+                        { blocks: [{ kind: "metric", label: "Questions", value: String(asks) }] },
+                      ],
+                    },
+                    {
+                      kind: "progress",
+                      label: "Reading progress",
+                      value: progressByBook.get(book.id) ?? 0,
+                      showValue: true,
+                    },
+                  ],
+                  metadata: [
+                    ...(book.author
+                      ? [{ kind: "label", label: "Author", value: book.author }]
+                      : []),
+                    { kind: "label", label: "Format", value: book.format.toUpperCase() },
+                  ],
                 },
               };
             },

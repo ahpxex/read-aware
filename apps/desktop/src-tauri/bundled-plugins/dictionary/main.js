@@ -51,41 +51,45 @@ async function saveWord(ctx, input) {
   return { term, language, entry };
 }
 
-/** The shared entry layout: the definition, its provenance, and remove. */
-function wordBlocks(w, onRemove) {
-  const provenance = [
-    ...(w.bookTitle ? [{ label: "Book", value: w.bookTitle }] : []),
-    ...(formatDate(w.addedAt) ? [{ label: "Added", value: formatDate(w.addedAt) }] : []),
+/** The shared host-rendered detail: definition, metadata footer, and actions. */
+function wordDetail(w, onRemove) {
+  const metadata = [
+    ...(w.bookTitle ? [{ kind: "label", label: "Book", value: w.bookTitle, icon: "book-open" }] : []),
+    ...(formatDate(w.addedAt)
+      ? [{ kind: "label", label: "Added", value: formatDate(w.addedAt), icon: "calendar" }]
+      : []),
   ];
   // Only a real passage, not the word echoed back (guards legacy data too).
   const passage =
     w.context && w.context.trim().toLowerCase() !== (w.term ?? "").trim().toLowerCase()
       ? w.context
       : undefined;
-  return [
-    { kind: "dictionary", entry: w.entry },
-    ...(passage ? [{ kind: "quote", text: passage, caption: w.bookTitle }] : []),
-    ...(provenance.length > 0 ? [{ kind: "divider" }, { kind: "keyValue", rows: provenance }] : []),
-    { kind: "divider" },
-    {
-      kind: "actions",
-      actions: [{ id: "remove", label: "Remove", icon: "trash", variant: "danger", run: onRemove }],
-    },
-  ];
+  return {
+    kind: "detail",
+    content: [
+      { kind: "dictionary", entry: w.entry },
+      ...(passage ? [{ kind: "quote", text: passage, caption: w.bookTitle }] : []),
+    ],
+    metadata,
+    actions: [
+      {
+        id: "remove",
+        label: "Remove from vocabulary",
+        icon: "trash",
+        variant: "danger",
+        run: onRemove,
+      },
+    ],
+  };
 }
 
 /** @param {import("read-aware").PluginContext} ctx */
 async function wordDetailView(ctx, doc) {
   const w = doc.data;
-  return {
-    kind: "blocks",
-    // No title — the dictionary block already leads with the headword; a title
-    // here would repeat it in the back-nav breadcrumb.
-    blocks: wordBlocks(w, async () => {
-      await words(ctx).delete(doc.id);
-      return { toast: `Removed “${w.term}”`, view: await notebookView(ctx) };
-    }),
-  };
+  return wordDetail(w, async () => {
+    await words(ctx).delete(doc.id);
+    return { close: true, toast: `Removed “${w.term}”` };
+  });
 }
 
 /** @param {import("read-aware").PluginContext} ctx */
@@ -93,13 +97,21 @@ async function notebookView(ctx) {
   const saved = await words(ctx).list();
   return {
     kind: "list",
-    title: saved.length === 0 ? undefined : `${saved.length} word${saved.length === 1 ? "" : "s"}`,
     emptyText: "No saved words yet. Select a word while reading and choose “Look up & save”.",
+    searchable: true,
+    searchPlaceholder: "Search vocabulary",
+    timeline: true,
     items: saved.map((doc) => ({
       id: doc.id,
       title: doc.data.term,
       subtitle: definitionOf(doc.data.entry),
+      timestamp: doc.data.addedAt,
       icon: "book-bookmark",
+      keywords: [doc.data.language, doc.data.bookTitle, doc.data.context].filter(Boolean),
+      accessories: doc.data.bookTitle
+        ? [{ kind: "text", text: doc.data.bookTitle }]
+        : undefined,
+      presentation: "dialog",
       onSelect: async () => ({ view: await wordDetailView(ctx, doc) }),
     })),
   };
@@ -112,6 +124,7 @@ export default {
       id: "lookup-save",
       title: "Look up & save",
       icon: "book-bookmark",
+      presentation: "dialog",
       run: async (input) => {
         const { term, language } = await saveWord(ctx, {
           text: input.text,
@@ -122,13 +135,10 @@ export default {
         const doc = await words(ctx).get(idFor(term, language));
         return {
           toast: `Saved “${term}”`,
-          view: {
-            kind: "blocks",
-            blocks: wordBlocks(doc.data, async () => {
-              await words(ctx).delete(idFor(term, language));
-              return { close: true, toast: `Removed “${term}”` };
-            }),
-          },
+          view: wordDetail(doc.data, async () => {
+            await words(ctx).delete(idFor(term, language));
+            return { close: true, toast: `Removed “${term}”` };
+          }),
         };
       },
     });

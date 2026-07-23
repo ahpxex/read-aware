@@ -29,8 +29,6 @@
       "annotations_read": "Leer tus subrayados, notas y preguntas",
       "annotations_write": "Crear, editar y eliminar subrayados y notas",
       "reading_read": "Leer tu progreso y tiempo de lectura",
-      "vocabulary_read": "Leer tu cuaderno de vocabulario",
-      "vocabulary_write": "Añadir y quitar entradas del cuaderno de vocabulario",
       "conversations_read": "Leer tus conversaciones de IA",
       "agent_tools": "Registrar herramientas en el agente de lectura",
       "service_network": "Acceder a la red",
@@ -69,6 +67,7 @@
     },
     "configure": "Ajustes",
     "configureSave": "Guardar",
-    "configureSaved": "Ajustes del plugin guardados"
+    "configureSaved": "Ajustes del plugin guardados",
+    "builtin": "Integrado"
   }
 }

@@ -33,11 +33,34 @@ import {
 } from "../lib/plugin-types";
 import { requestPluginReaderNav } from "../state/reader-nav";
 import {
+  pluginDocsDelete,
+  pluginDocsGet,
+  pluginDocsList,
+  pluginDocsPut,
+  type PluginDocumentRow,
+} from "./plugin-backend";
+import {
   registerCommandContribution,
   registerHeaderActionContribution,
   registerSelectionActionContribution,
   registerToolContribution,
 } from "../state/plugin-store";
+
+function toPluginDocument(row: PluginDocumentRow) {
+  let data: unknown = null;
+  try {
+    data = JSON.parse(row.json);
+  } catch {
+    data = null;
+  }
+  return {
+    id: row.id,
+    data,
+    bookId: row.bookId ?? undefined,
+    anchor: row.anchor ?? undefined,
+    updatedAt: row.updatedAt,
+  };
+}
 
 const SESSION_EVENTS: readonly PluginSessionEventName[] = [
   "book-opened",
@@ -82,6 +105,32 @@ export function buildPluginContext(
       },
       remove: (key) => {
         localKV.removeItem(storagePrefix + key);
+      },
+      collection: (name) => {
+        const collection = String(name);
+        if (!/^[a-z0-9][a-z0-9_-]{0,63}$/.test(collection)) {
+          throw new Error(`invalid collection name: ${collection}`);
+        }
+        return {
+          put: (id, data, options) =>
+            pluginDocsPut(manifest.id, collection, String(id), JSON.stringify(data ?? null), {
+              bookId: options?.bookId,
+              anchor: options?.anchor,
+            }),
+          get: async (id) => {
+            const row = await pluginDocsGet(manifest.id, collection, String(id));
+            return (row ? toPluginDocument(row) : null) as never;
+          },
+          delete: (id) => pluginDocsDelete(manifest.id, collection, String(id)),
+          list: async (filter) =>
+            (
+              await pluginDocsList(manifest.id, collection, {
+                bookId: filter?.bookId,
+                limit: filter?.limit,
+                oldestFirst: filter?.oldestFirst,
+              })
+            ).map(toPluginDocument) as never,
+        };
       },
     },
     ui: {
@@ -267,21 +316,6 @@ export function buildPluginContext(
       getTime: domain.reading.getTime,
       on: trackedOn(domain.reading.on),
     };
-  }
-
-  // ─── Vocabulary ───────────────────────────────────────────────────────────
-
-  if (permissions.has("vocabulary:read") || permissions.has("vocabulary:write")) {
-    ctx.vocabulary = {
-      list: domain.vocabulary.list,
-      on: trackedOn(domain.vocabulary.on),
-    };
-    if (permissions.has("vocabulary:write")) {
-      ctx.vocabulary.write = {
-        add: domain.vocabulary.add,
-        remove: domain.vocabulary.remove,
-      };
-    }
   }
 
   // ─── Conversations ────────────────────────────────────────────────────────

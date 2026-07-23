@@ -29,8 +29,6 @@
       "annotations_read": "Markierungen, Notizen und gestellte Fragen lesen",
       "annotations_write": "Markierungen und Notizen erstellen, bearbeiten und löschen",
       "reading_read": "Lesefortschritt und Lesezeit lesen",
-      "vocabulary_read": "Vokabelheft lesen",
-      "vocabulary_write": "Einträge im Vokabelheft hinzufügen und entfernen",
       "conversations_read": "KI-Unterhaltungen lesen",
       "agent_tools": "Werkzeuge am Lese-Agenten registrieren",
       "service_network": "Auf das Netzwerk zugreifen",
@@ -69,6 +67,7 @@
     },
     "configure": "Einstellungen",
     "configureSave": "Speichern",
-    "configureSaved": "Plugin-Einstellungen gespeichert"
+    "configureSaved": "Plugin-Einstellungen gespeichert",
+    "builtin": "Integriert"
   }
 }

@@ -29,8 +29,6 @@
       "annotations_read": "讀取螢光標記、筆記與提問記錄",
       "annotations_write": "建立、編輯與刪除螢光標記和筆記",
       "reading_read": "讀取閱讀進度與閱讀時長",
-      "vocabulary_read": "讀取生詞本",
-      "vocabulary_write": "新增與移除生詞本條目",
       "conversations_read": "讀取 AI 對話",
       "agent_tools": "為閱讀 agent 註冊工具",
       "service_network": "存取網路",
@@ -69,6 +67,7 @@
     },
     "configure": "設定",
     "configureSave": "儲存",
-    "configureSaved": "外掛設定已儲存"
+    "configureSaved": "外掛設定已儲存",
+    "builtin": "內建"
   }
 }

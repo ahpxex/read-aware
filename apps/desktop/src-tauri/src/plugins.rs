@@ -18,6 +18,9 @@ pub struct PluginEntry {
     pub id: String,
     /// Raw manifest.json text; the frontend owns parsing + validation.
     pub manifest: String,
+    /// Shipped inside the app bundle (bundled-plugins/): not uninstallable,
+    /// enabled by default, updated with the app.
+    pub builtin: bool,
 }
 
 fn plugins_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -28,6 +31,31 @@ fn plugins_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
         .join("plugins");
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     Ok(dir)
+}
+
+/// Built-in plugins ship as app resources (tauri.conf `bundle.resources`).
+fn bundled_plugins_dir(app: &tauri::AppHandle) -> Option<PathBuf> {
+    let dir = app.path().resource_dir().ok()?.join("bundled-plugins");
+    dir.is_dir().then_some(dir)
+}
+
+fn list_plugin_dirs(dir: &Path, builtin: bool, entries: &mut Vec<PluginEntry>) {
+    let Ok(read) = fs::read_dir(dir) else { return };
+    for entry in read {
+        let Ok(entry) = entry else { continue };
+        let Ok(file_type) = entry.file_type() else { continue };
+        if !file_type.is_dir() {
+            continue;
+        }
+        let id = entry.file_name().to_string_lossy().to_string();
+        if !valid_plugin_id(&id) || entries.iter().any(|e| e.id == id) {
+            continue;
+        }
+        let Ok(manifest) = fs::read_to_string(entry.path().join("manifest.json")) else {
+            continue;
+        };
+        entries.push(PluginEntry { id, manifest, builtin });
+    }
 }
 
 /// Same shape the web-side manifest validator enforces: lowercase ASCII,
@@ -43,25 +71,14 @@ fn valid_plugin_id(id: &str) -> bool {
 
 #[tauri::command]
 pub fn plugins_list(app: tauri::AppHandle) -> Result<Vec<PluginEntry>, String> {
-    let dir = plugins_dir(&app)?;
     let mut entries = Vec::new();
-    for entry in fs::read_dir(&dir).map_err(|e| e.to_string())? {
-        let Ok(entry) = entry else { continue };
-        let Ok(file_type) = entry.file_type() else { continue };
-        if !file_type.is_dir() {
-            continue;
-        }
-        let id = entry.file_name().to_string_lossy().to_string();
-        if !valid_plugin_id(&id) {
-            continue;
-        }
-        // A folder without a readable manifest is ignored, not an error — a
-        // half-copied plugin must not break enumeration for the others.
-        let Ok(manifest) = fs::read_to_string(entry.path().join("manifest.json")) else {
-            continue;
-        };
-        entries.push(PluginEntry { id, manifest });
+    // Bundled first — a bundled id shadows any user-dir copy of the same id.
+    // A folder without a readable manifest is ignored, not an error — a
+    // half-copied plugin must not break enumeration for the others.
+    if let Some(bundled) = bundled_plugins_dir(&app) {
+        list_plugin_dirs(&bundled, true, &mut entries);
     }
+    list_plugin_dirs(&plugins_dir(&app)?, false, &mut entries);
     entries.sort_by(|a, b| a.id.cmp(&b.id));
     Ok(entries)
 }
@@ -91,7 +108,7 @@ pub fn plugins_install(app: tauri::AppHandle, src_dir: String) -> Result<PluginE
         fs::remove_dir_all(&dest).map_err(|e| e.to_string())?;
     }
     copy_dir(&src, &dest)?;
-    Ok(PluginEntry { id, manifest })
+    Ok(PluginEntry { id, manifest, builtin: false })
 }
 
 /// Recursive copy of regular files and directories. Hidden entries (.git,
@@ -189,11 +206,16 @@ pub fn plugins_install_files(
         }
         fs::write(&target, file.content.as_bytes()).map_err(|e| e.to_string())?;
     }
-    Ok(PluginEntry { id, manifest })
+    Ok(PluginEntry { id, manifest, builtin: false })
 }
 
 #[tauri::command]
 pub fn plugins_uninstall(app: tauri::AppHandle, id: String) -> Result<(), String> {
+    if let Some(bundled) = bundled_plugins_dir(&app) {
+        if bundled.join(&id).is_dir() {
+            return Err(format!("\"{id}\" is a built-in plugin and cannot be uninstalled"));
+        }
+    }
     if !valid_plugin_id(&id) {
         return Err("invalid plugin id".into());
     }
@@ -226,17 +248,31 @@ pub fn serve_plugin_asset(
     if rel.is_empty() || rel.contains("..") || rel.contains('%') || rel.contains('\\') {
         return not_found();
     }
-    let Ok(base) = plugins_dir(app) else {
-        return not_found();
-    };
-    let full = base.join(&rel);
-    // Canonicalize both ends so the containment check holds through symlinks.
-    let (Ok(canonical), Ok(canonical_base)) = (full.canonicalize(), base.canonicalize()) else {
-        return not_found();
-    };
-    if !canonical.starts_with(&canonical_base) {
-        return not_found();
+    // Bundled root first (a bundled id shadows a user-dir copy, matching
+    // plugins_list), then the user dir; containment is canonicalized per root.
+    let mut resolved: Option<PathBuf> = None;
+    let mut roots: Vec<PathBuf> = Vec::new();
+    if let Some(bundled) = bundled_plugins_dir(app) {
+        roots.push(bundled);
     }
+    if let Ok(user) = plugins_dir(app) {
+        roots.push(user);
+    }
+    for base in roots {
+        let full = base.join(&rel);
+        // Canonicalize both ends so the containment check holds through symlinks.
+        let (Ok(canonical), Ok(canonical_base)) = (full.canonicalize(), base.canonicalize())
+        else {
+            continue;
+        };
+        if canonical.starts_with(&canonical_base) && canonical.is_file() {
+            resolved = Some(canonical);
+            break;
+        }
+    }
+    let Some(canonical) = resolved else {
+        return not_found();
+    };
     let Ok(bytes) = fs::read(&canonical) else {
         return not_found();
     };

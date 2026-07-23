@@ -29,8 +29,6 @@
       "annotations_read": "ハイライト・メモ・質問履歴の読み取り",
       "annotations_write": "ハイライトとメモの作成・編集・削除",
       "reading_read": "読書の進捗と読書時間の読み取り",
-      "vocabulary_read": "単語帳の読み取り",
-      "vocabulary_write": "単語帳への追加と削除",
       "conversations_read": "AI との会話の読み取り",
       "agent_tools": "読書エージェントへのツール登録",
       "service_network": "ネットワークへのアクセス",
@@ -69,6 +67,7 @@
     },
     "configure": "設定",
     "configureSave": "保存",
-    "configureSaved": "プラグイン設定を保存しました"
+    "configureSaved": "プラグイン設定を保存しました",
+    "builtin": "内蔵"
   }
 }

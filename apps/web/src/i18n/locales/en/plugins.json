@@ -29,8 +29,6 @@
       "annotations_read": "Read your highlights, notes, and asked questions",
       "annotations_write": "Create, edit, and delete highlights and notes",
       "reading_read": "Read your reading progress and reading time",
-      "vocabulary_read": "Read your vocabulary notebook",
-      "vocabulary_write": "Add and remove vocabulary notebook entries",
       "conversations_read": "Read your AI conversations",
       "agent_tools": "Register tools on the reading agent",
       "service_network": "Access the network",
@@ -69,6 +67,7 @@
     },
     "configure": "Settings",
     "configureSave": "Save",
-    "configureSaved": "Plugin settings saved"
+    "configureSaved": "Plugin settings saved",
+    "builtin": "Built-in"
   }
 }

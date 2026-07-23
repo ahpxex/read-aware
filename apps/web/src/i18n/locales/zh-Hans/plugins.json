@@ -29,8 +29,6 @@
       "annotations_read": "读取高亮、笔记与提问记录",
       "annotations_write": "创建、编辑与删除高亮和笔记",
       "reading_read": "读取阅读进度与阅读时长",
-      "vocabulary_read": "读取生词本",
-      "vocabulary_write": "添加与移除生词本条目",
       "conversations_read": "读取 AI 对话",
       "agent_tools": "为阅读 agent 注册工具",
       "service_network": "访问网络",
@@ -69,6 +67,7 @@
     },
     "configure": "设置",
     "configureSave": "保存",
-    "configureSaved": "插件设置已保存"
+    "configureSaved": "插件设置已保存",
+    "builtin": "内置"
   }
 }

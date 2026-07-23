@@ -117,6 +117,9 @@ export function PluginsPanel() {
                   <span className="flex items-center gap-2">
                     <span>{manifest.name}</span>
                     <Caption className="text-fg-subtle">v{manifest.version}</Caption>
+                    {plugin.builtin && (
+                      <Badge className="text-[11px]">{t("settings.builtin")}</Badge>
+                    )}
                   </span>
                 }
                 description={
@@ -166,16 +169,18 @@ export function PluginsPanel() {
                         {t("settings.configure")}
                       </Button>
                     )}
-                    <Button
-                      size="sm"
-                      variant={confirmingUninstall === manifest.id ? "danger" : "ghost"}
-                      onClick={() => void handleUninstall(manifest.id)}
-                      onBlur={() => setConfirmingUninstall(null)}
-                    >
-                      {confirmingUninstall === manifest.id
-                        ? t("settings.uninstallConfirmShort")
-                        : t("settings.uninstall")}
-                    </Button>
+                    {!plugin.builtin && (
+                      <Button
+                        size="sm"
+                        variant={confirmingUninstall === manifest.id ? "danger" : "ghost"}
+                        onClick={() => void handleUninstall(manifest.id)}
+                        onBlur={() => setConfirmingUninstall(null)}
+                      >
+                        {confirmingUninstall === manifest.id
+                          ? t("settings.uninstallConfirmShort")
+                          : t("settings.uninstall")}
+                      </Button>
+                    )}
                     <Toggle
                       aria-label={t("settings.enabled")}
                       checked={plugin.enabled}

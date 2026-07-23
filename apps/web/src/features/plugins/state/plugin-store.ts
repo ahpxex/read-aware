@@ -110,9 +110,13 @@ function readEnabledMap(): Record<string, boolean> {
   }
 }
 
-/** Manually dropped folders start disabled; installing through the app opts in. */
-export function isPluginEnabled(id: string): boolean {
-  return readEnabledMap()[id] === true;
+/**
+ * Manually dropped folders start disabled; installing through the app opts
+ * in; BUILT-IN plugins default to enabled unless explicitly switched off.
+ */
+export function isPluginEnabled(id: string, builtin = false): boolean {
+  const value = readEnabledMap()[id];
+  return builtin ? value !== false : value === true;
 }
 
 export function persistPluginEnabled(id: string, enabled: boolean): void {

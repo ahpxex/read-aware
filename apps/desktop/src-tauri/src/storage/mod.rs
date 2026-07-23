@@ -398,6 +398,27 @@ const MIGRATIONS: &[(i64, &str, &str)] = &[
             PRIMARY KEY (book_id, local_hour)
          );",
     ),
+    (
+        10,
+        "plugin_documents",
+        // 插件文档集合：插件的结构化私有数据（KV 之上、核心域之下的一层）。
+        // 生命周期归插件（卸载即清）；book_id/anchor 是可选出处索引（无书籍
+        // 级联——删书后文档存活，出处只是引用不是归属）。
+        "CREATE TABLE IF NOT EXISTS plugin_documents (
+            plugin_id  TEXT NOT NULL,
+            collection TEXT NOT NULL,
+            id         TEXT NOT NULL,
+            json       TEXT NOT NULL,
+            book_id    TEXT,
+            anchor     TEXT,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY (plugin_id, collection, id)
+         );
+         CREATE INDEX IF NOT EXISTS ix_plugin_documents_book
+            ON plugin_documents (plugin_id, collection, book_id);
+         CREATE INDEX IF NOT EXISTS ix_plugin_documents_updated
+            ON plugin_documents (plugin_id, collection, updated_at);",
+    ),
 ];
 
 /// Apply migrations newer than the highest recorded version, up to `max_version`
@@ -2169,129 +2190,188 @@ pub fn ai_chat_clear(conversation_id: String, db: State<'_, Db>) -> Result<(), S
     Ok(())
 }
 
-// --- Vocabulary projection (migration v9) ---
+// --- Plugin documents (migration v10) ---
 
-/// One vocabulary-notebook entry; mirrors the web `VocabularyEntryRow` wire shape.
+/// One plugin document; mirrors the web `PluginDocumentRow` wire shape.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct VocabularyEntryRow {
+pub struct PluginDocumentRow {
     pub id: String,
-    pub term: String,
-    pub language: String,
-    pub entry_json: String,
-    #[serde(default)]
-    pub context: Option<String>,
+    pub json: String,
     #[serde(default)]
     pub book_id: Option<String>,
     #[serde(default)]
-    pub book_title: Option<String>,
-    pub added_at: String,
+    pub anchor: Option<String>,
+    pub updated_at: String,
 }
 
-fn row_to_vocabulary(row: &rusqlite::Row) -> rusqlite::Result<VocabularyEntryRow> {
-    Ok(VocabularyEntryRow {
+fn row_to_plugin_document(row: &rusqlite::Row) -> rusqlite::Result<PluginDocumentRow> {
+    Ok(PluginDocumentRow {
         id: row.get("id")?,
-        term: row.get("term")?,
-        language: row.get("language")?,
-        entry_json: row.get("entry_json")?,
-        context: row.get("context")?,
+        json: row.get("json")?,
         book_id: row.get("book_id")?,
-        book_title: row.get("book_title")?,
-        added_at: row.get("added_at")?,
+        anchor: row.get("anchor")?,
+        updated_at: row.get("updated_at")?,
     })
 }
 
 #[tauri::command]
-pub fn vocabulary_list(db: State<'_, Db>) -> Result<Vec<VocabularyEntryRow>, String> {
+pub fn plugin_docs_put(
+    plugin_id: String,
+    collection: String,
+    id: String,
+    json: String,
+    book_id: Option<String>,
+    anchor: Option<String>,
+    db: State<'_, Db>,
+) -> Result<(), String> {
     let conn = db.0.lock().map_err(|e| e.to_string())?;
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, term, language, entry_json, context, book_id, book_title, added_at
-             FROM vocabulary_entries WHERE removed_at IS NULL ORDER BY added_at DESC",
-        )
-        .map_err(|e| e.to_string())?;
+    conn.execute(
+        "INSERT INTO plugin_documents
+            (plugin_id, collection, id, json, book_id, anchor, updated_at)
+         VALUES (?1,?2,?3,?4,?5,?6, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+         ON CONFLICT(plugin_id, collection, id) DO UPDATE SET
+            json=excluded.json, book_id=excluded.book_id, anchor=excluded.anchor,
+            updated_at=excluded.updated_at",
+        params![plugin_id, collection, id, json, book_id, anchor],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn plugin_docs_get(
+    plugin_id: String,
+    collection: String,
+    id: String,
+    db: State<'_, Db>,
+) -> Result<Option<PluginDocumentRow>, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    match conn.query_row(
+        "SELECT id, json, book_id, anchor, updated_at FROM plugin_documents
+         WHERE plugin_id = ?1 AND collection = ?2 AND id = ?3",
+        params![plugin_id, collection, id],
+        row_to_plugin_document,
+    ) {
+        Ok(row) => Ok(Some(row)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+#[tauri::command]
+pub fn plugin_docs_delete(
+    plugin_id: String,
+    collection: String,
+    id: String,
+    db: State<'_, Db>,
+) -> Result<(), String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "DELETE FROM plugin_documents WHERE plugin_id = ?1 AND collection = ?2 AND id = ?3",
+        params![plugin_id, collection, id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn plugin_docs_list(
+    plugin_id: String,
+    collection: String,
+    book_id: Option<String>,
+    limit: Option<i64>,
+    oldest_first: Option<bool>,
+    db: State<'_, Db>,
+) -> Result<Vec<PluginDocumentRow>, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    let order = if oldest_first.unwrap_or(false) { "ASC" } else { "DESC" };
+    let sql = format!(
+        "SELECT id, json, book_id, anchor, updated_at FROM plugin_documents
+         WHERE plugin_id = ?1 AND collection = ?2
+           AND (?3 IS NULL OR book_id = ?3)
+         ORDER BY updated_at {order}
+         LIMIT ?4"
+    );
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
     let rows = stmt
-        .query_map([], row_to_vocabulary)
+        .query_map(
+            params![plugin_id, collection, book_id, limit.unwrap_or(i64::MAX)],
+            row_to_plugin_document,
+        )
         .map_err(|e| e.to_string())?
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| e.to_string())?;
     Ok(rows)
 }
 
-fn vocabulary_put_inner(conn: &Connection, entry: &VocabularyEntryRow) -> Result<(), String> {
+/// Uninstall wipe — documents die with the plugin (their declared lifecycle).
+#[tauri::command]
+pub fn plugin_docs_clear(plugin_id: String, db: State<'_, Db>) -> Result<(), String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
     conn.execute(
-        "INSERT INTO vocabulary_entries
-            (id, term, language, entry_json, context, book_id, book_title, added_at, removed_at)
-         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,NULL)
-         ON CONFLICT(id) DO UPDATE SET
-            term=excluded.term, language=excluded.language,
-            entry_json=excluded.entry_json, context=excluded.context,
-            book_id=excluded.book_id, book_title=excluded.book_title,
-            added_at=excluded.added_at, removed_at=NULL",
-        params![
-            entry.id,
-            entry.term,
-            entry.language,
-            entry.entry_json,
-            entry.context,
-            entry.book_id,
-            entry.book_title,
-            entry.added_at,
-        ],
+        "DELETE FROM plugin_documents WHERE plugin_id = ?1",
+        params![plugin_id],
     )
     .map_err(|e| e.to_string())?;
     Ok(())
 }
 
+/// One-time migration: the retired core vocabulary projection moves into the
+/// built-in vocabulary plugin's document collection (vocabulary/words), then
+/// the source rows are deleted. Idempotent (second run finds no rows).
 #[tauri::command]
-pub fn vocabulary_put(entry: VocabularyEntryRow, db: State<'_, Db>) -> Result<(), String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
-    vocabulary_put_inner(&conn, &entry)
-}
-
-/// Soft delete — the tombstone keeps future sync merges resolvable.
-#[tauri::command]
-pub fn vocabulary_remove(id: String, db: State<'_, Db>) -> Result<(), String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
-    conn.execute(
-        "UPDATE vocabulary_entries
-         SET removed_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
-         WHERE id = ?1",
-        params![id],
-    )
-    .map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-/// Bulk seed for the one-time app_kv → SQLite migration (INSERT-only, keeps
-/// any rows the table already has).
-#[tauri::command]
-pub fn vocabulary_import(
-    entries: Vec<VocabularyEntryRow>,
-    db: State<'_, Db>,
-) -> Result<(), String> {
+pub fn vocabulary_migrate_to_plugin_documents(db: State<'_, Db>) -> Result<i64, String> {
     let mut conn = db.0.lock().map_err(|e| e.to_string())?;
     let tx = conn.transaction().map_err(|e| e.to_string())?;
-    for entry in &entries {
-        tx.execute(
-            "INSERT OR IGNORE INTO vocabulary_entries
-                (id, term, language, entry_json, context, book_id, book_title, added_at)
-             VALUES (?1,?2,?3,?4,?5,?6,?7,?8)",
-            params![
-                entry.id,
-                entry.term,
-                entry.language,
-                entry.entry_json,
-                entry.context,
-                entry.book_id,
-                entry.book_title,
-                entry.added_at,
-            ],
-        )
-        .map_err(|e| e.to_string())?;
+    let moved: i64;
+    {
+        let mut stmt = tx
+            .prepare(
+                "SELECT id, term, language, entry_json, context, book_id, book_title, added_at
+                 FROM vocabulary_entries WHERE removed_at IS NULL",
+            )
+            .map_err(|e| e.to_string())?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, String>(3)?,
+                    row.get::<_, Option<String>>(4)?,
+                    row.get::<_, Option<String>>(5)?,
+                    row.get::<_, Option<String>>(6)?,
+                    row.get::<_, String>(7)?,
+                ))
+            })
+            .map_err(|e| e.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| e.to_string())?;
+        moved = rows.len() as i64;
+        for (id, term, language, entry_json, context, book_id, book_title, added_at) in rows {
+            let entry: Value = serde_json::from_str(&entry_json).unwrap_or(Value::Null);
+            let doc = serde_json::json!({
+                "term": term,
+                "language": language,
+                "entry": entry,
+                "context": context,
+                "bookTitle": book_title,
+                "addedAt": added_at,
+            });
+            tx.execute(
+                "INSERT OR IGNORE INTO plugin_documents
+                    (plugin_id, collection, id, json, book_id, anchor, updated_at)
+                 VALUES ('vocabulary', 'words', ?1, ?2, ?3, NULL, ?4)",
+                params![id, doc.to_string(), book_id, added_at],
+            )
+            .map_err(|e| e.to_string())?;
+        }
     }
+    tx.execute("DELETE FROM vocabulary_entries", [])
+        .map_err(|e| e.to_string())?;
     tx.commit().map_err(|e| e.to_string())?;
-    Ok(())
+    Ok(moved)
 }
 
 // --- Reading-time projection (migration v9) ---

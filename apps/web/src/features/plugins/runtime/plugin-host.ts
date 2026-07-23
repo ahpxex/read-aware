@@ -27,6 +27,7 @@ import {
   installPluginFilesCmd,
   installPluginFromDir,
   listPluginEntries,
+  pluginDocsClear,
   pluginModuleUrl,
   uninstallPluginFiles,
   type PluginDiskEntry,
@@ -82,7 +83,11 @@ export async function initializePlugins(): Promise<void> {
           `manifest.id "${manifest.id}" does not match folder name "${entry.id}"`,
         );
       }
-      installed.push({ manifest, enabled: isPluginEnabled(manifest.id) });
+      installed.push({
+        manifest,
+        enabled: isPluginEnabled(manifest.id, entry.builtin === true),
+        builtin: entry.builtin === true,
+      });
     } catch (error) {
       // Keep the broken folder visible in settings instead of hiding it.
       installed.push({
@@ -208,10 +213,19 @@ export function installPluginFiles(
   return installPluginFilesCmd(id, files).then(adoptDiskEntry);
 }
 
-/** Remove the plugin's files; its namespaced storage is deliberately kept. */
+/**
+ * Remove the plugin's files. Its KV storage is deliberately kept (settings
+ * survive a reinstall); its DOCUMENT collections are wiped — documents'
+ * declared lifecycle is the plugin's own.
+ */
 export async function uninstallPlugin(id: string): Promise<void> {
+  const target = getInstalled().find((entry) => entry.manifest.id === id);
+  if (target?.builtin) throw new Error(`"${id}" is a built-in plugin`);
   await deactivatePlugin(id);
   await uninstallPluginFiles(id);
+  await pluginDocsClear(id).catch((error) => {
+    console.error(`[plugins] document wipe for "${id}" failed`, error);
+  });
   forgetPluginEnabled(id);
   setInstalledPlugins(getInstalled().filter((entry) => entry.manifest.id !== id));
 }

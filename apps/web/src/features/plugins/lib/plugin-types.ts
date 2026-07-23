@@ -58,5 +58,7 @@ export type RegisteredTool = PluginToolDefinition & {
 export type InstalledPlugin = {
   manifest: PluginManifest;
   enabled: boolean;
+  /** Shipped in the app bundle: default-enabled, not uninstallable. */
+  builtin?: boolean;
   error?: string;
 };

@@ -29,8 +29,6 @@
       "annotations_read": "Lire vos surlignages, notes et questions posées",
       "annotations_write": "Créer, modifier et supprimer surlignages et notes",
       "reading_read": "Lire votre progression et votre temps de lecture",
-      "vocabulary_read": "Lire votre carnet de vocabulaire",
-      "vocabulary_write": "Ajouter et retirer des entrées du carnet de vocabulaire",
       "conversations_read": "Lire vos conversations IA",
       "agent_tools": "Enregistrer des outils sur l'agent de lecture",
       "service_network": "Accéder au réseau",
@@ -69,6 +67,7 @@
     },
     "configure": "Réglages",
     "configureSave": "Enregistrer",
-    "configureSaved": "Réglages enregistrés"
+    "configureSaved": "Réglages enregistrés",
+    "builtin": "Intégré"
   }
 }

@@ -42,6 +42,7 @@ type ReaderDictionaryModalProps = {
   word: string;
   /** The sentence/passage the word was picked from, for a contextual reading. */
   context?: string;
+  bookId?: string;
   bookTitle?: string;
   onClose: () => void;
 };
@@ -98,6 +99,7 @@ export function ReaderDictionaryModal({
   open,
   word,
   context,
+  bookId,
   bookTitle,
   onClose,
 }: ReaderDictionaryModalProps) {
@@ -171,7 +173,7 @@ export function ReaderDictionaryModal({
       removeFromVocabulary(term, explanationLanguage);
       setInVocab(false);
     } else {
-      addToVocabulary({ term, language: explanationLanguage, entry, context, bookTitle });
+      addToVocabulary({ term, language: explanationLanguage, entry, context, bookId, bookTitle });
       setInVocab(true);
     }
   };
@@ -310,6 +312,7 @@ export function ReaderDictionaryModal({
           <DictionarySentenceBody
             explanation={sentence}
             sourceSentence={term}
+            bookId={bookId}
             bookTitle={bookTitle}
             explanationLanguage={explanationLanguage}
           />
@@ -338,12 +341,14 @@ export function ReaderDictionaryModal({
 function DictionarySentenceBody({
   explanation,
   sourceSentence,
+  bookId,
   bookTitle,
   explanationLanguage,
 }: {
   explanation: SentenceExplanation;
   /** The looked-up sentence — stored as each saved gloss's provenance. */
   sourceSentence: string;
+  bookId?: string;
   bookTitle?: string;
   explanationLanguage: string;
 }) {
@@ -367,6 +372,7 @@ function DictionarySentenceBody({
           senses: [{ partOfSpeech: "", definition: gloss.meaning, examples: [] }],
         },
         context: sourceSentence,
+        bookId,
         bookTitle,
       });
     }

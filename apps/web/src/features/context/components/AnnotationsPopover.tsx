@@ -8,7 +8,8 @@ import { Body, Eyebrow, Popover } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { formatNumber, useTranslation } from "../../../i18n";
 import { AnnotationRow } from "../../annotations/components/AnnotationRow";
-import { deleteAnnotation, listAnnotations } from "../../annotations/lib/annotation-db";
+import { listAnnotations } from "../../annotations/lib/annotation-db";
+import { userDomain } from "../../../domain";
 import type { Annotation } from "../../annotations/lib/annotation-types";
 import type { LibraryBook } from "../../library/lib/library-types";
 
@@ -40,9 +41,13 @@ export function AnnotationsPopover({ books, onOpenBook }: AnnotationsPopoverProp
   }, [open, load]);
 
   const handleDelete = useCallback(async (id: string) => {
-    await deleteAnnotation(id);
+    const target = annotations.find((a) => a.id === id);
+    if (!target) return;
+    if (target.type === "highlight") await userDomain.annotations.removeHighlight(id);
+    else if (target.type === "note") await userDomain.annotations.removeNote(id);
+    else await userDomain.annotations.removeAsk(id);
     setAnnotations((prev) => prev.filter((a) => a.id !== id));
-  }, []);
+  }, [annotations]);
 
   const bookMap = new Map(books.map((b) => [b.id, b]));
   const grouped = new Map<string, Annotation[]>();

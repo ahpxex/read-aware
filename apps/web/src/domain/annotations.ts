@@ -109,6 +109,11 @@ export type AnnotationsDomain = {
     anchor?: string | null;
     chapterHref?: string | null;
   }): Promise<AskItem>;
+  /**
+   * Remove an ask trace. Any actor may erase (the user owns their traces);
+   * only the agent may record. Not part of the plugin surface today.
+   */
+  removeAsk(askId: string): Promise<void>;
 };
 
 export function createAnnotationsDomain(origin: EventOrigin): AnnotationsDomain {
@@ -194,6 +199,14 @@ export function createAnnotationsDomain(origin: EventOrigin): AnnotationsDomain 
       );
       bumpAnnotationsRevision();
       return toAnnotationItem(ask) as AskItem;
+    },
+    removeAsk: async (askId) => {
+      const existing = await getAnnotation(String(askId));
+      if (!existing || existing.type !== "ask") {
+        throw new Error(`ask not found: ${askId}`);
+      }
+      await deleteAnnotation(String(askId), origin);
+      bumpAnnotationsRevision();
     },
   };
 }

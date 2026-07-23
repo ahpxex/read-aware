@@ -14,6 +14,7 @@ import {
   listLibraryBooks,
   prepareBookImport,
   removeLibraryBook,
+  removeLibraryBooks,
   setLibraryBookStarred,
   updateBookMetadata,
   updateVirtualLibraryBookTitle,
@@ -83,6 +84,8 @@ export type BooksDomain = {
   setStarred(bookId: string, starred: boolean): Promise<void>;
   /** Remove a book from the shelf — irreversible for the source file. */
   remove(bookId: string): Promise<void>;
+  /** Batch removal (one storage round-trip; one event per book). */
+  removeMany(bookIds: string[]): Promise<void>;
   /**
    * Shelf entry for provider-served content (no file). Binding a virtual
    * book to its provider is the plugin runtime's concern, not the domain's.
@@ -132,6 +135,10 @@ export function createBooksDomain(origin: EventOrigin): BooksDomain {
     },
     remove: async (bookId) => {
       await removeLibraryBook(String(bookId), origin);
+      notifyLibraryChanged();
+    },
+    removeMany: async (bookIds) => {
+      await removeLibraryBooks(bookIds.map(String), origin);
       notifyLibraryChanged();
     },
     addVirtualBook: async (input) => {

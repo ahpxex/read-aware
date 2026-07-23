@@ -386,6 +386,19 @@ async function enrichParsedBook(
       origin: "system",
     });
   }
+  // Cover extraction resolving (either way) is a domain fact. The interim
+  // model inlines the cover (no blob key yet); a still-unchecked PDF keeps
+  // its retry eligibility and emits nothing.
+  if (enriched.coverChecked && !current.coverChecked) {
+    emitDomainEvents({
+      type: "book.coverExtracted",
+      payload: {
+        bookId: imported.id,
+        status: enriched.coverUrl ? "ready" : "none",
+      },
+      origin: "system",
+    });
+  }
   await putBookRecord(enriched);
   return { status: "enriched", book: enriched };
 }

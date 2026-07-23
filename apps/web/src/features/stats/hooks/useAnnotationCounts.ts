@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { listAnnotations } from "../../annotations/lib/annotation-db";
+import { userDomain } from "../../../domain";
 
 /** Note + highlight tallies for a single book. */
 export type BookAnnotationCounts = {
@@ -38,14 +38,14 @@ export function useAnnotationCounts(): AnnotationCounts {
   const refresh = useCallback(async () => {
     setIsLoading(true);
     try {
-      const all = await listAnnotations();
+      const all = await userDomain.annotations.list();
       const byBook = new Map<string, BookAnnotationCounts>();
       let notes = 0;
       let highlights = 0;
       for (const annotation of all) {
-        if (annotation.type !== "note" && annotation.type !== "highlight") continue;
+        if (annotation.kind !== "note" && annotation.kind !== "highlight") continue;
         const prev = byBook.get(annotation.bookId) ?? { ...EMPTY };
-        if (annotation.type === "note") {
+        if (annotation.kind === "note") {
           prev.notes += 1;
           notes += 1;
         } else {

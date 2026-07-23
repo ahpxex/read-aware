@@ -2417,6 +2417,7 @@ export function FoliateReaderView({
         open={dictionaryOpen}
         word={dictionaryWord}
         context={dictionaryContext}
+        bookId={selectedBook?.id}
         bookTitle={selectedBook?.title}
         onClose={() => setDictionaryOpen(false)}
       />

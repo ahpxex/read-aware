@@ -1,11 +1,9 @@
 {
-  "name": "@read-aware/plugin-dictionary",
+  "name": "@read-aware/plugin-rss-reader",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.5.0",
   "type": "module",
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "scripts": {
     "build": "bun run ../../scripts/build-plugin.ts",
     "test": "bun test",

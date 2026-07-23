@@ -2,8 +2,8 @@
 
 > **状态：** V1 已实现（2026-07-21）。§11 的五个阶段全部落地并经
 > Tauri MCP 在运行中的桌面应用里实测（dev 构建；打包构建下的生产 CSP
-> 尚待一次 `bun run build:desktop` 验证）。官方示例插件见
-> `examples/plugins/`。参照模型：**Obsidian** 定插件的域与权限层
+> 尚待一次 `bun run build:desktop` 验证）。第一方插件的可维护源码见
+> `plugins/`。参照模型：**Obsidian** 定插件的域与权限层
 > （信任模型、manifest、分发、生命周期），**Raycast** 定插件的界面层
 > （受限的 UI 词汇，一切插件界面都由应用的设计系统渲染）。
 
@@ -155,9 +155,10 @@ UI 贡献、会话事实、阅读器环境控制（`ctx.reader.openBook/goTo`）
 
 **内置插件（bundled plugins）**：垂直功能默认以插件形态构建（构造规则
 第五条），随应用打包分发（`bundled-plugins/` 资源目录）、默认启用、可禁
-用、不可卸载、走与第三方完全相同的契约。第一个住户是 **Dictionary**
-（词典，内含 saved-word 时间线）：选区查词保存、单词 Dialog、agent 工具，数据
-整个活在它自己的文档集合里——词典与生词本不再是核心功能/核心域。
+用、不可卸载、走与第三方完全相同的契约。目前的第一方住户只有
+**Dictionary** 和 **RSS Reader**。Dictionary 的词条数据整个活在自己的
+文档集合里；RSS Reader 的订阅数据留在自己的命名空间，并通过内容提供者
+把 feed 映射成虚拟书。它们都不是核心功能里的特例。
 
 第一方插件的可维护源码不放在 Tauri crate 里，而是各自作为 Bun/Turbo
 workspace 位于 `plugins/<id>/`。每个包以模块化 TypeScript 编写并产出

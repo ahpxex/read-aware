@@ -1,0 +1,10 @@
+{
+  "id": "rss-reader",
+  "name": "RSS Reader",
+  "version": "0.5.0",
+  "minAppVersion": "0.3.0",
+  "description": "Subscribe to RSS/Atom feeds and read each one as a book on your shelf — articles become chapters.",
+  "author": "ReadAware",
+  "permissions": ["service:network", "books:write", "agent:tools"],
+  "main": "main.js"
+}

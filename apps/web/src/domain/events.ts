@@ -65,7 +65,7 @@ export type DomainEventSubscribe<E extends DomainEventType> = <K extends E>(
 
 /**
  * Build a domain's subscribe function. `consumerLabel` names the observer in
- * error logs (e.g. `plugin:md-quote`, `agent`).
+ * error logs (e.g. `plugin:rss-reader`, `agent`).
  */
 export function domainSubscribe<E extends DomainEventType>(
   roster: readonly E[],

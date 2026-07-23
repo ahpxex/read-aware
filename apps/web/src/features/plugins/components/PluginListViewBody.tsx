@@ -20,6 +20,7 @@ import {
   type PluginTimelineRange,
 } from "../lib/plugin-timeline";
 import type { PluginListAccessory, PluginListItem, PluginListView } from "../lib/plugin-types";
+import { PluginActionGroup } from "./PluginActionGroup";
 import type { PluginResultRunner } from "./plugin-view-types";
 
 type PluginListViewBodyProps = {
@@ -129,6 +130,16 @@ export function PluginListViewBody({ view, busy, onResult }: PluginListViewBodyP
       })
     : [];
 
+  const listActions = view.actions?.length ? (
+    <PluginActionGroup
+      actions={view.actions}
+      busy={busy}
+      align="end"
+      display="icons"
+      onResult={onResult}
+    />
+  ) : null;
+
   if (view.items.length === 0) {
     return (
       <EmptyState
@@ -155,11 +166,15 @@ export function PluginListViewBody({ view, busy, onResult }: PluginListViewBodyP
           items={timelineTabs}
           defaultIndex={TIMELINE_RANGES.indexOf("all")}
           ariaLabel={t("viewer.timeline.filter")}
+          trailing={listActions}
         />
       ) : items.length === 0 ? (
         <EmptyState title={t("viewer.noMatches")} className="py-10" />
       ) : (
-        renderItems(items)
+        <Stack gap="sm">
+          {listActions}
+          {renderItems(items)}
+        </Stack>
       )}
     </Stack>
   );

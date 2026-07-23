@@ -50,6 +50,17 @@ async fn book_file_size(path: String) -> Result<u64, String> {
     .map_err(|err| format!("book_file_size task failed: {err}"))?
 }
 
+/// Write UTF-8 content to a path chosen by the user in the native save dialog.
+#[tauri::command]
+async fn write_export_file(path: String, content: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        std::fs::write(&path, content)
+            .map_err(|err| format!("Failed to write exported file {path}: {err}"))
+    })
+    .await
+    .map_err(|err| format!("write_export_file task failed: {err}"))?
+}
+
 /// Book files staged in memory for chunked transfer to the webview, keyed by
 /// the picked path. Mobile only: Android's IPC injects responses via
 /// `evaluateJavascript`, which chokes on multi-megabyte payloads (and Channel
@@ -838,6 +849,7 @@ pub fn run() {
             storage::reading_time_import,
             read_book_file,
             book_file_size,
+            write_export_file,
             book_read_open,
             book_read_chunk,
             book_read_close,

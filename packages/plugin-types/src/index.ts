@@ -166,6 +166,8 @@ export type PluginListView = {
   kind: "list";
   title?: string;
   items: PluginListItem[];
+  /** Host-rendered list-level actions; timelines place them after the tabs. */
+  actions?: PluginAction[];
   /** Shown when `items` is empty. */
   emptyText?: string;
   /** Adds host-rendered local filtering over title, subtitle, and keywords. */
@@ -738,6 +740,14 @@ export type PluginStorage = {
   collection(name: string): PluginDocumentCollection;
 };
 
+export type PluginExportFile = {
+  /** Suggested basename shown by the host save dialog. */
+  filename: string;
+  /** UTF-8 text content (CSV, JSON, Markdown, and similar formats). */
+  content: string;
+  mimeType?: string;
+};
+
 export type PluginDocument<T = unknown> = {
   id: string;
   data: T;
@@ -775,6 +785,8 @@ export type PluginContext = {
     registerHeaderAction(action: PluginHeaderAction): PluginDisposable;
     registerCommand(command: PluginCommand): PluginDisposable;
     showToast(message: string): void;
+    /** Open the host save flow for a plugin-generated text file. False means cancelled. */
+    exportFile(file: PluginExportFile): Promise<boolean>;
   };
   /**
    * Ambient reader control (user-visible, no data exposure): open a book,

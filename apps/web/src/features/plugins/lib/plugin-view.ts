@@ -200,6 +200,10 @@ function normalizeListView(input: Record<string, unknown>, context: string): Plu
     items: array(input.items, `${context}.items`, MAX_LIST_ITEMS).map((item, index) =>
       normalizeListItem(item, `${context}.items[${index}]`),
     ),
+    actions:
+      input.actions == null
+        ? undefined
+        : normalizeActions(input.actions, `${context}.actions`),
     emptyText: string(input.emptyText, `${context}.emptyText`, true),
     searchable: input.searchable === true,
     searchPlaceholder: string(input.searchPlaceholder, `${context}.searchPlaceholder`, true),

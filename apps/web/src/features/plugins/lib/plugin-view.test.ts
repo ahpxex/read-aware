@@ -113,6 +113,7 @@ describe("normalizePluginView", () => {
       kind: "list",
       searchable: true,
       timeline: true,
+      actions: [{ id: "export", label: "Export saved words", icon: "export", run: noOp }],
       items: [
         {
           id: "one",
@@ -130,6 +131,7 @@ describe("normalizePluginView", () => {
     if (view.kind !== "list") throw new Error("unexpected view");
     expect(view.searchable).toBe(true);
     expect(view.timeline).toBe(true);
+    expect(view.actions?.[0].id).toBe("export");
     expect(view.items[0].timestamp).toBe("2026-07-24T10:00:00.000Z");
     expect(view.items[0].presentation).toBe("dialog");
     expect(view.items[0].accessories?.[0]).toEqual({ kind: "tag", text: "Frankenstein" });

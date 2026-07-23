@@ -402,7 +402,9 @@ function PluginApiPage() {
           keywords, accessories, and empty states. <code>timeline</code> adds
           Today / This week / This month / All filters and local-date groups;
           an item can use <code>presentation: "dialog"</code> to show its
-          returned view over the list instead of pushing a child page.
+          returned view over the list instead of pushing a child page. List-level{" "}
+          <code>actions</code> are host-rendered icon buttons; timelines place
+          them at the far right of the tab row.
         </li>
         <li>
           <code>form</code> — text, textarea, number, select, choice, checkbox,
@@ -624,6 +626,11 @@ await ctx.books?.write?.addVirtualBook({
         </li>
         <li>
           <code>ctx.ui.showToast(message)</code>;
+        </li>
+        <li>
+          <code>ctx.ui.exportFile({"{ filename, content, mimeType? }"})</code>{" "}
+          opens the host save flow for generated CSV, JSON, Markdown, or other
+          UTF-8 text;
         </li>
         <li>
           <code>ctx.session.on(…)</code> — the session facts above;

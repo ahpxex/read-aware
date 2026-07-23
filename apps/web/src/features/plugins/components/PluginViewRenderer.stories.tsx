@@ -84,6 +84,14 @@ export const DictionaryTimeline: Story = {
       searchable: true,
       searchPlaceholder: "Search saved words",
       timeline: true,
+      actions: [
+        {
+          id: "export",
+          label: "Export saved words",
+          icon: "export",
+          run: () => ({ toast: "Exported saved words" }),
+        },
+      ],
       items: [
         {
           id: "serendipity",

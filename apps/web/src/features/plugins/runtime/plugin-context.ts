@@ -12,6 +12,7 @@ import { getDefaultStore } from "jotai";
 import type { DomainEventType } from "@read-aware/core";
 import { DEFAULT_LOCALE, i18n, isAppLocale } from "../../../i18n";
 import { onAppEvent } from "../../../platform/app-events";
+import { exportTextFile } from "../../../platform/export-file";
 import { localKV } from "../../../platform/local-store";
 import { createDomainApi, type DomainEventSubscribe } from "../../../domain";
 import { getAgentRuntime } from "../../ai/agent/agent-runtime";
@@ -175,6 +176,16 @@ export function buildPluginContext(
           }),
         ),
       showToast: (message) => showPluginToast(String(message)),
+      exportFile: (file) => {
+        if (!file || typeof file.filename !== "string" || typeof file.content !== "string") {
+          throw new Error("exportFile requires a filename and text content");
+        }
+        return exportTextFile({
+          filename: file.filename,
+          content: file.content,
+          mimeType: typeof file.mimeType === "string" ? file.mimeType : undefined,
+        });
+      },
     },
     reader: {
       openBook: (bookId) => {

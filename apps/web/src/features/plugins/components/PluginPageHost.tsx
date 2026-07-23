@@ -75,9 +75,12 @@ export function PluginPageHost({ navKey, onExit }: PluginPageHostProps) {
   if (!action) return null;
 
   return (
-    <Stack className="mx-auto w-full max-w-5xl px-6 py-8 pb-[calc(2rem+var(--ra-safe-bottom))]">
+    <Stack
+      gap="none"
+      className="mx-auto w-full max-w-5xl px-6 py-8 pb-[calc(2rem+var(--ra-safe-bottom))]"
+    >
       {viewDepth <= 1 && (
-        <Stack gap="xs" className="mb-6">
+        <Stack gap="xs" className={action.pluginName === action.title ? "mb-4" : "mb-6"}>
           <Heading as="h1">{action.title}</Heading>
           {action.pluginName !== action.title && (
             <Caption className="text-fg-subtle">{action.pluginName}</Caption>

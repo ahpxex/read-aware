@@ -746,7 +746,7 @@
 
 <ul>
   <li><strong>Markdown 详情</strong> —— 插件返回 Markdown 字符串，应用排版（复用聊天里现成的 <code>Markdown</code> 组件）。覆盖大半场景：查词、翻译、AI 生成内容、统计摘要。</li>
-  <li><strong>列表</strong> —— 宿主提供带 debounce 的搜索、keywords、accessories、空状态与下钻；<code>timeline</code> 提供今天／本周／本月／全部筛选与日期分组，列表项可用 <code>presentation: "dialog"</code> 在原列表上打开宿主 Dialog。</li>
+  <li><strong>列表</strong> —— 宿主提供带 debounce 的搜索、keywords、accessories、空状态与下钻；<code>timeline</code> 提供今天／本周／本月／全部筛选与日期分组，列表项可用 <code>presentation: "dialog"</code> 在原列表上打开宿主 Dialog。列表级 <code>actions</code> 由宿主渲染为 Tabs 同行最右侧的 IconButton；文本导出通过 <code>ctx.ui.exportFile</code> 交给系统保存面板。</li>
   <li><strong>表单</strong> —— text / textarea / number / select / choice / checkbox / toggle 全部映射到组件库控件。</li>
   <li><strong>Detail</strong> —— Raycast 式主内容、metadata、controls 与宿主 actions；语义控件在标题 trailing 区域，Dialog metadata 压成标题下方的安静信息行，actions 与宿主 Close 固定进入 Footer。</li>
   <li><strong>Blocks</strong> —— typography、词典、引文、指标、进度、标签、提示、section、group 与响应式 columns。</li>

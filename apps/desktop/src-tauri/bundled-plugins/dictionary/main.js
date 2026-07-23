@@ -53,6 +53,71 @@ function formatDate(iso) {
     : d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
+function definitionForExport(entry) {
+  return (entry.senses ?? [])
+    .map((sense) =>
+      [
+        sense.partOfSpeech
+          ? `${sense.partOfSpeech}: ${sense.definition}`
+          : sense.definition,
+        ...(sense.examples ?? []).map((example) => `Example: ${example}`),
+      ].join("\n"),
+    )
+    .join("\n\n");
+}
+
+function csvCell(value) {
+  return `"${String(value ?? "").replace(/"/g, '""')}"`;
+}
+
+function localDateStamp(date) {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+/** @param {import("read-aware").PluginContext} ctx */
+async function exportSavedWords(ctx, saved) {
+  const rows = [
+    [
+      "Word",
+      "Pronunciation",
+      "Definition",
+      "Etymology",
+      "Contextual meaning",
+      "Language",
+      "Book",
+      "Source context",
+      "Added at",
+    ],
+    ...saved.map((doc) => {
+      const word = doc.data;
+      return [
+        word.term,
+        word.entry?.pronunciation,
+        definitionForExport(word.entry ?? {}),
+        word.entry?.etymology,
+        word.entry?.contextualMeaning,
+        word.language,
+        word.bookTitle,
+        word.context,
+        word.addedAt,
+      ];
+    }),
+  ];
+  const content = `\uFEFF${rows.map((row) => row.map(csvCell).join(",")).join("\r\n")}`;
+  const date = localDateStamp(new Date());
+  const exported = await ctx.ui.exportFile({
+    filename: `readaware-dictionary-${date}.csv`,
+    content,
+    mimeType: "text/csv;charset=utf-8",
+  });
+  if (!exported) return undefined;
+  return {
+    toast: `Exported ${saved.length} saved ${saved.length === 1 ? "word" : "words"}`,
+  };
+}
+
 /** @param {import("read-aware").PluginContext} ctx */
 async function saveWord(ctx, input) {
   const term = input.text.trim().slice(0, 60);
@@ -184,6 +249,14 @@ async function notebookView(ctx) {
     searchable: true,
     searchPlaceholder: "Search saved words",
     timeline: true,
+    actions: [
+      {
+        id: "export",
+        label: "Export saved words",
+        icon: "export",
+        run: () => exportSavedWords(ctx, saved),
+      },
+    ],
     items: saved.map((doc) => ({
       id: doc.id,
       title: doc.data.term,

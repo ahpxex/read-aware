@@ -448,7 +448,9 @@ function PluginApiPage() {
         <li>
           <code>ctx.conversations</code> —{" "}
           <code>getBookThread(bookId)</code>、<code>listThreads()</code>、
-          <code>getThread(id)</code>。
+          <code>getThread(id)</code>。<code>on</code> で購読できます（
+          <code>aiConversation.started</code>、<code>aiMessage.appended</code>、
+          <code>aiMessage.removed</code>、<code>aiConversation.cleared</code>）。
         </li>
       </ul>
 

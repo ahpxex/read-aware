@@ -291,6 +291,7 @@ export function buildPluginContext(
       getBookThread: domain.conversations.getBookThread,
       listThreads: domain.conversations.listThreads,
       getThread: domain.conversations.getThread,
+      on: trackedOn(domain.conversations.on),
     };
   }
 

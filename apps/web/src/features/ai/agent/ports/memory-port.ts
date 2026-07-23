@@ -1,12 +1,24 @@
 /**
- * MemoryPort over the IndexedDB memory store。语义与 testing fixtures 对齐
- * （初始低置信、强化 +证据+置信、检索按 pinned/importance/recency 排序），
- * 将来换 SQLite 投影时只动这一层。
+ * MemoryPort over the SQLite memory store。语义与 testing fixtures 对齐
+ * （初始低置信、强化 +证据+置信、检索按 pinned/importance/recency 排序）。
+ * 每个意图点双写记忆域事件（事件先行、投影随后，origin "agent"）——
+ * memories 投影因此可从日志重放，写决策本身成为可同步事实
+ * （docs/data-model.md：consolidation as events）。
  */
 import type { MemoryPort, MemoryRecord } from "@read-aware/agent";
+import { emitDomainEvents } from "../../../../platform/domain-events";
 import { getMemoryRow, listAllMemoryRows, putMemoryRow } from "./memory-store";
 
 const isActive = (memory: MemoryRecord) => (memory.status ?? "active") === "active";
+
+/** agent 的 scope（"user" | "global" | `book:<id>`）→ 事件目录的 scope 字段。 */
+function eventScope(scope: MemoryRecord["scope"]): {
+  scope: "user" | "global" | "book";
+  bookId?: string;
+} {
+  if (scope.startsWith("book:")) return { scope: "book", bookId: scope.slice("book:".length) };
+  return { scope: scope === "global" ? "global" : "user" };
+}
 
 export function createMemoryPort(): MemoryPort {
   return {
@@ -41,6 +53,17 @@ export function createMemoryPort(): MemoryPort {
         createdAt: now,
         updatedAt: now,
       };
+      emitDomainEvents({
+        type: "memory.promoted",
+        payload: {
+          memoryId: record.id,
+          kind: record.kind,
+          ...eventScope(record.scope),
+          content: record.content,
+          importance: record.importance,
+        },
+        origin: "agent",
+      });
       await putMemoryRow(record);
       return record;
     },
@@ -50,6 +73,15 @@ export function createMemoryPort(): MemoryPort {
       memory.evidenceCount += 1;
       memory.importance = Math.min(1, memory.importance + 0.15);
       memory.updatedAt = new Date().toISOString();
+      emitDomainEvents({
+        type: "memory.revised",
+        payload: {
+          memoryId: memory.id,
+          importance: memory.importance,
+          evidenceCount: memory.evidenceCount,
+        },
+        origin: "agent",
+      });
       await putMemoryRow(memory);
     },
     applyMemoryChanges: async (changes) => {
@@ -60,6 +92,11 @@ export function createMemoryPort(): MemoryPort {
         switch (change.type) {
           case "supersede": {
             memory.status = "superseded";
+            emitDomainEvents({
+              type: "memory.superseded",
+              payload: { memoryId: memory.id, bySupersedingId: change.byId },
+              origin: "agent",
+            });
             await putMemoryRow(memory);
             if (change.byId) {
               const winner = await getMemoryRow(change.byId);
@@ -67,6 +104,15 @@ export function createMemoryPort(): MemoryPort {
                 winner.evidenceCount += 1;
                 winner.importance = Math.min(1, winner.importance + 0.1);
                 winner.updatedAt = now;
+                emitDomainEvents({
+                  type: "memory.revised",
+                  payload: {
+                    memoryId: winner.id,
+                    importance: winner.importance,
+                    evidenceCount: winner.evidenceCount,
+                  },
+                  origin: "agent",
+                });
                 await putMemoryRow(winner);
               }
             }
@@ -74,15 +120,30 @@ export function createMemoryPort(): MemoryPort {
           }
           case "forget":
             memory.status = "forgotten";
+            emitDomainEvents({
+              type: "memory.forgotten",
+              payload: { memoryId: memory.id, reason: "decay" },
+              origin: "agent",
+            });
             await putMemoryRow(memory);
             break;
           case "promote":
             memory.scope = change.scope;
             memory.updatedAt = now;
+            emitDomainEvents({
+              type: "memory.revised",
+              payload: { memoryId: memory.id, ...eventScope(memory.scope) },
+              origin: "agent",
+            });
             await putMemoryRow(memory);
             break;
           case "decay":
             memory.importance = change.importance;
+            emitDomainEvents({
+              type: "memory.revised",
+              payload: { memoryId: memory.id, importance: memory.importance },
+              origin: "agent",
+            });
             await putMemoryRow(memory);
             break;
         }

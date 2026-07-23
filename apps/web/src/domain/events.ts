@@ -43,6 +43,13 @@ export const READING_EVENTS = ["reading.progressed", "reading.timeRecorded"] as 
 
 export const VOCABULARY_EVENTS = ["vocabulary.added", "vocabulary.removed"] as const;
 
+export const CONVERSATION_EVENTS = [
+  "aiConversation.started",
+  "aiMessage.appended",
+  "aiMessage.removed",
+  "aiConversation.cleared",
+] as const;
+
 /** A domain event as observers receive it (canonical type + payload + origin). */
 export type ObservedDomainEvent<K extends DomainEventType = DomainEventType> = Extract<
   DomainEventBroadcast,

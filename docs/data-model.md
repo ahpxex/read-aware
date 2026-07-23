@@ -167,13 +167,14 @@ row's historical timestamp while their HLC is stamped at synthesis time.
 | `ask.recorded` / `ask.removed` | `{ askId, bookId, anchor?, chapterHref?, text }` / `{ askId }` — passive traces of the book thread (agent-architecture §7) |
 | `vocabulary.added` | `{ entryId, term, language, entry, context?, bookId?, bookTitle? }` — `entryId` is the dedupe identity `<language> <term.lowercase>`; re-adding replaces the snapshot on replay (upsert semantics) |
 | `vocabulary.removed` | `{ entryId }` |
-| `aiConversation.started` | `{ conversationId, bookId, title? }` |
+| `aiConversation.started` | `{ conversationId, bookId?, title? }` — `bookId` absent on global (Context page) threads |
 | `aiMessage.appended` | `{ messageId, conversationId, role, seq, content, model?, attachments? }` |
+| `aiMessage.removed` | `{ messageId, conversationId }` — retry/regenerate truncation; without it replay would resurrect truncated turns |
 | `aiConversation.cleared` | `{ conversationId }` |
 | `profile.updated` | `{ displayName?, traits? }` |
 | `entity.resolved` / `entity.merged` | `{ entityId, … }` / `{ keepId, mergedId }` |
 | `memory.promoted` | `{ memoryId, kind, scope?, bookId?, entityId?, subject?, content, importance?, confidence?, evidence[] }` |
-| `memory.revised` / `memory.superseded` / `memory.feedback` / `memory.forgotten` | see `events.ts` |
+| `memory.revised` / `memory.superseded` / `memory.feedback` / `memory.forgotten` | see `events.ts` (`revised` additively carries `scope`/`bookId`/`evidenceCount`; `superseded.bySupersedingId` optional) |
 
 > **Consolidation as events.** Memory promotion/decay/conflict-resolution
 > decisions are themselves events (`memory.*`), so the memory projection is
@@ -181,14 +182,14 @@ row's historical timestamp while their HLC is stamped at synthesis time.
 > *outcomes* are logged.
 >
 > **Producer status.** Book / collection / annotation / ask / reading /
-> vocabulary events are **live**: the UX persistence seams dual-write them
-> (event first, projection second), and boot-time genesis reconciliation
+> vocabulary / **AI-conversation** / **memory** events are **live**: the UX
+> persistence seams dual-write them (event first, projection second — the
+> chat store diffs transcripts into appended/removed events; the memory port
+> emits at each consolidation intent), and boot-time genesis reconciliation
 > backfills creation events for rows that predate the write path.
-> AI-conversation events still await dual-write in the chat layer (its
-> projections moved to SQLite, but writes bypass the log). `profile.*`,
-> `entity.*`, and `memory.*` are declared so the projection tables are
-> well-defined, but **have no producer yet** — the consolidation pipeline is
-> future work ([§10](#10-open-decisions)).
+> `profile.*` and `entity.*` are declared so the projection tables are
+> well-defined, but **have no producer yet** — the profile store is interim
+> localKV and entity resolution is future work ([§10](#10-open-decisions)).
 >
 > **Origin.** Every envelope carries `origin` — which software actor produced
 > the event: `user` (default), `agent`, `system`, or `plugin:<id>` (plugin

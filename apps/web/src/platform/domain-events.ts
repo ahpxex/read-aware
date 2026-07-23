@@ -69,6 +69,7 @@ const AGGREGATE_ROUTES: Record<DomainEventType, { type: string; idKey: string } 
   "vocabulary.removed": { type: "vocabulary", idKey: "entryId" },
   "aiConversation.started": { type: "conversation", idKey: "conversationId" },
   "aiMessage.appended": { type: "conversation", idKey: "conversationId" },
+  "aiMessage.removed": { type: "conversation", idKey: "conversationId" },
   "aiConversation.cleared": { type: "conversation", idKey: "conversationId" },
   "profile.updated": null,
   "entity.resolved": { type: "entity", idKey: "entityId" },

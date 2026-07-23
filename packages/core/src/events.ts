@@ -213,10 +213,11 @@ export type DomainEvent =
       }
     >
   | DomainEventEnvelope<"vocabulary.removed", { entryId: Id }>
-  // --- AI conversation (one persistent thread per book) ------------------
+  // --- AI conversation (book threads + user-created global threads) ------
   | DomainEventEnvelope<
       "aiConversation.started",
-      { conversationId: Id; bookId: Id; title?: string }
+      /** `bookId` absent on global (Context page) threads — additive change. */
+      { conversationId: Id; bookId?: Id; title?: string }
     >
   | DomainEventEnvelope<
       "aiMessage.appended",
@@ -236,6 +237,14 @@ export type DomainEvent =
         }>;
       }
     >
+  /**
+   * A message left the transcript (retry/regenerate truncation). Without it,
+   * replaying `aiMessage.appended` would resurrect truncated turns.
+   */
+  | DomainEventEnvelope<
+      "aiMessage.removed",
+      { messageId: Id; conversationId: Id }
+    >
   | DomainEventEnvelope<"aiConversation.cleared", { conversationId: Id }>
   // --- Profile + memory (forward-looking; pipeline not yet built) --------
   | DomainEventEnvelope<
@@ -252,7 +261,8 @@ export type DomainEvent =
       {
         memoryId: Id;
         kind: string;
-        scope?: "user" | "book" | "entity" | "conversation";
+        /** "global" added for the agent's cross-book scope — additive change. */
+        scope?: "user" | "global" | "book" | "entity" | "conversation";
         bookId?: Id;
         entityId?: Id;
         subject?: string;
@@ -269,11 +279,23 @@ export type DomainEvent =
     >
   | DomainEventEnvelope<
       "memory.revised",
-      { memoryId: Id; content?: string; importance?: number; confidence?: number }
+      {
+        memoryId: Id;
+        content?: string;
+        importance?: number;
+        confidence?: number;
+        /** Scope promotion (e.g. book → user) — additive field. */
+        scope?: "user" | "global" | "book" | "entity" | "conversation";
+        /** Set alongside scope "book". */
+        bookId?: Id;
+        /** Absolute evidence count after a reinforcement — additive field. */
+        evidenceCount?: number;
+      }
     >
   | DomainEventEnvelope<
       "memory.superseded",
-      { memoryId: Id; bySupersedingId: Id }
+      /** `bySupersedingId` optional: a supersession may have no single winner. */
+      { memoryId: Id; bySupersedingId?: Id }
     >
   | DomainEventEnvelope<
       "memory.feedback",

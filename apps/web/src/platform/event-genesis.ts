@@ -27,14 +27,19 @@ import type {
   ReadingStatus,
 } from "@read-aware/core";
 import { isTauri } from "./environment";
-import { localKV } from "./local-store";
+import { getVocabularyRows } from "./interim-projections";
 import {
   appendDomainEvents,
   listEventAggregateIds,
   type DomainEventDraft,
 } from "./domain-events";
 
-/** Event types whose presence marks an aggregate as already having a genesis. */
+/**
+ * Event types whose presence marks an aggregate as already having a genesis.
+ * Conversations and memories keep SEPARATE covered sets: a book thread's
+ * conversationId IS the bookId, so a merged set would mistake every book
+ * conversation for covered the moment `book.imported` exists.
+ */
 const CREATION_TYPES = [
   "book.imported",
   "collection.created",
@@ -69,9 +74,8 @@ type BookRow = {
 };
 type CollectionRow = { id: string; name: string; createdAt: string };
 /**
- * Interim vocabulary-notebook item (localKV `read-aware-vocabulary`), read
- * directly here — platform code must not import feature libs, and genesis
- * already reads the other projections at the wire level.
+ * Vocabulary rows come from the boot-hydrated SQLite snapshot
+ * (interim-projections — hydrated before genesis runs).
  */
 type VocabularyRow = {
   id: string;
@@ -85,13 +89,150 @@ type VocabularyRow = {
 };
 
 function readVocabularyRows(): VocabularyRow[] {
-  try {
-    const raw = localKV.getItem("read-aware-vocabulary");
-    const items = raw ? (JSON.parse(raw) as VocabularyRow[]) : [];
-    return Array.isArray(items) ? items : [];
-  } catch {
-    return [];
+  const rows: VocabularyRow[] = [];
+  for (const row of getVocabularyRows()) {
+    try {
+      const entry = JSON.parse(row.entryJson) as DictionaryEntrySnapshot | null;
+      if (!entry) continue;
+      rows.push({
+        id: row.id,
+        term: row.term,
+        language: row.language,
+        entry,
+        context: row.context,
+        bookId: row.bookId,
+        bookTitle: row.bookTitle,
+        addedAt: Date.parse(row.addedAt),
+      });
+    } catch {
+      // Unparseable snapshot — skip; the projection row stays visible in-app.
+    }
   }
+  return rows;
+}
+
+/** Wire shape of the SQLite `ai_messages` rows (camelCase serde). */
+type AiMessageRow = {
+  id: string;
+  conversationId: string;
+  role: string;
+  seq: number;
+  content: string;
+  createdAt: string;
+  attachmentsJson?: string;
+  error?: string;
+};
+
+/**
+ * Global-thread id shape — mirrors the chat feature's `isGlobalThreadId`
+ * (conversation-store.ts); duplicated here because platform code must not
+ * import feature libs.
+ */
+const isGlobalThreadId = (id: string): boolean =>
+  id === "__global__" || id.startsWith("thread-");
+
+function conversationDrafts(conversationId: string, rows: AiMessageRow[]): DomainEventDraft[] {
+  const messages = [...rows].filter((row) => !row.error).sort((a, b) => a.seq - b.seq);
+  if (messages.length === 0) return [];
+  const drafts: DomainEventDraft[] = [
+    {
+      type: "aiConversation.started",
+      createdAt: messages[0].createdAt,
+      payload: {
+        conversationId,
+        bookId: isGlobalThreadId(conversationId) ? undefined : conversationId,
+      },
+    },
+  ];
+  for (const row of messages) {
+    let attachments: { text: string; cfiRange?: string | null; chapterHref?: string | null }[] = [];
+    try {
+      attachments = row.attachmentsJson ? JSON.parse(row.attachmentsJson) : [];
+    } catch {
+      attachments = [];
+    }
+    drafts.push({
+      type: "aiMessage.appended",
+      createdAt: row.createdAt,
+      payload: {
+        messageId: row.id,
+        conversationId,
+        role: row.role === "assistant" ? "assistant" : "user",
+        seq: row.seq,
+        content: row.content,
+        attachments:
+          attachments.length > 0
+            ? attachments.map((attachment) => ({
+                attachmentId: crypto.randomUUID(),
+                kind: "selection" as const,
+                text: attachment.text,
+                anchor: attachment.cfiRange ?? undefined,
+                chapterHref: attachment.chapterHref ?? undefined,
+              }))
+            : undefined,
+      },
+      origin: row.role === "assistant" ? "agent" : "user",
+    });
+  }
+  return drafts;
+}
+
+/** Wire shape of the SQLite `memories` rows (camelCase serde). */
+type MemoryRow = {
+  id: string;
+  scope: string;
+  kind: string;
+  content: string;
+  importance: number;
+  evidenceCount: number;
+  pinned: boolean;
+  status: string;
+  createdAt?: string;
+  updatedAt: string;
+};
+
+function memoryDrafts(memory: MemoryRow): DomainEventDraft[] {
+  const bookScoped = memory.scope.startsWith("book:");
+  const drafts: DomainEventDraft[] = [
+    {
+      type: "memory.promoted",
+      createdAt: memory.createdAt ?? memory.updatedAt,
+      payload: {
+        memoryId: memory.id,
+        kind: memory.kind,
+        scope: bookScoped
+          ? "book"
+          : ((memory.scope === "global" ? "global" : "user") as "global" | "user"),
+        bookId: bookScoped ? memory.scope.slice("book:".length) : undefined,
+        content: memory.content,
+        importance: memory.importance,
+      },
+      origin: "agent",
+    },
+  ];
+  if (memory.status === "superseded") {
+    drafts.push({
+      type: "memory.superseded",
+      createdAt: memory.updatedAt,
+      payload: { memoryId: memory.id },
+      origin: "agent",
+    });
+  } else if (memory.status === "forgotten") {
+    drafts.push({
+      type: "memory.forgotten",
+      createdAt: memory.updatedAt,
+      payload: { memoryId: memory.id, reason: "decay" },
+      origin: "agent",
+    });
+  }
+  if (memory.pinned) {
+    drafts.push({
+      type: "memory.feedback",
+      createdAt: memory.updatedAt,
+      payload: { memoryId: memory.id, signal: "pin" },
+    });
+  }
+  return drafts;
 }
 type AnnotationRow = {
   id: string;
@@ -208,11 +349,17 @@ function annotationDraft(annotation: AnnotationRow): DomainEventDraft | null {
  */
 export async function reconcileGenesisEvents(): Promise<void> {
   if (!isTauri()) return;
-  const covered = await listEventAggregateIds([...CREATION_TYPES]);
-  const [books, collections, annotations] = await Promise.all([
+  const [covered, coveredConversations, coveredMemories] = await Promise.all([
+    listEventAggregateIds([...CREATION_TYPES]),
+    listEventAggregateIds(["aiConversation.started"]),
+    listEventAggregateIds(["memory.promoted"]),
+  ]);
+  const [books, collections, annotations, chatRows, memories] = await Promise.all([
     invoke<BookRow[]>("library_load"),
     invoke<CollectionRow[]>("library_list_collections"),
     invoke<AnnotationRow[]>("annotations_list"),
+    invoke<AiMessageRow[]>("ai_chat_load_all"),
+    invoke<MemoryRow[]>("memories_list_all"),
   ]);
 
   // Creation order: collections before the books that reference them, books
@@ -250,6 +397,20 @@ export async function reconcileGenesisEvents(): Promise<void> {
         bookTitle: item.bookTitle,
       },
     });
+  }
+  const byConversation = new Map<string, AiMessageRow[]>();
+  for (const row of chatRows) {
+    const list = byConversation.get(row.conversationId);
+    if (list) list.push(row);
+    else byConversation.set(row.conversationId, [row]);
+  }
+  for (const [conversationId, rows] of byConversation) {
+    if (coveredConversations.has(conversationId)) continue;
+    drafts.push(...conversationDrafts(conversationId, rows));
+  }
+  for (const memory of memories) {
+    if (coveredMemories.has(memory.id)) continue;
+    drafts.push(...memoryDrafts(memory));
   }
 
   if (drafts.length === 0) return;

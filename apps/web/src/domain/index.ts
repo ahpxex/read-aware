@@ -40,9 +40,12 @@ export function createDomainApi(origin: EventOrigin): DomainApi {
     annotations: createAnnotationsDomain(origin),
     reading: createReadingDomain(origin),
     vocabulary: createVocabularyDomain(origin),
-    conversations: createConversationsDomain(),
+    conversations: createConversationsDomain(origin),
   };
 }
+
+/** The app UI's own instance — direct user actions, origin "user". */
+export const userDomain: DomainApi = createDomainApi("user");
 
 export type {
   AnnotationsDomain,
@@ -67,6 +70,7 @@ export {
   ANNOTATION_EVENTS,
   BOOK_EVENTS,
   COLLECTION_EVENTS,
+  CONVERSATION_EVENTS,
   READING_EVENTS,
   VOCABULARY_EVENTS,
   domainSubscribe,

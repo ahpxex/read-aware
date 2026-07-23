@@ -180,8 +180,10 @@ LibraryPort / AnnotationsPort / VocabularyPort / BookTextPort 是
 享、策略分立：插件的策略是 manifest 权限门控，agent 的策略是 thread
 scope（§3）。agent 的写动词按行为体划分（`ask.recorded` 是 agent-only
 的领域动词，领域层守卫），每笔写都带 origin 进事件日志。ConversationPort
-/ MemoryPort / ProfilePort 例外：前者需要 interim 转录的富字段（error
-标记），后两者的领域尚无事件生产者 —— 待 memory 管线落地后进领域层。
+/ MemoryPort / ProfilePort 的实现暂不走领域层：ConversationPort 读
+interim 转录的富字段（error 标记；chat store 自身已把对话事实双写进
+事件日志），MemoryPort 在每个巩固意图点双写 memory.* 事件（投影可重
+放），ProfilePort 仍是 localKV interim（profile.updated 无生产者）。
 
 ### Prompt 装配 ≠ 转录回放
 

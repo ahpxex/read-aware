@@ -462,7 +462,10 @@ function PluginApiPage() {
         </li>
         <li>
           <code>ctx.conversations</code>——<code>getBookThread(bookId)</code>、
-          <code>listThreads()</code>、<code>getThread(id)</code>。
+          <code>listThreads()</code>、<code>getThread(id)</code>；通过{" "}
+          <code>on</code> 订阅（<code>aiConversation.started</code>、
+          <code>aiMessage.appended</code>、<code>aiMessage.removed</code>、
+          <code>aiConversation.cleared</code>）。
         </li>
       </ul>
 

@@ -359,6 +359,12 @@ export type ReadingDomainEventType = "reading.progressed" | "reading.timeRecorde
 
 export type VocabularyDomainEventType = "vocabulary.added" | "vocabulary.removed";
 
+export type ConversationDomainEventType =
+  | "aiConversation.started"
+  | "aiMessage.appended"
+  | "aiMessage.removed"
+  | "aiConversation.cleared";
+
 /**
  * Session facts — runtime state of the open reader, NOT domain events (they
  * describe what is on screen, never enter the event log, and need no
@@ -555,9 +561,8 @@ export type PluginVocabularyApi = {
 
 /**
  * Conversations — read-only view over the user's AI threads (one persistent
- * thread per book, plus user-created global threads). No `on`: the
- * conversation domain events have no live producer yet — a subscription that
- * never fires would be a lie; it arrives when the chat layer dual-writes.
+ * thread per book, plus user-created global threads). Writes stay with the
+ * chat runtime; its dual-write is what feeds `on`.
  */
 export type PluginConversationsApi = {
   /** The book's persistent thread, oldest first; empty when none. */
@@ -565,6 +570,7 @@ export type PluginConversationsApi = {
   /** User-created global (Context page) threads. */
   listThreads(): Promise<PluginThreadSummary[]>;
   getThread(threadId: string): Promise<PluginChatMessage[]>;
+  on: DomainSubscribe<ConversationDomainEventType>;
 };
 
 // ─── Context handed to activate() ────────────────────────────────────────────

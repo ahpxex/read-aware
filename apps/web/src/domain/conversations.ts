@@ -1,14 +1,15 @@
 /**
  * Conversations domain — read-only view over the user's AI threads (one
  * persistent thread per book, keyed by the book id, plus user-created
- * global threads). No `on`: the conversation domain events have no live
- * producer yet; the subscription arrives when the chat layer dual-writes.
+ * global threads). Writes stay with the chat runtime (which dual-writes the
+ * conversation events); other actors observe via `on`.
  */
-import type { ChatMessageSummary, ThreadSummary } from "@read-aware/core";
+import type { ChatMessageSummary, EventOrigin, ThreadSummary } from "@read-aware/core";
 import {
   listGlobalThreads,
   loadConversation,
 } from "../features/ai/lib/conversation-store";
+import { CONVERSATION_EVENTS, domainSubscribe, type DomainEventSubscribe } from "./events";
 
 function toMessages(
   messages: Awaited<ReturnType<typeof loadConversation>>,
@@ -29,9 +30,10 @@ export type ConversationsDomain = {
   /** User-created global (Context page) threads. */
   listThreads(): Promise<ThreadSummary[]>;
   getThread(threadId: string): Promise<ChatMessageSummary[]>;
+  on: DomainEventSubscribe<(typeof CONVERSATION_EVENTS)[number]>;
 };
 
-export function createConversationsDomain(): ConversationsDomain {
+export function createConversationsDomain(origin: EventOrigin): ConversationsDomain {
   return {
     getBookThread: async (bookId) => toMessages(await loadConversation(String(bookId))),
     listThreads: async () =>
@@ -41,5 +43,6 @@ export function createConversationsDomain(): ConversationsDomain {
         updatedAt: thread.updatedAt,
       })),
     getThread: async (threadId) => toMessages(await loadConversation(String(threadId))),
+    on: domainSubscribe(CONVERSATION_EVENTS, origin),
   };
 }

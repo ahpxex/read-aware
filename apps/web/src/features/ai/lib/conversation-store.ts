@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "../../../platform/environment";
+import { emitDomainEvents, type DomainEventDraft } from "../../../platform/domain-events";
 import type { ChatAssistantPart, ChatAttachment, ChatMessage } from "./chat-types";
 
 /**
@@ -8,6 +9,12 @@ import type { ChatAssistantPart, ChatAttachment, ChatMessage } from "./chat-type
  * Desktop (the product): SQLite `ai_conversations` / `ai_messages`
  * (storage.rs migration v6) — one row per message, whole-transcript replace on
  * save (mirrors how the conversation hook commits turns), tombstoned clear.
+ * Saves DUAL-WRITE the conversation domain events by diffing against the
+ * last-known persisted transcript: `aiConversation.started` on the empty →
+ * non-empty transition, `aiMessage.appended` per committed message (origin
+ * "user"/"agent" by role), `aiMessage.removed` per truncated one (without it,
+ * replay would resurrect retried turns). Error-stub messages stay
+ * projection-only — transient UX, not conversation facts.
  *
  * Browser (dev / Storybook): a session-scoped in-memory map. Deliberately NOT
  * a persistence fallback — the browser build is a pure UI shell and the mock
@@ -78,9 +85,85 @@ function messageToRow(conversationId: string, message: ChatMessage, seq: number)
 
 const memoryStore = new Map<string, ChatMessage[]>();
 
+// ─── Event dual-write bookkeeping ────────────────────────────────────────────
+
+/** Ids of the event-covered (non-error) messages last seen persisted. */
+const knownEventIds = new Map<string, Set<string>>();
+
+const eventable = (messages: ChatMessage[]): ChatMessage[] =>
+  messages.filter((message) => !message.error);
+
+function toAppendedDraft(
+  conversationId: string,
+  message: ChatMessage,
+  seq: number,
+): DomainEventDraft {
+  return {
+    type: "aiMessage.appended",
+    payload: {
+      messageId: message.id,
+      conversationId,
+      role: message.role,
+      seq,
+      content: message.content,
+      attachments: message.attachments?.map((attachment) => ({
+        attachmentId: crypto.randomUUID(),
+        kind: attachment.kind,
+        text: attachment.text,
+        anchor: attachment.cfiRange ?? undefined,
+        chapterHref: attachment.chapterHref ?? undefined,
+      })),
+    },
+    createdAt: message.createdAt,
+    // The user's turns are their writes; the assistant's are the agent's.
+    origin: message.role === "assistant" ? "agent" : "user",
+  };
+}
+
+/** Diff the new transcript against the last persisted one into event drafts. */
+async function conversationEventDrafts(
+  conversationId: string,
+  messages: ChatMessage[],
+): Promise<DomainEventDraft[]> {
+  let prev = knownEventIds.get(conversationId);
+  if (!prev) {
+    // First save without a prior load (defensive) — baseline from the store.
+    const rows = await invoke<AiMessageRow[]>("ai_chat_load", { conversationId });
+    prev = new Set(rows.filter((row) => !row.error).map((row) => row.id));
+    knownEventIds.set(conversationId, prev);
+  }
+  const next = eventable(messages);
+  const nextIds = new Set(next.map((message) => message.id));
+  const drafts: DomainEventDraft[] = [];
+
+  if (prev.size === 0 && next.length > 0) {
+    drafts.push({
+      type: "aiConversation.started",
+      payload: {
+        conversationId,
+        bookId: isGlobalThreadId(conversationId) ? undefined : conversationId,
+      },
+      createdAt: next[0]?.createdAt,
+    });
+  }
+  for (const [seq, message] of next.entries()) {
+    if (!prev.has(message.id)) drafts.push(toAppendedDraft(conversationId, message, seq));
+  }
+  for (const id of prev) {
+    if (!nextIds.has(id)) {
+      drafts.push({ type: "aiMessage.removed", payload: { messageId: id, conversationId } });
+    }
+  }
+  return drafts;
+}
+
 export async function loadConversation(conversationId: string): Promise<ChatMessage[]> {
   if (!isTauri()) return memoryStore.get(conversationId) ?? [];
   const rows = await invoke<AiMessageRow[]>("ai_chat_load", { conversationId });
+  knownEventIds.set(
+    conversationId,
+    new Set(rows.filter((row) => !row.error).map((row) => row.id)),
+  );
   return rows.map(rowToMessage);
 }
 
@@ -104,10 +187,14 @@ export async function saveConversation(
     return;
   }
   try {
+    // Event first, projection second — the seam convention (domain-events.ts).
+    const drafts = await conversationEventDrafts(conversationId, messages);
+    if (drafts.length > 0) emitDomainEvents(...drafts);
     await invoke("ai_chat_replace", {
       conversationId,
       messages: messages.map((message, seq) => messageToRow(conversationId, message, seq)),
     });
+    knownEventIds.set(conversationId, new Set(eventable(messages).map((m) => m.id)));
   } catch (err) {
     // Best-effort, like the kv store before it: a failed persist must not take
     // down the live conversation; the next committed turn retries a full write.
@@ -120,7 +207,9 @@ export async function clearConversation(conversationId: string): Promise<void> {
     memoryStore.delete(conversationId);
     return;
   }
+  emitDomainEvents({ type: "aiConversation.cleared", payload: { conversationId } });
   await invoke("ai_chat_clear", { conversationId });
+  knownEventIds.set(conversationId, new Set());
 }
 
 /** 全局线程列表（非空会话，按最近活动排序）。 */

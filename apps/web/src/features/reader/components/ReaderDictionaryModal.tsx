@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSetAtom } from "jotai";
 import {
   ArrowsClockwise,
-  BookmarkSimple,
   CaretDown,
   Check,
   Copy,
@@ -24,25 +23,19 @@ import { LOCALE_LABELS, LOCALES, useLocale, useTranslation } from "../../../i18n
 import { settingsOpenAtom, settingsSectionRequestAtom } from "../../../state/ui";
 import { useDictionaryLookup } from "../hooks/useDictionaryLookup";
 import { DictionaryEntryBody } from "./DictionaryEntryBody";
-import type { DictionaryEntry, SentenceExplanation, SentenceGloss } from "@read-aware/agent";
+import type { DictionaryEntry, SentenceExplanation } from "@read-aware/agent";
 import {
   getDictionaryLanguage,
   resolveExplanationLanguageName,
   saveDictionaryLanguage,
   type DictionaryLanguage,
 } from "../lib/dictionary-prefs";
-import {
-  addToVocabulary,
-  isInVocabulary,
-  removeFromVocabulary,
-} from "../lib/vocabulary";
 
 type ReaderDictionaryModalProps = {
   open: boolean;
   word: string;
   /** The sentence/passage the word was picked from, for a contextual reading. */
   context?: string;
-  bookId?: string;
   bookTitle?: string;
   onClose: () => void;
 };
@@ -99,7 +92,6 @@ export function ReaderDictionaryModal({
   open,
   word,
   context,
-  bookId,
   bookTitle,
   onClose,
 }: ReaderDictionaryModalProps) {
@@ -109,7 +101,6 @@ export function ReaderDictionaryModal({
   const setSettingsSection = useSetAtom(settingsSectionRequestAtom);
   const [language, setLanguage] = useState<DictionaryLanguage>(() => getDictionaryLanguage());
   const [copied, setCopied] = useState(false);
-  const [inVocab, setInVocab] = useState(false);
 
   // Trim surrounding quotes/brackets/trailing punctuation so a word picked out
   // of dialogue ("“pig,”") reads as a clean headword while the lookup runs.
@@ -138,10 +129,6 @@ export function ReaderDictionaryModal({
     : !!sentence && (!!sentence.translation || sentence.glosses.length > 0);
   const showActions = state.status === "ready" && hasBody;
 
-  // Keep the "in vocabulary" toggle in sync with what's saved for this term.
-  useEffect(() => {
-    setInVocab(entry ? isInVocabulary(term, explanationLanguage) : false);
-  }, [entry, term, explanationLanguage]);
 
   const setLang = (next: DictionaryLanguage) => {
     setLanguage(next);
@@ -167,16 +154,7 @@ export function ReaderDictionaryModal({
     }
   };
 
-  const handleToggleVocab = () => {
-    if (!entry) return;
-    if (inVocab) {
-      removeFromVocabulary(term, explanationLanguage);
-      setInVocab(false);
-    } else {
-      addToVocabulary({ term, language: explanationLanguage, entry, context, bookId, bookTitle });
-      setInVocab(true);
-    }
-  };
+
 
   const currentLangLabel =
     language === "auto" ? t("dictionary.languageAuto") : LOCALE_LABELS[language];
@@ -248,16 +226,6 @@ export function ReaderDictionaryModal({
                 label={copied ? t("dictionary.copied") : t("dictionary.copy")}
                 onClick={handleCopy}
               />
-              {/* A whole sentence isn't a vocabulary item — sentence mode
-                  saves per gloss instead (see DictionarySentenceBody). */}
-              {entry && (
-                <IconButton
-                  size="sm"
-                  icon={<BookmarkSimple size={17} weight={inVocab ? "fill" : "regular"} />}
-                  label={inVocab ? t("dictionary.inVocab") : t("dictionary.addToVocab")}
-                  onClick={handleToggleVocab}
-                />
-              )}
             </div>
           )}
         </div>
@@ -309,13 +277,7 @@ export function ReaderDictionaryModal({
         )}
 
         {showActions && sentence && (
-          <DictionarySentenceBody
-            explanation={sentence}
-            sourceSentence={term}
-            bookId={bookId}
-            bookTitle={bookTitle}
-            explanationLanguage={explanationLanguage}
-          />
+          <DictionarySentenceBody explanation={sentence} />
         )}
 
         {showActions && entry && (
@@ -340,44 +302,11 @@ export function ReaderDictionaryModal({
  */
 function DictionarySentenceBody({
   explanation,
-  sourceSentence,
-  bookId,
-  bookTitle,
-  explanationLanguage,
 }: {
   explanation: SentenceExplanation;
-  /** The looked-up sentence — stored as each saved gloss's provenance. */
-  sourceSentence: string;
-  bookId?: string;
-  bookTitle?: string;
-  explanationLanguage: string;
 }) {
   const { t } = useTranslation("reader");
-  // Saved state is read straight from the vocabulary store per render; this
-  // only forces the re-render after a toggle.
-  const [, bumpVocabRevision] = useState(0);
 
-  const toggleGloss = (gloss: SentenceGloss) => {
-    if (isInVocabulary(gloss.term, explanationLanguage)) {
-      removeFromVocabulary(gloss.term, explanationLanguage);
-    } else {
-      addToVocabulary({
-        term: gloss.term,
-        language: explanationLanguage,
-        // The vocabulary stores dictionary entries; a gloss maps to a minimal
-        // one-sense entry, with this sentence as the passage it was met in.
-        entry: {
-          headword: gloss.term,
-          pronunciation: gloss.pronunciation,
-          senses: [{ partOfSpeech: "", definition: gloss.meaning, examples: [] }],
-        },
-        context: sourceSentence,
-        bookId,
-        bookTitle,
-      });
-    }
-    bumpVocabRevision((n) => n + 1);
-  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -393,7 +322,6 @@ function DictionarySentenceBody({
           <Eyebrow className="text-fg-subtle">{t("dictionary.glossesLabel")}</Eyebrow>
           <ul className="flex flex-col">
             {explanation.glosses.map((gloss, index) => {
-              const saved = isInVocabulary(gloss.term, explanationLanguage);
               return (
                 <li
                   key={index}
@@ -410,13 +338,6 @@ function DictionarySentenceBody({
                     </div>
                     <Body className="text-sm leading-relaxed text-fg-muted">{gloss.meaning}</Body>
                   </div>
-                  <IconButton
-                    size="sm"
-                    className="shrink-0"
-                    icon={<BookmarkSimple size={15} weight={saved ? "fill" : "regular"} />}
-                    label={saved ? t("dictionary.inVocab") : t("dictionary.addToVocab")}
-                    onClick={() => toggleGloss(gloss)}
-                  />
                 </li>
               );
             })}

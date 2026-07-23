@@ -22,14 +22,12 @@ import { createBooksDomain, type BooksDomain } from "./books";
 import { createCollectionsDomain, type CollectionsDomain } from "./collections";
 import { createConversationsDomain, type ConversationsDomain } from "./conversations";
 import { createReadingDomain, type ReadingDomain } from "./reading";
-import { createVocabularyDomain, type VocabularyDomain } from "./vocabulary";
 
 export type DomainApi = {
   books: BooksDomain;
   collections: CollectionsDomain;
   annotations: AnnotationsDomain;
   reading: ReadingDomain;
-  vocabulary: VocabularyDomain;
   conversations: ConversationsDomain;
 };
 
@@ -39,7 +37,6 @@ export function createDomainApi(origin: EventOrigin): DomainApi {
     collections: createCollectionsDomain(origin),
     annotations: createAnnotationsDomain(origin),
     reading: createReadingDomain(origin),
-    vocabulary: createVocabularyDomain(origin),
     conversations: createConversationsDomain(origin),
   };
 }
@@ -53,7 +50,6 @@ export type {
   CollectionsDomain,
   ConversationsDomain,
   ReadingDomain,
-  VocabularyDomain,
 };
 export {
   createBooksDomain,
@@ -65,14 +61,12 @@ export { createAnnotationsDomain, toAnnotationItem } from "./annotations";
 export { createCollectionsDomain } from "./collections";
 export { createConversationsDomain } from "./conversations";
 export { createReadingDomain, toReadingState } from "./reading";
-export { createVocabularyDomain, toVocabularySummary } from "./vocabulary";
 export {
   ANNOTATION_EVENTS,
   BOOK_EVENTS,
   COLLECTION_EVENTS,
   CONVERSATION_EVENTS,
   READING_EVENTS,
-  VOCABULARY_EVENTS,
   domainSubscribe,
   type DomainEventSubscribe,
   type ObservedDomainEvent,

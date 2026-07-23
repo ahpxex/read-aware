@@ -10,7 +10,6 @@
 
 import type {
   BookFormat,
-  DictionaryEntrySnapshot,
   HighlightColor,
   HighlightStyle,
   Id,
@@ -102,20 +101,6 @@ export interface ReadingTime {
   lastReadAt?: IsoDate;
   /** Active ms per local day, keyed YYYY-MM-DD. */
   daily: Record<string, number>;
-}
-
-/** A vocabulary-notebook entry as the vocabulary domain lists it. */
-export interface VocabularySummary {
-  term: string;
-  /** Explanation language (human-readable name). */
-  language: string;
-  /** One-line rendering of the first sense, part of speech prefixed. */
-  definition: string;
-  entry: DictionaryEntrySnapshot;
-  context?: string;
-  bookId?: Id;
-  bookTitle?: string;
-  addedAt: IsoDate;
 }
 
 /** One turn of an AI thread as the conversations domain lists it. */

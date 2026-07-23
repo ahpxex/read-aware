@@ -23,7 +23,6 @@ import { buildDictionaryTools } from "../tools/dictionary-tools";
 import { buildThreadTools } from "../tools/library-tools";
 import { buildMemoryTools, visibleScopes } from "../tools/memory-tools";
 import { buildPresentTools, referenceFromToolDetails } from "../tools/present-tools";
-import { buildVocabularyTools } from "../tools/vocabulary-tools";
 import { AsyncQueue } from "./async-queue";
 import { elideStaleToolResults } from "./context-slim";
 import { lastAssistantText, lastTurnTail, turnRecordsToMessages } from "./history";
@@ -151,7 +150,6 @@ export class AgentThread {
           ...buildMemoryTools(this.scope, this.deps),
           ...buildConversationTools(this.scope, this.deps),
           ...buildBookTextTools(this.scope, this.deps),
-          ...buildVocabularyTools(this.deps),
           ...buildPresentTools(this.deps),
           ...buildDictionaryTools(this.scope, this.deps),
           ...(this.deps.extraTools?.() ?? []),

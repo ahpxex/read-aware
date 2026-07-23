@@ -68,7 +68,7 @@ function PluginApiPage() {
   "minAppVersion": "0.3.0",
   "description": "Send looked-up words to Anki.",
   "author": "you",
-  "permissions": ["service:network", "vocabulary:read"],
+  "permissions": ["service:network", "annotations:read"],
   "main": "main.js"
 }`}</code>
       </pre>
@@ -139,7 +139,7 @@ function PluginApiPage() {
         数据表面派生自应用的领域模型，而不是在它旁边另行编写。每个领域——{" "}
         <code>books</code>、<code>collections</code>、
         <code>annotations</code>、<code>reading</code>、
-        <code>vocabulary</code>、<code>conversations</code>——都是{" "}
+        <code>conversations</code>——都是{" "}
         <code>ctx</code> 上的一个命名空间，暴露三样东西：
       </p>
       <ul>
@@ -226,15 +226,6 @@ function PluginApiPage() {
               <td>
                 <code>ctx.reading</code>
                 ——阅读位置、阅读状态与阅读时长。设计上即只读：它的事件是阅读器活动被记录下来的事实，而非用户命令。
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>vocabulary:read</code> / <code>vocabulary:write</code>
-              </td>
-              <td>
-                <code>ctx.vocabulary</code>
-                ——阅读器词典保存词条所用的那个词汇表。
               </td>
             </tr>
             <tr>
@@ -456,11 +447,6 @@ function PluginApiPage() {
           <code>listStates()</code>、<code>getTime(bookId)</code>。
         </li>
         <li>
-          <code>ctx.vocabulary</code>——<code>list(filter?)</code>；写入：{" "}
-          <code>add</code>、<code>remove</code>
-          ——与阅读器词典保存词条所用的同一个词汇表。
-        </li>
-        <li>
           <code>ctx.conversations</code>——<code>getBookThread(bookId)</code>、
           <code>listThreads()</code>、<code>getThread(id)</code>；通过{" "}
           <code>on</code> 订阅（<code>aiConversation.started</code>、
@@ -482,8 +468,7 @@ function PluginApiPage() {
         <code>{`ctx.annotations?.on("highlight.created", ({ payload, origin }) => {
   // payload: { highlightId, bookId, text, color?, … }
 });
-ctx.books?.on("book.removed", ({ payload }) => { /* { bookId } */ });
-ctx.vocabulary?.on("vocabulary.added", ({ payload }) => { /* { term, … } */ });`}</code>
+ctx.books?.on("book.removed", ({ payload }) => { /* { bookId } */ });`}</code>
       </pre>
       <p>
         <strong>会话事实</strong>
@@ -574,6 +559,13 @@ await ctx.books?.write?.addVirtualBook({
         <code>set</code>、<code>remove</code>。如果 manifest 声明了{" "}
         <code>settings</code> 字段，应用会渲染设置表单，所有值会以一个对象出现在{" "}
         <code>ctx.storage.get("settings")</code>。
+      </p>
+      <p>
+        对于结构化数据，<code>ctx.storage.collection(name)</code>{" "}
+        会打开一个具名的文档集合——对逐条文档记录进行 <code>put</code> /{" "}
+        <code>get</code> / <code>delete</code> / <code>list</code>
+        ，记录可选携带 <code>bookId</code> / <code>anchor</code>{" "}
+        出处信息，并可据此过滤。出处是索引而非所有权：被引用的书删除后，文档依然存在；而集合的生命周期归属于插件（卸载即清空）。内置的词汇表插件正是完全构建在这一层之上。
       </p>
 
       <h2>常驻上下文</h2>

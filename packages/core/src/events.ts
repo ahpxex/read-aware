@@ -13,7 +13,6 @@
 import type {
   BookFormat,
   CoverStatus,
-  DictionaryEntrySnapshot,
   EventOrigin,
   HighlightColor,
   HighlightStyle,
@@ -195,24 +194,6 @@ export type DomainEvent =
       { askId: Id; bookId: Id; anchor?: string; chapterHref?: string; text: string }
     >
   | DomainEventEnvelope<"ask.removed", { askId: Id }>
-  // --- Vocabulary (the reader dictionary's saved-words notebook) ----------
-  /**
-   * `entryId` is the dedupe identity `<language> <term.lowercase>`; re-adding
-   * an existing term replaces its snapshot on replay (upsert semantics).
-   */
-  | DomainEventEnvelope<
-      "vocabulary.added",
-      {
-        entryId: Id;
-        term: string;
-        language: string;
-        entry: DictionaryEntrySnapshot;
-        context?: string;
-        bookId?: Id;
-        bookTitle?: string;
-      }
-    >
-  | DomainEventEnvelope<"vocabulary.removed", { entryId: Id }>
   // --- AI conversation (book threads + user-created global threads) ------
   | DomainEventEnvelope<
       "aiConversation.started",

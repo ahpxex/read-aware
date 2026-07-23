@@ -15,19 +15,6 @@ import { localKV } from "./local-store";
 const VOCABULARY_KV_KEY = "read-aware-vocabulary";
 const READING_STATS_KV_KEY = "read-aware-reading-stats";
 
-/** Wire shape of the Rust `VocabularyEntryRow` (camelCase serde). */
-export type VocabularyEntryRow = {
-  id: string;
-  term: string;
-  language: string;
-  entryJson: string;
-  context?: string;
-  bookId?: string;
-  bookTitle?: string;
-  /** ISO timestamp. */
-  addedAt: string;
-};
-
 /** Wire shape of the Rust `ReadingTimeWire` (camelCase serde). */
 export type ReadingTimeWire = {
   totals: { bookId: string; totalMs: number; firstStartedAt?: number | null; lastReadAt?: number | null }[];
@@ -35,7 +22,6 @@ export type ReadingTimeWire = {
   hourly: { bookId: string; localHour: number; ms: number }[];
 };
 
-let vocabularyRows: VocabularyEntryRow[] = [];
 let readingTime: ReadingTimeWire = { totals: [], daily: [], hourly: [] };
 
 // ─── One-time app_kv → SQLite migrations ─────────────────────────────────────
@@ -51,24 +37,34 @@ type LegacyVocabularyItem = {
   addedAt: number;
 };
 
+/**
+ * Pre-v9 vocabulary blobs go straight into the built-in vocabulary plugin's
+ * document collection (bootstrap write into its namespace — the one place the
+ * app writes plugin documents on a plugin's behalf).
+ */
 async function migrateVocabularyKv(): Promise<void> {
   const raw = localKV.getItem(VOCABULARY_KV_KEY);
   if (!raw) return;
   try {
     const items = JSON.parse(raw) as LegacyVocabularyItem[];
-    if (Array.isArray(items) && items.length > 0) {
-      await invoke("vocabulary_import", {
-        entries: items.map((item) => ({
+    if (Array.isArray(items)) {
+      for (const item of items) {
+        await invoke("plugin_docs_put", {
+          pluginId: "vocabulary",
+          collection: "words",
           id: item.id,
-          term: item.term,
-          language: item.language,
-          entryJson: JSON.stringify(item.entry ?? null),
-          context: item.context,
+          json: JSON.stringify({
+            term: item.term,
+            language: item.language,
+            entry: item.entry ?? null,
+            context: item.context,
+            bookTitle: item.bookTitle,
+            addedAt: new Date(item.addedAt).toISOString(),
+          }),
           bookId: item.bookId,
-          bookTitle: item.bookTitle,
-          addedAt: new Date(item.addedAt).toISOString(),
-        })),
-      });
+          anchor: null,
+        });
+      }
     }
     localKV.removeItem(VOCABULARY_KV_KEY);
   } catch (err) {
@@ -129,34 +125,19 @@ export async function hydrateInterimProjections(): Promise<void> {
   if (!isTauri()) return;
   await migrateVocabularyKv();
   await migrateReadingStatsKv();
+  // Wave 5: the retired core vocabulary projection moves into the built-in
+  // vocabulary plugin's document collection (idempotent; empty second run).
   try {
-    [vocabularyRows, readingTime] = await Promise.all([
-      invoke<VocabularyEntryRow[]>("vocabulary_list"),
-      invoke<ReadingTimeWire>("reading_time_load"),
-    ]);
+    const moved = await invoke<number>("vocabulary_migrate_to_plugin_documents");
+    if (moved > 0) console.info(`[interim-projections] moved ${moved} vocabulary entries to the plugin`);
+  } catch (err) {
+    console.error("[interim-projections] vocabulary handoff failed; will retry next launch", err);
+  }
+  try {
+    readingTime = await invoke<ReadingTimeWire>("reading_time_load");
   } catch (err) {
     console.error("[interim-projections] hydrate failed; starting empty", err);
   }
-}
-
-// ─── Vocabulary snapshot (sync reads, write-through) ─────────────────────────
-
-export function getVocabularyRows(): VocabularyEntryRow[] {
-  return vocabularyRows;
-}
-
-export function putVocabularyRow(row: VocabularyEntryRow): void {
-  vocabularyRows = [row, ...vocabularyRows.filter((existing) => existing.id !== row.id)];
-  void invoke("vocabulary_put", { entry: row }).catch((err) => {
-    console.error("[interim-projections] vocabulary_put failed", err);
-  });
-}
-
-export function removeVocabularyRow(id: string): void {
-  vocabularyRows = vocabularyRows.filter((existing) => existing.id !== id);
-  void invoke("vocabulary_remove", { id }).catch((err) => {
-    console.error("[interim-projections] vocabulary_remove failed", err);
-  });
 }
 
 // ─── Reading-time (boot snapshot + write-through deltas) ─────────────────────

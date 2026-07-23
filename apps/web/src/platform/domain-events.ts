@@ -65,8 +65,6 @@ const AGGREGATE_ROUTES: Record<DomainEventType, { type: string; idKey: string } 
   "note.removed": { type: "note", idKey: "noteId" },
   "ask.recorded": { type: "ask", idKey: "askId" },
   "ask.removed": { type: "ask", idKey: "askId" },
-  "vocabulary.added": { type: "vocabulary", idKey: "entryId" },
-  "vocabulary.removed": { type: "vocabulary", idKey: "entryId" },
   "aiConversation.started": { type: "conversation", idKey: "conversationId" },
   "aiMessage.appended": { type: "conversation", idKey: "conversationId" },
   "aiMessage.removed": { type: "conversation", idKey: "conversationId" },

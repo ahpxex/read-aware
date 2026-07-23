@@ -21,13 +21,11 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
   BookFormat,
-  DictionaryEntrySnapshot,
   HighlightColor,
   HighlightStyle,
   ReadingStatus,
 } from "@read-aware/core";
 import { isTauri } from "./environment";
-import { getVocabularyRows } from "./interim-projections";
 import {
   appendDomainEvents,
   listEventAggregateIds,
@@ -46,7 +44,6 @@ const CREATION_TYPES = [
   "highlight.created",
   "note.created",
   "ask.recorded",
-  "vocabulary.added",
 ] as const;
 
 // Raw wire shapes of the Rust projection commands (subset of fields used here).
@@ -73,44 +70,6 @@ type BookRow = {
   collectionId?: string | null;
 };
 type CollectionRow = { id: string; name: string; createdAt: string };
-/**
- * Vocabulary rows come from the boot-hydrated SQLite snapshot
- * (interim-projections — hydrated before genesis runs).
- */
-type VocabularyRow = {
-  id: string;
-  term: string;
-  language: string;
-  entry: DictionaryEntrySnapshot;
-  context?: string;
-  bookId?: string;
-  bookTitle?: string;
-  addedAt: number;
-};
-
-function readVocabularyRows(): VocabularyRow[] {
-  const rows: VocabularyRow[] = [];
-  for (const row of getVocabularyRows()) {
-    try {
-      const entry = JSON.parse(row.entryJson) as DictionaryEntrySnapshot | null;
-      if (!entry) continue;
-      rows.push({
-        id: row.id,
-        term: row.term,
-        language: row.language,
-        entry,
-        context: row.context,
-        bookId: row.bookId,
-        bookTitle: row.bookTitle,
-        addedAt: Date.parse(row.addedAt),
-      });
-    } catch {
-      // Unparseable snapshot — skip; the projection row stays visible in-app.
-    }
-  }
-  return rows;
-}
-
 /** Wire shape of the SQLite `ai_messages` rows (camelCase serde). */
 type AiMessageRow = {
   id: string;
@@ -381,22 +340,6 @@ export async function reconcileGenesisEvents(): Promise<void> {
     if (covered.has(annotation.id)) continue;
     const draft = annotationDraft(annotation);
     if (draft) drafts.push(draft);
-  }
-  for (const item of [...readVocabularyRows()].sort((a, b) => a.addedAt - b.addedAt)) {
-    if (covered.has(item.id)) continue;
-    drafts.push({
-      type: "vocabulary.added",
-      createdAt: new Date(item.addedAt).toISOString(),
-      payload: {
-        entryId: item.id,
-        term: item.term,
-        language: item.language,
-        entry: item.entry,
-        context: item.context,
-        bookId: item.bookId,
-        bookTitle: item.bookTitle,
-      },
-    });
   }
   const byConversation = new Map<string, AiMessageRow[]>();
   for (const row of chatRows) {

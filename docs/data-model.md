@@ -165,8 +165,6 @@ row's historical timestamp while their HLC is stamped at synthesis time.
 | `note.created` | `{ noteId, bookId, highlightId?, anchor?, chapterHref?, quotedText?, body }` |
 | `note.updated` / `note.removed` | `{ noteId, body? }` |
 | `ask.recorded` / `ask.removed` | `{ askId, bookId, anchor?, chapterHref?, text }` / `{ askId }` — passive traces of the book thread (agent-architecture §7) |
-| `vocabulary.added` | `{ entryId, term, language, entry, context?, bookId?, bookTitle? }` — `entryId` is the dedupe identity `<language> <term.lowercase>`; re-adding replaces the snapshot on replay (upsert semantics) |
-| `vocabulary.removed` | `{ entryId }` |
 | `aiConversation.started` | `{ conversationId, bookId?, title? }` — `bookId` absent on global (Context page) threads |
 | `aiMessage.appended` | `{ messageId, conversationId, role, seq, content, model?, attachments? }` |
 | `aiMessage.removed` | `{ messageId, conversationId }` — retry/regenerate truncation; without it replay would resurrect truncated turns |
@@ -182,7 +180,7 @@ row's historical timestamp while their HLC is stamped at synthesis time.
 > *outcomes* are logged.
 >
 > **Producer status.** Book / collection / annotation / ask / reading /
-> vocabulary / **AI-conversation** / **memory** events are **live**: the UX
+> **AI-conversation** / **memory** events are **live**: the UX
 > persistence seams dual-write them (event first, projection second — the
 > chat store diffs transcripts into appended/removed events; the memory port
 > emits at each consolidation intent), and boot-time genesis reconciliation

@@ -70,7 +70,7 @@ function PluginApiPage() {
   "minAppVersion": "0.3.0",
   "description": "Send looked-up words to Anki.",
   "author": "you",
-  "permissions": ["service:network", "vocabulary:read"],
+  "permissions": ["service:network", "annotations:read"],
   "main": "main.js"
 }`}</code>
       </pre>
@@ -141,7 +141,7 @@ function PluginApiPage() {
         データサーフェスは、アプリのドメインモデルの傍らで別途書き起こされたものではなく、ドメインモデルそのものから導出されています。各ドメイン
         — <code>books</code>、<code>collections</code>、
         <code>annotations</code>、<code>reading</code>、
-        <code>vocabulary</code>、<code>conversations</code> —は
+        <code>conversations</code> —は
         <code>ctx</code>上の名前空間で、次の3つを公開します。
       </p>
       <ul>
@@ -221,14 +221,6 @@ function PluginApiPage() {
               </td>
               <td>
                 <code>ctx.reading</code> —読書位置、ステータス、読書時間。設計上読み取り専用です。そのイベントはリーダーの活動を記録した事実であって、ユーザーのコマンドではないからです。
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>vocabulary:read</code> / <code>vocabulary:write</code>
-              </td>
-              <td>
-                <code>ctx.vocabulary</code> —リーダーの辞書が保存先にしている単語帳。
               </td>
             </tr>
             <tr>
@@ -441,11 +433,6 @@ function PluginApiPage() {
           <code>listStates()</code>、<code>getTime(bookId)</code>。
         </li>
         <li>
-          <code>ctx.vocabulary</code> — <code>list(filter?)</code>。write:{" "}
-          <code>add</code>、<code>remove</code>
-          。リーダーの辞書が保存先にしているのと同じ単語帳です。
-        </li>
-        <li>
           <code>ctx.conversations</code> —{" "}
           <code>getBookThread(bookId)</code>、<code>listThreads()</code>、
           <code>getThread(id)</code>。<code>on</code> で購読できます（
@@ -468,8 +455,7 @@ function PluginApiPage() {
         <code>{`ctx.annotations?.on("highlight.created", ({ payload, origin }) => {
   // payload: { highlightId, bookId, text, color?, … }
 });
-ctx.books?.on("book.removed", ({ payload }) => { /* { bookId } */ });
-ctx.vocabulary?.on("vocabulary.added", ({ payload }) => { /* { term, … } */ });`}</code>
+ctx.books?.on("book.removed", ({ payload }) => { /* { bookId } */ });`}</code>
       </pre>
       <p>
         <strong>セッションファクト</strong>
@@ -558,6 +544,14 @@ await ctx.books?.write?.addVirtualBook({
         フィールドを宣言していれば、アプリがそのフォームを描画し、値は
         <code>ctx.storage.get("settings")</code>
         に1つのオブジェクトとして届きます。
+      </p>
+      <p>
+        構造化データには、<code>ctx.storage.collection(name)</code>
+        が名前付きのドキュメントコレクションを開きます。ドキュメント単位のレコードに対する
+        <code>put</code> / <code>get</code> / <code>delete</code> /{" "}
+        <code>list</code>を備え、任意で<code>bookId</code> /{" "}
+        <code>anchor</code>
+        の出所情報（provenance）を付けてフィルタできます。出所はインデックスであって所有権ではありません。参照先の本が削除されてもドキュメントは残り、コレクションのライフサイクルはプラグインに属します（アンインストールで消去されます）。組み込みの単語帳（Vocabulary）プラグインは、丸ごとこの層の上に作られています。
       </p>
 
       <h2>常時使えるコンテキスト</h2>

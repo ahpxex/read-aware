@@ -51,11 +51,6 @@ const ThreadsPopover = lazy(() =>
     default: m.ThreadsPopover,
   })),
 );
-const VocabularyPopover = lazy(() =>
-  import("./features/context/components/VocabularyPopover").then((m) => ({
-    default: m.VocabularyPopover,
-  })),
-);
 
 /** 懒面冷加载时的占位：安静的居中 spinner，而不是一片空白。 */
 function SurfaceFallback() {
@@ -419,7 +414,6 @@ function App() {
               activeTopNav === "context" ? (
                 <Suspense fallback={null}>
                   <ThreadsPopover />
-                  <VocabularyPopover />
                   <AnnotationsPopover books={library.books} onOpenBook={handleOpenBook} />
                 </Suspense>
               ) : undefined

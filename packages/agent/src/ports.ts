@@ -9,7 +9,6 @@ import type {
   ChapterRef as CoreChapterRef,
   Id,
   ReadingStatus,
-  VocabularySummary,
 } from "@read-aware/core";
 import type { DictionaryEntry } from "./models/dictionary";
 
@@ -174,21 +173,6 @@ export interface BookTextPort {
   }): Promise<BookTextHit[]>;
 }
 
-/**
- * 词汇表条目 = canonical VocabularySummary（core read-models）。完整词条
- * `entry` 只服务 present_words 的富卡片；get_vocabulary 的工具层在给模型的
- * 列表里剥掉它（token 膨胀）。
- */
-export type VocabularyEntry = VocabularySummary;
-
-/**
- * 词汇表读端（只读：保存由阅读器词典的 UI 负责，不是 agent 的事）。
- * 实现方从产品的本地词汇表投影里取，按最近优先返回。
- */
-export interface VocabularyPort {
-  listVocabulary(filter?: { query?: string; limit?: number }): Promise<VocabularyEntry[]>;
-}
-
 export interface DictionaryLookupResult {
   entry: DictionaryEntry;
   /** 实际采用的解释语言（人类可读名）。 */
@@ -210,7 +194,6 @@ export interface RuntimeDeps {
   profile: ProfilePort;
   memory: MemoryPort;
   bookText: BookTextPort;
-  vocabulary: VocabularyPort;
   dictionary: DictionaryPort;
   /**
    * 宿主注入的额外工具（产品侧：用户插件注册的 agent 工具）。每次 Agent

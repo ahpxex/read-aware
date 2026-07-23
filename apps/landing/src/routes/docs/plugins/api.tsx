@@ -70,7 +70,7 @@ function PluginApiPage() {
   "minAppVersion": "0.3.0",
   "description": "Send looked-up words to Anki.",
   "author": "you",
-  "permissions": ["service:network", "vocabulary:read"],
+  "permissions": ["service:network", "annotations:read"],
   "main": "main.js"
 }`}</code>
       </pre>
@@ -145,8 +145,8 @@ function PluginApiPage() {
         The data surface is derived from the app's domain model rather than
         authored beside it. Each domain — <code>books</code>,{" "}
         <code>collections</code>, <code>annotations</code>,{" "}
-        <code>reading</code>, <code>vocabulary</code>,{" "}
-        <code>conversations</code> — is a namespace on <code>ctx</code>{" "}
+        <code>reading</code>, <code>conversations</code> — is a namespace on{" "}
+        <code>ctx</code>{" "}
         exposing three things:
       </p>
       <ul>
@@ -238,15 +238,6 @@ function PluginApiPage() {
                 <code>ctx.reading</code> — positions, statuses, and reading
                 time. Read-only by design: its events are recorded facts of
                 reader activity, not user commands.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>vocabulary:read</code> / <code>vocabulary:write</code>
-              </td>
-              <td>
-                <code>ctx.vocabulary</code> — the notebook the reader's
-                dictionary saves into.
               </td>
             </tr>
             <tr>
@@ -477,11 +468,6 @@ function PluginApiPage() {
           <code>listStates()</code>, <code>getTime(bookId)</code>.
         </li>
         <li>
-          <code>ctx.vocabulary</code> — <code>list(filter?)</code>; write:{" "}
-          <code>add</code>, <code>remove</code> — the same notebook the
-          reader's dictionary saves into.
-        </li>
-        <li>
           <code>ctx.conversations</code> — <code>getBookThread(bookId)</code>,{" "}
           <code>listThreads()</code>, <code>getThread(id)</code>; subscribe via{" "}
           <code>on</code> (<code>aiConversation.started</code>,{" "}
@@ -505,7 +491,7 @@ function PluginApiPage() {
   // payload: { highlightId, bookId, text, color?, … }
 });
 ctx.books?.on("book.removed", ({ payload }) => { /* { bookId } */ });
-ctx.vocabulary?.on("vocabulary.added", ({ payload }) => { /* { term, … } */ });`}</code>
+`}</code>
       </pre>
       <p>
         <strong>Session facts</strong> describe what is on screen right now.
@@ -596,6 +582,16 @@ await ctx.books?.write?.addVirtualBook({
         <code>remove</code>. If the manifest declares <code>settings</code>{" "}
         fields, the app renders the form and the values arrive at{" "}
         <code>ctx.storage.get("settings")</code> as one object.
+      </p>
+      <p>
+        For structured data, <code>ctx.storage.collection(name)</code> opens a
+        named document collection — <code>put</code> / <code>get</code> /{" "}
+        <code>delete</code> / <code>list</code> over per-document records, with
+        optional <code>bookId</code> / <code>anchor</code> provenance you can
+        filter by. Provenance is an index, not ownership: documents survive
+        the referenced book's deletion, and the collection's lifecycle belongs
+        to the plugin (uninstall clears it). The built-in Vocabulary plugin is
+        built entirely on this tier.
       </p>
 
       <h2>Ambient context</h2>

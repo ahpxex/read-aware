@@ -8,7 +8,6 @@ import { createDictionaryPort } from "./dictionary-port";
 import { createLibraryPort } from "./library-port";
 import { createMemoryPort } from "./memory-port";
 import { createProfilePort } from "./profile-port";
-import { createVocabularyPort } from "./vocabulary-port";
 
 export { GLOBAL_CONVERSATION_ID } from "./conversation-port";
 
@@ -20,7 +19,6 @@ export function buildRuntimeDeps(): RuntimeDeps {
     profile: createProfilePort(),
     memory: createMemoryPort(),
     bookText: createBookTextPort(),
-    vocabulary: createVocabularyPort(),
     dictionary: createDictionaryPort(),
     extraTools: getPluginAgentTools,
   };

@@ -13,7 +13,7 @@ import {
 import type { Id } from "@read-aware/core";
 import type { ThreadChunk } from "../chunks";
 import type { DictionaryEntry } from "../models/dictionary";
-import type { BookOverview, RuntimeDeps, VocabularyEntry } from "../ports";
+import type { BookOverview, RuntimeDeps } from "../ports";
 import { createInMemoryDeps } from "../testing/fixtures";
 import type { ThreadScope } from "../thread-scope";
 import { AgentThread } from "./thread";
@@ -32,22 +32,6 @@ const SERENDIPITY: DictionaryEntry = {
   etymology: "coined by Horace Walpole after the tale of the three princes of Serendip",
 };
 
-const VOCABULARY: VocabularyEntry[] = [
-  {
-    term: "Serendipity",
-    language: "English",
-    definition: "a happy accident",
-    addedAt: "2026-06-01T00:00:00Z",
-    entry: SERENDIPITY,
-  },
-  {
-    term: "ephemeral",
-    language: "English",
-    definition: "lasting a very short time",
-    addedAt: "2026-06-02T00:00:00Z",
-    entry: { headword: "ephemeral", senses: [] },
-  },
-];
 
 const noopComplete = async () => fauxAssistantMessage('{"new": [], "reinforced": []}');
 
@@ -136,50 +120,7 @@ describe("present flow", () => {
     ).toBe(true);
   });
 
-  test("present_words matches vocabulary case-insensitively and carries the full entry", async () => {
-    const { faux, model } = makeFaux();
-    faux.setResponses([
-      fauxAssistantMessage(
-        [fauxToolCall("present_words", { terms: ["serendipity", "unknown-word"] })],
-        { stopReason: "toolUse" },
-      ),
-      fauxAssistantMessage("There you go."),
-    ]);
-    const { deps } = createInMemoryDeps({ books: BOOKS, vocabulary: VOCABULARY });
-    const thread = makeThread({ kind: "book", bookId: "b1" as Id }, deps, model);
 
-    const chunks = await collect(thread.sendTurn({ text: "show my word" }));
-
-    const refs = references(chunks);
-    expect(refs).toHaveLength(1);
-    const payload = refs[0].reference;
-    if (payload.kind !== "words") throw new Error("expected a words payload");
-    expect(payload.words).toHaveLength(1);
-    expect(payload.words[0].term).toBe("Serendipity");
-    expect(payload.words[0].source).toBe("vocabulary");
-    expect(payload.words[0].entry).toEqual(SERENDIPITY);
-  });
-
-  test("present_words synthesizes a minimal entry when the store has none", async () => {
-    const { faux, model } = makeFaux();
-    faux.setResponses([
-      fauxAssistantMessage([fauxToolCall("present_words", { terms: ["ephemeral"] })], {
-        stopReason: "toolUse",
-      }),
-      fauxAssistantMessage("There you go."),
-    ]);
-    const { deps } = createInMemoryDeps({ books: BOOKS, vocabulary: VOCABULARY });
-    const thread = makeThread({ kind: "book", bookId: "b1" as Id }, deps, model);
-
-    const chunks = await collect(thread.sendTurn({ text: "show my word" }));
-
-    const payload = references(chunks)[0]?.reference;
-    if (payload?.kind !== "words") throw new Error("expected a words payload");
-    expect(payload.words[0].entry).toEqual({
-      headword: "ephemeral",
-      senses: [{ partOfSpeech: "", definition: "lasting a very short time", examples: [] }],
-    });
-  });
 
   test("lookup_word emits a lookup-sourced word card and keeps its tool step visible", async () => {
     const { faux, model } = makeFaux();

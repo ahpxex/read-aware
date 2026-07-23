@@ -14,7 +14,6 @@ import type {
   NewMemoryInput,
   RuntimeDeps,
   TurnRecord,
-  VocabularyEntry,
 } from "../ports";
 import { searchChapters } from "../text/search";
 
@@ -54,7 +53,6 @@ export interface InMemorySeed {
   profile?: string;
   memories?: MemoryRecord[];
   chapters?: Record<string, ChapterSeed[]>;
-  vocabulary?: VocabularyEntry[];
   /** lookup_word 的假词典：term（小写）→ 词条；未命中时合成 stub。 */
   dictionary?: Record<string, DictionaryEntry>;
 }
@@ -227,18 +225,6 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
           }
         }
         return results.slice(0, limit ?? 16);
-      },
-    },
-    vocabulary: {
-      listVocabulary: async ({ query, limit } = {}) => {
-        const needle = query?.trim().toLowerCase();
-        const entries = (seed.vocabulary ?? []).filter(
-          (entry) =>
-            !needle ||
-            entry.term.toLowerCase().includes(needle) ||
-            entry.definition.toLowerCase().includes(needle),
-        );
-        return typeof limit === "number" ? entries.slice(0, limit) : entries;
       },
     },
     dictionary: {

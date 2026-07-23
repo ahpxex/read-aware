@@ -4,33 +4,16 @@
  * lookup) and always fully open: the entry IS the reply, so there is nothing to
  * collapse. Reads like a dictionary entry — headword line with the
  * pronunciation, senses with quiet indented examples, then hairline-separated
- * context and origin sections. The bookmark toggles vocabulary membership.
+ * context and origin sections.
  */
-import { useState } from "react";
-import { BookmarkSimple } from "@phosphor-icons/react";
-import { Eyebrow, IconButton } from "@read-aware/ui";
+import { Eyebrow } from "@read-aware/ui";
 import { useTranslation } from "../../../../i18n";
-import {
-  addToVocabulary,
-  isInVocabulary,
-  removeFromVocabulary,
-} from "../../../reader/lib/vocabulary";
 import type { ChatWordReference } from "../../lib/chat-types";
 
 export function WordReferenceCard({ reference }: { reference: ChatWordReference }) {
   const { t } = useTranslation("ai");
-  const [saved, setSaved] = useState(() => isInVocabulary(reference.term, reference.language));
-  const { entry } = reference;
+  const entry = reference.entry;
   const numbered = entry.senses.length > 1;
-
-  const toggleSaved = () => {
-    if (saved) {
-      removeFromVocabulary(reference.term, reference.language);
-    } else {
-      addToVocabulary({ term: reference.term, language: reference.language, entry });
-    }
-    setSaved(!saved);
-  };
 
   return (
     <div className="rounded-md border border-border px-3 py-2.5">
@@ -41,13 +24,6 @@ export function WordReferenceCard({ reference }: { reference: ChatWordReference 
             <span className="min-w-0 truncate text-xs text-fg-subtle">{entry.pronunciation}</span>
           )}
         </div>
-        <IconButton
-          size="sm"
-          label={saved ? t("chat.references.removeWord") : t("chat.references.saveWord")}
-          onClick={toggleSaved}
-          className="-mr-1 shrink-0 text-fg-subtle hover:text-fg"
-          icon={<BookmarkSimple size={13} weight={saved ? "fill" : "regular"} />}
-        />
       </div>
 
       <div className="mt-1.5 flex flex-col gap-2 text-xs">

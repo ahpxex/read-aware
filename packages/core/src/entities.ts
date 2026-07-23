@@ -34,7 +34,7 @@ export type MemoryFeedbackSignal = "pin" | "correct" | "reject";
 export type EventOrigin = "user" | "agent" | "system" | `plugin:${string}`;
 
 /**
- * Snapshot of a dictionary entry as embedded in vocabulary events. Structurally
+ * Snapshot of a dictionary entry as produced by the dictionary service. Structurally
  * mirrors the dictionary feature's entry shape — the log must stay
  * self-contained, so the payload carries the full snapshot instead of a
  * reference into a rebuildable cache.
@@ -45,23 +45,6 @@ export interface DictionaryEntrySnapshot {
   senses: { partOfSpeech: string; definition: string; examples: string[] }[];
   etymology?: string;
   contextualMeaning?: string;
-}
-
-/**
- * A saved vocabulary-notebook entry (the store the reader's dictionary saves
- * into). Identity is `id` = `<language> <term.lowercase>` — re-adding the same
- * term replaces the snapshot.
- */
-export interface VocabularyEntry {
-  id: Id;
-  term: string;
-  language: string;
-  entry: DictionaryEntrySnapshot;
-  /** The passage the word was met in, when known. */
-  context?: string;
-  bookId?: Id;
-  bookTitle?: string;
-  addedAt: IsoDate;
 }
 
 export interface UserProfile {

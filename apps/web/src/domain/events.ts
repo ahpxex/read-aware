@@ -41,8 +41,6 @@ export const ANNOTATION_EVENTS = [
 
 export const READING_EVENTS = ["reading.progressed", "reading.timeRecorded"] as const;
 
-export const VOCABULARY_EVENTS = ["vocabulary.added", "vocabulary.removed"] as const;
-
 export const CONVERSATION_EVENTS = [
   "aiConversation.started",
   "aiMessage.appended",

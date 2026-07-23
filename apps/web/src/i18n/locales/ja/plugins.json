@@ -1,6 +1,7 @@
 {
   "viewer": {
     "back": "戻る",
+    "close": "閉じる",
     "submit": "送信",
     "loading": "読み込み中…",
     "empty": "まだ何もありません",

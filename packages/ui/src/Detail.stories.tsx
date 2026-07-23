@@ -38,9 +38,9 @@ export const Default: Story = {
       </Metadata>
     ),
     actions: (
-      <Tooltip content="Remove from vocabulary" align="end">
+      <Tooltip content="Delete word" align="end">
         <IconButton
-          label="Remove from vocabulary"
+          label="Delete word"
           tone="danger"
           size="sm"
           icon={<Trash size={16} aria-hidden="true" />}

@@ -19,7 +19,7 @@
       "get_toc": "Liest das Inhaltsverzeichnis",
       "read_chapter": "Liest ein Kapitel",
       "search_book_text": "Durchsucht den Text",
-      "get_vocabulary": "Liest dein Vokabular",
+      "get_vocabulary": "Gespeicherte Wörter werden gelesen",
       "lookup_word": "Schlägt ein Wort nach",
       "fallback": "Arbeitet",
       "failed": "fehlgeschlagen"

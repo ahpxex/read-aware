@@ -184,7 +184,13 @@ export interface DictionaryLookupResult {
  * LLM account —— 全在实现侧（web），不把模型解析穿进工具层。失败时抛出。
  */
 export interface DictionaryPort {
-  lookUp(input: { term: string; context?: string; bookTitle?: string }): Promise<DictionaryLookupResult>;
+  lookUp(input: {
+    term: string;
+    context?: string;
+    bookTitle?: string;
+    /** Optional model-ready language name; otherwise use the saved preference. */
+    explanationLanguage?: string;
+  }): Promise<DictionaryLookupResult>;
 }
 
 export interface RuntimeDeps {

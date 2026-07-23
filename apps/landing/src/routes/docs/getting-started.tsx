@@ -70,8 +70,8 @@ function GettingStartedPage() {
         </li>
         <li>
           <strong>Look up</strong> — the built-in dictionary explains the word
-          in its sentence, not just in the abstract, and saves it to your
-          vocabulary notebook. (Uses your configured AI.)
+          in its sentence, not just in the abstract, and saves it to the
+          Dictionary timeline. (Uses your configured AI.)
         </li>
       </ul>
       <p>

@@ -1,6 +1,7 @@
 {
   "viewer": {
     "back": "Zurück",
+    "close": "Schließen",
     "submit": "Absenden",
     "loading": "Wird geladen…",
     "empty": "Hier ist noch nichts",

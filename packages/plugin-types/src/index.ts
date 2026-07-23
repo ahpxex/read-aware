@@ -246,12 +246,30 @@ export type PluginBlocksView = {
   blocks: PluginBlock[];
 };
 
-/** Host detail: primary content, top icon actions, and footer metadata. */
+/**
+ * A compact host-rendered control for a detail surface. Plugins declare the
+ * options and behavior; the app owns the actual menu, focus behavior, and
+ * visual treatment.
+ */
+export type PluginSelectControl = {
+  kind: "select";
+  id: string;
+  label: string;
+  value: string;
+  icon?: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => PluginViewResult | Promise<PluginViewResult>;
+};
+
+export type PluginDetailControl = PluginSelectControl;
+
+/** Host detail: primary content, contextual controls, actions, and metadata. */
 export type PluginDetailView = {
   kind: "detail";
   title?: string;
   content: PluginBlock[];
   metadata?: PluginMetadataItem[];
+  controls?: PluginDetailControl[];
   actions?: PluginAction[];
 };
 
@@ -546,6 +564,18 @@ export type PluginReadingTime = ReadingTime;
 
 export type PluginDictionaryEntry = DictionaryEntrySnapshot;
 
+/** A concrete supported locale, or `auto` to follow the app language. */
+export type PluginDictionaryLanguage =
+  | "auto"
+  | "en"
+  | "zh-Hans"
+  | "zh-Hant"
+  | "ja"
+  | "fr"
+  | "de"
+  | "ru"
+  | "es";
+
 export type PluginDictionaryResult = {
   /** The explanation language the entry was produced in. */
   language: string;
@@ -803,7 +833,13 @@ export type PluginContext = {
       term: string;
       context?: string;
       bookTitle?: string;
+      /** Target explanation language; omitted means the saved preference. */
+      language?: PluginDictionaryLanguage;
     }): Promise<PluginDictionaryResult>;
+    /** Current target-language preference used by reader and plugin look-ups. */
+    getLanguage(): PluginDictionaryLanguage;
+    /** Persist the shared reader/plugin target-language preference. */
+    setLanguage(language: PluginDictionaryLanguage): void;
   };
   /** `service:clipboard`. */
   clipboard?: {

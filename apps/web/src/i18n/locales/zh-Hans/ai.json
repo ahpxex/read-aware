@@ -19,7 +19,7 @@
       "get_toc": "正在阅读目录",
       "read_chapter": "正在阅读章节",
       "search_book_text": "正在检索正文",
-      "get_vocabulary": "正在查看词汇表",
+      "get_vocabulary": "正在查看保存的单词",
       "lookup_word": "正在查询词典",
       "fallback": "处理中",
       "failed": "失败"

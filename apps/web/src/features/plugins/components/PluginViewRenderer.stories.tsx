@@ -31,10 +31,25 @@ const dictionaryDetail: PluginView = {
     { kind: "label", label: "Added", value: "Jul 24, 2026", icon: "calendar" },
     { kind: "tags", label: "Themes", values: ["chance", "discovery"] },
   ],
+  controls: [
+    {
+      kind: "select",
+      id: "target-language",
+      label: "Target language",
+      value: "en",
+      icon: "translate",
+      options: [
+        { value: "auto", label: "Match app language" },
+        { value: "en", label: "English" },
+        { value: "zh-Hans", label: "简体中文" },
+      ],
+      onChange: () => undefined,
+    },
+  ],
   actions: [
     {
       id: "remove",
-      label: "Remove from vocabulary",
+      label: "Delete word",
       icon: "trash",
       variant: "danger",
       run: () => ({ toast: "Removed" }),
@@ -61,13 +76,13 @@ const daysAgo = (days: number) => {
   return date.toISOString();
 };
 
-export const VocabularyTimeline: Story = {
+export const DictionaryTimeline: Story = {
   args: {
     className: "mx-auto max-w-5xl",
     view: {
       kind: "list",
       searchable: true,
-      searchPlaceholder: "Search vocabulary",
+      searchPlaceholder: "Search saved words",
       timeline: true,
       items: [
         {

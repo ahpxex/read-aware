@@ -10,5 +10,5 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  args: { label: "Search vocabulary", placeholder: "Search vocabulary" },
+  args: { label: "Search saved words", placeholder: "Search saved words" },
 };

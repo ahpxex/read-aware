@@ -1,6 +1,7 @@
 {
   "viewer": {
     "back": "Retour",
+    "close": "Fermer",
     "submit": "Envoyer",
     "loading": "Chargement…",
     "empty": "Rien ici pour l'instant",

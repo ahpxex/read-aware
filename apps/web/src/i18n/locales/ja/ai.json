@@ -19,7 +19,7 @@
       "get_toc": "目次を読んでいます",
       "read_chapter": "章を読んでいます",
       "search_book_text": "本文を検索しています",
-      "get_vocabulary": "単語帳を確認しています",
+      "get_vocabulary": "保存した単語を確認しています",
       "lookup_word": "単語を調べています",
       "fallback": "処理中",
       "failed": "失敗"

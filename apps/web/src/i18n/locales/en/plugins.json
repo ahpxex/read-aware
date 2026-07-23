@@ -1,6 +1,7 @@
 {
   "viewer": {
     "back": "Back",
+    "close": "Close",
     "submit": "Submit",
     "loading": "Loading…",
     "empty": "Nothing here yet",

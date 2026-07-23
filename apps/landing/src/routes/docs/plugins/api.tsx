@@ -281,7 +281,10 @@ function PluginApiPage() {
               </td>
               <td>
                 <code>ctx.dictionary.lookUp</code> — the app's dictionary
-                (shares its cache with the reader; uses the user's AI).
+                (shares its cache and target-language preference with the
+                reader; uses the user's AI). Pass <code>language</code> for an
+                explicit target, or use <code>getLanguage</code> /{" "}
+                <code>setLanguage</code> for the shared preference.
               </td>
             </tr>
             <tr>
@@ -408,9 +411,10 @@ function PluginApiPage() {
         </li>
         <li>
           <code>detail</code> — Raycast-style primary content, metadata, and
-          host-rendered actions. The host places actions as icon buttons beside
-          the content heading and keeps provenance, dates, and tags in a quiet
-          footer.
+          host-rendered controls and actions. Semantic select controls stay by
+          the content heading; dialogs keep provenance, dates, and tags in a
+          quiet line beneath it, while actions sit beside the host Close button
+          in a fixed footer.
         </li>
         <li>
           <code>blocks</code> — host typography, markdown, dictionary content,
@@ -608,8 +612,8 @@ await ctx.books?.write?.addVirtualBook({
         optional <code>bookId</code> / <code>anchor</code> provenance you can
         filter by. Provenance is an index, not ownership: documents survive
         the referenced book's deletion, and the collection's lifecycle belongs
-        to the plugin (uninstall clears it). The built-in Dictionary plugin (which
-        owns the vocabulary notebook) is built entirely on this tier.
+        to the plugin (uninstall clears it). The built-in Dictionary plugin and
+        its saved-word timeline are built entirely on this tier.
       </p>
 
       <h2>Ambient context</h2>

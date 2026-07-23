@@ -23,6 +23,7 @@ export function PluginDialogHost() {
         <PluginViewRenderer
           view={request.view}
           onClose={close}
+          dialogFooter
           className="max-h-[min(24rem,60vh)]"
         />
       )}

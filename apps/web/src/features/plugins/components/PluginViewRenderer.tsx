@@ -1,7 +1,17 @@
 /** Host renderer for the declarative plugin component vocabulary. */
 import { CaretLeft } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
-import { Alert, Body, Dialog, IconButton, ScrollArea, Spinner, Stack } from "@read-aware/ui";
+import {
+  Alert,
+  Body,
+  Button,
+  Dialog,
+  Divider,
+  IconButton,
+  ScrollArea,
+  Spinner,
+  Stack,
+} from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import { Markdown } from "../../ai/components/Markdown";
@@ -13,6 +23,7 @@ import {
 import { showPluginToast } from "../lib/plugin-toast";
 import type { PluginView, PluginViewResult } from "../lib/plugin-types";
 import { PluginBlocks } from "./PluginBlockRenderer";
+import { PluginActionGroup } from "./PluginActionGroup";
 import { PluginDetailViewBody } from "./PluginDetailViewBody";
 import { PluginFormViewBody } from "./PluginFormViewBody";
 import { PluginListViewBody } from "./PluginListViewBody";
@@ -27,6 +38,8 @@ type PluginViewRendererProps = {
   onDepthChange?: (depth: number) => void;
   /** Refetches the owning root after a modal detail closes. */
   onRequestRefresh?: () => void;
+  /** Adds host Close + detail actions in a fixed dialog footer. */
+  dialogFooter?: boolean;
   className?: string;
 };
 
@@ -53,6 +66,7 @@ export function PluginViewRenderer({
   onClose,
   onDepthChange,
   onRequestRefresh,
+  dialogFooter = false,
   className,
 }: PluginViewRendererProps) {
   const { t } = useTranslation("plugins");
@@ -165,6 +179,53 @@ export function PluginViewRenderer({
     );
   }
 
+  const currentView = (
+    <>
+      {current.kind === "markdown" && (
+        <Markdown className="text-sm leading-6">{current.markdown}</Markdown>
+      )}
+      {current.kind === "list" && (
+        <PluginListViewBody view={current} busy={busy} onResult={handleResult} />
+      )}
+      {current.kind === "form" && (
+        <PluginFormViewBody
+          key={stack.length}
+          view={current}
+          busy={busy}
+          onResult={handleResult}
+        />
+      )}
+      {current.kind === "blocks" && (
+        <PluginBlocks
+          blocks={current.blocks}
+          stackDepth={stack.length}
+          busy={busy}
+          onResult={handleResult}
+        />
+      )}
+      {current.kind === "detail" && (
+        <PluginDetailViewBody
+          view={current}
+          stackDepth={stack.length}
+          busy={busy}
+          onResult={handleResult}
+          showActions={!dialogFooter}
+          metadataPresentation={dialogFooter ? "header" : "footer"}
+          scrollBody={dialogFooter}
+        />
+      )}
+    </>
+  );
+  const busyOverlay = busy ? (
+    <Stack
+      align="center"
+      justify="center"
+      className="absolute inset-0 bg-[var(--ra-main-surface-color)]/70"
+    >
+      <Spinner size="sm" />
+    </Stack>
+  ) : null;
+
   return (
     <>
       <Stack gap="sm" className={cn("min-h-0", className)}>
@@ -185,59 +246,54 @@ export function PluginViewRenderer({
           </Stack>
         )}
 
-        <ScrollArea className="relative min-h-0 flex-1">
-          {current.kind === "markdown" && (
-            <Markdown className="text-sm leading-6">{current.markdown}</Markdown>
-          )}
-          {current.kind === "list" && (
-            <PluginListViewBody view={current} busy={busy} onResult={handleResult} />
-          )}
-          {current.kind === "form" && (
-            <PluginFormViewBody
-              key={stack.length}
-              view={current}
-              busy={busy}
-              onResult={handleResult}
-            />
-          )}
-          {current.kind === "blocks" && (
-            <PluginBlocks
-              blocks={current.blocks}
-              stackDepth={stack.length}
-              busy={busy}
-              onResult={handleResult}
-            />
-          )}
-          {current.kind === "detail" && (
-            <PluginDetailViewBody
-              view={current}
-              stackDepth={stack.length}
-              busy={busy}
-              onResult={handleResult}
-            />
-          )}
-          {busy && (
-            <Stack
-              align="center"
-              justify="center"
-              className="absolute inset-0 bg-[var(--ra-main-surface-color)]/70"
-            >
-              <Spinner size="sm" />
+        {dialogFooter && current.kind === "detail" ? (
+          <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+            {currentView}
+            {busyOverlay}
+          </div>
+        ) : (
+          <ScrollArea className="relative min-h-0 flex-1">
+            {currentView}
+            {busyOverlay}
+          </ScrollArea>
+        )}
+
+        {dialogFooter && (
+          <Stack gap="md" className="shrink-0 pt-2">
+            <Divider />
+            <Stack direction="horizontal" gap="sm" align="center" justify="end" wrap>
+              {current.kind === "detail" && current.actions && current.actions.length > 0 && (
+                <PluginActionGroup
+                  actions={current.actions}
+                  busy={busy}
+                  display="buttons"
+                  onResult={handleResult}
+                />
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={busy}
+                onClick={onClose}
+              >
+                {t("viewer.close")}
+              </Button>
             </Stack>
-          )}
-        </ScrollArea>
+          </Stack>
+        )}
       </Stack>
 
       <Dialog
         open={detailDialog !== null}
         onClose={closeDetailDialog}
         aria-label={detailDialog?.title ?? t("viewer.detail")}
-        className="max-h-[85vh] w-[min(90vw,36rem)] overflow-y-auto overscroll-none"
+        className="max-h-[85vh] w-[min(90vw,36rem)]"
       >
         {detailDialog && (
           <PluginViewRenderer
             view={detailDialog.view}
             onClose={closeDetailDialog}
+            dialogFooter
             className="max-h-[calc(85vh-4rem)]"
           />
         )}

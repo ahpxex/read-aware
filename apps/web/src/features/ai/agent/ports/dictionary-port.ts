@@ -17,9 +17,11 @@ import { accountFromConfig } from "../account";
 
 export function createDictionaryPort(): DictionaryPort {
   return {
-    lookUp: async ({ term, context, bookTitle }) => {
+    lookUp: async ({ term, context, bookTitle, explanationLanguage }) => {
       const locale = i18n.language && isAppLocale(i18n.language) ? i18n.language : DEFAULT_LOCALE;
-      const language = resolveExplanationLanguageName(getDictionaryLanguage(), locale);
+      const language =
+        explanationLanguage?.trim() ||
+        resolveExplanationLanguageName(getDictionaryLanguage(), locale);
       // The tool always wants a term entry — a sentence-mode record under the
       // same key (same text looked up from the reader) doesn't satisfy it.
       const cached = getCachedLookup(term, language, context);

@@ -19,7 +19,7 @@
       "get_toc": "正在閱讀目錄",
       "read_chapter": "正在閱讀章節",
       "search_book_text": "正在檢索內文",
-      "get_vocabulary": "正在查看詞彙表",
+      "get_vocabulary": "正在查看已儲存的單詞",
       "lookup_word": "正在查詢詞典",
       "fallback": "處理中",
       "failed": "失敗"

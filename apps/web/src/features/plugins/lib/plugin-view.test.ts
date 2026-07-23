@@ -16,13 +16,46 @@ describe("normalizePluginView", () => {
         { kind: "label", label: "Book", value: "Frankenstein", icon: "book-open" },
         { kind: "tags", label: "Themes", values: ["chance", "discovery"] },
       ],
+      controls: [
+        {
+          kind: "select",
+          id: "language",
+          label: "Target language",
+          value: "en",
+          options: [
+            { value: "en", label: "English" },
+            { value: "zh-Hans", label: "简体中文" },
+          ],
+          onChange: noOp,
+        },
+      ],
       actions: [{ id: "remove", label: "Remove", variant: "ghost", run: noOp }],
     });
 
     expect(view.kind).toBe("detail");
     if (view.kind !== "detail") throw new Error("unexpected view");
     expect(view.metadata).toHaveLength(2);
+    expect(view.controls?.[0].value).toBe("en");
     expect(view.actions?.[0].variant).toBe("ghost");
+  });
+
+  test("rejects a detail control whose value is outside its host-rendered options", () => {
+    expect(() =>
+      normalizePluginView({
+        kind: "detail",
+        content: [],
+        controls: [
+          {
+            kind: "select",
+            id: "language",
+            label: "Target language",
+            value: "xx",
+            options: [{ value: "en", label: "English" }],
+            onChange: noOp,
+          },
+        ],
+      }),
+    ).toThrow(/value must match one of its options/);
   });
 
   test("bounds columns while preserving nested host composition", () => {

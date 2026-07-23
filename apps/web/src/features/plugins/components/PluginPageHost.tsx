@@ -79,7 +79,9 @@ export function PluginPageHost({ navKey, onExit }: PluginPageHostProps) {
       {viewDepth <= 1 && (
         <Stack gap="xs" className="mb-6">
           <Heading as="h1">{action.title}</Heading>
-          <Caption className="text-fg-subtle">{action.pluginName}</Caption>
+          {action.pluginName !== action.title && (
+            <Caption className="text-fg-subtle">{action.pluginName}</Caption>
+          )}
         </Stack>
       )}
       <PluginViewRenderer

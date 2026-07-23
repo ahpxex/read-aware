@@ -1,6 +1,7 @@
 {
   "viewer": {
     "back": "返回",
+    "close": "關閉",
     "submit": "提交",
     "loading": "載入中…",
     "empty": "這裡還沒有內容",

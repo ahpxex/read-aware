@@ -3,6 +3,7 @@ import type {
   PluginAction,
   PluginBlock,
   PluginColumnCell,
+  PluginDetailControl,
   PluginDetailView,
   PluginDictionaryEntry,
   PluginFormField,
@@ -19,6 +20,8 @@ const MAX_BLOCKS = 120;
 const MAX_LIST_ITEMS = 500;
 const MAX_FORM_FIELDS = 40;
 const MAX_ACTIONS = 20;
+const MAX_DETAIL_CONTROLS = 8;
+const MAX_CONTROL_OPTIONS = 30;
 
 export class PluginViewError extends Error {}
 
@@ -93,6 +96,48 @@ function normalizeAction(input: unknown, context: string): PluginAction {
 function normalizeActions(value: unknown, context: string): PluginAction[] {
   return array(value, context, MAX_ACTIONS).map((action, index) =>
     normalizeAction(action, `${context}[${index}]`),
+  );
+}
+
+function normalizeDetailControl(input: unknown, context: string): PluginDetailControl {
+  const value = record(input, context);
+  const kind = string(value.kind, `${context}.kind`);
+  if (kind !== "select") {
+    throw new PluginViewError(`${context}.kind "${kind}" is not supported`);
+  }
+  if (typeof value.onChange !== "function") {
+    throw new PluginViewError(`${context}.onChange must be a function`);
+  }
+  const options = array(value.options, `${context}.options`, MAX_CONTROL_OPTIONS).map(
+    (option, index) => {
+      const entry = record(option, `${context}.options[${index}]`);
+      return {
+        value: string(entry.value, `${context}.options[${index}].value`)!,
+        label: string(entry.label, `${context}.options[${index}].label`)!,
+      };
+    },
+  );
+  if (options.length === 0) {
+    throw new PluginViewError(`${context}.options must contain at least one option`);
+  }
+  const selectedValue = string(value.value, `${context}.value`)!;
+  if (!options.some((option) => option.value === selectedValue)) {
+    throw new PluginViewError(`${context}.value must match one of its options`);
+  }
+  return {
+    kind,
+    id: string(value.id, `${context}.id`)!,
+    label: string(value.label, `${context}.label`)!,
+    value: selectedValue,
+    icon: string(value.icon, `${context}.icon`, true),
+    options,
+    onChange: value.onChange as PluginDetailControl["onChange"],
+  };
+}
+
+function normalizeDetailControls(value: unknown, context: string): PluginDetailControl[] {
+  return array(value, context, MAX_DETAIL_CONTROLS).map((control, index) =>
+    normalizeDetailControl(control, `${context}[${index}]`),
   );
 }
 
@@ -512,6 +557,10 @@ function normalizeDetailView(input: Record<string, unknown>, context: string): P
         : array(input.metadata, `${context}.metadata`, 60).map((item, index) =>
             normalizeMetadataItem(item, `${context}.metadata[${index}]`),
           ),
+    controls:
+      input.controls == null
+        ? undefined
+        : normalizeDetailControls(input.controls, `${context}.controls`),
     actions:
       input.actions == null ? undefined : normalizeActions(input.actions, `${context}.actions`),
   };

@@ -1,6 +1,8 @@
 import { type ReactNode } from "react";
 import { Divider } from "./Divider";
+import { ScrollArea } from "./ScrollArea";
 import { Stack } from "./Stack";
+import { cn } from "./lib/cn";
 
 type DetailProps = {
   children: ReactNode;
@@ -8,11 +10,13 @@ type DetailProps = {
   metadata?: ReactNode;
   actions?: ReactNode;
   className?: string;
+  bodyClassName?: string;
+  scrollable?: boolean;
 };
 
 /**
- * A host-owned detail surface. Contextual actions stay beside the content
- * heading, while provenance and other secondary metadata form a quiet footer.
+ * A host-owned detail surface. Contextual controls occupy the trailing edge of
+ * the heading row, while provenance and other secondary metadata stay quiet.
  */
 export function Detail({
   children,
@@ -20,11 +24,19 @@ export function Detail({
   metadata,
   actions,
   className,
+  bodyClassName,
+  scrollable = false,
 }: DetailProps) {
   return (
     <Stack gap="lg" className={className}>
       {header ? (
-        <Stack direction="horizontal" gap="sm" align="start" className="max-w-full self-start">
+        <Stack
+          direction="horizontal"
+          gap="sm"
+          align="start"
+          justify={actions ? "between" : "start"}
+          className="w-full max-w-full"
+        >
           <div className="min-w-0">{header}</div>
           {actions && <div className="shrink-0">{actions}</div>}
         </Stack>
@@ -33,7 +45,13 @@ export function Detail({
           {actions}
         </Stack>
       ) : null}
-      <div className="min-w-0">{children}</div>
+      {scrollable ? (
+        <ScrollArea className={cn("min-h-0 min-w-0 flex-1", bodyClassName)}>
+          {children}
+        </ScrollArea>
+      ) : (
+        <div className={cn("min-w-0", bodyClassName)}>{children}</div>
+      )}
       {metadata && (
         <Stack gap="md">
           <Divider />

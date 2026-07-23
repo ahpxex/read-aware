@@ -2,13 +2,36 @@
  * Dictionary — the built-in dictionary, as a plugin.
  *
  * Looking a word up is an app service (service:dictionary); this plugin owns
- * the vertical around it: a "look up & save" selection action, the Vocabulary
- * notebook (saved words as plugin documents in the "words" collection, keyed
+ * the vertical around it: a "look up & save" selection action, the saved-word
+ * timeline (plugin documents in the "words" collection, keyed
  * `<language> <term>` so re-saving updates the entry across books), and the
- * agent tools that read and write it. A Dictionary has a Vocabulary.
+ * agent tools that read and write it.
  */
 
 const WORDS = "words";
+const LANGUAGE_OPTIONS = [
+  { value: "auto", label: "Match app language" },
+  { value: "en", label: "English" },
+  { value: "zh-Hans", label: "简体中文" },
+  { value: "zh-Hant", label: "繁體中文" },
+  { value: "ja", label: "日本語" },
+  { value: "fr", label: "Français" },
+  { value: "de", label: "Deutsch" },
+  { value: "ru", label: "Русский" },
+  { value: "es", label: "Español" },
+];
+const LANGUAGE_VALUE_BY_NAME = {
+  English: "en",
+  "Simplified Chinese": "zh-Hans",
+  "Traditional Chinese": "zh-Hant",
+  Japanese: "ja",
+  French: "fr",
+  German: "de",
+  Russian: "ru",
+  Spanish: "es",
+};
+const isTargetLanguage = (value) =>
+  LANGUAGE_OPTIONS.some((option) => option.value === value);
 
 /** term + language, lowercased — the dedupe identity. */
 const idFor = (term, language) => `${language} ${term.trim().toLowerCase()}`;
@@ -33,10 +56,12 @@ function formatDate(iso) {
 /** @param {import("read-aware").PluginContext} ctx */
 async function saveWord(ctx, input) {
   const term = input.text.trim().slice(0, 60);
+  const targetLanguage = input.language ?? ctx.dictionary.getLanguage();
   const { language, entry } = await ctx.dictionary.lookUp({
     term,
     context: input.context,
     bookTitle: input.bookTitle,
+    language: targetLanguage,
   });
   // Keep the source passage only when it's more than the word itself.
   const passage =
@@ -45,14 +70,22 @@ async function saveWord(ctx, input) {
       : undefined;
   await words(ctx).put(
     idFor(term, language),
-    { term, language, entry, context: passage, bookTitle: input.bookTitle, addedAt: new Date().toISOString() },
+    {
+      term,
+      language,
+      targetLanguage,
+      entry,
+      context: passage,
+      bookTitle: input.bookTitle,
+      addedAt: new Date().toISOString(),
+    },
     { bookId: input.bookId },
   );
-  return { term, language, entry };
+  return { term, language, targetLanguage, entry };
 }
 
 /** The shared host-rendered detail: definition, metadata footer, and actions. */
-function wordDetail(w, onRemove) {
+function wordDetail(w, targetLanguage, onLanguageChange, onRemove) {
   const metadata = [
     ...(w.bookTitle ? [{ kind: "label", label: "Book", value: w.bookTitle, icon: "book-open" }] : []),
     ...(formatDate(w.addedAt)
@@ -71,10 +104,21 @@ function wordDetail(w, onRemove) {
       ...(passage ? [{ kind: "quote", text: passage, caption: w.bookTitle }] : []),
     ],
     metadata,
+    controls: [
+      {
+        kind: "select",
+        id: "target-language",
+        label: "Target language",
+        value: targetLanguage,
+        icon: "translate",
+        options: LANGUAGE_OPTIONS,
+        onChange: onLanguageChange,
+      },
+    ],
     actions: [
       {
         id: "remove",
-        label: "Remove from vocabulary",
+        label: "Delete word",
         icon: "trash",
         variant: "danger",
         run: onRemove,
@@ -86,10 +130,49 @@ function wordDetail(w, onRemove) {
 /** @param {import("read-aware").PluginContext} ctx */
 async function wordDetailView(ctx, doc) {
   const w = doc.data;
-  return wordDetail(w, async () => {
-    await words(ctx).delete(doc.id);
-    return { close: true, toast: `Removed “${w.term}”` };
+  const inferredLanguage =
+    w.targetLanguage ?? LANGUAGE_VALUE_BY_NAME[w.language] ?? ctx.dictionary.getLanguage();
+  const targetLanguage = isTargetLanguage(inferredLanguage)
+    ? inferredLanguage
+    : ctx.dictionary.getLanguage();
+  return wordDetail(
+    w,
+    targetLanguage,
+    (nextLanguage) => changeWordLanguage(ctx, doc, nextLanguage),
+    async () => {
+      await words(ctx).delete(doc.id);
+      return { close: true, toast: `Deleted “${w.term}”` };
+    },
+  );
+}
+
+/** @param {import("read-aware").PluginContext} ctx */
+async function changeWordLanguage(ctx, doc, targetLanguage) {
+  const w = doc.data;
+  if (!isTargetLanguage(targetLanguage)) {
+    throw new Error(`Unsupported target language: ${String(targetLanguage)}`);
+  }
+  if (targetLanguage === w.targetLanguage) return undefined;
+  const { language, entry } = await ctx.dictionary.lookUp({
+    term: w.term,
+    context: w.context,
+    bookTitle: w.bookTitle,
+    language: targetLanguage,
   });
+  const nextData = { ...w, language, targetLanguage, entry };
+  const nextId = idFor(w.term, language);
+  await words(ctx).put(nextId, nextData, { bookId: doc.bookId, anchor: doc.anchor });
+  if (nextId !== doc.id) await words(ctx).delete(doc.id);
+  ctx.dictionary.setLanguage(targetLanguage);
+  return {
+    view: await wordDetailView(ctx, {
+      ...doc,
+      id: nextId,
+      data: nextData,
+      updatedAt: new Date().toISOString(),
+    }),
+    navigation: "replace",
+  };
 }
 
 /** @param {import("read-aware").PluginContext} ctx */
@@ -99,7 +182,7 @@ async function notebookView(ctx) {
     kind: "list",
     emptyText: "No saved words yet. Select a word while reading and choose “Look up & save”.",
     searchable: true,
-    searchPlaceholder: "Search vocabulary",
+    searchPlaceholder: "Search saved words",
     timeline: true,
     items: saved.map((doc) => ({
       id: doc.id,
@@ -133,19 +216,17 @@ export default {
           bookTitle: input.book.title,
         });
         const doc = await words(ctx).get(idFor(term, language));
+        if (!doc) throw new Error(`Could not load saved word “${term}”`);
         return {
           toast: `Saved “${term}”`,
-          view: wordDetail(doc.data, async () => {
-            await words(ctx).delete(idFor(term, language));
-            return { close: true, toast: `Removed “${term}”` };
-          }),
+          view: await wordDetailView(ctx, doc),
         };
       },
     });
 
     ctx.ui.registerHeaderAction({
       id: "vocabulary",
-      title: "Vocabulary",
+      title: "Dictionary",
       icon: "book-bookmark",
       surface: "shelf",
       presentation: "page",
@@ -154,17 +235,17 @@ export default {
 
     ctx.ui.registerCommand({
       id: "open",
-      title: "Vocabulary: saved words",
+      title: "Dictionary: saved words",
       icon: "book-bookmark",
-      keywords: "vocabulary words dictionary notebook",
+      keywords: "saved words dictionary notebook",
       run: async () => ({ view: await notebookView(ctx) }),
     });
 
     ctx.agent.registerTool({
       name: "get_vocabulary",
-      label: "Vocabulary",
+      label: "Saved words",
       description:
-        "List the words the reader saved to their vocabulary, each with a short definition and the book it came from. Call it WITHOUT query to see the whole list.",
+        "List the words the reader saved in Dictionary, each with a short definition and the book it came from. Call it WITHOUT query to see the whole list.",
       parameters: {
         type: "object",
         properties: {
@@ -203,7 +284,7 @@ export default {
       name: "save_word",
       label: "Save word",
       description:
-        "Look up a word with the built-in dictionary and save it to the user's vocabulary. Include the sentence it appeared in when available.",
+        "Look up a word with the built-in Dictionary and save it. Include the sentence it appeared in when available.",
       parameters: {
         type: "object",
         properties: {

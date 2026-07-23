@@ -10,12 +10,19 @@
  */
 import { getDefaultStore } from "jotai";
 import type { DomainEventType } from "@read-aware/core";
+import { DEFAULT_LOCALE, i18n, isAppLocale } from "../../../i18n";
 import { onAppEvent } from "../../../platform/app-events";
 import { localKV } from "../../../platform/local-store";
 import { createDomainApi, type DomainEventSubscribe } from "../../../domain";
 import { getAgentRuntime } from "../../ai/agent/agent-runtime";
 import { createDictionaryPort } from "../../ai/agent/ports/dictionary-port";
 import { openBookRequestAtom } from "../../ai/state/chat-intent";
+import {
+  getDictionaryLanguage,
+  resolveExplanationLanguageName,
+  saveDictionaryLanguage,
+  type DictionaryLanguage,
+} from "../../reader/lib/dictionary-prefs";
 import {
   bindVirtualBook,
   findVirtualBookId,
@@ -68,6 +75,12 @@ const SESSION_EVENTS: readonly PluginSessionEventName[] = [
   "chapter-changed",
   "reading-progress",
 ];
+
+function requireDictionaryLanguage(value: unknown): DictionaryLanguage {
+  if (value === "auto") return value;
+  if (typeof value === "string" && isAppLocale(value)) return value;
+  throw new Error(`Unsupported dictionary language: ${String(value)}`);
+}
 
 export function buildPluginContext(
   manifest: PluginManifest,
@@ -369,10 +382,24 @@ export function buildPluginContext(
   if (permissions.has("service:dictionary")) {
     const dictionary = createDictionaryPort();
     ctx.dictionary = {
-      lookUp: async ({ term, context, bookTitle }) => {
-        const result = await dictionary.lookUp({ term: String(term), context, bookTitle });
+      lookUp: async ({ term, context, bookTitle, language }) => {
+        const selectedLanguage =
+          language == null ? undefined : requireDictionaryLanguage(language);
+        const locale =
+          i18n.language && isAppLocale(i18n.language) ? i18n.language : DEFAULT_LOCALE;
+        const result = await dictionary.lookUp({
+          term: String(term),
+          context: context == null ? undefined : String(context),
+          bookTitle: bookTitle == null ? undefined : String(bookTitle),
+          explanationLanguage:
+            selectedLanguage == null
+              ? undefined
+              : resolveExplanationLanguageName(selectedLanguage, locale),
+        });
         return { language: result.language, entry: result.entry };
       },
+      getLanguage: getDictionaryLanguage,
+      setLanguage: (language) => saveDictionaryLanguage(requireDictionaryLanguage(language)),
     };
   }
 

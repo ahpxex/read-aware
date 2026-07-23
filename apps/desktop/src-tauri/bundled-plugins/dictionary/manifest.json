@@ -3,7 +3,7 @@
   "name": "Dictionary",
   "version": "1.0.0",
   "minAppVersion": "0.3.0",
-  "description": "Look up words while you read, save them to your vocabulary, and revisit them with full dictionary entries.",
+  "description": "Look up words while you read, save them, and revisit full dictionary entries on a searchable timeline.",
   "author": "ReadAware",
   "permissions": ["service:dictionary", "agent:tools"],
   "main": "main.js"

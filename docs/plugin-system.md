@@ -156,7 +156,7 @@ UI 贡献、会话事实、阅读器环境控制（`ctx.reader.openBook/goTo`）
 **内置插件（bundled plugins）**：垂直功能默认以插件形态构建（构造规则
 第五条），随应用打包分发（`bundled-plugins/` 资源目录）、默认启用、可禁
 用、不可卸载、走与第三方完全相同的契约。第一个住户是 **Dictionary**
-（词典，内含 Vocabulary 生词本）：选区查词保存、生词页、agent 工具，数据
+（词典，内含 saved-word 时间线）：选区查词保存、单词 Dialog、agent 工具，数据
 整个活在它自己的文档集合里——词典与生词本不再是核心功能/核心域。
 
 | 权限 | 授予的能力面 |
@@ -172,7 +172,7 @@ UI 贡献、会话事实、阅读器环境控制（`ctx.reader.openBook/goTo`）
 | `agent:tools` | `ctx.agent.registerTool` —— 注册 agent 工具（§8） |
 | `service:network` | `ctx.network.fetch`（CSP `connect-src` 已含 `https:`，门控在 API 层） |
 | `service:llm` | `ctx.llm.ask` —— 用用户配置的模型做一次性调用（fast 档,无线程无记忆无工具） |
-| `service:dictionary` | `ctx.dictionary.lookUp`（与阅读器查词共享缓存；消耗用户 AI 额度） |
+| `service:dictionary` | `ctx.dictionary.lookUp/getLanguage/setLanguage`（与阅读器共享目标语言偏好和查词缓存；消耗用户 AI 额度） |
 | `service:clipboard` | `ctx.clipboard.writeText` |
 
 （i18n 注：权限 id 含 `:`，而 `:` 是 i18next 的 namespace 分隔符，
@@ -225,9 +225,11 @@ UI 贡献、会话事实、阅读器环境控制（`ctx.reader.openBook/goTo`）
   `presentation: "dialog"` 在原列表上方打开宿主 Dialog，而不是创建子页面。
 - **表单** —— text / textarea / number / select / choice / checkbox /
   toggle 全部映射到组件库控件；提交后可接结果视图或字段错误。
-- **Detail** —— Raycast 式主内容 + metadata + actions。宿主把 actions
-  固定为内容标题右侧的图标按钮，把来源、日期、tags 等 metadata 收进
-  内容底部；插件只能声明语义，不能决定按钮样式或自行排布控件。
+- **Detail** —— Raycast 式主内容 + metadata + controls + actions。宿主把
+  `select` 等语义控件放在内容标题的 trailing 区域；Dialog 把来源、日期、
+  tags 等 metadata 压成标题下方的安静信息行，并把 actions 与宿主 Close
+  固定放进 Footer。
+  插件只能声明语义、选项与回调，不能决定按钮样式或自行排布控件。
 
 另一条路是**组合式 `blocks` 视图**：一串有序宿主组件，包括 text、
 markdown、heading、dictionary、keyValue、quote、actions、metric、

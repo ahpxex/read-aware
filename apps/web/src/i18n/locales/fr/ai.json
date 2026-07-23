@@ -19,7 +19,7 @@
       "get_toc": "Lecture de la table des matières",
       "read_chapter": "Lecture d'un chapitre",
       "search_book_text": "Recherche dans le texte",
-      "get_vocabulary": "Lecture de votre lexique",
+      "get_vocabulary": "Lecture de vos mots enregistrés",
       "lookup_word": "Recherche d'un mot",
       "fallback": "En cours",
       "failed": "échec"

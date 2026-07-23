@@ -19,7 +19,7 @@
       "get_toc": "Читаю оглавление",
       "read_chapter": "Читаю главу",
       "search_book_text": "Ищу в тексте",
-      "get_vocabulary": "Читаю ваш словарь",
+      "get_vocabulary": "Читаю сохранённые слова",
       "lookup_word": "Ищу слово в словаре",
       "fallback": "Работаю",
       "failed": "не удалось"

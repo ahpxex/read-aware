@@ -83,7 +83,7 @@ CI 的每个 job 都带 `generate_release_notes: true`，会把 release body 追
    `**Full Changelog**: https://github.com/ahpxex/read-aware/compare/vPREV...vX.Y.Z`
 4. 写入：`gh release edit vX.Y.Z --notes-file <scratchpad 里的文件>`。
 
-## 5. 同步 landing 文档 / blog
+## 5. 同步 landing 文档 / blog（三语）
 
 用 `git diff vPREV..vX.Y.Z --stat` 圈出用户可感知的变更，对照检查
 （文档都是 `apps/landing/src/routes/` 下的 TSX，纯手写，无框架）：
@@ -96,12 +96,23 @@ CI 的每个 job 都带 `generate_release_notes: true`，会把 release body 追
 | 市场提交流程变化 | `docs/plugins/publishing.tsx` |
 | 值得发声的大版本 | 写 blog：`routes/blog/<slug>.tsx` + `lib/posts.ts` 注册一条 |
 
-- 加文档页 = 路由文件 + `lib/docs-nav.ts` 一条；发 blog = 路由文件 +
-  `lib/posts.ts` 一条。日期用真实日期。
-- 验证：`cd apps/landing && bun run build`（含预渲染与 typecheck；预渲染
-  会自动纳入新路由）。
+**多语言是文档更新的一部分，不是可选项。** 站点三语：英文为源
+（`routes/docs|blog/`），简体中文与日文是逐页镜像
+（`routes/zh/...`、`routes/ja/...`）。流程：
+
+1. 先改英文源页。
+2. 把同一处改动同步翻译到 zh/ja 镜像页（可各派一个 subagent 并行；
+   术语对齐 `apps/web/src/i18n/locales/zh-Hans|ja/` 的产品词表；
+   翻译只动人类可见文本，代码结构/className/逻辑保持一致）。
+3. 新增文档页 = 英文路由文件 + zh/ja 镜像 + `lib/docs-nav.ts` 三个语言
+   各加一条；发 blog = 三个语言的路由文件 + `lib/posts.ts` 一条
+   （其中 `text.en/zh/ja` 的标题与描述都在这一条里）。日期用真实日期。
+4. 预渲染会自动纳入全部新路由并生成 hreflang 互链，无需额外配置。
+
+- 验证：`cd apps/landing && bun run build`（含预渲染与 typecheck）。
 - 有改动则单独提交（`docs(landing): ...`）并推送，CF Pages 自动部署。
   没有需要更新的就明说"本次无文档变更"，不要为改而改。
+- changelog（GitHub release）只写英文，不用翻译。
 
 ## 6. 收尾汇报
 

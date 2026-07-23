@@ -403,8 +403,11 @@ function PluginApiPage() {
         <li>
           <code>blocks</code> — an ordered sequence of blocks: markdown,
           heading, dictionary entry, key-value rows, quote, action buttons,
-          divider, or nested list/form. This is the growth path for richer
-          pages.
+          divider, a constrained <code>row</code> (2–4 side-by-side cells with
+          relative <code>weight</code>, collapsing to a stack on a narrow
+          surface), or nested list/form. This is the growth path for richer
+          pages — layout arrives as bounded blocks the design system still
+          owns, never as raw flexbox.
         </li>
       </ul>
       <p>

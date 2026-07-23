@@ -226,6 +226,40 @@ function PluginBlockBody({
   if (block.kind === "divider") {
     return <hr className="border-border" />;
   }
+  if (block.kind === "row") {
+    // 2–4 cells side by side; weights size the columns. flex-wrap + a per-cell
+    // min-width is what makes it self-collapse into a stack on a narrow
+    // container (each cell then takes the full row) — no media query needed,
+    // so it degrades by the surface's actual width, not the viewport's.
+    const cells = block.cells.slice(0, 4);
+    const alignClass =
+      block.align === "center"
+        ? "items-center"
+        : block.align === "baseline"
+          ? "items-baseline"
+          : "items-start";
+    return (
+      <div className={cn("flex flex-wrap gap-4", alignClass)}>
+        {cells.map((cell, index) => {
+          const weight = Math.max(0, cell.weight ?? 1);
+          return (
+            <div
+              key={index}
+              className="min-w-[8rem] flex-[var(--ra-cell-grow)] basis-0"
+              style={{ ["--ra-cell-grow" as string]: `${weight}` }}
+            >
+              <PluginBlockBody
+                block={cell.block}
+                stackDepth={stackDepth}
+                busy={busy}
+                onResult={onResult}
+              />
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
   if (block.kind === "list") {
     return <PluginListViewBody view={block} busy={busy} onResult={onResult} />;
   }

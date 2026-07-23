@@ -54,13 +54,30 @@ async function wordDetailView(ctx, doc) {
     title: w.term,
     blocks: [
       { kind: "dictionary", entry: w.entry },
-      ...(w.context ? [{ kind: "quote", text: w.context, caption: w.bookTitle }] : []),
+      // Provenance and the passage sit side by side — the metadata is
+      // narrow, the quote wants the room (weight 2), and on a narrow surface
+      // the row self-collapses into a stack.
       {
-        kind: "keyValue",
-        rows: [
-          { label: "Language", value: w.language },
-          { label: "Added", value: (w.addedAt ?? "").slice(0, 10) },
-          ...(w.bookTitle ? [{ label: "Book", value: w.bookTitle }] : []),
+        kind: "row",
+        align: "start",
+        cells: [
+          {
+            weight: 1,
+            block: {
+              kind: "keyValue",
+              rows: [
+                { label: "Language", value: w.language },
+                { label: "Added", value: (w.addedAt ?? "").slice(0, 10) },
+                ...(w.bookTitle ? [{ label: "Book", value: w.bookTitle }] : []),
+              ],
+            },
+          },
+          {
+            weight: 2,
+            block: w.context
+              ? { kind: "quote", text: w.context, caption: w.bookTitle }
+              : { kind: "markdown", markdown: "_No source passage saved._" },
+          },
         ],
       },
       { kind: "divider" },

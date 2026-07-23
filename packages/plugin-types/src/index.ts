@@ -202,8 +202,28 @@ export type PluginBlock =
       }[];
     }
   | { kind: "divider" }
+  /**
+   * A constrained horizontal layout — 2–4 cells side by side, each holding
+   * its own block, with relative `weight` (default 1) sizing the columns.
+   * This is how layout enters the vocabulary: not raw flexbox, but a bounded
+   * row the design system still owns — it sets the gaps, vertical alignment,
+   * and (below a narrow width) collapses the cells back into a vertical
+   * stack so the surface stays legible on any container. Cells hold ordinary
+   * blocks; a cell's block may NOT itself be a `row` (one level deep).
+   */
+  | { kind: "row"; cells: PluginRowCell[]; align?: "start" | "center" | "baseline" }
   | PluginListView
   | PluginFormView;
+
+/** One column of a `row` block. */
+export type PluginRowCell = {
+  /** Relative width among the row's cells (default 1); clamped to >= 0. */
+  weight?: number;
+  block: PluginRowCellBlock;
+};
+
+/** Blocks allowed inside a row cell — every block kind except a nested row. */
+export type PluginRowCellBlock = Exclude<PluginBlock, { kind: "row" }>;
 
 export type PluginView =
   | PluginMarkdownView

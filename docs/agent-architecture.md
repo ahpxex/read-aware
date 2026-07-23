@@ -172,6 +172,17 @@ packages/agent  @read-aware/agent （新包）
    事件日志 → 投影（ai_messages、notes、memories …）→ 检索
 ```
 
+**端口实现落在共享领域层上**：`apps/web/features/ai/agent/ports/` 的
+LibraryPort / AnnotationsPort / VocabularyPort / BookTextPort 是
+`apps/web/src/domain`（共享领域 API 层）之上的薄适配器，以 origin
+`"agent"` 构造 —— 与插件运行时（origin `plugin:<id>`）消费同一个能力
+层、同一套 canonical 读模型（@read-aware/core read-models.ts）。能力共
+享、策略分立：插件的策略是 manifest 权限门控，agent 的策略是 thread
+scope（§3）。agent 的写动词按行为体划分（`ask.recorded` 是 agent-only
+的领域动词，领域层守卫），每笔写都带 origin 进事件日志。ConversationPort
+/ MemoryPort / ProfilePort 例外：前者需要 interim 转录的富字段（error
+标记），后两者的领域尚无事件生产者 —— 待 memory 管线落地后进领域层。
+
 ### Prompt 装配 ≠ 转录回放
 
 线程*体验*上是连续的（UI 渲染全部持久化的 `ai_messages`），但 prompt 是

@@ -24,7 +24,7 @@ import type { Id } from "@read-aware/core";
 import { buildSystemPrompt } from "./context/system-prompt";
 import { readPiCliKey } from "./dev-key";
 import type { KnownProviderId } from "./models/registry";
-import type { AnnotationRecord, BookOverview } from "./ports";
+import type { AnnotationItem, BookOverview } from "./ports";
 import { createAgentRuntime } from "./runtime/runtime";
 import { loadEpubFixture } from "./testing/epub-fixture";
 import { createInMemoryDeps } from "./testing/fixtures";
@@ -68,7 +68,7 @@ const epub = loadEpubFixture(EPUB_PATH);
 const bookTitle = epub.title.split("【")[0].trim();
 
 const BOOKS: BookOverview[] = [
-  { id: BOOK_ID, title: bookTitle, author: epub.author, progressFraction: 0.35 },
+  { id: BOOK_ID, title: bookTitle, author: epub.author, progressPercent: 35 },
 ];
 
 /** 从章节正文里取一句 20–80 字的完整句，保证标注与书文本一致（可被全文检索命中）。 */
@@ -84,23 +84,27 @@ function pickSentence(chapterIndex: number): { sentence: string; chapter?: strin
 const highlightA = pickSentence(Math.floor(epub.chapters.length / 4));
 const highlightB = pickSentence(Math.floor(epub.chapters.length / 2));
 
-const ANNOTATIONS: AnnotationRecord[] = [
+const ANNOTATIONS: AnnotationItem[] = [
   {
     id: "a1",
     bookId: BOOK_ID,
     kind: "highlight",
     text: highlightA.sentence,
-    chapter: highlightA.chapter,
+    chapterHref: highlightA.chapter,
+    color: "yellow",
+    style: "highlight",
     createdAt: "2026-06-20T10:00:00Z",
+    updatedAt: "2026-06-20T10:00:00Z",
   },
   {
     id: "a2",
     bookId: BOOK_ID,
     kind: "note",
-    text: highlightB.sentence,
-    content: "这里的叙述者口吻值得回头再读一遍",
-    chapter: highlightB.chapter,
+    quotedText: highlightB.sentence,
+    body: "这里的叙述者口吻值得回头再读一遍",
+    chapterHref: highlightB.chapter,
     createdAt: "2026-06-22T10:00:00Z",
+    updatedAt: "2026-06-22T10:00:00Z",
   },
 ];
 

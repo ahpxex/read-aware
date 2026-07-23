@@ -46,8 +46,8 @@ export function buildSystemPrompt(scope: ThreadScope, input: SystemPromptInput):
     );
     if (input.book) {
       const progress =
-        input.book.progressFraction !== undefined
-          ? ` The reader is about ${Math.round(input.book.progressFraction * 100)}% through.`
+        input.book.progressPercent !== undefined
+          ? ` The reader is about ${Math.round(input.book.progressPercent)}% through.`
           : "";
       const position = input.currentChapter
         ? ` They are currently reading chapter #${input.currentChapter.index}${

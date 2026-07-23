@@ -6,7 +6,7 @@
 import type { Id } from "@read-aware/core";
 import type { DictionaryEntry } from "../models/dictionary";
 import type {
-  AnnotationRecord,
+  AnnotationItem,
   BookOverview,
   BookTextHit,
   ChapterRef,
@@ -17,6 +17,11 @@ import type {
   VocabularyEntry,
 } from "../ports";
 import { searchChapters } from "../text/search";
+
+/** 判别联合的可检索文本（fixtures 的 query 过滤用）。 */
+function annotationText(a: AnnotationItem): string {
+  return a.kind === "note" ? `${a.quotedText ?? ""} ${a.body}` : a.text;
+}
 
 export interface ChapterSeed {
   title?: string;
@@ -45,7 +50,7 @@ export interface InMemoryStores {
 
 export interface InMemorySeed {
   books?: BookOverview[];
-  annotations?: AnnotationRecord[];
+  annotations?: AnnotationItem[];
   profile?: string;
   memories?: MemoryRecord[];
   chapters?: Record<string, ChapterSeed[]>;
@@ -93,9 +98,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         annotations.filter(
           (a) =>
             (!filter?.bookId || a.bookId === filter.bookId) &&
-            (!filter?.query ||
-              a.text.includes(filter.query) ||
-              (a.content?.includes(filter.query) ?? false)),
+            (!filter?.query || annotationText(a).includes(filter.query)),
         ),
       recordAsk: async (input) => {
         stores.asks.push(input);

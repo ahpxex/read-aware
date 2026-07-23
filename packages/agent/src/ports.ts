@@ -4,31 +4,34 @@
  * 实现这些端口，测试用内存假实现。方法都是异步的，为的是不限定实现形态。
  */
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import type { Id } from "@read-aware/core";
+import type {
+  AnnotationItem,
+  ChapterRef as CoreChapterRef,
+  Id,
+  ReadingStatus,
+  VocabularySummary,
+} from "@read-aware/core";
 import type { DictionaryEntry } from "./models/dictionary";
 
+// 标注读模型：直接用 @read-aware/core 的 canonical 判别联合（read-models.ts）
+// —— 与插件面、产品面同一套形状，漂移在类型层就报错。
+export type { AnnotationItem } from "@read-aware/core";
+export type AnnotationKind = AnnotationItem["kind"];
+
+/**
+ * 给模型的书目视图：BookSummary × ReadingState 的组合投影（模型只需要
+ * 元数据 + 进度，不需要 format/starred/collection 等书架字段）。字段与
+ * canonical 读模型同名同义 —— progressPercent 0..100。
+ */
 export interface BookOverview {
   id: Id;
   title: string;
   author?: string;
-  /** 阅读进度 0..1 */
-  progressFraction?: number;
+  /** 阅读进度 0..100（与 ReadingState.progressPercent 同义）。 */
+  progressPercent?: number;
+  status?: ReadingStatus;
   addedAt?: string;
   lastOpenedAt?: string;
-}
-
-export type AnnotationKind = "highlight" | "note" | "ask";
-
-export interface AnnotationRecord {
-  id: string;
-  bookId: Id;
-  kind: AnnotationKind;
-  /** 选中的原文 */
-  text: string;
-  /** 笔记正文（note/ask 才有） */
-  content?: string;
-  chapter?: string;
-  createdAt: string;
 }
 
 export interface TurnRecord {
@@ -43,10 +46,10 @@ export interface LibraryPort {
 }
 
 export interface AnnotationsPort {
-  listAnnotations(filter?: { bookId?: Id; query?: string }): Promise<AnnotationRecord[]>;
+  listAnnotations(filter?: { bookId?: Id; query?: string }): Promise<AnnotationItem[]>;
   /**
    * 记录一条 ask-note（doc §7：书线程每个提问留痕；§10 第 5 步，轮末同步落）。
-   * 集成到产品时由实现翻译成 note.created {origin:"ask"} 事件。
+   * 产品实现走共享领域层的 agent-only 动词 createAsk（origin "agent"）。
    */
   recordAsk(input: { bookId: Id; question: string; anchor?: string; chapter?: string }): Promise<void>;
 }
@@ -136,18 +139,13 @@ export interface ProfilePort {
   putProfileSummary(summary: string): Promise<void>;
 }
 
-export interface ChapterRef {
-  index: number;
-  title?: string;
-  /** 章节纯文本长度 —— 模型据此预算 read_chapter 要翻几片 */
-  chars: number;
-  /**
-   * 本章覆盖的 hrefs（TOC 条目 href + 各 spine section id）。运行时用来把
-   * 阅读位置 / 选区的 chapter href 反查到章节索引（见 text/chapter-lookup）；
-   * 不进 get_toc 的工具输出 —— 对模型是纯噪音。
-   */
-  hrefs?: string[];
-}
+/**
+ * canonical ChapterRef（core read-models）+ agent 运行时的 hrefs 扩展。
+ * hrefs：本章覆盖的 TOC 条目 href + 各 spine section id。运行时用来把
+ * 阅读位置 / 选区的 chapter href 反查到章节索引（见 text/chapter-lookup）；
+ * 不进 get_toc 的工具输出 —— 对模型是纯噪音。
+ */
+export type ChapterRef = CoreChapterRef & { hrefs?: string[] };
 
 export interface BookTextHit {
   bookId: Id;
@@ -177,25 +175,11 @@ export interface BookTextPort {
 }
 
 /**
- * 词汇表条目：用户从阅读器词典保存的生词（vocabulary bundle / get_vocabulary
- * 工具的读端）。给 agent 用的精简视图 —— 词 + 简明释义 + 出处。
+ * 词汇表条目 = canonical VocabularySummary（core read-models）。完整词条
+ * `entry` 只服务 present_words 的富卡片；get_vocabulary 的工具层在给模型的
+ * 列表里剥掉它（token 膨胀）。
  */
-export interface VocabularyEntry {
-  term: string;
-  /** 解释语言（人类可读名，如 "Simplified Chinese"）。 */
-  language: string;
-  /** 主要释义（首个义项的简明说明）。 */
-  definition: string;
-  /** 出处书名（可选）。 */
-  bookTitle?: string;
-  /** ISO 时间戳。 */
-  addedAt: string;
-  /**
-   * 保存时的完整词条（有则 present_words 用它渲染富卡片）。
-   * 不进 get_vocabulary 的工具输出 —— 对模型是纯 token 膨胀。
-   */
-  entry?: DictionaryEntry;
-}
+export type VocabularyEntry = VocabularySummary;
 
 /**
  * 词汇表读端（只读：保存由阅读器词典的 UI 负责，不是 agent 的事）。

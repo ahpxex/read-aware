@@ -45,6 +45,7 @@ const VOCABULARY: VocabularyEntry[] = [
     language: "English",
     definition: "lasting a very short time",
     addedAt: "2026-06-02T00:00:00Z",
+    entry: { headword: "ephemeral", senses: [] },
   },
 ];
 

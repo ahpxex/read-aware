@@ -111,7 +111,11 @@ export function buildPresentTools(deps: RuntimeDeps): AgentTool[] {
         return {
           term: entry.term,
           language: entry.language,
-          entry: entry.entry ?? minimalEntry(entry.term, entry.definition),
+          // 零义项的词条渲染成空卡片 —— 用简明释义合成最小词条兜底
+          entry:
+            entry.entry.senses.length > 0
+              ? entry.entry
+              : minimalEntry(entry.term, entry.definition),
           source: "vocabulary",
         };
       });

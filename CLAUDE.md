@@ -185,6 +185,10 @@ read-aware/
         router.tsx     # Router factory + type registration
         routes/        # File-based routes (__root.tsx, index.tsx)
         index.css      # Tailwind v4 @theme tokens (+ @source for packages/ui)
+        domain/        # Shared domain API layer: per-domain reads / commands /
+                       #   event subscriptions over the dual-write seams,
+                       #   origin-parameterized; consumed by the plugin runtime
+                       #   (plugin:<id>) and the agent ports (agent)
         features/      # Feature modules (domain-specific UI)
           shelf/       # Book collection / library view
           reader/      # Reading experience

@@ -5,7 +5,7 @@
  */
 import { readPiCliKey } from "./dev-key";
 import { createAgentRuntime } from "./runtime/runtime";
-import type { AnnotationRecord, BookOverview } from "./ports";
+import type { AnnotationItem, BookOverview } from "./ports";
 import { createInMemoryDeps } from "./testing/fixtures";
 import { threadScopeKey, type ThreadScope } from "./thread-scope";
 import type { Id } from "@read-aware/core";
@@ -17,36 +17,43 @@ if (!apiKey) {
 }
 
 const BOOKS: BookOverview[] = [
-  { id: "book-debt" as Id, title: "债：第一个五千年", author: "大卫·格雷伯", progressFraction: 0.42 },
-  { id: "book-sapiens" as Id, title: "人类简史", author: "尤瓦尔·赫拉利", progressFraction: 0.9 },
-  { id: "book-scale" as Id, title: "规模", author: "杰弗里·韦斯特", progressFraction: 0.05 },
+  { id: "book-debt" as Id, title: "债：第一个五千年", author: "大卫·格雷伯", progressPercent: 42 },
+  { id: "book-sapiens" as Id, title: "人类简史", author: "尤瓦尔·赫拉利", progressPercent: 90 },
+  { id: "book-scale" as Id, title: "规模", author: "杰弗里·韦斯特", progressPercent: 5 },
 ];
 
-const ANNOTATIONS: AnnotationRecord[] = [
+const ANNOTATIONS: AnnotationItem[] = [
   {
     id: "a1",
     bookId: "book-debt" as Id,
     kind: "highlight",
     text: "经济学教科书里的物物交换起源故事，在人类学的田野记录中从未被观察到。",
-    chapter: "第二章",
+    chapterHref: "第二章",
+    color: "yellow",
+    style: "highlight",
     createdAt: "2026-06-20T10:00:00Z",
+    updatedAt: "2026-06-20T10:00:00Z",
   },
   {
     id: "a2",
     bookId: "book-debt" as Id,
     kind: "highlight",
     text: "信用记账早于铸币数千年出现，货币首先是债务的度量单位。",
-    chapter: "第三章",
+    chapterHref: "第三章",
+    color: "yellow",
+    style: "highlight",
     createdAt: "2026-06-21T10:00:00Z",
+    updatedAt: "2026-06-21T10:00:00Z",
   },
   {
     id: "a3",
     bookId: "book-debt" as Id,
     kind: "note",
-    text: "暴力与量化：把人从社会关系中抽离，才能被定价。",
-    content: "和《人类简史》讲虚构故事的部分对照读",
-    chapter: "第五章",
+    quotedText: "暴力与量化：把人从社会关系中抽离，才能被定价。",
+    body: "和《人类简史》讲虚构故事的部分对照读",
+    chapterHref: "第五章",
     createdAt: "2026-06-22T10:00:00Z",
+    updatedAt: "2026-06-22T10:00:00Z",
   },
 ];
 

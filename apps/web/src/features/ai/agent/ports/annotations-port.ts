@@ -1,37 +1,27 @@
-/** AnnotationsPort over annotation-db：读高亮/笔记/提问痕迹，写 ask-note。 */
-import { getDefaultStore } from "jotai";
-import type { AnnotationRecord, AnnotationsPort } from "@read-aware/agent";
-import type { Id } from "@read-aware/core";
-import { createAsk, listAnnotations } from "../../../annotations/lib/annotation-db";
-import type { Annotation } from "../../../annotations/lib/annotation-types";
-import { annotationsRevisionAtom } from "../../../annotations/state/annotations-revision";
-
-function toRecord(annotation: Annotation): AnnotationRecord {
-  return {
-    id: annotation.id,
-    bookId: annotation.bookId as Id,
-    kind: annotation.type,
-    text: annotation.text,
-    content: annotation.type === "note" ? annotation.content : undefined,
-    chapter: annotation.chapterHref ?? undefined,
-    createdAt: annotation.createdAt,
-  };
-}
+/**
+ * AnnotationsPort — a thin adapter over the shared domain layer (origin
+ * "agent"). Reads return the canonical AnnotationItem union unchanged;
+ * recordAsk goes through the domain's agent-only createAsk verb, which owns
+ * the origin stamp and the list invalidation.
+ */
+import type { AnnotationsPort } from "@read-aware/agent";
+import { createAnnotationsDomain } from "../../../../domain";
 
 export function createAnnotationsPort(): AnnotationsPort {
+  const annotations = createAnnotationsDomain("agent");
   return {
     listAnnotations: async (filter) =>
-      (
-        await listAnnotations({
-          bookId: filter?.bookId ? String(filter.bookId) : undefined,
-          searchQuery: filter?.query,
-        })
-      ).map(toRecord),
+      annotations.list({
+        bookId: filter?.bookId ? String(filter.bookId) : undefined,
+        query: filter?.query,
+      }),
     recordAsk: async ({ bookId, question, anchor, chapter }) => {
-      await createAsk(String(bookId), anchor ?? null, chapter ?? null, question);
-      // 标注列表靠 revision 计数保活（reader 内外的列表都会重读）
-      const store = getDefaultStore();
-      store.set(annotationsRevisionAtom, store.get(annotationsRevisionAtom) + 1);
+      await annotations.createAsk({
+        bookId: String(bookId),
+        text: question,
+        anchor: anchor ?? null,
+        chapterHref: chapter ?? null,
+      });
     },
   };
 }

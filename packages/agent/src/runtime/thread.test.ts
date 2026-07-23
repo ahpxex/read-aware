@@ -8,18 +8,35 @@ import {
 } from "@earendil-works/pi-ai/providers/faux";
 import type { Id } from "@read-aware/core";
 import type { ThreadChunk } from "../chunks";
-import type { AnnotationRecord, BookOverview, RuntimeDeps } from "../ports";
+import type { AnnotationItem, BookOverview, RuntimeDeps } from "../ports";
 import { createInMemoryDeps } from "../testing/fixtures";
 import { AgentThread } from "./thread";
 
 const BOOKS: BookOverview[] = [
-  { id: "b1" as Id, title: "Debt: The First 5000 Years", author: "David Graeber", progressFraction: 0.42 },
-  { id: "b2" as Id, title: "Sapiens", author: "Yuval Noah Harari", progressFraction: 0.9 },
+  { id: "b1" as Id, title: "Debt: The First 5000 Years", author: "David Graeber", progressPercent: 42 },
+  { id: "b2" as Id, title: "Sapiens", author: "Yuval Noah Harari", progressPercent: 90 },
 ];
 
-const ANNOTATIONS: AnnotationRecord[] = [
-  { id: "a1", bookId: "b1" as Id, kind: "highlight", text: "barter myth", createdAt: "2026-06-01T00:00:00Z" },
-  { id: "a2", bookId: "b1" as Id, kind: "note", text: "credit precedes coin", content: "check sources", createdAt: "2026-06-02T00:00:00Z" },
+const ANNOTATIONS: AnnotationItem[] = [
+  {
+    id: "a1",
+    bookId: "b1" as Id,
+    kind: "highlight",
+    text: "barter myth",
+    color: "yellow",
+    style: "highlight",
+    createdAt: "2026-06-01T00:00:00Z",
+    updatedAt: "2026-06-01T00:00:00Z",
+  },
+  {
+    id: "a2",
+    bookId: "b1" as Id,
+    kind: "note",
+    quotedText: "credit precedes coin",
+    body: "check sources",
+    createdAt: "2026-06-02T00:00:00Z",
+    updatedAt: "2026-06-02T00:00:00Z",
+  },
 ];
 
 function makeDeps() {

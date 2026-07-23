@@ -118,7 +118,11 @@ export default {
    领域的事件动词，以 command 形式发进应用自己的双写管道——同一条
    seam、不开后门）、**订阅**（该领域的事件本身，`ctx.books.on(
    "book.starred", …)` 用规范名，不再发明第二套事件词汇）。领域新增
-   动词，插件面机械地跟着长。
+   动词，插件面机械地跟着长。实现上这不是插件专属的一层：数据面就是
+   `apps/web/src/domain` 的**共享领域 API 层**（读模型来自
+   @read-aware/core read-models.ts），agent 的端口以 origin `"agent"`
+   消费同一层（docs/agent-architecture.md §5）；`buildPluginContext`
+   只是它之上的权限门控壳。
 2. **权限 = 领域 × 读/写。** `books:read`、`annotations:write`……
    同域内**写含读**（声明 `books:write` 即获得 books 的读面）。服务与
    挂载各成一族（见下表）。

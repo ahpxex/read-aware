@@ -14,14 +14,38 @@ import { Route as BlogRouteImport } from './routes/blog'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
+import { Route as ZhDocsRouteImport } from './routes/zh/docs'
+import { Route as ZhBlogRouteImport } from './routes/zh/blog'
+import { Route as JaDocsRouteImport } from './routes/ja/docs'
+import { Route as JaBlogRouteImport } from './routes/ja/blog'
 import { Route as DocsInstallRouteImport } from './routes/docs/install'
 import { Route as DocsGettingStartedRouteImport } from './routes/docs/getting-started'
 import { Route as BlogReadingThatRemembersRouteImport } from './routes/blog/reading-that-remembers'
 import { Route as BlogPluginsV1RouteImport } from './routes/blog/plugins-v1'
 import { Route as BlogLocalFirstRouteImport } from './routes/blog/local-first'
+import { Route as ZhDocsIndexRouteImport } from './routes/zh/docs/index'
+import { Route as ZhBlogIndexRouteImport } from './routes/zh/blog/index'
+import { Route as JaDocsIndexRouteImport } from './routes/ja/docs/index'
+import { Route as JaBlogIndexRouteImport } from './routes/ja/blog/index'
 import { Route as DocsPluginsIndexRouteImport } from './routes/docs/plugins/index'
+import { Route as ZhDocsInstallRouteImport } from './routes/zh/docs/install'
+import { Route as ZhDocsGettingStartedRouteImport } from './routes/zh/docs/getting-started'
+import { Route as ZhBlogReadingThatRemembersRouteImport } from './routes/zh/blog/reading-that-remembers'
+import { Route as ZhBlogPluginsV1RouteImport } from './routes/zh/blog/plugins-v1'
+import { Route as ZhBlogLocalFirstRouteImport } from './routes/zh/blog/local-first'
+import { Route as JaDocsInstallRouteImport } from './routes/ja/docs/install'
+import { Route as JaDocsGettingStartedRouteImport } from './routes/ja/docs/getting-started'
+import { Route as JaBlogReadingThatRemembersRouteImport } from './routes/ja/blog/reading-that-remembers'
+import { Route as JaBlogPluginsV1RouteImport } from './routes/ja/blog/plugins-v1'
+import { Route as JaBlogLocalFirstRouteImport } from './routes/ja/blog/local-first'
 import { Route as DocsPluginsPublishingRouteImport } from './routes/docs/plugins/publishing'
 import { Route as DocsPluginsApiRouteImport } from './routes/docs/plugins/api'
+import { Route as ZhDocsPluginsIndexRouteImport } from './routes/zh/docs/plugins/index'
+import { Route as JaDocsPluginsIndexRouteImport } from './routes/ja/docs/plugins/index'
+import { Route as ZhDocsPluginsPublishingRouteImport } from './routes/zh/docs/plugins/publishing'
+import { Route as ZhDocsPluginsApiRouteImport } from './routes/zh/docs/plugins/api'
+import { Route as JaDocsPluginsPublishingRouteImport } from './routes/ja/docs/plugins/publishing'
+import { Route as JaDocsPluginsApiRouteImport } from './routes/ja/docs/plugins/api'
 
 const DocsRoute = DocsRouteImport.update({
   id: '/docs',
@@ -47,6 +71,26 @@ const BlogIndexRoute = BlogIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => BlogRoute,
+} as any)
+const ZhDocsRoute = ZhDocsRouteImport.update({
+  id: '/zh/docs',
+  path: '/zh/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZhBlogRoute = ZhBlogRouteImport.update({
+  id: '/zh/blog',
+  path: '/zh/blog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JaDocsRoute = JaDocsRouteImport.update({
+  id: '/ja/docs',
+  path: '/ja/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JaBlogRoute = JaBlogRouteImport.update({
+  id: '/ja/blog',
+  path: '/ja/blog',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const DocsInstallRoute = DocsInstallRouteImport.update({
   id: '/install',
@@ -74,10 +118,82 @@ const BlogLocalFirstRoute = BlogLocalFirstRouteImport.update({
   path: '/local-first',
   getParentRoute: () => BlogRoute,
 } as any)
+const ZhDocsIndexRoute = ZhDocsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ZhDocsRoute,
+} as any)
+const ZhBlogIndexRoute = ZhBlogIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ZhBlogRoute,
+} as any)
+const JaDocsIndexRoute = JaDocsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => JaDocsRoute,
+} as any)
+const JaBlogIndexRoute = JaBlogIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => JaBlogRoute,
+} as any)
 const DocsPluginsIndexRoute = DocsPluginsIndexRouteImport.update({
   id: '/plugins/',
   path: '/plugins/',
   getParentRoute: () => DocsRoute,
+} as any)
+const ZhDocsInstallRoute = ZhDocsInstallRouteImport.update({
+  id: '/install',
+  path: '/install',
+  getParentRoute: () => ZhDocsRoute,
+} as any)
+const ZhDocsGettingStartedRoute = ZhDocsGettingStartedRouteImport.update({
+  id: '/getting-started',
+  path: '/getting-started',
+  getParentRoute: () => ZhDocsRoute,
+} as any)
+const ZhBlogReadingThatRemembersRoute =
+  ZhBlogReadingThatRemembersRouteImport.update({
+    id: '/reading-that-remembers',
+    path: '/reading-that-remembers',
+    getParentRoute: () => ZhBlogRoute,
+  } as any)
+const ZhBlogPluginsV1Route = ZhBlogPluginsV1RouteImport.update({
+  id: '/plugins-v1',
+  path: '/plugins-v1',
+  getParentRoute: () => ZhBlogRoute,
+} as any)
+const ZhBlogLocalFirstRoute = ZhBlogLocalFirstRouteImport.update({
+  id: '/local-first',
+  path: '/local-first',
+  getParentRoute: () => ZhBlogRoute,
+} as any)
+const JaDocsInstallRoute = JaDocsInstallRouteImport.update({
+  id: '/install',
+  path: '/install',
+  getParentRoute: () => JaDocsRoute,
+} as any)
+const JaDocsGettingStartedRoute = JaDocsGettingStartedRouteImport.update({
+  id: '/getting-started',
+  path: '/getting-started',
+  getParentRoute: () => JaDocsRoute,
+} as any)
+const JaBlogReadingThatRemembersRoute =
+  JaBlogReadingThatRemembersRouteImport.update({
+    id: '/reading-that-remembers',
+    path: '/reading-that-remembers',
+    getParentRoute: () => JaBlogRoute,
+  } as any)
+const JaBlogPluginsV1Route = JaBlogPluginsV1RouteImport.update({
+  id: '/plugins-v1',
+  path: '/plugins-v1',
+  getParentRoute: () => JaBlogRoute,
+} as any)
+const JaBlogLocalFirstRoute = JaBlogLocalFirstRouteImport.update({
+  id: '/local-first',
+  path: '/local-first',
+  getParentRoute: () => JaBlogRoute,
 } as any)
 const DocsPluginsPublishingRoute = DocsPluginsPublishingRouteImport.update({
   id: '/plugins/publishing',
@@ -89,6 +205,36 @@ const DocsPluginsApiRoute = DocsPluginsApiRouteImport.update({
   path: '/plugins/api',
   getParentRoute: () => DocsRoute,
 } as any)
+const ZhDocsPluginsIndexRoute = ZhDocsPluginsIndexRouteImport.update({
+  id: '/plugins/',
+  path: '/plugins/',
+  getParentRoute: () => ZhDocsRoute,
+} as any)
+const JaDocsPluginsIndexRoute = JaDocsPluginsIndexRouteImport.update({
+  id: '/plugins/',
+  path: '/plugins/',
+  getParentRoute: () => JaDocsRoute,
+} as any)
+const ZhDocsPluginsPublishingRoute = ZhDocsPluginsPublishingRouteImport.update({
+  id: '/plugins/publishing',
+  path: '/plugins/publishing',
+  getParentRoute: () => ZhDocsRoute,
+} as any)
+const ZhDocsPluginsApiRoute = ZhDocsPluginsApiRouteImport.update({
+  id: '/plugins/api',
+  path: '/plugins/api',
+  getParentRoute: () => ZhDocsRoute,
+} as any)
+const JaDocsPluginsPublishingRoute = JaDocsPluginsPublishingRouteImport.update({
+  id: '/plugins/publishing',
+  path: '/plugins/publishing',
+  getParentRoute: () => JaDocsRoute,
+} as any)
+const JaDocsPluginsApiRoute = JaDocsPluginsApiRouteImport.update({
+  id: '/plugins/api',
+  path: '/plugins/api',
+  getParentRoute: () => JaDocsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -99,11 +245,35 @@ export interface FileRoutesByFullPath {
   '/blog/reading-that-remembers': typeof BlogReadingThatRemembersRoute
   '/docs/getting-started': typeof DocsGettingStartedRoute
   '/docs/install': typeof DocsInstallRoute
+  '/ja/blog': typeof JaBlogRouteWithChildren
+  '/ja/docs': typeof JaDocsRouteWithChildren
+  '/zh/blog': typeof ZhBlogRouteWithChildren
+  '/zh/docs': typeof ZhDocsRouteWithChildren
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
   '/docs/plugins/api': typeof DocsPluginsApiRoute
   '/docs/plugins/publishing': typeof DocsPluginsPublishingRoute
+  '/ja/blog/local-first': typeof JaBlogLocalFirstRoute
+  '/ja/blog/plugins-v1': typeof JaBlogPluginsV1Route
+  '/ja/blog/reading-that-remembers': typeof JaBlogReadingThatRemembersRoute
+  '/ja/docs/getting-started': typeof JaDocsGettingStartedRoute
+  '/ja/docs/install': typeof JaDocsInstallRoute
+  '/zh/blog/local-first': typeof ZhBlogLocalFirstRoute
+  '/zh/blog/plugins-v1': typeof ZhBlogPluginsV1Route
+  '/zh/blog/reading-that-remembers': typeof ZhBlogReadingThatRemembersRoute
+  '/zh/docs/getting-started': typeof ZhDocsGettingStartedRoute
+  '/zh/docs/install': typeof ZhDocsInstallRoute
   '/docs/plugins/': typeof DocsPluginsIndexRoute
+  '/ja/blog/': typeof JaBlogIndexRoute
+  '/ja/docs/': typeof JaDocsIndexRoute
+  '/zh/blog/': typeof ZhBlogIndexRoute
+  '/zh/docs/': typeof ZhDocsIndexRoute
+  '/ja/docs/plugins/api': typeof JaDocsPluginsApiRoute
+  '/ja/docs/plugins/publishing': typeof JaDocsPluginsPublishingRoute
+  '/zh/docs/plugins/api': typeof ZhDocsPluginsApiRoute
+  '/zh/docs/plugins/publishing': typeof ZhDocsPluginsPublishingRoute
+  '/ja/docs/plugins/': typeof JaDocsPluginsIndexRoute
+  '/zh/docs/plugins/': typeof ZhDocsPluginsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -116,7 +286,27 @@ export interface FileRoutesByTo {
   '/docs': typeof DocsIndexRoute
   '/docs/plugins/api': typeof DocsPluginsApiRoute
   '/docs/plugins/publishing': typeof DocsPluginsPublishingRoute
+  '/ja/blog/local-first': typeof JaBlogLocalFirstRoute
+  '/ja/blog/plugins-v1': typeof JaBlogPluginsV1Route
+  '/ja/blog/reading-that-remembers': typeof JaBlogReadingThatRemembersRoute
+  '/ja/docs/getting-started': typeof JaDocsGettingStartedRoute
+  '/ja/docs/install': typeof JaDocsInstallRoute
+  '/zh/blog/local-first': typeof ZhBlogLocalFirstRoute
+  '/zh/blog/plugins-v1': typeof ZhBlogPluginsV1Route
+  '/zh/blog/reading-that-remembers': typeof ZhBlogReadingThatRemembersRoute
+  '/zh/docs/getting-started': typeof ZhDocsGettingStartedRoute
+  '/zh/docs/install': typeof ZhDocsInstallRoute
   '/docs/plugins': typeof DocsPluginsIndexRoute
+  '/ja/blog': typeof JaBlogIndexRoute
+  '/ja/docs': typeof JaDocsIndexRoute
+  '/zh/blog': typeof ZhBlogIndexRoute
+  '/zh/docs': typeof ZhDocsIndexRoute
+  '/ja/docs/plugins/api': typeof JaDocsPluginsApiRoute
+  '/ja/docs/plugins/publishing': typeof JaDocsPluginsPublishingRoute
+  '/zh/docs/plugins/api': typeof ZhDocsPluginsApiRoute
+  '/zh/docs/plugins/publishing': typeof ZhDocsPluginsPublishingRoute
+  '/ja/docs/plugins': typeof JaDocsPluginsIndexRoute
+  '/zh/docs/plugins': typeof ZhDocsPluginsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -128,11 +318,35 @@ export interface FileRoutesById {
   '/blog/reading-that-remembers': typeof BlogReadingThatRemembersRoute
   '/docs/getting-started': typeof DocsGettingStartedRoute
   '/docs/install': typeof DocsInstallRoute
+  '/ja/blog': typeof JaBlogRouteWithChildren
+  '/ja/docs': typeof JaDocsRouteWithChildren
+  '/zh/blog': typeof ZhBlogRouteWithChildren
+  '/zh/docs': typeof ZhDocsRouteWithChildren
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
   '/docs/plugins/api': typeof DocsPluginsApiRoute
   '/docs/plugins/publishing': typeof DocsPluginsPublishingRoute
+  '/ja/blog/local-first': typeof JaBlogLocalFirstRoute
+  '/ja/blog/plugins-v1': typeof JaBlogPluginsV1Route
+  '/ja/blog/reading-that-remembers': typeof JaBlogReadingThatRemembersRoute
+  '/ja/docs/getting-started': typeof JaDocsGettingStartedRoute
+  '/ja/docs/install': typeof JaDocsInstallRoute
+  '/zh/blog/local-first': typeof ZhBlogLocalFirstRoute
+  '/zh/blog/plugins-v1': typeof ZhBlogPluginsV1Route
+  '/zh/blog/reading-that-remembers': typeof ZhBlogReadingThatRemembersRoute
+  '/zh/docs/getting-started': typeof ZhDocsGettingStartedRoute
+  '/zh/docs/install': typeof ZhDocsInstallRoute
   '/docs/plugins/': typeof DocsPluginsIndexRoute
+  '/ja/blog/': typeof JaBlogIndexRoute
+  '/ja/docs/': typeof JaDocsIndexRoute
+  '/zh/blog/': typeof ZhBlogIndexRoute
+  '/zh/docs/': typeof ZhDocsIndexRoute
+  '/ja/docs/plugins/api': typeof JaDocsPluginsApiRoute
+  '/ja/docs/plugins/publishing': typeof JaDocsPluginsPublishingRoute
+  '/zh/docs/plugins/api': typeof ZhDocsPluginsApiRoute
+  '/zh/docs/plugins/publishing': typeof ZhDocsPluginsPublishingRoute
+  '/ja/docs/plugins/': typeof JaDocsPluginsIndexRoute
+  '/zh/docs/plugins/': typeof ZhDocsPluginsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -145,11 +359,35 @@ export interface FileRouteTypes {
     | '/blog/reading-that-remembers'
     | '/docs/getting-started'
     | '/docs/install'
+    | '/ja/blog'
+    | '/ja/docs'
+    | '/zh/blog'
+    | '/zh/docs'
     | '/blog/'
     | '/docs/'
     | '/docs/plugins/api'
     | '/docs/plugins/publishing'
+    | '/ja/blog/local-first'
+    | '/ja/blog/plugins-v1'
+    | '/ja/blog/reading-that-remembers'
+    | '/ja/docs/getting-started'
+    | '/ja/docs/install'
+    | '/zh/blog/local-first'
+    | '/zh/blog/plugins-v1'
+    | '/zh/blog/reading-that-remembers'
+    | '/zh/docs/getting-started'
+    | '/zh/docs/install'
     | '/docs/plugins/'
+    | '/ja/blog/'
+    | '/ja/docs/'
+    | '/zh/blog/'
+    | '/zh/docs/'
+    | '/ja/docs/plugins/api'
+    | '/ja/docs/plugins/publishing'
+    | '/zh/docs/plugins/api'
+    | '/zh/docs/plugins/publishing'
+    | '/ja/docs/plugins/'
+    | '/zh/docs/plugins/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -162,7 +400,27 @@ export interface FileRouteTypes {
     | '/docs'
     | '/docs/plugins/api'
     | '/docs/plugins/publishing'
+    | '/ja/blog/local-first'
+    | '/ja/blog/plugins-v1'
+    | '/ja/blog/reading-that-remembers'
+    | '/ja/docs/getting-started'
+    | '/ja/docs/install'
+    | '/zh/blog/local-first'
+    | '/zh/blog/plugins-v1'
+    | '/zh/blog/reading-that-remembers'
+    | '/zh/docs/getting-started'
+    | '/zh/docs/install'
     | '/docs/plugins'
+    | '/ja/blog'
+    | '/ja/docs'
+    | '/zh/blog'
+    | '/zh/docs'
+    | '/ja/docs/plugins/api'
+    | '/ja/docs/plugins/publishing'
+    | '/zh/docs/plugins/api'
+    | '/zh/docs/plugins/publishing'
+    | '/ja/docs/plugins'
+    | '/zh/docs/plugins'
   id:
     | '__root__'
     | '/'
@@ -173,17 +431,45 @@ export interface FileRouteTypes {
     | '/blog/reading-that-remembers'
     | '/docs/getting-started'
     | '/docs/install'
+    | '/ja/blog'
+    | '/ja/docs'
+    | '/zh/blog'
+    | '/zh/docs'
     | '/blog/'
     | '/docs/'
     | '/docs/plugins/api'
     | '/docs/plugins/publishing'
+    | '/ja/blog/local-first'
+    | '/ja/blog/plugins-v1'
+    | '/ja/blog/reading-that-remembers'
+    | '/ja/docs/getting-started'
+    | '/ja/docs/install'
+    | '/zh/blog/local-first'
+    | '/zh/blog/plugins-v1'
+    | '/zh/blog/reading-that-remembers'
+    | '/zh/docs/getting-started'
+    | '/zh/docs/install'
     | '/docs/plugins/'
+    | '/ja/blog/'
+    | '/ja/docs/'
+    | '/zh/blog/'
+    | '/zh/docs/'
+    | '/ja/docs/plugins/api'
+    | '/ja/docs/plugins/publishing'
+    | '/zh/docs/plugins/api'
+    | '/zh/docs/plugins/publishing'
+    | '/ja/docs/plugins/'
+    | '/zh/docs/plugins/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BlogRoute: typeof BlogRouteWithChildren
   DocsRoute: typeof DocsRouteWithChildren
+  JaBlogRoute: typeof JaBlogRouteWithChildren
+  JaDocsRoute: typeof JaDocsRouteWithChildren
+  ZhBlogRoute: typeof ZhBlogRouteWithChildren
+  ZhDocsRoute: typeof ZhDocsRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -223,6 +509,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogIndexRouteImport
       parentRoute: typeof BlogRoute
     }
+    '/zh/docs': {
+      id: '/zh/docs'
+      path: '/zh/docs'
+      fullPath: '/zh/docs'
+      preLoaderRoute: typeof ZhDocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zh/blog': {
+      id: '/zh/blog'
+      path: '/zh/blog'
+      fullPath: '/zh/blog'
+      preLoaderRoute: typeof ZhBlogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ja/docs': {
+      id: '/ja/docs'
+      path: '/ja/docs'
+      fullPath: '/ja/docs'
+      preLoaderRoute: typeof JaDocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ja/blog': {
+      id: '/ja/blog'
+      path: '/ja/blog'
+      fullPath: '/ja/blog'
+      preLoaderRoute: typeof JaBlogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/docs/install': {
       id: '/docs/install'
       path: '/install'
@@ -258,12 +572,110 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogLocalFirstRouteImport
       parentRoute: typeof BlogRoute
     }
+    '/zh/docs/': {
+      id: '/zh/docs/'
+      path: '/'
+      fullPath: '/zh/docs/'
+      preLoaderRoute: typeof ZhDocsIndexRouteImport
+      parentRoute: typeof ZhDocsRoute
+    }
+    '/zh/blog/': {
+      id: '/zh/blog/'
+      path: '/'
+      fullPath: '/zh/blog/'
+      preLoaderRoute: typeof ZhBlogIndexRouteImport
+      parentRoute: typeof ZhBlogRoute
+    }
+    '/ja/docs/': {
+      id: '/ja/docs/'
+      path: '/'
+      fullPath: '/ja/docs/'
+      preLoaderRoute: typeof JaDocsIndexRouteImport
+      parentRoute: typeof JaDocsRoute
+    }
+    '/ja/blog/': {
+      id: '/ja/blog/'
+      path: '/'
+      fullPath: '/ja/blog/'
+      preLoaderRoute: typeof JaBlogIndexRouteImport
+      parentRoute: typeof JaBlogRoute
+    }
     '/docs/plugins/': {
       id: '/docs/plugins/'
       path: '/plugins'
       fullPath: '/docs/plugins/'
       preLoaderRoute: typeof DocsPluginsIndexRouteImport
       parentRoute: typeof DocsRoute
+    }
+    '/zh/docs/install': {
+      id: '/zh/docs/install'
+      path: '/install'
+      fullPath: '/zh/docs/install'
+      preLoaderRoute: typeof ZhDocsInstallRouteImport
+      parentRoute: typeof ZhDocsRoute
+    }
+    '/zh/docs/getting-started': {
+      id: '/zh/docs/getting-started'
+      path: '/getting-started'
+      fullPath: '/zh/docs/getting-started'
+      preLoaderRoute: typeof ZhDocsGettingStartedRouteImport
+      parentRoute: typeof ZhDocsRoute
+    }
+    '/zh/blog/reading-that-remembers': {
+      id: '/zh/blog/reading-that-remembers'
+      path: '/reading-that-remembers'
+      fullPath: '/zh/blog/reading-that-remembers'
+      preLoaderRoute: typeof ZhBlogReadingThatRemembersRouteImport
+      parentRoute: typeof ZhBlogRoute
+    }
+    '/zh/blog/plugins-v1': {
+      id: '/zh/blog/plugins-v1'
+      path: '/plugins-v1'
+      fullPath: '/zh/blog/plugins-v1'
+      preLoaderRoute: typeof ZhBlogPluginsV1RouteImport
+      parentRoute: typeof ZhBlogRoute
+    }
+    '/zh/blog/local-first': {
+      id: '/zh/blog/local-first'
+      path: '/local-first'
+      fullPath: '/zh/blog/local-first'
+      preLoaderRoute: typeof ZhBlogLocalFirstRouteImport
+      parentRoute: typeof ZhBlogRoute
+    }
+    '/ja/docs/install': {
+      id: '/ja/docs/install'
+      path: '/install'
+      fullPath: '/ja/docs/install'
+      preLoaderRoute: typeof JaDocsInstallRouteImport
+      parentRoute: typeof JaDocsRoute
+    }
+    '/ja/docs/getting-started': {
+      id: '/ja/docs/getting-started'
+      path: '/getting-started'
+      fullPath: '/ja/docs/getting-started'
+      preLoaderRoute: typeof JaDocsGettingStartedRouteImport
+      parentRoute: typeof JaDocsRoute
+    }
+    '/ja/blog/reading-that-remembers': {
+      id: '/ja/blog/reading-that-remembers'
+      path: '/reading-that-remembers'
+      fullPath: '/ja/blog/reading-that-remembers'
+      preLoaderRoute: typeof JaBlogReadingThatRemembersRouteImport
+      parentRoute: typeof JaBlogRoute
+    }
+    '/ja/blog/plugins-v1': {
+      id: '/ja/blog/plugins-v1'
+      path: '/plugins-v1'
+      fullPath: '/ja/blog/plugins-v1'
+      preLoaderRoute: typeof JaBlogPluginsV1RouteImport
+      parentRoute: typeof JaBlogRoute
+    }
+    '/ja/blog/local-first': {
+      id: '/ja/blog/local-first'
+      path: '/local-first'
+      fullPath: '/ja/blog/local-first'
+      preLoaderRoute: typeof JaBlogLocalFirstRouteImport
+      parentRoute: typeof JaBlogRoute
     }
     '/docs/plugins/publishing': {
       id: '/docs/plugins/publishing'
@@ -278,6 +690,48 @@ declare module '@tanstack/react-router' {
       fullPath: '/docs/plugins/api'
       preLoaderRoute: typeof DocsPluginsApiRouteImport
       parentRoute: typeof DocsRoute
+    }
+    '/zh/docs/plugins/': {
+      id: '/zh/docs/plugins/'
+      path: '/plugins'
+      fullPath: '/zh/docs/plugins/'
+      preLoaderRoute: typeof ZhDocsPluginsIndexRouteImport
+      parentRoute: typeof ZhDocsRoute
+    }
+    '/ja/docs/plugins/': {
+      id: '/ja/docs/plugins/'
+      path: '/plugins'
+      fullPath: '/ja/docs/plugins/'
+      preLoaderRoute: typeof JaDocsPluginsIndexRouteImport
+      parentRoute: typeof JaDocsRoute
+    }
+    '/zh/docs/plugins/publishing': {
+      id: '/zh/docs/plugins/publishing'
+      path: '/plugins/publishing'
+      fullPath: '/zh/docs/plugins/publishing'
+      preLoaderRoute: typeof ZhDocsPluginsPublishingRouteImport
+      parentRoute: typeof ZhDocsRoute
+    }
+    '/zh/docs/plugins/api': {
+      id: '/zh/docs/plugins/api'
+      path: '/plugins/api'
+      fullPath: '/zh/docs/plugins/api'
+      preLoaderRoute: typeof ZhDocsPluginsApiRouteImport
+      parentRoute: typeof ZhDocsRoute
+    }
+    '/ja/docs/plugins/publishing': {
+      id: '/ja/docs/plugins/publishing'
+      path: '/plugins/publishing'
+      fullPath: '/ja/docs/plugins/publishing'
+      preLoaderRoute: typeof JaDocsPluginsPublishingRouteImport
+      parentRoute: typeof JaDocsRoute
+    }
+    '/ja/docs/plugins/api': {
+      id: '/ja/docs/plugins/api'
+      path: '/plugins/api'
+      fullPath: '/ja/docs/plugins/api'
+      preLoaderRoute: typeof JaDocsPluginsApiRouteImport
+      parentRoute: typeof JaDocsRoute
     }
   }
 }
@@ -318,10 +772,90 @@ const DocsRouteChildren: DocsRouteChildren = {
 
 const DocsRouteWithChildren = DocsRoute._addFileChildren(DocsRouteChildren)
 
+interface JaBlogRouteChildren {
+  JaBlogLocalFirstRoute: typeof JaBlogLocalFirstRoute
+  JaBlogPluginsV1Route: typeof JaBlogPluginsV1Route
+  JaBlogReadingThatRemembersRoute: typeof JaBlogReadingThatRemembersRoute
+  JaBlogIndexRoute: typeof JaBlogIndexRoute
+}
+
+const JaBlogRouteChildren: JaBlogRouteChildren = {
+  JaBlogLocalFirstRoute: JaBlogLocalFirstRoute,
+  JaBlogPluginsV1Route: JaBlogPluginsV1Route,
+  JaBlogReadingThatRemembersRoute: JaBlogReadingThatRemembersRoute,
+  JaBlogIndexRoute: JaBlogIndexRoute,
+}
+
+const JaBlogRouteWithChildren =
+  JaBlogRoute._addFileChildren(JaBlogRouteChildren)
+
+interface JaDocsRouteChildren {
+  JaDocsGettingStartedRoute: typeof JaDocsGettingStartedRoute
+  JaDocsInstallRoute: typeof JaDocsInstallRoute
+  JaDocsIndexRoute: typeof JaDocsIndexRoute
+  JaDocsPluginsApiRoute: typeof JaDocsPluginsApiRoute
+  JaDocsPluginsPublishingRoute: typeof JaDocsPluginsPublishingRoute
+  JaDocsPluginsIndexRoute: typeof JaDocsPluginsIndexRoute
+}
+
+const JaDocsRouteChildren: JaDocsRouteChildren = {
+  JaDocsGettingStartedRoute: JaDocsGettingStartedRoute,
+  JaDocsInstallRoute: JaDocsInstallRoute,
+  JaDocsIndexRoute: JaDocsIndexRoute,
+  JaDocsPluginsApiRoute: JaDocsPluginsApiRoute,
+  JaDocsPluginsPublishingRoute: JaDocsPluginsPublishingRoute,
+  JaDocsPluginsIndexRoute: JaDocsPluginsIndexRoute,
+}
+
+const JaDocsRouteWithChildren =
+  JaDocsRoute._addFileChildren(JaDocsRouteChildren)
+
+interface ZhBlogRouteChildren {
+  ZhBlogLocalFirstRoute: typeof ZhBlogLocalFirstRoute
+  ZhBlogPluginsV1Route: typeof ZhBlogPluginsV1Route
+  ZhBlogReadingThatRemembersRoute: typeof ZhBlogReadingThatRemembersRoute
+  ZhBlogIndexRoute: typeof ZhBlogIndexRoute
+}
+
+const ZhBlogRouteChildren: ZhBlogRouteChildren = {
+  ZhBlogLocalFirstRoute: ZhBlogLocalFirstRoute,
+  ZhBlogPluginsV1Route: ZhBlogPluginsV1Route,
+  ZhBlogReadingThatRemembersRoute: ZhBlogReadingThatRemembersRoute,
+  ZhBlogIndexRoute: ZhBlogIndexRoute,
+}
+
+const ZhBlogRouteWithChildren =
+  ZhBlogRoute._addFileChildren(ZhBlogRouteChildren)
+
+interface ZhDocsRouteChildren {
+  ZhDocsGettingStartedRoute: typeof ZhDocsGettingStartedRoute
+  ZhDocsInstallRoute: typeof ZhDocsInstallRoute
+  ZhDocsIndexRoute: typeof ZhDocsIndexRoute
+  ZhDocsPluginsApiRoute: typeof ZhDocsPluginsApiRoute
+  ZhDocsPluginsPublishingRoute: typeof ZhDocsPluginsPublishingRoute
+  ZhDocsPluginsIndexRoute: typeof ZhDocsPluginsIndexRoute
+}
+
+const ZhDocsRouteChildren: ZhDocsRouteChildren = {
+  ZhDocsGettingStartedRoute: ZhDocsGettingStartedRoute,
+  ZhDocsInstallRoute: ZhDocsInstallRoute,
+  ZhDocsIndexRoute: ZhDocsIndexRoute,
+  ZhDocsPluginsApiRoute: ZhDocsPluginsApiRoute,
+  ZhDocsPluginsPublishingRoute: ZhDocsPluginsPublishingRoute,
+  ZhDocsPluginsIndexRoute: ZhDocsPluginsIndexRoute,
+}
+
+const ZhDocsRouteWithChildren =
+  ZhDocsRoute._addFileChildren(ZhDocsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BlogRoute: BlogRouteWithChildren,
   DocsRoute: DocsRouteWithChildren,
+  JaBlogRoute: JaBlogRouteWithChildren,
+  JaDocsRoute: JaDocsRouteWithChildren,
+  ZhBlogRoute: ZhBlogRouteWithChildren,
+  ZhDocsRoute: ZhDocsRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

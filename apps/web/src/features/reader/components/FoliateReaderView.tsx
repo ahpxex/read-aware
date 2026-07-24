@@ -21,7 +21,6 @@ import type { LoadedBook, TocEntry, TocNavItem } from "../lib/reader-types";
 import {
   createFoliateView,
   createFootnoteHandler,
-  getScrollEdges,
   isFixedLayout as isFixedLayoutBook,
   makeFoliateBook,
   type FoliateFootnoteBeforeRenderDetail,
@@ -77,6 +76,7 @@ import { hasCoarsePointer, suppressNativeContextMenu } from "../../../platform/e
 import { subscribeWheelPhaseEdges } from "../../../platform/wheel-phase";
 import { useDelayedFlag } from "../hooks/useDelayedFlag";
 import { useReaderTypography } from "../hooks/useReaderTypography";
+import { useReaderPagination } from "../hooks/useReaderPagination";
 import {
   computeReaderMaxInlineSize,
   readerGapForMargins,
@@ -150,29 +150,11 @@ const SHELL_TAP_MAX_MOVE_PX = 6;
 // click — or the resulting selection — can cancel it, instead of the shell
 // flashing up mid-selection. A genuine single tap just toggles after the wait.
 const SHELL_TOGGLE_DBLCLICK_GUARD_MS = 250;
-// Cross-fade timing for section crossing: fade the current section out, swap in
-// the next while hidden, fade it back in. Smooths the otherwise abrupt swap.
-// Keep SECTION_CROSS_FADE_MS in step with the viewport's transition duration.
-const SECTION_CROSS_FADE_MS = 140;
-// Settle after a crossing so one wheel gesture (many events) advances a single
-// section rather than racing through several.
-const SECTION_CROSS_COOLDOWN_MS = 200;
-// Scroll-mode section crossing is intentionally deliberate: once the viewport is
-// pinned at a section edge, the wheel must push past it by this much before the
-// adjacent section loads — so a gentle scroll to the end does not "turn" on its
-// own. The accumulator resets if the push pauses.
-const SECTION_CROSS_OVERSCROLL_PX = 260;
 // Touch uses a lower threshold: wheel deltas are synthetic momentum units, but
 // a finger drag maps 1:1 to CSS pixels, loses the system's touch slop, and a
 // device-pixel swipe halves again through the density divisor — 260 CSS px of
 // pull is over half a screen. 120px is still a deliberate pull, not a graze.
 const TOUCH_SECTION_CROSS_OVERSCROLL_PX = 120;
-const OVERSCROLL_RESET_MS = 220;
-// While the reader shell is open, a deliberate scroll dismisses it — but only
-// once the content has travelled this far (px), so a small nudge or pointer
-// jitter doesn't flash it away the instant you touch the wheel. Paginated page
-// turns dismiss immediately instead; they're already discrete, deliberate moves.
-const SHELL_DISMISS_SCROLL_PX = 160;
 // Discrete wheel gestures (see wheel-gesture.ts): travel that fires a navigator
 // step while its scroll-to-step option claims the wheel, and travel that turns
 // a page on a horizontal trackpad swipe in paginated layouts.
@@ -386,22 +368,18 @@ export function FoliateReaderView({
 
   const readingMode = readerSettings.readingMode;
   const readingModeRef = useRef(readingMode);
-  const crossingSectionRef = useRef(false);
-  const overscrollRef = useRef(0);
-  const overscrollResetTimerRef = useRef<number | null>(null);
   useEffect(() => { readingModeRef.current = readingMode; }, [readingMode]);
 
   // Reader-shell auto-dismissal state. `shellScrollAccumRef` is the signed
   // scroll distance since the shell opened (scroll mode); `prevReadingLocationRef`
   // is the last reported page so a paginated turn can be detected on `relocate`.
   const shellVisibleRef = useRef(shellVisible);
-  const shellScrollAccumRef = useRef(0);
   const prevReadingLocationRef = useRef<{ current: number; cfi: string | null } | null>(null);
   useEffect(() => {
     shellVisibleRef.current = shellVisible;
     // Every fresh open starts the dismissal distance from zero, so scroll that
     // happened before the shell appeared can't dismiss it on the next tick.
-    if (shellVisible) shellScrollAccumRef.current = 0;
+    if (shellVisible) resetShellScrollTravel();
   }, [shellVisible]);
 
   const onContentClickRef = useRef(onContentClick);
@@ -423,7 +401,6 @@ export function FoliateReaderView({
   useEffect(() => { onBookReadyRef.current = onBookReady; }, [onBookReady]);
 
   const [isLoading, setIsLoading] = useState(false);
-  const [isCrossing, setIsCrossing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Only surface the loader once a load is genuinely slow, so fast opens (the
   // common case) fade straight in without a flashed indicator.
@@ -604,6 +581,23 @@ export function FoliateReaderView({
     setSelection(null);
   }, [cancelPendingShellOpen, clearNativeSelection]);
 
+  const {
+    isCrossing,
+    crossSection,
+    handleWheelCrossingRef,
+    dismissShellOnScrollDistanceRef,
+    enqueuePageTurn,
+    turnPage,
+    resetShellScrollTravel,
+    resetPageTurnQueue,
+  } = useReaderPagination({
+    viewRef,
+    readingModeRef,
+    shellVisibleRef,
+    onContentScrollRef,
+    clearSelection,
+  });
+
   const armContentClickSuppression = useCallback(() => {
     suppressContentClickRef.current = true;
     cancelPendingShellOpen();
@@ -682,149 +676,6 @@ export function FoliateReaderView({
 
     return true;
   }, [armContentClickSuppression, clearSelection]);
-
-  // ----- page turning -------------------------------------------------------
-
-  // Cross into the adjacent section with a cross-fade: fade the current section
-  // out, swap the next in while hidden, fade it back in. Used in scroll mode for
-  // the lazy section load (the engine keeps only one section live, so memory
-  // stays bounded), and smooths the otherwise abrupt chapter swap. An explicit
-  // `targetSection` jumps straight to that spine index instead of relying on
-  // next/prev — which only cross once the viewport is pinned at a section edge.
-  const crossSection = useCallback(async (direction: -1 | 1, targetSection?: number) => {
-    if (crossingSectionRef.current) return;
-    const view = viewRef.current;
-    if (!view) return;
-    crossingSectionRef.current = true;
-    setIsCrossing(true); // fade the current section out
-    try {
-      await new Promise((resolve) => window.setTimeout(resolve, SECTION_CROSS_FADE_MS));
-      if (targetSection != null) await view.goTo(targetSection);
-      else await (direction === 1 ? view.next() : view.prev());
-    } catch {
-      // At the first/last section, or a teardown race — fall through to reveal.
-    }
-    // The adjacent section has rendered while hidden; reveal it on the next
-    // frame, then settle briefly so one push advances a single section.
-    window.requestAnimationFrame(() => setIsCrossing(false));
-    await new Promise((resolve) => window.setTimeout(resolve, SECTION_CROSS_COOLDOWN_MS));
-    crossingSectionRef.current = false;
-  }, []);
-  const crossSectionRef = useRef(crossSection);
-  useEffect(() => { crossSectionRef.current = crossSection; }, [crossSection]);
-
-  // Shared wheel-crossing logic: checks scroll edges, accumulates overscroll,
-  // and triggers a section cross once past the threshold. Used both by the
-  // per-section iframe document listener and the viewport-level fallback for
-  // events on the empty area outside the iframe.
-  const handleWheelCrossing = useCallback((
-    deltaY: number,
-    threshold: number = SECTION_CROSS_OVERSCROLL_PX,
-  ) => {
-    if (readingModeRef.current !== "scroll") return;
-    const edges = getScrollEdges(viewRef.current);
-    if (!edges) return;
-
-    const pushingPastEnd = deltaY > 0 && edges.atBottom;
-    const pushingPastStart = deltaY < 0 && edges.atTop;
-    if (!pushingPastEnd && !pushingPastStart) {
-      overscrollRef.current = 0;
-      return;
-    }
-
-    overscrollRef.current += deltaY;
-    if (overscrollResetTimerRef.current != null) {
-      window.clearTimeout(overscrollResetTimerRef.current);
-    }
-    overscrollResetTimerRef.current = window.setTimeout(() => {
-      overscrollRef.current = 0;
-    }, OVERSCROLL_RESET_MS);
-
-    if (overscrollRef.current >= threshold) {
-      overscrollRef.current = 0;
-      void crossSectionRef.current(1);
-    } else if (overscrollRef.current <= -threshold) {
-      overscrollRef.current = 0;
-      void crossSectionRef.current(-1);
-    }
-  }, []);
-  const handleWheelCrossingRef = useRef(handleWheelCrossing);
-  useEffect(() => { handleWheelCrossingRef.current = handleWheelCrossing; }, [handleWheelCrossing]);
-
-  // Scroll-mode shell dismissal: accumulate the wheel's signed travel while the
-  // shell is open and dismiss once a deliberate scroll crosses the threshold.
-  // Signing the sum means jitter (down-then-up) cancels rather than racking up a
-  // false distance — only sustained movement in one direction dismisses.
-  const dismissShellOnScrollDistance = useCallback((deltaY: number) => {
-    if (!shellVisibleRef.current || readingModeRef.current !== "scroll") return;
-    shellScrollAccumRef.current += deltaY;
-    if (Math.abs(shellScrollAccumRef.current) >= SHELL_DISMISS_SCROLL_PX) {
-      shellScrollAccumRef.current = 0;
-      onContentScrollRef.current?.();
-    }
-  }, []);
-  const dismissShellOnScrollDistanceRef = useRef(dismissShellOnScrollDistance);
-  useEffect(() => {
-    dismissShellOnScrollDistanceRef.current = dismissShellOnScrollDistance;
-  }, [dismissShellOnScrollDistance]);
-
-  // The paginator animates a turn over ~300ms and silently drops any
-  // navigation issued while one is in flight (its internal lock) — so a second
-  // gesture or key press mid-animation would simply vanish. Run turns through
-  // a one-slot queue instead: a request made mid-animation lands the moment
-  // the current turn settles. The slot keeps only the NEWEST waiting turn —
-  // a reversal replaces a stale queued turn rather than playing after it (no
-  // bounce), and a held key's auto-repeat can't build a runaway backlog.
-  const pageTurnQueueRef = useRef<{
-    running: boolean;
-    next: (() => Promise<unknown> | void) | null;
-  }>({ running: false, next: null });
-  const enqueuePageTurn = useCallback((turn: () => Promise<unknown> | void) => {
-    const queue = pageTurnQueueRef.current;
-    if (queue.running) {
-      queue.next = turn;
-      return;
-    }
-    queue.running = true;
-    const run = async (current: () => Promise<unknown> | void): Promise<void> => {
-      try {
-        await current();
-      } catch {
-        // At the first/last page, or a teardown race during navigation — no-op.
-      }
-      // Drain whatever is waiting now — unless this queue was abandoned by a
-      // book switch, in which case the new book starts from a clean slot.
-      if (pageTurnQueueRef.current !== queue) return;
-      const next = queue.next;
-      queue.next = null;
-      if (next) return run(next);
-      queue.running = false;
-    };
-    void run(turn);
-  }, []);
-
-  const turnPage = useCallback(async (direction: -1 | 1) => {
-    const view = viewRef.current;
-    if (!view) return;
-    // A keyboard/space-driven move in scroll mode scrolls a whole viewport (or
-    // crosses a section) — clearly past any distance threshold, so dismiss the
-    // shell at once. Paginated turns are handled by the relocate position check.
-    if (shellVisibleRef.current && readingModeRef.current === "scroll") {
-      onContentScrollRef.current?.();
-    }
-    // In scroll mode, advancing at a section boundary should cross-fade into the
-    // next chapter; mid-section it just scrolls a viewport. Paginated modes flip
-    // pages directly.
-    if (readingModeRef.current === "scroll") {
-      const edges = getScrollEdges(view);
-      if ((direction === 1 && edges?.atBottom) || (direction === -1 && edges?.atTop)) {
-        void crossSection(direction);
-        return;
-      }
-    }
-    clearSelection();
-    enqueuePageTurn(() => (direction === 1 ? viewRef.current?.next() : viewRef.current?.prev()));
-  }, [clearSelection, crossSection, enqueuePageTurn]);
 
   // ----- chapter navigation (refs so stable across renders) -----------------
 
@@ -1678,9 +1529,6 @@ export function FoliateReaderView({
       if (suppressContentClickTimeoutRef.current != null) {
         window.clearTimeout(suppressContentClickTimeoutRef.current);
       }
-      if (overscrollResetTimerRef.current != null) {
-        window.clearTimeout(overscrollResetTimerRef.current);
-      }
     };
   }, [cancelPendingShellOpen, cancelPendingShellToggle]);
 
@@ -1703,10 +1551,8 @@ export function FoliateReaderView({
     // Drop the previous book's position so its first relocate only sets a fresh
     // baseline instead of reading as a page turn.
     prevReadingLocationRef.current = null;
-    shellScrollAccumRef.current = 0;
-    // Abandon the previous engine's turn queue — a turn that never settled
-    // (teardown race) must not wedge the running flag against the new book.
-    pageTurnQueueRef.current = { running: false, next: null };
+    resetShellScrollTravel();
+    resetPageTurnQueue();
 
     void (async () => {
       try {

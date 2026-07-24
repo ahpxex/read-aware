@@ -11,7 +11,10 @@
  * This module keeps the Foliate document and live DOM Ranges inside the host.
  */
 
-import type { PluginReaderMode } from "../../plugins/lib/plugin-types";
+import type {
+  PluginReaderTextSegment,
+  RegisteredReaderMode,
+} from "../../plugins/lib/plugin-types";
 import { normalizeReaderTextSegments } from "../../plugins/lib/reader-mode";
 
 /** Opaque unit id declared by the active plugin mode. */
@@ -84,7 +87,7 @@ function collectTextNodes(range: Range): Node[] {
 /** Map trimmed segment offsets back onto the block's text nodes as Ranges. */
 function segmentsToRanges(
   nodes: Node[],
-  segments: ReturnType<PluginReaderMode["segmentText"]>,
+  segments: PluginReaderTextSegment[],
 ): Range[] {
   // Cumulative start offset of each node's text within the joined block string.
   const starts: number[] = [];
@@ -124,23 +127,29 @@ function segmentsToRanges(
  * Ranges. The document's `lang` (set by the engine from book metadata) lets
  * the plugin pick an appropriate segmentation locale.
  */
-export function buildTextUnitRanges(
+export async function buildTextUnitRanges(
   doc: Document,
   unitId: TextUnitId,
-  segmentText: PluginReaderMode["segmentText"],
-): Range[] {
+  segmentText: RegisteredReaderMode["segmentText"],
+): Promise<Range[]> {
   const units: Range[] = [];
   const language = doc.documentElement?.lang || undefined;
-  for (const block of blockRanges(doc)) {
-    const nodes = collectTextNodes(block);
-    if (!nodes.length) continue;
-    const text = nodes.map((node) => node.nodeValue ?? "").join("");
-    if (!text.trim()) continue;
-    const segments = normalizeReaderTextSegments(
-      segmentText({ text, language, unitId }),
-      text.length,
-    );
-    units.push(...segmentsToRanges(nodes, segments));
+  // Blocks are segmented in parallel: the segmenter lives in the plugin's
+  // Worker, so serializing here would pay one round trip per paragraph.
+  const blocks = [...blockRanges(doc)]
+    .map((block) => {
+      const nodes = collectTextNodes(block);
+      return { nodes, text: nodes.map((node) => node.nodeValue ?? "").join("") };
+    })
+    .filter((block) => block.nodes.length > 0 && Boolean(block.text.trim()));
+  const segmented = await Promise.all(
+    blocks.map((block) =>
+      Promise.resolve(segmentText({ text: block.text, language, unitId })).catch(() => []),
+    ),
+  );
+  for (const [index, block] of blocks.entries()) {
+    const segments = normalizeReaderTextSegments(segmented[index], block.text.length);
+    units.push(...segmentsToRanges(block.nodes, segments));
   }
   return units;
 }

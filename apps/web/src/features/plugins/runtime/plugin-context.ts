@@ -85,6 +85,12 @@ function requireDictionaryLanguage(value: unknown): DictionaryLanguage {
   throw new Error(`Unsupported dictionary language: ${String(value)}`);
 }
 
+/**
+ * KV namespace for a plugin. Exported so the sandbox host can ship the whole
+ * namespace into the Worker at boot, keeping `storage.get()` synchronous there.
+ */
+export const pluginStoragePrefix = (pluginId: string) => `read-aware-plugin.${pluginId}.`;
+
 export function buildPluginContext(
   manifest: PluginManifest,
   appVersion: string,
@@ -92,7 +98,7 @@ export function buildPluginContext(
 ): PluginContext {
   const permissions = new Set(manifest.permissions ?? []);
   const domain = createDomainApi(`plugin:${manifest.id}`);
-  const storagePrefix = `read-aware-plugin.${manifest.id}.`;
+  const storagePrefix = pluginStoragePrefix(manifest.id);
   const track = (disposable: PluginDisposable): PluginDisposable => {
     disposables.push(disposable);
     return disposable;

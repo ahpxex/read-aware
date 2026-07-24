@@ -203,7 +203,9 @@ export function normalizeReaderTextSegments(
 
 /** Resolve an opaque persisted unit id against the currently installed mode. */
 export function resolveReaderModeUnit(
-  mode: PluginReaderMode,
+  // Only the unit list matters here, so this accepts both the plugin-declared
+  // mode and the host-held one (whose segmenter is async across the sandbox).
+  mode: Pick<PluginReaderMode, "units" | "defaultUnitId">,
   preferredUnitId?: string | null,
 ): PluginReaderTextUnit {
   return (

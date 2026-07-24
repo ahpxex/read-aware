@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
-import type { PluginReaderMode } from "../../plugins/lib/plugin-types";
+import type { RegisteredReaderMode } from "../../plugins/lib/plugin-types";
 import {
   setVolumeKeyCapture,
   VOLUME_STEP_EVENT,
@@ -63,7 +63,7 @@ type UseTextUnitNavigatorOptions = {
    *  re-anchors the wash at the unit containing its old start. */
   unitId: TextUnitId;
   /** Plugin-owned segmentation policy; the host maps its offsets to Ranges. */
-  segmentText: PluginReaderMode["segmentText"];
+  segmentText: RegisteredReaderMode["segmentText"];
   viewRef: RefObject<FoliateView | null>;
   readerRootRef: RefObject<HTMLElement | null>;
   /** Cross into the adjacent spine section, with the mode's transition. */
@@ -116,6 +116,7 @@ export function useTextUnitNavigator({
 
   const activeRef = useRef(active);
   const persistedActiveRef = useRef(active || suspended);
+  const buildTokenRef = useRef(0);
   const segmentTextRef = useRef(segmentText);
   segmentTextRef.current = segmentText;
   const sectionRef = useRef<{ doc: Document; index: number } | null>(null);
@@ -286,16 +287,25 @@ export function useTextUnitNavigator({
     [clearWash, persistState, rangeComfortablyVisible, setResting, viewRef],
   );
 
-  const buildUnits = useCallback((): Range[] => {
+  // Segmentation crosses into the plugin's sandbox, so it is async now. Each
+  // build takes a token; a section change or mode switch bumps it and any
+  // in-flight result for the old one is dropped instead of overwriting the new
+  // index. Without that guard a slow segmenter could paint the previous
+  // section's units over the current page.
+  const buildUnits = useCallback(async (): Promise<Range[]> => {
     const section = sectionRef.current;
     if (!section) return (unitsRef.current = []);
+    const token = ++buildTokenRef.current;
     try {
-      return (unitsRef.current = buildTextUnitRanges(
+      const ranges = await buildTextUnitRanges(
         section.doc,
         unitIdRef.current,
         segmentTextRef.current,
-      ));
+      );
+      if (token !== buildTokenRef.current) return unitsRef.current ?? [];
+      return (unitsRef.current = ranges);
     } catch {
+      if (token !== buildTokenRef.current) return unitsRef.current ?? [];
       return (unitsRef.current = []);
     }
   }, []);
@@ -330,7 +340,7 @@ export function useTextUnitNavigator({
   );
 
   const handleSectionLoad = useCallback(
-    (doc: Document, index: number) => {
+    async (doc: Document, index: number) => {
       // The previous section's overlay died with it — nothing to remove.
       appliedCfiRef.current = null;
       sectionRef.current = { doc, index };
@@ -341,7 +351,8 @@ export function useTextUnitNavigator({
         pendingCrossRef.current = null;
         return;
       }
-      const units = buildUnits();
+      const units = await buildUnits();
+      if (sectionRef.current?.index !== index) return;
       const cross = pendingCrossRef.current;
       pendingCrossRef.current = null;
       if (!units.length) {
@@ -416,14 +427,18 @@ export function useTextUnitNavigator({
       }
       persistState();
       if (!sectionRef.current) return;
-      const units = unitsRef.current ?? buildUnits();
-      const resting = restingRef.current;
-      const index =
-        resting?.sectionIndex === sectionRef.current.index
-          ? Math.min(resting.ordinal, units.length - 1)
-          : anchorTextUnitIndex(units, visibleRangeRef.current);
-      if (index >= 0) applyIndex(index, { scroll: false });
-      else setCurrent(null);
+      void (async () => {
+        const units = unitsRef.current ?? (await buildUnits());
+        const section = sectionRef.current;
+        if (!activeRef.current || !section) return;
+        const resting = restingRef.current;
+        const index =
+          resting?.sectionIndex === section.index
+            ? Math.min(resting.ordinal, units.length - 1)
+            : anchorTextUnitIndex(units, visibleRangeRef.current);
+        if (index >= 0) applyIndex(index, { scroll: false });
+        else setCurrent(null);
+      })();
       return;
     }
     clearWash();
@@ -461,10 +476,13 @@ export function useTextUnitNavigator({
       if (activeRef.current) setCurrent(null);
       return;
     }
-    const units = buildUnits();
-    const index = anchorTextUnitIndex(units, previousRange);
-    if (index >= 0) applyIndex(index, { scroll: false });
-    else setCurrent(null);
+    void (async () => {
+      const units = await buildUnits();
+      if (!activeRef.current) return;
+      const index = anchorTextUnitIndex(units, previousRange);
+      if (index >= 0) applyIndex(index, { scroll: false });
+      else setCurrent(null);
+    })();
   }, [active, suspended, modeKey, unitId, applyIndex, buildUnits, persistState, setResting]);
 
   // Android: while the mode is on, the volume keys step units (volume

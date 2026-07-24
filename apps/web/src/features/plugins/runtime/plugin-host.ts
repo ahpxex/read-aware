@@ -1,9 +1,12 @@
 /**
- * The plugin lifecycle owner: enumerate installed folders, load entry modules
- * over `raplugin://`, run activate/deactivate, and keep the installed-plugins
- * atom truthful. Desktop-only — in a plain browser (dev/Storybook) every
- * function is a no-op. A broken plugin records its error and stays inert;
- * it must never take the app down.
+ * The plugin lifecycle owner: enumerate installed folders, start each enabled
+ * plugin in its sandbox, and keep the installed-plugins atom truthful.
+ * Desktop-only — in a plain browser (dev/Storybook) every function is a no-op.
+ * A broken plugin records its error and stays inert; it must never take the app
+ * down.
+ *
+ * Plugin CODE runs in a Worker (plugin-sandbox.worker.ts), not here. This
+ * module only decides what may start and holds the handle for tearing it down.
  */
 import { getVersion } from "@tauri-apps/api/app";
 import { getDefaultStore } from "jotai";
@@ -13,7 +16,6 @@ import type {
   InstalledPlugin,
   PluginDisposable,
   PluginManifest,
-  PluginModule,
 } from "../lib/plugin-types";
 import {
   forgetPluginEnabled,
@@ -28,18 +30,17 @@ import {
   installPluginFromDir,
   listPluginEntries,
   pluginDocsClear,
-  pluginModuleUrl,
   uninstallPluginFiles,
   type PluginDiskEntry,
   type PluginFilePayload,
 } from "./plugin-backend";
-import { buildPluginContext } from "./plugin-context";
+import { startPluginWorker, type SandboxedPlugin } from "./plugin-worker-host";
 import { onAppEvent } from "../../../platform/app-events";
 import { unbindVirtualBook } from "../lib/virtual-books";
 
 type ActivePlugin = {
   manifest: PluginManifest;
-  module: PluginModule;
+  sandbox: SandboxedPlugin;
   disposables: PluginDisposable[];
 };
 
@@ -116,7 +117,11 @@ export async function initializePlugins(): Promise<void> {
   });
 }
 
-/** Load + activate one plugin; failures are recorded on its settings entry. */
+/**
+ * Start one plugin inside its sandbox; failures are recorded on its settings
+ * entry. The plugin's code never enters this realm — `startPluginWorker` runs
+ * it in a Worker and brokers everything through its permission-gated context.
+ */
 async function activatePlugin(manifest: PluginManifest): Promise<void> {
   if (active.has(manifest.id)) return;
   try {
@@ -127,16 +132,9 @@ async function activatePlugin(manifest: PluginManifest): Promise<void> {
     if (manifest.permissions?.includes("reader:modes") && !installed?.builtin) {
       throw new Error("reader:modes is currently reserved for built-in plugins");
     }
-    const url = pluginModuleUrl(manifest.id, manifest.main ?? "main.js");
-    const loaded = (await import(/* @vite-ignore */ url)) as { default?: PluginModule };
-    const entry = loaded.default;
-    if (!entry || typeof entry.activate !== "function") {
-      throw new Error("entry module must default-export an object with activate()");
-    }
     const disposables: PluginDisposable[] = [];
-    const ctx = buildPluginContext(manifest, appVersion, disposables);
-    await entry.activate(ctx);
-    active.set(manifest.id, { manifest, module: entry, disposables });
+    const sandbox = await startPluginWorker(manifest, appVersion, disposables);
+    active.set(manifest.id, { manifest, sandbox, disposables });
     updateInstalledPlugin(manifest.id, { error: undefined });
   } catch (error) {
     console.error(`[plugins] activation of "${manifest.id}" failed`, error);
@@ -144,7 +142,7 @@ async function activatePlugin(manifest: PluginManifest): Promise<void> {
   }
 }
 
-/** Dispose every contribution, then let the plugin release its own resources. */
+/** Dispose every contribution, then tear the plugin's realm down. */
 async function deactivatePlugin(id: string): Promise<void> {
   const entry = active.get(id);
   if (!entry) return;
@@ -157,9 +155,9 @@ async function deactivatePlugin(id: string): Promise<void> {
     }
   }
   try {
-    await entry.module.deactivate?.();
+    await entry.sandbox.terminate();
   } catch (error) {
-    console.error(`[plugins] deactivate() of "${id}" failed`, error);
+    console.error(`[plugins] terminating "${id}" failed`, error);
   }
 }
 

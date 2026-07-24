@@ -43,7 +43,18 @@ export type RegisteredHeaderAction = PluginHeaderAction & {
   pluginName: string;
 };
 
-export type RegisteredReaderMode = PluginReaderMode & {
+/**
+ * A reader mode as the HOST holds it.
+ *
+ * `segmentText` widens to allow a promise: the plugin still writes an ordinary
+ * synchronous function, but its code lives in a Worker now, so the call crosses
+ * a realm on the way here (see plugin-worker-host.ts). Segmentation runs once
+ * per section and the result is cached, so awaiting it costs nothing per step.
+ */
+export type RegisteredReaderMode = Omit<PluginReaderMode, "segmentText"> & {
+  segmentText: (
+    input: Parameters<PluginReaderMode["segmentText"]>[0],
+  ) => ReturnType<PluginReaderMode["segmentText"]> | Promise<ReturnType<PluginReaderMode["segmentText"]>>;
   key: ContributionKey;
   pluginId: string;
   pluginName: string;

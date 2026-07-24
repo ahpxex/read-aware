@@ -24,6 +24,10 @@ base64 = "0.22"
 rusqlite = { version = "0.32", features = ["bundled", "functions"] }
 # Content hashes for the blob registry (dedupe, integrity, sync reconciliation).
 sha2 = "0.10"
+# Authenticated encryption for the stored API key (see secrets.rs). Pure Rust,
+# no system dependency and no OS credential store — that trade is explained in
+# the module header.
+aes-gcm = "0.10"
 # EPUB metadata is a few small ZIP entries (container.xml, OPF, cover). Reading
 # those directly avoids opening the whole book in the webview just to paint a
 # shelf cover.

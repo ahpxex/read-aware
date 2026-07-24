@@ -28,12 +28,14 @@ export interface AIConfig {
 }
 
 import { localKV } from "../../../platform/local-store";
+import { deleteSecret, getSecret, setSecret } from "../../../platform/secret-store";
 
-// Non-secret connection fields (provider/model/customBaseUrl) go through the
-// device-local store (SQLite on desktop). The API key is a secret and is kept
-// OUT of SQLite — it stays in localStorage until a Keychain path lands.
+// Two seams, split by sensitivity. The connection fields (provider / model /
+// customBaseUrl) are ordinary device-local config and live in the kv store; the
+// API key is a credential and goes through platform/secret-store, which keeps
+// it encrypted at rest. Neither is reachable from webview script — the key used
+// to sit in localStorage, where every plugin could read it.
 const CONFIG_KEY = "read-aware-ai-config";
-const API_KEY_KEY = "read-aware-ai-key";
 
 export function getAIConfig(): AIConfig | null {
   try {
@@ -41,9 +43,9 @@ export function getAIConfig(): AIConfig | null {
     if (!stored) return null;
     const parsed = JSON.parse(stored) as Partial<AIConfig>;
     if (!parsed.provider) return null;
-    // Read the key from its dedicated localStorage slot, falling back to a
-    // legacy combined blob's `apiKey` (pre-split records migrate on next save).
-    const apiKey = localStorage.getItem(API_KEY_KEY) ?? parsed.apiKey ?? "";
+    // `parsed.apiKey` is the pre-split record shape; it migrates out on the
+    // next save (saveAIConfig never writes the key back into this blob).
+    const apiKey = getSecret("ai-api-key") || parsed.apiKey || "";
     return {
       provider: parsed.provider,
       apiKey,
@@ -59,13 +61,13 @@ export function getAIConfig(): AIConfig | null {
 export function saveAIConfig(config: AIConfig): void {
   const { apiKey, ...nonSecret } = config;
   localKV.setItem(CONFIG_KEY, JSON.stringify(nonSecret));
-  if (apiKey) localStorage.setItem(API_KEY_KEY, apiKey);
-  else localStorage.removeItem(API_KEY_KEY);
+  if (apiKey) setSecret("ai-api-key", apiKey);
+  else deleteSecret("ai-api-key");
 }
 
 export function clearAIConfig(): void {
   localKV.removeItem(CONFIG_KEY);
-  localStorage.removeItem(API_KEY_KEY);
+  deleteSecret("ai-api-key");
 }
 
 export function hasAIConfig(): boolean {

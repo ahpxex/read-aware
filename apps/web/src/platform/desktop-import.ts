@@ -72,13 +72,18 @@ async function importLocalStorage(): Promise<void> {
     if (value == null) continue;
 
     if (key === AI_CONFIG_KEY) {
-      // Split the legacy combined blob: non-secret fields → SQLite; the API key
-      // stays in localStorage (kept out of SQLite until a Keychain path lands).
+      // Split the legacy combined blob: non-secret connection fields go to
+      // SQLite as-is, the API key to encrypted storage. The localStorage copy
+      // is dropped only after that write lands, so a failure retries on the
+      // next launch instead of losing the user's key.
       try {
         const cfg = JSON.parse(value) as { apiKey?: unknown } & Record<string, unknown>;
         const { apiKey, ...nonSecret } = cfg;
         await invoke("set_kv", { key: AI_CONFIG_KEY, value: JSON.stringify(nonSecret) });
-        if (typeof apiKey === "string" && apiKey) localStorage.setItem(AI_KEY_KEY, apiKey);
+        if (typeof apiKey === "string" && apiKey) {
+          await invoke("secret_set", { key: "ai-api-key", value: apiKey });
+          localStorage.removeItem(AI_KEY_KEY);
+        }
       } catch {
         // Malformed — skip.
       }

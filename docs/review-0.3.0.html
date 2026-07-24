@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReadAware 0.3.0 · 架构审计与修复</title>
+<style>
+  :root {
+    --paper: #faf9f7; --paper-warm: #f5f3ef; --ink: #1c1917;
+    --stone-700: #44403c; --stone-600: #57534e; --stone-500: #78716c;
+    --stone-400: #a8a29e; --stone-300: #d6d3d1; --border: #e7e5e4;
+    --accent: #7c2d12; --good: #3f6212;
+    --serif: Charter, "Iowan Old Style", "Source Serif 4", Georgia, "Songti SC", serif;
+    --sans: Inter, -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
+    --mono: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans);
+         font-size: 16px; line-height: 1.75; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 88px 32px 140px; }
+
+  .eyebrow { font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+             color: var(--stone-500); font-weight: 500; margin: 0 0 20px; }
+  h1 { font-family: var(--serif); font-weight: 400; font-size: 46px; line-height: 1.08;
+       letter-spacing: -.02em; margin: 0 0 20px; }
+  .standfirst { font-family: var(--serif); font-size: 19px; line-height: 1.65;
+                color: var(--stone-600); margin: 0 0 28px; max-width: 62ch; }
+  .masthead-meta { display: flex; flex-wrap: wrap; gap: 8px 28px; font-size: 12px;
+                   color: var(--stone-500); padding-top: 24px; border-top: 1px solid var(--border); }
+  .masthead-meta b { font-weight: 500; color: var(--stone-700); }
+
+  h2 { font-family: var(--serif); font-weight: 400; font-size: 30px; line-height: 1.2;
+       letter-spacing: -.015em; margin: 76px 0 8px; padding-top: 30px; border-top: 1px solid var(--border); }
+  h2 .num { display: block; font-family: var(--sans); font-size: 11px; letter-spacing: .14em;
+            text-transform: uppercase; color: var(--stone-400); font-weight: 500; margin-bottom: 12px; }
+  h3 { font-family: var(--sans); font-weight: 600; font-size: 16px; margin: 38px 0 10px; }
+  h4 { font-family: var(--sans); font-weight: 600; font-size: 12px; letter-spacing: .06em;
+       text-transform: uppercase; color: var(--stone-500); margin: 24px 0 8px; }
+  p { margin: 0 0 16px; max-width: 68ch; }
+  ul, ol { margin: 0 0 16px; padding-left: 22px; max-width: 68ch; }
+  li { margin-bottom: 7px; } li::marker { color: var(--stone-400); }
+  code { font-family: var(--mono); font-size: .855em; background: var(--paper-warm);
+         border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; color: var(--stone-700); }
+
+  .verdict { background: var(--paper-warm); border: 1px solid var(--border); border-radius: 4px;
+             padding: 28px 32px; margin: 40px 0 8px; }
+  .verdict p:last-child { margin-bottom: 0; }
+  .verdict .lede { font-family: var(--serif); font-size: 18px; line-height: 1.6; }
+
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: 1px;
+             background: var(--border); border: 1px solid var(--border); border-radius: 4px;
+             overflow: hidden; margin: 28px 0 36px; }
+  .metric { background: var(--paper); padding: 18px 16px; }
+  .metric .v { font-family: var(--serif); font-size: 26px; line-height: 1.1; letter-spacing: -.02em; display: block; }
+  .metric .l { font-size: 11px; color: var(--stone-500); margin-top: 5px; display: block; }
+  .metric.good .v { color: var(--good); }
+
+  .item { border: 1px solid var(--border); border-radius: 4px; padding: 26px 30px; margin: 0 0 20px; background: #fff; }
+  .item > :last-child { margin-bottom: 0; }
+  .item-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .item-head h3 { margin: 0; font-size: 17px; }
+  .badge { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+           padding: 3px 8px; border-radius: 3px; white-space: nowrap; }
+  .badge.done { background: var(--good); color: #fff; }
+  .badge.partial { background: #a16207; color: #fff; }
+  .tag { font-size: 11px; color: var(--stone-500); border: 1px solid var(--border); padding: 2px 7px; border-radius: 3px; }
+
+  .evidence { background: #1c1917; color: #e7e5e4; border-radius: 4px; padding: 16px 18px; margin: 16px 0;
+              overflow-x: auto; font-family: var(--mono); font-size: 12.5px; line-height: 1.65; }
+  .evidence .c { color: #a8a29e; } .evidence .ok { color: #86efac; } .evidence .no { color: #fca5a5; }
+  .evidence pre { margin: 0; }
+
+  .tbl-wrap { overflow-x: auto; margin: 20px 0 28px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 460px; }
+  th { text-align: left; font-weight: 600; font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+       color: var(--stone-500); padding: 0 14px 9px 0; border-bottom: 1px solid var(--stone-300); white-space: nowrap; }
+  td { padding: 9px 14px 9px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+  td.mono { font-family: var(--mono); font-size: 12px; }
+  .was { color: var(--accent); } .now { color: var(--good); font-weight: 500; }
+
+  .note { border-left: 2px solid var(--stone-400); background: var(--paper-warm); padding: 16px 20px;
+          margin: 20px 0; border-radius: 0 4px 4px 0; font-size: 14.5px; color: var(--stone-700); }
+  .note > :last-child { margin-bottom: 0; }
+  .note b { color: var(--ink); }
+  .note.correction { border-left-color: var(--accent); }
+
+  blockquote { margin: 16px 0; padding: 2px 0 2px 18px; border-left: 2px solid var(--stone-300);
+               color: var(--stone-600); font-family: var(--serif); font-size: 15.5px; }
+  blockquote p:last-child { margin-bottom: 0; }
+  .src { display: block; font-family: var(--mono); font-size: 11px; color: var(--stone-400); margin-top: 8px; }
+
+  footer { margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--border);
+           font-size: 12px; color: var(--stone-500); }
+  @media (max-width: 640px) { .wrap { padding: 56px 20px 100px; } h1 { font-size: 34px; } h2 { font-size: 25px; } .item { padding: 20px 18px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<p class="eyebrow">ReadAware v0.3.0 · 工程评审</p>
+<h1>架构审计与修复</h1>
+<p class="standfirst">
+上一版审计指出的三个 P0 问题——插件权限不是安全边界、密钥明文可读、事件溯源只有外壳——已全部修复并在运行的桌面应用里实证。
+本文记录每一项的前后对比、验证方法，以及仍然存在的边界。
+</p>
+<div class="masthead-meta">
+  <span><b>日期</b> 2026-07-25</span>
+  <span><b>版本</b> v0.3.0</span>
+  <span><b>验证</b> Tauri MCP，运行中的桌面实例</span>
+  <span><b>测试</b> Rust 32 · TS 105</span>
+</div>
+
+<div class="verdict">
+  <p class="lede">
+    三个 P0 全部关闭，两个 P1 一个关闭、一个开了头。所有安全结论都不是"改完应该就好了"，
+    而是在真实实例里重新跑了一遍原来的攻击探针。
+  </p>
+  <p>
+    最值得记录的不是修好的部分，而是修复过程中暴露的两件事：一是<b>我上一版报告里有一处术语用错了</b>（见第六节），
+    二是<b>历史数据里确实存在无法挽回的事件缺失</b>——新建的一致性自检把它精确地量化了出来，
+    这比"假设一切正常"有价值得多。
+  </p>
+</div>
+
+<div class="metrics">
+  <div class="metric good"><span class="v">3/3</span><span class="l">P0 已关闭</span></div>
+  <div class="metric good"><span class="v">137</span><span class="l">测试（原 115，且 Rust 那批曾编译不过）</span></div>
+  <div class="metric good"><span class="v">0</span><span class="l">循环依赖（已接 CI）</span></div>
+  <div class="metric good"><span class="v">13,645</span><span class="l">事件日志（原 1,222）</span></div>
+  <div class="metric good"><span class="v">227</span><span class="l">storage/mod.rs 行数（原 3218）</span></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<h2><span class="num">第一节</span>P0 · 插件沙箱</h2>
+
+<div class="item">
+<div class="item-head">
+  <span class="badge done">已修复</span>
+  <h3>插件移出主 realm，权限成为真正的边界</h3>
+  <span class="tag">已实证</span>
+</div>
+
+<p>
+过去插件通过 <code>await import()</code> 直接进入应用 realm，因而持有应用的全部权限。
+现在每个插件运行在独立的 <b>module Worker</b> 里（<code>plugin-sandbox.worker.ts</code>），
+那里没有 <code>window</code>、没有 <code>document</code>、没有 <code>__TAURI_INTERNALS__</code>。
+唯一的出口是 <code>postMessage</code>，而宿主侧（<code>plugin-worker-host.ts</code>）只把消息路由到
+<code>buildPluginContext</code> —— 也就是原来那份权限门禁。区别在于它现在是<b>唯一</b>的通道。
+</p>
+
+<h4>同一段攻击探针，改动前后</h4>
+<div class="evidence"><pre><span class="c">// 模拟一个声明零权限的插件</span>
+                     <span class="c">改动前</span>              <span class="c">现在</span>
+__TAURI_INTERNALS__  <span class="no">可达</span>                <span class="ok">undefined</span>
+library_load         <span class="no">OK  22 books</span>        <span class="ok">BLOCKED (TypeError)</span>
+load_kv_all          <span class="no">OK  25 keys</span>         <span class="ok">BLOCKED</span>
+read_events_since    <span class="no">OK  1222 events</span>     <span class="ok">BLOCKED</span>
+annotations_list     <span class="no">OK  15</span>              <span class="ok">BLOCKED</span>
+plugin_docs_list     <span class="no">OK  6 docs（他人的）</span>  <span class="ok">BLOCKED</span>
+localStorage         <span class="no">可读（含 API key）</span>   <span class="ok">undefined</span>
+document / window    <span class="no">可达</span>                <span class="ok">undefined</span>
+主 realm 插件模块      <span class="no">直接 import</span>         <span class="ok">0 个</span></pre></div>
+
+<h4>两个设计要点</h4>
+<ul>
+  <li><b>插件源码不需要改。</b> <code>storage.get()</code> 和 <code>dictionary.getLanguage()</code> 在插件 API 里是同步的，
+      现在依然同步——宿主在 <code>activate()</code> 前把整个命名空间快照送进 Worker，读取始终是本地的。
+      跨 realm 的只有宿主与 Worker 之间。</li>
+  <li><b>上下文形状从宿主自动派生，不手抄。</b> 第一版我手写了一份 API 列表，结果漏了
+      <code>books.write</code> 是嵌套命名空间，导致 rss-reader 的自检失败。现在宿主用
+      <code>describeContext()</code> 把真实 ctx 的形状发给 Worker，Worker 据此构造代理——
+      沙箱暴露的永远正好是权限门禁授予的，不多不少。</li>
+</ul>
+
+<h4>功能验证（三个内置插件，零错误）</h4>
+<div class="evidence"><pre>dictionary       <span class="ok">激活</span>  → selection action + 2 agent tools
+rss-reader       <span class="ok">激活</span>  → 3 agent tools（books:write 自检通过）
+sentence-reader  <span class="ok">激活</span>  → reader mode 注册
+
+<span class="c">跨 Worker 回调实测（中文分句）：</span>
+segmentText("第一句话在这里。第二句话紧随其后！第三句呢？")
+  → [{0,8}, {8,17}, {17,22}]   <span class="ok">往返 6ms</span></pre></div>
+
+<div class="note">
+<p>
+<b>连带的 API 变更（仅影响宿主，不影响插件作者）：</b>
+<code>RegisteredReaderMode.segmentText</code> 现在可能返回 Promise。分段每章执行一次并缓存，
+所以每次翻页不产生额外开销；<code>useTextUnitNavigator</code> 相应加了 generation 守卫，
+防止慢分段把上一章的结果画到当前页上。
+</p>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<h2><span class="num">第二节</span>P0 · 密钥不再明文</h2>
+
+<div class="item">
+<div class="item-head">
+  <span class="badge done">已修复</span>
+  <h3>API key 离开 localStorage，改为加密存储</h3>
+</div>
+
+<p>
+上一版指出原注释的推理是反的——"因为是密钥所以不放 SQLite"，而 localStorage 恰恰是唯一没有任何门禁的地方。
+现在密钥经 <b>AES-256-GCM</b> 加密后存入 SQLite，密钥文件单独放在数据库旁边、权限 <code>0600</code>。
+旧值在首次启动时自动迁移，且只有加密写入成功后才清除本地副本。
+</p>
+
+<div class="evidence"><pre><span class="c">运行实例实测：</span>
+localStorage["read-aware-ai-key"]   <span class="ok">已不存在</span>
+app_kv 中的存储值                    <span class="ok">104 字符密文，不含明文片段</span>
+secret.key                          <span class="ok">-rw------- (0600)</span>
+启动时钥匙串弹窗                      <span class="ok">0</span></pre></div>
+
+<h4>为什么不用系统钥匙串</h4>
+<p>
+第一版实现走的是 OS 钥匙串，但那条路被否掉了，理由是<b>一个不成立的前提</b>：
+"用户授权一次就好"依赖<b>稳定的代码签名</b>，而本项目没有——
+<code>codesign</code> 对 dev 和 release 构建都报 <code>adhoc</code>、无 team identifier。
+macOS 的钥匙串 ACL 绑定二进制签名，因此每次重新编译、每次发版更新都会被当成新应用重新索要授权。
+每次启动弹一次授权框不是安全特性，是在训练用户闭眼点确认。
+</p>
+<p>
+这个取舍成立的前提是<b>威胁模型已经变了</b>：让旧 localStorage 危险的是"任何插件都能读"，
+而插件现在根本不在有存储访问权的 realm 里运行（第一节）。剩下的威胁是"以该用户身份运行的本地进程"，
+钥匙串对它的优势真实但狭窄，却要用每一次启动的打扰来换。
+</p>
+
+<div class="note">
+<p>
+<b>诚实标注这买到了什么：</b>
+它<b>能</b>阻止密钥以可读明文躺在磁盘上——备份、同步文件夹、数据库截图、随手 <code>grep</code> 都拿不到，
+单独拖走 <code>read-aware.db</code> 只得到密文。
+它<b>不能</b>阻止一个已经以该用户身份运行的进程同时读走两个文件——只有 OS 钥匙串或硬件密钥能做到。
+<b>等应用具备 Developer ID 签名后应当重新评估</b>：那时钥匙串只弹一次，就变成严格更优解。
+</p>
+</div>
+
+<h4>过程中修掉的一个真问题</h4>
+<p>
+第一版把 <code>secret_get</code> 写成了<b>同步</b> Tauri 命令。macOS 首次访问钥匙串会弹授权框，
+而同步命令跑在主线程上——整个 webview 直接冻结，连最简单的 eval 都超时。
+用 <code>sample</code> 抓主线程栈定位到阻塞点后，改为 <code>async</code> + <code>spawn_blocking</code>。
+<b>同一类问题也修了 <code>rebuild_projections</code> / <code>verify_projections</code></b>，
+它们会回放整个日志，绝不能占用主线程。
+</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<h2><span class="num">第三节</span>P0 · 事件溯源从"名义"变为"事实"</h2>
+
+<div class="item">
+<div class="item-head">
+  <span class="badge done">已修复</span>
+  <h3>投影现在真的从事件派生</h3>
+</div>
+
+<p>上一版的诊断是：日志自称 source of truth，但写入尽力而为、与投影非原子、且 Rust 侧根本没有回放路径。三处都已改变。</p>
+
+<div class="tbl-wrap">
+<table>
+<thead><tr><th>能力</th><th>改动前</th><th>现在</th></tr></thead>
+<tbody>
+<tr><td>写路径</td><td class="was">事件 fire-and-forget + 投影独立写</td><td class="now"><code>commit_events</code>：单事务内追加并应用</td></tr>
+<tr><td>失败语义</td><td class="was">事件失败被吞，投影仍写</td><td class="now">整批回滚，调用方拿到错误</td></tr>
+<tr><td>回放</td><td class="was">不存在</td><td class="now"><code>rebuild_projections</code>（<code>storage/apply.rs</code>）</td></tr>
+<tr><td>一致性</td><td class="was">无法检测</td><td class="now"><code>verify_projections</code>，459ms / 13,645 事件</td></tr>
+<tr><td>投影写入者</td><td class="was">前端各处 <code>*_put</code></td><td class="now">仅 <code>apply_event</code>（封面除外）</td></tr>
+</tbody>
+</table>
+</div>
+
+<h4>端到端实测（运行实例）</h4>
+<div class="evidence"><pre><span class="c">// 通过 domain API 建高亮 —— 前端从未调用 annotation_put</span>
+createHighlight(...)  → 事件 +1
+annotation_get(id)    → <span class="ok">{ type: highlight, color: green, text: "端到端写路径校验" }</span>
+removeHighlight(id)   → <span class="ok">行随事件消失</span>
+verify_projections    → <span class="ok">漂移未增加</span></pre></div>
+
+<h4>阅读时长：一次不可省略的历史补全</h4>
+<p>
+自检立刻发现一个真实风险：<code>reading_time_daily</code> 有 621 行，而回放只产生 <b>0 行</b>——
+旧的 fire-and-forget 从没把 <code>timeRecorded</code> 写进日志。也就是说，那时候执行 <code>rebuild_projections</code>
+会<b>清空用户全部阅读统计</b>。
+</p>
+<p>
+聚合无法反推出原始的每一次记录，但可以重建出<b>产生同样表内容</b>的分布：把每本书的日、时两个边缘分布
+相乘成联合网格，再用运输问题的可行解构造分配舍入余数，使两个边缘都精确复原。
+</p>
+<div class="evidence"><pre>reading_time_genesis  → 合成 12,417 条事件
+阅读统计               → <span class="ok">totals / daily / hourly 一字未变</span>
+三张表的漂移            <span class="was">621 / 146 / 12 行</span>  →  <span class="ok">0</span></pre></div>
+<p>
+补全按<b>差额</b>计算：日志里原本已有 4 条真实的 <code>timeRecorded</code>，直接合成全量会把它们算两遍。
+Rust 测试 <code>reading_time_genesis_tops_up_around_events_already_in_the_log</code> 专门钉住这条。
+</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<h2><span class="num">第四节</span>仍然存在的边界</h2>
+
+<div class="item">
+<div class="item-head">
+  <span class="badge partial">已知</span>
+  <h3>历史数据里有无法挽回的事件缺失</h3>
+</div>
+<p>自检目前仍报告漂移。逐条定位后，<b>全部是旧双写路径留下的痕迹，与新代码无关</b>：</p>
+<div class="tbl-wrap">
+<table>
+<thead><tr><th>表</th><th class="mono">live / replay</th><th>原因</th></tr></thead>
+<tbody>
+<tr><td class="mono">annotations</td><td class="mono">4 / 3</td><td>重新上色的 <code>highlight.recolored</code> 当年丢了，回放只剩创建事件</td></tr>
+<tr><td class="mono">books</td><td class="mono">8 / 8</td><td>时间戳差 1ms（旧前端与 HLC 取值时机不同）</td></tr>
+<tr><td class="mono">memories</td><td class="mono">1 / 1</td><td><code>evidence_count</code> live=4 / replay=1，强化事件丢失</td></tr>
+<tr><td class="mono">ai_conversations</td><td class="mono">8 / 8</td><td><code>created_at</code> 语义差异（回放用首条消息时间，其实更准）</td></tr>
+</tbody>
+</table>
+</div>
+<p>
+这些不该靠伪造历史抹平。它们会自然收敛：<b>任何一行被新路径重写后就脱离漂移集</b>——
+本次验证中打开一本书触发进度更新，books 的漂移当场从 9 对降到 8 对。
+</p>
+
+<div class="note">
+<p>
+<b>设计上就不参与回放的两类数据（已在 <code>DIFF_SPECS</code> 显式建模）：</b>
+书籍封面（从对象存储内容本地提取，重建时保留，不强制重新提取全部书籍）；
+对话的 <code>parts_json</code> / <code>error</code>（渲染结构与失败占位，是呈现状态而非对话事实）。
+把它们纳入比较只会让自检永远误报。
+</p>
+</div>
+</div>
+
+<div class="item">
+<div class="item-head">
+  <span class="badge done">已修复</span>
+  <h3>最大的上帝文件是 storage/mod.rs —— 上一版漏了它</h3>
+</div>
+<p>
+上一版按行数排名时只统计了 TypeScript 文件，Rust 那侧只看了总行数，
+因此把 <code>FoliateReaderView.tsx</code> 当成了头号问题。实际第一名是
+<code>storage/mod.rs</code>：<b>3,218 行、83 个导出、14 个互不相干的领域</b>——
+迁移、FTS 分词、设备身份、blob 存储、事件日志、回放、KV、书库、标注、记忆、
+对话、插件文档、阅读时长全挤在一个文件里。
+</p>
+<p>
+它已按领域拆成 11 个模块。子模块用 <code>use super::*</code> 继承父模块的共享类型
+（<code>Db</code>、<code>EventRow</code> 等），所以这是<b>移动而非重写</b>——
+唯一的实质改动是把跨模块引用的辅助函数从私有放宽到 <code>pub(crate)</code>。
+</p>
+<div class="evidence"><pre><span class="c">storage/ 拆分后</span>
+mod.rs           <span class="ok">227</span>  <span class="c">共享类型 + init_db + 模块声明（原 3,218）</span>
+apply.rs         730  <span class="c">事件 → 投影的唯一映射</span>
+blobs.rs         651  <span class="c">文件 blob 存储 + 分块传输</span>
+schema.rs        563  <span class="c">迁移 + PRAGMA + FTS 函数</span>
+reading_time.rs  505
+events.rs        479  <span class="c">追加 / 提交 / 回放 / 自检</span>
+library.rs       235
+plugin_docs.rs   191
+chat.rs          188
+annotations.rs   167
+memories.rs      105
+
+<span class="ok">32 个测试全过 · 零死代码警告 · 应用零回归</span></pre></div>
+
+<h4>其余候选（按责任密度，非仅行数）</h4>
+<div class="tbl-wrap">
+<table>
+<thead><tr><th>文件</th><th class="mono">行数</th><th>信号</th><th>状态</th></tr></thead>
+<tbody>
+<tr><td class="mono">FoliateReaderView.tsx</td><td class="mono">2,428</td><td>44 导入、跨 5 个 feature、42 个 effect</td><td>抽出第一簇</td></tr>
+<tr><td class="mono">plugin-types/index.ts</td><td class="mono">973</td><td>74 导出，但单一职责的契约定义</td><td>不算问题</td></tr>
+<tr><td class="mono">library-db.ts</td><td class="mono">639</td><td>23 导出</td><td>待处理</td></tr>
+<tr><td class="mono">reading-insights.ts</td><td class="mono">576</td><td>31 导出</td><td>待处理</td></tr>
+<tr><td class="mono">ReaderShellOverlay.tsx</td><td class="mono">530</td><td>28 导入、跨 5 个 feature</td><td>待处理</td></tr>
+<tr><td class="mono">App.tsx</td><td class="mono">482</td><td>30 导入</td><td>待处理</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div class="item">
+<div class="item-head">
+  <span class="badge partial">部分完成</span>
+  <h3>FoliateReaderView 拆分只走了第一步</h3>
+</div>
+<p>
+按上一版自己的建议"一次一簇、每簇独立验证"，本次抽出了排版簇
+（<code>useReaderTypography</code>：响应式文本度量 + 样式注入 + 字体加载）。
+文件从 2,470 行降到 2,428 行，effect 从 43 个降到 42 个。
+</p>
+<p>
+<b>这只是证明了模式可行，远不是拆完。</b> 剩余的引擎生命周期、选区、标注层、导航、手势五簇仍在原处。
+之所以不一次性重写：这 40 多个 effect 里有相当一部分是历史踩坑的产物（iframe 与主窗口两个时间原点、
+trackpad 相位、遮挡时定时器挂起），整体重写会把这些教训一起丢掉。
+</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<h2><span class="num">第五节</span>测试与依赖</h2>
+
+<div class="item">
+<div class="item-head"><span class="badge done">已修复</span><h3>Rust 测试此前根本没在跑</h3></div>
+<p>
+上一版我统计"Rust 有 16 个测试"是数了 <code>#[test]</code> 标记——但那批测试<b>编译不过</b>：
+<code>EventRow</code> 早已新增 <code>origin</code> 字段，测试辅助函数没跟上；
+迁移版本断言还写死在 7，而实际已到 10。等于长期零覆盖。
+</p>
+<p>
+现在 30 个 Rust 测试全部通过，其中新增的覆盖：事件应用与投影派生、重复投递不双算、
+坏事件整批回滚、回放复现投影、自检能发现"投影有而日志无"的行、
+Rust 与 SQLite 的时间戳格式一致、整数百分比不写成 <code>63.0</code>、阅读时长补全的精确性与幂等。
+版本断言改为跟随 <code>MIGRATIONS</code>，不会再腐化。
+</p>
+<p>
+前端新增 HLC 时钟测试 6 项（时钟回拨、同毫秒去重、重启重播种、幂等）。
+过程中修正了 <code>seed</code> 的一个跳号：原实现在重启后会多跳一个 counter 值——不会造成碰撞，但不精确。
+</p>
+</div>
+
+<div class="item">
+<div class="item-head"><span class="badge done">已修复</span><h3>循环依赖归零并接入 CI</h3></div>
+<p>
+<code>platform/interim-projections ↔ local-store</code>（迁移改为接受 kv 访问器参数）与
+<code>ai/chat-transport ↔ mock-chat-transport</code>（契约下沉到独立模块）两个环已断开。
+新增 <code>bun run lint:cycles</code>（madge），防止回潮。
+</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<h2><span class="num">第六节</span>对上一版报告的更正</h2>
+
+<div class="note correction">
+<p>
+<b>上一版第四节写的"7 对 feature 循环依赖"，术语用错了。</b>
+</p>
+<p>
+我当时统计的是<b>目录级双向耦合</b>——feature A 里某个文件 import 了 B，同时 B 里另一个文件 import 了 A。
+这不构成 import 环：两条路径经过的是不同模块。用 madge 做真正的模块级检测，
+全仓当时只有 <b>2 个</b>真循环（就是上面修掉的那两个）。
+</p>
+<p>
+结论本身仍然成立——双向耦合确实意味着 feature 无法被单独理解、测试、替换，
+<code>reader ⇄ plugins</code>（5/28）这样的耦合度也确实偏高。但"循环依赖"有严格的技术含义，
+用它来描述双向耦合会夸大问题的性质。这一点是我的错误。
+</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<h2><span class="num">第七节</span>下一步</h2>
+
+<div class="tbl-wrap">
+<table>
+<thead><tr><th>#</th><th>动作</th><th>理由</th></tr></thead>
+<tbody>
+<tr><td class="mono">1</td><td>继续拆 FoliateReaderView 的其余五簇</td><td>模式已验证，逐簇推进即可（storage 已拆完）</td></tr>
+<tr><td class="mono">2</td><td>降低 <code>reader ⇄ plugins</code> 等双向耦合</td><td>共享类型下沉 <code>packages/core</code>，UI 改走 <code>domain/</code> 层</td></tr>
+<tr><td class="mono">3</td><td>把 <code>verify_projections</code> 接进设置界面或 CI</td><td>目前只能手工调用，应让漂移可见</td></tr>
+<tr><td class="mono">4</td><td>第三方插件安装时展示权限清单</td><td>沙箱已就位，用户仍应知道插件将获得什么</td></tr>
+<tr><td class="mono">5</td><td>配置 Developer ID 签名并公证</td><td>根治更新后的信任重置，也让钥匙串重新成为可选项</td></tr>
+<tr><td class="mono">6</td><td>同步引擎</td><td>地基（原子写、可回放、可自检）已具备</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="note">
+<p>
+<b>一句话总结：</b>
+三根柱子——事件日志、插件权限、密钥存储——从"只建了外壳"变成了可验证的实现。
+验证手段本身（<code>verify_projections</code>）比修复更重要：它把"我认为一致"换成了"我能证明哪里不一致"，
+并且立刻救回了一次会清空全部阅读统计的操作。
+</p>
+</div>
+
+<footer>
+  ReadAware v0.3.0 · 2026-07-25<br>
+  安全结论均在运行中的桌面实例上以原攻击探针复测；探测为只读，未修改用户数据，本文不含任何密钥内容。<br>
+  测试：Rust 32 · TypeScript 105（agent 56 / web 34 / plugins 15）。
+</footer>
+
+</div>
+</body>
+</html>

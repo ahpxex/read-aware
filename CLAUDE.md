@@ -14,12 +14,26 @@
 
 ## AI Architecture Decisions
 
-> **Implementation status:** The codebase is currently a frontend-only monorepo
-> (`apps/web` + `apps/desktop`); the Python backend has been removed. The
-> sections below are **decided direction** (local-first), not mere aspiration —
-> but most of the data/memory layer is not built yet: today's persistence is an
-> interim IndexedDB + localStorage layer, with the target on-device schema
-> specified in `docs/data-model.md`.
+> **Implementation status** (v0.3.0 — keep this block honest; the sections
+> below describe **decided direction**, this one describes what actually runs):
+>
+> - Frontend-only monorepo (`apps/web` + `apps/desktop`); the Python backend is
+>   gone.
+> - **Persistence is SQLite**, not the old IndexedDB/localStorage interim layer.
+>   IndexedDB survives only in one-time migration code and a font cache.
+> - **Event sourcing is live for writes.** Every state change goes through
+>   `commit_events`, which appends to `domain_events` and applies it to the
+>   projections in ONE transaction (`storage/apply.rs`).
+>   `rebuild_projections` replays the log into the tables;
+>   `verify_projections` replays into scratch and diffs, so drift is
+>   detectable rather than assumed absent.
+> - **Known gap:** rows written before that landed still carry mutations the
+>   log never recorded (a recolor, a memory reinforcement). `verify_projections`
+>   reports them; they cannot be recovered, only outgrown.
+> - Not built yet: the sync engine, and the consolidation pipeline behind
+>   profile/entity events (they are logged but project to nothing).
+> - Target on-device schema: `docs/data-model.md`. Current audit:
+>   `docs/review-0.3.0.html`.
 
 - Product architecture: single-agent system (one orchestrator over deterministic pipelines, not one LLM loop doing everything)
 - User experience: the in-book chat is one persistent surface per book (prompt assembly is stateless per turn — continuity lives in the memory layer, not the transcript); the global (Context page) chat supports multiple user-created threads. Memory never splits per thread
@@ -53,7 +67,7 @@
   - long-term user memory — local projection
   - book / highlight / note memory — local projection
   - exportable context bundles — local projection
-- Everything above `raw events` is a **local projection rebuilt from the event log** — projections are recomputed on-device, never synced directly
+- Everything above `raw events` is a **local projection rebuilt from the event log** — projections are recomputed on-device, never synced directly. This is enforced, not aspirational: `storage/apply.rs` is the only writer of a projection row, and `rebuild_projections` can reproduce every one of them from the log. Two things are deliberately NOT derived, and both are excluded from the check: book cover artwork (extracted from object-storage content) and chat presentation state (`parts_json`, `error`)
 - Design the **write / consolidation pipeline** as explicitly as retrieval; it is the harder half:
   - promotion from raw events into long-term memory (summarization / consolidation)
   - conflict resolution when new information contradicts old memory

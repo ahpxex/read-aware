@@ -1,4 +1,5 @@
 import type { PluginModule } from "@read-aware/plugin-types";
+import { sentenceReaderCopy, sentenceReaderUnits } from "./copy";
 import { segmentTextUnits } from "./segment";
 
 const plugin: PluginModule = {
@@ -9,7 +10,10 @@ const plugin: PluginModule = {
     modes.register({
       id: "guided-reading",
       kind: "text-unit-navigator",
-      granularities: ["sentence", "paragraph"],
+      icon: "rows",
+      units: sentenceReaderUnits,
+      defaultUnitId: "sentence",
+      copy: sentenceReaderCopy,
       segmentText: segmentTextUnits,
     });
   },

@@ -81,20 +81,7 @@
       "title": "Seitenfarbe",
       "description": "Das Papier des Buches. „Auto“ folgt dem App-Design; die anderen sind fest."
     },
-    "pageMargins": "Seitenränder",
-    "navigator": {
-      "title": "Satz- oder absatzweise lesen",
-      "description": "Wie das satz- oder absatzweise Lesen durch das Buch schreitet.",
-      "granularity": "Schritteinheit",
-      "tapToAdvance": {
-        "title": "Tippen zum Weitergehen",
-        "description": "Solange der Navigator aktiv ist, springt ein Tippen auf die Seite einen Schritt weiter. Die Symbolleisten öffnen sich stattdessen über die schwebende Leiste."
-      },
-      "scrollToStep": {
-        "title": "Schrittweise wischen",
-        "description": "Solange der Navigator aktiv ist, bewegt Wischen oder Scrollen einen Schritt, statt die Seite zu scrollen — genau ein Schritt pro Geste: nach oben für den nächsten, nach unten für den vorherigen."
-      }
-    }
+    "pageMargins": "Seitenränder"
   },
   "shortcuts": {
     "title": "Tastenkürzel",
@@ -102,13 +89,11 @@
     "categories": {
       "Global": "Global",
       "Reading": "Lesen",
-      "Navigator": "Satz- oder absatzweise lesen",
       "Selection": "Auswahl",
       "Overlays": "Overlays"
     },
     "categoryDescriptions": {
-      "selection": "Aktiv, während Text im Reader ausgewählt ist.",
-      "navigator": "Aktiv, solange satz- oder absatzweises Lesen eingeschaltet ist. Die Auswahl-Kurzbefehle wirken dann auf den aktuellen Satz oder Absatz."
+      "selection": "Aktiv, während Text im Reader ausgewählt ist."
     },
     "actions": {
       "search": "Suche öffnen",
@@ -118,9 +103,6 @@
       "next-chapter": "Nächstes Kapitel",
       "prev-chapter": "Vorheriges Kapitel",
       "toggle-controls": "Reader-Steuerung umschalten",
-      "navigator-next-sentence": "Nächster Satz",
-      "navigator-prev-sentence": "Vorheriger Satz",
-      "navigator-volume-keys": "Sätze mit den Lautstärketasten durchgehen",
       "selection-copy": "Kopieren",
       "selection-highlight": "Markieren",
       "selection-underline": "Unterstreichen",
@@ -377,7 +359,6 @@
       "settings": "Einstellungen",
       "toc": "Inhalt",
       "notes": "Notizen",
-      "navigator": "Satznavigator",
       "appearance": "Darstellung",
       "chat": "Chat",
       "copy": "Kopieren",

@@ -5,7 +5,9 @@ import { IconButton, Kbd } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { shortcutBindingsAtom } from "../../../state/ui";
 import { isAndroid } from "../../../platform/environment";
-import { useTranslation } from "../../../i18n";
+import { useLocale, useTranslation } from "../../../i18n";
+import { resolvePluginText } from "../../plugins/lib/plugin-i18n";
+import { resolveReaderModeUnit } from "../../plugins/lib/reader-mode";
 import { textUnitReaderModeAtom } from "../../plugins/state/plugin-store";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
@@ -18,20 +20,21 @@ import {
   chordToTokens,
   resolveBinding,
   type KeyChord,
+  type ShortcutCategory,
   type ShortcutId,
 } from "../lib/shortcuts";
 
-const CATEGORIES = ["Global", "Reading", "Navigator", "Selection", "Overlays"] as const;
+const CATEGORIES: ShortcutCategory[] = [
+  "Global",
+  "Reading",
+  "TextUnitMode",
+  "Selection",
+  "Overlays",
+];
 
 /** Catalog keys for per-category helper text, shown under the group title where
  *  it helps. Categories without an entry render no description. */
-const CATEGORY_DESCRIPTION_KEYS: Partial<
-  Record<
-    (typeof CATEGORIES)[number],
-    "shortcuts.categoryDescriptions.selection" | "shortcuts.categoryDescriptions.navigator"
-  >
-> = {
-  Navigator: "shortcuts.categoryDescriptions.navigator",
+const CATEGORY_DESCRIPTION_KEYS: Partial<Record<ShortcutCategory, string>> = {
   Selection: "shortcuts.categoryDescriptions.selection",
 };
 
@@ -50,8 +53,9 @@ function KeyTokens({ tokens }: { tokens: string[] }) {
 
 export function ShortcutsPanel() {
   const { t } = useTranslation("settings");
+  const locale = useLocale();
   const [bindings, setBindings] = useAtom(shortcutBindingsAtom);
-  const navigatorMode = useAtomValue(textUnitReaderModeAtom);
+  const textUnitMode = useAtomValue(textUnitReaderModeAtom);
   const [conflict, setConflict] = useState<{ id: ShortcutId; conflictId: ShortcutId } | null>(null);
 
   const onCapture = useCallback(
@@ -59,7 +63,7 @@ export function ShortcutsPanel() {
       const signature = chordSignature(chord);
       const clash = EDITABLE_SHORTCUTS.find(
         (shortcut) =>
-          (shortcut.category !== "Navigator" || navigatorMode !== null) &&
+          (shortcut.category !== "TextUnitMode" || textUnitMode !== null) &&
           shortcut.id !== id && chordSignature(resolveBinding(shortcut.id, bindings)) === signature,
       );
       if (clash) {
@@ -69,7 +73,7 @@ export function ShortcutsPanel() {
       setConflict(null);
       setBindings({ ...bindings, [id]: chord });
     },
-    [bindings, navigatorMode, setBindings],
+    [bindings, textUnitMode, setBindings],
   );
 
   const { recordingId, startRecording, cancel } = useShortcutRecorder(onCapture);
@@ -90,6 +94,24 @@ export function ShortcutsPanel() {
   }, [setBindings]);
 
   const hasOverrides = Object.keys(bindings).length > 0;
+  const defaultModeUnit = textUnitMode
+    ? resolveReaderModeUnit(textUnitMode, textUnitMode.defaultUnitId)
+    : null;
+
+  function shortcutLabel(id: ShortcutId | "close" | "reader-mode-volume-keys"): string {
+    if (textUnitMode && defaultModeUnit) {
+      if (id === "reader-mode-next-unit") {
+        return resolvePluginText(defaultModeUnit.nextLabel, locale);
+      }
+      if (id === "reader-mode-prev-unit") {
+        return resolvePluginText(defaultModeUnit.previousLabel, locale);
+      }
+      if (id === "reader-mode-volume-keys") {
+        return resolvePluginText(textUnitMode.copy.shortcuts.volumeKeys, locale);
+      }
+    }
+    return String(t(`shortcuts.actions.${id}` as never));
+  }
 
   return (
     <SettingsPage
@@ -97,7 +119,7 @@ export function ShortcutsPanel() {
       description={t("shortcuts.description")}
     >
       {CATEGORIES.map((category) => {
-        const modeCategoryAvailable = category !== "Navigator" || navigatorMode !== null;
+        const modeCategoryAvailable = category !== "TextUnitMode" || textUnitMode !== null;
         const editable = modeCategoryAvailable
           ? EDITABLE_SHORTCUTS.filter((shortcut) => shortcut.category === category)
           : [];
@@ -110,19 +132,29 @@ export function ShortcutsPanel() {
         if (!editable.length && !info.length) return null;
 
         const descriptionKey = CATEGORY_DESCRIPTION_KEYS[category];
+        const categoryTitle =
+          category === "TextUnitMode" && textUnitMode
+            ? resolvePluginText(textUnitMode.copy.title, locale)
+            : String(t(`shortcuts.categories.${category}` as never));
+        const categoryDescription =
+          category === "TextUnitMode" && textUnitMode
+            ? resolvePluginText(textUnitMode.copy.shortcuts.description, locale)
+            : descriptionKey
+              ? String(t(descriptionKey as never))
+              : undefined;
 
         return (
           <SettingsGroup
             key={category}
-            title={t(`shortcuts.categories.${category}`)}
-            description={descriptionKey ? t(descriptionKey) : undefined}
+            title={categoryTitle}
+            description={categoryDescription}
           >
             {editable.map((shortcut, index) => {
               const binding = resolveBinding(shortcut.id, bindings);
               const overridden = bindings[shortcut.id] !== undefined;
               const recording = recordingId === shortcut.id;
               const showConflict = conflict?.id === shortcut.id;
-              const label = t(`shortcuts.actions.${shortcut.id}`);
+              const label = shortcutLabel(shortcut.id);
 
               return (
                 <SettingsRow
@@ -133,7 +165,7 @@ export function ShortcutsPanel() {
                     showConflict && conflict && !recording ? (
                       <span className="text-red-600 dark:text-red-400">
                         {t("shortcuts.conflict", {
-                          label: t(`shortcuts.actions.${conflict.conflictId}`),
+                          label: shortcutLabel(conflict.conflictId),
                         })}
                       </span>
                     ) : undefined
@@ -188,7 +220,7 @@ export function ShortcutsPanel() {
               <SettingsRow
                 key={shortcut.id}
                 borderless={index === 0 && editable.length === 0}
-                title={t(`shortcuts.actions.${shortcut.id}`)}
+                title={shortcutLabel(shortcut.id)}
                 control={<KeyTokens tokens={shortcut.keys} />}
               />
             ))}

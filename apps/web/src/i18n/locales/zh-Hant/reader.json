@@ -45,24 +45,6 @@
     "askAi": "詢問 AI 關於此內容",
     "remove": "移除"
   },
-  "navigator": {
-    "title": "逐句/逐段閱讀",
-    "enable": "開啟逐句/逐段閱讀",
-    "exit": "退出逐句/逐段閱讀",
-    "prevSentence": "上一句",
-    "nextSentence": "下一句",
-    "prevParagraph": "上一段",
-    "nextParagraph": "下一段",
-    "returnToSentence": "回到閱讀處",
-    "paragraphMode": "逐段模式",
-    "showToolbars": "顯示工具列",
-    "granularityOption": {
-      "sentence": "逐句",
-      "paragraph": "逐段"
-    },
-    "moreActions": "更多操作",
-    "collapseActions": "收起操作"
-  },
   "recolor": "改為{{color}}",
   "colors": {
     "yellow": "黃色",

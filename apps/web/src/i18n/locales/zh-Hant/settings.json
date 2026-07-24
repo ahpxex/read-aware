@@ -81,20 +81,7 @@
       "title": "頁面顏色",
       "description": "書籍的紙張。「自動」會跟隨應用程式主題；其餘為固定顏色。"
     },
-    "pageMargins": "頁邊距",
-    "navigator": {
-      "title": "逐句/逐段閱讀",
-      "description": "逐句/逐段閱讀的步進方式。",
-      "granularity": "步進單位",
-      "tapToAdvance": {
-        "title": "點按前進",
-        "description": "逐句導航開啟時，點按內文前進一步；工具列改由浮動列上的按鈕開啟。"
-      },
-      "scrollToStep": {
-        "title": "滑動步進",
-        "description": "逐句導航開啟時，滑動或捲動改為逐步移動，每滑一次只前進或後退一步：上滑前進，下滑後退，頁面不再連續捲動。"
-      }
-    }
+    "pageMargins": "頁邊距"
   },
   "shortcuts": {
     "title": "快捷鍵",
@@ -102,13 +89,11 @@
     "categories": {
       "Global": "全域",
       "Reading": "閱讀",
-      "Navigator": "逐句/逐段閱讀",
       "Selection": "選取",
       "Overlays": "覆蓋層"
     },
     "categoryDescriptions": {
-      "selection": "在閱讀器中選取文字時生效。",
-      "navigator": "逐句/逐段閱讀開啟時可用；選取文字的快捷鍵也會作用於目前句子或段落。"
+      "selection": "在閱讀器中選取文字時生效。"
     },
     "actions": {
       "search": "開啟搜尋",
@@ -118,9 +103,6 @@
       "next-chapter": "下一章",
       "prev-chapter": "上一章",
       "toggle-controls": "切換閱讀器控制項",
-      "navigator-next-sentence": "下一句",
-      "navigator-prev-sentence": "上一句",
-      "navigator-volume-keys": "用音量鍵逐句移動",
       "selection-copy": "複製",
       "selection-highlight": "螢光標示",
       "selection-underline": "加底線",
@@ -373,7 +355,6 @@
       "settings": "設定",
       "toc": "目錄",
       "notes": "筆記",
-      "navigator": "逐句導覽",
       "appearance": "外觀",
       "chat": "聊天",
       "copy": "複製",

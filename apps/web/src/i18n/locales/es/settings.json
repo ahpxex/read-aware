@@ -81,20 +81,7 @@
       "title": "Color de página",
       "description": "El papel del libro. «Automático» sigue el tema de la app; los demás son fijos."
     },
-    "pageMargins": "Márgenes de página",
-    "navigator": {
-      "title": "Leer por frase o párrafo",
-      "description": "Cómo avanza la lectura por frase o párrafo por el libro.",
-      "granularity": "Unidad de paso",
-      "tapToAdvance": {
-        "title": "Tocar para avanzar",
-        "description": "Con el navegador activo, tocar la página avanza un paso. Las barras de herramientas se abren desde la barra flotante."
-      },
-      "scrollToStep": {
-        "title": "Deslizar por pasos",
-        "description": "Con el navegador activo, deslizar o desplazarse mueve un paso en lugar de desplazar la página — un paso por gesto: hacia arriba para el siguiente, hacia abajo para el anterior."
-      }
-    }
+    "pageMargins": "Márgenes de página"
   },
   "shortcuts": {
     "title": "Atajos",
@@ -102,13 +89,11 @@
     "categories": {
       "Global": "Globales",
       "Reading": "Lectura",
-      "Navigator": "Leer por frase o párrafo",
       "Selection": "Selección",
       "Overlays": "Superposiciones"
     },
     "categoryDescriptions": {
-      "selection": "Activo mientras hay texto seleccionado en el lector.",
-      "navigator": "Activo mientras la lectura por frase o párrafo está encendida. Los atajos de selección también actúan sobre la frase o el párrafo actual."
+      "selection": "Activo mientras hay texto seleccionado en el lector."
     },
     "actions": {
       "search": "Abrir la búsqueda",
@@ -118,9 +103,6 @@
       "next-chapter": "Capítulo siguiente",
       "prev-chapter": "Capítulo anterior",
       "toggle-controls": "Mostrar u ocultar los controles del lector",
-      "navigator-next-sentence": "Frase siguiente",
-      "navigator-prev-sentence": "Frase anterior",
-      "navigator-volume-keys": "Recorrer frases con las teclas de volumen",
       "selection-copy": "Copiar",
       "selection-highlight": "Resaltar",
       "selection-underline": "Subrayar",
@@ -381,7 +363,6 @@
       "settings": "Ajustes",
       "toc": "Índice",
       "notes": "Notas",
-      "navigator": "Navegador",
       "appearance": "Apariencia",
       "chat": "Chat",
       "copy": "Copiar",

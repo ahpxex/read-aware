@@ -45,24 +45,6 @@
     "askAi": "KI dazu fragen",
     "remove": "Entfernen"
   },
-  "navigator": {
-    "title": "Satz- oder absatzweise lesen",
-    "enable": "Satz- oder absatzweises Lesen starten",
-    "exit": "Satz- oder absatzweises Lesen beenden",
-    "prevSentence": "Vorheriger Satz",
-    "nextSentence": "Nächster Satz",
-    "prevParagraph": "Vorheriger Absatz",
-    "nextParagraph": "Nächster Absatz",
-    "returnToSentence": "Zurück zum aktuellen Satz",
-    "paragraphMode": "Absatzmodus",
-    "showToolbars": "Symbolleisten einblenden",
-    "granularityOption": {
-      "sentence": "Satzweise",
-      "paragraph": "Absatzweise"
-    },
-    "moreActions": "Weitere Aktionen",
-    "collapseActions": "Aktionen einklappen"
-  },
   "recolor": "In {{color}} umfärben",
   "colors": {
     "yellow": "Gelb",

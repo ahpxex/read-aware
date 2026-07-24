@@ -81,20 +81,7 @@
       "title": "页面颜色",
       "description": "书页的纸张颜色。“自动”跟随应用主题，其余为固定颜色。"
     },
-    "pageMargins": "页边距",
-    "navigator": {
-      "title": "逐句/逐段阅读",
-      "description": "逐句/逐段阅读的步进方式。",
-      "granularity": "步进单位",
-      "tapToAdvance": {
-        "title": "点按前进",
-        "description": "逐句导航开启时，点按正文前进一步；工具栏改由浮动条上的按钮打开。"
-      },
-      "scrollToStep": {
-        "title": "滑动步进",
-        "description": "逐句导航开启时，滑动或滚动改为逐步移动，每滑一次只前进或后退一步：上滑前进，下滑后退，页面不再连续滚动。"
-      }
-    }
+    "pageMargins": "页边距"
   },
   "shortcuts": {
     "title": "快捷键",
@@ -102,13 +89,11 @@
     "categories": {
       "Global": "全局",
       "Reading": "阅读",
-      "Navigator": "逐句/逐段阅读",
       "Selection": "选中文本",
       "Overlays": "浮层"
     },
     "categoryDescriptions": {
-      "selection": "在阅读器中选中文本时可用。",
-      "navigator": "逐句/逐段阅读开启时可用；选中文本的快捷键也会作用于当前句子或段落。"
+      "selection": "在阅读器中选中文本时可用。"
     },
     "actions": {
       "search": "打开搜索",
@@ -118,9 +103,6 @@
       "next-chapter": "下一章",
       "prev-chapter": "上一章",
       "toggle-controls": "切换阅读器控件",
-      "navigator-next-sentence": "下一句",
-      "navigator-prev-sentence": "上一句",
-      "navigator-volume-keys": "用音量键逐句移动",
       "selection-copy": "复制",
       "selection-highlight": "高亮",
       "selection-underline": "下划线",
@@ -373,7 +355,6 @@
       "settings": "设置",
       "toc": "目录",
       "notes": "笔记",
-      "navigator": "逐句导航",
       "appearance": "外观",
       "chat": "聊天",
       "copy": "复制",

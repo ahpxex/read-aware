@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TFunction } from "i18next";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { Body, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
-import { navigatorPrefsAtom, shortcutBindingsAtom } from "../../../state/ui";
+import { textUnitModePrefsAtom, shortcutBindingsAtom } from "../../../state/ui";
 import { chordMatchesEvent, resolveBinding } from "../../settings/lib/shortcuts";
 import type { LibraryBook, ReaderProgress } from "../../library/lib/library-types";
 import { formatReaderError } from "../lib/format-reader-error";
+import { resolveReaderModeUnit } from "../../plugins/lib/reader-mode";
 import {
   getNormalizedSelectionText,
   getSelectionContext,
@@ -43,12 +44,16 @@ import {
   removeHighlight,
 } from "../lib/highlight-renderer";
 import { ensureUsableToc } from "../lib/toc-synthesis";
-import { useSentenceNavigator } from "../hooks/useSentenceNavigator";
+import { useTextUnitNavigator } from "../hooks/useTextUnitNavigator";
+import {
+  preferredTextUnitModeUnitId,
+  readTextUnitModeState,
+} from "../lib/text-unit-mode-state";
 import { createWheelGesture, type WheelGesture } from "../lib/wheel-gesture";
 import { ReaderAnnotationMenu } from "./ReaderAnnotationMenu";
 import { ReaderDictionaryModal } from "./ReaderDictionaryModal";
 import { ReaderFootnotePopover } from "./ReaderFootnotePopover";
-import { ReaderNavigatorBar } from "./ReaderNavigatorBar";
+import { TextUnitNavigatorBar } from "./TextUnitNavigatorBar";
 import { ReaderPageTurnControls } from "./ReaderPageTurnControls";
 import { ReaderSelectionMenu } from "./ReaderSelectionMenu";
 import { NoteEditor } from "../../annotations/components/NoteEditor";
@@ -106,20 +111,19 @@ type FoliateReaderViewProps = {
   onCurrentChapterChange?: (href: string | null) => void;
   /** Parsed foliate book, shared with lazy metadata/text enrichment. */
   onBookReady?: (book: FoliateBook) => void;
-  /** Fixed-layout books (PDF/CBZ) can't host annotations or the sentence
-   *  navigator; lets the shell hide the affordances that don't apply. */
+  /** Fixed-layout books (PDF/CBZ) can't host annotations or text-unit modes;
+   *  lets the shell hide the affordances that don't apply. */
   onFixedLayoutChange?: (fixedLayout: boolean) => void;
-  /** Sentence navigator mode: step through the book sentence by sentence with
-   *  a resting wash and the floating bottom bar. Owned by the workspace so the
-   *  shell header's toggle and this view stay in sync. */
-  navigatorActive?: boolean;
+  /** Host-rendered text-unit mode, owned by the workspace so its shell toggle
+   *  and engine state stay in sync. */
+  textUnitModeActive?: boolean;
   /** Enabled plugin contribution supplying text segmentation policy. */
-  navigatorMode?: RegisteredReaderMode | null;
-  onExitNavigator?: () => void;
-  /** The navigator's wash moved to another sentence — a "resume reading"
+  textUnitMode?: RegisteredReaderMode | null;
+  onExitTextUnitMode?: () => void;
+  /** The mode's wash moved to another unit — a "resume reading"
    *  gesture; the workspace uses it to drop the shell chrome (and with it the
    *  TOC / chat panels) so the page takes the stage again. */
-  onNavigatorStep?: () => void;
+  onTextUnitModeStep?: () => void;
   initialProgress?: ReaderProgress | null;
   chapterNavigationRequest?: {
     href: string;
@@ -331,10 +335,10 @@ export function FoliateReaderView({
   onCurrentChapterChange,
   onBookReady,
   onFixedLayoutChange,
-  navigatorActive = false,
-  navigatorMode = null,
-  onExitNavigator,
-  onNavigatorStep,
+  textUnitModeActive = false,
+  textUnitMode = null,
+  onExitTextUnitMode,
+  onTextUnitModeStep,
   initialProgress = null,
   chapterNavigationRequest = null,
   annotationNavigationRequest = null,
@@ -887,38 +891,72 @@ export function FoliateReaderView({
     if (nextEntry) await goToChapter(nextEntry.href);
   }, [goToChapter]);
 
-  // ----- sentence navigator ---------------------------------------------------
+  // ----- plugin-defined text-unit mode ----------------------------------------
 
   // Fixed-layout books have no reflowable text to segment; the mode never
   // activates there (the shell hides its toggle via onFixedLayoutChange).
-  const sentenceNavigatorActive = navigatorActive && navigatorMode !== null && !isFixedLayout;
-  const sentenceNavigatorSuspended = navigatorActive && navigatorMode === null;
+  const textUnitModeEngineActive = textUnitModeActive && textUnitMode !== null && !isFixedLayout;
+  const textUnitModeSuspended = textUnitModeActive && textUnitMode === null;
 
   const onFixedLayoutChangeRef = useRef(onFixedLayoutChange);
   useEffect(() => { onFixedLayoutChangeRef.current = onFixedLayoutChange; }, [onFixedLayoutChange]);
   useEffect(() => { onFixedLayoutChangeRef.current?.(isFixedLayout); }, [isFixedLayout]);
 
-  const onExitNavigatorRef = useRef(onExitNavigator);
-  useEffect(() => { onExitNavigatorRef.current = onExitNavigator; }, [onExitNavigator]);
-  const onNavigatorStepRef = useRef(onNavigatorStep);
-  useEffect(() => { onNavigatorStepRef.current = onNavigatorStep; }, [onNavigatorStep]);
-  const navigatorActiveStateRef = useRef(sentenceNavigatorActive);
+  const onExitTextUnitModeRef = useRef(onExitTextUnitMode);
+  useEffect(() => { onExitTextUnitModeRef.current = onExitTextUnitMode; }, [onExitTextUnitMode]);
+  const onTextUnitModeStepRef = useRef(onTextUnitModeStep);
+  useEffect(() => { onTextUnitModeStepRef.current = onTextUnitModeStep; }, [onTextUnitModeStep]);
+  const textUnitModeActiveStateRef = useRef(textUnitModeEngineActive);
   useEffect(() => {
-    navigatorActiveStateRef.current = sentenceNavigatorActive;
-  }, [sentenceNavigatorActive]);
+    textUnitModeActiveStateRef.current = textUnitModeEngineActive;
+  }, [textUnitModeEngineActive]);
 
-  // Navigator behavior prefs (step unit, tap-to-advance, scroll-to-step) —
+  // Host behavior prefs (step unit, tap-to-advance, scroll-to-step) —
   // app-level, shared with the settings panel. Read through refs by the stable
   // doc listeners.
-  const [navigatorPrefs, setNavigatorPrefs] = useAtom(navigatorPrefsAtom);
-  const tapToAdvanceRef = useRef(navigatorPrefs.tapToAdvance);
-  const scrollToStepRef = useRef(navigatorPrefs.scrollToStep);
+  const [textUnitModePrefs, setTextUnitModePrefs] = useAtom(textUnitModePrefsAtom);
+  const persistedModeState = useMemo(
+    () => (selectedBook ? readTextUnitModeState(selectedBook.id) : null),
+    [selectedBook?.id],
+  );
+  const prefsUnitId =
+    textUnitMode
+      ? preferredTextUnitModeUnitId(textUnitModePrefs, textUnitMode.key)
+      : null;
+  const persistedUnitId =
+    textUnitMode &&
+    persistedModeState &&
+    (persistedModeState.modeKey === null || persistedModeState.modeKey === textUnitMode.key)
+      ? persistedModeState.unitId
+      : null;
+  const preferredUnitId = prefsUnitId ?? persistedUnitId;
+  const resolvedModeUnit = textUnitMode
+    ? resolveReaderModeUnit(textUnitMode, preferredUnitId)
+    : null;
+  const activeUnitId = resolvedModeUnit?.id ?? preferredUnitId ?? "mode-unavailable";
   useEffect(() => {
-    tapToAdvanceRef.current = navigatorPrefs.tapToAdvance;
-    scrollToStepRef.current = navigatorPrefs.scrollToStep;
-  }, [navigatorPrefs.tapToAdvance, navigatorPrefs.scrollToStep]);
+    if (
+      !textUnitMode ||
+      !resolvedModeUnit ||
+      (textUnitModePrefs.modeKey === textUnitMode.key &&
+        textUnitModePrefs.unitId === resolvedModeUnit.id)
+    ) {
+      return;
+    }
+    setTextUnitModePrefs({
+      ...textUnitModePrefs,
+      modeKey: textUnitMode.key,
+      unitId: resolvedModeUnit.id,
+    });
+  }, [resolvedModeUnit, setTextUnitModePrefs, textUnitMode, textUnitModePrefs]);
+  const tapToAdvanceRef = useRef(textUnitModePrefs.tapToAdvance);
+  const scrollToStepRef = useRef(textUnitModePrefs.scrollToStep);
+  useEffect(() => {
+    tapToAdvanceRef.current = textUnitModePrefs.tapToAdvance;
+    scrollToStepRef.current = textUnitModePrefs.scrollToStep;
+  }, [textUnitModePrefs.tapToAdvance, textUnitModePrefs.scrollToStep]);
 
-  // Leaving a sentence removes the navigator's wash by CFI — which also erases
+  // Leaving a unit removes the mode's wash by CFI, which also erases
   // the drawing of any user mark saved on that exact range (the overlayer keys
   // drawings by CFI). Re-draw it from the stores.
   const restoreAnnotationAt = useCallback((cfiRange: string) => {
@@ -936,7 +974,7 @@ export function FoliateReaderView({
   // Stepping off either end of a section: scroll mode gets the cross-fade with
   // an explicit spine target (next/prev only cross when pinned at an edge);
   // paginated modes flip like a page turn, crossing at the section's last page.
-  const navigatorCrossSection = useCallback(
+  const textUnitModeCrossSection = useCallback(
     async (direction: -1 | 1, fromSectionIndex: number | null) => {
       const view = viewRef.current;
       if (!view) return;
@@ -956,48 +994,49 @@ export function FoliateReaderView({
     [crossSection],
   );
 
-  const sentenceNavigator = useSentenceNavigator({
-    active: sentenceNavigatorActive,
-    suspended: sentenceNavigatorSuspended,
+  const textUnitNavigator = useTextUnitNavigator({
+    active: textUnitModeEngineActive,
+    suspended: textUnitModeSuspended,
     bookId: selectedBook?.id ?? null,
-    granularity: navigatorPrefs.granularity,
-    segmentText: navigatorMode?.segmentText ?? EMPTY_READER_SEGMENTER,
+    modeKey: textUnitMode?.key ?? null,
+    unitId: activeUnitId,
+    segmentText: textUnitMode?.segmentText ?? EMPTY_READER_SEGMENTER,
     viewRef,
     readerRootRef,
-    crossSection: navigatorCrossSection,
+    crossSection: textUnitModeCrossSection,
     restoreAnnotationAt,
     veilColor: READER_THEME_BG[readerSettings.theme],
   });
   // The engine's mount-once effect and the stable key handler reach the
   // navigator through this ref (its identity changes every render).
-  const sentenceNavigatorRef = useRef(sentenceNavigator);
-  useEffect(() => { sentenceNavigatorRef.current = sentenceNavigator; });
+  const textUnitNavigatorRef = useRef(textUnitNavigator);
+  useEffect(() => { textUnitNavigatorRef.current = textUnitNavigator; });
 
-  // Stepping to another sentence is a "resume reading" gesture: it dismisses
+  // Stepping to another unit is a "resume reading" gesture: it dismisses
   // the overlays raised for the one left behind (dictionary, footnote,
   // annotation menu — their content is stale the moment the wash moves on) and
   // hands the workspace the cue to drop the shell chrome, taking the TOC/chat
-  // panels with it. Keyed on the resting sentence so every step entry point
+  // panels with it. Keyed on the resting unit so every step entry point
   // (bar, keyboard, volume keys, tap-to-advance, scroll-to-step) is covered. The
   // note editor is deliberately spared: auto-closing it would discard whatever
   // the user has typed.
-  const navigatorSentenceKey = sentenceNavigator.current
-    ? sentenceNavigator.current.cfiRange ?? sentenceNavigator.current.text
+  const textUnitTargetKey = textUnitNavigator.current
+    ? textUnitNavigator.current.cfiRange ?? textUnitNavigator.current.text
     : null;
-  const previousNavigatorSentenceKeyRef = useRef(navigatorSentenceKey);
+  const previousTextUnitTargetKeyRef = useRef(textUnitTargetKey);
   useEffect(() => {
-    if (previousNavigatorSentenceKeyRef.current === navigatorSentenceKey) return;
-    previousNavigatorSentenceKeyRef.current = navigatorSentenceKey;
-    // Losing the sentence (deactivation, section unload) is not a step.
-    if (navigatorSentenceKey == null) return;
+    if (previousTextUnitTargetKeyRef.current === textUnitTargetKey) return;
+    previousTextUnitTargetKeyRef.current = textUnitTargetKey;
+    // Losing the unit (deactivation, section unload) is not a step.
+    if (textUnitTargetKey == null) return;
     setDictionaryOpen(false);
     setFootnote(null);
     setActiveAnnotation(null);
-    onNavigatorStepRef.current?.();
-  }, [navigatorSentenceKey]);
+    onTextUnitModeStepRef.current?.();
+  }, [textUnitTargetKey]);
 
   // Latest navigator actions for the stable key handler (see selectionActionsRef).
-  const navigatorActionsRef = useRef<{
+  const textUnitModeActionsRef = useRef<{
     hasTarget: boolean;
     next: () => void;
     prev: () => void;
@@ -1086,10 +1125,10 @@ export function FoliateReaderView({
       }
       return;
     }
-    if (navigatorActiveStateRef.current && scrollToStepRef.current) {
+    if (textUnitModeActiveStateRef.current && scrollToStepRef.current) {
       if (event.cancelable) event.preventDefault();
       const stepped = gestures.step.feed(event.deltaY, wheelEventTime(event));
-      if (stepped !== 0) navigatorActionsRef.current?.[stepped > 0 ? "next" : "prev"]();
+      if (stepped !== 0) textUnitModeActionsRef.current?.[stepped > 0 ? "next" : "prev"]();
       return;
     }
     dismissShellOnScrollDistanceRef.current(event.deltaY);
@@ -1122,7 +1161,7 @@ export function FoliateReaderView({
         const point = event.touches[0];
         const deltaY = touch.lastY - point.screenY;
         touch.lastY = point.screenY;
-        if (navigatorActiveStateRef.current && scrollToStepRef.current) {
+        if (textUnitModeActiveStateRef.current && scrollToStepRef.current) {
           if (event.cancelable) event.preventDefault();
           if (touch.stepped) return;
           const travelY = touch.startY - point.screenY;
@@ -1134,7 +1173,7 @@ export function FoliateReaderView({
             return;
           }
           touch.stepped = true;
-          navigatorActionsRef.current?.[travelY > 0 ? "next" : "prev"]();
+          textUnitModeActionsRef.current?.[travelY > 0 ? "next" : "prev"]();
           return;
         }
         dismissShellOnScrollDistanceRef.current(deltaY);
@@ -1186,51 +1225,51 @@ export function FoliateReaderView({
       return;
     }
 
-    // Sentence navigator — only while the mode is on. The step keys intercept
+    // Text-unit mode only. Its step keys intercept
     // ahead of the hardcoded ArrowUp/Down page scroll below; the selection
-    // action keys double as actions on the resting sentence while no text is
+    // action keys double as actions on the resting unit while no text is
     // selected (a live selection keeps first claim on them, further down).
-    const navigatorActions = navigatorActionsRef.current;
-    if (navigatorActiveStateRef.current && navigatorActions) {
-      if (chordMatchesEvent(resolveBinding("navigator-next-sentence", bindings), event)) {
+    const textUnitModeActions = textUnitModeActionsRef.current;
+    if (textUnitModeActiveStateRef.current && textUnitModeActions) {
+      if (chordMatchesEvent(resolveBinding("reader-mode-next-unit", bindings), event)) {
         event.preventDefault();
-        navigatorActions.next();
+        textUnitModeActions.next();
         return;
       }
-      if (chordMatchesEvent(resolveBinding("navigator-prev-sentence", bindings), event)) {
+      if (chordMatchesEvent(resolveBinding("reader-mode-prev-unit", bindings), event)) {
         event.preventDefault();
-        navigatorActions.prev();
+        textUnitModeActions.prev();
         return;
       }
-      if (!selectionRef.current && navigatorActions.hasTarget) {
+      if (!selectionRef.current && textUnitModeActions.hasTarget) {
         if (chordMatchesEvent(resolveBinding("selection-copy", bindings), event)) {
           event.preventDefault();
-          navigatorActions.copy();
+          textUnitModeActions.copy();
           return;
         }
         if (chordMatchesEvent(resolveBinding("selection-highlight", bindings), event)) {
           event.preventDefault();
-          navigatorActions.highlight();
+          textUnitModeActions.highlight();
           return;
         }
         if (chordMatchesEvent(resolveBinding("selection-underline", bindings), event)) {
           event.preventDefault();
-          navigatorActions.underline();
+          textUnitModeActions.underline();
           return;
         }
         if (chordMatchesEvent(resolveBinding("selection-add-note", bindings), event)) {
           event.preventDefault();
-          navigatorActions.addNote();
+          textUnitModeActions.addNote();
           return;
         }
         if (chordMatchesEvent(resolveBinding("selection-look-up", bindings), event)) {
           event.preventDefault();
-          navigatorActions.lookUp();
+          textUnitModeActions.lookUp();
           return;
         }
         if (askAiEnabledRef.current && chordMatchesEvent(resolveBinding("selection-ask-ai", bindings), event)) {
           event.preventDefault();
-          navigatorActions.askAI();
+          textUnitModeActions.askAI();
           return;
         }
       }
@@ -1279,7 +1318,7 @@ export function FoliateReaderView({
 
     if (event.key === "Escape") {
       if (selectionRef.current) clearSelection();
-      else if (navigatorActiveStateRef.current) onExitNavigatorRef.current?.();
+      else if (textUnitModeActiveStateRef.current) onExitTextUnitModeRef.current?.();
     }
     // Vertical keys map to forward/back directly.
     if (event.key === "ArrowDown" || event.key === "PageDown") {
@@ -1309,11 +1348,11 @@ export function FoliateReaderView({
       lookUp: handleLookUp,
       askAI: handleAskAI,
     };
-    navigatorActionsRef.current = {
-      hasTarget: !!sentenceNavigator.current,
-      next: sentenceNavigator.next,
-      prev: sentenceNavigator.prev,
-      copy: () => void copyTargetText(sentenceNavigator.current?.text ?? ""),
+    textUnitModeActionsRef.current = {
+      hasTarget: !!textUnitNavigator.current,
+      next: textUnitNavigator.next,
+      prev: textUnitNavigator.prev,
+      copy: () => void copyTargetText(textUnitNavigator.current?.text ?? ""),
       highlight: () => void handleNavigatorMark("highlight"),
       underline: () => void handleNavigatorMark("underline"),
       addNote: handleNavigatorAddNote,
@@ -1397,7 +1436,7 @@ export function FoliateReaderView({
     // hit test swallows them), so double-click keeps selecting words there.
     // Drag and long-press selection still work everywhere.
     doc.addEventListener("mousedown", (event) => {
-      if (!navigatorActiveStateRef.current || !tapToAdvanceRef.current) return;
+      if (!textUnitModeActiveStateRef.current || !tapToAdvanceRef.current) return;
       if (event.detail <= 1) return;
       const hit = viewRef.current?.renderer
         ?.getContents?.()
@@ -1530,8 +1569,8 @@ export function FoliateReaderView({
       // click is disarmed for the mode's duration in the mousedown listener).
       // The dismissed-shell branch above still wins, so a tap with the chrome
       // open closes it first and the next tap steps.
-      if (navigatorActiveStateRef.current && tapToAdvanceRef.current) {
-        navigatorActionsRef.current?.next();
+      if (textUnitModeActiveStateRef.current && tapToAdvanceRef.current) {
+        textUnitModeActionsRef.current?.next();
         return;
       }
 
@@ -1646,12 +1685,12 @@ export function FoliateReaderView({
       }
       // Same tap-to-advance routing as clicks inside the book content: the
       // empty area below a short section is still "the page" to a reader.
-      if (navigatorActiveStateRef.current && tapToAdvanceRef.current) {
+      if (textUnitModeActiveStateRef.current && tapToAdvanceRef.current) {
         if (shellVisibleRef.current) {
           onContentClickRef.current?.();
           return;
         }
-        navigatorActionsRef.current?.next();
+        textUnitModeActionsRef.current?.next();
         return;
       }
       onContentClickRef.current?.();
@@ -1838,20 +1877,20 @@ export function FoliateReaderView({
             if (movedPage || movedCfi) onContentScrollRef.current?.();
           }
           prevReadingLocationRef.current = { current, cfi };
-          sentenceNavigatorRef.current.handleRelocate(detail);
+          textUnitNavigatorRef.current.handleRelocate(detail);
         };
 
         const onLoad = (event: Event) => {
           const { doc, index } = (event as CustomEvent<FoliateLoadDetail>).detail;
           attachDocListeners(doc, index);
-          sentenceNavigatorRef.current.handleSectionLoad(doc, index);
+          textUnitNavigatorRef.current.handleSectionLoad(doc, index);
         };
 
         const onCreateOverlay = () => {
           if (!view) return;
           applyHighlights(view, highlightsRef.current);
           applyNotes(view, notesRef.current, highlightsRef.current);
-          sentenceNavigatorRef.current.handleOverlayReady();
+          textUnitNavigatorRef.current.handleOverlayReady();
         };
 
         // Tapping a mark anchors the recolor/remove menu over it; tapping a note
@@ -2226,14 +2265,14 @@ export function FoliateReaderView({
     clearSelection();
   }
 
-  // ----- the same actions, applied to the navigator's resting sentence -------
+  // ----- the same actions, applied to the mode's resting unit -----------------
 
   function navigatorTarget(): ActionTarget | null {
-    const sentence = sentenceNavigator.current;
-    if (!sentence) return null;
+    const unit = textUnitNavigator.current;
+    if (!unit) return null;
     return {
-      text: sentence.text,
-      cfiRange: sentence.cfiRange,
+      text: unit.text,
+      cfiRange: unit.cfiRange,
       chapterHref: currentChapterHrefRef.current,
     };
   }
@@ -2311,46 +2350,50 @@ export function FoliateReaderView({
             : null
         }
       />
-      <ReaderNavigatorBar
-        visible={sentenceNavigatorActive && !isLoading && !error}
-        sentenceKey={navigatorSentenceKey}
-        containerRef={readerRootRef}
-        canReturn={sentenceNavigator.canReturn}
-        tapToAdvance={navigatorPrefs.tapToAdvance}
-        granularity={navigatorPrefs.granularity}
-        onToggleGranularity={() =>
-          setNavigatorPrefs({
-            ...navigatorPrefs,
-            granularity: navigatorPrefs.granularity === "sentence" ? "paragraph" : "sentence",
-          })
-        }
-        onToggleToolbars={() => onContentClickRef.current?.()}
-        onPrev={sentenceNavigator.prev}
-        onNext={sentenceNavigator.next}
-        onReturnToSentence={sentenceNavigator.returnToSentence}
-        onCopy={() => copyTargetText(sentenceNavigator.current?.text ?? "")}
-        onHighlight={() => { void handleNavigatorMark("highlight"); }}
-        onUnderline={() => { void handleNavigatorMark("underline"); }}
-        onAddNote={handleNavigatorAddNote}
-        onLookUp={handleNavigatorLookUp}
-        onAskAI={handleNavigatorAskAI}
-        onExit={() => onExitNavigatorRef.current?.()}
-        pluginInput={
-          selectedBook && sentenceNavigator.current
-            ? {
-                text: sentenceNavigator.current.text,
-                cfiRange: sentenceNavigator.current.cfiRange,
-                chapterHref: currentChapterHrefRef.current,
-                book: {
-                  id: selectedBook.id,
-                  title: selectedBook.title,
-                  author: selectedBook.author,
-                },
-                source: "navigator",
-              }
-            : null
-        }
-      />
+      {textUnitMode && (
+        <TextUnitNavigatorBar
+          visible={textUnitModeEngineActive && !isLoading && !error}
+          mode={textUnitMode}
+          targetKey={textUnitTargetKey}
+          containerRef={readerRootRef}
+          canReturn={textUnitNavigator.canReturn}
+          tapToAdvance={textUnitModePrefs.tapToAdvance}
+          unitId={activeUnitId}
+          onUnitChange={(unitId) =>
+            setTextUnitModePrefs({
+              ...textUnitModePrefs,
+              modeKey: textUnitMode.key,
+              unitId,
+            })
+          }
+          onToggleToolbars={() => onContentClickRef.current?.()}
+          onPrev={textUnitNavigator.prev}
+          onNext={textUnitNavigator.next}
+          onReturnToCurrent={textUnitNavigator.returnToCurrent}
+          onCopy={() => copyTargetText(textUnitNavigator.current?.text ?? "")}
+          onHighlight={() => { void handleNavigatorMark("highlight"); }}
+          onUnderline={() => { void handleNavigatorMark("underline"); }}
+          onAddNote={handleNavigatorAddNote}
+          onLookUp={handleNavigatorLookUp}
+          onAskAI={handleNavigatorAskAI}
+          onExit={() => onExitTextUnitModeRef.current?.()}
+          pluginInput={
+            selectedBook && textUnitNavigator.current
+              ? {
+                  text: textUnitNavigator.current.text,
+                  cfiRange: textUnitNavigator.current.cfiRange,
+                  chapterHref: currentChapterHrefRef.current,
+                  book: {
+                    id: selectedBook.id,
+                    title: selectedBook.title,
+                    author: selectedBook.author,
+                  },
+                  source: "navigator",
+                }
+              : null
+          }
+        />
+      )}
       {/* Off-screen stage where the engine loads + extracts a footnote fragment. */}
       <div
         ref={footnoteStageRef}

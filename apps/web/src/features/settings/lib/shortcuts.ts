@@ -20,8 +20,8 @@ export type ShortcutId =
   | "next-chapter"
   | "prev-chapter"
   | "toggle-controls"
-  | "navigator-next-sentence"
-  | "navigator-prev-sentence"
+  | "reader-mode-next-unit"
+  | "reader-mode-prev-unit"
   | "selection-copy"
   | "selection-highlight"
   | "selection-underline"
@@ -31,15 +31,15 @@ export type ShortcutId =
 
 export type EditableShortcut = {
   id: ShortcutId;
-  category: string;
+  category: ShortcutCategory;
   defaultBinding: KeyChord;
 };
 
 /** A reference-only row whose action isn't a rebindable key chord. Action labels
  *  live in the `settings` catalog under `shortcuts.actions.<id>`. */
 export type InfoShortcut = {
-  id: "close" | "navigator-volume-keys";
-  category: string;
+  id: "close" | "reader-mode-volume-keys";
+  category: ShortcutCategory;
   keys: string[];
   /** Shown only on Android (hardware keys the other platforms don't capture). */
   androidOnly?: boolean;
@@ -47,6 +47,13 @@ export type InfoShortcut = {
 
 /** Overrides keyed by shortcut id; a missing id falls back to its default. */
 export type ShortcutBindings = Partial<Record<ShortcutId, KeyChord>>;
+
+export type ShortcutCategory =
+  | "Global"
+  | "Reading"
+  | "TextUnitMode"
+  | "Selection"
+  | "Overlays";
 
 /**
  * The rebindable shortcuts. Defaults are the keys the app shipped with; the
@@ -61,10 +68,10 @@ export const EDITABLE_SHORTCUTS: EditableShortcut[] = [
   { id: "next-chapter", category: "Reading", defaultBinding: { key: "]" } },
   { id: "prev-chapter", category: "Reading", defaultBinding: { key: "[" } },
   { id: "toggle-controls", category: "Reading", defaultBinding: { key: " " } },
-  // Navigator steps fire only while the sentence navigator is on; they take
+  // Unit steps fire only while a plugin-defined reader mode is on; they take
   // the arrow keys over the page-scroll fallback for the mode's duration.
-  { id: "navigator-next-sentence", category: "Navigator", defaultBinding: { key: "ArrowDown" } },
-  { id: "navigator-prev-sentence", category: "Navigator", defaultBinding: { key: "ArrowUp" } },
+  { id: "reader-mode-next-unit", category: "TextUnitMode", defaultBinding: { key: "ArrowDown" } },
+  { id: "reader-mode-prev-unit", category: "TextUnitMode", defaultBinding: { key: "ArrowUp" } },
   // Selection actions fire only while text is selected in the reader (the
   // selection menu is up), so a bare letter is safe — it can't collide with
   // typing or with the reading shortcuts above.
@@ -79,8 +86,8 @@ export const EDITABLE_SHORTCUTS: EditableShortcut[] = [
 /** Fixed, non-rebindable shortcuts shown for reference. */
 export const INFO_SHORTCUTS: InfoShortcut[] = [
   {
-    id: "navigator-volume-keys",
-    category: "Navigator",
+    id: "reader-mode-volume-keys",
+    category: "TextUnitMode",
     keys: ["Vol −", "Vol +"],
     androidOnly: true,
   },

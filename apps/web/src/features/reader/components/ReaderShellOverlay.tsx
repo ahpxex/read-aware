@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useAtomValue } from "jotai";
-import { CaretLeft, ChatCircle, ListBullets, Rows } from "@phosphor-icons/react";
+import { CaretLeft, ChatCircle, ListBullets } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { usePhoneViewport } from "@read-aware/ui/media";
 import { Body, IconButton, ScrollArea, Tooltip } from "@read-aware/ui";
-import { formatPercent, useTranslation } from "../../../i18n";
+import { formatPercent, useLocale, useTranslation } from "../../../i18n";
 import { ChatPanel } from "../../ai/components/ChatPanel";
 import { askAiRequestAtom } from "../../ai/state/chat-intent";
 import { useBookAnnotations } from "../../annotations/hooks/useBookAnnotations";
@@ -20,7 +20,9 @@ import {
 } from "../../menus/state/menu-config";
 import { PluginHeaderItem } from "../../plugins/components/PluginHeaderCluster";
 import { openHeaderActionDialog } from "../../plugins/lib/open-header-action";
+import { resolvePluginText } from "../../plugins/lib/plugin-i18n";
 import { renderPluginIcon } from "../../plugins/lib/plugin-icons";
+import type { RegisteredReaderMode } from "../../plugins/lib/plugin-types";
 import { headerActionsAtom } from "../../plugins/state/plugin-store";
 import { findTocIndexForHref } from "../lib/epub-utils";
 import { useReaderPanelLayout } from "../hooks/useReaderPanelLayout";
@@ -41,11 +43,11 @@ type ReaderShellOverlayProps = {
   currentChapterHref?: string | null;
   onChapterSelect?: (href: string) => void;
   onAnnotationSelect?: (cfiRange: string) => void;
-  /** Sentence navigator toggle. Unavailable for fixed-layout books. */
-  navigatorInstalled?: boolean;
-  navigatorAvailable?: boolean;
-  navigatorActive?: boolean;
-  onToggleNavigator?: () => void;
+  /** Installed text-unit mode. The host hides it for fixed-layout books. */
+  textUnitMode?: RegisteredReaderMode | null;
+  textUnitModeAvailable?: boolean;
+  textUnitModeActive?: boolean;
+  onToggleTextUnitMode?: () => void;
 };
 
 export function ReaderShellOverlay({
@@ -59,12 +61,13 @@ export function ReaderShellOverlay({
   currentChapterHref = null,
   onChapterSelect,
   onAnnotationSelect,
-  navigatorInstalled = true,
-  navigatorAvailable = true,
-  navigatorActive = false,
-  onToggleNavigator,
+  textUnitMode = null,
+  textUnitModeAvailable = true,
+  textUnitModeActive = false,
+  onToggleTextUnitMode,
 }: ReaderShellOverlayProps) {
   const { t } = useTranslation("reader");
+  const locale = useLocale();
   const bookId = book.id;
   const title = book.title;
   const percent =
@@ -129,7 +132,7 @@ export function ReaderShellOverlay({
     (action) => action.surface === "reader",
   );
   const readerCoreItems = CORE_MENU_DEFAULTS.readerHeader.filter(
-    (id) => id !== "core:navigator" || navigatorInstalled,
+    (id) => id !== "core:navigator" || textUnitMode !== null,
   );
   const readerLayout = resolveSurfaceLayout(menuConfig.readerHeader, [
     ...readerCoreItems,
@@ -137,17 +140,26 @@ export function ReaderShellOverlay({
   ]);
 
   const coreReaderNodes: Record<string, React.ReactNode | null> = {
-    "core:navigator": navigatorAvailable ? (
-      <Tooltip content={t("navigator.title")} side="bottom" className="pointer-events-auto">
+    "core:navigator": textUnitModeAvailable && textUnitMode ? (
+      <Tooltip
+        content={resolvePluginText(textUnitMode.copy.title, locale)}
+        side="bottom"
+        className="pointer-events-auto"
+      >
         <IconButton
           size="sm"
-          label={navigatorActive ? t("navigator.exit") : t("navigator.enable")}
-          aria-pressed={navigatorActive}
-          onClick={onToggleNavigator}
-          className={cn(navigatorActive && "text-fg")}
-          icon={
-            <Rows size={18} weight={navigatorActive ? "bold" : "regular"} aria-hidden="true" />
-          }
+          label={resolvePluginText(
+            textUnitModeActive ? textUnitMode.copy.exit : textUnitMode.copy.enable,
+            locale,
+          )}
+          aria-pressed={textUnitModeActive}
+          onClick={onToggleTextUnitMode}
+          className={cn(textUnitModeActive && "text-fg")}
+          icon={renderPluginIcon(
+            textUnitMode.icon,
+            18,
+            textUnitModeActive ? "bold" : "regular",
+          )}
         />
       </Tooltip>
     ) : null,
@@ -175,7 +187,7 @@ export function ReaderShellOverlay({
   };
 
   const coreReaderRun: Record<string, (() => void) | undefined> = {
-    "core:navigator": navigatorAvailable ? onToggleNavigator : undefined,
+    "core:navigator": textUnitModeAvailable ? onToggleTextUnitMode : undefined,
     "core:chat": toggleNotes,
   };
   const readerOverflowEntries = readerLayout.overflow
@@ -207,8 +219,14 @@ export function ReaderShellOverlay({
       if (!run) return null;
       return {
         id,
-        label: String(tMenus(`menus.items.${meta.labelKey}` as never)),
-        icon: <meta.Icon size={16} weight="regular" aria-hidden="true" />,
+        label:
+          id === "core:navigator" && textUnitMode
+            ? resolvePluginText(textUnitMode.copy.menuLabel, locale)
+            : String(tMenus(`menus.items.${meta.labelKey}` as never)),
+        icon:
+          id === "core:navigator" && textUnitMode
+            ? renderPluginIcon(textUnitMode.icon, 16)
+            : <meta.Icon size={16} weight="regular" aria-hidden="true" />,
         run,
       };
     })

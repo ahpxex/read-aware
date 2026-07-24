@@ -603,7 +603,7 @@
 <div class="tablewrap">
 <table>
   <tr><th>权限域</th><th>授予的能力面</th></tr>
-  <tr><td><code>reader:modes</code></td><td><code>ctx.reader.modes.register</code>：注册宿主渲染的文本单元阅读模式；插件只返回纯文本 offset，DOM、Foliate、输入与控件仍归应用</td></tr>
+  <tr><td><code>reader:modes</code></td><td><code>ctx.reader.modes.register</code>：注册宿主渲染的文本单元阅读模式；插件声明单元、文案与宿主图标名并返回纯文本 offset，DOM、Foliate、输入与控件仍归应用</td></tr>
   <tr><td><code>reading-data</code></td><td>读写阅读数据:书籍(读)、高亮/笔记(创建/删除)、内置生词本(读写,与阅读器词典同一份存储)</td></tr>
   <tr><td><code>library-write</code></td><td><code>ctx.library.importBook</code>(导入文件)+ <strong>内容提供者</strong>:<code>registerContentProvider</code> / <code>addVirtualBook</code> —— 虚拟书:书架条目由插件在打开时供给 HTML 章节,免转换,阅读/标注/进度全原生(RSS 即此路)</td></tr>
   <tr><td><code>network</code></td><td><code>ctx.fetch</code>（CSP <code>connect-src</code> 已含 <code>https:</code>，门控在 API 层）</td></tr>
@@ -664,7 +664,7 @@
   <tr><th>挂载点</th><th>插件注册什么</th><th>输入</th><th>允许的容器</th></tr>
   <tr><td>Reader 选区菜单</td><td>选区动作</td><td>选中文本 + CFI + 当前书元数据</td><td>无界面（执行 + Toast）／ Dialog</td></tr>
   <tr><td>Reader 顶栏</td><td>Icon button</td><td>当前书元数据</td><td>仅 Popup（Popover）</td></tr>
-  <tr><td>Reader Mode</td><td>文本单元分段策略</td><td>宿主提供的 block 纯文本、语言与粒度</td><td>宿主固定顶栏、浮动 Toolbar、设置与快捷键</td></tr>
+  <tr><td>Reader Mode</td><td>文本单元、文案、宿主图标名与分段策略</td><td>宿主提供的 block 纯文本、语言与 unit id</td><td>宿主固定顶栏、浮动 Toolbar、设置与快捷键；状态按 contribution key 隔离</td></tr>
   <tr><td>书架顶栏</td><td>Icon button</td><td>—</td><td>Popup ／ Page</td></tr>
   <tr><td>命令面板</td><td>（自动）所有插件动作自动注册</td><td>—</td><td>随原动作</td></tr>
   <tr><td>AI agent</td><td>工具</td><td>agent 传入的参数</td><td>聊天内通用工具步呈现</td></tr>
@@ -741,7 +741,7 @@
   <li><strong>Page</strong>：等同 Stats 那种整页 —— 占用顶部导航状态（<code>activeTopNav</code>），有明确返回；<strong>不是</strong>路由意义上的新页面。仅书架侧可用；阅读中不允许整页打断。</li>
 </ul>
 
-<div class="note"><p>术语说明：Reader 内的挂载点是「选中文本后的动作菜单」（<code>ReaderSelectionMenu</code> / <code>ReaderAnnotationMenu</code> / <code>ReaderNavigatorBar</code> 共享的那套动作），不是原生右键 contextmenu（应用里不存在后者）。</p></div>
+<div class="note"><p>术语说明：Reader 内的挂载点是「选中文本后的动作菜单」（<code>ReaderSelectionMenu</code> / <code>ReaderAnnotationMenu</code> / <code>TextUnitNavigatorBar</code> 共享的那套动作），不是原生右键 contextmenu（应用里不存在后者）。</p></div>
 
 <h2 id="s6"><span class="no">§ 6</span>UI 词汇：Raycast 式受限视图</h2>
 
@@ -903,7 +903,7 @@
 <table>
   <tr><th>现状</th><th>改造</th></tr>
   <tr><td><code>ReaderShellOverlay</code></td><td>顶栏按钮为独立 JSX + 回调 props → item 数组驱动 + 贡献点合并</td></tr>
-  <tr><td>三处选区菜单</td><td><code>ReaderSelectionMenu</code> / <code>ReaderAnnotationMenu</code> / <code>ReaderNavigatorBar</code> 共享动作但各自内联 → 统一的选区动作模型（声明式数组），三处消费同一数据</td></tr>
+  <tr><td>三处选区菜单</td><td><code>ReaderSelectionMenu</code> / <code>ReaderAnnotationMenu</code> / <code>TextUnitNavigatorBar</code> 共享动作但各自内联 → 统一的选区动作模型（声明式数组），三处消费同一数据</td></tr>
   <tr><td><code>AppHeader</code></td><td>桌面布局硬编码按钮（仅 <code>viewControl</code> / <code>actions</code> 两个 ReactNode 插槽）→ header action 注册表；插件按钮与钉选、溢出规则在此落地</td></tr>
   <tr><td><code>buildCommands</code></td><td>返回闭合的 <code>CommandItem[]</code> → 改成可追加注册表；插件命令与自动注册在此接入</td></tr>
   <tr><td>贡献点存储</td><td>无 → Jotai atom 做贡献注册表（响应式增删，启停即生效）</td></tr>

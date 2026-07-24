@@ -45,24 +45,6 @@
     "askAi": "Preguntar a la IA sobre esto",
     "remove": "Quitar"
   },
-  "navigator": {
-    "title": "Leer por frase o párrafo",
-    "enable": "Empezar a leer por frase o párrafo",
-    "exit": "Salir de la lectura por frase o párrafo",
-    "prevSentence": "Frase anterior",
-    "nextSentence": "Frase siguiente",
-    "prevParagraph": "Párrafo anterior",
-    "nextParagraph": "Párrafo siguiente",
-    "returnToSentence": "Volver a la frase actual",
-    "paragraphMode": "Modo párrafo",
-    "showToolbars": "Mostrar barras de herramientas",
-    "granularityOption": {
-      "sentence": "Por frase",
-      "paragraph": "Por párrafo"
-    },
-    "moreActions": "Más acciones",
-    "collapseActions": "Contraer acciones"
-  },
   "recolor": "Cambiar a color {{color}}",
   "colors": {
     "yellow": "amarillo",

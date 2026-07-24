@@ -45,24 +45,6 @@
     "askAi": "Interroger l’IA à ce sujet",
     "remove": "Supprimer"
   },
-  "navigator": {
-    "title": "Lire par phrase ou paragraphe",
-    "enable": "Commencer la lecture par phrase ou paragraphe",
-    "exit": "Quitter la lecture par phrase ou paragraphe",
-    "prevSentence": "Phrase précédente",
-    "nextSentence": "Phrase suivante",
-    "prevParagraph": "Paragraphe précédent",
-    "nextParagraph": "Paragraphe suivant",
-    "returnToSentence": "Revenir à la phrase actuelle",
-    "paragraphMode": "Mode paragraphe",
-    "showToolbars": "Afficher les barres d’outils",
-    "granularityOption": {
-      "sentence": "Par phrase",
-      "paragraph": "Par paragraphe"
-    },
-    "moreActions": "Plus d’actions",
-    "collapseActions": "Réduire les actions"
-  },
   "recolor": "Recolorer en {{color}}",
   "colors": {
     "yellow": "jaune",

@@ -45,24 +45,6 @@
     "askAi": "Спросить ИИ об этом",
     "remove": "Удалить"
   },
-  "navigator": {
-    "title": "Чтение по предложениям или абзацам",
-    "enable": "Включить чтение по предложениям или абзацам",
-    "exit": "Выйти из чтения по предложениям или абзацам",
-    "prevSentence": "Предыдущее предложение",
-    "nextSentence": "Следующее предложение",
-    "prevParagraph": "Предыдущий абзац",
-    "nextParagraph": "Следующий абзац",
-    "returnToSentence": "Вернуться к текущему предложению",
-    "paragraphMode": "Режим абзацев",
-    "showToolbars": "Показать панели",
-    "granularityOption": {
-      "sentence": "По предложениям",
-      "paragraph": "По абзацам"
-    },
-    "moreActions": "Ещё действия",
-    "collapseActions": "Свернуть действия"
-  },
   "recolor": "Перекрасить в {{color}}",
   "colors": {
     "yellow": "жёлтый",

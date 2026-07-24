@@ -81,20 +81,7 @@
       "title": "Page Color",
       "description": "The book's paper. Auto follows the app theme; the others are fixed."
     },
-    "pageMargins": "Page margins",
-    "navigator": {
-      "title": "Read by sentence or paragraph",
-      "description": "How reading by sentence or paragraph steps through the book.",
-      "granularity": "Step unit",
-      "tapToAdvance": {
-        "title": "Tap to advance",
-        "description": "While the navigator is on, tapping the page steps forward. Toolbars open from the floating bar instead."
-      },
-      "scrollToStep": {
-        "title": "Swipe to step",
-        "description": "While the navigator is on, swiping or scrolling moves one step instead of scrolling the page — one step per gesture: swipe up for the next unit, down for the previous."
-      }
-    }
+    "pageMargins": "Page margins"
   },
   "shortcuts": {
     "title": "Shortcuts",
@@ -102,13 +89,11 @@
     "categories": {
       "Global": "Global",
       "Reading": "Reading",
-      "Navigator": "Read by sentence or paragraph",
       "Selection": "Selection",
       "Overlays": "Overlays"
     },
     "categoryDescriptions": {
-      "selection": "Active while text is selected in the reader.",
-      "navigator": "Active while reading by sentence or paragraph. The selection shortcuts also act on the current sentence or paragraph."
+      "selection": "Active while text is selected in the reader."
     },
     "actions": {
       "search": "Open search",
@@ -118,9 +103,6 @@
       "next-chapter": "Next chapter",
       "prev-chapter": "Previous chapter",
       "toggle-controls": "Toggle reader controls",
-      "navigator-next-sentence": "Next sentence",
-      "navigator-prev-sentence": "Previous sentence",
-      "navigator-volume-keys": "Step sentences with the volume keys",
       "selection-copy": "Copy",
       "selection-highlight": "Highlight",
       "selection-underline": "Underline",
@@ -377,7 +359,6 @@
       "settings": "Settings",
       "toc": "Table of contents",
       "notes": "Notes",
-      "navigator": "Sentence navigator",
       "appearance": "Appearance",
       "chat": "Chat",
       "copy": "Copy",

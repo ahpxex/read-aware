@@ -7,7 +7,7 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 /** A note's marker is a neutral dashed underline — quietly distinct from marks. */
 const NOTE_STROKE = "#78716c";
 
-/** The sentence navigator's resting wash — monochrome stone, not a mark color,
+/** The text-unit mode's resting wash — monochrome stone, not a mark color,
  *  so it can't be mistaken for a saved highlight. */
 const NAVIGATOR_FILL = "#a8a29e";
 
@@ -98,7 +98,7 @@ function drawNote(
 }
 
 /** How strongly the focus veil washes the surrounding text toward the page
- *  color. Tuned visually: context stays readable, the resting sentence just
+ *  color. Tuned visually: context stays readable, the resting unit just
  *  reads a clear step brighter. */
 const VEIL_OPACITY = "0.6";
 /** The veil's outer bounds — far past any section's layout, so one fixed
@@ -106,8 +106,8 @@ const VEIL_OPACITY = "0.6";
 const VEIL_EXTENT = 1e6;
 
 /**
- * The dimming veil around the navigator's sentence: one page-toned translucent
- * path covering everything except windows over the sentence's line boxes. The
+ * The dimming veil around the active unit: one page-toned translucent path
+ * covering everything except windows over the unit's line boxes. The
  * overlay SVG paints above the text, so the fill reads as the text fading into
  * the page. Windows are cut with counterclockwise subpaths under the nonzero
  * fill rule — overlapping line boxes merge instead of XOR-ing back to filled
@@ -131,20 +131,20 @@ function drawNavigatorVeil(rects: DOMRect[], color: string): SVGPathElement {
 }
 
 /**
- * The sentence navigator's current-sentence wash: soft rounded rects behind the
+ * The text-unit mode's current-target wash: soft rounded rects behind the
  * text. Deliberately quieter than a highlight (lower opacity, stone tint) —
  * it marks a reading position, not saved content. When a veil color is given
- * (the reader's page color), everything around the sentence is additionally
- * washed toward the page so the resting sentence carries the focus.
+ * (the reader's page color), everything around the unit is additionally
+ * washed toward the page so the resting unit carries the focus.
  */
-function drawNavigatorSentence(
+function drawNavigatorTarget(
   rects: Iterable<DOMRect>,
   options: { color?: string } = {},
 ): SVGGElement {
   const { color: veilColor } = options;
   const group = document.createElementNS(SVG_NS, "g");
   const lineRects = Array.from(rects).filter((rect) => rect.width >= 1);
-  // No line boxes to spare — drawing the veil would dim the sentence itself.
+  // No line boxes to spare; drawing the veil would dim the target itself.
   if (veilColor && lineRects.length) group.append(drawNavigatorVeil(lineRects, veilColor));
   const wash = document.createElementNS(SVG_NS, "g");
   wash.setAttribute("fill", NAVIGATOR_FILL);
@@ -222,7 +222,7 @@ export function applyNotes(view: FoliateView, notes: Note[], highlights: Highlig
 }
 
 /**
- * Draw the sentence navigator's wash over the sentence at `cfiRange` — plus,
+ * Draw the active text unit's wash at `cfiRange`, plus,
  * when `veilColor` (the reader's page color) is given, the dimming veil over
  * everything else. Rendered through the same overlayer as marks, so it follows
  * the text through page turns, scrolling, and re-layout for free.
@@ -248,7 +248,7 @@ export function removeNavigatorHighlight(view: FoliateView, cfiRange: string): v
 /**
  * Wire the `draw-annotation` event once per view so foliate paints each
  * annotation by style: a filled highlight, a solid underline rule, a dashed
- * note marker, or the navigator's sentence wash. Must be registered before any
+ * note marker, or the text-unit mode's wash. Must be registered before any
  * annotations are added.
  */
 export async function registerHighlightDrawing(view: FoliateView): Promise<void> {
@@ -262,7 +262,7 @@ export async function registerHighlightDrawing(view: FoliateView): Promise<void>
         : style === "note"
           ? drawNote
           : style === "navigator"
-            ? drawNavigatorSentence
+            ? drawNavigatorTarget
             : highlight;
     detail.draw(drawFn, { color: detail.annotation.color });
   });

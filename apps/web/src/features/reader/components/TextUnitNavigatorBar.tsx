@@ -11,21 +11,25 @@ import {
   Highlighter,
   Layout,
   NotePencil,
-  Paragraph,
   TextUnderline,
   X,
 } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
-import type { ReactElement, RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 import { IconButton, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
-import { useTranslation } from "../../../i18n";
+import { useLocale, useTranslation } from "../../../i18n";
 import { hasCoarsePointer } from "../../../platform/environment";
 import { useAskAiEnabled } from "../../ai/hooks/useAskAiEnabled";
 import { PluginSelectionCluster } from "../../plugins/components/PluginSelectionCluster";
-import type { SelectionActionInput } from "../../plugins/lib/plugin-types";
+import { resolvePluginText } from "../../plugins/lib/plugin-i18n";
+import { renderPluginIcon } from "../../plugins/lib/plugin-icons";
+import { resolveReaderModeUnit } from "../../plugins/lib/reader-mode";
+import type {
+  RegisteredReaderMode,
+  SelectionActionInput,
+} from "../../plugins/lib/plugin-types";
 import { useDraggableFloat } from "../hooks/useDraggableFloat";
-import type { NavigatorGranularity } from "../lib/sentence-index";
 
 // Collapsing is a touch-only affordance — desktop has room for the full strip
 // and always shows it. The choice lives for the session only (module scope so
@@ -33,13 +37,14 @@ import type { NavigatorGranularity } from "../lib/sentence-index";
 // collapsed default rather than writing UI minutiae into storage.
 let expandedCache: boolean | null = null;
 
-type ReaderNavigatorBarProps = {
+type TextUnitNavigatorBarProps = {
   visible: boolean;
-  /** Identity of the sentence the bar acts on; null while none is resting. */
-  sentenceKey: string | null;
+  mode: RegisteredReaderMode;
+  /** Identity of the unit the bar acts on; null while none is resting. */
+  targetKey: string | null;
   /** Coordinate space the bar floats in when dragged (the reader root). */
   containerRef: RefObject<HTMLElement | null>;
-  /** Whether the navigator has a resting sentence to jump back to. */
+  /** Whether the navigator has a resting unit to jump back to. */
   canReturn: boolean;
   /** Whether a page tap steps forward. On touch screens that makes the page
    *  itself the forward affordance, so the bar keeps only the back-step;
@@ -47,14 +52,14 @@ type ReaderNavigatorBarProps = {
   tapToAdvance: boolean;
   /** Step unit; the bar carries a quick toggle so switching doesn't require
    *  a trip into Settings. */
-  granularity: NavigatorGranularity;
-  onToggleGranularity: () => void;
+  unitId: string;
+  onUnitChange: (unitId: string) => void;
   /** Re-open the reader shell — while tap-to-advance claims the page tap,
    *  this button is the way back to the chrome. */
   onToggleToolbars: () => void;
   onPrev: () => void;
   onNext: () => void;
-  onReturnToSentence: () => void;
+  onReturnToCurrent: () => void;
   onCopy: () => Promise<void> | void;
   onHighlight: () => void;
   onUnderline: () => void;
@@ -62,7 +67,7 @@ type ReaderNavigatorBarProps = {
   onLookUp: () => void;
   onAskAI: () => void;
   onExit: () => void;
-  /** Resting-sentence context for plugin-contributed actions (null hides them). */
+  /** Resting-unit context for plugin-contributed actions (null hides them). */
   pluginInput?: SelectionActionInput | null;
 };
 
@@ -84,7 +89,7 @@ function BarButton({
   disabled?: boolean;
   pressed?: boolean;
   onClick: () => void;
-  icon: ReactElement;
+  icon: ReactNode;
   className: string;
 }) {
   return (
@@ -103,28 +108,29 @@ function BarButton({
 }
 
 /**
- * The sentence navigator's floating control strip — by default pinned to the
- * bottom center of the reader: step to the previous / next sentence, jump back
- * to the resting sentence, switch the step unit, plus the selection menu's
- * actions applied to the sentence the wash is resting on. The action cluster
+ * The unit navigator's floating control strip — by default pinned to the
+ * bottom center of the reader: step to the previous / next unit, jump back
+ * to the resting unit, switch the step unit, plus the selection menu's
+ * actions applied to the unit the wash is resting on. The action cluster
  * collapses behind a "more" toggle (collapsed by default on touch screens,
  * where the full strip crowds the page); the choice sticks per device. On
  * coarse-pointer devices the bar keeps only the back-step while tap-to-advance
  * owns the forward step (a tap anywhere on the page), and it grows a grip that
  * drags it anywhere; the spot sticks per device.
  */
-export function ReaderNavigatorBar({
+export function TextUnitNavigatorBar({
   visible,
-  sentenceKey,
+  mode,
+  targetKey,
   containerRef,
   canReturn,
   tapToAdvance,
-  granularity,
-  onToggleGranularity,
+  unitId,
+  onUnitChange,
   onToggleToolbars,
   onPrev,
   onNext,
-  onReturnToSentence,
+  onReturnToCurrent,
   onCopy,
   onHighlight,
   onUnderline,
@@ -133,8 +139,9 @@ export function ReaderNavigatorBar({
   onAskAI,
   onExit,
   pluginInput = null,
-}: ReaderNavigatorBarProps) {
+}: TextUnitNavigatorBarProps) {
   const { t } = useTranslation("reader");
+  const locale = useLocale();
   const askEnabled = useAskAiEnabled();
   const copyResetTimeoutRef = useRef<number | null>(null);
   const [copied, setCopied] = useState(false);
@@ -156,14 +163,14 @@ export function ReaderNavigatorBar({
     };
   }, []);
 
-  // Moving to another sentence resets the copy feedback.
+  // Moving to another unit resets the copy feedback.
   useEffect(() => {
     setCopied(false);
     if (copyResetTimeoutRef.current != null) {
       window.clearTimeout(copyResetTimeoutRef.current);
       copyResetTimeoutRef.current = null;
     }
-  }, [sentenceKey]);
+  }, [targetKey]);
 
   if (!visible) return null;
 
@@ -186,14 +193,11 @@ export function ReaderNavigatorBar({
     });
   }
 
-  const hasSentence = sentenceKey != null;
-  const byParagraph = granularity === "paragraph";
-  const prevStepLabel = byParagraph
-    ? t("navigator.prevParagraph")
-    : t("navigator.prevSentence");
-  const nextStepLabel = byParagraph
-    ? t("navigator.nextParagraph")
-    : t("navigator.nextSentence");
+  const hasTarget = targetKey != null;
+  const activeUnit = resolveReaderModeUnit(mode, unitId);
+  const quickUnits = mode.units.filter((unit) => unit.id !== mode.defaultUnitId);
+  const prevStepLabel = resolvePluginText(activeUnit.previousLabel, locale);
+  const nextStepLabel = resolvePluginText(activeUnit.nextLabel, locale);
   // Quiet, monochrome ghost buttons — same surface language as the selection
   // menu. Touch gets a taller target without widening the desktop bar; width
   // stays at 36px so the full strip still fits a phone screen in one row.
@@ -215,7 +219,7 @@ export function ReaderNavigatorBar({
       >
         <div
           role="toolbar"
-          aria-label={t("navigator.title")}
+          aria-label={resolvePluginText(mode.copy.title, locale)}
           data-ra-float
           className="ra-motion-overlay-pop pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-0.5 rounded-lg border border-border bg-[var(--ra-main-surface-color)] p-1 shadow-[0_4px_16px_-6px_rgba(28,25,23,0.25)]"
         >
@@ -247,26 +251,32 @@ export function ReaderNavigatorBar({
           <BarDivider />
 
           <BarButton
-            label={t("navigator.returnToSentence")}
+            label={resolvePluginText(mode.copy.returnToCurrent, locale)}
             disabled={!canReturn}
-            onClick={onReturnToSentence}
+            onClick={onReturnToCurrent}
             className={actionButtonClass}
             icon={<Crosshair size={14} weight="regular" aria-hidden="true" />}
           />
-          <BarButton
-            label={t("navigator.paragraphMode")}
-            pressed={granularity === "paragraph"}
-            onClick={onToggleGranularity}
-            className={actionButtonClass}
-            icon={<Paragraph size={14} weight="regular" aria-hidden="true" />}
-          />
+          {quickUnits.map((unit) => {
+            const pressed = unit.id === activeUnit.id;
+            return (
+              <BarButton
+                key={unit.id}
+                label={resolvePluginText(unit.toggleLabel ?? unit.label, locale)}
+                pressed={pressed}
+                onClick={() => onUnitChange(pressed ? mode.defaultUnitId : unit.id)}
+                className={actionButtonClass}
+                icon={renderPluginIcon(unit.icon, 14)}
+              />
+            );
+          })}
 
           {expanded && (
             <>
               <BarDivider />
               <BarButton
                 label={copied ? t("menu.copied") : t("menu.copy")}
-                disabled={!hasSentence}
+                disabled={!hasTarget}
                 pressed={copied}
                 onClick={() => {
                   void handleCopy();
@@ -282,21 +292,21 @@ export function ReaderNavigatorBar({
               />
               <BarButton
                 label={t("menu.highlight")}
-                disabled={!hasSentence}
+                disabled={!hasTarget}
                 onClick={onHighlight}
                 className={actionButtonClass}
                 icon={<Highlighter size={14} weight="regular" aria-hidden="true" />}
               />
               <BarButton
                 label={t("menu.underline")}
-                disabled={!hasSentence}
+                disabled={!hasTarget}
                 onClick={onUnderline}
                 className={actionButtonClass}
                 icon={<TextUnderline size={14} weight="regular" aria-hidden="true" />}
               />
               <BarButton
                 label={t("menu.addNote")}
-                disabled={!hasSentence}
+                disabled={!hasTarget}
                 onClick={onAddNote}
                 className={actionButtonClass}
                 icon={<NotePencil size={14} weight="regular" aria-hidden="true" />}
@@ -305,7 +315,7 @@ export function ReaderNavigatorBar({
               <BarDivider />
               <BarButton
                 label={t("menu.lookUp")}
-                disabled={!hasSentence}
+                disabled={!hasTarget}
                 onClick={onLookUp}
                 className={actionButtonClass}
                 icon={<BookOpen size={14} weight="regular" aria-hidden="true" />}
@@ -313,14 +323,14 @@ export function ReaderNavigatorBar({
               {askEnabled && (
                 <BarButton
                   label={t("menu.askAi")}
-                  disabled={!hasSentence}
+                  disabled={!hasTarget}
                   onClick={onAskAI}
                   className={actionButtonClass}
                   icon={<ChatCircleDots size={14} weight="regular" aria-hidden="true" />}
                 />
               )}
               <PluginSelectionCluster
-                input={hasSentence ? pluginInput : null}
+                input={hasTarget ? pluginInput : null}
                 divider={<BarDivider />}
               />
             </>
@@ -329,7 +339,10 @@ export function ReaderNavigatorBar({
           <BarDivider />
           {collapsible && (
             <IconButton
-              label={expanded ? t("navigator.collapseActions") : t("navigator.moreActions")}
+              label={resolvePluginText(
+                expanded ? mode.copy.collapseActions : mode.copy.moreActions,
+                locale,
+              )}
               size="sm"
               aria-expanded={expanded}
               onClick={toggleExpanded}
@@ -338,7 +351,7 @@ export function ReaderNavigatorBar({
             />
           )}
           <BarButton
-            label={t("navigator.showToolbars")}
+            label={resolvePluginText(mode.copy.showToolbars, locale)}
             onClick={onToggleToolbars}
             className={actionButtonClass}
             icon={<Layout size={14} weight="regular" aria-hidden="true" />}
@@ -346,7 +359,7 @@ export function ReaderNavigatorBar({
 
           <BarDivider />
           <BarButton
-            label={t("navigator.exit")}
+            label={resolvePluginText(mode.copy.exit, locale)}
             onClick={onExit}
             className={actionButtonClass}
             icon={<X size={14} weight="regular" aria-hidden="true" />}

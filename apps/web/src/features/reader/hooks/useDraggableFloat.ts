@@ -4,7 +4,7 @@ import {
   readFloatPosition,
   writeFloatPosition,
   type FloatPosition,
-} from "../lib/navigator-prefs";
+} from "../lib/text-unit-mode-state";
 
 // A pointer that travels this far is a drag; anything shorter stays a tap, so
 // buttons inside the floating control keep their click behaviour.

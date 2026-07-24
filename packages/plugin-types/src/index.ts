@@ -448,8 +448,55 @@ export type PluginHeaderAction = {
 
 // ─── Reader-mode contributions ──────────────────────────────────────────────
 
-/** The host-supported unit sizes for guided text navigation. */
-export type PluginReaderUnitGranularity = "sentence" | "paragraph";
+/**
+ * Plugin-owned copy with an English/default fallback. Locale keys are BCP-47
+ * tags; the host resolves the active locale and always renders the result.
+ */
+export type PluginLocalizedText = {
+  default: string;
+  translations?: Record<string, string>;
+};
+
+/** One semantic step size declared by a text-unit reader mode. */
+export type PluginReaderTextUnit = {
+  id: string;
+  /** Label used by the host's settings control. */
+  label: PluginLocalizedText;
+  previousLabel: PluginLocalizedText;
+  nextLabel: PluginLocalizedText;
+  /** Label for the host-rendered quick toggle. Defaults to `label`. */
+  toggleLabel?: PluginLocalizedText;
+  /** Curated host icon name. Plugins cannot supply SVG or UI code. */
+  icon?: string;
+};
+
+/** Copy for every host-rendered surface belonging to the mode. */
+export type PluginReaderModeCopy = {
+  title: PluginLocalizedText;
+  enable: PluginLocalizedText;
+  exit: PluginLocalizedText;
+  returnToCurrent: PluginLocalizedText;
+  showToolbars: PluginLocalizedText;
+  moreActions: PluginLocalizedText;
+  collapseActions: PluginLocalizedText;
+  menuLabel: PluginLocalizedText;
+  settings: {
+    description: PluginLocalizedText;
+    unitLabel: PluginLocalizedText;
+    tapToAdvance: {
+      title: PluginLocalizedText;
+      description: PluginLocalizedText;
+    };
+    scrollToStep: {
+      title: PluginLocalizedText;
+      description: PluginLocalizedText;
+    };
+  };
+  shortcuts: {
+    description: PluginLocalizedText;
+    volumeKeys: PluginLocalizedText;
+  };
+};
 
 /**
  * One half-open span (`start <= offset < end`) inside a text block supplied by
@@ -466,13 +513,15 @@ export type PluginReaderTextSegmentInput = {
   text: string;
   /** The section document's language tag, when the book declares one. */
   language?: string;
-  granularity: PluginReaderUnitGranularity;
+  /** One of the registering mode's declared `units[].id` values. */
+  unitId: string;
 };
 
 /**
- * A guided reader mode over host-owned text units. The plugin supplies only
- * segmentation policy; ReadAware owns section traversal, CFI mapping,
- * overlays, input capture, persistence, actions, settings, and every control.
+ * A guided reader mode over host-owned text units. The plugin supplies unit
+ * semantics, localized copy, curated icon names, and segmentation policy;
+ * ReadAware owns section traversal, CFI mapping, overlays, input capture,
+ * persistence, actions, settings, and every rendered control.
  *
  * `reader:modes` is currently reserved for bundled first-party plugins while
  * this privileged lifecycle contract settles.
@@ -480,8 +529,12 @@ export type PluginReaderTextSegmentInput = {
 export type PluginReaderMode = {
   id: string;
   kind: "text-unit-navigator";
-  /** Granularities the host may expose in its standard mode controls. */
-  granularities: PluginReaderUnitGranularity[];
+  /** Curated host icon used for the reader-header entry. */
+  icon?: string;
+  /** Semantic units exposed through host-owned settings and controls. */
+  units: PluginReaderTextUnit[];
+  defaultUnitId: string;
+  copy: PluginReaderModeCopy;
   /** Segment one block. Results must be ordered, non-overlapping spans. */
   segmentText(
     input: PluginReaderTextSegmentInput,

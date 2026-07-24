@@ -5,7 +5,7 @@ import { useTranslation } from "../../../i18n";
 import type { BookFormat, LibraryBook, ReaderProgress } from "../../library/lib/library-types";
 import { READER_THEME_BG } from "../../settings/lib/reader-css";
 import { useDelayedFlag } from "../hooks/useDelayedFlag";
-import { readNavigatorState } from "../lib/navigator-prefs";
+import { readTextUnitModeState } from "../lib/text-unit-mode-state";
 import { useImmersiveWindowControls } from "../hooks/useImmersiveWindowControls";
 import { useReaderAppearance } from "../hooks/useReaderAppearance";
 import { useReadingTimeTracker } from "../hooks/useReadingTimeTracker";
@@ -87,28 +87,28 @@ export function ReaderWorkspace({
   // there's no immersive view yet, so keep the window controls reachable.
   useImmersiveWindowControls(overlayVisible || !readerSource);
 
-  // The official plugin supplies sentence segmentation; the host still owns
+  // The official plugin supplies unit segmentation; the host still owns
   // the engine bridge and every control. State lives here so the shell header
   // and reader view (wash + floating bar + shortcuts) stay in sync. The mode is
   // sticky per book — closing a book (or the app) mid-navigation and reopening
-  // it resumes sentence-by-sentence reading where it stopped (the resting
-  // sentence itself is restored by useSentenceNavigator from the same store).
+  // it resumes unit-by-unit reading where it stopped (the resting
+  // unit itself is restored by useTextUnitNavigator from the same store).
   // Fixed-layout books (PDF/CBZ) can't host it.
-  const navigatorMode = useAtomValue(textUnitReaderModeAtom);
-  const [navigatorActive, setNavigatorActive] = useState(
-    () => readNavigatorState(selectedBook.id).active,
+  const textUnitMode = useAtomValue(textUnitReaderModeAtom);
+  const [textUnitModeActive, setTextUnitModeActive] = useState(
+    () => readTextUnitModeState(selectedBook.id).active,
   );
   const [isFixedLayout, setIsFixedLayout] = useState(false);
   useEffect(() => {
-    setNavigatorActive(readNavigatorState(selectedBook.id).active);
+    setTextUnitModeActive(readTextUnitModeState(selectedBook.id).active);
   }, [selectedBook.id]);
-  const toggleNavigator = useCallback(() => {
-    setNavigatorActive((active) => !active);
+  const toggleTextUnitMode = useCallback(() => {
+    setTextUnitModeActive((active) => !active);
     // Entering the mode is a "start reading" gesture — drop the chrome so the
     // wash and the floating bar take over immediately.
-    if (!navigatorActive) onHideShell();
-  }, [navigatorActive, onHideShell]);
-  const exitNavigator = useCallback(() => setNavigatorActive(false), []);
+    if (!textUnitModeActive) onHideShell();
+  }, [textUnitModeActive, onHideShell]);
+  const exitTextUnitMode = useCallback(() => setTextUnitModeActive(false), []);
 
   // Track active reading time once the book is rendered. Reader relocate/page
   // callbacks bump activity so in-iframe reading isn't mistaken for idle.
@@ -152,10 +152,10 @@ export function ReaderWorkspace({
           onCurrentChapterChange={onCurrentChapterChange}
           onBookReady={(foliateBook) => onBookReady(selectedBook, foliateBook)}
           onFixedLayoutChange={setIsFixedLayout}
-          navigatorActive={navigatorActive}
-          navigatorMode={navigatorMode}
-          onExitNavigator={exitNavigator}
-          onNavigatorStep={onHideShell}
+          textUnitModeActive={textUnitModeActive}
+          textUnitMode={textUnitMode}
+          onExitTextUnitMode={exitTextUnitMode}
+          onTextUnitModeStep={onHideShell}
           initialProgress={selectedEpubProgress}
           chapterNavigationRequest={chapterNavigationRequest}
           annotationNavigationRequest={annotationNavigationRequest}
@@ -195,10 +195,10 @@ export function ReaderWorkspace({
         currentChapterHref={currentChapterHref}
         onChapterSelect={onChapterSelect}
         onAnnotationSelect={onAnnotationSelect}
-        navigatorAvailable={navigatorMode !== null && !isFixedLayout}
-        navigatorInstalled={navigatorMode !== null}
-        navigatorActive={navigatorActive}
-        onToggleNavigator={toggleNavigator}
+        textUnitModeAvailable={textUnitMode !== null && !isFixedLayout}
+        textUnitMode={textUnitMode}
+        textUnitModeActive={textUnitModeActive}
+        onToggleTextUnitMode={toggleTextUnitMode}
       />
     </div>
   );

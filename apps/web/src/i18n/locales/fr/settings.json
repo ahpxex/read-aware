@@ -81,20 +81,7 @@
       "title": "Couleur de la page",
       "description": "Le papier du livre. Auto suit le thème de l’application ; les autres sont fixes."
     },
-    "pageMargins": "Marges de page",
-    "navigator": {
-      "title": "Lire par phrase ou paragraphe",
-      "description": "Comment la lecture par phrase ou paragraphe progresse dans le livre.",
-      "granularity": "Unité de progression",
-      "tapToAdvance": {
-        "title": "Toucher pour avancer",
-        "description": "Quand le navigateur est actif, toucher la page fait avancer d’un pas. Les barres d’outils s’ouvrent depuis la barre flottante."
-      },
-      "scrollToStep": {
-        "title": "Balayer pas à pas",
-        "description": "Quand le navigateur est actif, balayer ou faire défiler avance d'un pas au lieu de faire défiler la page — un pas par geste : vers le haut pour le suivant, vers le bas pour le précédent."
-      }
-    }
+    "pageMargins": "Marges de page"
   },
   "shortcuts": {
     "title": "Raccourcis",
@@ -102,13 +89,11 @@
     "categories": {
       "Global": "Global",
       "Reading": "Lecture",
-      "Navigator": "Lire par phrase ou paragraphe",
       "Selection": "Sélection",
       "Overlays": "Superpositions"
     },
     "categoryDescriptions": {
-      "selection": "Actif lorsque du texte est sélectionné dans le lecteur.",
-      "navigator": "Actif lorsque la lecture par phrase ou paragraphe est activée. Les raccourcis de sélection agissent aussi sur la phrase ou le paragraphe courant."
+      "selection": "Actif lorsque du texte est sélectionné dans le lecteur."
     },
     "actions": {
       "search": "Ouvrir la recherche",
@@ -118,9 +103,6 @@
       "next-chapter": "Chapitre suivant",
       "prev-chapter": "Chapitre précédent",
       "toggle-controls": "Afficher/masquer les commandes du lecteur",
-      "navigator-next-sentence": "Phrase suivante",
-      "navigator-prev-sentence": "Phrase précédente",
-      "navigator-volume-keys": "Parcourir les phrases avec les touches de volume",
       "selection-copy": "Copier",
       "selection-highlight": "Surligner",
       "selection-underline": "Souligner",
@@ -381,7 +363,6 @@
       "settings": "Réglages",
       "toc": "Sommaire",
       "notes": "Notes",
-      "navigator": "Navigateur",
       "appearance": "Apparence",
       "chat": "Chat",
       "copy": "Copier",

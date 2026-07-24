@@ -1,5 +1,38 @@
-// src/copy.ts
-var COPY = {
+import type {
+  PluginLocalizedText,
+  PluginReaderModeCopy,
+  PluginReaderTextUnit,
+} from "@read-aware/plugin-types";
+
+type UnitCopy = {
+  label: string;
+  previous: string;
+  next: string;
+  toggle?: string;
+};
+
+type LocaleCopy = {
+  title: string;
+  enable: string;
+  exit: string;
+  returnToCurrent: string;
+  showToolbars: string;
+  moreActions: string;
+  collapseActions: string;
+  menuLabel: string;
+  settingsDescription: string;
+  unitLabel: string;
+  tapTitle: string;
+  tapDescription: string;
+  scrollTitle: string;
+  scrollDescription: string;
+  shortcutDescription: string;
+  volumeKeys: string;
+  sentence: UnitCopy;
+  paragraph: UnitCopy;
+};
+
+const COPY = {
   en: {
     title: "Read by sentence or paragraph",
     enable: "Start reading by sentence or paragraph",
@@ -12,22 +45,25 @@ var COPY = {
     settingsDescription: "How reading by sentence or paragraph steps through the book.",
     unitLabel: "Step unit",
     tapTitle: "Tap to advance",
-    tapDescription: "While the navigator is on, tapping the page steps forward. Toolbars open from the floating bar instead.",
+    tapDescription:
+      "While the navigator is on, tapping the page steps forward. Toolbars open from the floating bar instead.",
     scrollTitle: "Swipe to step",
-    scrollDescription: "While the navigator is on, swiping or scrolling moves one step instead of scrolling the page — one step per gesture: swipe up for the next unit, down for the previous.",
-    shortcutDescription: "Active while reading by sentence or paragraph. The selection shortcuts also act on the current sentence or paragraph.",
+    scrollDescription:
+      "While the navigator is on, swiping or scrolling moves one step instead of scrolling the page — one step per gesture: swipe up for the next unit, down for the previous.",
+    shortcutDescription:
+      "Active while reading by sentence or paragraph. The selection shortcuts also act on the current sentence or paragraph.",
     volumeKeys: "Step sentences with the volume keys",
     sentence: {
       label: "By sentence",
       previous: "Previous sentence",
-      next: "Next sentence"
+      next: "Next sentence",
     },
     paragraph: {
       label: "By paragraph",
       previous: "Previous paragraph",
       next: "Next paragraph",
-      toggle: "Paragraph mode"
-    }
+      toggle: "Paragraph mode",
+    },
   },
   "zh-Hans": {
     title: "逐句/逐段阅读",
@@ -43,11 +79,13 @@ var COPY = {
     tapTitle: "点按前进",
     tapDescription: "逐句导航开启时，点按正文前进一步；工具栏改由浮动条上的按钮打开。",
     scrollTitle: "滑动步进",
-    scrollDescription: "逐句导航开启时，滑动或滚动改为逐步移动，每滑一次只前进或后退一步：上滑前进，下滑后退，页面不再连续滚动。",
-    shortcutDescription: "逐句/逐段阅读开启时可用；选中文本的快捷键也会作用于当前句子或段落。",
+    scrollDescription:
+      "逐句导航开启时，滑动或滚动改为逐步移动，每滑一次只前进或后退一步：上滑前进，下滑后退，页面不再连续滚动。",
+    shortcutDescription:
+      "逐句/逐段阅读开启时可用；选中文本的快捷键也会作用于当前句子或段落。",
     volumeKeys: "用音量键逐句移动",
     sentence: { label: "逐句", previous: "上一句", next: "下一句" },
-    paragraph: { label: "逐段", previous: "上一段", next: "下一段", toggle: "逐段模式" }
+    paragraph: { label: "逐段", previous: "上一段", next: "下一段", toggle: "逐段模式" },
   },
   "zh-Hant": {
     title: "逐句/逐段閱讀",
@@ -63,11 +101,13 @@ var COPY = {
     tapTitle: "點按前進",
     tapDescription: "逐句導航開啟時，點按內文前進一步；工具列改由浮動列上的按鈕開啟。",
     scrollTitle: "滑動步進",
-    scrollDescription: "逐句導航開啟時，滑動或捲動改為逐步移動，每滑一次只前進或後退一步：上滑前進，下滑後退，頁面不再連續捲動。",
-    shortcutDescription: "逐句/逐段閱讀開啟時可用；選取文字的快捷鍵也會作用於目前句子或段落。",
+    scrollDescription:
+      "逐句導航開啟時，滑動或捲動改為逐步移動，每滑一次只前進或後退一步：上滑前進，下滑後退，頁面不再連續捲動。",
+    shortcutDescription:
+      "逐句/逐段閱讀開啟時可用；選取文字的快捷鍵也會作用於目前句子或段落。",
     volumeKeys: "用音量鍵逐句移動",
     sentence: { label: "逐句", previous: "上一句", next: "下一句" },
-    paragraph: { label: "逐段", previous: "上一段", next: "下一段", toggle: "逐段模式" }
+    paragraph: { label: "逐段", previous: "上一段", next: "下一段", toggle: "逐段模式" },
   },
   ja: {
     title: "文・段落ナビゲーター",
@@ -81,18 +121,21 @@ var COPY = {
     settingsDescription: "文・段落ナビゲーターの進み方の設定。",
     unitLabel: "ステップ単位",
     tapTitle: "タップで進む",
-    tapDescription: "ナビゲーターがオンの間、ページをタップすると次へ進みます。ツールバーはフローティングバーのボタンから開きます。",
+    tapDescription:
+      "ナビゲーターがオンの間、ページをタップすると次へ進みます。ツールバーはフローティングバーのボタンから開きます。",
     scrollTitle: "スワイプで移動",
-    scrollDescription: "ナビゲーターがオンの間、スワイプやスクロールはページを連続スクロールせず、1回につき1ステップだけ移動します。上へスワイプで次へ、下へスワイプで前へ。",
-    shortcutDescription: "文・段落ナビゲーターがオンの間に有効です。選択のショートカットは現在の文や段落にも作用します。",
+    scrollDescription:
+      "ナビゲーターがオンの間、スワイプやスクロールはページを連続スクロールせず、1回につき1ステップだけ移動します。上へスワイプで次へ、下へスワイプで前へ。",
+    shortcutDescription:
+      "文・段落ナビゲーターがオンの間に有効です。選択のショートカットは現在の文や段落にも作用します。",
     volumeKeys: "音量キーで文を移動",
     sentence: { label: "文ごと", previous: "前の文", next: "次の文" },
     paragraph: {
       label: "段落ごと",
       previous: "前の段落",
       next: "次の段落",
-      toggle: "段落モード"
-    }
+      toggle: "段落モード",
+    },
   },
   fr: {
     title: "Lire par phrase ou paragraphe",
@@ -106,18 +149,21 @@ var COPY = {
     settingsDescription: "Comment la lecture par phrase ou paragraphe progresse dans le livre.",
     unitLabel: "Unité de progression",
     tapTitle: "Toucher pour avancer",
-    tapDescription: "Quand le navigateur est actif, toucher la page fait avancer d’un pas. Les barres d’outils s’ouvrent depuis la barre flottante.",
+    tapDescription:
+      "Quand le navigateur est actif, toucher la page fait avancer d’un pas. Les barres d’outils s’ouvrent depuis la barre flottante.",
     scrollTitle: "Balayer pas à pas",
-    scrollDescription: "Quand le navigateur est actif, balayer ou faire défiler avance d'un pas au lieu de faire défiler la page — un pas par geste : vers le haut pour le suivant, vers le bas pour le précédent.",
-    shortcutDescription: "Actif lorsque la lecture par phrase ou paragraphe est activée. Les raccourcis de sélection agissent aussi sur la phrase ou le paragraphe courant.",
+    scrollDescription:
+      "Quand le navigateur est actif, balayer ou faire défiler avance d'un pas au lieu de faire défiler la page — un pas par geste : vers le haut pour le suivant, vers le bas pour le précédent.",
+    shortcutDescription:
+      "Actif lorsque la lecture par phrase ou paragraphe est activée. Les raccourcis de sélection agissent aussi sur la phrase ou le paragraphe courant.",
     volumeKeys: "Parcourir les phrases avec les touches de volume",
     sentence: { label: "Par phrase", previous: "Phrase précédente", next: "Phrase suivante" },
     paragraph: {
       label: "Par paragraphe",
       previous: "Paragraphe précédent",
       next: "Paragraphe suivant",
-      toggle: "Mode paragraphe"
-    }
+      toggle: "Mode paragraphe",
+    },
   },
   de: {
     title: "Satz- oder absatzweise lesen",
@@ -131,18 +177,21 @@ var COPY = {
     settingsDescription: "Wie das satz- oder absatzweise Lesen durch das Buch schreitet.",
     unitLabel: "Schritteinheit",
     tapTitle: "Tippen zum Weitergehen",
-    tapDescription: "Solange der Navigator aktiv ist, springt ein Tippen auf die Seite einen Schritt weiter. Die Symbolleisten öffnen sich stattdessen über die schwebende Leiste.",
+    tapDescription:
+      "Solange der Navigator aktiv ist, springt ein Tippen auf die Seite einen Schritt weiter. Die Symbolleisten öffnen sich stattdessen über die schwebende Leiste.",
     scrollTitle: "Schrittweise wischen",
-    scrollDescription: "Solange der Navigator aktiv ist, bewegt Wischen oder Scrollen einen Schritt, statt die Seite zu scrollen — genau ein Schritt pro Geste: nach oben für den nächsten, nach unten für den vorherigen.",
-    shortcutDescription: "Aktiv, solange satz- oder absatzweises Lesen eingeschaltet ist. Die Auswahl-Kurzbefehle wirken dann auf den aktuellen Satz oder Absatz.",
+    scrollDescription:
+      "Solange der Navigator aktiv ist, bewegt Wischen oder Scrollen einen Schritt, statt die Seite zu scrollen — genau ein Schritt pro Geste: nach oben für den nächsten, nach unten für den vorherigen.",
+    shortcutDescription:
+      "Aktiv, solange satz- oder absatzweises Lesen eingeschaltet ist. Die Auswahl-Kurzbefehle wirken dann auf den aktuellen Satz oder Absatz.",
     volumeKeys: "Sätze mit den Lautstärketasten durchgehen",
     sentence: { label: "Satzweise", previous: "Vorheriger Satz", next: "Nächster Satz" },
     paragraph: {
       label: "Absatzweise",
       previous: "Vorheriger Absatz",
       next: "Nächster Absatz",
-      toggle: "Absatzmodus"
-    }
+      toggle: "Absatzmodus",
+    },
   },
   ru: {
     title: "Чтение по предложениям или абзацам",
@@ -156,22 +205,25 @@ var COPY = {
     settingsDescription: "Как чтение по предложениям или абзацам движется по книге.",
     unitLabel: "Единица шага",
     tapTitle: "Переход по касанию",
-    tapDescription: "Пока навигатор включён, касание страницы делает шаг вперёд. Панели инструментов открываются кнопкой на плавающей панели.",
+    tapDescription:
+      "Пока навигатор включён, касание страницы делает шаг вперёд. Панели инструментов открываются кнопкой на плавающей панели.",
     scrollTitle: "Шаг по свайпу",
-    scrollDescription: "Пока навигатор включён, свайп или прокрутка делают один шаг вместо прокрутки страницы — один шаг за жест: вверх — следующий, вниз — предыдущий.",
-    shortcutDescription: "Работает, пока включено чтение по предложениям или абзацам. Сочетания клавиш выделения действуют на текущее предложение или абзац.",
+    scrollDescription:
+      "Пока навигатор включён, свайп или прокрутка делают один шаг вместо прокрутки страницы — один шаг за жест: вверх — следующий, вниз — предыдущий.",
+    shortcutDescription:
+      "Работает, пока включено чтение по предложениям или абзацам. Сочетания клавиш выделения действуют на текущее предложение или абзац.",
     volumeKeys: "Листать предложения кнопками громкости",
     sentence: {
       label: "По предложениям",
       previous: "Предыдущее предложение",
-      next: "Следующее предложение"
+      next: "Следующее предложение",
     },
     paragraph: {
       label: "По абзацам",
       previous: "Предыдущий абзац",
       next: "Следующий абзац",
-      toggle: "Режим абзацев"
-    }
+      toggle: "Режим абзацев",
+    },
   },
   es: {
     title: "Leer por frase o párrafo",
@@ -185,30 +237,39 @@ var COPY = {
     settingsDescription: "Cómo avanza la lectura por frase o párrafo por el libro.",
     unitLabel: "Unidad de paso",
     tapTitle: "Tocar para avanzar",
-    tapDescription: "Con el navegador activo, tocar la página avanza un paso. Las barras de herramientas se abren desde la barra flotante.",
+    tapDescription:
+      "Con el navegador activo, tocar la página avanza un paso. Las barras de herramientas se abren desde la barra flotante.",
     scrollTitle: "Deslizar por pasos",
-    scrollDescription: "Con el navegador activo, deslizar o desplazarse mueve un paso en lugar de desplazar la página — un paso por gesto: hacia arriba para el siguiente, hacia abajo para el anterior.",
-    shortcutDescription: "Activo mientras la lectura por frase o párrafo está encendida. Los atajos de selección también actúan sobre la frase o el párrafo actual.",
+    scrollDescription:
+      "Con el navegador activo, deslizar o desplazarse mueve un paso en lugar de desplazar la página — un paso por gesto: hacia arriba para el siguiente, hacia abajo para el anterior.",
+    shortcutDescription:
+      "Activo mientras la lectura por frase o párrafo está encendida. Los atajos de selección también actúan sobre la frase o el párrafo actual.",
     volumeKeys: "Recorrer frases con las teclas de volumen",
     sentence: { label: "Por frase", previous: "Frase anterior", next: "Frase siguiente" },
     paragraph: {
       label: "Por párrafo",
       previous: "Párrafo anterior",
       next: "Párrafo siguiente",
-      toggle: "Modo párrafo"
-    }
-  }
-};
-function localized(select) {
-  const translations = Object.fromEntries(Object.entries(COPY).filter(([locale]) => locale !== "en").map(([locale, copy]) => [locale, select(copy)]));
+      toggle: "Modo párrafo",
+    },
+  },
+} satisfies Record<string, LocaleCopy>;
+
+function localized(select: (copy: LocaleCopy) => string): PluginLocalizedText {
+  const translations = Object.fromEntries(
+    Object.entries(COPY)
+      .filter(([locale]) => locale !== "en")
+      .map(([locale, copy]) => [locale, select(copy)]),
+  );
   return { default: select(COPY.en), translations };
 }
-var sentenceReaderUnits = [
+
+export const sentenceReaderUnits: PluginReaderTextUnit[] = [
   {
     id: "sentence",
     label: localized((copy) => copy.sentence.label),
     previousLabel: localized((copy) => copy.sentence.previous),
-    nextLabel: localized((copy) => copy.sentence.next)
+    nextLabel: localized((copy) => copy.sentence.next),
   },
   {
     id: "paragraph",
@@ -216,10 +277,11 @@ var sentenceReaderUnits = [
     previousLabel: localized((copy) => copy.paragraph.previous),
     nextLabel: localized((copy) => copy.paragraph.next),
     toggleLabel: localized((copy) => copy.paragraph.toggle ?? copy.paragraph.label),
-    icon: "paragraph"
-  }
+    icon: "paragraph",
+  },
 ];
-var sentenceReaderCopy = {
+
+export const sentenceReaderCopy: PluginReaderModeCopy = {
   title: localized((copy) => copy.title),
   enable: localized((copy) => copy.enable),
   exit: localized((copy) => copy.exit),
@@ -233,93 +295,15 @@ var sentenceReaderCopy = {
     unitLabel: localized((copy) => copy.unitLabel),
     tapToAdvance: {
       title: localized((copy) => copy.tapTitle),
-      description: localized((copy) => copy.tapDescription)
+      description: localized((copy) => copy.tapDescription),
     },
     scrollToStep: {
       title: localized((copy) => copy.scrollTitle),
-      description: localized((copy) => copy.scrollDescription)
-    }
+      description: localized((copy) => copy.scrollDescription),
+    },
   },
   shortcuts: {
     description: localized((copy) => copy.shortcutDescription),
-    volumeKeys: localized((copy) => copy.volumeKeys)
-  }
-};
-
-// src/segment.ts
-function segmenterConstructor() {
-  if (typeof Intl === "undefined")
-    return null;
-  return Intl.Segmenter ?? null;
-}
-var segmenters = new Map;
-function sentenceSegmenter(language) {
-  const Segmenter = segmenterConstructor();
-  if (!Segmenter)
-    return null;
-  const key = language || "";
-  const cached = segmenters.get(key);
-  if (cached)
-    return cached;
-  let segmenter;
-  try {
-    segmenter = new Segmenter(language || undefined, { granularity: "sentence" });
-  } catch {
-    segmenter = segmenters.get("") ?? new Segmenter(undefined, { granularity: "sentence" });
-    segmenters.set("", segmenter);
-  }
-  segmenters.set(key, segmenter);
-  return segmenter;
-}
-function trimmedSpan(text) {
-  const leading = text.length - text.trimStart().length;
-  const trailing = text.length - text.trimEnd().length;
-  const end = text.length - trailing;
-  return end > leading ? [{ start: leading, end }] : [];
-}
-function segmentTextUnits({
-  text,
-  language,
-  unitId
-}) {
-  if (unitId === "paragraph")
-    return trimmedSpan(text);
-  if (unitId !== "sentence")
-    return [];
-  const segmenter = sentenceSegmenter(language);
-  if (!segmenter)
-    return trimmedSpan(text);
-  const segmentable = text.replace(/[\r\n\u0085\u2028\u2029]/g, " ");
-  const result = [];
-  for (const { index, segment } of segmenter.segment(segmentable)) {
-    const leading = segment.length - segment.trimStart().length;
-    const trailing = segment.length - segment.trimEnd().length;
-    const start = index + leading;
-    const end = index + segment.length - trailing;
-    if (end > start)
-      result.push({ start, end });
-  }
-  return result;
-}
-
-// src/index.ts
-var plugin = {
-  activate(ctx) {
-    const modes = ctx.reader.modes;
-    if (!modes)
-      throw new Error("Sentence Reader requires the reader:modes capability");
-    modes.register({
-      id: "guided-reading",
-      kind: "text-unit-navigator",
-      icon: "rows",
-      units: sentenceReaderUnits,
-      defaultUnitId: "sentence",
-      copy: sentenceReaderCopy,
-      segmentText: segmentTextUnits
-    });
-  }
-};
-var src_default = plugin;
-export {
-  src_default as default
+    volumeKeys: localized((copy) => copy.volumeKeys),
+  },
 };

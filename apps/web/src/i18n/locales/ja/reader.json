@@ -45,24 +45,6 @@
     "askAi": "これについてAIに質問",
     "remove": "削除"
   },
-  "navigator": {
-    "title": "文・段落ナビゲーター",
-    "enable": "文・段落ナビゲーターをオンにする",
-    "exit": "文・段落ナビゲーターを終了",
-    "prevSentence": "前の文",
-    "nextSentence": "次の文",
-    "prevParagraph": "前の段落",
-    "nextParagraph": "次の段落",
-    "returnToSentence": "現在の文に戻る",
-    "paragraphMode": "段落モード",
-    "showToolbars": "ツールバーを表示",
-    "granularityOption": {
-      "sentence": "文ごと",
-      "paragraph": "段落ごと"
-    },
-    "moreActions": "その他の操作",
-    "collapseActions": "操作を折りたたむ"
-  },
   "recolor": "{{color}}に色を変更",
   "colors": {
     "yellow": "黄色",

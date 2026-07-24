@@ -4,23 +4,20 @@
  * Builds an ordered list of DOM Ranges — one per unit — for a loaded section
  * document. Segmentation runs per block element (mirroring the block walk in
  * the vendored foliate-js `tts.js`): treating the whole document as one string
- * would fuse a heading into the first sentence of the paragraph after it,
- * since headings rarely end with sentence punctuation.
+ * would fuse a heading into the first unit of the following block because
+ * headings often lack terminal punctuation.
  *
  * The plugin receives only one block's plain text and returns offset spans.
  * This module keeps the Foliate document and live DOM Ranges inside the host.
  */
 
-import type {
-  PluginReaderMode,
-  PluginReaderUnitGranularity,
-} from "../../plugins/lib/plugin-types";
+import type { PluginReaderMode } from "../../plugins/lib/plugin-types";
 import { normalizeReaderTextSegments } from "../../plugins/lib/reader-mode";
 
-/** The navigator's step unit: one sentence, or one whole block element. */
-export type NavigatorGranularity = PluginReaderUnitGranularity;
+/** Opaque unit id declared by the active plugin mode. */
+export type TextUnitId = string;
 
-/** Block-level tags that reset sentence segmentation (from foliate's tts.js). */
+/** Block-level tags that reset unit segmentation (from foliate's tts.js). */
 const BLOCK_TAGS = new Set([
   "article", "aside", "audio", "blockquote", "caption",
   "details", "dialog", "div", "dl", "dt", "dd",
@@ -124,16 +121,15 @@ function segmentsToRanges(
 
 /**
  * All reading units of a section document, in reading order, as live DOM
- * Ranges. The document's `lang` (set by the engine from book metadata) picks
- * the segmentation locale; `paragraph` granularity skips sentence splitting
- * entirely and yields one (trimmed) unit per block.
+ * Ranges. The document's `lang` (set by the engine from book metadata) lets
+ * the plugin pick an appropriate segmentation locale.
  */
-export function buildSentenceRanges(
+export function buildTextUnitRanges(
   doc: Document,
-  granularity: NavigatorGranularity,
+  unitId: TextUnitId,
   segmentText: PluginReaderMode["segmentText"],
 ): Range[] {
-  const sentences: Range[] = [];
+  const units: Range[] = [];
   const language = doc.documentElement?.lang || undefined;
   for (const block of blockRanges(doc)) {
     const nodes = collectTextNodes(block);
@@ -141,30 +137,30 @@ export function buildSentenceRanges(
     const text = nodes.map((node) => node.nodeValue ?? "").join("");
     if (!text.trim()) continue;
     const segments = normalizeReaderTextSegments(
-      segmentText({ text, language, granularity }),
+      segmentText({ text, language, unitId }),
       text.length,
     );
-    sentences.push(...segmentsToRanges(nodes, segments));
+    units.push(...segmentsToRanges(nodes, segments));
   }
-  return sentences;
+  return units;
 }
 
 /**
- * The sentence to rest on for a given visible range: the first sentence still
+ * The unit to rest on for a given visible range: the first unit still
  * (at least partly) in view — i.e. whose end lies past the viewport start.
- * Falls back to the first sentence with no viewport, and to the last when the
- * viewport sits past every sentence. Returns -1 only for an empty list.
+ * Falls back to the first unit with no viewport, and to the last when the
+ * viewport sits past every unit. Returns -1 only for an empty list.
  */
-export function anchorSentenceIndex(sentences: Range[], visible: Range | null): number {
-  if (!sentences.length) return -1;
+export function anchorTextUnitIndex(units: Range[], visible: Range | null): number {
+  if (!units.length) return -1;
   if (!visible) return 0;
-  for (let i = 0; i < sentences.length; i++) {
+  for (let i = 0; i < units.length; i++) {
     try {
-      if (visible.compareBoundaryPoints(Range.END_TO_START, sentences[i]) <= 0) return i;
+      if (visible.compareBoundaryPoints(Range.END_TO_START, units[i]) <= 0) return i;
     } catch {
       // Stale range from a torn-down section — anchor to the start.
       return 0;
     }
   }
-  return sentences.length - 1;
+  return units.length - 1;
 }

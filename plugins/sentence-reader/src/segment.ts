@@ -53,9 +53,10 @@ function trimmedSpan(text: string): PluginReaderTextSegment[] {
 export function segmentTextUnits({
   text,
   language,
-  granularity,
+  unitId,
 }: PluginReaderTextSegmentInput): PluginReaderTextSegment[] {
-  if (granularity === "paragraph") return trimmedSpan(text);
+  if (unitId === "paragraph") return trimmedSpan(text);
+  if (unitId !== "sentence") return [];
 
   const segmenter = sentenceSegmenter(language);
   if (!segmenter) return trimmedSpan(text);

@@ -10,7 +10,8 @@ import { useState, type ReactNode } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import { Button, Caption, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
-import { useTranslation } from "../../../i18n";
+import { useLocale, useTranslation } from "../../../i18n";
+import { resolvePluginText } from "../../plugins/lib/plugin-i18n";
 import { renderPluginIcon } from "../../plugins/lib/plugin-icons";
 import {
   headerActionsAtom,
@@ -39,6 +40,7 @@ type Zone = "visible" | "overflow";
 
 export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
   const { t } = useTranslation("settings");
+  const locale = useLocale();
   const [config, setConfig] = useAtom(menuConfigAtom);
   const headerActions = useAtomValue(headerActionsAtom);
   const selectionActions = useAtomValue(selectionActionsAtom);
@@ -64,8 +66,14 @@ export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
     )
     .map((meta) => ({
       id: meta.id,
-      label: String(t(`menus.items.${meta.labelKey}` as never)),
-      icon: <meta.Icon size={16} weight="regular" aria-hidden="true" />,
+      label:
+        meta.id === "core:navigator" && textUnitReaderMode
+          ? resolvePluginText(textUnitReaderMode.copy.menuLabel, locale)
+          : String(t(`menus.items.${meta.labelKey}` as never)),
+      icon:
+        meta.id === "core:navigator" && textUnitReaderMode
+          ? renderPluginIcon(textUnitReaderMode.icon, 16)
+          : <meta.Icon size={16} weight="regular" aria-hidden="true" />,
       locked: false,
     }));
   const itemById = new Map([...coreItems, ...pluginItems].map((item) => [item.id, item]));

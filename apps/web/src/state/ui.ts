@@ -32,10 +32,10 @@ import {
   type ReadingStatsStore,
 } from "../features/reader/lib/reading-stats";
 import {
-  readNavigatorBehaviorPrefs,
-  writeNavigatorBehaviorPrefs,
-  type NavigatorBehaviorPrefs,
-} from "../features/reader/lib/navigator-prefs";
+  readTextUnitModeBehaviorPrefs,
+  writeTextUnitModeBehaviorPrefs,
+  type TextUnitModeBehaviorPrefs,
+} from "../features/reader/lib/text-unit-mode-state";
 import {
   getShelfView,
   saveShelfView,
@@ -129,14 +129,16 @@ export const effectiveReaderSettingsAtom = atom<ReaderSettings>((get) =>
   toEffectiveReaderSettings(get(readerPreferencesBaseAtom), get(resolvedAppThemeAtom)),
 );
 
-const navigatorPrefsBaseAtom = atom<NavigatorBehaviorPrefs>(readNavigatorBehaviorPrefs());
+const textUnitModePrefsBaseAtom = atom<TextUnitModeBehaviorPrefs>(
+  readTextUnitModeBehaviorPrefs(),
+);
 
-/** Sentence-navigator behavior: step granularity and tap-to-advance. */
-export const navigatorPrefsAtom = atom(
-  (get) => get(navigatorPrefsBaseAtom),
-  (_get, set, next: NavigatorBehaviorPrefs) => {
-    set(navigatorPrefsBaseAtom, next);
-    writeNavigatorBehaviorPrefs(next);
+/** Host behavior shared by plugin-defined text-unit reader modes. */
+export const textUnitModePrefsAtom = atom(
+  (get) => get(textUnitModePrefsBaseAtom),
+  (_get, set, next: TextUnitModeBehaviorPrefs) => {
+    set(textUnitModePrefsBaseAtom, next);
+    writeTextUnitModeBehaviorPrefs(next);
   },
 );
 

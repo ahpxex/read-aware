@@ -81,20 +81,7 @@
       "title": "ページの色",
       "description": "本の紙の色。「自動」はアプリのテーマに従い、その他は固定です。"
     },
-    "pageMargins": "余白",
-    "navigator": {
-      "title": "文・段落ナビゲーター",
-      "description": "文・段落ナビゲーターの進み方の設定。",
-      "granularity": "ステップ単位",
-      "tapToAdvance": {
-        "title": "タップで進む",
-        "description": "ナビゲーターがオンの間、ページをタップすると次へ進みます。ツールバーはフローティングバーのボタンから開きます。"
-      },
-      "scrollToStep": {
-        "title": "スワイプで移動",
-        "description": "ナビゲーターがオンの間、スワイプやスクロールはページを連続スクロールせず、1回につき1ステップだけ移動します。上へスワイプで次へ、下へスワイプで前へ。"
-      }
-    }
+    "pageMargins": "余白"
   },
   "shortcuts": {
     "title": "ショートカット",
@@ -102,13 +89,11 @@
     "categories": {
       "Global": "全体",
       "Reading": "読書",
-      "Navigator": "文・段落ナビゲーター",
       "Selection": "選択",
       "Overlays": "オーバーレイ"
     },
     "categoryDescriptions": {
-      "selection": "リーダーでテキストを選択しているときに有効です。",
-      "navigator": "文・段落ナビゲーターがオンの間に有効です。選択のショートカットは現在の文や段落にも作用します。"
+      "selection": "リーダーでテキストを選択しているときに有効です。"
     },
     "actions": {
       "search": "検索を開く",
@@ -118,9 +103,6 @@
       "next-chapter": "次の章",
       "prev-chapter": "前の章",
       "toggle-controls": "リーダーの操作を切り替え",
-      "navigator-next-sentence": "次の文",
-      "navigator-prev-sentence": "前の文",
-      "navigator-volume-keys": "音量キーで文を移動",
       "selection-copy": "コピー",
       "selection-highlight": "ハイライト",
       "selection-underline": "下線",
@@ -373,7 +355,6 @@
       "settings": "設定",
       "toc": "目次",
       "notes": "ノート",
-      "navigator": "文ナビゲーター",
       "appearance": "外観",
       "chat": "チャット",
       "copy": "コピー",

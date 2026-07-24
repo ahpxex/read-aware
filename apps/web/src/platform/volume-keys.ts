@@ -12,7 +12,7 @@ export type VolumeStepDirection = "next" | "prev";
 
 /**
  * Route Android's volume keys to the app (dispatched as VOLUME_STEP_EVENT)
- * instead of the system volume. Enabled only while the sentence navigator is
+ * instead of the system volume. Enabled only while a text-unit reader mode is
  * on, so the keys keep their normal job otherwise. No-op off Android — iOS
  * offers no public API for capturing the volume buttons.
  */

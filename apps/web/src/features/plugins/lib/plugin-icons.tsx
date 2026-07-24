@@ -32,8 +32,10 @@ import {
   MagnifyingGlass,
   NotePencil,
   Notebook,
+  Paragraph,
   PuzzlePiece,
   Quotes,
+  Rows,
   Share,
   Sparkle,
   Star,
@@ -43,6 +45,7 @@ import {
   Trash,
   UploadSimple,
   type Icon,
+  type IconWeight,
 } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 
@@ -75,8 +78,10 @@ const PLUGIN_ICONS: Record<string, Icon> = {
   "magnifying-glass": MagnifyingGlass,
   "note-pencil": NotePencil,
   notebook: Notebook,
+  paragraph: Paragraph,
   "puzzle-piece": PuzzlePiece,
   quotes: Quotes,
+  rows: Rows,
   share: Share,
   sparkle: Sparkle,
   star: Star,
@@ -94,7 +99,11 @@ export const PLUGIN_ICON_NAMES = Object.keys(PLUGIN_ICONS);
  * Resolve a contribution icon by name; unknown/missing names fall back to the
  * puzzle piece so third-party entries stay recognizably plugin-provided.
  */
-export function renderPluginIcon(name: string | undefined, size = 16): ReactNode {
+export function renderPluginIcon(
+  name: string | undefined,
+  size = 16,
+  weight: IconWeight = "regular",
+): ReactNode {
   const Glyph = (name && PLUGIN_ICONS[name]) || PuzzlePiece;
-  return <Glyph size={size} weight="regular" aria-hidden="true" />;
+  return <Glyph size={size} weight={weight} aria-hidden="true" />;
 }

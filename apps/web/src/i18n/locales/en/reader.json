@@ -45,24 +45,6 @@
     "askAi": "Ask AI about this",
     "remove": "Remove"
   },
-  "navigator": {
-    "title": "Read by sentence or paragraph",
-    "enable": "Start reading by sentence or paragraph",
-    "exit": "Exit reading by sentence or paragraph",
-    "prevSentence": "Previous sentence",
-    "nextSentence": "Next sentence",
-    "prevParagraph": "Previous paragraph",
-    "nextParagraph": "Next paragraph",
-    "returnToSentence": "Back to current sentence",
-    "paragraphMode": "Paragraph mode",
-    "showToolbars": "Show toolbars",
-    "granularityOption": {
-      "sentence": "By sentence",
-      "paragraph": "By paragraph"
-    },
-    "moreActions": "More actions",
-    "collapseActions": "Collapse actions"
-  },
   "recolor": "Recolor {{color}}",
   "colors": {
     "yellow": "yellow",

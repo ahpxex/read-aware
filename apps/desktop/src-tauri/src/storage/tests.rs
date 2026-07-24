@@ -37,6 +37,7 @@ fn event(id: &str, wall: i64, counter: i64) -> EventRow {
         aggregate_type: Some("book".to_string()),
         aggregate_id: Some(format!("agg-{id}")),
         actor_id: None,
+        origin: None,
         created_at: None,
         payload: serde_json::json!({ "bookId": format!("agg-{id}") }),
     }
@@ -50,7 +51,10 @@ fn fresh_migrate_reaches_latest_and_retires_interim_tables() {
             r.get(0)
         })
         .unwrap();
-    assert_eq!(version, 7);
+    // Tracks MIGRATIONS rather than a literal, so appending a migration can't
+    // silently rot this test the way a hard-coded version did.
+    let latest = MIGRATIONS.iter().map(|(v, _, _)| *v).max().unwrap();
+    assert_eq!(version, latest);
     for table in [
         "domain_events",
         "event_sync_state",
@@ -64,6 +68,10 @@ fn fresh_migrate_reaches_latest_and_retires_interim_tables() {
         "ai_messages",
         "app_kv",
         "local_device",
+        "reading_time_totals",
+        "reading_time_daily",
+        "reading_time_hourly",
+        "plugin_documents",
     ] {
         assert!(table_exists(&conn, table), "missing table {table}");
     }
@@ -529,4 +537,537 @@ fn blob_file_names_are_safe_and_injective() {
     assert!(blob_file_name("font:https://x/y?z=1")
         .chars()
         .all(|c| c.is_ascii_alphanumeric() || "._-%".contains(c)));
+}
+
+// ─── Event application, rebuild, and drift detection ─────────────────────────
+
+fn ev(id: &str, wall: i64, kind: &str, payload: serde_json::Value) -> EventRow {
+    EventRow {
+        id: id.to_string(),
+        event_type: kind.to_string(),
+        hlc: Hlc {
+            wall_ms: wall,
+            counter: 0,
+            device_id: "device-a".to_string(),
+        },
+        schema_version: None,
+        aggregate_type: None,
+        aggregate_id: None,
+        actor_id: None,
+        origin: None,
+        created_at: None,
+        payload,
+    }
+}
+
+fn imported(id: &str, wall: i64, book: &str, title: &str) -> EventRow {
+    ev(
+        id,
+        wall,
+        "book.imported",
+        serde_json::json!({
+            "bookId": book, "title": title, "author": "作者",
+            "format": "epub", "fileName": "b.epub", "fileSize": 42,
+            "sourceBlobKey": format!("bookfile:{book}"),
+        }),
+    )
+}
+
+fn scalar<T: rusqlite::types::FromSql>(conn: &Connection, sql: &str) -> T {
+    conn.query_row(sql, [], |r| r.get(0)).unwrap()
+}
+
+#[test]
+fn rust_and_sqlite_agree_on_event_timestamps() {
+    // apply_event derives created_at in Rust; append_events derives it in SQL.
+    // A mismatch would make replayed rows differ from live ones by timestamp
+    // alone, which would look like drift forever.
+    let conn = migrated_conn();
+    for wall in [0_i64, 1, 1_700_000_000_123, 999_999_999_999, 1_500_000_000_000] {
+        let sql: String = conn
+            .query_row(
+                "SELECT strftime('%Y-%m-%dT%H:%M:%fZ', ?1 / 1000.0, 'unixepoch')",
+                params![wall],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(apply::iso_from_millis(wall), sql, "wall={wall}");
+    }
+    assert_eq!(apply::iso_from_millis(0), "1970-01-01T00:00:00.000Z");
+}
+
+#[test]
+fn commit_derives_projections_from_events_alone() {
+    let mut conn = migrated_conn();
+    let report = commit_events_inner(
+        &mut conn,
+        &[
+            ev(
+                "e0",
+                1_000,
+                "collection.created",
+                serde_json::json!({ "collectionId": "c1", "name": "科幻" }),
+            ),
+            imported("e1", 1_001, "b1", "沙丘"),
+            ev(
+                "e2",
+                1_002,
+                "book.addedToCollection",
+                serde_json::json!({ "bookId": "b1", "collectionId": "c1" }),
+            ),
+            ev(
+                "e3",
+                1_003,
+                "highlight.created",
+                serde_json::json!({
+                    "highlightId": "h1", "bookId": "b1", "anchor": "epubcfi(/6/4)",
+                    "text": "恐惧是思维杀手", "color": "yellow",
+                }),
+            ),
+            ev(
+                "e4",
+                1_004,
+                "reading.progressed",
+                serde_json::json!({
+                    "bookId": "b1", "locator": "epubcfi(/6/8)", "progressPercent": 37.5,
+                    "status": "reading", "currentLocation": 30, "totalLocations": 80,
+                }),
+            ),
+        ],
+    )
+    .unwrap();
+    assert_eq!(report.appended, 5);
+    assert_eq!(report.applied, 5);
+
+    // No frontend write touched these tables — every row came from the log.
+    assert_eq!(scalar::<String>(&conn, "SELECT title FROM books WHERE id='b1'"), "沙丘");
+    assert_eq!(
+        scalar::<String>(&conn, "SELECT collection_id FROM books WHERE id='b1'"),
+        "c1"
+    );
+    assert_eq!(
+        scalar::<f64>(&conn, "SELECT progress_percent FROM books WHERE id='b1'"),
+        37.5
+    );
+    assert_eq!(
+        scalar::<String>(&conn, "SELECT reading_status FROM books WHERE id='b1'"),
+        "reading"
+    );
+    assert_eq!(
+        scalar::<String>(&conn, "SELECT color FROM annotations WHERE id='h1'"),
+        "yellow"
+    );
+    // The projection carries ReaderProgress verbatim, anchor included, and
+    // encodes numbers the way the frontend's JSON.stringify does.
+    let progress: String = scalar(&conn, "SELECT progress_json FROM books WHERE id='b1'");
+    assert!(progress.contains("epubcfi(/6/8)"), "progress={progress}");
+    assert!(progress.contains("\"progressPercent\":37.5"), "progress={progress}");
+}
+
+#[test]
+fn redelivered_events_do_not_double_apply() {
+    let mut conn = migrated_conn();
+    let batch = vec![
+        imported("e1", 1_000, "b1", "沙丘"),
+        ev(
+            "e2",
+            1_001,
+            "reading.timeRecorded",
+            serde_json::json!({
+                "bookId": "b1", "ms": 60_000, "atEpochMs": 1_700_000_000_000_i64,
+                "localDay": "2023-11-15", "localHour": 6,
+            }),
+        ),
+    ];
+    let first = commit_events_inner(&mut conn, &batch).unwrap();
+    let second = commit_events_inner(&mut conn, &batch).unwrap();
+
+    assert_eq!(first.appended, 2);
+    assert_eq!(second.appended, 0, "duplicate ids must be rejected by the log");
+    // reading_time accumulates, so a second apply would silently double it.
+    assert_eq!(
+        scalar::<i64>(&conn, "SELECT total_ms FROM reading_time_totals WHERE book_id='b1'"),
+        60_000
+    );
+    assert_eq!(
+        scalar::<i64>(&conn, "SELECT ms FROM reading_time_daily WHERE book_id='b1'"),
+        60_000
+    );
+}
+
+#[test]
+fn a_failed_event_rolls_back_the_whole_commit() {
+    let mut conn = migrated_conn();
+    let result = commit_events_inner(
+        &mut conn,
+        &[
+            imported("e1", 1_000, "b1", "沙丘"),
+            // Missing `title`: a projection column that cannot be defaulted.
+            ev(
+                "e2",
+                1_001,
+                "book.imported",
+                serde_json::json!({ "bookId": "b2", "format": "epub", "fileName": "x", "fileSize": 1 }),
+            ),
+        ],
+    );
+    assert!(result.is_err(), "malformed payload must fail the commit");
+    // Atomicity: the good event in the same batch left no trace either.
+    assert_eq!(scalar::<i64>(&conn, "SELECT COUNT(*) FROM books"), 0);
+    assert_eq!(scalar::<i64>(&conn, "SELECT COUNT(*) FROM domain_events"), 0);
+}
+
+#[test]
+fn rebuild_reproduces_projections_and_keeps_cover_cache() {
+    let mut conn = migrated_conn();
+    commit_events_inner(
+        &mut conn,
+        &[
+            imported("e1", 1_000, "b1", "沙丘"),
+            imported("e2", 1_001, "b2", "神经漫游者"),
+            ev(
+                "e3",
+                1_002,
+                "note.created",
+                serde_json::json!({
+                    "noteId": "n1", "bookId": "b1", "quotedText": "引用", "body": "笔记正文",
+                }),
+            ),
+            ev("e4", 1_003, "book.removed", serde_json::json!({ "bookId": "b2" })),
+        ],
+    )
+    .unwrap();
+    // Covers are extracted locally from object-storage content, not replayed.
+    conn.execute(
+        "UPDATE books SET cover_url = 'data:image/png;base64,AAA', cover_checked = 1 WHERE id='b1'",
+        [],
+    )
+    .unwrap();
+
+    let before_books = scalar::<i64>(&conn, "SELECT COUNT(*) FROM books");
+    let report = {
+        let tx = conn.transaction().unwrap();
+        let r = replay_into(&tx).unwrap();
+        tx.commit().unwrap();
+        r
+    };
+
+    assert_eq!(report.events_replayed, 4);
+    assert_eq!(scalar::<i64>(&conn, "SELECT COUNT(*) FROM books"), before_books);
+    // book.removed replayed: b2 stays gone, and so do its annotations.
+    assert_eq!(scalar::<i64>(&conn, "SELECT COUNT(*) FROM books WHERE id='b2'"), 0);
+    assert_eq!(
+        scalar::<String>(&conn, "SELECT content FROM annotations WHERE id='n1'"),
+        "笔记正文"
+    );
+    assert_eq!(
+        scalar::<String>(&conn, "SELECT text FROM annotations WHERE id='n1'"),
+        "引用"
+    );
+    // The local cache survived the wipe — no re-extraction pass needed.
+    assert_eq!(
+        scalar::<String>(&conn, "SELECT cover_url FROM books WHERE id='b1'"),
+        "data:image/png;base64,AAA"
+    );
+    assert_eq!(
+        scalar::<i64>(&conn, "SELECT cover_checked FROM books WHERE id='b1'"),
+        1
+    );
+}
+
+#[test]
+fn verify_passes_when_every_row_came_from_the_log() {
+    let mut conn = migrated_conn();
+    commit_events_inner(
+        &mut conn,
+        &[
+            imported("e1", 1_000, "b1", "沙丘"),
+            ev(
+                "e2",
+                1_001,
+                "highlight.created",
+                serde_json::json!({ "highlightId": "h1", "bookId": "b1", "text": "片段" }),
+            ),
+            ev(
+                "e3",
+                1_002,
+                "memory.promoted",
+                serde_json::json!({
+                    "memoryId": "m1", "kind": "preference", "scope": "book",
+                    "bookId": "b1", "content": "偏好长句", "importance": 0.7,
+                }),
+            ),
+        ],
+    )
+    .unwrap();
+
+    let tx = conn.transaction().unwrap();
+    let mut live = std::collections::BTreeMap::new();
+    for spec in apply::DIFF_SPECS {
+        live.insert(spec.table, snapshot_table(&tx, spec).unwrap());
+    }
+    replay_into(&tx).unwrap();
+    for spec in apply::DIFF_SPECS {
+        assert_eq!(
+            snapshot_table(&tx, spec).unwrap(),
+            live[spec.table],
+            "table {} differs after replay",
+            spec.table
+        );
+    }
+    tx.rollback().unwrap();
+}
+
+#[test]
+fn verify_detects_a_projection_write_the_log_never_saw() {
+    let mut conn = migrated_conn();
+    commit_events_inner(&mut conn, &[imported("e1", 1_000, "b1", "沙丘")]).unwrap();
+    // Exactly the old failure mode: a row written straight to the projection
+    // while its event append was dropped.
+    conn.execute(
+        "INSERT INTO annotations (id, book_id, type, text, created_at, updated_at)
+         VALUES ('ghost', 'b1', 'highlight', '幽灵高亮', '2026-01-01T00:00:00.000Z',
+                 '2026-01-01T00:00:00.000Z')",
+        [],
+    )
+    .unwrap();
+
+    let spec = apply::DIFF_SPECS
+        .iter()
+        .find(|s| s.table == "annotations")
+        .unwrap();
+    let tx = conn.transaction().unwrap();
+    let live = snapshot_table(&tx, spec).unwrap();
+    replay_into(&tx).unwrap();
+    let replayed = snapshot_table(&tx, spec).unwrap();
+    tx.rollback().unwrap();
+
+    assert_eq!(live.len(), 1, "the ghost row is present live");
+    assert!(replayed.is_empty(), "a replay cannot produce it");
+    assert_ne!(live, replayed, "verify must flag this as drift");
+}
+
+#[test]
+fn unknown_and_unprojected_events_are_accepted_but_change_nothing() {
+    let mut conn = migrated_conn();
+    let report = commit_events_inner(
+        &mut conn,
+        &[
+            // A type only a newer build knows about.
+            ev("e1", 1_000, "book.teleported", serde_json::json!({ "bookId": "b9" })),
+            ev("e2", 1_001, "profile.updated", serde_json::json!({ "displayName": "破晓" })),
+            ev(
+                "e3",
+                1_002,
+                "book.coverExtracted",
+                serde_json::json!({ "bookId": "b9", "status": "ready" }),
+            ),
+        ],
+    )
+    .unwrap();
+    assert_eq!(report.appended, 3, "the log keeps everything");
+    assert_eq!(report.applied, 0, "none of them owns a projection row");
+    assert_eq!(scalar::<i64>(&conn, "SELECT COUNT(*) FROM books"), 0);
+}
+
+#[test]
+fn whole_percentages_serialize_without_a_fractional_part() {
+    let mut conn = migrated_conn();
+    commit_events_inner(
+        &mut conn,
+        &[
+            imported("e1", 1_000, "b1", "沙丘"),
+            ev(
+                "e2",
+                1_001,
+                "reading.progressed",
+                serde_json::json!({
+                    "bookId": "b1", "locator": "epubcfi(/6/2)", "progressPercent": 63,
+                    "currentLocation": 10, "totalLocations": 16,
+                }),
+            ),
+        ],
+    )
+    .unwrap();
+    let progress: String = scalar(&conn, "SELECT progress_json FROM books WHERE id='b1'");
+    // JS writes `63`; Rust must not write `63.0` for the same value, or every
+    // historical row would read as drift purely over formatting.
+    assert!(progress.contains("\"progressPercent\":63"), "progress={progress}");
+    assert!(!progress.contains("63.0"), "progress={progress}");
+}
+
+#[test]
+fn reading_time_genesis_reproduces_the_aggregates_exactly() {
+    let mut conn = migrated_conn();
+    commit_events_inner(&mut conn, &[imported("e1", 1_000, "b1", "沙丘")]).unwrap();
+    // Pre-event-era state: aggregates written directly, no events behind them.
+    for (day, ms) in [("2026-07-01", 3_600_000_i64), ("2026-07-02", 1_800_000)] {
+        conn.execute(
+            "INSERT INTO reading_time_daily (book_id, local_day, ms) VALUES ('b1', ?1, ?2)",
+            params![day, ms],
+        )
+        .unwrap();
+    }
+    for (hour, ms) in [(9_i64, 4_000_000_i64), (22, 1_400_000)] {
+        conn.execute(
+            "INSERT INTO reading_time_hourly (book_id, local_hour, ms) VALUES ('b1', ?1, ?2)",
+            params![hour, ms],
+        )
+        .unwrap();
+    }
+    conn.execute(
+        "INSERT INTO reading_time_totals (book_id, total_ms, first_started_at, last_read_at)
+         VALUES ('b1', 5400000, 1751328000000, 1751500000000)",
+        [],
+    )
+    .unwrap();
+
+    fn aggregates(c: &Connection) -> (i64, i64, i64, Vec<(String, i64)>, Vec<(i64, i64)>) {
+        let (total, first, last) = c
+            .query_row(
+                "SELECT total_ms, first_started_at, last_read_at
+                   FROM reading_time_totals WHERE book_id = 'b1'",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )
+            .unwrap();
+        let mut d = c
+            .prepare("SELECT local_day, ms FROM reading_time_daily ORDER BY local_day")
+            .unwrap();
+        let days = d
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+            .unwrap()
+            .map(Result::unwrap)
+            .collect();
+        let mut h = c
+            .prepare("SELECT local_hour, ms FROM reading_time_hourly ORDER BY local_hour")
+            .unwrap();
+        let hours = h
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+            .unwrap()
+            .map(Result::unwrap)
+            .collect();
+        (total, first, last, days, hours)
+    }
+    let original = aggregates(&conn);
+
+    let synthesized = reading_time_genesis_inner(&mut conn).unwrap();
+    assert!(synthesized > 0, "expected synthesized ticks");
+    assert_eq!(
+        aggregates(&conn),
+        original,
+        "reconstruction must leave every statistic untouched"
+    );
+
+    // Second run is a no-op: the log now covers the aggregates exactly, so the
+    // deficit it computes is zero. (A count-based guard would be wrong here —
+    // a library can hold a FEW real timeRecorded events from the old path.)
+    assert_eq!(reading_time_genesis_inner(&mut conn).unwrap(), 0);
+
+    // And now the log stands on its own: wipe the tables, replay, same numbers.
+    // This is what makes rebuild_projections safe on a library with history.
+    let tx = conn.transaction().unwrap();
+    replay_into(&tx).unwrap();
+    tx.commit().unwrap();
+    assert_eq!(aggregates(&conn), original, "a full replay must reproduce them");
+}
+
+#[test]
+fn reading_time_genesis_tops_up_around_events_already_in_the_log() {
+    let mut conn = migrated_conn();
+    // One real tick made it into the log through the old best-effort path...
+    commit_events_inner(
+        &mut conn,
+        &[
+            imported("e1", 1_000, "b1", "沙丘"),
+            ev(
+                "e2",
+                1_001,
+                "reading.timeRecorded",
+                serde_json::json!({
+                    "bookId": "b1", "ms": 600_000, "atEpochMs": 1_751_328_000_000_i64,
+                    "localDay": "2026-07-01", "localHour": 9,
+                }),
+            ),
+        ],
+    )
+    .unwrap();
+    // ...while the projection accumulated far more that never got logged.
+    conn.execute(
+        "UPDATE reading_time_daily SET ms = 3600000 WHERE book_id='b1'",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "UPDATE reading_time_hourly SET ms = 3600000 WHERE book_id='b1'",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "UPDATE reading_time_totals SET total_ms = 3600000 WHERE book_id='b1'",
+        [],
+    )
+    .unwrap();
+
+    let synthesized = reading_time_genesis_inner(&mut conn).unwrap();
+    assert!(synthesized > 0);
+
+    // Replaying everything must land on the projection's value — not on
+    // 3_600_000 + 600_000, which is what synthesizing the full amount on top of
+    // the already-logged tick would produce.
+    let tx = conn.transaction().unwrap();
+    replay_into(&tx).unwrap();
+    tx.commit().unwrap();
+    assert_eq!(
+        scalar::<i64>(&conn, "SELECT ms FROM reading_time_daily WHERE book_id='b1'"),
+        3_600_000
+    );
+    assert_eq!(
+        scalar::<i64>(&conn, "SELECT total_ms FROM reading_time_totals WHERE book_id='b1'"),
+        3_600_000
+    );
+}
+
+// ─── Secret storage ──────────────────────────────────────────────────────────
+
+#[test]
+fn secrets_round_trip_and_are_useless_without_the_key_file() {
+    use crate::secrets::{decrypt, encrypt};
+    let dir = tempfile::tempdir().unwrap();
+    let sealed = encrypt(dir.path(), "sk-live-abc123").unwrap();
+
+    // Never at rest in the clear — that is the whole point of this backend.
+    assert!(!sealed.contains("sk-live"), "sealed={sealed}");
+    assert_eq!(decrypt(dir.path(), &sealed).unwrap(), "sk-live-abc123");
+
+    // Fresh nonce per write: the same plaintext must not seal to the same blob.
+    let again = encrypt(dir.path(), "sk-live-abc123").unwrap();
+    assert_ne!(sealed, again);
+    assert_eq!(decrypt(dir.path(), &again).unwrap(), "sk-live-abc123");
+
+    // Walking off with the database alone yields ciphertext and nothing else.
+    let elsewhere = tempfile::tempdir().unwrap();
+    assert!(decrypt(elsewhere.path(), &sealed).is_err());
+
+    // Tampering is detected rather than silently decrypting to garbage (GCM).
+    let mut corrupted = sealed.clone().into_bytes();
+    let last = corrupted.len() - 2;
+    corrupted[last] = if corrupted[last] == b'A' { b'B' } else { b'A' };
+    assert!(decrypt(dir.path(), &String::from_utf8(corrupted).unwrap()).is_err());
+}
+
+#[test]
+fn the_secret_key_file_is_owner_only() {
+    use crate::secrets::encrypt;
+    let dir = tempfile::tempdir().unwrap();
+    encrypt(dir.path(), "x").unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mode = std::fs::metadata(dir.path().join("secret.key"))
+            .unwrap()
+            .permissions()
+            .mode();
+        assert_eq!(mode & 0o777, 0o600, "got {:o}", mode & 0o777);
+    }
 }

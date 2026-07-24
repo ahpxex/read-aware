@@ -142,15 +142,15 @@ export function createBooksDomain(origin: EventOrigin): BooksDomain {
       notifyLibraryChanged();
     },
     addVirtualBook: async (input) => {
-      const book = await addVirtualLibraryBook({
-        title: String(input.title),
-        author: input.author,
-      });
+      const book = await addVirtualLibraryBook(
+        { title: String(input.title), author: input.author },
+        origin,
+      );
       notifyLibraryChanged();
       return toBookSummary(book);
     },
     updateVirtualBookTitle: async (bookId, title, author) => {
-      await updateVirtualLibraryBookTitle(String(bookId), String(title), author);
+      await updateVirtualLibraryBookTitle(String(bookId), String(title), author, origin);
       notifyLibraryChanged();
     },
   };

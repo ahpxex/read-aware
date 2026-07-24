@@ -1,13 +1,8 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useSetAtom } from "jotai";
 import { readingStatsAtom } from "../../../state/ui";
-import {
-  addReadingTime,
-  localDayKey,
-  localHour,
-  recordReadingTime,
-} from "../lib/reading-stats";
-import { emitDomainEvents } from "../../../platform/domain-events";
+import { addReadingTime, localDayKey, localHour } from "../lib/reading-stats";
+import { commitDomainEvents } from "../../../platform/domain-events";
 
 /** How often accumulated time is flushed to the stats seam. */
 const TICK_MS = 20_000;
@@ -64,12 +59,12 @@ export function useReadingTimeTracker(bookId: string | null, active: boolean) {
     lastTickRef.current = now;
     if (delta > 0) {
       setStats((prev) => addReadingTime(prev, bookId, delta, now));
-      // Write-through into the SQLite projection (the atom is memory-only).
-      recordReadingTime(bookId, delta, now);
-      // Dual-write into the event log (the sync unit). Local day/hour are
-      // stamped NOW, in this device's timezone — replaying later elsewhere
-      // must not re-bucket history (see reading.timeRecorded in events.ts).
-      emitDomainEvents({
+      // The event IS the write: committing it appends to the log and adds the
+      // delta to the reading_time projections in one transaction. Local
+      // day/hour are stamped NOW, in this device's timezone — replaying later
+      // elsewhere must not re-bucket history (see reading.timeRecorded in
+      // events.ts). The atom above is a memory-only mirror for live UI.
+      void commitDomainEvents({
         type: "reading.timeRecorded",
         payload: {
           bookId,
@@ -78,6 +73,8 @@ export function useReadingTimeTracker(bookId: string | null, active: boolean) {
           localDay: localDayKey(now),
           localHour: localHour(now),
         },
+      }).catch((error) => {
+        console.error("[reading-time] commit failed; this tick is not banked", error);
       });
     }
   }, [setStats]);

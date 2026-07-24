@@ -29,6 +29,12 @@ export async function listAllMemoryRows(): Promise<MemoryRecord[]> {
   return invoke<MemoryRow[]>("memories_list_all");
 }
 
+/**
+ * Raw upsert. NOT a write path for the agent — memory changes are stated as
+ * `memory.*` events and the store derives this table from them (see
+ * memory-port.ts). Kept for the one-time import of pre-event-era memories in
+ * platform/desktop-import.ts.
+ */
 export async function putMemoryRow(record: MemoryRecord): Promise<void> {
   assertDesktop();
   await invoke("memory_put", { memory: toRow(record) });

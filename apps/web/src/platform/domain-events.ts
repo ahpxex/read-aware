@@ -1,11 +1,14 @@
 /**
- * The domain-event append seam (desktop).
+ * The domain-event write seam (desktop).
  *
  * `domain_events` in SQLite is the append-only source of truth and the unit of
  * sync (CLAUDE.md > Memory and Context); the typed tables the app reads are
- * projections. Persistence seams (library-db, annotation-db, the reading-time
- * tracker) DUAL-WRITE through here: event first, projection second, so the log
- * stays a superset of what the projections show.
+ * projections DERIVED from it. Persistence seams (library-db, annotation-db,
+ * the reading-time tracker) state their intent as events and hand them to
+ * `commitDomainEvents`; SQLite appends and applies them in one transaction.
+ * Nothing in the app writes a projection row directly — the one exception is
+ * book cover artwork, a local cache over object-storage content that is not a
+ * domain fact and never enters the log.
  *
  * Envelope filling lives here: event id, HLC stamp, actor, aggregate routing.
  * The HLC is monotonic within a session and reseeds from the highest persisted
@@ -24,6 +27,7 @@ import type {
   HlcStamp,
 } from "@read-aware/core";
 import { isTauri } from "./environment";
+import { createHlcClock } from "./hlc";
 
 /**
  * What a call site provides: the typed event minus everything this module
@@ -97,31 +101,19 @@ type LocalDeviceInfo = {
   lastHlcCounter: number | null;
 };
 
-const clock = { wallMs: 0, counter: 0 };
+const clock = createHlcClock();
 let devicePromise: Promise<LocalDeviceInfo> | null = null;
 
 function getDeviceInfo(): Promise<LocalDeviceInfo> {
   devicePromise ??= invoke<LocalDeviceInfo>("local_device_get").then((info) => {
     // Reseed past every stamp this device already persisted.
-    clock.wallMs = Math.max(clock.wallMs, info.lastHlcWallMs ?? 0);
-    if (clock.wallMs === info.lastHlcWallMs) {
-      clock.counter = Math.max(clock.counter, (info.lastHlcCounter ?? -1) + 1);
-    }
+    clock.seed(info.lastHlcWallMs, info.lastHlcCounter);
     return info;
   });
   return devicePromise;
 }
 
-function nextHlc(deviceId: string): HlcStamp {
-  const now = Date.now();
-  if (now > clock.wallMs) {
-    clock.wallMs = now;
-    clock.counter = 0;
-  } else {
-    clock.counter += 1;
-  }
-  return { wallMs: clock.wallMs, counter: clock.counter, deviceId };
-}
+const nextHlc = (deviceId: string): HlcStamp => clock.next(deviceId);
 
 function toEventRow(draft: DomainEventDraft, deviceId: string): EventRowWire {
   const route = AGGREGATE_ROUTES[draft.type];
@@ -191,8 +183,11 @@ function broadcastDomainEvents(drafts: DomainEventDraft[]): void {
 }
 
 /**
- * Append events to the log, throwing on failure. Use where the caller owns the
- * outcome (genesis backfill); UX write paths use `emitDomainEvents` instead.
+ * Append events WITHOUT applying them to the projections.
+ *
+ * The one caller is genesis backfill, which synthesizes creation events for
+ * pre-event-era rows whose state the projection already holds. Everything that
+ * CHANGES state uses `commitDomainEvents`.
  */
 export async function appendDomainEvents(drafts: DomainEventDraft[]): Promise<void> {
   if (!isTauri() || drafts.length === 0) return;
@@ -201,18 +196,39 @@ export async function appendDomainEvents(drafts: DomainEventDraft[]): Promise<vo
   await invoke("append_events", { events });
 }
 
+/** What the store did with a commit — see the Rust `CommitReport`. */
+export type CommitReport = { appended: number; applied: number };
+
 /**
- * Best-effort append for UX write paths: a failed log write must not break the
- * user's action (the projection write still lands), so failures are logged and
- * swallowed. The boot-time genesis reconciliation re-synthesizes missed
- * CREATION events later; missed mutation events are accepted drift until the
- * projections are themselves replayed from the log.
+ * THE write path: hand the events to SQLite, which appends them to the log and
+ * applies them to the projections in ONE transaction.
+ *
+ * Callers no longer write projection rows themselves. That used to be a dual
+ * write — event fire-and-forget on one side, `library_put_book` and friends on
+ * the other — which could leave the log and the tables disagreeing with no way
+ * to notice. Now the tables are DERIVED: whatever this commits is what the app
+ * will read back, and `rebuild_projections` can reproduce it from the log alone.
+ *
+ * Throws if the store rejects the batch (nothing lands), so callers surface a
+ * real failure instead of showing a change that was never persisted.
  */
-export function emitDomainEvents(...drafts: DomainEventDraft[]): void {
+export async function commitDomainEvents(
+  ...drafts: DomainEventDraft[]
+): Promise<CommitReport> {
+  if (drafts.length === 0) return { appended: 0, applied: 0 };
+  if (!isTauri()) {
+    // Browser shell (vite dev / Storybook): no store at all. Observers still
+    // fire so UI wiring can be exercised, but nothing is persisted.
+    broadcastDomainEvents(drafts);
+    return { appended: 0, applied: 0 };
+  }
+  const { deviceId } = await getDeviceInfo();
+  const events = drafts.map((draft) => toEventRow(draft, deviceId));
+  const report = await invoke<CommitReport>("commit_events", { events });
+  // Broadcast only after the write succeeded — in-app observers must never see
+  // a change the store rejected.
   broadcastDomainEvents(drafts);
-  void appendDomainEvents(drafts).catch((error) => {
-    console.error("[domain-events] append failed; projections now lead the log", error);
-  });
+  return report;
 }
 
 /**

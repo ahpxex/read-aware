@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "../../../platform/environment";
-import { emitDomainEvents, type DomainEventDraft } from "../../../platform/domain-events";
+import { commitDomainEvents, type DomainEventDraft } from "../../../platform/domain-events";
 import type { ChatAssistantPart, ChatAttachment, ChatMessage } from "./chat-types";
 
 /**
@@ -9,12 +9,13 @@ import type { ChatAssistantPart, ChatAttachment, ChatMessage } from "./chat-type
  * Desktop (the product): SQLite `ai_conversations` / `ai_messages`
  * (storage.rs migration v6) — one row per message, whole-transcript replace on
  * save (mirrors how the conversation hook commits turns), tombstoned clear.
- * Saves DUAL-WRITE the conversation domain events by diffing against the
+ * Saves COMMIT the conversation domain events by diffing against the
  * last-known persisted transcript: `aiConversation.started` on the empty →
  * non-empty transition, `aiMessage.appended` per committed message (origin
  * "user"/"agent" by role), `aiMessage.removed` per truncated one (without it,
- * replay would resurrect retried turns). Error-stub messages stay
- * projection-only — transient UX, not conversation facts.
+ * replay would resurrect retried turns). The store applies those to the rows
+ * as it appends. Error stubs and rendered `parts` stay projection-only —
+ * transient UX, not conversation facts.
  *
  * Browser (dev / Storybook): a session-scoped in-memory map. Deliberately NOT
  * a persistence fallback — the browser build is a pure UI shell and the mock
@@ -187,9 +188,14 @@ export async function saveConversation(
     return;
   }
   try {
-    // Event first, projection second — the seam convention (domain-events.ts).
+    // The events carry the conversation facts (role/seq/content/attachments)
+    // and the store applies them to `ai_messages` as it appends. The replace
+    // that follows re-states the same transcript plus the two columns no event
+    // describes: `parts_json` (rendered structure) and `error` (a failed turn's
+    // stub, replaced on retry). Both are presentation state — see DIFF_SPECS in
+    // storage/apply.rs, which excludes them from the consistency check.
     const drafts = await conversationEventDrafts(conversationId, messages);
-    if (drafts.length > 0) emitDomainEvents(...drafts);
+    if (drafts.length > 0) await commitDomainEvents(...drafts);
     await invoke("ai_chat_replace", {
       conversationId,
       messages: messages.map((message, seq) => messageToRow(conversationId, message, seq)),
@@ -207,7 +213,10 @@ export async function clearConversation(conversationId: string): Promise<void> {
     memoryStore.delete(conversationId);
     return;
   }
-  emitDomainEvents({ type: "aiConversation.cleared", payload: { conversationId } });
+  // Applying the event drops the messages and tombstones the conversation;
+  // `ai_chat_clear` additionally removes any error stubs, which are local-only
+  // rows the log never described.
+  await commitDomainEvents({ type: "aiConversation.cleared", payload: { conversationId } });
   await invoke("ai_chat_clear", { conversationId });
   knownEventIds.set(conversationId, new Set());
 }

@@ -10,7 +10,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type { EventOrigin } from "@read-aware/core";
 import type { Annotation, AnnotationFilters, Ask, Highlight, Note } from "./annotation-types";
 import { isTauri } from "../../../platform/environment";
-import { emitDomainEvents } from "../../../platform/domain-events";
+import { commitDomainEvents } from "../../../platform/domain-events";
 
 function assertDesktop(what: string): never | void {
   if (!isTauri()) {
@@ -41,11 +41,11 @@ function filterAndSortAnnotations(
 
 // Generic annotation operations.
 //
-// `saveAnnotation` is the raw upsert (also used by backup restore, which emits
-// no events — genesis reconciliation covers restored rows at next boot). The
-// intent-level functions below (`createHighlight`, `recolorHighlight`,
-// `createNote`, `updateNote`, `createAsk`, `deleteAnnotation`) are the seams
-// that dual-write the domain-event log; new call sites should use those.
+// `saveAnnotation` is the raw upsert, kept for backup restore only: it writes a
+// row the log never described, which genesis reconciliation covers at next
+// boot. Every intent-level function below states its change as an event and
+// lets `commitDomainEvents` append + apply it in one transaction, then reads
+// the stored row back — the projection is derived, never written here.
 export async function saveAnnotation(annotation: Annotation): Promise<Annotation> {
   assertDesktop("Saving an annotation");
   await invoke("annotation_put", { annotation });
@@ -57,18 +57,24 @@ export async function getAnnotation(id: string): Promise<Annotation | null> {
   return (await invoke<Annotation | null>("annotation_get", { id })) ?? null;
 }
 
+/** Read back a row the store just derived from an event. */
+async function requireStored(id: string): Promise<Annotation> {
+  const stored = await getAnnotation(id);
+  if (!stored) throw new Error(`Annotation ${id} was not persisted`);
+  return stored;
+}
+
 export async function deleteAnnotation(id: string, origin?: EventOrigin): Promise<void> {
   assertDesktop("Deleting an annotation");
   // Read-before-delete so the removal event carries the right variant.
   const existing = await getAnnotation(id);
   if (existing?.type === "highlight") {
-    emitDomainEvents({ type: "highlight.removed", payload: { highlightId: id }, origin });
+    await commitDomainEvents({ type: "highlight.removed", payload: { highlightId: id }, origin });
   } else if (existing?.type === "note") {
-    emitDomainEvents({ type: "note.removed", payload: { noteId: id }, origin });
+    await commitDomainEvents({ type: "note.removed", payload: { noteId: id }, origin });
   } else if (existing?.type === "ask") {
-    emitDomainEvents({ type: "ask.removed", payload: { askId: id }, origin });
+    await commitDomainEvents({ type: "ask.removed", payload: { askId: id }, origin });
   }
-  await invoke("annotation_delete", { id });
 }
 
 export async function listAnnotations(filters?: AnnotationFilters): Promise<Annotation[]> {
@@ -104,23 +110,11 @@ export async function createHighlight(
   style: NonNullable<Highlight["style"]> = "highlight",
   origin?: EventOrigin,
 ): Promise<Highlight> {
-  const now = new Date().toISOString();
-  const highlight: Highlight = {
-    id: crypto.randomUUID(),
-    bookId,
-    type: "highlight",
-    cfiRange,
-    chapterHref,
-    text,
-    color,
-    style,
-    createdAt: now,
-    updatedAt: now,
-  };
-  emitDomainEvents({
+  const highlightId = crypto.randomUUID();
+  await commitDomainEvents({
     type: "highlight.created",
     payload: {
-      highlightId: highlight.id,
+      highlightId,
       bookId,
       anchor: cfiRange ?? undefined,
       chapterHref: chapterHref ?? undefined,
@@ -130,8 +124,7 @@ export async function createHighlight(
     },
     origin,
   });
-  const saved = (await saveAnnotation(highlight)) as Highlight;
-  return saved;
+  return requireStored(highlightId) as Promise<Highlight>;
 }
 
 /** Recolor / restyle an existing highlight (the reader's mark menu). */
@@ -140,17 +133,12 @@ export async function recolorHighlight(
   color: Highlight["color"],
   origin?: EventOrigin,
 ): Promise<Highlight> {
-  const updated: Highlight = {
-    ...highlight,
-    color,
-    updatedAt: new Date().toISOString(),
-  };
-  emitDomainEvents({
+  await commitDomainEvents({
     type: "highlight.recolored",
     payload: { highlightId: highlight.id, color, style: highlight.style },
     origin,
   });
-  return saveAnnotation(updated) as Promise<Highlight>;
+  return requireStored(highlight.id) as Promise<Highlight>;
 }
 
 export async function listHighlights(bookId?: string): Promise<Highlight[]> {
@@ -167,22 +155,11 @@ export async function createNote(
   content: string,
   origin?: EventOrigin,
 ): Promise<Note> {
-  const now = new Date().toISOString();
-  const note: Note = {
-    id: crypto.randomUUID(),
-    bookId,
-    type: "note",
-    cfiRange,
-    chapterHref,
-    text,
-    content,
-    createdAt: now,
-    updatedAt: now,
-  };
-  emitDomainEvents({
+  const noteId = crypto.randomUUID();
+  await commitDomainEvents({
     type: "note.created",
     payload: {
-      noteId: note.id,
+      noteId,
       bookId,
       anchor: cfiRange ?? undefined,
       chapterHref: chapterHref ?? undefined,
@@ -191,8 +168,7 @@ export async function createNote(
     },
     origin,
   });
-  const saved = (await saveAnnotation(note)) as Note;
-  return saved;
+  return requireStored(noteId) as Promise<Note>;
 }
 
 export async function updateNote(
@@ -203,13 +179,8 @@ export async function updateNote(
   const note = await getAnnotation(id);
   if (!note || note.type !== "note") return null;
 
-  const updated: Note = {
-    ...note,
-    content,
-    updatedAt: new Date().toISOString(),
-  };
-  emitDomainEvents({ type: "note.updated", payload: { noteId: id, body: content }, origin });
-  return saveAnnotation(updated) as Promise<Note>;
+  await commitDomainEvents({ type: "note.updated", payload: { noteId: id, body: content }, origin });
+  return requireStored(id) as Promise<Note>;
 }
 
 export async function listNotes(bookId?: string): Promise<Note[]> {
@@ -224,21 +195,11 @@ export async function createAsk(
   chapterHref: string | null,
   text: string,
 ): Promise<Ask> {
-  const now = new Date().toISOString();
-  const ask: Ask = {
-    id: crypto.randomUUID(),
-    bookId,
-    type: "ask",
-    cfiRange,
-    chapterHref,
-    text,
-    createdAt: now,
-    updatedAt: now,
-  };
-  emitDomainEvents({
+  const askId = crypto.randomUUID();
+  await commitDomainEvents({
     type: "ask.recorded",
     payload: {
-      askId: ask.id,
+      askId,
       bookId,
       anchor: cfiRange ?? undefined,
       chapterHref: chapterHref ?? undefined,
@@ -247,6 +208,5 @@ export async function createAsk(
     // Asks are the agent runtime's passive traces — never a direct user write.
     origin: "agent",
   });
-  const saved = (await saveAnnotation(ask)) as Ask;
-  return saved;
+  return requireStored(askId) as Promise<Ask>;
 }

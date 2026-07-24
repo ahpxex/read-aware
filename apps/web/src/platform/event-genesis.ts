@@ -356,7 +356,17 @@ export async function reconcileGenesisEvents(): Promise<void> {
     drafts.push(...memoryDrafts(memory));
   }
 
-  if (drafts.length === 0) return;
-  await appendDomainEvents(drafts);
-  console.info(`[event-genesis] backfilled ${drafts.length} events for pre-event-era rows`);
+  if (drafts.length > 0) {
+    await appendDomainEvents(drafts);
+    console.info(`[event-genesis] backfilled ${drafts.length} events for pre-event-era rows`);
+  }
+
+  // Reading time needs its own pass: it is an ACCUMULATING projection, so the
+  // backfill has to clear and replay the tables in one transaction rather than
+  // append events on top of sums that already include them. Rust owns it for
+  // that reason. Idempotent — a no-op once the log has any timeRecorded event.
+  const ticks = await invoke<number>("reading_time_genesis");
+  if (ticks > 0) {
+    console.info(`[event-genesis] reconstructed ${ticks} reading-time events from the aggregates`);
+  }
 }

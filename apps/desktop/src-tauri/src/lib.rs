@@ -2,6 +2,7 @@ mod android_update;
 mod book_metadata;
 mod pdf_metadata;
 mod plugins;
+mod secrets;
 mod storage;
 
 use std::sync::Mutex;
@@ -798,6 +799,9 @@ pub fn run() {
             book_metadata::extract_epub_metadata,
             pdf_metadata::extract_pdf_metadata,
             storage::append_events,
+            storage::commit_events,
+            storage::rebuild_projections,
+            storage::verify_projections,
             storage::read_events_since,
             storage::list_event_aggregate_ids,
             storage::local_device_get,
@@ -815,16 +819,19 @@ pub fn run() {
             storage::blob_write_chunk_raw,
             storage::blob_write_commit,
             storage::blob_write_abort,
+            secrets::secret_get,
+            secrets::secret_set,
+            secrets::secret_delete,
             storage::load_kv_all,
             storage::set_kv,
             storage::delete_kv,
             storage::library_load,
             storage::library_get_book,
             storage::library_put_book,
-            storage::library_delete_books,
+            storage::library_set_book_cover,
+            storage::library_release_book_files,
             storage::library_list_collections,
             storage::library_put_collection,
-            storage::library_delete_collection,
             storage::annotations_list,
             storage::annotations_search,
             storage::annotation_get,
@@ -844,6 +851,7 @@ pub fn run() {
             storage::plugin_docs_list,
             storage::plugin_docs_clear,
             storage::vocabulary_migrate_to_plugin_documents,
+            storage::reading_time_genesis,
             storage::reading_time_load,
             storage::reading_time_record,
             storage::reading_time_import,

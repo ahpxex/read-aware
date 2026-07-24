@@ -6,8 +6,8 @@
  * （docs/data-model.md：consolidation as events）。
  */
 import type { MemoryPort, MemoryRecord } from "@read-aware/agent";
-import { emitDomainEvents } from "../../../../platform/domain-events";
-import { getMemoryRow, listAllMemoryRows, putMemoryRow } from "./memory-store";
+import { commitDomainEvents } from "../../../../platform/domain-events";
+import { getMemoryRow, listAllMemoryRows } from "./memory-store";
 
 const isActive = (memory: MemoryRecord) => (memory.status ?? "active") === "active";
 
@@ -53,7 +53,7 @@ export function createMemoryPort(): MemoryPort {
         createdAt: now,
         updatedAt: now,
       };
-      emitDomainEvents({
+      await commitDomainEvents({
         type: "memory.promoted",
         payload: {
           memoryId: record.id,
@@ -64,7 +64,6 @@ export function createMemoryPort(): MemoryPort {
         },
         origin: "agent",
       });
-      await putMemoryRow(record);
       return record;
     },
     reinforceMemory: async (id) => {
@@ -73,7 +72,7 @@ export function createMemoryPort(): MemoryPort {
       memory.evidenceCount += 1;
       memory.importance = Math.min(1, memory.importance + 0.15);
       memory.updatedAt = new Date().toISOString();
-      emitDomainEvents({
+      await commitDomainEvents({
         type: "memory.revised",
         payload: {
           memoryId: memory.id,
@@ -82,7 +81,6 @@ export function createMemoryPort(): MemoryPort {
         },
         origin: "agent",
       });
-      await putMemoryRow(memory);
     },
     applyMemoryChanges: async (changes) => {
       const now = new Date().toISOString();
@@ -92,19 +90,18 @@ export function createMemoryPort(): MemoryPort {
         switch (change.type) {
           case "supersede": {
             memory.status = "superseded";
-            emitDomainEvents({
+            await commitDomainEvents({
               type: "memory.superseded",
               payload: { memoryId: memory.id, bySupersedingId: change.byId },
               origin: "agent",
             });
-            await putMemoryRow(memory);
             if (change.byId) {
               const winner = await getMemoryRow(change.byId);
               if (winner) {
                 winner.evidenceCount += 1;
                 winner.importance = Math.min(1, winner.importance + 0.1);
                 winner.updatedAt = now;
-                emitDomainEvents({
+                await commitDomainEvents({
                   type: "memory.revised",
                   payload: {
                     memoryId: winner.id,
@@ -113,38 +110,34 @@ export function createMemoryPort(): MemoryPort {
                   },
                   origin: "agent",
                 });
-                await putMemoryRow(winner);
               }
             }
             break;
           }
           case "forget":
             memory.status = "forgotten";
-            emitDomainEvents({
+            await commitDomainEvents({
               type: "memory.forgotten",
               payload: { memoryId: memory.id, reason: "decay" },
               origin: "agent",
             });
-            await putMemoryRow(memory);
             break;
           case "promote":
             memory.scope = change.scope;
             memory.updatedAt = now;
-            emitDomainEvents({
+            await commitDomainEvents({
               type: "memory.revised",
               payload: { memoryId: memory.id, ...eventScope(memory.scope) },
               origin: "agent",
             });
-            await putMemoryRow(memory);
             break;
           case "decay":
             memory.importance = change.importance;
-            emitDomainEvents({
+            await commitDomainEvents({
               type: "memory.revised",
               payload: { memoryId: memory.id, importance: memory.importance },
               origin: "agent",
             });
-            await putMemoryRow(memory);
             break;
         }
       }

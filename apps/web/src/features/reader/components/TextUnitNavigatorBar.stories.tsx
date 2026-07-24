@@ -88,7 +88,6 @@ const meta = {
     onHighlight: () => {},
     onUnderline: () => {},
     onAddNote: () => {},
-    onLookUp: () => {},
     onAskAI: () => {},
     onExit: () => {},
   },

@@ -305,11 +305,15 @@ function PluginApiPage() {
       <p>
         Entries in the reader's selection and annotation menus. The handler
         receives the selected text, its CFI range, the chapter, and the book.
+        When available, <code>context</code> contains the surrounding passage.
         Inside the reader an action either runs silently (return a toast) or
         opens a dialog (return a view) — those are the only two outcomes.
         Declare <code>presentation: "dialog"</code> when the handler is async:
         the host opens its loading shell immediately and fills the same request
         when <code>run</code> resolves.
+        A dictionary-style action may declare <code>role: "lookup"</code>; the
+        host then routes its existing Look up keyboard command to that plugin
+        action instead of maintaining a second built-in lookup path.
       </p>
       <pre>
         <code>{`ctx.ui.registerSelectionAction({
@@ -318,7 +322,7 @@ function PluginApiPage() {
   icon: "quotes",
   presentation: "dialog",
   run: (input) => {
-    // input: { text, cfiRange, chapterHref, book, source }
+    // input: { text, context?, cfiRange, chapterHref, book, source }
     return { toast: "Quote saved." };
   },
 });`}</code>

@@ -293,7 +293,7 @@ async function notebookView(ctx) {
   const saved = await wordCollection(ctx).list();
   return {
     kind: "list",
-    emptyText: "No saved words yet. Select a word while reading and choose “Look up & save”.",
+    emptyText: "No saved words yet. Select a word while reading and choose “Look up”.",
     searchable: true,
     searchPlaceholder: "Search saved words",
     timeline: true,
@@ -325,13 +325,14 @@ var plugin = {
     assertPluginCapabilities(ctx);
     ctx.ui.registerSelectionAction({
       id: "lookup-save",
-      title: "Look up & save",
+      title: "Look up",
       icon: "book-bookmark",
+      role: "lookup",
       presentation: "dialog",
       run: async (input) => {
         const { term, language } = await saveWord(ctx, {
           text: input.text,
-          context: input.text.trim().slice(0, 300),
+          context: input.context ?? input.text.trim().slice(0, 300),
           bookId: input.book.id,
           bookTitle: input.book.title
         });

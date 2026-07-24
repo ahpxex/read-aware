@@ -1,5 +1,4 @@
 import {
-  BookOpen,
   ChatCircleDots,
   Check,
   Copy,
@@ -35,7 +34,6 @@ type ReaderSelectionMenuProps = {
   onHighlight?: () => void;
   onUnderline?: () => void;
   onAddNote?: () => void;
-  onLookUp?: () => void;
   onAskAI?: () => void;
   /** When false (e.g. fixed-layout PDF) only the copy action is offered. */
   allowAnnotations?: boolean;
@@ -58,7 +56,6 @@ export function ReaderSelectionMenu({
   onHighlight,
   onUnderline,
   onAddNote,
-  onLookUp,
   onAskAI,
   allowAnnotations = true,
   pluginInput = null,
@@ -112,10 +109,20 @@ export function ReaderSelectionMenu({
     if (id === "core:askAI" && !askEnabled) return false;
     return true;
   });
-  const layout = resolveSurfaceLayout(menuConfig.selection, [
-    ...availableCore,
-    ...(pluginInput ? pluginActions.map((action) => pluginMenuId(action.key)) : []),
-  ]);
+  const availablePluginIds = pluginInput
+    ? pluginActions.map((action) => pluginMenuId(action.key))
+    : [];
+  const layout = resolveSurfaceLayout(
+    menuConfig.selection,
+    [...availableCore, ...availablePluginIds],
+    {
+      defaultVisibleIds: pluginInput
+        ? pluginActions
+            .filter((action) => action.role === "lookup")
+            .map((action) => pluginMenuId(action.key))
+        : [],
+    },
+  );
 
   const coreNodes: Record<string, ReactNode> = {
     "core:copy": (
@@ -170,17 +177,6 @@ export function ReaderSelectionMenu({
         />
       </Tooltip>
     ),
-    "core:lookUp": (
-      <Tooltip content={t("menu.lookUp")} side="top">
-        <IconButton
-          label={t("menu.lookUp")}
-          size="sm"
-          onClick={() => onLookUp?.()}
-          className={actionButtonClass}
-          icon={<BookOpen size={14} weight="regular" aria-hidden="true" />}
-        />
-      </Tooltip>
-    ),
     "core:askAI": (
       <Tooltip content={t("menu.askAi")} side="top">
         <IconButton
@@ -199,7 +195,6 @@ export function ReaderSelectionMenu({
     "core:highlight": onHighlight,
     "core:underline": onUnderline,
     "core:addNote": onAddNote,
-    "core:lookUp": onLookUp,
     "core:askAI": onAskAI,
   };
   const overflowEntries = layout.overflow

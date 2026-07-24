@@ -26,7 +26,6 @@ const meta = {
     onHighlight: () => {},
     onUnderline: () => {},
     onAddNote: () => {},
-    onLookUp: () => {},
     onAskAI: () => {},
   },
   decorators: [
@@ -52,7 +51,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Annotatable format: copy plus highlight / underline / note / look-up / ask-AI. */
+/** Annotatable format: copy plus highlight / underline / note / ask-AI. */
 export const FullMenu: Story = {};
 
 /** Fixed-layout (PDF) path: annotations disallowed, only copy is offered. */

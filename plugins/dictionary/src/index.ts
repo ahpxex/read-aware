@@ -18,13 +18,14 @@ const plugin: PluginModule = {
 
     ctx.ui.registerSelectionAction({
       id: "lookup-save",
-      title: "Look up & save",
+      title: "Look up",
       icon: "book-bookmark",
+      role: "lookup",
       presentation: "dialog",
       run: async (input) => {
         const { term, language } = await saveWord(ctx, {
           text: input.text,
-          context: input.text.trim().slice(0, 300),
+          context: input.context ?? input.text.trim().slice(0, 300),
           bookId: input.book.id,
           bookTitle: input.book.title,
         });

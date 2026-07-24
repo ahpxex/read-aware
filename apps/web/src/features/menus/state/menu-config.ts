@@ -41,7 +41,6 @@ export const CORE_MENU_DEFAULTS: Record<MenuSurface, string[]> = {
     "core:highlight",
     "core:underline",
     "core:addNote",
-    "core:lookUp",
     "core:askAI",
   ],
 };
@@ -136,16 +135,17 @@ export function resetSurfaceLayout(surface: MenuSurface): void {
 export function resolveSurfaceLayout(
   layout: SurfaceLayout,
   knownIds: string[],
+  options?: { defaultVisibleIds?: readonly string[] },
 ): SurfaceLayout {
   const known = new Set(knownIds);
+  const defaultVisible = new Set(options?.defaultVisibleIds ?? []);
   const placed = new Set([...layout.visible, ...layout.overflow]);
   const visible = layout.visible.filter((id) => known.has(id));
   const overflow = layout.overflow.filter((id) => known.has(id));
   for (const id of knownIds) {
     if (placed.has(id)) continue;
-    if (id.startsWith("core:")) visible.push(id);
+    if (id.startsWith("core:") || defaultVisible.has(id)) visible.push(id);
     else overflow.push(id);
   }
   return { visible, overflow };
 }
-

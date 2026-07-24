@@ -1,5 +1,4 @@
 import {
-  BookOpen,
   ChatCircleDots,
   Check,
   Copy,
@@ -25,7 +24,6 @@ type ReaderAnnotationMenuProps = {
   onRecolor: (color: Highlight["color"]) => void;
   onCopy: () => Promise<void> | void;
   onAddNote: () => void;
-  onLookUp: () => void;
   onAskAI: () => void;
   onRemove: () => void;
   /** Annotation context for plugin-contributed actions (null hides them). */
@@ -50,7 +48,6 @@ export function ReaderAnnotationMenu({
   onRecolor,
   onCopy,
   onAddNote,
-  onLookUp,
   onAskAI,
   onRemove,
   pluginInput = null,
@@ -132,15 +129,6 @@ export function ReaderAnnotationMenu({
             onClick={onAddNote}
             className={actionButtonClass}
             icon={<NotePencil size={14} weight="regular" aria-hidden="true" />}
-          />
-        </Tooltip>
-        <Tooltip content={t("menu.lookUp")} side="top">
-          <IconButton
-            label={t("menu.lookUp")}
-            size="sm"
-            onClick={onLookUp}
-            className={actionButtonClass}
-            icon={<BookOpen size={14} weight="regular" aria-hidden="true" />}
           />
         </Tooltip>
         <Tooltip content={copied ? t("menu.copied") : t("menu.copy")} side="top">

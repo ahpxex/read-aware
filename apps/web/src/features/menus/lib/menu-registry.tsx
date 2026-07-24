@@ -8,7 +8,6 @@
  * self-contained instead of hunting keys across namespaces.
  */
 import {
-  BookOpen,
   Cards,
   ChartLineUp,
   ChatCircle,
@@ -53,7 +52,6 @@ export const CORE_MENU_ITEMS: Record<MenuSurface, CoreMenuItemMeta[]> = {
     { id: "core:highlight", labelKey: "highlight", Icon: Highlighter },
     { id: "core:underline", labelKey: "underline", Icon: TextUnderline },
     { id: "core:addNote", labelKey: "addNote", Icon: NotePencil },
-    { id: "core:lookUp", labelKey: "lookUp", Icon: BookOpen },
     { id: "core:askAI", labelKey: "askAI", Icon: ChatCircleDots },
   ],
 };

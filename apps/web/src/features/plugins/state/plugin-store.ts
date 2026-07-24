@@ -151,8 +151,6 @@ export function forgetPluginEnabled(id: string): void {
  * own bars, folding starts only past this count.
  */
 export const HEADER_PIN_LIMIT = 5;
-/** Max selection-menu actions promoted to the first row. */
-export const SELECTION_PIN_LIMIT = 5;
 
 export type PluginPlacement = {
   shelfHeader: ContributionKey[];

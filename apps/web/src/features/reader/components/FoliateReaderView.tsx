@@ -51,7 +51,6 @@ import {
 } from "../lib/text-unit-mode-state";
 import { createWheelGesture, type WheelGesture } from "../lib/wheel-gesture";
 import { ReaderAnnotationMenu } from "./ReaderAnnotationMenu";
-import { ReaderDictionaryModal } from "./ReaderDictionaryModal";
 import { ReaderFootnotePopover } from "./ReaderFootnotePopover";
 import { TextUnitNavigatorBar } from "./TextUnitNavigatorBar";
 import { ReaderPageTurnControls } from "./ReaderPageTurnControls";
@@ -89,7 +88,13 @@ import { curatedFontId, DEFAULT_READER_SETTINGS } from "../../settings/lib/reade
 import { ensureCuratedFontFaceCss } from "../../settings/lib/curated-font-loader";
 import { buildVirtualFoliateBook } from "../lib/virtual-book";
 import { resolveContentProvider } from "../../plugins/lib/virtual-books";
-import type { RegisteredReaderMode } from "../../plugins/lib/plugin-types";
+import { runPluginContribution } from "../../plugins/lib/run-result";
+import type {
+  RegisteredReaderMode,
+  SelectionActionInput,
+  SelectionActionSource,
+} from "../../plugins/lib/plugin-types";
+import { selectionActionsAtom } from "../../plugins/state/plugin-store";
 
 type FoliateReaderViewProps = {
   selectedBook?: LibraryBook | null;
@@ -434,9 +439,6 @@ export function FoliateReaderView({
     highlight: Highlight;
     anchorRect: SelectionOverlayRect;
   } | null>(null);
-  const [dictionaryOpen, setDictionaryOpen] = useState(false);
-  const [dictionaryWord, setDictionaryWord] = useState("");
-  const [dictionaryContext, setDictionaryContext] = useState<string | undefined>(undefined);
 
   const [noteTarget, setNoteTarget] = useState<ActionTarget | null>(null);
   const [noteEditorOpen, setNoteEditorOpen] = useState(false);
@@ -451,6 +453,8 @@ export function FoliateReaderView({
   // mark is created/removed/recolored here, so they update live.
   const bumpAnnotationsRevision = useSetAtom(annotationsRevisionAtom);
   const askAiEnabled = useAskAiEnabled();
+  const pluginSelectionActions = useAtomValue(selectionActionsAtom);
+  const lookupAction = pluginSelectionActions.find((action) => action.role === "lookup") ?? null;
   const askAiEnabledRef = useRef(askAiEnabled);
   useEffect(() => {
     askAiEnabledRef.current = askAiEnabled;
@@ -1013,8 +1017,8 @@ export function FoliateReaderView({
   useEffect(() => { textUnitNavigatorRef.current = textUnitNavigator; });
 
   // Stepping to another unit is a "resume reading" gesture: it dismisses
-  // the overlays raised for the one left behind (dictionary, footnote,
-  // annotation menu — their content is stale the moment the wash moves on) and
+  // overlays raised for the one left behind (footnote and annotation menu)
+  // because their content is stale the moment the wash moves on, and
   // hands the workspace the cue to drop the shell chrome, taking the TOC/chat
   // panels with it. Keyed on the resting unit so every step entry point
   // (bar, keyboard, volume keys, tap-to-advance, scroll-to-step) is covered. The
@@ -1029,7 +1033,6 @@ export function FoliateReaderView({
     previousTextUnitTargetKeyRef.current = textUnitTargetKey;
     // Losing the unit (deactivation, section unload) is not a step.
     if (textUnitTargetKey == null) return;
-    setDictionaryOpen(false);
     setFootnote(null);
     setActiveAnnotation(null);
     onTextUnitModeStepRef.current?.();
@@ -2052,10 +2055,34 @@ export function FoliateReaderView({
     setNoteEditorOpen(true);
   }
 
-  function lookUpText(text: string, context?: string) {
-    setDictionaryWord(text);
-    setDictionaryContext(context);
-    setDictionaryOpen(true);
+  function pluginInputFor(
+    target: ActionTarget | null,
+    source: SelectionActionSource,
+    context?: string,
+  ): SelectionActionInput | null {
+    if (!selectedBook || !target) return null;
+    return {
+      text: target.text,
+      context,
+      cfiRange: target.cfiRange,
+      chapterHref: target.chapterHref,
+      book: {
+        id: selectedBook.id,
+        title: selectedBook.title,
+        author: selectedBook.author,
+      },
+      source,
+    };
+  }
+
+  function runLookupAction(input: SelectionActionInput | null) {
+    if (!lookupAction || !input) return;
+    void runPluginContribution(
+      lookupAction.pluginId,
+      lookupAction.pluginName,
+      () => lookupAction.run(input),
+      { presentation: lookupAction.presentation },
+    );
   }
 
   function requestAskAi(target: ActionTarget) {
@@ -2117,7 +2144,17 @@ export function FoliateReaderView({
 
   function handleLookUp() {
     if (!selection) return;
-    lookUpText(selection.text, selection.context);
+    runLookupAction(
+      pluginInputFor(
+        {
+          text: selection.text,
+          cfiRange: selection.cfiRange,
+          chapterHref: selection.chapterHref,
+        },
+        "selection",
+        selection.context,
+      ),
+    );
     clearSelection();
   }
 
@@ -2190,13 +2227,6 @@ export function FoliateReaderView({
     const target = activeAnnotationTarget();
     if (!target) return;
     openNoteEditorForPassage(target);
-    setActiveAnnotation(null);
-  }
-
-  function handleLookUpAnnotation() {
-    const target = activeAnnotationTarget();
-    if (!target) return;
-    lookUpText(target.text);
     setActiveAnnotation(null);
   }
 
@@ -2290,9 +2320,7 @@ export function FoliateReaderView({
   }
 
   function handleNavigatorLookUp() {
-    const target = navigatorTarget();
-    if (!target) return;
-    lookUpText(target.text);
+    runLookupAction(pluginInputFor(navigatorTarget(), "navigator"));
   }
 
   function handleNavigatorAskAI() {
@@ -2332,21 +2360,18 @@ export function FoliateReaderView({
         onHighlight={() => { void handleHighlight(); }}
         onUnderline={handleUnderline}
         onAddNote={handleAddNote}
-        onLookUp={handleLookUp}
         onAskAI={handleAskAI}
         pluginInput={
-          selectedBook && selection
-            ? {
-                text: selection.text,
-                cfiRange: selection.cfiRange,
-                chapterHref: selection.chapterHref,
-                book: {
-                  id: selectedBook.id,
-                  title: selectedBook.title,
-                  author: selectedBook.author,
+          selection
+            ? pluginInputFor(
+                {
+                  text: selection.text,
+                  cfiRange: selection.cfiRange,
+                  chapterHref: selection.chapterHref,
                 },
-                source: "selection",
-              }
+                "selection",
+                selection.context,
+              )
             : null
         }
       />
@@ -2374,23 +2399,10 @@ export function FoliateReaderView({
           onHighlight={() => { void handleNavigatorMark("highlight"); }}
           onUnderline={() => { void handleNavigatorMark("underline"); }}
           onAddNote={handleNavigatorAddNote}
-          onLookUp={handleNavigatorLookUp}
           onAskAI={handleNavigatorAskAI}
           onExit={() => onExitTextUnitModeRef.current?.()}
           pluginInput={
-            selectedBook && textUnitNavigator.current
-              ? {
-                  text: textUnitNavigator.current.text,
-                  cfiRange: textUnitNavigator.current.cfiRange,
-                  chapterHref: currentChapterHrefRef.current,
-                  book: {
-                    id: selectedBook.id,
-                    title: selectedBook.title,
-                    author: selectedBook.author,
-                  },
-                  source: "navigator",
-                }
-              : null
+            pluginInputFor(navigatorTarget(), "navigator")
           }
         />
       )}
@@ -2416,24 +2428,13 @@ export function FoliateReaderView({
         }}
         onCopy={() => copyTargetText(activeAnnotation?.highlight.text ?? "")}
         onAddNote={handleAddNoteForAnnotation}
-        onLookUp={handleLookUpAnnotation}
         onAskAI={handleAskAIAboutAnnotation}
         onRemove={() => {
           void handleRemoveAnnotation();
         }}
         pluginInput={
-          selectedBook && activeAnnotation
-            ? {
-                text: activeAnnotation.highlight.text,
-                cfiRange: activeAnnotation.highlight.cfiRange,
-                chapterHref: activeAnnotation.highlight.chapterHref,
-                book: {
-                  id: selectedBook.id,
-                  title: selectedBook.title,
-                  author: selectedBook.author,
-                },
-                source: "annotation",
-              }
+          activeAnnotation
+            ? pluginInputFor(activeAnnotationTarget(), "annotation")
             : null
         }
       />
@@ -2464,13 +2465,6 @@ export function FoliateReaderView({
         isEditing={!!currentNote}
       />
 
-      <ReaderDictionaryModal
-        open={dictionaryOpen}
-        word={dictionaryWord}
-        context={dictionaryContext}
-        bookTitle={selectedBook?.title}
-        onClose={() => setDictionaryOpen(false)}
-      />
     </section>
   );
 }

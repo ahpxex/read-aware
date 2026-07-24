@@ -109,7 +109,7 @@ export async function notebookView(ctx: DictionaryContext): Promise<PluginListVi
   const saved = await wordCollection(ctx).list<SavedWord>();
   return {
     kind: "list",
-    emptyText: "No saved words yet. Select a word while reading and choose “Look up & save”.",
+    emptyText: "No saved words yet. Select a word while reading and choose “Look up”.",
     searchable: true,
     searchPlaceholder: "Search saved words",
     timeline: true,

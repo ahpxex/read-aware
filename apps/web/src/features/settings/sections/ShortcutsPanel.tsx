@@ -8,7 +8,10 @@ import { isAndroid } from "../../../platform/environment";
 import { useLocale, useTranslation } from "../../../i18n";
 import { resolvePluginText } from "../../plugins/lib/plugin-i18n";
 import { resolveReaderModeUnit } from "../../plugins/lib/reader-mode";
-import { textUnitReaderModeAtom } from "../../plugins/state/plugin-store";
+import {
+  selectionActionsAtom,
+  textUnitReaderModeAtom,
+} from "../../plugins/state/plugin-store";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
@@ -56,6 +59,8 @@ export function ShortcutsPanel() {
   const locale = useLocale();
   const [bindings, setBindings] = useAtom(shortcutBindingsAtom);
   const textUnitMode = useAtomValue(textUnitReaderModeAtom);
+  const selectionActions = useAtomValue(selectionActionsAtom);
+  const lookupAvailable = selectionActions.some((action) => action.role === "lookup");
   const [conflict, setConflict] = useState<{ id: ShortcutId; conflictId: ShortcutId } | null>(null);
 
   const onCapture = useCallback(
@@ -64,6 +69,7 @@ export function ShortcutsPanel() {
       const clash = EDITABLE_SHORTCUTS.find(
         (shortcut) =>
           (shortcut.category !== "TextUnitMode" || textUnitMode !== null) &&
+          (shortcut.id !== "selection-look-up" || lookupAvailable) &&
           shortcut.id !== id && chordSignature(resolveBinding(shortcut.id, bindings)) === signature,
       );
       if (clash) {
@@ -73,7 +79,7 @@ export function ShortcutsPanel() {
       setConflict(null);
       setBindings({ ...bindings, [id]: chord });
     },
-    [bindings, textUnitMode, setBindings],
+    [bindings, lookupAvailable, textUnitMode, setBindings],
   );
 
   const { recordingId, startRecording, cancel } = useShortcutRecorder(onCapture);
@@ -121,7 +127,11 @@ export function ShortcutsPanel() {
       {CATEGORIES.map((category) => {
         const modeCategoryAvailable = category !== "TextUnitMode" || textUnitMode !== null;
         const editable = modeCategoryAvailable
-          ? EDITABLE_SHORTCUTS.filter((shortcut) => shortcut.category === category)
+          ? EDITABLE_SHORTCUTS.filter(
+              (shortcut) =>
+                shortcut.category === category &&
+                (shortcut.id !== "selection-look-up" || lookupAvailable),
+            )
           : [];
         const info = INFO_SHORTCUTS.filter(
           (shortcut) =>

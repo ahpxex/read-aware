@@ -1,7 +1,7 @@
 /**
- * DictionaryPort：lookup_word 工具的 web 侧后端 —— useDictionaryLookup 的
- * 非 React 镜像。解释语言偏好 + 查词缓存 + BYOK account 全归这一层；
- * agent 的查词结果写回同一缓存，阅读器词典弹窗随后查同词直接命中。
+ * DictionaryPort：lookup_word 工具和 Dictionary 插件共用的 web 侧后端。
+ * 解释语言偏好 + 查词缓存 + BYOK account 全归这一层；agent 与插件
+ * 查到同一个词时直接复用缓存。
  * 缺配置直接 throw（对话 hook 把消息呈现给用户），不 mock。
  */
 import { lookUpWord, type DictionaryPort } from "@read-aware/agent";

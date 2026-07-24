@@ -17,7 +17,6 @@ const meta = {
     onRecolor: () => {},
     onCopy: () => {},
     onAddNote: () => {},
-    onLookUp: () => {},
     onAskAI: () => {},
     onRemove: () => {},
   },
@@ -44,7 +43,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** A tapped yellow mark: recolor swatches (yellow ringed), note, look-up, copy, ask-AI, remove. */
+/** A tapped yellow mark: recolor swatches, note, copy, ask-AI, plugin actions, remove. */
 export const YellowHighlight: Story = {};
 
 /** The ring follows the mark's current colour — here the pink swatch is active. */

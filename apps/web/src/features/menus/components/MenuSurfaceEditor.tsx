@@ -78,12 +78,23 @@ export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
     }));
   const itemById = new Map([...coreItems, ...pluginItems].map((item) => [item.id, item]));
 
-  const layout = resolveSurfaceLayout(config[surface], [
-    ...CORE_MENU_DEFAULTS[surface].filter(
-      (id) => id !== "core:navigator" || textUnitReaderMode !== null,
-    ),
-    ...pluginItems.map((item) => item.id),
-  ]);
+  const layout = resolveSurfaceLayout(
+    config[surface],
+    [
+      ...CORE_MENU_DEFAULTS[surface].filter(
+        (id) => id !== "core:navigator" || textUnitReaderMode !== null,
+      ),
+      ...pluginItems.map((item) => item.id),
+    ],
+    {
+      defaultVisibleIds:
+        surface === "selection"
+          ? selectionActions
+              .filter((action) => action.role === "lookup")
+              .map((action) => pluginMenuId(action.key))
+          : [],
+    },
+  );
 
   /** Drop `dragId` into `zone`, before `beforeId` (or at the end). */
   function drop(zone: Zone, beforeId: string | null) {

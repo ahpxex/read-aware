@@ -1,5 +1,4 @@
 import {
-  BookOpen,
   CaretLeft,
   CaretRight,
   ChatCircleDots,
@@ -64,7 +63,6 @@ type TextUnitNavigatorBarProps = {
   onHighlight: () => void;
   onUnderline: () => void;
   onAddNote: () => void;
-  onLookUp: () => void;
   onAskAI: () => void;
   onExit: () => void;
   /** Resting-unit context for plugin-contributed actions (null hides them). */
@@ -135,7 +133,6 @@ export function TextUnitNavigatorBar({
   onHighlight,
   onUnderline,
   onAddNote,
-  onLookUp,
   onAskAI,
   onExit,
   pluginInput = null,
@@ -312,22 +309,17 @@ export function TextUnitNavigatorBar({
                 icon={<NotePencil size={14} weight="regular" aria-hidden="true" />}
               />
 
-              <BarDivider />
-              <BarButton
-                label={t("menu.lookUp")}
-                disabled={!hasTarget}
-                onClick={onLookUp}
-                className={actionButtonClass}
-                icon={<BookOpen size={14} weight="regular" aria-hidden="true" />}
-              />
               {askEnabled && (
-                <BarButton
-                  label={t("menu.askAi")}
-                  disabled={!hasTarget}
-                  onClick={onAskAI}
-                  className={actionButtonClass}
-                  icon={<ChatCircleDots size={14} weight="regular" aria-hidden="true" />}
-                />
+                <>
+                  <BarDivider />
+                  <BarButton
+                    label={t("menu.askAi")}
+                    disabled={!hasTarget}
+                    onClick={onAskAI}
+                    className={actionButtonClass}
+                    icon={<ChatCircleDots size={14} weight="regular" aria-hidden="true" />}
+                  />
+                </>
               )}
               <PluginSelectionCluster
                 input={hasTarget ? pluginInput : null}

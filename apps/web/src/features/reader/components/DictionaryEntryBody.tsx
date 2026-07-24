@@ -1,7 +1,6 @@
 /**
  * The canonical rendering of a DictionaryEntry — extracted from
- * ReaderDictionaryModal so every surface showing a dictionary entry (the
- * reader's modal, plugin dictionary blocks) is the same editorial UX:
+ * Host-rendered body shared by every plugin surface showing a dictionary entry:
  * numbered senses with part-of-speech, example quotes, contextual meaning,
  * etymology.
  */

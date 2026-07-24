@@ -403,6 +403,8 @@ export type SelectionActionSource = "selection" | "annotation" | "navigator";
 
 export type SelectionActionInput = {
   text: string;
+  /** Surrounding passage when the reader can recover it. */
+  context?: string;
   /** CFI range of the selection/annotation, when the engine can anchor it. */
   cfiRange: string | null;
   chapterHref: string | null;
@@ -419,6 +421,8 @@ export type PluginSelectionAction = {
   id: string;
   title: string;
   icon?: string;
+  /** Optional host semantic used by the matching keyboard command. */
+  role?: "lookup";
   /** Opens the host Dialog immediately in a loading state before `run` resolves. */
   presentation?: "dialog";
   run: (input: SelectionActionInput) => PluginViewResult | Promise<PluginViewResult>;

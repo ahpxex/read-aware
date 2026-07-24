@@ -368,7 +368,7 @@ memories.rs      105
 <table>
 <thead><tr><th>文件</th><th class="mono">行数</th><th>信号</th><th>状态</th></tr></thead>
 <tbody>
-<tr><td class="mono">FoliateReaderView.tsx</td><td class="mono">2,428</td><td>44 导入、跨 5 个 feature、42 个 effect</td><td>抽出第一簇</td></tr>
+<tr><td class="mono">FoliateReaderView.tsx</td><td class="mono">2,274</td><td>跨 5 个 feature、39 个 effect（原 2,470／43）</td><td>已抽两簇</td></tr>
 <tr><td class="mono">plugin-types/index.ts</td><td class="mono">973</td><td>74 导出，但单一职责的契约定义</td><td>不算问题</td></tr>
 <tr><td class="mono">library-db.ts</td><td class="mono">639</td><td>23 导出</td><td>待处理</td></tr>
 <tr><td class="mono">reading-insights.ts</td><td class="mono">576</td><td>31 导出</td><td>待处理</td></tr>
@@ -385,14 +385,23 @@ memories.rs      105
   <h3>FoliateReaderView 拆分只走了第一步</h3>
 </div>
 <p>
-按上一版自己的建议"一次一簇、每簇独立验证"，本次抽出了排版簇
-（<code>useReaderTypography</code>：响应式文本度量 + 样式注入 + 字体加载）。
-文件从 2,470 行降到 2,428 行，effect 从 43 个降到 42 个。
+按上一版自己的建议"一次一簇、每簇独立验证"，已抽出两簇：
 </p>
+<ul>
+  <li><code>useReaderTypography</code> —— 响应式文本度量、样式注入、字体加载。</li>
+  <li><code>useReaderPagination</code> —— 翻页、跨节、滚动模式下的 shell 消隐。这三者是一件事：
+      都在把滚轮／键盘的位移量对照渲染器的滚动边界，判断它意味着滚动、翻页、跨节，还是收起工具栏。
+      它们触碰的六份状态（跨节闩锁、overscroll 累加器及其衰减定时器、shell 位移、单槽翻页队列、
+      淡入淡出标志）原本全是该簇私有，因此 hook 直接持有，只对外暴露两个重置口给换书和开栏路径。</li>
+</ul>
+<div class="evidence"><pre>FoliateReaderView   2,470 → <span class="ok">2,274</span> 行
+useEffect              43 → <span class="ok">39</span>
+useRef                 34 → <span class="ok">27</span></pre></div>
 <p>
-<b>这只是证明了模式可行，远不是拆完。</b> 剩余的引擎生命周期、选区、标注层、导航、手势五簇仍在原处。
-之所以不一次性重写：这 40 多个 effect 里有相当一部分是历史踩坑的产物（iframe 与主窗口两个时间原点、
-trackpad 相位、遮挡时定时器挂起），整体重写会把这些教训一起丢掉。
+<b>仍未拆完。</b> 引擎生命周期、选区、标注层、章节导航四簇还在原处。
+之所以不一次性重写：这些 effect 里有相当一部分是历史踩坑的产物（iframe 与主窗口两个时间原点、
+trackpad 相位、遮挡时定时器挂起），整体重写会把这些教训一起丢掉。每抽一簇都在运行的应用里实测——
+本次是让引导阅读跨段落推进四句再退回，顺带验证了沙箱插件的分段器与异步分段链路。
 </p>
 </div>
 
@@ -453,7 +462,7 @@ Rust 与 SQLite 的时间戳格式一致、整数百分比不写成 <code>63.0</
 <table>
 <thead><tr><th>#</th><th>动作</th><th>理由</th></tr></thead>
 <tbody>
-<tr><td class="mono">1</td><td>继续拆 FoliateReaderView 的其余五簇</td><td>模式已验证，逐簇推进即可（storage 已拆完）</td></tr>
+<tr><td class="mono">1</td><td>继续拆 FoliateReaderView 的其余四簇</td><td>引擎生命周期、选区、标注层、章节导航；模式已验证两轮</td></tr>
 <tr><td class="mono">2</td><td>降低 <code>reader ⇄ plugins</code> 等双向耦合</td><td>共享类型下沉 <code>packages/core</code>，UI 改走 <code>domain/</code> 层</td></tr>
 <tr><td class="mono">3</td><td>把 <code>verify_projections</code> 接进设置界面或 CI</td><td>目前只能手工调用，应让漂移可见</td></tr>
 <tr><td class="mono">4</td><td>第三方插件安装时展示权限清单</td><td>沙箱已就位，用户仍应知道插件将获得什么</td></tr>

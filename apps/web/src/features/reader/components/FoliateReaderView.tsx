@@ -76,16 +76,14 @@ import {
 import { hasCoarsePointer, suppressNativeContextMenu } from "../../../platform/environment";
 import { subscribeWheelPhaseEdges } from "../../../platform/wheel-phase";
 import { useDelayedFlag } from "../hooks/useDelayedFlag";
+import { useReaderTypography } from "../hooks/useReaderTypography";
 import {
-  buildReaderContentCss,
   computeReaderMaxInlineSize,
-  readerFontWeightsNeeded,
   readerGapForMargins,
   READER_THEME_BG,
 } from "../../settings/lib/reader-css";
 import type { ReaderSettings, ReadingMode } from "../../settings/lib/reader-settings";
-import { curatedFontId, DEFAULT_READER_SETTINGS } from "../../settings/lib/reader-settings";
-import { ensureCuratedFontFaceCss } from "../../settings/lib/curated-font-loader";
+import { DEFAULT_READER_SETTINGS } from "../../settings/lib/reader-settings";
 import { buildVirtualFoliateBook } from "../lib/virtual-book";
 import { resolveContentProvider } from "../../plugins/lib/virtual-books";
 import { runPluginContribution } from "../../plugins/lib/run-result";
@@ -380,7 +378,6 @@ export function FoliateReaderView({
   const shellTapIntentRef = useRef<ShellTapIntent | null>(null);
   const shouldOpenShellOnClickRef = useRef(false);
   const pendingShellToggleTimerRef = useRef<number | null>(null);
-  const readerSettingsRef = useRef(readerSettings);
   const highlightsRef = useRef<Highlight[]>([]);
   const notesRef = useRef<Note[]>([]);
   // New one-click marks use this colour; recoloring a mark updates it (persisted).
@@ -546,58 +543,19 @@ export function FoliateReaderView({
     };
   }, []);
 
-  // Drive the responsive text measure through foliate's `max-inline-size`
-  // attribute. The paginator caps the column to that value (px) and writes it
-  // onto the body with inline `!important`, so a width set via injected CSS is
-  // ignored — the attribute is the only lever, and it must be recomputed from
-  // the live reader width (it cannot use vw).
-  const applyReaderMaxInlineSize = useCallback(() => {
-    const renderer = viewRef.current?.renderer;
-    if (!renderer || isFixedLayoutRef.current) return;
-    const width =
-      readerRootRef.current?.clientWidth ??
-      viewportRef.current?.clientWidth ??
-      window.innerWidth;
-    const height =
-      readerRootRef.current?.clientHeight ??
-      viewportRef.current?.clientHeight ??
-      window.innerHeight;
-    const { maxColumnCount } = layoutForReadingMode(readingModeRef.current);
-    // foliate renders a single column in portrait containers regardless of
-    // max-column-count, so size the measure for the columns that will
-    // actually show — halving it in portrait would just shrink the one column.
-    const effectiveColumns = width > height ? maxColumnCount : 1;
-    const margins = readerSettingsRef.current.pageMargins;
-    const px = computeReaderMaxInlineSize(width, margins, effectiveColumns);
-    renderer.setAttribute("max-inline-size", `${px}px`);
-    renderer.setAttribute("gap", readerGapForMargins(margins));
-  }, []);
-
-  // Inject the reader stylesheet, first ensuring the active curated webfont is
-  // downloaded so its @font-face (with on-demand blob URLs) ships in the same
-  // CSS. System/preset fonts need no @font-face, so they apply immediately.
-  const injectReaderStyles = useCallback(
-    async (
-      settings: ReaderSettings,
-      renderer = viewRef.current?.renderer,
-    ) => {
-      const id = curatedFontId(settings.fontFamily);
-      const fontFaceCss = id
-        ? await ensureCuratedFontFaceCss(id, readerFontWeightsNeeded(settings.fontWeight)).catch(
-            () => "",
-          )
-        : "";
-      renderer?.setStyles?.(buildReaderContentCss(settings, fontFaceCss));
-    },
-    [],
-  );
-
-  // Settings change -> re-inject reader CSS and refresh the text measure.
-  useEffect(() => {
-    readerSettingsRef.current = readerSettings;
-    void injectReaderStyles(readerSettings);
-    applyReaderMaxInlineSize();
-  }, [readerSettings, applyReaderMaxInlineSize, injectReaderStyles]);
+  const {
+    settingsRef: readerSettingsRef,
+    applyMaxInlineSize: applyReaderMaxInlineSize,
+    injectStyles: injectReaderStyles,
+  } = useReaderTypography({
+    readerSettings,
+    viewRef,
+    readerRootRef,
+    viewportRef,
+    isFixedLayoutRef,
+    readingModeRef,
+    layoutForReadingMode,
+  });
 
   useEffect(() => { loadedBookRef.current = initialBook; }, [initialBook]);
   useEffect(() => { tocEntriesRef.current = tocEntries; }, [tocEntries]);

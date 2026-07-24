@@ -1,4 +1,4 @@
-import type { ChatTransport } from "./chat-transport";
+import type { ChatTransport } from "./chat-transport-contract";
 import type { ChatReference, ChatStreamChunk, ChatTurnRequest } from "./chat-types";
 
 /**

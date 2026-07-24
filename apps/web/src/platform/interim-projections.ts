@@ -10,10 +10,20 @@
  */
 import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "./environment";
-import { localKV } from "./local-store";
 
 const VOCABULARY_KV_KEY = "read-aware-vocabulary";
 const READING_STATS_KV_KEY = "read-aware-reading-stats";
+
+/**
+ * The two legacy blobs these migrations consume, handed in by the kv store.
+ *
+ * Taking them as a parameter (rather than importing `localKV`) keeps the
+ * dependency one-way: the store owns the kv and calls this module, not both.
+ */
+export type LegacyKvAccess = {
+  read(key: string): string | null;
+  clear(key: string): void;
+};
 
 /** Wire shape of the Rust `ReadingTimeWire` (camelCase serde). */
 export type ReadingTimeWire = {
@@ -42,8 +52,8 @@ type LegacyVocabularyItem = {
  * document collection (bootstrap write into its namespace — the one place the
  * app writes plugin documents on a plugin's behalf).
  */
-async function migrateVocabularyKv(): Promise<void> {
-  const raw = localKV.getItem(VOCABULARY_KV_KEY);
+async function migrateVocabularyKv(kv: LegacyKvAccess): Promise<void> {
+  const raw = kv.read(VOCABULARY_KV_KEY);
   if (!raw) return;
   try {
     const items = JSON.parse(raw) as LegacyVocabularyItem[];
@@ -66,7 +76,7 @@ async function migrateVocabularyKv(): Promise<void> {
         });
       }
     }
-    localKV.removeItem(VOCABULARY_KV_KEY);
+    kv.clear(VOCABULARY_KV_KEY);
   } catch (err) {
     console.error("[interim-projections] vocabulary import failed; will retry next launch", err);
   }
@@ -81,8 +91,8 @@ type LegacyBookStats = {
   byHour: number[];
 };
 
-async function migrateReadingStatsKv(): Promise<void> {
-  const raw = localKV.getItem(READING_STATS_KV_KEY);
+async function migrateReadingStatsKv(kv: LegacyKvAccess): Promise<void> {
+  const raw = kv.read(READING_STATS_KV_KEY);
   if (!raw) return;
   try {
     const store = JSON.parse(raw) as Record<string, LegacyBookStats>;
@@ -110,7 +120,7 @@ async function migrateReadingStatsKv(): Promise<void> {
       };
       await invoke("reading_time_import", { wire });
     }
-    localKV.removeItem(READING_STATS_KV_KEY);
+    kv.clear(READING_STATS_KV_KEY);
   } catch (err) {
     console.error("[interim-projections] reading-time import failed; will retry next launch", err);
   }
@@ -121,10 +131,10 @@ async function migrateReadingStatsKv(): Promise<void> {
  * before the app module graph evaluates (same contract as
  * hydrateLocalStore, which calls this).
  */
-export async function hydrateInterimProjections(): Promise<void> {
+export async function hydrateInterimProjections(kv: LegacyKvAccess): Promise<void> {
   if (!isTauri()) return;
-  await migrateVocabularyKv();
-  await migrateReadingStatsKv();
+  await migrateVocabularyKv(kv);
+  await migrateReadingStatsKv(kv);
   // Wave 5: the retired core vocabulary projection moves into the built-in
   // dictionary plugin's document collection (idempotent; empty second run).
   try {

@@ -1,25 +1,37 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
-  "globalDependencies": ["scripts/build-plugin.ts"],
+  "globalDependencies": [
+    "scripts/build-plugin.ts"
+  ],
   "tasks": {
     "dev": {
       "cache": false,
       "persistent": true
     },
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": [
+        "^build"
+      ],
       "passThroughEnv": [
         "TAURI_SIGNING_PRIVATE_KEY",
         "TAURI_SIGNING_PRIVATE_KEY_PASSWORD"
       ],
-      "outputs": ["dist/**", "src-tauri/target/**", "src-tauri/gen/**"]
+      "outputs": [
+        "dist/**",
+        "src-tauri/target/**",
+        "src-tauri/gen/**"
+      ]
     },
     "typecheck": {
-      "dependsOn": ["^build"]
+      "dependsOn": [
+        "^build"
+      ]
     },
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": [
+        "^build"
+      ]
     },
     "preview": {
       "cache": false,
@@ -30,7 +42,15 @@
       "persistent": true
     },
     "build-storybook": {
-      "outputs": ["storybook-static/**"]
+      "outputs": [
+        "storybook-static/**"
+      ]
+    },
+    "lint:cycles": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": []
     }
   }
 }

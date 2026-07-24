@@ -27,6 +27,7 @@ import {
 } from "./desktop-import";
 import { reconcileGenesisEvents } from "./event-genesis";
 import { hydrateInterimProjections } from "./interim-projections";
+import { hydrateSecrets } from "./secret-store";
 
 const MIGRATED_FLAG = "read-aware-migrated-v1";
 const MEMORIES_MIGRATED_FLAG = "read-aware-migrated-memories-v1";
@@ -67,6 +68,30 @@ export const localKV = {
     void invoke("delete_kv", { key }).catch((err) => {
       console.error(`[local-store] delete_kv failed for "${key}"`, err);
     });
+  },
+
+  /**
+   * Every entry under `prefix`, with the prefix stripped from the keys.
+   *
+   * Backs the plugin sandbox: a plugin's `storage.get()` is synchronous, so its
+   * Worker gets the whole namespace up front instead of a round trip per read.
+   */
+  entries(prefix: string): Record<string, string> {
+    const out: Record<string, string> = {};
+    if (!isTauri()) {
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (key?.startsWith(prefix)) {
+          const value = localStorage.getItem(key);
+          if (value != null) out[key.slice(prefix.length)] = value;
+        }
+      }
+      return out;
+    }
+    for (const [key, value] of snapshot ?? []) {
+      if (key.startsWith(prefix)) out[key.slice(prefix.length)] = value;
+    }
+    return out;
   },
 };
 
@@ -127,7 +152,15 @@ export async function hydrateLocalStore(): Promise<void> {
   // Fourth wave: vocabulary + reading-time move from app_kv JSON blobs into
   // their SQLite projection tables (migration v9), then hydrate the sync
   // snapshots feature code reads at module-eval.
-  await hydrateInterimProjections();
+  await hydrateInterimProjections({
+    read: (key) => localKV.getItem(key),
+    clear: (key) => localKV.removeItem(key),
+  });
+
+  // Fifth wave: the BYO API key leaves the webview-readable localStorage slot
+  // for the OS credential store, and the in-memory snapshot the synchronous
+  // config readers use is filled.
+  await hydrateSecrets();
 
   // Off the boot-critical path: synthesize creation events for projection rows
   // the event log has never seen (pre-event-era data, v1 backup restores,

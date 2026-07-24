@@ -19,7 +19,8 @@
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
     "storybook": "turbo run storybook --filter=@read-aware/web",
-    "build-storybook": "turbo run build-storybook --filter=@read-aware/web"
+    "build-storybook": "turbo run build-storybook --filter=@read-aware/web",
+    "lint:cycles": "turbo run lint:cycles --filter=@read-aware/web"
   },
   "devDependencies": {
     "@types/bun": "latest",

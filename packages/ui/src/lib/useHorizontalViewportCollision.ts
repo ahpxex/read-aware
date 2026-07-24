@@ -55,11 +55,15 @@ export function useHorizontalViewportCollision(
     const resizeObserver =
       typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updatePosition);
     resizeObserver?.observe(floating);
+    // Overlay entrance animations temporarily scale the measured rect. Re-run
+    // once the surface reaches its final size so the viewport gap is exact.
+    floating.addEventListener("animationend", updatePosition);
     window.addEventListener("resize", updatePosition);
     window.visualViewport?.addEventListener("resize", updatePosition);
 
     return () => {
       resizeObserver?.disconnect();
+      floating.removeEventListener("animationend", updatePosition);
       window.removeEventListener("resize", updatePosition);
       window.visualViewport?.removeEventListener("resize", updatePosition);
     };

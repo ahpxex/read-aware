@@ -332,6 +332,7 @@ export function TextUnitNavigatorBar({
               <PluginSelectionCluster
                 input={hasTarget ? pluginInput : null}
                 divider={<BarDivider />}
+                overflowSide="top"
               />
             </>
           )}

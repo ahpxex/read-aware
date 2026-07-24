@@ -26,9 +26,15 @@ type PluginSelectionClusterProps = {
   input: SelectionActionInput | null;
   /** Rendered before the cluster when at least one action exists. */
   divider?: React.ReactNode;
+  /** Direction for the overflow menu; bottom-anchored toolbars open upward. */
+  overflowSide?: "top" | "bottom";
 };
 
-export function PluginSelectionCluster({ input, divider }: PluginSelectionClusterProps) {
+export function PluginSelectionCluster({
+  input,
+  divider,
+  overflowSide = "bottom",
+}: PluginSelectionClusterProps) {
   const { t } = useTranslation("plugins");
   const actions = useAtomValue(selectionActionsAtom);
   const placement = useAtomValue(pluginPlacementAtom);
@@ -67,6 +73,7 @@ export function PluginSelectionCluster({ input, divider }: PluginSelectionCluste
       {overflow.length > 0 && (
         <DropdownMenu
           align="right"
+          side={overflowSide}
           triggerLabel={t("menu.actions")}
           trigger={
             <span

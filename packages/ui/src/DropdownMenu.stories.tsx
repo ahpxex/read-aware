@@ -51,3 +51,16 @@ export const WithIconTrigger: Story = {
     ],
   },
 };
+
+export const OpensUpward: Story = {
+  render: (args) => (
+    <div className="flex min-h-72 items-end justify-center">
+      <DropdownMenu {...args} />
+    </div>
+  ),
+  args: {
+    trigger: <IconButton icon={MoreIcon} label="More actions" />,
+    items: sampleItems,
+    side: "top",
+  },
+};

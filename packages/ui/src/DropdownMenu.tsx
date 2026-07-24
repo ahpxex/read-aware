@@ -1,6 +1,7 @@
 import { useRef, useEffect, useId, useCallback, type ReactNode } from "react";
 import { useLocalAtom } from "./lib/useLocalAtom";
 import { cn } from "./lib/cn";
+import { useHorizontalViewportCollision } from "./lib/useHorizontalViewportCollision";
 
 type DropdownItem = {
   label: string;
@@ -17,6 +18,8 @@ type DropdownMenuProps = {
   triggerLabel?: string;
   items: DropdownItem[];
   align?: "left" | "right";
+  /** Side of the trigger the menu opens toward. */
+  side?: "top" | "bottom";
   className?: string;
   /** Controlled open state; leave undefined for internal (trigger-driven) state. */
   open?: boolean;
@@ -28,6 +31,7 @@ export function DropdownMenu({
   triggerLabel,
   items,
   align = "left",
+  side = "bottom",
   className,
   open: controlledOpen,
   onOpenChange,
@@ -41,6 +45,7 @@ export function DropdownMenu({
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const id = useId();
   const menuId = `${id}-menu`;
+  const { floatingRef, positionStyle } = useHorizontalViewportCollision(open, align);
 
   const onOpenChangeRef = useRef(onOpenChange);
   onOpenChangeRef.current = onOpenChange;
@@ -156,12 +161,22 @@ export function DropdownMenu({
       )}
       {open && (
         <div
+          ref={floatingRef}
           id={menuId}
           role="menu"
+          style={positionStyle}
           onKeyDown={handleMenuKeyDown}
           className={cn(
-            "ra-motion-overlay-pop absolute z-50 mt-1.5 min-w-[184px] max-w-[calc(100vw-1rem)] rounded-md border border-border bg-[var(--ra-main-surface-color)] p-1",
-            align === "left" ? "left-0 origin-top-left" : "right-0 origin-top-right",
+            "ra-motion-overlay-pop absolute z-50 min-w-[184px] max-w-[calc(100vw-1rem)] rounded-md border border-border bg-[var(--ra-main-surface-color)] p-1",
+            side === "top" ? "bottom-full mb-1.5" : "top-full mt-1.5",
+            align === "left" ? "left-0" : "right-0",
+            side === "top"
+              ? align === "left"
+                ? "origin-bottom-left"
+                : "origin-bottom-right"
+              : align === "left"
+                ? "origin-top-left"
+                : "origin-top-right",
           )}
         >
           {items.map((item, i) => (

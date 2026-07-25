@@ -15,6 +15,7 @@ import {
   prepareBookImport,
   removeLibraryBook,
   removeLibraryBooks,
+  setLibraryBookFinished,
   setLibraryBookStarred,
   updateBookMetadata,
   updateVirtualLibraryBookTitle,
@@ -82,6 +83,8 @@ export type BooksDomain = {
   importBook(input: { fileName: string; data: ArrayBuffer | Uint8Array }): Promise<BookSummary>;
   editMetadata(bookId: string, patch: { title?: string; author?: string }): Promise<void>;
   setStarred(bookId: string, starred: boolean): Promise<void>;
+  /** The reader's own "I finished this" verdict; sticky against further reading. */
+  setFinished(bookId: string, finished: boolean): Promise<void>;
   /** Remove a book from the shelf — irreversible for the source file. */
   remove(bookId: string): Promise<void>;
   /** Batch removal (one storage round-trip; one event per book). */
@@ -131,6 +134,10 @@ export function createBooksDomain(origin: EventOrigin): BooksDomain {
     },
     setStarred: async (bookId, starred) => {
       await setLibraryBookStarred(String(bookId), starred === true, origin);
+      notifyLibraryChanged();
+    },
+    setFinished: async (bookId, finished) => {
+      await setLibraryBookFinished(String(bookId), finished === true, origin);
       notifyLibraryChanged();
     },
     remove: async (bookId) => {

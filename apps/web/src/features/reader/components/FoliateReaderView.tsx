@@ -54,6 +54,7 @@ import { ReaderFootnotePopover } from "./ReaderFootnotePopover";
 import { TextUnitNavigatorBar } from "./TextUnitNavigatorBar";
 import { ReaderPageTurnControls } from "./ReaderPageTurnControls";
 import { ReaderSelectionMenu } from "./ReaderSelectionMenu";
+import { ReaderCompletionScreen } from "./ReaderCompletionScreen";
 import { NoteEditor } from "../../annotations/components/NoteEditor";
 import { useAskAiEnabled } from "../../ai/hooks/useAskAiEnabled";
 import { askAiRequestAtom } from "../../ai/state/chat-intent";
@@ -400,6 +401,20 @@ export function FoliateReaderView({
   useEffect(() => { onCurrentChapterChangeRef.current = onCurrentChapterChange; }, [onCurrentChapterChange]);
   useEffect(() => { onBookReadyRef.current = onBookReady; }, [onBookReady]);
 
+  const [showCompletion, setShowCompletion] = useState(false);
+  // Stable: this is a dependency of the pagination callbacks, and an inline
+  // arrow here rebuilt them on every render — enough to loop the reader's
+  // listener effects until React bailed out with "maximum update depth".
+  const openCompletion = useCallback(() => setShowCompletion(true), []);
+  const dismissCompletion = useCallback(() => setShowCompletion(false), []);
+  const revisitFromCompletion = useCallback((cfiRange: string) => {
+    setShowCompletion(false);
+    void viewRef.current?.goTo(cfiRange);
+  }, []);
+  const [declaredFinished, setDeclaredFinished] = useState(
+    selectedBook?.readingStatus === "finished",
+  );
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Only surface the loader once a load is genuinely slow, so fast opens (the
@@ -587,6 +602,7 @@ export function FoliateReaderView({
     handleWheelCrossingRef,
     dismissShellOnScrollDistanceRef,
     enqueuePageTurn,
+    advancePage,
     turnPage,
     resetShellScrollTravel,
     resetPageTurnQueue,
@@ -596,6 +612,7 @@ export function FoliateReaderView({
     shellVisibleRef,
     onContentScrollRef,
     clearSelection,
+    onAdvancePastEnd: openCompletion,
   });
 
   const armContentClickSuppression = useCallback(() => {
@@ -931,9 +948,10 @@ export function FoliateReaderView({
       const turned = gestures.pageTurn.feed(event.deltaX, wheelEventTime(event));
       if (turned !== 0) {
         clearSelection();
-        enqueuePageTurn(() =>
-          turned > 0 ? viewRef.current?.goRight?.() : viewRef.current?.goLeft?.(),
-        );
+        // Forward goes through advancePage so the last page opens the
+        // completion screen; backward can always just queue.
+        if (turned > 0) advancePage(() => viewRef.current?.goRight?.());
+        else enqueuePageTurn(() => viewRef.current?.goLeft?.());
       }
       return;
     }
@@ -1011,7 +1029,7 @@ export function FoliateReaderView({
     const bindings = shortcutBindingsRef.current;
     if (chordMatchesEvent(resolveBinding("next-page", bindings), event)) {
       event.preventDefault();
-      enqueuePageTurn(() => viewRef.current?.goRight?.());
+      advancePage(() => viewRef.current?.goRight?.());
       return;
     }
     if (chordMatchesEvent(resolveBinding("prev-page", bindings), event)) {
@@ -2268,6 +2286,16 @@ export function FoliateReaderView({
         }}
         isEditing={!!currentNote}
       />
+
+      {showCompletion && selectedBook ? (
+        <ReaderCompletionScreen
+          book={selectedBook}
+          finished={declaredFinished}
+          onFinishedChange={setDeclaredFinished}
+          onRevisit={revisitFromCompletion}
+          onDismiss={dismissCompletion}
+        />
+      ) : null}
 
     </section>
   );

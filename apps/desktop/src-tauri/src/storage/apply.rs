@@ -197,6 +197,29 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
             )
             .map_err(|e| e.to_string())?;
         }
+        "book.finished" => {
+            let id = require(p, "bookId", t)?;
+            // The reader's own verdict overrides the percentage-derived status.
+            // Un-finishing falls back to whether there is progress to resume,
+            // so the shelf doesn't strand the book in a state it can't leave.
+            let finished = bool_of(p, "finished").unwrap_or(true);
+            if finished {
+                tx.execute(
+                    "UPDATE books SET reading_status = 'finished', updated_at = ?2 WHERE id = ?1",
+                    params![id, at],
+                )
+            } else {
+                tx.execute(
+                    "UPDATE books
+                        SET reading_status = CASE WHEN progress_percent > 0 THEN 'reading'
+                                                 ELSE 'unread' END,
+                            updated_at = ?2
+                      WHERE id = ?1",
+                    params![id, at],
+                )
+            }
+            .map_err(|e| e.to_string())?;
+        }
         "book.removed" => {
             let id = require(p, "bookId", t)?;
             // The book's annotations go with it; their own `*.removed` events
@@ -272,11 +295,16 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
             // last_opened_at moves with progress too: the shelf orders by it,
             // and making progress IS reading the book. `book.opened` covers the
             // case where a book is opened without any progress landing.
+            // `reading_status` here is DERIVED from the percentage, so it must
+            // not overwrite a reader who declared the book finished — turning
+            // one more page is not un-finishing it. Only `book.finished(false)`
+            // clears that verdict.
             tx.execute(
                 "UPDATE books
                     SET progress_json = ?2,
                         progress_percent = COALESCE(?3, progress_percent),
-                        reading_status = COALESCE(?4, reading_status),
+                        reading_status = CASE WHEN reading_status = 'finished' THEN 'finished'
+                                              ELSE COALESCE(?4, reading_status) END,
                         last_opened_at = ?5,
                         updated_at = ?5
                   WHERE id = ?1",

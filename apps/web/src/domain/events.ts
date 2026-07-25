@@ -17,6 +17,7 @@ export const BOOK_EVENTS = [
   "book.coverExtracted",
   "book.opened",
   "book.starred",
+  "book.finished",
   "book.removed",
 ] as const;
 

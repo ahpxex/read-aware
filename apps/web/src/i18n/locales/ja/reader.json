@@ -123,5 +123,29 @@
     "light": "ライト",
     "warm": "ウォーム",
     "dark": "ダーク"
+  },
+  "completion": {
+    "eyebrow": "読み終えました",
+    "backToBook": "本文に戻る",
+    "markFinished": "読了にする",
+    "markedFinished": "読了",
+    "totalTime": "読書時間",
+    "daysRead": "日数",
+    "perDay": "1日あたり",
+    "longestStreak": "最長連続",
+    "minutes": "{{count}}分",
+    "hours": "{{count}}時間",
+    "hoursMinutes": "{{hours}}時間{{minutes}}分",
+    "recapTitle": "振り返り",
+    "recapAsk": "振り返りを書く",
+    "recapLoading": "ハイライトを読んでいます…",
+    "recapUnavailable": "振り返りを作るには、設定でAIプロバイダーを設定してください。",
+    "recapFailed": "振り返りを作成できませんでした。後でもう一度お試しください。",
+    "recapSystem": "読み終えたばかりの読者の振り返りを手伝います。読者がマークした箇所のみに基づいて、読者の言語で3〜4段落の短い文章を書いてください。何が読者の関心を引いたか、マークの間にどんな筋が通っているかを述べます。あらすじ、賞賛、箇条書きは不要です。",
+    "recapPrompt": "本：{{title}}（{{author}}）\n\n読みながらマークした箇所：\n{{marks}}",
+    "unknownAuthor": "作者不明",
+    "noMarks": "（読書中にマークはありませんでした。）",
+    "marksTitle": "あなたのマーク（{{count}}）",
+    "noMarksYet": "この本にマークはありません。"
   }
 }

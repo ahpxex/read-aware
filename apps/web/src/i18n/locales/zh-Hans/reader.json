@@ -123,5 +123,29 @@
     "light": "浅色",
     "warm": "暖色",
     "dark": "深色"
+  },
+  "completion": {
+    "eyebrow": "读完了",
+    "backToBook": "回到正文",
+    "markFinished": "标记为已读完",
+    "markedFinished": "已读完",
+    "totalTime": "阅读时长",
+    "daysRead": "天数",
+    "perDay": "日均",
+    "longestStreak": "最长连续",
+    "minutes": "{{count}} 分",
+    "hours": "{{count}} 小时",
+    "hoursMinutes": "{{hours}} 小时 {{minutes}} 分",
+    "recapTitle": "回顾",
+    "recapAsk": "写一段回顾",
+    "recapLoading": "正在读你的标注…",
+    "recapUnavailable": "先在设置里配置 AI 服务，才能生成回顾。",
+    "recapFailed": "回顾没能写成，稍后再试。",
+    "recapSystem": "你在帮一位刚读完一本书的读者回顾。只依据他标注过的段落，用读者的语言写 3–4 个短段落。指出是什么吸引了他的注意，以及这些标注之间贯穿着什么线索。不要复述情节，不要恭维，不要用列表。",
+    "recapPrompt": "书：{{title}}（{{author}}）\n\n我在阅读时标注的段落：\n{{marks}}",
+    "unknownAuthor": "佚名",
+    "noMarks": "（阅读时没有留下标注。）",
+    "marksTitle": "你的标注（{{count}}）",
+    "noMarksYet": "这本书里没有留下标注。"
   }
 }

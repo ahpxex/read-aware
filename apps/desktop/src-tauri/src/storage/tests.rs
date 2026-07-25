@@ -1071,3 +1071,56 @@ fn the_secret_key_file_is_owner_only() {
         assert_eq!(mode & 0o777, 0o600, "got {:o}", mode & 0o777);
     }
 }
+
+#[test]
+fn a_declared_finish_survives_further_reading() {
+    let mut conn = migrated_conn();
+    commit_events_inner(
+        &mut conn,
+        &[
+            imported("e1", 1_000, "b1", "沙丘"),
+            ev(
+                "e2",
+                1_001,
+                "reading.progressed",
+                serde_json::json!({ "bookId": "b1", "locator": "epubcfi(/6/2)",
+                                    "progressPercent": 40, "status": "reading" }),
+            ),
+            ev("e3", 1_002, "book.finished", serde_json::json!({ "bookId": "b1", "finished": true })),
+        ],
+    )
+    .unwrap();
+    assert_eq!(
+        scalar::<String>(&conn, "SELECT reading_status FROM books WHERE id='b1'"),
+        "finished"
+    );
+
+    // Turning one more page is not un-finishing the book.
+    commit_events_inner(
+        &mut conn,
+        &[ev(
+            "e4",
+            1_003,
+            "reading.progressed",
+            serde_json::json!({ "bookId": "b1", "locator": "epubcfi(/6/4)",
+                                "progressPercent": 45, "status": "reading" }),
+        )],
+    )
+    .unwrap();
+    assert_eq!(
+        scalar::<String>(&conn, "SELECT reading_status FROM books WHERE id='b1'"),
+        "finished",
+        "a derived status must not overwrite the reader's verdict"
+    );
+
+    // Only an explicit un-finish clears it, falling back to resumable progress.
+    commit_events_inner(
+        &mut conn,
+        &[ev("e5", 1_004, "book.finished", serde_json::json!({ "bookId": "b1", "finished": false }))],
+    )
+    .unwrap();
+    assert_eq!(
+        scalar::<String>(&conn, "SELECT reading_status FROM books WHERE id='b1'"),
+        "reading"
+    );
+}

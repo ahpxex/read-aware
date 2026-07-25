@@ -506,6 +506,25 @@ export async function updateBookMetadata(
   return getBookRecord(bookId);
 }
 
+/**
+ * Record the reader's own verdict on whether the book is finished.
+ *
+ * Distinct from the status `updateLibraryBookProgress` derives from the
+ * percentage: this one is sticky, so reading on afterwards does not undo it
+ * (see `book.finished` in storage/apply.rs).
+ */
+export async function setLibraryBookFinished(
+  bookId: string,
+  finished: boolean,
+  origin?: EventOrigin,
+) {
+  const existingBook = await getBookRecord(bookId);
+  if (!existingBook) return null;
+
+  await commitDomainEvents({ type: "book.finished", payload: { bookId, finished }, origin });
+  return getBookRecord(bookId);
+}
+
 export async function setLibraryBookStarred(
   bookId: string,
   starred: boolean,

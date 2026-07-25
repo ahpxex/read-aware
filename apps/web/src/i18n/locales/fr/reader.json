@@ -123,5 +123,29 @@
     "light": "Clair",
     "warm": "Chaud",
     "dark": "Sombre"
+  },
+  "completion": {
+    "eyebrow": "Terminé",
+    "backToBook": "Retour au livre",
+    "markFinished": "Marquer comme terminé",
+    "markedFinished": "Terminé",
+    "totalTime": "Temps de lecture",
+    "daysRead": "Jours",
+    "perDay": "Par jour",
+    "longestStreak": "Plus longue série",
+    "minutes": "{{count}} min",
+    "hours": "{{count}} h",
+    "hoursMinutes": "{{hours}} h {{minutes}} min",
+    "recapTitle": "Regard en arrière",
+    "recapAsk": "Écrire un bilan",
+    "recapLoading": "Lecture de vos marques…",
+    "recapUnavailable": "Configurez un fournisseur d'IA dans les réglages pour obtenir un bilan.",
+    "recapFailed": "Le bilan n'a pas pu être écrit. Réessayez plus tard.",
+    "recapSystem": "Vous aidez un lecteur à revenir sur un livre qu'il vient de terminer. Écrivez 3 à 4 courts paragraphes dans la langue du lecteur, en vous appuyant UNIQUEMENT sur les passages qu'il a marqués. Nommez ce qui a retenu son attention et les fils qui traversent ses marques. Pas de résumé de l'intrigue, pas d'éloges, pas de listes à puces.",
+    "recapPrompt": "Livre : {{title}}, de {{author}}\n\nLes passages que j'ai marqués en lisant :\n{{marks}}",
+    "unknownAuthor": "auteur inconnu",
+    "noMarks": "(Je n'ai rien marqué en lisant.)",
+    "marksTitle": "Vos marques ({{count}})",
+    "noMarksYet": "Vous n'avez rien marqué dans ce livre."
   }
 }

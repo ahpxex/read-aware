@@ -247,9 +247,42 @@ type FoliateScrollGeometry = {
   start?: number;
   end?: number;
   viewSize?: number;
+  /**
+   * The engine's "nothing follows this" flag: no further linear section, and the
+   * position within two pages of the last. The two-page slack exists because the
+   * paginator uses it to stop reserving scroll overshoot — it is NOT a precise
+   * last-page test, so `isAtEndOfBook` tightens it.
+   */
+  atEnd?: boolean;
+  /** Current page index within the loaded flow. */
+  page?: number;
+  /** Total pages in the loaded flow. */
+  pages?: number;
 };
 
 const SCROLL_EDGE_EPSILON = 2;
+
+/**
+ * Whether there is genuinely nothing left to turn to.
+ *
+ * Asked of the renderer rather than inferred from progress: the engine already
+ * knows whether another section follows, and it answers the same way in
+ * paginated and scrolled flow. (Inferring it from `relocate` cannot work — that
+ * event only fires when the position CHANGES, so it goes silent exactly at the
+ * end, and a session restored there never receives one at all.)
+ *
+ * `atEnd` alone is too generous: it tolerates being two pages short, which would
+ * finish the book while a page still remained. Its value is the part that is
+ * hard to get otherwise — "no following section" — so it gates the check, and
+ * the page comparison supplies the precision.
+ */
+export function isAtEndOfBook(view: FoliateView | null | undefined): boolean {
+  const renderer = view?.renderer as unknown as FoliateScrollGeometry | undefined;
+  if (renderer?.atEnd !== true) return false;
+  const pages = renderer.pages ?? 0;
+  if (pages <= 1) return true; // single screen: showing it is reaching the end
+  return (renderer.page ?? 0) >= pages - 1;
+}
 
 /**
  * Whether the continuous-scroll viewport is at the top/bottom of the current

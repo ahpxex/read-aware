@@ -12,7 +12,7 @@
  * without being re-attached.
  */
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
-import { getScrollEdges, type FoliateView } from "../lib/foliate-engine";
+import { getScrollEdges, isAtEndOfBook, type FoliateView } from "../lib/foliate-engine";
 import type { ReadingMode } from "../../settings/lib/reader-settings";
 
 /** Cross-fade timings for a lazy section swap. */
@@ -31,6 +31,12 @@ type Options = {
   shellVisibleRef: RefObject<boolean>;
   onContentScrollRef: RefObject<(() => void) | undefined>;
   clearSelection: () => void;
+  /**
+   * The reader tried to advance past the last page. This is the moment the book
+   * is finished — a deliberate forward gesture with nothing left — as opposed to
+   * merely scrolling the last page into view.
+   */
+  onAdvancePastEnd: () => void;
 };
 
 export type ReaderPagination = {
@@ -43,6 +49,13 @@ export type ReaderPagination = {
   dismissShellOnScrollDistance: (deltaY: number) => void;
   dismissShellOnScrollDistanceRef: RefObject<(deltaY: number) => void>;
   enqueuePageTurn: (turn: () => Promise<unknown> | void) => void;
+  /**
+   * Queue a FORWARD turn, or open the completion screen when there is nothing
+   * left. Every "next page" entry point goes through here — the keyboard and the
+   * wheel page-turn gesture drive `goRight`/`goLeft` directly (RTL-correct)
+   * rather than `turnPage`, and each of them has to reach the end the same way.
+   */
+  advancePage: (turn: () => Promise<unknown> | void) => void;
   turnPage: (direction: -1 | 1) => Promise<void>;
   /** Zero the shell-dismissal travel (the shell opened, or the book changed). */
   resetShellScrollTravel: () => void;
@@ -56,6 +69,7 @@ export function useReaderPagination({
   shellVisibleRef,
   onContentScrollRef,
   clearSelection,
+  onAdvancePastEnd,
 }: Options): ReaderPagination {
   const [isCrossing, setIsCrossing] = useState(false);
   const crossingSectionRef = useRef(false);
@@ -128,13 +142,16 @@ export function useReaderPagination({
 
       if (overscrollRef.current >= threshold) {
         overscrollRef.current = 0;
-        void crossSectionRef.current(1);
+        // Past the end of the LAST section there is nothing to cross into, so
+        // the same push means "done" rather than "next chapter".
+        if (isAtEndOfBook(viewRef.current)) onAdvancePastEnd();
+        else void crossSectionRef.current(1);
       } else if (overscrollRef.current <= -threshold) {
         overscrollRef.current = 0;
         void crossSectionRef.current(-1);
       }
     },
-    [readingModeRef, viewRef],
+    [onAdvancePastEnd, readingModeRef, viewRef],
   );
   const handleWheelCrossingRef = useRef(handleWheelCrossing);
   useEffect(() => {
@@ -201,10 +218,32 @@ export function useReaderPagination({
     void run(turn);
   }, []);
 
+  /**
+   * Advance, or finish.
+   *
+   * `isAtEndOfBook` asks the renderer, which already tracks both halves of the
+   * question — no following linear section, and the position on the last page —
+   * and answers the same way in paginated and scrolled flow.
+   */
+  const advancePage = useCallback(
+    (turn: () => Promise<unknown> | void) => {
+      if (isAtEndOfBook(viewRef.current)) {
+        onAdvancePastEnd();
+        return;
+      }
+      enqueuePageTurn(turn);
+    },
+    [enqueuePageTurn, onAdvancePastEnd, viewRef],
+  );
+
   const turnPage = useCallback(
     async (direction: -1 | 1) => {
       const view = viewRef.current;
       if (!view) return;
+      if (direction === 1 && isAtEndOfBook(view)) {
+        onAdvancePastEnd();
+        return;
+      }
       // A keyboard/space-driven move in scroll mode scrolls a whole viewport (or
       // crosses a section) — clearly past any distance threshold, so dismiss the
       // shell at once. Paginated turns are handled by the relocate position check.
@@ -230,6 +269,7 @@ export function useReaderPagination({
       clearSelection,
       crossSection,
       enqueuePageTurn,
+      onAdvancePastEnd,
       onContentScrollRef,
       readingModeRef,
       shellVisibleRef,
@@ -266,6 +306,7 @@ export function useReaderPagination({
     dismissShellOnScrollDistance,
     dismissShellOnScrollDistanceRef,
     enqueuePageTurn,
+    advancePage,
     turnPage,
     resetShellScrollTravel,
     resetPageTurnQueue,

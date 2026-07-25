@@ -106,6 +106,13 @@ export type DomainEvent =
   /** Drives books.last_opened_at; emitted when a book is opened in the reader. */
   | DomainEventEnvelope<"book.opened", { bookId: Id }>
   | DomainEventEnvelope<"book.starred", { bookId: Id; starred: boolean }>
+  /**
+   * The reader DECLARED the book finished, which is not the same fact as the
+   * position reaching the end: a book can be finished with pages skipped, and
+   * reaching 100% is not a commitment. `reading.progressed` carries a derived
+   * status; this carries the user's own.
+   */
+  | DomainEventEnvelope<"book.finished", { bookId: Id; finished: boolean }>
   | DomainEventEnvelope<"book.removed", { bookId: Id }>
   // --- Collections (set semantics → reconstructable as many-to-many later) -
   | DomainEventEnvelope<"collection.created", { collectionId: Id; name: string }>

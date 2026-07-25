@@ -123,5 +123,29 @@
     "light": "Claro",
     "warm": "Cálido",
     "dark": "Oscuro"
+  },
+  "completion": {
+    "eyebrow": "Terminado",
+    "backToBook": "Volver al libro",
+    "markFinished": "Marcar como terminado",
+    "markedFinished": "Terminado",
+    "totalTime": "Tiempo de lectura",
+    "daysRead": "Días",
+    "perDay": "Por día",
+    "longestStreak": "Racha más larga",
+    "minutes": "{{count}} min",
+    "hours": "{{count}} h",
+    "hoursMinutes": "{{hours}} h {{minutes}} min",
+    "recapTitle": "Mirando atrás",
+    "recapAsk": "Escribir un resumen",
+    "recapLoading": "Leyendo tus marcas…",
+    "recapUnavailable": "Configura un proveedor de IA en los ajustes para obtener un resumen.",
+    "recapFailed": "No se pudo escribir el resumen. Inténtalo más tarde.",
+    "recapSystem": "Ayudas a un lector a mirar atrás sobre un libro que acaba de terminar. Escribe 3–4 párrafos breves en el idioma del lector, basándote ÚNICAMENTE en los pasajes que marcó. Señala qué llamó su atención y qué hilos recorren sus marcas. Sin resumen del argumento, sin elogios, sin viñetas.",
+    "recapPrompt": "Libro: {{title}}, de {{author}}\n\nLos pasajes que marqué al leer:\n{{marks}}",
+    "unknownAuthor": "autor desconocido",
+    "noMarks": "(No marqué nada mientras leía.)",
+    "marksTitle": "Tus marcas ({{count}})",
+    "noMarksYet": "No marcaste nada en este libro."
   }
 }

@@ -7,7 +7,7 @@
  * live seek would reload a section per pointer move, so the drag shows a
  * readout of where it will land instead.
  */
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
 import { clampFraction } from "../lib/reader-progress";
 
@@ -31,7 +31,8 @@ export type ProgressScrub = {
   /** Whether the pointer is over the track or dragging it — the cue to grow
    *  the hairline and reveal the knob, ticks, and readout. */
   active: boolean;
-  /** What the filled portion should paint: the drag preview, else the position. */
+  /** What the filled portion should paint: the drag preview while dragging, a
+   *  committed seek until the engine arrives, else the reading position. */
   displayFraction: number | null;
   handleProps: {
     onPointerDown: (event: PointerEvent<HTMLElement>) => void;
@@ -57,6 +58,24 @@ export function useProgressScrub({
   // Read back inside the same gesture's later events, where a state read would
   // still see the value from the render the gesture started in.
   const draggingRef = useRef(false);
+  // Where a committed seek is headed, held until the engine reports arriving.
+  // Without it, letting go drops the bar back to the position the reader is
+  // still on — a visible snap backwards, then a jump forwards once the jump
+  // lands a few hundred milliseconds later.
+  const [pending, setPending] = useState<number | null>(null);
+
+  // The engine moved: its own position is the truth again.
+  useEffect(() => {
+    setPending(null);
+  }, [fraction]);
+
+  const commit = useCallback(
+    (next: number) => {
+      setPending(next);
+      onSeek(next);
+    },
+    [onSeek],
+  );
 
   const fractionAt = useCallback(
     (event: PointerEvent<HTMLElement>): number | null => {
@@ -117,9 +136,9 @@ export function useProgressScrub({
       endDrag(event);
       // A touch gesture leaves no hover behind it; drop the readout with it.
       if (event.pointerType !== "mouse") setPointerFraction(null);
-      if (next != null) onSeek(next);
+      if (next != null) commit(next);
     },
-    [endDrag, fractionAt, onSeek, pointerFraction],
+    [commit, endDrag, fractionAt, pointerFraction],
   );
 
   const onPointerCancel = useCallback(
@@ -151,21 +170,24 @@ export function useProgressScrub({
     (event: KeyboardEvent<HTMLElement>) => {
       if (!enabled || fraction == null) return;
       const step = event.shiftKey ? pageStepFraction : stepFraction;
+      // Step from where the last press is headed, not from where the engine
+      // still is — held keys would otherwise all land on the same page.
+      const from = pending ?? fraction;
       let next: number | null = null;
       switch (event.key) {
         case "ArrowLeft":
         case "ArrowDown":
-          next = fraction - step;
+          next = from - step;
           break;
         case "ArrowRight":
         case "ArrowUp":
-          next = fraction + step;
+          next = from + step;
           break;
         case "PageDown":
-          next = fraction + pageStepFraction;
+          next = from + pageStepFraction;
           break;
         case "PageUp":
-          next = fraction - pageStepFraction;
+          next = from - pageStepFraction;
           break;
         case "Home":
           next = 0;
@@ -180,9 +202,9 @@ export function useProgressScrub({
       // The reader's own arrow-key page turns listen on the document; a scrub
       // from the focused bar must not also turn a page.
       event.stopPropagation();
-      onSeek(clampFraction(next));
+      commit(clampFraction(next));
     },
-    [enabled, fraction, onSeek, pageStepFraction, stepFraction],
+    [commit, enabled, fraction, pageStepFraction, pending, stepFraction],
   );
 
   const onBlur = useCallback(() => setPointerFraction(null), []);
@@ -191,7 +213,7 @@ export function useProgressScrub({
     pointerFraction,
     dragging,
     active: pointerFraction != null || dragging,
-    displayFraction: dragging ? pointerFraction ?? fraction : fraction,
+    displayFraction: dragging ? pointerFraction ?? fraction : pending ?? fraction,
     handleProps: {
       onPointerDown,
       onPointerMove,

@@ -11,13 +11,13 @@
  * book, not a dashboard: the figures are one sentence, the marks are the
  * substance, and a section with nothing in it is not rendered at all.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { TFunction } from "i18next";
-import { useAtomValue } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { ArrowLeft, CheckCircle, Sparkle, X } from "@phosphor-icons/react";
-import { Body, Button, Caption, Display, Eyebrow, Heading, IconButton } from "@read-aware/ui";
+import { Body, Button, Caption, Display, Heading, IconButton } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
-import { i18n, useTranslation } from "../../../i18n";
+import { useTranslation } from "../../../i18n";
 import { readingStatsAtom } from "../../../state/ui";
 import { computeBookInsights } from "../../stats/lib/reading-insights";
 import { emptyBookStats } from "../lib/reading-stats";
@@ -26,9 +26,8 @@ import type { ReaderSettings } from "../../settings/lib/reader-settings";
 import type { LibraryBook } from "../../library/lib/library-types";
 import type { Annotation } from "../../annotations/lib/annotation-types";
 import { listAnnotations } from "../../annotations/lib/annotation-db";
-import { isRecapCurrent, readBookRecap, saveBookRecap } from "../lib/book-recap";
 import { userDomain } from "../../../domain";
-import { getAgentRuntime } from "../../ai/agent/agent-runtime";
+import { askAiRequestAtom } from "../../ai/state/chat-intent";
 
 type Props = {
   book: LibraryBook;
@@ -68,15 +67,8 @@ export function ReaderCompletionScreen({
   const { t } = useTranslation("reader");
   const palette = READER_THEME_PALETTE[theme];
   const stats = useAtomValue(readingStatsAtom);
+  const dispatchAskAi = useSetAtom(askAiRequestAtom);
   const [annotations, setAnnotations] = useState<Annotation[] | null>(null);
-  const [recap, setRecap] = useState<{ state: "idle" | "loading" | "done" | "error"; text: string }>(
-    () => {
-      const stored = readBookRecap(book.id);
-      return stored ? { state: "done" as const, text: stored.text } : { state: "idle" as const, text: "" };
-    },
-  );
-  /** Guards the auto-run so it fires once per screen, not once per render. */
-  const autoRequestedRef = useRef(false);
 
   const insights = useMemo(
     () => computeBookInsights(stats[book.id] ?? emptyBookStats(book.id), Date.now()),
@@ -106,62 +98,21 @@ export function ReaderCompletionScreen({
     });
   }, [book.id, finished, onFinishedChange]);
 
-  /**
-   * The look back is asked for, never automatic: it spends the user's own API
-   * quota, and a book finished offline should still show everything else.
-   */
-  const requestRecap = useCallback(async () => {
-    const runtime = getAgentRuntime();
-    if (!runtime) {
-      setRecap({ state: "error", text: t("completion.recapUnavailable") });
-      return;
-    }
-    setRecap({ state: "loading", text: "" });
-    const entries = annotations ?? [];
-    const marks = entries
-      .slice(0, 40)
-      .map((entry) => {
-        const note = "content" in entry && entry.content ? ` — ${entry.content}` : "";
-        return `- ${entry.text}${note}`;
-      })
-      .join("\n");
-    try {
-      const text = await runtime.ask({
-        // The language is named outright. "the reader's language" was ambiguous
-        // enough that an English book got an English recap under a Chinese UI.
-        system: `${t("completion.recapSystem")}\n\nWrite in this language: ${i18n.language}`,
-        prompt: t("completion.recapPrompt", {
-          title: book.title,
-          author: book.author || t("completion.unknownAuthor"),
-          marks: marks || t("completion.noMarks"),
-        }),
-        model: "smart",
-      });
-      const written = text.trim();
-      setRecap({ state: "done", text: written });
-      // Paid for once: a later visit reuses this unless the marks change.
-      saveBookRecap(book.id, {
-        text: written,
-        marksCount: entries.length,
-        writtenAt: new Date().toISOString(),
-      });
-    } catch {
-      setRecap({ state: "error", text: t("completion.recapFailed") });
-    }
-  }, [annotations, book.author, book.id, book.title, t]);
 
   /**
-   * Write the look back without being asked — but only when there is nothing to
-   * show yet. The stored recap is reused, and a mark added since it was written
-   * makes it stale, which is the one case worth spending another call on.
-   * Waits for the marks to load so the model never sees an empty set.
+   * Hand the look back to the agent instead of writing it here. It has the
+   * tools to gather the marks and the book itself, the answer lands in the
+   * book's own thread, and the reader can follow up — none of which a one-shot
+   * call rendered on this screen could offer.
    */
-  useEffect(() => {
-    if (annotations == null || autoRequestedRef.current) return;
-    if (isRecapCurrent(readBookRecap(book.id), annotations.length)) return;
-    autoRequestedRef.current = true;
-    void requestRecap();
-  }, [annotations, book.id, requestRecap]);
+  const askForLookBack = useCallback(() => {
+    dispatchAskAi({
+      id: crypto.randomUUID(),
+      bookId: book.id,
+      prompt: t("completion.lookBackPrompt", { title: book.title }),
+    });
+    onDismiss();
+  }, [book.id, book.title, dispatchAskAi, onDismiss, t]);
 
   const marks = annotations ?? [];
   const rule = { borderColor: palette.rule };
@@ -201,7 +152,18 @@ export function ReaderCompletionScreen({
       {/* `my-auto` centres a short screen without clipping a long one. */}
       <div className="flex min-h-full flex-col">
         <div className="mx-auto my-auto w-full max-w-lg px-8 py-16 sm:px-10">
-          <Eyebrow style={{ color: palette.muted }}>{t("completion.eyebrow")}</Eyebrow>
+          {onCloseReader ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onCloseReader}
+              className="-ml-3"
+              style={{ color: palette.muted }}
+            >
+              <ArrowLeft size={15} />
+              {t("backToShelf")}
+            </Button>
+          ) : null}
 
           <Display className="mt-6 text-[2rem] leading-[1.12] text-current">{book.title}</Display>
           {book.author ? (
@@ -233,16 +195,10 @@ export function ReaderCompletionScreen({
               <CheckCircle size={17} weight={finished ? "fill" : "regular"} />
               {finished ? t("completion.markedFinished") : t("completion.markFinished")}
             </Button>
-            {onCloseReader ? (
-              <Button
-                variant="ghost"
-                onClick={onCloseReader}
-                style={{ color: palette.muted }}
-              >
-                <ArrowLeft size={16} />
-                {t("backToShelf")}
-              </Button>
-            ) : null}
+            <Button variant="ghost" onClick={askForLookBack} style={{ color: palette.muted }}>
+              <Sparkle size={16} />
+              {t("completion.lookBack")}
+            </Button>
           </div>
 
           {/* The reader's own marks — the substance of the screen, so it leads. */}
@@ -278,52 +234,6 @@ export function ReaderCompletionScreen({
             </div>
           ) : null}
 
-          {/* Looking back. Written automatically, so the resting state is the
-              result — the button only reappears if it could not be written. */}
-          {recap.state !== "idle" ? (
-            <div className="mt-14 border-t pt-8" style={rule}>
-              <Heading size="xl" className="font-serif font-normal text-current">
-                {t("completion.recapTitle")}
-              </Heading>
-              {recap.state === "loading" ? (
-                <Caption className="mt-4 block text-xs" style={{ color: palette.muted }}>
-                  {t("completion.recapLoading")}
-                </Caption>
-              ) : recap.state === "error" ? (
-                <div className="mt-4">
-                  <Caption className="block text-xs" style={{ color: palette.muted }}>
-                    {recap.text}
-                  </Caption>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => void requestRecap()}
-                    className="-ml-2 mt-2"
-                    style={{ color: palette.muted }}
-                  >
-                    <Sparkle size={15} />
-                    {t("completion.recapRetry")}
-                  </Button>
-                </div>
-              ) : (
-                <div className="mt-5 space-y-4">
-                  {recap.text
-                    .split(/\n{2,}/)
-                    .map((paragraph) => paragraph.trim())
-                    .filter(Boolean)
-                    .map((paragraph, index) => (
-                      <Body
-                        key={index}
-                        className="font-serif leading-relaxed text-current"
-                        style={{ color: palette.text }}
-                      >
-                        {paragraph}
-                      </Body>
-                    ))}
-                </div>
-              )}
-            </div>
-          ) : null}
         </div>
       </div>
     </div>

@@ -2,15 +2,26 @@ import { atom } from "jotai";
 import type { ChatSelectionAttachment } from "../lib/chat-types";
 
 /**
- * A pending "Ask AI about this" dispatch. The reader's selection and annotation
- * menus write here; the note panel reacts by revealing its Chat tab and the
- * composer adopts the passage as an attachment.
+ * A pending dispatch into the book's conversation. The reader's selection and
+ * annotation menus write a passage here; the end-of-book screen writes a
+ * question. Either way the note panel reveals its Chat tab, then adopts the
+ * passage as an attachment or sends the question outright.
  */
 export interface AskAiRequest {
   /** Unique per dispatch, so asking about the same passage twice re-fires. */
   id: string;
   bookId: string;
-  attachment: ChatSelectionAttachment;
+  /**
+   * A passage to hand the composer, leaving the question to the reader. This is
+   * the selection-menu path.
+   */
+  attachment?: ChatSelectionAttachment;
+  /**
+   * A question to send straight away, with no passage — the end-of-book "look
+   * back" acts as a shortcut into the conversation, so the agent answers with
+   * its own tools and the reader can follow up in the same thread.
+   */
+  prompt?: string;
 }
 
 /**

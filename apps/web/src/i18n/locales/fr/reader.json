@@ -125,24 +125,16 @@
     "dark": "Sombre"
   },
   "completion": {
-    "eyebrow": "Terminé",
     "markFinished": "Marquer comme terminé",
     "markedFinished": "Terminé",
     "minutes": "{{count}} min",
     "hours": "{{count}} h",
     "hoursMinutes": "{{hours}} h {{minutes}} min",
-    "recapTitle": "Regard en arrière",
-    "recapLoading": "Lecture de vos marques…",
-    "recapUnavailable": "Configurez un fournisseur d'IA dans les réglages pour obtenir un bilan.",
-    "recapFailed": "Le bilan n'a pas pu être écrit. Réessayez plus tard.",
-    "recapSystem": "Vous aidez un lecteur à revenir sur un livre qu'il vient de terminer. Écrivez 3 à 4 courts paragraphes en vous appuyant UNIQUEMENT sur les passages qu'il a marqués. Nommez ce qui a retenu son attention et les fils qui traversent ses marques. Pas de résumé de l'intrigue, pas d'éloges, pas de listes à puces.",
-    "recapPrompt": "Livre : {{title}}, de {{author}}\n\nLes passages que j'ai marqués en lisant :\n{{marks}}",
-    "unknownAuthor": "auteur inconnu",
-    "noMarks": "(Je n'ai rien marqué en lisant.)",
     "marksTitle": "Vos marques ({{count}})",
     "summary": "{{time}} de lecture, sur {{days}} jours.",
     "summaryDetail": "{{perDay}} par jour en moyenne · plus longue série {{streak}} jours",
     "backToBook": "Retour au livre",
-    "recapRetry": "Réessayer"
+    "lookBack": "Revenir sur ce livre",
+    "lookBackPrompt": "Je viens de terminer {{title}}. Revenons dessus ensemble : parcours ce que j'ai marqué et dis-moi ce qui a retenu mon attention et quels fils traversent ces passages. Tiens-t'en à mes marques ; pas de résumé de l'intrigue."
   }
 }

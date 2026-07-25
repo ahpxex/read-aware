@@ -125,24 +125,16 @@
     "dark": "深色"
   },
   "completion": {
-    "eyebrow": "读完了",
     "markFinished": "标记为已读完",
     "markedFinished": "已读完",
     "minutes": "{{count}} 分",
     "hours": "{{count}} 小时",
     "hoursMinutes": "{{hours}} 小时 {{minutes}} 分",
-    "recapTitle": "回顾",
-    "recapLoading": "正在读你的标注…",
-    "recapUnavailable": "先在设置里配置 AI 服务，才能生成回顾。",
-    "recapFailed": "回顾没能写成，稍后再试。",
-    "recapSystem": "你在帮一位刚读完一本书的读者回顾。只依据他标注过的段落，写 3–4 个短段落。指出是什么吸引了他的注意，以及这些标注之间贯穿着什么线索。不要复述情节，不要恭维，不要用列表。",
-    "recapPrompt": "书：{{title}}（{{author}}）\n\n我在阅读时标注的段落：\n{{marks}}",
-    "unknownAuthor": "佚名",
-    "noMarks": "（阅读时没有留下标注。）",
     "marksTitle": "你的标注（{{count}}）",
     "summary": "读了 {{time}}，跨越 {{days}} 天。",
     "summaryDetail": "平均每天 {{perDay}} · 最长连续 {{streak}} 天",
     "backToBook": "回到正文",
-    "recapRetry": "重试"
+    "lookBack": "回顾这本书",
+    "lookBackPrompt": "我刚读完《{{title}}》。陪我回顾一下——过一遍我标注的内容，说说是什么吸引了我的注意，这些段落之间贯穿着什么线索。只依据我实际标注的内容，不要复述情节。"
   }
 }

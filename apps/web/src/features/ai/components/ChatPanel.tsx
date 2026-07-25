@@ -39,19 +39,24 @@ export function ChatPanel({
     return () => cancelAnimationFrame(frame);
   }, [active]);
 
-  // Adopt an "Ask AI about this" dispatch: pull the passage into the composer
-  // and focus it. We track the last id handled (rather than clearing the atom)
-  // so the shell — which opens this tab off the same dispatch — can't race us.
+  // Adopt a dispatch from the reader. A passage goes into the composer for the
+  // reader to write around; a prompt is sent as its own turn. We track the last
+  // id handled (rather than clearing the atom) so the shell — which opens this
+  // tab off the same dispatch — can't race us.
   useEffect(() => {
     if (!askAiRequest || askAiRequest.bookId !== bookId) return;
     if (askAiRequest.id === lastConsumedIdRef.current) return;
     lastConsumedIdRef.current = askAiRequest.id;
-    setPendingAttachment(askAiRequest.attachment);
+    if (askAiRequest.prompt) {
+      conversation.send(askAiRequest.prompt);
+      return;
+    }
+    setPendingAttachment(askAiRequest.attachment ?? null);
     // Defer focus a frame: the shell switches to this tab off the same dispatch,
     // so the composer may still be in a hidden (display:none) tab panel right now.
     const frame = requestAnimationFrame(() => composerRef.current?.focus());
     return () => cancelAnimationFrame(frame);
-  }, [askAiRequest, bookId]);
+  }, [askAiRequest, bookId, conversation]);
 
   function handleSend(text: string) {
     conversation.send(text, pendingAttachment ? [pendingAttachment] : undefined);

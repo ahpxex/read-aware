@@ -125,24 +125,16 @@
     "dark": "Dunkel"
   },
   "completion": {
-    "eyebrow": "Ausgelesen",
     "markFinished": "Als gelesen markieren",
     "markedFinished": "Gelesen",
     "minutes": "{{count}} Min.",
     "hours": "{{count}} Std.",
     "hoursMinutes": "{{hours}} Std. {{minutes}} Min.",
-    "recapTitle": "Rückblick",
-    "recapLoading": "Deine Markierungen werden gelesen …",
-    "recapUnavailable": "Richte in den Einstellungen einen KI-Anbieter ein, um einen Rückblick zu erhalten.",
-    "recapFailed": "Der Rückblick konnte nicht erstellt werden. Versuche es später erneut.",
-    "recapSystem": "Du hilfst einer Leserin oder einem Leser, auf ein gerade beendetes Buch zurückzublicken. Schreibe 3–4 kurze Absätze, ausschließlich gestützt auf die markierten Stellen. Benenne, was die Aufmerksamkeit gefesselt hat und welche Fäden sich durch die Markierungen ziehen. Keine Inhaltsangabe, kein Lob, keine Aufzählungen.",
-    "recapPrompt": "Buch: {{title}} von {{author}}\n\nDie Stellen, die ich beim Lesen markiert habe:\n{{marks}}",
-    "unknownAuthor": "unbekannt",
-    "noMarks": "(Ich habe beim Lesen nichts markiert.)",
     "marksTitle": "Deine Markierungen ({{count}})",
     "summary": "{{time}} gelesen, über {{days}} Tage verteilt.",
     "summaryDetail": "durchschnittlich {{perDay}} pro Tag · längste Serie {{streak}} Tage",
     "backToBook": "Zurück zum Buch",
-    "recapRetry": "Erneut versuchen"
+    "lookBack": "Auf dieses Buch zurückblicken",
+    "lookBackPrompt": "Ich habe {{title}} gerade beendet. Blicke mit mir zurück — geh durch, was ich markiert habe, und sag mir, was meine Aufmerksamkeit gefesselt hat und welche Fäden sich durch diese Stellen ziehen. Bleib bei dem, was tatsächlich in meinen Markierungen steht; keine Inhaltsangabe."
   }
 }

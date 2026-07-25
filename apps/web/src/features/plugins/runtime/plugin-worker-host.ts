@@ -296,7 +296,10 @@ export function startPluginWorker(
           const pending = pendingInvokes.get(message.id);
           if (!pending) return;
           pendingInvokes.delete(message.id);
-          if (message.ok) pending.resolve(message.value);
+          // Decode the result, not only call arguments: what a contribution
+          // returns carries functions of its own (a view's control `onChange`),
+          // and they arrive as handles that have to become callable here.
+          if (message.ok) pending.resolve(decode(message.value));
           else pending.reject(new Error(message.error));
           return;
         }

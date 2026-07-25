@@ -290,9 +290,18 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
       }
       try {
         const value = await handler(...message.args);
-        // Results cross by structured clone; anything non-clonable (a function
-        // a plugin tried to smuggle out) fails loudly rather than silently.
-        post({ t: "result", id: message.id, ok: true, value: JSON.parse(JSON.stringify(value ?? null)) });
+        // Encode the RESULT too, not just call arguments. A contribution's
+        // return value carries functions of its own — a tool's `execute`
+        // answers with a view whose controls have `onChange` — and they have to
+        // reach the host as handles it can call back.
+        //
+        // This used to be a JSON round-trip, which dropped every one of those
+        // silently: the plugin's view arrived without its callbacks and the
+        // host rejected it as invalid. Structured clone now carries what
+        // `encode` produces, and anything genuinely non-clonable throws from
+        // `post` into the catch below — visibly, as an error the plugin's
+        // author can act on.
+        post({ t: "result", id: message.id, ok: true, value: encode(value ?? null) });
       } catch (error) {
         post({
           t: "result",

@@ -48,6 +48,12 @@ type Props = {
   onCloseReader?: () => void;
   /** A tap on the page itself, which toggles the reader shell as on any page. */
   onTapPage: () => void;
+  /**
+   * Whether a look back was already asked for this reading session. Owned by the
+   * reader, which outlives this screen being dismissed and reopened.
+   */
+  lookBackAsked: boolean;
+  onLookBackAsked: () => void;
   onDismiss: () => void;
 };
 
@@ -72,6 +78,8 @@ export function ReaderCompletionScreen({
   onRevisit,
   onCloseReader,
   onTapPage,
+  lookBackAsked,
+  onLookBackAsked,
   onDismiss,
 }: Props) {
   const { t } = useTranslation("reader");
@@ -125,14 +133,22 @@ export function ReaderCompletionScreen({
    * overlay is `fixed z-50`, above this surface), so there is nothing to get out
    * of the way of. Dismissing would also throw away what the reader came here
    * for — the marks and the figures the answer is about.
+   *
+   * Asked once per session, not once per click. After that the button reveals
+   * the answer that already exists: a second identical question would push the
+   * first one out of view and make the agent re-derive what it just said. A
+   * dispatch carrying neither prompt nor attachment does exactly that — the
+   * shell opens the Chat tab, and the panel has nothing to adopt.
    */
   const askForLookBack = useCallback(() => {
-    dispatchAskAi({
-      id: crypto.randomUUID(),
-      bookId: book.id,
-      prompt: t("completion.lookBackPrompt", { title: book.title }),
-    });
-  }, [book.id, book.title, dispatchAskAi, t]);
+    const request = { id: crypto.randomUUID(), bookId: book.id };
+    if (lookBackAsked) {
+      dispatchAskAi(request);
+      return;
+    }
+    dispatchAskAi({ ...request, prompt: t("completion.lookBackPrompt", { title: book.title }) });
+    onLookBackAsked();
+  }, [book.id, book.title, dispatchAskAi, lookBackAsked, onLookBackAsked, t]);
 
   /**
    * A tap on the page toggles the reader shell, exactly as on a page of text —

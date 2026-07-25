@@ -406,6 +406,13 @@ export function FoliateReaderView({
   const [declaredFinished, setDeclaredFinished] = useState(
     selectedBook?.readingStatus === "finished",
   );
+  /**
+   * Whether this reading session already asked the agent to look back. Kept
+   * here rather than on the completion screen because that screen unmounts when
+   * dismissed — the reader who reopens it should not be made to re-ask. This
+   * component remounts per book, so the flag resets with the session.
+   */
+  const [lookBackAsked, setLookBackAsked] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1997,6 +2004,8 @@ export function FoliateReaderView({
           onRevisit={revisitFromCompletion}
           onCloseReader={onCloseReader}
           onTapPage={() => onContentClickRef.current?.()}
+          lookBackAsked={lookBackAsked}
+          onLookBackAsked={() => setLookBackAsked(true)}
           onDismiss={dismissCompletion}
         />
       ) : null}

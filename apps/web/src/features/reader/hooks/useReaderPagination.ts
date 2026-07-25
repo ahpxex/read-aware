@@ -42,6 +42,9 @@ type Options = {
 export type ReaderPagination = {
   /** True while a section cross-fade is in flight; the view renders hidden. */
   isCrossing: boolean;
+  /** Run a navigation behind the cross-fade — for any jump far enough that a
+   *  hard swap would read as a glitch rather than a move. */
+  crossTo: (navigate: () => Promise<unknown> | void) => Promise<void>;
   crossSection: (direction: -1 | 1, targetSection?: number) => Promise<void>;
   crossSectionRef: RefObject<(direction: -1 | 1, targetSection?: number) => Promise<void>>;
   handleWheelCrossing: (deltaY: number, threshold?: number) => void;
@@ -79,34 +82,49 @@ export function useReaderPagination({
   const shellScrollAccumRef = useRef(0);
 
   /**
-   * Cross into the adjacent section with a cross-fade: fade the current section
-   * out, swap the next in while hidden, fade it back in. Used in scroll mode for
-   * the lazy section load (the engine keeps only one section live, so memory
-   * stays bounded), and smooths the otherwise abrupt chapter swap. An explicit
-   * `targetSection` jumps straight to that spine index instead of relying on
-   * next/prev — which only cross once the viewport is pinned at a section edge.
+   * Run a navigation behind a cross-fade: fade the current section out, move
+   * while hidden, fade the destination back in. Every jump that lands somewhere
+   * the reader was not looking goes through here — a section crossing, a scrub
+   * of the progress bar — because an instant swap of the whole page reads as a
+   * glitch rather than as travel.
    */
-  const crossSection = useCallback(
-    async (direction: -1 | 1, targetSection?: number) => {
+  const crossTo = useCallback(
+    async (navigate: () => Promise<unknown> | void) => {
       if (crossingSectionRef.current) return;
-      const view = viewRef.current;
-      if (!view) return;
+      if (!viewRef.current) return;
       crossingSectionRef.current = true;
       setIsCrossing(true); // fade the current section out
       try {
         await new Promise((resolve) => window.setTimeout(resolve, SECTION_CROSS_FADE_MS));
-        if (targetSection != null) await view.goTo(targetSection);
-        else await (direction === 1 ? view.next() : view.prev());
+        await navigate();
       } catch {
         // At the first/last section, or a teardown race — fall through to reveal.
       }
-      // The adjacent section has rendered while hidden; reveal it on the next
-      // frame, then settle briefly so one push advances a single section.
+      // The destination has rendered while hidden; reveal it on the next frame,
+      // then settle briefly so one push advances a single section.
       window.requestAnimationFrame(() => setIsCrossing(false));
       await new Promise((resolve) => window.setTimeout(resolve, SECTION_CROSS_COOLDOWN_MS));
       crossingSectionRef.current = false;
     },
     [viewRef],
+  );
+
+  /**
+   * Cross into the adjacent section. Used in scroll mode for the lazy section
+   * load (the engine keeps only one section live, so memory stays bounded), and
+   * it smooths the otherwise abrupt chapter swap. An explicit `targetSection`
+   * jumps straight to that spine index instead of relying on next/prev — which
+   * only cross once the viewport is pinned at a section edge.
+   */
+  const crossSection = useCallback(
+    (direction: -1 | 1, targetSection?: number) =>
+      crossTo(() => {
+        const view = viewRef.current;
+        if (!view) return;
+        if (targetSection != null) return view.goTo(targetSection);
+        return direction === 1 ? view.next() : view.prev();
+      }),
+    [crossTo, viewRef],
   );
   const crossSectionRef = useRef(crossSection);
   useEffect(() => {
@@ -299,6 +317,7 @@ export function useReaderPagination({
 
   return {
     isCrossing,
+    crossTo,
     crossSection,
     crossSectionRef,
     handleWheelCrossing,

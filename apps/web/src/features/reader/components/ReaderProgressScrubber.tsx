@@ -88,9 +88,10 @@ export function ReaderProgressScrubber({
         <div
           aria-hidden="true"
           className={cn(
-            // No outline: the readout floats over the header's own surface, and
-            // a border there reads as a stray box rather than a hovering label.
-            "absolute bottom-3 max-w-[min(18rem,80%)] rounded-md bg-[var(--ra-main-surface-color)] px-2 py-1 shadow-[0_4px_16px_-6px_rgba(28,25,23,0.25)]",
+            // Below the bar, over the page — not inside the header. Sliding it
+            // along the title band dragged one line of text across another,
+            // which reads as flicker however quiet the surface is.
+            "absolute top-full mt-2 max-w-[min(18rem,80%)] rounded-md bg-[var(--ra-main-surface-color)] px-2 py-1 shadow-[0_6px_20px_-6px_rgba(28,25,23,0.35)]",
             readoutAnchor === "center" && "-translate-x-1/2",
             readoutAnchor === "end" && "-translate-x-full",
           )}

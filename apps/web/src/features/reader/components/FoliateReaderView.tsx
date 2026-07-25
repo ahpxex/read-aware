@@ -353,6 +353,10 @@ export function FoliateReaderView({
   // is the last reported page so a paginated turn can be detected on `relocate`.
   const shellVisibleRef = useRef(shellVisible);
   const prevReadingLocationRef = useRef<{ current: number; cfi: string | null } | null>(null);
+  // Set while a jump issued FROM the header chrome is in flight (a progress-bar
+  // scrub). Its relocate must not read as "the reader turned a page and wants
+  // the chrome out of the way" — the reader is holding that chrome.
+  const suppressShellDismissRef = useRef(false);
   useEffect(() => {
     shellVisibleRef.current = shellVisible;
     // Every fresh open starts the dismissal distance from zero, so scroll that
@@ -604,6 +608,7 @@ export function FoliateReaderView({
 
   const {
     isCrossing,
+    crossTo,
     crossSection,
     handleWheelCrossingRef,
     dismissShellOnScrollDistanceRef,
@@ -716,18 +721,26 @@ export function FoliateReaderView({
 
   /** Jump to a position in the book by fraction — the header progress bar's
    *  scrub target. The engine maps it back through its section sizes, so the
-   *  landing spot matches the fraction it reports while reading. */
+   *  landing spot matches the fraction it reports while reading. Behind the
+   *  cross-fade: the scrub lands wherever the reader was not looking, and a
+   *  hard swap of the page reads as a glitch. */
   const goToFraction = useCallback(async (fraction: number) => {
     const view = viewRef.current;
     if (!view) return;
-    try {
-      setError(null);
-      clearSelection();
-      await view.goToFraction(Math.min(1, Math.max(0, fraction)));
-    } catch (nextError) {
-      setError(formatReaderError(nextError, tRef.current));
-    }
-  }, [clearSelection]);
+    setError(null);
+    clearSelection();
+    // The relocate this lands is a jump the user asked for from the header, not
+    // a page turn away from it — it must not take the chrome down with it.
+    suppressShellDismissRef.current = true;
+    await crossTo(async () => {
+      try {
+        await viewRef.current?.goToFraction(Math.min(1, Math.max(0, fraction)));
+      } catch (nextError) {
+        setError(formatReaderError(nextError, tRef.current));
+      }
+    });
+    suppressShellDismissRef.current = false;
+  }, [clearSelection, crossTo]);
 
   const goToAdjacentChapter = useCallback(async (direction: -1 | 1) => {
     const entries = tocEntriesRef.current;
@@ -1749,8 +1762,11 @@ export function FoliateReaderView({
           // the arrow keys alike). Scroll mode is left to the wheel-distance
           // accumulator so a small scroll keeps the shell until it's gone far
           // enough — matching the "after a distance, not on the first tick" rule.
+          // A jump the header itself issued is exempt: scrubbing the progress
+          // bar would otherwise pull the bar out from under the pointer.
           const previousLocation = prevReadingLocationRef.current;
           if (
+            !suppressShellDismissRef.current &&
             shellVisibleRef.current &&
             readingModeRef.current !== "scroll" &&
             previousLocation != null

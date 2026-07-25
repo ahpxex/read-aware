@@ -80,15 +80,21 @@ export function useProgressScrub({
       if (!enabled || event.button !== 0) return;
       const next = fractionAt(event);
       if (next == null) return;
-      // Capture routes the rest of the gesture here even once the pointer
-      // leaves the 10px strip — a drag along a hairline never stays inside it.
-      event.currentTarget.setPointerCapture(event.pointerId);
       // Deliberately NOT focused here: WebKit treats a programmatic focus as
       // focus-visible, which would leave the bar looking grabbed long after the
       // pointer let go. Keyboard users reach it by tab.
       draggingRef.current = true;
       setDragging(true);
       setPointerFraction(next);
+      // Capture routes the rest of the gesture here even once the pointer
+      // leaves the 10px strip — a drag along a hairline never stays inside it.
+      // Claimed after the drag is armed, so a refused capture costs reach, not
+      // the gesture: a release back over the bar still commits.
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // The pointer was released between the browser's event and this handler.
+      }
     },
     [enabled, fractionAt],
   );

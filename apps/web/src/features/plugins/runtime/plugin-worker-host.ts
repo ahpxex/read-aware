@@ -27,7 +27,6 @@ import { getDictionaryLanguage } from "../../reader/lib/dictionary-prefs";
 type WorkerMessage =
   | { t: "ready" }
   | { t: "failed"; error: string }
-  | { t: "register"; kind: string; handle: string; payload: Record<string, unknown> }
   | { t: "dispose"; handle: string }
   | { t: "call"; id: number; method: string; args: unknown[] }
   | { t: "storage"; op: "set" | "remove"; key: string; value?: string }
@@ -147,9 +146,6 @@ export function startPluginWorker(
     number,
     { resolve: (value: unknown) => void; reject: (error: Error) => void }
   >();
-  /** Contribution handle → the disposable the host registered for it. */
-  const registrations = new Map<string, PluginDisposable>();
-
   /** Call a function the plugin kept inside the Worker. */
   const invokeHandle = (handle: string, args: unknown[]): Promise<unknown> => {
     const id = nextInvokeId++;
@@ -159,58 +155,37 @@ export function startPluginWorker(
     });
   };
 
-  /** Rebuild a registration payload, turning handles back into functions. */
-  const rehydrate = (payload: Record<string, unknown>): Record<string, unknown> => {
-    const out: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(payload)) {
-      out[key] = isFnRef(value)
-        ? (...args: unknown[]) => invokeHandle(value.__fn, args)
-        : value;
+  /**
+   * Turn every `{ __fn }` marker in a call's arguments back into a function,
+   * recursively.
+   *
+   * This is the whole of the callback plumbing. There used to be a table of
+   * contribution kinds here, mirrored by another in the Worker, naming which
+   * properties of which registrations were callable — two hand-written copies of
+   * the contracts that had to agree with them and with each other. They did not:
+   * a tool's `execute` and a header action's `view` were both missing, so the
+   * agent received tools it could not invoke. Decoding by shape needs no list.
+   */
+  const decode = (value: unknown): unknown => {
+    if (isFnRef(value)) {
+      const handle = value.__fn;
+      return (...args: unknown[]) => invokeHandle(handle, args);
     }
-    return out;
+    if (Array.isArray(value)) return value.map(decode);
+    if (value && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype) {
+      return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>).map(([key, entry]) => [key, decode(entry)]),
+      );
+    }
+    return value;
   };
 
-  const register = (kind: string, handle: string, payload: Record<string, unknown>) => {
-    const value = rehydrate(payload);
-    let disposable: PluginDisposable | undefined;
-    switch (kind) {
-      case "ui.selectionAction":
-        disposable = ctx.ui.registerSelectionAction(value as never);
-        break;
-      case "ui.headerAction":
-        disposable = ctx.ui.registerHeaderAction(value as never);
-        break;
-      case "ui.command":
-        disposable = ctx.ui.registerCommand(value as never);
-        break;
-      case "reader.mode":
-        disposable = ctx.reader.modes?.register(value as never);
-        break;
-      case "agent.tool":
-        disposable = ctx.agent?.registerTool(value as never);
-        break;
-      default: {
-        // Subscriptions: "<namespace>.on" with the event name in the payload.
-        // The handle IS the callback, so events post straight back to it.
-        const namespace = kind.replace(/\.on$/, "");
-        const api =
-          namespace === "session"
-            ? ctx.session
-            : ((ctx as unknown as Record<string, unknown>)[namespace] as
-                | { on?: (event: string, handler: (p: unknown) => void) => PluginDisposable }
-                | undefined);
-        const event = String(value.event ?? "");
-        disposable = api?.on?.(event as never, (payload: unknown) => {
-          worker.postMessage({ t: "event", handle, payload });
-        });
-        break;
-      }
-    }
-    if (disposable) {
-      registrations.set(handle, disposable);
-      disposables.push(disposable);
-    }
-  };
+  /**
+   * Disposables the plugin is holding. A `PluginDisposable` cannot be cloned, so
+   * the Worker gets a handle and releases it by sending that back.
+   */
+  const heldDisposables = new Map<string, PluginDisposable>();
+  let nextDisposableId = 1;
 
   return new Promise<SandboxedPlugin>((resolve, reject) => {
     let settled = false;
@@ -250,13 +225,9 @@ export function startPluginWorker(
           }
           return;
 
-        case "register":
-          register(message.kind, message.handle, message.payload);
-          return;
-
         case "dispose": {
-          const disposable = registrations.get(message.handle);
-          registrations.delete(message.handle);
+          const disposable = heldDisposables.get(message.handle);
+          heldDisposables.delete(message.handle);
           try {
             disposable?.dispose();
           } catch (error) {
@@ -289,8 +260,26 @@ export function startPluginWorker(
             return;
           }
           try {
-            let value = await method(...message.args);
+            let value = await method(...(message.args.map(decode) as unknown[]));
             if (value instanceof Response) value = await flattenResponse(value);
+            // A registration answers with a disposable, which cannot be cloned:
+            // hold it and send back the handle the Worker releases it by.
+            if (
+              value &&
+              typeof value === "object" &&
+              typeof (value as PluginDisposable).dispose === "function"
+            ) {
+              const handle = `d${nextDisposableId++}`;
+              heldDisposables.set(handle, value as PluginDisposable);
+              disposables.push(value as PluginDisposable);
+              worker.postMessage({
+                t: "result",
+                id: message.id,
+                ok: true,
+                value: { __disposable: handle },
+              });
+              return;
+            }
             worker.postMessage({ t: "result", id: message.id, ok: true, value: value ?? null });
           } catch (error) {
             worker.postMessage({

@@ -22,11 +22,7 @@
  *     which cannot be cloned. They stay here; the host gets a serializable
  *     description plus a handle and calls back through `invoke`.
  */
-import type {
-  PluginContext,
-  PluginDisposable,
-  PluginManifest,
-} from "@read-aware/plugin-types";
+import type { PluginContext, PluginManifest } from "@read-aware/plugin-types";
 
 // ─── Wire protocol ───────────────────────────────────────────────────────────
 
@@ -68,36 +64,10 @@ const pendingCalls = new Map<
   { resolve: (value: unknown) => void; reject: (error: Error) => void }
 >();
 
-function callHost(method: string, args: unknown[]): Promise<unknown> {
-  const id = nextCallId++;
-  return new Promise((resolve, reject) => {
-    pendingCalls.set(id, { resolve, reject });
-    post({ t: "call", id, method, args });
-  });
-}
-
 /** Mirrors the host's `describeContext` output. */
 type ContextShape = { [key: string]: "fn" | ContextShape };
 
-/**
- * Build a namespace from the host's description: every leaf becomes a method
- * that round-trips to the permission check on the far side. Nothing is
- * hand-listed here, so the sandbox always exposes exactly what the host granted
- * — including nested namespaces like `books.write`.
- */
-function remoteNamespace(path: string, shape: ContextShape): Record<string, unknown> {
-  const api: Record<string, unknown> = {};
-  for (const [key, entry] of Object.entries(shape)) {
-    const method = path ? `${path}.${key}` : key;
-    api[key] =
-      entry === "fn"
-        ? (...args: unknown[]) => callHost(method, args)
-        : remoteNamespace(method, entry);
-  }
-  return api;
-}
-
-// ─── Callbacks the host invokes (host → plugin) ──────────────────────────────
+// ─── Crossing the boundary with functions in tow ─────────────────────────────
 
 let nextHandle = 1;
 const handlers = new Map<string, (...args: unknown[]) => unknown>();
@@ -110,42 +80,74 @@ function retain(fn: (...args: unknown[]) => unknown): string {
 }
 
 /**
- * Register a contribution: EVERY function stays in this realm behind a handle,
- * everything else is cloned to the host.
+ * Replace every function in an argument with a handle, recursively.
  *
- * Deliberately not a per-kind list of which properties are callable. That list
- * is a second copy of the contribution contracts, and it was already wrong —
- * a tool's callable is `execute` and a header action's is `view`, so both were
- * silently dropped and the agent got tools it could not invoke. Any function on
- * a contribution exists to be called; retaining them all cannot go stale.
+ * This is why the boundary needs no list of which methods take callbacks. The
+ * previous design carried one — per contribution kind, naming the callable
+ * properties — and it was a second copy of the contracts that had already
+ * drifted: a tool's callable is `execute`, a header action's is `view`, and both
+ * were silently dropped. Encoding by SHAPE instead of by name cannot drift.
  */
-function register(kind: string, value: Record<string, unknown>): PluginDisposable {
-  const handle = `c${nextHandle++}`;
-  const payload: Record<string, unknown> = {};
-  for (const [key, entry] of Object.entries(value)) {
-    payload[key] =
-      typeof entry === "function"
-        ? { __fn: retain(entry as (...args: unknown[]) => unknown) }
-        : entry;
+function encode(value: unknown): unknown {
+  if (typeof value === "function") {
+    return { __fn: retain(value as (...args: unknown[]) => unknown) };
   }
-  post({ t: "register", kind, handle, payload });
-  return {
-    dispose() {
-      post({ t: "dispose", handle });
-    },
-  };
+  if (Array.isArray(value)) return value.map(encode);
+  // Plain objects only: a Request/URL/Date must cross as itself.
+  if (value && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype) {
+    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, encode(entry)]));
+  }
+  return value;
 }
 
-/** Subscriptions: the host pushes events at a retained handler. */
-function subscribe(method: string, event: string, handler: (payload: unknown) => void): PluginDisposable {
-  const handle = retain(handler as (...args: unknown[]) => unknown);
-  post({ t: "register", kind: method, handle, payload: { event } });
-  return {
-    dispose() {
-      handlers.delete(handle);
-      post({ t: "dispose", handle });
-    },
+/**
+ * A call's result, which has to satisfy two shapes at once.
+ *
+ * Most context methods are async, but the registration methods return a
+ * `PluginDisposable` SYNCHRONOUSLY — and a synchronous return cannot cross a
+ * realm. So every call hands back something that is both awaitable and
+ * disposable: `await ctx.books.list()` resolves to the data, and
+ * `ctx.ui.registerCommand(...).dispose()` works on the object it got back, with
+ * the release travelling once the host answers.
+ */
+type CallResult = Promise<unknown> & { dispose: () => void };
+
+function callHost(method: string, args: unknown[]): CallResult {
+  const id = nextCallId++;
+  const promise = new Promise<unknown>((resolve, reject) => {
+    pendingCalls.set(id, { resolve, reject });
+    post({ t: "call", id, method, args: encode(args) as unknown[] });
+  });
+  const result = promise as CallResult;
+  result.dispose = () => {
+    void promise
+      .then((value) => {
+        const handle = (value as { __disposable?: string } | null)?.__disposable;
+        if (handle) post({ t: "dispose", handle });
+      })
+      .catch(() => {
+        // Nothing was registered, so there is nothing to release.
+      });
   };
+  return result;
+}
+
+/**
+ * Build a namespace from the host's description: every leaf becomes a method
+ * that round-trips to the permission check on the far side. Nothing is
+ * hand-listed, so the sandbox always exposes exactly what the host granted —
+ * including nested namespaces like `books.write`.
+ */
+function remoteNamespace(path: string, shape: ContextShape): Record<string, unknown> {
+  const api: Record<string, unknown> = {};
+  for (const [key, entry] of Object.entries(shape)) {
+    const method = path ? `${path}.${key}` : key;
+    api[key] =
+      entry === "fn"
+        ? (...args: unknown[]) => callHost(method, args)
+        : remoteNamespace(method, entry);
+  }
+  return api;
 }
 
 // ─── Locally-mirrored state (keeps the sync API sync) ────────────────────────
@@ -194,45 +196,13 @@ function buildContext(
       remoteNamespace(`storage.collection(${name})`, collectionShape as ContextShape),
   };
 
+  // `session` is skipped by the shape (its events are ambient, not a granted
+  // namespace), so it is proxied here — the handler crosses as an argument like
+  // any other function.
   ctx.session = {
     on: (event: string, handler: (payload: unknown) => void) =>
-      subscribe("session.on", event, handler),
+      callHost("session.on", [event, handler]),
   };
-
-  // Registrations and subscriptions keep their functions in this realm; only a
-  // description crosses. Applied over the proxied namespaces above.
-  const contributions: Array<[string, string]> = [
-    ["ui.registerSelectionAction", "ui.selectionAction"],
-    ["ui.registerHeaderAction", "ui.headerAction"],
-    ["ui.registerCommand", "ui.command"],
-    ["reader.modes.register", "reader.mode"],
-    ["agent.registerTool", "agent.tool"],
-  ];
-  for (const [path, kind] of contributions) {
-    const parts = path.split(".");
-    let target = ctx as Record<string, unknown>;
-    for (const part of parts.slice(0, -1)) {
-      const next = target[part];
-      if (!next || typeof next !== "object") {
-        target = null as unknown as Record<string, unknown>;
-        break;
-      }
-      target = next as Record<string, unknown>;
-    }
-    // Absent means the manifest did not earn it — leave it absent.
-    if (!target) continue;
-    target[parts[parts.length - 1]] = (value: Record<string, unknown>) =>
-      register(kind, value);
-  }
-
-  // Domain event subscriptions, wherever the host exposed an `on`.
-  for (const namespace of ["books", "collections", "annotations", "reading", "conversations"]) {
-    const api = ctx[namespace] as Record<string, unknown> | undefined;
-    if (api && typeof api.on === "function") {
-      api.on = (event: string, handler: (payload: unknown) => void) =>
-        subscribe(`${namespace}.on`, event, handler);
-    }
-  }
 
   // `showToast` is fire-and-forget in the plugin API; don't hand back a promise.
   const ui = ctx.ui as Record<string, unknown> | undefined;

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TFunction } from "i18next";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { Body, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
@@ -40,7 +40,6 @@ import {
   applyNote,
   applyNotes,
   registerHighlightDrawing,
-  removeHighlight,
 } from "../lib/highlight-renderer";
 import { ensureUsableToc } from "../lib/toc-synthesis";
 import { useTextUnitNavigator } from "../hooks/useTextUnitNavigator";
@@ -57,27 +56,17 @@ import { ReaderSelectionMenu } from "./ReaderSelectionMenu";
 import { ReaderCompletionScreen } from "./ReaderCompletionScreen";
 import { NoteEditor } from "../../annotations/components/NoteEditor";
 import { useAskAiEnabled } from "../../ai/hooks/useAskAiEnabled";
-import { askAiRequestAtom } from "../../ai/state/chat-intent";
-import { annotationsRevisionAtom } from "../../annotations/state/annotations-revision";
 import type { Note, Highlight } from "../../annotations/lib/annotation-types";
 import {
-  createHighlight,
-  createNote,
-  updateNote,
   listHighlights,
   listNotes,
-  recolorHighlight,
-  deleteAnnotation,
 } from "../../annotations/lib/annotation-db";
-import {
-  getDefaultMarkColor,
-  setDefaultMarkColor,
-} from "../../annotations/lib/annotation-prefs";
 import { hasCoarsePointer, suppressNativeContextMenu } from "../../../platform/environment";
 import { subscribeWheelPhaseEdges } from "../../../platform/wheel-phase";
 import { useDelayedFlag } from "../hooks/useDelayedFlag";
 import { useReaderTypography } from "../hooks/useReaderTypography";
 import { useReaderPagination } from "../hooks/useReaderPagination";
+import { useReaderTextActions } from "../hooks/useReaderTextActions";
 import {
   computeReaderMaxInlineSize,
   readerGapForMargins,
@@ -87,13 +76,9 @@ import type { ReaderSettings, ReadingMode } from "../../settings/lib/reader-sett
 import { DEFAULT_READER_SETTINGS } from "../../settings/lib/reader-settings";
 import { buildVirtualFoliateBook } from "../lib/virtual-book";
 import { resolveContentProvider } from "../../plugins/lib/virtual-books";
-import { runPluginContribution } from "../../plugins/lib/run-result";
 import type {
   RegisteredReaderMode,
-  SelectionActionInput,
-  SelectionActionSource,
 } from "../../plugins/lib/plugin-types";
-import { selectionActionsAtom } from "../../plugins/state/plugin-store";
 
 type FoliateReaderViewProps = {
   selectedBook?: LibraryBook | null;
@@ -213,30 +198,6 @@ type ShellTapIntent = {
 };
 
 /** The text the selection / annotation menus act on (copy, note, look up, AI). */
-type ActionTarget = {
-  text: string;
-  cfiRange: string | null;
-  chapterHref: string | null;
-};
-
-async function copyText(text: string) {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
-  }
-
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  textarea.setAttribute("readonly", "");
-  textarea.style.position = "fixed";
-  textarea.style.opacity = "0";
-  textarea.style.pointerEvents = "none";
-  document.body.append(textarea);
-  textarea.select();
-  document.execCommand("copy");
-  textarea.remove();
-}
-
 function clampRectToViewport(
   rect: SelectionOverlayRect,
   frameRect: DOMRect,
@@ -369,7 +330,6 @@ export function FoliateReaderView({
   const highlightsRef = useRef<Highlight[]>([]);
   const notesRef = useRef<Note[]>([]);
   // New one-click marks use this colour; recoloring a mark updates it (persisted).
-  const defaultMarkColorRef = useRef<Highlight["color"]>(getDefaultMarkColor());
   const isFixedLayoutRef = useRef(false);
 
   const readingMode = readerSettings.readingMode;
@@ -461,21 +421,14 @@ export function FoliateReaderView({
     anchorRect: SelectionOverlayRect;
   } | null>(null);
 
-  const [noteTarget, setNoteTarget] = useState<ActionTarget | null>(null);
-  const [noteEditorOpen, setNoteEditorOpen] = useState(false);
-  const [currentNote, setCurrentNote] = useState<Note | null>(null);
 
   // "Ask AI about this" hands a passage to the note panel's chat (a sibling
   // component) via this atom; the shell reveals the Chat tab and the chat panel
   // adopts the passage. Whether the action is offered follows the user's
   // conversational-Q&A preference, mirrored to a ref for the stable key handler.
-  const dispatchAskAi = useSetAtom(askAiRequestAtom);
   // Notify annotation lists (TOC indicators, chapter flyout) to re-read when a
   // mark is created/removed/recolored here, so they update live.
-  const bumpAnnotationsRevision = useSetAtom(annotationsRevisionAtom);
   const askAiEnabled = useAskAiEnabled();
-  const pluginSelectionActions = useAtomValue(selectionActionsAtom);
-  const lookupAction = pluginSelectionActions.find((action) => action.role === "lookup") ?? null;
   const askAiEnabledRef = useRef(askAiEnabled);
   useEffect(() => {
     askAiEnabledRef.current = askAiEnabled;
@@ -871,6 +824,37 @@ export function FoliateReaderView({
   });
   // The engine's mount-once effect and the stable key handler reach the
   // navigator through this ref (its identity changes every render).
+  const {
+    copyTargetText,
+    handleHighlight,
+    handleUnderline,
+    handleAddNote,
+    handleLookUp,
+    handleAskAI,
+    handleRecolorAnnotation,
+    handleRemoveAnnotation,
+    handleAddNoteForAnnotation,
+    handleAskAIAboutAnnotation,
+    handleNavigatorMark,
+    handleNavigatorAddNote,
+    handleNavigatorLookUp,
+    handleNavigatorAskAI,
+    openExistingNote,
+    pluginInputForSource,
+    noteEditor,
+  } = useReaderTextActions({
+    selectedBook,
+    selection,
+    activeAnnotation,
+    setActiveAnnotation,
+    textUnitNavigator,
+    clearSelection,
+    viewRef,
+    highlightsRef,
+    notesRef,
+    currentChapterHrefRef,
+  });
+
   const textUnitNavigatorRef = useRef(textUnitNavigator);
   useEffect(() => { textUnitNavigatorRef.current = textUnitNavigator; });
 
@@ -1764,13 +1748,7 @@ export function FoliateReaderView({
           if (!highlight) {
             const note = notesRef.current.find((item) => item.cfiRange === detail.value);
             if (note) {
-              setNoteTarget({
-                text: note.text,
-                cfiRange: note.cfiRange,
-                chapterHref: note.chapterHref,
-              });
-              setCurrentNote(note);
-              setNoteEditorOpen(true);
+              openExistingNote(note);
               clearSelection();
             }
             setActiveAnnotation(null);
@@ -1895,297 +1873,6 @@ export function FoliateReaderView({
     void viewRef.current?.goTo(cfiRange);
   }, [annotationNavigationRequest?.cfiRange, annotationNavigationRequest?.requestId]);
 
-  // ----- text actions shared by the selection and annotation menus ----------
-
-  async function copyTargetText(text: string) {
-    if (!text) return;
-    try {
-      await copyText(text);
-    } catch {
-      // Clipboard access can be unavailable outside a trusted user gesture.
-    }
-  }
-
-  function openNoteEditorFor(target: ActionTarget) {
-    setNoteTarget(target);
-    setCurrentNote(null);
-    setNoteEditorOpen(true);
-  }
-
-  function pluginInputFor(
-    target: ActionTarget | null,
-    source: SelectionActionSource,
-    context?: string,
-  ): SelectionActionInput | null {
-    if (!selectedBook || !target) return null;
-    return {
-      text: target.text,
-      context,
-      cfiRange: target.cfiRange,
-      chapterHref: target.chapterHref,
-      book: {
-        id: selectedBook.id,
-        title: selectedBook.title,
-        author: selectedBook.author,
-      },
-      source,
-    };
-  }
-
-  function runLookupAction(input: SelectionActionInput | null) {
-    if (!lookupAction || !input) return;
-    void runPluginContribution(
-      lookupAction.pluginId,
-      lookupAction.pluginName,
-      () => lookupAction.run(input),
-      { presentation: lookupAction.presentation },
-    );
-  }
-
-  function requestAskAi(target: ActionTarget) {
-    if (!selectedBook) return;
-    dispatchAskAi({
-      id: crypto.randomUUID(),
-      bookId: selectedBook.id,
-      attachment: {
-        kind: "selection",
-        text: target.text,
-        cfiRange: target.cfiRange,
-        chapterHref: target.chapterHref,
-      },
-    });
-  }
-
-  /** Persist and draw a mark over a passage. Returns whether it saved. */
-  async function saveMark(
-    target: ActionTarget,
-    color: Highlight["color"],
-    style: NonNullable<Highlight["style"]>,
-  ): Promise<boolean> {
-    if (!selectedBook) return false;
-    try {
-      const highlight = await createHighlight(
-        selectedBook.id,
-        target.cfiRange,
-        target.chapterHref,
-        target.text,
-        color,
-        style,
-      );
-      highlightsRef.current = [...highlightsRef.current, highlight];
-      if (viewRef.current) applyHighlight(viewRef.current, highlight);
-      bumpAnnotationsRevision((c) => c + 1);
-      return true;
-    } catch (highlightError) {
-      console.error("Failed to save highlight:", highlightError);
-      return false;
-    }
-  }
-
-  async function handleHighlight(
-    color: Highlight["color"] = defaultMarkColorRef.current,
-    style: NonNullable<Highlight["style"]> = "highlight",
-  ) {
-    if (!selection) return;
-    const saved = await saveMark(
-      { text: selection.text, cfiRange: selection.cfiRange, chapterHref: selection.chapterHref },
-      color,
-      style,
-    );
-    if (saved) clearSelection();
-  }
-
-  function handleUnderline() {
-    void handleHighlight(defaultMarkColorRef.current, "underline");
-  }
-
-  function handleLookUp() {
-    if (!selection) return;
-    runLookupAction(
-      pluginInputFor(
-        {
-          text: selection.text,
-          cfiRange: selection.cfiRange,
-          chapterHref: selection.chapterHref,
-        },
-        "selection",
-        selection.context,
-      ),
-    );
-    clearSelection();
-  }
-
-  async function handleRecolorAnnotation(color: Highlight["color"]) {
-    if (!activeAnnotation) return;
-    // Remember the chosen colour as the default for new marks.
-    defaultMarkColorRef.current = color;
-    setDefaultMarkColor(color);
-    try {
-      const updated = await recolorHighlight(activeAnnotation.highlight, color);
-      highlightsRef.current = highlightsRef.current.map((highlight) =>
-        highlight.id === updated.id ? updated : highlight,
-      );
-      // Re-adding under the same CFI replaces the drawn mark in the new color.
-      if (viewRef.current) applyHighlight(viewRef.current, updated);
-      bumpAnnotationsRevision((c) => c + 1);
-    } catch (recolorError) {
-      console.error("Failed to recolor annotation:", recolorError);
-    }
-    setActiveAnnotation(null);
-  }
-
-  async function handleRemoveAnnotation() {
-    if (!activeAnnotation) return;
-    const { highlight } = activeAnnotation;
-    try {
-      await deleteAnnotation(highlight.id);
-      highlightsRef.current = highlightsRef.current.filter(
-        (item) => item.id !== highlight.id,
-      );
-      if (viewRef.current && highlight.cfiRange) {
-        removeHighlight(viewRef.current, highlight.cfiRange);
-      }
-      bumpAnnotationsRevision((c) => c + 1);
-    } catch (removeError) {
-      console.error("Failed to remove annotation:", removeError);
-    }
-    setActiveAnnotation(null);
-  }
-
-  function activeAnnotationTarget(): ActionTarget | null {
-    const highlight = activeAnnotation?.highlight;
-    if (!highlight) return null;
-    return {
-      text: highlight.text,
-      cfiRange: highlight.cfiRange,
-      chapterHref: highlight.chapterHref,
-    };
-  }
-
-  /** Open the note editor for a passage — editing the note already on it, if any. */
-  function openNoteEditorForPassage(target: ActionTarget) {
-    const existing = target.cfiRange
-      ? notesRef.current.find((note) => note.cfiRange === target.cfiRange)
-      : undefined;
-    if (existing) {
-      setNoteTarget({
-        text: existing.text,
-        cfiRange: existing.cfiRange,
-        chapterHref: existing.chapterHref,
-      });
-      setCurrentNote(existing);
-      setNoteEditorOpen(true);
-    } else {
-      openNoteEditorFor(target);
-    }
-  }
-
-  function handleAddNoteForAnnotation() {
-    const target = activeAnnotationTarget();
-    if (!target) return;
-    openNoteEditorForPassage(target);
-    setActiveAnnotation(null);
-  }
-
-  function handleAskAIAboutAnnotation() {
-    const target = activeAnnotationTarget();
-    if (!target) return;
-    requestAskAi(target);
-    setActiveAnnotation(null);
-  }
-
-  function handleAddNote() {
-    if (!selection) return;
-    openNoteEditorFor({
-      text: selection.text,
-      cfiRange: selection.cfiRange,
-      chapterHref: selection.chapterHref,
-    });
-  }
-
-  async function handleSaveNote(content: string) {
-    if (!noteTarget || !selectedBook) return;
-    try {
-      if (currentNote) {
-        const updated = await updateNote(currentNote.id, content);
-        if (updated) {
-          notesRef.current = notesRef.current.map((note) =>
-            note.id === updated.id ? updated : note,
-          );
-        }
-      } else {
-        const note = await createNote(
-          selectedBook.id,
-          noteTarget.cfiRange,
-          noteTarget.chapterHref,
-          noteTarget.text,
-          content,
-        );
-        notesRef.current = [...notesRef.current, note];
-        // Draw the dashed marker unless the passage is already highlighted
-        // (the highlight is the visual there; see applyNotes).
-        if (
-          viewRef.current &&
-          note.cfiRange &&
-          !highlightsRef.current.some((highlight) => highlight.cfiRange === note.cfiRange)
-        ) {
-          applyNote(viewRef.current, note);
-        }
-      }
-      bumpAnnotationsRevision((c) => c + 1);
-      setNoteEditorOpen(false);
-      setNoteTarget(null);
-      setCurrentNote(null);
-      clearSelection();
-    } catch (noteError) {
-      console.error("Failed to save note:", noteError);
-    }
-  }
-
-  function handleAskAI() {
-    if (!selection) return;
-    requestAskAi({
-      text: selection.text,
-      cfiRange: selection.cfiRange,
-      chapterHref: selection.chapterHref,
-    });
-    clearSelection();
-  }
-
-  // ----- the same actions, applied to the mode's resting unit -----------------
-
-  function navigatorTarget(): ActionTarget | null {
-    const unit = textUnitNavigator.current;
-    if (!unit) return null;
-    return {
-      text: unit.text,
-      cfiRange: unit.cfiRange,
-      chapterHref: currentChapterHrefRef.current,
-    };
-  }
-
-  async function handleNavigatorMark(style: NonNullable<Highlight["style"]>) {
-    const target = navigatorTarget();
-    if (!target) return;
-    await saveMark(target, defaultMarkColorRef.current, style);
-  }
-
-  function handleNavigatorAddNote() {
-    const target = navigatorTarget();
-    if (!target) return;
-    openNoteEditorForPassage(target);
-  }
-
-  function handleNavigatorLookUp() {
-    runLookupAction(pluginInputFor(navigatorTarget(), "navigator"));
-  }
-
-  function handleNavigatorAskAI() {
-    const target = navigatorTarget();
-    if (!target) return;
-    requestAskAi(target);
-  }
-
   // Paginated layouts turn by explicit controls; scroll mode uses the native
   // scroller and crosses pages at its edges.
   const showPageTurnControls =
@@ -2218,19 +1905,7 @@ export function FoliateReaderView({
         onUnderline={handleUnderline}
         onAddNote={handleAddNote}
         onAskAI={handleAskAI}
-        pluginInput={
-          selection
-            ? pluginInputFor(
-                {
-                  text: selection.text,
-                  cfiRange: selection.cfiRange,
-                  chapterHref: selection.chapterHref,
-                },
-                "selection",
-                selection.context,
-              )
-            : null
-        }
+        pluginInput={pluginInputForSource("selection")}
       />
       {textUnitMode && (
         <TextUnitNavigatorBar
@@ -2258,9 +1933,7 @@ export function FoliateReaderView({
           onAddNote={handleNavigatorAddNote}
           onAskAI={handleNavigatorAskAI}
           onExit={() => onExitTextUnitModeRef.current?.()}
-          pluginInput={
-            pluginInputFor(navigatorTarget(), "navigator")
-          }
+          pluginInput={pluginInputForSource("navigator")}
         />
       )}
       {/* Off-screen stage where the engine loads + extracts a footnote fragment. */}
@@ -2289,11 +1962,7 @@ export function FoliateReaderView({
         onRemove={() => {
           void handleRemoveAnnotation();
         }}
-        pluginInput={
-          activeAnnotation
-            ? pluginInputFor(activeAnnotationTarget(), "annotation")
-            : null
-        }
+        pluginInput={pluginInputForSource("annotation")}
       />
 
       {showLoader && (
@@ -2309,17 +1978,12 @@ export function FoliateReaderView({
       )}
 
       <NoteEditor
-        isOpen={noteEditorOpen}
-        selectedText={noteTarget?.text || ""}
-        initialContent={currentNote?.content || ""}
-        onSave={handleSaveNote}
-        onCancel={() => {
-          setNoteEditorOpen(false);
-          setNoteTarget(null);
-          setCurrentNote(null);
-          clearSelection();
-        }}
-        isEditing={!!currentNote}
+        isOpen={noteEditor.isOpen}
+        selectedText={noteEditor.target?.text || ""}
+        initialContent={noteEditor.current?.content || ""}
+        onSave={noteEditor.save}
+        onCancel={noteEditor.close}
+        isEditing={!!noteEditor.current}
       />
 
       {completionMounted && selectedBook ? (

@@ -126,13 +126,8 @@
   },
   "completion": {
     "eyebrow": "The end",
-    "backToBook": "Back to the book",
     "markFinished": "Mark as finished",
     "markedFinished": "Finished",
-    "totalTime": "Time read",
-    "daysRead": "Days",
-    "perDay": "Per day",
-    "longestStreak": "Longest streak",
     "minutes": "{{count}}m",
     "hours": "{{count}}h",
     "hoursMinutes": "{{hours}}h {{minutes}}m",
@@ -146,6 +141,8 @@
     "unknownAuthor": "an unknown author",
     "noMarks": "(I marked nothing while reading.)",
     "marksTitle": "Your marks ({{count}})",
-    "noMarksYet": "You didn't mark anything in this book."
+    "summary": "{{time}} of reading, across {{days}} days.",
+    "summaryDetail": "{{perDay}} a day on average · longest streak {{streak}} days",
+    "backToBook": "Back to the book"
   }
 }

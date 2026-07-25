@@ -126,13 +126,8 @@
   },
   "completion": {
     "eyebrow": "読み終えました",
-    "backToBook": "本文に戻る",
     "markFinished": "読了にする",
     "markedFinished": "読了",
-    "totalTime": "読書時間",
-    "daysRead": "日数",
-    "perDay": "1日あたり",
-    "longestStreak": "最長連続",
     "minutes": "{{count}}分",
     "hours": "{{count}}時間",
     "hoursMinutes": "{{hours}}時間{{minutes}}分",
@@ -146,6 +141,8 @@
     "unknownAuthor": "作者不明",
     "noMarks": "（読書中にマークはありませんでした。）",
     "marksTitle": "あなたのマーク（{{count}}）",
-    "noMarksYet": "この本にマークはありません。"
+    "summary": "{{days}}日間で{{time}}読みました。",
+    "summaryDetail": "1日平均{{perDay}} · 最長連続{{streak}}日",
+    "backToBook": "本文に戻る"
   }
 }

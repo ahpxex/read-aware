@@ -181,6 +181,13 @@ const THEME_MAP = {
   },
 } as const;
 
+/**
+ * The reading themes' full palettes. Exported so host-rendered surfaces that sit
+ * INSIDE the reader (the end-of-book screen) can match the page the reader has
+ * been looking at, instead of jumping to the app's own canvas colour.
+ */
+export const READER_THEME_PALETTE = THEME_MAP;
+
 export const READER_THEME_BG = {
   light: "#ffffff",
   warm: "#f5f1e8",

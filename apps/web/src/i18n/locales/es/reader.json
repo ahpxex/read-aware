@@ -126,13 +126,8 @@
   },
   "completion": {
     "eyebrow": "Terminado",
-    "backToBook": "Volver al libro",
     "markFinished": "Marcar como terminado",
     "markedFinished": "Terminado",
-    "totalTime": "Tiempo de lectura",
-    "daysRead": "Días",
-    "perDay": "Por día",
-    "longestStreak": "Racha más larga",
     "minutes": "{{count}} min",
     "hours": "{{count}} h",
     "hoursMinutes": "{{hours}} h {{minutes}} min",
@@ -146,6 +141,8 @@
     "unknownAuthor": "autor desconocido",
     "noMarks": "(No marqué nada mientras leía.)",
     "marksTitle": "Tus marcas ({{count}})",
-    "noMarksYet": "No marcaste nada en este libro."
+    "summary": "{{time}} de lectura, a lo largo de {{days}} días.",
+    "summaryDetail": "{{perDay}} al día de media · racha más larga {{streak}} días",
+    "backToBook": "Volver al libro"
   }
 }

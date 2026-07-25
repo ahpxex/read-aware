@@ -3,25 +3,25 @@
  *
  * Appears when the reader deliberately advances past the last page — not merely
  * when the last page scrolls into view, which would ambush anyone still reading
- * it. Three things belong here and nowhere else in the product:
+ * it.
  *
- *   1. The reader's own verdict. Reaching 100% is not a commitment; declaring
- *      the book finished is. That declaration is sticky (see `book.finished`).
- *   2. What the reading actually cost — the only place a single book's time is
- *      summarized at the moment it becomes meaningful.
- *   3. What the reader leaves with: their own marks, and an AI look back over
- *      them. Both jump back into the text.
+ * Two things shape how it looks. It lives INSIDE the reader, so it takes the
+ * reading theme's own palette rather than the app canvas — coming off the last
+ * page onto a different colour reads as a glitch. And it is the last page of a
+ * book, not a dashboard: the figures are one sentence, the marks are the
+ * substance, and a section with nothing in it is not rendered at all.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { TFunction } from "i18next";
 import { useAtomValue } from "jotai";
-import { CheckCircle, Quotes, Sparkle, X } from "@phosphor-icons/react";
-import { Body, Button, Caption, Display, Eyebrow, Heading, Spinner, Stack } from "@read-aware/ui";
-import { cn } from "@read-aware/ui/cn";
+import { CheckCircle, Sparkle, X } from "@phosphor-icons/react";
+import { Body, Button, Caption, Display, Eyebrow, IconButton } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { readingStatsAtom } from "../../../state/ui";
 import { computeBookInsights } from "../../stats/lib/reading-insights";
 import { emptyBookStats } from "../lib/reading-stats";
+import { READER_THEME_PALETTE } from "../../settings/lib/reader-css";
+import type { ReaderSettings } from "../../settings/lib/reader-settings";
 import type { LibraryBook } from "../../library/lib/library-types";
 import type { Annotation } from "../../annotations/lib/annotation-types";
 import { listAnnotations } from "../../annotations/lib/annotation-db";
@@ -30,10 +30,10 @@ import { getAgentRuntime } from "../../ai/agent/agent-runtime";
 
 type Props = {
   book: LibraryBook;
-  /** Already-declared finish, so re-opening the screen shows the current state. */
+  /** Drives the palette so this screen matches the page behind it. */
+  theme: ReaderSettings["theme"];
   finished: boolean;
   onFinishedChange: (finished: boolean) => void;
-  /** Jump back into the book at an annotation's anchor. */
   onRevisit: (cfiRange: string) => void;
   onDismiss: () => void;
 };
@@ -51,12 +51,14 @@ function formatDuration(ms: number, t: TFunction<"reader">): string {
 
 export function ReaderCompletionScreen({
   book,
+  theme,
   finished,
   onFinishedChange,
   onRevisit,
   onDismiss,
 }: Props) {
   const { t } = useTranslation("reader");
+  const palette = READER_THEME_PALETTE[theme];
   const stats = useAtomValue(readingStatsAtom);
   const [annotations, setAnnotations] = useState<Annotation[] | null>(null);
   const [recap, setRecap] = useState<{ state: "idle" | "loading" | "done" | "error"; text: string }>(
@@ -125,96 +127,77 @@ export function ReaderCompletionScreen({
     }
   }, [annotations, book.author, book.title, t]);
 
-  const metrics = [
-    { label: t("completion.totalTime"), value: formatDuration(insights.totalMs, t) },
-    { label: t("completion.daysRead"), value: String(insights.daysRead) },
-    { label: t("completion.perDay"), value: formatDuration(insights.avgPerActiveDayMs, t) },
-    { label: t("completion.longestStreak"), value: String(insights.longestStreak) },
-  ];
+  const marks = annotations ?? [];
+  const rule = { borderColor: palette.rule };
+  /**
+   * The design-system components carry the APP theme's colours (`text-fg`,
+   * `bg-fg`). This screen follows the READING theme instead, and the two are
+   * independent — a dark reading theme under a light app theme would otherwise
+   * paint dark text on a dark page. `text-current` makes typography inherit the
+   * container's colour; the button states are set outright.
+   */
+  const finishedButtonStyle = finished
+    ? { backgroundColor: palette.text, color: palette.bg, borderColor: palette.text }
+    : { borderColor: palette.rule, color: palette.text, backgroundColor: "transparent" };
 
   return (
-    <div className="absolute inset-0 z-30 overflow-y-auto bg-paper">
-      <div className="mx-auto flex min-h-full max-w-2xl flex-col px-8 py-12">
-        <div className="flex items-start justify-between gap-4">
-          <Eyebrow className="text-stone-500">{t("completion.eyebrow")}</Eyebrow>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onDismiss}
-            aria-label={t("completion.backToBook")}
-          >
-            <X size={16} />
-          </Button>
-        </div>
+    <div
+      className="absolute inset-0 z-30 overflow-y-auto"
+      style={{ backgroundColor: palette.bg, color: palette.text }}
+    >
+      <IconButton
+        icon={<X size={16} />}
+        label={t("completion.backToBook")}
+        size="sm"
+        onClick={onDismiss}
+        className="absolute right-4 top-4 z-10"
+        style={{ color: palette.muted }}
+      />
 
-        <Stack gap="lg" className="mt-8">
-          <div>
-            <Display className="text-3xl leading-tight">{book.title}</Display>
-            {book.author ? (
-              <Body className="mt-2 text-stone-600">{book.author}</Body>
-            ) : null}
-          </div>
+      {/* `my-auto` centres a short screen without clipping a long one. */}
+      <div className="flex min-h-full flex-col">
+        <div className="mx-auto my-auto w-full max-w-lg px-8 py-16 sm:px-10">
+          <Eyebrow style={{ color: palette.muted }}>{t("completion.eyebrow")}</Eyebrow>
+
+          <Display className="mt-6 text-[2rem] leading-[1.12] text-current">{book.title}</Display>
+          {book.author ? (
+            <Body className="mt-2" style={{ color: palette.muted }}>
+              {book.author}
+            </Body>
+          ) : null}
+
+          {/* One sentence, not a metric grid — this is a last page, not a report. */}
+          <Body className="mt-8 font-serif text-lg leading-snug text-current">
+            {t("completion.summary", {
+              time: formatDuration(insights.totalMs, t),
+              days: insights.daysRead,
+            })}
+          </Body>
+          <Caption className="mt-1.5 block text-xs" style={{ color: palette.muted }}>
+            {t("completion.summaryDetail", {
+              perDay: formatDuration(insights.avgPerActiveDayMs, t),
+              streak: insights.longestStreak,
+            })}
+          </Caption>
 
           <Button
             variant={finished ? "solid" : "outline"}
             onClick={toggleFinished}
-            className="self-start"
+            className="mt-8"
+            style={finishedButtonStyle}
           >
-            <CheckCircle size={18} weight={finished ? "fill" : "regular"} />
+            <CheckCircle size={17} weight={finished ? "fill" : "regular"} />
             {finished ? t("completion.markedFinished") : t("completion.markFinished")}
           </Button>
 
-          {/* Reading figures */}
-          <div className="grid grid-cols-2 gap-x-8 gap-y-5 border-t border-border pt-6 sm:grid-cols-4">
-            {metrics.map((metric) => (
-              <div key={metric.label}>
-                <Caption className="text-xs text-stone-500">{metric.label}</Caption>
-                <Body className="mt-1 font-serif text-2xl leading-none">{metric.value}</Body>
-              </div>
-            ))}
-          </div>
-
-          {/* AI look back */}
-          <div className="border-t border-border pt-6">
-            <div className="flex items-center justify-between gap-4">
-              <Heading className="text-base">{t("completion.recapTitle")}</Heading>
-              {recap.state === "idle" ? (
-                <Button variant="outline" size="sm" onClick={() => void requestRecap()}>
-                  <Sparkle size={15} />
-                  {t("completion.recapAsk")}
-                </Button>
-              ) : null}
-            </div>
-            {recap.state === "loading" ? (
-              <div className="mt-3 flex items-center gap-2 text-stone-500">
-                <Spinner size="sm" />
-                <Caption className="text-xs">{t("completion.recapLoading")}</Caption>
-              </div>
-            ) : null}
-            {recap.state === "done" ? (
-              <Body className="mt-3 whitespace-pre-wrap text-stone-700">{recap.text}</Body>
-            ) : null}
-            {recap.state === "error" ? (
-              <Caption className="mt-3 block text-xs text-stone-500">{recap.text}</Caption>
-            ) : null}
-          </div>
-
-          {/* The reader's own marks */}
-          <div className="border-t border-border pt-6">
-            <Heading className="text-base">
-              {t("completion.marksTitle", { count: annotations?.length ?? 0 })}
-            </Heading>
-            {annotations == null ? (
-              <div className="mt-3 flex items-center gap-2 text-stone-500">
-                <Spinner size="sm" />
-              </div>
-            ) : annotations.length === 0 ? (
-              <Caption className="mt-3 block text-xs text-stone-500">
-                {t("completion.noMarksYet")}
+          {/* The reader's own marks — the substance of the screen, so it leads. */}
+          {marks.length > 0 ? (
+            <div className="mt-14 border-t pt-8" style={rule}>
+              <Caption className="block text-xs uppercase tracking-wider" style={{ color: palette.muted }}>
+                {t("completion.marksTitle", { count: marks.length })}
               </Caption>
-            ) : (
-              <ul className="mt-4 space-y-4">
-                {annotations.map((entry) => {
+              <ul className="mt-5 space-y-5">
+                {marks.map((entry) => {
                   const anchor = entry.cfiRange;
                   const note = "content" in entry ? entry.content : undefined;
                   return (
@@ -223,38 +206,59 @@ export function ReaderCompletionScreen({
                         type="button"
                         disabled={!anchor}
                         onClick={() => anchor && onRevisit(anchor)}
-                        className={cn(
-                          "group w-full border-l-2 border-stone-300 py-1 pl-4 text-left",
-                          anchor && "hover:border-stone-500",
-                          !anchor && "cursor-default",
-                        )}
+                        className="block w-full border-l pl-4 text-left transition-colors disabled:cursor-default"
+                        style={rule}
                       >
-                        <span className="flex items-start gap-2">
-                          <Quotes
-                            size={13}
-                            className="mt-1.5 shrink-0 text-stone-400"
-                            weight="fill"
-                          />
-                          <span className="min-w-0">
-                            <Body className="font-serif text-stone-700">{entry.text}</Body>
-                            {note ? (
-                              <Caption className="mt-1 block text-xs text-stone-500">{note}</Caption>
-                            ) : null}
-                          </span>
-                        </span>
+                        <Body className="font-serif leading-relaxed text-current">{entry.text}</Body>
+                        {note ? (
+                          <Caption className="mt-1.5 block text-xs" style={{ color: palette.muted }}>
+                            {note}
+                          </Caption>
+                        ) : null}
                       </button>
                     </li>
                   );
                 })}
               </ul>
+            </div>
+          ) : null}
+
+          {/* Looking back: the button IS the section until there is something to show. */}
+          <div className="mt-14 border-t pt-8" style={rule}>
+            {recap.state === "idle" ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => void requestRecap()}
+                className="-ml-2"
+                style={{ color: palette.muted }}
+              >
+                <Sparkle size={15} />
+                {t("completion.recapAsk")}
+              </Button>
+            ) : (
+              <>
+                <Caption
+                  className="block text-xs uppercase tracking-wider"
+                  style={{ color: palette.muted }}
+                >
+                  {t("completion.recapTitle")}
+                </Caption>
+                {recap.state === "loading" ? (
+                  <Caption className="mt-4 block text-xs" style={{ color: palette.muted }}>
+                    {t("completion.recapLoading")}
+                  </Caption>
+                ) : (
+                  <Body
+                    className="mt-4 whitespace-pre-wrap leading-relaxed text-current"
+                    style={{ color: recap.state === "error" ? palette.muted : palette.text }}
+                  >
+                    {recap.text}
+                  </Body>
+                )}
+              </>
             )}
           </div>
-        </Stack>
-
-        <div className="mt-10 pt-6">
-          <Button variant="link" onClick={onDismiss}>
-            {t("completion.backToBook")}
-          </Button>
         </div>
       </div>
     </div>

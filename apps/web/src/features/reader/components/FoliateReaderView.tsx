@@ -2290,6 +2290,7 @@ export function FoliateReaderView({
       {showCompletion && selectedBook ? (
         <ReaderCompletionScreen
           book={selectedBook}
+          theme={readerSettings.theme}
           finished={declaredFinished}
           onFinishedChange={setDeclaredFinished}
           onRevisit={revisitFromCompletion}

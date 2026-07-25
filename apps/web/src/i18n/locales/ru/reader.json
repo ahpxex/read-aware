@@ -126,13 +126,8 @@
   },
   "completion": {
     "eyebrow": "Прочитано",
-    "backToBook": "Вернуться к книге",
     "markFinished": "Отметить как прочитанное",
     "markedFinished": "Прочитано",
-    "totalTime": "Время чтения",
-    "daysRead": "Дней",
-    "perDay": "В день",
-    "longestStreak": "Самая длинная серия",
     "minutes": "{{count}} мин",
     "hours": "{{count}} ч",
     "hoursMinutes": "{{hours}} ч {{minutes}} мин",
@@ -146,6 +141,8 @@
     "unknownAuthor": "автор неизвестен",
     "noMarks": "(Во время чтения я ничего не отметил.)",
     "marksTitle": "Ваши пометки ({{count}})",
-    "noMarksYet": "В этой книге нет пометок."
+    "summary": "{{time}} чтения за {{days}} дней.",
+    "summaryDetail": "в среднем {{perDay}} в день · самая длинная серия {{streak}} дней",
+    "backToBook": "Вернуться к книге"
   }
 }

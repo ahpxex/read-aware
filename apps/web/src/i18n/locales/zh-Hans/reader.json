@@ -126,13 +126,8 @@
   },
   "completion": {
     "eyebrow": "读完了",
-    "backToBook": "回到正文",
     "markFinished": "标记为已读完",
     "markedFinished": "已读完",
-    "totalTime": "阅读时长",
-    "daysRead": "天数",
-    "perDay": "日均",
-    "longestStreak": "最长连续",
     "minutes": "{{count}} 分",
     "hours": "{{count}} 小时",
     "hoursMinutes": "{{hours}} 小时 {{minutes}} 分",
@@ -146,6 +141,8 @@
     "unknownAuthor": "佚名",
     "noMarks": "（阅读时没有留下标注。）",
     "marksTitle": "你的标注（{{count}}）",
-    "noMarksYet": "这本书里没有留下标注。"
+    "summary": "读了 {{time}}，跨越 {{days}} 天。",
+    "summaryDetail": "平均每天 {{perDay}} · 最长连续 {{streak}} 天",
+    "backToBook": "回到正文"
   }
 }

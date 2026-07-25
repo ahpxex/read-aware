@@ -126,13 +126,8 @@
   },
   "completion": {
     "eyebrow": "Ausgelesen",
-    "backToBook": "Zurück zum Buch",
     "markFinished": "Als gelesen markieren",
     "markedFinished": "Gelesen",
-    "totalTime": "Lesezeit",
-    "daysRead": "Tage",
-    "perDay": "Pro Tag",
-    "longestStreak": "Längste Serie",
     "minutes": "{{count}} Min.",
     "hours": "{{count}} Std.",
     "hoursMinutes": "{{hours}} Std. {{minutes}} Min.",
@@ -146,6 +141,8 @@
     "unknownAuthor": "unbekannt",
     "noMarks": "(Ich habe beim Lesen nichts markiert.)",
     "marksTitle": "Deine Markierungen ({{count}})",
-    "noMarksYet": "Du hast in diesem Buch nichts markiert."
+    "summary": "{{time}} gelesen, über {{days}} Tage verteilt.",
+    "summaryDetail": "durchschnittlich {{perDay}} pro Tag · längste Serie {{streak}} Tage",
+    "backToBook": "Zurück zum Buch"
   }
 }

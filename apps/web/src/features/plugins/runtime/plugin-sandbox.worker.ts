@@ -110,18 +110,23 @@ function retain(fn: (...args: unknown[]) => unknown): string {
 }
 
 /**
- * Register a contribution: functions stay in this realm behind handles, the
- * rest is cloned to the host. `fnKeys` names the properties to retain.
+ * Register a contribution: EVERY function stays in this realm behind a handle,
+ * everything else is cloned to the host.
+ *
+ * Deliberately not a per-kind list of which properties are callable. That list
+ * is a second copy of the contribution contracts, and it was already wrong —
+ * a tool's callable is `execute` and a header action's is `view`, so both were
+ * silently dropped and the agent got tools it could not invoke. Any function on
+ * a contribution exists to be called; retaining them all cannot go stale.
  */
-function register(kind: string, value: Record<string, unknown>, fnKeys: string[]): PluginDisposable {
+function register(kind: string, value: Record<string, unknown>): PluginDisposable {
   const handle = `c${nextHandle++}`;
   const payload: Record<string, unknown> = {};
   for (const [key, entry] of Object.entries(value)) {
-    if (fnKeys.includes(key) && typeof entry === "function") {
-      payload[key] = { __fn: retain(entry as (...args: unknown[]) => unknown) };
-    } else if (typeof entry !== "function") {
-      payload[key] = entry;
-    }
+    payload[key] =
+      typeof entry === "function"
+        ? { __fn: retain(entry as (...args: unknown[]) => unknown) }
+        : entry;
   }
   post({ t: "register", kind, handle, payload });
   return {
@@ -196,14 +201,14 @@ function buildContext(
 
   // Registrations and subscriptions keep their functions in this realm; only a
   // description crosses. Applied over the proxied namespaces above.
-  const contributions: Array<[string, string, string[]]> = [
-    ["ui.registerSelectionAction", "ui.selectionAction", ["run", "isEnabled"]],
-    ["ui.registerHeaderAction", "ui.headerAction", ["run", "isEnabled"]],
-    ["ui.registerCommand", "ui.command", ["run"]],
-    ["reader.modes.register", "reader.mode", ["segmentText"]],
-    ["agent.registerTool", "agent.tool", ["run"]],
+  const contributions: Array<[string, string]> = [
+    ["ui.registerSelectionAction", "ui.selectionAction"],
+    ["ui.registerHeaderAction", "ui.headerAction"],
+    ["ui.registerCommand", "ui.command"],
+    ["reader.modes.register", "reader.mode"],
+    ["agent.registerTool", "agent.tool"],
   ];
-  for (const [path, kind, fnKeys] of contributions) {
+  for (const [path, kind] of contributions) {
     const parts = path.split(".");
     let target = ctx as Record<string, unknown>;
     for (const part of parts.slice(0, -1)) {
@@ -217,7 +222,7 @@ function buildContext(
     // Absent means the manifest did not earn it — leave it absent.
     if (!target) continue;
     target[parts[parts.length - 1]] = (value: Record<string, unknown>) =>
-      register(kind, value, fnKeys);
+      register(kind, value);
   }
 
   // Domain event subscriptions, wherever the host exposed an `on`.

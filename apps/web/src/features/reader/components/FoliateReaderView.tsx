@@ -127,12 +127,12 @@ type FoliateReaderViewProps = {
 };
 
 const SELECTION_CLICK_SUPPRESSION_MS = 180;
-const EMPTY_READER_SEGMENTER: RegisteredReaderMode["segmentText"] = () => [];
 const SHELL_TAP_MAX_DURATION_MS = 220;
+const SHELL_TAP_MAX_MOVE_PX = 6;
+const EMPTY_READER_SEGMENTER: RegisteredReaderMode["segmentText"] = () => [];
 // Touch selection settles (handles released, no further changes) for this long
 // before the selection menu appears; each drag of a handle defers it again.
 const TOUCH_SELECTION_SETTLE_MS = 350;
-const SHELL_TAP_MAX_MOVE_PX = 6;
 // A center tap toggles the reader shell, but a double-click (to select a word)
 // begins with a single click too. Defer the toggle by this window so the second
 // click — or the resulting selection — can cancel it, instead of the shell
@@ -1991,10 +1991,12 @@ export function FoliateReaderView({
           book={selectedBook}
           theme={readerSettings.theme}
           visible={completionVisible}
+          shellVisible={shellVisible}
           finished={declaredFinished}
           onFinishedChange={setDeclaredFinished}
           onRevisit={revisitFromCompletion}
           onCloseReader={onCloseReader}
+          onTapPage={() => onContentClickRef.current?.()}
           onDismiss={dismissCompletion}
         />
       ) : null}

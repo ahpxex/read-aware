@@ -12,6 +12,7 @@
  * substance, and a section with nothing in it is not rendered at all.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import type { TFunction } from "i18next";
 import { useAtomValue, useSetAtom } from "jotai";
 import { ArrowLeft, CheckCircle, Sparkle, X } from "@phosphor-icons/react";
@@ -35,11 +36,18 @@ type Props = {
   theme: ReaderSettings["theme"];
   /** Drives the fade; the parent keeps this mounted until it finishes. */
   visible: boolean;
+  /**
+   * Whether the reader's top bar is showing. It is `fixed` and paints above
+   * this screen, so the close button has to step out from under it.
+   */
+  shellVisible: boolean;
   finished: boolean;
   onFinishedChange: (finished: boolean) => void;
   onRevisit: (cfiRange: string) => void;
   /** Leave for the shelf; absent in contexts with no shelf to return to. */
   onCloseReader?: () => void;
+  /** A tap on the page itself, which toggles the reader shell as on any page. */
+  onTapPage: () => void;
   onDismiss: () => void;
 };
 
@@ -58,10 +66,12 @@ export function ReaderCompletionScreen({
   book,
   theme,
   visible,
+  shellVisible,
   finished,
   onFinishedChange,
   onRevisit,
   onCloseReader,
+  onTapPage,
   onDismiss,
 }: Props) {
   const { t } = useTranslation("reader");
@@ -124,6 +134,28 @@ export function ReaderCompletionScreen({
     });
   }, [book.id, book.title, dispatchAskAi, t]);
 
+  /**
+   * A tap on the page toggles the reader shell, exactly as on a page of text —
+   * this screen is one more page of the book, so the gesture that reveals the
+   * chrome cannot stop working just because the page has no prose on it.
+   *
+   * Judged from the click rather than a pointer-down/up pair: what has to be
+   * excluded here is someone selecting a marked passage, and a completed
+   * selection is directly observable, where a drag threshold only approximates
+   * it. Controls are left alone — each already has a job.
+   */
+  const onTapSurface = useCallback(
+    (event: ReactMouseEvent<HTMLDivElement>) => {
+      if ((event.target as Element).closest("button, a, input, textarea, select")) return;
+      // detail > 1 is a double-click, i.e. selecting a word.
+      if (event.detail > 1) return;
+      const selection = window.getSelection();
+      if (selection && !selection.isCollapsed && selection.toString().trim()) return;
+      onTapPage();
+    },
+    [onTapPage],
+  );
+
   const marks = annotations ?? [];
   const rule = { borderColor: palette.rule };
   /**
@@ -149,14 +181,21 @@ export function ReaderCompletionScreen({
         visible ? "ra-motion-fade-in" : "ra-motion-surface-exit",
       )}
       style={{ backgroundColor: palette.bg, color: palette.text }}
+      onClick={onTapSurface}
     >
       <IconButton
         icon={<X size={16} />}
         label={t("completion.backToBook")}
         size="sm"
         onClick={onDismiss}
-        className="absolute right-4 top-4 z-10"
-        style={{ color: palette.muted }}
+        className="absolute right-4 z-10 transition-[top] duration-250 ease-out"
+        style={{
+          color: palette.muted,
+          // The top bar is `fixed` and paints over this screen. Sitting under it
+          // left the button visible but unclickable — the bar's own icons won
+          // every hit test. Step below the bar while it is showing.
+          top: shellVisible ? "calc(var(--ra-reader-bar-height) + 0.5rem)" : "1rem",
+        }}
       />
 
       {/* `my-auto` centres a short screen without clipping a long one. */}

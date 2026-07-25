@@ -299,7 +299,7 @@ export function ReaderShellOverlay({
           paddingLeft: "max(1.25rem, var(--ra-traffic-light-inset), var(--ra-safe-left))",
           paddingRight: "max(1.25rem, var(--ra-safe-right))",
           paddingTop: "var(--ra-safe-top)",
-          height: "calc(3rem + var(--ra-safe-top))",
+          height: "var(--ra-reader-bar-height)",
         }}
         className={cn(
           // Fixed 3rem content band, matching the main AppHeader. Both bars then

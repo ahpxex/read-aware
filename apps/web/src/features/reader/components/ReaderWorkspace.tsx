@@ -143,6 +143,7 @@ export function ReaderWorkspace({
           initialBook={readerSource.data}
           readerSettings={readerSettings}
           shellVisible={overlayVisible}
+          onCloseReader={onCloseReader}
           onContentClick={onToggleShell}
           onContentScroll={onHideShell}
           onReadingActivity={recordActivity}

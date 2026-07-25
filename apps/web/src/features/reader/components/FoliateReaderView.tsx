@@ -102,6 +102,8 @@ type FoliateReaderViewProps = {
   /** Whether the reader shell (header overlay) is currently open. Lets the view
    *  reset its scroll-dismissal distance each time the shell appears. */
   shellVisible?: boolean;
+  /** Leave the reader for the shelf — offered on the end-of-book screen. */
+  onCloseReader?: () => void;
   onContentClick?: () => void;
   /** Dismiss the reader shell. Fired once a scroll travels far enough (scroll
    *  mode) or as soon as a page turn lands (paginated mode). */
@@ -314,6 +316,7 @@ export function FoliateReaderView({
   initialBook = null,
   readerSettings = DEFAULT_READER_SETTINGS,
   shellVisible = false,
+  onCloseReader,
   onContentClick,
   onContentScroll,
   onReadingActivity,
@@ -2327,6 +2330,7 @@ export function FoliateReaderView({
           finished={declaredFinished}
           onFinishedChange={setDeclaredFinished}
           onRevisit={revisitFromCompletion}
+          onCloseReader={onCloseReader}
           onDismiss={dismissCompletion}
         />
       ) : null}

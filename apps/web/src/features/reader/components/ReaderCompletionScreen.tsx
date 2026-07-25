@@ -14,8 +14,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TFunction } from "i18next";
 import { useAtomValue } from "jotai";
-import { CheckCircle, Sparkle, X } from "@phosphor-icons/react";
-import { Body, Button, Caption, Display, Eyebrow, IconButton } from "@read-aware/ui";
+import { ArrowLeft, CheckCircle, Sparkle, X } from "@phosphor-icons/react";
+import { Body, Button, Caption, Display, Eyebrow, Heading, IconButton } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { i18n, useTranslation } from "../../../i18n";
 import { readingStatsAtom } from "../../../state/ui";
@@ -39,6 +39,8 @@ type Props = {
   finished: boolean;
   onFinishedChange: (finished: boolean) => void;
   onRevisit: (cfiRange: string) => void;
+  /** Leave for the shelf; absent in contexts with no shelf to return to. */
+  onCloseReader?: () => void;
   onDismiss: () => void;
 };
 
@@ -60,6 +62,7 @@ export function ReaderCompletionScreen({
   finished,
   onFinishedChange,
   onRevisit,
+  onCloseReader,
   onDismiss,
 }: Props) {
   const { t } = useTranslation("reader");
@@ -221,22 +224,33 @@ export function ReaderCompletionScreen({
             })}
           </Caption>
 
-          <Button
-            variant={finished ? "solid" : "outline"}
-            onClick={toggleFinished}
-            className="mt-8"
-            style={finishedButtonStyle}
-          >
-            <CheckCircle size={17} weight={finished ? "fill" : "regular"} />
-            {finished ? t("completion.markedFinished") : t("completion.markFinished")}
-          </Button>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <Button
+              variant={finished ? "solid" : "outline"}
+              onClick={toggleFinished}
+              style={finishedButtonStyle}
+            >
+              <CheckCircle size={17} weight={finished ? "fill" : "regular"} />
+              {finished ? t("completion.markedFinished") : t("completion.markFinished")}
+            </Button>
+            {onCloseReader ? (
+              <Button
+                variant="ghost"
+                onClick={onCloseReader}
+                style={{ color: palette.muted }}
+              >
+                <ArrowLeft size={16} />
+                {t("backToShelf")}
+              </Button>
+            ) : null}
+          </div>
 
           {/* The reader's own marks — the substance of the screen, so it leads. */}
           {marks.length > 0 ? (
             <div className="mt-14 border-t pt-8" style={rule}>
-              <Caption className="block text-xs uppercase tracking-wider" style={{ color: palette.muted }}>
+              <Heading size="xl" className="font-serif font-normal text-current">
                 {t("completion.marksTitle", { count: marks.length })}
-              </Caption>
+              </Heading>
               <ul className="mt-5 space-y-5">
                 {marks.map((entry) => {
                   const anchor = entry.cfiRange;
@@ -268,12 +282,9 @@ export function ReaderCompletionScreen({
               result — the button only reappears if it could not be written. */}
           {recap.state !== "idle" ? (
             <div className="mt-14 border-t pt-8" style={rule}>
-              <Caption
-                className="block text-xs uppercase tracking-wider"
-                style={{ color: palette.muted }}
-              >
+              <Heading size="xl" className="font-serif font-normal text-current">
                 {t("completion.recapTitle")}
-              </Caption>
+              </Heading>
               {recap.state === "loading" ? (
                 <Caption className="mt-4 block text-xs" style={{ color: palette.muted }}>
                   {t("completion.recapLoading")}
@@ -295,12 +306,21 @@ export function ReaderCompletionScreen({
                   </Button>
                 </div>
               ) : (
-                <Body
-                  className="mt-4 whitespace-pre-wrap leading-relaxed text-current"
-                  style={{ color: palette.text }}
-                >
-                  {recap.text}
-                </Body>
+                <div className="mt-5 space-y-4">
+                  {recap.text
+                    .split(/\n{2,}/)
+                    .map((paragraph) => paragraph.trim())
+                    .filter(Boolean)
+                    .map((paragraph, index) => (
+                      <Body
+                        key={index}
+                        className="font-serif leading-relaxed text-current"
+                        style={{ color: palette.text }}
+                      >
+                        {paragraph}
+                      </Body>
+                    ))}
+                </div>
               )}
             </div>
           ) : null}

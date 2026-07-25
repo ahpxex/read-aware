@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAtomValue } from "jotai";
 import { CaretLeft, ChatCircle, ListBullets } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
@@ -25,10 +25,12 @@ import { renderPluginIcon } from "../../plugins/lib/plugin-icons";
 import type { RegisteredReaderMode } from "../../plugins/lib/plugin-types";
 import { headerActionsAtom } from "../../plugins/state/plugin-store";
 import { findTocIndexForHref } from "../lib/epub-utils";
+import { buildProgressMarks } from "../lib/reader-progress";
 import { useReaderPanelLayout } from "../hooks/useReaderPanelLayout";
 import { useReaderPanelSizes } from "../hooks/useReaderPanelSizes";
 import type { TocEntry } from "../lib/reader-types";
 import { ReaderNotesPopover } from "./ReaderNotesPopover";
+import { ReaderProgressScrubber } from "./ReaderProgressScrubber";
 import { ReaderResizeHandle } from "./ReaderResizeHandle";
 import { ReaderAppearanceMenu } from "./ReaderAppearanceMenu";
 
@@ -43,6 +45,8 @@ type ReaderShellOverlayProps = {
   currentChapterHref?: string | null;
   onChapterSelect?: (href: string) => void;
   onAnnotationSelect?: (cfiRange: string) => void;
+  /** Jump to a position in the book, 0..1 — the progress bar's drag target. */
+  onSeek?: (fraction: number) => void;
   /** Installed text-unit mode. The host hides it for fixed-layout books. */
   textUnitMode?: RegisteredReaderMode | null;
   textUnitModeAvailable?: boolean;
@@ -61,6 +65,7 @@ export function ReaderShellOverlay({
   currentChapterHref = null,
   onChapterSelect,
   onAnnotationSelect,
+  onSeek,
   textUnitMode = null,
   textUnitModeAvailable = true,
   textUnitModeActive = false,
@@ -83,6 +88,8 @@ export function ReaderShellOverlay({
           })
         : formatPercent(percent)
       : null;
+  // Chapter ticks for the progress bar, and the labels its scrub readout names.
+  const progressMarks = useMemo(() => buildProgressMarks(tocEntries), [tocEntries]);
 
   // TOC + chat panels persist per book (restored when the book reopens); the
   // appearance popover is transient and resets each session.
@@ -395,15 +402,14 @@ export function ReaderShellOverlay({
           </div>
         </div>
 
-        {/* Reading progress, merged into the header's bottom edge. */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-border/70">
-          {percent != null && (
-            <div
-              className="h-full bg-fg-subtle transition-[width] duration-300"
-              style={{ width: `${percent}%` }}
-            />
-          )}
-        </div>
+        {/* Reading progress, merged into the header's bottom edge — and the
+            scrubber: hover it for a readout, drag it to jump. */}
+        <ReaderProgressScrubber
+          fraction={progress ?? null}
+          totalPages={totalPages}
+          marks={progressMarks}
+          onSeek={onSeek}
+        />
       </div>
 
       {/* Middle zone -- panels dock to the edges while the reader shows through.

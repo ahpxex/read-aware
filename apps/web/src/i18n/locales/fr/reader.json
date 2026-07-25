@@ -9,6 +9,7 @@
   "resizeChat": "Redimensionner le panneau de discussion",
   "noToc": "Ce fichier ne propose pas de table des matières navigable.",
   "progress": "{{page}} / {{total}} · {{percent}}",
+  "readingPosition": "Position de lecture",
   "notes": "Notes",
   "emptyNotes": "Aucun surlignage ni note pour l’instant. Sélectionnez du texte dans le lecteur pour le marquer.",
   "previousPage": "Page précédente",

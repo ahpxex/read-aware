@@ -17,6 +17,7 @@ import {
   type SelectionOverlayRect,
 } from "../lib/selection-overlay";
 import { flattenToc, findTocIndexForHref } from "../lib/epub-utils";
+import { attachTocFractions } from "../lib/toc-fractions";
 import type { LoadedBook, TocEntry, TocNavItem } from "../lib/reader-types";
 import {
   createFoliateView,
@@ -98,6 +99,10 @@ type FoliateReaderViewProps = {
   onReadingActivity?: () => void;
   onPageChange?: (current: number, total: number) => void;
   onProgressChange?: (progress: ReaderProgress) => void;
+  /** The engine's exact reading fraction (0..1). Reported separately from
+   *  `onProgressChange`, whose payload is the persisted, rounded progress —
+   *  the header's progress bar seeks on this scale and needs it unrounded. */
+  onFractionChange?: (fraction: number) => void;
   onTocChange?: (entries: TocEntry[]) => void;
   onCurrentChapterChange?: (href: string | null) => void;
   /** Parsed foliate book, shared with lazy metadata/text enrichment. */
@@ -122,6 +127,11 @@ type FoliateReaderViewProps = {
   } | null;
   annotationNavigationRequest?: {
     cfiRange: string;
+    requestId: number;
+  } | null;
+  /** Jump to a position in the book, 0..1 — the header progress bar's scrub. */
+  fractionNavigationRequest?: {
+    fraction: number;
     requestId: number;
   } | null;
 };
@@ -283,6 +293,7 @@ export function FoliateReaderView({
   onReadingActivity,
   onPageChange,
   onProgressChange,
+  onFractionChange,
   onTocChange,
   onCurrentChapterChange,
   onBookReady,
@@ -294,6 +305,7 @@ export function FoliateReaderView({
   initialProgress = null,
   chapterNavigationRequest = null,
   annotationNavigationRequest = null,
+  fractionNavigationRequest = null,
 }: FoliateReaderViewProps) {
   const { t } = useTranslation("reader");
   // Held in a ref so the stable, mount-once engine effects and callbacks can
@@ -353,6 +365,7 @@ export function FoliateReaderView({
   const onReadingActivityRef = useRef(onReadingActivity);
   const onPageChangeRef = useRef(onPageChange);
   const onProgressChangeRef = useRef(onProgressChange);
+  const onFractionChangeRef = useRef(onFractionChange);
   const onTocChangeRef = useRef(onTocChange);
   const onCurrentChapterChangeRef = useRef(onCurrentChapterChange);
   const onBookReadyRef = useRef(onBookReady);
@@ -362,6 +375,7 @@ export function FoliateReaderView({
   useEffect(() => { onReadingActivityRef.current = onReadingActivity; }, [onReadingActivity]);
   useEffect(() => { onPageChangeRef.current = onPageChange; }, [onPageChange]);
   useEffect(() => { onProgressChangeRef.current = onProgressChange; }, [onProgressChange]);
+  useEffect(() => { onFractionChangeRef.current = onFractionChange; }, [onFractionChange]);
   useEffect(() => { onTocChangeRef.current = onTocChange; }, [onTocChange]);
   useEffect(() => { onCurrentChapterChangeRef.current = onCurrentChapterChange; }, [onCurrentChapterChange]);
   useEffect(() => { onBookReadyRef.current = onBookReady; }, [onBookReady]);
@@ -695,6 +709,21 @@ export function FoliateReaderView({
       setError(null);
       clearSelection();
       await view.goTo(href);
+    } catch (nextError) {
+      setError(formatReaderError(nextError, tRef.current));
+    }
+  }, [clearSelection]);
+
+  /** Jump to a position in the book by fraction — the header progress bar's
+   *  scrub target. The engine maps it back through its section sizes, so the
+   *  landing spot matches the fraction it reports while reading. */
+  const goToFraction = useCallback(async (fraction: number) => {
+    const view = viewRef.current;
+    if (!view) return;
+    try {
+      setError(null);
+      clearSelection();
+      await view.goToFraction(Math.min(1, Math.max(0, fraction)));
     } catch (nextError) {
       setError(formatReaderError(nextError, tRef.current));
     }
@@ -1685,8 +1714,11 @@ export function FoliateReaderView({
         // is reduced). The runtime watcher effect keeps this in sync afterwards.
         syncRendererAnimated(view.renderer);
 
-        const entries = flattenToc((book?.toc ?? []) as unknown as TocNavItem[])
-          .map((entry, entryIndex) => ({ ...entry, spineIndex: entryIndex }));
+        const entries = attachTocFractions(
+          view,
+          flattenToc((book?.toc ?? []) as unknown as TocNavItem[])
+            .map((entry, entryIndex) => ({ ...entry, spineIndex: entryIndex })),
+        );
         if (!cancelled) setTocEntries(entries);
 
         const onRelocate = (event: Event) => {
@@ -1702,6 +1734,7 @@ export function FoliateReaderView({
           lastLocationTargetRef.current = cfi ?? href;
           const progressPercent = Math.round(fraction * 100);
           onPageChangeRef.current?.(current, total);
+          onFractionChangeRef.current?.(fraction);
           onProgressChangeRef.current?.({
             currentLocation: current,
             totalLocations: total,
@@ -1879,6 +1912,14 @@ export function FoliateReaderView({
     if (!cfiRange) return;
     void viewRef.current?.goTo(cfiRange);
   }, [annotationNavigationRequest?.cfiRange, annotationNavigationRequest?.requestId]);
+
+  useEffect(() => {
+    const fraction = fractionNavigationRequest?.fraction;
+    if (fraction == null) return;
+    void goToFraction(fraction);
+    // requestId, not the fraction alone: scrubbing back to the same spot is
+    // still a new jump to make.
+  }, [fractionNavigationRequest?.fraction, fractionNavigationRequest?.requestId, goToFraction]);
 
   // Paginated layouts turn by explicit controls; scroll mode uses the native
   // scroller and crosses pages at its edges.

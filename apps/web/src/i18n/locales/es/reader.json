@@ -9,6 +9,7 @@
   "resizeChat": "Redimensionar el panel de chat",
   "noToc": "Este archivo no incluye un índice navegable.",
   "progress": "{{page}} / {{total}} · {{percent}}",
+  "readingPosition": "Posición de lectura",
   "notes": "Notas",
   "emptyNotes": "Aún no hay resaltados ni notas. Selecciona texto en el lector para marcarlo.",
   "previousPage": "Página anterior",

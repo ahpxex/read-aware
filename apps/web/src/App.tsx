@@ -354,6 +354,7 @@ function App() {
           currentChapterHref={reader.currentChapterHref}
           chapterNavigationRequest={reader.chapterNavigationRequest}
           annotationNavigationRequest={reader.annotationNavigationRequest}
+          fractionNavigationRequest={reader.fractionNavigationRequest}
           overlayVisible={reader.overlayVisible}
           selectedEpubProgress={reader.selectedEpubProgress}
           readerProgress={reader.readerProgress}
@@ -365,6 +366,8 @@ function App() {
           onHideShell={reader.hideShell}
           onReaderPageChange={reader.handleReaderPageChange}
           onEpubProgressChange={reader.handleEpubProgressChange}
+          onReaderFractionChange={reader.handleReaderFractionChange}
+          onSeek={reader.handleSeek}
           onTocChange={reader.setReaderToc}
           onCurrentChapterChange={reader.setCurrentChapterHref}
           onBookReady={library.handleBookReady}

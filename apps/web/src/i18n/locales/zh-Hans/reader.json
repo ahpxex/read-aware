@@ -9,6 +9,7 @@
   "resizeChat": "调整对话面板大小",
   "noToc": "此文件未提供可导航的目录。",
   "progress": "{{page}} / {{total}} · {{percent}}",
+  "readingPosition": "阅读位置",
   "notes": "笔记",
   "emptyNotes": "还没有高亮或笔记。在阅读器中选中文本即可标记。",
   "previousPage": "上一页",

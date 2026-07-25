@@ -9,6 +9,7 @@
   "resizeChat": "チャットパネルのサイズを変更",
   "noToc": "このファイルには操作可能な目次がありません。",
   "progress": "{{page}} / {{total}} · {{percent}}",
+  "readingPosition": "読書位置",
   "notes": "メモ",
   "emptyNotes": "ハイライトやメモはまだありません。リーダーでテキストを選択してマークしましょう。",
   "previousPage": "前のページ",

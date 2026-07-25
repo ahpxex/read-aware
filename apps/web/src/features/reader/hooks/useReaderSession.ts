@@ -48,6 +48,14 @@ export function useReaderSession({
     cfiRange: string;
     requestId: number;
   } | null>(null);
+  const [fractionNavigationRequest, setFractionNavigationRequest] = useLocalAtom<{
+    fraction: number;
+    requestId: number;
+  } | null>(null);
+  // The engine's exact reading fraction. The persisted progress only carries a
+  // rounded percentage, which is too coarse to paint (or seek from) the
+  // header's progress bar.
+  const [readerFraction, setReaderFraction] = useLocalAtom<number | null>(null);
   const readerLoadRequestIdRef = useRef(0);
   const pendingProgressSaveRef = useRef<Map<string, number>>(new Map());
 
@@ -80,10 +88,14 @@ export function useReaderSession({
     setCurrentChapterHref(null);
     setChapterNavigationRequest(null);
     setAnnotationNavigationRequest(null);
+    setFractionNavigationRequest(null);
+    setReaderFraction(null);
   }, [
     setAnnotationNavigationRequest,
     setChapterNavigationRequest,
     setCurrentChapterHref,
+    setFractionNavigationRequest,
+    setReaderFraction,
     setReaderPage,
     setReaderToc,
   ]);
@@ -212,6 +224,19 @@ export function useReaderSession({
     applyReaderProgress(selectedBook.id, progress);
   }, [applyReaderProgress, selectedBook, setReaderPage]);
 
+  const handleReaderFractionChange = useCallback((fraction: number) => {
+    setReaderFraction(fraction);
+  }, [setReaderFraction]);
+
+  // Scrubbing the header's progress bar. The shell deliberately stays open —
+  // the user is working the header, and may well scrub again.
+  const handleSeek = useCallback((fraction: number) => {
+    setFractionNavigationRequest((previous) => ({
+      fraction,
+      requestId: (previous?.requestId ?? 0) + 1,
+    }));
+  }, [setFractionNavigationRequest]);
+
   const handleChapterSelect = useCallback((href: string) => {
     setChapterNavigationRequest((previous) => ({
       href,
@@ -230,11 +255,12 @@ export function useReaderSession({
 
   const overlayVisible = shellVisible;
   const selectedEpubProgress = selectedBook?.progress ?? null;
-  const readerProgress = readerPage.total > 0
-    ? readerPage.current / readerPage.total
-    : selectedBook?.progressPercent
+  // The engine's fraction once it has relocated; before that, the position the
+  // book was left at (so the bar opens where reading stopped).
+  const readerProgress = readerFraction
+    ?? (selectedBook?.progressPercent
       ? selectedBook.progressPercent / 100
-      : undefined;
+      : undefined);
 
   return {
     selectedBook,
@@ -245,6 +271,7 @@ export function useReaderSession({
     currentChapterHref,
     chapterNavigationRequest,
     annotationNavigationRequest,
+    fractionNavigationRequest,
     overlayVisible,
     selectedEpubProgress,
     readerProgress,
@@ -256,6 +283,8 @@ export function useReaderSession({
     hideShell,
     handleReaderPageChange,
     handleEpubProgressChange,
+    handleReaderFractionChange,
+    handleSeek,
     handleChapterSelect,
     handleAnnotationSelect,
     setReaderToc,

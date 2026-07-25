@@ -9,6 +9,7 @@
   "resizeChat": "Resize chat panel",
   "noToc": "This file does not expose a navigable table of contents.",
   "progress": "{{page}} / {{total}} · {{percent}}",
+  "readingPosition": "Reading position",
   "notes": "Notes",
   "emptyNotes": "No highlights or notes yet. Select text in the reader to mark it.",
   "previousPage": "Previous page",

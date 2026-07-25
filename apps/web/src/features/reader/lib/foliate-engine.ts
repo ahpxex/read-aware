@@ -100,6 +100,14 @@ export type FoliateView = HTMLElement & {
   renderer?: FoliateRenderer;
   goTo: (target: string | number | FoliateResolved) => Promise<FoliateResolved | undefined>;
   goToFraction: (fraction: number) => Promise<void>;
+  /** Cumulative 0..1 start fractions of the spine sections (length: sections + 1),
+   *  on the same size-proportional scale as `goToFraction`. */
+  getSectionFractions?: () => number[];
+  /** Resolve a navigation target to a section index. Synchronous for reflowable
+   *  formats; PDF resolves hrefs asynchronously and returns a promise. */
+  resolveNavigation?: (
+    target: string | number | { fraction: number },
+  ) => FoliateResolved | Promise<FoliateResolved> | null | undefined;
   /** Turn to the next page; crosses into (and lazily loads) the next section at its end. */
   next: (distance?: number) => Promise<void>;
   /** Turn to the previous page; crosses into the previous section at its start. */

@@ -30,6 +30,10 @@ type ReaderWorkspaceProps = {
     cfiRange: string;
     requestId: number;
   } | null;
+  fractionNavigationRequest: {
+    fraction: number;
+    requestId: number;
+  } | null;
   overlayVisible: boolean;
   selectedEpubProgress: ReaderProgress | null;
   readerProgress: number | undefined;
@@ -41,6 +45,8 @@ type ReaderWorkspaceProps = {
   onHideShell: () => void;
   onReaderPageChange: (current: number, total: number) => void;
   onEpubProgressChange: (progress: ReaderProgress) => void;
+  onReaderFractionChange: (fraction: number) => void;
+  onSeek: (fraction: number) => void;
   onTocChange: (entries: TocEntry[]) => void;
   onCurrentChapterChange: (href: string | null) => void;
   onBookReady: (book: LibraryBook, foliateBook: FoliateBook) => void;
@@ -57,6 +63,7 @@ export function ReaderWorkspace({
   currentChapterHref,
   chapterNavigationRequest,
   annotationNavigationRequest,
+  fractionNavigationRequest,
   overlayVisible,
   selectedEpubProgress,
   readerProgress,
@@ -68,6 +75,8 @@ export function ReaderWorkspace({
   onHideShell,
   onReaderPageChange,
   onEpubProgressChange,
+  onReaderFractionChange,
+  onSeek,
   onTocChange,
   onCurrentChapterChange,
   onBookReady,
@@ -149,6 +158,7 @@ export function ReaderWorkspace({
           onReadingActivity={recordActivity}
           onPageChange={handlePageChange}
           onProgressChange={handleProgressChange}
+          onFractionChange={onReaderFractionChange}
           onTocChange={onTocChange}
           onCurrentChapterChange={onCurrentChapterChange}
           onBookReady={(foliateBook) => onBookReady(selectedBook, foliateBook)}
@@ -160,6 +170,7 @@ export function ReaderWorkspace({
           initialProgress={selectedEpubProgress}
           chapterNavigationRequest={chapterNavigationRequest}
           annotationNavigationRequest={annotationNavigationRequest}
+          fractionNavigationRequest={fractionNavigationRequest}
         />
       ) : null}
 
@@ -196,6 +207,7 @@ export function ReaderWorkspace({
         currentChapterHref={currentChapterHref}
         onChapterSelect={onChapterSelect}
         onAnnotationSelect={onAnnotationSelect}
+        onSeek={onSeek}
         textUnitModeAvailable={textUnitMode !== null && !isFixedLayout}
         textUnitMode={textUnitMode}
         textUnitModeActive={textUnitModeActive}

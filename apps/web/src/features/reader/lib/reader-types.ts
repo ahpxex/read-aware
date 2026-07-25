@@ -36,6 +36,10 @@ export type TocEntry = {
   label: string;
   depth: number;
   spineIndex: number;
+  /** Position in the book as a 0..1 fraction (the scale `goToFraction` uses).
+   *  Absent when the engine cannot place the entry synchronously — see
+   *  `attachTocFractions`. */
+  fraction?: number;
 };
 
 /** A reading-order content document reference (foliate section index). */

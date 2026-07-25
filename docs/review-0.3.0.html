@@ -107,7 +107,7 @@
   <span><b>日期</b> 2026-07-25</span>
   <span><b>版本</b> v0.3.0</span>
   <span><b>验证</b> Tauri MCP，运行中的桌面实例</span>
-  <span><b>测试</b> Rust 32 · TS 105</span>
+  <span><b>测试</b> Rust 33 · TS 105</span>
 </div>
 
 <div class="verdict">
@@ -124,7 +124,7 @@
 
 <div class="metrics">
   <div class="metric good"><span class="v">3/3</span><span class="l">P0 已关闭</span></div>
-  <div class="metric good"><span class="v">137</span><span class="l">测试（原 115，且 Rust 那批曾编译不过）</span></div>
+  <div class="metric good"><span class="v">138</span><span class="l">测试（原 115，且 Rust 那批曾编译不过）</span></div>
   <div class="metric good"><span class="v">0</span><span class="l">循环依赖（已接 CI）</span></div>
   <div class="metric good"><span class="v">13,645</span><span class="l">事件日志（原 1,222）</span></div>
   <div class="metric good"><span class="v">227</span><span class="l">storage/mod.rs 行数（原 3218）</span></div>
@@ -456,13 +456,79 @@ Rust 与 SQLite 的时间戳格式一致、整数百分比不写成 <code>63.0</
 </div>
 
 <!-- ═══════════════════════════════════════════════════════ -->
-<h2><span class="num">第七节</span>下一步</h2>
+<h2><span class="num">第七节</span>审计之后</h2>
+
+<p>
+这份审计交付后，同一批代码上又做了两件事。记在这里，因为其中一件暴露了审计本身的验证盲区。
+</p>
+
+<div class="item">
+<div class="item-head">
+  <span class="badge done">新增</span>
+  <h3>读完一本书有了终点</h3>
+</div>
+<p>
+此前读到最后一页只是翻不动了：状态只能从 <code>progressPercent >= 100</code> 推断，没有地方看单本书的阅读代价，
+留下的标注也只能在阅读中从笔记面板翻。现在读者主动越过最后一页会进入一屏完成界面，
+带三样东西：他自己的「读完」判断（新增 <code>book.finished</code> 事件，且是<b>粘性</b>的——
+到 100% 不等于承诺，多翻一页也不算撤销）、这本书花掉的时间、以及他留下的标记。
+</p>
+<p>
+「回顾这本书」不在这一屏渲染，而是<b>把问题交给 agent</b>：它自己调
+<code>get_annotations</code> / <code>get_book_overview</code> 取材，答案落在本书已有的对话线程里，读者可以追问——
+这三点都是内联的一次性调用做不到的。
+</p>
+<h4>末尾判定：两次错误的方向</h4>
+<p>
+第一版用 <code>relocate</code> 上报的全书进度 ≥ 0.999 判断读完。那个事件<b>只在位置变化时触发</b>，
+到末尾恰好静默，而恢复到末尾的会话从未收到过它——症状就是一直翻页毫无反应。
+第二版改成数 relocate 次数加 420ms 延时推断「没动」，能工作，但那是在猜渲染器已经知道的事。
+最终直接问引擎：foliate 的 <code>atEnd</code> 表示后面没有 linear section，分页与滚动模式语义一致；
+但它容许差两页（服务于滚动预留），所以用它把关「后面还有没有」，精度交给 <code>page</code>/<code>pages</code> 比较。
+</p>
+</div>
+
+<div class="item">
+<div class="item-head">
+  <span class="badge done">已修复</span>
+  <h3>沙箱边界曾丢弃 contribution 的可调用方法</h3>
+  <span class="tag">审计的盲区</span>
+</div>
+<p>
+第一节报告插件沙箱验证通过时，检查的是「三个插件激活、贡献出现在注册表里」。
+那还不够：跨 Worker 时 contribution 要拆成可克隆的数据加留在 Worker 的函数句柄，
+而当时用一份手写清单决定哪些属性是函数——它是契约的第二份副本，且已经与之不符。
+tool 的可调用字段是 <code>execute</code> 不是 <code>run</code>，header action 是 <code>view</code>，
+两者被静默丢弃：<b>5 个插件 agent 工具全部注册成功但无法调用</b>。
+</p>
+<div class="evidence"><pre><span class="c">agent 自己报出了症状：</span>
+"the dictionary plugin won't load right now"
+  → get_vocabulary 在注册表里，<span class="no">但没有 execute</span></pre></div>
+<p>
+修法不是补齐清单，而是删掉它——连宿主侧那份必须与之对应的 <code>switch</code> 一起。
+函数改为在 RPC 层通用传递：参数被递归遍历，任何位置任何名字的函数都换成句柄，宿主再还原。
+没有任何地方枚举 contribution 种类，也就没有东西能和契约脱节。
+顺带解决了注册方法<b>同步</b>返回 <code>PluginDisposable</code> 这个跨 realm 做不到的事——
+现在每次调用返回的东西既可 <code>await</code> 也可 <code>dispose</code>。
+</p>
+<div class="note correction">
+<p>
+<b>教训：验证 registration 类功能要验「可调用」，不只是「注册项出现在列表里」。</b>
+这与第六节那处术语错误同源——都是没验的那一侧恰好是坏的那一侧。
+本次收尾的端到端验证也正是靠这条抓到了另一个问题：<code>ask</code> 类标注（agent 为线程内提问留下的被动痕迹）
+出现在了完成屏的「你的标注」里，等于把读者自己的回顾指令记成了他标注的段落。
+</p>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<h2><span class="num">第八节</span>下一步</h2>
 
 <div class="tbl-wrap">
 <table>
 <thead><tr><th>#</th><th>动作</th><th>理由</th></tr></thead>
 <tbody>
-<tr><td class="mono">1</td><td>继续拆 FoliateReaderView 的其余四簇</td><td>引擎生命周期、选区、标注层、章节导航；模式已验证两轮</td></tr>
+<tr><td class="mono">1</td><td>继续拆 FoliateReaderView 的其余四簇</td><td>引擎生命周期（~310 行，最核心）、文本动作（~390 行）、选区、章节导航。已抽两簇（排版、翻页），2,470 → 2,340 行</td></tr>
 <tr><td class="mono">2</td><td>降低 <code>reader ⇄ plugins</code> 等双向耦合</td><td>共享类型下沉 <code>packages/core</code>，UI 改走 <code>domain/</code> 层</td></tr>
 <tr><td class="mono">3</td><td>把 <code>verify_projections</code> 接进设置界面或 CI</td><td>目前只能手工调用，应让漂移可见</td></tr>
 <tr><td class="mono">4</td><td>第三方插件安装时展示权限清单</td><td>沙箱已就位，用户仍应知道插件将获得什么</td></tr>
@@ -484,7 +550,7 @@ Rust 与 SQLite 的时间戳格式一致、整数百分比不写成 <code>63.0</
 <footer>
   ReadAware v0.3.0 · 2026-07-25<br>
   安全结论均在运行中的桌面实例上以原攻击探针复测；探测为只读，未修改用户数据，本文不含任何密钥内容。<br>
-  测试：Rust 32 · TypeScript 105（agent 56 / web 34 / plugins 15）。
+  测试：Rust 33 · TypeScript 105（agent 56 / web 34 / plugins 15）。
 </footer>
 
 </div>

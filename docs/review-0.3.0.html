@@ -40,7 +40,11 @@
   ul, ol { margin: 0 0 16px; padding-left: 22px; max-width: 68ch; }
   li { margin-bottom: 7px; } li::marker { color: var(--stone-400); }
   code { font-family: var(--mono); font-size: .855em; background: var(--paper-warm);
-         border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; color: var(--stone-700); }
+         border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; color: var(--stone-700);
+         /* Some identifiers here are long enough to be wider than a narrow
+            window on their own, and an unbreakable one pushes the whole PAGE
+            sideways rather than just itself. Let them break instead. */
+         overflow-wrap: break-word; }
 
   .verdict { background: var(--paper-warm); border: 1px solid var(--border); border-radius: 4px;
              padding: 28px 32px; margin: 40px 0 8px; }
@@ -63,6 +67,8 @@
            padding: 3px 8px; border-radius: 3px; white-space: nowrap; }
   .badge.done { background: var(--good); color: #fff; }
   .badge.partial { background: #a16207; color: #fff; }
+  /* Neither a fix nor a gap: structural work, so it reads quieter than both. */
+  .badge.refactor { background: var(--stone-500); color: #fff; }
   .tag { font-size: 11px; color: var(--stone-500); border: 1px solid var(--border); padding: 2px 7px; border-radius: 3px; }
 
   .evidence { background: #1c1917; color: #e7e5e4; border-radius: 4px; padding: 16px 18px; margin: 16px 0;
@@ -459,7 +465,8 @@ Rust 与 SQLite 的时间戳格式一致、整数百分比不写成 <code>63.0</
 <h2><span class="num">第七节</span>审计之后</h2>
 
 <p>
-这份审计交付后，同一批代码上又做了两件事。记在这里，因为其中一件暴露了审计本身的验证盲区。
+这份审计交付后，同一批代码上又做了四件事。记在这里，因为其中两件暴露了审计本身的验证盲区——
+而且是同一处边界的同一种盲区，隔了一轮才被看见。
 </p>
 
 <div class="item">
@@ -521,6 +528,59 @@ tool 的可调用字段是 <code>execute</code> 不是 <code>run</code>，header
 </div>
 </div>
 
+<div class="item">
+<div class="item-head">
+  <span class="badge done">已修复</span>
+  <h3>同一处边界，出方向仍在丢函数</h3>
+  <span class="tag">上一条只修了一半</span>
+</div>
+<p>
+上一条的结论是「没有任何地方枚举 contribution 种类，也就没有东西能和契约脱节」。
+那句话对<b>参数</b>成立，对<b>返回值</b>不成立——它们走的是另一行代码。
+插件回调把结果送回宿主时用的是 <code>JSON.parse(JSON.stringify(value))</code>：
+按形状丢弃函数，和被删掉的那份手写清单一模一样，只是换了个丢法。
+</p>
+<div class="evidence"><pre><span class="c">Dictionary 的取词面板整个被拒：</span>
+view.controls[0].onChange must be a function
+  → 插件确实返回了 onChange，<span class="no">JSON 往返把它抹掉了</span>
+
+<span class="c">而那行代码的注释写着：</span>
+"anything non-clonable ... fails loudly rather than silently"
+  → <span class="no">JSON 序列化对函数从不报错，它就是静默丢弃</span></pre></div>
+<p>
+修法是让边界对称：出方向复用入方向那个 <code>encode</code>（函数换句柄，递归穿过数组与纯对象），
+宿主在 <code>result</code> 落地时 <code>decode</code>。
+两侧缺任何一侧都不成立——只改 worker，句柄到了宿主还是普通对象。
+不可克隆的东西现在真的会从 <code>postMessage</code> 抛进 catch，注释才名副其实。
+</p>
+<div class="note correction">
+<p>
+<b>这是同源错误的第三次：<code>relocate</code> 计数、<code>run</code>/<code>execute</code> 清单、以及这次的返回值方向。</b>
+每一次都是「验了成立的那一侧」。这次它被抓到，靠的是端到端走完插件取词的完整路径——
+不只看面板是否打开，而是切换面板里的语言下拉，确认 <code>onChange</code> 真的穿过了 realm 边界回到 Worker。
+</p>
+</div>
+</div>
+
+<div class="item">
+<div class="item-head">
+  <span class="badge refactor">重构</span>
+  <h3>FoliateReaderView：文本动作簇已抽出</h3>
+</div>
+<p>
+第三簇 <code>useReaderTextActions</code> 落地，<code>FoliateReaderView.tsx</code> 从 2,470 行降到 2,004 行。
+这一簇合并的理由不是「都跟文字有关」，而是<b>三个界面对同一段文字执行同一组动词</b>：
+划线的选区、点开的标注、朗读模式当前高亮的单元——目标不同，动作相同。
+笔记编辑器的状态、默认标记色、标注版本号一并进来，因为它们只被这些动作碰过。
+</p>
+<p>
+抽取过程推翻了两处原先的判断：点正文里的笔记标记（<code>show-annotation</code>）也在直接写编辑器状态，
+为它单开 <code>openExistingNote(note)</code>，与「按锚点去找笔记」的 <code>openNoteEditorForPassage</code> 区分；
+JSX 里三处要插件输入，没有把内部的 target 函数暴露出去，而是收成一个
+<code>pluginInputForSource(source)</code>——调用方只说哪个界面在问，「那是哪段文字」留在钩子内部。
+</p>
+</div>
+
 <!-- ═══════════════════════════════════════════════════════ -->
 <h2><span class="num">第八节</span>下一步</h2>
 
@@ -528,11 +588,11 @@ tool 的可调用字段是 <code>execute</code> 不是 <code>run</code>，header
 <table>
 <thead><tr><th>#</th><th>动作</th><th>理由</th></tr></thead>
 <tbody>
-<tr><td class="mono">1</td><td>继续拆 FoliateReaderView 的其余四簇</td><td>引擎生命周期（~310 行，最核心）、文本动作（~390 行）、选区、章节导航。已抽两簇（排版、翻页），2,470 → 2,340 行</td></tr>
+<tr><td class="mono">1</td><td>继续拆 FoliateReaderView 的其余三簇</td><td>引擎生命周期（~310 行，最核心）、选区捕获、章节导航。已抽三簇（排版、翻页、文本动作），2,470 → 2,004 行</td></tr>
 <tr><td class="mono">2</td><td>降低 <code>reader ⇄ plugins</code> 等双向耦合</td><td>共享类型下沉 <code>packages/core</code>，UI 改走 <code>domain/</code> 层</td></tr>
 <tr><td class="mono">3</td><td>把 <code>verify_projections</code> 接进设置界面或 CI</td><td>目前只能手工调用，应让漂移可见</td></tr>
 <tr><td class="mono">4</td><td>第三方插件安装时展示权限清单</td><td>沙箱已就位，用户仍应知道插件将获得什么</td></tr>
-<tr><td class="mono">5</td><td>配置 Developer ID 签名并公证</td><td>根治更新后的信任重置，也让钥匙串重新成为可选项</td></tr>
+<tr><td class="mono">5</td><td>配置 Developer ID 签名并公证</td><td>根治更新后的信任重置，也让钥匙串重新值得考虑</td></tr>
 <tr><td class="mono">6</td><td>同步引擎</td><td>地基（原子写、可回放、可自检）已具备</td></tr>
 </tbody>
 </table>

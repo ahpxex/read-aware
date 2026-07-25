@@ -79,7 +79,12 @@ export function ReaderCompletionScreen({
     let cancelled = false;
     void listAnnotations({ bookId: book.id })
       .then((list) => {
-        if (!cancelled) setAnnotations(list);
+        // Only what the READER left. `ask` annotations are the agent runtime's
+        // passive traces of questions asked in the thread (see `ask.recorded` in
+        // @read-aware/core) — including them put the reader's own "look back on
+        // this book" prompt into their list of marks, and would feed it back as
+        // a marked passage the next time they asked.
+        if (!cancelled) setAnnotations(list.filter((entry) => entry.type !== "ask"));
       })
       .catch(() => {
         if (!cancelled) setAnnotations([]);

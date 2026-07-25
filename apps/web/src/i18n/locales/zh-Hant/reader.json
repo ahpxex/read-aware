@@ -132,17 +132,17 @@
     "hours": "{{count}} 小時",
     "hoursMinutes": "{{hours}} 小時 {{minutes}} 分",
     "recapTitle": "回顧",
-    "recapAsk": "寫一段回顧",
     "recapLoading": "正在讀你的標註…",
     "recapUnavailable": "請先在設定裡配置 AI 服務，才能產生回顧。",
     "recapFailed": "回顧沒能寫成，稍後再試。",
-    "recapSystem": "你在幫一位剛讀完一本書的讀者回顧。只依據他標註過的段落，用讀者的語言寫 3–4 個短段落。指出是什麼吸引了他的注意，以及這些標註之間貫穿著什麼線索。不要複述情節，不要恭維，不要用列表。",
+    "recapSystem": "你在幫一位剛讀完一本書的讀者回顧。只依據他標註過的段落，寫 3–4 個短段落。指出是什麼吸引了他的注意，以及這些標註之間貫穿著什麼線索。不要複述情節，不要恭維，不要用列表。",
     "recapPrompt": "書：{{title}}（{{author}}）\n\n我在閱讀時標註的段落：\n{{marks}}",
     "unknownAuthor": "佚名",
     "noMarks": "（閱讀時沒有留下標註。）",
     "marksTitle": "你的標註（{{count}}）",
     "summary": "讀了 {{time}}，跨越 {{days}} 天。",
     "summaryDetail": "平均每天 {{perDay}} · 最長連續 {{streak}} 天",
-    "backToBook": "回到正文"
+    "backToBook": "回到正文",
+    "recapRetry": "重試"
   }
 }

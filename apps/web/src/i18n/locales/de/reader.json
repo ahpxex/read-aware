@@ -132,17 +132,17 @@
     "hours": "{{count}} Std.",
     "hoursMinutes": "{{hours}} Std. {{minutes}} Min.",
     "recapTitle": "Rückblick",
-    "recapAsk": "Rückblick schreiben",
     "recapLoading": "Deine Markierungen werden gelesen …",
     "recapUnavailable": "Richte in den Einstellungen einen KI-Anbieter ein, um einen Rückblick zu erhalten.",
     "recapFailed": "Der Rückblick konnte nicht erstellt werden. Versuche es später erneut.",
-    "recapSystem": "Du hilfst einer Leserin oder einem Leser, auf ein gerade beendetes Buch zurückzublicken. Schreibe 3–4 kurze Absätze in der Sprache der Leserin, ausschließlich gestützt auf die markierten Stellen. Benenne, was die Aufmerksamkeit gefesselt hat und welche Fäden sich durch die Markierungen ziehen. Keine Inhaltsangabe, kein Lob, keine Aufzählungen.",
+    "recapSystem": "Du hilfst einer Leserin oder einem Leser, auf ein gerade beendetes Buch zurückzublicken. Schreibe 3–4 kurze Absätze, ausschließlich gestützt auf die markierten Stellen. Benenne, was die Aufmerksamkeit gefesselt hat und welche Fäden sich durch die Markierungen ziehen. Keine Inhaltsangabe, kein Lob, keine Aufzählungen.",
     "recapPrompt": "Buch: {{title}} von {{author}}\n\nDie Stellen, die ich beim Lesen markiert habe:\n{{marks}}",
     "unknownAuthor": "unbekannt",
     "noMarks": "(Ich habe beim Lesen nichts markiert.)",
     "marksTitle": "Deine Markierungen ({{count}})",
     "summary": "{{time}} gelesen, über {{days}} Tage verteilt.",
     "summaryDetail": "durchschnittlich {{perDay}} pro Tag · längste Serie {{streak}} Tage",
-    "backToBook": "Zurück zum Buch"
+    "backToBook": "Zurück zum Buch",
+    "recapRetry": "Erneut versuchen"
   }
 }

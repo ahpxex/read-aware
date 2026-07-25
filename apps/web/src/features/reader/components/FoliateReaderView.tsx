@@ -156,6 +156,8 @@ const SHELL_TOGGLE_DBLCLICK_GUARD_MS = 250;
 // device-pixel swipe halves again through the density divisor — 260 CSS px of
 // pull is over half a screen. 120px is still a deliberate pull, not a graze.
 const TOUCH_SECTION_CROSS_OVERSCROLL_PX = 120;
+/** Matches `.ra-motion-surface-exit`, which plays while the screen unmounts. */
+const COMPLETION_FADE_MS = 240;
 // Discrete wheel gestures (see wheel-gesture.ts): travel that fires a navigator
 // step while its scroll-to-step option claims the wheel, and travel that turns
 // a page on a horizontal trackpad swipe in paginated layouts.
@@ -401,16 +403,43 @@ export function FoliateReaderView({
   useEffect(() => { onCurrentChapterChangeRef.current = onCurrentChapterChange; }, [onCurrentChapterChange]);
   useEffect(() => { onBookReadyRef.current = onBookReady; }, [onBookReady]);
 
-  const [showCompletion, setShowCompletion] = useState(false);
-  // Stable: this is a dependency of the pagination callbacks, and an inline
-  // arrow here rebuilt them on every render — enough to loop the reader's
+  /**
+   * The completion screen crosses in and out rather than snapping. `mounted`
+   * keeps it in the tree long enough for the exit animation to play; `visible`
+   * picks which animation runs. Both can be set in the same frame — the screen
+   * animates with keyframes, so nothing has to observe an initial paint.
+   */
+  const [completionMounted, setCompletionMounted] = useState(false);
+  const [completionVisible, setCompletionVisible] = useState(false);
+  const completionExitTimerRef = useRef<number | null>(null);
+
+  // Stable: these are dependencies of the pagination callbacks, and inline
+  // arrows here rebuilt them on every render — enough to loop the reader's
   // listener effects until React bailed out with "maximum update depth".
-  const openCompletion = useCallback(() => setShowCompletion(true), []);
-  const dismissCompletion = useCallback(() => setShowCompletion(false), []);
-  const revisitFromCompletion = useCallback((cfiRange: string) => {
-    setShowCompletion(false);
-    void viewRef.current?.goTo(cfiRange);
+  const openCompletion = useCallback(() => {
+    if (completionExitTimerRef.current != null) {
+      window.clearTimeout(completionExitTimerRef.current);
+      completionExitTimerRef.current = null;
+    }
+    setCompletionMounted(true);
+    setCompletionVisible(true);
   }, []);
+  const dismissCompletion = useCallback(() => {
+    setCompletionVisible(false);
+    completionExitTimerRef.current = window.setTimeout(() => {
+      setCompletionMounted(false);
+      completionExitTimerRef.current = null;
+    }, COMPLETION_FADE_MS);
+  }, []);
+  const revisitFromCompletion = useCallback(
+    (cfiRange: string) => {
+      // Fade out first, then land on the passage — arriving mid-fade would show
+      // the jump happening behind the screen.
+      dismissCompletion();
+      window.setTimeout(() => void viewRef.current?.goTo(cfiRange), COMPLETION_FADE_MS);
+    },
+    [dismissCompletion],
+  );
   const [declaredFinished, setDeclaredFinished] = useState(
     selectedBook?.readingStatus === "finished",
   );
@@ -1544,6 +1573,9 @@ export function FoliateReaderView({
     return () => {
       cancelPendingShellOpen();
       cancelPendingShellToggle();
+      if (completionExitTimerRef.current != null) {
+        window.clearTimeout(completionExitTimerRef.current);
+      }
       if (suppressContentClickTimeoutRef.current != null) {
         window.clearTimeout(suppressContentClickTimeoutRef.current);
       }
@@ -2287,10 +2319,11 @@ export function FoliateReaderView({
         isEditing={!!currentNote}
       />
 
-      {showCompletion && selectedBook ? (
+      {completionMounted && selectedBook ? (
         <ReaderCompletionScreen
           book={selectedBook}
           theme={readerSettings.theme}
+          visible={completionVisible}
           finished={declaredFinished}
           onFinishedChange={setDeclaredFinished}
           onRevisit={revisitFromCompletion}

@@ -132,17 +132,17 @@
     "hours": "{{count}} h",
     "hoursMinutes": "{{hours}} h {{minutes}} min",
     "recapTitle": "Mirando atrás",
-    "recapAsk": "Escribir un resumen",
     "recapLoading": "Leyendo tus marcas…",
     "recapUnavailable": "Configura un proveedor de IA en los ajustes para obtener un resumen.",
     "recapFailed": "No se pudo escribir el resumen. Inténtalo más tarde.",
-    "recapSystem": "Ayudas a un lector a mirar atrás sobre un libro que acaba de terminar. Escribe 3–4 párrafos breves en el idioma del lector, basándote ÚNICAMENTE en los pasajes que marcó. Señala qué llamó su atención y qué hilos recorren sus marcas. Sin resumen del argumento, sin elogios, sin viñetas.",
+    "recapSystem": "Ayudas a un lector a mirar atrás sobre un libro que acaba de terminar. Escribe 3–4 párrafos breves basándote ÚNICAMENTE en los pasajes que marcó. Señala qué llamó su atención y qué hilos recorren sus marcas. Sin resumen del argumento, sin elogios, sin viñetas.",
     "recapPrompt": "Libro: {{title}}, de {{author}}\n\nLos pasajes que marqué al leer:\n{{marks}}",
     "unknownAuthor": "autor desconocido",
     "noMarks": "(No marqué nada mientras leía.)",
     "marksTitle": "Tus marcas ({{count}})",
     "summary": "{{time}} de lectura, a lo largo de {{days}} días.",
     "summaryDetail": "{{perDay}} al día de media · racha más larga {{streak}} días",
-    "backToBook": "Volver al libro"
+    "backToBook": "Volver al libro",
+    "recapRetry": "Reintentar"
   }
 }

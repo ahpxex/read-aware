@@ -132,17 +132,17 @@
     "hours": "{{count}}h",
     "hoursMinutes": "{{hours}}h {{minutes}}m",
     "recapTitle": "Looking back",
-    "recapAsk": "Write a recap",
     "recapLoading": "Reading through your marks…",
     "recapUnavailable": "Set up an AI provider in settings to get a recap.",
     "recapFailed": "The recap could not be written. Try again later.",
-    "recapSystem": "You help a reader look back on a book they just finished. Write 3–4 short paragraphs in the reader's language, grounded ONLY in the passages they marked. Name what drew their attention and what threads run between their marks. No plot summary, no praise, no bullet points.",
+    "recapSystem": "You help a reader look back on a book they just finished. Write 3–4 short paragraphs grounded ONLY in the passages they marked. Name what drew their attention and what threads run between their marks. No plot summary, no praise, no bullet points.",
     "recapPrompt": "Book: {{title}} by {{author}}\n\nThe passages I marked while reading:\n{{marks}}",
     "unknownAuthor": "an unknown author",
     "noMarks": "(I marked nothing while reading.)",
     "marksTitle": "Your marks ({{count}})",
     "summary": "{{time}} of reading, across {{days}} days.",
     "summaryDetail": "{{perDay}} a day on average · longest streak {{streak}} days",
-    "backToBook": "Back to the book"
+    "backToBook": "Back to the book",
+    "recapRetry": "Try again"
   }
 }

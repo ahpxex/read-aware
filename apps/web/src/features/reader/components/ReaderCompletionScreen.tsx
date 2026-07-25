@@ -109,6 +109,12 @@ export function ReaderCompletionScreen({
    * tools to gather the marks and the book itself, the answer lands in the
    * book's own thread, and the reader can follow up — none of which a one-shot
    * call rendered on this screen could offer.
+   *
+   * Asking does NOT leave this screen. It is a page of the book like any other,
+   * and the chat panel opens over a page rather than in place of it (the shell
+   * overlay is `fixed z-50`, above this surface), so there is nothing to get out
+   * of the way of. Dismissing would also throw away what the reader came here
+   * for — the marks and the figures the answer is about.
    */
   const askForLookBack = useCallback(() => {
     dispatchAskAi({
@@ -116,8 +122,7 @@ export function ReaderCompletionScreen({
       bookId: book.id,
       prompt: t("completion.lookBackPrompt", { title: book.title }),
     });
-    onDismiss();
-  }, [book.id, book.title, dispatchAskAi, onDismiss, t]);
+  }, [book.id, book.title, dispatchAskAi, t]);
 
   const marks = annotations ?? [];
   const rule = { borderColor: palette.rule };

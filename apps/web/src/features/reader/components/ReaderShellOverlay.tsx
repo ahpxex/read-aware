@@ -439,10 +439,14 @@ export function ReaderShellOverlay({
           <ScrollArea className="h-full min-h-0 flex-1">
             <div
               ref={tocListRef}
-              className="flex flex-col px-3 py-4 pb-[calc(1rem+var(--ra-safe-bottom))]"
+              // No horizontal padding here: the rows carry it themselves, so
+              // the current chapter's highlight reaches both edges of the panel
+              // instead of floating in a channel of panel background — which,
+              // on a dark surface, reads as an inlaid plastic strip.
+              className="flex flex-col py-4 pb-[calc(1rem+var(--ra-safe-bottom))]"
             >
               {tocEntries.length === 0 && (
-                <Body className="px-2 py-2 text-sm text-fg-muted">
+                <Body className="px-5 py-2 text-sm text-fg-muted">
                   {t("noToc")}
                 </Body>
               )}
@@ -463,12 +467,15 @@ export function ReaderShellOverlay({
                     }}
                     aria-current={isActive ? "location" : undefined}
                     className={cn(
-                      "w-full border-l-2 py-1.5 pr-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
+                      "w-full border-l-2 py-1.5 pr-6 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
                       isActive
                         ? "border-fg bg-fill text-fg"
                         : "border-transparent text-fg-muted hover:text-fg",
                     )}
-                    style={{ paddingLeft: `${1 + entry.depth * 0.85}rem` }}
+                    // The row's own inset (what the list used to pad), so the
+                    // text sits where it always did while the row runs edge to
+                    // edge. Nesting adds to it.
+                    style={{ paddingLeft: `${1.75 + entry.depth * 0.85}rem` }}
                   >
                     <Body
                       as="span"

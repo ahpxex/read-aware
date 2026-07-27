@@ -10,7 +10,7 @@
 import { deleteDesktopBlob, getDesktopBlob, putDesktopBlob } from "../../../platform/blob-store";
 import { isTauri } from "../../../platform/environment";
 import { flattenToc } from "../../reader/lib/epub-utils";
-import { makeFoliateBook } from "../../reader/lib/foliate-engine";
+import { parseBookFile } from "../../reader/lib/parse-book";
 import { ensureUsableToc } from "../../reader/lib/toc-synthesis";
 import type { TocNavItem } from "../../reader/lib/reader-types";
 import { getStoredBookFile } from "./library-db";
@@ -101,7 +101,7 @@ async function extract(bookId: string, preopened?: unknown): Promise<ExtractedCh
   } else {
     const file = await getStoredBookFile(bookId);
     if (!file) return [];
-    book = (await makeFoliateBook(file)) as FoliateBookLike;
+    book = (await parseBookFile(file)) as FoliateBookLike;
     // 懒回填路径同样先修目录，否则残缺 nav 会把整本书合并成一章。
     await ensureUsableToc(book);
   }

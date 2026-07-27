@@ -29,6 +29,11 @@ export const BOOK_FILE_EXTENSIONS = [
   "kf8",
   "fb2",
   "fbz",
+  "cbz",
+  "cbr",
+  "txt",
+  "html",
+  "htm",
   "pdf",
 ] as const;
 
@@ -38,6 +43,10 @@ export const BOOK_FILE_ACCEPT = [
   "application/epub+zip",
   "application/pdf",
   "application/x-fictionbook+xml",
+  "application/vnd.comicbook+zip",
+  "application/vnd.comicbook-rar",
+  "text/plain",
+  "text/html",
 ].join(",");
 
 /**

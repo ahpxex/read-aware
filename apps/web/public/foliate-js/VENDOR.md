@@ -2,6 +2,9 @@
 
 This is a pinned copy of [foliate-js](https://github.com/johnfactotum/foliate-js)
 (MIT, John Factotum) — the reading engine for EPUB / MOBI / KF8 (AZW3) / FB2 / CBZ / PDF.
+Plain text, single-file HTML, and `.cbr` comics are assembled app-side instead
+(`features/reader/lib/text-book.ts`, `comic-archive.ts`) against the same book
+contract `view.open()` accepts.
 
 - **Source:** https://github.com/johnfactotum/foliate-js
 - **Pinned commit:** `78914aef4466eb960965702401634c2cb348e9b1` (2026-05-01)
@@ -56,6 +59,21 @@ The typed wrapper that consumes this lives at
   event lets the app defer cover work until the visible PDF page is painted.
   This is what makes PDF scroll/single/double modes real rather than changing a
   setting that the upstream renderer ignores. Re-apply after any upstream update.
+- **`fixed-layout.js` — annotation overlays:** the upstream renderer never
+  creates an overlayer (`getContents()` carried a `TODO: index, overlayer`), so
+  highlights, underlines, and notes were impossible on any fixed-layout book —
+  PDFs included. Each frame now owns an overlay box that mirrors the iframe's
+  geometry (mirroring its CSS scale, so ranges measured inside the iframe land
+  on the right pixels), dispatches `create-overlayer`, and reports
+  `{ doc, index, overlayer }` from `getContents()`. A lazily rendered page (PDF)
+  gets its overlayer after the render, and re-renders — zoom, resize — rebuild
+  it, because re-rendering discards the DOM the stored ranges pointed into.
+  Re-apply after any upstream update.
+- **`pdf.js` — text layer rebuild:** `TextLayer.render()` appends, and foliate
+  re-renders on every zoom, so text layers stacked up: text selected twice over
+  and, worse, the DOM shape a stored CFI was measured against stopped being
+  reproducible. The text and annotation layers are now cleared before each
+  render. Re-apply after any upstream update.
 - Otherwise all engine modules and `vendor/` are byte-for-byte upstream.
 
 ## Updating

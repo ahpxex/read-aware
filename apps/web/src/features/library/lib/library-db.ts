@@ -18,8 +18,7 @@ import type {
 } from "./library-types";
 import { extractOpenedBookMetadata } from "./library-cover";
 import {
-  extractNativeEpubMetadata,
-  extractNativePdfMetadata,
+  extractNativeBookMetadata,
   type NativeBookMetadata,
 } from "./native-book-metadata";
 import { sniffBookFormat } from "./book-format-sniff";
@@ -185,6 +184,17 @@ async function detectBookFormat(source: BookImportSource, t: TFunction<"shelf">)
   ) {
     return "fb2";
   }
+  if (name.endsWith(".cbz") || type === "application/vnd.comicbook+zip") return "cbz";
+  if (name.endsWith(".cbr") || type === "application/vnd.comicbook-rar") return "cbr";
+  if (name.endsWith(".txt") || name.endsWith(".text") || type === "text/plain") return "txt";
+  if (
+    name.endsWith(".html") ||
+    name.endsWith(".htm") ||
+    name.endsWith(".xhtml") ||
+    type === "text/html"
+  ) {
+    return "html";
+  }
 
   // No usable extension or MIME type — Android SAF picks arrive as opaque
   // content:// names — so fall back to sniffing the file's magic bytes.
@@ -332,11 +342,7 @@ export async function prepareBookImport(
 
   const format = await detectBookFormat(source, t);
   const metadata = source.kind === "native-path"
-    ? format === "epub"
-      ? await extractNativeEpubMetadata(source.path)
-      : format === "pdf"
-        ? await extractNativePdfMetadata(source.path)
-        : null
+    ? await extractNativeBookMetadata(format, source.path)
     : null;
   const book = createLibraryBook(source, format, metadata);
   const byMetadata = existing.find((entry) => bookDedupeKey(entry) === bookDedupeKey(book));
@@ -429,8 +435,13 @@ export async function getStoredBookBlob(bookId: string): Promise<Blob | null> {
 
 /**
  * Reader source for an imported book. PDFs stay file-backed and random-access;
- * the other parsers still receive an ordinary Blob until they expose the same
+ * the other parsers still receive a whole-file blob until they expose the same
  * structural range contract end to end.
+ *
+ * The blob is always wrapped back into a named `File`: foliate's `makeBook`
+ * picks the loader for ZIP containers from the file NAME (a `.cbz` comic and a
+ * `.fbz` FictionBook are both zips), so a nameless blob would be read as an
+ * EPUB — and, before that, crash on `name.endsWith`.
  */
 export async function getStoredBookFile(
   bookOrId: Pick<LibraryBook, "id" | "format" | "fileName" | "mimeType"> | string,
@@ -445,7 +456,9 @@ export async function getStoredBookFile(
       book.mimeType || "application/pdf",
     );
   }
-  return getStoredBookBlob(book.id);
+  const blob = await getStoredBookBlob(book.id);
+  if (!blob) return null;
+  return new File([blob], book.fileName, { type: book.mimeType || blob.type });
 }
 
 export async function updateLibraryBookProgress(bookId: string, progress: BookProgress) {

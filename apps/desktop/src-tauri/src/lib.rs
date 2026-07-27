@@ -1,5 +1,9 @@
 mod android_update;
 mod book_metadata;
+mod comic_metadata;
+mod fb2_metadata;
+mod metadata;
+mod mobi_metadata;
 mod pdf_metadata;
 mod plugins;
 mod secrets;
@@ -797,6 +801,9 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             book_metadata::extract_epub_metadata,
+            comic_metadata::extract_comic_metadata,
+            fb2_metadata::extract_fb2_metadata,
+            mobi_metadata::extract_mobi_metadata,
             pdf_metadata::extract_pdf_metadata,
             storage::append_events,
             storage::commit_events,

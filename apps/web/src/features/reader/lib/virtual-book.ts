@@ -4,6 +4,7 @@
  * is exactly how virtual (plugin-served) books read like real ones: same
  * pagination, selection, CFI annotations, and progress model.
  */
+import { wrapSectionHtml } from "./section-document";
 
 export type VirtualBookContent = {
   title?: string;
@@ -11,43 +12,6 @@ export type VirtualBookContent = {
   language?: string;
   sections: { id?: string; title?: string; html: string }[];
 };
-
-const escapeHtml = (value: string) =>
-  value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-
-/**
- * Provider HTML is untrusted (feeds, remote articles): strip active content
- * before it reaches the reader iframe. Escape-interpolate everything else.
- */
-function sanitizeSectionHtml(html: string): string {
-  return html
-    .replace(/<script\b[\s\S]*?<\/script\s*>/gi, "")
-    .replace(/<(iframe|object|embed|form)\b[\s\S]*?<\/\1\s*>/gi, "")
-    .replace(/\son\w+\s*=\s*"[^"]*"/gi, "")
-    .replace(/\son\w+\s*=\s*'[^']*'/gi, "")
-    .replace(/\son\w+\s*=\s*[^\s>]+/gi, "")
-    .replace(/(href|src)\s*=\s*(["']?)\s*javascript:[^"'\s>]*\2/gi, "");
-}
-
-function wrapSectionHtml(html: string, title: string | undefined, language: string): string {
-  const lang = /^[A-Za-z-]{2,35}$/.test(language) ? language : "en";
-  // The document-level CSP is the hard guarantee: with no script-src and
-  // default-src 'none', no script executes in the section iframe even if the
-  // regex strip above is bypassed. Inline styles stay allowed (foliate
-  // injects the reader's styles as <style> elements); images may load.
-  const csp =
-    "default-src 'none'; img-src data: https: http:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'";
-  return `<!DOCTYPE html>
-<html lang="${lang}">
-<head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${csp}">${title ? `<title>${escapeHtml(title)}</title>` : ""}</head>
-<body>${title ? `<h2>${escapeHtml(title)}</h2>` : ""}${sanitizeSectionHtml(html)}</body>
-</html>`;
-}
 
 export function buildVirtualFoliateBook(content: VirtualBookContent): unknown {
   const language = content.language ?? "en";

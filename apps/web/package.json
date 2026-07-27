@@ -30,6 +30,7 @@
     "i18next": "^26.3.4",
     "i18next-resources-to-backend": "^1.2.1",
     "jotai": "^2.18.0",
+    "libarchive.js": "^2.0.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-i18next": "^17.0.8",

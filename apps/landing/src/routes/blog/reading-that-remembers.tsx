@@ -72,8 +72,7 @@ export const Route = createFileRoute("/blog/reading-that-remembers")({
         AZW3, FB2, and PDF all open in the same reader with the same
         selection, annotation, and progress model. Nothing is converted —
         the file you import is the file you keep. DRM-locked files are the one
-        thing we cannot open, and the app says so plainly instead of
-        pretending.
+        thing we cannot open.
       </p>
 
       <h2>Yours, on your machine</h2>

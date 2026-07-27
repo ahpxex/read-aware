@@ -54,7 +54,7 @@ export const Route = createFileRoute("/zh/blog/reading-that-remembers")({
       <p>
         产品里平凡的那一半也必须做对。EPUB、MOBI、AZW3、FB2 和 PDF
         都在同一个阅读器里打开，共用同一套选区、批注和进度模型。没有任何格式转换——你导入的文件就是你保留的文件。DRM
-        加锁的文件是我们唯一打不开的东西，应用会坦白地告诉你，而不是装作可以。
+        加锁的文件是我们唯一打不开的东西。
       </p>
 
       <h2>属于你，在你的机器上</h2>

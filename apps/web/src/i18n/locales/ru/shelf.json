@@ -138,6 +138,6 @@
   },
   "errors": {
     "generic": "Что-то пошло не так при обновлении библиотеки.",
-    "unsupportedFormat": "Неподдерживаемый тип файла: {{name}}. Поддерживаемые форматы: EPUB, MOBI, AZW3, FB2, PDF."
+    "unsupportedFormat": "Неподдерживаемый тип файла: {{name}}. Поддерживаемые форматы: EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, PDF."
   }
 }

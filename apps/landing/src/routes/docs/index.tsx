@@ -22,8 +22,8 @@ function DocsOverview() {
       <h1>Documentation</h1>
       <p className="lead">
         ReadAware is an AI-native reading app: one reader for EPUB, MOBI, AZW3,
-        FB2, and PDF that builds memory across your books, highlights, and
-        conversations. It is free, local-first, and runs on your own AI key.
+        FB2, CBZ, CBR, TXT, HTML, and PDF that builds memory across your books,
+        highlights, and conversations. It is free, local-first, and runs on your own AI key.
       </p>
 
       <h2>Start here</h2>

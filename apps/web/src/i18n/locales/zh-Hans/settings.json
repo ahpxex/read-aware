@@ -33,7 +33,7 @@
       },
       "fileAssociations": {
         "title": "文件关联",
-        "description": "使用 ReadAware 打开 EPUB、MOBI、AZW3、FB2 和 PDF 文件。"
+        "description": "用 ReadAware 打开 EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML 和 PDF 文件。"
       },
       "autoUpdate": {
         "title": "自动检查更新",
@@ -317,7 +317,7 @@
     },
     "engine": {
       "title": "阅读引擎",
-      "description": "每一种格式——EPUB、MOBI、AZW3、FB2、PDF——都通过同一个内置引擎渲染。"
+      "description": "所有格式 —— EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML、PDF —— 都在同一个阅读器里打开，共用同一套选区、批注与进度模型。"
     },
     "foliate": {
       "description": "ReadAware 所基于的开源阅读引擎。"

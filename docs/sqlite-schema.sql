@@ -259,7 +259,7 @@ CREATE TABLE books ( -- [projection] 书籍读模型；由 book.imported/book.me
   id TEXT NOT NULL PRIMARY KEY, -- 书籍 ID，对应当前 LibraryBook.id；所有进度、标注、对话、记忆都通过它关联到一本书。
   title TEXT NOT NULL, -- 书名；导入时从文件 metadata 或文件名推断，用户未来编辑后由 book.metadataEdited 更新。
   author TEXT NOT NULL DEFAULT 'Unknown author', -- 作者；当前 UI 用它排序、分组和展示，没有 metadata 时使用 Unknown author。
-  format TEXT NOT NULL, -- 原始文件格式：epub、mobi、azw3、fb2 或 pdf；foliate-js 根据它选择 loader。
+  format TEXT NOT NULL, -- 原始文件格式：epub、mobi、azw3、fb2、cbz、cbr、txt、html 或 pdf；据它选择 loader（前六种走 foliate-js，txt/html 与 cbr 由应用侧 loader 组装）。
   file_name TEXT NOT NULL, -- 用户导入时的原始文件名；reader 重新构造 File 对象和错误提示时需要。来自 book.imported.fileName。
   mime_type TEXT, -- 导入文件的 MIME 类型；打开 reader 或导出 manifest 时用于还原文件信息。
   file_size INTEGER NOT NULL, -- 原始文件字节数；用于重复导入检测、存储统计和导出 manifest。来自 book.imported.fileSize。
@@ -622,7 +622,7 @@ CREATE TABLE import_jobs ( -- [device-local] 可选的导入流水表；让大�
   id TEXT NOT NULL PRIMARY KEY, -- 导入任务 ID；一次多文件导入中的每个文件可独立一条。
   file_name TEXT NOT NULL, -- 用户选择的源文件名；导入失败时用于错误提示。
   file_size INTEGER, -- 用户选择的源文件大小；用于重复检测和诊断。
-  detected_format TEXT, -- detectBookFormat 得出的格式：epub、mobi、azw3、fb2 或 pdf。
+  detected_format TEXT, -- detectBookFormat 得出的格式：epub、mobi、azw3、fb2、cbz、cbr、txt、html 或 pdf。
   state TEXT NOT NULL DEFAULT 'pending', -- 导入状态：pending、reading_file、extracting_metadata、done、duplicate、failed。
   book_id TEXT REFERENCES books(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED, -- 导入成功或判定重复时关联的 book ID；book 被删时置空，不阻塞删除。
   duplicate_of_book_id TEXT REFERENCES books(id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED, -- 如果判定为重复导入，记录已存在的 book ID；同样在 book 被删时置空。

@@ -33,7 +33,7 @@
       },
       "fileAssociations": {
         "title": "Associations de fichiers",
-        "description": "Ouvrir les fichiers EPUB, MOBI, AZW3, FB2 et PDF avec ReadAware."
+        "description": "Ouvrir les fichiers EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML et PDF avec ReadAware."
       },
       "autoUpdate": {
         "title": "Rechercher automatiquement les mises à jour",
@@ -325,7 +325,7 @@
     },
     "engine": {
       "title": "Moteur de lecture",
-      "description": "Chaque format — EPUB, MOBI, AZW3, FB2, PDF — s’affiche via un seul moteur intégré."
+      "description": "Chaque format — EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, PDF — s’ouvre dans un même lecteur, avec le même modèle de sélection, d’annotation et de progression."
     },
     "foliate": {
       "description": "Le moteur de lecture open source sur lequel ReadAware est bâti."

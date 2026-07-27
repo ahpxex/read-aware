@@ -21,7 +21,7 @@ function DocsOverview() {
     <article className="doc-prose">
       <h1>ドキュメント</h1>
       <p className="lead">
-        ReadAwareはAIネイティブな読書アプリです。EPUB、MOBI、AZW3、FB2、PDFを1つのリーダーで読み、本・ハイライト・会話をまたいでメモリを育てていきます。無料でローカルファースト、AIはお手持ちのAPIキーで動きます。
+        ReadAwareはAIネイティブな読書アプリです。EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML、PDFを1つのリーダーで読み、本・ハイライト・会話をまたいでメモリを育てていきます。無料でローカルファースト、AIはお手持ちのAPIキーで動きます。
       </p>
 
       <h2>まずはここから</h2>

@@ -15,7 +15,7 @@ const SHELF_SCREENSHOT_URL = "/screenshots/shelf.webp?v=b2e29b2";
 const NOTES: { title: string; body: string }[] = [
   {
     title: "One engine, every format",
-    body: "EPUB, MOBI, AZW3, FB2, and PDF open in the same reader, with the same selection, highlights, and progress. Nothing is converted; the original file is what you keep.",
+    body: "EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, and PDF open in the same reader, with the same selection, highlights, and progress. Nothing is converted; the original file is what you keep.",
   },
   {
     title: "Memory, not transcripts",

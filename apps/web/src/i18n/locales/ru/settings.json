@@ -33,7 +33,7 @@
       },
       "fileAssociations": {
         "title": "Ассоциации файлов",
-        "description": "Открывать файлы EPUB, MOBI, AZW3, FB2 и PDF в ReadAware."
+        "description": "Открывать файлы EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML и PDF в ReadAware."
       },
       "autoUpdate": {
         "title": "Автоматически проверять обновления",
@@ -329,7 +329,7 @@
     },
     "engine": {
       "title": "Движок чтения",
-      "description": "Каждый формат — EPUB, MOBI, AZW3, FB2, PDF — отображается через один встроенный движок."
+      "description": "Каждый формат — EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, PDF — открывается в одной читалке с общей моделью выделения, заметок и прогресса."
     },
     "foliate": {
       "description": "Читальный движок с открытым исходным кодом, на котором построен ReadAware."

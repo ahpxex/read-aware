@@ -27,14 +27,16 @@ function GettingStartedPage() {
       <h2>Add your books</h2>
       <p>
         Import files from the shelf. ReadAware reads{" "}
-        <strong>EPUB, MOBI, AZW3, FB2, and PDF</strong> directly — there is no
+        <strong>EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, and PDF</strong>{" "}
+        directly — there is no
         conversion step and no cloud upload. The file you import is the file
         you keep; highlights, notes, and your position attach to the original
         text.
       </p>
       <p>
-        DRM-protected files cannot be opened. If a book refuses to import, it
-        is almost always DRM; ReadAware will say so rather than fail silently.
+        DRM-protected files cannot be opened — a book bought from a store that
+        locks its files stays locked. If a book refuses to open and the format
+        is supported, that is almost always why.
       </p>
 
       <h2>Read</h2>

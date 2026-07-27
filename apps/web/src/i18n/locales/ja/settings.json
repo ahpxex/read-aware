@@ -33,7 +33,7 @@
       },
       "fileAssociations": {
         "title": "ファイルの関連付け",
-        "description": "EPUB、MOBI、AZW3、FB2、PDFファイルをReadAwareで開きます。"
+        "description": "EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML、PDFファイルをReadAwareで開きます。"
       },
       "autoUpdate": {
         "title": "アップデートを自動確認",
@@ -317,7 +317,7 @@
     },
     "engine": {
       "title": "読書エンジン",
-      "description": "すべての形式 — EPUB、MOBI、AZW3、FB2、PDF — は1つのベンダー化されたエンジンで表示されます。"
+      "description": "すべての形式 — EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML、PDF — が1つのリーダーで開き、選択・注釈・進捗のモデルを共有します。"
     },
     "foliate": {
       "description": "ReadAwareの基盤となっているオープンソースの読書エンジン。"

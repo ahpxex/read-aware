@@ -126,6 +126,6 @@
   },
   "errors": {
     "generic": "Something went wrong while updating your library.",
-    "unsupportedFormat": "Unsupported file type: {{name}}. Supported formats: EPUB, MOBI, AZW3, FB2, PDF."
+    "unsupportedFormat": "Unsupported file type: {{name}}. Supported formats: EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, PDF."
   }
 }

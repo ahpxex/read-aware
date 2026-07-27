@@ -120,6 +120,6 @@
   },
   "errors": {
     "generic": "更新书库时出错。",
-    "unsupportedFormat": "不支持的文件类型：{{name}}。支持的格式：EPUB、MOBI、AZW3、FB2、PDF。"
+    "unsupportedFormat": "不支持的文件类型：{{name}}。支持的格式：EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML、PDF。"
   }
 }

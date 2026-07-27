@@ -27,12 +27,11 @@ function GettingStartedPage() {
       <h2>添加书籍</h2>
       <p>
         在书架上导入文件。ReadAware 直接读取{" "}
-        <strong>EPUB、MOBI、AZW3、FB2 和 PDF</strong>
+        <strong>EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML 和 PDF</strong>
         ——没有转换步骤，也没有云端上传。你导入的文件就是你保留的文件；高亮、笔记和阅读位置都附着在原文之上。
       </p>
       <p>
-        受 DRM 保护的文件无法打开。如果一本书拒绝导入，几乎总是 DRM
-        的缘故；ReadAware 会明确告知，而不是悄无声息地失败。
+        受 DRM 保护的文件无法打开——从加密书店买来的书仍然是锁着的。如果格式在支持之列却打不开，几乎总是这个原因。
       </p>
 
       <h2>阅读</h2>

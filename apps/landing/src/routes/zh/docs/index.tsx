@@ -21,8 +21,8 @@ function DocsOverview() {
     <article className="doc-prose">
       <h1>文档</h1>
       <p className="lead">
-        ReadAware 是一款 AI 原生阅读应用：用同一个阅读器打开 EPUB、MOBI、AZW3、FB2
-        和 PDF，并在你的书籍、高亮与对话之间持续构建记忆。它免费、本地优先，使用你自己的
+        ReadAware 是一款 AI 原生阅读应用：用同一个阅读器打开
+        EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML 和 PDF，并在你的书籍、高亮与对话之间持续构建记忆。它免费、本地优先，使用你自己的
         AI 密钥。
       </p>
 

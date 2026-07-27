@@ -23,7 +23,6 @@ import {
   createFoliateView,
   createFootnoteHandler,
   isFixedLayout as isFixedLayoutBook,
-  makeFoliateBook,
   type FoliateFootnoteBeforeRenderDetail,
   type FoliateFootnoteHandler,
   type FoliateFootnoteRenderDetail,
@@ -42,6 +41,7 @@ import {
   applyNotes,
   registerHighlightDrawing,
 } from "../lib/highlight-renderer";
+import { parseBookFile } from "../lib/parse-book";
 import { ensureUsableToc } from "../lib/toc-synthesis";
 import { useTextUnitNavigator } from "../hooks/useTextUnitNavigator";
 import {
@@ -207,16 +207,29 @@ type ShellTapIntent = {
   startY: number;
 };
 
+/**
+ * A section iframe may be displayed scaled — the fixed-layout renderer fits a
+ * page to the window with a CSS transform. Rects measured inside the iframe are
+ * in its own unscaled coordinate space, so they need that factor applied before
+ * they mean anything in the host. Reflowable sections render 1:1 and get 1.
+ */
+function frameScaleOf(frameElement: Element, frameRect: DOMRect): number {
+  const layoutWidth = frameElement.clientWidth;
+  if (!layoutWidth || !frameRect.width) return 1;
+  return frameRect.width / layoutWidth;
+}
+
 /** The text the selection / annotation menus act on (copy, note, look up, AI). */
 function clampRectToViewport(
   rect: SelectionOverlayRect,
   frameRect: DOMRect,
   viewportRect: DOMRect,
+  scale = 1,
 ): SelectionOverlayRect | null {
-  const left = frameRect.left + rect.left - viewportRect.left;
-  const top = frameRect.top + rect.top - viewportRect.top;
-  const right = frameRect.left + rect.left + rect.width - viewportRect.left;
-  const bottom = frameRect.top + rect.top + rect.height - viewportRect.top;
+  const left = frameRect.left + rect.left * scale - viewportRect.left;
+  const top = frameRect.top + rect.top * scale - viewportRect.top;
+  const right = frameRect.left + (rect.left + rect.width) * scale - viewportRect.left;
+  const bottom = frameRect.top + (rect.top + rect.height) * scale - viewportRect.top;
 
   const clippedLeft = Math.max(0, left);
   const clippedTop = Math.max(0, top);
@@ -671,8 +684,9 @@ export function FoliateReaderView({
 
     const viewportRect = readerRoot.getBoundingClientRect();
     const frameRect = frameElement.getBoundingClientRect();
+    const frameScale = frameScaleOf(frameElement, frameRect);
     const rects = getSelectionOverlayRects(range)
-      .map((rect) => clampRectToViewport(rect, frameRect, viewportRect))
+      .map((rect) => clampRectToViewport(rect, frameRect, viewportRect, frameScale))
       .filter((rect): rect is SelectionOverlayRect => rect != null);
 
     if (rects.length === 0) {
@@ -1172,27 +1186,27 @@ export function FoliateReaderView({
 
     // Selection actions — only while text is selected (the selection menu is
     // up). Checked before the modifier guard so a rebinding may include
-    // modifiers. Mirrors the menu's gating: annotation actions need annotations
-    // allowed (not a fixed-layout PDF); Ask AI needs AI configured.
+    // modifiers. Fixed-layout books (PDF, comics) annotate too: a selection can
+    // only exist where the page has a text layer, and that is exactly where an
+    // annotation can be anchored. Ask AI still needs AI configured.
     const selectionActions = selectionActionsRef.current;
     if (selectionRef.current && selectionActions) {
-      const annotationsAllowed = !isFixedLayoutRef.current;
       if (chordMatchesEvent(resolveBinding("selection-copy", bindings), event)) {
         event.preventDefault();
         selectionActions.copy();
         return;
       }
-      if (annotationsAllowed && chordMatchesEvent(resolveBinding("selection-highlight", bindings), event)) {
+      if (chordMatchesEvent(resolveBinding("selection-highlight", bindings), event)) {
         event.preventDefault();
         selectionActions.highlight();
         return;
       }
-      if (annotationsAllowed && chordMatchesEvent(resolveBinding("selection-underline", bindings), event)) {
+      if (chordMatchesEvent(resolveBinding("selection-underline", bindings), event)) {
         event.preventDefault();
         selectionActions.underline();
         return;
       }
-      if (annotationsAllowed && chordMatchesEvent(resolveBinding("selection-add-note", bindings), event)) {
+      if (chordMatchesEvent(resolveBinding("selection-add-note", bindings), event)) {
         event.preventDefault();
         selectionActions.addNote();
         return;
@@ -1673,7 +1687,7 @@ export function FoliateReaderView({
           // Parse first, then repair a deficient nav BEFORE the view opens —
           // foliate builds its TOC progress (relocate's tocItem) from book.toc
           // at open time, so the synthesized map has to be in place already.
-          parsedBook = await makeFoliateBook(file);
+          parsedBook = await parseBookFile(file);
           if (cancelled) return;
           await ensureUsableToc(parsedBook);
         }
@@ -1820,8 +1834,9 @@ export function FoliateReaderView({
           }
           const viewportRect = readerRoot.getBoundingClientRect();
           const frameRect = frameElement.getBoundingClientRect();
+          const frameScale = frameScaleOf(frameElement, frameRect);
           const rects = getSelectionOverlayRects(range)
-            .map((rect) => clampRectToViewport(rect, frameRect, viewportRect))
+            .map((rect) => clampRectToViewport(rect, frameRect, viewportRect, frameScale))
             .filter((rect): rect is SelectionOverlayRect => rect != null);
           if (rects.length === 0) {
             setActiveAnnotation(null);
@@ -1963,7 +1978,6 @@ export function FoliateReaderView({
       />
       <ReaderSelectionMenu
         selection={selection}
-        allowAnnotations={!isFixedLayout}
         onCopy={() => copyTargetText(selectionRef.current?.text ?? "")}
         onHighlight={() => { void handleHighlight(); }}
         onUnderline={handleUnderline}

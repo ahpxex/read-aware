@@ -94,8 +94,24 @@ export class FixedLayout extends HTMLElement {
         const onZoom = srcOptionIsString ? null : srcOption?.onZoom
         const element = document.createElement('div')
         element.setAttribute('dir', 'ltr')
+        // READAWARE: annotation overlays are positioned against this box.
+        element.style.position = 'relative'
         const iframe = document.createElement('iframe')
         element.append(iframe)
+        // READAWARE: the overlayer's SVG lives in the host document, above the
+        // frame, and its geometry mirrors the iframe's exactly — ranges are
+        // measured inside the iframe, so the two boxes must share a coordinate
+        // space for a highlight to land on its own words.
+        const overlay = document.createElement('div')
+        Object.assign(overlay.style, {
+            position: 'absolute',
+            top: '0',
+            left: '0',
+            transformOrigin: 'top left',
+            pointerEvents: 'none',
+            display: 'none',
+        })
+        element.append(overlay)
         Object.assign(iframe.style, {
             border: '0',
             display: 'none',
@@ -107,7 +123,7 @@ export class FixedLayout extends HTMLElement {
         iframe.setAttribute('scrolling', 'no')
         iframe.setAttribute('part', 'filter')
         this.#root.append(element)
-        if (!src) return { blank: true, element, iframe }
+        if (!src) return { blank: true, element, iframe, overlay, index }
         return new Promise(resolve => {
             iframe.addEventListener('load', () => {
                 const doc = iframe.contentDocument
@@ -118,15 +134,37 @@ export class FixedLayout extends HTMLElement {
                 }, { passive: false })
                 this.dispatchEvent(new CustomEvent('load', { detail: { doc, index } }))
                 const { width, height } = getViewport(doc, this.defaultViewport)
-                resolve({
-                    element, iframe,
+                const frame = {
+                    element, iframe, overlay, index, doc,
                     width: parseFloat(width),
                     height: parseFloat(height),
                     onZoom,
-                })
+                }
+                // READAWARE: a lazily rendered page (PDF) has no text layer at
+                // load time — there would be nothing for a CFI to anchor to.
+                // Those frames get their overlayer once rendering finishes.
+                if (!onZoom) this.#createOverlayer(frame)
+                resolve(frame)
             }, { once: true })
             iframe.src = src
         })
+    }
+    // READAWARE: hand the view a fresh overlayer for this frame and mount its
+    // element. Re-callable: a re-rendered page needs its annotations rebuilt
+    // from their CFIs, because the ranges pointed into the discarded DOM.
+    #createOverlayer(frame) {
+        if (!frame?.doc) return
+        this.dispatchEvent(new CustomEvent('create-overlayer', {
+            detail: {
+                doc: frame.doc,
+                index: frame.index,
+                attach: overlayer => {
+                    frame.overlayer = overlayer
+                    frame.overlay.replaceChildren(overlayer.element)
+                    frame.overlay.style.display = 'block'
+                },
+            },
+        }))
     }
     #render(side = this.#side) {
         if (!side) return
@@ -161,11 +199,20 @@ export class FixedLayout extends HTMLElement {
                 ) || 1
 
         const transform = frame => {
-            let { element, iframe, width, height, blank, onZoom } = frame
+            let { element, iframe, overlay, width, height, blank, onZoom } = frame
             if (!iframe) return
-            if (onZoom) {
+            // READAWARE: re-render only when the scale actually changed. A
+            // ResizeObserver tick that leaves the scale alone would otherwise
+            // redraw the whole page and rebuild its overlayer for nothing.
+            if (onZoom && frame.renderedScale !== scale) {
+                frame.renderedScale = scale
                 onZoom({ doc: frame.iframe.contentDocument, scale })
-                    .then(() => this.dispatchEvent(new Event('rendered')))
+                    .then(() => {
+                        this.dispatchEvent(new Event('rendered'))
+                        // The render rebuilt the text layer, so the overlayer's
+                        // ranges are detached — start it over.
+                        this.#createOverlayer(frame)
+                    })
                     .catch(error => console.error(error))
             }
             const iframeScale = onZoom ? scale : 1
@@ -184,6 +231,17 @@ export class FixedLayout extends HTMLElement {
                 flexShrink: '0',
                 marginBlock: this.scrolled ? '0' : 'auto',
             })
+            // READAWARE: keep the overlay box in lock-step with the iframe.
+            if (overlay) {
+                Object.assign(overlay.style, {
+                    width: `${(width ?? blankWidth) * iframeScale}px`,
+                    height: `${(height ?? blankHeight) * iframeScale}px`,
+                    transform: onZoom ? 'none' : `scale(${scale})`,
+                })
+                // A re-rendered frame rebuilds its overlayer above; the others
+                // keep their ranges and only need the new geometry drawn.
+                if (!onZoom) frame.overlayer?.redraw()
+            }
             if (portrait && frame !== target) {
                 element.style.display = 'none'
             }
@@ -383,11 +441,12 @@ export class FixedLayout extends HTMLElement {
             if (this.scrolled) this.scrollTop = Math.max(0, this.scrollHeight - this.clientHeight)
         }
     }
+    // READAWARE: report the frames themselves rather than raw iframes, so the
+    // view can find the section index and overlayer an annotation belongs to.
     getContents() {
-        return Array.from(this.#root.querySelectorAll('iframe'), frame => ({
-            doc: frame.contentDocument,
-            // TODO: index, overlayer
-        }))
+        return [this.#left, this.#right, this.#center]
+            .filter(frame => frame?.doc)
+            .map(({ doc, index, overlayer }) => ({ doc, index, overlayer }))
     }
     destroy() {
         this.#observer.unobserve(this)

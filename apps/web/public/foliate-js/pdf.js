@@ -110,7 +110,13 @@ const render = async (page, doc, zoom, onRendered) => {
     onRendered?.(canvas)
     doc.querySelector('#canvas').replaceChildren(doc.adoptNode(canvas))
 
+    // READAWARE: `TextLayer.render()` APPENDS. Every zoom/resize re-renders the
+    // page, so without clearing first the spans stack up — text selects twice
+    // over, and, worse, the DOM shape a stored CFI was measured against stops
+    // being reproducible. Rebuilding from empty keeps it deterministic.
     const container = doc.querySelector('.textLayer')
+    container.replaceChildren()
+    doc.querySelector('.annotationLayer').replaceChildren()
     const textLayer = new pdfjsLib.TextLayer({
         textContentSource: await page.streamTextContent(),
         container, viewport,

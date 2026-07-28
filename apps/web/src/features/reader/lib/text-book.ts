@@ -9,11 +9,18 @@
  */
 import { decodeTextBook } from "./decode-text";
 import { escapeHtml, wrapSectionHtml } from "./section-document";
-import { linesToParagraphs, splitTextIntoChapters } from "./text-chapters";
+import {
+  labelFromOpeningWords,
+  linesToParagraphs,
+  splitTextIntoChapters,
+} from "./text-chapters";
 
 type BuiltSection = {
   id: string;
+  /** The heading the text carried, rendered at the top of the section. */
   title?: string;
+  /** What the table of contents shows — falls back to the opening words. */
+  label?: string;
   html: string;
 };
 
@@ -26,6 +33,9 @@ export function buildPlainTextFoliateBook(bytes: Uint8Array, fileName: string): 
   const built: BuiltSection[] = chapters.map((chapter, index) => ({
     id: `text-${index}`,
     title: chapter.title,
+    // An untitled run (the text before the first heading, or a synthesized
+    // chunk) still deserves a readable TOC entry rather than a bare number.
+    label: chapter.title ?? labelFromOpeningWords(chapter.lines),
     html: linesToParagraphs(chapter.lines)
       .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
       .join(""),
@@ -138,7 +148,10 @@ function assembleBook(
     // A single untitled section means the book has no navigation worth
     // showing; `ensureUsableToc` would otherwise synthesize one per chunk.
     toc: sections
-      .map((section, index) => ({ label: section.title || `${index + 1}`, href: section.id }))
+      .map((section, index) => ({
+        label: section.label || section.title || `${index + 1}`,
+        href: section.id,
+      }))
       .filter(() => sections.length > 1 || Boolean(sections[0]!.title)),
     resolveHref: (href: string) => {
       const index = ids.indexOf(href.split("#")[0]!);

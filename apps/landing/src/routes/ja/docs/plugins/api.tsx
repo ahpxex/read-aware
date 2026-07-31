@@ -132,6 +132,17 @@ function PluginApiPage() {
                 <code>settings</code>の下に1つのオブジェクトとして保存します。
               </td>
             </tr>
+            <tr>
+              <td>
+                <code>themes</code>、<code>fonts</code>
+              </td>
+              <td>
+                任意の宣言的なテーマと同梱フォント（<code>ui:themes</code>
+                権限が必要）。
+                <a href="#themes-and-bundled-fonts">テーマと同梱フォント</a>
+                を参照してください。
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -139,9 +150,9 @@ function PluginApiPage() {
       <h2>ドメインモデル</h2>
       <p>
         データサーフェスは、アプリのドメインモデルの傍らで別途書き起こされたものではなく、ドメインモデルそのものから導出されています。各ドメイン
-        — <code>books</code>、<code>collections</code>、
-        <code>annotations</code>、<code>reading</code>、
-        <code>conversations</code> —は
+        — <code>shelf</code>
+        （蔵書・コレクション・読書統計を束ねる、ライブラリ管理の全体）、
+        <code>annotations</code>、<code>conversations</code> —は
         <code>ctx</code>上の名前空間で、次の3つを公開します。
       </p>
       <ul>
@@ -185,26 +196,25 @@ function PluginApiPage() {
           <tbody>
             <tr>
               <td>
-                <code>books:read</code>
+                <code>shelf:read</code>
               </td>
               <td>
-                <code>ctx.books</code> —本棚の本、本の目次と章テキスト。
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>books:write</code>
-              </td>
-              <td>
-                <code>ctx.books.write</code> —ファイルのインポート、メタデータの編集、スター、削除。加えてコンテンツプロバイダーと仮想ブック。
+                <code>ctx.shelf</code>
+                —本（目次と章テキストを含む）、コレクションとその所属、そして読書統計（
+                <code>stats.forBook</code> / <code>stats.list</code> /{" "}
+                <code>stats.overview</code>
+                。統計に書き込み面はありません。そのイベントはリーダーの活動を記録した事実であって、ユーザーのコマンドではないからです）。
               </td>
             </tr>
             <tr>
               <td>
-                <code>collections:read</code> / <code>collections:write</code>
+                <code>shelf:write</code>
               </td>
               <td>
-                <code>ctx.collections</code> —本棚のユーザー定義グループ。一覧と所属の読み取り。作成、名前変更、削除、本の割り当て。
+                <code>ctx.shelf.books.write</code>
+                —ファイルのインポート、メタデータの編集、スター、読了マーク、削除。加えてコンテンツプロバイダーと仮想ブック。
+                <code>ctx.shelf.collections.write</code>
+                —作成、名前変更、削除、本の割り当て。
               </td>
             </tr>
             <tr>
@@ -217,18 +227,20 @@ function PluginApiPage() {
             </tr>
             <tr>
               <td>
-                <code>reading:read</code>
-              </td>
-              <td>
-                <code>ctx.reading</code> —読書位置、ステータス、読書時間。設計上読み取り専用です。そのイベントはリーダーの活動を記録した事実であって、ユーザーのコマンドではないからです。
-              </td>
-            </tr>
-            <tr>
-              <td>
                 <code>conversations:read</code>
               </td>
               <td>
                 <code>ctx.conversations</code> —本ごとのAIスレッドとグローバルスレッド（読み取り専用）。
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code>ui:themes</code>
+              </td>
+              <td>
+                宣言的なマニフェストフィールド<code>themes</code> /{" "}
+                <code>fonts</code>
+                （後述）—アプリとリーダーのテーマ、および同梱フォント。権限を要する唯一のUIコントリビューションです。アプリ全体の見た目に対する影響力を持つため、インストール時の同意画面に必ず表示されます。
               </td>
             </tr>
             <tr>
@@ -244,7 +256,8 @@ function PluginApiPage() {
                 <code>service:network</code>
               </td>
               <td>
-                <code>ctx.network.fetch</code> — 外向きのHTTP。
+                <code>ctx.network.fetch</code>
+                —アプリのネイティブHTTPクライアント経由の外向きHTTP（CORSの制約はありません）。
               </td>
             </tr>
             <tr>
@@ -252,15 +265,10 @@ function PluginApiPage() {
                 <code>service:llm</code>
               </td>
               <td>
-                <code>ctx.llm.ask</code> —ユーザーが設定したアカウントでのワンショットのモデル呼び出し。スレッドもメモリもツールもありません。
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>service:dictionary</code>
-              </td>
-              <td>
-                <code>ctx.dictionary.lookUp</code> —アプリの辞書（リーダーとキャッシュを共有し、ユーザーのAIを使います）。
+                <code>ctx.llm.ask</code>
+                —ユーザーが設定したアカウントでのワンショットのモデル呼び出し。スレッドもメモリもツールもありません。
+                <code>schema</code>による構造化JSON出力と、<code>onText</code>
+                によるストリーミングに対応します。
               </td>
             </tr>
             <tr>
@@ -274,13 +282,19 @@ function PluginApiPage() {
           </tbody>
         </table>
       </div>
+      <p>
+        （<code>reader:modes</code>
+        —ホストが描画するガイド付き読書モード—は、この特権的な契約が固まるまで、当面は同梱の公式プラグイン専用です。）
+      </p>
 
       <h2>コントリビューション</h2>
 
       <h3>選択アクション</h3>
       <p>
-        リーダーの選択メニューと注釈メニューに入る項目です。ハンドラーは選択されたテキスト、そのCFI範囲、章、本を受け取ります。リーダー内でのアクションの結末は、静かに実行される（トーストを返す）か、ダイアログを開く（ビューを返す）かの2通りだけです。
+        リーダーの選択メニューと注釈メニューに入る項目です。ハンドラーは選択されたテキスト、そのCFI範囲、章、本を受け取ります。リーダーが復元できる場合は、<code>context</code>{" "}
+        に選択範囲の前後の文章も入ります。リーダー内でのアクションの結末は、静かに実行される（トーストを返す）か、ダイアログを開く（ビューを返す）かの2通りだけです。
         非同期アクションに <code>presentation: "dialog"</code> を指定すると、ホストは読み込み中のダイアログを即座に開き、<code>run</code> の完了後に同じリクエストへ結果を表示します。
+        辞書系のアクションは <code>role: "lookup"</code> を宣言できます。ホストは既存の「調べる」キーボードコマンドをそのプラグインアクションへルーティングし、組み込みの検索経路を二重に持ちません。
       </p>
       <pre>
         <code>{`ctx.ui.registerSelectionAction({
@@ -289,7 +303,7 @@ function PluginApiPage() {
   icon: "quotes",
   presentation: "dialog",
   run: (input) => {
-    // input: { text, cfiRange, chapterHref, book, source }
+    // input: { text, context?, cfiRange, chapterHref, book, source }
     return { toast: "Quote saved." };
   },
 });`}</code>
@@ -357,6 +371,78 @@ function PluginApiPage() {
 });`}</code>
       </pre>
 
+      <h3 id="themes-and-bundled-fonts">テーマと同梱フォント</h3>
+      <p>
+        <code>ui:themes</code>
+        があると、マニフェストは2つの独立したマウントポイント—アプリのクローム（外枠）と本のページ—それぞれに向けたテーマと、プラグインフォルダに同梱するフォントファイルを宣言できます。このコントリビューションは純粋なデータです。アプリがすべての値を検証し、CSSもすべてアプリ自身が生成します。ユーザーが「設定
+        → 外観」またはリーダーのページカラーでそのテーマを選ぶまで、何も適用されません。テーマ専用プラグインの
+        <code>main.js</code>は{" "}
+        <code>{"export default { activate() {} }"}</code>だけで済みます。
+      </p>
+      <pre>
+        <code>{`{
+  "permissions": ["ui:themes"],
+  "fonts": [
+    {
+      "id": "my-serif",
+      "family": "My Serif",
+      "kind": "serif",
+      "files": [{ "path": "assets/my-serif-400.woff2", "weight": 400 }]
+    }
+  ],
+  "themes": [
+    {
+      "id": "dusk",
+      "name": { "default": "Dusk", "translations": { "zh-Hans": "暮色" } },
+      "polarity": "dark",
+      "app": { "paper": "#14171e", "fg": "#e3e6ec" },
+      "reader": {
+        "palette": {
+          "bg": "#161a22", "text": "#ccd2dd",
+          "selection": "rgba(154, 162, 177, 0.28)",
+          "rule": "rgba(204, 210, 221, 0.18)",
+          "faint": "rgba(204, 210, 221, 0.07)",
+          "muted": "rgba(204, 210, 221, 0.55)"
+        },
+        "typography": { "fontFamily": "plugin:my-serif", "fontSize": "large" }
+      }
+    }
+  ]
+}`}</code>
+      </pre>
+      <ul>
+        <li>
+          <code>polarity</code>
+          —テーマがライトとダークのどちらとして読まれるか。
+          <code>color-scheme</code>
+          、テーマが指定しなかったアプリトークンの極性ごとの既定値、そしてテーマが有効な間リーダーの「自動」ページカラーがどう解決されるかを決めます。
+        </li>
+        <li>
+          <code>app</code>
+          —アプリの固定トークン語彙（キャンバス、テキストの階層、サーフェス、フィル、ボーダー。型定義の
+          <code>PluginAppThemeTokens</code>
+          を参照）への上書きです。指定しなかったトークンは、その極性自身の値を保ちます。
+        </li>
+        <li>
+          <code>reader</code>
+          —組み込みのページカラーと同じ6色パレット（6色すべて必須）に加え、任意のタイポグラフィプリセット。プリセットはユーザーがテーマを選んだ瞬間に一度だけ適用され、その後はすべて自由に調整できます。
+        </li>
+        <li>
+          <code>fonts</code> — <code>.woff2</code>/<code>.woff</code>/
+          <code>.ttf</code>/<code>.otf</code>
+          のフォントフェイスをプラグインフォルダから直接配信します。プラグインが有効な間、それぞれがリーダーのフォントピッカーに現れます。テーマは自分のフォントを
+          <code>plugin:&lt;fontId&gt;</code>
+          で参照します。マーケットプレイスのプラグインは、フォントファイルをレジストリエントリの
+          <code>files</code>に必ず載せてください。
+        </li>
+        <li>
+          色は厳格な文法で検証されます。プレーンな16進数、または
+          <code>rgb()</code>/<code>rgba()</code>/<code>hsl()</code>/
+          <code>hsla()</code>のみで、キーワード、<code>var()</code>、
+          <code>url()</code>は拒否されます。
+        </li>
+      </ul>
+
       <h2>ビュー</h2>
       <p>
         プラグインはホストコンポーネントのツリーを宣言し、視覚要素とコントロールはすべてアプリが描画します。JSX、HTML、CSS、className は渡せません。
@@ -414,17 +500,24 @@ function PluginApiPage() {
       </p>
       <ul>
         <li>
-          <code>ctx.books</code> — <code>list()</code>、<code>get(id)</code>、
-          <code>getToc(id)</code>、<code>getChapterText(id, index)</code>
+          <code>ctx.shelf.books</code> — <code>list()</code>、
+          <code>get(id)</code>、<code>getToc(id)</code>、
+          <code>getChapterText(id, index)</code>
           。write: <code>import</code>、<code>editMetadata</code>、
-          <code>setStarred</code>、<code>remove</code>
+          <code>setStarred</code>、<code>setFinished</code>、
+          <code>remove</code>
           、加えてコンテンツプロバイダー（後述）。
         </li>
         <li>
-          <code>ctx.collections</code> — <code>list()</code>、
+          <code>ctx.shelf.collections</code> — <code>list()</code>、
           <code>booksIn(id)</code>。write: <code>create</code>、
           <code>rename</code>、<code>remove</code>、
           <code>assignBooks(bookIds, collectionId | null)</code>。
+        </li>
+        <li>
+          <code>ctx.shelf.stats</code> — <code>forBook(bookId)</code>、
+          <code>list()</code>、<code>overview()</code>
+          （読書位置、ステータス、実読書時間。どのアクターに対しても読み取り専用です）。
         </li>
         <li>
           <code>ctx.annotations</code> —{" "}
@@ -433,10 +526,6 @@ function PluginApiPage() {
           <code>createHighlight</code>、<code>recolorHighlight</code>、
           <code>removeHighlight</code>、<code>createNote</code>、
           <code>updateNote</code>、<code>removeNote</code>。
-        </li>
-        <li>
-          <code>ctx.reading</code> — <code>getState(bookId)</code>、
-          <code>listStates()</code>、<code>getTime(bookId)</code>。
         </li>
         <li>
           <code>ctx.conversations</code> —{" "}
@@ -461,7 +550,7 @@ function PluginApiPage() {
         <code>{`ctx.annotations?.on("highlight.created", ({ payload, origin }) => {
   // payload: { highlightId, bookId, text, color?, … }
 });
-ctx.books?.on("book.removed", ({ payload }) => { /* { bookId } */ });`}</code>
+ctx.shelf?.on("book.removed", ({ payload }) => { /* { bookId } */ });`}</code>
       </pre>
       <p>
         <strong>セッションファクト</strong>
@@ -515,12 +604,12 @@ ctx.books?.on("book.removed", ({ payload }) => { /* { bookId } */ });`}</code>
 
       <h2>コンテンツプロバイダーと仮想ブック</h2>
       <p>
-        <code>books:write</code>
+        <code>shelf:write</code>
         があると、プラグインは本物の本を本棚に置けます。<code>import</code>
         はファイルのバイト列を受け取ります。コンテンツプロバイダーはファイルを完全に省略します。プロバイダーを登録し、それに紐づく仮想ブックを追加し、本が開かれたときにHTMLセクションを供給します。リーダーはほかの本と同じようにページ分割し、注釈を付け、進捗を記録します。本としてのRSSフィードは、まさにこの仕組みです。
       </p>
       <pre>
-        <code>{`ctx.books?.write?.registerContentProvider({
+        <code>{`ctx.shelf?.books.write?.registerContentProvider({
   id: "rss",
   async load(key) {
     const feed = await fetchFeed(key); // 自分のコード（ctx.network.fetch経由）
@@ -534,7 +623,7 @@ ctx.books?.on("book.removed", ({ payload }) => { /* { bookId } */ });`}</code>
   },
 });
 
-await ctx.books?.write?.addVirtualBook({
+await ctx.shelf?.books.write?.addVirtualBook({
   providerId: "rss",
   key: "https://example.com/feed.xml",
   title: "Example Weekly",
@@ -564,10 +653,20 @@ await ctx.books?.write?.addVirtualBook({
       <p>権限なしで、いつでも使えます。</p>
       <ul>
         <li>
-          <code>ctx.manifest</code>、<code>ctx.appVersion</code>。
+          <code>ctx.manifest</code>、<code>ctx.appVersion</code>、
+          <code>ctx.locale</code>
+          （アプリUIの現在のBCP-47ロケール。言語設定にライブで追随するので、使う時点で読んでください）。
         </li>
         <li>
           <code>ctx.ui.showToast(message)</code>。
+        </li>
+        <li>
+          <code>ctx.ui.exportFile({"{ filename, content, mimeType? }"})</code>
+          —生成したテキスト（CSV、JSON、Markdown）やバイナリのバイト列に対して、ホストの保存フローを開きます。
+        </li>
+        <li>
+          <code>ctx.secrets</code>
+          —プラグインごとに名前空間化された暗号化クレデンシャルストア（APIトークンなど）。SQLiteにもバックアップにも入らず、アンインストール後も保持されます。
         </li>
         <li>
           <code>ctx.session.on(…)</code> — 上記のセッションファクト。
@@ -580,7 +679,8 @@ await ctx.books?.write?.addVirtualBook({
 
       <h2>安定性</h2>
       <p>
-        これは契約v2で、アプリ0.3.0から提供されています。サーフェス全体をドメインモデルから導出するために行った、意図的な破壊的再構築です（v1のマニフェストは、読める形のエラーとともにインストールに失敗します）。ここから先、APIは追加によってのみ成長します。新しいドメイン、新しいイベント名、新しいブロック種という形です。ここに記載された内容への破壊的変更はバグとして扱います。最近の追加機能に依存する場合は
+        これは契約v2で、アプリ0.3.0から提供されています。サーフェス全体をドメインモデルから導出するために行った、意図的な破壊的再構築です（v1のマニフェストは、読める形のエラーとともにインストールに失敗します）。ここから先、APIは追加によってのみ成長します。新しいドメイン、新しいイベント名、新しいブロック種という形です。宣言的テーマ（<code>ui:themes</code>
+        ）がその最初の追加です。ここに記載された内容への破壊的変更はバグとして扱います。最近の追加機能に依存する場合は
         <code>minAppVersion</code>を宣言してください。
       </p>
     </article>

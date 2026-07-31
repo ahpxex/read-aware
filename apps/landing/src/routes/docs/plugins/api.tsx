@@ -136,6 +136,19 @@ function PluginApiPage() {
                 <code>settings</code>.
               </td>
             </tr>
+            <tr>
+              <td>
+                <code>themes</code>, <code>fonts</code>
+              </td>
+              <td>
+                Optional declarative themes and bundled fonts (requires{" "}
+                <code>ui:themes</code>) — see{" "}
+                <a href="#themes-and-bundled-fonts">
+                  Themes and bundled fonts
+                </a>
+                .
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -143,11 +156,10 @@ function PluginApiPage() {
       <h2>The domain model</h2>
       <p>
         The data surface is derived from the app's domain model rather than
-        authored beside it. Each domain — <code>books</code>,{" "}
-        <code>collections</code>, <code>annotations</code>,{" "}
-        <code>reading</code>, <code>conversations</code> — is a namespace on{" "}
-        <code>ctx</code>{" "}
-        exposing three things:
+        authored beside it. Each domain — <code>shelf</code> (the whole of
+        library management: books, collections, reading stats),{" "}
+        <code>annotations</code>, <code>conversations</code> — is a namespace
+        on <code>ctx</code> exposing three things:
       </p>
       <ul>
         <li>
@@ -195,29 +207,26 @@ function PluginApiPage() {
           <tbody>
             <tr>
               <td>
-                <code>books:read</code>
+                <code>shelf:read</code>
               </td>
               <td>
-                <code>ctx.books</code> — the shelf's books, a book's table of
-                contents and chapter text.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>books:write</code>
-              </td>
-              <td>
-                <code>ctx.books.write</code> — import files, edit metadata,
-                star, remove; content providers and virtual books.
+                <code>ctx.shelf</code> — books (incl. a book's table of
+                contents and chapter text), collections and membership, and
+                reading stats (<code>stats.forBook</code> /{" "}
+                <code>stats.list</code> / <code>stats.overview</code> — stats
+                have no write face: their events are recorded facts of reader
+                activity, not user commands).
               </td>
             </tr>
             <tr>
               <td>
-                <code>collections:read</code> / <code>collections:write</code>
+                <code>shelf:write</code>
               </td>
               <td>
-                <code>ctx.collections</code> — the shelf's user-defined groups:
-                list and membership; create, rename, remove, assign books.
+                <code>ctx.shelf.books.write</code> — import files, edit
+                metadata, star, mark finished, remove; content providers and
+                virtual books. <code>ctx.shelf.collections.write</code> —
+                create, rename, remove, assign books.
               </td>
             </tr>
             <tr>
@@ -232,21 +241,23 @@ function PluginApiPage() {
             </tr>
             <tr>
               <td>
-                <code>reading:read</code>
-              </td>
-              <td>
-                <code>ctx.reading</code> — positions, statuses, and reading
-                time. Read-only by design: its events are recorded facts of
-                reader activity, not user commands.
-              </td>
-            </tr>
-            <tr>
-              <td>
                 <code>conversations:read</code>
               </td>
               <td>
                 <code>ctx.conversations</code> — per-book AI threads and global
                 threads (read-only).
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code>ui:themes</code>
+              </td>
+              <td>
+                The declarative <code>themes</code> / <code>fonts</code>{" "}
+                manifest fields (below) — app and reader themes with bundled
+                fonts. The only UI contribution behind a permission: it has
+                visual authority over the whole app, so the install consent
+                must surface it.
               </td>
             </tr>
             <tr>
@@ -263,7 +274,8 @@ function PluginApiPage() {
                 <code>service:network</code>
               </td>
               <td>
-                <code>ctx.network.fetch</code> — outbound HTTP.
+                <code>ctx.network.fetch</code> — outbound HTTP through the
+                app's native client (no CORS constraints).
               </td>
             </tr>
             <tr>
@@ -272,19 +284,9 @@ function PluginApiPage() {
               </td>
               <td>
                 <code>ctx.llm.ask</code> — one-shot model calls on the user's
-                configured account. No thread, no memory, no tools.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>service:dictionary</code>
-              </td>
-              <td>
-                <code>ctx.dictionary.lookUp</code> — the app's dictionary
-                (shares its cache and target-language preference with the
-                reader; uses the user's AI). Pass <code>language</code> for an
-                explicit target, or use <code>getLanguage</code> /{" "}
-                <code>setLanguage</code> for the shared preference.
+                configured account. No thread, no memory, no tools; supports
+                structured JSON output via <code>schema</code> and streaming
+                via <code>onText</code>.
               </td>
             </tr>
             <tr>
@@ -298,6 +300,11 @@ function PluginApiPage() {
           </tbody>
         </table>
       </div>
+      <p>
+        (<code>reader:modes</code> — host-rendered guided reading modes — is
+        currently reserved for the bundled first-party plugins while that
+        privileged contract settles.)
+      </p>
 
       <h2>Contributions</h2>
 
@@ -392,6 +399,83 @@ function PluginApiPage() {
 });`}</code>
       </pre>
 
+      <h3 id="themes-and-bundled-fonts">Themes and bundled fonts</h3>
+      <p>
+        With <code>ui:themes</code>, the manifest may declare themes for two
+        independent mount points — the app chrome and the book page — plus
+        font files that ship inside the plugin folder. This contribution is
+        pure data: the app validates every value and generates all CSS itself,
+        and nothing applies until the user picks the theme in Settings →
+        Appearance or the reader's page-color control. A theme-only plugin's{" "}
+        <code>main.js</code> is just{" "}
+        <code>{"export default { activate() {} }"}</code>.
+      </p>
+      <pre>
+        <code>{`{
+  "permissions": ["ui:themes"],
+  "fonts": [
+    {
+      "id": "my-serif",
+      "family": "My Serif",
+      "kind": "serif",
+      "files": [{ "path": "assets/my-serif-400.woff2", "weight": 400 }]
+    }
+  ],
+  "themes": [
+    {
+      "id": "dusk",
+      "name": { "default": "Dusk", "translations": { "zh-Hans": "暮色" } },
+      "polarity": "dark",
+      "app": { "paper": "#14171e", "fg": "#e3e6ec" },
+      "reader": {
+        "palette": {
+          "bg": "#161a22", "text": "#ccd2dd",
+          "selection": "rgba(154, 162, 177, 0.28)",
+          "rule": "rgba(204, 210, 221, 0.18)",
+          "faint": "rgba(204, 210, 221, 0.07)",
+          "muted": "rgba(204, 210, 221, 0.55)"
+        },
+        "typography": { "fontFamily": "plugin:my-serif", "fontSize": "large" }
+      }
+    }
+  ]
+}`}</code>
+      </pre>
+      <ul>
+        <li>
+          <code>polarity</code> — whether the theme reads as light or dark.
+          Drives <code>color-scheme</code>, the polarity defaults for app
+          tokens the theme leaves unset, and how the reader's Auto page color
+          resolves while the theme is active.
+        </li>
+        <li>
+          <code>app</code> — overrides on the app's fixed token vocabulary
+          (canvas, text tiers, surfaces, fills, borders — see{" "}
+          <code>PluginAppThemeTokens</code> in the typings). Unset tokens keep
+          the polarity's own values.
+        </li>
+        <li>
+          <code>reader</code> — the same six-color palette the built-in page
+          colors use (all six required), plus an optional typography preset
+          applied once when the user selects the theme; the user can adjust
+          everything afterwards.
+        </li>
+        <li>
+          <code>fonts</code> — <code>.woff2</code>/<code>.woff</code>/
+          <code>.ttf</code>/<code>.otf</code> faces served straight from the
+          plugin folder; each appears in the reader's font picker while the
+          plugin is enabled. A theme references its own fonts as{" "}
+          <code>plugin:&lt;fontId&gt;</code>. Marketplace plugins must list
+          font files in the registry entry's <code>files</code>.
+        </li>
+        <li>
+          Colors are validated against strict grammars — plain hex or{" "}
+          <code>rgb()</code>/<code>rgba()</code>/<code>hsl()</code>/
+          <code>hsla()</code>; keywords, <code>var()</code>, and{" "}
+          <code>url()</code> are rejected.
+        </li>
+      </ul>
+
       <h2>Views</h2>
       <p>
         Plugins declare a tree of host components; the app renders every visual
@@ -471,17 +555,23 @@ function PluginApiPage() {
       </p>
       <ul>
         <li>
-          <code>ctx.books</code> — <code>list()</code>, <code>get(id)</code>,{" "}
-          <code>getToc(id)</code>, <code>getChapterText(id, index)</code>;
-          write: <code>import</code>, <code>editMetadata</code>,{" "}
-          <code>setStarred</code>, <code>remove</code>, plus content providers
-          (below).
+          <code>ctx.shelf.books</code> — <code>list()</code>,{" "}
+          <code>get(id)</code>, <code>getToc(id)</code>,{" "}
+          <code>getChapterText(id, index)</code>; write: <code>import</code>,{" "}
+          <code>editMetadata</code>, <code>setStarred</code>,{" "}
+          <code>setFinished</code>, <code>remove</code>, plus content
+          providers (below).
         </li>
         <li>
-          <code>ctx.collections</code> — <code>list()</code>,{" "}
+          <code>ctx.shelf.collections</code> — <code>list()</code>,{" "}
           <code>booksIn(id)</code>; write: <code>create</code>,{" "}
           <code>rename</code>, <code>remove</code>,{" "}
           <code>assignBooks(bookIds, collectionId | null)</code>.
+        </li>
+        <li>
+          <code>ctx.shelf.stats</code> — <code>forBook(bookId)</code>,{" "}
+          <code>list()</code>, <code>overview()</code> (positions, statuses,
+          and active reading time; read-only for every actor).
         </li>
         <li>
           <code>ctx.annotations</code> —{" "}
@@ -490,10 +580,6 @@ function PluginApiPage() {
           <code>createHighlight</code>, <code>recolorHighlight</code>,{" "}
           <code>removeHighlight</code>, <code>createNote</code>,{" "}
           <code>updateNote</code>, <code>removeNote</code>.
-        </li>
-        <li>
-          <code>ctx.reading</code> — <code>getState(bookId)</code>,{" "}
-          <code>listStates()</code>, <code>getTime(bookId)</code>.
         </li>
         <li>
           <code>ctx.conversations</code> — <code>getBookThread(bookId)</code>,{" "}
@@ -518,7 +604,7 @@ function PluginApiPage() {
         <code>{`ctx.annotations?.on("highlight.created", ({ payload, origin }) => {
   // payload: { highlightId, bookId, text, color?, … }
 });
-ctx.books?.on("book.removed", ({ payload }) => { /* { bookId } */ });
+ctx.shelf?.on("book.removed", ({ payload }) => { /* { bookId } */ });
 `}</code>
       </pre>
       <p>
@@ -574,7 +660,7 @@ ctx.books?.on("book.removed", ({ payload }) => { /* { bookId } */ });
 
       <h2>Content providers and virtual books</h2>
       <p>
-        With <code>books:write</code>, a plugin can put real books on the
+        With <code>shelf:write</code>, a plugin can put real books on the
         shelf. <code>import</code> takes a file's bytes. Content providers
         skip the file entirely: register a provider, add virtual books bound to
         it, and serve HTML sections when the book is opened. The reader
@@ -582,7 +668,7 @@ ctx.books?.on("book.removed", ({ payload }) => { /* { bookId } */ });
         RSS feed as a book is exactly this.
       </p>
       <pre>
-        <code>{`ctx.books?.write?.registerContentProvider({
+        <code>{`ctx.shelf?.books.write?.registerContentProvider({
   id: "rss",
   async load(key) {
     const feed = await fetchFeed(key); // your code, via ctx.network.fetch
@@ -596,7 +682,7 @@ ctx.books?.on("book.removed", ({ payload }) => { /* { bookId } */ });
   },
 });
 
-await ctx.books?.write?.addVirtualBook({
+await ctx.shelf?.books.write?.addVirtualBook({
   providerId: "rss",
   key: "https://example.com/feed.xml",
   title: "Example Weekly",
@@ -626,15 +712,22 @@ await ctx.books?.write?.addVirtualBook({
       <p>Always available, no permission needed:</p>
       <ul>
         <li>
-          <code>ctx.manifest</code>, <code>ctx.appVersion</code>;
+          <code>ctx.manifest</code>, <code>ctx.appVersion</code>,{" "}
+          <code>ctx.locale</code> (the app UI's current BCP-47 locale — read
+          it at use time, it tracks the language setting live);
         </li>
         <li>
           <code>ctx.ui.showToast(message)</code>;
         </li>
         <li>
           <code>ctx.ui.exportFile({"{ filename, content, mimeType? }"})</code>{" "}
-          opens the host save flow for generated CSV, JSON, Markdown, or other
-          UTF-8 text;
+          opens the host save flow for generated text (CSV, JSON, Markdown) or
+          binary bytes;
+        </li>
+        <li>
+          <code>ctx.secrets</code> — encrypted credential storage, namespaced
+          per plugin (API tokens and similar); lives outside SQLite and
+          backups and survives uninstall;
         </li>
         <li>
           <code>ctx.session.on(…)</code> — the session facts above;
@@ -651,10 +744,11 @@ await ctx.books?.write?.addVirtualBook({
         This is contract v2, shipped in app 0.3.0 — a deliberate breaking
         rebuild that derived the whole surface from the domain model (v1
         manifests fail installation with a readable error). From here the API
-        grows additively: new domains, new event names, new block kinds.
-        Breaking changes to what is documented here are treated as bugs.
-        Declare <code>minAppVersion</code> for anything that depends on a
-        recent addition.
+        grows additively: new domains, new event names, new block kinds —
+        declarative themes (<code>ui:themes</code>) are the first such
+        addition. Breaking changes to what is documented here are treated as
+        bugs. Declare <code>minAppVersion</code> for anything that depends on
+        a recent addition.
       </p>
     </article>
   );

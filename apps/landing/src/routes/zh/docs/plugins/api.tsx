@@ -130,6 +130,15 @@ function PluginApiPage() {
                 <code>settings</code> 下。
               </td>
             </tr>
+            <tr>
+              <td>
+                <code>themes</code>、<code>fonts</code>
+              </td>
+              <td>
+                可选的声明式主题与自带字体（需要 <code>ui:themes</code>{" "}
+                权限）——见<a href="#themes-and-bundled-fonts">主题与自带字体</a>。
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -137,9 +146,8 @@ function PluginApiPage() {
       <h2>领域模型</h2>
       <p>
         数据表面派生自应用的领域模型，而不是在它旁边另行编写。每个领域——{" "}
-        <code>books</code>、<code>collections</code>、
-        <code>annotations</code>、<code>reading</code>、
-        <code>conversations</code>——都是{" "}
+        <code>shelf</code>（书库管理的全部：书目、分组与阅读统计）、
+        <code>annotations</code>、<code>conversations</code>——都是{" "}
         <code>ctx</code> 上的一个命名空间，暴露三样东西：
       </p>
       <ul>
@@ -185,29 +193,25 @@ function PluginApiPage() {
           <tbody>
             <tr>
               <td>
-                <code>books:read</code>
+                <code>shelf:read</code>
               </td>
               <td>
-                <code>ctx.books</code>
-                ——书架上的书、一本书的目录与章节文本。
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>books:write</code>
-              </td>
-              <td>
-                <code>ctx.books.write</code>
-                ——导入文件、编辑元数据、星标、移除；以及内容提供方与虚拟书籍。
+                <code>ctx.shelf</code>
+                ——书目（含一本书的目录与章节文本）、分组与归属，以及阅读统计（
+                <code>stats.forBook</code> / <code>stats.list</code> /{" "}
+                <code>stats.overview</code>
+                ——统计没有写入面：它的事件是阅读器活动被记录下来的事实，而非用户命令）。
               </td>
             </tr>
             <tr>
               <td>
-                <code>collections:read</code> / <code>collections:write</code>
+                <code>shelf:write</code>
               </td>
               <td>
-                <code>ctx.collections</code>
-                ——书架上用户自定义的分组：列表与归属；创建、重命名、移除、为书籍指派分组。
+                <code>ctx.shelf.books.write</code>
+                ——导入文件、编辑元数据、星标、标记读完、移除；以及内容提供方与虚拟书籍。
+                <code>ctx.shelf.collections.write</code>
+                ——创建、重命名、移除、为书籍指派分组。
               </td>
             </tr>
             <tr>
@@ -221,20 +225,21 @@ function PluginApiPage() {
             </tr>
             <tr>
               <td>
-                <code>reading:read</code>
-              </td>
-              <td>
-                <code>ctx.reading</code>
-                ——阅读位置、阅读状态与阅读时长。设计上即只读：它的事件是阅读器活动被记录下来的事实，而非用户命令。
-              </td>
-            </tr>
-            <tr>
-              <td>
                 <code>conversations:read</code>
               </td>
               <td>
                 <code>ctx.conversations</code>
                 ——每本书的 AI 线程与全局线程（只读）。
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code>ui:themes</code>
+              </td>
+              <td>
+                manifest 中声明式的 <code>themes</code> / <code>fonts</code>{" "}
+                字段（见下文）——应用与阅读页主题，可附带字体。它是唯一需要权限的
+                UI 贡献点：它对整个应用有视觉影响力，安装确认必须把它亮出来。
               </td>
             </tr>
             <tr>
@@ -250,7 +255,8 @@ function PluginApiPage() {
                 <code>service:network</code>
               </td>
               <td>
-                <code>ctx.network.fetch</code>——对外的 HTTP 请求。
+                <code>ctx.network.fetch</code>——对外的 HTTP
+                请求，走应用的原生客户端（没有 CORS 约束）。
               </td>
             </tr>
             <tr>
@@ -259,16 +265,9 @@ function PluginApiPage() {
               </td>
               <td>
                 <code>ctx.llm.ask</code>
-                ——使用用户配置的账号发起一次性模型调用。没有线程、没有记忆、没有工具。
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>service:dictionary</code>
-              </td>
-              <td>
-                <code>ctx.dictionary.lookUp</code>
-                ——应用的词典（与阅读器共享缓存；使用用户的 AI）。
+                ——使用用户配置的账号发起一次性模型调用。没有线程、没有记忆、没有工具；支持以{" "}
+                <code>schema</code> 输出结构化 JSON，或以 <code>onText</code>{" "}
+                流式接收文本。
               </td>
             </tr>
             <tr>
@@ -282,16 +281,23 @@ function PluginApiPage() {
           </tbody>
         </table>
       </div>
+      <p>
+        （<code>reader:modes</code>
+        ——宿主渲染的引导式阅读模式——在这份特权契约稳定下来之前，暂时仅限随应用内置的第一方插件使用。）
+      </p>
 
       <h2>贡献点</h2>
 
       <h3>选区动作</h3>
       <p>
         阅读器选区菜单与标注菜单中的条目。处理函数会收到选中的文本、它的 CFI
-        范围、所在章节和书籍。在阅读器内，一个动作要么静默执行（返回
+        范围、所在章节和书籍；当阅读器能够恢复时，<code>context</code>{" "}
+        还带有选区周围的上下文段落。在阅读器内，一个动作要么静默执行（返回
         toast），要么打开对话框（返回视图）——只有这两种结果。
         异步动作声明 <code>presentation: "dialog"</code> 后，宿主会立刻打开
         加载态对话框，并在 <code>run</code> 完成时把结果填入同一次请求。
+        词典类动作可以声明 <code>role: "lookup"</code>：宿主会把现有的
+        「查词」键盘命令路由到该插件动作，而不是维护第二条内置查词路径。
       </p>
       <pre>
         <code>{`ctx.ui.registerSelectionAction({
@@ -300,7 +306,7 @@ function PluginApiPage() {
   icon: "quotes",
   presentation: "dialog",
   run: (input) => {
-    // input: { text, cfiRange, chapterHref, book, source }
+    // input: { text, context?, cfiRange, chapterHref, book, source }
     return { toast: "Quote saved." };
   },
 });`}</code>
@@ -366,6 +372,76 @@ function PluginApiPage() {
   },
 });`}</code>
       </pre>
+
+      <h3 id="themes-and-bundled-fonts">主题与自带字体</h3>
+      <p>
+        声明 <code>ui:themes</code> 后，manifest
+        可以为两个相互独立的挂载点——应用界面与书页——声明主题，并附带随插件文件夹分发的字体文件。这类贡献是纯数据：应用校验每一个值并自行生成全部
+        CSS，且在用户于“设置 →
+        外观”或阅读器的页面颜色控件里选中之前，什么都不会生效。纯主题插件的{" "}
+        <code>main.js</code> 只需{" "}
+        <code>{"export default { activate() {} }"}</code>。
+      </p>
+      <pre>
+        <code>{`{
+  "permissions": ["ui:themes"],
+  "fonts": [
+    {
+      "id": "my-serif",
+      "family": "My Serif",
+      "kind": "serif",
+      "files": [{ "path": "assets/my-serif-400.woff2", "weight": 400 }]
+    }
+  ],
+  "themes": [
+    {
+      "id": "dusk",
+      "name": { "default": "Dusk", "translations": { "zh-Hans": "暮色" } },
+      "polarity": "dark",
+      "app": { "paper": "#14171e", "fg": "#e3e6ec" },
+      "reader": {
+        "palette": {
+          "bg": "#161a22", "text": "#ccd2dd",
+          "selection": "rgba(154, 162, 177, 0.28)",
+          "rule": "rgba(204, 210, 221, 0.18)",
+          "faint": "rgba(204, 210, 221, 0.07)",
+          "muted": "rgba(204, 210, 221, 0.55)"
+        },
+        "typography": { "fontFamily": "plugin:my-serif", "fontSize": "large" }
+      }
+    }
+  ]
+}`}</code>
+      </pre>
+      <ul>
+        <li>
+          <code>polarity</code>——主题读起来偏亮还是偏暗。它驱动{" "}
+          <code>color-scheme</code>、主题未覆写的应用 token
+          所继承的明暗默认值，以及主题生效期间阅读器“自动”页面颜色的解析。
+        </li>
+        <li>
+          <code>app</code>——对应用固定 token
+          词汇（画布、文字层级、表面、填充、边框——见类型声明中的{" "}
+          <code>PluginAppThemeTokens</code>）的覆写。未覆写的 token
+          保持对应明暗极性自己的值。
+        </li>
+        <li>
+          <code>reader</code>——与内置页面颜色同一套的六色调色板（六色缺一不可），外加一个可选的排版预设：在用户选中主题的那一刻一次性应用，之后用户可以随意调整。
+        </li>
+        <li>
+          <code>fonts</code>——<code>.woff2</code>/<code>.woff</code>/
+          <code>.ttf</code>/<code>.otf</code>{" "}
+          字型直接从插件文件夹提供服务；插件启用期间，每个字体都会出现在阅读器的字体选择器里。主题以{" "}
+          <code>plugin:&lt;fontId&gt;</code>{" "}
+          引用自己的字体。上架市场的插件必须把字体文件列进 registry 条目的{" "}
+          <code>files</code>。
+        </li>
+        <li>
+          颜色值按严格语法校验——纯 hex 或 <code>rgb()</code>/
+          <code>rgba()</code>/<code>hsl()</code>/<code>hsla()</code>
+          ；关键字、<code>var()</code> 与 <code>url()</code> 一律拒绝。
+        </li>
+      </ul>
 
       <h2>视图</h2>
       <p>
@@ -433,17 +509,23 @@ function PluginApiPage() {
       </p>
       <ul>
         <li>
-          <code>ctx.books</code>——<code>list()</code>、<code>get(id)</code>、
-          <code>getToc(id)</code>、<code>getChapterText(id, index)</code>
+          <code>ctx.shelf.books</code>——<code>list()</code>、
+          <code>get(id)</code>、<code>getToc(id)</code>、
+          <code>getChapterText(id, index)</code>
           ；写入：<code>import</code>、<code>editMetadata</code>、
-          <code>setStarred</code>、<code>remove</code>
-          ，外加内容提供方（见下文）。
+          <code>setStarred</code>、<code>setFinished</code>、
+          <code>remove</code>，外加内容提供方（见下文）。
         </li>
         <li>
-          <code>ctx.collections</code>——<code>list()</code>、
+          <code>ctx.shelf.collections</code>——<code>list()</code>、
           <code>booksIn(id)</code>；写入：<code>create</code>、
           <code>rename</code>、<code>remove</code>、
           <code>assignBooks(bookIds, collectionId | null)</code>。
+        </li>
+        <li>
+          <code>ctx.shelf.stats</code>——<code>forBook(bookId)</code>、
+          <code>list()</code>、<code>overview()</code>
+          （阅读位置、阅读状态与实际阅读时长；对任何行动者都只读）。
         </li>
         <li>
           <code>ctx.annotations</code>——{" "}
@@ -452,10 +534,6 @@ function PluginApiPage() {
           <code>createHighlight</code>、<code>recolorHighlight</code>、
           <code>removeHighlight</code>、<code>createNote</code>、
           <code>updateNote</code>、<code>removeNote</code>。
-        </li>
-        <li>
-          <code>ctx.reading</code>——<code>getState(bookId)</code>、
-          <code>listStates()</code>、<code>getTime(bookId)</code>。
         </li>
         <li>
           <code>ctx.conversations</code>——<code>getBookThread(bookId)</code>、
@@ -479,7 +557,7 @@ function PluginApiPage() {
         <code>{`ctx.annotations?.on("highlight.created", ({ payload, origin }) => {
   // payload: { highlightId, bookId, text, color?, … }
 });
-ctx.books?.on("book.removed", ({ payload }) => { /* { bookId } */ });`}</code>
+ctx.shelf?.on("book.removed", ({ payload }) => { /* { bookId } */ });`}</code>
       </pre>
       <p>
         <strong>会话事实</strong>
@@ -534,7 +612,7 @@ ctx.books?.on("book.removed", ({ payload }) => { /* { bookId } */ });`}</code>
 
       <h2>内容提供方与虚拟书籍</h2>
       <p>
-        声明 <code>books:write</code> 后，插件可以把真正的书放上书架。
+        声明 <code>shelf:write</code> 后，插件可以把真正的书放上书架。
         <code>import</code>{" "}
         接收文件字节。内容提供方则完全跳过文件：注册一个提供方，添加绑定到它的虚拟书籍，并在书被打开时提供
         HTML
@@ -542,7 +620,7 @@ ctx.books?.on("book.removed", ({ payload }) => { /* { bookId } */ });`}</code>
         订阅源当书读”正是这么实现的。
       </p>
       <pre>
-        <code>{`ctx.books?.write?.registerContentProvider({
+        <code>{`ctx.shelf?.books.write?.registerContentProvider({
   id: "rss",
   async load(key) {
     const feed = await fetchFeed(key); // 你的代码，经由 ctx.network.fetch
@@ -556,7 +634,7 @@ ctx.books?.on("book.removed", ({ payload }) => { /* { bookId } */ });`}</code>
   },
 });
 
-await ctx.books?.write?.addVirtualBook({
+await ctx.shelf?.books.write?.addVirtualBook({
   providerId: "rss",
   key: "https://example.com/feed.xml",
   title: "Example Weekly",
@@ -583,10 +661,20 @@ await ctx.books?.write?.addVirtualBook({
       <p>始终可用，无需任何权限：</p>
       <ul>
         <li>
-          <code>ctx.manifest</code>、<code>ctx.appVersion</code>；
+          <code>ctx.manifest</code>、<code>ctx.appVersion</code>、
+          <code>ctx.locale</code>（应用界面当前的 BCP-47
+          语言标签——用时再读，它随语言设置实时变化）；
         </li>
         <li>
           <code>ctx.ui.showToast(message)</code>；
+        </li>
+        <li>
+          <code>ctx.ui.exportFile({"{ filename, content, mimeType? }"})</code>
+          ——打开宿主的保存流程，导出生成的文本（CSV、JSON、Markdown）或二进制字节；
+        </li>
+        <li>
+          <code>ctx.secrets</code>——按插件命名空间隔离的加密凭据存储（API
+          令牌等）；存放在 SQLite 与备份之外，卸载后依然保留；
         </li>
         <li>
           <code>ctx.session.on(…)</code>——上文的会话事实；
@@ -603,9 +691,10 @@ await ctx.books?.write?.addVirtualBook({
         这是契约 v2，随应用 0.3.0
         发布——一次有意为之的破坏性重建，把整个插件表面从领域模型派生出来（v1
         的 manifest 会安装失败，并给出可读的错误信息）。自此 API
-        只做加法式增长：新的领域、新的事件名、新的区块类型。对本页已记载内容的破坏性变更会被当作
-        bug 处理。任何依赖较新增能力的插件，请声明{" "}
-        <code>minAppVersion</code>。
+        只做加法式增长：新的领域、新的事件名、新的区块类型——声明式主题（
+        <code>ui:themes</code>
+        ）就是第一个这样的新增。对本页已记载内容的破坏性变更会被当作 bug
+        处理。任何依赖较新增能力的插件，请声明 <code>minAppVersion</code>。
       </p>
     </article>
   );

@@ -417,7 +417,7 @@ export type SelectionActionInput = {
  */
 export type PluginSelectionAction = {
   id: string;
-  title: string;
+  title: PluginText;
   icon?: string;
   /** Optional host semantic used by the matching keyboard command. */
   role?: "lookup";
@@ -440,7 +440,7 @@ export type HeaderActionInput = {
  */
 export type PluginHeaderAction = {
   id: string;
-  title: string;
+  title: PluginText;
   icon?: string;
   surface: PluginHeaderSurface;
   /** Shelf only — the reader never allows full-page interruptions. */
@@ -458,6 +458,13 @@ export type PluginLocalizedText = {
   default: string;
   translations?: Record<string, string>;
 };
+
+/**
+ * User-visible copy a contribution carries: a plain string, or a localized
+ * bundle resolved against the app locale (exact tag, then base language,
+ * then `default`). Contribution titles and tool labels accept this shape.
+ */
+export type PluginText = string | PluginLocalizedText;
 
 /** One semantic step size declared by a text-unit reader mode. */
 export type PluginReaderTextUnit = {
@@ -558,7 +565,7 @@ export type PluginShortcut = {
 /** A command-palette entry. */
 export type PluginCommand = {
   id: string;
-  title: string;
+  title: PluginText;
   icon?: string;
   /** Extra text folded into palette matching. */
   keywords?: string;
@@ -580,7 +587,7 @@ export type PluginToolDefinition = {
   /** snake_case identifier, unique within the plugin. */
   name: string;
   /** Short human label shown in the chat's tool activity row. */
-  label?: string;
+  label?: PluginText;
   description: string;
   parameters?: Record<string, unknown>;
   /**
@@ -632,6 +639,13 @@ export type PluginDomainEvent<K extends DomainEventType = DomainEventType> = {
 export type DomainSubscribe<E extends DomainEventType> = <K extends E>(
   event: K,
   handler: (event: PluginDomainEvent<K>) => void,
+  options?: {
+    /**
+     * Skip events produced by this plugin's own writes (origin
+     * `plugin:<id>`). Default false — by default you hear your own echoes.
+     */
+    ignoreSelf?: boolean;
+  },
 ) => PluginDisposable;
 
 /** Everything library management emits — books, collections, reading facts. */
@@ -875,8 +889,11 @@ export type PluginStorage = {
 export type PluginExportFile = {
   /** Suggested basename shown by the host save dialog. */
   filename: string;
-  /** UTF-8 text content (CSV, JSON, Markdown, and similar formats). */
-  content: string;
+  /**
+   * UTF-8 text (CSV, JSON, Markdown, …) or raw bytes for binary formats
+   * (.apkg, images, EPUB, …).
+   */
+  content: string | Uint8Array | ArrayBuffer;
   mimeType?: string;
 };
 
@@ -917,6 +934,18 @@ export type PluginContext = {
   readonly locale: string;
   /** Namespaced key-value storage, persisted with the app's local data. */
   storage: PluginStorage;
+  /**
+   * Encrypted credential storage, namespaced per plugin — for API tokens and
+   * similar. Values live in the app's encrypted secret store: outside SQLite,
+   * outside backups, invisible to other plugins. Like the KV, they survive
+   * uninstall so a reinstall finds its credentials again. Async by design —
+   * read at use time, not at activate().
+   */
+  secrets: {
+    get(key: string): Promise<string | null>;
+    set(key: string, value: string): Promise<void>;
+    remove(key: string): Promise<void>;
+  };
   ui: {
     registerSelectionAction(action: PluginSelectionAction): PluginDisposable;
     registerHeaderAction(action: PluginHeaderAction): PluginDisposable;
@@ -968,6 +997,10 @@ export type PluginContext = {
    * runs structured mode: it instructs the model to answer with JSON only,
    * parses and validates the reply, retries once with the violation list, and
    * resolves with the parsed object — the plugin never sees raw model text.
+   *
+   * With `onText` the reply streams: the callback receives text deltas as
+   * they arrive and the promise still resolves with the full text. Streaming
+   * and `schema` are mutually exclusive.
    */
   llm?: {
     ask(input: {
@@ -975,6 +1008,8 @@ export type PluginContext = {
       system?: string;
       /** Model tier on the user's account; defaults to "fast". */
       model?: "fast" | "smart";
+      /** Streams text deltas as they arrive; the promise resolves the full text. */
+      onText?: (delta: string) => void;
     }): Promise<string>;
     ask(input: {
       prompt: string;

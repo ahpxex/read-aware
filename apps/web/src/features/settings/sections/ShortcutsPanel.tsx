@@ -6,7 +6,7 @@ import { cn } from "@read-aware/ui/cn";
 import { shortcutBindingsAtom } from "../../../state/ui";
 import { isAndroid } from "../../../platform/environment";
 import { useLocale, useTranslation } from "../../../i18n";
-import { resolvePluginText } from "../../plugins/lib/plugin-i18n";
+import { contributionText, resolvePluginText } from "../../plugins/lib/plugin-i18n";
 import { resolveReaderModeUnit } from "../../plugins/lib/reader-mode";
 import {
   pluginCommandsAtom,
@@ -124,7 +124,7 @@ export function ShortcutsPanel() {
   function shortcutLabel(id: ShortcutId | "close" | "reader-mode-volume-keys"): string {
     if (id.startsWith("plugin:")) {
       const command = pluginCommands.find((entry) => pluginShortcutId(entry.key) === id);
-      return command ? command.title : id;
+      return command ? contributionText(command.title) : id;
     }
     if (textUnitMode && defaultModeUnit) {
       if (id === "reader-mode-next-unit") {
@@ -275,7 +275,7 @@ export function ShortcutsPanel() {
               <SettingsRow
                 key={command.key}
                 borderless={index === 0}
-                title={command.title}
+                title={contributionText(command.title)}
                 description={
                   showConflict && conflict && !recording ? (
                     <span className="text-red-600 dark:text-red-400">
@@ -291,7 +291,7 @@ export function ShortcutsPanel() {
                   <span className="flex items-center gap-1.5">
                     <button
                       type="button"
-                      aria-label={t("shortcuts.rebind", { label: command.title })}
+                      aria-label={t("shortcuts.rebind", { label: contributionText(command.title) })}
                       onClick={() => {
                         if (recording) {
                           cancel();
@@ -325,7 +325,7 @@ export function ShortcutsPanel() {
                     </button>
                     {overridden && !recording && (
                       <IconButton
-                        label={t("shortcuts.reset", { label: command.title })}
+                        label={t("shortcuts.reset", { label: contributionText(command.title) })}
                         size="sm"
                         onClick={() => reset(id)}
                         icon={<ArrowCounterClockwise size={14} aria-hidden="true" />}

@@ -3,6 +3,7 @@ import { Caption, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useAtomValue } from "jotai";
 import { useTranslation } from "../../../i18n";
+import { contributionText } from "../../plugins/lib/plugin-i18n";
 import { pluginToolName } from "../../plugins/runtime/plugin-tools";
 import { pluginToolsAtom } from "../../plugins/state/plugin-store";
 import type { ChatToolPart } from "../lib/chat-types";
@@ -40,7 +41,10 @@ export function ChatToolStep({ part }: { part: ChatToolPart }) {
     : undefined;
   const known = part.tool as keyof typeof TOOL_LABEL_KEYS;
   const label =
-    (pluginTool && (pluginTool.label ?? `${pluginTool.pluginName} · ${pluginTool.name}`)) ||
+    (pluginTool &&
+      (pluginTool.label
+        ? contributionText(pluginTool.label)
+        : `${pluginTool.pluginName} · ${pluginTool.name}`)) ||
     (TOOL_LABEL_KEYS[known] ? t(TOOL_LABEL_KEYS[known]) : t("chat.tools.fallback"));
   const running = part.state === "running";
 

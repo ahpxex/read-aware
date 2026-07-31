@@ -27,6 +27,7 @@ import {
   pluginPlacementAtom,
 } from "../state/plugin-store";
 import { PluginViewRenderer } from "./PluginViewRenderer";
+import { contributionText } from "../lib/plugin-i18n";
 
 type PluginHeaderClusterProps = {
   surface: PluginHeaderSurface;
@@ -67,9 +68,9 @@ export function PluginHeaderCluster({
     <>
       {pinned.map((action) =>
         opensPage(action) ? (
-          <Tooltip key={action.key} content={action.title} side="bottom">
+          <Tooltip key={action.key} content={contributionText(action.title)} side="bottom">
             <IconButton
-              label={action.title}
+              label={contributionText(action.title)}
               size="sm"
               onClick={() => onOpenPage?.(action.key)}
               className={cn(
@@ -99,7 +100,7 @@ export function PluginHeaderCluster({
             </span>
           }
           items={overflow.map((action) => ({
-            label: action.title,
+            label: contributionText(action.title),
             icon: renderPluginIcon(action.icon, 15),
             onClick: () => {
               if (opensPage(action)) onOpenPage?.(action.key);
@@ -130,9 +131,9 @@ export function PluginHeaderItem({
 }) {
   if (action.surface === "shelf" && action.presentation === "page") {
     return (
-      <Tooltip content={action.title} side="bottom">
+      <Tooltip content={contributionText(action.title)} side="bottom">
         <IconButton
-          label={action.title}
+          label={contributionText(action.title)}
           size="sm"
           onClick={() => onOpenPage?.(action.key)}
           className={cn(
@@ -191,8 +192,8 @@ function PluginHeaderPopupButton({
       open={open}
       onOpenChange={setOpen}
       align="right"
-      triggerLabel={action.title}
-      triggerTooltip={action.title}
+      triggerLabel={contributionText(action.title)}
+      triggerTooltip={contributionText(action.title)}
       className={buttonClassName}
       trigger={
         <span className="flex h-8 w-8 items-center justify-center rounded-md text-fg-muted hover:text-fg">

@@ -33,6 +33,7 @@ import { ReaderNotesPopover } from "./ReaderNotesPopover";
 import { ReaderProgressScrubber } from "./ReaderProgressScrubber";
 import { ReaderResizeHandle } from "./ReaderResizeHandle";
 import { ReaderAppearanceMenu } from "./ReaderAppearanceMenu";
+import { contributionText } from "../../plugins/lib/plugin-i18n";
 
 type ReaderShellOverlayProps = {
   visible: boolean;
@@ -204,7 +205,7 @@ export function ReaderShellOverlay({
         if (!action) return null;
         return {
           id,
-          label: action.title,
+          label: contributionText(action.title),
           icon: renderPluginIcon(action.icon, 16),
           run: () =>
             void openHeaderActionDialog(action, {

@@ -293,3 +293,99 @@ pub fn serve_plugin_asset(
         .body(bytes)
         .unwrap()
 }
+
+// ─── Zip install ─────────────────────────────────────────────────────────────
+
+/// Find the archive's manifest: at the root, or exactly one folder deep
+/// (GitHub-style archives wrap everything in a single top directory). Returns
+/// the manifest text plus the entry-name prefix to strip when extracting.
+fn zip_manifest(path: &Path) -> Result<(String, String), String> {
+    use std::io::Read as _;
+    let file = fs::File::open(path).map_err(|e| format!("cannot open zip: {e}"))?;
+    let mut archive =
+        zip::ZipArchive::new(file).map_err(|e| format!("not a valid zip archive: {e}"))?;
+
+    let mut found: Option<String> = None;
+    for index in 0..archive.len() {
+        let entry = archive.by_index(index).map_err(|e| e.to_string())?;
+        let name = entry.name().replace('\\', "/");
+        if name == "manifest.json" {
+            found = Some(name);
+            break;
+        }
+        if name.ends_with("/manifest.json") && name.matches('/').count() == 1 {
+            if found.is_some() {
+                return Err("the zip contains more than one plugin folder".into());
+            }
+            found = Some(name);
+        }
+    }
+    let entry_name = found.ok_or_else(|| "manifest.json not found in the zip".to_string())?;
+    let prefix = entry_name.trim_end_matches("manifest.json").to_string();
+
+    let mut manifest = String::new();
+    archive
+        .by_name(&entry_name)
+        .map_err(|e| e.to_string())?
+        .read_to_string(&mut manifest)
+        .map_err(|e| e.to_string())?;
+    Ok((manifest, prefix))
+}
+
+/// Read a candidate zip's manifest WITHOUT extracting — consent first.
+#[tauri::command]
+pub fn plugins_read_zip_manifest(zip_path: String) -> Result<String, String> {
+    Ok(zip_manifest(&PathBuf::from(&zip_path))?.0)
+}
+
+/// Install a plugin from a zip archive. Same contract as `plugins_install`:
+/// id from the manifest, replace-in-place, plain files only (hidden entries,
+/// __MACOSX, and anything path-traversing is skipped).
+#[tauri::command]
+pub fn plugins_install_zip(app: tauri::AppHandle, zip_path: String) -> Result<PluginEntry, String> {
+    let path = PathBuf::from(&zip_path);
+    let (manifest, prefix) = zip_manifest(&path)?;
+    let parsed: serde_json::Value = serde_json::from_str(&manifest)
+        .map_err(|e| format!("manifest.json is not valid JSON: {e}"))?;
+    let id = parsed
+        .get("id")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "manifest.id is missing".to_string())?
+        .to_string();
+    if !valid_plugin_id(&id) {
+        return Err("manifest.id must be lowercase letters, digits, and hyphens".into());
+    }
+
+    let dest = plugins_dir(&app)?.join(&id);
+    if dest.exists() {
+        fs::remove_dir_all(&dest).map_err(|e| e.to_string())?;
+    }
+    fs::create_dir_all(&dest).map_err(|e| e.to_string())?;
+
+    let file = fs::File::open(&path).map_err(|e| e.to_string())?;
+    let mut archive = zip::ZipArchive::new(file).map_err(|e| e.to_string())?;
+    for index in 0..archive.len() {
+        let mut entry = archive.by_index(index).map_err(|e| e.to_string())?;
+        if entry.is_dir() || entry.enclosed_name().is_none() {
+            continue;
+        }
+        let name = entry.name().replace('\\', "/");
+        let Some(relative) = name.strip_prefix(prefix.as_str()) else {
+            continue;
+        };
+        if relative.is_empty()
+            || relative
+                .split('/')
+                .any(|part| part.is_empty() || part.starts_with('.') || part == "__MACOSX")
+        {
+            continue;
+        }
+        let target = dest.join(relative);
+        if let Some(parent) = target.parent() {
+            fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        }
+        let mut out = fs::File::create(&target).map_err(|e| e.to_string())?;
+        std::io::copy(&mut entry, &mut out).map_err(|e| e.to_string())?;
+    }
+    Ok(PluginEntry { id, manifest, builtin: false })
+}

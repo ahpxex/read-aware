@@ -27,6 +27,7 @@ import {
 import { PluginHeaderItem } from "../../plugins/components/PluginHeaderCluster";
 import { openHeaderActionDialog } from "../../plugins/lib/open-header-action";
 import { renderPluginIcon } from "../../plugins/lib/plugin-icons";
+import { contributionText } from "../../plugins/lib/plugin-i18n";
 import { headerActionsAtom } from "../../plugins/state/plugin-store";
 import { WindowCaptionControls } from "./WindowCaptionControls";
 
@@ -175,7 +176,7 @@ export function AppHeader({
         if (!action) return null;
         return {
           id,
-          label: action.title,
+          label: contributionText(action.title),
           icon: renderPluginIcon(action.icon, 16),
           run: () => {
             if (action.presentation === "page") onTopNavChange(`plugin:${action.key}`);
@@ -299,7 +300,7 @@ export function AppHeader({
               // open in the Dialog host (no anchor to speak of on phones).
               ...(onShelf
                 ? shelfPluginActions.map((action) => ({
-                    label: action.title,
+                    label: contributionText(action.title),
                     icon: renderPluginIcon(action.icon, 16),
                     onClick: () => {
                       if (action.presentation === "page") {

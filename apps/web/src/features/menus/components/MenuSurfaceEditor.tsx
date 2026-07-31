@@ -6,6 +6,7 @@
  * items placed in the overflow still render inline live (renderableLayout).
  */
 import { DotsThreeVertical } from "@phosphor-icons/react";
+import { contributionText } from "../../plugins/lib/plugin-i18n";
 import { useState, type ReactNode } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import { Button, Caption, Tooltip } from "@read-aware/ui";
@@ -55,7 +56,7 @@ export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
         )
   ).map((action) => ({
     id: pluginMenuId(action.key),
-    label: action.title,
+    label: contributionText(action.title),
     caption: action.pluginName,
     icon: renderPluginIcon(action.icon, 16),
     locked: false,

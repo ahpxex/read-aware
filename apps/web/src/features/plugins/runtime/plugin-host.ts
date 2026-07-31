@@ -28,6 +28,7 @@ import {
 import {
   installPluginFilesCmd,
   installPluginFromDir,
+  installPluginFromZip,
   listPluginEntries,
   pluginDocsClear,
   uninstallPluginFiles,
@@ -214,6 +215,11 @@ async function adoptDiskEntry(entry: PluginDiskEntry): Promise<InstalledPlugin> 
 /** Install (or replace) from a local folder picked by the user. */
 export function installPlugin(srcDir: string): Promise<InstalledPlugin> {
   return installPluginFromDir(srcDir).then(adoptDiskEntry);
+}
+
+/** Install (or replace) from a zip archive picked by the user. */
+export function installPluginZip(zipPath: string): Promise<InstalledPlugin> {
+  return installPluginFromZip(zipPath).then(adoptDiskEntry);
 }
 
 /** Install (or replace) from fetched file contents (the marketplace path). */

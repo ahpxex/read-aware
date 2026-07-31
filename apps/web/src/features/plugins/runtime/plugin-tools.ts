@@ -7,6 +7,7 @@
 import type { AgentTool, ReferencePayload, WordReference } from "@read-aware/agent";
 import type { RegisteredTool } from "../lib/plugin-types";
 import { getRegisteredPluginTools } from "../state/plugin-store";
+import { contributionText } from "../lib/plugin-i18n";
 
 /**
  * A card-carrying tool result (PluginToolWordCards in the contract): the
@@ -54,7 +55,7 @@ const EMPTY_PARAMETERS = { type: "object", properties: {}, additionalProperties:
 export function getPluginAgentTools(): AgentTool[] {
   return getRegisteredPluginTools().map((tool) => ({
     name: pluginToolName(tool),
-    label: tool.label ?? `${tool.pluginName} · ${tool.name}`,
+    label: tool.label ? contributionText(tool.label) : `${tool.pluginName} · ${tool.name}`,
     // Provenance stays visible to the model; plugins describe only behavior.
     description: `[Plugin: ${tool.pluginName}] ${tool.description}`,
     // pi passes the schema through to the provider without TypeBox runtime

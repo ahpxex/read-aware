@@ -27,6 +27,7 @@ import { PluginPageHost } from "./features/plugins/components/PluginPageHost";
 import { PluginToastBridge } from "./features/plugins/components/PluginToastBridge";
 import { usePluginCommandItems } from "./features/plugins/hooks/usePluginCommandItems";
 import { initializePlugins } from "./features/plugins/runtime/plugin-host";
+import { checkPluginUpdates } from "./features/plugins/runtime/plugin-updates";
 import { pluginReaderNavAtom } from "./features/plugins/state/reader-nav";
 
 // The shelf is the boot-critical surface; everything below is split out of its
@@ -97,6 +98,9 @@ function App() {
     dismissBootSplash();
     scheduleIdleWarmup();
     void initializePlugins();
+    // Off the boot path: a quiet daily look at the marketplace for updates.
+    const updateCheck = window.setTimeout(() => void checkPluginUpdates(), 10_000);
+    return () => window.clearTimeout(updateCheck);
   }, []);
 
   useGlobalShortcuts({

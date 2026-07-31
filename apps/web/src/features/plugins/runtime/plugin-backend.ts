@@ -21,6 +21,15 @@ export function readPluginManifestFromDir(srcDir: string): Promise<string> {
   return invoke<string>("plugins_read_manifest", { srcDir });
 }
 
+export function installPluginFromZip(zipPath: string): Promise<PluginDiskEntry> {
+  return invoke<PluginDiskEntry>("plugins_install_zip", { zipPath });
+}
+
+/** Raw manifest.json text inside a candidate zip — read before consent/extract. */
+export function readPluginManifestFromZip(zipPath: string): Promise<string> {
+  return invoke<string>("plugins_read_zip_manifest", { zipPath });
+}
+
 export type PluginFilePayload = { path: string; content: string };
 
 export function installPluginFilesCmd(

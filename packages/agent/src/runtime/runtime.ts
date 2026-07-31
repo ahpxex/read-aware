@@ -5,7 +5,7 @@
 import type { ThreadChunk } from "../chunks";
 import { runConsolidation, type ConsolidationReport } from "../memory/consolidation";
 import { createModelResolver, type LlmAccount, type RoleModels } from "../models/accounts";
-import { createCompleteFn, type CompleteFn } from "../models/complete";
+import { createCompleteFn, createStreamFn, type CompleteFn, type StreamFn } from "../models/complete";
 import { buildProviderRegistry } from "../models/registry";
 import type { RuntimeDeps } from "../ports";
 import { extractJsonObject, schemaViolations } from "../structured";
@@ -23,6 +23,7 @@ export class AgentRuntime {
   private readonly options: AgentRuntimeOptions;
   private readonly resolveModel: ReturnType<typeof createModelResolver>;
   private readonly completeFn: CompleteFn;
+  private readonly streamFn: StreamFn;
   private readonly threads = new Map<string, AgentThread>();
 
   constructor(options: AgentRuntimeOptions) {
@@ -30,6 +31,7 @@ export class AgentRuntime {
     const registry = buildProviderRegistry();
     this.resolveModel = createModelResolver(options.account, options.models, registry);
     this.completeFn = createCompleteFn(registry, options.account);
+    this.streamFn = createStreamFn(registry, options.account);
   }
 
   thread(scope: ThreadScope): AgentThread {
@@ -70,8 +72,16 @@ export class AgentRuntime {
    * 带 `schema` 时是结构化模式：指示模型只回 JSON、解析并对照 schema
    * 校验（structured.ts 的子集语义），首次失败携带违例清单重试一次，
    * 仍失败则抛出。返回的是已解析、已校验的对象。
+   *
+   * 带 `onText` 时流式回调文本增量（最终仍 resolve 完整文本）。流式与
+   * schema 互斥——结构化答案没有可读的中间态。
    */
-  async ask(input: { prompt: string; system?: string; model?: "fast" | "smart" }): Promise<string>;
+  async ask(input: {
+    prompt: string;
+    system?: string;
+    model?: "fast" | "smart";
+    onText?: (delta: string) => void;
+  }): Promise<string>;
   async ask(input: {
     prompt: string;
     system?: string;
@@ -83,12 +93,27 @@ export class AgentRuntime {
     system?: string;
     model?: "fast" | "smart";
     schema?: Record<string, unknown>;
+    onText?: (delta: string) => void;
   }): Promise<unknown> {
+    if (input.schema && input.onText) {
+      throw new Error("ask: schema and onText are mutually exclusive");
+    }
     const complete = async (system: string | undefined, prompt: string): Promise<string> => {
-      const message = await this.completeFn(this.resolveModel(input.model ?? "fast"), {
+      const model = this.resolveModel(input.model ?? "fast");
+      const context = {
         systemPrompt: system,
-        messages: [{ role: "user", content: prompt, timestamp: Date.now() }],
-      });
+        messages: [{ role: "user" as const, content: prompt, timestamp: Date.now() }],
+      };
+      let message;
+      if (input.onText) {
+        const stream = this.streamFn(model, context);
+        for await (const event of stream) {
+          if (event.type === "text_delta") input.onText(event.delta);
+        }
+        message = await stream.result();
+      } else {
+        message = await this.completeFn(model, context);
+      }
       // completeSimple 不 reject：失败 resolve 成 stopReason "error"/"aborted"。
       if (message.stopReason === "error" || message.stopReason === "aborted") {
         throw new Error(message.errorMessage ?? "ask failed");

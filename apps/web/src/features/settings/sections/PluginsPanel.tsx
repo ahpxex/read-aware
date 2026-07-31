@@ -16,9 +16,13 @@ import { parseManifestJson } from "../../plugins/lib/manifest";
 import { buildPluginSettingsView } from "../../plugins/lib/plugin-settings";
 import { matchesPluginQuery } from "../../plugins/lib/search";
 import { permissionLabelKey, type PluginPermission } from "../../plugins/lib/plugin-types";
-import { readPluginManifestFromDir } from "../../plugins/runtime/plugin-backend";
+import {
+  readPluginManifestFromDir,
+  readPluginManifestFromZip,
+} from "../../plugins/runtime/plugin-backend";
 import {
   installPlugin,
+  installPluginZip,
   setPluginEnabled,
   uninstallPlugin,
 } from "../../plugins/runtime/plugin-host";
@@ -54,6 +58,33 @@ export function PluginsPanel() {
         const manifest = parseManifestJson(await readPluginManifestFromDir(picked));
         if (!(await requestInstallConsent(manifest))) return;
         const plugin = await installPlugin(picked);
+        toast({
+          description: t("settings.installedToast", { name: plugin.manifest.name }),
+          variant: "success",
+        });
+      }
+    } catch (error) {
+      toast({
+        description: t("settings.installFailed", { message: errorMessage(error) }),
+        variant: "destructive",
+      });
+    } finally {
+      setInstalling(false);
+    }
+  }
+
+  async function handleInstallZip() {
+    setInstalling(true);
+    try {
+      const picked = await openFileDialog({
+        multiple: false,
+        filters: [{ name: "Plugin archive", extensions: ["zip"] }],
+      });
+      if (typeof picked === "string" && picked) {
+        // Consent before any extraction: read the manifest inside the zip.
+        const manifest = parseManifestJson(await readPluginManifestFromZip(picked));
+        if (!(await requestInstallConsent(manifest))) return;
+        const plugin = await installPluginZip(picked);
         toast({
           description: t("settings.installedToast", { name: plugin.manifest.name }),
           variant: "success",
@@ -205,14 +236,24 @@ export function PluginsPanel() {
         onActiveIndexChange={setActiveTab}
         trailing={
           activeTab === 0 ? (
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={!desktop || installing}
-              onClick={() => void handleInstall()}
-            >
-              {installing ? t("settings.installing") : t("settings.install")}
-            </Button>
+            <span className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={!desktop || installing}
+                onClick={() => void handleInstall()}
+              >
+                {installing ? t("settings.installing") : t("settings.install")}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={!desktop || installing}
+                onClick={() => void handleInstallZip()}
+              >
+                {t("settings.installZip")}
+              </Button>
+            </span>
           ) : (
             <Button
               size="sm"

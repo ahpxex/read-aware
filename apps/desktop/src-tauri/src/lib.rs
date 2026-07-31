@@ -55,11 +55,24 @@ async fn book_file_size(path: String) -> Result<u64, String> {
     .map_err(|err| format!("book_file_size task failed: {err}"))?
 }
 
-/// Write UTF-8 content to a path chosen by the user in the native save dialog.
+/// Write exported content to a path chosen by the user in the native save
+/// dialog. `base64: true` marks binary content that crossed the IPC encoded.
 #[tauri::command]
-async fn write_export_file(path: String, content: String) -> Result<(), String> {
+async fn write_export_file(
+    path: String,
+    content: String,
+    base64: Option<bool>,
+) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || {
-        std::fs::write(&path, content)
+        let bytes: Vec<u8> = if base64.unwrap_or(false) {
+            use base64::Engine as _;
+            base64::engine::general_purpose::STANDARD
+                .decode(content.as_bytes())
+                .map_err(|err| format!("invalid base64 export payload: {err}"))?
+        } else {
+            content.into_bytes()
+        };
+        std::fs::write(&path, bytes)
             .map_err(|err| format!("Failed to write exported file {path}: {err}"))
     })
     .await
@@ -881,6 +894,8 @@ pub fn run() {
             plugins::plugins_list,
             plugins::plugins_read_manifest,
             plugins::plugins_install,
+            plugins::plugins_install_zip,
+            plugins::plugins_read_zip_manifest,
             plugins::plugins_install_files,
             plugins::plugins_uninstall,
         ]);

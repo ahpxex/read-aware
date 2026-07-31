@@ -9,6 +9,7 @@ import { useAtomValue } from "jotai";
 import type { CommandItem } from "../../command/lib/build-commands";
 import { openHeaderActionDialog } from "../lib/open-header-action";
 import { renderPluginIcon } from "../lib/plugin-icons";
+import { contributionText } from "../lib/plugin-i18n";
 import { runPluginContribution } from "../lib/run-result";
 import { headerActionsAtom, pluginCommandsAtom } from "../state/plugin-store";
 
@@ -23,7 +24,7 @@ export function usePluginCommandItems(openPluginPage: (key: string) => void): Co
         id: `plugin-command-${command.key}`,
         kind: "action",
         group: "plugins",
-        title: command.title,
+        title: contributionText(command.title),
         subtitle: command.pluginName,
         keywords: command.keywords,
         icon: renderPluginIcon(command.icon, 16),
@@ -38,7 +39,7 @@ export function usePluginCommandItems(openPluginPage: (key: string) => void): Co
         id: `plugin-action-${action.key}`,
         kind: "action",
         group: "plugins",
-        title: action.title,
+        title: contributionText(action.title),
         subtitle: action.pluginName,
         icon: renderPluginIcon(action.icon, 16),
         perform: () => {

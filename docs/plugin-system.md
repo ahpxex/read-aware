@@ -107,7 +107,10 @@ export default {
 两个标签：市场读仓库的 `registry.json` 索引
 （raw.githubusercontent 优先，jsDelivr 镜像兜底），一键安装 = 前端
 拉取插件文本文件 → Rust `plugins_install_files` 落盘（严格路径白名单）
-→ 立即启用激活。安装前权限徽章先行可见。
+→ 立即启用激活。安装前权限徽章先行可见。与内置插件同 id 的条目显示
+Built-in、不可安装（宿主两层拒绝）。应用每日在空闲时静默对照一次
+registry，已装插件有新版则 toast 提醒（每版本只提醒一次），更新动作
+仍由用户在 Marketplace 页发起。
 
 ## 4. 数据 API 构造法与权限域
 
@@ -156,7 +159,10 @@ export default {
 manifest 声明，安装时逐条展示给用户，设置页里可整体启停插件。
 `storage`（命名空间 KV + **文档集合** `storage.collection(name)`：结构化
 插件私有数据，可带 bookId/anchor 出处索引、无书籍级联、随插件卸载清除）、
-UI 贡献、会话事实、应用语言（`ctx.locale`，随设置实时更新）、阅读器
+UI 贡献、会话事实、应用语言（`ctx.locale`，随设置实时更新）、
+**加密凭据存储**（`ctx.secrets`：按插件命名空间隔离的 token 仓，
+落在应用加密 secret store 里——不进 SQLite、不进备份、卸载后保留）、
+文件导出（`ui.exportFile`，文本或二进制皆可）、阅读器
 环境控制（`ctx.reader.openBook/goTo`）不算权限，
 所有插件默认拥有。
 
@@ -187,8 +193,8 @@ workspace 位于 `plugins/<id>/`。每个包以模块化 TypeScript 编写并产
 | `annotations:write` | `ctx.annotations.write`：高亮增删改色、笔记增改删（ask 仅 agent 可写） |
 | `conversations:read` | `ctx.conversations`：书内线程与全局线程（只读）+ 对话事件订阅 |
 | `agent:tools` | `ctx.agent.registerTool` —— 注册 agent 工具（§8） |
-| `service:network` | `ctx.network.fetch`（CSP `connect-src` 已含 `https:`，门控在 API 层；body 以二进制过沙盒边界） |
-| `service:llm` | `ctx.llm.ask` —— 用用户配置的模型做一次性调用（fast/smart 档，无线程无记忆无工具）。带 `schema` 时是**结构化模式**：宿主指示模型只回 JSON、解析并校验、失败携带违例重试一次，插件拿到的是已校验对象 |
+| `service:network` | `ctx.network.fetch` —— 走 Rust HTTP 客户端（tauri-plugin-http），**无 CORS 约束**；作用域在 capability 文件（https + localhost），门控在 API 层；body 以二进制过沙盒边界 |
+| `service:llm` | `ctx.llm.ask` —— 用用户配置的模型做一次性调用（fast/smart 档，无线程无记忆无工具）。带 `schema` 时是**结构化模式**（宿主校验 + 携违例重试一次，插件拿已校验对象）；带 `onText` 时**流式**回调文本增量。两者互斥 |
 | `service:clipboard` | `ctx.clipboard.writeText` |
 
 （曾有的 `service:dictionary` 已随词典引擎整体搬入 Dictionary 插件而

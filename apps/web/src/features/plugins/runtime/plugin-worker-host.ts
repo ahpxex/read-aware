@@ -193,6 +193,11 @@ export function startPluginWorker(
     number,
     { resolve: (value: unknown) => void; reject: (error: Error) => void }
   >();
+  /** A dead worker answers nothing — fail its in-flight calls, don't strand them. */
+  const failAllInvokes = (reason: string) => {
+    for (const pending of pendingInvokes.values()) pending.reject(new Error(reason));
+    pendingInvokes.clear();
+  };
   /** Call a function the plugin kept inside the Worker. */
   const invokeHandle = (handle: string, args: unknown[]): Promise<unknown> => {
     const id = nextInvokeId++;
@@ -269,6 +274,7 @@ export function startPluginWorker(
                 // outlive its uninstall by stalling here.
                 await new Promise((done) => setTimeout(done, 50));
                 worker.terminate();
+                failAllInvokes(`plugin "${manifest.id}" was deactivated`);
               },
             });
           }
@@ -279,6 +285,7 @@ export function startPluginWorker(
             settled = true;
             liveWorkers.delete(manifest.id);
             worker.terminate();
+            failAllInvokes(`plugin "${manifest.id}" failed to start`);
             reject(new Error(message.error));
           }
           return;

@@ -9,11 +9,17 @@
  * write implies read.
  */
 import { getDefaultStore } from "jotai";
+import { fetch as corsFreeFetch } from "@tauri-apps/plugin-http";
 import type { DomainEventType } from "@read-aware/core";
 import { DEFAULT_LOCALE, i18n, isAppLocale } from "../../../i18n";
 import { onAppEvent } from "../../../platform/app-events";
 import { exportTextFile } from "../../../platform/export-file";
 import { localKV } from "../../../platform/local-store";
+import {
+  deletePluginSecret,
+  getPluginSecret,
+  setPluginSecret,
+} from "../../../platform/secret-store";
 import { createDomainApi, type DomainEventSubscribe } from "../../../domain";
 import { getAgentRuntime } from "../../ai/agent/agent-runtime";
 import { openBookRequestAtom } from "../../ai/state/chat-intent";
@@ -65,6 +71,9 @@ function toPluginDocument(row: PluginDocumentRow) {
   };
 }
 
+/** Names for collections and secret keys: short, flat, no surprises. */
+const NAMESPACE_KEY = /^[a-z0-9][a-z0-9_-]{0,63}$/;
+
 const SESSION_EVENTS: readonly PluginSessionEventName[] = [
   "book-opened",
   "book-closed",
@@ -75,6 +84,12 @@ const SESSION_EVENTS: readonly PluginSessionEventName[] = [
 /** The app UI's current locale, normalized to a supported one. */
 export function currentAppLocale(): string {
   return i18n.language && isAppLocale(i18n.language) ? i18n.language : DEFAULT_LOCALE;
+}
+
+function requireSecretKey(key: string): void {
+  if (!NAMESPACE_KEY.test(String(key))) {
+    throw new Error(`invalid secret key: ${String(key)}`);
+  }
 }
 
 /** Sanitize a command's declared default shortcut; junk shapes become none. */
@@ -113,9 +128,25 @@ export function buildPluginContext(
   };
   const brand = { pluginId: manifest.id, pluginName: manifest.name };
 
-  /** Domain `on` returns a bare unsubscribe; plugins get a tracked disposable. */
+  /**
+   * Domain `on` returns a bare unsubscribe; plugins get a tracked disposable,
+   * plus the `ignoreSelf` option that mutes this plugin's own write echoes.
+   */
+  const selfOrigin = `plugin:${manifest.id}`;
   const trackedOn = <E extends DomainEventType>(on: DomainEventSubscribe<E>) =>
-    ((event: never, handler: never) => track({ dispose: on(event, handler) })) as never;
+    ((
+      event: never,
+      handler: (broadcast: { origin?: string }) => void,
+      options?: { ignoreSelf?: boolean },
+    ) => {
+      const wrapped =
+        options?.ignoreSelf === true
+          ? (broadcast: { origin?: string }) => {
+              if (broadcast.origin !== selfOrigin) handler(broadcast);
+            }
+          : handler;
+      return track({ dispose: on(event, wrapped as never) });
+    }) as never;
 
   const ctx: PluginContext = {
     manifest,
@@ -142,7 +173,7 @@ export function buildPluginContext(
       },
       collection: (name) => {
         const collection = String(name);
-        if (!/^[a-z0-9][a-z0-9_-]{0,63}$/.test(collection)) {
+        if (!NAMESPACE_KEY.test(collection)) {
           throw new Error(`invalid collection name: ${collection}`);
         }
         return {
@@ -165,6 +196,20 @@ export function buildPluginContext(
               })
             ).map(toPluginDocument) as never,
         };
+      },
+    },
+    secrets: {
+      get: (key) => {
+        requireSecretKey(key);
+        return getPluginSecret(manifest.id, key);
+      },
+      set: async (key, value) => {
+        requireSecretKey(key);
+        await setPluginSecret(manifest.id, key, String(value));
+      },
+      remove: async (key) => {
+        requireSecretKey(key);
+        await deletePluginSecret(manifest.id, key);
       },
     },
     ui: {
@@ -198,12 +243,14 @@ export function buildPluginContext(
         ),
       showToast: (message) => showPluginToast(String(message)),
       exportFile: (file) => {
-        if (!file || typeof file.filename !== "string" || typeof file.content !== "string") {
-          throw new Error("exportFile requires a filename and text content");
+        const content = file?.content;
+        const binary = content instanceof Uint8Array || content instanceof ArrayBuffer;
+        if (!file || typeof file.filename !== "string" || (typeof content !== "string" && !binary)) {
+          throw new Error("exportFile requires a filename and text or binary content");
         }
         return exportTextFile({
           filename: file.filename,
-          content: file.content,
+          content,
           mimeType: typeof file.mimeType === "string" ? file.mimeType : undefined,
         });
       },
@@ -400,7 +447,10 @@ export function buildPluginContext(
 
   if (permissions.has("service:network")) {
     ctx.network = {
-      fetch: (input, init) => globalThis.fetch(input, init),
+      // The Rust HTTP client (tauri-plugin-http), not webview fetch: plugin
+      // requests must reach hosts that never heard of CORS. Scope lives in
+      // the capability file (https + localhost), not in the webview CSP.
+      fetch: (input, init) => corsFreeFetch(input, init),
     };
   }
 
@@ -410,6 +460,7 @@ export function buildPluginContext(
       system?: string;
       model?: "fast" | "smart";
       schema?: Record<string, unknown>;
+      onText?: (delta: string) => void;
     }) => {
       const runtime = getAgentRuntime();
       if (!runtime) throw new Error("AI is not configured");
@@ -418,9 +469,13 @@ export function buildPluginContext(
         system: input.system,
         model: input.model === "smart" ? ("smart" as const) : ("fast" as const),
       };
-      return input.schema && typeof input.schema === "object"
-        ? runtime.ask({ ...base, schema: input.schema })
-        : runtime.ask(base);
+      if (input.schema && typeof input.schema === "object") {
+        return runtime.ask({ ...base, schema: input.schema });
+      }
+      return runtime.ask({
+        ...base,
+        onText: typeof input.onText === "function" ? input.onText : undefined,
+      });
     };
     ctx.llm = { ask } as PluginContext["llm"];
   }

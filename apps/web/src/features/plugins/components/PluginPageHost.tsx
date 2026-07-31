@@ -12,6 +12,7 @@ import { showPluginToast } from "../lib/plugin-toast";
 import type { PluginView } from "../lib/plugin-types";
 import { headerActionsAtom } from "../state/plugin-store";
 import { PluginViewRenderer } from "./PluginViewRenderer";
+import { contributionText } from "../lib/plugin-i18n";
 
 export const PLUGIN_NAV_PREFIX = "plugin:";
 
@@ -73,6 +74,7 @@ export function PluginPageHost({ navKey, onExit }: PluginPageHostProps) {
   };
 
   if (!action) return null;
+  const title = contributionText(action.title);
 
   return (
     <Stack
@@ -80,9 +82,9 @@ export function PluginPageHost({ navKey, onExit }: PluginPageHostProps) {
       className="mx-auto w-full max-w-5xl px-6 py-8 pb-[calc(2rem+var(--ra-safe-bottom))]"
     >
       {viewDepth <= 1 && (
-        <Stack gap="xs" className={action.pluginName === action.title ? "mb-4" : "mb-6"}>
-          <Heading as="h1">{action.title}</Heading>
-          {action.pluginName !== action.title && (
+        <Stack gap="xs" className={action.pluginName === title ? "mb-4" : "mb-6"}>
+          <Heading as="h1">{title}</Heading>
+          {action.pluginName !== title && (
             <Caption className="text-fg-subtle">{action.pluginName}</Caption>
           )}
         </Stack>

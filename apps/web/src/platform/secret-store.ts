@@ -82,3 +82,34 @@ export function deleteSecret(key: SecretKey): void {
     console.error(`[secrets] failed to delete "${key}"`, error);
   });
 }
+
+// ─── Plugin-scoped secrets ───────────────────────────────────────────────────
+//
+// Same encrypted store, namespaced per plugin (`plugin.<id>.<key>`), but
+// ASYNC and snapshot-free: plugin tokens are read at use time, not per
+// request on the hot path. Values live outside SQLite and outside backups,
+// and survive uninstall — a reinstall finds its credentials again, mirroring
+// how the plugin KV behaves.
+
+function pluginSecretKey(pluginId: string, key: string): string {
+  return `plugin.${pluginId}.${key}`;
+}
+
+export async function getPluginSecret(pluginId: string, key: string): Promise<string | null> {
+  if (!isTauri()) throw new Error("secrets require the desktop app");
+  return (await invoke<string | null>("secret_get", { key: pluginSecretKey(pluginId, key) })) ?? null;
+}
+
+export async function setPluginSecret(
+  pluginId: string,
+  key: string,
+  value: string,
+): Promise<void> {
+  if (!isTauri()) throw new Error("secrets require the desktop app");
+  await invoke("secret_set", { key: pluginSecretKey(pluginId, key), value });
+}
+
+export async function deletePluginSecret(pluginId: string, key: string): Promise<void> {
+  if (!isTauri()) throw new Error("secrets require the desktop app");
+  await invoke("secret_delete", { key: pluginSecretKey(pluginId, key) });
+}

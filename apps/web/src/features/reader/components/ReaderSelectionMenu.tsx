@@ -26,6 +26,7 @@ import type { SelectionActionInput } from "../../plugins/lib/plugin-types";
 import { selectionActionsAtom } from "../../plugins/state/plugin-store";
 import { useAnchoredMenuPosition } from "../hooks/useAnchoredMenuPosition";
 import type { ReaderSelectionState } from "../lib/selection-overlay";
+import { contributionText } from "../../plugins/lib/plugin-i18n";
 
 type ReaderSelectionMenuProps = {
   selection: ReaderSelectionState | null;
@@ -204,7 +205,7 @@ export function ReaderSelectionMenu({
         if (!action || !pluginInput) return null;
         return {
           id,
-          label: action.title,
+          label: contributionText(action.title),
           icon: renderPluginIcon(action.icon, 15),
           run: () =>
             void runPluginContribution(
@@ -249,9 +250,9 @@ export function ReaderSelectionMenu({
             return (
               <span key={id} className="contents">
                 {divider}
-                <Tooltip content={action.title} side="top">
+                <Tooltip content={contributionText(action.title)} side="top">
                   <IconButton
-                    label={action.title}
+                    label={contributionText(action.title)}
                     size="sm"
                     onClick={() =>
                       void runPluginContribution(

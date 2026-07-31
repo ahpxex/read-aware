@@ -90,10 +90,12 @@
       "Global": "Global",
       "Reading": "Lesen",
       "Selection": "Auswahl",
-      "Overlays": "Overlays"
+      "Overlays": "Overlays",
+      "Plugins": "Plugins"
     },
     "categoryDescriptions": {
-      "selection": "Aktiv, während Text im Reader ausgewählt ist."
+      "selection": "Aktiv, während Text im Reader ausgewählt ist.",
+      "plugins": "Tasten für Befehle aus Plugins festlegen."
     },
     "actions": {
       "search": "Suche öffnen",
@@ -115,7 +117,8 @@
     "conflict": "Bereits verwendet von „{{label}}“",
     "rebind": "{{label}} neu belegen",
     "reset": "{{label}} zurücksetzen",
-    "resetAll": "Alle auf Standard zurücksetzen"
+    "resetAll": "Alle auf Standard zurücksetzen",
+    "notSet": "Nicht belegt"
   },
   "ai": {
     "title": "KI",

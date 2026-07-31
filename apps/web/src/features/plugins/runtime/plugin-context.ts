@@ -77,6 +77,22 @@ export function currentAppLocale(): string {
   return i18n.language && isAppLocale(i18n.language) ? i18n.language : DEFAULT_LOCALE;
 }
 
+/** Sanitize a command's declared default shortcut; junk shapes become none. */
+function normalizeDefaultShortcut(
+  raw: unknown,
+): { key: string; mod?: boolean; alt?: boolean; shift?: boolean } | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const candidate = raw as { key?: unknown; mod?: unknown; alt?: unknown; shift?: unknown };
+  if (typeof candidate.key !== "string" || !candidate.key.trim()) return undefined;
+  const key = candidate.key.length === 1 ? candidate.key.toLowerCase() : candidate.key;
+  return {
+    key,
+    mod: candidate.mod === true || undefined,
+    alt: candidate.alt === true || undefined,
+    shift: candidate.shift === true || undefined,
+  };
+}
+
 /**
  * KV namespace for a plugin. Exported so the sandbox host can ship the whole
  * namespace into the Worker at boot, keeping `storage.get()` synchronous there.
@@ -175,6 +191,7 @@ export function buildPluginContext(
         track(
           registerCommandContribution({
             ...command,
+            defaultShortcut: normalizeDefaultShortcut(command.defaultShortcut),
             ...brand,
             key: contributionKey(manifest.id, command.id),
           }),

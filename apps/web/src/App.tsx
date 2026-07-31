@@ -15,6 +15,7 @@ import { ShelfManagementMenu } from "./features/shelf/components/ShelfManagement
 import { useOpenBookRequestHandler } from "./features/ai/hooks/useOpenBookRequest";
 import { useReaderSession } from "./features/reader/hooks/useReaderSession";
 import { useGlobalShortcuts } from "./features/settings/hooks/useGlobalShortcuts";
+import { usePluginCommandShortcuts } from "./features/plugins/hooks/usePluginCommandShortcuts";
 import { useSurfaceHandoff } from "./hooks/useSurfaceHandoff";
 import { emitAppEvent } from "./platform/app-events";
 import { BACK_REQUEST_EVENT, sendAppToBackground } from "./platform/back-navigation";
@@ -102,6 +103,7 @@ function App() {
     onOpenSearch: () => setSearchModalOpen(true),
     onOpenSettings: () => setSettingsOpen(true),
   });
+  usePluginCommandShortcuts();
 
   const [activeTopNav, setActiveTopNav] = useAtom(activeTopNavAtom);
   const [activeCollectionId, setActiveCollectionId] = useAtom(activeCollectionAtom);

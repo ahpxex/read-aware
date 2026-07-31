@@ -543,6 +543,18 @@ export type PluginReaderMode = {
   ): PluginReaderTextSegment[];
 };
 
+/**
+ * A key chord for a command's default binding. `mod` is the platform command
+ * key (⌘ on macOS, Ctrl elsewhere); `key` is a `KeyboardEvent.key`, single
+ * characters lowercased.
+ */
+export type PluginShortcut = {
+  key: string;
+  mod?: boolean;
+  alt?: boolean;
+  shift?: boolean;
+};
+
 /** A command-palette entry. */
 export type PluginCommand = {
   id: string;
@@ -550,6 +562,12 @@ export type PluginCommand = {
   icon?: string;
   /** Extra text folded into palette matching. */
   keywords?: string;
+  /**
+   * Optional default key binding. Every registered command is bindable in
+   * Settings → Shortcuts whether or not it declares one; the user can rebind
+   * it there, and their override wins over this default.
+   */
+  defaultShortcut?: PluginShortcut;
   run: () => PluginViewResult | Promise<PluginViewResult>;
 };
 

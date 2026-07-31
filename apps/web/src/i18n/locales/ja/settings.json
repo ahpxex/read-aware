@@ -90,10 +90,12 @@
       "Global": "全体",
       "Reading": "読書",
       "Selection": "選択",
-      "Overlays": "オーバーレイ"
+      "Overlays": "オーバーレイ",
+      "Plugins": "プラグイン"
     },
     "categoryDescriptions": {
-      "selection": "リーダーでテキストを選択しているときに有効です。"
+      "selection": "リーダーでテキストを選択しているときに有効です。",
+      "plugins": "プラグインが提供するコマンドにキーを割り当てます。"
     },
     "actions": {
       "search": "検索を開く",
@@ -115,7 +117,8 @@
     "conflict": "すでに「{{label}}」で使用されています",
     "rebind": "{{label}}を再設定",
     "reset": "{{label}}をリセット",
-    "resetAll": "すべて既定値にリセット"
+    "resetAll": "すべて既定値にリセット",
+    "notSet": "未設定"
   },
   "ai": {
     "title": "AI",

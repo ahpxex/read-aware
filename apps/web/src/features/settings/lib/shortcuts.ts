@@ -12,7 +12,7 @@ export type KeyChord = {
   key: string;
 };
 
-export type ShortcutId =
+export type BuiltinShortcutId =
   | "search"
   | "settings"
   | "next-page"
@@ -29,8 +29,22 @@ export type ShortcutId =
   | "selection-look-up"
   | "selection-ask-ai";
 
+/**
+ * A plugin command's shortcut id — `plugin:` + its contribution key
+ * (`<pluginId>:<commandId>`). Overrides live in the same bindings map as the
+ * built-ins; the DEFAULT comes from the command's registration, not from
+ * EDITABLE_SHORTCUTS, so an uninstalled plugin's override is inert data.
+ */
+export type PluginShortcutId = `plugin:${string}`;
+
+export type ShortcutId = BuiltinShortcutId | PluginShortcutId;
+
+export function pluginShortcutId(contributionKey: string): PluginShortcutId {
+  return `plugin:${contributionKey}`;
+}
+
 export type EditableShortcut = {
-  id: ShortcutId;
+  id: BuiltinShortcutId;
   category: ShortcutCategory;
   defaultBinding: KeyChord;
 };
@@ -94,17 +108,29 @@ export const INFO_SHORTCUTS: InfoShortcut[] = [
   { id: "close", category: "Overlays", keys: ["Esc"] },
 ];
 
-const DEFAULT_BINDINGS = new Map<ShortcutId, KeyChord>(
+const DEFAULT_BINDINGS = new Map<BuiltinShortcutId, KeyChord>(
   EDITABLE_SHORTCUTS.map((shortcut) => [shortcut.id, shortcut.defaultBinding]),
 );
 
-export function defaultBinding(id: ShortcutId): KeyChord {
+export function defaultBinding(id: BuiltinShortcutId): KeyChord {
   return DEFAULT_BINDINGS.get(id)!;
 }
 
-/** The live binding for an action: the user's override, or the default. */
-export function resolveBinding(id: ShortcutId, bindings: ShortcutBindings): KeyChord {
+/** The live binding for a built-in action: the user's override, or the default. */
+export function resolveBinding(id: BuiltinShortcutId, bindings: ShortcutBindings): KeyChord {
   return bindings[id] ?? defaultBinding(id);
+}
+
+/**
+ * The live binding for a plugin command: the user's override, else the
+ * command's registered default, else nothing (unbound is a valid state).
+ */
+export function resolvePluginBinding(
+  id: PluginShortcutId,
+  bindings: ShortcutBindings,
+  registeredDefault: KeyChord | undefined,
+): KeyChord | undefined {
+  return bindings[id] ?? registeredDefault;
 }
 
 const isSingleChar = (key: string) => key.length === 1;

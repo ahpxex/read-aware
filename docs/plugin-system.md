@@ -216,6 +216,7 @@ workspace 位于 `plugins/<id>/`。每个包以模块化 TypeScript 编写并产
 | Reader Mode | 文本单元分段策略 | 宿主提供的 block 纯文本、语言与粒度 | 宿主固定的顶栏 Toggle、浮动 Toolbar、设置与快捷键 |
 | 书架顶栏 | Icon button | — | Popup ／ Page |
 | 命令面板 | （自动）所有插件动作自动注册进命令面板 | — | 随原动作 |
+| 快捷键 | （自动）每个 `registerCommand` 命令都可在 设置 → Shortcuts 绑键；命令可声明 `defaultShortcut`，用户覆盖优先，冲突检测横跨内置与插件 | — | 随原动作 |
 | AI agent | 工具 | agent 传入的参数 | 聊天内通用工具步呈现 |
 
 容器语义：

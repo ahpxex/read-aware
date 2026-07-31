@@ -90,10 +90,12 @@
       "Global": "全域",
       "Reading": "閱讀",
       "Selection": "選取",
-      "Overlays": "覆蓋層"
+      "Overlays": "覆蓋層",
+      "Plugins": "外掛"
     },
     "categoryDescriptions": {
-      "selection": "在閱讀器中選取文字時生效。"
+      "selection": "在閱讀器中選取文字時生效。",
+      "plugins": "為外掛提供的命令指定快捷鍵。"
     },
     "actions": {
       "search": "開啟搜尋",
@@ -115,7 +117,8 @@
     "conflict": "已被「{{label}}」使用",
     "rebind": "重新設定 {{label}}",
     "reset": "重設 {{label}}",
-    "resetAll": "全部重設為預設值"
+    "resetAll": "全部重設為預設值",
+    "notSet": "未設定"
   },
   "ai": {
     "title": "AI",

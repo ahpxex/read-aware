@@ -9,6 +9,7 @@ import { useLocale, useTranslation } from "../../../i18n";
 import { resolvePluginText } from "../../plugins/lib/plugin-i18n";
 import { resolveReaderModeUnit } from "../../plugins/lib/reader-mode";
 import {
+  pluginCommandsAtom,
   selectionActionsAtom,
   textUnitReaderModeAtom,
 } from "../../plugins/state/plugin-store";
@@ -21,7 +22,9 @@ import {
   INFO_SHORTCUTS,
   chordSignature,
   chordToTokens,
+  pluginShortcutId,
   resolveBinding,
+  resolvePluginBinding,
   type KeyChord,
   type ShortcutCategory,
   type ShortcutId,
@@ -60,6 +63,7 @@ export function ShortcutsPanel() {
   const [bindings, setBindings] = useAtom(shortcutBindingsAtom);
   const textUnitMode = useAtomValue(textUnitReaderModeAtom);
   const selectionActions = useAtomValue(selectionActionsAtom);
+  const pluginCommands = useAtomValue(pluginCommandsAtom);
   const lookupAvailable = selectionActions.some((action) => action.role === "lookup");
   const [conflict, setConflict] = useState<{ id: ShortcutId; conflictId: ShortcutId } | null>(null);
 
@@ -72,14 +76,27 @@ export function ShortcutsPanel() {
           (shortcut.id !== "selection-look-up" || lookupAvailable) &&
           shortcut.id !== id && chordSignature(resolveBinding(shortcut.id, bindings)) === signature,
       );
-      if (clash) {
-        setConflict({ id, conflictId: clash.id });
+      // Plugin commands share the conflict space — their live chord may come
+      // from a user override or the command's registered default.
+      const pluginClash = clash
+        ? undefined
+        : pluginCommands.find((command) => {
+            const rowId = pluginShortcutId(command.key);
+            if (rowId === id) return false;
+            const bound = resolvePluginBinding(rowId, bindings, command.defaultShortcut);
+            return bound !== undefined && chordSignature(bound) === signature;
+          });
+      if (clash || pluginClash) {
+        setConflict({
+          id,
+          conflictId: clash ? clash.id : pluginShortcutId(pluginClash!.key),
+        });
         return;
       }
       setConflict(null);
       setBindings({ ...bindings, [id]: chord });
     },
-    [bindings, lookupAvailable, textUnitMode, setBindings],
+    [bindings, lookupAvailable, pluginCommands, textUnitMode, setBindings],
   );
 
   const { recordingId, startRecording, cancel } = useShortcutRecorder(onCapture);
@@ -105,6 +122,10 @@ export function ShortcutsPanel() {
     : null;
 
   function shortcutLabel(id: ShortcutId | "close" | "reader-mode-volume-keys"): string {
+    if (id.startsWith("plugin:")) {
+      const command = pluginCommands.find((entry) => pluginShortcutId(entry.key) === id);
+      return command ? command.title : id;
+    }
     if (textUnitMode && defaultModeUnit) {
       if (id === "reader-mode-next-unit") {
         return resolvePluginText(defaultModeUnit.nextLabel, locale);
@@ -237,6 +258,86 @@ export function ShortcutsPanel() {
           </SettingsGroup>
         );
       })}
+
+      {pluginCommands.length > 0 && (
+        <SettingsGroup
+          title={String(t("shortcuts.categories.Plugins" as never))}
+          description={String(t("shortcuts.categoryDescriptions.plugins" as never))}
+        >
+          {pluginCommands.map((command, index) => {
+            const id = pluginShortcutId(command.key);
+            const binding = resolvePluginBinding(id, bindings, command.defaultShortcut);
+            const overridden = bindings[id] !== undefined;
+            const recording = recordingId === id;
+            const showConflict = conflict?.id === id;
+
+            return (
+              <SettingsRow
+                key={command.key}
+                borderless={index === 0}
+                title={command.title}
+                description={
+                  showConflict && conflict && !recording ? (
+                    <span className="text-red-600 dark:text-red-400">
+                      {t("shortcuts.conflict", {
+                        label: shortcutLabel(conflict.conflictId),
+                      })}
+                    </span>
+                  ) : (
+                    command.pluginName
+                  )
+                }
+                control={
+                  <span className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      aria-label={t("shortcuts.rebind", { label: command.title })}
+                      onClick={() => {
+                        if (recording) {
+                          cancel();
+                          return;
+                        }
+                        setConflict(null);
+                        startRecording(id);
+                      }}
+                      className={cn(
+                        "rounded-md px-2 py-1 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
+                        recording ? "bg-fill" : "hover:bg-fill",
+                      )}
+                    >
+                      {recording ? (
+                        <span className="flex items-center gap-1.5">
+                          <span
+                            aria-hidden="true"
+                            className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-fg-subtle"
+                          />
+                          <span className="font-sans text-[13px] text-fg-muted">
+                            {t("shortcuts.recording")}
+                          </span>
+                        </span>
+                      ) : binding ? (
+                        <KeyTokens tokens={chordToTokens(binding)} />
+                      ) : (
+                        <span className="font-sans text-[13px] text-fg-subtle">
+                          {t("shortcuts.notSet")}
+                        </span>
+                      )}
+                    </button>
+                    {overridden && !recording && (
+                      <IconButton
+                        label={t("shortcuts.reset", { label: command.title })}
+                        size="sm"
+                        onClick={() => reset(id)}
+                        icon={<ArrowCounterClockwise size={14} aria-hidden="true" />}
+                      />
+                    )}
+                  </span>
+                }
+              />
+            );
+          })}
+        </SettingsGroup>
+      )}
 
       {hasOverrides && (
         <button

@@ -90,10 +90,12 @@
       "Global": "Globales",
       "Reading": "Lectura",
       "Selection": "Selección",
-      "Overlays": "Superposiciones"
+      "Overlays": "Superposiciones",
+      "Plugins": "Plugins"
     },
     "categoryDescriptions": {
-      "selection": "Activo mientras hay texto seleccionado en el lector."
+      "selection": "Activo mientras hay texto seleccionado en el lector.",
+      "plugins": "Asigna teclas a los comandos de los plugins."
     },
     "actions": {
       "search": "Abrir la búsqueda",
@@ -115,7 +117,8 @@
     "conflict": "Ya lo usa «{{label}}»",
     "rebind": "Reasignar {{label}}",
     "reset": "Restablecer {{label}}",
-    "resetAll": "Restablecer todo a los valores predeterminados"
+    "resetAll": "Restablecer todo a los valores predeterminados",
+    "notSet": "Sin asignar"
   },
   "ai": {
     "title": "IA",

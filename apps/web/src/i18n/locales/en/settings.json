@@ -90,10 +90,12 @@
       "Global": "Global",
       "Reading": "Reading",
       "Selection": "Selection",
-      "Overlays": "Overlays"
+      "Overlays": "Overlays",
+      "Plugins": "Plugins"
     },
     "categoryDescriptions": {
-      "selection": "Active while text is selected in the reader."
+      "selection": "Active while text is selected in the reader.",
+      "plugins": "Assign keys to commands contributed by plugins."
     },
     "actions": {
       "search": "Open search",
@@ -115,7 +117,8 @@
     "conflict": "Already used by “{{label}}”",
     "rebind": "Rebind {{label}}",
     "reset": "Reset {{label}}",
-    "resetAll": "Reset all to defaults"
+    "resetAll": "Reset all to defaults",
+    "notSet": "Not set"
   },
   "ai": {
     "title": "AI",

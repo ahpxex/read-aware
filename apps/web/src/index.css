@@ -266,12 +266,12 @@ html[data-tauri="true"] {
 
   .ra-motion-tab-panel-in-forward {
     animation: ra-tab-panel-in-forward 240ms var(--ra-ease-out-quint);
-    will-change: transform, opacity;
+    will-change: opacity;
   }
 
   .ra-motion-tab-panel-in-backward {
     animation: ra-tab-panel-in-backward 240ms var(--ra-ease-out-quint);
-    will-change: transform, opacity;
+    will-change: opacity;
   }
 
   .ra-motion-page-counter {
@@ -325,25 +325,25 @@ html[data-tauri="true"] {
   }
 }
 
+/* Pure fade, no translateX. The horizontal slide left a transparent strip on
+   one edge for a frame; the compositor filled it with the window backdrop
+   (black) inside the Tauri webview — a black edge flickering past on every
+   tab switch. A cross-fade has no edge to expose. */
 @keyframes ra-tab-panel-in-forward {
   from {
     opacity: 0;
-    transform: translateX(10px);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
   }
 }
 
 @keyframes ra-tab-panel-in-backward {
   from {
     opacity: 0;
-    transform: translateX(-10px);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
   }
 }
 

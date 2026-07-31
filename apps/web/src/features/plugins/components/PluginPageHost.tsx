@@ -94,6 +94,7 @@ export function PluginPageHost({ navKey, onExit }: PluginPageHostProps) {
         onClose={onExit}
         onDepthChange={setViewDepth}
         onRequestRefresh={refreshView}
+        viewStateKey={action.key}
       />
     </Stack>
   );

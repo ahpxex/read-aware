@@ -24,6 +24,7 @@ export function PluginDialogHost() {
           view={request.view}
           onClose={close}
           dialogFooter
+          viewStateKey={request.pluginId}
           className="max-h-[min(24rem,60vh)]"
         />
       )}

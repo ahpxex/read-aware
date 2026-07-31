@@ -12,6 +12,7 @@ import {
   Tooltip,
 } from "@read-aware/ui";
 import { useLocale, useTranslation } from "../../../i18n";
+import { localKV } from "../../../platform/local-store";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { renderPluginIcon } from "../lib/plugin-icons";
 import {
@@ -27,10 +28,27 @@ type PluginListViewBodyProps = {
   view: PluginListView;
   busy: boolean;
   onResult: PluginResultRunner;
+  /**
+   * Stable identity of the hosting view (a contribution key). When present,
+   * the timeline's selected range persists across reopens under it.
+   */
+  viewStateKey?: string;
 };
 
 const SEARCH_DEBOUNCE_MS = 200;
 const TIMELINE_RANGES: PluginTimelineRange[] = ["today", "week", "month", "all"];
+
+const timelineStorageKey = (viewStateKey: string) =>
+  `read-aware-plugin-timeline.${viewStateKey}`;
+
+/** The remembered range for a view (defaults to "today"), from local storage. */
+function readTimelineRange(viewStateKey: string | undefined): PluginTimelineRange {
+  if (!viewStateKey) return "today";
+  const stored = localKV.getItem(timelineStorageKey(viewStateKey));
+  return stored && (TIMELINE_RANGES as string[]).includes(stored)
+    ? (stored as PluginTimelineRange)
+    : "today";
+}
 
 function accessoryNode(accessory: PluginListAccessory, index: number) {
   if (accessory.kind === "text") {
@@ -51,13 +69,26 @@ function accessoryNode(accessory: PluginListAccessory, index: number) {
   );
 }
 
-export function PluginListViewBody({ view, busy, onResult }: PluginListViewBodyProps) {
+export function PluginListViewBody({
+  view,
+  busy,
+  onResult,
+  viewStateKey,
+}: PluginListViewBodyProps) {
   const { t } = useTranslation("plugins");
   const locale = useLocale();
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
+  // Defaults to "today" (the freshest slice), and remembers the user's choice
+  // per view when a stable key is available.
+  const [range, setRange] = useState<PluginTimelineRange>(() => readTimelineRange(viewStateKey));
 
   useEffect(() => setQuery(""), [view]);
+
+  const selectRange = (next: PluginTimelineRange) => {
+    setRange(next);
+    if (viewStateKey) localKV.setItem(timelineStorageKey(viewStateKey), next);
+  };
 
   const items = useMemo(() => {
     const needle = debouncedQuery.trim().toLocaleLowerCase();
@@ -164,7 +195,8 @@ export function PluginListViewBody({ view, busy, onResult }: PluginListViewBodyP
       {view.timeline ? (
         <Tabs
           items={timelineTabs}
-          defaultIndex={TIMELINE_RANGES.indexOf("all")}
+          activeIndex={Math.max(0, TIMELINE_RANGES.indexOf(range))}
+          onActiveIndexChange={(index) => selectRange(TIMELINE_RANGES[index])}
           ariaLabel={t("viewer.timeline.filter")}
           trailing={listActions}
         />

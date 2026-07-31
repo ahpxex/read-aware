@@ -40,6 +40,8 @@ type PluginViewRendererProps = {
   onRequestRefresh?: () => void;
   /** Adds host Close + detail actions in a fixed dialog footer. */
   dialogFooter?: boolean;
+  /** Stable identity of the hosting view; lets a timeline persist its tab. */
+  viewStateKey?: string;
   className?: string;
 };
 
@@ -67,6 +69,7 @@ export function PluginViewRenderer({
   onDepthChange,
   onRequestRefresh,
   dialogFooter = false,
+  viewStateKey,
   className,
 }: PluginViewRendererProps) {
   const { t } = useTranslation("plugins");
@@ -185,7 +188,14 @@ export function PluginViewRenderer({
         <Markdown className="text-sm leading-6">{current.markdown}</Markdown>
       )}
       {current.kind === "list" && (
-        <PluginListViewBody view={current} busy={busy} onResult={handleResult} />
+        <PluginListViewBody
+          view={current}
+          busy={busy}
+          onResult={handleResult}
+          // Only the root list owns the view's identity; pushed sub-lists get
+          // no key and fall back to the default range.
+          viewStateKey={stack.length === 1 ? viewStateKey : undefined}
+        />
       )}
       {current.kind === "form" && (
         <PluginFormViewBody

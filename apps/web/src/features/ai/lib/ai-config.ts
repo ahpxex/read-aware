@@ -48,6 +48,44 @@ export function getStoredApiKey(provider: AIProvider): string {
   return getSecret(keySlot(provider));
 }
 
+/** Connection settings remembered per provider (models, custom endpoint). */
+type ProviderSettings = { model?: string; fastModel?: string; customBaseUrl?: string };
+
+/**
+ * The persisted blob: the active provider plus a per-provider settings map.
+ * The top-level model fields are the pre-split shape — read as a fallback
+ * for their then-active provider, dropped on the next save.
+ */
+type StoredAIConfig = Partial<AIConfig> & {
+  models?: Partial<Record<AIProvider, ProviderSettings>>;
+};
+
+function readStored(): StoredAIConfig | null {
+  try {
+    const raw = localKV.getItem(CONFIG_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as StoredAIConfig;
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A provider's remembered settings, falling back to its defaults — what the
+ * settings panel shows when the user switches to it.
+ */
+export function getStoredProviderSettings(provider: AIProvider): Required<ProviderSettings> {
+  const stored = readStored();
+  const entry = stored?.models?.[provider];
+  const legacy = stored?.provider === provider ? stored : undefined;
+  return {
+    model: entry?.model ?? legacy?.model ?? DEFAULT_MODELS[provider] ?? "",
+    fastModel: entry?.fastModel ?? legacy?.fastModel ?? FAST_DEFAULT_MODELS[provider] ?? "",
+    customBaseUrl: entry?.customBaseUrl ?? legacy?.customBaseUrl ?? "",
+  };
+}
+
 // Two seams, split by sensitivity. The connection fields (provider / model /
 // customBaseUrl) are ordinary device-local config and live in the kv store; the
 // API key is a credential and goes through platform/secret-store, which keeps
@@ -57,10 +95,8 @@ const CONFIG_KEY = "read-aware-ai-config";
 
 export function getAIConfig(): AIConfig | null {
   try {
-    const stored = localKV.getItem(CONFIG_KEY);
-    if (!stored) return null;
-    const parsed = JSON.parse(stored) as Partial<AIConfig>;
-    if (!parsed.provider) return null;
+    const parsed = readStored();
+    if (!parsed?.provider) return null;
     const slot = keySlot(parsed.provider);
     let apiKey = getSecret(slot);
     if (!apiKey) {
@@ -76,12 +112,13 @@ export function getAIConfig(): AIConfig | null {
     // `parsed.apiKey` is the pre-secret-store record shape; it migrates out
     // on the next save (saveAIConfig never writes the key back into this blob).
     apiKey = apiKey || parsed.apiKey || "";
+    const entry = parsed.models?.[parsed.provider];
     return {
       provider: parsed.provider,
       apiKey,
-      model: parsed.model ?? "",
-      fastModel: parsed.fastModel,
-      customBaseUrl: parsed.customBaseUrl,
+      model: entry?.model ?? parsed.model ?? "",
+      fastModel: entry?.fastModel ?? parsed.fastModel,
+      customBaseUrl: entry?.customBaseUrl ?? parsed.customBaseUrl,
     };
   } catch {
     return null;
@@ -89,10 +126,17 @@ export function getAIConfig(): AIConfig | null {
 }
 
 export function saveAIConfig(config: AIConfig): void {
-  const { apiKey, ...nonSecret } = config;
-  localKV.setItem(CONFIG_KEY, JSON.stringify(nonSecret));
-  if (apiKey) setSecret(keySlot(config.provider), apiKey);
-  else deleteSecret(keySlot(config.provider));
+  const { apiKey, provider, model, fastModel, customBaseUrl } = config;
+  // Merge this provider's settings into the map; other providers keep theirs.
+  const models = { ...(readStored()?.models ?? {}) };
+  models[provider] = {
+    model,
+    fastModel,
+    ...(customBaseUrl ? { customBaseUrl } : {}),
+  };
+  localKV.setItem(CONFIG_KEY, JSON.stringify({ provider, models } satisfies StoredAIConfig));
+  if (apiKey) setSecret(keySlot(provider), apiKey);
+  else deleteSecret(keySlot(provider));
   // The single-slot era key must not linger as a fallback for OTHER providers.
   deleteSecret("ai-api-key");
 }

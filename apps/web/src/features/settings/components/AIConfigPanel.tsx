@@ -12,6 +12,7 @@ import { accountFromConfig } from "../../ai/agent/account";
 import {
   getAIConfig,
   getStoredApiKey,
+  getStoredProviderSettings,
   saveAIConfig,
   clearAIConfig,
   DEFAULT_MODELS,
@@ -47,17 +48,19 @@ export function AIConfigPanel() {
     }
   }, []);
 
-  // Switching provider resets both tiers to that provider's defaults and
-  // swaps in that provider's OWN stored key (each provider has its own
-  // credential slot — switching never clobbers another's). Done in the change
-  // handler (not an effect) so loading a saved config on mount doesn't
-  // clobber the stored model choices.
+  // Switching provider swaps in that provider's OWN remembered settings —
+  // its credential slot, its last-saved model tiers (defaults when never
+  // saved), its custom endpoint. Nothing of another provider's setup leaks
+  // across or gets clobbered. Done in the change handler (not an effect) so
+  // loading a saved config on mount doesn't overwrite the stored choices.
   const handleProviderChange = (value: string) => {
     const next = value as AIProvider;
     setProvider(next);
     setApiKey(getStoredApiKey(next));
-    setModel(DEFAULT_MODELS[next]);
-    setFastModel(FAST_DEFAULT_MODELS[next]);
+    const remembered = getStoredProviderSettings(next);
+    setModel(remembered.model);
+    setFastModel(remembered.fastModel);
+    setCustomBaseUrl(remembered.customBaseUrl);
     setTestResult(null);
   };
 

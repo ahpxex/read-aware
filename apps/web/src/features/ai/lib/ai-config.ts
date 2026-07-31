@@ -28,7 +28,25 @@ export interface AIConfig {
 }
 
 import { localKV } from "../../../platform/local-store";
-import { deleteSecret, getSecret, setSecret } from "../../../platform/secret-store";
+import {
+  deleteSecret,
+  getSecret,
+  setSecret,
+  type SecretKey,
+} from "../../../platform/secret-store";
+
+/**
+ * One credential slot PER provider — switching providers must never clobber
+ * another provider's key. The pre-split era used a single "ai-api-key" slot;
+ * it is adopted into the saved provider's slot on first read and never
+ * written again.
+ */
+const keySlot = (provider: AIProvider): SecretKey => `ai-api-key.${provider}`;
+
+/** The saved key for one provider ("" when none) — provider-switch UIs use it. */
+export function getStoredApiKey(provider: AIProvider): string {
+  return getSecret(keySlot(provider));
+}
 
 // Two seams, split by sensitivity. The connection fields (provider / model /
 // customBaseUrl) are ordinary device-local config and live in the kv store; the
@@ -43,9 +61,21 @@ export function getAIConfig(): AIConfig | null {
     if (!stored) return null;
     const parsed = JSON.parse(stored) as Partial<AIConfig>;
     if (!parsed.provider) return null;
-    // `parsed.apiKey` is the pre-split record shape; it migrates out on the
-    // next save (saveAIConfig never writes the key back into this blob).
-    const apiKey = getSecret("ai-api-key") || parsed.apiKey || "";
+    const slot = keySlot(parsed.provider);
+    let apiKey = getSecret(slot);
+    if (!apiKey) {
+      // Single-slot era: that key was saved together with the provider in
+      // this very blob, so it belongs to this provider's slot. Adopt once.
+      const legacy = getSecret("ai-api-key");
+      if (legacy) {
+        setSecret(slot, legacy);
+        deleteSecret("ai-api-key");
+        apiKey = legacy;
+      }
+    }
+    // `parsed.apiKey` is the pre-secret-store record shape; it migrates out
+    // on the next save (saveAIConfig never writes the key back into this blob).
+    apiKey = apiKey || parsed.apiKey || "";
     return {
       provider: parsed.provider,
       apiKey,
@@ -61,13 +91,18 @@ export function getAIConfig(): AIConfig | null {
 export function saveAIConfig(config: AIConfig): void {
   const { apiKey, ...nonSecret } = config;
   localKV.setItem(CONFIG_KEY, JSON.stringify(nonSecret));
-  if (apiKey) setSecret("ai-api-key", apiKey);
-  else deleteSecret("ai-api-key");
+  if (apiKey) setSecret(keySlot(config.provider), apiKey);
+  else deleteSecret(keySlot(config.provider));
+  // The single-slot era key must not linger as a fallback for OTHER providers.
+  deleteSecret("ai-api-key");
 }
 
 export function clearAIConfig(): void {
   localKV.removeItem(CONFIG_KEY);
   deleteSecret("ai-api-key");
+  for (const provider of Object.keys(DEFAULT_MODELS) as AIProvider[]) {
+    deleteSecret(keySlot(provider));
+  }
 }
 
 export function hasAIConfig(): boolean {

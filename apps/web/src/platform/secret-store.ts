@@ -16,9 +16,15 @@
 import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "./environment";
 
-/** Secrets the app stores. Keep the list explicit — this is a small, audited set. */
-export const SECRET_KEYS = ["ai-api-key"] as const;
-export type SecretKey = (typeof SECRET_KEYS)[number];
+/**
+ * Secrets the app stores — the audited `ai-api-key` family: the legacy
+ * single slot plus one slot per provider (`ai-api-key.<provider>`), so
+ * switching providers never clobbers another provider's key. Hydration
+ * discovers the live slots by prefix (`secret_keys`); plugin credentials go
+ * through their own async helpers below and never enter this snapshot.
+ */
+export type SecretKey = "ai-api-key" | `ai-api-key.${string}`;
+const SECRET_PREFIX = "ai-api-key";
 
 /** Where older builds kept the key in the clear; migrated away on first boot. */
 const LEGACY_AI_KEY_STORAGE_KEY = "read-aware-ai-key";
@@ -46,9 +52,10 @@ export async function hydrateSecrets(): Promise<void> {
       localStorage.removeItem(LEGACY_AI_KEY_STORAGE_KEY);
       console.info("[secrets] moved the API key out of localStorage into encrypted storage");
     }
-    for (const key of SECRET_KEYS) {
+    const keys = await invoke<string[]>("secret_keys", { prefix: SECRET_PREFIX });
+    for (const key of keys) {
       const value = await invoke<string | null>("secret_get", { key });
-      if (value) snapshot.set(key, value);
+      if (value) snapshot.set(key as SecretKey, value);
     }
   } catch (error) {
     console.error("[secrets] hydrate failed; the app starts without stored credentials", error);

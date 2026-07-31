@@ -11,6 +11,7 @@ import { Trans, useTranslation } from "../../../i18n";
 import { accountFromConfig } from "../../ai/agent/account";
 import {
   getAIConfig,
+  getStoredApiKey,
   saveAIConfig,
   clearAIConfig,
   DEFAULT_MODELS,
@@ -46,12 +47,15 @@ export function AIConfigPanel() {
     }
   }, []);
 
-  // Switching provider resets both tiers to that provider's defaults. Done in
-  // the change handler (not an effect) so loading a saved config on mount
-  // doesn't clobber the stored model choices.
+  // Switching provider resets both tiers to that provider's defaults and
+  // swaps in that provider's OWN stored key (each provider has its own
+  // credential slot — switching never clobbers another's). Done in the change
+  // handler (not an effect) so loading a saved config on mount doesn't
+  // clobber the stored model choices.
   const handleProviderChange = (value: string) => {
     const next = value as AIProvider;
     setProvider(next);
+    setApiKey(getStoredApiKey(next));
     setModel(DEFAULT_MODELS[next]);
     setFastModel(FAST_DEFAULT_MODELS[next]);
     setTestResult(null);

@@ -840,6 +840,7 @@ pub fn run() {
             storage::blob_write_commit,
             storage::blob_write_abort,
             secrets::secret_get,
+            secrets::secret_keys,
             secrets::secret_set,
             secrets::secret_delete,
             storage::load_kv_all,

@@ -182,3 +182,28 @@ pub async fn secret_delete(app: tauri::AppHandle, key: String) -> Result<(), Str
         .await
         .map_err(|e| format!("secret_delete task failed: {e}"))?
 }
+
+fn keys_inner(app: &tauri::AppHandle, prefix: &str) -> Result<Vec<String>, String> {
+    let db = app.state::<Db>();
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    let mut stmt = conn
+        .prepare("SELECT key FROM app_kv WHERE key LIKE ?1 ORDER BY key")
+        .map_err(|e| e.to_string())?;
+    let like = format!("{KV_PREFIX}{prefix}%");
+    let keys = stmt
+        .query_map(params![like], |row| row.get::<_, String>(0))
+        .map_err(|e| e.to_string())?
+        .filter_map(|row| row.ok())
+        .filter_map(|key| key.strip_prefix(KV_PREFIX).map(str::to_string))
+        .collect();
+    Ok(keys)
+}
+
+/// Stored secret key names under a prefix (names only, never values) —
+/// lets hydration discover per-provider slots without a hardcoded roster.
+#[tauri::command]
+pub async fn secret_keys(app: tauri::AppHandle, prefix: String) -> Result<Vec<String>, String> {
+    tauri::async_runtime::spawn_blocking(move || keys_inner(&app, &prefix))
+        .await
+        .map_err(|e| format!("secret_keys task failed: {e}"))?
+}

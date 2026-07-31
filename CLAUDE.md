@@ -3,7 +3,7 @@
 - Product: `ReadAware`
 - Type: AI-native reading application
 - Core capability: context-rich reading and AI-assisted understanding
-- Repo: `monorepo` managed by `Turborepo` over `bun` workspaces (`apps/*`, `packages/*`)
+- Repo: `monorepo` managed by `Turborepo` over `bun` workspaces (`apps/*`, `packages/*`, `plugins/*`)
 - Runtime shell: a `Tauri` desktop app **only** (the shipping target) that wraps the React web frontend. The web build is just Tauri's bundled frontend plus local dev / Storybook — not a standalone browser or PWA product
 - Frontend: `React 19` as a client-rendered SPA (no SSR)
 - Routing: `TanStack Router` (file-based, via the Vite router plugin)
@@ -183,7 +183,9 @@ Use `cn()` from `@read-aware/ui/cn` for className composition (clsx + tailwind-m
 ## Project Structure
 
 Monorepo managed by Turborepo + bun workspaces. Commands run from the repo root:
-`bun run dev` (Tauri desktop), `bun run dev:web` (web only), `bun run build`, `bun run storybook`.
+`bun run dev` (Tauri desktop), `bun run dev:web` (web only), `bun run dev:landing`,
+`bun run build`, `bun run build:desktop`, `bun run storybook`, `bun run test`,
+`bun run typecheck`.
 
 ```
 read-aware/
@@ -209,18 +211,31 @@ read-aware/
           context/     # AI-assisted context panel
           annotations/ # User annotations
           ai/          # AI chat panel
+          plugins/     # Plugin runtime, host surfaces, marketplace UI
+          command/     # Command palette + shortcut registry
+          menus/       # Native / in-app menu wiring
+          stats/       # Reading statistics surfaces
+          update/      # App update checks and prompts
           settings/    # Preferences
           navigation/  # App-level nav
           library/     # Content management
         state/         # Jotai UI atoms (ui.ts)
-    desktop/           # Tauri 2 desktop shell (wraps apps/web)
+    desktop/           # Tauri 2 desktop shell (wraps apps/web) — the shipping app
       src-tauri/       # Rust crate, tauri.conf.json, capabilities, icons
+    landing/           # @read-aware/landing — readaware.app marketing site
   packages/
     ui/                # @read-aware/ui — design system (components, typography,
                        #   cn, useLocalAtom) + co-located stories & MDX docs
     core/              # @read-aware/core — local-first engine contracts:
                        #   entities, event-sourced DomainEvent, StorageAdapter
+    agent/             # @read-aware/agent — the core agent: models, tools,
+                       #   memory, context assembly, structured output
+    plugin-types/      # @read-aware/plugin-types — the public plugin API surface
     tsconfig/          # @read-aware/tsconfig — shared TypeScript base config
+  plugins/             # First-party plugins, each built via scripts/build-plugin.ts
+    dictionary/        # @read-aware/plugin-dictionary
+    rss-reader/        # @read-aware/plugin-rss-reader
+    sentence-reader/   # @read-aware/plugin-sentence-reader
 ```
 
 Note: design-system imports use the `@read-aware/ui` package barrel, e.g.

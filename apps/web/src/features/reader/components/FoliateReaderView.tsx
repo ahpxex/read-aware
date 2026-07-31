@@ -71,8 +71,8 @@ import { useReaderTextActions } from "../hooks/useReaderTextActions";
 import {
   computeReaderMaxInlineSize,
   readerGapForMargins,
-  READER_THEME_BG,
 } from "../../settings/lib/reader-css";
+import { useReaderPalette } from "../../settings/hooks/useReaderPalette";
 import type { ReaderSettings, ReadingMode } from "../../settings/lib/reader-settings";
 import { DEFAULT_READER_SETTINGS } from "../../settings/lib/reader-settings";
 import { buildVirtualFoliateBook } from "../lib/virtual-book";
@@ -321,6 +321,8 @@ export function FoliateReaderView({
   fractionNavigationRequest = null,
 }: FoliateReaderViewProps) {
   const { t } = useTranslation("reader");
+  // Resolved page-color palette (built-in or plugin-contributed).
+  const readerPalette = useReaderPalette(readerSettings.theme);
   // Held in a ref so the stable, mount-once engine effects and callbacks can
   // read the latest translator without re-subscribing (which would tear down
   // the reader). `t`'s identity changes on a language switch; the ref tracks it.
@@ -883,7 +885,7 @@ export function FoliateReaderView({
     readerRootRef,
     crossSection: textUnitModeCrossSection,
     restoreAnnotationAt,
-    veilColor: READER_THEME_BG[readerSettings.theme],
+    veilColor: readerPalette.bg,
   });
   // The engine's mount-once effect and the stable key handler reach the
   // navigator through this ref (its identity changes every render).

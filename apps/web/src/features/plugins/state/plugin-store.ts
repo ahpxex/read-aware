@@ -15,6 +15,8 @@ import type {
   PluginView,
   RegisteredCommand,
   RegisteredHeaderAction,
+  RegisteredPluginFont,
+  RegisteredPluginTheme,
   RegisteredReaderMode,
   RegisteredSelectionAction,
   RegisteredTool,
@@ -29,9 +31,23 @@ export const headerActionsAtom = atom<RegisteredHeaderAction[]>([]);
 export const readerModesAtom = atom<RegisteredReaderMode[]>([]);
 export const pluginCommandsAtom = atom<RegisteredCommand[]>([]);
 export const pluginToolsAtom = atom<RegisteredTool[]>([]);
+export const pluginThemesAtom = atom<RegisteredPluginTheme[]>([]);
+export const pluginFontsAtom = atom<RegisteredPluginFont[]>([]);
 
 /** Installed plugins (manifest + enabled + activation error), for settings. */
 export const installedPluginsAtom = atom<InstalledPlugin[]>([]);
+
+/**
+ * True once `initializePlugins` has enumerated and activated everything (or
+ * decided there is nothing to run, e.g. in a plain browser). Appearance
+ * resolution uses this to tell "plugin not started YET" (keep the persisted
+ * boot skin) from "plugin genuinely gone" (fall back to system).
+ */
+export const pluginsReadyAtom = atom(false);
+
+export function markPluginsReady(): void {
+  store.set(pluginsReadyAtom, true);
+}
 
 function register<T extends { key: ContributionKey }>(
   target: PrimitiveAtom<T[]>,
@@ -79,6 +95,21 @@ export function registerCommandContribution(item: RegisteredCommand): PluginDisp
 
 export function registerToolContribution(item: RegisteredTool): PluginDisposable {
   return register(pluginToolsAtom, item);
+}
+
+export function registerThemeContribution(
+  item: RegisteredPluginTheme,
+): PluginDisposable {
+  return register(pluginThemesAtom, item);
+}
+
+export function registerFontContribution(item: RegisteredPluginFont): PluginDisposable {
+  return register(pluginFontsAtom, item);
+}
+
+/** Snapshot lookup for callers outside React's flow (style injection paths). */
+export function getRegisteredPluginFonts(): RegisteredPluginFont[] {
+  return store.get(pluginFontsAtom);
 }
 
 /** Snapshot of the enabled plugins' agent tools (read per agent build). */

@@ -149,9 +149,11 @@ pub fn plugins_read_manifest(src_dir: String) -> Result<String, String> {
 pub struct PluginFile {
     pub path: String,
     pub content: String,
+    /// `"base64"` for binary payloads (fonts, images); absent/other = UTF-8.
+    pub encoding: Option<String>,
 }
 
-/// Marketplace install: the webview fetches the plugin's text files (CSP owns
+/// Marketplace install: the webview fetches the plugin's files (CSP owns
 /// the network policy) and hands them here to be written under plugins/<id>.
 #[tauri::command]
 pub fn plugins_install_files(
@@ -204,7 +206,15 @@ pub fn plugins_install_files(
         if let Some(parent) = target.parent() {
             fs::create_dir_all(parent).map_err(|e| e.to_string())?;
         }
-        fs::write(&target, file.content.as_bytes()).map_err(|e| e.to_string())?;
+        let bytes: Vec<u8> = if file.encoding.as_deref() == Some("base64") {
+            use base64::Engine as _;
+            base64::engine::general_purpose::STANDARD
+                .decode(&file.content)
+                .map_err(|e| format!("invalid base64 payload for {}: {e}", file.path))?
+        } else {
+            file.content.clone().into_bytes()
+        };
+        fs::write(&target, bytes).map_err(|e| e.to_string())?;
     }
     Ok(PluginEntry { id, manifest, builtin: false })
 }
@@ -284,6 +294,10 @@ pub fn serve_plugin_asset(
         Some("wasm") => "application/wasm",
         Some("svg") => "image/svg+xml",
         Some("png") => "image/png",
+        Some("woff2") => "font/woff2",
+        Some("woff") => "font/woff",
+        Some("ttf") => "font/ttf",
+        Some("otf") => "font/otf",
         _ => "application/octet-stream",
     };
     tauri::http::Response::builder()

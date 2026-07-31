@@ -1,13 +1,15 @@
 import type { CSSProperties } from "react";
 import {
   curatedFontId,
+  isPluginFont,
   systemFontFamily,
   type ReaderFontFamily,
   type ReaderFontWeight,
   type ReaderPageMargins,
   type ReaderSettings,
 } from "./reader-settings";
-import { curatedFallback, getCuratedFont } from "./curated-fonts";
+import { curatedFallback, getCuratedFont, type CuratedFontKind } from "./curated-fonts";
+import type { ReaderPalette } from "./reader-theme";
 
 // Trailing fallbacks after a user-picked system family, so a missing glyph (or a
 // font that was later uninstalled) lands on a readable default.
@@ -20,13 +22,27 @@ function sanitizeFamily(family: string): string {
 }
 
 /**
- * Resolve a stored font selection to a CSS `font-family` stack. Curated and
- * system families are quoted and sanitized — the value is interpolated into a
- * stylesheet we inject into the foliate iframe, so it must not be able to break
- * out of the declaration. (Whether the curated webfont is actually loaded is the
- * loader's concern; this only names it.)
+ * What a `plugin:` font selection resolves through: the registered
+ * contribution's family and fallback kind. Callers look it up in the plugin
+ * font registry; null/undefined (plugin missing) falls back to the default
+ * stack.
  */
-export function resolveReaderFontStack(fontFamily: ReaderFontFamily): string {
+export type PluginFontStackSource = {
+  family: string;
+  kind?: CuratedFontKind;
+};
+
+/**
+ * Resolve a stored font selection to a CSS `font-family` stack. Every family
+ * is quoted and sanitized — the value is interpolated into a stylesheet we
+ * inject into the foliate iframe, so it must not be able to break out of the
+ * declaration. (Whether the webfont is actually loaded is the loader's
+ * concern; this only names it.)
+ */
+export function resolveReaderFontStack(
+  fontFamily: ReaderFontFamily,
+  pluginFont?: PluginFontStackSource | null,
+): string {
   const curatedId = curatedFontId(fontFamily);
   if (curatedId) {
     const font = getCuratedFont(curatedId);
@@ -34,6 +50,11 @@ export function resolveReaderFontStack(fontFamily: ReaderFontFamily): string {
       const safe = sanitizeFamily(font.family);
       if (safe) return `"${safe}", ${curatedFallback(font.kind)}`;
     }
+    return DEFAULT_FONT_STACK;
+  }
+  if (isPluginFont(fontFamily)) {
+    const safe = pluginFont ? sanitizeFamily(pluginFont.family) : "";
+    if (safe) return `"${safe}", ${curatedFallback(pluginFont?.kind ?? "serif")}`;
     return DEFAULT_FONT_STACK;
   }
   const family = systemFontFamily(fontFamily);
@@ -154,61 +175,38 @@ export function computeReaderMaxInlineSize(
   return Math.round(Math.min(clamped, containerWidthPx));
 }
 
-const THEME_MAP = {
-  light: {
-    bg: "#ffffff",
-    text: "#1c1917",
-    selection: "rgba(168, 162, 158, 0.34)",
-    rule: "rgba(28, 25, 23, 0.14)",
-    faint: "rgba(28, 25, 23, 0.05)",
-    muted: "rgba(28, 25, 23, 0.55)",
-  },
-  warm: {
-    bg: "#f5f1e8",
-    text: "#292524",
-    selection: "rgba(168, 162, 158, 0.34)",
-    rule: "rgba(41, 37, 36, 0.16)",
-    faint: "rgba(41, 37, 36, 0.05)",
-    muted: "rgba(41, 37, 36, 0.55)",
-  },
-  dark: {
-    bg: "#1c1917",
-    text: "#d6d3d1",
-    selection: "rgba(168, 162, 158, 0.28)",
-    rule: "rgba(214, 211, 209, 0.2)",
-    faint: "rgba(214, 211, 209, 0.07)",
-    muted: "rgba(214, 211, 209, 0.55)",
-  },
-} as const;
-
 /**
- * The reading themes' full palettes. Exported so host-rendered surfaces that sit
- * INSIDE the reader (the end-of-book screen) can match the page the reader has
- * been looking at, instead of jumping to the app's own canvas colour.
+ * Everything registry-dependent a reader stylesheet needs, resolved by the
+ * caller: the palette behind the (possibly plugin-contributed) theme, any
+ * `@font-face` rules to inline (curated download blobs or plugin folder
+ * URLs), and the registered plugin font behind a `plugin:` font selection.
  */
-export const READER_THEME_PALETTE = THEME_MAP;
-
-export const READER_THEME_BG = {
-  light: "#ffffff",
-  warm: "#f5f1e8",
-  dark: "#1c1917",
-} as const;
+export type ReaderContentAssets = {
+  palette: ReaderPalette;
+  fontFaceCss?: string;
+  pluginFont?: PluginFontStackSource | null;
+};
 
 /**
  * Build the stylesheet injected into the foliate section iframe.
  *
- * `fontFaceCss` carries the `@font-face` rules for the active curated font (with
- * its on-demand blob URLs) so the book renders in that webfont; it's empty for
- * system/preset fonts, which need no @font-face. See `curated-font-loader`.
+ * `assets.fontFaceCss` carries the `@font-face` rules for the active webfont
+ * (curated fonts with their on-demand blob URLs, plugin fonts with their
+ * folder URLs) so the book renders in it; it's empty for system fonts, which
+ * need no @font-face. See `curated-font-loader` / `plugin-theme`.
  */
-export function buildReaderContentCss(settings: ReaderSettings, fontFaceCss = ""): string {
-  const fontFamily = resolveReaderFontStack(settings.fontFamily);
+export function buildReaderContentCss(
+  settings: ReaderSettings,
+  assets: ReaderContentAssets,
+): string {
+  const fontFaceCss = assets.fontFaceCss ?? "";
+  const fontFamily = resolveReaderFontStack(settings.fontFamily, assets.pluginFont);
   const fontSize = FONT_SIZE_MAP[settings.fontSize];
   const fontWeight = FONT_WEIGHT_MAP[settings.fontWeight];
   const lineHeight = LINE_HEIGHT_MAP[settings.lineSpacing];
   const paragraphSpacing = PARAGRAPH_SPACING_MAP[settings.paragraphSpacing];
   const horizontalMargin = READER_MARGIN_PRESETS[settings.pageMargins].horizontalPadding;
-  const theme = THEME_MAP[settings.theme];
+  const theme = assets.palette;
 
   return `
     ${fontFaceCss}
@@ -451,12 +449,15 @@ export function buildReaderContentCss(settings: ReaderSettings, fontFaceCss = ""
  * Inline style for the in-settings reading preview, mirroring the engine CSS
  * above so the preview reflects the live settings without re-deriving values.
  */
-export function getReaderPreviewStyle(settings: ReaderSettings): CSSProperties {
-  const theme = THEME_MAP[settings.theme];
+export function getReaderPreviewStyle(
+  settings: ReaderSettings,
+  assets: Pick<ReaderContentAssets, "palette" | "pluginFont">,
+): CSSProperties {
+  const theme = assets.palette;
   return {
     backgroundColor: theme.bg,
     color: theme.text,
-    fontFamily: resolveReaderFontStack(settings.fontFamily),
+    fontFamily: resolveReaderFontStack(settings.fontFamily, assets.pluginFont),
     fontSize: FONT_SIZE_MAP[settings.fontSize],
     fontWeight: FONT_WEIGHT_MAP[settings.fontWeight],
     lineHeight: LINE_HEIGHT_MAP[settings.lineSpacing],

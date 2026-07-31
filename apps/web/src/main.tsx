@@ -2,6 +2,7 @@ import { applyPlatformAttributes, disableNativeContextMenu } from "./platform/en
 import { syncAndroidSafeArea } from "./platform/safe-area";
 import { hydrateLocalStore } from "./platform/local-store";
 import { getAppSettings, resolveAppTheme } from "./features/settings/lib/app-settings";
+import { bootAppSkin } from "./features/settings/lib/app-skin";
 import { getGeneralSettings } from "./features/settings/lib/general-settings";
 import { detectInitialLocale } from "./i18n/detect";
 import { initI18n } from "./i18n";
@@ -28,10 +29,13 @@ void (async () => {
 
   // Stamp the resolved theme before anything renders so a dark-theme boot
   // paints dark from the first React frame (`useAppearance` takes over once
-  // mounted and keeps it live).
-  const theme = resolveAppTheme(getAppSettings().theme);
+  // mounted and keeps it live). A selected plugin skin replays its cached
+  // token CSS the same way — plugins themselves start much later.
+  const themePreference = getAppSettings().theme;
+  const theme = resolveAppTheme(themePreference);
   document.documentElement.dataset.theme = theme;
   document.documentElement.style.colorScheme = theme;
+  bootAppSkin(themePreference);
 
   // Load the persisted (or auto-detected) locale's catalogs so the first paint
   // is already translated.

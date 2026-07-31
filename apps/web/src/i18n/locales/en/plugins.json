@@ -40,6 +40,7 @@
     "noPermissions": "No extra permissions",
     "permission": {
       "reader_modes": "Add a host-rendered reading mode that controls guided navigation",
+      "ui_themes": "Offer app and reader themes, with bundled fonts, that apply only when you select them",
       "shelf_read": "Read your shelf: books, collections, chapter text, and reading stats",
       "shelf_write": "Manage your shelf: add, edit, and remove books and collections",
       "annotations_read": "Read your highlights, notes, and asked questions",

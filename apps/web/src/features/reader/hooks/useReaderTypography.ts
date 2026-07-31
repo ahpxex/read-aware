@@ -7,15 +7,23 @@
  * in a hook rather than among the engine, selection, and annotation effects.
  */
 import { useCallback, useEffect, useRef, type RefObject } from "react";
+import { useAtomValue } from "jotai";
 import {
   buildReaderContentCss,
   computeReaderMaxInlineSize,
   readerFontWeightsNeeded,
   readerGapForMargins,
 } from "../../settings/lib/reader-css";
-import { curatedFontId } from "../../settings/lib/reader-settings";
+import { curatedFontId, isPluginFont } from "../../settings/lib/reader-settings";
 import type { ReaderSettings, ReadingMode } from "../../settings/lib/reader-settings";
 import { ensureCuratedFontFaceCss } from "../../settings/lib/curated-font-loader";
+import { resolveReaderPalette } from "../../settings/lib/reader-theme";
+import { pluginFontFaceCss } from "../../settings/hooks/usePluginFonts";
+import { findRegisteredByRef } from "../../plugins/lib/plugin-theme";
+import {
+  pluginFontsAtom,
+  pluginThemesAtom,
+} from "../../plugins/state/plugin-store";
 import type { FoliateRenderer, FoliateView } from "../lib/foliate-engine";
 
 type Options = {
@@ -85,22 +93,37 @@ export function useReaderTypography({
     viewportRef,
   ]);
 
+  // Plugin contributions feed the injected CSS two ways: the palette behind a
+  // plugin page color, and the @font-face + family stack behind a plugin
+  // font. Subscribing here re-injects when a plugin (de)activates mid-read.
+  const pluginThemes = useAtomValue(pluginThemesAtom);
+  const pluginFonts = useAtomValue(pluginFontsAtom);
+
   /**
    * Inject the reader stylesheet, first ensuring the active curated webfont is
    * downloaded so its @font-face (with on-demand blob URLs) ships in the same
-   * CSS. System/preset fonts need no @font-face, so they apply immediately.
+   * CSS. Plugin fonts need no download — their faces point at the plugin
+   * folder; system fonts need no @font-face at all.
    */
   const injectStyles = useCallback(
     async (settings: ReaderSettings, renderer = viewRef.current?.renderer) => {
       const id = curatedFontId(settings.fontFamily);
+      const pluginFont = isPluginFont(settings.fontFamily)
+        ? findRegisteredByRef(settings.fontFamily, pluginFonts)
+        : null;
       const fontFaceCss = id
         ? await ensureCuratedFontFaceCss(id, readerFontWeightsNeeded(settings.fontWeight)).catch(
             () => "",
           )
-        : "";
-      renderer?.setStyles?.(buildReaderContentCss(settings, fontFaceCss));
+        : pluginFont
+          ? pluginFontFaceCss(pluginFont)
+          : "";
+      const palette = resolveReaderPalette(settings.theme, pluginThemes);
+      renderer?.setStyles?.(
+        buildReaderContentCss(settings, { palette, fontFaceCss, pluginFont }),
+      );
     },
-    [viewRef],
+    [viewRef, pluginFonts, pluginThemes],
   );
 
   // Settings change -> re-inject reader CSS and refresh the text measure.

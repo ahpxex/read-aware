@@ -1,4 +1,5 @@
 import { TextAa } from "@phosphor-icons/react";
+import { useAtomValue } from "jotai";
 import { Caption, ChoiceGroup, Divider, Popover } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import {
@@ -10,6 +11,9 @@ import {
   paragraphSpacingOptions,
   readingModeOptions,
 } from "../../settings/lib/reader-setting-options";
+import { applyReaderThemeSelection } from "../../settings/lib/reader-theme";
+import { usePluginReaderThemeOptions } from "../../settings/hooks/usePluginReaderThemeOptions";
+import { pluginThemesAtom } from "../../plugins/state/plugin-store";
 import { FontField } from "../../settings/components/FontField";
 import {
   useReaderAppearance,
@@ -34,6 +38,8 @@ export function ReaderAppearanceMenu({
 }: ReaderAppearanceMenuProps) {
   const { t } = useTranslation("reader");
   const { scope, prefs, setScope, updatePrefs } = useReaderAppearance(bookId);
+  const pluginThemes = useAtomValue(pluginThemesAtom);
+  const pluginThemeOptions = usePluginReaderThemeOptions();
 
   const scopeOptions: { value: ReaderAppearanceScope; label: string }[] = [
     { value: "global", label: t("scope.global") },
@@ -70,8 +76,10 @@ export function ReaderAppearanceMenu({
         <ChoiceGroup
           label={t("pageColor")}
           value={prefs.theme}
-          options={pageColorOptions(t)}
-          onChange={(theme) => updatePrefs({ ...prefs, theme })}
+          options={[...pageColorOptions(t), ...pluginThemeOptions]}
+          onChange={(theme) =>
+            updatePrefs(applyReaderThemeSelection(prefs, theme, pluginThemes))
+          }
         />
         <FontField
           value={prefs.fontFamily}

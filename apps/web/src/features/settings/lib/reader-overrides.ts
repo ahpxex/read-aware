@@ -3,6 +3,7 @@ import {
   normalizeFontFamily,
   normalizeFontSize,
   normalizeFontWeight,
+  normalizeReaderTheme,
   type ReaderSettingsPreferences,
 } from "./reader-settings";
 
@@ -38,6 +39,7 @@ function normalizeSettings(
   // (named font sizes, sans/serif presets) keep resolving.
   return {
     ...merged,
+    theme: normalizeReaderTheme(merged.theme),
     fontFamily: normalizeFontFamily(merged.fontFamily),
     fontSize: normalizeFontSize(merged.fontSize),
     fontWeight: normalizeFontWeight(merged.fontWeight),

@@ -3,7 +3,7 @@ import { useAtomValue } from "jotai";
 import { Body, Button, Spinner } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import type { BookFormat, LibraryBook, ReaderProgress } from "../../library/lib/library-types";
-import { READER_THEME_BG } from "../../settings/lib/reader-css";
+import { useReaderPalette } from "../../settings/hooks/useReaderPalette";
 import { useDelayedFlag } from "../hooks/useDelayedFlag";
 import { readTextUnitModeState } from "../lib/text-unit-mode-state";
 import { useImmersiveWindowControls } from "../hooks/useImmersiveWindowControls";
@@ -85,7 +85,7 @@ export function ReaderWorkspace({
 }: ReaderWorkspaceProps) {
   const { t } = useTranslation("reader");
   const { effective: readerSettings } = useReaderAppearance(selectedBook.id);
-  const themeBg = READER_THEME_BG[readerSettings.theme];
+  const themeBg = useReaderPalette(readerSettings.theme).bg;
   // Only surface the source loader once opening is genuinely slow, so fast opens
   // show nothing (themed background) instead of a flashed line of text.
   const showSourceLoader = useDelayedFlag(!readerSource && !readerLoadError, 250);

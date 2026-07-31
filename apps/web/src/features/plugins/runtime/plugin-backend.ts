@@ -30,7 +30,12 @@ export function readPluginManifestFromZip(zipPath: string): Promise<string> {
   return invoke<string>("plugins_read_zip_manifest", { zipPath });
 }
 
-export type PluginFilePayload = { path: string; content: string };
+export type PluginFilePayload = {
+  path: string;
+  content: string;
+  /** `"base64"` for binary payloads (fonts, images); omit for UTF-8 text. */
+  encoding?: "base64";
+};
 
 export function installPluginFilesCmd(
   id: string,
@@ -109,14 +114,22 @@ export function pluginDocsClear(pluginId: string): Promise<void> {
 let loadCounter = 0;
 
 /**
- * URL for a plugin's entry module. Mirrors Tauri's convertFileSrc() scheme
- * mapping: Windows serves custom protocols over `http://<scheme>.localhost`,
- * everywhere else as `<scheme>://localhost/`. The query param busts the ES
- * module cache so a reinstall or re-enable always executes fresh code.
+ * URL for a file inside an installed plugin's folder, served over the
+ * `raplugin://` protocol. Mirrors Tauri's convertFileSrc() scheme mapping:
+ * Windows serves custom protocols over `http://<scheme>.localhost`,
+ * everywhere else as `<scheme>://localhost/`.
  */
-export function pluginModuleUrl(id: string, main: string): string {
+export function pluginAssetUrl(id: string, path: string): string {
   const windows = navigator.userAgent.includes("Windows");
   const base = windows ? "http://raplugin.localhost/" : "raplugin://localhost/";
+  return `${base}${id}/${path}`;
+}
+
+/**
+ * URL for a plugin's entry module. The query param busts the ES module cache
+ * so a reinstall or re-enable always executes fresh code.
+ */
+export function pluginModuleUrl(id: string, main: string): string {
   loadCounter += 1;
-  return `${base}${id}/${main}?v=${loadCounter}-${Date.now()}`;
+  return `${pluginAssetUrl(id, main)}?v=${loadCounter}-${Date.now()}`;
 }

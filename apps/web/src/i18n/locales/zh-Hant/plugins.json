@@ -40,6 +40,7 @@
     "noPermissions": "無額外權限",
     "permission": {
       "reader_modes": "新增由應用程式渲染並控制引導導覽的閱讀模式",
+      "ui_themes": "提供應用程式與閱讀頁主題（可附帶字型），僅在你選用後生效",
       "shelf_read": "讀取書架：書籍、分組、章節全文與閱讀統計",
       "shelf_write": "管理書架：新增、編輯與刪除書籍和分組",
       "annotations_read": "讀取螢光標記、筆記與提問記錄",

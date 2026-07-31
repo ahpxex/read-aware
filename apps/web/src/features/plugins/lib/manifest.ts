@@ -8,6 +8,7 @@ import {
   type PluginManifest,
   type PluginPermission,
 } from "./plugin-types";
+import { validateFontContributions, validateThemeContributions } from "./plugin-theme";
 
 export class PluginManifestError extends Error {}
 
@@ -125,6 +126,33 @@ export function validateManifest(raw: unknown): PluginManifest {
     throw new PluginManifestError("manifest.main must be a plain relative file name");
   }
 
+  // Themes and bundled fonts are the one UI contribution with visual
+  // authority, so they sit behind `ui:themes` — the consent dialog must have
+  // surfaced it before these declarations may exist.
+  let themes: PluginManifest["themes"];
+  let fonts: PluginManifest["fonts"];
+  if (record.themes != null || record.fonts != null) {
+    if (!permissions?.includes("ui:themes")) {
+      throw new PluginManifestError(
+        'manifest.themes/manifest.fonts require the "ui:themes" permission',
+      );
+    }
+    try {
+      fonts = record.fonts != null ? validateFontContributions(record.fonts) : undefined;
+      themes =
+        record.themes != null
+          ? validateThemeContributions(
+              record.themes,
+              new Set(fonts?.map((font) => font.id) ?? []),
+            )
+          : undefined;
+    } catch (error) {
+      throw new PluginManifestError(
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+  }
+
   return {
     id,
     name,
@@ -135,6 +163,8 @@ export function validateManifest(raw: unknown): PluginManifest {
     permissions,
     main,
     settings,
+    themes,
+    fonts,
   };
 }
 

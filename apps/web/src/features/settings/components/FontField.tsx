@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
+import { useAtomValue } from "jotai";
 import { Button, Caption, Select, Spinner, Toggle } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import {
   curatedFontId,
+  isPluginFont,
   isSystemFont,
   systemFontFamily,
   toCuratedFont,
@@ -14,6 +16,9 @@ import {
 import { CURATED_FONTS } from "../lib/curated-fonts";
 import { useSystemFonts } from "../hooks/useSystemFonts";
 import { useCuratedFontFace } from "../hooks/useCuratedFontFace";
+import { usePluginFontFace } from "../hooks/usePluginFonts";
+import { toPluginRef, parsePluginRef } from "../../plugins/lib/plugin-theme";
+import { pluginFontsAtom } from "../../plugins/state/plugin-store";
 
 const CURATED_OPTIONS: { value: string; label: string }[] = CURATED_FONTS.map((font) => ({
   value: toCuratedFont(font.id),
@@ -38,9 +43,12 @@ type FontFieldProps = {
 export function FontField({ value, onChange, fontWeight, className }: FontFieldProps) {
   const { t } = useTranslation("settings");
   const systemFonts = useSystemFonts();
+  const pluginFonts = useAtomValue(pluginFontsAtom);
   const [custom, setCustom] = useState(isSystemFont(value));
   // Download + inject the active curated font so the preview/UI render it.
   const fontFace = useCuratedFontFace(value, fontWeight);
+  // Plugin fonts need no download — inject their folder-served faces directly.
+  usePluginFontFace(value);
 
   const systemOptions = useMemo(() => {
     const opts = systemFonts.map((family) => ({ value: toSystemFont(family), label: family }));
@@ -51,13 +59,30 @@ export function FontField({ value, onChange, fontWeight, className }: FontFieldP
     return opts;
   }, [systemFonts, value]);
 
-  const options = custom ? systemOptions : CURATED_OPTIONS;
+  // Plugin-bundled fonts share the curated dropdown (both are app-offered,
+  // as opposed to the device-enumerated "custom" list).
+  const curatedOptions = useMemo(() => {
+    const opts = [
+      ...CURATED_OPTIONS,
+      ...pluginFonts.map((font) => ({
+        value: toPluginRef(font.pluginId, font.id) as string,
+        label: font.family,
+      })),
+    ];
+    // A stored plugin font whose plugin is currently gone stays visible.
+    if (isPluginFont(value) && !opts.some((option) => option.value === value)) {
+      opts.push({ value, label: parsePluginRef(value)?.partId ?? value });
+    }
+    return opts;
+  }, [pluginFonts, value]);
+
+  const options = custom ? systemOptions : curatedOptions;
   // Reflect the value only when it belongs to the active source.
   const selectValue: string = custom
     ? isSystemFont(value)
       ? value
       : ""
-    : curatedFontId(value)
+    : curatedFontId(value) || isPluginFont(value)
       ? value
       : "";
 

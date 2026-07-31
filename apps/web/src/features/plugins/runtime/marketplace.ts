@@ -39,7 +39,7 @@ export type MarketplaceEntry = {
   files?: string[];
 };
 
-async function fetchText(path: string): Promise<string> {
+async function fetchFromMirrors(path: string): Promise<Response> {
   let lastError: unknown = new Error("no marketplace source configured");
   for (const base of SOURCES) {
     try {
@@ -51,12 +51,38 @@ async function fetchText(path: string): Promise<string> {
         lastError = new Error(`${response.status} for ${path}`);
         continue;
       }
-      return await response.text();
+      return response;
     } catch (error) {
       lastError = error;
     }
   }
   throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
+
+async function fetchText(path: string): Promise<string> {
+  return (await fetchFromMirrors(path)).text();
+}
+
+/** Extensions installed byte-for-byte (base64 through the IPC seam). */
+const BINARY_EXTENSIONS = [".woff2", ".woff", ".ttf", ".otf", ".png", ".wasm"];
+
+function isBinaryPath(path: string): boolean {
+  const lower = path.toLowerCase();
+  return BINARY_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
+
+async function fetchFilePayload(base: string, name: string): Promise<PluginFilePayload> {
+  if (!isBinaryPath(name)) {
+    return { path: name, content: await fetchText(`${base}/${name}`) };
+  }
+  const bytes = new Uint8Array(await (await fetchFromMirrors(`${base}/${name}`)).arrayBuffer());
+  // btoa needs a binary string; chunk to keep the argument sizes sane.
+  let binary = "";
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return { path: name, content: btoa(binary), encoding: "base64" };
 }
 
 function asEntry(raw: unknown): MarketplaceEntry | null {
@@ -128,7 +154,7 @@ export async function prepareMarketplaceInstall(entry: MarketplaceEntry): Promis
       const fileNames = [manifest.main ?? "main.js", ...(entry.files ?? [])];
       const files: PluginFilePayload[] = [{ path: "manifest.json", content: manifestText }];
       for (const name of [...new Set(fileNames)]) {
-        files.push({ path: name, content: await fetchText(`plugins/${entry.id}/${name}`) });
+        files.push(await fetchFilePayload(`plugins/${entry.id}`, name));
       }
       return installPluginFiles(manifest.id, files);
     },

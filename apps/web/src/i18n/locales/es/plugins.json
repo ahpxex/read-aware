@@ -40,6 +40,7 @@
     "noPermissions": "Sin permisos adicionales",
     "permission": {
       "reader_modes": "Añadir un modo de lectura guiada renderizado por la aplicación",
+      "ui_themes": "Ofrecer temas para la aplicación y la lectura, con fuentes incluidas, que solo se aplican al seleccionarlos",
       "shelf_read": "Leer tu estantería: libros, colecciones, texto de capítulos y estadísticas de lectura",
       "shelf_write": "Gestionar tu estantería: añadir, editar y eliminar libros y colecciones",
       "annotations_read": "Leer tus subrayados, notas y preguntas",

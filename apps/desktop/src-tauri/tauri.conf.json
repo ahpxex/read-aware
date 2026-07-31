@@ -30,8 +30,8 @@
       "dangerousDisableAssetCspModification": [
         "style-src"
       ],
-      "csp": "default-src 'self'; img-src 'self' blob: data: raplugin: http://raplugin.localhost; media-src 'self' blob: data:; style-src 'self' 'unsafe-inline' blob:; font-src 'self' data: blob:; script-src 'self' 'wasm-unsafe-eval' raplugin: http://raplugin.localhost; worker-src 'self' blob:; frame-src 'self' blob:; connect-src 'self' ipc: http://ipc.localhost blob: https: http://localhost:* http://127.0.0.1:*",
-      "devCsp": "default-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data:; img-src 'self' blob: data: https: http: raplugin:; media-src 'self' blob: data: https: http:; style-src 'self' 'unsafe-inline'; font-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' raplugin: http://raplugin.localhost; worker-src 'self' blob:; connect-src 'self' ws: wss: http: https:"
+      "csp": "default-src 'self'; img-src 'self' blob: data: raplugin: http://raplugin.localhost; media-src 'self' blob: data:; style-src 'self' 'unsafe-inline' blob:; font-src 'self' data: blob: raplugin: http://raplugin.localhost; script-src 'self' 'wasm-unsafe-eval' raplugin: http://raplugin.localhost; worker-src 'self' blob:; frame-src 'self' blob:; connect-src 'self' ipc: http://ipc.localhost blob: https: http://localhost:* http://127.0.0.1:*",
+      "devCsp": "default-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data:; img-src 'self' blob: data: https: http: raplugin:; media-src 'self' blob: data: https: http:; style-src 'self' 'unsafe-inline'; font-src 'self' data: blob: https: raplugin: http://raplugin.localhost; script-src 'self' 'unsafe-inline' 'unsafe-eval' raplugin: http://raplugin.localhost; worker-src 'self' blob:; connect-src 'self' ws: wss: http: https:"
     }
   },
   "bundle": {
@@ -71,7 +71,8 @@
       "../../../plugins/rss-reader/dist/main.js": "bundled-plugins/rss-reader/main.js",
       "../../../plugins/rss-reader/dist/manifest.json": "bundled-plugins/rss-reader/manifest.json",
       "../../../plugins/sentence-reader/dist/main.js": "bundled-plugins/sentence-reader/main.js",
-      "../../../plugins/sentence-reader/dist/manifest.json": "bundled-plugins/sentence-reader/manifest.json"
+      "../../../plugins/sentence-reader/dist/manifest.json": "bundled-plugins/sentence-reader/manifest.json",
+      "../../../plugins/editorial-themes/dist/": "bundled-plugins/editorial-themes/"
     }
   },
   "plugins": {

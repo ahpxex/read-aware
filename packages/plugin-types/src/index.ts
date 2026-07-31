@@ -31,6 +31,13 @@
  *    at runtime before React sees them. Reader-mode plugins supply plain-text
  *    offset segmentation only; DOM, engine objects, input, and controls stay
  *    inside the host.
+ *
+ *    The one deliberate opening in this rule is themes (`ui:themes`): a plugin
+ *    may DECLARE appearance data — named palettes over the host's fixed token
+ *    vocabulary, plus bundled font faces — in its manifest. The data is
+ *    validated against strict color/path grammars, the CSS is generated and
+ *    injected by the host, and nothing applies until the user selects the
+ *    theme in Settings. Plugins still never hand the host a stylesheet.
  */
 
 import type {
@@ -76,6 +83,10 @@ export type {
  *   implies the domain's read surface. `shelf` covers the whole of library
  *   management: books (incl. content reads), collections, and reading stats.
  * - `reader:modes` — privileged host-rendered reader-mode registration.
+ * - `ui:themes` — declare app/reader themes and bundled fonts in the
+ *   manifest. The only UI contribution that needs a permission: unlike
+ *   actions and commands it has visual authority over the whole app, so the
+ *   install consent must surface it.
  * - `agent:tools` — register tools on the reading agent.
  * - `service:*` — platform and AI services (network, one-shot LLM,
  *   clipboard).
@@ -85,6 +96,7 @@ export type {
  */
 export const PLUGIN_PERMISSIONS = [
   "reader:modes",
+  "ui:themes",
   "shelf:read",
   "shelf:write",
   "annotations:read",
@@ -118,6 +130,176 @@ export type PluginManifest = {
    * (read with `ctx.storage.get("settings")`).
    */
   settings?: PluginFormField[];
+  /**
+   * Declarative themes (`ui:themes`). Registered while the plugin is enabled;
+   * they appear alongside the built-in choices in Settings → Appearance
+   * (app part) and the reader's page-color control (reader part), and apply
+   * only when the user selects them. Purely data — the host generates and
+   * injects all CSS.
+   */
+  themes?: PluginThemeContribution[];
+  /**
+   * Font faces bundled with the plugin (`ui:themes`), served from the plugin
+   * folder. Each becomes a `plugin:<pluginId>:<fontId>` entry in the reader's
+   * font picker; a theme's typography defaults may reference its own fonts
+   * as `plugin:<fontId>`.
+   */
+  fonts?: PluginFontContribution[];
+};
+
+// ─── Theme contributions (`ui:themes`) ───────────────────────────────────────
+
+/**
+ * Whether a theme reads as light or dark. Drives everything polarity-keyed in
+ * the host: `color-scheme`, the dark token defaults an app theme inherits for
+ * tokens it leaves unset, the `dark:` styling variant, and how the reader's
+ * "auto" page color resolves while the theme is active.
+ */
+export type PluginThemePolarity = "light" | "dark";
+
+/**
+ * A color in one of the strict grammars the host accepts: `#rgb[a]` /
+ * `#rrggbb[aa]` hex, or `rgb()` / `rgba()` / `hsl()` / `hsla()` with numeric
+ * bodies only. Anything else — keywords, `var()`, `url()`, gradients — is
+ * rejected at manifest validation. The grammar is the injection boundary:
+ * these values end up inside host-generated stylesheets.
+ */
+export type PluginThemeColor = string;
+
+/**
+ * The app-chrome token vocabulary a theme may override. Every key is optional:
+ * unset tokens keep the host's own values for the theme's polarity, so a
+ * near-default theme only states its differences. This vocabulary is a
+ * long-term contract (only ever extended, never renamed).
+ */
+export type PluginAppThemeTokens = {
+  /** The app canvas. */
+  paper?: PluginThemeColor;
+  /** The warmer secondary canvas tint. */
+  paperWarm?: PluginThemeColor;
+  /** Hairline borders. */
+  border?: PluginThemeColor;
+  /** Primary text. */
+  fg?: PluginThemeColor;
+  /** Secondary text. */
+  fgMuted?: PluginThemeColor;
+  /** Tertiary/disabled text. */
+  fgSubtle?: PluginThemeColor;
+  /** Text on inverted (fg-colored) surfaces. */
+  inverseFg?: PluginThemeColor;
+  /** Raised surfaces: cards, dialogs, inputs. */
+  surface?: PluginThemeColor;
+  /** Quiet fills: hovers, wells, code spans. */
+  fill?: PluginThemeColor;
+  /** Stronger fills: active states, tracks. */
+  fillStrong?: PluginThemeColor;
+  /** Emphasized borders. */
+  borderStrong?: PluginThemeColor;
+  /** The main content surface behind panels. */
+  mainSurface?: PluginThemeColor;
+  /** Overlay scrollbar thumbs. */
+  scrollbar?: PluginThemeColor;
+};
+
+/**
+ * The six-color palette a reader theme paints book pages with — the same
+ * vocabulary the built-in light/warm/dark page colors use. All six are
+ * required: book pages have no polarity fallback to inherit from.
+ */
+export type PluginReaderPalette = {
+  /** Page background. */
+  bg: PluginThemeColor;
+  /** Body text. */
+  text: PluginThemeColor;
+  /** Text selection background. */
+  selection: PluginThemeColor;
+  /** Rules and table borders. */
+  rule: PluginThemeColor;
+  /** Quiet fills (code blocks, inline code). */
+  faint: PluginThemeColor;
+  /** De-emphasized ink: link underlines, list markers, captions. */
+  muted: PluginThemeColor;
+};
+
+export type PluginReaderFontSize =
+  | "xx-small"
+  | "x-small"
+  | "small"
+  | "medium"
+  | "large"
+  | "x-large"
+  | "xx-large"
+  | "xxx-large";
+export type PluginReaderFontWeight = "light" | "regular" | "medium" | "bold";
+export type PluginReaderLineSpacing = "compact" | "comfortable" | "relaxed";
+export type PluginReaderParagraphSpacing = "tight" | "normal" | "loose";
+
+/**
+ * Typography a reader theme suggests. Applied as a one-shot preset when the
+ * user SELECTS the theme — seeding the ordinary reader settings, which the
+ * user can then adjust freely (re-selecting the theme re-applies). Never a
+ * live constraint.
+ *
+ * `fontFamily` accepts `plugin:<fontId>` (a font this manifest declares),
+ * `curated:<id>` (a host curated font), or `system:<family>`.
+ */
+export type PluginReaderTypographyDefaults = {
+  fontFamily?: string;
+  fontSize?: PluginReaderFontSize;
+  fontWeight?: PluginReaderFontWeight;
+  lineSpacing?: PluginReaderLineSpacing;
+  paragraphSpacing?: PluginReaderParagraphSpacing;
+};
+
+/**
+ * One named theme. The two mount points are independent and optional — a
+ * theme may skin only the app chrome, only the book page, or both; each part
+ * is offered only on the surface it targets.
+ */
+export type PluginThemeContribution = {
+  /** Theme id within the plugin: lowercase, digits, hyphens. */
+  id: string;
+  /** Display name in the theme pickers. */
+  name: PluginText;
+  polarity: PluginThemePolarity;
+  /** App-chrome token overrides (Settings → Appearance). */
+  app?: PluginAppThemeTokens;
+  /** Book-page palette and optional typography preset (reader page color). */
+  reader?: {
+    palette: PluginReaderPalette;
+    typography?: PluginReaderTypographyDefaults;
+  };
+};
+
+/**
+ * One font face file inside the plugin folder. `path` is folder-relative
+ * (forward slashes, `[A-Za-z0-9._-]` segments, no leading dots) and must end
+ * in `.woff2`, `.woff`, `.ttf`, or `.otf`.
+ */
+export type PluginFontFile = {
+  path: string;
+  /** CSS numeric weight of this face. Defaults to 400. */
+  weight?: number;
+  /** Defaults to "normal". */
+  style?: "normal" | "italic";
+  /** Optional `unicode-range` for split/subset files. */
+  unicodeRange?: string;
+};
+
+/**
+ * A font bundled with the plugin. Its faces are served straight from the
+ * plugin folder (no download step); the host writes the `@font-face` rules
+ * and lists the family in the reader's font picker while the plugin is
+ * enabled.
+ */
+export type PluginFontContribution = {
+  /** Font id within the plugin: lowercase, digits, hyphens. */
+  id: string;
+  /** CSS font-family name; also the picker label. */
+  family: string;
+  /** Chooses the generic fallback stack appended after the family. */
+  kind?: "sans" | "serif" | "cjk";
+  files: PluginFontFile[];
 };
 
 /** Returned by every `register*`/`on` call; disposing removes the contribution. */

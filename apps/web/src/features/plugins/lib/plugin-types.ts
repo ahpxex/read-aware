@@ -6,10 +6,12 @@
  */
 import type {
   PluginCommand,
+  PluginFontContribution,
   PluginHeaderAction,
   PluginManifest,
   PluginReaderMode,
   PluginSelectionAction,
+  PluginThemeContribution,
   PluginToolDefinition,
 } from "@read-aware/plugin-types";
 
@@ -67,6 +69,24 @@ export type RegisteredCommand = PluginCommand & {
 };
 
 export type RegisteredTool = PluginToolDefinition & {
+  key: ContributionKey;
+  pluginId: string;
+  pluginName: string;
+};
+
+/**
+ * A theme as the host holds it: the validated manifest declaration plus its
+ * provenance. `typography.fontFamily` self-references (`plugin:<fontId>`)
+ * have been expanded to the full stored ref at registration.
+ */
+export type RegisteredPluginTheme = PluginThemeContribution & {
+  key: ContributionKey;
+  pluginId: string;
+  pluginName: string;
+};
+
+/** A bundled font as the host holds it. */
+export type RegisteredPluginFont = PluginFontContribution & {
   key: ContributionKey;
   pluginId: string;
   pluginName: string;

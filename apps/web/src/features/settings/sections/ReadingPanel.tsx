@@ -3,7 +3,10 @@ import { ChoiceGroup, Stack, Toggle } from "@read-aware/ui";
 import { useLocale, useTranslation } from "../../../i18n";
 import { resolvePluginText } from "../../plugins/lib/plugin-i18n";
 import { resolveReaderModeUnit } from "../../plugins/lib/reader-mode";
-import { textUnitReaderModeAtom } from "../../plugins/state/plugin-store";
+import {
+  pluginThemesAtom,
+  textUnitReaderModeAtom,
+} from "../../plugins/state/plugin-store";
 import { preferredTextUnitModeUnitId } from "../../reader/lib/text-unit-mode-state";
 import {
   effectiveReaderSettingsAtom,
@@ -15,6 +18,10 @@ import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
 import { getReaderPreviewStyle } from "../lib/reader-css";
+import { applyReaderThemeSelection } from "../lib/reader-theme";
+import { useReaderPalette } from "../hooks/useReaderPalette";
+import { useRegisteredPluginFont } from "../hooks/usePluginFonts";
+import { usePluginReaderThemeOptions } from "../hooks/usePluginReaderThemeOptions";
 import {
   fontSizeOptions,
   fontWeightOptions,
@@ -35,6 +42,10 @@ export function ReadingPanel() {
   const [modePrefs, setModePrefs] = useAtom(textUnitModePrefsAtom);
   const effective = useAtomValue(effectiveReaderSettingsAtom);
   const textUnitMode = useAtomValue(textUnitReaderModeAtom);
+  const pluginThemes = useAtomValue(pluginThemesAtom);
+  const pluginThemeOptions = usePluginReaderThemeOptions();
+  const previewPalette = useReaderPalette(effective.theme);
+  const previewPluginFont = useRegisteredPluginFont(effective.fontFamily);
 
   return (
     <SettingsPage
@@ -46,7 +57,12 @@ export function ReadingPanel() {
           bleed the opaque backdrop to the panel edges, covering controls that
           scroll underneath. */}
       <div className="sticky top-0 z-10 -mx-6 bg-[var(--ra-main-surface-color)] px-6 pb-4 sm:-mx-10 sm:px-10">
-        <ReadingPreview style={getReaderPreviewStyle(effective)} />
+        <ReadingPreview
+          style={getReaderPreviewStyle(effective, {
+            palette: previewPalette,
+            pluginFont: previewPluginFont,
+          })}
+        />
       </div>
 
       <SettingsGroup title={t("reading.typography")}>
@@ -106,8 +122,10 @@ export function ReadingPanel() {
       >
         <ChoiceGroup
           value={prefs.theme}
-          options={pageColorOptions(tReader)}
-          onChange={(theme) => setPrefs({ ...prefs, theme })}
+          options={[...pageColorOptions(tReader), ...pluginThemeOptions]}
+          onChange={(theme) =>
+            setPrefs(applyReaderThemeSelection(prefs, theme, pluginThemes))
+          }
         />
       </SettingsGroup>
 

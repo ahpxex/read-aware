@@ -28,8 +28,11 @@
 
 - 用户可以自己写插件、自己安装；官方也提供一批插件。
 - 插件能贡献：Reader 选区动作、Reader 顶栏按钮、书架顶栏按钮/整页、
-  受限 Reader Mode、命令面板命令、**AI agent 工具**。
+  受限 Reader Mode、命令面板命令、**AI agent 工具**、
+  **主题与自带字体**（`ui:themes`，声明式，见 §6 末尾）。
 - 插件界面永远看起来像原生功能 —— 观感由应用统治，插件只声明内容。
+  主题是这条规则里唯一一处有意开的口：插件可以声明**外观数据**
+  （固定 token 词汇上的调色板 + 字体文件），CSS 仍全部由宿主生成。
 
 非目标（刻意不做）：
 
@@ -187,6 +190,7 @@ workspace 位于 `plugins/<id>/`。每个包以模块化 TypeScript 编写并产
 | 权限 | 授予的能力面 |
 |---|---|
 | `reader:modes` | `ctx.reader.modes.register`：注册宿主渲染的文本单元阅读模式；目前仅 bundled 插件 |
+| `ui:themes` | manifest 的 `themes` / `fonts` 声明式贡献：应用换肤 token、阅读页六色调色板、随插件分发的字体文件。唯一需要权限的 UI 贡献——它对全应用有视觉影响力，安装确认必须列出。纯数据，无运行时 API 面 |
 | `shelf:read` | `ctx.shelf`：书目读模型、目录、章节全文（内容层读取）、分组列表与成员、stats（单本 `stats.forBook` / 全体 `stats.list` / 全局聚合 `stats.overview`——stats 无写面，见规则 3） |
 | `shelf:write` | `ctx.shelf.books.write`：导入文件、改元数据、星标、标记读完、删除；**内容提供者**（`registerContentProvider` / `addVirtualBook`——虚拟书为设备本地，内容依赖本插件在场，刻意不进同步日志）。`ctx.shelf.collections.write`：建组、改名、删组、分配书籍 |
 | `annotations:read` | `ctx.annotations`：高亮/笔记/提问痕迹（判别联合读模型 + FTS 检索） |
@@ -221,6 +225,9 @@ workspace 位于 `plugins/<id>/`。每个包以模块化 TypeScript 编写并产
 | Reader 顶栏 | Icon button | 当前书元数据 | 仅 Popup（Popover） |
 | Reader Mode | 文本单元分段策略 | 宿主提供的 block 纯文本、语言与粒度 | 宿主固定的顶栏 Toggle、浮动 Toolbar、设置与快捷键 |
 | 书架顶栏 | Icon button | — | Popup ／ Page |
+| 应用主题 | （manifest）token 覆写集 + 极性 | — | 设置 → Appearance 的主题选项；选中后宿主生成 `data-skin` 样式 |
+| 阅读页主题 | （manifest）六色调色板 + 可选排版预设 | — | 阅读外观的页面颜色选项；选中后进注入引擎的样式表 |
+| 阅读字体 | （manifest）字体文件（插件目录直出） | — | 字体选择器的应用侧列表 |
 | 命令面板 | （自动）所有插件动作自动注册进命令面板 | — | 随原动作 |
 | 快捷键 | （自动）每个 `registerCommand` 命令都可在 设置 → Shortcuts 绑键；命令可声明 `defaultShortcut`，用户覆盖优先，冲突检测横跨内置与插件 | — | 随原动作 |
 | AI agent | 工具 | agent 传入的参数 | 聊天内通用工具步呈现 |
@@ -304,6 +311,45 @@ block 内的 `{start, end}` 半开区间；宿主校验 id、文案、有序、�
 引擎代码。宿主按 contribution key 隔离单元偏好与每本书的停留位置，不会让
 两个恰好复用同一 unit id 的模式串状态。插件不能注入 JSX、HTML、CSS、Flex、
 DOM Range 或 Foliate 实例。
+
+### 主题与字体（`ui:themes`）
+
+对"presentation 归宿主"公理的一次**有意识修订**（构造规则第 4 条的注脚）：
+被放宽的只是"外观数据的来源可以是插件"，渲染权、CSS 生成权仍然全部归宿主。
+插件从头到尾不产出一行样式表——它在 manifest 里声明纯数据，宿主校验后
+生成并注入 CSS：
+
+- **`themes`**：每个主题带 `id`、`name`（PluginText，可多语言）、
+  `polarity`（light/dark，驱动 `color-scheme`、`dark:` 变体、阅读页
+  `auto` 解析与未覆写 token 的极性默认值），以及两个**相互独立**的挂载部分：
+  - `app` —— 应用换肤：固定 token 词汇（`paper` / `fg` / `surface` /
+    `fill` … 共 13 个，映射到 index.css 的语义变量）上的颜色覆写集。
+    应用方式是 `<html data-skin="plugin:<id>:<themeId>">` 属性 + 一段
+    宿主生成的 `<style>`；极性仍走 `data-theme`，所以启动脚本、splash、
+    Tailwind `dark:` 全部照旧。启动闪烁靠 KV 里的 skin 快照消除
+    （`read-aware-app-skin`，Rust 的 `read_boot_theme` 也读它取极性）。
+  - `reader` —— 阅读页：与内置 light/warm/dark 同构的**六色调色板**
+    （bg/text/selection/rule/faint/muted），加可选的**排版预设**
+    （fontFamily/fontSize/fontWeight/lineSpacing/paragraphSpacing）。
+    预设在用户**选中主题那一刻**一次性落进普通阅读设置——之后用户随意改，
+    重新选中重新应用；绝不是运行时锁定。
+- **`fonts`**：随插件分发的字体文件（woff2/woff/ttf/otf，路径与 Rust 端
+  `valid_payload_path` 同构校验）。宿主生成 `@font-face`，`src` 直指
+  `raplugin://`（CSP `font-src` 已放行），同一串规则注入应用文档与
+  书内 iframe；字体以 `plugin:<pluginId>:<fontId>` 进入字体选择器。
+  市场安装路径为此支持二进制文件（base64 过 IPC）。
+
+安全边界：颜色值走**封闭语法白名单**（hex / rgb() / hsl()，函数体只允许
+数字类字符——`url(`、`var(` 在语法上不可表达，而非被过滤），字体族名沿用
+`sanitizeFamily` 前例。这是必须死守的一条：插件代码碰不到 DOM，但颜色
+字符串一旦被宿主拼进样式表就跨了回来，书内 iframe 里的 `url()` 足以构成
+阅读行为泄露信道。
+
+生效规则与摆放权（§7）同源：主题**注册只是出现在选项里**，绝不自动换肤；
+选中权永远在用户。插件禁用/卸载时选项消失、已选主题回退（app 侧回 system、
+阅读页回 warm），但用户的选择值保留——重新启用插件即恢复原样。
+首个第一方住户：**Editorial Themes**（Gutenberg 亮色 + Nocturne 暗色，
+自带 EB Garamond）。
 
 ## 7. 摆放权：插件贡献能力，用户掌管布局
 

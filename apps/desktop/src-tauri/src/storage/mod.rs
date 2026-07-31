@@ -160,19 +160,36 @@ pub fn local_device_get(db: State<'_, Db>) -> Result<LocalDeviceInfo, String> {
 /// setup — BEFORE the main window (and its boot splash) exists. Returns
 /// `"light"` / `"dark"` for an explicit choice, `None` for "system", an unset
 /// key, or an unreadable value — the caller then follows the OS scheme.
-/// Key/shape mirror `features/settings/lib/app-settings.ts`.
+/// A `plugin:<id>:<themeId>` skin resolves through the app-skin snapshot's
+/// polarity (written by the web layer whenever a skin applies).
+/// Keys/shapes mirror `features/settings/lib/app-settings.ts` and `app-skin.ts`.
 pub fn read_boot_theme(conn: &Connection) -> Option<&'static str> {
-    let value: String = conn
-        .query_row(
-            "SELECT value_json FROM app_kv WHERE key = 'read-aware-app-settings'",
-            [],
-            |row| row.get(0),
-        )
-        .ok()?;
-    let parsed: Value = serde_json::from_str(&value).ok()?;
-    match parsed.get("theme").and_then(|theme| theme.as_str()) {
+    fn read_kv(conn: &Connection, key: &str) -> Option<Value> {
+        let value: String = conn
+            .query_row(
+                "SELECT value_json FROM app_kv WHERE key = ?1",
+                params![key],
+                |row| row.get(0),
+            )
+            .ok()?;
+        serde_json::from_str(&value).ok()
+    }
+
+    let settings = read_kv(conn, "read-aware-app-settings")?;
+    match settings.get("theme").and_then(|theme| theme.as_str()) {
         Some("light") => Some("light"),
         Some("dark") => Some("dark"),
+        Some(theme) if theme.starts_with("plugin:") => {
+            let snapshot = read_kv(conn, "read-aware-app-skin")?;
+            if snapshot.get("ref").and_then(|r| r.as_str()) != Some(theme) {
+                return None;
+            }
+            match snapshot.get("polarity").and_then(|p| p.as_str()) {
+                Some("light") => Some("light"),
+                Some("dark") => Some("dark"),
+                _ => None,
+            }
+        }
         _ => None,
     }
 }

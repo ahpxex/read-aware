@@ -22,7 +22,7 @@ import { useTranslation } from "../../../i18n";
 import { readingStatsAtom } from "../../../state/ui";
 import { computeBookInsights } from "../../stats/lib/reading-insights";
 import { emptyBookStats } from "../lib/reading-stats";
-import { READER_THEME_PALETTE } from "../../settings/lib/reader-css";
+import { useReaderPalette } from "../../settings/hooks/useReaderPalette";
 import type { ReaderSettings } from "../../settings/lib/reader-settings";
 import type { LibraryBook } from "../../library/lib/library-types";
 import type { Annotation } from "../../annotations/lib/annotation-types";
@@ -83,7 +83,7 @@ export function ReaderCompletionScreen({
   onDismiss,
 }: Props) {
   const { t } = useTranslation("reader");
-  const palette = READER_THEME_PALETTE[theme];
+  const palette = useReaderPalette(theme);
   const stats = useAtomValue(readingStatsAtom);
   const dispatchAskAi = useSetAtom(askAiRequestAtom);
   const [annotations, setAnnotations] = useState<Annotation[] | null>(null);

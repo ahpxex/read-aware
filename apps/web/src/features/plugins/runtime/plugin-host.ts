@@ -21,10 +21,15 @@ import {
   forgetPluginEnabled,
   installedPluginsAtom,
   isPluginEnabled,
+  markPluginsReady,
   persistPluginEnabled,
+  registerFontContribution,
+  registerThemeContribution,
   setInstalledPlugins,
   updateInstalledPlugin,
 } from "../state/plugin-store";
+import { contributionKey } from "../lib/plugin-types";
+import { toPluginRef } from "../lib/plugin-theme";
 import {
   installPluginFilesCmd,
   installPluginFromDir,
@@ -59,7 +64,13 @@ function getInstalled(): InstalledPlugin[] {
 
 /** Boot entry — enumerate plugin folders and activate the enabled ones. */
 export async function initializePlugins(): Promise<void> {
-  if (!isTauri() || initialized) return;
+  if (!isTauri()) {
+    // No plugin runtime in a plain browser — appearance fallbacks must not
+    // keep waiting for contributions that will never register.
+    markPluginsReady();
+    return;
+  }
+  if (initialized) return;
   initialized = true;
 
   try {
@@ -73,6 +84,8 @@ export async function initializePlugins(): Promise<void> {
     entries = await listPluginEntries();
   } catch (error) {
     console.error("[plugins] failed to enumerate installed plugins", error);
+    // Nothing will register this session; unblock appearance fallbacks.
+    markPluginsReady();
     return;
   }
 
@@ -106,6 +119,7 @@ export async function initializePlugins(): Promise<void> {
       .filter((plugin) => plugin.enabled && !plugin.error)
       .map((plugin) => activatePlugin(plugin.manifest)),
   );
+  markPluginsReady();
 
   // Any deletion path (shelf UI included) must release the virtual-book
   // binding, or the registry leaks dead entries.
@@ -135,11 +149,57 @@ async function activatePlugin(manifest: PluginManifest): Promise<void> {
     }
     const disposables: PluginDisposable[] = [];
     const sandbox = await startPluginWorker(manifest, appVersion, disposables);
+    // Declarative manifest contributions (themes, bundled fonts) register
+    // host-side — the sandbox never sees them. After the worker start so a
+    // failed activation registers nothing.
+    registerManifestContributions(manifest, disposables);
     active.set(manifest.id, { manifest, sandbox, disposables });
     updateInstalledPlugin(manifest.id, { error: undefined });
   } catch (error) {
     console.error(`[plugins] activation of "${manifest.id}" failed`, error);
     updateInstalledPlugin(manifest.id, { error: errorMessage(error) });
+  }
+}
+
+/**
+ * Register the manifest's declarative contributions (validated by
+ * `parseManifestJson`). A theme typography default naming the plugin's own
+ * font (`plugin:<fontId>`) is expanded here to the full stored ref, so
+ * everything downstream sees one ref shape.
+ */
+function registerManifestContributions(
+  manifest: PluginManifest,
+  disposables: PluginDisposable[],
+): void {
+  for (const font of manifest.fonts ?? []) {
+    disposables.push(
+      registerFontContribution({
+        ...font,
+        key: contributionKey(manifest.id, font.id),
+        pluginId: manifest.id,
+        pluginName: manifest.name,
+      }),
+    );
+  }
+  for (const theme of manifest.themes ?? []) {
+    const typography = theme.reader?.typography;
+    const fontFamily = typography?.fontFamily;
+    const expanded =
+      fontFamily && /^plugin:[a-z0-9][a-z0-9-]*$/.test(fontFamily)
+        ? toPluginRef(manifest.id, fontFamily.slice("plugin:".length))
+        : fontFamily;
+    disposables.push(
+      registerThemeContribution({
+        ...theme,
+        reader: theme.reader && {
+          ...theme.reader,
+          typography: typography && { ...typography, fontFamily: expanded },
+        },
+        key: contributionKey(manifest.id, theme.id),
+        pluginId: manifest.id,
+        pluginName: manifest.name,
+      }),
+    );
   }
 }
 

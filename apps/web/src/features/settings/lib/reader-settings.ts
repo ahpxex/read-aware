@@ -1,22 +1,37 @@
 import { hasCoarsePointer } from "../../../platform/environment";
 import { localKV } from "../../../platform/local-store";
+import { isPluginRef } from "../../plugins/lib/plugin-theme";
 
 const STORAGE_KEY = "read-aware-reader-settings";
 
-/** Concrete, render-ready page color. */
-export type ReaderTheme = "light" | "warm" | "dark";
+/** The app's own page colors, always available. */
+export type BuiltinReaderTheme = "light" | "warm" | "dark";
+/**
+ * Concrete, render-ready page color: a built-in, or a plugin theme ref
+ * (`plugin:<pluginId>:<themeId>`). A ref's palette resolves through the
+ * plugin theme registry at render time (`resolveReaderPalette`), falling back
+ * to `warm` while the plugin is missing — the stored value survives so
+ * re-enabling the plugin restores the look.
+ */
+export type ReaderTheme = BuiltinReaderTheme | `plugin:${string}`;
 /** Stored page-color preference — `auto` follows the resolved app theme. */
 export type ReaderThemePreference = ReaderTheme | "auto";
 /**
- * The reader's body font. Two sources:
+ * The reader's body font. Three sources:
  * - `curated:<id>` — one of our curated reading fonts, fetched and cached on
  *   demand the first time it's used (see `curated-font-loader`).
  * - `system:<family>` — a specific family installed on the user's device.
+ * - `plugin:<pluginId>:<fontId>` — a font bundled by an enabled plugin,
+ *   served straight from its folder.
  */
-export type ReaderFontFamily = `curated:${string}` | `system:${string}`;
+export type ReaderFontFamily =
+  | `curated:${string}`
+  | `system:${string}`
+  | `plugin:${string}`;
 
 export const CURATED_FONT_PREFIX = "curated:";
 export const SYSTEM_FONT_PREFIX = "system:";
+export const PLUGIN_FONT_PREFIX = "plugin:";
 
 /** True when `font` is one of the curated reading fonts. */
 export function isCuratedFont(font: ReaderFontFamily): font is `curated:${string}` {
@@ -26,6 +41,11 @@ export function isCuratedFont(font: ReaderFontFamily): font is `curated:${string
 /** True when `font` names a user-picked installed family. */
 export function isSystemFont(font: ReaderFontFamily): font is `system:${string}` {
   return font.startsWith(SYSTEM_FONT_PREFIX);
+}
+
+/** True when `font` names a plugin-bundled font. */
+export function isPluginFont(font: ReaderFontFamily): font is `plugin:${string}` {
+  return font.startsWith(PLUGIN_FONT_PREFIX);
 }
 
 /** The curated font id behind a `curated:` selection, or `null` otherwise. */
@@ -132,8 +152,18 @@ export function normalizeFontFamily(value: unknown): ReaderFontFamily {
     if (value.startsWith(SYSTEM_FONT_PREFIX) && value.length > SYSTEM_FONT_PREFIX.length) {
       return value as `system:${string}`;
     }
+    if (isPluginRef(value)) return value;
   }
   return DEFAULT_READER_SETTINGS.fontFamily;
+}
+
+/** Coerce a persisted page-color preference to a valid value. */
+export function normalizeReaderTheme(value: unknown): ReaderThemePreference {
+  if (value === "auto" || value === "light" || value === "warm" || value === "dark") {
+    return value;
+  }
+  if (isPluginRef(value)) return value;
+  return DEFAULT_READER_PREFERENCES.theme;
 }
 
 const FONT_SIZES: ReaderFontSize[] = [
@@ -190,7 +220,7 @@ export function getReaderPreferences(): ReaderSettingsPreferences {
     if (!raw) return DEFAULT_READER_PREFERENCES;
     const parsed = JSON.parse(raw) as Partial<ReaderSettingsPreferences>;
     return {
-      theme: parsed.theme ?? DEFAULT_READER_PREFERENCES.theme,
+      theme: normalizeReaderTheme(parsed.theme),
       fontFamily: normalizeFontFamily(parsed.fontFamily),
       fontSize: normalizeFontSize(parsed.fontSize),
       fontWeight: normalizeFontWeight(parsed.fontWeight),

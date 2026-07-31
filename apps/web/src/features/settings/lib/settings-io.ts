@@ -15,6 +15,7 @@ const SETTINGS_KEYS = [
   "read-aware-reader-panels",
   "read-aware-reader-panel-sizes",
   "read-aware-app-settings",
+  "read-aware-app-skin",
   "read-aware-general-settings",
   "read-aware-ai-preferences",
   "read-aware-ai-config",

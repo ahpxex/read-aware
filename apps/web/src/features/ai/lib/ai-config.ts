@@ -24,9 +24,15 @@ export interface AIConfig {
   /** The "fast" tier model (dictionary, memory, summaries). Falls back to a
    *  per-provider default, or to `model` for custom endpoints. */
   fastModel?: string;
+  /** Thinking effort for the smart tier; "off" (the default) sends no
+   *  thinking request. Models without thinking support ignore it. */
+  thinkingLevel?: ThinkingLevel;
+  /** Thinking effort for the fast tier. */
+  fastThinkingLevel?: ThinkingLevel;
   customBaseUrl?: string;
 }
 
+import type { ThinkingLevel } from "@read-aware/agent";
 import { localKV } from "../../../platform/local-store";
 import {
   deleteSecret,
@@ -48,8 +54,14 @@ export function getStoredApiKey(provider: AIProvider): string {
   return getSecret(keySlot(provider));
 }
 
-/** Connection settings remembered per provider (models, custom endpoint). */
-type ProviderSettings = { model?: string; fastModel?: string; customBaseUrl?: string };
+/** Connection settings remembered per provider (models, efforts, custom endpoint). */
+type ProviderSettings = {
+  model?: string;
+  fastModel?: string;
+  thinkingLevel?: ThinkingLevel;
+  fastThinkingLevel?: ThinkingLevel;
+  customBaseUrl?: string;
+};
 
 /**
  * The persisted blob: the active provider plus a per-provider settings map.
@@ -82,6 +94,8 @@ export function getStoredProviderSettings(provider: AIProvider): Required<Provid
   return {
     model: entry?.model ?? legacy?.model ?? DEFAULT_MODELS[provider] ?? "",
     fastModel: entry?.fastModel ?? legacy?.fastModel ?? FAST_DEFAULT_MODELS[provider] ?? "",
+    thinkingLevel: entry?.thinkingLevel ?? "off",
+    fastThinkingLevel: entry?.fastThinkingLevel ?? "off",
     customBaseUrl: entry?.customBaseUrl ?? legacy?.customBaseUrl ?? "",
   };
 }
@@ -118,6 +132,8 @@ export function getAIConfig(): AIConfig | null {
       apiKey,
       model: entry?.model ?? parsed.model ?? "",
       fastModel: entry?.fastModel ?? parsed.fastModel,
+      thinkingLevel: entry?.thinkingLevel,
+      fastThinkingLevel: entry?.fastThinkingLevel,
       customBaseUrl: entry?.customBaseUrl ?? parsed.customBaseUrl,
     };
   } catch {
@@ -126,12 +142,16 @@ export function getAIConfig(): AIConfig | null {
 }
 
 export function saveAIConfig(config: AIConfig): void {
-  const { apiKey, provider, model, fastModel, customBaseUrl } = config;
+  const { apiKey, provider, model, fastModel, thinkingLevel, fastThinkingLevel, customBaseUrl } =
+    config;
   // Merge this provider's settings into the map; other providers keep theirs.
   const models = { ...(readStored()?.models ?? {}) };
   models[provider] = {
     model,
     fastModel,
+    // "off" is the fallback anyway — don't persist it.
+    ...(thinkingLevel && thinkingLevel !== "off" ? { thinkingLevel } : {}),
+    ...(fastThinkingLevel && fastThinkingLevel !== "off" ? { fastThinkingLevel } : {}),
     ...(customBaseUrl ? { customBaseUrl } : {}),
   };
   localKV.setItem(CONFIG_KEY, JSON.stringify({ provider, models } satisfies StoredAIConfig));
@@ -185,6 +205,19 @@ export const FAST_DEFAULT_MODELS: Record<AIProvider, string> = {
   moonshotai: "kimi-k2-turbo-preview",
   custom: "",
 };
+
+export type { ThinkingLevel };
+
+// Thinking-effort choices, in escalation order (shared by both effort dropdowns).
+// pi maps them per provider; models without thinking support ignore them.
+export const THINKING_LEVELS: ThinkingLevel[] = [
+  "off",
+  "minimal",
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+];
 
 // Model options for each provider (shared by the Smart and Fast dropdowns).
 export const PROVIDER_MODELS: Record<AIProvider, { label: string; value: string }[]> = {

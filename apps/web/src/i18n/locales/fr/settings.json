@@ -220,7 +220,19 @@
     "smartModelHelper": "Chat, intégration et synthèse entre livres — le niveau plus lent et plus performant.",
     "fastModelHelper": "Dictionnaire, mémoire et résumés — le niveau moins cher et plus rapide.",
     "modelPlaceholder": "p. ex. gpt-4o-mini",
-    "fastModelCustomPlaceholder": "Laisser vide pour utiliser le modèle intelligent"
+    "fastModelCustomPlaceholder": "Laisser vide pour utiliser le modèle intelligent",
+    "smartThinking": "Réflexion du modèle intelligent",
+    "fastThinking": "Réflexion du modèle rapide",
+    "smartThinkingHelper": "Effort de réflexion pour le chat — les niveaux élevés réfléchissent plus longtemps avant de répondre. Les modèles sans réflexion l'ignorent.",
+    "fastThinkingHelper": "Effort de réflexion pour les tâches d'arrière-plan — laisser désactivé pour la vitesse.",
+    "thinkingLevels": {
+      "off": "Désactivé",
+      "minimal": "Minimal",
+      "low": "Faible",
+      "medium": "Moyen",
+      "high": "Élevé",
+      "xhigh": "Très élevé"
+    }
   },
   "font": {
     "label": "Police",

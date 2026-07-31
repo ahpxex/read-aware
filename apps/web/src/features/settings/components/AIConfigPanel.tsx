@@ -20,7 +20,9 @@ import {
   PROVIDER_MODELS,
   PROVIDER_LABELS,
   PROVIDER_KEY_URLS,
+  THINKING_LEVELS,
   type AIProvider,
+  type ThinkingLevel,
 } from "../../ai/lib/ai-config";
 
 export function AIConfigPanel() {
@@ -29,6 +31,8 @@ export function AIConfigPanel() {
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState(DEFAULT_MODELS.openai);
   const [fastModel, setFastModel] = useState(FAST_DEFAULT_MODELS.openai);
+  const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>("off");
+  const [fastThinkingLevel, setFastThinkingLevel] = useState<ThinkingLevel>("off");
   const [customBaseUrl, setCustomBaseUrl] = useState("");
   const [isConfigured, setIsConfigured] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
@@ -43,6 +47,8 @@ export function AIConfigPanel() {
       setApiKey(config.apiKey);
       setModel(config.model);
       setFastModel(config.fastModel ?? FAST_DEFAULT_MODELS[config.provider] ?? "");
+      setThinkingLevel(config.thinkingLevel ?? "off");
+      setFastThinkingLevel(config.fastThinkingLevel ?? "off");
       setCustomBaseUrl(config.customBaseUrl || "");
       setIsConfigured(true);
     }
@@ -60,6 +66,8 @@ export function AIConfigPanel() {
     const remembered = getStoredProviderSettings(next);
     setModel(remembered.model);
     setFastModel(remembered.fastModel);
+    setThinkingLevel(remembered.thinkingLevel);
+    setFastThinkingLevel(remembered.fastThinkingLevel);
     setCustomBaseUrl(remembered.customBaseUrl);
     setTestResult(null);
   };
@@ -70,6 +78,8 @@ export function AIConfigPanel() {
       apiKey: apiKey.trim(),
       model: model.trim(),
       fastModel: fastModel.trim() || undefined,
+      thinkingLevel,
+      fastThinkingLevel,
       customBaseUrl: provider === "custom" ? customBaseUrl.trim() : undefined,
     };
     saveAIConfig(config);
@@ -82,6 +92,8 @@ export function AIConfigPanel() {
     setApiKey("");
     setModel(DEFAULT_MODELS.openai);
     setFastModel(FAST_DEFAULT_MODELS.openai);
+    setThinkingLevel("off");
+    setFastThinkingLevel("off");
     setCustomBaseUrl("");
     setIsConfigured(false);
     setTestResult(null);
@@ -132,6 +144,10 @@ export function AIConfigPanel() {
 
   const modelOptions = PROVIDER_MODELS[provider] || [];
   const hasModelCatalog = modelOptions.length > 0;
+  const thinkingOptions = THINKING_LEVELS.map((level) => ({
+    value: level,
+    label: t(`aiConfig.thinkingLevels.${level}`),
+  }));
   const keyUrl = PROVIDER_KEY_URLS[provider];
 
   return (
@@ -229,6 +245,29 @@ export function AIConfigPanel() {
             />
           </>
         )}
+
+        {/* Per-tier thinking effort. pi maps the level onto each provider's
+            thinking parameters; models without thinking support ignore it. */}
+        <Select
+          label={t("aiConfig.smartThinking")}
+          value={thinkingLevel}
+          onChange={(value) => {
+            setThinkingLevel(value as ThinkingLevel);
+            setTestResult(null);
+          }}
+          options={thinkingOptions}
+          helperText={t("aiConfig.smartThinkingHelper")}
+        />
+        <Select
+          label={t("aiConfig.fastThinking")}
+          value={fastThinkingLevel}
+          onChange={(value) => {
+            setFastThinkingLevel(value as ThinkingLevel);
+            setTestResult(null);
+          }}
+          options={thinkingOptions}
+          helperText={t("aiConfig.fastThinkingHelper")}
+        />
 
         {keyUrl && (
           <p className="text-xs text-fg-muted">

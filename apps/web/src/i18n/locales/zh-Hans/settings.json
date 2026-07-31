@@ -220,7 +220,19 @@
     "smartModelHelper": "聊天、引导访谈、跨书综合——更慢、更聪明的档位。",
     "fastModelHelper": "查词典、记忆提炼、摘要——更便宜、更快的档位。",
     "modelPlaceholder": "例如 gpt-4o-mini",
-    "fastModelCustomPlaceholder": "留空则与 Smart 模型相同"
+    "fastModelCustomPlaceholder": "留空则与 Smart 模型相同",
+    "smartThinking": "Smart 模型思考力度",
+    "fastThinking": "Fast 模型思考力度",
+    "smartThinkingHelper": "聊天轮次的推理力度——档位越高，回答前思考越久。不支持思考的模型会忽略此设置。",
+    "fastThinkingHelper": "后台任务（记忆、摘要）的推理力度——保持关闭最快最省。",
+    "thinkingLevels": {
+      "off": "关闭",
+      "minimal": "最低",
+      "low": "低",
+      "medium": "中",
+      "high": "高",
+      "xhigh": "极高"
+    }
   },
   "font": {
     "label": "字体",

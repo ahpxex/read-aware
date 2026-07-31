@@ -220,7 +220,19 @@
     "smartModelHelper": "チャット・オンボーディング・横断的な統合など、遅くて賢い段階。",
     "fastModelHelper": "辞書・記憶・要約など、安くて速い段階。",
     "modelPlaceholder": "例：gpt-4o-mini",
-    "fastModelCustomPlaceholder": "空欄の場合はスマートモデルと同じ"
+    "fastModelCustomPlaceholder": "空欄の場合はスマートモデルと同じ",
+    "smartThinking": "スマートモデルの思考",
+    "fastThinking": "高速モデルの思考",
+    "smartThinkingHelper": "チャット応答の推論量。高いほど回答前に長く考えます。思考に対応しないモデルでは無視されます。",
+    "fastThinkingHelper": "バックグラウンド処理の推論量。速さ重視ならオフのままに。",
+    "thinkingLevels": {
+      "off": "オフ",
+      "minimal": "最小",
+      "low": "低",
+      "medium": "中",
+      "high": "高",
+      "xhigh": "最高"
+    }
   },
   "font": {
     "label": "フォント",

@@ -3,10 +3,14 @@
  * AgentRuntime 装配与 Settings 的连接测试共用，保证两边看到同一个账户形态
  * （custom = OpenAI 兼容端点 → openai provider + baseUrl）。
  */
-import type { LlmAccount, RoleModels } from "@read-aware/agent";
+import type { LlmAccount, RoleModels, RoleThinking } from "@read-aware/agent";
 import { DEFAULT_MODELS, FAST_DEFAULT_MODELS, type AIConfig } from "../lib/ai-config";
 
-export function accountFromConfig(config: AIConfig): { account: LlmAccount; models: RoleModels } {
+export function accountFromConfig(config: AIConfig): {
+  account: LlmAccount;
+  models: RoleModels;
+  thinking: RoleThinking;
+} {
   const account: LlmAccount =
     config.provider === "custom"
       ? {
@@ -27,5 +31,9 @@ export function accountFromConfig(config: AIConfig): { account: LlmAccount; mode
       : config.fastModel || FAST_DEFAULT_MODELS[config.provider] || smart;
 
   const models: RoleModels = { smart, fast };
-  return { account, models };
+  const thinking: RoleThinking = {
+    smart: config.thinkingLevel ?? "off",
+    fast: config.fastThinkingLevel ?? "off",
+  };
+  return { account, models, thinking };
 }

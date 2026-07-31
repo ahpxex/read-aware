@@ -220,7 +220,19 @@
     "smartModelHelper": "Chat, Onboarding und buchübergreifende Synthese – die langsamere, leistungsfähigere Stufe.",
     "fastModelHelper": "Wörterbuch, Gedächtnis und Zusammenfassungen – die günstigere, schnellere Stufe.",
     "modelPlaceholder": "z. B. gpt-4o-mini",
-    "fastModelCustomPlaceholder": "Leer lassen, um das Smart-Modell zu verwenden"
+    "fastModelCustomPlaceholder": "Leer lassen, um das Smart-Modell zu verwenden",
+    "smartThinking": "Denkaufwand des Smart-Modells",
+    "fastThinking": "Denkaufwand des Fast-Modells",
+    "smartThinkingHelper": "Denkaufwand für Chat-Antworten – höhere Stufen denken länger nach. Modelle ohne Denkfunktion ignorieren dies.",
+    "fastThinkingHelper": "Denkaufwand für Hintergrundarbeit – für Tempo auf Aus lassen.",
+    "thinkingLevels": {
+      "off": "Aus",
+      "minimal": "Minimal",
+      "low": "Niedrig",
+      "medium": "Mittel",
+      "high": "Hoch",
+      "xhigh": "Sehr hoch"
+    }
   },
   "font": {
     "label": "Schriftart",

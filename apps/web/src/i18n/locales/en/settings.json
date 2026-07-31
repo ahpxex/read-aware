@@ -220,7 +220,19 @@
     "smartModelHelper": "Chat, onboarding, and cross-book synthesis — the slower, more capable tier.",
     "fastModelHelper": "Dictionary, memory, and summaries — the cheaper, faster tier.",
     "modelPlaceholder": "e.g. gpt-4o-mini",
-    "fastModelCustomPlaceholder": "Leave empty to match the smart model"
+    "fastModelCustomPlaceholder": "Leave empty to match the smart model",
+    "smartThinking": "Smart model thinking",
+    "fastThinking": "Fast model thinking",
+    "smartThinkingHelper": "Reasoning effort for chat turns — higher levels think longer before answering. Models without thinking support ignore this.",
+    "fastThinkingHelper": "Reasoning effort for background work — keep Off for speed.",
+    "thinkingLevels": {
+      "off": "Off",
+      "minimal": "Minimal",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "xhigh": "Extra high"
+    }
   },
   "font": {
     "label": "Font",

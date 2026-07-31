@@ -5,7 +5,7 @@
  * ThreadChunk、轮末持久化两条 TurnRecord（doc §10）。
  * 书线程按**章节会话**装配上下文：同章节连续，换章节发新消息才重置（doc §5）。
  */
-import { Agent, type AgentEvent } from "@earendil-works/pi-agent-core";
+import { Agent, type AgentEvent, type ThinkingLevel } from "@earendil-works/pi-agent-core";
 import { streamSimple } from "@earendil-works/pi-ai/compat";
 import type { Usage } from "@earendil-works/pi-ai";
 import type { ThreadChunk } from "../chunks";
@@ -57,6 +57,8 @@ export interface AgentThreadOptions {
   getApiKey: (provider: string) => string | undefined;
   /** 后台管道（记忆提炼）的补全调用，跑在 fast 档位上 */
   completeFn: CompleteFn;
+  /** 聊天轮次（smart 档）的 thinking effort，默认 "off" */
+  thinkingLevel?: ThinkingLevel;
   /** transformContext 窗口大小（用户轮数），默认 12 */
   maxWindowTurns?: number;
 }
@@ -85,6 +87,7 @@ export class AgentThread {
   private readonly resolveModel: ResolveModel;
   private readonly getApiKey: (provider: string) => string | undefined;
   private readonly completeFn: CompleteFn;
+  private readonly thinkingLevel: ThinkingLevel;
   private readonly maxWindowTurns: number;
 
   private agent: Agent | undefined;
@@ -105,6 +108,7 @@ export class AgentThread {
     this.resolveModel = options.resolveModel;
     this.getApiKey = options.getApiKey;
     this.completeFn = options.completeFn;
+    this.thinkingLevel = options.thinkingLevel ?? "off";
     this.maxWindowTurns = options.maxWindowTurns ?? DEFAULT_WINDOW_TURNS;
   }
 
@@ -144,6 +148,7 @@ export class AgentThread {
     const agent = new Agent({
       initialState: {
         model,
+        thinkingLevel: this.thinkingLevel,
         tools: [
           ...buildThreadTools(this.scope, this.deps),
           ...buildMemoryTools(this.scope, this.deps),

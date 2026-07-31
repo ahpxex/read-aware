@@ -20,11 +20,14 @@ export function getAgentRuntime(): AgentRuntime | null {
   const config = getAIConfig();
   if (!config?.apiKey) return null;
 
-  const { account, models } = accountFromConfig(config);
+  const { account, models, thinking } = accountFromConfig(config);
 
-  const key = JSON.stringify([account, models]);
+  const key = JSON.stringify([account, models, thinking]);
   if (cached?.key !== key) {
-    cached = { key, runtime: createAgentRuntime({ deps: buildRuntimeDeps(), account, models }) };
+    cached = {
+      key,
+      runtime: createAgentRuntime({ deps: buildRuntimeDeps(), account, models, thinking }),
+    };
   }
   return cached.runtime;
 }

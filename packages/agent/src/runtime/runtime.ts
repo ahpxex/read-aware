@@ -7,6 +7,7 @@ import { runConsolidation, type ConsolidationReport } from "../memory/consolidat
 import { createModelResolver, type LlmAccount, type RoleModels } from "../models/accounts";
 import { createCompleteFn, createStreamFn, type CompleteFn, type StreamFn } from "../models/complete";
 import { buildProviderRegistry } from "../models/registry";
+import type { ModelRole, RoleThinking } from "../models/roles";
 import type { RuntimeDeps } from "../ports";
 import { extractJsonObject, schemaViolations } from "../structured";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
@@ -16,22 +17,32 @@ export interface AgentRuntimeOptions {
   deps: RuntimeDeps;
   account: LlmAccount;
   models: RoleModels;
+  /** 各档位的 thinking effort，缺省全 "off"（不发 thinking 参数）。 */
+  thinking?: RoleThinking;
   maxWindowTurns?: number;
 }
 
 export class AgentRuntime {
   private readonly options: AgentRuntimeOptions;
   private readonly resolveModel: ReturnType<typeof createModelResolver>;
-  private readonly completeFn: CompleteFn;
-  private readonly streamFn: StreamFn;
+  private readonly thinking: RoleThinking;
+  private readonly completeFns: Record<ModelRole, CompleteFn>;
+  private readonly streamFns: Record<ModelRole, StreamFn>;
   private readonly threads = new Map<string, AgentThread>();
 
   constructor(options: AgentRuntimeOptions) {
     this.options = options;
     const registry = buildProviderRegistry();
     this.resolveModel = createModelResolver(options.account, options.models, registry);
-    this.completeFn = createCompleteFn(registry, options.account);
-    this.streamFn = createStreamFn(registry, options.account);
+    this.thinking = options.thinking ?? { smart: "off", fast: "off" };
+    this.completeFns = {
+      smart: createCompleteFn(registry, options.account, this.thinking.smart),
+      fast: createCompleteFn(registry, options.account, this.thinking.fast),
+    };
+    this.streamFns = {
+      smart: createStreamFn(registry, options.account, this.thinking.smart),
+      fast: createStreamFn(registry, options.account, this.thinking.fast),
+    };
   }
 
   thread(scope: ThreadScope): AgentThread {
@@ -43,7 +54,8 @@ export class AgentRuntime {
         deps: this.options.deps,
         resolveModel: this.resolveModel,
         getApiKey: () => this.options.account.apiKey,
-        completeFn: this.completeFn,
+        completeFn: this.completeFns.fast,
+        thinkingLevel: this.thinking.smart,
         maxWindowTurns: this.options.maxWindowTurns,
       });
       this.threads.set(key, thread);
@@ -99,20 +111,21 @@ export class AgentRuntime {
       throw new Error("ask: schema and onText are mutually exclusive");
     }
     const complete = async (system: string | undefined, prompt: string): Promise<string> => {
-      const model = this.resolveModel(input.model ?? "fast");
+      const role = input.model ?? "fast";
+      const model = this.resolveModel(role);
       const context = {
         systemPrompt: system,
         messages: [{ role: "user" as const, content: prompt, timestamp: Date.now() }],
       };
       let message;
       if (input.onText) {
-        const stream = this.streamFn(model, context);
+        const stream = this.streamFns[role](model, context);
         for await (const event of stream) {
           if (event.type === "text_delta") input.onText(event.delta);
         }
         message = await stream.result();
       } else {
-        message = await this.completeFn(model, context);
+        message = await this.completeFns[role](model, context);
       }
       // completeSimple 不 reject：失败 resolve 成 stopReason "error"/"aborted"。
       if (message.stopReason === "error" || message.stopReason === "aborted") {
@@ -158,7 +171,7 @@ export class AgentRuntime {
   consolidate(): Promise<ConsolidationReport> {
     return runConsolidation({
       memory: this.options.deps.memory,
-      complete: this.completeFn,
+      complete: this.completeFns.fast,
       model: this.resolveModel("fast"),
     });
   }

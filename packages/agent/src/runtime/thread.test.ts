@@ -107,6 +107,47 @@ describe("AgentThread", () => {
     expect(persisted?.[1].content).toBe("You highlighted two passages.");
   });
 
+  test("passes the configured thinking effort to the model as reasoning", async () => {
+    const { faux, model } = makeFaux();
+    let captured: { reasoning?: string } | undefined;
+    faux.setResponses([
+      (_context, options) => {
+        captured = options as typeof captured;
+        return fauxAssistantMessage("ok");
+      },
+    ]);
+    const { deps } = makeDeps();
+    const thread = new AgentThread({
+      scope: { kind: "book", bookId: "b1" as Id },
+      deps,
+      resolveModel: () => model,
+      getApiKey: () => "test-key",
+      completeFn: noopComplete,
+      thinkingLevel: "high",
+    });
+
+    await collect(thread.sendTurn({ text: "hi" }));
+
+    expect(captured?.reasoning).toBe("high");
+  });
+
+  test("default thinking effort sends no reasoning parameter", async () => {
+    const { faux, model } = makeFaux();
+    let captured: { reasoning?: string } | undefined;
+    faux.setResponses([
+      (_context, options) => {
+        captured = options as typeof captured;
+        return fauxAssistantMessage("ok");
+      },
+    ]);
+    const { deps } = makeDeps();
+    const thread = makeThread(deps, model);
+
+    await collect(thread.sendTurn({ text: "hi" }));
+
+    expect(captured?.reasoning).toBeUndefined();
+  });
+
   test("hydrates persisted history and assembles the system prompt", async () => {
     const { faux, model } = makeFaux();
     let captured: Context | undefined;

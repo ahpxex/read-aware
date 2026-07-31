@@ -1,3 +1,4 @@
+import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import type { Api, Model } from "@earendil-works/pi-ai";
 
 /**
@@ -7,6 +8,15 @@ import type { Api, Model } from "@earendil-works/pi-ai";
  * - `fast`：便宜、快 —— 逐轮记忆提炼、滚动摘要、去重初筛、标题/标签
  */
 export type ModelRole = "smart" | "fast";
+
+export type { ThinkingLevel };
+
+/**
+ * 每个档位的 thinking effort。"off" 不发任何 thinking 参数（历史行为）；
+ * 其余档位由 pi 按 provider 的 thinkingFormat / thinkingLevelMap 映射，
+ * 不支持思考的模型自动忽略。
+ */
+export type RoleThinking = Record<ModelRole, ThinkingLevel>;
 
 /** 从当前激活的 LLM 账户配置解析某个档位对应的具体模型。 */
 export type ResolveModel = (role: ModelRole) => Model<Api>;

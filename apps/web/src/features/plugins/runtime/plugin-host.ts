@@ -187,6 +187,15 @@ async function adoptDiskEntry(entry: PluginDiskEntry): Promise<InstalledPlugin> 
     );
   }
 
+  // A bundled plugin's id is not installable-over: the built-in cannot be
+  // uninstalled, so adopting this copy would leave two same-id plugins with
+  // no clean way out. The files were already written — remove them again.
+  const existing = getInstalled().find((plugin) => plugin.manifest.id === manifest.id);
+  if (existing?.builtin) {
+    await uninstallPluginFiles(manifest.id).catch(() => {});
+    throw new Error(`"${manifest.id}" is a built-in plugin and cannot be replaced`);
+  }
+
   // Replacing a running plugin: tear the old instance down first.
   await deactivatePlugin(manifest.id);
 

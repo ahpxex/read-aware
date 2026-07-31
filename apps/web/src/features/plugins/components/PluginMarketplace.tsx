@@ -119,6 +119,10 @@ export function PluginMarketplace({ refreshToken = 0 }: PluginMarketplaceProps) 
       {filtered.map((entry) => {
         const installedPlugin = installed.find((p) => p.manifest.id === entry.id);
         const upToDate = installedPlugin?.manifest.version === entry.version;
+        // A registry entry colliding with a bundled plugin must never offer
+        // install/update: the built-in cannot be uninstalled, and installing
+        // would plant a second same-id plugin beside it.
+        const builtin = installedPlugin?.builtin === true;
         return (
           <div
             key={entry.id}
@@ -142,7 +146,9 @@ export function PluginMarketplace({ refreshToken = 0 }: PluginMarketplaceProps) 
               </span>
             </div>
             <div className="shrink-0 pt-0.5">
-              {installedPlugin && upToDate ? (
+              {builtin ? (
+                <Caption className="text-fg-subtle">{t("settings.builtin")}</Caption>
+              ) : installedPlugin && upToDate ? (
                 <Caption className="text-fg-subtle">{t("settings.installedBadge")}</Caption>
               ) : (
                 <Button

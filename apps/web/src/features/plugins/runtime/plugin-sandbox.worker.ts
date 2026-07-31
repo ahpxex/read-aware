@@ -37,7 +37,6 @@ type HostMessage =
       language: string;
     }
   | { t: "invoke"; id: number; handle: string; args: unknown[] }
-  | { t: "event"; handle: string; payload: unknown }
   | { t: "sync"; patch: { storage?: Record<string, string>; language?: string } }
   | { t: "result"; id: number; ok: true; value: unknown }
   | { t: "result"; id: number; ok: false; error: string }
@@ -46,7 +45,6 @@ type HostMessage =
 type WorkerMessage =
   | { t: "ready" }
   | { t: "failed"; error: string }
-  | { t: "register"; kind: string; handle: string; payload: unknown }
   | { t: "dispose"; handle: string }
   | { t: "call"; id: number; method: string; args: unknown[] }
   | { t: "storage"; op: "set" | "remove"; key: string; value?: string }
@@ -232,21 +230,32 @@ function buildContext(
     };
   }
 
-  // `fetch` must hand back a real Response; the host sends a flattened one.
+  // `fetch` must hand back a real Response; the host sends a flattened one
+  // whose body is an ArrayBuffer, so binary payloads survive the crossing.
   const network = ctx.network as Record<string, unknown> | undefined;
   if (network && typeof network.fetch === "function") {
+    // Statuses the Response constructor refuses to pair with a body.
+    const NULL_BODY_STATUSES = new Set([101, 204, 205, 304]);
     network.fetch = async (input: unknown, init?: unknown) => {
       const result = (await callHost("network.fetch", [input, init])) as {
         status: number;
         statusText: string;
+        url: string;
         headers: Record<string, string>;
-        body: string;
+        body: ArrayBuffer;
       };
-      return new Response(result.body, {
-        status: result.status,
-        statusText: result.statusText,
-        headers: result.headers,
-      });
+      const response = new Response(
+        NULL_BODY_STATUSES.has(result.status) ? null : result.body,
+        {
+          status: result.status,
+          statusText: result.statusText,
+          headers: result.headers,
+        },
+      );
+      // The constructor cannot set `url`; shadow the prototype getter so
+      // redirect-following plugins still learn the final address.
+      Object.defineProperty(response, "url", { value: result.url });
+      return response;
     };
   }
 
@@ -309,16 +318,6 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
           ok: false,
           error: error instanceof Error ? error.message : String(error),
         });
-      }
-      return;
-    }
-
-    case "event": {
-      const handler = handlers.get(message.handle);
-      try {
-        handler?.(message.payload);
-      } catch (error) {
-        console.error("[plugin-sandbox] event handler threw", error);
       }
       return;
     }

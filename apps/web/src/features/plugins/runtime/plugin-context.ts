@@ -230,10 +230,14 @@ export function buildPluginContext(
           throw new Error(`"${String(event)}" is not a session event`);
         }
         const off = onAppEvent(event, ((payload: PluginSessionEventMap[typeof event]) => {
-          try {
-            handler(payload as never);
-          } catch (error) {
+          const report = (error: unknown) =>
             console.error(`[plugins] event handler from "${manifest.id}" failed`, error);
+          try {
+            // Sandboxed handlers are async proxies; their failures reject.
+            const result = handler(payload as never) as unknown;
+            if (result instanceof Promise) result.catch(report);
+          } catch (error) {
+            report(error);
           }
         }) as never);
         return track({ dispose: off });

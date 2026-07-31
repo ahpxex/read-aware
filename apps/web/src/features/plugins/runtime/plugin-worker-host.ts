@@ -21,8 +21,10 @@ import type {
 } from "@read-aware/plugin-types";
 import { buildPluginContext, pluginStoragePrefix } from "./plugin-context";
 import { pluginModuleUrl } from "./plugin-backend";
+import { onAppEvent } from "../../../platform/app-events";
 import { localKV } from "../../../platform/local-store";
 import { getDictionaryLanguage } from "../../reader/lib/dictionary-prefs";
+import { updateInstalledPlugin } from "../state/plugin-store";
 
 type WorkerMessage =
   | { t: "ready" }
@@ -44,6 +46,33 @@ export type SandboxedPlugin = {
   terminate(): Promise<void>;
 };
 
+// ─── Host → worker state sync ────────────────────────────────────────────────
+//
+// The worker keeps local mirrors so `storage.get()` and `dictionary.
+// getLanguage()` stay synchronous. Worker-side writes already flow back here;
+// this is the other direction: when the HOST writes (a settings save from the
+// Plugins panel, a language change in reader prefs), every live sandbox gets a
+// `sync` patch, or its mirror silently serves boot-time values forever.
+
+const liveWorkers = new Map<string, Worker>();
+let syncWired = false;
+
+function wireHostSync(): void {
+  if (syncWired) return;
+  syncWired = true;
+  onAppEvent("plugin-storage-changed", ({ pluginId }) => {
+    liveWorkers.get(pluginId)?.postMessage({
+      t: "sync",
+      patch: { storage: localKV.entries(pluginStoragePrefix(pluginId)) },
+    });
+  });
+  onAppEvent("dictionary-language-changed", ({ language }) => {
+    for (const worker of liveWorkers.values()) {
+      worker.postMessage({ t: "sync", patch: { language } });
+    }
+  });
+}
+
 /**
  * Walk a dotted method path to the callable on the real context.
  *
@@ -56,19 +85,29 @@ function resolveMethod(
   ctx: PluginContext,
   method: string,
 ): ((...args: unknown[]) => unknown) | null {
+  // Own enumerable properties of plain objects only — the context is built
+  // entirely from literals, so anything reachable via the prototype chain
+  // (`constructor` and friends) is by definition not part of the granted
+  // surface and must not resolve.
+  const step = (target: unknown, key: string): unknown =>
+    target !== null &&
+    typeof target === "object" &&
+    Object.prototype.hasOwnProperty.call(target, key)
+      ? (target as Record<string, unknown>)[key]
+      : undefined;
   const collection = method.match(/^storage\.collection\(([^)]*)\)\.(\w+)$/);
   if (collection) {
     const api = ctx.storage.collection(collection[1]) as unknown as Record<string, unknown>;
-    const fn = api?.[collection[2]];
+    const fn = step(api, collection[2]);
     return typeof fn === "function" ? (fn as (...a: unknown[]) => unknown).bind(api) : null;
   }
   const parts = method.split(".");
   let target: unknown = ctx;
   for (let i = 0; i < parts.length - 1; i += 1) {
-    target = (target as Record<string, unknown>)?.[parts[i]];
+    target = step(target, parts[i]);
     if (!target) return null;
   }
-  const fn = (target as Record<string, unknown>)?.[parts[parts.length - 1]];
+  const fn = step(target, parts[parts.length - 1]);
   return typeof fn === "function"
     ? (fn as (...a: unknown[]) => unknown).bind(target)
     : null;
@@ -115,7 +154,12 @@ function describeContext(ctx: PluginContext): ContextShape {
   return shape;
 }
 
-/** `fetch` returns a Response, which cannot be cloned — flatten it. */
+/**
+ * `fetch` returns a Response, which cannot be cloned — flatten it. The body
+ * crosses as an ArrayBuffer so binary payloads (cover images, book files an
+ * RSS-style plugin hands to `books.write.import`) survive; the worker-side
+ * Response decodes text lazily for callers that want `.text()`/`.json()`.
+ */
 async function flattenResponse(response: Response): Promise<unknown> {
   const headers: Record<string, string> = {};
   response.headers.forEach((value, key) => {
@@ -125,8 +169,9 @@ async function flattenResponse(response: Response): Promise<unknown> {
     ok: response.ok,
     status: response.status,
     statusText: response.statusText,
+    url: response.url,
     headers,
-    body: await response.text(),
+    body: await response.arrayBuffer(),
   };
 }
 
@@ -139,6 +184,8 @@ export function startPluginWorker(
     type: "module",
     name: `plugin:${manifest.id}`,
   });
+  wireHostSync();
+  liveWorkers.set(manifest.id, worker);
   const ctx = buildPluginContext(manifest, appVersion, disposables);
 
   let nextInvokeId = 1;
@@ -191,8 +238,17 @@ export function startPluginWorker(
     let settled = false;
 
     worker.onerror = (event) => {
-      if (settled) return;
+      if (settled) {
+        // A crash after activation used to vanish here; keep the sandbox up
+        // (its registrations may still work) but put the error where the
+        // settings panel shows it.
+        const message = event.message || "plugin crashed at runtime";
+        console.error(`[plugins] runtime error in "${manifest.id}"`, message);
+        updateInstalledPlugin(manifest.id, { error: message });
+        return;
+      }
       settled = true;
+      liveWorkers.delete(manifest.id);
       worker.terminate();
       reject(new Error(event.message || "plugin worker failed to start"));
     };
@@ -206,6 +262,7 @@ export function startPluginWorker(
             resolve({
               manifest,
               async terminate() {
+                liveWorkers.delete(manifest.id);
                 worker.postMessage({ t: "deactivate" });
                 // Give deactivate() a moment to run its own cleanup, then take
                 // the realm down regardless — a plugin must not be able to
@@ -220,6 +277,7 @@ export function startPluginWorker(
         case "failed":
           if (!settled) {
             settled = true;
+            liveWorkers.delete(manifest.id);
             worker.terminate();
             reject(new Error(message.error));
           }

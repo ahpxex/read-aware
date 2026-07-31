@@ -78,10 +78,15 @@ export function domainSubscribe<E extends DomainEventType>(
     }
     return onDomainEventBroadcast((broadcast) => {
       if (broadcast.type !== event) return;
-      try {
-        handler(broadcast);
-      } catch (error) {
+      const report = (error: unknown) =>
         console.error(`[domain] event handler from "${consumerLabel}" failed`, error);
+      try {
+        // A sandboxed consumer's handler is an async proxy into its Worker —
+        // its failures arrive as a rejection, not a throw.
+        const result = handler(broadcast) as unknown;
+        if (result instanceof Promise) result.catch(report);
+      } catch (error) {
+        report(error);
       }
     });
   }) as never;

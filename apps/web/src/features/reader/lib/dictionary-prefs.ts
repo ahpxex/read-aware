@@ -3,6 +3,7 @@
  * Persisted device-locally (SQLite on desktop) like the other reader prefs.
  * `"auto"` (the default) follows the app's UI language.
  */
+import { emitAppEvent } from "../../../platform/app-events";
 import { localKV } from "../../../platform/local-store";
 import { type AppLocale, isAppLocale } from "../../../i18n/config";
 
@@ -24,6 +25,9 @@ export function getDictionaryLanguage(): DictionaryLanguage {
 
 export function saveDictionaryLanguage(language: DictionaryLanguage): void {
   localKV.setItem(STORAGE_KEY, language);
+  // Sandboxed plugins mirror this value locally; the worker host relays the
+  // change so their synchronous getLanguage() stays truthful.
+  emitAppEvent("dictionary-language-changed", { language });
 }
 
 /**

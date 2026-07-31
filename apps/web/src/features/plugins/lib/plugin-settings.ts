@@ -4,6 +4,7 @@
  * (plugins read `ctx.storage.get("settings")`). The Plugins panel opens this
  * as a Dialog via the standard view pipeline.
  */
+import { emitAppEvent } from "../../../platform/app-events";
 import { localKV } from "../../../platform/local-store";
 import type {
   PluginFormValues,
@@ -51,6 +52,9 @@ export function buildPluginSettingsView(
     submitLabel,
     onSubmit: (values) => {
       localKV.setItem(storageKey(manifest.id), JSON.stringify(values));
+      // A running sandbox reads settings from its local snapshot; tell the
+      // worker host so `ctx.storage.get("settings")` reflects this save.
+      emitAppEvent("plugin-storage-changed", { pluginId: manifest.id });
       return { close: true, toast: savedToast };
     },
   };

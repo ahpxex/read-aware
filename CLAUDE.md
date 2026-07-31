@@ -183,7 +183,7 @@ Use `cn()` from `@read-aware/ui/cn` for className composition (clsx + tailwind-m
 ## Project Structure
 
 Monorepo managed by Turborepo + bun workspaces. Commands run from the repo root:
-`bun run dev` (web), `bun run dev:desktop` (Tauri), `bun run build`, `bun run storybook`.
+`bun run dev` (Tauri desktop), `bun run dev:web` (web only), `bun run build`, `bun run storybook`.
 
 ```
 read-aware/

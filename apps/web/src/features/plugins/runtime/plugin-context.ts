@@ -245,22 +245,34 @@ export function buildPluginContext(
     },
   };
 
-  // ─── Books ────────────────────────────────────────────────────────────────
+  // ─── Shelf (books + collections + stats) ──────────────────────────────────
 
-  if (permissions.has("books:read") || permissions.has("books:write")) {
-    ctx.books = {
-      list: domain.books.list,
-      get: domain.books.get,
-      getToc: domain.books.getToc,
-      getChapterText: domain.books.getChapterText,
-      on: trackedOn(domain.books.on),
+  if (permissions.has("shelf:read") || permissions.has("shelf:write")) {
+    ctx.shelf = {
+      books: {
+        list: domain.shelf.books.list,
+        get: domain.shelf.books.get,
+        getToc: domain.shelf.books.getToc,
+        getChapterText: domain.shelf.books.getChapterText,
+      },
+      collections: {
+        list: domain.shelf.collections.list,
+        booksIn: domain.shelf.collections.booksIn,
+      },
+      stats: {
+        forBook: domain.shelf.stats.forBook,
+        list: domain.shelf.stats.list,
+        overview: domain.shelf.stats.overview,
+      },
+      on: trackedOn(domain.shelf.on),
     };
-    if (permissions.has("books:write")) {
-      ctx.books.write = {
-        import: domain.books.importBook,
-        editMetadata: domain.books.editMetadata,
-        setStarred: domain.books.setStarred,
-        remove: domain.books.remove,
+    if (permissions.has("shelf:write")) {
+      ctx.shelf.books.write = {
+        import: domain.shelf.books.importBook,
+        editMetadata: domain.shelf.books.editMetadata,
+        setStarred: domain.shelf.books.setStarred,
+        setFinished: domain.shelf.books.setFinished,
+        remove: domain.shelf.books.remove,
         registerContentProvider: (provider) =>
           track(
             registerContentProviderContribution({
@@ -280,9 +292,9 @@ export function buildPluginContext(
           if (existingId) {
             // The binding may be an orphan (book deleted before cleanup
             // existed, or through an untracked path) — verify the record.
-            const alive = await domain.books.get(existingId);
+            const alive = await domain.shelf.books.get(existingId);
             if (alive) {
-              await domain.books.updateVirtualBookTitle(
+              await domain.shelf.books.updateVirtualBookTitle(
                 existingId,
                 String(input.title),
                 input.author,
@@ -295,7 +307,7 @@ export function buildPluginContext(
             }
             unbindVirtualBook(existingId);
           }
-          const book = await domain.books.addVirtualBook({
+          const book = await domain.shelf.books.addVirtualBook({
             title: String(input.title),
             author: input.author,
           });
@@ -310,30 +322,18 @@ export function buildPluginContext(
           });
           if (!bookId) return;
           try {
-            await domain.books.remove(bookId);
+            await domain.shelf.books.remove(bookId);
           } catch (error) {
             console.error("[plugins] virtual book removal", error);
           }
           unbindVirtualBook(bookId);
         },
       };
-    }
-  }
-
-  // ─── Collections ──────────────────────────────────────────────────────────
-
-  if (permissions.has("collections:read") || permissions.has("collections:write")) {
-    ctx.collections = {
-      list: domain.collections.list,
-      booksIn: domain.collections.booksIn,
-      on: trackedOn(domain.collections.on),
-    };
-    if (permissions.has("collections:write")) {
-      ctx.collections.write = {
-        create: domain.collections.create,
-        rename: domain.collections.rename,
-        remove: domain.collections.remove,
-        assignBooks: domain.collections.assignBooks,
+      ctx.shelf.collections.write = {
+        create: domain.shelf.collections.create,
+        rename: domain.shelf.collections.rename,
+        remove: domain.shelf.collections.remove,
+        assignBooks: domain.shelf.collections.assignBooks,
       };
     }
   }
@@ -355,17 +355,6 @@ export function buildPluginContext(
         removeNote: domain.annotations.removeNote,
       };
     }
-  }
-
-  // ─── Reading ──────────────────────────────────────────────────────────────
-
-  if (permissions.has("reading:read")) {
-    ctx.reading = {
-      getState: domain.reading.getState,
-      listStates: domain.reading.listStates,
-      getTime: domain.reading.getTime,
-      on: trackedOn(domain.reading.on),
-    };
   }
 
   // ─── Conversations ────────────────────────────────────────────────────────

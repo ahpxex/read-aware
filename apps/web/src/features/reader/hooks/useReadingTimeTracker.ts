@@ -62,10 +62,10 @@ export function useReadingTimeTracker(bookId: string | null, active: boolean) {
       // The event IS the write: committing it appends to the log and adds the
       // delta to the reading_time projections in one transaction. Local
       // day/hour are stamped NOW, in this device's timezone — replaying later
-      // elsewhere must not re-bucket history (see reading.timeRecorded in
+      // elsewhere must not re-bucket history (see book.timeRecorded in
       // events.ts). The atom above is a memory-only mirror for live UI.
       void commitDomainEvents({
-        type: "reading.timeRecorded",
+        type: "book.timeRecorded",
         payload: {
           bookId,
           ms: delta,

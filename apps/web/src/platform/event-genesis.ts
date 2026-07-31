@@ -237,7 +237,7 @@ function bookDrafts(book: BookRow): DomainEventDraft[] {
   }
   if (book.progress) {
     drafts.push({
-      type: "reading.progressed",
+      type: "book.progressed",
       createdAt: book.updatedAt,
       payload: {
         bookId: book.id,

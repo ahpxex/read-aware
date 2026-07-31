@@ -157,8 +157,8 @@ row's historical timestamp while their HLC is stamped at synthesis time.
 | `book.removed` | `{ bookId }` (tombstone) |
 | `collection.created` / `collection.renamed` / `collection.removed` | `{ collectionId, name? }` |
 | `book.addedToCollection` / `book.removedFromCollection` | `{ bookId, collectionId }` (set semantics → reconstructable as many-to-many later) |
-| `reading.progressed` | `{ bookId, locator, chapterHref?, currentLocation?, totalLocations?, progressPercent?, status? }` |
-| `reading.timeRecorded` | `{ bookId, ms, atEpochMs, localDay, localHour }` — day/hour buckets are stamped at **record** time in the recording device's timezone; deriving them at replay time would shift history across timezones |
+| `book.progressed` | `{ bookId, locator, chapterHref?, currentLocation?, totalLocations?, progressPercent?, status? }` |
+| `book.timeRecorded` | `{ bookId, ms, atEpochMs, localDay, localHour }` — day/hour buckets are stamped at **record** time in the recording device's timezone; deriving them at replay time would shift history across timezones |
 | `highlight.created` | `{ highlightId, bookId, anchor?, chapterHref?, text, color?, style? }` |
 | `highlight.recolored` | `{ highlightId, color, style? }` |
 | `highlight.removed` | `{ highlightId }` |
@@ -216,9 +216,9 @@ Mirrors `packages/core/src/entities.ts`.
   projection change, not a data migration.
 - **`reading_positions`** — one current position per book (`cfi`/`href` +
   `current/total_locations` + `progress_percent` + `reading_status`), updated by
-  `reading.progressed` / `book.opened`.
+  `book.progressed` / `book.opened`.
 - **`reading_time_totals` / `_daily` / `_hourly`** — active-reading-time
-  aggregates rebuilt from `reading.timeRecorded`. Durations are `INTEGER` ms;
+  aggregates rebuilt from `book.timeRecorded`. Durations are `INTEGER` ms;
   the timestamp columns are ISO-8601 `TEXT` like everywhere else.
 - **`highlights`** / **`notes`** — annotations. `cfiRange` → `anchor`,
   `Note.content` → `body`. A highlight's `anchor` may be null for unanchorable
@@ -373,7 +373,7 @@ feature's `lib/`; see `library-db.ts`, `annotation-db.ts`, `reader-settings.ts`,
 | `LibraryBook.coverUrl` / `coverChecked` | `books.cover_blob_key` (null = none) + `cover_status` |
 | `LibraryBook.progress` (`ReaderProgress`) | `reading_positions` (cfi/href + current/total/percent/status) |
 | `read-aware-library` › `collections` (`Collection`) | `collection.*` / `book.addedToCollection` → `collections` + `book_collection_memberships` |
-| `read-aware-reading-stats` (`totalMs`/`byHour`/`daily`/…) | `reading.timeRecorded` → `reading_time_totals` / `_daily` / `_hourly` |
+| `read-aware-reading-stats` (`totalMs`/`byHour`/`daily`/…) | `book.timeRecorded` → `reading_time_totals` / `_daily` / `_hourly` |
 | `read-aware-annotations` › highlights (`Highlight`, `cfiRange`) | `highlight.created`/`recolored`/`removed` → `highlights` (`cfiRange`→`anchor`) |
 | …notes (`Note`, `content`) | `note.created`/`updated`/`removed` → `notes` (`content`→`body`) |
 | `read-aware-conversations` (`bookId → messages[]`) | `aiConversation.started` / `aiMessage.appended` → `ai_conversations` (one per book) + `ai_messages` + `ai_message_attachments` |
@@ -467,7 +467,7 @@ order within a transaction.
 
 ## 10. Open decisions
 
-- **Progress: event vs. high-frequency projection.** `reading.progressed` can be
+- **Progress: event vs. high-frequency projection.** `book.progressed` can be
   chatty. Today the UI debounces; the long-term rule (coarse event on
   session-end / chapter change vs. fast local `reading_positions` + periodic
   event) still needs to be fixed so the log doesn't bloat.

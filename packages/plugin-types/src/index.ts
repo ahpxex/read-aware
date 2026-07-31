@@ -10,13 +10,14 @@
  *
  * The contract is DERIVED from the app's domain model, not authored beside it:
  *
- * 1. **Data surface per domain.** Each domain (books, collections,
- *    annotations, reading, conversations) exposes three things:
+ * 1. **Data surface per domain.** Each domain (shelf — books, collections,
+ *    and reading stats as one library-management surface — plus annotations
+ *    and conversations) exposes three things:
  *    *reads* mirroring its projection read models, *writes* mirroring exactly
  *    its domain-event verbs (commands issued through the same event-sourced
  *    write path the app itself uses), and *subscriptions* to its domain
  *    events under their canonical names — one vocabulary, no parallel rename.
- * 2. **Permission = domain × access.** `books:read`, `annotations:write`, …
+ * 2. **Permission = domain × access.** `shelf:read`, `annotations:write`, …
  *    Write implies read within a domain. Services (`service:*`) and the agent
  *    tool mount (`agent:tools`) are separate permission families.
  * 3. **Origin on every write.** Plugin writes are stamped
@@ -47,10 +48,10 @@ import type {
   HighlightColor,
   HighlightItem,
   HighlightStyle,
+  BookStats,
   NoteItem,
-  ReadingState,
   ReadingStatus,
-  ReadingTime,
+  StatsOverview,
   ThreadSummary,
 } from "@read-aware/core";
 
@@ -72,7 +73,8 @@ export type {
  * Permission domains a manifest may declare (docs/plugin-system.md §4).
  *
  * - `<domain>:read` / `<domain>:write` — data access per domain; write
- *   implies the domain's read surface.
+ *   implies the domain's read surface. `shelf` covers the whole of library
+ *   management: books (incl. content reads), collections, and reading stats.
  * - `reader:modes` — privileged host-rendered reader-mode registration.
  * - `agent:tools` — register tools on the reading agent.
  * - `service:*` — platform and AI services (network, one-shot LLM, the
@@ -83,13 +85,10 @@ export type {
  */
 export const PLUGIN_PERMISSIONS = [
   "reader:modes",
-  "books:read",
-  "books:write",
-  "collections:read",
-  "collections:write",
+  "shelf:read",
+  "shelf:write",
   "annotations:read",
   "annotations:write",
-  "reading:read",
   "conversations:read",
   "agent:tools",
   "service:network",
@@ -593,20 +592,22 @@ export type DomainSubscribe<E extends DomainEventType> = <K extends E>(
   handler: (event: PluginDomainEvent<K>) => void,
 ) => PluginDisposable;
 
-export type BookDomainEventType =
+/** Everything library management emits — books, collections, reading facts. */
+export type ShelfDomainEventType =
   | "book.imported"
   | "book.metadataEdited"
   | "book.coverExtracted"
   | "book.opened"
   | "book.starred"
-  | "book.removed";
-
-export type CollectionDomainEventType =
+  | "book.finished"
+  | "book.removed"
   | "collection.created"
   | "collection.renamed"
   | "collection.removed"
   | "book.addedToCollection"
-  | "book.removedFromCollection";
+  | "book.removedFromCollection"
+  | "book.progressed"
+  | "book.timeRecorded";
 
 export type AnnotationDomainEventType =
   | "highlight.created"
@@ -617,9 +618,6 @@ export type AnnotationDomainEventType =
   | "note.removed"
   | "ask.recorded"
   | "ask.removed";
-
-export type ReadingDomainEventType = "reading.progressed" | "reading.timeRecorded";
-
 
 export type ConversationDomainEventType =
   | "aiConversation.started"
@@ -663,9 +661,11 @@ export type PluginAsk = AskItem;
 
 export type PluginAnnotation = AnnotationItem;
 
-export type PluginReadingState = ReadingState;
+/** One book through the shelf's stats face: position, status, and time. */
+export type PluginBookStats = BookStats;
 
-export type PluginReadingTime = ReadingTime;
+/** Whole-shelf aggregate over every book's recorded reading. */
+export type PluginStatsOverview = StatsOverview;
 
 export type PluginDictionaryEntry = DictionaryEntrySnapshot;
 
@@ -703,66 +703,78 @@ export type PluginBookContent = {
 // ─── Domain APIs ─────────────────────────────────────────────────────────────
 
 /**
- * Books — `books:read` grants the read surface; `books:write` additionally
- * grants `write` (and implies read). Chapter text/TOC are content-layer reads
- * over the imported file (extraction runs on demand).
+ * Shelf — the whole of library management under one permission domain.
+ * `shelf:read` grants the read surface; `shelf:write` additionally grants
+ * the `write` faces (and implies read). Chapter text/TOC are content-layer
+ * reads over the imported file (extraction runs on demand). Stats are
+ * read-only for every actor: their domain events are recorded facts of
+ * reader activity, not user-intent commands.
  */
-export type PluginBooksApi = {
-  list(): Promise<PluginBook[]>;
-  get(bookId: string): Promise<PluginBook | null>;
-  getToc(bookId: string): Promise<PluginChapterRef[]>;
-  /** Plain text of one chapter by its toc index; null when unavailable. */
-  getChapterText(bookId: string, chapterIndex: number): Promise<string | null>;
-  on: DomainSubscribe<BookDomainEventType>;
-  /** Present with `books:write`. Commands mirror the book domain-event verbs. */
-  write?: {
-    /** Import a real file; the result is a first-class book. */
-    import(input: { fileName: string; data: ArrayBuffer | Uint8Array }): Promise<PluginBook>;
-    editMetadata(bookId: string, patch: { title?: string; author?: string }): Promise<void>;
-    setStarred(bookId: string, starred: boolean): Promise<void>;
-    /**
-     * Remove a book from the shelf — irreversible for the source file. The
-     * removal is logged with this plugin's origin.
-     */
-    remove(bookId: string): Promise<void>;
-    /**
-     * Content-provider path — no file at all. Register a provider, then add
-     * virtual books bound to it: shelf entries whose content the plugin
-     * serves at open time (sections of HTML). The reader paginates,
-     * annotates, and tracks progress on them like any book. Virtual books
-     * are device-local (their content depends on this plugin being
-     * installed), so they stay outside the synced event log.
-     */
-    registerContentProvider(provider: {
-      id: string;
-      load(key: string): Promise<PluginBookContent>;
-    }): PluginDisposable;
-    addVirtualBook(input: {
-      providerId: string;
-      /** Stable identity within the provider (e.g. the feed URL). */
-      key: string;
-      title: string;
-      author?: string;
-    }): Promise<PluginBook>;
-    removeVirtualBook(input: { providerId: string; key: string }): Promise<void>;
+export type PluginShelfApi = {
+  books: {
+    list(): Promise<PluginBook[]>;
+    get(bookId: string): Promise<PluginBook | null>;
+    getToc(bookId: string): Promise<PluginChapterRef[]>;
+    /** Plain text of one chapter by its toc index; null when unavailable. */
+    getChapterText(bookId: string, chapterIndex: number): Promise<string | null>;
+    /** Present with `shelf:write`. Commands mirror the book domain-event verbs. */
+    write?: {
+      /** Import a real file; the result is a first-class book. */
+      import(input: { fileName: string; data: ArrayBuffer | Uint8Array }): Promise<PluginBook>;
+      editMetadata(bookId: string, patch: { title?: string; author?: string }): Promise<void>;
+      setStarred(bookId: string, starred: boolean): Promise<void>;
+      /** The reader's "I finished this" verdict; sticky against further reading. */
+      setFinished(bookId: string, finished: boolean): Promise<void>;
+      /**
+       * Remove a book from the shelf — irreversible for the source file. The
+       * removal is logged with this plugin's origin.
+       */
+      remove(bookId: string): Promise<void>;
+      /**
+       * Content-provider path — no file at all. Register a provider, then add
+       * virtual books bound to it: shelf entries whose content the plugin
+       * serves at open time (sections of HTML). The reader paginates,
+       * annotates, and tracks progress on them like any book. Virtual books
+       * are device-local (their content depends on this plugin being
+       * installed), so they stay outside the synced event log.
+       */
+      registerContentProvider(provider: {
+        id: string;
+        load(key: string): Promise<PluginBookContent>;
+      }): PluginDisposable;
+      addVirtualBook(input: {
+        providerId: string;
+        /** Stable identity within the provider (e.g. the feed URL). */
+        key: string;
+        title: string;
+        author?: string;
+      }): Promise<PluginBook>;
+      removeVirtualBook(input: { providerId: string; key: string }): Promise<void>;
+    };
   };
-};
-
-/** Collections — the shelf's user-defined groups (single-membership today). */
-export type PluginCollectionsApi = {
-  list(): Promise<PluginCollection[]>;
-  /** Ids of the books currently in a collection. */
-  booksIn(collectionId: string): Promise<string[]>;
-  on: DomainSubscribe<CollectionDomainEventType>;
-  /** Present with `collections:write`. */
-  write?: {
-    create(name: string): Promise<PluginCollection>;
-    rename(collectionId: string, name: string): Promise<void>;
-    /** Delete the collection; its books stay, ungrouped. */
-    remove(collectionId: string): Promise<void>;
-    /** Assign books to a collection, or `null` to ungroup them. */
-    assignBooks(bookIds: string[], collectionId: string | null): Promise<void>;
+  /** The shelf's user-defined groups (single-membership today). */
+  collections: {
+    list(): Promise<PluginCollection[]>;
+    /** Ids of the books currently in a collection. */
+    booksIn(collectionId: string): Promise<string[]>;
+    /** Present with `shelf:write`. */
+    write?: {
+      create(name: string): Promise<PluginCollection>;
+      rename(collectionId: string, name: string): Promise<void>;
+      /** Delete the collection; its books stay, ungrouped. */
+      remove(collectionId: string): Promise<void>;
+      /** Assign books to a collection, or `null` to ungroup them. */
+      assignBooks(bookIds: string[], collectionId: string | null): Promise<void>;
+    };
   };
+  /** Positions, statuses, and active reading time — per book and aggregate. */
+  stats: {
+    forBook(bookId: string): Promise<PluginBookStats | null>;
+    list(): Promise<PluginBookStats[]>;
+    /** Whole-shelf aggregate: total time, per-day time, status counts. */
+    overview(): Promise<PluginStatsOverview>;
+  };
+  on: DomainSubscribe<ShelfDomainEventType>;
 };
 
 /**
@@ -798,19 +810,6 @@ export type PluginAnnotationsApi = {
     updateNote(noteId: string, body: string): Promise<void>;
     removeNote(noteId: string): Promise<void>;
   };
-};
-
-/**
- * Reading — positions, statuses, and active reading time. Read-only by
- * design: its domain events are recorded facts of reader activity (the
- * engine and the time tracker emit them), not user-intent commands, so there
- * is no write surface for any actor — plugins included.
- */
-export type PluginReadingApi = {
-  getState(bookId: string): Promise<PluginReadingState | null>;
-  listStates(): Promise<PluginReadingState[]>;
-  getTime(bookId: string): Promise<PluginReadingTime | null>;
-  on: DomainSubscribe<ReadingDomainEventType>;
 };
 
 /**
@@ -911,14 +910,10 @@ export type PluginContext = {
       handler: (payload: PluginSessionEventMap[K]) => void,
     ): PluginDisposable;
   };
-  /** `books:read` or `books:write`. */
-  books?: PluginBooksApi;
-  /** `collections:read` or `collections:write`. */
-  collections?: PluginCollectionsApi;
+  /** `shelf:read` or `shelf:write` — books, collections, and reading stats. */
+  shelf?: PluginShelfApi;
   /** `annotations:read` or `annotations:write`. */
   annotations?: PluginAnnotationsApi;
-  /** `reading:read`. */
-  reading?: PluginReadingApi;
   /** `conversations:read`. */
   conversations?: PluginConversationsApi;
   /** `agent:tools` — extend the reading agent. */

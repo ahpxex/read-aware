@@ -10,7 +10,7 @@ const plugin: PluginModule = {
   activate(ctx) {
     assertPluginCapabilities(ctx);
 
-    ctx.books.write.registerContentProvider({
+    ctx.shelf.books.write.registerContentProvider({
       id: PROVIDER_ID,
       load: async (url) => (await fetchFeed(ctx, url)).content,
     });
@@ -22,7 +22,7 @@ const plugin: PluginModule = {
       presentation: "page",
       view: () => rssPageView(ctx),
     });
-    ctx.books.on("book.removed", ({ payload: { bookId } }) => {
+    ctx.shelf.on("book.removed", ({ payload: { bookId } }) => {
       const feeds = loadFeeds(ctx);
       const feed = feeds.find((entry) => entry.bookId === bookId);
       if (!feed) return;

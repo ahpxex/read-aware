@@ -89,7 +89,7 @@ export async function ensureBook(
   ctx: RssPluginContext,
   feed: FeedSubscription,
 ): Promise<FeedSubscription> {
-  const book = await ctx.books.write.addVirtualBook({
+  const book = await ctx.shelf.books.write.addVirtualBook({
     providerId: PROVIDER_ID,
     key: feed.url,
     title: feed.title,
@@ -111,7 +111,7 @@ export async function subscribe(
 
   const existing = loadFeeds(ctx).find((feed) => feed.url === url);
   const { title, articles } = await fetchFeed(ctx, url);
-  const book = await ctx.books.write.addVirtualBook({
+  const book = await ctx.shelf.books.write.addVirtualBook({
     providerId: PROVIDER_ID,
     key: url,
     title,

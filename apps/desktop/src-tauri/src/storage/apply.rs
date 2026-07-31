@@ -279,7 +279,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
         }
 
         // ── Reading ─────────────────────────────────────────────────────────
-        "reading.progressed" => {
+        "book.progressed" => {
             let id = require(p, "bookId", t)?;
             let locator = str_of(p, "locator").unwrap_or_default();
             let chapter_href = str_of(p, "chapterHref");
@@ -318,7 +318,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
             )
             .map_err(|e| e.to_string())?;
         }
-        "reading.timeRecorded" => {
+        "book.timeRecorded" => {
             let id = require(p, "bookId", t)?;
             let ms = i64_of(p, "ms").unwrap_or(0);
             let at_epoch = i64_of(p, "atEpochMs").unwrap_or(ev.hlc.wall_ms);

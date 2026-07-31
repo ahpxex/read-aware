@@ -4,8 +4,8 @@ var MAX_ARTICLES = 30;
 function assertPluginCapabilities(ctx) {
   if (!ctx.network)
     throw new Error('RSS Reader requires the "service:network" permission');
-  if (!ctx.books?.write)
-    throw new Error('RSS Reader requires the "books:write" permission');
+  if (!ctx.shelf?.books.write)
+    throw new Error('RSS Reader requires the "shelf:write" permission');
   if (!ctx.agent)
     throw new Error('RSS Reader requires the "agent:tools" permission');
 }
@@ -115,7 +115,7 @@ async function fetchFeed(ctx, url) {
   return parseFeed(await response.text(), url);
 }
 async function ensureBook(ctx, feed) {
-  const book = await ctx.books.write.addVirtualBook({
+  const book = await ctx.shelf.books.write.addVirtualBook({
     providerId: PROVIDER_ID,
     key: feed.url,
     title: feed.title,
@@ -133,7 +133,7 @@ async function subscribe(ctx, rawUrl) {
     throw new Error("Enter a valid http(s) feed URL");
   const existing = loadFeeds(ctx).find((feed2) => feed2.url === url);
   const { title, articles } = await fetchFeed(ctx, url);
-  const book = await ctx.books.write.addVirtualBook({
+  const book = await ctx.shelf.books.write.addVirtualBook({
     providerId: PROVIDER_ID,
     key: url,
     title,
@@ -310,7 +310,7 @@ function feedDetailView(ctx, feed) {
             label: "Unsubscribe",
             variant: "danger",
             run: async () => {
-              await ctx.books.write.removeVirtualBook({
+              await ctx.shelf.books.write.removeVirtualBook({
                 providerId: PROVIDER_ID,
                 key: feed.url
               });
@@ -428,7 +428,7 @@ function rssPageView(ctx) {
 var plugin = {
   activate(ctx) {
     assertPluginCapabilities(ctx);
-    ctx.books.write.registerContentProvider({
+    ctx.shelf.books.write.registerContentProvider({
       id: PROVIDER_ID,
       load: async (url) => (await fetchFeed(ctx, url)).content
     });
@@ -440,7 +440,7 @@ var plugin = {
       presentation: "page",
       view: () => rssPageView(ctx)
     });
-    ctx.books.on("book.removed", ({ payload: { bookId } }) => {
+    ctx.shelf.on("book.removed", ({ payload: { bookId } }) => {
       const feeds = loadFeeds(ctx);
       const feed = feeds.find((entry) => entry.bookId === bookId);
       if (!feed)

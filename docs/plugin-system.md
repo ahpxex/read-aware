@@ -114,27 +114,29 @@ export default {
 插件的数据面不是在领域模型旁边手写的清单，而是**从领域模型推导**出来
 的。四条构造规则（这是整个插件系统的严谨性来源）：
 
-1. **数据面按领域生成。** 应用的每个领域（books、collections、
-   annotations、reading、conversations）在 `ctx` 上是一个
-   命名空间，暴露三件套：**读**（该领域投影的读模型）、**写**（恰好该
-   领域的事件动词，以 command 形式发进应用自己的双写管道——同一条
-   seam、不开后门）、**订阅**（该领域的事件本身，`ctx.books.on(
-   "book.starred", …)` 用规范名，不再发明第二套事件词汇）。领域新增
-   动词，插件面机械地跟着长。实现上这不是插件专属的一层：数据面就是
+1. **数据面按领域生成。** 应用的每个领域（shelf、annotations、
+   conversations）在 `ctx` 上是一个命名空间，暴露三件套：**读**（该领域
+   投影的读模型）、**写**（恰好该领域的事件动词，以 command 形式发进
+   应用自己的双写管道——同一条 seam、不开后门）、**订阅**（该领域的
+   事件本身，`ctx.shelf.on("book.starred", …)` 用规范名，不再发明第二套
+   事件词汇）。shelf 是完整的书架管理面：books（含目录/章节全文的内容层
+   读取）、collections（分组）与 stats（阅读位置/状态/时长，单本或全局
+   聚合）三个子面共享一个领域与一份事件 roster。领域新增动词，插件面
+   机械地跟着长。实现上这不是插件专属的一层：数据面就是
    `apps/web/src/domain` 的**共享领域 API 层**（读模型来自
    @read-aware/core read-models.ts），agent 的端口以 origin `"agent"`
    消费同一层（docs/agent-architecture.md §5）；`buildPluginContext`
    只是它之上的权限门控壳。
-2. **权限 = 领域 × 读/写。** `books:read`、`annotations:write`……
-   同域内**写含读**（声明 `books:write` 即获得 books 的读面）。服务与
+2. **权限 = 领域 × 读/写。** `shelf:read`、`annotations:write`……
+   同域内**写含读**（声明 `shelf:write` 即获得 shelf 的全部读面）。服务与
    挂载各成一族（见下表）。
 3. **写入带来源。** 插件经数据 API 发出的每条领域事件都在信封上带
    `origin: "plugin:<id>"`（`domain_events.origin` 列），与
    `actor_id`（操作者身份）正交。审计、按插件排查、卸载后的补偿清理都
    建立在这一列上。事件动词按行为体分类：用户意图动词（如
-   `book.starred`）插件可发；系统记录事实（`reading.timeRecorded`、
-   `book.coverExtracted`）与 agent 痕迹（`ask.recorded`）不开放写——
-   reading 域因此只读。
+   `book.starred`）插件可发；系统记录事实（`book.progressed`、
+   `book.timeRecorded`、`book.coverExtracted`）与 agent 痕迹
+   （`ask.recorded`）不开放写——shelf 的 stats 子面因此只读。
 4. **设备本地数据与呈现层由宿主掌管。** 视图偏好（书架布局/分组/排序）、
    阅读外观、面板布局、BYOK 配置、blob 内部、同步运行态属于「世界 B」
    （见 docs/data-model.md §7），不是插件面；呈现只走受限视图词汇
@@ -175,13 +177,10 @@ workspace 位于 `plugins/<id>/`。每个包以模块化 TypeScript 编写并产
 | 权限 | 授予的能力面 |
 |---|---|
 | `reader:modes` | `ctx.reader.modes.register`：注册宿主渲染的文本单元阅读模式；目前仅 bundled 插件 |
-| `books:read` | `ctx.books`：书目读模型、目录、章节全文（内容层读取） |
-| `books:write` | `ctx.books.write`：导入文件、改元数据、星标、删除；**内容提供者**（`registerContentProvider` / `addVirtualBook`——虚拟书为设备本地，内容依赖本插件在场，刻意不进同步日志） |
-| `collections:read` | `ctx.collections`：分组列表与成员 |
-| `collections:write` | `ctx.collections.write`：建组、改名、删组、分配书籍 |
+| `shelf:read` | `ctx.shelf`：书目读模型、目录、章节全文（内容层读取）、分组列表与成员、stats（单本 `stats.forBook` / 全体 `stats.list` / 全局聚合 `stats.overview`——stats 无写面，见规则 3） |
+| `shelf:write` | `ctx.shelf.books.write`：导入文件、改元数据、星标、标记读完、删除；**内容提供者**（`registerContentProvider` / `addVirtualBook`——虚拟书为设备本地，内容依赖本插件在场，刻意不进同步日志）。`ctx.shelf.collections.write`：建组、改名、删组、分配书籍 |
 | `annotations:read` | `ctx.annotations`：高亮/笔记/提问痕迹（判别联合读模型 + FTS 检索） |
 | `annotations:write` | `ctx.annotations.write`：高亮增删改色、笔记增改删（ask 仅 agent 可写） |
-| `reading:read` | `ctx.reading`：阅读位置/状态、阅读时长（无写面，见规则 3） |
 | `conversations:read` | `ctx.conversations`：书内线程与全局线程（只读）+ 对话事件订阅 |
 | `agent:tools` | `ctx.agent.registerTool` —— 注册 agent 工具（§8） |
 | `service:network` | `ctx.network.fetch`（CSP `connect-src` 已含 `https:`，门控在 API 层） |

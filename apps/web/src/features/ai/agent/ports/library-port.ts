@@ -1,14 +1,13 @@
 /**
  * LibraryPort — the agent's BookOverview is a composition of two canonical
- * domain read models (BookSummary × ReadingState), joined here from the
- * shared domain layer. Field names and semantics stay canonical
- * (progressPercent 0..100).
+ * domain read models (BookSummary × BookStats), joined here from the shelf
+ * domain. Field names and semantics stay canonical (progressPercent 0..100).
  */
 import type { BookOverview, LibraryPort } from "@read-aware/agent";
-import type { BookSummary, Id, ReadingState } from "@read-aware/core";
-import { createBooksDomain, createReadingDomain } from "../../../../domain";
+import type { BookStats, BookSummary, Id } from "@read-aware/core";
+import { createShelfDomain } from "../../../../domain";
 
-function toOverview(book: BookSummary, state: ReadingState | undefined): BookOverview {
+function toOverview(book: BookSummary, state: BookStats | undefined): BookOverview {
   return {
     id: book.id as Id,
     title: book.title,
@@ -21,11 +20,10 @@ function toOverview(book: BookSummary, state: ReadingState | undefined): BookOve
 }
 
 export function createLibraryPort(): LibraryPort {
-  const books = createBooksDomain("agent");
-  const reading = createReadingDomain("agent");
+  const shelf = createShelfDomain("agent");
 
   const listOverviews = async (): Promise<BookOverview[]> => {
-    const [summaries, states] = await Promise.all([books.list(), reading.listStates()]);
+    const [summaries, states] = await Promise.all([shelf.books.list(), shelf.stats.list()]);
     const stateByBook = new Map(states.map((state) => [state.bookId, state]));
     return summaries.map((book) => toOverview(book, stateByBook.get(book.id)));
   };

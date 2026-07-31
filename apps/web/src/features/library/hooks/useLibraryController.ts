@@ -117,7 +117,7 @@ export function useLibraryController() {
   const handleCreateCollection = useCallback(
     async (name: string): Promise<Collection | null> => {
       try {
-        const collection = await userDomain.collections.create(name);
+        const collection = await userDomain.shelf.collections.create(name);
         setCollections((current) => sortCollections([...current, collection]));
         return collection;
       } catch (error) {
@@ -134,7 +134,7 @@ export function useLibraryController() {
     setCollections((current) =>
       sortCollections(current.map((c) => (c.id === id ? { ...c, name: trimmed } : c))),
     );
-    void userDomain.collections.rename(id, trimmed).catch((error) => {
+    void userDomain.shelf.collections.rename(id, trimmed).catch((error) => {
       void loadLibrary();
       reportError(error);
     });
@@ -145,7 +145,7 @@ export function useLibraryController() {
     setBooks((current) =>
       current.map((book) => (book.collectionId === id ? { ...book, collectionId: null } : book)),
     );
-    void userDomain.collections.remove(id).catch((error) => {
+    void userDomain.shelf.collections.remove(id).catch((error) => {
       void loadLibrary();
       reportError(error);
     });
@@ -158,7 +158,7 @@ export function useLibraryController() {
       setBooks((current) =>
         current.map((book) => (idSet.has(book.id) ? { ...book, collectionId } : book)),
       );
-      void userDomain.collections.assignBooks(ids, collectionId).catch((error) => {
+      void userDomain.shelf.collections.assignBooks(ids, collectionId).catch((error) => {
         void loadLibrary();
         reportError(error);
       });
@@ -297,7 +297,7 @@ export function useLibraryController() {
     setBooks((currentBooks) =>
       currentBooks.map((entry) => (entry.id === book.id ? { ...entry, starred: nextStarred } : entry)),
     );
-    void userDomain.books.setStarred(book.id, nextStarred).catch((error) => {
+    void userDomain.shelf.books.setStarred(book.id, nextStarred).catch((error) => {
       setBooks((currentBooks) =>
         currentBooks.map((entry) => (entry.id === book.id ? { ...entry, starred: book.starred } : entry)),
       );
@@ -317,7 +317,7 @@ export function useLibraryController() {
           entry.id === book.id ? { ...entry, title, author } : entry,
         ),
       );
-      void userDomain.books.editMetadata(book.id, { title, author }).catch((error) => {
+      void userDomain.shelf.books.editMetadata(book.id, { title, author }).catch((error) => {
         setBooks((currentBooks) =>
           currentBooks.map((entry) =>
             entry.id === book.id
@@ -332,7 +332,7 @@ export function useLibraryController() {
   );
 
   const handleRemoveBook = useCallback((book: LibraryBook) => {
-    void userDomain.books.remove(book.id)
+    void userDomain.shelf.books.remove(book.id)
       .then(() => {
         setBooks((currentBooks) => currentBooks.filter((entry) => entry.id !== book.id));
         void deleteBookText([book.id]).catch(() => {});
@@ -345,7 +345,7 @@ export function useLibraryController() {
   const handleRemoveMany = useCallback((ids: string[]) => {
     if (ids.length === 0) return;
     const idSet = new Set(ids);
-    void userDomain.books.removeMany(ids)
+    void userDomain.shelf.books.removeMany(ids)
       .then(() => {
         setBooks((currentBooks) => currentBooks.filter((entry) => !idSet.has(entry.id)));
         void deleteBookText(ids).catch(() => {});

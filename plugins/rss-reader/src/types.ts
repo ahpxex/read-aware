@@ -25,18 +25,20 @@ export type FeedResult = {
   content: PluginBookContent;
 };
 
-type BooksWithWrite = NonNullable<PluginContext["books"]> & {
-  write: NonNullable<NonNullable<PluginContext["books"]>["write"]>;
+type ShelfWithWrite = NonNullable<PluginContext["shelf"]> & {
+  books: NonNullable<PluginContext["shelf"]>["books"] & {
+    write: NonNullable<NonNullable<PluginContext["shelf"]>["books"]["write"]>;
+  };
 };
 
 export type RssPluginContext = PluginContext & {
-  books: BooksWithWrite;
+  shelf: ShelfWithWrite;
   network: NonNullable<PluginContext["network"]>;
   agent: NonNullable<PluginContext["agent"]>;
 };
 
 export function assertPluginCapabilities(ctx: PluginContext): asserts ctx is RssPluginContext {
   if (!ctx.network) throw new Error('RSS Reader requires the "service:network" permission');
-  if (!ctx.books?.write) throw new Error('RSS Reader requires the "books:write" permission');
+  if (!ctx.shelf?.books.write) throw new Error('RSS Reader requires the "shelf:write" permission');
   if (!ctx.agent) throw new Error('RSS Reader requires the "agent:tools" permission');
 }

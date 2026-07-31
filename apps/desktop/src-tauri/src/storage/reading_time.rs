@@ -45,7 +45,7 @@ pub struct ReadingTimeWire {
 
 /// Give the pre-event-era reading-time aggregates a history in the log.
 ///
-/// These three tables were written directly, and the `reading.timeRecorded`
+/// These three tables were written directly, and the `book.timeRecorded`
 /// events that should have described them were fire-and-forget — so the log has
 /// none of them. Left alone, `rebuild_projections` would faithfully replay the
 /// log and wipe every reading statistic the user has.
@@ -58,7 +58,7 @@ pub struct ReadingTimeWire {
 /// invented *interleaving* of days and hours is not real history, which is the
 /// most that can be recovered from a sum.
 ///
-/// Idempotent: it does nothing once the log contains any `reading.timeRecorded`.
+/// Idempotent: it does nothing once the log contains any `book.timeRecorded`.
 #[tauri::command]
 pub fn reading_time_genesis(db: State<'_, Db>) -> Result<usize, String> {
     let mut conn = db.0.lock().map_err(|e| e.to_string())?;
@@ -152,7 +152,7 @@ pub(crate) fn reading_time_genesis_inner(conn: &mut Connection) -> Result<usize,
         let logged: Vec<EventRow> = {
             let mut stmt = tx
                 .prepare(
-                    "SELECT * FROM domain_events WHERE type = 'reading.timeRecorded'
+                    "SELECT * FROM domain_events WHERE type = 'book.timeRecorded'
                      ORDER BY hlc_wall_ms, hlc_counter, hlc_device",
                 )
                 .map_err(|e| e.to_string())?;
@@ -322,7 +322,7 @@ pub(crate) fn reading_time_genesis_inner(conn: &mut Connection) -> Result<usize,
             wall += 1;
             events.push(EventRow {
                 id: uuid::Uuid::new_v4().to_string(),
-                event_type: "reading.timeRecorded".to_string(),
+                event_type: "book.timeRecorded".to_string(),
                 hlc: Hlc {
                     wall_ms: at_epoch.max(1),
                     counter: wall,

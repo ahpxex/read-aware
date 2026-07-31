@@ -31,7 +31,7 @@
 -- 当前持久化来源：read-aware-annotations IndexedDB 的 highlights/notes 迁移到 highlights/notes，并由 domain_events 重放生成。
 -- 当前持久化来源：read-aware-fonts IndexedDB 的字体 ArrayBuffer 迁移到 cached_font_faces + blob_objects；它是可删除缓存，不参与同步。
 -- 当前持久化来源：read-aware-conversations localStorage 迁移到 ai_conversations/ai_messages/ai_message_attachments。
--- 当前持久化来源：read-aware-reading-stats localStorage 迁移到 reading_time_totals/reading_time_daily/reading_time_hourly，可由 reading.timeRecorded 事件重建。
+-- 当前持久化来源：read-aware-reading-stats localStorage 迁移到 reading_time_totals/reading_time_daily/reading_time_hourly，可由 book.timeRecorded 事件重建。
 -- 当前持久化来源：read-aware-reader-settings/read-aware-app-settings/read-aware-general-settings/read-aware-ai-preferences/read-aware-shelf-view/read-aware-shortcuts 等配置迁移到 settings/app_kv/shortcut_bindings 等设备本地表。
 -- 当前持久化来源：read-aware-ai-config 中的明文 apiKey 不迁移进 SQLite；provider/model/customBaseUrl 迁移到 ai_provider_configs，apiKey 迁移到系统 Keychain。
 -- 不进入桌面数据库：apps/landing 的 loops-form-timestamp 只是营销站点的浏览器节流状态，不属于 ReadAware 桌面本地数据模型。
@@ -88,7 +88,7 @@ CREATE TABLE sync_cursors ( -- [device-local] 本机读取远端 change feed 的
 
 CREATE TABLE domain_events ( -- [synced log] append-only 领域事件日志；这是书籍、标注、阅读进度、记忆等可同步数据的唯一权威来源。事件目录见 packages/core/src/events.ts。
   id TEXT NOT NULL PRIMARY KEY, -- 全局唯一事件 ID，通常是 UUID；同步拉取重复事件时用它幂等去重。
-  type TEXT NOT NULL, -- 事件类型（canonical 名以 events.ts 为准），例如 book.imported、highlight.created、reading.progressed、memory.promoted。
+  type TEXT NOT NULL, -- 事件类型（canonical 名以 events.ts 为准），例如 book.imported、highlight.created、book.progressed、memory.promoted。
   schema_version INTEGER NOT NULL DEFAULT 1, -- payload_json 的版本；事件 shape 永远不原地改，新增版本或新增 type 来演进。
   hlc_wall_ms INTEGER NOT NULL, -- Hybrid Logical Clock 的 wallMs；跨设备合并时的主排序键。
   hlc_counter INTEGER NOT NULL, -- Hybrid Logical Clock 的 counter；同一毫秒内产生多个事件时保持全序。
@@ -297,9 +297,9 @@ CREATE TABLE book_collection_memberships ( -- [projection] 书籍到集合的当
 
 CREATE INDEX ix_book_collection_memberships_collection ON book_collection_memberships (collection_id); -- 打开某个集合时快速列出其中所有书。
 
-CREATE TABLE reading_positions ( -- [projection] 每本书的当前阅读位置；由 reading.progressed 和 book.opened 等事件更新。
+CREATE TABLE reading_positions ( -- [projection] 每本书的当前阅读位置；由 book.progressed 和 book.opened 等事件更新。
   book_id TEXT NOT NULL PRIMARY KEY REFERENCES books(id) ON DELETE CASCADE, -- 书籍 ID；当前单用户模型下每本书只有一个当前位置。
-  cfi TEXT, -- EPUB/MOBI/AZW3/FB2 的 CFI 位置；fixed-layout PDF 可能为空。来自 reading.progressed.locator。
+  cfi TEXT, -- EPUB/MOBI/AZW3/FB2 的 CFI 位置；fixed-layout PDF 可能为空。来自 book.progressed.locator。
   href TEXT, -- 当前章节 href 或 PDF/foliate 的当前位置辅助 locator；用于重新打开时定位章节。
   current_location INTEGER NOT NULL DEFAULT 0, -- 当前页码/位置编号；ReaderShellOverlay 显示 "X of N" 时使用。
   total_locations INTEGER NOT NULL DEFAULT 0, -- 当前书的总页数/位置数；和 current_location 一起计算进度显示。
@@ -312,17 +312,17 @@ CREATE TABLE reading_positions ( -- [projection] 每本书的当前阅读位置�
 CREATE INDEX ix_reading_positions_status ON reading_positions (reading_status); -- 书架按阅读状态分组时使用。
 CREATE INDEX ix_reading_positions_last_read ON reading_positions (last_read_at); -- 统计最近阅读和恢复上一本书时使用。
 
-CREATE TABLE reading_time_totals ( -- [projection] 每本书累计主动阅读时长；由 reading.timeRecorded 重放。桌面迁移 v9 已落地（连同 daily/hourly；app_kv 的 read-aware-reading-stats blob 启动时一次性导入后删除）。
+CREATE TABLE reading_time_totals ( -- [projection] 每本书累计主动阅读时长；由 book.timeRecorded 重放。桌面迁移 v9 已落地（连同 daily/hourly；app_kv 的 read-aware-reading-stats blob 启动时一次性导入后删除）。
   book_id TEXT NOT NULL PRIMARY KEY REFERENCES books(id) ON DELETE CASCADE, -- 书籍 ID；一书一行总计。
   first_started_at TEXT, -- 第一次记录到主动阅读时长的时间（ISO-8601 UTC，与全表统一；迁移时由旧 epoch ms 转换）。
   last_read_at TEXT, -- 最近一次记录主动阅读时长的时间（ISO-8601 UTC；与 reading_positions.last_read_at 同名同类型，避免跨 affinity 误比）。
   total_ms INTEGER NOT NULL DEFAULT 0, -- 累计主动阅读毫秒数（时长，保持 INTEGER ms）；只统计窗口可见、未 idle、reader active 的时间。
-  updated_at TEXT NOT NULL -- 本行最近更新时间；由 reading.timeRecorded projection 推进。
+  updated_at TEXT NOT NULL -- 本行最近更新时间；由 book.timeRecorded projection 推进。
 ); -- reading_time_totals 表结束。
 
 CREATE TABLE reading_time_daily ( -- [projection] 每本书按本地日聚合的阅读时长；用于周/月统计和 heatmap。
   book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE, -- 书籍 ID；和 local_day 一起定位一个日桶。
-  local_day TEXT NOT NULL, -- 本地日 YYYY-MM-DD。确定性契约：取 reading.timeRecorded 事件 payload 里**记录时**盖章的 localDay，绝不在 replay 时用当前时区从 atEpochMs 重算——否则换时区重建会平移全部历史。
+  local_day TEXT NOT NULL, -- 本地日 YYYY-MM-DD。确定性契约：取 book.timeRecorded 事件 payload 里**记录时**盖章的 localDay，绝不在 replay 时用当前时区从 atEpochMs 重算——否则换时区重建会平移全部历史。
   ms INTEGER NOT NULL DEFAULT 0, -- 该本地日累计主动阅读毫秒数。
   updated_at TEXT NOT NULL, -- 该日桶最近更新时间。
   PRIMARY KEY (book_id, local_day) -- 一本书一天只有一个聚合桶。

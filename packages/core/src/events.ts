@@ -109,7 +109,7 @@ export type DomainEvent =
   /**
    * The reader DECLARED the book finished, which is not the same fact as the
    * position reaching the end: a book can be finished with pages skipped, and
-   * reaching 100% is not a commitment. `reading.progressed` carries a derived
+   * reaching 100% is not a commitment. `book.progressed` carries a derived
    * status; this carries the user's own.
    */
   | DomainEventEnvelope<"book.finished", { bookId: Id; finished: boolean }>
@@ -126,9 +126,11 @@ export type DomainEvent =
       "book.removedFromCollection",
       { bookId: Id; collectionId: Id }
     >
-  // --- Reading -----------------------------------------------------------
+  // --- Reading facts (book aggregate; the shelf domain's stats face) ------
+  // Renamed from `reading.progressed` / `reading.timeRecorded` when the
+  // reading domain folded into shelf (schema migration 11 rewrote the log).
   | DomainEventEnvelope<
-      "reading.progressed",
+      "book.progressed",
       {
         bookId: Id;
         /** Format-neutral position (EPUB CFI or PDF locator). */
@@ -149,7 +151,7 @@ export type DomainEvent =
    * timezone.
    */
   | DomainEventEnvelope<
-      "reading.timeRecorded",
+      "book.timeRecorded",
       {
         bookId: Id;
         ms: number;

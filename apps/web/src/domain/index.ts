@@ -15,28 +15,25 @@
  * origin on every envelope, and own their invalidation signals
  * (library-changed, annotations revision), so no consumer re-implements
  * them. Read models are the canonical shapes from @read-aware/core.
+ *
+ * Three domains: `shelf` (library management — books, collections, stats),
+ * `annotations`, and `conversations`.
  */
 import type { EventOrigin } from "@read-aware/core";
 import { createAnnotationsDomain, type AnnotationsDomain } from "./annotations";
-import { createBooksDomain, type BooksDomain } from "./books";
-import { createCollectionsDomain, type CollectionsDomain } from "./collections";
 import { createConversationsDomain, type ConversationsDomain } from "./conversations";
-import { createReadingDomain, type ReadingDomain } from "./reading";
+import { createShelfDomain, type ShelfDomain } from "./shelf";
 
 export type DomainApi = {
-  books: BooksDomain;
-  collections: CollectionsDomain;
+  shelf: ShelfDomain;
   annotations: AnnotationsDomain;
-  reading: ReadingDomain;
   conversations: ConversationsDomain;
 };
 
 export function createDomainApi(origin: EventOrigin): DomainApi {
   return {
-    books: createBooksDomain(origin),
-    collections: createCollectionsDomain(origin),
+    shelf: createShelfDomain(origin),
     annotations: createAnnotationsDomain(origin),
-    reading: createReadingDomain(origin),
     conversations: createConversationsDomain(origin),
   };
 }
@@ -44,29 +41,21 @@ export function createDomainApi(origin: EventOrigin): DomainApi {
 /** The app UI's own instance — direct user actions, origin "user". */
 export const userDomain: DomainApi = createDomainApi("user");
 
-export type {
-  AnnotationsDomain,
-  BooksDomain,
-  CollectionsDomain,
-  ConversationsDomain,
-  ReadingDomain,
-};
+export type { AnnotationsDomain } from "./annotations";
+export type { ConversationsDomain } from "./conversations";
+export type { ShelfBooks, ShelfCollections, ShelfDomain, ShelfStats } from "./shelf";
 export {
-  createBooksDomain,
+  createShelfDomain,
   getExtractedChapters,
   getPersistedChapters,
   toBookSummary,
-} from "./books";
+} from "./shelf";
 export { createAnnotationsDomain, toAnnotationItem } from "./annotations";
-export { createCollectionsDomain } from "./collections";
 export { createConversationsDomain } from "./conversations";
-export { createReadingDomain, toReadingState } from "./reading";
 export {
   ANNOTATION_EVENTS,
-  BOOK_EVENTS,
-  COLLECTION_EVENTS,
   CONVERSATION_EVENTS,
-  READING_EVENTS,
+  SHELF_EVENTS,
   domainSubscribe,
   type DomainEventSubscribe,
   type ObservedDomainEvent,

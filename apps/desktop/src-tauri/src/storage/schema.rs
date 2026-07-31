@@ -309,7 +309,7 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
         "vocabulary_reading_time_projections",
         // 生词本与阅读时长的 SQLite 投影（docs/sqlite-schema.sql）：
         // 替代 app_kv 里的 read-aware-vocabulary / read-aware-reading-stats
-        // JSON blob。两者的事件（vocabulary.*、reading.timeRecorded）已在
+        // JSON blob。两者的事件（vocabulary.*、book.timeRecorded）已在
         // 日志双写；这些表是可重放的读模型。
         "CREATE TABLE IF NOT EXISTS vocabulary_entries (
             id         TEXT NOT NULL PRIMARY KEY,
@@ -363,6 +363,18 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
             ON plugin_documents (plugin_id, collection, book_id);
          CREATE INDEX IF NOT EXISTS ix_plugin_documents_updated
             ON plugin_documents (plugin_id, collection, updated_at);",
+    ),
+    (
+        11,
+        "shelf_event_vocabulary",
+        // reading 域并入 shelf（其 stats 面）后，事件词汇随之更名：阅读事实
+        // 挂回 book 聚合（book.progressed / book.timeRecorded）。历史行一并
+        // 改写 —— 重放、校验与 genesis 幂等检查从此只认新名。payload 形状
+        // 不变，语义不变，纯改名。
+        "UPDATE domain_events SET type = 'book.progressed'
+          WHERE type = 'reading.progressed';
+         UPDATE domain_events SET type = 'book.timeRecorded'
+          WHERE type = 'reading.timeRecorded';",
     ),
 ];
 

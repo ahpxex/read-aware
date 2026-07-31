@@ -467,7 +467,7 @@ export async function updateLibraryBookProgress(bookId: string, progress: BookPr
 
   const progressPercent = progress ? clampProgressPercent(progress.progressPercent) : existingBook.progressPercent;
   await commitDomainEvents({
-    type: "reading.progressed",
+    type: "book.progressed",
     payload: {
       bookId,
       locator: progress?.cfi ?? progress?.href ?? "",

@@ -103,6 +103,27 @@ export interface ReadingTime {
   daily: Record<string, number>;
 }
 
+/** One book through the shelf's stats face: position, status, and time. */
+export interface BookStats extends ReadingState {
+  totalMs: number;
+  firstReadAt?: IsoDate;
+  lastReadAt?: IsoDate;
+  /** Active ms per local day, keyed YYYY-MM-DD. */
+  daily: Record<string, number>;
+}
+
+/** Whole-shelf aggregate over every book's recorded reading. */
+export interface StatsOverview {
+  totalMs: number;
+  /** Active ms per local day across all books, keyed YYYY-MM-DD. */
+  daily: Record<string, number>;
+  firstReadAt?: IsoDate;
+  lastReadAt?: IsoDate;
+  /** Books currently in progress (status "reading"). */
+  booksReading: number;
+  booksFinished: number;
+}
+
 /** One turn of an AI thread as the conversations domain lists it. */
 export interface ChatMessageSummary {
   id: Id;

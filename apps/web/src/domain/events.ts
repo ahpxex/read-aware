@@ -11,7 +11,12 @@ import {
   type DomainEventBroadcast,
 } from "../platform/domain-events";
 
-export const BOOK_EVENTS = [
+/**
+ * Everything library management emits: book lifecycle, collection membership,
+ * and the recorded reading facts behind the stats face (`book.progressed`,
+ * `book.timeRecorded`).
+ */
+export const SHELF_EVENTS = [
   "book.imported",
   "book.metadataEdited",
   "book.coverExtracted",
@@ -19,14 +24,13 @@ export const BOOK_EVENTS = [
   "book.starred",
   "book.finished",
   "book.removed",
-] as const;
-
-export const COLLECTION_EVENTS = [
   "collection.created",
   "collection.renamed",
   "collection.removed",
   "book.addedToCollection",
   "book.removedFromCollection",
+  "book.progressed",
+  "book.timeRecorded",
 ] as const;
 
 export const ANNOTATION_EVENTS = [
@@ -39,8 +43,6 @@ export const ANNOTATION_EVENTS = [
   "ask.recorded",
   "ask.removed",
 ] as const;
-
-export const READING_EVENTS = ["reading.progressed", "reading.timeRecorded"] as const;
 
 export const CONVERSATION_EVENTS = [
   "aiConversation.started",

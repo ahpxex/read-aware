@@ -4,7 +4,7 @@
  * This is the storage boundary the rest of the app talks to for "how long has
  * this book been read." The projection is the SQLite `reading_time_totals` /
  * `reading_time_daily` / `reading_time_hourly` tables (migration v9); the
- * `reading.timeRecorded` events already dual-write in the tracker. Boot reads
+ * `book.timeRecorded` events already dual-write in the tracker. Boot reads
  * the tables into the platform snapshot (interim-projections); after boot the
  * live figures accumulate in the readingStatsAtom, and each tracker tick
  * write-throughs its delta with `recordReadingTime`. The browser shell keeps

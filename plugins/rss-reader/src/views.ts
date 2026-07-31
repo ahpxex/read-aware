@@ -63,7 +63,7 @@ export function feedDetailView(
             label: "Unsubscribe",
             variant: "danger",
             run: async () => {
-              await ctx.books.write.removeVirtualBook({
+              await ctx.shelf.books.write.removeVirtualBook({
                 providerId: PROVIDER_ID,
                 key: feed.url,
               });

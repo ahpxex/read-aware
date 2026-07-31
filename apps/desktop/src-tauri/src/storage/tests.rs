@@ -627,7 +627,7 @@ fn commit_derives_projections_from_events_alone() {
             ev(
                 "e4",
                 1_004,
-                "reading.progressed",
+                "book.progressed",
                 serde_json::json!({
                     "bookId": "b1", "locator": "epubcfi(/6/8)", "progressPercent": 37.5,
                     "status": "reading", "currentLocation": 30, "totalLocations": 80,
@@ -672,7 +672,7 @@ fn redelivered_events_do_not_double_apply() {
         ev(
             "e2",
             1_001,
-            "reading.timeRecorded",
+            "book.timeRecorded",
             serde_json::json!({
                 "bookId": "b1", "ms": 60_000, "atEpochMs": 1_700_000_000_000_i64,
                 "localDay": "2023-11-15", "localHour": 6,
@@ -880,7 +880,7 @@ fn whole_percentages_serialize_without_a_fractional_part() {
             ev(
                 "e2",
                 1_001,
-                "reading.progressed",
+                "book.progressed",
                 serde_json::json!({
                     "bookId": "b1", "locator": "epubcfi(/6/2)", "progressPercent": 63,
                     "currentLocation": 10, "totalLocations": 16,
@@ -983,7 +983,7 @@ fn reading_time_genesis_tops_up_around_events_already_in_the_log() {
             ev(
                 "e2",
                 1_001,
-                "reading.timeRecorded",
+                "book.timeRecorded",
                 serde_json::json!({
                     "bookId": "b1", "ms": 600_000, "atEpochMs": 1_751_328_000_000_i64,
                     "localDay": "2026-07-01", "localHour": 9,
@@ -1082,7 +1082,7 @@ fn a_declared_finish_survives_further_reading() {
             ev(
                 "e2",
                 1_001,
-                "reading.progressed",
+                "book.progressed",
                 serde_json::json!({ "bookId": "b1", "locator": "epubcfi(/6/2)",
                                     "progressPercent": 40, "status": "reading" }),
             ),
@@ -1101,7 +1101,7 @@ fn a_declared_finish_survives_further_reading() {
         &[ev(
             "e4",
             1_003,
-            "reading.progressed",
+            "book.progressed",
             serde_json::json!({ "bookId": "b1", "locator": "epubcfi(/6/4)",
                                 "progressPercent": 45, "status": "reading" }),
         )],

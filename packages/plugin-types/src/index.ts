@@ -77,8 +77,8 @@ export type {
  *   management: books (incl. content reads), collections, and reading stats.
  * - `reader:modes` — privileged host-rendered reader-mode registration.
  * - `agent:tools` — register tools on the reading agent.
- * - `service:*` — platform and AI services (network, one-shot LLM, the
- *   built-in dictionary, clipboard).
+ * - `service:*` — platform and AI services (network, one-shot LLM,
+ *   clipboard).
  *
  * Namespaced storage, UI contributions, session events, and ambient reader
  * control are not permissions — every plugin has them.
@@ -93,7 +93,6 @@ export const PLUGIN_PERMISSIONS = [
   "agent:tools",
   "service:network",
   "service:llm",
-  "service:dictionary",
   "service:clipboard",
 ] as const;
 
@@ -566,7 +565,32 @@ export type PluginToolDefinition = {
   label?: string;
   description: string;
   parameters?: Record<string, unknown>;
+  /**
+   * Resolve with any JSON value — it is serialized as the tool result the
+   * model reads. Resolve with `{ gist, wordCards }` (PluginToolWordCards) to
+   * additionally render word cards in the chat turn: the reader sees the full
+   * entries as cards at the tool's position, the model sees only `gist`.
+   */
   execute: (params: Record<string, unknown>) => unknown | Promise<unknown>;
+};
+
+/** One word card a tool result can carry (full entry, host-rendered). */
+export type PluginToolWordCard = {
+  /** The headword, in its original language. */
+  term: string;
+  /** Human-readable name of the language the entry explains in. */
+  language: string;
+  entry: PluginDictionaryEntry;
+};
+
+/**
+ * Card-carrying tool result: `gist` is what the model receives (keep it to a
+ * one-line summary — the card IS the content); `wordCards` render as word
+ * cards in the chat.
+ */
+export type PluginToolWordCards = {
+  gist: unknown;
+  wordCards: PluginToolWordCard[];
 };
 
 // ─── Events ──────────────────────────────────────────────────────────────────
@@ -667,25 +691,13 @@ export type PluginBookStats = BookStats;
 /** Whole-shelf aggregate over every book's recorded reading. */
 export type PluginStatsOverview = StatsOverview;
 
+/**
+ * A structured dictionary entry — the shape the `dictionary` view kind and
+ * word-card tool results render with the app's own dictionary UX. Producing
+ * entries is plugin business (e.g. via `llm.ask` with a schema); this is the
+ * presentation contract.
+ */
 export type PluginDictionaryEntry = DictionaryEntrySnapshot;
-
-/** A concrete supported locale, or `auto` to follow the app language. */
-export type PluginDictionaryLanguage =
-  | "auto"
-  | "en"
-  | "zh-Hans"
-  | "zh-Hant"
-  | "ja"
-  | "fr"
-  | "de"
-  | "ru"
-  | "es";
-
-export type PluginDictionaryResult = {
-  /** The explanation language the entry was produced in. */
-  language: string;
-  entry: PluginDictionaryEntry;
-};
 
 export type PluginChatMessage = ChatMessageSummary;
 
@@ -880,6 +892,11 @@ export type PluginDocumentCollection = {
 export type PluginContext = {
   readonly manifest: Readonly<PluginManifest>;
   readonly appVersion: string;
+  /**
+   * The app UI's current locale (BCP-47, e.g. "zh-Hans"). Tracks the user's
+   * language setting live — read it at use time, don't copy it at activate().
+   */
+  readonly locale: string;
   /** Namespaced key-value storage, persisted with the app's local data. */
   storage: PluginStorage;
   ui: {
@@ -928,6 +945,11 @@ export type PluginContext = {
    * `service:llm` — a one-shot model call on the user's configured account
    * (fast tier by default) — no thread, no memory, no tools. Rejects when AI
    * is not configured.
+   *
+   * With `schema` (JSON Schema: type/properties/required/items/enum) the host
+   * runs structured mode: it instructs the model to answer with JSON only,
+   * parses and validates the reply, retries once with the violation list, and
+   * resolves with the parsed object — the plugin never sees raw model text.
    */
   llm?: {
     ask(input: {
@@ -936,24 +958,12 @@ export type PluginContext = {
       /** Model tier on the user's account; defaults to "fast". */
       model?: "fast" | "smart";
     }): Promise<string>;
-  };
-  /**
-   * `service:dictionary` — the app's built-in dictionary; shares its cache
-   * with the reader's own look-ups. Uses the user's configured AI model;
-   * rejects when AI is not configured.
-   */
-  dictionary?: {
-    lookUp(input: {
-      term: string;
-      context?: string;
-      bookTitle?: string;
-      /** Target explanation language; omitted means the saved preference. */
-      language?: PluginDictionaryLanguage;
-    }): Promise<PluginDictionaryResult>;
-    /** Current target-language preference used by reader and plugin look-ups. */
-    getLanguage(): PluginDictionaryLanguage;
-    /** Persist the shared reader/plugin target-language preference. */
-    setLanguage(language: PluginDictionaryLanguage): void;
+    ask(input: {
+      prompt: string;
+      system?: string;
+      model?: "fast" | "smart";
+      schema: Record<string, unknown>;
+    }): Promise<unknown>;
   };
   /** `service:clipboard`. */
   clipboard?: {

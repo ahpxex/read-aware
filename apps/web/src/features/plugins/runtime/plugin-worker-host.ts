@@ -19,11 +19,11 @@ import type {
   PluginDisposable,
   PluginManifest,
 } from "@read-aware/plugin-types";
-import { buildPluginContext, pluginStoragePrefix } from "./plugin-context";
+import { buildPluginContext, currentAppLocale, pluginStoragePrefix } from "./plugin-context";
 import { pluginModuleUrl } from "./plugin-backend";
+import { i18n } from "../../../i18n";
 import { onAppEvent } from "../../../platform/app-events";
 import { localKV } from "../../../platform/local-store";
-import { getDictionaryLanguage } from "../../reader/lib/dictionary-prefs";
 import { updateInstalledPlugin } from "../state/plugin-store";
 
 type WorkerMessage =
@@ -32,7 +32,6 @@ type WorkerMessage =
   | { t: "dispose"; handle: string }
   | { t: "call"; id: number; method: string; args: unknown[] }
   | { t: "storage"; op: "set" | "remove"; key: string; value?: string }
-  | { t: "language"; value: string }
   | { t: "result"; id: number; ok: true; value: unknown }
   | { t: "result"; id: number; ok: false; error: string };
 
@@ -48,11 +47,11 @@ export type SandboxedPlugin = {
 
 // ─── Host → worker state sync ────────────────────────────────────────────────
 //
-// The worker keeps local mirrors so `storage.get()` and `dictionary.
-// getLanguage()` stay synchronous. Worker-side writes already flow back here;
-// this is the other direction: when the HOST writes (a settings save from the
-// Plugins panel, a language change in reader prefs), every live sandbox gets a
-// `sync` patch, or its mirror silently serves boot-time values forever.
+// The worker keeps local mirrors so `storage.get()` and `ctx.locale` stay
+// synchronous. Worker-side writes already flow back here; this is the other
+// direction: when the HOST changes (a settings save from the Plugins panel,
+// the app language switching), every live sandbox gets a `sync` patch, or
+// its mirror silently serves boot-time values forever.
 
 const liveWorkers = new Map<string, Worker>();
 let syncWired = false;
@@ -66,9 +65,10 @@ function wireHostSync(): void {
       patch: { storage: localKV.entries(pluginStoragePrefix(pluginId)) },
     });
   });
-  onAppEvent("dictionary-language-changed", ({ language }) => {
+  i18n.on("languageChanged", () => {
+    const locale = currentAppLocale();
     for (const worker of liveWorkers.values()) {
-      worker.postMessage({ t: "sync", patch: { language } });
+      worker.postMessage({ t: "sync", patch: { locale } });
     }
   });
 }
@@ -125,7 +125,7 @@ function resolveMethod(
 type ContextShape = { [key: string]: "fn" | ContextShape };
 
 /** Data (not callables) the Worker mirrors locally to keep sync reads sync. */
-const SHAPE_SKIP = new Set(["manifest", "appVersion", "storage", "session"]);
+const SHAPE_SKIP = new Set(["manifest", "appVersion", "locale", "storage", "session"]);
 
 function describeShape(value: unknown, depth = 0): ContextShape {
   const shape: ContextShape = {};
@@ -302,10 +302,6 @@ export function startPluginWorker(
           }
           return;
 
-        case "language":
-          ctx.dictionary?.setLanguage(message.value as never);
-          return;
-
         case "call": {
           const method = resolveMethod(ctx, message.method);
           if (!method) {
@@ -371,7 +367,7 @@ export function startPluginWorker(
       appVersion,
       shape: describeContext(ctx),
       storage: localKV.entries(pluginStoragePrefix(manifest.id)),
-      language: getDictionaryLanguage(),
+      locale: ctx.locale,
     });
   });
 }

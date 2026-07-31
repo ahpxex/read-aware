@@ -3,7 +3,7 @@
  * apps/web 的 PiChatTransport 适配器把它映射到 ChatStreamChunk：
  * text/thinking 直通增量，tool-step 靠 id 配对 start/end（§5 的开放 union）。
  */
-import type { DictionaryEntry } from "./models/dictionary";
+import type { DictionaryEntrySnapshot } from "@read-aware/core";
 
 /** 被展示的书架书快照；封面与实时进度由 UI 侧按 bookId 水合。 */
 export interface BookReference {
@@ -17,7 +17,7 @@ export interface WordReference {
   term: string;
   /** 解释语言（人类可读名，如 "Simplified Chinese"）—— 与生词本去重口径一致。 */
   language: string;
-  entry: DictionaryEntry;
+  entry: DictionaryEntrySnapshot;
   source: "vocabulary" | "lookup";
 }
 

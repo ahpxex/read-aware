@@ -8,7 +8,7 @@
  * persona, retrieval and memory all live behind the seam, not here.
  */
 
-import type { DictionaryEntry } from "@read-aware/agent";
+import type { DictionaryEntrySnapshot as DictionaryEntry } from "@read-aware/core";
 
 /** A speaking role in the conversation. */
 export type ChatRole = "user" | "assistant";

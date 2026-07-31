@@ -1,10 +1,7 @@
-import type {
-  PluginDictionaryLanguage,
-  PluginDocument,
-  PluginDocumentCollection,
-} from "@read-aware/plugin-types";
+import type { PluginDocument, PluginDocumentCollection } from "@read-aware/plugin-types";
 import { idFor } from "./format";
-import { isTargetLanguage } from "./languages";
+import { isTargetLanguage, type TargetLanguage } from "./languages";
+import { getTargetLanguage, lookUpTerm, saveTargetLanguage } from "./lookup";
 import type { DictionaryContext, SavedWord, SaveWordInput } from "./types";
 
 const WORDS_COLLECTION = "words";
@@ -18,8 +15,8 @@ export async function saveWord(
   input: SaveWordInput,
 ): Promise<Pick<SavedWord, "term" | "language" | "targetLanguage" | "entry">> {
   const term = input.text.trim().slice(0, 60);
-  const targetLanguage = input.language ?? ctx.dictionary.getLanguage();
-  const { language, entry } = await ctx.dictionary.lookUp({
+  const targetLanguage = input.language ?? getTargetLanguage(ctx);
+  const { language, entry } = await lookUpTerm(ctx, {
     term,
     context: input.context,
     bookTitle: input.bookTitle,
@@ -50,14 +47,14 @@ export async function saveWord(
 export async function changeWordLanguage(
   ctx: DictionaryContext,
   doc: PluginDocument<SavedWord>,
-  targetLanguage: PluginDictionaryLanguage,
+  targetLanguage: TargetLanguage,
 ): Promise<PluginDocument<SavedWord>> {
   if (!isTargetLanguage(targetLanguage)) {
     throw new Error(`Unsupported target language: ${String(targetLanguage)}`);
   }
 
   const word = doc.data;
-  const { language, entry } = await ctx.dictionary.lookUp({
+  const { language, entry } = await lookUpTerm(ctx, {
     term: word.term,
     context: word.context,
     bookTitle: word.bookTitle,
@@ -71,7 +68,7 @@ export async function changeWordLanguage(
     anchor: doc.anchor,
   });
   if (nextId !== doc.id) await wordCollection(ctx).delete(doc.id);
-  ctx.dictionary.setLanguage(targetLanguage);
+  saveTargetLanguage(ctx, targetLanguage);
 
   return {
     ...doc,

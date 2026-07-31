@@ -5,7 +5,7 @@
  * etymology.
  */
 import { Fragment, type ReactNode } from "react";
-import type { DictionaryEntry } from "@read-aware/agent";
+import type { DictionaryEntrySnapshot } from "@read-aware/core";
 import { Body, Caption, Eyebrow, Heading, Stack } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 
@@ -49,7 +49,7 @@ export function DictionaryEntryHeading({
   );
 }
 
-export function DictionaryEntryBody({ entry }: { entry: DictionaryEntry }) {
+export function DictionaryEntryBody({ entry }: { entry: DictionaryEntrySnapshot }) {
   const { t } = useTranslation("reader");
   return (
     <div className="flex flex-col gap-4">

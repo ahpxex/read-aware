@@ -16,14 +16,7 @@ import { exportTextFile } from "../../../platform/export-file";
 import { localKV } from "../../../platform/local-store";
 import { createDomainApi, type DomainEventSubscribe } from "../../../domain";
 import { getAgentRuntime } from "../../ai/agent/agent-runtime";
-import { createDictionaryPort } from "../../ai/agent/ports/dictionary-port";
 import { openBookRequestAtom } from "../../ai/state/chat-intent";
-import {
-  getDictionaryLanguage,
-  resolveExplanationLanguageName,
-  saveDictionaryLanguage,
-  type DictionaryLanguage,
-} from "../../reader/lib/dictionary-prefs";
 import {
   bindVirtualBook,
   findVirtualBookId,
@@ -79,10 +72,9 @@ const SESSION_EVENTS: readonly PluginSessionEventName[] = [
   "reading-progress",
 ];
 
-function requireDictionaryLanguage(value: unknown): DictionaryLanguage {
-  if (value === "auto") return value;
-  if (typeof value === "string" && isAppLocale(value)) return value;
-  throw new Error(`Unsupported dictionary language: ${String(value)}`);
+/** The app UI's current locale, normalized to a supported one. */
+export function currentAppLocale(): string {
+  return i18n.language && isAppLocale(i18n.language) ? i18n.language : DEFAULT_LOCALE;
 }
 
 /**
@@ -112,6 +104,10 @@ export function buildPluginContext(
   const ctx: PluginContext = {
     manifest,
     appVersion,
+    // Live read — the worker mirrors this via the sync channel instead.
+    get locale() {
+      return currentAppLocale();
+    },
     storage: {
       get: (key) => {
         const raw = localKV.getItem(storagePrefix + key);
@@ -392,41 +388,24 @@ export function buildPluginContext(
   }
 
   if (permissions.has("service:llm")) {
-    ctx.llm = {
-      ask: async (input) => {
-        const runtime = getAgentRuntime();
-        if (!runtime) throw new Error("AI is not configured");
-        return runtime.ask({
-          prompt: String(input.prompt),
-          system: input.system,
-          model: input.model === "smart" ? "smart" : "fast",
-        });
-      },
+    const ask = async (input: {
+      prompt: string;
+      system?: string;
+      model?: "fast" | "smart";
+      schema?: Record<string, unknown>;
+    }) => {
+      const runtime = getAgentRuntime();
+      if (!runtime) throw new Error("AI is not configured");
+      const base = {
+        prompt: String(input.prompt),
+        system: input.system,
+        model: input.model === "smart" ? ("smart" as const) : ("fast" as const),
+      };
+      return input.schema && typeof input.schema === "object"
+        ? runtime.ask({ ...base, schema: input.schema })
+        : runtime.ask(base);
     };
-  }
-
-  if (permissions.has("service:dictionary")) {
-    const dictionary = createDictionaryPort();
-    ctx.dictionary = {
-      lookUp: async ({ term, context, bookTitle, language }) => {
-        const selectedLanguage =
-          language == null ? undefined : requireDictionaryLanguage(language);
-        const locale =
-          i18n.language && isAppLocale(i18n.language) ? i18n.language : DEFAULT_LOCALE;
-        const result = await dictionary.lookUp({
-          term: String(term),
-          context: context == null ? undefined : String(context),
-          bookTitle: bookTitle == null ? undefined : String(bookTitle),
-          explanationLanguage:
-            selectedLanguage == null
-              ? undefined
-              : resolveExplanationLanguageName(selectedLanguage, locale),
-        });
-        return { language: result.language, entry: result.entry };
-      },
-      getLanguage: getDictionaryLanguage,
-      setLanguage: (language) => saveDictionaryLanguage(requireDictionaryLanguage(language)),
-    };
+    ctx.llm = { ask } as PluginContext["llm"];
   }
 
   if (permissions.has("service:clipboard")) {

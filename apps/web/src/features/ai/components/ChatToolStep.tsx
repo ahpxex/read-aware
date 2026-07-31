@@ -1,7 +1,10 @@
 import { CaretRight } from "@phosphor-icons/react";
 import { Caption, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
+import { useAtomValue } from "jotai";
 import { useTranslation } from "../../../i18n";
+import { pluginToolName } from "../../plugins/runtime/plugin-tools";
+import { pluginToolsAtom } from "../../plugins/state/plugin-store";
 import type { ChatToolPart } from "../lib/chat-types";
 
 /**
@@ -19,8 +22,6 @@ const TOOL_LABEL_KEYS = {
   get_toc: "chat.tools.get_toc",
   read_chapter: "chat.tools.read_chapter",
   search_book_text: "chat.tools.search_book_text",
-  get_vocabulary: "chat.tools.get_vocabulary",
-  lookup_word: "chat.tools.lookup_word",
 } as const;
 
 /**
@@ -31,8 +32,16 @@ const TOOL_LABEL_KEYS = {
  */
 export function ChatToolStep({ part }: { part: ChatToolPart }) {
   const { t } = useTranslation("ai");
+  const pluginTools = useAtomValue(pluginToolsAtom);
+  // Plugin tools arrive under their wire name; their label lives in the
+  // contribution registry, not in the app catalog.
+  const pluginTool = part.tool.startsWith("plugin_")
+    ? pluginTools.find((tool) => pluginToolName(tool) === part.tool)
+    : undefined;
   const known = part.tool as keyof typeof TOOL_LABEL_KEYS;
-  const label = TOOL_LABEL_KEYS[known] ? t(TOOL_LABEL_KEYS[known]) : t("chat.tools.fallback");
+  const label =
+    (pluginTool && (pluginTool.label ?? `${pluginTool.pluginName} · ${pluginTool.name}`)) ||
+    (TOOL_LABEL_KEYS[known] ? t(TOOL_LABEL_KEYS[known]) : t("chat.tools.fallback"));
   const running = part.state === "running";
 
   return (

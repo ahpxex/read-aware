@@ -19,8 +19,6 @@ export type AppEventMap = {
   "library-changed": Record<string, never>;
   /** A plugin's namespaced KV was written on the HOST side (settings save). */
   "plugin-storage-changed": { pluginId: string };
-  /** The dictionary explanation language preference changed (any actor). */
-  "dictionary-language-changed": { language: string };
 };
 
 export type AppEventName = keyof AppEventMap;

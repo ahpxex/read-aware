@@ -19,7 +19,6 @@ import { findChapterByHref } from "../text/chapter-lookup";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { buildBookTextTools } from "../tools/book-text-tools";
 import { buildConversationTools } from "../tools/conversation-tools";
-import { buildDictionaryTools } from "../tools/dictionary-tools";
 import { buildThreadTools } from "../tools/library-tools";
 import { buildMemoryTools, visibleScopes } from "../tools/memory-tools";
 import { buildPresentTools, referenceFromToolDetails } from "../tools/present-tools";
@@ -151,7 +150,6 @@ export class AgentThread {
           ...buildConversationTools(this.scope, this.deps),
           ...buildBookTextTools(this.scope, this.deps),
           ...buildPresentTools(this.deps),
-          ...buildDictionaryTools(this.scope, this.deps),
           ...(this.deps.extraTools?.() ?? []),
         ],
         messages: turnRecordsToMessages(records, model),

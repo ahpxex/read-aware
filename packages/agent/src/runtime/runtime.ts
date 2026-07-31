@@ -8,6 +8,7 @@ import { createModelResolver, type LlmAccount, type RoleModels } from "../models
 import { createCompleteFn, type CompleteFn } from "../models/complete";
 import { buildProviderRegistry } from "../models/registry";
 import type { RuntimeDeps } from "../ports";
+import { extractJsonObject, schemaViolations } from "../structured";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { AgentThread, type SendTurnInput } from "./thread";
 
@@ -65,20 +66,64 @@ export class AgentRuntime {
   /**
    * 一次性快问（无线程、无记忆、无工具）：宿主的轻量 LLM 入口 ——
    * 产品侧用于插件的 `llm` 权限域。走 fast 档模型。
+   *
+   * 带 `schema` 时是结构化模式：指示模型只回 JSON、解析并对照 schema
+   * 校验（structured.ts 的子集语义），首次失败携带违例清单重试一次，
+   * 仍失败则抛出。返回的是已解析、已校验的对象。
    */
+  async ask(input: { prompt: string; system?: string; model?: "fast" | "smart" }): Promise<string>;
   async ask(input: {
     prompt: string;
     system?: string;
     model?: "fast" | "smart";
-  }): Promise<string> {
-    const message = await this.completeFn(this.resolveModel(input.model ?? "fast"), {
-      systemPrompt: input.system,
-      messages: [{ role: "user", content: input.prompt, timestamp: Date.now() }],
-    });
-    return message.content
-      .filter((block): block is { type: "text"; text: string } => block.type === "text")
-      .map((block) => block.text)
-      .join("");
+    schema: Record<string, unknown>;
+  }): Promise<unknown>;
+  async ask(input: {
+    prompt: string;
+    system?: string;
+    model?: "fast" | "smart";
+    schema?: Record<string, unknown>;
+  }): Promise<unknown> {
+    const complete = async (system: string | undefined, prompt: string): Promise<string> => {
+      const message = await this.completeFn(this.resolveModel(input.model ?? "fast"), {
+        systemPrompt: system,
+        messages: [{ role: "user", content: prompt, timestamp: Date.now() }],
+      });
+      // completeSimple 不 reject：失败 resolve 成 stopReason "error"/"aborted"。
+      if (message.stopReason === "error" || message.stopReason === "aborted") {
+        throw new Error(message.errorMessage ?? "ask failed");
+      }
+      return message.content
+        .filter((block): block is { type: "text"; text: string } => block.type === "text")
+        .map((block) => block.text)
+        .join("");
+    };
+
+    if (!input.schema) return complete(input.system, input.prompt);
+
+    const instruction =
+      "Return ONLY a single JSON object — no prose, no markdown, no code fences. " +
+      `It must validate against this JSON Schema:\n${JSON.stringify(input.schema)}`;
+    const system = input.system ? `${input.system}\n\n${instruction}` : instruction;
+
+    let feedback = "";
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const prompt =
+        attempt === 0
+          ? input.prompt
+          : `${input.prompt}\n\nYour previous reply was invalid (${feedback}). ` +
+            "Reply again with ONLY the corrected JSON object.";
+      const text = await complete(system, prompt);
+      try {
+        const value: unknown = JSON.parse(extractJsonObject(text));
+        const problems = schemaViolations(value, input.schema);
+        if (problems.length === 0) return value;
+        feedback = problems.slice(0, 5).join("; ");
+      } catch (error) {
+        feedback = error instanceof Error ? error.message : String(error);
+      }
+    }
+    throw new Error(`structured ask failed schema validation: ${feedback}`);
   }
 
   /**

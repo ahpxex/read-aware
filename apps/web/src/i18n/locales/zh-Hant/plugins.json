@@ -46,7 +46,6 @@
       "agent_tools": "為閱讀 agent 註冊工具",
       "service_network": "存取網路",
       "service_llm": "使用你設定的模型發起 AI 請求",
-      "service_dictionary": "使用內建字典（消耗你的 AI 額度）",
       "service_clipboard": "寫入剪貼簿"
     },
     "activationError": "啟用失敗:{{message}}",

@@ -10,7 +10,6 @@ import type {
   Id,
   ReadingStatus,
 } from "@read-aware/core";
-import type { DictionaryEntry } from "./models/dictionary";
 
 // 标注读模型：直接用 @read-aware/core 的 canonical 判别联合（read-models.ts）
 // —— 与插件面、产品面同一套形状，漂移在类型层就报错。
@@ -173,26 +172,6 @@ export interface BookTextPort {
   }): Promise<BookTextHit[]>;
 }
 
-export interface DictionaryLookupResult {
-  entry: DictionaryEntry;
-  /** 实际采用的解释语言（人类可读名）。 */
-  language: string;
-}
-
-/**
- * 现场查词（lookup_word 工具的后端）。实现方拥有解释语言偏好、查词缓存与
- * LLM account —— 全在实现侧（web），不把模型解析穿进工具层。失败时抛出。
- */
-export interface DictionaryPort {
-  lookUp(input: {
-    term: string;
-    context?: string;
-    bookTitle?: string;
-    /** Optional model-ready language name; otherwise use the saved preference. */
-    explanationLanguage?: string;
-  }): Promise<DictionaryLookupResult>;
-}
-
 export interface RuntimeDeps {
   library: LibraryPort;
   annotations: AnnotationsPort;
@@ -200,7 +179,6 @@ export interface RuntimeDeps {
   profile: ProfilePort;
   memory: MemoryPort;
   bookText: BookTextPort;
-  dictionary: DictionaryPort;
   /**
    * 宿主注入的额外工具（产品侧：用户插件注册的 agent 工具）。每次 Agent
    * 组装时取一次快照；集合变化后宿主调用 `AgentRuntime.invalidateAgents()`

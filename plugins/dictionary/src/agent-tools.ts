@@ -1,8 +1,63 @@
+import type { PluginToolWordCards } from "@read-aware/plugin-types";
 import { definitionOf } from "./format";
+import { lookUpTerm } from "./lookup";
 import type { DictionaryPluginContext, SavedWord } from "./types";
 import { saveWord, wordCollection } from "./words";
 
 export function registerAgentTools(ctx: DictionaryPluginContext): void {
+  // The open book's title sharpens contextual senses; session facts carry it.
+  let currentBookTitle: string | undefined;
+  ctx.session.on("book-opened", ({ book }) => {
+    currentBookTitle = book.title;
+  });
+  ctx.session.on("book-closed", () => {
+    currentBookTitle = undefined;
+  });
+
+  ctx.agent.registerTool({
+    name: "lookup_word",
+    label: "Look up word",
+    description:
+      "Look up a word or short phrase in the AI dictionary and show the reader a word card with the full entry (pronunciation, senses, examples, etymology). Use it when the reader asks what a word means or when a precise definition genuinely helps; pass the surrounding sentence as context when you have it. The reader sees the full card; you receive only a one-line gist — the card IS the explanation, so after calling say nothing more about the definition, or add a single remark that ties the word to the passage or conversation. One lookup per word per reply: never call it again for a word whose card is already showing in this reply.",
+    parameters: {
+      type: "object",
+      properties: {
+        term: {
+          type: "string",
+          description: "The word or short phrase to define, in its original language.",
+        },
+        context: {
+          type: "string",
+          description: "The sentence or passage it appears in — sharpens the contextual sense.",
+        },
+      },
+      required: ["term"],
+      additionalProperties: false,
+    },
+    execute: async (params) => {
+      const term = String(params.term ?? "").trim();
+      if (!term) throw new Error("term is required");
+      const context = typeof params.context === "string" ? params.context : undefined;
+      const { entry, language } = await lookUpTerm(ctx, {
+        term,
+        context,
+        bookTitle: currentBookTitle,
+      });
+      const headword = entry.headword || term;
+      // The model gets a one-line gist; the full entry rides the word card.
+      // Returning the whole JSON invites the model to restate it in prose.
+      return {
+        gist: {
+          presented: headword,
+          definition: entry.senses[0]?.definition,
+          contextualMeaning: entry.contextualMeaning,
+          note: "The reader is now looking at the full entry card (pronunciation, every sense with examples, etymology). Do not repeat any of it in prose.",
+        },
+        wordCards: [{ term: headword, language, entry }],
+      } satisfies PluginToolWordCards;
+    },
+  });
+
   ctx.agent.registerTool({
     name: "get_vocabulary",
     label: "Saved words",

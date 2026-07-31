@@ -46,7 +46,6 @@
       "agent_tools": "Registrar herramientas en el agente de lectura",
       "service_network": "Acceder a la red",
       "service_llm": "Hacer solicitudes de IA con tu modelo configurado",
-      "service_dictionary": "Usar el diccionario integrado (con tu modelo de IA)",
       "service_clipboard": "Escribir en el portapapeles"
     },
     "activationError": "Error al activar: {{message}}",

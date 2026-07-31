@@ -46,7 +46,6 @@
       "agent_tools": "読書エージェントへのツール登録",
       "service_network": "ネットワークへのアクセス",
       "service_llm": "設定済みモデルでの AI リクエスト",
-      "service_dictionary": "内蔵辞書の利用（AI モデルで動作）",
       "service_clipboard": "クリップボードへの書き込み"
     },
     "activationError": "有効化に失敗しました:{{message}}",

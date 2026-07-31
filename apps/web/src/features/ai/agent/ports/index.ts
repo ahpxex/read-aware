@@ -4,7 +4,6 @@ import { getPluginAgentTools } from "../../../plugins/runtime/plugin-tools";
 import { createAnnotationsPort } from "./annotations-port";
 import { createBookTextPort } from "./book-text-port";
 import { createConversationPort } from "./conversation-port";
-import { createDictionaryPort } from "./dictionary-port";
 import { createLibraryPort } from "./library-port";
 import { createMemoryPort } from "./memory-port";
 import { createProfilePort } from "./profile-port";
@@ -19,7 +18,6 @@ export function buildRuntimeDeps(): RuntimeDeps {
     profile: createProfilePort(),
     memory: createMemoryPort(),
     bookText: createBookTextPort(),
-    dictionary: createDictionaryPort(),
     extraTools: getPluginAgentTools,
   };
 }

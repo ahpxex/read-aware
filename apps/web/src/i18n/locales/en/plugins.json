@@ -46,7 +46,6 @@
       "agent_tools": "Register tools on the reading agent",
       "service_network": "Access the network",
       "service_llm": "Make AI requests with your configured model",
-      "service_dictionary": "Use the built-in dictionary (runs on your AI model)",
       "service_clipboard": "Write to the clipboard"
     },
     "activationError": "Activation failed: {{message}}",

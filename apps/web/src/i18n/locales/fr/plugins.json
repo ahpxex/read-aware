@@ -46,7 +46,6 @@
       "agent_tools": "Enregistrer des outils sur l'agent de lecture",
       "service_network": "Accéder au réseau",
       "service_llm": "Envoyer des requêtes IA avec votre modèle configuré",
-      "service_dictionary": "Utiliser le dictionnaire intégré (via votre modèle IA)",
       "service_clipboard": "Écrire dans le presse-papiers"
     },
     "activationError": "Échec de l'activation : {{message}}",

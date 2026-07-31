@@ -14,10 +14,10 @@
  *
  * Two shapes have to survive the realm crossing:
  *
- *   - **Synchronous reads.** `storage.get()` and `dictionary.getLanguage()` are
- *     synchronous in the plugin API and stay that way: the host ships a
- *     snapshot before `activate()` and pushes updates after, so the answer is
- *     always local. Plugin source needs no change for this.
+ *   - **Synchronous reads.** `storage.get()` and `ctx.locale` are synchronous
+ *     in the plugin API and stay that way: the host ships a snapshot before
+ *     `activate()` and pushes updates after, so the answer is always local.
+ *     Plugin source needs no change for this.
  *   - **Callbacks.** A registration carries functions (`run`, `segmentText`),
  *     which cannot be cloned. They stay here; the host gets a serializable
  *     description plus a handle and calls back through `invoke`.
@@ -34,10 +34,10 @@ type HostMessage =
       appVersion: string;
       shape: ContextShape;
       storage: Record<string, string>;
-      language: string;
+      locale: string;
     }
   | { t: "invoke"; id: number; handle: string; args: unknown[] }
-  | { t: "sync"; patch: { storage?: Record<string, string>; language?: string } }
+  | { t: "sync"; patch: { storage?: Record<string, string>; locale?: string } }
   | { t: "result"; id: number; ok: true; value: unknown }
   | { t: "result"; id: number; ok: false; error: string }
   | { t: "deactivate" };
@@ -48,7 +48,6 @@ type WorkerMessage =
   | { t: "dispose"; handle: string }
   | { t: "call"; id: number; method: string; args: unknown[] }
   | { t: "storage"; op: "set" | "remove"; key: string; value?: string }
-  | { t: "language"; value: string }
   | { t: "result"; id: number; ok: true; value: unknown }
   | { t: "result"; id: number; ok: false; error: string };
 
@@ -151,7 +150,7 @@ function remoteNamespace(path: string, shape: ContextShape): Record<string, unkn
 // ─── Locally-mirrored state (keeps the sync API sync) ────────────────────────
 
 const storageSnapshot = new Map<string, string>();
-let dictionaryLanguage = "";
+let appLocale = "";
 
 // ─── Context assembly ────────────────────────────────────────────────────────
 
@@ -167,6 +166,8 @@ function buildContext(
 
   ctx.manifest = manifest;
   ctx.appVersion = appVersion;
+  // Mirrored locally (boot + sync patches) so the read stays synchronous.
+  Object.defineProperty(ctx, "locale", { get: () => appLocale, enumerable: true });
 
   // Storage: reads answer from the snapshot the host shipped at boot, so the
   // plugin-facing API stays synchronous. Writes update it locally and tell the
@@ -220,16 +221,6 @@ function buildContext(
     }
   }
 
-  // Dictionary language is mirrored locally so `getLanguage()` stays sync.
-  const dictionary = ctx.dictionary as Record<string, unknown> | undefined;
-  if (dictionary) {
-    dictionary.getLanguage = () => dictionaryLanguage;
-    dictionary.setLanguage = (language: string) => {
-      dictionaryLanguage = language;
-      post({ t: "language", value: language });
-    };
-  }
-
   // `fetch` must hand back a real Response; the host sends a flattened one
   // whose body is an ArrayBuffer, so binary payloads survive the crossing.
   const network = ctx.network as Record<string, unknown> | undefined;
@@ -275,7 +266,7 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
         for (const [key, value] of Object.entries(message.storage)) {
           storageSnapshot.set(key, value);
         }
-        dictionaryLanguage = message.language;
+        appLocale = message.locale;
         const loaded = (await import(/* @vite-ignore */ message.url)) as {
           default?: typeof plugin;
         };
@@ -329,7 +320,7 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
           storageSnapshot.set(key, value);
         }
       }
-      if (message.patch.language !== undefined) dictionaryLanguage = message.patch.language;
+      if (message.patch.locale !== undefined) appLocale = message.patch.locale;
       return;
     }
 

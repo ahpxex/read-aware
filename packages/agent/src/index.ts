@@ -9,18 +9,7 @@ export * from "./models/accounts";
 export { KNOWN_PROVIDERS, type KnownProviderId } from "./models/registry";
 export type { CompleteFn } from "./models/complete";
 export { testLlmConnection } from "./models/test-connection";
-export {
-  lookUpWord,
-  explainSentence,
-  isSentenceLookup,
-  type DictionaryEntry,
-  type DictionarySense,
-  type DictionaryLookupResult,
-  type LookUpInput,
-  type ExplainSentenceInput,
-  type SentenceExplanation,
-  type SentenceGloss,
-} from "./models/dictionary";
+export { extractJsonObject, schemaViolations } from "./structured";
 export * from "./onboarding";
 export type { ConsolidationReport } from "./memory/consolidation";
 export { PRESENT_TOOL_NAMES, MAX_PRESENTED_ITEMS } from "./tools/present-tools";

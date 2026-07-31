@@ -1,6 +1,8 @@
 /**
- * 卡片管线（present_* / lookup_word → reference chunk）的端到端流测试：
- * 校验水合、ack 语义（skippedUnknown 不 throw）、details → chunk 的转换。
+ * 卡片管线（present_* / 带卡片的 extra tool → reference chunk）的端到端流
+ * 测试：校验水合、ack 语义（skippedUnknown 不 throw）、details → chunk 的
+ * 转换。查词卡片经由 extraTools 注入 —— 与产品侧的插件桥同一形状（词典
+ * 工具由 Dictionary 插件注册，不再内置）。
  */
 import { afterEach, describe, expect, test } from "bun:test";
 import type { Api, Context, Model } from "@earendil-works/pi-ai";
@@ -10,9 +12,10 @@ import {
   fauxToolCall,
   type FauxProviderRegistration,
 } from "@earendil-works/pi-ai/providers/faux";
-import type { Id } from "@read-aware/core";
-import type { ThreadChunk } from "../chunks";
-import type { DictionaryEntry } from "../models/dictionary";
+import { Type } from "@earendil-works/pi-ai";
+import type { AgentTool } from "@earendil-works/pi-agent-core";
+import type { DictionaryEntrySnapshot, Id } from "@read-aware/core";
+import type { ThreadChunk, WordReference } from "../chunks";
 import type { BookOverview, RuntimeDeps } from "../ports";
 import { createInMemoryDeps } from "../testing/fixtures";
 import type { ThreadScope } from "../thread-scope";
@@ -23,7 +26,7 @@ const BOOKS: BookOverview[] = [
   { id: "b2" as Id, title: "Sapiens", author: "Yuval Noah Harari" },
 ];
 
-const SERENDIPITY: DictionaryEntry = {
+const SERENDIPITY: DictionaryEntrySnapshot = {
   headword: "serendipity",
   pronunciation: "/ˌsɛɹ.ənˈdɪp.ɪ.ti/",
   senses: [
@@ -122,12 +125,17 @@ describe("present flow", () => {
 
 
 
-  test("lookup_word emits a lookup-sourced word card and keeps its tool step visible", async () => {
+  test("an extra tool's word card flows to a reference chunk with a visible tool step", async () => {
     const { faux, model } = makeFaux();
     let secondRound: Context | undefined;
     faux.setResponses([
       fauxAssistantMessage(
-        [fauxToolCall("lookup_word", { term: "serendipity", context: "It was pure serendipity." })],
+        [
+          fauxToolCall("plugin_dictionary_lookup_word", {
+            term: "serendipity",
+            context: "It was pure serendipity.",
+          }),
+        ],
         { stopReason: "toolUse" },
       ),
       (context) => {
@@ -135,16 +143,51 @@ describe("present flow", () => {
         return fauxAssistantMessage("A lovely word.");
       },
     ]);
-    const { deps } = createInMemoryDeps({
-      books: BOOKS,
-      dictionary: { serendipity: SERENDIPITY },
-    });
+    // 与 apps/web 插件桥（plugin-tools.ts）同形的工具结果：content 只带
+    // 一句要义，完整词条走 details.reference。
+    const lookupTool: AgentTool = {
+      name: "plugin_dictionary_lookup_word",
+      label: "Look up word",
+      description: "Look up a word and show the reader a word card.",
+      parameters: Type.Object({
+        term: Type.String(),
+        context: Type.Optional(Type.String()),
+      }),
+      execute: async (_id, params) => {
+        const { term } = params as { term: string };
+        const word: WordReference = {
+          term,
+          language: "English",
+          entry: SERENDIPITY,
+          source: "lookup",
+        };
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({
+                presented: term,
+                definition: SERENDIPITY.senses[0]?.definition,
+              }),
+            },
+          ],
+          details: { reference: { kind: "words", words: [word] } },
+        };
+      },
+    };
+    const { deps } = createInMemoryDeps({ books: BOOKS });
+    deps.extraTools = () => [lookupTool];
     const thread = makeThread({ kind: "book", bookId: "b1" as Id }, deps, model);
 
     const chunks = await collect(thread.sendTurn({ text: "what does serendipity mean?" }));
 
     expect(
-      chunks.some((c) => c.type === "tool-step" && c.phase === "start" && c.tool === "lookup_word"),
+      chunks.some(
+        (c) =>
+          c.type === "tool-step" &&
+          c.phase === "start" &&
+          c.tool === "plugin_dictionary_lookup_word",
+      ),
     ).toBe(true);
     const payload = references(chunks)[0]?.reference;
     if (payload?.kind !== "words") throw new Error("expected a words payload");

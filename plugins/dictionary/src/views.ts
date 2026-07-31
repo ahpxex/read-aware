@@ -1,7 +1,6 @@
 import type {
   PluginAction,
   PluginDetailView,
-  PluginDictionaryLanguage,
   PluginDocument,
   PluginListView,
   PluginMetadataItem,
@@ -10,13 +9,19 @@ import type {
 } from "@read-aware/plugin-types";
 import { exportSavedWords } from "./export";
 import { definitionOf, formatDate } from "./format";
-import { isTargetLanguage, LANGUAGE_OPTIONS, LANGUAGE_VALUE_BY_NAME } from "./languages";
+import {
+  isTargetLanguage,
+  LANGUAGE_OPTIONS,
+  LANGUAGE_VALUE_BY_NAME,
+  type TargetLanguage,
+} from "./languages";
+import { getTargetLanguage } from "./lookup";
 import type { DictionaryContext, SavedWord } from "./types";
 import { changeWordLanguage, wordCollection } from "./words";
 
 function wordDetail(
   word: SavedWord,
-  targetLanguage: PluginDictionaryLanguage,
+  targetLanguage: TargetLanguage,
   onLanguageChange: PluginSelectControl["onChange"],
   onRemove: PluginAction["run"],
 ): PluginDetailView {
@@ -79,10 +84,10 @@ export async function wordDetailView(
   const inferredLanguage =
     word.targetLanguage ??
     LANGUAGE_VALUE_BY_NAME[word.language] ??
-    ctx.dictionary.getLanguage();
+    getTargetLanguage(ctx);
   const targetLanguage = isTargetLanguage(inferredLanguage)
     ? inferredLanguage
-    : ctx.dictionary.getLanguage();
+    : getTargetLanguage(ctx);
 
   return wordDetail(
     word,

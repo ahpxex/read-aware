@@ -131,7 +131,9 @@ export function toolStepDetail(tool: string, args: unknown): string | undefined 
     const part = typeof record.part === "number" && record.part > 0 ? ` · ${record.part + 1}` : "";
     return `#${record.chapterIndex}${part}`;
   }
-  if (tool === "lookup_word" && typeof record.term === "string" && record.term.trim()) {
+  // Any tool with a `term` argument (dictionary-style look-ups, plugin or
+  // built-in) shows the term — it is the human-meaningful bit.
+  if (typeof record.term === "string" && record.term.trim()) {
     return truncate(record.term);
   }
   return undefined;

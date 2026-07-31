@@ -156,13 +156,17 @@ export default {
 manifest 声明，安装时逐条展示给用户，设置页里可整体启停插件。
 `storage`（命名空间 KV + **文档集合** `storage.collection(name)`：结构化
 插件私有数据，可带 bookId/anchor 出处索引、无书籍级联、随插件卸载清除）、
-UI 贡献、会话事实、阅读器环境控制（`ctx.reader.openBook/goTo`）不算权限，
+UI 贡献、会话事实、应用语言（`ctx.locale`，随设置实时更新）、阅读器
+环境控制（`ctx.reader.openBook/goTo`）不算权限，
 所有插件默认拥有。
 
 **内置插件（bundled plugins）**：垂直功能默认以插件形态构建（构造规则
 第五条），随应用打包分发（`bundled-plugins/` 资源目录）、默认启用、可禁
 用、不可卸载。目前的第一方住户是 **Dictionary**、**RSS Reader** 和
-**Sentence Reader**。Dictionary 的词条数据整个活在自己的文档集合里；
+**Sentence Reader**。Dictionary 拥有从引擎到数据的整个词典：查词
+prompt、词条 schema、查词缓存、语言偏好与生词本全在插件里
+（`llm.ask` 结构化模式 + 文档集合），agent 的 `lookup_word` 工具也由
+它注册；
 RSS Reader 通过内容提供者把 feed 映射成虚拟书；Sentence Reader 通过
 `reader:modes` 注册逐句/逐段分段策略，宿主沿用原有阅读器控件与交互。
 `reader:modes` 暂时只允许 bundled 插件使用，其余能力仍与第三方走完全相同
@@ -183,10 +187,15 @@ workspace 位于 `plugins/<id>/`。每个包以模块化 TypeScript 编写并产
 | `annotations:write` | `ctx.annotations.write`：高亮增删改色、笔记增改删（ask 仅 agent 可写） |
 | `conversations:read` | `ctx.conversations`：书内线程与全局线程（只读）+ 对话事件订阅 |
 | `agent:tools` | `ctx.agent.registerTool` —— 注册 agent 工具（§8） |
-| `service:network` | `ctx.network.fetch`（CSP `connect-src` 已含 `https:`，门控在 API 层） |
-| `service:llm` | `ctx.llm.ask` —— 用用户配置的模型做一次性调用（fast 档,无线程无记忆无工具） |
-| `service:dictionary` | `ctx.dictionary.lookUp/getLanguage/setLanguage`（与阅读器共享目标语言偏好和查词缓存；消耗用户 AI 额度） |
+| `service:network` | `ctx.network.fetch`（CSP `connect-src` 已含 `https:`，门控在 API 层；body 以二进制过沙盒边界） |
+| `service:llm` | `ctx.llm.ask` —— 用用户配置的模型做一次性调用（fast/smart 档，无线程无记忆无工具）。带 `schema` 时是**结构化模式**：宿主指示模型只回 JSON、解析并校验、失败携带违例重试一次，插件拿到的是已校验对象 |
 | `service:clipboard` | `ctx.clipboard.writeText` |
+
+（曾有的 `service:dictionary` 已随词典引擎整体搬入 Dictionary 插件而
+退役：prompt、词条 schema、查词缓存与解释语言偏好都归插件own，基于
+`llm.ask` 的结构化模式实现；agent 的 `lookup_word` 工具也由该插件经
+`agent:tools` 注册。判定规则：**宿主自己需要的能力才暴露成 service；
+宿主不需要的，插件基于 `llm.ask` 自建**。）
 
 （i18n 注：权限 id 含 `:`，而 `:` 是 i18next 的 namespace 分隔符，
 文案 catalog 键用 `_` 形式——`permissionLabelKey()` 统一映射。）
@@ -325,9 +334,13 @@ DOM Range 或 Foliate 实例。
   内置工具及其他插件冲突。
 - 装配点：`buildThreadTools` 输出后追加"当前启用插件的工具"；插件
   启停触发 runtime 工具集刷新。
-- 呈现：插件工具调用走现成的通用工具步 UI，用户在聊天里看得见
-  "正在调用 × 插件的 × 工具"（与显式状态的架构哲学一致，不进
-  `SUPPRESSED_TOOLS`）。
+- 呈现：插件工具调用走现成的通用工具步 UI（活动行标签取自注册表的
+  `label`），用户在聊天里看得见"正在调用 × 插件的 × 工具"（与显式
+  状态的架构哲学一致，不进 `SUPPRESSED_TOOLS`）。
+- **卡片结果**：工具的 `execute` 返回 `{ gist, wordCards }`
+  （`PluginToolWordCards`）时，聊天在工具位置渲染完整单词卡，模型只
+  收到 `gist` 一句要义——卡片即内容，杜绝模型复述。Dictionary 插件的
+  `lookup_word` 就是这条通路的第一个住户（词典工具不再内置于 agent）。
 - 开关：设置页里按插件整体启停其工具；更细粒度（按书/按线程）留作
   后续。
 

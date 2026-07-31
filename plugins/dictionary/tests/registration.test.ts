@@ -18,8 +18,10 @@ describe("Dictionary contributions", () => {
         registerHeaderAction: () => disposable,
         registerCommand: () => disposable,
       },
-      dictionary: {},
+      llm: {},
       agent: { registerTool: () => disposable },
+      session: { on: () => disposable },
+      locale: "en",
     } as unknown as PluginContext;
 
     await plugin.activate(context);

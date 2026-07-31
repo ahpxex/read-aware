@@ -46,7 +46,6 @@
       "agent_tools": "为阅读 agent 注册工具",
       "service_network": "访问网络",
       "service_llm": "使用你配置的模型发起 AI 请求",
-      "service_dictionary": "使用内置词典（消耗你的 AI 额度）",
       "service_clipboard": "写入剪贴板"
     },
     "activationError": "启用失败:{{message}}",

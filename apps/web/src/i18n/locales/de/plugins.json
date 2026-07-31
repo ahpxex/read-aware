@@ -46,7 +46,6 @@
       "agent_tools": "Werkzeuge am Lese-Agenten registrieren",
       "service_network": "Auf das Netzwerk zugreifen",
       "service_llm": "KI-Anfragen mit deinem konfigurierten Modell stellen",
-      "service_dictionary": "Das eingebaute Wörterbuch nutzen (läuft über dein KI-Modell)",
       "service_clipboard": "In die Zwischenablage schreiben"
     },
     "activationError": "Aktivierung fehlgeschlagen: {{message}}",

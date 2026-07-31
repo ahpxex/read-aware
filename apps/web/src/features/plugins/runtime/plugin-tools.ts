@@ -4,9 +4,41 @@
  * the description so the model knows the source, JSON results. Wired into
  * RuntimeDeps.extraTools; the registry snapshot is taken per agent build.
  */
-import type { AgentTool } from "@read-aware/agent";
+import type { AgentTool, ReferencePayload, WordReference } from "@read-aware/agent";
 import type { RegisteredTool } from "../lib/plugin-types";
 import { getRegisteredPluginTools } from "../state/plugin-store";
+
+/**
+ * A card-carrying tool result (PluginToolWordCards in the contract): the
+ * reader gets full word cards at the tool's position, the model only `gist`.
+ * Anything that doesn't match the shape (or whose cards fail the sanity
+ * check) falls back to plain JSON serialization.
+ */
+function toWordReferences(result: unknown): { gist: unknown; words: WordReference[] } | null {
+  if (!result || typeof result !== "object" || Array.isArray(result)) return null;
+  const candidate = result as { gist?: unknown; wordCards?: unknown };
+  if (!Array.isArray(candidate.wordCards) || candidate.wordCards.length === 0) return null;
+  const words: WordReference[] = [];
+  for (const card of candidate.wordCards as Array<Record<string, unknown>>) {
+    const entry = card?.entry as { headword?: unknown; senses?: unknown } | undefined;
+    if (
+      typeof card?.term !== "string" ||
+      !card.term.trim() ||
+      !entry ||
+      typeof entry.headword !== "string" ||
+      !Array.isArray(entry.senses)
+    ) {
+      return null;
+    }
+    words.push({
+      term: card.term,
+      language: typeof card.language === "string" ? card.language : "",
+      entry: entry as WordReference["entry"],
+      source: "lookup",
+    });
+  }
+  return { gist: candidate.gist ?? null, words };
+}
 
 function sanitize(part: string): string {
   return part.replace(/[^a-zA-Z0-9_]/g, "_");
@@ -30,6 +62,14 @@ export function getPluginAgentTools(): AgentTool[] {
     parameters: (tool.parameters ?? EMPTY_PARAMETERS) as AgentTool["parameters"],
     execute: async (_toolCallId, params) => {
       const result = await tool.execute((params ?? {}) as Record<string, unknown>);
+      const cards = toWordReferences(result);
+      if (cards) {
+        const reference: ReferencePayload = { kind: "words", words: cards.words };
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(cards.gist) }],
+          details: { reference },
+        };
+      }
       return {
         content: [{ type: "text" as const, text: JSON.stringify(result ?? null) }],
         details: undefined,

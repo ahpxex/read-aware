@@ -1,20 +1,22 @@
 import { ListBullets } from "@phosphor-icons/react";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Caption,
   EmptyState,
+  Eyebrow,
   ItemList,
   SearchField,
-  Section,
   Stack,
   Tabs,
   Tag,
   Tooltip,
 } from "@read-aware/ui";
+import { cn } from "@read-aware/ui/cn";
 import { useLocale, useTranslation } from "../../../i18n";
 import { localKV } from "../../../platform/local-store";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { renderPluginIcon } from "../lib/plugin-icons";
+import { PluginVirtualRows, type VirtualRow } from "./PluginVirtualRows";
 import {
   filterPluginTimelineItems,
   groupPluginTimelineItems,
@@ -100,46 +102,82 @@ export function PluginListViewBody({
     );
   }, [debouncedQuery, view.items]);
 
-  const renderItems = (visibleItems: PluginListItem[]) => (
-    <ItemList>
-      {visibleItems.map((item) => (
-        <ItemList.Item
-          key={item.id}
-          title={item.title}
-          subtitle={item.subtitle}
-          icon={renderPluginIcon(item.icon, 16)}
-          accessories={item.accessories?.map(accessoryNode)}
-          disclosure={item.presentation === "dialog" ? "none" : "chevron"}
-          disabled={busy}
-          onClick={
-            item.onSelect
-              ? () => void onResult(
-                  () => item.onSelect!(),
-                  { presentation: item.presentation, dialogTitle: item.title },
-                )
-              : undefined
-          }
-        />
-      ))}
+  // One item as a virtual row: reuses the design-system ItemList.Item; the
+  // top border stands in for ItemList's own `divide-y` (which a one-item list
+  // can't draw), so consecutive items in a section keep their separator.
+  const itemRowNode = (item: PluginListItem, withDivider: boolean): ReactNode => (
+    <ItemList className={withDivider ? "border-t border-border/60" : undefined}>
+      <ItemList.Item
+        title={item.title}
+        subtitle={item.subtitle}
+        icon={renderPluginIcon(item.icon, 16)}
+        accessories={item.accessories?.map(accessoryNode)}
+        disclosure={item.presentation === "dialog" ? "none" : "chevron"}
+        disabled={busy}
+        onClick={
+          item.onSelect
+            ? () => void onResult(
+                () => item.onSelect!(),
+                { presentation: item.presentation, dialogTitle: item.title },
+              )
+            : undefined
+        }
+      />
     </ItemList>
   );
 
+  const headerRowNode = (label: string, first: boolean): ReactNode => (
+    <Eyebrow className={cn("block pb-2", first ? "pt-0" : "pt-5")}>{label}</Eyebrow>
+  );
+
+  const plainRows: VirtualRow[] = items.map((item, index) => ({
+    key: item.id,
+    size: item.subtitle ? 60 : 48,
+    content: itemRowNode(item, index > 0),
+  }));
+
+  // Timeline content is built ONLY for the active range — the Tabs component
+  // mounts every panel, so computing/flattening all four would put every
+  // range's rows in the tree even when unseen.
+  const activeTimelineRows = (): VirtualRow[] => {
+    const sections = groupPluginTimelineItems(
+      filterPluginTimelineItems(items, range),
+      locale,
+      {
+        today: t("viewer.timeline.today"),
+        yesterday: t("viewer.timeline.yesterday"),
+        unknownDate: t("viewer.timeline.unknownDate"),
+      },
+    );
+    const rows: VirtualRow[] = [];
+    sections.forEach((section, sectionIndex) => {
+      rows.push({
+        key: `header:${section.key}`,
+        size: sectionIndex === 0 ? 28 : 48,
+        content: headerRowNode(section.label, sectionIndex === 0),
+      });
+      section.items.forEach((item, itemIndex) => {
+        rows.push({
+          key: `item:${item.id}`,
+          size: item.subtitle ? 60 : 48,
+          content: itemRowNode(item, itemIndex > 0),
+        });
+      });
+    });
+    return rows;
+  };
+
   const timelineTabs = view.timeline
-    ? TIMELINE_RANGES.map((range) => {
-        const rangeItems = filterPluginTimelineItems(items, range);
-        const sections = groupPluginTimelineItems(
-          rangeItems,
-          locale,
-          {
-            today: t("viewer.timeline.today"),
-            yesterday: t("viewer.timeline.yesterday"),
-            unknownDate: t("viewer.timeline.unknownDate"),
-          },
-        );
+    ? TIMELINE_RANGES.map((tabRange) => {
+        if (tabRange !== range) {
+          // Inactive panel — an empty placeholder; content builds on activation.
+          return { label: t(`viewer.timeline.${tabRange}`), content: null };
+        }
+        const rows = activeTimelineRows();
         return {
-          label: t(`viewer.timeline.${range}`),
+          label: t(`viewer.timeline.${tabRange}`),
           content:
-            sections.length === 0 ? (
+            rows.length === 0 ? (
               <EmptyState
                 title={
                   debouncedQuery.trim()
@@ -149,13 +187,7 @@ export function PluginListViewBody({
                 className="py-10"
               />
             ) : (
-              <Stack gap="lg">
-                {sections.map((section) => (
-                  <Section key={section.key} title={section.label}>
-                    {renderItems(section.items)}
-                  </Section>
-                ))}
-              </Stack>
+              <PluginVirtualRows rows={rows} />
             ),
         };
       })
@@ -205,7 +237,7 @@ export function PluginListViewBody({
       ) : (
         <Stack gap="sm">
           {listActions}
-          {renderItems(items)}
+          <PluginVirtualRows rows={plainRows} />
         </Stack>
       )}
     </Stack>

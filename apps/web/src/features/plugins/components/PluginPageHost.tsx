@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useAtomValue } from "jotai";
 import { Caption, Heading, Stack } from "@read-aware/ui";
+import { cn } from "@read-aware/ui/cn";
 import { showPluginToast } from "../lib/plugin-toast";
 import type { PluginView } from "../lib/plugin-types";
 import { headerActionsAtom } from "../state/plugin-store";
@@ -79,10 +80,13 @@ export function PluginPageHost({ navKey, onExit }: PluginPageHostProps) {
   return (
     <Stack
       gap="none"
-      className="mx-auto w-full max-w-5xl px-6 py-8 pb-[calc(2rem+var(--ra-safe-bottom))]"
+      // Fills the app scroll viewport so the renderer's ScrollArea is the
+      // page's REAL, bounded scroller (title pinned, content scrolls) — the
+      // windowed list needs a height-constrained ancestor to size against.
+      className="mx-auto h-full min-h-0 w-full max-w-5xl px-6 py-8 pb-[calc(2rem+var(--ra-safe-bottom))]"
     >
       {viewDepth <= 1 && (
-        <Stack gap="xs" className={action.pluginName === title ? "mb-4" : "mb-6"}>
+        <Stack gap="xs" className={cn("shrink-0", action.pluginName === title ? "mb-4" : "mb-6")}>
           <Heading as="h1">{title}</Heading>
           {action.pluginName !== title && (
             <Caption className="text-fg-subtle">{action.pluginName}</Caption>
@@ -95,6 +99,7 @@ export function PluginPageHost({ navKey, onExit }: PluginPageHostProps) {
         onDepthChange={setViewDepth}
         onRequestRefresh={refreshView}
         viewStateKey={action.key}
+        className="min-h-0 flex-1"
       />
     </Stack>
   );

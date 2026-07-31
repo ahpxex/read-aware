@@ -1,0 +1,123 @@
+{
+  "id": "editorial-themes",
+  "name": "Editorial Themes",
+  "version": "1.0.0",
+  "minAppVersion": "0.3.0",
+  "description": "Two editorial themes for the whole app and the book page — Gutenberg, an aged-paper light theme, and Nocturne, a quiet ink-blue dark theme — set in the EB Garamond book face.",
+  "author": "ReadAware",
+  "permissions": ["ui:themes"],
+  "main": "main.js",
+  "fonts": [
+    {
+      "id": "eb-garamond",
+      "family": "EB Garamond",
+      "kind": "serif",
+      "files": [
+        {
+          "path": "assets/eb-garamond-latin-400.woff2",
+          "weight": 400,
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2212, U+FEFF, U+FFFD"
+        },
+        {
+          "path": "assets/eb-garamond-latin-400-italic.woff2",
+          "weight": 400,
+          "style": "italic",
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2212, U+FEFF, U+FFFD"
+        },
+        {
+          "path": "assets/eb-garamond-latin-700.woff2",
+          "weight": 700,
+          "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2212, U+FEFF, U+FFFD"
+        },
+        {
+          "path": "assets/eb-garamond-latin-ext-400.woff2",
+          "weight": 400,
+          "unicodeRange": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1EFF, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF"
+        },
+        {
+          "path": "assets/eb-garamond-latin-ext-700.woff2",
+          "weight": 700,
+          "unicodeRange": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1EFF, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF"
+        }
+      ]
+    }
+  ],
+  "themes": [
+    {
+      "id": "gutenberg",
+      "name": {
+        "default": "Gutenberg",
+        "translations": { "zh-Hans": "活字", "zh-Hant": "活字", "ja": "グーテンベルク" }
+      },
+      "polarity": "light",
+      "app": {
+        "paper": "#f4ecd9",
+        "paperWarm": "#ecdfc3",
+        "border": "rgba(46, 38, 24, 0.12)",
+        "fg": "#2b241a",
+        "fgMuted": "#6b5f4b",
+        "fgSubtle": "#a4977d",
+        "inverseFg": "#f8f3e6",
+        "surface": "#fbf6ea",
+        "fill": "#eee4cd",
+        "fillStrong": "#e0d2b0",
+        "borderStrong": "#d0c19e",
+        "mainSurface": "#f0e7d1",
+        "scrollbar": "rgba(46, 38, 24, 0.4)"
+      },
+      "reader": {
+        "palette": {
+          "bg": "#f3ead5",
+          "text": "#2b241a",
+          "selection": "rgba(151, 129, 83, 0.32)",
+          "rule": "rgba(43, 36, 26, 0.16)",
+          "faint": "rgba(43, 36, 26, 0.05)",
+          "muted": "rgba(43, 36, 26, 0.55)"
+        },
+        "typography": {
+          "fontFamily": "plugin:eb-garamond",
+          "fontSize": "large",
+          "lineSpacing": "comfortable"
+        }
+      }
+    },
+    {
+      "id": "nocturne",
+      "name": {
+        "default": "Nocturne",
+        "translations": { "zh-Hans": "夜曲", "zh-Hant": "夜曲", "ja": "ノクターン" }
+      },
+      "polarity": "dark",
+      "app": {
+        "paper": "#14171e",
+        "paperWarm": "#1a1e27",
+        "border": "rgba(223, 227, 235, 0.12)",
+        "fg": "#e3e6ec",
+        "fgMuted": "#9aa2b1",
+        "fgSubtle": "#626b7d",
+        "inverseFg": "#14171e",
+        "surface": "#1d222c",
+        "fill": "#191d26",
+        "fillStrong": "#2a3140",
+        "borderStrong": "rgba(223, 227, 235, 0.2)",
+        "mainSurface": "#10131a",
+        "scrollbar": "rgba(223, 227, 235, 0.38)"
+      },
+      "reader": {
+        "palette": {
+          "bg": "#161a22",
+          "text": "#ccd2dd",
+          "selection": "rgba(154, 162, 177, 0.28)",
+          "rule": "rgba(204, 210, 221, 0.18)",
+          "faint": "rgba(204, 210, 221, 0.07)",
+          "muted": "rgba(204, 210, 221, 0.55)"
+        },
+        "typography": {
+          "fontFamily": "plugin:eb-garamond",
+          "fontSize": "large",
+          "lineSpacing": "comfortable"
+        }
+      }
+    }
+  ]
+}

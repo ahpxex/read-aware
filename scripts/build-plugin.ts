@@ -1,4 +1,5 @@
 import { cp, mkdir, rm } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 
 type PluginManifestFile = {
@@ -56,3 +57,11 @@ if (!result.success) {
 }
 
 await cp(manifestPath, join(distDir, "manifest.json"));
+
+// Bundled binary assets (fonts, images): anything under assets/ ships with
+// the plugin verbatim — manifest declarations (e.g. fonts[].files) reference
+// these paths relative to the plugin folder.
+const assetsDir = join(packageRoot, "assets");
+if (existsSync(assetsDir)) {
+  await cp(assetsDir, join(distDir, "assets"), { recursive: true });
+}

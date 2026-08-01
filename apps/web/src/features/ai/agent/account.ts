@@ -6,6 +6,7 @@
 import {
   CUSTOM_OPENAI_PROVIDER_ID,
   LEGACY_CUSTOM_OPENAI_API,
+  normalizeCustomOpenAIBaseUrl,
   type LlmAccount,
   type RoleModels,
   type RoleThinking,
@@ -27,7 +28,7 @@ export function accountFromConfig(config: AIConfig): {
           kind: "api-key",
           provider: CUSTOM_OPENAI_PROVIDER_ID,
           apiKey: config.apiKey,
-          baseUrl: config.customBaseUrl ?? "",
+          baseUrl: normalizeCustomOpenAIBaseUrl(config.customBaseUrl ?? ""),
           // Direct callers may still hand us the pre-migration shape. Stored
           // configs resolve this field before reaching accountFromConfig.
           api: config.customApi ?? LEGACY_CUSTOM_OPENAI_API,

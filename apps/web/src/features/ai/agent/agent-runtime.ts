@@ -4,6 +4,7 @@
  */
 import { createAgentRuntime, type AgentRuntime } from "@read-aware/agent";
 import { getDefaultStore } from "jotai";
+import { appHttpFetch } from "../../../platform/http-client";
 import { pluginToolsAtom } from "../../plugins/state/plugin-store";
 import { getAIConfig } from "../lib/ai-config";
 import { accountFromConfig } from "./account";
@@ -26,7 +27,13 @@ export function getAgentRuntime(): AgentRuntime | null {
   if (cached?.key !== key) {
     cached = {
       key,
-      runtime: createAgentRuntime({ deps: buildRuntimeDeps(), account, models, thinking }),
+      runtime: createAgentRuntime({
+        deps: buildRuntimeDeps(),
+        account,
+        models,
+        thinking,
+        fetch: appHttpFetch,
+      }),
     };
   }
   return cached.runtime;

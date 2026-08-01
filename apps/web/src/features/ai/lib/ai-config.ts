@@ -7,6 +7,7 @@ import {
   LEGACY_CUSTOM_OPENAI_API,
   getProviderModelCatalog,
   isCustomOpenAIApi,
+  normalizeCustomOpenAIBaseUrl,
   type CustomOpenAIApi,
   type KnownProviderId,
   type ThinkingLevel,
@@ -233,7 +234,9 @@ export function saveAIConfig(config: AIConfig): void {
       : resolvedThinkingLevel,
     ...(provider === "custom"
       ? {
-          ...(customBaseUrl ? { customBaseUrl } : {}),
+          ...(customBaseUrl
+            ? { customBaseUrl: normalizeCustomOpenAIBaseUrl(customBaseUrl) }
+            : {}),
           customApi: isCustomOpenAIApi(customApi)
             ? customApi
             : DEFAULT_CUSTOM_OPENAI_API,

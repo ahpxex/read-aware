@@ -9,6 +9,7 @@ import {
   testLlmConnection,
   type CustomOpenAIApi,
 } from "@read-aware/agent";
+import { appHttpFetch } from "../../../platform/http-client";
 import {
   Accordion,
   Button,
@@ -203,7 +204,9 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
             ? parsePositiveInteger(customMaxOutputTokens)
             : undefined,
       });
-      const response = await testLlmConnection(account, models.smart);
+      const response = await testLlmConnection(account, models.smart, {
+        fetch: appHttpFetch,
+      });
 
       if (response) {
         setTestResult({

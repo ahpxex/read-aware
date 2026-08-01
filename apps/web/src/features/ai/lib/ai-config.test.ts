@@ -163,7 +163,7 @@ describe("AI provider defaults", () => {
       provider: "custom",
       apiKey: "",
       model: "gateway-model",
-      customBaseUrl: "https://gateway.example/v1",
+      customBaseUrl: "https://gateway.example/v1/chat/completions/",
       customApi: "openai-responses",
       customSupportsThinking: true,
       customMaxOutputTokens: 4_096,
@@ -171,6 +171,7 @@ describe("AI provider defaults", () => {
 
     expect(getStoredProviderSettings("custom")).toMatchObject({
       model: "gateway-model",
+      customBaseUrl: "https://gateway.example/v1",
       customApi: "openai-responses",
       customSupportsThinking: true,
       customMaxOutputTokens: 4_096,

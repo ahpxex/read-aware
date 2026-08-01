@@ -58,7 +58,7 @@ describe("accountFromConfig", () => {
       apiKey: "test-key",
       model: "gateway-smart",
       fastModel: "gateway-fast",
-      customBaseUrl: "https://gateway.example/v1",
+      customBaseUrl: "https://gateway.example/v1/chat/completions",
       customApi: "openai-completions",
       customSupportsThinking: true,
       customMaxOutputTokens: 4_096,

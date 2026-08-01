@@ -9,6 +9,8 @@ import type {
   ChatPermissionAction,
 } from "../lib/chat-types";
 
+type InteractionResponder = (id: string, answer: ChatInteractionAnswer) => boolean;
+
 const CUSTOM_CHOICE = "__read_aware_custom_answer__";
 
 const permissionKeys: Record<
@@ -56,7 +58,13 @@ function SettledAnswer({ part }: { part: ChatInteractionPart }) {
   );
 }
 
-function QuestionPrompt({ part }: { part: ChatInteractionPart }) {
+function QuestionPrompt({
+  part,
+  onRespond,
+}: {
+  part: ChatInteractionPart;
+  onRespond: InteractionResponder;
+}) {
   const { t } = useTranslation("ai");
   const [choice, setChoice] = useState("");
   const [custom, setCustom] = useState("");
@@ -81,7 +89,7 @@ function QuestionPrompt({ part }: { part: ChatInteractionPart }) {
 
   function settle(answer: ChatInteractionAnswer): void {
     setSubmitting(true);
-    if (!respondToUserInteraction(part.id, answer)) setSubmitting(false);
+    if (!onRespond(part.id, answer)) setSubmitting(false);
   }
 
   function submit(event: FormEvent): void {
@@ -132,7 +140,13 @@ function QuestionPrompt({ part }: { part: ChatInteractionPart }) {
   );
 }
 
-function PermissionPrompt({ part }: { part: ChatInteractionPart }) {
+function PermissionPrompt({
+  part,
+  onRespond,
+}: {
+  part: ChatInteractionPart;
+  onRespond: InteractionResponder;
+}) {
   const { t } = useTranslation("ai");
   const [submitting, setSubmitting] = useState(false);
   const request = part.request.kind === "permission" ? part.request : null;
@@ -141,7 +155,7 @@ function PermissionPrompt({ part }: { part: ChatInteractionPart }) {
 
   function settle(answer: ChatInteractionAnswer): void {
     setSubmitting(true);
-    if (!respondToUserInteraction(part.id, answer)) setSubmitting(false);
+    if (!onRespond(part.id, answer)) setSubmitting(false);
   }
 
   return (
@@ -172,7 +186,13 @@ function PermissionPrompt({ part }: { part: ChatInteractionPart }) {
 }
 
 /** Inline question/permission surface; settled answers remain in the transcript. */
-export function ChatInteractionPrompt({ part }: { part: ChatInteractionPart }) {
+export function ChatInteractionPrompt({
+  part,
+  onRespond = respondToUserInteraction,
+}: {
+  part: ChatInteractionPart;
+  onRespond?: InteractionResponder;
+}) {
   const { t } = useTranslation("ai");
   const permission = part.request.kind === "permission";
   const title =
@@ -184,13 +204,13 @@ export function ChatInteractionPrompt({ part }: { part: ChatInteractionPart }) {
   return (
     <Card
       padding="sm"
-      className={permission ? "border-red-300 dark:border-red-900" : "border-border-strong"}
+      className="rounded-md bg-transparent"
       aria-live={part.state === "pending" ? "polite" : undefined}
     >
       <div className="flex items-start gap-2.5">
         <Icon
           size={17}
-          className={permission ? "mt-0.5 shrink-0 text-red-800 dark:text-red-400" : "mt-0.5 shrink-0 text-fg-muted"}
+          className="mt-0.5 shrink-0 text-fg-muted"
           aria-hidden="true"
         />
         <div className="min-w-0 flex-1">
@@ -200,9 +220,9 @@ export function ChatInteractionPrompt({ part }: { part: ChatInteractionPart }) {
           <div className="mt-3">
             {part.state === "pending" ? (
               permission ? (
-                <PermissionPrompt part={part} />
+                <PermissionPrompt part={part} onRespond={onRespond} />
               ) : (
-                <QuestionPrompt part={part} />
+                <QuestionPrompt part={part} onRespond={onRespond} />
               )
             ) : (
               <SettledAnswer part={part} />

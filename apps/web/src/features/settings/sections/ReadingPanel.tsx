@@ -209,7 +209,12 @@ function ReadingPreview({ style }: { style: React.CSSProperties }) {
       aria-label={t("reading.previewLabel")}
     >
       <div className="px-6 py-5 transition-colors" style={style}>
-        <p style={{ margin: 0 }}>{t("reading.previewText")}</p>
+        <blockquote className="m-0">
+          <p className="m-0">{t("reading.previewText")}</p>
+          <footer className="mt-3 font-sans text-caption leading-5 opacity-60">
+            {t("reading.previewSource")}
+          </footer>
+        </blockquote>
       </div>
     </div>
   );

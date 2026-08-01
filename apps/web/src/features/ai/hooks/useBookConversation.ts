@@ -152,8 +152,10 @@ export function useBookConversation(
           // the retry affordance has a message to live on.
           const parts = finalizeParts(assembled);
           const content = partsText(parts);
-          const hasReference = parts.some((part) => part.type === "reference");
-          if (content || hasReference || failure) {
+          const hasStructuredOutput = parts.some(
+            (part) => part.type === "reference" || part.type === "interaction",
+          );
+          if (content || hasStructuredOutput || failure) {
             const assistantMessage: ChatMessage = {
               id: crypto.randomUUID(),
               role: "assistant",

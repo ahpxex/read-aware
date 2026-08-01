@@ -66,6 +66,31 @@ export function appendStreamChunk(
           : part,
       );
     }
+    case "interaction": {
+      if (chunk.phase === "request") {
+        if (parts.some((part) => part.type === "interaction" && part.id === chunk.request.id)) {
+          return parts;
+        }
+        return [
+          ...parts,
+          {
+            type: "interaction",
+            id: chunk.request.id,
+            request: chunk.request,
+            state: "pending",
+          },
+        ];
+      }
+      return parts.map((part) =>
+        part.type === "interaction" && part.id === chunk.id
+          ? {
+              ...part,
+              state: chunk.answer.cancelled ? "cancelled" : "answered",
+              answer: chunk.answer,
+            }
+          : part,
+      );
+    }
     case "reference": {
       // One part per producing tool call, idempotent by id; stacks never merge.
       if (parts.some((part) => part.type === "reference" && part.id === chunk.id)) return parts;
@@ -86,13 +111,23 @@ export function appendStreamChunk(
  */
 export function finalizeParts(parts: ChatAssistantPart[]): ChatAssistantPart[] {
   return parts
-    .filter(
-      (part) =>
-        part.type === "tool" || part.type === "reference" || part.text.trim().length > 0,
-    )
-    .map((part) =>
-      part.type === "tool" && part.state === "running" ? { ...part, state: "done" } : part,
-    );
+    .filter((part) => {
+      if (part.type === "text" || part.type === "thinking") return part.text.trim().length > 0;
+      return true;
+    })
+    .map((part) => {
+      if (part.type === "tool" && part.state === "running") {
+        return { ...part, state: "done" };
+      }
+      if (part.type === "interaction" && part.state === "pending") {
+        return {
+          ...part,
+          state: "cancelled",
+          answer: { cancelled: true },
+        };
+      }
+      return part;
+    });
 }
 
 /**
@@ -131,6 +166,8 @@ export function toolStepDetail(tool: string, args: unknown): string | undefined 
     const part = typeof record.part === "number" && record.part > 0 ? ` · ${record.part + 1}` : "";
     return `#${record.chapterIndex}${part}`;
   }
+  if (typeof record.name === "string" && record.name.trim()) return truncate(record.name);
+  if (typeof record.title === "string" && record.title.trim()) return truncate(record.title);
   // Any tool with a `term` argument (dictionary-style look-ups, plugin or
   // built-in) shows the term — it is the human-meaningful bit.
   if (typeof record.term === "string" && record.term.trim()) {

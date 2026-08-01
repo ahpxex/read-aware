@@ -19,8 +19,53 @@
       "get_toc": "正在阅读目录",
       "read_chapter": "正在阅读章节",
       "search_book_text": "正在检索正文",
+      "list_collections": "正在查看书架分类",
+      "get_reading_stats": "正在查看阅读统计",
+      "edit_book_metadata": "正在更新书籍信息",
+      "set_book_starred": "正在更新收藏状态",
+      "set_book_finished": "正在更新阅读状态",
+      "create_collection": "正在创建分类",
+      "rename_collection": "正在重命名分类",
+      "assign_books_to_collection": "正在整理书籍",
+      "delete_book": "正在移除书籍",
+      "delete_collection": "正在移除分类",
+      "create_note": "正在创建笔记",
+      "update_note": "正在更新笔记",
+      "create_highlight": "正在创建高亮",
+      "recolor_highlight": "正在更新高亮",
+      "delete_annotation": "正在移除标注",
+      "open_book": "正在打开书籍",
       "fallback": "处理中",
       "failed": "失败"
+    },
+    "interaction": {
+      "customAnswer": "其他答案",
+      "customAnswerLabel": "你的答案",
+      "customAnswerPlaceholder": "输入不同的答案…",
+      "submit": "继续",
+      "skip": "跳过",
+      "answered": "已回答",
+      "skipped": "已跳过",
+      "permission": {
+        "approved": "已允许",
+        "declined": "未允许",
+        "decline": "保留",
+        "deleteBook": {
+          "question": "要从书架删除《{{subject}}》吗？",
+          "description": "这会永久移除导入的原始文件和本地阅读数据，且无法撤销。",
+          "approve": "删除书籍"
+        },
+        "deleteCollection": {
+          "question": "要删除分类“{{subject}}”吗？",
+          "description": "分类会被删除，其中的书仍会保留在书架上，但不再属于任何分类。",
+          "approve": "删除分类"
+        },
+        "deleteAnnotation": {
+          "question": "要删除这条标注吗？",
+          "description": "“{{subject}}”会从你的阅读上下文中永久移除。",
+          "approve": "删除标注"
+        }
+      }
     },
     "references": {
       "showAll": "显示全部 {{count}} 条",

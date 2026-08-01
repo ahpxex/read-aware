@@ -3,7 +3,13 @@
  * 行为刻意与目标语义对齐：记忆初始低置信、强化 +证据+置信、
  * 检索按 pinned/importance/recency 排序。
  */
-import type { Id } from "@read-aware/core";
+import type {
+  BookStats,
+  CollectionSummary,
+  HighlightColor,
+  Id,
+  StatsOverview,
+} from "@read-aware/core";
 import type {
   AnnotationItem,
   BookOverview,
@@ -13,6 +19,7 @@ import type {
   NewMemoryInput,
   RuntimeDeps,
   TurnRecord,
+  UserInteractionRequest,
 } from "../ports";
 import { searchChapters } from "../text/search";
 
@@ -36,6 +43,10 @@ export interface AskRecord {
 }
 
 export interface InMemoryStores {
+  books: BookOverview[];
+  annotations: AnnotationItem[];
+  collections: CollectionSummary[];
+  bookStats: BookStats[];
   turns: Map<string, TurnRecord[]>;
   insights: Map<string, string>;
   asks: AskRecord[];
@@ -44,6 +55,11 @@ export interface InMemoryStores {
   profile: { summary: string | undefined };
   /** bookId → 章节文本（正文抽取的模拟） */
   chapters: Map<string, ChapterSeed[]>;
+  interactions: UserInteractionRequest[];
+  readerRequests: Array<
+    | { type: "open"; bookId: Id }
+    | { type: "goTo"; bookId?: Id; anchor?: string; chapterHref?: string }
+  >;
 }
 
 export interface InMemorySeed {
@@ -52,6 +68,9 @@ export interface InMemorySeed {
   profile?: string;
   memories?: MemoryRecord[];
   chapters?: Record<string, ChapterSeed[]>;
+  collections?: CollectionSummary[];
+  bookStats?: BookStats[];
+  statsOverview?: StatsOverview;
 }
 
 export function seedMemory(partial: Partial<MemoryRecord> & Pick<MemoryRecord, "id" | "scope" | "content">): MemoryRecord {
@@ -69,9 +88,15 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
   deps: RuntimeDeps;
   stores: InMemoryStores;
 } {
-  const books = seed.books ?? [];
-  const annotations = seed.annotations ?? [];
+  const books = [...(seed.books ?? [])];
+  const annotations = [...(seed.annotations ?? [])];
+  const collections = [...(seed.collections ?? [])];
+  const bookStats = [...(seed.bookStats ?? [])];
   const stores: InMemoryStores = {
+    books,
+    annotations,
+    collections,
+    bookStats,
     turns: new Map(),
     insights: new Map(),
     asks: [],
@@ -79,14 +104,80 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
     savedMemoryInputs: [],
     profile: { summary: seed.profile },
     chapters: new Map(Object.entries(seed.chapters ?? {})),
+    interactions: [],
+    readerRequests: [],
   };
   let memoryCounter = 0;
+  let annotationCounter = annotations.length;
+  let collectionCounter = collections.length;
   const isActive = (memory: MemoryRecord) => (memory.status ?? "active") === "active";
 
   const deps: RuntimeDeps = {
     library: {
       listBooks: async () => books,
       getBook: async (id) => books.find((book) => book.id === id),
+      listCollections: async () => collections,
+      booksInCollection: async (collectionId) =>
+        books.filter((book) => book.collectionId === collectionId).map((book) => book.id),
+      getBookStats: async (bookId) => bookStats.find((stats) => stats.bookId === bookId),
+      listBookStats: async () => bookStats,
+      getStatsOverview: async () =>
+        seed.statsOverview ?? {
+          totalMs: bookStats.reduce((total, stats) => total + stats.totalMs, 0),
+          daily: {},
+          booksReading: bookStats.filter((stats) => stats.status === "reading").length,
+          booksFinished: bookStats.filter((stats) => stats.status === "finished").length,
+        },
+      editBookMetadata: async (bookId, patch) => {
+        const book = books.find((entry) => entry.id === bookId);
+        if (!book) throw new Error(`unknown book: ${bookId}`);
+        if (patch.title !== undefined) book.title = patch.title;
+        if (patch.author !== undefined) book.author = patch.author;
+        book.updatedAt = new Date().toISOString();
+      },
+      setBookStarred: async (bookId, starred) => {
+        const book = books.find((entry) => entry.id === bookId);
+        if (!book) throw new Error(`unknown book: ${bookId}`);
+        book.starred = starred;
+      },
+      setBookFinished: async (bookId, finished) => {
+        const book = books.find((entry) => entry.id === bookId);
+        if (!book) throw new Error(`unknown book: ${bookId}`);
+        book.status = finished ? "finished" : "reading";
+      },
+      removeBook: async (bookId) => {
+        const index = books.findIndex((entry) => entry.id === bookId);
+        if (index < 0) throw new Error(`unknown book: ${bookId}`);
+        books.splice(index, 1);
+      },
+      createCollection: async (name) => {
+        const collection: CollectionSummary = {
+          id: `collection-${++collectionCounter}`,
+          name,
+          createdAt: new Date().toISOString(),
+        };
+        collections.push(collection);
+        return collection;
+      },
+      renameCollection: async (collectionId, name) => {
+        const collection = collections.find((entry) => entry.id === collectionId);
+        if (!collection) throw new Error(`unknown collection: ${collectionId}`);
+        collection.name = name;
+      },
+      removeCollection: async (collectionId) => {
+        const index = collections.findIndex((entry) => entry.id === collectionId);
+        if (index < 0) throw new Error(`unknown collection: ${collectionId}`);
+        collections.splice(index, 1);
+        for (const book of books) {
+          if (book.collectionId === collectionId) book.collectionId = null;
+        }
+      },
+      assignBooksToCollection: async (bookIds, collectionId) => {
+        const ids = new Set(bookIds);
+        for (const book of books) {
+          if (ids.has(book.id)) book.collectionId = collectionId;
+        }
+      },
     },
     annotations: {
       listAnnotations: async (filter) =>
@@ -95,8 +186,74 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
             (!filter?.bookId || a.bookId === filter.bookId) &&
             (!filter?.query || annotationText(a).includes(filter.query)),
         ),
+      createHighlight: async ({ bookId, text, anchor, chapter, color }) => {
+        const now = new Date().toISOString();
+        const highlight: AnnotationItem = {
+          kind: "highlight",
+          id: `annotation-${++annotationCounter}`,
+          bookId,
+          text,
+          anchor,
+          chapterHref: chapter,
+          color: color ?? "yellow",
+          style: "highlight",
+          createdAt: now,
+          updatedAt: now,
+        };
+        annotations.push(highlight);
+        return highlight;
+      },
+      recolorHighlight: async (highlightId, color: HighlightColor) => {
+        const highlight = annotations.find((entry) => entry.id === highlightId);
+        if (!highlight || highlight.kind !== "highlight") {
+          throw new Error(`highlight not found: ${highlightId}`);
+        }
+        highlight.color = color;
+        highlight.updatedAt = new Date().toISOString();
+      },
+      createNote: async ({ bookId, body, quotedText, anchor, chapter }) => {
+        const now = new Date().toISOString();
+        const note: AnnotationItem = {
+          kind: "note",
+          id: `annotation-${++annotationCounter}`,
+          bookId,
+          body,
+          quotedText,
+          anchor,
+          chapterHref: chapter,
+          createdAt: now,
+          updatedAt: now,
+        };
+        annotations.push(note);
+        return note;
+      },
+      updateNote: async (noteId, body) => {
+        const note = annotations.find((entry) => entry.id === noteId);
+        if (!note || note.kind !== "note") throw new Error(`note not found: ${noteId}`);
+        note.body = body;
+        note.updatedAt = new Date().toISOString();
+      },
+      removeAnnotation: async (annotationId) => {
+        const index = annotations.findIndex((entry) => entry.id === annotationId);
+        if (index < 0) throw new Error(`annotation not found: ${annotationId}`);
+        annotations.splice(index, 1);
+      },
       recordAsk: async (input) => {
         stores.asks.push(input);
+      },
+    },
+    reader: {
+      openBook: (bookId) => stores.readerRequests.push({ type: "open", bookId }),
+      goTo: (target) => stores.readerRequests.push({ type: "goTo", ...target }),
+    },
+    interactions: {
+      request: async (request) => {
+        stores.interactions.push(request);
+        if (request.kind === "permission") {
+          return { optionId: "approve", text: "Approved" };
+        }
+        const option = request.options[0];
+        return { optionId: option?.id, text: option?.label };
       },
     },
     conversations: {

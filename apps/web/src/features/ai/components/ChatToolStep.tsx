@@ -23,6 +23,22 @@ const TOOL_LABEL_KEYS = {
   get_toc: "chat.tools.get_toc",
   read_chapter: "chat.tools.read_chapter",
   search_book_text: "chat.tools.search_book_text",
+  list_collections: "chat.tools.list_collections",
+  get_reading_stats: "chat.tools.get_reading_stats",
+  edit_book_metadata: "chat.tools.edit_book_metadata",
+  set_book_starred: "chat.tools.set_book_starred",
+  set_book_finished: "chat.tools.set_book_finished",
+  create_collection: "chat.tools.create_collection",
+  rename_collection: "chat.tools.rename_collection",
+  assign_books_to_collection: "chat.tools.assign_books_to_collection",
+  delete_book: "chat.tools.delete_book",
+  delete_collection: "chat.tools.delete_collection",
+  create_note: "chat.tools.create_note",
+  update_note: "chat.tools.update_note",
+  create_highlight: "chat.tools.create_highlight",
+  recolor_highlight: "chat.tools.recolor_highlight",
+  delete_annotation: "chat.tools.delete_annotation",
+  open_book: "chat.tools.open_book",
 } as const;
 
 /**

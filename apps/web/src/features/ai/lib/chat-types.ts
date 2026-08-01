@@ -52,6 +52,47 @@ export interface ChatToolPart {
   state: "running" | "done" | "error";
 }
 
+export interface ChatInteractionOption {
+  id: string;
+  label: string;
+  description?: string;
+}
+
+export type ChatPermissionAction = "delete-book" | "delete-collection" | "delete-annotation";
+
+export type ChatInteractionRequest = {
+  id: string;
+  threadKey: string;
+} &
+  (
+    | {
+        kind: "question";
+        question: string;
+        options: ChatInteractionOption[];
+        allowCustom: boolean;
+      }
+    | {
+        kind: "permission";
+        action: ChatPermissionAction;
+        subject: string;
+      }
+  );
+
+export interface ChatInteractionAnswer {
+  optionId?: string;
+  text?: string;
+  cancelled?: boolean;
+}
+
+/** A tool call suspended on a choice rendered inline in the transcript. */
+export interface ChatInteractionPart {
+  type: "interaction";
+  id: string;
+  request: ChatInteractionRequest;
+  state: "pending" | "answered" | "cancelled";
+  answer?: ChatInteractionAnswer;
+}
+
 /**
  * A shelf book the assistant chose to show as a card. Only a light snapshot is
  * persisted — cover art and live progress hydrate at render time by `bookId`
@@ -97,6 +138,7 @@ export type ChatAssistantPart =
   | ChatTextPart
   | ChatThinkingPart
   | ChatToolPart
+  | ChatInteractionPart
   | ChatReferencePart;
 
 export interface ChatMessage {
@@ -173,5 +215,12 @@ export type ChatStreamChunk =
   | { type: "thinking"; text: string }
   | { type: "tool"; phase: "start"; id: string; tool: string; detail?: string }
   | { type: "tool"; phase: "end"; id: string; isError: boolean }
+  | { type: "interaction"; phase: "request"; request: ChatInteractionRequest }
+  | {
+      type: "interaction";
+      phase: "response";
+      id: string;
+      answer: ChatInteractionAnswer;
+    }
   | { type: "reference"; id: string; reference: ChatReference }
   | { type: "status"; status: string };

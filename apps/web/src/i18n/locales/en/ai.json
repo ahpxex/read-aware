@@ -19,8 +19,53 @@
       "get_toc": "Reading the table of contents",
       "read_chapter": "Reading a chapter",
       "search_book_text": "Searching the text",
+      "list_collections": "Reviewing collections",
+      "get_reading_stats": "Reviewing reading activity",
+      "edit_book_metadata": "Updating book details",
+      "set_book_starred": "Updating favorites",
+      "set_book_finished": "Updating reading status",
+      "create_collection": "Creating a collection",
+      "rename_collection": "Renaming a collection",
+      "assign_books_to_collection": "Organizing books",
+      "delete_book": "Removing a book",
+      "delete_collection": "Removing a collection",
+      "create_note": "Creating a note",
+      "update_note": "Updating a note",
+      "create_highlight": "Creating a highlight",
+      "recolor_highlight": "Updating a highlight",
+      "delete_annotation": "Removing an annotation",
+      "open_book": "Opening the book",
       "fallback": "Working",
       "failed": "failed"
+    },
+    "interaction": {
+      "customAnswer": "Something else",
+      "customAnswerLabel": "Your answer",
+      "customAnswerPlaceholder": "Type a different answer…",
+      "submit": "Continue",
+      "skip": "Skip",
+      "answered": "Answered",
+      "skipped": "Skipped",
+      "permission": {
+        "approved": "Approved",
+        "declined": "Not approved",
+        "decline": "Keep it",
+        "deleteBook": {
+          "question": "Delete “{{subject}}” from your shelf?",
+          "description": "This permanently removes the imported source file and its local reading data. This cannot be undone.",
+          "approve": "Delete book"
+        },
+        "deleteCollection": {
+          "question": "Delete the collection “{{subject}}”?",
+          "description": "The collection will be removed. Its books will stay on your shelf without a collection.",
+          "approve": "Delete collection"
+        },
+        "deleteAnnotation": {
+          "question": "Delete this annotation?",
+          "description": "“{{subject}}” will be permanently removed from your reading context.",
+          "approve": "Delete annotation"
+        }
+      }
     },
     "references": {
       "showAll": "Show all {{count}}",

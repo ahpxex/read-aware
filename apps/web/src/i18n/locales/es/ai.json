@@ -19,8 +19,53 @@
       "get_toc": "Leyendo el índice",
       "read_chapter": "Leyendo un capítulo",
       "search_book_text": "Buscando en el texto",
+      "list_collections": "Revisando colecciones",
+      "get_reading_stats": "Revisando la actividad de lectura",
+      "edit_book_metadata": "Actualizando los datos del libro",
+      "set_book_starred": "Actualizando favoritos",
+      "set_book_finished": "Actualizando el estado de lectura",
+      "create_collection": "Creando una colección",
+      "rename_collection": "Renombrando una colección",
+      "assign_books_to_collection": "Organizando libros",
+      "delete_book": "Eliminando un libro",
+      "delete_collection": "Eliminando una colección",
+      "create_note": "Creando una nota",
+      "update_note": "Actualizando una nota",
+      "create_highlight": "Creando un subrayado",
+      "recolor_highlight": "Actualizando un subrayado",
+      "delete_annotation": "Eliminando una anotación",
+      "open_book": "Abriendo el libro",
       "fallback": "Trabajando",
       "failed": "falló"
+    },
+    "interaction": {
+      "customAnswer": "Otra respuesta",
+      "customAnswerLabel": "Tu respuesta",
+      "customAnswerPlaceholder": "Escribe una respuesta diferente…",
+      "submit": "Continuar",
+      "skip": "Omitir",
+      "answered": "Respondido",
+      "skipped": "Omitido",
+      "permission": {
+        "approved": "Aprobado",
+        "declined": "No aprobado",
+        "decline": "Conservar",
+        "deleteBook": {
+          "question": "¿Eliminar «{{subject}}» de tu estantería?",
+          "description": "Esto elimina permanentemente el archivo importado y sus datos de lectura locales. No se puede deshacer.",
+          "approve": "Eliminar libro"
+        },
+        "deleteCollection": {
+          "question": "¿Eliminar la colección «{{subject}}»?",
+          "description": "La colección se eliminará. Sus libros seguirán en la estantería sin colección.",
+          "approve": "Eliminar colección"
+        },
+        "deleteAnnotation": {
+          "question": "¿Eliminar esta anotación?",
+          "description": "«{{subject}}» se eliminará permanentemente de tu contexto de lectura.",
+          "approve": "Eliminar anotación"
+        }
+      }
     },
     "references": {
       "showAll": "Mostrar los {{count}}",

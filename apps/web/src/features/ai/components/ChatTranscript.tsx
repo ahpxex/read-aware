@@ -73,9 +73,12 @@ export function ChatTranscript({
   // A reference stack can also end a round (suppressed present_* calls leave
   // no tool row behind, only the cards).
   const lastPart = streamingParts[streamingParts.length - 1];
+  const waitingForUser = lastPart?.type === "interaction" && lastPart.state === "pending";
   const awaitingNextRound =
     isStreaming &&
-    (lastPart?.type === "tool" || lastPart?.type === "reference") &&
+    (lastPart?.type === "tool" ||
+      lastPart?.type === "reference" ||
+      (lastPart?.type === "interaction" && lastPart.state !== "pending")) &&
     !streamingParts.some((part) => part.type === "tool" && part.state === "running");
 
   const liveTurnIndex = liveTurnId
@@ -104,7 +107,7 @@ export function ChatTranscript({
           streaming
         />
       ) : null}
-      {(streamingParts.length === 0 || awaitingNextRound) && (
+      {!waitingForUser && (streamingParts.length === 0 || awaitingNextRound) && (
         <ThinkingRow label={status ?? t("chat.thinking")} />
       )}
     </>

@@ -19,8 +19,53 @@
       "get_toc": "Читаю оглавление",
       "read_chapter": "Читаю главу",
       "search_book_text": "Ищу в тексте",
+      "list_collections": "Просматриваю коллекции",
+      "get_reading_stats": "Просматриваю статистику чтения",
+      "edit_book_metadata": "Обновляю сведения о книге",
+      "set_book_starred": "Обновляю избранное",
+      "set_book_finished": "Обновляю статус чтения",
+      "create_collection": "Создаю коллекцию",
+      "rename_collection": "Переименовываю коллекцию",
+      "assign_books_to_collection": "Организую книги",
+      "delete_book": "Удаляю книгу",
+      "delete_collection": "Удаляю коллекцию",
+      "create_note": "Создаю заметку",
+      "update_note": "Обновляю заметку",
+      "create_highlight": "Создаю выделение",
+      "recolor_highlight": "Обновляю выделение",
+      "delete_annotation": "Удаляю аннотацию",
+      "open_book": "Открываю книгу",
       "fallback": "Работаю",
       "failed": "не удалось"
+    },
+    "interaction": {
+      "customAnswer": "Другой ответ",
+      "customAnswerLabel": "Ваш ответ",
+      "customAnswerPlaceholder": "Введите другой ответ…",
+      "submit": "Продолжить",
+      "skip": "Пропустить",
+      "answered": "Ответ получен",
+      "skipped": "Пропущено",
+      "permission": {
+        "approved": "Разрешено",
+        "declined": "Не разрешено",
+        "decline": "Оставить",
+        "deleteBook": {
+          "question": "Удалить «{{subject}}» с полки?",
+          "description": "Импортированный исходный файл и локальные данные чтения будут удалены навсегда. Это действие нельзя отменить.",
+          "approve": "Удалить книгу"
+        },
+        "deleteCollection": {
+          "question": "Удалить коллекцию «{{subject}}»?",
+          "description": "Коллекция будет удалена. Книги останутся на полке без коллекции.",
+          "approve": "Удалить коллекцию"
+        },
+        "deleteAnnotation": {
+          "question": "Удалить эту аннотацию?",
+          "description": "«{{subject}}» будет навсегда удалено из контекста чтения.",
+          "approve": "Удалить аннотацию"
+        }
+      }
     },
     "references": {
       "showAll": "Показать все {{count}}",

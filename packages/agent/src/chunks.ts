@@ -4,6 +4,7 @@
  * text/thinking 直通增量，tool-step 靠 id 配对 start/end（§5 的开放 union）。
  */
 import type { DictionaryEntrySnapshot } from "@read-aware/core";
+import type { UserInteractionAnswer, UserInteractionRequest } from "./ports";
 
 /** 被展示的书架书快照；封面与实时进度由 UI 侧按 bookId 水合。 */
 export interface BookReference {
@@ -47,6 +48,18 @@ export type ThreadChunk =
       /** 产生它的工具调用 id（pi toolCallId）—— 消费端的稳定 key。 */
       id: string;
       reference: ReferencePayload;
+    }
+  /** A tool suspended for an answer rendered directly in the chat timeline. */
+  | {
+      type: "interaction";
+      phase: "request";
+      request: UserInteractionRequest;
+    }
+  | {
+      type: "interaction";
+      phase: "response";
+      id: string;
+      answer: UserInteractionAnswer;
     }
   /** 每次模型往返结束时的度量（repl/诊断用；UI 可忽略）。 */
   | {

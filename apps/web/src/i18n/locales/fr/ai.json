@@ -19,8 +19,53 @@
       "get_toc": "Lecture de la table des matières",
       "read_chapter": "Lecture d'un chapitre",
       "search_book_text": "Recherche dans le texte",
+      "list_collections": "Consultation des collections",
+      "get_reading_stats": "Consultation de l’activité de lecture",
+      "edit_book_metadata": "Mise à jour des informations du livre",
+      "set_book_starred": "Mise à jour des favoris",
+      "set_book_finished": "Mise à jour du statut de lecture",
+      "create_collection": "Création d’une collection",
+      "rename_collection": "Renommage d’une collection",
+      "assign_books_to_collection": "Organisation des livres",
+      "delete_book": "Suppression d’un livre",
+      "delete_collection": "Suppression d’une collection",
+      "create_note": "Création d’une note",
+      "update_note": "Mise à jour d’une note",
+      "create_highlight": "Création d’un surlignage",
+      "recolor_highlight": "Mise à jour d’un surlignage",
+      "delete_annotation": "Suppression d’une annotation",
+      "open_book": "Ouverture du livre",
       "fallback": "En cours",
       "failed": "échec"
+    },
+    "interaction": {
+      "customAnswer": "Autre réponse",
+      "customAnswerLabel": "Votre réponse",
+      "customAnswerPlaceholder": "Saisissez une autre réponse…",
+      "submit": "Continuer",
+      "skip": "Ignorer",
+      "answered": "Répondu",
+      "skipped": "Ignoré",
+      "permission": {
+        "approved": "Autorisé",
+        "declined": "Non autorisé",
+        "decline": "Conserver",
+        "deleteBook": {
+          "question": "Supprimer « {{subject}} » de votre bibliothèque ?",
+          "description": "Le fichier source importé et ses données de lecture locales seront définitivement supprimés. Cette action est irréversible.",
+          "approve": "Supprimer le livre"
+        },
+        "deleteCollection": {
+          "question": "Supprimer la collection « {{subject}} » ?",
+          "description": "La collection sera supprimée. Ses livres resteront dans votre bibliothèque sans collection.",
+          "approve": "Supprimer la collection"
+        },
+        "deleteAnnotation": {
+          "question": "Supprimer cette annotation ?",
+          "description": "« {{subject}} » sera définitivement retiré de votre contexte de lecture.",
+          "approve": "Supprimer l’annotation"
+        }
+      }
     },
     "references": {
       "showAll": "Tout afficher ({{count}})",

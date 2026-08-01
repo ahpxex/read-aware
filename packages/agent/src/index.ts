@@ -13,5 +13,6 @@ export { extractJsonObject, schemaViolations } from "./structured";
 export * from "./onboarding";
 export type { ConsolidationReport } from "./memory/consolidation";
 export { PRESENT_TOOL_NAMES, MAX_PRESENTED_ITEMS } from "./tools/present-tools";
+export { INTERACTIVE_TOOL_NAMES } from "./tools/user-interaction";
 export { AgentThread, type AgentThreadOptions, type SendTurnInput, type SelectionAttachment } from "./runtime/thread";
 export { AgentRuntime, createAgentRuntime, type AgentRuntimeOptions } from "./runtime/runtime";

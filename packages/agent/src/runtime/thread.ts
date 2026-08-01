@@ -18,10 +18,15 @@ import type { RuntimeDeps } from "../ports";
 import { findChapterByHref } from "../text/chapter-lookup";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { buildBookTextTools } from "../tools/book-text-tools";
+import { buildAnnotationTools } from "../tools/annotation-tools";
 import { buildConversationTools } from "../tools/conversation-tools";
+import { buildInteractionTools } from "../tools/interaction-tools";
 import { buildThreadTools } from "../tools/library-tools";
 import { buildMemoryTools, visibleScopes } from "../tools/memory-tools";
 import { buildPresentTools, referenceFromToolDetails } from "../tools/present-tools";
+import { buildReaderTools } from "../tools/reader-tools";
+import { buildShelfTools } from "../tools/shelf-tools";
+import { interactionFromToolDetails } from "../tools/user-interaction";
 import { AsyncQueue } from "./async-queue";
 import { elideStaleToolResults } from "./context-slim";
 import { lastAssistantText, lastTurnTail, turnRecordsToMessages } from "./history";
@@ -151,10 +156,14 @@ export class AgentThread {
         thinkingLevel: this.thinkingLevel,
         tools: [
           ...buildThreadTools(this.scope, this.deps),
+          ...buildShelfTools(this.scope, this.deps),
+          ...buildAnnotationTools(this.scope, this.deps),
           ...buildMemoryTools(this.scope, this.deps),
           ...buildConversationTools(this.scope, this.deps),
           ...buildBookTextTools(this.scope, this.deps),
           ...buildPresentTools(this.deps),
+          ...buildReaderTools(this.scope, this.deps),
+          ...buildInteractionTools(this.scope, this.deps),
           ...(this.deps.extraTools?.() ?? []),
         ],
         messages: turnRecordsToMessages(records, model),
@@ -323,6 +332,26 @@ export class AgentThread {
               args: event.args,
             };
             break;
+          case "tool_execution_update": {
+            const interaction = interactionFromToolDetails(
+              (event.partialResult as { details?: unknown } | undefined)?.details,
+            );
+            if (interaction?.phase === "request") {
+              yield {
+                type: "interaction",
+                phase: "request",
+                request: interaction.request,
+              };
+            } else if (interaction?.phase === "response") {
+              yield {
+                type: "interaction",
+                phase: "response",
+                id: interaction.id,
+                answer: interaction.answer,
+              };
+            }
+            break;
+          }
           case "tool_execution_end": {
             yield {
               type: "tool-step",
@@ -334,6 +363,17 @@ export class AgentThread {
             // 展示类工具（present_* / lookup_word）把卡片 payload 放在
             // AgentToolResult.details 里 —— 这里转成 reference chunk 流给 UI
             if (!event.isError) {
+              const interaction = interactionFromToolDetails(
+                (event.result as { details?: unknown } | undefined)?.details,
+              );
+              if (interaction?.phase === "response") {
+                yield {
+                  type: "interaction",
+                  phase: "response",
+                  id: interaction.id,
+                  answer: interaction.answer,
+                };
+              }
               const reference = referenceFromToolDetails(
                 (event.result as { details?: unknown } | undefined)?.details,
               );

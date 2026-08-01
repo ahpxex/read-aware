@@ -1,6 +1,7 @@
 import type { ChatAssistantPart, ChatMessage } from "../lib/chat-types";
 import { AttachmentChip } from "./AttachmentChip";
 import { ChatMessageActions, ChatMessageError } from "./ChatMessageActions";
+import { ChatInteractionPrompt } from "./ChatInteractionPrompt";
 import { ChatThinking } from "./ChatThinking";
 import { ChatToolStep } from "./ChatToolStep";
 import { Markdown } from "./Markdown";
@@ -67,6 +68,9 @@ export function ChatMessageItem({
         }
         if (part.type === "reference") {
           return <ReferenceStack key={part.id} part={part} />;
+        }
+        if (part.type === "interaction") {
+          return <ChatInteractionPrompt key={part.id} part={part} />;
         }
         if (part.type === "thinking") {
           return (

@@ -19,8 +19,53 @@
       "get_toc": "正在閱讀目錄",
       "read_chapter": "正在閱讀章節",
       "search_book_text": "正在檢索內文",
+      "list_collections": "正在查看書架分類",
+      "get_reading_stats": "正在查看閱讀統計",
+      "edit_book_metadata": "正在更新書籍資訊",
+      "set_book_starred": "正在更新收藏狀態",
+      "set_book_finished": "正在更新閱讀狀態",
+      "create_collection": "正在建立分類",
+      "rename_collection": "正在重新命名分類",
+      "assign_books_to_collection": "正在整理書籍",
+      "delete_book": "正在移除書籍",
+      "delete_collection": "正在移除分類",
+      "create_note": "正在建立筆記",
+      "update_note": "正在更新筆記",
+      "create_highlight": "正在建立高亮",
+      "recolor_highlight": "正在更新高亮",
+      "delete_annotation": "正在移除標註",
+      "open_book": "正在打開書籍",
       "fallback": "處理中",
       "failed": "失敗"
+    },
+    "interaction": {
+      "customAnswer": "其他答案",
+      "customAnswerLabel": "你的答案",
+      "customAnswerPlaceholder": "輸入不同的答案…",
+      "submit": "繼續",
+      "skip": "略過",
+      "answered": "已回答",
+      "skipped": "已略過",
+      "permission": {
+        "approved": "已允許",
+        "declined": "未允許",
+        "decline": "保留",
+        "deleteBook": {
+          "question": "要從書架刪除《{{subject}}》嗎？",
+          "description": "這會永久移除匯入的原始檔案和本機閱讀資料，且無法復原。",
+          "approve": "刪除書籍"
+        },
+        "deleteCollection": {
+          "question": "要刪除分類「{{subject}}」嗎？",
+          "description": "分類會被刪除，其中的書仍會保留在書架上，但不再屬於任何分類。",
+          "approve": "刪除分類"
+        },
+        "deleteAnnotation": {
+          "question": "要刪除這則標註嗎？",
+          "description": "「{{subject}}」會從你的閱讀上下文中永久移除。",
+          "approve": "刪除標註"
+        }
+      }
     },
     "references": {
       "showAll": "顯示全部 {{count}} 條",

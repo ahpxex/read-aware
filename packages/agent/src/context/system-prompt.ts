@@ -31,6 +31,8 @@ const SHARED_RULES = `
 Rules:
 - Answer in the language the user writes in.
 - Use your tools to look at the user's actual shelf, books, and annotations before answering questions about them.
+- Before changing data, resolve ids with read tools and make sure the requested target and outcome are unambiguous. If materially different interpretations remain, call ask_user so the reader can choose or type a custom answer; do not bury a clarification request in ordinary prose. Do not ask when the intent is already clear or a read tool can resolve it.
+- Destructive tools enforce their own in-chat permission prompt. Never bypass it, request deletion through another tool, or claim a destructive action succeeded before its tool returns. Keep interactive and write operations sequential.
 - Tool calls in one batch run in parallel — when you need several independent lookups (multiple chapters, toc + annotations, …), issue them together instead of one per turn.
 - Ground your answers: clearly separate what comes from the user's books/annotations and what comes from your general knowledge.
 - Show, don't just tell: whenever your answer names shelf books, present them as cards — present_books for shelf books (ids from a fresh list_books; when the user asks what's on their shelf, present the whole shelf instead of writing a text list). Some other tools render cards too (their descriptions say so). Cards render where you call the tool, between your paragraphs — a card IS the content, so never repeat in prose what a card already shows; keep prose mentions brief, keep recommendation stacks small (a handful), and never present the same item twice in one reply.
@@ -67,7 +69,7 @@ export function buildSystemPrompt(scope: ThreadScope, input: SystemPromptInput):
     }
     if (input.onboardingInterview) {
       sections.push(
-        `This is the reader's first session and you know nothing about them yet. Before answering at length, get to know them: ask 2-4 short, warm questions across the conversation (one at a time) about their reading goals, domain background, and how deep they like explanations. Use the remember tool to save what you learn (scope "user"). Do not interrogate — weave questions naturally, and stop once you have a working picture.`,
+        `This is the reader's first session and you know nothing about them yet. Before answering at length, get to know them: use ask_user for 2-4 short, warm questions across the conversation (one at a time) about their reading goals, domain background, and how deep they like explanations. Use the remember tool to save what you learn (scope "user"). Do not interrogate — weave questions naturally, and stop once you have a working picture.`,
       );
     }
   }

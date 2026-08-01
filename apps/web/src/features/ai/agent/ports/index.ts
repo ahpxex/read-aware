@@ -7,6 +7,8 @@ import { createConversationPort } from "./conversation-port";
 import { createLibraryPort } from "./library-port";
 import { createMemoryPort } from "./memory-port";
 import { createProfilePort } from "./profile-port";
+import { createReaderPort } from "./reader-port";
+import { createUserInteractionPort } from "./user-interaction-port";
 
 export { GLOBAL_CONVERSATION_ID } from "./conversation-port";
 
@@ -14,6 +16,8 @@ export function buildRuntimeDeps(): RuntimeDeps {
   return {
     library: createLibraryPort(),
     annotations: createAnnotationsPort(),
+    reader: createReaderPort(),
+    interactions: createUserInteractionPort(),
     conversations: createConversationPort(),
     profile: createProfilePort(),
     memory: createMemoryPort(),

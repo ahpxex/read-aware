@@ -19,8 +19,53 @@
       "get_toc": "Liest das Inhaltsverzeichnis",
       "read_chapter": "Liest ein Kapitel",
       "search_book_text": "Durchsucht den Text",
+      "list_collections": "Prüft Sammlungen",
+      "get_reading_stats": "Prüft die Leseaktivität",
+      "edit_book_metadata": "Aktualisiert Buchdetails",
+      "set_book_starred": "Aktualisiert Favoriten",
+      "set_book_finished": "Aktualisiert den Lesestatus",
+      "create_collection": "Erstellt eine Sammlung",
+      "rename_collection": "Benennt eine Sammlung um",
+      "assign_books_to_collection": "Ordnet Bücher",
+      "delete_book": "Entfernt ein Buch",
+      "delete_collection": "Entfernt eine Sammlung",
+      "create_note": "Erstellt eine Notiz",
+      "update_note": "Aktualisiert eine Notiz",
+      "create_highlight": "Erstellt eine Markierung",
+      "recolor_highlight": "Aktualisiert eine Markierung",
+      "delete_annotation": "Entfernt eine Annotation",
+      "open_book": "Öffnet das Buch",
       "fallback": "Arbeitet",
       "failed": "fehlgeschlagen"
+    },
+    "interaction": {
+      "customAnswer": "Etwas anderes",
+      "customAnswerLabel": "Deine Antwort",
+      "customAnswerPlaceholder": "Andere Antwort eingeben…",
+      "submit": "Weiter",
+      "skip": "Überspringen",
+      "answered": "Beantwortet",
+      "skipped": "Übersprungen",
+      "permission": {
+        "approved": "Genehmigt",
+        "declined": "Nicht genehmigt",
+        "decline": "Behalten",
+        "deleteBook": {
+          "question": "„{{subject}}“ aus dem Regal löschen?",
+          "description": "Dadurch werden die importierte Quelldatei und die lokalen Lesedaten dauerhaft entfernt. Dies kann nicht rückgängig gemacht werden.",
+          "approve": "Buch löschen"
+        },
+        "deleteCollection": {
+          "question": "Die Sammlung „{{subject}}“ löschen?",
+          "description": "Die Sammlung wird entfernt. Ihre Bücher bleiben ohne Sammlung im Regal.",
+          "approve": "Sammlung löschen"
+        },
+        "deleteAnnotation": {
+          "question": "Diese Annotation löschen?",
+          "description": "„{{subject}}“ wird dauerhaft aus deinem Lesekontext entfernt.",
+          "approve": "Annotation löschen"
+        }
+      }
     },
     "references": {
       "showAll": "Alle {{count}} anzeigen",

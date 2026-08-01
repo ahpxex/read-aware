@@ -12,9 +12,13 @@ function toOverview(book: BookSummary, state: BookStats | undefined): BookOvervi
     id: book.id as Id,
     title: book.title,
     author: book.author,
+    format: book.format,
+    starred: book.starred,
+    collectionId: book.collectionId,
     progressPercent: state?.progressPercent,
     status: state?.status,
     addedAt: book.addedAt,
+    updatedAt: book.updatedAt,
     lastOpenedAt: book.lastOpenedAt,
   };
 }
@@ -32,5 +36,20 @@ export function createLibraryPort(): LibraryPort {
     listBooks: listOverviews,
     getBook: async (bookId) =>
       (await listOverviews()).find((book) => book.id === String(bookId)),
+    listCollections: () => shelf.collections.list(),
+    booksInCollection: async (collectionId) =>
+      (await shelf.collections.booksIn(collectionId)).map((bookId) => bookId as Id),
+    getBookStats: async (bookId) => (await shelf.stats.forBook(String(bookId))) ?? undefined,
+    listBookStats: () => shelf.stats.list(),
+    getStatsOverview: () => shelf.stats.overview(),
+    editBookMetadata: (bookId, patch) => shelf.books.editMetadata(String(bookId), patch),
+    setBookStarred: (bookId, starred) => shelf.books.setStarred(String(bookId), starred),
+    setBookFinished: (bookId, finished) => shelf.books.setFinished(String(bookId), finished),
+    removeBook: (bookId) => shelf.books.remove(String(bookId)),
+    createCollection: (name) => shelf.collections.create(name),
+    renameCollection: (collectionId, name) => shelf.collections.rename(collectionId, name),
+    removeCollection: (collectionId) => shelf.collections.remove(collectionId),
+    assignBooksToCollection: (bookIds, collectionId) =>
+      shelf.collections.assignBooks(bookIds.map(String), collectionId),
   };
 }

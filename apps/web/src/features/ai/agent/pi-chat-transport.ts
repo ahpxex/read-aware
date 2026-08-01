@@ -5,7 +5,12 @@
  * 归 UI（ChatToolStep），这里不产任何人类可读文案。
  * 未配置 BYOK 时直接抛错 —— 对话 hook 会把消息呈现给用户。
  */
-import { PRESENT_TOOL_NAMES, type SelectionAttachment, type ThreadScope } from "@read-aware/agent";
+import {
+  INTERACTIVE_TOOL_NAMES,
+  PRESENT_TOOL_NAMES,
+  type SelectionAttachment,
+  type ThreadScope,
+} from "@read-aware/agent";
 import type { Id } from "@read-aware/core";
 import { AiNotConfiguredError } from "../lib/ai-errors";
 import type { ChatTransport } from "../lib/chat-transport";
@@ -17,7 +22,10 @@ import { getAgentRuntime } from "./agent-runtime";
  * present_* 即时执行且卡片就是其可见输出 —— 活动行只会闪一下徒增噪音，
  * 整体抑制。lookup_word 内嵌一次模型调用（数秒），行保持可见。
  */
-const SUPPRESSED_TOOLS: ReadonlySet<string> = new Set(PRESENT_TOOL_NAMES);
+const SUPPRESSED_TOOLS: ReadonlySet<string> = new Set([
+  ...PRESENT_TOOL_NAMES,
+  ...INTERACTIVE_TOOL_NAMES,
+]);
 
 export function createPiChatTransport(): ChatTransport {
   return {
@@ -96,6 +104,47 @@ export function createPiChatTransport(): ChatTransport {
             yield { type: "reference", id: chunk.id, reference } satisfies ChatStreamChunk;
             break;
           }
+          case "interaction":
+            if (chunk.phase === "request") {
+              const request =
+                chunk.request.kind === "question"
+                  ? {
+                      id: chunk.request.id,
+                      threadKey: chunk.request.threadKey,
+                      kind: "question" as const,
+                      question: chunk.request.question,
+                      options: chunk.request.options.map((option) => ({
+                        id: option.id,
+                        label: option.label,
+                        description: option.description,
+                      })),
+                      allowCustom: chunk.request.allowCustom,
+                    }
+                  : {
+                      id: chunk.request.id,
+                      threadKey: chunk.request.threadKey,
+                      kind: "permission" as const,
+                      action: chunk.request.action,
+                      subject: chunk.request.subject,
+                    };
+              yield {
+                type: "interaction",
+                phase: "request",
+                request,
+              } satisfies ChatStreamChunk;
+            } else {
+              yield {
+                type: "interaction",
+                phase: "response",
+                id: chunk.id,
+                answer: {
+                  optionId: chunk.answer.optionId,
+                  text: chunk.answer.text,
+                  cancelled: chunk.answer.cancelled,
+                },
+              } satisfies ChatStreamChunk;
+            }
+            break;
           default:
             // "status" carries no user-facing text anymore; the transcript
             // shows its own localized "Thinking…" until the first part lands.

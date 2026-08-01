@@ -6,9 +6,16 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import type {
   AnnotationItem,
+  BookFormat,
+  BookStats,
   ChapterRef as CoreChapterRef,
+  CollectionSummary,
+  HighlightColor,
+  HighlightItem,
   Id,
+  NoteItem,
   ReadingStatus,
+  StatsOverview,
 } from "@read-aware/core";
 
 // 标注读模型：直接用 @read-aware/core 的 canonical 判别联合（read-models.ts）
@@ -17,18 +24,21 @@ export type { AnnotationItem } from "@read-aware/core";
 export type AnnotationKind = AnnotationItem["kind"];
 
 /**
- * 给模型的书目视图：BookSummary × ReadingState 的组合投影（模型只需要
- * 元数据 + 进度，不需要 format/starred/collection 等书架字段）。字段与
+ * 给模型的书目视图：BookSummary × ReadingState 的组合投影。字段与
  * canonical 读模型同名同义 —— progressPercent 0..100。
  */
 export interface BookOverview {
   id: Id;
   title: string;
   author?: string;
+  format?: BookFormat;
+  starred?: boolean;
+  collectionId?: string | null;
   /** 阅读进度 0..100（与 ReadingState.progressPercent 同义）。 */
   progressPercent?: number;
   status?: ReadingStatus;
   addedAt?: string;
+  updatedAt?: string;
   lastOpenedAt?: string;
 }
 
@@ -41,15 +51,105 @@ export interface TurnRecord {
 export interface LibraryPort {
   listBooks(): Promise<BookOverview[]>;
   getBook(bookId: Id): Promise<BookOverview | undefined>;
+  listCollections(): Promise<CollectionSummary[]>;
+  booksInCollection(collectionId: string): Promise<Id[]>;
+  getBookStats(bookId: Id): Promise<BookStats | undefined>;
+  listBookStats(): Promise<BookStats[]>;
+  getStatsOverview(): Promise<StatsOverview>;
+  editBookMetadata(bookId: Id, patch: { title?: string; author?: string }): Promise<void>;
+  setBookStarred(bookId: Id, starred: boolean): Promise<void>;
+  setBookFinished(bookId: Id, finished: boolean): Promise<void>;
+  removeBook(bookId: Id): Promise<void>;
+  createCollection(name: string): Promise<CollectionSummary>;
+  renameCollection(collectionId: string, name: string): Promise<void>;
+  removeCollection(collectionId: string): Promise<void>;
+  assignBooksToCollection(bookIds: Id[], collectionId: string | null): Promise<void>;
 }
 
 export interface AnnotationsPort {
   listAnnotations(filter?: { bookId?: Id; query?: string }): Promise<AnnotationItem[]>;
+  createHighlight(input: {
+    bookId: Id;
+    text: string;
+    anchor?: string;
+    chapter?: string;
+    color?: HighlightColor;
+  }): Promise<HighlightItem>;
+  recolorHighlight(highlightId: Id, color: HighlightColor): Promise<void>;
+  createNote(input: {
+    bookId: Id;
+    body: string;
+    quotedText?: string;
+    anchor?: string;
+    chapter?: string;
+  }): Promise<NoteItem>;
+  updateNote(noteId: Id, body: string): Promise<void>;
+  /** Remove any canonical annotation kind after the caller has confirmed it. */
+  removeAnnotation(annotationId: Id): Promise<void>;
   /**
    * 记录一条 ask-note（doc §7：书线程每个提问留痕；§10 第 5 步，轮末同步落）。
    * 产品实现走共享领域层的 agent-only 动词 createAsk（origin "agent"）。
    */
   recordAsk(input: { bookId: Id; question: string; anchor?: string; chapter?: string }): Promise<void>;
+}
+
+export interface ReaderPort {
+  /** Ambient UI control: dispatches an open request into the desktop reader. */
+  openBook(bookId: Id): void;
+  /** Opens the target book when needed, then navigates to the supplied locator. */
+  goTo(target: { bookId?: Id; anchor?: string; chapterHref?: string }): void;
+}
+
+export interface UserInteractionOption {
+  /** Stable semantic id returned to the model, distinct from the display label. */
+  id: string;
+  label: string;
+  description?: string;
+}
+
+export type UserPermissionAction = "delete-book" | "delete-collection" | "delete-annotation";
+
+type UserInteractionBase = {
+  /** Globally unique for the lifetime of the tool call. */
+  id: string;
+  threadKey: string;
+};
+
+export type UserInteractionRequest = UserInteractionBase &
+  (
+    | {
+        kind: "question";
+        question: string;
+        options: UserInteractionOption[];
+        /** The host renders a free-form answer alongside the supplied choices. */
+        allowCustom: boolean;
+      }
+    | {
+        kind: "permission";
+        action: UserPermissionAction;
+        /** Human-readable object name; the host localizes the surrounding warning. */
+        subject: string;
+      }
+  );
+
+export interface UserInteractionAnswer {
+  /** One of the request option ids, `approve`/`decline`, or absent for custom text. */
+  optionId?: string;
+  text?: string;
+  /** The user skipped the question or the hosting turn was cancelled. */
+  cancelled?: boolean;
+}
+
+/**
+ * Suspension point between a running tool and the chat UI. The implementation
+ * owns only resolver lifecycle; the tool streams the request/answer payloads
+ * through pi's normal tool-update events so persistence stays in the chat seam.
+ */
+export interface UserInteractionPort {
+  request(
+    request: UserInteractionRequest,
+    signal?: AbortSignal,
+  ): Promise<UserInteractionAnswer>;
 }
 
 /** 记忆 scope：单库多 scope，线程按 scope 检索（doc §4）。 */
@@ -175,6 +275,8 @@ export interface BookTextPort {
 export interface RuntimeDeps {
   library: LibraryPort;
   annotations: AnnotationsPort;
+  reader: ReaderPort;
+  interactions: UserInteractionPort;
   conversations: ConversationPort;
   profile: ProfilePort;
   memory: MemoryPort;

@@ -19,8 +19,53 @@
       "get_toc": "目次を読んでいます",
       "read_chapter": "章を読んでいます",
       "search_book_text": "本文を検索しています",
+      "list_collections": "コレクションを確認しています",
+      "get_reading_stats": "読書状況を確認しています",
+      "edit_book_metadata": "本の情報を更新しています",
+      "set_book_starred": "お気に入りを更新しています",
+      "set_book_finished": "読書状態を更新しています",
+      "create_collection": "コレクションを作成しています",
+      "rename_collection": "コレクション名を変更しています",
+      "assign_books_to_collection": "本を整理しています",
+      "delete_book": "本を削除しています",
+      "delete_collection": "コレクションを削除しています",
+      "create_note": "メモを作成しています",
+      "update_note": "メモを更新しています",
+      "create_highlight": "ハイライトを作成しています",
+      "recolor_highlight": "ハイライトを更新しています",
+      "delete_annotation": "注釈を削除しています",
+      "open_book": "本を開いています",
       "fallback": "処理中",
       "failed": "失敗"
+    },
+    "interaction": {
+      "customAnswer": "別の回答",
+      "customAnswerLabel": "あなたの回答",
+      "customAnswerPlaceholder": "別の回答を入力…",
+      "submit": "続ける",
+      "skip": "スキップ",
+      "answered": "回答済み",
+      "skipped": "スキップしました",
+      "permission": {
+        "approved": "許可しました",
+        "declined": "許可しませんでした",
+        "decline": "残す",
+        "deleteBook": {
+          "question": "本棚から『{{subject}}』を削除しますか？",
+          "description": "インポートした元ファイルとローカルの読書データが完全に削除されます。この操作は取り消せません。",
+          "approve": "本を削除"
+        },
+        "deleteCollection": {
+          "question": "コレクション「{{subject}}」を削除しますか？",
+          "description": "コレクションは削除されますが、本はコレクション未設定のまま本棚に残ります。",
+          "approve": "コレクションを削除"
+        },
+        "deleteAnnotation": {
+          "question": "この注釈を削除しますか？",
+          "description": "「{{subject}}」は読書コンテキストから完全に削除されます。",
+          "approve": "注釈を削除"
+        }
+      }
     },
     "references": {
       "showAll": "すべて表示（{{count}}）",

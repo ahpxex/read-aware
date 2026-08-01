@@ -8,6 +8,7 @@ import { createLibraryPort } from "./library-port";
 import { createMemoryPort } from "./memory-port";
 import { createProfilePort } from "./profile-port";
 import { createReaderPort } from "./reader-port";
+import { createSettingsPort } from "./settings-port";
 import { createUserInteractionPort } from "./user-interaction-port";
 
 export { GLOBAL_CONVERSATION_ID } from "./conversation-port";
@@ -22,6 +23,7 @@ export function buildRuntimeDeps(): RuntimeDeps {
     profile: createProfilePort(),
     memory: createMemoryPort(),
     bookText: createBookTextPort(),
+    settings: createSettingsPort(),
     extraTools: getPluginAgentTools,
   };
 }

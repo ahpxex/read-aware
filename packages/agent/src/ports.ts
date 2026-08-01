@@ -17,6 +17,11 @@ import type {
   ReadingStatus,
   StatsOverview,
 } from "@read-aware/core";
+import type {
+  AgentSettingsPatch,
+  AgentSettingsSnapshot,
+  AgentSettingsUpdateResult,
+} from "./settings";
 
 // 标注读模型：直接用 @read-aware/core 的 canonical 判别联合（read-models.ts）
 // —— 与插件面、产品面同一套形状，漂移在类型层就报错。
@@ -272,6 +277,16 @@ export interface BookTextPort {
   }): Promise<BookTextHit[]>;
 }
 
+/**
+ * Host-owned, non-sensitive preferences exposed to the agent. The typed patch
+ * is the security boundary: credentials, endpoint destinations, destructive
+ * data actions, and plugin lifecycle controls are absent by construction.
+ */
+export interface SettingsPort {
+  getSettings(): Promise<AgentSettingsSnapshot>;
+  updateSettings(patch: AgentSettingsPatch): Promise<AgentSettingsUpdateResult>;
+}
+
 export interface RuntimeDeps {
   library: LibraryPort;
   annotations: AnnotationsPort;
@@ -281,6 +296,7 @@ export interface RuntimeDeps {
   profile: ProfilePort;
   memory: MemoryPort;
   bookText: BookTextPort;
+  settings: SettingsPort;
   /**
    * 宿主注入的额外工具（产品侧：用户插件注册的 agent 工具）。每次 Agent
    * 组装时取一次快照；集合变化后宿主调用 `AgentRuntime.invalidateAgents()`

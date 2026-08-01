@@ -21,6 +21,7 @@ import type {
   TurnRecord,
   UserInteractionRequest,
 } from "../ports";
+import type { AgentSettingsPatch, AgentSettingsSnapshot } from "../settings";
 import { searchChapters } from "../text/search";
 
 /** 判别联合的可检索文本（fixtures 的 query 过滤用）。 */
@@ -60,6 +61,7 @@ export interface InMemoryStores {
     | { type: "open"; bookId: Id }
     | { type: "goTo"; bookId?: Id; anchor?: string; chapterHref?: string }
   >;
+  settings: AgentSettingsSnapshot;
 }
 
 export interface InMemorySeed {
@@ -71,6 +73,109 @@ export interface InMemorySeed {
   collections?: CollectionSummary[];
   bookStats?: BookStats[];
   statsOverview?: StatsOverview;
+  settings?: AgentSettingsSnapshot;
+}
+
+function defaultSettings(): AgentSettingsSnapshot {
+  return {
+    general: {
+      startView: "shelf",
+      language: "en",
+      crashReports: false,
+      launchAtStartup: false,
+      fileAssociations: true,
+      autoUpdate: true,
+    },
+    appearance: { theme: "system", motion: "system" },
+    reading: {
+      theme: "warm",
+      fontFamily: "curated:inter",
+      fontSize: "medium",
+      fontWeight: "regular",
+      lineSpacing: "comfortable",
+      paragraphSpacing: "normal",
+      pageMargins: "wide",
+      readingMode: "paginated-double",
+    },
+    ai: {
+      preferences: {
+        features: {
+          explainSelection: true,
+          defineTerm: true,
+          translate: true,
+          summarizeChapter: true,
+          askConversation: true,
+        },
+        buildMemory: true,
+        sendHighlightedText: true,
+        sendSurroundingContext: true,
+        localOnly: false,
+        followStreaming: false,
+      },
+      connection: { configured: false, credentialConfigured: false },
+    },
+  };
+}
+
+function applySettingsPatch(
+  current: AgentSettingsSnapshot,
+  patch: AgentSettingsPatch,
+): AgentSettingsSnapshot {
+  const next: AgentSettingsSnapshot = {
+    general: { ...current.general, ...patch.general },
+    appearance: { ...current.appearance, ...patch.appearance },
+    reading: { ...current.reading, ...patch.reading },
+    ai: {
+      preferences: {
+        ...current.ai.preferences,
+        ...patch.ai?.preferences,
+        features: {
+          ...current.ai.preferences.features,
+          ...patch.ai?.preferences?.features,
+        },
+      },
+      connection: { ...current.ai.connection },
+    },
+  };
+  const connectionPatch = patch.ai?.connection;
+  if (!connectionPatch) return next;
+  if (!current.ai.connection.configured) {
+    throw new Error("AI connection settings have not been configured yet");
+  }
+  const primaryModel = connectionPatch.primaryModel ?? current.ai.connection.primaryModel;
+  const fastModel =
+    connectionPatch.fastModel === null
+      ? primaryModel
+      : connectionPatch.fastModel ?? current.ai.connection.fastModel;
+  next.ai.connection = {
+    ...current.ai.connection,
+    primaryModel,
+    fastModel,
+    separateFastModel: fastModel !== primaryModel,
+    thinkingLevel:
+      connectionPatch.thinkingLevel ?? current.ai.connection.thinkingLevel,
+    fastThinkingLevel:
+      fastModel === primaryModel
+        ? connectionPatch.thinkingLevel ?? current.ai.connection.thinkingLevel
+        : connectionPatch.fastThinkingLevel ?? current.ai.connection.fastThinkingLevel,
+    ...(current.ai.connection.custom
+      ? {
+          custom: {
+            ...current.ai.connection.custom,
+            api: connectionPatch.customApi ?? current.ai.connection.custom.api,
+            supportsThinking:
+              connectionPatch.customSupportsThinking ??
+              current.ai.connection.custom.supportsThinking,
+            ...(connectionPatch.customMaxOutputTokens === null
+              ? { maxOutputTokens: undefined }
+              : connectionPatch.customMaxOutputTokens !== undefined
+                ? { maxOutputTokens: connectionPatch.customMaxOutputTokens }
+                : {}),
+          },
+        }
+      : {}),
+  };
+  return next;
 }
 
 export function seedMemory(partial: Partial<MemoryRecord> & Pick<MemoryRecord, "id" | "scope" | "content">): MemoryRecord {
@@ -106,6 +211,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
     chapters: new Map(Object.entries(seed.chapters ?? {})),
     interactions: [],
     readerRequests: [],
+    settings: structuredClone(seed.settings ?? defaultSettings()),
   };
   let memoryCounter = 0;
   let annotationCounter = annotations.length;
@@ -379,6 +485,17 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
           }
         }
         return results.slice(0, limit ?? 16);
+      },
+    },
+    settings: {
+      getSettings: async () => stores.settings,
+      updateSettings: async (patch) => {
+        const before = JSON.stringify(stores.settings);
+        stores.settings = applySettingsPatch(stores.settings, patch);
+        return {
+          changed: before === JSON.stringify(stores.settings) ? [] : ["settings"],
+          settings: stores.settings,
+        };
       },
     },
   };

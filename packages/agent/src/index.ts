@@ -1,6 +1,7 @@
 export * from "./thread-scope";
 export * from "./chunks";
 export * from "./ports";
+export * from "./settings";
 // 宿主注入 extraTools 时需要的工具类型（apps/web 的插件桥用它，避免直依 pi）。
 export type { AgentTool, AgentToolResult } from "@earendil-works/pi-agent-core";
 export { searchChapters, type ChapterLike, type ChapterHit } from "./text/search";

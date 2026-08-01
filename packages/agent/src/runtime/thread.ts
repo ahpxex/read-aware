@@ -24,6 +24,7 @@ import { buildThreadTools } from "../tools/library-tools";
 import { buildMemoryTools, visibleScopes } from "../tools/memory-tools";
 import { buildPresentTools, referenceFromToolDetails } from "../tools/present-tools";
 import { buildReaderTools } from "../tools/reader-tools";
+import { buildSettingsTools } from "../tools/settings-tools";
 import { buildShelfTools } from "../tools/shelf-tools";
 import { interactionFromToolDetails } from "../tools/user-interaction";
 import { AsyncQueue } from "./async-queue";
@@ -167,6 +168,7 @@ export class AgentThread {
           ...buildPresentTools(this.deps),
           ...buildReaderTools(this.scope, this.deps),
           ...buildInteractionTools(this.scope, this.deps),
+          ...buildSettingsTools(this.deps),
           ...(this.deps.extraTools?.() ?? []),
         ],
         messages: turnRecordsToMessages(records, model),

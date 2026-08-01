@@ -6,6 +6,8 @@ import {
   generalSettingsAtom,
   readerPreferencesAtom,
 } from "../../../../state/ui";
+import type { RegisteredPluginTheme } from "../../../plugins/lib/plugin-types";
+import { pluginThemesAtom } from "../../../plugins/state/plugin-store";
 import { DEFAULT_AI_PREFERENCES } from "../../../settings/lib/ai-preferences";
 import { DEFAULT_APP_SETTINGS } from "../../../settings/lib/app-settings";
 import { DEFAULT_GENERAL_SETTINGS } from "../../../settings/lib/general-settings";
@@ -17,6 +19,41 @@ import {
   saveAIConfig,
 } from "../../lib/ai-config";
 import { createSettingsPort } from "./settings-port";
+
+const GUTENBERG: RegisteredPluginTheme = {
+  key: "editorial-themes:gutenberg",
+  pluginId: "editorial-themes",
+  pluginName: "Editorial Themes",
+  id: "gutenberg",
+  name: "Gutenberg",
+  polarity: "light",
+  app: { paper: "#f4ecd9" },
+  reader: {
+    palette: {
+      bg: "#f3ead5",
+      text: "#2b241a",
+      selection: "rgba(151, 129, 83, 0.32)",
+      rule: "rgba(43, 36, 26, 0.16)",
+      faint: "rgba(43, 36, 26, 0.05)",
+      muted: "rgba(43, 36, 26, 0.55)",
+    },
+    typography: {
+      fontFamily: "plugin:editorial-themes:eb-garamond",
+      fontSize: "large",
+      lineSpacing: "relaxed",
+    },
+  },
+};
+
+const CHROME_ONLY: RegisteredPluginTheme = {
+  key: "editorial-themes:chrome-only",
+  pluginId: "editorial-themes",
+  pluginName: "Editorial Themes",
+  id: "chrome-only",
+  name: "Chrome Only",
+  polarity: "dark",
+  app: { paper: "#14171e" },
+};
 
 const storage = new Map<string, string>();
 Object.defineProperty(globalThis, "localStorage", {
@@ -41,6 +78,7 @@ beforeEach(() => {
   store.set(generalSettingsAtom, { ...DEFAULT_GENERAL_SETTINGS });
   store.set(appSettingsAtom, { ...DEFAULT_APP_SETTINGS });
   store.set(readerPreferencesAtom, { ...DEFAULT_READER_PREFERENCES });
+  store.set(pluginThemesAtom, []);
   store.set(aiPreferencesAtom, {
     ...DEFAULT_AI_PREFERENCES,
     features: { ...DEFAULT_AI_PREFERENCES.features },
@@ -48,6 +86,89 @@ beforeEach(() => {
 });
 
 describe("agent settings port", () => {
+  test("discovers enabled plugin themes on each supported surface", async () => {
+    getDefaultStore().set(pluginThemesAtom, [GUTENBERG, CHROME_ONLY]);
+
+    const settings = await createSettingsPort().getSettings();
+
+    expect(settings.appearance.availableThemes).toEqual(
+      expect.arrayContaining([
+        {
+          value: "plugin:editorial-themes:gutenberg",
+          label: "Gutenberg",
+          source: "plugin",
+          pluginName: "Editorial Themes",
+          polarity: "light",
+        },
+        {
+          value: "plugin:editorial-themes:chrome-only",
+          label: "Chrome Only",
+          source: "plugin",
+          pluginName: "Editorial Themes",
+          polarity: "dark",
+        },
+      ]),
+    );
+    expect(settings.reading.availableThemes).toContainEqual({
+      value: "plugin:editorial-themes:gutenberg",
+      label: "Gutenberg",
+      source: "plugin",
+      pluginName: "Editorial Themes",
+      polarity: "light",
+    });
+    expect(settings.reading.availableThemes).not.toContainEqual(
+      expect.objectContaining({ value: "plugin:editorial-themes:chrome-only" }),
+    );
+  });
+
+  test("applies registered plugin themes and their reader typography preset", async () => {
+    const store = getDefaultStore();
+    store.set(pluginThemesAtom, [GUTENBERG]);
+
+    const result = await createSettingsPort().updateSettings({
+      appearance: { theme: "plugin:editorial-themes:gutenberg" },
+      reading: { theme: "plugin:editorial-themes:gutenberg" },
+    });
+
+    expect(store.get(appSettingsAtom).theme).toBe(
+      "plugin:editorial-themes:gutenberg",
+    );
+    expect(store.get(readerPreferencesAtom)).toMatchObject({
+      theme: "plugin:editorial-themes:gutenberg",
+      fontFamily: "plugin:editorial-themes:eb-garamond",
+      fontSize: "large",
+      lineSpacing: "relaxed",
+    });
+    expect(result.changed).toEqual(
+      expect.arrayContaining([
+        "appearance.theme",
+        "reading.theme",
+        "reading.fontFamily",
+        "reading.fontSize",
+        "reading.lineSpacing",
+      ]),
+    );
+    expect(result.changed).not.toContain("appearance.availableThemes");
+    expect(result.changed).not.toContain("reading.availableThemes");
+  });
+
+  test("rejects unavailable or wrong-surface plugin themes before any write", async () => {
+    const store = getDefaultStore();
+    store.set(pluginThemesAtom, [CHROME_ONLY]);
+
+    await expect(
+      createSettingsPort().updateSettings({
+        appearance: { theme: "dark" },
+        reading: { theme: "plugin:editorial-themes:chrome-only" },
+      }),
+    ).rejects.toThrow("unknown reader theme");
+
+    expect(store.get(appSettingsAtom).theme).toBe("system");
+    expect(store.get(readerPreferencesAtom).theme).toBe(
+      DEFAULT_READER_PREFERENCES.theme,
+    );
+  });
+
   test("reports connection state without exposing the key or endpoint", async () => {
     saveAIConfig({
       provider: "custom",

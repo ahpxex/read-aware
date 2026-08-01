@@ -20,6 +20,12 @@ describe("settings tools", () => {
       settings: {
         reading: {
           theme: "warm",
+          availableThemes: [
+            { value: "auto", label: "Automatic", source: "builtin" },
+            { value: "light", label: "Light", source: "builtin", polarity: "light" },
+            { value: "warm", label: "Warm", source: "builtin", polarity: "light" },
+            { value: "dark", label: "Dark", source: "builtin", polarity: "dark" },
+          ],
           fontFamily: "curated:inter",
           fontSize: "medium",
           fontWeight: "regular",
@@ -69,6 +75,52 @@ describe("settings tools", () => {
     expect(schema).not.toContain("apiKey");
     expect(schema).not.toContain("customBaseUrl");
     expect(schema).not.toContain('"provider"');
+  });
+
+  test("discovers and applies plugin theme refs instead of hard-coding built-ins", async () => {
+    const { deps, stores } = createInMemoryDeps();
+    stores.settings.appearance.availableThemes.push({
+      value: "plugin:editorial-themes:gutenberg",
+      label: "Gutenberg",
+      source: "plugin",
+      pluginName: "Editorial Themes",
+      polarity: "light",
+    });
+    const tools = buildSettingsTools(deps);
+    const getTool = tools.find((candidate) => candidate.name === "get_settings");
+    const updateTool = tools.find(
+      (candidate) => candidate.name === "update_settings",
+    );
+    if (!getTool || !updateTool) throw new Error("settings tools were not registered");
+
+    const result = resultJson(
+      await getTool.execute("call-theme-read", { section: "appearance" }),
+    );
+    expect(result).toMatchObject({
+      settings: {
+        appearance: {
+          availableThemes: [
+            {},
+            {},
+            {},
+            { value: "plugin:editorial-themes:gutenberg", source: "plugin" },
+          ],
+        },
+      },
+    });
+
+    await updateTool.execute("call-theme-update", {
+      changes: {
+        appearance: { theme: "plugin:editorial-themes:gutenberg" },
+      },
+    });
+    expect(stores.settings.appearance.theme).toBe(
+      "plugin:editorial-themes:gutenberg",
+    );
+
+    const schema = JSON.stringify(updateTool.parameters);
+    expect(schema).toContain("plugin:[a-z0-9]");
+    expect(updateTool.description).toContain("availableThemes");
   });
 
   test("rejects an empty patch", async () => {

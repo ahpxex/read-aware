@@ -86,9 +86,23 @@ function defaultSettings(): AgentSettingsSnapshot {
       fileAssociations: true,
       autoUpdate: true,
     },
-    appearance: { theme: "system", motion: "system" },
+    appearance: {
+      theme: "system",
+      motion: "system",
+      availableThemes: [
+        { value: "system", label: "System", source: "builtin" },
+        { value: "light", label: "Light", source: "builtin", polarity: "light" },
+        { value: "dark", label: "Dark", source: "builtin", polarity: "dark" },
+      ],
+    },
     reading: {
       theme: "warm",
+      availableThemes: [
+        { value: "auto", label: "Automatic", source: "builtin" },
+        { value: "light", label: "Light", source: "builtin", polarity: "light" },
+        { value: "warm", label: "Warm", source: "builtin", polarity: "light" },
+        { value: "dark", label: "Dark", source: "builtin", polarity: "dark" },
+      ],
       fontFamily: "curated:inter",
       fontSize: "medium",
       fontWeight: "regular",

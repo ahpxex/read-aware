@@ -20,6 +20,24 @@ export type AgentAIFeatureKey =
   | "summarizeChapter"
   | "askConversation";
 
+export interface AgentThemeOption {
+  /** Stable value accepted by update_settings. */
+  value: string;
+  /** User-facing name in the active app language. */
+  label: string;
+  source: "builtin" | "plugin";
+  pluginName?: string;
+  polarity?: "light" | "dark";
+}
+
+export type AgentAppTheme = "system" | "light" | "dark" | `plugin:${string}`;
+export type AgentReaderTheme =
+  | "auto"
+  | "light"
+  | "warm"
+  | "dark"
+  | `plugin:${string}`;
+
 export interface AgentSettingsSnapshot {
   general: {
     startView: "shelf" | "resume";
@@ -30,13 +48,15 @@ export interface AgentSettingsSnapshot {
     autoUpdate: boolean;
   };
   appearance: {
-    /** Plugin theme refs may be reported, but the agent can only select built-ins. */
-    theme: string;
+    theme: AgentAppTheme;
     motion: "system" | "reduced";
+    /** Current valid choices, including enabled plugin contributions. */
+    availableThemes: AgentThemeOption[];
   };
   reading: {
-    /** Plugin theme refs may be reported, but the agent can only select built-ins. */
-    theme: string;
+    theme: AgentReaderTheme;
+    /** Current valid page themes, including enabled plugin contributions. */
+    availableThemes: AgentThemeOption[];
     fontFamily: string;
     fontSize:
       | "xx-small"
@@ -92,11 +112,11 @@ export interface AgentSettingsPatch {
     autoUpdate: boolean;
   }>;
   appearance?: Partial<{
-    theme: "system" | "light" | "dark";
+    theme: AgentAppTheme;
     motion: AgentSettingsSnapshot["appearance"]["motion"];
   }>;
   reading?: Partial<{
-    theme: "auto" | "light" | "warm" | "dark";
+    theme: AgentReaderTheme;
     fontFamily: string;
     fontSize: AgentSettingsSnapshot["reading"]["fontSize"];
     fontWeight: AgentSettingsSnapshot["reading"]["fontWeight"];

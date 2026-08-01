@@ -1,6 +1,9 @@
 import type {
+  AgentAppTheme,
+  AgentReaderTheme,
   AgentSettingsPatch,
   AgentSettingsSnapshot,
+  AgentThemeOption,
   AgentSettingsUpdateResult,
   SettingsPort,
   ThinkingLevel,
@@ -14,8 +17,20 @@ import {
   generalSettingsAtom,
   readerPreferencesAtom,
 } from "../../../../state/ui";
+import { contributionText } from "../../../plugins/lib/plugin-i18n";
+import {
+  findRegisteredByRef,
+  toPluginRef,
+} from "../../../plugins/lib/plugin-theme";
+import type { RegisteredPluginTheme } from "../../../plugins/lib/plugin-types";
+import { pluginThemesAtom } from "../../../plugins/state/plugin-store";
+import type { AppThemePreference } from "../../../settings/lib/app-settings";
 import { getCuratedFont } from "../../../settings/lib/curated-font-catalog";
-import type { ReaderFontFamily } from "../../../settings/lib/reader-settings";
+import { applyReaderThemeSelection } from "../../../settings/lib/reader-theme";
+import type {
+  ReaderFontFamily,
+  ReaderThemePreference,
+} from "../../../settings/lib/reader-settings";
 import {
   DEFAULT_THINKING_LEVEL,
   getAIConfig,
@@ -40,6 +55,64 @@ const AI_FEATURE_KEYS = [
   "summarizeChapter",
   "askConversation",
 ] as const;
+
+const BUILTIN_APP_THEMES: AgentThemeOption[] = [
+  { value: "system", label: "System", source: "builtin" },
+  { value: "light", label: "Light", source: "builtin", polarity: "light" },
+  { value: "dark", label: "Dark", source: "builtin", polarity: "dark" },
+];
+
+const BUILTIN_READER_THEMES: AgentThemeOption[] = [
+  { value: "auto", label: "Automatic", source: "builtin" },
+  { value: "light", label: "Light", source: "builtin", polarity: "light" },
+  { value: "warm", label: "Warm", source: "builtin", polarity: "light" },
+  { value: "dark", label: "Dark", source: "builtin", polarity: "dark" },
+];
+
+function availableThemes(
+  pluginThemes: readonly RegisteredPluginTheme[],
+  surface: "app" | "reader",
+): AgentThemeOption[] {
+  const builtins = surface === "app" ? BUILTIN_APP_THEMES : BUILTIN_READER_THEMES;
+  return [
+    ...builtins,
+    ...pluginThemes
+      .filter((theme) => Boolean(theme[surface]))
+      .map((theme) => ({
+        value: toPluginRef(theme.pluginId, theme.id),
+        label: contributionText(theme.name),
+        source: "plugin" as const,
+        pluginName: theme.pluginName,
+        polarity: theme.polarity,
+      })),
+  ];
+}
+
+function cleanAppTheme(
+  value: AgentAppTheme,
+  pluginThemes: readonly RegisteredPluginTheme[],
+): AppThemePreference {
+  if (value === "system" || value === "light" || value === "dark") return value;
+  const theme = findRegisteredByRef(value, pluginThemes);
+  if (theme?.app) return value as AppThemePreference;
+  throw new Error(
+    `unknown app theme: ${value}. Read appearance.availableThemes for valid values`,
+  );
+}
+
+function cleanReaderTheme(
+  value: AgentReaderTheme,
+  pluginThemes: readonly RegisteredPluginTheme[],
+): ReaderThemePreference {
+  if (value === "auto" || value === "light" || value === "warm" || value === "dark") {
+    return value;
+  }
+  const theme = findRegisteredByRef(value, pluginThemes);
+  if (theme?.reader) return value as ReaderThemePreference;
+  throw new Error(
+    `unknown reader theme: ${value}. Read reading.availableThemes for valid values`,
+  );
+}
 
 function assertThinkingLevel(value: ThinkingLevel): void {
   if (!THINKING_LEVELS.has(value)) throw new Error(`unsupported thinking level: ${value}`);
@@ -105,13 +178,20 @@ function settingsSnapshot(): AgentSettingsSnapshot {
   const appearance = store.get(appSettingsAtom);
   const reading = store.get(readerPreferencesAtom);
   const ai = store.get(aiPreferencesAtom);
+  const pluginThemes = store.get(pluginThemesAtom);
   return {
     general: {
       ...general,
       language: general.language ?? detectInitialLocale(null),
     },
-    appearance,
-    reading,
+    appearance: {
+      ...appearance,
+      availableThemes: availableThemes(pluginThemes, "app"),
+    },
+    reading: {
+      ...reading,
+      availableThemes: availableThemes(pluginThemes, "reader"),
+    },
     ai: {
       preferences: ai,
       connection: sanitizedConnection(getAIConfig()),
@@ -125,6 +205,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function changedPaths(before: unknown, after: unknown, prefix = ""): string[] {
   if (Object.is(before, after)) return [];
+  if (Array.isArray(before) && Array.isArray(after)) {
+    const unchanged =
+      before.length === after.length &&
+      before.every(
+        (value, index) =>
+          changedPaths(value, after[index], `${prefix}[${index}]`).length === 0,
+      );
+    return unchanged || !prefix ? [] : [prefix];
+  }
   if (isRecord(before) && isRecord(after)) {
     const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
     return [...keys].flatMap((key) =>
@@ -205,8 +294,17 @@ function nextAIConfig(
 function applySettingsPatch(patch: AgentSettingsPatch): AgentSettingsUpdateResult {
   const store = getDefaultStore();
   const before = settingsSnapshot();
+  const pluginThemes = store.get(pluginThemesAtom);
   // Validate every fallible value before writing anything, so a mixed patch
   // cannot leave half its settings applied when one field is invalid.
+  const appTheme =
+    patch.appearance?.theme === undefined
+      ? undefined
+      : cleanAppTheme(patch.appearance.theme, pluginThemes);
+  const readerTheme =
+    patch.reading?.theme === undefined
+      ? undefined
+      : cleanReaderTheme(patch.reading.theme, pluginThemes);
   const fontFamily =
     patch.reading?.fontFamily === undefined
       ? undefined
@@ -237,15 +335,17 @@ function applySettingsPatch(patch: AgentSettingsPatch): AgentSettingsUpdateResul
   if (patch.appearance) {
     const current = store.get(appSettingsAtom);
     const next = { ...current };
-    if (patch.appearance.theme !== undefined) next.theme = patch.appearance.theme;
+    if (appTheme !== undefined) next.theme = appTheme;
     if (patch.appearance.motion !== undefined) next.motion = patch.appearance.motion;
     store.set(appSettingsAtom, next);
   }
 
   if (patch.reading) {
     const current = store.get(readerPreferencesAtom);
-    const next = { ...current };
-    if (patch.reading.theme !== undefined) next.theme = patch.reading.theme;
+    let next =
+      readerTheme === undefined
+        ? { ...current }
+        : applyReaderThemeSelection(current, readerTheme, pluginThemes);
     if (fontFamily !== undefined) next.fontFamily = fontFamily;
     if (patch.reading.fontSize !== undefined) next.fontSize = patch.reading.fontSize;
     if (patch.reading.fontWeight !== undefined) next.fontWeight = patch.reading.fontWeight;

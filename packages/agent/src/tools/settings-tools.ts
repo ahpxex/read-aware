@@ -24,6 +24,13 @@ const thinkingLevelSchema = Type.Union([
   Type.Literal("max"),
 ]);
 
+const pluginThemeRefSchema = Type.String({
+  pattern:
+    "^plugin:[a-z0-9][a-z0-9-]{0,63}:[a-z0-9][a-z0-9-]{0,63}$",
+  description:
+    "An enabled plugin theme ref listed in the matching availableThemes array from get_settings.",
+});
+
 const featurePatchSchema = Type.Object(
   {
     explainSelection: Type.Optional(Type.Boolean()),
@@ -71,6 +78,7 @@ const settingsPatchSchema = Type.Object(
               Type.Literal("system"),
               Type.Literal("light"),
               Type.Literal("dark"),
+              pluginThemeRefSchema,
             ]),
           ),
           motion: Type.Optional(
@@ -89,6 +97,7 @@ const settingsPatchSchema = Type.Object(
               Type.Literal("light"),
               Type.Literal("warm"),
               Type.Literal("dark"),
+              pluginThemeRefSchema,
             ]),
           ),
           fontFamily: Type.Optional(
@@ -208,7 +217,7 @@ export function buildSettingsTools(deps: RuntimeDeps): AgentTool[] {
     name: "get_settings",
     label: "Read settings",
     description:
-      "Read the user's current editable app preferences, optionally for one section. The result is sanitized: API keys and Custom provider endpoint values are never exposed.",
+      "Read the user's current editable app preferences, optionally for one section. Theme sections include availableThemes with every built-in and currently enabled plugin theme value accepted by update_settings. The result is sanitized: API keys and Custom provider endpoint values are never exposed.",
     parameters: Type.Object(
       {
         section: Type.Optional(sectionSchema),
@@ -227,7 +236,7 @@ export function buildSettingsTools(deps: RuntimeDeps): AgentTool[] {
     name: "update_settings",
     label: "Update settings",
     description:
-      "Update ordinary app preferences only when the user explicitly asks. Changes apply immediately. This cannot access or change API keys, providers, Custom endpoint destinations, data reset/restore, plugin lifecycle, menus, or shortcuts. fastThinkingLevel is valid only with a separate Fast model; set fastModel to null to make Fast follow Primary.",
+      "Update ordinary app preferences only when the user explicitly asks. Changes apply immediately. For plugin themes, first read the matching section with get_settings and copy its availableThemes value exactly. This cannot access or change API keys, providers, Custom endpoint destinations, data reset/restore, plugin lifecycle, menus, or shortcuts. fastThinkingLevel is valid only with a separate Fast model; set fastModel to null to make Fast follow Primary.",
     parameters: Type.Object(
       {
         changes: settingsPatchSchema,

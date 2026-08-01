@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import type { Api, Context, Model } from "@earendil-works/pi-ai";
-import { registerFauxProvider } from "@earendil-works/pi-ai/compat";
+import { registerFauxProvider, streamSimple } from "@earendil-works/pi-ai/compat";
 import {
   fauxAssistantMessage,
   fauxToolCall,
@@ -54,6 +54,7 @@ describe("interaction flow", () => {
       resolveModel: () => model,
       getApiKey: () => "test-key",
       completeFn: noopComplete,
+      streamFn: streamSimple,
     });
     const chunks: ThreadChunk[] = [];
     let finished = false;

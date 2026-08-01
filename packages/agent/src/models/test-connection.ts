@@ -7,6 +7,7 @@ import type { AssistantMessage } from "@earendil-works/pi-ai";
 import { createModelResolver, type LlmAccount } from "./accounts";
 import { createCompleteFn } from "./complete";
 import { buildProviderRegistry } from "./registry";
+import type { AgentFetch } from "./transport";
 
 function extractText(message: AssistantMessage): string {
   return message.content
@@ -16,10 +17,14 @@ function extractText(message: AssistantMessage): string {
 }
 
 /** 成功时返回模型的应答文本；失败时抛出携带 provider 错误信息的 Error。 */
-export async function testLlmConnection(account: LlmAccount, modelId: string): Promise<string> {
+export async function testLlmConnection(
+  account: LlmAccount,
+  modelId: string,
+  options: { fetch?: AgentFetch } = {},
+): Promise<string> {
   const registry = buildProviderRegistry();
   const resolveModel = createModelResolver(account, { smart: modelId, fast: modelId }, registry);
-  const complete = createCompleteFn(registry, account);
+  const complete = createCompleteFn(registry, account, undefined, options.fetch);
   const message = await complete(resolveModel("smart"), {
     messages: [
       { role: "user", content: 'Reply with the single word "ok".', timestamp: Date.now() },

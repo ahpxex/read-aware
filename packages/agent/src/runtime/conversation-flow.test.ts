@@ -1,7 +1,7 @@
 /** Phase 3 部件的线程级测试：滚动摘要、原话检索、跨书洞察工具。 */
 import { afterEach, describe, expect, test } from "bun:test";
 import type { Api, Context, Model } from "@earendil-works/pi-ai";
-import { registerFauxProvider } from "@earendil-works/pi-ai/compat";
+import { registerFauxProvider, streamSimple } from "@earendil-works/pi-ai/compat";
 import {
   fauxAssistantMessage,
   fauxToolCall,
@@ -41,6 +41,7 @@ describe("conversation flow", () => {
       resolveModel: () => model,
       getApiKey: () => "test-key",
       completeFn: pipelineComplete,
+      streamFn: streamSimple,
     });
   }
 

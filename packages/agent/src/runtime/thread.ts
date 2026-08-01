@@ -6,13 +6,12 @@
  * 书线程按**章节会话**装配上下文：同章节连续，换章节发新消息才重置（doc §5）。
  */
 import { Agent, type AgentEvent, type ThinkingLevel } from "@earendil-works/pi-agent-core";
-import { streamSimple } from "@earendil-works/pi-ai/compat";
 import type { Usage } from "@earendil-works/pi-ai";
 import type { ThreadChunk } from "../chunks";
 import { buildSystemPrompt } from "../context/system-prompt";
 import { extractMemories } from "../memory/extraction";
 import { updateRollingSummary } from "../memory/rolling-summary";
-import type { CompleteFn } from "../models/complete";
+import type { CompleteFn, StreamFn } from "../models/complete";
 import type { ResolveModel } from "../models/roles";
 import type { RuntimeDeps } from "../ports";
 import { findChapterByHref } from "../text/chapter-lookup";
@@ -62,6 +61,8 @@ export interface AgentThreadOptions {
   getApiKey: (provider: string) => string | undefined;
   /** 后台管道（记忆提炼）的补全调用，跑在 fast 档位上 */
   completeFn: CompleteFn;
+  /** 主聊天的流式调用，使用与后台管道相同的 provider registry。 */
+  streamFn: StreamFn;
   /** 聊天轮次（smart 档）的 thinking effort，默认 "off" */
   thinkingLevel?: ThinkingLevel;
   /** transformContext 窗口大小（用户轮数），默认 12 */
@@ -92,6 +93,7 @@ export class AgentThread {
   private readonly resolveModel: ResolveModel;
   private readonly getApiKey: (provider: string) => string | undefined;
   private readonly completeFn: CompleteFn;
+  private readonly streamFn: StreamFn;
   private readonly thinkingLevel: ThinkingLevel;
   private readonly maxWindowTurns: number;
 
@@ -113,6 +115,7 @@ export class AgentThread {
     this.resolveModel = options.resolveModel;
     this.getApiKey = options.getApiKey;
     this.completeFn = options.completeFn;
+    this.streamFn = options.streamFn;
     this.thinkingLevel = options.thinkingLevel ?? "off";
     this.maxWindowTurns = options.maxWindowTurns ?? DEFAULT_WINDOW_TURNS;
   }
@@ -174,7 +177,7 @@ export class AgentThread {
       // 同一前缀（system prompt 轮内稳定），Anthropic 式显式缓存在这里全是净赚；
       // 不支持的 provider 由 pi 忽略。
       streamFn: (model, context, options) =>
-        streamSimple(model, context, { ...options, cacheRetention: "short" }),
+        this.streamFn(model, context, { ...options, cacheRetention: "short" }),
       getApiKey: this.getApiKey,
     });
     this.agent = agent;

@@ -12,6 +12,7 @@ export {
   DEFAULT_CUSTOM_OPENAI_API,
   LEGACY_CUSTOM_OPENAI_API,
   isCustomOpenAIApi,
+  normalizeCustomOpenAIBaseUrl,
   type CustomOpenAIApi,
 } from "./models/custom-openai";
 export {
@@ -21,6 +22,7 @@ export {
   type ProviderModelCatalogEntry,
 } from "./models/registry";
 export type { CompleteFn } from "./models/complete";
+export type { AgentFetch } from "./models/transport";
 export { testLlmConnection } from "./models/test-connection";
 export { extractJsonObject, schemaViolations } from "./structured";
 export * from "./onboarding";

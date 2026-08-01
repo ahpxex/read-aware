@@ -1,7 +1,7 @@
 /** 正文工具：目录、分片读章、全文检索（agent 迭代检索替代向量的读端）。 */
 import { afterEach, describe, expect, test } from "bun:test";
 import type { Api, Context, Model } from "@earendil-works/pi-ai";
-import { registerFauxProvider } from "@earendil-works/pi-ai/compat";
+import { registerFauxProvider, streamSimple } from "@earendil-works/pi-ai/compat";
 import {
   fauxAssistantMessage,
   fauxToolCall,
@@ -40,6 +40,7 @@ describe("book text tools", () => {
       resolveModel: () => model,
       getApiKey: () => "k",
       completeFn: noop,
+      streamFn: streamSimple,
     });
     return { thread, stores };
   }

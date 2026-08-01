@@ -1,7 +1,7 @@
 /** 记忆写路径的线程级集成测试：提炼落库、强化、ask-note、注入、remember 工具。 */
 import { afterEach, describe, expect, test } from "bun:test";
 import type { Api, Context, Model } from "@earendil-works/pi-ai";
-import { registerFauxProvider } from "@earendil-works/pi-ai/compat";
+import { registerFauxProvider, streamSimple } from "@earendil-works/pi-ai/compat";
 import {
   fauxAssistantMessage,
   fauxToolCall,
@@ -41,6 +41,7 @@ describe("memory write path", () => {
       resolveModel: () => model,
       getApiKey: () => "test-key",
       completeFn,
+      streamFn: streamSimple,
     });
   }
 

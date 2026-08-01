@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import type { Api, Context, Model } from "@earendil-works/pi-ai";
-import { registerFauxProvider } from "@earendil-works/pi-ai/compat";
+import { registerFauxProvider, streamSimple } from "@earendil-works/pi-ai/compat";
 import {
   fauxAssistantMessage,
   fauxToolCall,
@@ -59,6 +59,7 @@ function makeThread(deps: RuntimeDeps, model: Model<Api>, maxWindowTurns?: numbe
     resolveModel: () => model,
     getApiKey: () => "test-key",
     completeFn: noopComplete,
+    streamFn: streamSimple,
     maxWindowTurns,
   });
 }
@@ -123,6 +124,7 @@ describe("AgentThread", () => {
       resolveModel: () => model,
       getApiKey: () => "test-key",
       completeFn: noopComplete,
+      streamFn: streamSimple,
       thinkingLevel: "high",
     });
 
@@ -383,6 +385,7 @@ describe("AgentThread", () => {
       resolveModel: () => model,
       getApiKey: () => "test-key",
       completeFn: noopComplete,
+      streamFn: streamSimple,
     });
 
     await expect(collect(thread.sendTurn({ text: "q1" }))).rejects.toThrow("boom");
@@ -434,6 +437,7 @@ describe("AgentThread", () => {
       resolveModel: () => model,
       getApiKey: () => "test-key",
       completeFn: noopComplete,
+      streamFn: streamSimple,
     });
 
     await collect(thread.sendTurn({ text: "new q" }));

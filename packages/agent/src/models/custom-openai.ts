@@ -7,6 +7,7 @@ import {
 } from "@earendil-works/pi-ai";
 import { openAIResponsesApi } from "@earendil-works/pi-ai/api/openai-responses.lazy";
 import { customOpenAICompletionsApi } from "./custom-openai-completions";
+import { downlevelCustomToolSchemas } from "./custom-openai-schema";
 
 export const CUSTOM_OPENAI_PROVIDER_ID = "custom-openai";
 export const DEFAULT_CUSTOM_OPENAI_API = "openai-completions";
@@ -22,6 +23,11 @@ export type CustomOpenAIApi = (typeof CUSTOM_OPENAI_APIS)[number];
 const DEFAULT_CONTEXT_WINDOW = 128_000;
 const INTERNAL_DEFAULT_MAX_OUTPUT_TOKENS = 8_192;
 const ZERO_COST = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+const OPENAI_ENDPOINT_SUFFIXES = [
+  "/chat/completions",
+  "/responses",
+  "/completions",
+] as const;
 
 export type CustomOpenAIProviderConfig = {
   baseUrl: string;
@@ -34,6 +40,34 @@ export type CustomOpenAIProviderConfig = {
 
 export function isCustomOpenAIApi(value: unknown): value is CustomOpenAIApi {
   return CUSTOM_OPENAI_APIS.includes(value as CustomOpenAIApi);
+}
+
+/** Accept either an SDK base URL or a pasted concrete OpenAI endpoint. */
+export function normalizeCustomOpenAIBaseUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    return trimmed.replace(/\/+$/, "");
+  }
+
+  url.hash = "";
+  let path = url.pathname.replace(/\/+$/, "");
+  const lowerPath = path.toLowerCase();
+  const endpoint = OPENAI_ENDPOINT_SUFFIXES.find((suffix) =>
+    lowerPath.endsWith(suffix),
+  );
+  if (endpoint) path = path.slice(0, -endpoint.length);
+  url.pathname = path || "/";
+
+  const serialized = url.toString();
+  const searchStart = serialized.indexOf("?");
+  const base = searchStart >= 0 ? serialized.slice(0, searchStart) : serialized;
+  const search = searchStart >= 0 ? serialized.slice(searchStart) : "";
+  return base.replace(/\/$/, "") + search;
 }
 
 function positiveInteger(value: number | undefined): number | undefined {
@@ -52,7 +86,7 @@ export function createCustomOpenAIModel(
     name: id,
     api: config.api,
     provider: CUSTOM_OPENAI_PROVIDER_ID,
-    baseUrl: config.baseUrl,
+    baseUrl: normalizeCustomOpenAIBaseUrl(config.baseUrl),
     reasoning: Boolean(config.supportsThinking),
     input: ["text"] as ("text" | "image")[],
     cost: ZERO_COST,
@@ -111,7 +145,7 @@ export function registerCustomOpenAIProvider(
     createProvider({
       id: CUSTOM_OPENAI_PROVIDER_ID,
       name: "Custom OpenAI-compatible",
-      baseUrl: config.baseUrl,
+      baseUrl: normalizeCustomOpenAIBaseUrl(config.baseUrl),
       auth: { apiKey: envApiKeyAuth("Custom API key", []) },
       models: modelIds.map((id) => createCustomOpenAIModel(id, config)),
       api,
@@ -139,6 +173,10 @@ export function sanitizeCustomOpenAIPayload(
   delete next.prompt_cache_retention;
   delete next.prompt_cache_options;
   delete next.include;
+
+  if (next.tools !== undefined) {
+    next.tools = downlevelCustomToolSchemas(next.tools);
+  }
 
   if (positiveInteger(maxOutputTokens) === undefined) {
     delete next.max_tokens;

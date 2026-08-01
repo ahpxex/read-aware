@@ -8,6 +8,7 @@ import { createModelResolver, type LlmAccount, type RoleModels } from "../models
 import { createCompleteFn, createStreamFn, type CompleteFn, type StreamFn } from "../models/complete";
 import { buildProviderRegistry } from "../models/registry";
 import type { ModelRole, RoleThinking } from "../models/roles";
+import type { AgentFetch } from "../models/transport";
 import type { RuntimeDeps } from "../ports";
 import { extractJsonObject, schemaViolations } from "../structured";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
@@ -19,6 +20,8 @@ export interface AgentRuntimeOptions {
   models: RoleModels;
   /** 各档位的 thinking effort，缺省全 "off"（不发 thinking 参数）。 */
   thinking?: RoleThinking;
+  /** HTTP transport supplied by the desktop host (Tauri native fetch in production). */
+  fetch?: AgentFetch;
   maxWindowTurns?: number;
 }
 
@@ -36,12 +39,32 @@ export class AgentRuntime {
     this.resolveModel = createModelResolver(options.account, options.models, registry);
     this.thinking = options.thinking ?? { smart: "off", fast: "off" };
     this.completeFns = {
-      smart: createCompleteFn(registry, options.account, this.thinking.smart),
-      fast: createCompleteFn(registry, options.account, this.thinking.fast),
+      smart: createCompleteFn(
+        registry,
+        options.account,
+        this.thinking.smart,
+        options.fetch,
+      ),
+      fast: createCompleteFn(
+        registry,
+        options.account,
+        this.thinking.fast,
+        options.fetch,
+      ),
     };
     this.streamFns = {
-      smart: createStreamFn(registry, options.account, this.thinking.smart),
-      fast: createStreamFn(registry, options.account, this.thinking.fast),
+      smart: createStreamFn(
+        registry,
+        options.account,
+        this.thinking.smart,
+        options.fetch,
+      ),
+      fast: createStreamFn(
+        registry,
+        options.account,
+        this.thinking.fast,
+        options.fetch,
+      ),
     };
   }
 
@@ -55,6 +78,7 @@ export class AgentRuntime {
         resolveModel: this.resolveModel,
         getApiKey: () => this.options.account.apiKey,
         completeFn: this.completeFns.fast,
+        streamFn: this.streamFns.smart,
         thinkingLevel: this.thinking.smart,
         maxWindowTurns: this.options.maxWindowTurns,
       });

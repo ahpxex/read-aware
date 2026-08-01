@@ -1,7 +1,7 @@
 /** Onboarding runtime 侧：快选落库 + 全局线程首次使用的访谈模式。 */
 import { afterEach, describe, expect, test } from "bun:test";
 import type { Api, Context, Model } from "@earendil-works/pi-ai";
-import { registerFauxProvider } from "@earendil-works/pi-ai/compat";
+import { registerFauxProvider, streamSimple } from "@earendil-works/pi-ai/compat";
 import {
   fauxAssistantMessage,
   type FauxProviderRegistration,
@@ -56,6 +56,7 @@ describe("onboarding", () => {
       resolveModel: () => model,
       getApiKey: () => "k",
       completeFn: noop,
+      streamFn: streamSimple,
     });
 
     for await (const _ of thread.sendTurn({ text: "你好" })) {
@@ -87,6 +88,7 @@ describe("onboarding", () => {
       resolveModel: () => model,
       getApiKey: () => "k",
       completeFn: noop,
+      streamFn: streamSimple,
     });
 
     for await (const _ of thread.sendTurn({ text: "你好" })) {

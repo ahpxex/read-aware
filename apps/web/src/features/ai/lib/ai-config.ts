@@ -2,6 +2,12 @@
  * AI Configuration storage and types for BYOK (Bring Your Own Key) model
  */
 
+import {
+  getProviderModelCatalog,
+  type KnownProviderId,
+  type ThinkingLevel,
+} from "@read-aware/agent";
+
 export type AIProvider =
   | "openai"
   | "anthropic"
@@ -21,18 +27,16 @@ export interface AIConfig {
   apiKey: string;
   /** The "smart" tier model (chat, onboarding, synthesis). */
   model: string;
-  /** The "fast" tier model (dictionary, memory, summaries). Falls back to a
-   *  per-provider default, or to `model` for custom endpoints. */
+  /** Optional advanced override for the "fast" tier. Falls back to `model`. */
   fastModel?: string;
-  /** Thinking effort for the smart tier; "off" (the default) sends no
-   *  thinking request. Models without thinking support ignore it. */
+  /** Thinking effort for the smart tier. New configurations default to Medium;
+   *  models without thinking support ignore it. */
   thinkingLevel?: ThinkingLevel;
   /** Thinking effort for the fast tier. */
   fastThinkingLevel?: ThinkingLevel;
   customBaseUrl?: string;
 }
 
-import type { ThinkingLevel } from "@read-aware/agent";
 import { localKV } from "../../../platform/local-store";
 import {
   deleteSecret,
@@ -72,6 +76,9 @@ type StoredAIConfig = Partial<AIConfig> & {
   models?: Partial<Record<AIProvider, ProviderSettings>>;
 };
 
+/** The simple setup path enables reasoning for both model roles. */
+export const DEFAULT_THINKING_LEVEL: ThinkingLevel = "medium";
+
 function readStored(): StoredAIConfig | null {
   try {
     const raw = localKV.getItem(CONFIG_KEY);
@@ -91,11 +98,17 @@ export function getStoredProviderSettings(provider: AIProvider): Required<Provid
   const stored = readStored();
   const entry = stored?.models?.[provider];
   const legacy = stored?.provider === provider ? stored : undefined;
+  const model = entry?.model ?? legacy?.model ?? DEFAULT_MODELS[provider] ?? "";
+  // Missing thinking fields in a remembered config mean the old implicit Off
+  // default. A provider the user has never configured gets the new Medium
+  // default instead, so existing users do not silently incur extra usage.
+  const thinkingDefault = entry || legacy ? "off" : DEFAULT_THINKING_LEVEL;
   return {
-    model: entry?.model ?? legacy?.model ?? DEFAULT_MODELS[provider] ?? "",
-    fastModel: entry?.fastModel ?? legacy?.fastModel ?? FAST_DEFAULT_MODELS[provider] ?? "",
-    thinkingLevel: entry?.thinkingLevel ?? "off",
-    fastThinkingLevel: entry?.fastThinkingLevel ?? "off",
+    model,
+    fastModel: entry?.fastModel ?? legacy?.fastModel ?? model,
+    thinkingLevel: entry?.thinkingLevel ?? legacy?.thinkingLevel ?? thinkingDefault,
+    fastThinkingLevel:
+      entry?.fastThinkingLevel ?? legacy?.fastThinkingLevel ?? thinkingDefault,
     customBaseUrl: entry?.customBaseUrl ?? legacy?.customBaseUrl ?? "",
   };
 }
@@ -126,15 +139,11 @@ export function getAIConfig(): AIConfig | null {
     // `parsed.apiKey` is the pre-secret-store record shape; it migrates out
     // on the next save (saveAIConfig never writes the key back into this blob).
     apiKey = apiKey || parsed.apiKey || "";
-    const entry = parsed.models?.[parsed.provider];
+    const settings = getStoredProviderSettings(parsed.provider);
     return {
       provider: parsed.provider,
       apiKey,
-      model: entry?.model ?? parsed.model ?? "",
-      fastModel: entry?.fastModel ?? parsed.fastModel,
-      thinkingLevel: entry?.thinkingLevel,
-      fastThinkingLevel: entry?.fastThinkingLevel,
-      customBaseUrl: entry?.customBaseUrl ?? parsed.customBaseUrl,
+      ...settings,
     };
   } catch {
     return null;
@@ -149,9 +158,10 @@ export function saveAIConfig(config: AIConfig): void {
   models[provider] = {
     model,
     fastModel,
-    // "off" is the fallback anyway — don't persist it.
-    ...(thinkingLevel && thinkingLevel !== "off" ? { thinkingLevel } : {}),
-    ...(fastThinkingLevel && fastThinkingLevel !== "off" ? { fastThinkingLevel } : {}),
+    // Persist Off explicitly now that new providers default to Medium. This
+    // keeps a deliberate opt-out stable across provider switches and reloads.
+    thinkingLevel: thinkingLevel ?? DEFAULT_THINKING_LEVEL,
+    fastThinkingLevel: fastThinkingLevel ?? DEFAULT_THINKING_LEVEL,
     ...(customBaseUrl ? { customBaseUrl } : {}),
   };
   localKV.setItem(CONFIG_KEY, JSON.stringify({ provider, models } satisfies StoredAIConfig));
@@ -175,34 +185,34 @@ export function hasAIConfig(): boolean {
 
 // Default "smart" model for each provider (chat, onboarding, synthesis).
 export const DEFAULT_MODELS: Record<AIProvider, string> = {
-  openai: "gpt-5.1",
-  anthropic: "claude-opus-4-8",
-  openrouter: "anthropic/claude-opus-4.7",
+  openai: "gpt-5.5",
+  anthropic: "claude-opus-5",
+  openrouter: "~anthropic/claude-opus-latest",
   zai: "glm-5.2",
   "zai-coding-cn": "glm-5.2",
-  google: "gemini-2.5-pro",
+  google: "gemini-3.1-pro-preview",
   deepseek: "deepseek-v4-pro",
-  xai: "grok-4.3",
-  groq: "llama-3.3-70b-versatile",
+  xai: "grok-4.5",
+  groq: "openai/gpt-oss-120b",
   mistral: "mistral-large-latest",
-  moonshotai: "kimi-k2.6",
+  moonshotai: "kimi-k3",
   custom: "",
 };
 
-// Default "fast" model for each provider (dictionary, memory, summaries — the
-// cheap/quick tier). `custom` resolves to the smart model (single endpoint).
-export const FAST_DEFAULT_MODELS: Record<AIProvider, string> = {
-  openai: "gpt-5-mini",
+// Suggested model when an advanced user opts into a separate cheap/quick tier.
+// The default path does not use this table: Fast follows the primary model.
+export const SUGGESTED_FAST_MODELS: Record<AIProvider, string> = {
+  openai: "gpt-5.4-mini",
   anthropic: "claude-haiku-4-5",
-  openrouter: "anthropic/claude-haiku-4.5",
-  zai: "glm-4.5-air",
-  "zai-coding-cn": "glm-4.5-air",
-  google: "gemini-2.5-flash",
+  openrouter: "~openai/gpt-mini-latest",
+  zai: "glm-5-turbo",
+  "zai-coding-cn": "glm-5-turbo",
+  google: "gemini-flash-latest",
   deepseek: "deepseek-v4-flash",
-  xai: "grok-3-fast",
-  groq: "llama-3.1-8b-instant",
-  mistral: "ministral-8b-latest",
-  moonshotai: "kimi-k2-turbo-preview",
+  xai: "grok-4.3",
+  groq: "openai/gpt-oss-20b",
+  mistral: "mistral-small-latest",
+  moonshotai: "kimi-k2.7-code-highspeed",
   custom: "",
 };
 
@@ -217,80 +227,100 @@ export const THINKING_LEVELS: ThinkingLevel[] = [
   "medium",
   "high",
   "xhigh",
+  "max",
 ];
 
-// Model options for each provider (shared by the Smart and Fast dropdowns).
-export const PROVIDER_MODELS: Record<AIProvider, { label: string; value: string }[]> = {
+// A short, reading-relevant subset of pi-ai's current catalog. pi-ai remains
+// the source of truth for model IDs and display names; this list only keeps the
+// picker focused instead of exposing every dated snapshot and legacy family.
+const RECOMMENDED_MODEL_IDS = {
   openai: [
-    { label: "GPT-5.1", value: "gpt-5.1" },
-    { label: "GPT-5", value: "gpt-5" },
-    { label: "GPT-5 Mini", value: "gpt-5-mini" },
-    { label: "GPT-5 Nano", value: "gpt-5-nano" },
-    { label: "GPT-4.1", value: "gpt-4.1" },
-    { label: "GPT-4o", value: "gpt-4o" },
-    { label: "GPT-4o Mini", value: "gpt-4o-mini" },
+    "gpt-5.6-sol",
+    "gpt-5.6-terra",
+    "gpt-5.6-luna",
+    "gpt-5.5",
+    "gpt-5.5-pro",
+    "gpt-5.4",
+    "gpt-5.4-pro",
+    "gpt-5.4-mini",
   ],
   anthropic: [
-    { label: "Claude Opus 4.8", value: "claude-opus-4-8" },
-    { label: "Claude Sonnet 5", value: "claude-sonnet-5" },
-    { label: "Claude Haiku 4.5", value: "claude-haiku-4-5" },
-    { label: "Claude Fable 5", value: "claude-fable-5" },
+    "claude-opus-5",
+    "claude-sonnet-5",
+    "claude-fable-5",
+    "claude-opus-4-8",
+    "claude-haiku-4-5",
   ],
   openrouter: [
-    { label: "Claude Opus 4.7", value: "anthropic/claude-opus-4.7" },
-    { label: "Claude Haiku 4.5", value: "anthropic/claude-haiku-4.5" },
-    { label: "GPT-5 Mini", value: "openai/gpt-5-mini" },
-    { label: "Gemini 2.5 Pro", value: "google/gemini-2.5-pro" },
-    { label: "Gemini 2.5 Flash", value: "google/gemini-2.5-flash" },
-    { label: "DeepSeek Chat", value: "deepseek/deepseek-chat" },
+    "auto",
+    "~anthropic/claude-opus-latest",
+    "~anthropic/claude-sonnet-latest",
+    "~anthropic/claude-fable-latest",
+    "~anthropic/claude-haiku-latest",
+    "~openai/gpt-latest",
+    "~openai/gpt-mini-latest",
+    "~google/gemini-pro-latest",
+    "~google/gemini-flash-latest",
+    "~moonshotai/kimi-latest",
+    "~x-ai/grok-latest",
   ],
-  zai: [
-    { label: "GLM-5.2", value: "glm-5.2" },
-    { label: "GLM-5.1", value: "glm-5.1" },
-    { label: "GLM-5 Turbo", value: "glm-5-turbo" },
-    { label: "GLM-4.5 Air", value: "glm-4.5-air" },
-  ],
-  "zai-coding-cn": [
-    { label: "GLM-5.2", value: "glm-5.2" },
-    { label: "GLM-5.1", value: "glm-5.1" },
-    { label: "GLM-5 Turbo", value: "glm-5-turbo" },
-    { label: "GLM-4.5 Air", value: "glm-4.5-air" },
-  ],
+  zai: ["glm-5.2", "glm-5.1", "glm-5-turbo"],
+  "zai-coding-cn": ["glm-5.2", "glm-5.1", "glm-5-turbo"],
   google: [
-    { label: "Gemini 3 Pro (preview)", value: "gemini-3-pro-preview" },
-    { label: "Gemini 2.5 Pro", value: "gemini-2.5-pro" },
-    { label: "Gemini 2.5 Flash", value: "gemini-2.5-flash" },
-    { label: "Gemini 2.5 Flash-Lite", value: "gemini-2.5-flash-lite" },
-    { label: "Gemini 2.0 Flash", value: "gemini-2.0-flash" },
+    "gemini-3.1-pro-preview",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
+    "gemini-flash-latest",
+    "gemini-flash-lite-latest",
   ],
-  deepseek: [
-    { label: "DeepSeek V4 Pro", value: "deepseek-v4-pro" },
-    { label: "DeepSeek V4 Flash", value: "deepseek-v4-flash" },
-  ],
-  xai: [
-    { label: "Grok 4.3", value: "grok-4.3" },
-    { label: "Grok 3", value: "grok-3" },
-    { label: "Grok 3 Fast", value: "grok-3-fast" },
-  ],
+  deepseek: ["deepseek-v4-pro", "deepseek-v4-flash"],
+  xai: ["grok-4.5", "grok-4.3"],
   groq: [
-    { label: "Llama 3.3 70B", value: "llama-3.3-70b-versatile" },
-    { label: "Llama 3.1 8B Instant", value: "llama-3.1-8b-instant" },
-    { label: "Qwen3 32B", value: "qwen/qwen3-32b" },
-    { label: "GPT-OSS 120B", value: "openai/gpt-oss-120b" },
-    { label: "GPT-OSS 20B", value: "openai/gpt-oss-20b" },
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
+    "qwen/qwen3-32b",
+    "meta-llama/llama-4-scout-17b-16e-instruct",
   ],
   mistral: [
-    { label: "Mistral Large", value: "mistral-large-latest" },
-    { label: "Mistral Medium", value: "mistral-medium-2508" },
-    { label: "Ministral 8B", value: "ministral-8b-latest" },
-    { label: "Ministral 3B", value: "ministral-3b-latest" },
+    "mistral-large-latest",
+    "mistral-medium-latest",
+    "mistral-small-latest",
+    "magistral-medium-latest",
+    "ministral-8b-latest",
   ],
   moonshotai: [
-    { label: "Kimi K2.6", value: "kimi-k2.6" },
-    { label: "Kimi K2 Thinking", value: "kimi-k2-thinking" },
-    { label: "Kimi K2 Turbo", value: "kimi-k2-turbo-preview" },
-    { label: "Kimi K2 0905", value: "kimi-k2-0905-preview" },
+    "kimi-k3",
+    "kimi-k2.7-code-highspeed",
+    "kimi-k2.7-code",
+    "kimi-k2.6",
   ],
+} as const satisfies Record<KnownProviderId, readonly string[]>;
+
+function recommendedModelOptions(provider: KnownProviderId) {
+  const catalog = new Map(
+    getProviderModelCatalog(provider).map((entry) => [entry.id, entry]),
+  );
+  return RECOMMENDED_MODEL_IDS[provider].flatMap((id) => {
+    const entry = catalog.get(id);
+    return entry ? [{ label: entry.name, value: entry.id }] : [];
+  });
+}
+
+export const PROVIDER_MODELS: Record<
+  AIProvider,
+  { label: string; value: string }[]
+> = {
+  openai: recommendedModelOptions("openai"),
+  anthropic: recommendedModelOptions("anthropic"),
+  openrouter: recommendedModelOptions("openrouter"),
+  zai: recommendedModelOptions("zai"),
+  "zai-coding-cn": recommendedModelOptions("zai-coding-cn"),
+  google: recommendedModelOptions("google"),
+  deepseek: recommendedModelOptions("deepseek"),
+  xai: recommendedModelOptions("xai"),
+  groq: recommendedModelOptions("groq"),
+  mistral: recommendedModelOptions("mistral"),
+  moonshotai: recommendedModelOptions("moonshotai"),
   custom: [],
 };
 

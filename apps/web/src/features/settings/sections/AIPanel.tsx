@@ -1,5 +1,5 @@
 import { useAtom } from "jotai";
-import { Button, Toggle } from "@read-aware/ui";
+import { Button, Stack, Toggle } from "@read-aware/ui";
 import { aiPreferencesAtom } from "../../../state/ui";
 import { useTranslation } from "../../../i18n";
 import { AIConfigPanel } from "../components/AIConfigPanel";
@@ -7,7 +7,10 @@ import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
 import { PendingBadge } from "../components/PendingBadge";
-import { AI_FEATURE_KEYS } from "../lib/ai-preferences";
+import {
+  AI_FEATURE_KEYS,
+  type AIPreferences,
+} from "../lib/ai-preferences";
 
 export function AIPanel() {
   const { t } = useTranslation("settings");
@@ -19,10 +22,29 @@ export function AIPanel() {
       description={t("ai.description")}
     >
       <SettingsGroup title={t("ai.connection")}>
-        <AIConfigPanel />
+        <AIConfigPanel
+          advancedContent={
+            <AIAdvancedPreferences prefs={prefs} onChange={setPrefs} />
+          }
+        />
       </SettingsGroup>
+    </SettingsPage>
+  );
+}
 
+function AIAdvancedPreferences({
+  prefs,
+  onChange,
+}: {
+  prefs: AIPreferences;
+  onChange: (next: AIPreferences) => void;
+}) {
+  const { t } = useTranslation("settings");
+
+  return (
+    <Stack gap="xl">
       <SettingsGroup
+        headingLevel={4}
         title={t("ai.features.title")}
         description={t("ai.features.description")}
       >
@@ -39,7 +61,7 @@ export function AIPanel() {
                   aria-label={label}
                   checked={prefs.features[key]}
                   onChange={(enabled) =>
-                    setPrefs({
+                    onChange({
                       ...prefs,
                       features: { ...prefs.features, [key]: enabled },
                     })
@@ -51,7 +73,7 @@ export function AIPanel() {
         })}
       </SettingsGroup>
 
-      <SettingsGroup title={t("ai.chat")}>
+      <SettingsGroup headingLevel={4} title={t("ai.chat")}>
         <SettingsRow
           borderless
           title={t("ai.followStreaming.title")}
@@ -60,13 +82,13 @@ export function AIPanel() {
             <Toggle
               aria-label={t("ai.followStreaming.title")}
               checked={prefs.followStreaming}
-              onChange={(followStreaming) => setPrefs({ ...prefs, followStreaming })}
+              onChange={(followStreaming) => onChange({ ...prefs, followStreaming })}
             />
           }
         />
       </SettingsGroup>
 
-      <SettingsGroup title={t("ai.memory")}>
+      <SettingsGroup headingLevel={4} title={t("ai.memory")}>
         <SettingsRow
           borderless
           title={t("ai.buildMemory.title")}
@@ -75,7 +97,7 @@ export function AIPanel() {
             <Toggle
               aria-label={t("ai.buildMemory.title")}
               checked={prefs.buildMemory}
-              onChange={(buildMemory) => setPrefs({ ...prefs, buildMemory })}
+              onChange={(buildMemory) => onChange({ ...prefs, buildMemory })}
             />
           }
         />
@@ -94,6 +116,7 @@ export function AIPanel() {
       </SettingsGroup>
 
       <SettingsGroup
+        headingLevel={4}
         title={t("ai.privacy.title")}
         description={t("ai.privacy.description")}
       >
@@ -105,7 +128,9 @@ export function AIPanel() {
             <Toggle
               aria-label={t("ai.sendHighlightedText.title")}
               checked={prefs.sendHighlightedText}
-              onChange={(sendHighlightedText) => setPrefs({ ...prefs, sendHighlightedText })}
+              onChange={(sendHighlightedText) =>
+                onChange({ ...prefs, sendHighlightedText })
+              }
             />
           }
         />
@@ -117,7 +142,7 @@ export function AIPanel() {
               aria-label={t("ai.sendSurroundingContext.title")}
               checked={prefs.sendSurroundingContext}
               onChange={(sendSurroundingContext) =>
-                setPrefs({ ...prefs, sendSurroundingContext })
+                onChange({ ...prefs, sendSurroundingContext })
               }
             />
           }
@@ -129,11 +154,11 @@ export function AIPanel() {
             <Toggle
               aria-label={t("ai.localOnly.title")}
               checked={prefs.localOnly}
-              onChange={(localOnly) => setPrefs({ ...prefs, localOnly })}
+              onChange={(localOnly) => onChange({ ...prefs, localOnly })}
             />
           }
         />
       </SettingsGroup>
-    </SettingsPage>
+    </Stack>
   );
 }

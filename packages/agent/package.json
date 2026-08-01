@@ -16,8 +16,8 @@
     "repl": "bun src/repl-run.ts"
   },
   "dependencies": {
-    "@earendil-works/pi-agent-core": "^0.80.3",
-    "@earendil-works/pi-ai": "^0.80.3",
+    "@earendil-works/pi-agent-core": "^0.83.0",
+    "@earendil-works/pi-ai": "^0.83.0",
     "@read-aware/core": "workspace:*"
   },
   "devDependencies": {

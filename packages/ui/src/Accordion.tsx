@@ -94,6 +94,7 @@ function AccordionItem({
         role="region"
         aria-labelledby={triggerId}
         aria-hidden={!open}
+        inert={!open}
         className={cn(
           "overflow-hidden transition-[grid-template-rows] duration-200",
           "grid",

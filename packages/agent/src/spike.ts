@@ -8,6 +8,7 @@
  */
 import { Agent, type AgentTool } from "@earendil-works/pi-agent-core";
 import { Type, type Api, type Model } from "@earendil-works/pi-ai";
+import { streamSimple } from "@earendil-works/pi-ai/compat";
 import { buildProviderRegistry, type KnownProviderId, type ProviderRegistry } from "./models/registry";
 
 export interface SpikeConfig {
@@ -112,6 +113,7 @@ export async function runPiSpike(
       model,
       tools: [listBooks],
     },
+    streamFn: streamSimple,
     getApiKey: () => config.apiKey,
   });
   agent.subscribe((event) => {

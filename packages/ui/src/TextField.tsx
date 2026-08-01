@@ -6,7 +6,10 @@ type TextFieldProps = {
   helperText?: string;
   error?: string;
   leadingIcon?: ReactNode;
+  /** Decorative trailing icon; does not receive pointer events. */
   trailingIcon?: ReactNode;
+  /** Interactive control rendered at the trailing edge of the field. */
+  trailingAction?: ReactNode;
   variant?: "underline" | "outlined";
 } & Omit<InputHTMLAttributes<HTMLInputElement>, "id">;
 
@@ -18,6 +21,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
       error,
       leadingIcon,
       trailingIcon,
+      trailingAction,
       variant = "underline",
       className,
       ...props
@@ -75,7 +79,8 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
                     : "border-border focus:border-fg",
                 ),
               leadingIcon && (variant === "underline" ? "pl-6" : "pl-9"),
-              trailingIcon && (variant === "underline" ? "pr-6" : "pr-9"),
+              (trailingIcon || trailingAction) &&
+                (variant === "underline" ? "pr-8" : "pr-10"),
             )}
             {...props}
           />
@@ -87,6 +92,16 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
               )}
             >
               {trailingIcon}
+            </span>
+          )}
+          {trailingAction && (
+            <span
+              className={cn(
+                "absolute",
+                variant === "outlined" ? "right-1" : "right-0",
+              )}
+            >
+              {trailingAction}
             </span>
           )}
         </div>

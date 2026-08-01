@@ -193,12 +193,15 @@
     "apiKey": {
       "label": "API Key",
       "placeholder": "Enter your {{provider}} API key",
-      "helper": "Your API key is stored locally in your browser and never sent to our servers."
+      "helper": "Your API key is encrypted and stored only on this device. It is never sent to ReadAware's servers."
     },
     "show": "Show",
     "hide": "Hide",
-    "model": "Model",
+    "model": "Primary model",
     "modelDefault": "Default",
+    "modelHelper": "Used for both Smart and Fast tasks by default.",
+    "advancedSettings": "Advanced settings",
+    "separateFastModel": "Use a separate Fast model",
     "getKey": {
       "openai": "Get your API key from <link>OpenAI Dashboard</link>",
       "anthropic": "Get your API key from <link>Anthropic Console</link>",
@@ -215,25 +218,26 @@
     "testUnknownError": "Unknown error during test.",
     "byok": {
       "title": "About BYOK (Bring Your Own Key)",
-      "body": "ReadAware uses your own API key to access AI services. Your key is stored locally in your browser and is never sent to our servers. You are responsible for any API usage charges incurred."
+      "body": "ReadAware uses your key to call the selected provider. The key is encrypted and stored only on this device; provider usage charges still apply."
     },
     "smartModel": "Smart model",
     "fastModel": "Fast model",
     "smartModelHelper": "Chat, onboarding, and cross-book synthesis — the slower, more capable tier.",
     "fastModelHelper": "Dictionary, memory, and summaries — the cheaper, faster tier.",
-    "modelPlaceholder": "e.g. gpt-4o-mini",
+    "modelPlaceholder": "e.g. gpt-5.5",
     "fastModelCustomPlaceholder": "Leave empty to match the smart model",
     "smartThinking": "Smart model thinking",
     "fastThinking": "Fast model thinking",
     "smartThinkingHelper": "Reasoning effort for chat turns — higher levels think longer before answering. Models without thinking support ignore this.",
-    "fastThinkingHelper": "Reasoning effort for background work — keep Off for speed.",
+    "fastThinkingHelper": "Reasoning effort for background work — lower levels are faster and cost less.",
     "thinkingLevels": {
       "off": "Off",
       "minimal": "Minimal",
       "low": "Low",
       "medium": "Medium",
       "high": "High",
-      "xhigh": "Extra high"
+      "xhigh": "Extra high",
+      "max": "Maximum"
     }
   },
   "font": {

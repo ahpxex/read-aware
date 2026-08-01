@@ -29,6 +29,12 @@ export type KnownProviderId = (typeof KNOWN_PROVIDERS)[number];
 
 export type ProviderRegistry = ReturnType<typeof createModels>;
 
+export type ProviderModelCatalogEntry = {
+  id: string;
+  name: string;
+  reasoning: boolean;
+};
+
 export function buildProviderRegistry(): ProviderRegistry {
   const models = createModels();
   models.setProvider(anthropicProvider());
@@ -43,4 +49,22 @@ export function buildProviderRegistry(): ProviderRegistry {
   models.setProvider(mistralProvider());
   models.setProvider(moonshotaiProvider());
   return models;
+}
+
+let catalogRegistry: ProviderRegistry | undefined;
+
+/**
+ * Model metadata shipped by pi-ai for a provider. The SDK owns compatibility
+ * details; product surfaces can curate this catalog without duplicating model
+ * labels or advertising models the runtime cannot resolve.
+ */
+export function getProviderModelCatalog(
+  provider: KnownProviderId,
+): ProviderModelCatalogEntry[] {
+  catalogRegistry ??= buildProviderRegistry();
+  return catalogRegistry.getModels(provider).map(({ id, name, reasoning }) => ({
+    id,
+    name,
+    reasoning,
+  }));
 }

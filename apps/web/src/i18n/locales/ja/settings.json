@@ -193,12 +193,15 @@
     "apiKey": {
       "label": "APIキー",
       "placeholder": "{{provider}}のAPIキーを入力",
-      "helper": "APIキーはブラウザにローカル保存され、当社のサーバーに送信されることはありません。"
+      "helper": "APIキーは暗号化され、この端末にのみ保存されます。ReadAwareのサーバーには送信されません。"
     },
     "show": "表示",
     "hide": "非表示",
-    "model": "モデル",
+    "model": "メインモデル",
     "modelDefault": "既定",
+    "modelHelper": "既定ではスマートタスクと高速タスクの両方に使用します。",
+    "advancedSettings": "詳細設定",
+    "separateFastModel": "高速タスクに別のモデルを使用",
     "getKey": {
       "openai": "APIキーは<link>OpenAIダッシュボード</link>から取得できます",
       "anthropic": "APIキーは<link>Anthropicコンソール</link>から取得できます",
@@ -215,25 +218,26 @@
     "testUnknownError": "テスト中に不明なエラーが発生しました。",
     "byok": {
       "title": "BYOK（自分のキーを使用）について",
-      "body": "ReadAwareはAIサービスへのアクセスにあなた自身のAPIキーを使用します。キーはブラウザにローカル保存され、当社のサーバーに送信されることはありません。API利用料金はご自身の負担となります。"
+      "body": "ReadAwareは選択したプロバイダーの呼び出しにあなたのキーを使用します。キーは暗号化され、この端末にのみ保存されます。API利用料金は引き続きご自身の負担となります。"
     },
     "smartModel": "スマートモデル",
     "fastModel": "高速モデル",
     "smartModelHelper": "チャット・オンボーディング・横断的な統合など、遅くて賢い段階。",
     "fastModelHelper": "辞書・記憶・要約など、安くて速い段階。",
-    "modelPlaceholder": "例：gpt-4o-mini",
+    "modelPlaceholder": "例：gpt-5.5",
     "fastModelCustomPlaceholder": "空欄の場合はスマートモデルと同じ",
     "smartThinking": "スマートモデルの思考",
     "fastThinking": "高速モデルの思考",
     "smartThinkingHelper": "チャット応答の推論量。高いほど回答前に長く考えます。思考に対応しないモデルでは無視されます。",
-    "fastThinkingHelper": "バックグラウンド処理の推論量。速さ重視ならオフのままに。",
+    "fastThinkingHelper": "バックグラウンド処理の推論量。低いほど高速で、料金も抑えられます。",
     "thinkingLevels": {
       "off": "オフ",
       "minimal": "最小",
       "low": "低",
       "medium": "中",
       "high": "高",
-      "xhigh": "最高"
+      "xhigh": "非常に高い",
+      "max": "最大"
     }
   },
   "font": {

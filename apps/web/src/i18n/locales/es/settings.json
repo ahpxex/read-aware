@@ -193,12 +193,15 @@
     "apiKey": {
       "label": "Clave de API",
       "placeholder": "Introduce tu clave de API de {{provider}}",
-      "helper": "Tu clave de API se guarda localmente en tu navegador y nunca se envía a nuestros servidores."
+      "helper": "Tu clave de API se cifra y se guarda únicamente en este dispositivo. Nunca se envía a los servidores de ReadAware."
     },
     "show": "Mostrar",
     "hide": "Ocultar",
-    "model": "Modelo",
+    "model": "Modelo principal",
     "modelDefault": "Predeterminado",
+    "modelHelper": "Se usa de forma predeterminada para las tareas inteligentes y rápidas.",
+    "advancedSettings": "Ajustes avanzados",
+    "separateFastModel": "Usar un modelo rápido distinto",
     "getKey": {
       "openai": "Obtén tu clave de API en <link>el panel de OpenAI</link>",
       "anthropic": "Obtén tu clave de API en <link>la consola de Anthropic</link>",
@@ -215,25 +218,26 @@
     "testUnknownError": "Error desconocido durante la prueba.",
     "byok": {
       "title": "Acerca de BYOK (usa tu propia clave)",
-      "body": "ReadAware usa tu propia clave de API para acceder a los servicios de IA. Tu clave se guarda localmente en tu navegador y nunca se envía a nuestros servidores. Eres responsable de los cargos por uso de la API que se generen."
+      "body": "ReadAware usa tu clave para llamar al proveedor elegido. La clave se cifra y se guarda únicamente en este dispositivo; los cargos de uso de la API siguen siendo tu responsabilidad."
     },
     "smartModel": "Modelo inteligente",
     "fastModel": "Modelo rápido",
     "smartModelHelper": "Chat, incorporación y síntesis entre libros: el nivel más lento y capaz.",
     "fastModelHelper": "Diccionario, memoria y resúmenes: el nivel más barato y rápido.",
-    "modelPlaceholder": "p. ej. gpt-4o-mini",
+    "modelPlaceholder": "p. ej. gpt-5.5",
     "fastModelCustomPlaceholder": "Déjalo vacío para usar el modelo inteligente",
     "smartThinking": "Razonamiento del modelo inteligente",
     "fastThinking": "Razonamiento del modelo rápido",
     "smartThinkingHelper": "Esfuerzo de razonamiento para el chat: los niveles altos piensan más antes de responder. Los modelos sin razonamiento lo ignoran.",
-    "fastThinkingHelper": "Esfuerzo de razonamiento para el trabajo en segundo plano: déjalo desactivado para mayor velocidad.",
+    "fastThinkingHelper": "Esfuerzo de razonamiento para el trabajo en segundo plano: los niveles bajos son más rápidos y cuestan menos.",
     "thinkingLevels": {
       "off": "Desactivado",
       "minimal": "Mínimo",
       "low": "Bajo",
       "medium": "Medio",
       "high": "Alto",
-      "xhigh": "Muy alto"
+      "xhigh": "Muy alto",
+      "max": "Máximo"
     }
   },
   "font": {

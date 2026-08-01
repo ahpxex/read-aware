@@ -193,12 +193,15 @@
     "apiKey": {
       "label": "Clé API",
       "placeholder": "Saisissez votre clé API {{provider}}",
-      "helper": "Votre clé API est stockée localement dans votre navigateur et n’est jamais envoyée à nos serveurs."
+      "helper": "Votre clé API est chiffrée et stockée uniquement sur cet appareil. Elle n’est jamais envoyée aux serveurs de ReadAware."
     },
     "show": "Afficher",
     "hide": "Masquer",
-    "model": "Modèle",
+    "model": "Modèle principal",
     "modelDefault": "Par défaut",
+    "modelHelper": "Utilisé par défaut pour les tâches intelligentes et rapides.",
+    "advancedSettings": "Paramètres avancés",
+    "separateFastModel": "Utiliser un modèle rapide distinct",
     "getKey": {
       "openai": "Obtenez votre clé API depuis le <link>tableau de bord OpenAI</link>",
       "anthropic": "Obtenez votre clé API depuis la <link>console Anthropic</link>",
@@ -215,25 +218,26 @@
     "testUnknownError": "Erreur inconnue lors du test.",
     "byok": {
       "title": "À propos du BYOK (utilisez votre propre clé)",
-      "body": "ReadAware utilise votre propre clé API pour accéder aux services d’IA. Votre clé est stockée localement dans votre navigateur et n’est jamais envoyée à nos serveurs. Vous êtes responsable de tous les frais d’utilisation de l’API engagés."
+      "body": "ReadAware utilise votre clé pour appeler le fournisseur choisi. Elle est chiffrée et stockée uniquement sur cet appareil ; les frais d’utilisation de l’API restent à votre charge."
     },
     "smartModel": "Modèle intelligent",
     "fastModel": "Modèle rapide",
     "smartModelHelper": "Chat, intégration et synthèse entre livres — le niveau plus lent et plus performant.",
     "fastModelHelper": "Dictionnaire, mémoire et résumés — le niveau moins cher et plus rapide.",
-    "modelPlaceholder": "p. ex. gpt-4o-mini",
+    "modelPlaceholder": "p. ex. gpt-5.5",
     "fastModelCustomPlaceholder": "Laisser vide pour utiliser le modèle intelligent",
     "smartThinking": "Réflexion du modèle intelligent",
     "fastThinking": "Réflexion du modèle rapide",
     "smartThinkingHelper": "Effort de réflexion pour le chat — les niveaux élevés réfléchissent plus longtemps avant de répondre. Les modèles sans réflexion l'ignorent.",
-    "fastThinkingHelper": "Effort de réflexion pour les tâches d'arrière-plan — laisser désactivé pour la vitesse.",
+    "fastThinkingHelper": "Effort de réflexion pour les tâches d'arrière-plan — les niveaux inférieurs sont plus rapides et moins coûteux.",
     "thinkingLevels": {
       "off": "Désactivé",
       "minimal": "Minimal",
       "low": "Faible",
       "medium": "Moyen",
       "high": "Élevé",
-      "xhigh": "Très élevé"
+      "xhigh": "Très élevé",
+      "max": "Maximum"
     }
   },
   "font": {

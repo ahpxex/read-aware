@@ -193,12 +193,15 @@
     "apiKey": {
       "label": "API 密钥",
       "placeholder": "输入你的 {{provider}} API 密钥",
-      "helper": "你的 API 密钥仅存储在本地浏览器中，绝不会发送到我们的服务器。"
+      "helper": "你的 API 密钥经过加密，仅存储在这台设备上，不会发送到 ReadAware 的服务器。"
     },
     "show": "显示",
     "hide": "隐藏",
-    "model": "模型",
+    "model": "主模型",
     "modelDefault": "默认",
+    "modelHelper": "默认同时用于 Smart 和 Fast 任务。",
+    "advancedSettings": "高级设置",
+    "separateFastModel": "为 Fast 任务使用单独模型",
     "getKey": {
       "openai": "从 <link>OpenAI 控制台</link> 获取你的 API 密钥",
       "anthropic": "从 <link>Anthropic 控制台</link> 获取你的 API 密钥",
@@ -215,25 +218,26 @@
     "testUnknownError": "测试过程中发生未知错误。",
     "byok": {
       "title": "关于 BYOK（自带密钥）",
-      "body": "ReadAware 使用你自己的 API 密钥访问 AI 服务。你的密钥仅存储在本地浏览器中，绝不会发送到我们的服务器。你需自行承担产生的任何 API 使用费用。"
+      "body": "ReadAware 使用你的密钥调用所选提供方。密钥经过加密，仅存储在这台设备上；产生的 API 使用费用仍由你承担。"
     },
     "smartModel": "Smart 模型",
     "fastModel": "Fast 模型",
     "smartModelHelper": "聊天、引导访谈、跨书综合——更慢、更聪明的档位。",
     "fastModelHelper": "查词典、记忆提炼、摘要——更便宜、更快的档位。",
-    "modelPlaceholder": "例如 gpt-4o-mini",
+    "modelPlaceholder": "例如 gpt-5.5",
     "fastModelCustomPlaceholder": "留空则与 Smart 模型相同",
     "smartThinking": "Smart 模型思考力度",
     "fastThinking": "Fast 模型思考力度",
     "smartThinkingHelper": "聊天轮次的推理力度——档位越高，回答前思考越久。不支持思考的模型会忽略此设置。",
-    "fastThinkingHelper": "后台任务（记忆、摘要）的推理力度——保持关闭最快最省。",
+    "fastThinkingHelper": "后台任务的推理力度——档位越低，速度越快、费用越少。",
     "thinkingLevels": {
       "off": "关闭",
       "minimal": "最低",
       "low": "低",
       "medium": "中",
       "high": "高",
-      "xhigh": "极高"
+      "xhigh": "极高",
+      "max": "最高"
     }
   },
   "font": {

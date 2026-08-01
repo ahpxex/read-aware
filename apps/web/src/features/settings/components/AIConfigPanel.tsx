@@ -3,9 +3,20 @@
  * BYOK (Bring Your Own Key) setup
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { testLlmConnection } from "@read-aware/agent";
-import { Button, Select, TextField, Stack } from "@read-aware/ui";
+import {
+  Accordion,
+  Button,
+  Caption,
+  Divider,
+  IconButton,
+  Select,
+  Stack,
+  TextField,
+  Toggle,
+} from "@read-aware/ui";
+import { Eye, EyeSlash } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { Trans, useTranslation } from "../../../i18n";
 import { accountFromConfig } from "../../ai/agent/account";
@@ -16,23 +27,38 @@ import {
   saveAIConfig,
   clearAIConfig,
   DEFAULT_MODELS,
-  FAST_DEFAULT_MODELS,
+  DEFAULT_THINKING_LEVEL,
   PROVIDER_MODELS,
   PROVIDER_LABELS,
   PROVIDER_KEY_URLS,
+  SUGGESTED_FAST_MODELS,
   THINKING_LEVELS,
   type AIProvider,
   type ThinkingLevel,
 } from "../../ai/lib/ai-config";
 
-export function AIConfigPanel() {
+type ModelOption = { label: string; value: string };
+
+type AIConfigPanelProps = {
+  advancedContent?: ReactNode;
+};
+
+function includeSelectedModel(options: ModelOption[], value: string): ModelOption[] {
+  if (!value || options.some((option) => option.value === value)) return options;
+  return [{ label: value, value }, ...options];
+}
+
+export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
   const { t } = useTranslation("settings");
   const [provider, setProvider] = useState<AIProvider>("openai");
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState(DEFAULT_MODELS.openai);
-  const [fastModel, setFastModel] = useState(FAST_DEFAULT_MODELS.openai);
-  const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>("off");
-  const [fastThinkingLevel, setFastThinkingLevel] = useState<ThinkingLevel>("off");
+  const [fastModel, setFastModel] = useState(DEFAULT_MODELS.openai);
+  const [useSeparateFastModel, setUseSeparateFastModel] = useState(false);
+  const [thinkingLevel, setThinkingLevel] =
+    useState<ThinkingLevel>(DEFAULT_THINKING_LEVEL);
+  const [fastThinkingLevel, setFastThinkingLevel] =
+    useState<ThinkingLevel>(DEFAULT_THINKING_LEVEL);
   const [customBaseUrl, setCustomBaseUrl] = useState("");
   const [isConfigured, setIsConfigured] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
@@ -46,9 +72,11 @@ export function AIConfigPanel() {
       setProvider(config.provider);
       setApiKey(config.apiKey);
       setModel(config.model);
-      setFastModel(config.fastModel ?? FAST_DEFAULT_MODELS[config.provider] ?? "");
-      setThinkingLevel(config.thinkingLevel ?? "off");
-      setFastThinkingLevel(config.fastThinkingLevel ?? "off");
+      const resolvedFastModel = config.fastModel || config.model;
+      setFastModel(resolvedFastModel);
+      setUseSeparateFastModel(resolvedFastModel !== config.model);
+      setThinkingLevel(config.thinkingLevel ?? DEFAULT_THINKING_LEVEL);
+      setFastThinkingLevel(config.fastThinkingLevel ?? DEFAULT_THINKING_LEVEL);
       setCustomBaseUrl(config.customBaseUrl || "");
       setIsConfigured(true);
     }
@@ -66,6 +94,7 @@ export function AIConfigPanel() {
     const remembered = getStoredProviderSettings(next);
     setModel(remembered.model);
     setFastModel(remembered.fastModel);
+    setUseSeparateFastModel(remembered.fastModel !== remembered.model);
     setThinkingLevel(remembered.thinkingLevel);
     setFastThinkingLevel(remembered.fastThinkingLevel);
     setCustomBaseUrl(remembered.customBaseUrl);
@@ -77,7 +106,7 @@ export function AIConfigPanel() {
       provider,
       apiKey: apiKey.trim(),
       model: model.trim(),
-      fastModel: fastModel.trim() || undefined,
+      fastModel: useSeparateFastModel ? fastModel.trim() || undefined : undefined,
       thinkingLevel,
       fastThinkingLevel,
       customBaseUrl: provider === "custom" ? customBaseUrl.trim() : undefined,
@@ -89,11 +118,13 @@ export function AIConfigPanel() {
 
   const handleClear = () => {
     clearAIConfig();
+    const defaultModel = DEFAULT_MODELS[provider];
     setApiKey("");
-    setModel(DEFAULT_MODELS.openai);
-    setFastModel(FAST_DEFAULT_MODELS.openai);
-    setThinkingLevel("off");
-    setFastThinkingLevel("off");
+    setModel(defaultModel);
+    setFastModel(defaultModel);
+    setUseSeparateFastModel(false);
+    setThinkingLevel(DEFAULT_THINKING_LEVEL);
+    setFastThinkingLevel(DEFAULT_THINKING_LEVEL);
     setCustomBaseUrl("");
     setIsConfigured(false);
     setTestResult(null);
@@ -111,7 +142,7 @@ export function AIConfigPanel() {
         provider,
         apiKey: apiKey.trim(),
         model: model.trim(),
-        fastModel: fastModel.trim() || undefined,
+        fastModel: useSeparateFastModel ? fastModel.trim() || undefined : undefined,
         customBaseUrl: provider === "custom" ? customBaseUrl.trim() : undefined,
       });
       const response = await testLlmConnection(account, models.smart);
@@ -144,11 +175,31 @@ export function AIConfigPanel() {
 
   const modelOptions = PROVIDER_MODELS[provider] || [];
   const hasModelCatalog = modelOptions.length > 0;
+  const primaryModelOptions = includeSelectedModel(modelOptions, model);
+  const fastModelOptions = includeSelectedModel(modelOptions, fastModel);
   const thinkingOptions = THINKING_LEVELS.map((level) => ({
     value: level,
     label: t(`aiConfig.thinkingLevels.${level}`),
   }));
   const keyUrl = PROVIDER_KEY_URLS[provider];
+  const isIncomplete =
+    !apiKey.trim() ||
+    !model.trim() ||
+    (provider === "custom" && !customBaseUrl.trim());
+
+  const handleModelChange = (value: string) => {
+    setModel(value);
+    if (!useSeparateFastModel) setFastModel(value);
+    setTestResult(null);
+  };
+
+  const handleSeparateFastModelChange = (enabled: boolean) => {
+    setUseSeparateFastModel(enabled);
+    setFastModel(
+      enabled ? SUGGESTED_FAST_MODELS[provider] || fastModel || model : model,
+    );
+    setTestResult(null);
+  };
 
   return (
     <Stack gap="xl">
@@ -160,117 +211,30 @@ export function AIConfigPanel() {
           options={providerOptions}
         />
 
-        {provider === "custom" && (
-          <TextField
-            label={t("aiConfig.customBaseUrl.label")}
-            type="url"
-            value={customBaseUrl}
-            onChange={(e) => {
-              setCustomBaseUrl(e.target.value);
-              setTestResult(null);
-            }}
-            placeholder="https://api.example.com/v1"
-            helperText={t("aiConfig.customBaseUrl.helper")}
-          />
-        )}
-
         <TextField
           label={t("aiConfig.apiKey.label")}
           type={showKey ? "text" : "password"}
           value={apiKey}
-          onChange={(e) => {
-            setApiKey(e.target.value);
+          onChange={(event) => {
+            setApiKey(event.target.value);
             setTestResult(null);
           }}
-          placeholder={t("aiConfig.apiKey.placeholder", { provider: PROVIDER_LABELS[provider] })}
+          placeholder={t("aiConfig.apiKey.placeholder", {
+            provider: PROVIDER_LABELS[provider],
+          })}
           helperText={t("aiConfig.apiKey.helper")}
-          trailingIcon={
-            <button
-              type="button"
+          trailingAction={
+            <IconButton
+              size="sm"
+              label={showKey ? t("aiConfig.hide") : t("aiConfig.show")}
+              icon={showKey ? <EyeSlash size={16} /> : <Eye size={16} />}
               onClick={() => setShowKey(!showKey)}
-              className="text-xs text-fg-subtle hover:text-fg-muted"
-            >
-              {showKey ? t("aiConfig.hide") : t("aiConfig.show")}
-            </button>
+            />
           }
         />
 
-        {/* Two model tiers. `smart` runs chat turns; `fast` runs the cheaper
-            background/dictionary work. Providers with a catalog get dropdowns;
-            a custom OpenAI-compatible endpoint gets free-text fields. */}
-        {hasModelCatalog ? (
-          <>
-            <Select
-              label={t("aiConfig.smartModel")}
-              value={model}
-              onChange={(value) => {
-                setModel(value);
-                setTestResult(null);
-              }}
-              options={modelOptions}
-              helperText={t("aiConfig.smartModelHelper")}
-            />
-            <Select
-              label={t("aiConfig.fastModel")}
-              value={fastModel}
-              onChange={(value) => {
-                setFastModel(value);
-                setTestResult(null);
-              }}
-              options={modelOptions}
-              helperText={t("aiConfig.fastModelHelper")}
-            />
-          </>
-        ) : (
-          <>
-            <TextField
-              label={t("aiConfig.smartModel")}
-              value={model}
-              onChange={(e) => {
-                setModel(e.target.value);
-                setTestResult(null);
-              }}
-              placeholder={t("aiConfig.modelPlaceholder")}
-              helperText={t("aiConfig.smartModelHelper")}
-            />
-            <TextField
-              label={t("aiConfig.fastModel")}
-              value={fastModel}
-              onChange={(e) => {
-                setFastModel(e.target.value);
-                setTestResult(null);
-              }}
-              placeholder={t("aiConfig.fastModelCustomPlaceholder")}
-              helperText={t("aiConfig.fastModelHelper")}
-            />
-          </>
-        )}
-
-        {/* Per-tier thinking effort. pi maps the level onto each provider's
-            thinking parameters; models without thinking support ignore it. */}
-        <Select
-          label={t("aiConfig.smartThinking")}
-          value={thinkingLevel}
-          onChange={(value) => {
-            setThinkingLevel(value as ThinkingLevel);
-            setTestResult(null);
-          }}
-          options={thinkingOptions}
-          helperText={t("aiConfig.smartThinkingHelper")}
-        />
-        <Select
-          label={t("aiConfig.fastThinking")}
-          value={fastThinkingLevel}
-          onChange={(value) => {
-            setFastThinkingLevel(value as ThinkingLevel);
-            setTestResult(null);
-          }}
-          options={thinkingOptions}
-          helperText={t("aiConfig.fastThinkingHelper")}
-        />
-
         {keyUrl && (
-          <p className="text-xs text-fg-muted">
+          <Caption as="p">
             <Trans
               t={t}
               i18nKey="aiConfig.getKey.generic"
@@ -286,22 +250,39 @@ export function AIConfigPanel() {
                 ),
               }}
             />
-          </p>
+          </Caption>
+        )}
+
+        {/* The simple setup has one model. Fast follows it unless the advanced
+            override is enabled below. */}
+        {hasModelCatalog ? (
+          <Select
+            label={t("aiConfig.model")}
+            value={model}
+            onChange={handleModelChange}
+            options={primaryModelOptions}
+            helperText={t("aiConfig.modelHelper")}
+          />
+        ) : (
+          <TextField
+            label={t("aiConfig.model")}
+            value={model}
+            onChange={(event) => handleModelChange(event.target.value)}
+            placeholder={DEFAULT_MODELS.openai}
+            helperText={t("aiConfig.modelHelper")}
+          />
         )}
       </Stack>
 
       <Stack gap="sm">
         <div className="flex gap-3">
-          <Button
-            onClick={handleSave}
-            disabled={!apiKey.trim() || (provider === "custom" && !customBaseUrl.trim())}
-          >
+          <Button onClick={handleSave} disabled={isIncomplete}>
             {t("aiConfig.save")}
           </Button>
           <Button
             variant="outline"
             onClick={handleTest}
-            disabled={!apiKey.trim() || isTesting || (provider === "custom" && !customBaseUrl.trim())}
+            disabled={isIncomplete || isTesting}
           >
             {isTesting ? t("aiConfig.testing") : t("aiConfig.test")}
           </Button>
@@ -324,10 +305,96 @@ export function AIConfigPanel() {
         )}
       </Stack>
 
-      <div className="rounded-md border border-border bg-fill p-4 text-sm text-fg-muted">
-        <p className="font-medium text-fg">{t("aiConfig.byok.title")}</p>
-        <p className="mt-1">{t("aiConfig.byok.body")}</p>
-      </div>
+      <Accordion
+        className="border-y border-border"
+        items={[
+          {
+            label: t("aiConfig.advancedSettings"),
+            content: (
+              <Stack gap="lg">
+                {provider === "custom" && (
+                  <TextField
+                    label={t("aiConfig.customBaseUrl.label")}
+                    type="url"
+                    value={customBaseUrl}
+                    onChange={(event) => {
+                      setCustomBaseUrl(event.target.value);
+                      setTestResult(null);
+                    }}
+                    placeholder="https://api.example.com/v1"
+                    helperText={t("aiConfig.customBaseUrl.helper")}
+                  />
+                )}
+
+                <Toggle
+                  label={t("aiConfig.separateFastModel")}
+                  checked={useSeparateFastModel}
+                  onChange={handleSeparateFastModelChange}
+                />
+
+                {useSeparateFastModel &&
+                  (hasModelCatalog ? (
+                    <Select
+                      label={t("aiConfig.fastModel")}
+                      value={fastModel}
+                      onChange={(value) => {
+                        setFastModel(value);
+                        setTestResult(null);
+                      }}
+                      options={fastModelOptions}
+                      helperText={t("aiConfig.fastModelHelper")}
+                    />
+                  ) : (
+                    <TextField
+                      label={t("aiConfig.fastModel")}
+                      value={fastModel}
+                      onChange={(event) => {
+                        setFastModel(event.target.value);
+                        setTestResult(null);
+                      }}
+                      placeholder={SUGGESTED_FAST_MODELS.openai}
+                      helperText={t("aiConfig.fastModelHelper")}
+                    />
+                  ))}
+
+                {/* pi maps these levels onto each provider's thinking
+                    parameters. Unsupported models ignore them. */}
+                <Select
+                  label={t("aiConfig.smartThinking")}
+                  value={thinkingLevel}
+                  onChange={(value) => {
+                    setThinkingLevel(value as ThinkingLevel);
+                    setTestResult(null);
+                  }}
+                  options={thinkingOptions}
+                  helperText={t("aiConfig.smartThinkingHelper")}
+                />
+                <Select
+                  label={t("aiConfig.fastThinking")}
+                  value={fastThinkingLevel}
+                  onChange={(value) => {
+                    setFastThinkingLevel(value as ThinkingLevel);
+                    setTestResult(null);
+                  }}
+                  options={thinkingOptions}
+                  helperText={t("aiConfig.fastThinkingHelper")}
+                />
+
+                <Caption as="p" className="leading-relaxed">
+                  {t("aiConfig.byok.body")}
+                </Caption>
+
+                {advancedContent && (
+                  <>
+                    <Divider />
+                    {advancedContent}
+                  </>
+                )}
+              </Stack>
+            ),
+          },
+        ]}
+      />
     </Stack>
   );
 }

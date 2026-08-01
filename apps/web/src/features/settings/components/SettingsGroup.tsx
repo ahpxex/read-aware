@@ -8,6 +8,7 @@ type SettingsGroupProps = {
   aside?: ReactNode;
   children: ReactNode;
   className?: string;
+  headingLevel?: 2 | 3 | 4;
 };
 
 /** A titled cluster of related settings rows or controls within a page. */
@@ -17,15 +18,18 @@ export function SettingsGroup({
   aside,
   children,
   className,
+  headingLevel = 2,
 }: SettingsGroupProps) {
+  const HeadingTag = `h${headingLevel}` as "h2" | "h3" | "h4";
+
   return (
     <section className={cn("min-w-0", className)}>
       {(title || aside) && (
         <div className="mb-3 flex items-center gap-2">
           {title && (
-            <h2 className="font-sans text-[13px] font-medium text-fg-muted">
+            <HeadingTag className="font-sans text-[13px] font-medium text-fg-muted">
               {title}
-            </h2>
+            </HeadingTag>
           )}
           {aside}
         </div>

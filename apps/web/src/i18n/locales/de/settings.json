@@ -193,12 +193,15 @@
     "apiKey": {
       "label": "API-Schlüssel",
       "placeholder": "Gib deinen {{provider}}-API-Schlüssel ein",
-      "helper": "Dein API-Schlüssel wird lokal in deinem Browser gespeichert und niemals an unsere Server gesendet."
+      "helper": "Dein API-Schlüssel wird verschlüsselt und nur auf diesem Gerät gespeichert. Er wird nie an ReadAware-Server gesendet."
     },
     "show": "Anzeigen",
     "hide": "Verbergen",
-    "model": "Modell",
+    "model": "Primärmodell",
     "modelDefault": "Standard",
+    "modelHelper": "Wird standardmäßig für Smart- und Fast-Aufgaben verwendet.",
+    "advancedSettings": "Erweiterte Einstellungen",
+    "separateFastModel": "Separates Fast-Modell verwenden",
     "getKey": {
       "openai": "Hol dir deinen API-Schlüssel im <link>OpenAI-Dashboard</link>",
       "anthropic": "Hol dir deinen API-Schlüssel in der <link>Anthropic-Konsole</link>",
@@ -215,25 +218,26 @@
     "testUnknownError": "Unbekannter Fehler während des Tests.",
     "byok": {
       "title": "Über BYOK (Bring Your Own Key)",
-      "body": "ReadAware nutzt deinen eigenen API-Schlüssel für den Zugriff auf KI-Dienste. Dein Schlüssel wird lokal in deinem Browser gespeichert und niemals an unsere Server gesendet. Für anfallende API-Nutzungsgebühren bist du selbst verantwortlich."
+      "body": "ReadAware nutzt deinen Schlüssel für den ausgewählten Anbieter. Er wird verschlüsselt und nur auf diesem Gerät gespeichert; anfallende API-Gebühren trägst weiterhin du."
     },
     "smartModel": "Smart-Modell",
     "fastModel": "Fast-Modell",
     "smartModelHelper": "Chat, Onboarding und buchübergreifende Synthese – die langsamere, leistungsfähigere Stufe.",
     "fastModelHelper": "Wörterbuch, Gedächtnis und Zusammenfassungen – die günstigere, schnellere Stufe.",
-    "modelPlaceholder": "z. B. gpt-4o-mini",
+    "modelPlaceholder": "z. B. gpt-5.5",
     "fastModelCustomPlaceholder": "Leer lassen, um das Smart-Modell zu verwenden",
     "smartThinking": "Denkaufwand des Smart-Modells",
     "fastThinking": "Denkaufwand des Fast-Modells",
     "smartThinkingHelper": "Denkaufwand für Chat-Antworten – höhere Stufen denken länger nach. Modelle ohne Denkfunktion ignorieren dies.",
-    "fastThinkingHelper": "Denkaufwand für Hintergrundarbeit – für Tempo auf Aus lassen.",
+    "fastThinkingHelper": "Denkaufwand für Hintergrundarbeit – niedrigere Stufen sind schneller und günstiger.",
     "thinkingLevels": {
       "off": "Aus",
       "minimal": "Minimal",
       "low": "Niedrig",
       "medium": "Mittel",
       "high": "Hoch",
-      "xhigh": "Sehr hoch"
+      "xhigh": "Sehr hoch",
+      "max": "Maximum"
     }
   },
   "font": {

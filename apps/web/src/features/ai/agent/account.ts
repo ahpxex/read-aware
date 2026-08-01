@@ -4,7 +4,11 @@
  * （custom = OpenAI 兼容端点 → openai provider + baseUrl）。
  */
 import type { LlmAccount, RoleModels, RoleThinking } from "@read-aware/agent";
-import { DEFAULT_MODELS, FAST_DEFAULT_MODELS, type AIConfig } from "../lib/ai-config";
+import {
+  DEFAULT_MODELS,
+  DEFAULT_THINKING_LEVEL,
+  type AIConfig,
+} from "../lib/ai-config";
 
 export function accountFromConfig(config: AIConfig): {
   account: LlmAccount;
@@ -22,18 +26,14 @@ export function accountFromConfig(config: AIConfig): {
       : { kind: "api-key", provider: config.provider, apiKey: config.apiKey };
 
   const smart = config.model || DEFAULT_MODELS[config.provider];
-  // A custom (single) endpoint has no second catalog to draw a cheaper model
-  // from, so fast falls back to smart. Everywhere else: the user's Fast choice,
-  // then the per-provider fast default, then smart.
-  const fast =
-    config.provider === "custom"
-      ? config.fastModel || smart
-      : config.fastModel || FAST_DEFAULT_MODELS[config.provider] || smart;
+  // The simple setup path uses one model for both roles. A distinct Fast model
+  // only exists when the user explicitly chooses that advanced override.
+  const fast = config.fastModel || smart;
 
   const models: RoleModels = { smart, fast };
   const thinking: RoleThinking = {
-    smart: config.thinkingLevel ?? "off",
-    fast: config.fastThinkingLevel ?? "off",
+    smart: config.thinkingLevel ?? DEFAULT_THINKING_LEVEL,
+    fast: config.fastThinkingLevel ?? DEFAULT_THINKING_LEVEL,
   };
   return { account, models, thinking };
 }

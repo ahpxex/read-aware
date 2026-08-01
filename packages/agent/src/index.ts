@@ -6,7 +6,12 @@ export type { AgentTool, AgentToolResult } from "@earendil-works/pi-agent-core";
 export { searchChapters, type ChapterLike, type ChapterHit } from "./text/search";
 export * from "./models/roles";
 export * from "./models/accounts";
-export { KNOWN_PROVIDERS, type KnownProviderId } from "./models/registry";
+export {
+  KNOWN_PROVIDERS,
+  getProviderModelCatalog,
+  type KnownProviderId,
+  type ProviderModelCatalogEntry,
+} from "./models/registry";
 export type { CompleteFn } from "./models/complete";
 export { testLlmConnection } from "./models/test-connection";
 export { extractJsonObject, schemaViolations } from "./structured";

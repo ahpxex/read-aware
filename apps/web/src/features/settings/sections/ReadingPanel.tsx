@@ -211,6 +211,12 @@ function ReadingPreview({ style }: { style: React.CSSProperties }) {
       <div className="px-6 py-5 transition-colors" style={style}>
         <blockquote className="m-0">
           <p className="m-0">{t("reading.previewText")}</p>
+          <p
+            className="m-0"
+            style={{ marginBlockStart: "var(--ra-reader-preview-paragraph-spacing)" }}
+          >
+            {t("reading.previewTextSecondary")}
+          </p>
           <footer className="mt-3 font-sans text-caption leading-5 opacity-60">
             {t("reading.previewSource")}
           </footer>

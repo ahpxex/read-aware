@@ -70,6 +70,7 @@
     "description": "Wie Bücher auf der Seite dargestellt werden. Änderungen wirken sich live auf den Reader aus.",
     "previewLabel": "Lesevorschau",
     "previewText": "Als Gregor Samsa eines Morgens aus unruhigen Träumen erwachte, fand er sich in seinem Bett zu einem ungeheueren Ungeziefer verwandelt.",
+    "previewTextSecondary": "»Was ist mit mir geschehen?« dachte er. Es war kein Traum…",
     "previewSource": "Franz Kafka · Die Verwandlung",
     "typography": "Typografie",
     "fontSize": "Schriftgröße",

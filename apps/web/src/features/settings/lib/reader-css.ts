@@ -452,9 +452,11 @@ export function buildReaderContentCss(
 export function getReaderPreviewStyle(
   settings: ReaderSettings,
   assets: Pick<ReaderContentAssets, "palette" | "pluginFont">,
-): CSSProperties {
+): CSSProperties & { "--ra-reader-preview-paragraph-spacing": string } {
   const theme = assets.palette;
   return {
+    "--ra-reader-preview-paragraph-spacing":
+      PARAGRAPH_SPACING_MAP[settings.paragraphSpacing],
     backgroundColor: theme.bg,
     color: theme.text,
     fontFamily: resolveReaderFontStack(settings.fontFamily, assets.pluginFont),

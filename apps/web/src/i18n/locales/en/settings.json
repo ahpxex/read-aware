@@ -70,6 +70,7 @@
     "description": "How books render on the page. Changes apply live to the reader.",
     "previewLabel": "Reading preview",
     "previewText": "History, Stephen said, is a nightmare from which I am trying to awake.",
+    "previewTextSecondary": "Think you're escaping and run into yourself. Longest way round is the shortest way home.",
     "previewSource": "James Joyce · Ulysses",
     "typography": "Typography",
     "fontSize": "Font Size",

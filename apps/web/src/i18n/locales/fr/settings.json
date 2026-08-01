@@ -70,6 +70,7 @@
     "description": "Le rendu des livres sur la page. Les modifications s’appliquent en direct au lecteur.",
     "previewLabel": "Aperçu de lecture",
     "previewText": "Longtemps, je me suis couché de bonne heure.",
+    "previewTextSecondary": "Parfois, à peine ma bougie éteinte, mes yeux se fermaient si vite que je n’avais pas le temps de me dire : « Je m’endors. »",
     "previewSource": "Marcel Proust · À la recherche du temps perdu",
     "typography": "Typographie",
     "fontSize": "Taille de police",

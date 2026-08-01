@@ -248,10 +248,14 @@ export function saveAIConfig(config: AIConfig): void {
       : {}),
   };
   localKV.setItem(CONFIG_KEY, JSON.stringify({ provider, models } satisfies StoredAIConfig));
-  if (apiKey) setSecret(keySlot(provider), apiKey);
-  else deleteSecret(keySlot(provider));
+  // Reactive settings rewrite this record as fields change. Avoid needless
+  // encrypted-store IPC when the credential itself did not change.
+  const slot = keySlot(provider);
+  const storedApiKey = getSecret(slot);
+  if (apiKey && storedApiKey !== apiKey) setSecret(slot, apiKey);
+  else if (!apiKey && storedApiKey) deleteSecret(slot);
   // The single-slot era key must not linger as a fallback for OTHER providers.
-  deleteSecret("ai-api-key");
+  if (getSecret("ai-api-key")) deleteSecret("ai-api-key");
 }
 
 export function clearAIConfig(): void {

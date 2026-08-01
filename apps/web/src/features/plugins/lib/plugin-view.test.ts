@@ -136,6 +136,30 @@ describe("normalizePluginView", () => {
     expect(view.items[0].presentation).toBe("dialog");
     expect(view.items[0].accessories?.[0]).toEqual({ kind: "tag", text: "Frankenstein" });
   });
+
+  test("preserves change-submit forms for reactive settings", () => {
+    const view = normalizePluginView({
+      kind: "form",
+      submitMode: "change",
+      fields: [{ kind: "toggle", id: "enabled", label: "Enabled" }],
+      onSubmit: noOp,
+    });
+
+    expect(view.kind).toBe("form");
+    if (view.kind !== "form") throw new Error("unexpected view");
+    expect(view.submitMode).toBe("change");
+  });
+
+  test("rejects unknown form submit modes", () => {
+    expect(() =>
+      normalizePluginView({
+        kind: "form",
+        submitMode: "later",
+        fields: [],
+        onSubmit: noOp,
+      }),
+    ).toThrow(/submitMode must be one of/);
+  });
 });
 
 describe("navigatePluginViewStack", () => {

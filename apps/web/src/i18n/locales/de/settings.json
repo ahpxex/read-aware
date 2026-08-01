@@ -221,11 +221,9 @@
       "openrouter": "Hol dir deinen API-Schlüssel bei <link>OpenRouter</link>",
       "generic": "Hol deinen {{provider}}-API-Schlüssel aus <link>der Anbieter-Konsole</link>."
     },
-    "save": "Konfiguration speichern",
     "test": "Verbindung testen",
     "testing": "Wird getestet...",
     "clear": "Löschen",
-    "savedMessage": "Konfiguration erfolgreich gespeichert.",
     "testSuccessMessage": "Test erfolgreich! Antwort: „{{response}}“",
     "testEmptyMessage": "Test fehlgeschlagen: Leere Antwort vom KI-Anbieter.",
     "testUnknownError": "Unbekannter Fehler während des Tests.",

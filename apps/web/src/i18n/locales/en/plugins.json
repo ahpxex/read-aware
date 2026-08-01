@@ -81,8 +81,6 @@
       "cancel": "Cancel"
     },
     "configure": "Settings",
-    "configureSave": "Save",
-    "configureSaved": "Plugin settings saved",
     "builtin": "Built-in"
   }
 }

@@ -221,11 +221,9 @@
       "openrouter": "APIキーは<link>OpenRouter</link>から取得できます",
       "generic": "{{provider}} のコンソールで API キーを取得：<link>開く</link>。"
     },
-    "save": "設定を保存",
     "test": "接続をテスト",
     "testing": "テスト中...",
     "clear": "クリア",
-    "savedMessage": "設定を保存しました。",
     "testSuccessMessage": "テスト成功！応答：「{{response}}」",
     "testEmptyMessage": "テスト失敗：AIプロバイダーからの応答が空です。",
     "testUnknownError": "テスト中に不明なエラーが発生しました。",

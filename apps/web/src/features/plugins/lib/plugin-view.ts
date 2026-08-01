@@ -303,6 +303,12 @@ function normalizeFormView(input: Record<string, unknown>, context: string): Plu
     fields: array(input.fields, `${context}.fields`, MAX_FORM_FIELDS).map((field, index) =>
       normalizeFormField(field, `${context}.fields[${index}]`),
     ),
+    submitMode: oneOf(
+      input.submitMode,
+      ["explicit", "change"] as const,
+      "explicit",
+      `${context}.submitMode`,
+    ),
     submitLabel: string(input.submitLabel, `${context}.submitLabel`, true),
     onSubmit: input.onSubmit as PluginFormView["onSubmit"],
   };

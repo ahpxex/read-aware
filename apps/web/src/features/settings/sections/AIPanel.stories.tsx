@@ -13,9 +13,8 @@ type Story = StoryObj<typeof meta>;
 
 /** The AI section on jotai defaults: unconfigured BYOK connection form, all
     feature toggles on. Renders standalone — the connection "Test" button is the
-    only live call, and it's user-triggered. Note: toggles write through
-    `aiPreferencesAtom` (and Save writes the config) to this Storybook origin's
-    localStorage. */
+    only live network call, and it's user-triggered. Connection fields and
+    toggles write through reactively to this Storybook origin's localStorage. */
 export const Default: Story = {};
 
 export const AdvancedSettings: Story = {

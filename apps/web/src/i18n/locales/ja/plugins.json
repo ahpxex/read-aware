@@ -81,8 +81,6 @@
       "cancel": "キャンセル"
     },
     "configure": "設定",
-    "configureSave": "保存",
-    "configureSaved": "プラグイン設定を保存しました",
     "builtin": "内蔵"
   }
 }

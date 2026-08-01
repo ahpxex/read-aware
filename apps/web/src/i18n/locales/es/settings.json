@@ -221,11 +221,9 @@
       "openrouter": "Obtén tu clave de API en <link>OpenRouter</link>",
       "generic": "Consigue tu clave de API de {{provider}} en <link>la consola del proveedor</link>."
     },
-    "save": "Guardar configuración",
     "test": "Probar conexión",
     "testing": "Probando...",
     "clear": "Borrar",
-    "savedMessage": "Configuración guardada correctamente.",
     "testSuccessMessage": "¡Prueba correcta! Respuesta: «{{response}}»",
     "testEmptyMessage": "La prueba falló: respuesta vacía del proveedor de IA.",
     "testUnknownError": "Error desconocido durante la prueba.",

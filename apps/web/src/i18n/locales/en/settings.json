@@ -221,11 +221,9 @@
       "openrouter": "Get your API key from <link>OpenRouter</link>",
       "generic": "Get your {{provider}} API key from <link>the provider console</link>."
     },
-    "save": "Save Configuration",
     "test": "Test Connection",
     "testing": "Testing...",
     "clear": "Clear",
-    "savedMessage": "Configuration saved successfully.",
     "testSuccessMessage": "Test successful! Response: \"{{response}}\"",
     "testEmptyMessage": "Test failed: Empty response from AI provider.",
     "testUnknownError": "Unknown error during test.",

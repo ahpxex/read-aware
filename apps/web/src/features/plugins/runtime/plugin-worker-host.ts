@@ -49,7 +49,7 @@ export type SandboxedPlugin = {
 //
 // The worker keeps local mirrors so `storage.get()` and `ctx.locale` stay
 // synchronous. Worker-side writes already flow back here; this is the other
-// direction: when the HOST changes (a settings save from the Plugins panel,
+// direction: when the HOST changes (a settings edit from the Plugins panel,
 // the app language switching), every live sandbox gets a `sync` patch, or
 // its mirror silently serves boot-time values forever.
 

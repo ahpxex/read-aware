@@ -221,11 +221,9 @@
       "openrouter": "從 <link>OpenRouter</link> 取得你的 API 金鑰",
       "generic": "從 {{provider}} 主控台取得 API 金鑰：<link>前往</link>。"
     },
-    "save": "儲存設定",
     "test": "測試連線",
     "testing": "測試中...",
     "clear": "清除",
-    "savedMessage": "設定已成功儲存。",
     "testSuccessMessage": "測試成功！回應：「{{response}}」",
     "testEmptyMessage": "測試失敗：AI 供應商回傳空白回應。",
     "testUnknownError": "測試期間發生未知錯誤。",

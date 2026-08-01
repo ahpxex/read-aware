@@ -125,6 +125,36 @@ export const DictionaryTimeline: Story = {
   },
 };
 
+export const ReactiveSettingsForm: Story = {
+  args: {
+    className: "mx-auto max-w-md",
+    view: {
+      kind: "form",
+      title: "Dictionary settings",
+      submitMode: "change",
+      fields: [
+        {
+          kind: "select",
+          id: "language",
+          label: "Definition language",
+          value: "en",
+          options: [
+            { value: "en", label: "English" },
+            { value: "zh-Hans", label: "简体中文" },
+          ],
+        },
+        {
+          kind: "toggle",
+          id: "examples",
+          label: "Include usage examples",
+          value: true,
+        },
+      ],
+      onSubmit: () => undefined,
+    },
+  },
+};
+
 export const ComposedLayout: Story = {
   args: {
     className: "mx-auto max-w-5xl",

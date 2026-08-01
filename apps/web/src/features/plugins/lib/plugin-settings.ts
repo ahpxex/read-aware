@@ -30,8 +30,6 @@ export function readPluginSettingsValues(pluginId: string): PluginFormValues {
 /** Build the settings form for a manifest, prefilled with stored values. */
 export function buildPluginSettingsView(
   manifest: PluginManifest,
-  submitLabel: string,
-  savedToast: string,
 ): PluginFormView | null {
   const fields = manifest.settings;
   if (!fields || fields.length === 0) return null;
@@ -39,6 +37,7 @@ export function buildPluginSettingsView(
   return {
     kind: "form",
     title: manifest.name,
+    submitMode: "change",
     fields: fields.map((field) => {
       const value = stored[field.id];
       if (field.kind === "toggle" || field.kind === "checkbox") {
@@ -49,13 +48,11 @@ export function buildPluginSettingsView(
       }
       return { ...field, value: typeof value === "string" ? value : field.value };
     }),
-    submitLabel,
     onSubmit: (values) => {
       localKV.setItem(storageKey(manifest.id), JSON.stringify(values));
       // A running sandbox reads settings from its local snapshot; tell the
-      // worker host so `ctx.storage.get("settings")` reflects this save.
+      // worker host so `ctx.storage.get("settings")` reflects this change.
       emitAppEvent("plugin-storage-changed", { pluginId: manifest.id });
-      return { close: true, toast: savedToast };
     },
   };
 }

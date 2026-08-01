@@ -183,11 +183,7 @@ export function PluginsPanel() {
                         size="sm"
                         variant="ghost"
                         onClick={() => {
-                          const view = buildPluginSettingsView(
-                            manifest,
-                            t("settings.configureSave"),
-                            t("settings.configureSaved"),
-                          );
+                          const view = buildPluginSettingsView(manifest);
                           if (view) {
                             openPluginDialog({
                               pluginId: manifest.id,

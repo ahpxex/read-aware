@@ -125,8 +125,8 @@ export type PluginManifest = {
   /** Entry module relative to the plugin folder. Defaults to "main.js". */
   main?: string;
   /**
-   * Declarative settings: rendered by the app from the Plugins panel; values
-   * persist as one object under the plugin's storage key `settings`
+   * Declarative settings: rendered by the app from the Plugins panel; edits
+   * write through as one object under the plugin's storage key `settings`
    * (read with `ctx.storage.get("settings")`).
    */
   settings?: PluginFormField[];
@@ -416,6 +416,11 @@ export type PluginFormView = {
   kind: "form";
   title?: string;
   fields: PluginFormField[];
+  /**
+   * `explicit` (default) renders a submit button. `change` writes through after
+   * each edit and omits that button, for forms that represent settings.
+   */
+  submitMode?: "explicit" | "change";
   submitLabel?: string;
   onSubmit: (values: PluginFormValues) => PluginViewResult | Promise<PluginViewResult>;
 };

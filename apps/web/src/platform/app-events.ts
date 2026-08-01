@@ -17,7 +17,7 @@ export type AppEventMap = {
   "book-removed": { bookId: string };
   /** Library contents changed outside the controller (e.g. plugin import). */
   "library-changed": Record<string, never>;
-  /** A plugin's namespaced KV was written on the HOST side (settings save). */
+  /** A plugin's namespaced KV was written on the HOST side (settings change). */
   "plugin-storage-changed": { pluginId: string };
 };
 

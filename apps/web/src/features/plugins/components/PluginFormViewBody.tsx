@@ -9,6 +9,7 @@ import {
   TextField,
   Toggle,
 } from "@read-aware/ui";
+import { useReactiveSetting } from "../../../hooks/useReactiveSetting";
 import { useTranslation } from "../../../i18n";
 import { renderPluginIcon } from "../lib/plugin-icons";
 import type { PluginFormValues, PluginFormView } from "../lib/plugin-types";
@@ -22,7 +23,9 @@ type PluginFormViewBodyProps = {
 
 export function PluginFormViewBody({ view, busy, onResult }: PluginFormViewBodyProps) {
   const { t } = useTranslation("plugins");
+  const reactive = view.submitMode === "change";
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saveRevision, setSaveRevision] = useState(0);
   const [values, setValues] = useState<PluginFormValues>(() => {
     const initial: PluginFormValues = {};
     for (const field of view.fields) {
@@ -37,6 +40,32 @@ export function PluginFormViewBody({ view, busy, onResult }: PluginFormViewBodyP
     }
     return initial;
   });
+  const { flush } = useReactiveSetting({
+    value: values,
+    revision: saveRevision,
+    enabled: reactive,
+    persist: (next) => {
+      setErrors({});
+      void (async () => {
+        const result = await onResult(
+          () => view.onSubmit({ ...next }),
+          { background: true },
+        );
+        if (result?.fieldErrors) setErrors(result.fieldErrors);
+      })();
+    },
+  });
+
+  const updateValue = (id: string, value: string | boolean | number) => {
+    setValues((previous) => ({ ...previous, [id]: value }));
+    setErrors((previous) => {
+      if (previous[id] === undefined) return previous;
+      const next = { ...previous };
+      delete next[id];
+      return next;
+    });
+    if (reactive) setSaveRevision((current) => current + 1);
+  };
 
   return (
     <Stack
@@ -45,6 +74,10 @@ export function PluginFormViewBody({ view, busy, onResult }: PluginFormViewBodyP
       className="px-0.5 py-1"
       onSubmit={(event) => {
         event.preventDefault();
+        if (reactive) {
+          flush();
+          return;
+        }
         setErrors({});
         void (async () => {
           const result = await onResult(() => view.onSubmit({ ...values }));
@@ -64,9 +97,8 @@ export function PluginFormViewBody({ view, busy, onResult }: PluginFormViewBodyP
               helperText={field.helperText}
               error={errors[field.id]}
               value={String(values[field.id] ?? "")}
-              onChange={(event) =>
-                setValues((previous) => ({ ...previous, [field.id]: event.target.value }))
-              }
+              onChange={(event) => updateValue(field.id, event.target.value)}
+              onBlur={reactive ? flush : undefined}
             />
           );
         }
@@ -80,9 +112,8 @@ export function PluginFormViewBody({ view, busy, onResult }: PluginFormViewBodyP
               rows={field.rows ?? 4}
               error={errors[field.id]}
               value={String(values[field.id] ?? "")}
-              onChange={(event) =>
-                setValues((previous) => ({ ...previous, [field.id]: event.target.value }))
-              }
+              onChange={(event) => updateValue(field.id, event.target.value)}
+              onBlur={reactive ? flush : undefined}
             />
           );
         }
@@ -99,12 +130,8 @@ export function PluginFormViewBody({ view, busy, onResult }: PluginFormViewBodyP
               helperText={field.helperText}
               error={errors[field.id]}
               value={String(values[field.id] ?? 0)}
-              onChange={(event) =>
-                setValues((previous) => ({
-                  ...previous,
-                  [field.id]: Number(event.target.value),
-                }))
-              }
+              onChange={(event) => updateValue(field.id, Number(event.target.value))}
+              onBlur={reactive ? flush : undefined}
             />
           );
         }
@@ -116,9 +143,7 @@ export function PluginFormViewBody({ view, busy, onResult }: PluginFormViewBodyP
               variant="outlined"
               options={field.options}
               value={String(values[field.id] ?? "")}
-              onChange={(value) =>
-                setValues((previous) => ({ ...previous, [field.id]: value }))
-              }
+              onChange={(value) => updateValue(field.id, value)}
             />
           );
         }
@@ -132,9 +157,7 @@ export function PluginFormViewBody({ view, busy, onResult }: PluginFormViewBodyP
                 icon: option.icon ? renderPluginIcon(option.icon, 15) : undefined,
               }))}
               value={String(values[field.id] ?? "")}
-              onChange={(value) =>
-                setValues((previous) => ({ ...previous, [field.id]: value }))
-              }
+              onChange={(value) => updateValue(field.id, value)}
             />
           );
         }
@@ -145,9 +168,7 @@ export function PluginFormViewBody({ view, busy, onResult }: PluginFormViewBodyP
               label={field.label}
               description={field.description}
               checked={values[field.id] === true}
-              onChange={(event) =>
-                setValues((previous) => ({ ...previous, [field.id]: event.target.checked }))
-              }
+              onChange={(event) => updateValue(field.id, event.target.checked)}
             />
           );
         }
@@ -156,17 +177,17 @@ export function PluginFormViewBody({ view, busy, onResult }: PluginFormViewBodyP
             key={field.id}
             label={field.label}
             checked={values[field.id] === true}
-            onChange={(checked) =>
-              setValues((previous) => ({ ...previous, [field.id]: checked }))
-            }
+            onChange={(checked) => updateValue(field.id, checked)}
           />
         );
       })}
-      <Stack direction="horizontal" justify="end">
-        <Button type="submit" size="sm" disabled={busy}>
-          {view.submitLabel ?? t("viewer.submit")}
-        </Button>
-      </Stack>
+      {!reactive && (
+        <Stack direction="horizontal" justify="end">
+          <Button type="submit" size="sm" disabled={busy}>
+            {view.submitLabel ?? t("viewer.submit")}
+          </Button>
+        </Stack>
+      )}
     </Stack>
   );
 }

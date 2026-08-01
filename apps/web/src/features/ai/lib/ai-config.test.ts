@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from "bun:test";
+import { beforeAll, beforeEach, describe, expect, test } from "bun:test";
 
 const storage = new Map<string, string>();
 Object.defineProperty(globalThis, "localStorage", {
@@ -25,11 +25,13 @@ import {
   SUGGESTED_FAST_MODELS,
   type AIProvider,
 } from "./ai-config";
+import { hydrateSecrets } from "../../../platform/secret-store";
 
 const catalogProviders = Object.keys(PROVIDER_MODELS).filter(
   (provider): provider is KnownProviderId => provider !== "custom",
 );
 
+beforeAll(() => hydrateSecrets());
 beforeEach(() => storage.clear());
 
 describe("AI provider defaults", () => {

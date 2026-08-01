@@ -3,7 +3,7 @@
  * BYOK (Bring Your Own Key) setup
  */
 
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   DEFAULT_CUSTOM_OPENAI_API,
   testLlmConnection,
@@ -24,6 +24,7 @@ import {
 import { Eye, EyeSlash } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { Trans, useTranslation } from "../../../i18n";
+import { useReactiveSetting } from "../../../hooks/useReactiveSetting";
 import { accountFromConfig } from "../../ai/agent/account";
 import {
   getAIConfig,
@@ -38,6 +39,7 @@ import {
   PROVIDER_KEY_URLS,
   SUGGESTED_FAST_MODELS,
   THINKING_LEVELS,
+  type AIConfig,
   type AIProvider,
   type ThinkingLevel,
 } from "../../ai/lib/ai-config";
@@ -61,54 +63,86 @@ function parsePositiveInteger(value: string): number | undefined {
 
 export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
   const { t } = useTranslation("settings");
-  const [provider, setProvider] = useState<AIProvider>("openai");
-  const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState(DEFAULT_MODELS.openai);
-  const [fastModel, setFastModel] = useState(DEFAULT_MODELS.openai);
-  const [useSeparateFastModel, setUseSeparateFastModel] = useState(false);
-  const [thinkingLevel, setThinkingLevel] =
-    useState<ThinkingLevel>(DEFAULT_THINKING_LEVEL);
-  const [fastThinkingLevel, setFastThinkingLevel] =
-    useState<ThinkingLevel>(DEFAULT_THINKING_LEVEL);
-  const [customBaseUrl, setCustomBaseUrl] = useState("");
-  const [customApi, setCustomApi] = useState<CustomOpenAIApi>(
-    DEFAULT_CUSTOM_OPENAI_API,
+  const [initialConfig] = useState(() => getAIConfig());
+  const initialProvider = initialConfig?.provider ?? "openai";
+  const initialModel = initialConfig?.model ?? DEFAULT_MODELS[initialProvider];
+  const initialFastModel = initialConfig?.fastModel || initialModel;
+  const initialUsesSeparateFastModel = initialFastModel !== initialModel;
+
+  const [provider, setProvider] = useState<AIProvider>(initialProvider);
+  const [apiKey, setApiKey] = useState(initialConfig?.apiKey ?? "");
+  const [model, setModel] = useState(initialModel);
+  const [fastModel, setFastModel] = useState(initialFastModel);
+  const [useSeparateFastModel, setUseSeparateFastModel] = useState(
+    initialUsesSeparateFastModel,
   );
-  const [customSupportsThinking, setCustomSupportsThinking] = useState(false);
-  const [customMaxOutputTokens, setCustomMaxOutputTokens] = useState("");
-  const [isConfigured, setIsConfigured] = useState(false);
+  const [thinkingLevel, setThinkingLevel] =
+    useState<ThinkingLevel>(
+      initialConfig?.thinkingLevel ?? DEFAULT_THINKING_LEVEL,
+    );
+  const [fastThinkingLevel, setFastThinkingLevel] =
+    useState<ThinkingLevel>(
+      initialUsesSeparateFastModel
+        ? initialConfig?.fastThinkingLevel ?? DEFAULT_THINKING_LEVEL
+        : initialConfig?.thinkingLevel ?? DEFAULT_THINKING_LEVEL,
+    );
+  const [customBaseUrl, setCustomBaseUrl] = useState(
+    initialConfig?.customBaseUrl ?? "",
+  );
+  const [customApi, setCustomApi] = useState<CustomOpenAIApi>(
+    initialConfig?.customApi ?? DEFAULT_CUSTOM_OPENAI_API,
+  );
+  const [customSupportsThinking, setCustomSupportsThinking] = useState(
+    Boolean(initialConfig?.customSupportsThinking),
+  );
+  const [customMaxOutputTokens, setCustomMaxOutputTokens] = useState(
+    initialConfig?.customMaxOutputTokens
+      ? String(initialConfig.customMaxOutputTokens)
+      : "",
+  );
+  const [isConfigured, setIsConfigured] = useState(Boolean(initialConfig));
+  const [saveRevision, setSaveRevision] = useState(0);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [showKey, setShowKey] = useState(false);
 
-  // Load existing config on mount
-  useEffect(() => {
-    const config = getAIConfig();
-    if (config) {
-      setProvider(config.provider);
-      setApiKey(config.apiKey);
-      setModel(config.model);
-      const resolvedFastModel = config.fastModel || config.model;
-      const usesSeparateFastModel = resolvedFastModel !== config.model;
-      setFastModel(resolvedFastModel);
-      setUseSeparateFastModel(usesSeparateFastModel);
-      setThinkingLevel(config.thinkingLevel ?? DEFAULT_THINKING_LEVEL);
-      setFastThinkingLevel(
-        usesSeparateFastModel
-          ? config.fastThinkingLevel ?? DEFAULT_THINKING_LEVEL
-          : config.thinkingLevel ?? DEFAULT_THINKING_LEVEL,
-      );
-      setCustomBaseUrl(config.customBaseUrl || "");
-      setCustomApi(config.customApi ?? DEFAULT_CUSTOM_OPENAI_API);
-      setCustomSupportsThinking(Boolean(config.customSupportsThinking));
-      setCustomMaxOutputTokens(
-        config.customMaxOutputTokens
-          ? String(config.customMaxOutputTokens)
-          : "",
-      );
-      setIsConfigured(true);
-    }
-  }, []);
+  const parsedCustomMaxOutputTokens = parsePositiveInteger(customMaxOutputTokens);
+  const hasInvalidCustomMaxOutputTokens =
+    provider === "custom" &&
+    Boolean(customMaxOutputTokens.trim()) &&
+    parsedCustomMaxOutputTokens === undefined;
+  const hasInvalidSeparateFastModel =
+    useSeparateFastModel &&
+    (!fastModel.trim() || fastModel.trim() === model.trim());
+  const reactiveConfig: AIConfig = {
+    provider,
+    apiKey: apiKey.trim(),
+    model: model.trim(),
+    fastModel: useSeparateFastModel ? fastModel.trim() || undefined : undefined,
+    thinkingLevel,
+    fastThinkingLevel: useSeparateFastModel
+      ? fastThinkingLevel
+      : thinkingLevel,
+    customBaseUrl: provider === "custom" ? customBaseUrl.trim() : undefined,
+    customApi: provider === "custom" ? customApi : undefined,
+    customSupportsThinking:
+      provider === "custom" ? customSupportsThinking : undefined,
+    customMaxOutputTokens:
+      provider === "custom" ? parsedCustomMaxOutputTokens : undefined,
+  };
+  const { flush: flushConfig, discardPending } = useReactiveSetting({
+    value: reactiveConfig,
+    revision: saveRevision,
+    persist: saveAIConfig,
+    enabled:
+      !hasInvalidCustomMaxOutputTokens && !hasInvalidSeparateFastModel,
+  });
+
+  const markConfigChanged = () => {
+    setSaveRevision((current) => current + 1);
+    setIsConfigured(true);
+    setTestResult(null);
+  };
 
   // Switching provider swaps in that provider's OWN remembered settings —
   // its credential slot, its last-saved model tiers (defaults when never
@@ -116,6 +150,7 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
   // across or gets clobbered. Done in the change handler (not an effect) so
   // loading a saved config on mount doesn't overwrite the stored choices.
   const handleProviderChange = (value: string) => {
+    flushConfig();
     const next = value as AIProvider;
     setProvider(next);
     setApiKey(getStoredApiKey(next));
@@ -138,34 +173,11 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
         ? String(remembered.customMaxOutputTokens)
         : "",
     );
-    setTestResult(null);
-  };
-
-  const handleSave = () => {
-    const config = {
-      provider,
-      apiKey: apiKey.trim(),
-      model: model.trim(),
-      fastModel: useSeparateFastModel ? fastModel.trim() || undefined : undefined,
-      thinkingLevel,
-      fastThinkingLevel: useSeparateFastModel
-        ? fastThinkingLevel
-        : thinkingLevel,
-      customBaseUrl: provider === "custom" ? customBaseUrl.trim() : undefined,
-      customApi: provider === "custom" ? customApi : undefined,
-      customSupportsThinking:
-        provider === "custom" ? customSupportsThinking : undefined,
-      customMaxOutputTokens:
-        provider === "custom"
-          ? parsePositiveInteger(customMaxOutputTokens)
-          : undefined,
-    };
-    saveAIConfig(config);
-    setIsConfigured(true);
-    setTestResult({ success: true, message: t("aiConfig.savedMessage") });
+    markConfigChanged();
   };
 
   const handleClear = () => {
+    discardPending();
     clearAIConfig();
     const defaultModel = DEFAULT_MODELS[provider];
     setApiKey("");
@@ -183,13 +195,13 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
   };
 
   const handleTest = async () => {
+    flushConfig();
     setIsTesting(true);
     setTestResult(null);
 
     try {
-      // Same provider stack as real chat (pi-ai), against the form values —
-      // testing neither saves the config nor depends on a saved one. Exercises
-      // the smart tier (the model the chat turn uses).
+      // Same provider stack as real chat (pi-ai), against the current form
+      // values. Exercises the smart tier (the model the chat turn uses).
       const { account, models } = accountFromConfig({
         provider,
         apiKey: apiKey.trim(),
@@ -253,22 +265,17 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
     },
   ];
   const keyUrl = PROVIDER_KEY_URLS[provider];
-  const hasInvalidCustomMaxOutputTokens =
-    provider === "custom" &&
-    Boolean(customMaxOutputTokens.trim()) &&
-    parsePositiveInteger(customMaxOutputTokens) === undefined;
   const isIncomplete =
     !apiKey.trim() ||
     !model.trim() ||
     (provider === "custom" && !customBaseUrl.trim()) ||
     hasInvalidCustomMaxOutputTokens ||
-    (useSeparateFastModel &&
-      (!fastModel.trim() || fastModel.trim() === model.trim()));
+    hasInvalidSeparateFastModel;
 
   const handleModelChange = (value: string) => {
     setModel(value);
     if (!useSeparateFastModel) setFastModel(value);
-    setTestResult(null);
+    markConfigChanged();
   };
 
   const handleSeparateFastModelChange = (enabled: boolean) => {
@@ -280,14 +287,14 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
     ].find((candidate) => candidate && candidate !== model);
     setFastModel(enabled ? distinctFastModel || "" : model);
     if (!enabled) setFastThinkingLevel(thinkingLevel);
-    setTestResult(null);
+    markConfigChanged();
   };
 
   const handleSharedThinkingChange = (value: string) => {
     const level = value as ThinkingLevel;
     setThinkingLevel(level);
     setFastThinkingLevel(level);
-    setTestResult(null);
+    markConfigChanged();
   };
 
   return (
@@ -308,8 +315,9 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
               value={customBaseUrl}
               onChange={(event) => {
                 setCustomBaseUrl(event.target.value);
-                setTestResult(null);
+                markConfigChanged();
               }}
+              onBlur={flushConfig}
               placeholder="https://api.example.com/v1"
               helperText={t("aiConfig.customBaseUrl.helper")}
             />
@@ -318,7 +326,7 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
               value={customApi}
               onChange={(value) => {
                 setCustomApi(value as CustomOpenAIApi);
-                setTestResult(null);
+                markConfigChanged();
               }}
               options={customApiOptions}
               helperText={t("aiConfig.customApi.helper")}
@@ -332,8 +340,9 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
           value={apiKey}
           onChange={(event) => {
             setApiKey(event.target.value);
-            setTestResult(null);
+            markConfigChanged();
           }}
+          onBlur={flushConfig}
           placeholder={t("aiConfig.apiKey.placeholder", {
             provider: PROVIDER_LABELS[provider],
           })}
@@ -383,6 +392,7 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
             label={t("aiConfig.model")}
             value={model}
             onChange={(event) => handleModelChange(event.target.value)}
+            onBlur={flushConfig}
             placeholder={DEFAULT_MODELS.openai}
             helperText={t("aiConfig.modelHelper")}
           />
@@ -391,11 +401,7 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
 
       <Stack gap="sm">
         <div className="flex gap-3">
-          <Button onClick={handleSave} disabled={isIncomplete}>
-            {t("aiConfig.save")}
-          </Button>
           <Button
-            variant="outline"
             onClick={handleTest}
             disabled={isIncomplete || isTesting}
           >
@@ -434,7 +440,7 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
                       checked={customSupportsThinking}
                       onChange={(checked) => {
                         setCustomSupportsThinking(checked);
-                        setTestResult(null);
+                        markConfigChanged();
                       }}
                     />
                     <TextField
@@ -445,8 +451,9 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
                       value={customMaxOutputTokens}
                       onChange={(event) => {
                         setCustomMaxOutputTokens(event.target.value);
-                        setTestResult(null);
+                        markConfigChanged();
                       }}
+                      onBlur={flushConfig}
                       placeholder={t(
                         "aiConfig.customMaxOutputTokens.placeholder",
                       )}
@@ -473,7 +480,7 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
                       value={fastModel}
                       onChange={(value) => {
                         setFastModel(value);
-                        setTestResult(null);
+                        markConfigChanged();
                       }}
                       options={fastModelOptions}
                       helperText={t("aiConfig.fastModelHelper")}
@@ -484,8 +491,9 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
                       value={fastModel}
                       onChange={(event) => {
                         setFastModel(event.target.value);
-                        setTestResult(null);
+                        markConfigChanged();
                       }}
+                      onBlur={flushConfig}
                       placeholder={SUGGESTED_FAST_MODELS.openai}
                       helperText={t("aiConfig.fastModelHelper")}
                     />
@@ -502,7 +510,7 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
                         value={thinkingLevel}
                         onChange={(value) => {
                           setThinkingLevel(value as ThinkingLevel);
-                          setTestResult(null);
+                          markConfigChanged();
                         }}
                         options={thinkingOptions}
                         helperText={t("aiConfig.smartThinkingHelper")}
@@ -512,7 +520,7 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
                         value={fastThinkingLevel}
                         onChange={(value) => {
                           setFastThinkingLevel(value as ThinkingLevel);
-                          setTestResult(null);
+                          markConfigChanged();
                         }}
                         options={thinkingOptions}
                         helperText={t("aiConfig.fastThinkingHelper")}

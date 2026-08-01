@@ -106,6 +106,7 @@ export function PluginViewRenderer({
     options?: PluginResultOptions,
   ) => {
     const opensDialog = options?.presentation === "dialog";
+    const runsInBackground = options?.background === true;
     const requestId = opensDialog ? ++dialogRequestIdRef.current : 0;
     if (opensDialog) {
       setDetailDialog({
@@ -113,7 +114,7 @@ export function PluginViewRenderer({
         title: options?.dialogTitle ?? t("viewer.detail"),
         view: null,
       });
-    } else {
+    } else if (!runsInBackground) {
       setBusy(true);
     }
 
@@ -162,7 +163,7 @@ export function PluginViewRenderer({
       showPluginToast(error instanceof Error ? error.message : String(error));
       return null;
     } finally {
-      if (!opensDialog) setBusy(false);
+      if (!opensDialog && !runsInBackground) setBusy(false);
     }
   };
 

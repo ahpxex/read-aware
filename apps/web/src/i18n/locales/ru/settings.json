@@ -221,11 +221,9 @@
       "openrouter": "Получите API-ключ в <link>OpenRouter</link>",
       "generic": "Получите API-ключ {{provider}} в <link>консоли провайдера</link>."
     },
-    "save": "Сохранить конфигурацию",
     "test": "Проверить подключение",
     "testing": "Проверка...",
     "clear": "Очистить",
-    "savedMessage": "Конфигурация успешно сохранена.",
     "testSuccessMessage": "Проверка успешна! Ответ: «{{response}}»",
     "testEmptyMessage": "Проверка не удалась: пустой ответ от провайдера ИИ.",
     "testUnknownError": "Неизвестная ошибка во время проверки.",

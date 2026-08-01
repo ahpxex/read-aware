@@ -190,6 +190,19 @@
       "label": "Benutzerdefinierte Basis-URL",
       "helper": "Gib die Basis-URL für deinen OpenAI-kompatiblen API-Endpunkt ein."
     },
+    "customApi": {
+      "label": "API-Format",
+      "helper": "Wähle das Endpunktformat, das dein Anbieter unterstützt.",
+      "chatCompletions": "Chat Completions (/chat/completions)",
+      "responses": "Responses (/responses)"
+    },
+    "customSupportsThinking": "Modell unterstützt Denken",
+    "customMaxOutputTokens": {
+      "label": "Maximale Ausgabetokens",
+      "placeholder": "Anbieterstandard",
+      "helper": "Optional. Leer lassen, damit der Anbieter sein eigenes Limit wählt.",
+      "error": "Gib eine positive ganze Zahl ein."
+    },
     "apiKey": {
       "label": "API-Schlüssel",
       "placeholder": "Gib deinen {{provider}}-API-Schlüssel ein",

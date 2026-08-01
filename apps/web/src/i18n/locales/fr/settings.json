@@ -190,6 +190,19 @@
       "label": "URL de base personnalisée",
       "helper": "Saisissez l’URL de base de votre point de terminaison d’API compatible OpenAI."
     },
+    "customApi": {
+      "label": "Format de l’API",
+      "helper": "Choisissez le format de point de terminaison pris en charge par votre fournisseur.",
+      "chatCompletions": "Chat Completions (/chat/completions)",
+      "responses": "Responses (/responses)"
+    },
+    "customSupportsThinking": "Le modèle prend en charge le raisonnement",
+    "customMaxOutputTokens": {
+      "label": "Nombre maximal de jetons en sortie",
+      "placeholder": "Valeur par défaut du fournisseur",
+      "helper": "Facultatif. Laissez vide pour que le fournisseur choisisse sa propre limite.",
+      "error": "Saisissez un nombre entier positif."
+    },
     "apiKey": {
       "label": "Clé API",
       "placeholder": "Saisissez votre clé API {{provider}}",

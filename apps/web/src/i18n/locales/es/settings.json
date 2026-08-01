@@ -190,6 +190,19 @@
       "label": "URL base personalizada",
       "helper": "Introduce la URL base de tu endpoint de API compatible con OpenAI."
     },
+    "customApi": {
+      "label": "Formato de la API",
+      "helper": "Elige el formato de endpoint que implementa tu proveedor.",
+      "chatCompletions": "Chat Completions (/chat/completions)",
+      "responses": "Responses (/responses)"
+    },
+    "customSupportsThinking": "El modelo admite razonamiento",
+    "customMaxOutputTokens": {
+      "label": "Máximo de tokens de salida",
+      "placeholder": "Valor predeterminado del proveedor",
+      "helper": "Opcional. Déjalo vacío para que el proveedor elija su propio límite.",
+      "error": "Introduce un número entero positivo."
+    },
     "apiKey": {
       "label": "Clave de API",
       "placeholder": "Introduce tu clave de API de {{provider}}",

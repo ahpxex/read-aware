@@ -190,6 +190,19 @@
       "label": "カスタムベースURL",
       "helper": "OpenAI互換APIエンドポイントのベースURLを入力してください。"
     },
+    "customApi": {
+      "label": "API形式",
+      "helper": "プロバイダーが実装しているエンドポイント形式を選択します。",
+      "chatCompletions": "Chat Completions（/chat/completions）",
+      "responses": "Responses（/responses）"
+    },
+    "customSupportsThinking": "モデルが思考に対応",
+    "customMaxOutputTokens": {
+      "label": "最大出力トークン数",
+      "placeholder": "プロバイダーの既定値",
+      "helper": "任意。空欄の場合、上限はプロバイダーに委ねられます。",
+      "error": "正の整数を入力してください。"
+    },
     "apiKey": {
       "label": "APIキー",
       "placeholder": "{{provider}}のAPIキーを入力",

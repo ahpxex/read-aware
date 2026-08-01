@@ -190,6 +190,19 @@
       "label": "自定义 Base URL",
       "helper": "输入你的 OpenAI 兼容 API 端点的 Base URL。"
     },
+    "customApi": {
+      "label": "API 格式",
+      "helper": "选择你的提供方实现的端点格式。",
+      "chatCompletions": "Chat Completions（/chat/completions）",
+      "responses": "Responses（/responses）"
+    },
+    "customSupportsThinking": "模型支持思考",
+    "customMaxOutputTokens": {
+      "label": "最大输出 token 数",
+      "placeholder": "使用提供方默认值",
+      "helper": "可选。留空时不设置上限，由提供方决定。",
+      "error": "请输入正整数。"
+    },
     "apiKey": {
       "label": "API 密钥",
       "placeholder": "输入你的 {{provider}} API 密钥",

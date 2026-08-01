@@ -4,7 +4,11 @@
  */
 
 import { useState, useEffect, type ReactNode } from "react";
-import { testLlmConnection } from "@read-aware/agent";
+import {
+  DEFAULT_CUSTOM_OPENAI_API,
+  testLlmConnection,
+  type CustomOpenAIApi,
+} from "@read-aware/agent";
 import {
   Accordion,
   Button,
@@ -48,6 +52,12 @@ function includeSelectedModel(options: ModelOption[], value: string): ModelOptio
   return [{ label: value, value }, ...options];
 }
 
+function parsePositiveInteger(value: string): number | undefined {
+  if (!value.trim()) return undefined;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+
 export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
   const { t } = useTranslation("settings");
   const [provider, setProvider] = useState<AIProvider>("openai");
@@ -60,6 +70,11 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
   const [fastThinkingLevel, setFastThinkingLevel] =
     useState<ThinkingLevel>(DEFAULT_THINKING_LEVEL);
   const [customBaseUrl, setCustomBaseUrl] = useState("");
+  const [customApi, setCustomApi] = useState<CustomOpenAIApi>(
+    DEFAULT_CUSTOM_OPENAI_API,
+  );
+  const [customSupportsThinking, setCustomSupportsThinking] = useState(false);
+  const [customMaxOutputTokens, setCustomMaxOutputTokens] = useState("");
   const [isConfigured, setIsConfigured] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -83,6 +98,13 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
           : config.thinkingLevel ?? DEFAULT_THINKING_LEVEL,
       );
       setCustomBaseUrl(config.customBaseUrl || "");
+      setCustomApi(config.customApi ?? DEFAULT_CUSTOM_OPENAI_API);
+      setCustomSupportsThinking(Boolean(config.customSupportsThinking));
+      setCustomMaxOutputTokens(
+        config.customMaxOutputTokens
+          ? String(config.customMaxOutputTokens)
+          : "",
+      );
       setIsConfigured(true);
     }
   }, []);
@@ -108,6 +130,13 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
         : remembered.thinkingLevel,
     );
     setCustomBaseUrl(remembered.customBaseUrl);
+    setCustomApi(remembered.customApi);
+    setCustomSupportsThinking(remembered.customSupportsThinking);
+    setCustomMaxOutputTokens(
+      remembered.customMaxOutputTokens
+        ? String(remembered.customMaxOutputTokens)
+        : "",
+    );
     setTestResult(null);
   };
 
@@ -122,6 +151,13 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
         ? fastThinkingLevel
         : thinkingLevel,
       customBaseUrl: provider === "custom" ? customBaseUrl.trim() : undefined,
+      customApi: provider === "custom" ? customApi : undefined,
+      customSupportsThinking:
+        provider === "custom" ? customSupportsThinking : undefined,
+      customMaxOutputTokens:
+        provider === "custom"
+          ? parsePositiveInteger(customMaxOutputTokens)
+          : undefined,
     };
     saveAIConfig(config);
     setIsConfigured(true);
@@ -138,6 +174,9 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
     setThinkingLevel(DEFAULT_THINKING_LEVEL);
     setFastThinkingLevel(DEFAULT_THINKING_LEVEL);
     setCustomBaseUrl("");
+    setCustomApi(DEFAULT_CUSTOM_OPENAI_API);
+    setCustomSupportsThinking(false);
+    setCustomMaxOutputTokens("");
     setIsConfigured(false);
     setTestResult(null);
   };
@@ -156,6 +195,13 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
         model: model.trim(),
         fastModel: useSeparateFastModel ? fastModel.trim() || undefined : undefined,
         customBaseUrl: provider === "custom" ? customBaseUrl.trim() : undefined,
+        customApi: provider === "custom" ? customApi : undefined,
+        customSupportsThinking:
+          provider === "custom" ? customSupportsThinking : undefined,
+        customMaxOutputTokens:
+          provider === "custom"
+            ? parsePositiveInteger(customMaxOutputTokens)
+            : undefined,
       });
       const response = await testLlmConnection(account, models.smart);
 
@@ -193,11 +239,26 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
     value: level,
     label: t(`aiConfig.thinkingLevels.${level}`),
   }));
+  const customApiOptions = [
+    {
+      value: "openai-completions",
+      label: t("aiConfig.customApi.chatCompletions"),
+    },
+    {
+      value: "openai-responses",
+      label: t("aiConfig.customApi.responses"),
+    },
+  ];
   const keyUrl = PROVIDER_KEY_URLS[provider];
+  const hasInvalidCustomMaxOutputTokens =
+    provider === "custom" &&
+    Boolean(customMaxOutputTokens.trim()) &&
+    parsePositiveInteger(customMaxOutputTokens) === undefined;
   const isIncomplete =
     !apiKey.trim() ||
     !model.trim() ||
     (provider === "custom" && !customBaseUrl.trim()) ||
+    hasInvalidCustomMaxOutputTokens ||
     (useSeparateFastModel &&
       (!fastModel.trim() || fastModel.trim() === model.trim()));
 
@@ -237,17 +298,29 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
         />
 
         {provider === "custom" && (
-          <TextField
-            label={t("aiConfig.customBaseUrl.label")}
-            type="url"
-            value={customBaseUrl}
-            onChange={(event) => {
-              setCustomBaseUrl(event.target.value);
-              setTestResult(null);
-            }}
-            placeholder="https://api.example.com/v1"
-            helperText={t("aiConfig.customBaseUrl.helper")}
-          />
+          <>
+            <TextField
+              label={t("aiConfig.customBaseUrl.label")}
+              type="url"
+              value={customBaseUrl}
+              onChange={(event) => {
+                setCustomBaseUrl(event.target.value);
+                setTestResult(null);
+              }}
+              placeholder="https://api.example.com/v1"
+              helperText={t("aiConfig.customBaseUrl.helper")}
+            />
+            <Select
+              label={t("aiConfig.customApi.label")}
+              value={customApi}
+              onChange={(value) => {
+                setCustomApi(value as CustomOpenAIApi);
+                setTestResult(null);
+              }}
+              options={customApiOptions}
+              helperText={t("aiConfig.customApi.helper")}
+            />
+          </>
         )}
 
         <TextField
@@ -351,6 +424,39 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
             label: t("aiConfig.advancedSettings"),
             content: (
               <Stack gap="lg">
+                {provider === "custom" && (
+                  <>
+                    <Toggle
+                      label={t("aiConfig.customSupportsThinking")}
+                      checked={customSupportsThinking}
+                      onChange={(checked) => {
+                        setCustomSupportsThinking(checked);
+                        setTestResult(null);
+                      }}
+                    />
+                    <TextField
+                      label={t("aiConfig.customMaxOutputTokens.label")}
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={customMaxOutputTokens}
+                      onChange={(event) => {
+                        setCustomMaxOutputTokens(event.target.value);
+                        setTestResult(null);
+                      }}
+                      placeholder={t(
+                        "aiConfig.customMaxOutputTokens.placeholder",
+                      )}
+                      helperText={t("aiConfig.customMaxOutputTokens.helper")}
+                      error={
+                        hasInvalidCustomMaxOutputTokens
+                          ? t("aiConfig.customMaxOutputTokens.error")
+                          : undefined
+                      }
+                    />
+                  </>
+                )}
+
                 <Toggle
                   label={t("aiConfig.separateFastModel")}
                   checked={useSeparateFastModel}
@@ -385,38 +491,39 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
                 {/* pi maps these levels onto each provider's thinking
                     parameters. Unsupported models ignore them. A shared model
                     has one effort; separate model tiers may diverge. */}
-                {useSeparateFastModel ? (
-                  <>
+                {(provider !== "custom" || customSupportsThinking) &&
+                  (useSeparateFastModel ? (
+                    <>
+                      <Select
+                        label={t("aiConfig.smartThinking")}
+                        value={thinkingLevel}
+                        onChange={(value) => {
+                          setThinkingLevel(value as ThinkingLevel);
+                          setTestResult(null);
+                        }}
+                        options={thinkingOptions}
+                        helperText={t("aiConfig.smartThinkingHelper")}
+                      />
+                      <Select
+                        label={t("aiConfig.fastThinking")}
+                        value={fastThinkingLevel}
+                        onChange={(value) => {
+                          setFastThinkingLevel(value as ThinkingLevel);
+                          setTestResult(null);
+                        }}
+                        options={thinkingOptions}
+                        helperText={t("aiConfig.fastThinkingHelper")}
+                      />
+                    </>
+                  ) : (
                     <Select
-                      label={t("aiConfig.smartThinking")}
+                      label={t("aiConfig.thinking")}
                       value={thinkingLevel}
-                      onChange={(value) => {
-                        setThinkingLevel(value as ThinkingLevel);
-                        setTestResult(null);
-                      }}
+                      onChange={handleSharedThinkingChange}
                       options={thinkingOptions}
-                      helperText={t("aiConfig.smartThinkingHelper")}
+                      helperText={t("aiConfig.thinkingHelper")}
                     />
-                    <Select
-                      label={t("aiConfig.fastThinking")}
-                      value={fastThinkingLevel}
-                      onChange={(value) => {
-                        setFastThinkingLevel(value as ThinkingLevel);
-                        setTestResult(null);
-                      }}
-                      options={thinkingOptions}
-                      helperText={t("aiConfig.fastThinkingHelper")}
-                    />
-                  </>
-                ) : (
-                  <Select
-                    label={t("aiConfig.thinking")}
-                    value={thinkingLevel}
-                    onChange={handleSharedThinkingChange}
-                    options={thinkingOptions}
-                    helperText={t("aiConfig.thinkingHelper")}
-                  />
-                )}
+                  ))}
 
                 <Caption as="p" className="leading-relaxed">
                   {t("aiConfig.byok.body")}

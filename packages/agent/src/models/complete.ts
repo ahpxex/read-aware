@@ -1,7 +1,8 @@
 /** 单次非流式补全的 seam：后台管道（提炼等）用，测试可注入假实现。 */
 import type { Api, AssistantMessage, Context, Model } from "@earendil-works/pi-ai";
 import type { AssistantMessageEventStream } from "@earendil-works/pi-ai";
-import type { LlmAccount } from "./accounts";
+import { isCustomOpenAIAccount, type LlmAccount } from "./accounts";
+import { sanitizeCustomOpenAIPayload } from "./custom-openai";
 import type { ProviderRegistry } from "./registry";
 import type { ThinkingLevel } from "./roles";
 
@@ -12,14 +13,24 @@ function asReasoning(thinking?: ThinkingLevel) {
   return thinking && thinking !== "off" ? thinking : undefined;
 }
 
+function requestOptions(account: LlmAccount, thinking?: ThinkingLevel) {
+  return {
+    apiKey: account.apiKey,
+    reasoning: asReasoning(thinking),
+    onPayload: isCustomOpenAIAccount(account)
+      ? (payload: unknown) =>
+          sanitizeCustomOpenAIPayload(payload, account.maxOutputTokens)
+      : undefined,
+  };
+}
+
 export function createCompleteFn(
   registry: ProviderRegistry,
   account: LlmAccount,
   thinking?: ThinkingLevel,
 ): CompleteFn {
-  const reasoning = asReasoning(thinking);
   return (model, context) =>
-    registry.completeSimple(model, context, { apiKey: account.apiKey, reasoning });
+    registry.completeSimple(model, context, requestOptions(account, thinking));
 }
 
 /** 同一 seam 的流式形态：`ask({ onText })` 消费，事件流以 result() 收束。 */
@@ -30,7 +41,6 @@ export function createStreamFn(
   account: LlmAccount,
   thinking?: ThinkingLevel,
 ): StreamFn {
-  const reasoning = asReasoning(thinking);
   return (model, context) =>
-    registry.streamSimple(model, context, { apiKey: account.apiKey, reasoning });
+    registry.streamSimple(model, context, requestOptions(account, thinking));
 }

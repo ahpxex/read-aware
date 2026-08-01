@@ -38,3 +38,27 @@ export const SeparateFastModel: Story = {
     );
   },
 };
+
+export const CustomProvider: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(
+      canvas.getByRole("combobox", { name: "AI Provider" }),
+    );
+    await userEvent.click(
+      within(canvasElement.ownerDocument.body).getByRole("option", {
+        name: "Custom (OpenAI-compatible)",
+      }),
+    );
+  },
+};
+
+export const CustomAdvancedSettings: Story = {
+  play: async (context) => {
+    await CustomProvider.play?.(context);
+    const canvas = within(context.canvasElement);
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Advanced settings" }),
+    );
+  },
+};

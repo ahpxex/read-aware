@@ -10,7 +10,12 @@ Object.defineProperty(globalThis, "localStorage", {
   },
 });
 
-import { getProviderModelCatalog, type KnownProviderId } from "@read-aware/agent";
+import {
+  DEFAULT_CUSTOM_OPENAI_API,
+  LEGACY_CUSTOM_OPENAI_API,
+  getProviderModelCatalog,
+  type KnownProviderId,
+} from "@read-aware/agent";
 import {
   DEFAULT_MODELS,
   DEFAULT_THINKING_LEVEL,
@@ -103,6 +108,72 @@ describe("AI provider defaults", () => {
       fastModel: SUGGESTED_FAST_MODELS.openai,
       thinkingLevel: "high",
       fastThinkingLevel: "low",
+    });
+  });
+
+  test("defaults a new Custom provider to Chat Completions", () => {
+    expect(getStoredProviderSettings("custom")).toMatchObject({
+      customApi: DEFAULT_CUSTOM_OPENAI_API,
+      customSupportsThinking: false,
+    });
+    expect(
+      getStoredProviderSettings("custom").customMaxOutputTokens,
+    ).toBeUndefined();
+  });
+
+  test("keeps legacy Custom providers on their previous Responses path", () => {
+    storage.set(
+      "read-aware-ai-config",
+      JSON.stringify({
+        provider: "custom",
+        model: "gateway-model",
+        customBaseUrl: "https://gateway.example/v1",
+      }),
+    );
+
+    expect(getStoredProviderSettings("custom")).toMatchObject({
+      model: "gateway-model",
+      customBaseUrl: "https://gateway.example/v1",
+      customApi: LEGACY_CUSTOM_OPENAI_API,
+      customSupportsThinking: false,
+    });
+  });
+
+  test("migrates a remembered Custom provider map to Responses", () => {
+    storage.set(
+      "read-aware-ai-config",
+      JSON.stringify({
+        provider: "openai",
+        models: {
+          custom: {
+            model: "gateway-model",
+            customBaseUrl: "https://gateway.example/v1",
+          },
+        },
+      }),
+    );
+
+    expect(getStoredProviderSettings("custom").customApi).toBe(
+      LEGACY_CUSTOM_OPENAI_API,
+    );
+  });
+
+  test("persists Custom compatibility controls", () => {
+    saveAIConfig({
+      provider: "custom",
+      apiKey: "",
+      model: "gateway-model",
+      customBaseUrl: "https://gateway.example/v1",
+      customApi: "openai-responses",
+      customSupportsThinking: true,
+      customMaxOutputTokens: 4_096,
+    });
+
+    expect(getStoredProviderSettings("custom")).toMatchObject({
+      model: "gateway-model",
+      customApi: "openai-responses",
+      customSupportsThinking: true,
+      customMaxOutputTokens: 4_096,
     });
   });
 });

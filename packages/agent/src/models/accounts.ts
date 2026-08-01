@@ -1,6 +1,11 @@
 import type { Api, Model } from "@earendil-works/pi-ai";
 import { buildProviderRegistry, type KnownProviderId, type ProviderRegistry } from "./registry";
 import type { ModelRole, ResolveModel } from "./roles";
+import {
+  CUSTOM_OPENAI_PROVIDER_ID,
+  registerCustomOpenAIProvider,
+  type CustomOpenAIApi,
+} from "./custom-openai";
 
 /**
  * LLM 账户：一行配置怎么认证（doc §8）。
@@ -11,10 +16,26 @@ export interface ApiKeyAccount {
   kind: "api-key";
   provider: KnownProviderId;
   apiKey: string;
-  baseUrl?: string;
 }
 
-export type LlmAccount = ApiKeyAccount;
+export interface CustomOpenAIAccount {
+  kind: "api-key";
+  provider: typeof CUSTOM_OPENAI_PROVIDER_ID;
+  apiKey: string;
+  baseUrl: string;
+  api: CustomOpenAIApi;
+  supportsThinking?: boolean;
+  /** Undefined leaves the wire-level output limit to the upstream. */
+  maxOutputTokens?: number;
+}
+
+export type LlmAccount = ApiKeyAccount | CustomOpenAIAccount;
+
+export function isCustomOpenAIAccount(
+  account: LlmAccount,
+): account is CustomOpenAIAccount {
+  return account.provider === CUSTOM_OPENAI_PROVIDER_ID;
+}
 
 /** 两档模型的具体 id，由账户配置决定（Settings → AI 可覆盖）。 */
 export interface RoleModels {
@@ -33,6 +54,15 @@ export function createModelResolver(
   sharedRegistry?: ProviderRegistry,
 ): ResolveModel {
   const registry = sharedRegistry ?? buildProviderRegistry();
+  if (isCustomOpenAIAccount(account)) {
+    registerCustomOpenAIProvider(registry, {
+      baseUrl: account.baseUrl,
+      api: account.api,
+      modelIds: [roles.smart, roles.fast],
+      supportsThinking: account.supportsThinking,
+      maxOutputTokens: account.maxOutputTokens,
+    });
+  }
   const cache = new Map<ModelRole, Model<Api>>();
   return (role) => {
     const cached = cache.get(role);
@@ -44,7 +74,6 @@ export function createModelResolver(
       if (!fallback) throw new Error(`no models registered for provider ${account.provider}`);
       model = { ...fallback, id };
     }
-    if (account.baseUrl) model = { ...model, baseUrl: account.baseUrl };
     cache.set(role, model);
     return model;
   };

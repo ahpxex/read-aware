@@ -190,6 +190,19 @@
       "label": "Пользовательский базовый URL",
       "helper": "Введите базовый URL для вашей OpenAI-совместимой конечной точки API."
     },
+    "customApi": {
+      "label": "Формат API",
+      "helper": "Выберите формат конечной точки, реализованный вашим провайдером.",
+      "chatCompletions": "Chat Completions (/chat/completions)",
+      "responses": "Responses (/responses)"
+    },
+    "customSupportsThinking": "Модель поддерживает размышление",
+    "customMaxOutputTokens": {
+      "label": "Максимум выходных токенов",
+      "placeholder": "Значение провайдера",
+      "helper": "Необязательно. Оставьте пустым, чтобы провайдер выбрал собственный лимит.",
+      "error": "Введите положительное целое число."
+    },
     "apiKey": {
       "label": "API-ключ",
       "placeholder": "Введите ваш API-ключ {{provider}}",

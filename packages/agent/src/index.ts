@@ -7,6 +7,14 @@ export { searchChapters, type ChapterLike, type ChapterHit } from "./text/search
 export * from "./models/roles";
 export * from "./models/accounts";
 export {
+  CUSTOM_OPENAI_APIS,
+  CUSTOM_OPENAI_PROVIDER_ID,
+  DEFAULT_CUSTOM_OPENAI_API,
+  LEGACY_CUSTOM_OPENAI_API,
+  isCustomOpenAIApi,
+  type CustomOpenAIApi,
+} from "./models/custom-openai";
+export {
   KNOWN_PROVIDERS,
   getProviderModelCatalog,
   type KnownProviderId,

@@ -3,7 +3,11 @@
  */
 
 import {
+  DEFAULT_CUSTOM_OPENAI_API,
+  LEGACY_CUSTOM_OPENAI_API,
   getProviderModelCatalog,
+  isCustomOpenAIApi,
+  type CustomOpenAIApi,
   type KnownProviderId,
   type ThinkingLevel,
 } from "@read-aware/agent";
@@ -35,6 +39,10 @@ export interface AIConfig {
   /** Thinking effort for the fast tier. */
   fastThinkingLevel?: ThinkingLevel;
   customBaseUrl?: string;
+  customApi?: CustomOpenAIApi;
+  customSupportsThinking?: boolean;
+  /** Undefined lets a custom upstream choose its own output limit. */
+  customMaxOutputTokens?: number;
 }
 
 import { localKV } from "../../../platform/local-store";
@@ -65,6 +73,20 @@ type ProviderSettings = {
   thinkingLevel?: ThinkingLevel;
   fastThinkingLevel?: ThinkingLevel;
   customBaseUrl?: string;
+  customApi?: CustomOpenAIApi;
+  customSupportsThinking?: boolean;
+  customMaxOutputTokens?: number;
+};
+
+export type ResolvedProviderSettings = {
+  model: string;
+  fastModel: string;
+  thinkingLevel: ThinkingLevel;
+  fastThinkingLevel: ThinkingLevel;
+  customBaseUrl: string;
+  customApi: CustomOpenAIApi;
+  customSupportsThinking: boolean;
+  customMaxOutputTokens?: number;
 };
 
 /**
@@ -78,6 +100,13 @@ type StoredAIConfig = Partial<AIConfig> & {
 
 /** The simple setup path enables reasoning for both model roles. */
 export const DEFAULT_THINKING_LEVEL: ThinkingLevel = "medium";
+
+function positiveInteger(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return undefined;
+  }
+  return Math.floor(value);
+}
 
 function readStored(): StoredAIConfig | null {
   try {
@@ -94,7 +123,9 @@ function readStored(): StoredAIConfig | null {
  * A provider's remembered settings, falling back to its defaults — what the
  * settings panel shows when the user switches to it.
  */
-export function getStoredProviderSettings(provider: AIProvider): Required<ProviderSettings> {
+export function getStoredProviderSettings(
+  provider: AIProvider,
+): ResolvedProviderSettings {
   const stored = readStored();
   const entry = stored?.models?.[provider];
   const legacy = stored?.provider === provider ? stored : undefined;
@@ -109,6 +140,15 @@ export function getStoredProviderSettings(provider: AIProvider): Required<Provid
   const thinkingDefault = entry || legacy ? "off" : DEFAULT_THINKING_LEVEL;
   const thinkingLevel =
     entry?.thinkingLevel ?? legacy?.thinkingLevel ?? thinkingDefault;
+  const storedCustomApi = entry?.customApi ?? legacy?.customApi;
+  // Existing Custom configurations used Responses implicitly. Preserve that
+  // behavior; only a never-configured Custom provider starts on the more
+  // widely compatible Chat Completions format.
+  const customApi = isCustomOpenAIApi(storedCustomApi)
+    ? storedCustomApi
+    : provider === "custom" && (entry || legacy)
+      ? LEGACY_CUSTOM_OPENAI_API
+      : DEFAULT_CUSTOM_OPENAI_API;
   return {
     model,
     fastModel: hasSeparateFastModel ? (explicitFastModel ?? model) : model,
@@ -117,6 +157,13 @@ export function getStoredProviderSettings(provider: AIProvider): Required<Provid
       ? entry?.fastThinkingLevel ?? legacy?.fastThinkingLevel ?? thinkingDefault
       : thinkingLevel,
     customBaseUrl: entry?.customBaseUrl ?? legacy?.customBaseUrl ?? "",
+    customApi,
+    customSupportsThinking: Boolean(
+      entry?.customSupportsThinking ?? legacy?.customSupportsThinking,
+    ),
+    customMaxOutputTokens: positiveInteger(
+      entry?.customMaxOutputTokens ?? legacy?.customMaxOutputTokens,
+    ),
   };
 }
 
@@ -158,10 +205,21 @@ export function getAIConfig(): AIConfig | null {
 }
 
 export function saveAIConfig(config: AIConfig): void {
-  const { apiKey, provider, model, fastModel, thinkingLevel, fastThinkingLevel, customBaseUrl } =
-    config;
+  const {
+    apiKey,
+    provider,
+    model,
+    fastModel,
+    thinkingLevel,
+    fastThinkingLevel,
+    customBaseUrl,
+    customApi,
+    customSupportsThinking,
+    customMaxOutputTokens,
+  } = config;
   const hasSeparateFastModel = Boolean(fastModel && fastModel !== model);
   const resolvedThinkingLevel = thinkingLevel ?? DEFAULT_THINKING_LEVEL;
+  const resolvedCustomMaxOutputTokens = positiveInteger(customMaxOutputTokens);
   // Merge this provider's settings into the map; other providers keep theirs.
   const models = { ...(readStored()?.models ?? {}) };
   models[provider] = {
@@ -173,7 +231,18 @@ export function saveAIConfig(config: AIConfig): void {
     fastThinkingLevel: hasSeparateFastModel
       ? fastThinkingLevel ?? DEFAULT_THINKING_LEVEL
       : resolvedThinkingLevel,
-    ...(customBaseUrl ? { customBaseUrl } : {}),
+    ...(provider === "custom"
+      ? {
+          ...(customBaseUrl ? { customBaseUrl } : {}),
+          customApi: isCustomOpenAIApi(customApi)
+            ? customApi
+            : DEFAULT_CUSTOM_OPENAI_API,
+          customSupportsThinking: Boolean(customSupportsThinking),
+          ...(resolvedCustomMaxOutputTokens
+            ? { customMaxOutputTokens: resolvedCustomMaxOutputTokens }
+            : {}),
+        }
+      : {}),
   };
   localKV.setItem(CONFIG_KEY, JSON.stringify({ provider, models } satisfies StoredAIConfig));
   if (apiKey) setSecret(keySlot(provider), apiKey);

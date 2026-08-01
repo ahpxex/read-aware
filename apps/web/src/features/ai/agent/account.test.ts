@@ -1,4 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import {
+  CUSTOM_OPENAI_PROVIDER_ID,
+  LEGACY_CUSTOM_OPENAI_API,
+} from "@read-aware/agent";
 import { accountFromConfig } from "./account";
 import { DEFAULT_THINKING_LEVEL } from "../lib/ai-config";
 
@@ -46,5 +50,46 @@ describe("accountFromConfig", () => {
 
     expect(result.models).toEqual({ smart: "gpt-5.5", fast: "gpt-5.5" });
     expect(result.thinking).toEqual({ smart: "high", fast: "high" });
+  });
+
+  test("maps Custom settings onto the dedicated dual-API account", () => {
+    const result = accountFromConfig({
+      provider: "custom",
+      apiKey: "test-key",
+      model: "gateway-smart",
+      fastModel: "gateway-fast",
+      customBaseUrl: "https://gateway.example/v1",
+      customApi: "openai-completions",
+      customSupportsThinking: true,
+      customMaxOutputTokens: 4_096,
+    });
+
+    expect(result.account).toEqual({
+      kind: "api-key",
+      provider: CUSTOM_OPENAI_PROVIDER_ID,
+      apiKey: "test-key",
+      baseUrl: "https://gateway.example/v1",
+      api: "openai-completions",
+      supportsThinking: true,
+      maxOutputTokens: 4_096,
+    });
+    expect(result.models).toEqual({
+      smart: "gateway-smart",
+      fast: "gateway-fast",
+    });
+  });
+
+  test("preserves the legacy Responses path for unmigrated direct callers", () => {
+    const result = accountFromConfig({
+      provider: "custom",
+      apiKey: "test-key",
+      model: "gateway-model",
+      customBaseUrl: "https://gateway.example/v1",
+    });
+
+    expect(result.account).toMatchObject({
+      provider: CUSTOM_OPENAI_PROVIDER_ID,
+      api: LEGACY_CUSTOM_OPENAI_API,
+    });
   });
 });

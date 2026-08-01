@@ -73,10 +73,15 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
       setApiKey(config.apiKey);
       setModel(config.model);
       const resolvedFastModel = config.fastModel || config.model;
+      const usesSeparateFastModel = resolvedFastModel !== config.model;
       setFastModel(resolvedFastModel);
-      setUseSeparateFastModel(resolvedFastModel !== config.model);
+      setUseSeparateFastModel(usesSeparateFastModel);
       setThinkingLevel(config.thinkingLevel ?? DEFAULT_THINKING_LEVEL);
-      setFastThinkingLevel(config.fastThinkingLevel ?? DEFAULT_THINKING_LEVEL);
+      setFastThinkingLevel(
+        usesSeparateFastModel
+          ? config.fastThinkingLevel ?? DEFAULT_THINKING_LEVEL
+          : config.thinkingLevel ?? DEFAULT_THINKING_LEVEL,
+      );
       setCustomBaseUrl(config.customBaseUrl || "");
       setIsConfigured(true);
     }
@@ -92,11 +97,16 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
     setProvider(next);
     setApiKey(getStoredApiKey(next));
     const remembered = getStoredProviderSettings(next);
+    const usesSeparateFastModel = remembered.fastModel !== remembered.model;
     setModel(remembered.model);
     setFastModel(remembered.fastModel);
-    setUseSeparateFastModel(remembered.fastModel !== remembered.model);
+    setUseSeparateFastModel(usesSeparateFastModel);
     setThinkingLevel(remembered.thinkingLevel);
-    setFastThinkingLevel(remembered.fastThinkingLevel);
+    setFastThinkingLevel(
+      usesSeparateFastModel
+        ? remembered.fastThinkingLevel
+        : remembered.thinkingLevel,
+    );
     setCustomBaseUrl(remembered.customBaseUrl);
     setTestResult(null);
   };
@@ -108,7 +118,9 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
       model: model.trim(),
       fastModel: useSeparateFastModel ? fastModel.trim() || undefined : undefined,
       thinkingLevel,
-      fastThinkingLevel,
+      fastThinkingLevel: useSeparateFastModel
+        ? fastThinkingLevel
+        : thinkingLevel,
       customBaseUrl: provider === "custom" ? customBaseUrl.trim() : undefined,
     };
     saveAIConfig(config);
@@ -185,7 +197,9 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
   const isIncomplete =
     !apiKey.trim() ||
     !model.trim() ||
-    (provider === "custom" && !customBaseUrl.trim());
+    (provider === "custom" && !customBaseUrl.trim()) ||
+    (useSeparateFastModel &&
+      (!fastModel.trim() || fastModel.trim() === model.trim()));
 
   const handleModelChange = (value: string) => {
     setModel(value);
@@ -195,9 +209,20 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
 
   const handleSeparateFastModelChange = (enabled: boolean) => {
     setUseSeparateFastModel(enabled);
-    setFastModel(
-      enabled ? SUGGESTED_FAST_MODELS[provider] || fastModel || model : model,
-    );
+    const distinctFastModel = [
+      SUGGESTED_FAST_MODELS[provider],
+      fastModel,
+      ...modelOptions.map((option) => option.value),
+    ].find((candidate) => candidate && candidate !== model);
+    setFastModel(enabled ? distinctFastModel || "" : model);
+    if (!enabled) setFastThinkingLevel(thinkingLevel);
+    setTestResult(null);
+  };
+
+  const handleSharedThinkingChange = (value: string) => {
+    const level = value as ThinkingLevel;
+    setThinkingLevel(level);
+    setFastThinkingLevel(level);
     setTestResult(null);
   };
 
@@ -210,6 +235,20 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
           onChange={handleProviderChange}
           options={providerOptions}
         />
+
+        {provider === "custom" && (
+          <TextField
+            label={t("aiConfig.customBaseUrl.label")}
+            type="url"
+            value={customBaseUrl}
+            onChange={(event) => {
+              setCustomBaseUrl(event.target.value);
+              setTestResult(null);
+            }}
+            placeholder="https://api.example.com/v1"
+            helperText={t("aiConfig.customBaseUrl.helper")}
+          />
+        )}
 
         <TextField
           label={t("aiConfig.apiKey.label")}
@@ -312,20 +351,6 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
             label: t("aiConfig.advancedSettings"),
             content: (
               <Stack gap="lg">
-                {provider === "custom" && (
-                  <TextField
-                    label={t("aiConfig.customBaseUrl.label")}
-                    type="url"
-                    value={customBaseUrl}
-                    onChange={(event) => {
-                      setCustomBaseUrl(event.target.value);
-                      setTestResult(null);
-                    }}
-                    placeholder="https://api.example.com/v1"
-                    helperText={t("aiConfig.customBaseUrl.helper")}
-                  />
-                )}
-
                 <Toggle
                   label={t("aiConfig.separateFastModel")}
                   checked={useSeparateFastModel}
@@ -358,27 +383,40 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
                   ))}
 
                 {/* pi maps these levels onto each provider's thinking
-                    parameters. Unsupported models ignore them. */}
-                <Select
-                  label={t("aiConfig.smartThinking")}
-                  value={thinkingLevel}
-                  onChange={(value) => {
-                    setThinkingLevel(value as ThinkingLevel);
-                    setTestResult(null);
-                  }}
-                  options={thinkingOptions}
-                  helperText={t("aiConfig.smartThinkingHelper")}
-                />
-                <Select
-                  label={t("aiConfig.fastThinking")}
-                  value={fastThinkingLevel}
-                  onChange={(value) => {
-                    setFastThinkingLevel(value as ThinkingLevel);
-                    setTestResult(null);
-                  }}
-                  options={thinkingOptions}
-                  helperText={t("aiConfig.fastThinkingHelper")}
-                />
+                    parameters. Unsupported models ignore them. A shared model
+                    has one effort; separate model tiers may diverge. */}
+                {useSeparateFastModel ? (
+                  <>
+                    <Select
+                      label={t("aiConfig.smartThinking")}
+                      value={thinkingLevel}
+                      onChange={(value) => {
+                        setThinkingLevel(value as ThinkingLevel);
+                        setTestResult(null);
+                      }}
+                      options={thinkingOptions}
+                      helperText={t("aiConfig.smartThinkingHelper")}
+                    />
+                    <Select
+                      label={t("aiConfig.fastThinking")}
+                      value={fastThinkingLevel}
+                      onChange={(value) => {
+                        setFastThinkingLevel(value as ThinkingLevel);
+                        setTestResult(null);
+                      }}
+                      options={thinkingOptions}
+                      helperText={t("aiConfig.fastThinkingHelper")}
+                    />
+                  </>
+                ) : (
+                  <Select
+                    label={t("aiConfig.thinking")}
+                    value={thinkingLevel}
+                    onChange={handleSharedThinkingChange}
+                    options={thinkingOptions}
+                    helperText={t("aiConfig.thinkingHelper")}
+                  />
+                )}
 
                 <Caption as="p" className="leading-relaxed">
                   {t("aiConfig.byok.body")}

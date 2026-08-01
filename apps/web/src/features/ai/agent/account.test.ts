@@ -33,4 +33,18 @@ describe("accountFromConfig", () => {
     });
     expect(result.thinking).toEqual({ smart: "high", fast: "off" });
   });
+
+  test("shares thinking effort when Fast uses the primary model", () => {
+    const result = accountFromConfig({
+      provider: "openai",
+      apiKey: "test-key",
+      model: "gpt-5.5",
+      fastModel: "gpt-5.5",
+      thinkingLevel: "high",
+      fastThinkingLevel: "off",
+    });
+
+    expect(result.models).toEqual({ smart: "gpt-5.5", fast: "gpt-5.5" });
+    expect(result.thinking).toEqual({ smart: "high", fast: "high" });
+  });
 });

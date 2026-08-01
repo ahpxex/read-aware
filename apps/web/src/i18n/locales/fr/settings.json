@@ -226,6 +226,8 @@
     "fastModelHelper": "Dictionnaire, mémoire et résumés — le niveau moins cher et plus rapide.",
     "modelPlaceholder": "p. ex. gpt-5.5",
     "fastModelCustomPlaceholder": "Laisser vide pour utiliser le modèle intelligent",
+    "thinking": "Effort de réflexion",
+    "thinkingHelper": "Utilisé pour les tâches intelligentes et rapides. Les niveaux élevés réfléchissent plus longtemps ; les modèles sans réflexion l'ignorent.",
     "smartThinking": "Réflexion du modèle intelligent",
     "fastThinking": "Réflexion du modèle rapide",
     "smartThinkingHelper": "Effort de réflexion pour le chat — les niveaux élevés réfléchissent plus longtemps avant de répondre. Les modèles sans réflexion l'ignorent.",

@@ -226,6 +226,8 @@
     "fastModelHelper": "Wörterbuch, Gedächtnis und Zusammenfassungen – die günstigere, schnellere Stufe.",
     "modelPlaceholder": "z. B. gpt-5.5",
     "fastModelCustomPlaceholder": "Leer lassen, um das Smart-Modell zu verwenden",
+    "thinking": "Denkaufwand",
+    "thinkingHelper": "Gilt für Smart- und Fast-Aufgaben. Höhere Stufen denken länger nach; Modelle ohne Denkfunktion ignorieren dies.",
     "smartThinking": "Denkaufwand des Smart-Modells",
     "fastThinking": "Denkaufwand des Fast-Modells",
     "smartThinkingHelper": "Denkaufwand für Chat-Antworten – höhere Stufen denken länger nach. Modelle ohne Denkfunktion ignorieren dies.",

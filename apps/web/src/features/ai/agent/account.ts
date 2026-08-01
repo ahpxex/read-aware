@@ -28,12 +28,18 @@ export function accountFromConfig(config: AIConfig): {
   const smart = config.model || DEFAULT_MODELS[config.provider];
   // The simple setup path uses one model for both roles. A distinct Fast model
   // only exists when the user explicitly chooses that advanced override.
-  const fast = config.fastModel || smart;
+  const hasSeparateFastModel = Boolean(
+    config.fastModel && config.fastModel !== smart,
+  );
+  const fast = hasSeparateFastModel ? config.fastModel! : smart;
+  const smartThinking = config.thinkingLevel ?? DEFAULT_THINKING_LEVEL;
 
   const models: RoleModels = { smart, fast };
   const thinking: RoleThinking = {
-    smart: config.thinkingLevel ?? DEFAULT_THINKING_LEVEL,
-    fast: config.fastThinkingLevel ?? DEFAULT_THINKING_LEVEL,
+    smart: smartThinking,
+    fast: hasSeparateFastModel
+      ? config.fastThinkingLevel ?? DEFAULT_THINKING_LEVEL
+      : smartThinking,
   };
   return { account, models, thinking };
 }

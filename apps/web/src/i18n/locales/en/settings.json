@@ -226,6 +226,8 @@
     "fastModelHelper": "Dictionary, memory, and summaries — the cheaper, faster tier.",
     "modelPlaceholder": "e.g. gpt-5.5",
     "fastModelCustomPlaceholder": "Leave empty to match the smart model",
+    "thinking": "Thinking effort",
+    "thinkingHelper": "Used by both Smart and Fast tasks. Higher levels think longer before answering; models without thinking support ignore this.",
     "smartThinking": "Smart model thinking",
     "fastThinking": "Fast model thinking",
     "smartThinkingHelper": "Reasoning effort for chat turns — higher levels think longer before answering. Models without thinking support ignore this.",

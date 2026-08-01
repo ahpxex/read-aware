@@ -26,3 +26,15 @@ export const AdvancedSettings: Story = {
     );
   },
 };
+
+export const SeparateFastModel: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Advanced settings" }),
+    );
+    await userEvent.click(
+      canvas.getByRole("switch", { name: "Use a separate Fast model" }),
+    );
+  },
+};

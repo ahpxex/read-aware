@@ -70,6 +70,41 @@ describe("AI provider defaults", () => {
       fastThinkingLevel: "off",
     });
   });
+
+  test("keeps one thinking effort when Fast follows the primary model", () => {
+    saveAIConfig({
+      provider: "openai",
+      apiKey: "",
+      model: DEFAULT_MODELS.openai,
+      thinkingLevel: "high",
+      fastThinkingLevel: "off",
+    });
+
+    expect(getStoredProviderSettings("openai")).toMatchObject({
+      model: DEFAULT_MODELS.openai,
+      fastModel: DEFAULT_MODELS.openai,
+      thinkingLevel: "high",
+      fastThinkingLevel: "high",
+    });
+  });
+
+  test("preserves two efforts for distinct model tiers", () => {
+    saveAIConfig({
+      provider: "openai",
+      apiKey: "",
+      model: DEFAULT_MODELS.openai,
+      fastModel: SUGGESTED_FAST_MODELS.openai,
+      thinkingLevel: "high",
+      fastThinkingLevel: "low",
+    });
+
+    expect(getStoredProviderSettings("openai")).toMatchObject({
+      model: DEFAULT_MODELS.openai,
+      fastModel: SUGGESTED_FAST_MODELS.openai,
+      thinkingLevel: "high",
+      fastThinkingLevel: "low",
+    });
+  });
 });
 
 describe("recommended model options", () => {

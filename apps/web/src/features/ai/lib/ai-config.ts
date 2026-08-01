@@ -99,16 +99,23 @@ export function getStoredProviderSettings(provider: AIProvider): Required<Provid
   const entry = stored?.models?.[provider];
   const legacy = stored?.provider === provider ? stored : undefined;
   const model = entry?.model ?? legacy?.model ?? DEFAULT_MODELS[provider] ?? "";
+  const explicitFastModel = entry?.fastModel ?? legacy?.fastModel;
+  const hasSeparateFastModel = Boolean(
+    explicitFastModel && explicitFastModel !== model,
+  );
   // Missing thinking fields in a remembered config mean the old implicit Off
   // default. A provider the user has never configured gets the new Medium
   // default instead, so existing users do not silently incur extra usage.
   const thinkingDefault = entry || legacy ? "off" : DEFAULT_THINKING_LEVEL;
+  const thinkingLevel =
+    entry?.thinkingLevel ?? legacy?.thinkingLevel ?? thinkingDefault;
   return {
     model,
-    fastModel: entry?.fastModel ?? legacy?.fastModel ?? model,
-    thinkingLevel: entry?.thinkingLevel ?? legacy?.thinkingLevel ?? thinkingDefault,
-    fastThinkingLevel:
-      entry?.fastThinkingLevel ?? legacy?.fastThinkingLevel ?? thinkingDefault,
+    fastModel: hasSeparateFastModel ? (explicitFastModel ?? model) : model,
+    thinkingLevel,
+    fastThinkingLevel: hasSeparateFastModel
+      ? entry?.fastThinkingLevel ?? legacy?.fastThinkingLevel ?? thinkingDefault
+      : thinkingLevel,
     customBaseUrl: entry?.customBaseUrl ?? legacy?.customBaseUrl ?? "",
   };
 }
@@ -153,15 +160,19 @@ export function getAIConfig(): AIConfig | null {
 export function saveAIConfig(config: AIConfig): void {
   const { apiKey, provider, model, fastModel, thinkingLevel, fastThinkingLevel, customBaseUrl } =
     config;
+  const hasSeparateFastModel = Boolean(fastModel && fastModel !== model);
+  const resolvedThinkingLevel = thinkingLevel ?? DEFAULT_THINKING_LEVEL;
   // Merge this provider's settings into the map; other providers keep theirs.
   const models = { ...(readStored()?.models ?? {}) };
   models[provider] = {
     model,
-    fastModel,
+    fastModel: hasSeparateFastModel ? fastModel : undefined,
     // Persist Off explicitly now that new providers default to Medium. This
     // keeps a deliberate opt-out stable across provider switches and reloads.
-    thinkingLevel: thinkingLevel ?? DEFAULT_THINKING_LEVEL,
-    fastThinkingLevel: fastThinkingLevel ?? DEFAULT_THINKING_LEVEL,
+    thinkingLevel: resolvedThinkingLevel,
+    fastThinkingLevel: hasSeparateFastModel
+      ? fastThinkingLevel ?? DEFAULT_THINKING_LEVEL
+      : resolvedThinkingLevel,
     ...(customBaseUrl ? { customBaseUrl } : {}),
   };
   localKV.setItem(CONFIG_KEY, JSON.stringify({ provider, models } satisfies StoredAIConfig));

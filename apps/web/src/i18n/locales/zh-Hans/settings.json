@@ -226,6 +226,8 @@
     "fastModelHelper": "查词典、记忆提炼、摘要——更便宜、更快的档位。",
     "modelPlaceholder": "例如 gpt-5.5",
     "fastModelCustomPlaceholder": "留空则与 Smart 模型相同",
+    "thinking": "思考力度",
+    "thinkingHelper": "Smart 和 Fast 任务共用。档位越高，回答前思考越久；不支持思考的模型会忽略此设置。",
     "smartThinking": "Smart 模型思考力度",
     "fastThinking": "Fast 模型思考力度",
     "smartThinkingHelper": "聊天轮次的推理力度——档位越高，回答前思考越久。不支持思考的模型会忽略此设置。",

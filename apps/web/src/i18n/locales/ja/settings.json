@@ -226,6 +226,8 @@
     "fastModelHelper": "辞書・記憶・要約など、安くて速い段階。",
     "modelPlaceholder": "例：gpt-5.5",
     "fastModelCustomPlaceholder": "空欄の場合はスマートモデルと同じ",
+    "thinking": "思考量",
+    "thinkingHelper": "スマートタスクと高速タスクの両方に使用します。高いほど長く考え、思考非対応モデルでは無視されます。",
     "smartThinking": "スマートモデルの思考",
     "fastThinking": "高速モデルの思考",
     "smartThinkingHelper": "チャット応答の推論量。高いほど回答前に長く考えます。思考に対応しないモデルでは無視されます。",

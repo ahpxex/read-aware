@@ -226,6 +226,8 @@
     "fastModelHelper": "Diccionario, memoria y resúmenes: el nivel más barato y rápido.",
     "modelPlaceholder": "p. ej. gpt-5.5",
     "fastModelCustomPlaceholder": "Déjalo vacío para usar el modelo inteligente",
+    "thinking": "Esfuerzo de razonamiento",
+    "thinkingHelper": "Se usa tanto en tareas inteligentes como rápidas. Los niveles altos piensan más; los modelos sin razonamiento lo ignoran.",
     "smartThinking": "Razonamiento del modelo inteligente",
     "fastThinking": "Razonamiento del modelo rápido",
     "smartThinkingHelper": "Esfuerzo de razonamiento para el chat: los niveles altos piensan más antes de responder. Los modelos sin razonamiento lo ignoran.",

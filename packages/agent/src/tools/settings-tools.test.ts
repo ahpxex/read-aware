@@ -24,7 +24,7 @@ function setting(
 describe("settings tools", () => {
   test("reads one section as a generic host settings catalog", async () => {
     const { deps } = createInMemoryDeps();
-    const tool = buildSettingsTools(deps).find(
+    const tool = buildSettingsTools({ kind: "global", threadId: "test" }, deps).find(
       (candidate) => candidate.name === "get_settings",
     );
     if (!tool) throw new Error("get_settings was not registered");
@@ -57,9 +57,40 @@ describe("settings tools", () => {
     });
   });
 
+  test("defaults a book target to the current in-book scope", async () => {
+    const { deps, stores } = createInMemoryDeps({
+      books: [{ id: "book-1", title: "The Book" }],
+    });
+    const tools = buildSettingsTools({ kind: "book", bookId: "book-1" }, deps);
+    const getSettings = tools.find((candidate) => candidate.name === "get_settings");
+    const updateSettings = tools.find((candidate) => candidate.name === "update_settings");
+    if (!getSettings || !updateSettings) throw new Error("settings tools were not registered");
+
+    const read = resultJson(
+      await getSettings.execute("call-book-read", {
+        section: "reading",
+        target: { kind: "book" },
+      }),
+    );
+    await updateSettings.execute("call-book-write", {
+      changes: [
+        {
+          path: "reading.theme",
+          value: "dark",
+          target: { kind: "book" },
+        },
+      ],
+    });
+
+    expect(read).toMatchObject({
+      settings: { target: { kind: "book", bookId: "book-1" } },
+    });
+    expect(setting(stores.settings.settings, "reading.theme").value).toBe("dark");
+  });
+
   test("updates unrelated preferences through the same path/value contract", async () => {
     const { deps, stores } = createInMemoryDeps();
-    const tool = buildSettingsTools(deps).find(
+    const tool = buildSettingsTools({ kind: "global", threadId: "test" }, deps).find(
       (candidate) => candidate.name === "update_settings",
     );
     if (!tool) throw new Error("update_settings was not registered");
@@ -97,7 +128,7 @@ describe("settings tools", () => {
 
   test("preserves every generic value type through pi argument validation", () => {
     const { deps } = createInMemoryDeps();
-    const tool = buildSettingsTools(deps).find(
+    const tool = buildSettingsTools({ kind: "global", threadId: "test" }, deps).find(
       (candidate) => candidate.name === "update_settings",
     );
     if (!tool) throw new Error("update_settings was not registered");
@@ -120,7 +151,7 @@ describe("settings tools", () => {
 
   test("keeps credentials and endpoint destinations outside the tool boundary", async () => {
     const { deps } = createInMemoryDeps();
-    const tools = buildSettingsTools(deps);
+    const tools = buildSettingsTools({ kind: "global", threadId: "test" }, deps);
     const getTool = tools.find(
       (candidate) => candidate.name === "get_settings",
     );
@@ -152,7 +183,7 @@ describe("settings tools", () => {
       pluginName: "Editorial Themes",
       polarity: "light",
     });
-    const tools = buildSettingsTools(deps);
+    const tools = buildSettingsTools({ kind: "global", threadId: "test" }, deps);
     const getTool = tools.find(
       (candidate) => candidate.name === "get_settings",
     );
@@ -195,7 +226,7 @@ describe("settings tools", () => {
     const { deps } = createInMemoryDeps({
       books: [{ id: "book-1", title: "The Book" }],
     });
-    const tool = buildSettingsTools(deps).find(
+    const tool = buildSettingsTools({ kind: "global", threadId: "test" }, deps).find(
       (candidate) => candidate.name === "update_settings",
     );
     if (!tool) throw new Error("update_settings was not registered");
@@ -233,7 +264,7 @@ describe("settings tools", () => {
         paths: ["reading.theme", "reading.fontSize"],
       },
     ];
-    const tool = buildSettingsTools(deps).find(
+    const tool = buildSettingsTools({ kind: "global", threadId: "test" }, deps).find(
       (candidate) => candidate.name === "update_settings",
     );
     if (!tool) throw new Error("update_settings was not registered");
@@ -263,7 +294,7 @@ describe("settings tools", () => {
 
   test("rejects an empty change list", async () => {
     const { deps } = createInMemoryDeps();
-    const tool = buildSettingsTools(deps).find(
+    const tool = buildSettingsTools({ kind: "global", threadId: "test" }, deps).find(
       (candidate) => candidate.name === "update_settings",
     );
     if (!tool) throw new Error("update_settings was not registered");

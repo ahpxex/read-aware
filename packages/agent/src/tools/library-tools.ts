@@ -26,10 +26,19 @@ export function buildThreadTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
     name: "get_book_overview",
     label: "Book overview",
     description:
-      "Get one book's metadata and reading progress. bookId defaults to the current book.",
-    parameters: Type.Object({
-      bookId: Type.Optional(Type.String({ description: "Book id; defaults to the current book" })),
-    }),
+      scope.kind === "book"
+        ? "Get one book's metadata and reading progress. bookId defaults to the current book."
+        : "Get one book's metadata and reading progress. bookId is required; resolve it with list_books first.",
+    parameters:
+      scope.kind === "book"
+        ? Type.Object({
+            bookId: Type.Optional(
+              Type.String({ description: "Book id; defaults to the current book" }),
+            ),
+          })
+        : Type.Object({
+            bookId: Type.String({ description: "Book id from list_books" }),
+          }),
     execute: async (_id, params) => {
       const { bookId } = params as { bookId?: string };
       const target = (bookId ?? defaultBookId) as Id | undefined;

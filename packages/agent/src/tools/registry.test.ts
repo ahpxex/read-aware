@@ -45,4 +45,14 @@ describe("agent tool registry", () => {
     expect(tools).toContain("present_books");
     expect(seen).toEqual([global]);
   });
+
+  test("global book overview requires the id that list_books resolved", () => {
+    const { deps } = createInMemoryDeps();
+    const tool = buildAgentTools(
+      { kind: "global", threadId: "t1" },
+      deps,
+    ).find((candidate) => candidate.name === "get_book_overview");
+
+    expect((tool?.parameters as { required?: string[] }).required).toEqual(["bookId"]);
+  });
 });

@@ -24,7 +24,7 @@ export function buildAgentTools(scope: ThreadScope, deps: RuntimeDeps): AgentToo
     ...(scope.kind === "global" ? buildPresentTools(deps) : []),
     ...buildReaderTools(scope, deps),
     ...buildInteractionTools(scope, deps),
-    ...buildSettingsTools(deps),
+    ...buildSettingsTools(scope, deps),
     ...(deps.extraTools?.(scope) ?? []),
   ];
 }

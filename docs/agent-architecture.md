@@ -74,11 +74,12 @@ type ThreadScope =
 | UI 挂载点 | Reader 右侧面板（`ChatPanel`，不动） | Context 页（§9），AppHeader 线程弹层新建/切换 |
 | System prompt 角色 | *这本书*里的阅读伴侣 | 整个书架的图书馆员 |
 | 默认检索 scope | `book:<id>` + `user` + `global` | 全部 scope |
-| 工具 | 同一套注册表，book scope 默认值 | 同一套注册表，跨书默认值 |
+| 工具 | 当前书阅读、正文、标注、记忆与设置 | 书架管理、跨书检索、卡片与设置 |
 | Prompt 装配 | **章节会话，跨章重置到一轮尾巴基线**（见 §5） | 线程内连续（水化 + 窗口化） |
 
-其余一切共享：一套工具注册表、一个记忆库、一份用户画像、一套模型/账户配置。
-差异只在上下文装配的默认值和 system prompt 里的角色framing。
+其余一切共享：一个权威工具装配入口、一个记忆库、一份用户画像、一套模型/账户
+配置。装配入口按 surface 收窄模型真正能看到的工具；插件工具也可声明
+`book` / `global` contexts，省略时才在两边都出现。
 
 **记忆不随线程分裂**：`user`/`global` scope 的记忆跨所有全局线程共享，
 rolling summary 按线程各自维护。线程只是对话的容器，人格与积累靠记忆层 ——
@@ -214,6 +215,11 @@ system prompt（角色 framing + 画像 + 记忆 + 滚动摘要 + 阅读位置�
 "这一章"从此是一次 `read_chapter`，而不是拿进度百分比猜。位置在会话内是
 常量（会话 = 章节），所以只需要在会话开始说一次。
 
+防剧透不是所有书的一刀切规则。agent 先根据元数据、目录和已读正文判断作品是否
+以叙事推进为核心；文学和强叙事作品默认把当前章当知识边界，正文检索显式传
+`throughChapterIndex`，边界不清时用 `ask_user`。技术、参考、教程、论说等说明性
+作品不设这条限制，可以主动连接后文；用户标记读完或明确要求后文时也可越过边界。
+
 **System prompt 按会话冻结**（缓存对齐）：书线程的 prompt 只在会话开始
 装配一次，会话内字节级不变 —— 画像、记忆、滚动摘要、位置都是会话开始时
 的快照。于是同章追问的前缀头部稳定，中段靠 `elideStaleToolResults` 存根
@@ -248,20 +254,20 @@ Transcript 是原始事件；bundle 才是记忆层。这就是 `CLAUDE.md` 那�
 
 ## 6. Agent 工具
 
-一套注册表，两种 scope 共享；默认值随 scope 不同。所有工具都是投影之上的
-本地函数 —— 不走网络。
+`buildAgentTools(scope, deps)` 是唯一装配入口，但不会把整套能力原样塞进两个
+surface。书线程只保留围绕当前书的阅读、正文、标注、记忆、会话倒带和设置操作；
+书架组织、跨书摘要和图书卡片只进全局线程。所有内置工具都是投影之上的本地函数
+—— 不走网络。插件工具按声明的 `contexts` 继续过滤。
 
-| 工具 | 用途 |
-|---|---|
-| `search_memory(query, scope?, kinds?)` | 按 scope 检索记忆（§4） |
-| `list_books(filter?)` | 书架总览：书名、作者、状态 |
-| `get_book_overview(bookId)` | 元数据、目录、进度、阅读时长统计 |
-| `get_annotations(bookId?, query?)` | 高亮 + 笔记（+ ask-note），可过滤 |
-| `get_conversation_insights(bookId)` | 某书线程的滚动摘要 —— 全局线程"问某本书"的方式，而不是把子线程转录塞进上下文 |
-| `get_recent_turns(n?, bookId?)` | 无查询词倒带：取最近 N 条原文。书线程跨章重置后上下文只剩一轮尾巴 —— 用户追问更早（含上一章会话里）的内容时先倒带再回答 |
-| `search_conversation(query, scope?)` | 历史对话原文检索（`ai_messages` 全文索引）——"你上次是怎么说的来着"必须靠原话回答，`search_memory` 只有提炼后的记忆点，没有原话 |
-| `read_passage(bookId, anchor)` | 锚点附近的书籍正文（依赖文本抽取管道，§13） |
-| `remember(content, scope, kind)` | 显式写记忆 → `memory.promoted` 事件，`actor: "agent"` —— "显式记忆写入"原则 |
+| 工具族 | surface | 用途 |
+|---|---|---|
+| `get_book_overview`, `get_annotations`, `get_reading_stats` | book + global | 当前书或指定书的元数据、标注与阅读统计 |
+| `get_toc`, `read_chapter`, `search_book_text` | book + global | 目录、分片正文与全文检索；叙事作品可把检索硬截到当前章 |
+| `create_note`, `create_highlight`, `update_*`, `delete_annotation` | book + global | 标注写操作；删除由宿主权限 UI 闸住 |
+| `search_memory`, `remember` | book + global | 检索与显式写入长期记忆 |
+| `search_conversation`, `get_recent_turns` | book + global | 历史原话检索与按需倒带 |
+| `list_books`, collection tools, `get_conversation_insights`, `present_books` | global only | 书架组织、跨书摘要和卡片展示 |
+| `get_settings`, `update_settings`, `ask_user` | book + global | 非敏感设置与澄清；API key 等凭据永不暴露 |
 
 ## 7. 提问笔记（ask-note）：每个提问都留痕
 

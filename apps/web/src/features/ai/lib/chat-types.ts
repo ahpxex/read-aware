@@ -192,6 +192,8 @@ export interface ChatTurnRequest {
    * 轮次共享上下文，换章节发新消息才重置（agent 包 doc §5）。全局线程忽略。
    */
   chapterHref?: string | null;
+  /** Exact reader location sampled at send time; used to anchor free-form asks. */
+  positionAnchor?: string | null;
   /**
    * Retry/regenerate：UI 已截断并持久化转录，transport 应丢弃线程内存态，
    * 让本轮从持久转录重建（否则被丢弃的回答仍留在 agent 的上下文里）。

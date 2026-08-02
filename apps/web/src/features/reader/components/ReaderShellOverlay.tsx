@@ -44,6 +44,7 @@ type ReaderShellOverlayProps = {
   totalPages?: number;
   tocEntries?: TocEntry[];
   currentChapterHref?: string | null;
+  currentPositionAnchor?: string | null;
   onChapterSelect?: (href: string) => void;
   onAnnotationSelect?: (cfiRange: string) => void;
   /** Jump to a position in the book, 0..1 — the progress bar's drag target. */
@@ -64,6 +65,7 @@ export function ReaderShellOverlay({
   totalPages,
   tocEntries = [],
   currentChapterHref = null,
+  currentPositionAnchor = null,
   onChapterSelect,
   onAnnotationSelect,
   onSeek,
@@ -536,6 +538,7 @@ export function ReaderShellOverlay({
             bookTitle={title}
             active={visible && notesOpen}
             chapterHref={currentChapterHref}
+            positionAnchor={currentPositionAnchor}
           />
         </section>
       </div>

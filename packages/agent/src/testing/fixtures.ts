@@ -501,7 +501,10 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         for (const [key, list] of stores.turns) {
           if (threadKey && key !== threadKey) continue;
           for (const turn of list) {
-            if (turn.content.includes(query))
+            if (
+              turn.content.includes(query) ||
+              turn.attachments?.some((attachment) => attachment.text.includes(query))
+            )
               matches.push({ ...turn, threadKey: key });
           }
         }
@@ -510,6 +513,9 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       getInsights: async (key) => stores.insights.get(key),
       putInsights: async (key, summary) => {
         stores.insights.set(key, summary);
+      },
+      clearInsights: async (key) => {
+        stores.insights.delete(key);
       },
     },
     profile: {
@@ -606,11 +612,18 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       },
       getChapterText: async (bookId, chapterIndex) =>
         stores.chapters.get(bookId)?.[chapterIndex]?.text,
-      searchText: async ({ queries, bookId, limit }) => {
+      searchText: async ({ queries, bookId, throughChapterIndex, limit }) => {
         const results: BookTextHit[] = [];
         for (const [id, chapters] of stores.chapters) {
           if (bookId && id !== bookId) continue;
-          for (const hit of searchChapters(chapters, queries, limit ?? 16)) {
+          if (throughChapterIndex !== undefined && !bookId) {
+            throw new Error("throughChapterIndex requires a specific book");
+          }
+          const searchable =
+            throughChapterIndex === undefined
+              ? chapters
+              : chapters.slice(0, Math.max(0, Math.floor(throughChapterIndex)) + 1);
+          for (const hit of searchChapters(searchable, queries, limit ?? 16)) {
             results.push({ bookId: id as Id, ...hit });
           }
         }

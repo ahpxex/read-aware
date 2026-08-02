@@ -74,6 +74,38 @@ describe("conversation flow", () => {
     expect(captured?.systemPrompt).toContain("摘要：读者在追问自由意志与利贝特实验。");
   });
 
+  test("selection text reaches both post-turn memory prompts", async () => {
+    const model = makeFaux();
+    faux.setResponses([fauxAssistantMessage("回答")]);
+    const backgroundInputs: string[] = [];
+    const complete: CompleteFn = async (_model, context) => {
+      backgroundInputs.push(JSON.stringify(context.messages));
+      return context.systemPrompt?.includes("rolling summary")
+        ? fauxAssistantMessage("摘要")
+        : fauxAssistantMessage('{"new": [], "reinforced": []}');
+    };
+    const { deps } = createInMemoryDeps();
+    const thread = new AgentThread({
+      scope: BOOK,
+      deps,
+      resolveModel: () => model,
+      getApiKey: () => "test-key",
+      completeFn: complete,
+      streamFn: streamSimple,
+    });
+
+    for await (const _ of thread.sendTurn({
+      text: "这段怎么理解？",
+      attachments: [{ text: "被持久保留的选区", chapter: "chapter-1.xhtml" }],
+    })) {
+      // drain
+    }
+    await thread.flushBackgroundWork();
+
+    expect(backgroundInputs).toHaveLength(2);
+    expect(backgroundInputs.every((input) => input.includes("> 被持久保留的选区"))).toBe(true);
+  });
+
   test("search_conversation surfaces verbatim past turns", async () => {
     const model = makeFaux();
     let toolResultPayload = "";

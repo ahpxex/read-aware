@@ -16,6 +16,7 @@ export function ChatPanel({
   bookTitle,
   active = false,
   chapterHref = null,
+  positionAnchor = null,
 }: {
   bookId: string;
   bookTitle: string;
@@ -23,8 +24,16 @@ export function ChatPanel({
   active?: boolean;
   /** The reader's current chapter — stamps each turn for the agent's chapter session. */
   chapterHref?: string | null;
+  /** Current CFI used to anchor a free-form ask-note. */
+  positionAnchor?: string | null;
 }) {
-  const conversation = useBookConversation(bookId, bookTitle, "book", chapterHref);
+  const conversation = useBookConversation(
+    bookId,
+    bookTitle,
+    "book",
+    chapterHref,
+    positionAnchor,
+  );
   const askAiRequest = useAtomValue(askAiRequestAtom);
   const lastConsumedIdRef = useRef<string | null>(null);
   const [pendingAttachment, setPendingAttachment] =

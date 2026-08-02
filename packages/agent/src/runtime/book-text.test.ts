@@ -96,4 +96,34 @@ describe("book text tools", () => {
     expect(payload).toContain("物物交换神话");
     expect(payload).toContain("chapterIndex");
   });
+
+  test("search_book_text can stop at the current narrative chapter", async () => {
+    let payload = "";
+    const { thread } = setup([
+      fauxAssistantMessage(
+        [
+          fauxToolCall("search_book_text", {
+            queries: ["物物交换神话"],
+            throughChapterIndex: 0,
+          }),
+        ],
+        { stopReason: "toolUse" },
+      ),
+      (context: Context) => {
+        payload = JSON.stringify(context.messages[context.messages.length - 1]);
+        return fauxAssistantMessage("没有越过当前章节。");
+      },
+    ]);
+
+    await drain(thread, "前文提到物物交换神话了吗？");
+
+    const message = JSON.parse(payload) as { content?: Array<{ text?: string }> };
+    const result = JSON.parse(message.content?.[0]?.text ?? "{}") as {
+      totalHits?: number;
+      throughChapterIndex?: number;
+      hits?: unknown[];
+    };
+    expect(result).toEqual({ totalHits: 0, throughChapterIndex: 0, hits: [] });
+    expect(payload).not.toContain("田野记录");
+  });
 });

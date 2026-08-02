@@ -86,7 +86,7 @@ describe("present flow", () => {
       },
     ]);
     const { deps } = createInMemoryDeps({ books: BOOKS });
-    const thread = makeThread({ kind: "book", bookId: "b1" as Id }, deps, model);
+    const thread = makeThread({ kind: "global", threadId: "present-books" }, deps, model);
 
     const chunks = await collect(thread.sendTurn({ text: "show me the book" }));
 
@@ -114,7 +114,7 @@ describe("present flow", () => {
       fauxAssistantMessage("Sorry, cannot find it."),
     ]);
     const { deps } = createInMemoryDeps({ books: BOOKS });
-    const thread = makeThread({ kind: "book", bookId: "b1" as Id }, deps, model);
+    const thread = makeThread({ kind: "global", threadId: "present-books" }, deps, model);
 
     const chunks = await collect(thread.sendTurn({ text: "show me" }));
 

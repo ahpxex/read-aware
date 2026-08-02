@@ -23,6 +23,7 @@ import type {
   AgentSettingsSnapshot,
   AgentSettingsUpdateResult,
 } from "./settings";
+import type { ThreadScope } from "./thread-scope";
 
 // 标注读模型：直接用 @read-aware/core 的 canonical 判别联合（read-models.ts）
 // —— 与插件面、产品面同一套形状，漂移在类型层就报错。
@@ -48,10 +49,21 @@ export interface BookOverview {
   lastOpenedAt?: string;
 }
 
+export interface TurnAttachment {
+  /** Exact reader-selected book text. */
+  text: string;
+  /** CFI or another host-native location anchor. */
+  anchor?: string;
+  /** Chapter href captured with the selection. */
+  chapter?: string;
+}
+
 export interface TurnRecord {
   role: "user" | "assistant";
   content: string;
   createdAt: string;
+  /** User-turn context preserved separately from authored message text. */
+  attachments?: TurnAttachment[];
 }
 
 export interface LibraryPort {
@@ -249,6 +261,8 @@ export interface ConversationPort {
   /** 线程的滚动摘要（conversation_insights bundle v0）；无则 undefined。 */
   getInsights(threadKey: string): Promise<string | undefined>;
   putInsights(threadKey: string, summary: string): Promise<void>;
+  /** Remove the rolling summary when the owning conversation is cleared. */
+  clearInsights(threadKey: string): Promise<void>;
 }
 
 /** 用户画像摘要（user_profile_context bundle 的 v0：一段文本，无则 undefined）。 */
@@ -289,6 +303,8 @@ export interface BookTextPort {
   searchText(filter: {
     queries: string[];
     bookId?: Id;
+    /** Inclusive upper chapter bound, used by narrative spoiler protection. */
+    throughChapterIndex?: number;
     limit?: number;
   }): Promise<BookTextHit[]>;
 }
@@ -321,5 +337,5 @@ export interface RuntimeDeps {
    * 组装时取一次快照；集合变化后宿主调用 `AgentRuntime.invalidateAgents()`
    * 让下一轮重建。
    */
-  extraTools?: () => AgentTool[];
+  extraTools?: (scope: ThreadScope) => AgentTool[];
 }

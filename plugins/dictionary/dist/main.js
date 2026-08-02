@@ -238,6 +238,7 @@ function registerAgentTools(ctx) {
   ctx.agent.registerTool({
     name: "lookup_word",
     label: "Look up word",
+    contexts: ["book", "global"],
     description: "Look up a word or short phrase in the AI dictionary and show the reader a word card with the full entry (pronunciation, senses, examples, etymology). Use it when the reader asks what a word means or when a precise definition genuinely helps; pass the surrounding sentence as context when you have it. The reader sees the full card; you receive only a one-line gist — the card IS the explanation, so after calling say nothing more about the definition, or add a single remark that ties the word to the passage or conversation. One lookup per word per reply: never call it again for a word whose card is already showing in this reply.",
     parameters: {
       type: "object",
@@ -279,6 +280,7 @@ function registerAgentTools(ctx) {
   ctx.agent.registerTool({
     name: "get_vocabulary",
     label: "Saved words",
+    contexts: ["book", "global"],
     description: "List the words the reader saved in Dictionary, each with a short definition and the book it came from. Call it WITHOUT query to see the whole list.",
     parameters: {
       type: "object",
@@ -305,6 +307,7 @@ function registerAgentTools(ctx) {
   ctx.agent.registerTool({
     name: "save_word",
     label: "Save word",
+    contexts: ["book", "global"],
     description: "Look up a word with the built-in Dictionary and save it. Include the sentence it appeared in when available.",
     parameters: {
       type: "object",

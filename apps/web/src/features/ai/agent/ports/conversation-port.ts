@@ -34,6 +34,11 @@ function toTurns(messages: ChatMessage[]): TurnRecord[] {
       role: message.role,
       content: message.content,
       createdAt: message.createdAt,
+      attachments: message.attachments?.map((attachment) => ({
+        text: attachment.text,
+        anchor: attachment.cfiRange ?? undefined,
+        chapter: attachment.chapterHref ?? undefined,
+      })),
     }));
 }
 
@@ -45,6 +50,15 @@ function readInsights(): Record<string, string> {
   } catch {
     return {};
   }
+}
+
+export function clearStoredConversationInsights(threadKey: string): void {
+  const insights = readInsights();
+  let changed = delete insights[threadKey];
+  if (threadKey === `global:${GLOBAL_CONVERSATION_ID}`) {
+    changed = delete insights.global || changed;
+  }
+  if (changed) localKV.setItem(INSIGHTS_KEY, JSON.stringify(insights));
 }
 
 export function createConversationPort(): ConversationPort {
@@ -60,7 +74,12 @@ export function createConversationPort(): ConversationPort {
         const key = storeIdToThreadKey(storeId);
         if (threadKey && key !== threadKey) continue;
         for (const turn of toTurns(messages)) {
-          if (turn.content.includes(query)) matches.push({ ...turn, threadKey: key });
+          if (
+            turn.content.includes(query) ||
+            turn.attachments?.some((attachment) => attachment.text.includes(query))
+          ) {
+            matches.push({ ...turn, threadKey: key });
+          }
         }
       }
       return matches.slice(0, limit ?? 20);
@@ -77,6 +96,9 @@ export function createConversationPort(): ConversationPort {
       const insights = readInsights();
       insights[threadKey] = summary;
       localKV.setItem(INSIGHTS_KEY, JSON.stringify(insights));
+    },
+    clearInsights: async (threadKey) => {
+      clearStoredConversationInsights(threadKey);
     },
   };
 }

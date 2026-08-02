@@ -160,6 +160,7 @@ function registerAgentTools(ctx) {
   ctx.agent.registerTool({
     name: "list_feeds",
     label: "RSS subscriptions",
+    contexts: ["global"],
     description: "List the reader's RSS subscriptions and their recently cached article titles. Call without arguments to inspect the RSS backlog.",
     parameters: {
       type: "object",
@@ -190,6 +191,7 @@ function registerAgentTools(ctx) {
   ctx.agent.registerTool({
     name: "subscribe_feed",
     label: "Subscribe to RSS",
+    contexts: ["global"],
     description: "Subscribe to an RSS or Atom feed and add it to the shelf as a readable book.",
     parameters: {
       type: "object",
@@ -218,6 +220,7 @@ function registerAgentTools(ctx) {
   ctx.agent.registerTool({
     name: "refresh_feed",
     label: "Refresh RSS feed",
+    contexts: ["global"],
     description: "Refresh one existing RSS subscription and return its latest cached article titles.",
     parameters: {
       type: "object",

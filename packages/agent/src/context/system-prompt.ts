@@ -1,7 +1,7 @@
 /**
  * System prompt 装配 v0（doc §5）：scope 的角色 framing + 画像摘要 + 书籍概况。
  * bundle 体系成型后（book_memory / reading_intent / conversation_insights）
- * 在这里逐段注入；每轮 sendTurn 前重建，保证 bundle 更新即时生效。
+ * 在这里逐段注入；全局线程每轮重建，书线程每个章节会话冻结一份快照。
  */
 import type { BookOverview, MemoryRecord } from "../ports";
 import type { ThreadScope } from "../thread-scope";
@@ -27,7 +27,18 @@ export interface SystemPromptInput {
   onboardingInterview?: boolean;
 }
 
-const SHARED_RULES = `
+function sharedRules(scope: ThreadScope): string {
+  const bookRules =
+    scope.kind === "book"
+      ? `
+- Apply spoiler protection selectively, not mechanically. First judge from reliable evidence (the book metadata, table of contents, quoted passage, or text you read) whether this is literature or another strongly narrative work where later events, revelations, identities, or outcomes are part of the experience.
+- For a narrative-sensitive book, treat the reader's current chapter as the default knowledge boundary: do not reveal or fetch later plot developments, and constrain search_book_text to the current chapter or earlier, unless the reader explicitly asks for later material or clearly says they have finished. If their desired spoiler boundary is materially ambiguous, use ask_user before crossing it.
+- For technical, reference, instructional, argumentative, and other primarily expository books, do not impose a spoiler boundary. Freely connect later sections when that improves the explanation.
+- Stay centered on the current book. Whole-shelf organization, collection management, cross-book cards, and feed administration belong in the global Context agent.`
+      : `
+- Show, don't just tell: whenever your answer names shelf books, present them as cards — present_books for shelf books (ids from a fresh list_books; when the user asks what's on their shelf, present the whole shelf instead of writing a text list). Some other tools render cards too (their descriptions say so). Cards render where you call the tool, between your paragraphs — a card IS the content, so never repeat in prose what a card already shows; keep prose mentions brief, keep recommendation stacks small (a handful), and never present the same item twice in one reply.`;
+
+  return `
 Rules:
 - Answer in the language the user writes in.
 - Use your tools to look at the user's actual shelf, books, and annotations before answering questions about them.
@@ -36,9 +47,10 @@ Rules:
 - Destructive tools enforce their own in-chat permission prompt. Never bypass it, request deletion through another tool, or claim a destructive action succeeded before its tool returns. Keep interactive and write operations sequential.
 - Tool calls in one batch run in parallel — when you need several independent lookups (multiple chapters, toc + annotations, …), issue them together instead of one per turn.
 - Ground your answers: clearly separate what comes from the user's books/annotations and what comes from your general knowledge.
-- Show, don't just tell: whenever your answer names shelf books, present them as cards — present_books for shelf books (ids from a fresh list_books; when the user asks what's on their shelf, present the whole shelf instead of writing a text list). Some other tools render cards too (their descriptions say so). Cards render where you call the tool, between your paragraphs — a card IS the content, so never repeat in prose what a card already shows; keep prose mentions brief, keep recommendation stacks small (a handful), and never present the same item twice in one reply.
+${bookRules}
 - Be concise and substantive; no filler.
 - Never use emoji.`.trim();
+}
 
 export function buildSystemPrompt(scope: ThreadScope, input: SystemPromptInput): string {
   const sections: string[] = [];
@@ -52,13 +64,15 @@ export function buildSystemPrompt(scope: ThreadScope, input: SystemPromptInput):
         input.book.progressPercent !== undefined
           ? ` The reader is about ${Math.round(input.book.progressPercent)}% through.`
           : "";
+      const finished =
+        input.book.status === "finished" ? " The reader has marked this book finished." : "";
       const position = input.currentChapter
         ? ` They are currently reading chapter #${input.currentChapter.index}${
             input.currentChapter.title ? ` ("${input.currentChapter.title}")` : ""
           } — read_chapter ${input.currentChapter.index} returns its text; treat "this chapter" as that one.`
         : "";
       sections.push(
-        `Current book: "${input.book.title}"${input.book.author ? ` by ${input.book.author}` : ""}.${progress}${position}`,
+        `Current book: "${input.book.title}"${input.book.author ? ` by ${input.book.author}` : ""}.${progress}${finished}${position}`,
       );
     }
   } else {
@@ -95,6 +109,6 @@ export function buildSystemPrompt(scope: ThreadScope, input: SystemPromptInput):
     );
   }
 
-  sections.push(SHARED_RULES);
+  sections.push(sharedRules(scope));
   return sections.join("\n\n");
 }

@@ -21,15 +21,22 @@ export function createBookTextPort(): BookTextPort {
       })),
     getChapterText: async (bookId, chapterIndex) =>
       (await getExtractedChapters(String(bookId)))[chapterIndex]?.text,
-    searchText: async ({ queries, bookId, limit }) => {
+    searchText: async ({ queries, bookId, throughChapterIndex, limit }) => {
       const max = limit ?? 16;
       const results: BookTextHit[] = [];
       if (bookId) {
-        const chapters = await getExtractedChapters(String(bookId));
+        const extracted = await getExtractedChapters(String(bookId));
+        const chapters =
+          throughChapterIndex === undefined
+            ? extracted
+            : extracted.slice(0, Math.max(0, Math.floor(throughChapterIndex)) + 1);
         for (const hit of searchChapters(chapters, queries, max)) {
           results.push({ bookId, ...hit });
         }
         return results;
+      }
+      if (throughChapterIndex !== undefined) {
+        throw new Error("throughChapterIndex requires a specific book");
       }
       // 全局线程：检索整个书架里已抽取的书（绝不触发批量抽取）
       for (const book of await listLibraryBooks()) {

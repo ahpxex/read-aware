@@ -4,7 +4,12 @@
  * the description so the model knows the source, JSON results. Wired into
  * RuntimeDeps.extraTools; the registry snapshot is taken per agent build.
  */
-import type { AgentTool, ReferencePayload, WordReference } from "@read-aware/agent";
+import type {
+  AgentTool,
+  ReferencePayload,
+  ThreadScope,
+  WordReference,
+} from "@read-aware/agent";
 import type { RegisteredTool } from "../lib/plugin-types";
 import { getRegisteredPluginTools } from "../state/plugin-store";
 import { contributionText } from "../lib/plugin-i18n";
@@ -52,8 +57,10 @@ export function pluginToolName(tool: RegisteredTool): string {
 
 const EMPTY_PARAMETERS = { type: "object", properties: {}, additionalProperties: false };
 
-export function getPluginAgentTools(): AgentTool[] {
-  return getRegisteredPluginTools().map((tool) => ({
+export function getPluginAgentTools(scope: ThreadScope): AgentTool[] {
+  return getRegisteredPluginTools()
+    .filter((tool) => !tool.contexts || tool.contexts.includes(scope.kind))
+    .map((tool) => ({
     name: pluginToolName(tool),
     label: tool.label ? contributionText(tool.label) : `${tool.pluginName} · ${tool.name}`,
     // Provenance stays visible to the model; plugins describe only behavior.
@@ -76,5 +83,5 @@ export function getPluginAgentTools(): AgentTool[] {
         details: undefined,
       };
     },
-  }));
+    }));
 }

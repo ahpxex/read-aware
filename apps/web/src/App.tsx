@@ -100,7 +100,22 @@ function App() {
     void initializePlugins();
     // Off the boot path: a quiet daily look at the marketplace for updates.
     const updateCheck = window.setTimeout(() => void checkPluginUpdates(), 10_000);
-    return () => window.clearTimeout(updateCheck);
+    // Keep the agent package out of the boot chunk; maintenance itself waits for
+    // an idle slot and no-ops until AI is configured.
+    let disposed = false;
+    let stopAgentMaintenance: (() => void) | undefined;
+    const maintenanceStart = window.setTimeout(() => {
+      void import("./features/ai/agent/maintenance").then(({ startAgentMaintenance }) => {
+        if (disposed) return;
+        stopAgentMaintenance = startAgentMaintenance();
+      });
+    }, 15_000);
+    return () => {
+      disposed = true;
+      window.clearTimeout(updateCheck);
+      window.clearTimeout(maintenanceStart);
+      stopAgentMaintenance?.();
+    };
   }, []);
 
   useGlobalShortcuts({

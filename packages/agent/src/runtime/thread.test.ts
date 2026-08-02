@@ -174,6 +174,41 @@ describe("AgentThread", () => {
     expect(captured?.systemPrompt).toContain("42%");
   });
 
+  test("rehydrates a previous selection with its quoted text and chapter", async () => {
+    const { faux, model } = makeFaux();
+    let captured: Context | undefined;
+    faux.setResponses([
+      (context) => {
+        captured = context;
+        return fauxAssistantMessage("ok");
+      },
+    ]);
+    const { deps, turns } = makeDeps();
+    turns.set("book:b1", [
+      {
+        role: "user",
+        content: "这段怎么理解？",
+        attachments: [
+          {
+            text: "money is credit before it is coin",
+            anchor: "epubcfi(/6/4!/2)",
+            chapter: "chapter-2.xhtml",
+          },
+        ],
+        createdAt: "2026-06-01T00:00:00Z",
+      },
+      { role: "assistant", content: "a1", createdAt: "2026-06-01T00:00:05Z" },
+    ]);
+    const thread = makeThread(deps, model);
+
+    await collect(thread.sendTurn({ text: "那第二层意思呢？" }));
+
+    const payload = JSON.stringify(captured?.messages);
+    expect(payload).toContain("> money is credit before it is coin");
+    expect(payload).toContain("chapter-2.xhtml");
+    expect(payload).toContain("那第二层意思呢？");
+  });
+
   test("windows the context to the last N user turns", async () => {
     const { faux, model } = makeFaux();
     let captured: Context | undefined;

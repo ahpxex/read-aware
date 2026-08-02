@@ -251,6 +251,16 @@ export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentToo
     },
   };
 
+  if (scope.kind === "book") {
+    return [
+      getReadingStats,
+      editBookMetadata,
+      setBookStarred,
+      setBookFinished,
+      deleteBook,
+    ];
+  }
+
   return [
     listCollections,
     getReadingStats,

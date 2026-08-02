@@ -8,6 +8,7 @@
 import {
   INTERACTIVE_TOOL_NAMES,
   PRESENT_TOOL_NAMES,
+  type SendTurnInput,
   type SelectionAttachment,
   type ThreadScope,
 } from "@read-aware/agent";
@@ -16,6 +17,7 @@ import { AiNotConfiguredError } from "../lib/ai-errors";
 import type { ChatTransport } from "../lib/chat-transport";
 import { toolStepDetail } from "../lib/chat-stream";
 import type { ChatReference, ChatStreamChunk } from "../lib/chat-types";
+import type { ChatTurnRequest } from "../lib/chat-types";
 import { getAgentRuntime } from "./agent-runtime";
 
 /**
@@ -26,6 +28,27 @@ const SUPPRESSED_TOOLS: ReadonlySet<string> = new Set([
   ...PRESENT_TOOL_NAMES,
   ...INTERACTIVE_TOOL_NAMES,
 ]);
+
+export function toAgentTurnInput(
+  request: ChatTurnRequest,
+  signal?: AbortSignal,
+): SendTurnInput {
+  const attachments: SelectionAttachment[] | undefined = request.message.attachments?.map(
+    (attachment) => ({
+      text: attachment.text,
+      anchor: attachment.cfiRange ?? undefined,
+      chapter: attachment.chapterHref ?? undefined,
+    }),
+  );
+  return {
+    text: request.message.content,
+    attachments,
+    positionAnchor: request.positionAnchor ?? undefined,
+    chapter: request.chapterHref ?? undefined,
+    signal,
+    reset: request.reset,
+  };
+}
 
 export function createPiChatTransport(): ChatTransport {
   return {
@@ -39,20 +62,7 @@ export function createPiChatTransport(): ChatTransport {
           ? // 全局线程的会话 id 就是 threadId（沿用 ChatTurnRequest 的 bookId 字段承载）
             { kind: "global", threadId: request.bookId }
           : { kind: "book", bookId: request.bookId as Id };
-      const attachments: SelectionAttachment[] | undefined = request.message.attachments?.map(
-        (attachment) => ({
-          text: attachment.text,
-          anchor: attachment.cfiRange ?? undefined,
-          chapter: attachment.chapterHref ?? undefined,
-        }),
-      );
-      for await (const chunk of runtime.sendTurn(scope, {
-        text: request.message.content,
-        attachments,
-        chapter: request.chapterHref ?? undefined,
-        signal,
-        reset: request.reset,
-      })) {
+      for await (const chunk of runtime.sendTurn(scope, toAgentTurnInput(request, signal))) {
         switch (chunk.type) {
           case "text":
             yield { type: "text", text: chunk.text } satisfies ChatStreamChunk;

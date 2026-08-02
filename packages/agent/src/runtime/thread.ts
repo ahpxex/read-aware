@@ -13,32 +13,24 @@ import { extractMemories } from "../memory/extraction";
 import { updateRollingSummary } from "../memory/rolling-summary";
 import type { CompleteFn, StreamFn } from "../models/complete";
 import type { ResolveModel } from "../models/roles";
-import type { RuntimeDeps } from "../ports";
+import type { RuntimeDeps, TurnAttachment } from "../ports";
 import { findChapterByHref } from "../text/chapter-lookup";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
-import { buildBookTextTools } from "../tools/book-text-tools";
-import { buildAnnotationTools } from "../tools/annotation-tools";
-import { buildConversationTools } from "../tools/conversation-tools";
-import { buildInteractionTools } from "../tools/interaction-tools";
-import { buildThreadTools } from "../tools/library-tools";
-import { buildMemoryTools, visibleScopes } from "../tools/memory-tools";
-import { buildPresentTools, referenceFromToolDetails } from "../tools/present-tools";
-import { buildReaderTools } from "../tools/reader-tools";
-import { buildSettingsTools } from "../tools/settings-tools";
-import { buildShelfTools } from "../tools/shelf-tools";
+import { visibleScopes } from "../tools/memory-tools";
+import { referenceFromToolDetails } from "../tools/present-tools";
+import { buildAgentTools } from "../tools/registry";
 import { interactionFromToolDetails } from "../tools/user-interaction";
 import { AsyncQueue } from "./async-queue";
 import { elideStaleToolResults } from "./context-slim";
-import { lastAssistantText, lastTurnTail, turnRecordsToMessages } from "./history";
+import {
+  formatUserTurn,
+  lastAssistantText,
+  lastTurnTail,
+  turnRecordsToMessages,
+} from "./history";
 import { windowByTurns } from "./windowing";
 
-export interface SelectionAttachment {
-  /** 选中的原文（"Ask AI about this" 的 context chip） */
-  text: string;
-  chapter?: string;
-  /** 选区锚点（CFI 等）；ask-note 优先锚在这里 */
-  anchor?: string;
-}
+export type SelectionAttachment = TurnAttachment;
 
 export interface SendTurnInput {
   text: string;
@@ -72,20 +64,6 @@ export interface AgentThreadOptions {
 
 const DEFAULT_WINDOW_TURNS = 12;
 
-function formatUserMessage(input: SendTurnInput): string {
-  if (!input.attachments?.length) return input.text;
-  const quoted = input.attachments
-    .map((attachment) => {
-      const body = attachment.text
-        .split("\n")
-        .map((line) => `> ${line}`)
-        .join("\n");
-      return attachment.chapter ? `${body}\n> — ${attachment.chapter}` : body;
-    })
-    .join("\n\n");
-  return `${quoted}\n\n${input.text}`;
-}
-
 export class AgentThread {
   readonly scope: ThreadScope;
   readonly key: string;
@@ -100,6 +78,7 @@ export class AgentThread {
 
   private agent: Agent | undefined;
   private busy = false;
+  private disposed = false;
   private backgroundWork: Promise<void> = Promise.resolve();
   /**
    * 书线程的章节会话（doc §5）：会话内 agent.state 连续累积（含工具调用的
@@ -134,6 +113,13 @@ export class AgentThread {
     this.discardAgent();
   }
 
+  /** Permanently stop this cached instance when its conversation is cleared. */
+  dispose(): void {
+    this.disposed = true;
+    this.agent?.abort();
+    this.discardAgent();
+  }
+
   /**
    * 丢弃 pi Agent 与章节会话标记；下一轮 ensureAgent() / 会话装配从
    * ConversationPort 重新水化。丢弃廉价：工具是重建的闭包，全局线程的
@@ -158,19 +144,7 @@ export class AgentThread {
       initialState: {
         model,
         thinkingLevel: this.thinkingLevel,
-        tools: [
-          ...buildThreadTools(this.scope, this.deps),
-          ...buildShelfTools(this.scope, this.deps),
-          ...buildAnnotationTools(this.scope, this.deps),
-          ...buildMemoryTools(this.scope, this.deps),
-          ...buildConversationTools(this.scope, this.deps),
-          ...buildBookTextTools(this.scope, this.deps),
-          ...buildPresentTools(this.deps),
-          ...buildReaderTools(this.scope, this.deps),
-          ...buildInteractionTools(this.scope, this.deps),
-          ...buildSettingsTools(this.deps),
-          ...(this.deps.extraTools?.() ?? []),
-        ],
+        tools: buildAgentTools(this.scope, this.deps),
         messages: turnRecordsToMessages(records, model),
       },
       transformContext: async (messages) =>
@@ -215,6 +189,7 @@ export class AgentThread {
   }
 
   async *sendTurn(input: SendTurnInput): AsyncGenerator<ThreadChunk> {
+    if (this.disposed) throw new Error(`thread ${this.key} has been disposed`);
     if (this.busy) throw new Error(`thread ${this.key} is already streaming a turn`);
     this.busy = true;
     // retry/regenerate：UI 已截断并持久化转录，丢内存态从持久层重建本轮
@@ -264,7 +239,7 @@ export class AgentThread {
       const onAbort = () => agent.abort();
       input.signal?.addEventListener("abort", onAbort, { once: true });
 
-      const userText = formatUserMessage(input);
+      const userText = formatUserTurn(input.text, input.attachments);
       // UI 在流开始前就把本轮用户消息持久化（retry 的截断可见性依赖这一点）。
       // 全局线程水化 / 未来任何全量重建会把它带进 state，而 prompt() 马上又
       // 注入同一条 —— 尾部等值的 user 消息属于本轮，丢弃避免问题被喂两遍。
@@ -398,8 +373,9 @@ export class AgentThread {
 
       await this.deps.conversations.append(this.key, {
         role: "user",
-        content: userText,
+        content: input.text,
         createdAt: startedAt,
+        attachments: input.attachments,
       });
       const answer = lastAssistantText(agent.state.messages);
       if (answer) {
@@ -422,7 +398,7 @@ export class AgentThread {
       }
 
       // 轮后管道：记忆提炼 + 滚动摘要。异步、不阻塞、失败静默（doc §10 第 6 步）
-      this.scheduleBackgroundPipeline(input.text, answer);
+      this.scheduleBackgroundPipeline(userText, answer);
       turnCompleted = true;
     } finally {
       // 中断/报错后 agent.state 不可信 —— pi 会把 stopReason=error/aborted 的
@@ -439,6 +415,7 @@ export class AgentThread {
     const fast = () => this.resolveModel("fast");
     this.backgroundWork = this.backgroundWork
       .then(async () => {
+        if (this.disposed) return;
         const existing = await this.deps.memory.searchMemories({
           scopes: visibleScopes(this.scope),
           limit: 20,
@@ -451,6 +428,7 @@ export class AgentThread {
           assistantText,
           existing,
         });
+        if (this.disposed) return;
         for (const candidate of result.newMemories) {
           await this.deps.memory.saveMemory({
             ...candidate,
@@ -470,7 +448,7 @@ export class AgentThread {
           userText,
           assistantText,
         });
-        if (summary && summary !== previous) {
+        if (!this.disposed && summary && summary !== previous) {
           await this.deps.conversations.putInsights(this.key, summary);
         }
       })

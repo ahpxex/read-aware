@@ -776,6 +776,12 @@ export type PluginToolDefinition = {
   /** Short human label shown in the chat's tool activity row. */
   label?: PluginText;
   description: string;
+  /**
+   * Agent surfaces where this tool is useful. Omit for both surfaces so older
+   * plugins keep their existing behavior; focused tools should opt into the
+   * narrowest useful set to avoid crowding the model's tool context.
+   */
+  contexts?: Array<"book" | "global">;
   parameters?: Record<string, unknown>;
   /**
    * Resolve with any JSON value — it is serialized as the tool result the

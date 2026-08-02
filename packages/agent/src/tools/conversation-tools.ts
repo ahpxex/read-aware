@@ -75,5 +75,7 @@ export function buildConversationTools(scope: ThreadScope, deps: RuntimeDeps): A
     },
   };
 
-  return [searchConversation, getRecentTurns, getConversationInsights];
+  return scope.kind === "book"
+    ? [searchConversation, getRecentTurns]
+    : [searchConversation, getRecentTurns, getConversationInsights];
 }

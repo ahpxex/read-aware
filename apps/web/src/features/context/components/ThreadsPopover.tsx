@@ -10,6 +10,7 @@ import { useAtom } from "jotai";
 import { Eyebrow, IconButton, Popover } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
+import { discardAgentThread } from "../../ai/agent/agent-runtime";
 import {
   clearConversation,
   listGlobalThreads,
@@ -41,7 +42,7 @@ export function ThreadsPopover() {
   // 删除 = 清空消息 + 会话行留墓碑（列表只列非空会话，所以随即消失）。
   // 弹层保持打开，方便连续清理；删的是当前线程时切到下一个（或全新线程）。
   const remove = async (threadId: string) => {
-    await clearConversation(threadId);
+    await Promise.all([clearConversation(threadId), discardAgentThread("global", threadId)]);
     const remaining = threads.filter((thread) => thread.id !== threadId);
     setThreads(remaining);
     if (threadId === activeThreadId) {

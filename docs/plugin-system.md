@@ -377,15 +377,16 @@ DOM Range 或 Foliate 实例。
 
 现有形态恰好合拍（`packages/agent`）：agent 循环用
 `AgentTool = {name, label, description, parameters, execute}`，每轮由
-`buildThreadTools(scope, deps)` 组装；聊天 UI 已能通用渲染任意工具的
+`buildAgentTools(scope, deps)` 组装；聊天 UI 已能通用渲染任意工具的
 调用步骤（`tool-step` → `ChatToolStep`）。因此：
 
 - 插件注册面：`ctx.agent.registerTool({name, label, description,
-  parameters, execute})`（权限 `agent:tools`），`parameters` 用纯 JSON
+  contexts?, parameters, execute})`（权限 `agent:tools`），`contexts` 可把工具
+  限定到 `book` / `global` agent surface（省略则两边都可用），`parameters` 用纯 JSON
   Schema（TypeBox 产出的就是纯 JSON Schema 对象，内部兼容）。
 - 命名空间：注册后实际工具名为 `plugin_<pluginId>_<name>`，杜绝与
   内置工具及其他插件冲突。
-- 装配点：`buildThreadTools` 输出后追加"当前启用插件的工具"；插件
+- 装配点：`buildAgentTools` 按 surface 过滤后追加"当前启用插件的工具"；插件
   启停触发 runtime 工具集刷新。
 - 呈现：插件工具调用走现成的通用工具步 UI（活动行标签取自注册表的
   `label`），用户在聊天里看得见"正在调用 × 插件的 × 工具"（与显式
@@ -444,7 +445,7 @@ DOM Range 或 Foliate 实例。
    启停/权限展示/钉选摆放）、命名空间 KV
 3. **UI 词汇渲染器**：Popup / Dialog / Page 容器 + Markdown / List /
    Form / Detail / 组合 Blocks 宿主组件树
-4. **AI 工具挂载点**：`ctx.agent.registerTool` → `buildThreadTools`
+4. **AI 工具挂载点**：`ctx.agent.registerTool` → `buildAgentTools`
    追加 + 启停刷新
 5. **官方插件 × 2–3 + 插件模板仓库**：既是功能也是 API 的真实性
    检验（候选：导出 Markdown、查词典扩展、Anki 生词本）

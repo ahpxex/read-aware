@@ -75,7 +75,7 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps): Agent
     name: "search_book_text",
     label: "Search book text",
     description:
-      "Full-text search inside the books' actual prose. Pass SEVERAL phrasings/synonyms in `queries` in this ONE call (results are merged and deduped) instead of retrying one query at a time — recall depends on wording and each retry costs a whole round trip. Exact matches come first; token-level fallback matches are marked \"partial\". Each hit reports the read_chapter `part` it falls in, so you can jump straight to it. bookId defaults to the current book; omit bookId in the global thread to search the whole shelf.",
+      "Full-text search inside the books' actual prose. Pass SEVERAL phrasings/synonyms in `queries` in this ONE call (results are merged and deduped) instead of retrying one query at a time — recall depends on wording and each retry costs a whole round trip. Exact matches come first; token-level fallback matches are marked \"partial\". Each hit reports the read_chapter `part` it falls in, so you can jump straight to it. For narrative spoiler protection, pass throughChapterIndex=current chapter. bookId defaults to the current book; omit bookId in the global thread to search the whole shelf.",
     parameters: Type.Object({
       queries: Type.Array(Type.String(), {
         minItems: 1,
@@ -83,17 +83,33 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps): Agent
         description: "1-5 query variants, searched together",
       }),
       bookId: Type.Optional(Type.String()),
+      throughChapterIndex: Type.Optional(
+        Type.Number({
+          minimum: 0,
+          description:
+            "Inclusive last chapter to search. For a narrative-sensitive book, set this to the current chapter unless the reader explicitly permits later spoilers.",
+        }),
+      ),
     }),
     execute: async (_id, params) => {
-      const { queries, bookId } = params as { queries: string[]; bookId?: string };
+      const { queries, bookId, throughChapterIndex } = params as {
+        queries: string[];
+        bookId?: string;
+        throughChapterIndex?: number;
+      };
       const target = bookId ?? defaultBookId;
+      if (throughChapterIndex !== undefined && !target) {
+        throw new Error("throughChapterIndex requires bookId in the global thread");
+      }
       const hits = await deps.bookText.searchText({
         queries,
         bookId: target as Id | undefined,
+        throughChapterIndex,
         limit: 16,
       });
       return textResult({
         totalHits: hits.length,
+        ...(throughChapterIndex !== undefined ? { throughChapterIndex } : {}),
         hits: hits.map((hit) => ({
           bookId: hit.bookId,
           chapterIndex: hit.chapterIndex,

@@ -27,14 +27,38 @@ export interface AgentRuntimeOptions {
 
 export class AgentRuntime {
   private readonly options: AgentRuntimeOptions;
+  private readonly deps: RuntimeDeps;
   private readonly resolveModel: ReturnType<typeof createModelResolver>;
   private readonly thinking: RoleThinking;
   private readonly completeFns: Record<ModelRole, CompleteFn>;
   private readonly streamFns: Record<ModelRole, StreamFn>;
   private readonly threads = new Map<string, AgentThread>();
+  private memoryRevision = 1;
+  private consolidatedRevision = 0;
+  private consolidationWork: Promise<ConsolidationReport | null> | null = null;
 
   constructor(options: AgentRuntimeOptions) {
     this.options = options;
+    const memory = options.deps.memory;
+    this.deps = {
+      ...options.deps,
+      memory: {
+        ...memory,
+        saveMemory: async (input) => {
+          const saved = await memory.saveMemory(input);
+          this.memoryRevision += 1;
+          return saved;
+        },
+        reinforceMemory: async (id) => {
+          await memory.reinforceMemory(id);
+          this.memoryRevision += 1;
+        },
+        applyMemoryChanges: async (changes) => {
+          await memory.applyMemoryChanges(changes);
+          if (changes.length > 0) this.memoryRevision += 1;
+        },
+      },
+    };
     const registry = buildProviderRegistry();
     this.resolveModel = createModelResolver(options.account, options.models, registry);
     this.thinking = options.thinking ?? { smart: "off", fast: "off" };
@@ -74,7 +98,7 @@ export class AgentRuntime {
     if (!thread) {
       thread = new AgentThread({
         scope,
-        deps: this.options.deps,
+        deps: this.deps,
         resolveModel: this.resolveModel,
         getApiKey: () => this.options.account.apiKey,
         completeFn: this.completeFns.fast,
@@ -99,6 +123,14 @@ export class AgentRuntime {
   /** 工具集变化（如插件启停）后调用：所有线程下一轮以新工具重建 Agent。 */
   invalidateAgents(): void {
     for (const thread of this.threads.values()) thread.invalidateAgent();
+  }
+
+  /** Drop one thread and its hidden rolling summary after the transcript is cleared. */
+  async discardThread(scope: ThreadScope): Promise<void> {
+    const key = threadScopeKey(scope);
+    this.threads.get(key)?.dispose();
+    this.threads.delete(key);
+    await this.deps.conversations.clearInsights(key);
   }
 
   /**
@@ -192,12 +224,43 @@ export class AgentRuntime {
    * 巩固批处理（doc §4 第 3 步）：衰减、去重合并、矛盾消解、book→global 升格。
    * 由宿主在空闲时调用（产品：空闲定时器；repl：`:consolidate` 命令）。
    */
-  consolidate(): Promise<ConsolidationReport> {
-    return runConsolidation({
-      memory: this.options.deps.memory,
-      complete: this.completeFns.fast,
-      model: this.resolveModel("fast"),
+  async consolidate(): Promise<ConsolidationReport> {
+    const report = await this.runConsolidation(true);
+    if (!report) throw new Error("forced consolidation unexpectedly skipped");
+    return report;
+  }
+
+  /**
+   * Idle-maintenance entrypoint. It runs once for a fresh runtime and again only
+   * after a successful memory write, so a host timer never turns into repeated
+   * no-op LLM calls.
+   */
+  consolidateIfNeeded(): Promise<ConsolidationReport | null> {
+    return this.runConsolidation(false);
+  }
+
+  private runConsolidation(force: boolean): Promise<ConsolidationReport | null> {
+    if (this.consolidationWork) return this.consolidationWork;
+    if (!force && this.memoryRevision === this.consolidatedRevision) {
+      return Promise.resolve(null);
+    }
+    this.consolidationWork = (async () => {
+      // Include every extraction queued before this idle pass. Writes that land
+      // during the pass advance the revision and deliberately keep it dirty.
+      await this.flushBackgroundWork();
+      const revision = this.memoryRevision;
+      const report = await runConsolidation({
+        // The pass's own merge/decay writes should not mark a second pass dirty.
+        memory: this.options.deps.memory,
+        complete: this.completeFns.fast,
+        model: this.resolveModel("fast"),
+      });
+      if (this.memoryRevision === revision) this.consolidatedRevision = revision;
+      return report;
+    })().finally(() => {
+      this.consolidationWork = null;
     });
+    return this.consolidationWork;
   }
 }
 

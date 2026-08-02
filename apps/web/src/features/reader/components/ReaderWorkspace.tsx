@@ -205,6 +205,7 @@ export function ReaderWorkspace({
         totalPages={totalPages}
         tocEntries={readerToc}
         currentChapterHref={currentChapterHref}
+        currentPositionAnchor={selectedEpubProgress?.cfi ?? null}
         onChapterSelect={onChapterSelect}
         onAnnotationSelect={onAnnotationSelect}
         onSeek={onSeek}

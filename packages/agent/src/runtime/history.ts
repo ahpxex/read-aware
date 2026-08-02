@@ -5,7 +5,21 @@
  */
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { Api, AssistantMessage, Model, Usage } from "@earendil-works/pi-ai";
-import type { TurnRecord } from "../ports";
+import type { TurnAttachment, TurnRecord } from "../ports";
+
+export function formatUserTurn(content: string, attachments?: TurnAttachment[]): string {
+  if (!attachments?.length) return content;
+  const quoted = attachments
+    .map((attachment) => {
+      const body = attachment.text
+        .split("\n")
+        .map((line) => `> ${line}`)
+        .join("\n");
+      return attachment.chapter ? `${body}\n> — ${attachment.chapter}` : body;
+    })
+    .join("\n\n");
+  return [quoted, content].filter(Boolean).join("\n\n");
+}
 
 function emptyUsage(): Usage {
   return {
@@ -22,7 +36,11 @@ export function turnRecordsToMessages(records: TurnRecord[], model: Model<Api>):
   return records.map((record) => {
     const timestamp = Date.parse(record.createdAt) || Date.now();
     if (record.role === "user") {
-      return { role: "user", content: record.content, timestamp };
+      return {
+        role: "user",
+        content: formatUserTurn(record.content, record.attachments),
+        timestamp,
+      };
     }
     const assistant: AssistantMessage = {
       role: "assistant",

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "../../../i18n";
+import { discardAgentThread } from "../agent/agent-runtime";
 import { AiNotConfiguredError } from "../lib/ai-errors";
 import { appendStreamChunk, finalizeParts, partsText } from "../lib/chat-stream";
 import { getChatTransport } from "../lib/chat-transport";
@@ -27,7 +28,7 @@ export interface BookConversation {
    */
   retry: () => void;
   stop: () => void;
-  clear: () => void;
+  clear: () => Promise<void>;
 }
 
 /**
@@ -48,6 +49,8 @@ export function useBookConversation(
    * each turn so the agent can scope its chapter session. Book thread only.
    */
   chapterHref: string | null = null,
+  /** Current CFI sampled at send time; book thread only. */
+  positionAnchor: string | null = null,
 ): BookConversation {
   const { t } = useTranslation("ai");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -63,6 +66,8 @@ export function useBookConversation(
   // Sampled at send time via a ref so `send` stays stable across page turns.
   const chapterHrefRef = useRef<string | null>(chapterHref);
   chapterHrefRef.current = chapterHref;
+  const positionAnchorRef = useRef<string | null>(positionAnchor);
+  positionAnchorRef.current = positionAnchor;
 
   // (Re)load the persisted conversation when the book changes; abort any
   // in-flight turn from the previous book.
@@ -122,6 +127,7 @@ export function useBookConversation(
               message: userMessage,
               thread,
               chapterHref: chapterHrefRef.current,
+              positionAnchor: positionAnchorRef.current,
               reset,
             },
             controller.signal,
@@ -214,14 +220,11 @@ export function useBookConversation(
     abortRef.current?.abort();
   }, []);
 
-  const clear = useCallback(() => {
+  const clear = useCallback(async () => {
     abortRef.current?.abort();
     setMessages([]);
-    void clearConversation(bookId);
-    // TODO: the agent thread's in-memory state survives a clear until the next
-    // reset turn or app restart — route clears through SendTurnInput.reset (or
-    // a runtime-level discard) when clearing becomes thread-aware.
-  }, [bookId]);
+    await Promise.all([discardAgentThread(thread, bookId), clearConversation(bookId)]);
+  }, [bookId, thread]);
 
   return { messages, isLoading, isStreaming, streamingParts, status, send, retry, stop, clear };
 }

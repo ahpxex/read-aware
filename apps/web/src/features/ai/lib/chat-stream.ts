@@ -45,13 +45,35 @@ export function appendStreamChunk(
   chunk: ChatStreamChunk,
 ): ChatAssistantPart[] {
   switch (chunk.type) {
-    case "text":
-    case "thinking": {
+    case "text": {
       const last = parts[parts.length - 1];
       if (last && last.type === chunk.type) {
         return [...parts.slice(0, -1), { ...last, text: last.text + chunk.text }];
       }
       return [...parts, { type: chunk.type, text: chunk.text }];
+    }
+    case "thinking": {
+      const last = parts[parts.length - 1];
+      if (last?.type === "thinking") {
+        return [...parts.slice(0, -1), { ...last, text: last.text + chunk.text }];
+      }
+      // A tool round can produce another reasoning run. Keep one disclosure for
+      // the whole assistant turn, moving it to the active point in the timeline
+      // so it still streams in the right place instead of stacking repeated
+      // "Thought process" rows around every tool call.
+      const priorThoughts = parts.filter(
+        (part): part is Extract<ChatAssistantPart, { type: "thinking" }> =>
+          part.type === "thinking",
+      );
+      const priorText = priorThoughts.map((part) => part.text.trim()).filter(Boolean).join("\n\n");
+      const withoutThoughts = parts.filter((part) => part.type !== "thinking");
+      return [
+        ...withoutThoughts,
+        {
+          type: "thinking",
+          text: priorText ? `${priorText}\n\n${chunk.text}` : chunk.text,
+        },
+      ];
     }
     case "tool": {
       if (chunk.phase === "start") {
@@ -122,13 +144,59 @@ export function appendStreamChunk(
   }
 }
 
+function dedupeThinkingParagraphs(text: string): string {
+  const seen = new Set<string>();
+  const paragraphs: string[] = [];
+  for (const paragraph of text.split(/\n{2,}/)) {
+    const trimmed = paragraph.trim();
+    if (!trimmed) continue;
+    const key = trimmed.replace(/\s+/g, " ").toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    paragraphs.push(trimmed);
+  }
+  return paragraphs.join("\n\n");
+}
+
+/** Collapse provider/tool-round reasoning runs into one turn-level disclosure. */
+export function consolidateThinkingParts(
+  parts: ChatAssistantPart[],
+  dedupe = false,
+): ChatAssistantPart[] {
+  let lastThinkingIndex = -1;
+  for (let index = parts.length - 1; index >= 0; index--) {
+    if (parts[index]?.type === "thinking") {
+      lastThinkingIndex = index;
+      break;
+    }
+  }
+  if (lastThinkingIndex < 0) return parts;
+  const text = parts
+    .filter((part): part is Extract<ChatAssistantPart, { type: "thinking" }> =>
+      part.type === "thinking",
+    )
+    .map((part) => part.text.trim())
+    .filter(Boolean)
+    .join("\n\n");
+  const mergedText = dedupe ? dedupeThinkingParagraphs(text) : text;
+  const consolidated: ChatAssistantPart[] = [];
+  for (const [index, part] of parts.entries()) {
+    if (part.type !== "thinking") {
+      consolidated.push(part);
+    } else if (index === lastThinkingIndex && mergedText) {
+      consolidated.push({ type: "thinking", text: mergedText });
+    }
+  }
+  return consolidated;
+}
+
 /**
  * Settle a timeline for persistence: tools still "running" (stopped or failed
  * mid-call) settle to "done" so no spinner is ever stored, and empty text runs
  * are dropped.
  */
 export function finalizeParts(parts: ChatAssistantPart[]): ChatAssistantPart[] {
-  return parts
+  return consolidateThinkingParts(parts, true)
     .filter((part) => {
       if (part.type === "text" || part.type === "thinking") return part.text.trim().length > 0;
       return true;

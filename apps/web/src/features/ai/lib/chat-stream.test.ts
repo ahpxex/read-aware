@@ -105,3 +105,32 @@ describe("tool trace assembly", () => {
     expect(oversized?.endsWith("\n…")).toBe(true);
   });
 });
+
+describe("thinking stream assembly", () => {
+  test("keeps one disclosure across tool rounds and removes exact repeated paragraphs", () => {
+    let parts: ChatAssistantPart[] = [];
+    parts = appendStreamChunk(parts, { type: "thinking", text: "I should inspect the chapter." });
+    parts = appendStreamChunk(parts, {
+      type: "tool",
+      phase: "start",
+      id: "call-1",
+      tool: "read_chapter",
+    });
+    parts = appendStreamChunk(parts, {
+      type: "tool",
+      phase: "end",
+      id: "call-1",
+      isError: false,
+    });
+    parts = appendStreamChunk(parts, { type: "thinking", text: "I should inspect the chapter." });
+
+    expect(parts.filter((part) => part.type === "thinking")).toHaveLength(1);
+    expect(parts[parts.length - 1]?.type).toBe("thinking");
+
+    const settled = finalizeParts(parts);
+    const thought = settled.find((part) => part.type === "thinking");
+    expect(thought?.type === "thinking" ? thought.text : "").toBe(
+      "I should inspect the chapter.",
+    );
+  });
+});

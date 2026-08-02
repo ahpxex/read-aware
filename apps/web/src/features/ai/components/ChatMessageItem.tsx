@@ -1,4 +1,5 @@
 import type { ChatAssistantPart, ChatMessage } from "../lib/chat-types";
+import { consolidateThinkingParts } from "../lib/chat-stream";
 import { AttachmentChip } from "./AttachmentChip";
 import { ChatMessageActions, ChatMessageError } from "./ChatMessageActions";
 import { ChatInteractionPrompt } from "./ChatInteractionPrompt";
@@ -10,10 +11,10 @@ import { ReferenceStack } from "./references/ReferenceStack";
 /**
  * One turn in the conversation. User turns sit right-aligned in a quiet chip
  * (with any attached passages above); assistant turns read as a left-aligned
- * timeline — thinking disclosures, individual tool-step rows and
- * reference-card stacks interleaved with Markdown prose, in the order they
- * happened — closer to a reading companion than a messaging app. Streaming
- * and settled turns render identically; nothing folds after the fact.
+ * timeline — one turn-level thinking disclosure, individual tool-step rows and
+ * reference-card stacks interleaved with Markdown prose. Later reasoning runs
+ * move the shared disclosure forward instead of stacking a new row around
+ * every tool round.
  *
  * Every settled message grows a hover-revealed action row (copy; regenerate
  * when `onRetry` is passed — the transcript only passes it on the last
@@ -52,12 +53,14 @@ export function ChatMessageItem({
 
   // Messages persisted before parts existed carry only `content`; a failed
   // turn that produced nothing carries neither (the error row is its body).
-  const parts: ChatAssistantPart[] =
+  const rawParts: ChatAssistantPart[] =
     message.parts && message.parts.length > 0
       ? message.parts
       : message.content
         ? [{ type: "text", text: message.content }]
         : [];
+  // Older persisted turns may predate turn-level reasoning consolidation.
+  const parts = consolidateThinkingParts(rawParts, !streaming);
   const lastIndex = parts.length - 1;
 
   return (

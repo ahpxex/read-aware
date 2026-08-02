@@ -78,6 +78,40 @@ export const SettledAssistantTurn: Story = {
   },
 };
 
+/** Multiple provider reasoning rounds settle into one expandable thought row. */
+export const ConsolidatedToolRoundThinking: Story = {
+  args: {
+    message: {
+      id: "a-thinking-rounds",
+      role: "assistant",
+      content: "The visible passage supports the clock clue, but not the later reveal.",
+      createdAt: sentAt,
+      parts: [
+        {
+          type: "thinking",
+          text: "I should stay within the reader's current visible passage.",
+        },
+        {
+          type: "tool",
+          id: "t1",
+          tool: "get_toc",
+          input: "{}",
+          output: '{\n  "chapters": 12\n}',
+          state: "done",
+        },
+        {
+          type: "thinking",
+          text: "I should stay within the reader's current visible passage.",
+        },
+        {
+          type: "text",
+          text: "The visible passage supports the **clock clue**, but not the later reveal.",
+        },
+      ],
+    },
+  },
+};
+
 /** A failed turn (recognized code): the always-visible error card carries retry — no hover regenerate doubling it. */
 export const FailedTurn: Story = {
   args: {

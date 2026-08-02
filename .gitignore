@@ -15,6 +15,7 @@ dist-ssr
 .tanstack
 storybook-static
 *.local
+.eval/
 
 # Turborepo
 .turbo

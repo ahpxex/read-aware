@@ -63,6 +63,11 @@ export interface AgentThreadOptions {
   thinkingLevel?: ThinkingLevel;
   /** transformContext 窗口大小（用户轮数），默认 12 */
   maxWindowTurns?: number;
+  /**
+   * Stable experiment seam for comparing complete prompt configurations in
+   * evals. Production callers normally leave this unset.
+   */
+  transformSystemPrompt?: (prompt: string, scope: ThreadScope) => string;
 }
 
 const DEFAULT_WINDOW_TURNS = 12;
@@ -78,6 +83,7 @@ export class AgentThread {
   private readonly streamFn: StreamFn;
   private readonly thinkingLevel: ThinkingLevel;
   private readonly maxWindowTurns: number;
+  private readonly transformSystemPrompt?: (prompt: string, scope: ThreadScope) => string;
 
   private agent: Agent | undefined;
   private busy = false;
@@ -101,6 +107,7 @@ export class AgentThread {
     this.streamFn = options.streamFn;
     this.thinkingLevel = options.thinkingLevel ?? "off";
     this.maxWindowTurns = options.maxWindowTurns ?? DEFAULT_WINDOW_TURNS;
+    this.transformSystemPrompt = options.transformSystemPrompt;
   }
 
   /** 等待后台管道（记忆提炼）排空 —— 测试与关闭线程时用。 */
@@ -178,7 +185,7 @@ export class AgentThread {
     ]);
     const chapter =
       toc && currentChapterHref ? findChapterByHref(toc, currentChapterHref) : undefined;
-    agent.state.systemPrompt = buildSystemPrompt(this.scope, {
+    const systemPrompt = buildSystemPrompt(this.scope, {
       book,
       currentChapter: chapter && { index: chapter.index, title: chapter.title },
       profile,
@@ -189,6 +196,9 @@ export class AgentThread {
       onboardingInterview:
         this.scope.kind === "global" && !profile && agent.state.messages.length === 0,
     });
+    agent.state.systemPrompt = this.transformSystemPrompt
+      ? this.transformSystemPrompt(systemPrompt, this.scope)
+      : systemPrompt;
   }
 
   async *sendTurn(input: SendTurnInput): AsyncGenerator<ThreadChunk> {
@@ -296,6 +306,7 @@ export class AgentThread {
                 cacheRead: usage.cacheRead,
                 cacheWrite: usage.cacheWrite,
               },
+              costUsd: usage?.cost.total,
             };
             break;
           }

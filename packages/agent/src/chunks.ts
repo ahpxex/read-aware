@@ -77,4 +77,6 @@ export type ThreadChunk =
         cacheRead: number;
         cacheWrite: number;
       };
+      /** Provider-reported estimated cost for this model round. */
+      costUsd?: number;
     };

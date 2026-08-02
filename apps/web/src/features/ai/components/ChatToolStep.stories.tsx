@@ -16,24 +16,46 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** In flight: a spinner in the chevron slot, label brightened, distilled argument after the dot. */
+/** In flight: expanded automatically so the live input and progress are visible. */
 export const Running: Story = {
   args: {
-    part: { type: "tool", id: "t1", tool: "search_memory", detail: "reading goals", state: "running" },
+    part: {
+      type: "tool",
+      id: "t1",
+      tool: "search_memory",
+      detail: "reading goals",
+      input: '{\n  "query": "reading goals"\n}',
+      state: "running",
+    },
   },
 };
 
-/** Settled: back to the quiet chevron row (no detail when the arguments were opaque). */
+/** Settled: collapses immediately, with both the input and result available on demand. */
 export const Done: Story = {
   args: {
-    part: { type: "tool", id: "t2", tool: "get_annotations", state: "done" },
+    part: {
+      type: "tool",
+      id: "t2",
+      tool: "get_annotations",
+      input: "{}",
+      output: '{\n  "annotations": []\n}',
+      state: "done",
+    },
   },
 };
 
 /** Failed: an understated plain-text suffix — no red banner. */
 export const Failed: Story = {
   args: {
-    part: { type: "tool", id: "t3", tool: "search_book_text", detail: "deliberate practice", state: "error" },
+    part: {
+      type: "tool",
+      id: "t3",
+      tool: "search_book_text",
+      detail: "deliberate practice",
+      input: '{\n  "queries": ["deliberate practice"]\n}',
+      output: "Chapter text is unavailable.",
+      state: "error",
+    },
   },
 };
 

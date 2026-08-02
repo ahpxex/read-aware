@@ -35,6 +35,12 @@
       "recolor_highlight": "正在更新高亮",
       "delete_annotation": "正在移除标注",
       "open_book": "正在打开书籍",
+      "get_recent_turns": "回顾最近对话",
+      "get_settings": "查看设置",
+      "update_settings": "更新设置",
+      "input": "输入",
+      "output": "输出",
+      "running": "执行中…",
       "fallback": "处理中",
       "failed": "失败"
     },

@@ -98,9 +98,11 @@ describe("AgentThread", () => {
     expect(
       chunks.some((c) => c.type === "tool-step" && c.phase === "start" && c.tool === "get_annotations"),
     ).toBe(true);
-    expect(
-      chunks.some((c) => c.type === "tool-step" && c.phase === "end" && c.isError === false),
-    ).toBe(true);
+    const toolEnd = chunks.find(
+      (c) => c.type === "tool-step" && c.phase === "end" && c.isError === false,
+    );
+    expect(toolEnd).toBeDefined();
+    expect(toolEnd?.type === "tool-step" && toolEnd.output).toContain("barter myth");
 
     const persisted = turns.get("book:b1");
     expect(persisted).toHaveLength(2);

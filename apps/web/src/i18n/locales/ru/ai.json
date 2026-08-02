@@ -35,6 +35,12 @@
       "recolor_highlight": "Обновляю выделение",
       "delete_annotation": "Удаляю аннотацию",
       "open_book": "Открываю книгу",
+      "get_recent_turns": "Просматриваю последние реплики",
+      "get_settings": "Проверяю настройки",
+      "update_settings": "Обновляю настройки",
+      "input": "Входные данные",
+      "output": "Результат",
+      "running": "Выполняется…",
       "fallback": "Работаю",
       "failed": "не удалось"
     },

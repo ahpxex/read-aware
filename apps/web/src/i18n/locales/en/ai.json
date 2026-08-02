@@ -35,6 +35,12 @@
       "recolor_highlight": "Updating a highlight",
       "delete_annotation": "Removing an annotation",
       "open_book": "Opening the book",
+      "get_recent_turns": "Reviewing recent turns",
+      "get_settings": "Reading settings",
+      "update_settings": "Updating settings",
+      "input": "Input",
+      "output": "Output",
+      "running": "Running…",
       "fallback": "Working",
       "failed": "failed"
     },

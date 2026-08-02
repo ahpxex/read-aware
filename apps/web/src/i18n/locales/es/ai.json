@@ -35,6 +35,12 @@
       "recolor_highlight": "Actualizando un subrayado",
       "delete_annotation": "Eliminando una anotación",
       "open_book": "Abriendo el libro",
+      "get_recent_turns": "Revisando los turnos recientes",
+      "get_settings": "Consultando los ajustes",
+      "update_settings": "Actualizando los ajustes",
+      "input": "Entrada",
+      "output": "Salida",
+      "running": "En curso…",
       "fallback": "Trabajando",
       "failed": "falló"
     },

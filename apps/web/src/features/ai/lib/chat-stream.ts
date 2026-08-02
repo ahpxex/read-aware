@@ -57,12 +57,30 @@ export function appendStreamChunk(
       if (chunk.phase === "start") {
         return [
           ...parts,
-          { type: "tool", id: chunk.id, tool: chunk.tool, detail: chunk.detail, state: "running" },
+          {
+            type: "tool",
+            id: chunk.id,
+            tool: chunk.tool,
+            detail: chunk.detail,
+            input: chunk.input,
+            state: "running",
+          },
         ];
+      }
+      if (chunk.phase === "update") {
+        return parts.map((part) =>
+          part.type === "tool" && part.id === chunk.id && part.state === "running"
+            ? { ...part, output: chunk.output }
+            : part,
+        );
       }
       return parts.map((part) =>
         part.type === "tool" && part.id === chunk.id && part.state === "running"
-          ? { ...part, state: chunk.isError ? "error" : "done" }
+          ? {
+              ...part,
+              output: chunk.output,
+              state: chunk.isError ? "error" : "done",
+            }
           : part,
       );
     }
@@ -144,6 +162,7 @@ export function partsText(parts: ChatAssistantPart[]): string {
 }
 
 const DETAIL_MAX_CHARS = 80;
+const TRACE_MAX_CHARS = 8_000;
 
 function truncate(value: string): string {
   const clean = value.replace(/\s+/g, " ").trim();
@@ -174,4 +193,36 @@ export function toolStepDetail(tool: string, args: unknown): string | undefined 
     return truncate(record.term);
   }
   return undefined;
+}
+
+/**
+ * Serialize one tool-trace value into bounded, readable text. Tool results are
+ * often JSON strings already, so parse and pretty-print those before storing
+ * them in the presentation-only `parts_json` column. The cap prevents chapter
+ * reads and plugin responses from quietly bloating every chat message.
+ */
+export function toolTraceText(value: unknown): string | undefined {
+  if (value === undefined) return undefined;
+  let normalized = value;
+  if (typeof value === "string") {
+    if (!value.trim()) return undefined;
+    try {
+      normalized = JSON.parse(value);
+    } catch {
+      normalized = value;
+    }
+  }
+
+  let text: string;
+  if (typeof normalized === "string") {
+    text = normalized;
+  } else {
+    try {
+      text = JSON.stringify(normalized, null, 2);
+    } catch {
+      text = String(normalized);
+    }
+  }
+  if (!text.trim()) return undefined;
+  return text.length > TRACE_MAX_CHARS ? `${text.slice(0, TRACE_MAX_CHARS)}\n…` : text;
 }

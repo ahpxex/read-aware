@@ -49,6 +49,10 @@ export interface ChatToolPart {
   id: string;
   tool: string;
   detail?: string;
+  /** Bounded, display-only snapshot of the arguments sent to the tool. */
+  input?: string;
+  /** Bounded, display-only snapshot of the model-visible tool result. */
+  output?: string;
   state: "running" | "done" | "error";
 }
 
@@ -215,8 +219,16 @@ export interface ChatTurnRequest {
 export type ChatStreamChunk =
   | { type: "text"; text: string }
   | { type: "thinking"; text: string }
-  | { type: "tool"; phase: "start"; id: string; tool: string; detail?: string }
-  | { type: "tool"; phase: "end"; id: string; isError: boolean }
+  | {
+      type: "tool";
+      phase: "start";
+      id: string;
+      tool: string;
+      detail?: string;
+      input?: string;
+    }
+  | { type: "tool"; phase: "update"; id: string; output: string }
+  | { type: "tool"; phase: "end"; id: string; isError: boolean; output?: string }
   | { type: "interaction"; phase: "request"; request: ChatInteractionRequest }
   | {
       type: "interaction";

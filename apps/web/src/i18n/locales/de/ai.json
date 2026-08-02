@@ -35,6 +35,12 @@
       "recolor_highlight": "Aktualisiert eine Markierung",
       "delete_annotation": "Entfernt eine Annotation",
       "open_book": "Öffnet das Buch",
+      "get_recent_turns": "Prüft die letzten Gesprächsschritte",
+      "get_settings": "Prüft Einstellungen",
+      "update_settings": "Aktualisiert Einstellungen",
+      "input": "Eingabe",
+      "output": "Ausgabe",
+      "running": "Wird ausgeführt…",
       "fallback": "Arbeitet",
       "failed": "fehlgeschlagen"
     },

@@ -33,7 +33,7 @@ export type ThreadChunk =
   | { type: "thinking"; text: string }
   | {
       type: "tool-step";
-      phase: "start" | "end";
+      phase: "start" | "update" | "end";
       /** pi 的 toolCallId —— 消费端用它配对同一次调用的 start/end。 */
       id: string;
       tool: string;
@@ -41,6 +41,8 @@ export type ThreadChunk =
       args?: unknown;
       /** 仅 end。 */
       isError?: boolean;
+      /** update/end：工具返回给模型的可读文本，供调用轨迹 UI 展示。 */
+      output?: string;
     }
   /** present_* / lookup_word 主动展示的结构化引用 —— UI 渲染成卡片叠。 */
   | {

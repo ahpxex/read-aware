@@ -102,9 +102,22 @@ async function* toolStep(
 ): AsyncIterable<ChatStreamChunk> {
   if (signal?.aborted) return;
   const id = crypto.randomUUID();
-  yield { type: "tool", phase: "start", id, tool, detail };
+  yield {
+    type: "tool",
+    phase: "start",
+    id,
+    tool,
+    detail,
+    input: JSON.stringify(detail ? { query: detail } : {}, null, 2),
+  };
   await sleep(ms, signal);
-  yield { type: "tool", phase: "end", id, isError: false };
+  yield {
+    type: "tool",
+    phase: "end",
+    id,
+    isError: false,
+    output: JSON.stringify({ ok: true }, null, 2),
+  };
 }
 
 /** Stream a string word-by-word as text or thinking deltas. */

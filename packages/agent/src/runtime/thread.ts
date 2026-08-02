@@ -28,6 +28,7 @@ import {
   lastTurnTail,
   turnRecordsToMessages,
 } from "./history";
+import { toolResultText } from "./tool-trace";
 import { windowByTurns } from "./windowing";
 
 export type SelectionAttachment = TurnAttachment;
@@ -313,8 +314,19 @@ export class AgentThread {
             };
             break;
           case "tool_execution_update": {
+            const partialResult = event.partialResult;
+            const partialOutput = partialResult ? toolResultText(partialResult) : undefined;
+            if (partialOutput) {
+              yield {
+                type: "tool-step",
+                phase: "update",
+                id: event.toolCallId,
+                tool: event.toolName,
+                output: partialOutput,
+              };
+            }
             const interaction = interactionFromToolDetails(
-              (event.partialResult as { details?: unknown } | undefined)?.details,
+              partialResult?.details,
             );
             if (interaction?.phase === "request") {
               yield {
@@ -339,6 +351,7 @@ export class AgentThread {
               id: event.toolCallId,
               tool: event.toolName,
               isError: event.isError,
+              output: toolResultText(event.result),
             };
             // 展示类工具（present_* / lookup_word）把卡片 payload 放在
             // AgentToolResult.details 里 —— 这里转成 reference chunk 流给 UI

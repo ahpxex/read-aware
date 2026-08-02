@@ -26,7 +26,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Mid-stream: the tail renders live under the pulsing label, bottom-anchored, top fading out. */
+/** Mid-stream: a loading glyph accompanies the live, bottom-anchored thought tail. */
 export const Streaming: Story = {
   args: { streaming: true },
 };
@@ -39,5 +39,5 @@ export const StreamingShort: Story = {
   },
 };
 
-/** Settled: the run collapses behind the quiet "Thought process" disclosure. */
+/** Settled: the controlled disclosure remains keyboard- and pointer-expandable. */
 export const Settled: Story = {};

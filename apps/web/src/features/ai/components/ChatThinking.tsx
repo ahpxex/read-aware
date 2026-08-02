@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { CaretRight } from "@phosphor-icons/react";
-import { Caption } from "@read-aware/ui";
+import { Button, Caption, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 
@@ -21,6 +21,8 @@ export function ChatThinking({
   const { t } = useTranslation("ai");
   const tailRef = useRef<HTMLDivElement | null>(null);
   const [clipped, setClipped] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const contentId = useId();
 
   // The fade mask only makes sense once the tail actually overflows —
   // fading the first line of a short thought reads as a rendering bug.
@@ -34,7 +36,7 @@ export function ChatThinking({
     return (
       <div className="min-w-0">
         <div className="flex items-center gap-1">
-          <CaretRight size={12} className="shrink-0 text-fg-subtle" aria-hidden="true" />
+          <Spinner size="sm" className="mx-0.5 h-3 w-3 shrink-0" />
           <Caption className="ra-chat-pulse text-fg-subtle">{t("chat.thinking")}</Caption>
         </div>
         {text.trim().length > 0 && (
@@ -56,20 +58,33 @@ export function ChatThinking({
   }
 
   return (
-    <details className="group min-w-0">
-      <summary
-        className="flex w-fit cursor-pointer list-none items-center gap-1 [&::-webkit-details-marker]:hidden"
+    <div className="min-w-0">
+      <Button
+        variant="ghost"
+        size="sm"
+        aria-expanded={expanded}
+        aria-controls={contentId}
+        onClick={() => setExpanded((open) => !open)}
+        className="h-auto w-fit justify-start gap-1 p-0 text-left font-normal text-fg-subtle hover:bg-transparent hover:text-fg-muted active:bg-transparent"
       >
         <CaretRight
           size={12}
-          className="shrink-0 text-fg-subtle transition-transform group-open:rotate-90"
+          className={cn(
+            "shrink-0 text-fg-subtle transition-transform",
+            expanded && "rotate-90",
+          )}
           aria-hidden="true"
         />
         <Caption className="text-fg-subtle">{t("chat.thought")}</Caption>
-      </summary>
-      <div className="mt-1.5 whitespace-pre-wrap pl-4 text-caption leading-relaxed text-fg-muted">
-        {text}
-      </div>
-    </details>
+      </Button>
+      {expanded && (
+        <div
+          id={contentId}
+          className="mt-1.5 whitespace-pre-wrap border-l border-border pl-4 text-caption leading-relaxed text-fg-muted"
+        >
+          {text}
+        </div>
+      )}
+    </div>
   );
 }

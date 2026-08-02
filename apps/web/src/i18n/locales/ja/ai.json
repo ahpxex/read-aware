@@ -35,6 +35,12 @@
       "recolor_highlight": "ハイライトを更新しています",
       "delete_annotation": "注釈を削除しています",
       "open_book": "本を開いています",
+      "get_recent_turns": "最近の会話を確認しています",
+      "get_settings": "設定を確認しています",
+      "update_settings": "設定を更新しています",
+      "input": "入力",
+      "output": "出力",
+      "running": "実行中…",
       "fallback": "処理中",
       "failed": "失敗"
     },

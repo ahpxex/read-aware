@@ -15,7 +15,7 @@ import {
 import type { Id } from "@read-aware/core";
 import { AiNotConfiguredError } from "../lib/ai-errors";
 import type { ChatTransport } from "../lib/chat-transport";
-import { toolStepDetail } from "../lib/chat-stream";
+import { toolStepDetail, toolTraceText } from "../lib/chat-stream";
 import type { ChatReference, ChatStreamChunk } from "../lib/chat-types";
 import type { ChatTurnRequest } from "../lib/chat-types";
 import { getAgentRuntime } from "./agent-runtime";
@@ -79,13 +79,25 @@ export function createPiChatTransport(): ChatTransport {
                 id: chunk.id,
                 tool: chunk.tool,
                 detail: toolStepDetail(chunk.tool, chunk.args),
+                input: toolTraceText(chunk.args),
               } satisfies ChatStreamChunk;
+            } else if (chunk.phase === "update") {
+              const output = toolTraceText(chunk.output);
+              if (output) {
+                yield {
+                  type: "tool",
+                  phase: "update",
+                  id: chunk.id,
+                  output,
+                } satisfies ChatStreamChunk;
+              }
             } else {
               yield {
                 type: "tool",
                 phase: "end",
                 id: chunk.id,
                 isError: chunk.isError ?? false,
+                output: toolTraceText(chunk.output),
               } satisfies ChatStreamChunk;
             }
             break;

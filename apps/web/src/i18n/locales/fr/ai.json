@@ -35,6 +35,12 @@
       "recolor_highlight": "Mise à jour d’un surlignage",
       "delete_annotation": "Suppression d’une annotation",
       "open_book": "Ouverture du livre",
+      "get_recent_turns": "Relecture des échanges récents",
+      "get_settings": "Consultation des réglages",
+      "update_settings": "Mise à jour des réglages",
+      "input": "Entrée",
+      "output": "Sortie",
+      "running": "Exécution…",
       "fallback": "En cours",
       "failed": "échec"
     },

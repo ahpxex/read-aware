@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { appendStreamChunk, finalizeParts, partsText } from "./chat-stream";
+import { appendStreamChunk, finalizeParts, partsText, toolTraceText } from "./chat-stream";
 import type { ChatAssistantPart, ChatInteractionRequest } from "./chat-types";
 
 const question: ChatInteractionRequest = {
@@ -55,5 +55,53 @@ describe("chat interaction stream assembly", () => {
       state: "cancelled",
       answer: { cancelled: true },
     });
+  });
+});
+
+describe("tool trace assembly", () => {
+  test("persists bounded input and output on the same tool part", () => {
+    let parts: ChatAssistantPart[] = [];
+    parts = appendStreamChunk(parts, {
+      type: "tool",
+      phase: "start",
+      id: "call-1",
+      tool: "get_settings",
+      input: '{\n  "section": "reading"\n}',
+    });
+    parts = appendStreamChunk(parts, {
+      type: "tool",
+      phase: "update",
+      id: "call-1",
+      output: "Reading the current override…",
+    });
+    expect(parts[0]).toMatchObject({ state: "running", output: "Reading the current override…" });
+
+    parts = appendStreamChunk(parts, {
+      type: "tool",
+      phase: "end",
+      id: "call-1",
+      isError: false,
+      output: '{\n  "fontSize": "large"\n}',
+    });
+
+    expect(parts).toEqual([
+      {
+        type: "tool",
+        id: "call-1",
+        tool: "get_settings",
+        detail: undefined,
+        input: '{\n  "section": "reading"\n}',
+        output: '{\n  "fontSize": "large"\n}',
+        state: "done",
+      },
+    ]);
+    expect(finalizeParts(parts)).toEqual(parts);
+  });
+
+  test("pretty-prints JSON results and caps oversized trace content", () => {
+    expect(toolTraceText('{"updated":true}')).toBe('{\n  "updated": true\n}');
+    const oversized = toolTraceText("x".repeat(9_000));
+    expect(oversized?.length).toBeLessThan(9_000);
+    expect(oversized?.endsWith("\n…")).toBe(true);
   });
 });

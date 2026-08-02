@@ -18,7 +18,8 @@ import {
 } from "../lib/selection-overlay";
 import { flattenToc, findTocIndexForHref } from "../lib/epub-utils";
 import { attachTocFractions } from "../lib/toc-fractions";
-import type { LoadedBook, TocEntry, TocNavItem } from "../lib/reader-types";
+import { chapterProgressAt, normalizeReadingCursorText } from "../lib/reading-cursor";
+import type { LoadedBook, ReadingCursor, TocEntry, TocNavItem } from "../lib/reader-types";
 import {
   createFoliateView,
   createFootnoteHandler,
@@ -105,6 +106,8 @@ type FoliateReaderViewProps = {
   onFractionChange?: (fraction: number) => void;
   onTocChange?: (entries: TocEntry[]) => void;
   onCurrentChapterChange?: (href: string | null) => void;
+  /** Current viewport text + chapter-relative location for the in-book agent. */
+  onReadingCursorChange?: (cursor: ReadingCursor) => void;
   /** Parsed foliate book, shared with lazy metadata/text enrichment. */
   onBookReady?: (book: FoliateBook) => void;
   /** Fixed-layout books (PDF/CBZ) can't host annotations or text-unit modes;
@@ -309,6 +312,7 @@ export function FoliateReaderView({
   onFractionChange,
   onTocChange,
   onCurrentChapterChange,
+  onReadingCursorChange,
   onBookReady,
   onFixedLayoutChange,
   textUnitModeActive = false,
@@ -387,6 +391,7 @@ export function FoliateReaderView({
   const onFractionChangeRef = useRef(onFractionChange);
   const onTocChangeRef = useRef(onTocChange);
   const onCurrentChapterChangeRef = useRef(onCurrentChapterChange);
+  const onReadingCursorChangeRef = useRef(onReadingCursorChange);
   const onBookReadyRef = useRef(onBookReady);
 
   useEffect(() => { onContentClickRef.current = onContentClick; }, [onContentClick]);
@@ -397,6 +402,7 @@ export function FoliateReaderView({
   useEffect(() => { onFractionChangeRef.current = onFractionChange; }, [onFractionChange]);
   useEffect(() => { onTocChangeRef.current = onTocChange; }, [onTocChange]);
   useEffect(() => { onCurrentChapterChangeRef.current = onCurrentChapterChange; }, [onCurrentChapterChange]);
+  useEffect(() => { onReadingCursorChangeRef.current = onReadingCursorChange; }, [onReadingCursorChange]);
   useEffect(() => { onBookReadyRef.current = onBookReady; }, [onBookReady]);
 
   /**
@@ -1760,6 +1766,11 @@ export function FoliateReaderView({
           const total = detail.location?.total ?? 0;
           const cfi = detail.cfi ?? null;
           const href = detail.tocItem?.href ?? null;
+          const activeTocIndex = findTocIndexForHref(entries, href);
+          const chapterTitle =
+            detail.tocItem?.label?.trim() || entries[activeTocIndex]?.label?.trim() || undefined;
+          const chapterProgress = chapterProgressAt(entries, href, fraction);
+          const visibleText = normalizeReadingCursorText(detail.range?.toString() ?? "");
           lastLocationTargetRef.current = cfi ?? href;
           const progressPercent = Math.round(fraction * 100);
           onPageChangeRef.current?.(current, total);
@@ -1770,6 +1781,15 @@ export function FoliateReaderView({
             progressPercent,
             cfi,
             href,
+          });
+          onReadingCursorChangeRef.current?.({
+            ...(cfi ? { anchor: cfi } : {}),
+            ...(href ? { chapter: href } : {}),
+            ...(chapterTitle ? { chapterTitle } : {}),
+            bookProgress: fraction,
+            ...(chapterProgress !== undefined ? { chapterProgress } : {}),
+            ...(total > 0 ? { location: { current, total } } : {}),
+            ...(visibleText ? { visibleText } : {}),
           });
           setCurrentChapterHref(href);
 

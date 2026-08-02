@@ -25,6 +25,7 @@ import { renderPluginIcon } from "../../plugins/lib/plugin-icons";
 import type { RegisteredReaderMode } from "../../plugins/lib/plugin-types";
 import { headerActionsAtom } from "../../plugins/state/plugin-store";
 import { findTocIndexForHref } from "../lib/epub-utils";
+import type { ReadingCursor } from "../lib/reader-types";
 import { buildProgressMarks } from "../lib/reader-progress";
 import { useReaderPanelLayout } from "../hooks/useReaderPanelLayout";
 import { useReaderPanelSizes } from "../hooks/useReaderPanelSizes";
@@ -44,7 +45,7 @@ type ReaderShellOverlayProps = {
   totalPages?: number;
   tocEntries?: TocEntry[];
   currentChapterHref?: string | null;
-  currentPositionAnchor?: string | null;
+  readingCursor?: ReadingCursor | null;
   onChapterSelect?: (href: string) => void;
   onAnnotationSelect?: (cfiRange: string) => void;
   /** Jump to a position in the book, 0..1 — the progress bar's drag target. */
@@ -65,7 +66,7 @@ export function ReaderShellOverlay({
   totalPages,
   tocEntries = [],
   currentChapterHref = null,
-  currentPositionAnchor = null,
+  readingCursor = null,
   onChapterSelect,
   onAnnotationSelect,
   onSeek,
@@ -537,8 +538,7 @@ export function ReaderShellOverlay({
             bookId={bookId}
             bookTitle={title}
             active={visible && notesOpen}
-            chapterHref={currentChapterHref}
-            positionAnchor={currentPositionAnchor}
+            readingCursor={readingCursor}
           />
         </section>
       </div>

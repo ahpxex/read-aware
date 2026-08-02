@@ -203,26 +203,32 @@ interim 转录的富字段（error 标记；chat store 自身已把对话事实�
 无状态基线：
 
 ```
-system prompt（角色 framing + 画像 + 记忆 + 滚动摘要 + 阅读位置）
+system prompt（角色 framing + 画像 + 记忆 + 滚动摘要 + 会话章节）
 + 上一轮 user↔assistant 原文（"尾巴"——覆盖明显的 follow-up）
-+ 当前这轮（+ 选区 attachment）
++ 当前这轮（动态 `reading_cursor` + 选区 attachment + 用户原文）
 + 循环过程中的工具结果
 ```
 
-阅读位置的锚定：会话开始那轮携带的章节 href（选区优先，退回当前阅读位置，
-再退回会话章节）经 `findChapterByHref` 反查抽取章节（靠 §11.5 v2 的
-`hrefs`），在 system prompt 里写明 "currently reading chapter #N" ——
-"这一章"从此是一次 `read_chapter`，而不是拿进度百分比猜。位置在会话内是
-常量（会话 = 章节），所以只需要在会话开始说一次。
+阅读位置分成两层。章节 href 仍经 `findChapterByHref` 反查抽取章节，
+只在会话开始写入 system prompt，让"这一章"有稳定身份。章内位置则不是
+常量：foliate 每次 `relocate` 采样 CFI、全书进度、估算的章内进度与当前
+可见 `Range` 正文，压缩成有界的 `reading_cursor`。发送时把它加在**当前
+用户消息的最前面**，不写入持久转录、记忆提炼或滚动摘要。模型始终以最新
+cursor 为准，而用户原文仍留在消息末尾拥有最后指令权。
 
 防剧透不是所有书的一刀切规则。agent 先根据元数据、目录和已读正文判断作品是否
-以叙事推进为核心；文学和强叙事作品默认把当前章当知识边界，正文检索显式传
-`throughChapterIndex`，边界不清时用 `ask_user`。技术、参考、教程、论说等说明性
-作品不设这条限制，可以主动连接后文；用户标记读完或明确要求后文时也可越过边界。
+以叙事推进为核心；文学和强叙事作品默认把最新 cursor 可见正文的末尾当知识
+边界，不仅约束工具检索，也约束模型自己的先验知识。当前章未读完时，
+`read_chapter` 会越过 cursor，`search_book_text` 也无法截断章内后文，所以当前
+段落优先用 cursor 里的可见正文，叙事检索只回看早先章节。这里不设宿主硬闸：
+用户明确要求剧透、结局或后续时直接越过，不多问一次；只在意图不清时用
+`ask_user`。技术、参考、教程、论说等说明性作品不设限制，可以主动连接后文。
 
 **System prompt 按会话冻结**（缓存对齐）：书线程的 prompt 只在会话开始
-装配一次，会话内字节级不变 —— 画像、记忆、滚动摘要、位置都是会话开始时
-的快照。于是同章追问的前缀头部稳定，中段靠 `elideStaleToolResults` 存根
+装配一次，会话内字节级不变 —— 画像、记忆、滚动摘要和章节身份都是会话
+开始时的快照。动态 cursor 只追加在最新 user message，旧前缀不改；同一轮内多次
+工具往返时 cursor 也不再变。于是同章追问的前缀头部稳定，中段靠
+`elideStaleToolResults` 存根
 的确定性保持稳定（旧存根逐轮不变，只有上一轮新产生的大工具结果被折叠），
 跨轮能一路命中 provider 前缀缓存到上一轮的 user message。prompt 需要
 更新的三件事 —— 新章节、新摘要、新记忆 —— 全部在会话边界生效，而那一刻
@@ -237,6 +243,14 @@ system prompt（角色 framing + 画像 + 记忆 + 滚动摘要 + 阅读位置�
 （无查询词倒带）/ `search_conversation`（原文检索）按需取旧对话；滚动
 摘要与记忆层承接跨章的连续性。prompt 在章节边界回到恒定尺寸，章内累积
 对 provider 前缀缓存反而更友好（同一前缀只增不改）。
+
+**行为评测与单元测试分层**：单元测试固定 cursor 装配、缓存前缀不变、游标
+不进持久转录，以及多轮 reasoning 只保留一个展开块。真模型用
+`bun run eval:reading [provider] [model]`（provider 缺省为 DeepSeek）：叙事书不剧透、用户明确要求剧透、章内
+cursor 落点和说明性书允许查后文。评分同时检查最终文本与工具路径，泄漏时能
+区分是模型先验知识还是越界检索。调试单场可设置
+`READAWARE_EVAL_SCENARIO=narrative-no-spoiler`；Custom provider 通过 runner
+文件头列出的 `READAWARE_EVAL_*` 环境变量接入，密钥不写进场景或日志。
 
 **全局线程 —— 线程内连续**：水化 + `windowByTurns` 窗口化 +
 `elideStaleToolResults` 瘦身（用户自建的线程，线程内连续性是预期本身）。
@@ -262,7 +276,7 @@ surface。书线程只保留围绕当前书的阅读、正文、标注、记忆�
 | 工具族 | surface | 用途 |
 |---|---|---|
 | `get_book_overview`, `get_annotations`, `get_reading_stats` | book + global | 当前书或指定书的元数据、标注与阅读统计 |
-| `get_toc`, `read_chapter`, `search_book_text` | book + global | 目录、分片正文与全文检索；叙事作品可把检索硬截到当前章 |
+| `get_toc`, `read_chapter`, `search_book_text` | book + global | 目录、分片正文与全文检索；叙事作品由 agent 按 cursor 选择已读范围 |
 | `create_note`, `create_highlight`, `update_*`, `delete_annotation` | book + global | 标注写操作；删除由宿主权限 UI 闸住 |
 | `search_memory`, `remember` | book + global | 检索与显式写入长期记忆 |
 | `search_conversation`, `get_recent_turns` | book + global | 历史原话检索与按需倒带 |

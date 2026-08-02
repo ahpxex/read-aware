@@ -46,7 +46,10 @@ describe("conversation flow", () => {
   }
 
   async function drain(thread: AgentThread, text: string, chapter?: string): Promise<void> {
-    for await (const _ of thread.sendTurn({ text, chapter })) {
+    for await (const _ of thread.sendTurn({
+      text,
+      readingCursor: chapter ? { chapter } : undefined,
+    })) {
       // drain
     }
   }
@@ -97,6 +100,10 @@ describe("conversation flow", () => {
     for await (const _ of thread.sendTurn({
       text: "这段怎么理解？",
       attachments: [{ text: "被持久保留的选区", chapter: "chapter-1.xhtml" }],
+      readingCursor: {
+        chapter: "chapter-1.xhtml",
+        visibleText: "只应进入当前模型请求的可见正文",
+      },
     })) {
       // drain
     }
@@ -104,6 +111,8 @@ describe("conversation flow", () => {
 
     expect(backgroundInputs).toHaveLength(2);
     expect(backgroundInputs.every((input) => input.includes("> 被持久保留的选区"))).toBe(true);
+    expect(backgroundInputs.every((input) => !input.includes("<reading_cursor>"))).toBe(true);
+    expect(backgroundInputs.every((input) => !input.includes("只应进入当前模型请求的可见正文"))).toBe(true);
   });
 
   test("search_conversation surfaces verbatim past turns", async () => {

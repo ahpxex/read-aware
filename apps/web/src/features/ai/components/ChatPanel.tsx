@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useAtomValue } from "jotai";
 import { useBookConversation } from "../hooks/useBookConversation";
-import type { ChatSelectionAttachment } from "../lib/chat-types";
+import type { ChatReadingCursor, ChatSelectionAttachment } from "../lib/chat-types";
 import { askAiRequestAtom } from "../state/chat-intent";
 import { ChatComposer, type ChatComposerHandle } from "./ChatComposer";
 import { ChatTranscript } from "./ChatTranscript";
@@ -15,25 +15,16 @@ export function ChatPanel({
   bookId,
   bookTitle,
   active = false,
-  chapterHref = null,
-  positionAnchor = null,
+  readingCursor = null,
 }: {
   bookId: string;
   bookTitle: string;
   /** Whether the chat panel is open and visible — drives autofocus of the composer. */
   active?: boolean;
-  /** The reader's current chapter — stamps each turn for the agent's chapter session. */
-  chapterHref?: string | null;
-  /** Current CFI used to anchor a free-form ask-note. */
-  positionAnchor?: string | null;
+  /** Live viewport snapshot, sampled again by the conversation hook at send time. */
+  readingCursor?: ChatReadingCursor | null;
 }) {
-  const conversation = useBookConversation(
-    bookId,
-    bookTitle,
-    "book",
-    chapterHref,
-    positionAnchor,
-  );
+  const conversation = useBookConversation(bookId, bookTitle, "book", readingCursor);
   const askAiRequest = useAtomValue(askAiRequestAtom);
   const lastConsumedIdRef = useRef<string | null>(null);
   const [pendingAttachment, setPendingAttachment] =

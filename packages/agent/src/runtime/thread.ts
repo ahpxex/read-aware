@@ -28,6 +28,7 @@ import {
   lastTurnTail,
   turnRecordsToMessages,
 } from "./history";
+import { formatPromptTurn, type ReadingCursor } from "./reading-cursor";
 import { toolResultText } from "./tool-trace";
 import { windowByTurns } from "./windowing";
 
@@ -36,10 +37,11 @@ export type SelectionAttachment = TurnAttachment;
 export interface SendTurnInput {
   text: string;
   attachments?: SelectionAttachment[];
-  /** 发送时刻的当前阅读位置；无选区时 ask-note 锚在这里（doc §7） */
-  positionAnchor?: string;
-  /** 发送时刻所在章节（href）—— 书线程章节会话的边界信号（doc §5） */
-  chapter?: string;
+  /**
+   * 发送时刻的阅读游标：既是章节会话边界，也是每轮动态的当前可见上下文。
+   * 它不进稳定 system prompt，所以同章翻页不会使前缀缓存失效。
+   */
+  readingCursor?: ReadingCursor;
   signal?: AbortSignal;
   /**
    * 丢弃线程内存态（pi Agent 实例与章节会话），本轮从持久转录重建。
@@ -203,8 +205,8 @@ export class AgentThread {
     try {
       const agent = await this.ensureAgent();
       // 本轮所在章节：选区的章节优先于阅读位置（问哪段话,会话就属于哪章）。
-      // 双重职责：章节会话的边界信号 + system prompt 的阅读位置锚定。
-      const turnChapter = input.attachments?.[0]?.chapter ?? input.chapter;
+      // 双重职责：章节会话的边界信号 + system prompt 的稳定章节身份。
+      const turnChapter = input.attachments?.[0]?.chapter ?? input.readingCursor?.chapter;
       if (this.scope.kind === "book") {
         // 书线程章节会话（doc §5）：同章节内的轮次共享同一个上下文树
         // （agent.state 连续累积，windowByTurns 封顶）；当且仅当这条消息
@@ -218,10 +220,10 @@ export class AgentThread {
           this.sessionChapter !== undefined &&
           turnChapter !== this.sessionChapter;
         if (!this.sessionStarted || crossedChapter) {
-          // system prompt 只在会话开始装配一次（含阅读位置快照），会话内
+          // system prompt 只在会话开始装配一次（含章节身份快照），会话内
           // 冻结 —— 前缀头部字节级稳定，同章追问跨轮命中 provider 缓存
           // （中段靠 context-slim 存根的确定性保持稳定）。中途提炼的记忆 /
-          // 进度漂移下个会话才进 prompt；滚动摘要正是在这里被重新读入。
+          // 动态章内游标只进最新 user message；滚动摘要正是在这里重读。
           await this.refreshSystemPrompt(agent, turnChapter ?? this.sessionChapter);
           const records = await this.deps.conversations.load(this.key);
           agent.state.messages = turnRecordsToMessages(
@@ -241,6 +243,7 @@ export class AgentThread {
       input.signal?.addEventListener("abort", onAbort, { once: true });
 
       const userText = formatUserTurn(input.text, input.attachments);
+      const promptText = formatPromptTurn(input.text, input.attachments, input.readingCursor);
       // UI 在流开始前就把本轮用户消息持久化（retry 的截断可见性依赖这一点）。
       // 全局线程水化 / 未来任何全量重建会把它带进 state，而 prompt() 马上又
       // 注入同一条 —— 尾部等值的 user 消息属于本轮，丢弃避免问题被喂两遍。
@@ -250,14 +253,14 @@ export class AgentThread {
         "role" in tail &&
         tail.role === "user" &&
         typeof tail.content === "string" &&
-        (tail.content === input.text || tail.content === userText)
+        (tail.content === input.text || tail.content === userText || tail.content === promptText)
       ) {
         agent.state.messages = agent.state.messages.slice(0, -1);
       }
       const startedAt = new Date().toISOString();
       let runError: unknown;
       const run = agent
-        .prompt(userText)
+        .prompt(promptText)
         .then(() => agent.waitForIdle())
         .catch((error) => {
           runError = error;
@@ -405,8 +408,8 @@ export class AgentThread {
         await this.deps.annotations.recordAsk({
           bookId: this.scope.bookId,
           question: input.text,
-          anchor: firstAttachment?.anchor ?? input.positionAnchor,
-          chapter: firstAttachment?.chapter,
+          anchor: firstAttachment?.anchor ?? input.readingCursor?.anchor,
+          chapter: firstAttachment?.chapter ?? input.readingCursor?.chapter,
         });
       }
 

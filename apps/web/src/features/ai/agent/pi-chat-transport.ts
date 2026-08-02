@@ -43,8 +43,7 @@ export function toAgentTurnInput(
   return {
     text: request.message.content,
     attachments,
-    positionAnchor: request.positionAnchor ?? undefined,
-    chapter: request.chapterHref ?? undefined,
+    readingCursor: request.readingCursor ?? undefined,
     signal,
     reset: request.reset,
   };

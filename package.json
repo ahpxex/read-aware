@@ -18,6 +18,7 @@
     "build:landing": "turbo run build --filter=@read-aware/landing",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
+    "eval:reading": "bun packages/agent/src/eval-reading-run.ts",
     "storybook": "turbo run storybook --filter=@read-aware/web",
     "build-storybook": "turbo run build-storybook --filter=@read-aware/web",
     "lint:cycles": "turbo run lint:cycles --filter=@read-aware/web"

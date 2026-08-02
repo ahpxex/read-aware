@@ -13,7 +13,8 @@
     "test": "bun test",
     "spike": "bun src/spike-run.ts",
     "demo": "bun src/demo-run.ts",
-    "repl": "bun src/repl-run.ts"
+    "repl": "bun src/repl-run.ts",
+    "eval:reading": "bun src/eval-reading-run.ts"
   },
   "dependencies": {
     "@earendil-works/pi-agent-core": "^0.83.0",

@@ -42,6 +42,20 @@ export type TocEntry = {
   fraction?: number;
 };
 
+/**
+ * Transient viewport snapshot sampled from foliate's relocate event. This is
+ * live reading context for the agent, not durable reading progress.
+ */
+export type ReadingCursor = {
+  anchor?: string;
+  chapter?: string;
+  chapterTitle?: string;
+  bookProgress?: number;
+  chapterProgress?: number;
+  location?: { current: number; total: number };
+  visibleText?: string;
+};
+
 /** A reading-order content document reference (foliate section index). */
 export type SpineEntry = {
   href: string;

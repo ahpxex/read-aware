@@ -93,9 +93,11 @@ describe("memory write path", () => {
 
     await drain(bookThread, "这段怎么理解？", {
       attachments: [{ text: "原文", anchor: "epubcfi(/6/4!/2)", chapter: "第二章" }],
-      positionAnchor: "epubcfi(/6/8!/1)",
+      readingCursor: { anchor: "epubcfi(/6/8!/1)" },
     });
-    await drain(bookThread, "换个角度呢？", { positionAnchor: "epubcfi(/6/8!/1)" });
+    await drain(bookThread, "换个角度呢？", {
+      readingCursor: { anchor: "epubcfi(/6/8!/1)" },
+    });
     await drain(globalThread, "书架总览？");
 
     expect(stores.asks).toEqual([

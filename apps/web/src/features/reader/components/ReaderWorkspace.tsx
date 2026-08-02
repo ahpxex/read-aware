@@ -11,7 +11,7 @@ import { useReaderAppearance } from "../hooks/useReaderAppearance";
 import { useReadingTimeTracker } from "../hooks/useReadingTimeTracker";
 import { FoliateReaderView } from "./FoliateReaderView";
 import { ReaderShellOverlay } from "./ReaderShellOverlay";
-import type { LoadedBook, TocEntry } from "../lib/reader-types";
+import type { LoadedBook, ReadingCursor, TocEntry } from "../lib/reader-types";
 import type { FoliateBook } from "../lib/foliate-engine";
 import { textUnitReaderModeAtom } from "../../plugins/state/plugin-store";
 
@@ -108,9 +108,13 @@ export function ReaderWorkspace({
     () => readTextUnitModeState(selectedBook.id).active,
   );
   const [isFixedLayout, setIsFixedLayout] = useState(false);
+  const [readingCursor, setReadingCursor] = useState<ReadingCursor | null>(null);
   useEffect(() => {
     setTextUnitModeActive(readTextUnitModeState(selectedBook.id).active);
   }, [selectedBook.id]);
+  useEffect(() => {
+    setReadingCursor(null);
+  }, [selectedBook.id, readerSource]);
   const toggleTextUnitMode = useCallback(() => {
     setTextUnitModeActive((active) => !active);
     // Entering the mode is a "start reading" gesture — drop the chrome so the
@@ -161,6 +165,7 @@ export function ReaderWorkspace({
           onFractionChange={onReaderFractionChange}
           onTocChange={onTocChange}
           onCurrentChapterChange={onCurrentChapterChange}
+          onReadingCursorChange={setReadingCursor}
           onBookReady={(foliateBook) => onBookReady(selectedBook, foliateBook)}
           onFixedLayoutChange={setIsFixedLayout}
           textUnitModeActive={textUnitModeActive}
@@ -205,7 +210,14 @@ export function ReaderWorkspace({
         totalPages={totalPages}
         tocEntries={readerToc}
         currentChapterHref={currentChapterHref}
-        currentPositionAnchor={selectedEpubProgress?.cfi ?? null}
+        readingCursor={
+          readingCursor ?? {
+            ...(selectedEpubProgress?.cfi ? { anchor: selectedEpubProgress.cfi } : {}),
+            ...(currentChapterHref ? { chapter: currentChapterHref } : {}),
+            ...(readerProgress !== undefined ? { bookProgress: readerProgress } : {}),
+            ...(totalPages > 0 ? { location: { current: currentPage, total: totalPages } } : {}),
+          }
+        }
         onChapterSelect={onChapterSelect}
         onAnnotationSelect={onAnnotationSelect}
         onSeek={onSeek}

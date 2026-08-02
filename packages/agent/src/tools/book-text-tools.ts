@@ -26,7 +26,7 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps): Agent
     name: "get_toc",
     label: "Table of contents",
     description:
-      "Get a book's table of contents (chapter index, title, and text length in chars — one read_chapter part covers 12000 chars, so you can budget how many parts a chapter needs). Empty when the book's text has not been extracted. bookId defaults to the current book.",
+      "Get a book's table of contents (chapter index, title, and text length in chars — one read_chapter part covers 12000 chars, so you can budget how many parts a chapter needs). A TOC does not prove whether a topic appears in the prose: if the reader asks you to check coverage, continue with search_book_text or read_chapter in this same turn instead of offering to look later. Empty when the book's text has not been extracted. bookId defaults to the current book.",
     parameters: Type.Object({
       bookId: Type.Optional(Type.String()),
     }),
@@ -42,7 +42,7 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps): Agent
     name: "read_chapter",
     label: "Read chapter",
     description:
-      "Read one chapter's actual text, windowed into parts of 12000 chars (most chapters fit in one part). Start at part 0; the result tells you totalParts. Need several chapters? Issue the read_chapter calls together in one batch — they run in parallel. bookId defaults to the current book.",
+      "Read one chapter's actual text, windowed into parts of 12000 chars (most chapters fit in one part). Start at part 0; the result tells you totalParts. IMPORTANT: this returns the chapter's full text and cannot stop at the newest reading cursor. When a narrative book has cursor.visible_text and the reader did not request spoilers, NEVER call read_chapter on the current chapter, even to gather or verify clues the reader has already seen; the cursor already contains the safe current material. After reading an allowed chapter, complete the reader's requested answer in this turn. Need several chapters? Issue the read_chapter calls together in one batch — they run in parallel. bookId defaults to the current book.",
     parameters: Type.Object({
       chapterIndex: Type.Number({ description: "Chapter index from get_toc" }),
       part: Type.Optional(Type.Number({ description: "Window index, default 0" })),
@@ -75,7 +75,7 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps): Agent
     name: "search_book_text",
     label: "Search book text",
     description:
-      "Full-text search inside the books' actual prose. Pass SEVERAL phrasings/synonyms in `queries` in this ONE call (results are merged and deduped) instead of retrying one query at a time — recall depends on wording and each retry costs a whole round trip. Exact matches come first; token-level fallback matches are marked \"partial\". Each hit reports the read_chapter `part` it falls in, so you can jump straight to it. For narrative spoiler protection, pass throughChapterIndex=current chapter. bookId defaults to the current book; omit bookId in the global thread to search the whole shelf.",
+      "Full-text search inside the books' actual prose. Pass SEVERAL phrasings/synonyms in `queries` in this ONE call (results are merged and deduped) instead of retrying one query at a time — recall depends on wording and each retry costs a whole round trip. Exact matches come first; token-level fallback matches are marked \"partial\". Each hit reports the read_chapter `part` it falls in, so you can jump straight to it. throughChapterIndex is an inclusive chapter ceiling, but it cannot hide unread text later inside that same chapter. When a narrative book has cursor.visible_text and the reader did not request spoilers, NEVER search the current or later chapters, even to gather or verify clues the reader has already seen; use visible_text for the current passage and search only earlier chapters. bookId defaults to the current book; omit bookId in the global thread to search the whole shelf.",
     parameters: Type.Object({
       queries: Type.Array(Type.String(), {
         minItems: 1,
@@ -87,7 +87,7 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps): Agent
         Type.Number({
           minimum: 0,
           description:
-            "Inclusive last chapter to search. For a narrative-sensitive book, set this to the current chapter unless the reader explicitly permits later spoilers.",
+            "Inclusive last chapter to search. For an unfinished narrative chapter, use the previous chapter as the ceiling and rely on reading_cursor.visible_text for the current passage; explicit spoiler requests may use later chapters.",
         }),
       ),
     }),

@@ -22,8 +22,15 @@ describe("pi chat transport mapping", () => {
           },
         ],
       },
-      chapterHref: "chapter-2.xhtml",
-      positionAnchor: "epubcfi(/6/4!/4/2)",
+      readingCursor: {
+        anchor: "epubcfi(/6/4!/4/2)",
+        chapter: "chapter-2.xhtml",
+        chapterTitle: "Chapter 2",
+        bookProgress: 0.42,
+        chapterProgress: 0.6,
+        location: { current: 84, total: 200 },
+        visibleText: "The page currently visible to the reader.",
+      },
     };
 
     expect(toAgentTurnInput(request)).toEqual({
@@ -35,8 +42,15 @@ describe("pi chat transport mapping", () => {
           chapter: "chapter-2.xhtml",
         },
       ],
-      positionAnchor: "epubcfi(/6/4!/4/2)",
-      chapter: "chapter-2.xhtml",
+      readingCursor: {
+        anchor: "epubcfi(/6/4!/4/2)",
+        chapter: "chapter-2.xhtml",
+        chapterTitle: "Chapter 2",
+        bookProgress: 0.42,
+        chapterProgress: 0.6,
+        location: { current: 84, total: 200 },
+        visibleText: "The page currently visible to the reader.",
+      },
       signal: undefined,
       reset: undefined,
     });

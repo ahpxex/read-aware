@@ -27,6 +27,17 @@ export interface ChatSelectionAttachment {
 
 export type ChatAttachment = ChatSelectionAttachment;
 
+/** Live reader viewport sampled when a book-chat message is sent. */
+export interface ChatReadingCursor {
+  anchor?: string;
+  chapter?: string;
+  chapterTitle?: string;
+  bookProgress?: number;
+  chapterProgress?: number;
+  location?: { current: number; total: number };
+  visibleText?: string;
+}
+
 /** A run of visible reply prose (rendered as Markdown). */
 export interface ChatTextPart {
   type: "text";
@@ -192,12 +203,10 @@ export interface ChatTurnRequest {
    */
   thread?: "book" | "global";
   /**
-   * 发送时刻阅读器所在章节（href）。书线程的章节会话边界信号：同章节的
-   * 轮次共享上下文，换章节发新消息才重置（agent 包 doc §5）。全局线程忽略。
+   * 发送时刻的章节、章内进度与当前可见文本。书线程用 chapter 作会话边界，
+   * 其余字段作为只属于本轮的动态阅读上下文。全局线程忽略。
    */
-  chapterHref?: string | null;
-  /** Exact reader location sampled at send time; used to anchor free-form asks. */
-  positionAnchor?: string | null;
+  readingCursor?: ChatReadingCursor | null;
   /**
    * Retry/regenerate：UI 已截断并持久化转录，transport 应丢弃线程内存态，
    * 让本轮从持久转录重建（否则被丢弃的回答仍留在 agent 的上下文里）。

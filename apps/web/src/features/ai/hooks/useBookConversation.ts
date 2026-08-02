@@ -4,7 +4,12 @@ import { discardAgentThread } from "../agent/agent-runtime";
 import { AiNotConfiguredError } from "../lib/ai-errors";
 import { appendStreamChunk, finalizeParts, partsText } from "../lib/chat-stream";
 import { getChatTransport } from "../lib/chat-transport";
-import type { ChatAssistantPart, ChatAttachment, ChatMessage } from "../lib/chat-types";
+import type {
+  ChatAssistantPart,
+  ChatAttachment,
+  ChatMessage,
+  ChatReadingCursor,
+} from "../lib/chat-types";
 import {
   clearConversation,
   loadConversation,
@@ -44,13 +49,8 @@ export function useBookConversation(
   bookId: string,
   bookTitle: string,
   thread: "book" | "global" = "book",
-  /**
-   * The reader's current chapter (href) — sampled at send time and stamped on
-   * each turn so the agent can scope its chapter session. Book thread only.
-   */
-  chapterHref: string | null = null,
-  /** Current CFI sampled at send time; book thread only. */
-  positionAnchor: string | null = null,
+  /** Live reader viewport sampled at send time; book thread only. */
+  readingCursor: ChatReadingCursor | null = null,
 ): BookConversation {
   const { t } = useTranslation("ai");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -64,10 +64,8 @@ export function useBookConversation(
   const messagesRef = useRef<ChatMessage[]>([]);
   messagesRef.current = messages;
   // Sampled at send time via a ref so `send` stays stable across page turns.
-  const chapterHrefRef = useRef<string | null>(chapterHref);
-  chapterHrefRef.current = chapterHref;
-  const positionAnchorRef = useRef<string | null>(positionAnchor);
-  positionAnchorRef.current = positionAnchor;
+  const readingCursorRef = useRef<ChatReadingCursor | null>(readingCursor);
+  readingCursorRef.current = readingCursor;
 
   // (Re)load the persisted conversation when the book changes; abort any
   // in-flight turn from the previous book.
@@ -126,8 +124,7 @@ export function useBookConversation(
               history,
               message: userMessage,
               thread,
-              chapterHref: chapterHrefRef.current,
-              positionAnchor: positionAnchorRef.current,
+              readingCursor: readingCursorRef.current,
               reset,
             },
             controller.signal,

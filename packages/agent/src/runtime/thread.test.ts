@@ -286,9 +286,58 @@ describe("AgentThread", () => {
     });
     const thread = makeThread(deps, model);
 
-    await collect(thread.sendTurn({ text: "这一章讲什么？", chapter: "text/ch2.xhtml#p3" }));
+    await collect(
+      thread.sendTurn({
+        text: "这一章讲什么？",
+        readingCursor: { chapter: "text/ch2.xhtml#p3" },
+      }),
+    );
 
     expect(captured?.systemPrompt).toContain('chapter #1 ("Chapter 2")');
+  });
+
+  test("adds the latest cursor at the new-turn suffix without invalidating the cached prefix", async () => {
+    const { faux, model } = makeFaux();
+    const contexts: Context[] = [];
+    faux.setResponses([
+      (context) => { contexts.push(context); return fauxAssistantMessage("a1"); },
+      (context) => { contexts.push(context); return fauxAssistantMessage("a2"); },
+    ]);
+    const { deps, turns } = makeDeps();
+    const thread = makeThread(deps, model);
+
+    await collect(
+      thread.sendTurn({
+        text: "q1",
+        readingCursor: {
+          chapter: "ch1.xhtml",
+          chapterTitle: "Chapter 1",
+          chapterProgress: 0.2,
+          visibleText: "FIRST VIEWPORT",
+        },
+      }),
+    );
+    await collect(
+      thread.sendTurn({
+        text: "q2",
+        readingCursor: {
+          chapter: "ch1.xhtml",
+          chapterTitle: "Chapter 1",
+          chapterProgress: 0.8,
+          visibleText: "SECOND VIEWPORT",
+        },
+      }),
+    );
+
+    expect(contexts[1]?.systemPrompt).toBe(contexts[0]?.systemPrompt);
+    expect(JSON.stringify(contexts[1]?.messages[0])).toBe(JSON.stringify(contexts[0]?.messages[0]));
+    expect(JSON.stringify(contexts[1]?.messages[0])).toContain("FIRST VIEWPORT");
+    const latestMessage = contexts[1]?.messages[(contexts[1]?.messages.length ?? 1) - 1];
+    expect(JSON.stringify(latestMessage)).toContain("SECOND VIEWPORT");
+    expect(JSON.stringify(latestMessage)).toContain("approximately 80%");
+    // Cursor text is transient model context, not part of the durable transcript.
+    expect(turns.get("book:b1")?.filter((turn) => turn.role === "user").map((turn) => turn.content))
+      .toEqual(["q1", "q2"]);
   });
 
   test("freezes the system prompt within a chapter session, rebuilds on crossing", async () => {
@@ -311,13 +360,13 @@ describe("AgentThread", () => {
     });
     const thread = makeThread(deps, model);
 
-    await collect(thread.sendTurn({ text: "q1", chapter: "ch1.xhtml" }));
+    await collect(thread.sendTurn({ text: "q1", readingCursor: { chapter: "ch1.xhtml" } }));
     // 会话中途画像变了 —— 冻结的 prompt 不该看到它
     stores.profile.summary = "NEW PROFILE";
-    await collect(thread.sendTurn({ text: "q2", chapter: "ch1.xhtml" }));
+    await collect(thread.sendTurn({ text: "q2", readingCursor: { chapter: "ch1.xhtml" } }));
     expect(prompts[1]).toBe(prompts[0]!);
     // 换章 → 会话重置 → prompt 重建：新画像与新章节一起生效
-    await collect(thread.sendTurn({ text: "q3", chapter: "ch2.xhtml" }));
+    await collect(thread.sendTurn({ text: "q3", readingCursor: { chapter: "ch2.xhtml" } }));
     expect(prompts[2]).toContain("NEW PROFILE");
     expect(prompts[2]).toContain('chapter #1 ("Chapter 2")');
   });
@@ -333,9 +382,9 @@ describe("AgentThread", () => {
     const { deps } = makeDeps();
     const thread = makeThread(deps, model);
 
-    await collect(thread.sendTurn({ text: "q1", chapter: "ch1.xhtml" }));
-    await collect(thread.sendTurn({ text: "q2", chapter: "ch1.xhtml" }));
-    await collect(thread.sendTurn({ text: "q3", chapter: "ch1.xhtml" }));
+    await collect(thread.sendTurn({ text: "q1", readingCursor: { chapter: "ch1.xhtml" } }));
+    await collect(thread.sendTurn({ text: "q2", readingCursor: { chapter: "ch1.xhtml" } }));
+    await collect(thread.sendTurn({ text: "q3", readingCursor: { chapter: "ch1.xhtml" } }));
 
     // 会话内连续：第三轮带完整累积（u1,a1,u2,a2,u3），而不是一轮尾巴的 3 条
     expect(contexts[2]?.messages).toHaveLength(5);
@@ -353,13 +402,13 @@ describe("AgentThread", () => {
     const { deps } = makeDeps();
     const thread = makeThread(deps, model);
 
-    await collect(thread.sendTurn({ text: "q1", chapter: "ch1.xhtml" }));
-    await collect(thread.sendTurn({ text: "q2", chapter: "ch1.xhtml" }));
+    await collect(thread.sendTurn({ text: "q1", readingCursor: { chapter: "ch1.xhtml" } }));
+    await collect(thread.sendTurn({ text: "q2", readingCursor: { chapter: "ch1.xhtml" } }));
     // 换章发新消息 → 旧 state 扔掉，重置为持久记录的一轮尾巴（q2,a2）+ 本轮
-    await collect(thread.sendTurn({ text: "q3", chapter: "ch2.xhtml" }));
+    await collect(thread.sendTurn({ text: "q3", readingCursor: { chapter: "ch2.xhtml" } }));
     expect(contexts[2]?.messages).toHaveLength(3);
     // 新章节里继续 → 又开始累积（q2,a2,u3,a3,u4）
-    await collect(thread.sendTurn({ text: "q4", chapter: "ch2.xhtml" }));
+    await collect(thread.sendTurn({ text: "q4", readingCursor: { chapter: "ch2.xhtml" } }));
     expect(contexts[3]?.messages).toHaveLength(5);
   });
 
@@ -374,8 +423,8 @@ describe("AgentThread", () => {
     const { deps } = makeDeps();
     const thread = makeThread(deps, model);
 
-    await collect(thread.sendTurn({ text: "q1", chapter: "ch1.xhtml" }));
-    await collect(thread.sendTurn({ text: "q2", chapter: "ch1.xhtml" }));
+    await collect(thread.sendTurn({ text: "q1", readingCursor: { chapter: "ch1.xhtml" } }));
+    await collect(thread.sendTurn({ text: "q2", readingCursor: { chapter: "ch1.xhtml" } }));
     // 章节未知 ≠ 换章：会话保持连续
     await collect(thread.sendTurn({ text: "q3" }));
     expect(contexts[2]?.messages).toHaveLength(5);
@@ -392,13 +441,13 @@ describe("AgentThread", () => {
     const { deps } = makeDeps();
     const thread = makeThread(deps, model);
 
-    await collect(thread.sendTurn({ text: "q1", chapter: "ch1.xhtml" }));
-    await collect(thread.sendTurn({ text: "q2", chapter: "ch1.xhtml" }));
+    await collect(thread.sendTurn({ text: "q1", readingCursor: { chapter: "ch1.xhtml" } }));
+    await collect(thread.sendTurn({ text: "q2", readingCursor: { chapter: "ch1.xhtml" } }));
     // 选区来自 ch2（attachment 的 chapter 优先于阅读位置）→ 视为换章
     await collect(
       thread.sendTurn({
         text: "q3",
-        chapter: "ch1.xhtml",
+        readingCursor: { chapter: "ch1.xhtml" },
         attachments: [{ text: "quoted", chapter: "ch2.xhtml" }],
       }),
     );
@@ -442,10 +491,16 @@ describe("AgentThread", () => {
     const { deps, turns } = makeDeps();
     const thread = makeThread(deps, model);
 
-    await collect(thread.sendTurn({ text: "q1", chapter: "ch1.xhtml" }));
+    await collect(thread.sendTurn({ text: "q1", readingCursor: { chapter: "ch1.xhtml" } }));
     // UI 的 retry：先截断持久转录（丢掉 q1/a1），再带 reset 重发
     turns.set("book:b1", []);
-    await collect(thread.sendTurn({ text: "q1-retry", chapter: "ch1.xhtml", reset: true }));
+    await collect(
+      thread.sendTurn({
+        text: "q1-retry",
+        readingCursor: { chapter: "ch1.xhtml" },
+        reset: true,
+      }),
+    );
 
     // 无 reset 时章节会话延续，上下文会是 [q1, a1, q1-retry]；
     // reset 后从截断的持久层重建 —— 只剩本轮

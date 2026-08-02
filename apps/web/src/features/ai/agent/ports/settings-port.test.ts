@@ -1,23 +1,24 @@
 import { beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import type { AgentSettingDescriptor } from "@read-aware/agent";
 import { getDefaultStore } from "jotai";
+import { hydrateSecrets } from "../../../../platform/secret-store";
 import {
   aiPreferencesAtom,
   appSettingsAtom,
   generalSettingsAtom,
+  readerOverridesAtom,
   readerPreferencesAtom,
 } from "../../../../state/ui";
 import type { RegisteredPluginTheme } from "../../../plugins/lib/plugin-types";
-import { pluginThemesAtom } from "../../../plugins/state/plugin-store";
+import {
+  pluginFontsAtom,
+  pluginThemesAtom,
+} from "../../../plugins/state/plugin-store";
 import { DEFAULT_AI_PREFERENCES } from "../../../settings/lib/ai-preferences";
 import { DEFAULT_APP_SETTINGS } from "../../../settings/lib/app-settings";
 import { DEFAULT_GENERAL_SETTINGS } from "../../../settings/lib/general-settings";
 import { DEFAULT_READER_PREFERENCES } from "../../../settings/lib/reader-settings";
-import { hydrateSecrets } from "../../../../platform/secret-store";
-import {
-  clearAIConfig,
-  getAIConfig,
-  saveAIConfig,
-} from "../../lib/ai-config";
+import { clearAIConfig, getAIConfig, saveAIConfig } from "../../lib/ai-config";
 import { createSettingsPort } from "./settings-port";
 
 const GUTENBERG: RegisteredPluginTheme = {
@@ -69,6 +70,15 @@ Object.defineProperty(globalThis, "localStorage", {
   },
 });
 
+function setting(
+  settings: AgentSettingDescriptor[],
+  path: string,
+): AgentSettingDescriptor {
+  const match = settings.find((candidate) => candidate.path === path);
+  if (!match) throw new Error(`missing setting: ${path}`);
+  return match;
+}
+
 beforeAll(() => hydrateSecrets());
 
 beforeEach(() => {
@@ -78,7 +88,9 @@ beforeEach(() => {
   store.set(generalSettingsAtom, { ...DEFAULT_GENERAL_SETTINGS });
   store.set(appSettingsAtom, { ...DEFAULT_APP_SETTINGS });
   store.set(readerPreferencesAtom, { ...DEFAULT_READER_PREFERENCES });
+  store.set(readerOverridesAtom, {});
   store.set(pluginThemesAtom, []);
+  store.set(pluginFontsAtom, []);
   store.set(aiPreferencesAtom, {
     ...DEFAULT_AI_PREFERENCES,
     features: { ...DEFAULT_AI_PREFERENCES.features },
@@ -86,49 +98,56 @@ beforeEach(() => {
 });
 
 describe("agent settings port", () => {
-  test("discovers enabled plugin themes on each supported surface", async () => {
+  test("builds a generic catalog with dynamic choices for each setting", async () => {
     getDefaultStore().set(pluginThemesAtom, [GUTENBERG, CHROME_ONLY]);
 
-    const settings = await createSettingsPort().getSettings();
+    const snapshot = await createSettingsPort().getSettings();
+    const appTheme = setting(snapshot.settings, "appearance.theme");
+    const readerTheme = setting(snapshot.settings, "reading.theme");
 
-    expect(settings.appearance.availableThemes).toEqual(
+    expect(appTheme.options).toEqual(
       expect.arrayContaining([
-        {
+        expect.objectContaining({
           value: "plugin:editorial-themes:gutenberg",
-          label: "Gutenberg",
           source: "plugin",
-          pluginName: "Editorial Themes",
-          polarity: "light",
-        },
-        {
+        }),
+        expect.objectContaining({
           value: "plugin:editorial-themes:chrome-only",
-          label: "Chrome Only",
           source: "plugin",
-          pluginName: "Editorial Themes",
-          polarity: "dark",
-        },
+        }),
       ]),
     );
-    expect(settings.reading.availableThemes).toContainEqual({
-      value: "plugin:editorial-themes:gutenberg",
-      label: "Gutenberg",
-      source: "plugin",
-      pluginName: "Editorial Themes",
-      polarity: "light",
-    });
-    expect(settings.reading.availableThemes).not.toContainEqual(
+    expect(readerTheme.options).toContainEqual(
+      expect.objectContaining({
+        value: "plugin:editorial-themes:gutenberg",
+        source: "plugin",
+      }),
+    );
+    expect(readerTheme.options).not.toContainEqual(
       expect.objectContaining({ value: "plugin:editorial-themes:chrome-only" }),
     );
+    expect(readerTheme.supportedTargets).toEqual([
+      "global",
+      "all-books",
+      "book",
+    ]);
   });
 
-  test("applies registered plugin themes and their reader typography preset", async () => {
+  test("applies plugin choices through ordinary path/value operations", async () => {
     const store = getDefaultStore();
     store.set(pluginThemesAtom, [GUTENBERG]);
 
-    const result = await createSettingsPort().updateSettings({
-      appearance: { theme: "plugin:editorial-themes:gutenberg" },
-      reading: { theme: "plugin:editorial-themes:gutenberg" },
-    });
+    const result = await createSettingsPort().updateSettings([
+      {
+        path: "appearance.theme",
+        value: "plugin:editorial-themes:gutenberg",
+      },
+      {
+        path: "reading.theme",
+        value: "plugin:editorial-themes:gutenberg",
+        target: { kind: "global" },
+      },
+    ]);
 
     expect(store.get(appSettingsAtom).theme).toBe(
       "plugin:editorial-themes:gutenberg",
@@ -139,34 +158,159 @@ describe("agent settings port", () => {
       fontSize: "large",
       lineSpacing: "relaxed",
     });
-    expect(result.changed).toEqual(
-      expect.arrayContaining([
-        "appearance.theme",
-        "reading.theme",
-        "reading.fontFamily",
-        "reading.fontSize",
-        "reading.lineSpacing",
-      ]),
-    );
-    expect(result.changed).not.toContain("appearance.availableThemes");
-    expect(result.changed).not.toContain("reading.availableThemes");
+    expect(result.changed).toEqual([
+      {
+        path: "appearance.theme",
+        value: "plugin:editorial-themes:gutenberg",
+        target: { kind: "global" },
+      },
+      {
+        path: "reading.theme",
+        value: "plugin:editorial-themes:gutenberg",
+        target: { kind: "global" },
+      },
+    ]);
   });
 
-  test("rejects unavailable or wrong-surface plugin themes before any write", async () => {
+  test("applies the same reading path to global, book, and all-books targets", async () => {
+    const store = getDefaultStore();
+    store.set(readerOverridesAtom, {
+      "book-1": {
+        scope: "book",
+        settings: { ...DEFAULT_READER_PREFERENCES, fontSize: "small" },
+      },
+      "book-2": {
+        scope: "global",
+        settings: { ...DEFAULT_READER_PREFERENCES, fontSize: "x-small" },
+      },
+    });
+    const port = createSettingsPort();
+
+    await port.updateSettings([
+      {
+        path: "reading.fontSize",
+        value: "large",
+        target: { kind: "book", bookId: "book-1" },
+      },
+    ]);
+    expect(store.get(readerPreferencesAtom).fontSize).toBe(
+      DEFAULT_READER_PREFERENCES.fontSize,
+    );
+    expect(store.get(readerOverridesAtom)["book-1"]?.settings.fontSize).toBe(
+      "large",
+    );
+
+    const bookSnapshot = await port.getSettings({
+      section: "reading",
+      target: { kind: "book", bookId: "book-1" },
+    });
+    expect(setting(bookSnapshot.settings, "reading.fontSize").value).toBe(
+      "large",
+    );
+    expect(bookSnapshot.overrides).toContainEqual(
+      expect.objectContaining({ target: { kind: "book", bookId: "book-1" } }),
+    );
+
+    await port.updateSettings([
+      {
+        path: "reading.lineSpacing",
+        value: "relaxed",
+        target: { kind: "all-books" },
+      },
+    ]);
+    expect(store.get(readerPreferencesAtom).lineSpacing).toBe("relaxed");
+    expect(store.get(readerOverridesAtom)["book-1"]?.settings.lineSpacing).toBe(
+      "relaxed",
+    );
+    expect(store.get(readerOverridesAtom)["book-2"]?.settings.lineSpacing).toBe(
+      "relaxed",
+    );
+  });
+
+  test("requires an explicit target for every scoped reading setting", async () => {
+    await expect(
+      createSettingsPort().updateSettings([
+        { path: "reading.fontSize", value: "large" },
+      ]),
+    ).rejects.toThrow(
+      "reading.fontSize requires an explicit target: global, all-books, book",
+    );
+    expect(getDefaultStore().get(readerPreferencesAtom).fontSize).toBe(
+      DEFAULT_READER_PREFERENCES.fontSize,
+    );
+  });
+
+  test("reports global changes that can be shadowed by book overrides", async () => {
+    const store = getDefaultStore();
+    store.set(readerOverridesAtom, {
+      "book-1": {
+        scope: "book",
+        settings: { ...DEFAULT_READER_PREFERENCES, theme: "dark" },
+      },
+    });
+    const port = createSettingsPort();
+
+    await port.updateSettings([
+      { path: "reading.theme", value: "light", target: { kind: "global" } },
+    ]);
+
+    expect(store.get(readerPreferencesAtom).theme).toBe("light");
+    expect(store.get(readerOverridesAtom)["book-1"]?.settings.theme).toBe(
+      "dark",
+    );
+    const snapshot = await port.getSettings({ section: "reading" });
+    expect(snapshot.overrides).toContainEqual({
+      target: { kind: "book", bookId: "book-1" },
+      paths: expect.arrayContaining(["reading.theme", "reading.fontSize"]),
+    });
+  });
+
+  test("rejects invalid choices and unsupported targets atomically", async () => {
     const store = getDefaultStore();
     store.set(pluginThemesAtom, [CHROME_ONLY]);
+    const port = createSettingsPort();
 
     await expect(
-      createSettingsPort().updateSettings({
-        appearance: { theme: "dark" },
-        reading: { theme: "plugin:editorial-themes:chrome-only" },
-      }),
-    ).rejects.toThrow("unknown reader theme");
-
+      port.updateSettings([
+        { path: "appearance.theme", value: "dark" },
+        {
+          path: "reading.theme",
+          value: "plugin:editorial-themes:chrome-only",
+          target: { kind: "global" },
+        },
+      ]),
+    ).rejects.toThrow("reading.theme must be one of");
     expect(store.get(appSettingsAtom).theme).toBe("system");
-    expect(store.get(readerPreferencesAtom).theme).toBe(
-      DEFAULT_READER_PREFERENCES.theme,
+
+    await expect(
+      port.updateSettings([
+        {
+          path: "appearance.motion",
+          value: "reduced",
+          target: { kind: "book", bookId: "book-1" },
+        },
+      ]),
+    ).rejects.toThrow("appearance.motion does not support target book");
+  });
+
+  test("canonicalizes book targets before duplicate detection", async () => {
+    await expect(
+      createSettingsPort().updateSettings([
+        {
+          path: "reading.fontSize",
+          value: "large",
+          target: { kind: "book", bookId: "book-1" },
+        },
+        {
+          path: "reading.fontSize",
+          value: "small",
+          target: { kind: "book", bookId: " book-1 " },
+        },
+      ]),
+    ).rejects.toThrow(
+      "duplicate settings change: reading.fontSize@book:book-1",
     );
+    expect(getDefaultStore().get(readerOverridesAtom)).toEqual({});
   });
 
   test("reports connection state without exposing the key or endpoint", async () => {
@@ -179,25 +323,28 @@ describe("agent settings port", () => {
       customSupportsThinking: true,
     });
 
-    const settings = await createSettingsPort().getSettings();
-    expect(settings.ai.connection).toMatchObject({
-      configured: true,
-      credentialConfigured: true,
-      provider: "custom",
-      primaryModel: "gateway-model",
-      custom: {
-        endpointConfigured: true,
-        api: "openai-completions",
-        supportsThinking: true,
-      },
+    const snapshot = await createSettingsPort().getSettings({ section: "ai" });
+    expect(setting(snapshot.settings, "ai.connection.configured").value).toBe(
+      true,
+    );
+    expect(
+      setting(snapshot.settings, "ai.connection.credentialConfigured").value,
+    ).toBe(true);
+    expect(setting(snapshot.settings, "ai.connection.provider")).toMatchObject({
+      value: "custom",
+      writable: false,
     });
-    const serialized = JSON.stringify(settings);
+    expect(
+      setting(snapshot.settings, "ai.connection.custom.endpointConfigured")
+        .value,
+    ).toBe(true);
+    const serialized = JSON.stringify(snapshot);
     expect(serialized).not.toContain("secret-test-key");
     expect(serialized).not.toContain("private-gateway.example");
     expect(serialized).not.toContain("customBaseUrl");
   });
 
-  test("applies live preferences and preserves credential routing", async () => {
+  test("updates safe AI preferences while preserving credential routing", async () => {
     saveAIConfig({
       provider: "custom",
       apiKey: "secret-test-key",
@@ -209,20 +356,25 @@ describe("agent settings port", () => {
       customMaxOutputTokens: 8_192,
     });
 
-    const result = await createSettingsPort().updateSettings({
-      general: { startView: "resume" },
-      appearance: { theme: "dark" },
-      reading: { fontFamily: "curated:literata", fontSize: "large" },
-      ai: {
-        preferences: { followStreaming: true },
-        connection: {
-          primaryModel: "gateway-model-v2",
-          fastModel: null,
-          thinkingLevel: "high",
-          customMaxOutputTokens: null,
-        },
+    await createSettingsPort().updateSettings([
+      { path: "general.startView", value: "resume" },
+      { path: "appearance.theme", value: "dark" },
+      {
+        path: "reading.fontFamily",
+        value: "curated:literata",
+        target: { kind: "global" },
       },
-    });
+      {
+        path: "reading.fontSize",
+        value: "large",
+        target: { kind: "global" },
+      },
+      { path: "ai.preferences.followStreaming", value: true },
+      { path: "ai.connection.primaryModel", value: "gateway-model-v2" },
+      { path: "ai.connection.fastModel", value: null },
+      { path: "ai.connection.thinkingLevel", value: "high" },
+      { path: "ai.connection.custom.maxOutputTokens", value: null },
+    ]);
 
     const store = getDefaultStore();
     expect(store.get(generalSettingsAtom).startView).toBe("resume");
@@ -232,21 +384,6 @@ describe("agent settings port", () => {
       fontSize: "large",
     });
     expect(store.get(aiPreferencesAtom).followStreaming).toBe(true);
-    expect(result.changed).toEqual(
-      expect.arrayContaining([
-        "general.startView",
-        "appearance.theme",
-        "reading.fontFamily",
-        "reading.fontSize",
-        "ai.preferences.followStreaming",
-        "ai.connection.primaryModel",
-        "ai.connection.fastModel",
-        "ai.connection.thinkingLevel",
-        "ai.connection.fastThinkingLevel",
-        "ai.connection.custom.maxOutputTokens",
-      ]),
-    );
-
     expect(getAIConfig()).toMatchObject({
       provider: "custom",
       apiKey: "secret-test-key",
@@ -259,7 +396,29 @@ describe("agent settings port", () => {
     expect(getAIConfig()?.customMaxOutputTokens).toBeUndefined();
   });
 
-  test("rejects invalid Fast effort before applying any other setting", async () => {
+  test("keeps sensitive and read-only connection paths outside writes", async () => {
+    saveAIConfig({
+      provider: "openai",
+      apiKey: "secret-test-key",
+      model: "gpt-5.5",
+    });
+    const port = createSettingsPort();
+
+    await expect(
+      port.updateSettings([{ path: "ai.connection.apiKey", value: "stolen" }]),
+    ).rejects.toThrow("unknown or read-only setting");
+    await expect(
+      port.updateSettings([
+        { path: "ai.connection.provider", value: "custom" },
+      ]),
+    ).rejects.toThrow("unknown or read-only setting");
+    expect(getAIConfig()).toMatchObject({
+      provider: "openai",
+      apiKey: "secret-test-key",
+    });
+  });
+
+  test("exposes Fast effort only while a separate Fast model is active", async () => {
     saveAIConfig({
       provider: "openai",
       apiKey: "secret-test-key",
@@ -267,26 +426,32 @@ describe("agent settings port", () => {
       thinkingLevel: "medium",
     });
 
+    const port = createSettingsPort();
+    const initial = await port.getSettings({ section: "ai" });
+    expect(
+      initial.settings.some(
+        (candidate) => candidate.path === "ai.connection.fastThinkingLevel",
+      ),
+    ).toBe(false);
+
     await expect(
-      createSettingsPort().updateSettings({
-        appearance: { theme: "dark" },
-        ai: { connection: { fastThinkingLevel: "low" } },
-      }),
-    ).rejects.toThrow("fastThinkingLevel requires a separate Fast model");
+      port.updateSettings([
+        { path: "appearance.theme", value: "dark" },
+        { path: "ai.connection.fastThinkingLevel", value: "low" },
+      ]),
+    ).rejects.toThrow("unknown or read-only setting");
     expect(getDefaultStore().get(appSettingsAtom).theme).toBe("system");
-  });
 
-  test("does not allow Custom transport controls on a built-in provider", async () => {
-    saveAIConfig({
-      provider: "openai",
-      apiKey: "secret-test-key",
-      model: "gpt-5.5",
-    });
-
-    await expect(
-      createSettingsPort().updateSettings({
-        ai: { connection: { customApi: "openai-responses" } },
-      }),
-    ).rejects.toThrow("Custom compatibility settings require the active Custom provider");
+    await port.updateSettings([
+      { path: "ai.connection.fastModel", value: "gpt-5.5-mini" },
+    ]);
+    const separate = await port.getSettings({ section: "ai" });
+    expect(
+      setting(separate.settings, "ai.connection.fastThinkingLevel").value,
+    ).toBe("medium");
+    await port.updateSettings([
+      { path: "ai.connection.fastThinkingLevel", value: "low" },
+    ]);
+    expect(getAIConfig()?.fastThinkingLevel).toBe("low");
   });
 });

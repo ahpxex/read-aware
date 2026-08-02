@@ -1,9 +1,11 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { Type } from "@earendil-works/pi-ai";
+import type { Id } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import type {
-  AgentSettingsPatch,
-  AgentSettingsSection,
+  AgentSettingChange,
+  AgentSettingsQuery,
+  AgentSettingsUpdateResult,
 } from "../settings";
 import { textResult } from "./tool-result";
 
@@ -14,202 +16,79 @@ const sectionSchema = Type.Union([
   Type.Literal("ai"),
 ]);
 
-const thinkingLevelSchema = Type.Union([
-  Type.Literal("off"),
-  Type.Literal("minimal"),
-  Type.Literal("low"),
-  Type.Literal("medium"),
-  Type.Literal("high"),
-  Type.Literal("xhigh"),
-  Type.Literal("max"),
+const globalTargetSchema = Type.Object(
+  { kind: Type.Literal("global") },
+  { additionalProperties: false },
+);
+
+const bookTargetSchema = Type.Object(
+  {
+    kind: Type.Literal("book"),
+    bookId: Type.String({ minLength: 1 }),
+  },
+  { additionalProperties: false },
+);
+
+const queryTargetSchema = Type.Union([globalTargetSchema, bookTargetSchema]);
+
+const writeTargetSchema = Type.Union([
+  globalTargetSchema,
+  bookTargetSchema,
+  Type.Object(
+    { kind: Type.Literal("all-books") },
+    { additionalProperties: false },
+  ),
 ]);
 
-const pluginThemeRefSchema = Type.String({
-  pattern:
-    "^plugin:[a-z0-9][a-z0-9-]{0,63}:[a-z0-9][a-z0-9-]{0,63}$",
-  description:
-    "An enabled plugin theme ref listed in the matching availableThemes array from get_settings.",
-});
+const settingValueSchema = Type.Union([
+  Type.Null(),
+  Type.Boolean(),
+  Type.Number(),
+  Type.String(),
+]);
 
-const featurePatchSchema = Type.Object(
+const settingChangeSchema = Type.Object(
   {
-    explainSelection: Type.Optional(Type.Boolean()),
-    defineTerm: Type.Optional(Type.Boolean()),
-    translate: Type.Optional(Type.Boolean()),
-    summarizeChapter: Type.Optional(Type.Boolean()),
-    askConversation: Type.Optional(Type.Boolean()),
+    path: Type.String({
+      minLength: 3,
+      pattern: "^[a-z][a-zA-Z0-9-]*(?:\\.[a-z][a-zA-Z0-9-]*)+$",
+      description: "An exact writable path returned by get_settings.",
+    }),
+    value: settingValueSchema,
+    target: Type.Optional(writeTargetSchema),
   },
   { additionalProperties: false },
 );
 
-const settingsPatchSchema = Type.Object(
-  {
-    general: Type.Optional(
-      Type.Object(
-        {
-          startView: Type.Optional(
-            Type.Union([Type.Literal("shelf"), Type.Literal("resume")]),
-          ),
-          language: Type.Optional(
-            Type.Union([
-              Type.Literal("en"),
-              Type.Literal("zh-Hans"),
-              Type.Literal("zh-Hant"),
-              Type.Literal("ja"),
-              Type.Literal("fr"),
-              Type.Literal("de"),
-              Type.Literal("ru"),
-              Type.Literal("es"),
-            ]),
-          ),
-          crashReports: Type.Optional(Type.Boolean()),
-          launchAtStartup: Type.Optional(Type.Boolean()),
-          fileAssociations: Type.Optional(Type.Boolean()),
-          autoUpdate: Type.Optional(Type.Boolean()),
-        },
-        { additionalProperties: false },
-      ),
-    ),
-    appearance: Type.Optional(
-      Type.Object(
-        {
-          theme: Type.Optional(
-            Type.Union([
-              Type.Literal("system"),
-              Type.Literal("light"),
-              Type.Literal("dark"),
-              pluginThemeRefSchema,
-            ]),
-          ),
-          motion: Type.Optional(
-            Type.Union([Type.Literal("system"), Type.Literal("reduced")]),
-          ),
-        },
-        { additionalProperties: false },
-      ),
-    ),
-    reading: Type.Optional(
-      Type.Object(
-        {
-          theme: Type.Optional(
-            Type.Union([
-              Type.Literal("auto"),
-              Type.Literal("light"),
-              Type.Literal("warm"),
-              Type.Literal("dark"),
-              pluginThemeRefSchema,
-            ]),
-          ),
-          fontFamily: Type.Optional(
-            Type.String({
-              minLength: 1,
-              description:
-                "A curated font (curated:inter, curated:atkinson, curated:literata, curated:lora, curated:lxgw) or a system font as system:<family>.",
-            }),
-          ),
-          fontSize: Type.Optional(
-            Type.Union([
-              Type.Literal("xx-small"),
-              Type.Literal("x-small"),
-              Type.Literal("small"),
-              Type.Literal("medium"),
-              Type.Literal("large"),
-              Type.Literal("x-large"),
-              Type.Literal("xx-large"),
-              Type.Literal("xxx-large"),
-            ]),
-          ),
-          fontWeight: Type.Optional(
-            Type.Union([
-              Type.Literal("light"),
-              Type.Literal("regular"),
-              Type.Literal("medium"),
-              Type.Literal("bold"),
-            ]),
-          ),
-          lineSpacing: Type.Optional(
-            Type.Union([
-              Type.Literal("compact"),
-              Type.Literal("comfortable"),
-              Type.Literal("relaxed"),
-            ]),
-          ),
-          paragraphSpacing: Type.Optional(
-            Type.Union([
-              Type.Literal("tight"),
-              Type.Literal("normal"),
-              Type.Literal("loose"),
-            ]),
-          ),
-          pageMargins: Type.Optional(
-            Type.Union([
-              Type.Literal("narrow"),
-              Type.Literal("medium"),
-              Type.Literal("wide"),
-            ]),
-          ),
-          readingMode: Type.Optional(
-            Type.Union([
-              Type.Literal("scroll"),
-              Type.Literal("paginated-single"),
-              Type.Literal("paginated-double"),
-            ]),
-          ),
-        },
-        { additionalProperties: false },
-      ),
-    ),
-    ai: Type.Optional(
-      Type.Object(
-        {
-          preferences: Type.Optional(
-            Type.Object(
-              {
-                features: Type.Optional(featurePatchSchema),
-                buildMemory: Type.Optional(Type.Boolean()),
-                sendHighlightedText: Type.Optional(Type.Boolean()),
-                sendSurroundingContext: Type.Optional(Type.Boolean()),
-                localOnly: Type.Optional(Type.Boolean()),
-                followStreaming: Type.Optional(Type.Boolean()),
-              },
-              { additionalProperties: false },
-            ),
-          ),
-          connection: Type.Optional(
-            Type.Object(
-              {
-                primaryModel: Type.Optional(Type.String({ minLength: 1 })),
-                fastModel: Type.Optional(
-                  Type.Union([Type.String({ minLength: 1 }), Type.Null()]),
-                ),
-                thinkingLevel: Type.Optional(thinkingLevelSchema),
-                fastThinkingLevel: Type.Optional(thinkingLevelSchema),
-                customApi: Type.Optional(
-                  Type.Union([
-                    Type.Literal("openai-completions"),
-                    Type.Literal("openai-responses"),
-                  ]),
-                ),
-                customSupportsThinking: Type.Optional(Type.Boolean()),
-                customMaxOutputTokens: Type.Optional(
-                  Type.Union([Type.Integer({ minimum: 1 }), Type.Null()]),
-                ),
-              },
-              { additionalProperties: false },
-            ),
-          ),
-        },
-        { additionalProperties: false },
-      ),
-    ),
-  },
-  { additionalProperties: false },
-);
+async function assertKnownBookTarget(
+  deps: RuntimeDeps,
+  target: { kind: string; bookId?: string } | undefined,
+): Promise<void> {
+  if (target?.kind !== "book") return;
+  const bookId = target.bookId?.trim();
+  if (!bookId) throw new Error("book target requires bookId");
+  if (!(await deps.library.getBook(bookId as Id))) {
+    throw new Error(`unknown book: ${bookId}`);
+  }
+}
 
-function hasLeaf(value: unknown): boolean {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return true;
-  const children = Object.values(value);
-  return children.length > 0 && children.some(hasLeaf);
+function shadowWarnings(result: AgentSettingsUpdateResult) {
+  return result.changed.flatMap((change) => {
+    if (change.target?.kind !== "global") return [];
+    const bookIds = result.settings.overrides
+      .filter((override) => override.paths.includes(change.path))
+      .map((override) => override.target.bookId);
+    return bookIds.length > 0
+      ? [
+          {
+            path: change.path,
+            message:
+              "The global value changed, but book overrides still take precedence.",
+            shadowedBy: bookIds.map((bookId) => ({ kind: "book", bookId })),
+          },
+        ]
+      : [];
+  });
 }
 
 export function buildSettingsTools(deps: RuntimeDeps): AgentTool[] {
@@ -217,18 +96,18 @@ export function buildSettingsTools(deps: RuntimeDeps): AgentTool[] {
     name: "get_settings",
     label: "Read settings",
     description:
-      "Read the user's current editable app preferences, optionally for one section. Theme sections include availableThemes with every built-in and currently enabled plugin theme value accepted by update_settings. The result is sanitized: API keys and Custom provider endpoint values are never exposed.",
+      "Read the host's current non-sensitive settings catalog. Each entry provides an exact path, current value, value kind, valid options, writability, and supportedTargets. Use target=book to inspect the effective settings for one book. overrides reports scoped values that shadow global defaults. API keys and Custom endpoint values are never exposed.",
     parameters: Type.Object(
       {
         section: Type.Optional(sectionSchema),
+        target: Type.Optional(queryTargetSchema),
       },
       { additionalProperties: false },
     ),
     execute: async (_id, params) => {
-      const { section } = params as { section?: AgentSettingsSection };
-      const settings = await deps.settings.getSettings();
-      if (!section) return textResult({ settings });
-      return textResult({ settings: { [section]: settings[section] } });
+      const query = params as AgentSettingsQuery;
+      await assertKnownBookTarget(deps, query.target);
+      return textResult({ settings: await deps.settings.getSettings(query) });
     },
   };
 
@@ -236,21 +115,29 @@ export function buildSettingsTools(deps: RuntimeDeps): AgentTool[] {
     name: "update_settings",
     label: "Update settings",
     description:
-      "Update ordinary app preferences only when the user explicitly asks. Changes apply immediately. For plugin themes, first read the matching section with get_settings and copy its availableThemes value exactly. This cannot access or change API keys, providers, Custom endpoint destinations, data reset/restore, plugin lifecycle, menus, or shortcuts. fastThinkingLevel is valid only with a separate Fast model; set fastModel to null to make Fast follow Primary.",
+      "Update ordinary settings only when the user explicitly asks. Always call get_settings first, then copy exact writable paths and values/options from its catalog. Changes are generic path/value operations: never invent a path or option. A setting with multiple supportedTargets requires an explicit target; call ask_user when the intended scope is ambiguous. Global-only settings may omit target. A successful global write can still report warnings when book overrides take precedence. This tool cannot access API keys, Custom endpoint destinations, destructive data actions, plugin lifecycle, menus, or shortcuts.",
     parameters: Type.Object(
       {
-        changes: settingsPatchSchema,
+        changes: Type.Array(settingChangeSchema, { minItems: 1, maxItems: 50 }),
       },
       { additionalProperties: false },
     ),
     executionMode: "sequential",
     execute: async (_id, params) => {
-      const { changes } = params as { changes: AgentSettingsPatch };
-      if (!changes || typeof changes !== "object" || Array.isArray(changes) || !hasLeaf(changes)) {
+      const { changes } = params as { changes: AgentSettingChange[] };
+      if (!Array.isArray(changes) || changes.length === 0) {
         throw new Error("at least one settings change is required");
       }
+      for (const change of changes) {
+        await assertKnownBookTarget(deps, change.target);
+      }
       const result = await deps.settings.updateSettings(changes);
-      return textResult({ updated: result.changed.length > 0, ...result });
+      const warnings = shadowWarnings(result);
+      return textResult({
+        updated: result.changed.length > 0,
+        ...result,
+        ...(warnings.length > 0 ? { warnings } : {}),
+      });
     },
   };
 

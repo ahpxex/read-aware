@@ -1,154 +1,69 @@
-import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
-import type { CustomOpenAIApi } from "./models/custom-openai";
-
-export type AgentSettingsLocale =
-  | "en"
-  | "zh-Hans"
-  | "zh-Hant"
-  | "ja"
-  | "fr"
-  | "de"
-  | "ru"
-  | "es";
-
 export type AgentSettingsSection = "general" | "appearance" | "reading" | "ai";
 
-export type AgentAIFeatureKey =
-  | "explainSelection"
-  | "defineTerm"
-  | "translate"
-  | "summarizeChapter"
-  | "askConversation";
+/** Values that can cross the generic settings tool boundary. */
+export type AgentSettingValue = string | number | boolean | null;
 
-export interface AgentThemeOption {
-  /** Stable value accepted by update_settings. */
-  value: string;
-  /** User-facing name in the active app language. */
+export type AgentSettingKind = "boolean" | "enum" | "string" | "integer";
+
+export interface AgentSettingOption {
+  value: AgentSettingValue;
   label: string;
-  source: "builtin" | "plugin";
+  /** Optional provenance for dynamic choices such as plugin contributions. */
+  source?: "builtin" | "plugin";
   pluginName?: string;
   polarity?: "light" | "dark";
 }
 
-export type AgentAppTheme = "system" | "light" | "dark" | `plugin:${string}`;
-export type AgentReaderTheme =
-  | "auto"
-  | "light"
-  | "warm"
-  | "dark"
-  | `plugin:${string}`;
+export type AgentSettingsTarget =
+  { kind: "global" } | { kind: "all-books" } | { kind: "book"; bookId: string };
 
-export interface AgentSettingsSnapshot {
-  general: {
-    startView: "shelf" | "resume";
-    language: AgentSettingsLocale;
-    crashReports: boolean;
-    launchAtStartup: boolean;
-    fileAssociations: boolean;
-    autoUpdate: boolean;
-  };
-  appearance: {
-    theme: AgentAppTheme;
-    motion: "system" | "reduced";
-    /** Current valid choices, including enabled plugin contributions. */
-    availableThemes: AgentThemeOption[];
-  };
-  reading: {
-    theme: AgentReaderTheme;
-    /** Current valid page themes, including enabled plugin contributions. */
-    availableThemes: AgentThemeOption[];
-    fontFamily: string;
-    fontSize:
-      | "xx-small"
-      | "x-small"
-      | "small"
-      | "medium"
-      | "large"
-      | "x-large"
-      | "xx-large"
-      | "xxx-large";
-    fontWeight: "light" | "regular" | "medium" | "bold";
-    lineSpacing: "compact" | "comfortable" | "relaxed";
-    paragraphSpacing: "tight" | "normal" | "loose";
-    pageMargins: "narrow" | "medium" | "wide";
-    readingMode: "scroll" | "paginated-single" | "paginated-double";
-  };
-  ai: {
-    preferences: {
-      features: Record<AgentAIFeatureKey, boolean>;
-      buildMemory: boolean;
-      sendHighlightedText: boolean;
-      sendSurroundingContext: boolean;
-      localOnly: boolean;
-      followStreaming: boolean;
-    };
-    /** Deliberately sanitized: credentials and endpoint values never cross this port. */
-    connection: {
-      configured: boolean;
-      credentialConfigured: boolean;
-      provider?: string;
-      primaryModel?: string;
-      fastModel?: string;
-      separateFastModel?: boolean;
-      thinkingLevel?: ThinkingLevel;
-      fastThinkingLevel?: ThinkingLevel;
-      custom?: {
-        endpointConfigured: boolean;
-        api: CustomOpenAIApi;
-        supportsThinking: boolean;
-        maxOutputTokens?: number;
-      };
-    };
-  };
+export type AgentSettingsQueryTarget = Exclude<
+  AgentSettingsTarget,
+  { kind: "all-books" }
+>;
+
+/** One host-registered, non-sensitive setting visible to the agent. */
+export interface AgentSettingDescriptor {
+  /** Stable dotted path passed back to update_settings. */
+  path: string;
+  section: AgentSettingsSection;
+  label: string;
+  description?: string;
+  kind: AgentSettingKind;
+  value: AgentSettingValue;
+  writable: boolean;
+  nullable?: boolean;
+  options?: AgentSettingOption[];
+  /** Targets accepted for writes to this path. Omitted for read-only values. */
+  supportedTargets?: Array<AgentSettingsTarget["kind"]>;
 }
 
-export interface AgentSettingsPatch {
-  general?: Partial<{
-    startView: AgentSettingsSnapshot["general"]["startView"];
-    language: AgentSettingsLocale;
-    crashReports: boolean;
-    launchAtStartup: boolean;
-    fileAssociations: boolean;
-    autoUpdate: boolean;
-  }>;
-  appearance?: Partial<{
-    theme: AgentAppTheme;
-    motion: AgentSettingsSnapshot["appearance"]["motion"];
-  }>;
-  reading?: Partial<{
-    theme: AgentReaderTheme;
-    fontFamily: string;
-    fontSize: AgentSettingsSnapshot["reading"]["fontSize"];
-    fontWeight: AgentSettingsSnapshot["reading"]["fontWeight"];
-    lineSpacing: AgentSettingsSnapshot["reading"]["lineSpacing"];
-    paragraphSpacing: AgentSettingsSnapshot["reading"]["paragraphSpacing"];
-    pageMargins: AgentSettingsSnapshot["reading"]["pageMargins"];
-    readingMode: AgentSettingsSnapshot["reading"]["readingMode"];
-  }>;
-  ai?: {
-    preferences?: Partial<{
-      features: Partial<Record<AgentAIFeatureKey, boolean>>;
-      buildMemory: boolean;
-      sendHighlightedText: boolean;
-      sendSurroundingContext: boolean;
-      localOnly: boolean;
-      followStreaming: boolean;
-    }>;
-    connection?: Partial<{
-      primaryModel: string;
-      /** Null removes the separate Fast override so it follows Primary again. */
-      fastModel: string | null;
-      thinkingLevel: ThinkingLevel;
-      fastThinkingLevel: ThinkingLevel;
-      customApi: CustomOpenAIApi;
-      customSupportsThinking: boolean;
-      /** Null lets the Custom upstream choose its own output limit. */
-      customMaxOutputTokens: number | null;
-    }>;
-  };
+export interface AgentSettingsOverrideSummary {
+  target: { kind: "book"; bookId: string };
+  /** Paths currently overridden for this target. */
+  paths: string[];
+}
+
+export interface AgentSettingsQuery {
+  section?: AgentSettingsSection;
+  target?: AgentSettingsQueryTarget;
+}
+
+export interface AgentSettingsSnapshot {
+  target: AgentSettingsQueryTarget;
+  settings: AgentSettingDescriptor[];
+  /** Active scoped overrides that can shadow global values. */
+  overrides: AgentSettingsOverrideSummary[];
+}
+
+export interface AgentSettingChange {
+  path: string;
+  value: AgentSettingValue;
+  /** Required when the descriptor supports more than one target; otherwise defaults to global. */
+  target?: AgentSettingsTarget;
 }
 
 export interface AgentSettingsUpdateResult {
-  changed: string[];
+  changed: AgentSettingChange[];
   settings: AgentSettingsSnapshot;
 }

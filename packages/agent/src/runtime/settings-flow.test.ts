@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import type { Api, Model } from "@earendil-works/pi-ai";
-import { registerFauxProvider, streamSimple } from "@earendil-works/pi-ai/compat";
+import {
+  registerFauxProvider,
+  streamSimple,
+} from "@earendil-works/pi-ai/compat";
 import {
   fauxAssistantMessage,
   fauxToolCall,
@@ -10,9 +13,12 @@ import type { ThreadChunk } from "../chunks";
 import { createInMemoryDeps } from "../testing/fixtures";
 import { AgentThread } from "./thread";
 
-const noopComplete = async () => fauxAssistantMessage('{"new": [], "reinforced": []}');
+const noopComplete = async () =>
+  fauxAssistantMessage('{"new": [], "reinforced": []}');
 
-async function collect(iterable: AsyncIterable<ThreadChunk>): Promise<ThreadChunk[]> {
+async function collect(
+  iterable: AsyncIterable<ThreadChunk>,
+): Promise<ThreadChunk[]> {
   const chunks: ThreadChunk[] = [];
   for await (const chunk of iterable) chunks.push(chunk);
   return chunks;
@@ -31,10 +37,14 @@ describe("settings flow", () => {
       fauxAssistantMessage(
         [
           fauxToolCall("update_settings", {
-            changes: {
-              reading: { fontSize: "large" },
-              ai: { preferences: { followStreaming: true } },
-            },
+            changes: [
+              {
+                path: "reading.fontSize",
+                value: "large",
+                target: { kind: "global" },
+              },
+              { path: "ai.preferences.followStreaming", value: true },
+            ],
           }),
         ],
         { stopReason: "toolUse" },
@@ -52,11 +62,21 @@ describe("settings flow", () => {
     });
 
     const chunks = await collect(
-      thread.sendTurn({ text: "Use larger reading text and follow streaming replies." }),
+      thread.sendTurn({
+        text: "Use larger reading text and follow streaming replies.",
+      }),
     );
 
-    expect(stores.settings.reading.fontSize).toBe("large");
-    expect(stores.settings.ai.preferences.followStreaming).toBe(true);
+    expect(
+      stores.settings.settings.find(
+        (setting) => setting.path === "reading.fontSize",
+      )?.value,
+    ).toBe("large");
+    expect(
+      stores.settings.settings.find(
+        (setting) => setting.path === "ai.preferences.followStreaming",
+      )?.value,
+    ).toBe(true);
     expect(
       chunks.some(
         (chunk) =>

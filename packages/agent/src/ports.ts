@@ -18,7 +18,8 @@ import type {
   StatsOverview,
 } from "@read-aware/core";
 import type {
-  AgentSettingsPatch,
+  AgentSettingChange,
+  AgentSettingsQuery,
   AgentSettingsSnapshot,
   AgentSettingsUpdateResult,
 } from "./settings";
@@ -61,18 +62,27 @@ export interface LibraryPort {
   getBookStats(bookId: Id): Promise<BookStats | undefined>;
   listBookStats(): Promise<BookStats[]>;
   getStatsOverview(): Promise<StatsOverview>;
-  editBookMetadata(bookId: Id, patch: { title?: string; author?: string }): Promise<void>;
+  editBookMetadata(
+    bookId: Id,
+    patch: { title?: string; author?: string },
+  ): Promise<void>;
   setBookStarred(bookId: Id, starred: boolean): Promise<void>;
   setBookFinished(bookId: Id, finished: boolean): Promise<void>;
   removeBook(bookId: Id): Promise<void>;
   createCollection(name: string): Promise<CollectionSummary>;
   renameCollection(collectionId: string, name: string): Promise<void>;
   removeCollection(collectionId: string): Promise<void>;
-  assignBooksToCollection(bookIds: Id[], collectionId: string | null): Promise<void>;
+  assignBooksToCollection(
+    bookIds: Id[],
+    collectionId: string | null,
+  ): Promise<void>;
 }
 
 export interface AnnotationsPort {
-  listAnnotations(filter?: { bookId?: Id; query?: string }): Promise<AnnotationItem[]>;
+  listAnnotations(filter?: {
+    bookId?: Id;
+    query?: string;
+  }): Promise<AnnotationItem[]>;
   createHighlight(input: {
     bookId: Id;
     text: string;
@@ -95,7 +105,12 @@ export interface AnnotationsPort {
    * 记录一条 ask-note（doc §7：书线程每个提问留痕；§10 第 5 步，轮末同步落）。
    * 产品实现走共享领域层的 agent-only 动词 createAsk（origin "agent"）。
    */
-  recordAsk(input: { bookId: Id; question: string; anchor?: string; chapter?: string }): Promise<void>;
+  recordAsk(input: {
+    bookId: Id;
+    question: string;
+    anchor?: string;
+    chapter?: string;
+  }): Promise<void>;
 }
 
 export interface ReaderPort {
@@ -112,7 +127,8 @@ export interface UserInteractionOption {
   description?: string;
 }
 
-export type UserPermissionAction = "delete-book" | "delete-collection" | "delete-annotation";
+export type UserPermissionAction =
+  "delete-book" | "delete-collection" | "delete-annotation";
 
 type UserInteractionBase = {
   /** Globally unique for the lifetime of the tool call. */
@@ -278,13 +294,16 @@ export interface BookTextPort {
 }
 
 /**
- * Host-owned, non-sensitive preferences exposed to the agent. The typed patch
- * is the security boundary: credentials, endpoint destinations, destructive
- * data actions, and plugin lifecycle controls are absent by construction.
+ * Host-owned catalog of non-sensitive preferences exposed to the agent. The
+ * host registry validates every path, value, and target; credentials, endpoint
+ * destinations, destructive actions, and plugin lifecycle controls never
+ * enter the catalog.
  */
 export interface SettingsPort {
-  getSettings(): Promise<AgentSettingsSnapshot>;
-  updateSettings(patch: AgentSettingsPatch): Promise<AgentSettingsUpdateResult>;
+  getSettings(query?: AgentSettingsQuery): Promise<AgentSettingsSnapshot>;
+  updateSettings(
+    changes: AgentSettingChange[],
+  ): Promise<AgentSettingsUpdateResult>;
 }
 
 export interface RuntimeDeps {

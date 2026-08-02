@@ -21,7 +21,13 @@ import type {
   TurnRecord,
   UserInteractionRequest,
 } from "../ports";
-import type { AgentSettingsPatch, AgentSettingsSnapshot } from "../settings";
+import type {
+  AgentSettingChange,
+  AgentSettingDescriptor,
+  AgentSettingValue,
+  AgentSettingsQuery,
+  AgentSettingsSnapshot,
+} from "../settings";
 import { searchChapters } from "../text/search";
 
 /** 判别联合的可检索文本（fixtures 的 query 过滤用）。 */
@@ -78,121 +84,213 @@ export interface InMemorySeed {
 
 function defaultSettings(): AgentSettingsSnapshot {
   return {
-    general: {
-      startView: "shelf",
-      language: "en",
-      crashReports: false,
-      launchAtStartup: false,
-      fileAssociations: true,
-      autoUpdate: true,
-    },
-    appearance: {
-      theme: "system",
-      motion: "system",
-      availableThemes: [
-        { value: "system", label: "System", source: "builtin" },
-        { value: "light", label: "Light", source: "builtin", polarity: "light" },
-        { value: "dark", label: "Dark", source: "builtin", polarity: "dark" },
-      ],
-    },
-    reading: {
-      theme: "warm",
-      availableThemes: [
-        { value: "auto", label: "Automatic", source: "builtin" },
-        { value: "light", label: "Light", source: "builtin", polarity: "light" },
-        { value: "warm", label: "Warm", source: "builtin", polarity: "light" },
-        { value: "dark", label: "Dark", source: "builtin", polarity: "dark" },
-      ],
-      fontFamily: "curated:inter",
-      fontSize: "medium",
-      fontWeight: "regular",
-      lineSpacing: "comfortable",
-      paragraphSpacing: "normal",
-      pageMargins: "wide",
-      readingMode: "paginated-double",
-    },
-    ai: {
-      preferences: {
-        features: {
-          explainSelection: true,
-          defineTerm: true,
-          translate: true,
-          summarizeChapter: true,
-          askConversation: true,
-        },
-        buildMemory: true,
-        sendHighlightedText: true,
-        sendSurroundingContext: true,
-        localOnly: false,
-        followStreaming: false,
+    target: { kind: "global" },
+    overrides: [],
+    settings: [
+      {
+        path: "general.startView",
+        section: "general",
+        label: "Start view",
+        kind: "enum",
+        value: "shelf",
+        writable: true,
+        options: [
+          { value: "shelf", label: "Shelf" },
+          { value: "resume", label: "Resume reading" },
+        ],
+        supportedTargets: ["global"],
       },
-      connection: { configured: false, credentialConfigured: false },
-    },
-  };
-}
-
-function applySettingsPatch(
-  current: AgentSettingsSnapshot,
-  patch: AgentSettingsPatch,
-): AgentSettingsSnapshot {
-  const next: AgentSettingsSnapshot = {
-    general: { ...current.general, ...patch.general },
-    appearance: { ...current.appearance, ...patch.appearance },
-    reading: { ...current.reading, ...patch.reading },
-    ai: {
-      preferences: {
-        ...current.ai.preferences,
-        ...patch.ai?.preferences,
-        features: {
-          ...current.ai.preferences.features,
-          ...patch.ai?.preferences?.features,
-        },
-      },
-      connection: { ...current.ai.connection },
-    },
-  };
-  const connectionPatch = patch.ai?.connection;
-  if (!connectionPatch) return next;
-  if (!current.ai.connection.configured) {
-    throw new Error("AI connection settings have not been configured yet");
-  }
-  const primaryModel = connectionPatch.primaryModel ?? current.ai.connection.primaryModel;
-  const fastModel =
-    connectionPatch.fastModel === null
-      ? primaryModel
-      : connectionPatch.fastModel ?? current.ai.connection.fastModel;
-  next.ai.connection = {
-    ...current.ai.connection,
-    primaryModel,
-    fastModel,
-    separateFastModel: fastModel !== primaryModel,
-    thinkingLevel:
-      connectionPatch.thinkingLevel ?? current.ai.connection.thinkingLevel,
-    fastThinkingLevel:
-      fastModel === primaryModel
-        ? connectionPatch.thinkingLevel ?? current.ai.connection.thinkingLevel
-        : connectionPatch.fastThinkingLevel ?? current.ai.connection.fastThinkingLevel,
-    ...(current.ai.connection.custom
-      ? {
-          custom: {
-            ...current.ai.connection.custom,
-            api: connectionPatch.customApi ?? current.ai.connection.custom.api,
-            supportsThinking:
-              connectionPatch.customSupportsThinking ??
-              current.ai.connection.custom.supportsThinking,
-            ...(connectionPatch.customMaxOutputTokens === null
-              ? { maxOutputTokens: undefined }
-              : connectionPatch.customMaxOutputTokens !== undefined
-                ? { maxOutputTokens: connectionPatch.customMaxOutputTokens }
-                : {}),
+      {
+        path: "appearance.theme",
+        section: "appearance",
+        label: "App theme",
+        kind: "enum",
+        value: "system",
+        writable: true,
+        options: [
+          { value: "system", label: "System", source: "builtin" },
+          {
+            value: "light",
+            label: "Light",
+            source: "builtin",
+            polarity: "light",
           },
-        }
-      : {}),
+          { value: "dark", label: "Dark", source: "builtin", polarity: "dark" },
+        ],
+        supportedTargets: ["global"],
+      },
+      {
+        path: "reading.theme",
+        section: "reading",
+        label: "Page theme",
+        kind: "enum",
+        value: "warm",
+        writable: true,
+        options: [
+          { value: "auto", label: "Automatic", source: "builtin" },
+          {
+            value: "light",
+            label: "Light",
+            source: "builtin",
+            polarity: "light",
+          },
+          {
+            value: "warm",
+            label: "Warm",
+            source: "builtin",
+            polarity: "light",
+          },
+          { value: "dark", label: "Dark", source: "builtin", polarity: "dark" },
+        ],
+        supportedTargets: ["global", "all-books", "book"],
+      },
+      {
+        path: "reading.fontFamily",
+        section: "reading",
+        label: "Font family",
+        kind: "string",
+        value: "curated:inter",
+        writable: true,
+        supportedTargets: ["global", "all-books", "book"],
+      },
+      {
+        path: "reading.fontSize",
+        section: "reading",
+        label: "Font size",
+        kind: "enum",
+        value: "medium",
+        writable: true,
+        options: ["small", "medium", "large"].map((value) => ({
+          value,
+          label: value,
+        })),
+        supportedTargets: ["global", "all-books", "book"],
+      },
+      {
+        path: "reading.readingMode",
+        section: "reading",
+        label: "Reading mode",
+        kind: "enum",
+        value: "paginated-double",
+        writable: true,
+        options: ["scroll", "paginated-single", "paginated-double"].map(
+          (value) => ({ value, label: value }),
+        ),
+        supportedTargets: ["global", "all-books", "book"],
+      },
+      {
+        path: "ai.preferences.followStreaming",
+        section: "ai",
+        label: "Follow streaming",
+        kind: "boolean",
+        value: false,
+        writable: true,
+        supportedTargets: ["global"],
+      },
+      {
+        path: "ai.connection.configured",
+        section: "ai",
+        label: "Connection configured",
+        kind: "boolean",
+        value: false,
+        writable: false,
+      },
+      {
+        path: "ai.connection.credentialConfigured",
+        section: "ai",
+        label: "Credential configured",
+        kind: "boolean",
+        value: false,
+        writable: false,
+      },
+    ],
   };
-  return next;
 }
 
-export function seedMemory(partial: Partial<MemoryRecord> & Pick<MemoryRecord, "id" | "scope" | "content">): MemoryRecord {
+function validateFixtureSetting(
+  setting: AgentSettingDescriptor,
+  value: AgentSettingValue,
+): void {
+  if (value === null && !setting.nullable) {
+    throw new Error(`${setting.path} cannot be null`);
+  }
+  if (value === null) return;
+  if (setting.kind === "boolean" && typeof value !== "boolean") {
+    throw new Error(`${setting.path} must be a boolean`);
+  }
+  if (setting.kind === "string" && typeof value !== "string") {
+    throw new Error(`${setting.path} must be a string`);
+  }
+  if (setting.kind === "integer" && !Number.isInteger(value)) {
+    throw new Error(`${setting.path} must be an integer`);
+  }
+  if (
+    setting.kind === "enum" &&
+    !setting.options?.some((option) => Object.is(option.value, value))
+  ) {
+    throw new Error(`${setting.path} has an unsupported value`);
+  }
+}
+
+function applySettingChanges(
+  current: AgentSettingsSnapshot,
+  changes: AgentSettingChange[],
+): { settings: AgentSettingsSnapshot; changed: AgentSettingChange[] } {
+  const next = structuredClone(current);
+  const byPath = new Map(
+    next.settings.map((setting) => [setting.path, setting]),
+  );
+  const changed: AgentSettingChange[] = [];
+  const seen = new Set<string>();
+
+  for (const change of changes) {
+    const setting = byPath.get(change.path);
+    if (!setting?.writable || !setting.supportedTargets) {
+      throw new Error(`unknown or read-only setting: ${change.path}`);
+    }
+    if (!change.target && setting.supportedTargets.length > 1) {
+      throw new Error(
+        `${change.path} requires an explicit target: ${setting.supportedTargets.join(", ")}`,
+      );
+    }
+    const target = change.target ?? { kind: "global" as const };
+    if (!setting.supportedTargets.includes(target.kind)) {
+      throw new Error(`${change.path} does not support target ${target.kind}`);
+    }
+    const key = `${change.path}@${target.kind === "book" ? target.bookId : target.kind}`;
+    if (seen.has(key)) throw new Error(`duplicate settings change: ${key}`);
+    seen.add(key);
+    validateFixtureSetting(setting, change.value);
+    if (!Object.is(setting.value, change.value)) {
+      setting.value = change.value;
+      changed.push({ ...change, target });
+    }
+  }
+  return { settings: next, changed };
+}
+
+function querySettings(
+  settings: AgentSettingsSnapshot,
+  query: AgentSettingsQuery = {},
+): AgentSettingsSnapshot {
+  const target = query.target ?? { kind: "global" as const };
+  return {
+    target,
+    overrides:
+      query.section && query.section !== "reading" ? [] : settings.overrides,
+    settings: settings.settings.filter(
+      (setting) =>
+        (!query.section || setting.section === query.section) &&
+        (target.kind === "global" ||
+          setting.supportedTargets?.includes("book")),
+    ),
+  };
+}
+
+export function seedMemory(
+  partial: Partial<MemoryRecord> &
+    Pick<MemoryRecord, "id" | "scope" | "content">,
+): MemoryRecord {
   return {
     kind: "fact",
     importance: 0.5,
@@ -230,7 +328,8 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
   let memoryCounter = 0;
   let annotationCounter = annotations.length;
   let collectionCounter = collections.length;
-  const isActive = (memory: MemoryRecord) => (memory.status ?? "active") === "active";
+  const isActive = (memory: MemoryRecord) =>
+    (memory.status ?? "active") === "active";
 
   const deps: RuntimeDeps = {
     library: {
@@ -238,15 +337,21 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       getBook: async (id) => books.find((book) => book.id === id),
       listCollections: async () => collections,
       booksInCollection: async (collectionId) =>
-        books.filter((book) => book.collectionId === collectionId).map((book) => book.id),
-      getBookStats: async (bookId) => bookStats.find((stats) => stats.bookId === bookId),
+        books
+          .filter((book) => book.collectionId === collectionId)
+          .map((book) => book.id),
+      getBookStats: async (bookId) =>
+        bookStats.find((stats) => stats.bookId === bookId),
       listBookStats: async () => bookStats,
       getStatsOverview: async () =>
         seed.statsOverview ?? {
           totalMs: bookStats.reduce((total, stats) => total + stats.totalMs, 0),
           daily: {},
-          booksReading: bookStats.filter((stats) => stats.status === "reading").length,
-          booksFinished: bookStats.filter((stats) => stats.status === "finished").length,
+          booksReading: bookStats.filter((stats) => stats.status === "reading")
+            .length,
+          booksFinished: bookStats.filter(
+            (stats) => stats.status === "finished",
+          ).length,
         },
       editBookMetadata: async (bookId, patch) => {
         const book = books.find((entry) => entry.id === bookId);
@@ -280,12 +385,16 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         return collection;
       },
       renameCollection: async (collectionId, name) => {
-        const collection = collections.find((entry) => entry.id === collectionId);
+        const collection = collections.find(
+          (entry) => entry.id === collectionId,
+        );
         if (!collection) throw new Error(`unknown collection: ${collectionId}`);
         collection.name = name;
       },
       removeCollection: async (collectionId) => {
-        const index = collections.findIndex((entry) => entry.id === collectionId);
+        const index = collections.findIndex(
+          (entry) => entry.id === collectionId,
+        );
         if (index < 0) throw new Error(`unknown collection: ${collectionId}`);
         collections.splice(index, 1);
         for (const book of books) {
@@ -349,12 +458,15 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       },
       updateNote: async (noteId, body) => {
         const note = annotations.find((entry) => entry.id === noteId);
-        if (!note || note.kind !== "note") throw new Error(`note not found: ${noteId}`);
+        if (!note || note.kind !== "note")
+          throw new Error(`note not found: ${noteId}`);
         note.body = body;
         note.updatedAt = new Date().toISOString();
       },
       removeAnnotation: async (annotationId) => {
-        const index = annotations.findIndex((entry) => entry.id === annotationId);
+        const index = annotations.findIndex(
+          (entry) => entry.id === annotationId,
+        );
         if (index < 0) throw new Error(`annotation not found: ${annotationId}`);
         annotations.splice(index, 1);
       },
@@ -363,7 +475,8 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       },
     },
     reader: {
-      openBook: (bookId) => stores.readerRequests.push({ type: "open", bookId }),
+      openBook: (bookId) =>
+        stores.readerRequests.push({ type: "open", bookId }),
       goTo: (target) => stores.readerRequests.push({ type: "goTo", ...target }),
     },
     interactions: {
@@ -388,7 +501,8 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         for (const [key, list] of stores.turns) {
           if (threadKey && key !== threadKey) continue;
           for (const turn of list) {
-            if (turn.content.includes(query)) matches.push({ ...turn, threadKey: key });
+            if (turn.content.includes(query))
+              matches.push({ ...turn, threadKey: key });
           }
         }
         return matches.slice(0, limit ?? 20);
@@ -456,7 +570,9 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
             case "supersede":
               memory.status = "superseded";
               if (change.byId) {
-                const winner = stores.memories.find((m) => m.id === change.byId);
+                const winner = stores.memories.find(
+                  (m) => m.id === change.byId,
+                );
                 if (winner) {
                   winner.evidenceCount += 1;
                   winner.importance = Math.min(1, winner.importance + 0.1);
@@ -502,13 +618,13 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       },
     },
     settings: {
-      getSettings: async () => stores.settings,
-      updateSettings: async (patch) => {
-        const before = JSON.stringify(stores.settings);
-        stores.settings = applySettingsPatch(stores.settings, patch);
+      getSettings: async (query) => querySettings(stores.settings, query),
+      updateSettings: async (changes) => {
+        const result = applySettingChanges(stores.settings, changes);
+        stores.settings = result.settings;
         return {
-          changed: before === JSON.stringify(stores.settings) ? [] : ["settings"],
-          settings: stores.settings,
+          changed: result.changed,
+          settings: querySettings(stores.settings),
         };
       },
     },

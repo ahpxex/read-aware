@@ -108,6 +108,29 @@ const VEIL_OPACITY = "0.6";
  *  path covers the whole overlay without measuring it. */
 const VEIL_EXTENT = 1e6;
 
+/** Add breathing room only on the block axis. A following sentence can start
+ * exactly at `rect.right`, so inline padding would wash its first glyph too. */
+export function navigatorLineBox(
+  rect: Pick<DOMRect, "left" | "top" | "width" | "height">,
+  blockPadding: number,
+  writingMode = "horizontal-tb",
+): { x: number; y: number; width: number; height: number } {
+  if (/^(vertical|sideways)-/.test(writingMode)) {
+    return {
+      x: rect.left - blockPadding,
+      y: rect.top,
+      width: rect.width + blockPadding * 2,
+      height: rect.height,
+    };
+  }
+  return {
+    x: rect.left,
+    y: rect.top - blockPadding,
+    width: rect.width,
+    height: rect.height + blockPadding * 2,
+  };
+}
+
 /**
  * The dimming veil around the active unit: one page-toned translucent path
  * covering everything except windows over the unit's line boxes. The
@@ -116,14 +139,15 @@ const VEIL_EXTENT = 1e6;
  * fill rule — overlapping line boxes merge instead of XOR-ing back to filled
  * (which fill-rule="evenodd" would do).
  */
-function drawNavigatorVeil(rects: DOMRect[], color: string): SVGPathElement {
+function drawNavigatorVeil(
+  rects: DOMRect[],
+  color: string,
+  writingMode: string,
+): SVGPathElement {
   let d = `M ${-VEIL_EXTENT} ${-VEIL_EXTENT} H ${VEIL_EXTENT} V ${VEIL_EXTENT} H ${-VEIL_EXTENT} Z`;
   for (const rect of rects) {
-    const x = rect.left - 4;
-    const y = rect.top - 2;
-    const w = rect.width + 8;
-    const h = rect.height + 4;
-    d += ` M ${x} ${y} v ${h} h ${w} v ${-h} Z`;
+    const { x, y, width, height } = navigatorLineBox(rect, 2, writingMode);
+    d += ` M ${x} ${y} v ${height} h ${width} v ${-height} Z`;
   }
   const veil = document.createElementNS(SVG_NS, "path");
   veil.setAttribute("d", d);
@@ -142,22 +166,25 @@ function drawNavigatorVeil(rects: DOMRect[], color: string): SVGPathElement {
  */
 function drawNavigatorTarget(
   rects: Iterable<DOMRect>,
-  options: { color?: string } = {},
+  options: { color?: string; writingMode?: string } = {},
 ): SVGGElement {
-  const { color: veilColor } = options;
+  const { color: veilColor, writingMode = "horizontal-tb" } = options;
   const group = document.createElementNS(SVG_NS, "g");
   const lineRects = Array.from(rects).filter((rect) => rect.width >= 1);
   // No line boxes to spare; drawing the veil would dim the target itself.
-  if (veilColor && lineRects.length) group.append(drawNavigatorVeil(lineRects, veilColor));
+  if (veilColor && lineRects.length) {
+    group.append(drawNavigatorVeil(lineRects, veilColor, writingMode));
+  }
   const wash = document.createElementNS(SVG_NS, "g");
   wash.setAttribute("fill", NAVIGATOR_FILL);
   wash.style.opacity = "0.25";
   for (const rect of lineRects) {
+    const box = navigatorLineBox(rect, 1, writingMode);
     const el = document.createElementNS(SVG_NS, "rect");
-    el.setAttribute("x", String(rect.left - 2));
-    el.setAttribute("y", String(rect.top - 1));
-    el.setAttribute("width", String(rect.width + 4));
-    el.setAttribute("height", String(rect.height + 2));
+    el.setAttribute("x", String(box.x));
+    el.setAttribute("y", String(box.y));
+    el.setAttribute("width", String(box.width));
+    el.setAttribute("height", String(box.height));
     el.setAttribute("rx", "3");
     wash.append(el);
   }
@@ -274,6 +301,14 @@ export async function registerHighlightDrawing(view: FoliateView): Promise<void>
           : style === "navigator"
             ? drawNavigatorTarget
             : highlight;
-    detail.draw(drawFn, { color: detail.annotation.color });
+    const container = detail.range.commonAncestorContainer;
+    const element =
+      container.nodeType === Node.ELEMENT_NODE
+        ? (container as Element)
+        : container.parentElement;
+    const writingMode = element
+      ? detail.doc.defaultView?.getComputedStyle(element).writingMode
+      : undefined;
+    detail.draw(drawFn, { color: detail.annotation.color, writingMode });
   });
 }

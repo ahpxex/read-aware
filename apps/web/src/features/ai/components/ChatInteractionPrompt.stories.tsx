@@ -46,6 +46,15 @@ const permission: ChatInteractionPart = {
   },
 };
 
+const answeredQuestion: ChatInteractionPart = {
+  ...question,
+  state: "answered",
+  answer: {
+    optionId: "theme",
+    text: "By theme",
+  },
+};
+
 function InteractiveStory({ initialPart }: { initialPart: ChatInteractionPart }) {
   const [part, setPart] = useState(initialPart);
 
@@ -82,6 +91,11 @@ type Story = StoryObj<typeof meta>;
 export const AskQuestion: Story = {
   args: { part: question },
   render: () => <InteractiveStory initialPart={question} />,
+};
+
+/** A completed question returns to the same compact disclosure rhythm as tools and thinking. */
+export const AnsweredQuestion: Story = {
+  args: { part: answeredQuestion },
 };
 
 /** A host-enforced destructive-action confirmation; try either decision. */

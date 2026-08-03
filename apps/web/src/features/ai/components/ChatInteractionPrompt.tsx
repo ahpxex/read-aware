@@ -1,6 +1,7 @@
-import { CheckCircle, Question, Warning, XCircle } from "@phosphor-icons/react";
+import { CaretRight, Warning } from "@phosphor-icons/react";
 import { Body, Button, Caption, Card, ChoiceGroup, TextField } from "@read-aware/ui";
-import { useMemo, useState, type FormEvent } from "react";
+import { cn } from "@read-aware/ui/cn";
+import { useId, useMemo, useState, type FormEvent } from "react";
 import { useTranslation } from "../../../i18n";
 import { respondToUserInteraction } from "../agent/ports/user-interaction-port";
 import type {
@@ -38,22 +39,69 @@ const permissionKeys: Record<
   },
 };
 
-function SettledAnswer({ part }: { part: ChatInteractionPart }) {
+function SettledInteraction({
+  part,
+  title,
+}: {
+  part: ChatInteractionPart;
+  title: string;
+}) {
   const { t } = useTranslation("ai");
+  const [expanded, setExpanded] = useState(false);
+  const contentId = useId();
   const declined = part.request.kind === "permission" && part.answer?.optionId === "decline";
   const cancelled = part.state === "cancelled" || part.answer?.cancelled;
-  const label = cancelled
+  const answer = cancelled
     ? t("chat.interaction.skipped")
     : declined
       ? t("chat.interaction.permission.declined")
       : part.request.kind === "permission"
         ? t("chat.interaction.permission.approved")
         : part.answer?.text || t("chat.interaction.answered");
-  const Icon = cancelled || declined ? XCircle : CheckCircle;
+  const status = cancelled
+    ? t("chat.interaction.skipped")
+    : declined
+      ? t("chat.interaction.permission.declined")
+      : part.request.kind === "permission"
+        ? t("chat.interaction.permission.approved")
+        : t("chat.interaction.answered");
+
   return (
-    <div className="flex items-center gap-1.5 text-fg-muted">
-      <Icon size={14} aria-hidden="true" />
-      <Caption>{label}</Caption>
+    <div className="min-w-0">
+      <Button
+        variant="ghost"
+        size="sm"
+        aria-expanded={expanded}
+        aria-controls={contentId}
+        onClick={() => setExpanded((open) => !open)}
+        className="h-auto w-full justify-start gap-1 p-0 text-left font-normal hover:bg-transparent active:bg-transparent"
+      >
+        <CaretRight
+          size={12}
+          className={cn(
+            "shrink-0 text-fg-subtle transition-transform",
+            expanded && "rotate-90",
+          )}
+          aria-hidden="true"
+        />
+        <Caption className="min-w-0 truncate text-fg-subtle">
+          {status} · {title}
+        </Caption>
+      </Button>
+      {expanded && (
+        <Caption
+          as="blockquote"
+          id={contentId}
+          className="ml-1.5 mt-1.5 space-y-1 border-l border-border pl-3 leading-relaxed text-fg-muted"
+        >
+          <span className="block">
+            <span className="text-fg-subtle">q:</span> {title}
+          </span>
+          <span className="block">
+            <span className="text-fg-subtle">a:</span> {answer}
+          </span>
+        </Caption>
+      )}
     </div>
   );
 }
@@ -199,37 +247,33 @@ export function ChatInteractionPrompt({
     part.request.kind === "permission"
       ? t(permissionKeys[part.request.action].question, { subject: part.request.subject })
       : part.request.question;
-  const Icon = permission ? Warning : Question;
+
+  if (part.state !== "pending") {
+    return <SettledInteraction part={part} title={title} />;
+  }
 
   return (
-    <Card
-      padding="sm"
-      className="rounded-md bg-transparent"
-      aria-live={part.state === "pending" ? "polite" : undefined}
-    >
-      <div className="flex items-start gap-2.5">
-        <Icon
-          size={17}
-          className="mt-0.5 shrink-0 text-fg-muted"
-          aria-hidden="true"
-        />
-        <div className="min-w-0 flex-1">
+    <Card padding="sm" className="rounded-md bg-transparent" aria-live="polite">
+      {permission ? (
+        <div className="grid grid-cols-[18px_minmax(0,1fr)] gap-x-2.5">
+          <Warning size={18} className="self-center text-fg-muted" aria-hidden="true" />
+          <Body as="h3" className="min-w-0 text-sm font-medium leading-5 text-fg">
+            {title}
+          </Body>
+          <div className="col-start-2 mt-3 min-w-0">
+            <PermissionPrompt part={part} onRespond={onRespond} />
+          </div>
+        </div>
+      ) : (
+        <>
           <Body as="h3" className="text-sm font-medium leading-5 text-fg">
             {title}
           </Body>
           <div className="mt-3">
-            {part.state === "pending" ? (
-              permission ? (
-                <PermissionPrompt part={part} onRespond={onRespond} />
-              ) : (
-                <QuestionPrompt part={part} onRespond={onRespond} />
-              )
-            ) : (
-              <SettledAnswer part={part} />
-            )}
+            <QuestionPrompt part={part} onRespond={onRespond} />
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </Card>
   );
 }

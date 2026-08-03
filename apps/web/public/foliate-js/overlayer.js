@@ -14,13 +14,13 @@ export class Overlayer {
     get element() {
         return this.#svg
     }
-    add(key, range, draw, options) {
+    add(key, range, draw, options, hitValue = key) {
         if (this.#map.has(key)) this.remove(key)
         if (typeof range === 'function') range = range(this.#svg.getRootNode())
         const rects = range.getClientRects()
         const element = draw(rects, options)
         this.#svg.append(element)
-        this.#map.set(key, { range, draw, options, element, rects })
+        this.#map.set(key, { range, draw, options, element, rects, hitValue })
     }
     remove(key) {
         if (!this.#map.has(key)) return
@@ -42,10 +42,10 @@ export class Overlayer {
         const arr = Array.from(this.#map.entries())
         // loop in reverse to hit more recently added items first
         for (let i = arr.length - 1; i >= 0; i--) {
-            const [key, obj] = arr[i]
+            const [, obj] = arr[i]
             for (const { left, top, right, bottom } of obj.rects)
                 if (top <= y && left <= x && bottom > y && right > x)
-                    return [key, obj.range]
+                    return [obj.hitValue, obj.range]
         }
         return []
     }
@@ -172,4 +172,3 @@ export class Overlayer {
         return image
     }
 }
-

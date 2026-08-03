@@ -3,6 +3,9 @@ import type { FoliateAnnotation, FoliateDrawAnnotationDetail, FoliateView } from
 import { loadDrawFns } from "./foliate-engine";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
+const NAVIGATOR_OVERLAY_PREFIX = "read-aware:navigator:";
+
+const navigatorOverlayKey = (cfiRange: string) => `${NAVIGATOR_OVERLAY_PREFIX}${cfiRange}`;
 
 /** A note's marker is a neutral dashed underline — quietly distinct from marks. */
 const NOTE_STROKE = "#78716c";
@@ -233,16 +236,23 @@ export function applyNavigatorHighlight(
   veilColor?: string,
 ): void {
   void view
-    .addAnnotation({ value: cfiRange, style: "navigator", color: veilColor })
+    .addAnnotation({
+      value: cfiRange,
+      overlayKey: navigatorOverlayKey(cfiRange),
+      style: "navigator",
+      color: veilColor,
+    })
     .catch(() => {
       // CFI may not resolve in the current layout — foliate ignores it.
     });
 }
 
 export function removeNavigatorHighlight(view: FoliateView, cfiRange: string): void {
-  void view.deleteAnnotation({ value: cfiRange }).catch(() => {
-    // Ignore removal errors (e.g. section not currently rendered).
-  });
+  void view
+    .deleteAnnotation({ value: cfiRange, overlayKey: navigatorOverlayKey(cfiRange) })
+    .catch(() => {
+      // Ignore removal errors (e.g. section not currently rendered).
+    });
 }
 
 /**

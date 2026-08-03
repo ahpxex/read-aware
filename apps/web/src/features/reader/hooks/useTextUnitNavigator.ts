@@ -68,10 +68,6 @@ type UseTextUnitNavigatorOptions = {
   readerRootRef: RefObject<HTMLElement | null>;
   /** Cross into the adjacent spine section, with the mode's transition. */
   crossSection: (direction: -1 | 1, fromSectionIndex: number | null) => Promise<void> | void;
-  /** Re-draw any user mark whose overlay shares a CFI the navigator vacated
-   *  (the overlayer keys drawings by CFI, so leaving a unit the user
-   *  highlighted verbatim would otherwise erase their mark's visual). */
-  restoreAnnotationAt: (cfiRange: string) => void;
   /** The reader's page color — the fill of the dimming veil drawn around the
    *  resting unit so the rest of the page recedes while navigating. */
   veilColor: string;
@@ -108,7 +104,6 @@ export function useTextUnitNavigator({
   viewRef,
   readerRootRef,
   crossSection,
-  restoreAnnotationAt,
   veilColor,
 }: UseTextUnitNavigatorOptions): TextUnitNavigator {
   const [current, setCurrent] = useState<TextUnitTarget | null>(null);
@@ -143,8 +138,6 @@ export function useTextUnitNavigator({
 
   const crossSectionRef = useRef(crossSection);
   useEffect(() => { crossSectionRef.current = crossSection; }, [crossSection]);
-  const restoreAnnotationAtRef = useRef(restoreAnnotationAt);
-  useEffect(() => { restoreAnnotationAtRef.current = restoreAnnotationAt; }, [restoreAnnotationAt]);
   // A theme change swaps the veil color but does NOT rebuild the overlayer —
   // the drawn annotation keeps the options it was added with. Re-apply the
   // wash in place (add on an existing CFI replaces the drawing) so the veil
@@ -208,7 +201,7 @@ export function useTextUnitNavigator({
     });
   }, []);
 
-  /** Remove the wash, re-drawing any user mark that shared its CFI. */
+  /** Remove only the navigator's independent overlay at the resting CFI. */
   const clearWash = useCallback(() => {
     const cfi = appliedCfiRef.current;
     appliedCfiRef.current = null;
@@ -216,7 +209,6 @@ export function useTextUnitNavigator({
     const view = viewRef.current;
     if (!view) return;
     removeNavigatorHighlight(view, cfi);
-    restoreAnnotationAtRef.current(cfi);
   }, [viewRef]);
 
   /** Whether every rect of the range sits inside the comfortable part of the

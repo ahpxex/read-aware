@@ -52,7 +52,13 @@ export type FoliateRelocateDetail = {
 
 export type FoliateLoadDetail = { doc: Document; index: number };
 
-export type FoliateAnnotation = { value: string; color?: string; [key: string]: unknown };
+export type FoliateAnnotation = {
+  value: string;
+  color?: string;
+  /** Optional render identity when multiple visual layers share one anchor. */
+  overlayKey?: string;
+  [key: string]: unknown;
+};
 
 export type FoliateDrawAnnotationDetail = {
   draw: (func: unknown, options?: Record<string, unknown>) => void;

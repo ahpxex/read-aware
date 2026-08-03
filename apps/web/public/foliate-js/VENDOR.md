@@ -74,6 +74,11 @@ The typed wrapper that consumes this lives at
   and, worse, the DOM shape a stored CFI was measured against stopped being
   reproducible. The text and annotation layers are now cleared before each
   render. Re-apply after any upstream update.
+- **`view.js` / `overlayer.js` — independent render identity:** annotations may
+  provide an `overlayKey` distinct from their CFI `value`, while hit testing
+  still reports the CFI. This lets ReadAware's navigator focus layer coexist
+  with a saved mark on the exact same sentence. Re-apply after any upstream
+  update.
 - Otherwise all engine modules and `vendor/` are byte-for-byte upstream.
 
 ## Updating

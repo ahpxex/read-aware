@@ -366,7 +366,7 @@ export class View extends HTMLElement {
         })
     }
     async addAnnotation(annotation, remove) {
-        const { value } = annotation
+        const { value, overlayKey = value } = annotation
         if (value.startsWith(SEARCH_PREFIX)) {
             const cfi = value.replace(SEARCH_PREFIX, '')
             const { index, anchor } = await this.resolveNavigation(cfi)
@@ -374,11 +374,12 @@ export class View extends HTMLElement {
             if (obj) {
                 const { overlayer, doc } = obj
                 if (remove) {
-                    overlayer.remove(value)
+                    overlayer.remove(overlayKey)
                     return
                 }
                 const range = doc ? anchor(doc) : anchor
-                overlayer.add(value, range, this.#searchDraw, this.#searchDrawOptions)
+                overlayer.add(
+                    overlayKey, range, this.#searchDraw, this.#searchDrawOptions, value)
             }
             return
         }
@@ -386,10 +387,11 @@ export class View extends HTMLElement {
         const obj = this.#getOverlayer(index)
         if (obj) {
             const { overlayer, doc } = obj
-            overlayer.remove(value)
+            overlayer.remove(overlayKey)
             if (!remove) {
                 const range = doc ? anchor(doc) : anchor
-                const draw = (func, opts) => overlayer.add(value, range, func, opts)
+                const draw = (func, opts) =>
+                    overlayer.add(overlayKey, range, func, opts, value)
                 this.#emit('draw-annotation', { draw, annotation, doc, range })
             }
         }

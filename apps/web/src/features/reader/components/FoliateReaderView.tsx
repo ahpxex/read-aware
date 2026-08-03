@@ -36,9 +36,7 @@ import {
   type FoliateView,
 } from "../lib/foliate-engine";
 import {
-  applyHighlight,
   applyHighlights,
-  applyNote,
   applyNotes,
   registerHighlightDrawing,
 } from "../lib/highlight-renderer";
@@ -842,21 +840,6 @@ export function FoliateReaderView({
     scrollToStepRef.current = textUnitModePrefs.scrollToStep;
   }, [textUnitModePrefs.tapToAdvance, textUnitModePrefs.scrollToStep]);
 
-  // Leaving a unit removes the mode's wash by CFI, which also erases
-  // the drawing of any user mark saved on that exact range (the overlayer keys
-  // drawings by CFI). Re-draw it from the stores.
-  const restoreAnnotationAt = useCallback((cfiRange: string) => {
-    const view = viewRef.current;
-    if (!view) return;
-    const highlight = highlightsRef.current.find((item) => item.cfiRange === cfiRange);
-    if (highlight) {
-      applyHighlight(view, highlight);
-      return;
-    }
-    const note = notesRef.current.find((item) => item.cfiRange === cfiRange);
-    if (note) applyNote(view, note);
-  }, []);
-
   // Stepping off either end of a section: scroll mode gets the cross-fade with
   // an explicit spine target (next/prev only cross when pinned at an edge);
   // paginated modes flip like a page turn, crossing at the section's last page.
@@ -890,7 +873,6 @@ export function FoliateReaderView({
     viewRef,
     readerRootRef,
     crossSection: textUnitModeCrossSection,
-    restoreAnnotationAt,
     veilColor: readerPalette.bg,
   });
   // The engine's mount-once effect and the stable key handler reach the

@@ -80,6 +80,12 @@ windows = { version = "0.61", features = [
 # Scratch dirs for the filesystem blob-store tests.
 tempfile = "3"
 
+# Tauri's third-party dependency graph dominates target/debug when every crate
+# carries full debug data. Keep ReadAware's own symbols, but omit dependency
+# debug info to make local builds substantially smaller.
+[profile.dev.package."*"]
+debug = 0
+
 # Hashing large imported books is user-facing even in `tauri dev`. Optimizing
 # only sha2 keeps normal debug compilation fast while avoiding a 10x+ debug-mode
 # penalty that made an 88 MB import take seconds instead of milliseconds.

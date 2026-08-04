@@ -30,7 +30,16 @@ export function CommandPalette({ isOpen, onClose, ctx, extraItems }: CommandPale
     // Rebuild when the underlying data changes (actions are stable setters) or
     // the language switches (labels/keywords are translated).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isOpen, ctx.activeTopNav, ctx.shelfView, ctx.collections, ctx.books, extraItems, t],
+    [
+      isOpen,
+      ctx.activeTopNav,
+      ctx.readingBookId,
+      ctx.shelfView,
+      ctx.collections,
+      ctx.books,
+      extraItems,
+      t,
+    ],
   );
   const groups = useMemo(() => filterCommands(items, query), [items, query]);
   const flat = useMemo(() => groups.flatMap((group) => group.items), [groups]);

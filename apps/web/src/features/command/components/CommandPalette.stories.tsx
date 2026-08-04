@@ -72,6 +72,7 @@ const collections: Collection[] = [
 /** Shelf-at-rest context: default view, two collections, a small library. */
 const ctx: CommandContext = {
   activeTopNav: "shelf",
+  readingBookId: null,
   shelfView: { layout: "grid", group: "none", sort: "recent" },
   collections,
   books,
@@ -107,3 +108,11 @@ type Story = StoryObj<typeof meta>;
     internal state (reset on every open), so a pre-typed variant can't be
     expressed via props; type in the canvas to see ranking. */
 export const Default: Story = {};
+
+/** The same global palette while a book is open. Library remains available as
+    a destination even though it is still the app's last top-level route. */
+export const WhileReading: Story = {
+  args: {
+    ctx: { ...ctx, readingBookId: books[0].id },
+  },
+};

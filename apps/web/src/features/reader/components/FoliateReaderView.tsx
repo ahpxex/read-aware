@@ -62,6 +62,10 @@ import {
   listNotes,
 } from "../../annotations/lib/annotation-db";
 import { hasCoarsePointer, suppressNativeContextMenu } from "../../../platform/environment";
+import {
+  forwardKeyDownToApp,
+  isEditableKeyTarget,
+} from "../../../platform/app-keydown";
 import { subscribeWheelPhaseEdges } from "../../../platform/wheel-phase";
 import { useDelayedFlag } from "../hooks/useDelayedFlag";
 import { useReaderTypography } from "../hooks/useReaderTypography";
@@ -1085,12 +1089,15 @@ export function FoliateReaderView({
   }, []);
 
   const handleReaderKeyDown = useCallback((event: KeyboardEvent) => {
-    if (!loadedBookRef.current) return;
-    const target = event.target;
-    if (target instanceof HTMLElement &&
-      (target.isContentEditable || target.closest("input, textarea, select, [contenteditable='true']"))) {
-      return;
+    // Foliate renders every section in an iframe, whose keyboard events never
+    // reach app-global shortcuts. Forward them first, then leave claimed chords
+    // (Command Palette, Settings, plugin commands) out of reader navigation.
+    if (event.currentTarget !== window) {
+      forwardKeyDownToApp(event);
+      if (event.defaultPrevented) return;
     }
+    if (!loadedBookRef.current) return;
+    if (isEditableKeyTarget(event.target)) return;
 
     // Configurable reader shortcuts, checked before the modifier guard so a
     // rebinding may include modifiers. Left/right page turns are direction-aware

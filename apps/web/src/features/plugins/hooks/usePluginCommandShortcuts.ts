@@ -8,22 +8,16 @@ import { useEffect } from "react";
 import { useAtomValue } from "jotai";
 import { shortcutBindingsAtom } from "../../../state/ui";
 import {
+  isEditableKeyTarget,
+  subscribeToAppKeyDown,
+} from "../../../platform/app-keydown";
+import {
   chordMatchesEvent,
   pluginShortcutId,
   resolvePluginBinding,
 } from "../../settings/lib/shortcuts";
 import { runPluginContribution } from "../lib/run-result";
 import { pluginCommandsAtom } from "../state/plugin-store";
-
-function isEditableTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  return (
-    target.isContentEditable ||
-    target.tagName === "INPUT" ||
-    target.tagName === "TEXTAREA" ||
-    target.tagName === "SELECT"
-  );
-}
 
 export function usePluginCommandShortcuts(): void {
   const bindings = useAtomValue(shortcutBindingsAtom);
@@ -41,7 +35,7 @@ export function usePluginCommandShortcuts(): void {
     if (bound.length === 0) return;
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (isEditableTarget(event.target)) return;
+      if (event.defaultPrevented || isEditableKeyTarget(event.target)) return;
       for (const { command, chord } of bound) {
         if (chordMatchesEvent(chord, event)) {
           event.preventDefault();
@@ -51,7 +45,6 @@ export function usePluginCommandShortcuts(): void {
       }
     }
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return subscribeToAppKeyDown(handleKeyDown);
   }, [bindings, commands]);
 }

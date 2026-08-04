@@ -86,6 +86,7 @@ import {
   settingsOpenAtom,
   shelfSelectionAtom,
   shelfViewAtom,
+  type TopNav,
 } from "./state/ui";
 
 function App() {
@@ -350,55 +351,96 @@ function App() {
     setActiveCollectionId,
   ]);
 
+  const openAppSurface = useCallback(
+    (surface: TopNav) => {
+      setActiveTopNav(surface);
+      if (reader.selectedBook) closeBook();
+    },
+    [closeBook, reader.selectedBook, setActiveTopNav],
+  );
+
   const pluginCommandItems = usePluginCommandItems(
     useCallback(
-      (key: string) => setActiveTopNav(`plugin:${key}`),
-      [setActiveTopNav],
+      (key: string) => openAppSurface(`plugin:${key}`),
+      [openAppSurface],
     ),
+  );
+
+  const handleCommandOpenBook = useCallback(
+    (book: LibraryBook) => {
+      if (
+        reader.selectedBook &&
+        !readerExiting &&
+        shelfHandoff === "idle"
+      ) {
+        if (reader.selectedBook.id !== book.id) reader.openReader(book);
+        return;
+      }
+      handleOpenBook(book);
+    },
+    [
+      handleOpenBook,
+      reader.openReader,
+      reader.selectedBook,
+      readerExiting,
+      shelfHandoff,
+    ],
   );
 
   const commandContext: CommandContext = {
     activeTopNav,
+    readingBookId: reader.selectedBook?.id ?? null,
     shelfView,
     collections: library.collections,
     books: library.books,
-    openBook: handleOpenBook,
+    openBook: handleCommandOpenBook,
     openCollection: (id) => {
-      setActiveTopNav("shelf");
       setActiveCollectionId(id);
+      openAppSurface("shelf");
     },
     goShelf: () => {
-      setActiveTopNav("shelf");
       setActiveCollectionId(null);
+      openAppSurface("shelf");
     },
-    goContext: () => setActiveTopNav("context"),
-    goStats: () => setActiveTopNav("stats"),
+    goContext: () => openAppSurface("context"),
+    goStats: () => openAppSurface("stats"),
     openSettings: () => setSettingsOpen(true),
     importBook: () => {
-      setActiveTopNav("shelf");
+      openAppSurface("shelf");
       library.openImportPicker();
     },
     startSelection: () => {
-      setActiveTopNav("shelf");
       setActiveCollectionId(null);
       setShelfSelection({ active: true, ids: [] });
+      openAppSurface("shelf");
     },
     setLayout: (layout) => {
-      setActiveTopNav("shelf");
       setShelfView({ ...shelfView, layout });
+      openAppSurface("shelf");
     },
     setSort: (sort) => {
-      setActiveTopNav("shelf");
       setShelfView({ ...shelfView, sort });
+      openAppSurface("shelf");
     },
     setGroup: (group) => {
-      setActiveTopNav("shelf");
       setShelfView({ ...shelfView, group });
+      openAppSurface("shelf");
     },
   };
 
   return (
     <>
+      <input
+        ref={library.importInputRef}
+        type="file"
+        accept={BOOK_FILE_ACCEPT}
+        multiple
+        className="hidden"
+        onChange={(event) => {
+          void library.handleImportSelection(event);
+        }}
+      />
+
       {reader.selectedBook && (
         // While closing, the reader becomes a fixed overlay dissolving over
         // the (opaque) shelf that has already remounted underneath.
@@ -459,17 +501,6 @@ function App() {
               "ra-motion-surface-exit",
           )}
         >
-          <input
-            ref={library.importInputRef}
-            type="file"
-            accept={BOOK_FILE_ACCEPT}
-            multiple
-            className="hidden"
-            onChange={(event) => {
-              void library.handleImportSelection(event);
-            }}
-          />
-
           <AppHeader
             activeTopNav={activeTopNav}
             isImporting={library.isImporting}
@@ -532,15 +563,15 @@ function App() {
               />
             )}
           </ScrollArea>
-
-          <CommandPalette
-            isOpen={searchModalOpen}
-            onClose={() => setSearchModalOpen(false)}
-            ctx={commandContext}
-            extraItems={pluginCommandItems}
-          />
         </main>
       )}
+
+      <CommandPalette
+        isOpen={searchModalOpen}
+        onClose={() => setSearchModalOpen(false)}
+        ctx={commandContext}
+        extraItems={pluginCommandItems}
+      />
 
       {settingsMounted && (
         <Suspense fallback={null}>

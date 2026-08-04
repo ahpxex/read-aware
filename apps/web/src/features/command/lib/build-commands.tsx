@@ -69,6 +69,7 @@ export type CommandActions = {
 
 export type CommandContext = {
   activeTopNav: TopNav;
+  readingBookId: string | null;
   shelfView: ShelfView;
   collections: Collection[];
   books: LibraryBook[];
@@ -94,7 +95,7 @@ export function buildCommands(
   const items: CommandItem[] = [];
 
   // ── Go to ────────────────────────────────────────────────────────────────
-  if (ctx.activeTopNav !== "shelf") {
+  if (ctx.activeTopNav !== "shelf" || ctx.readingBookId !== null) {
     items.push({
       id: "go-shelf",
       kind: "action",

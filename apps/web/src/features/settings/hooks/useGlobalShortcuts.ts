@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useAtomValue } from "jotai";
 import { shortcutBindingsAtom } from "../../../state/ui";
+import { subscribeToAppKeyDown } from "../../../platform/app-keydown";
 import { chordMatchesEvent, resolveBinding } from "../lib/shortcuts";
 
 type GlobalShortcutHandlers = {
@@ -25,6 +26,7 @@ export function useGlobalShortcuts({
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
+      if (event.defaultPrevented) return;
       if (chordMatchesEvent(resolveBinding("search", bindings), event)) {
         event.preventDefault();
         onOpenSearch();
@@ -43,7 +45,6 @@ export function useGlobalShortcuts({
       }
     }
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return subscribeToAppKeyDown(handleKeyDown);
   }, [onOpenSearch, onOpenSettings, onNewConversation, bindings]);
 }

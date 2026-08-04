@@ -1,7 +1,6 @@
 import { type ReactNode } from "react";
 import { useAtom } from "jotai";
 import {
-  Cards,
   CaretLeft,
   ChartLineUp,
   DotsThreeVertical,
@@ -16,7 +15,10 @@ import { useAtomValue } from "jotai";
 import { useTranslation } from "../../../i18n";
 import { desktopChromeKind } from "../../../platform/environment";
 import { activeCollectionAtom, type TopNav } from "../../../state/ui";
-import { MenuOverflow, type MenuOverflowEntry } from "../../menus/components/MenuOverflow";
+import {
+  MenuOverflow,
+  type MenuOverflowEntry,
+} from "../../menus/components/MenuOverflow";
 import { coreMenuMeta } from "../../menus/lib/menu-registry";
 import {
   CORE_MENU_DEFAULTS,
@@ -29,6 +31,7 @@ import { openHeaderActionDialog } from "../../plugins/lib/open-header-action";
 import { renderPluginIcon } from "../../plugins/lib/plugin-icons";
 import { contributionText } from "../../plugins/lib/plugin-i18n";
 import { headerActionsAtom } from "../../plugins/state/plugin-store";
+import { PrimaryNavigation } from "./PrimaryNavigation";
 import { WindowCaptionControls } from "./WindowCaptionControls";
 
 type AppHeaderProps = {
@@ -42,9 +45,9 @@ type AppHeaderProps = {
   leadingStatus?: ReactNode;
   /** Optional context-specific control (e.g. the shelf view menu) shown in the cluster. */
   viewControl?: ReactNode;
-  /** When set, replaces the default right-hand icon cluster entirely — the
-   *  Context page uses this to show only its annotations popover. On phones it
-   *  renders between the search field and the overflow menu instead. */
+  /** When set, replaces the customizable right-hand utility cluster. The
+   *  Agent page uses this for conversation actions. On phones these actions
+   *  render before the overflow menu. */
   actions?: ReactNode;
 };
 
@@ -52,12 +55,12 @@ const headerIconButtonClass =
   "relative text-fg-muted hover:text-fg before:absolute before:-inset-1 before:content-['']";
 
 /**
- * A single, draggable top bar — no separate title band, no tab switcher, no
- * wordmark: just the native traffic lights on the left (the bar is the window
- * drag region) and a right cluster of icon actions.
+ * A single, draggable top bar. Library and Agent are stable primary
+ * destinations in the center; contextual and utility actions stay at the
+ * edges instead of competing with that navigation.
  *
- * Phone widths swap the icon cluster for a prominent search field plus one
- * overflow menu carrying import / context / stats / settings.
+ * Phone widths retain the compact primary navigation and search, while the
+ * rest of the utility cluster moves into one overflow menu.
  */
 export function AppHeader({
   activeTopNav,
@@ -76,9 +79,13 @@ export function AppHeader({
   // the icon cluster moves to the LEFT (the platform-native arrangement).
   // macOS keeps it on the right, mirroring the traffic lights.
   const customChrome = desktopChromeKind() === "custom";
-  const contextActive = activeTopNav === "context";
   const statsActive = activeTopNav === "stats";
-  const [activeCollectionId, setActiveCollectionId] = useAtom(activeCollectionAtom);
+  const primarySurface =
+    activeTopNav === "shelf" || activeTopNav === "context"
+      ? activeTopNav
+      : null;
+  const [activeCollectionId, setActiveCollectionId] =
+    useAtom(activeCollectionAtom);
   // Plugin buttons live on the shelf header only (docs/plugin-system.md §5).
   const onShelf = activeTopNav === "shelf";
   const shelfPluginActions = useAtomValue(headerActionsAtom).filter(
@@ -90,9 +97,15 @@ export function AppHeader({
   const { t: tMenus } = useTranslation("settings");
   const menuConfig = useAtomValue(menuConfigAtom);
   const knownShelfIds = onShelf
-    ? [...CORE_MENU_DEFAULTS.shelfHeader, ...shelfPluginActions.map((a) => pluginMenuId(a.key))]
+    ? [
+        ...CORE_MENU_DEFAULTS.shelfHeader,
+        ...shelfPluginActions.map((a) => pluginMenuId(a.key)),
+      ]
     : CORE_MENU_DEFAULTS.shelfHeader;
-  const shelfLayout = resolveSurfaceLayout(menuConfig.shelfHeader, knownShelfIds);
+  const shelfLayout = resolveSurfaceLayout(
+    menuConfig.shelfHeader,
+    knownShelfIds,
+  );
 
   const coreShelfNodes: Record<string, ReactNode | null> = {
     "core:search": (
@@ -102,12 +115,17 @@ export function AppHeader({
           size="sm"
           onClick={onOpenSearch}
           className={headerIconButtonClass}
-          icon={<MagnifyingGlass size={16} weight="regular" aria-hidden="true" />}
+          icon={
+            <MagnifyingGlass size={16} weight="regular" aria-hidden="true" />
+          }
         />
       </Tooltip>
     ),
     "core:import": (
-      <Tooltip content={isImporting ? t("header.importing") : t("header.import")} side="bottom">
+      <Tooltip
+        content={isImporting ? t("header.importing") : t("header.import")}
+        side="bottom"
+      >
         <IconButton
           label={t("header.import")}
           size="sm"
@@ -119,21 +137,6 @@ export function AppHeader({
       </Tooltip>
     ),
     "core:viewControl": viewControl ?? null,
-    "core:context": (
-      <Tooltip content={t("header.context")} side="bottom">
-        <IconButton
-          label={t("header.context")}
-          size="sm"
-          aria-pressed={contextActive}
-          onClick={() => onTopNavChange(contextActive ? "shelf" : "context")}
-          className={cn(
-            "relative before:absolute before:-inset-1 before:content-['']",
-            contextActive ? "text-fg" : "text-fg-muted hover:text-fg",
-          )}
-          icon={<Cards size={16} weight={contextActive ? "fill" : "regular"} aria-hidden="true" />}
-        />
-      </Tooltip>
-    ),
     "core:stats": (
       <Tooltip content={t("header.stats")} side="bottom">
         <IconButton
@@ -145,7 +148,13 @@ export function AppHeader({
             "relative before:absolute before:-inset-1 before:content-['']",
             statsActive ? "text-fg" : "text-fg-muted hover:text-fg",
           )}
-          icon={<ChartLineUp size={16} weight={statsActive ? "fill" : "regular"} aria-hidden="true" />}
+          icon={
+            <ChartLineUp
+              size={16}
+              weight={statsActive ? "fill" : "regular"}
+              aria-hidden="true"
+            />
+          }
         />
       </Tooltip>
     ),
@@ -165,21 +174,23 @@ export function AppHeader({
   const coreShelfRun: Record<string, () => void> = {
     "core:search": onOpenSearch,
     "core:import": onImport,
-    "core:context": () => onTopNavChange(contextActive ? "shelf" : "context"),
     "core:stats": () => onTopNavChange(statsActive ? "shelf" : "stats"),
     "core:settings": onOpenSettings,
   };
   const shelfOverflowEntries = shelfLayout.overflow
     .map((id): MenuOverflowEntry | null => {
       if (id.startsWith("plugin:")) {
-        const action = shelfPluginActions.find((entry) => pluginMenuId(entry.key) === id);
+        const action = shelfPluginActions.find(
+          (entry) => pluginMenuId(entry.key) === id,
+        );
         if (!action) return null;
         return {
           id,
           label: contributionText(action.title),
           icon: renderPluginIcon(action.icon, 16),
           run: () => {
-            if (action.presentation === "page") onTopNavChange(`plugin:${action.key}`);
+            if (action.presentation === "page")
+              onTopNavChange(`plugin:${action.key}`);
             else void openHeaderActionDialog(action, {});
           },
         };
@@ -206,12 +217,15 @@ export function AppHeader({
     })
     .filter((entry): entry is MenuOverflowEntry => entry !== null);
 
-  // Standalone surfaces (Context, Stats) and an open collection all read as
-  // pushed views, so give them a back affordance on the left — mirroring the
-  // reader's top bar. Inside a collection, back returns to the full shelf.
+  // Stats, plugin pages, and an open collection read as pushed views. Agent is
+  // now a primary destination, so switching back to Library happens through
+  // the center navigation rather than a redundant back button.
   const inCollection = activeTopNav === "shelf" && activeCollectionId !== null;
-  const showBack = activeTopNav !== "shelf" || inCollection;
-  const backLabel = inCollection ? t("header.back.allBooks") : t("header.back.toShelf");
+  const showBack =
+    (activeTopNav !== "shelf" && activeTopNav !== "context") || inCollection;
+  const backLabel = inCollection
+    ? t("header.back.allBooks")
+    : t("header.back.toShelf");
   const handleBack = () => {
     if (inCollection) setActiveCollectionId(null);
     else onTopNavChange("shelf");
@@ -225,7 +239,7 @@ export function AppHeader({
         style={{ paddingTop: "var(--ra-safe-top)" }}
       >
         <div
-          className="flex h-12 items-center gap-1.5"
+          className="relative flex h-12 items-center gap-1.5"
           style={{
             paddingLeft: "max(0.75rem, var(--ra-safe-left))",
             // A narrow desktop window uses this layout too — keep clear of the
@@ -244,75 +258,87 @@ export function AppHeader({
             />
           )}
           {leadingStatus}
+          {primarySurface && (
+            <div className="absolute left-1/2 top-0 -translate-x-1/2">
+              <PrimaryNavigation
+                compact
+                activeSurface={primarySurface}
+                onNavigate={(surface) => onTopNavChange(surface)}
+              />
+            </div>
+          )}
           <div className="ml-auto flex items-center gap-1.5">
-          <IconButton
-            label={t("header.search")}
-            size="sm"
-            onClick={onOpenSearch}
-            className={cn(headerIconButtonClass, "shrink-0")}
-            icon={<MagnifyingGlass size={18} weight="regular" aria-hidden="true" />}
-          />
-          {actions}
-          <DropdownMenu
-            align="right"
-            className="shrink-0"
-            trigger={
-              <span className="flex h-8 w-8 items-center justify-center rounded-md text-fg-muted">
-                <DotsThreeVertical size={18} weight="bold" aria-hidden="true" />
-                <span className="sr-only">{t("header.more")}</span>
-              </span>
-            }
-            items={[
-              {
-                label: isImporting ? t("header.importing") : t("header.import"),
-                icon: <Plus size={16} weight="regular" aria-hidden="true" />,
-                onClick: onImport,
-                disabled: isImporting,
-              },
-              {
-                label: t("header.context"),
-                icon: (
-                  <Cards
-                    size={16}
-                    weight={contextActive ? "fill" : "regular"}
+            <IconButton
+              label={t("header.search")}
+              size="sm"
+              onClick={onOpenSearch}
+              className={cn(headerIconButtonClass, "shrink-0")}
+              icon={
+                <MagnifyingGlass
+                  size={18}
+                  weight="regular"
+                  aria-hidden="true"
+                />
+              }
+            />
+            {actions}
+            <DropdownMenu
+              align="right"
+              className="shrink-0"
+              trigger={
+                <span className="flex h-8 w-8 items-center justify-center rounded-md text-fg-muted">
+                  <DotsThreeVertical
+                    size={18}
+                    weight="bold"
                     aria-hidden="true"
                   />
-                ),
-                onClick: () => onTopNavChange("context"),
-              },
-              {
-                label: t("header.stats"),
-                icon: (
-                  <ChartLineUp
-                    size={16}
-                    weight={statsActive ? "fill" : "regular"}
-                    aria-hidden="true"
-                  />
-                ),
-                onClick: () => onTopNavChange("stats"),
-              },
-              {
-                label: t("header.settings"),
-                icon: <GearSix size={16} weight="regular" aria-hidden="true" />,
-                onClick: onOpenSettings,
-              },
-              // Plugin actions collapse into the phone overflow menu; popups
-              // open in the Dialog host (no anchor to speak of on phones).
-              ...(onShelf
-                ? shelfPluginActions.map((action) => ({
-                    label: contributionText(action.title),
-                    icon: renderPluginIcon(action.icon, 16),
-                    onClick: () => {
-                      if (action.presentation === "page") {
-                        onTopNavChange(`plugin:${action.key}`);
-                      } else {
-                        void openHeaderActionDialog(action, {});
-                      }
-                    },
-                  }))
-                : []),
-            ]}
-          />
+                  <span className="sr-only">{t("header.more")}</span>
+                </span>
+              }
+              items={[
+                {
+                  label: isImporting
+                    ? t("header.importing")
+                    : t("header.import"),
+                  icon: <Plus size={16} weight="regular" aria-hidden="true" />,
+                  onClick: onImport,
+                  disabled: isImporting,
+                },
+                {
+                  label: t("header.stats"),
+                  icon: (
+                    <ChartLineUp
+                      size={16}
+                      weight={statsActive ? "fill" : "regular"}
+                      aria-hidden="true"
+                    />
+                  ),
+                  onClick: () => onTopNavChange("stats"),
+                },
+                {
+                  label: t("header.settings"),
+                  icon: (
+                    <GearSix size={16} weight="regular" aria-hidden="true" />
+                  ),
+                  onClick: onOpenSettings,
+                },
+                // Plugin actions collapse into the phone overflow menu; popups
+                // open in the Dialog host (no anchor to speak of on phones).
+                ...(onShelf
+                  ? shelfPluginActions.map((action) => ({
+                      label: contributionText(action.title),
+                      icon: renderPluginIcon(action.icon, 16),
+                      onClick: () => {
+                        if (action.presentation === "page") {
+                          onTopNavChange(`plugin:${action.key}`);
+                        } else {
+                          void openHeaderActionDialog(action, {});
+                        }
+                      },
+                    }))
+                  : []),
+              ]}
+            />
           </div>
         </div>
         <WindowCaptionControls />
@@ -327,12 +353,13 @@ export function AppHeader({
     >
       <div
         data-tauri-drag-region=""
-        className="flex h-12 items-center"
+        className="relative flex h-12 items-center"
         style={{
           // Clear the macOS traffic lights whenever left-side content is present.
-          paddingLeft: showBack || leadingStatus
-            ? "max(1.25rem, var(--ra-traffic-light-inset))"
-            : "1.25rem",
+          paddingLeft:
+            showBack || leadingStatus
+              ? "max(1.25rem, var(--ra-traffic-light-inset))"
+              : "1.25rem",
           // Clear the self-drawn caption controls on frameless platforms.
           paddingRight: "calc(1.25rem + var(--ra-window-controls-inset))",
         }}
@@ -349,7 +376,20 @@ export function AppHeader({
           </Tooltip>
         )}
         {leadingStatus}
-        <div className={cn("flex items-center gap-1.5", !customChrome && "ml-auto")}>
+        {primarySurface && (
+          <div className="absolute left-1/2 top-0 -translate-x-1/2">
+            <PrimaryNavigation
+              activeSurface={primarySurface}
+              onNavigate={(surface) => onTopNavChange(surface)}
+            />
+          </div>
+        )}
+        <div
+          className={cn(
+            "flex items-center gap-1.5",
+            !customChrome && "ml-auto",
+          )}
+        >
           {actions ?? (
             <>
               {shelfLayout.visible.map((id) => {
@@ -366,7 +406,11 @@ export function AppHeader({
                   ) : null;
                 }
                 const node = coreShelfNodes[id];
-                return node ? <span key={id} className="contents">{node}</span> : null;
+                return node ? (
+                  <span key={id} className="contents">
+                    {node}
+                  </span>
+                ) : null;
               })}
               <MenuOverflow entries={shelfOverflowEntries} />
             </>

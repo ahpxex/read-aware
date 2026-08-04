@@ -115,7 +115,7 @@
   "context": {
     "threads": {
       "title": "スレッド",
-      "new": "新しいスレッド",
+      "new": "新しい会話",
       "untitled": "新しい会話",
       "delete": "スレッドを削除"
     },

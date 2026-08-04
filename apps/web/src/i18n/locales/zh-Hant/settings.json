@@ -102,6 +102,7 @@
     "actions": {
       "search": "開啟搜尋",
       "settings": "開啟設定",
+      "new-conversation": "建立新對話",
       "next-page": "下一頁",
       "prev-page": "上一頁",
       "next-chapter": "下一章",

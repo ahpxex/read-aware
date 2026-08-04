@@ -1,8 +1,8 @@
 import {
   ArrowsDownUp,
   Books,
-  Cards,
   ChartLineUp,
+  ChatCircleDots,
   FolderSimple,
   GearSix,
   ListChecks,
@@ -15,13 +15,19 @@ import {
 import type { ReactNode } from "react";
 import type { TFunction } from "i18next";
 import type { Collection, LibraryBook } from "../../library/lib/library-types";
-import type { ShelfGroup, ShelfLayout, ShelfSort, ShelfView } from "../../shelf/lib/shelf-view";
+import type {
+  ShelfGroup,
+  ShelfLayout,
+  ShelfSort,
+  ShelfView,
+} from "../../shelf/lib/shelf-view";
 import type { TopNav } from "../../../state/ui";
 
 export type CommandKind = "action" | "collection" | "book";
 
 /** Stable section identity (kept out of copy so it survives translation). */
-export type CommandGroupKey = "goto" | "shelf" | "collections" | "books" | "plugins";
+export type CommandGroupKey =
+  "goto" | "shelf" | "collections" | "books" | "plugins";
 
 export type CommandItem = {
   id: string;
@@ -81,26 +87,78 @@ function recencyTime(book: LibraryBook): number {
  * controls (the layout toggle and the inactive sort/group options only), every
  * collection, and every book. Pure — the UI filters and renders the result.
  */
-export function buildCommands(ctx: CommandContext, t: TFunction<"command">): CommandItem[] {
+export function buildCommands(
+  ctx: CommandContext,
+  t: TFunction<"command">,
+): CommandItem[] {
   const items: CommandItem[] = [];
 
   // ── Go to ────────────────────────────────────────────────────────────────
   if (ctx.activeTopNav !== "shelf") {
-    items.push({ id: "go-shelf", kind: "action", group: "goto", title: t("actions.goShelf.title"), keywords: t("actions.goShelf.keywords"), icon: icon(Books), perform: ctx.goShelf });
+    items.push({
+      id: "go-shelf",
+      kind: "action",
+      group: "goto",
+      title: t("actions.goShelf.title"),
+      keywords: t("actions.goShelf.keywords"),
+      icon: icon(Books),
+      perform: ctx.goShelf,
+    });
   }
   if (ctx.activeTopNav !== "stats") {
-    items.push({ id: "go-stats", kind: "action", group: "goto", title: t("actions.goStats.title"), keywords: t("actions.goStats.keywords"), icon: icon(ChartLineUp), perform: ctx.goStats });
+    items.push({
+      id: "go-stats",
+      kind: "action",
+      group: "goto",
+      title: t("actions.goStats.title"),
+      keywords: t("actions.goStats.keywords"),
+      icon: icon(ChartLineUp),
+      perform: ctx.goStats,
+    });
   }
   if (ctx.activeTopNav !== "context") {
-    items.push({ id: "go-context", kind: "action", group: "goto", title: t("actions.goContext.title"), keywords: t("actions.goContext.keywords"), icon: icon(Cards), perform: ctx.goContext });
+    items.push({
+      id: "go-context",
+      kind: "action",
+      group: "goto",
+      title: t("actions.goContext.title"),
+      keywords: t("actions.goContext.keywords"),
+      icon: icon(ChatCircleDots),
+      perform: ctx.goContext,
+    });
   }
-  items.push({ id: "open-settings", kind: "action", group: "goto", title: t("actions.openSettings.title"), keywords: t("actions.openSettings.keywords"), icon: icon(GearSix), perform: ctx.openSettings });
+  items.push({
+    id: "open-settings",
+    kind: "action",
+    group: "goto",
+    title: t("actions.openSettings.title"),
+    keywords: t("actions.openSettings.keywords"),
+    icon: icon(GearSix),
+    perform: ctx.openSettings,
+  });
 
   // ── Shelf ────────────────────────────────────────────────────────────────
-  items.push({ id: "import", kind: "action", group: "shelf", title: t("actions.import.title"), keywords: t("actions.import.keywords"), icon: icon(Plus), perform: ctx.importBook });
-  items.push({ id: "select", kind: "action", group: "shelf", title: t("actions.select.title"), keywords: t("actions.select.keywords"), icon: icon(ListChecks), perform: ctx.startSelection });
+  items.push({
+    id: "import",
+    kind: "action",
+    group: "shelf",
+    title: t("actions.import.title"),
+    keywords: t("actions.import.keywords"),
+    icon: icon(Plus),
+    perform: ctx.importBook,
+  });
+  items.push({
+    id: "select",
+    kind: "action",
+    group: "shelf",
+    title: t("actions.select.title"),
+    keywords: t("actions.select.keywords"),
+    icon: icon(ListChecks),
+    perform: ctx.startSelection,
+  });
 
-  const nextLayout: ShelfLayout = ctx.shelfView.layout === "grid" ? "list" : "grid";
+  const nextLayout: ShelfLayout =
+    ctx.shelfView.layout === "grid" ? "list" : "grid";
   items.push({
     id: `layout-${nextLayout}`,
     kind: "action",
@@ -111,7 +169,13 @@ export function buildCommands(ctx: CommandContext, t: TFunction<"command">): Com
     perform: () => ctx.setLayout(nextLayout),
   });
 
-  for (const sort of ["recent", "added", "title", "author", "progress"] as ShelfSort[]) {
+  for (const sort of [
+    "recent",
+    "added",
+    "title",
+    "author",
+    "progress",
+  ] as ShelfSort[]) {
     if (sort === ctx.shelfView.sort) continue;
     items.push({
       id: `sort-${sort}`,
@@ -152,7 +216,9 @@ export function buildCommands(ctx: CommandContext, t: TFunction<"command">): Com
   }
 
   // ── Books (most recently opened first, so the empty-query default is useful) ─
-  const booksByRecency = [...ctx.books].sort((a, b) => recencyTime(b) - recencyTime(a));
+  const booksByRecency = [...ctx.books].sort(
+    (a, b) => recencyTime(b) - recencyTime(a),
+  );
   for (const book of booksByRecency) {
     items.push({
       id: `book-${book.id}`,

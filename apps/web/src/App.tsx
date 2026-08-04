@@ -1,4 +1,11 @@
-import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
+import {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { ScrollArea, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
@@ -13,12 +20,17 @@ import { UpdateIndicator } from "./features/update/components/UpdateIndicator";
 import { useSoftwareUpdate } from "./features/update/hooks/useSoftwareUpdate";
 import { ShelfManagementMenu } from "./features/shelf/components/ShelfManagementMenu";
 import { useOpenBookRequestHandler } from "./features/ai/hooks/useOpenBookRequest";
+import { newGlobalThreadId } from "./features/ai/lib/conversation-store";
+import { activeGlobalThreadAtom } from "./features/ai/state/global-thread";
 import { useReaderSession } from "./features/reader/hooks/useReaderSession";
 import { useGlobalShortcuts } from "./features/settings/hooks/useGlobalShortcuts";
 import { usePluginCommandShortcuts } from "./features/plugins/hooks/usePluginCommandShortcuts";
 import { useSurfaceHandoff } from "./hooks/useSurfaceHandoff";
 import { emitAppEvent } from "./platform/app-events";
-import { BACK_REQUEST_EVENT, sendAppToBackground } from "./platform/back-navigation";
+import {
+  BACK_REQUEST_EVENT,
+  sendAppToBackground,
+} from "./platform/back-navigation";
 import { CommandPalette } from "./features/command/components/CommandPalette";
 import type { CommandContext } from "./features/command/lib/build-commands";
 import { PluginDialogHost } from "./features/plugins/components/PluginDialogHost";
@@ -43,14 +55,9 @@ const ContextWorkspace = lazy(() =>
     default: m.ContextWorkspace,
   })),
 );
-const AnnotationsPopover = lazy(() =>
-  import("./features/context/components/AnnotationsPopover").then((m) => ({
-    default: m.AnnotationsPopover,
-  })),
-);
-const ThreadsPopover = lazy(() =>
-  import("./features/context/components/ThreadsPopover").then((m) => ({
-    default: m.ThreadsPopover,
+const ContextHeaderActions = lazy(() =>
+  import("./features/context/components/ContextHeaderActions").then((m) => ({
+    default: m.ContextHeaderActions,
   })),
 );
 
@@ -99,16 +106,21 @@ function App() {
     scheduleIdleWarmup();
     void initializePlugins();
     // Off the boot path: a quiet daily look at the marketplace for updates.
-    const updateCheck = window.setTimeout(() => void checkPluginUpdates(), 10_000);
+    const updateCheck = window.setTimeout(
+      () => void checkPluginUpdates(),
+      10_000,
+    );
     // Keep the agent package out of the boot chunk; maintenance itself waits for
     // an idle slot and no-ops until AI is configured.
     let disposed = false;
     let stopAgentMaintenance: (() => void) | undefined;
     const maintenanceStart = window.setTimeout(() => {
-      void import("./features/ai/agent/maintenance").then(({ startAgentMaintenance }) => {
-        if (disposed) return;
-        stopAgentMaintenance = startAgentMaintenance();
-      });
+      void import("./features/ai/agent/maintenance").then(
+        ({ startAgentMaintenance }) => {
+          if (disposed) return;
+          stopAgentMaintenance = startAgentMaintenance();
+        },
+      );
     }, 15_000);
     return () => {
       disposed = true;
@@ -118,14 +130,12 @@ function App() {
     };
   }, []);
 
-  useGlobalShortcuts({
-    onOpenSearch: () => setSearchModalOpen(true),
-    onOpenSettings: () => setSettingsOpen(true),
-  });
   usePluginCommandShortcuts();
 
   const [activeTopNav, setActiveTopNav] = useAtom(activeTopNavAtom);
-  const [activeCollectionId, setActiveCollectionId] = useAtom(activeCollectionAtom);
+  const setActiveGlobalThreadId = useSetAtom(activeGlobalThreadAtom);
+  const [activeCollectionId, setActiveCollectionId] =
+    useAtom(activeCollectionAtom);
   const [shelfView, setShelfView] = useAtom(shelfViewAtom);
   const shelfSelecting = useAtomValue(shelfSelectionAtom).active;
   const setShelfSelection = useSetAtom(shelfSelectionAtom);
@@ -139,17 +149,43 @@ function App() {
   // Shelf ⇄ reader surface handoff: opaque-incoming / fading-outgoing, with
   // the open-direction fade deferred until the reader has rendered and the
   // main thread can animate again. See useSurfaceHandoff for the rules.
-  const { shelfHandoff, readerExiting, openBook, closeBook } = useSurfaceHandoff(reader);
+  const { shelfHandoff, readerExiting, openBook, closeBook } =
+    useSurfaceHandoff(reader);
+
+  const createGlobalConversation = useCallback(() => {
+    setActiveGlobalThreadId(newGlobalThreadId());
+    setActiveTopNav("context");
+    if (reader.selectedBook) closeBook();
+  }, [
+    closeBook,
+    reader.selectedBook,
+    setActiveGlobalThreadId,
+    setActiveTopNav,
+  ]);
+
+  useGlobalShortcuts({
+    onOpenSearch: () => setSearchModalOpen(true),
+    onOpenSettings: () => setSettingsOpen(true),
+    onNewConversation: createGlobalConversation,
+  });
 
   // Observation seam for plugins: book open/close, chapter, progress.
-  const openedBookRef = useRef<{ id: string; title: string; author?: string } | null>(null);
+  const openedBookRef = useRef<{
+    id: string;
+    title: string;
+    author?: string;
+  } | null>(null);
   useEffect(() => {
     const book = reader.selectedBook;
     if (book && openedBookRef.current?.id !== book.id) {
       if (openedBookRef.current) {
         emitAppEvent("book-closed", { bookId: openedBookRef.current.id });
       }
-      openedBookRef.current = { id: book.id, title: book.title, author: book.author };
+      openedBookRef.current = {
+        id: book.id,
+        title: book.title,
+        author: book.author,
+      };
       emitAppEvent("book-opened", { book: openedBookRef.current });
     } else if (!book && openedBookRef.current) {
       emitAppEvent("book-closed", { bookId: openedBookRef.current.id });
@@ -179,13 +215,14 @@ function App() {
     if (generalSettings.autoUpdate) void softwareUpdate.checkForUpdates();
   }, [generalSettings.autoUpdate, softwareUpdate.checkForUpdates]);
 
-
   // While the shelf holds over the opening reader it must stay VISUALLY
   // frozen: opening bumps lastOpenedAt, and the recency sort would otherwise
   // jump the clicked book to the front mid-handoff. Snapshot the books at
   // click time and render the held shelf from the snapshot; the live order
   // returns once the handoff ends (so closing shows the final order at once).
-  const [heldShelfBooks, setHeldShelfBooks] = useState<LibraryBook[] | null>(null);
+  const [heldShelfBooks, setHeldShelfBooks] = useState<LibraryBook[] | null>(
+    null,
+  );
   const handleOpenBook = useCallback(
     (book: LibraryBook) => {
       setHeldShelfBooks(library.books);
@@ -198,7 +235,11 @@ function App() {
   }, [shelfHandoff]);
 
   // Chat book cards → open the reader (the cards dispatch via an atom).
-  useOpenBookRequestHandler(library.books, handleOpenBook, reader.selectedBook?.id ?? null);
+  useOpenBookRequestHandler(
+    library.books,
+    handleOpenBook,
+    reader.selectedBook?.id ?? null,
+  );
 
   // Plugin goTo requests: open the target book first when needed, then hand
   // the location to the reader session's navigation channels.
@@ -226,7 +267,8 @@ function App() {
   }, [pluginNav, reader, library.books, handleOpenBook]);
 
   // Spinner feedback on the clicked cover while the shelf holds.
-  const openingBookId = shelfHandoff !== "idle" ? reader.selectedBook?.id ?? null : null;
+  const openingBookId =
+    shelfHandoff !== "idle" ? (reader.selectedBook?.id ?? null) : null;
 
   // Esc backs out one pushed view at a time — a standalone Context/Stats surface
   // to the shelf, or an open collection back to the full shelf. Skipped while
@@ -309,7 +351,10 @@ function App() {
   ]);
 
   const pluginCommandItems = usePluginCommandItems(
-    useCallback((key: string) => setActiveTopNav(`plugin:${key}`), [setActiveTopNav]),
+    useCallback(
+      (key: string) => setActiveTopNav(`plugin:${key}`),
+      [setActiveTopNav],
+    ),
   );
 
   const commandContext: CommandContext = {
@@ -363,39 +408,39 @@ function App() {
               "ra-motion-surface-exit pointer-events-none fixed inset-0 z-40",
           )}
         >
-        {/* Fallback shows only if warmup hasn't fetched the chunk yet (rare):
+          {/* Fallback shows only if warmup hasn't fetched the chunk yet (rare):
             a quiet paper surface, matching the reader's own pre-render state. */}
-        <Suspense fallback={<div className="h-dvh w-full bg-paper" />}>
-        <ReaderWorkspace
-          selectedBook={reader.selectedBook}
-          readerSource={reader.readerSource}
-          readerLoadError={reader.readerLoadError}
-          isReaderLoading={reader.isReaderLoading}
-          readerToc={reader.readerToc}
-          currentChapterHref={reader.currentChapterHref}
-          chapterNavigationRequest={reader.chapterNavigationRequest}
-          annotationNavigationRequest={reader.annotationNavigationRequest}
-          fractionNavigationRequest={reader.fractionNavigationRequest}
-          overlayVisible={reader.overlayVisible}
-          selectedEpubProgress={reader.selectedEpubProgress}
-          readerProgress={reader.readerProgress}
-          currentPage={reader.currentPage}
-          totalPages={reader.totalPages}
-          onCloseReader={closeBook}
-          onRetryOpen={handleOpenBook}
-          onToggleShell={reader.toggleShell}
-          onHideShell={reader.hideShell}
-          onReaderPageChange={reader.handleReaderPageChange}
-          onEpubProgressChange={reader.handleEpubProgressChange}
-          onReaderFractionChange={reader.handleReaderFractionChange}
-          onSeek={reader.handleSeek}
-          onTocChange={reader.setReaderToc}
-          onCurrentChapterChange={reader.setCurrentChapterHref}
-          onBookReady={library.handleBookReady}
-          onChapterSelect={reader.handleChapterSelect}
-          onAnnotationSelect={reader.handleAnnotationSelect}
-        />
-        </Suspense>
+          <Suspense fallback={<div className="h-dvh w-full bg-paper" />}>
+            <ReaderWorkspace
+              selectedBook={reader.selectedBook}
+              readerSource={reader.readerSource}
+              readerLoadError={reader.readerLoadError}
+              isReaderLoading={reader.isReaderLoading}
+              readerToc={reader.readerToc}
+              currentChapterHref={reader.currentChapterHref}
+              chapterNavigationRequest={reader.chapterNavigationRequest}
+              annotationNavigationRequest={reader.annotationNavigationRequest}
+              fractionNavigationRequest={reader.fractionNavigationRequest}
+              overlayVisible={reader.overlayVisible}
+              selectedEpubProgress={reader.selectedEpubProgress}
+              readerProgress={reader.readerProgress}
+              currentPage={reader.currentPage}
+              totalPages={reader.totalPages}
+              onCloseReader={closeBook}
+              onRetryOpen={handleOpenBook}
+              onToggleShell={reader.toggleShell}
+              onHideShell={reader.hideShell}
+              onReaderPageChange={reader.handleReaderPageChange}
+              onEpubProgressChange={reader.handleEpubProgressChange}
+              onReaderFractionChange={reader.handleReaderFractionChange}
+              onSeek={reader.handleSeek}
+              onTocChange={reader.setReaderToc}
+              onCurrentChapterChange={reader.setCurrentChapterHref}
+              onBookReady={library.handleBookReady}
+              onChapterSelect={reader.handleChapterSelect}
+              onAnnotationSelect={reader.handleAnnotationSelect}
+            />
+          </Suspense>
         </div>
       )}
 
@@ -433,12 +478,17 @@ function App() {
             onOpenSearch={() => setSearchModalOpen(true)}
             onTopNavChange={setActiveTopNav}
             leadingStatus={<UpdateIndicator />}
-            viewControl={activeTopNav === "shelf" ? <ShelfManagementMenu /> : undefined}
+            viewControl={
+              activeTopNav === "shelf" ? <ShelfManagementMenu /> : undefined
+            }
             actions={
               activeTopNav === "context" ? (
                 <Suspense fallback={null}>
-                  <ThreadsPopover />
-                  <AnnotationsPopover books={library.books} onOpenBook={handleOpenBook} />
+                  <ContextHeaderActions
+                    books={library.books}
+                    onOpenBook={handleOpenBook}
+                    onNewConversation={createGlobalConversation}
+                  />
                 </Suspense>
               ) : undefined
             }
@@ -470,7 +520,10 @@ function App() {
               </Suspense>
             ) : activeTopNav === "stats" ? (
               <Suspense fallback={<SurfaceFallback />}>
-                <StatsWorkspace books={library.books} onOpenBook={handleOpenBook} />
+                <StatsWorkspace
+                  books={library.books}
+                  onOpenBook={handleOpenBook}
+                />
               </Suspense>
             ) : (
               <PluginPageHost
@@ -489,10 +542,12 @@ function App() {
         </main>
       )}
 
-
       {settingsMounted && (
         <Suspense fallback={null}>
-          <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+          <SettingsDialog
+            open={settingsOpen}
+            onClose={() => setSettingsOpen(false)}
+          />
         </Suspense>
       )}
 

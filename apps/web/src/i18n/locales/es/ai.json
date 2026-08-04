@@ -115,7 +115,7 @@
   "context": {
     "threads": {
       "title": "Hilos",
-      "new": "Nuevo hilo",
+      "new": "Nueva conversación",
       "untitled": "Nueva conversación",
       "delete": "Eliminar hilo"
     },

@@ -115,7 +115,7 @@
   "context": {
     "threads": {
       "title": "线程",
-      "new": "新建线程",
+      "new": "创建新对话",
       "untitled": "新对话",
       "delete": "删除线程"
     },

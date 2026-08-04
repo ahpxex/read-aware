@@ -12,17 +12,17 @@ import { listAnnotations } from "../../annotations/lib/annotation-db";
 import { userDomain } from "../../../domain";
 import type { Annotation } from "../../annotations/lib/annotation-types";
 import type { LibraryBook } from "../../library/lib/library-types";
+import { contextHeaderActionClass } from "../lib/context-header-action";
 
 type AnnotationsPopoverProps = {
   books: LibraryBook[];
   onOpenBook: (book: LibraryBook) => void;
 };
 
-// Mirrors the AppHeader icon buttons so the trigger sits flush with them.
-const TRIGGER_CLASS =
-  "relative h-7 w-7 items-center justify-center text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg before:absolute before:-inset-1 before:content-['']";
-
-export function AnnotationsPopover({ books, onOpenBook }: AnnotationsPopoverProps) {
+export function AnnotationsPopover({
+  books,
+  onOpenBook,
+}: AnnotationsPopoverProps) {
   const { t } = useTranslation("ai");
   const [open, setOpen] = useState(false);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
@@ -40,14 +40,19 @@ export function AnnotationsPopover({ books, onOpenBook }: AnnotationsPopoverProp
     if (open) void load();
   }, [open, load]);
 
-  const handleDelete = useCallback(async (id: string) => {
-    const target = annotations.find((a) => a.id === id);
-    if (!target) return;
-    if (target.type === "highlight") await userDomain.annotations.removeHighlight(id);
-    else if (target.type === "note") await userDomain.annotations.removeNote(id);
-    else await userDomain.annotations.removeAsk(id);
-    setAnnotations((prev) => prev.filter((a) => a.id !== id));
-  }, [annotations]);
+  const handleDelete = useCallback(
+    async (id: string) => {
+      const target = annotations.find((a) => a.id === id);
+      if (!target) return;
+      if (target.type === "highlight")
+        await userDomain.annotations.removeHighlight(id);
+      else if (target.type === "note")
+        await userDomain.annotations.removeNote(id);
+      else await userDomain.annotations.removeAsk(id);
+      setAnnotations((prev) => prev.filter((a) => a.id !== id));
+    },
+    [annotations],
+  );
 
   const bookMap = new Map(books.map((b) => [b.id, b]));
   const grouped = new Map<string, Annotation[]>();
@@ -65,8 +70,14 @@ export function AnnotationsPopover({ books, onOpenBook }: AnnotationsPopoverProp
       triggerLabel={t("context.annotations.title")}
       triggerTooltip={t("context.annotations.title")}
       triggerTooltipAlign="end"
-      triggerClassName={cn(TRIGGER_CLASS, open && "text-fg")}
-      trigger={<Notebook size={16} weight={open ? "fill" : "regular"} aria-hidden="true" />}
+      triggerClassName={cn(contextHeaderActionClass, open && "text-fg")}
+      trigger={
+        <Notebook
+          size={16}
+          weight={open ? "fill" : "regular"}
+          aria-hidden="true"
+        />
+      }
       panelClassName="flex max-h-[min(28rem,70vh)] w-[clamp(18rem,28vw,26rem)] flex-col overflow-hidden p-0"
     >
       <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-2.5">

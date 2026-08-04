@@ -1,11 +1,11 @@
 /**
  * 全局线程切换器，以 AppHeader 图标弹层呈现（与 AnnotationsPopover 同一
- * 交互与行样式）：头部 eyebrow 标题 + 图标式新建按钮，行内 hover 删除
- * （同 AnnotationRow 的 Trash 模式）。轻量刻意 —— 不占常驻边栏；列表每次
- * 打开时现取，当前未落库的新线程显示占位标题。
+ * 交互与行样式）：头部只标明历史会话，行内 hover 删除（同 AnnotationRow
+ * 的 Trash 模式）。新建会话是相邻的独立 header action，不藏在弹层里。
+ * 列表每次打开时现取，当前未落库的新线程显示占位标题。
  */
 import { useEffect, useState } from "react";
-import { ChatsCircle, Plus, Trash } from "@phosphor-icons/react";
+import { ChatsCircle, Trash } from "@phosphor-icons/react";
 import { useAtom } from "jotai";
 import { Eyebrow, IconButton, Popover } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
@@ -18,10 +18,7 @@ import {
   type ConversationSummary,
 } from "../../ai/lib/conversation-store";
 import { activeGlobalThreadAtom } from "../../ai/state/global-thread";
-
-// Mirrors the AppHeader icon buttons so the trigger sits flush with them.
-const TRIGGER_CLASS =
-  "relative h-7 w-7 items-center justify-center text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg before:absolute before:-inset-1 before:content-['']";
+import { contextHeaderActionClass } from "../lib/context-header-action";
 
 export function ThreadsPopover() {
   const { t } = useTranslation("ai");
@@ -42,7 +39,10 @@ export function ThreadsPopover() {
   // 删除 = 清空消息 + 会话行留墓碑（列表只列非空会话，所以随即消失）。
   // 弹层保持打开，方便连续清理；删的是当前线程时切到下一个（或全新线程）。
   const remove = async (threadId: string) => {
-    await Promise.all([clearConversation(threadId), discardAgentThread("global", threadId)]);
+    await Promise.all([
+      clearConversation(threadId),
+      discardAgentThread("global", threadId),
+    ]);
     const remaining = threads.filter((thread) => thread.id !== threadId);
     setThreads(remaining);
     if (threadId === activeThreadId) {
@@ -50,7 +50,9 @@ export function ThreadsPopover() {
     }
   };
 
-  const activeIsUnsaved = !threads.some((thread) => thread.id === activeThreadId);
+  const activeIsUnsaved = !threads.some(
+    (thread) => thread.id === activeThreadId,
+  );
 
   return (
     <Popover
@@ -60,19 +62,18 @@ export function ThreadsPopover() {
       triggerLabel={t("context.threads.title")}
       triggerTooltip={t("context.threads.title")}
       triggerTooltipAlign="end"
-      triggerClassName={cn(TRIGGER_CLASS, open && "text-fg")}
-      trigger={<ChatsCircle size={16} weight={open ? "fill" : "regular"} aria-hidden="true" />}
+      triggerClassName={cn(contextHeaderActionClass, open && "text-fg")}
+      trigger={
+        <ChatsCircle
+          size={16}
+          weight={open ? "fill" : "regular"}
+          aria-hidden="true"
+        />
+      }
       panelClassName="flex max-h-[min(24rem,60vh)] w-[clamp(16rem,24vw,22rem)] flex-col overflow-hidden p-0"
     >
-      <div className="flex shrink-0 items-center justify-between border-b border-border py-1 pl-4 pr-2">
+      <div className="flex shrink-0 items-center border-b border-border px-4 py-2.5">
         <Eyebrow as="span">{t("context.threads.title")}</Eyebrow>
-        <IconButton
-          size="sm"
-          label={t("context.threads.new")}
-          onClick={() => select(newGlobalThreadId())}
-          className="text-fg-muted hover:text-fg"
-          icon={<Plus size={14} weight="regular" />}
-        />
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">

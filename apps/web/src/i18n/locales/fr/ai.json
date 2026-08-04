@@ -115,7 +115,7 @@
   "context": {
     "threads": {
       "title": "Fils",
-      "new": "Nouveau fil",
+      "new": "Nouvelle conversation",
       "untitled": "Nouvelle conversation",
       "delete": "Supprimer le fil"
     },

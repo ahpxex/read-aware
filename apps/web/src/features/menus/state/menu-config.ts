@@ -30,7 +30,6 @@ export const CORE_MENU_DEFAULTS: Record<MenuSurface, string[]> = {
     "core:search",
     "core:import",
     "core:viewControl",
-    "core:context",
     "core:stats",
     "core:settings",
   ],
@@ -56,7 +55,10 @@ export function pluginMenuId(contributionKey: string): string {
 function defaultConfig(): MenuConfig {
   return {
     shelfHeader: { visible: [...CORE_MENU_DEFAULTS.shelfHeader], overflow: [] },
-    readerHeader: { visible: [...CORE_MENU_DEFAULTS.readerHeader], overflow: [] },
+    readerHeader: {
+      visible: [...CORE_MENU_DEFAULTS.readerHeader],
+      overflow: [],
+    },
     selection: { visible: [...CORE_MENU_DEFAULTS.selection], overflow: [] },
   };
 }
@@ -65,7 +67,9 @@ function sanitizeLayout(raw: unknown, fallback: SurfaceLayout): SurfaceLayout {
   if (typeof raw !== "object" || raw === null) return fallback;
   const record = raw as Partial<SurfaceLayout>;
   const clean = (list: unknown): string[] | null =>
-    Array.isArray(list) ? [...new Set(list.filter((id): id is string => typeof id === "string"))] : null;
+    Array.isArray(list)
+      ? [...new Set(list.filter((id): id is string => typeof id === "string"))]
+      : null;
   return {
     visible: clean(record.visible) ?? fallback.visible,
     overflow: clean(record.overflow) ?? fallback.overflow,
@@ -94,7 +98,11 @@ function migrateLegacyPlacement(base: MenuConfig): MenuConfig {
     const raw = localKV.getItem(LEGACY_PLACEMENT_KEY);
     if (!raw) return base;
     const legacy = JSON.parse(raw) as Partial<Record<MenuSurface, string[]>>;
-    for (const surface of ["shelfHeader", "readerHeader", "selection"] as const) {
+    for (const surface of [
+      "shelfHeader",
+      "readerHeader",
+      "selection",
+    ] as const) {
       for (const key of legacy[surface] ?? []) {
         const id = pluginMenuId(key);
         if (!base[surface].visible.includes(id)) base[surface].visible.push(id);

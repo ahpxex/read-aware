@@ -1,5 +1,20 @@
 import { describe, expect, test } from "bun:test";
-import { resolveSurfaceLayout } from "./menu-config";
+import { CORE_MENU_DEFAULTS, resolveSurfaceLayout } from "./menu-config";
+
+describe("shelf menu placement", () => {
+  test("drops the former context item now that Agent is primary navigation", () => {
+    const layout = resolveSurfaceLayout(
+      {
+        visible: ["core:search", "core:context", "core:settings"],
+        overflow: [],
+      },
+      CORE_MENU_DEFAULTS.shelfHeader,
+    );
+
+    expect(layout.visible).not.toContain("core:context");
+    expect(layout.overflow).not.toContain("core:context");
+  });
+});
 
 describe("selection menu contribution placement", () => {
   const known = ["core:copy", "plugin:dictionary:lookup-save"];

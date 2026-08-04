@@ -102,6 +102,7 @@
     "actions": {
       "search": "検索を開く",
       "settings": "設定を開く",
+      "new-conversation": "新しい会話",
       "next-page": "次のページ",
       "prev-page": "前のページ",
       "next-chapter": "次の章",

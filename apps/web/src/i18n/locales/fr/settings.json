@@ -102,6 +102,7 @@
     "actions": {
       "search": "Ouvrir la recherche",
       "settings": "Ouvrir les paramètres",
+      "new-conversation": "Nouvelle conversation",
       "next-page": "Page suivante",
       "prev-page": "Page précédente",
       "next-chapter": "Chapitre suivant",

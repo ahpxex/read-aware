@@ -8,7 +8,6 @@
  * self-contained instead of hunting keys across namespaces.
  */
 import {
-  Cards,
   ChartLineUp,
   ChatCircle,
   ChatCircleDots,
@@ -37,8 +36,11 @@ export const CORE_MENU_ITEMS: Record<MenuSurface, CoreMenuItemMeta[]> = {
   shelfHeader: [
     { id: "core:search", labelKey: "search", Icon: MagnifyingGlass },
     { id: "core:import", labelKey: "import", Icon: Plus },
-    { id: "core:viewControl", labelKey: "viewControl", Icon: SlidersHorizontal },
-    { id: "core:context", labelKey: "context", Icon: Cards },
+    {
+      id: "core:viewControl",
+      labelKey: "viewControl",
+      Icon: SlidersHorizontal,
+    },
     { id: "core:stats", labelKey: "stats", Icon: ChartLineUp },
     { id: "core:settings", labelKey: "settings", Icon: GearSix },
   ],
@@ -56,6 +58,9 @@ export const CORE_MENU_ITEMS: Record<MenuSurface, CoreMenuItemMeta[]> = {
   ],
 };
 
-export function coreMenuMeta(surface: MenuSurface, id: string): CoreMenuItemMeta | undefined {
+export function coreMenuMeta(
+  surface: MenuSurface,
+  id: string,
+): CoreMenuItemMeta | undefined {
   return CORE_MENU_ITEMS[surface].find((item) => item.id === id);
 }

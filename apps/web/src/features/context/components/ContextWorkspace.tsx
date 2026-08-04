@@ -27,7 +27,7 @@ export function ContextWorkspace() {
   return (
     // Full-width shell so the composer's border-t runs edge to edge; the
     // transcript and composer center their own content to a shared measure.
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="ra-motion-page-enter flex h-full min-h-0 flex-col">
       <ChatTranscript
         messages={conversation.messages}
         isLoading={conversation.isLoading}

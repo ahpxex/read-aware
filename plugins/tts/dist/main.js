@@ -157,9 +157,38 @@ function readSettings(ctx) {
 function secretName(vendor) {
   return `${vendor}-api-key`;
 }
-function voiceLabel(settings) {
+var voiceNameCache = null;
+async function lookupVoiceName(ctx, network, settings) {
+  const cacheKey = `${settings.vendor}\x00${settings.voiceId}\x00${settings.endpoint}`;
+  if (voiceNameCache?.key === cacheKey)
+    return voiceNameCache.name;
+  const apiKey = await ctx.secrets.get(secretName(settings.vendor));
+  const requests = buildVoiceListRequests(settings.vendor, { endpoint: settings.endpoint }, apiKey);
+  for (const request of requests) {
+    try {
+      const response = await network.fetch(request.url, {
+        headers: request.headers,
+        signal: AbortSignal.timeout(5000)
+      });
+      if (!response.ok)
+        continue;
+      const match = parseVoiceList(await response.json()).find((option) => option.value === settings.voiceId);
+      if (match && match.label !== match.value) {
+        voiceNameCache = { key: cacheKey, name: match.label };
+        return match.label;
+      }
+    } catch {}
+  }
+  return null;
+}
+async function voiceLabel(ctx, network, settings) {
   const vendor = VENDOR_LABELS[settings.vendor];
-  const descriptor = settings.vendor === "custom" ? settings.voiceId || settings.model || "local" : settings.voiceId || settings.model || "default";
+  let descriptor = settings.vendor === "custom" ? settings.voiceId || settings.model || "local" : settings.voiceId || settings.model || "default";
+  if (settings.voiceId) {
+    const name = await lookupVoiceName(ctx, network, settings);
+    if (name)
+      descriptor = name;
+  }
   return `${vendor} · ${descriptor}`;
 }
 var DYNAMIC_VOICE_FIELDS = [
@@ -175,7 +204,9 @@ var plugin = {
     ctx.audio.registerVoiceProvider({
       id: "voices",
       label: "TTS",
-      listVoices: () => [{ id: "default", label: voiceLabel(readSettings(ctx)) }],
+      listVoices: async () => [
+        { id: "default", label: await voiceLabel(ctx, network, readSettings(ctx)) }
+      ],
       synthesize: async ({ text: text2 }) => {
         const settings = readSettings(ctx);
         const apiKey = await ctx.secrets.get(secretName(settings.vendor));

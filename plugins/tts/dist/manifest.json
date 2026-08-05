@@ -1,11 +1,13 @@
 {
   "id": "tts",
   "name": "TTS Voices",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "minAppVersion": "0.3.0",
   "description": "Read-aloud voices from cloud and local TTS engines: ElevenLabs, Fish Audio, OpenAI, or any OpenAI-compatible endpoint (Kokoro, Piper, LocalAI…).",
   "author": "ReadAware",
-  "permissions": ["service:network"],
+  "permissions": [
+    "service:network"
+  ],
   "main": "main.js",
   "settings": [
     {
@@ -14,10 +16,22 @@
       "label": "Provider",
       "value": "custom",
       "options": [
-        { "value": "elevenlabs", "label": "ElevenLabs" },
-        { "value": "fishaudio", "label": "Fish Audio" },
-        { "value": "openai", "label": "OpenAI" },
-        { "value": "custom", "label": "Custom / local (OpenAI-compatible)" }
+        {
+          "value": "elevenlabs",
+          "label": "ElevenLabs"
+        },
+        {
+          "value": "fishaudio",
+          "label": "Fish Audio"
+        },
+        {
+          "value": "openai",
+          "label": "OpenAI"
+        },
+        {
+          "value": "custom",
+          "label": "Custom / local (OpenAI-compatible)"
+        }
       ]
     },
     {
@@ -25,7 +39,10 @@
       "id": "elevenlabs-api-key",
       "label": "API key",
       "helperText": "Stored in the encrypted secret store, never in plain settings.",
-      "visibleWhen": { "field": "vendor", "equals": "elevenlabs" }
+      "visibleWhen": {
+        "field": "vendor",
+        "equals": "elevenlabs"
+      }
     },
     {
       "kind": "select",
@@ -33,21 +50,30 @@
       "label": "Voice",
       "dynamicOptions": true,
       "helperText": "Voices from your ElevenLabs account — save the API key first, or type a voice id.",
-      "visibleWhen": { "field": "vendor", "equals": "elevenlabs" }
+      "visibleWhen": {
+        "field": "vendor",
+        "equals": "elevenlabs"
+      }
     },
     {
       "kind": "text",
       "id": "elevenlabsModel",
       "label": "Model",
       "helperText": "Optional. E.g. eleven_multilingual_v2 (default), eleven_turbo_v2_5.",
-      "visibleWhen": { "field": "vendor", "equals": "elevenlabs" }
+      "visibleWhen": {
+        "field": "vendor",
+        "equals": "elevenlabs"
+      }
     },
     {
       "kind": "secret",
       "id": "fishaudio-api-key",
       "label": "API key",
       "helperText": "Stored in the encrypted secret store, never in plain settings.",
-      "visibleWhen": { "field": "vendor", "equals": "fishaudio" }
+      "visibleWhen": {
+        "field": "vendor",
+        "equals": "fishaudio"
+      }
     },
     {
       "kind": "select",
@@ -55,21 +81,30 @@
       "label": "Voice",
       "dynamicOptions": true,
       "helperText": "Your Fish Audio voice models — save the API key first, or type a reference id.",
-      "visibleWhen": { "field": "vendor", "equals": "fishaudio" }
+      "visibleWhen": {
+        "field": "vendor",
+        "equals": "fishaudio"
+      }
     },
     {
       "kind": "text",
       "id": "fishaudioModel",
       "label": "Model",
       "helperText": "Optional. E.g. speech-02.",
-      "visibleWhen": { "field": "vendor", "equals": "fishaudio" }
+      "visibleWhen": {
+        "field": "vendor",
+        "equals": "fishaudio"
+      }
     },
     {
       "kind": "secret",
       "id": "openai-api-key",
       "label": "API key",
       "helperText": "Stored in the encrypted secret store, never in plain settings.",
-      "visibleWhen": { "field": "vendor", "equals": "openai" }
+      "visibleWhen": {
+        "field": "vendor",
+        "equals": "openai"
+      }
     },
     {
       "kind": "select",
@@ -77,33 +112,75 @@
       "label": "Voice",
       "value": "alloy",
       "options": [
-        { "value": "alloy", "label": "Alloy" },
-        { "value": "ash", "label": "Ash" },
-        { "value": "ballad", "label": "Ballad" },
-        { "value": "coral", "label": "Coral" },
-        { "value": "echo", "label": "Echo" },
-        { "value": "fable", "label": "Fable" },
-        { "value": "nova", "label": "Nova" },
-        { "value": "onyx", "label": "Onyx" },
-        { "value": "sage", "label": "Sage" },
-        { "value": "shimmer", "label": "Shimmer" },
-        { "value": "verse", "label": "Verse" }
+        {
+          "value": "alloy",
+          "label": "Alloy"
+        },
+        {
+          "value": "ash",
+          "label": "Ash"
+        },
+        {
+          "value": "ballad",
+          "label": "Ballad"
+        },
+        {
+          "value": "coral",
+          "label": "Coral"
+        },
+        {
+          "value": "echo",
+          "label": "Echo"
+        },
+        {
+          "value": "fable",
+          "label": "Fable"
+        },
+        {
+          "value": "nova",
+          "label": "Nova"
+        },
+        {
+          "value": "onyx",
+          "label": "Onyx"
+        },
+        {
+          "value": "sage",
+          "label": "Sage"
+        },
+        {
+          "value": "shimmer",
+          "label": "Shimmer"
+        },
+        {
+          "value": "verse",
+          "label": "Verse"
+        }
       ],
-      "visibleWhen": { "field": "vendor", "equals": "openai" }
+      "visibleWhen": {
+        "field": "vendor",
+        "equals": "openai"
+      }
     },
     {
       "kind": "text",
       "id": "openaiModel",
       "label": "Model",
       "helperText": "Optional. E.g. tts-1 (default), tts-1-hd, gpt-4o-mini-tts.",
-      "visibleWhen": { "field": "vendor", "equals": "openai" }
+      "visibleWhen": {
+        "field": "vendor",
+        "equals": "openai"
+      }
     },
     {
       "kind": "secret",
       "id": "custom-api-key",
       "label": "API key",
       "helperText": "Optional for local endpoints; sent as a Bearer token when set.",
-      "visibleWhen": { "field": "vendor", "equals": "custom" }
+      "visibleWhen": {
+        "field": "vendor",
+        "equals": "custom"
+      }
     },
     {
       "kind": "text",
@@ -112,7 +189,10 @@
       "helperText": "An OpenAI-compatible speech URL, e.g. http://127.0.0.1:8880/v1/audio/speech.",
       "inputMode": "url",
       "value": "http://127.0.0.1:8880/v1/audio/speech",
-      "visibleWhen": { "field": "vendor", "equals": "custom" }
+      "visibleWhen": {
+        "field": "vendor",
+        "equals": "custom"
+      }
     },
     {
       "kind": "select",
@@ -120,14 +200,20 @@
       "label": "Voice",
       "dynamicOptions": true,
       "helperText": "Voices the endpoint lists at …/audio/voices (Kokoro, LocalAI); type the name yourself if the server doesn't list any.",
-      "visibleWhen": { "field": "vendor", "equals": "custom" }
+      "visibleWhen": {
+        "field": "vendor",
+        "equals": "custom"
+      }
     },
     {
       "kind": "text",
       "id": "customModel",
       "label": "Model",
       "helperText": "Optional. E.g. kokoro.",
-      "visibleWhen": { "field": "vendor", "equals": "custom" }
+      "visibleWhen": {
+        "field": "vendor",
+        "equals": "custom"
+      }
     }
   ]
 }

@@ -3,12 +3,11 @@ import { useAtom } from "jotai";
 import {
   CaretLeft,
   ChartLineUp,
-  DotsThreeVertical,
   GearSix,
   MagnifyingGlass,
   Plus,
 } from "@phosphor-icons/react";
-import { DropdownMenu, IconButton, Tooltip } from "@read-aware/ui";
+import { IconButton, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { usePhoneViewport } from "@read-aware/ui/media";
 import { useAtomValue } from "jotai";
@@ -33,6 +32,7 @@ import { contributionText } from "../../plugins/lib/plugin-i18n";
 import { headerActionsAtom } from "../../plugins/state/plugin-store";
 import { useHeaderClusterCapacity } from "../hooks/useHeaderClusterCapacity";
 import { usePrimaryDestinations } from "../hooks/usePrimaryDestinations";
+import type { HeaderActionEntry } from "../lib/header-actions";
 import { PrimaryNavigation } from "./PrimaryNavigation";
 import { WindowCaptionControls } from "./WindowCaptionControls";
 
@@ -48,9 +48,10 @@ type AppHeaderProps = {
   /** Optional context-specific control (e.g. the shelf view menu) shown in the cluster. */
   viewControl?: ReactNode;
   /** When set, replaces the customizable right-hand utility cluster. The
-   *  Agent page uses this for conversation actions. On phones these actions
-   *  render before the overflow menu. */
-  actions?: ReactNode;
+   *  Agent page uses this for conversation actions. Atomized so narrow
+   *  windows collapse them one by one into the dots menu (never squeezing
+   *  the primary navigation); on phones they render before that menu. */
+  actions?: HeaderActionEntry[];
 };
 
 const headerIconButtonClass =
@@ -112,18 +113,21 @@ export function AppHeader({
 
   // The primary navigation is canonical: it never yields width. When the
   // window narrows, cluster ICONS collapse into the dots menu instead — the
-  // user-arranged shelf items on desktop, the lone search icon on phones
-  // (everything else there is already behind the dots).
-  const {
-    containerRef,
-    fixedLeftRef,
-    navBoxRef,
-    auxFixedRef,
-    rightSpacerRef,
-    capacity,
-  } = useHeaderClusterCapacity(
-    isPhone ? 1 : actions ? 0 : shelfLayout.visible.length,
-  );
+  // user-arranged shelf items on desktop, contextual actions when a surface
+  // supplies them, and (on phones) the inline search icon.
+  const actionCount = actions?.length ?? 0;
+  const { containerRef, fixedLeftRef, navBoxRef, rightSpacerRef, capacity } =
+    useHeaderClusterCapacity(
+      isPhone ? 1 + actionCount : actions ? actionCount : shelfLayout.visible.length,
+    );
+  // Contextual actions collapse from the tail; on phones the search icon
+  // folds FIRST (it stays reachable from the dots menu either way).
+  const inlineActionEntries =
+    actions?.slice(0, Math.min(actionCount, capacity)) ?? [];
+  const collapsedActionEntries = (
+    actions?.slice(Math.min(actionCount, capacity)) ?? []
+  ).map((entry) => entry.overflow);
+  const showSearchInline = capacity >= actionCount + 1;
 
   const coreShelfNodes: Record<string, ReactNode | null> = {
     "core:search": (
@@ -305,9 +309,9 @@ export function AppHeader({
             )}
           </div>
           <div className="flex items-center justify-end gap-1.5">
-            {/* The one collapsible phone icon: search yields to the overflow
-                menu when the canonical navigation needs the room. */}
-            {capacity >= 1 && (
+            {/* Search yields to the overflow menu first; contextual actions
+                collapse next, from the tail. The navigation never yields. */}
+            {showSearchInline && (
               <IconButton
                 label={t("header.search")}
                 size="sm"
@@ -322,26 +326,17 @@ export function AppHeader({
                 }
               />
             )}
-            <span ref={auxFixedRef} className="flex items-center gap-1.5">
-              {actions}
-            </span>
-            <DropdownMenu
-              align="right"
-              className="shrink-0"
-              trigger={
-                <span className="flex h-8 w-8 items-center justify-center rounded-md text-fg-muted">
-                  <DotsThreeVertical
-                    size={18}
-                    weight="bold"
-                    aria-hidden="true"
-                  />
-                  <span className="sr-only">{t("header.more")}</span>
-                </span>
-              }
-              items={[
-                ...(capacity < 1
+            {inlineActionEntries.map((entry) => (
+              <span key={entry.id} className="contents">
+                {entry.inline}
+              </span>
+            ))}
+            <MenuOverflow
+              entries={[
+                ...(!showSearchInline
                   ? [
                       {
+                        id: "core:search",
                         label: t("header.search"),
                         icon: (
                           <MagnifyingGlass
@@ -350,19 +345,22 @@ export function AppHeader({
                             aria-hidden="true"
                           />
                         ),
-                        onClick: onOpenSearch,
+                        run: onOpenSearch,
                       },
                     ]
                   : []),
+                ...collapsedActionEntries,
                 {
+                  id: "core:import",
                   label: isImporting
                     ? t("header.importing")
                     : t("header.import"),
                   icon: <Plus size={16} weight="regular" aria-hidden="true" />,
-                  onClick: onImport,
+                  run: onImport,
                   disabled: isImporting,
                 },
                 {
+                  id: "core:stats",
                   label: t("header.stats"),
                   icon: (
                     <ChartLineUp
@@ -371,22 +369,24 @@ export function AppHeader({
                       aria-hidden="true"
                     />
                   ),
-                  onClick: () => onTopNavChange("stats"),
+                  run: () => onTopNavChange("stats"),
                 },
                 {
+                  id: "core:settings",
                   label: t("header.settings"),
                   icon: (
                     <GearSix size={16} weight="regular" aria-hidden="true" />
                   ),
-                  onClick: onOpenSettings,
+                  run: onOpenSettings,
                 },
                 // Plugin actions collapse into the phone overflow menu; popups
                 // open in the Dialog host (no anchor to speak of on phones).
                 ...(onShelf
                   ? shelfPluginActions.map((action) => ({
+                      id: pluginMenuId(action.key),
                       label: contributionText(action.title),
                       icon: renderPluginIcon(action.icon, 16),
-                      onClick: () => {
+                      run: () => {
                         if (action.presentation === "page") {
                           onTopNavChange(`plugin:${action.key}`);
                         } else {
@@ -426,10 +426,20 @@ export function AppHeader({
     .filter((entry): entry is MenuOverflowEntry => entry !== null);
 
   // The utility cluster: contextual actions when a surface supplies them,
-  // otherwise the user-arranged shelf items + overflow.
+  // otherwise the user-arranged shelf items — either way with a dots menu
+  // holding whatever the current width cannot show.
   const headerCluster = (
     <div className="flex items-center gap-1.5">
-      {actions ?? (
+      {actions ? (
+        <>
+          {inlineActionEntries.map((entry) => (
+            <span key={entry.id} className="contents">
+              {entry.inline}
+            </span>
+          ))}
+          <MenuOverflow entries={collapsedActionEntries} />
+        </>
+      ) : (
         <>
           {inlineShelfIds.map((id) => {
             if (id.startsWith("plugin:")) {

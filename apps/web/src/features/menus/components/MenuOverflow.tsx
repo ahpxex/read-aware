@@ -19,6 +19,8 @@ export type MenuOverflowEntry = {
   /** Widget row: rendered as-is (label + the widget's own trigger); its
    *  popover opens inside this panel, so the menu stays open. */
   node?: ReactNode;
+  /** Renders the row inert (e.g. import while an import is running). */
+  disabled?: boolean;
 };
 
 type MenuOverflowProps = {
@@ -92,11 +94,17 @@ export function MenuOverflow({
             ) : (
             <button
               type="button"
+              disabled={entry.disabled}
               onClick={() => {
                 setOpen(false);
                 entry.run?.();
               }}
-              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-fg transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
+              className={cn(
+                "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-fg transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
+                entry.disabled
+                  ? "cursor-default opacity-50"
+                  : "hover:bg-fg/5",
+              )}
             >
               <span className="text-fg-muted">{entry.icon}</span>
               <span className="min-w-0 flex-1 truncate">{entry.label}</span>

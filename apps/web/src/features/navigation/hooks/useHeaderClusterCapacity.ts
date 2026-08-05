@@ -22,8 +22,6 @@ export function useHeaderClusterCapacity(itemCount: number) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const fixedLeftRef = useRef<HTMLSpanElement | null>(null);
   const navBoxRef = useRef<HTMLDivElement | null>(null);
-  /** Uncollapsible cluster content (a surface's contextual actions). */
-  const auxFixedRef = useRef<HTMLSpanElement | null>(null);
   const rightSpacerRef = useRef<HTMLDivElement | null>(null);
   const [capacity, setCapacity] = useState(itemCount);
 
@@ -42,18 +40,11 @@ export function useHeaderClusterCapacity(itemCount: number) {
       // scrollWidth, not clientWidth: the nav's NATURAL width, even while the
       // center track is momentarily clipping it.
       const nav = navBox ? Math.max(navBox.scrollWidth, navBox.clientWidth) : 0;
-      const auxFixed = auxFixedRef.current?.getBoundingClientRect().width ?? 0;
       const rightSpacer =
         rightSpacerRef.current?.getBoundingClientRect().width ?? 0;
 
       const available =
-        content -
-        fixedLeft -
-        nav -
-        auxFixed -
-        rightSpacer -
-        DOTS_WIDTH -
-        SAFETY_MARGIN;
+        content - fixedLeft - nav - rightSpacer - DOTS_WIDTH - SAFETY_MARGIN;
       const fits = Math.floor((available + ITEM_GAP) / (ITEM_WIDTH + ITEM_GAP));
       const next = Math.max(0, Math.min(itemCount, fits));
       setCapacity((current) => (current === next ? current : next));
@@ -62,18 +53,11 @@ export function useHeaderClusterCapacity(itemCount: number) {
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(container);
-    for (const ref of [fixedLeftRef, navBoxRef, auxFixedRef]) {
+    for (const ref of [fixedLeftRef, navBoxRef]) {
       if (ref.current) observer.observe(ref.current);
     }
     return () => observer.disconnect();
   }, [itemCount]);
 
-  return {
-    containerRef,
-    fixedLeftRef,
-    navBoxRef,
-    auxFixedRef,
-    rightSpacerRef,
-    capacity,
-  };
+  return { containerRef, fixedLeftRef, navBoxRef, rightSpacerRef, capacity };
 }

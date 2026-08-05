@@ -17,6 +17,7 @@ import { BOOK_FILE_ACCEPT } from "./features/library/lib/pick-book-files";
 import type { LibraryBook } from "./features/library/lib/library-types";
 import { AppHeader } from "./features/navigation/components/AppHeader";
 import { usePrimaryDestinations } from "./features/navigation/hooks/usePrimaryDestinations";
+import { useContextHeaderActions } from "./features/context/hooks/useContextHeaderActions";
 import { UpdateIndicator } from "./features/update/components/UpdateIndicator";
 import { useSoftwareUpdate } from "./features/update/hooks/useSoftwareUpdate";
 import { ShelfManagementMenu } from "./features/shelf/components/ShelfManagementMenu";
@@ -54,11 +55,6 @@ const ReaderWorkspace = lazy(() =>
 const ContextWorkspace = lazy(() =>
   import("./features/context/components/ContextWorkspace").then((m) => ({
     default: m.ContextWorkspace,
-  })),
-);
-const ContextHeaderActions = lazy(() =>
-  import("./features/context/components/ContextHeaderActions").then((m) => ({
-    default: m.ContextHeaderActions,
   })),
 );
 
@@ -250,6 +246,12 @@ function App() {
   useEffect(() => {
     if (shelfHandoff === "idle") setHeldShelfBooks(null);
   }, [shelfHandoff]);
+
+  const contextHeaderActions = useContextHeaderActions({
+    books: library.books,
+    onOpenBook: handleOpenBook,
+    onNewConversation: createGlobalConversation,
+  });
 
   // Chat book cards → open the reader (the cards dispatch via an atom).
   useOpenBookRequestHandler(
@@ -529,15 +531,7 @@ function App() {
               activeTopNav === "shelf" ? <ShelfManagementMenu /> : undefined
             }
             actions={
-              activeTopNav === "context" ? (
-                <Suspense fallback={null}>
-                  <ContextHeaderActions
-                    books={library.books}
-                    onOpenBook={handleOpenBook}
-                    onNewConversation={createGlobalConversation}
-                  />
-                </Suspense>
-              ) : undefined
+              activeTopNav === "context" ? contextHeaderActions : undefined
             }
           />
 

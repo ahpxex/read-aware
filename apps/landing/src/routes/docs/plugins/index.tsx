@@ -53,6 +53,17 @@ function PluginsOverviewPage() {
           plugin supplies on demand. An RSS feed can sit on your shelf and be
           read, annotated, and discussed like any book.
         </li>
+        <li>
+          <strong>Read-aloud voices</strong> — TTS engines for the reader's
+          read-aloud. The plugin synthesizes audio; the app owns playback and
+          falls back to the system voice when a call fails.
+        </li>
+        <li>
+          <strong>Settings and schedules</strong> — declared settings become
+          the plugin's own section in Settings (API keys included, stored
+          encrypted), and declared schedules run recurring work while the app
+          is open.
+        </li>
       </ul>
 
       <h2>Plugins look native, by construction</h2>
@@ -118,6 +129,52 @@ function PluginsOverviewPage() {
         menu, reorder them, or reset to defaults. New plugin actions arrive in
         the overflow menu — quietly — and everything is always reachable from
         the command palette.
+      </p>
+
+      <h2 id="read-aloud-tts">Read aloud with any TTS voice</h2>
+      <p>
+        The bundled <strong>TTS Voices</strong> plugin routes read-aloud
+        through the engine of your choice — ElevenLabs, Fish Audio, OpenAI, or
+        any OpenAI-compatible endpoint (Kokoro, LocalAI, Edge TTS bridges…).
+        Everything lives in <strong>Settings → TTS Voices</strong>: pick a
+        provider, and its fields follow — API keys go straight to the
+        encrypted secret store, and where the provider can enumerate voices
+        the Voice field becomes a list (type a name yourself when it can't).
+      </p>
+      <p>
+        A popular free setup is Microsoft's Edge neural voices via{" "}
+        <a
+          href="https://github.com/travisvn/openai-edge-tts"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          openai-edge-tts
+        </a>
+        , a small local server that speaks the OpenAI audio API:
+      </p>
+      <ol>
+        <li>
+          Run the server locally — for example{" "}
+          <code>docker run -d -p 5050:5050 travisvn/openai-edge-tts</code> (no
+          API key required by default).
+        </li>
+        <li>
+          In Settings → TTS Voices, set Provider to{" "}
+          <em>Custom / local (OpenAI-compatible)</em> and the endpoint to{" "}
+          <code>http://127.0.0.1:5050/v1/audio/speech</code>.
+        </li>
+        <li>
+          Pick a voice from the list — the app reads the server's catalog, so
+          the full Edge set (e.g. <code>zh-CN-XiaoxiaoNeural</code>,{" "}
+          <code>en-US-AriaNeural</code>) appears alongside the OpenAI-style
+          aliases.
+        </li>
+      </ol>
+      <p>
+        Then open a book and start read-aloud: sentences stream through your
+        chosen voice, the next one prefetches while the current one plays, and
+        any failed call falls back to the system voice instead of stopping the
+        reading.
       </p>
 
       <h2>Write one</h2>

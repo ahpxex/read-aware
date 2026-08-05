@@ -130,10 +130,20 @@ function PluginApiPage() {
                 <code>settings</code>
               </td>
               <td>
-                Optional declarative settings form (same field shapes as form
-                views). The app renders it in the plugin panel and persists the
-                values as one object under the storage key{" "}
-                <code>settings</code>.
+                Optional declarative settings (same field shapes as form
+                views, plus <code>secret</code>). The app renders them as the
+                plugin's own section in Settings and persists the values as
+                one object under the storage key <code>settings</code> — see{" "}
+                <a href="#storage-and-settings">Storage and settings</a>.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code>schedules</code>
+              </td>
+              <td>
+                Optional recurring tasks, declared so users see them before
+                installing — see <a href="#scheduled-work">Scheduled work</a>.
               </td>
             </tr>
             <tr>
@@ -396,6 +406,58 @@ function PluginApiPage() {
     });
     return res.json();
   },
+});`}</code>
+      </pre>
+
+      <h3>Voice providers</h3>
+      <p>
+        <code>ctx.audio.registerVoiceProvider</code> plugs a text-to-speech
+        engine into the reader's read-aloud. The plugin only turns text into
+        encoded audio bytes (mp3/wav — anything the webview decodes); the app
+        owns playback, sentence pacing, prefetch, and the follow-along
+        highlight. Registration needs no permission of its own — whatever the
+        provider needs to synthesize (network, keys) is already gated by its
+        other permissions.
+      </p>
+      <pre>
+        <code>{`ctx.audio.registerVoiceProvider({
+  id: "voices",
+  label: "My TTS",
+  listVoices: () => [{ id: "default", label: "My TTS · warm" }],
+  synthesize: async ({ text, voiceId }) => {
+    const res = await ctx.network.fetch("http://127.0.0.1:8880/v1/audio/speech", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ input: text, response_format: "mp3" }),
+    });
+    return res.arrayBuffer();
+  },
+});`}</code>
+      </pre>
+      <p>
+        A registered voice is adopted automatically — the user enabling your
+        plugin is the opt-in, there is no separate host-side picker — and a
+        failed synthesis call falls back to the system voice for that
+        sentence, so reading degrades instead of falling silent. Voices are
+        re-listed whenever the plugin's settings change.
+      </p>
+
+      <h3 id="scheduled-work">Scheduled work</h3>
+      <p>
+        The manifest declares recurring tasks; <code>activate</code> binds the
+        work. The app runs each schedule AT LEAST every{" "}
+        <code>everyMinutes</code> (floored at 15) while it is open, with a
+        catch-up run shortly after launch when overdue — never at exact times,
+        and never while the app is closed. Overlapping runs of one schedule
+        are skipped; a failed run just waits for the next cadence.
+      </p>
+      <pre>
+        <code>{`// manifest.json
+"schedules": [{ "id": "refresh", "label": "Refresh feeds", "everyMinutes": 60 }]
+
+// main.js
+ctx.schedule.on("refresh", async () => {
+  // fetch, reconcile, write through the domain APIs
 });`}</code>
       </pre>
 
@@ -689,14 +751,43 @@ await ctx.shelf?.books.write?.addVirtualBook({
 });`}</code>
       </pre>
 
-      <h2>Storage and settings</h2>
+      <h2 id="storage-and-settings">Storage and settings</h2>
       <p>
         <code>ctx.storage</code> is a namespaced key-value store persisted with
         the app's local data — <code>get</code>, <code>set</code>,{" "}
         <code>remove</code>. If the manifest declares <code>settings</code>{" "}
-        fields, the app renders the form and the values arrive at{" "}
-        <code>ctx.storage.get("settings")</code> as one object.
+        fields, the app renders them as the plugin's own section in Settings
+        and the values arrive at <code>ctx.storage.get("settings")</code> as
+        one object. The reading assistant can view and change these settings
+        too (fields marked <code>agentHidden</code> stay out of its sight).
+        Three field capabilities go beyond a plain form:
       </p>
+      <ul>
+        <li>
+          <code>visibleWhen: {"{ field, equals }"}</code> shows a field only
+          while another field holds one of the given values. Hidden fields
+          keep their stored values — one settings object can carry a value
+          set per variant (the TTS plugin keeps one voice per provider this
+          way).
+        </li>
+        <li>
+          A <code>select</code> with <code>dynamicOptions: true</code>{" "}
+          resolves its options at runtime: bind the source in{" "}
+          <code>activate</code> with{" "}
+          <code>ctx.settings.provideOptions(fieldId, async (values) =&gt;
+          [...])</code>. When the source yields nothing (no credentials yet,
+          endpoint unreachable) the field falls back to free text input —
+          listing is a convenience, never a gate.
+        </li>
+        <li>
+          <code>kind: "secret"</code> declares a credential: the app renders a
+          password input writing to the encrypted secret store — the field id
+          IS the <code>ctx.secrets</code> key your code reads back — never to
+          plain settings, and never into the assistant's catalog. The stored
+          value is never echoed; the field shows a configured state and a
+          clear affordance.
+        </li>
+      </ul>
       <p>
         For structured data, <code>ctx.storage.collection(name)</code> opens a
         named document collection — <code>put</code> / <code>get</code> /{" "}

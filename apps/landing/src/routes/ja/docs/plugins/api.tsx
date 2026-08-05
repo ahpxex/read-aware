@@ -128,8 +128,19 @@ function PluginApiPage() {
                 <code>settings</code>
               </td>
               <td>
-                任意の宣言的な設定フォーム（フォームビューと同じフィールド形式）。アプリがプラグインパネルに描画し、値をストレージキー
+                任意の宣言的な設定（フォームビューと同じフィールド形式に加えて
+                <code>secret</code>）。アプリが設定画面にプラグイン専用のセクションとして描画し、値をストレージキー
                 <code>settings</code>の下に1つのオブジェクトとして保存します。
+                <a href="#storage-and-settings">ストレージと設定</a>を参照。
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code>schedules</code>
+              </td>
+              <td>
+                任意の定期タスク。インストール前にユーザーへ見えるようここで宣言します。
+                <a href="#scheduled-work">定期タスク</a>を参照。
               </td>
             </tr>
             <tr>
@@ -368,6 +379,48 @@ function PluginApiPage() {
     });
     return res.json();
   },
+});`}</code>
+      </pre>
+
+      <h3>読み上げボイスプロバイダー</h3>
+      <p>
+        <code>ctx.audio.registerVoiceProvider</code>
+        は、リーダーの読み上げにテキスト音声合成エンジンを接続します。プラグインの仕事はテキストをエンコード済みの音声バイト列（mp3/wav
+        など、webview がデコードできる形式）に変えることだけです。再生、文単位の進行、先読み、追従ハイライトはすべてアプリが担います。登録自体に権限は不要です—合成に必要な能力（ネットワーク、キー）は、プラグイン自身の他の権限で既にゲートされています。
+      </p>
+      <pre>
+        <code>{`ctx.audio.registerVoiceProvider({
+  id: "voices",
+  label: "My TTS",
+  listVoices: () => [{ id: "default", label: "My TTS · warm" }],
+  synthesize: async ({ text, voiceId }) => {
+    const res = await ctx.network.fetch("http://127.0.0.1:8880/v1/audio/speech", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ input: text, response_format: "mp3" }),
+    });
+    return res.arrayBuffer();
+  },
+});`}</code>
+      </pre>
+      <p>
+        登録されたボイスは自動的に採用されます。ユーザーがプラグインを有効化することが選択であり、ホスト側に別のピッカーはありません。合成に失敗した文はシステムボイスにフォールバックするため、読み上げは途切れず品質だけが下がります。プラグインの設定が変わるとボイスは再列挙されます。
+      </p>
+
+      <h3 id="scheduled-work">定期タスク</h3>
+      <p>
+        マニフェストが定期タスクを宣言し、<code>activate</code>
+        が実際の処理をバインドします。アプリは起動中、各スケジュールを少なくとも
+        <code>everyMinutes</code>
+        分ごと（下限15分）に実行し、期限超過分は起動直後に追い付き実行します。正確な時刻は約束されず、アプリが閉じている間は実行されません。同一スケジュールの重複実行はスキップされ、失敗した回は次の周期を待つだけです。
+      </p>
+      <pre>
+        <code>{`// manifest.json
+"schedules": [{ "id": "refresh", "label": "Refresh feeds", "everyMinutes": 60 }]
+
+// main.js
+ctx.schedule.on("refresh", async () => {
+  // 取得・照合し、ドメインAPI経由で書き戻す
 });`}</code>
       </pre>
 
@@ -630,16 +683,38 @@ await ctx.shelf?.books.write?.addVirtualBook({
 });`}</code>
       </pre>
 
-      <h2>ストレージと設定</h2>
+      <h2 id="storage-and-settings">ストレージと設定</h2>
       <p>
         <code>ctx.storage</code>
         は名前空間付きのキーバリューストアで、アプリのローカルデータとともに永続化されます。
         <code>get</code>、<code>set</code>、<code>remove</code>
         があります。マニフェストが<code>settings</code>
-        フィールドを宣言していれば、アプリがそのフォームを描画し、値は
+        フィールドを宣言していれば、アプリが設定画面にプラグイン専用のセクションとして描画し、値は
         <code>ctx.storage.get("settings")</code>
-        に1つのオブジェクトとして届きます。
+        に1つのオブジェクトとして届きます。読書アシスタントもこれらの設定を参照・変更できます（
+        <code>agentHidden</code>
+        を付けたフィールドはアシスタントから見えません）。通常のフォームを超える3つのフィールド能力があります：
       </p>
+      <ul>
+        <li>
+          <code>visibleWhen: {"{ field, equals }"}</code>
+          は、別のフィールドが指定値のときだけフィールドを表示します。非表示フィールドの保存値は保持されるため、1つの設定オブジェクトでバリアントごとの値一式を持てます（TTS
+          プラグインはこの仕組みでプロバイダーごとにボイスを記憶しています）。
+        </li>
+        <li>
+          <code>select</code>に<code>dynamicOptions: true</code>
+          を付けると選択肢を実行時に解決できます。<code>activate</code>で
+          <code>ctx.settings.provideOptions(fieldId, async (values) =&gt;
+          [...])</code>
+          によりソースをバインドします。ソースが選択肢を返せないとき（キー未設定、エンドポイント到達不能）は自由入力のテキストフィールドにフォールバックします—リストは利便であって、ゲートではありません。
+        </li>
+        <li>
+          <code>kind: "secret"</code>
+          は資格情報フィールドを宣言します。アプリはパスワード入力を描画し、暗号化されたシークレットストアへ直接書き込みます—フィールド
+          id がそのままコードで読み戻す<code>ctx.secrets</code>
+          のキーです—平文設定にもアシスタントのカタログにも決して入りません。保存値は再表示されず、フィールドは「設定済み」状態とクリア操作を提示します。
+        </li>
+      </ul>
       <p>
         構造化データには、<code>ctx.storage.collection(name)</code>
         が名前付きのドキュメントコレクションを開きます。ドキュメント単位のレコードに対する

@@ -49,6 +49,14 @@ function PluginsOverviewPage() {
           <strong>内容提供方</strong>——章节由插件按需提供的虚拟书籍。一个 RSS
           订阅源可以躺在你的书架上，像任何一本书那样被阅读、标注和讨论。
         </li>
+        <li>
+          <strong>朗读声音</strong>——为阅读页朗读接入 TTS
+          引擎。插件负责合成音频，应用负责播放，单句失败时退回系统语音。
+        </li>
+        <li>
+          <strong>设置与定时任务</strong>——声明式设置会成为插件在“设置”里的专属分区（含
+          API 密钥，加密存储）；声明的周期任务会在应用打开期间定时运行。
+        </li>
       </ul>
 
       <h2>原生外观，是构造出来的</h2>
@@ -101,6 +109,46 @@ function PluginsOverviewPage() {
       <p>
         插件贡献能力；按钮放在哪里由你决定。“设置 →
         自定义”可以编排每个界面（书架顶栏、阅读器顶栏、选区菜单）：在显示区与更多菜单之间拖动条目、调整顺序，或恢复默认。新的插件动作会安静地落在更多菜单里，而一切始终可以从命令面板触达。
+      </p>
+
+      <h2 id="read-aloud-tts">用任意 TTS 声音朗读</h2>
+      <p>
+        内置的 <strong>TTS Voices</strong> 插件把朗读接到你选择的引擎上——
+        ElevenLabs、Fish Audio、OpenAI，或任何 OpenAI 兼容端点（Kokoro、
+        LocalAI、Edge TTS 桥接……）。一切都在<strong>设置 → TTS Voices</strong>
+        里完成：选定提供方，它的字段随之出现——API
+        密钥直接写入加密的密钥存储；提供方能列举声音时，声音字段就是一个下拉列表（列不出来时也随时可以手动输入名称）。
+      </p>
+      <p>
+        一个流行的免费方案是通过{" "}
+        <a
+          href="https://github.com/travisvn/openai-edge-tts"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          openai-edge-tts
+        </a>{" "}
+        使用微软 Edge 的神经网络语音——它是一个说 OpenAI 音频 API 的本地小服务：
+      </p>
+      <ol>
+        <li>
+          在本地跑起服务——例如{" "}
+          <code>docker run -d -p 5050:5050 travisvn/openai-edge-tts</code>
+          （默认无需 API 密钥）。
+        </li>
+        <li>
+          在“设置 → TTS Voices”里，把提供方设为
+          <em>自定义 / 本地（OpenAI 兼容）</em>，端点填{" "}
+          <code>http://127.0.0.1:5050/v1/audio/speech</code>。
+        </li>
+        <li>
+          从列表里挑一个声音——应用会读取服务端目录，完整的 Edge 音色（如{" "}
+          <code>zh-CN-XiaoxiaoNeural</code>、<code>en-US-AriaNeural</code>
+          ）会和 OpenAI 风格的别名一起出现。
+        </li>
+      </ol>
+      <p>
+        然后打开一本书开始朗读：句子经由你选的声音播出，当前句播放时下一句已在预取；某一句合成失败会退回系统语音，朗读不会中断。
       </p>
 
       <h2>自己写一个</h2>

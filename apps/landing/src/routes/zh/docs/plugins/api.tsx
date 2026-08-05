@@ -126,8 +126,19 @@ function PluginApiPage() {
                 <code>settings</code>
               </td>
               <td>
-                可选的声明式设置表单（字段形态与表单视图相同）。应用会在插件面板中渲染它，并把所有值作为一个对象持久化在存储键{" "}
-                <code>settings</code> 下。
+                可选的声明式设置（字段形态与表单视图相同，另有{" "}
+                <code>secret</code>）。应用会把它渲染成插件自己的设置分区，并把所有值作为一个对象持久化在存储键{" "}
+                <code>settings</code> 下——见{" "}
+                <a href="#storage-and-settings">存储与设置</a>。
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <code>schedules</code>
+              </td>
+              <td>
+                可选的周期任务，声明在此以便用户安装前可见——见{" "}
+                <a href="#scheduled-work">定时任务</a>。
               </td>
             </tr>
             <tr>
@@ -370,6 +381,47 @@ function PluginApiPage() {
     });
     return res.json();
   },
+});`}</code>
+      </pre>
+
+      <h3>朗读声音提供方</h3>
+      <p>
+        <code>ctx.audio.registerVoiceProvider</code>{" "}
+        把一个文本转语音引擎接进阅读页的朗读功能。插件只负责把文本变成编码后的音频字节（mp3/wav——webview
+        能解码的都行）；播放、逐句推进、预取与跟读高亮全部由应用负责。注册本身不需要权限——合成所需的能力（网络、密钥）已由插件自己的其他权限门控。
+      </p>
+      <pre>
+        <code>{`ctx.audio.registerVoiceProvider({
+  id: "voices",
+  label: "My TTS",
+  listVoices: () => [{ id: "default", label: "My TTS · warm" }],
+  synthesize: async ({ text, voiceId }) => {
+    const res = await ctx.network.fetch("http://127.0.0.1:8880/v1/audio/speech", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ input: text, response_format: "mp3" }),
+    });
+    return res.arrayBuffer();
+  },
+});`}</code>
+      </pre>
+      <p>
+        注册的声音会被自动采用——用户启用你的插件即是选择，宿主不再另设选择器；某一句合成失败时会退回系统语音，朗读只会降级、不会中断。插件设置变化时会重新列举声音。
+      </p>
+
+      <h3 id="scheduled-work">定时任务</h3>
+      <p>
+        manifest 负责声明周期任务，<code>activate</code>{" "}
+        负责绑定实际工作。应用在打开期间至少每 <code>everyMinutes</code>{" "}
+        分钟（下限 15）运行一次，逾期未跑的会在启动后补一次——从不承诺精确时刻，应用关闭时也不会运行。同一任务的重叠运行会被跳过；失败的一次只需等待下个周期。
+      </p>
+      <pre>
+        <code>{`// manifest.json
+"schedules": [{ "id": "refresh", "label": "Refresh feeds", "everyMinutes": 60 }]
+
+// main.js
+ctx.schedule.on("refresh", async () => {
+  // 拉取、比对，经由领域 API 写回
 });`}</code>
       </pre>
 
@@ -641,14 +693,37 @@ await ctx.shelf?.books.write?.addVirtualBook({
 });`}</code>
       </pre>
 
-      <h2>存储与设置</h2>
+      <h2 id="storage-and-settings">存储与设置</h2>
       <p>
         <code>ctx.storage</code>{" "}
         是随应用本地数据一起持久化的命名空间键值存储——<code>get</code>、
         <code>set</code>、<code>remove</code>。如果 manifest 声明了{" "}
-        <code>settings</code> 字段，应用会渲染设置表单，所有值会以一个对象出现在{" "}
-        <code>ctx.storage.get("settings")</code>。
+        <code>settings</code>{" "}
+        字段，应用会把它们渲染成插件自己的设置分区，所有值会以一个对象出现在{" "}
+        <code>ctx.storage.get("settings")</code>
+        。阅读助手也能查看和修改这些设置（标记{" "}
+        <code>agentHidden</code> 的字段对它不可见）。有三种超出普通表单的字段能力：
       </p>
+      <ul>
+        <li>
+          <code>visibleWhen: {"{ field, equals }"}</code>{" "}
+          让字段只在另一字段取给定值时显示。隐藏字段的存量值会保留——一个设置对象即可按变体各存一套值（TTS
+          插件正是这样为每个提供方各记一个声音）。
+        </li>
+        <li>
+          <code>select</code> 配合 <code>dynamicOptions: true</code>{" "}
+          可以在运行时解析选项：在 <code>activate</code> 里用{" "}
+          <code>ctx.settings.provideOptions(fieldId, async (values) =&gt;
+          [...])</code>{" "}
+          绑定来源。来源给不出选项时（还没配密钥、端点不可达），字段会退回自由文本输入——列表是便利，绝不是门槛。
+        </li>
+        <li>
+          <code>kind: "secret"</code>{" "}
+          声明一个凭据字段：应用渲染密码输入框并直写加密的 secret
+          store——字段 id 就是你代码里 <code>ctx.secrets</code>{" "}
+          读回的键名——绝不进明文设置，也不进助手的目录。存量值从不回显；字段以“已配置”状态展示，并提供清除入口。
+        </li>
+      </ul>
       <p>
         对于结构化数据，<code>ctx.storage.collection(name)</code>{" "}
         会打开一个具名的文档集合——对逐条文档记录进行 <code>put</code> /{" "}

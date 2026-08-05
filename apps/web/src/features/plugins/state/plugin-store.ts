@@ -12,6 +12,8 @@ import type {
   ContributionKey,
   InstalledPlugin,
   PluginDisposable,
+  PluginFormValues,
+  PluginSelectOption,
   PluginView,
   RegisteredCommand,
   RegisteredHeaderAction,
@@ -113,6 +115,48 @@ export function registerVoiceProviderContribution(
   item: RegisteredVoiceProvider,
 ): PluginDisposable {
   return register(voiceProvidersAtom, item);
+}
+
+/**
+ * The bound options source of one declared `dynamicOptions` select field
+ * (`ctx.settings.provideOptions`). Not an atom: nothing renders from the
+ * registry itself — the settings form looks its provider up at resolve time.
+ */
+export type RegisteredSettingsOptions = {
+  key: ContributionKey;
+  pluginId: string;
+  fieldId: string;
+  resolve: (values: PluginFormValues) => Promise<PluginSelectOption[]>;
+};
+
+const settingsOptionsProviders = new Map<ContributionKey, RegisteredSettingsOptions>();
+
+export function registerSettingsOptionsContribution(
+  item: RegisteredSettingsOptions,
+): PluginDisposable {
+  settingsOptionsProviders.set(item.key, item);
+  let disposed = false;
+  return {
+    dispose: () => {
+      if (disposed) return;
+      disposed = true;
+      // Only remove our own registration — a re-activation may already have
+      // replaced the key with a fresh provider.
+      if (settingsOptionsProviders.get(item.key) === item) {
+        settingsOptionsProviders.delete(item.key);
+      }
+    },
+  };
+}
+
+export function getSettingsOptionsProvider(
+  pluginId: string,
+  fieldId: string,
+): RegisteredSettingsOptions | null {
+  for (const provider of settingsOptionsProviders.values()) {
+    if (provider.pluginId === pluginId && provider.fieldId === fieldId) return provider;
+  }
+  return null;
 }
 
 /** Refresh one provider's voice snapshot in place (settings changed). */

@@ -421,8 +421,20 @@ export type PluginListView = {
  * reading agent's settings catalog (the Plugins panel still shows it); text
  * fields with `inputMode: "password"` are agent-hidden automatically — and
  * real credentials belong in `ctx.secrets`, not in settings at all.
+ *
+ * `visibleWhen` renders the field only while another field of the same form
+ * holds one of the given values (compared as strings). Hidden fields keep
+ * their stored values — this is how one settings object carries a value set
+ * per variant (e.g. one voice per TTS provider) without the variants
+ * overwriting each other.
  */
-type PluginFormFieldBase = { agentHidden?: boolean };
+type PluginFormFieldBase = {
+  agentHidden?: boolean;
+  visibleWhen?: { field: string; equals: string | string[] };
+};
+
+/** One option of a select/choice field. */
+export type PluginSelectOption = { value: string; label: string };
 
 export type PluginFormField = PluginFormFieldBase &
   (
@@ -459,7 +471,21 @@ export type PluginFormField = PluginFormFieldBase &
       id: string;
       label: string;
       value?: string;
-      options: { value: string; label: string }[];
+      /** Static options; may be empty when `dynamicOptions` is set. */
+      options: PluginSelectOption[];
+      helperText?: string;
+      /**
+       * Options resolved at runtime instead of listed in the declaration —
+       * for lists only the plugin can know (an account's voices, what a
+       * local endpoint serves). Declared settings bind the source via
+       * `ctx.settings.provideOptions`; a plugin-authored form view carries
+       * it as `resolveOptions`. While the source yields options the field
+       * renders as a select (the stored value is kept selectable even when
+       * the list no longer contains it); when it errors or yields none, the
+       * field falls back to a free text input — a listing failure must
+       * never lock the user out of typing the value.
+       */
+      dynamicOptions?: boolean;
     }
   | { kind: "toggle"; id: string; label: string; value?: boolean }
   | { kind: "checkbox"; id: string; label: string; description?: string; value?: boolean }
@@ -485,6 +511,17 @@ export type PluginFormView = {
   submitMode?: "explicit" | "change";
   submitLabel?: string;
   onSubmit: (values: PluginFormValues) => PluginViewResult | Promise<PluginViewResult>;
+  /**
+   * Option source for this form's `dynamicOptions` select fields. Called with
+   * the field's id and the form's CURRENT values (so a list may depend on a
+   * sibling field, e.g. an endpoint URL) when the field becomes visible and
+   * again when sibling values change. Declared settings forms get this wired
+   * by the host from `ctx.settings.provideOptions`.
+   */
+  resolveOptions?: (
+    fieldId: string,
+    values: PluginFormValues,
+  ) => PluginSelectOption[] | Promise<PluginSelectOption[]>;
 };
 
 /**
@@ -1217,6 +1254,28 @@ export type PluginContext = {
    */
   schedule: {
     on(scheduleId: string, run: () => void | Promise<void>): PluginDisposable;
+  };
+  /**
+   * Bindings for `manifest.settings`. Like `schedule.on`, the manifest
+   * declares the shape and activate() supplies the behavior the declaration
+   * cannot carry.
+   */
+  settings: {
+    /**
+     * Provide the options of a declared select field marked
+     * `dynamicOptions: true` (binding any other field throws). Called with
+     * the settings form's current values; return the selectable options, or
+     * an empty list when they cannot be known (no credentials yet,
+     * unreachable endpoint) — the host then falls back to free text input
+     * for the field. Failures count as empty; never let a listing error
+     * take the setting hostage.
+     */
+    provideOptions(
+      fieldId: string,
+      provider: (
+        values: PluginFormValues,
+      ) => PluginSelectOption[] | Promise<PluginSelectOption[]>,
+    ): PluginDisposable;
   };
   /**
    * Read-aloud voice providers. Registration is permission-free — a provider

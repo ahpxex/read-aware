@@ -537,10 +537,13 @@ function pluginFieldDefinition(
     return null;
   }
   const path = `plugins.${plugin.pluginId}.${field.id}`;
+  // A dynamicOptions select resolves its options at runtime inside the
+  // plugin — statically it is a free string, not an enumerable set.
+  const dynamicSelect = field.kind === "select" && field.dynamicOptions === true;
   const kind =
     field.kind === "toggle" || field.kind === "checkbox"
       ? ("boolean" as const)
-      : field.kind === "select" || field.kind === "choice"
+      : (field.kind === "select" && !dynamicSelect) || field.kind === "choice"
         ? ("enum" as const)
         : field.kind === "number"
           ? ("number" as const)

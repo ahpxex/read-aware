@@ -115,8 +115,30 @@ export function validateManifest(raw: unknown): PluginManifest {
           "manifest.settings entries need a valid kind, id, and label",
         );
       }
+      // A dynamic select gets its options at runtime (ctx.settings
+      // .provideOptions); the declaration may then omit the static list.
+      const dynamicSelect = field.kind === "select" && field.dynamicOptions === true;
+      if (dynamicSelect && !Array.isArray(field.options)) field.options = [];
       if ((field.kind === "select" || field.kind === "choice") && !Array.isArray(field.options)) {
         throw new PluginManifestError(`manifest.settings ${field.kind} fields need options`);
+      }
+      if (field.visibleWhen != null) {
+        const condition = field.visibleWhen as Record<string, unknown>;
+        const equals = condition?.equals;
+        const validEquals =
+          typeof equals === "string" ||
+          (Array.isArray(equals) &&
+            equals.length > 0 &&
+            equals.every((value) => typeof value === "string"));
+        if (
+          typeof condition !== "object" || condition === null ||
+          typeof condition.field !== "string" || condition.field.trim() === "" ||
+          !validEquals
+        ) {
+          throw new PluginManifestError(
+            "manifest.settings visibleWhen needs { field, equals: string | string[] }",
+          );
+        }
       }
     }
     settings = record.settings as PluginManifest["settings"];

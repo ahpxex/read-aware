@@ -6,6 +6,7 @@
  */
 import { emitAppEvent } from "../../../platform/app-events";
 import { localKV } from "../../../platform/local-store";
+import { getSettingsOptionsProvider } from "../state/plugin-store";
 import type {
   InstalledPlugin,
   PluginFormField,
@@ -53,6 +54,11 @@ export function buildPluginSettingsView(
     onSubmit: (values) => {
       writePluginSettingsValues(manifest.id, values);
     },
+    // Dynamic selects resolve through the source the plugin bound at
+    // activate() (ctx.settings.provideOptions); an unbound field resolves
+    // empty and renders as free text input.
+    resolveOptions: (fieldId, values) =>
+      getSettingsOptionsProvider(manifest.id, fieldId)?.resolve(values) ?? [],
   };
 }
 

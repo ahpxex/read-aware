@@ -214,14 +214,35 @@ function normalizeListView(input: Record<string, unknown>, context: string): Plu
   };
 }
 
+function normalizeVisibleWhen(
+  value: unknown,
+  context: string,
+): { field: string; equals: string | string[] } | undefined {
+  if (value == null) return undefined;
+  const condition = record(value, context);
+  const field = string(condition.field, `${context}.field`)!;
+  const equals = condition.equals;
+  if (typeof equals === "string") return { field, equals };
+  const values = array(equals, `${context}.equals`, 20).map((entry, index) =>
+    string(entry, `${context}.equals[${index}]`)!,
+  );
+  if (values.length === 0) {
+    throw new PluginViewError(`${context}.equals must not be empty`);
+  }
+  return { field, equals: values };
+}
+
 function normalizeFormField(input: unknown, context: string): PluginFormField {
   const value = record(input, context);
   const kind = string(value.kind, `${context}.kind`);
   const id = string(value.id, `${context}.id`)!;
   const label = string(value.label, `${context}.label`)!;
+  const visibleWhen = normalizeVisibleWhen(value.visibleWhen, `${context}.visibleWhen`);
+  const base = visibleWhen ? { visibleWhen } : {};
 
   if (kind === "text") {
     return {
+      ...base,
       kind,
       id,
       label,
@@ -239,6 +260,7 @@ function normalizeFormField(input: unknown, context: string): PluginFormField {
   if (kind === "textarea") {
     const rows = value.rows == null ? undefined : finiteNumber(value.rows, `${context}.rows`);
     return {
+      ...base,
       kind,
       id,
       label,
@@ -250,6 +272,7 @@ function normalizeFormField(input: unknown, context: string): PluginFormField {
   }
   if (kind === "number") {
     return {
+      ...base,
       kind,
       id,
       label,
@@ -261,7 +284,11 @@ function normalizeFormField(input: unknown, context: string): PluginFormField {
     };
   }
   if (kind === "select" || kind === "choice") {
-    const options = array(value.options, `${context}.options`, 100).map((option, index) => {
+    const dynamicOptions = kind === "select" && value.dynamicOptions === true;
+    // A dynamic select resolves its list at runtime; the static list may be
+    // absent then, standing in only until (or unless) options resolve.
+    const rawOptions = dynamicOptions && value.options == null ? [] : value.options;
+    const options = array(rawOptions, `${context}.options`, 500).map((option, index) => {
       const entry = record(option, `${context}.options[${index}]`);
       return {
         value: string(entry.value, `${context}.options[${index}].value`)!,
@@ -272,15 +299,23 @@ function normalizeFormField(input: unknown, context: string): PluginFormField {
       };
     });
     return {
+      ...base,
       kind,
       id,
       label,
       value: string(value.value, `${context}.value`, true),
       options,
+      ...(kind === "select"
+        ? {
+            helperText: string(value.helperText, `${context}.helperText`, true),
+            ...(dynamicOptions ? { dynamicOptions: true } : {}),
+          }
+        : {}),
     } as PluginFormField;
   }
   if (kind === "toggle" || kind === "checkbox") {
     return {
+      ...base,
       kind,
       id,
       label,
@@ -297,6 +332,9 @@ function normalizeFormView(input: Record<string, unknown>, context: string): Plu
   if (typeof input.onSubmit !== "function") {
     throw new PluginViewError(`${context}.onSubmit must be a function`);
   }
+  if (input.resolveOptions != null && typeof input.resolveOptions !== "function") {
+    throw new PluginViewError(`${context}.resolveOptions must be a function`);
+  }
   return {
     kind: "form",
     title: string(input.title, `${context}.title`, true),
@@ -311,6 +349,7 @@ function normalizeFormView(input: Record<string, unknown>, context: string): Plu
     ),
     submitLabel: string(input.submitLabel, `${context}.submitLabel`, true),
     onSubmit: input.onSubmit as PluginFormView["onSubmit"],
+    resolveOptions: input.resolveOptions as PluginFormView["resolveOptions"],
   };
 }
 

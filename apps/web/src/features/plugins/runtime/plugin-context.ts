@@ -53,6 +53,7 @@ import {
   registerHeaderActionContribution,
   registerReaderModeContribution,
   registerSelectionActionContribution,
+  registerSettingsOptionsContribution,
   registerToolContribution,
   registerVoiceProviderContribution,
   updateVoiceProviderVoices,
@@ -333,6 +334,28 @@ export function buildPluginContext(
           );
         }
         return track(registerPluginSchedule(manifest.id, declaration, run));
+      },
+    },
+    settings: {
+      provideOptions: (fieldId, provider) => {
+        const id = String(fieldId);
+        const declared = manifest.settings?.find((field) => field.id === id);
+        if (!declared || declared.kind !== "select" || declared.dynamicOptions !== true) {
+          throw new Error(
+            `settings field "${id}" is not declared as a dynamicOptions select in manifest.settings`,
+          );
+        }
+        if (typeof provider !== "function") {
+          throw new Error("provideOptions requires a provider function");
+        }
+        return track(
+          registerSettingsOptionsContribution({
+            key: contributionKey(manifest.id, `settings-options.${id}`),
+            pluginId: manifest.id,
+            fieldId: id,
+            resolve: (values) => Promise.resolve(provider(values)),
+          }),
+        );
       },
     },
     session: {

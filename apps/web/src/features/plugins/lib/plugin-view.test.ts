@@ -160,6 +160,72 @@ describe("normalizePluginView", () => {
       }),
     ).toThrow(/submitMode must be one of/);
   });
+
+  test("preserves visibleWhen, dynamic selects, and the form's option source", () => {
+    const resolveOptions = () => [{ value: "af_bella", label: "af_bella" }];
+    const view = normalizePluginView({
+      kind: "form",
+      fields: [
+        {
+          kind: "select",
+          id: "vendor",
+          label: "Provider",
+          value: "custom",
+          options: [{ value: "custom", label: "Custom" }],
+        },
+        {
+          kind: "select",
+          id: "voice",
+          label: "Voice",
+          dynamicOptions: true,
+          helperText: "Listed by the endpoint",
+          visibleWhen: { field: "vendor", equals: "custom" },
+        },
+        {
+          kind: "text",
+          id: "endpoint",
+          label: "Endpoint",
+          visibleWhen: { field: "vendor", equals: ["custom", "local"] },
+        },
+      ],
+      onSubmit: noOp,
+      resolveOptions,
+    });
+
+    expect(view.kind).toBe("form");
+    if (view.kind !== "form") throw new Error("unexpected view");
+    expect(view.resolveOptions).toBe(resolveOptions);
+    const voice = view.fields[1];
+    if (voice.kind !== "select") throw new Error("unexpected field");
+    // A dynamic select may omit the static options list entirely.
+    expect(voice.dynamicOptions).toBe(true);
+    expect(voice.options).toEqual([]);
+    expect(voice.helperText).toBe("Listed by the endpoint");
+    expect(voice.visibleWhen).toEqual({ field: "vendor", equals: "custom" });
+    expect(view.fields[2].visibleWhen).toEqual({
+      field: "vendor",
+      equals: ["custom", "local"],
+    });
+  });
+
+  test("rejects malformed visibleWhen conditions and non-dynamic selects without options", () => {
+    expect(() =>
+      normalizePluginView({
+        kind: "form",
+        fields: [
+          { kind: "text", id: "a", label: "A", visibleWhen: { field: "b", equals: [] } },
+        ],
+        onSubmit: noOp,
+      }),
+    ).toThrow(/equals/);
+    expect(() =>
+      normalizePluginView({
+        kind: "form",
+        fields: [{ kind: "select", id: "a", label: "A" }],
+        onSubmit: noOp,
+      }),
+    ).toThrow(/options/);
+  });
 });
 
 describe("navigatePluginViewStack", () => {

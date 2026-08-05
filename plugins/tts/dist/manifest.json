@@ -1,7 +1,7 @@
 {
   "id": "tts",
   "name": "TTS Voices",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "minAppVersion": "0.3.0",
   "description": "Read-aloud voices from cloud and local TTS engines: ElevenLabs, Fish Audio, OpenAI, or any OpenAI-compatible endpoint (Kokoro, Piper, LocalAI…).",
   "author": "ReadAware",
@@ -21,11 +21,18 @@
       ]
     },
     {
+      "kind": "secret",
+      "id": "elevenlabs-api-key",
+      "label": "API key",
+      "helperText": "Stored in the encrypted secret store, never in plain settings.",
+      "visibleWhen": { "field": "vendor", "equals": "elevenlabs" }
+    },
+    {
       "kind": "select",
       "id": "elevenlabsVoice",
       "label": "Voice",
       "dynamicOptions": true,
-      "helperText": "Voices from your ElevenLabs account — save the API key first (shelf header → TTS keys), or type a voice id.",
+      "helperText": "Voices from your ElevenLabs account — save the API key first, or type a voice id.",
       "visibleWhen": { "field": "vendor", "equals": "elevenlabs" }
     },
     {
@@ -36,11 +43,18 @@
       "visibleWhen": { "field": "vendor", "equals": "elevenlabs" }
     },
     {
+      "kind": "secret",
+      "id": "fishaudio-api-key",
+      "label": "API key",
+      "helperText": "Stored in the encrypted secret store, never in plain settings.",
+      "visibleWhen": { "field": "vendor", "equals": "fishaudio" }
+    },
+    {
       "kind": "select",
       "id": "fishaudioVoice",
       "label": "Voice",
       "dynamicOptions": true,
-      "helperText": "Your Fish Audio voice models — save the API key first (shelf header → TTS keys), or type a reference id.",
+      "helperText": "Your Fish Audio voice models — save the API key first, or type a reference id.",
       "visibleWhen": { "field": "vendor", "equals": "fishaudio" }
     },
     {
@@ -49,6 +63,13 @@
       "label": "Model",
       "helperText": "Optional. E.g. speech-02.",
       "visibleWhen": { "field": "vendor", "equals": "fishaudio" }
+    },
+    {
+      "kind": "secret",
+      "id": "openai-api-key",
+      "label": "API key",
+      "helperText": "Stored in the encrypted secret store, never in plain settings.",
+      "visibleWhen": { "field": "vendor", "equals": "openai" }
     },
     {
       "kind": "select",
@@ -76,6 +97,13 @@
       "label": "Model",
       "helperText": "Optional. E.g. tts-1 (default), tts-1-hd, gpt-4o-mini-tts.",
       "visibleWhen": { "field": "vendor", "equals": "openai" }
+    },
+    {
+      "kind": "secret",
+      "id": "custom-api-key",
+      "label": "API key",
+      "helperText": "Optional for local endpoints; sent as a Bearer token when set.",
+      "visibleWhen": { "field": "vendor", "equals": "custom" }
     },
     {
       "kind": "text",

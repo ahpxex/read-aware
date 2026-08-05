@@ -1,8 +1,9 @@
 /**
  * Universal read-aloud voices: one provider, many engines. The vendor and its
  * per-vendor voice/model/endpoint come from the declarative settings (agent-
- * adjustable); API keys live in the encrypted secret store, entered through
- * the "TTS keys" shelf popup. Enabling the plugin IS opting in — its voice
+ * adjustable); API keys are declared `secret` fields on the same settings
+ * section — the host writes them to the encrypted secret store this module
+ * reads back via ctx.secrets. Enabling the plugin IS opting in — its voice
  * registers unconditionally and read-aloud adopts it (the host still falls
  * back to the system voice whenever a synthesis call fails). The host asks
  * `synthesize` for one sentence at a time and owns playback, prefetch, and
@@ -36,35 +37,6 @@ function voiceLabel(settings: TtsSettings): string {
       ? settings.voiceId || settings.model || "local"
       : settings.voiceId || settings.model || "default";
   return `${vendor} · ${descriptor}`;
-}
-
-function keysFormView(ctx: PluginContext) {
-  const settings = readSettings(ctx);
-  const vendor = settings.vendor;
-  return {
-    kind: "form" as const,
-    title: `API key — ${VENDOR_LABELS[vendor]}`,
-    fields: [
-      {
-        kind: "text" as const,
-        id: "apiKey",
-        label: `${VENDOR_LABELS[vendor]} API key`,
-        inputMode: "password" as const,
-        placeholder: "Stored in the encrypted secret store",
-        helperText:
-          vendor === "custom"
-            ? "Optional for local endpoints; sent as a Bearer token when set."
-            : "Overwrites the stored key. Leave empty and submit to clear it.",
-      },
-    ],
-    submitLabel: "Save",
-    onSubmit: async (values: Record<string, string | number | boolean>) => {
-      const key = String(values.apiKey ?? "").trim();
-      if (key) await ctx.secrets.set(secretName(vendor), key);
-      else await ctx.secrets.remove(secretName(vendor));
-      return { toast: key ? "API key saved" : "API key cleared" };
-    },
-  };
 }
 
 /** The settings fields whose voice list this plugin can enumerate at runtime. */
@@ -148,13 +120,6 @@ const plugin: PluginModule = {
       });
     }
 
-    ctx.ui.registerHeaderAction({
-      id: "keys",
-      title: "TTS keys",
-      icon: "speaker",
-      surface: "shelf",
-      view: () => keysFormView(ctx),
-    });
   },
 };
 

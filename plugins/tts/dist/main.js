@@ -162,33 +162,6 @@ function voiceLabel(settings) {
   const descriptor = settings.vendor === "custom" ? settings.voiceId || settings.model || "local" : settings.voiceId || settings.model || "default";
   return `${vendor} · ${descriptor}`;
 }
-function keysFormView(ctx) {
-  const settings = readSettings(ctx);
-  const vendor = settings.vendor;
-  return {
-    kind: "form",
-    title: `API key — ${VENDOR_LABELS[vendor]}`,
-    fields: [
-      {
-        kind: "text",
-        id: "apiKey",
-        label: `${VENDOR_LABELS[vendor]} API key`,
-        inputMode: "password",
-        placeholder: "Stored in the encrypted secret store",
-        helperText: vendor === "custom" ? "Optional for local endpoints; sent as a Bearer token when set." : "Overwrites the stored key. Leave empty and submit to clear it."
-      }
-    ],
-    submitLabel: "Save",
-    onSubmit: async (values) => {
-      const key = String(values.apiKey ?? "").trim();
-      if (key)
-        await ctx.secrets.set(secretName(vendor), key);
-      else
-        await ctx.secrets.remove(secretName(vendor));
-      return { toast: key ? "API key saved" : "API key cleared" };
-    }
-  };
-}
 var DYNAMIC_VOICE_FIELDS = [
   { vendor: "elevenlabs", fieldId: "elevenlabsVoice" },
   { vendor: "fishaudio", fieldId: "fishaudioVoice" },
@@ -254,13 +227,6 @@ var plugin = {
         return [{ value: "", label: "Default voice" }, ...voices];
       });
     }
-    ctx.ui.registerHeaderAction({
-      id: "keys",
-      title: "TTS keys",
-      icon: "speaker",
-      surface: "shelf",
-      view: () => keysFormView(ctx)
-    });
   }
 };
 var src_default = plugin;

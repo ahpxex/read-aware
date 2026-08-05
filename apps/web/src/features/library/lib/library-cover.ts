@@ -1,4 +1,10 @@
-import { foliateAuthor, foliateTitle, type FoliateBook } from "../../reader/lib/foliate-engine";
+import {
+  foliateAuthor,
+  foliateTitle,
+  makeFoliateBook,
+  type FoliateBook,
+} from "../../reader/lib/foliate-engine";
+import type { BookFormat } from "./library-types";
 
 const COVER_ERROR_PREFIX = "Unable to extract book cover";
 
@@ -26,6 +32,36 @@ function blobToDataUrl(blob: Blob) {
 type FoliateMetadataSource = {
   getCover?: () => Promise<Blob | null | undefined> | Blob | null | undefined;
 };
+
+/** Formats the vendored engine can parse headlessly (no view, no reader). */
+const IMPORT_PARSE_FORMATS: ReadonlySet<BookFormat> = new Set([
+  "epub",
+  "mobi",
+  "azw3",
+  "fb2",
+  "cbz",
+  "pdf",
+]);
+
+/**
+ * Import-time metadata for sources that arrive as in-memory files — the mobile
+ * pick path and plugin `importBook`. The desktop path extracts natively so the
+ * book never enters the webview, but these bytes are already here: parse them
+ * with the engine and pull the same title/author/cover a first open would,
+ * instead of shipping the shelf a nameless cover-less entry.
+ */
+export async function extractImportedFileMetadata(
+  file: File,
+  format: BookFormat,
+): Promise<ExtractedBookMetadata | null> {
+  if (!IMPORT_PARSE_FORMATS.has(format)) return null;
+  try {
+    return await extractOpenedBookMetadata(await makeFoliateBook(file));
+  } catch (error) {
+    console.warn(`Unable to extract ${format.toUpperCase()} metadata at import`, error);
+    return null;
+  }
+}
 
 /** Pull metadata from a foliate book that the reader has already parsed. */
 export async function extractOpenedBookMetadata(book: FoliateBook): Promise<ExtractedBookMetadata> {

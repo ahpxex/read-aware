@@ -16,7 +16,10 @@ import type {
   LibraryBook,
   ReadingStatus,
 } from "./library-types";
-import { extractOpenedBookMetadata } from "./library-cover";
+import {
+  extractImportedFileMetadata,
+  extractOpenedBookMetadata,
+} from "./library-cover";
 import {
   extractNativeBookMetadata,
   type NativeBookMetadata,
@@ -321,10 +324,11 @@ export type PrepareBookImportResult =
   | { status: "duplicate"; book: LibraryBook };
 
 /**
- * The preparation phase: desktop EPUBs read only their ZIP directory, OPF, and
- * cover entry in Rust; macOS PDFs use PDFKit for bounded metadata and cover
- * extraction. Other formats fall back to file-name metadata. No foliate parser
- * runs during import. The first reader open fills anything the lightweight
+ * The preparation phase. Native-path sources extract in Rust (EPUBs read only
+ * their ZIP directory, OPF, and cover entry; macOS PDFs use PDFKit) so the
+ * book never enters the webview. File sources (mobile picks, plugin
+ * `importBook`) are already in-memory bytes, so the engine parses them
+ * headlessly instead. The first reader open still fills anything the import
  * extractors could not find from its already-parsed foliate object.
  */
 export async function prepareBookImport(
@@ -341,9 +345,13 @@ export async function prepareBookImport(
   if (byFile) return { status: "duplicate", book: byFile };
 
   const format = await detectBookFormat(source, t);
+  // Native paths extract in Rust so the book never enters the webview; file
+  // sources (mobile picks, plugin importBook) are already in-memory bytes,
+  // so the engine parses them directly — either way the shelf entry lands
+  // with its real title, author, and cover instead of waiting for first open.
   const metadata = source.kind === "native-path"
     ? await extractNativeBookMetadata(format, source.path)
-    : null;
+    : await extractImportedFileMetadata(source.file, format);
   const book = createLibraryBook(source, format, metadata);
   const byMetadata = existing.find((entry) => bookDedupeKey(entry) === bookDedupeKey(book));
   if (byMetadata) return { status: "duplicate", book: byMetadata };

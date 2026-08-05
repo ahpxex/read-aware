@@ -9,19 +9,21 @@ var VENDOR_LABELS = {
 function vendorNeedsKey(vendor) {
   return vendor !== "custom";
 }
+function text(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
 function normalizeSettings(raw) {
   const record = typeof raw === "object" && raw !== null ? raw : {};
   const vendor = VENDORS.includes(record.vendor) ? record.vendor : "custom";
-  const text = (value) => typeof value === "string" ? value.trim() : "";
+  const pick = (key, legacy) => record[key] !== undefined ? text(record[key]) : text(legacy);
   return {
-    enabled: record.enabled === true,
     vendor,
-    voiceId: text(record.voiceId),
-    model: text(record.model),
-    endpoint: text(record.endpoint)
+    voiceId: pick(`${vendor}Voice`, record.voiceId),
+    model: pick(`${vendor}Model`, record.model),
+    endpoint: vendor === "custom" ? pick("customEndpoint", record.endpoint) : ""
   };
 }
-function buildSpeechRequest(settings, apiKey, text) {
+function buildSpeechRequest(settings, apiKey, text2) {
   const json = { "content-type": "application/json" };
   switch (settings.vendor) {
     case "elevenlabs": {
@@ -30,7 +32,7 @@ function buildSpeechRequest(settings, apiKey, text) {
         url: `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voice)}?output_format=mp3_44100_128`,
         headers: { ...json, "xi-api-key": apiKey ?? "" },
         body: JSON.stringify({
-          text,
+          text: text2,
           model_id: settings.model || "eleven_multilingual_v2"
         })
       };
@@ -44,7 +46,7 @@ function buildSpeechRequest(settings, apiKey, text) {
           ...settings.model ? { model: settings.model } : {}
         },
         body: JSON.stringify({
-          text,
+          text: text2,
           format: "mp3",
           ...settings.voiceId ? { reference_id: settings.voiceId } : {}
         })
@@ -55,7 +57,7 @@ function buildSpeechRequest(settings, apiKey, text) {
         headers: { ...json, authorization: `Bearer ${apiKey ?? ""}` },
         body: JSON.stringify({
           model: settings.model || "tts-1",
-          input: text,
+          input: text2,
           voice: settings.voiceId || "alloy",
           response_format: "mp3"
         })
@@ -71,7 +73,7 @@ function buildSpeechRequest(settings, apiKey, text) {
           ...apiKey ? { authorization: `Bearer ${apiKey}` } : {}
         },
         body: JSON.stringify({
-          input: text,
+          input: text2,
           response_format: "mp3",
           ...settings.model ? { model: settings.model } : {},
           ...settings.voiceId ? { voice: settings.voiceId } : {}
@@ -79,6 +81,66 @@ function buildSpeechRequest(settings, apiKey, text) {
       };
     }
   }
+}
+function buildVoiceListRequest(vendor, settings, apiKey) {
+  switch (vendor) {
+    case "elevenlabs":
+      if (!apiKey)
+        return null;
+      return {
+        url: "https://api.elevenlabs.io/v1/voices",
+        headers: { "xi-api-key": apiKey }
+      };
+    case "fishaudio":
+      if (!apiKey)
+        return null;
+      return {
+        url: "https://api.fish.audio/model?self=true&page_size=100",
+        headers: { authorization: `Bearer ${apiKey}` }
+      };
+    case "openai":
+      return null;
+    case "custom": {
+      const endpoint = text(settings.endpoint);
+      const match = endpoint.match(/^(.*\/audio)\/speech\/?(?:[?#].*)?$/);
+      if (!match)
+        return null;
+      const headers = apiKey ? { authorization: `Bearer ${apiKey}` } : {};
+      return { url: `${match[1]}/voices`, headers };
+    }
+  }
+}
+function optionFrom(entry) {
+  if (typeof entry === "string") {
+    const value2 = entry.trim();
+    return value2 ? { value: value2, label: value2 } : null;
+  }
+  if (typeof entry !== "object" || entry === null)
+    return null;
+  const record = entry;
+  const value = text(record.voice_id) || text(record._id) || text(record.id) || text(record.name);
+  if (!value)
+    return null;
+  const label = text(record.name) || text(record.title) || value;
+  return { value, label };
+}
+function parseVoiceList(payload) {
+  if (typeof payload !== "object" || payload === null)
+    return [];
+  const record = payload;
+  const entries = [record.voices, record.items, record.data, record.models].find(Array.isArray);
+  if (!entries)
+    return [];
+  const seen = new Set;
+  const options = [];
+  for (const entry of entries) {
+    const option = optionFrom(entry);
+    if (!option || seen.has(option.value))
+      continue;
+    seen.add(option.value);
+    options.push(option);
+  }
+  return options;
 }
 
 // src/index.ts
@@ -120,6 +182,11 @@ function keysFormView(ctx) {
     }
   };
 }
+var DYNAMIC_VOICE_FIELDS = [
+  { vendor: "elevenlabs", fieldId: "elevenlabsVoice" },
+  { vendor: "fishaudio", fieldId: "fishaudioVoice" },
+  { vendor: "custom", fieldId: "customVoice" }
+];
 var plugin = {
   activate(ctx) {
     const network = ctx.network;
@@ -128,17 +195,14 @@ var plugin = {
     ctx.audio.registerVoiceProvider({
       id: "voices",
       label: "TTS",
-      listVoices: () => {
-        const settings = readSettings(ctx);
-        return settings.enabled ? [{ id: "default", label: voiceLabel(settings) }] : [];
-      },
-      synthesize: async ({ text }) => {
+      listVoices: () => [{ id: "default", label: voiceLabel(readSettings(ctx)) }],
+      synthesize: async ({ text: text2 }) => {
         const settings = readSettings(ctx);
         const apiKey = await ctx.secrets.get(secretName(settings.vendor));
         if (vendorNeedsKey(settings.vendor) && !apiKey) {
           throw new Error(`${VENDOR_LABELS[settings.vendor]} API key not set — open "TTS keys" from the shelf header`);
         }
-        const request = buildSpeechRequest(settings, apiKey, text);
+        const request = buildSpeechRequest(settings, apiKey, text2);
         const response = await network.fetch(request.url, {
           method: "POST",
           headers: request.headers,
@@ -150,6 +214,25 @@ var plugin = {
         return await response.arrayBuffer();
       }
     });
+    for (const { vendor, fieldId } of DYNAMIC_VOICE_FIELDS) {
+      ctx.settings.provideOptions(fieldId, async (values) => {
+        const endpoint = typeof values.customEndpoint === "string" ? values.customEndpoint : normalizeSettings({
+          ...ctx.storage.get("settings") ?? {},
+          vendor: "custom"
+        }).endpoint;
+        const apiKey = await ctx.secrets.get(secretName(vendor));
+        const request = buildVoiceListRequest(vendor, { endpoint }, apiKey);
+        if (!request)
+          return [];
+        const response = await network.fetch(request.url, { headers: request.headers });
+        if (!response.ok)
+          return [];
+        const voices = parseVoiceList(await response.json());
+        if (voices.length === 0)
+          return [];
+        return [{ value: "", label: "Default voice" }, ...voices];
+      });
+    }
     ctx.ui.registerHeaderAction({
       id: "keys",
       title: "TTS keys",

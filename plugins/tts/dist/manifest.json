@@ -1,19 +1,13 @@
 {
   "id": "tts",
   "name": "TTS Voices",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "minAppVersion": "0.3.0",
   "description": "Read-aloud voices from cloud and local TTS engines: ElevenLabs, Fish Audio, OpenAI, or any OpenAI-compatible endpoint (Kokoro, Piper, LocalAI…).",
   "author": "ReadAware",
   "permissions": ["service:network"],
   "main": "main.js",
   "settings": [
-    {
-      "kind": "toggle",
-      "id": "enabled",
-      "label": "Use as read-aloud voice",
-      "value": false
-    },
     {
       "kind": "select",
       "id": "vendor",
@@ -27,26 +21,85 @@
       ]
     },
     {
-      "kind": "text",
-      "id": "voiceId",
+      "kind": "select",
+      "id": "elevenlabsVoice",
       "label": "Voice",
-      "helperText": "ElevenLabs voice id, Fish Audio reference id, or the voice name for OpenAI / custom endpoints (e.g. alloy).",
-      "value": "alloy"
+      "dynamicOptions": true,
+      "helperText": "Voices from your ElevenLabs account — save the API key first (shelf header → TTS keys), or type a voice id.",
+      "visibleWhen": { "field": "vendor", "equals": "elevenlabs" }
     },
     {
       "kind": "text",
-      "id": "model",
+      "id": "elevenlabsModel",
       "label": "Model",
-      "helperText": "Optional. E.g. eleven_multilingual_v2, speech-02, tts-1, kokoro.",
-      "value": ""
+      "helperText": "Optional. E.g. eleven_multilingual_v2 (default), eleven_turbo_v2_5.",
+      "visibleWhen": { "field": "vendor", "equals": "elevenlabs" }
+    },
+    {
+      "kind": "select",
+      "id": "fishaudioVoice",
+      "label": "Voice",
+      "dynamicOptions": true,
+      "helperText": "Your Fish Audio voice models — save the API key first (shelf header → TTS keys), or type a reference id.",
+      "visibleWhen": { "field": "vendor", "equals": "fishaudio" }
     },
     {
       "kind": "text",
-      "id": "endpoint",
+      "id": "fishaudioModel",
+      "label": "Model",
+      "helperText": "Optional. E.g. speech-02.",
+      "visibleWhen": { "field": "vendor", "equals": "fishaudio" }
+    },
+    {
+      "kind": "select",
+      "id": "openaiVoice",
+      "label": "Voice",
+      "value": "alloy",
+      "options": [
+        { "value": "alloy", "label": "Alloy" },
+        { "value": "ash", "label": "Ash" },
+        { "value": "ballad", "label": "Ballad" },
+        { "value": "coral", "label": "Coral" },
+        { "value": "echo", "label": "Echo" },
+        { "value": "fable", "label": "Fable" },
+        { "value": "nova", "label": "Nova" },
+        { "value": "onyx", "label": "Onyx" },
+        { "value": "sage", "label": "Sage" },
+        { "value": "shimmer", "label": "Shimmer" },
+        { "value": "verse", "label": "Verse" }
+      ],
+      "visibleWhen": { "field": "vendor", "equals": "openai" }
+    },
+    {
+      "kind": "text",
+      "id": "openaiModel",
+      "label": "Model",
+      "helperText": "Optional. E.g. tts-1 (default), tts-1-hd, gpt-4o-mini-tts.",
+      "visibleWhen": { "field": "vendor", "equals": "openai" }
+    },
+    {
+      "kind": "text",
+      "id": "customEndpoint",
       "label": "Custom endpoint",
-      "helperText": "For the custom provider: an OpenAI-compatible speech URL, e.g. http://127.0.0.1:8880/v1/audio/speech.",
+      "helperText": "An OpenAI-compatible speech URL, e.g. http://127.0.0.1:8880/v1/audio/speech.",
       "inputMode": "url",
-      "value": "http://127.0.0.1:8880/v1/audio/speech"
+      "value": "http://127.0.0.1:8880/v1/audio/speech",
+      "visibleWhen": { "field": "vendor", "equals": "custom" }
+    },
+    {
+      "kind": "select",
+      "id": "customVoice",
+      "label": "Voice",
+      "dynamicOptions": true,
+      "helperText": "Voices the endpoint lists at …/audio/voices (Kokoro, LocalAI); type the name yourself if the server doesn't list any.",
+      "visibleWhen": { "field": "vendor", "equals": "custom" }
+    },
+    {
+      "kind": "text",
+      "id": "customModel",
+      "label": "Model",
+      "helperText": "Optional. E.g. kokoro.",
+      "visibleWhen": { "field": "vendor", "equals": "custom" }
     }
   ]
 }

@@ -1,24 +1,30 @@
 /**
- * Universal read-aloud voices: one provider, many engines. The vendor,
- * voice, model, and endpoint come from the declarative settings (agent-
+ * Universal read-aloud voices: one provider, many engines. The vendor and its
+ * per-vendor voice/model/endpoint come from the declarative settings (agent-
  * adjustable); API keys live in the encrypted secret store, entered through
- * the "TTS keys" shelf popup. The host asks `synthesize` for one sentence at
- * a time and owns playback, prefetch, and fallback.
+ * the "TTS keys" shelf popup. Enabling the plugin IS opting in — its voice
+ * registers unconditionally and read-aloud adopts it (the host still falls
+ * back to the system voice whenever a synthesis call fails). The host asks
+ * `synthesize` for one sentence at a time and owns playback, prefetch, and
+ * fallback.
  */
 import type { PluginContext, PluginModule } from "@read-aware/plugin-types";
 import {
   buildSpeechRequest,
+  buildVoiceListRequest,
   normalizeSettings,
+  parseVoiceList,
   VENDOR_LABELS,
   vendorNeedsKey,
   type TtsSettings,
+  type Vendor,
 } from "./vendors";
 
 function readSettings(ctx: PluginContext): TtsSettings {
   return normalizeSettings(ctx.storage.get("settings"));
 }
 
-function secretName(vendor: TtsSettings["vendor"]): string {
+function secretName(vendor: Vendor): string {
   return `${vendor}-api-key`;
 }
 
@@ -60,6 +66,13 @@ function keysFormView(ctx: PluginContext) {
   };
 }
 
+/** The settings fields whose voice list this plugin can enumerate at runtime. */
+const DYNAMIC_VOICE_FIELDS: ReadonlyArray<{ vendor: Vendor; fieldId: string }> = [
+  { vendor: "elevenlabs", fieldId: "elevenlabsVoice" },
+  { vendor: "fishaudio", fieldId: "fishaudioVoice" },
+  { vendor: "custom", fieldId: "customVoice" },
+];
+
 const plugin: PluginModule = {
   activate(ctx) {
     const network = ctx.network;
@@ -68,14 +81,7 @@ const plugin: PluginModule = {
     ctx.audio.registerVoiceProvider({
       id: "voices",
       label: "TTS",
-      listVoices: () => {
-        const settings = readSettings(ctx);
-        // No voice until the user opts in — an unconfigured default must
-        // never capture the app's read-aloud.
-        return settings.enabled
-          ? [{ id: "default", label: voiceLabel(settings) }]
-          : [];
-      },
+      listVoices: () => [{ id: "default", label: voiceLabel(readSettings(ctx)) }],
       synthesize: async ({ text }) => {
         const settings = readSettings(ctx);
         const apiKey = await ctx.secrets.get(secretName(settings.vendor));
@@ -98,6 +104,32 @@ const plugin: PluginModule = {
         return await response.arrayBuffer();
       },
     });
+
+    // Voice pickers: list what the vendor can enumerate (the account's
+    // ElevenLabs voices, Fish Audio models, a Kokoro-style endpoint's
+    // voices). An empty result means "cannot list" and the host offers a
+    // text input instead — listing is a convenience, never a gate.
+    for (const { vendor, fieldId } of DYNAMIC_VOICE_FIELDS) {
+      ctx.settings.provideOptions(fieldId, async (values) => {
+        // Prefer the form's live endpoint value — the list should follow
+        // what the user is typing, not what was last persisted.
+        const endpoint =
+          typeof values.customEndpoint === "string"
+            ? values.customEndpoint
+            : normalizeSettings({
+                ...(ctx.storage.get<Record<string, unknown>>("settings") ?? {}),
+                vendor: "custom",
+              }).endpoint;
+        const apiKey = await ctx.secrets.get(secretName(vendor));
+        const request = buildVoiceListRequest(vendor, { endpoint }, apiKey);
+        if (!request) return [];
+        const response = await network.fetch(request.url, { headers: request.headers });
+        if (!response.ok) return [];
+        const voices = parseVoiceList(await response.json());
+        if (voices.length === 0) return [];
+        return [{ value: "", label: "Default voice" }, ...voices];
+      });
+    }
 
     ctx.ui.registerHeaderAction({
       id: "keys",

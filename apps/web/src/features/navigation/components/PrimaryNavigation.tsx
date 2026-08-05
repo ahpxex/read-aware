@@ -23,7 +23,9 @@ export function PrimaryNavigation({
   return (
     <nav
       aria-label={t("header.primaryNavigation")}
-      className={cn("flex h-12 shrink-0 items-center", compact ? "gap-2" : "gap-3")}
+      // w-max: inside the header's scrollable center track the nav must keep
+      // its natural width — otherwise labels wrap instead of scrolling.
+      className={cn("flex h-12 w-max shrink-0 items-center", compact ? "gap-2" : "gap-3")}
     >
       {destinations.map((destination, index) => (
         <Fragment key={destination.id}>

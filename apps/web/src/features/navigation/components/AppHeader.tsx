@@ -247,36 +247,42 @@ export function AppHeader({
         style={{ paddingTop: "var(--ra-safe-top)" }}
       >
         <div
-          className="relative flex h-12 items-center gap-1.5"
-          style={{
-            paddingLeft: "max(0.75rem, var(--ra-safe-left))",
-            // A narrow desktop window uses this layout too — keep clear of the
-            // self-drawn caption controls on frameless platforms.
-            paddingRight:
-              "calc(max(0.75rem, var(--ra-safe-right)) + var(--ra-window-controls-inset))",
-          }}
+          // Three tracks, equal sides, so the navigation is truly centered yet
+          // stays IN FLOW — it can never overlap the edge clusters the way the
+          // old absolutely-positioned center could. When everything genuinely
+          // cannot fit, the middle track scrolls instead of stacking. Display
+          // cutouts and caption controls clear via in-track spacers, keeping
+          // the container padding symmetric so the center stays centered.
+          className="grid h-12 grid-cols-[1fr_auto_1fr] items-center gap-1.5 px-3"
         >
-          {showBack && (
-            <IconButton
-              label={backLabel}
-              size="sm"
-              onClick={handleBack}
-              className={cn(headerIconButtonClass, "shrink-0")}
-              icon={<CaretLeft size={18} weight="regular" aria-hidden="true" />}
+          <div className="flex items-center gap-1.5">
+            <div
+              aria-hidden="true"
+              className="shrink-0"
+              style={{ width: "max(0px, calc(var(--ra-safe-left) - 0.75rem))" }}
             />
-          )}
-          {leadingStatus}
-          {primaryDestinations.length > 0 && (
-            <div className="absolute left-1/2 top-0 -translate-x-1/2">
+            {showBack && (
+              <IconButton
+                label={backLabel}
+                size="sm"
+                onClick={handleBack}
+                className={cn(headerIconButtonClass, "shrink-0")}
+                icon={<CaretLeft size={18} weight="regular" aria-hidden="true" />}
+              />
+            )}
+            {leadingStatus}
+          </div>
+          <div className="min-w-0 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {primaryDestinations.length > 0 && (
               <PrimaryNavigation
                 compact
                 destinations={primaryDestinations}
                 activeTopNav={activeTopNav}
                 onNavigate={onTopNavChange}
               />
-            </div>
-          )}
-          <div className="ml-auto flex items-center gap-1.5">
+            )}
+          </div>
+          <div className="flex items-center justify-end gap-1.5">
             <IconButton
               label={t("header.search")}
               size="sm"
@@ -348,12 +354,54 @@ export function AppHeader({
                   : []),
               ]}
             />
+            <div
+              aria-hidden="true"
+              className="shrink-0"
+              // A narrow desktop window uses this layout too — keep clear of
+              // display cutouts and self-drawn caption controls.
+              style={{
+                width:
+                  "calc(max(0px, calc(var(--ra-safe-right) - 0.75rem)) + var(--ra-window-controls-inset))",
+              }}
+            />
           </div>
         </div>
         <WindowCaptionControls />
       </header>
     );
   }
+
+  // The utility cluster: contextual actions when a surface supplies them,
+  // otherwise the user-arranged shelf items + overflow.
+  const headerCluster = (
+    <div className="flex items-center gap-1.5">
+      {actions ?? (
+        <>
+          {shelfLayout.visible.map((id) => {
+            if (id.startsWith("plugin:")) {
+              const action = shelfPluginActions.find(
+                (entry) => pluginMenuId(entry.key) === id,
+              );
+              return action ? (
+                <PluginHeaderItem
+                  key={id}
+                  action={action}
+                  onOpenPage={(key) => onTopNavChange(`plugin:${key}`)}
+                />
+              ) : null;
+            }
+            const node = coreShelfNodes[id];
+            return node ? (
+              <span key={id} className="contents">
+                {node}
+              </span>
+            ) : null;
+          })}
+          <MenuOverflow entries={shelfOverflowEntries} />
+        </>
+      )}
+    </div>
+  );
 
   return (
     <header
@@ -362,69 +410,62 @@ export function AppHeader({
     >
       <div
         data-tauri-drag-region=""
-        className="relative flex h-12 items-center"
-        style={{
-          // Clear the macOS traffic lights whenever left-side content is present.
-          paddingLeft:
-            showBack || leadingStatus
-              ? "max(1.25rem, var(--ra-traffic-light-inset))"
-              : "1.25rem",
-          // Clear the self-drawn caption controls on frameless platforms.
-          paddingRight: "calc(1.25rem + var(--ra-window-controls-inset))",
-        }}
+        // Same three-track scheme as the phone layout: equal side tracks keep
+        // the navigation truly centered while it stays in flow, so wide
+        // clusters push it to scroll rather than sliding underneath it.
+        // Window-chrome clearances (traffic lights, self-drawn caption
+        // controls) live as spacers INSIDE the tracks — asymmetric container
+        // padding would drag the center track off the window's midline.
+        className="grid h-12 grid-cols-[1fr_auto_1fr] items-center px-5"
       >
-        {showBack && (
-          <Tooltip content={backLabel} side="bottom">
-            <IconButton
-              label={backLabel}
-              size="sm"
-              onClick={handleBack}
-              className={headerIconButtonClass}
-              icon={<CaretLeft size={18} weight="regular" aria-hidden="true" />}
-            />
-          </Tooltip>
-        )}
-        {leadingStatus}
-        {primaryDestinations.length > 0 && (
-          <div className="absolute left-1/2 top-0 -translate-x-1/2">
+        <div data-tauri-drag-region="" className="flex items-center">
+          <div
+            aria-hidden="true"
+            className="shrink-0"
+            style={{
+              // Clear the macOS traffic lights whenever left content renders.
+              width:
+                showBack || leadingStatus
+                  ? "max(0px, calc(var(--ra-traffic-light-inset) - 1.25rem))"
+                  : 0,
+            }}
+          />
+          {showBack && (
+            <Tooltip content={backLabel} side="bottom">
+              <IconButton
+                label={backLabel}
+                size="sm"
+                onClick={handleBack}
+                className={headerIconButtonClass}
+                icon={<CaretLeft size={18} weight="regular" aria-hidden="true" />}
+              />
+            </Tooltip>
+          )}
+          {leadingStatus}
+          {/* Frameless Windows/Linux: the cluster lives on the LEFT (see the
+              customChrome note above); the caption controls own the right. */}
+          {customChrome && headerCluster}
+        </div>
+        <div className="min-w-0 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {primaryDestinations.length > 0 && (
             <PrimaryNavigation
               destinations={primaryDestinations}
               activeTopNav={activeTopNav}
               onNavigate={onTopNavChange}
             />
-          </div>
-        )}
+          )}
+        </div>
         <div
-          className={cn(
-            "flex items-center gap-1.5",
-            !customChrome && "ml-auto",
-          )}
+          data-tauri-drag-region=""
+          className="flex items-center justify-end"
         >
-          {actions ?? (
-            <>
-              {shelfLayout.visible.map((id) => {
-                if (id.startsWith("plugin:")) {
-                  const action = shelfPluginActions.find(
-                    (entry) => pluginMenuId(entry.key) === id,
-                  );
-                  return action ? (
-                    <PluginHeaderItem
-                      key={id}
-                      action={action}
-                      onOpenPage={(key) => onTopNavChange(`plugin:${key}`)}
-                    />
-                  ) : null;
-                }
-                const node = coreShelfNodes[id];
-                return node ? (
-                  <span key={id} className="contents">
-                    {node}
-                  </span>
-                ) : null;
-              })}
-              <MenuOverflow entries={shelfOverflowEntries} />
-            </>
-          )}
+          {!customChrome && headerCluster}
+          <div
+            aria-hidden="true"
+            className="shrink-0"
+            // Clear the self-drawn caption controls on frameless platforms.
+            style={{ width: "var(--ra-window-controls-inset)" }}
+          />
         </div>
       </div>
       <WindowCaptionControls />

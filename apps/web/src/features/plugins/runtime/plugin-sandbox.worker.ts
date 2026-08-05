@@ -221,32 +221,71 @@ function buildContext(
     }
   }
 
-  // `fetch` must hand back a real Response; the host sends a flattened one
-  // whose body is an ArrayBuffer, so binary payloads survive the crossing.
+  // `fetch` needs translation on BOTH sides of the crossing. The request may
+  // carry platform objects postMessage cannot clone — a URL or Request as
+  // input, a Headers instance, an AbortSignal — so it is flattened to plain
+  // data here; the response comes back flattened (body as ArrayBuffer, so
+  // binary payloads survive) and is rebuilt into a real Response.
   const network = ctx.network as Record<string, unknown> | undefined;
   if (network && typeof network.fetch === "function") {
     // Statuses the Response constructor refuses to pair with a body.
     const NULL_BODY_STATUSES = new Set([101, 204, 205, 304]);
     network.fetch = async (input: unknown, init?: unknown) => {
-      const result = (await callHost("network.fetch", [input, init])) as {
-        status: number;
-        statusText: string;
-        url: string;
-        headers: Record<string, string>;
-        body: ArrayBuffer;
-      };
-      const response = new Response(
-        NULL_BODY_STATUSES.has(result.status) ? null : result.body,
-        {
-          status: result.status,
-          statusText: result.statusText,
-          headers: result.headers,
-        },
-      );
-      // The constructor cannot set `url`; shadow the prototype getter so
-      // redirect-following plugins still learn the final address.
-      Object.defineProperty(response, "url", { value: result.url });
-      return response;
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.href
+            : input instanceof Request
+              ? input.url
+              : String(input);
+      const { signal, headers, ...rest } =
+        (init && typeof init === "object" ? init : {}) as RequestInit;
+      const plainInit: Record<string, unknown> = { ...rest };
+      // Headers in any accepted form become one plain record.
+      if (headers) {
+        plainInit.headers = Object.fromEntries(new Headers(headers).entries());
+      }
+
+      const call = (async () => {
+        const result = (await callHost("network.fetch", [url, plainInit])) as {
+          status: number;
+          statusText: string;
+          url: string;
+          headers: Record<string, string>;
+          body: ArrayBuffer;
+        };
+        const response = new Response(
+          NULL_BODY_STATUSES.has(result.status) ? null : result.body,
+          {
+            status: result.status,
+            statusText: result.statusText,
+            headers: result.headers,
+          },
+        );
+        // The constructor cannot set `url`; shadow the prototype getter so
+        // redirect-following plugins still learn the final address.
+        Object.defineProperty(response, "url", { value: result.url });
+        return response;
+      })();
+
+      // An AbortSignal cannot cross the realm; honor it HERE instead — the
+      // plugin's await rejects on abort/timeout as fetch semantics promise,
+      // while the host-side request simply runs to completion unobserved.
+      if (!(signal instanceof AbortSignal)) return call;
+      if (signal.aborted) {
+        throw signal.reason ?? new DOMException("The operation was aborted.", "AbortError");
+      }
+      return new Promise<Response>((resolve, reject) => {
+        const onAbort = () =>
+          reject(
+            signal.reason ?? new DOMException("The operation was aborted.", "AbortError"),
+          );
+        signal.addEventListener("abort", onAbort, { once: true });
+        call
+          .then(resolve, reject)
+          .finally(() => signal.removeEventListener("abort", onAbort));
+      });
     };
   }
 

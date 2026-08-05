@@ -8,6 +8,9 @@ export const VENDORS = ["elevenlabs", "fishaudio", "openai", "custom"] as const;
 export type Vendor = (typeof VENDORS)[number];
 
 export type TtsSettings = {
+  /** Off by default: the voice registers (and read-aloud adopts it) only
+   *  once the user flips this in the plugin's settings. */
+  enabled: boolean;
   vendor: Vendor;
   voiceId: string;
   model: string;
@@ -40,6 +43,7 @@ export function normalizeSettings(raw: unknown): TtsSettings {
     : "custom";
   const text = (value: unknown) => (typeof value === "string" ? value.trim() : "");
   return {
+    enabled: record.enabled === true,
     vendor,
     voiceId: text(record.voiceId),
     model: text(record.model),

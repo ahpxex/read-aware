@@ -68,7 +68,14 @@ const plugin: PluginModule = {
     ctx.audio.registerVoiceProvider({
       id: "voices",
       label: "TTS",
-      listVoices: () => [{ id: "default", label: voiceLabel(readSettings(ctx)) }],
+      listVoices: () => {
+        const settings = readSettings(ctx);
+        // No voice until the user opts in — an unconfigured default must
+        // never capture the app's read-aloud.
+        return settings.enabled
+          ? [{ id: "default", label: voiceLabel(settings) }]
+          : [];
+      },
       synthesize: async ({ text }) => {
         const settings = readSettings(ctx);
         const apiKey = await ctx.secrets.get(secretName(settings.vendor));

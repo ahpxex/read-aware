@@ -3,8 +3,7 @@ import { useAtomValue } from "jotai";
 import { voiceProvidersAtom } from "../../plugins/state/plugin-store";
 import { playAudioBytes } from "../lib/read-aloud-audio";
 import {
-  readAloudVoiceAtom,
-  resolvePluginVoice,
+  activePluginVoice,
   type ResolvedPluginVoice,
 } from "../lib/read-aloud-voice";
 import { speakText, speechAvailable } from "../lib/read-aloud-speech";
@@ -36,12 +35,13 @@ async function synthesizeBytes(
  * The navigator keeps owning position, highlight, and persistence; this hook
  * owns nothing but the voice.
  *
- * The voice is the system speech engine, or a plugin voice provider
- * (Settings → Reading): the provider turns text into audio bytes, the host
- * plays them, and the NEXT unit's audio is prefetched while the current one
- * plays so cloud-synthesis latency hides between sentences. A failed
- * provider call falls back to the system voice for that unit — reading
- * degrades, it does not fall silent.
+ * The voice is a registered plugin voice when one exists (chosen once,
+ * inside the providing plugin's own settings), the system speech engine
+ * otherwise: the provider turns text into audio bytes, the host plays them,
+ * and the NEXT unit's audio is prefetched while the current one plays so
+ * cloud-synthesis latency hides between sentences. A failed provider call
+ * falls back to the system voice for that unit — reading degrades, it does
+ * not fall silent.
  */
 export function useReadAloud({
   enabled,
@@ -56,8 +56,7 @@ export function useReadAloud({
   peekNext: () => string | null;
 }): { available: boolean; playing: boolean; toggle: () => void } {
   const providers = useAtomValue(voiceProvidersAtom);
-  const preference = useAtomValue(readAloudVoiceAtom);
-  const pluginVoice = resolvePluginVoice(preference, providers);
+  const pluginVoice = activePluginVoice(providers);
 
   const [playing, setPlaying] = useState(false);
   const handleRef = useRef<Handle | null>(null);

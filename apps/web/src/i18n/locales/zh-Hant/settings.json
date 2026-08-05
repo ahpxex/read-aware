@@ -83,13 +83,7 @@
       "title": "頁面顏色",
       "description": "書籍的紙張。「自動」會跟隨應用程式主題；其餘為固定顏色。"
     },
-    "pageMargins": "頁邊距",
-    "readAloud": {
-      "title": "朗讀",
-      "description": "逐句/逐段朗讀時使用的語音。",
-      "voice": "語音",
-      "systemVoice": "系統語音"
-    }
+    "pageMargins": "頁邊距"
   },
   "shortcuts": {
     "title": "快捷鍵",

@@ -83,13 +83,7 @@
       "title": "Couleur de la page",
       "description": "Le papier du livre. Auto suit le thème de l’application ; les autres sont fixes."
     },
-    "pageMargins": "Marges de page",
-    "readAloud": {
-      "title": "Lecture à voix haute",
-      "description": "La voix utilisée pour la lecture par phrase ou paragraphe.",
-      "voice": "Voix",
-      "systemVoice": "Voix système"
-    }
+    "pageMargins": "Marges de page"
   },
   "shortcuts": {
     "title": "Raccourcis",

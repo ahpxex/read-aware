@@ -1,56 +1,23 @@
 /**
- * The read-aloud voice preference: the system voice, or one voice of one
- * plugin provider, addressed as `plugin:<pluginId>:<providerId>:<voiceId>`.
- * Device-local (a voice installed on this machine means nothing elsewhere),
- * so it lives in localKV like other presentation preferences.
+ * Which voice read-aloud speaks with: a registered plugin voice when one
+ * exists, the system voice otherwise. There is deliberately NO host-side
+ * picker — a voice is chosen once, inside the providing plugin's own
+ * settings (e.g. the TTS plugin's "use as read-aloud voice" toggle), and
+ * used from then on. With several providers registered the first one wins;
+ * a picker can return if that ever becomes a real situation.
  */
-import { atom } from "jotai";
 import type { RegisteredVoiceProvider } from "../../plugins/lib/plugin-types";
-import { localKV } from "../../../platform/local-store";
-
-export const SYSTEM_VOICE = "system";
-
-const STORAGE_KEY = "read-aware-read-aloud-voice";
-
-const baseAtom = atom<string>(localKV.getItem(STORAGE_KEY) ?? SYSTEM_VOICE);
-
-export const readAloudVoiceAtom = atom(
-  (get) => get(baseAtom),
-  (_get, set, next: string) => {
-    set(baseAtom, next);
-    localKV.setItem(STORAGE_KEY, next);
-  },
-);
-
-export function pluginVoiceRef(
-  provider: RegisteredVoiceProvider,
-  voiceId: string,
-): string {
-  return `plugin:${provider.pluginId}:${provider.id}:${voiceId}`;
-}
 
 export type ResolvedPluginVoice = {
   provider: RegisteredVoiceProvider;
   voiceId: string;
 };
 
-/**
- * Resolve a stored preference against the live providers. `null` means the
- * system voice — either chosen, or the referenced plugin voice is gone
- * (plugin disabled, vendor switched), in which case reading falls back
- * rather than falling silent.
- */
-export function resolvePluginVoice(
-  preference: string,
+export function activePluginVoice(
   providers: RegisteredVoiceProvider[],
 ): ResolvedPluginVoice | null {
-  const match = preference.match(/^plugin:([^:]+):([^:]+):(.+)$/);
-  if (!match) return null;
-  const provider = providers.find(
-    (entry) => entry.pluginId === match[1] && entry.id === match[2],
-  );
-  if (!provider) return null;
-  return provider.voices.some((voice) => voice.id === match[3])
-    ? { provider, voiceId: match[3] }
+  const provider = providers.find((entry) => entry.voices.length > 0);
+  return provider
+    ? { provider, voiceId: provider.voices[0].id }
     : null;
 }

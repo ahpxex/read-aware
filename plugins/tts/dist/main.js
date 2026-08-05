@@ -14,6 +14,7 @@ function normalizeSettings(raw) {
   const vendor = VENDORS.includes(record.vendor) ? record.vendor : "custom";
   const text = (value) => typeof value === "string" ? value.trim() : "";
   return {
+    enabled: record.enabled === true,
     vendor,
     voiceId: text(record.voiceId),
     model: text(record.model),
@@ -127,7 +128,10 @@ var plugin = {
     ctx.audio.registerVoiceProvider({
       id: "voices",
       label: "TTS",
-      listVoices: () => [{ id: "default", label: voiceLabel(readSettings(ctx)) }],
+      listVoices: () => {
+        const settings = readSettings(ctx);
+        return settings.enabled ? [{ id: "default", label: voiceLabel(settings) }] : [];
+      },
       synthesize: async ({ text }) => {
         const settings = readSettings(ctx);
         const apiKey = await ctx.secrets.get(secretName(settings.vendor));

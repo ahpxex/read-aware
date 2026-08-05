@@ -1,13 +1,19 @@
 {
   "id": "tts",
   "name": "TTS Voices",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "minAppVersion": "0.3.0",
   "description": "Read-aloud voices from cloud and local TTS engines: ElevenLabs, Fish Audio, OpenAI, or any OpenAI-compatible endpoint (Kokoro, Piper, LocalAI…).",
   "author": "ReadAware",
   "permissions": ["service:network"],
   "main": "main.js",
   "settings": [
+    {
+      "kind": "toggle",
+      "id": "enabled",
+      "label": "Use as read-aloud voice",
+      "value": false
+    },
     {
       "kind": "select",
       "id": "vendor",

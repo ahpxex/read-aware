@@ -83,13 +83,7 @@
       "title": "Color de página",
       "description": "El papel del libro. «Automático» sigue el tema de la app; los demás son fijos."
     },
-    "pageMargins": "Márgenes de página",
-    "readAloud": {
-      "title": "Lectura en voz alta",
-      "description": "La voz usada al leer por frase o párrafo.",
-      "voice": "Voz",
-      "systemVoice": "Voz del sistema"
-    }
+    "pageMargins": "Márgenes de página"
   },
   "shortcuts": {
     "title": "Atajos",

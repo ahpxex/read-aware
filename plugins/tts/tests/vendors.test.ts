@@ -3,7 +3,8 @@ import { buildSpeechRequest, normalizeSettings } from "../src/vendors";
 
 describe("normalizeSettings", () => {
   test("defends unknown vendors and non-string fields", () => {
-    expect(normalizeSettings({ vendor: "evil", voiceId: 42 })).toEqual({
+    expect(normalizeSettings({ vendor: "evil", voiceId: 42, enabled: "yes" })).toEqual({
+      enabled: false,
       vendor: "custom",
       voiceId: "",
       model: "",
@@ -15,7 +16,7 @@ describe("normalizeSettings", () => {
 describe("buildSpeechRequest", () => {
   test("elevenlabs: voice in path, key in header, model in body", () => {
     const request = buildSpeechRequest(
-      { vendor: "elevenlabs", voiceId: "abc", model: "", endpoint: "" },
+      { enabled: true, vendor: "elevenlabs", voiceId: "abc", model: "", endpoint: "" },
       "KEY",
       "Hello.",
     );
@@ -26,7 +27,7 @@ describe("buildSpeechRequest", () => {
 
   test("fishaudio: bearer auth, reference id only when set", () => {
     const request = buildSpeechRequest(
-      { vendor: "fishaudio", voiceId: "", model: "speech-02", endpoint: "" },
+      { enabled: true, vendor: "fishaudio", voiceId: "", model: "speech-02", endpoint: "" },
       "KEY",
       "Hello.",
     );
@@ -38,7 +39,7 @@ describe("buildSpeechRequest", () => {
   test("openai: standard speech shape with defaults", () => {
     const body = JSON.parse(
       buildSpeechRequest(
-        { vendor: "openai", voiceId: "", model: "", endpoint: "" },
+        { enabled: true, vendor: "openai", voiceId: "", model: "", endpoint: "" },
         "KEY",
         "Hi.",
       ).body,
@@ -54,13 +55,13 @@ describe("buildSpeechRequest", () => {
   test("custom: requires an endpoint, bearer only when a key exists", () => {
     expect(() =>
       buildSpeechRequest(
-        { vendor: "custom", voiceId: "", model: "", endpoint: "" },
+        { enabled: true, vendor: "custom", voiceId: "", model: "", endpoint: "" },
         null,
         "Hi.",
       ),
     ).toThrow(/endpoint/);
     const request = buildSpeechRequest(
-      { vendor: "custom", voiceId: "v", model: "kokoro", endpoint: "http://127.0.0.1:8880/v1/audio/speech" },
+      { enabled: true, vendor: "custom", voiceId: "v", model: "kokoro", endpoint: "http://127.0.0.1:8880/v1/audio/speech" },
       null,
       "Hi.",
     );

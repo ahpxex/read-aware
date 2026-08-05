@@ -83,13 +83,7 @@
       "title": "页面颜色",
       "description": "书页的纸张颜色。“自动”跟随应用主题，其余为固定颜色。"
     },
-    "pageMargins": "页边距",
-    "readAloud": {
-      "title": "朗读",
-      "description": "逐句/逐段朗读时使用的语音。",
-      "voice": "语音",
-      "systemVoice": "系统语音"
-    }
+    "pageMargins": "页边距"
   },
   "shortcuts": {
     "title": "快捷键",

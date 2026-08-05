@@ -21,6 +21,10 @@ const sectionSchema = Type.Union([
     description:
       "User-arranged menu surfaces (primary navigation, header bars, selection menu): ordered visible/overflow item lists",
   }),
+  Type.Literal("plugins", {
+    description:
+      "Settings declared by enabled plugins, path form plugins.<pluginId>.<field>",
+  }),
 ]);
 
 const globalTargetSchema = Type.Object(

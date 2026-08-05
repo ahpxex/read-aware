@@ -48,6 +48,11 @@ import {
   type MenuConfig,
   type MenuSurface,
 } from "../../../menus/state/menu-config";
+import type { AgentPluginSettings } from "../../../plugins/lib/plugin-settings";
+import type {
+  PluginFormField,
+  PluginFormValues,
+} from "../../../plugins/lib/plugin-types";
 
 export type SettingsDraft = {
   general: GeneralSettings;
@@ -63,6 +68,12 @@ export type SettingsDraft = {
     config: MenuConfig;
     /** Environment: plugin contributions that define the known items. */
     plugins: MenuPluginState;
+  };
+  pluginSettings: {
+    /** Environment: agent-visible declared fields of enabled plugins. */
+    declared: AgentPluginSettings[];
+    /** Mutable: stored value objects, keyed by plugin id. */
+    values: Record<string, PluginFormValues>;
   };
 };
 
@@ -195,6 +206,12 @@ export function validateSettingValue(
     (typeof value !== "number" || !Number.isInteger(value))
   ) {
     throw new Error(`${definition.path} must be an integer`);
+  }
+  if (
+    definition.kind === "number" &&
+    (typeof value !== "number" || !Number.isFinite(value))
+  ) {
+    throw new Error(`${definition.path} must be a number`);
   }
   return value;
 }
@@ -506,6 +523,98 @@ function menuListDefinition(
   };
 }
 
+/** Path segments must fit the settings tool's dotted-path grammar. */
+const PATH_SEGMENT_RE = /^[a-z][a-zA-Z0-9-]*$/;
+
+function pluginFieldDefinition(
+  plugin: AgentPluginSettings,
+  field: PluginFormField,
+): SettingDefinition | null {
+  if (
+    !PATH_SEGMENT_RE.test(plugin.pluginId) ||
+    !PATH_SEGMENT_RE.test(field.id)
+  ) {
+    return null;
+  }
+  const path = `plugins.${plugin.pluginId}.${field.id}`;
+  const kind =
+    field.kind === "toggle" || field.kind === "checkbox"
+      ? ("boolean" as const)
+      : field.kind === "select" || field.kind === "choice"
+        ? ("enum" as const)
+        : field.kind === "number"
+          ? ("number" as const)
+          : ("string" as const);
+  const hasDefault = field.value !== undefined;
+  return {
+    path,
+    section: "plugins",
+    label: `${plugin.pluginName} — ${field.label}`,
+    ...("helperText" in field && field.helperText
+      ? { description: field.helperText }
+      : {}),
+    kind,
+    ...(hasDefault ? {} : { nullable: true }),
+    ...(kind === "enum" && "options" in field
+      ? {
+          options: field.options.map((choice) => ({
+            value: choice.value,
+            label: choice.label,
+            source: "plugin" as const,
+            pluginName: plugin.pluginName,
+          })),
+        }
+      : {}),
+    supportedTargets: GLOBAL_TARGETS,
+    read: (draft) =>
+      draft.pluginSettings.values[plugin.pluginId]?.[field.id] ??
+      field.value ??
+      null,
+    validate: (value) => {
+      if (value === null) return value;
+      if (kind === "boolean" && typeof value !== "boolean") {
+        throw new Error(`${path} must be a boolean`);
+      }
+      if (kind === "string" && typeof value !== "string") {
+        throw new Error(`${path} must be a string`);
+      }
+      if (kind === "enum") {
+        const choices =
+          "options" in field ? field.options.map((choice) => choice.value) : [];
+        if (typeof value !== "string" || !choices.includes(value)) {
+          throw new Error(`${path} must be one of: ${choices.join(", ")}`);
+        }
+      }
+      if (kind === "number") {
+        if (typeof value !== "number" || !Number.isFinite(value)) {
+          throw new Error(`${path} must be a number`);
+        }
+        if (field.kind === "number") {
+          if (field.min !== undefined && value < field.min) {
+            throw new Error(`${path} must be at least ${field.min}`);
+          }
+          if (field.max !== undefined && value > field.max) {
+            throw new Error(`${path} must be at most ${field.max}`);
+          }
+        }
+      }
+      return value;
+    },
+    write: (draft, value) => {
+      const current = {
+        ...(draft.pluginSettings.values[plugin.pluginId] ?? {}),
+      };
+      // null resets an optional field back to unset (the declared default).
+      if (value === null) delete current[field.id];
+      else current[field.id] = value as string | number | boolean;
+      draft.pluginSettings.values = {
+        ...draft.pluginSettings.values,
+        [plugin.pluginId]: current,
+      };
+    },
+  };
+}
+
 export function buildSettingDefinitions(
   draft: SettingsDraft,
 ): SettingDefinition[] {
@@ -735,6 +844,13 @@ export function buildSettingDefinitions(
       menuListDefinition(surface, "visible", label, description),
       menuListDefinition(surface, "overflow", label),
     );
+  }
+
+  for (const plugin of draft.pluginSettings.declared) {
+    for (const field of plugin.fields) {
+      const definition = pluginFieldDefinition(plugin, field);
+      if (definition) definitions.push(definition);
+    }
   }
 
   if (!draft.aiConfig) return definitions;

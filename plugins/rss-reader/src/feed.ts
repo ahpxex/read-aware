@@ -37,7 +37,20 @@ function pick(parent: ParentNode, ...selectors: string[]): string {
   return "";
 }
 
-export function parseFeed(xmlText: string, feedUrl: string): FeedResult {
+/** The declared `articleLimit` setting, defended back to the default. */
+function articleLimit(ctx: RssPluginContext): number {
+  const settings = ctx.storage.get<Record<string, unknown>>("settings");
+  const value = settings?.articleLimit;
+  return typeof value === "number" && value >= 5 && value <= 100
+    ? Math.floor(value)
+    : MAX_ARTICLES;
+}
+
+export function parseFeed(
+  xmlText: string,
+  feedUrl: string,
+  limit = MAX_ARTICLES,
+): FeedResult {
   const xml = new DOMParser().parseFromString(xmlText, "text/xml");
   if (xml.querySelector("parsererror")) {
     throw new Error("Not a valid RSS/Atom feed");
@@ -47,7 +60,7 @@ export function parseFeed(xmlText: string, feedUrl: string): FeedResult {
   const title = (isAtom ? pick(xml, "feed > title") : pick(xml, "channel > title")) || feedUrl;
   const items = Array.from(
     xml.querySelectorAll(isAtom ? "feed > entry" : "channel > item"),
-  ).slice(0, MAX_ARTICLES);
+  ).slice(0, limit);
 
   const articles: FeedArticle[] = [];
   const sections = items.map((item, index) => {
@@ -82,7 +95,7 @@ export function parseFeed(xmlText: string, feedUrl: string): FeedResult {
 export async function fetchFeed(ctx: RssPluginContext, url: string): Promise<FeedResult> {
   const response = await ctx.network.fetch(url, { signal: AbortSignal.timeout(15_000) });
   if (!response.ok) throw new Error(`Feed returned ${response.status}`);
-  return parseFeed(await response.text(), url);
+  return parseFeed(await response.text(), url, articleLimit(ctx));
 }
 
 export async function ensureBook(

@@ -15,7 +15,13 @@ import {
 } from "../../../../state/ui";
 import { menuConfigAtom } from "../../../menus/state/menu-config";
 import {
+  agentVisiblePluginSettings,
+  readPluginSettingsValues,
+  writePluginSettingsValues,
+} from "../../../plugins/lib/plugin-settings";
+import {
   headerActionsAtom,
+  installedPluginsAtom,
   pluginFontsAtom,
   pluginThemesAtom,
   selectionActionsAtom,
@@ -47,6 +53,22 @@ function readDraft(): SettingsDraft {
         textUnitReaderMode: store.get(textUnitReaderModeAtom),
       },
     },
+    pluginSettings: readPluginSettingsDraft(),
+  };
+}
+
+function readPluginSettingsDraft(): SettingsDraft["pluginSettings"] {
+  const declared = agentVisiblePluginSettings(
+    getDefaultStore().get(installedPluginsAtom),
+  );
+  return {
+    declared,
+    values: Object.fromEntries(
+      declared.map((plugin) => [
+        plugin.pluginId,
+        readPluginSettingsValues(plugin.pluginId),
+      ]),
+    ),
   };
 }
 
@@ -82,6 +104,11 @@ function commitDraft(before: SettingsDraft, next: SettingsDraft): void {
   }
   if (!equal(before.menus.config, next.menus.config)) {
     store.set(menuConfigAtom, next.menus.config);
+  }
+  for (const [pluginId, values] of Object.entries(next.pluginSettings.values)) {
+    if (!equal(before.pluginSettings.values[pluginId], values)) {
+      writePluginSettingsValues(pluginId, values);
+    }
   }
 }
 

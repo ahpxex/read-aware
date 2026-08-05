@@ -7,6 +7,8 @@
 import { emitAppEvent } from "../../../platform/app-events";
 import { localKV } from "../../../platform/local-store";
 import type {
+  InstalledPlugin,
+  PluginFormField,
   PluginFormValues,
   PluginFormView,
   PluginManifest,
@@ -49,10 +51,47 @@ export function buildPluginSettingsView(
       return { ...field, value: typeof value === "string" ? value : field.value };
     }),
     onSubmit: (values) => {
-      localKV.setItem(storageKey(manifest.id), JSON.stringify(values));
-      // A running sandbox reads settings from its local snapshot; tell the
-      // worker host so `ctx.storage.get("settings")` reflects this change.
-      emitAppEvent("plugin-storage-changed", { pluginId: manifest.id });
+      writePluginSettingsValues(manifest.id, values);
     },
   };
+}
+
+/** The one write path — the Plugins panel form and the agent both use it. */
+export function writePluginSettingsValues(
+  pluginId: string,
+  values: PluginFormValues,
+): void {
+  localKV.setItem(storageKey(pluginId), JSON.stringify(values));
+  // A running sandbox reads settings from its local snapshot; tell the
+  // worker host so `ctx.storage.get("settings")` reflects this change.
+  emitAppEvent("plugin-storage-changed", { pluginId });
+}
+
+export type AgentPluginSettings = {
+  pluginId: string;
+  pluginName: string;
+  fields: PluginFormField[];
+};
+
+/**
+ * The declared settings the agent may see: enabled plugins only, minus
+ * password fields and anything the author marked `agentHidden`. Disabled
+ * plugins keep their stored values but drop out of the catalog, mirroring
+ * how their other contributions disappear.
+ */
+export function agentVisiblePluginSettings(
+  plugins: InstalledPlugin[],
+): AgentPluginSettings[] {
+  return plugins
+    .filter((plugin) => plugin.enabled && plugin.manifest.settings?.length)
+    .map((plugin) => ({
+      pluginId: plugin.manifest.id,
+      pluginName: plugin.manifest.name,
+      fields: (plugin.manifest.settings ?? []).filter(
+        (field) =>
+          !field.agentHidden &&
+          !(field.kind === "text" && field.inputMode === "password"),
+      ),
+    }))
+    .filter((plugin) => plugin.fields.length > 0);
 }

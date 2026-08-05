@@ -3,7 +3,8 @@ export type AgentSettingsSection =
   | "appearance"
   | "reading"
   | "ai"
-  | "menus";
+  | "menus"
+  | "plugins";
 
 /** Values that can cross the generic settings tool boundary. Lists carry
  *  ordered id arrays (menu surface layouts). */
@@ -14,6 +15,7 @@ export type AgentSettingKind =
   | "enum"
   | "string"
   | "integer"
+  | "number"
   | "id-list";
 
 export interface AgentSettingOption {

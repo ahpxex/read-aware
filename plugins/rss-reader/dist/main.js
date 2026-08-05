@@ -78,14 +78,19 @@ function pick(parent, ...selectors) {
   }
   return "";
 }
-function parseFeed(xmlText, feedUrl) {
+function articleLimit(ctx) {
+  const settings = ctx.storage.get("settings");
+  const value = settings?.articleLimit;
+  return typeof value === "number" && value >= 5 && value <= 100 ? Math.floor(value) : MAX_ARTICLES;
+}
+function parseFeed(xmlText, feedUrl, limit = MAX_ARTICLES) {
   const xml = new DOMParser().parseFromString(xmlText, "text/xml");
   if (xml.querySelector("parsererror")) {
     throw new Error("Not a valid RSS/Atom feed");
   }
   const isAtom = xml.querySelector("feed > entry") !== null;
   const title = (isAtom ? pick(xml, "feed > title") : pick(xml, "channel > title")) || feedUrl;
-  const items = Array.from(xml.querySelectorAll(isAtom ? "feed > entry" : "channel > item")).slice(0, MAX_ARTICLES);
+  const items = Array.from(xml.querySelectorAll(isAtom ? "feed > entry" : "channel > item")).slice(0, limit);
   const articles = [];
   const sections = items.map((item, index) => {
     const articleTitle = pick(item, "title") || `Article ${index + 1}`;
@@ -112,7 +117,7 @@ async function fetchFeed(ctx, url) {
   const response = await ctx.network.fetch(url, { signal: AbortSignal.timeout(15000) });
   if (!response.ok)
     throw new Error(`Feed returned ${response.status}`);
-  return parseFeed(await response.text(), url);
+  return parseFeed(await response.text(), url, articleLimit(ctx));
 }
 async function ensureBook(ctx, feed) {
   const book = await ctx.shelf.books.write.addVirtualBook({

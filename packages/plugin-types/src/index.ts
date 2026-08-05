@@ -364,7 +364,16 @@ export type PluginListView = {
   timeline?: boolean;
 };
 
-export type PluginFormField =
+/**
+ * Shared field attributes. `agentHidden` keeps a declared setting out of the
+ * reading agent's settings catalog (the Plugins panel still shows it); text
+ * fields with `inputMode: "password"` are agent-hidden automatically — and
+ * real credentials belong in `ctx.secrets`, not in settings at all.
+ */
+type PluginFormFieldBase = { agentHidden?: boolean };
+
+export type PluginFormField = PluginFormFieldBase &
+  (
   | {
       kind: "text";
       id: string;
@@ -408,7 +417,8 @@ export type PluginFormField =
       label: string;
       value?: string;
       options: { value: string; label: string; icon?: string }[];
-    };
+    }
+  );
 
 export type PluginFormValues = Record<string, string | boolean | number>;
 

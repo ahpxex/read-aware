@@ -6,5 +6,17 @@
   "description": "Subscribe to RSS/Atom feeds and read each one as a book on your shelf — articles become chapters.",
   "author": "ReadAware",
   "permissions": ["service:network", "shelf:write", "agent:tools"],
-  "main": "main.js"
+  "main": "main.js",
+  "settings": [
+    {
+      "kind": "number",
+      "id": "articleLimit",
+      "label": "Articles per feed",
+      "helperText": "How many of the newest articles each feed keeps as chapters.",
+      "value": 30,
+      "min": 5,
+      "max": 100,
+      "step": 5
+    }
+  ]
 }

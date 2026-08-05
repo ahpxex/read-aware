@@ -15,10 +15,13 @@ import type {
 } from "../../../plugins/lib/plugin-types";
 import {
   headerActionsAtom,
+  installedPluginsAtom,
   pluginFontsAtom,
   pluginThemesAtom,
   selectionActionsAtom,
 } from "../../../plugins/state/plugin-store";
+import type { InstalledPlugin } from "../../../plugins/lib/plugin-types";
+import { readPluginSettingsValues } from "../../../plugins/lib/plugin-settings";
 import {
   CORE_MENU_DEFAULTS,
   menuConfigAtom,
@@ -102,6 +105,7 @@ beforeEach(() => {
   store.set(pluginFontsAtom, []);
   store.set(headerActionsAtom, []);
   store.set(selectionActionsAtom, []);
+  store.set(installedPluginsAtom, []);
   store.set(menuConfigAtom, {
     primaryNav: {
       visible: ["core:library", "core:agent"],
@@ -563,5 +567,81 @@ describe("agent menu settings", () => {
         },
       ]),
     ).rejects.toThrow(/fewer than 1/);
+  });
+});
+
+const RSS_PLUGIN: InstalledPlugin = {
+  enabled: true,
+  manifest: {
+    id: "rss-reader",
+    name: "RSS Reader",
+    version: "0.5.0",
+    settings: [
+      {
+        kind: "number",
+        id: "articleLimit",
+        label: "Articles per feed",
+        value: 30,
+        min: 5,
+        max: 100,
+        step: 5,
+      },
+      {
+        kind: "text",
+        id: "proxyToken",
+        label: "Proxy token",
+        inputMode: "password",
+      },
+      {
+        kind: "toggle",
+        id: "debugMode",
+        label: "Debug mode",
+        value: false,
+        agentHidden: true,
+      },
+    ],
+  },
+};
+
+describe("agent plugin settings", () => {
+  test("exposes declared fields of enabled plugins, minus hidden ones", async () => {
+    getDefaultStore().set(installedPluginsAtom, [RSS_PLUGIN]);
+    const port = createSettingsPort();
+    const snapshot = await port.getSettings({ section: "plugins" });
+
+    const limit = setting(snapshot.settings, "plugins.rss-reader.articleLimit");
+    expect(limit.kind).toBe("number");
+    expect(limit.value).toBe(30);
+    const paths = snapshot.settings.map((entry) => entry.path);
+    // Password fields and agentHidden fields never reach the agent.
+    expect(paths).not.toContain("plugins.rss-reader.proxyToken");
+    expect(paths).not.toContain("plugins.rss-reader.debugMode");
+  });
+
+  test("writes through the shared plugin-settings store with validation", async () => {
+    getDefaultStore().set(installedPluginsAtom, [RSS_PLUGIN]);
+    const port = createSettingsPort();
+
+    await expect(
+      port.updateSettings([
+        { path: "plugins.rss-reader.articleLimit", value: 500 },
+      ]),
+    ).rejects.toThrow(/at most 100/);
+
+    const result = await port.updateSettings([
+      { path: "plugins.rss-reader.articleLimit", value: 50 },
+    ]);
+    expect(result.changed).toHaveLength(1);
+    // The same object the plugin reads via ctx.storage.get("settings").
+    expect(readPluginSettingsValues("rss-reader").articleLimit).toBe(50);
+  });
+
+  test("disabled plugins drop out of the catalog", async () => {
+    getDefaultStore().set(installedPluginsAtom, [
+      { ...RSS_PLUGIN, enabled: false },
+    ]);
+    const port = createSettingsPort();
+    const snapshot = await port.getSettings({ section: "plugins" });
+    expect(snapshot.settings).toHaveLength(0);
   });
 });

@@ -106,6 +106,15 @@ function cloneDraft(draft: SettingsDraft): SettingsDraft {
       ) as SettingsDraft["menus"]["config"],
       plugins: draft.menus.plugins,
     },
+    pluginSettings: {
+      declared: draft.pluginSettings.declared,
+      values: Object.fromEntries(
+        Object.entries(draft.pluginSettings.values).map(([id, values]) => [
+          id,
+          { ...values },
+        ]),
+      ),
+    },
   };
 }
 
@@ -121,6 +130,7 @@ function mutableFingerprint(draft: SettingsDraft): string {
     aiPreferences: draft.aiPreferences,
     aiConfig,
     menuConfig: draft.menus.config,
+    pluginSettings: draft.pluginSettings.values,
   });
 }
 

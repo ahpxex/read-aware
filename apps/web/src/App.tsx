@@ -16,6 +16,7 @@ import { useLibraryController } from "./features/library/hooks/useLibraryControl
 import { BOOK_FILE_ACCEPT } from "./features/library/lib/pick-book-files";
 import type { LibraryBook } from "./features/library/lib/library-types";
 import { AppHeader } from "./features/navigation/components/AppHeader";
+import { usePrimaryDestinations } from "./features/navigation/hooks/usePrimaryDestinations";
 import { UpdateIndicator } from "./features/update/components/UpdateIndicator";
 import { useSoftwareUpdate } from "./features/update/hooks/useSoftwareUpdate";
 import { ShelfManagementMenu } from "./features/shelf/components/ShelfManagementMenu";
@@ -164,10 +165,25 @@ function App() {
     setActiveTopNav,
   ]);
 
+  const primaryDestinations = usePrimaryDestinations();
+  const selectPrimaryDestination = useCallback(
+    (index: number) => {
+      // The reader owns the screen; surface switching underneath it would be
+      // invisible. Close the book first (back / navigation), then switch.
+      if (reader.selectedBook) return false;
+      const destination = primaryDestinations[index];
+      if (!destination) return false;
+      setActiveTopNav(destination.topNav);
+      return true;
+    },
+    [reader.selectedBook, primaryDestinations, setActiveTopNav],
+  );
+
   useGlobalShortcuts({
     onOpenSearch: () => setSearchModalOpen(true),
     onOpenSettings: () => setSettingsOpen(true),
     onNewConversation: createGlobalConversation,
+    onSelectPrimaryDestination: selectPrimaryDestination,
   });
 
   // Observation seam for plugins: book open/close, chapter, progress.

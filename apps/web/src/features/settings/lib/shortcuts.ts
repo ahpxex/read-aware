@@ -53,7 +53,7 @@ export type EditableShortcut = {
 /** A reference-only row whose action isn't a rebindable key chord. Action labels
  *  live in the `settings` catalog under `shortcuts.actions.<id>`. */
 export type InfoShortcut = {
-  id: "close" | "reader-mode-volume-keys";
+  id: "close" | "primary-nav" | "reader-mode-volume-keys";
   category: ShortcutCategory;
   keys: string[];
   /** Shown only on Android (hardware keys the other platforms don't capture). */
@@ -141,6 +141,14 @@ export const EDITABLE_SHORTCUTS: EditableShortcut[] = [
 
 /** Fixed, non-rebindable shortcuts shown for reference. */
 export const INFO_SHORTCUTS: InfoShortcut[] = [
+  // Mod+digit jumps to the Nth primary destination — the platform-wide tab
+  // convention, deliberately not rebindable. Matched on the physical digit
+  // row (KeyboardEvent.code) so it survives non-QWERTY layouts.
+  {
+    id: "primary-nav",
+    category: "Global",
+    keys: [isMacOS() ? "⌘" : "Ctrl", "1–4"],
+  },
   {
     id: "reader-mode-volume-keys",
     category: "TextUnitMode",

@@ -20,6 +20,7 @@ import { useShortcutRecorder } from "../hooks/useShortcutRecorder";
 import {
   EDITABLE_SHORTCUTS,
   INFO_SHORTCUTS,
+  type InfoShortcut,
   chordSignature,
   chordToTokens,
   pluginShortcutId,
@@ -121,7 +122,9 @@ export function ShortcutsPanel() {
     ? resolveReaderModeUnit(textUnitMode, textUnitMode.defaultUnitId)
     : null;
 
-  function shortcutLabel(id: ShortcutId | "close" | "reader-mode-volume-keys"): string {
+  function shortcutLabel(
+    id: ShortcutId | InfoShortcut["id"],
+  ): string {
     if (id.startsWith("plugin:")) {
       const command = pluginCommands.find((entry) => pluginShortcutId(entry.key) === id);
       return command ? contributionText(command.title) : id;

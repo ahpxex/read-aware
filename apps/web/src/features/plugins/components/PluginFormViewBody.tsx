@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Button,
   Checkbox,
@@ -25,6 +25,26 @@ type PluginFormViewBodyProps = {
   busy: boolean;
   onResult: PluginResultRunner;
 };
+
+/** The form values a view's declared fields seed (secret fields have none). */
+function seedValues(fields: PluginFormField[]): PluginFormValues {
+  const seeded: PluginFormValues = {};
+  for (const field of fields) {
+    if (field.kind === "secret") continue;
+    seeded[field.id] =
+      field.kind === "toggle" || field.kind === "checkbox"
+        ? (field.value ?? false)
+        : field.kind === "number"
+          ? (field.value ?? 0)
+          : field.kind === "select" || field.kind === "choice"
+            ? (field.value ??
+              (field.kind === "select" && field.dynamicOptions
+                ? ""
+                : (field.options[0]?.value ?? "")))
+            : (field.value ?? "");
+  }
+  return seeded;
+}
 
 /**
  * `visibleWhen` gates rendering only: hidden fields keep their values in the
@@ -207,25 +227,31 @@ export function PluginFormViewBody({ view, busy, onResult }: PluginFormViewBodyP
   // Bumped when a secret field writes/clears, so state that depends on
   // stored credentials (dynamic option lists) knows to re-resolve.
   const [secretsRevision, setSecretsRevision] = useState(0);
-  const [values, setValues] = useState<PluginFormValues>(() => {
-    const initial: PluginFormValues = {};
-    for (const field of view.fields) {
-      // Secret fields have no form value — they live in the secret store.
-      if (field.kind === "secret") continue;
-      initial[field.id] =
-        field.kind === "toggle" || field.kind === "checkbox"
-          ? (field.value ?? false)
-          : field.kind === "number"
-            ? (field.value ?? 0)
-            : field.kind === "select" || field.kind === "choice"
-              ? (field.value ??
-                (field.kind === "select" && field.dynamicOptions
-                  ? ""
-                  : (field.options[0]?.value ?? "")))
-              : (field.value ?? "");
-    }
-    return initial;
-  });
+  const [values, setValues] = useState<PluginFormValues>(() => seedValues(view.fields));
+  // The last values this form AGREED on with its view (seeded or adopted).
+  // Reconciliation compares against it to tell a live user draft apart from
+  // a field that simply still holds the old stored value.
+  const baselineRef = useRef<PluginFormValues>(seedValues(view.fields));
+
+  // A fresh view prop carries fresh stored values (an external writer — the
+  // agent, another surface — changed the settings while this form is open).
+  // Adopt them for every field the user hasn't diverged on, so an edit here
+  // can never write a stale snapshot back over the external change; a live
+  // draft keeps winning until it persists.
+  useEffect(() => {
+    const next = seedValues(view.fields);
+    const baseline = baselineRef.current;
+    setValues((current) => {
+      const merged = { ...current };
+      for (const [id, value] of Object.entries(next)) {
+        if (!(id in merged) || Object.is(merged[id], baseline[id])) {
+          merged[id] = value;
+        }
+      }
+      return merged;
+    });
+    baselineRef.current = next;
+  }, [view]);
   const { flush } = useReactiveSetting({
     value: values,
     revision: saveRevision,

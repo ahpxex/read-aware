@@ -10,6 +10,8 @@ import {
   Highlighter,
   Layout,
   NotePencil,
+  SpeakerHigh,
+  SpeakerSlash,
   TextUnderline,
   X,
 } from "@phosphor-icons/react";
@@ -67,6 +69,10 @@ type TextUnitNavigatorBarProps = {
   onExit: () => void;
   /** Resting-unit context for plugin-contributed actions (null hides them). */
   pluginInput?: SelectionActionInput | null;
+  /** Read-aloud (hidden where the webview offers no speech synthesis). */
+  readAloudAvailable: boolean;
+  readAloudPlaying: boolean;
+  onToggleReadAloud: () => void;
 };
 
 /** Hairline divider separating action groups within the bar. */
@@ -136,6 +142,9 @@ export function TextUnitNavigatorBar({
   onAskAI,
   onExit,
   pluginInput = null,
+  readAloudAvailable,
+  readAloudPlaying,
+  onToggleReadAloud,
 }: TextUnitNavigatorBarProps) {
   const { t } = useTranslation("reader");
   const locale = useLocale();
@@ -243,6 +252,21 @@ export function TextUnitNavigatorBar({
               onClick={onNext}
               className={actionButtonClass}
               icon={<CaretRight size={16} weight="regular" aria-hidden="true" />}
+            />
+          )}
+          {readAloudAvailable && (
+            <BarButton
+              label={readAloudPlaying ? t("readAloud.stop") : t("readAloud.start")}
+              pressed={readAloudPlaying}
+              onClick={onToggleReadAloud}
+              className={actionButtonClass}
+              icon={
+                readAloudPlaying ? (
+                  <SpeakerSlash size={15} weight="regular" aria-hidden="true" />
+                ) : (
+                  <SpeakerHigh size={15} weight="regular" aria-hidden="true" />
+                )
+              }
             />
           )}
           <BarDivider />

@@ -137,5 +137,9 @@
     "backToBook": "Back to the book",
     "lookBack": "Look back on this book",
     "lookBackPrompt": "I've just finished {{title}}. Look back on it with me — go through what I marked and tell me what drew my attention and what threads run between those passages. Stay with what's actually in my marks; no plot summary."
+  },
+  "readAloud": {
+    "start": "Read aloud",
+    "stop": "Stop reading aloud"
   }
 }

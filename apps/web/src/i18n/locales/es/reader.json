@@ -137,5 +137,9 @@
     "backToBook": "Volver al libro",
     "lookBack": "Mirar atrás sobre este libro",
     "lookBackPrompt": "Acabo de terminar {{title}}. Mira atrás conmigo: repasa lo que marqué y dime qué llamó mi atención y qué hilos recorren esos pasajes. Cíñete a lo que hay en mis marcas; sin resumen del argumento."
+  },
+  "readAloud": {
+    "start": "Leer en voz alta",
+    "stop": "Detener lectura"
   }
 }

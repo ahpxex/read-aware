@@ -137,5 +137,9 @@
     "backToBook": "Retour au livre",
     "lookBack": "Revenir sur ce livre",
     "lookBackPrompt": "Je viens de terminer {{title}}. Revenons dessus ensemble : parcours ce que j'ai marqué et dis-moi ce qui a retenu mon attention et quels fils traversent ces passages. Tiens-t'en à mes marques ; pas de résumé de l'intrigue."
+  },
+  "readAloud": {
+    "start": "Lire à voix haute",
+    "stop": "Arrêter la lecture"
   }
 }

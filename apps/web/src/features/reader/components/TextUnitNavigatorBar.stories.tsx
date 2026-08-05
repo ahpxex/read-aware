@@ -90,6 +90,9 @@ const meta = {
     onAddNote: () => {},
     onAskAI: () => {},
     onExit: () => {},
+    readAloudAvailable: true,
+    readAloudPlaying: false,
+    onToggleReadAloud: () => {},
   },
   render: (args) => <FramedNavigatorBar {...args} />,
 } satisfies Meta<typeof TextUnitNavigatorBar>;

@@ -42,6 +42,7 @@ import {
 } from "../lib/highlight-renderer";
 import { parseBookFile } from "../lib/parse-book";
 import { ensureUsableToc } from "../lib/toc-synthesis";
+import { useReadAloud } from "../hooks/useReadAloud";
 import { useTextUnitNavigator } from "../hooks/useTextUnitNavigator";
 import {
   preferredTextUnitModeUnitId,
@@ -878,6 +879,11 @@ export function FoliateReaderView({
     readerRootRef,
     crossSection: textUnitModeCrossSection,
     veilColor: readerPalette.bg,
+  });
+  const readAloud = useReadAloud({
+    enabled: textUnitModeEngineActive,
+    current: textUnitNavigator.current,
+    next: textUnitNavigator.next,
   });
   // The engine's mount-once effect and the stable key handler reach the
   // navigator through this ref (its identity changes every render).
@@ -2023,6 +2029,9 @@ export function FoliateReaderView({
           onAskAI={handleNavigatorAskAI}
           onExit={() => onExitTextUnitModeRef.current?.()}
           pluginInput={pluginInputForSource("navigator")}
+          readAloudAvailable={readAloud.available}
+          readAloudPlaying={readAloud.playing}
+          onToggleReadAloud={readAloud.toggle}
         />
       )}
       {/* Off-screen stage where the engine loads + extracts a footnote fragment. */}

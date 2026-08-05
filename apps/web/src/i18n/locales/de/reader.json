@@ -137,5 +137,9 @@
     "backToBook": "Zurück zum Buch",
     "lookBack": "Auf dieses Buch zurückblicken",
     "lookBackPrompt": "Ich habe {{title}} gerade beendet. Blicke mit mir zurück — geh durch, was ich markiert habe, und sag mir, was meine Aufmerksamkeit gefesselt hat und welche Fäden sich durch diese Stellen ziehen. Bleib bei dem, was tatsächlich in meinen Markierungen steht; keine Inhaltsangabe."
+  },
+  "readAloud": {
+    "start": "Vorlesen",
+    "stop": "Vorlesen stoppen"
   }
 }

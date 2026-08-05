@@ -9,11 +9,20 @@ import {
   readerOverridesAtom,
   readerPreferencesAtom,
 } from "../../../../state/ui";
-import type { RegisteredPluginTheme } from "../../../plugins/lib/plugin-types";
+import type {
+  RegisteredHeaderAction,
+  RegisteredPluginTheme,
+} from "../../../plugins/lib/plugin-types";
 import {
+  headerActionsAtom,
   pluginFontsAtom,
   pluginThemesAtom,
+  selectionActionsAtom,
 } from "../../../plugins/state/plugin-store";
+import {
+  CORE_MENU_DEFAULTS,
+  menuConfigAtom,
+} from "../../../menus/state/menu-config";
 import { DEFAULT_AI_PREFERENCES } from "../../../settings/lib/ai-preferences";
 import { DEFAULT_APP_SETTINGS } from "../../../settings/lib/app-settings";
 import { DEFAULT_GENERAL_SETTINGS } from "../../../settings/lib/general-settings";
@@ -91,6 +100,23 @@ beforeEach(() => {
   store.set(readerOverridesAtom, {});
   store.set(pluginThemesAtom, []);
   store.set(pluginFontsAtom, []);
+  store.set(headerActionsAtom, []);
+  store.set(selectionActionsAtom, []);
+  store.set(menuConfigAtom, {
+    primaryNav: {
+      visible: ["core:library", "core:agent"],
+      overflow: ["core:stats"],
+    },
+    shelfHeader: {
+      visible: [...CORE_MENU_DEFAULTS.shelfHeader],
+      overflow: [],
+    },
+    readerHeader: {
+      visible: [...CORE_MENU_DEFAULTS.readerHeader],
+      overflow: [],
+    },
+    selection: { visible: [...CORE_MENU_DEFAULTS.selection], overflow: [] },
+  });
   store.set(aiPreferencesAtom, {
     ...DEFAULT_AI_PREFERENCES,
     features: { ...DEFAULT_AI_PREFERENCES.features },
@@ -453,5 +479,89 @@ describe("agent settings port", () => {
       { path: "ai.connection.fastThinkingLevel", value: "low" },
     ]);
     expect(getAIConfig()?.fastThinkingLevel).toBe("low");
+  });
+});
+
+const DICTIONARY_PAGE = {
+  key: "dictionary:vocabulary",
+  pluginId: "dictionary",
+  pluginName: "Dictionary",
+  id: "vocabulary",
+  title: "Vocabulary",
+  surface: "shelf",
+  presentation: "page",
+  view: async () => ({ kind: "list", items: [] }),
+} as unknown as RegisteredHeaderAction;
+
+describe("agent menu settings", () => {
+  test("exposes resolved menu layouts with plugin destinations as options", async () => {
+    getDefaultStore().set(headerActionsAtom, [DICTIONARY_PAGE]);
+    const port = createSettingsPort();
+    const snapshot = await port.getSettings({ section: "menus" });
+
+    const visible = setting(snapshot.settings, "menus.primaryNav.visible");
+    expect(visible.kind).toBe("id-list");
+    expect(visible.value).toEqual(["core:library", "core:agent"]);
+    expect(visible.options?.map((option) => option.value)).toContain(
+      "plugin:dictionary:vocabulary",
+    );
+    // Unplaced plugin destinations resolve into the overflow zone.
+    const overflow = setting(snapshot.settings, "menus.primaryNav.overflow");
+    expect(overflow.value).toEqual([
+      "core:stats",
+      "plugin:dictionary:vocabulary",
+    ]);
+  });
+
+  test("hides a destination by writing the visible list without it", async () => {
+    const store = getDefaultStore();
+    store.set(headerActionsAtom, [DICTIONARY_PAGE]);
+    store.set(menuConfigAtom, {
+      ...store.get(menuConfigAtom),
+      primaryNav: {
+        visible: ["core:library", "core:agent", "plugin:dictionary:vocabulary"],
+        overflow: ["core:stats"],
+      },
+    });
+
+    const port = createSettingsPort();
+    const result = await port.updateSettings([
+      {
+        path: "menus.primaryNav.visible",
+        value: ["core:library", "core:agent"],
+      },
+    ]);
+
+    expect(result.changed).toHaveLength(1);
+    const layout = store.get(menuConfigAtom).primaryNav;
+    expect(layout.visible).toEqual(["core:library", "core:agent"]);
+    // The hidden destination lands in overflow instead of limbo.
+    expect(layout.overflow).toContain("plugin:dictionary:vocabulary");
+  });
+
+  test("enforces the primary navigation surface rules", async () => {
+    const port = createSettingsPort();
+    await expect(
+      port.updateSettings([
+        { path: "menus.primaryNav.visible", value: [] },
+      ]),
+    ).rejects.toThrow(/at least 1/);
+    await expect(
+      port.updateSettings([
+        {
+          path: "menus.primaryNav.visible",
+          value: ["core:library", "core:not-a-thing"],
+        },
+      ]),
+    ).rejects.toThrow(/unknown ids/);
+    // Moving everything out through the overflow side is equally rejected.
+    await expect(
+      port.updateSettings([
+        {
+          path: "menus.primaryNav.overflow",
+          value: ["core:library", "core:agent", "core:stats"],
+        },
+      ]),
+    ).rejects.toThrow(/fewer than 1/);
   });
 });

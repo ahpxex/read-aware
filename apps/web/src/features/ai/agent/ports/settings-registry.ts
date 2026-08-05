@@ -97,6 +97,15 @@ function cloneDraft(draft: SettingsDraft): SettingsDraft {
     aiConfig: draft.aiConfig ? { ...draft.aiConfig } : null,
     pluginThemes: draft.pluginThemes,
     pluginFonts: draft.pluginFonts,
+    menus: {
+      config: Object.fromEntries(
+        Object.entries(draft.menus.config).map(([surface, layout]) => [
+          surface,
+          { visible: [...layout.visible], overflow: [...layout.overflow] },
+        ]),
+      ) as SettingsDraft["menus"]["config"],
+      plugins: draft.menus.plugins,
+    },
   };
 }
 
@@ -111,6 +120,7 @@ function mutableFingerprint(draft: SettingsDraft): string {
     readerOverrides: draft.readerOverrides,
     aiPreferences: draft.aiPreferences,
     aiConfig,
+    menuConfig: draft.menus.config,
   });
 }
 

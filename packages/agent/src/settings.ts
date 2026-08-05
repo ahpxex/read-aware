@@ -1,9 +1,20 @@
-export type AgentSettingsSection = "general" | "appearance" | "reading" | "ai";
+export type AgentSettingsSection =
+  | "general"
+  | "appearance"
+  | "reading"
+  | "ai"
+  | "menus";
 
-/** Values that can cross the generic settings tool boundary. */
-export type AgentSettingValue = string | number | boolean | null;
+/** Values that can cross the generic settings tool boundary. Lists carry
+ *  ordered id arrays (menu surface layouts). */
+export type AgentSettingValue = string | number | boolean | null | string[];
 
-export type AgentSettingKind = "boolean" | "enum" | "string" | "integer";
+export type AgentSettingKind =
+  | "boolean"
+  | "enum"
+  | "string"
+  | "integer"
+  | "id-list";
 
 export interface AgentSettingOption {
   value: AgentSettingValue;

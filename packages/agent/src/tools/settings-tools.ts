@@ -17,6 +17,10 @@ const sectionSchema = Type.Union([
   Type.Literal("appearance", { description: "Application shell appearance, not reader pages" }),
   Type.Literal("reading", { description: "Reader pages: theme, font, and reading mode" }),
   Type.Literal("ai", { description: "Non-sensitive AI behavior preferences" }),
+  Type.Literal("menus", {
+    description:
+      "User-arranged menu surfaces (primary navigation, header bars, selection menu): ordered visible/overflow item lists",
+  }),
 ]);
 
 const globalTargetSchema = Type.Object(
@@ -62,6 +66,8 @@ const settingValueSchema = Type.Union([
   Type.Boolean(),
   Type.Number(),
   Type.String(),
+  // Ordered id lists (kind=id-list paths, e.g. menu surface layouts).
+  Type.Array(Type.String({ minLength: 1 }), { maxItems: 64 }),
 ]);
 
 function settingChangeSchema(scope: ThreadScope) {
@@ -144,7 +150,7 @@ export function buildSettingsTools(scope: ThreadScope, deps: RuntimeDeps): Agent
     name: "update_settings",
     label: "Update settings",
     description:
-      "Update ordinary settings only when the user explicitly asks. Always call get_settings first, then copy exact writable paths and values/options from its catalog. Changes are generic path/value operations: never invent a path or option. A setting with multiple supportedTargets requires an explicit target; call ask_user when the intended scope is ambiguous. Global-only settings may omit target. A successful global write can still report warnings when book overrides take precedence. This tool cannot access API keys, Custom endpoint destinations, destructive data actions, plugin lifecycle, menus, or shortcuts.",
+      "Update ordinary settings only when the user explicitly asks. Always call get_settings first, then copy exact writable paths and values/options from its catalog. Changes are generic path/value operations: never invent a path or option. For kind=id-list paths (section=menus) the value is the COMPLETE ordered id array — read the current list, modify it, and write it back whole; ids must come from the path's options. A setting with multiple supportedTargets requires an explicit target; call ask_user when the intended scope is ambiguous. Global-only settings may omit target. A successful global write can still report warnings when book overrides take precedence. This tool cannot access API keys, Custom endpoint destinations, destructive data actions, plugin lifecycle, or shortcuts.",
     parameters: Type.Object(
       {
         changes: Type.Array(settingChangeSchema(scope), { minItems: 1, maxItems: 50 }),

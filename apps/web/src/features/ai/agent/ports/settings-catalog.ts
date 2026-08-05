@@ -38,6 +38,16 @@ import type {
 } from "../../../plugins/lib/plugin-types";
 import { DEFAULT_THINKING_LEVEL, type AIConfig } from "../../lib/ai-config";
 import type { CustomOpenAIApi } from "@read-aware/agent";
+import {
+  knownSurfaceItems,
+  resolvedSurfaceLayout,
+  type MenuPluginState,
+} from "../../../menus/lib/agent-menu-items";
+import {
+  SURFACE_RULES,
+  type MenuConfig,
+  type MenuSurface,
+} from "../../../menus/state/menu-config";
 
 export type SettingsDraft = {
   general: GeneralSettings;
@@ -48,6 +58,12 @@ export type SettingsDraft = {
   aiConfig: AIConfig | null;
   pluginThemes: RegisteredPluginTheme[];
   pluginFonts: RegisteredPluginFont[];
+  menus: {
+    /** Mutable: the user-arranged layouts (menuConfigAtom). */
+    config: MenuConfig;
+    /** Environment: plugin contributions that define the known items. */
+    plugins: MenuPluginState;
+  };
 };
 
 export type SettingDefinition = {
@@ -364,6 +380,132 @@ function readingDefinition(
   };
 }
 
+const MENU_SURFACES: Array<{
+  surface: MenuSurface;
+  label: string;
+  description?: string;
+}> = [
+  {
+    surface: "primaryNav",
+    label: "Primary navigation",
+    description:
+      "The centered destination switcher; 1–4 visible destinations, in order",
+  },
+  { surface: "shelfHeader", label: "Shelf header" },
+  { surface: "readerHeader", label: "Reader header" },
+  { surface: "selection", label: "Selection menu" },
+];
+
+function menuListValue(path: string, value: AgentSettingValue): string[] {
+  if (
+    !Array.isArray(value) ||
+    value.some((entry) => typeof entry !== "string")
+  ) {
+    throw new Error(`${path} must be an array of item ids`);
+  }
+  if (new Set(value).size !== value.length) {
+    throw new Error(`${path} must not repeat ids`);
+  }
+  return value;
+}
+
+function menuListDefinition(
+  surface: MenuSurface,
+  zone: "visible" | "overflow",
+  surfaceLabel: string,
+  description?: string,
+): SettingDefinition {
+  const path = `menus.${surface}.${zone}`;
+  return {
+    path,
+    section: "menus",
+    label:
+      zone === "visible"
+        ? `${surfaceLabel} — shown`
+        : `${surfaceLabel} — overflow menu`,
+    ...(description ? { description } : {}),
+    kind: "id-list",
+    options: (draft) =>
+      knownSurfaceItems(surface, draft.menus.plugins).map((item) => ({
+        value: item.id,
+        label: item.label,
+        source: item.source,
+        ...(item.pluginName ? { pluginName: item.pluginName } : {}),
+      })),
+    supportedTargets: GLOBAL_TARGETS,
+    read: (draft) =>
+      resolvedSurfaceLayout(surface, draft.menus.config, draft.menus.plugins)[
+        zone
+      ],
+    validate: (value, draft) => {
+      const ids = menuListValue(path, value);
+      const known = new Set(
+        knownSurfaceItems(surface, draft.menus.plugins).map((item) => item.id),
+      );
+      const unknown = ids.filter((id) => !known.has(id));
+      if (unknown.length > 0) {
+        throw new Error(
+          `${path}: unknown ids ${unknown.join(", ")} — use ids from this path's options`,
+        );
+      }
+      const rules = SURFACE_RULES[surface];
+      if (zone === "visible") {
+        if (ids.length < rules.minVisible) {
+          throw new Error(
+            `${path} needs at least ${rules.minVisible} item(s)`,
+          );
+        }
+        if (rules.maxVisible !== null && ids.length > rules.maxVisible) {
+          throw new Error(
+            `${path} allows at most ${rules.maxVisible} items`,
+          );
+        }
+      }
+      return ids;
+    },
+    write: (draft, value) => {
+      const ids = value as string[];
+      const sibling = zone === "visible" ? "overflow" : "visible";
+      // Work from the RESOLVED layout (what read reported), so items the
+      // stored config never placed still move coherently.
+      const current = resolvedSurfaceLayout(
+        surface,
+        draft.menus.config,
+        draft.menus.plugins,
+      );
+      // "This zone contains exactly these": anything evicted moves to the
+      // other zone (hide = drop from visible → lands in overflow), anything
+      // adopted leaves it.
+      const evicted = current[zone].filter((id) => !ids.includes(id));
+      const siblingIds = [
+        ...current[sibling].filter((id) => !ids.includes(id)),
+        ...evicted.filter((id) => !current[sibling].includes(id)),
+      ];
+      // The move can reshape BOTH zones — re-check the surface invariants on
+      // the resulting visible list, whichever zone was written.
+      const nextVisible = zone === "visible" ? ids : siblingIds;
+      const rules = SURFACE_RULES[surface];
+      if (nextVisible.length < rules.minVisible) {
+        throw new Error(
+          `${path} would leave fewer than ${rules.minVisible} visible item(s)`,
+        );
+      }
+      if (rules.maxVisible !== null && nextVisible.length > rules.maxVisible) {
+        throw new Error(
+          `${path} would exceed ${rules.maxVisible} visible items`,
+        );
+      }
+      draft.menus.config = {
+        ...draft.menus.config,
+        [surface]:
+          zone === "visible"
+            ? { visible: ids, overflow: siblingIds }
+            : { visible: siblingIds, overflow: ids },
+      };
+    },
+  };
+}
+
 export function buildSettingDefinitions(
   draft: SettingsDraft,
 ): SettingDefinition[] {
@@ -587,6 +729,13 @@ export function buildSettingDefinitions(
       read: (state) => Boolean(state.aiConfig?.apiKey),
     }),
   ];
+
+  for (const { surface, label, description } of MENU_SURFACES) {
+    definitions.push(
+      menuListDefinition(surface, "visible", label, description),
+      menuListDefinition(surface, "overflow", label),
+    );
+  }
 
   if (!draft.aiConfig) return definitions;
 

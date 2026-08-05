@@ -13,9 +13,13 @@ import {
   readerOverridesAtom,
   readerPreferencesAtom,
 } from "../../../../state/ui";
+import { menuConfigAtom } from "../../../menus/state/menu-config";
 import {
+  headerActionsAtom,
   pluginFontsAtom,
   pluginThemesAtom,
+  selectionActionsAtom,
+  textUnitReaderModeAtom,
 } from "../../../plugins/state/plugin-store";
 import { getAIConfig, saveAIConfig } from "../../lib/ai-config";
 import {
@@ -35,6 +39,14 @@ function readDraft(): SettingsDraft {
     aiConfig: getAIConfig(),
     pluginThemes: store.get(pluginThemesAtom),
     pluginFonts: store.get(pluginFontsAtom),
+    menus: {
+      config: store.get(menuConfigAtom),
+      plugins: {
+        headerActions: store.get(headerActionsAtom),
+        selectionActions: store.get(selectionActionsAtom),
+        textUnitReaderMode: store.get(textUnitReaderModeAtom),
+      },
+    },
   };
 }
 
@@ -67,6 +79,9 @@ function commitDraft(before: SettingsDraft, next: SettingsDraft): void {
   }
   if (!equal(before.aiConfig, next.aiConfig) && next.aiConfig) {
     saveAIConfig(next.aiConfig);
+  }
+  if (!equal(before.menus.config, next.menus.config)) {
+    store.set(menuConfigAtom, next.menus.config);
   }
 }
 

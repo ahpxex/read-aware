@@ -145,7 +145,10 @@ export function LibraryWorkspace({
   return (
     <div
       className={cn(
-        "ra-motion-page-enter mx-auto flex min-h-full max-w-screen-2xl flex-col px-6 pt-5 sm:pt-6",
+        "ra-motion-page-enter mx-auto flex min-h-full w-full flex-col px-6 pt-5 sm:pt-6",
+        // The cover grid flows to fill any window; list rows keep a readable
+        // measure instead of stretching across an ultra-wide monitor.
+        shelfView.layout === "list" && "max-w-screen-2xl",
         // Extra bottom room so the floating selection bar never covers the last row.
         active ? "pb-28" : "pb-8 sm:pb-10",
       )}
@@ -173,7 +176,7 @@ export function LibraryWorkspace({
       {!isReady ? (
         // Skeleton shelf mirroring the real grid (see Shelf.tsx), so the load
         // reads as the shelf taking shape rather than a bare loading notice.
-        <div className="grid grid-cols-3 gap-x-4 gap-y-8 sm:grid-cols-4 sm:gap-x-5 md:grid-cols-5 md:gap-x-6 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8">
+        <div className="grid grid-cols-3 gap-x-4 gap-y-8 sm:grid-cols-4 sm:gap-x-5 md:grid-cols-5 md:gap-x-6 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-[repeat(auto-fill,minmax(10rem,1fr))]">
           {Array.from({ length: 12 }).map((_, index) => (
             <div key={index} className="space-y-2.5">
               <Skeleton variant="rectangular" className="aspect-[2/3] w-full rounded-sm" />

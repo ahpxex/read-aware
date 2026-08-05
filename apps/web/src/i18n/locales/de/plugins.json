@@ -38,6 +38,7 @@
     "enabled": "Aktiviert",
     "permissions": "Berechtigungen",
     "noPermissions": "Keine zusätzlichen Berechtigungen",
+    "scheduleLine": "Geplant: {{label}} — mindestens alle {{minutes}} Min. bei geöffneter App",
     "permission": {
       "reader_modes": "Einen von der App gerenderten geführten Lesemodus hinzufügen",
       "ui_themes": "App- und Lesethemen mit mitgelieferten Schriften anbieten, die erst bei Auswahl gelten",

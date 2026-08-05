@@ -38,6 +38,7 @@
     "enabled": "已啟用",
     "permissions": "權限",
     "noPermissions": "無額外權限",
+    "scheduleLine": "排程任務：{{label}} — 應用開啟時至少每 {{minutes}} 分鐘執行一次",
     "permission": {
       "reader_modes": "新增由應用程式渲染並控制引導導覽的閱讀模式",
       "ui_themes": "提供應用程式與閱讀頁主題（可附帶字型），僅在你選用後生效",

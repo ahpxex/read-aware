@@ -38,6 +38,7 @@
     "enabled": "Enabled",
     "permissions": "Permissions",
     "noPermissions": "No extra permissions",
+    "scheduleLine": "Scheduled: {{label}} — at least every {{minutes}} min while the app is open",
     "permission": {
       "reader_modes": "Add a host-rendered reading mode that controls guided navigation",
       "ui_themes": "Offer app and reader themes, with bundled fonts, that apply only when you select them",

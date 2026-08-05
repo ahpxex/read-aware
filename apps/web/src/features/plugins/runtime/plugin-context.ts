@@ -31,6 +31,7 @@ import {
 } from "../lib/virtual-books";
 import { showPluginToast } from "../lib/plugin-toast";
 import { normalizeReaderMode } from "../lib/reader-mode";
+import { registerPluginSchedule } from "./plugin-scheduler";
 import {
   contributionKey,
   type PluginContext,
@@ -283,6 +284,19 @@ export function buildPluginContext(
             },
           }
         : undefined,
+    },
+    schedule: {
+      on: (scheduleId, run) => {
+        const declaration = manifest.schedules?.find(
+          (entry) => entry.id === scheduleId,
+        );
+        if (!declaration) {
+          throw new Error(
+            `schedule "${scheduleId}" is not declared in manifest.schedules`,
+          );
+        }
+        return track(registerPluginSchedule(manifest.id, declaration, run));
+      },
     },
     session: {
       on: (event, handler) => {

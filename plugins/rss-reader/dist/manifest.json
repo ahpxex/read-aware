@@ -7,6 +7,13 @@
   "author": "ReadAware",
   "permissions": ["service:network", "shelf:write", "agent:tools"],
   "main": "main.js",
+  "schedules": [
+    {
+      "id": "refresh-feeds",
+      "label": "Refresh subscribed feeds",
+      "everyMinutes": 60
+    }
+  ],
   "settings": [
     {
       "kind": "number",

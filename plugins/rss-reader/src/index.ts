@@ -1,7 +1,7 @@
 /** ReadAware's first-party RSS/Atom content provider and agent integration. */
 import type { PluginModule } from "@read-aware/plugin-types";
 import { registerAgentTools } from "./agent-tools";
-import { fetchFeed } from "./feed";
+import { fetchFeed, subscribe } from "./feed";
 import { loadFeeds, saveFeeds } from "./storage";
 import { assertPluginCapabilities, PROVIDER_ID } from "./types";
 import { rssPageView } from "./views";
@@ -39,6 +39,18 @@ const plugin: PluginModule = {
       icon: "globe",
       keywords: "rss atom feed subscribe",
       run: () => ({ view: rssPageView(ctx) }),
+    });
+
+    // Declared in manifest.schedules: subscribed feeds stay fresh without a
+    // manual refresh — hourly while the app is open, catch-up on launch.
+    ctx.schedule.on("refresh-feeds", async () => {
+      for (const feed of loadFeeds(ctx)) {
+        try {
+          await subscribe(ctx, feed.url);
+        } catch {
+          // One unavailable feed must not prevent the others from refreshing.
+        }
+      }
     });
 
     registerAgentTools(ctx);

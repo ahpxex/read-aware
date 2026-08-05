@@ -38,6 +38,7 @@
     "enabled": "有効",
     "permissions": "権限",
     "noPermissions": "追加の権限なし",
+    "scheduleLine": "スケジュール: {{label}} — アプリ起動中は{{minutes}}分ごとに実行",
     "permission": {
       "reader_modes": "アプリが描画するガイド付き読書モードの追加",
       "ui_themes": "アプリと本文ページのテーマ（同梱フォント付き）を提供。選択したときのみ適用",

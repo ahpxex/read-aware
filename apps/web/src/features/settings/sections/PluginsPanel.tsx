@@ -169,6 +169,14 @@ export function PluginsPanel() {
                         ))
                       )}
                     </span>
+                    {(manifest.schedules ?? []).map((schedule) => (
+                      <Caption key={schedule.id} className="text-fg-subtle">
+                        {t("settings.scheduleLine", {
+                          label: schedule.label,
+                          minutes: schedule.everyMinutes,
+                        })}
+                      </Caption>
+                    ))}
                     {plugin.error && (
                       <span className="text-xs text-red-700 dark:text-red-400">
                         {t("settings.activationError", { message: plugin.error })}

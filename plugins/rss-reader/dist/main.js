@@ -463,6 +463,13 @@ var plugin = {
       keywords: "rss atom feed subscribe",
       run: () => ({ view: rssPageView(ctx) })
     });
+    ctx.schedule.on("refresh-feeds", async () => {
+      for (const feed of loadFeeds(ctx)) {
+        try {
+          await subscribe(ctx, feed.url);
+        } catch {}
+      }
+    });
     registerAgentTools(ctx);
   }
 };

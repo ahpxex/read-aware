@@ -131,6 +131,14 @@ export type PluginManifest = {
    */
   settings?: PluginFormField[];
   /**
+   * Declarative schedules (shown at install and in the Plugins panel). The
+   * host runs each one AT LEAST every `everyMinutes` while the app is open,
+   * with a catch-up run at launch when overdue — never an exact-time
+   * guarantee, and nothing runs while the app is closed. The plugin binds
+   * the actual work at activate() via `ctx.schedule.on(id, run)`.
+   */
+  schedules?: PluginScheduleDeclaration[];
+  /**
    * Declarative themes (`ui:themes`). Registered while the plugin is enabled;
    * they appear alongside the built-in choices in Settings → Appearance
    * (app part) and the reader's page-color control (reader part), and apply
@@ -145,6 +153,20 @@ export type PluginManifest = {
    * as `plugin:<fontId>`.
    */
   fonts?: PluginFontContribution[];
+};
+
+// ─── Schedule declarations ───────────────────────────────────────────────────
+
+/** The floor the host clamps `everyMinutes` to. */
+export const MIN_SCHEDULE_MINUTES = 15;
+
+export type PluginScheduleDeclaration = {
+  /** Unique within the plugin: lowercase letters, digits, hyphens. */
+  id: string;
+  /** Shown at install time and in the Plugins panel. */
+  label: string;
+  /** Cadence in minutes, floored at MIN_SCHEDULE_MINUTES. */
+  everyMinutes: number;
 };
 
 // ─── Theme contributions (`ui:themes`) ───────────────────────────────────────
@@ -1156,6 +1178,15 @@ export type PluginContext = {
     showToast(message: string): void;
     /** Open the host save flow for a plugin-generated text file. False means cancelled. */
     exportFile(file: PluginExportFile): Promise<boolean>;
+  };
+  /**
+   * Bind the work for a schedule declared in `manifest.schedules`. The host
+   * owns all timing (see the manifest field's contract); overlapping runs of
+   * one schedule are skipped, and a failed run simply waits for the next
+   * cadence. Binding an undeclared id throws.
+   */
+  schedule: {
+    on(scheduleId: string, run: () => void | Promise<void>): PluginDisposable;
   };
   /**
    * Ambient reader control (user-visible, no data exposure): open a book,

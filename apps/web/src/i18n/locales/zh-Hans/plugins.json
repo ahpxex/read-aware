@@ -38,6 +38,7 @@
     "enabled": "已启用",
     "permissions": "权限",
     "noPermissions": "无额外权限",
+    "scheduleLine": "定时任务：{{label}} — 应用打开时至少每 {{minutes}} 分钟执行一次",
     "permission": {
       "reader_modes": "添加由应用渲染并控制引导导航的阅读模式",
       "ui_themes": "提供应用与阅读页主题（可附带字体），仅在你选用后生效",

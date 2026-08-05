@@ -4,6 +4,7 @@
  * human-readable reason (surfaced in settings and at install time).
  */
 import {
+  MIN_SCHEDULE_MINUTES,
   PLUGIN_PERMISSIONS,
   type PluginManifest,
   type PluginPermission,
@@ -121,6 +122,37 @@ export function validateManifest(raw: unknown): PluginManifest {
     settings = record.settings as PluginManifest["settings"];
   }
 
+  let schedules: PluginManifest["schedules"];
+  if (record.schedules != null) {
+    if (!Array.isArray(record.schedules)) {
+      throw new PluginManifestError("manifest.schedules must be an array");
+    }
+    const seen = new Set<string>();
+    for (const entry of record.schedules as Record<string, unknown>[]) {
+      if (
+        typeof entry !== "object" || entry === null ||
+        typeof entry.id !== "string" || !/^[a-z][a-z0-9-]*$/.test(entry.id) ||
+        typeof entry.label !== "string" || entry.label.trim() === "" ||
+        typeof entry.everyMinutes !== "number" ||
+        !Number.isFinite(entry.everyMinutes)
+      ) {
+        throw new PluginManifestError(
+          "manifest.schedules entries need an id (lowercase/digits/hyphens), a label, and everyMinutes",
+        );
+      }
+      if (entry.everyMinutes < MIN_SCHEDULE_MINUTES) {
+        throw new PluginManifestError(
+          `manifest.schedules cadence floor is ${MIN_SCHEDULE_MINUTES} minutes`,
+        );
+      }
+      if (seen.has(entry.id)) {
+        throw new PluginManifestError(`duplicate schedule id "${entry.id}"`);
+      }
+      seen.add(entry.id);
+    }
+    schedules = record.schedules as PluginManifest["schedules"];
+  }
+
   const main = optionalString(record, "main");
   if (main && (main.includes("..") || main.startsWith("/") || main.includes("\\"))) {
     throw new PluginManifestError("manifest.main must be a plain relative file name");
@@ -163,6 +195,7 @@ export function validateManifest(raw: unknown): PluginManifest {
     permissions,
     main,
     settings,
+    schedules,
     themes,
     fonts,
   };

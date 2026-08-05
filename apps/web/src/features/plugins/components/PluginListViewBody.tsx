@@ -204,12 +204,17 @@ export function PluginListViewBody({
   ) : null;
 
   if (view.items.length === 0) {
+    // List-level actions must survive emptiness — on a fresh surface they are
+    // the only way to create the first item at all.
     return (
-      <EmptyState
-        icon={<ListBullets size={28} weight="regular" aria-hidden="true" />}
-        title={view.emptyText ?? t("viewer.empty")}
-        className="py-10"
-      />
+      <Stack gap="sm">
+        {listActions}
+        <EmptyState
+          icon={<ListBullets size={28} weight="regular" aria-hidden="true" />}
+          title={view.emptyText ?? t("viewer.empty")}
+          className="py-10"
+        />
+      </Stack>
     );
   }
 

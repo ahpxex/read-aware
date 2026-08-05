@@ -20,6 +20,8 @@ export function PluginSettingsSectionPanel({
         <PluginViewRenderer
           view={{ ...view, title: undefined }}
           viewStateKey={`plugin-settings:${manifest.id}`}
+          // The settings dialog's own viewport scrolls this panel.
+          scroll="flow"
         />
       )}
     </SettingsPage>

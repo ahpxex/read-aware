@@ -1,13 +1,13 @@
 /**
- * Windowed rendering for plugin list bodies: a self-contained scroll region
- * that only mounts the rows near the viewport. A saved-word notebook with
- * thousands of entries would otherwise put every row in the DOM at once.
+ * Windowed rendering for plugin list bodies: only the rows near the viewport
+ * are mounted. A saved-word notebook with thousands of entries would
+ * otherwise put every row in the DOM at once.
  *
- * The region owns its own scroll (rather than leaning on whichever ancestor
- * happens to scroll — that differs between the page host and the dialog host).
- * Its height fills from its top down to the smaller of the viewport bottom and
- * the nearest host scroll area's bottom, so it sits correctly inside a full
- * page and inside a height-capped dialog alike.
+ * The list does NOT own a scroll region. It virtualizes against the nearest
+ * host `.ra-scrollarea` — the app viewport on a plugin page, the bounded
+ * body of a Dialog or header popup — so scrolling always belongs to the
+ * surface and its scrollbar sits at that surface's edge, never on a floating
+ * inner box in the middle of the page.
  */
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -19,60 +19,54 @@ export type VirtualRow = {
   content: ReactNode;
 };
 
-const BOTTOM_GUTTER = 16;
-const MIN_HEIGHT = 200;
+export function PluginVirtualRows({ rows }: { rows: VirtualRow[] }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scroller, setScroller] = useState<HTMLElement | null>(null);
+  // The list's offset within the scroller's CONTENT (viewport-invariant), so
+  // row positions can be expressed relative to the container itself.
+  const [scrollMargin, setScrollMargin] = useState(0);
 
-function useFillHeight(ref: React.RefObject<HTMLElement | null>): number | undefined {
-  const [maxHeight, setMaxHeight] = useState<number>();
   useLayoutEffect(() => {
-    const el = ref.current;
+    const el = containerRef.current;
     if (!el) return;
+    const host = el.closest<HTMLElement>(".ra-scrollarea");
+    setScroller(host);
+    if (!host) return;
     const measure = () => {
-      const top = el.getBoundingClientRect().top;
-      const host = el.closest(".ra-scrollarea");
-      const bottom = host
-        ? Math.min(window.innerHeight, host.getBoundingClientRect().bottom)
-        : window.innerHeight;
-      setMaxHeight(Math.max(MIN_HEIGHT, Math.round(bottom - top - BOTTOM_GUTTER)));
+      const margin =
+        el.getBoundingClientRect().top -
+        host.getBoundingClientRect().top +
+        host.scrollTop;
+      setScrollMargin(Math.max(0, Math.round(margin)));
     };
     measure();
-    // Re-measure after layout settles and whenever the window resizes.
+    // Content above the list (search fields, tab strips, forms) can resize
+    // after mount; the margin must follow or rows land offset.
     const raf = requestAnimationFrame(measure);
     const observer = new ResizeObserver(measure);
+    observer.observe(host);
     observer.observe(document.documentElement);
-    window.addEventListener("resize", measure);
     return () => {
       cancelAnimationFrame(raf);
       observer.disconnect();
-      window.removeEventListener("resize", measure);
     };
-  }, [ref]);
-  return maxHeight;
-}
+  }, [rows.length]);
 
-export function PluginVirtualRows({ rows }: { rows: VirtualRow[] }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const maxHeight = useFillHeight(scrollRef);
-  // Until the region's height is known the "viewport" is unbounded and the
-  // window would be every row — exactly the full mount this component exists
-  // to avoid. First commit renders the empty scroller (so it can be
-  // measured); rows arrive on the second, bounded, commit.
-  const ready = maxHeight !== undefined;
-
+  // Until the host scroller is resolved the "viewport" would be unbounded and
+  // the window every row — exactly the full mount this component exists to
+  // avoid. First commit renders the empty container (so it can be measured);
+  // rows arrive on the second, bounded, commit.
   const virtualizer = useVirtualizer({
-    count: ready ? rows.length : 0,
-    getScrollElement: () => scrollRef.current,
+    count: scroller ? rows.length : 0,
+    getScrollElement: () => scroller,
     estimateSize: (index) => rows[index].size,
     getItemKey: (index) => rows[index].key,
     overscan: 8,
+    scrollMargin,
   });
 
   return (
-    <div
-      ref={scrollRef}
-      className="overflow-y-auto overscroll-contain"
-      style={{ maxHeight }}
-    >
+    <div ref={containerRef}>
       <div style={{ height: virtualizer.getTotalSize(), position: "relative", width: "100%" }}>
         {virtualizer.getVirtualItems().map((virtualRow) => (
           <div
@@ -84,7 +78,7 @@ export function PluginVirtualRows({ rows }: { rows: VirtualRow[] }) {
               top: 0,
               left: 0,
               width: "100%",
-              transform: `translateY(${virtualRow.start}px)`,
+              transform: `translateY(${virtualRow.start - scrollMargin}px)`,
             }}
           >
             {rows[virtualRow.index].content}

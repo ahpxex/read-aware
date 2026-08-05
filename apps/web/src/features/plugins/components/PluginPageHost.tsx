@@ -80,10 +80,11 @@ export function PluginPageHost({ navKey, onExit }: PluginPageHostProps) {
   return (
     <Stack
       gap="none"
-      // Fills the app scroll viewport so the renderer's ScrollArea is the
-      // page's REAL, bounded scroller (title pinned, content scrolls) — the
-      // windowed list needs a height-constrained ancestor to size against.
-      className="mx-auto h-full min-h-0 w-full max-w-5xl px-6 py-8 pb-[calc(2rem+var(--ra-safe-bottom))]"
+      // A page scrolls as a page: content flows in the app scroll viewport
+      // (title included), so the scrollbar lives at the window edge like on
+      // every other full-page surface. Windowed lists virtualize against
+      // that same viewport (PluginVirtualRows).
+      className="mx-auto w-full max-w-5xl px-6 py-8 pb-[calc(2rem+var(--ra-safe-bottom))]"
     >
       {viewDepth <= 1 && (
         <Stack gap="xs" className={cn("shrink-0", action.pluginName === title ? "mb-4" : "mb-6")}>
@@ -99,7 +100,7 @@ export function PluginPageHost({ navKey, onExit }: PluginPageHostProps) {
         onDepthChange={setViewDepth}
         onRequestRefresh={refreshView}
         viewStateKey={action.key}
-        className="min-h-0 flex-1"
+        scroll="flow"
       />
     </Stack>
   );

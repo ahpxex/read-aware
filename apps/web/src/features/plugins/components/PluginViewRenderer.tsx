@@ -42,6 +42,13 @@ type PluginViewRendererProps = {
   dialogFooter?: boolean;
   /** Stable identity of the hosting view; lets a timeline persist its tab. */
   viewStateKey?: string;
+  /**
+   * `contained` (default) scrolls the view inside its own bounded ScrollArea
+   * — for dialogs and popups, whose scrollbar belongs at the container edge.
+   * `flow` renders in normal flow for full-page surfaces: the page's own
+   * scroll viewport does the scrolling and keeps the scrollbar at its edge.
+   */
+  scroll?: "contained" | "flow";
   className?: string;
 };
 
@@ -70,6 +77,7 @@ export function PluginViewRenderer({
   onRequestRefresh,
   dialogFooter = false,
   viewStateKey,
+  scroll = "contained",
   className,
 }: PluginViewRendererProps) {
   const { t } = useTranslation("plugins");
@@ -259,6 +267,11 @@ export function PluginViewRenderer({
 
         {dialogFooter && current.kind === "detail" ? (
           <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+            {currentView}
+            {busyOverlay}
+          </div>
+        ) : scroll === "flow" ? (
+          <div className="relative">
             {currentView}
             {busyOverlay}
           </div>

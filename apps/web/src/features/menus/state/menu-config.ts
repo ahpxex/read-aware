@@ -13,7 +13,11 @@
 import { atom, getDefaultStore } from "jotai";
 import { localKV } from "../../../platform/local-store";
 
-export type MenuSurface = "shelfHeader" | "readerHeader" | "selection";
+export type MenuSurface =
+  | "primaryNav"
+  | "shelfHeader"
+  | "readerHeader"
+  | "selection";
 
 export type SurfaceLayout = {
   /** Ordered, rendered inline. */
@@ -26,6 +30,10 @@ export type MenuConfig = Record<MenuSurface, SurfaceLayout>;
 
 /** Built-in item ids per surface, in their default order. */
 export const CORE_MENU_DEFAULTS: Record<MenuSurface, string[]> = {
+  // Destinations, not actions — the centered text switcher. Stats and plugin
+  // pages are known items that default to the hidden zone (see
+  // CORE_OVERFLOW_DEFAULTS).
+  primaryNav: ["core:library", "core:agent"],
   shelfHeader: [
     "core:search",
     "core:import",
@@ -44,6 +52,31 @@ export const CORE_MENU_DEFAULTS: Record<MenuSurface, string[]> = {
   ],
 };
 
+/**
+ * Known built-ins that start OUT of the visible zone. `resolveSurfaceLayout`
+ * promotes unplaced core ids to visible, so these must be pre-placed in the
+ * default layout rather than left for resolution to discover.
+ */
+const CORE_OVERFLOW_DEFAULTS: Record<MenuSurface, string[]> = {
+  primaryNav: ["core:stats"],
+  shelfHeader: [],
+  readerHeader: [],
+  selection: [],
+};
+
+/** Per-surface arrangement rules the Menus editor enforces. */
+export const SURFACE_RULES: Record<
+  MenuSurface,
+  { minVisible: number; maxVisible: number | null }
+> = {
+  // Never empty (it is the only way between Library and Agent) and capped so
+  // the centered switcher cannot outgrow a narrow window.
+  primaryNav: { minVisible: 1, maxVisible: 4 },
+  shelfHeader: { minVisible: 0, maxVisible: null },
+  readerHeader: { minVisible: 0, maxVisible: null },
+  selection: { minVisible: 0, maxVisible: null },
+};
+
 const STORAGE_KEY = "read-aware-menu-config";
 /** The superseded plugin pin store — migrated into this config on first read. */
 const LEGACY_PLACEMENT_KEY = "read-aware-plugin-placement";
@@ -52,14 +85,19 @@ export function pluginMenuId(contributionKey: string): string {
   return `plugin:${contributionKey}`;
 }
 
+function defaultLayout(surface: MenuSurface): SurfaceLayout {
+  return {
+    visible: [...CORE_MENU_DEFAULTS[surface]],
+    overflow: [...CORE_OVERFLOW_DEFAULTS[surface]],
+  };
+}
+
 function defaultConfig(): MenuConfig {
   return {
-    shelfHeader: { visible: [...CORE_MENU_DEFAULTS.shelfHeader], overflow: [] },
-    readerHeader: {
-      visible: [...CORE_MENU_DEFAULTS.readerHeader],
-      overflow: [],
-    },
-    selection: { visible: [...CORE_MENU_DEFAULTS.selection], overflow: [] },
+    primaryNav: defaultLayout("primaryNav"),
+    shelfHeader: defaultLayout("shelfHeader"),
+    readerHeader: defaultLayout("readerHeader"),
+    selection: defaultLayout("selection"),
   };
 }
 
@@ -83,6 +121,7 @@ function readStored(): MenuConfig {
     if (!raw) return migrateLegacyPlacement(base);
     const parsed = JSON.parse(raw) as Partial<Record<MenuSurface, unknown>>;
     return {
+      primaryNav: sanitizeLayout(parsed.primaryNav, base.primaryNav),
       shelfHeader: sanitizeLayout(parsed.shelfHeader, base.shelfHeader),
       readerHeader: sanitizeLayout(parsed.readerHeader, base.readerHeader),
       selection: sanitizeLayout(parsed.selection, base.selection),
@@ -129,7 +168,7 @@ export function resetSurfaceLayout(surface: MenuSurface): void {
   const current = store.get(menuConfigAtom);
   store.set(menuConfigAtom, {
     ...current,
-    [surface]: { visible: [...CORE_MENU_DEFAULTS[surface]], overflow: [] },
+    [surface]: defaultLayout(surface),
   });
 }
 
@@ -156,4 +195,15 @@ export function resolveSurfaceLayout(
     else overflow.push(id);
   }
   return { visible, overflow };
+}
+
+/**
+ * The primaryNav invariants, applied after resolution: never render an empty
+ * switcher (corrupt storage falls back to the defaults) and never exceed the
+ * cap the editor enforces.
+ */
+export function clampPrimaryNavVisible(visible: string[]): string[] {
+  const rules = SURFACE_RULES.primaryNav;
+  const safe = visible.length > 0 ? visible : CORE_MENU_DEFAULTS.primaryNav;
+  return rules.maxVisible === null ? [...safe] : safe.slice(0, rules.maxVisible);
 }

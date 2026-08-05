@@ -7,7 +7,7 @@
  */
 import { DotsThreeVertical } from "@phosphor-icons/react";
 import { contributionText } from "../../plugins/lib/plugin-i18n";
-import { useState, type ReactNode } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import { Button, Caption, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
@@ -21,11 +21,11 @@ import {
 } from "../../plugins/state/plugin-store";
 import { CORE_MENU_ITEMS } from "../lib/menu-registry";
 import {
-  CORE_MENU_DEFAULTS,
   menuConfigAtom,
   pluginMenuId,
   resetSurfaceLayout,
   resolveSurfaceLayout,
+  SURFACE_RULES,
   type MenuSurface,
 } from "../state/menu-config";
 
@@ -47,12 +47,21 @@ export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
   const selectionActions = useAtomValue(selectionActionsAtom);
   const textUnitReaderMode = useAtomValue(textUnitReaderModeAtom);
   const [dragId, setDragId] = useState<string | null>(null);
+  // primaryNav is a row of text destinations, not icon buttons — the bar
+  // renders labels with slash separators (the live look) and has no dots.
+  const labelBar = surface === "primaryNav";
+  const rules = SURFACE_RULES[surface];
 
   const pluginItems: EditorItem[] = (
     surface === "selection"
       ? selectionActions
       : headerActions.filter((action) =>
-          surface === "shelfHeader" ? action.surface === "shelf" : action.surface === "reader",
+          // Only page contributions qualify as primary destinations.
+          surface === "primaryNav"
+            ? action.surface === "shelf" && action.presentation === "page"
+            : surface === "shelfHeader"
+              ? action.surface === "shelf"
+              : action.surface === "reader",
         )
   ).map((action) => ({
     id: pluginMenuId(action.key),
@@ -82,9 +91,7 @@ export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
   const layout = resolveSurfaceLayout(
     config[surface],
     [
-      ...CORE_MENU_DEFAULTS[surface].filter(
-        (id) => id !== "core:navigator" || textUnitReaderMode !== null,
-      ),
+      ...coreItems.map((item) => item.id),
       ...pluginItems.map((item) => item.id),
     ],
     {
@@ -107,6 +114,10 @@ export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
     const index = beforeId ? target.indexOf(beforeId) : -1;
     if (index >= 0) target.splice(index, 0, dragId);
     else target.push(dragId);
+    // Surface rules: the drop is a no-op rather than a broken arrangement.
+    if (next.visible.length < rules.minVisible) return;
+    if (rules.maxVisible !== null && next.visible.length > rules.maxVisible)
+      return;
     setConfig({ ...config, [surface]: next });
   }
 
@@ -139,11 +150,37 @@ export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
             drop("visible", null);
             setDragId(null);
           }}
-          className="flex min-h-[2.5rem] min-w-0 flex-1 items-center gap-0.5 rounded-lg border border-border bg-[var(--ra-main-surface-color)] px-1.5 py-1"
+          className={cn(
+            "flex min-h-[2.5rem] min-w-0 flex-1 items-center rounded-lg border border-border bg-[var(--ra-main-surface-color)] px-1.5 py-1",
+            labelBar ? "justify-center gap-1" : "gap-0.5",
+          )}
         >
-          {layout.visible.map((id) => {
+          {layout.visible.map((id, index) => {
             const item = itemById.get(id);
             if (!item) return null;
+            if (labelBar) {
+              return (
+                <Fragment key={id}>
+                  {index > 0 && (
+                    <span
+                      aria-hidden="true"
+                      className="select-none font-sans text-sm text-fg-subtle/50"
+                    >
+                      /
+                    </span>
+                  )}
+                  <span
+                    {...dragProps(id, "visible")}
+                    className={cn(
+                      "cursor-grab select-none whitespace-nowrap rounded-md px-1.5 py-1 font-sans text-sm font-medium text-fg hover:bg-fg/5",
+                      dragId === id && "opacity-40",
+                    )}
+                  >
+                    {item.label}
+                  </span>
+                </Fragment>
+              );
+            }
             return (
               <Tooltip
                 key={id}
@@ -162,12 +199,14 @@ export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
               </Tooltip>
             );
           })}
-          <span
-            aria-hidden="true"
-            className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center text-fg-subtle"
-          >
-            <DotsThreeVertical size={18} weight="bold" />
-          </span>
+          {!labelBar && (
+            <span
+              aria-hidden="true"
+              className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center text-fg-subtle"
+            >
+              <DotsThreeVertical size={18} weight="bold" />
+            </span>
+          )}
         </div>
         <Button size="sm" variant="ghost" onClick={() => resetSurfaceLayout(surface)}>
           {t("menus.reset")}
@@ -184,7 +223,9 @@ export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
         }}
         className={cn(
           "ml-auto mr-12 w-56 rounded-lg border bg-[var(--ra-main-surface-color)] p-1",
-          layout.overflow.length === 0
+          // primaryNav has no live overflow menu — its second zone is plain
+          // "not shown" storage, so it never gets the dropdown shadow.
+          labelBar || layout.overflow.length === 0
             ? "border-dashed border-border"
             : "border-border shadow-[0_4px_16px_-6px_rgba(28,25,23,0.15)]",
         )}

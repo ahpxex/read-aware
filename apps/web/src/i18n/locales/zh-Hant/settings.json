@@ -377,11 +377,14 @@
     "reset": "恢復預設",
     "dragHint": "拖曳可排序或在區域間移動。小工具類項目固定內聯顯示。",
     "surface": {
+      "primaryNav": "主導覽",
       "shelfHeader": "書架頂欄",
       "readerHeader": "閱讀器頂欄",
       "selection": "選取選單"
     },
     "items": {
+      "library": "書架",
+      "agent": "智慧助理",
       "search": "搜尋",
       "import": "匯入書籍",
       "viewControl": "書架檢視",

@@ -381,11 +381,14 @@
     "reset": "Reset to defaults",
     "dragHint": "Drag to reorder or move between zones. Widget items stay inline.",
     "surface": {
+      "primaryNav": "Primary navigation",
       "shelfHeader": "Shelf header",
       "readerHeader": "Reader header",
       "selection": "Selection menu"
     },
     "items": {
+      "library": "Library",
+      "agent": "Agent",
       "search": "Search",
       "import": "Import book",
       "viewControl": "Shelf view",

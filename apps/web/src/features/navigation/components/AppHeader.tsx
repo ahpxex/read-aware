@@ -31,6 +31,7 @@ import { openHeaderActionDialog } from "../../plugins/lib/open-header-action";
 import { renderPluginIcon } from "../../plugins/lib/plugin-icons";
 import { contributionText } from "../../plugins/lib/plugin-i18n";
 import { headerActionsAtom } from "../../plugins/state/plugin-store";
+import { usePrimaryDestinations } from "../hooks/usePrimaryDestinations";
 import { PrimaryNavigation } from "./PrimaryNavigation";
 import { WindowCaptionControls } from "./WindowCaptionControls";
 
@@ -55,9 +56,10 @@ const headerIconButtonClass =
   "relative text-fg-muted hover:text-fg before:absolute before:-inset-1 before:content-['']";
 
 /**
- * A single, draggable top bar. Library and Agent are stable primary
- * destinations in the center; contextual and utility actions stay at the
- * edges instead of competing with that navigation.
+ * A single, draggable top bar. The center holds the user-arranged primary
+ * destinations (Settings → Customize, `primaryNav` surface — Library and
+ * Agent by default); contextual and utility actions stay at the edges
+ * instead of competing with that navigation.
  *
  * Phone widths retain the compact primary navigation and search, while the
  * rest of the utility cluster moves into one overflow menu.
@@ -80,10 +82,10 @@ export function AppHeader({
   // macOS keeps it on the right, mirroring the traffic lights.
   const customChrome = desktopChromeKind() === "custom";
   const statsActive = activeTopNav === "stats";
-  const primarySurface =
-    activeTopNav === "shelf" || activeTopNav === "context"
-      ? activeTopNav
-      : null;
+  const primaryDestinations = usePrimaryDestinations();
+  const primaryTopNavs = primaryDestinations.map(
+    (destination) => destination.topNav,
+  );
   const [activeCollectionId, setActiveCollectionId] =
     useAtom(activeCollectionAtom);
   // Plugin buttons live on the shelf header only (docs/plugin-system.md §5).
@@ -217,12 +219,18 @@ export function AppHeader({
     })
     .filter((entry): entry is MenuOverflowEntry => entry !== null);
 
-  // Stats, plugin pages, and an open collection read as pushed views. Agent is
-  // now a primary destination, so switching back to Library happens through
-  // the center navigation rather than a redundant back button.
+  // An open collection reads as a pushed view. So does any surface the center
+  // navigation cannot round-trip: the back button appears unless BOTH the
+  // current surface and Library are visible primary destinations — the user
+  // must never be stranded off the shelf.
   const inCollection = activeTopNav === "shelf" && activeCollectionId !== null;
   const showBack =
-    (activeTopNav !== "shelf" && activeTopNav !== "context") || inCollection;
+    inCollection ||
+    (activeTopNav !== "shelf" &&
+      !(
+        primaryTopNavs.includes(activeTopNav) &&
+        primaryTopNavs.includes("shelf")
+      ));
   const backLabel = inCollection
     ? t("header.back.allBooks")
     : t("header.back.toShelf");
@@ -258,12 +266,13 @@ export function AppHeader({
             />
           )}
           {leadingStatus}
-          {primarySurface && (
+          {primaryDestinations.length > 0 && (
             <div className="absolute left-1/2 top-0 -translate-x-1/2">
               <PrimaryNavigation
                 compact
-                activeSurface={primarySurface}
-                onNavigate={(surface) => onTopNavChange(surface)}
+                destinations={primaryDestinations}
+                activeTopNav={activeTopNav}
+                onNavigate={onTopNavChange}
               />
             </div>
           )}
@@ -376,11 +385,12 @@ export function AppHeader({
           </Tooltip>
         )}
         {leadingStatus}
-        {primarySurface && (
+        {primaryDestinations.length > 0 && (
           <div className="absolute left-1/2 top-0 -translate-x-1/2">
             <PrimaryNavigation
-              activeSurface={primarySurface}
-              onNavigate={(surface) => onTopNavChange(surface)}
+              destinations={primaryDestinations}
+              activeTopNav={activeTopNav}
+              onNavigate={onTopNavChange}
             />
           </div>
         )}

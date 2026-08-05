@@ -381,11 +381,14 @@
     "reset": "Zurücksetzen",
     "dragHint": "Ziehen zum Ordnen oder Verschieben. Widgets bleiben inline.",
     "surface": {
+      "primaryNav": "Hauptnavigation",
       "shelfHeader": "Regal-Kopfleiste",
       "readerHeader": "Reader-Kopfleiste",
       "selection": "Auswahlmenü"
     },
     "items": {
+      "library": "Bibliothek",
+      "agent": "Agent",
       "search": "Suche",
       "import": "Importieren",
       "viewControl": "Ansicht",

@@ -377,11 +377,14 @@
     "reset": "デフォルトに戻す",
     "dragHint": "ドラッグで並べ替え・移動。ウィジェット項目はインライン固定です。",
     "surface": {
+      "primaryNav": "メインナビゲーション",
       "shelfHeader": "本棚ヘッダー",
       "readerHeader": "リーダーヘッダー",
       "selection": "選択メニュー"
     },
     "items": {
+      "library": "ライブラリ",
+      "agent": "エージェント",
       "search": "検索",
       "import": "書籍を追加",
       "viewControl": "本棚ビュー",

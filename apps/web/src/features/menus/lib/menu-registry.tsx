@@ -8,6 +8,7 @@
  * self-contained instead of hunting keys across namespaces.
  */
 import {
+  Books,
   ChartLineUp,
   ChatCircle,
   ChatCircleDots,
@@ -33,6 +34,12 @@ export type CoreMenuItemMeta = {
 };
 
 export const CORE_MENU_ITEMS: Record<MenuSurface, CoreMenuItemMeta[]> = {
+  // Destinations only (pages the app can land on) — actions never belong here.
+  primaryNav: [
+    { id: "core:library", labelKey: "library", Icon: Books },
+    { id: "core:agent", labelKey: "agent", Icon: ChatCircleDots },
+    { id: "core:stats", labelKey: "stats", Icon: ChartLineUp },
+  ],
   shelfHeader: [
     { id: "core:search", labelKey: "search", Icon: MagnifyingGlass },
     { id: "core:import", labelKey: "import", Icon: Plus },

@@ -1,17 +1,20 @@
+import { Fragment } from "react";
 import { NavItem } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
-
-type PrimarySurface = "shelf" | "context";
+import type { TopNav } from "../../../state/ui";
+import type { PrimaryDestination } from "../hooks/usePrimaryDestinations";
 
 export function PrimaryNavigation({
-  activeSurface,
+  destinations,
+  activeTopNav,
   compact = false,
   onNavigate,
 }: {
-  activeSurface: PrimarySurface;
+  destinations: PrimaryDestination[];
+  activeTopNav: TopNav;
   compact?: boolean;
-  onNavigate: (surface: PrimarySurface) => void;
+  onNavigate: (topNav: TopNav) => void;
 }) {
   const { t } = useTranslation("nav");
 
@@ -22,29 +25,28 @@ export function PrimaryNavigation({
       aria-label={t("header.primaryNavigation")}
       className={cn("flex h-12 shrink-0 items-center", compact ? "gap-2" : "gap-3")}
     >
-      <NavItem
-        active={activeSurface === "shelf"}
-        onClick={() => onNavigate("shelf")}
-        className={itemClass}
-      >
-        {t("header.library")}
-      </NavItem>
-      <span
-        aria-hidden="true"
-        className={cn(
-          "select-none font-sans text-fg-subtle/50",
-          compact ? "text-xs" : "text-sm",
-        )}
-      >
-        /
-      </span>
-      <NavItem
-        active={activeSurface === "context"}
-        onClick={() => onNavigate("context")}
-        className={itemClass}
-      >
-        {t("header.agent")}
-      </NavItem>
+      {destinations.map((destination, index) => (
+        <Fragment key={destination.id}>
+          {index > 0 && (
+            <span
+              aria-hidden="true"
+              className={cn(
+                "select-none font-sans text-fg-subtle/50",
+                compact ? "text-xs" : "text-sm",
+              )}
+            >
+              /
+            </span>
+          )}
+          <NavItem
+            active={activeTopNav === destination.topNav}
+            onClick={() => onNavigate(destination.topNav)}
+            className={itemClass}
+          >
+            {destination.label}
+          </NavItem>
+        </Fragment>
+      ))}
     </nav>
   );
 }

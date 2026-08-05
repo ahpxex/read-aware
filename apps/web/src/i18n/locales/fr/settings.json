@@ -385,11 +385,14 @@
     "reset": "Rétablir",
     "dragHint": "Glissez pour réordonner ou déplacer. Les widgets restent en ligne.",
     "surface": {
+      "primaryNav": "Navigation principale",
       "shelfHeader": "Barre de la bibliothèque",
       "readerHeader": "Barre du lecteur",
       "selection": "Menu de sélection"
     },
     "items": {
+      "library": "Bibliothèque",
+      "agent": "Agent",
       "search": "Rechercher",
       "import": "Importer",
       "viewControl": "Vue",

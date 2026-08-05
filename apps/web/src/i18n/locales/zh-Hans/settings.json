@@ -377,11 +377,14 @@
     "reset": "恢复默认",
     "dragHint": "拖动可排序或在区域间移动。挂件类条目固定内联显示。",
     "surface": {
+      "primaryNav": "主导航",
       "shelfHeader": "书架顶栏",
       "readerHeader": "阅读器顶栏",
       "selection": "选区菜单"
     },
     "items": {
+      "library": "书架",
+      "agent": "智能助理",
       "search": "搜索",
       "import": "导入书籍",
       "viewControl": "书架视图",

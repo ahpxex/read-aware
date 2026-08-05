@@ -141,39 +141,51 @@ export function buildSpeechRequest(
 // yields null/[], and the host falls back to typing the voice by hand.
 
 /**
- * The GET that lists a vendor's voices, or null when this vendor cannot list
+ * The GETs that list a vendor's voices — empty when this vendor cannot list
  * them (OpenAI's set is static and declared in the manifest; a custom
  * endpoint can only be probed when it follows the `…/audio/speech`
- * convention, whose sibling `…/audio/voices` Kokoro-style servers expose).
+ * convention). A custom endpoint yields TWO probes, merged by the caller:
+ * the sibling `…/audio/voices` (Kokoro/LocalAI style), and `…/voices` next
+ * to the API root — openai-edge-tts style, where `…/audio/voices` holds only
+ * the OpenAI alias mapping while the full engine catalog (every Edge voice)
+ * lives at `/v1/voices`. A probe the server doesn't implement just 404s and
+ * drops out.
  */
-export function buildVoiceListRequest(
+export function buildVoiceListRequests(
   vendor: Vendor,
   settings: { endpoint?: string },
   apiKey: string | null,
-): VoiceListRequest | null {
+): VoiceListRequest[] {
   switch (vendor) {
     case "elevenlabs":
-      if (!apiKey) return null;
-      return {
-        url: "https://api.elevenlabs.io/v1/voices",
-        headers: { "xi-api-key": apiKey },
-      };
+      if (!apiKey) return [];
+      return [
+        {
+          url: "https://api.elevenlabs.io/v1/voices",
+          headers: { "xi-api-key": apiKey },
+        },
+      ];
     case "fishaudio":
-      if (!apiKey) return null;
-      return {
-        url: "https://api.fish.audio/model?self=true&page_size=100",
-        headers: { authorization: `Bearer ${apiKey}` },
-      };
+      if (!apiKey) return [];
+      return [
+        {
+          url: "https://api.fish.audio/model?self=true&page_size=100",
+          headers: { authorization: `Bearer ${apiKey}` },
+        },
+      ];
     case "openai":
-      return null;
+      return [];
     case "custom": {
       const endpoint = text(settings.endpoint);
-      const match = endpoint.match(/^(.*\/audio)\/speech\/?(?:[?#].*)?$/);
-      if (!match) return null;
+      const match = endpoint.match(/^(.*)\/audio\/speech\/?(?:[?#].*)?$/);
+      if (!match) return [];
       const headers: Record<string, string> = apiKey
         ? { authorization: `Bearer ${apiKey}` }
         : {};
-      return { url: `${match[1]}/voices`, headers };
+      return [
+        { url: `${match[1]}/audio/voices`, headers },
+        { url: `${match[1]}/voices`, headers },
+      ];
     }
   }
 }

@@ -11,13 +11,14 @@
 import type { PluginContext, PluginModule } from "@read-aware/plugin-types";
 import {
   buildSpeechRequest,
-  buildVoiceListRequest,
+  buildVoiceListRequests,
   normalizeSettings,
   parseVoiceList,
   VENDOR_LABELS,
   vendorNeedsKey,
   type TtsSettings,
   type Vendor,
+  type VoiceOption,
 } from "./vendors";
 
 function readSettings(ctx: PluginContext): TtsSettings {
@@ -121,11 +122,27 @@ const plugin: PluginModule = {
                 vendor: "custom",
               }).endpoint;
         const apiKey = await ctx.secrets.get(secretName(vendor));
-        const request = buildVoiceListRequest(vendor, { endpoint }, apiKey);
-        if (!request) return [];
-        const response = await network.fetch(request.url, { headers: request.headers });
-        if (!response.ok) return [];
-        const voices = parseVoiceList(await response.json());
+        const requests = buildVoiceListRequests(vendor, { endpoint }, apiKey);
+        const listings = await Promise.all(
+          requests.map(async (request) => {
+            try {
+              const response = await network.fetch(request.url, {
+                headers: request.headers,
+              });
+              if (!response.ok) return [];
+              return parseVoiceList(await response.json());
+            } catch {
+              return [];
+            }
+          }),
+        );
+        const seen = new Set<string>();
+        const voices: VoiceOption[] = [];
+        for (const option of listings.flat()) {
+          if (seen.has(option.value)) continue;
+          seen.add(option.value);
+          voices.push(option);
+        }
         if (voices.length === 0) return [];
         return [{ value: "", label: "Default voice" }, ...voices];
       });

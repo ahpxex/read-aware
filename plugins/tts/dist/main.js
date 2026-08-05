@@ -82,31 +82,38 @@ function buildSpeechRequest(settings, apiKey, text2) {
     }
   }
 }
-function buildVoiceListRequest(vendor, settings, apiKey) {
+function buildVoiceListRequests(vendor, settings, apiKey) {
   switch (vendor) {
     case "elevenlabs":
       if (!apiKey)
-        return null;
-      return {
-        url: "https://api.elevenlabs.io/v1/voices",
-        headers: { "xi-api-key": apiKey }
-      };
+        return [];
+      return [
+        {
+          url: "https://api.elevenlabs.io/v1/voices",
+          headers: { "xi-api-key": apiKey }
+        }
+      ];
     case "fishaudio":
       if (!apiKey)
-        return null;
-      return {
-        url: "https://api.fish.audio/model?self=true&page_size=100",
-        headers: { authorization: `Bearer ${apiKey}` }
-      };
+        return [];
+      return [
+        {
+          url: "https://api.fish.audio/model?self=true&page_size=100",
+          headers: { authorization: `Bearer ${apiKey}` }
+        }
+      ];
     case "openai":
-      return null;
+      return [];
     case "custom": {
       const endpoint = text(settings.endpoint);
-      const match = endpoint.match(/^(.*\/audio)\/speech\/?(?:[?#].*)?$/);
+      const match = endpoint.match(/^(.*)\/audio\/speech\/?(?:[?#].*)?$/);
       if (!match)
-        return null;
+        return [];
       const headers = apiKey ? { authorization: `Bearer ${apiKey}` } : {};
-      return { url: `${match[1]}/voices`, headers };
+      return [
+        { url: `${match[1]}/audio/voices`, headers },
+        { url: `${match[1]}/voices`, headers }
+      ];
     }
   }
 }
@@ -221,13 +228,27 @@ var plugin = {
           vendor: "custom"
         }).endpoint;
         const apiKey = await ctx.secrets.get(secretName(vendor));
-        const request = buildVoiceListRequest(vendor, { endpoint }, apiKey);
-        if (!request)
-          return [];
-        const response = await network.fetch(request.url, { headers: request.headers });
-        if (!response.ok)
-          return [];
-        const voices = parseVoiceList(await response.json());
+        const requests = buildVoiceListRequests(vendor, { endpoint }, apiKey);
+        const listings = await Promise.all(requests.map(async (request) => {
+          try {
+            const response = await network.fetch(request.url, {
+              headers: request.headers
+            });
+            if (!response.ok)
+              return [];
+            return parseVoiceList(await response.json());
+          } catch {
+            return [];
+          }
+        }));
+        const seen = new Set;
+        const voices = [];
+        for (const option of listings.flat()) {
+          if (seen.has(option.value))
+            continue;
+          seen.add(option.value);
+          voices.push(option);
+        }
         if (voices.length === 0)
           return [];
         return [{ value: "", label: "Default voice" }, ...voices];

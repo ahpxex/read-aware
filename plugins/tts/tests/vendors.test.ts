@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   buildSpeechRequest,
-  buildVoiceListRequest,
+  buildVoiceListRequests,
   normalizeSettings,
   parseVoiceList,
 } from "../src/vendors";
@@ -127,46 +127,51 @@ describe("buildSpeechRequest", () => {
   });
 });
 
-describe("buildVoiceListRequest", () => {
+describe("buildVoiceListRequests", () => {
   test("keyed vendors list only once a key exists", () => {
-    expect(buildVoiceListRequest("elevenlabs", {}, null)).toBeNull();
-    expect(buildVoiceListRequest("fishaudio", {}, null)).toBeNull();
-    expect(buildVoiceListRequest("elevenlabs", {}, "KEY")).toEqual({
-      url: "https://api.elevenlabs.io/v1/voices",
-      headers: { "xi-api-key": "KEY" },
-    });
-    expect(buildVoiceListRequest("fishaudio", {}, "KEY")?.headers.authorization).toBe(
-      "Bearer KEY",
-    );
+    expect(buildVoiceListRequests("elevenlabs", {}, null)).toEqual([]);
+    expect(buildVoiceListRequests("fishaudio", {}, null)).toEqual([]);
+    expect(buildVoiceListRequests("elevenlabs", {}, "KEY")).toEqual([
+      {
+        url: "https://api.elevenlabs.io/v1/voices",
+        headers: { "xi-api-key": "KEY" },
+      },
+    ]);
+    expect(
+      buildVoiceListRequests("fishaudio", {}, "KEY")[0]?.headers.authorization,
+    ).toBe("Bearer KEY");
   });
 
   test("openai has no listing — its voices are declared statically", () => {
-    expect(buildVoiceListRequest("openai", {}, "KEY")).toBeNull();
+    expect(buildVoiceListRequests("openai", {}, "KEY")).toEqual([]);
   });
 
-  test("custom probes the sibling voices route of an …/audio/speech URL", () => {
+  test("custom probes both voices routes around an …/audio/speech URL", () => {
     expect(
-      buildVoiceListRequest(
+      buildVoiceListRequests(
         "custom",
-        { endpoint: "http://127.0.0.1:8880/v1/audio/speech" },
+        { endpoint: "http://127.0.0.1:5050/v1/audio/speech" },
         null,
       ),
-    ).toEqual({ url: "http://127.0.0.1:8880/v1/audio/voices", headers: {} });
+    ).toEqual([
+      { url: "http://127.0.0.1:5050/v1/audio/voices", headers: {} },
+      { url: "http://127.0.0.1:5050/v1/voices", headers: {} },
+    ]);
     expect(
-      buildVoiceListRequest(
+      buildVoiceListRequests(
         "custom",
         { endpoint: "https://tts.local/v1/audio/speech?fmt=mp3" },
         "KEY",
       ),
-    ).toEqual({
-      url: "https://tts.local/v1/audio/voices",
-      headers: { authorization: "Bearer KEY" },
-    });
-    // Off-convention endpoints cannot be probed — no request, text fallback.
+    ).toEqual([
+      { url: "https://tts.local/v1/audio/voices", headers: { authorization: "Bearer KEY" } },
+      { url: "https://tts.local/v1/voices", headers: { authorization: "Bearer KEY" } },
+    ]);
+    // Off-convention endpoints cannot be probed — no requests, text fallback.
     expect(
-      buildVoiceListRequest("custom", { endpoint: "https://tts.local/speak" }, null),
-    ).toBeNull();
-    expect(buildVoiceListRequest("custom", {}, null)).toBeNull();
+      buildVoiceListRequests("custom", { endpoint: "https://tts.local/speak" }, null),
+    ).toEqual([]);
+    expect(buildVoiceListRequests("custom", {}, null)).toEqual([]);
   });
 });
 
@@ -196,6 +201,14 @@ describe("parseVoiceList", () => {
     expect(
       parseVoiceList({ total: 1, items: [{ _id: "m-1", title: "My Voice" }] }),
     ).toEqual([{ value: "m-1", label: "My Voice" }]);
+  });
+
+  test("edge-tts full catalog entries carry only a name", () => {
+    expect(
+      parseVoiceList({
+        voices: [{ name: "zh-CN-XiaoxiaoNeural", gender: "Female", language: "zh-CN" }],
+      }),
+    ).toEqual([{ value: "zh-CN-XiaoxiaoNeural", label: "zh-CN-XiaoxiaoNeural" }]);
   });
 
   test("unusable payloads yield an empty list, never throw", () => {

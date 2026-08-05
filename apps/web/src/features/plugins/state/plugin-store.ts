@@ -16,6 +16,7 @@ import type {
   RegisteredCommand,
   RegisteredHeaderAction,
   RegisteredPluginFont,
+  RegisteredVoiceProvider,
   RegisteredPluginTheme,
   RegisteredReaderMode,
   RegisteredSelectionAction,
@@ -33,6 +34,7 @@ export const pluginCommandsAtom = atom<RegisteredCommand[]>([]);
 export const pluginToolsAtom = atom<RegisteredTool[]>([]);
 export const pluginThemesAtom = atom<RegisteredPluginTheme[]>([]);
 export const pluginFontsAtom = atom<RegisteredPluginFont[]>([]);
+export const voiceProvidersAtom = atom<RegisteredVoiceProvider[]>([]);
 
 /** Installed plugins (manifest + enabled + activation error), for settings. */
 export const installedPluginsAtom = atom<InstalledPlugin[]>([]);
@@ -105,6 +107,25 @@ export function registerThemeContribution(
 
 export function registerFontContribution(item: RegisteredPluginFont): PluginDisposable {
   return register(pluginFontsAtom, item);
+}
+
+export function registerVoiceProviderContribution(
+  item: RegisteredVoiceProvider,
+): PluginDisposable {
+  return register(voiceProvidersAtom, item);
+}
+
+/** Refresh one provider's voice snapshot in place (settings changed). */
+export function updateVoiceProviderVoices(
+  key: ContributionKey,
+  voices: RegisteredVoiceProvider["voices"],
+): void {
+  store.set(
+    voiceProvidersAtom,
+    store
+      .get(voiceProvidersAtom)
+      .map((entry) => (entry.key === key ? { ...entry, voices } : entry)),
+  );
 }
 
 /** Snapshot lookup for callers outside React's flow (style injection paths). */

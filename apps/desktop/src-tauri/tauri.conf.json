@@ -72,6 +72,8 @@
       "../../../plugins/rss-reader/dist/manifest.json": "bundled-plugins/rss-reader/manifest.json",
       "../../../plugins/sentence-reader/dist/main.js": "bundled-plugins/sentence-reader/main.js",
       "../../../plugins/sentence-reader/dist/manifest.json": "bundled-plugins/sentence-reader/manifest.json",
+      "../../../plugins/tts/dist/main.js": "bundled-plugins/tts/main.js",
+      "../../../plugins/tts/dist/manifest.json": "bundled-plugins/tts/manifest.json",
       "../../../plugins/editorial-themes/dist/": "bundled-plugins/editorial-themes/"
     }
   },

@@ -15,7 +15,8 @@
     "@read-aware/plugin-dictionary": "workspace:*",
     "@read-aware/plugin-editorial-themes": "workspace:*",
     "@read-aware/plugin-rss-reader": "workspace:*",
-    "@read-aware/plugin-sentence-reader": "workspace:*"
+    "@read-aware/plugin-sentence-reader": "workspace:*",
+    "@read-aware/plugin-tts": "workspace:*"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.9.1"

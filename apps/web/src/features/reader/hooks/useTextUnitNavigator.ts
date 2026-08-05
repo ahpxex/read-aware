@@ -33,6 +33,8 @@ export type TextUnitNavigator = {
   current: TextUnitTarget | null;
   next: () => void;
   prev: () => void;
+  /** Text of the unit after the resting one, within the loaded section. */
+  peekNext: () => string | null;
   /** Bring the reader back to the unit the navigator rests on — even when
    *  page turns or chapter jumps have carried the view somewhere else. */
   returnToCurrent: () => void;
@@ -538,10 +540,22 @@ export function useTextUnitNavigator({
     }
   }, [applyIndex, viewRef]);
 
+  /** The unit after the resting one — read-aloud prefetches its audio while
+   *  the current one plays. Stays inside the loaded section: peeking across
+   *  a section boundary would need the next document. */
+  const peekNext = useCallback(() => {
+    if (!activeRef.current) return null;
+    const units = unitsRef.current;
+    const index = currentIndexRef.current;
+    if (!units || index < 0 || index + 1 >= units.length) return null;
+    return normalizeText(units[index + 1].toString()) || null;
+  }, []);
+
   return {
     current,
     next,
     prev,
+    peekNext,
     returnToCurrent,
     canReturn,
     handleSectionLoad,

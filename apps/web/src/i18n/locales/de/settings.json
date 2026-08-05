@@ -83,7 +83,13 @@
       "title": "Seitenfarbe",
       "description": "Das Papier des Buches. „Auto“ folgt dem App-Design; die anderen sind fest."
     },
-    "pageMargins": "Seitenränder"
+    "pageMargins": "Seitenränder",
+    "readAloud": {
+      "title": "Vorlesen",
+      "description": "Die Stimme beim satz- oder absatzweisen Vorlesen.",
+      "voice": "Stimme",
+      "systemVoice": "Systemstimme"
+    }
   },
   "shortcuts": {
     "title": "Tastenkürzel",

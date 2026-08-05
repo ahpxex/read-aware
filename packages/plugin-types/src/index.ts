@@ -155,6 +155,36 @@ export type PluginManifest = {
   fonts?: PluginFontContribution[];
 };
 
+// ─── Voice providers (read-aloud) ────────────────────────────────────────────
+
+/** One selectable voice a provider offers. */
+export type PluginVoice = {
+  /** Unique within the provider. */
+  id: string;
+  label: PluginText;
+  /** BCP-47 tags this voice speaks well — informational, shown in pickers. */
+  languages?: string[];
+};
+
+/**
+ * A text-to-speech engine for the reader's read-aloud. The plugin only turns
+ * text into ENCODED AUDIO BYTES (mp3/wav/ogg — anything the webview can
+ * decode); the host owns playback, sentence pacing, prefetch, and the
+ * follow-along highlight, and falls back to the system voice when a call
+ * fails. Voices are listed once at registration and re-listed when the
+ * plugin's settings change.
+ */
+export type PluginVoiceProvider = {
+  id: string;
+  /** Provider name shown alongside its voices in the voice picker. */
+  label: PluginText;
+  listVoices(): PluginVoice[] | Promise<PluginVoice[]>;
+  synthesize(input: {
+    text: string;
+    voiceId: string;
+  }): Promise<ArrayBuffer | Uint8Array>;
+};
+
 // ─── Schedule declarations ───────────────────────────────────────────────────
 
 /** The floor the host clamps `everyMinutes` to. */
@@ -1187,6 +1217,15 @@ export type PluginContext = {
    */
   schedule: {
     on(scheduleId: string, run: () => void | Promise<void>): PluginDisposable;
+  };
+  /**
+   * Read-aloud voice providers. Registration is permission-free — a provider
+   * only answers the host's synthesize calls with audio bytes and never
+   * touches the speaker; whatever it needs to produce them (network,
+   * secrets) is already gated by its own permissions.
+   */
+  audio: {
+    registerVoiceProvider(provider: PluginVoiceProvider): PluginDisposable;
   };
   /**
    * Ambient reader control (user-visible, no data exposure): open a book,

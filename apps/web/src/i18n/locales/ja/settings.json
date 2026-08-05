@@ -83,7 +83,13 @@
       "title": "ページの色",
       "description": "本の紙の色。「自動」はアプリのテーマに従い、その他は固定です。"
     },
-    "pageMargins": "余白"
+    "pageMargins": "余白",
+    "readAloud": {
+      "title": "読み上げ",
+      "description": "文・段落ごとの読み上げに使う音声。",
+      "voice": "音声",
+      "systemVoice": "システム音声"
+    }
   },
   "shortcuts": {
     "title": "ショートカット",

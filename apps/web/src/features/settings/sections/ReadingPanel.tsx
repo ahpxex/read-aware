@@ -1,12 +1,18 @@
 import { useAtom, useAtomValue } from "jotai";
-import { ChoiceGroup, Stack, Toggle } from "@read-aware/ui";
+import { ChoiceGroup, Select, Stack, Toggle } from "@read-aware/ui";
 import { useLocale, useTranslation } from "../../../i18n";
-import { resolvePluginText } from "../../plugins/lib/plugin-i18n";
+import { contributionText, resolvePluginText } from "../../plugins/lib/plugin-i18n";
 import { resolveReaderModeUnit } from "../../plugins/lib/reader-mode";
 import {
   pluginThemesAtom,
   textUnitReaderModeAtom,
+  voiceProvidersAtom,
 } from "../../plugins/state/plugin-store";
+import {
+  pluginVoiceRef,
+  readAloudVoiceAtom,
+  SYSTEM_VOICE,
+} from "../../reader/lib/read-aloud-voice";
 import { preferredTextUnitModeUnitId } from "../../reader/lib/text-unit-mode-state";
 import {
   effectiveReaderSettingsAtom,
@@ -40,6 +46,8 @@ export function ReadingPanel() {
   const locale = useLocale();
   const [prefs, setPrefs] = useAtom(readerPreferencesAtom);
   const [modePrefs, setModePrefs] = useAtom(textUnitModePrefsAtom);
+  const [readAloudVoice, setReadAloudVoice] = useAtom(readAloudVoiceAtom);
+  const voiceProviders = useAtomValue(voiceProvidersAtom);
   const effective = useAtomValue(effectiveReaderSettingsAtom);
   const textUnitMode = useAtomValue(textUnitReaderModeAtom);
   const pluginThemes = useAtomValue(pluginThemesAtom);
@@ -197,6 +205,26 @@ export function ReadingPanel() {
           </Stack>
         </SettingsGroup>
       )}
+
+      <SettingsGroup
+        title={t("reading.readAloud.title")}
+        description={t("reading.readAloud.description")}
+      >
+        <Select
+          label={t("reading.readAloud.voice")}
+          value={readAloudVoice}
+          onChange={setReadAloudVoice}
+          options={[
+            { value: SYSTEM_VOICE, label: t("reading.readAloud.systemVoice") },
+            ...voiceProviders.flatMap((provider) =>
+              provider.voices.map((voice) => ({
+                value: pluginVoiceRef(provider, voice.id),
+                label: `${contributionText(provider.label)} — ${contributionText(voice.label)}`,
+              })),
+            ),
+          ]}
+        />
+      </SettingsGroup>
     </SettingsPage>
   );
 }

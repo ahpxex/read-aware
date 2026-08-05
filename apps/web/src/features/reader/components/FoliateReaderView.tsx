@@ -884,6 +884,7 @@ export function FoliateReaderView({
     enabled: textUnitModeEngineActive,
     current: textUnitNavigator.current,
     next: textUnitNavigator.next,
+    peekNext: textUnitNavigator.peekNext,
   });
   // The engine's mount-once effect and the stable key handler reach the
   // navigator through this ref (its identity changes every render).

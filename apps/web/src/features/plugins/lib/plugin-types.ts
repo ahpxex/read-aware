@@ -13,6 +13,8 @@ import type {
   PluginSelectionAction,
   PluginThemeContribution,
   PluginToolDefinition,
+  PluginVoice,
+  PluginVoiceProvider,
 } from "@read-aware/plugin-types";
 
 export * from "@read-aware/plugin-types";
@@ -79,6 +81,15 @@ export type RegisteredTool = PluginToolDefinition & {
  * provenance. `typography.fontFamily` self-references (`plugin:<fontId>`)
  * have been expanded to the full stored ref at registration.
  */
+export type RegisteredVoiceProvider = PluginVoiceProvider & {
+  key: ContributionKey;
+  pluginId: string;
+  pluginName: string;
+  /** Snapshot taken at registration (and re-taken on settings changes), so
+   *  pickers and the settings catalog read voices synchronously. */
+  voices: PluginVoice[];
+};
+
 export type RegisteredPluginTheme = PluginThemeContribution & {
   key: ContributionKey;
   pluginId: string;

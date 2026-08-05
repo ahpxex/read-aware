@@ -54,6 +54,8 @@ import {
   registerReaderModeContribution,
   registerSelectionActionContribution,
   registerToolContribution,
+  registerVoiceProviderContribution,
+  updateVoiceProviderVoices,
 } from "../state/plugin-store";
 
 function toPluginDocument(row: PluginDocumentRow) {
@@ -284,6 +286,41 @@ export function buildPluginContext(
             },
           }
         : undefined,
+    },
+    audio: {
+      registerVoiceProvider: (provider) => {
+        const key = contributionKey(manifest.id, provider.id);
+        const registration = registerVoiceProviderContribution({
+          ...provider,
+          ...brand,
+          key,
+          voices: [],
+        });
+        const refreshVoices = () => {
+          Promise.resolve(provider.listVoices())
+            .then((voices) =>
+              updateVoiceProviderVoices(key, Array.isArray(voices) ? voices : []),
+            )
+            .catch((error) =>
+              console.warn(
+                `[plugins] listVoices from "${manifest.id}" failed`,
+                error,
+              ),
+            );
+        };
+        refreshVoices();
+        // A vendor/voice switch in the plugin's settings changes what
+        // voices exist — re-list so pickers stay truthful.
+        const offStorage = onAppEvent("plugin-storage-changed", ({ pluginId }) => {
+          if (pluginId === manifest.id) refreshVoices();
+        });
+        return track({
+          dispose: () => {
+            offStorage();
+            registration.dispose();
+          },
+        });
+      },
     },
     schedule: {
       on: (scheduleId, run) => {

@@ -1,0 +1,46 @@
+{
+  "id": "tts",
+  "name": "TTS Voices",
+  "version": "0.1.0",
+  "minAppVersion": "0.3.0",
+  "description": "Read-aloud voices from cloud and local TTS engines: ElevenLabs, Fish Audio, OpenAI, or any OpenAI-compatible endpoint (Kokoro, Piper, LocalAI…).",
+  "author": "ReadAware",
+  "permissions": ["service:network"],
+  "main": "main.js",
+  "settings": [
+    {
+      "kind": "select",
+      "id": "vendor",
+      "label": "Provider",
+      "value": "custom",
+      "options": [
+        { "value": "elevenlabs", "label": "ElevenLabs" },
+        { "value": "fishaudio", "label": "Fish Audio" },
+        { "value": "openai", "label": "OpenAI" },
+        { "value": "custom", "label": "Custom / local (OpenAI-compatible)" }
+      ]
+    },
+    {
+      "kind": "text",
+      "id": "voiceId",
+      "label": "Voice",
+      "helperText": "ElevenLabs voice id, Fish Audio reference id, or the voice name for OpenAI / custom endpoints (e.g. alloy).",
+      "value": "alloy"
+    },
+    {
+      "kind": "text",
+      "id": "model",
+      "label": "Model",
+      "helperText": "Optional. E.g. eleven_multilingual_v2, speech-02, tts-1, kokoro.",
+      "value": ""
+    },
+    {
+      "kind": "text",
+      "id": "endpoint",
+      "label": "Custom endpoint",
+      "helperText": "For the custom provider: an OpenAI-compatible speech URL, e.g. http://127.0.0.1:8880/v1/audio/speech.",
+      "inputMode": "url",
+      "value": "http://127.0.0.1:8880/v1/audio/speech"
+    }
+  ]
+}

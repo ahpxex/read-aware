@@ -83,7 +83,13 @@
       "title": "Page Color",
       "description": "The book's paper. Auto follows the app theme; the others are fixed."
     },
-    "pageMargins": "Page margins"
+    "pageMargins": "Page margins",
+    "readAloud": {
+      "title": "Read aloud",
+      "description": "The voice used when reading by sentence or paragraph.",
+      "voice": "Voice",
+      "systemVoice": "System voice"
+    }
   },
   "shortcuts": {
     "title": "Shortcuts",

@@ -14,6 +14,8 @@ function readArticle(value: unknown): FeedArticle | null {
     title: value.title,
     link: typeof value.link === "string" ? value.link : undefined,
     publishedAt: typeof value.publishedAt === "string" ? value.publishedAt : undefined,
+    publishedAtIso:
+      typeof value.publishedAtIso === "string" ? value.publishedAtIso : undefined,
   };
 }
 

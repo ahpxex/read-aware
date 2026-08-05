@@ -5,6 +5,7 @@
  */
 import {
   ArrowSquareOut,
+  ArrowsClockwise,
   Article,
   BookBookmark,
   BookOpen,
@@ -34,6 +35,7 @@ import {
   NotePencil,
   Notebook,
   Paragraph,
+  Plus,
   PuzzlePiece,
   Quotes,
   Rows,
@@ -52,6 +54,7 @@ import type { ReactNode } from "react";
 
 const PLUGIN_ICONS: Record<string, Icon> = {
   "arrow-square-out": ArrowSquareOut,
+  "arrows-clockwise": ArrowsClockwise,
   article: Article,
   "book-bookmark": BookBookmark,
   "book-open": BookOpen,
@@ -81,6 +84,7 @@ const PLUGIN_ICONS: Record<string, Icon> = {
   "note-pencil": NotePencil,
   notebook: Notebook,
   paragraph: Paragraph,
+  plus: Plus,
   "puzzle-piece": PuzzlePiece,
   quotes: Quotes,
   rows: Rows,

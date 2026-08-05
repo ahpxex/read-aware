@@ -1,3 +1,4 @@
+import { XMLParser, XMLValidator } from "fast-xml-parser";
 import type { FeedArticle, FeedResult, FeedSubscription, RssPluginContext } from "./types";
 import { MAX_ARTICLES, PROVIDER_ID } from "./types";
 import { loadFeeds, upsertFeed } from "./storage";
@@ -29,12 +30,92 @@ function resolveArticleLink(value: string, feedUrl: string): string | undefined 
   }
 }
 
-function pick(parent: ParentNode, ...selectors: string[]): string {
-  for (const selector of selectors) {
-    const value = parent.querySelector(selector)?.textContent?.trim();
+// The plugin sandbox is a Worker — no DOMParser there. Feeds parse through
+// fast-xml-parser (pure JS, bundled into main.js), which also makes this
+// module testable off the DOM.
+const xmlParser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: "@_",
+  // Keep every text node a string — "0123" must not become 123.
+  parseTagValue: false,
+  // Feeds routinely entity-escape embedded HTML (&lt;p&gt;…); decode it the
+  // way DOM .textContent used to.
+  htmlEntities: true,
+});
+
+function asArray<T>(value: T | T[] | undefined | null): T[] {
+  return value == null ? [] : Array.isArray(value) ? value : [value];
+}
+
+/** Element text: a plain string, or the `#text` of an attributed element. */
+function textOf(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value);
+  if (value && typeof value === "object") {
+    return textOf((value as Record<string, unknown>)["#text"]);
+  }
+  return "";
+}
+
+function firstText(item: Record<string, unknown>, ...keys: string[]): string {
+  for (const key of keys) {
+    const value = textOf(item[key]);
     if (value) return value;
   }
   return "";
+}
+
+/** An Atom entry's alternate link href (or its first link without a rel). */
+function atomLink(value: unknown): string {
+  const links = asArray(value as Record<string, unknown> | Record<string, unknown>[]);
+  const preferred =
+    links.find(
+      (link) =>
+        link && typeof link === "object" &&
+        ((link as Record<string, unknown>)["@_rel"] === "alternate" ||
+          (link as Record<string, unknown>)["@_rel"] === undefined),
+    ) ?? links[0];
+  if (!preferred) return "";
+  if (typeof preferred === "string") return preferred;
+  const href = (preferred as Record<string, unknown>)["@_href"];
+  return typeof href === "string" ? href.trim() : "";
+}
+
+type FeedShape = {
+  kind: "rss" | "atom";
+  title: string;
+  items: Record<string, unknown>[];
+};
+
+/** Locate the channel in an RSS 2.0, RSS 1.0 (RDF), or Atom document. */
+function feedShape(doc: Record<string, unknown>): FeedShape | null {
+  const rss = doc.rss as Record<string, unknown> | undefined;
+  const channel = rss?.channel as Record<string, unknown> | undefined;
+  if (channel) {
+    return {
+      kind: "rss",
+      title: textOf(channel.title),
+      items: asArray(channel.item as Record<string, unknown> | Record<string, unknown>[]),
+    };
+  }
+  const rdf = doc["rdf:RDF"] as Record<string, unknown> | undefined;
+  if (rdf) {
+    const rdfChannel = rdf.channel as Record<string, unknown> | undefined;
+    return {
+      kind: "rss",
+      title: textOf(rdfChannel?.title),
+      items: asArray(rdf.item as Record<string, unknown> | Record<string, unknown>[]),
+    };
+  }
+  const atom = doc.feed as Record<string, unknown> | undefined;
+  if (atom) {
+    return {
+      kind: "atom",
+      title: textOf(atom.title),
+      items: asArray(atom.entry as Record<string, unknown> | Record<string, unknown>[]),
+    };
+  }
+  return null;
 }
 
 /** The declared `articleLimit` setting, defended back to the default. */
@@ -51,37 +132,48 @@ export function parseFeed(
   feedUrl: string,
   limit = MAX_ARTICLES,
 ): FeedResult {
-  const xml = new DOMParser().parseFromString(xmlText, "text/xml");
-  if (xml.querySelector("parsererror")) {
+  if (XMLValidator.validate(xmlText) !== true) {
     throw new Error("Not a valid RSS/Atom feed");
   }
+  let doc: Record<string, unknown>;
+  try {
+    doc = xmlParser.parse(xmlText) as Record<string, unknown>;
+  } catch {
+    throw new Error("Not a valid RSS/Atom feed");
+  }
+  const shape = feedShape(doc);
+  if (!shape) throw new Error("Not a valid RSS/Atom feed");
 
-  const isAtom = xml.querySelector("feed > entry") !== null;
-  const title = (isAtom ? pick(xml, "feed > title") : pick(xml, "channel > title")) || feedUrl;
-  const items = Array.from(
-    xml.querySelectorAll(isAtom ? "feed > entry" : "channel > item"),
-  ).slice(0, limit);
+  const title = shape.title || feedUrl;
+  const items = shape.items.slice(0, limit);
 
   const articles: FeedArticle[] = [];
   const sections = items.map((item, index) => {
-    const articleTitle = pick(item, "title") || `Article ${index + 1}`;
-    const encoded = item.getElementsByTagName("content:encoded")[0]?.textContent ?? "";
+    const articleTitle = textOf(item.title) || `Article ${index + 1}`;
     const body =
-      encoded.trim() ||
-      pick(item, "content", "summary", "description") ||
+      (shape.kind === "atom"
+        ? firstText(item, "content", "summary")
+        : firstText(item, "content:encoded", "description")) ||
       "<p>(no content in feed)</p>";
-    const rawLink = isAtom
-      ? (item.querySelector("link")?.getAttribute("href") ?? "")
-      : pick(item, "link");
+    const rawLink =
+      shape.kind === "atom" ? atomLink(item.link) : firstText(item, "link");
     const link = resolveArticleLink(rawLink, feedUrl);
-    const publishedAt = pick(item, "pubDate", "published", "updated") || undefined;
+    const publishedAt =
+      (shape.kind === "atom"
+        ? firstText(item, "published", "updated")
+        : firstText(item, "pubDate", "dc:date")) || undefined;
+    const publishedDate = publishedAt ? new Date(publishedAt) : null;
+    const publishedAtIso =
+      publishedDate && !Number.isNaN(publishedDate.getTime())
+        ? publishedDate.toISOString()
+        : undefined;
     const id = `article-${index}`;
     const header = [
       publishedAt ? `<p><em>${escapeHtml(publishedAt)}</em></p>` : "",
       link ? `<p><a href="${escapeHtml(link)}">Read on the web</a></p>` : "",
     ].join("");
 
-    articles.push({ id, title: articleTitle, link, publishedAt });
+    articles.push({ id, title: articleTitle, link, publishedAt, publishedAtIso });
     return { id, title: articleTitle, html: `${header}${body}` };
   });
 

@@ -7,7 +7,10 @@ export type FeedArticle = {
   id: string;
   title: string;
   link?: string;
+  /** The date string exactly as the feed carried it (shown in book content). */
   publishedAt?: string;
+  /** Parsed ISO form for host-side lists; absent when unparseable. */
+  publishedAtIso?: string;
 };
 
 export type FeedSubscription = {

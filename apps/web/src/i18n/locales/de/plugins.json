@@ -40,6 +40,19 @@
     "permissions": "Berechtigungen",
     "noPermissions": "Keine zusätzlichen Berechtigungen",
     "scheduleLine": "Geplant: {{label}} — mindestens alle {{minutes}} Min. bei geöffneter App",
+    "permissionName": {
+      "reader_modes": "Lesemodi",
+      "ui_themes": "Themes",
+      "shelf_read": "Regal lesen",
+      "shelf_write": "Regal verwalten",
+      "annotations_read": "Anmerkungen lesen",
+      "annotations_write": "Anmerkungen bearbeiten",
+      "conversations_read": "Unterhaltungen lesen",
+      "agent_tools": "Agent-Werkzeuge",
+      "service_network": "Netzwerk",
+      "service_llm": "KI-Anfragen",
+      "service_clipboard": "Zwischenablage"
+    },
     "permission": {
       "reader_modes": "Einen von der App gerenderten geführten Lesemodus hinzufügen",
       "ui_themes": "App- und Lesethemen mit mitgelieferten Schriften anbieten, die erst bei Auswahl gelten",

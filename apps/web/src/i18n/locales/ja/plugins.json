@@ -40,6 +40,19 @@
     "permissions": "権限",
     "noPermissions": "追加の権限なし",
     "scheduleLine": "スケジュール: {{label}} — アプリ起動中は{{minutes}}分ごとに実行",
+    "permissionName": {
+      "reader_modes": "読書モード",
+      "ui_themes": "テーマ",
+      "shelf_read": "本棚の読み取り",
+      "shelf_write": "本棚の管理",
+      "annotations_read": "注釈の読み取り",
+      "annotations_write": "注釈の編集",
+      "conversations_read": "会話の読み取り",
+      "agent_tools": "エージェントツール",
+      "service_network": "ネットワーク",
+      "service_llm": "AI リクエスト",
+      "service_clipboard": "クリップボード"
+    },
     "permission": {
       "reader_modes": "アプリが描画するガイド付き読書モードの追加",
       "ui_themes": "アプリと本文ページのテーマ（同梱フォント付き）を提供。選択したときのみ適用",

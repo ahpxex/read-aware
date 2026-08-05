@@ -40,6 +40,19 @@
     "permissions": "Разрешения",
     "noPermissions": "Без дополнительных разрешений",
     "scheduleLine": "По расписанию: {{label}} — не реже раза в {{minutes}} мин при открытом приложении",
+    "permissionName": {
+      "reader_modes": "Режимы чтения",
+      "ui_themes": "Темы",
+      "shelf_read": "Чтение полки",
+      "shelf_write": "Управление полкой",
+      "annotations_read": "Чтение аннотаций",
+      "annotations_write": "Правка аннотаций",
+      "conversations_read": "Чтение бесед",
+      "agent_tools": "Инструменты агента",
+      "service_network": "Сеть",
+      "service_llm": "ИИ-запросы",
+      "service_clipboard": "Буфер обмена"
+    },
     "permission": {
       "reader_modes": "Добавление режима управляемого чтения, отображаемого приложением",
       "ui_themes": "Предлагать темы приложения и чтения со встроенными шрифтами, применяемые только при выборе",

@@ -40,6 +40,19 @@
     "permissions": "Autorisations",
     "noPermissions": "Aucune autorisation supplémentaire",
     "scheduleLine": "Planifié : {{label}} — au moins toutes les {{minutes}} min quand l'app est ouverte",
+    "permissionName": {
+      "reader_modes": "Modes de lecture",
+      "ui_themes": "Thèmes",
+      "shelf_read": "Lire la bibliothèque",
+      "shelf_write": "Gérer la bibliothèque",
+      "annotations_read": "Lire les annotations",
+      "annotations_write": "Modifier les annotations",
+      "conversations_read": "Lire les conversations",
+      "agent_tools": "Outils de l'agent",
+      "service_network": "Réseau",
+      "service_llm": "Requêtes IA",
+      "service_clipboard": "Presse-papiers"
+    },
     "permission": {
       "reader_modes": "Ajouter un mode de lecture guidée rendu par l’application",
       "ui_themes": "Proposer des thèmes pour l’application et la lecture, avec polices incluses, appliqués uniquement à la sélection",

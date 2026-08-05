@@ -40,6 +40,19 @@
     "permissions": "Permissions",
     "noPermissions": "No extra permissions",
     "scheduleLine": "Scheduled: {{label}} — at least every {{minutes}} min while the app is open",
+    "permissionName": {
+      "reader_modes": "Reading modes",
+      "ui_themes": "Themes",
+      "shelf_read": "Read shelf",
+      "shelf_write": "Manage shelf",
+      "annotations_read": "Read annotations",
+      "annotations_write": "Edit annotations",
+      "conversations_read": "Read conversations",
+      "agent_tools": "Agent tools",
+      "service_network": "Network",
+      "service_llm": "AI requests",
+      "service_clipboard": "Clipboard"
+    },
     "permission": {
       "reader_modes": "Add a host-rendered reading mode that controls guided navigation",
       "ui_themes": "Offer app and reader themes, with bundled fonts, that apply only when you select them",

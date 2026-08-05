@@ -40,6 +40,19 @@
     "permissions": "权限",
     "noPermissions": "无额外权限",
     "scheduleLine": "定时任务：{{label}} — 应用打开时至少每 {{minutes}} 分钟执行一次",
+    "permissionName": {
+      "reader_modes": "阅读模式",
+      "ui_themes": "主题",
+      "shelf_read": "读取书架",
+      "shelf_write": "管理书架",
+      "annotations_read": "读取标注",
+      "annotations_write": "编辑标注",
+      "conversations_read": "读取对话",
+      "agent_tools": "Agent 工具",
+      "service_network": "网络",
+      "service_llm": "AI 请求",
+      "service_clipboard": "剪贴板"
+    },
     "permission": {
       "reader_modes": "添加由应用渲染并控制引导导航的阅读模式",
       "ui_themes": "提供应用与阅读页主题（可附带字体），仅在你选用后生效",

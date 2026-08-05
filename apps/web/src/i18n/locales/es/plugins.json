@@ -40,6 +40,19 @@
     "permissions": "Permisos",
     "noPermissions": "Sin permisos adicionales",
     "scheduleLine": "Programado: {{label}} — al menos cada {{minutes}} min con la app abierta",
+    "permissionName": {
+      "reader_modes": "Modos de lectura",
+      "ui_themes": "Temas",
+      "shelf_read": "Leer estantería",
+      "shelf_write": "Gestionar estantería",
+      "annotations_read": "Leer anotaciones",
+      "annotations_write": "Editar anotaciones",
+      "conversations_read": "Leer conversaciones",
+      "agent_tools": "Herramientas del agente",
+      "service_network": "Red",
+      "service_llm": "Solicitudes de IA",
+      "service_clipboard": "Portapapeles"
+    },
     "permission": {
       "reader_modes": "Añadir un modo de lectura guiada renderizado por la aplicación",
       "ui_themes": "Ofrecer temas para la aplicación y la lectura, con fuentes incluidas, que solo se aplican al seleccionarlos",

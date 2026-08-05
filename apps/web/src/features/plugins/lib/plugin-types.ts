@@ -27,12 +27,21 @@ export function contributionKey(pluginId: string, id: string): ContributionKey {
 }
 
 /**
- * i18n catalog key for a permission's human label. Permission ids contain ":"
- * (i18next's namespace separator), so catalog keys use the "_" form:
- * `shelf:read` → `settings.permission.shelf_read`.
+ * i18n catalog key for a permission's one-sentence description. Permission
+ * ids contain ":" (i18next's namespace separator), so catalog keys use the
+ * "_" form: `shelf:read` → `settings.permission.shelf_read`.
  */
 export function permissionLabelKey(permission: string): string {
   return `settings.permission.${permission.replace(/:/g, "_")}`;
+}
+
+/**
+ * i18n catalog key for a permission's short noun name — what a Badge/Tag
+ * carries. The sentence from `permissionLabelKey` is the description shown
+ * where consent needs it spelled out (the install dialog).
+ */
+export function permissionNameKey(permission: string): string {
+  return `settings.permissionName.${permission.replace(/:/g, "_")}`;
 }
 
 export type RegisteredSelectionAction = PluginSelectionAction & {

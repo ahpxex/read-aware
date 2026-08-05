@@ -24,6 +24,7 @@ import {
   extractNativeBookMetadata,
   type NativeBookMetadata,
 } from "./native-book-metadata";
+import { parseFileName } from "./book-file-name";
 import { sniffBookFormat } from "./book-format-sniff";
 import { isTauri } from "../../../platform/environment";
 import type { FoliateBook } from "../../reader/lib/foliate-engine";
@@ -140,30 +141,6 @@ async function putCollectionRecord(collection: Collection): Promise<void> {
 }
 
 // --- Pure helpers (backend-agnostic) ----------------------------------------
-
-function stripFileExtension(fileName: string) {
-  return fileName.replace(/\.[^.]+$/, "");
-}
-
-function toTitleCase(value: string) {
-  return value.replace(/\w\S*/g, (segment) => (
-    segment.charAt(0).toUpperCase() + segment.slice(1)
-  ));
-}
-
-function normalizeFileNamePart(value: string) {
-  const trimmed = value.replace(/[_]+/g, " ").replace(/\s+/g, " ").trim();
-  if (!trimmed) return "";
-  return toTitleCase(trimmed);
-}
-
-function parseFileName(fileName: string) {
-  const baseName = stripFileExtension(fileName);
-  const [rawTitle, ...rawAuthorParts] = baseName.split(/\s+-\s+/);
-  const title = normalizeFileNamePart(rawTitle) || "Untitled";
-  const author = normalizeFileNamePart(rawAuthorParts.join(" - ")) || "Unknown author";
-  return { title, author };
-}
 
 function sourceFileInfo(source: BookImportSource) {
   return source.kind === "native-path"

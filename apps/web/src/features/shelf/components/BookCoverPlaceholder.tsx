@@ -66,7 +66,10 @@ export function BookCoverPlaceholder({
       <div className="flex min-h-0 flex-1 items-center">
         <span
           className={cn(
-            "line-clamp-5 font-serif text-base font-medium leading-snug [text-wrap:balance]",
+            "line-clamp-5 break-words font-serif font-medium leading-snug [text-wrap:balance]",
+            // A long title (an uncleaned file name at worst) steps down a
+            // size instead of shouting five clipped lines.
+            title.length > 48 ? "text-sm" : "text-base",
             surface.title,
           )}
         >

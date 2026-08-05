@@ -18,3 +18,5 @@ keystore.properties
 
 /.tauri
 /tauri.settings.gradle
+# Plugin bundles materialized from tauri.conf.json resources at build time.
+app/src/main/assets/bundled-plugins/

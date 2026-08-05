@@ -6,6 +6,11 @@
  */
 import { emitAppEvent } from "../../../platform/app-events";
 import { localKV } from "../../../platform/local-store";
+import {
+  deletePluginSecret,
+  getPluginSecret,
+  setPluginSecret,
+} from "../../../platform/secret-store";
 import { getSettingsOptionsProvider } from "../state/plugin-store";
 import type {
   InstalledPlugin,
@@ -42,6 +47,9 @@ export function buildPluginSettingsView(
     title: manifest.name,
     submitMode: "change",
     fields: fields.map((field) => {
+      // A secret field carries no value — it lives in the secret store, not
+      // in the settings object, and is never echoed back.
+      if (field.kind === "secret") return { ...field };
       const value = stored[field.id];
       if (field.kind === "toggle" || field.kind === "checkbox") {
         return { ...field, value: typeof value === "boolean" ? value : field.value };
@@ -59,6 +67,16 @@ export function buildPluginSettingsView(
     // empty and renders as free text input.
     resolveOptions: (fieldId, values) =>
       getSettingsOptionsProvider(manifest.id, fieldId)?.resolve(values) ?? [],
+    // Secret fields write straight to the plugin's encrypted secret
+    // namespace — the same store ctx.secrets reads on the plugin side.
+    secrets: {
+      has: async (id) => {
+        const value = await getPluginSecret(manifest.id, id);
+        return value != null && value !== "";
+      },
+      set: (id, value) => setPluginSecret(manifest.id, id, value),
+      remove: (id) => deletePluginSecret(manifest.id, id),
+    },
   };
 }
 
@@ -96,6 +114,7 @@ export function agentVisiblePluginSettings(
       fields: (plugin.manifest.settings ?? []).filter(
         (field) =>
           !field.agentHidden &&
+          field.kind !== "secret" &&
           !(field.kind === "text" && field.inputMode === "password"),
       ),
     }))

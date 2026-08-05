@@ -39,11 +39,14 @@ export function usePluginFieldOptions({
   fieldId,
   values,
   resolve,
+  revision = 0,
 }: {
   visible: boolean;
   fieldId: string;
   values: PluginFormValues;
   resolve: PluginFormView["resolveOptions"];
+  /** Bump to force a re-resolve for out-of-band changes (stored secrets). */
+  revision?: number;
 }): PluginSelectOption[] | null {
   const [options, setOptions] = useState<PluginSelectOption[] | null>(null);
 
@@ -68,7 +71,7 @@ export function usePluginFieldOptions({
       .catch(() => {
         if (requestRef.current === request) setOptions([]);
       });
-  }, [visible, fieldId, siblingsKey]);
+  }, [visible, fieldId, siblingsKey, revision]);
 
   return options;
 }

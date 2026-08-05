@@ -313,6 +313,16 @@ function normalizeFormField(input: unknown, context: string): PluginFormField {
         : {}),
     } as PluginFormField;
   }
+  if (kind === "secret") {
+    return {
+      ...base,
+      kind,
+      id,
+      label,
+      placeholder: string(value.placeholder, `${context}.placeholder`, true),
+      helperText: string(value.helperText, `${context}.helperText`, true),
+    };
+  }
   if (kind === "toggle" || kind === "checkbox") {
     return {
       ...base,
@@ -326,6 +336,20 @@ function normalizeFormField(input: unknown, context: string): PluginFormField {
     } as PluginFormField;
   }
   throw new PluginViewError(`${context}.kind is not supported`);
+}
+
+function normalizeSecretsAdapter(
+  value: unknown,
+  context: string,
+): PluginFormView["secrets"] {
+  if (value == null) return undefined;
+  const adapter = record(value, context);
+  for (const method of ["has", "set", "remove"] as const) {
+    if (typeof adapter[method] !== "function") {
+      throw new PluginViewError(`${context}.${method} must be a function`);
+    }
+  }
+  return adapter as PluginFormView["secrets"];
 }
 
 function normalizeFormView(input: Record<string, unknown>, context: string): PluginFormView {
@@ -350,6 +374,7 @@ function normalizeFormView(input: Record<string, unknown>, context: string): Plu
     submitLabel: string(input.submitLabel, `${context}.submitLabel`, true),
     onSubmit: input.onSubmit as PluginFormView["onSubmit"],
     resolveOptions: input.resolveOptions as PluginFormView["resolveOptions"],
+    secrets: normalizeSecretsAdapter(input.secrets, `${context}.secrets`),
   };
 }
 

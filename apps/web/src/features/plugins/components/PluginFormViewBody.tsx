@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Button,
   Checkbox,
@@ -40,11 +40,94 @@ function fieldVisible(field: PluginFormField, values: PluginFormValues): boolean
   return expected.some((entry) => actual === entry || String(actual) === entry);
 }
 
+type SecretFieldProps = {
+  field: Extract<PluginFormField, { kind: "secret" }>;
+  adapter: PluginFormView["secrets"];
+  /** Signals key changes so dependent state (dynamic voice lists) refreshes. */
+  onChanged?: () => void;
+};
+
+/**
+ * A credential field over the form's secret adapter. The stored value is
+ * never echoed: the input holds only the CURRENT draft, a masked placeholder
+ * says "configured", and saving clears the draft back to that state. Blur
+ * persists a non-empty draft; Clear removes the stored secret.
+ */
+function PluginSecretField({ field, adapter, onChanged }: SecretFieldProps) {
+  const { t } = useTranslation("plugins");
+  const [configured, setConfigured] = useState(false);
+  const [draft, setDraft] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!adapter) return;
+    void Promise.resolve(adapter.has(field.id)).then((has) => {
+      if (!cancelled) setConfigured(has);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [adapter, field.id]);
+
+  const save = () => {
+    const value = draft.trim();
+    if (!adapter || !value) return;
+    void Promise.resolve(adapter.set(field.id, value)).then(() => {
+      setConfigured(true);
+      setDraft("");
+      onChanged?.();
+    });
+  };
+
+  return (
+    <Stack direction="horizontal" gap="sm" align="end">
+      <TextField
+        label={field.label}
+        variant="outlined"
+        type="password"
+        className="min-w-0 flex-1"
+        placeholder={
+          configured ? t("viewer.secretConfigured") : field.placeholder
+        }
+        helperText={field.helperText}
+        value={draft}
+        disabled={!adapter}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={save}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            save();
+          }
+        }}
+      />
+      {configured && !draft && adapter && (
+        <Button
+          size="sm"
+          variant="ghost"
+          // Sit on the input's baseline row, above its helper text.
+          className={field.helperText ? "mb-6" : undefined}
+          onClick={() => {
+            void Promise.resolve(adapter.remove(field.id)).then(() => {
+              setConfigured(false);
+              onChanged?.();
+            });
+          }}
+        >
+          {t("viewer.secretClear")}
+        </Button>
+      )}
+    </Stack>
+  );
+}
+
 type DynamicSelectProps = {
   field: Extract<PluginFormField, { kind: "select" }>;
   value: string;
   values: PluginFormValues;
   resolve: PluginFormView["resolveOptions"];
+  /** Bumped when out-of-band inputs (stored secrets) change. */
+  revision?: number;
   error?: string;
   onChange: (value: string) => void;
   onBlur?: () => void;
@@ -63,6 +146,7 @@ function PluginDynamicSelectField({
   value,
   values,
   resolve,
+  revision,
   error,
   onChange,
   onBlur,
@@ -74,6 +158,7 @@ function PluginDynamicSelectField({
     fieldId: field.id,
     values,
     resolve,
+    revision,
   });
 
   const options = resolved ?? field.options;
@@ -119,9 +204,14 @@ export function PluginFormViewBody({ view, busy, onResult }: PluginFormViewBodyP
   const reactive = view.submitMode === "change";
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saveRevision, setSaveRevision] = useState(0);
+  // Bumped when a secret field writes/clears, so state that depends on
+  // stored credentials (dynamic option lists) knows to re-resolve.
+  const [secretsRevision, setSecretsRevision] = useState(0);
   const [values, setValues] = useState<PluginFormValues>(() => {
     const initial: PluginFormValues = {};
     for (const field of view.fields) {
+      // Secret fields have no form value — they live in the secret store.
+      if (field.kind === "secret") continue;
       initial[field.id] =
         field.kind === "toggle" || field.kind === "checkbox"
           ? (field.value ?? false)
@@ -231,6 +321,16 @@ export function PluginFormViewBody({ view, busy, onResult }: PluginFormViewBodyP
             />
           );
         }
+        if (field.kind === "secret") {
+          return (
+            <PluginSecretField
+              key={field.id}
+              field={field}
+              adapter={view.secrets}
+              onChanged={() => setSecretsRevision((current) => current + 1)}
+            />
+          );
+        }
         if (field.kind === "select") {
           if (field.dynamicOptions) {
             return (
@@ -240,6 +340,7 @@ export function PluginFormViewBody({ view, busy, onResult }: PluginFormViewBodyP
                 value={String(values[field.id] ?? "")}
                 values={values}
                 resolve={view.resolveOptions}
+                revision={secretsRevision}
                 error={errors[field.id]}
                 onChange={(value) => updateValue(field.id, value)}
                 onBlur={reactive ? flush : undefined}

@@ -4,6 +4,8 @@
     "close": "Close",
     "submit": "Submit",
     "selectPlaceholder": "Select…",
+    "secretConfigured": "Saved — enter a new value to replace",
+    "secretClear": "Clear",
     "loading": "Loading…",
     "empty": "Nothing here yet",
     "search": "Search",

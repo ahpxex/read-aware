@@ -4,6 +4,8 @@
     "close": "关闭",
     "submit": "提交",
     "selectPlaceholder": "请选择…",
+    "secretConfigured": "已保存——输入新值可替换",
+    "secretClear": "清除",
     "loading": "加载中…",
     "empty": "这里还没有内容",
     "search": "搜索",

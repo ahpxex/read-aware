@@ -4,6 +4,8 @@
     "close": "Cerrar",
     "submit": "Enviar",
     "selectPlaceholder": "Seleccionar…",
+    "secretConfigured": "Guardado — escribe un nuevo valor para reemplazar",
+    "secretClear": "Borrar",
     "loading": "Cargando…",
     "empty": "Aún no hay nada aquí",
     "search": "Buscar",

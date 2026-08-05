@@ -4,6 +4,8 @@
     "close": "Закрыть",
     "submit": "Отправить",
     "selectPlaceholder": "Выберите…",
+    "secretConfigured": "Сохранено — введите новое значение для замены",
+    "secretClear": "Очистить",
     "loading": "Загрузка…",
     "empty": "Здесь пока пусто",
     "search": "Поиск",

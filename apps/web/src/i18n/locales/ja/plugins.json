@@ -4,6 +4,8 @@
     "close": "閉じる",
     "submit": "送信",
     "selectPlaceholder": "選択してください…",
+    "secretConfigured": "保存済み — 新しい値を入力すると置き換え",
+    "secretClear": "クリア",
     "loading": "読み込み中…",
     "empty": "まだ何もありません",
     "search": "検索",

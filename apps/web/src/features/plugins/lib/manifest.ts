@@ -103,7 +103,10 @@ export function validateManifest(raw: unknown): PluginManifest {
       "toggle",
       "checkbox",
       "choice",
+      "secret",
     ]);
+    // A secret field's id doubles as its ctx.secrets key.
+    const SECRET_ID = /^[a-z0-9][a-z0-9_-]{0,63}$/;
     for (const field of record.settings as Record<string, unknown>[]) {
       if (
         typeof field !== "object" || field === null ||
@@ -113,6 +116,11 @@ export function validateManifest(raw: unknown): PluginManifest {
       ) {
         throw new PluginManifestError(
           "manifest.settings entries need a valid kind, id, and label",
+        );
+      }
+      if (field.kind === "secret" && !SECRET_ID.test(String(field.id))) {
+        throw new PluginManifestError(
+          "manifest.settings secret ids must be lowercase letters, digits, _ or - (max 64 chars)",
         );
       }
       // A dynamic select gets its options at runtime (ctx.settings

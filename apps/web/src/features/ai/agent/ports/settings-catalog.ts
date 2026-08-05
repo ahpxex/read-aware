@@ -530,6 +530,8 @@ function pluginFieldDefinition(
   plugin: AgentPluginSettings,
   field: PluginFormField,
 ): SettingDefinition | null {
+  // Credentials never enter the agent's settings surface.
+  if (field.kind === "secret") return null;
   if (
     !PATH_SEGMENT_RE.test(plugin.pluginId) ||
     !PATH_SEGMENT_RE.test(field.id)

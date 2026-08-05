@@ -487,6 +487,23 @@ export type PluginFormField = PluginFormFieldBase &
        */
       dynamicOptions?: boolean;
     }
+  | {
+      /**
+       * A credential field: host-rendered password input whose value lives in
+       * the ENCRYPTED secret store (`ctx.secrets`), never in the settings
+       * object, the KV, or the agent's settings catalog. `id` IS the secret
+       * key the plugin reads back (`ctx.secrets.get(id)`); lowercase letters,
+       * digits, `_`/`-`. The field shows configured/empty state and a clear
+       * affordance — it never echoes the stored value. Writes go through the
+       * form's `secrets` adapter: declared settings get it from the host; a
+       * plugin-authored form view may supply its own bound to `ctx.secrets`.
+       */
+      kind: "secret";
+      id: string;
+      label: string;
+      placeholder?: string;
+      helperText?: string;
+    }
   | { kind: "toggle"; id: string; label: string; value?: boolean }
   | { kind: "checkbox"; id: string; label: string; description?: string; value?: boolean }
   | {
@@ -522,6 +539,17 @@ export type PluginFormView = {
     fieldId: string,
     values: PluginFormValues,
   ) => PluginSelectOption[] | Promise<PluginSelectOption[]>;
+  /**
+   * Storage adapter for this form's `secret` fields, keyed by field id.
+   * Declared settings forms get one from the host, bound to the plugin's
+   * encrypted secret namespace; a plugin-authored form may wire its own from
+   * `ctx.secrets`. Secret fields render disabled without an adapter.
+   */
+  secrets?: {
+    has(id: string): boolean | Promise<boolean>;
+    set(id: string, value: string): void | Promise<void>;
+    remove(id: string): void | Promise<void>;
+  };
 };
 
 /**

@@ -6,14 +6,14 @@
  */
 import { useState } from "react";
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
-import { useAtomValue } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { Badge, Button, Caption, Tabs, Toggle, useToast } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { isTauri } from "../../../platform/environment";
+import { settingsSectionRequestAtom } from "../../../state/ui";
 import { PluginMarketplace } from "../../plugins/components/PluginMarketplace";
 import { PluginSearchInput } from "../../plugins/components/PluginSearchInput";
 import { parseManifestJson } from "../../plugins/lib/manifest";
-import { buildPluginSettingsView } from "../../plugins/lib/plugin-settings";
 import { matchesPluginQuery } from "../../plugins/lib/search";
 import { permissionNameKey, type PluginPermission } from "../../plugins/lib/plugin-types";
 import {
@@ -28,7 +28,6 @@ import {
 } from "../../plugins/runtime/plugin-host";
 import {
   installedPluginsAtom,
-  openPluginDialog,
   requestInstallConsent,
 } from "../../plugins/state/plugin-store";
 import { SettingsPage } from "../components/SettingsPage";
@@ -42,6 +41,7 @@ export function PluginsPanel() {
   const { t } = useTranslation("plugins");
   const { toast } = useToast();
   const installed = useAtomValue(installedPluginsAtom);
+  const setSectionRequest = useSetAtom(settingsSectionRequestAtom);
   const [activeTab, setActiveTab] = useState(0);
   const [installedQuery, setInstalledQuery] = useState("");
   const [installing, setInstalling] = useState(false);
@@ -186,20 +186,14 @@ export function PluginsPanel() {
                 }
                 control={
                   <span className="flex shrink-0 items-center gap-2">
-                    {manifest.settings && manifest.settings.length > 0 && (
+                    {plugin.enabled && manifest.settings && manifest.settings.length > 0 && (
+                      // Jump to the plugin's own settings section — the same
+                      // sidebar entry, not a duplicate dialog. Disabled
+                      // plugins have no section, so no button either.
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => {
-                          const view = buildPluginSettingsView(manifest);
-                          if (view) {
-                            openPluginDialog({
-                              pluginId: manifest.id,
-                              pluginName: manifest.name,
-                              view,
-                            });
-                          }
-                        }}
+                        onClick={() => setSectionRequest(`plugin:${manifest.id}`)}
                       >
                         {t("settings.configure")}
                       </Button>

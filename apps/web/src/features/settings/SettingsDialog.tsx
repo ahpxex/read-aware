@@ -20,7 +20,7 @@ import { cn } from "@read-aware/ui/cn";
 import { usePhoneViewport } from "@read-aware/ui/media";
 import { useBackInterceptor } from "../../hooks/useBackInterceptor";
 import { useTranslation } from "../../i18n";
-import { settingsSectionRequestAtom, type SettingsSectionId } from "../../state/ui";
+import { settingsSectionRequestAtom, type CoreSettingsSectionId } from "../../state/ui";
 import { installedPluginsAtom } from "../plugins/state/plugin-store";
 import type { PluginManifest } from "../plugins/lib/plugin-types";
 import { AboutPanel } from "./sections/AboutPanel";
@@ -35,8 +35,9 @@ import { PluginsPanel } from "./sections/PluginsPanel";
 import { ShortcutsPanel } from "./sections/ShortcutsPanel";
 
 // Deep-linkable from anywhere via `settingsSectionRequestAtom` — the id union
-// lives with the atom so requesters don't import the dialog.
-type SectionId = SettingsSectionId;
+// lives with the atom so requesters don't import the dialog. Panels exist for
+// the CORE ids; `plugin:<id>` requests resolve against the entry list below.
+type SectionId = CoreSettingsSectionId;
 
 type SettingsSection = {
   id: SectionId;
@@ -145,17 +146,22 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   }, [open, isPresent]);
 
   // Deep-link: land on the requested section (drilled straight in on phones).
+  // Matches the full entry list, so `plugin:<id>` requests land on a plugin's
+  // own section (entryKey of a core entry IS its section id).
   // Declared AFTER the open-reset effect above so it runs later in the same
   // commit — the reset's `setPhoneSectionIndex(null)` cannot undo the drill-in.
   // One-shot: clearing the atom re-runs this effect, which bails immediately.
   useEffect(() => {
     if (!open || !sectionRequest) return;
-    const index = SECTIONS.findIndex((section) => section.id === sectionRequest);
+    const index = entries.findIndex((entry) => entryKey(entry) === sectionRequest);
     if (index >= 0) {
       setActiveIndex(index);
       if (isPhone) setPhoneSectionIndex(index);
     }
     setSectionRequest(null);
+    // `entries` derives from render-time atoms; the closure sees the current
+    // render's list, and the effect re-runs per request — deps stay minimal.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, sectionRequest, isPhone, setSectionRequest]);
 
   useEffect(() => {

@@ -60,8 +60,8 @@ export const activeTopNavAtom = atom<TopNav>("shelf");
 
 export const settingsOpenAtom = atom(false);
 
-/** The settings dialog's sections, for deep-links from elsewhere in the app. */
-export type SettingsSectionId =
+/** The settings dialog's built-in sections. */
+export type CoreSettingsSectionId =
   | "general"
   | "appearance"
   | "reading"
@@ -71,6 +71,13 @@ export type SettingsSectionId =
   | "shortcuts"
   | "dataSync"
   | "about";
+
+/**
+ * A deep-linkable settings section: a core section, or `plugin:<id>` for an
+ * enabled plugin's own settings section (present only while that plugin is
+ * enabled and declares settings; a request for a missing section is dropped).
+ */
+export type SettingsSectionId = CoreSettingsSectionId | `plugin:${string}`;
 
 /**
  * One-shot deep-link request: the section the settings dialog should land on

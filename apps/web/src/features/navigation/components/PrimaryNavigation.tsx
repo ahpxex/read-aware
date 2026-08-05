@@ -15,29 +15,33 @@ export function PrimaryNavigation({
 }) {
   const { t } = useTranslation("nav");
 
-  const itemClass = (active: boolean) =>
-    cn(
-      "relative -mb-0 h-12 px-1 pb-0 after:pointer-events-none after:absolute after:-bottom-px after:left-0 after:h-0.5 after:w-full after:origin-center after:bg-fg after:content-['']",
-      active ? "after:scale-x-100" : "after:scale-x-0",
-      compact && "text-xs",
-    );
+  const itemClass = cn("-mb-0 h-12 px-1 pb-0", compact && "text-xs");
 
   return (
     <nav
       aria-label={t("header.primaryNavigation")}
-      className={cn("flex h-12 shrink-0 items-center", compact ? "gap-3" : "gap-6")}
+      className={cn("flex h-12 shrink-0 items-center", compact ? "gap-2" : "gap-3")}
     >
       <NavItem
         active={activeSurface === "shelf"}
         onClick={() => onNavigate("shelf")}
-        className={itemClass(activeSurface === "shelf")}
+        className={itemClass}
       >
         {t("header.library")}
       </NavItem>
+      <span
+        aria-hidden="true"
+        className={cn(
+          "select-none font-sans text-fg-subtle/50",
+          compact ? "text-xs" : "text-sm",
+        )}
+      >
+        /
+      </span>
       <NavItem
         active={activeSurface === "context"}
         onClick={() => onNavigate("context")}
-        className={itemClass(activeSurface === "context")}
+        className={itemClass}
       >
         {t("header.agent")}
       </NavItem>

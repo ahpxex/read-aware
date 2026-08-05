@@ -156,10 +156,16 @@ pub fn extract_pdf_metadata_from_path(_path: &Path) -> Result<PdfMetadata, Strin
 }
 
 #[tauri::command]
-pub async fn extract_pdf_metadata(path: String) -> Result<PdfMetadata, String> {
-    tauri::async_runtime::spawn_blocking(move || extract_pdf_metadata_from_path(Path::new(&path)))
-        .await
-        .map_err(|error| format!("extract_pdf_metadata task failed: {error}"))?
+pub async fn extract_pdf_metadata(
+    app: tauri::AppHandle,
+    path: String,
+) -> Result<PdfMetadata, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let source = crate::native_path::materialize(&app, &path)?;
+        extract_pdf_metadata_from_path(&source.path)
+    })
+    .await
+    .map_err(|error| format!("extract_pdf_metadata task failed: {error}"))?
 }
 
 #[cfg(all(test, target_os = "macos"))]

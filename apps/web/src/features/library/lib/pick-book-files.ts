@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { TFunction } from "i18next";
-import { isAndroid, isMobileOS, isTauri } from "../../../platform/environment";
+import { isAndroid, isTauri } from "../../../platform/environment";
 import type { BookImportSource } from "./library-types";
 
 type AndroidBookPickBridge = {
@@ -62,43 +62,6 @@ function fileNameFromPath(path: string): string {
   return segments[segments.length - 1] || path;
 }
 
-/** Per-request transfer size for the mobile chunked book read. */
-const BOOK_READ_CHUNK_BYTES = 256 * 1024;
-
-/**
- * Read a picked book's bytes over the Tauri bridge.
- *
- * Desktop gets the whole file as one raw binary response. Mobile pulls it in
- * small chunks instead: Android injects IPC responses via
- * `evaluateJavascript`, where a multi-megabyte payload takes minutes (or
- * never lands), and Channel messages don't arrive at all — so the Rust side
- * stages the file and the webview requests one bounded slice at a time.
- */
-async function readPickedBookBytes(path: string): Promise<Uint8Array> {
-  if (!isMobileOS()) {
-    // `read_book_file` returns an ipc::Response, so this resolves to an
-    // ArrayBuffer — large books transfer as binary, not a JSON number array.
-    const bytes = await invoke<ArrayBuffer>("read_book_file", { path });
-    return new Uint8Array(bytes);
-  }
-
-  const total = await invoke<number>("book_read_open", { path });
-  try {
-    const merged = new Uint8Array(total);
-    for (let offset = 0; offset < total; offset += BOOK_READ_CHUNK_BYTES) {
-      const chunk = await invoke<ArrayBuffer>("book_read_chunk", {
-        path,
-        offset,
-        length: BOOK_READ_CHUNK_BYTES,
-      });
-      merged.set(new Uint8Array(chunk), offset);
-    }
-    return merged;
-  } finally {
-    void invoke("book_read_close", { path }).catch(() => {});
-  }
-}
-
 /** Poll cadence + ceiling for the Android pick flow. */
 const PICK_POLL_INTERVAL_MS = 300;
 const PICK_POLL_TIMEOUT_MS = 10 * 60 * 1000;
@@ -126,14 +89,33 @@ async function pollBookPickAndroid(): Promise<string | null> {
   return await invoke<string | null>("book_pick_poll");
 }
 
+type AndroidBookPick = {
+  uri: string;
+  /** Display name from the content provider; null when it would not say. */
+  name: string | null;
+  /** Byte size from the content provider; null when unknown. */
+  size: number | null;
+};
+
+/** One parked line: "<uri>\t<name>\t<size>", or a bare URI from older shells. */
+function parseParkedPick(line: string): AndroidBookPick {
+  const [uri, name, size] = line.split("\t");
+  const parsedSize = size == null ? Number.NaN : Number(size);
+  return {
+    uri: uri || line,
+    name: name || null,
+    size: Number.isFinite(parsedSize) && parsedSize >= 0 ? parsedSize : null,
+  };
+}
+
 /**
  * Android book picking WITHOUT tauri-plugin-dialog. MainActivity parks the
- * result natively and this loop polls it. Prefer the direct Android JS bridge:
- * it avoids the Rust→JNI hop for opening the picker, while preserving the Tauri
- * invoke fallback for older shells.
- * Resolves to the picked `content://` URIs, or `null` on cancel.
+ * result natively — content URIs plus provider-resolved display names and
+ * sizes — and this loop polls it. Prefer the direct Android JS bridge: it
+ * avoids the Rust→JNI hop for opening the picker, while preserving the Tauri
+ * invoke fallback for older shells. Resolves to `null` on cancel.
  */
-async function pickBookUrisAndroid(): Promise<string[] | null> {
+async function pickBooksAndroid(): Promise<AndroidBookPick[] | null> {
   const generation = ++pickGenerationCounter;
   await startBookPickAndroid(generation);
   const deadline = performance.now() + PICK_POLL_TIMEOUT_MS;
@@ -141,52 +123,46 @@ async function pickBookUrisAndroid(): Promise<string[] | null> {
     await new Promise((resolve) => setTimeout(resolve, PICK_POLL_INTERVAL_MS));
     const parked = await pollBookPickAndroid();
     if (parked == null) continue;
-    const [parkedGeneration, ...uris] = parked.split("\n").filter(Boolean);
+    const [parkedGeneration, ...lines] = parked.split("\n").filter(Boolean);
     // A stale result from an earlier, written-off attempt: keep waiting.
     if (Number(parkedGeneration) !== generation) continue;
-    const nativeError = uris.find((uri) => uri.startsWith("__ERROR__:"));
+    const nativeError = lines.find((line) => line.startsWith("__ERROR__:"));
     if (nativeError) throw new Error(nativeError.slice("__ERROR__:".length));
-    return uris.length > 0 ? uris : null;
+    return lines.length > 0 ? lines.map(parseParkedPick) : null;
   }
   return null;
 }
 
 /**
- * Open the native OS file dialog with a real "Books" format filter. Desktop
- * returns lightweight path descriptors so Rust can copy directly; mobile
- * reconstructs `File` objects because content URIs are not durable paths.
- * Android routes around the dialog plugin entirely (see pickBookUrisAndroid).
+ * Open the native OS file dialog with a real "Books" format filter. Every
+ * platform returns lightweight path descriptors — Rust copies and extracts
+ * from the path directly (`native_path::materialize` resolves Android
+ * `content://` URIs), so book bytes never cross the IPC bridge at import.
+ * Android routes around the dialog plugin entirely (see pickBooksAndroid).
  */
 export async function pickBookFilesNative(t: TFunction<"shelf">): Promise<BookImportSource[]> {
-  let paths: string[];
   if (isAndroid()) {
-    const uris = await pickBookUrisAndroid();
-    if (uris == null) return [];
-    paths = uris;
-  } else {
-    const selection = await open({
-      multiple: true,
-      title: t("importDialog.title"),
-      filters: [{ name: t("importDialog.filterName"), extensions: [...BOOK_FILE_EXTENSIONS] }],
-    });
-    if (selection == null) return [];
-    paths = Array.isArray(selection) ? selection : [selection];
-  }
-
-  if (!isMobileOS()) {
-    return Promise.all(paths.map(async (path) => ({
+    const picks = await pickBooksAndroid();
+    if (picks == null) return [];
+    return Promise.all(picks.map(async (pick) => ({
       kind: "native-path" as const,
-      path,
-      name: fileNameFromPath(path),
-      size: await invoke<number>("book_file_size", { path }),
+      path: pick.uri,
+      name: pick.name || fileNameFromPath(pick.uri),
+      size: pick.size ?? (await invoke<number>("book_file_size", { path: pick.uri })),
     })));
   }
 
-  return Promise.all(paths.map(async (path) => {
-    const bytes = await readPickedBookBytes(path);
-    return {
-      kind: "file" as const,
-      file: new File([bytes as BlobPart], fileNameFromPath(path)),
-    };
-  }));
+  const selection = await open({
+    multiple: true,
+    title: t("importDialog.title"),
+    filters: [{ name: t("importDialog.filterName"), extensions: [...BOOK_FILE_EXTENSIONS] }],
+  });
+  if (selection == null) return [];
+  const paths = Array.isArray(selection) ? selection : [selection];
+  return Promise.all(paths.map(async (path) => ({
+    kind: "native-path" as const,
+    path,
+    name: fileNameFromPath(path),
+    size: await invoke<number>("book_file_size", { path }),
+  })));
 }

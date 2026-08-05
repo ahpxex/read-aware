@@ -260,10 +260,16 @@ pub fn extract_epub_metadata_from_path(path: &Path) -> Result<EpubMetadata, Stri
 }
 
 #[tauri::command]
-pub async fn extract_epub_metadata(path: String) -> Result<EpubMetadata, String> {
-    tauri::async_runtime::spawn_blocking(move || extract_epub_metadata_from_path(Path::new(&path)))
-        .await
-        .map_err(|error| format!("extract_epub_metadata task failed: {error}"))?
+pub async fn extract_epub_metadata(
+    app: tauri::AppHandle,
+    path: String,
+) -> Result<EpubMetadata, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let source = crate::native_path::materialize(&app, &path)?;
+        extract_epub_metadata_from_path(&source.path)
+    })
+    .await
+    .map_err(|error| format!("extract_epub_metadata task failed: {error}"))?
 }
 
 #[cfg(test)]

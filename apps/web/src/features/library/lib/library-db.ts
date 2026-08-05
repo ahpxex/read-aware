@@ -199,12 +199,38 @@ async function detectBookFormat(source: BookImportSource, t: TFunction<"shelf">)
     return "html";
   }
 
-  // No usable extension or MIME type — Android SAF picks arrive as opaque
-  // content:// names — so fall back to sniffing the file's magic bytes.
-  const sniffed = source.kind === "file" ? await sniffBookFormat(source.file) : null;
+  // No usable extension or MIME type — some Android providers return
+  // extension-less display names — so fall back to sniffing magic bytes.
+  const sniffed = await sniffImportSource(source, info.name);
   if (sniffed) return sniffed;
 
   throw new Error(t("errors.unsupportedFormat", { name: info.name }));
+}
+
+/**
+ * Head window for import-time format sniffing. Every magic number sits in the
+ * first 4 KB; the MOBI/AZW3 discriminator (record 0) almost always within
+ * 64 KB — and a record beyond the window falls back to "mobi".
+ */
+const SNIFF_HEAD_BYTES = 64 * 1024;
+
+async function sniffImportSource(
+  source: BookImportSource,
+  name: string,
+): Promise<BookFormat | null> {
+  if (source.kind === "file") return sniffBookFormat(source.file);
+  if (!isTauri()) return null;
+  try {
+    const head = await invoke<ArrayBuffer>("read_book_head", {
+      path: source.path,
+      length: SNIFF_HEAD_BYTES,
+    });
+    // A head-window File is all the sniffer ever reads from.
+    return await sniffBookFormat(new File([head], name));
+  } catch (error) {
+    console.warn(`Unable to sniff the format of ${name}`, error);
+    return null;
+  }
 }
 
 function clampProgressPercent(value: number) {

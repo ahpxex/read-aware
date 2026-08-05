@@ -30,7 +30,9 @@ class MainActivity : TauriActivity() {
   @Volatile private var bookPickGeneration = 0
 
   /** Parked pick result: "<generation>" alone = cancelled, else
-   *  "<generation>\n<uri>\n<uri>…". The webview collects it by POLLING
+   *  "<generation>\n<uri>\t<displayName>\t<size>\n…" — name/size resolved
+   *  from the content provider here, where the grant is certain, so the
+   *  webview never has to query SAF. The webview collects it by POLLING
    *  (`book_pick_poll` over ordinary request/response IPC) instead of
    *  receiving a push: Tauri's own dialog plugin delivers activity results
    *  through a single mutable callback slot whose response can be dropped
@@ -250,17 +252,50 @@ class MainActivity : TauriActivity() {
     @Suppress("DEPRECATION")
     super.onActivityResult(requestCode, resultCode, data)
     if (requestCode != BOOK_PICK_REQUEST) return
-    val uris = mutableListOf<String>()
+    val uris = mutableListOf<Uri>()
     if (resultCode == RESULT_OK && data != null) {
       val clip = data.clipData
       if (clip != null) {
-        for (i in 0 until clip.itemCount) uris.add(clip.getItemAt(i).uri.toString())
+        for (i in 0 until clip.itemCount) uris.add(clip.getItemAt(i).uri)
       } else {
-        data.data?.let { uris.add(it.toString()) }
+        data.data?.let { uris.add(it) }
       }
     }
-    bookPickResult = (listOf(bookPickGeneration.toString()) + uris).joinToString("\n")
+    val picks = uris.map { uri -> describePick(uri) }
+    bookPickResult = (listOf(bookPickGeneration.toString()) + picks).joinToString("\n")
     bookPickGeneration = 0
+  }
+
+  /** "<uri>\t<displayName>\t<size>" — name empty / size -1 when the provider
+   *  won't say. Tabs cannot survive inside either field: URIs are encoded,
+   *  and a display name containing a tab is sanitized rather than parked. */
+  private fun describePick(uri: Uri): String {
+    var name = ""
+    var size = -1L
+    try {
+      contentResolver.query(
+        uri,
+        arrayOf(
+          android.provider.OpenableColumns.DISPLAY_NAME,
+          android.provider.OpenableColumns.SIZE,
+        ),
+        null,
+        null,
+        null,
+      )?.use { cursor ->
+        if (cursor.moveToFirst()) {
+          val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+          if (nameIndex >= 0 && !cursor.isNull(nameIndex)) {
+            name = cursor.getString(nameIndex).replace('\t', ' ').replace('\n', ' ')
+          }
+          val sizeIndex = cursor.getColumnIndex(android.provider.OpenableColumns.SIZE)
+          if (sizeIndex >= 0 && !cursor.isNull(sizeIndex)) size = cursor.getLong(sizeIndex)
+        }
+      }
+    } catch (_: Throwable) {
+      // A provider that refuses to answer still yields a usable pick.
+    }
+    return "$uri\t$name\t$size"
   }
 
   /**

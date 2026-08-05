@@ -224,10 +224,16 @@ fn attribute(element: &quick_xml::events::BytesStart<'_>, wanted: &[u8]) -> Opti
 }
 
 #[tauri::command]
-pub async fn extract_fb2_metadata(path: String) -> Result<BookMetadata, String> {
-    tauri::async_runtime::spawn_blocking(move || extract_fb2_metadata_from_path(Path::new(&path)))
-        .await
-        .map_err(|error| format!("extract_fb2_metadata task failed: {error}"))?
+pub async fn extract_fb2_metadata(
+    app: tauri::AppHandle,
+    path: String,
+) -> Result<BookMetadata, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let source = crate::native_path::materialize(&app, &path)?;
+        extract_fb2_metadata_from_path(&source.path)
+    })
+    .await
+    .map_err(|error| format!("extract_fb2_metadata task failed: {error}"))?
 }
 
 #[cfg(test)]

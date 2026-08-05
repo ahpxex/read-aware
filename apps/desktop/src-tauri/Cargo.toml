@@ -39,8 +39,12 @@ uuid = { version = "1", features = ["v4"] }
 # Native OS file dialog for book import — the webview ignores HTML <input accept>.
 tauri-plugin-dialog = "2"
 # Filesystem access that understands mobile paths (Android content:// URIs);
-# read_book_file routes through it so book import works on every platform.
+# native_path::materialize routes through it so book import works on every
+# platform.
 tauri-plugin-fs = "2"
+# Staging ground for content-URI picks: extractors and the blob copy read a
+# real path, the temp file vanishes with its guard (also used by tests).
+tempfile = "3"
 tauri-plugin-http = "2.5.9"
 
 # Desktop only: window-chrome helpers and the dev-time MCP bridge. Neither
@@ -77,8 +81,6 @@ windows = { version = "0.61", features = [
 ] }
 
 [dev-dependencies]
-# Scratch dirs for the filesystem blob-store tests.
-tempfile = "3"
 
 # Tauri's third-party dependency graph dominates target/debug when every crate
 # carries full debug data. Keep ReadAware's own symbols, but omit dependency

@@ -87,10 +87,16 @@ fn take_number(chars: &mut std::iter::Peekable<std::str::Chars<'_>>) -> u64 {
 }
 
 #[tauri::command]
-pub async fn extract_comic_metadata(path: String) -> Result<BookMetadata, String> {
-    tauri::async_runtime::spawn_blocking(move || extract_comic_metadata_from_path(Path::new(&path)))
-        .await
-        .map_err(|error| format!("extract_comic_metadata task failed: {error}"))?
+pub async fn extract_comic_metadata(
+    app: tauri::AppHandle,
+    path: String,
+) -> Result<BookMetadata, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let source = crate::native_path::materialize(&app, &path)?;
+        extract_comic_metadata_from_path(&source.path)
+    })
+    .await
+    .map_err(|error| format!("extract_comic_metadata task failed: {error}"))?
 }
 
 #[cfg(test)]

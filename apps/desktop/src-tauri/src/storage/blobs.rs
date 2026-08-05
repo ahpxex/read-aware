@@ -404,8 +404,9 @@ pub fn put_blob(
     put_blob_inner(&conn, &data_dir.0, &key, mime_type.as_deref(), &data)
 }
 
-/// Native desktop import path. File copying and hashing run on Tauri's blocking
-/// pool, not the window thread, and no source bytes cross IPC.
+/// Native import path on every platform. File copying and hashing run on
+/// Tauri's blocking pool, not the window thread, and no source bytes cross
+/// IPC; Android `content://` picks are staged by `native_path::materialize`.
 #[tauri::command]
 pub async fn put_blob_from_file(
     app: AppHandle,
@@ -414,9 +415,10 @@ pub async fn put_blob_from_file(
     mime_type: Option<String>,
 ) -> Result<BlobPutResult, String> {
     tauri::async_runtime::spawn_blocking(move || {
+        let source = crate::native_path::materialize(&app, &path)?;
         let data_dir = app.state::<DataDir>().0.clone();
         let (sha256, byte_size, file_name) =
-            copy_blob_from_file(&data_dir, &key, Path::new(&path))?;
+            copy_blob_from_file(&data_dir, &key, &source.path)?;
         let db = app.state::<Db>();
         let conn = db.0.lock().map_err(|e| e.to_string())?;
         register_blob_inner(

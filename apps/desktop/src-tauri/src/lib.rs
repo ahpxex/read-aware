@@ -4,6 +4,7 @@ mod comic_metadata;
 mod fb2_metadata;
 mod metadata;
 mod mobi_metadata;
+mod native_path;
 mod pdf_metadata;
 mod plugins;
 mod secrets;
@@ -15,15 +16,44 @@ use tauri::Manager;
 #[cfg(target_os = "macos")]
 use tauri_plugin_decorum::WebviewWindowExt;
 
-/// Read a user-selected book file from disk into raw bytes.
-///
-/// The path always originates from the native file dialog (an explicit user
-/// pick). It routes through the fs plugin's cross-platform `open` so Android
-/// `content://` URIs resolve just like ordinary paths; desktop paths hit the
-/// filesystem directly. Returns an `ipc::Response` so large book files transfer
-/// to the webview as a binary ArrayBuffer rather than a JSON number array.
+/// Cheap descriptor for a picker result. The webview needs the size for
+/// duplicate detection and shelf metadata, but must not read the file to learn
+/// it. Routes through the fs plugin so Android `content://` picks resolve too
+/// (fstat on the provider's descriptor; pipe-backed providers report 0, which
+/// the shelf tolerates — Android normally supplies sizes from the picker).
 #[tauri::command]
-fn read_book_file(app: tauri::AppHandle, path: String) -> Result<tauri::ipc::Response, String> {
+async fn book_file_size(app: tauri::AppHandle, path: String) -> Result<u64, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        use tauri_plugin_fs::{FsExt, OpenOptions};
+        let file_path = path
+            .parse::<tauri_plugin_fs::FilePath>()
+            .map_err(|err| format!("Invalid file path {path}: {err}"))?;
+        let mut options = OpenOptions::new();
+        options.read(true);
+        let file = app
+            .fs()
+            .open(file_path, options)
+            .map_err(|err| format!("Failed to open {path}: {err}"))?;
+        file.metadata()
+            .map(|metadata| metadata.len())
+            .map_err(|err| format!("Failed to inspect selected book {path}: {err}"))
+    })
+    .await
+    .map_err(|err| format!("book_file_size task failed: {err}"))?
+}
+
+/// Maximum head window `read_book_head` serves — plenty for format sniffing.
+const BOOK_HEAD_MAX_BYTES: usize = 1024 * 1024;
+
+/// First `length` bytes of a picked book, for content sniffing when the file
+/// name carries no usable extension. Streams through the fs plugin (no Seek),
+/// so pipe-backed content providers work too.
+#[tauri::command]
+fn read_book_head(
+    app: tauri::AppHandle,
+    path: String,
+    length: usize,
+) -> Result<tauri::ipc::Response, String> {
     use std::io::Read;
     use tauri_plugin_fs::{FsExt, OpenOptions};
 
@@ -32,27 +62,16 @@ fn read_book_file(app: tauri::AppHandle, path: String) -> Result<tauri::ipc::Res
         .map_err(|err| format!("Invalid file path {path}: {err}"))?;
     let mut options = OpenOptions::new();
     options.read(true);
-    let mut file = app
+    let file = app
         .fs()
         .open(file_path, options)
         .map_err(|err| format!("Failed to open {path}: {err}"))?;
-    let mut bytes = Vec::new();
-    file.read_to_end(&mut bytes)
+    let capped = length.min(BOOK_HEAD_MAX_BYTES);
+    let mut bytes = Vec::with_capacity(capped);
+    file.take(capped as u64)
+        .read_to_end(&mut bytes)
         .map_err(|err| format!("Failed to read {path}: {err}"))?;
     Ok(tauri::ipc::Response::new(bytes))
-}
-
-/// Cheap descriptor for a desktop picker result. The webview needs the size for
-/// duplicate detection and shelf metadata, but must not read the file to learn it.
-#[tauri::command]
-async fn book_file_size(path: String) -> Result<u64, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        std::fs::metadata(&path)
-            .map(|metadata| metadata.len())
-            .map_err(|err| format!("Failed to inspect selected book {path}: {err}"))
-    })
-    .await
-    .map_err(|err| format!("book_file_size task failed: {err}"))?
 }
 
 /// Write exported content to a path chosen by the user in the native save
@@ -79,12 +98,6 @@ async fn write_export_file(
     .map_err(|err| format!("write_export_file task failed: {err}"))?
 }
 
-/// Book files staged in memory for chunked transfer to the webview, keyed by
-/// the picked path. Mobile only: Android's IPC injects responses via
-/// `evaluateJavascript`, which chokes on multi-megabyte payloads (and Channel
-/// messages don't arrive at all there), so the webview pulls the file in
-/// small raw-response chunks instead. Entries are dropped by
-/// `book_read_close` once the transfer finishes.
 #[cfg(target_os = "macos")]
 fn inherit_system_proxy() {
     if std::env::var_os("HTTP_PROXY").is_some()
@@ -116,68 +129,6 @@ fn inherit_system_proxy() {
         }
     }
     std::env::set_var("NO_PROXY", "localhost,127.0.0.1,::1");
-}
-
-#[derive(Default)]
-pub struct BookReadSessions(Mutex<std::collections::HashMap<String, Vec<u8>>>);
-
-/// Read the whole book into a staging buffer and return its byte length.
-/// `path` may be an ordinary filesystem path or an Android `content://` URI.
-#[tauri::command]
-fn book_read_open(
-    app: tauri::AppHandle,
-    sessions: tauri::State<'_, BookReadSessions>,
-    path: String,
-) -> Result<usize, String> {
-    use std::io::Read;
-    use tauri_plugin_fs::{FsExt, OpenOptions};
-
-    let file_path = path
-        .parse::<tauri_plugin_fs::FilePath>()
-        .map_err(|err| format!("Invalid file path {path}: {err}"))?;
-    let mut options = OpenOptions::new();
-    options.read(true);
-    let mut file = app
-        .fs()
-        .open(file_path, options)
-        .map_err(|err| format!("Failed to open {path}: {err}"))?;
-    let mut bytes = Vec::new();
-    file.read_to_end(&mut bytes)
-        .map_err(|err| format!("Failed to read {path}: {err}"))?;
-    let len = bytes.len();
-    sessions
-        .0
-        .lock()
-        .map_err(|e| e.to_string())?
-        .insert(path, bytes);
-    Ok(len)
-}
-
-/// Return one chunk of a staged book as a raw binary response.
-#[tauri::command]
-fn book_read_chunk(
-    sessions: tauri::State<'_, BookReadSessions>,
-    path: String,
-    offset: usize,
-    length: usize,
-) -> Result<tauri::ipc::Response, String> {
-    let map = sessions.0.lock().map_err(|e| e.to_string())?;
-    let bytes = map
-        .get(&path)
-        .ok_or_else(|| format!("book_read_chunk: no open session for {path}"))?;
-    let start = offset.min(bytes.len());
-    let end = offset.saturating_add(length).min(bytes.len());
-    Ok(tauri::ipc::Response::new(bytes[start..end].to_vec()))
-}
-
-/// Drop a staged book once the webview has pulled every chunk.
-#[tauri::command]
-fn book_read_close(
-    sessions: tauri::State<'_, BookReadSessions>,
-    path: String,
-) -> Result<(), String> {
-    sessions.0.lock().map_err(|e| e.to_string())?.remove(&path);
-    Ok(())
 }
 
 /// Show or hide the Android system status bar for the reader's immersive
@@ -745,7 +696,6 @@ pub fn run() {
             plugins::serve_plugin_asset(ctx.app_handle(), request)
         })
         .manage(android_update::AndroidUpdateState::default())
-        .manage(BookReadSessions::default())
         .manage(storage::BlobReadSessions::default())
         .manage(storage::BlobWriteSessions::default())
         .setup(|app| {
@@ -876,12 +826,9 @@ pub fn run() {
             storage::reading_time_load,
             storage::reading_time_record,
             storage::reading_time_import,
-            read_book_file,
             book_file_size,
+            read_book_head,
             write_export_file,
-            book_read_open,
-            book_read_chunk,
-            book_read_close,
             android_update::android_update_check,
             android_update::android_update_install,
             set_status_bar_hidden,

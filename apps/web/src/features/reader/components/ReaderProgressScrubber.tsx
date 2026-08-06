@@ -34,6 +34,10 @@ const PAGE_STEP_FRACTION = 0.05;
  * the pointer would thrash the engine for positions the user is only passing
  * through.
  *
+ * On touch, only a sideways drag scrubs: a fingertip aimed at the header's
+ * buttons often grazes this strip, so a touch that never moves horizontally
+ * is inert rather than a click-to-seek (see useProgressScrub's slop gate).
+ *
  * Interaction is deliberately opt-out of the header's window drag region: the
  * bar carries `data-tauri-drag-region="false"` so a press scrubs instead of
  * dragging the desktop window.

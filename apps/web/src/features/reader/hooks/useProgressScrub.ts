@@ -11,6 +11,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
 import { clampFraction } from "../lib/reader-progress";
 
+/**
+ * How far a touch must travel before it counts as a scrub. A fingertip aimed
+ * at the header's buttons routinely lands on the hairline below them; with no
+ * gate, that stray tap committed a seek the moment it lifted. Deciding by
+ * first movement instead — sideways arms the drag, anything else dies — costs
+ * a deliberate scrub nothing (dragging is moving) and makes a stray tap inert.
+ * Matches Android's ~8dp touch slop.
+ */
+const TOUCH_DRAG_SLOP_PX = 8;
+
 type UseProgressScrubOptions = {
   /** The reading position the bar paints when no drag is in flight; null while
    *  the position is unknown. */
@@ -58,6 +68,10 @@ export function useProgressScrub({
   // Read back inside the same gesture's later events, where a state read would
   // still see the value from the render the gesture started in.
   const draggingRef = useRef(false);
+  // A touch gesture waiting for its first decisive movement (see
+  // TOUCH_DRAG_SLOP_PX). `dead` marks one that moved vertically instead:
+  // ignored until it ends, not re-armed if it wanders back.
+  const touchGateRef = useRef<{ x: number; y: number; dead: boolean } | null>(null);
   // Where a committed seek is headed, held until the engine reports arriving.
   // Without it, letting go drops the bar back to the position the reader is
   // still on — a visible snap backwards, then a jump forwards once the jump
@@ -99,6 +113,14 @@ export function useProgressScrub({
       if (!enabled || event.button !== 0) return;
       const next = fractionAt(event);
       if (next == null) return;
+      // Touch arms nothing yet: whether this press is a scrub or a stray tap
+      // is unknowable until it moves, so the gesture waits behind the slop
+      // gate — no capture (touch is implicitly captured anyway), no visual
+      // response. A tap that never moves ends as if the bar were not there.
+      if (event.pointerType !== "mouse") {
+        touchGateRef.current = { x: event.clientX, y: event.clientY, dead: false };
+        return;
+      }
       // Deliberately NOT focused here: WebKit treats a programmatic focus as
       // focus-visible, which would leave the bar looking grabbed long after the
       // pointer let go. Keyboard users reach it by tab.
@@ -121,6 +143,22 @@ export function useProgressScrub({
   const onPointerMove = useCallback(
     (event: PointerEvent<HTMLElement>) => {
       if (!enabled) return;
+      const gate = touchGateRef.current;
+      if (gate) {
+        if (gate.dead) return;
+        const dx = event.clientX - gate.x;
+        const dy = event.clientY - gate.y;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < TOUCH_DRAG_SLOP_PX) return;
+        if (Math.abs(dx) < Math.abs(dy)) {
+          // First decisive movement is vertical — a swipe that merely started
+          // on the bar, not a scrub. Ignore the rest of the gesture.
+          gate.dead = true;
+          return;
+        }
+        touchGateRef.current = null;
+        draggingRef.current = true;
+        setDragging(true);
+      }
       // Hovering feeds the same readout as dragging: the bar previews the
       // position under the pointer before the user commits to a drag.
       const next = fractionAt(event);
@@ -131,6 +169,7 @@ export function useProgressScrub({
 
   const onPointerUp = useCallback(
     (event: PointerEvent<HTMLElement>) => {
+      touchGateRef.current = null;
       if (!draggingRef.current) return;
       const next = fractionAt(event) ?? pointerFraction;
       endDrag(event);
@@ -144,6 +183,7 @@ export function useProgressScrub({
   const onPointerCancel = useCallback(
     (event: PointerEvent<HTMLElement>) => {
       // Aborted gesture (system interruption): abandon it without seeking.
+      touchGateRef.current = null;
       endDrag(event);
       setPointerFraction(null);
     },

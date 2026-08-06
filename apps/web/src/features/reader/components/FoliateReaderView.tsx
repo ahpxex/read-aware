@@ -169,6 +169,12 @@ const WHEEL_PAGE_TURN_THRESHOLD_PX = 60;
 // Touch swipe-to-step is simpler — one touch is one gesture: this much mostly-
 // vertical travel steps once, and the touch is latched until the finger lifts.
 const TOUCH_STEP_THRESHOLD_PX = 48;
+// Swipe page turns for FIXED-LAYOUT books (PDF/CBZ) in paginated modes.
+// Foliate's reflowable paginator ships its own touch handling; the
+// fixed-layout renderer has none, so without this a paginated PDF cannot
+// be turned at all on a touch device.
+const FIXED_SWIPE_MIN_PX = 60;
+const FIXED_SWIPE_MAX_MS = 600;
 
 /** Map a reading mode to the foliate renderer's `flow` + column attributes. */
 function layoutForReadingMode(mode: ReadingMode): {
@@ -1294,6 +1300,49 @@ export function FoliateReaderView({
     doc.addEventListener("scroll", bumpReadingActivity, activityOptions);
 
     doc.addEventListener("keydown", handleReaderKeyDown);
+
+    // Fixed-layout page turns by horizontal swipe. The refs are read at
+    // gesture time, not attach time: layout detection can land after the
+    // first section loads, and the reading mode may change over the doc's
+    // lifetime. Short + decisively horizontal keeps long-press selection
+    // and vertical scrolling (scroll mode) untouched.
+    {
+      let swipeStart: { x: number; y: number; at: number } | null = null;
+      doc.addEventListener(
+        "touchstart",
+        (event) => {
+          const touch = event.touches[0];
+          swipeStart =
+            event.touches.length === 1 && touch
+              ? { x: touch.screenX, y: touch.screenY, at: Date.now() }
+              : null;
+        },
+        { passive: true },
+      );
+      doc.addEventListener(
+        "touchend",
+        (event) => {
+          const start = swipeStart;
+          swipeStart = null;
+          if (!start) return;
+          if (!isFixedLayoutRef.current || readingModeRef.current === "scroll") return;
+          const touch = event.changedTouches[0];
+          if (!touch) return;
+          const dx = touch.screenX - start.x;
+          const dy = touch.screenY - start.y;
+          if (Date.now() - start.at > FIXED_SWIPE_MAX_MS) return;
+          if (Math.abs(dx) < FIXED_SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy) * 1.5) {
+            return;
+          }
+          // Visual direction: swiping the content leftwards reveals the page
+          // on the right, and vice versa — correct under RTL too.
+          const view = viewRef.current;
+          if (dx < 0) void view?.goRight();
+          else void view?.goLeft();
+        },
+        { passive: true },
+      );
+    }
 
     // Touch selection: long-pressing hands the gesture to the system's
     // selection handles and our pointer stream ends in `pointercancel`, so the

@@ -7,6 +7,33 @@
 > （信任模型、manifest、分发、生命周期），**Raycast** 定插件的界面层
 > （受限的 UI 词汇，一切插件界面都由应用的设计系统渲染）。
 
+> **勘误（2026-08-06）——本文是设计史，不是现行契约。** 现行契约的唯一
+> 事实源是 `packages/plugin-types/src/index.ts` 的类型与 JSDoc（市场仓
+> `types/plugin-api.d.ts` 为其镜像，用 `bun scripts/sync-plugin-dts.ts`
+> 再生成）。写作之后落地、且与下文相矛盾的关键演进：
+>
+> - **§2 已被推翻：插件现在跑在 Worker 沙箱里**
+>   （`plugin-sandbox.worker.ts`）。插件代码所在的 realm 没有
+>   `window`、没有 `__TAURI_INTERNALS__`，唯一出口是 postMessage 到宿主，
+>   宿主按 manifest 权限门控每一次调用。当年"不做沙箱是清醒取舍"的论证
+>   已不成立——沙箱并没有牺牲插件的能力面。随之而来的两个硬约束：
+>   Worker 里没有 DOM API（DOMParser 等——需要解析的插件自带纯 JS 解析器
+>   打进 main.js），跨界参数必须可结构化克隆（fetch 的包装层负责摊平
+>   URL/Headers/AbortSignal；FormData/Blob body 不支持）。
+> - **声明式设置成为一等面**：启用且声明 `settings` 的插件在设置对话框
+>   拥有自己的分区；字段支持 `visibleWhen` 条件显示、`dynamicOptions`
+>   运行时选项（`ctx.settings.provideOptions` 绑定，列不出即退回文本
+>   输入）、`kind: "secret"` 加密凭据字段（直写 secret store，永不进
+>   明文设置与 agent 目录）；所有字段文案接受 `PluginText` 本地化包。
+> - **新增贡献面**：manifest 声明的定时任务（`schedules` +
+>   `ctx.schedule.on`，15 分钟下限）、朗读声音提供方
+>   （`ctx.audio.registerVoiceProvider`，启用即选用、失败回退系统语音）、
+>   受限 reader mode（`reader:modes`，保留给内置插件，激活期强制）、
+>   声明式主题与字体（`ui:themes`）。
+> - **插件整页滚动模型**：整页 surface 随应用视口整页滚动
+>   （renderer `scroll="flow"`），弹窗/popup 维持内含滚动；虚拟列表
+>   绑定最近的宿主滚动容器，不再自建滚动框。
+
 ## 目录
 
 1. [目标与非目标](#1-目标与非目标)

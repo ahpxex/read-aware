@@ -1,7 +1,7 @@
 {
   "id": "tts",
   "name": "TTS Voices",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "minAppVersion": "0.3.0",
   "description": "Read-aloud voices from cloud and local TTS engines: ElevenLabs, Fish Audio, OpenAI, or any OpenAI-compatible endpoint (Kokoro, Piper, LocalAI…).",
   "author": "ReadAware",
@@ -13,7 +13,18 @@
     {
       "kind": "select",
       "id": "vendor",
-      "label": "Provider",
+      "label": {
+        "default": "Provider",
+        "translations": {
+          "zh-Hans": "提供方",
+          "zh-Hant": "提供方",
+          "ja": "プロバイダー",
+          "ru": "Провайдер",
+          "fr": "Fournisseur",
+          "de": "Anbieter",
+          "es": "Proveedor"
+        }
+      },
       "value": "custom",
       "options": [
         {
@@ -30,15 +41,48 @@
         },
         {
           "value": "custom",
-          "label": "Custom / local (OpenAI-compatible)"
+          "label": {
+            "default": "Custom / local (OpenAI-compatible)",
+            "translations": {
+              "zh-Hans": "自定义 / 本地（OpenAI 兼容）",
+              "zh-Hant": "自訂 / 本地（OpenAI 相容）",
+              "ja": "カスタム／ローカル（OpenAI互換）",
+              "ru": "Свой / локальный (OpenAI-совместимый)",
+              "fr": "Personnalisé / local (compatible OpenAI)",
+              "de": "Eigener / lokal (OpenAI-kompatibel)",
+              "es": "Personalizado / local (compatible con OpenAI)"
+            }
+          }
         }
       ]
     },
     {
       "kind": "secret",
       "id": "elevenlabs-api-key",
-      "label": "API key",
-      "helperText": "Stored in the encrypted secret store, never in plain settings.",
+      "label": {
+        "default": "API key",
+        "translations": {
+          "zh-Hans": "API 密钥",
+          "zh-Hant": "API 金鑰",
+          "ja": "APIキー",
+          "ru": "Ключ API",
+          "fr": "Clé API",
+          "de": "API-Schlüssel",
+          "es": "Clave de API"
+        }
+      },
+      "helperText": {
+        "default": "Stored in the encrypted secret store, never in plain settings.",
+        "translations": {
+          "zh-Hans": "保存在加密的密钥存储中，绝不落入明文设置。",
+          "zh-Hant": "保存在加密的金鑰儲存中，絕不落入明文設定。",
+          "ja": "暗号化されたシークレットストアに保存され、平文設定には入りません。",
+          "ru": "Хранится в зашифрованном хранилище секретов, никогда — в открытых настройках.",
+          "fr": "Stockée dans le coffre chiffré, jamais dans les réglages en clair.",
+          "de": "Im verschlüsselten Geheimnisspeicher abgelegt, nie in Klartext-Einstellungen.",
+          "es": "Se guarda en el almacén cifrado de secretos, nunca en ajustes en claro."
+        }
+      },
       "visibleWhen": {
         "field": "vendor",
         "equals": "elevenlabs"
@@ -47,9 +91,31 @@
     {
       "kind": "select",
       "id": "elevenlabsVoice",
-      "label": "Voice",
+      "label": {
+        "default": "Voice",
+        "translations": {
+          "zh-Hans": "声音",
+          "zh-Hant": "聲音",
+          "ja": "ボイス",
+          "ru": "Голос",
+          "fr": "Voix",
+          "de": "Stimme",
+          "es": "Voz"
+        }
+      },
       "dynamicOptions": true,
-      "helperText": "Voices from your ElevenLabs account — save the API key first, or type a voice id.",
+      "helperText": {
+        "default": "Voices from your ElevenLabs account — save the API key first, or type a voice id.",
+        "translations": {
+          "zh-Hans": "来自你 ElevenLabs 账号的声音——先保存 API 密钥，或直接输入 voice id。",
+          "zh-Hant": "來自你 ElevenLabs 帳號的聲音——先儲存 API 金鑰，或直接輸入 voice id。",
+          "ja": "ElevenLabsアカウントのボイス一覧。先にAPIキーを保存するか、voice idを直接入力してください。",
+          "ru": "Голоса вашего аккаунта ElevenLabs — сначала сохраните ключ API или введите id голоса.",
+          "fr": "Les voix de votre compte ElevenLabs — enregistrez d'abord la clé API, ou saisissez un id de voix.",
+          "de": "Stimmen Ihres ElevenLabs-Kontos — erst den API-Schlüssel speichern oder eine Voice-ID eintippen.",
+          "es": "Voces de tu cuenta de ElevenLabs: guarda primero la clave de API o escribe un id de voz."
+        }
+      },
       "visibleWhen": {
         "field": "vendor",
         "equals": "elevenlabs"
@@ -58,8 +124,30 @@
     {
       "kind": "text",
       "id": "elevenlabsModel",
-      "label": "Model",
-      "helperText": "Optional. E.g. eleven_multilingual_v2 (default), eleven_turbo_v2_5.",
+      "label": {
+        "default": "Model",
+        "translations": {
+          "zh-Hans": "模型",
+          "zh-Hant": "模型",
+          "ja": "モデル",
+          "ru": "Модель",
+          "fr": "Modèle",
+          "de": "Modell",
+          "es": "Modelo"
+        }
+      },
+      "helperText": {
+        "default": "Optional. E.g. eleven_multilingual_v2 (default), eleven_turbo_v2_5.",
+        "translations": {
+          "zh-Hans": "可选。如 eleven_multilingual_v2（默认）、eleven_turbo_v2_5。",
+          "zh-Hant": "可選。如 eleven_multilingual_v2（預設）、eleven_turbo_v2_5。",
+          "ja": "任意。例：eleven_multilingual_v2（既定）、eleven_turbo_v2_5。",
+          "ru": "Необязательно. Например eleven_multilingual_v2 (по умолчанию), eleven_turbo_v2_5.",
+          "fr": "Facultatif. Ex. eleven_multilingual_v2 (défaut), eleven_turbo_v2_5.",
+          "de": "Optional. Z. B. eleven_multilingual_v2 (Standard), eleven_turbo_v2_5.",
+          "es": "Opcional. P. ej. eleven_multilingual_v2 (predeterminado), eleven_turbo_v2_5."
+        }
+      },
       "visibleWhen": {
         "field": "vendor",
         "equals": "elevenlabs"
@@ -68,8 +156,30 @@
     {
       "kind": "secret",
       "id": "fishaudio-api-key",
-      "label": "API key",
-      "helperText": "Stored in the encrypted secret store, never in plain settings.",
+      "label": {
+        "default": "API key",
+        "translations": {
+          "zh-Hans": "API 密钥",
+          "zh-Hant": "API 金鑰",
+          "ja": "APIキー",
+          "ru": "Ключ API",
+          "fr": "Clé API",
+          "de": "API-Schlüssel",
+          "es": "Clave de API"
+        }
+      },
+      "helperText": {
+        "default": "Stored in the encrypted secret store, never in plain settings.",
+        "translations": {
+          "zh-Hans": "保存在加密的密钥存储中，绝不落入明文设置。",
+          "zh-Hant": "保存在加密的金鑰儲存中，絕不落入明文設定。",
+          "ja": "暗号化されたシークレットストアに保存され、平文設定には入りません。",
+          "ru": "Хранится в зашифрованном хранилище секретов, никогда — в открытых настройках.",
+          "fr": "Stockée dans le coffre chiffré, jamais dans les réglages en clair.",
+          "de": "Im verschlüsselten Geheimnisspeicher abgelegt, nie in Klartext-Einstellungen.",
+          "es": "Se guarda en el almacén cifrado de secretos, nunca en ajustes en claro."
+        }
+      },
       "visibleWhen": {
         "field": "vendor",
         "equals": "fishaudio"
@@ -78,9 +188,31 @@
     {
       "kind": "select",
       "id": "fishaudioVoice",
-      "label": "Voice",
+      "label": {
+        "default": "Voice",
+        "translations": {
+          "zh-Hans": "声音",
+          "zh-Hant": "聲音",
+          "ja": "ボイス",
+          "ru": "Голос",
+          "fr": "Voix",
+          "de": "Stimme",
+          "es": "Voz"
+        }
+      },
       "dynamicOptions": true,
-      "helperText": "Your Fish Audio voice models — save the API key first, or type a reference id.",
+      "helperText": {
+        "default": "Your Fish Audio voice models — save the API key first, or type a reference id.",
+        "translations": {
+          "zh-Hans": "你的 Fish Audio 声音模型——先保存 API 密钥，或直接输入 reference id。",
+          "zh-Hant": "你的 Fish Audio 聲音模型——先儲存 API 金鑰，或直接輸入 reference id。",
+          "ja": "Fish Audioのボイスモデル一覧。先にAPIキーを保存するか、reference idを直接入力してください。",
+          "ru": "Ваши голосовые модели Fish Audio — сначала сохраните ключ API или введите reference id.",
+          "fr": "Vos modèles de voix Fish Audio — enregistrez d'abord la clé API, ou saisissez un reference id.",
+          "de": "Ihre Fish-Audio-Stimmmodelle — erst den API-Schlüssel speichern oder eine Reference-ID eintippen.",
+          "es": "Tus modelos de voz de Fish Audio: guarda primero la clave de API o escribe un reference id."
+        }
+      },
       "visibleWhen": {
         "field": "vendor",
         "equals": "fishaudio"
@@ -89,8 +221,30 @@
     {
       "kind": "text",
       "id": "fishaudioModel",
-      "label": "Model",
-      "helperText": "Optional. E.g. speech-02.",
+      "label": {
+        "default": "Model",
+        "translations": {
+          "zh-Hans": "模型",
+          "zh-Hant": "模型",
+          "ja": "モデル",
+          "ru": "Модель",
+          "fr": "Modèle",
+          "de": "Modell",
+          "es": "Modelo"
+        }
+      },
+      "helperText": {
+        "default": "Optional. E.g. speech-02.",
+        "translations": {
+          "zh-Hans": "可选。如 speech-02。",
+          "zh-Hant": "可選。如 speech-02。",
+          "ja": "任意。例：speech-02。",
+          "ru": "Необязательно. Например speech-02.",
+          "fr": "Facultatif. Ex. speech-02.",
+          "de": "Optional. Z. B. speech-02.",
+          "es": "Opcional. P. ej. speech-02."
+        }
+      },
       "visibleWhen": {
         "field": "vendor",
         "equals": "fishaudio"
@@ -99,8 +253,30 @@
     {
       "kind": "secret",
       "id": "openai-api-key",
-      "label": "API key",
-      "helperText": "Stored in the encrypted secret store, never in plain settings.",
+      "label": {
+        "default": "API key",
+        "translations": {
+          "zh-Hans": "API 密钥",
+          "zh-Hant": "API 金鑰",
+          "ja": "APIキー",
+          "ru": "Ключ API",
+          "fr": "Clé API",
+          "de": "API-Schlüssel",
+          "es": "Clave de API"
+        }
+      },
+      "helperText": {
+        "default": "Stored in the encrypted secret store, never in plain settings.",
+        "translations": {
+          "zh-Hans": "保存在加密的密钥存储中，绝不落入明文设置。",
+          "zh-Hant": "保存在加密的金鑰儲存中，絕不落入明文設定。",
+          "ja": "暗号化されたシークレットストアに保存され、平文設定には入りません。",
+          "ru": "Хранится в зашифрованном хранилище секретов, никогда — в открытых настройках.",
+          "fr": "Stockée dans le coffre chiffré, jamais dans les réglages en clair.",
+          "de": "Im verschlüsselten Geheimnisspeicher abgelegt, nie in Klartext-Einstellungen.",
+          "es": "Se guarda en el almacén cifrado de secretos, nunca en ajustes en claro."
+        }
+      },
       "visibleWhen": {
         "field": "vendor",
         "equals": "openai"
@@ -109,7 +285,18 @@
     {
       "kind": "select",
       "id": "openaiVoice",
-      "label": "Voice",
+      "label": {
+        "default": "Voice",
+        "translations": {
+          "zh-Hans": "声音",
+          "zh-Hant": "聲音",
+          "ja": "ボイス",
+          "ru": "Голос",
+          "fr": "Voix",
+          "de": "Stimme",
+          "es": "Voz"
+        }
+      },
       "value": "alloy",
       "options": [
         {
@@ -165,8 +352,30 @@
     {
       "kind": "text",
       "id": "openaiModel",
-      "label": "Model",
-      "helperText": "Optional. E.g. tts-1 (default), tts-1-hd, gpt-4o-mini-tts.",
+      "label": {
+        "default": "Model",
+        "translations": {
+          "zh-Hans": "模型",
+          "zh-Hant": "模型",
+          "ja": "モデル",
+          "ru": "Модель",
+          "fr": "Modèle",
+          "de": "Modell",
+          "es": "Modelo"
+        }
+      },
+      "helperText": {
+        "default": "Optional. E.g. tts-1 (default), tts-1-hd, gpt-4o-mini-tts.",
+        "translations": {
+          "zh-Hans": "可选。如 tts-1（默认）、tts-1-hd、gpt-4o-mini-tts。",
+          "zh-Hant": "可選。如 tts-1（預設）、tts-1-hd、gpt-4o-mini-tts。",
+          "ja": "任意。例：tts-1（既定）、tts-1-hd、gpt-4o-mini-tts。",
+          "ru": "Необязательно. Например tts-1 (по умолчанию), tts-1-hd, gpt-4o-mini-tts.",
+          "fr": "Facultatif. Ex. tts-1 (défaut), tts-1-hd, gpt-4o-mini-tts.",
+          "de": "Optional. Z. B. tts-1 (Standard), tts-1-hd, gpt-4o-mini-tts.",
+          "es": "Opcional. P. ej. tts-1 (predeterminado), tts-1-hd, gpt-4o-mini-tts."
+        }
+      },
       "visibleWhen": {
         "field": "vendor",
         "equals": "openai"
@@ -175,8 +384,30 @@
     {
       "kind": "secret",
       "id": "custom-api-key",
-      "label": "API key",
-      "helperText": "Optional for local endpoints; sent as a Bearer token when set.",
+      "label": {
+        "default": "API key",
+        "translations": {
+          "zh-Hans": "API 密钥",
+          "zh-Hant": "API 金鑰",
+          "ja": "APIキー",
+          "ru": "Ключ API",
+          "fr": "Clé API",
+          "de": "API-Schlüssel",
+          "es": "Clave de API"
+        }
+      },
+      "helperText": {
+        "default": "Optional for local endpoints; sent as a Bearer token when set.",
+        "translations": {
+          "zh-Hans": "本地端点可留空；填写后作为 Bearer token 发送。",
+          "zh-Hant": "本地端點可留空；填寫後作為 Bearer token 傳送。",
+          "ja": "ローカルエンドポイントでは省略可。設定するとBearerトークンとして送信されます。",
+          "ru": "Для локальных серверов необязателен; при заполнении отправляется как Bearer-токен.",
+          "fr": "Facultative pour les serveurs locaux ; envoyée comme jeton Bearer si définie.",
+          "de": "Für lokale Endpunkte optional; wenn gesetzt, als Bearer-Token gesendet.",
+          "es": "Opcional para endpoints locales; si se define, se envía como token Bearer."
+        }
+      },
       "visibleWhen": {
         "field": "vendor",
         "equals": "custom"
@@ -185,8 +416,30 @@
     {
       "kind": "text",
       "id": "customEndpoint",
-      "label": "Custom endpoint",
-      "helperText": "An OpenAI-compatible speech URL, e.g. http://127.0.0.1:8880/v1/audio/speech.",
+      "label": {
+        "default": "Custom endpoint",
+        "translations": {
+          "zh-Hans": "自定义端点",
+          "zh-Hant": "自訂端點",
+          "ja": "カスタムエンドポイント",
+          "ru": "Свой сервер",
+          "fr": "Point de terminaison",
+          "de": "Eigener Endpunkt",
+          "es": "Endpoint personalizado"
+        }
+      },
+      "helperText": {
+        "default": "An OpenAI-compatible speech URL, e.g. http://127.0.0.1:8880/v1/audio/speech.",
+        "translations": {
+          "zh-Hans": "OpenAI 兼容的语音接口地址，如 http://127.0.0.1:8880/v1/audio/speech。",
+          "zh-Hant": "OpenAI 相容的語音介面位址，如 http://127.0.0.1:8880/v1/audio/speech。",
+          "ja": "OpenAI互換の音声URL。例：http://127.0.0.1:8880/v1/audio/speech。",
+          "ru": "OpenAI-совместимый URL синтеза, напр. http://127.0.0.1:8880/v1/audio/speech.",
+          "fr": "URL de synthèse compatible OpenAI, ex. http://127.0.0.1:8880/v1/audio/speech.",
+          "de": "OpenAI-kompatible Sprach-URL, z. B. http://127.0.0.1:8880/v1/audio/speech.",
+          "es": "URL de voz compatible con OpenAI, p. ej. http://127.0.0.1:8880/v1/audio/speech."
+        }
+      },
       "inputMode": "url",
       "value": "http://127.0.0.1:8880/v1/audio/speech",
       "visibleWhen": {
@@ -197,9 +450,31 @@
     {
       "kind": "select",
       "id": "customVoice",
-      "label": "Voice",
+      "label": {
+        "default": "Voice",
+        "translations": {
+          "zh-Hans": "声音",
+          "zh-Hant": "聲音",
+          "ja": "ボイス",
+          "ru": "Голос",
+          "fr": "Voix",
+          "de": "Stimme",
+          "es": "Voz"
+        }
+      },
       "dynamicOptions": true,
-      "helperText": "Voices the endpoint lists at …/audio/voices (Kokoro, LocalAI); type the name yourself if the server doesn't list any.",
+      "helperText": {
+        "default": "Voices the endpoint lists at …/audio/voices or …/voices; type the name yourself if the server doesn't list any.",
+        "translations": {
+          "zh-Hans": "端点在 …/audio/voices 或 …/voices 列出的声音；服务器不提供列表时可手动输入名称。",
+          "zh-Hant": "端點在 …/audio/voices 或 …/voices 列出的聲音；伺服器不提供清單時可手動輸入名稱。",
+          "ja": "…/audio/voices または …/voices で列挙されるボイス。サーバーが列挙しない場合は名前を直接入力できます。",
+          "ru": "Голоса, которые сервер публикует на …/audio/voices или …/voices; если списка нет, введите имя вручную.",
+          "fr": "Les voix listées par le serveur sur …/audio/voices ou …/voices ; sinon saisissez le nom vous-même.",
+          "de": "Vom Server unter …/audio/voices oder …/voices gelistete Stimmen; sonst den Namen selbst eintippen.",
+          "es": "Voces que el servidor lista en …/audio/voices o …/voices; si no lista ninguna, escribe el nombre."
+        }
+      },
       "visibleWhen": {
         "field": "vendor",
         "equals": "custom"
@@ -208,8 +483,30 @@
     {
       "kind": "text",
       "id": "customModel",
-      "label": "Model",
-      "helperText": "Optional. E.g. kokoro.",
+      "label": {
+        "default": "Model",
+        "translations": {
+          "zh-Hans": "模型",
+          "zh-Hant": "模型",
+          "ja": "モデル",
+          "ru": "Модель",
+          "fr": "Modèle",
+          "de": "Modell",
+          "es": "Modelo"
+        }
+      },
+      "helperText": {
+        "default": "Optional. E.g. kokoro.",
+        "translations": {
+          "zh-Hans": "可选。如 kokoro。",
+          "zh-Hant": "可選。如 kokoro。",
+          "ja": "任意。例：kokoro。",
+          "ru": "Необязательно. Например kokoro.",
+          "fr": "Facultatif. Ex. kokoro.",
+          "de": "Optional. Z. B. kokoro.",
+          "es": "Opcional. P. ej. kokoro."
+        }
+      },
       "visibleWhen": {
         "field": "vendor",
         "equals": "custom"

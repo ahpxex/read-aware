@@ -1,3 +1,79 @@
+// src/strings.ts
+var STRINGS = {
+  defaultVoice: {
+    default: "Default voice",
+    "zh-Hans": "默认声音",
+    "zh-Hant": "預設聲音",
+    ja: "既定のボイス",
+    ru: "Голос по умолчанию",
+    fr: "Voix par défaut",
+    de: "Standardstimme",
+    es: "Voz predeterminada"
+  },
+  descriptorDefault: {
+    default: "default",
+    "zh-Hans": "默认",
+    "zh-Hant": "預設",
+    ja: "既定",
+    ru: "по умолчанию",
+    fr: "défaut",
+    de: "Standard",
+    es: "predeterminada"
+  },
+  descriptorLocal: {
+    default: "local",
+    "zh-Hans": "本地",
+    "zh-Hant": "本地",
+    ja: "ローカル",
+    ru: "локальный",
+    fr: "local",
+    de: "lokal",
+    es: "local"
+  },
+  keyMissing: {
+    default: "{vendor} API key not set — add it in Settings → TTS Voices",
+    "zh-Hans": "未设置 {vendor} API 密钥——请到 设置 → TTS Voices 填写",
+    "zh-Hant": "未設定 {vendor} API 金鑰——請到 設定 → TTS Voices 填寫",
+    ja: "{vendor} のAPIキーが未設定です。設定 → TTS Voices で追加してください",
+    ru: "Ключ API {vendor} не задан — добавьте его в Настройки → TTS Voices",
+    fr: "Clé API {vendor} manquante — ajoutez-la dans Réglages → TTS Voices",
+    de: "{vendor}-API-Schlüssel fehlt — in Einstellungen → TTS Voices hinterlegen",
+    es: "Falta la clave de API de {vendor}: añádela en Ajustes → TTS Voices"
+  },
+  vendorStatus: {
+    default: "{vendor} returned {status}",
+    "zh-Hans": "{vendor} 返回了 {status}",
+    "zh-Hant": "{vendor} 回傳了 {status}",
+    ja: "{vendor} が {status} を返しました",
+    ru: "{vendor} вернул {status}",
+    fr: "{vendor} a renvoyé {status}",
+    de: "{vendor} hat {status} zurückgegeben",
+    es: "{vendor} devolvió {status}"
+  },
+  endpointMissing: {
+    default: "Set the custom endpoint URL in Settings → TTS Voices",
+    "zh-Hans": "请到 设置 → TTS Voices 填写自定义端点地址",
+    "zh-Hant": "請到 設定 → TTS Voices 填寫自訂端點位址",
+    ja: "設定 → TTS Voices でカスタムエンドポイントのURLを設定してください",
+    ru: "Укажите URL своего сервера в Настройки → TTS Voices",
+    fr: "Définissez l'URL du point de terminaison dans Réglages → TTS Voices",
+    de: "Die Endpunkt-URL in Einstellungen → TTS Voices setzen",
+    es: "Configura la URL del endpoint en Ajustes → TTS Voices"
+  }
+};
+function tr(locale, key, params) {
+  const bundle = STRINGS[key];
+  const requested = locale.toLowerCase();
+  const base = requested.split("-")[0];
+  const exact = Object.keys(bundle).find((candidate) => candidate !== "default" && candidate.toLowerCase() === requested);
+  const baseMatch = exact ?? Object.keys(bundle).find((candidate) => candidate !== "default" && candidate.toLowerCase() === base);
+  let text = bundle[baseMatch ?? "default"] ?? bundle.default;
+  for (const [name, value] of Object.entries(params ?? {})) {
+    text = text.split(`{${name}}`).join(String(value));
+  }
+  return text;
+}
+
 // src/vendors.ts
 var VENDORS = ["elevenlabs", "fishaudio", "openai", "custom"];
 var VENDOR_LABELS = {
@@ -183,7 +259,7 @@ async function lookupVoiceName(ctx, network, settings) {
 }
 async function voiceLabel(ctx, network, settings) {
   const vendor = VENDOR_LABELS[settings.vendor];
-  let descriptor = settings.vendor === "custom" ? settings.voiceId || settings.model || "local" : settings.voiceId || settings.model || "default";
+  let descriptor = settings.vendor === "custom" ? settings.voiceId || settings.model || tr(ctx.locale, "descriptorLocal") : settings.voiceId || settings.model || tr(ctx.locale, "descriptorDefault");
   if (settings.voiceId) {
     const name = await lookupVoiceName(ctx, network, settings);
     if (name)
@@ -211,16 +287,23 @@ var plugin = {
         const settings = readSettings(ctx);
         const apiKey = await ctx.secrets.get(secretName(settings.vendor));
         if (vendorNeedsKey(settings.vendor) && !apiKey) {
-          throw new Error(`${VENDOR_LABELS[settings.vendor]} API key not set — open "TTS keys" from the shelf header`);
+          throw new Error(tr(ctx.locale, "keyMissing", { vendor: VENDOR_LABELS[settings.vendor] }));
+        }
+        if (settings.vendor === "custom" && !settings.endpoint) {
+          throw new Error(tr(ctx.locale, "endpointMissing"));
         }
         const request = buildSpeechRequest(settings, apiKey, text2);
         const response = await network.fetch(request.url, {
           method: "POST",
           headers: request.headers,
-          body: request.body
+          body: request.body,
+          signal: AbortSignal.timeout(30000)
         });
         if (!response.ok) {
-          throw new Error(`${VENDOR_LABELS[settings.vendor]} returned ${response.status}`);
+          throw new Error(tr(ctx.locale, "vendorStatus", {
+            vendor: VENDOR_LABELS[settings.vendor],
+            status: response.status
+          }));
         }
         return await response.arrayBuffer();
       }
@@ -255,7 +338,7 @@ var plugin = {
         }
         if (voices.length === 0)
           return [];
-        return [{ value: "", label: "Default voice" }, ...voices];
+        return [{ value: "", label: tr(ctx.locale, "defaultVoice") }, ...voices];
       });
     }
   }

@@ -16,6 +16,11 @@ git push 必须走 SSH remote（`git@github.com:`），HTTPS push 在大 pack �
 ## 0. Preflight
 
 - 工作树必须干净、在 `main` 上；先 `git pull --rebase` 确认与 remote 同步。
+- **查上一轮 release run 的结论**：`gh run list --workflow=release.yml --limit 3`。
+  上次失败的话先 `gh run view <id> --log-failed` 找原因——若是 workflow 自身的
+  bug，打新 tag 只会在同一处再死一次（v0.3.0-beta.1 与 v0.3.0-1 就这样连挂了
+  两次：Windows portable-zip 步骤找 `ReadAware.exe`，而 target 目录里的产物
+  一直叫 `read-aware-desktop.exe`，5db382a 才修掉）。先修流水线，再发版。
 - 读当前版本：`apps/desktop/src-tauri/tauri.conf.json` 的 `version`。
 - 定新版本号：用户指定了就用用户的；没指定则默认 patch +1，若本次包含明显的新
   功能可建议 minor，并把选择告诉用户（不必等确认，用户有异议会说）。
@@ -89,6 +94,12 @@ gh run watch <run-id> --exit-status            # 或后台轮询
   `gh run rerun <run-id> --failed`。desktop 全矩阵 + updater-manifest
   成功是硬性门槛（桌面端自动更新依赖 updater-manifest 产出的
   latest.json）；iOS/Android 单独失败可先发布桌面端，向用户说明后补。
+- **失败原因在 workflow 自身时，rerun 救不了**：rerun 永远用 tag 所指
+  commit 上的 workflow 定义。正确流程：`gh run cancel` 掉还在跑的 run →
+  修 `release.yml` 并 commit push → `git tag -f vX.Y.Z` 移 tag 到修复
+  commit → `git push origin :refs/tags/vX.Y.Z` 删远程 tag →
+  `git push origin vX.Y.Z` 重推触发新 run。tag 已经公开过才需要顾虑
+  移动语义；发版失败当场重指同一版本号是安全的。
 
 ## 4. 重写 release changelog
 

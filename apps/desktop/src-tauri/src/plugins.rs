@@ -8,7 +8,9 @@
 
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
+use include_dir::{include_dir, Dir};
 use serde::Serialize;
 use tauri::Manager;
 
@@ -33,10 +35,131 @@ fn plugins_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(dir)
 }
 
-/// Built-in plugins ship as app resources (tauri.conf `bundle.resources`).
-fn bundled_plugins_dir(app: &tauri::AppHandle) -> Option<PathBuf> {
-    let dir = app.path().resource_dir().ok()?.join("bundled-plugins");
-    dir.is_dir().then_some(dir)
+// ─── Built-in plugins ────────────────────────────────────────────────────────
+//
+// Embedded at compile time and extracted to `<app_data>/bundled-plugins/`
+// once per app version. They used to ship as `bundle.resources`, which only
+// exists as a readable directory on DESKTOP — Android's `resource_dir()` is
+// the literal URI `asset://localhost/` (APK assets are not a filesystem), so
+// resource-based built-ins simply vanished there. Embedding gives every
+// platform the same real-filesystem root, which `plugins_list` and the
+// `raplugin://` protocol already know how to serve.
+//
+// Adding a first-party plugin means one static + one table row here (this
+// replaced the tauri.conf resources list).
+
+static BUNDLED_DICTIONARY: Dir =
+    include_dir!("$CARGO_MANIFEST_DIR/../../../plugins/dictionary/dist");
+static BUNDLED_EDITORIAL_THEMES: Dir =
+    include_dir!("$CARGO_MANIFEST_DIR/../../../plugins/editorial-themes/dist");
+static BUNDLED_RSS_READER: Dir =
+    include_dir!("$CARGO_MANIFEST_DIR/../../../plugins/rss-reader/dist");
+static BUNDLED_SENTENCE_READER: Dir =
+    include_dir!("$CARGO_MANIFEST_DIR/../../../plugins/sentence-reader/dist");
+static BUNDLED_TTS: Dir = include_dir!("$CARGO_MANIFEST_DIR/../../../plugins/tts/dist");
+
+static BUNDLED: &[(&str, &Dir)] = &[
+    ("dictionary", &BUNDLED_DICTIONARY),
+    ("editorial-themes", &BUNDLED_EDITORIAL_THEMES),
+    ("rss-reader", &BUNDLED_RSS_READER),
+    ("sentence-reader", &BUNDLED_SENTENCE_READER),
+    ("tts", &BUNDLED_TTS),
+];
+
+/// Where the built-in set lives at runtime.
+enum BundledRoot {
+    /// `<dir>/<id>/…` — extracted from the embedded set.
+    Extracted(PathBuf),
+    /// Dev checkout: `<plugins>/<id>/dist/…`, served live so a rebuilt
+    /// plugin is picked up on the next request without restarting the app.
+    #[cfg(debug_assertions)]
+    RepoDist(PathBuf),
+}
+
+impl BundledRoot {
+    /// The directory holding one bundled plugin's files.
+    fn plugin_dir(&self, id: &str) -> PathBuf {
+        match self {
+            BundledRoot::Extracted(dir) => dir.join(id),
+            #[cfg(debug_assertions)]
+            BundledRoot::RepoDist(plugins) => plugins.join(id).join("dist"),
+        }
+    }
+
+    /// Bundled plugin ids present at this root.
+    fn ids(&self) -> Vec<String> {
+        let base = match self {
+            BundledRoot::Extracted(dir) => dir.clone(),
+            #[cfg(debug_assertions)]
+            BundledRoot::RepoDist(plugins) => plugins.clone(),
+        };
+        let Ok(read) = fs::read_dir(&base) else {
+            return Vec::new();
+        };
+        read.filter_map(|entry| {
+            let entry = entry.ok()?;
+            let id = entry.file_name().to_string_lossy().to_string();
+            self.plugin_dir(&id)
+                .join("manifest.json")
+                .is_file()
+                .then_some(id)
+        })
+        .collect()
+    }
+}
+
+/// Extract the embedded set (once per app version) and return its root.
+fn extract_bundled(app: &tauri::AppHandle) -> Option<PathBuf> {
+    let base = app.path().app_data_dir().ok()?.join("bundled-plugins");
+    let stamp_path = base.join(".version");
+    let version = app.package_info().version.to_string();
+    if fs::read_to_string(&stamp_path).ok().as_deref() == Some(version.as_str()) {
+        return Some(base);
+    }
+    let _ = fs::remove_dir_all(&base);
+    let extract = || -> std::io::Result<()> {
+        for (id, dir) in BUNDLED {
+            extract_tree(dir, &base.join(id))?;
+        }
+        fs::write(&stamp_path, &version)
+    };
+    if let Err(error) = extract() {
+        eprintln!("[plugins] extracting bundled plugins failed: {error}");
+        return None;
+    }
+    Some(base)
+}
+
+/// Write an embedded tree to disk. `File::path()` is relative to the
+/// include_dir! root at every depth, so one target base serves all levels.
+fn extract_tree(dir: &Dir, target: &Path) -> std::io::Result<()> {
+    for file in dir.files() {
+        let dest = target.join(file.path());
+        if let Some(parent) = dest.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        fs::write(dest, file.contents())?;
+    }
+    for sub in dir.dirs() {
+        extract_tree(sub, target)?;
+    }
+    Ok(())
+}
+
+/// Resolved once per process — the version cannot change mid-run.
+fn bundled_root(app: &tauri::AppHandle) -> Option<&'static BundledRoot> {
+    static ROOT: OnceLock<Option<BundledRoot>> = OnceLock::new();
+    ROOT.get_or_init(|| {
+        #[cfg(debug_assertions)]
+        {
+            let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../plugins");
+            if repo.is_dir() {
+                return Some(BundledRoot::RepoDist(repo));
+            }
+        }
+        extract_bundled(app).map(BundledRoot::Extracted)
+    })
+    .as_ref()
 }
 
 fn list_plugin_dirs(dir: &Path, builtin: bool, entries: &mut Vec<PluginEntry>) {
@@ -71,12 +194,21 @@ fn valid_plugin_id(id: &str) -> bool {
 
 #[tauri::command]
 pub fn plugins_list(app: tauri::AppHandle) -> Result<Vec<PluginEntry>, String> {
-    let mut entries = Vec::new();
+    let mut entries: Vec<PluginEntry> = Vec::new();
     // Bundled first — a bundled id shadows any user-dir copy of the same id.
     // A folder without a readable manifest is ignored, not an error — a
     // half-copied plugin must not break enumeration for the others.
-    if let Some(bundled) = bundled_plugins_dir(&app) {
-        list_plugin_dirs(&bundled, true, &mut entries);
+    if let Some(root) = bundled_root(&app) {
+        for id in root.ids() {
+            if !valid_plugin_id(&id) || entries.iter().any(|e| e.id == id) {
+                continue;
+            }
+            let Ok(manifest) = fs::read_to_string(root.plugin_dir(&id).join("manifest.json"))
+            else {
+                continue;
+            };
+            entries.push(PluginEntry { id, manifest, builtin: true });
+        }
     }
     list_plugin_dirs(&plugins_dir(&app)?, false, &mut entries);
     entries.sort_by(|a, b| a.id.cmp(&b.id));
@@ -221,8 +353,8 @@ pub fn plugins_install_files(
 
 #[tauri::command]
 pub fn plugins_uninstall(app: tauri::AppHandle, id: String) -> Result<(), String> {
-    if let Some(bundled) = bundled_plugins_dir(&app) {
-        if bundled.join(&id).is_dir() {
+    if let Some(root) = bundled_root(&app) {
+        if root.plugin_dir(&id).join("manifest.json").is_file() {
             return Err(format!("\"{id}\" is a built-in plugin and cannot be uninstalled"));
         }
     }
@@ -259,17 +391,22 @@ pub fn serve_plugin_asset(
         return not_found();
     }
     // Bundled root first (a bundled id shadows a user-dir copy, matching
-    // plugins_list), then the user dir; containment is canonicalized per root.
-    let mut resolved: Option<PathBuf> = None;
-    let mut roots: Vec<PathBuf> = Vec::new();
-    if let Some(bundled) = bundled_plugins_dir(app) {
-        roots.push(bundled);
+    // plugins_list), then the user dir; containment is canonicalized per
+    // candidate. `rel` is `<plugin id>/<file path>`.
+    let mut candidates: Vec<(PathBuf, PathBuf)> = Vec::new();
+    if let Some((id, rest)) = rel.split_once('/') {
+        if let Some(root) = bundled_root(app) {
+            let base = root.plugin_dir(id);
+            let full = base.join(rest);
+            candidates.push((base, full));
+        }
     }
     if let Ok(user) = plugins_dir(app) {
-        roots.push(user);
+        let full = user.join(&rel);
+        candidates.push((user, full));
     }
-    for base in roots {
-        let full = base.join(&rel);
+    let mut resolved: Option<PathBuf> = None;
+    for (base, full) in candidates {
         // Canonicalize both ends so the containment check holds through symlinks.
         let (Ok(canonical), Ok(canonical_base)) = (full.canonicalize(), base.canonicalize())
         else {

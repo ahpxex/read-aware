@@ -32,6 +32,11 @@ aes-gcm = "0.10"
 # those directly avoids opening the whole book in the webview just to paint a
 # shelf cover.
 zip = { version = "2.2", default-features = false, features = ["deflate"] }
+# Built-in plugins are EMBEDDED in the binary and extracted to app data at
+# first launch per version. Mobile has no readable resource dir (Android's
+# resource_dir() is the asset:// URI, not a filesystem), so bundle.resources
+# cannot carry them — the binary is the only root that exists everywhere.
+include_dir = "0.7"
 quick-xml = "0.39"
 percent-encoding = "2"
 # Stable per-install device id (HLC tiebreaker + sync attribution).

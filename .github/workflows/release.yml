@@ -299,13 +299,17 @@ jobs:
               cp "$BUNDLE"/nsis/*-setup.exe.sig "release-assets/$BASE-setup.exe.sig"
               cp "$BUNDLE"/msi/*.msi "release-assets/$BASE.msi"
               cp "$BUNDLE"/msi/*.msi.sig "release-assets/$BASE.msi.sig"
+              # The exe in target/ keeps its cargo name; only the installers
+              # ship it renamed. Restage it as ReadAware.exe for the zip.
               EXE_DIR="apps/desktop/src-tauri/target/${{ matrix.target }}/release"
-              if [ ! -f "$EXE_DIR/ReadAware.exe" ]; then
+              if [ ! -f "$EXE_DIR/read-aware-desktop.exe" ]; then
                 echo "portable exe not found; contents of $EXE_DIR:" >&2
                 ls "$EXE_DIR" >&2
                 exit 1
               fi
-              (cd "$EXE_DIR" && 7z a "$OLDPWD/release-assets/$BASE-portable.zip" ReadAware.exe)
+              mkdir -p "$RUNNER_TEMP/portable"
+              cp "$EXE_DIR/read-aware-desktop.exe" "$RUNNER_TEMP/portable/ReadAware.exe"
+              (cd "$RUNNER_TEMP/portable" && 7z a "$OLDPWD/release-assets/$BASE-portable.zip" ReadAware.exe)
               ;;
           esac
           if [[ "$GITHUB_REF_NAME" != *-* ]]; then

@@ -54,9 +54,11 @@ tag 带 `-` 即 pre-release（如 `v0.3.0-beta.1`），流程与正式版相同�
   Android 更新器（latest-android.json）、landing 下载链接全部继续指向
   上一个 stable，现有用户完全无感。装了 beta 的用户在下个正式版发布时
   会正常升级上去。
-- 版本号必须是 `-词.数字` 形式（`-beta.1` 可以，裸 `-beta` 会挂 Windows
-  打包）；iOS 的 `CFBundleShortVersionString` 严格说不允许带后缀，iOS job
-  可能失败，非硬性门槛。
+- 版本号的 prerelease 标识必须**纯数字**（如 `0.3.0-1`）：MSI 打包硬性要求
+  "numeric-only and cannot be greater than 65535"，`-beta.1` 这种带词的会挂
+  Windows job（v0.3.0-beta.1 实测挂过，只能删了重发）。iOS 会自动剥掉后缀
+  （只是 Warn），Android versionName 无所谓。release 标题/changelog 里再写
+  "Beta N"。
 - Android `versionCode` 照公式算并保持单调递增；之后的正式版若公式值已被
   beta 占用则 +1。
 - changelog 从简（标注 beta preview + 亮点 + Full Changelog 链接即可），

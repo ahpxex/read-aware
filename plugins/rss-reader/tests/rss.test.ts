@@ -3,7 +3,36 @@ import type { PluginContext } from "@read-aware/plugin-types";
 import { feedToolLimit } from "../src/agent-tools";
 import { isHttpFeedUrl, parseFeed } from "../src/feed";
 import { feedUrlsFromOpml } from "../src/opml";
-import { loadFeeds } from "../src/storage";
+import { loadFeeds, migrateLegacyFeeds } from "../src/storage";
+
+/** In-memory stand-in for the plugin document collection + KV. */
+function memoryStorage(kv: Record<string, unknown> = {}) {
+  const documents = new Map<string, unknown>();
+  const storage = {
+    get: (key: string) => kv[key] ?? null,
+    set: (key: string, value: unknown) => {
+      kv[key] = value;
+    },
+    remove: (key: string) => {
+      delete kv[key];
+    },
+    collection: () => ({
+      put: async (id: string, data: unknown) => {
+        documents.set(id, data);
+      },
+      get: async (id: string) =>
+        documents.has(id)
+          ? { id, data: documents.get(id), updatedAt: "" }
+          : null,
+      delete: async (id: string) => {
+        documents.delete(id);
+      },
+      list: async () =>
+        [...documents.entries()].map(([id, data]) => ({ id, data, updatedAt: "" })),
+    }),
+  };
+  return { storage: storage as unknown as PluginContext["storage"], kv, documents };
+}
 
 const RSS_FIXTURE = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
@@ -103,22 +132,19 @@ describe("RSS plugin data", () => {
     expect(isHttpFeedUrl("not a URL")).toBe(false);
   });
 
-  test("reads old persisted subscriptions while dropping malformed entries", () => {
-    const storage = {
-      get: () => [
-        {
-          url: "https://example.com/feed.xml",
-          title: "Example",
-          bookId: "book-1",
-          addedAt: "2026-07-20T00:00:00.000Z",
-          lastFetched: "2026-07-24T00:00:00.000Z",
-          articles: [{ id: "article-0", title: "First" }],
-        },
-        { title: "Broken" },
-      ],
-    } as unknown as PluginContext["storage"];
+  test("reads stored subscriptions while dropping malformed documents", async () => {
+    const { storage, documents } = memoryStorage();
+    documents.set("https://example.com/feed.xml", {
+      url: "https://example.com/feed.xml",
+      title: "Example",
+      bookId: "book-1",
+      addedAt: "2026-07-20T00:00:00.000Z",
+      lastFetched: "2026-07-24T00:00:00.000Z",
+      articles: [{ id: "article-0", title: "First" }],
+    });
+    documents.set("broken", { title: "Broken" });
 
-    expect(loadFeeds({ storage })).toEqual([
+    expect(await loadFeeds({ storage })).toEqual([
       {
         url: "https://example.com/feed.xml",
         title: "Example",
@@ -136,6 +162,37 @@ describe("RSS plugin data", () => {
         ],
       },
     ]);
+  });
+
+  test("adopts the pre-0.7 KV array once, documents winning on collision", async () => {
+    const legacyFeed = {
+      url: "https://example.com/feed.xml",
+      title: "Legacy title",
+      bookId: "book-1",
+      addedAt: "2026-07-20T00:00:00.000Z",
+      lastFetched: "2026-07-24T00:00:00.000Z",
+      articles: [],
+    };
+    const { storage, kv, documents } = memoryStorage({
+      feeds: [legacyFeed, { title: "Broken" }],
+    });
+    documents.set("https://kept.example/feed", {
+      ...legacyFeed,
+      url: "https://kept.example/feed",
+      title: "Already migrated",
+    });
+
+    await migrateLegacyFeeds({ storage });
+
+    expect(kv.feeds).toBeUndefined();
+    expect(documents.size).toBe(2);
+    expect((documents.get("https://example.com/feed.xml") as { title: string }).title).toBe(
+      "Legacy title",
+    );
+
+    // Running again must not resurrect the KV or duplicate documents.
+    await migrateLegacyFeeds({ storage });
+    expect(documents.size).toBe(2);
   });
 
   test("bounds article counts returned to the agent", () => {

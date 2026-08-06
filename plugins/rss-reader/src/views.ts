@@ -3,7 +3,7 @@
  * searchable list with its management commands at the list edge; adding and
  * importing are pushed forms, not permanent page furniture. Each feed opens
  * as a detail view: provenance in metadata, commands as detail actions, and
- * the articles as the content.
+ * the articles as the content. All copy resolves against the live app locale.
  */
 import type {
   PluginDetailView,
@@ -13,7 +13,8 @@ import type {
 } from "@read-aware/plugin-types";
 import { ensureBook, isHttpFeedUrl, subscribe } from "./feed";
 import { feedUrlsFromOpml } from "./opml";
-import { loadFeeds, saveFeeds } from "./storage";
+import { articlesTag, tr } from "./strings";
+import { getFeed, loadFeeds, removeFeed } from "./storage";
 import { PROVIDER_ID, type FeedSubscription, type RssPluginContext } from "./types";
 
 function formatWhen(
@@ -34,51 +35,57 @@ function formatWhen(
   }
 }
 
-/** Refresh every subscription, tolerating individual failures. */
-async function refreshAllFeeds(ctx: RssPluginContext): Promise<string> {
+const REFRESH_CONCURRENCY = 4;
+
+/** Refresh every subscription — a few at a time, tolerating failures. */
+export async function refreshAllFeeds(ctx: RssPluginContext): Promise<string> {
+  const queue = await loadFeeds(ctx);
+  const total = queue.length;
   let refreshed = 0;
-  let failed = 0;
-  for (const feed of loadFeeds(ctx)) {
-    try {
-      await subscribe(ctx, feed.url);
-      refreshed += 1;
-    } catch {
-      failed += 1;
-    }
-  }
-  return failed === 0
-    ? `Refreshed ${refreshed} feed${refreshed === 1 ? "" : "s"}`
-    : `Refreshed ${refreshed} of ${refreshed + failed} feeds`;
+  await Promise.all(
+    Array.from({ length: Math.min(REFRESH_CONCURRENCY, queue.length) }, async () => {
+      for (let feed = queue.shift(); feed; feed = queue.shift()) {
+        try {
+          await subscribe(ctx, feed.url);
+          refreshed += 1;
+        } catch {
+          // One unavailable feed must not prevent the others from refreshing.
+        }
+      }
+    }),
+  );
+  return refreshed === total
+    ? tr(ctx.locale, "refreshedAll", { n: refreshed })
+    : tr(ctx.locale, "refreshedSome", { ok: refreshed, total });
 }
 
 export function addFeedView(ctx: RssPluginContext): PluginFormView {
   return {
     kind: "form",
-    title: "Add feed",
+    title: tr(ctx.locale, "addFeed"),
     fields: [
       {
         kind: "text",
         id: "url",
-        label: "Feed URL",
+        label: tr(ctx.locale, "feedUrlLabel"),
         placeholder: "https://example.com/feed.xml",
         inputMode: "url",
-        helperText:
-          "RSS and Atom feeds are read as books on your shelf — articles become chapters.",
+        helperText: tr(ctx.locale, "addFeedHelper"),
       },
     ],
-    submitLabel: "Subscribe",
+    submitLabel: tr(ctx.locale, "subscribe"),
     onSubmit: async (values) => {
       const url = String(values.url ?? "").trim();
       if (!isHttpFeedUrl(url)) {
-        return { fieldErrors: { url: "Enter a valid http(s) feed URL" } };
+        return { fieldErrors: { url: tr(ctx.locale, "invalidUrl") } };
       }
-      if (loadFeeds(ctx).some((feed) => feed.url === url)) {
-        return { fieldErrors: { url: "Already subscribed" } };
+      if (await getFeed(ctx, url)) {
+        return { fieldErrors: { url: tr(ctx.locale, "alreadySubscribed") } };
       }
       const feed = await subscribe(ctx, url);
       return {
-        toast: `Subscribed to “${feed.title}”`,
-        view: rssPageView(ctx),
+        toast: tr(ctx.locale, "subscribedTo", { title: feed.title }),
+        view: await rssPageView(ctx),
         navigation: "reset",
       };
     },
@@ -88,7 +95,7 @@ export function addFeedView(ctx: RssPluginContext): PluginFormView {
 export function importOpmlView(ctx: RssPluginContext): PluginFormView {
   return {
     kind: "form",
-    title: "Import OPML",
+    title: tr(ctx.locale, "importOpml"),
     fields: [
       {
         kind: "textarea",
@@ -96,22 +103,22 @@ export function importOpmlView(ctx: RssPluginContext): PluginFormView {
         label: "OPML",
         rows: 8,
         placeholder: "<opml version=\"2.0\">…",
-        helperText: "Paste the OPML export from your previous feed reader.",
+        helperText: tr(ctx.locale, "opmlHelper"),
       },
     ],
-    submitLabel: "Import",
+    submitLabel: tr(ctx.locale, "importAction"),
     onSubmit: async (values) => {
       const text = String(values.opml ?? "").trim();
-      if (!text) return { fieldErrors: { opml: "Paste OPML XML first" } };
+      if (!text) return { fieldErrors: { opml: tr(ctx.locale, "pasteOpml") } };
 
       const urls = feedUrlsFromOpml(text);
       if (urls.length === 0) {
-        return { fieldErrors: { opml: "No feed URLs found in this OPML" } };
+        return { fieldErrors: { opml: tr(ctx.locale, "noUrlsInOpml") } };
       }
 
       let added = 0;
       for (const url of urls) {
-        if (loadFeeds(ctx).some((feed) => feed.url === url)) continue;
+        if (await getFeed(ctx, url)) continue;
         try {
           await subscribe(ctx, url);
           added += 1;
@@ -120,8 +127,8 @@ export function importOpmlView(ctx: RssPluginContext): PluginFormView {
         }
       }
       return {
-        toast: `Imported ${added} of ${urls.length} feeds`,
-        view: rssPageView(ctx),
+        toast: tr(ctx.locale, "importedFeeds", { added, total: urls.length }),
+        view: await rssPageView(ctx),
         navigation: "reset",
       };
     },
@@ -148,19 +155,23 @@ export function feedDetailView(
     kind: "detail",
     title: feed.title,
     metadata: [
-      { kind: "label", label: "Feed", value: feed.url, icon: "globe" },
+      { kind: "label", label: tr(ctx.locale, "metaFeed"), value: feed.url, icon: "globe" },
       {
         kind: "label",
-        label: "Updated",
+        label: tr(ctx.locale, "metaUpdated"),
         value: formatWhen(ctx, feed.lastFetched, "dateTime") ?? "—",
         icon: "calendar",
       },
-      { kind: "label", label: "Articles", value: String(feed.articles.length) },
+      {
+        kind: "label",
+        label: tr(ctx.locale, "metaArticles"),
+        value: String(feed.articles.length),
+      },
     ],
     actions: [
       {
         id: "open",
-        label: "Open as book",
+        label: tr(ctx.locale, "openAsBook"),
         icon: "book-open",
         run: async () => {
           const healed = await ensureBook(ctx, feed);
@@ -170,12 +181,12 @@ export function feedDetailView(
       },
       {
         id: "refresh",
-        label: "Refresh",
+        label: tr(ctx.locale, "refresh"),
         icon: "arrows-clockwise",
         run: async () => {
           const fresh = await subscribe(ctx, feed.url);
           return {
-            toast: "Feed refreshed",
+            toast: tr(ctx.locale, "feedRefreshed"),
             view: feedDetailView(ctx, fresh),
             navigation: "replace",
           };
@@ -183,7 +194,7 @@ export function feedDetailView(
       },
       {
         id: "remove",
-        label: "Unsubscribe",
+        label: tr(ctx.locale, "unsubscribe"),
         icon: "trash",
         variant: "danger",
         run: async () => {
@@ -191,13 +202,10 @@ export function feedDetailView(
             providerId: PROVIDER_ID,
             key: feed.url,
           });
-          saveFeeds(
-            ctx,
-            loadFeeds(ctx).filter((entry) => entry.url !== feed.url),
-          );
+          await removeFeed(ctx, feed.url);
           return {
-            toast: `Unsubscribed “${feed.title}”`,
-            view: rssPageView(ctx),
+            toast: tr(ctx.locale, "unsubscribedFrom", { title: feed.title }),
+            view: await rssPageView(ctx),
             navigation: "reset",
           };
         },
@@ -207,16 +215,16 @@ export function feedDetailView(
       {
         kind: "list",
         searchable: feed.articles.length > 8,
-        searchPlaceholder: "Search articles",
-        emptyText: "No articles yet — refresh to load them.",
+        searchPlaceholder: tr(ctx.locale, "searchArticles"),
+        emptyText: tr(ctx.locale, "emptyArticles"),
         items: articleItems,
       },
     ],
   };
 }
 
-export function rssPageView(ctx: RssPluginContext): PluginListView {
-  const feeds = loadFeeds(ctx);
+export async function rssPageView(ctx: RssPluginContext): Promise<PluginListView> {
+  const feeds = await loadFeeds(ctx);
   const items: PluginListItem[] = feeds.map((feed) => ({
     id: feed.url,
     title: feed.title,
@@ -225,10 +233,7 @@ export function rssPageView(ctx: RssPluginContext): PluginListView {
     // Find a feed by what it published; the host caps keywords at 40.
     keywords: feed.articles.slice(0, 40).map((article) => article.title),
     accessories: [
-      {
-        kind: "tag",
-        text: `${feed.articles.length} article${feed.articles.length === 1 ? "" : "s"}`,
-      },
+      { kind: "tag", text: articlesTag(ctx.locale, feed.articles.length) },
       ...(formatWhen(ctx, feed.lastFetched, "date")
         ? [{ kind: "text" as const, text: formatWhen(ctx, feed.lastFetched, "date")! }]
         : []),
@@ -239,19 +244,19 @@ export function rssPageView(ctx: RssPluginContext): PluginListView {
   return {
     kind: "list",
     searchable: feeds.length > 5,
-    searchPlaceholder: "Search subscriptions",
-    emptyText: "No subscriptions yet — add your first feed.",
+    searchPlaceholder: tr(ctx.locale, "searchSubscriptions"),
+    emptyText: tr(ctx.locale, "emptySubscriptions"),
     items,
     actions: [
       {
         id: "add",
-        label: "Add feed",
+        label: tr(ctx.locale, "addFeed"),
         icon: "plus",
         run: () => ({ view: addFeedView(ctx) }),
       },
       {
         id: "import",
-        label: "Import OPML",
+        label: tr(ctx.locale, "importOpml"),
         icon: "download-simple",
         run: () => ({ view: importOpmlView(ctx) }),
       },
@@ -259,11 +264,11 @@ export function rssPageView(ctx: RssPluginContext): PluginListView {
         ? [
             {
               id: "refresh-all",
-              label: "Refresh all",
+              label: tr(ctx.locale, "refreshAll"),
               icon: "arrows-clockwise",
               run: async () => ({
                 toast: await refreshAllFeeds(ctx),
-                view: rssPageView(ctx),
+                view: await rssPageView(ctx),
                 navigation: "replace" as const,
               }),
             },

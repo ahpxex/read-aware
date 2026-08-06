@@ -1,14 +1,18 @@
 /** ReadAware's first-party RSS/Atom content provider and agent integration. */
 import type { PluginModule } from "@read-aware/plugin-types";
 import { registerAgentTools } from "./agent-tools";
-import { fetchFeed, subscribe } from "./feed";
-import { loadFeeds, saveFeeds } from "./storage";
+import { fetchFeed } from "./feed";
+import { tr } from "./strings";
+import { loadFeeds, migrateLegacyFeeds, removeFeed } from "./storage";
 import { assertPluginCapabilities, PROVIDER_ID } from "./types";
-import { rssPageView } from "./views";
+import { refreshAllFeeds, rssPageView } from "./views";
 
 const plugin: PluginModule = {
-  activate(ctx) {
+  async activate(ctx) {
     assertPluginCapabilities(ctx);
+    // Pre-0.7 installs kept subscriptions as one KV array; adopt them into
+    // the document collection once.
+    await migrateLegacyFeeds(ctx);
 
     ctx.shelf.books.write.registerContentProvider({
       id: PROVIDER_ID,
@@ -23,34 +27,25 @@ const plugin: PluginModule = {
       view: () => rssPageView(ctx),
     });
     ctx.shelf.on("book.removed", ({ payload: { bookId } }) => {
-      const feeds = loadFeeds(ctx);
-      const feed = feeds.find((entry) => entry.bookId === bookId);
-      if (!feed) return;
-
-      saveFeeds(
-        ctx,
-        feeds.filter((entry) => entry.url !== feed.url),
-      );
-      ctx.ui.showToast(`Unsubscribed “${feed.title}”`);
+      void (async () => {
+        const feed = (await loadFeeds(ctx)).find((entry) => entry.bookId === bookId);
+        if (!feed) return;
+        await removeFeed(ctx, feed.url);
+        ctx.ui.showToast(tr(ctx.locale, "unsubscribedFrom", { title: feed.title }));
+      })();
     });
     ctx.ui.registerCommand({
       id: "subscribe",
       title: "RSS: subscriptions",
       icon: "globe",
       keywords: "rss atom feed subscribe",
-      run: () => ({ view: rssPageView(ctx) }),
+      run: async () => ({ view: await rssPageView(ctx) }),
     });
 
     // Declared in manifest.schedules: subscribed feeds stay fresh without a
     // manual refresh — hourly while the app is open, catch-up on launch.
     ctx.schedule.on("refresh-feeds", async () => {
-      for (const feed of loadFeeds(ctx)) {
-        try {
-          await subscribe(ctx, feed.url);
-        } catch {
-          // One unavailable feed must not prevent the others from refreshing.
-        }
-      }
+      await refreshAllFeeds(ctx);
     });
 
     registerAgentTools(ctx);

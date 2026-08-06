@@ -1,5 +1,15 @@
+/**
+ * Subscriptions live in the plugin document collection ("feeds", one document
+ * per feed keyed by its URL) — the structured tier, so a large subscription
+ * list never round-trips as one KV blob. Early versions stored a single KV
+ * array under "feeds"; `migrateLegacyFeeds` adopts it once at activate.
+ */
 import type { PluginContext } from "@read-aware/plugin-types";
 import type { FeedArticle, FeedSubscription } from "./types";
+
+const COLLECTION = "feeds";
+
+type StorageCtx = Pick<PluginContext, "storage">;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -19,7 +29,7 @@ function readArticle(value: unknown): FeedArticle | null {
   };
 }
 
-function readFeed(value: unknown): FeedSubscription | null {
+export function readFeed(value: unknown): FeedSubscription | null {
   if (
     !isRecord(value) ||
     typeof value.url !== "string" ||
@@ -42,23 +52,43 @@ function readFeed(value: unknown): FeedSubscription | null {
   };
 }
 
-export function loadFeeds(ctx: Pick<PluginContext, "storage">): FeedSubscription[] {
-  const stored = ctx.storage.get<unknown>("feeds");
-  return Array.isArray(stored)
-    ? stored.map(readFeed).filter((feed): feed is FeedSubscription => feed !== null)
-    : [];
+/** All subscriptions, newest write first (the collection's natural order). */
+export async function loadFeeds(ctx: StorageCtx): Promise<FeedSubscription[]> {
+  const documents = await ctx.storage.collection(COLLECTION).list<unknown>({ limit: 1000 });
+  return documents
+    .map((document) => readFeed(document.data))
+    .filter((feed): feed is FeedSubscription => feed !== null);
 }
 
-export function saveFeeds(
-  ctx: Pick<PluginContext, "storage">,
-  feeds: FeedSubscription[],
-): void {
-  ctx.storage.set("feeds", feeds);
+export async function getFeed(
+  ctx: StorageCtx,
+  url: string,
+): Promise<FeedSubscription | null> {
+  const document = await ctx.storage.collection(COLLECTION).get<unknown>(url);
+  return document ? readFeed(document.data) : null;
 }
 
-export function upsertFeed(
-  ctx: Pick<PluginContext, "storage">,
-  feed: FeedSubscription,
-): void {
-  saveFeeds(ctx, [feed, ...loadFeeds(ctx).filter((entry) => entry.url !== feed.url)]);
+export async function upsertFeed(ctx: StorageCtx, feed: FeedSubscription): Promise<void> {
+  await ctx.storage.collection(COLLECTION).put(feed.url, feed, { bookId: feed.bookId });
+}
+
+export async function removeFeed(ctx: StorageCtx, url: string): Promise<void> {
+  await ctx.storage.collection(COLLECTION).delete(url);
+}
+
+/**
+ * One-time adoption of the pre-0.7 KV array. Documents win on collision (a
+ * partially migrated install must not regress), and the KV key is removed
+ * only after every entry landed.
+ */
+export async function migrateLegacyFeeds(ctx: StorageCtx): Promise<void> {
+  const legacy = ctx.storage.get<unknown>("feeds");
+  if (!Array.isArray(legacy)) return;
+  for (const raw of legacy) {
+    const feed = readFeed(raw);
+    if (!feed) continue;
+    const existing = await getFeed(ctx, feed.url);
+    if (!existing) await upsertFeed(ctx, feed);
+  }
+  ctx.storage.remove("feeds");
 }

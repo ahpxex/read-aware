@@ -1,7 +1,7 @@
 import { XMLParser, XMLValidator } from "fast-xml-parser";
 import type { FeedArticle, FeedResult, FeedSubscription, RssPluginContext } from "./types";
 import { MAX_ARTICLES, PROVIDER_ID } from "./types";
-import { loadFeeds, upsertFeed } from "./storage";
+import { getFeed, upsertFeed } from "./storage";
 
 export function isHttpFeedUrl(value: string): boolean {
   try {
@@ -203,7 +203,7 @@ export async function ensureBook(
   if (book.id === feed.bookId) return feed;
 
   const healed = { ...feed, bookId: book.id };
-  upsertFeed(ctx, healed);
+  await upsertFeed(ctx, healed);
   return healed;
 }
 
@@ -214,7 +214,7 @@ export async function subscribe(
   const url = rawUrl.trim();
   if (!isHttpFeedUrl(url)) throw new Error("Enter a valid http(s) feed URL");
 
-  const existing = loadFeeds(ctx).find((feed) => feed.url === url);
+  const existing = await getFeed(ctx, url);
   const { title, articles } = await fetchFeed(ctx, url);
   const book = await ctx.shelf.books.write.addVirtualBook({
     providerId: PROVIDER_ID,
@@ -231,6 +231,6 @@ export async function subscribe(
     lastFetched: now,
     articles,
   };
-  upsertFeed(ctx, feed);
+  await upsertFeed(ctx, feed);
   return feed;
 }

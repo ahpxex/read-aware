@@ -1,7 +1,7 @@
 {
   "name": "@read-aware/plugin-rss-reader",
   "private": true,
-  "version": "0.6.0",
+  "version": "0.7.0",
   "type": "module",
   "files": [
     "dist"

@@ -1,5 +1,5 @@
 import { subscribe } from "./feed";
-import { loadFeeds } from "./storage";
+import { getFeed, loadFeeds } from "./storage";
 import type { RssPluginContext } from "./types";
 
 export function feedToolLimit(value: unknown): number {
@@ -25,9 +25,9 @@ export function registerAgentTools(ctx: RssPluginContext): void {
       },
       additionalProperties: false,
     },
-    execute: (params) => {
+    execute: async (params) => {
       const limit = feedToolLimit(params.articleLimit);
-      return loadFeeds(ctx).map((feed) => ({
+      return (await loadFeeds(ctx)).map((feed) => ({
         title: feed.title,
         url: feed.url,
         bookId: feed.bookId,
@@ -57,7 +57,7 @@ export function registerAgentTools(ctx: RssPluginContext): void {
     },
     execute: async (params) => {
       const url = typeof params.url === "string" ? params.url.trim() : "";
-      const existing = loadFeeds(ctx).find((feed) => feed.url === url);
+      const existing = await getFeed(ctx, url);
       if (existing) {
         return { subscribed: false, reason: "already subscribed", feed: existing.title };
       }
@@ -87,7 +87,7 @@ export function registerAgentTools(ctx: RssPluginContext): void {
     },
     execute: async (params) => {
       const url = typeof params.url === "string" ? params.url.trim() : "";
-      if (!loadFeeds(ctx).some((feed) => feed.url === url)) {
+      if (!(await getFeed(ctx, url))) {
         throw new Error("RSS subscription not found");
       }
       const feed = await subscribe(ctx, url);

@@ -12,6 +12,7 @@ import type {
   PluginListItem,
   PluginListView,
   PluginMetadataItem,
+  PluginText,
   PluginView,
 } from "./plugin-types";
 
@@ -214,6 +215,41 @@ function normalizeListView(input: Record<string, unknown>, context: string): Plu
   };
 }
 
+/**
+ * Field copy accepts `PluginText`: a plain string, or a localized bundle
+ * (`{ default, translations? }`) resolved against the app language at
+ * render time.
+ */
+function pluginText(value: unknown, context: string): PluginText;
+function pluginText(value: unknown, context: string, optional: true): PluginText | undefined;
+function pluginText(
+  value: unknown,
+  context: string,
+  optional = false,
+): PluginText | undefined {
+  if (value == null && optional) return undefined;
+  if (typeof value === "string") return value;
+  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+    const bundle = value as { default?: unknown; translations?: unknown };
+    if (typeof bundle.default === "string") {
+      const translations = bundle.translations;
+      if (translations == null) return { default: bundle.default };
+      if (
+        typeof translations === "object" &&
+        translations !== null &&
+        !Array.isArray(translations) &&
+        Object.values(translations).every((entry) => typeof entry === "string")
+      ) {
+        return {
+          default: bundle.default,
+          translations: { ...(translations as Record<string, string>) },
+        };
+      }
+    }
+  }
+  throw new PluginViewError(`${context} must be a string or localized text`);
+}
+
 function normalizeVisibleWhen(
   value: unknown,
   context: string,
@@ -236,7 +272,7 @@ function normalizeFormField(input: unknown, context: string): PluginFormField {
   const value = record(input, context);
   const kind = string(value.kind, `${context}.kind`);
   const id = string(value.id, `${context}.id`)!;
-  const label = string(value.label, `${context}.label`)!;
+  const label = pluginText(value.label, `${context}.label`);
   const visibleWhen = normalizeVisibleWhen(value.visibleWhen, `${context}.visibleWhen`);
   const base = visibleWhen ? { visibleWhen } : {};
 
@@ -247,8 +283,8 @@ function normalizeFormField(input: unknown, context: string): PluginFormField {
       id,
       label,
       value: string(value.value, `${context}.value`, true),
-      placeholder: string(value.placeholder, `${context}.placeholder`, true),
-      helperText: string(value.helperText, `${context}.helperText`, true),
+      placeholder: pluginText(value.placeholder, `${context}.placeholder`, true),
+      helperText: pluginText(value.helperText, `${context}.helperText`, true),
       inputMode: oneOf(
         value.inputMode,
         ["text", "email", "url", "password"] as const,
@@ -265,8 +301,8 @@ function normalizeFormField(input: unknown, context: string): PluginFormField {
       id,
       label,
       value: string(value.value, `${context}.value`, true),
-      placeholder: string(value.placeholder, `${context}.placeholder`, true),
-      helperText: string(value.helperText, `${context}.helperText`, true),
+      placeholder: pluginText(value.placeholder, `${context}.placeholder`, true),
+      helperText: pluginText(value.helperText, `${context}.helperText`, true),
       rows: rows == null ? undefined : Math.min(20, Math.max(2, Math.floor(rows))),
     };
   }
@@ -277,7 +313,7 @@ function normalizeFormField(input: unknown, context: string): PluginFormField {
       id,
       label,
       value: value.value == null ? undefined : finiteNumber(value.value, `${context}.value`),
-      helperText: string(value.helperText, `${context}.helperText`, true),
+      helperText: pluginText(value.helperText, `${context}.helperText`, true),
       min: value.min == null ? undefined : finiteNumber(value.min, `${context}.min`),
       max: value.max == null ? undefined : finiteNumber(value.max, `${context}.max`),
       step: value.step == null ? undefined : finiteNumber(value.step, `${context}.step`),
@@ -292,7 +328,7 @@ function normalizeFormField(input: unknown, context: string): PluginFormField {
       const entry = record(option, `${context}.options[${index}]`);
       return {
         value: string(entry.value, `${context}.options[${index}].value`)!,
-        label: string(entry.label, `${context}.options[${index}].label`)!,
+        label: pluginText(entry.label, `${context}.options[${index}].label`),
         ...(kind === "choice"
           ? { icon: string(entry.icon, `${context}.options[${index}].icon`, true) }
           : {}),
@@ -307,7 +343,7 @@ function normalizeFormField(input: unknown, context: string): PluginFormField {
       options,
       ...(kind === "select"
         ? {
-            helperText: string(value.helperText, `${context}.helperText`, true),
+            helperText: pluginText(value.helperText, `${context}.helperText`, true),
             ...(dynamicOptions ? { dynamicOptions: true } : {}),
           }
         : {}),
@@ -319,8 +355,8 @@ function normalizeFormField(input: unknown, context: string): PluginFormField {
       kind,
       id,
       label,
-      placeholder: string(value.placeholder, `${context}.placeholder`, true),
-      helperText: string(value.helperText, `${context}.helperText`, true),
+      placeholder: pluginText(value.placeholder, `${context}.placeholder`, true),
+      helperText: pluginText(value.helperText, `${context}.helperText`, true),
     };
   }
   if (kind === "toggle" || kind === "checkbox") {
@@ -331,7 +367,7 @@ function normalizeFormField(input: unknown, context: string): PluginFormField {
       label,
       value: value.value === true,
       ...(kind === "checkbox"
-        ? { description: string(value.description, `${context}.description`, true) }
+        ? { description: pluginText(value.description, `${context}.description`, true) }
         : {}),
     } as PluginFormField;
   }

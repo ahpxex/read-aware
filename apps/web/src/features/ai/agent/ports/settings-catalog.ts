@@ -539,6 +539,7 @@ function pluginFieldDefinition(
     return null;
   }
   const path = `plugins.${plugin.pluginId}.${field.id}`;
+  const fieldLabel = contributionText(field.label);
   // A dynamicOptions select resolves its options at runtime inside the
   // plugin — statically it is a free string, not an enumerable set.
   const dynamicSelect = field.kind === "select" && field.dynamicOptions === true;
@@ -554,9 +555,9 @@ function pluginFieldDefinition(
   return {
     path,
     section: "plugins",
-    label: `${plugin.pluginName} — ${field.label}`,
+    label: `${plugin.pluginName} — ${fieldLabel}`,
     ...("helperText" in field && field.helperText
-      ? { description: field.helperText }
+      ? { description: contributionText(field.helperText) }
       : {}),
     kind,
     ...(hasDefault ? {} : { nullable: true }),
@@ -564,7 +565,7 @@ function pluginFieldDefinition(
       ? {
           options: field.options.map((choice) => ({
             value: choice.value,
-            label: choice.label,
+            label: contributionText(choice.label),
             source: "plugin" as const,
             pluginName: plugin.pluginName,
           })),

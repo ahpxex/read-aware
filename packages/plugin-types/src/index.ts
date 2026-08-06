@@ -427,6 +427,10 @@ export type PluginListView = {
  * their stored values — this is how one settings object carries a value set
  * per variant (e.g. one voice per TTS provider) without the variants
  * overwriting each other.
+ *
+ * Every user-visible string on a field (`label`, `helperText`,
+ * `placeholder`, `description`, option labels) is a `PluginText`: a plain
+ * string, or a localized bundle resolved against the app language.
  */
 type PluginFormFieldBase = {
   agentHidden?: boolean;
@@ -434,34 +438,34 @@ type PluginFormFieldBase = {
 };
 
 /** One option of a select/choice field. */
-export type PluginSelectOption = { value: string; label: string };
+export type PluginSelectOption = { value: string; label: PluginText };
 
 export type PluginFormField = PluginFormFieldBase &
   (
   | {
       kind: "text";
       id: string;
-      label: string;
+      label: PluginText;
       value?: string;
-      placeholder?: string;
-      helperText?: string;
+      placeholder?: PluginText;
+      helperText?: PluginText;
       inputMode?: "text" | "email" | "url" | "password";
     }
   | {
       kind: "textarea";
       id: string;
-      label: string;
+      label: PluginText;
       value?: string;
-      placeholder?: string;
-      helperText?: string;
+      placeholder?: PluginText;
+      helperText?: PluginText;
       rows?: number;
     }
   | {
       kind: "number";
       id: string;
-      label: string;
+      label: PluginText;
       value?: number;
-      helperText?: string;
+      helperText?: PluginText;
       min?: number;
       max?: number;
       step?: number;
@@ -469,11 +473,11 @@ export type PluginFormField = PluginFormFieldBase &
   | {
       kind: "select";
       id: string;
-      label: string;
+      label: PluginText;
       value?: string;
       /** Static options; may be empty when `dynamicOptions` is set. */
       options: PluginSelectOption[];
-      helperText?: string;
+      helperText?: PluginText;
       /**
        * Options resolved at runtime instead of listed in the declaration —
        * for lists only the plugin can know (an account's voices, what a
@@ -497,21 +501,30 @@ export type PluginFormField = PluginFormFieldBase &
        * affordance — it never echoes the stored value. Writes go through the
        * form's `secrets` adapter: declared settings get it from the host; a
        * plugin-authored form view may supply its own bound to `ctx.secrets`.
+       * A secret persists as soon as its input blurs, regardless of the
+       * form's `submitMode` — credentials never sit in form state waiting
+       * for a submit.
        */
       kind: "secret";
       id: string;
-      label: string;
-      placeholder?: string;
-      helperText?: string;
+      label: PluginText;
+      placeholder?: PluginText;
+      helperText?: PluginText;
     }
-  | { kind: "toggle"; id: string; label: string; value?: boolean }
-  | { kind: "checkbox"; id: string; label: string; description?: string; value?: boolean }
+  | { kind: "toggle"; id: string; label: PluginText; value?: boolean }
+  | {
+      kind: "checkbox";
+      id: string;
+      label: PluginText;
+      description?: PluginText;
+      value?: boolean;
+    }
   | {
       kind: "choice";
       id: string;
-      label: string;
+      label: PluginText;
       value?: string;
-      options: { value: string; label: string; icon?: string }[];
+      options: { value: string; label: PluginText; icon?: string }[];
     }
   );
 
@@ -1344,7 +1357,16 @@ export type PluginContext = {
   agent?: {
     registerTool(tool: PluginToolDefinition): PluginDisposable;
   };
-  /** `service:network` (CSP allows https; gating is at the API layer). */
+  /**
+   * `service:network` — fetch through the host's HTTP client (no CORS;
+   * https + localhost scope). The request crosses a realm boundary, so it
+   * must flatten to plain data: `string`/`URL`/`Request` inputs and
+   * `Headers` are handled for you; bodies must be strings or binary
+   * (`ArrayBuffer`/typed array) — `FormData`, `Blob`, and streams are not
+   * supported and fail loudly. An `AbortSignal` is honored locally: your
+   * await rejects on abort/timeout with fetch semantics, while the
+   * underlying host request runs to completion unobserved.
+   */
   network?: {
     fetch(input: string | URL | Request, init?: RequestInit): Promise<Response>;
   };

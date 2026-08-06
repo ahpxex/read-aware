@@ -107,12 +107,19 @@ export function validateManifest(raw: unknown): PluginManifest {
     ]);
     // A secret field's id doubles as its ctx.secrets key.
     const SECRET_ID = /^[a-z0-9][a-z0-9_-]{0,63}$/;
+    // Field copy is PluginText: a plain string or a localized bundle.
+    const validText = (value: unknown): boolean =>
+      (typeof value === "string" && value.trim() !== "") ||
+      (typeof value === "object" &&
+        value !== null &&
+        typeof (value as { default?: unknown }).default === "string" &&
+        ((value as { default: string }).default.trim() !== ""));
     for (const field of record.settings as Record<string, unknown>[]) {
       if (
         typeof field !== "object" || field === null ||
         !kinds.has(String(field.kind)) ||
         typeof field.id !== "string" || field.id.trim() === "" ||
-        typeof field.label !== "string" || field.label.trim() === ""
+        !validText(field.label)
       ) {
         throw new PluginManifestError(
           "manifest.settings entries need a valid kind, id, and label",

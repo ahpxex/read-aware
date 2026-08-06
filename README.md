@@ -3,8 +3,9 @@
   <h1>ReadAware</h1>
   <p><strong>Reading that remembers.</strong></p>
   <p>
-    A modern, meticulously tuned reader with an agent that understands your
-    books, your annotations, and the ideas you keep returning to.
+    An agent-first reader with a plugin system at its core: one agent that
+    understands your books, your annotations, and the ideas you keep returning
+    to — inside an app built to be extended, eventually by the agent itself.
   </p>
   <p>
     <a href="https://readaware.app">Website</a> ·
@@ -22,12 +23,13 @@
 > [give it a star](https://github.com/ahpxex/read-aware) — stars are how new
 > readers find the project.
 
-## Read beautifully. Remember deeply.
+## One reader. One agent. Open-ended plugins.
 
 ReadAware is a free and open-source reader for macOS, Windows, Linux, Android,
-and iOS. It combines a carefully crafted reading experience with a built-in
-agent that can use tools, answer questions in context, and build an evolving
-memory from the books, passages, notes, and conversations that matter to you.
+and iOS. At its center is a single agent that can use tools, answer questions
+in context, and build an evolving memory from the books, passages, notes, and
+conversations that matter to you. Around it is a sandboxed plugin system that
+extends the reader — and the agent — from the inside.
 
 - **Stay with the sentence.** Sentence-by-sentence reading keeps the page calm,
   focused, and ADHD-friendly.
@@ -35,14 +37,18 @@ memory from the books, passages, notes, and conversations that matter to you.
   breaking your reading flow.
 - **Ask from the page.** Chat with AI about an unfamiliar passage, follow an
   idea further, or look up a word without leaving the book.
+- **Extend it from the inside.** Install sandboxed plugins from the built-in
+  marketplace: read-aloud voices, reading themes, dictionaries, feeds that
+  read like books, new commands — and new tools the agent picks up and uses.
 - **Keep words for later.** Annotate vocabulary as you read so it can become
   useful review material instead of a one-off lookup.
 - **Make the page yours.** Switch languages, color themes, fonts, type sizes,
   spacing, and other reading settings.
 - **See the habit forming.** Reading-time statistics make progress visible
   across books and sessions.
-- **Bring almost any book.** EPUB, MOBI, AZW3, FB2, and PDF share one reading,
-  selection, annotation, and progress model, with no format conversion.
+- **Bring almost any book.** EPUB, MOBI, AZW3, FB2, PDF, TXT, HTML, CBZ, and
+  CBR share one reading, selection, annotation, and progress model, with no
+  format conversion.
 
 <table>
   <tr>
@@ -53,13 +59,22 @@ memory from the books, passages, notes, and conversations that matter to you.
 
 ## Why it feels different
 
-The interface has been tuned down to the pixel. The result is intentionally
-quiet, coherent, and free of AI slop.
+Most apps bolt AI onto a sidebar. ReadAware is built the other way around: one
+agent orchestrates retrieval, context assembly, tool use, and memory, and the
+interface is a surface it can act on. Plugins extend the same seams from the
+outside — sandboxed and permission-gated, they add voices, themes,
+dictionaries, feeds, commands, and tools the agent immediately knows how to
+use.
 
-AI stays beside the reading experience rather than taking it over. The agent
-can retrieve context, call tools, and update memory, while the page remains a
-page: typography first, controls only when they are useful, and details that
-reward long reading sessions.
+That combination is the long game: an agent that operates the app through the
+same contracts plugins are written against can, eventually, extend the app for
+you. The reader is designed to evolve itself.
+
+The craft underneath is the floor, not the pitch. The interface stays quiet,
+coherent, and tuned to the pixel — typography first, controls only when they
+are useful, no AI slop — and the agent stays beside the reading experience
+rather than taking it over, because a reader earns attention with the page,
+not the chrome.
 
 ## Platforms
 
@@ -86,6 +101,7 @@ books.
 ReadAware app
 ├── React interface          shelf, reader, annotations, chat, settings
 ├── Local agent runtime      tools, retrieval, context, memory updates
+├── Plugin runtime           sandboxed workers, marketplace, contribution points
 ├── SQLite                   product data, event log, FTS, projections
 └── Native filesystem        imported books and large blobs
 
@@ -99,6 +115,11 @@ memory and search state are rebuildable projections. Retrieval uses SQLite FTS
 plus scope, recency, and importance signals rather than requiring a vector
 database.
 
+Plugins and the agent reach the product through the same domain API layer, and
+every read, write, and event carries its origin — the user, a plugin, or the
+agent. What the agent can do today, a plugin can extend tomorrow, and vice
+versa.
+
 ## Repository
 
 ReadAware is a Bun workspace monorepo orchestrated by Turborepo.
@@ -111,10 +132,14 @@ ReadAware is a Bun workspace monorepo orchestrated by Turborepo.
 | `packages/agent` | Agent runtime, model adapters, retrieval, and memory pipelines |
 | `packages/core` | Domain entities, events, and storage contracts |
 | `packages/ui` | Shared design system and co-located Storybook stories |
+| `packages/plugin-types` | The public plugin API surface |
+| `plugins/` | First-party plugins: dictionary, themes, RSS, read-aloud voices |
 
 Architecture decisions and target data contracts live in
 [`docs/agent-architecture.md`](docs/agent-architecture.md) and
-[`docs/data-model.md`](docs/data-model.md).
+[`docs/data-model.md`](docs/data-model.md). The plugin API reference and
+publishing guide live at
+[readaware.app/docs/plugins](https://readaware.app/docs/plugins).
 
 ## Run locally
 

@@ -4,6 +4,7 @@
     "close": "Закрыть",
     "submit": "Отправить",
     "selectPlaceholder": "Выберите…",
+    "enterManually": "Ввести вручную…",
     "secretConfigured": "Сохранено — введите новое значение для замены",
     "secretClear": "Очистить",
     "loading": "Загрузка…",

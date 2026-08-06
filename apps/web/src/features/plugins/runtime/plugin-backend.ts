@@ -116,12 +116,16 @@ let loadCounter = 0;
 /**
  * URL for a file inside an installed plugin's folder, served over the
  * `raplugin://` protocol. Mirrors Tauri's convertFileSrc() scheme mapping:
- * Windows serves custom protocols over `http://<scheme>.localhost`,
- * everywhere else as `<scheme>://localhost/`.
+ * Windows AND Android serve custom protocols over `http://<scheme>.localhost`
+ * (their webviews cannot intercept a custom scheme directly), everywhere
+ * else as `<scheme>://localhost/`. Missing the Android half of that rule
+ * once left every plugin failing activation there with "Failed to fetch
+ * dynamically imported module: raplugin://…".
  */
 export function pluginAssetUrl(id: string, path: string): string {
-  const windows = navigator.userAgent.includes("Windows");
-  const base = windows ? "http://raplugin.localhost/" : "raplugin://localhost/";
+  const httpMapped =
+    navigator.userAgent.includes("Windows") || navigator.userAgent.includes("Android");
+  const base = httpMapped ? "http://raplugin.localhost/" : "raplugin://localhost/";
   return `${base}${id}/${path}`;
 }
 

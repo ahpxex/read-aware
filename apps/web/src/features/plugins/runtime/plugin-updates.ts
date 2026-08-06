@@ -13,9 +13,15 @@ import { fetchMarketplaceRegistry } from "./marketplace";
 
 const CHECK_KEY = "read-aware-plugin-update-check";
 const CHECK_INTERVAL_MS = 20 * 60 * 60 * 1000;
+// A failed fetch (offline, registry blocked) cools the check down for a while:
+// restart-heavy sessions would otherwise re-pay the mirror timeouts on every
+// launch. Short enough that connectivity coming back is noticed the same day.
+const FAILURE_COOLDOWN_MS = 60 * 60 * 1000;
 
 type CheckState = {
   at: number;
+  /** Last attempt that failed to fetch the registry; 0 after a success. */
+  failedAt: number;
   /** plugin id → last registry version we announced. */
   notified: Record<string, string>;
 };
@@ -26,11 +32,12 @@ function readState(): CheckState {
     const parsed = raw ? (JSON.parse(raw) as Partial<CheckState>) : null;
     return {
       at: typeof parsed?.at === "number" ? parsed.at : 0,
+      failedAt: typeof parsed?.failedAt === "number" ? parsed.failedAt : 0,
       notified:
         parsed?.notified && typeof parsed.notified === "object" ? parsed.notified : {},
     };
   } catch {
-    return { at: 0, notified: {} };
+    return { at: 0, failedAt: 0, notified: {} };
   }
 }
 
@@ -47,13 +54,19 @@ export function versionNewer(candidate: string, current: string): boolean {
 
 export async function checkPluginUpdates(): Promise<void> {
   const state = readState();
-  if (Date.now() - state.at < CHECK_INTERVAL_MS) return;
+  const now = Date.now();
+  if (now - state.at < CHECK_INTERVAL_MS) return;
+  if (now - state.failedAt < FAILURE_COOLDOWN_MS) return;
 
   let entries;
   try {
     entries = await fetchMarketplaceRegistry();
   } catch {
-    // Offline or registry hiccup — try again next interval, never nag.
+    // Offline or registry hiccup — cool down, try again later, never nag.
+    localKV.setItem(
+      CHECK_KEY,
+      JSON.stringify({ ...state, failedAt: now } satisfies CheckState),
+    );
     return;
   }
 
@@ -72,5 +85,8 @@ export async function checkPluginUpdates(): Promise<void> {
     );
   }
 
-  localKV.setItem(CHECK_KEY, JSON.stringify({ at: Date.now(), notified } satisfies CheckState));
+  localKV.setItem(
+    CHECK_KEY,
+    JSON.stringify({ at: Date.now(), failedAt: 0, notified } satisfies CheckState),
+  );
 }

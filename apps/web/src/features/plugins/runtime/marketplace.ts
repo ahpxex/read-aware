@@ -4,8 +4,12 @@
  * `registry.json` index and installs plugins by fetching their text files and
  * handing them to Rust to write (docs/plugin-system.md §9).
  *
- * Two mirrors, tried in order: raw.githubusercontent.com is always fresh but
- * unreachable on some networks; jsDelivr is widely reachable but caches ~12h.
+ * Two mirrors: raw.githubusercontent.com is always fresh but unreachable on
+ * some networks; jsDelivr is widely reachable but caches ~12h. The last mirror
+ * that answered is remembered and tried first — on a network where raw is
+ * blocked, every attempt there costs a full fetch timeout (and, behind TLS
+ * interception, a burst of handshake-error noise in the logs), so we pay it
+ * once, not on every registry check and every file of an install.
  */
 import {
   PLUGIN_PERMISSIONS,
@@ -13,6 +17,7 @@ import {
   type PluginManifest,
   type PluginPermission,
 } from "../lib/plugin-types";
+import { localKV } from "../../../platform/local-store";
 import { PluginManifestError, parseManifestJson } from "../lib/manifest";
 import { installPluginFiles } from "./plugin-host";
 import type { PluginFilePayload } from "./plugin-backend";
@@ -26,6 +31,16 @@ const SOURCES = [
 ];
 
 const FETCH_TIMEOUT_MS = 8000;
+const MIRROR_KEY = "read-aware-plugin-marketplace-mirror";
+
+/** The configured mirrors with the last-known-good one moved to the front. */
+export function orderMirrors(
+  sources: readonly string[],
+  preferred: string | null,
+): string[] {
+  if (!preferred || !sources.includes(preferred)) return [...sources];
+  return [preferred, ...sources.filter((base) => base !== preferred)];
+}
 
 export type MarketplaceEntry = {
   id: string;
@@ -41,7 +56,7 @@ export type MarketplaceEntry = {
 
 async function fetchFromMirrors(path: string): Promise<Response> {
   let lastError: unknown = new Error("no marketplace source configured");
-  for (const base of SOURCES) {
+  for (const base of orderMirrors(SOURCES, localKV.getItem(MIRROR_KEY))) {
     try {
       const response = await fetch(`${base}/${path}`, {
         signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
@@ -51,6 +66,7 @@ async function fetchFromMirrors(path: string): Promise<Response> {
         lastError = new Error(`${response.status} for ${path}`);
         continue;
       }
+      if (localKV.getItem(MIRROR_KEY) !== base) localKV.setItem(MIRROR_KEY, base);
       return response;
     } catch (error) {
       lastError = error;

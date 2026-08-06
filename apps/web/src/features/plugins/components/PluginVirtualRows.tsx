@@ -41,9 +41,19 @@ export function PluginVirtualRows({ rows }: { rows: VirtualRow[] }) {
     };
     measure();
     // Content above the list (search fields, tab strips, forms) can resize
-    // after mount; the margin must follow or rows land offset.
+    // after mount; the margin must follow or rows land offset. Growth above
+    // never resizes the scroll HOST itself (its box is viewport-bound), but
+    // it always resizes some ancestor between the list and the host — so
+    // observe that whole chain.
     const raf = requestAnimationFrame(measure);
     const observer = new ResizeObserver(measure);
+    for (
+      let node: HTMLElement | null = el;
+      node && node !== host;
+      node = node.parentElement
+    ) {
+      observer.observe(node);
+    }
     observer.observe(host);
     observer.observe(document.documentElement);
     return () => {

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  BAKED_VERSION,
-  buildDownloads,
+  DOWNLOADS,
   detectPlatform,
   fetchLatestVersion,
   type PlatformDownload,
@@ -9,7 +8,7 @@ import {
 } from "../lib/releases";
 
 export type LatestReleaseState = {
-  /** Release tag (e.g. "v0.2.3"). */
+  /** Release tag (e.g. "v0.2.3"), or null until the GitHub API confirms it. */
   tag: string | null;
   downloads: PlatformDownload[];
   /** The visitor's detected OS, used to feature the right download. */
@@ -18,16 +17,17 @@ export type LatestReleaseState = {
 };
 
 /**
- * Download links for the latest GitHub release. Starts from the build-time
- * baked version — direct version-stamped installer URLs, no network round
- * trip. The GitHub API then refines them when it responds (it may know a newer
- * release than this deployed landing); a failed API request (it's rate-limited
- * per client IP) keeps the baked set — the buttons still download directly.
+ * Download links for the latest stable release. The links are static
+ * stable-alias URLs that GitHub resolves server-side to the newest
+ * non-prerelease release, so they need no version and no network round trip.
+ * The GitHub API call only fills in the release tag for display copy when it
+ * responds (it is rate-limited per client IP); until then the tag stays null
+ * and the copy omits it.
  */
 export function useLatestRelease(): LatestReleaseState {
   const [state, setState] = useState<LatestReleaseState>(() => ({
-    tag: `v${BAKED_VERSION}`,
-    downloads: buildDownloads(BAKED_VERSION),
+    tag: null,
+    downloads: DOWNLOADS,
     platform: detectPlatform(),
     loading: true,
   }));
@@ -39,8 +39,7 @@ export function useLatestRelease(): LatestReleaseState {
       setState((previous) => ({
         ...previous,
         loading: false,
-        tag: version ? `v${version}` : previous.tag,
-        downloads: version ? buildDownloads(version) : previous.downloads,
+        tag: version ? `v${version}` : null,
       }));
     });
     return () => controller.abort();

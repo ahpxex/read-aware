@@ -20,8 +20,9 @@ git push 必须走 SSH remote（`git@github.com:`），HTTPS push 在大 pack �
 - 定新版本号：用户指定了就用用户的；没指定则默认 patch +1，若本次包含明显的新
   功能可建议 minor，并把选择告诉用户（不必等确认，用户有异议会说）。
 - tag 必须严格等于 `tauri.conf.json` 的 `version`（release 资产命名
-  `ReadAware-vX.Y.Z-<platform>-<arch>.<ext>` 与 updater manifest 都由它推导，
-  landing 的下载直链也按它拼）。
+  `ReadAware-vX.Y.Z-<platform>-<arch>.<ext>` 与 updater manifest 都由它推导）。
+  landing 的下载链接是无版本号稳定别名（`releases/latest/download/...`），
+  不依赖版本号。
 
 ## 1. 版本号 bump（一个 commit）
 
@@ -37,10 +38,29 @@ git push 必须走 SSH remote（`git@github.com:`），HTTPS push 在大 pack �
 3. `apps/desktop/src-tauri/gen/apple/read-aware-desktop_iOS/Info.plist`
    - 两处版本字符串（`CFBundleShortVersionString` / `CFBundleVersion` 的 value）
 
-landing 不用改：它构建时从 `tauri.conf.json` 烤入版本号（见
-`apps/landing/vite.config.ts`），随本次 push 的 CF Pages 部署自动更新。
+landing 不用改：下载链接是 `releases/latest/download/ReadAware-<platform>-<arch>.<ext>`
+稳定别名（见 `apps/landing/src/lib/releases.ts` 的 `DOWNLOADS`），GitHub 自己
+把它解析到最新 stable release；stable 发版时 CI 会把安装包重复上传一份到
+这些别名文件名（release.yml "Collect release assets"）。
 
 提交信息沿用历史风格：`chore: release vX.Y.Z`。
+
+## Pre-release（beta / rc）
+
+tag 带 `-` 即 pre-release（如 `v0.3.0-beta.1`），流程与正式版相同，差异全部
+由 CI 自动处理，安全性依赖 GitHub `releases/latest` 排除 prerelease 这一语义：
+
+- release 自动标为 prerelease、跳过别名上传 → 桌面更新器（latest.json）、
+  Android 更新器（latest-android.json）、landing 下载链接全部继续指向
+  上一个 stable，现有用户完全无感。装了 beta 的用户在下个正式版发布时
+  会正常升级上去。
+- 版本号必须是 `-词.数字` 形式（`-beta.1` 可以，裸 `-beta` 会挂 Windows
+  打包）；iOS 的 `CFBundleShortVersionString` 严格说不允许带后缀，iOS job
+  可能失败，非硬性门槛。
+- Android `versionCode` 照公式算并保持单调递增；之后的正式版若公式值已被
+  beta 占用则 +1。
+- changelog 从简（标注 beta preview + 亮点 + Full Changelog 链接即可），
+  跳过第 5 步 landing 文档同步（留给正式版）。
 
 ## 2. 打 tag 并推送
 

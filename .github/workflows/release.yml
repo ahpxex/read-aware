@@ -4,13 +4,18 @@
 # macOS .dmg/.app.zip per chip (Apple Silicon + Intel, no universal), Windows
 # x64 .msi/.exe, Linux x64 .AppImage/.deb/.rpm. Every artifact is renamed to carry its platform
 # (ReadAware-vX.Y.Z-<platform>-<arch>.<ext>) before it is attached to the
-# GitHub release for the tag (created on first upload). Every installer is
-# additionally uploaded under a version-less stable alias
+# GitHub release for the tag (created on first upload). Stable releases
+# additionally upload every installer under a version-less stable alias
 # (ReadAware-<platform>-<arch>.<ext>) so the landing page can hard-code
 # `releases/latest/download/<alias>` URLs without calling the rate-limited
 # GitHub API — keep the alias names in sync with
-# apps/landing/src/lib/releases.ts (STABLE_ASSET_NAMES). The updater-manifest
-# job then assembles latest.json from the uploaded updater payloads.
+# apps/landing/src/lib/releases.ts (DOWNLOADS). Pre-release tags (any v*
+# containing "-", e.g. v0.3.0-beta.1) skip the aliases and mark the GitHub
+# release as a prerelease, which keeps it out of `releases/latest` entirely:
+# the desktop updater (latest.json), the Android updater (latest-android.json)
+# and the landing's alias links all keep resolving to the previous stable
+# release. The updater-manifest job then assembles latest.json from the
+# uploaded updater payloads.
 #
 # Android signing comes from two repository secrets:
 #   ANDROID_KEYSTORE_B64      — base64 of the release keystore (.jks)
@@ -105,15 +110,19 @@ jobs:
           VERSION="$VERSION" VERSION_CODE="$VERSION_CODE" SHA256="$SHA256" SIZE="$SIZE" APK_URL="$APK_URL" \
             bun -e 'console.log(JSON.stringify({ version: process.env.VERSION, versionCode: Number(process.env.VERSION_CODE), url: process.env.APK_URL, sha256: process.env.SHA256, size: Number(process.env.SIZE) }, null, 2))' \
             > latest-android.json
+          if [[ "$GITHUB_REF_NAME" != *-* ]]; then
+            cp "$APK" ReadAware-android-arm64.apk
+          fi
 
       - name: Attach to release
         uses: softprops/action-gh-release@v2
         with:
           name: ReadAware ${{ github.ref_name }}
           files: |
-            ReadAware-${{ github.ref_name }}-android-arm64.apk
+            ReadAware-*android-arm64.apk
             latest-android.json
           generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
 
   # iOS: unsigned arm64 IPA via `tauri ios build --no-sign` (the CLI overrides
   # the codesigning identity to "" and still runs beforeBuildCommand plus the
@@ -175,6 +184,9 @@ jobs:
             || { echo "expected an unsigned IPA" >&2; exit 1; }
           mkdir -p release-assets
           cp "$IPA" "release-assets/ReadAware-${{ github.ref_name }}-ios-arm64.ipa"
+          if [[ "$GITHUB_REF_NAME" != *-* ]]; then
+            cp "$IPA" release-assets/ReadAware-ios-arm64.ipa
+          fi
           ls -la release-assets
 
       - name: Attach to release
@@ -183,6 +195,7 @@ jobs:
           name: ReadAware ${{ github.ref_name }}
           files: release-assets/*
           generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
 
   desktop:
     strategy:
@@ -250,9 +263,10 @@ jobs:
 
       # One naming scheme for everything on the release page:
       #   ReadAware-vX.Y.Z-<platform>-<arch>.<ext>
-      # No version-less aliases: the landing page bakes the version in at build
-      # time (see apps/landing/vite.config.ts) and derives every URL from this
-      # scheme, so stable download links need no duplicate uploads.
+      # Stable tags additionally duplicate the installers under version-less
+      # aliases (ReadAware-<platform>-<arch>.<ext>): the landing page hard-codes
+      # `releases/latest/download/<alias>` URLs, which GitHub resolves to the
+      # newest non-prerelease release — pre-release tags therefore skip them.
       # macOS additionally ships the .app as a plain .zip alongside the .dmg;
       # Windows ships a portable .zip of the bare exe (Tauri embeds the
       # frontend, so it is self-contained; WebView2 comes with Windows 10/11 —
@@ -294,6 +308,23 @@ jobs:
               (cd "$EXE_DIR" && 7z a "$OLDPWD/release-assets/$BASE-portable.zip" ReadAware.exe)
               ;;
           esac
+          if [[ "$GITHUB_REF_NAME" != *-* ]]; then
+            case "${{ matrix.platform }}" in
+              macos-*)
+                cp "release-assets/$BASE.dmg" "release-assets/ReadAware-${{ matrix.platform }}.dmg"
+                ;;
+              linux-*)
+                cp "release-assets/$BASE.AppImage" release-assets/ReadAware-linux-x64.AppImage
+                cp "release-assets/$BASE.deb" release-assets/ReadAware-linux-x64.deb
+                cp "release-assets/$BASE.rpm" release-assets/ReadAware-linux-x64.rpm
+                ;;
+              windows-*)
+                cp "release-assets/$BASE-setup.exe" release-assets/ReadAware-windows-x64-setup.exe
+                cp "release-assets/$BASE.msi" release-assets/ReadAware-windows-x64.msi
+                cp "release-assets/$BASE-portable.zip" release-assets/ReadAware-windows-x64-portable.zip
+                ;;
+            esac
+          fi
           ls -la release-assets
 
       - name: Attach to release
@@ -302,6 +333,7 @@ jobs:
           name: ReadAware ${{ github.ref_name }}
           files: release-assets/*
           generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
 
   # latest.json must exist once, after every desktop artifact is uploaded —
   # composing it in a dedicated job avoids the cross-job merge races the

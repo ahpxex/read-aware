@@ -59,6 +59,20 @@
       "light": "浅色",
       "dark": "深色"
     },
+    "contentType": {
+      "title": "内容排版",
+      "description": "聊天回复、笔记与插件视图的排版。界面控件保持自己的字号。",
+      "follow": {
+        "title": "跟随阅读设置",
+        "description": "沿用你为书籍选择的字体与行距，按对话的尺度缩小。"
+      },
+      "appDefaultFont": "应用默认",
+      "fontSize": "字号",
+      "lineSpacing": "行距",
+      "previewLabel": "内容排版预览",
+      "previewQuestion": "这一章到底在论证什么？",
+      "previewAnswer": "改革始于即兴——一连串没人批准过的地方试验，因为管用才被留了下来。"
+    },
     "motion": "动效",
     "reduceMotion": {
       "title": "减弱动效",

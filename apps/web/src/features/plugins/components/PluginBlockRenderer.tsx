@@ -79,7 +79,7 @@ function PluginBlockRenderer({
   onResult: PluginResultRunner;
 }) {
   if (block.kind === "markdown") {
-    return <Markdown className="text-sm leading-6">{block.markdown}</Markdown>;
+    return <Markdown>{block.markdown}</Markdown>;
   }
   if (block.kind === "text") {
     const tone = toneClasses[block.tone ?? "default"];
@@ -88,7 +88,7 @@ function PluginBlockRenderer({
     }
     if (block.variant === "eyebrow") return <Eyebrow className={tone}>{block.text}</Eyebrow>;
     if (block.variant === "caption") return <Caption className={tone}>{block.text}</Caption>;
-    return <Body className={`text-sm leading-6 ${tone}`}>{block.text}</Body>;
+    return <Body className={`ra-content-type ${tone}`}>{block.text}</Body>;
   }
   if (block.kind === "heading") {
     return (

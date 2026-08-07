@@ -37,8 +37,10 @@ export function ChatMessageItem({
         {message.attachments?.map((attachment, i) => (
           <AttachmentChip key={i} attachment={attachment} className="max-w-[90%]" />
         ))}
+        {/* Your own turn is content too — it sizes with the reply below it,
+            not with the chrome. */}
         {hasText && (
-          <div className="max-w-[90%] whitespace-pre-wrap rounded-lg bg-fill-strong px-3 py-2 text-sm leading-relaxed text-fg">
+          <div className="ra-content-type max-w-[90%] whitespace-pre-wrap rounded-lg bg-fill-strong px-3 py-2 text-fg">
             {message.content}
           </div>
         )}

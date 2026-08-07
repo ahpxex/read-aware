@@ -4,6 +4,7 @@ import {
   isPluginFont,
   systemFontFamily,
   type ReaderFontFamily,
+  type ReaderFontSize,
   type ReaderFontWeight,
   type ReaderPageMargins,
   type ReaderSettings,
@@ -96,6 +97,15 @@ const FONT_SIZE_MAP = {
   "xx-large": "1.5rem",
   "xxx-large": "1.75rem",
 } as const;
+
+/**
+ * The numeric rem behind a reading size preset. Exposed so the app's content
+ * typography can scale off the book's size when it follows it — see
+ * `content-typography.ts`.
+ */
+export function readerFontSizeRem(fontSize: ReaderFontSize): number {
+  return Number.parseFloat(FONT_SIZE_MAP[fontSize]);
+}
 
 const LINE_HEIGHT_MAP = {
   compact: "1.55",

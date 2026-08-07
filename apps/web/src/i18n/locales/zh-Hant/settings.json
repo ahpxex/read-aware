@@ -59,6 +59,20 @@
       "light": "淺色",
       "dark": "深色"
     },
+    "contentType": {
+      "title": "內容排版",
+      "description": "聊天回覆、筆記與外掛視圖的排版。介面控制項保持自己的字級。",
+      "follow": {
+        "title": "跟隨閱讀設定",
+        "description": "沿用你為書籍選擇的字型與行距，按對話的尺度縮小。"
+      },
+      "appDefaultFont": "應用程式預設",
+      "fontSize": "字級",
+      "lineSpacing": "行距",
+      "previewLabel": "內容排版預覽",
+      "previewQuestion": "這一章到底在論證什麼？",
+      "previewAnswer": "改革始於即興——一連串沒人批准過的地方試驗，因為管用才被留了下來。"
+    },
     "motion": "動態效果",
     "reduceMotion": {
       "title": "減少動態效果",

@@ -126,7 +126,9 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(
                   ? t("chat.placeholderWithPassage")
                   : t("chat.placeholder")
               }
-              className="block max-h-40 min-h-8 w-full resize-none bg-transparent py-1 pr-9 text-sm leading-6 text-fg outline-none placeholder:text-fg-subtle"
+              // Sized with the transcript: what you type should read the same
+              // as what comes back.
+              className="ra-content-type block max-h-40 min-h-8 w-full resize-none bg-transparent py-1 pr-9 text-fg outline-none placeholder:text-fg-subtle"
             />
             {isStreaming ? (
               <IconButton

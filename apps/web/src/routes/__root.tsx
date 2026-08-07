@@ -5,6 +5,7 @@ import { dismissBootSplash } from "../boot-splash";
 import { i18n, useTranslation } from "../i18n";
 import { WindowResizeEdges } from "../features/navigation/components/WindowResizeEdges";
 import { useAppearance } from "../features/settings/hooks/useAppearance";
+import { useContentTypography } from "../features/settings/hooks/useContentTypography";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -25,6 +26,7 @@ export const Route = createRootRoute({
 
 function RootComponent() {
   useAppearance();
+  useContentTypography();
   const { t } = useTranslation("common");
 
   return (

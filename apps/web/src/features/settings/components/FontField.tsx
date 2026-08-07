@@ -25,35 +25,69 @@ const CURATED_OPTIONS: { value: string; label: string }[] = CURATED_FONTS.map((f
   label: font.label,
 }));
 
+/**
+ * `defaultLabel` opts a caller into a null selection — the leading choice in
+ * the curated list, meaning "whatever this surface uses by default". Content
+ * typography needs it (its default is the app's bundled sans, which must not
+ * become a curated download just to be nameable); the reader has no such
+ * state, so the union keeps null out of its `onChange` entirely.
+ */
 type FontFieldProps = {
-  value: ReaderFontFamily;
-  onChange: (value: ReaderFontFamily) => void;
   /** Active weight preset — decides which weights the curated download fetches. */
   fontWeight?: ReaderFontWeight;
   className?: string;
-};
+} & (
+  | {
+      value: ReaderFontFamily;
+      onChange: (value: ReaderFontFamily) => void;
+      defaultLabel?: undefined;
+    }
+  | {
+      value: ReaderFontFamily | null;
+      onChange: (value: ReaderFontFamily | null) => void;
+      defaultLabel: string;
+    }
+);
+
+/** Stands in for a null selection while the loaders run — owned by neither. */
+const NO_FONT = "system:" as ReaderFontFamily;
+
+/** Select value for the null choice. Not a valid font ref, so it cannot collide. */
+const DEFAULT_OPTION = "\u0000default";
 
 /**
- * Reader body-font picker. A single dropdown lists our curated reading fonts —
- * each downloaded + cached on demand the first time it's chosen. Flip the
- * "Custom" switch and the dropdown instead enumerates every font installed on
- * this device. Switching source is non-destructive: the current font stays until
- * a new one is picked. Shared by the Reading panel and the in-reader popover.
+ * Body-font picker. A single dropdown lists our curated reading fonts — each
+ * downloaded + cached on demand the first time it's chosen. Flip the "Custom"
+ * switch and the dropdown instead enumerates every font installed on this
+ * device. Switching source is non-destructive: the current font stays until a
+ * new one is picked. Shared by the Reading panel, the in-reader popover, and
+ * the content typography controls.
  */
-export function FontField({ value, onChange, fontWeight, className }: FontFieldProps) {
+export function FontField({
+  value,
+  onChange,
+  defaultLabel,
+  fontWeight,
+  className,
+}: FontFieldProps) {
   const { t } = useTranslation("settings");
   const systemFonts = useSystemFonts();
   const pluginFonts = useAtomValue(pluginFontsAtom);
-  const [custom, setCustom] = useState(isSystemFont(value));
+  // A null value is the surface's own default — neither loader owns it.
+  const loaded = value ?? NO_FONT;
+  // Open on the source the value came from. A null value belongs to the
+  // curated list (that is where its "default" option lives), so it must not
+  // read the `system:` placeholder above and open on Custom.
+  const [custom, setCustom] = useState(value !== null && isSystemFont(value));
   // Download + inject the active curated font so the preview/UI render it.
-  const fontFace = useCuratedFontFace(value, fontWeight);
+  const fontFace = useCuratedFontFace(loaded, fontWeight);
   // Plugin fonts need no download — inject their folder-served faces directly.
-  usePluginFontFace(value);
+  usePluginFontFace(loaded);
 
   const systemOptions = useMemo(() => {
     const opts = systemFonts.map((family) => ({ value: toSystemFont(family), label: family }));
     // Keep the current pick visible before the list resolves, or if uninstalled.
-    if (isSystemFont(value) && !opts.some((option) => option.value === value)) {
+    if (value && isSystemFont(value) && !opts.some((option) => option.value === value)) {
       opts.unshift({ value, label: systemFontFamily(value) ?? value });
     }
     return opts;
@@ -63,6 +97,9 @@ export function FontField({ value, onChange, fontWeight, className }: FontFieldP
   // as opposed to the device-enumerated "custom" list).
   const curatedOptions = useMemo(() => {
     const opts = [
+      // The default choice leads: it is where the surface started, so it reads
+      // as the top of the list rather than an escape hatch below the fonts.
+      ...(defaultLabel ? [{ value: DEFAULT_OPTION, label: defaultLabel }] : []),
       ...CURATED_OPTIONS,
       ...pluginFonts.map((font) => ({
         value: toPluginRef(font.pluginId, font.id) as string,
@@ -70,21 +107,25 @@ export function FontField({ value, onChange, fontWeight, className }: FontFieldP
       })),
     ];
     // A stored plugin font whose plugin is currently gone stays visible.
-    if (isPluginFont(value) && !opts.some((option) => option.value === value)) {
+    if (value && isPluginFont(value) && !opts.some((option) => option.value === value)) {
       opts.push({ value, label: parsePluginRef(value)?.partId ?? value });
     }
     return opts;
-  }, [pluginFonts, value]);
+  }, [defaultLabel, pluginFonts, value]);
 
   const options = custom ? systemOptions : curatedOptions;
   // Reflect the value only when it belongs to the active source.
   const selectValue: string = custom
-    ? isSystemFont(value)
+    ? value && isSystemFont(value)
       ? value
       : ""
-    : curatedFontId(value) || isPluginFont(value)
-      ? value
-      : "";
+    : value === null
+      ? defaultLabel
+        ? DEFAULT_OPTION
+        : ""
+      : curatedFontId(value) || isPluginFont(value)
+        ? value
+        : "";
 
   return (
     <div className={cn("relative", className)}>
@@ -101,7 +142,13 @@ export function FontField({ value, onChange, fontWeight, className }: FontFieldP
         value={selectValue}
         options={options}
         placeholder={custom ? t("font.placeholderCustom") : t("font.placeholderCurated")}
-        onChange={(next) => onChange(next as ReaderFontFamily)}
+        onChange={(next) =>
+          // The union guarantees a null-accepting handler whenever the default
+          // option can be picked, so the cast only widens for that caller.
+          (onChange as (v: ReaderFontFamily | null) => void)(
+            next === DEFAULT_OPTION ? null : (next as ReaderFontFamily),
+          )
+        }
       />
       {/* Download feedback for curated fonts — fetched from a CDN on first use,
           which can be slow or unreachable; silence here read as a broken picker. */}

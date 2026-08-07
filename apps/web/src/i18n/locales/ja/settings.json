@@ -59,6 +59,20 @@
       "light": "ライト",
       "dark": "ダーク"
     },
+    "contentType": {
+      "title": "コンテンツの組版",
+      "description": "チャットの返信、ノート、プラグインビューの組み方。アプリの操作系は独自のサイズを保ちます。",
+      "follow": {
+        "title": "読書設定に従う",
+        "description": "本に選んだフォントと行間を、会話向けに縮めて使います。"
+      },
+      "appDefaultFont": "アプリ標準",
+      "fontSize": "サイズ",
+      "lineSpacing": "行間",
+      "previewLabel": "コンテンツ組版のプレビュー",
+      "previewQuestion": "この章は何を論じているのですか。",
+      "previewAnswer": "改革は即興から始まった——誰の許可もない地方の実験が、うまくいったから生き延びたのだ。"
+    },
     "motion": "モーション",
     "reduceMotion": {
       "title": "モーションを減らす",

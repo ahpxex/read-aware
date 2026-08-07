@@ -194,7 +194,7 @@ export function PluginViewRenderer({
   const currentView = (
     <>
       {current.kind === "markdown" && (
-        <Markdown className="text-sm leading-6">{current.markdown}</Markdown>
+        <Markdown>{current.markdown}</Markdown>
       )}
       {current.kind === "list" && (
         <PluginListViewBody

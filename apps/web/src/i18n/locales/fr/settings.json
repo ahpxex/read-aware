@@ -59,6 +59,20 @@
       "light": "Clair",
       "dark": "Sombre"
     },
+    "contentType": {
+      "title": "Typographie du contenu",
+      "description": "La mise en forme des réponses, des notes et des vues d’extension. Les commandes de l’interface gardent leur taille.",
+      "follow": {
+        "title": "Suivre les réglages de lecture",
+        "description": "Reprendre la police et l’interligne choisis pour les livres, réduits à l’échelle d’une conversation."
+      },
+      "appDefaultFont": "Par défaut",
+      "fontSize": "Taille",
+      "lineSpacing": "Interligne",
+      "previewLabel": "Aperçu de la typographie du contenu",
+      "previewQuestion": "Que cherche à démontrer ce chapitre ?",
+      "previewAnswer": "Que la réforme a commencé par l’improvisation — une série d’expériences locales que personne n’avait autorisées, maintenues parce qu’elles marchaient."
+    },
     "motion": "Animations",
     "reduceMotion": {
       "title": "Réduire les animations",

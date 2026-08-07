@@ -54,11 +54,11 @@ export function AnnotationRow({
         <AnnotationIcon annotation={annotation} />
         <div className="min-w-0 flex-1">
           {/* ask = 提问痕迹：text 是问题本身，不加引号（不是书里的原文） */}
-          <p className="line-clamp-2 text-xs leading-relaxed text-fg-muted">
+          <p className="ra-content-type-sm line-clamp-2 text-fg-muted">
             {annotation.type === "ask" ? annotation.text : <>&ldquo;{annotation.text}&rdquo;</>}
           </p>
           {annotation.type === "note" && (
-            <p className="mt-0.5 line-clamp-2 text-xs text-fg-muted">
+            <p className="ra-content-type-sm mt-0.5 line-clamp-2 text-fg-muted">
               {(annotation as Note).content}
             </p>
           )}

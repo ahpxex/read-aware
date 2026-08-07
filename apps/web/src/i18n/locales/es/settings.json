@@ -59,6 +59,20 @@
       "light": "Claro",
       "dark": "Oscuro"
     },
+    "contentType": {
+      "title": "Tipografía del contenido",
+      "description": "Cómo se componen las respuestas del chat, las notas y las vistas de extensiones. Los controles de la interfaz conservan su tamaño.",
+      "follow": {
+        "title": "Seguir los ajustes de lectura",
+        "description": "Usar la fuente y el interlineado elegidos para los libros, reducidos a escala de conversación."
+      },
+      "appDefaultFont": "Predeterminada",
+      "fontSize": "Tamaño",
+      "lineSpacing": "Interlineado",
+      "previewLabel": "Vista previa de la tipografía del contenido",
+      "previewQuestion": "¿Qué sostiene este capítulo?",
+      "previewAnswer": "Que la reforma empezó como improvisación: una serie de experimentos locales que nadie había autorizado y que sobrevivieron porque funcionaban."
+    },
     "motion": "Movimiento",
     "reduceMotion": {
       "title": "Reducir el movimiento",

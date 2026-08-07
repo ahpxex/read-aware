@@ -59,6 +59,20 @@
       "light": "Light",
       "dark": "Dark"
     },
+    "contentType": {
+      "title": "Content typography",
+      "description": "How chat replies, notes, and plugin views are set. App controls keep their own size.",
+      "follow": {
+        "title": "Follow the reading settings",
+        "description": "Use the font and line spacing you picked for books, scaled down for conversation."
+      },
+      "appDefaultFont": "App default",
+      "fontSize": "Size",
+      "lineSpacing": "Line spacing",
+      "previewLabel": "Content typography preview",
+      "previewQuestion": "What is this chapter arguing?",
+      "previewAnswer": "That the reform began as improvisation — a series of local experiments nobody had authorised, kept alive because they worked."
+    },
     "motion": "Motion",
     "reduceMotion": {
       "title": "Reduce motion",

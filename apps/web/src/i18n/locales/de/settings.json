@@ -59,6 +59,20 @@
       "light": "Hell",
       "dark": "Dunkel"
     },
+    "contentType": {
+      "title": "Inhaltstypografie",
+      "description": "Wie Chatantworten, Notizen und Plugin-Ansichten gesetzt sind. Bedienelemente behalten ihre eigene Größe.",
+      "follow": {
+        "title": "Leseeinstellungen folgen",
+        "description": "Schrift und Zeilenabstand aus den Leseeinstellungen übernehmen, auf Gesprächsmaß verkleinert."
+      },
+      "appDefaultFont": "App-Standard",
+      "fontSize": "Größe",
+      "lineSpacing": "Zeilenabstand",
+      "previewLabel": "Vorschau der Inhaltstypografie",
+      "previewQuestion": "Worauf will dieses Kapitel hinaus?",
+      "previewAnswer": "Dass die Reform als Improvisation begann — lauter lokale Experimente, die niemand genehmigt hatte und die überlebten, weil sie funktionierten."
+    },
     "motion": "Bewegung",
     "reduceMotion": {
       "title": "Bewegung reduzieren",

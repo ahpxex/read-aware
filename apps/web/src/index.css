@@ -86,6 +86,15 @@
   --ra-reader-selection-highlight-color: rgb(168 162 158 / 0.44);
   --ra-reader-selection-accent-color: rgb(120 113 108 / 0.82);
 
+  /* Content typography — chat, notes, plugin markdown, composer. Written by
+     `useContentTypography` from the stored preference (which by default
+     follows the reading settings); these are the values that hold when the
+     preference is untouched. App chrome does NOT read them: growing the
+     reading size must never reflow the furniture around it. */
+  --ra-content-font-family: var(--font-sans);
+  --ra-content-font-size: 0.875rem;
+  --ra-content-line-height: 1.65;
+
   /* Custom window chrome. Zero by default (browser / non-mac) so the layout is
      untouched; the desktop shell opts in via the data attributes below. */
   --ra-titlebar-height: 0px;
@@ -410,9 +419,28 @@ html[data-tauri="true"] {
 /* AI reply Markdown (Streamdown). Streamdown supplies block spacing via utility
    classes; we only set the base reading size, collapse the outer margins so the
    bubble padding stays even, and underline links for the monochrome palette. */
+/* The one class every content surface wears. Everything inside sizes itself
+   in `em`, so the whole block scales as a unit from this single value. */
+.ra-content-type {
+  font-family: var(--ra-content-font-family);
+  font-size: var(--ra-content-font-size);
+  line-height: var(--ra-content-line-height);
+}
+
+/* Dense variant for list rows (annotation excerpts), where the full reading
+   size would turn a scannable list into a stack of paragraphs. The ratio
+   reproduces today's 12px against the 14px default, so the look is unchanged
+   until the reader moves the size — then it moves with everything else. */
+.ra-content-type-sm {
+  font-family: var(--ra-content-font-family);
+  font-size: calc(var(--ra-content-font-size) * 0.857);
+  line-height: var(--ra-content-line-height);
+}
+
 .ra-chat-markdown {
-  font-size: 0.875rem;
-  line-height: 1.65;
+  font-family: var(--ra-content-font-family);
+  font-size: var(--ra-content-font-size);
+  line-height: var(--ra-content-line-height);
   color: var(--color-fg);
 }
 .ra-chat-markdown > :first-child {
@@ -443,25 +471,29 @@ html[data-tauri="true"] {
   color: var(--color-fg-muted);
 }
 
-/* Headings scaled for a 14px conversational measure (Streamdown ships
-   document-scale text-3xl/2xl/xl defaults, far too loud inside a reply). */
+/* Headings scaled for a conversational measure (Streamdown ships
+   document-scale text-3xl/2xl/xl defaults, far too loud inside a reply).
+   Ratios, not fixed rem: the whole ladder rides the content size so a reader
+   who sizes up gets a bigger reply, not a reply with document-scale headings
+   glued to 14px body text. The margins scale off the *base* size rather than
+   each heading's own, which would compound the ratio into a chasm. */
 .ra-chat-markdown h1 {
-  font-size: 1.1875rem;
-  margin-top: 1.25rem;
+  font-size: 1.357em;
+  margin-top: calc(var(--ra-content-font-size) * 1.43);
 }
 .ra-chat-markdown h2 {
-  font-size: 1.0625rem;
-  margin-top: 1.25rem;
+  font-size: 1.214em;
+  margin-top: calc(var(--ra-content-font-size) * 1.43);
 }
 .ra-chat-markdown h3 {
-  font-size: 0.9375rem;
-  margin-top: 1rem;
+  font-size: 1.071em;
+  margin-top: calc(var(--ra-content-font-size) * 1.14);
 }
 .ra-chat-markdown h4,
 .ra-chat-markdown h5,
 .ra-chat-markdown h6 {
-  font-size: 0.875rem;
-  margin-top: 1rem;
+  font-size: 1em;
+  margin-top: calc(var(--ra-content-font-size) * 1.14);
 }
 
 /* Code blocks: one quiet surface card. Streamdown's default is a double frame
@@ -479,7 +511,7 @@ html[data-tauri="true"] {
 .ra-chat-markdown [data-streamdown="code-block-header"] {
   padding: 0.5rem 0.875rem 0;
   color: var(--color-fg-subtle);
-  font-size: var(--text-caption);
+  font-size: 0.857em;
 }
 .ra-chat-markdown [data-streamdown="code-block-body"] {
   border: 0;
@@ -487,7 +519,7 @@ html[data-tauri="true"] {
   background: transparent;
   padding: 0.625rem 0.875rem 0.75rem;
   font-family: var(--font-mono);
-  font-size: 0.8125rem;
+  font-size: 0.929em;
   line-height: 1.6;
 }
 /* Shiki paints its theme background inline on the <pre>; the card already
@@ -535,14 +567,14 @@ html[data-tauri="true"] {
 .ra-chat-markdown [data-streamdown="table"] {
   border: 0;
   width: 100%;
-  font-size: 0.8125rem;
+  font-size: 0.929em;
 }
 .ra-chat-markdown [data-streamdown="table-header"] {
   background: transparent;
 }
 .ra-chat-markdown [data-streamdown="table-header-cell"] {
   padding: 0.4375rem 0.875rem;
-  font-size: var(--text-caption);
+  font-size: 0.857em;
   font-weight: 500;
   color: var(--color-fg-muted);
   border-bottom: 1px solid var(--color-border);

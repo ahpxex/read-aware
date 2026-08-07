@@ -28,6 +28,11 @@ import {
   type ReaderOverrides,
 } from "../features/settings/lib/reader-overrides";
 import {
+  getContentTypography,
+  saveContentTypography,
+  type ContentTypographySettings,
+} from "../features/settings/lib/content-typography";
+import {
   getReadingStatsStore,
   type ReadingStatsStore,
 } from "../features/reader/lib/reading-stats";
@@ -128,6 +133,17 @@ export const readerPreferencesAtom = atom(
   (_get, set, next: ReaderSettingsPreferences) => {
     set(readerPreferencesBaseAtom, next);
     saveReaderPreferences(next);
+  },
+);
+
+const contentTypographyBaseAtom = atom<ContentTypographySettings>(getContentTypography());
+
+/** Typography for the app's content surfaces (chat, notes, plugin markdown). */
+export const contentTypographyAtom = atom(
+  (get) => get(contentTypographyBaseAtom),
+  (_get, set, next: ContentTypographySettings) => {
+    set(contentTypographyBaseAtom, next);
+    saveContentTypography(next);
   },
 );
 

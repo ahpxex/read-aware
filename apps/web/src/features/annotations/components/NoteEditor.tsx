@@ -60,7 +60,7 @@ export function NoteEditor({
 
         <div className="px-5 py-4">
           <div className="mb-4 rounded-md border border-border bg-fill p-3">
-            <Body className="text-sm text-fg-muted line-clamp-3">
+            <Body className="ra-content-type text-fg-muted line-clamp-3">
               &ldquo;{selectedText}&rdquo;
             </Body>
           </div>

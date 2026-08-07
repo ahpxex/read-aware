@@ -1,0 +1,30 @@
+# Keeps the SHA pins in .github/workflows/ from rotting. Every `uses:` there is
+# pinned to a full commit SHA (see that file's header for why); Dependabot is
+# what turns that pin from a permanent freeze into a reviewed upgrade — it
+# resolves the action's newest release, rewrites the SHA, and updates the
+# trailing `# vX.Y.Z` comment to match.
+#
+# This repo otherwise commits straight to main and does not use pull requests.
+# Dependabot only ever delivers through PRs, so the settings below keep that to
+# the minimum: one grouped PR a month covering every action at once, which can
+# be merged from the UI or just cherry-picked locally and closed.
+#
+# Only the github-actions ecosystem is enabled. bun workspaces (npm) and the
+# Tauri crate (cargo) are deliberately left out — they move far too often to be
+# worth a PR each, and both are exercised by every build.
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    # "/" means the repo root, which is where Dependabot looks for
+    # .github/workflows — it is not a path to the workflows folder itself.
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: ci

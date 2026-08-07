@@ -1,17 +1,23 @@
 ---
 name: publishing
-description: ReadAware 发版流水线：bump 版本号 → 打 tag 推送 → 盯 release CI → 重写 GitHub release changelog → 同步 landing 文档/blog。触发词："bump 版本"、"发版"、"发布新版本"、"发个版"、"bump version"、"cut a release"、"release vX.Y.Z"。
+description: ReadAware 发版流水线：bump 版本号 → 打 tag 推送 → 盯 release CI → 重写 GitHub release changelog → 更新官网 changelog（三语）→ 同步 landing 文档/blog。触发词："bump 版本"、"发版"、"发布新版本"、"发个版"、"bump version"、"cut a release"、"release vX.Y.Z"。
 ---
 
 # ReadAware 发版流水线
 
 一次发版 = 版本号 bump commit + `vX.Y.Z` tag 推送触发 `release.yml` 全平台构建，
-CI 绿后人工整理 changelog，并检查 landing 文档是否需要跟着这次版本更新。
+CI 绿后人工整理 GitHub release changelog、更新官网三语 changelog，并检查
+landing 文档是否需要跟着这次版本更新。
 landing（readaware.app）是 CF Pages 跟随 push 自动部署，无需单独发布动作。
 
 网络命令（git push、gh）一律加代理前缀
-`http_proxy=http://127.0.0.1:7890 https_proxy=http://127.0.0.1:7890 no_proxy=localhost,127.0.0.1,::1`；
-git push 必须走 SSH remote（`git@github.com:`），HTTPS push 在大 pack 上传阶段必卡死。
+`http_proxy=http://127.0.0.1:7890 https_proxy=http://127.0.0.1:7890 no_proxy=localhost,127.0.0.1,::1`。
+
+git push 优先走 SSH remote（`git@github.com:ahpxex/read-aware.git`）——HTTPS push
+在大 pack 上传阶段卡死过。但 **SSH 不一定可用**：机器上没配公钥时会直接
+`Permission denied (publickey)`（v0.3.0 那次就是），此时回落 HTTPS 即可，
+发版这种量级的 push（几个 commit + 一个 tag）实测没有卡死问题。注意 SSH 不读
+`http_proxy`，代理前缀只对 HTTPS 和 `gh` 生效。
 
 ## 0. Preflight
 
@@ -67,14 +73,27 @@ tag 带 `-` 即 pre-release（如 `v0.3.0-beta.1`），流程与正式版相同�
 - Android `versionCode` 照公式算并保持单调递增；之后的正式版若公式值已被
   beta 占用则 +1。
 - changelog 从简（标注 beta preview + 亮点 + Full Changelog 链接即可），
-  跳过第 5 步 landing 文档同步（留给正式版）。
+  跳过第 5、6 步（官网 changelog 与文档同步，留给正式版）。
 
 ## 2. 打 tag 并推送
 
 ```sh
 git tag vX.Y.Z
-git push origin main --follow-tags   # SSH remote + 代理前缀
+git push origin main       # 先推 commit
+git push origin vX.Y.Z     # 再显式推 tag —— 见下
 ```
+
+**必须显式推 tag，不能靠 `--follow-tags`。** `--follow-tags` 只推 annotated
+tag，而 `git tag vX.Y.Z` 建的是 lightweight tag，两者一组合 tag 根本不会上去
+——commit 推成功、workflow 完全不触发，而 `git push` 的输出看起来一切正常
+（v0.3.0 实测踩过）。推完**一定要验证**：
+
+```sh
+git ls-remote --tags origin | grep 'vX.Y.Z$'   # 没输出就是没推上去
+```
+
+（想用 `--follow-tags` 的话，tag 得建成 annotated：`git tag -a vX.Y.Z -m "..."`。
+此处保留 lightweight + 显式推，与既往 tag 的形态一致。）
 
 tag 推上去即触发 `.github/workflows/release.yml`（android / ios / desktop
 三平台矩阵 / updater-manifest 四组 job）；push main 同时触发 CF Pages
@@ -87,8 +106,8 @@ gh run list --workflow=release.yml --limit 1   # 拿 run id
 gh run watch <run-id> --exit-status            # 或后台轮询
 ```
 
-- 等待期间不要闲着：并行做第 4 步的 changelog 起草和第 5 步的文档排查，
-  CI 绿了直接发。
+- 等待期间不要闲着：并行做第 4 步的 changelog 起草、第 5 步的官网 changelog
+  条目、第 6 步的文档排查，CI 绿了直接发。
 - 部分 job 失败是发生过的（v0.2.10 就失败过一个 job）。失败时
   `gh run view <run-id> --log-failed` 看原因；构建环境抖动就
   `gh run rerun <run-id> --failed`。desktop 全矩阵 + updater-manifest
@@ -116,7 +135,28 @@ CI 的每个 job 都带 `generate_release_notes: true`，会把 release body 追
    `**Full Changelog**: https://github.com/ahpxex/read-aware/compare/vPREV...vX.Y.Z`
 4. 写入：`gh release edit vX.Y.Z --notes-file <scratchpad 里的文件>`。
 
-## 5. 同步 landing 文档 / blog（三语）
+## 5. 官网 changelog（三语，正式版必做）
+
+`readaware.app/changelog`（+ `/zh` `/ja`）由 `apps/landing/src/lib/changelog.ts`
+渲染，是手写的**给人读的**版本，不是 GitHub release 的翻译：可以丢掉一次发版
+里不可感知的部分，只留用户真会注意到的。GitHub release 保持完整记录，两者
+互不替代。
+
+- **加一个版本 = 在 `CHANGELOG` 数组开头加一条**（`version` / `date` /
+  `text.en|zh|ja`），不需要动任何路由文件——页面渲染整个数组。
+- 三语齐全，缺一种就是缺一种；术语对齐 `apps/web/src/i18n/locales/` 的产品
+  词表（书架 / 智能助理 / 上下文 / 词典 / 命令面板 …）。
+- 内容通常是第 4 步 release changelog 的精简改写，可以直接拿英文那份改。
+  分组 `new` / `improved` / `fixed` 与第 4 步一致；组标题不写在数据里
+  （在 `UI_STRINGS`）。
+- `new` 的条目可带 `title`（加粗引导词），`improved` / `fixed` 只写 `body`。
+  **`title` 后面不要自己写标点**——分隔符由渲染器按语言给（英文 `. `，
+  中日文全角 `：`），写了会重复。同理，中日文 `body` 的开头不要再用冒号。
+- pre-release 跳过这一步（和文档同步一样，留给正式版）。
+- 验证：`cd apps/landing && bun run build`，确认预渲染路由数含
+  `/changelog` `/zh/changelog` `/ja/changelog`。
+
+## 6. 同步 landing 文档 / blog（三语）
 
 用 `git diff vPREV..vX.Y.Z --stat` 圈出用户可感知的变更，对照检查
 （文档都是 `apps/landing/src/routes/` 下的 TSX，纯手写，无框架）：
@@ -145,10 +185,16 @@ CI 的每个 job 都带 `generate_release_notes: true`，会把 release body 追
 - 验证：`cd apps/landing && bun run build`（含预渲染与 typecheck）。
 - 有改动则单独提交（`docs(landing): ...`）并推送，CF Pages 自动部署。
   没有需要更新的就明说"本次无文档变更"，不要为改而改。
-- changelog（GitHub release）只写英文，不用翻译。
+- changelog（GitHub release）只写英文，不用翻译；官网 changelog（第 5 步）
+  才是三语的。
+- **验证部署要看内容，不能看状态码。** CF Pages 对未知路径走 SPA 回退，
+  新页面在部署完成前就返回 200，轮询 200 等于没等；更糟的是这几次提前请求
+  会把回退结果喂进 CDN 缓存，之后一段时间持续返回旧首页，看起来像"部署
+  失败"，其实文件早就在了（v0.3.0 实测）。判据用页面标题或版本号字样，
+  被缓存住就带 `?bust=$RANDOM` 重取。
 
-## 6. 收尾汇报
+## 7. 收尾汇报
 
 向用户汇报：版本号、release 链接、CI 结果（含重跑情况）、changelog 要点、
-文档改了什么或为何不用改。插件市场仓库（ahpxex/readaware-plugins）不在
+官网 changelog 与文档改了什么或为何不用改。插件市场仓库（ahpxex/readaware-plugins）不在
 本流水线内，不要顺手动它。

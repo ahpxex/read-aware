@@ -1,15 +1,14 @@
-import { Link } from "@tanstack/react-router";
 import { UI_STRINGS, type Locale } from "../lib/i18n";
-import { REPO_URL } from "../lib/releases";
-import { CONTACT_EMAIL, DISCORD_URL, HEADER_ICON_URL } from "../lib/site";
+import { CONTACT_EMAIL, HEADER_ICON_URL } from "../lib/site";
 
-const FOOTER_TO = {
-  en: { docs: "/docs", blog: "/blog" },
-  zh: { docs: "/zh/docs", blog: "/zh/blog" },
-  ja: { docs: "/ja/docs", blog: "/ja/blog" },
-} as const;
-
-/** The shared site footer; placed inside each page's width container. */
+/**
+ * The shared site footer; placed inside each page's width container.
+ *
+ * It used to mirror the header link for link, which made it a second place to
+ * keep in sync and a second thing to read. Now that the header's More menu
+ * holds the secondary destinations, the footer only has to say whose site
+ * this is and how to reach them.
+ */
 export function SiteFooter({ locale = "en" }: { locale?: Locale }) {
   const strings = UI_STRINGS[locale];
 
@@ -26,28 +25,6 @@ export function SiteFooter({ locale = "en" }: { locale?: Locale }) {
         <span className="text-fg">ReadAware</span>
       </div>
       <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
-        <Link to={FOOTER_TO[locale].docs} className="transition-colors hover:text-fg">
-          {strings.docs}
-        </Link>
-        <Link to={FOOTER_TO[locale].blog} className="transition-colors hover:text-fg">
-          {strings.blog}
-        </Link>
-        <a
-          href={REPO_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="transition-colors hover:text-fg"
-        >
-          GitHub
-        </a>
-        <a
-          href={DISCORD_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="transition-colors hover:text-fg"
-        >
-          Discord
-        </a>
         <a
           href={`mailto:${CONTACT_EMAIL}`}
           className="transition-colors hover:text-fg"

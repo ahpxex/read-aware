@@ -40,10 +40,14 @@ export function localizePath(pathname: string, locale: Locale): string {
   return locale === "en" ? base : `${PREFIX[locale]}${base}`;
 }
 
-/** Only docs and blog pages exist in every locale. */
+/** Only docs, blog, and changelog pages exist in every locale. */
 export function hasLocaleVariants(pathname: string): boolean {
   const base = localizePath(pathname, "en");
-  return base.startsWith("/docs") || base.startsWith("/blog");
+  return (
+    base.startsWith("/docs") ||
+    base.startsWith("/blog") ||
+    base.startsWith("/changelog")
+  );
 }
 
 /** Chrome strings for the shared header, footer, and article frames. */
@@ -55,6 +59,15 @@ export const UI_STRINGS: Record<
     download: string;
     allPosts: string;
     tagline: string;
+    more: string;
+    changelog: string;
+    changelogTitle: string;
+    changelogLead: string;
+    changelogNew: string;
+    changelogImproved: string;
+    changelogFixed: string;
+    changelogOlder: string;
+    changelogRelease: string;
   }
 > = {
   en: {
@@ -63,6 +76,16 @@ export const UI_STRINGS: Record<
     download: "Download",
     allPosts: "← All posts",
     tagline: "Local-first. Yours.",
+    more: "More",
+    changelog: "Changelog",
+    changelogTitle: "Changelog",
+    changelogLead:
+      "What changed in each release, written for the people using it. Every version's complete notes and downloads live on GitHub.",
+    changelogNew: "New",
+    changelogImproved: "Improved",
+    changelogFixed: "Fixed",
+    changelogOlder: "Older releases on GitHub →",
+    changelogRelease: "Release notes",
   },
   zh: {
     docs: "文档",
@@ -70,6 +93,16 @@ export const UI_STRINGS: Record<
     download: "下载",
     allPosts: "← 全部文章",
     tagline: "本地优先，数据归你。",
+    more: "更多",
+    changelog: "更新日志",
+    changelogTitle: "更新日志",
+    changelogLead:
+      "每一版改了什么，写给用它的人看。每个版本的完整说明和安装包都在 GitHub 上。",
+    changelogNew: "新增",
+    changelogImproved: "改进",
+    changelogFixed: "修复",
+    changelogOlder: "更早的版本在 GitHub 上 →",
+    changelogRelease: "发布说明",
   },
   ja: {
     docs: "ドキュメント",
@@ -77,5 +110,15 @@ export const UI_STRINGS: Record<
     download: "ダウンロード",
     allPosts: "← 記事一覧",
     tagline: "ローカルファースト。あなたのもの。",
+    more: "その他",
+    changelog: "変更履歴",
+    changelogTitle: "変更履歴",
+    changelogLead:
+      "各リリースで何が変わったかを、使う人に向けて書いています。各バージョンの完全な記録とダウンロードはGitHubにあります。",
+    changelogNew: "新機能",
+    changelogImproved: "改善",
+    changelogFixed: "修正",
+    changelogOlder: "以前のリリースはGitHubで →",
+    changelogRelease: "リリースノート",
   },
 };

@@ -1,20 +1,26 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { UI_STRINGS, hasLocaleVariants, type Locale } from "../lib/i18n";
 import { REPO_URL } from "../lib/releases";
-import { DISCORD_URL, HEADER_ICON_URL } from "../lib/site";
+import { HEADER_ICON_URL } from "../lib/site";
 import { LanguageMenu } from "./LanguageMenu";
+import { MoreMenu } from "./MoreMenu";
 
 const NAV_TO = {
-  en: { docs: "/docs", blog: "/blog" },
-  zh: { docs: "/zh/docs", blog: "/zh/blog" },
-  ja: { docs: "/ja/docs", blog: "/ja/blog" },
+  en: { docs: "/docs" },
+  zh: { docs: "/zh/docs" },
+  ja: { docs: "/ja/docs" },
 } as const;
 
 /**
  * The shared site header. Each page places it inside its own width container,
  * so the landing's narrow column and the docs' wider grid both line up with it.
- * On docs/blog pages a language switcher appears; it uses plain anchors (full
- * loads) so each locale boots from its own prerendered HTML.
+ * On docs/blog/changelog pages a language switcher appears; it uses plain
+ * anchors (full loads) so each locale boots from its own prerendered HTML.
+ *
+ * Three named links and an overflow menu, deliberately: the row stays this
+ * length however much the site grows, because everything new goes into
+ * MoreMenu instead. Download keeps its place — it is the landing's primary
+ * call to action, and burying it would cost a click from every docs page.
  */
 export function SiteHeader({ locale = "en" }: { locale?: Locale }) {
   const pathname = useLocation({ select: (location) => location.pathname });
@@ -42,13 +48,6 @@ export function SiteHeader({ locale = "en" }: { locale?: Locale }) {
         >
           {strings.docs}
         </Link>
-        <Link
-          to={NAV_TO[locale].blog}
-          activeProps={{ className: "text-fg" }}
-          className="transition-colors hover:text-fg"
-        >
-          {strings.blog}
-        </Link>
         <Link to="/" hash="download" className="transition-colors hover:text-fg">
           {strings.download}
         </Link>
@@ -60,14 +59,7 @@ export function SiteHeader({ locale = "en" }: { locale?: Locale }) {
         >
           GitHub
         </a>
-        <a
-          href={DISCORD_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="transition-colors hover:text-fg"
-        >
-          Discord
-        </a>
+        <MoreMenu locale={locale} />
         {hasLocaleVariants(pathname) && (
           <LanguageMenu locale={locale} pathname={pathname} />
         )}

@@ -40,7 +40,7 @@ jobs:
   android:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Require signing secrets
         run: |
@@ -51,12 +51,12 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
 
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
 
       - name: Install NDK
         run: sdkmanager "ndk;${{ env.NDK_VERSION }}"
@@ -115,7 +115,7 @@ jobs:
           fi
 
       - name: Attach to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: ReadAware ${{ github.ref_name }}
           files: |
@@ -132,7 +132,7 @@ jobs:
   ios:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: oven-sh/setup-bun@v2
 
@@ -190,7 +190,7 @@ jobs:
           ls -la release-assets
 
       - name: Attach to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: ReadAware ${{ github.ref_name }}
           files: release-assets/*
@@ -216,7 +216,7 @@ jobs:
             platform: windows-x64
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Linux system dependencies
         if: matrix.os == 'ubuntu-latest'
@@ -332,7 +332,7 @@ jobs:
           ls -la release-assets
 
       - name: Attach to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: ReadAware ${{ github.ref_name }}
           files: release-assets/*

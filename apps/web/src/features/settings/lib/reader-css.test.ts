@@ -24,6 +24,26 @@ describe("buildReaderContentCss", () => {
 
     expect(css).toContain("color: inherit !important");
     expect(css).toContain("background-color: transparent !important");
+    expect(css).toContain("line-height: inherit !important");
+  });
+
+  test("leaves the heading line-heights to win by source order", () => {
+    const css = build();
+
+    expect(css.indexOf("line-height: inherit")).toBeLessThan(css.indexOf("h1 {"));
+    expect(css.indexOf("line-height: inherit")).toBeLessThan(css.indexOf("pre {"));
+  });
+
+  test("does not flatten font-size or font-weight — those carry the book's emphasis", () => {
+    // Two blocks share this selector; the theme one is the block with color.
+    const blanket =
+      build()
+        .match(/body :where\(\*\) \{[^}]*\}/g)
+        ?.find((block) => block.includes("color: inherit")) ?? "";
+
+    expect(blanket).toContain("line-height: inherit");
+    expect(blanket).not.toContain("font-size");
+    expect(blanket).not.toContain("font-weight");
   });
 
   test("hides EPUB 3 inline note asides (both attribute spellings)", () => {

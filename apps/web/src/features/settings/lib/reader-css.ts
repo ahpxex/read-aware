@@ -256,7 +256,16 @@ export function buildReaderContentCss(
     body :where(*) {
       color: inherit !important;
       background-color: transparent !important;
+      line-height: inherit !important;
     }
+
+    /* line-height joins them because a publisher's "p { line-height: 1.2em }"
+       (Le Grand Meaulnes) makes the line-spacing setting inert — the body
+       value changes and not one paragraph moves. font-size and font-weight
+       deliberately do NOT: publishers express those relatively (em) or
+       semantically (.bold), so flattening them would erase the book's
+       emphasis rather than restore the reader's control. The heading and pre
+       line-heights below still win — same specificity, later in the sheet. */
 
     /* MathML draws from the UA's math font; forcing a text face breaks
        formula rendering, so revert the override inside math subtrees. */

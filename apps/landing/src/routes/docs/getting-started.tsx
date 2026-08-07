@@ -78,7 +78,7 @@ function GettingStartedPage() {
       <p>
         Out of the box this speaks with your device's own voice, which needs no
         key and no network. Enabling a voice plugin — the bundled{" "}
-        <strong>TTS</strong> plugin, or any other — is itself the choice to
+        <strong>TTS Voices</strong> plugin, or any other — is itself the choice to
         speak through that engine instead; which voice it uses is configured in
         that plugin's own settings, alongside its provider and any custom
         endpoint. There is no separate voice picker to keep in sync.

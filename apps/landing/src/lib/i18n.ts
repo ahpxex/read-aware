@@ -60,6 +60,7 @@ export const UI_STRINGS: Record<
     allPosts: string;
     tagline: string;
     more: string;
+    language: string;
     changelog: string;
     changelogTitle: string;
     changelogLead: string;
@@ -77,6 +78,7 @@ export const UI_STRINGS: Record<
     allPosts: "← All posts",
     tagline: "Local-first. Yours.",
     more: "More",
+    language: "Language",
     changelog: "Changelog",
     changelogTitle: "Changelog",
     changelogLead:
@@ -94,6 +96,7 @@ export const UI_STRINGS: Record<
     allPosts: "← 全部文章",
     tagline: "本地优先，数据归你。",
     more: "更多",
+    language: "语言",
     changelog: "更新日志",
     changelogTitle: "更新日志",
     changelogLead:
@@ -111,6 +114,7 @@ export const UI_STRINGS: Record<
     allPosts: "← 記事一覧",
     tagline: "ローカルファースト。あなたのもの。",
     more: "その他",
+    language: "言語",
     changelog: "変更履歴",
     changelogTitle: "変更履歴",
     changelogLead:

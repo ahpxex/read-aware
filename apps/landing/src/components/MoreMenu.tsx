@@ -1,21 +1,36 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowUpRight, CaretDown } from "@phosphor-icons/react";
+import { ArrowUpRight, CaretDown, Check } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
-import { UI_STRINGS, type Locale } from "../lib/i18n";
+import {
+  LOCALES,
+  LOCALE_LABEL,
+  LOCALE_LANG,
+  UI_STRINGS,
+  hasLocaleVariants,
+  localizePath,
+  type Locale,
+} from "../lib/i18n";
 import { CONTACT_EMAIL, DISCORD_URL } from "../lib/site";
 
 /**
- * The header's overflow menu, mirroring LanguageMenu's popover pattern.
+ * The header's overflow menu.
  *
  * It exists so the header can stay at four items no matter how much the site
  * grows: everything past Docs / Download / GitHub lands here instead of
  * lengthening the row. That also lets the footer stop repeating the header —
  * this menu, not the footer, is now where the secondary links live.
  *
- * Internal destinations are router Links (client navigation); external ones
- * are plain anchors marked with an arrow so the boundary is visible before
- * the click.
+ * The language switcher lives here too, rather than as a second dropdown
+ * beside this one: two carets side by side read as clutter, and switching
+ * language was already a click either way. Its section only renders where a
+ * translated page actually exists (docs, blog, changelog) — the landing page
+ * has no locale variant to switch to.
+ *
+ * Internal destinations are router Links (client navigation); locale entries
+ * are plain anchors (full loads) so each locale boots from its own
+ * prerendered HTML; external links carry an arrow so the boundary is visible
+ * before the click.
  */
 const MORE_TO = {
   en: { blog: "/blog", changelog: "/changelog" },
@@ -26,10 +41,17 @@ const MORE_TO = {
 const itemClass =
   "flex items-center justify-between gap-3 rounded px-3 py-2 text-[0.9375rem] text-fg-muted transition-colors hover:bg-fill hover:text-fg";
 
-export function MoreMenu({ locale = "en" }: { locale?: Locale }) {
+export function MoreMenu({
+  locale = "en",
+  pathname,
+}: {
+  locale?: Locale;
+  pathname: string;
+}) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const strings = UI_STRINGS[locale];
+  const showLocales = hasLocaleVariants(pathname);
 
   useEffect(() => {
     if (!open) return;
@@ -72,7 +94,7 @@ export function MoreMenu({ locale = "en" }: { locale?: Locale }) {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-[calc(100%+0.625rem)] z-30 w-44 rounded-md border border-border-strong bg-surface p-1 shadow-[0_10px_30px_-12px_rgba(38,36,32,0.28)]"
+          className="absolute right-0 top-[calc(100%+0.625rem)] z-30 w-48 rounded-md border border-border-strong bg-surface p-1 shadow-[0_10px_30px_-12px_rgba(38,36,32,0.28)]"
         >
           <Link
             to={MORE_TO[locale].blog}
@@ -115,6 +137,30 @@ export function MoreMenu({ locale = "en" }: { locale?: Locale }) {
           >
             Email
           </a>
+
+          {showLocales && (
+            <>
+              <div className="my-1 border-t border-border" />
+              <p className="px-3 pb-1 pt-1.5 text-[0.6875rem] font-medium uppercase tracking-[0.12em] text-fg-subtle">
+                {strings.language}
+              </p>
+              {LOCALES.map((target) => (
+                <a
+                  key={target}
+                  href={localizePath(pathname, target)}
+                  role="menuitem"
+                  lang={LOCALE_LANG[target]}
+                  onClick={close}
+                  className={cn(itemClass, target === locale && "text-fg")}
+                >
+                  <span>{LOCALE_LABEL[target]}</span>
+                  {target === locale && (
+                    <Check size={14} weight="bold" aria-hidden="true" className="shrink-0" />
+                  )}
+                </a>
+              ))}
+            </>
+          )}
         </div>
       )}
     </div>

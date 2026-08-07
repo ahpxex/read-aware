@@ -1,3 +1,4 @@
+import { cn } from "@read-aware/ui/cn";
 import { useDocumentLang } from "../hooks/useDocumentLang";
 import { CHANGELOG, type ChangelogGroupKind } from "../lib/changelog";
 import { UI_STRINGS, LOCALE_LANG, type Locale } from "../lib/i18n";
@@ -79,14 +80,28 @@ export function ChangelogPage({ locale }: { locale: Locale }) {
 
                 {text.groups.map((group) => (
                   <div key={group.kind} className="mt-8">
-                    <h3 className="text-[0.6875rem] font-medium uppercase tracking-[0.12em] text-fg-subtle">
+                    <h3 className="text-[0.6875rem] font-medium uppercase tracking-[0.12em] text-fg-muted">
                       {groupHeading[group.kind]}
                     </h3>
-                    <ul className="mt-3 flex flex-col gap-3">
+                    {/* Markers matter more than they look like they should:
+                        without them every entry runs into the next and the
+                        release reads as one wall of prose. `pl` on the list
+                        plus `pl` on the item gives a hanging indent, so a
+                        wrapped line aligns under its own text rather than
+                        under the bullet. (A flex column here would suppress
+                        ::marker entirely — that is how they went missing.) */}
+                    <ul
+                      className={cn(
+                        "mt-3 list-disc pl-[1.15em] marker:text-fg-subtle",
+                        // Headline items carry a title and run longer, so they
+                        // need more air between them than one-line fixes do.
+                        group.kind === "new" ? "space-y-4" : "space-y-2.5",
+                      )}
+                    >
                       {group.items.map((item, index) => (
                         <li
                           key={index}
-                          className="leading-relaxed text-fg-muted"
+                          className="pl-[0.15em] leading-relaxed text-fg-muted"
                         >
                           {item.title && (
                             <strong className="font-medium text-fg">

@@ -1,8 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { UI_STRINGS, hasLocaleVariants, type Locale } from "../lib/i18n";
+import { UI_STRINGS, type Locale } from "../lib/i18n";
 import { REPO_URL } from "../lib/releases";
 import { HEADER_ICON_URL } from "../lib/site";
-import { LanguageMenu } from "./LanguageMenu";
 import { MoreMenu } from "./MoreMenu";
 
 const NAV_TO = {
@@ -14,8 +13,8 @@ const NAV_TO = {
 /**
  * The shared site header. Each page places it inside its own width container,
  * so the landing's narrow column and the docs' wider grid both line up with it.
- * On docs/blog/changelog pages a language switcher appears; it uses plain
- * anchors (full loads) so each locale boots from its own prerendered HTML.
+ * The language switcher lives inside MoreMenu rather than beside it — see
+ * that component for why.
  *
  * Three named links and an overflow menu, deliberately: the row stays this
  * length however much the site grows, because everything new goes into
@@ -59,10 +58,7 @@ export function SiteHeader({ locale = "en" }: { locale?: Locale }) {
         >
           GitHub
         </a>
-        <MoreMenu locale={locale} />
-        {hasLocaleVariants(pathname) && (
-          <LanguageMenu locale={locale} pathname={pathname} />
-        )}
+        <MoreMenu locale={locale} pathname={pathname} />
       </nav>
     </header>
   );

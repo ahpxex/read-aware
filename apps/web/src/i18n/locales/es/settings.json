@@ -91,6 +91,7 @@
     "fontWeight": "Grosor de letra",
     "lineSpacing": "Interlineado",
     "paragraphSpacing": "Espacio entre párrafos",
+    "textAlign": "Alineación",
     "layout": "Diseño",
     "readingMode": "Modo de lectura",
     "pageColor": {

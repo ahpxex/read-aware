@@ -100,6 +100,18 @@ export type ReaderPageMargins = "narrow" | "medium" | "wide";
 export type ReadingMode = "scroll" | "paginated-single" | "paginated-double";
 
 /**
+ * Body-text alignment.
+ *
+ * `book` — the default — declares nothing and lets the publisher's stylesheet
+ * decide. That is deliberate: for CJK, justified text is the correct setting
+ * (no inter-word spaces to stretch, so no rivers), while English justified
+ * without hyphenation reads worse than ragged-right. The publisher usually
+ * knows which of those their book is. The other two force the choice, for
+ * readers who have a preference and want it to hold everywhere.
+ */
+export type ReaderTextAlign = "book" | "start" | "justify";
+
+/**
  * Effective, render-ready reader settings. `theme` is always concrete here —
  * the `auto` preference has already been resolved against the app theme.
  */
@@ -111,6 +123,7 @@ export type ReaderSettings = {
   lineSpacing: ReaderLineSpacing;
   paragraphSpacing: ReaderParagraphSpacing;
   pageMargins: ReaderPageMargins;
+  textAlign: ReaderTextAlign;
   readingMode: ReadingMode;
 };
 
@@ -126,6 +139,7 @@ export const DEFAULT_READER_SETTINGS: ReaderSettings = {
   fontWeight: "regular",
   lineSpacing: "comfortable",
   paragraphSpacing: "normal",
+  textAlign: "book",
   // Touch screens read with mobile-typical tight margins by default; desktop
   // keeps the roomier editorial measure. Evaluated once — it's a device trait.
   pageMargins: hasCoarsePointer() ? "narrow" : "wide",
@@ -206,6 +220,12 @@ export function normalizePageMargins(value: unknown): ReaderPageMargins {
   return DEFAULT_READER_SETTINGS.pageMargins;
 }
 
+/** Coerce a persisted alignment preset to a valid value. */
+export function normalizeTextAlign(value: unknown): ReaderTextAlign {
+  if (value === "book" || value === "start" || value === "justify") return value;
+  return DEFAULT_READER_SETTINGS.textAlign;
+}
+
 /** Coerce a persisted font-weight preset to a valid value. */
 export function normalizeFontWeight(value: unknown): ReaderFontWeight {
   if (value === "light" || value === "regular" || value === "medium" || value === "bold") {
@@ -227,6 +247,7 @@ export function getReaderPreferences(): ReaderSettingsPreferences {
       lineSpacing: parsed.lineSpacing ?? DEFAULT_READER_PREFERENCES.lineSpacing,
       paragraphSpacing: parsed.paragraphSpacing ?? DEFAULT_READER_PREFERENCES.paragraphSpacing,
       pageMargins: normalizePageMargins(parsed.pageMargins),
+      textAlign: normalizeTextAlign(parsed.textAlign),
       readingMode: parsed.readingMode ?? DEFAULT_READER_PREFERENCES.readingMode,
     };
   } catch {

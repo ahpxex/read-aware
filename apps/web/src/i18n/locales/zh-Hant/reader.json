@@ -30,6 +30,7 @@
   "fontWeight": "字重",
   "lineSpacing": "行距",
   "paragraphSpacing": "段落間距",
+  "textAlign": "對齊方式",
   "readingMode": "閱讀模式",
   "scope": {
     "global": "所有書籍",
@@ -107,6 +108,11 @@
     "tight": "緊密",
     "normal": "標準",
     "loose": "寬鬆"
+  },
+  "textAlignOption": {
+    "book": "遵從原書",
+    "start": "靠左對齊",
+    "justify": "左右對齊"
   },
   "pageMargins": "頁邊距",
   "pageMarginsOption": {

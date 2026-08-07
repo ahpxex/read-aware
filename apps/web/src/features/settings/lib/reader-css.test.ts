@@ -46,6 +46,43 @@ describe("buildReaderContentCss", () => {
     expect(blanket).not.toContain("font-weight");
   });
 
+  test("the default alignment declares nothing, leaving the book's own", () => {
+    const css = buildReaderContentCss(
+      { ...DEFAULT_READER_SETTINGS, textAlign: "book" },
+      { palette: BUILTIN_READER_PALETTES.warm },
+    );
+
+    // Not "defaults to start" — the body-level rule is genuinely absent, so a
+    // publisher's justify stands and nothing has to out-specify it. (Table
+    // cells and captions keep their own alignment; they are not the setting.)
+    expect(css).not.toMatch(/body,\s*body :where\(p/);
+    expect(css).not.toMatch(/text-align:\s*justify/);
+  });
+
+  test("a forced alignment reaches body text but spares headings", () => {
+    for (const align of ["start", "justify"] as const) {
+      const css = buildReaderContentCss(
+        { ...DEFAULT_READER_SETTINGS, textAlign: align },
+        { palette: BUILTIN_READER_PALETTES.warm },
+      );
+      const rule = css.match(/body,\s*body :where\([^)]*\) \{[^}]*\}/)?.[0] ?? "";
+
+      expect(rule).toContain(`text-align: ${align} !important`);
+      expect(rule).toContain("p, li, dd, blockquote");
+      // A centered chapter title must survive the setting.
+      expect(rule).not.toMatch(/\bh[1-6]\b/);
+    }
+  });
+
+  test("the centered caption rule still wins over a forced alignment", () => {
+    const css = buildReaderContentCss(
+      { ...DEFAULT_READER_SETTINGS, textAlign: "justify" },
+      { palette: BUILTIN_READER_PALETTES.warm },
+    );
+
+    expect(css.indexOf("text-align: justify")).toBeLessThan(css.indexOf("figcaption"));
+  });
+
   test("hides EPUB 3 inline note asides (both attribute spellings)", () => {
     const css = build();
 

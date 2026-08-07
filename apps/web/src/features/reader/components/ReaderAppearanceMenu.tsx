@@ -10,6 +10,7 @@ import {
   pageMarginsOptions,
   paragraphSpacingOptions,
   readingModeOptions,
+  textAlignOptions,
 } from "../../settings/lib/reader-setting-options";
 import { applyReaderThemeSelection } from "../../settings/lib/reader-theme";
 import { usePluginReaderThemeOptions } from "../../settings/hooks/usePluginReaderThemeOptions";
@@ -109,6 +110,12 @@ export function ReaderAppearanceMenu({
           value={prefs.paragraphSpacing}
           options={paragraphSpacingOptions(t)}
           onChange={(paragraphSpacing) => updatePrefs({ ...prefs, paragraphSpacing })}
+        />
+        <ChoiceGroup
+          label={t("textAlign")}
+          value={prefs.textAlign}
+          options={textAlignOptions(t)}
+          onChange={(textAlign) => updatePrefs({ ...prefs, textAlign })}
         />
         <ChoiceGroup
           label={t("pageMargins")}

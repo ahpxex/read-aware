@@ -30,6 +30,7 @@ import {
   pageMarginsOptions,
   paragraphSpacingOptions,
   readingModeOptions,
+  textAlignOptions,
 } from "../lib/reader-setting-options";
 
 export function ReadingPanel() {
@@ -95,6 +96,12 @@ export function ReadingPanel() {
             value={prefs.paragraphSpacing}
             options={paragraphSpacingOptions(tReader)}
             onChange={(paragraphSpacing) => setPrefs({ ...prefs, paragraphSpacing })}
+          />
+          <ChoiceGroup
+            label={t("reading.textAlign")}
+            value={prefs.textAlign}
+            options={textAlignOptions(tReader)}
+            onChange={(textAlign) => setPrefs({ ...prefs, textAlign })}
           />
         </Stack>
       </SettingsGroup>

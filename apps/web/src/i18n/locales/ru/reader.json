@@ -30,6 +30,7 @@
   "fontWeight": "Насыщенность",
   "lineSpacing": "Межстрочный интервал",
   "paragraphSpacing": "Интервал между абзацами",
+  "textAlign": "Выравнивание",
   "readingMode": "Режим чтения",
   "scope": {
     "global": "Все книги",
@@ -107,6 +108,11 @@
     "tight": "Плотный",
     "normal": "Обычный",
     "loose": "Просторный"
+  },
+  "textAlignOption": {
+    "book": "Как в книге",
+    "start": "По левому краю",
+    "justify": "По ширине"
   },
   "pageMargins": "Поля страницы",
   "pageMarginsOption": {

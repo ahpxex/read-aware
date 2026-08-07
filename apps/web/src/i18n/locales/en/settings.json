@@ -91,6 +91,7 @@
     "fontWeight": "Font Weight",
     "lineSpacing": "Line Spacing",
     "paragraphSpacing": "Paragraph Spacing",
+    "textAlign": "Text Alignment",
     "layout": "Layout",
     "readingMode": "Reading Mode",
     "pageColor": {

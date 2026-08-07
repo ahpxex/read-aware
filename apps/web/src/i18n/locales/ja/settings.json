@@ -91,6 +91,7 @@
     "fontWeight": "字の太さ",
     "lineSpacing": "行間",
     "paragraphSpacing": "段落間隔",
+    "textAlign": "行揃え",
     "layout": "レイアウト",
     "readingMode": "読書モード",
     "pageColor": {

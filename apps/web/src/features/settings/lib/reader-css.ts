@@ -8,6 +8,7 @@ import {
   type ReaderFontWeight,
   type ReaderPageMargins,
   type ReaderSettings,
+  type ReaderTextAlign,
 } from "./reader-settings";
 import { curatedFallback, getCuratedFont, type CuratedFontKind } from "./curated-fonts";
 import type { ReaderPalette } from "./reader-theme";
@@ -186,6 +187,37 @@ export function computeReaderMaxInlineSize(
 }
 
 /**
+ * Alignment rules for a preset.
+ *
+ * `book` emits nothing at all. Every other declaration in this sheet exists
+ * to beat the publisher; this one deliberately yields to them, because the
+ * right alignment depends on the script (justified CJK is correct, justified
+ * unhyphenated English is not) and the publisher's stylesheet is the closest
+ * thing to a statement of which script the book is set in.
+ *
+ * The forced presets reach `p, li, dd, blockquote` rather than every element,
+ * so headings keep the alignment the publisher gave them — a centered chapter
+ * title stays centered — and table cells and figcaptions keep the rules
+ * further down this sheet.
+ *
+ * That protection is by tag, not by intent, so it is only as good as the
+ * book's markup: a publisher who centers a caption as `<p class="Caption">`
+ * (Atomic Habits does) gets it flattened along with the prose. Forcing an
+ * alignment means overriding the book, and there is no selector for "the
+ * author meant this one." The default exists so nobody pays that cost
+ * without asking for it.
+ */
+function textAlignCss(align: ReaderTextAlign): string {
+  if (align === "book") return "";
+  return `
+    body,
+    body :where(p, li, dd, blockquote) {
+      text-align: ${align} !important;
+    }
+`;
+}
+
+/**
  * Everything registry-dependent a reader stylesheet needs, resolved by the
  * caller: the palette behind the (possibly plugin-contributed) theme, any
  * `@font-face` rules to inline (curated download blobs or plugin folder
@@ -238,9 +270,8 @@ export function buildReaderContentCss(
       font-size: ${fontSize} !important;
       font-weight: ${fontWeight} !important;
       line-height: ${lineHeight} !important;
-      text-align: start !important;
     }
-
+${textAlignCss(settings.textAlign)}
     /* Publisher stylesheets routinely declare font-family directly on p / h1 /
        div / classes (often naming an embedded font), which beats inheritance
        from body — so the picked font must be forced onto every element, not
@@ -262,20 +293,24 @@ export function buildReaderContentCss(
 
        The cost is real: author-chosen text colors are flattened to the theme.
        That is the trade a page-color setting implies — the reader's palette
-       decides contrast, not the publisher's. */
-    body :where(*) {
-      color: inherit !important;
-      background-color: transparent !important;
-      line-height: inherit !important;
-    }
+       decides contrast, not the publisher's.
 
-    /* line-height joins them because a publisher's "p { line-height: 1.2em }"
+       line-height joins them because a publisher's "p { line-height: 1.2em }"
        (Le Grand Meaulnes) makes the line-spacing setting inert — the body
        value changes and not one paragraph moves. font-size and font-weight
        deliberately do NOT: publishers express those relatively (em) or
        semantically (.bold), so flattening them would erase the book's
        emphasis rather than restore the reader's control. The heading and pre
-       line-heights below still win — same specificity, later in the sheet. */
+       line-heights below still win — same specificity, later in the sheet.
+
+       text-align is not here either, but for the opposite reason: it is a
+       user setting now, and its default defers to the book. See
+       textAlignCss above. */
+    body :where(*) {
+      color: inherit !important;
+      background-color: transparent !important;
+      line-height: inherit !important;
+    }
 
     /* MathML draws from the UA's math font; forcing a text face breaks
        formula rendering, so revert the override inside math subtrees. */
@@ -528,6 +563,8 @@ export function getReaderPreviewStyle(
     fontSize: FONT_SIZE_MAP[settings.fontSize],
     fontWeight: FONT_WEIGHT_MAP[settings.fontWeight],
     lineHeight: LINE_HEIGHT_MAP[settings.lineSpacing],
-    textAlign: "start",
+    // The preview text is ours, so `book` — "whatever the publisher chose" —
+    // has no publisher to defer to; it shows the unforced default.
+    textAlign: settings.textAlign === "justify" ? "justify" : "start",
   };
 }

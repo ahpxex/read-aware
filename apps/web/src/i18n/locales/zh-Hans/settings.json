@@ -91,6 +91,7 @@
     "fontWeight": "字重",
     "lineSpacing": "行距",
     "paragraphSpacing": "段间距",
+    "textAlign": "对齐方式",
     "layout": "布局",
     "readingMode": "阅读模式",
     "pageColor": {

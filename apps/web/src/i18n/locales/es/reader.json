@@ -30,6 +30,7 @@
   "fontWeight": "Grosor de letra",
   "lineSpacing": "Interlineado",
   "paragraphSpacing": "Espacio entre párrafos",
+  "textAlign": "Alineación",
   "readingMode": "Modo de lectura",
   "scope": {
     "global": "Todos los libros",
@@ -107,6 +108,11 @@
     "tight": "Ajustado",
     "normal": "Normal",
     "loose": "Amplio"
+  },
+  "textAlignOption": {
+    "book": "Como se publicó",
+    "start": "Izquierda",
+    "justify": "Justificado"
   },
   "pageMargins": "Márgenes de página",
   "pageMarginsOption": {

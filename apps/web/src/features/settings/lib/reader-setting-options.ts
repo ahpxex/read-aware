@@ -5,6 +5,7 @@ import type {
   ReaderLineSpacing,
   ReaderPageMargins,
   ReaderParagraphSpacing,
+  ReaderTextAlign,
   ReaderThemePreference,
   ReadingMode,
 } from "./reader-settings";
@@ -60,6 +61,15 @@ export function pageMarginsOptions(
   return (["narrow", "medium", "wide"] as const).map((value) => ({
     value,
     label: t(`pageMarginsOption.${value}`),
+  }));
+}
+
+export function textAlignOptions(
+  t: TFunction<"reader">,
+): { value: ReaderTextAlign; label: string }[] {
+  return (["book", "start", "justify"] as const).map((value) => ({
+    value,
+    label: t(`textAlignOption.${value}`),
   }));
 }
 

@@ -91,6 +91,7 @@
     "fontWeight": "Насыщенность",
     "lineSpacing": "Межстрочный интервал",
     "paragraphSpacing": "Интервал между абзацами",
+    "textAlign": "Выравнивание",
     "layout": "Макет",
     "readingMode": "Режим чтения",
     "pageColor": {

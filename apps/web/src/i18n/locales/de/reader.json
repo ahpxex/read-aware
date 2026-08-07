@@ -30,6 +30,7 @@
   "fontWeight": "Schriftstärke",
   "lineSpacing": "Zeilenabstand",
   "paragraphSpacing": "Absatzabstand",
+  "textAlign": "Textausrichtung",
   "readingMode": "Lesemodus",
   "scope": {
     "global": "Alle Bücher",
@@ -107,6 +108,11 @@
     "tight": "Eng",
     "normal": "Normal",
     "loose": "Weit"
+  },
+  "textAlignOption": {
+    "book": "Wie im Buch",
+    "start": "Linksbündig",
+    "justify": "Blocksatz"
   },
   "pageMargins": "Seitenränder",
   "pageMarginsOption": {

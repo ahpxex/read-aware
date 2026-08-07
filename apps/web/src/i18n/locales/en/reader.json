@@ -30,6 +30,7 @@
   "fontWeight": "Font Weight",
   "lineSpacing": "Line Spacing",
   "paragraphSpacing": "Paragraph Spacing",
+  "textAlign": "Text Alignment",
   "readingMode": "Reading Mode",
   "scope": {
     "global": "All books",
@@ -107,6 +108,11 @@
     "tight": "Tight",
     "normal": "Normal",
     "loose": "Loose"
+  },
+  "textAlignOption": {
+    "book": "As published",
+    "start": "Left",
+    "justify": "Justified"
   },
   "pageMargins": "Page margins",
   "pageMarginsOption": {

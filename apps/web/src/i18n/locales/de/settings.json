@@ -91,6 +91,7 @@
     "fontWeight": "Schriftstärke",
     "lineSpacing": "Zeilenabstand",
     "paragraphSpacing": "Absatzabstand",
+    "textAlign": "Textausrichtung",
     "layout": "Layout",
     "readingMode": "Lesemodus",
     "pageColor": {

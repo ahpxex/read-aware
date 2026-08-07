@@ -91,6 +91,7 @@
     "fontWeight": "Graisse",
     "lineSpacing": "Interligne",
     "paragraphSpacing": "Espacement des paragraphes",
+    "textAlign": "Alignement",
     "layout": "Mise en page",
     "readingMode": "Mode de lecture",
     "pageColor": {

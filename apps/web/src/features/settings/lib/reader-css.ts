@@ -208,7 +208,12 @@ export function buildReaderContentCss(
   const horizontalMargin = READER_MARGIN_PRESETS[settings.pageMargins].horizontalPadding;
   const theme = assets.palette;
 
+  // Must lead the sheet: @namespace is only honored before style rules (after
+  // @charset / @import), and the footnote rules below select on the namespaced
+  // `epub:type` attribute. A *prefixed* namespace leaves plain type selectors
+  // (body, p, …) matching every namespace, as they do today.
   return `
+    @namespace epub url("http://www.idpf.org/2007/ops");
     ${fontFaceCss}
     html {
       background: ${theme.bg} !important;
@@ -235,6 +240,22 @@ export function buildReaderContentCss(
        !important conflicts also resolve our way.) */
     body :where(*) {
       font-family: ${fontFamily} !important;
+    }
+
+    /* Same story for color, and it is the one that breaks a book outright:
+       calibre-converted EPUBs pin near-black on the span class that wraps
+       every paragraph (".calibre_1 { color: rgb(23,23,23) }"), which beats
+       body inheritance and leaves the whole book invisible on a dark page.
+       Backgrounds go with it — a publisher's opaque white box under
+       now-light text would just move the invisibility, and any box we do
+       want (code, pre) is re-established by the later rules below.
+
+       The cost is real: author-chosen text colors are flattened to the theme.
+       That is the trade a page-color setting implies — the reader's palette
+       decides contrast, not the publisher's. */
+    body :where(*) {
+      color: inherit !important;
+      background-color: transparent !important;
     }
 
     /* MathML draws from the UA's math font; forcing a text face breaks
@@ -307,6 +328,31 @@ export function buildReaderContentCss(
       margin: 0 0.15em !important;
       vertical-align: -0.05em !important;
       cursor: pointer !important;
+    }
+
+    /* EPUB 3 内联注释体（<aside epub:type="footnote">…</aside> 直接躺在正文
+       段落之间）：规范要求阅读器把它们藏起来,只在 noteref 被点击时弹出 ——
+       foliate 的 FootnoteHandler 正是这么做的（它对这种目标还专门回报
+       hidden: true）。出版方 CSS 通常不自己隐藏（多看导出的 EPUB 甚至显式写
+       display: block）,所以隐藏得由我们来做,否则整章注文混在正文里。
+
+       弹层不受影响：它在另一个 foliate-view 里重新加载片段,而且抽取的是
+       aside 的子节点,我们注入的样式也不进那个 view。
+
+       只匹配 aside —— <section epub:type="footnote"> 是成章的尾注页,该照常
+       显示。两种属性写法都列上：XHTML 解析走命名空间,HTML 解析下属性名就是
+       字面量 "epub:type"。 */
+    aside[epub|type~="footnote"],
+    aside[epub|type~="endnote"],
+    aside[epub|type~="rearnote"],
+    aside[epub|type~="note"],
+    aside[epub\\:type~="footnote"],
+    aside[epub\\:type~="endnote"],
+    aside[epub\\:type~="rearnote"],
+    aside[epub\\:type~="note"],
+    aside[role~="doc-footnote"],
+    aside[role~="doc-endnote"] {
+      display: none !important;
     }
 
     figure {

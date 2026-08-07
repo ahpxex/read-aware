@@ -1,7 +1,41 @@
 import { describe, expect, test } from "bun:test";
 import { DEFAULT_READER_SETTINGS, type ReaderParagraphSpacing } from "./reader-settings";
 import { BUILTIN_READER_PALETTES } from "./reader-theme";
-import { getReaderPreviewStyle } from "./reader-css";
+import { buildReaderContentCss, getReaderPreviewStyle } from "./reader-css";
+
+describe("buildReaderContentCss", () => {
+  const build = (fontFaceCss?: string) =>
+    buildReaderContentCss(DEFAULT_READER_SETTINGS, {
+      palette: BUILTIN_READER_PALETTES.dark,
+      fontFaceCss,
+    });
+
+  test("declares the epub namespace before any rule, even with @font-face", () => {
+    const css = build("@font-face { font-family: X; src: url(x.woff2); }");
+    const namespaceAt = css.indexOf("@namespace");
+
+    expect(namespaceAt).toBeGreaterThanOrEqual(0);
+    expect(namespaceAt).toBeLessThan(css.indexOf("@font-face"));
+    expect(namespaceAt).toBeLessThan(css.indexOf("html {"));
+  });
+
+  test("forces the theme color onto every element, so a pinned near-black loses", () => {
+    const css = build();
+
+    expect(css).toContain("color: inherit !important");
+    expect(css).toContain("background-color: transparent !important");
+  });
+
+  test("hides EPUB 3 inline note asides (both attribute spellings)", () => {
+    const css = build();
+
+    expect(css).toContain('aside[epub|type~="footnote"]');
+    expect(css).toContain('aside[epub\\:type~="footnote"]');
+    expect(css).toContain('aside[role~="doc-footnote"]');
+    // Section-level notes are whole endnote pages — they must stay visible.
+    expect(css).not.toContain("section[epub|type");
+  });
+});
 
 describe("getReaderPreviewStyle", () => {
   const spacings = [

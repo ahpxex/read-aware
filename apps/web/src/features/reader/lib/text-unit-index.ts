@@ -31,14 +31,34 @@ const BLOCK_TAGS = new Set([
 
 const TEXT_FILTER = NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT | NodeFilter.SHOW_CDATA_SECTION;
 
-/** Accept text/CDATA, descend through elements, skip script/style subtrees. */
+/**
+ * Whether an element renders at all. Units must not cover text the reader
+ * cannot see: the injected stylesheet hides EPUB 3 inline note bodies
+ * (`<aside epub:type="footnote">`, see `reader-css.ts`), and a publisher may
+ * hide anything else. A unit over hidden text would highlight nothing and
+ * read the note aloud in the middle of a paragraph.
+ */
+function isRendered(el: Element): boolean {
+  const style = el.ownerDocument.defaultView?.getComputedStyle(el);
+  if (!style) return true;
+  return style.display !== "none" && style.visibility !== "hidden";
+}
+
+/** Accept text/CDATA, descend through elements, skip script/style/hidden. */
 function acceptTextNode(node: Node): number {
   if (node.nodeType === Node.ELEMENT_NODE) {
-    const name = (node as Element).tagName.toLowerCase();
+    const el = node as Element;
+    const name = el.tagName.toLowerCase();
     if (name === "script" || name === "style") return NodeFilter.FILTER_REJECT;
+    if (!isRendered(el)) return NodeFilter.FILTER_REJECT;
     return NodeFilter.FILTER_SKIP;
   }
   return NodeFilter.FILTER_ACCEPT;
+}
+
+/** Descend through rendered elements only; hidden subtrees are not read. */
+function acceptBlockNode(node: Node): number {
+  return isRendered(node as Element) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
 }
 
 /** Ranges spanning from each block element's start to the next block's start. */
@@ -46,7 +66,9 @@ function* blockRanges(doc: Document): Generator<Range> {
   const body = doc.body;
   if (!body) return;
   let last: Range | null = null;
-  const walker = doc.createTreeWalker(body, NodeFilter.SHOW_ELEMENT);
+  const walker = doc.createTreeWalker(body, NodeFilter.SHOW_ELEMENT, {
+    acceptNode: acceptBlockNode,
+  });
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
     if (!BLOCK_TAGS.has((node as Element).tagName.toLowerCase())) continue;
     if (last) {

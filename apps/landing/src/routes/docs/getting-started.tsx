@@ -60,6 +60,29 @@ function GettingStartedPage() {
         Your position is saved per book, and the table of contents is always a
         click away in the reader's top bar.
       </p>
+      <p>
+        The same appearance settings carry the typography: font, size, weight,
+        line spacing, paragraph spacing, margins, and page color. Text
+        alignment defaults to <strong>As published</strong> — whatever the
+        book's own stylesheet asked for — and can be forced left or justified
+        if you'd rather it were uniform everywhere.
+      </p>
+
+      <h2>Listen</h2>
+      <p>
+        Any book can be read aloud. Read-aloud rides the same sentence and
+        paragraph navigator you read by — start the navigator, then press play
+        in its bar, and the book advances one unit at a time with the spoken
+        text marked as it goes.
+      </p>
+      <p>
+        Out of the box this speaks with your device's own voice, which needs no
+        key and no network. Enabling a voice plugin — the bundled{" "}
+        <strong>TTS</strong> plugin, or any other — is itself the choice to
+        speak through that engine instead; which voice it uses is configured in
+        that plugin's own settings, alongside its provider and any custom
+        endpoint. There is no separate voice picker to keep in sync.
+      </p>
 
       <h2>Annotate</h2>
       <p>Select any passage and a quiet action menu appears:</p>

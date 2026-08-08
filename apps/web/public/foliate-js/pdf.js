@@ -105,70 +105,67 @@ const extractPageText = async page => {
 // two colors — paper to `background`, ink to `foreground`, everything between
 // interpolated. The page keeps its detail and loses its color.
 //
-// PDF.js can do that remap itself (`render({ pageColors })`), and we do NOT use
-// it: it works by assigning an SVG filter to the canvas 2D context, which macOS
-// WKWebView accepts and then silently ignores — `ctx.filter` round-trips and
-// nothing is drawn differently. The same filter applied to the canvas *element*
-// through CSS does work there, so the remap is ours, as a duotone filter living
-// in the page document. One code path, same result on every platform.
-const FILTER_ID = 'readaware-page-colors'
-
+// That remap is done with composite operations, and NOT with a filter. Every
+// filter route fails on macOS WKWebView, each in its own quiet way:
+//
+// - PDF.js's own `render({ pageColors })` assigns an SVG filter to the canvas
+//   2D context. `ctx.filter` round-trips and nothing renders differently — and
+//   the same is true of the shorthand functions (`grayscale(1) invert(1)`).
+//   Canvas filters simply do not run there.
+// - The same filter on the canvas *element* via CSS does run — until the canvas
+//   gets large. Scroll mode renders a page at fit-width times the device pixel
+//   ratio, which on a Retina display is thousands of pixels square, past
+//   WebKit's filter-region limit: the output comes back empty and the page
+//   vanishes into the background color, which is what a reader sees as "dark
+//   mode makes the page disappear".
+//
+// Composite operations have neither problem, and unlike a pixel loop they stay
+// on the GPU. They run once per render — a page turn, a zoom, a palette change
+// — never per frame.
 const rgbChannels = color => {
     const hex = String(color).trim().replace(/^#/, '')
-    const full = hex.length === 3 ? [...hex].map(c => c + c).join('') : hex
+    const full = hex.length === 3 || hex.length === 4
+        ? [...hex.slice(0, 3)].map(c => c + c).join('')
+        : hex.slice(0, 6)
     if (!/^[0-9a-fA-F]{6}$/.test(full)) return null
-    return [0, 2, 4].map(i => parseInt(full.slice(i, i + 2), 16) / 255)
+    return [0, 2, 4].map(i => parseInt(full.slice(i, i + 2), 16))
 }
 
-// Luminance, then a per-channel linear ramp from `foreground` (at black) to
-// `background` (at white).
-//
-// `color-interpolation-filters="sRGB"` is not optional: filter primitives
-// default to linearRGB, which runs the ramp over linearized values and then
-// converts back, lifting the whole page into a washed-out gray — verified on
-// macOS, where the difference is unmistakable. The page's tones are sRGB and
-// the palette's two colors are sRGB, so the interpolation between them has to
-// be as well.
-const buildPageColorFilter = (doc, foreground, background) => {
-    const fg = rgbChannels(foreground)
-    const bg = rgbChannels(background)
-    if (!fg || !bg) return null
-    const NS = 'http://www.w3.org/2000/svg'
-    const svg = doc.createElementNS(NS, 'svg')
-    svg.setAttribute('aria-hidden', 'true')
-    Object.assign(svg.style, { position: 'absolute', width: '0', height: '0' })
-    const filter = doc.createElementNS(NS, 'filter')
-    filter.setAttribute('id', FILTER_ID)
-    filter.setAttribute('color-interpolation-filters', 'sRGB')
-    const gray = doc.createElementNS(NS, 'feColorMatrix')
-    gray.setAttribute('type', 'matrix')
-    const [r, g, b] = [0.2126, 0.7152, 0.0722]
-    gray.setAttribute('values', [
-        `${r} ${g} ${b} 0 0`,
-        `${r} ${g} ${b} 0 0`,
-        `${r} ${g} ${b} 0 0`,
-        `0 0 0 1 0`,
-    ].join(' '))
-    const ramp = doc.createElementNS(NS, 'feComponentTransfer')
-    for (const [i, name] of ['feFuncR', 'feFuncG', 'feFuncB'].entries()) {
-        const func = doc.createElementNS(NS, name)
-        func.setAttribute('type', 'linear')
-        func.setAttribute('slope', String(bg[i] - fg[i]))
-        func.setAttribute('intercept', String(fg[i]))
-        ramp.append(func)
-    }
-    filter.append(gray, ramp)
-    svg.append(filter)
-    return svg
-}
+const clampChannel = value => Math.max(0, Math.min(255, Math.round(value)))
 
-const applyPageColorFilter = (doc, canvas, pageColors) => {
-    doc.getElementById(FILTER_ID)?.closest('svg')?.remove()
+// The remap, as four composite operations over the finished page. Each one is
+// a plain fill the compositor can run on the GPU; the equivalent pixel loop
+// costs a third of a second on a Retina-scale page, which a page turn cannot
+// afford. Endpoints land exactly: white paper comes out as `background`, black
+// ink as `foreground`.
+const applyPageColors = (context, canvas, pageColors) => {
     if (!pageColors?.foreground || !pageColors?.background) return
-    const svg = buildPageColorFilter(doc, pageColors.foreground, pageColors.background)
-    if (!svg) return
-    doc.body.append(svg)
-    canvas.style.filter = `url(#${FILTER_ID})`
+    const fg = rgbChannels(pageColors.foreground)
+    const bg = rgbChannels(pageColors.background)
+    if (!fg || !bg) return
+    const { width, height } = canvas
+    const fill = style => {
+        context.fillStyle = style
+        context.fillRect(0, 0, width, height)
+    }
+
+    context.save()
+    // Drop the color, keeping each pixel's luminosity.
+    context.globalCompositeOperation = 'saturation'
+    fill('hsl(0, 0%, 50%)')
+    // Invert, so paper sits at 0 and ink at 1.
+    context.globalCompositeOperation = 'difference'
+    fill('#ffffff')
+    // Scale that range down to the distance between the two colors. A palette
+    // whose text is darker than its paper in some channel would ask for a
+    // negative scale, which cannot be expressed — clamping flattens that
+    // channel rather than wrapping it.
+    context.globalCompositeOperation = 'multiply'
+    fill(`rgb(${fg.map((c, i) => clampChannel(c - bg[i])).join(', ')})`)
+    // And lift the result onto the background color.
+    context.globalCompositeOperation = 'lighter'
+    fill(`rgb(${bg.map(clampChannel).join(', ')})`)
+    context.restore()
 }
 
 const render = async (page, doc, zoom, onRendered, pageColors) => {
@@ -195,11 +192,11 @@ const render = async (page, doc, zoom, onRendered, pageColors) => {
             ? { background: pageColors.background }
             : {}),
     }).promise
-    // The cover thumbnail reuses this canvas, so hand it over before the
-    // duotone filter is attached — a cover should look like the book.
+    // The cover thumbnail reuses this canvas, so hand it over before the remap
+    // — a cover should look like the book.
     onRendered?.(canvas)
+    applyPageColors(canvasContext, canvas, pageColors)
     doc.querySelector('#canvas').replaceChildren(doc.adoptNode(canvas))
-    applyPageColorFilter(doc, canvas, pageColors)
 
     // READAWARE: `TextLayer.render()` APPENDS. Every zoom/resize re-renders the
     // page, so without clearing first the spans stack up — text selects twice

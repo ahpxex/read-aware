@@ -65,16 +65,20 @@ The typed wrapper that consumes this lives at
   A light palette now goes in as `render({ background })`, which fills the
   canvas before the page is drawn — a lossless paper tint. A dark palette needs
   the page's tonal range remapped instead (black ink cannot be painted onto a
-  dark sheet), and that is a duotone SVG filter we build in the page document
-  and attach to the canvas element. **PDF.js's own `render({ pageColors })`
-  does exactly this remap and is deliberately unused:** it assigns the filter to
-  the canvas *2D context*, which macOS WKWebView accepts and silently ignores
-  (`ctx.filter` round-trips, nothing renders differently — verified against the
-  running desktop app), while the same filter on the canvas *element* via CSS
-  works there. `FixedLayout.setPageColors()` holds the choice, threads it
-  through `onZoom`, and invalidates each frame's cached scale so a palette
-  change redraws. Policy (which form for which palette) lives in the app; the
-  engine only does what it is told. Re-apply after any upstream update.
+  dark sheet), and that is done with **composite operations**, not a filter.
+  Every filter route fails on macOS WKWebView, each quietly: canvas `ctx.filter`
+  does not run at all there (neither PDF.js's `render({ pageColors })` SVG
+  filter nor shorthand functions), and the same filter on the canvas *element*
+  via CSS runs until the canvas is large — scroll mode at fit-width times a
+  Retina pixel ratio is past WebKit's filter-region limit, so the output comes
+  back empty and the page disappears into the background color. All observed
+  against the running desktop app. A pixel loop works everywhere but costs
+  ~330ms on a 7.5-megapixel page; four composite fills (saturation → difference
+  → multiply → lighter) land the same endpoints on the GPU.
+  `FixedLayout.setPageColors()` holds the choice, threads it through `onZoom`,
+  and invalidates each frame's cached scale so a palette change redraws. Policy
+  (which form for which palette) lives in the app; the engine only does what it
+  is told. Re-apply after any upstream update.
 - **`fixed-layout.js` — annotation overlays:** the upstream renderer never
   creates an overlayer (`getContents()` carried a `TODO: index, overlayer`), so
   highlights, underlines, and notes were impossible on any fixed-layout book —

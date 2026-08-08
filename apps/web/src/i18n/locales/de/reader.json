@@ -32,6 +32,7 @@
   "paragraphSpacing": "Absatzabstand",
   "textAlign": "Textausrichtung",
   "readingMode": "Lesemodus",
+  "fixedLayoutHint": "Feste Seitenlayouts (PDF, Comics) bringen ihre eigene Typografie mit — Schrift und Abstände lassen sich hier nicht ändern.",
   "scope": {
     "global": "Alle Bücher",
     "book": "Dieses Buch"

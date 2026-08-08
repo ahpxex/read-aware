@@ -32,6 +32,7 @@
   "paragraphSpacing": "Espacement des paragraphes",
   "textAlign": "Alignement",
   "readingMode": "Mode de lecture",
+  "fixedLayoutHint": "Les livres à mise en page fixe (PDF, bandes dessinées) ont leur propre typographie : la police et les espacements ne se règlent pas ici.",
   "scope": {
     "global": "Tous les livres",
     "book": "Ce livre"

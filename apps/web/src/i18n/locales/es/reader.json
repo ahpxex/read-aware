@@ -32,6 +32,7 @@
   "paragraphSpacing": "Espacio entre párrafos",
   "textAlign": "Alineación",
   "readingMode": "Modo de lectura",
+  "fixedLayoutHint": "Los libros de diseño fijo (PDF, cómics) traen su propia tipografía: aquí no se pueden cambiar la fuente ni los espaciados.",
   "scope": {
     "global": "Todos los libros",
     "book": "Este libro"

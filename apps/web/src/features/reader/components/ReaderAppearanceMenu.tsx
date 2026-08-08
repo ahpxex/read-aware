@@ -23,6 +23,12 @@ import {
 
 type ReaderAppearanceMenuProps = {
   bookId: string;
+  /**
+   * The open book is fixed-layout (PDF, comic, pre-paginated EPUB): its pages
+   * are pictures of a page the publisher already set. See the typography block
+   * below for what that hides.
+   */
+  fixedLayout?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 };
@@ -34,6 +40,7 @@ type ReaderAppearanceMenuProps = {
  */
 export function ReaderAppearanceMenu({
   bookId,
+  fixedLayout = false,
   open,
   onOpenChange,
 }: ReaderAppearanceMenuProps) {
@@ -82,47 +89,60 @@ export function ReaderAppearanceMenu({
             updatePrefs(applyReaderThemeSelection(prefs, theme, pluginThemes))
           }
         />
-        <FontField
-          value={prefs.fontFamily}
-          fontWeight={prefs.fontWeight}
-          onChange={(fontFamily) => updatePrefs({ ...prefs, fontFamily })}
-        />
-        <ChoiceGroup
-          label={t("fontSize")}
-          value={prefs.fontSize}
-          options={fontSizeOptions(t)}
-          onChange={(fontSize) => updatePrefs({ ...prefs, fontSize })}
-        />
-        <ChoiceGroup
-          label={t("fontWeight")}
-          value={prefs.fontWeight}
-          options={fontWeightOptions(t)}
-          onChange={(fontWeight) => updatePrefs({ ...prefs, fontWeight })}
-        />
-        <ChoiceGroup
-          label={t("lineSpacing")}
-          value={prefs.lineSpacing}
-          options={lineSpacingOptions(t)}
-          onChange={(lineSpacing) => updatePrefs({ ...prefs, lineSpacing })}
-        />
-        <ChoiceGroup
-          label={t("paragraphSpacing")}
-          value={prefs.paragraphSpacing}
-          options={paragraphSpacingOptions(t)}
-          onChange={(paragraphSpacing) => updatePrefs({ ...prefs, paragraphSpacing })}
-        />
-        <ChoiceGroup
-          label={t("textAlign")}
-          value={prefs.textAlign}
-          options={textAlignOptions(t)}
-          onChange={(textAlign) => updatePrefs({ ...prefs, textAlign })}
-        />
-        <ChoiceGroup
-          label={t("pageMargins")}
-          value={prefs.pageMargins}
-          options={pageMarginsOptions(t)}
-          onChange={(pageMargins) => updatePrefs({ ...prefs, pageMargins })}
-        />
+        {/* Typography — reflowable books only. A fixed-layout book is a
+            sequence of pages the publisher already typeset: the engine has no
+            text to re-flow, so every control here would move a switch that
+            changes nothing. Offering them reads as "this book just ignores my
+            settings" rather than "this book has none", so they are gone, with a
+            line saying why. Page Color and Reading Mode stay: both still do
+            visible work on a fixed-layout page. */}
+        {fixedLayout ? (
+          <Caption className="block text-fg-subtle">{t("fixedLayoutHint")}</Caption>
+        ) : (
+          <>
+            <FontField
+              value={prefs.fontFamily}
+              fontWeight={prefs.fontWeight}
+              onChange={(fontFamily) => updatePrefs({ ...prefs, fontFamily })}
+            />
+            <ChoiceGroup
+              label={t("fontSize")}
+              value={prefs.fontSize}
+              options={fontSizeOptions(t)}
+              onChange={(fontSize) => updatePrefs({ ...prefs, fontSize })}
+            />
+            <ChoiceGroup
+              label={t("fontWeight")}
+              value={prefs.fontWeight}
+              options={fontWeightOptions(t)}
+              onChange={(fontWeight) => updatePrefs({ ...prefs, fontWeight })}
+            />
+            <ChoiceGroup
+              label={t("lineSpacing")}
+              value={prefs.lineSpacing}
+              options={lineSpacingOptions(t)}
+              onChange={(lineSpacing) => updatePrefs({ ...prefs, lineSpacing })}
+            />
+            <ChoiceGroup
+              label={t("paragraphSpacing")}
+              value={prefs.paragraphSpacing}
+              options={paragraphSpacingOptions(t)}
+              onChange={(paragraphSpacing) => updatePrefs({ ...prefs, paragraphSpacing })}
+            />
+            <ChoiceGroup
+              label={t("textAlign")}
+              value={prefs.textAlign}
+              options={textAlignOptions(t)}
+              onChange={(textAlign) => updatePrefs({ ...prefs, textAlign })}
+            />
+            <ChoiceGroup
+              label={t("pageMargins")}
+              value={prefs.pageMargins}
+              options={pageMarginsOptions(t)}
+              onChange={(pageMargins) => updatePrefs({ ...prefs, pageMargins })}
+            />
+          </>
+        )}
 
         <Divider />
 

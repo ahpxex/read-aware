@@ -50,11 +50,16 @@ type ReaderShellOverlayProps = {
   onAnnotationSelect?: (cfiRange: string) => void;
   /** Jump to a position in the book, 0..1 — the progress bar's drag target. */
   onSeek?: (fraction: number) => void;
-  /** Installed text-unit mode. The host hides it for fixed-layout books. */
+  /** Installed text-unit mode, if a plugin contributes one. */
   textUnitMode?: RegisteredReaderMode | null;
-  textUnitModeAvailable?: boolean;
   textUnitModeActive?: boolean;
   onToggleTextUnitMode?: () => void;
+  /**
+   * The open book is fixed-layout (PDF, comic, pre-paginated EPUB). Its pages
+   * cannot re-flow, which rules out both the typography controls and any
+   * text-unit mode.
+   */
+  fixedLayout?: boolean;
 };
 
 export function ReaderShellOverlay({
@@ -71,11 +76,14 @@ export function ReaderShellOverlay({
   onAnnotationSelect,
   onSeek,
   textUnitMode = null,
-  textUnitModeAvailable = true,
   textUnitModeActive = false,
   onToggleTextUnitMode,
+  fixedLayout = false,
 }: ReaderShellOverlayProps) {
   const { t } = useTranslation("reader");
+  // A text-unit mode segments running text — there is none to segment in a
+  // book whose pages are pre-typeset.
+  const textUnitModeAvailable = textUnitMode !== null && !fixedLayout;
   const locale = useLocale();
   const bookId = book.id;
   const title = book.title;
@@ -184,6 +192,7 @@ export function ReaderShellOverlay({
     "core:appearance": (
       <ReaderAppearanceMenu
         bookId={bookId}
+        fixedLayout={fixedLayout}
         open={appearanceOpen}
         onOpenChange={setAppearanceOpen}
       />

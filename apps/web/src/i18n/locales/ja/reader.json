@@ -32,6 +32,7 @@
   "paragraphSpacing": "段落間隔",
   "textAlign": "行揃え",
   "readingMode": "読書モード",
+  "fixedLayoutHint": "固定レイアウトの本（PDF・コミック）は組版が作品側で決まっているため、フォントや行間はここでは変更できません。",
   "scope": {
     "global": "すべての本",
     "book": "この本"

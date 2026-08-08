@@ -221,10 +221,10 @@ export function ReaderWorkspace({
         onChapterSelect={onChapterSelect}
         onAnnotationSelect={onAnnotationSelect}
         onSeek={onSeek}
-        textUnitModeAvailable={textUnitMode !== null && !isFixedLayout}
         textUnitMode={textUnitMode}
         textUnitModeActive={textUnitModeActive}
         onToggleTextUnitMode={toggleTextUnitMode}
+        fixedLayout={isFixedLayout}
       />
     </div>
   );

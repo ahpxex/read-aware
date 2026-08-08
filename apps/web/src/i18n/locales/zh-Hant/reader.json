@@ -32,6 +32,7 @@
   "paragraphSpacing": "段落間距",
   "textAlign": "對齊方式",
   "readingMode": "閱讀模式",
+  "fixedLayoutHint": "固定版式書籍（PDF、漫畫）的排版由檔案本身決定，字體和間距無法在此調整。",
   "scope": {
     "global": "所有書籍",
     "book": "這本書"

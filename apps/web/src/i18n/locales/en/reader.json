@@ -32,6 +32,7 @@
   "paragraphSpacing": "Paragraph Spacing",
   "textAlign": "Text Alignment",
   "readingMode": "Reading Mode",
+  "fixedLayoutHint": "Fixed-layout books (PDF, comics) come with their own typography — font and spacing cannot be changed here.",
   "scope": {
     "global": "All books",
     "book": "This book"

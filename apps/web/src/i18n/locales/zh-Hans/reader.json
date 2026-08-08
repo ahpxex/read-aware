@@ -32,6 +32,7 @@
   "paragraphSpacing": "段间距",
   "textAlign": "对齐方式",
   "readingMode": "阅读模式",
+  "fixedLayoutHint": "固定版式书籍（PDF、漫画）的排版由文件本身决定，字体和间距无法在此调整。",
   "scope": {
     "global": "所有书籍",
     "book": "本书"

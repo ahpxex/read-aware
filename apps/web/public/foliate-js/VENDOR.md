@@ -74,6 +74,15 @@ The typed wrapper that consumes this lives at
   and, worse, the DOM shape a stored CFI was measured against stopped being
   reproducible. The text and annotation layers are now cleared before each
   render. Re-apply after any upstream update.
+- **`view.js` — `relocate` carries the renderer's `reason`:** the paginator
+  labels every relocation (`page`, `snap`, `scroll` for real navigation;
+  `anchor` for a re-layout; `navigation` / `selection` for programmatic jumps),
+  but `#onRelocate` consumed the label and emitted a bare location. Without it
+  the app could only guess "did the reader move?" from a page/CFI delta — and a
+  re-layout (soft keyboard, rotation, font-size change) moves the visible range
+  too, so it read as a page turn and dismissed the reader chrome. The emitted
+  detail now spreads `reason` alongside the location; `lastLocation` itself is
+  left a pure location. Re-apply after any upstream update.
 - **`view.js` / `overlayer.js` — independent render identity:** annotations may
   provide an `overlayKey` distinct from their CFI `value`, while hit testing
   still reports the CFI. This lets ReadAware's navigator focus layer coexist

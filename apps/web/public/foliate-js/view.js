@@ -334,7 +334,10 @@ export class View extends HTMLElement {
         this.lastLocation = { ...progress, tocItem, pageItem, cfi, range }
         if (reason === 'snap' || reason === 'page' || reason === 'scroll')
             this.history.replaceState(cfi)
-        this.#emit('relocate', this.lastLocation)
+        // ReadAware patch: forward the renderer's `reason` so consumers can tell a
+        // real navigation from a re-layout (see VENDOR.md). `lastLocation` stays a
+        // pure location — the reason belongs to the event, not to the position.
+        this.#emit('relocate', { ...this.lastLocation, reason })
     }
     #onLoad({ doc, index }) {
         // set language and dir if not already set

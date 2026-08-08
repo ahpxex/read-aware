@@ -19,6 +19,7 @@ import {
 import { flattenToc, findTocIndexForHref } from "../lib/epub-utils";
 import { attachTocFractions } from "../lib/toc-fractions";
 import { chapterProgressAt, normalizeReadingCursorText } from "../lib/reading-cursor";
+import { relocateDismissesShell } from "../lib/shell-dismissal";
 import type { LoadedBook, ReadingCursor, TocEntry, TocNavItem } from "../lib/reader-types";
 import {
   createFoliateView,
@@ -1838,24 +1839,23 @@ export function FoliateReaderView({
           });
           setCurrentChapterHref(href);
 
-          // Paginated dismissal: a page turn lands as a new location here, so the
-          // shell hides the moment the position moves (covers taps, space, and
-          // the arrow keys alike). Scroll mode is left to the wheel-distance
-          // accumulator so a small scroll keeps the shell until it's gone far
-          // enough — matching the "after a distance, not on the first tick" rule.
-          // A jump the header itself issued is exempt: scrubbing the progress
-          // bar would otherwise pull the bar out from under the pointer.
-          const previousLocation = prevReadingLocationRef.current;
+          // Paginated dismissal (see relocateDismissesShell for what counts as a
+          // turn). Scroll mode is left to the wheel-distance accumulator so a
+          // small scroll keeps the shell until it's gone far enough — matching
+          // the "after a distance, not on the first tick" rule. A jump the
+          // header itself issued is exempt: scrubbing the progress bar would
+          // otherwise pull the bar out from under the pointer.
           if (
             !suppressShellDismissRef.current &&
             shellVisibleRef.current &&
             readingModeRef.current !== "scroll" &&
-            previousLocation != null
+            relocateDismissesShell({
+              reason: detail.reason,
+              previous: prevReadingLocationRef.current,
+              next: { current, cfi },
+            })
           ) {
-            const movedPage = current !== previousLocation.current;
-            const movedCfi =
-              cfi != null && previousLocation.cfi != null && cfi !== previousLocation.cfi;
-            if (movedPage || movedCfi) onContentScrollRef.current?.();
+            onContentScrollRef.current?.();
           }
           prevReadingLocationRef.current = { current, cfi };
           textUnitNavigatorRef.current.handleRelocate(detail);

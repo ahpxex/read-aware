@@ -40,6 +40,21 @@ export type FoliateBook = {
   getCover?: () => Promise<Blob | null> | Blob | null;
 };
 
+/**
+ * Why the reader relocated. `page` / `snap` / `scroll` are the reader actually
+ * moving (edge buttons and keys / a swipe or trackpad snap / continuous
+ * scrolling); `anchor` is a re-layout holding the same position (resize, soft
+ * keyboard, font change); `navigation` and `selection` are programmatic jumps.
+ * Forwarded by a local patch to the vendored `view.js` — see its VENDOR.md.
+ */
+export type FoliateRelocateReason =
+  | "page"
+  | "snap"
+  | "scroll"
+  | "anchor"
+  | "navigation"
+  | "selection";
+
 export type FoliateRelocateDetail = {
   fraction?: number;
   location?: { current?: number; total?: number };
@@ -48,6 +63,7 @@ export type FoliateRelocateDetail = {
   cfi?: string;
   range?: Range;
   index?: number;
+  reason?: FoliateRelocateReason;
 };
 
 export type FoliateLoadDetail = { doc: Document; index: number };

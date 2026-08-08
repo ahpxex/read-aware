@@ -49,11 +49,26 @@ describe("fixedLayoutPageColors", () => {
     });
   });
 
-  test("an unmeasurable palette tints rather than throwing away color", () => {
-    // Losing color to a remap we could not justify is the worse failure.
-    expect(fixedLayoutPageColors(palette("oklch(0.2 0.02 250)", "#eee"), "theme")).toEqual({
-      background: "oklch(0.2 0.02 250)",
-    });
+  test("the color syntaxes a plugin palette may declare are all measurable", () => {
+    // isPluginThemeColor admits these, so none of them may fall through to the
+    // "leave it alone" branch — a dark plugin theme has to get the remap.
+    for (const [bg, text] of [
+      ["rgb(20, 22, 28)", "rgb(210, 214, 222)"],
+      ["rgba(20, 22, 28, 1)", "rgba(210, 214, 222, 1)"],
+      ["hsl(220, 17%, 9%)", "hsl(220, 15%, 85%)"],
+      ["#161a22ff", "#ccd2ddff"],
+      ["#12ae", "#cdef"],
+    ] as const) {
+      const colors = fixedLayoutPageColors(palette(bg, text), "theme");
+      expect(colors).not.toBeNull();
+      expect(colors?.foreground).toBe(text);
+    }
+  });
+
+  test("an unmeasurable palette leaves the page alone rather than tinting it", () => {
+    // Tinting without the remap is the one unusable outcome: if that palette is
+    // dark, the author's black ink stays on dark paper and the text vanishes.
+    expect(fixedLayoutPageColors(palette("oklch(0.2 0.02 250)", "#eee"), "theme")).toBeNull();
   });
 
   test("`original` renders the page as authored, whatever the palette", () => {

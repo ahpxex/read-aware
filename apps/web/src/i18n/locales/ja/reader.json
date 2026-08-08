@@ -33,6 +33,12 @@
   "textAlign": "行揃え",
   "readingMode": "読書モード",
   "fixedLayoutHint": "固定レイアウトの本（PDF・コミック）は組版が作品側で決まっているため、フォントや行間はここでは変更できません。",
+  "fixedLayoutColor": "ページの描画",
+  "fixedLayoutColorHint": "暗いページカラーではページが2階調で描き直され、元の色は失われます。",
+  "fixedLayoutColorOption": {
+    "theme": "ページカラーに合わせる",
+    "original": "そのまま"
+  },
   "scope": {
     "global": "すべての本",
     "book": "この本"

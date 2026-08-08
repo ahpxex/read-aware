@@ -33,6 +33,12 @@
   "textAlign": "Alignement",
   "readingMode": "Mode de lecture",
   "fixedLayoutHint": "Les livres à mise en page fixe (PDF, bandes dessinées) ont leur propre typographie : la police et les espacements ne se règlent pas ici.",
+  "fixedLayoutColor": "Rendu des pages",
+  "fixedLayoutColorHint": "Une couleur de page sombre redessine les pages en deux tons et abandonne leur couleur.",
+  "fixedLayoutColorOption": {
+    "theme": "Suivre la couleur de page",
+    "original": "Original"
+  },
   "scope": {
     "global": "Tous les livres",
     "book": "Ce livre"

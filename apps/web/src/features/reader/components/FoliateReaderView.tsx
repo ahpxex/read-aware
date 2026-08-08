@@ -580,6 +580,7 @@ export function FoliateReaderView({
     settingsRef: readerSettingsRef,
     applyMaxInlineSize: applyReaderMaxInlineSize,
     injectStyles: injectReaderStyles,
+    applyPageColors: applyReaderPageColors,
   } = useReaderTypography({
     readerSettings,
     viewRef,
@@ -1758,6 +1759,9 @@ export function FoliateReaderView({
         // fixed-layout PDF renderer honor these attributes; each keeps only the
         // current section/spread live, so memory stays bounded.
         const { flow, maxColumnCount } = layoutForReadingMode(readingMode);
+        // Before the first navigation, so the opening render already draws the
+        // page in the reader's palette instead of flashing white and redrawing.
+        if (fixedLayout) applyReaderPageColors(readerSettingsRef.current, view.renderer);
         if (fixedLayout && view.renderer?.setLayout) {
           // WebKit may defer custom-element attribute reactions until after the
           // first navigation. Configure fixed layout atomically so that first

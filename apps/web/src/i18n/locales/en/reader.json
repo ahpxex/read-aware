@@ -33,6 +33,12 @@
   "textAlign": "Text Alignment",
   "readingMode": "Reading Mode",
   "fixedLayoutHint": "Fixed-layout books (PDF, comics) come with their own typography — font and spacing cannot be changed here.",
+  "fixedLayoutColor": "Page Rendering",
+  "fixedLayoutColorHint": "A dark page color redraws pages in two tones, dropping their color.",
+  "fixedLayoutColorOption": {
+    "theme": "Follow page color",
+    "original": "Original"
+  },
   "scope": {
     "global": "All books",
     "book": "This book"

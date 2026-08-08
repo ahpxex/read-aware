@@ -33,6 +33,12 @@
   "textAlign": "Textausrichtung",
   "readingMode": "Lesemodus",
   "fixedLayoutHint": "Feste Seitenlayouts (PDF, Comics) bringen ihre eigene Typografie mit — Schrift und Abstände lassen sich hier nicht ändern.",
+  "fixedLayoutColor": "Seitendarstellung",
+  "fixedLayoutColorHint": "Eine dunkle Seitenfarbe zeichnet die Seiten in zwei Tönen neu; ihre Farbe geht dabei verloren.",
+  "fixedLayoutColorOption": {
+    "theme": "Seitenfarbe folgen",
+    "original": "Original"
+  },
   "scope": {
     "global": "Alle Bücher",
     "book": "Dieses Buch"

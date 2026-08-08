@@ -112,6 +112,17 @@ export type ReadingMode = "scroll" | "paginated-single" | "paginated-double";
 export type ReaderTextAlign = "book" | "start" | "justify";
 
 /**
+ * How a fixed-layout page (PDF, comic) answers the page color.
+ *
+ * `theme` paints the page in the reader's palette — a light palette tints the
+ * paper at render time and leaves every ink and photograph untouched, while a
+ * dark palette has to remap the page's whole tonal range between the palette's
+ * text and background colors, which renders it in grayscale. `original` leaves
+ * the page exactly as its publisher drew it, on its own white paper.
+ */
+export type FixedLayoutColor = "theme" | "original";
+
+/**
  * Effective, render-ready reader settings. `theme` is always concrete here —
  * the `auto` preference has already been resolved against the app theme.
  */
@@ -125,6 +136,7 @@ export type ReaderSettings = {
   pageMargins: ReaderPageMargins;
   textAlign: ReaderTextAlign;
   readingMode: ReadingMode;
+  fixedLayoutColor: FixedLayoutColor;
 };
 
 /** Persisted reader preferences. Differs only in that `theme` may be `auto`. */
@@ -147,6 +159,10 @@ export const DEFAULT_READER_SETTINGS: ReaderSettings = {
   // two-page spread (the renderer already folds a spread to one column while
   // the viewport is portrait, so narrow desktop windows stay readable).
   readingMode: hasCoarsePointer() ? "paginated-single" : "paginated-double",
+  // Most fixed-layout reading is text on paper, where following the palette is
+  // the whole point of choosing one; readers of photography and art books can
+  // turn it off per book.
+  fixedLayoutColor: "theme",
 };
 
 export const DEFAULT_READER_PREFERENCES: ReaderSettingsPreferences = {
@@ -249,6 +265,10 @@ export function getReaderPreferences(): ReaderSettingsPreferences {
       pageMargins: normalizePageMargins(parsed.pageMargins),
       textAlign: normalizeTextAlign(parsed.textAlign),
       readingMode: parsed.readingMode ?? DEFAULT_READER_PREFERENCES.readingMode,
+      fixedLayoutColor:
+        parsed.fixedLayoutColor === "original"
+          ? "original"
+          : DEFAULT_READER_PREFERENCES.fixedLayoutColor,
     };
   } catch {
     return DEFAULT_READER_PREFERENCES;

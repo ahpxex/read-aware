@@ -1,5 +1,6 @@
 /**
- * Reader typography: the responsive text measure and the injected stylesheet.
+ * Reader appearance: the responsive text measure, the injected stylesheet, and
+ * the page colors a fixed-layout book is drawn with.
  *
  * Extracted from FoliateReaderView, which had accumulated every reader concern
  * in one component. This cluster is self-contained — it reads the live layout
@@ -24,6 +25,7 @@ import {
   pluginFontsAtom,
   pluginThemesAtom,
 } from "../../plugins/state/plugin-store";
+import { fixedLayoutPageColors } from "../lib/fixed-layout-colors";
 import type { FoliateRenderer, FoliateView } from "../lib/foliate-engine";
 
 type Options = {
@@ -44,6 +46,11 @@ export type ReaderTypography = {
   applyMaxInlineSize: () => void;
   /** Rebuild and inject the reader stylesheet (loading webfonts first). */
   injectStyles: (settings: ReaderSettings, renderer?: FoliateRenderer) => Promise<void>;
+  /**
+   * Push the palette onto a fixed-layout renderer, which draws it into the
+   * page. No-op for reflowable books — they take the palette as CSS instead.
+   */
+  applyPageColors: (settings: ReaderSettings, renderer?: FoliateRenderer) => void;
 };
 
 export function useReaderTypography({
@@ -126,12 +133,27 @@ export function useReaderTypography({
     [viewRef, pluginFonts, pluginThemes],
   );
 
-  // Settings change -> re-inject reader CSS and refresh the text measure.
+  const applyPageColors = useCallback(
+    (settings: ReaderSettings, renderer = viewRef.current?.renderer) => {
+      if (!renderer?.setPageColors) return;
+      renderer.setPageColors(
+        fixedLayoutPageColors(
+          resolveReaderPalette(settings.theme, pluginThemes),
+          settings.fixedLayoutColor,
+        ),
+      );
+    },
+    [viewRef, pluginThemes],
+  );
+
+  // Settings change -> re-inject reader CSS, refresh the text measure, and
+  // redraw a fixed-layout book in the new palette.
   useEffect(() => {
     settingsRef.current = readerSettings;
     void injectStyles(readerSettings);
     applyMaxInlineSize();
-  }, [readerSettings, applyMaxInlineSize, injectStyles]);
+    applyPageColors(readerSettings);
+  }, [readerSettings, applyMaxInlineSize, injectStyles, applyPageColors]);
 
-  return { settingsRef, applyMaxInlineSize, injectStyles };
+  return { settingsRef, applyMaxInlineSize, injectStyles, applyPageColors };
 }

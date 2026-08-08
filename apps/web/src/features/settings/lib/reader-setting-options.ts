@@ -1,5 +1,6 @@
 import type { TFunction } from "i18next";
 import type {
+  FixedLayoutColor,
   ReaderFontSize,
   ReaderFontWeight,
   ReaderLineSpacing,
@@ -79,6 +80,15 @@ export function readingModeOptions(
   return (["scroll", "paginated-single", "paginated-double"] as const).map((value) => ({
     value,
     label: t(`readingModeOption.${value}`),
+  }));
+}
+
+export function fixedLayoutColorOptions(
+  t: TFunction<"reader">,
+): { value: FixedLayoutColor; label: string }[] {
+  return (["theme", "original"] as const).map((value) => ({
+    value,
+    label: t(`fixedLayoutColorOption.${value}`),
   }));
 }
 

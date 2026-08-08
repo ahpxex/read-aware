@@ -104,6 +104,12 @@ export type FoliateRenderer = {
   removeAttribute: (name: string) => void;
   /** Atomically configure a fixed-layout renderer before its first navigation. */
   setLayout?: (flow: string, maxColumnCount: number) => void;
+  /**
+   * Fixed-layout only: the colors its pages are drawn with, or null for the
+   * page as authored. Baked into the render, so this redraws (see the local
+   * patch documented in the vendored VENDOR.md).
+   */
+  setPageColors?: (colors: { background: string; foreground?: string } | null) => void;
   setStyles?: (css: string) => void;
   next: () => Promise<void> | void;
   destroy?: () => void;

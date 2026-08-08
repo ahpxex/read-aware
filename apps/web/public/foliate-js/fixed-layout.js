@@ -45,6 +45,10 @@ export class FixedLayout extends HTMLElement {
     #zoom
     #flow
     #maxColumnCount
+    // READAWARE: `{ background, foreground? }`, or null to render as authored.
+    // Page colors are baked in at render time rather than filtered afterwards,
+    // so changing them has to redraw every live frame — see setPageColors.
+    #pageColors = null
     constructor() {
         super()
 
@@ -206,7 +210,11 @@ export class FixedLayout extends HTMLElement {
             // redraw the whole page and rebuild its overlayer for nothing.
             if (onZoom && frame.renderedScale !== scale) {
                 frame.renderedScale = scale
-                onZoom({ doc: frame.iframe.contentDocument, scale })
+                onZoom({
+                    doc: frame.iframe.contentDocument,
+                    scale,
+                    pageColors: this.#pageColors,
+                })
                     .then(() => {
                         this.dispatchEvent(new Event('rendered'))
                         // The render rebuilt the text layer, so the overlayer's
@@ -352,6 +360,20 @@ export class FixedLayout extends HTMLElement {
         this.#buildSpreads()
         this.#index = -1
         if (currentIndex >= 0) void this.goTo({ index: currentIndex })
+    }
+    // READAWARE: page colors for lazily rendered frames (PDF), as
+    // `{ background, foreground? }` — see pdf.js for what each one means — or
+    // null to render the page as authored. Baked into the render, so a change
+    // invalidates every frame's cached scale to force a redraw. Set it before
+    // the first navigation and the opening render already has it.
+    setPageColors(pageColors) {
+        const next = pageColors?.background ? pageColors : null
+        if (next?.background === this.#pageColors?.background
+            && next?.foreground === this.#pageColors?.foreground) return
+        this.#pageColors = next
+        for (const frame of [this.#left, this.#right, this.#center])
+            if (frame) frame.renderedScale = null
+        this.#render()
     }
     setLayout(flow, maxColumnCount) {
         this.#flow = flow

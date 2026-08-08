@@ -33,6 +33,12 @@
   "textAlign": "Alineación",
   "readingMode": "Modo de lectura",
   "fixedLayoutHint": "Los libros de diseño fijo (PDF, cómics) traen su propia tipografía: aquí no se pueden cambiar la fuente ni los espaciados.",
+  "fixedLayoutColor": "Representación de página",
+  "fixedLayoutColorHint": "Un color de página oscuro redibuja las páginas en dos tonos y descarta su color.",
+  "fixedLayoutColorOption": {
+    "theme": "Seguir el color de página",
+    "original": "Original"
+  },
   "scope": {
     "global": "Todos los libros",
     "book": "Este libro"

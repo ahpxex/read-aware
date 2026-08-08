@@ -33,6 +33,12 @@
   "textAlign": "對齊方式",
   "readingMode": "閱讀模式",
   "fixedLayoutHint": "固定版式書籍（PDF、漫畫）的排版由檔案本身決定，字體和間距無法在此調整。",
+  "fixedLayoutColor": "頁面算繪",
+  "fixedLayoutColorHint": "深色的頁面顏色會把頁面重繪為雙色調，原有色彩會遺失。",
+  "fixedLayoutColorOption": {
+    "theme": "跟隨頁面顏色",
+    "original": "保持原樣"
+  },
   "scope": {
     "global": "所有書籍",
     "book": "這本書"

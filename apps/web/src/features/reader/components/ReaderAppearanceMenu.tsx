@@ -3,6 +3,7 @@ import { useAtomValue } from "jotai";
 import { Caption, ChoiceGroup, Divider, Popover } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import {
+  fixedLayoutColorOptions,
   fontSizeOptions,
   fontWeightOptions,
   lineSpacingOptions,
@@ -97,7 +98,20 @@ export function ReaderAppearanceMenu({
             line saying why. Page Color and Reading Mode stay: both still do
             visible work on a fixed-layout page. */}
         {fixedLayout ? (
-          <Caption className="block text-fg-subtle">{t("fixedLayoutHint")}</Caption>
+          <>
+            <div>
+              <ChoiceGroup
+                label={t("fixedLayoutColor")}
+                value={prefs.fixedLayoutColor}
+                options={fixedLayoutColorOptions(t)}
+                onChange={(fixedLayoutColor) => updatePrefs({ ...prefs, fixedLayoutColor })}
+              />
+              <Caption className="mt-1.5 block text-fg-subtle">
+                {t("fixedLayoutColorHint")}
+              </Caption>
+            </div>
+            <Caption className="block text-fg-subtle">{t("fixedLayoutHint")}</Caption>
+          </>
         ) : (
           <>
             <FontField

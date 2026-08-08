@@ -14,13 +14,19 @@ import { ChatTranscript } from "./ChatTranscript";
 export function ChatPanel({
   bookId,
   bookTitle,
-  active = false,
+  focusRequestId = 0,
   readingCursor = null,
 }: {
   bookId: string;
   bookTitle: string;
-  /** Whether the chat panel is open and visible — drives autofocus of the composer. */
-  active?: boolean;
+  /**
+   * Bumped by the host each time the reader *opens* this panel — that gesture,
+   * and only that one, puts the caret in the composer. It is deliberately not a
+   * "panel is visible" flag: the panel also comes back into view whenever the
+   * dismissed reader chrome is revealed again, and focusing there would raise
+   * the phone's soft keyboard over a page the reader only meant to look at.
+   */
+  focusRequestId?: number;
   /** Live viewport snapshot, sampled again by the conversation hook at send time. */
   readingCursor?: ChatReadingCursor | null;
 }) {
@@ -31,13 +37,13 @@ export function ChatPanel({
     useState<ChatSelectionAttachment | null>(null);
   const composerRef = useRef<ChatComposerHandle | null>(null);
 
-  // Autofocus the composer each time the panel becomes visible (a frame later,
-  // after the slide-in has started so focus lands cleanly).
+  // Focus the composer when the host reports the panel was just opened (a frame
+  // later, after the slide-in has started so focus lands cleanly).
   useEffect(() => {
-    if (!active) return;
+    if (!focusRequestId) return;
     const frame = requestAnimationFrame(() => composerRef.current?.focus());
     return () => cancelAnimationFrame(frame);
-  }, [active]);
+  }, [focusRequestId]);
 
   // Adopt a dispatch from the reader. A passage goes into the composer for the
   // reader to write around; a prompt is sent as its own turn. We track the last

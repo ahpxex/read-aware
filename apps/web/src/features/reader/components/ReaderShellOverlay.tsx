@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAtomValue } from "jotai";
 import { CaretLeft, ChatCircle, ListBullets } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
@@ -100,6 +100,12 @@ export function ReaderShellOverlay({
   const { tocOpen, notesOpen, setTocOpen, setNotesOpen } = useReaderPanelLayout(bookId);
   const { sizes, adjust: adjustPanel, persist: persistPanelSizes } = useReaderPanelSizes();
   const [appearanceOpen, setAppearanceOpen] = useState(false);
+  // Opening the chat is what earns the caret — not merely having it on screen.
+  // `notesOpen` survives the chrome being dismissed and the book being closed,
+  // so focusing off "revealed" would raise the phone keyboard every time the
+  // reader tapped the page to check the header.
+  const [chatFocusRequestId, setChatFocusRequestId] = useState(0);
+  const requestChatFocus = useCallback(() => setChatFocusRequestId((id) => id + 1), []);
 
   // Phone-width: the side docks become full-screen sheets (below the top bar),
   // so only one can be open at a time and resizing is meaningless.
@@ -112,6 +118,7 @@ export function ReaderShellOverlay({
   const toggleNotes = () => {
     const next = !notesOpen;
     setNotesOpen(next);
+    if (next) requestChatFocus();
     if (next && isPhone) setTocOpen(false);
   };
 
@@ -256,9 +263,10 @@ export function ReaderShellOverlay({
     if (askAiRequest.id === handledAskAiIdRef.current) return;
     handledAskAiIdRef.current = askAiRequest.id;
     setNotesOpen(true);
+    requestChatFocus();
     // Full-screen sheets are exclusive on phones — chat replaces the TOC.
     if (isPhone) setTocOpen(false);
-  }, [askAiRequest, bookId, setNotesOpen, setTocOpen, isPhone]);
+  }, [askAiRequest, bookId, requestChatFocus, setNotesOpen, setTocOpen, isPhone]);
 
   // The appearance popover is transient — it closes whenever the overlay is
   // dismissed. The contents and chat panels are NOT reset: they keep their open
@@ -537,7 +545,7 @@ export function ReaderShellOverlay({
           <ChatPanel
             bookId={bookId}
             bookTitle={title}
-            active={visible && notesOpen}
+            focusRequestId={chatFocusRequestId}
             readingCursor={readingCursor}
           />
         </section>

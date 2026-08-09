@@ -67,6 +67,16 @@ function GettingStartedPage() {
         book's own stylesheet asked for — and can be forced left or justified
         if you'd rather it were uniform everywhere.
       </p>
+      <p>
+        Fixed-layout books — PDFs and comics — are pages someone else already
+        typeset, so there is no typography in them to change and those controls
+        are hidden. Page color still applies: a light one tints the paper as the
+        page is drawn, leaving every ink and photograph as printed, and a dark
+        one redraws the page in two tones so the text stays readable. Set{" "}
+        <strong>Page Rendering</strong> to <strong>Original</strong> to keep a
+        book on its own colors — remembered per book, for the art and
+        photography where the color is the point.
+      </p>
 
       <h2>Listen</h2>
       <p>

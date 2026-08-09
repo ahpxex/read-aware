@@ -46,6 +46,126 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.3.1",
+    date: "2026-08-10",
+    text: {
+      en: {
+        summary:
+          "A release about PDFs, and about the reader chrome knowing when to get out of the way. A PDF page is a picture, so the page color never reached it and every fixed-layout book stayed on white paper inside a dark app — that is fixed, along with the controls those books were offering but could not honor.",
+        groups: [
+          {
+            kind: "new",
+            items: [
+              {
+                title: "PDFs follow the page color",
+                body: "A light palette tints the paper as the page is drawn, leaving every ink and photograph exactly as printed. A dark palette redraws the page in two tones, so the text stays readable instead of sitting as black ink on a dark sheet.",
+              },
+              {
+                title: "Page Rendering",
+                body: "Keep a book on its original colors while everything else follows your palette. Remembered per book, for the art and photography where the color is the point.",
+              },
+            ],
+          },
+          {
+            kind: "improved",
+            items: [
+              {
+                body: "Fixed-layout books no longer offer typography they cannot honor. A PDF or comic is a sequence of pages someone else already typeset, so font, size, weight, spacing, alignment and margins are gone for those books. Page color and reading mode stay, because both still do visible work.",
+              },
+            ],
+          },
+          {
+            kind: "fixed",
+            items: [
+              {
+                body: "The reader toolbar no longer flashes up and vanishes a moment after you tap the page. Anything that re-flows the text — the soft keyboard, rotating the device, changing the font size — was being mistaken for a page turn.",
+              },
+              {
+                body: "The chat composer takes the caret when you open the panel, not every time the toolbar reappears. On a phone that had been throwing the keyboard over a page you only meant to glance at.",
+              },
+            ],
+          },
+        ],
+      },
+      zh: {
+        summary:
+          "这一版关于 PDF，也关于阅读界面知道什么时候该让开。PDF 的页面是一张图，页面颜色一直进不去，深色主题下固定版式书籍始终是一张白纸——这次修好了，那些书里给了却根本不生效的设置也一并收掉。",
+        groups: [
+          {
+            kind: "new",
+            items: [
+              {
+                title: "PDF 跟随页面颜色",
+                body: "浅色主题在绘制时直接染纸，墨色和照片与印刷时一模一样；深色主题把整页重绘为双色调，文字保持可读，而不是黑字压在深色纸上。",
+              },
+              {
+                title: "页面渲染",
+                body: "让某本书保持原有色彩，其余书籍照常跟随主题。按书记住，留给色彩本身就是内容的画册和摄影集。",
+              },
+            ],
+          },
+          {
+            kind: "improved",
+            items: [
+              {
+                body: "固定版式书籍不再提供无法生效的排版设置。PDF 和漫画是别人排好的一页页图像，字体、字号、字重、间距、对齐和页边距因此在这些书里隐去。页面颜色和阅读模式保留，因为它们确实还起作用。",
+              },
+            ],
+          },
+          {
+            kind: "fixed",
+            items: [
+              {
+                body: "点击页面后工具栏不再一闪而过。任何让正文重排的动作——软键盘弹起、旋转屏幕、调整字号——此前都会被误判成翻页。",
+              },
+              {
+                body: "对话输入框只在你主动打开面板时获得焦点，而不是每次唤出工具栏都抢一次。在手机上，那意味着键盘会盖住你只是想看一眼的页面。",
+              },
+            ],
+          },
+        ],
+      },
+      ja: {
+        summary:
+          "PDF についての、そして読書画面が引くべきタイミングを覚えるためのリリースです。PDF のページは画像なのでページカラーが届かず、ダークテーマでも固定レイアウトの本は白い紙のままでした。今回それを直し、あわせて効かない設定を出していた箇所も片付けています。",
+        groups: [
+          {
+            kind: "new",
+            items: [
+              {
+                title: "PDF がページカラーに従う",
+                body: "明るいパレットは描画時に紙そのものを染めるため、インクも写真も印刷どおりに残ります。暗いパレットではページを2階調で描き直すので、暗い紙に黒い文字が乗ったままにならず読めます。",
+              },
+              {
+                title: "ページの描画",
+                body: "ほかの本はパレットに従わせたまま、その本だけ元の色を保てます。設定は本ごとに記憶されるので、色そのものが作品である画集や写真集に向いています。",
+              },
+            ],
+          },
+          {
+            kind: "improved",
+            items: [
+              {
+                body: "固定レイアウトの本では、効かない組版設定を出さなくなりました。PDF やコミックは他者が組み終えたページの連なりなので、フォント・サイズ・ウェイト・行間・揃え・余白は非表示になります。ページカラーと読書モードは実際に効くため残ります。",
+              },
+            ],
+          },
+          {
+            kind: "fixed",
+            items: [
+              {
+                body: "ページをタップした直後にツールバーが一瞬で消えなくなりました。ソフトキーボード、画面の回転、文字サイズの変更——本文が再流し込みされる操作が、これまではページ送りと誤認されていました。",
+              },
+              {
+                body: "チャットの入力欄は、パネルを開いたときだけカーソルを受け取ります。ツールバーを出すたびに奪うことはありません。スマートフォンでは、少し眺めたいだけのページにキーボードがかぶさっていました。",
+              },
+            ],
+          },
+        ],
+      },
+    },
+  },
+  {
     version: "0.3.0",
     date: "2026-08-07",
     text: {

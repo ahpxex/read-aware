@@ -270,7 +270,8 @@ export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
       },
       turns: [{ text: "Which of my books mentions a lighthouse? Quote the spot." }],
       expectation: {
-        answer: { mustContain: ["Quiet Harbor"] },
+        // mustNotContain 钉住 glm 曾把内部 id 当书名写给用户的缺陷
+        answer: { mustContain: ["Quiet Harbor"], mustNotContain: ["cross-harbor"] },
         tools: { required: ["search_book_text"], noErrors: true },
       },
       rubric: [

@@ -37,7 +37,18 @@ describe("reading cursor prompt context", () => {
     );
   });
 
-  test("preserves the old authored-turn shape when no cursor exists", () => {
-    expect(formatPromptTurn("hello", undefined, undefined)).toBe("hello");
+  test("keeps the authored turn first and appends only the language anchor without a cursor", () => {
+    const prompt = formatPromptTurn("hello", undefined, undefined);
+    expect(prompt.startsWith("hello")).toBe(true);
+    expect(prompt).toContain("[host note: reply entirely in");
+  });
+
+  test("anchors the reply language to the dominant script of the user turn", () => {
+    expect(formatPromptTurn("这本书讲了什么？")).toContain("reply entirely in Chinese");
+    expect(formatPromptTurn("この本について教えて")).toContain("reply entirely in Japanese");
+    expect(formatPromptTurn("Расскажи об этой книге")).toContain("reply entirely in Russian");
+    expect(formatPromptTurn("What is this book about?")).toContain(
+      "reply entirely in the exact language of the reader's message above",
+    );
   });
 });

@@ -7,13 +7,20 @@ import { buildConversationTools } from "./conversation-tools";
 import { buildInteractionTools } from "./interaction-tools";
 import { buildThreadTools } from "./library-tools";
 import { buildMemoryTools } from "./memory-tools";
-import { buildPresentTools } from "./present-tools";
+import { buildPresentTools, type PresentTurnState } from "./present-tools";
 import { buildReaderTools } from "./reader-tools";
 import { buildSettingsTools } from "./settings-tools";
 import { buildShelfTools } from "./shelf-tools";
 
+export type { PresentTurnState } from "./present-tools";
+export { createPresentTurnState } from "./present-tools";
+
 /** One authoritative scope policy for the tools sent to the model. */
-export function buildAgentTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
+export function buildAgentTools(
+  scope: ThreadScope,
+  deps: RuntimeDeps,
+  turnState?: PresentTurnState,
+): AgentTool[] {
   return [
     ...buildThreadTools(scope, deps),
     ...buildShelfTools(scope, deps),
@@ -21,7 +28,7 @@ export function buildAgentTools(scope: ThreadScope, deps: RuntimeDeps): AgentToo
     ...buildMemoryTools(scope, deps),
     ...buildConversationTools(scope, deps),
     ...buildBookTextTools(scope, deps),
-    ...(scope.kind === "global" ? buildPresentTools(deps) : []),
+    ...(scope.kind === "global" ? buildPresentTools(deps, turnState) : []),
     ...buildReaderTools(scope, deps),
     ...buildInteractionTools(scope, deps),
     ...buildSettingsTools(scope, deps),

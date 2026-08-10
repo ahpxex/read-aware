@@ -16,6 +16,11 @@ import {
 export interface RunEvalSuiteOptions {
   repetitions?: number;
   timeoutMs?: number;
+  /**
+   * 并发的 (repetition, scenario) 单元数（默认 1 = 全串行）。
+   * 单元内部各 variant 仍按轮转顺序串行执行，配对比较不受影响。
+   */
+  concurrency?: number;
   hooks?: EvalRunHooks;
 }
 
@@ -183,8 +188,10 @@ export async function runEvalSuite<
 ): Promise<RunEvalSuiteResult> {
   const repetitions = options.repetitions ?? 1;
   const timeoutMs = options.timeoutMs ?? 120_000;
+  const concurrency = options.concurrency ?? 1;
   assertPositiveInteger(repetitions, "repetitions");
   assertPositiveInteger(timeoutMs, "timeoutMs");
+  assertPositiveInteger(concurrency, "concurrency");
   if (suite.scenarios.length === 0) throw new Error(`eval suite ${suite.id} has no scenarios`);
   if (variants.length === 0) throw new Error(`eval suite ${suite.id} has no variants`);
   assertUnique(suite.scenarios.map((scenario) => scenario.id), "scenarios");
@@ -210,17 +217,29 @@ export async function runEvalSuite<
 
   const records: EvalRunRecord[] = [];
   let executionIndex = 0;
+
+  // 工作单元 = (repetition, scenario)；单元内 variant 按轮转顺序串行，
+  // 保住配对比较（同 scenario/repetition 的 baseline 与 candidate 时间上相邻）。
+  const units: Array<{ repetition: number; scenario: TScenario }> = [];
   for (let repetition = 1; repetition <= repetitions; repetition += 1) {
-    for (const scenario of suite.scenarios) {
+    for (const scenario of suite.scenarios) units.push({ repetition, scenario });
+  }
+
+  let unitCursor = 0;
+  const worker = async (): Promise<void> => {
+    while (true) {
+      const index = unitCursor++;
+      const unit = units[index];
+      if (!unit) return;
       // Rotate execution order to reduce provider-load and time-of-day bias while
       // preserving scenario/repetition pairing for baseline comparisons.
-      for (const variant of rotate(variants, repetition - 1)) {
+      for (const variant of rotate(variants, unit.repetition - 1)) {
         executionIndex += 1;
         const record = await executeRun({
           suite,
-          scenario,
+          scenario: unit.scenario,
           variant,
-          repetition,
+          repetition: unit.repetition,
           executionIndex,
           timeoutMs,
         });
@@ -228,7 +247,10 @@ export async function runEvalSuite<
         await options.hooks?.onRunComplete?.(record);
       }
     }
-  }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, units.length) }, () => worker()),
+  );
 
   const summary = buildEvalSummary(
     suite.id,

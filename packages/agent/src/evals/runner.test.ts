@@ -127,3 +127,35 @@ describe("eval runner", () => {
     ).rejects.toThrow("variants contains duplicate id");
   });
 });
+
+describe("eval runner concurrency", () => {
+  test("parallel units still produce every paired record", async () => {
+    const passing = assessmentFromChecks([
+      { id: "ok", category: "answer", passed: true, message: "ok" },
+    ]);
+    const scenarios = ["s1", "s2", "s3", "s4"].map((id) => ({
+      ...scenario(async () => passing),
+      id,
+    }));
+    const result = await runEvalSuite(
+      { id: "suite", description: "d", scenarios },
+      [variant("baseline", 1), variant("candidate", 2)],
+      { repetitions: 3, concurrency: 3 },
+    );
+
+    expect(result.records).toHaveLength(24);
+    for (const id of ["s1", "s2", "s3", "s4"]) {
+      for (let repetition = 1; repetition <= 3; repetition += 1) {
+        const pair = result.records.filter(
+          (record) => record.scenarioId === id && record.repetition === repetition,
+        );
+        expect(pair.map((record) => record.variantId).sort()).toEqual([
+          "baseline",
+          "candidate",
+        ]);
+      }
+    }
+    const comparison = result.summary.comparisons[0];
+    expect(comparison?.pairedRuns).toBe(12);
+  });
+});

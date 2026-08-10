@@ -50,6 +50,10 @@ bun run eval:reading
 # A more useful stochastic sample
 bun run eval:reading --repetitions 5
 
+# Parallel (scenario, repetition) units — variants inside a unit stay
+# sequential and rotated, so paired comparisons are unaffected
+bun run eval:all --repetitions 3 --concurrency 4
+
 # One scenario, with behavioral failures promoted to a failing exit code
 bun run eval:reading --scenario narrative-no-spoiler --repetitions 3 --gate
 
@@ -120,6 +124,11 @@ second line of defense. Do not commit or share a bundle without reviewing it.
 
 Use `--no-artifacts` for an intentionally ephemeral run, or `--output-dir` to
 place bundles under another local root.
+
+Each artifact-producing run also updates `.eval/trend-<suite>.json` with the
+baseline's per-scenario pass rate and mean score, and prints a delta against
+the previous run — regressed scenarios are prefixed with `!`. The trend file
+holds only the latest run; bundles remain the full history.
 
 After changing deterministic checks, rescore an existing bundle without paying
 for or rerunning the model:

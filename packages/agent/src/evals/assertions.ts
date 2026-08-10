@@ -64,6 +64,17 @@ export function evaluateAgentTrace(
 ): EvalAssessment {
   const checks: EvalCheck[] = [];
   const answer = normalize(observation.answer);
+
+  // 产品红线（system prompt: "Never use emoji"）——所有走默认断言的场景免费带上
+  const hasEmoji = /\p{Extended_Pictographic}/u.test(observation.answer);
+  checks.push(
+    check(
+      "answer.no-emoji",
+      "quality",
+      !hasEmoji,
+      hasEmoji ? "answer contains emoji despite the product-wide ban" : "answer contains no emoji",
+    ),
+  );
   const toolNames = observation.tools.map((tool) => tool.name);
   const interactionKinds = observation.interactions
     .filter((interaction) => interaction.phase === "request")

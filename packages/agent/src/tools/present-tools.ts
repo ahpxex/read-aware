@@ -13,6 +13,19 @@ import type { RuntimeDeps } from "../ports";
 export const PRESENT_TOOL_NAMES = ["present_books"] as const;
 
 /**
+ * 一轮回复内的展示状态：同一本书第二次出现直接丢弃（deepseek 会在
+ * prompt 明令下仍重复出卡——机制兜底，物理上不可能重复）。
+ * 由 thread 在每轮 sendTurn 开始时清空。
+ */
+export interface PresentTurnState {
+  presentedBookIds: Set<string>;
+}
+
+export function createPresentTurnState(): PresentTurnState {
+  return { presentedBookIds: new Set() };
+}
+
+/**
  * 一叠卡片的硬性兜底（UI 折叠成 3 张 + 展开行，多不致噪）。推荐类回答该
  * 克制（提示词管），但"书架上有哪些书"这类列举理应整架出卡。
  */
@@ -45,12 +58,12 @@ function ackResult(ack: unknown, reference: ReferencePayload | undefined) {
   };
 }
 
-export function buildPresentTools(deps: RuntimeDeps): AgentTool[] {
+export function buildPresentTools(deps: RuntimeDeps, turnState?: PresentTurnState): AgentTool[] {
   const presentBooks: AgentTool = {
     name: "present_books",
     label: "Show books",
     description:
-      "Show the reader books from their shelf as visual cards inside your reply. Use it whenever your answer lists, recommends, or discusses shelf books — including \"what's on my shelf\", where you present the whole shelf in one call. Get ids from a fresh list_books call in this conversation (ids remembered from earlier go stale). The cards render at the point of the call, between your paragraphs — keep prose mentions brief; don't repeat the list as text. Never present the same book twice in one reply.",
+      "Show the reader books from their shelf as visual cards inside your reply. Use it whenever your answer lists, recommends, or discusses shelf books — including \"what's on my shelf\", where you present the whole shelf in one call. Get ids from a fresh list_books call in this conversation (ids remembered from earlier go stale). The cards render at the point of the call, between your paragraphs — keep prose mentions brief; don't repeat the list as text. Call it at most once per reply with every book batched in; a book already presented this reply is dropped automatically (skippedRepeat).",
     parameters: Type.Object({
       bookIds: Type.Array(
         Type.String({ description: "Book id, as returned by list_books / get_book_overview" }),
@@ -62,17 +75,26 @@ export function buildPresentTools(deps: RuntimeDeps): AgentTool[] {
       const unique = [...new Set(bookIds.map((id) => id.trim()).filter(Boolean))];
       const shelf = await deps.library.listBooks();
       const byId = new Map(shelf.map((book) => [book.id as string, book]));
-      const found = unique.filter((id) => byId.has(id));
+      const known = unique.filter((id) => byId.has(id));
       // 未知 id 走正常 ack 而不是 throw —— 模型看到 skippedUnknown 可自纠
       const skippedUnknown = unique.filter((id) => !byId.has(id));
+      // 本轮已出过的卡直接丢弃：重复展示在机制上不可能
+      const skippedRepeat = known.filter((id) => turnState?.presentedBookIds.has(id));
+      const found = known.filter((id) => !turnState?.presentedBookIds.has(id));
       const presented = found.slice(0, MAX_PRESENTED_ITEMS);
       const skippedOverflow = found.slice(MAX_PRESENTED_ITEMS);
+      for (const id of presented) turnState?.presentedBookIds.add(id);
       const books = presented.map<BookReference>((id) => {
         const book = byId.get(id)!;
         return { bookId: book.id, title: book.title, author: book.author };
       });
       return ackResult(
-        { presented, skippedUnknown, skippedOverflow },
+        {
+          presented,
+          skippedUnknown,
+          skippedOverflow,
+          ...(skippedRepeat.length > 0 ? { skippedRepeat } : {}),
+        },
         books.length > 0 ? { kind: "books", books } : undefined,
       );
     },

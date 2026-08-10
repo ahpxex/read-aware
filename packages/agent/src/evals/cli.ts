@@ -1,4 +1,5 @@
 import { parseArgs } from "node:util";
+import { resolve } from "node:path";
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import { buildProviderRegistry } from "../models/registry";
 import { createAgentEvalVariant } from "./agent-harness";
@@ -8,6 +9,7 @@ import { resolveEvalModel, resolveJudgeCompletion } from "./model-config";
 import { formatEvalReport, formatRunFailures, formatRunLine } from "./report";
 import { runEvalSuite } from "./runner";
 import { evalSuites, isEvalSuiteId, type EvalSuiteId } from "./suites";
+import { compareTrends, loadTrend, saveTrend, trendFromSummary, trendPath } from "./trend";
 import type { EvalRunRecord, EvalVariant } from "./types";
 import type { AgentEvalObservation } from "./types";
 import type { AgentEvalScenario } from "./agent-harness";
@@ -35,6 +37,7 @@ export interface EvalCliOptions {
   baselineName: string;
   candidates: CandidateSpec[];
   repetitions: number;
+  concurrency: number;
   timeoutMs: number;
   scenarioIds: string[];
   tags: string[];
@@ -64,6 +67,7 @@ Options:
   --candidate-model <id>       Compare another model from the baseline provider
   --candidate <spec>           Compare name=provider:model (repeatable)
   --repetitions <n>            Runs per scenario and variant (default: 1)
+  --concurrency <n>            Parallel (scenario, repetition) units (default: 1)
   --timeout-ms <ms>            Per-run timeout (default: 120000)
   --scenario <id[,id]>         Run selected scenarios (repeatable)
   --tag <tag[,tag]>            Run scenarios matching any selected tag
@@ -133,6 +137,7 @@ export function parseEvalCliArgs(args: string[]): EvalCliOptions {
       candidate: { type: "string", multiple: true },
       "candidate-model": { type: "string", multiple: true },
       repetitions: { type: "string" },
+      concurrency: { type: "string" },
       "timeout-ms": { type: "string" },
       scenario: { type: "string", multiple: true },
       tag: { type: "string", multiple: true },
@@ -173,6 +178,7 @@ export function parseEvalCliArgs(args: string[]): EvalCliOptions {
     baselineName: parsed.values["baseline-name"]?.trim() || "baseline",
     candidates: [...directCandidates, ...modelCandidates],
     repetitions: integer(parsed.values.repetitions, 1, "repetitions"),
+    concurrency: integer(parsed.values.concurrency, 1, "concurrency"),
     timeoutMs: integer(parsed.values["timeout-ms"], 120_000, "timeout-ms"),
     scenarioIds: listValues(parsed.values.scenario),
     tags: listValues(parsed.values.tag),
@@ -285,6 +291,7 @@ export async function runEvalCli(args: string[]): Promise<void> {
 
   const result = await runEvalSuite(suite, variants, {
     repetitions: options.repetitions,
+    concurrency: options.concurrency,
     timeoutMs: options.timeoutMs,
     hooks: {
       onPlan: async (plan) => {
@@ -306,6 +313,24 @@ export async function runEvalCli(args: string[]): Promise<void> {
   console.log(
     `\nSummary: ${result.summary.passed}/${result.summary.runs} passed, ${result.summary.failed} failed, ${result.summary.errors} errors`,
   );
+
+  // 基线趋势：对比上一次同套件的按场景成绩，劣化行以 "!" 标出
+  if (options.artifacts) {
+    const baselineModel = `${specs[0]!.provider}:${specs[0]!.model ?? "default"}`;
+    const currentTrend = trendFromSummary(result.summary, baselineModel);
+    const path = trendPath(resolve(options.outputDir ?? ".eval"), suite.id);
+    const previous = await loadTrend(path);
+    if (previous) {
+      const delta = compareTrends(previous, currentTrend);
+      if (delta.length > 0) {
+        console.log(`Trend vs previous run (${previous.generatedAt}):`);
+        for (const line of delta) console.log(line);
+      } else {
+        console.log("Trend: no per-scenario change vs previous run");
+      }
+    }
+    await saveTrend(path, currentTrend);
+  }
   for (const comparison of result.summary.comparisons) {
     console.log(
       `${comparison.candidateVariantId} vs ${comparison.baselineVariantId}: pass-rate ${(comparison.passRateDelta * 100).toFixed(1)} pp, score ${comparison.meanScoreDelta >= 0 ? "+" : ""}${comparison.meanScoreDelta.toFixed(3)}`,

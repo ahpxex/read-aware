@@ -32,7 +32,7 @@ export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentToo
     name: "get_reading_stats",
     label: "Reading stats",
     description:
-      "Get active reading time and progress, with durations already formatted for the reader (quote them as given — never invent millisecond numbers). With bookId, returns that book; without it, returns the whole-shelf aggregate and every book's stats. bookId defaults to the current book in a book thread, so pass allBooks=true there for the aggregate.",
+      "Get active reading time and progress, with durations already formatted for the reader (quote them as given — never invent millisecond numbers). Call it only when the user asks about reading time, streaks, or progress — content questions never need it. With bookId, returns that book; without it, returns the whole-shelf aggregate and every book's stats. bookId defaults to the current book in a book thread, so pass allBooks=true there for the aggregate.",
     parameters: Type.Object({
       bookId: Type.Optional(Type.String()),
       allBooks: Type.Optional(

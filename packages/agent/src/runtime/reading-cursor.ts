@@ -65,6 +65,26 @@ export function formatReadingCursor(cursor: ReadingCursor): string {
 }
 
 /**
+ * 用户消息的主导文字系统 → 回复语言锚点。system prompt 里的静态语言规则
+ * 压不住某些模型的漂移（deepseek 会对英文提问漏中文）；把锚点动态放到
+ * 每轮 user message 的末尾（注意力最近处）。只对可无歧义判定的文字系统
+ * 给出具体语言名，拉丁字母语言之间不猜。
+ */
+export function replyLanguageAnchor(content: string): string {
+  const counts = {
+    kana: (content.match(/[぀-ヿ]/g) ?? []).length,
+    hangul: (content.match(/[가-힯]/g) ?? []).length,
+    han: (content.match(/[一-鿿]/g) ?? []).length,
+    cyrillic: (content.match(/[Ѐ-ӿ]/g) ?? []).length,
+  };
+  if (counts.kana > 0) return "Japanese";
+  if (counts.hangul > counts.han) return "Korean";
+  if (counts.han > 0) return "Chinese";
+  if (counts.cyrillic > 0) return "Russian";
+  return "the exact language of the reader's message above";
+}
+
+/**
  * Live model input. Cursor context is deliberately absent from
  * turnRecordsToMessages(), memory extraction, and rolling summaries.
  */
@@ -74,6 +94,7 @@ export function formatPromptTurn(
   cursor?: ReadingCursor,
 ): string {
   const authoredTurn = formatUserTurn(content, attachments);
-  if (!cursor) return authoredTurn;
-  return `${formatReadingCursor(cursor)}\n\nReader turn:\n${authoredTurn}`;
+  const anchor = `[host note: reply entirely in ${replyLanguageAnchor(content)}]`;
+  if (!cursor) return `${authoredTurn}\n\n${anchor}`;
+  return `${formatReadingCursor(cursor)}\n\nReader turn:\n${authoredTurn}\n\n${anchor}`;
 }

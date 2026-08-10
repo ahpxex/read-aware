@@ -30,6 +30,9 @@ git push 优先走 SSH remote（`git@github.com:ahpxex/read-aware.git`）——H
 - 读当前版本：`apps/desktop/src-tauri/tauri.conf.json` 的 `version`。
 - 定新版本号：用户指定了就用用户的；没指定则默认 patch +1，若本次包含明显的新
   功能可建议 minor，并把选择告诉用户（不必等确认，用户有异议会说）。
+- **minor 版本代号**：每个 minor 系列有一个 verbal 代号（0.4 = El Alto），由用户
+  在开新 minor 时命名。代号进 GitHub release 标题（`v0.4.0 「El Alto」`）与官网
+  changelog 的版本标题；patch 沿用所在 minor 的代号。tag 与资产命名不含代号。
 - tag 必须严格等于 `tauri.conf.json` 的 `version`（release 资产命名
   `ReadAware-vX.Y.Z-<platform>-<arch>.<ext>` 与 updater manifest 都由它推导）。
   landing 的下载链接是无版本号稳定别名（`releases/latest/download/...`），

@@ -92,9 +92,9 @@ Grade the final answer against each criterion below. Judge only what is in this 
 Criteria:
 ${criteria}
 
-Reply with STRICT JSON only — no markdown fences, no prose:
-{"criteria":[{"criterion":"<criterion text verbatim>","score":<number 0..1>,"rationale":"<one short sentence>"}]}
-Score 1 = fully satisfied, 0 = clearly violated, in between = partially satisfied. Return exactly ${input.rubric.length} entries in the same order.`;
+Reply with STRICT JSON only — no markdown fences, no prose, do NOT repeat the criterion text:
+{"criteria":[{"score":<number 0..1>,"rationale":"<one short sentence>"}]}
+Score 1 = fully satisfied, 0 = clearly violated, in between = partially satisfied. Return exactly ${input.rubric.length} entries, in the same order as the criteria above.`;
 }
 
 function parseVerdicts(raw: string, rubric: string[]): JudgeVerdict[] | undefined {
@@ -116,6 +116,7 @@ function parseVerdicts(raw: string, rubric: string[]): JudgeVerdict[] | undefine
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return undefined;
   const criteria = (parsed as { criteria?: unknown }).criteria;
   if (!Array.isArray(criteria) || criteria.length !== rubric.length) return undefined;
+  // criterion 按序号对齐 rubric；回复里即便带了 criterion 字段也忽略（省 token 防截断）
   const verdicts: JudgeVerdict[] = [];
   for (const [index, entry] of criteria.entries()) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) return undefined;

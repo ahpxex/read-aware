@@ -232,7 +232,8 @@ export const interactionsEvalSuite: EvalSuite<AgentEvalScenario> = {
       turns: [{ text: "Expand on the second motive we listed earlier." }],
       expectation: {
         answer: { mustContain: ["inheritance"] },
-        tools: { required: ["get_recent_turns"], noErrors: true },
+        // 回捞原话的两条合法路径都算数；靠猜的在 mustContain 上现形
+        tools: { requiredAny: ["get_recent_turns", "search_conversation"], noErrors: true },
       },
       rubric: [
         "Expands specifically on jealousy over the inheritance — the actual second motive from the earlier exchange — rather than inventing a different motive",

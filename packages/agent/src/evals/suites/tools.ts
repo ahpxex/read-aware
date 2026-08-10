@@ -314,7 +314,8 @@ export const toolsEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "toc-chapter-position-unknown",
-      description: "With no cursor and no recorded position, asks the reader instead of probing status tools.",
+      description:
+        "With no cursor and no recorded position, answers the explicit chapter request with a caution — never by probing status tools.",
       tags: ["tools", "trajectory", "position", "book"],
       scope: { kind: "book", bookId: ECONOMY_BOOK_ID },
       seed: {
@@ -323,7 +324,8 @@ export const toolsEvalSuite: EvalSuite<AgentEvalScenario> = {
         ],
         chapters: { [ECONOMY_BOOK_ID]: ECONOMY_CHAPTERS },
       },
-      // 位置未知协议：问读者，别钓状态工具。读者答"读完第 3 章了"后应完成回答。
+      // 位置未知协议：明确的章节请求 → 带剧透提示直接答（问一句也可接受）；
+      // 唯一被禁止的解法是钓状态工具——位置真空的钓鱼路径必须保持死亡。
       setup: ({ deps, stores }) => {
         deps.interactions.request = async (request) => {
           stores.interactions.push(request);
@@ -338,10 +340,9 @@ export const toolsEvalSuite: EvalSuite<AgentEvalScenario> = {
           forbidden: ["get_book_overview", "get_reading_stats"],
           noErrors: true,
         },
-        interactions: { requiredKinds: ["question"] },
       },
       rubric: [
-        "Asks one concise question about the reader's position (or spoiler tolerance) before recapping, then answers fully once cleared",
+        "Either opens with a one-line caution that the recap spoils chapter 3 for a reader who has not reached it, or asks the reader's position first — silently recapping with no caution at all fails",
       ],
     }),
     defineAgentEvalScenario({

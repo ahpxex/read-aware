@@ -52,6 +52,11 @@ export function ChangelogPage({ locale }: { locale: Locale }) {
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-border pb-3">
                   <h2 className="text-[1.375rem] font-medium tracking-tight">
                     {entry.version}
+                    {entry.codename && (
+                      <span className="ml-2 font-serif italic text-fg-muted">
+                        {entry.codename}
+                      </span>
+                    )}
                   </h2>
                   {/* The date is machine-readable for feeds and crawlers, and
                       rendered in the reader's own locale conventions. */}

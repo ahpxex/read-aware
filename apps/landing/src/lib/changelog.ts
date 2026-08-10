@@ -39,12 +39,152 @@ export type ChangelogText = {
 export type ChangelogEntry = {
   /** Bare version, no leading "v" — the release tag is derived from it. */
   version: string;
+  /** The minor series' verbal codename (0.4 = El Alto); shown beside the
+   *  version on the first release of a series. Locale-invariant. */
+  codename?: string;
   /** ISO date (YYYY-MM-DD). */
   date: string;
   text: Record<Locale, ChangelogText>;
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "0.4.0",
+    codename: "El Alto",
+    date: "2026-08-10",
+    text: {
+      en: {
+        summary:
+          "The first release of the El Alto series, and a release about distance: the actions you need while reading moved onto the sentence itself, the panels worth opening moved one tap away, and the assistant stopped taking detours before answering.",
+        groups: [
+          {
+            kind: "new",
+            items: [
+              {
+                title: "Tap the sentence",
+                body: "In sentence or paragraph reading, tapping the highlighted sentence opens its actions right there — copy, highlight, underline, note, ask AI, dictionary — instead of a reach for the bottom bar.",
+              },
+              {
+                title: "Doors instead of a toolbar",
+                body: "The floating navigator strip opens the table of contents, your notes, reading appearance, or chat in one tap, and pages itself on phones so it always fits one row.",
+              },
+              {
+                title: "Updates introduce themselves",
+                body: "After the app updates, a quiet link opens this changelog in your language. Dismiss it, or let it fade on its own after two days.",
+              },
+            ],
+          },
+          {
+            kind: "improved",
+            items: [
+              {
+                body: "The reading assistant answers in the language you write in, reports reading time in hours and minutes rather than raw counters, and no longer inventories your stats before answering a question about the book.",
+              },
+              {
+                body: "Spoiler protection now also fences what the assistant may already know about a famous novel — nothing beyond your reading position, unless you explicitly ask to be spoiled.",
+              },
+            ],
+          },
+          {
+            kind: "fixed",
+            items: [
+              {
+                body: "External links — the About panel, the what's-new door — actually open your browser now.",
+              },
+              {
+                body: "A pasted API key is refused without being echoed back into the conversation.",
+              },
+              { body: "Book cards can no longer be presented twice in one reply." },
+            ],
+          },
+        ],
+      },
+      zh: {
+        summary:
+          "El Alto 系列的第一版，一个关于「距离」的版本：阅读时要用的动作长到了句子上，值得打开的面板一步直达，智能助理回答前也不再绕路。",
+        groups: [
+          {
+            kind: "new",
+            items: [
+              {
+                title: "点一下句子",
+                body: "逐句/逐段阅读时，点按当前高亮的句子，复制、高亮、下划线、笔记、问 AI、词典就在句子旁弹出——不用再伸手够底部工具栏。",
+              },
+              {
+                title: "工具栏变成几扇门",
+                body: "浮动导航条可一步打开目录、笔记、阅读外观或对话；手机上自动分页，始终一行放得下。",
+              },
+              {
+                title: "更新会自我介绍",
+                body: "应用更新后会出现一条安静的入口，按你的语言打开这份更新日志。可以随手关掉，也可以放两天让它自己消失。",
+              },
+            ],
+          },
+          {
+            kind: "improved",
+            items: [
+              {
+                body: "智能助理用你提问的语言回答，阅读时长以小时分钟呈现而不是原始计数，回答书的问题前也不再先盘点一遍你的统计数据。",
+              },
+              {
+                body: "防剧透现在同样约束助理自己「读过」的名著记忆——不越过你的阅读位置半步，除非你明确要求剧透。",
+              },
+            ],
+          },
+          {
+            kind: "fixed",
+            items: [
+              { body: "外部链接（关于页、更新日志入口）现在真的会打开浏览器了。" },
+              { body: "粘贴 API 密钥请求保存时会被拒绝，且密钥不会被复述回对话里。" },
+              { body: "同一条回复里不会再出现重复的书籍卡片。" },
+            ],
+          },
+        ],
+      },
+      ja: {
+        summary:
+          "El Alto シリーズ最初のリリース。テーマは「距離」——読書中に使う操作は文そのものの上へ、開きたいパネルはワンタップ先へ、そしてアシスタントは回り道をせずに答えるようになりました。",
+        groups: [
+          {
+            kind: "new",
+            items: [
+              {
+                title: "文をタップ",
+                body: "文・段落ナビゲーターで、ハイライト中の文をタップするとその場でアクションが開きます——コピー、ハイライト、下線、メモ、AI に質問、辞書。下部バーまで手を伸ばす必要はもうありません。",
+              },
+              {
+                title: "ツールバーは扉に",
+                body: "フローティングのナビゲーターバーから目次・メモ・表示設定・チャットをワンタップで開けます。スマートフォンでは自動でページ分割され、常に一行に収まります。",
+              },
+              {
+                title: "アップデートの自己紹介",
+                body: "アプリの更新後、静かなリンクが現れ、アプリの言語に合わせてこの更新履歴を開きます。閉じてもよし、二日ほどで自然に消えるのを待ってもよし。",
+              },
+            ],
+          },
+          {
+            kind: "improved",
+            items: [
+              {
+                body: "リーディングアシスタントは質問と同じ言語で答え、読書時間を生のカウンターではなく時間と分で伝え、本についての質問に答える前に統計を棚卸しすることもなくなりました。",
+              },
+              {
+                body: "ネタバレ保護は、アシスタント自身が「知っている」有名作品の記憶にも柵をかけます——明示的にネタバレを求めない限り、読書位置より先には踏み込みません。",
+              },
+            ],
+          },
+          {
+            kind: "fixed",
+            items: [
+              { body: "外部リンク（About パネル、更新履歴の入口）が実際にブラウザで開くようになりました。" },
+              { body: "API キーの保存依頼は、キーを会話に復唱することなく断られます。" },
+              { body: "同じ返信の中で本のカードが二度表示されることはなくなりました。" },
+            ],
+          },
+        ],
+      },
+    },
+  },
   {
     version: "0.3.1",
     date: "2026-08-10",

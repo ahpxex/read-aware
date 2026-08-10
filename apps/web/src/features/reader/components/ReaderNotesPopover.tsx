@@ -13,6 +13,9 @@ type ReaderNotesPopoverProps = {
   tocEntries: TocEntry[];
   onNavigate: (cfiRange: string) => void;
   onDelete: (id: string) => void;
+  /** 受控开合（导航条的面板意图需要外部打开）；不传则保持自管状态。 */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
 // Mirrors the header icon buttons so the trigger sits flush with them.
@@ -50,9 +53,13 @@ export function ReaderNotesPopover({
   tocEntries,
   onNavigate,
   onDelete,
+  open: controlledOpen,
+  onOpenChange,
 }: ReaderNotesPopoverProps) {
   const { t } = useTranslation("reader");
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const setOpen = onOpenChange ?? setUncontrolledOpen;
   const groups = groupByTocOrder(annotations, tocEntries);
 
   return (

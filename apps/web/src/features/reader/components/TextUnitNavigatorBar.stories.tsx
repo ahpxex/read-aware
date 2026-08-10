@@ -79,7 +79,7 @@ const meta = {
     tapToAdvance: true,
     unitId: "line",
     onUnitChange: () => {},
-    onToggleToolbars: () => {},
+    onOpenPanel: () => {},
     onPrev: () => {},
     onNext: () => {},
     onReturnToCurrent: () => {},

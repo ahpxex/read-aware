@@ -1,11 +1,14 @@
 import {
   CaretLeft,
   CaretRight,
+  ChatCircle,
   Crosshair,
   DotsSixVertical,
-  Layout,
+  ListBullets,
+  Notebook,
   SpeakerHigh,
   SpeakerSlash,
+  TextAa,
   X,
 } from "@phosphor-icons/react";
 import type { ReactNode, RefObject } from "react";
@@ -17,6 +20,7 @@ import { resolvePluginText } from "../../plugins/lib/plugin-i18n";
 import { renderPluginIcon } from "../../plugins/lib/plugin-icons";
 import { resolveReaderModeUnit } from "../../plugins/lib/reader-mode";
 import type { RegisteredReaderMode } from "../../plugins/lib/plugin-types";
+import type { ReaderPanelKind } from "../state/panel-intent";
 import { useDraggableFloat } from "../hooks/useDraggableFloat";
 
 type TextUnitNavigatorBarProps = {
@@ -34,9 +38,10 @@ type TextUnitNavigatorBarProps = {
    *  a trip into Settings. */
   unitId: string;
   onUnitChange: (unitId: string) => void;
-  /** Re-open the reader shell — while tap-to-advance claims the page tap,
-   *  this button is the way back to the chrome. */
-  onToggleToolbars: () => void;
+  /** Direct panel access — while tap-to-advance claims the page tap, these
+   *  buttons open TOC / annotations / appearance / chat in one tap (the shell
+   *  chrome lights up alongside the requested panel). */
+  onOpenPanel: (panel: ReaderPanelKind) => void;
   onPrev: () => void;
   onNext: () => void;
   onReturnToCurrent: () => void;
@@ -104,7 +109,7 @@ export function TextUnitNavigatorBar({
   tapToAdvance,
   unitId,
   onUnitChange,
-  onToggleToolbars,
+  onOpenPanel,
   onPrev,
   onNext,
   onReturnToCurrent,
@@ -217,10 +222,28 @@ export function TextUnitNavigatorBar({
 
           <BarDivider />
           <BarButton
-            label={resolvePluginText(mode.copy.showToolbars, locale)}
-            onClick={onToggleToolbars}
+            label={t("tableOfContents")}
+            onClick={() => onOpenPanel("toc")}
             className={actionButtonClass}
-            icon={<Layout size={14} weight="regular" aria-hidden="true" />}
+            icon={<ListBullets size={14} weight="regular" aria-hidden="true" />}
+          />
+          <BarButton
+            label={t("notes")}
+            onClick={() => onOpenPanel("annotations")}
+            className={actionButtonClass}
+            icon={<Notebook size={14} weight="regular" aria-hidden="true" />}
+          />
+          <BarButton
+            label={t("readingAppearance")}
+            onClick={() => onOpenPanel("appearance")}
+            className={actionButtonClass}
+            icon={<TextAa size={14} weight="regular" aria-hidden="true" />}
+          />
+          <BarButton
+            label={t("chat")}
+            onClick={() => onOpenPanel("chat")}
+            className={actionButtonClass}
+            icon={<ChatCircle size={14} weight="regular" aria-hidden="true" />}
           />
 
           <BarDivider />

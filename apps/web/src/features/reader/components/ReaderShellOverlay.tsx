@@ -27,6 +27,7 @@ import { headerActionsAtom } from "../../plugins/state/plugin-store";
 import { findTocIndexForHref } from "../lib/epub-utils";
 import type { ReadingCursor } from "../lib/reader-types";
 import { buildProgressMarks } from "../lib/reader-progress";
+import { readerPanelIntentAtom } from "../state/panel-intent";
 import { useReaderPanelLayout } from "../hooks/useReaderPanelLayout";
 import { useReaderPanelSizes } from "../hooks/useReaderPanelSizes";
 import type { TocEntry } from "../lib/reader-types";
@@ -108,6 +109,7 @@ export function ReaderShellOverlay({
   const { tocOpen, notesOpen, setTocOpen, setNotesOpen } = useReaderPanelLayout(bookId);
   const { sizes, adjust: adjustPanel, persist: persistPanelSizes } = useReaderPanelSizes();
   const [appearanceOpen, setAppearanceOpen] = useState(false);
+  const [annotationsOpen, setAnnotationsOpen] = useState(false);
   // Opening the chat is what earns the caret — not merely having it on screen.
   // `notesOpen` survives the chrome being dismissed and the book being closed,
   // so focusing off "revealed" would raise the phone keyboard every time the
@@ -265,6 +267,33 @@ export function ReaderShellOverlay({
   // atom. Reveal the chat panel; the chat panel itself adopts the passage. We
   // track the handled id rather than clearing the atom so the panel can react to
   // the same dispatch independently.
+  // 导航条的面板意图（TOC / 批注 / 外观 / 聊天直达按钮）——session 那头
+  // 同时把 chrome 亮出来，这里只负责打开目标面板；按 id 去重。
+  const panelIntent = useAtomValue(readerPanelIntentAtom);
+  const handledPanelIntentIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!panelIntent || panelIntent.bookId !== bookId) return;
+    if (panelIntent.id === handledPanelIntentIdRef.current) return;
+    handledPanelIntentIdRef.current = panelIntent.id;
+    switch (panelIntent.panel) {
+      case "toc":
+        setTocOpen(true);
+        if (isPhone) setNotesOpen(false);
+        break;
+      case "chat":
+        setNotesOpen(true);
+        requestChatFocus();
+        if (isPhone) setTocOpen(false);
+        break;
+      case "appearance":
+        setAppearanceOpen(true);
+        break;
+      case "annotations":
+        setAnnotationsOpen(true);
+        break;
+    }
+  }, [panelIntent, bookId, isPhone, requestChatFocus, setNotesOpen, setTocOpen]);
+
   const askAiRequest = useAtomValue(askAiRequestAtom);
   const handledAskAiIdRef = useRef<string | null>(null);
   useEffect(() => {
@@ -284,6 +313,7 @@ export function ReaderShellOverlay({
   useEffect(() => {
     if (!visible) {
       setAppearanceOpen(false);
+      setAnnotationsOpen(false);
     }
   }, [visible]);
 
@@ -377,6 +407,8 @@ export function ReaderShellOverlay({
               tocEntries={tocEntries}
               onNavigate={(cfiRange) => onAnnotationSelect?.(cfiRange)}
               onDelete={(id) => void removeAnnotation(id)}
+              open={annotationsOpen}
+              onOpenChange={setAnnotationsOpen}
             />
           </div>
 

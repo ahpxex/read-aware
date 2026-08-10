@@ -3,6 +3,7 @@ import { useAtomValue } from "jotai";
 import { useTranslation } from "../../../i18n";
 import { useLocalAtom } from "@read-aware/ui/state";
 import { askAiRequestAtom } from "../../ai/state/chat-intent";
+import { readerPanelIntentAtom } from "../state/panel-intent";
 import { getStoredBookFile, markLibraryBookOpened, updateLibraryBookProgress } from "../../library/lib/library-db";
 import { formatLibraryError } from "../../library/lib/format-library-error";
 import { createProgressPatch } from "../../library/lib/library-progress";
@@ -69,6 +70,17 @@ export function useReaderSession({
     handledAskAiIdRef.current = askAiRequest.id;
     setShellVisible(true);
   }, [askAiRequest, selectedBook?.id, setShellVisible]);
+
+  // 导航条的面板直达按钮同理：面板渲染在 chrome 里，意图到达即点亮 chrome
+  // （目标面板由 ReaderShellOverlay 消费同一意图打开）。
+  const panelIntent = useAtomValue(readerPanelIntentAtom);
+  const handledPanelIntentIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!panelIntent || panelIntent.bookId !== selectedBook?.id) return;
+    if (panelIntent.id === handledPanelIntentIdRef.current) return;
+    handledPanelIntentIdRef.current = panelIntent.id;
+    setShellVisible(true);
+  }, [panelIntent, selectedBook?.id, setShellVisible]);
 
   useEffect(() => {
     return () => {

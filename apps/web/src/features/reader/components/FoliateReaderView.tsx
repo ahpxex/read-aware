@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TFunction } from "i18next";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { Body, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
@@ -44,6 +44,7 @@ import {
 import { parseBookFile } from "../lib/parse-book";
 import { ensureUsableToc } from "../lib/toc-synthesis";
 import { useReadAloud } from "../hooks/useReadAloud";
+import { createReaderPanelIntent, readerPanelIntentAtom } from "../state/panel-intent";
 import { useTextUnitNavigator } from "../hooks/useTextUnitNavigator";
 import {
   preferredTextUnitModeUnitId,
@@ -949,6 +950,10 @@ export function FoliateReaderView({
 
   const textUnitNavigatorRef = useRef(textUnitNavigator);
   useEffect(() => { textUnitNavigatorRef.current = textUnitNavigator; });
+
+  // 导航条的面板直达按钮：意图 atom 由 session（点亮 chrome）与
+  // ReaderShellOverlay（打开目标面板）各自消费。
+  const dispatchPanelIntent = useSetAtom(readerPanelIntentAtom);
 
   // Stepping to another unit is a "resume reading" gesture: it dismisses
   // overlays raised for the one left behind (footnote and annotation menu)
@@ -2151,7 +2156,10 @@ export function FoliateReaderView({
               unitId,
             })
           }
-          onToggleToolbars={() => onContentClickRef.current?.()}
+          onOpenPanel={(panel) => {
+            const id = selectedBook?.id;
+            if (id) dispatchPanelIntent(createReaderPanelIntent(id, panel));
+          }}
           onPrev={textUnitNavigator.prev}
           onNext={textUnitNavigator.next}
           onReturnToCurrent={textUnitNavigator.returnToCurrent}

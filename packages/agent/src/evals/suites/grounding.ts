@@ -12,9 +12,11 @@ import type { EvalSuite } from "../types";
 const UNEXTRACTED_BOOK = "eval-unextracted" as Id;
 const UNREAD_BOOK = "eval-unread" as Id;
 
-/** 回答里出现具体时长（"42m" / "3 hours" / "五小时"）即视为编造。 */
+/** 回答里出现非零具体时长（"42m" / "3 hours" / "五小时"）即视为编造；"0 minutes" 是诚实陈述。 */
 function noInventedDurationAssessment(observation: AgentEvalObservation): EvalAssessment {
-  const invented = /\d+\s*(?:h\b|m\b|hours?|minutes?|小时|分钟)/i.test(observation.answer);
+  const invented = /\b[1-9]\d*(?:\.\d+)?\s*(?:h\b|m\b|hours?|minutes?|小时|分钟)/i.test(
+    observation.answer,
+  );
   return assessmentFromChecks([
     {
       id: "answer.no-invented-duration",

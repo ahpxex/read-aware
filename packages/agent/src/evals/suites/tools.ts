@@ -10,21 +10,57 @@ const TOOL_BOOK_ID = "eval-tool-book" as Id;
 const PLUGIN_TOOL = "plugin_recommend_passage";
 
 const ECONOMY_BOOK_ID = "eval-economy-book" as Id;
+
+/**
+ * 章节必须"厚"到读全书明显不划算（每章 ~4k 字符），检索才是唯一理性路径；
+ * 标题保持不透题（"Kinship"这种标题会让 TOC 直接泄露答案位置）。
+ */
+function padChapter(opening: string, motif: string): string {
+  const filler = Array.from(
+    { length: 18 },
+    (_, i) =>
+      `The road unwound through ${motif} while the drivers checked the loads, argued over water rations, counted the mile markers, and watched the horizon for weather; entry ${i + 1} of the trade diary records prices, distances, and the small repairs that kept the caravan moving.`,
+  ).join(" ");
+  return `${opening} ${filler}`;
+}
+
 const ECONOMY_CHAPTERS = [
-  { title: "Setting Out", text: "The caravan leaves the valley at dawn.", hrefs: ["c1.xhtml"] },
-  { title: "The Pass", text: "Snow closes the mountain pass behind them.", hrefs: ["c2.xhtml"] },
+  {
+    title: "Setting Out",
+    text: padChapter("The caravan leaves the valley at dawn.", "terraced fields"),
+    hrefs: ["c1.xhtml"],
+  },
+  {
+    title: "The Pass",
+    text: padChapter("Snow closes the mountain pass behind them.", "switchback trails"),
+    hrefs: ["c2.xhtml"],
+  },
   {
     title: "The Ledger",
-    text: "In the trading post, Ibra discovers the forged ledger that explains the missing grain shipments.",
+    text: padChapter(
+      "In the trading post, Ibra discovers the forged ledger that explains the missing grain shipments.",
+      "the crowded trading post",
+    ),
     hrefs: ["c3.xhtml"],
   },
-  { title: "Pursuit", text: "Riders follow the caravan across the salt flats.", hrefs: ["c4.xhtml"] },
   {
-    title: "Kinship",
-    text: "Around the fire, Ibra reflects on family: her brother's debt bound them tighter than any contract, and kinship outweighs profit.",
+    title: "Pursuit",
+    text: padChapter("Riders follow the caravan across the salt flats.", "the salt flats"),
+    hrefs: ["c4.xhtml"],
+  },
+  {
+    title: "Night Halt",
+    text: padChapter(
+      "Around the fire, Ibra reflects on family: her brother's debt bound them tighter than any contract, and kinship outweighs profit.",
+      "the night encampment",
+    ),
     hrefs: ["c5.xhtml"],
   },
-  { title: "Arrival", text: "The caravan reaches the coast at last.", hrefs: ["c6.xhtml"] },
+  {
+    title: "Arrival",
+    text: padChapter("The caravan reaches the coast at last.", "the harbor causeway"),
+    hrefs: ["c6.xhtml"],
+  },
 ];
 
 function toolCalls(observation: AgentEvalObservation, name: string) {
@@ -268,6 +304,14 @@ export const toolsEvalSuite: EvalSuite<AgentEvalScenario> = {
         ],
       },
       turns: [{ text: "Mark 'Ghost Volume' as finished." }],
+      // fixture 默认替用户选第一个选项——在这里等于替用户同意"改标另一本"。
+      // 明确成拒绝：追问可以，但拒绝后不许有任何写入。
+      setup: ({ deps, stores }) => {
+        deps.interactions.request = async (request) => {
+          stores.interactions.push(request);
+          return { text: "No — never mind. Don't change anything." };
+        };
+      },
       expectation: {
         tools: { required: ["list_books"], forbidden: ["update_book"] },
       },

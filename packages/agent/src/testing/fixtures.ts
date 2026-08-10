@@ -305,10 +305,12 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
   deps: RuntimeDeps;
   stores: InMemoryStores;
 } {
-  const books = [...(seed.books ?? [])];
-  const annotations = [...(seed.annotations ?? [])];
-  const collections = [...(seed.collections ?? [])];
-  const bookStats = [...(seed.bookStats ?? [])];
+  // 深拷贝：种子对象会被端口实现就地修改（starred、note.body、reinforce…），
+  // 浅拷贝会让同一 seed 的多次 createInMemoryDeps（eval repetitions）互相污染
+  const books = structuredClone(seed.books ?? []);
+  const annotations = structuredClone(seed.annotations ?? []);
+  const collections = structuredClone(seed.collections ?? []);
+  const bookStats = structuredClone(seed.bookStats ?? []);
   const stores: InMemoryStores = {
     books,
     annotations,
@@ -317,10 +319,10 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
     turns: new Map(),
     insights: new Map(),
     asks: [],
-    memories: [...(seed.memories ?? [])],
+    memories: structuredClone(seed.memories ?? []),
     savedMemoryInputs: [],
     profile: { summary: seed.profile },
-    chapters: new Map(Object.entries(seed.chapters ?? {})),
+    chapters: new Map(Object.entries(structuredClone(seed.chapters ?? {}))),
     interactions: [],
     readerRequests: [],
     settings: structuredClone(seed.settings ?? defaultSettings()),

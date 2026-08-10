@@ -2101,8 +2101,10 @@ export function FoliateReaderView({
         pluginInput={pluginInputForSource("selection")}
       />
       {/* 逐句模式的句级菜单：点中当前句的 wash 弹出，动作与选区菜单同一套
-          （含用户在设置里的排布），只是目标换成静息句。 */}
-      {textUnitModeEngineActive && textUnitNavigator.current && (
+          （含用户在设置里的排布），只是目标换成静息句。与选区菜单互斥：
+          活动选区在场时句级菜单让位（关闭 effect 之外再加渲染护栏，任何
+          时序下两者都不可能同帧出现）。 */}
+      {textUnitModeEngineActive && !selection && textUnitNavigator.current && (
         <ReaderSelectionMenu
           selection={
             unitMenuAnchor

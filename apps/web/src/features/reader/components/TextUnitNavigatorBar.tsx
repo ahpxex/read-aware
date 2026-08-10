@@ -1,4 +1,6 @@
 import {
+  CaretDoubleLeft,
+  CaretDoubleRight,
   CaretLeft,
   CaretRight,
   ChatCircle,
@@ -11,6 +13,7 @@ import {
   TextAa,
   X,
 } from "@phosphor-icons/react";
+import { useEffect, useState } from "react";
 import type { ReactNode, RefObject } from "react";
 import { IconButton, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
@@ -125,6 +128,13 @@ export function TextUnitNavigatorBar({
   // it — the bar carries the back-step alone. Disarm the tap and it returns.
   const showNextStep = !coarsePointer || !tapToAdvance;
   const float = useDraggableFloat({ containerRef, controlId: "navigator-bar" });
+  // 手机宽度装不下整条：触屏分两页（» 翻到面板/退出页，« 翻回导航页），
+  // 桌面有空间，永远整条铺开。双箭头图标与单步的 ‹ › 区分。
+  const paged = coarsePointer;
+  const [page, setPage] = useState<0 | 1>(0);
+  useEffect(() => {
+    if (!visible) setPage(0);
+  }, [visible]);
 
   if (!visible) return null;
 
@@ -168,91 +178,119 @@ export function TextUnitNavigatorBar({
             <DotsSixVertical size={16} weight="bold" aria-hidden="true" />
           </span>
 
-          <BarButton
-            label={prevStepLabel}
-            onClick={onPrev}
-            className={actionButtonClass}
-            icon={<CaretLeft size={16} weight="regular" aria-hidden="true" />}
-          />
-          {showNextStep && (
-            <BarButton
-              label={nextStepLabel}
-              onClick={onNext}
-              className={actionButtonClass}
-              icon={<CaretRight size={16} weight="regular" aria-hidden="true" />}
-            />
-          )}
-          {readAloudAvailable && (
-            <BarButton
-              label={readAloudPlaying ? t("readAloud.stop") : t("readAloud.start")}
-              pressed={readAloudPlaying}
-              onClick={onToggleReadAloud}
-              className={actionButtonClass}
-              icon={
-                readAloudPlaying ? (
-                  <SpeakerSlash size={15} weight="regular" aria-hidden="true" />
-                ) : (
-                  <SpeakerHigh size={15} weight="regular" aria-hidden="true" />
-                )
-              }
-            />
-          )}
-          <BarDivider />
-
-          <BarButton
-            label={resolvePluginText(mode.copy.returnToCurrent, locale)}
-            disabled={!canReturn}
-            onClick={onReturnToCurrent}
-            className={actionButtonClass}
-            icon={<Crosshair size={14} weight="regular" aria-hidden="true" />}
-          />
-          {quickUnits.map((unit) => {
-            const pressed = unit.id === activeUnit.id;
-            return (
+          {(!paged || page === 0) && (
+            <>
               <BarButton
-                key={unit.id}
-                label={resolvePluginText(unit.toggleLabel ?? unit.label, locale)}
-                pressed={pressed}
-                onClick={() => onUnitChange(pressed ? mode.defaultUnitId : unit.id)}
+                label={prevStepLabel}
+                onClick={onPrev}
                 className={actionButtonClass}
-                icon={renderPluginIcon(unit.icon, 14)}
+                icon={<CaretLeft size={16} weight="regular" aria-hidden="true" />}
               />
-            );
-          })}
+              {showNextStep && (
+                <BarButton
+                  label={nextStepLabel}
+                  onClick={onNext}
+                  className={actionButtonClass}
+                  icon={<CaretRight size={16} weight="regular" aria-hidden="true" />}
+                />
+              )}
+              {readAloudAvailable && (
+                <BarButton
+                  label={readAloudPlaying ? t("readAloud.stop") : t("readAloud.start")}
+                  pressed={readAloudPlaying}
+                  onClick={onToggleReadAloud}
+                  className={actionButtonClass}
+                  icon={
+                    readAloudPlaying ? (
+                      <SpeakerSlash size={15} weight="regular" aria-hidden="true" />
+                    ) : (
+                      <SpeakerHigh size={15} weight="regular" aria-hidden="true" />
+                    )
+                  }
+                />
+              )}
+              <BarDivider />
 
-          <BarDivider />
-          <BarButton
-            label={t("tableOfContents")}
-            onClick={() => onOpenPanel("toc")}
-            className={actionButtonClass}
-            icon={<ListBullets size={14} weight="regular" aria-hidden="true" />}
-          />
-          <BarButton
-            label={t("notes")}
-            onClick={() => onOpenPanel("annotations")}
-            className={actionButtonClass}
-            icon={<Notebook size={14} weight="regular" aria-hidden="true" />}
-          />
-          <BarButton
-            label={t("readingAppearance")}
-            onClick={() => onOpenPanel("appearance")}
-            className={actionButtonClass}
-            icon={<TextAa size={14} weight="regular" aria-hidden="true" />}
-          />
-          <BarButton
-            label={t("chat")}
-            onClick={() => onOpenPanel("chat")}
-            className={actionButtonClass}
-            icon={<ChatCircle size={14} weight="regular" aria-hidden="true" />}
-          />
+              <BarButton
+                label={resolvePluginText(mode.copy.returnToCurrent, locale)}
+                disabled={!canReturn}
+                onClick={onReturnToCurrent}
+                className={actionButtonClass}
+                icon={<Crosshair size={14} weight="regular" aria-hidden="true" />}
+              />
+              {quickUnits.map((unit) => {
+                const pressed = unit.id === activeUnit.id;
+                return (
+                  <BarButton
+                    key={unit.id}
+                    label={resolvePluginText(unit.toggleLabel ?? unit.label, locale)}
+                    pressed={pressed}
+                    onClick={() => onUnitChange(pressed ? mode.defaultUnitId : unit.id)}
+                    className={actionButtonClass}
+                    icon={renderPluginIcon(unit.icon, 14)}
+                  />
+                );
+              })}
+            </>
+          )}
 
-          <BarDivider />
-          <BarButton
-            label={resolvePluginText(mode.copy.exit, locale)}
-            onClick={onExit}
-            className={actionButtonClass}
-            icon={<X size={14} weight="regular" aria-hidden="true" />}
-          />
+          {paged && page === 0 && (
+            <>
+              <BarDivider />
+              <BarButton
+                label={resolvePluginText(mode.copy.moreActions, locale)}
+                onClick={() => setPage(1)}
+                className={actionButtonClass}
+                icon={<CaretDoubleRight size={14} weight="regular" aria-hidden="true" />}
+              />
+            </>
+          )}
+          {paged && page === 1 && (
+            <BarButton
+              label={resolvePluginText(mode.copy.collapseActions, locale)}
+              onClick={() => setPage(0)}
+              className={actionButtonClass}
+              icon={<CaretDoubleLeft size={14} weight="regular" aria-hidden="true" />}
+            />
+          )}
+
+          {(!paged || page === 1) && (
+            <>
+              <BarDivider />
+              <BarButton
+                label={t("tableOfContents")}
+                onClick={() => onOpenPanel("toc")}
+                className={actionButtonClass}
+                icon={<ListBullets size={14} weight="regular" aria-hidden="true" />}
+              />
+              <BarButton
+                label={t("notes")}
+                onClick={() => onOpenPanel("annotations")}
+                className={actionButtonClass}
+                icon={<Notebook size={14} weight="regular" aria-hidden="true" />}
+              />
+              <BarButton
+                label={t("readingAppearance")}
+                onClick={() => onOpenPanel("appearance")}
+                className={actionButtonClass}
+                icon={<TextAa size={14} weight="regular" aria-hidden="true" />}
+              />
+              <BarButton
+                label={t("chat")}
+                onClick={() => onOpenPanel("chat")}
+                className={actionButtonClass}
+                icon={<ChatCircle size={14} weight="regular" aria-hidden="true" />}
+              />
+
+              <BarDivider />
+              <BarButton
+                label={resolvePluginText(mode.copy.exit, locale)}
+                onClick={onExit}
+                className={actionButtonClass}
+                icon={<X size={14} weight="regular" aria-hidden="true" />}
+              />
+            </>
+          )}
         </div>
       </div>
     </div>

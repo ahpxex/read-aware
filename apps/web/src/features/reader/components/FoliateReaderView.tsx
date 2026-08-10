@@ -1908,10 +1908,14 @@ export function FoliateReaderView({
           ) {
             onContentScrollRef.current?.();
           }
+          // 句级菜单只在页码真的变了时随位置收掉。Android 上点击后常跟着一次
+          // 并非翻页的 relocate（视口/布局微调），无条件关会让菜单开了即灭。
+          const previousLocation = prevReadingLocationRef.current;
+          if (previousLocation && previousLocation.current !== current) {
+            setUnitMenuAnchor(null);
+          }
           prevReadingLocationRef.current = { current, cfi };
           textUnitNavigatorRef.current.handleRelocate(detail);
-          // 页移让句级菜单的锚点失效——随位置一起收掉
-          setUnitMenuAnchor(null);
         };
 
         const onLoad = (event: Event) => {

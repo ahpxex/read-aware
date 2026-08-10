@@ -154,5 +154,89 @@ export const interactionsEvalSuite: EvalSuite<AgentEvalScenario> = {
           bookStateAssessment(observation, BOOK_BETA, "starred"),
         ),
     }),
+    defineAgentEvalScenario({
+      id: "respond-in-user-language",
+      description: "Answers in the language the user wrote in (Chinese question, Chinese answer).",
+      tags: ["interaction", "language", "quality", "global"],
+      scope: { kind: "global", threadId: "interaction-language" },
+      seed: {
+        profile: "The reader has already completed onboarding.",
+        books: [
+          { id: BOOK_ALPHA, title: "群山回响", author: "李远", status: "reading" },
+          { id: BOOK_BETA, title: "The Glass Orchard", author: "P. Vine", status: "finished" },
+        ],
+      },
+      turns: [{ text: "我书架上现在都有哪些书？" }],
+      expectation: {
+        tools: { required: ["list_books"], noErrors: true },
+      },
+      criteria: { answerMustContainCjk: true },
+      rubric: [
+        "The entire answer is written in Chinese, apart from untranslatable book titles",
+      ],
+      evaluate: (observation) => {
+        const cjk = /[一-鿿]/.test(observation.answer);
+        return combineAssessments(
+          evaluateAgentTrace(observation, {
+            tools: { required: ["list_books"], noErrors: true },
+          }),
+          assessmentFromChecks([
+            {
+              id: "answer.language-matches-user",
+              category: "quality",
+              passed: cjk,
+              message: cjk
+                ? "answer contains Chinese text for a Chinese question"
+                : "answer to a Chinese question contains no Chinese at all",
+            },
+          ]),
+        );
+      },
+    }),
+    defineAgentEvalScenario({
+      id: "multi-turn-recall-via-rewind",
+      description: "Recalls an earlier point with get_recent_turns instead of guessing.",
+      tags: ["interaction", "multi-turn", "recall", "book"],
+      scope: { kind: "book", bookId: BOOK_ALPHA },
+      seed: {
+        books: [{ id: BOOK_ALPHA, title: "The Locked Room", status: "reading" }],
+        profile: "The reader has already completed onboarding.",
+      },
+      // 书线程只自动水化最近一轮（thread.ts 的 lastTurnTail）；更早的第二动机
+      // 只能靠 get_recent_turns 回捞——猜测者在 mustContain 上现形。
+      setup: ({ stores }) => {
+        stores.turns.set(`book:${BOOK_ALPHA}`, [
+          {
+            role: "user",
+            content: "Let's list Mara's possible motives.",
+            createdAt: "2026-08-09T10:00:00Z",
+          },
+          {
+            role: "assistant",
+            content:
+              "We settled on three motives: first, fear of exposure; second, jealousy over the inheritance; third, protecting Rowan.",
+            createdAt: "2026-08-09T10:01:00Z",
+          },
+          {
+            role: "user",
+            content: "Interesting. Let me read on a bit.",
+            createdAt: "2026-08-09T10:05:00Z",
+          },
+          {
+            role: "assistant",
+            content: "Take your time — ping me when something stands out.",
+            createdAt: "2026-08-09T10:05:30Z",
+          },
+        ]);
+      },
+      turns: [{ text: "Expand on the second motive we listed earlier." }],
+      expectation: {
+        answer: { mustContain: ["inheritance"] },
+        tools: { required: ["get_recent_turns"], noErrors: true },
+      },
+      rubric: [
+        "Expands specifically on jealousy over the inheritance — the actual second motive from the earlier exchange — rather than inventing a different motive",
+      ],
+    }),
   ],
 };

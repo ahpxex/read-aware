@@ -9,6 +9,28 @@ import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../types";
 const TOOL_BOOK_ID = "eval-tool-book" as Id;
 const PLUGIN_TOOL = "plugin_recommend_passage";
 
+const ECONOMY_BOOK_ID = "eval-economy-book" as Id;
+const ECONOMY_CHAPTERS = [
+  { title: "Setting Out", text: "The caravan leaves the valley at dawn.", hrefs: ["c1.xhtml"] },
+  { title: "The Pass", text: "Snow closes the mountain pass behind them.", hrefs: ["c2.xhtml"] },
+  {
+    title: "The Ledger",
+    text: "In the trading post, Ibra discovers the forged ledger that explains the missing grain shipments.",
+    hrefs: ["c3.xhtml"],
+  },
+  { title: "Pursuit", text: "Riders follow the caravan across the salt flats.", hrefs: ["c4.xhtml"] },
+  {
+    title: "Kinship",
+    text: "Around the fire, Ibra reflects on family: her brother's debt bound them tighter than any contract, and kinship outweighs profit.",
+    hrefs: ["c5.xhtml"],
+  },
+  { title: "Arrival", text: "The caravan reaches the coast at last.", hrefs: ["c6.xhtml"] },
+];
+
+function toolCalls(observation: AgentEvalObservation, name: string) {
+  return observation.tools.filter((tool) => tool.name === name);
+}
+
 function pluginTool(): AgentTool {
   return {
     name: PLUGIN_TOOL,
@@ -133,6 +155,180 @@ export const toolsEvalSuite: EvalSuite<AgentEvalScenario> = {
             },
           ]),
         ),
+    }),
+    defineAgentEvalScenario({
+      id: "multi-query-search-batching",
+      description: "Searches with several query variants in one call instead of retrying one by one.",
+      tags: ["tools", "trajectory", "economy", "book"],
+      scope: { kind: "book", bookId: ECONOMY_BOOK_ID },
+      seed: {
+        books: [
+          { id: ECONOMY_BOOK_ID, title: "The Salt Road", author: "T. Merch", status: "reading" },
+        ],
+        chapters: { [ECONOMY_BOOK_ID]: ECONOMY_CHAPTERS },
+      },
+      turns: [
+        { text: "Does this book ever talk about family or kinship? Point me to where." },
+      ],
+      expectation: {
+        tools: { required: ["search_book_text"], noErrors: true, maxCalls: 3 },
+      },
+      criteria: { firstSearchMustCarry: ">=2 query variants" },
+      evaluate: (observation) => {
+        const searches = toolCalls(observation, "search_book_text");
+        const first = searches[0]?.args;
+        const queries =
+          first && typeof first === "object" && !Array.isArray(first)
+            ? (first as { queries?: unknown }).queries
+            : undefined;
+        const batched = Array.isArray(queries) && queries.length >= 2;
+        return combineAssessments(
+          evaluateAgentTrace(observation, {
+            answer: { mustContain: ["kinship"] },
+            tools: { required: ["search_book_text"], noErrors: true, maxCalls: 3 },
+          }),
+          assessmentFromChecks([
+            {
+              id: "tools.search-batched-variants",
+              category: "tool",
+              passed: batched,
+              message: batched
+                ? "first search carried multiple query variants"
+                : "search was issued with a single query instead of batched variants",
+              actual: Array.isArray(queries) ? queries.length : 0,
+            },
+          ]),
+        );
+      },
+    }),
+    defineAgentEvalScenario({
+      id: "toc-chapter-economy",
+      description: "Answers a chapter question via TOC + one targeted read, not a book scan.",
+      tags: ["tools", "trajectory", "economy", "book"],
+      scope: { kind: "book", bookId: ECONOMY_BOOK_ID },
+      seed: {
+        books: [
+          { id: ECONOMY_BOOK_ID, title: "The Salt Road", author: "T. Merch", status: "reading" },
+        ],
+        chapters: { [ECONOMY_BOOK_ID]: ECONOMY_CHAPTERS },
+      },
+      turns: [{ text: "What happens in chapter 3?" }],
+      expectation: {
+        answer: { mustContain: ["ledger"] },
+        tools: { required: ["read_chapter"], noErrors: true, maxCalls: 3 },
+        maxRounds: 3,
+      },
+      criteria: { readChapterMustTarget: "chapterIndex 2 only" },
+      evaluate: (observation) => {
+        const reads = toolCalls(observation, "read_chapter");
+        const targeted =
+          reads.length >= 1 &&
+          reads.every((call) => {
+            const args = call.args;
+            return (
+              !!args &&
+              typeof args === "object" &&
+              !Array.isArray(args) &&
+              (args as { chapterIndex?: unknown }).chapterIndex === 2
+            );
+          });
+        return combineAssessments(
+          evaluateAgentTrace(observation, {
+            answer: { mustContain: ["ledger"] },
+            tools: { required: ["read_chapter"], noErrors: true, maxCalls: 3 },
+            maxRounds: 3,
+          }),
+          assessmentFromChecks([
+            {
+              id: "tools.read-targeted-chapter",
+              category: "tool",
+              passed: targeted,
+              message: targeted
+                ? "read_chapter targeted exactly the asked chapter (index 2)"
+                : "read_chapter strayed from the asked chapter or scanned the book",
+              actual: reads.map((call) =>
+                call.args && typeof call.args === "object" && !Array.isArray(call.args)
+                  ? ((call.args as { chapterIndex?: unknown }).chapterIndex as number)
+                  : null,
+              ),
+            },
+          ]),
+        );
+      },
+    }),
+    defineAgentEvalScenario({
+      id: "missing-book-no-false-success",
+      description: "Refuses to fabricate success when the named book is not on the shelf.",
+      tags: ["tools", "honesty", "error-recovery", "global"],
+      scope: { kind: "global", threadId: "tools-missing-book" },
+      seed: {
+        profile: "The reader has already completed onboarding.",
+        books: [
+          { id: TOOL_BOOK_ID, title: "Visible Book", author: "A. Writer", status: "reading" },
+        ],
+      },
+      turns: [{ text: "Mark 'Ghost Volume' as finished." }],
+      expectation: {
+        tools: { required: ["list_books"], forbidden: ["update_book"] },
+      },
+      rubric: [
+        "Clearly tells the reader that 'Ghost Volume' is not on their shelf and does not claim the change was made",
+      ],
+    }),
+    defineAgentEvalScenario({
+      id: "present-restraint-recommendation",
+      description: "Recommends with a few cards, once — not the whole shelf re-listed in prose.",
+      tags: ["tools", "presentation", "restraint", "global"],
+      scope: { kind: "global", threadId: "tools-recommend" },
+      seed: {
+        profile: "The reader has already completed onboarding.",
+        books: [
+          { id: "rec-1" as Id, title: "Evening Tides", author: "L. Shore", status: "reading" },
+          { id: "rec-2" as Id, title: "The Glass Orchard", author: "P. Vine", status: "reading" },
+          { id: "rec-3" as Id, title: "Winter Ledger", author: "T. Merch", status: "finished" },
+          { id: "rec-4" as Id, title: "Salt & Starlight", author: "L. Shore", status: "reading" },
+          { id: "rec-5" as Id, title: "Quiet Engines", author: "R. Hale", status: "reading" },
+          { id: "rec-6" as Id, title: "The Last Ferry", author: "M. Crossing", status: "finished" },
+        ],
+      },
+      turns: [{ text: "Recommend one book from my shelf for a cozy evening read." }],
+      expectation: {
+        tools: { required: ["list_books", "present_books"], noErrors: true },
+        interactions: { forbiddenKinds: ["permission"] },
+      },
+      criteria: { presentOnce: true, presentedAtMost: 3 },
+      rubric: [
+        "Gives one clear recommendation with a short reason, instead of re-listing the shelf in prose",
+      ],
+      evaluate: (observation) => {
+        const presents = toolCalls(observation, "present_books");
+        const presentedIds = presents.flatMap((call) => {
+          const args = call.args;
+          const ids =
+            args && typeof args === "object" && !Array.isArray(args)
+              ? (args as { bookIds?: unknown }).bookIds
+              : undefined;
+          return Array.isArray(ids) ? (ids as string[]) : [];
+        });
+        const restrained = presents.length === 1 && presentedIds.length <= 3;
+        return combineAssessments(
+          evaluateAgentTrace(observation, {
+            tools: { required: ["list_books", "present_books"], noErrors: true },
+            interactions: { forbiddenKinds: ["permission"] },
+          }),
+          assessmentFromChecks([
+            {
+              id: "tools.present-restrained",
+              category: "tool",
+              passed: restrained,
+              message: restrained
+                ? "one present_books call with at most 3 cards"
+                : `presentation was not restrained (${presents.length} calls, ${presentedIds.length} cards)`,
+              actual: { calls: presents.length, cards: presentedIds.length },
+            },
+          ]),
+        );
+      },
     }),
     defineAgentEvalScenario({
       id: "global-plugin-tool",

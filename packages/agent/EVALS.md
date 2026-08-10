@@ -13,14 +13,23 @@ surface case there; the completeness check fails otherwise.
 
 ## Suites
 
+- `annotations`: verbatim highlights, faithful notes, lookup-then-edit, and
+  summaries grounded in the recorded annotations.
+- `grounding`: honesty when data is missing — no invented chapters, durations,
+  or shelf books.
 - `reading`: reading-cursor grounding, selective spoiler protection, forward
-  retrieval for expository books, and same-chapter prompt-prefix stability.
+  retrieval for expository books, same-chapter prompt-prefix stability, and
+  cross-book prose search.
 - `interactions`: clarification questions, destructive permissions, declined
-  mutations, and avoiding unnecessary permission prompts.
+  mutations, unnecessary-permission avoidance, answering in the user's
+  language, and multi-turn recall via `get_recent_turns`.
 - `settings`: generic discovery and mutation, book scope, ambiguous scope, and
   the credential boundary.
-- `memory`: explicit user/book memory writes and grounded retrieval.
-- `tools`: shelf presentation and plugin tool scope exposure.
+- `memory`: explicit user/book memory writes, grounded retrieval, and
+  small-talk restraint.
+- `tools`: shelf presentation, humane reading stats, trajectory economy
+  (batched search variants, targeted chapter reads), no-false-success on
+  missing books, presentation restraint, and plugin tool scope exposure.
 
 List scenarios without loading credentials or calling a model:
 

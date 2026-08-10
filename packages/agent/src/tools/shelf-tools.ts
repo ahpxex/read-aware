@@ -51,8 +51,17 @@ export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentToo
         : (bookId ?? (scope.kind === "book" ? String(scope.bookId) : undefined));
       if (target) {
         const stats = await deps.library.getBookStats(target as Id);
-        if (!stats) throw new Error(`unknown book: ${target}`);
-        return textResult(presentBookStats(stats));
+        if (stats) return textResult(presentBookStats(stats));
+        // 书在架上但从未读过 ≠ 未知书：给模型可转述的事实，而不是误导性报错
+        const book = await deps.library.getBook(target as Id);
+        if (!book) throw new Error(`unknown book: ${target}`);
+        return textResult({
+          bookId: target,
+          status: book.status,
+          totalReadingTime: "0m",
+          activeDays: 0,
+          note: "No reading time has been recorded for this book yet.",
+        });
       }
       const [overview, books] = await Promise.all([
         deps.library.getStatsOverview(),

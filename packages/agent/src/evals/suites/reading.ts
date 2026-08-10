@@ -233,5 +233,49 @@ export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
           stableCursorContextAssessment(observation),
         ),
     }),
+    defineAgentEvalScenario({
+      id: "cross-book-search",
+      description: "Answers a which-of-my-books question by searching prose across the shelf.",
+      tags: ["reading", "retrieval", "cross-book", "global"],
+      scope: { kind: "global", threadId: "reading-cross-book" },
+      seed: {
+        books: [
+          {
+            id: "cross-harbor" as Id,
+            title: "The Quiet Harbor",
+            author: "L. Shore",
+            status: "reading",
+          },
+          {
+            id: "cross-mountain" as Id,
+            title: "Mountain Paths",
+            author: "R. Hale",
+            status: "finished",
+          },
+        ],
+        chapters: {
+          "cross-harbor": [
+            {
+              title: "The Keeper",
+              text: "Every evening the old lighthouse keeper climbed the spiral stairs to trim the lamp before the fog rolled in.",
+            },
+          ],
+          "cross-mountain": [
+            {
+              title: "Ridge Line",
+              text: "The climbers roped together before crossing the glacier under a cloudless sky.",
+            },
+          ],
+        },
+      },
+      turns: [{ text: "Which of my books mentions a lighthouse? Quote the spot." }],
+      expectation: {
+        answer: { mustContain: ["Quiet Harbor"] },
+        tools: { required: ["search_book_text"], noErrors: true },
+      },
+      rubric: [
+        "Names The Quiet Harbor as the match and quotes or paraphrases the actual lighthouse passage, without attributing it to the other book",
+      ],
+    }),
   ],
 };

@@ -117,5 +117,50 @@ export const memoryEvalSuite: EvalSuite<AgentEvalScenario> = {
         tools: { required: ["search_memory"], noErrors: true },
       },
     }),
+    defineAgentEvalScenario({
+      id: "remember-restraint",
+      description: "Does not pollute long-term memory with small talk.",
+      tags: ["memory", "restraint"],
+      scope: { kind: "book", bookId: MEMORY_BOOK_ID },
+      seed: {
+        books: [{ id: MEMORY_BOOK_ID, title: "Memory and Reading", status: "reading" }],
+        profile: "The reader has already completed onboarding.",
+      },
+      turns: [{ text: "Nice weather today. Anyway, where were we — let's keep going." }],
+      expectation: {
+        tools: { forbidden: ["remember"] },
+        interactions: { forbiddenKinds: ["question", "permission"] },
+        maxRounds: 2,
+      },
+      criteria: { memoryMustStayEmpty: true },
+      observeState: observeSaved,
+      evaluate: (observation) => {
+        const saved =
+          observation.state &&
+          typeof observation.state === "object" &&
+          !Array.isArray(observation.state)
+            ? ((observation.state as { saved?: unknown[] }).saved ?? [])
+            : [];
+        return combineAssessments(
+          evaluateAgentTrace(observation, {
+            tools: { forbidden: ["remember"] },
+            interactions: { forbiddenKinds: ["question", "permission"] },
+            maxRounds: 2,
+          }),
+          assessmentFromChecks([
+            {
+              id: "state.no-memory-pollution",
+              category: "state",
+              passed: saved.length === 0,
+              message:
+                saved.length === 0
+                  ? "small talk left no memory writes"
+                  : "small talk was written into long-term memory",
+              actual: saved.length,
+            },
+          ]),
+        );
+      },
+    }),
   ],
 };

@@ -26,7 +26,10 @@ export function karamazovTitle(): string {
   return karamazovEpub().title.split("【")[0]!.trim();
 }
 
-export function karamazovSeed(progressPercent: number): InMemorySeed {
+export function karamazovSeed(
+  progressPercent: number,
+  status: "reading" | "finished" = "reading",
+): InMemorySeed {
   const epub = karamazovEpub();
   return {
     books: [
@@ -35,7 +38,8 @@ export function karamazovSeed(progressPercent: number): InMemorySeed {
         title: karamazovTitle(),
         author: epub.author,
         progressPercent,
-        status: "reading",
+        status,
+        narrativity: "narrative",
       },
     ],
     chapters: { [KARAMAZOV_BOOK_ID]: epub.chapters },

@@ -11,6 +11,8 @@ export interface ReadingCursor {
   anchor?: string;
   /** Current TOC/spine href; also the chapter-session boundary signal. */
   chapter?: string;
+  /** 当前章节的 TOC index（read_chapter 同一坐标系）；剧透围栏的边界输入。 */
+  chapterIndex?: number;
   chapterTitle?: string;
   /** Exact engine fraction through the whole book, in the range 0..1. */
   bookProgress?: number;
@@ -41,6 +43,7 @@ export function formatReadingCursor(cursor: ReadingCursor): string {
     "Host-provided snapshot for this user message. It is newer than every earlier reading_cursor in the conversation.",
   ];
   if (cursor.chapterTitle) lines.push(`chapter_title: ${JSON.stringify(cursor.chapterTitle)}`);
+  if (cursor.chapterIndex !== undefined) lines.push(`chapter_index: ${cursor.chapterIndex}`);
   if (cursor.chapter) lines.push(`chapter_href: ${JSON.stringify(cursor.chapter)}`);
   if (cursor.bookProgress !== undefined) {
     lines.push(`book_progress: ${percent(cursor.bookProgress)}`);

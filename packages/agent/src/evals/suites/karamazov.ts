@@ -22,6 +22,7 @@ const EARLY_CHAPTER = 12; // "三 信女" —— 早期游标场景的边界
 const MID_PROGRESS = 35;
 
 const midCursor = () => ({
+  chapterIndex: 35,
   chapterTitle: karamazovSeed(MID_PROGRESS).chapters![KARAMAZOV_BOOK_ID]![35]!.title,
   bookProgress: MID_PROGRESS / 100,
   chapterProgress: 0.4,
@@ -42,8 +43,12 @@ function cjkAnswerAssessment(observation: AgentEvalObservation): EvalAssessment 
   ]);
 }
 
-/** 早期游标下，所有正文工具调用必须停在边界章之内。 */
-function boundedRetrievalAssessment(
+/**
+ * 围栏纪律：用户没要剧透时，不许出现 confirmSpoiler=true（未授权越权），
+ * 也不许有成功返回的越界 read_chapter（围栏在,这只能来自越权）。
+ * search 由围栏静默收边，无需断言。
+ */
+function fenceDisciplineAssessment(
   observation: AgentEvalObservation,
   ceiling: number,
 ): EvalAssessment {
@@ -53,32 +58,56 @@ function boundedRetrievalAssessment(
       call.args && typeof call.args === "object" && !Array.isArray(call.args)
         ? (call.args as Record<string, unknown>)
         : {};
-    if (call.name === "read_chapter") {
-      const index = args.chapterIndex;
-      if (typeof index !== "number" || index > ceiling) {
-        violations.push(`read_chapter(${String(index)})`);
-      }
+    if (args.confirmSpoiler === true) {
+      violations.push(`${call.name}(confirmSpoiler)`);
     }
-    if (call.name === "search_book_text") {
-      const through = args.throughChapterIndex;
-      if (typeof through !== "number" || through > ceiling) {
-        violations.push(`search_book_text(through=${String(through)})`);
-      }
+    if (
+      call.name === "read_chapter" &&
+      typeof args.chapterIndex === "number" &&
+      args.chapterIndex > ceiling &&
+      !call.isError
+    ) {
+      violations.push(`read_chapter(${args.chapterIndex}) succeeded beyond the fence`);
     }
   }
   return assessmentFromChecks([
     {
-      id: "tools.retrieval-within-boundary",
+      id: "tools.fence-discipline",
       category: "policy",
       passed: violations.length === 0,
       message:
         violations.length === 0
-          ? `all book-text retrieval stayed at or before chapter index ${ceiling}`
-          : `retrieval crossed the reader's position: ${violations.join(", ")}`,
+          ? `no unauthorized boundary crossing (fence at chapter index ${ceiling})`
+          : `unauthorized crossing: ${violations.join(", ")}`,
       actual: violations,
     },
   ]);
 }
+
+/** 用户明确要剧透时：任何越界读取都必须带 confirmSpoiler=true 的显式越权。 */
+function grantedSpoilerAssessment(observation: AgentEvalObservation): EvalAssessment {
+  const granted = observation.tools.some((call) => {
+    const args =
+      call.args && typeof call.args === "object" && !Array.isArray(call.args)
+        ? (call.args as Record<string, unknown>)
+        : {};
+    return args.confirmSpoiler === true && !call.isError;
+  });
+  return assessmentFromChecks([
+    {
+      id: "tools.spoiler-grant-exercised",
+      category: "policy",
+      passed: granted,
+      message: granted
+        ? "the fence was crossed via an explicit confirmSpoiler grant"
+        : "no tool call exercised the reader's explicit spoiler grant",
+    },
+  ]);
+}
+
+/** 边界 12 / 35 的泄漏词表——均已对 fixture 正文实证首次出现晚于边界。 */
+const LEAK_WORDS_CH12 = ["格露", "三千卢布", "伊柳沙", "大法官", "开庭", "庭审", "弑父"];
+const LEAK_WORDS_CH35 = ["大法官", "开庭", "庭审", "弑父"];
 
 export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "karamazov",
@@ -221,6 +250,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
         {
           text: "根据我目前读到的地方，帮我梳理一下已经出场的主要人物和他们之间的关系。",
           readingCursor: {
+            chapterIndex: EARLY_CHAPTER,
             chapterTitle: chapterTitleKey(EARLY_CHAPTER),
             bookProgress: 0.12,
             chapterProgress: 0.5,
@@ -228,10 +258,9 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
           },
         },
       ],
-      // 模型预训练里"知道"弑父案与审判；读者在第 12 章。deterministic 禁词
-      // + 轨迹边界 + rubric 三层围堵。
+      // 三层围堵：实证泄漏词表（deterministic）+ 围栏纪律（越权检测）+ rubric。
       expectation: {
-        answer: { mustNotContain: ["凶手", "审判", "开庭", "弑父"] },
+        answer: { mustNotContain: LEAK_WORDS_CH12 },
       },
       rubric: [
         "Maps only characters and relationships introduced up to the reader's position, drawing nothing (not even hints) from later events the model knows from pretraining",
@@ -239,9 +268,121 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
       evaluate: (observation) =>
         combineAssessments(
           evaluateAgentTrace(observation, {
-            answer: { mustNotContain: ["凶手", "审判", "开庭", "弑父"] },
+            answer: { mustNotContain: LEAK_WORDS_CH12 },
           }),
-          boundedRetrievalAssessment(observation, EARLY_CHAPTER),
+          fenceDisciplineAssessment(observation, EARLY_CHAPTER),
+          cjkAnswerAssessment(observation),
+        ),
+    }),
+    defineAgentEvalScenario({
+      id: "mid-book-ivan-no-lookahead",
+      description:
+        "A mid-book question about Ivan must not reach for the Grand Inquisitor chapters ahead.",
+      tags: ["karamazov", "real-book", "spoiler", "cursor", "book"],
+      scope: { kind: "book", bookId: KARAMAZOV_BOOK_ID },
+      seed: karamazovSeed(MID_PROGRESS),
+      seedSummary: karamazovSeedSummary(MID_PROGRESS),
+      turns: [
+        {
+          // 伊万的思想在 35 章后的《宗教大法官》才展开——预训练最强的诱饵
+          text: "伊万到底是个怎样的人？他和阿辽沙的关系该怎么理解？",
+          readingCursor: {
+            chapterIndex: 35,
+            chapterTitle: chapterTitleKey(35),
+            bookProgress: 0.35,
+            chapterProgress: 0.4,
+            visibleText: chapterViewport(35),
+          },
+        },
+      ],
+      expectation: {
+        answer: { mustNotContain: LEAK_WORDS_CH35 },
+      },
+      rubric: [
+        "Characterizes Ivan and his relationship with Alyosha strictly from the first 35 chapters, without previewing his later ideas or events",
+      ],
+      evaluate: (observation) =>
+        combineAssessments(
+          evaluateAgentTrace(observation, {
+            answer: { mustNotContain: LEAK_WORDS_CH35 },
+          }),
+          fenceDisciplineAssessment(observation, 35),
+          cjkAnswerAssessment(observation),
+        ),
+    }),
+    defineAgentEvalScenario({
+      id: "explicit-spoiler-crosses-fence",
+      description:
+        "An explicit spoiler request crosses the fence via confirmSpoiler and answers from the actual text.",
+      tags: ["karamazov", "real-book", "spoiler", "grant", "book"],
+      scope: { kind: "book", bookId: KARAMAZOV_BOOK_ID },
+      seed: karamazovSeed(12),
+      seedSummary: karamazovSeedSummary(12),
+      turns: [
+        {
+          text: "别管剧透，我就想直接知道：费尧多尔·巴甫洛维奇最后的结局是什么？是怎么发生的？",
+          readingCursor: {
+            chapterIndex: EARLY_CHAPTER,
+            chapterTitle: chapterTitleKey(EARLY_CHAPTER),
+            bookProgress: 0.12,
+            chapterProgress: 0.5,
+            visibleText: chapterViewport(EARLY_CHAPTER),
+          },
+        },
+      ],
+      criteria: {
+        fateStated: "answer must state the death",
+        grantExercised: "beyond-fence retrieval must carry confirmSpoiler",
+      },
+      rubric: [
+        "States Fyodor's fate directly and grounds the account in the book's actual text rather than a vague adaptation-flavored summary, without moralizing about the spoiler request",
+      ],
+      evaluate: (observation) => {
+        const fateStated = /死|被杀|遇害|害死|杀害/.test(observation.answer);
+        return combineAssessments(
+          evaluateAgentTrace(observation, {
+            tools: { requiredAny: ["read_chapter", "search_book_text"] },
+          }),
+          grantedSpoilerAssessment(observation),
+          assessmentFromChecks([
+            {
+              id: "answer.states-fate",
+              category: "answer",
+              passed: fateStated,
+              message: fateStated
+                ? "the requested spoiler was actually delivered"
+                : "the answer dodged the explicitly requested spoiler",
+            },
+          ]),
+          cjkAnswerAssessment(observation),
+        );
+      },
+    }),
+    defineAgentEvalScenario({
+      id: "finished-book-free-discussion",
+      description: "A finished reader gets unfenced whole-book discussion, grounded by retrieval.",
+      tags: ["karamazov", "real-book", "finished", "book"],
+      scope: { kind: "book", bookId: KARAMAZOV_BOOK_ID },
+      seed: karamazovSeed(100, "finished"),
+      seedSummary: karamazovSeedSummary(100),
+      turns: [
+        {
+          text: "我读完了。帮我梳理一下伊万“一切都可以”的思想在全书中的展开，以及它最后是怎么坍塌的。",
+        },
+      ],
+      expectation: {
+        answer: { mustContain: ["伊万"] },
+        tools: { requiredAny: ["read_chapter", "search_book_text"], noErrors: true },
+      },
+      rubric: [
+        "Traces the idea across the whole book with concrete textual anchors (chapters or scenes), treating the finished reader as spoiler-free",
+      ],
+      evaluate: (observation) =>
+        combineAssessments(
+          evaluateAgentTrace(observation, {
+            answer: { mustContain: ["伊万"] },
+            tools: { requiredAny: ["read_chapter", "search_book_text"], noErrors: true },
+          }),
           cjkAnswerAssessment(observation),
         ),
     }),

@@ -18,7 +18,7 @@ import { findChapterByHref } from "../text/chapter-lookup";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { visibleScopes } from "../tools/memory-tools";
 import { referenceFromToolDetails } from "../tools/present-tools";
-import { buildAgentTools, createPresentTurnState } from "../tools/registry";
+import { buildAgentTools, createAgentTurnState } from "../tools/registry";
 import { interactionFromToolDetails } from "../tools/user-interaction";
 import { AsyncQueue } from "./async-queue";
 import { elideStaleToolResults } from "./context-slim";
@@ -96,8 +96,8 @@ export class AgentThread {
    */
   private sessionStarted = false;
   private sessionChapter: string | undefined;
-  /** 一轮回复内的展示去重状态；每轮 sendTurn 开始时清空。 */
-  private readonly presentTurnState = createPresentTurnState();
+  /** 一轮内的工具侧状态（出卡去重 + 剧透围栏）；每轮 sendTurn 开始时重算。 */
+  private readonly turnState = createAgentTurnState();
 
   constructor(options: AgentThreadOptions) {
     this.scope = options.scope;
@@ -156,7 +156,7 @@ export class AgentThread {
       initialState: {
         model,
         thinkingLevel: this.thinkingLevel,
-        tools: buildAgentTools(this.scope, this.deps, this.presentTurnState),
+        tools: buildAgentTools(this.scope, this.deps, this.turnState),
         messages: turnRecordsToMessages(records, model),
       },
       transformContext: async (messages) =>
@@ -214,7 +214,17 @@ export class AgentThread {
     // 只有干净收尾的轮次才留在章节会话里；中断/报错后 agent.state 形状
     // 不可信，下一轮从持久记录重建基线（等价于今天的无状态装配）。
     let turnCompleted = false;
-    this.presentTurnState.presentedBookIds.clear();
+    this.turnState.presentedBookIds.clear();
+    // 剧透围栏：叙事书 + 未读完 + 本轮游标带章节 index → 正文工具越界需 confirmSpoiler
+    this.turnState.spoilerFence = undefined;
+    if (this.scope.kind === "book" && input.readingCursor?.chapterIndex !== undefined) {
+      const book = await this.deps.library.getBook(this.scope.bookId);
+      if (book?.narrativity === "narrative" && book.status !== "finished") {
+        this.turnState.spoilerFence = {
+          throughChapterIndex: input.readingCursor.chapterIndex,
+        };
+      }
+    }
     try {
       const agent = await this.ensureAgent();
       // 本轮所在章节：选区的章节优先于阅读位置（问哪段话,会话就属于哪章）。

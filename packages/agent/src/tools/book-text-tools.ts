@@ -11,13 +11,29 @@ import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { normalizeBookIdParam, resolveBookId as resolveScopedBookId } from "./current-book";
 import { textResult } from "./tool-result";
+import type { AgentTurnState } from "./turn-state";
 
 const CHAPTER_PART_CHARS = 12000;
 
-export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
+const confirmSpoilerSchema = Type.Optional(
+  Type.Boolean({
+    description:
+      "Set true ONLY when the reader explicitly asked for spoilers in this conversation; lifts the narrative reading-position fence for this call.",
+  }),
+);
+
+export function buildBookTextTools(
+  scope: ThreadScope,
+  deps: RuntimeDeps,
+  turnState?: AgentTurnState,
+): AgentTool[] {
   const defaultBookId = scope.kind === "book" ? scope.bookId : undefined;
 
   const resolveBookId = (raw?: string): Id => resolveScopedBookId(scope, raw);
+
+  /** 围栏只作用于当前书（围栏本身仅在书线程被 thread 设置）。 */
+  const fenceFor = (target: Id | undefined) =>
+    scope.kind === "book" && target === scope.bookId ? turnState?.spoilerFence : undefined;
 
   const getToc: AgentTool = {
     name: "get_toc",
@@ -55,14 +71,22 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps): Agent
       }),
       part: Type.Optional(Type.Number({ description: "Window index, default 0" })),
       bookId: Type.Optional(Type.String()),
+      confirmSpoiler: confirmSpoilerSchema,
     }),
     execute: async (_id, params) => {
-      const { chapterIndex, part = 0, bookId } = params as {
+      const { chapterIndex, part = 0, bookId, confirmSpoiler = false } = params as {
         chapterIndex: number;
         part?: number;
         bookId?: string;
+        confirmSpoiler?: boolean;
       };
       const target = resolveBookId(bookId);
+      const fence = fenceFor(target);
+      if (fence && chapterIndex > fence.throughChapterIndex && !confirmSpoiler) {
+        throw new Error(
+          `chapter ${chapterIndex} is beyond the reader's position (chapter index ${fence.throughChapterIndex}) in this narrative book. If the reader explicitly asked for spoilers this turn, retry with confirmSpoiler: true; otherwise stay within the boundary.`,
+        );
+      }
       const text = await deps.bookText.getChapterText(target, chapterIndex);
       if (text === undefined) {
         throw new Error(`chapter ${chapterIndex} of ${target} is not extracted or does not exist`);
@@ -98,18 +122,29 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps): Agent
             "Inclusive last chapter to search. For an unfinished narrative chapter, use the previous chapter as the ceiling and rely on reading_cursor.visible_text for the current passage; explicit spoiler requests may use later chapters.",
         }),
       ),
+      confirmSpoiler: confirmSpoilerSchema,
     }),
     execute: async (_id, params) => {
-      const { queries: rawQueries, bookId, throughChapterIndex } = params as {
+      const { queries: rawQueries, bookId, confirmSpoiler = false, ...rest } = params as {
         queries: string[];
         bookId?: string;
         throughChapterIndex?: number;
+        confirmSpoiler?: boolean;
       };
+      let throughChapterIndex = rest.throughChapterIndex;
       // 变体轰炸（25 个查询）就地截断，别让 schema 报错烧掉一轮往返
       const queries = rawQueries.slice(0, 12);
       const target = normalizeBookIdParam(bookId) ?? defaultBookId;
       if (throughChapterIndex !== undefined && !target) {
         throw new Error("throughChapterIndex requires bookId in the global thread");
+      }
+      // 围栏：未获剧透授权的检索静默收边到读者位置——结果按构造即安全，不烧往返
+      const fence = fenceFor(target as Id | undefined);
+      if (fence && !confirmSpoiler) {
+        throughChapterIndex = Math.min(
+          throughChapterIndex ?? fence.throughChapterIndex,
+          fence.throughChapterIndex,
+        );
       }
       const hits = await deps.bookText.searchText({
         queries,

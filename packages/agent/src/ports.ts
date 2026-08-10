@@ -44,6 +44,12 @@ export interface BookOverview {
   /** 阅读进度 0..100（与 ReadingState.progressPercent 同义）。 */
   progressPercent?: number;
   status?: ReadingStatus;
+  /**
+   * 叙事性分类（剧透围栏的启用信号）：narrative 且未读完时，越过游标
+   * 章节的正文工具调用被宿主硬闸。undefined = 未分类，围栏不启用。
+   * 由导入/巩固管线落库；宿主适配前 eval fixture 先行。
+   */
+  narrativity?: "narrative" | "expository";
   addedAt?: string;
   updatedAt?: string;
   lastOpenedAt?: string;

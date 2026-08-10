@@ -24,7 +24,9 @@
     "downloading": "Téléchargement de la mise à jour...",
     "downloadingProgress": "Téléchargement {{progress}}%",
     "installing": "Installation de la mise à jour...",
-    "failed": "Échec de la mise à jour. Réessayer"
+    "failed": "Échec de la mise à jour. Réessayer",
+    "whatsNew": "Voir les nouveautés de v{{version}}",
+    "whatsNewDismiss": "Fermer la note de mise à jour"
   },
   "error": {
     "title": "Un incident a interrompu le fil de lecture.",

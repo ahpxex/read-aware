@@ -24,7 +24,9 @@
     "downloading": "正在下载更新…",
     "downloadingProgress": "正在下载 {{progress}}%",
     "installing": "正在安装更新…",
-    "failed": "更新失败，重试"
+    "failed": "更新失败，重试",
+    "whatsNew": "看看 v{{version}} 更新了什么",
+    "whatsNewDismiss": "关闭更新提示"
   },
   "error": {
     "title": "阅读流程被打断了。",

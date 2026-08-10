@@ -19,6 +19,7 @@ import { AppHeader } from "./features/navigation/components/AppHeader";
 import { usePrimaryDestinations } from "./features/navigation/hooks/usePrimaryDestinations";
 import { useContextHeaderActions } from "./features/context/hooks/useContextHeaderActions";
 import { UpdateIndicator } from "./features/update/components/UpdateIndicator";
+import { WhatsNewNotice } from "./features/update/components/WhatsNewNotice";
 import { useSoftwareUpdate } from "./features/update/hooks/useSoftwareUpdate";
 import { ShelfManagementMenu } from "./features/shelf/components/ShelfManagementMenu";
 import { useOpenBookRequestHandler } from "./features/ai/hooks/useOpenBookRequest";
@@ -526,7 +527,12 @@ function App() {
             onOpenSettings={() => setSettingsOpen(true)}
             onOpenSearch={() => setSearchModalOpen(true)}
             onTopNavChange={setActiveTopNav}
-            leadingStatus={<UpdateIndicator />}
+            leadingStatus={
+              <>
+                <UpdateIndicator />
+                <WhatsNewNotice />
+              </>
+            }
             viewControl={
               activeTopNav === "shelf" ? <ShelfManagementMenu /> : undefined
             }

@@ -24,7 +24,9 @@
     "downloading": "Update wird heruntergeladen...",
     "downloadingProgress": "Download {{progress}}%",
     "installing": "Update wird installiert...",
-    "failed": "Update fehlgeschlagen. Erneut versuchen"
+    "failed": "Update fehlgeschlagen. Erneut versuchen",
+    "whatsNew": "Neues in v{{version}} ansehen",
+    "whatsNewDismiss": "Update-Hinweis schließen"
   },
   "error": {
     "title": "Etwas hat den Lesefluss unterbrochen.",

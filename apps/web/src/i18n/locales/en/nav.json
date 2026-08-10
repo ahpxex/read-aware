@@ -24,7 +24,9 @@
     "downloading": "Downloading update...",
     "downloadingProgress": "Downloading {{progress}}%",
     "installing": "Installing update...",
-    "failed": "Update failed. Retry"
+    "failed": "Update failed. Retry",
+    "whatsNew": "See what's new in v{{version}}",
+    "whatsNewDismiss": "Dismiss update notes"
   },
   "error": {
     "title": "Something interrupted the reading flow.",

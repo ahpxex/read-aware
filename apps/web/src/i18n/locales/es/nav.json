@@ -24,7 +24,9 @@
     "downloading": "Descargando actualización...",
     "downloadingProgress": "Descargando {{progress}}%",
     "installing": "Instalando actualización...",
-    "failed": "Error al actualizar. Reintentar"
+    "failed": "Error al actualizar. Reintentar",
+    "whatsNew": "Ver las novedades de v{{version}}",
+    "whatsNewDismiss": "Cerrar el aviso de actualización"
   },
   "error": {
     "title": "Algo interrumpió el flujo de lectura.",

@@ -39,7 +39,6 @@ import {
 import {
   applyHighlights,
   applyNotes,
-  isNavigatorOverlayKey,
   registerHighlightDrawing,
 } from "../lib/highlight-renderer";
 import { parseBookFile } from "../lib/parse-book";
@@ -1520,9 +1519,15 @@ export function FoliateReaderView({
         ?.overlayer?.hitTest({ x: event.clientX, y: event.clientY });
       if (hit && hit[0]) {
         cancelPendingShellOpen();
-        // 命中导航 wash = 点了当前句：开合句级动作菜单（用户标注的命中仍走
-        // show-annotation 的重着色菜单，互不相扰）。
-        if (textUnitModeActiveStateRef.current && isNavigatorOverlayKey(hit[0])) {
+        // hitTest 回的是绘制的 value（CFI），不是 overlayKey —— 与静息句的
+        // cfiRange 相等即命中导航 wash：开合句级动作菜单（用户标注的命中
+        // 仍走 show-annotation 的重着色菜单，互不相扰）。
+        const restingCfi = textUnitNavigatorRef.current.current?.cfiRange;
+        if (
+          textUnitModeActiveStateRef.current &&
+          restingCfi != null &&
+          hit[0] === restingCfi
+        ) {
           unitMenuToggleRef.current(doc, event.clientX, event.clientY);
         }
         return;

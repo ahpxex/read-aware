@@ -64,11 +64,13 @@ export function chapterTitleKey(chapterIndex: number): string {
 export function pickSentence(chapterIndex: number): string {
   const chapter = karamazovEpub().chapters[chapterIndex];
   if (!chapter) throw new Error(`karamazov fixture has no chapter ${chapterIndex}`);
-  const sentence = chapter.text
+  // 正文以"章题\n\n"开头——先剥掉，且句子内不得含换行，否则断言片段永远匹配不上散文
+  const body = chapter.text.replace(/^[^\n]*\n+/, "");
+  const sentence = body
     .split(/(?<=[。！？])/)
     .map((part) => part.trim())
-    .find((part) => part.length >= 20 && part.length <= 80);
-  return sentence ?? chapter.text.slice(0, 60);
+    .find((part) => part.length >= 20 && part.length <= 80 && !part.includes("\n"));
+  return sentence ?? body.slice(0, 60).replace(/\n+/g, "");
 }
 
 /** 章节正文开头一段，作 cursor 的 visibleText。 */

@@ -129,7 +129,8 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
       expectation: {
         tools: { required: ["remember"], noErrors: true, maxCalls: 2 },
       },
-      criteria: { savedScope: "user", contentContains: "信仰" },
+      // "读这本书的目的"存 user 或 book scope 都成立——约束的是内容落地，不是 scope 品味
+      criteria: { savedScope: "user | book:current", contentContains: "信仰" },
       observeState: ({ stores }) => ({ saved: stores.savedMemoryInputs }),
       evaluate: (observation) => {
         const state =
@@ -138,7 +139,9 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
             : {};
         const saved = state.saved ?? [];
         const match = saved.some(
-          (entry) => entry.scope === "user" && (entry.content ?? "").includes("信仰"),
+          (entry) =>
+            (entry.scope === "user" || entry.scope === `book:${KARAMAZOV_BOOK_ID}`) &&
+            (entry.content ?? "").includes("信仰"),
         );
         return combineAssessments(
           evaluateAgentTrace(observation, {

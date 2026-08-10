@@ -15,6 +15,11 @@ surface case there; the completeness check fails otherwise.
 
 - `annotations`: verbatim highlights, faithful notes, lookup-then-edit, and
   summaries grounded in the recorded annotations.
+- `karamazov`: real-book scenarios on the full Chinese Brothers Karamazov EPUB
+  (`fixtures/karamazov.epub`, 102 chapters) — quote location at real scale,
+  Chinese-language consistency, memory updates, and pretraining-knowledge
+  spoiler pressure against an early cursor. Assertions derive from the fixture
+  text itself; `seedSummary` keeps the novel out of run artifacts.
 - `grounding`: honesty when data is missing — no invented chapters, durations,
   or shelf books.
 - `reading`: reading-cursor grounding, selective spoiler protection, forward
@@ -63,11 +68,18 @@ bun run eval:reading \
   --candidate-model deepseek-reasoner \
   --repetitions 5
 
-# Cross-provider comparison
+# Cross-provider comparison (paired per scenario/repetition)
 bun run eval:agent reading \
   --provider deepseek \
   --candidate candidate-openai=openai:gpt-5.6-sol \
   --repetitions 5
+
+# Real-book suite across two providers
+bun run eval:agent karamazov \
+  --provider deepseek --model deepseek-v4-flash \
+  --candidate glm=zai-coding-cn:glm-5.2 \
+  --judge --judge-provider deepseek --judge-model deepseek-v4-flash \
+  --repetitions 3 --concurrency 4
 ```
 
 Candidate execution order rotates across repetitions. Reports compare only

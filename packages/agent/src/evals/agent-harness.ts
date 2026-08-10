@@ -54,6 +54,8 @@ export interface DefineAgentEvalScenarioOptions {
   tags?: string[];
   scope: ThreadScope;
   seed?: InMemorySeed;
+  /** 真书等大 fixture 的工件替身：写进 run 记录的是它，而不是整个 seed。 */
+  seedSummary?: JsonValue;
   turns: AgentEvalTurn[];
   expectation?: AgentTraceExpectation;
   /** quality 评分标准（每条一句可判定的陈述）；写进 run 工件，--judge 时生效。 */
@@ -108,7 +110,7 @@ function noMemoryComplete(model: Model<Api>, _context: Context): Promise<Assista
 function scenarioInput(options: DefineAgentEvalScenarioOptions): JsonValue {
   return toJsonValue({
     scope: options.scope,
-    seed: options.seed ?? {},
+    seed: options.seedSummary ?? options.seed ?? {},
     turns: options.turns,
     expectation: options.expectation ?? {},
     ...(options.rubric === undefined ? {} : { rubric: options.rubric }),

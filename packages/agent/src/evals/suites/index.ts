@@ -1,6 +1,7 @@
 import { annotationsEvalSuite } from "./annotations";
 import { groundingEvalSuite } from "./grounding";
 import { interactionsEvalSuite } from "./interactions";
+import { karamazovEvalSuite } from "./karamazov";
 import { memoryEvalSuite } from "./memory";
 import { readingEvalSuite } from "./reading";
 import { settingsEvalSuite } from "./settings";
@@ -10,6 +11,7 @@ export const evalSuites = {
   annotations: annotationsEvalSuite,
   grounding: groundingEvalSuite,
   interactions: interactionsEvalSuite,
+  karamazov: karamazovEvalSuite,
   memory: memoryEvalSuite,
   reading: readingEvalSuite,
   settings: settingsEvalSuite,

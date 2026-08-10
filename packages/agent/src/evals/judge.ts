@@ -103,7 +103,15 @@ function parseVerdicts(raw: string, rubric: string[]): JudgeVerdict[] | undefine
   try {
     parsed = JSON.parse(trimmed);
   } catch {
-    return undefined;
+    // 模型偶尔把 JSON 包在散文里；取第一个 { 到最后一个 } 再试一次
+    const start = trimmed.indexOf("{");
+    const end = trimmed.lastIndexOf("}");
+    if (start < 0 || end <= start) return undefined;
+    try {
+      parsed = JSON.parse(trimmed.slice(start, end + 1));
+    } catch {
+      return undefined;
+    }
   }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return undefined;
   const criteria = (parsed as { criteria?: unknown }).criteria;
@@ -141,9 +149,19 @@ export class AgentEvalJudge {
       rubric: input.rubric,
       digest: digestObservation(input.observation),
     });
-    let verdicts = parseVerdicts(await this.complete(prompt), input.rubric);
-    if (!verdicts) verdicts = parseVerdicts(await this.complete(prompt), input.rubric);
-    if (!verdicts) throw new Error("judge did not return a parseable verdict");
+    const first = await this.complete(prompt);
+    let verdicts = parseVerdicts(first, input.rubric);
+    if (!verdicts) {
+      // 重试带纠错反馈，而不是原样重发
+      const corrective = `${prompt}\n\nYour previous reply could not be parsed as the required JSON:\n"""\n${first.slice(0, 400)}\n"""\nReply again with ONLY the JSON object described above — exactly ${input.rubric.length} criteria entries in order, no fences, no prose.`;
+      const second = await this.complete(corrective);
+      verdicts = parseVerdicts(second, input.rubric);
+      if (!verdicts) {
+        throw new Error(
+          `judge did not return a parseable verdict; last reply began: ${JSON.stringify(second.slice(0, 200))}`,
+        );
+      }
+    }
     const checks: EvalCheck[] = verdicts.map((verdict, index) => ({
       id: `quality.judge.${index}`,
       category: "quality",

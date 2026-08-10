@@ -1,11 +1,11 @@
 import {
   CaretDoubleLeft,
-  CaretDoubleRight,
   CaretLeft,
   CaretRight,
   ChatCircle,
   Crosshair,
   DotsSixVertical,
+  DotsThree,
   ListBullets,
   Notebook,
   SpeakerHigh,
@@ -241,7 +241,7 @@ export function TextUnitNavigatorBar({
                 label={resolvePluginText(mode.copy.moreActions, locale)}
                 onClick={() => setPage(1)}
                 className={actionButtonClass}
-                icon={<CaretDoubleRight size={14} weight="regular" aria-hidden="true" />}
+                icon={<DotsThree size={16} weight="bold" aria-hidden="true" />}
               />
             </>
           )}

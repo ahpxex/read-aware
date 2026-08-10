@@ -1,15 +1,9 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { Type } from "@earendil-works/pi-ai";
-import type { Id } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
+import { resolveBookId } from "./current-book";
 import { textResult } from "./tool-result";
-
-function resolveBookId(scope: ThreadScope, raw?: string): Id {
-  const target = (raw ?? (scope.kind === "book" ? scope.bookId : undefined)) as Id | undefined;
-  if (!target) throw new Error("bookId is required in the global thread");
-  return target;
-}
 
 export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
   const openBook: AgentTool = {

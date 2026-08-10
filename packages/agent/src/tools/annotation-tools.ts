@@ -4,6 +4,7 @@ import type { HighlightColor, Id } from "@read-aware/core";
 import type { AnnotationItem, RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { threadScopeKey } from "../thread-scope";
+import { resolveBookId } from "./current-book";
 import { textResult } from "./tool-result";
 import { requestUserInteraction } from "./user-interaction";
 
@@ -16,12 +17,6 @@ const highlightColorSchema = Type.Union(
   ],
   { description: "Highlight color" },
 );
-
-function resolveBookId(scope: ThreadScope, raw?: string): Id {
-  const target = (raw ?? (scope.kind === "book" ? scope.bookId : undefined)) as Id | undefined;
-  if (!target) throw new Error("bookId is required in the global thread");
-  return target;
-}
 
 function annotationSubject(annotation: AnnotationItem): string {
   if (annotation.kind === "note") return annotation.body.slice(0, 80) || "Untitled note";

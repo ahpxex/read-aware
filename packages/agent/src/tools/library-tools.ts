@@ -8,6 +8,7 @@ import { Type } from "@earendil-works/pi-ai";
 import type { Id } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
+import { normalizeBookIdParam } from "./current-book";
 import { textResult } from "./tool-result";
 
 export function buildThreadTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
@@ -41,7 +42,7 @@ export function buildThreadTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
           }),
     execute: async (_id, params) => {
       const { bookId } = params as { bookId?: string };
-      const target = (bookId ?? defaultBookId) as Id | undefined;
+      const target = (normalizeBookIdParam(bookId) ?? defaultBookId) as Id | undefined;
       if (!target) throw new Error("bookId is required in the global thread");
       const book = await deps.library.getBook(target);
       if (!book) throw new Error(`unknown book: ${target}`);
@@ -65,7 +66,7 @@ export function buildThreadTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
     }),
     execute: async (_id, params) => {
       const { bookId, query } = params as { bookId?: string; query?: string };
-      const target = (bookId ?? defaultBookId) as Id | undefined;
+      const target = (normalizeBookIdParam(bookId) ?? defaultBookId) as Id | undefined;
       const annotations = await deps.annotations.listAnnotations({ bookId: target, query });
       return textResult(annotations);
     },

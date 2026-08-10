@@ -4,15 +4,10 @@ import type { Id } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { threadScopeKey } from "../thread-scope";
+import { normalizeBookIdParam, resolveBookId } from "./current-book";
 import { presentBookStats, presentStatsOverview } from "./format-stats";
 import { textResult } from "./tool-result";
 import { requestUserInteraction } from "./user-interaction";
-
-function resolveBookId(scope: ThreadScope, raw?: string): Id {
-  const target = (raw ?? (scope.kind === "book" ? scope.bookId : undefined)) as Id | undefined;
-  if (!target) throw new Error("bookId is required in the global thread");
-  return target;
-}
 
 export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
   const listCollections: AgentTool = {
@@ -48,7 +43,8 @@ export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentToo
       const { bookId, allBooks = false } = params as { bookId?: string; allBooks?: boolean };
       const target = allBooks
         ? undefined
-        : (bookId ?? (scope.kind === "book" ? String(scope.bookId) : undefined));
+        : (normalizeBookIdParam(bookId) ??
+          (scope.kind === "book" ? String(scope.bookId) : undefined));
       if (target) {
         const stats = await deps.library.getBookStats(target as Id);
         if (stats) return textResult(presentBookStats(stats));

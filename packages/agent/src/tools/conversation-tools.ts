@@ -9,6 +9,7 @@ import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { Type } from "@earendil-works/pi-ai";
 import type { RuntimeDeps } from "../ports";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
+import { normalizeBookIdParam } from "./current-book";
 import { textResult } from "./tool-result";
 
 export function buildConversationTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
@@ -51,7 +52,8 @@ export function buildConversationTools(scope: ThreadScope, deps: RuntimeDeps): A
     }),
     execute: async (_id, params) => {
       const { n = 6, bookId } = params as { n?: number; bookId?: string };
-      const key = bookId ? `book:${bookId}` : threadScopeKey(scope);
+      const normalized = normalizeBookIdParam(bookId);
+      const key = normalized ? `book:${normalized}` : threadScopeKey(scope);
       const records = await deps.conversations.load(key);
       const clamped = Math.min(Math.max(1, Math.floor(n)), 20);
       return textResult(records.slice(-clamped));
@@ -68,7 +70,8 @@ export function buildConversationTools(scope: ThreadScope, deps: RuntimeDeps): A
     }),
     execute: async (_id, params) => {
       const { bookId } = params as { bookId?: string };
-      const target = bookId ?? (scope.kind === "book" ? scope.bookId : undefined);
+      const target =
+        normalizeBookIdParam(bookId) ?? (scope.kind === "book" ? scope.bookId : undefined);
       if (!target) throw new Error("bookId is required in the global thread");
       const summary = await deps.conversations.getInsights(`book:${target}`);
       return textResult({ bookId: target, summary: summary ?? null });

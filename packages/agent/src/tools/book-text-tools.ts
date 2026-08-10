@@ -9,6 +9,7 @@ import { Type } from "@earendil-works/pi-ai";
 import type { Id } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
+import { normalizeBookIdParam, resolveBookId as resolveScopedBookId } from "./current-book";
 import { textResult } from "./tool-result";
 
 const CHAPTER_PART_CHARS = 12000;
@@ -16,11 +17,7 @@ const CHAPTER_PART_CHARS = 12000;
 export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
   const defaultBookId = scope.kind === "book" ? scope.bookId : undefined;
 
-  const resolveBookId = (raw?: string): Id => {
-    const target = (raw ?? defaultBookId) as Id | undefined;
-    if (!target) throw new Error("bookId is required in the global thread");
-    return target;
-  };
+  const resolveBookId = (raw?: string): Id => resolveScopedBookId(scope, raw);
 
   const getToc: AgentTool = {
     name: "get_toc",
@@ -44,7 +41,10 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps): Agent
     description:
       "Read one chapter's actual text, windowed into parts of 12000 chars (most chapters fit in one part). Start at part 0; the result tells you totalParts. IMPORTANT: this returns the chapter's full text and cannot stop at the newest reading cursor. When a narrative book has cursor.visible_text and the reader did not request spoilers, NEVER call read_chapter on the current chapter, even to gather or verify clues the reader has already seen; the cursor already contains the safe current material. After reading an allowed chapter, complete the reader's requested answer in this turn. Need several chapters? Issue the read_chapter calls together in one batch — they run in parallel. bookId defaults to the current book.",
     parameters: Type.Object({
-      chapterIndex: Type.Number({ description: "Chapter index from get_toc" }),
+      chapterIndex: Type.Number({
+        description:
+          '0-based index from get_toc — the reader\'s "chapter N" is usually index N-1. Confirm against the TOC title before answering, and name the chapter as the reader numbers it.',
+      }),
       part: Type.Optional(Type.Number({ description: "Window index, default 0" })),
       bookId: Type.Optional(Type.String()),
     }),
@@ -79,8 +79,8 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps): Agent
     parameters: Type.Object({
       queries: Type.Array(Type.String(), {
         minItems: 1,
-        maxItems: 5,
-        description: "1-5 query variants, searched together",
+        description:
+          "Query variants, searched together. 2-5 focused variants beat a broad sweep; anything past 12 is ignored.",
       }),
       bookId: Type.Optional(Type.String()),
       throughChapterIndex: Type.Optional(
@@ -92,12 +92,14 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps): Agent
       ),
     }),
     execute: async (_id, params) => {
-      const { queries, bookId, throughChapterIndex } = params as {
+      const { queries: rawQueries, bookId, throughChapterIndex } = params as {
         queries: string[];
         bookId?: string;
         throughChapterIndex?: number;
       };
-      const target = bookId ?? defaultBookId;
+      // 变体轰炸（25 个查询）就地截断，别让 schema 报错烧掉一轮往返
+      const queries = rawQueries.slice(0, 12);
+      const target = normalizeBookIdParam(bookId) ?? defaultBookId;
       if (throughChapterIndex !== undefined && !target) {
         throw new Error("throughChapterIndex requires bookId in the global thread");
       }

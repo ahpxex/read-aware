@@ -1,6 +1,7 @@
 import { Sparkle, X } from "@phosphor-icons/react";
 import { IconButton, Tooltip } from "@read-aware/ui";
 import { useLocale, useTranslation } from "../../../i18n";
+import { openExternalUrl } from "../../../platform/external-link";
 import { useWhatsNewNotice } from "../hooks/useWhatsNewNotice";
 import { changelogUrlForLocale } from "../lib/whats-new";
 
@@ -22,7 +23,12 @@ export function WhatsNewNotice() {
         href={changelogUrlForLocale(locale)}
         target="_blank"
         rel="noopener noreferrer"
-        onClick={dismiss}
+        onClick={(event) => {
+          // webview 吞 target=_blank——外链必须走 opener 插件
+          event.preventDefault();
+          void openExternalUrl(changelogUrlForLocale(locale));
+          dismiss();
+        }}
         className="flex items-center gap-1 rounded-md px-2 py-1 text-caption text-fg-muted transition-colors hover:bg-fg/5 hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
       >
         <Sparkle size={14} weight="regular" aria-hidden="true" />

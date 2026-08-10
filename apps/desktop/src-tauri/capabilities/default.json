@@ -10,6 +10,14 @@
     "dialog:allow-open",
     "dialog:allow-save",
     {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        {
+          "url": "https://**"
+        }
+      ]
+    },
+    {
       "identifier": "http:default",
       "allow": [
         {

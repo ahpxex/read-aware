@@ -687,6 +687,7 @@ pub fn run() {
     let mut builder = builder
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_opener::init())
         // Plugin ctx.fetch routes through Rust (no webview CORS constraints);
         // scope below is ACL-gated in capabilities/default.json.
         .plugin(tauri_plugin_http::init())

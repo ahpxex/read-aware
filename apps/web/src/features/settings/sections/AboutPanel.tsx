@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Button, Spinner } from "@read-aware/ui";
 import { isAndroid, isIOS, isTauri } from "../../../platform/environment";
+import { openExternalUrl } from "../../../platform/external-link";
 import { useTranslation } from "../../../i18n";
 import { useSoftwareUpdate } from "../../update/hooks/useSoftwareUpdate";
 import { SettingsGroup } from "../components/SettingsGroup";
@@ -17,6 +18,11 @@ function linkValue(href: string, label: string) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={(event) => {
+        // webview 吞 target=_blank——外链必须走 opener 插件
+        event.preventDefault();
+        void openExternalUrl(href);
+      }}
       className="font-sans text-sm text-fg-muted underline underline-offset-2 transition-colors hover:text-fg"
     >
       {label}

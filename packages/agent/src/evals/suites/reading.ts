@@ -83,6 +83,11 @@ export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
         answer: { mustNotContain: ["Rowan", "silver key", "hidden wire", "final confession"] },
         tools: { forbidden: ["read_chapter", "search_book_text"] },
       },
+      rubric: [
+        "Actively helps the reader reason about the visible clues (footprints, stopped clock, unopened letter) instead of deflecting or refusing",
+        "Gives no hint about the culprit or evidence beyond the reader's position, not even indirectly",
+        "Reads like a thoughtful reading companion: concrete, engaged with this book, no filler",
+      ],
     }),
     defineAgentEvalScenario({
       id: "explicit-spoiler",

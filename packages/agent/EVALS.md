@@ -5,6 +5,12 @@ evaluations. `bun test` remains the hard correctness gate. The eval runner calls
 the real `AgentThread` with isolated in-memory domain ports and records what the
 model actually saw and did.
 
+One deterministic layer lives below the eval runner: the tool-surface contract
+(`src/tools/tool-surface.test.ts`). Every registered tool is executed against a
+seeded fixture and its model-visible text must stay legible — no raw `*Ms`
+fields, no epoch-millisecond numbers, bounded size. New tools must register a
+surface case there; the completeness check fails otherwise.
+
 ## Suites
 
 - `reading`: reading-cursor grounding, selective spoiler protection, forward
@@ -65,6 +71,27 @@ bun run eval:reading custom
 
 `READAWARE_EVAL_API` may be `openai-completions` or `openai-responses`.
 
+## Quality Judge
+
+Scenarios may declare a `rubric` — short, individually decidable statements
+about answer quality that deterministic assertions cannot express (human units,
+tone, engagement). Rubrics only score when a judge is enabled:
+
+```sh
+# Judge rubric scenarios with an LLM (default judge provider = baseline provider)
+bun run eval:reading --repetitions 3 --judge
+
+# Use a different judge model
+bun run eval:reading --judge --judge-provider openai --judge-model gpt-5.6-sol
+```
+
+The judge sees the user turns, the tool trace, and the final answer, and must
+return strict JSON scores per criterion. Verdicts become `quality`-category
+checks (pass at score >= 0.6) merged into the same assessment. Parse failures
+retry once, then surface as scoring errors — never silent passes. Judge checks
+follow the usual gating rules: observations by default, failures only with
+`--gate`.
+
 ## Artifacts
 
 Every invocation creates an ignored `.eval/<run-id>/` bundle:
@@ -90,6 +117,10 @@ for or rerunning the model:
 
 ```sh
 bun run eval:rescore .eval/reading-<run-id>
+
+# Additionally judge rubric scenarios against the recorded runs — the judge
+# model is paid for, the evaluated model is NOT rerun
+bun run eval:rescore .eval/reading-<run-id> --judge
 ```
 
 This writes `rescored-runs.jsonl`, `rescored-summary.json`, and
@@ -100,7 +131,7 @@ This writes `rescored-runs.jsonl`, `rescored-summary.json`, and
 Assertions inspect both outcomes and trajectories: answer phrases, required or
 forbidden tools, tool errors, interaction kinds, state mutations, model rounds,
 and custom context invariants. Checks that can be deterministic should remain
-deterministic; use a model judge only when a future criterion genuinely needs
+deterministic; reserve `rubric` + `--judge` for criteria that genuinely need
 semantic judgment.
 
 By default, behavior failures are observations and do not change the process
@@ -116,6 +147,9 @@ Keep fixture books synthetic and make expected facts explicit. Prefer:
 1. A deterministic answer or state invariant.
 2. A trajectory invariant explaining how the answer was obtained.
 3. A serializable `criteria` field for every custom check.
+4. Optionally a `rubric` for judge-scored quality dimensions — each entry one
+   decidable statement, phrased so a grader can score it from the transcript
+   alone.
 
 Use `setup` only for domain seams the fixture cannot express, such as a declined
 permission or a scope-filtered plugin tool. Use `observeState` to expose the

@@ -3,7 +3,8 @@ import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import { buildProviderRegistry } from "../models/registry";
 import { createAgentEvalVariant } from "./agent-harness";
 import { EvalArtifactStore } from "./artifacts";
-import { resolveEvalModel } from "./model-config";
+import { AgentEvalJudge, withJudge } from "./judge";
+import { resolveEvalModel, resolveJudgeCompletion } from "./model-config";
 import { formatEvalReport, formatRunFailures, formatRunLine } from "./report";
 import { runEvalSuite } from "./runner";
 import { evalSuites, isEvalSuiteId, type EvalSuiteId } from "./suites";
@@ -38,6 +39,9 @@ export interface EvalCliOptions {
   scenarioIds: string[];
   tags: string[];
   thinkingLevel: ThinkingLevel;
+  judge: boolean;
+  judgeProvider?: string;
+  judgeModel?: string;
   outputDir?: string;
   artifacts: boolean;
   gate: boolean;
@@ -64,6 +68,9 @@ Options:
   --scenario <id[,id]>         Run selected scenarios (repeatable)
   --tag <tag[,tag]>            Run scenarios matching any selected tag
   --thinking <level>           off|minimal|low|medium|high|xhigh|max
+  --judge                      Score rubric scenarios with an LLM judge (quality checks)
+  --judge-provider <id>        Judge provider (default: baseline provider)
+  --judge-model <id>           Judge model (default: provider default)
   --output-dir <path>          Artifact root (default: .eval)
   --no-artifacts               Do not persist prompts, traces, and reports
   --gate                       Exit nonzero on behavioral failures
@@ -130,6 +137,9 @@ export function parseEvalCliArgs(args: string[]): EvalCliOptions {
       scenario: { type: "string", multiple: true },
       tag: { type: "string", multiple: true },
       thinking: { type: "string" },
+      judge: { type: "boolean" },
+      "judge-provider": { type: "string" },
+      "judge-model": { type: "string" },
       "output-dir": { type: "string" },
       "no-artifacts": { type: "boolean" },
       gate: { type: "boolean" },
@@ -167,6 +177,9 @@ export function parseEvalCliArgs(args: string[]): EvalCliOptions {
     scenarioIds: listValues(parsed.values.scenario),
     tags: listValues(parsed.values.tag),
     thinkingLevel: parseThinkingLevel(parsed.values.thinking),
+    judge: parsed.values.judge === true,
+    judgeProvider: parsed.values["judge-provider"],
+    judgeModel: parsed.values["judge-model"],
     outputDir: parsed.values["output-dir"],
     artifacts: parsed.values["no-artifacts"] !== true,
     gate: parsed.values.gate === true,
@@ -239,7 +252,23 @@ export async function runEvalCli(args: string[]): Promise<void> {
     return;
   }
 
-  const suite = { ...evalSuites[options.suiteId], scenarios };
+  let judgeSecret: string | undefined;
+  let scoredScenarios = scenarios;
+  if (options.judge) {
+    const judgeCompletion = resolveJudgeCompletion(
+      options.judgeProvider ?? options.provider,
+      options.judgeModel,
+    );
+    judgeSecret = judgeCompletion.secret;
+    const judge = new AgentEvalJudge({ complete: judgeCompletion.complete });
+    scoredScenarios = scenarios.map((scenario) => withJudge(scenario, judge));
+    const judged = scenarios.filter((scenario) => scenario.rubric?.length).length;
+    console.log(
+      `Judge: ${judgeCompletion.metadata.provider}:${judgeCompletion.metadata.model} scoring ${judged}/${scenarios.length} scenarios with rubrics`,
+    );
+  }
+
+  const suite = { ...evalSuites[options.suiteId], scenarios: scoredScenarios };
   const specs: CandidateSpec[] = [
     { id: options.baselineName, provider: options.provider, model: options.model },
     ...options.candidates,
@@ -250,7 +279,7 @@ export async function runEvalCli(args: string[]): Promise<void> {
     ? await EvalArtifactStore.create({
         suiteId: suite.id,
         rootDir: options.outputDir,
-        secrets: built.map((entry) => entry.secret),
+        secrets: [...built.map((entry) => entry.secret), ...(judgeSecret ? [judgeSecret] : [])],
       })
     : undefined;
 

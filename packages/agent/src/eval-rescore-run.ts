@@ -1,16 +1,45 @@
+import { parseArgs } from "node:util";
+import { AgentEvalJudge } from "./evals/judge";
+import { resolveJudgeCompletion } from "./evals/model-config";
 import { rescoreEvalBundle } from "./evals/rescore";
 
-const args = process.argv.slice(2);
-if (args.includes("--help") || args.includes("-h") || args.length === 0) {
-  console.log("Usage: bun run eval:rescore <artifact-directory> [--gate]");
+const parsed = parseArgs({
+  args: process.argv.slice(2),
+  allowPositionals: true,
+  strict: true,
+  options: {
+    gate: { type: "boolean" },
+    judge: { type: "boolean" },
+    "judge-provider": { type: "string" },
+    "judge-model": { type: "string" },
+    help: { type: "boolean", short: "h" },
+  },
+});
+
+const directory = parsed.positionals[0];
+if (parsed.values.help || !directory) {
+  console.log(
+    `Usage: bun run eval:rescore <artifact-directory> [--gate] [--judge] [--judge-provider <id>] [--judge-model <id>]
+
+--judge re-scores rubric scenarios with an LLM judge against the recorded runs
+(no re-run of the evaluated model). Default judge provider is deepseek.`,
+  );
 } else {
-  const gate = args.includes("--gate");
-  const directory = args.find((argument) => !argument.startsWith("-"));
-  if (!directory) throw new Error("artifact directory is required");
-  const result = await rescoreEvalBundle(directory);
+  let judge: AgentEvalJudge | undefined;
+  if (parsed.values.judge) {
+    const completion = resolveJudgeCompletion(
+      parsed.values["judge-provider"] ?? "deepseek",
+      parsed.values["judge-model"],
+    );
+    judge = new AgentEvalJudge({ complete: completion.complete });
+    console.log(`Judge: ${completion.metadata.provider}:${completion.metadata.model}`);
+  }
+  const result = await rescoreEvalBundle(directory, { judge });
   console.log(
     `Rescored ${result.summary.runs} runs: ${result.summary.passed} passed, ${result.summary.failed} failed, ${result.summary.errors} errors`,
   );
   if (result.reportPath) console.log(`Report: ${result.reportPath}`);
-  if (result.summary.errors > 0 || (gate && result.summary.failed > 0)) process.exitCode = 1;
+  if (result.summary.errors > 0 || (parsed.values.gate && result.summary.failed > 0)) {
+    process.exitCode = 1;
+  }
 }

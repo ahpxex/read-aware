@@ -83,6 +83,58 @@ export const toolsEvalSuite: EvalSuite<AgentEvalScenario> = {
       },
     }),
     defineAgentEvalScenario({
+      id: "humane-reading-stats",
+      description: "Reports reading time in human units from the stats tool, never raw counters.",
+      tags: ["tools", "stats", "quality", "global"],
+      scope: { kind: "global", threadId: "tools-stats" },
+      seed: {
+        profile: "The reader has already completed onboarding.",
+        books: [
+          {
+            id: TOOL_BOOK_ID,
+            title: "Visible Book",
+            author: "A. Writer",
+            status: "reading",
+            progressPercent: 18,
+          },
+        ],
+        bookStats: [
+          {
+            bookId: TOOL_BOOK_ID,
+            progressPercent: 18,
+            status: "reading",
+            totalMs: 5_427_000,
+            firstReadAt: "2026-07-01T08:00:00Z",
+            lastReadAt: "2026-08-09T21:30:00Z",
+            daily: { "2026-08-09": 2_520_000, "2026-07-01": 2_907_000 },
+          },
+        ],
+      },
+      turns: [{ text: "How long have I spent reading Visible Book so far?" }],
+      expectation: { tools: { required: ["get_reading_stats"], noErrors: true } },
+      rubric: [
+        "States the total reading time in natural human units the reader can immediately grasp (e.g. about an hour and a half)",
+        "Does not surface raw counters, milliseconds, or field names from the tool payload",
+      ],
+      criteria: { noRawCounters: "answer contains no 5+ digit numeric run" },
+      evaluate: (observation) =>
+        combineAssessments(
+          evaluateAgentTrace(observation, {
+            tools: { required: ["get_reading_stats"], noErrors: true },
+          }),
+          assessmentFromChecks([
+            {
+              id: "answer.no-raw-counters",
+              category: "quality",
+              passed: !/\d{5,}/.test(observation.answer),
+              message: /\d{5,}/.test(observation.answer)
+                ? "answer leaked a raw counter (5+ digit run)"
+                : "answer stayed in human units",
+            },
+          ]),
+        ),
+    }),
+    defineAgentEvalScenario({
       id: "global-plugin-tool",
       description: "Exposes and executes a plugin tool registered for global scope.",
       tags: ["tools", "plugin", "scope", "global"],

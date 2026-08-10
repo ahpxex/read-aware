@@ -1,6 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { formatEvalReport } from "./report";
+import { withJudge, type AgentEvalJudge } from "./judge";
 import { buildEvalSummary } from "./summary";
 import { evalSuites, isEvalSuiteId } from "./suites";
 import type { AgentEvalScenario } from "./agent-harness";
@@ -81,7 +82,15 @@ export async function rescoreEvalRecords<
   };
 }
 
-export async function rescoreEvalBundle(directoryInput: string): Promise<RescoreResult> {
+export interface RescoreBundleOptions {
+  /** 传入后，带 rubric 的场景在重打分时追加 quality checks —— 对历史 bundle 离线评审，不重跑被测模型。 */
+  judge?: AgentEvalJudge;
+}
+
+export async function rescoreEvalBundle(
+  directoryInput: string,
+  options: RescoreBundleOptions = {},
+): Promise<RescoreResult> {
   const directory = resolve(directoryInput);
   const manifest = JSON.parse(
     await readFile(join(directory, "manifest.json"), "utf8"),
@@ -99,7 +108,11 @@ export async function rescoreEvalBundle(directoryInput: string): Promise<Rescore
     .filter(Boolean)
     .map((line) => JSON.parse(line) as EvalRunRecord);
   const variantIds = manifest.plan.variants.map((variant) => variant.id);
-  const suite: EvalSuite<AgentEvalScenario> = evalSuites[suiteId];
+  const registered: EvalSuite<AgentEvalScenario> = evalSuites[suiteId];
+  const judge = options.judge;
+  const suite: EvalSuite<AgentEvalScenario> = judge
+    ? { ...registered, scenarios: registered.scenarios.map((s) => withJudge(s, judge)) }
+    : registered;
   const result = await rescoreEvalRecords(suite, variantIds, records);
   const recordsPath = join(directory, "rescored-runs.jsonl");
   const summaryPath = join(directory, "rescored-summary.json");

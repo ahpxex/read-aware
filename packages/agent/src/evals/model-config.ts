@@ -1,8 +1,11 @@
 import { readPiCliKey } from "../dev-key";
 import type { LlmAccount } from "../models/accounts";
+import { createModelResolver } from "../models/accounts";
+import { createCompleteFn } from "../models/complete";
 import { isCustomOpenAIApi } from "../models/custom-openai";
 import {
   KNOWN_PROVIDERS,
+  buildProviderRegistry,
   type KnownProviderId,
   type ProviderRegistry,
 } from "../models/registry";
@@ -67,4 +70,37 @@ export function resolveEvalModel(
   const modelId = requestedModel?.trim() || catalog.find((model) => model.reasoning)?.id || catalog[0]?.id;
   if (!modelId) throw new Error(`provider ${provider} has no registered model`);
   return { account: { kind: "api-key", provider, apiKey }, modelId };
+}
+
+export interface ResolvedJudgeCompletion {
+  complete: (prompt: string) => Promise<string>;
+  secret: string;
+  metadata: { provider: string; model: string };
+}
+
+/** judge 用的单次非流式补全：与 eval 变体同一套 provider 解析。 */
+export function resolveJudgeCompletion(
+  providerInput: string,
+  requestedModel?: string,
+): ResolvedJudgeCompletion {
+  const registry = buildProviderRegistry();
+  const resolved = resolveEvalModel(registry, providerInput, requestedModel);
+  const completeFn = createCompleteFn(registry, resolved.account, "off");
+  const model = createModelResolver(
+    resolved.account,
+    { smart: resolved.modelId, fast: resolved.modelId },
+    registry,
+  )("smart");
+  return {
+    complete: async (prompt) => {
+      const message = await completeFn(model, {
+        messages: [{ role: "user", content: prompt, timestamp: Date.now() }],
+      });
+      return message.content
+        .flatMap((part) => (part.type === "text" ? [part.text] : []))
+        .join("");
+    },
+    secret: resolved.account.apiKey,
+    metadata: { provider: resolved.account.provider, model: resolved.modelId },
+  };
 }

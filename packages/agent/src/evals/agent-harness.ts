@@ -42,6 +42,8 @@ export interface AgentEvalScenario extends EvalScenario<AgentEvalObservation> {
   scope: ThreadScope;
   seed: InMemorySeed;
   turns: AgentEvalTurn[];
+  /** quality 维度的语义评分标准；仅在 --judge 运行时由 LLM judge 打分。 */
+  rubric?: string[];
   setup?: (context: AgentEvalSetupContext) => void | Promise<void>;
   observeState?: (context: AgentEvalSetupContext) => unknown | Promise<unknown>;
 }
@@ -54,6 +56,8 @@ export interface DefineAgentEvalScenarioOptions {
   seed?: InMemorySeed;
   turns: AgentEvalTurn[];
   expectation?: AgentTraceExpectation;
+  /** quality 评分标准（每条一句可判定的陈述）；写进 run 工件，--judge 时生效。 */
+  rubric?: string[];
   /** Serializable description of custom state or semantic checks. */
   criteria?: JsonValue;
   evaluate?: (observation: AgentEvalObservation) => EvalAssessment | Promise<EvalAssessment>;
@@ -107,6 +111,7 @@ function scenarioInput(options: DefineAgentEvalScenarioOptions): JsonValue {
     seed: options.seed ?? {},
     turns: options.turns,
     expectation: options.expectation ?? {},
+    ...(options.rubric === undefined ? {} : { rubric: options.rubric }),
     ...(options.criteria === undefined ? {} : { criteria: options.criteria }),
   });
 }
@@ -122,6 +127,7 @@ export function defineAgentEvalScenario(
     scope: options.scope,
     seed: options.seed ?? {},
     turns: options.turns,
+    rubric: options.rubric,
     input: scenarioInput(options),
     evaluate: options.evaluate ?? ((observation) => evaluateAgentTrace(observation, expectation)),
     setup: options.setup,

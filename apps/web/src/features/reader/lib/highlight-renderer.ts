@@ -7,6 +7,11 @@ const NAVIGATOR_OVERLAY_PREFIX = "read-aware:navigator:";
 
 const navigatorOverlayKey = (cfiRange: string) => `${NAVIGATOR_OVERLAY_PREFIX}${cfiRange}`;
 
+/** 点击命中检测用：该 overlay 键是否属于导航 wash（而非用户的标注绘制）。 */
+export function isNavigatorOverlayKey(value: unknown): boolean {
+  return typeof value === "string" && value.startsWith(NAVIGATOR_OVERLAY_PREFIX);
+}
+
 /** A note's marker is a neutral dashed underline — quietly distinct from marks. */
 const NOTE_STROKE = "#78716c";
 

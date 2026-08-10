@@ -73,7 +73,6 @@ const meta = {
   args: {
     visible: true,
     mode,
-    targetKey: "chapter-03.xhtml#s41",
     // Placeholder only — FramedNavigatorBar substitutes its live ref.
     containerRef: { current: null },
     canReturn: true,
@@ -84,11 +83,6 @@ const meta = {
     onPrev: () => {},
     onNext: () => {},
     onReturnToCurrent: () => {},
-    onCopy: () => {},
-    onHighlight: () => {},
-    onUnderline: () => {},
-    onAddNote: () => {},
-    onAskAI: () => {},
     onExit: () => {},
     readAloudAvailable: true,
     readAloudPlaying: false,
@@ -100,12 +94,12 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Resting on a unit: stepping, return-to-current, and every action enabled. */
+/** The pure navigation strip — unit actions live in the tap menu on the wash. */
 export const OnUnit: Story = {};
 
-/** No resting unit: unit-scoped actions disabled; stepping and exit stay live. */
+/** Nothing to return to yet: the return-to-current control is disabled. */
 export const NoRestingUnit: Story = {
-  args: { targetKey: null, canReturn: false },
+  args: { canReturn: false },
 };
 
 /** Alternate plugin unit engaged: the quick toggle shows its pressed state. */

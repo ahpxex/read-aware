@@ -1,48 +1,27 @@
 import {
   CaretLeft,
   CaretRight,
-  ChatCircleDots,
-  Check,
-  Copy,
   Crosshair,
   DotsSixVertical,
-  DotsThree,
-  Highlighter,
   Layout,
-  NotePencil,
   SpeakerHigh,
   SpeakerSlash,
-  TextUnderline,
   X,
 } from "@phosphor-icons/react";
-import { useEffect, useRef, useState } from "react";
 import type { ReactNode, RefObject } from "react";
 import { IconButton, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useLocale, useTranslation } from "../../../i18n";
 import { hasCoarsePointer } from "../../../platform/environment";
-import { useAskAiEnabled } from "../../ai/hooks/useAskAiEnabled";
-import { PluginSelectionCluster } from "../../plugins/components/PluginSelectionCluster";
 import { resolvePluginText } from "../../plugins/lib/plugin-i18n";
 import { renderPluginIcon } from "../../plugins/lib/plugin-icons";
 import { resolveReaderModeUnit } from "../../plugins/lib/reader-mode";
-import type {
-  RegisteredReaderMode,
-  SelectionActionInput,
-} from "../../plugins/lib/plugin-types";
+import type { RegisteredReaderMode } from "../../plugins/lib/plugin-types";
 import { useDraggableFloat } from "../hooks/useDraggableFloat";
-
-// Collapsing is a touch-only affordance — desktop has room for the full strip
-// and always shows it. The choice lives for the session only (module scope so
-// it survives the bar remounting between books); a restart returns to the
-// collapsed default rather than writing UI minutiae into storage.
-let expandedCache: boolean | null = null;
 
 type TextUnitNavigatorBarProps = {
   visible: boolean;
   mode: RegisteredReaderMode;
-  /** Identity of the unit the bar acts on; null while none is resting. */
-  targetKey: string | null;
   /** Coordinate space the bar floats in when dragged (the reader root). */
   containerRef: RefObject<HTMLElement | null>;
   /** Whether the navigator has a resting unit to jump back to. */
@@ -61,14 +40,7 @@ type TextUnitNavigatorBarProps = {
   onPrev: () => void;
   onNext: () => void;
   onReturnToCurrent: () => void;
-  onCopy: () => Promise<void> | void;
-  onHighlight: () => void;
-  onUnderline: () => void;
-  onAddNote: () => void;
-  onAskAI: () => void;
   onExit: () => void;
-  /** Resting-unit context for plugin-contributed actions (null hides them). */
-  pluginInput?: SelectionActionInput | null;
   /** Read-aloud (hidden where the webview offers no speech synthesis). */
   readAloudAvailable: boolean;
   readAloudPlaying: boolean;
@@ -114,18 +86,19 @@ function BarButton({
 /**
  * The unit navigator's floating control strip — by default pinned to the
  * bottom center of the reader: step to the previous / next unit, jump back
- * to the resting unit, switch the step unit, plus the selection menu's
- * actions applied to the unit the wash is resting on. The action cluster
- * collapses behind a "more" toggle (collapsed by default on touch screens,
- * where the full strip crowds the page); the choice sticks per device. On
- * coarse-pointer devices the bar keeps only the back-step while tap-to-advance
- * owns the forward step (a tap anywhere on the page), and it grows a grip that
- * drags it anywhere; the spot sticks per device.
+ * to the resting unit, switch the step unit, read aloud, and exit.
+ *
+ * Unit-level ACTIONS (copy / highlight / underline / note / ask AI / plugin
+ * lookups) no longer live here: tapping the resting unit's wash opens them
+ * as an anchored menu right at the sentence — the bar stays a pure
+ * navigation strip, short enough to never crowd a phone screen. On
+ * coarse-pointer devices it keeps only the back-step while tap-to-advance
+ * owns the forward step (a tap anywhere on the page), and it grows a grip
+ * that drags it anywhere; the spot sticks per device.
  */
 export function TextUnitNavigatorBar({
   visible,
   mode,
-  targetKey,
   containerRef,
   canReturn,
   tapToAdvance,
@@ -135,71 +108,21 @@ export function TextUnitNavigatorBar({
   onPrev,
   onNext,
   onReturnToCurrent,
-  onCopy,
-  onHighlight,
-  onUnderline,
-  onAddNote,
-  onAskAI,
   onExit,
-  pluginInput = null,
   readAloudAvailable,
   readAloudPlaying,
   onToggleReadAloud,
 }: TextUnitNavigatorBarProps) {
   const { t } = useTranslation("reader");
   const locale = useLocale();
-  const askEnabled = useAskAiEnabled();
-  const copyResetTimeoutRef = useRef<number | null>(null);
-  const [copied, setCopied] = useState(false);
   const coarsePointer = hasCoarsePointer();
-  const collapsible = coarsePointer;
   // While a page tap steps forward on touch, a next button would only repeat
   // it — the bar carries the back-step alone. Disarm the tap and it returns.
   const showNextStep = !coarsePointer || !tapToAdvance;
-  const [expanded, setExpanded] = useState(() =>
-    collapsible ? expandedCache ?? false : true,
-  );
   const float = useDraggableFloat({ containerRef, controlId: "navigator-bar" });
-
-  useEffect(() => {
-    return () => {
-      if (copyResetTimeoutRef.current != null) {
-        window.clearTimeout(copyResetTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Moving to another unit resets the copy feedback.
-  useEffect(() => {
-    setCopied(false);
-    if (copyResetTimeoutRef.current != null) {
-      window.clearTimeout(copyResetTimeoutRef.current);
-      copyResetTimeoutRef.current = null;
-    }
-  }, [targetKey]);
 
   if (!visible) return null;
 
-  async function handleCopy() {
-    await onCopy();
-    setCopied(true);
-    if (copyResetTimeoutRef.current != null) {
-      window.clearTimeout(copyResetTimeoutRef.current);
-    }
-    copyResetTimeoutRef.current = window.setTimeout(() => {
-      setCopied(false);
-      copyResetTimeoutRef.current = null;
-    }, 1200);
-  }
-
-  function toggleExpanded() {
-    setExpanded((value) => {
-      expandedCache = !value;
-      return !value;
-    });
-  }
-
-  const hasTarget = targetKey != null;
   const activeUnit = resolveReaderModeUnit(mode, unitId);
   const quickUnits = mode.units.filter((unit) => unit.id !== mode.defaultUnitId);
   const prevStepLabel = resolvePluginText(activeUnit.previousLabel, locale);
@@ -292,81 +215,7 @@ export function TextUnitNavigatorBar({
             );
           })}
 
-          {expanded && (
-            <>
-              <BarDivider />
-              <BarButton
-                label={copied ? t("menu.copied") : t("menu.copy")}
-                disabled={!hasTarget}
-                pressed={copied}
-                onClick={() => {
-                  void handleCopy();
-                }}
-                className={actionButtonClass}
-                icon={
-                  copied ? (
-                    <Check size={14} weight="regular" aria-hidden="true" />
-                  ) : (
-                    <Copy size={14} weight="regular" aria-hidden="true" />
-                  )
-                }
-              />
-              <BarButton
-                label={t("menu.highlight")}
-                disabled={!hasTarget}
-                onClick={onHighlight}
-                className={actionButtonClass}
-                icon={<Highlighter size={14} weight="regular" aria-hidden="true" />}
-              />
-              <BarButton
-                label={t("menu.underline")}
-                disabled={!hasTarget}
-                onClick={onUnderline}
-                className={actionButtonClass}
-                icon={<TextUnderline size={14} weight="regular" aria-hidden="true" />}
-              />
-              <BarButton
-                label={t("menu.addNote")}
-                disabled={!hasTarget}
-                onClick={onAddNote}
-                className={actionButtonClass}
-                icon={<NotePencil size={14} weight="regular" aria-hidden="true" />}
-              />
-
-              {askEnabled && (
-                <>
-                  <BarDivider />
-                  <BarButton
-                    label={t("menu.askAi")}
-                    disabled={!hasTarget}
-                    onClick={onAskAI}
-                    className={actionButtonClass}
-                    icon={<ChatCircleDots size={14} weight="regular" aria-hidden="true" />}
-                  />
-                </>
-              )}
-              <PluginSelectionCluster
-                input={hasTarget ? pluginInput : null}
-                divider={<BarDivider />}
-                overflowSide="top"
-              />
-            </>
-          )}
-
           <BarDivider />
-          {collapsible && (
-            <IconButton
-              label={resolvePluginText(
-                expanded ? mode.copy.collapseActions : mode.copy.moreActions,
-                locale,
-              )}
-              size="sm"
-              aria-expanded={expanded}
-              onClick={toggleExpanded}
-              className={cn(actionButtonClass, expanded && "bg-fill-strong text-fg")}
-              icon={<DotsThree size={16} weight="bold" aria-hidden="true" />}
-            />
-          )}
           <BarButton
             label={resolvePluginText(mode.copy.showToolbars, locale)}
             onClick={onToggleToolbars}

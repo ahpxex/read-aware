@@ -39,6 +39,7 @@ import {
 import {
   applyHighlights,
   applyNotes,
+  isNavigatorOverlayKey,
   registerHighlightDrawing,
 } from "../lib/highlight-renderer";
 import { parseBookFile } from "../lib/parse-book";
@@ -510,6 +511,26 @@ export function FoliateReaderView({
   const footnoteStageRef = useRef<HTMLDivElement | null>(null);
   const closeFootnote = useCallback(() => setFootnote(null), []);
 
+  // 逐句模式：点中静息句的 wash → 在点击处开合该句的动作菜单（复制/高亮/
+  // 下划线/笔记/问 AI + 插件 lookup），代替伸到底部工具栏。移动端"够不着"
+  // 的核心修复：动作长在句子上，工具栏只留导航。
+  const [unitMenuAnchor, setUnitMenuAnchor] = useState<SelectionOverlayRect | null>(null);
+  const unitMenuToggleRef = useRef<(doc: Document, x: number, y: number) => void>(() => {});
+  unitMenuToggleRef.current = (doc, clientX, clientY) => {
+    const readerRoot = readerRootRef.current;
+    const frameElement = doc.defaultView?.frameElement;
+    if (!readerRoot || !(frameElement instanceof HTMLElement)) return;
+    setUnitMenuAnchor((open) =>
+      open
+        ? null
+        : clampRectToViewport(
+            { left: clientX, top: clientY, width: 1, height: 1 },
+            frameElement.getBoundingClientRect(),
+            readerRoot.getBoundingClientRect(),
+          ),
+    );
+  };
+
   /** Map an in-book element's rect to reader-viewport coords for anchoring. */
   const anchorRectForElement = useCallback((el: Element): SelectionOverlayRect | null => {
     const readerRoot = readerRootRef.current;
@@ -949,8 +970,18 @@ export function FoliateReaderView({
     if (textUnitTargetKey == null) return;
     setFootnote(null);
     setActiveAnnotation(null);
+    setUnitMenuAnchor(null);
     onTextUnitModeStepRef.current?.();
   }, [textUnitTargetKey]);
+
+  // 句级菜单的其余关闭时机：拉出选区（选区菜单接管）、模式关闭、页移
+  // （锚点随布局失效；步进换句已在上面的 targetKey effect 里关）。
+  useEffect(() => {
+    if (selection) setUnitMenuAnchor(null);
+  }, [selection]);
+  useEffect(() => {
+    if (!textUnitModeEngineActive) setUnitMenuAnchor(null);
+  }, [textUnitModeEngineActive]);
 
   // Latest navigator actions for the stable key handler (see selectionActionsRef).
   const textUnitModeActionsRef = useRef<{
@@ -1489,10 +1520,16 @@ export function FoliateReaderView({
         ?.overlayer?.hitTest({ x: event.clientX, y: event.clientY });
       if (hit && hit[0]) {
         cancelPendingShellOpen();
+        // 命中导航 wash = 点了当前句：开合句级动作菜单（用户标注的命中仍走
+        // show-annotation 的重着色菜单，互不相扰）。
+        if (textUnitModeActiveStateRef.current && isNavigatorOverlayKey(hit[0])) {
+          unitMenuToggleRef.current(doc, event.clientX, event.clientY);
+        }
         return;
       }
       // A tap on empty content dismisses any open recolor menu.
       setActiveAnnotation(null);
+      setUnitMenuAnchor(null);
       if (suppressContentClickRef.current) {
         suppressContentClickRef.current = false;
         cancelPendingShellOpen();
@@ -1863,6 +1900,8 @@ export function FoliateReaderView({
           }
           prevReadingLocationRef.current = { current, cfi };
           textUnitNavigatorRef.current.handleRelocate(detail);
+          // 页移让句级菜单的锚点失效——随位置一起收掉
+          setUnitMenuAnchor(null);
         };
 
         const onLoad = (event: Event) => {
@@ -2056,11 +2095,44 @@ export function FoliateReaderView({
         onAskAI={handleAskAI}
         pluginInput={pluginInputForSource("selection")}
       />
+      {/* 逐句模式的句级菜单：点中当前句的 wash 弹出，动作与选区菜单同一套
+          （含用户在设置里的排布），只是目标换成静息句。 */}
+      {textUnitModeEngineActive && textUnitNavigator.current && (
+        <ReaderSelectionMenu
+          selection={
+            unitMenuAnchor
+              ? {
+                  anchorRect: unitMenuAnchor,
+                  cfiRange: textUnitNavigator.current.cfiRange,
+                  text: textUnitNavigator.current.text,
+                }
+              : null
+          }
+          onCopy={() => copyTargetText(textUnitNavigator.current?.text ?? "")}
+          onHighlight={() => {
+            setUnitMenuAnchor(null);
+            void handleNavigatorMark("highlight");
+          }}
+          onUnderline={() => {
+            setUnitMenuAnchor(null);
+            void handleNavigatorMark("underline");
+          }}
+          onAddNote={() => {
+            setUnitMenuAnchor(null);
+            handleNavigatorAddNote();
+          }}
+          onAskAI={() => {
+            setUnitMenuAnchor(null);
+            handleNavigatorAskAI();
+          }}
+          allowAnnotations={textUnitNavigator.current.cfiRange != null}
+          pluginInput={pluginInputForSource("navigator")}
+        />
+      )}
       {textUnitMode && (
         <TextUnitNavigatorBar
           visible={textUnitModeEngineActive && !isLoading && !error}
           mode={textUnitMode}
-          targetKey={textUnitTargetKey}
           containerRef={readerRootRef}
           canReturn={textUnitNavigator.canReturn}
           tapToAdvance={textUnitModePrefs.tapToAdvance}
@@ -2076,13 +2148,7 @@ export function FoliateReaderView({
           onPrev={textUnitNavigator.prev}
           onNext={textUnitNavigator.next}
           onReturnToCurrent={textUnitNavigator.returnToCurrent}
-          onCopy={() => copyTargetText(textUnitNavigator.current?.text ?? "")}
-          onHighlight={() => { void handleNavigatorMark("highlight"); }}
-          onUnderline={() => { void handleNavigatorMark("underline"); }}
-          onAddNote={handleNavigatorAddNote}
-          onAskAI={handleNavigatorAskAI}
           onExit={() => onExitTextUnitModeRef.current?.()}
-          pluginInput={pluginInputForSource("navigator")}
           readAloudAvailable={readAloud.available}
           readAloudPlaying={readAloud.playing}
           onToggleReadAloud={readAloud.toggle}

@@ -28,8 +28,17 @@ import { useAnchoredMenuPosition } from "../hooks/useAnchoredMenuPosition";
 import type { ReaderSelectionState } from "../lib/selection-overlay";
 import { contributionText } from "../../plugins/lib/plugin-i18n";
 
+/**
+ * 菜单只消费选区的锚点/文本/CFI —— 收窄类型后，逐句模式可以把静息句
+ * 合成为同一形状喂进来，共用整套动作与用户自定义排布。
+ */
+export type ReaderSelectionMenuTarget = Pick<
+  ReaderSelectionState,
+  "anchorRect" | "cfiRange" | "text"
+> & { context?: string };
+
 type ReaderSelectionMenuProps = {
-  selection: ReaderSelectionState | null;
+  selection: ReaderSelectionMenuTarget | null;
   onCopy: () => Promise<void> | void;
   /** One-click highlight (default color) — applied immediately, no extra step. */
   onHighlight?: () => void;

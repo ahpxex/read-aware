@@ -277,7 +277,7 @@ surface。书线程只保留围绕当前书的阅读、正文、标注、记忆�
 |---|---|---|
 | `get_book_overview`, `get_annotations`, `get_reading_stats` | book + global | 当前书或指定书的元数据、标注与阅读统计 |
 | `get_toc`, `read_chapter`, `search_book_text` | book + global | 目录、分片正文与全文检索；叙事作品由 agent 按 cursor 选择已读范围 |
-| `create_note`, `create_highlight`, `update_*`, `delete_annotation` | book + global | 标注写操作；删除由宿主权限 UI 闸住 |
+| `create_annotation`, `edit_annotation`, `delete_annotation` | book + global | 标注写操作（note/highlight 用 kind 判别）；删除由宿主权限 UI 闸住 |
 | `search_memory`, `remember` | book + global | 检索与显式写入长期记忆 |
 | `search_conversation`, `get_recent_turns` | book + global | 历史原话检索与按需倒带 |
 | `list_books`, collection tools, `get_conversation_insights`, `present_books` | global only | 书架组织、跨书摘要和卡片展示 |

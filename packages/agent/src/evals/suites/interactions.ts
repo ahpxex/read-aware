@@ -140,7 +140,7 @@ export const interactionsEvalSuite: EvalSuite<AgentEvalScenario> = {
       },
       turns: [{ text: "Add Favorite This to my favorites." }],
       expectation: {
-        tools: { required: ["list_books", "set_book_starred"], noErrors: true },
+        tools: { required: ["list_books", "update_book"], noErrors: true },
         interactions: { forbiddenKinds: ["question", "permission"] },
       },
       criteria: { book: BOOK_BETA, expected: "starred" },
@@ -148,7 +148,7 @@ export const interactionsEvalSuite: EvalSuite<AgentEvalScenario> = {
       evaluate: (observation) =>
         combineAssessments(
           evaluateAgentTrace(observation, {
-            tools: { required: ["list_books", "set_book_starred"], noErrors: true },
+            tools: { required: ["list_books", "update_book"], noErrors: true },
             interactions: { forbiddenKinds: ["question", "permission"] },
           }),
           bookStateAssessment(observation, BOOK_BETA, "starred"),

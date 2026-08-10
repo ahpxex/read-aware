@@ -29,84 +29,54 @@ function annotationSubject(annotation: AnnotationItem): string {
 }
 
 export function buildAnnotationTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
-  const createNote: AgentTool = {
-    name: "create_note",
-    label: "Create note",
+  const createAnnotation: AgentTool = {
+    name: "create_annotation",
+    label: "Create annotation",
     description:
-      "Create a reading note when the user explicitly asks. It can be unanchored, or anchored when quotedText plus an anchor/chapterHref are known. bookId defaults to the current book.",
+      "Create a note or a highlight when the user explicitly asks. kind=note needs body (quotedText optional); kind=highlight needs text (the exact quoted passage, color optional). Both can be unanchored, or anchored when anchor/chapterHref are known. bookId defaults to the current book.",
     parameters: Type.Object({
-      body: Type.String(),
-      bookId: Type.Optional(Type.String()),
-      quotedText: Type.Optional(Type.String()),
-      anchor: Type.Optional(Type.String()),
-      chapterHref: Type.Optional(Type.String()),
-    }),
-    executionMode: "sequential",
-    execute: async (_id, params) => {
-      const { body, bookId, quotedText, anchor, chapterHref } = params as {
-        body: string;
-        bookId?: string;
-        quotedText?: string;
-        anchor?: string;
-        chapterHref?: string;
-      };
-      if (!body.trim()) throw new Error("note body must not be empty");
-      const target = resolveBookId(scope, bookId);
-      if (!(await deps.library.getBook(target))) throw new Error(`unknown book: ${target}`);
-      return textResult(
-        await deps.annotations.createNote({
-          bookId: target,
-          body: body.trim(),
-          quotedText: quotedText?.trim() || undefined,
-          anchor,
-          chapter: chapterHref,
-        }),
-      );
-    },
-  };
-
-  const updateNote: AgentTool = {
-    name: "update_note",
-    label: "Update note",
-    description: "Replace an existing note's body when the user clearly identifies the note.",
-    parameters: Type.Object({ noteId: Type.String(), body: Type.String() }),
-    executionMode: "sequential",
-    execute: async (_id, params) => {
-      const { noteId, body } = params as { noteId: string; body: string };
-      if (!body.trim()) throw new Error("note body must not be empty");
-      const note = (await deps.annotations.listAnnotations()).find(
-        (annotation) => annotation.id === noteId,
-      );
-      if (!note || note.kind !== "note") throw new Error(`note not found: ${noteId}`);
-      await deps.annotations.updateNote(noteId as Id, body.trim());
-      return textResult({ updated: true, noteId, body: body.trim() });
-    },
-  };
-
-  const createHighlight: AgentTool = {
-    name: "create_highlight",
-    label: "Create highlight",
-    description:
-      "Create a highlight from exact quoted text when the user explicitly asks. Pass anchor/chapterHref when they are known; otherwise the highlight is saved without a location. bookId defaults to the current book.",
-    parameters: Type.Object({
-      text: Type.String(),
-      bookId: Type.Optional(Type.String()),
-      anchor: Type.Optional(Type.String()),
-      chapterHref: Type.Optional(Type.String()),
+      kind: Type.Union([Type.Literal("note"), Type.Literal("highlight")], {
+        description: "note = the user's own words; highlight = exact book text",
+      }),
+      body: Type.Optional(Type.String({ description: "Note body (kind=note)" })),
+      text: Type.Optional(
+        Type.String({ description: "Exact quoted book text (kind=highlight)" }),
+      ),
+      quotedText: Type.Optional(
+        Type.String({ description: "Book text the note refers to (kind=note)" }),
+      ),
       color: Type.Optional(highlightColorSchema),
+      bookId: Type.Optional(Type.String()),
+      anchor: Type.Optional(Type.String()),
+      chapterHref: Type.Optional(Type.String()),
     }),
     executionMode: "sequential",
     execute: async (_id, params) => {
-      const { text, bookId, anchor, chapterHref, color } = params as {
-        text: string;
+      const { kind, body, text, quotedText, color, bookId, anchor, chapterHref } = params as {
+        kind: "note" | "highlight";
+        body?: string;
+        text?: string;
+        quotedText?: string;
+        color?: HighlightColor;
         bookId?: string;
         anchor?: string;
         chapterHref?: string;
-        color?: HighlightColor;
       };
-      if (!text.trim()) throw new Error("highlight text must not be empty");
       const target = resolveBookId(scope, bookId);
       if (!(await deps.library.getBook(target))) throw new Error(`unknown book: ${target}`);
+      if (kind === "note") {
+        if (!body?.trim()) throw new Error("kind=note requires a non-empty body");
+        return textResult(
+          await deps.annotations.createNote({
+            bookId: target,
+            body: body.trim(),
+            quotedText: quotedText?.trim() || undefined,
+            anchor,
+            chapter: chapterHref,
+          }),
+        );
+      }
+      if (!text?.trim()) throw new Error("kind=highlight requires non-empty text");
       return textResult(
         await deps.annotations.createHighlight({
           bookId: target,
@@ -119,28 +89,41 @@ export function buildAnnotationTools(scope: ThreadScope, deps: RuntimeDeps): Age
     },
   };
 
-  const recolorHighlight: AgentTool = {
-    name: "recolor_highlight",
-    label: "Recolor highlight",
-    description: "Change the color of an existing highlight.",
+  const editAnnotation: AgentTool = {
+    name: "edit_annotation",
+    label: "Edit annotation",
+    description:
+      "Edit an existing annotation the user clearly identifies: replace a note's body, or change a highlight's color. Pass the field matching the annotation's kind.",
     parameters: Type.Object({
-      highlightId: Type.String(),
-      color: highlightColorSchema,
+      annotationId: Type.String(),
+      body: Type.Optional(Type.String({ description: "New body (notes only)" })),
+      color: Type.Optional(highlightColorSchema),
     }),
     executionMode: "sequential",
     execute: async (_id, params) => {
-      const { highlightId, color } = params as {
-        highlightId: string;
-        color: HighlightColor;
+      const { annotationId, body, color } = params as {
+        annotationId: string;
+        body?: string;
+        color?: HighlightColor;
       };
-      const highlight = (await deps.annotations.listAnnotations()).find(
-        (annotation) => annotation.id === highlightId,
-      );
-      if (!highlight || highlight.kind !== "highlight") {
-        throw new Error(`highlight not found: ${highlightId}`);
+      if (body === undefined && color === undefined) {
+        throw new Error("pass body (note) or color (highlight)");
       }
-      await deps.annotations.recolorHighlight(highlightId as Id, color);
-      return textResult({ updated: true, highlightId, color });
+      const annotation = (await deps.annotations.listAnnotations()).find(
+        (entry) => entry.id === annotationId,
+      );
+      if (!annotation) throw new Error(`annotation not found: ${annotationId}`);
+      if (annotation.kind === "note") {
+        if (!body?.trim()) throw new Error(`${annotationId} is a note; pass a non-empty body`);
+        await deps.annotations.updateNote(annotationId as Id, body.trim());
+        return textResult({ updated: true, annotationId, body: body.trim() });
+      }
+      if (annotation.kind === "highlight") {
+        if (!color) throw new Error(`${annotationId} is a highlight; pass color`);
+        await deps.annotations.recolorHighlight(annotationId as Id, color);
+        return textResult({ updated: true, annotationId, color });
+      }
+      throw new Error(`${annotationId} is a recorded question and cannot be edited`);
     },
   };
 
@@ -179,5 +162,5 @@ export function buildAnnotationTools(scope: ThreadScope, deps: RuntimeDeps): Age
     },
   };
 
-  return [createNote, updateNote, createHighlight, recolorHighlight, deleteAnnotation];
+  return [createAnnotation, editAnnotation, deleteAnnotation];
 }

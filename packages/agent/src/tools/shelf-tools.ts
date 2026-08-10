@@ -4,6 +4,7 @@ import type { Id } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { threadScopeKey } from "../thread-scope";
+import { presentBookStats, presentStatsOverview } from "./format-stats";
 import { textResult } from "./tool-result";
 import { requestUserInteraction } from "./user-interaction";
 
@@ -36,7 +37,7 @@ export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentToo
     name: "get_reading_stats",
     label: "Reading stats",
     description:
-      "Get active reading time and progress. With bookId, returns that book; without it, returns the whole-shelf aggregate and every book's stats. bookId defaults to the current book in a book thread, so pass allBooks=true there for the aggregate.",
+      "Get active reading time and progress, with durations already formatted for the reader (quote them as given — never invent millisecond numbers). With bookId, returns that book; without it, returns the whole-shelf aggregate and every book's stats. bookId defaults to the current book in a book thread, so pass allBooks=true there for the aggregate.",
     parameters: Type.Object({
       bookId: Type.Optional(Type.String()),
       allBooks: Type.Optional(
@@ -51,131 +52,116 @@ export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentToo
       if (target) {
         const stats = await deps.library.getBookStats(target as Id);
         if (!stats) throw new Error(`unknown book: ${target}`);
-        return textResult(stats);
+        return textResult(presentBookStats(stats));
       }
       const [overview, books] = await Promise.all([
         deps.library.getStatsOverview(),
         deps.library.listBookStats(),
       ]);
-      return textResult({ overview, books });
+      return textResult({
+        overview: presentStatsOverview(overview),
+        books: books.map(presentBookStats),
+      });
     },
   };
 
-  const editBookMetadata: AgentTool = {
-    name: "edit_book_metadata",
-    label: "Edit book metadata",
+  const updateBook: AgentTool = {
+    name: "update_book",
+    label: "Update book",
     description:
-      "Change a book's title and/or author when the user explicitly asks. bookId defaults to the current book.",
+      "Update a shelf book when the user explicitly asks: change title/author, star or unstar it, mark it finished or back to reading. Pass only the fields the user asked to change. bookId defaults to the current book.",
     parameters: Type.Object({
       bookId: Type.Optional(Type.String()),
-      title: Type.Optional(Type.String()),
-      author: Type.Optional(Type.String()),
+      title: Type.Optional(Type.String({ description: "New title" })),
+      author: Type.Optional(Type.String({ description: "New author" })),
+      starred: Type.Optional(Type.Boolean({ description: "Add to / remove from favorites" })),
+      finished: Type.Optional(
+        Type.Boolean({ description: "Mark finished, or false to resume reading" }),
+      ),
     }),
     executionMode: "sequential",
     execute: async (_id, params) => {
-      const { bookId, title, author } = params as {
+      const { bookId, title, author, starred, finished } = params as {
         bookId?: string;
         title?: string;
         author?: string;
+        starred?: boolean;
+        finished?: boolean;
       };
-      if (title === undefined && author === undefined) {
-        throw new Error("title or author is required");
+      if (
+        title === undefined &&
+        author === undefined &&
+        starred === undefined &&
+        finished === undefined
+      ) {
+        throw new Error("pass at least one of title, author, starred, finished");
       }
       const target = resolveBookId(scope, bookId);
       if (!(await deps.library.getBook(target))) throw new Error(`unknown book: ${target}`);
-      await deps.library.editBookMetadata(target, { title, author });
-      return textResult({ updated: true, bookId: target, title, author });
+      if (title !== undefined || author !== undefined) {
+        await deps.library.editBookMetadata(target, { title, author });
+      }
+      if (starred !== undefined) await deps.library.setBookStarred(target, starred);
+      if (finished !== undefined) await deps.library.setBookFinished(target, finished);
+      return textResult({
+        updated: true,
+        bookId: target,
+        ...(title !== undefined ? { title } : {}),
+        ...(author !== undefined ? { author } : {}),
+        ...(starred !== undefined ? { starred } : {}),
+        ...(finished !== undefined ? { finished } : {}),
+      });
     },
   };
 
-  const setBookStarred: AgentTool = {
-    name: "set_book_starred",
-    label: "Update favorite",
+  const manageCollection: AgentTool = {
+    name: "manage_collection",
+    label: "Manage collections",
     description:
-      "Add or remove a book from favorites when the user asks. bookId defaults to the current book.",
+      "Create, rename, or fill shelf collections. action=create needs name; action=rename needs collectionId + name; action=assign needs bookIds + collectionId (null collectionId removes the books from any collection). Deleting a collection is a separate tool.",
     parameters: Type.Object({
-      starred: Type.Boolean(),
-      bookId: Type.Optional(Type.String()),
+      action: Type.Union(
+        [Type.Literal("create"), Type.Literal("rename"), Type.Literal("assign")],
+        { description: "Which collection operation to perform" },
+      ),
+      name: Type.Optional(Type.String({ description: "Collection name (create / rename)" })),
+      collectionId: Type.Optional(
+        Type.Union([Type.String(), Type.Null()], {
+          description: "Target collection (rename / assign); null in assign ungroups the books",
+        }),
+      ),
+      bookIds: Type.Optional(
+        Type.Array(Type.String(), { minItems: 1, maxItems: 100, description: "Books to assign" }),
+      ),
     }),
     executionMode: "sequential",
     execute: async (_id, params) => {
-      const { bookId, starred } = params as { bookId?: string; starred: boolean };
-      const target = resolveBookId(scope, bookId);
-      if (!(await deps.library.getBook(target))) throw new Error(`unknown book: ${target}`);
-      await deps.library.setBookStarred(target, starred);
-      return textResult({ updated: true, bookId: target, starred });
-    },
-  };
-
-  const setBookFinished: AgentTool = {
-    name: "set_book_finished",
-    label: "Update reading status",
-    description:
-      "Mark a book finished or undo that explicit verdict when the user asks. bookId defaults to the current book.",
-    parameters: Type.Object({
-      finished: Type.Boolean(),
-      bookId: Type.Optional(Type.String()),
-    }),
-    executionMode: "sequential",
-    execute: async (_id, params) => {
-      const { bookId, finished } = params as { bookId?: string; finished: boolean };
-      const target = resolveBookId(scope, bookId);
-      if (!(await deps.library.getBook(target))) throw new Error(`unknown book: ${target}`);
-      await deps.library.setBookFinished(target, finished);
-      return textResult({ updated: true, bookId: target, finished });
-    },
-  };
-
-  const createCollection: AgentTool = {
-    name: "create_collection",
-    label: "Create collection",
-    description: "Create a shelf collection with the name the user requested.",
-    parameters: Type.Object({ name: Type.String() }),
-    executionMode: "sequential",
-    execute: async (_id, params) => {
-      const name = (params as { name: string }).name.trim();
-      if (!name) throw new Error("collection name must not be empty");
-      return textResult(await deps.library.createCollection(name));
-    },
-  };
-
-  const renameCollection: AgentTool = {
-    name: "rename_collection",
-    label: "Rename collection",
-    description: "Rename an existing shelf collection when the target is unambiguous.",
-    parameters: Type.Object({
-      collectionId: Type.String(),
-      name: Type.String(),
-    }),
-    executionMode: "sequential",
-    execute: async (_id, params) => {
-      const { collectionId, name: rawName } = params as { collectionId: string; name: string };
-      const name = rawName.trim();
-      if (!name) throw new Error("collection name must not be empty");
-      const collection = (await deps.library.listCollections()).find(
-        (entry) => String(entry.id) === collectionId,
-      );
-      if (!collection) throw new Error(`unknown collection: ${collectionId}`);
-      await deps.library.renameCollection(collectionId, name);
-      return textResult({ updated: true, collectionId, name });
-    },
-  };
-
-  const assignBooks: AgentTool = {
-    name: "assign_books_to_collection",
-    label: "Organize books",
-    description:
-      "Assign one or more books to a shelf collection. Pass collectionId=null to remove them from any collection.",
-    parameters: Type.Object({
-      bookIds: Type.Array(Type.String(), { minItems: 1, maxItems: 100 }),
-      collectionId: Type.Union([Type.String(), Type.Null()]),
-    }),
-    executionMode: "sequential",
-    execute: async (_id, params) => {
-      const { bookIds, collectionId } = params as {
-        bookIds: string[];
-        collectionId: string | null;
+      const { action, name: rawName, collectionId, bookIds } = params as {
+        action: "create" | "rename" | "assign";
+        name?: string;
+        collectionId?: string | null;
+        bookIds?: string[];
       };
+      if (action === "create") {
+        const name = rawName?.trim();
+        if (!name) throw new Error("create requires a non-empty name");
+        return textResult(await deps.library.createCollection(name));
+      }
+      if (action === "rename") {
+        const name = rawName?.trim();
+        if (!name) throw new Error("rename requires a non-empty name");
+        if (typeof collectionId !== "string") throw new Error("rename requires collectionId");
+        const collection = (await deps.library.listCollections()).find(
+          (entry) => String(entry.id) === collectionId,
+        );
+        if (!collection) throw new Error(`unknown collection: ${collectionId}`);
+        await deps.library.renameCollection(collectionId, name);
+        return textResult({ updated: true, collectionId, name });
+      }
+      if (!bookIds?.length) throw new Error("assign requires bookIds");
+      if (collectionId === undefined) {
+        throw new Error("assign requires collectionId (null to ungroup)");
+      }
       const uniqueBookIds = [...new Set(bookIds)] as Id[];
       const knownBooks = new Set((await deps.library.listBooks()).map((book) => String(book.id)));
       const unknown = uniqueBookIds.filter((bookId) => !knownBooks.has(String(bookId)));
@@ -252,24 +238,14 @@ export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentToo
   };
 
   if (scope.kind === "book") {
-    return [
-      getReadingStats,
-      editBookMetadata,
-      setBookStarred,
-      setBookFinished,
-      deleteBook,
-    ];
+    return [getReadingStats, updateBook, deleteBook];
   }
 
   return [
     listCollections,
     getReadingStats,
-    editBookMetadata,
-    setBookStarred,
-    setBookFinished,
-    createCollection,
-    renameCollection,
-    assignBooks,
+    updateBook,
+    manageCollection,
     deleteBook,
     deleteCollection,
   ];

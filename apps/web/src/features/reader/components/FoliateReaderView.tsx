@@ -55,6 +55,7 @@ import { ReaderAnnotationMenu } from "./ReaderAnnotationMenu";
 import { ReaderFootnotePopover } from "./ReaderFootnotePopover";
 import { TextUnitNavigatorBar } from "./TextUnitNavigatorBar";
 import { ReaderPageTurnControls } from "./ReaderPageTurnControls";
+import { ReaderSelectionHighlight } from "./ReaderSelectionHighlight";
 import { ReaderSelectionMenu } from "./ReaderSelectionMenu";
 import { ReaderCompletionScreen } from "./ReaderCompletionScreen";
 import { NoteEditor } from "../../annotations/components/NoteEditor";
@@ -64,7 +65,7 @@ import {
   listHighlights,
   listNotes,
 } from "../../annotations/lib/annotation-db";
-import { hasCoarsePointer, suppressNativeContextMenu } from "../../../platform/environment";
+import { hasCoarsePointer, isIOS, suppressNativeContextMenu } from "../../../platform/environment";
 import {
   forwardKeyDownToApp,
   isEditableKeyTarget,
@@ -755,6 +756,9 @@ export function FoliateReaderView({
     selectionRef.current = nextSelection;
     setSelection(nextSelection);
     if (suppressContentClick) armContentClickSuppression();
+    // iOS：原生选中菜单会和 app 的选择菜单叠成双份（#10）。捕获完成后立刻
+    // 清掉原生选区——菜单没了依附；高亮由 ReaderSelectionHighlight 自绘补回。
+    if (isIOS()) clearNativeSelectionRef.current?.();
 
     return true;
   }, [armContentClickSuppression, clearSelection]);
@@ -2100,6 +2104,7 @@ export function FoliateReaderView({
         onPrev={() => void turnPage(-1)}
         onNext={() => void turnPage(1)}
       />
+      {isIOS() && <ReaderSelectionHighlight selection={selection} />}
       <ReaderSelectionMenu
         selection={selection}
         onCopy={() => copyTargetText(selectionRef.current?.text ?? "")}

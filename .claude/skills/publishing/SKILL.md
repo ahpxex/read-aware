@@ -195,6 +195,10 @@ CI 的每个 job 都带 `generate_release_notes: true`，会把 release body 追
   会把回退结果喂进 CDN 缓存，之后一段时间持续返回旧首页，看起来像"部署
   失败"，其实文件早就在了（v0.3.0 实测）。判据用页面标题或版本号字样，
   被缓存住就带 `?bust=$RANDOM` 重取。
+- **curl 验证的正确姿势**：`curl -sL --compressed -x http://127.0.0.1:7890 <url>`。
+  三个坑都踩过（v0.4.0）：直连被墙返回空 body、`/changelog` 是 308 跳
+  `/changelog/`（不带 `-L` 只有空响应）、不带 `--compressed` 可能拿到压缩
+  字节。空 grep ≠ 未部署——先看 `-w '%{http_code} %{size_download}'`。
 
 ## 7. 收尾汇报
 

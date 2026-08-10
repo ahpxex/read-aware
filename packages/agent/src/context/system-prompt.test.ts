@@ -33,6 +33,34 @@ describe("book system prompt", () => {
     expect(prompt).not.toContain("present them as cards");
   });
 
+  test("the reading position line is unconditional, honest about the unknown state", () => {
+    const known = buildSystemPrompt(
+      { kind: "book", bookId: "book-1" as Id },
+      {
+        book: { id: "book-1" as Id, title: "The Example", status: "reading", progressPercent: 40 },
+        currentChapter: { index: 4, title: "The Turn" },
+      },
+    );
+    expect(known).toContain(
+      'Reading position: about 40% through the book; currently in chapter #4 ("The Turn")',
+    );
+
+    const progressOnly = buildSystemPrompt(
+      { kind: "book", bookId: "book-1" as Id },
+      { book: { id: "book-1" as Id, title: "The Example", status: "reading", progressPercent: 40 } },
+    );
+    expect(progressOnly).toContain("Reading position: about 40% through the book.");
+    expect(progressOnly).toContain("The current chapter is not identified");
+
+    const unknown = buildSystemPrompt(
+      { kind: "book", bookId: "book-1" as Id },
+      { book: { id: "book-1" as Id, title: "The Example", status: "reading" } },
+    );
+    expect(unknown).toContain("Reading position: not recorded.");
+    expect(unknown).toContain("ask the reader where they are");
+    expect(unknown).toContain("cannot add position information beyond this line");
+  });
+
   test("tells the model when the reader has marked the book finished", () => {
     const prompt = buildSystemPrompt(
       { kind: "book", bookId: "book-1" as Id },

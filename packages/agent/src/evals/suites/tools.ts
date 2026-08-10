@@ -239,16 +239,36 @@ export const toolsEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "toc-chapter-economy",
-      description: "Answers a chapter question via TOC + one targeted read, not a book scan.",
+      description: "Answers a chapter recap via TOC + one targeted read, not a book scan.",
       tags: ["tools", "trajectory", "economy", "book"],
       scope: { kind: "book", bookId: ECONOMY_BOOK_ID },
       seed: {
         books: [
-          { id: ECONOMY_BOOK_ID, title: "The Salt Road", author: "T. Merch", status: "reading" },
+          {
+            id: ECONOMY_BOOK_ID,
+            title: "The Salt Road",
+            author: "T. Merch",
+            status: "reading",
+            progressPercent: 75,
+          },
         ],
         chapters: { [ECONOMY_BOOK_ID]: ECONOMY_CHAPTERS },
       },
-      turns: [{ text: "What happens in chapter 3?" }],
+      turns: [
+        {
+          // 真实产品形态：书线程消息几乎总带游标。读者在第 5 章，
+          // 第 3 章是已读回顾——没有任何位置或剧透焦虑需要工具去解。
+          text: "What happens in chapter 3?",
+          readingCursor: {
+            chapter: "c5.xhtml",
+            chapterTitle: "Night Halt",
+            bookProgress: 0.75,
+            chapterProgress: 0.3,
+            visibleText:
+              "Around the fire, Ibra reflects on family: her brother's debt bound them tighter than any contract.",
+          },
+        },
+      ],
       expectation: {
         answer: { mustContain: ["ledger"] },
         tools: { required: ["read_chapter"], noErrors: true, maxCalls: 3 },
@@ -291,6 +311,38 @@ export const toolsEvalSuite: EvalSuite<AgentEvalScenario> = {
           ]),
         );
       },
+    }),
+    defineAgentEvalScenario({
+      id: "toc-chapter-position-unknown",
+      description: "With no cursor and no recorded position, asks the reader instead of probing status tools.",
+      tags: ["tools", "trajectory", "position", "book"],
+      scope: { kind: "book", bookId: ECONOMY_BOOK_ID },
+      seed: {
+        books: [
+          { id: ECONOMY_BOOK_ID, title: "The Salt Road", author: "T. Merch", status: "reading" },
+        ],
+        chapters: { [ECONOMY_BOOK_ID]: ECONOMY_CHAPTERS },
+      },
+      // 位置未知协议：问读者，别钓状态工具。读者答"读完第 3 章了"后应完成回答。
+      setup: ({ deps, stores }) => {
+        deps.interactions.request = async (request) => {
+          stores.interactions.push(request);
+          return { text: "I've already finished chapter 3 — go ahead." };
+        };
+      },
+      turns: [{ text: "What happens in chapter 3?" }],
+      expectation: {
+        answer: { mustContain: ["ledger"] },
+        tools: {
+          required: ["read_chapter"],
+          forbidden: ["get_book_overview", "get_reading_stats"],
+          noErrors: true,
+        },
+        interactions: { requiredKinds: ["question"] },
+      },
+      rubric: [
+        "Asks one concise question about the reader's position (or spoiler tolerance) before recapping, then answers fully once cleared",
+      ],
     }),
     defineAgentEvalScenario({
       id: "missing-book-no-false-success",

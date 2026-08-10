@@ -28,7 +28,7 @@ export function buildThreadTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
     label: "Book overview",
     description:
       scope.kind === "book"
-        ? "Get one book's metadata and reading progress. The system prompt already states the current book's title, author, and progress — call this only when the user asks about status or about another book. bookId defaults to the current book."
+        ? 'Get one book\'s metadata and reading progress. For the CURRENT book this adds nothing: the system prompt\'s "Current book" and "Reading position" lines already carry everything (including an explicit note when the position is not recorded). Call it only for another book or when the user asks about status. bookId defaults to the current book.'
         : "Get one book's metadata and reading progress. bookId is required; resolve it with list_books first.",
     parameters:
       scope.kind === "book"

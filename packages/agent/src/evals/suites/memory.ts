@@ -123,10 +123,29 @@ export const memoryEvalSuite: EvalSuite<AgentEvalScenario> = {
       tags: ["memory", "restraint"],
       scope: { kind: "book", bookId: MEMORY_BOOK_ID },
       seed: {
-        books: [{ id: MEMORY_BOOK_ID, title: "Memory and Reading", status: "reading" }],
+        books: [
+          {
+            id: MEMORY_BOOK_ID,
+            title: "Memory and Reading",
+            status: "reading",
+            progressPercent: 34,
+          },
+        ],
         profile: "The reader has already completed onboarding.",
       },
-      turns: [{ text: "Nice weather today. Anyway, where were we — let's keep going." }],
+      turns: [
+        {
+          // 真实形态：书内闲聊自带游标，位置已知——"接着来"不需要任何工具
+          text: "Nice weather today. Anyway, where were we — let's keep going.",
+          readingCursor: {
+            chapter: "m-ch2.xhtml",
+            chapterTitle: "Working Memory",
+            bookProgress: 0.34,
+            chapterProgress: 0.6,
+            visibleText: "Rehearsal keeps an item alive in the phonological loop.",
+          },
+        },
+      ],
       expectation: {
         tools: { forbidden: ["remember"] },
         interactions: { forbiddenKinds: ["question", "permission"] },

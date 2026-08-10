@@ -45,7 +45,7 @@ function readingPositionLine(input: SystemPromptInput): string {
     );
   }
   if (parts.length === 0) {
-    return 'Reading position: not recorded. A live <reading_cursor> block on the reader\'s newest message is the authoritative position when present. If it is absent: when the reader explicitly asks about a specific chapter or passage, answer but open with a one-line caution that it spoils anything they have not reached; when spoiler safety otherwise depends on the position, ask the reader where they are. get_book_overview and get_reading_stats cannot add position information beyond this line.';
+    return 'Reading position: not recorded. A live <reading_cursor> block on the reader\'s newest message is the authoritative position when present. If it is absent: when the reader explicitly asks about a specific chapter or passage, answer — but your FIRST sentence must caution that this spoils anything they have not reached; when spoiler safety otherwise depends on the position, ask the reader where they are. get_book_overview and get_reading_stats cannot add position information beyond this line.';
   }
   const protocol = input.currentChapter
     ? ""

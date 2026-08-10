@@ -135,8 +135,8 @@ export const memoryEvalSuite: EvalSuite<AgentEvalScenario> = {
       },
       turns: [
         {
-          // 真实形态：书内闲聊自带游标，位置已知——"接着来"不需要任何工具
-          text: "Nice weather today. Anyway, where were we — let's keep going.",
+          // 纯闲聊（不含任何隐含问题——"where were we"是个真问题，不属于这个场景）
+          text: "Nice weather today — reading on the balcony feels great.",
           readingCursor: {
             chapter: "m-ch2.xhtml",
             chapterTitle: "Working Memory",

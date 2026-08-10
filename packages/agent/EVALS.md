@@ -98,6 +98,11 @@ bun run eval:reading --repetitions 3 --judge
 bun run eval:reading --judge --judge-provider openai --judge-model gpt-5.6-sol
 ```
 
+With `--judge` on, EVERY scenario is additionally scored against a global
+quality rubric (directness / no filler, and companion-grade prose) — structure
+passing while the prose is mediocre now shows up as a failing quality check.
+Scenario-specific rubrics stack on top of the global one.
+
 The judge sees the user turns, the tool trace, and the final answer, and must
 return strict JSON scores per criterion. Verdicts become `quality`-category
 checks (pass at score >= 0.6) merged into the same assessment. Parse failures

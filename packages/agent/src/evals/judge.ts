@@ -156,13 +156,21 @@ export class AgentEvalJudge {
   }
 }
 
-/** 给带 rubric 的场景套上 judge：确定性断言先跑，quality checks 合并进同一份 assessment。 */
+/**
+ * 全局质量 rubric：结构达标 ≠ 回答好。judge 开启时每个场景（不只带自定义
+ * rubric 的）都按这两条评非结构化质量——直接性与文风详略。
+ */
+export const GLOBAL_QUALITY_RUBRIC = [
+  "The answer directly addresses what the reader asked, with no filler, no restating of the question, and no unnecessary hedging or meta-commentary about tools",
+  "The prose reads like a thoughtful reading companion: concrete, well-organized, and no longer than the ask warrants",
+];
+
+/** judge 套在每个场景上：自定义 rubric（若有）+ 全局质量 rubric，与确定性断言合并。 */
 export function withJudge(
   scenario: AgentEvalScenario,
   judge: AgentEvalJudge,
 ): AgentEvalScenario {
-  if (!scenario.rubric?.length) return scenario;
-  const rubric = scenario.rubric;
+  const rubric = [...(scenario.rubric ?? []), ...GLOBAL_QUALITY_RUBRIC];
   const base = scenario.evaluate;
   return {
     ...scenario,

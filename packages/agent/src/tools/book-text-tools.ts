@@ -23,15 +23,23 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps): Agent
     name: "get_toc",
     label: "Table of contents",
     description:
-      "Get a book's table of contents (chapter index, title, and text length in chars — one read_chapter part covers 12000 chars, so you can budget how many parts a chapter needs). A TOC does not prove whether a topic appears in the prose: if the reader asks you to check coverage, continue with search_book_text or read_chapter in this same turn instead of offering to look later. Empty when the book's text has not been extracted. bookId defaults to the current book.",
+      "Get a book's table of contents. Each entry carries chapterIndex (what read_chapter takes) AND chapterNumber (how the reader counts, 1-based): when the reader says \"chapter N\", find the entry whose chapterNumber is N and pass its chapterIndex — never do the arithmetic yourself. chars = text length (one read_chapter part covers 12000 chars). A TOC does not prove whether a topic appears in the prose: if the reader asks you to check coverage, continue with search_book_text or read_chapter in this same turn instead of offering to look later. Empty when the book's text has not been extracted. bookId defaults to the current book.",
     parameters: Type.Object({
       bookId: Type.Optional(Type.String()),
     }),
     execute: async (_id, params) => {
       const { bookId } = params as { bookId?: string };
       const toc = await deps.bookText.getToc(resolveBookId(bookId));
-      // hrefs 是运行时的反查键（阅读位置 → 章节），对模型是纯噪音
-      return textResult(toc.map(({ index, title, chars }) => ({ index, title, chars })));
+      // hrefs 是运行时的反查键（阅读位置 → 章节），对模型是纯噪音。
+      // chapterNumber 让"第 N 章 → index"从心算变成查表——off-by-one 的根除。
+      return textResult(
+        toc.map(({ index, title, chars }) => ({
+          chapterIndex: index,
+          chapterNumber: index + 1,
+          title,
+          chars,
+        })),
+      );
     },
   };
 
@@ -43,7 +51,7 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps): Agent
     parameters: Type.Object({
       chapterIndex: Type.Number({
         description:
-          '0-based index from get_toc — the reader\'s "chapter N" is usually index N-1. Confirm against the TOC title before answering, and name the chapter as the reader numbers it.',
+          "0-based chapterIndex copied from the get_toc entry (match the reader's \"chapter N\" against get_toc's chapterNumber field — do not compute N-1 yourself). Name the chapter to the reader by its chapterNumber and title.",
       }),
       part: Type.Optional(Type.Number({ description: "Window index, default 0" })),
       bookId: Type.Optional(Type.String()),

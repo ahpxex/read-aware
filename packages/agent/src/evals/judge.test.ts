@@ -118,8 +118,21 @@ describe("withJudge", () => {
     rubric: RUBRIC,
   });
 
-  test("combines deterministic checks with judge quality checks", async () => {
-    const judge = new AgentEvalJudge({ complete: async () => verdictJson([1, 1]) });
+  test("combines deterministic checks with scenario + global quality criteria", async () => {
+    const prompts: string[] = [];
+    const judge = new AgentEvalJudge({
+      complete: async (prompt) => {
+        prompts.push(prompt);
+        // 自定义 2 条 + 全局 2 条
+        return JSON.stringify({
+          criteria: [1, 1, 1, 1].map((score, index) => ({
+            criterion: `c${index}`,
+            score,
+            rationale: "ok",
+          })),
+        });
+      },
+    });
     const wrapped = withJudge(base, judge);
     const assessment = await wrapped.evaluate(
       observation("It took about 1h 30m.") as unknown as AgentEvalObservation,
@@ -127,10 +140,12 @@ describe("withJudge", () => {
     const ids = assessment.checks.map((check) => check.id);
     expect(ids).toContain("answer.contains.0");
     expect(ids).toContain("quality.judge.0");
+    expect(ids).toContain("quality.judge.3");
+    expect(prompts[0]).toContain("thoughtful reading companion");
     expect(assessment.passed).toBe(true);
   });
 
-  test("leaves rubric-less scenarios untouched", () => {
+  test("rubric-less scenarios still get the global quality rubric", async () => {
     const plain = defineAgentEvalScenario({
       id: "no-rubric",
       description: "plain",
@@ -138,10 +153,21 @@ describe("withJudge", () => {
       turns: [{ text: "hi" }],
     });
     const judge = new AgentEvalJudge({
-      complete: async () => {
-        throw new Error("must not be called");
-      },
+      complete: async () =>
+        JSON.stringify({
+          criteria: [
+            { criterion: "direct", score: 1, rationale: "ok" },
+            { criterion: "prose", score: 0.4, rationale: "meandering" },
+          ],
+        }),
     });
-    expect(withJudge(plain, judge)).toBe(plain);
+    const wrapped = withJudge(plain, judge);
+    expect(wrapped).not.toBe(plain);
+    const assessment = await wrapped.evaluate(
+      observation("hello there") as unknown as AgentEvalObservation,
+    );
+    const quality = assessment.checks.filter((check) => check.id.startsWith("quality.judge"));
+    expect(quality).toHaveLength(2);
+    expect(quality[1]?.passed).toBe(false);
   });
 });

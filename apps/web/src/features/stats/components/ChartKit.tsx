@@ -20,6 +20,13 @@ export function barFill(ms: number, emphasized: boolean): string {
 /** Recharts cursor highlight behind the hovered bar. */
 export const BAR_CURSOR = { fill: "var(--color-fill)", opacity: 0.6 } as const;
 
+/**
+ * Shared plot margins for every stats bar chart. `useActiveBar` maps click
+ * coordinates onto bar columns with these same numbers, so charts must not
+ * override them ad hoc.
+ */
+export const CHART_MARGIN = { top: 6, right: 2, bottom: 0, left: 2 } as const;
+
 type ChartRow = { ms: number; sub?: string; caption?: string };
 
 type DurationTooltipProps = {

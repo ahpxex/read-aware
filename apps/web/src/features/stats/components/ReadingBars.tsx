@@ -1,7 +1,7 @@
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useActiveBar } from "../hooks/useActiveBar";
 import type { StatsBar } from "../lib/reading-insights";
-import { BAR_CURSOR, barFill, DurationTooltip, INK } from "./ChartKit";
+import { BAR_CURSOR, barFill, CHART_MARGIN, DurationTooltip, INK } from "./ChartKit";
 
 type ReadingBarsProps = {
   bars: StatsBar[];
@@ -18,7 +18,6 @@ type ReadingBarsProps = {
  */
 export function ReadingBars({ bars, height = 160, className }: ReadingBarsProps) {
   const dense = bars.length > 14;
-  const { onChartClick, isEmphasized } = useActiveBar();
 
   const data = bars.map((bar) => ({
     key: bar.key,
@@ -28,13 +27,14 @@ export function ReadingBars({ bars, height = 160, className }: ReadingBarsProps)
     caption: bar.key,
   }));
   const labelByKey = new Map(data.map((d) => [d.key, d.label]));
+  const { onChartClick, isEmphasized } = useActiveBar(data.map((d) => d.key));
 
   return (
     <div className={className} style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
-          margin={{ top: 6, right: 2, bottom: 0, left: 2 }}
+          margin={CHART_MARGIN}
           barCategoryGap={dense ? "12%" : "22%"}
           onClick={onChartClick}
         >

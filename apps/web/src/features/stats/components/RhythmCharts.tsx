@@ -3,7 +3,7 @@ import { Caption } from "@read-aware/ui";
 import { formatHour, useTranslation } from "../../../i18n";
 import { useActiveBar } from "../hooks/useActiveBar";
 import type { WeekdayBucket } from "../lib/reading-insights";
-import { BAR_CURSOR, barFill, DurationTooltip, INK } from "./ChartKit";
+import { BAR_CURSOR, barFill, CHART_MARGIN, DurationTooltip, INK } from "./ChartKit";
 
 const CHART_H = 110;
 /** Hour-axis ticks (others stay unlabelled). */
@@ -16,7 +16,6 @@ const HOUR_TICKS = ["0", "6", "12", "18"];
  */
 export function WeekdayChart({ weekday, className }: { weekday: WeekdayBucket[]; className?: string }) {
   const { t } = useTranslation("stats");
-  const { onChartClick, isEmphasized } = useActiveBar();
   const max = Math.max(1, ...weekday.map((d) => d.ms));
   const data = weekday.map((d) => ({
     key: d.full,
@@ -26,18 +25,14 @@ export function WeekdayChart({ weekday, className }: { weekday: WeekdayBucket[];
     caption: d.full,
   }));
   const labelByKey = new Map(data.map((d) => [d.key, d.label]));
+  const { onChartClick, isEmphasized } = useActiveBar(data.map((d) => d.key));
 
   return (
     <div className={className}>
       <Caption className="mb-2 block text-fg-subtle">{t("rhythm.byWeekday")}</Caption>
       <div style={{ height: CHART_H }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={data}
-            margin={{ top: 6, right: 2, bottom: 0, left: 2 }}
-            barCategoryGap="22%"
-            onClick={onChartClick}
-          >
+          <BarChart data={data} margin={CHART_MARGIN} barCategoryGap="22%" onClick={onChartClick}>
             <XAxis
               dataKey="key"
               tickFormatter={(k: string) => labelByKey.get(k) ?? ""}
@@ -66,7 +61,6 @@ export function WeekdayChart({ weekday, className }: { weekday: WeekdayBucket[];
  */
 export function TimeOfDayChart({ byHour, className }: { byHour: number[]; className?: string }) {
   const { t } = useTranslation("stats");
-  const { onChartClick, isEmphasized } = useActiveBar();
   const max = Math.max(1, ...byHour);
   const hasData = byHour.some((ms) => ms > 0);
   const peak = hasData ? byHour.indexOf(max) : -1;
@@ -76,6 +70,7 @@ export function TimeOfDayChart({ byHour, className }: { byHour: number[]; classN
     isPeak: ms === max && ms > 0,
     caption: formatHour(h),
   }));
+  const { onChartClick, isEmphasized } = useActiveBar(data.map((d) => d.key));
 
   return (
     <div className={className}>
@@ -86,12 +81,7 @@ export function TimeOfDayChart({ byHour, className }: { byHour: number[]; classN
       {hasData ? (
         <div style={{ height: CHART_H }}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={data}
-              margin={{ top: 6, right: 2, bottom: 0, left: 2 }}
-              barCategoryGap="8%"
-              onClick={onChartClick}
-            >
+            <BarChart data={data} margin={CHART_MARGIN} barCategoryGap="8%" onClick={onChartClick}>
               <XAxis
                 dataKey="key"
                 ticks={HOUR_TICKS}

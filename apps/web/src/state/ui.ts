@@ -1,4 +1,4 @@
-import { atom } from "jotai";
+import { atom, getDefaultStore } from "jotai";
 import {
   getAppSettings,
   resolveAppTheme,
@@ -157,9 +157,15 @@ export const effectiveReaderSettingsAtom = atom<ReaderSettings>((get) =>
 // The mode's behavior settings live in its plugin's declared-settings object;
 // this revision atom re-derives the view of them whenever any plugin storage
 // changes (its own settings page, the agent, or a host write below).
+//
+// The listener is registered for the app's lifetime, NOT onMount: the plugin
+// settings page is reachable only while no reader is mounted, so a
+// mounted-only listener would miss exactly the writes it exists for and the
+// derived atom would serve its cached pre-edit value on the next mount.
 const textUnitModeSettingsRevisionAtom = atom(0);
-textUnitModeSettingsRevisionAtom.onMount = (setRevision) =>
-  onAppEvent("plugin-storage-changed", () => setRevision((current) => current + 1));
+onAppEvent("plugin-storage-changed", () => {
+  getDefaultStore().set(textUnitModeSettingsRevisionAtom, (current) => current + 1);
+});
 
 /**
  * Host behavior for the plugin-defined text-unit reader mode, read from the

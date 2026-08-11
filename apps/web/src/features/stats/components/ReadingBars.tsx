@@ -1,4 +1,5 @@
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useActiveBar } from "../hooks/useActiveBar";
 import type { StatsBar } from "../lib/reading-insights";
 import { BAR_CURSOR, barFill, DurationTooltip, INK } from "./ChartKit";
 
@@ -17,6 +18,7 @@ type ReadingBarsProps = {
  */
 export function ReadingBars({ bars, height = 160, className }: ReadingBarsProps) {
   const dense = bars.length > 14;
+  const { onChartClick, isEmphasized } = useActiveBar();
 
   const data = bars.map((bar) => ({
     key: bar.key,
@@ -34,6 +36,7 @@ export function ReadingBars({ bars, height = 160, className }: ReadingBarsProps)
           data={data}
           margin={{ top: 6, right: 2, bottom: 0, left: 2 }}
           barCategoryGap={dense ? "12%" : "22%"}
+          onClick={onChartClick}
         >
           <XAxis
             dataKey="key"
@@ -48,7 +51,7 @@ export function ReadingBars({ bars, height = 160, className }: ReadingBarsProps)
           <Tooltip cursor={BAR_CURSOR} content={<DurationTooltip />} />
           <Bar dataKey="ms" radius={[2, 2, 0, 0]} maxBarSize={30} isAnimationActive={false}>
             {data.map((d) => (
-              <Cell key={d.key} fill={barFill(d.ms, d.isCurrent)} />
+              <Cell key={d.key} fill={barFill(d.ms, isEmphasized(d.key, d.isCurrent))} />
             ))}
           </Bar>
         </BarChart>

@@ -1,6 +1,7 @@
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Caption } from "@read-aware/ui";
 import { formatHour, useTranslation } from "../../../i18n";
+import { useActiveBar } from "../hooks/useActiveBar";
 import type { WeekdayBucket } from "../lib/reading-insights";
 import { BAR_CURSOR, barFill, DurationTooltip, INK } from "./ChartKit";
 
@@ -15,6 +16,7 @@ const HOUR_TICKS = ["0", "6", "12", "18"];
  */
 export function WeekdayChart({ weekday, className }: { weekday: WeekdayBucket[]; className?: string }) {
   const { t } = useTranslation("stats");
+  const { onChartClick, isEmphasized } = useActiveBar();
   const max = Math.max(1, ...weekday.map((d) => d.ms));
   const data = weekday.map((d) => ({
     key: d.full,
@@ -30,7 +32,12 @@ export function WeekdayChart({ weekday, className }: { weekday: WeekdayBucket[];
       <Caption className="mb-2 block text-fg-subtle">{t("rhythm.byWeekday")}</Caption>
       <div style={{ height: CHART_H }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 6, right: 2, bottom: 0, left: 2 }} barCategoryGap="22%">
+          <BarChart
+            data={data}
+            margin={{ top: 6, right: 2, bottom: 0, left: 2 }}
+            barCategoryGap="22%"
+            onClick={onChartClick}
+          >
             <XAxis
               dataKey="key"
               tickFormatter={(k: string) => labelByKey.get(k) ?? ""}
@@ -43,7 +50,7 @@ export function WeekdayChart({ weekday, className }: { weekday: WeekdayBucket[];
             <Tooltip cursor={BAR_CURSOR} content={<DurationTooltip />} />
             <Bar dataKey="ms" radius={[2, 2, 0, 0]} maxBarSize={26} isAnimationActive={false}>
               {data.map((d) => (
-                <Cell key={d.key} fill={barFill(d.ms, d.isPeak)} />
+                <Cell key={d.key} fill={barFill(d.ms, isEmphasized(d.key, d.isPeak))} />
               ))}
             </Bar>
           </BarChart>
@@ -59,6 +66,7 @@ export function WeekdayChart({ weekday, className }: { weekday: WeekdayBucket[];
  */
 export function TimeOfDayChart({ byHour, className }: { byHour: number[]; className?: string }) {
   const { t } = useTranslation("stats");
+  const { onChartClick, isEmphasized } = useActiveBar();
   const max = Math.max(1, ...byHour);
   const hasData = byHour.some((ms) => ms > 0);
   const peak = hasData ? byHour.indexOf(max) : -1;
@@ -78,7 +86,12 @@ export function TimeOfDayChart({ byHour, className }: { byHour: number[]; classN
       {hasData ? (
         <div style={{ height: CHART_H }}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ top: 6, right: 2, bottom: 0, left: 2 }} barCategoryGap="8%">
+            <BarChart
+              data={data}
+              margin={{ top: 6, right: 2, bottom: 0, left: 2 }}
+              barCategoryGap="8%"
+              onClick={onChartClick}
+            >
               <XAxis
                 dataKey="key"
                 ticks={HOUR_TICKS}
@@ -92,7 +105,7 @@ export function TimeOfDayChart({ byHour, className }: { byHour: number[]; classN
               <Tooltip cursor={BAR_CURSOR} content={<DurationTooltip />} />
               <Bar dataKey="ms" radius={[1, 1, 0, 0]} isAnimationActive={false}>
                 {data.map((d) => (
-                  <Cell key={d.key} fill={barFill(d.ms, d.isPeak)} />
+                  <Cell key={d.key} fill={barFill(d.ms, isEmphasized(d.key, d.isPeak))} />
                 ))}
               </Bar>
             </BarChart>

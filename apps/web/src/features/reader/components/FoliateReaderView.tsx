@@ -51,6 +51,7 @@ import { createWheelGesture, type WheelGesture } from "../lib/wheel-gesture";
 import { ReaderAnnotationMenu } from "./ReaderAnnotationMenu";
 import { ReaderFootnotePopover } from "./ReaderFootnotePopover";
 import { TextUnitNavigatorBar } from "./TextUnitNavigatorBar";
+import { TextUnitReadoutChip } from "./TextUnitReadoutChip";
 import { ReaderPageTurnControls } from "./ReaderPageTurnControls";
 import { ReaderSelectionHighlight } from "./ReaderSelectionHighlight";
 import { ReaderSelectionMenu } from "./ReaderSelectionMenu";
@@ -2155,6 +2156,12 @@ export function FoliateReaderView({
           readAloudAvailable={readAloud.available}
           readAloudPlaying={readAloud.playing}
           onToggleReadAloud={readAloud.toggle}
+        />
+      )}
+      {textUnitMode && (
+        <TextUnitReadoutChip
+          visible={textUnitModeEngineActive && !isLoading && !error}
+          containerRef={readerRootRef}
           progress={textUnitNavigator.progress}
           showProgress={textUnitModeSettings.showProgress}
           sessionTimer={textUnitModeSettings.sessionTimer}

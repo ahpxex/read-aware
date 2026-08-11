@@ -25,8 +25,6 @@ import { resolveReaderModeUnit } from "../../plugins/lib/reader-mode";
 import type { RegisteredReaderMode } from "../../plugins/lib/plugin-types";
 import type { ReaderPanelKind } from "../state/panel-intent";
 import { useDraggableFloat } from "../hooks/useDraggableFloat";
-import { useSessionTimer } from "../hooks/useSessionTimer";
-import type { TextUnitProgress } from "../hooks/useTextUnitNavigator";
 
 type TextUnitNavigatorBarProps = {
   visible: boolean;
@@ -55,11 +53,6 @@ type TextUnitNavigatorBarProps = {
   readAloudAvailable: boolean;
   readAloudPlaying: boolean;
   onToggleReadAloud: () => void;
-  /** Position within the loaded section, from the navigator. */
-  progress: TextUnitProgress | null;
-  /** Plugin-settings readout toggles (the bar itself carries no controls). */
-  showProgress: boolean;
-  sessionTimer: boolean;
 };
 
 /** Hairline divider separating action groups within the bar. */
@@ -127,15 +120,10 @@ export function TextUnitNavigatorBar({
   readAloudAvailable,
   readAloudPlaying,
   onToggleReadAloud,
-  progress,
-  showProgress,
-  sessionTimer,
 }: TextUnitNavigatorBarProps) {
   const { t } = useTranslation("reader");
   const locale = useLocale();
   const coarsePointer = hasCoarsePointer();
-  // The clock runs per mode entry (bar visibility) and is never persisted.
-  const sessionElapsed = useSessionTimer(visible && sessionTimer);
   // While a page tap steps forward on touch, a next button would only repeat
   // it — the bar carries the back-step alone. Disarm the tap and it returns.
   const showNextStep = !coarsePointer || !tapToAdvance;
@@ -159,23 +147,6 @@ export function TextUnitNavigatorBar({
   // stays at 36px so the full strip still fits a phone screen in one row.
   const actionButtonClass =
     "rounded-md text-fg-muted hover:bg-fg/5 hover:text-fg focus-visible:ring-fg disabled:pointer-events-none disabled:opacity-40 pointer-coarse:h-10 pointer-coarse:w-9";
-
-  // Passive readouts (settings-gated): section position and session clock.
-  // Quiet type, no affordance — the bar's controls stay the buttons alone.
-  const progressReadout =
-    showProgress && progress ? `${progress.ordinal + 1} / ${progress.total}` : null;
-  const readouts = [
-    progressReadout && {
-      key: "progress",
-      label: t("textUnitMode.progress"),
-      value: progressReadout,
-    },
-    sessionElapsed && {
-      key: "timer",
-      label: t("textUnitMode.sessionTime"),
-      value: sessionElapsed,
-    },
-  ].filter((entry): entry is { key: string; label: string; value: string } => Boolean(entry));
 
   return (
     <div className="pointer-events-none absolute inset-0 z-30">
@@ -206,22 +177,6 @@ export function TextUnitNavigatorBar({
           >
             <DotsSixVertical size={16} weight="bold" aria-hidden="true" />
           </span>
-
-          {(!paged || page === 0) && readouts.length > 0 && (
-            <>
-              {readouts.map((readout) => (
-                <Tooltip key={readout.key} content={readout.label} side="top">
-                  <span
-                    aria-label={`${readout.label}: ${readout.value}`}
-                    className="select-none whitespace-nowrap px-1.5 text-caption tabular-nums text-fg-subtle"
-                  >
-                    {readout.value}
-                  </span>
-                </Tooltip>
-              ))}
-              <BarDivider />
-            </>
-          )}
 
           {(!paged || page === 0) && (
             <>

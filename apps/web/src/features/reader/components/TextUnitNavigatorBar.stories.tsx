@@ -81,9 +81,6 @@ const meta = {
     readAloudAvailable: true,
     readAloudPlaying: false,
     onToggleReadAloud: () => {},
-    progress: { ordinal: 11, total: 87 },
-    showProgress: true,
-    sessionTimer: false,
   },
   render: (args) => <FramedNavigatorBar {...args} />,
 } satisfies Meta<typeof TextUnitNavigatorBar>;
@@ -102,14 +99,4 @@ export const NoRestingUnit: Story = {
 /** Alternate plugin unit engaged: the quick toggle shows its pressed state. */
 export const AlternateUnit: Story = {
   args: { unitId: "stanza" },
-};
-
-/** Session timer running alongside the section-position readout. */
-export const WithSessionTimer: Story = {
-  args: { sessionTimer: true },
-};
-
-/** Both readouts off: the strip reverts to pure navigation. */
-export const NoReadouts: Story = {
-  args: { showProgress: false, sessionTimer: false },
 };

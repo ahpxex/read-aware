@@ -149,6 +149,11 @@ CI 的每个 job 都带 `generate_release_notes: true`，会把 release body 追
   `text.en|zh|ja`），不需要动任何路由文件——页面渲染整个数组。
 - 三语齐全，缺一种就是缺一种；术语对齐 `apps/web/src/i18n/locales/` 的产品
   词表（书架 / 智能助理 / 上下文 / 词典 / 命令面板 …）。
+- **先机翻出底稿再校对**：`bun run translate <file|-> --to zh,ja --style changelog`
+  （`packages/agent/src/translate-run.ts`，走 deepseek-v4-flash，key 取
+  `DEEPSEEK_API_KEY` 或 pi CLI auth，~3 秒出双语）。英文定稿后把 JSON/文本喂给
+  它，拿回的译文**必须人工过一遍**——重点核对术语（脚本内置词表，遇到带偏的
+  就地补词表）、title 后无标点、语感翻译腔。文档镜像同理可用 `--style docs`。
 - 内容通常是第 4 步 release changelog 的精简改写，可以直接拿英文那份改。
   分组 `new` / `improved` / `fixed` 与第 4 步一致；组标题不写在数据里
   （在 `UI_STRINGS`）。

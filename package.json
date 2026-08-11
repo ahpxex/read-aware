@@ -22,6 +22,7 @@
     "eval:all": "bun packages/agent/src/eval-all-run.ts",
     "eval:rescore": "bun packages/agent/src/eval-rescore-run.ts",
     "eval:reading": "bun packages/agent/src/eval-run.ts reading",
+    "translate": "bun packages/agent/src/translate-run.ts",
     "storybook": "turbo run storybook --filter=@read-aware/web",
     "build-storybook": "turbo run build-storybook --filter=@read-aware/web",
     "lint:cycles": "turbo run lint:cycles --filter=@read-aware/web"

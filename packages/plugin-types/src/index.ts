@@ -806,7 +806,15 @@ export type PluginReaderTextUnit = {
   icon?: string;
 };
 
-/** Copy for every host-rendered surface belonging to the mode. */
+/**
+ * Copy for every host-rendered surface belonging to the mode.
+ *
+ * Behavior settings (step unit, tap-to-advance, …) are NOT copy: the plugin
+ * declares them as ordinary `manifest.settings` fields under the well-known
+ * ids `unitId`, `tapToAdvance`, `scrollToStep`, `showProgress`,
+ * `sessionTimer`, and the host reads those values from the plugin's settings
+ * object. Its settings page is the one editing surface.
+ */
 export type PluginReaderModeCopy = {
   title: PluginLocalizedText;
   enable: PluginLocalizedText;
@@ -816,18 +824,6 @@ export type PluginReaderModeCopy = {
   moreActions: PluginLocalizedText;
   collapseActions: PluginLocalizedText;
   menuLabel: PluginLocalizedText;
-  settings: {
-    description: PluginLocalizedText;
-    unitLabel: PluginLocalizedText;
-    tapToAdvance: {
-      title: PluginLocalizedText;
-      description: PluginLocalizedText;
-    };
-    scrollToStep: {
-      title: PluginLocalizedText;
-      description: PluginLocalizedText;
-    };
-  };
   shortcuts: {
     description: PluginLocalizedText;
     volumeKeys: PluginLocalizedText;

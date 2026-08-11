@@ -154,5 +154,9 @@
   "readAloud": {
     "start": "Vorlesen",
     "stop": "Vorlesen stoppen"
+  },
+  "textUnitMode": {
+    "progress": "Position im Kapitel",
+    "sessionTime": "Zeit dieser Sitzung"
   }
 }

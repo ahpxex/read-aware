@@ -38,12 +38,6 @@ function modeFixture(overrides: Record<string, unknown> = {}) {
       moreActions: text("More actions"),
       collapseActions: text("Collapse actions"),
       menuLabel: text("Paced reader"),
-      settings: {
-        description: text("Configure paced reading."),
-        unitLabel: text("Step unit"),
-        tapToAdvance: { title: text("Tap to advance"), description: text("Tap once.") },
-        scrollToStep: { title: text("Swipe to step"), description: text("Swipe once.") },
-      },
       shortcuts: {
         description: text("Active while paced reading is on."),
         volumeKeys: text("Step with volume keys"),

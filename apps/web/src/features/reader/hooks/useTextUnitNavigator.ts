@@ -29,8 +29,14 @@ export type TextUnitTarget = {
   cfiRange: string | null;
 };
 
+/** Resting position within the loaded section's unit list (0-based). */
+export type TextUnitProgress = { ordinal: number; total: number };
+
 export type TextUnitNavigator = {
   current: TextUnitTarget | null;
+  /** Where the wash rests within the loaded section, or null while it rests
+   *  elsewhere (another section, mode off, unit-less section). */
+  progress: TextUnitProgress | null;
   next: () => void;
   prev: () => void;
   /** Text of the unit after the resting one, within the loaded section. */
@@ -109,7 +115,15 @@ export function useTextUnitNavigator({
   veilColor,
 }: UseTextUnitNavigatorOptions): TextUnitNavigator {
   const [current, setCurrent] = useState<TextUnitTarget | null>(null);
+  const [progress, setProgress] = useState<TextUnitProgress | null>(null);
   const [canReturn, setCanReturn] = useState(false);
+
+  // Current + progress travel together: both describe where the wash rests
+  // in the loaded section, so every "nowhere" transition clears the pair.
+  const clearUnit = useCallback(() => {
+    setCurrent(null);
+    setProgress(null);
+  }, []);
 
   const activeRef = useRef(active);
   const persistedActiveRef = useRef(active || suspended);
@@ -174,7 +188,7 @@ export function useTextUnitNavigator({
     appliedCfiRef.current = null;
     pendingAnchorRef.current = null;
     pendingCrossRef.current = null;
-    setCurrent(null);
+    clearUnit();
     // A resting ordinal only means something under the unitId it was
     // written with — under another one, restore from scratch (the reader's own
     // progress still opens the book in place).
@@ -270,6 +284,7 @@ export function useTextUnitNavigator({
         applyNavigatorHighlight(view, cfi, veilColorRef.current);
       }
       setCurrent({ text: normalizeText(range.toString()), cfiRange: cfi });
+      setProgress({ ordinal: index, total: unitsRef.current?.length ?? 0 });
       if (scroll && !rangeComfortablyVisible(range)) {
         try {
           void view.renderer?.scrollToAnchor?.(range);
@@ -350,7 +365,7 @@ export function useTextUnitNavigator({
       const cross = pendingCrossRef.current;
       pendingCrossRef.current = null;
       if (!units.length) {
-        setCurrent(null);
+        clearUnit();
         return;
       }
       // Landing position is only settled at the relocate that follows the
@@ -368,7 +383,7 @@ export function useTextUnitNavigator({
             : resting?.sectionIndex === index
               ? { index: Math.min(resting.ordinal, units.length - 1), scroll: false }
               : null;
-      if (pendingAnchorRef.current == null) setCurrent(null);
+      if (pendingAnchorRef.current == null) clearUnit();
     },
     [buildUnits],
   );
@@ -431,7 +446,7 @@ export function useTextUnitNavigator({
             ? Math.min(resting.ordinal, units.length - 1)
             : anchorTextUnitIndex(units, visibleRangeRef.current);
         if (index >= 0) applyIndex(index, { scroll: false });
-        else setCurrent(null);
+        else clearUnit();
       })();
       return;
     }
@@ -442,7 +457,7 @@ export function useTextUnitNavigator({
     persistState();
     pendingAnchorRef.current = null;
     pendingCrossRef.current = null;
-    setCurrent(null);
+    clearUnit();
   }, [active, suspended, applyIndex, buildUnits, clearWash, persistState, setResting]);
 
   // Mode or unit switch: re-segment the loaded section under the new plugin
@@ -467,7 +482,7 @@ export function useTextUnitNavigator({
     if (!activeRef.current || !sectionRef.current || !previousRange) {
       setResting(null);
       persistState();
-      if (activeRef.current) setCurrent(null);
+      if (activeRef.current) clearUnit();
       return;
     }
     void (async () => {
@@ -475,7 +490,7 @@ export function useTextUnitNavigator({
       if (!activeRef.current) return;
       const index = anchorTextUnitIndex(units, previousRange);
       if (index >= 0) applyIndex(index, { scroll: false });
-      else setCurrent(null);
+      else clearUnit();
     })();
   }, [active, suspended, modeKey, unitId, applyIndex, buildUnits, persistState, setResting]);
 
@@ -553,6 +568,7 @@ export function useTextUnitNavigator({
 
   return {
     current,
+    progress,
     next,
     prev,
     peekNext,

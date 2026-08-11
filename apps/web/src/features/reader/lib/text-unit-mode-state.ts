@@ -9,6 +9,10 @@
  */
 
 import { localKV } from "../../../platform/local-store";
+import {
+  readPluginSettingsValues,
+  writePluginSettingsValues,
+} from "../../plugins/lib/plugin-settings";
 
 export type TextUnitResting = {
   sectionIndex: number;
@@ -114,76 +118,111 @@ export function writeTextUnitModeState(
   }
 }
 
-/** App-level stepping behavior, shared across books and compatible modes. */
-export type TextUnitModeBehaviorPrefs = {
-  /** Contribution whose unit id is stored below. Null is the legacy schema. */
-  modeKey: string | null;
-  /** Null until an installed mode supplies its default unit. */
+/**
+ * Behavior settings for the text-unit mode. These live in the OWNING PLUGIN'S
+ * declared-settings object (well-known field ids the plugin lists in its
+ * manifest, e.g. sentence-reader), so the plugin's own settings page is the
+ * single editing surface. The host reads them back here and supplies defaults
+ * for anything the stored object misses.
+ */
+export type TextUnitModeSettings = {
+  /** Null until the user (or the mode's default) picks a unit. */
   unitId: string | null;
   /** A quick tap on book content steps forward while the mode is on. */
   tapToAdvance: boolean;
   /** Swiping or scrolling steps once instead of continuously scrolling. */
   scrollToStep: boolean;
+  /** The floating bar shows the position within the section (12 / 87). */
+  showProgress: boolean;
+  /** The floating bar counts time since mode entry — never persisted. */
+  sessionTimer: boolean;
 };
 
-export const DEFAULT_TEXT_UNIT_MODE_BEHAVIOR_PREFS: TextUnitModeBehaviorPrefs = {
-  modeKey: null,
+/** Must mirror the `value` defaults the plugin declares in its manifest. */
+export const DEFAULT_TEXT_UNIT_MODE_SETTINGS: TextUnitModeSettings = {
   unitId: null,
   tapToAdvance: true,
   scrollToStep: false,
+  showProgress: true,
+  sessionTimer: true,
 };
 
-const BEHAVIOR_PREFS_KEY = "read-aware-navigator-prefs";
+const LEGACY_BEHAVIOR_PREFS_KEY = "read-aware-navigator-prefs";
 
-/** Normalize current preferences and the historical `granularity` field. */
-export function normalizeTextUnitModeBehaviorPrefs(
-  value: unknown,
-): TextUnitModeBehaviorPrefs {
-  if (!value || typeof value !== "object") return DEFAULT_TEXT_UNIT_MODE_BEHAVIOR_PREFS;
-  const parsed = value as {
-    modeKey?: unknown;
-    unitId?: unknown;
-    granularity?: unknown;
-    tapToAdvance?: unknown;
-    scrollToStep?: unknown;
-  };
+/** Contribution keys are `<pluginId>:<contributionId>`. */
+function pluginIdOfModeKey(modeKey: string): string {
+  return modeKey.slice(0, modeKey.indexOf(":"));
+}
+
+/**
+ * One-time move of the retired app-owned prefs row into the mode plugin's
+ * settings object. Stored plugin values win; the legacy row only fills gaps
+ * (and its unit id only when it was written by this mode or predates keys).
+ */
+function migrateLegacyBehaviorPrefs(pluginId: string, modeKey: string): void {
+  let raw: string | null = null;
+  try {
+    raw = localKV.getItem(LEGACY_BEHAVIOR_PREFS_KEY);
+  } catch {
+    return;
+  }
+  if (!raw) return;
+  try {
+    const parsed = JSON.parse(raw) as {
+      modeKey?: unknown;
+      unitId?: unknown;
+      granularity?: unknown;
+      tapToAdvance?: unknown;
+      scrollToStep?: unknown;
+    };
+    const merged = { ...readPluginSettingsValues(pluginId) };
+    if (!("tapToAdvance" in merged)) merged.tapToAdvance = parsed.tapToAdvance !== false;
+    if (!("scrollToStep" in merged)) merged.scrollToStep = parsed.scrollToStep === true;
+    const legacyModeKey = validModeKey(parsed.modeKey);
+    const legacyUnitId =
+      validUnitId(parsed.unitId) ?? validUnitId(parsed.granularity) ?? LEGACY_DEFAULT_UNIT_ID;
+    if (!("unitId" in merged) && (legacyModeKey === null || legacyModeKey === modeKey)) {
+      merged.unitId = legacyUnitId;
+    }
+    writePluginSettingsValues(pluginId, merged);
+  } catch {
+    // An unreadable legacy row migrates nothing but is still consumed.
+  }
+  localKV.removeItem(LEGACY_BEHAVIOR_PREFS_KEY);
+}
+
+/** Read the mode's behavior settings from its plugin's settings object. */
+export function readTextUnitModeSettings(modeKey: string | null): TextUnitModeSettings {
+  if (!modeKey) return DEFAULT_TEXT_UNIT_MODE_SETTINGS;
+  const pluginId = pluginIdOfModeKey(modeKey);
+  migrateLegacyBehaviorPrefs(pluginId, modeKey);
+  const stored = readPluginSettingsValues(pluginId);
+  const defaults = DEFAULT_TEXT_UNIT_MODE_SETTINGS;
   return {
-    modeKey: validModeKey(parsed.modeKey),
-    unitId:
-      validUnitId(parsed.unitId) ??
-      validUnitId(parsed.granularity) ??
-      LEGACY_DEFAULT_UNIT_ID,
-    tapToAdvance: parsed.tapToAdvance !== false,
-    scrollToStep: parsed.scrollToStep === true,
+    unitId: validUnitId(stored.unitId),
+    tapToAdvance:
+      typeof stored.tapToAdvance === "boolean" ? stored.tapToAdvance : defaults.tapToAdvance,
+    scrollToStep:
+      typeof stored.scrollToStep === "boolean" ? stored.scrollToStep : defaults.scrollToStep,
+    showProgress:
+      typeof stored.showProgress === "boolean" ? stored.showProgress : defaults.showProgress,
+    sessionTimer:
+      typeof stored.sessionTimer === "boolean" ? stored.sessionTimer : defaults.sessionTimer,
   };
 }
 
-export function readTextUnitModeBehaviorPrefs(): TextUnitModeBehaviorPrefs {
-  try {
-    const raw = localKV.getItem(BEHAVIOR_PREFS_KEY);
-    return raw
-      ? normalizeTextUnitModeBehaviorPrefs(JSON.parse(raw))
-      : DEFAULT_TEXT_UNIT_MODE_BEHAVIOR_PREFS;
-  } catch {
-    return DEFAULT_TEXT_UNIT_MODE_BEHAVIOR_PREFS;
-  }
-}
-
-/** Do not leak a unit choice between two reader-mode contributions that happen
- *  to reuse the same unit id. Null mode keys are the pre-plugin schema. */
-export function preferredTextUnitModeUnitId(
-  prefs: TextUnitModeBehaviorPrefs,
+/** Merge a patch into the plugin's settings object (broadcasts the change). */
+export function updateTextUnitModeSettings(
   modeKey: string,
-): string | null {
-  return prefs.modeKey === null || prefs.modeKey === modeKey ? prefs.unitId : null;
-}
-
-export function writeTextUnitModeBehaviorPrefs(prefs: TextUnitModeBehaviorPrefs): void {
-  try {
-    localKV.setItem(BEHAVIOR_PREFS_KEY, JSON.stringify(prefs));
-  } catch {
-    // Ignore persistence failures; the atom still carries the value in session.
+  patch: Partial<TextUnitModeSettings>,
+): void {
+  const pluginId = pluginIdOfModeKey(modeKey);
+  const merged = { ...readPluginSettingsValues(pluginId) };
+  for (const [id, value] of Object.entries(patch)) {
+    if (value === null) delete merged[id];
+    else if (value !== undefined) merged[id] = value;
   }
+  writePluginSettingsValues(pluginId, merged);
 }
 
 /** Center of a floating control, as fractions of the reader viewport (0..1). */

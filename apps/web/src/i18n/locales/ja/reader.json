@@ -154,5 +154,9 @@
   "readAloud": {
     "start": "読み上げ",
     "stop": "読み上げを停止"
+  },
+  "textUnitMode": {
+    "progress": "章内の位置",
+    "sessionTime": "今回の経過時間"
   }
 }

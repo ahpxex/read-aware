@@ -1,22 +1,14 @@
 import { useAtom, useAtomValue } from "jotai";
-import { ChoiceGroup, Stack, Toggle } from "@read-aware/ui";
-import { useLocale, useTranslation } from "../../../i18n";
-import { resolvePluginText } from "../../plugins/lib/plugin-i18n";
-import { resolveReaderModeUnit } from "../../plugins/lib/reader-mode";
-import {
-  pluginThemesAtom,
-  textUnitReaderModeAtom,
-} from "../../plugins/state/plugin-store";
-import { preferredTextUnitModeUnitId } from "../../reader/lib/text-unit-mode-state";
+import { ChoiceGroup, Stack } from "@read-aware/ui";
+import { useTranslation } from "../../../i18n";
+import { pluginThemesAtom } from "../../plugins/state/plugin-store";
 import {
   effectiveReaderSettingsAtom,
-  textUnitModePrefsAtom,
   readerPreferencesAtom,
 } from "../../../state/ui";
 import { FontField } from "../components/FontField";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
-import { SettingsRow } from "../components/SettingsRow";
 import { getReaderPreviewStyle } from "../lib/reader-css";
 import { applyReaderThemeSelection } from "../lib/reader-theme";
 import { useReaderPalette } from "../hooks/useReaderPalette";
@@ -38,11 +30,8 @@ export function ReadingPanel() {
   // Reader appearance option labels live in the `reader` namespace so this panel
   // and the in-reader appearance popover share one set of strings.
   const { t: tReader } = useTranslation("reader");
-  const locale = useLocale();
   const [prefs, setPrefs] = useAtom(readerPreferencesAtom);
-  const [modePrefs, setModePrefs] = useAtom(textUnitModePrefsAtom);
   const effective = useAtomValue(effectiveReaderSettingsAtom);
-  const textUnitMode = useAtomValue(textUnitReaderModeAtom);
   const pluginThemes = useAtomValue(pluginThemesAtom);
   const pluginThemeOptions = usePluginReaderThemeOptions();
   const previewPalette = useReaderPalette(effective.theme);
@@ -135,75 +124,6 @@ export function ReadingPanel() {
           }
         />
       </SettingsGroup>
-
-      {textUnitMode && (
-        <SettingsGroup
-          title={resolvePluginText(textUnitMode.copy.title, locale)}
-          description={resolvePluginText(textUnitMode.copy.settings.description, locale)}
-        >
-          <Stack gap="lg">
-            <ChoiceGroup
-              label={resolvePluginText(textUnitMode.copy.settings.unitLabel, locale)}
-              value={resolveReaderModeUnit(
-                textUnitMode,
-                preferredTextUnitModeUnitId(modePrefs, textUnitMode.key),
-              ).id}
-              options={textUnitMode.units.map((unit) => ({
-                value: unit.id,
-                label: resolvePluginText(unit.label, locale),
-              }))}
-              onChange={(unitId) =>
-                setModePrefs({ ...modePrefs, modeKey: textUnitMode.key, unitId })
-              }
-            />
-            <SettingsRow
-              borderless
-              title={resolvePluginText(
-                textUnitMode.copy.settings.tapToAdvance.title,
-                locale,
-              )}
-              description={resolvePluginText(
-                textUnitMode.copy.settings.tapToAdvance.description,
-                locale,
-              )}
-              control={
-                <Toggle
-                  aria-label={resolvePluginText(
-                    textUnitMode.copy.settings.tapToAdvance.title,
-                    locale,
-                  )}
-                  checked={modePrefs.tapToAdvance}
-                  onChange={(tapToAdvance) =>
-                    setModePrefs({ ...modePrefs, tapToAdvance })
-                  }
-                />
-              }
-            />
-            <SettingsRow
-              title={resolvePluginText(
-                textUnitMode.copy.settings.scrollToStep.title,
-                locale,
-              )}
-              description={resolvePluginText(
-                textUnitMode.copy.settings.scrollToStep.description,
-                locale,
-              )}
-              control={
-                <Toggle
-                  aria-label={resolvePluginText(
-                    textUnitMode.copy.settings.scrollToStep.title,
-                    locale,
-                  )}
-                  checked={modePrefs.scrollToStep}
-                  onChange={(scrollToStep) =>
-                    setModePrefs({ ...modePrefs, scrollToStep })
-                  }
-                />
-              }
-            />
-          </Stack>
-        </SettingsGroup>
-      )}
 
     </SettingsPage>
   );

@@ -37,10 +37,12 @@ import {
   type ReadingStatsStore,
 } from "../features/reader/lib/reading-stats";
 import {
-  readTextUnitModeBehaviorPrefs,
-  writeTextUnitModeBehaviorPrefs,
-  type TextUnitModeBehaviorPrefs,
+  readTextUnitModeSettings,
+  updateTextUnitModeSettings,
+  type TextUnitModeSettings,
 } from "../features/reader/lib/text-unit-mode-state";
+import { textUnitReaderModeAtom } from "../features/plugins/state/plugin-store";
+import { onAppEvent } from "../platform/app-events";
 import {
   getShelfView,
   saveShelfView,
@@ -152,16 +154,26 @@ export const effectiveReaderSettingsAtom = atom<ReaderSettings>((get) =>
   toEffectiveReaderSettings(get(readerPreferencesBaseAtom), get(resolvedAppThemeAtom)),
 );
 
-const textUnitModePrefsBaseAtom = atom<TextUnitModeBehaviorPrefs>(
-  readTextUnitModeBehaviorPrefs(),
-);
+// The mode's behavior settings live in its plugin's declared-settings object;
+// this revision atom re-derives the view of them whenever any plugin storage
+// changes (its own settings page, the agent, or a host write below).
+const textUnitModeSettingsRevisionAtom = atom(0);
+textUnitModeSettingsRevisionAtom.onMount = (setRevision) =>
+  onAppEvent("plugin-storage-changed", () => setRevision((current) => current + 1));
 
-/** Host behavior shared by plugin-defined text-unit reader modes. */
-export const textUnitModePrefsAtom = atom(
-  (get) => get(textUnitModePrefsBaseAtom),
-  (_get, set, next: TextUnitModeBehaviorPrefs) => {
-    set(textUnitModePrefsBaseAtom, next);
-    writeTextUnitModeBehaviorPrefs(next);
+/**
+ * Host behavior for the plugin-defined text-unit reader mode, read from the
+ * owning plugin's settings. Writes accept a partial patch and merge it into
+ * that same settings object, so the plugin's settings page stays in sync.
+ */
+export const textUnitModeSettingsAtom = atom(
+  (get) => {
+    get(textUnitModeSettingsRevisionAtom);
+    return readTextUnitModeSettings(get(textUnitReaderModeAtom)?.key ?? null);
+  },
+  (get, _set, patch: Partial<TextUnitModeSettings>) => {
+    const mode = get(textUnitReaderModeAtom);
+    if (mode) updateTextUnitModeSettings(mode.key, patch);
   },
 );
 

@@ -154,5 +154,9 @@
   "readAloud": {
     "start": "Read aloud",
     "stop": "Stop reading aloud"
+  },
+  "textUnitMode": {
+    "progress": "Position in chapter",
+    "sessionTime": "Time this session"
   }
 }

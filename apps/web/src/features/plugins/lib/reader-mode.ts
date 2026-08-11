@@ -63,18 +63,8 @@ function normalizeUnit(value: unknown, index: number): PluginReaderTextUnit {
 function normalizeCopy(value: unknown): PluginReaderModeCopy {
   if (!value || typeof value !== "object") throw new Error("reader mode copy must be an object");
   const copy = value as Partial<PluginReaderModeCopy>;
-  const settings = copy.settings as Partial<PluginReaderModeCopy["settings"]> | undefined;
   const shortcuts = copy.shortcuts as Partial<PluginReaderModeCopy["shortcuts"]> | undefined;
-  if (!settings) throw new Error("reader mode copy.settings must be an object");
   if (!shortcuts) throw new Error("reader mode copy.shortcuts must be an object");
-  const tap = settings.tapToAdvance as
-    | Partial<PluginReaderModeCopy["settings"]["tapToAdvance"]>
-    | undefined;
-  const scroll = settings.scrollToStep as
-    | Partial<PluginReaderModeCopy["settings"]["scrollToStep"]>
-    | undefined;
-  if (!tap) throw new Error("reader mode copy.settings.tapToAdvance must be an object");
-  if (!scroll) throw new Error("reader mode copy.settings.scrollToStep must be an object");
 
   return {
     title: normalizeLocalizedText(copy.title, "reader mode copy.title"),
@@ -91,36 +81,6 @@ function normalizeCopy(value: unknown): PluginReaderModeCopy {
       "reader mode copy.collapseActions",
     ),
     menuLabel: normalizeLocalizedText(copy.menuLabel, "reader mode copy.menuLabel"),
-    settings: {
-      description: normalizeLocalizedText(
-        settings.description,
-        "reader mode copy.settings.description",
-      ),
-      unitLabel: normalizeLocalizedText(
-        settings.unitLabel,
-        "reader mode copy.settings.unitLabel",
-      ),
-      tapToAdvance: {
-        title: normalizeLocalizedText(
-          tap.title,
-          "reader mode copy.settings.tapToAdvance.title",
-        ),
-        description: normalizeLocalizedText(
-          tap.description,
-          "reader mode copy.settings.tapToAdvance.description",
-        ),
-      },
-      scrollToStep: {
-        title: normalizeLocalizedText(
-          scroll.title,
-          "reader mode copy.settings.scrollToStep.title",
-        ),
-        description: normalizeLocalizedText(
-          scroll.description,
-          "reader mode copy.settings.scrollToStep.description",
-        ),
-      },
-    },
     shortcuts: {
       description: normalizeLocalizedText(
         shortcuts.description,

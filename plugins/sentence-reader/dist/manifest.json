@@ -1,10 +1,178 @@
 {
   "id": "sentence-reader",
   "name": "Sentence Reader",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "minAppVersion": "0.3.0",
   "description": "Read reflowable books one sentence or paragraph at a time with guided focus and step controls.",
   "author": "ReadAware",
   "permissions": ["reader:modes"],
-  "main": "main.js"
+  "main": "main.js",
+  "settings": [
+    {
+      "kind": "choice",
+      "id": "unitId",
+      "label": {
+        "default": "Step unit",
+        "translations": {
+          "zh-Hans": "步进单位",
+          "zh-Hant": "步進單位",
+          "ja": "ステップ単位",
+          "ru": "Единица шага",
+          "fr": "Unité de progression",
+          "de": "Schritteinheit",
+          "es": "Unidad de paso"
+        }
+      },
+      "value": "sentence",
+      "options": [
+        {
+          "value": "sentence",
+          "label": {
+            "default": "By sentence",
+            "translations": {
+              "zh-Hans": "逐句",
+              "zh-Hant": "逐句",
+              "ja": "文ごと",
+              "ru": "По предложениям",
+              "fr": "Par phrase",
+              "de": "Satzweise",
+              "es": "Por frase"
+            }
+          }
+        },
+        {
+          "value": "paragraph",
+          "label": {
+            "default": "By paragraph",
+            "translations": {
+              "zh-Hans": "逐段",
+              "zh-Hant": "逐段",
+              "ja": "段落ごと",
+              "ru": "По абзацам",
+              "fr": "Par paragraphe",
+              "de": "Absatzweise",
+              "es": "Por párrafo"
+            }
+          },
+          "icon": "paragraph"
+        }
+      ]
+    },
+    {
+      "kind": "checkbox",
+      "id": "tapToAdvance",
+      "label": {
+        "default": "Tap to advance",
+        "translations": {
+          "zh-Hans": "点按前进",
+          "zh-Hant": "點按前進",
+          "ja": "タップで進む",
+          "ru": "Переход по касанию",
+          "fr": "Toucher pour avancer",
+          "de": "Tippen zum Weitergehen",
+          "es": "Tocar para avanzar"
+        }
+      },
+      "description": {
+        "default": "While the navigator is on, tapping the page steps forward. Toolbars open from the floating bar instead.",
+        "translations": {
+          "zh-Hans": "逐句导航开启时，点按正文前进一步；工具栏改由浮动条上的按钮打开。",
+          "zh-Hant": "逐句導航開啟時，點按內文前進一步；工具列改由浮動列上的按鈕開啟。",
+          "ja": "ナビゲーターがオンの間、ページをタップすると次へ進みます。ツールバーはフローティングバーのボタンから開きます。",
+          "ru": "Пока навигатор включён, касание страницы делает шаг вперёд. Панели инструментов открываются кнопкой на плавающей панели.",
+          "fr": "Quand le navigateur est actif, toucher la page fait avancer d’un pas. Les barres d’outils s’ouvrent depuis la barre flottante.",
+          "de": "Solange der Navigator aktiv ist, springt ein Tippen auf die Seite einen Schritt weiter. Die Symbolleisten öffnen sich stattdessen über die schwebende Leiste.",
+          "es": "Con el navegador activo, tocar la página avanza un paso. Las barras de herramientas se abren desde la barra flotante."
+        }
+      },
+      "value": true
+    },
+    {
+      "kind": "checkbox",
+      "id": "scrollToStep",
+      "label": {
+        "default": "Swipe to step",
+        "translations": {
+          "zh-Hans": "滑动步进",
+          "zh-Hant": "滑動步進",
+          "ja": "スワイプで移動",
+          "ru": "Шаг по свайпу",
+          "fr": "Balayer pas à pas",
+          "de": "Schrittweise wischen",
+          "es": "Deslizar por pasos"
+        }
+      },
+      "description": {
+        "default": "While the navigator is on, swiping or scrolling moves one step instead of scrolling the page — one step per gesture: swipe up for the next unit, down for the previous.",
+        "translations": {
+          "zh-Hans": "逐句导航开启时，滑动或滚动改为逐步移动，每滑一次只前进或后退一步：上滑前进，下滑后退，页面不再连续滚动。",
+          "zh-Hant": "逐句導航開啟時，滑動或捲動改為逐步移動，每滑一次只前進或後退一步：上滑前進，下滑後退，頁面不再連續捲動。",
+          "ja": "ナビゲーターがオンの間、スワイプやスクロールはページを連続スクロールせず、1回につき1ステップだけ移動します。上へスワイプで次へ、下へスワイプで前へ。",
+          "ru": "Пока навигатор включён, свайп или прокрутка делают один шаг вместо прокрутки страницы — один шаг за жест: вверх — следующий, вниз — предыдущий.",
+          "fr": "Quand le navigateur est actif, balayer ou faire défiler avance d'un pas au lieu de faire défiler la page — un pas par geste : vers le haut pour le suivant, vers le bas pour le précédent.",
+          "de": "Solange der Navigator aktiv ist, bewegt Wischen oder Scrollen einen Schritt, statt die Seite zu scrollen — genau ein Schritt pro Geste: nach oben für den nächsten, nach unten für den vorherigen.",
+          "es": "Con el navegador activo, deslizar o desplazarse mueve un paso en lugar de desplazar la página — un paso por gesto: hacia arriba para el siguiente, hacia abajo para el anterior."
+        }
+      },
+      "value": false
+    },
+    {
+      "kind": "checkbox",
+      "id": "showProgress",
+      "label": {
+        "default": "Show reading progress",
+        "translations": {
+          "zh-Hans": "显示阅读进度",
+          "zh-Hant": "顯示閱讀進度",
+          "ja": "読書の進み具合を表示",
+          "ru": "Показывать прогресс чтения",
+          "fr": "Afficher la progression",
+          "de": "Lesefortschritt anzeigen",
+          "es": "Mostrar el progreso de lectura"
+        }
+      },
+      "description": {
+        "default": "The floating bar shows your position within the chapter, e.g. 12 / 87.",
+        "translations": {
+          "zh-Hans": "浮动条显示当前在本章中的位置，如 12 / 87。",
+          "zh-Hant": "浮動列顯示目前在本章中的位置，如 12 / 87。",
+          "ja": "フローティングバーに章内での位置（例：12 / 87）を表示します。",
+          "ru": "Плавающая панель показывает позицию в главе, например 12 / 87.",
+          "fr": "La barre flottante affiche votre position dans le chapitre, p. ex. 12 / 87.",
+          "de": "Die schwebende Leiste zeigt die Position im Kapitel, z. B. 12 / 87.",
+          "es": "La barra flotante muestra tu posición en el capítulo, p. ej. 12 / 87."
+        }
+      },
+      "value": true
+    },
+    {
+      "kind": "checkbox",
+      "id": "sessionTimer",
+      "label": {
+        "default": "Session timer",
+        "translations": {
+          "zh-Hans": "本次阅读计时",
+          "zh-Hant": "本次閱讀計時",
+          "ja": "セッションタイマー",
+          "ru": "Таймер сеанса",
+          "fr": "Minuteur de session",
+          "de": "Sitzungs-Timer",
+          "es": "Temporizador de sesión"
+        }
+      },
+      "description": {
+        "default": "The floating bar counts the time since you entered the mode. Resets every time; nothing is saved.",
+        "translations": {
+          "zh-Hans": "浮动条显示本次进入逐句阅读以来的用时。每次进入重新计时，不做任何保存。",
+          "zh-Hant": "浮動列顯示本次進入逐句閱讀以來的用時。每次進入重新計時，不做任何保存。",
+          "ja": "モードに入ってからの経過時間をフローティングバーに表示します。毎回リセットされ、保存はされません。",
+          "ru": "Плавающая панель отсчитывает время с входа в режим. Сбрасывается каждый раз; ничего не сохраняется.",
+          "fr": "La barre flottante compte le temps depuis l’entrée dans le mode. Remis à zéro à chaque fois ; rien n’est enregistré.",
+          "de": "Die schwebende Leiste zählt die Zeit seit dem Einstieg in den Modus. Wird jedes Mal zurückgesetzt; nichts wird gespeichert.",
+          "es": "La barra flotante cuenta el tiempo desde que entraste en el modo. Se reinicia cada vez; no se guarda nada."
+        }
+      },
+      "value": true
+    }
+  ]
 }

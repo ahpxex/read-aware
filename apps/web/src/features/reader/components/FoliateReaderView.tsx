@@ -4,7 +4,7 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { Body, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
-import { textUnitModePrefsAtom, shortcutBindingsAtom } from "../../../state/ui";
+import { textUnitModeSettingsAtom, shortcutBindingsAtom } from "../../../state/ui";
 import { chordMatchesEvent, resolveBinding } from "../../settings/lib/shortcuts";
 import type { LibraryBook, ReaderProgress } from "../../library/lib/library-types";
 import { formatReaderError } from "../lib/format-reader-error";
@@ -46,10 +46,7 @@ import { ensureUsableToc } from "../lib/toc-synthesis";
 import { useReadAloud } from "../hooks/useReadAloud";
 import { createReaderPanelIntent, readerPanelIntentAtom } from "../state/panel-intent";
 import { useTextUnitNavigator } from "../hooks/useTextUnitNavigator";
-import {
-  preferredTextUnitModeUnitId,
-  readTextUnitModeState,
-} from "../lib/text-unit-mode-state";
+import { readTextUnitModeState } from "../lib/text-unit-mode-state";
 import { createWheelGesture, type WheelGesture } from "../lib/wheel-gesture";
 import { ReaderAnnotationMenu } from "./ReaderAnnotationMenu";
 import { ReaderFootnotePopover } from "./ReaderFootnotePopover";
@@ -833,18 +830,15 @@ export function FoliateReaderView({
     textUnitModeActiveStateRef.current = textUnitModeEngineActive;
   }, [textUnitModeEngineActive]);
 
-  // Host behavior prefs (step unit, tap-to-advance, scroll-to-step) —
-  // app-level, shared with the settings panel. Read through refs by the stable
-  // doc listeners.
-  const [textUnitModePrefs, setTextUnitModePrefs] = useAtom(textUnitModePrefsAtom);
+  // Host behavior settings (step unit, tap-to-advance, scroll-to-step, bar
+  // readouts) — stored in the mode plugin's own settings object, edited on
+  // its settings page. Read through refs by the stable doc listeners.
+  const [textUnitModeSettings, patchTextUnitModeSettings] = useAtom(textUnitModeSettingsAtom);
   const persistedModeState = useMemo(
     () => (selectedBook ? readTextUnitModeState(selectedBook.id) : null),
     [selectedBook?.id],
   );
-  const prefsUnitId =
-    textUnitMode
-      ? preferredTextUnitModeUnitId(textUnitModePrefs, textUnitMode.key)
-      : null;
+  const prefsUnitId = textUnitMode ? textUnitModeSettings.unitId : null;
   const persistedUnitId =
     textUnitMode &&
     persistedModeState &&
@@ -857,26 +851,17 @@ export function FoliateReaderView({
     : null;
   const activeUnitId = resolvedModeUnit?.id ?? preferredUnitId ?? "mode-unavailable";
   useEffect(() => {
-    if (
-      !textUnitMode ||
-      !resolvedModeUnit ||
-      (textUnitModePrefs.modeKey === textUnitMode.key &&
-        textUnitModePrefs.unitId === resolvedModeUnit.id)
-    ) {
-      return;
+    if (!textUnitMode || !resolvedModeUnit) return;
+    if (textUnitModeSettings.unitId !== resolvedModeUnit.id) {
+      patchTextUnitModeSettings({ unitId: resolvedModeUnit.id });
     }
-    setTextUnitModePrefs({
-      ...textUnitModePrefs,
-      modeKey: textUnitMode.key,
-      unitId: resolvedModeUnit.id,
-    });
-  }, [resolvedModeUnit, setTextUnitModePrefs, textUnitMode, textUnitModePrefs]);
-  const tapToAdvanceRef = useRef(textUnitModePrefs.tapToAdvance);
-  const scrollToStepRef = useRef(textUnitModePrefs.scrollToStep);
+  }, [patchTextUnitModeSettings, resolvedModeUnit, textUnitMode, textUnitModeSettings.unitId]);
+  const tapToAdvanceRef = useRef(textUnitModeSettings.tapToAdvance);
+  const scrollToStepRef = useRef(textUnitModeSettings.scrollToStep);
   useEffect(() => {
-    tapToAdvanceRef.current = textUnitModePrefs.tapToAdvance;
-    scrollToStepRef.current = textUnitModePrefs.scrollToStep;
-  }, [textUnitModePrefs.tapToAdvance, textUnitModePrefs.scrollToStep]);
+    tapToAdvanceRef.current = textUnitModeSettings.tapToAdvance;
+    scrollToStepRef.current = textUnitModeSettings.scrollToStep;
+  }, [textUnitModeSettings.tapToAdvance, textUnitModeSettings.scrollToStep]);
 
   // Stepping off either end of a section: scroll mode gets the cross-fade with
   // an explicit spine target (next/prev only cross when pinned at an edge);
@@ -2156,15 +2141,9 @@ export function FoliateReaderView({
           mode={textUnitMode}
           containerRef={readerRootRef}
           canReturn={textUnitNavigator.canReturn}
-          tapToAdvance={textUnitModePrefs.tapToAdvance}
+          tapToAdvance={textUnitModeSettings.tapToAdvance}
           unitId={activeUnitId}
-          onUnitChange={(unitId) =>
-            setTextUnitModePrefs({
-              ...textUnitModePrefs,
-              modeKey: textUnitMode.key,
-              unitId,
-            })
-          }
+          onUnitChange={(unitId) => patchTextUnitModeSettings({ unitId })}
           onOpenPanel={(panel) => {
             const id = selectedBook?.id;
             if (id) dispatchPanelIntent(createReaderPanelIntent(id, panel));
@@ -2176,6 +2155,9 @@ export function FoliateReaderView({
           readAloudAvailable={readAloud.available}
           readAloudPlaying={readAloud.playing}
           onToggleReadAloud={readAloud.toggle}
+          progress={textUnitNavigator.progress}
+          showProgress={textUnitModeSettings.showProgress}
+          sessionTimer={textUnitModeSettings.sessionTimer}
         />
       )}
       {/* Off-screen stage where the engine loads + extracts a footnote fragment. */}

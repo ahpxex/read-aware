@@ -1,7 +1,7 @@
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useActiveBar } from "../hooks/useActiveBar";
 import type { StatsBar } from "../lib/reading-insights";
-import { BAR_CURSOR, barFill, CHART_MARGIN, DurationTooltip, INK } from "./ChartKit";
+import { BAR_CURSOR, barFill, CHART_MARGIN, DurationTooltip, INK, TOOLTIP_POSITION } from "./ChartKit";
 
 type ReadingBarsProps = {
   bars: StatsBar[];
@@ -48,7 +48,12 @@ export function ReadingBars({ bars, height = 160, className }: ReadingBarsProps)
             minTickGap={4}
           />
           <YAxis hide domain={[0, "dataMax"]} />
-          <Tooltip cursor={BAR_CURSOR} content={<DurationTooltip />} />
+          <Tooltip
+            cursor={BAR_CURSOR}
+            content={<DurationTooltip />}
+            position={TOOLTIP_POSITION}
+            isAnimationActive={false}
+          />
           <Bar dataKey="ms" radius={[2, 2, 0, 0]} maxBarSize={30} isAnimationActive={false}>
             {data.map((d) => (
               <Cell key={d.key} fill={barFill(d.ms, isEmphasized(d.key, d.isCurrent))} />

@@ -34,15 +34,23 @@ type DurationTooltipProps = {
   payload?: { payload: ChartRow }[];
 };
 
-/** Quiet paper-toned tooltip showing a formatted duration plus optional context. */
+/**
+ * Pin the tooltip to the top edge of the plot (x keeps tracking the active
+ * column). Pass to every stats chart's <Tooltip position> so the label reads
+ * like a caption above the bars instead of a card chasing the pointer.
+ */
+export const TOOLTIP_POSITION = { y: 0 } as const;
+
+/** Solid ink label showing a formatted duration plus optional context. */
 export function DurationTooltip({ active, payload }: DurationTooltipProps) {
   if (!active || !payload?.length) return null;
   const row = payload[0].payload;
   return (
-    <div className="rounded-md border border-border bg-paper px-2.5 py-1.5 text-xs shadow-sm">
-      <div className="font-medium tabular-nums text-fg">{formatReadingDuration(row.ms)}</div>
-      {row.sub && <div className="tabular-nums text-fg-subtle">{row.sub}</div>}
-      {row.caption && <div className="text-fg-subtle">{row.caption}</div>}
+    <div className="rounded-sm bg-fg px-2 py-1 text-xs text-paper">
+      <span className="font-medium tabular-nums">{formatReadingDuration(row.ms)}</span>
+      {(row.sub ?? row.caption) && (
+        <span className="tabular-nums opacity-70"> · {row.sub ?? row.caption}</span>
+      )}
     </div>
   );
 }

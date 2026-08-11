@@ -3,7 +3,7 @@ import { Caption } from "@read-aware/ui";
 import { formatHour, useTranslation } from "../../../i18n";
 import { useActiveBar } from "../hooks/useActiveBar";
 import type { WeekdayBucket } from "../lib/reading-insights";
-import { BAR_CURSOR, barFill, CHART_MARGIN, DurationTooltip, INK } from "./ChartKit";
+import { BAR_CURSOR, barFill, CHART_MARGIN, DurationTooltip, INK, TOOLTIP_POSITION } from "./ChartKit";
 
 const CHART_H = 110;
 /** Hour-axis ticks (others stay unlabelled). */
@@ -42,7 +42,12 @@ export function WeekdayChart({ weekday, className }: { weekday: WeekdayBucket[];
               tick={{ fontSize: 10, fill: INK.subtle }}
             />
             <YAxis hide domain={[0, "dataMax"]} />
-            <Tooltip cursor={BAR_CURSOR} content={<DurationTooltip />} />
+            <Tooltip
+              cursor={BAR_CURSOR}
+              content={<DurationTooltip />}
+              position={TOOLTIP_POSITION}
+              isAnimationActive={false}
+            />
             <Bar dataKey="ms" radius={[2, 2, 0, 0]} maxBarSize={26} isAnimationActive={false}>
               {data.map((d) => (
                 <Cell key={d.key} fill={barFill(d.ms, isEmphasized(d.key, d.isPeak))} />
@@ -92,7 +97,12 @@ export function TimeOfDayChart({ byHour, className }: { byHour: number[]; classN
                 tick={{ fontSize: 9, fill: INK.subtle }}
               />
               <YAxis hide domain={[0, "dataMax"]} />
-              <Tooltip cursor={BAR_CURSOR} content={<DurationTooltip />} />
+              <Tooltip
+                cursor={BAR_CURSOR}
+                content={<DurationTooltip />}
+                position={TOOLTIP_POSITION}
+                isAnimationActive={false}
+              />
               <Bar dataKey="ms" radius={[1, 1, 0, 0]} isAnimationActive={false}>
                 {data.map((d) => (
                   <Cell key={d.key} fill={barFill(d.ms, isEmphasized(d.key, d.isPeak))} />

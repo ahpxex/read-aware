@@ -6,7 +6,7 @@ import { SiteHeader } from "./SiteHeader";
 import { useDocumentLang } from "../hooks/useDocumentLang";
 import { useLatestRelease } from "../hooks/useLatestRelease";
 import { HOME } from "../lib/home-content";
-import { LOCALE_CHOICE_KEY, type Locale } from "../lib/i18n";
+import { LOCALES, LOCALE_CHOICE_KEY, type Locale } from "../lib/i18n";
 
 // Cache-buster for the retaken screenshot set (bump when replacing the files).
 const SHOT_VERSION = "?v=041";
@@ -27,26 +27,31 @@ function useBrowserLocaleRedirect(locale: Locale) {
     } catch {
       // Storage unavailable — treat as no stored preference.
     }
-    const target =
-      choice === "zh" || choice === "ja"
-        ? choice
-        : choice === "en"
-          ? null
-          : detectBrowserLocale();
+    const stored =
+      choice && (LOCALES as readonly string[]).includes(choice)
+        ? (choice as Locale)
+        : null;
+    const target = stored ? (stored === "en" ? null : stored) : detectBrowserLocale();
     if (target) window.location.replace(`/${target}/`);
   }, [locale]);
 }
 
 /** The first of the visitor's languages we can serve decides — including en. */
-function detectBrowserLocale(): "zh" | "ja" | null {
+function detectBrowserLocale(): Exclude<Locale, "en"> | null {
   const languages = navigator.languages?.length
     ? navigator.languages
     : [navigator.language];
   for (const entry of languages) {
     const lang = (entry ?? "").toLowerCase();
-    if (lang.startsWith("zh")) return "zh";
-    if (lang.startsWith("ja")) return "ja";
     if (lang.startsWith("en")) return null;
+    if (lang.startsWith("zh")) {
+      return lang.includes("hant") || lang.startsWith("zh-tw") || lang.startsWith("zh-hk")
+        ? "zh-hant"
+        : "zh";
+    }
+    for (const candidate of ["ja", "fr", "de", "ru", "es"] as const) {
+      if (lang.startsWith(candidate)) return candidate;
+    }
   }
   return null;
 }

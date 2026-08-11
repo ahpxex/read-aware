@@ -1,11 +1,11 @@
 import { Outlet } from "@tanstack/react-router";
 import { useDocumentLang } from "../hooks/useDocumentLang";
-import type { Locale } from "../lib/i18n";
+import type { DocsLocale } from "../lib/i18n";
 import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
 
 /** The blog shell, shared by every locale's /blog layout route. */
-export function BlogLayout({ locale }: { locale: Locale }) {
+export function BlogLayout({ locale }: { locale: DocsLocale }) {
   useDocumentLang(locale);
 
   return (

@@ -1,12 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { DOCS_NAV } from "../lib/docs-nav";
-import type { Locale } from "../lib/i18n";
+import type { DocsLocale } from "../lib/i18n";
 
 /**
  * The docs section navigation: a sticky sidebar on wide screens, a compact
  * row of sections above the article on narrow ones.
  */
-export function DocsNav({ locale }: { locale: Locale }) {
+export function DocsNav({ locale }: { locale: DocsLocale }) {
   return (
     <aside className="md:sticky md:top-8 md:self-start">
       <nav

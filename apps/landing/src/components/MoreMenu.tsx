@@ -3,12 +3,13 @@ import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, CaretDown, Check } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import {
-  LOCALES,
+  availableLocales,
   LOCALE_CHOICE_KEY,
   LOCALE_LABEL,
   LOCALE_LANG,
   UI_STRINGS,
   hasLocaleVariants,
+  isDocsLocale,
   localizePath,
   type Locale,
 } from "../lib/i18n";
@@ -33,11 +34,13 @@ import { CONTACT_EMAIL, DISCORD_URL } from "../lib/site";
  * prerendered HTML; external links carry an arrow so the boundary is visible
  * before the click.
  */
-const MORE_TO = {
-  en: { blog: "/blog", changelog: "/changelog" },
-  zh: { blog: "/zh/blog", changelog: "/zh/changelog" },
-  ja: { blog: "/ja/blog", changelog: "/ja/changelog" },
-} as const;
+/** Blog mirrors exist only in the docs-locale subset; changelog is every locale. */
+function moreTo(locale: Locale): { blog: string; changelog: string } {
+  return {
+    blog: isDocsLocale(locale) ? localizePath("/blog", locale) : "/blog",
+    changelog: localizePath("/changelog", locale),
+  };
+}
 
 const itemClass =
   "flex items-center justify-between gap-3 rounded px-3 py-2 text-[0.9375rem] text-fg-muted transition-colors hover:bg-fill hover:text-fg";
@@ -52,6 +55,7 @@ export function MoreMenu({
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const strings = UI_STRINGS[locale];
+  const pageLocales = availableLocales(pathname);
   const showLocales = hasLocaleVariants(pathname);
 
   useEffect(() => {
@@ -98,7 +102,7 @@ export function MoreMenu({
           className="absolute right-0 top-[calc(100%+0.625rem)] z-30 w-48 rounded-md border border-border-strong bg-surface p-1 shadow-[0_10px_30px_-12px_rgba(38,36,32,0.28)]"
         >
           <Link
-            to={MORE_TO[locale].blog}
+            to={moreTo(locale).blog}
             role="menuitem"
             onClick={close}
             activeProps={{ className: "text-fg" }}
@@ -107,7 +111,7 @@ export function MoreMenu({
             {strings.blog}
           </Link>
           <Link
-            to={MORE_TO[locale].changelog}
+            to={moreTo(locale).changelog}
             role="menuitem"
             onClick={close}
             activeProps={{ className: "text-fg" }}
@@ -145,7 +149,7 @@ export function MoreMenu({
               <p className="px-3 pb-1 pt-1.5 text-[0.6875rem] font-medium uppercase tracking-[0.12em] text-fg-subtle">
                 {strings.language}
               </p>
-              {LOCALES.map((target) => (
+              {pageLocales.map((target) => (
                 <a
                   key={target}
                   href={localizePath(pathname, target)}

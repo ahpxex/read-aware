@@ -20,7 +20,12 @@ import { SiteHeader } from "./SiteHeader";
 const LEAD_IN: Record<Locale, string> = {
   en: ". ",
   zh: "：",
+  "zh-hant": "：",
   ja: "：",
+  fr: " : ",
+  de: ". ",
+  ru: ". ",
+  es: ". ",
 };
 
 export function ChangelogPage({ locale }: { locale: Locale }) {

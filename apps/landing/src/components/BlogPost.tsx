@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { UI_STRINGS, type Locale } from "../lib/i18n";
+import { UI_STRINGS, type DocsLocale } from "../lib/i18n";
 import { formatPostDate, getPost } from "../lib/posts";
 
 const INDEX_TO = { en: "/blog", zh: "/zh/blog", ja: "/ja/blog" } as const;
@@ -17,7 +17,7 @@ export function BlogPost({
   children,
 }: {
   slug: string;
-  locale?: Locale;
+  locale?: DocsLocale;
   children: ReactNode;
 }) {
   const post = getPost(slug);

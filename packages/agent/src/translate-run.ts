@@ -12,7 +12,9 @@
 import { readFileSync } from "node:fs";
 import { resolveJudgeCompletion } from "./evals/model-config";
 
-type TargetLocale = "zh" | "ja";
+type TargetLocale = "zh" | "zh-hant" | "ja" | "fr" | "de" | "ru" | "es";
+
+const TARGETS: readonly TargetLocale[] = ["zh", "zh-hant", "ja", "fr", "de", "ru", "es"];
 
 const GLOSSARY: Record<TargetLocale, Record<string, string>> = {
   zh: {
@@ -63,11 +65,96 @@ const GLOSSARY: Record<TargetLocale, Record<string, string>> = {
     chapter: "章",
     "session timer": "セッションタイマー",
   },
+  "zh-hant": {
+    library: "書架",
+    shelf: "書架",
+    assistant: "智慧助理",
+    agent: "智慧助理",
+    "highlight (a reader annotation)": "劃線",
+    "ink highlight (the emphasized bar/label in charts)": "墨色高亮",
+    note: "筆記",
+    annotation: "標註",
+    "read-aloud": "朗讀",
+    "sentence reader": "逐句閱讀",
+    "sentence-by-sentence": "逐句",
+    "floating bar": "浮動列",
+    "context": "上下文",
+    dictionary: "字典",
+    "command palette": "命令面板",
+    "local-first": "本地優先",
+    plugin: "外掛",
+    marketplace: "外掛市場",
+    changelog: "更新日誌",
+    "reading stats": "閱讀統計",
+    chapter: "章",
+    "session timer": "本次閱讀計時",
+  },
+  fr: {
+    library: "bibliothèque",
+    assistant: "assistant",
+    "highlight (a reader annotation)": "surlignage",
+    note: "note",
+    "read-aloud": "lecture à voix haute",
+    "sentence-by-sentence": "phrase par phrase",
+    "local-first": "local d'abord (local-first)",
+    plugin: "plugin",
+    marketplace: "marketplace",
+    changelog: "journal des modifications",
+    "reading stats": "statistiques de lecture",
+    "command palette": "palette de commandes",
+  },
+  de: {
+    library: "Bibliothek",
+    assistant: "Assistent",
+    "highlight (a reader annotation)": "Markierung",
+    note: "Notiz",
+    "read-aloud": "Vorlesen",
+    "sentence-by-sentence": "Satz für Satz",
+    "local-first": "Local-First",
+    plugin: "Plugin",
+    marketplace: "Marktplatz",
+    changelog: "Änderungsprotokoll",
+    "reading stats": "Lesestatistik",
+    "command palette": "Befehlspalette",
+  },
+  ru: {
+    library: "библиотека",
+    assistant: "ассистент",
+    "highlight (a reader annotation)": "выделение",
+    note: "заметка",
+    "read-aloud": "чтение вслух",
+    "sentence-by-sentence": "по предложениям",
+    "local-first": "локальный подход (local-first)",
+    plugin: "плагин",
+    marketplace: "каталог плагинов",
+    changelog: "журнал изменений",
+    "reading stats": "статистика чтения",
+    "command palette": "палитра команд",
+  },
+  es: {
+    library: "biblioteca",
+    assistant: "asistente",
+    "highlight (a reader annotation)": "subrayado",
+    note: "nota",
+    "read-aloud": "lectura en voz alta",
+    "sentence-by-sentence": "frase a frase",
+    "local-first": "local primero (local-first)",
+    plugin: "plugin",
+    marketplace: "marketplace",
+    changelog: "registro de cambios",
+    "reading stats": "estadísticas de lectura",
+    "command palette": "paleta de comandos",
+  },
 };
 
 const LOCALE_NAME: Record<TargetLocale, string> = {
   zh: "Simplified Chinese (简体中文)",
+  "zh-hant": "Traditional Chinese (繁體中文, Taiwan conventions)",
   ja: "Japanese (日本語)",
+  fr: "French",
+  de: "German",
+  ru: "Russian",
+  es: "Spanish",
 };
 
 const STYLE_RULES: Record<string, string> = {
@@ -107,20 +194,29 @@ function buildPrompt(source: string, target: TargetLocale, style?: string): stri
 }
 
 function parseArgs(argv: string[]) {
-  const args = { file: "", to: ["zh", "ja"] as TargetLocale[], style: undefined as string | undefined, provider: "deepseek", model: "deepseek-v4-flash" };
+  const args = { file: "", to: [...TARGETS] as TargetLocale[], style: undefined as string | undefined, provider: "deepseek", model: "deepseek-v4-flash" };
   const rest = [...argv];
   while (rest.length > 0) {
     const arg = rest.shift()!;
     if (arg === "--to") {
       const value = rest.shift() ?? "";
-      args.to = value.split(",").filter((entry): entry is TargetLocale => entry === "zh" || entry === "ja");
+      args.to =
+        value === "all"
+          ? [...TARGETS]
+          : value
+              .split(",")
+              .filter((entry): entry is TargetLocale =>
+                (TARGETS as readonly string[]).includes(entry),
+              );
     } else if (arg === "--style") args.style = rest.shift();
     else if (arg === "--provider") args.provider = rest.shift() ?? args.provider;
     else if (arg === "--model") args.model = rest.shift() ?? args.model;
     else if (!args.file) args.file = arg;
   }
   if (!args.file || args.to.length === 0) {
-    console.error("usage: bun run translate <file|-> [--to zh,ja] [--style changelog|docs] [--provider p] [--model m]");
+    console.error(
+      `usage: bun run translate <file|-> [--to all|${TARGETS.join(",")}] [--style changelog|docs] [--provider p] [--model m]`,
+    );
     process.exit(1);
   }
   return args;

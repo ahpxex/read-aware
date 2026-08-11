@@ -25,7 +25,12 @@ const SITE_ORIGIN = "https://readaware.app";
 const LOCALES = [
   { locale: "en", prefix: "", hreflang: "en" },
   { locale: "zh", prefix: "/zh", hreflang: "zh-CN" },
+  { locale: "zh-hant", prefix: "/zh-hant", hreflang: "zh-Hant" },
   { locale: "ja", prefix: "/ja", hreflang: "ja" },
+  { locale: "fr", prefix: "/fr", hreflang: "fr" },
+  { locale: "de", prefix: "/de", hreflang: "de" },
+  { locale: "ru", prefix: "/ru", hreflang: "ru" },
+  { locale: "es", prefix: "/es", hreflang: "es" },
 ];
 
 function localeOf(routePath) {

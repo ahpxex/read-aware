@@ -14,17 +14,27 @@ import { Route as ChangelogRouteImport } from './routes/changelog'
 import { Route as BlogRouteImport } from './routes/blog'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ZhIndexRouteImport } from './routes/zh/index'
+import { Route as ZhHantIndexRouteImport } from './routes/zh-hant/index'
+import { Route as RuIndexRouteImport } from './routes/ru/index'
 import { Route as JaIndexRouteImport } from './routes/ja/index'
+import { Route as FrIndexRouteImport } from './routes/fr/index'
+import { Route as EsIndexRouteImport } from './routes/es/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
+import { Route as DeIndexRouteImport } from './routes/de/index'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
 import { Route as ZhDocsRouteImport } from './routes/zh/docs'
 import { Route as ZhChangelogRouteImport } from './routes/zh/changelog'
 import { Route as ZhBlogRouteImport } from './routes/zh/blog'
+import { Route as ZhHantChangelogRouteImport } from './routes/zh-hant/changelog'
+import { Route as RuChangelogRouteImport } from './routes/ru/changelog'
 import { Route as JaDocsRouteImport } from './routes/ja/docs'
 import { Route as JaChangelogRouteImport } from './routes/ja/changelog'
 import { Route as JaBlogRouteImport } from './routes/ja/blog'
+import { Route as FrChangelogRouteImport } from './routes/fr/changelog'
+import { Route as EsChangelogRouteImport } from './routes/es/changelog'
 import { Route as DocsInstallRouteImport } from './routes/docs/install'
 import { Route as DocsGettingStartedRouteImport } from './routes/docs/getting-started'
+import { Route as DeChangelogRouteImport } from './routes/de/changelog'
 import { Route as BlogReadingThatRemembersRouteImport } from './routes/blog/reading-that-remembers'
 import { Route as BlogPluginsV1RouteImport } from './routes/blog/plugins-v1'
 import { Route as BlogLocalFirstRouteImport } from './routes/blog/local-first'
@@ -77,15 +87,40 @@ const ZhIndexRoute = ZhIndexRouteImport.update({
   path: '/zh/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ZhHantIndexRoute = ZhHantIndexRouteImport.update({
+  id: '/zh-hant/',
+  path: '/zh-hant/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RuIndexRoute = RuIndexRouteImport.update({
+  id: '/ru/',
+  path: '/ru/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const JaIndexRoute = JaIndexRouteImport.update({
   id: '/ja/',
   path: '/ja/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FrIndexRoute = FrIndexRouteImport.update({
+  id: '/fr/',
+  path: '/fr/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EsIndexRoute = EsIndexRouteImport.update({
+  id: '/es/',
+  path: '/es/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocsIndexRoute = DocsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => DocsRoute,
+} as any)
+const DeIndexRoute = DeIndexRouteImport.update({
+  id: '/de/',
+  path: '/de/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const BlogIndexRoute = BlogIndexRouteImport.update({
   id: '/',
@@ -107,6 +142,16 @@ const ZhBlogRoute = ZhBlogRouteImport.update({
   path: '/zh/blog',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ZhHantChangelogRoute = ZhHantChangelogRouteImport.update({
+  id: '/zh-hant/changelog',
+  path: '/zh-hant/changelog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RuChangelogRoute = RuChangelogRouteImport.update({
+  id: '/ru/changelog',
+  path: '/ru/changelog',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const JaDocsRoute = JaDocsRouteImport.update({
   id: '/ja/docs',
   path: '/ja/docs',
@@ -122,6 +167,16 @@ const JaBlogRoute = JaBlogRouteImport.update({
   path: '/ja/blog',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FrChangelogRoute = FrChangelogRouteImport.update({
+  id: '/fr/changelog',
+  path: '/fr/changelog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EsChangelogRoute = EsChangelogRouteImport.update({
+  id: '/es/changelog',
+  path: '/es/changelog',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DocsInstallRoute = DocsInstallRouteImport.update({
   id: '/install',
   path: '/install',
@@ -131,6 +186,11 @@ const DocsGettingStartedRoute = DocsGettingStartedRouteImport.update({
   id: '/getting-started',
   path: '/getting-started',
   getParentRoute: () => DocsRoute,
+} as any)
+const DeChangelogRoute = DeChangelogRouteImport.update({
+  id: '/de/changelog',
+  path: '/de/changelog',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const BlogReadingThatRemembersRoute =
   BlogReadingThatRemembersRouteImport.update({
@@ -274,17 +334,27 @@ export interface FileRoutesByFullPath {
   '/blog/local-first': typeof BlogLocalFirstRoute
   '/blog/plugins-v1': typeof BlogPluginsV1Route
   '/blog/reading-that-remembers': typeof BlogReadingThatRemembersRoute
+  '/de/changelog': typeof DeChangelogRoute
   '/docs/getting-started': typeof DocsGettingStartedRoute
   '/docs/install': typeof DocsInstallRoute
+  '/es/changelog': typeof EsChangelogRoute
+  '/fr/changelog': typeof FrChangelogRoute
   '/ja/blog': typeof JaBlogRouteWithChildren
   '/ja/changelog': typeof JaChangelogRoute
   '/ja/docs': typeof JaDocsRouteWithChildren
+  '/ru/changelog': typeof RuChangelogRoute
+  '/zh-hant/changelog': typeof ZhHantChangelogRoute
   '/zh/blog': typeof ZhBlogRouteWithChildren
   '/zh/changelog': typeof ZhChangelogRoute
   '/zh/docs': typeof ZhDocsRouteWithChildren
   '/blog/': typeof BlogIndexRoute
+  '/de/': typeof DeIndexRoute
   '/docs/': typeof DocsIndexRoute
+  '/es/': typeof EsIndexRoute
+  '/fr/': typeof FrIndexRoute
   '/ja/': typeof JaIndexRoute
+  '/ru/': typeof RuIndexRoute
+  '/zh-hant/': typeof ZhHantIndexRoute
   '/zh/': typeof ZhIndexRoute
   '/docs/plugins/api': typeof DocsPluginsApiRoute
   '/docs/plugins/publishing': typeof DocsPluginsPublishingRoute
@@ -316,13 +386,23 @@ export interface FileRoutesByTo {
   '/blog/local-first': typeof BlogLocalFirstRoute
   '/blog/plugins-v1': typeof BlogPluginsV1Route
   '/blog/reading-that-remembers': typeof BlogReadingThatRemembersRoute
+  '/de/changelog': typeof DeChangelogRoute
   '/docs/getting-started': typeof DocsGettingStartedRoute
   '/docs/install': typeof DocsInstallRoute
+  '/es/changelog': typeof EsChangelogRoute
+  '/fr/changelog': typeof FrChangelogRoute
   '/ja/changelog': typeof JaChangelogRoute
+  '/ru/changelog': typeof RuChangelogRoute
+  '/zh-hant/changelog': typeof ZhHantChangelogRoute
   '/zh/changelog': typeof ZhChangelogRoute
   '/blog': typeof BlogIndexRoute
+  '/de': typeof DeIndexRoute
   '/docs': typeof DocsIndexRoute
+  '/es': typeof EsIndexRoute
+  '/fr': typeof FrIndexRoute
   '/ja': typeof JaIndexRoute
+  '/ru': typeof RuIndexRoute
+  '/zh-hant': typeof ZhHantIndexRoute
   '/zh': typeof ZhIndexRoute
   '/docs/plugins/api': typeof DocsPluginsApiRoute
   '/docs/plugins/publishing': typeof DocsPluginsPublishingRoute
@@ -357,17 +437,27 @@ export interface FileRoutesById {
   '/blog/local-first': typeof BlogLocalFirstRoute
   '/blog/plugins-v1': typeof BlogPluginsV1Route
   '/blog/reading-that-remembers': typeof BlogReadingThatRemembersRoute
+  '/de/changelog': typeof DeChangelogRoute
   '/docs/getting-started': typeof DocsGettingStartedRoute
   '/docs/install': typeof DocsInstallRoute
+  '/es/changelog': typeof EsChangelogRoute
+  '/fr/changelog': typeof FrChangelogRoute
   '/ja/blog': typeof JaBlogRouteWithChildren
   '/ja/changelog': typeof JaChangelogRoute
   '/ja/docs': typeof JaDocsRouteWithChildren
+  '/ru/changelog': typeof RuChangelogRoute
+  '/zh-hant/changelog': typeof ZhHantChangelogRoute
   '/zh/blog': typeof ZhBlogRouteWithChildren
   '/zh/changelog': typeof ZhChangelogRoute
   '/zh/docs': typeof ZhDocsRouteWithChildren
   '/blog/': typeof BlogIndexRoute
+  '/de/': typeof DeIndexRoute
   '/docs/': typeof DocsIndexRoute
+  '/es/': typeof EsIndexRoute
+  '/fr/': typeof FrIndexRoute
   '/ja/': typeof JaIndexRoute
+  '/ru/': typeof RuIndexRoute
+  '/zh-hant/': typeof ZhHantIndexRoute
   '/zh/': typeof ZhIndexRoute
   '/docs/plugins/api': typeof DocsPluginsApiRoute
   '/docs/plugins/publishing': typeof DocsPluginsPublishingRoute
@@ -403,17 +493,27 @@ export interface FileRouteTypes {
     | '/blog/local-first'
     | '/blog/plugins-v1'
     | '/blog/reading-that-remembers'
+    | '/de/changelog'
     | '/docs/getting-started'
     | '/docs/install'
+    | '/es/changelog'
+    | '/fr/changelog'
     | '/ja/blog'
     | '/ja/changelog'
     | '/ja/docs'
+    | '/ru/changelog'
+    | '/zh-hant/changelog'
     | '/zh/blog'
     | '/zh/changelog'
     | '/zh/docs'
     | '/blog/'
+    | '/de/'
     | '/docs/'
+    | '/es/'
+    | '/fr/'
     | '/ja/'
+    | '/ru/'
+    | '/zh-hant/'
     | '/zh/'
     | '/docs/plugins/api'
     | '/docs/plugins/publishing'
@@ -445,13 +545,23 @@ export interface FileRouteTypes {
     | '/blog/local-first'
     | '/blog/plugins-v1'
     | '/blog/reading-that-remembers'
+    | '/de/changelog'
     | '/docs/getting-started'
     | '/docs/install'
+    | '/es/changelog'
+    | '/fr/changelog'
     | '/ja/changelog'
+    | '/ru/changelog'
+    | '/zh-hant/changelog'
     | '/zh/changelog'
     | '/blog'
+    | '/de'
     | '/docs'
+    | '/es'
+    | '/fr'
     | '/ja'
+    | '/ru'
+    | '/zh-hant'
     | '/zh'
     | '/docs/plugins/api'
     | '/docs/plugins/publishing'
@@ -485,17 +595,27 @@ export interface FileRouteTypes {
     | '/blog/local-first'
     | '/blog/plugins-v1'
     | '/blog/reading-that-remembers'
+    | '/de/changelog'
     | '/docs/getting-started'
     | '/docs/install'
+    | '/es/changelog'
+    | '/fr/changelog'
     | '/ja/blog'
     | '/ja/changelog'
     | '/ja/docs'
+    | '/ru/changelog'
+    | '/zh-hant/changelog'
     | '/zh/blog'
     | '/zh/changelog'
     | '/zh/docs'
     | '/blog/'
+    | '/de/'
     | '/docs/'
+    | '/es/'
+    | '/fr/'
     | '/ja/'
+    | '/ru/'
+    | '/zh-hant/'
     | '/zh/'
     | '/docs/plugins/api'
     | '/docs/plugins/publishing'
@@ -527,13 +647,23 @@ export interface RootRouteChildren {
   BlogRoute: typeof BlogRouteWithChildren
   ChangelogRoute: typeof ChangelogRoute
   DocsRoute: typeof DocsRouteWithChildren
+  DeChangelogRoute: typeof DeChangelogRoute
+  EsChangelogRoute: typeof EsChangelogRoute
+  FrChangelogRoute: typeof FrChangelogRoute
   JaBlogRoute: typeof JaBlogRouteWithChildren
   JaChangelogRoute: typeof JaChangelogRoute
   JaDocsRoute: typeof JaDocsRouteWithChildren
+  RuChangelogRoute: typeof RuChangelogRoute
+  ZhHantChangelogRoute: typeof ZhHantChangelogRoute
   ZhBlogRoute: typeof ZhBlogRouteWithChildren
   ZhChangelogRoute: typeof ZhChangelogRoute
   ZhDocsRoute: typeof ZhDocsRouteWithChildren
+  DeIndexRoute: typeof DeIndexRoute
+  EsIndexRoute: typeof EsIndexRoute
+  FrIndexRoute: typeof FrIndexRoute
   JaIndexRoute: typeof JaIndexRoute
+  RuIndexRoute: typeof RuIndexRoute
+  ZhHantIndexRoute: typeof ZhHantIndexRoute
   ZhIndexRoute: typeof ZhIndexRoute
 }
 
@@ -574,11 +704,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ZhIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/zh-hant/': {
+      id: '/zh-hant/'
+      path: '/zh-hant'
+      fullPath: '/zh-hant/'
+      preLoaderRoute: typeof ZhHantIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ru/': {
+      id: '/ru/'
+      path: '/ru'
+      fullPath: '/ru/'
+      preLoaderRoute: typeof RuIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ja/': {
       id: '/ja/'
       path: '/ja'
       fullPath: '/ja/'
       preLoaderRoute: typeof JaIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fr/': {
+      id: '/fr/'
+      path: '/fr'
+      fullPath: '/fr/'
+      preLoaderRoute: typeof FrIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/es/': {
+      id: '/es/'
+      path: '/es'
+      fullPath: '/es/'
+      preLoaderRoute: typeof EsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/docs/': {
@@ -587,6 +745,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/docs/'
       preLoaderRoute: typeof DocsIndexRouteImport
       parentRoute: typeof DocsRoute
+    }
+    '/de/': {
+      id: '/de/'
+      path: '/de'
+      fullPath: '/de/'
+      preLoaderRoute: typeof DeIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/blog/': {
       id: '/blog/'
@@ -616,6 +781,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ZhBlogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/zh-hant/changelog': {
+      id: '/zh-hant/changelog'
+      path: '/zh-hant/changelog'
+      fullPath: '/zh-hant/changelog'
+      preLoaderRoute: typeof ZhHantChangelogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ru/changelog': {
+      id: '/ru/changelog'
+      path: '/ru/changelog'
+      fullPath: '/ru/changelog'
+      preLoaderRoute: typeof RuChangelogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ja/docs': {
       id: '/ja/docs'
       path: '/ja/docs'
@@ -637,6 +816,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JaBlogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/fr/changelog': {
+      id: '/fr/changelog'
+      path: '/fr/changelog'
+      fullPath: '/fr/changelog'
+      preLoaderRoute: typeof FrChangelogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/es/changelog': {
+      id: '/es/changelog'
+      path: '/es/changelog'
+      fullPath: '/es/changelog'
+      preLoaderRoute: typeof EsChangelogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/docs/install': {
       id: '/docs/install'
       path: '/install'
@@ -650,6 +843,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/docs/getting-started'
       preLoaderRoute: typeof DocsGettingStartedRouteImport
       parentRoute: typeof DocsRoute
+    }
+    '/de/changelog': {
+      id: '/de/changelog'
+      path: '/de/changelog'
+      fullPath: '/de/changelog'
+      preLoaderRoute: typeof DeChangelogRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/blog/reading-that-remembers': {
       id: '/blog/reading-that-remembers'
@@ -953,13 +1153,23 @@ const rootRouteChildren: RootRouteChildren = {
   BlogRoute: BlogRouteWithChildren,
   ChangelogRoute: ChangelogRoute,
   DocsRoute: DocsRouteWithChildren,
+  DeChangelogRoute: DeChangelogRoute,
+  EsChangelogRoute: EsChangelogRoute,
+  FrChangelogRoute: FrChangelogRoute,
   JaBlogRoute: JaBlogRouteWithChildren,
   JaChangelogRoute: JaChangelogRoute,
   JaDocsRoute: JaDocsRouteWithChildren,
+  RuChangelogRoute: RuChangelogRoute,
+  ZhHantChangelogRoute: ZhHantChangelogRoute,
   ZhBlogRoute: ZhBlogRouteWithChildren,
   ZhChangelogRoute: ZhChangelogRoute,
   ZhDocsRoute: ZhDocsRouteWithChildren,
+  DeIndexRoute: DeIndexRoute,
+  EsIndexRoute: EsIndexRoute,
+  FrIndexRoute: FrIndexRoute,
   JaIndexRoute: JaIndexRoute,
+  RuIndexRoute: RuIndexRoute,
+  ZhHantIndexRoute: ZhHantIndexRoute,
   ZhIndexRoute: ZhIndexRoute,
 }
 export const routeTree = rootRouteImport

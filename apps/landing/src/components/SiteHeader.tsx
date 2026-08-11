@@ -1,14 +1,13 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { UI_STRINGS, type Locale } from "../lib/i18n";
+import { isDocsLocale, localizePath, UI_STRINGS, type Locale } from "../lib/i18n";
 import { REPO_URL } from "../lib/releases";
 import { HEADER_ICON_URL } from "../lib/site";
 import { MoreMenu } from "./MoreMenu";
 
-const NAV_TO = {
-  en: { docs: "/docs" },
-  zh: { docs: "/zh/docs" },
-  ja: { docs: "/ja/docs" },
-} as const;
+/** Docs exist only in the docs-locale subset; other locales fall back to English. */
+function docsPath(locale: Locale): string {
+  return isDocsLocale(locale) ? localizePath("/docs", locale) : "/docs";
+}
 
 /**
  * The shared site header. Each page places it inside its own width container,
@@ -41,7 +40,7 @@ export function SiteHeader({ locale = "en" }: { locale?: Locale }) {
       </Link>
       <nav className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[0.9375rem] text-fg-muted">
         <Link
-          to={NAV_TO[locale].docs}
+          to={docsPath(locale)}
           activeProps={{ className: "text-fg" }}
           className="transition-colors hover:text-fg"
         >

@@ -184,6 +184,221 @@ export const CHANGELOG: ChangelogEntry[] = [
           },
         ],
       },
+      "zh-hant": {
+        "summary": "針對統計頁面和逐句閱讀的修補：可以點選的圖表，以及一個終於能把設定——包含進度顯示和本次閱讀計時——收在自己底下的外掛。",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "點選圖表",
+                "body": "閱讀統計的長條圖現在會把墨色高亮標記放到你點選的那一根——無論是每日、星期幾還是時段圖表——而且它會停在你放的位置。"
+              },
+              {
+                "title": "逐句閱讀保留自己的設定",
+                "body": "步進單位、點擊前進和滑動步進，都移到了外掛自己的設定頁，並加入兩個新選項：章節位置顯示（12 / 87）和每次進入都會重新開始且永不儲存的本次閱讀計時。兩者都位於一個可以拖到任何地方的小型浮動晶片上。"
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "圖表提示框原本的浮動卡片，換成了固定在長條上方的低調墨色標籤。"
+              },
+              {
+                "body": "關於頁面在版本號旁邊顯示系列代號。"
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "總時間大標題不再在手機上溢出，點選圖表也不再畫出焦點框。"
+              },
+              {
+                "body": "在設定中關閉顯示，不需要重新啟動應用程式就會生效。"
+              },
+              {
+                "body": "iOS 上的閱讀器不再同時顯示兩個選取功能表。"
+              }
+            ]
+          }
+        ]
+      },
+      fr: {
+        "summary": "Un correctif pour la page de statistiques et le lecteur de phrases : des graphiques tactiles, et un plugin qui garde enfin ses réglages — plus un affichage de progression et une minuterie de session — sous son propre toit.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Touchez les graphiques",
+                "body": "Les barres de statistiques de lecture remettent maintenant l'encre de surlignage à la barre que vous touchez — quotidiens, hebdomadaires et horaires — et elle reste là où vous l'avez mise."
+              },
+              {
+                "title": "Le lecteur de phrases garde ses propres réglages",
+                "body": "L'unité de pas, le toucher pour avancer et le glissement pour passer sont déplacés dans la page de réglages du plugin, accompagnés de deux nouvelles options : un affichage de position dans le chapitre (12 / 87) et une minuterie de session qui redémarre à chaque entrée et n'est jamais enregistrée. Les deux vivent sur une petite puce flottante que vous pouvez déplacer n'importe où."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Les infobulles des graphiques ont échangé leur carte flottante contre une étiquette d'encre discrète épinglée au-dessus des barres."
+              },
+              {
+                "body": "La page À propos affiche le nom de code de la série à côté de la version."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Le titre « Temps total » ne déborde plus sur les téléphones, et toucher un graphique ne dessine plus d'anneau de focus."
+              },
+              {
+                "body": "Désactiver les affichages dans les réglages s'applique sans redémarrer l'application."
+              },
+              {
+                "body": "iOS n'affiche plus deux menus de sélection à la fois dans le lecteur."
+              }
+            ]
+          }
+        ]
+      },
+      de: {
+        "summary": "Ein Patch für die Statistikseite und den Satz-Reader: Diagramme, die du antippen kannst, und ein Plugin, das seine Einstellungen endlich unter einem eigenen Dach behält — plus eine Fortschrittsanzeige und einen Sitzungstimer.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Diagramme antippen",
+                "body": "Die Balken der Lesestatistik geben den Tinten-Highlight jetzt an den Balken weiter, den du antippst — bei Tages-, Wochentags- und Tageszeit-Diagrammen gleichermaßen — und er bleibt dort, wo du ihn platziert hast."
+              },
+              {
+                "title": "Der Satz-Reader behält seine eigenen Einstellungen",
+                "body": "Schrittgröße, Tippen zum Weitergehen und Wischen zum Schalten sind in die eigene Einstellungsseite des Plugins gewandert, ergänzt um zwei neue Optionen: eine Kapitel-Positionsanzeige (12 / 87) und einen Sitzungstimer, der bei jedem Eintritt neu startet und nie gespeichert wird. Beide leben auf einem kleinen schwebenden Chip, den du ziehen kannst."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Diagramm-Tooltips haben ihre schwebende Karte gegen ein dezentes Tinten-Label direkt über den Balken getauscht."
+              },
+              {
+                "body": "Die Über-Seite zeigt neben der Version den Codenamen der Serie."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Die Überschrift „Gesamtzeit“ läuft auf Telefonen nicht mehr über, und das Antippen eines Diagramms zeichnet keinen Fokusring mehr."
+              },
+              {
+                "body": "Das Deaktivieren der Anzeigen in den Einstellungen greift ohne Neustart der App."
+              },
+              {
+                "body": "Unter iOS erscheinen im Reader nicht mehr zwei Auswahlmenüs gleichzeitig."
+              }
+            ]
+          }
+        ]
+      },
+      ru: {
+        "summary": "Патч для страницы статистики и по предложениям: диаграммы, по которым можно нажимать, и плагин, который наконец хранит свои настройки — плюс индикатор прогресса и таймер сессии — под своей крышей.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Нажимайте на диаграммы",
+                "body": "Полосы статистики чтения теперь передают чернильное выделение той полосе, на которую вы нажимаете — на диаграммах по дням, будням и времени суток — и оно остаётся, где вы его оставили."
+              },
+              {
+                "title": "По предложениям хранит собственные настройки",
+                "body": "Шаг, нажатие для продолжения и свайп для шага переехали на собственную страницу настроек плагина, к ним добавились две новые опции: индикатор позиции в главе (12 / 87) и таймер сессии, который перезапускается при каждом входе и никогда не сохраняется. Оба живут на небольшом плавающем чипе, который можно перетаскивать куда угодно."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Всплывающие подсказки диаграмм обменяли свою плавающую карточку на тихую чернильную метку, закреплённую над полосами."
+              },
+              {
+                "body": "На странице «О программе» рядом с версией показывается кодовое имя серии."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Заголовок «Общее время» больше не переполняется на телефонах, а нажатие на диаграмму больше не рисует кольцо фокуса."
+              },
+              {
+                "body": "Отключение индикаторов в настройках применяется без перезапуска приложения."
+              },
+              {
+                "body": "iOS больше не показывает два меню выделения одновременно в ридере."
+              }
+            ]
+          }
+        ]
+      },
+      es: {
+        "summary": "Un parche para la página de estadísticas y el lector de frases: gráficos que puedes tocar, y un plugin que por fin mantiene sus ajustes — además de un indicador de progreso y un temporizador de sesión — bajo su propio techo.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Toca los gráficos",
+                "body": "Las barras de estadísticas de lectura ahora pasan el subrayado de tinta a la barra que toques — tanto en los gráficos diarios, por día de la semana y por hora del día — y se queda donde lo pongas."
+              },
+              {
+                "title": "El lector de frases guarda sus propios ajustes",
+                "body": "Unidad de paso, tocar para avanzar y deslizar para avanzar se movieron a la página de ajustes del propio plugin, junto con dos opciones nuevas: un indicador de posición en el capítulo (12 / 87) y un temporizador de sesión que se reinicia en cada entrada y nunca se guarda. Ambos viven en una pequeña pastilla flotante que puedes arrastrar a cualquier lugar."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Las descripciones emergentes de los gráficos cambiaron su tarjeta flotante por una etiqueta de tinta discreta fijada sobre las barras."
+              },
+              {
+                "body": "La página Acerca de muestra el nombre en clave de la serie junto a la versión."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "El encabezado de Tiempo total ya no se desborda en teléfonos, y tocar un gráfico ya no dibuja un anillo de enfoque."
+              },
+              {
+                "body": "Desactivar los indicadores en los ajustes se aplica sin reiniciar la app."
+              },
+              {
+                "body": "iOS ya no muestra dos menús de selección a la vez en el lector."
+              }
+            ]
+          }
+        ]
+      },
     },
   },
   {
@@ -321,6 +536,241 @@ export const CHANGELOG: ChangelogEntry[] = [
           },
         ],
       },
+      "zh-hant": {
+        "summary": "El Alto 系列的第一個版本，也是關於「距離」的版本：閱讀時需要的操作移到了句子本身，值得開啟的面板移到一指之遙，而智慧助理也不再繞路才回答。",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "點選句子",
+                "body": "在逐句或逐段閱讀時，點選被標記的句子，操作就會出現在那裡——複製、劃線、底線、筆記、詢問 AI、字典——不用伸手去按底部的工具列。"
+              },
+              {
+                "title": "用門取代工具列",
+                "body": "浮動導覽列可以一指開啟目錄、你的筆記、閱讀外觀或聊天，並在手機上自動分頁，永遠保持在一行內。"
+              },
+              {
+                "title": "更新會自我介紹",
+                "body": "應用程式更新後，一個低調的連結會用你的語言開啟這份更新日誌。你可以關掉它，或讓它兩天後自己淡出。"
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "閱讀智慧助理會用你輸入的語言回答，以小時和分鐘回報閱讀時間（而非原始計數器），而且在回答書籍相關問題前，不再盤點你的統計資料。"
+              },
+              {
+                "body": "劇透保護現在也限制了智慧助理對知名小說可能已知的資訊——除了你的閱讀位置之外，什麼都不知道，除非你明確要求被劇透。"
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "外部連結——關於面板、「有什麼新玩意」的門——現在真的會開啟你的瀏覽器了。"
+              },
+              {
+                "body": "貼上的 API 金鑰會被拒絕，不會回顯到對話中。"
+              },
+              {
+                "body": "書籍卡片不會再於一次回覆中被呈現兩次。"
+              }
+            ]
+          }
+        ]
+      },
+      fr: {
+        "summary": "La première version de la série El Alto, et une version sur la distance : les actions nécessaires pendant la lecture sont déplacées sur la phrase elle-même, les panneaux qui valent la peine d'être ouverts sont à un toucher, et l'assistant a cessé de faire des détours avant de répondre.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Touchez la phrase",
+                "body": "En lecture phrase ou paragraphe, toucher la phrase surlignée ouvre ses actions juste là — copier, surligner, souligner, note, demander à l'IA, dictionnaire — au lieu d'atteindre la barre du bas."
+              },
+              {
+                "title": "Des portes au lieu d'une barre d'outils",
+                "body": "La bande de navigation flottante ouvre la table des matières, vos notes, l'apparence de lecture ou le chat en un toucher, et se pagine sur les téléphones pour tenir sur une seule rangée."
+              },
+              {
+                "title": "Les mises à jour se présentent",
+                "body": "Après la mise à jour de l'application, un lien discret ouvre ce journal des modifications dans votre langue. Fermez-le, ou laissez-le disparaître tout seul après deux jours."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "L'assistant de lecture répond dans la langue dans laquelle vous écrivez, rapporte le temps de lecture en heures et minutes plutôt qu'en compteurs bruts, et n'inventorie plus vos statistiques avant de répondre à une question sur le livre."
+              },
+              {
+                "body": "La protection contre les spoilers encadre désormais aussi ce que l'assistant pourrait déjà savoir d'un roman célèbre — rien au-delà de votre position de lecture, sauf si vous demandez explicitement à être spoilé."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Les liens externes — le panneau À propos, la porte des nouveautés — ouvrent maintenant réellement votre navigateur."
+              },
+              {
+                "body": "Une clé API collée est refusée sans être renvoyée en écho dans la conversation."
+              },
+              {
+                "body": "Les cartes de livre ne peuvent plus être présentées deux fois dans une même réponse."
+              }
+            ]
+          }
+        ]
+      },
+      de: {
+        "summary": "Die erste Version der El-Alto-Serie, und eine Version über Distanz: Die Aktionen, die du beim Lesen brauchst, sind auf den Satz selbst gewandert, die Panels, die sich lohnen, sind einen Tipp entfernt, und der Assistent macht keine Umwege mehr vor der Antwort.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Tippe auf den Satz",
+                "body": "Beim Satz- oder Absatz-Lesen öffnet das Antippen des hervorgehobenen Satzes seine Aktionen direkt dort — kopieren, markieren, unterstreichen, Notiz, KI fragen, Wörterbuch — statt eines Griffes zur unteren Leiste."
+              },
+              {
+                "title": "Türen statt einer Symbolleiste",
+                "body": "Der schwebende Navigationsstreifen öffnet das Inhaltsverzeichnis, deine Notizen, das Lese-Erscheinungsbild oder den Chat in einem Tipp und paginiert auf Telefonen, sodass er immer in eine Zeile passt."
+              },
+              {
+                "title": "Updates stellen sich vor",
+                "body": "Nach einem App-Update öffnet ein dezenter Link dieses Änderungsprotokoll in deiner Sprache. Schließe es oder lass es nach zwei Tagen von selbst verblassen."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Der Lese-Assistent antwortet in der Sprache, in der du schreibst, meldet die Lesezeit in Stunden und Minuten statt in rohen Zählern und inventarisiert deine Statistiken nicht mehr, bevor er eine Frage zum Buch beantwortet."
+              },
+              {
+                "body": "Der Spoiler-Schutz begrenzt jetzt auch, was der Assistent über einen berühmten Roman bereits wissen darf — nichts über deinen Lesestand hinaus, es sei denn, du fragst ausdrücklich nach Spoiler."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Externe Links — das Über-Panel, die Was-ist-neu-Tür — öffnen jetzt wirklich deinen Browser."
+              },
+              {
+                "body": "Ein eingefügter API-Schlüssel wird abgelehnt, ohne ins Gespräch zurückgegeben zu werden."
+              },
+              {
+                "body": "Buchkarten können nicht mehr zweimal in einer Antwort präsentiert werden."
+              }
+            ]
+          }
+        ]
+      },
+      ru: {
+        "summary": "Первый выпуск серии El Alto, и выпуск о дистанции: действия, которые нужны при чтении, переехали прямо на само предложение, панели, которые стоит открывать, оказались в одном нажатии, а ассистент перестал делать крюки перед ответом.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Нажмите на предложение",
+                "body": "В режиме по предложениям или абзацам нажатие на выделенное предложение открывает его действия прямо здесь — копировать, выделить, подчеркнуть, заметка, спросить ИИ, словарь — вместо потягивания к нижней панели."
+              },
+              {
+                "title": "Двери вместо панели инструментов",
+                "body": "Плавающая полоса навигации открывает оглавление, ваши заметки, внешний вид чтения или чат одним нажатием и сама разбивается на страницы на телефонах, чтобы всегда помещаться в одну строку."
+              },
+              {
+                "title": "Обновления представляются",
+                "body": "После обновления приложения тихая ссылка открывает этот журнал изменений на вашем языке. Закройте её или дайте ей исчезнуть через два дня."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Ассистент чтения отвечает на языке, на котором вы пишете, сообщает время чтения в часах и минутах, а не сырыми счётчиками, и больше не перечисляет вашу статистику перед ответом на вопрос о книге."
+              },
+              {
+                "body": "Защита от спойлеров теперь также ограничивает то, что ассистент может уже знать о знаменитом романе — ничего за пределами вашей позиции чтения, если вы явно не попросите спойлеры."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Внешние ссылки — панель «О программе», дверь «Что нового» — теперь действительно открывают ваш браузер."
+              },
+              {
+                "body": "Вставленный API-ключ отклоняется без отображения в разговоре."
+              },
+              {
+                "body": "Карточки книг больше нельзя показать дважды в одном ответе."
+              }
+            ]
+          }
+        ]
+      },
+      es: {
+        "summary": "La primera versión de la serie El Alto, y una versión sobre la distancia: las acciones que necesitas al leer se movieron a la propia frase, los paneles que vale la pena abrir quedaron a un toque de distancia, y el asistente dejó de tomar desvíos antes de responder.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Toca la frase",
+                "body": "En la lectura frase a frase o párrafo a párrafo, tocar la frase resaltada abre sus acciones justo ahí — copiar, subrayar, subrayar, nota, preguntar a IA, diccionario — en lugar de estirarte hacia la barra inferior."
+              },
+              {
+                "title": "Puertas en lugar de una barra de herramientas",
+                "body": "La franja flotante de navegación abre el índice, tus notas, la apariencia de lectura o el chat con un toque, y se pagina sola en teléfonos para que siempre quepa en una fila."
+              },
+              {
+                "title": "Las actualizaciones se presentan solas",
+                "body": "Después de que la app se actualice, un enlace discreto abre este registro de cambios en tu idioma. Ciérralo o déjalo que se desvanezca solo después de dos días."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "El asistente de lectura responde en el idioma en que escribes, informa el tiempo de lectura en horas y minutos en lugar de contadores directos, y ya no inventaría tus estadísticas antes de responder una pregunta sobre el libro."
+              },
+              {
+                "body": "La protección de spoilers ahora también delimita lo que el asistente pueda saber ya sobre una novela famosa — nada más allá de tu posición de lectura, a menos que pidas explícitamente que te lo revelen."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Los enlaces externos — el panel Acerca de, la puerta de novedades — ahora sí abren tu navegador."
+              },
+              {
+                "body": "Una clave API pegada se rechaza sin que se devuelva en la conversación."
+              },
+              {
+                "body": "Las tarjetas de libro ya no se pueden presentar dos veces en una sola respuesta."
+              }
+            ]
+          }
+        ]
+      },
     },
   },
   {
@@ -440,6 +890,191 @@ export const CHANGELOG: ChangelogEntry[] = [
             ],
           },
         ],
+      },
+      "zh-hant": {
+        "summary": "這個版本關於 PDF，也關於閱讀器的外殼知道何時該讓路。PDF 頁面是一張圖片，所以頁面顏色永遠到不了它，而每個固定版面的書籍在深色應用程式裡都停留在白紙上——這已修正，同時也修正了那些書籍提供但無法兌現的控制項。",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "PDF 跟隨頁面顏色",
+                "body": "淺色調色盤會在繪製頁面時為紙張上色，讓每個墨跡和照片都保持原樣。深色調色盤則會以兩種色調重繪頁面，讓文字保持可讀，而不是在深色紙上呈現黑色墨水。"
+              },
+              {
+                "title": "頁面彩現",
+                "body": "讓一本書保持原始顏色，而其餘一切都跟隨你的調色盤。每個書本個別記憶，適用於顏色本身就是重點的藝術和攝影書籍。"
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "固定版面的書籍不再提供它們無法兌現的排版選項。PDF 或漫畫是一系列別人已經排好版的頁面，所以這些書籍的字型、大小、粗細、間距、對齊和邊距選項都不見了。頁面顏色和閱讀模式保留下來，因為兩者都仍能看到效果。"
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "閱讀器的工具列不再在你點選頁面後閃現然後隨即消失。任何會重新流排文字的東西——軟體鍵盤、旋轉裝置、改變字型大小——之前都會被誤認為是翻頁。"
+              },
+              {
+                "body": "聊天輸入框在你開啟面板時取得游標，而不是每次工具列重新出現時。在手機上，這曾導致鍵盤彈出，蓋過你只是想看一眼的頁面。"
+              }
+            ]
+          }
+        ]
+      },
+      fr: {
+        "summary": "Une version sur les PDF, et sur le chrome du lecteur qui sait quand s'effacer. Une page PDF est une image, donc la couleur de page ne l'atteignait jamais et chaque livre à mise en page fixe restait sur du papier blanc dans une application sombre — c'est corrigé, ainsi que les contrôles que ces livres proposaient mais ne pouvaient pas honorer.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Les PDF suivent la couleur de page",
+                "body": "Une palette claire teinte le papier pendant le dessin de la page, laissant chaque encre et photographie exactement comme imprimé. Une palette sombre redessine la page en deux tons, pour que le texte reste lisible au lieu de se trouver en encre noire sur une feuille sombre."
+              },
+              {
+                "title": "Rendu de page",
+                "body": "Gardez un livre dans ses couleurs originales pendant que tout le reste suit votre palette. Mémorisé par livre, pour l'art et la photographie où la couleur est essentielle."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Les livres à mise en page fixe ne proposent plus de typographie qu'ils ne peuvent pas honorer. Un PDF ou une BD est une séquence de pages déjà mis en pages par quelqu'un d'autre, donc la police, la taille, le poids, l'espacement, l'alignement et les marges sont supprimés pour ces livres. La couleur de page et le mode de lecture restent, car les deux font encore un travail visible."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "La barre d'outils du lecteur ne clignote plus et ne disparaît plus un instant après avoir touché la page. Tout ce qui re-flux le texte — le clavier logiciel, la rotation de l'appareil, le changement de taille de police — était pris pour un tour de page."
+              },
+              {
+                "body": "Le compositeur de chat prend le curseur lorsque vous ouvrez le panneau, pas à chaque réapparition de la barre d'outils. Sur un téléphone qui jetait le clavier sur une page que vous souhaitiez simplement regarder."
+              }
+            ]
+          }
+        ]
+      },
+      de: {
+        "summary": "Eine Version über PDFs und darüber, dass die Reader-Umgebung weiß, wann sie sich zurücknehmen soll. Eine PDF-Seite ist ein Bild, also erreichte die Seitenfarbe sie nie, und jedes feste Layout blieb in einer dunklen App auf weißem Papier — das ist behoben, zusammen mit den Bedienelementen, die diese Bücher anboten, aber nicht einhalten konnten.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "PDFs folgen der Seitenfarbe",
+                "body": "Eine helle Palette färbt das Papier, während die Seite gezeichnet wird, und lässt jede Tinte und jedes Foto exakt wie gedruckt. Eine dunkle Palette zeichnet die Seite in zwei Tönen neu, damit der Text lesbar bleibt, statt als schwarze Tinte auf dunklem Blatt zu sitzen."
+              },
+              {
+                "title": "Seitenwiedergabe",
+                "body": "Behalte ein Buch in den Originalfarben, während alles andere deiner Palette folgt. Pro Buch gespeichert, für die Kunst und Fotografie, bei denen es auf die Farbe ankommt."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Bücher mit festem Layout bieten keine Typografie mehr an, die sie nicht einhalten können. Ein PDF oder Comic ist eine Abfolge von Seiten, die jemand anderes bereits gesetzt hat, daher sind Schriftart, -größe, -stärke, Zeilenabstand, Ausrichtung und Ränder für diese Bücher verschwunden. Seitenfarbe und Lesemodus bleiben, weil beide sichtbare Arbeit leisten."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Die Reader-Symbolleiste erscheint nicht mehr kurz und verschwindet einen Moment nach dem Antippen der Seite. Alles, was den Text neu fließen lässt — die Soft-Tastatur, das Drehen des Geräts, die Änderung der Schriftgröße — wurde fälschlich für einen Seitenwechsel gehalten."
+              },
+              {
+                "body": "Der Chat-Editor übernimmt den Cursor, wenn du das Panel öffnest, nicht jedes Mal, wenn die Symbolleiste wieder erscheint. Auf einem Telefon, das die Tastatur über eine Seite geworfen hatte, die du nur ansehen wolltest."
+              }
+            ]
+          }
+        ]
+      },
+      ru: {
+        "summary": "Выпуск о PDF и о том, как хром ридера учится уступать дорогу. Страница PDF — это картинка, поэтому цвет страницы до неё не доходил, и каждая книга с фиксированной вёрсткой оставалась на белой бумаге внутри тёмного приложения — это исправлено, вместе с элементами управления, которые такие книги предлагали, но не могли выполнить.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "PDF следуют за цветом страницы",
+                "body": "Светлая палитра подкрашивает бумагу при отрисовке страницы, оставляя каждые чернила и фотографии точно как напечатано. Тёмная палитра перерисовывает страницу в двух тонах, чтобы текст оставался читаемым, а не лежал чёрными чернилами на тёмном листе."
+              },
+              {
+                "title": "Отрисовка страницы",
+                "body": "Держите книгу на исходных цветах, пока всё остальное следует вашей палитре. Запоминается для каждой книги, для искусства и фотографии, где цвет и есть суть."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Книги с фиксированной вёрсткой больше не предлагают типографику, которую не могут выполнить. PDF или комикс — это последовательность страниц, которые кто-то уже свёрстал, поэтому шрифт, размер, насыщенность, интервалы, выравнивание и поля исчезают для таких книг. Цвет страницы и режим чтения остаются, потому что оба по-прежнему выполняют видимую работу."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Панель инструментов ридера больше не мигает и не исчезает через мгновение после нажатия на страницу. Всё, что переформатирует текст — мягкая клавиатура, поворот устройства, изменение размера шрифта — раньше принималось за перелистывание страницы."
+              },
+              {
+                "body": "Поле ввода чата берёт каретку при открытии панели, а не каждый раз, когда панель инструментов появляется снова. На телефоне, который раньше выбрасывал клавиатуру поверх страницы, которую вы хотели лишь мельком увидеть."
+              }
+            ]
+          }
+        ]
+      },
+      es: {
+        "summary": "Una versión sobre PDFs, y sobre el marco del lector sabiendo cuándo apartarse. Una página PDF es una imagen, así que el color de página nunca llegaba a ella y todo libro de diseño fijo permanecía en papel blanco dentro de una app oscura — eso está corregido, junto con los controles que esos libros ofrecían pero no podían honrar.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Los PDFs siguen el color de página",
+                "body": "Una paleta clara tiñe el papel mientras se dibuja la página, dejando cada tinta y fotografía exactamente como se imprimió. Una paleta oscura redibuja la página en dos tonos, para que el texto siga siendo legible en lugar de quedar como tinta negra sobre una hoja oscura."
+              },
+              {
+                "title": "Renderizado de página",
+                "body": "Mantén un libro en sus colores originales mientras todo lo demás sigue tu paleta. Se recuerda por libro, para el arte y la fotografía donde el color es el punto."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Los libros de diseño fijo ya no ofrecen tipografía que no pueden honrar. Un PDF o un cómic es una secuencia de páginas que alguien más ya maquetó, así que fuente, tamaño, peso, espaciado, alineación y márgenes desaparecen para esos libros. El color de página y el modo de lectura permanecen, porque ambos siguen haciendo un trabajo visible."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "La barra de herramientas del lector ya no parpadea y desaparece un momento después de tocar la página. Cualquier cosa que refluya el texto — el teclado suave, girar el dispositivo, cambiar el tamaño de fuente — se confundía con un paso de página."
+              },
+              {
+                "body": "El compositor de chat toma el cursor cuando abres el panel, no cada vez que reaparece la barra de herramientas. En un teléfono que había estado lanzando el teclado sobre una página que solo querías mirar."
+              }
+            ]
+          }
+        ]
       },
     },
   },
@@ -701,6 +1336,516 @@ export const CHANGELOG: ChangelogEntry[] = [
             ],
           },
         ],
+      },
+      "zh-hant": {
+        "summary": "這個版本中，應用程式不再是一組固定的功能，而是變成你可以擴充的東西。外掛在真正的沙盒中執行，為幾乎每個介面貢獻功能，並透過外掛市場發佈。智慧助理增加了工具和軌跡，閱讀器增加了結局，而且書籍和對話都讓你自由排版。",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "外掛",
+                "body": "完整的外掛系統：具有權限控管功能的沙盒工作執行緒、TypeScript 優先的創作路徑，以及安裝時徵求同意之外掛市場。外掛可以貢獻閱讀器選單、頁首、命令面板項目、整個頁面、AI 工具、字典查詢、主題和內建字型、語音引擎、排程任務，甚至可以貢獻像其他書籍一樣住在你書架上的虛擬書籍。五個外掛內建——字典、RSS 閱讀器、逐句閱讀、TTS 語音和編輯主題。"
+              },
+              {
+                "title": "朗讀",
+                "body": "閱讀器會說話，並跟隨你閱讀時使用的相同逐句和逐段導覽。任何 TTS 引擎都可以接入，支援每個供應商的語音和自訂端點。"
+              },
+              {
+                "title": "一個結局",
+                "body": "讀完一本書現在會進入一個書末畫面，而不是直接停住，並伴隨智慧助理寫的選擇性回顧。"
+              },
+              {
+                "title": "智慧助理成為目的地",
+                "body": "智慧助理有自己的主頁面，包含多個對話執行緒、以你在書中的實際位置為基礎、可展開的執行軌跡，以及能安全讀取和變更你設定的工具。"
+              },
+              {
+                "title": "更多格式",
+                "body": "CBZ、CBR、TXT 和 HTML 加入了 EPUB、MOBI、AZW3、FB2 和 PDF。封面和中繼資料會在匯入時填入。"
+              },
+              {
+                "title": "打造你的專屬",
+                "body": "主導覽和每個選單介面都可以拖曳排列。命令面板在閱讀時也能使用，Mod+1..9 可以在目的地之間跳轉。"
+              },
+              {
+                "title": "為應用程式排版，不只是為書",
+                "body": "聊天回覆、筆記和外掛檢視都有自己的字型、大小和行距——預設跟隨你的閱讀設定，如果你願意，也可以獨立出來。文字對齊也變成一個閱讀設定，預設跟隨出版者的選擇。"
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "閱讀器頁首的進度列是可以拖曳的 scrubber。"
+              },
+              {
+                "body": "固定版面的書籍（PDF、漫畫）可以接受標註和滑動翻頁。"
+              },
+              {
+                "body": "AI 供應商設定更簡單，會記住每個供應商的模型，並支援智慧型和快速模型的分層思考力度。"
+              },
+              {
+                "body": "你的 API 金鑰會加密儲存，AI 請求也改走原生 HTTP 而非 webview。"
+              },
+              {
+                "body": "所有狀態變更都以事件溯源：投影會從 append-only 日誌重建，並可與之驗證。"
+              },
+              {
+                "body": "書架格線會填滿寬視窗，從檔案名稱取得的書名也乾淨了。"
+              },
+              {
+                "body": "桌面版應用程式會繼承你的 macOS 系統代理設定。"
+              },
+              {
+                "body": "開發版有自己獨立的身分和資料目錄，不再與正式版共用書架。"
+              },
+              {
+                "body": "readaware.app 上的文件和部落格現在提供英文、簡體中文和日文版本。"
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "樣式表鎖定近黑色文字顏色的書籍，不再在深色頁面顏色下隱形——一整類由 calibre 轉換的 EPUB 在深色模式下無法閱讀。"
+              },
+              {
+                "body": "EPUB 3 的內聯註腳主體會保持隱藏，並在彈出視窗中開啟，而不是把一整章的註解倒進正文裡。"
+              },
+              {
+                "body": "行距設定現在對那些在段落上宣告自己行高的書籍也有效，之前是完全沒作用。"
+              },
+              {
+                "body": "真實世界 .txt 檔案中的章節標題可以被辨識。"
+              },
+              {
+                "body": "Android 內建外掛隨附出貨，並用實際使用的 scheme 提供外掛資源。"
+              },
+              {
+                "body": "外掛市場會記住最後一個可用的鏡像。"
+              },
+              {
+                "body": "在觸控裝置上，閱讀器進度列上的零星點擊不再觸發跳轉。"
+              },
+              {
+                "body": "外掛頁面像頁面一樣捲動，當上方內容改變時虛擬行會重新測量，開啟的設定表單會採用外部寫入而非遮蔽它們。"
+              },
+              {
+                "body": "外掛市場的檔案路徑經過允許清單驗證，封閉了 Windows 磁碟機相對路徑繞過的漏洞。"
+              }
+            ]
+          }
+        ]
+      },
+      fr: {
+        "summary": "La version où l'application cesse d'être un ensemble fixe de fonctionnalités et devient quelque chose que vous étendez. Les plugins tournent dans de vrais sandbox, contribuent à presque toutes les surfaces et sont distribués via un marketplace. L'agent gagne des outils et des traces, le lecteur gagne une fin, et le livre comme la conversation sont désormais à vous de composer.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Plugins",
+                "body": "Un système de plugins complet : des workers sandboxés avec des capacités contrôlées par permissions, un chemin de création TypeScript-first, et un marketplace avec consentement à l'installation. Les plugins contribuent aux menus du lecteur, aux en-têtes, aux entrées de la palette de commandes, à des pages entières, à des outils IA, à des recherches dans le dictionnaire, à des thèmes et polices groupées, à des moteurs de voix, à des tâches planifiées, et même à des livres virtuels qui vivent sur votre étagère comme tout autre titre. Cinq sont inclus — Dictionnaire, Lecteur RSS, Lecteur de phrases, Voix TTS et Thèmes éditoriaux."
+              },
+              {
+                "title": "Lecture à voix haute",
+                "body": "Le lecteur parle, en suivant le même navigateur de phrases et de paragraphes que vous utilisez pour lire. N'importe quel moteur TTS peut se brancher, avec des voix par fournisseur et des points de terminaison personnalisés."
+              },
+              {
+                "title": "Une fin",
+                "body": "Terminer un livre mène maintenant à un écran de fin de livre au lieu d'un arrêt brutal, avec un regard en arrière optionnel écrit par l'agent."
+              },
+              {
+                "title": "L'agent comme destination",
+                "body": "L'agent obtient sa propre page principale avec plusieurs fils de discussion, un ancrage dans l'endroit où vous en êtes réellement dans le livre, des traces d'exécution dépliables et des outils qui peuvent lire et modifier vos réglages en toute sécurité."
+              },
+              {
+                "title": "Plus de formats",
+                "body": "CBZ, CBR, TXT et HTML rejoignent EPUB, MOBI, AZW3, FB2 et PDF. Les couvertures et métadonnées se remplissent à l'importation."
+              },
+              {
+                "title": "Faites-le vôtre",
+                "body": "La navigation principale et toutes les surfaces de menu sont réorganisables par glisser-déposer. La palette de commandes fonctionne pendant la lecture, et Mod+1..9 saute entre les destinations."
+              },
+              {
+                "title": "Typographie pour l'application, pas seulement pour le livre",
+                "body": "Les réponses du chat, les notes et les vues de plugin obtiennent leur propre police, taille et interligne — suivant vos réglages de lecture par défaut, ou détachés si vous préférez. L'alignement du texte devient aussi un réglage de lecture, par défaut selon le choix de l'éditeur."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "La barre de progression dans l'en-tête du lecteur est un curseur que vous pouvez faire glisser."
+              },
+              {
+                "body": "Les livres à mise en page fixe (PDF, BD) acceptent les annotations et les balayages pour tourner les pages."
+              },
+              {
+                "body": "La configuration du fournisseur IA est plus simple, mémorise un modèle par fournisseur et prend en charge l'effort de réflexion par niveau pour les modèles intelligents et rapides."
+              },
+              {
+                "body": "Votre clé API est chiffrée au repos, et les requêtes IA passent par HTTP natif au lieu de la webview."
+              },
+              {
+                "body": "Tous les changements d'état sont event-sourcés : les projections se reconstruisent à partir d'un journal append-only et peuvent être vérifiées par rapport à celui-ci."
+              },
+              {
+                "body": "La grille de l'étagère remplit les fenêtres larges, et les titres de livres issus de noms de fichiers sortent propres."
+              },
+              {
+                "body": "L'application de bureau hérite du proxy système macOS."
+              },
+              {
+                "body": "Les builds de développement ont leur propre identité et répertoire de données, afin de ne plus partager la bibliothèque de l'application de version."
+              },
+              {
+                "body": "Les docs et le blog sur readaware.app sont maintenant disponibles en anglais, chinois simplifié et japonais."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Les livres dont les feuilles de style fixent une couleur de texte quasi noire ne sont plus invisibles sur la couleur de page sombre — toute une classe d'EPUB convertis avec calibre était illisible en mode sombre."
+              },
+              {
+                "body": "Les corps de notes de bas de page en ligne EPUB 3 restent cachés et s'ouvrent dans une popover, au lieu de déverser un chapitre de notes dans la prose."
+              },
+              {
+                "body": "Le réglage d'interligne fonctionne maintenant sur les livres qui déclarent leur propre hauteur de ligne sur les paragraphes, où il ne faisait auparavant rien du tout."
+              },
+              {
+                "body": "Les titres de chapitres dans les vrais fichiers .txt sont reconnus."
+              },
+              {
+                "body": "Android est livré avec ses plugins intégrés et sert les ressources des plugins via le schéma qu'il utilise réellement."
+              },
+              {
+                "body": "Le marketplace se souvient du dernier miroir qui a fonctionné."
+              },
+              {
+                "body": "Les touchers parasites sur la barre de progression du lecteur ne cherchent plus sur les appareils tactiles."
+              },
+              {
+                "body": "Les pages de plugin défilent comme des pages, les rangées virtuelles se re-mesurent lorsque le contenu au-dessus change, et les formulaires de réglages ouverts adoptent les écritures externes au lieu de les masquer."
+              },
+              {
+                "body": "Les chemins de fichiers du marketplace sont validés par liste blanche, fermant un contournement de chemin relatif au lecteur Windows."
+              }
+            ]
+          }
+        ]
+      },
+      de: {
+        "summary": "Die Version, in der die App aufhört, eine feste Reihe von Funktionen zu sein, und etwas wird, das du erweiterst. Plugins laufen in echten Sandboxen, tragen zu fast jeder Oberfläche bei und werden über einen Marktplatz ausgeliefert. Der Agent bekommt Werkzeuge und Ablaufspuren, der Reader bekommt ein Ende, und sowohl das Buch als auch das Gespräch gehören jetzt dir zum Setzen.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Plugins",
+                "body": "Ein vollständiges Plugin-System: Sandbox-Worker mit permission-gesteuerten Fähigkeiten, ein TypeScript-First-Autorenpfad und ein Marktplatz mit Zustimmung bei der Installation. Plugins tragen zu Lesermenüs, Kopfzeilen, Befehlspaletten-Einträgen, ganzen Seiten, KI-Werkzeugen, Wörterbuch-Lookups, Themen und gebündelten Schriftarten, Sprach-Engines, geplanten Aufgaben und sogar virtuellen Büchern bei, die wie jeder andere Titel in deinem Regal leben. Fünf sind eingebaut — Wörterbuch, RSS-Reader, Satz-Reader, TTS-Stimmen und Redaktionelle Themen."
+              },
+              {
+                "title": "Vorlesen",
+                "body": "Der Reader spricht und folgt dabei demselben Satz- und Absatz-Navigator, mit dem du liest. Jede TTS-Engine kann sich anschließen, mit anbieterabhängigen Stimmen und benutzerdefinierten Endpunkten."
+              },
+              {
+                "title": "Ein Ende",
+                "body": "Ein Buch zu beenden, führt jetzt zu einem Bildschirm nach dem Buch statt zu einem toten Stopp, mit einem optionalen Rückblick, der vom Agenten geschrieben wurde."
+              },
+              {
+                "title": "Agent als Ziel",
+                "body": "Der Agent bekommt eine eigene primäre Seite mit mehreren Threads, Erdung in deinem tatsächlichen Stand im Buch, erweiterbaren Ausführungs-Traces und Werkzeugen, die deine Einstellungen sicher lesen und ändern können."
+              },
+              {
+                "title": "Mehr Formate",
+                "body": "CBZ, CBR, TXT und HTML gesellen sich zu EPUB, MOBI, AZW3, FB2 und PDF. Cover und Metadaten werden beim Import ausgefüllt."
+              },
+              {
+                "title": "Mach es zu deinem",
+                "body": "Die primäre Navigation und jede Menüfläche sind per Drag-and-Drop anordenbar. Die Befehlspalette funktioniert beim Lesen, und Mod+1..9 springt zwischen Zielen."
+              },
+              {
+                "title": "Typografie für die App, nicht nur für das Buch",
+                "body": "Chat-Antworten, Notizen und Plugin-Ansichten bekommen ihre eigene Schriftart, -größe und Zeilenabstand — standardmäßig deinen Leseeinstellungen folgend oder davon gelöst, wenn du es lieber magst. Textausrichtung wird ebenfalls zu einer Leseeinstellung, standardmäßig so, wie der Herausgeber es gewählt hat."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Die Fortschrittsleiste im Reader-Kopf ist jetzt ein ziehbarer Scrubber."
+              },
+              {
+                "body": "Bücher mit festem Layout (PDF, Comics) akzeptieren Anmerkungen und Wisch-Seitenwechsel."
+              },
+              {
+                "body": "Die KI-Anbieter-Einrichtung ist einfacher, merkt sich ein Modell pro Anbieter und unterstützt stufenbezogenes Denkaufwand für Smart- und Fast-Modelle."
+              },
+              {
+                "body": "Dein API-Schlüssel wird verschlüsselt gespeichert, und KI-Anfragen laufen über natives HTTP statt über die Webview."
+              },
+              {
+                "body": "Alle Zustandsänderungen sind Event-sourced: Projektionen werden aus einem Append-Only-Log neu aufgebaut und können gegen dieses verifiziert werden."
+              },
+              {
+                "body": "Das Regal-Raster füllt breite Fenster, und Buchtitel aus Dateinamen kommen sauber heraus."
+              },
+              {
+                "body": "Die Desktop-App übernimmt den macOS-Systemproxy."
+              },
+              {
+                "body": "Dev-Builds bekommen eine eigene Identität und ein eigenes Datenverzeichnis, sodass sie die Bibliothek der Release-App nicht mehr teilen."
+              },
+              {
+                "body": "Dokumentation und Blog auf readaware.app sind jetzt auf Englisch, vereinfachtem Chinesisch und Japanisch verfügbar."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Bücher, deren Stylesheets eine fast schwarze Textfarbe festnageln, sind auf der dunklen Seitenfarbe nicht mehr unsichtbar — eine ganze Klasse von Calibre-konvertierten EPUBs war im dunklen Modus unlesbar."
+              },
+              {
+                "body": "Inline-Fußnoten in EPUB 3 bleiben verborgen und öffnen sich in einem Popover, statt Kapitelweise Notizen in den Fließtext zu kippen."
+              },
+              {
+                "body": "Die Zeilenabstand-Einstellung funktioniert jetzt auch bei Büchern, die ihre eigene Zeilenhöhe für Absätze deklarieren, wo sie vorher gar nichts tat."
+              },
+              {
+                "body": "Kapitelüberschriften in echten .txt-Dateien werden erkannt."
+              },
+              {
+                "body": "Android wird mit seinen eingebauten Plugins ausgeliefert und serviert Plugin-Assets über das Schema, das es tatsächlich verwendet."
+              },
+              {
+                "body": "Der Marktplatz merkt sich den letzten funktionierenden Spiegel."
+              },
+              {
+                "body": "Versehentliche Tipps auf die Fortschrittsleiste des Readers lösen auf Touch-Geräten keine Suche mehr aus."
+              },
+              {
+                "body": "Plugin-Seiten scrollen als Seiten, virtuelle Zeilen werden neu gemessen, wenn sich Inhalte darüber ändern, und offene Einstellungsformulare übernehmen externe Schreibvorgänge, statt sie zu überblenden."
+              },
+              {
+                "body": "Marktplatz-Dateipfade werden gegen eine Zulassungsliste validiert, wodurch ein Windows-Laufwerks-relativer Pfad-Bypass geschlossen wird."
+              }
+            ]
+          }
+        ]
+      },
+      ru: {
+        "summary": "Выпуск, где приложение перестаёт быть фиксированным набором функций и становится чем-то, что вы расширяете. Плагины работают в настоящих песочницах, вносят вклад почти во все поверхности и распространяются через каталог. Агент получает инструменты и трассировки, ридер получает концовку, и теперь и книга, и разговор — ваши для оформления.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Плагины",
+                "body": "Полноценная система плагинов: песочные воркеры с разрешениями, путь разработки с приоритетом TypeScript, и каталог с согласием при установке. Плагины добавляют меню ридера, заголовки, записи палитры команд, целые страницы, ИИ-инструменты, словарные запросы, темы и встроенные шрифты, голосовые движки, запланированные задачи и даже виртуальные книги, живущие на вашей полке как любые другие. Пять встроенных — Словарь, RSS-ридер, По предложениям, TTS-голоса и Редакционные темы."
+              },
+              {
+                "title": "Чтение вслух",
+                "body": "Ридер говорит, следуя тому же навигатору по предложениям и абзацам, которым вы читаете. Любой TTS-движок может подключиться, с голосами провайдера и настраиваемыми конечными точками."
+              },
+              {
+                "title": "Концовка",
+                "body": "Завершение книги теперь приводит на экран конца книги вместо тупика, с необязательным взглядом назад, написанным агентом."
+              },
+              {
+                "title": "Агент как назначение",
+                "body": "Агент получает собственную основную страницу с несколькими ветками, привязкой к вашему фактическому месту в книге, разворачиваемыми трассировками выполнения и инструментами, которые могут безопасно читать и менять ваши настройки."
+              },
+              {
+                "title": "Больше форматов",
+                "body": "CBZ, CBR, TXT и HTML присоединяются к EPUB, MOBI, AZW3, FB2 и PDF. Обложки и метаданные заполняются при импорте."
+              },
+              {
+                "title": "Сделайте своим",
+                "body": "Основная навигация и все меню перетаскиваются. Палитра команд работает во время чтения, а Mod+1..9 переключает между назначениями."
+              },
+              {
+                "title": "Типографика для приложения, не только для книги",
+                "body": "Ответы в чате, заметки и виды плагинов получают свой шрифт, размер и межстрочный интервал — по умолчанию следуя вашим настройкам чтения, или отдельно, если хотите. Выравнивание текста тоже становится настройкой чтения, по умолчанию — как выбрал издатель."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Полоса прогресса в шапке ридера — ползунок, который можно перетаскивать."
+              },
+              {
+                "body": "Книги с фиксированной вёрсткой (PDF, комиксы) принимают аннотации и свайпы для перелистывания."
+              },
+              {
+                "body": "Настройка ИИ-провайдера проще, запоминает модель для каждого провайдера и поддерживает усилия мышления по уровням для умных и быстрых моделей."
+              },
+              {
+                "body": "Ваш API-ключ шифруется в покое, и ИИ-запросы идут через нативный HTTP вместо веб-вью."
+              },
+              {
+                "body": "Все изменения состояния основаны на событиях: проекции перестраиваются из журнала добавлений и могут быть проверены против него."
+              },
+              {
+                "body": "Сетка полки заполняет широкие окна, а названия книг из имён файлов получаются чистыми."
+              },
+              {
+                "body": "Настольное приложение наследует системный прокси macOS."
+              },
+              {
+                "body": "Dev-сборки получают собственную идентичность и каталог данных, так что больше не делят библиотеку с релизным приложением."
+              },
+              {
+                "body": "Документация и блог на readaware.app теперь доступны на английском, упрощённом китайском и японском."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Книги, чьи таблицы стилей задают почти чёрный цвет текста, больше не невидимы на тёмном цвете страницы — целый класс EPUB, конвертированных через calibre, был нечитаем в тёмном режиме."
+              },
+              {
+                "body": "Внутренние сноски EPUB 3 остаются скрытыми и открываются в поповере, вместо того чтобы вываливать главу заметок в текст."
+              },
+              {
+                "body": "Настройка межстрочного интервала теперь работает на книгах, которые задают собственный размер строки в абзацах, где раньше она вообще не действовала."
+              },
+              {
+                "body": "Заголовки глав в реальных .txt-файлах распознаются."
+              },
+              {
+                "body": "Android поставляется со встроенными плагинами и обслуживает ресурсы плагинов по схеме, которую реально использует."
+              },
+              {
+                "body": "Каталог плагинов запоминает последнее работающее зеркало."
+              },
+              {
+                "body": "Случайные нажатия на полосу прогресса ридера больше не вызывают перемотку на сенсорных устройствах."
+              },
+              {
+                "body": "Страницы плагинов прокручиваются как страницы, виртуальные строки перемеряются при изменении контента выше, а открытые формы настроек принимают внешние записи вместо их затенения."
+              },
+              {
+                "body": "Пути файлов в каталоге плагинов проверяются по белому списку, закрывая обход Windows-относительных путей."
+              }
+            ]
+          }
+        ]
+      },
+      es: {
+        "summary": "La versión donde la app deja de ser un conjunto fijo de funciones y se convierte en algo que puedes ampliar. Los plugins corren en sandboxes reales, contribuyen en casi todas las superficies y se distribuyen a través de un marketplace. El agente gana herramientas y trazados, el lector gana un final, y tanto el libro como la conversación son ahora tuyos para maquetar.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Plugins",
+                "body": "Un sistema de plugins completo: workers en sandbox con capacidades limitadas por permisos, un camino de autoría centrado en TypeScript, y un marketplace con consentimiento en la instalación. Los plugins contribuyen menús de lector, encabezados, entradas de paleta de comandos, páginas completas, herramientas de IA, búsquedas en diccionario, temas y fuentes incluidas, motores de voz, tareas programadas e incluso libros virtuales que viven en tu estantería como cualquier otro título. Cinco vienen integrados: Diccionario, Lector RSS, Lector de Frases, Voces TTS y Temas Editoriales."
+              },
+              {
+                "title": "Lectura en voz alta",
+                "body": "El lector habla, siguiendo el mismo navegador de frases y párrafos por el que lees. Cualquier motor TTS puede conectarse, con voces por proveedor y endpoints personalizados."
+              },
+              {
+                "title": "Un final",
+                "body": "Terminar un libro ahora aterriza en una pantalla de fin de libro en lugar de un alto seco, con una mirada retrospectiva opcional escrita por el agente."
+              },
+              {
+                "title": "El agente como destino",
+                "body": "El agente tiene su propia página principal con múltiples hilos, anclaje en dónde estás realmente en el libro, trazados de ejecución expandibles y herramientas que pueden leer y cambiar tus ajustes de forma segura."
+              },
+              {
+                "title": "Más formatos",
+                "body": "CBZ, CBR, TXT y HTML se unen a EPUB, MOBI, AZW3, FB2 y PDF. Las portadas y metadatos se completan al importar."
+              },
+              {
+                "title": "Hazlo tuyo",
+                "body": "La navegación principal y cada superficie de menú se pueden reorganizar arrastrando. La paleta de comandos funciona mientras lees, y Mod+1..9 salta entre destinos."
+              },
+              {
+                "title": "Tipografía para la app, no solo para el libro",
+                "body": "Las respuestas de chat, notas y vistas de plugins tienen su propia fuente, tamaño e interlineado — siguiendo tus ajustes de lectura por defecto, o separados si prefieres. La alineación del texto también se convierte en un ajuste de lectura, con el valor por defecto que eligió el editor."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "La barra de progreso en el encabezado del lector es un control deslizante que puedes arrastrar."
+              },
+              {
+                "body": "Los libros de diseño fijo (PDF, cómics) aceptan anotaciones y pasos de página con deslizamiento."
+              },
+              {
+                "body": "La configuración del proveedor de IA es más simple, recuerda un modelo por proveedor y admite esfuerzo de pensamiento por nivel para modelos inteligentes y rápidos."
+              },
+              {
+                "body": "Tu clave API está cifrada en reposo, y las solicitudes de IA se enrutan a través de HTTP nativo en lugar del webview."
+              },
+              {
+                "body": "Todos los cambios de estado se registran por eventos: las proyecciones se reconstruyen desde un registro de solo añadido y se pueden verificar contra él."
+              },
+              {
+                "body": "La cuadrícula de la estantería llena ventanas anchas, y los títulos de libros desde nombres de archivo salen limpios."
+              },
+              {
+                "body": "La app de escritorio hereda el proxy del sistema macOS."
+              },
+              {
+                "body": "Las versiones de desarrollo tienen su propia identidad y directorio de datos, así que ya no comparten la biblioteca de la versión de lanzamiento."
+              },
+              {
+                "body": "La documentación y el blog en readaware.app están ahora disponibles en inglés, chino simplificado y japonés."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Los libros cuyas hojas de estilo fijan un color de texto casi negro ya no son invisibles sobre el color de página oscuro — toda una clase de EPUBs convertidos con calibre era ilegible en modo oscuro."
+              },
+              {
+                "body": "Los cuerpos de notas al pie en línea de EPUB 3 permanecen ocultos y se abren en un popover, en lugar de volcar un capítulo entero de notas en la prosa."
+              },
+              {
+                "body": "El ajuste de interlineado ahora funciona en libros que declaran su propia altura de línea en los párrafos, donde antes no hacía nada."
+              },
+              {
+                "body": "Se reconocen los encabezados de capítulo en archivos .txt del mundo real."
+              },
+              {
+                "body": "Android incluye sus plugins integrados y sirve los recursos de los plugins a través del esquema que realmente usa."
+              },
+              {
+                "body": "El marketplace recuerda el último espejo que funcionó."
+              },
+              {
+                "body": "Los toques sueltos en la barra de progreso del lector ya no buscan en dispositivos táctiles."
+              },
+              {
+                "body": "Las páginas de plugins se desplazan como páginas, las filas virtuales se re-miden cuando el contenido superior cambia, y los formularios de ajustes abiertos adoptan escrituras externas en lugar de ocultarlas."
+              },
+              {
+                "body": "Las rutas de archivo del marketplace se validan con listas blancas, cerrando un bypass de ruta relativa a unidad en Windows."
+              }
+            ]
+          }
+        ]
       },
     },
   },

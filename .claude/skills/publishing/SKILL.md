@@ -138,7 +138,7 @@ CI 的每个 job 都带 `generate_release_notes: true`，会把 release body 追
    `**Full Changelog**: https://github.com/ahpxex/read-aware/compare/vPREV...vX.Y.Z`
 4. 写入：`gh release edit vX.Y.Z --notes-file <scratchpad 里的文件>`。
 
-## 5. 官网 changelog（三语，正式版必做）
+## 5. 官网 changelog（全语言，正式版必做）
 
 `readaware.app/changelog`（+ `/zh` `/ja`）由 `apps/landing/src/lib/changelog.ts`
 渲染，是手写的**给人读的**版本，不是 GitHub release 的翻译：可以丢掉一次发版
@@ -146,14 +146,17 @@ CI 的每个 job 都带 `generate_release_notes: true`，会把 release body 追
 互不替代。
 
 - **加一个版本 = 在 `CHANGELOG` 数组开头加一条**（`version` / `date` /
-  `text.en|zh|ja`），不需要动任何路由文件——页面渲染整个数组。
-- 三语齐全，缺一种就是缺一种；术语对齐 `apps/web/src/i18n/locales/` 的产品
-  词表（书架 / 智能助理 / 上下文 / 词典 / 命令面板 …）。
-- **先机翻出底稿再校对**：`bun run translate <file|-> --to zh,ja --style changelog`
+  `text.<全部 8 语>`：en / zh / zh-hant / ja / fr / de / ru / es——类型强制，
+  缺语言直接 typecheck 失败），不需要动任何路由文件——页面渲染整个数组。
+- 术语对齐 `apps/web/src/i18n/locales/` 的产品词表（书架 / 智能助理 / 上下文 /
+  词典 / 命令面板 …）。
+- **先机翻出底稿再校对**：`bun run translate <file|-> --to all --style changelog`
   （`packages/agent/src/translate-run.ts`，走 deepseek-v4-flash，key 取
-  `DEEPSEEK_API_KEY` 或 pi CLI auth，~3 秒出双语）。英文定稿后把 JSON/文本喂给
-  它，拿回的译文**必须人工过一遍**——重点核对术语（脚本内置词表，遇到带偏的
-  就地补词表）、title 后无标点、语感翻译腔。文档镜像同理可用 `--style docs`。
+  `DEEPSEEK_API_KEY` 或 pi CLI auth，~20 秒出全部 7 语）。英文定稿后把 JSON/文本
+  喂给它，拿回的译文**必须过一遍**——重点核对术语（脚本内置词表，遇到带偏的
+  就地补词表）、title 后无标点、语感翻译腔。文档镜像（仅 en/zh/ja 存在）同理
+  可用 `--style docs`。首页文案在 `apps/landing/src/lib/home-content.ts`，
+  站点 chrome 在 `lib/i18n.ts` 的 `UI_STRINGS`——两处也都是全 8 语。
 - 内容通常是第 4 步 release changelog 的精简改写，可以直接拿英文那份改。
   分组 `new` / `improved` / `fixed` 与第 4 步一致；组标题不写在数据里
   （在 `UI_STRINGS`）。

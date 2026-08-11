@@ -6,7 +6,7 @@
  * holds the locale set, the path mapping between language versions, and the
  * few chrome strings shared components need.
  */
-export type Locale = "en" | "zh" | "ja";
+export type Locale = "en" | "zh" | "zh-hant" | "ja" | "fr" | "de" | "ru" | "es";
 
 /**
  * Where an explicit language-switcher pick persists. The homepage's
@@ -15,27 +15,76 @@ export type Locale = "en" | "zh" | "ja";
  */
 export const LOCALE_CHOICE_KEY = "read-aware-landing-locale";
 
-export const LOCALES: readonly Locale[] = ["en", "zh", "ja"];
+/** The full site locale set — mirrors the app's own i18n locales. */
+export const LOCALES: readonly Locale[] = [
+  "en",
+  "zh",
+  "zh-hant",
+  "ja",
+  "fr",
+  "de",
+  "ru",
+  "es",
+];
+
+/**
+ * Docs and blog pages are hand-maintained TSX mirrors, so they exist only in
+ * this subset; the homepage and changelog render per-locale content objects
+ * and exist in every locale.
+ */
+export type DocsLocale = "en" | "zh" | "ja";
+
+export const DOCS_LOCALES: readonly DocsLocale[] = ["en", "zh", "ja"];
+
+export function isDocsLocale(locale: Locale): locale is DocsLocale {
+  return (DOCS_LOCALES as readonly Locale[]).includes(locale);
+}
 
 /** BCP 47 tags for <html lang>, hreflang, and date formatting. */
 export const LOCALE_LANG: Record<Locale, string> = {
   en: "en",
   zh: "zh-CN",
+  "zh-hant": "zh-Hant",
   ja: "ja",
+  fr: "fr",
+  de: "de",
+  ru: "ru",
+  es: "es",
 };
 
 /** Native-name labels for the language switcher menu. */
 export const LOCALE_LABEL: Record<Locale, string> = {
   en: "English",
-  zh: "中文",
+  zh: "简体中文",
+  "zh-hant": "繁體中文",
   ja: "日本語",
+  fr: "Français",
+  de: "Deutsch",
+  ru: "Русский",
+  es: "Español",
 };
 
-const PREFIX: Record<Locale, string> = { en: "", zh: "/zh", ja: "/ja" };
+const PREFIX: Record<Locale, string> = {
+  en: "",
+  zh: "/zh",
+  "zh-hant": "/zh-hant",
+  ja: "/ja",
+  fr: "/fr",
+  de: "/de",
+  ru: "/ru",
+  es: "/es",
+};
+
+// Longest prefix first, so "/zh-hant" never matches as "/zh".
+const PREFIXED = LOCALES.filter((locale) => locale !== "en").sort(
+  (a, b) => PREFIX[b].length - PREFIX[a].length,
+);
 
 export function localeFromPathname(pathname: string): Locale {
-  if (pathname === "/zh" || pathname.startsWith("/zh/")) return "zh";
-  if (pathname === "/ja" || pathname.startsWith("/ja/")) return "ja";
+  for (const locale of PREFIXED) {
+    const prefix = PREFIX[locale];
+    if (pathname === prefix || pathname.startsWith(`${prefix}/`)) return locale;
+  }
   return "en";
 }
 
@@ -47,15 +96,16 @@ export function localizePath(pathname: string, locale: Locale): string {
   return locale === "en" ? base : `${PREFIX[locale]}${base}`;
 }
 
-/** The homepage, docs, blog, and changelog pages exist in every locale. */
-export function hasLocaleVariants(pathname: string): boolean {
+/** The locales this page actually exists in (drives the switcher and hreflang). */
+export function availableLocales(pathname: string): readonly Locale[] {
   const base = localizePath(pathname, "en");
-  return (
-    base === "/" ||
-    base.startsWith("/docs") ||
-    base.startsWith("/blog") ||
-    base.startsWith("/changelog")
-  );
+  if (base === "/" || base.startsWith("/changelog")) return LOCALES;
+  if (base.startsWith("/docs") || base.startsWith("/blog")) return DOCS_LOCALES;
+  return [];
+}
+
+export function hasLocaleVariants(pathname: string): boolean {
+  return availableLocales(pathname).length > 1;
 }
 
 /** Chrome strings for the shared header, footer, and article frames. */
@@ -132,5 +182,90 @@ export const UI_STRINGS: Record<
     changelogFixed: "修正",
     changelogOlder: "以前のリリースはGitHubで →",
     changelogRelease: "リリースノート",
+  },
+  "zh-hant": {
+    "docs": "文件",
+    "blog": "部落格",
+    "download": "下載",
+    "allPosts": "← 所有文章",
+    "tagline": "本地優先。屬於你。",
+    "more": "更多",
+    "language": "語言",
+    "changelog": "更新日誌",
+    "changelogTitle": "更新日誌",
+    "changelogLead": "每個版本變了什麼，寫給使用的人看。每個版本的完整說明與下載都在 GitHub 上。",
+    "changelogNew": "新增",
+    "changelogImproved": "改善",
+    "changelogFixed": "修正",
+    "changelogOlder": "更早的版本在 GitHub 上 →",
+    "changelogRelease": "版本說明"
+  },
+  fr: {
+    "docs": "Docs",
+    "blog": "Blog",
+    "download": "Télécharger",
+    "allPosts": "← Tous les articles",
+    "tagline": "Local d'abord. À vous.",
+    "more": "Plus",
+    "language": "Langue",
+    "changelog": "Journal des modifications",
+    "changelogTitle": "Journal des modifications",
+    "changelogLead": "Ce qui a changé dans chaque version, écrit pour celles et ceux qui utilisent l'application. Les notes complètes et les téléchargements de chaque version sont sur GitHub.",
+    "changelogNew": "Nouveau",
+    "changelogImproved": "Amélioré",
+    "changelogFixed": "Corrigé",
+    "changelogOlder": "Versions précédentes sur GitHub →",
+    "changelogRelease": "Notes de version"
+  },
+  de: {
+    "docs": "Dokumentation",
+    "blog": "Blog",
+    "download": "Download",
+    "allPosts": "← Alle Beiträge",
+    "tagline": "Local-First. Deins.",
+    "more": "Mehr",
+    "language": "Sprache",
+    "changelog": "Änderungsprotokoll",
+    "changelogTitle": "Änderungsprotokoll",
+    "changelogLead": "Was sich in jeder Version geändert hat, geschrieben für die Menschen, die sie nutzen. Die vollständigen Notizen und Downloads jeder Version gibt es auf GitHub.",
+    "changelogNew": "Neu",
+    "changelogImproved": "Verbessert",
+    "changelogFixed": "Behoben",
+    "changelogOlder": "Ältere Versionen auf GitHub →",
+    "changelogRelease": "Versionshinweise"
+  },
+  ru: {
+    "docs": "Документация",
+    "blog": "Блог",
+    "download": "Скачать",
+    "allPosts": "← Все записи",
+    "tagline": "Локальный подход (local-first). Ваше.",
+    "more": "Ещё",
+    "language": "Язык",
+    "changelog": "Журнал изменений",
+    "changelogTitle": "Журнал изменений",
+    "changelogLead": "Что изменилось в каждом выпуске, написанное для тех, кто этим пользуется. Полные примечания и загрузки каждой версии — на GitHub.",
+    "changelogNew": "Новое",
+    "changelogImproved": "Улучшено",
+    "changelogFixed": "Исправлено",
+    "changelogOlder": "Старые выпуски на GitHub →",
+    "changelogRelease": "Примечания к выпуску"
+  },
+  es: {
+    "docs": "Documentación",
+    "blog": "Blog",
+    "download": "Descargar",
+    "allPosts": "← Todas las publicaciones",
+    "tagline": "Local primero (local-first). Tuyo.",
+    "more": "Más",
+    "language": "Idioma",
+    "changelog": "Registro de cambios",
+    "changelogTitle": "Registro de cambios",
+    "changelogLead": "Lo que cambió en cada versión, escrito para quienes la usan. Las notas completas y las descargas de cada versión viven en GitHub.",
+    "changelogNew": "Nuevo",
+    "changelogImproved": "Mejorado",
+    "changelogFixed": "Corregido",
+    "changelogOlder": "Versiones anteriores en GitHub →",
+    "changelogRelease": "Notas de la versión"
   },
 };

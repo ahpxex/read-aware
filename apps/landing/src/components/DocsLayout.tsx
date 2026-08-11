@@ -1,12 +1,12 @@
 import { Outlet } from "@tanstack/react-router";
 import { useDocumentLang } from "../hooks/useDocumentLang";
-import type { Locale } from "../lib/i18n";
+import type { DocsLocale } from "../lib/i18n";
 import { DocsNav } from "./DocsNav";
 import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
 
 /** The docs shell, shared by every locale's /docs layout route. */
-export function DocsLayout({ locale }: { locale: Locale }) {
+export function DocsLayout({ locale }: { locale: DocsLocale }) {
   useDocumentLang(locale);
 
   return (

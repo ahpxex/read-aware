@@ -24,7 +24,17 @@ const REPO = "ahpxex/read-aware";
 
 export const REPO_URL = `https://github.com/${REPO}`;
 export const RELEASES_URL = `${REPO_URL}/releases/latest`;
-const API_URL = `https://api.github.com/repos/${REPO}/releases/latest`;
+
+/**
+ * The shipped release tag, shown beside the download call-to-action.
+ * HARDCODED on purpose: it used to come from the GitHub API at runtime,
+ * which is rate-limited per client IP — so the version blinked in for some
+ * visitors and stayed missing for others. A constant is always right in the
+ * prerendered HTML and costs one line in the publishing pipeline, which
+ * already touches this repo's copy on every release. Display only — download
+ * links stay version-free stable aliases.
+ */
+export const CURRENT_RELEASE_TAG = "v0.4.1";
 
 export type PlatformId = "macos" | "windows" | "linux" | "android" | "ios";
 
@@ -40,28 +50,6 @@ export type PlatformDownload = {
   /** Announced but not yet shipping. */
   comingSoon?: boolean;
 };
-
-/**
- * Latest stable version according to the GitHub API, or null when the API is
- * unavailable (rate limit, offline). Display copy only — never link building.
- */
-export async function fetchLatestVersion(
-  signal?: AbortSignal,
-): Promise<string | null> {
-  try {
-    const response = await fetch(API_URL, {
-      headers: { Accept: "application/vnd.github+json" },
-      signal,
-    });
-    if (!response.ok) return null;
-    const data = (await response.json()) as { tag_name?: unknown };
-    if (typeof data.tag_name !== "string") return null;
-    const version = data.tag_name.replace(/^v/, "");
-    return version.length > 0 ? version : null;
-  } catch {
-    return null;
-  }
-}
 
 const link = (label: string, alias: string): DownloadLink => ({
   label,

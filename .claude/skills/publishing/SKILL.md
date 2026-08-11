@@ -51,11 +51,16 @@ git push 优先走 SSH remote（`git@github.com:ahpxex/read-aware.git`）——H
    - `CFBundleShortVersionString` 与 `CFBundleVersion`
 3. `apps/desktop/src-tauri/gen/apple/read-aware-desktop_iOS/Info.plist`
    - 两处版本字符串（`CFBundleShortVersionString` / `CFBundleVersion` 的 value）
+4. `apps/landing/src/lib/releases.ts` 的 `CURRENT_RELEASE_TAG`
+   - 官网 CTA 旁展示的版本号，硬编码常量（曾经走 GitHub API 实时取，
+     被限流时就不显示，看起来"时有时无"——所以改成随发版 bump）。
+     这一处可以放进 bump commit，也可以随第 5 步官网 changelog 一起提交。
 
-landing 不用改：下载链接是 `releases/latest/download/ReadAware-<platform>-<arch>.<ext>`
+landing 的**下载链接**不用改：`releases/latest/download/ReadAware-<platform>-<arch>.<ext>`
 稳定别名（见 `apps/landing/src/lib/releases.ts` 的 `DOWNLOADS`），GitHub 自己
 把它解析到最新 stable release；stable 发版时 CI 会把安装包重复上传一份到
 这些别名文件名（release.yml "Collect release assets"）。
+pre-release 不 bump `CURRENT_RELEASE_TAG`（官网始终展示最新 stable）。
 
 提交信息沿用历史风格：`chore: release vX.Y.Z`。
 

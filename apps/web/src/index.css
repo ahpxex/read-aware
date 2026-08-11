@@ -267,6 +267,20 @@ html[data-tauri="true"] {
   outline: none;
 }
 
+/* On touch devices tapping the chart both focuses the svg (mobile WebViews
+   treat the tap focus as :focus-visible, dodging the rule above) and paints
+   the platform tap highlight. There is no keyboard to serve on a coarse
+   pointer, so drop the ring and the highlight entirely. */
+.recharts-wrapper {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (pointer: coarse) {
+  .recharts-wrapper svg:focus {
+    outline: none;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .ra-motion-page-enter {
     animation: ra-page-enter 280ms var(--ra-ease-out-quart);

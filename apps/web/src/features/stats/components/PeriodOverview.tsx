@@ -32,12 +32,10 @@ function BigStat({ label, value, delta }: { label: string; value: string; delta?
   return (
     <div className="min-w-0">
       <Caption className="block text-fg-subtle">{label}</Caption>
-      <div className="mt-1 flex items-baseline gap-2">
-        <span className="truncate font-serif text-[28px] leading-none text-fg tabular-nums">
-          {value}
-        </span>
-        {delta !== undefined && <DeltaBadge value={delta} />}
+      <div className="mt-1 truncate font-serif text-[28px] leading-none text-fg tabular-nums">
+        {value}
       </div>
+      {delta !== undefined && <DeltaBadge value={delta} className="mt-1.5" />}
     </div>
   );
 }

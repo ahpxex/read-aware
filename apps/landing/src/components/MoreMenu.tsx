@@ -4,6 +4,7 @@ import { ArrowUpRight, CaretDown, Check } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import {
   LOCALES,
+  LOCALE_CHOICE_KEY,
   LOCALE_LABEL,
   LOCALE_LANG,
   UI_STRINGS,
@@ -150,7 +151,16 @@ export function MoreMenu({
                   href={localizePath(pathname, target)}
                   role="menuitem"
                   lang={LOCALE_LANG[target]}
-                  onClick={close}
+                  onClick={() => {
+                    // An explicit pick outranks the homepage's Accept-Language
+                    // redirect on every future visit.
+                    try {
+                      localStorage.setItem(LOCALE_CHOICE_KEY, target);
+                    } catch {
+                      // Storage unavailable — the pick still applies this visit.
+                    }
+                    close();
+                  }}
                   className={cn(itemClass, target === locale && "text-fg")}
                 >
                   <span>{LOCALE_LABEL[target]}</span>

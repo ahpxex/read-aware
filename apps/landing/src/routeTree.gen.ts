@@ -13,6 +13,8 @@ import { Route as DocsRouteImport } from './routes/docs'
 import { Route as ChangelogRouteImport } from './routes/changelog'
 import { Route as BlogRouteImport } from './routes/blog'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ZhIndexRouteImport } from './routes/zh/index'
+import { Route as JaIndexRouteImport } from './routes/ja/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
 import { Route as ZhDocsRouteImport } from './routes/zh/docs'
@@ -68,6 +70,16 @@ const BlogRoute = BlogRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ZhIndexRoute = ZhIndexRouteImport.update({
+  id: '/zh/',
+  path: '/zh/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JaIndexRoute = JaIndexRouteImport.update({
+  id: '/ja/',
+  path: '/ja/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocsIndexRoute = DocsIndexRouteImport.update({
@@ -272,6 +284,8 @@ export interface FileRoutesByFullPath {
   '/zh/docs': typeof ZhDocsRouteWithChildren
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
+  '/ja/': typeof JaIndexRoute
+  '/zh/': typeof ZhIndexRoute
   '/docs/plugins/api': typeof DocsPluginsApiRoute
   '/docs/plugins/publishing': typeof DocsPluginsPublishingRoute
   '/ja/blog/local-first': typeof JaBlogLocalFirstRoute
@@ -308,6 +322,8 @@ export interface FileRoutesByTo {
   '/zh/changelog': typeof ZhChangelogRoute
   '/blog': typeof BlogIndexRoute
   '/docs': typeof DocsIndexRoute
+  '/ja': typeof JaIndexRoute
+  '/zh': typeof ZhIndexRoute
   '/docs/plugins/api': typeof DocsPluginsApiRoute
   '/docs/plugins/publishing': typeof DocsPluginsPublishingRoute
   '/ja/blog/local-first': typeof JaBlogLocalFirstRoute
@@ -351,6 +367,8 @@ export interface FileRoutesById {
   '/zh/docs': typeof ZhDocsRouteWithChildren
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
+  '/ja/': typeof JaIndexRoute
+  '/zh/': typeof ZhIndexRoute
   '/docs/plugins/api': typeof DocsPluginsApiRoute
   '/docs/plugins/publishing': typeof DocsPluginsPublishingRoute
   '/ja/blog/local-first': typeof JaBlogLocalFirstRoute
@@ -395,6 +413,8 @@ export interface FileRouteTypes {
     | '/zh/docs'
     | '/blog/'
     | '/docs/'
+    | '/ja/'
+    | '/zh/'
     | '/docs/plugins/api'
     | '/docs/plugins/publishing'
     | '/ja/blog/local-first'
@@ -431,6 +451,8 @@ export interface FileRouteTypes {
     | '/zh/changelog'
     | '/blog'
     | '/docs'
+    | '/ja'
+    | '/zh'
     | '/docs/plugins/api'
     | '/docs/plugins/publishing'
     | '/ja/blog/local-first'
@@ -473,6 +495,8 @@ export interface FileRouteTypes {
     | '/zh/docs'
     | '/blog/'
     | '/docs/'
+    | '/ja/'
+    | '/zh/'
     | '/docs/plugins/api'
     | '/docs/plugins/publishing'
     | '/ja/blog/local-first'
@@ -509,6 +533,8 @@ export interface RootRouteChildren {
   ZhBlogRoute: typeof ZhBlogRouteWithChildren
   ZhChangelogRoute: typeof ZhChangelogRoute
   ZhDocsRoute: typeof ZhDocsRouteWithChildren
+  JaIndexRoute: typeof JaIndexRoute
+  ZhIndexRoute: typeof ZhIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -539,6 +565,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/zh/': {
+      id: '/zh/'
+      path: '/zh'
+      fullPath: '/zh/'
+      preLoaderRoute: typeof ZhIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ja/': {
+      id: '/ja/'
+      path: '/ja'
+      fullPath: '/ja/'
+      preLoaderRoute: typeof JaIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/docs/': {
@@ -919,6 +959,8 @@ const rootRouteChildren: RootRouteChildren = {
   ZhBlogRoute: ZhBlogRouteWithChildren,
   ZhChangelogRoute: ZhChangelogRoute,
   ZhDocsRoute: ZhDocsRouteWithChildren,
+  JaIndexRoute: JaIndexRoute,
+  ZhIndexRoute: ZhIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,22 +1,49 @@
 import { cn } from "@read-aware/ui/cn";
 import { RELEASES_URL, type PlatformDownload, type PlatformId } from "../lib/releases";
 
+export type DownloadSectionStrings = {
+  title: string;
+  intro: string;
+  latest: (tag: string) => string;
+  yourPlatform: string;
+  comingSoon: string;
+  download: string;
+  signingNote: string;
+};
+
+const DEFAULT_STRINGS: DownloadSectionStrings = {
+  title: "Get ReadAware",
+  intro:
+    "Free and local-first. Bring your own API key; your library and memory stay on your device.",
+  latest: (tag) => ` The latest release is ${tag}.`,
+  yourPlatform: "— your platform",
+  comingSoon: "Coming soon",
+  download: "Download",
+  signingNote:
+    "Desktop builds aren't code-signed yet; macOS and Windows may ask you to confirm the app on first launch.",
+};
+
 type DownloadSectionProps = {
   downloads: PlatformDownload[];
   platform: PlatformId | null;
   tag: string | null;
+  strings?: DownloadSectionStrings;
 };
 
-export function DownloadSection({ downloads, platform, tag }: DownloadSectionProps) {
+export function DownloadSection({
+  downloads,
+  platform,
+  tag,
+  strings = DEFAULT_STRINGS,
+}: DownloadSectionProps) {
   return (
     <section id="download" className="mt-20 max-w-[36rem] scroll-mt-8 sm:mt-24">
       <h2 className="text-[clamp(1.5rem,3vw,1.9rem)] font-normal leading-[1.18] tracking-[-0.01em]">
-        Get ReadAware
+        {strings.title}
       </h2>
       <p className="mt-5 text-[1.0625rem] leading-[1.75] text-fg">
-        Free and local-first. Bring your own API key; your library and memory
-        stay on your device.
-        {tag ? ` The latest release is ${tag}.` : ""}
+        {strings.intro}
+        {tag ? strings.latest(tag) : ""}
       </p>
 
       <ul className="mt-8">
@@ -37,14 +64,14 @@ export function DownloadSection({ downloads, platform, tag }: DownloadSectionPro
                 {download.name}
                 {recommended && (
                   <span className="ml-2 text-[0.875rem] text-fg-subtle">
-                    — your platform
+                    {strings.yourPlatform}
                   </span>
                 )}
               </span>
 
               {download.comingSoon ? (
                 <span className="text-[0.9375rem] italic text-fg-subtle">
-                  Coming soon
+                  {strings.comingSoon}
                 </span>
               ) : (
                 <span className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[0.9375rem]">
@@ -55,7 +82,7 @@ export function DownloadSection({ downloads, platform, tag }: DownloadSectionPro
                       ? { target: "_blank", rel: "noopener noreferrer" }
                       : {})}
                   >
-                    {download.primary?.label ?? "Download"}
+                    {download.primary?.label ?? strings.download}
                   </a>
                   {download.extras.map((extra) => (
                     <a
@@ -74,8 +101,7 @@ export function DownloadSection({ downloads, platform, tag }: DownloadSectionPro
       </ul>
 
       <p className="mt-6 text-[0.875rem] italic leading-relaxed text-fg-muted">
-        Desktop builds aren't code-signed yet; macOS and Windows may ask you to
-        confirm the app on first launch.
+        {strings.signingNote}
       </p>
     </section>
   );

@@ -1,12 +1,19 @@
 /**
- * Locale support for the docs and blog. English is the source of truth at the
+ * Locale support for the site. English is the source of truth at the
  * unprefixed paths; translations live at /zh and /ja as their own route files
- * (no i18n framework — a translated page is a hand-maintained TSX file, kept
- * in sync by the publishing pipeline). This module holds the locale set, the
- * path mapping between language versions, and the few chrome strings shared
- * components need. The landing page itself stays English-only.
+ * (no i18n framework — docs/blog pages are hand-maintained TSX mirrors, while
+ * the homepage and changelog render per-locale content objects). This module
+ * holds the locale set, the path mapping between language versions, and the
+ * few chrome strings shared components need.
  */
 export type Locale = "en" | "zh" | "ja";
+
+/**
+ * Where an explicit language-switcher pick persists. The homepage's
+ * browser-language redirect defers to it, so a chosen language sticks
+ * across visits instead of fighting the Accept-Language heuristic.
+ */
+export const LOCALE_CHOICE_KEY = "read-aware-landing-locale";
 
 export const LOCALES: readonly Locale[] = ["en", "zh", "ja"];
 
@@ -40,10 +47,11 @@ export function localizePath(pathname: string, locale: Locale): string {
   return locale === "en" ? base : `${PREFIX[locale]}${base}`;
 }
 
-/** Only docs, blog, and changelog pages exist in every locale. */
+/** The homepage, docs, blog, and changelog pages exist in every locale. */
 export function hasLocaleVariants(pathname: string): boolean {
   const base = localizePath(pathname, "en");
   return (
+    base === "/" ||
     base.startsWith("/docs") ||
     base.startsWith("/blog") ||
     base.startsWith("/changelog")

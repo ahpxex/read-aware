@@ -3,9 +3,24 @@ import { CaretDown } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { RELEASES_URL, type PlatformDownload, type PlatformId } from "../lib/releases";
 
+export type DownloadStrings = {
+  comingSoon: string;
+  download: string;
+  downloadFor: (name: string) => string;
+  choosePlatform: string;
+};
+
+const DEFAULT_STRINGS: DownloadStrings = {
+  comingSoon: "Coming soon",
+  download: "Download",
+  downloadFor: (name) => `Download for ${name}`,
+  choosePlatform: "Choose a platform",
+};
+
 type DownloadMenuProps = {
   downloads: PlatformDownload[];
   platform: PlatformId | null;
+  strings?: DownloadStrings;
 };
 
 /**
@@ -14,7 +29,11 @@ type DownloadMenuProps = {
  * full platform list inline. It never scrolls the page — a download button
  * should download.
  */
-export function DownloadMenu({ downloads, platform }: DownloadMenuProps) {
+export function DownloadMenu({
+  downloads,
+  platform,
+  strings = DEFAULT_STRINGS,
+}: DownloadMenuProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -52,7 +71,7 @@ export function DownloadMenu({ downloads, platform }: DownloadMenuProps) {
       <div className="inline-flex overflow-hidden rounded-md">
         {direct ? (
           <a href={direct.url} className={cn(solid, "px-5")}>
-            Download for {direct.name}
+            {strings.downloadFor(direct.name)}
           </a>
         ) : (
           <button
@@ -62,13 +81,13 @@ export function DownloadMenu({ downloads, platform }: DownloadMenuProps) {
             aria-expanded={open}
             className={cn(solid, "px-5")}
           >
-            Download
+            {strings.download}
           </button>
         )}
         <button
           type="button"
           onClick={() => setOpen((value) => !value)}
-          aria-label="Choose a platform"
+          aria-label={strings.choosePlatform}
           aria-haspopup="menu"
           aria-expanded={open}
           className={cn(solid, "border-l border-inverse-fg/20 px-2.5")}
@@ -97,7 +116,7 @@ export function DownloadMenu({ downloads, platform }: DownloadMenuProps) {
                   className="flex items-baseline justify-between px-3 py-2 text-fg-subtle"
                 >
                   <span className="text-[0.9375rem]">{download.name}</span>
-                  <span className="text-[0.8125rem] italic">Coming soon</span>
+                  <span className="text-[0.8125rem] italic">{strings.comingSoon}</span>
                 </div>
               );
             }

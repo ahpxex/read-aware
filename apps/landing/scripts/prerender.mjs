@@ -43,7 +43,9 @@ function alternateLinks(routePath) {
   const base = prefix ? routePath.slice(prefix.length) || "/" : routePath;
   const variants = LOCALES.map((entry) => ({
     ...entry,
-    path: entry.prefix ? `${entry.prefix}${base}` : base,
+    // The homepage variant is the bare prefix ("/zh"), not "/zh/" — route
+    // paths carry no trailing slash.
+    path: entry.prefix ? (base === "/" ? entry.prefix : `${entry.prefix}${base}`) : base,
   })).filter((entry) => pathSet.has(entry.path));
   if (variants.length < 2) return "";
   const links = variants.map(

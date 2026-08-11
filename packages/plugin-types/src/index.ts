@@ -511,7 +511,13 @@ export type PluginFormField = PluginFormFieldBase &
       placeholder?: PluginText;
       helperText?: PluginText;
     }
-  | { kind: "toggle"; id: string; label: PluginText; value?: boolean }
+  | {
+      kind: "toggle";
+      id: string;
+      label: PluginText;
+      description?: PluginText;
+      value?: boolean;
+    }
   | {
       kind: "checkbox";
       id: string;

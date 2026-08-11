@@ -366,9 +366,7 @@ function normalizeFormField(input: unknown, context: string): PluginFormField {
       id,
       label,
       value: value.value === true,
-      ...(kind === "checkbox"
-        ? { description: pluginText(value.description, `${context}.description`, true) }
-        : {}),
+      description: pluginText(value.description, `${context}.description`, true),
     } as PluginFormField;
   }
   throw new PluginViewError(`${context}.kind is not supported`);

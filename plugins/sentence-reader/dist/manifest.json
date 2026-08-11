@@ -59,7 +59,7 @@
       ]
     },
     {
-      "kind": "checkbox",
+      "kind": "toggle",
       "id": "tapToAdvance",
       "label": {
         "default": "Tap to advance",
@@ -88,7 +88,7 @@
       "value": true
     },
     {
-      "kind": "checkbox",
+      "kind": "toggle",
       "id": "scrollToStep",
       "label": {
         "default": "Swipe to step",
@@ -117,7 +117,7 @@
       "value": false
     },
     {
-      "kind": "checkbox",
+      "kind": "toggle",
       "id": "showProgress",
       "label": {
         "default": "Show reading progress",
@@ -146,7 +146,7 @@
       "value": true
     },
     {
-      "kind": "checkbox",
+      "kind": "toggle",
       "id": "sessionTimer",
       "label": {
         "default": "Session timer",

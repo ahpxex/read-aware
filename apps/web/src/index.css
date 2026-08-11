@@ -259,24 +259,23 @@ html[data-tauri="true"] {
   border-radius: 9999px;
 }
 
-/* Recharts 3's accessibility layer puts tabIndex=0 on the chart <svg> for
-   keyboard navigation, and WebKit draws its default focus ring even on mouse
-   click — an outline around the whole chart. Suppress the ring for pointer
-   focus only; keyboard focus (:focus-visible) keeps the default outline. */
-.recharts-wrapper svg:focus:not(:focus-visible) {
+/* Recharts 3's accessibility layer makes the chart focusable — tabIndex=0 on
+   the <svg> plus tabIndex=-1 on every inner zIndex-layer <g> — and engines
+   draw their default focus ring on whichever one a click/tap lands on.
+   Suppress the ring for pointer focus anywhere inside a chart; keyboard focus
+   (:focus-visible) keeps the default outline. */
+.recharts-wrapper :focus:not(:focus-visible) {
   outline: none;
 }
 
-/* On touch devices tapping the chart both focuses the svg (mobile WebViews
-   treat the tap focus as :focus-visible, dodging the rule above) and paints
-   the platform tap highlight. There is no keyboard to serve on a coarse
-   pointer, so drop the ring and the highlight entirely. */
+/* On touch devices there is no keyboard to serve, so also drop the ring
+   unconditionally along with the platform tap highlight. */
 .recharts-wrapper {
   -webkit-tap-highlight-color: transparent;
 }
 
 @media (pointer: coarse) {
-  .recharts-wrapper svg:focus {
+  .recharts-wrapper :focus {
     outline: none;
   }
 }

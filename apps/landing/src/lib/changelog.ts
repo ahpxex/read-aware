@@ -49,6 +49,144 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.4.1",
+    date: "2026-08-11",
+    text: {
+      en: {
+        summary:
+          "A patch for the statistics page and the sentence reader: charts you can tap, and a plugin that finally keeps its settings — plus a progress readout and a session timer — under its own roof.",
+        groups: [
+          {
+            kind: "new",
+            items: [
+              {
+                title: "Tap the charts",
+                body: "The reading-stats bars now hand the ink highlight to whichever bar you tap — daily, weekday, and time-of-day charts alike — and it stays where you put it.",
+              },
+              {
+                title: "The sentence reader keeps its own settings",
+                body: "Step unit, tap to advance, and swipe to step moved into the plugin's own settings page, joined by two new options: a chapter position readout (12 / 87) and a session timer that restarts on every entry and is never saved. Both live on a small floating chip you can drag anywhere.",
+              },
+            ],
+          },
+          {
+            kind: "improved",
+            items: [
+              {
+                body: "Chart tooltips traded their floating card for a quiet ink label pinned above the bars.",
+              },
+              {
+                body: "The About page shows the series codename beside the version.",
+              },
+            ],
+          },
+          {
+            kind: "fixed",
+            items: [
+              {
+                body: "The Total time headline no longer overflows on phones, and tapping a chart no longer draws a focus ring.",
+              },
+              {
+                body: "Turning the readouts off in settings applies without restarting the app.",
+              },
+              {
+                body: "iOS no longer shows two selection menus at once in the reader.",
+              },
+            ],
+          },
+        ],
+      },
+      zh: {
+        summary:
+          "一个属于统计页和逐句阅读的补丁：图表可以点了，插件的设置终于搬进了自己家——还带来了章内进度读数和本次阅读计时。",
+        groups: [
+          {
+            kind: "new",
+            items: [
+              {
+                title: "点得动的图表",
+                body: "阅读统计的柱状图现在点到哪根，墨色高亮就跟到哪根——每日、按星期、按时段的图都一样，而且停在你点的位置。",
+              },
+              {
+                title: "逐句阅读的独立设置页",
+                body: "步进单位、点按前进、滑动步进搬进了插件自己的设置页，还多了两个新选项：本章位置读数（12 / 87）和每次进入重新计时、不做保存的阅读计时。两者都显示在一个可以随手拖动的小浮签上。",
+              },
+            ],
+          },
+          {
+            kind: "improved",
+            items: [
+              {
+                body: "图表提示从追着指针跑的卡片，换成了钉在柱子上方的墨色小标签。",
+              },
+              {
+                body: "「关于」页在版本号旁边显示所属系列的代号。",
+              },
+            ],
+          },
+          {
+            kind: "fixed",
+            items: [
+              {
+                body: "手机上「总时长」不再溢出，点按图表也不再出现对焦外框。",
+              },
+              {
+                body: "关闭读数开关无需重启应用即可生效。",
+              },
+              {
+                body: "iOS 阅读器不再同时弹出两个选择菜单。",
+              },
+            ],
+          },
+        ],
+      },
+      ja: {
+        summary:
+          "統計ページと文・段落ナビゲーターのためのパッチです。グラフはタップに応え、プラグインは自分の設定ページを持ちました——章内の位置表示とセッションタイマーも一緒に。",
+        groups: [
+          {
+            kind: "new",
+            items: [
+              {
+                title: "タップできるグラフ",
+                body: "読書統計の棒グラフは、タップした棒にインクのハイライトが移り、そのまま留まるようになりました。日別・曜日別・時間帯別のどのグラフでも同じです。",
+              },
+              {
+                title: "文・段落ナビゲーターの設定ページ",
+                body: "ステップ単位・タップで進む・スワイプで移動がプラグイン自身の設定ページに移り、新たに章内の位置表示（12 / 87）と、入るたびにリセットされ保存されないセッションタイマーが加わりました。どちらも自由にドラッグできる小さなフロートに表示されます。",
+              },
+            ],
+          },
+          {
+            kind: "improved",
+            items: [
+              {
+                body: "グラフのツールチップは、ポインターを追いかけるカードから棒の上に固定された墨色のラベルになりました。",
+              },
+              {
+                body: "「情報」ページでバージョンの横にシリーズのコードネームを表示します。",
+              },
+            ],
+          },
+          {
+            kind: "fixed",
+            items: [
+              {
+                body: "スマートフォンで合計時間がはみ出す問題と、グラフのタップでフォーカス枠が出る問題を修正しました。",
+              },
+              {
+                body: "表示の切り替えがアプリの再起動なしで反映されるようになりました。",
+              },
+              {
+                body: "iOSのリーダーで選択メニューが二重に表示される問題を修正しました。",
+              },
+            ],
+          },
+        ],
+      },
+    },
+  },
+  {
     version: "0.4.0",
     codename: "El Alto",
     date: "2026-08-10",

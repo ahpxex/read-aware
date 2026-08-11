@@ -4,12 +4,20 @@ import { isAndroid, isIOS, isTauri } from "../../../platform/environment";
 import { openExternalUrl } from "../../../platform/external-link";
 import { useTranslation } from "../../../i18n";
 import { useSoftwareUpdate } from "../../update/hooks/useSoftwareUpdate";
+import { versionCodename } from "../../update/lib/version-codename";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
 
 function valueText(text: string) {
   return <span className="font-sans text-sm text-fg-muted">{text}</span>;
+}
+
+/** `0.4.1 「El Alto」` — the minor series' codename rides along when it has one. */
+function formatVersion(version: string | null, unknownLabel: string): string {
+  if (!version) return unknownLabel;
+  const codename = versionCodename(version);
+  return codename ? `${version} 「${codename}」` : version;
 }
 
 function linkValue(href: string, label: string) {
@@ -80,7 +88,7 @@ export function AboutPanel() {
         <SettingsRow
           borderless
           title={t("about.version")}
-          control={valueText(update.state.currentVersion ?? t("about.versionUnknown"))}
+          control={valueText(formatVersion(update.state.currentVersion, t("about.versionUnknown")))}
         />
         <SettingsRow
           title={t("about.build")}

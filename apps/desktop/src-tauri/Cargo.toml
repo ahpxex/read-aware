@@ -14,7 +14,8 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+# image-png: decode the PNG bytes the webview hands to clipboard writeImage.
+tauri = { version = "2", features = ["image-png"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 base64 = "0.22"
@@ -54,6 +55,10 @@ tauri-plugin-http = "2.5.9"
 # 外链交给系统浏览器（更新日志、官网）。webview 默认吞掉 target=_blank，
 # 前端统一走 openExternalUrl → 本插件。
 tauri-plugin-opener = "2"
+# Clipboard writes the webview cannot do itself: WKWebView rejects
+# navigator.clipboard.write for images (NotAllowedError), so the reader's
+# image viewer copies through this plugin instead.
+tauri-plugin-clipboard-manager = "2"
 
 # Desktop only: window-chrome helpers and the dev-time MCP bridge. Neither
 # compiles for (or makes sense on) Android/iOS, where the webview is fullscreen.

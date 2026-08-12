@@ -69,7 +69,12 @@
   },
   "imageViewer": {
     "label": "Visor de imagen",
-    "close": "Cerrar el visor de imagen"
+    "close": "Cerrar el visor de imagen",
+    "zoomIn": "Acercar",
+    "zoomOut": "Alejar",
+    "rotate": "Girar",
+    "copy": "Copiar imagen",
+    "copied": "Copiado"
   },
   "dismissNote": "Descartar nota",
   "closeNote": "Cerrar nota",

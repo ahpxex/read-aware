@@ -69,7 +69,12 @@
   },
   "imageViewer": {
     "label": "圖片檢視",
-    "close": "關閉圖片檢視"
+    "close": "關閉圖片檢視",
+    "zoomIn": "放大",
+    "zoomOut": "縮小",
+    "rotate": "旋轉",
+    "copy": "複製圖片",
+    "copied": "已複製"
   },
   "dismissNote": "忽略註釋",
   "closeNote": "關閉註釋",

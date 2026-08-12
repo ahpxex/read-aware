@@ -69,7 +69,12 @@
   },
   "imageViewer": {
     "label": "Bildansicht",
-    "close": "Bildansicht schließen"
+    "close": "Bildansicht schließen",
+    "zoomIn": "Vergrößern",
+    "zoomOut": "Verkleinern",
+    "rotate": "Drehen",
+    "copy": "Bild kopieren",
+    "copied": "Kopiert"
   },
   "dismissNote": "Notiz verwerfen",
   "closeNote": "Notiz schließen",

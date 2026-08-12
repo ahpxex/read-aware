@@ -69,7 +69,12 @@
   },
   "imageViewer": {
     "label": "画像ビューア",
-    "close": "画像ビューアを閉じる"
+    "close": "画像ビューアを閉じる",
+    "zoomIn": "拡大",
+    "zoomOut": "縮小",
+    "rotate": "回転",
+    "copy": "画像をコピー",
+    "copied": "コピーしました"
   },
   "dismissNote": "メモを閉じる",
   "closeNote": "メモを閉じる",

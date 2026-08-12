@@ -18,7 +18,13 @@ const IDENTITY: Transform = { scale: 1, x: 0, y: 0 };
  */
 export function useZoomPan() {
   const [transform, setTransform] = useState<Transform>(IDENTITY);
+  // Quarter-turn rotation plus the extra shrink that keeps a rotated image
+  // inside the stage (a wide plate turned 90° would otherwise overflow).
+  const [rotation, setRotation] = useState(0);
+  const [rotationFit, setRotationFit] = useState(1);
+  const rotationRef = useRef(0);
   const stageRef = useRef<HTMLDivElement | null>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
   // Live pointers by id; two entries mean an active pinch.
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
   const pinchStartRef = useRef<{ distance: number; scale: number } | null>(null);
@@ -116,21 +122,72 @@ export function useZoomPan() {
     if (pointersRef.current.size < 2) pinchStartRef.current = null;
   }, []);
 
-  const reset = useCallback(() => setTransform(IDENTITY), []);
+  const reset = useCallback(() => {
+    setTransform(IDENTITY);
+    rotationRef.current = 0;
+    setRotation(0);
+    setRotationFit(1);
+  }, []);
+
+  /** Toolbar zoom steps, anchored at the stage center. */
+  const zoomBy = useCallback((factor: number) => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const rect = stage.getBoundingClientRect();
+    applyScale(
+      transformRef.current.scale * factor,
+      rect.left + rect.width / 2,
+      rect.top + rect.height / 2,
+    );
+  }, [applyScale]);
+  const zoomIn = useCallback(() => zoomBy(1.5), [zoomBy]);
+  const zoomOut = useCallback(() => zoomBy(1 / 1.5), [zoomBy]);
+
+  /**
+   * Quarter turn clockwise. Pan/zoom reset — a fresh look at the rotated
+   * plate — and odd turns pick up the shrink that fits the swapped
+   * width/height inside the stage.
+   */
+  const rotateRight = useCallback(() => {
+    const next = (rotationRef.current + 90) % 360;
+    rotationRef.current = next;
+    let fit = 1;
+    const stage = stageRef.current;
+    const img = imgRef.current;
+    if (next % 180 !== 0 && stage && img && img.naturalWidth > 0) {
+      const stageW = stage.clientWidth;
+      const stageH = stage.clientHeight;
+      const contain = Math.min(
+        stageW / img.naturalWidth,
+        stageH / img.naturalHeight,
+        1,
+      );
+      const displayedW = img.naturalWidth * contain;
+      const displayedH = img.naturalHeight * contain;
+      fit = Math.min(stageW / displayedH, stageH / displayedW, 1);
+    }
+    setTransform(IDENTITY);
+    setRotation(next);
+    setRotationFit(fit);
+  }, []);
 
   const style = useMemo<CSSProperties>(() => ({
-    transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
+    transform: `translate(${transform.x}px, ${transform.y}px) rotate(${rotation}deg) scale(${transform.scale * rotationFit})`,
     transformOrigin: "center center",
     transition: pointersRef.current.size > 0 ? undefined : "transform 120ms ease-out",
-  }), [transform]);
+  }), [transform, rotation, rotationFit]);
 
   return {
     stageRef,
+    imgRef,
     style,
     zoomed: transform.scale > 1,
     /** True while/after the pointer interaction dragged — not a plain click. */
     movedRef,
     reset,
+    zoomIn,
+    zoomOut,
+    rotateRight,
     handlers: {
       onWheel,
       onDoubleClick,

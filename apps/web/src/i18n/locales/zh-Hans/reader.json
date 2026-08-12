@@ -69,7 +69,12 @@
   },
   "imageViewer": {
     "label": "图片查看",
-    "close": "关闭图片查看"
+    "close": "关闭图片查看",
+    "zoomIn": "放大",
+    "zoomOut": "缩小",
+    "rotate": "旋转",
+    "copy": "复制图片",
+    "copied": "已复制"
   },
   "dismissNote": "忽略注释",
   "closeNote": "关闭注释",

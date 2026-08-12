@@ -714,6 +714,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         // Plugin ctx.fetch routes through Rust (no webview CORS constraints);
         // scope below is ACL-gated in capabilities/default.json.
         .plugin(tauri_plugin_http::init())

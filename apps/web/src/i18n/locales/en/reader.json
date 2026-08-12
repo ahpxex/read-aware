@@ -69,7 +69,12 @@
   },
   "imageViewer": {
     "label": "Image viewer",
-    "close": "Close image viewer"
+    "close": "Close image viewer",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "rotate": "Rotate",
+    "copy": "Copy image",
+    "copied": "Copied"
   },
   "dismissNote": "Dismiss note",
   "closeNote": "Close note",

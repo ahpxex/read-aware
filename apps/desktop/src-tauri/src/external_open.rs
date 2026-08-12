@@ -59,7 +59,11 @@ where
 
 /// Park paths for the webview and ping it. Also surfaces the main window —
 /// every caller is a "user just asked the OS to open a book" moment.
+/// (Desktop only: mobile WebviewWindow has no show/unminimize/set_focus, and
+/// nothing calls park there anyway — the module compiles everywhere because
+/// its command is registered unconditionally.)
 pub fn park(app: &AppHandle, paths: Vec<String>) {
+    #[cfg(desktop)]
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
         let _ = window.unminimize();

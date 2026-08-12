@@ -67,6 +67,10 @@
     "definition": "Definición",
     "note": "Nota"
   },
+  "imageViewer": {
+    "label": "Visor de imagen",
+    "close": "Cerrar el visor de imagen"
+  },
   "dismissNote": "Descartar nota",
   "closeNote": "Cerrar nota",
   "dictionary": {

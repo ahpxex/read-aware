@@ -48,8 +48,10 @@ import { createReaderPanelIntent, readerPanelIntentAtom } from "../state/panel-i
 import { useTextUnitNavigator } from "../hooks/useTextUnitNavigator";
 import { readTextUnitModeState } from "../lib/text-unit-mode-state";
 import { createWheelGesture, type WheelGesture } from "../lib/wheel-gesture";
+import { resolveActivatedImage, type ActivatedImage } from "../lib/image-activation";
 import { ReaderAnnotationMenu } from "./ReaderAnnotationMenu";
 import { ReaderFootnotePopover } from "./ReaderFootnotePopover";
+import { ReaderImageLightbox } from "./ReaderImageLightbox";
 import { TextUnitNavigatorBar } from "./TextUnitNavigatorBar";
 import { TextUnitReadoutChip } from "./TextUnitReadoutChip";
 import { ReaderPageTurnControls } from "./ReaderPageTurnControls";
@@ -509,6 +511,11 @@ export function FoliateReaderView({
   const footnoteAnchorRectRef = useRef<SelectionOverlayRect | null>(null);
   const footnoteStageRef = useRef<HTMLDivElement | null>(null);
   const closeFootnote = useCallback(() => setFootnote(null), []);
+
+  // Full-screen illustration viewer (issue #13), opened by tapping an image
+  // in the book content.
+  const [lightboxImage, setLightboxImage] = useState<ActivatedImage | null>(null);
+  const closeLightbox = useCallback(() => setLightboxImage(null), []);
 
   // 逐句模式：点中静息句的 wash → 在点击处开合该句的动作菜单（复制/高亮/
   // 下划线/笔记/问 AI + 插件 lookup），代替伸到底部工具栏。移动端"够不着"
@@ -1505,6 +1512,25 @@ export function FoliateReaderView({
       true,
     );
 
+    // Tapping an illustration opens the full-screen viewer (issue #13). The
+    // footnote intercept above registered first, so its marker images never
+    // reach here. Fixed layout stays out: comic and pre-paginated pages ARE
+    // images, and a tap there must keep meaning "toggle the shell".
+    doc.addEventListener(
+      "click",
+      (event) => {
+        if (isFixedLayoutRef.current) return;
+        const image = resolveActivatedImage(event.target);
+        if (!image) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        cancelPendingShellToggle();
+        cancelPendingShellOpen();
+        setLightboxImage(image);
+      },
+      true,
+    );
+
     doc.addEventListener("click", (event) => {
       // Tapping an existing mark opens its recolor menu (via `show-annotation`);
       // skip the tap-to-toggle-shell handling so the two don't fight.
@@ -2179,6 +2205,13 @@ export function FoliateReaderView({
           label={footnote.label}
           text={footnote.text}
           onClose={closeFootnote}
+        />
+      )}
+      {lightboxImage && (
+        <ReaderImageLightbox
+          src={lightboxImage.src}
+          alt={lightboxImage.alt}
+          onClose={closeLightbox}
         />
       )}
       <ReaderAnnotationMenu

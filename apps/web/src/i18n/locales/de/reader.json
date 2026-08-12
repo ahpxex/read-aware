@@ -67,6 +67,10 @@
     "definition": "Definition",
     "note": "Notiz"
   },
+  "imageViewer": {
+    "label": "Bildansicht",
+    "close": "Bildansicht schließen"
+  },
   "dismissNote": "Notiz verwerfen",
   "closeNote": "Notiz schließen",
   "dictionary": {

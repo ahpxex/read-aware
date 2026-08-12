@@ -67,6 +67,10 @@
     "definition": "定義",
     "note": "注釈"
   },
+  "imageViewer": {
+    "label": "画像ビューア",
+    "close": "画像ビューアを閉じる"
+  },
   "dismissNote": "メモを閉じる",
   "closeNote": "メモを閉じる",
   "dictionary": {

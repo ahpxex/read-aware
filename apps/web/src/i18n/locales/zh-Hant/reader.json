@@ -67,6 +67,10 @@
     "definition": "定義",
     "note": "註釋"
   },
+  "imageViewer": {
+    "label": "圖片檢視",
+    "close": "關閉圖片檢視"
+  },
   "dismissNote": "忽略註釋",
   "closeNote": "關閉註釋",
   "dictionary": {

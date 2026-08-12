@@ -57,7 +57,7 @@ export function canUseNativeFilePicker(): boolean {
   return isTauri();
 }
 
-function fileNameFromPath(path: string): string {
+export function fileNameFromPath(path: string): string {
   const segments = path.split(/[\\/]/);
   return segments[segments.length - 1] || path;
 }

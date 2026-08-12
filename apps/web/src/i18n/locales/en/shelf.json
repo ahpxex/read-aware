@@ -26,6 +26,9 @@
     "title": "Import books",
     "filterName": "Books"
   },
+  "dropImport": {
+    "hint": "Drop books here to import"
+  },
   "book": {
     "cover": "{{title}} cover",
     "star": "Star {{title}}",

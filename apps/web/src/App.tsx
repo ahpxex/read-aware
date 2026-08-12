@@ -11,7 +11,10 @@ import { ScrollArea, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { scheduleIdleWarmup } from "./app-warmup";
 import { dismissBootSplash } from "./boot-splash";
+import { DropImportOverlay } from "./features/library/components/DropImportOverlay";
 import { LibraryWorkspace } from "./features/library/components/LibraryWorkspace";
+import { useDropBookImport } from "./features/library/hooks/useDropBookImport";
+import { useExternalBookOpens } from "./features/library/hooks/useExternalBookOpens";
 import { useLibraryController } from "./features/library/hooks/useLibraryController";
 import { BOOK_FILE_ACCEPT } from "./features/library/lib/pick-book-files";
 import type { LibraryBook } from "./features/library/lib/library-types";
@@ -406,6 +409,17 @@ function App() {
     ],
   );
 
+  // OS-level entry points into the import pipeline: file associations
+  // (double-click / "open with" → import, then straight into the reader) and
+  // window-wide drag-and-drop (import only; the shelf shows the result).
+  useExternalBookOpens({
+    enabled: library.libraryReady,
+    importSources: library.importSources,
+    openBook: handleCommandOpenBook,
+    reportError: library.reportError,
+  });
+  const dropImportActive = useDropBookImport(library.importSources);
+
   const commandContext: CommandContext = {
     activeTopNav,
     readingBookId: reader.selectedBook?.id ?? null,
@@ -597,6 +611,8 @@ function App() {
           />
         </Suspense>
       )}
+
+      {dropImportActive && <DropImportOverlay />}
 
       <PluginToastBridge />
       <PluginDialogHost />

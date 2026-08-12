@@ -24,6 +24,9 @@
     "title": "导入书籍",
     "filterName": "书籍"
   },
+  "dropImport": {
+    "hint": "松开以导入书籍"
+  },
   "book": {
     "cover": "{{title}} 封面",
     "star": "收藏 {{title}}",

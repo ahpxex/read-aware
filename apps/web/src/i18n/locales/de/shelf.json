@@ -26,6 +26,9 @@
     "title": "Bücher importieren",
     "filterName": "Bücher"
   },
+  "dropImport": {
+    "hint": "Bücher hier ablegen zum Importieren"
+  },
   "book": {
     "cover": "Cover von {{title}}",
     "star": "{{title}} mit Stern markieren",

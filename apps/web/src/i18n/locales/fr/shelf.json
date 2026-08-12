@@ -28,6 +28,9 @@
     "title": "Importer des livres",
     "filterName": "Livres"
   },
+  "dropImport": {
+    "hint": "Déposez des livres ici pour les importer"
+  },
   "book": {
     "cover": "Couverture de {{title}}",
     "star": "Ajouter {{title}} aux favoris",

@@ -24,6 +24,15 @@ import type {
 import type { FoliateBook } from "../../reader/lib/foliate-engine";
 import { onAppEvent } from "../../../platform/app-events";
 
+/**
+ * Per-source result of an import batch. A duplicate carries the EXISTING shelf
+ * book it matched, so callers (external "open with" flow) can open it anyway.
+ */
+export type ImportOutcome = {
+  status: "imported" | "duplicate";
+  book: LibraryBook;
+};
+
 function formatImportNotice(
   imported: number,
   duplicates: string[],
@@ -210,25 +219,29 @@ export function useLibraryController() {
       .finally(() => bookReadyPendingRef.current.delete(book.id));
   }, [toast]);
 
-  const importSources = useCallback(async (sources: BookImportSource[]) => {
-    if (sources.length === 0) return;
+  const importSources = useCallback(async (sources: BookImportSource[]): Promise<ImportOutcome[]> => {
+    if (sources.length === 0) return [];
 
     setImportingCount(sources.length);
 
     let imported = 0;
     const duplicates: string[] = [];
+    const outcomes: ImportOutcome[] = [];
     const knownBooks = [...booksRef.current];
     try {
       for (const source of sources) {
         let pendingBookId: string | null = null;
         try {
           const result = await prepareBookImport(source, tRef.current, knownBooks);
-          if (result.status === "duplicate") duplicates.push(result.book.title);
-          else {
+          if (result.status === "duplicate") {
+            duplicates.push(result.book.title);
+            outcomes.push({ status: "duplicate", book: result.book });
+          } else {
             pendingBookId = result.book.id;
             setPendingBooks((current) => [...current, result.book]);
             await commitBookImport(result.book, source);
             imported += 1;
+            outcomes.push({ status: "imported", book: result.book });
             // Swap the pending entry for the durable book in one React batch.
             // The id and all sort fields stay identical, so its grid slot does not move.
             setBooks((current) => [result.book, ...current]);
@@ -253,6 +266,7 @@ export function useLibraryController() {
     } finally {
       setImportingCount(0);
     }
+    return outcomes;
   }, [reportError, toast]);
 
   // One native picker at a time: a re-trigger while a dialog is pending would
@@ -363,6 +377,7 @@ export function useLibraryController() {
     isImporting,
     importingCount,
     importInputRef,
+    importSources,
     openImportPicker,
     handleImportSelection,
     handleRemoveBook,

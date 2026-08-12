@@ -24,6 +24,9 @@
     "title": "匯入書籍",
     "filterName": "書籍"
   },
+  "dropImport": {
+    "hint": "鬆開以匯入書籍"
+  },
   "book": {
     "cover": "{{title}} 封面",
     "star": "為 {{title}} 加星號",

@@ -24,6 +24,9 @@
     "title": "本をインポート",
     "filterName": "本"
   },
+  "dropImport": {
+    "hint": "ここにドロップしてインポート"
+  },
   "book": {
     "cover": "{{title}}の表紙",
     "star": "{{title}}にスターを付ける",

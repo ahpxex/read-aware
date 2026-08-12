@@ -1,6 +1,7 @@
 mod android_update;
 mod book_metadata;
 mod comic_metadata;
+mod external_open;
 mod fb2_metadata;
 mod metadata;
 mod mobi_metadata;
@@ -674,7 +675,32 @@ pub fn run() {
     #[cfg(target_os = "macos")]
     inherit_system_proxy();
 
+    // Cold-start file association (Windows/Linux): the OS hands the document
+    // path over as a plain launch argument. macOS delivers documents through
+    // RunEvent::Opened instead — see the run-loop callback at the bottom.
+    #[cfg(desktop)]
+    let launch_open_paths = external_open::collect_book_paths(
+        std::env::args().skip(1),
+        std::env::current_dir().ok().as_deref(),
+    );
+    #[cfg(not(desktop))]
+    let launch_open_paths: Vec<String> = Vec::new();
+
     let builder = tauri::Builder::default();
+    // Single-instance must be the FIRST plugin: a second launch (double-click
+    // on an associated book while the app runs) must short-circuit here and
+    // relay its argv before any other plugin initializes — two full instances
+    // would race the SQLite database.
+    #[cfg(desktop)]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
+        external_open::park(
+            app,
+            external_open::collect_book_paths(
+                args.iter().skip(1).map(String::as_str),
+                Some(std::path::Path::new(&cwd)),
+            ),
+        );
+    }));
     // Desktop-only window chrome (macOS traffic-light repositioning); the
     // crate is not compiled for Android/iOS, where the webview is fullscreen.
     #[cfg(desktop)]
@@ -697,6 +723,7 @@ pub fn run() {
             plugins::serve_plugin_asset(ctx.app_handle(), request)
         })
         .manage(android_update::AndroidUpdateState::default())
+        .manage(external_open::ExternalOpenQueue(Mutex::new(launch_open_paths)))
         .manage(storage::BlobReadSessions::default())
         .manage(storage::BlobWriteSessions::default())
         .setup(|app| {
@@ -827,6 +854,7 @@ pub fn run() {
             storage::reading_time_load,
             storage::reading_time_record,
             storage::reading_time_import,
+            external_open::external_open_take,
             book_file_size,
             read_book_head,
             write_export_file,
@@ -861,7 +889,22 @@ pub fn run() {
         );
     }
 
-    builder
-        .run(tauri::generate_context!())
-        .expect("error while running ReadAware desktop application");
+    let app = builder
+        .build(tauri::generate_context!())
+        .expect("error while building ReadAware desktop application");
+    app.run(|_app_handle, _event| {
+        // macOS file associations deliver documents as Apple Events (cold and
+        // warm start alike), never as argv — park them like every other path.
+        #[cfg(target_os = "macos")]
+        if let tauri::RunEvent::Opened { urls } = &_event {
+            external_open::park(
+                _app_handle,
+                urls.iter()
+                    .filter_map(|url| url.to_file_path().ok())
+                    .filter(|path| external_open::is_book_path(path))
+                    .map(|path| path.to_string_lossy().into_owned())
+                    .collect(),
+            );
+        }
+    });
 }

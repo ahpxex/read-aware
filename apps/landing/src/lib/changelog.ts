@@ -49,6 +49,196 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "0.4.2",
+    date: "2026-08-12",
+    text: {
+      en: {
+        summary:
+          "A patch that opens the front door: book files open straight from your file manager, drag-and-drop imports, and every illustration gets a full-screen viewer.",
+        groups: [
+          {
+            kind: "new",
+            items: [
+              {
+                title: "Open with ReadAware",
+                body: "Make ReadAware the default app for your book files and double-clicking one lands directly in the reader, with the book added to your shelf on the way. If the app is already running, the existing window takes over — no second copy.",
+              },
+              {
+                title: "Drop books to import",
+                body: "Drag book files anywhere onto the window and they import on the spot.",
+              },
+              {
+                title: "A closer look at illustrations",
+                body: "Tap an image in any book to view it full screen. Zoom around the cursor with the wheel or a pinch, drag to pan, double-click to toggle fit, and a small toolbar covers zoom, rotation, copying to the clipboard, and closing.",
+              },
+            ],
+          },
+        ],
+      },
+      zh: {
+        summary:
+          "一个打开前门的小更新：书籍文件可直接从文件管理器打开、拖拽导入，每张插图都有了全屏查看器。",
+        groups: [
+          {
+            kind: "new",
+            items: [
+              {
+                title: "用 ReadAware 打开",
+                body: "把 ReadAware 设为书籍文件的默认应用，双击文件即可直接进入阅读器，书会自动加入书架。如果应用已在运行，则复用现有窗口，不会打开第二个副本。",
+              },
+              {
+                title: "拖拽导入书籍",
+                body: "将书籍文件拖放到窗口任意位置，即可立即导入。",
+              },
+              {
+                title: "细看插图",
+                body: "点击书中的图片即可全屏查看。用滚轮或双指缩放，拖动即可平移，双击切换适应窗口，小工具栏提供缩放、旋转、复制到剪贴板和关闭功能。",
+              },
+            ],
+          },
+        ],
+      },
+      "zh-hant": {
+        summary:
+          "這次更新打開了前門：書籍檔案可以直接從檔案管理員開啟、拖曳匯入，每一張插圖都能全螢幕檢視。",
+        groups: [
+          {
+            kind: "new",
+            items: [
+              {
+                title: "用 ReadAware 開啟",
+                body: "把 ReadAware 設為書籍檔案的預設應用程式後，雙擊檔案就會直接進入閱讀器，書也會同時加入書架。如果應用程式已經在執行，會沿用既有的視窗，不會另開一個副本。",
+              },
+              {
+                title: "拖曳匯入書籍",
+                body: "將書籍檔案拖曳到視窗的任何位置，就會立刻完成匯入。",
+              },
+              {
+                title: "細看插圖",
+                body: "點選書中的圖片，就能以全螢幕檢視。用滾輪或雙指縮放貼近游標放大，拖曳可平移，雙擊切換符合視窗大小，小工具列提供縮放、旋轉、複製到剪貼簿和關閉功能。",
+              },
+            ],
+          },
+        ],
+      },
+      ja: {
+        summary:
+          "入口を開くパッチです。書籍ファイルがファイルマネージャーから直接開けるようになり、ドラッグ＆ドロップでのインポートに対応し、すべての挿絵に全画面ビューアーが付きました。",
+        groups: [
+          {
+            kind: "new",
+            items: [
+              {
+                title: "ReadAware で開く",
+                body: "ReadAware を書籍ファイルのデフォルトアプリに設定すると、ダブルクリックした書籍がそのままリーダーで開き、同時に本棚にも追加されます。アプリがすでに起動している場合は既存のウィンドウが引き継ぐため、二重に開くことはありません。",
+              },
+              {
+                title: "ドロップで書籍をインポート",
+                body: "書籍ファイルをウィンドウのどこかにドラッグすると、その場でインポートされます。",
+              },
+              {
+                title: "挿絵を詳しく見る",
+                body: "本の中の画像をタップすると全画面で表示されます。ホイールやピンチでカーソル位置を中心にズーム、ドラッグでパン、ダブルクリックでフィット表示を切り替え、小さなツールバーでズーム、回転、クリップボードへのコピー、閉じる操作ができます。",
+              },
+            ],
+          },
+        ],
+      },
+      fr: {
+        summary:
+          "Un patch qui ouvre la porte d'entrée : les fichiers de livres s'ouvrent directement depuis votre gestionnaire de fichiers, l'import par glisser-déposer est disponible, et chaque illustration dispose d'une visionneuse plein écran.",
+        groups: [
+          {
+            kind: "new",
+            items: [
+              {
+                title: "Ouvrir avec ReadAware",
+                body: "Faites de ReadAware l'application par défaut pour vos fichiers de livres : un double-clic ouvre directement le lecteur, en ajoutant le livre à votre bibliothèque au passage. Si l'application est déjà ouverte, la fenêtre existante prend le relais — pas de seconde copie.",
+              },
+              {
+                title: "Importer des livres par glisser-déposer",
+                body: "Faites glisser des fichiers de livres n'importe où sur la fenêtre et ils sont importés sur-le-champ.",
+              },
+              {
+                title: "Un regard plus attentif sur les illustrations",
+                body: "Appuyez sur une image dans un livre pour l'afficher en plein écran. Zoomez autour du curseur avec la molette ou un pincement, faites glisser pour vous déplacer, double-cliquez pour basculer en mode ajustement, et une petite barre d'outils couvre le zoom, la rotation, la copie dans le presse-papiers et la fermeture.",
+              },
+            ],
+          },
+        ],
+      },
+      de: {
+        summary:
+          "Ein Patch, der die Haustür öffnet: Buchdateien öffnen direkt aus deinem Dateimanager, Import per Drag-and-drop, und jede Illustration bekommt einen Vollbild-Viewer.",
+        groups: [
+          {
+            kind: "new",
+            items: [
+              {
+                title: "Mit ReadAware öffnen",
+                body: "Mach ReadAware zur Standard-App für deine Buchdateien, und ein Doppelklick auf eine Datei führt direkt in den Reader — das Buch wird dabei ins Regal aufgenommen. Wenn die App bereits läuft, übernimmt das bestehende Fenster — keine zweite Kopie.",
+              },
+              {
+                title: "Bücher per Drag-and-drop importieren",
+                body: "Zieh Buchdateien an eine beliebige Stelle im Fenster und sie werden sofort importiert.",
+              },
+              {
+                title: "Ein genauerer Blick auf Illustrationen",
+                body: "Tippe auf ein Bild in einem beliebigen Buch, um es im Vollbild zu betrachten. Zoome mit dem Mausrad oder einer Pinch-Geste um den Cursor, ziehe zum Verschieben, doppelklicke zum Umschalten der Ansicht, und eine kleine Symbolleiste deckt Zoomen, Drehen, Kopieren in die Zwischenablage und Schließen ab.",
+              },
+            ],
+          },
+        ],
+      },
+      ru: {
+        summary:
+          "Патч, который открывает входную дверь: файлы книг открываются прямо из файлового менеджера, импорт перетаскиванием, и у каждой иллюстрации теперь есть полноэкранный просмотрщик.",
+        groups: [
+          {
+            kind: "new",
+            items: [
+              {
+                title: "Открыть с помощью ReadAware",
+                body: "Сделайте ReadAware приложением по умолчанию для файлов книг — двойной клик по файлу сразу открывает его в читалке, попутно добавляя книгу на вашу полку. Если приложение уже запущено, открытие происходит в существующем окне — без второго экземпляра.",
+              },
+              {
+                title: "Перетащите книги для импорта",
+                body: "Перетащите файлы книг в любую область окна, и они импортируются на месте.",
+              },
+              {
+                title: "Ближе к иллюстрациям",
+                body: "Нажмите на изображение в любой книге, чтобы просмотреть его в полноэкранном режиме. Масштабируйте колесом мыши или щипком (зум следует за курсором), перетаскивайте для панорамирования, двойной клик переключает режим «по размеру окна», а небольшая панель инструментов отвечает за зум, поворот, копирование в буфер обмена и закрытие.",
+              },
+            ],
+          },
+        ],
+      },
+      es: {
+        summary:
+          "Un parche que abre la puerta de entrada: los archivos de libros se abren directamente desde tu gestor de archivos, importación por arrastrar y soltar, y cada ilustración tiene un visor a pantalla completa.",
+        groups: [
+          {
+            kind: "new",
+            items: [
+              {
+                title: "Abrir con ReadAware",
+                body: "Haz de ReadAware la aplicación predeterminada para tus archivos de libros y, al hacer doble clic en uno, entras directamente al lector, con el libro añadido a tu biblioteca de paso. Si la aplicación ya está abierta, la ventana existente se hace cargo — sin copias duplicadas.",
+              },
+              {
+                title: "Arrastra libros para importar",
+                body: "Arrastra archivos de libros a cualquier parte de la ventana y se importarán al instante.",
+              },
+              {
+                title: "Una mirada más de cerca a las ilustraciones",
+                body: "Toca una imagen en cualquier libro para verla a pantalla completa. Haz zoom alrededor del cursor con la rueda o con un pellizco, arrastra para desplazarte, haz doble clic para alternar el ajuste, y una pequeña barra de herramientas cubre el zoom, la rotación, copiar al portapapeles y cerrar.",
+              },
+            ],
+          },
+        ],
+      },
+    },
+  },
+  {
     version: "0.4.1",
     date: "2026-08-11",
     text: {

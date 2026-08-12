@@ -26,7 +26,9 @@ function GettingStartedPage() {
 
       <h2>添加书籍</h2>
       <p>
-        在书架上导入文件。ReadAware 直接读取{" "}
+        在书架上导入文件——或者完全跳过按钮：把书籍文件拖到窗口任意位置即可导入；也可以把
+        ReadAware 设为书籍格式的默认应用，在文件管理器里双击文件，书会直接在阅读器中打开，并顺便加入书架。ReadAware
+        直接读取{" "}
         <strong>EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML 和 PDF</strong>
         ——没有转换步骤，也没有云端上传。你导入的文件就是你保留的文件；高亮、笔记和阅读位置都附着在原文之上。
       </p>

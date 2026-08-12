@@ -26,7 +26,11 @@ function GettingStartedPage() {
 
       <h2>Add your books</h2>
       <p>
-        Import files from the shelf. ReadAware reads{" "}
+        Import files from the shelf — or skip the button entirely: drop book
+        files anywhere on the window, or make ReadAware the default app for
+        your book formats and double-click them in your file manager, which
+        opens the book straight in the reader and adds it to the shelf on the
+        way. ReadAware reads{" "}
         <strong>EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, and PDF</strong>{" "}
         directly — there is no
         conversion step and no cloud upload. The file you import is the file

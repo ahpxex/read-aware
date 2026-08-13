@@ -360,7 +360,11 @@
       "connecting": "連線中…",
       "wrongPassphrase": "密語與該帳號不符。",
       "failed": "連線失敗，請檢查連結後重試。",
-      "connected": "同步已開啟。"
+      "connected": "同步已開啟。",
+      "google": "使用 Google 登入",
+      "github": "使用 GitHub 登入",
+      "orEmail": "或使用電子郵件",
+      "oauthStarted": "在瀏覽器完成登入，然後把頁面顯示的權杖貼到下方。"
     },
     "connected": {
       "description": "已連線（{{account}}）。變更會經加密中繼同步。",

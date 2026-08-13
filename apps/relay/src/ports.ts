@@ -22,6 +22,18 @@ export interface AccountStore {
   putMagicToken(tokenHash: string, email: string, expiresAtMs: number, now: string): Promise<void>;
   /** Atomic single-use redemption; null = unknown, spent, or expired. */
   consumeMagicToken(tokenHash: string, nowMs: number): Promise<string | null>;
+  putOauthState(
+    stateHash: string,
+    provider: string,
+    client: OAuthClientKind,
+    expiresAtMs: number,
+    now: string,
+  ): Promise<void>;
+  /** Single-use; returns what the state was minted for, or null. */
+  consumeOauthState(
+    stateHash: string,
+    nowMs: number,
+  ): Promise<{ provider: string; client: OAuthClientKind } | null>;
   putSession(tokenHash: string, accountId: string, now: string): Promise<void>;
   sessionAccount(tokenHash: string): Promise<string | null>;
   deleteSession(tokenHash: string): Promise<void>;
@@ -50,6 +62,24 @@ export interface MagicLinkSender {
   send(email: string, token: string): Promise<void>;
 }
 
+/**
+ * How an OAuth dance finishes: "app" renders the one-time sign-in token for
+ * the desktop app to paste; "web" redirects straight back into the web app
+ * with the token in the fragment. Same accounts, same everything after.
+ */
+export type OAuthClientKind = "app" | "web";
+
+/**
+ * One OAuth identity provider. The relay only ever wants ONE fact from it — a
+ * verified email address — which then feeds the same account/token machinery
+ * as the magic link. Providers are ports so the flow tests with fakes.
+ */
+export interface OAuthProvider {
+  authorizeUrl(state: string, redirectUri: string): string;
+  /** Exchange the callback code for a VERIFIED email; throw on anything else. */
+  exchangeCode(code: string, redirectUri: string): Promise<string>;
+}
+
 export type RelayConfig = {
   /** Dev mode: return the magic token in the response instead of emailing. */
   echoMagicToken: boolean;
@@ -64,6 +94,8 @@ export type RelayConfig = {
   maxBlobBytes: number;
   /** Per account, total. */
   maxAccountBlobBytes: number;
+  /** Where a `client=web` OAuth finish is allowed to land (no open redirect). */
+  webAppOrigin: string;
 };
 
 export const DEFAULT_CONFIG: RelayConfig = {
@@ -74,6 +106,7 @@ export const DEFAULT_CONFIG: RelayConfig = {
   maxPullLimit: 500,
   maxBlobBytes: 256 * 1024 * 1024,
   maxAccountBlobBytes: 4 * 1024 * 1024 * 1024,
+  webAppOrigin: "https://readaware.app",
 };
 
 export type RelayPorts = {
@@ -82,6 +115,8 @@ export type RelayPorts = {
   blobs: BlobStore;
   /** null + echoMagicToken=false ⇒ /v1/auth/request answers 501. No mocks. */
   magicLink: MagicLinkSender | null;
+  /** Keyed by URL segment ("google", "github"). Unlisted providers 404. */
+  oauthProviders: Record<string, OAuthProvider>;
   config: RelayConfig;
   now(): number;
 };

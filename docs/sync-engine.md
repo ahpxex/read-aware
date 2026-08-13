@@ -161,6 +161,31 @@ WebSocket 顺手就有（§4），协议不用改。
 - **E2E 主密钥（服务端永远摸不到）**：只回答"密文能不能打开"。
   由用户口令派生，密钥不出设备。
 
+### 登录方式：magic link + Google / GitHub OAuth（2026-08-13 增补）
+
+OAuth 在本设计里只替代一件事——**"证明你拥有这个邮箱"**。回调不直接发
+session，而是铸造一个与 magic link 同表、同 TTL、同哈希存储的一次性登录
+令牌，之后统一走 `/v1/auth/verify`：session、E2E 口令派生、key check 对
+两条路一视同仁；同邮箱经 Google/GitHub/magic link 登录自动落同一账号。
+
+- `GET /v1/auth/oauth/{google|github}/start?client=app|web` → 302 到
+  provider（state 单次使用、哈希存储、15 分钟过期，防 CSRF/重放）；
+- 回调按 state 里记录的 `client` 收尾：`app` = 展示令牌页（桌面端在系统
+  浏览器完成登录后贴回应用——未注册深链前的最稳路径）；`web` = 302 带
+  `#token=` 回 `WEB_APP_ORIGIN`（**只回配置的固定 origin**，不存在开放
+  重定向）。这是为计划中的 web 客户端预留的即插即用缝。
+- 标准机密客户端 code flow（secret 在 Worker secrets 里），不需要 PKCE；
+  provider 是端口，测试用假 provider 跑全流程。
+- **不引入 better-auth**：它面向 cookie/同源 Web 应用形态，而这里两端都
+  是 bearer + 一次性令牌收尾；auth 全部藏在 `AccountStore` 端口后面，
+  将来若做真正的 Web 端 cookie 登录体系再评估。
+
+> **Web 客户端方向的含义**（记录，未实施）：web 端应作为"又一台设备"——
+> 拉密文日志、浏览器内解密、内存投影、按需拉 blob——E2E 保持、中继保持
+> 哑。代价要写明：web 端每次加载都在信任服务器下发的 JS（Proton/Bitwarden
+> web 版同款妥协），弱于桌面端的安装时固定代码。届时 `CLAUDE.md` 的
+> desktop-only 表述与"无 web 客户端故无 E2E 权衡"一句需要修订。
+
 ### Magic link 流程
 
 1. 用户输 email → Worker 生成一次性 token（随机 256-bit），存 D1，15 分钟过期；
@@ -338,3 +363,27 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
   （wallMs 超前服务器时间过多则拒收并提示用户校时）。
 - **D1 单库上限**：每账号事件行极小，D1 10 GB 上限对应数百万用户级
   事件量之前不构成约束；真到那天按 account_id 分库即可，协议不变。
+
+## 12. 部署 runbook
+
+一次性（在 `apps/relay/`，需先 `bunx wrangler login`）：
+
+1. `bunx wrangler d1 create read-aware-relay` → 把输出的 `database_id`
+   填进 `wrangler.jsonc`；
+2. `bunx wrangler d1 migrations apply read-aware-relay --remote`；
+3. `bunx wrangler r2 bucket create read-aware-relay-blobs`；
+4. OAuth 应用注册：Google Cloud Console 建 OAuth Web 客户端、GitHub
+   Settings → Developer settings 建 OAuth App，回调 URL 均为
+   `https://<relay 域>/v1/auth/oauth/{google|github}/callback`；
+5. `bunx wrangler secret put GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET /
+   GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET`（邮件链路可选：
+   `RESEND_API_KEY` + `MAIL_FROM`——有 OAuth 后可以晚配）；
+6. 生产 `wrangler.jsonc` 删掉 `MAGIC_LINK_ECHO`；配自定义域
+   `relay.readaware.app`（Workers 控制台 Custom Domains，DNS 本就在
+   Cloudflare）；
+7. `bun run deploy`。
+
+客户端默认指向 `https://relay.readaware.app`；dev 联调用 localKV 键
+`read-aware-sync-relay-url` 指向 `wrangler dev` 地址。发版前的验收：两台
+设备（或两份 app data 目录）连同一账号，双向写入 → 收敛，新设备
+bootstrap → 书架完整、书可打开。

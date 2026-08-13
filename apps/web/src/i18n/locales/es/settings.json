@@ -368,7 +368,11 @@
       "connecting": "Conectando…",
       "wrongPassphrase": "La frase no coincide con esta cuenta.",
       "failed": "No se pudo conectar. Comprueba el enlace e inténtalo de nuevo.",
-      "connected": "La sincronización está activada."
+      "connected": "La sincronización está activada.",
+      "google": "Continuar con Google",
+      "github": "Continuar con GitHub",
+      "orEmail": "o con correo",
+      "oauthStarted": "Termina el acceso en el navegador y pega abajo el token que muestra."
     },
     "connected": {
       "description": "Conectado ({{account}}). Los cambios se sincronizan por el relé cifrado.",

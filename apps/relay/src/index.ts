@@ -7,7 +7,8 @@
 import { SqlAccountStore, type D1Like } from "./account-store";
 import { AccountMailbox, stubMailbox } from "./do-mailbox";
 import { resendMagicLinkSender } from "./email";
-import { DEFAULT_CONFIG, type BlobStore, type RelayPorts } from "./ports";
+import { githubProvider, googleProvider } from "./oauth";
+import { DEFAULT_CONFIG, type BlobStore, type OAuthProvider, type RelayPorts } from "./ports";
 import { createRelayHandler } from "./router";
 
 export { AccountMailbox };
@@ -35,6 +36,12 @@ type Env = {
   RESEND_API_KEY?: string;
   MAIL_FROM?: string;
   APP_ORIGIN?: string;
+  /** Where `client=web` OAuth finishes land; defaults to the app origin. */
+  WEB_APP_ORIGIN?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+  GITHUB_CLIENT_ID?: string;
+  GITHUB_CLIENT_SECRET?: string;
 };
 
 function r2BlobStore(bucket: R2Like): BlobStore {
@@ -65,6 +72,13 @@ function r2BlobStore(bucket: R2Like): BlobStore {
 }
 
 function portsFromEnv(env: Env): RelayPorts {
+  const oauthProviders: Record<string, OAuthProvider> = {};
+  if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
+    oauthProviders.google = googleProvider(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET);
+  }
+  if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) {
+    oauthProviders.github = githubProvider(env.GITHUB_CLIENT_ID, env.GITHUB_CLIENT_SECRET);
+  }
   return {
     accounts: new SqlAccountStore(env.DB),
     mailboxFor: (accountId) => stubMailbox(env.MAILBOX.get(env.MAILBOX.idFromName(accountId))),
@@ -77,7 +91,12 @@ function portsFromEnv(env: Env): RelayPorts {
             env.APP_ORIGIN ?? "https://readaware.app",
           )
         : null,
-    config: { ...DEFAULT_CONFIG, echoMagicToken: env.MAGIC_LINK_ECHO === "1" },
+    oauthProviders,
+    config: {
+      ...DEFAULT_CONFIG,
+      echoMagicToken: env.MAGIC_LINK_ECHO === "1",
+      webAppOrigin: env.WEB_APP_ORIGIN ?? env.APP_ORIGIN ?? DEFAULT_CONFIG.webAppOrigin,
+    },
     now: () => Date.now(),
   };
 }

@@ -403,6 +403,17 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
             updated_at    TEXT NOT NULL
          );",
     ),
+    (
+        13,
+        "booktext_blobs_are_derivable",
+        // booktext:* 是从 bookfile 派生的缓存，早期 blob_kind() 没有映射它，
+        // 落成 kind='unknown' / sync_required=1 —— 会被同步引擎当用户数据
+        // 推给中继。改正历史行并清掉它们误入的 outbox；blob_kind() 同步
+        // 加了 'booktext' 前缀映射，新行不再走错。
+        "UPDATE blob_objects SET kind = 'book_text', sync_required = 0
+          WHERE key LIKE 'booktext:%';
+         DELETE FROM blob_sync_state WHERE blob_key LIKE 'booktext:%';",
+    ),
 ];
 
 /// Apply migrations newer than the highest recorded version, up to `max_version`

@@ -1,0 +1,54 @@
+/**
+ * The engine's local side bound to Tauri IPC — outbox reads and
+ * acknowledgements, the merge entry point, cursors, and blob bytes. Every
+ * command here lands in `storage/sync.rs` / `storage/events.rs`, which the
+ * Rust suite covers; this file stays a translation layer with nothing to test
+ * but names.
+ */
+import { invoke } from "@tauri-apps/api/core";
+import type { HlcStamp } from "@read-aware/core";
+import { getDesktopBlob, putDesktopBlob } from "../blob-store";
+import type { PlainEvent } from "../sync-envelope";
+import type { MergeReport, SyncLocalStore } from "./sync-engine";
+
+export const EVENTS_FEED = "events";
+
+export function createIpcSyncStore(): SyncLocalStore {
+  return {
+    outboxEvents: (limit) => invoke<PlainEvent[]>("sync_outbox_events", { limit }),
+    markEventsPushed: (assigned) => invoke("sync_mark_events_pushed", { assigned }),
+    markEventsFailed: (eventIds, error) =>
+      invoke("sync_mark_events_failed", { eventIds, error }),
+    applyRemote: (events) => invoke<MergeReport>("apply_remote_events", { events }),
+    async eventsCursor() {
+      const cursor = await invoke<{ remoteCursor: string | null } | null>("sync_cursor_get", {
+        feed: EVENTS_FEED,
+      });
+      const parsed = Number(cursor?.remoteCursor ?? "0");
+      return Number.isFinite(parsed) ? parsed : 0;
+    },
+    setEventsCursor: (cursor: number, hlc: HlcStamp | null) =>
+      invoke("sync_cursor_set", {
+        cursor: { feedName: EVENTS_FEED, remoteCursor: String(cursor), hlc },
+      }),
+    outboxBlobs: (limit) => invoke<Array<{ key: string }>>("sync_outbox_blobs", { limit }),
+    markBlobsPushed: (keys) => invoke("sync_mark_blobs_pushed", { keys }),
+    markBlobsFailed: (keys, error) => invoke("sync_mark_blobs_failed", { keys, error }),
+    readBlob: (key) => getDesktopBlob(key),
+    async writeBlob(key, bytes) {
+      await putDesktopBlob(key, bytes);
+    },
+    touch: (kind) => invoke("sync_profile_touch", { field: kind }),
+  };
+}
+
+export type SyncProfile = {
+  syncEnabled: boolean;
+  remoteAccountId: string | null;
+  encryptionKeyRef: string | null;
+  lastPushAt: string | null;
+  lastPullAt: string | null;
+};
+
+export const getSyncProfile = () => invoke<SyncProfile>("sync_profile_get");
+export const setSyncProfile = (profile: SyncProfile) => invoke("sync_profile_set", { profile });

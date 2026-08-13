@@ -1368,6 +1368,167 @@ fn the_blob_manifest_never_clobbers_a_registry_row_that_has_the_bytes() {
     assert_eq!(uri.as_deref(), Some("blobs/bookfile%3Ab1"));
 }
 
+// ─── Sync seams: outbox lifecycle, profile, cursors, v13 fix ─────────────────
+
+#[test]
+fn the_event_outbox_drains_through_push_acknowledgement() {
+    let mut conn = migrated_conn();
+    commit_events_inner(
+        &mut conn,
+        &[imported("e1", 1_000, "b1", "沙丘"), imported("e2", 1_001, "b2", "基地")],
+    )
+    .unwrap();
+
+    let pending = sync_outbox_events_inner(&conn, 100).unwrap();
+    assert_eq!(
+        pending.iter().map(|e| e.id.as_str()).collect::<Vec<_>>(),
+        vec!["e1", "e2"],
+        "HLC order"
+    );
+
+    // The relay confirmed e1 with seq 41; e2's push failed.
+    sync_mark_events_pushed_inner(&mut conn, &[("e1".to_string(), 41)]).unwrap();
+    sync_mark_events_failed_inner(&mut conn, &["e2".to_string()], "relay 503").unwrap();
+
+    let remaining = sync_outbox_events_inner(&conn, 100).unwrap();
+    assert_eq!(remaining.len(), 1, "failed rows stay in the outbox for retry");
+    assert_eq!(remaining[0].id, "e2");
+    let (state, remote_id): (String, Option<String>) = conn
+        .query_row(
+            "SELECT push_state, remote_id FROM event_sync_state WHERE event_id = 'e1'",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(state, "synced");
+    assert_eq!(remote_id.as_deref(), Some("41"));
+
+    // Recovery clears the failure.
+    sync_mark_events_pushed_inner(&mut conn, &[("e2".to_string(), 42)]).unwrap();
+    assert!(sync_outbox_events_inner(&conn, 100).unwrap().is_empty());
+    let error: Option<String> = conn
+        .query_row(
+            "SELECT last_error FROM event_sync_state WHERE event_id = 'e2'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert!(error.is_none(), "success wipes the stale error");
+}
+
+#[test]
+fn sync_profile_and_cursor_round_trip() {
+    let conn = migrated_conn();
+    // Unset state reads as the disabled default, not an error.
+    let fresh = sync_profile_get_inner(&conn).unwrap();
+    assert!(!fresh.sync_enabled);
+    assert!(fresh.remote_account_id.is_none());
+
+    sync_profile_set_inner(
+        &conn,
+        &SyncProfile {
+            sync_enabled: true,
+            remote_account_id: Some("acc-1".into()),
+            encryption_key_ref: Some("sync-master-key".into()),
+            last_push_at: None,
+            last_pull_at: None,
+        },
+    )
+    .unwrap();
+    let stored = sync_profile_get_inner(&conn).unwrap();
+    assert!(stored.sync_enabled);
+    assert_eq!(stored.remote_account_id.as_deref(), Some("acc-1"));
+
+    assert!(sync_cursor_get_inner(&conn, "events").unwrap().is_none());
+    sync_cursor_set_inner(
+        &conn,
+        &SyncCursor {
+            feed_name: "events".into(),
+            remote_cursor: Some("4832".into()),
+            hlc: Some(Hlc {
+                wall_ms: 5_000,
+                counter: 2,
+                device_id: "device-b".into(),
+            }),
+        },
+    )
+    .unwrap();
+    let cursor = sync_cursor_get_inner(&conn, "events").unwrap().unwrap();
+    assert_eq!(cursor.remote_cursor.as_deref(), Some("4832"));
+    assert_eq!(cursor.hlc.as_ref().map(|h| h.wall_ms), Some(5_000));
+}
+
+#[test]
+fn the_blob_outbox_skips_manifests_and_derivable_caches() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let mut conn = migrated_conn();
+    // A real upload candidate: bytes present, user data.
+    put_blob_inner(&conn, dir.path(), "bookfile:b1", None, b"bytes").unwrap();
+    // A derivable cache: enqueued by put, but sync_required = 0 filters it.
+    put_blob_inner(&conn, dir.path(), "booktext:b1", None, b"text").unwrap();
+    // A replayed manifest: known remotely, no local bytes — nothing to push.
+    commit_events_inner(
+        &mut conn,
+        &[ev_on(
+            "device-b",
+            "r1",
+            1_000,
+            "book.imported",
+            serde_json::json!({
+                "bookId": "b2", "title": "第二本", "format": "epub",
+                "fileName": "x.epub", "fileSize": 9, "sourceBlobKey": "bookfile:b2",
+            }),
+        )],
+    )
+    .unwrap();
+
+    let tasks = sync_outbox_blobs_inner(&conn, 100).unwrap();
+    assert_eq!(
+        tasks.iter().map(|t| t.key.as_str()).collect::<Vec<_>>(),
+        vec!["bookfile:b1"]
+    );
+
+    sync_mark_blobs_inner(&mut conn, &["bookfile:b1".to_string()], "synced", None).unwrap();
+    assert!(sync_outbox_blobs_inner(&conn, 100).unwrap().is_empty());
+}
+
+#[test]
+fn v13_reclassifies_booktext_rows_and_clears_their_outbox_entries() {
+    let mut conn = test_conn();
+    run_migrations_up_to(&mut conn, 12).expect("stage v12");
+    conn.execute(
+        "INSERT INTO blob_objects (key, kind, sync_required, created_at)
+         VALUES ('booktext:b1', 'unknown', 1, '2026-08-01T00:00:00Z')",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO blob_sync_state (blob_key, updated_at)
+         VALUES ('booktext:b1', '2026-08-01T00:00:00Z')",
+        [],
+    )
+    .unwrap();
+
+    run_migrations(&mut conn).expect("migrate to v13");
+    let (kind, sync_required): (String, i64) = conn
+        .query_row(
+            "SELECT kind, sync_required FROM blob_objects WHERE key = 'booktext:b1'",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(kind, "book_text");
+    assert_eq!(sync_required, 0);
+    let outbox: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM blob_sync_state WHERE blob_key = 'booktext:b1'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(outbox, 0);
+}
+
 #[test]
 fn a_declared_finish_survives_further_reading() {
     let mut conn = migrated_conn();

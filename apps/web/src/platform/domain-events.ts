@@ -233,6 +233,18 @@ export async function commitDomainEvents(
 }
 
 /**
+ * Merge remote HLC stamps into the local clock — the HLC "receive" rule,
+ * called by the sync pull loop for every stamp BEFORE the events are applied.
+ * Without it, a device whose wall clock lags a peer keeps minting stamps that
+ * sort before events it has already merged, putting later local writes in the
+ * causal past. (Across restarts the same guarantee comes from
+ * `local_device_get` seeding from the whole log.)
+ */
+export function observeRemoteHlcStamps(stamps: HlcStamp[]): void {
+  for (const stamp of stamps) clock.observe(stamp);
+}
+
+/**
  * Aggregate ids already covered by any of the given event types. Backs genesis
  * reconciliation (which projection rows still need a creation event?).
  */

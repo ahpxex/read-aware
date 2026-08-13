@@ -364,7 +364,11 @@
       "connecting": "Connecting…",
       "wrongPassphrase": "That passphrase doesn't match this account.",
       "failed": "Could not connect. Check the link and try again.",
-      "connected": "Sync is on."
+      "connected": "Sync is on.",
+      "google": "Continue with Google",
+      "github": "Continue with GitHub",
+      "orEmail": "or use email",
+      "oauthStarted": "Finish signing in in the browser, then paste the token it shows below."
     },
     "connected": {
       "description": "Connected ({{account}}). Changes sync through the encrypted relay.",

@@ -113,6 +113,38 @@ export class SqlAccountStore implements AccountStore {
     return row?.email ?? null;
   }
 
+  async putOauthState(
+    stateHash: string,
+    provider: string,
+    client: "app" | "web",
+    expiresAtMs: number,
+    now: string,
+  ): Promise<void> {
+    await this.db
+      .prepare(
+        `INSERT OR REPLACE INTO oauth_states
+            (state_hash, provider, client, expires_at_ms, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5)`,
+      )
+      .bind(stateHash, provider, client, expiresAtMs, now)
+      .run();
+  }
+
+  async consumeOauthState(
+    stateHash: string,
+    nowMs: number,
+  ): Promise<{ provider: string; client: "app" | "web" } | null> {
+    const row = await this.db
+      .prepare(
+        `DELETE FROM oauth_states WHERE state_hash = ?1 AND expires_at_ms > ?2
+         RETURNING provider, client`,
+      )
+      .bind(stateHash, nowMs)
+      .first<{ provider: string; client: string }>();
+    if (!row) return null;
+    return { provider: row.provider, client: row.client === "web" ? "web" : "app" };
+  }
+
   async putSession(tokenHash: string, accountId: string, now: string): Promise<void> {
     await this.db
       .prepare(

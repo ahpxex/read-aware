@@ -364,7 +364,11 @@
       "connecting": "Verbinde…",
       "wrongPassphrase": "Die Passphrase passt nicht zu diesem Konto.",
       "failed": "Verbindung fehlgeschlagen. Prüfe den Link und versuche es erneut.",
-      "connected": "Synchronisierung ist aktiv."
+      "connected": "Synchronisierung ist aktiv.",
+      "google": "Mit Google fortfahren",
+      "github": "Mit GitHub fortfahren",
+      "orEmail": "oder per E-Mail",
+      "oauthStarted": "Schließe die Anmeldung im Browser ab und füge das angezeigte Token unten ein."
     },
     "connected": {
       "description": "Verbunden ({{account}}). Änderungen synchronisieren über das verschlüsselte Relay.",

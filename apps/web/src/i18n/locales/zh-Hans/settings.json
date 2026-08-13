@@ -360,7 +360,11 @@
       "connecting": "连接中…",
       "wrongPassphrase": "口令与该账号不匹配。",
       "failed": "连接失败，请检查链接后重试。",
-      "connected": "同步已开启。"
+      "connected": "同步已开启。",
+      "google": "使用 Google 登录",
+      "github": "使用 GitHub 登录",
+      "orEmail": "或使用邮箱",
+      "oauthStarted": "在浏览器里完成登录，然后把页面显示的令牌粘贴到下面。"
     },
     "connected": {
       "description": "已连接（{{account}}）。改动会经加密中继同步。",

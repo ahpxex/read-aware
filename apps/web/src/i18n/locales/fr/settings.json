@@ -368,7 +368,11 @@
       "connecting": "Connexion…",
       "wrongPassphrase": "Cette phrase secrète ne correspond pas à ce compte.",
       "failed": "Connexion impossible. Vérifiez le lien et réessayez.",
-      "connected": "La synchronisation est activée."
+      "connected": "La synchronisation est activée.",
+      "google": "Continuer avec Google",
+      "github": "Continuer avec GitHub",
+      "orEmail": "ou par e-mail",
+      "oauthStarted": "Terminez la connexion dans le navigateur, puis collez le jeton affiché ci-dessous."
     },
     "connected": {
       "description": "Connecté ({{account}}). Les modifications se synchronisent via le relais chiffré.",

@@ -6,15 +6,27 @@
  * Only R2 is substituted with a Map, whose contract is trivial.
  */
 import { Database } from "bun:sqlite";
+import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { SqlAccountStore, type D1Like } from "../src/account-store";
 import { MailboxCore, type SqlExec } from "../src/mailbox-core";
-import { DEFAULT_CONFIG, type BlobStore, type Mailbox, type RelayConfig, type RelayPorts } from "../src/ports";
+import {
+  DEFAULT_CONFIG,
+  type BlobStore,
+  type Mailbox,
+  type OAuthProvider,
+  type RelayConfig,
+  type RelayPorts,
+} from "../src/ports";
 import { createRelayHandler } from "../src/router";
 
-const MIGRATION = await Bun.file(
-  join(import.meta.dir, "../migrations/0001_accounts_tokens_sessions.sql"),
-).text();
+const MIGRATIONS_DIR = join(import.meta.dir, "../migrations");
+const MIGRATIONS = await Promise.all(
+  readdirSync(MIGRATIONS_DIR)
+    .filter((name) => name.endsWith(".sql"))
+    .sort()
+    .map((name) => Bun.file(join(MIGRATIONS_DIR, name)).text()),
+);
 
 function d1Over(db: Database): D1Like {
   return {
@@ -72,9 +84,12 @@ function memoryBlobStore(): BlobStore {
   };
 }
 
-export function makeRelay(config: Partial<RelayConfig> = {}) {
+export function makeRelay(
+  config: Partial<RelayConfig> = {},
+  oauthProviders: Record<string, OAuthProvider> = {},
+) {
   const db = new Database(":memory:");
-  db.exec(MIGRATION);
+  for (const migration of MIGRATIONS) db.exec(migration);
   let nowMs = 1_755_000_000_000;
   const nowIso = () => new Date(nowMs).toISOString();
   const mailboxes = new Map<string, Mailbox>();
@@ -92,6 +107,7 @@ export function makeRelay(config: Partial<RelayConfig> = {}) {
     },
     blobs: memoryBlobStore(),
     magicLink: null,
+    oauthProviders,
     config: { ...DEFAULT_CONFIG, echoMagicToken: true, ...config },
     now: () => nowMs,
   };

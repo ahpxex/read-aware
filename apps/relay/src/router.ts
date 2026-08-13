@@ -11,6 +11,32 @@
 import type { HlcStamp, SealedEventWire, SyncKeyMaterial } from "@read-aware/core";
 import type { Account, RelayPorts } from "./ports";
 
+/**
+ * The `client=app` OAuth finish: a self-contained page showing the one-time
+ * sign-in token to paste into the desktop app. Deliberately dependency-free
+ * and bilingual; the token expires with the same TTL as a magic link.
+ */
+function signInTokenPage(token: string): Response {
+  const esc = token.replace(/[&<>"']/g, "");
+  return new Response(
+    `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReadAware Sync</title>
+<style>
+  body{font-family:ui-sans-serif,system-ui,sans-serif;background:#faf9f7;color:#292524;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0}
+  main{max-width:26rem;padding:2rem;text-align:center}
+  code{display:block;margin:1.25rem 0;padding:.9rem 1rem;background:#f5f5f4;border:1px solid #e7e5e4;border-radius:.5rem;font-size:.95rem;word-break:break-all;user-select:all}
+  p{line-height:1.6;color:#57534e;font-size:.92rem}
+  h1{font-size:1.15rem;font-weight:600}
+</style></head><body><main>
+  <h1>Signed in · 登录成功</h1>
+  <p>Copy this one-time token and paste it into ReadAware's Data &amp; Sync settings.<br>复制下面的一次性令牌，粘贴回 ReadAware 的「数据与同步」设置。</p>
+  <code>${esc}</code>
+  <p>The token expires in 15 minutes. You can close this tab.<br>令牌 15 分钟内有效，本页可以关闭。</p>
+</main></body></html>`,
+    { status: 200, headers: { "content-type": "text/html; charset=utf-8" } },
+  );
+}
+
 // ── Small helpers ────────────────────────────────────────────────────────────
 
 /**
@@ -131,6 +157,66 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
     return json(200, { ok: true });
   }
 
+  /**
+   * OAuth start/callback. OAuth here only replaces "prove you own this email":
+   * the callback mints the SAME single-use sign-in token as the magic link,
+   * so /v1/auth/verify — and everything after it (session, E2E passphrase) —
+   * is shared verbatim between magic-link, Google, and GitHub, and between
+   * the desktop app and a future web client.
+   */
+  async function handleOauth(req: Request, url: URL, providerId: string, action: string): Promise<Response> {
+    const provider = ports.oauthProviders[providerId];
+    if (!provider) return failure(404, "unknown oauth provider");
+    const redirectUri = `${url.origin}/v1/auth/oauth/${providerId}/callback`;
+
+    if (action === "start" && req.method === "GET") {
+      const client = url.searchParams.get("client") === "web" ? "web" : "app";
+      const state = randomToken();
+      await accounts.putOauthState(
+        await tokenHash(state),
+        providerId,
+        client,
+        ports.now() + config.magicTokenTtlMs,
+        nowIso(),
+      );
+      return Response.redirect(provider.authorizeUrl(state, redirectUri), 302);
+    }
+
+    if (action === "callback" && req.method === "GET") {
+      const state = url.searchParams.get("state");
+      const code = url.searchParams.get("code");
+      if (!state || !code) return failure(400, "missing code or state");
+      const minted = await accounts.consumeOauthState(await tokenHash(state), ports.now());
+      if (!minted || minted.provider !== providerId) {
+        return failure(401, "invalid or expired oauth state");
+      }
+      let email: string;
+      try {
+        email = await provider.exchangeCode(code, redirectUri);
+      } catch (error) {
+        console.error(`[relay] oauth exchange failed for ${providerId}`, error);
+        return failure(502, "oauth exchange failed");
+      }
+      const signIn = randomToken();
+      await accounts.putMagicToken(
+        await tokenHash(signIn),
+        email.trim().toLowerCase(),
+        ports.now() + config.magicTokenTtlMs,
+        nowIso(),
+      );
+      if (minted.client === "web") {
+        // Fixed, configured origin only — the state row decides, never a
+        // caller-supplied URL, so this can't become an open redirect.
+        return Response.redirect(
+          `${config.webAppOrigin}/sync/login#token=${encodeURIComponent(signIn)}`,
+          302,
+        );
+      }
+      return signInTokenPage(signIn);
+    }
+    return failure(405, "method not allowed");
+  }
+
   async function handleAuthVerify(req: Request): Promise<Response> {
     const body = await readJson(req);
     const token =
@@ -219,6 +305,10 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
     if (req.method === "POST" && path === "/v1/auth/request") return handleAuthRequest(req);
     if (req.method === "POST" && path === "/v1/auth/verify") return handleAuthVerify(req);
+    if (path.startsWith("/v1/auth/oauth/")) {
+      const [providerId, action] = path.slice("/v1/auth/oauth/".length).split("/");
+      return handleOauth(req, url, providerId ?? "", action ?? "");
+    }
 
     // Everything below requires a session.
     const account = await authenticate(req);

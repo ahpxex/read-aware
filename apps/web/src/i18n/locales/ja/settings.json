@@ -360,7 +360,11 @@
       "connecting": "接続中…",
       "wrongPassphrase": "パスフレーズがこのアカウントと一致しません。",
       "failed": "接続できませんでした。リンクを確認して再試行してください。",
-      "connected": "同期がオンになりました。"
+      "connected": "同期がオンになりました。",
+      "google": "Google で続行",
+      "github": "GitHub で続行",
+      "orEmail": "またはメールで",
+      "oauthStarted": "ブラウザでサインインを完了し、表示されたトークンを下に貼り付けてください。"
     },
     "connected": {
       "description": "{{account}} として接続中。変更は暗号化リレー経由で同期されます。",

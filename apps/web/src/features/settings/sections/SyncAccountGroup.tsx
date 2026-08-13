@@ -7,6 +7,8 @@ import { useState } from "react";
 import { Button, Caption, Dialog, TextField, useToast } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { isTauri } from "../../../platform/environment";
+import { openExternalUrl } from "../../../platform/external-link";
+import { relayBaseUrl } from "../../../platform/sync/sync-scheduler";
 import { PendingBadge } from "../components/PendingBadge";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsRow } from "../components/SettingsRow";
@@ -23,6 +25,8 @@ export function SyncAccountGroup() {
 
   const [email, setEmail] = useState("");
   const [linkSent, setLinkSent] = useState(false);
+  /** Which door the user walked through — decides the paste-back hint. */
+  const [signInVia, setSignInVia] = useState<"email" | "oauth">("email");
   const [token, setToken] = useState("");
   const [passphrase, setPassphrase] = useState("");
   const [passphraseError, setPassphraseError] = useState<string | null>(null);
@@ -41,9 +45,18 @@ export function SyncAccountGroup() {
     );
   }
 
+  const handleOauth = (provider: "google" | "github") => {
+    // The dance finishes in the system browser, which shows a one-time token
+    // to paste below — the same token field the magic link uses.
+    void openExternalUrl(`${relayBaseUrl()}/v1/auth/oauth/${provider}/start`);
+    setSignInVia("oauth");
+    setLinkSent(true);
+  };
+
   const handleSend = async () => {
     try {
       const devToken = await sync.sendLink(email);
+      setSignInVia("email");
       setLinkSent(true);
       if (devToken) setToken(devToken);
     } catch (error) {
@@ -165,6 +178,15 @@ export function SyncAccountGroup() {
   return (
     <SettingsGroup title={t("dataSync.sync")} description={t("dataSync.account.description")}>
       <div className="space-y-4 py-3">
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => handleOauth("google")}>
+            {t("dataSync.connect.google")}
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => handleOauth("github")}>
+            {t("dataSync.connect.github")}
+          </Button>
+          <Caption className="text-fg-muted">{t("dataSync.connect.orEmail")}</Caption>
+        </div>
         <div className="flex items-end gap-3">
           <TextField
             className="flex-1"
@@ -185,7 +207,11 @@ export function SyncAccountGroup() {
         </div>
         {linkSent && (
           <>
-            <Caption className="text-fg-muted">{t("dataSync.connect.sent")}</Caption>
+            <Caption className="text-fg-muted">
+              {signInVia === "oauth"
+                ? t("dataSync.connect.oauthStarted")
+                : t("dataSync.connect.sent")}
+            </Caption>
             <TextField
               label={t("dataSync.connect.tokenLabel")}
               value={token}

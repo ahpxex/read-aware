@@ -3,6 +3,8 @@
   "name": "read-aware-relay",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-01",
+  // 自定义域：zone（readaware.app）在同一账号，部署时自动配 DNS + 证书。
+  "routes": [{ "pattern": "relay.readaware.app", "custom_domain": true }],
   // 三个存储件（docs/sync-engine.md §4）：D1 = 账号/令牌/会话，
   // DO(SQLite) = 每账号一个编号密文邮筒，R2 = 加密 blob。
   // database_id 在首次部署前用 `wrangler d1 create read-aware-relay` 生成后填入。

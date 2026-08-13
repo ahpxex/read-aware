@@ -310,7 +310,8 @@
     "connectAccount": "Connect account",
     "e2e": {
       "title": "End-to-end encryption",
-      "description": "Synced data is encrypted on-device. Manage your passphrase and devices here."
+      "description": "Synced data is encrypted on-device. Manage your passphrase and devices here.",
+      "active": "On — protected by your passphrase."
     },
     "storage": "Storage",
     "dataLocation": {
@@ -340,6 +341,37 @@
     "resetDialog": {
       "title": "Reset all settings?",
       "body": "Restore every preference to its default. Your books and annotations are kept — only settings are reset. This can’t be undone.",
+      "cancel": "Cancel"
+    },
+    "syncStatus": {
+      "idle": "Synced",
+      "syncing": "Syncing…",
+      "error": "Sync error",
+      "lastSync": "Last synced {{time}}",
+      "never": "Not synced yet"
+    },
+    "connect": {
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "send": "Send sign-in link",
+      "sending": "Sending…",
+      "sent": "Check your inbox — then paste the sign-in link or token below.",
+      "tokenLabel": "Sign-in link or token",
+      "passphraseLabel": "Encryption passphrase",
+      "passphraseHint": "Encrypts your data before it leaves this device. The first device sets it; every other device must enter the same one. It cannot be recovered — if you forget it, synced data is unreadable.",
+      "passphraseTooShort": "Use at least 8 characters.",
+      "connect": "Connect",
+      "connecting": "Connecting…",
+      "wrongPassphrase": "That passphrase doesn't match this account.",
+      "failed": "Could not connect. Check the link and try again.",
+      "connected": "Sync is on."
+    },
+    "connected": {
+      "description": "Connected ({{account}}). Changes sync through the encrypted relay.",
+      "syncNow": "Sync now",
+      "disconnect": "Disconnect",
+      "disconnectTitle": "Disconnect sync?",
+      "disconnectBody": "This device keeps all its data and stops syncing. Reconnect anytime with the same passphrase.",
       "cancel": "Cancel"
     }
   },

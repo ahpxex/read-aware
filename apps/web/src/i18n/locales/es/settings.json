@@ -314,7 +314,8 @@
     "connectAccount": "Conectar cuenta",
     "e2e": {
       "title": "Cifrado de extremo a extremo",
-      "description": "Los datos sincronizados se cifran en el dispositivo. Gestiona aquí tu frase de contraseña y tus dispositivos."
+      "description": "Los datos sincronizados se cifran en el dispositivo. Gestiona aquí tu frase de contraseña y tus dispositivos.",
+      "active": "Activado — protegido con tu frase."
     },
     "storage": "Almacenamiento",
     "dataLocation": {
@@ -344,6 +345,37 @@
     "resetDialog": {
       "title": "¿Restablecer todos los ajustes?",
       "body": "Restaura todas las preferencias a sus valores predeterminados. Tus libros y anotaciones se conservan; solo se restablecen los ajustes. Esto no se puede deshacer.",
+      "cancel": "Cancelar"
+    },
+    "syncStatus": {
+      "idle": "Sincronizado",
+      "syncing": "Sincronizando…",
+      "error": "Error de sincronización",
+      "lastSync": "Última sincronización {{time}}",
+      "never": "Aún sin sincronizar"
+    },
+    "connect": {
+      "emailLabel": "Correo",
+      "emailPlaceholder": "tu@ejemplo.com",
+      "send": "Enviar enlace de acceso",
+      "sending": "Enviando…",
+      "sent": "Revisa tu correo y pega abajo el enlace o el token de acceso.",
+      "tokenLabel": "Enlace o token de acceso",
+      "passphraseLabel": "Frase de cifrado",
+      "passphraseHint": "Cifra tus datos antes de que salgan de este dispositivo. El primer dispositivo la define; los demás deben introducir la misma. No se puede recuperar: si la olvidas, los datos sincronizados quedan ilegibles.",
+      "passphraseTooShort": "Al menos 8 caracteres.",
+      "connect": "Conectar",
+      "connecting": "Conectando…",
+      "wrongPassphrase": "La frase no coincide con esta cuenta.",
+      "failed": "No se pudo conectar. Comprueba el enlace e inténtalo de nuevo.",
+      "connected": "La sincronización está activada."
+    },
+    "connected": {
+      "description": "Conectado ({{account}}). Los cambios se sincronizan por el relé cifrado.",
+      "syncNow": "Sincronizar ahora",
+      "disconnect": "Desconectar",
+      "disconnectTitle": "¿Desconectar la sincronización?",
+      "disconnectBody": "Este dispositivo conserva todos sus datos y solo deja de sincronizar. Reconéctate cuando quieras con la misma frase.",
       "cancel": "Cancelar"
     }
   },

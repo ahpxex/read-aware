@@ -306,7 +306,8 @@
     "connectAccount": "连接账户",
     "e2e": {
       "title": "端到端加密",
-      "description": "同步的数据在设备本地加密。在此管理你的口令和设备。"
+      "description": "同步的数据在设备本地加密。在此管理你的口令和设备。",
+      "active": "已开启——由你的口令保护。"
     },
     "storage": "存储",
     "dataLocation": {
@@ -336,6 +337,37 @@
     "resetDialog": {
       "title": "重置所有设置？",
       "body": "将每一项偏好恢复为默认值。你的书籍和批注会保留——仅重置设置。此操作无法撤销。",
+      "cancel": "取消"
+    },
+    "syncStatus": {
+      "idle": "已同步",
+      "syncing": "同步中…",
+      "error": "同步出错",
+      "lastSync": "上次同步 {{time}}",
+      "never": "尚未同步"
+    },
+    "connect": {
+      "emailLabel": "邮箱",
+      "emailPlaceholder": "you@example.com",
+      "send": "发送登录链接",
+      "sending": "发送中…",
+      "sent": "去邮箱查收，然后把登录链接或令牌粘贴到下面。",
+      "tokenLabel": "登录链接或令牌",
+      "passphraseLabel": "加密口令",
+      "passphraseHint": "数据离开设备前用它加密。第一台设备设定口令，其余设备必须输入同一个。口令无法找回——忘记即无法解读云端数据。",
+      "passphraseTooShort": "至少 8 个字符。",
+      "connect": "连接",
+      "connecting": "连接中…",
+      "wrongPassphrase": "口令与该账号不匹配。",
+      "failed": "连接失败，请检查链接后重试。",
+      "connected": "同步已开启。"
+    },
+    "connected": {
+      "description": "已连接（{{account}}）。改动会经加密中继同步。",
+      "syncNow": "立即同步",
+      "disconnect": "断开",
+      "disconnectTitle": "断开同步？",
+      "disconnectBody": "本设备保留全部数据并停止同步。可随时用同一口令重新连接。",
       "cancel": "取消"
     }
   },

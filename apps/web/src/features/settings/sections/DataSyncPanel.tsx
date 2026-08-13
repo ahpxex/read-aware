@@ -8,6 +8,7 @@ import { SettingsRow } from "../components/SettingsRow";
 import { PendingBadge } from "../components/PendingBadge";
 import { resetAllSettings } from "../lib/settings-io";
 import { exportBackup, importBackup } from "../lib/backup-io";
+import { SyncAccountGroup } from "./SyncAccountGroup";
 
 const BACKUP_FILENAME = "readaware-backup.json";
 
@@ -84,23 +85,7 @@ export function DataSyncPanel() {
       title={t("dataSync.title")}
       description={t("dataSync.description")}
     >
-      <SettingsGroup title={t("dataSync.sync")} aside={<PendingBadge />}>
-        <SettingsRow
-          borderless
-          title={t("dataSync.account.title")}
-          description={t("dataSync.account.description")}
-          control={
-            <Button variant="outline" size="sm" disabled>
-              {t("dataSync.connectAccount")}
-            </Button>
-          }
-        />
-        <SettingsRow
-          title={t("dataSync.e2e.title")}
-          description={t("dataSync.e2e.description")}
-          control={<PendingBadge />}
-        />
-      </SettingsGroup>
+      <SyncAccountGroup />
 
       <SettingsGroup title={t("dataSync.storage")}>
         <SettingsRow

@@ -7,8 +7,13 @@
 > check）。阶段 3：`apps/relay/`。阶段 4：`storage/sync.rs` 本地缝 +
 > `platform/sync/` 引擎（迁移 v13 修 `booktext:`）。阶段 5：DataSyncPanel
 > 连接流、启动调度器、懒取 blob、`book.progressed` 节流。
-> 实现与本文的偏差已就地以「**落地偏差**」标注；生产部署（wrangler 建
-> D1/R2、配 Resend、发布 relay）尚未执行。
+> 实现与本文的偏差已就地以「**落地偏差**」标注。**已生产部署**（同日）：
+> relay 上线 `relay.readaware.app`，Google/GitHub OAuth 已配置（Resend
+> 未配，邮件门暂 501）。**双设备真机验收通过**（macOS 桌面 + Android
+> 模拟器，同一生产 relay）：双向收敛至同一书架、新设备事件 bootstrap、
+> 打开书触发懒取 blob 解密。实测抓出并修复：connect 期 publishKeys 未带
+> 新 session（401 烧令牌）、密钥文件首建竞态（首装双写必现、密封值永久
+> 不可读）、4xx blob 无限重传、合并后 UI 无刷新。
 > 基于 `docs/data-model.md` §9 的同步模型与 `docs/sqlite-schema.sql` 预留的
 > `sync_*` 表。本文档把"同步引擎"从规范落成可实施的方案：协议、服务端形态、
 > 身份与密钥、客户端改造点、实施阶段。凡与 `data-model.md` §9 重叠之处，

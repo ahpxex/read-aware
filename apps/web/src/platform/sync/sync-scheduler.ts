@@ -9,6 +9,7 @@
  * back off exponentially (nextSyncDelayMs) instead of hammering the relay.
  */
 import { isTauri } from "../environment";
+import { emitAppEvent } from "../app-events";
 import { observeRemoteHlcStamps, onDomainEventBroadcast } from "../domain-events";
 import { localKV } from "../local-store";
 import { deleteSecret, getSecret, setSecret } from "../secret-store";
@@ -87,7 +88,12 @@ async function runCycle(): Promise<void> {
   running = true;
   setStatus({ state: "syncing" });
   try {
-    await getEngine().syncOnce();
+    const { pulled } = await getEngine().syncOnce();
+    if (pulled > 0) {
+      // Merged events write projections straight through Rust — nothing else
+      // tells the mounted UI. The shelf already reloads on this event.
+      emitAppEvent("library-changed", {});
+    }
     setStatus({ state: "idle", lastSyncAt: Date.now(), lastError: null });
   } finally {
     running = false;
@@ -172,6 +178,12 @@ export function startSyncScheduler(): () => void {
     pushDebounce = window.setTimeout(tick, PUSH_DEBOUNCE_MS);
   });
   const onFocus = () => tick();
+  // Mobile lifecycle: a backgrounded webview pauses timers, so a scheduled
+  // retry can sleep indefinitely. Coming back to the foreground resumes the
+  // cadence immediately (desktop windows fire plain `focus` instead).
+  const onVisible = () => {
+    if (document.visibilityState === "visible") tick();
+  };
 
   void (async () => {
     const profile = await getSyncProfile().catch(() => null);
@@ -191,6 +203,7 @@ export function startSyncScheduler(): () => void {
     if (pushDebounce !== null) window.clearTimeout(pushDebounce);
     offBroadcast();
     window.removeEventListener("focus", onFocus);
+    document.removeEventListener("visibilitychange", onVisible);
     disposeScheduler = null;
   };
   return disposeScheduler;

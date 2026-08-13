@@ -62,8 +62,14 @@ export async function hydrateSecrets(): Promise<void> {
     for (const prefix of SECRET_PREFIXES) {
       const keys = await invoke<string[]>("secret_keys", { prefix });
       for (const key of keys) {
-        const value = await invoke<string | null>("secret_get", { key });
-        if (value) snapshot.set(key as SecretKey, value);
+        // Per-key isolation: one unreadable secret (e.g. sealed under a lost
+        // key file) must not abort loading every credential after it.
+        try {
+          const value = await invoke<string | null>("secret_get", { key });
+          if (value) snapshot.set(key as SecretKey, value);
+        } catch (error) {
+          console.error(`[secrets] "${key}" is unreadable; skipping`, error);
+        }
       }
     }
   } catch (error) {

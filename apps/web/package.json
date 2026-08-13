@@ -16,6 +16,8 @@
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
+    "@noble/ciphers": "^2.3.0",
+    "@noble/hashes": "^2.3.0",
     "@phosphor-icons/react": "^2.1.10",
     "@read-aware/agent": "workspace:*",
     "@read-aware/core": "workspace:*",

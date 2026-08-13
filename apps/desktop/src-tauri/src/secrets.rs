@@ -37,6 +37,7 @@
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 
 use aes_gcm::aead::{Aead, KeyInit, OsRng};
 use aes_gcm::{AeadCore, Aes256Gcm, Key, Nonce};
@@ -53,12 +54,26 @@ fn key_path(data_dir: &Path) -> PathBuf {
     data_dir.join("secret.key")
 }
 
+/// Serializes first-use key creation. Without it, two concurrent `secret_set`
+/// calls on a FRESH install (no key file yet — exactly what connecting sync
+/// does: session + master key back to back) both see "no key", both mint one,
+/// and whichever loses the file write leaves its secret sealed under a key
+/// that no longer exists — permanently unreadable. Caught live on the first
+/// Android connect; the desktop only dodged it because an earlier AI-key write
+/// had already created the file.
+static KEY_FILE_LOCK: Mutex<()> = Mutex::new(());
+
 /// Load the local encryption key, creating it on first use.
 ///
 /// Kept OUT of the database on purpose: an attacker who walks off with
 /// `read-aware.db` (a backup, a synced folder) gets ciphertext and nothing to
-/// open it with. Written `0600` so other accounts on the machine cannot read it.
+/// open it with. Written `0600` so other accounts on the machine cannot read
+/// it, and written to a temp file then renamed so a crash mid-write can never
+/// leave a truncated key that a later boot would silently replace.
 fn load_or_create_key(data_dir: &Path) -> Result<Vec<u8>, String> {
+    let _guard = KEY_FILE_LOCK
+        .lock()
+        .map_err(|_| "secret key lock poisoned".to_string())?;
     let path = key_path(data_dir);
     if let Ok(existing) = std::fs::read(&path) {
         if existing.len() == 32 {
@@ -66,19 +81,24 @@ fn load_or_create_key(data_dir: &Path) -> Result<Vec<u8>, String> {
         }
     }
     let key = Aes256Gcm::generate_key(OsRng);
-    let mut file = std::fs::File::create(&path).map_err(|e| format!("key file: {e}"))?;
-    #[cfg(unix)]
+    let tmp = path.with_extension("key.tmp");
     {
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = file
-            .metadata()
-            .map_err(|e| format!("key file metadata: {e}"))?
-            .permissions();
-        perms.set_mode(0o600);
-        file.set_permissions(perms)
-            .map_err(|e| format!("key file permissions: {e}"))?;
+        let mut file = std::fs::File::create(&tmp).map_err(|e| format!("key file: {e}"))?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut perms = file
+                .metadata()
+                .map_err(|e| format!("key file metadata: {e}"))?
+                .permissions();
+            perms.set_mode(0o600);
+            file.set_permissions(perms)
+                .map_err(|e| format!("key file permissions: {e}"))?;
+        }
+        file.write_all(&key).map_err(|e| format!("key file: {e}"))?;
+        file.sync_all().map_err(|e| format!("key file sync: {e}"))?;
     }
-    file.write_all(&key).map_err(|e| format!("key file: {e}"))?;
+    std::fs::rename(&tmp, &path).map_err(|e| format!("key file rename: {e}"))?;
     Ok(key.to_vec())
 }
 

@@ -1059,6 +1059,30 @@ fn secrets_round_trip_and_are_useless_without_the_key_file() {
 }
 
 #[test]
+fn concurrent_first_use_secret_writes_share_one_key() {
+    // The Android-connect race: on a fresh install (no key file), session and
+    // master key are sealed concurrently. Both must decrypt afterwards — i.e.
+    // exactly one key may ever be minted, no matter who wins the write.
+    use crate::secrets::{decrypt, encrypt};
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().to_path_buf();
+    let writers: Vec<_> = (0..8)
+        .map(|i| {
+            let p = path.clone();
+            std::thread::spawn(move || (i, encrypt(&p, &format!("secret-{i}")).unwrap()))
+        })
+        .collect();
+    for writer in writers {
+        let (i, sealed) = writer.join().unwrap();
+        assert_eq!(
+            decrypt(&path, &sealed).unwrap(),
+            format!("secret-{i}"),
+            "writer {i} was sealed under a key that lost the creation race"
+        );
+    }
+}
+
+#[test]
 fn the_secret_key_file_is_owner_only() {
     use crate::secrets::encrypt;
     let dir = tempfile::tempdir().unwrap();

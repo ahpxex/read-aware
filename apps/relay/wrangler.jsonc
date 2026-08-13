@@ -10,7 +10,7 @@
     {
       "binding": "DB",
       "database_name": "read-aware-relay",
-      "database_id": "TO-BE-CREATED",
+      "database_id": "11be8edc-7568-492b-9930-8584db0cfa5c",
       "migrations_dir": "migrations"
     }
   ],

@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --var MAGIC_LINK_ECHO:1",
     "deploy": "wrangler deploy",
     "test": "bun test",
     "typecheck": "tsc --noEmit"

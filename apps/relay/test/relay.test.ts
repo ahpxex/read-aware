@@ -254,3 +254,29 @@ describe("cors", () => {
     expect(denied.headers.get("access-control-allow-origin")).toBe("*");
   });
 });
+
+describe("the event quota (the operator's bill guard)", () => {
+  test("refuses atomically at the cap, while redelivery of known events still succeeds", async () => {
+    const { handle } = makeRelay({ maxAccountEvents: 2 });
+    const { session } = await login(handle, "reader@example.com");
+    const batch = [sealed("e1"), sealed("e2")];
+    expect((await handle(post("/v1/events", { events: batch }, session))).status).toBe(200);
+
+    // The cap is reached: one more NEW event is refused...
+    const refused = await handle(post("/v1/events", { events: [sealed("e3")] }, session));
+    expect(refused.status).toBe(413);
+    // ...atomically — a mixed batch appends nothing, not half.
+    const mixed = await handle(
+      post("/v1/events", { events: [sealed("e4"), sealed("e5")] }, session),
+    );
+    expect(mixed.status).toBe(413);
+    const page = await handle(get("/v1/events?after=0", session));
+    const { events } = (await page.json()) as { events: { id: string }[] };
+    expect(events.map((e) => e.id)).toEqual(["e1", "e2"]);
+
+    // A crashed client re-pushing what the relay already holds is NOT new
+    // usage and must not be locked out of its acknowledgements.
+    const redelivered = await handle(post("/v1/events", { events: batch }, session));
+    expect(redelivered.status).toBe(200);
+  });
+});

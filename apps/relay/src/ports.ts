@@ -44,8 +44,12 @@ export interface AccountStore {
 
 /** One account's numbered ciphertext mailbox. */
 export interface Mailbox {
-  /** Event id → server_seq; known ids return their existing seq. */
-  append(events: SealedEventWire[]): Promise<Record<string, number>>;
+  /**
+   * Event id → server_seq; known ids return their existing seq. "full" =
+   * accepting the batch's NEW events would exceed `maxEvents` — refused
+   * atomically, nothing appended (redelivery of known ids still succeeds).
+   */
+  append(events: SealedEventWire[], maxEvents: number): Promise<Record<string, number> | "full">;
   listAfter(after: number, limit: number): Promise<{ events: SealedEventWire[]; next: number }>;
   wipe(): Promise<void>;
 }
@@ -92,8 +96,11 @@ export type RelayConfig = {
   maxPullLimit: number;
   /** Per single blob. */
   maxBlobBytes: number;
-  /** Per account, total. */
+  /** Per account, total. THE bill guard — an open-source client base must
+   * never be able to run the operator's R2 bill up (docs/sync-engine.md §11). */
   maxAccountBlobBytes: number;
+  /** Per account, total events in the mailbox. Same guard for DO storage. */
+  maxAccountEvents: number;
   /** Where a `client=web` OAuth finish is allowed to land (no open redirect). */
   webAppOrigin: string;
 };
@@ -104,8 +111,14 @@ export const DEFAULT_CONFIG: RelayConfig = {
   maxEventBytes: 64 * 1024,
   maxBatch: 500,
   maxPullLimit: 500,
-  maxBlobBytes: 256 * 1024 * 1024,
-  maxAccountBlobBytes: 4 * 1024 * 1024 * 1024,
+  maxBlobBytes: 50 * 1024 * 1024,
+  // Free-tier defaults, deliberately tight: 50 MB of books and 50k events per
+  // account. 1000 free accounts at the cap ≈ 50 GB R2 ≈ $0.60/month — the
+  // worst case is bounded and known. Raise per deployment via env vars
+  // (MAX_ACCOUNT_BLOB_BYTES / MAX_ACCOUNT_EVENTS); a paid tier later turns
+  // these into per-account values read off the account row.
+  maxAccountBlobBytes: 50 * 1024 * 1024,
+  maxAccountEvents: 50_000,
   webAppOrigin: "https://readaware.app",
 };
 

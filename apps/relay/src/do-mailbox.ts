@@ -27,8 +27,13 @@ export class AccountMailbox {
   async fetch(req: Request): Promise<Response> {
     const url = new URL(req.url);
     if (req.method === "POST" && url.pathname === "/append") {
-      const { events } = (await req.json()) as { events: SealedEventWire[] };
-      return Response.json({ seqs: this.core.append(events, new Date().toISOString()) });
+      const { events, maxEvents } = (await req.json()) as {
+        events: SealedEventWire[];
+        maxEvents?: number;
+      };
+      const seqs = this.core.append(events, new Date().toISOString(), maxEvents);
+      if (seqs === "full") return new Response("mailbox full", { status: 413 });
+      return Response.json({ seqs });
     }
     if (req.method === "GET" && url.pathname === "/list") {
       const after = Number(url.searchParams.get("after") ?? "0");
@@ -48,12 +53,13 @@ type MailboxStub = { fetch(input: string, init?: RequestInit): Promise<Response>
 /** Adapt a DO stub to the Mailbox port the router speaks. */
 export function stubMailbox(stub: MailboxStub): Mailbox {
   return {
-    async append(events) {
+    async append(events, maxEvents) {
       const res = await stub.fetch("https://mailbox/append", {
         method: "POST",
-        body: JSON.stringify({ events }),
+        body: JSON.stringify({ events, maxEvents }),
         headers: { "content-type": "application/json" },
       });
+      if (res.status === 413) return "full";
       const body = (await res.json()) as { seqs: Record<string, number> };
       return body.seqs;
     },

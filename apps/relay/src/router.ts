@@ -248,7 +248,10 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
         return failure(413, `event exceeds ${config.maxEventBytes} bytes`);
       }
     }
-    const seqs = await ports.mailboxFor(account.id).append(events as SealedEventWire[]);
+    const seqs = await ports
+      .mailboxFor(account.id)
+      .append(events as SealedEventWire[], config.maxAccountEvents);
+    if (seqs === "full") return failure(413, "account event quota exceeded");
     return json(200, { seqs });
   }
 

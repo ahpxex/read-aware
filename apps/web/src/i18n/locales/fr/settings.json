@@ -314,7 +314,8 @@
     "connectAccount": "Connecter un compte",
     "e2e": {
       "title": "Chiffrement de bout en bout",
-      "description": "Les données synchronisées sont chiffrées sur l’appareil. Gérez votre phrase secrète et vos appareils ici."
+      "description": "Les données synchronisées sont chiffrées sur l’appareil. Gérez votre phrase secrète et vos appareils ici.",
+      "active": "Activé — protégé par votre phrase secrète."
     },
     "storage": "Stockage",
     "dataLocation": {
@@ -344,6 +345,37 @@
     "resetDialog": {
       "title": "Réinitialiser tous les paramètres ?",
       "body": "Rétablir chaque préférence à sa valeur par défaut. Vos livres et annotations sont conservés — seuls les paramètres sont réinitialisés. Cette action est irréversible.",
+      "cancel": "Annuler"
+    },
+    "syncStatus": {
+      "idle": "Synchronisé",
+      "syncing": "Synchronisation…",
+      "error": "Erreur de synchronisation",
+      "lastSync": "Dernière synchro {{time}}",
+      "never": "Pas encore synchronisé"
+    },
+    "connect": {
+      "emailLabel": "E-mail",
+      "emailPlaceholder": "vous@exemple.com",
+      "send": "Envoyer le lien de connexion",
+      "sending": "Envoi…",
+      "sent": "Consultez votre boîte mail, puis collez le lien ou le jeton ci-dessous.",
+      "tokenLabel": "Lien ou jeton de connexion",
+      "passphraseLabel": "Phrase secrète de chiffrement",
+      "passphraseHint": "Elle chiffre vos données avant qu'elles ne quittent cet appareil. Le premier appareil la définit ; chaque autre doit saisir la même. Elle est irrécupérable — si vous l'oubliez, les données synchronisées deviennent illisibles.",
+      "passphraseTooShort": "Au moins 8 caractères.",
+      "connect": "Connecter",
+      "connecting": "Connexion…",
+      "wrongPassphrase": "Cette phrase secrète ne correspond pas à ce compte.",
+      "failed": "Connexion impossible. Vérifiez le lien et réessayez.",
+      "connected": "La synchronisation est activée."
+    },
+    "connected": {
+      "description": "Connecté ({{account}}). Les modifications se synchronisent via le relais chiffré.",
+      "syncNow": "Synchroniser",
+      "disconnect": "Déconnecter",
+      "disconnectTitle": "Déconnecter la synchronisation ?",
+      "disconnectBody": "Cet appareil conserve toutes ses données et cesse de synchroniser. Reconnectez-vous à tout moment avec la même phrase secrète.",
       "cancel": "Annuler"
     }
   },

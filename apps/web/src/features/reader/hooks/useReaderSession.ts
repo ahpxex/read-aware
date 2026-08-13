@@ -14,6 +14,7 @@ import type {
   ReaderProgress,
 } from "../../library/lib/library-types";
 import type { LoadedBook, TocEntry } from "../lib/reader-types";
+import { createProgressThrottle } from "../lib/progress-throttle";
 import { getVirtualBookBinding } from "../../plugins/lib/virtual-books";
 
 type ReaderSource =
@@ -58,7 +59,28 @@ export function useReaderSession({
   // header's progress bar.
   const [readerFraction, setReaderFraction] = useLocalAtom<number | null>(null);
   const readerLoadRequestIdRef = useRef(0);
-  const pendingProgressSaveRef = useRef<Map<string, number>>(new Map());
+  // Commit-side throttle for book.progressed: chapter changes commit promptly,
+  // intra-chapter page turns coalesce (see progress-throttle.ts). Created once;
+  // the commit callback reads the latest handlers through a ref so the
+  // throttle's per-book pacing state survives re-renders.
+  const latestProgressHandlersRef = useRef({ replaceBookInState, reportError });
+  const progressThrottleRef = useRef(
+    createProgressThrottle((bookId, progress) => {
+      const { replaceBookInState: replaceBook, reportError: report } =
+        latestProgressHandlersRef.current;
+      void updateLibraryBookProgress(bookId, progress)
+        .then((nextBook) => {
+          if (!nextBook) return;
+          setSelectedBook((currentBook) =>
+            currentBook?.id === nextBook.id ? nextBook : currentBook,
+          );
+          replaceBook(nextBook);
+        })
+        .catch((error) => {
+          report(error);
+        });
+    }),
+  );
 
   // "Ask AI about this" should reveal the reader shell even when the chrome is
   // dismissed (immersive reading), so the chat panel it opens is actually shown.
@@ -83,11 +105,11 @@ export function useReaderSession({
   }, [panelIntent, selectedBook?.id, setShellVisible]);
 
   useEffect(() => {
+    const throttle = progressThrottleRef.current;
     return () => {
-      pendingProgressSaveRef.current.forEach((timeoutId) => {
-        window.clearTimeout(timeoutId);
-      });
-      pendingProgressSaveRef.current.clear();
+      // Flush, don't drop: a pending position on unmount is the user's last
+      // reading position — losing it means reopening the book somewhere else.
+      throttle.dispose();
     };
   }, []);
 
@@ -113,28 +135,8 @@ export function useReaderSession({
   ]);
 
   const queueProgressSave = useCallback((bookId: string, progress: BookProgress) => {
-    const existingTimeout = pendingProgressSaveRef.current.get(bookId);
-    if (existingTimeout != null) {
-      window.clearTimeout(existingTimeout);
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      pendingProgressSaveRef.current.delete(bookId);
-      void updateLibraryBookProgress(bookId, progress)
-        .then((nextBook) => {
-          if (!nextBook) return;
-
-          setSelectedBook((currentBook) => (
-            currentBook?.id === nextBook.id ? nextBook : currentBook
-          ));
-          replaceBookInState(nextBook);
-        })
-        .catch((error) => {
-          reportError(error);
-        });
-    }, 250);
-
-    pendingProgressSaveRef.current.set(bookId, timeoutId);
+    latestProgressHandlersRef.current = { replaceBookInState, reportError };
+    progressThrottleRef.current.queue(bookId, progress);
   }, [replaceBookInState, reportError]);
 
   const applyReaderProgress = useCallback((bookId: string, progress: BookProgress) => {

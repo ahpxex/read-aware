@@ -1,9 +1,14 @@
 # ReadAware — 同步引擎（设计）
 
-> **状态：** 方向已定（2026-08-13）。阶段 1（本地地基，§10）已落地：
-> `hlc.observe()`、`apply_remote_events`（含越界回放兜底）、blob 清单物化、
-> `sync_profile`/`sync_cursors` 表（迁移 v12）、双设备收敛性质测试。
-> 阶段 2 起未开始。
+> **状态：** 方向已定（2026-08-13），五个阶段已全部落地（同日）。
+> 阶段 1：`hlc.observe()`、`apply_remote_events`（含越界回放兜底）、blob
+> 清单物化、`sync_profile`/`sync_cursors` 表（迁移 v12）、双设备收敛性质测试。
+> 阶段 2：`platform/sync-envelope.ts`（XChaCha20-Poly1305 + Argon2id + key
+> check）。阶段 3：`apps/relay/`。阶段 4：`storage/sync.rs` 本地缝 +
+> `platform/sync/` 引擎（迁移 v13 修 `booktext:`）。阶段 5：DataSyncPanel
+> 连接流、启动调度器、懒取 blob、`book.progressed` 节流。
+> 实现与本文的偏差已就地以「**落地偏差**」标注；生产部署（wrangler 建
+> D1/R2、配 Resend、发布 relay）尚未执行。
 > 基于 `docs/data-model.md` §9 的同步模型与 `docs/sqlite-schema.sql` 预留的
 > `sync_*` 表。本文档把"同步引擎"从规范落成可实施的方案：协议、服务端形态、
 > 身份与密钥、客户端改造点、实施阶段。凡与 `data-model.md` §9 重叠之处，
@@ -128,11 +133,19 @@ WebSocket 顺手就有（§4），协议不用改。
 | 职责 | 件 |
 |---|---|
 | 三个数据端点 + auth | Worker |
-| 事件密文表、账号表、magic-link token、session | D1 |
-| 加密 blob（书文件、封面） | R2，key = `<account_id>/<blob_key>` |
-| `server_seq` 发号 | 每账号一个 Durable Object（天然串行化，免数据库锁竞争） |
-| Magic link 邮件 | Cloudflare Email Sending（`readaware.app` 域，SPF/DKIM 在同一控制台配） |
+| 账号表、magic-link token、session | D1（token/session 只存 SHA-256 哈希） |
+| 事件密文 | **每账号一个 Durable Object 的自带 SQLite**（见下方落地偏差） |
+| 加密 blob（书文件） | R2，key = `<account_id>/<blob_key>` |
+| `server_seq` 发号 | 同一个 Durable Object（单线程执行，天然串行化） |
+| Magic link 邮件 | Resend HTTP API（一个 fetch，无 SDK；Cloudflare Email Sending GA 后换回，只动 `src/email.ts` 一个文件）；dev 用 `MAGIC_LINK_ECHO=1` 直接回显 token |
 | 用量与滥用防护 | Worker 内配额检查（§5 账号表记 `bytes_used`）+ Cloudflare 自带的 rate limiting |
+
+> **落地偏差**（2026-08-13）：事件密文没有存 D1，而是存进每账号邮筒 DO
+> 自己的 SQLite——发号与存储合一，单条 `AUTOINCREMENT` 即是 `server_seq`，
+> 无跨件竞态、无 seq 空洞（重投递走查后插，不烧号）；D1 只管账号与凭据。
+> 另外响应全带 CORS 头（webview fetch 需要预检；auth 是显式 bearer，
+> `*` 无 cookie 风险）。relay 的业务面（router）与存储 SQL 完全跑在
+> bun:test 下（bun:sqlite 通过 D1/DO 形状的适配器执行同一份 SQL）。
 
 服务端代码放 `apps/relay/`（workspace 内新 app，wrangler 项目）。
 **服务端不持有任何业务逻辑**：它不解密、不校验事件 schema、不理解
@@ -260,8 +273,10 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
 ## 8. Blob 同步
 
 - **上行**：`blob_sync_state` pending 的 blob，整块加密
-  （同主密钥，XChaCha20-Poly1305，分块加密带块序号防重排）后
-  `PUT /v1/blobs/<key>`。复用现有分块传输机制。
+  （同主密钥，XChaCha20-Poly1305，AAD 绑定 blob key 防串挪）后
+  `PUT /v1/blobs/<key>`。**落地偏差**：v1 采用整文件单次 AEAD 而非分块
+  流式——书文件在传输两端本就整块在内存里，分块此刻不省任何东西；
+  线格式首字节是版本号，将来需要分块格式时从那里演进。
 - **下行是惰性的**：bootstrap 只重放事件；`storage_uri = NULL` 的 blob
   在**首次被需要时**（打开书、展示封面）拉取。书架先可见，书按需到位。
   封面（小）可在 bootstrap 后台预取，书文件（大）严格惰性。
@@ -274,8 +289,11 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
 
 ## 9. 新设备 bootstrap
 
-1. 登录（magic link）→ 输入 E2E 口令 → 派生密钥，试解密最新一条事件
-   验证口令正确；
+1. 登录（magic link）→ 输入 E2E 口令 → 派生密钥并验证。**落地偏差**：
+   验证不靠试解密事件，而是账号随盐值发布一个 **key check**（用主密钥
+   密封的固定常量，`sync-envelope.ts makeKeyCheck/verifyKeyCheck`）——
+   空账号也能验、错口令一次给出干净提示；首台设备发布 key material 时
+   若与并发设备撞车（409），以对方发布的为准重新验证；
 2. `GET /v1/events?after=0` 分页拉全量 → 解密 → 按 HLC 排序批量
    `apply_remote_events`（§7.3 保证 blob 清单行就位）；
 3. 书架、高亮、笔记、记忆全部可见；blob 惰性到位（§8）；
@@ -302,11 +320,12 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
 
 ## 11. 风险与开放问题
 
-- **`book.progressed` 日志膨胀**（`data-model.md` §10 遗留）。倾向：
-  **commit 前节流**——翻页只更新本地投影，每 30 秒或章节边界才落一个
-  `book.progressed` 事件——而不是事后 compaction；compaction 破坏
-  "日志不可变"的心智模型，且与 E2E 中继的 append-only 存储冲突。
-  随阶段 5 一并定案。
+- **`book.progressed` 日志膨胀** —— **已定案并落地**（阶段 5）：commit 前
+  节流（`features/reader/lib/progress-throttle.ts`）。章节边界与首个位置
+  按原 250ms 去抖立即提交（真实路标）；章内翻页合并为每 30 秒最多一条，
+  永远提交最新位置；关书时 flush（顺带修掉了旧实现卸载即丢弃待写进度的
+  问题）。不做事后 compaction——它破坏"日志不可变"的心智模型，且与 E2E
+  中继的 append-only 存储冲突。
 - **设备信任 v2**。对称口令派生密钥下，"撤销一台设备"只能靠改口令 +
   全量重加密重传。`sync_devices` 的 `public_key`/`trusted` 字段留给
   将来的非对称方案；第一版明确不做。

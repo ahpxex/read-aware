@@ -8,6 +8,7 @@ import {
   putDesktopBlobFromPath,
 } from "../../../platform/blob-store";
 import { commitDomainEvents } from "../../../platform/domain-events";
+import { fetchRemoteBlob } from "../../../platform/sync/sync-scheduler";
 import type {
   BookFormat,
   BookImportSource,
@@ -441,7 +442,13 @@ async function enrichParsedBook(
 export async function getStoredBookBlob(bookId: string): Promise<Blob | null> {
   if (!isTauri()) return null;
   const bytes = await getDesktopBlob(bookFileKey(bookId));
-  return bytes ? new Blob([bytes]) : null;
+  if (bytes) return new Blob([bytes]);
+  // Not on this device — the new-device bootstrap case: the manifest row came
+  // from replaying `book.imported`, the bytes live on the relay. Lazy-fetch
+  // decrypts and stores locally, so this path runs once per book. Null when
+  // sync is off or the relay has nothing.
+  const fetched = await fetchRemoteBlob(bookFileKey(bookId));
+  return fetched ? new Blob([fetched]) : null;
 }
 
 /**
@@ -461,6 +468,16 @@ export async function getStoredBookFile(
   const book = typeof bookOrId === "string" ? await getBookRecord(bookOrId) : bookOrId;
   if (!book) return null;
   if (book.format === "pdf") {
+    const local = await openDesktopBlobFile(
+      bookFileKey(book.id),
+      book.fileName,
+      book.mimeType || "application/pdf",
+    );
+    if (local) return local;
+    // Same bootstrap case as getStoredBookBlob: pull the bytes down, then
+    // reopen file-backed so PDFs keep their random-access path.
+    const fetched = await fetchRemoteBlob(bookFileKey(book.id));
+    if (!fetched) return null;
     return openDesktopBlobFile(
       bookFileKey(book.id),
       book.fileName,

@@ -33,6 +33,7 @@ import { useGlobalShortcuts } from "./features/settings/hooks/useGlobalShortcuts
 import { usePluginCommandShortcuts } from "./features/plugins/hooks/usePluginCommandShortcuts";
 import { useSurfaceHandoff } from "./hooks/useSurfaceHandoff";
 import { emitAppEvent } from "./platform/app-events";
+import { startSyncScheduler } from "./platform/sync/sync-scheduler";
 import {
   BACK_REQUEST_EVENT,
   sendAppToBackground,
@@ -107,6 +108,8 @@ function App() {
     dismissBootSplash();
     scheduleIdleWarmup();
     void initializePlugins();
+    // No-ops until an account is connected (Data & Sync); off the boot path.
+    const stopSync = startSyncScheduler();
     // Off the boot path: a quiet daily look at the marketplace for updates.
     const updateCheck = window.setTimeout(
       () => void checkPluginUpdates(),
@@ -129,6 +132,7 @@ function App() {
       window.clearTimeout(updateCheck);
       window.clearTimeout(maintenanceStart);
       stopAgentMaintenance?.();
+      stopSync();
     };
   }, []);
 

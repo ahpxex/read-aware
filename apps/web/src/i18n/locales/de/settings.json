@@ -310,7 +310,8 @@
     "connectAccount": "Konto verbinden",
     "e2e": {
       "title": "Ende-zu-Ende-Verschlüsselung",
-      "description": "Synchronisierte Daten werden auf dem Gerät verschlüsselt. Verwalte hier deine Passphrase und deine Geräte."
+      "description": "Synchronisierte Daten werden auf dem Gerät verschlüsselt. Verwalte hier deine Passphrase und deine Geräte.",
+      "active": "Aktiv — geschützt durch deine Passphrase."
     },
     "storage": "Speicher",
     "dataLocation": {
@@ -340,6 +341,37 @@
     "resetDialog": {
       "title": "Alle Einstellungen zurücksetzen?",
       "body": "Jede Einstellung auf ihren Standard zurücksetzen. Deine Bücher und Anmerkungen bleiben erhalten — nur die Einstellungen werden zurückgesetzt. Dies kann nicht rückgängig gemacht werden.",
+      "cancel": "Abbrechen"
+    },
+    "syncStatus": {
+      "idle": "Synchronisiert",
+      "syncing": "Synchronisiere…",
+      "error": "Synchronisierungsfehler",
+      "lastSync": "Zuletzt synchronisiert {{time}}",
+      "never": "Noch nicht synchronisiert"
+    },
+    "connect": {
+      "emailLabel": "E-Mail",
+      "emailPlaceholder": "du@beispiel.de",
+      "send": "Anmeldelink senden",
+      "sending": "Wird gesendet…",
+      "sent": "Prüfe dein Postfach und füge den Anmeldelink oder das Token unten ein.",
+      "tokenLabel": "Anmeldelink oder Token",
+      "passphraseLabel": "Verschlüsselungspassphrase",
+      "passphraseHint": "Sie verschlüsselt deine Daten, bevor sie dieses Gerät verlassen. Das erste Gerät legt sie fest; jedes weitere muss dieselbe eingeben. Sie ist nicht wiederherstellbar — vergisst du sie, bleiben synchronisierte Daten unlesbar.",
+      "passphraseTooShort": "Mindestens 8 Zeichen.",
+      "connect": "Verbinden",
+      "connecting": "Verbinde…",
+      "wrongPassphrase": "Die Passphrase passt nicht zu diesem Konto.",
+      "failed": "Verbindung fehlgeschlagen. Prüfe den Link und versuche es erneut.",
+      "connected": "Synchronisierung ist aktiv."
+    },
+    "connected": {
+      "description": "Verbunden ({{account}}). Änderungen synchronisieren über das verschlüsselte Relay.",
+      "syncNow": "Jetzt synchronisieren",
+      "disconnect": "Trennen",
+      "disconnectTitle": "Synchronisierung trennen?",
+      "disconnectBody": "Dieses Gerät behält alle Daten und stoppt nur die Synchronisierung. Mit derselben Passphrase jederzeit wieder verbindbar.",
       "cancel": "Abbrechen"
     }
   },

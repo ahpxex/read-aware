@@ -306,7 +306,8 @@
     "connectAccount": "アカウントを接続",
     "e2e": {
       "title": "エンドツーエンド暗号化",
-      "description": "同期されるデータは端末上で暗号化されます。パスフレーズと端末をここで管理します。"
+      "description": "同期されるデータは端末上で暗号化されます。パスフレーズと端末をここで管理します。",
+      "active": "オン——パスフレーズで保護されています。"
     },
     "storage": "ストレージ",
     "dataLocation": {
@@ -336,6 +337,37 @@
     "resetDialog": {
       "title": "すべての設定をリセットしますか？",
       "body": "すべての設定を既定値に戻します。本と注釈は保持され、設定のみがリセットされます。この操作は取り消せません。",
+      "cancel": "キャンセル"
+    },
+    "syncStatus": {
+      "idle": "同期済み",
+      "syncing": "同期中…",
+      "error": "同期エラー",
+      "lastSync": "最終同期 {{time}}",
+      "never": "まだ同期していません"
+    },
+    "connect": {
+      "emailLabel": "メールアドレス",
+      "emailPlaceholder": "you@example.com",
+      "send": "サインインリンクを送信",
+      "sending": "送信中…",
+      "sent": "メールを確認し、サインインリンクまたはトークンを下に貼り付けてください。",
+      "tokenLabel": "サインインリンクまたはトークン",
+      "passphraseLabel": "暗号化パスフレーズ",
+      "passphraseHint": "データは端末を離れる前にこのパスフレーズで暗号化されます。最初の端末で設定し、他の端末でも同じものを入力します。復元はできません——忘れると同期データは読めなくなります。",
+      "passphraseTooShort": "8文字以上にしてください。",
+      "connect": "接続",
+      "connecting": "接続中…",
+      "wrongPassphrase": "パスフレーズがこのアカウントと一致しません。",
+      "failed": "接続できませんでした。リンクを確認して再試行してください。",
+      "connected": "同期がオンになりました。"
+    },
+    "connected": {
+      "description": "{{account}} として接続中。変更は暗号化リレー経由で同期されます。",
+      "syncNow": "今すぐ同期",
+      "disconnect": "接続解除",
+      "disconnectTitle": "同期を解除しますか？",
+      "disconnectBody": "この端末のデータはすべて保持され、同期のみ停止します。同じパスフレーズでいつでも再接続できます。",
       "cancel": "キャンセル"
     }
   },

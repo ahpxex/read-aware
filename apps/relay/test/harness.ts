@@ -55,7 +55,7 @@ function sqlOver(db: Database): SqlExec {
 
 function coreMailbox(core: MailboxCore, nowIso: () => string): Mailbox {
   return {
-    append: async (events) => core.append(events, nowIso()),
+    append: async (events, maxEvents) => core.append(events, nowIso(), maxEvents),
     listAfter: async (after, limit) => core.listAfter(after, limit),
     wipe: async () => core.wipe(),
   };

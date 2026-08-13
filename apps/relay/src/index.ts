@@ -38,6 +38,9 @@ type Env = {
   APP_ORIGIN?: string;
   /** Where `client=web` OAuth finishes land; defaults to the app origin. */
   WEB_APP_ORIGIN?: string;
+  /** Free-tier quota overrides (integers); defaults in DEFAULT_CONFIG. */
+  MAX_ACCOUNT_BLOB_BYTES?: string;
+  MAX_ACCOUNT_EVENTS?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   GITHUB_CLIENT_ID?: string;
@@ -96,6 +99,9 @@ function portsFromEnv(env: Env): RelayPorts {
       ...DEFAULT_CONFIG,
       echoMagicToken: env.MAGIC_LINK_ECHO === "1",
       webAppOrigin: env.WEB_APP_ORIGIN ?? env.APP_ORIGIN ?? DEFAULT_CONFIG.webAppOrigin,
+      maxAccountBlobBytes:
+        Number(env.MAX_ACCOUNT_BLOB_BYTES) || DEFAULT_CONFIG.maxAccountBlobBytes,
+      maxAccountEvents: Number(env.MAX_ACCOUNT_EVENTS) || DEFAULT_CONFIG.maxAccountEvents,
     },
     now: () => Date.now(),
   };

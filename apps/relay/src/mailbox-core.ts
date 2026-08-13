@@ -32,7 +32,25 @@ export class MailboxCore {
     for (const statement of SCHEMA) this.sql.exec(statement);
   }
 
-  append(events: SealedEventWire[], receivedAt: string): Record<string, number> {
+  append(
+    events: SealedEventWire[],
+    receivedAt: string,
+    maxEvents = Number.MAX_SAFE_INTEGER,
+  ): Record<string, number> | "full" {
+    // Quota pre-pass: how many of these are actually NEW. Refusal must be
+    // atomic — a half-appended batch whose response says "full" would leave
+    // the client with events it can neither confirm nor retire.
+    const known = new Set<string>();
+    for (const ev of events) {
+      const row = this.sql.exec(`SELECT seq FROM events WHERE event_id = ?1`, ev.id).toArray()[0];
+      if (row) known.add(ev.id);
+    }
+    const stored = Number(
+      this.sql.exec(`SELECT COUNT(*) AS n FROM events`).toArray()[0]?.n ?? 0,
+    );
+    const freshIds = new Set(events.filter((ev) => !known.has(ev.id)).map((ev) => ev.id));
+    if (stored + freshIds.size > maxEvents) return "full";
+
     const seqs: Record<string, number> = {};
     for (const ev of events) {
       // Check-then-insert, NOT `INSERT OR IGNORE`: an ignored conflict still

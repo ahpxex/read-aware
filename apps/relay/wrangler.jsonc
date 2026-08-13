@@ -20,9 +20,10 @@
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AccountMailbox"] }],
   "r2_buckets": [{ "binding": "BLOBS", "bucket_name": "read-aware-relay-blobs" }],
   "vars": {
-    // 本地开发：magic token 直接回显在响应里，不发邮件。
-    // 生产环境删除此项，配置 RESEND_API_KEY / MAIL_FROM（secrets）。
-    "MAGIC_LINK_ECHO": "1",
+    // 生产绝不能开 MAGIC_LINK_ECHO（等于任何人可冒充任何邮箱）；
+    // 本地开发的回显由 `bun run dev` 脚本以 --var 注入。
+    // 邮件链路（可选）：`wrangler secret put RESEND_API_KEY` + 此处 MAIL_FROM。
+    // OAuth：`wrangler secret put GOOGLE_CLIENT_ID/SECRET、GITHUB_CLIENT_ID/SECRET`。
     "APP_ORIGIN": "https://readaware.app"
   }
 }

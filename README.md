@@ -181,4 +181,7 @@ Questions, ideas, bug reports, and reading stories are welcome on the
 
 ## License
 
-ReadAware is free and open source under the [MIT License](LICENSE).
+ReadAware is free and open source under the [GNU AGPL-3.0](LICENSE).
+
+The public plugin API, [`@read-aware/plugin-types`](packages/plugin-types/LICENSE),
+is MIT-licensed so third-party plugins can use any license they like.

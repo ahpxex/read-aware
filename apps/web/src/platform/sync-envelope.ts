@@ -18,7 +18,7 @@
 import { xchacha20poly1305 } from "@noble/ciphers/chacha.js";
 import { randomBytes } from "@noble/ciphers/utils.js";
 import { argon2id } from "@noble/hashes/argon2.js";
-import type { HlcStamp } from "@read-aware/core";
+import type { HlcStamp, SealedEventWire, SyncKdfParams } from "@read-aware/core";
 
 /** The full event wire shape (mirrors Rust `EventRow` camelCase serde). */
 export type PlainEvent = {
@@ -34,16 +34,11 @@ export type PlainEvent = {
   payload: unknown;
 };
 
-/** What actually crosses the wire — see the module header for why so little. */
-export type SealedEvent = {
-  id: string;
-  hlc: HlcStamp;
-  /** Envelope version: room to rotate algorithms/keys without a flag day. */
-  v: 1;
-  /** 24-byte XChaCha nonce, base64. Fresh per seal; never reused. */
-  nonce: string;
-  ciphertext: string;
-};
+/**
+ * What actually crosses the wire — the shared protocol shape from
+ * @read-aware/core, so client and relay can never drift apart.
+ */
+export type SealedEvent = SealedEventWire;
 
 const ENVELOPE_VERSION = 1 as const;
 const NONCE_BYTES = 24;
@@ -146,15 +141,7 @@ export function openBlob(key: Uint8Array, blobKey: string, wire: Uint8Array): Ui
  * salt — neither is secret) so every device derives the same key and old
  * accounts keep working when the defaults move.
  */
-export type KdfParams = {
-  algo: "argon2id";
-  /** Iterations. */
-  t: number;
-  /** Memory cost in KiB. */
-  m: number;
-  /** Parallelism. */
-  p: number;
-};
+export type KdfParams = SyncKdfParams;
 
 /** OWASP's recommended Argon2id cost (19 MiB / t=2 / p=1), 2026 guidance. */
 export const DEFAULT_KDF_PARAMS: KdfParams = { algo: "argon2id", t: 2, m: 19_456, p: 1 };

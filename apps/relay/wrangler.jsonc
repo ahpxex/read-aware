@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "read-aware-relay",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-01",
+  // 三个存储件（docs/sync-engine.md §4）：D1 = 账号/令牌/会话，
+  // DO(SQLite) = 每账号一个编号密文邮筒，R2 = 加密 blob。
+  // database_id 在首次部署前用 `wrangler d1 create read-aware-relay` 生成后填入。
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "read-aware-relay",
+      "database_id": "TO-BE-CREATED",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "MAILBOX", "class_name": "AccountMailbox" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AccountMailbox"] }],
+  "r2_buckets": [{ "binding": "BLOBS", "bucket_name": "read-aware-relay-blobs" }],
+  "vars": {
+    // 本地开发：magic token 直接回显在响应里，不发邮件。
+    // 生产环境删除此项，配置 RESEND_API_KEY / MAIL_FROM（secrets）。
+    "MAGIC_LINK_ECHO": "1",
+    "APP_ORIGIN": "https://readaware.app"
+  }
+}

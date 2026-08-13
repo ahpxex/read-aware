@@ -164,6 +164,16 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                 ],
             )
             .map_err(|e| e.to_string())?;
+            if let Some(key) = str_of(p, "sourceBlobKey") {
+                ensure_blob_manifest(
+                    tx,
+                    &key,
+                    str_of(p, "mimeType").as_deref(),
+                    i64_of(p, "fileSize"),
+                    str_of(p, "sourceSha256").as_deref(),
+                    &at,
+                )?;
+            }
         }
         "book.metadataEdited" => {
             let id = require(p, "bookId", t)?;
@@ -617,8 +627,15 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
 
         // ── Accepted into the log, applies to no projection ─────────────────
         // coverExtracted: local extraction bookkeeping over object-storage
-        // content, not a domain fact (see the module header).
-        "book.coverExtracted" => return Ok(false),
+        // content, not a domain fact (see the module header). It DOES leave a
+        // blob-manifest row behind: a fresh device replaying the log needs to
+        // know the cover exists remotely before any bytes arrive.
+        "book.coverExtracted" => {
+            if let Some(key) = str_of(p, "coverBlobKey") {
+                ensure_blob_manifest(tx, &key, None, None, None, &at)?;
+            }
+            return Ok(false);
+        }
         // profile/entity: no projection table until the consolidation pipeline.
         "profile.updated" | "entity.resolved" | "entity.merged" => return Ok(false),
 
@@ -627,6 +644,36 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
     }
 
     Ok(true)
+}
+
+/// Blob bootstrap contract (docs/data-model.md §9): an event that references a
+/// blob key must leave a `blob_objects` manifest row behind, so a fresh device
+/// replaying the log learns the blob exists remotely before any bytes arrive.
+/// `storage_uri` stays NULL — "known, not fetched" — which readers treat as a
+/// cache miss, never an error; the blob fetcher fills in the bytes lazily.
+///
+/// `INSERT OR IGNORE`, deliberately: on the device that already holds the
+/// bytes, the registry row (with its real `storage_uri`, size, and hash) was
+/// written by `put_blob` and must not be touched. `blob_objects` is
+/// [device-local], excluded from rebuild's wipe and from the drift check, so
+/// replaying this upsert over an existing row is always a no-op.
+fn ensure_blob_manifest(
+    tx: &Transaction<'_>,
+    key: &str,
+    mime_type: Option<&str>,
+    byte_size: Option<i64>,
+    sha256: Option<&str>,
+    at: &str,
+) -> Result<(), String> {
+    let (kind, sync_required) = super::blob_kind(key);
+    tx.execute(
+        "INSERT OR IGNORE INTO blob_objects
+            (key, kind, mime_type, byte_size, sha256, storage_uri, sync_required, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, NULL, ?6, ?7)",
+        params![key, kind, mime_type, byte_size, sha256, sync_required as i64, at],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 /// Shared upsert for the three annotation kinds. `text` is the anchored passage;

@@ -32,10 +32,24 @@ pub(crate) fn row_to_event(row: &rusqlite::Row) -> rusqlite::Result<EventRow> {
 
 // --- Event log (the sync unit) ---
 
+/// Where an envelope entered the log, which decides whether it enters the push
+/// outbox: local writes still owe the relay a copy; events PULLED from the
+/// relay are already there, and re-enqueueing them would echo every pull
+/// straight back as a push.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum EventSource {
+    Local,
+    Remote,
+}
+
 /// Insert one envelope into the log. Returns whether the row was NEW — dedup by
 /// event id (and by the unique HLC index) makes redelivery a no-op, and callers
 /// use the answer to avoid applying an event to the projections twice.
-pub(crate) fn insert_event_row(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> {
+pub(crate) fn insert_event_row(
+    tx: &Transaction<'_>,
+    ev: &EventRow,
+    source: EventSource,
+) -> Result<bool, String> {
     let payload = serde_json::to_string(&ev.payload).map_err(|e| e.to_string())?;
     // `?4` (HLC wall ms) is reused to derive created_at when the caller
     // didn't stamp one.
@@ -66,7 +80,7 @@ pub(crate) fn insert_event_row(tx: &Transaction<'_>, ev: &EventRow) -> Result<bo
         .map_err(|e| e.to_string())?;
     // Locally-appended events enter the push outbox; ignored duplicates
     // (already logged, possibly already pushed) must not re-enter it.
-    if inserted > 0 {
+    if inserted > 0 && source == EventSource::Local {
         tx.execute(
             "INSERT OR IGNORE INTO event_sync_state (event_id, updated_at)
              VALUES (?1, strftime('%Y-%m-%dT%H:%M:%fZ','now'))",
@@ -80,7 +94,7 @@ pub(crate) fn insert_event_row(tx: &Transaction<'_>, ev: &EventRow) -> Result<bo
 pub(crate) fn append_events_inner(conn: &mut Connection, events: &[EventRow]) -> Result<(), String> {
     let tx = conn.transaction().map_err(|e| e.to_string())?;
     for ev in events {
-        insert_event_row(&tx, ev)?;
+        insert_event_row(&tx, ev, EventSource::Local)?;
     }
     tx.commit().map_err(|e| e.to_string())?;
     Ok(())
@@ -122,7 +136,7 @@ pub(crate) fn commit_events_inner(
         // Redelivery: the log already holds it, so the projection already
         // reflects it. Skipping keeps accumulating projections (reading_time)
         // from double-counting.
-        if !insert_event_row(&tx, ev)? {
+        if !insert_event_row(&tx, ev, EventSource::Local)? {
             continue;
         }
         report.appended += 1;
@@ -145,6 +159,113 @@ pub(crate) fn commit_events_inner(
 pub fn commit_events(events: Vec<EventRow>, db: State<'_, Db>) -> Result<CommitReport, String> {
     let mut conn = db.0.lock().map_err(|e| e.to_string())?;
     commit_events_inner(&mut conn, &events)
+}
+
+/// What a `apply_remote_events` call did.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MergeReport {
+    /// Envelopes the log accepted (already-merged duplicates excluded).
+    pub appended: usize,
+    /// Projection rows changed by the incremental path; 0 when `replayed`.
+    pub applied: usize,
+    /// True when merged events landed BEHIND existing log entries in HLC order,
+    /// so the projections were rebuilt by full replay instead of incremental
+    /// apply.
+    pub replayed: bool,
+}
+
+/// The log's newest HLC stamp, as an ordering key. None on an empty log.
+fn max_hlc_key(tx: &Transaction<'_>) -> Result<Option<(i64, i64, String)>, String> {
+    tx.query_row(
+        "SELECT hlc_wall_ms, hlc_counter, hlc_device FROM domain_events
+         ORDER BY hlc_wall_ms DESC, hlc_counter DESC, hlc_device DESC LIMIT 1",
+        [],
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+    )
+    .map(Some)
+    .or_else(|e| match e {
+        rusqlite::Error::QueryReturnedNoRows => Ok(None),
+        other => Err(other.to_string()),
+    })
+}
+
+fn hlc_key(ev: &EventRow) -> (i64, i64, String) {
+    (ev.hlc.wall_ms, ev.hlc.counter, ev.hlc.device_id.clone())
+}
+
+pub(crate) fn apply_remote_events_inner(
+    conn: &mut Connection,
+    events: &[EventRow],
+) -> Result<MergeReport, String> {
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+    let horizon = max_hlc_key(&tx)?;
+
+    let mut fresh: Vec<&EventRow> = Vec::new();
+    for ev in events {
+        if insert_event_row(&tx, ev, EventSource::Remote)? {
+            fresh.push(ev);
+        }
+    }
+    let mut report = MergeReport {
+        appended: fresh.len(),
+        applied: 0,
+        replayed: false,
+    };
+    if fresh.is_empty() {
+        tx.commit().map_err(|e| e.to_string())?;
+        return Ok(report);
+    }
+
+    // The relay feeds events in arrival (server_seq) order, which is unrelated
+    // to HLC order — sort so the incremental path applies them as the log
+    // orders them.
+    fresh.sort_by_key(|ev| hlc_key(ev));
+
+    // Incremental apply is only sound when every merged event extends the log's
+    // frontier: projections reflect the log AS ORDERED, so an event slotting in
+    // behind existing entries (both devices wrote while apart) can't just be
+    // applied last — a stale `book.metadataEdited` would overwrite a newer
+    // title. In that case rebuild from the log, which replays everything in
+    // HLC order and lands both devices on identical projections.
+    let extends_frontier = match &horizon {
+        None => true,
+        Some(h) => hlc_key(fresh[0]) > *h,
+    };
+    if extends_frontier {
+        for ev in fresh {
+            if apply::apply_event(&tx, ev)? {
+                report.applied += 1;
+            }
+        }
+    } else {
+        replay_into(&tx)?;
+        report.replayed = true;
+    }
+    tx.commit().map_err(|e| e.to_string())?;
+    Ok(report)
+}
+
+/// The sync engine's merge entry point: append events pulled from the relay
+/// and bring the projections up to date, in ONE transaction.
+///
+/// Differs from `commit_events` in exactly two ways: merged events do NOT enter
+/// the push outbox (they came from the relay — echoing them back would loop
+/// forever), and out-of-HLC-order arrivals fall back to a full replay rather
+/// than applying incrementally (see `apply_remote_events_inner`). The caller
+/// (the pull loop) is responsible for `hlc.observe()`-ing every stamp BEFORE
+/// invoking this, and for advancing `sync_cursors` after it returns.
+#[tauri::command]
+pub async fn apply_remote_events(events: Vec<EventRow>, app: AppHandle) -> Result<MergeReport, String> {
+    // Same threading note as `rebuild_projections`: the replay fallback is
+    // unbounded work and must stay off the main thread.
+    tauri::async_runtime::spawn_blocking(move || {
+        let db = app.state::<Db>();
+        let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+        apply_remote_events_inner(&mut conn, &events)
+    })
+    .await
+    .map_err(|e| format!("apply_remote_events task failed: {e}"))?
 }
 
 #[tauri::command]

@@ -376,6 +376,33 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
          UPDATE domain_events SET type = 'book.timeRecorded'
           WHERE type = 'reading.timeRecorded';",
     ),
+    (
+        12,
+        "sync_profile_and_cursors",
+        // [device-local] 同步引擎的本机运行状态（docs/sync-engine.md §7.5，
+        // 表形状照 docs/sqlite-schema.sql）。sync_profile 单行：账号连接与
+        // E2E 密钥引用（encryption_key_ref 指向 secrets.rs 条目，不存密钥
+        // 材料）；sync_cursors 按 feed 记"拉到哪了"——remote_cursor 是中继的
+        // server_seq，HLC 三列是已合并的最新事件戳。sync_devices（非对称
+        // 设备信任）留给 v2，此处不建。
+        "CREATE TABLE IF NOT EXISTS sync_profile (
+            id                 INTEGER PRIMARY KEY CHECK (id = 1),
+            sync_enabled       INTEGER NOT NULL DEFAULT 0,
+            remote_account_id  TEXT,
+            encryption_key_ref TEXT,
+            last_push_at       TEXT,
+            last_pull_at       TEXT,
+            updated_at         TEXT NOT NULL
+         );
+         CREATE TABLE IF NOT EXISTS sync_cursors (
+            feed_name     TEXT PRIMARY KEY,
+            remote_cursor TEXT,
+            hlc_wall_ms   INTEGER,
+            hlc_counter   INTEGER,
+            hlc_device    TEXT,
+            updated_at    TEXT NOT NULL
+         );",
+    ),
 ];
 
 /// Apply migrations newer than the highest recorded version, up to `max_version`

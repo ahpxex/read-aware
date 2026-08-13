@@ -1,6 +1,9 @@
 # ReadAware — 同步引擎（设计）
 
-> **状态：** 方向已定（2026-08-13），实现未开始。
+> **状态：** 方向已定（2026-08-13）。阶段 1（本地地基，§10）已落地：
+> `hlc.observe()`、`apply_remote_events`（含越界回放兜底）、blob 清单物化、
+> `sync_profile`/`sync_cursors` 表（迁移 v12）、双设备收敛性质测试。
+> 阶段 2 起未开始。
 > 基于 `docs/data-model.md` §9 的同步模型与 `docs/sqlite-schema.sql` 预留的
 > `sync_*` 表。本文档把"同步引擎"从规范落成可实施的方案：协议、服务端形态、
 > 身份与密钥、客户端改造点、实施阶段。凡与 `data-model.md` §9 重叠之处，
@@ -54,7 +57,7 @@
 | Blob outbox | `blob_sync_state` 表 | ✅ 同上 |
 | 游标读取 | `read_events_since(after: Hlc)` | ✅ change feed 的读原语 |
 | 设备身份 | `local_device` 表（UUIDv4，一次生成） | ✅ |
-| HLC 时钟 | `apps/web/src/platform/hlc.ts` | ⚠️ 只有 `seed()`/`next()`，缺 `observe()`（§7.1） |
+| HLC 时钟 | `apps/web/src/platform/hlc.ts` | ✅ `seed()`/`next()`/`observe()`（§7.1，阶段 1 补齐） |
 | 本地密钥库 | `src-tauri/src/secrets.rs`（AES-256-GCM） | ✅ E2E 主密钥的落脚点 |
 | 分块传输 | `platform/blob-store.ts`（桌面流式 / 移动 256 KiB 分块） | ✅ 直接复用于中继上下行 |
 

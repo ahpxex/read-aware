@@ -121,8 +121,13 @@ pub fn ensure_local_device(conn: &Connection) -> Result<String, String> {
 }
 
 /// Boot info for the frontend HLC: the stable device id plus the highest HLC
-/// this device ever persisted, so the clock can reseed monotonically across
-/// restarts even if the wall clock stepped backwards.
+/// in the log — ANY device's, not just our own. Own stamps must not be
+/// re-minted after a restart (the unique HLC index would drop the event), and
+/// merged remote stamps must stay observed across restarts: `hlc.observe()`
+/// keeps the running clock ahead of everything pulled during a session, and
+/// this seed is what carries that guarantee over a relaunch. Scoping it to our
+/// own device would let a lagging wall clock mint stamps that sort before
+/// events already merged from a peer.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LocalDeviceInfo {
@@ -137,9 +142,9 @@ pub fn local_device_get(db: State<'_, Db>) -> Result<LocalDeviceInfo, String> {
     let device_id = ensure_local_device(&conn)?;
     let last = conn
         .query_row(
-            "SELECT hlc_wall_ms, hlc_counter FROM domain_events WHERE hlc_device = ?1
+            "SELECT hlc_wall_ms, hlc_counter FROM domain_events
              ORDER BY hlc_wall_ms DESC, hlc_counter DESC LIMIT 1",
-            params![device_id],
+            [],
             |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
         )
         .map(Some)

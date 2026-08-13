@@ -26,7 +26,9 @@ const BLOB_MIME_HEADER: &str = "x-blob-mime";
 
 /// Map a blob key's prefix to its registry `kind` and whether it should sync
 /// to the relay (font caches are re-downloadable; everything else is user data).
-fn blob_kind(key: &str) -> (&'static str, bool) {
+/// Also used by `apply`'s blob-manifest materialization, so a replayed manifest
+/// row and a locally-written registry row can never disagree on kind.
+pub(crate) fn blob_kind(key: &str) -> (&'static str, bool) {
     match key.split(':').next() {
         Some("bookfile") => ("book_source", true),
         Some("cover") => ("cover_image", true),

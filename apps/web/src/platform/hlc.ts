@@ -22,9 +22,17 @@ import type { HlcStamp } from "@read-aware/core";
 export type HlcClock = {
   /**
    * Move past everything already persisted. Called at boot with the highest
-   * stamp this device wrote; safe to call more than once.
+   * stamp in the local log; safe to call more than once.
    */
   seed(wallMs: number | null | undefined, counter: number | null | undefined): void;
+  /**
+   * Merge a stamp another device minted — the HLC "receive" rule. Called for
+   * every event pulled during sync, BEFORE it is appended locally: a device
+   * whose wall clock lags a peer would otherwise keep minting stamps that sort
+   * before events it has already merged, putting its next writes in the causal
+   * past. Same monotonic contract as `seed`; never rewinds.
+   */
+  observe(stamp: HlcStamp): void;
   /** The next stamp, strictly greater than every stamp handed out before it. */
   next(deviceId: string): HlcStamp;
 };
@@ -33,16 +41,23 @@ export function createHlcClock(now: () => number = Date.now): HlcClock {
   let wallMs = 0;
   let counter = 0;
 
+  // Stores the highest counter already USED (here or on the stamp's device);
+  // `next` is what increments past it.
+  const advance = (wall: number, seenCounter: number) => {
+    if (wall > wallMs) {
+      wallMs = wall;
+      counter = seenCounter;
+    } else if (wall === wallMs) {
+      counter = Math.max(counter, seenCounter);
+    }
+  };
+
   return {
     seed(seedWall, seedCounter) {
-      // Stores the highest counter already USED; `next` is what increments.
-      const wall = seedWall ?? 0;
-      if (wall > wallMs) {
-        wallMs = wall;
-        counter = seedCounter ?? -1;
-      } else if (wall === wallMs) {
-        counter = Math.max(counter, seedCounter ?? -1);
-      }
+      advance(seedWall ?? 0, seedCounter ?? -1);
+    },
+    observe(stamp) {
+      advance(stamp.wallMs, stamp.counter);
     },
     next(deviceId) {
       const reading = now();

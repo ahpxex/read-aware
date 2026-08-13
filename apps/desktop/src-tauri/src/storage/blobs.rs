@@ -33,6 +33,8 @@ pub(crate) fn blob_kind(key: &str) -> (&'static str, bool) {
         Some("bookfile") => ("book_source", true),
         Some("cover") => ("cover_image", true),
         Some("font") => ("font_face", false),
+        // Extracted text cache — derivable from the book file, never synced.
+        Some("booktext") => ("book_text", false),
         _ => ("unknown", true),
     }
 }

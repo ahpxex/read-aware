@@ -17,14 +17,21 @@ import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "./environment";
 
 /**
- * Secrets the app stores — the audited `ai-api-key` family: the legacy
- * single slot plus one slot per provider (`ai-api-key.<provider>`), so
- * switching providers never clobbers another provider's key. Hydration
- * discovers the live slots by prefix (`secret_keys`); plugin credentials go
- * through their own async helpers below and never enter this snapshot.
+ * Secrets the app stores — two audited families. The `ai-api-key` family:
+ * the legacy single slot plus one slot per provider (`ai-api-key.<provider>`),
+ * so switching providers never clobbers another provider's key. The `sync.`
+ * family: the relay session token and the passphrase-derived E2E master key
+ * (base64) — the "encryption_key_ref" that `sync_profile` points at, kept out
+ * of SQLite per the schema's key-material policy. Hydration discovers live
+ * slots by prefix (`secret_keys`); plugin credentials go through their own
+ * async helpers below and never enter this snapshot.
  */
-export type SecretKey = "ai-api-key" | `ai-api-key.${string}`;
-const SECRET_PREFIX = "ai-api-key";
+export type SecretKey =
+  | "ai-api-key"
+  | `ai-api-key.${string}`
+  | "sync.session"
+  | "sync.master-key";
+const SECRET_PREFIXES = ["ai-api-key", "sync."] as const;
 
 /** Where older builds kept the key in the clear; migrated away on first boot. */
 const LEGACY_AI_KEY_STORAGE_KEY = "read-aware-ai-key";
@@ -52,10 +59,12 @@ export async function hydrateSecrets(): Promise<void> {
       localStorage.removeItem(LEGACY_AI_KEY_STORAGE_KEY);
       console.info("[secrets] moved the API key out of localStorage into encrypted storage");
     }
-    const keys = await invoke<string[]>("secret_keys", { prefix: SECRET_PREFIX });
-    for (const key of keys) {
-      const value = await invoke<string | null>("secret_get", { key });
-      if (value) snapshot.set(key as SecretKey, value);
+    for (const prefix of SECRET_PREFIXES) {
+      const keys = await invoke<string[]>("secret_keys", { prefix });
+      for (const key of keys) {
+        const value = await invoke<string | null>("secret_get", { key });
+        if (value) snapshot.set(key as SecretKey, value);
+      }
     }
   } catch (error) {
     console.error("[secrets] hydrate failed; the app starts without stored credentials", error);

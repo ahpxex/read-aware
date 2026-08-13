@@ -13,10 +13,22 @@ import type { Account, RelayPorts } from "./ports";
 
 // ── Small helpers ────────────────────────────────────────────────────────────
 
+/**
+ * The client is a Tauri webview (origin `tauri://localhost` or a dev
+ * localhost), so every response needs CORS. `*` is safe here: auth is a
+ * bearer token the page attaches explicitly, never an ambient cookie.
+ */
+const CORS_HEADERS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "access-control-allow-headers": "authorization, content-type",
+  "access-control-max-age": "86400",
+};
+
 function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...CORS_HEADERS },
   });
 }
 
@@ -172,7 +184,7 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
       if (!bytes) return failure(404, "no such blob");
       return new Response(bytes, {
         status: 200,
-        headers: { "content-type": "application/octet-stream" },
+        headers: { "content-type": "application/octet-stream", ...CORS_HEADERS },
       });
     }
     if (req.method === "PUT") {
@@ -195,7 +207,7 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
     if (req.method === "DELETE") {
       const freed = await blobs.delete(account.id, key);
       if (freed > 0) await accounts.adjustBlobBytes(account.id, -freed);
-      return new Response(null, { status: 204 });
+      return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
     return failure(405, "method not allowed");
   }
@@ -204,6 +216,7 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
     const url = new URL(req.url);
     const path = url.pathname;
 
+    if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
     if (req.method === "POST" && path === "/v1/auth/request") return handleAuthRequest(req);
     if (req.method === "POST" && path === "/v1/auth/verify") return handleAuthVerify(req);
 
@@ -214,7 +227,7 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
     if (req.method === "POST" && path === "/v1/auth/logout") {
       const header = req.headers.get("authorization") ?? "";
       await accounts.deleteSession(await tokenHash(header.slice(7)));
-      return new Response(null, { status: 204 });
+      return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
     if (req.method === "GET" && path === "/v1/account") {
       return json(200, {
@@ -240,7 +253,7 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
       await ports.mailboxFor(account.id).wipe();
       await blobs.wipe(account.id);
       await accounts.deleteAccount(account.id);
-      return new Response(null, { status: 204 });
+      return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
     if (path === "/v1/events") {
       if (req.method === "POST") return handlePushEvents(account, req);

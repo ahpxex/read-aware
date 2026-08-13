@@ -236,3 +236,21 @@ describe("account deletion", () => {
     expect(((await page.json()) as { events: unknown[] }).events).toEqual([]);
   });
 });
+
+describe("cors", () => {
+  test("preflight succeeds and every response carries the allow-origin header", async () => {
+    const { handle } = makeRelay();
+    const preflight = await handle(
+      new Request("https://relay.test/v1/events", { method: "OPTIONS" }),
+    );
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers.get("access-control-allow-origin")).toBe("*");
+    expect(preflight.headers.get("access-control-allow-headers")).toContain("authorization");
+
+    const { session } = await login(handle, "reader@example.com");
+    const ok = await handle(get("/v1/account", session));
+    expect(ok.headers.get("access-control-allow-origin")).toBe("*");
+    const denied = await handle(get("/v1/account"));
+    expect(denied.headers.get("access-control-allow-origin")).toBe("*");
+  });
+});

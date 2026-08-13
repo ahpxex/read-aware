@@ -30,6 +30,8 @@ mod blobs;
 pub use blobs::*;
 mod events;
 pub use events::*;
+mod sync;
+pub use sync::*;
 mod reading_time;
 pub use reading_time::*;
 

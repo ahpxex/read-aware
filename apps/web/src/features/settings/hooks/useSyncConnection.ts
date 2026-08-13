@@ -5,11 +5,14 @@
  */
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { isTauri } from "../../../platform/environment";
+import { getSecret } from "../../../platform/secret-store";
 import { connectAccount, WrongPassphraseError } from "../../../platform/sync/connect";
+import { createRelayClient } from "../../../platform/sync/relay-client";
 import {
   disconnectSync,
   getSyncStatusSnapshot,
   persistConnection,
+  relayBaseUrl,
   subscribeSyncStatus,
   syncNow,
   syncRelayClient,
@@ -60,10 +63,21 @@ export function useSyncConnection() {
     async (tokenInput: string, passphrase: string): Promise<void> => {
       setBusy(true);
       try {
+        // The fresh session lives in this closure until the whole connect
+        // succeeds — publishKeys inside connectAccount must already carry it,
+        // while nothing durable is written before persistConnection.
+        let freshSession: string | null = null;
+        const relay = createRelayClient({
+          baseUrl: relayBaseUrl(),
+          session: () => freshSession ?? (getSecret("sync.session") || null),
+        });
         const result = await connectAccount({
-          relay: syncRelayClient(),
+          relay,
           token: parseMagicToken(tokenInput),
           passphrase,
+          onSession: (session) => {
+            freshSession = session;
+          },
         });
         await persistConnection(result);
         await reloadProfile();

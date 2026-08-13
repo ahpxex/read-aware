@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { HlcStamp } from "@read-aware/core";
 import { deriveMasterKey, sealEvent, type PlainEvent } from "../sync-envelope";
 import { connectAccount, WrongPassphraseError } from "./connect";
+import { RelayError } from "./relay-client";
 import {
   createSyncEngine,
   nextSyncDelayMs,
@@ -75,8 +76,13 @@ function fakeDevice() {
     },
     async markBlobsFailed(keys, error) {
       for (const k of keys) {
-        blobOutbox.delete(k);
         blobStates.set(k, `failed: ${error}`);
+      }
+    },
+    async markBlobsRejected(keys, error) {
+      for (const k of keys) {
+        blobOutbox.delete(k);
+        blobStates.set(k, `rejected: ${error}`);
       }
     },
     async readBlob(k) {
@@ -284,22 +290,29 @@ describe("two devices through one relay", () => {
     expect(await engineFor(b, relay).fetchBlob("bookfile:missing")).toBeNull();
   });
 
-  test("a blob the relay refuses is marked failed and does not dam the queue", async () => {
+  test("a 4xx refusal is terminal, a 5xx stays queued, and neither dams the queue", async () => {
     const relay = fakeRelay();
     const refusing: SyncRelayApi = {
       ...relay,
       async putBlob(key, bytes) {
-        if (key === "bookfile:huge") throw new Error("relay 413: quota");
+        if (key === "bookfile:huge") throw new RelayError(413, "blob exceeds the size cap");
+        if (key === "bookfile:flaky") throw new RelayError(503, "relay hiccup");
         return relay.putBlob(key, bytes);
       },
     };
     const a = fakeDevice();
     a.putLocalBlob("bookfile:huge", new Uint8Array(10));
+    a.putLocalBlob("bookfile:flaky", new Uint8Array(10));
     a.putLocalBlob("bookfile:ok", new Uint8Array(10));
 
     const uploaded = await engineFor(a, refusing).syncBlobsOnce();
     expect(uploaded).toBe(1);
-    expect(a.blobStates.get("bookfile:huge")).toContain("failed");
+    // The relay's final word: out of the outbox, never re-uploaded.
+    expect(a.blobStates.get("bookfile:huge")).toContain("rejected");
+    expect(a.blobOutbox.has("bookfile:huge")).toBe(false);
+    // Transient: stays queued for the next cycle.
+    expect(a.blobStates.get("bookfile:flaky")).toContain("failed");
+    expect(a.blobOutbox.has("bookfile:flaky")).toBe(true);
     expect(a.blobStates.get("bookfile:ok")).toBe("synced");
   });
 });
@@ -307,11 +320,20 @@ describe("two devices through one relay", () => {
 describe("connect flow", () => {
   const material = new Map<string, { kdfSalt: string; kdfParams: typeof TEST_KDF; keyCheck: string }>();
   function fakeAuthRelay(accountId: string) {
+    // Session enforcement mirrors production: publishKeys is an authed call,
+    // and the session only exists AFTER verify — a connect flow that fails to
+    // start serving the fresh session before publishing must fail here too
+    // (the exact bug the first live connect hit).
+    let sessionServed = false;
     return {
+      markSessionServed: () => {
+        sessionServed = true;
+      },
       async verifyMagicLink(_token: string) {
         return { session: "sess", accountId, keys: material.get(accountId) ?? null };
       },
       async publishKeys(keys: { kdfSalt: string; kdfParams: typeof TEST_KDF; keyCheck: string }) {
+        if (!sessionServed) throw new Error("relay 401: authentication required");
         if (material.has(accountId)) {
           return { outcome: "conflict" as const, keys: material.get(accountId) ?? null };
         }
@@ -328,12 +350,14 @@ describe("connect flow", () => {
       relay,
       token: "t1",
       passphrase: "鲸鱼在唱歌",
+      onSession: relay.markSessionServed,
       derive: (p, s) => deriveMasterKey(p, s, TEST_KDF),
     });
     const second = await connectAccount({
       relay,
       token: "t2",
       passphrase: "鲸鱼在唱歌",
+      onSession: relay.markSessionServed,
       derive: (p, s) => deriveMasterKey(p, s, TEST_KDF),
     });
     expect(second.masterKeyBase64).toBe(first.masterKeyBase64);
@@ -343,9 +367,25 @@ describe("connect flow", () => {
         relay,
         token: "t3",
         passphrase: "打错了",
+        onSession: relay.markSessionServed,
         derive: (p, s) => deriveMasterKey(p, s, TEST_KDF),
       }),
     ).rejects.toThrow(WrongPassphraseError);
+  });
+
+  test("the first device's key publish already carries the fresh session", async () => {
+    material.clear();
+    const relay = fakeAuthRelay("acc-3");
+    // Without onSession wiring the publish goes out unauthenticated — the
+    // regression that burned a live sign-in token on first deploy.
+    await expect(
+      connectAccount({
+        relay,
+        token: "t",
+        passphrase: "鲸鱼在唱歌",
+        derive: (p, s) => deriveMasterKey(p, s, TEST_KDF),
+      }),
+    ).rejects.toThrow(/401/);
   });
 
   test("losing the publish race falls back to verifying the winner's material", async () => {

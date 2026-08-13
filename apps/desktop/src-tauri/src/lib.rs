@@ -816,6 +816,7 @@ pub fn run() {
             storage::sync_outbox_blobs,
             storage::sync_mark_blobs_pushed,
             storage::sync_mark_blobs_failed,
+            storage::sync_mark_blobs_rejected,
             storage::put_blob,
             storage::put_blob_from_file,
             storage::get_blob,

@@ -372,6 +372,20 @@ pub fn sync_mark_blobs_pushed(keys: Vec<String>, db: State<'_, Db>) -> Result<()
     sync_mark_blobs_inner(&mut conn, &keys, "synced", None)
 }
 
+/// Permanent refusal (over the size cap, quota exhausted, missing bytes):
+/// `rejected` is EXCLUDED from the outbox query, so the loop stops re-uploading
+/// tens of megabytes into a guaranteed 413 every cycle. Re-enqueue happens
+/// naturally if the blob is ever re-put.
+#[tauri::command]
+pub fn sync_mark_blobs_rejected(
+    keys: Vec<String>,
+    error: String,
+    db: State<'_, Db>,
+) -> Result<(), String> {
+    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+    sync_mark_blobs_inner(&mut conn, &keys, "rejected", Some(&error))
+}
+
 #[tauri::command]
 pub fn sync_mark_blobs_failed(
     keys: Vec<String>,

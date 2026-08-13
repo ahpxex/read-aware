@@ -37,6 +37,13 @@ export type ConnectOptions = {
   relay: Pick<RelayClient, "verifyMagicLink" | "publishKeys">;
   token: string;
   passphrase: string;
+  /**
+   * Called with the fresh session token IMMEDIATELY after verification, BEFORE
+   * `publishKeys` fires — the relay client's session provider must start
+   * serving it here, or the first device's key publish goes out unauthenticated
+   * and 401s (with the single-use sign-in token already burned).
+   */
+  onSession?: (session: string) => void;
   /** Injectable for tests (Argon2id at production cost is deliberately slow). */
   derive?: (passphrase: string, salt: string, params: KdfParams) => Uint8Array;
   kdfParams?: KdfParams;
@@ -45,12 +52,12 @@ export type ConnectOptions = {
 /**
  * Note the session-before-key order: `verifyMagicLink` must run first because
  * `publishKeys` needs the session — but the caller should treat the result as
- * all-or-nothing and store nothing until this resolves.
+ * all-or-nothing and store nothing durable until this resolves.
  */
 export async function connectAccount(options: ConnectOptions): Promise<ConnectResult> {
   const derive = options.derive ?? deriveMasterKey;
   const { session, accountId, keys } = await options.relay.verifyMagicLink(options.token);
-  const sessionRelay = { publishKeys: options.relay.publishKeys };
+  options.onSession?.(session);
 
   const verifyAgainst = (material: SyncKeyMaterial): Uint8Array => {
     const key = derive(options.passphrase, material.kdfSalt, material.kdfParams);
@@ -67,7 +74,9 @@ export async function connectAccount(options: ConnectOptions): Promise<ConnectRe
   const params = options.kdfParams ?? DEFAULT_KDF_PARAMS;
   const salt = newKdfSalt();
   const key = derive(options.passphrase, salt, params);
-  const published = await sessionRelay.publishKeys({
+  // Called on the relay object (not a detached reference): publishKeys uses
+  // `this.account()` on its 409 path.
+  const published = await options.relay.publishKeys({
     kdfSalt: salt,
     kdfParams: params,
     keyCheck: makeKeyCheck(key),

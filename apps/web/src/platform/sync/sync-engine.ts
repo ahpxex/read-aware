@@ -34,7 +34,10 @@ export type SyncLocalStore = {
   setEventsCursor(cursor: number, hlc: HlcStamp | null): Promise<void>;
   outboxBlobs(limit: number): Promise<Array<{ key: string }>>;
   markBlobsPushed(keys: string[]): Promise<void>;
+  /** Transient failure (network, 5xx): stays in the outbox for retry. */
   markBlobsFailed(keys: string[], error: string): Promise<void>;
+  /** Permanent refusal (4xx: size cap, quota, missing bytes): leaves the outbox. */
+  markBlobsRejected(keys: string[], error: string): Promise<void>;
   readBlob(key: string): Promise<Uint8Array | null>;
   writeBlob(key: string, bytes: Uint8Array): Promise<void>;
   touch(kind: "push" | "pull"): Promise<void>;
@@ -159,19 +162,24 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
       try {
         const bytes = await store.readBlob(task.key);
         if (!bytes) {
-          // Manifest-only or vanished bytes: nothing to push, don't retry forever.
-          await store.markBlobsFailed([task.key], "no local bytes to upload");
+          // Manifest-only or vanished bytes: nothing to push, ever.
+          await store.markBlobsRejected([task.key], "no local bytes to upload");
           continue;
         }
         await relay.putBlob(task.key, sealBlob(key, task.key, bytes));
         await store.markBlobsPushed([task.key]);
         uploaded += 1;
       } catch (error) {
-        // One stuck blob (quota, size cap) must not dam the queue behind it.
-        await store.markBlobsFailed(
-          [task.key],
-          error instanceof Error ? error.message : String(error),
-        );
+        const message = error instanceof Error ? error.message : String(error);
+        // A 4xx is the relay's final word (size cap, quota) — retrying re-uploads
+        // the whole file into a guaranteed refusal every cycle. Only transient
+        // failures stay queued. One stuck blob never dams the queue behind it.
+        const status = (error as { status?: number }).status;
+        if (typeof status === "number" && status >= 400 && status < 500) {
+          await store.markBlobsRejected([task.key], message);
+        } else {
+          await store.markBlobsFailed([task.key], message);
+        }
       }
     }
     return uploaded;

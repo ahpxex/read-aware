@@ -34,6 +34,7 @@ export function createIpcSyncStore(): SyncLocalStore {
     outboxBlobs: (limit) => invoke<Array<{ key: string }>>("sync_outbox_blobs", { limit }),
     markBlobsPushed: (keys) => invoke("sync_mark_blobs_pushed", { keys }),
     markBlobsFailed: (keys, error) => invoke("sync_mark_blobs_failed", { keys, error }),
+    markBlobsRejected: (keys, error) => invoke("sync_mark_blobs_rejected", { keys, error }),
     readBlob: (key) => getDesktopBlob(key),
     async writeBlob(key, bytes) {
       await putDesktopBlob(key, bytes);

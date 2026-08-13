@@ -72,6 +72,8 @@ fn fresh_migrate_reaches_latest_and_retires_interim_tables() {
         "reading_time_daily",
         "reading_time_hourly",
         "plugin_documents",
+        "sync_profile",
+        "sync_cursors",
     ] {
         assert!(table_exists(&conn, table), "missing table {table}");
     }
@@ -1070,6 +1072,300 @@ fn the_secret_key_file_is_owner_only() {
             .mode();
         assert_eq!(mode & 0o777, 0o600, "got {:o}", mode & 0o777);
     }
+}
+
+// ─── Sync merge: apply_remote_events and cross-device convergence ────────────
+
+fn ev_on(device: &str, id: &str, wall: i64, kind: &str, payload: serde_json::Value) -> EventRow {
+    EventRow {
+        hlc: Hlc {
+            wall_ms: wall,
+            counter: 0,
+            device_id: device.to_string(),
+        },
+        ..ev(id, wall, kind, payload)
+    }
+}
+
+fn all_events(conn: &Connection) -> Vec<EventRow> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT * FROM domain_events
+             ORDER BY hlc_wall_ms, hlc_counter, hlc_device",
+        )
+        .unwrap();
+    let events = stmt
+        .query_map([], row_to_event)
+        .unwrap()
+        .map(Result::unwrap)
+        .collect();
+    events
+}
+
+/// Every event-derived table as canonical row multisets — the "are these two
+/// devices in the same state" comparison the convergence tests are about.
+fn projection_snapshots(
+    conn: &mut Connection,
+) -> std::collections::BTreeMap<&'static str, std::collections::BTreeMap<String, i64>> {
+    let tx = conn.transaction().unwrap();
+    let mut out = std::collections::BTreeMap::new();
+    for spec in apply::DIFF_SPECS {
+        out.insert(spec.table, snapshot_table(&tx, spec).unwrap());
+    }
+    tx.rollback().unwrap();
+    out
+}
+
+#[test]
+fn merged_remote_events_apply_but_never_enter_the_outbox() {
+    let mut conn = migrated_conn();
+    let report = apply_remote_events_inner(
+        &mut conn,
+        &[
+            imported("r1", 1_000, "b1", "沙丘"),
+            ev_on(
+                "device-b",
+                "r2",
+                1_001,
+                "highlight.created",
+                serde_json::json!({ "highlightId": "h1", "bookId": "b1", "text": "香料" }),
+            ),
+        ],
+    )
+    .unwrap();
+    assert_eq!(report.appended, 2);
+    assert_eq!(report.applied, 2);
+    assert!(!report.replayed);
+    assert_eq!(scalar::<String>(&conn, "SELECT title FROM books WHERE id='b1'"), "沙丘");
+    // The whole point of the Remote source: a pull must not echo back as a push.
+    assert_eq!(scalar::<i64>(&conn, "SELECT COUNT(*) FROM event_sync_state"), 0);
+
+    // Redelivery of an already-merged batch is a complete no-op.
+    let again = apply_remote_events_inner(&mut conn, &[imported("r1", 1_000, "b1", "沙丘")]).unwrap();
+    assert_eq!(again.appended, 0);
+    assert!(!again.replayed);
+}
+
+#[test]
+fn an_event_behind_the_frontier_replays_instead_of_clobbering() {
+    let mut conn = migrated_conn();
+    commit_events_inner(
+        &mut conn,
+        &[
+            imported("e1", 1_000, "b1", "狼厅"),
+            ev(
+                "e2",
+                3_000,
+                "book.metadataEdited",
+                serde_json::json!({ "bookId": "b1", "title": "新标题" }),
+            ),
+        ],
+    )
+    .unwrap();
+
+    // A peer edited the same book while apart — its stamp sorts BEFORE ours.
+    // Applying it incrementally would overwrite the newer title with the older.
+    let report = apply_remote_events_inner(
+        &mut conn,
+        &[ev_on(
+            "device-b",
+            "r1",
+            2_000,
+            "book.metadataEdited",
+            serde_json::json!({ "bookId": "b1", "title": "旧标题" }),
+        )],
+    )
+    .unwrap();
+    assert_eq!(report.appended, 1);
+    assert!(report.replayed, "an out-of-order merge must rebuild, not apply on top");
+    assert_eq!(
+        scalar::<String>(&conn, "SELECT title FROM books WHERE id='b1'"),
+        "新标题",
+        "HLC order decides, not arrival order"
+    );
+    // Local writes committed before the merge still owe the relay their push.
+    assert_eq!(scalar::<i64>(&conn, "SELECT COUNT(*) FROM event_sync_state"), 2);
+}
+
+#[test]
+fn two_devices_converge_regardless_of_merge_path() {
+    // The phase-1 acceptance property (docs/sync-engine.md §10): two devices
+    // diverge from a shared history, cross-feed each other's logs, and every
+    // projection table ends byte-identical — one side via the incremental
+    // fast path, the other via the replay fallback.
+    let mut a = migrated_conn();
+    let mut b = migrated_conn();
+
+    // Shared history: the same import synced earlier (same envelope on both).
+    let genesis = imported("e1", 1_000, "b1", "克拉拉与太阳");
+    commit_events_inner(&mut a, std::slice::from_ref(&genesis)).unwrap();
+    apply_remote_events_inner(&mut b, std::slice::from_ref(&genesis)).unwrap();
+
+    // Apart: A annotates and retitles early; B reorganizes and retitles later.
+    commit_events_inner(
+        &mut a,
+        &[
+            ev_on(
+                "device-a",
+                "a1",
+                2_000,
+                "book.metadataEdited",
+                serde_json::json!({ "bookId": "b1", "title": "A 的标题" }),
+            ),
+            ev_on(
+                "device-a",
+                "a2",
+                2_500,
+                "highlight.created",
+                serde_json::json!({ "highlightId": "h1", "bookId": "b1", "text": "太阳的养分" }),
+            ),
+        ],
+    )
+    .unwrap();
+    commit_events_inner(
+        &mut b,
+        &[
+            ev_on(
+                "device-b",
+                "b1e",
+                3_000,
+                "book.metadataEdited",
+                serde_json::json!({ "bookId": "b1", "title": "B 的标题" }),
+            ),
+            ev_on(
+                "device-b",
+                "b2e",
+                3_100,
+                "collection.created",
+                serde_json::json!({ "collectionId": "c1", "name": "科幻" }),
+            ),
+            ev_on(
+                "device-b",
+                "b3e",
+                3_200,
+                "book.addedToCollection",
+                serde_json::json!({ "bookId": "b1", "collectionId": "c1" }),
+            ),
+        ],
+    )
+    .unwrap();
+
+    // Cross-feed. Relay order is arrival order, not HLC order — hand each side
+    // the other's events REVERSED to prove the merge sorts for itself.
+    let from_b: Vec<EventRow> = all_events(&b).into_iter().rev().collect();
+    let from_a: Vec<EventRow> = all_events(&a).into_iter().rev().collect();
+    let a_report = apply_remote_events_inner(&mut a, &from_b).unwrap();
+    let b_report = apply_remote_events_inner(&mut b, &from_a).unwrap();
+
+    // A only received events past its frontier; B received events behind it.
+    assert_eq!(a_report.appended, 3);
+    assert!(!a_report.replayed, "all of B's news extends A's frontier");
+    assert_eq!(b_report.appended, 2);
+    assert!(b_report.replayed, "A's news lands behind B's frontier");
+
+    // Same log...
+    let log_a: Vec<String> = all_events(&a).iter().map(|e| e.id.clone()).collect();
+    let log_b: Vec<String> = all_events(&b).iter().map(|e| e.id.clone()).collect();
+    assert_eq!(log_a, log_b);
+    // ...same projections, byte for byte, on every diffable table.
+    assert_eq!(projection_snapshots(&mut a), projection_snapshots(&mut b));
+    // And the HLC-latest edit won on both sides.
+    for conn in [&a, &b] {
+        assert_eq!(
+            scalar::<String>(conn, "SELECT title FROM books WHERE id='b1'"),
+            "B 的标题"
+        );
+        assert_eq!(
+            scalar::<String>(conn, "SELECT collection_id FROM books WHERE id='b1'"),
+            "c1"
+        );
+    }
+
+    // Outboxes still hold exactly what each device authored — nothing merged.
+    let a_outbox: i64 = scalar(&a, "SELECT COUNT(*) FROM event_sync_state");
+    let b_outbox: i64 = scalar(&b, "SELECT COUNT(*) FROM event_sync_state");
+    assert_eq!(a_outbox, 3, "genesis + A's two edits");
+    assert_eq!(b_outbox, 3, "B's three edits, not the merged genesis");
+}
+
+#[test]
+fn replaying_an_import_materializes_the_blob_manifest() {
+    // New-device bootstrap (docs/data-model.md §9): replaying the log must
+    // leave `blob_objects` rows behind for every referenced blob, or the shelf
+    // renders books whose bytes can never be fetched.
+    let mut conn = migrated_conn();
+    apply_remote_events_inner(
+        &mut conn,
+        &[
+            ev_on(
+                "device-b",
+                "r1",
+                1_000,
+                "book.imported",
+                serde_json::json!({
+                    "bookId": "b1", "title": "沙丘", "author": "赫伯特",
+                    "format": "epub", "fileName": "dune.epub", "fileSize": 42,
+                    "mimeType": "application/epub+zip",
+                    "sourceBlobKey": "bookfile:b1", "sourceSha256": "abc123",
+                }),
+            ),
+            ev_on(
+                "device-b",
+                "r2",
+                1_001,
+                "book.coverExtracted",
+                serde_json::json!({ "bookId": "b1", "status": "ready", "coverBlobKey": "cover:b1" }),
+            ),
+        ],
+    )
+    .unwrap();
+
+    let (kind, uri, sync_required, size, sha): (String, Option<String>, i64, i64, String) = conn
+        .query_row(
+            "SELECT kind, storage_uri, sync_required, byte_size, sha256
+               FROM blob_objects WHERE key = 'bookfile:b1'",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)),
+        )
+        .unwrap();
+    assert_eq!(kind, "book_source");
+    assert!(uri.is_none(), "NULL storage_uri = known remotely, not fetched");
+    assert_eq!(sync_required, 1);
+    assert_eq!(size, 42);
+    assert_eq!(sha, "abc123");
+    assert_eq!(
+        scalar::<String>(&conn, "SELECT kind FROM blob_objects WHERE key = 'cover:b1'"),
+        "cover_image"
+    );
+    // A manifest row is not a local upload: the blob outbox stays empty.
+    assert_eq!(scalar::<i64>(&conn, "SELECT COUNT(*) FROM blob_sync_state"), 0);
+}
+
+#[test]
+fn the_blob_manifest_never_clobbers_a_registry_row_that_has_the_bytes() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let mut conn = migrated_conn();
+    put_blob_inner(
+        &conn,
+        dir.path(),
+        "bookfile:b1",
+        Some("application/epub+zip"),
+        b"real bytes",
+    )
+    .expect("put");
+
+    // The import event arrives after the bytes (the local import flow), or is
+    // replayed over an existing registry during rebuild — either way the row
+    // that knows where the bytes live must win.
+    commit_events_inner(&mut conn, &[imported("e1", 1_000, "b1", "沙丘")]).unwrap();
+    let uri: Option<String> = conn
+        .query_row(
+            "SELECT storage_uri FROM blob_objects WHERE key = 'bookfile:b1'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(uri.as_deref(), Some("blobs/bookfile%3Ab1"));
 }
 
 #[test]

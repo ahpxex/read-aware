@@ -799,6 +799,7 @@ pub fn run() {
             pdf_metadata::extract_pdf_metadata,
             storage::append_events,
             storage::commit_events,
+            storage::apply_remote_events,
             storage::rebuild_projections,
             storage::verify_projections,
             storage::read_events_since,

@@ -355,7 +355,7 @@ pub(crate) fn reading_time_genesis_inner(conn: &mut Connection) -> Result<usize,
     // computed from.
     let tx = conn.transaction().map_err(|e| e.to_string())?;
     for event in &events {
-        insert_event_row(&tx, event)?;
+        insert_event_row(&tx, event, EventSource::Local)?;
     }
     tx.commit().map_err(|e| e.to_string())?;
     Ok(events.len())

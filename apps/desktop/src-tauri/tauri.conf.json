@@ -30,7 +30,7 @@
       "dangerousDisableAssetCspModification": [
         "style-src"
       ],
-      "csp": "default-src 'self'; img-src 'self' blob: data: raplugin: http://raplugin.localhost; media-src 'self' blob: data:; style-src 'self' 'unsafe-inline' blob:; font-src 'self' data: blob: raplugin: http://raplugin.localhost; script-src 'self' 'wasm-unsafe-eval' raplugin: http://raplugin.localhost; worker-src 'self' blob:; frame-src 'self' blob:; connect-src 'self' ipc: http://ipc.localhost blob: https: http://localhost:* http://127.0.0.1:*",
+      "csp": "default-src 'self'; img-src 'self' blob: data: raplugin: http://raplugin.localhost; media-src 'self' blob: data:; style-src 'self' 'unsafe-inline' blob:; font-src 'self' data: blob: raplugin: http://raplugin.localhost; script-src 'self' 'wasm-unsafe-eval' raplugin: http://raplugin.localhost; worker-src 'self' blob:; frame-src 'self' blob:; connect-src 'self' ipc: http://ipc.localhost blob: https: http://localhost:* http://127.0.0.1:* http://10.0.2.2:*",
       "devCsp": "default-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data:; img-src 'self' blob: data: https: http: raplugin:; media-src 'self' blob: data: https: http:; style-src 'self' 'unsafe-inline'; font-src 'self' data: blob: https: raplugin: http://raplugin.localhost; script-src 'self' 'unsafe-inline' 'unsafe-eval' raplugin: http://raplugin.localhost; worker-src 'self' blob:; connect-src 'self' ws: wss: http: https:"
     }
   },

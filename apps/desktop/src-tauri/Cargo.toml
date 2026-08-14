@@ -59,6 +59,10 @@ tauri-plugin-opener = "2"
 # navigator.clipboard.write for images (NotAllowedError), so the reader's
 # image viewer copies through this plugin instead.
 tauri-plugin-clipboard-manager = "2"
+# readaware:// deep links (sync sign-in hand-off from the browser/email back
+# into the app). Desktop scheme registration + mobile intent routing; the
+# frontend consumes URLs via @tauri-apps/plugin-deep-link.
+tauri-plugin-deep-link = "2"
 
 # Desktop only: window-chrome helpers and the dev-time MCP bridge. Neither
 # compiles for (or makes sense on) Android/iOS, where the webview is fullscreen.
@@ -66,7 +70,10 @@ tauri-plugin-clipboard-manager = "2"
 # File associations: double-clicking a book while the app runs must reach the
 # EXISTING instance (two processes would race the SQLite db). The callback
 # relays the second launch's argv to external_open.
-tauri-plugin-single-instance = "2"
+# The "deep-link" feature forwards a second launch's readaware:// argv
+# (Windows/Linux deliver deep links as plain launch arguments) to the
+# deep-link plugin, so warm-start links fire on_open_url like every other.
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 # Signed desktop release checks and installation. The updater is unsupported on
 # mobile, where store-managed updates remain the platform-native path.
 tauri-plugin-updater = "2"

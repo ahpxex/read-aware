@@ -30,6 +30,7 @@ import { newGlobalThreadId } from "./features/ai/lib/conversation-store";
 import { activeGlobalThreadAtom } from "./features/ai/state/global-thread";
 import { useReaderSession } from "./features/reader/hooks/useReaderSession";
 import { useGlobalShortcuts } from "./features/settings/hooks/useGlobalShortcuts";
+import { useSyncLoginDeepLink } from "./features/settings/hooks/useSyncLoginDeepLink";
 import { usePluginCommandShortcuts } from "./features/plugins/hooks/usePluginCommandShortcuts";
 import { useSurfaceHandoff } from "./hooks/useSurfaceHandoff";
 import { emitAppEvent } from "./platform/app-events";
@@ -137,6 +138,8 @@ function App() {
   }, []);
 
   usePluginCommandShortcuts();
+  // Sign-in links (readaware://sync/login/…) land in Settings → Data & Sync.
+  useSyncLoginDeepLink();
 
   const [activeTopNav, setActiveTopNav] = useAtom(activeTopNavAtom);
   const setActiveGlobalThreadId = useSetAtom(activeGlobalThreadAtom);

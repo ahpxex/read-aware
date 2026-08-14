@@ -712,6 +712,11 @@ pub fn run() {
     #[cfg_attr(mobile, allow(unused_mut))]
     let mut builder = builder
         .plugin(tauri_plugin_dialog::init())
+        // readaware:// links (sync sign-in hand-off). The frontend consumes
+        // the URLs via the plugin's JS API — getCurrent() covers cold starts,
+        // onOpenUrl the running app; the setup hook below only surfaces the
+        // window when a link lands.
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -728,6 +733,32 @@ pub fn run() {
         .manage(storage::BlobReadSessions::default())
         .manage(storage::BlobWriteSessions::default())
         .setup(|app| {
+            // A deep link landing while the app runs should bring the window
+            // forward — the user just clicked a sign-in link in their browser
+            // or mail client. The URLs themselves are consumed by the
+            // frontend through the plugin's JS API, not here.
+            #[cfg(desktop)]
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                let handle = app.handle().clone();
+                app.deep_link().on_open_url(move |_event| {
+                    if let Some(window) = handle.get_webview_window("main") {
+                        let _ = window.show();
+                        let _ = window.unminimize();
+                        let _ = window.set_focus();
+                    }
+                });
+            }
+            // Linux and dev-mode Windows only register schemes at install
+            // time; force-register so `tauri dev` and AppImage runs get
+            // working readaware:// links too. (macOS registration comes from
+            // the app bundle's Info.plist; there is nothing to do at runtime.)
+            #[cfg(any(target_os = "linux", all(debug_assertions, windows)))]
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                app.deep_link().register_all()?;
+            }
+
             let (conn, data_dir) =
                 storage::init_db(app.handle()).expect("failed to initialize database");
             // Read the persisted theme preference BEFORE the main window exists

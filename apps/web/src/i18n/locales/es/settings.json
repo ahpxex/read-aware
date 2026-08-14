@@ -372,7 +372,9 @@
       "google": "Continuar con Google",
       "github": "Continuar con GitHub",
       "orEmail": "o con correo",
-      "oauthStarted": "Termina el acceso en el navegador y pega abajo el token que muestra."
+      "oauthStarted": "Termina el acceso en el navegador y pega abajo el token que muestra.",
+      "back": "Volver",
+      "linkReady": "Has iniciado sesión. Establece tu frase de cifrado para terminar."
     },
     "connected": {
       "description": "Conectado ({{account}}). Los cambios se sincronizan por el relé cifrado.",

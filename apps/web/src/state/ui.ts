@@ -93,6 +93,14 @@ export type SettingsSectionId = CoreSettingsSectionId | `plugin:${string}`;
  */
 export const settingsSectionRequestAtom = atom<SettingsSectionId | null>(null);
 
+/**
+ * One-shot: a sync sign-in token that arrived through a readaware:// deep
+ * link (email magic link or the relay's OAuth finish page). Set by the
+ * deep-link listener alongside opening Settings → Data & Sync; the connect
+ * dialog consumes and clears it.
+ */
+export const syncLoginTokenAtom = atom<string | null>(null);
+
 /** Resolved app chrome theme (`light`/`dark`), kept current by `useAppearance`. */
 export const resolvedAppThemeAtom = atom<"light" | "dark">(
   resolveAppTheme(getAppSettings().theme),

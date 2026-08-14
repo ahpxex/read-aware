@@ -364,7 +364,9 @@
       "google": "使用 Google 登入",
       "github": "使用 GitHub 登入",
       "orEmail": "或使用電子郵件",
-      "oauthStarted": "在瀏覽器完成登入，然後把頁面顯示的權杖貼到下方。"
+      "oauthStarted": "在瀏覽器完成登入，然後把頁面顯示的權杖貼到下方。",
+      "back": "返回",
+      "linkReady": "已透過連結登入。設定加密口令即可完成連接。"
     },
     "connected": {
       "description": "已連線（{{account}}）。變更會經加密中繼同步。",

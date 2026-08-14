@@ -368,7 +368,9 @@
       "google": "Continue with Google",
       "github": "Continue with GitHub",
       "orEmail": "or use email",
-      "oauthStarted": "Finish signing in in the browser, then paste the token it shows below."
+      "oauthStarted": "Finish signing in in the browser, then paste the token it shows below.",
+      "back": "Back",
+      "linkReady": "You're signed in. Set your encryption passphrase to finish."
     },
     "connected": {
       "description": "Connected ({{account}}). Changes sync through the encrypted relay.",

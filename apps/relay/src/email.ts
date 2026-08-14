@@ -15,8 +15,14 @@ export function resendMagicLinkSender(
 ): MagicLinkSender {
   return {
     async send(email, token) {
+      // The https link is the ONE link: mail clients reliably linkify it, and
+      // the page it opens (landing /sync/login) fires the readaware:// deep
+      // link into the app, with a copyable token as fallback. A raw custom-
+      // scheme link would not even be clickable in most clients. The token
+      // rides the URL fragment, which never reaches the landing's server —
+      // and pasting this whole link into the app also works (the token field
+      // parses it).
       const webLink = `${appOrigin}/sync/login#${token}`;
-      const deepLink = `readaware://sync/login/${token}`;
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -28,11 +34,11 @@ export function resendMagicLinkSender(
           to: [email],
           subject: "Sign in to ReadAware Sync",
           text: [
-            "Open ReadAware and use this link to finish signing in:",
+            "Click this link to finish signing in to ReadAware:",
             "",
-            deepLink,
+            webLink,
             "",
-            `If the link does not open the app: ${webLink}`,
+            "If it does not open the app, paste the link into ReadAware's Data & Sync settings instead.",
             "",
             "The link expires in 15 minutes. If you did not request it, ignore this email.",
           ].join("\n"),

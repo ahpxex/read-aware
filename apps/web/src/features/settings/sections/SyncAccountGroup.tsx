@@ -1,36 +1,41 @@
 /**
- * The Sync group of the Data & Sync panel: connect an account (magic link +
- * E2E passphrase), or — once connected — status, "sync now", and disconnect.
- * Replaces the pre-sync PendingBadge placeholders.
+ * The Sync group of the Data & Sync panel. Disconnected it is one quiet row
+ * with a "Connect account" button — the whole sign-in flow lives in
+ * SyncConnectDialog. Connected it shows the account, the last-sync status
+ * line, and the "sync now" / disconnect actions.
  */
-import { useState } from "react";
-import { Button, Caption, Dialog, TextField, useToast } from "@read-aware/ui";
+import { useEffect, useState } from "react";
+import { useAtom } from "jotai";
+import { Button, Dialog, useToast } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { isTauri } from "../../../platform/environment";
-import { openExternalUrl } from "../../../platform/external-link";
-import { relayBaseUrl } from "../../../platform/sync/sync-scheduler";
+import { syncLoginTokenAtom } from "../../../state/ui";
 import { PendingBadge } from "../components/PendingBadge";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsRow } from "../components/SettingsRow";
-import {
-  MIN_PASSPHRASE_LENGTH,
-  useSyncConnection,
-  WrongPassphraseError,
-} from "../hooks/useSyncConnection";
+import { useSyncConnection } from "../hooks/useSyncConnection";
+import { SyncConnectDialog } from "./SyncConnectDialog";
 
 export function SyncAccountGroup() {
   const { t } = useTranslation("settings");
   const { toast } = useToast();
   const sync = useSyncConnection();
 
-  const [email, setEmail] = useState("");
-  const [linkSent, setLinkSent] = useState(false);
-  /** Which door the user walked through — decides the paste-back hint. */
-  const [signInVia, setSignInVia] = useState<"email" | "oauth">("email");
-  const [token, setToken] = useState("");
-  const [passphrase, setPassphrase] = useState("");
-  const [passphraseError, setPassphraseError] = useState<string | null>(null);
+  const [connectOpen, setConnectOpen] = useState(false);
   const [disconnectOpen, setDisconnectOpen] = useState(false);
+
+  // A deep-linked sign-in token opens the connect dialog, which consumes the
+  // atom itself. Already connected, the link has nothing left to do.
+  const [linkToken, setLinkToken] = useAtom(syncLoginTokenAtom);
+  const { connected } = sync;
+  useEffect(() => {
+    if (!linkToken) return;
+    if (connected) {
+      setLinkToken(null);
+      return;
+    }
+    setConnectOpen(true);
+  }, [linkToken, connected, setLinkToken]);
 
   // The web shell has no store and no sync — keep the pre-sync placeholder.
   if (!isTauri()) {
@@ -45,61 +50,6 @@ export function SyncAccountGroup() {
     );
   }
 
-  const handleOauth = (provider: "google" | "github") => {
-    // The dance finishes in the system browser, which shows a one-time token
-    // to paste below — the same token field the magic link uses.
-    void openExternalUrl(`${relayBaseUrl()}/v1/auth/oauth/${provider}/start`);
-    setSignInVia("oauth");
-    setLinkSent(true);
-  };
-
-  const handleSend = async () => {
-    try {
-      const devToken = await sync.sendLink(email);
-      setSignInVia("email");
-      setLinkSent(true);
-      if (devToken) setToken(devToken);
-    } catch (error) {
-      console.error("[sync] magic link request failed", error);
-      toast({
-        variant: "destructive",
-        title: t("dataSync.noticeError"),
-        description: t("dataSync.connect.failed"),
-      });
-    }
-  };
-
-  const handleConnect = async () => {
-    if (passphrase.length < MIN_PASSPHRASE_LENGTH) {
-      setPassphraseError(t("dataSync.connect.passphraseTooShort"));
-      return;
-    }
-    setPassphraseError(null);
-    try {
-      await sync.connect(token, passphrase);
-      setEmail("");
-      setToken("");
-      setPassphrase("");
-      setLinkSent(false);
-      toast({
-        variant: "success",
-        title: t("dataSync.noticeDone"),
-        description: t("dataSync.connect.connected"),
-      });
-    } catch (error) {
-      if (error instanceof WrongPassphraseError) {
-        setPassphraseError(t("dataSync.connect.wrongPassphrase"));
-        return;
-      }
-      console.error("[sync] connect failed", error);
-      toast({
-        variant: "destructive",
-        title: t("dataSync.noticeError"),
-        description: t("dataSync.connect.failed"),
-      });
-    }
-  };
-
   const handleSyncNow = async () => {
     try {
       await sync.requestSyncNow();
@@ -113,132 +63,88 @@ export function SyncAccountGroup() {
     }
   };
 
-  if (sync.connected) {
-    const syncing = sync.status.state === "syncing";
-    const statusLine =
-      sync.status.state === "error"
-        ? t("dataSync.syncStatus.error")
-        : sync.status.lastSyncAt
-          ? t("dataSync.syncStatus.lastSync", {
-              time: new Date(sync.status.lastSyncAt).toLocaleTimeString(),
-            })
-          : t("dataSync.syncStatus.never");
+  if (!sync.connected) {
     return (
       <SettingsGroup title={t("dataSync.sync")}>
         <SettingsRow
           borderless
           title={t("dataSync.account.title")}
-          description={t("dataSync.connected.description", {
-            account: sync.profile?.remoteAccountId ?? "",
-          })}
+          description={t("dataSync.account.description")}
           control={
-            <span className="flex items-center gap-2">
-              <Caption className="text-fg-muted">{statusLine}</Caption>
-              <Button size="sm" variant="outline" disabled={syncing} onClick={() => void handleSyncNow()}>
-                {syncing ? t("dataSync.syncStatus.syncing") : t("dataSync.connected.syncNow")}
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setDisconnectOpen(true)}>
-                {t("dataSync.connected.disconnect")}
-              </Button>
-            </span>
+            <Button size="sm" onClick={() => setConnectOpen(true)}>
+              {t("dataSync.connectAccount")}
+            </Button>
           }
         />
-        <SettingsRow
-          title={t("dataSync.e2e.title")}
-          description={t("dataSync.e2e.active")}
-        />
-        <Dialog
-          open={disconnectOpen}
-          onClose={() => setDisconnectOpen(false)}
-          title={t("dataSync.connected.disconnectTitle")}
-        >
-          <div className="space-y-4">
-            <p>{t("dataSync.connected.disconnectBody")}</p>
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setDisconnectOpen(false)}>
-                {t("dataSync.connected.cancel")}
-              </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => {
-                  setDisconnectOpen(false);
-                  void sync.disconnect();
-                }}
-              >
-                {t("dataSync.connected.disconnect")}
-              </Button>
-            </div>
-          </div>
-        </Dialog>
+        <SyncConnectDialog open={connectOpen} onClose={() => setConnectOpen(false)} sync={sync} />
       </SettingsGroup>
     );
   }
 
+  const syncing = sync.status.state === "syncing";
+  const statusLine =
+    sync.status.state === "error"
+      ? t("dataSync.syncStatus.error")
+      : sync.status.lastSyncAt
+        ? t("dataSync.syncStatus.lastSync", {
+            time: new Date(sync.status.lastSyncAt).toLocaleTimeString(),
+          })
+        : t("dataSync.syncStatus.never");
+
   return (
-    <SettingsGroup title={t("dataSync.sync")} description={t("dataSync.account.description")}>
-      <div className="space-y-4 py-3">
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={() => handleOauth("google")}>
-            {t("dataSync.connect.google")}
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => handleOauth("github")}>
-            {t("dataSync.connect.github")}
-          </Button>
-          <Caption className="text-fg-muted">{t("dataSync.connect.orEmail")}</Caption>
-        </div>
-        <div className="flex items-end gap-3">
-          <TextField
-            className="flex-1"
-            label={t("dataSync.connect.emailLabel")}
-            type="email"
-            placeholder={t("dataSync.connect.emailPlaceholder")}
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            autoComplete="email"
-          />
-          <Button
-            size="sm"
-            disabled={sync.busy || !email.includes("@")}
-            onClick={() => void handleSend()}
-          >
-            {sync.busy && !linkSent ? t("dataSync.connect.sending") : t("dataSync.connect.send")}
-          </Button>
-        </div>
-        {linkSent && (
+    <SettingsGroup title={t("dataSync.sync")}>
+      <SettingsRow
+        borderless
+        title={t("dataSync.account.title")}
+        description={
           <>
-            <Caption className="text-fg-muted">
-              {signInVia === "oauth"
-                ? t("dataSync.connect.oauthStarted")
-                : t("dataSync.connect.sent")}
-            </Caption>
-            <TextField
-              label={t("dataSync.connect.tokenLabel")}
-              value={token}
-              onChange={(event) => setToken(event.target.value)}
-              autoComplete="off"
-            />
-            <TextField
-              label={t("dataSync.connect.passphraseLabel")}
-              type="password"
-              value={passphrase}
-              onChange={(event) => setPassphrase(event.target.value)}
-              helperText={t("dataSync.connect.passphraseHint")}
-              error={passphraseError ?? undefined}
-              autoComplete="new-password"
-            />
-            <div className="flex justify-end">
-              <Button
-                size="sm"
-                disabled={sync.busy || token.trim().length === 0}
-                onClick={() => void handleConnect()}
-              >
-                {sync.busy ? t("dataSync.connect.connecting") : t("dataSync.connect.connect")}
-              </Button>
-            </div>
+            <span className="block">
+              {t("dataSync.connected.description", {
+                account: sync.profile?.remoteAccountId ?? "",
+              })}
+            </span>
+            <span className="block">{statusLine}</span>
           </>
-        )}
-      </div>
+        }
+        control={
+          <span className="flex flex-wrap items-center justify-end gap-2">
+            <Button size="sm" variant="outline" disabled={syncing} onClick={() => void handleSyncNow()}>
+              {syncing ? t("dataSync.syncStatus.syncing") : t("dataSync.connected.syncNow")}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setDisconnectOpen(true)}>
+              {t("dataSync.connected.disconnect")}
+            </Button>
+          </span>
+        }
+      />
+      <SettingsRow
+        title={t("dataSync.e2e.title")}
+        description={t("dataSync.e2e.active")}
+      />
+      <Dialog
+        open={disconnectOpen}
+        onClose={() => setDisconnectOpen(false)}
+        title={t("dataSync.connected.disconnectTitle")}
+      >
+        <div className="space-y-4">
+          <p>{t("dataSync.connected.disconnectBody")}</p>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setDisconnectOpen(false)}>
+              {t("dataSync.connected.cancel")}
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => {
+                setDisconnectOpen(false);
+                void sync.disconnect();
+              }}
+            >
+              {t("dataSync.connected.disconnect")}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
     </SettingsGroup>
   );
 }

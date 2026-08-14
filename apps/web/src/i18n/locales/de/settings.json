@@ -368,7 +368,9 @@
       "google": "Mit Google fortfahren",
       "github": "Mit GitHub fortfahren",
       "orEmail": "oder per E-Mail",
-      "oauthStarted": "Schließe die Anmeldung im Browser ab und füge das angezeigte Token unten ein."
+      "oauthStarted": "Schließe die Anmeldung im Browser ab und füge das angezeigte Token unten ein.",
+      "back": "Zurück",
+      "linkReady": "Du bist angemeldet. Lege zum Abschluss deine Verschlüsselungs-Passphrase fest."
     },
     "connected": {
       "description": "Verbunden ({{account}}). Änderungen synchronisieren über das verschlüsselte Relay.",

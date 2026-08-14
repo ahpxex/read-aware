@@ -364,7 +364,9 @@
       "google": "使用 Google 登录",
       "github": "使用 GitHub 登录",
       "orEmail": "或使用邮箱",
-      "oauthStarted": "在浏览器里完成登录，然后把页面显示的令牌粘贴到下面。"
+      "oauthStarted": "在浏览器里完成登录，然后把页面显示的令牌粘贴到下面。",
+      "back": "返回",
+      "linkReady": "已通过链接登录。设置加密口令即可完成连接。"
     },
     "connected": {
       "description": "已连接（{{account}}）。改动会经加密中继同步。",

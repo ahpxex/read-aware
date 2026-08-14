@@ -12,26 +12,39 @@ import type { HlcStamp, SealedEventWire, SyncKeyMaterial } from "@read-aware/cor
 import type { Account, RelayPorts } from "./ports";
 
 /**
- * The `client=app` OAuth finish: a self-contained page showing the one-time
- * sign-in token to paste into the desktop app. Deliberately dependency-free
- * and bilingual; the token expires with the same TTL as a magic link.
+ * The `client=app` OAuth finish: a self-contained page that hands the
+ * one-time sign-in token back to the app through its readaware:// deep link —
+ * attempted automatically on load, with an explicit button, and a copyable
+ * token as the fallback for environments where the link can't reach the app.
+ * Deliberately dependency-free and bilingual; the token expires with the same
+ * TTL as a magic link. (Tokens are base64url, safe verbatim in HTML and URLs;
+ * the escape is defense in depth.)
  */
 function signInTokenPage(token: string): Response {
   const esc = token.replace(/[&<>"']/g, "");
+  const deepLink = `readaware://sync/login/${esc}`;
   return new Response(
     `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ReadAware Sync</title>
 <style>
   body{font-family:ui-sans-serif,system-ui,sans-serif;background:#faf9f7;color:#292524;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0}
   main{max-width:26rem;padding:2rem;text-align:center}
-  code{display:block;margin:1.25rem 0;padding:.9rem 1rem;background:#f5f5f4;border:1px solid #e7e5e4;border-radius:.5rem;font-size:.95rem;word-break:break-all;user-select:all}
+  a.open{display:inline-block;margin:1.25rem 0 .5rem;padding:.7rem 1.6rem;background:#1c1917;color:#faf9f7;border-radius:.5rem;text-decoration:none;font-weight:600}
+  details{margin-top:1.5rem}
+  summary{cursor:pointer;color:#57534e;font-size:.92rem}
+  code{display:block;margin:1rem 0 0;padding:.9rem 1rem;background:#f5f5f4;border:1px solid #e7e5e4;border-radius:.5rem;font-size:.95rem;word-break:break-all;user-select:all}
   p{line-height:1.6;color:#57534e;font-size:.92rem}
   h1{font-size:1.15rem;font-weight:600}
 </style></head><body><main>
   <h1>Signed in · 登录成功</h1>
-  <p>Copy this one-time token and paste it into ReadAware's Data &amp; Sync settings.<br>复制下面的一次性令牌，粘贴回 ReadAware 的「数据与同步」设置。</p>
-  <code>${esc}</code>
+  <p>Opening ReadAware to finish connecting…<br>正在打开 ReadAware 完成连接…</p>
+  <a class="open" href="${deepLink}">Open ReadAware · 打开 ReadAware</a>
+  <details>
+    <summary>The app didn't open? Paste this token instead. · 没有打开？改为粘贴此令牌。</summary>
+    <code>${esc}</code>
+  </details>
   <p>The token expires in 15 minutes. You can close this tab.<br>令牌 15 分钟内有效，本页可以关闭。</p>
+  <script>location.href=${JSON.stringify(deepLink)};</script>
 </main></body></html>`,
     { status: 200, headers: { "content-type": "text/html; charset=utf-8" } },
   );

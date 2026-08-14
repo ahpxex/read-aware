@@ -372,7 +372,9 @@
       "google": "Continuer avec Google",
       "github": "Continuer avec GitHub",
       "orEmail": "ou par e-mail",
-      "oauthStarted": "Terminez la connexion dans le navigateur, puis collez le jeton affiché ci-dessous."
+      "oauthStarted": "Terminez la connexion dans le navigateur, puis collez le jeton affiché ci-dessous.",
+      "back": "Retour",
+      "linkReady": "Vous êtes connecté. Définissez votre phrase de chiffrement pour terminer."
     },
     "connected": {
       "description": "Connecté ({{account}}). Les modifications se synchronisent via le relais chiffré.",

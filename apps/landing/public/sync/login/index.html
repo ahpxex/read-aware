@@ -1,0 +1,62 @@
+<!doctype html>
+<!--
+  Sign-in trampoline: the magic-link email's web fallback and the relay's
+  client=web OAuth redirect both land here with the one-time token in the URL
+  FRAGMENT (never sent to any server): "#<token>" from email, "#token=<token>"
+  from the relay. The page hands the token to the app via its readaware://
+  deep link - automatically, then via the button - and shows the copyable
+  token for environments where deep links can't reach the app. Self-contained
+  static HTML on purpose: it must work without the SPA and never log tokens.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>ReadAware Sync</title>
+<style>
+  body{font-family:ui-sans-serif,system-ui,sans-serif;background:#faf9f7;color:#292524;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0}
+  main{max-width:26rem;padding:2rem;text-align:center}
+  a.open{display:inline-block;margin:1.25rem 0 .5rem;padding:.7rem 1.6rem;background:#1c1917;color:#faf9f7;border-radius:.5rem;text-decoration:none;font-weight:600}
+  details{margin-top:1.5rem}
+  summary{cursor:pointer;color:#57534e;font-size:.92rem}
+  code{display:block;margin:1rem 0 0;padding:.9rem 1rem;background:#f5f5f4;border:1px solid #e7e5e4;border-radius:.5rem;font-size:.95rem;word-break:break-all;user-select:all}
+  p{line-height:1.6;color:#57534e;font-size:.92rem}
+  h1{font-size:1.15rem;font-weight:600}
+  [hidden]{display:none !important}
+</style>
+</head>
+<body>
+<main>
+  <div id="ok" hidden>
+    <h1>Signed in &middot; 登录成功</h1>
+    <p>Opening ReadAware to finish connecting&hellip;<br>正在打开 ReadAware 完成连接&hellip;</p>
+    <a class="open" id="open" href="#">Open ReadAware &middot; 打开 ReadAware</a>
+    <details>
+      <summary>The app didn't open? Paste this token instead. &middot; 没有打开？改为粘贴此令牌。</summary>
+      <code id="token"></code>
+    </details>
+    <p>The token expires in 15 minutes. You can close this tab.<br>令牌 15 分钟内有效，本页可以关闭。</p>
+  </div>
+  <div id="bad" hidden>
+    <h1>Link incomplete &middot; 链接不完整</h1>
+    <p>This sign-in link is missing its token. Open the link from your email again, or request a new one in ReadAware's Data &amp; Sync settings.<br>此登录链接缺少令牌。请重新打开邮件中的链接，或在 ReadAware 的「数据与同步」设置中重新发送。</p>
+  </div>
+</main>
+<script>
+  (function () {
+    var hash = location.hash.replace(/^#/, "");
+    var token = hash.indexOf("token=") === 0 ? hash.slice(6) : hash;
+    if (!token) {
+      document.getElementById("bad").hidden = false;
+      return;
+    }
+    var deepLink = "readaware://sync/login/" + token;
+    document.getElementById("ok").hidden = false;
+    document.getElementById("open").setAttribute("href", deepLink);
+    document.getElementById("token").textContent = token;
+    location.href = deepLink;
+  })();
+</script>
+</body>
+</html>

@@ -316,7 +316,7 @@
     "storage": "Speicher",
     "dataLocation": {
       "title": "Speicherort",
-      "descTauri": "Im ReadAware-Anwendungsdatenordner auf diesem Mac gespeichert.",
+      "descTauri": "Im ReadAware-Anwendungsdatenordner auf diesem Gerät gespeichert.",
       "descWeb": "In diesem Browser gespeichert. Die Desktop-App bewahrt Daten in einem lokalen Ordner auf, den du kontrollierst."
     },
     "desktopBadge": "Desktop",

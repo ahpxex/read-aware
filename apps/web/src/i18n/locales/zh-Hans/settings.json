@@ -312,7 +312,7 @@
     "storage": "存储",
     "dataLocation": {
       "title": "数据位置",
-      "descTauri": "保存在这台 Mac 的 ReadAware 应用数据文件夹中。",
+      "descTauri": "保存在本设备的 ReadAware 应用数据文件夹中。",
       "descWeb": "保存在此浏览器中。桌面应用会将数据保存在你可控的本地文件夹里。"
     },
     "desktopBadge": "桌面版",

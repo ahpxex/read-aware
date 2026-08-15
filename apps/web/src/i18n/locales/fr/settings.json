@@ -320,7 +320,7 @@
     "storage": "Stockage",
     "dataLocation": {
       "title": "Emplacement des données",
-      "descTauri": "Stocké dans le dossier de données de l’application ReadAware sur ce Mac.",
+      "descTauri": "Stocké dans le dossier de données de l’application ReadAware sur cet appareil.",
       "descWeb": "Stocké dans ce navigateur. L’application de bureau conserve les données dans un dossier local que vous contrôlez."
     },
     "desktopBadge": "Bureau",

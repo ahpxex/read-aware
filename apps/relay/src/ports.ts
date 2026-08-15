@@ -5,6 +5,7 @@
  * exercises is the real storage logic, not a parallel in-memory fiction.
  */
 import type { SealedEventWire, SyncKeyMaterial } from "@read-aware/core";
+import type { RelayLang } from "./i18n";
 
 export type Account = {
   id: string;
@@ -26,6 +27,7 @@ export interface AccountStore {
     stateHash: string,
     provider: string,
     client: OAuthClientKind,
+    lang: string,
     expiresAtMs: number,
     now: string,
   ): Promise<void>;
@@ -33,7 +35,7 @@ export interface AccountStore {
   consumeOauthState(
     stateHash: string,
     nowMs: number,
-  ): Promise<{ provider: string; client: OAuthClientKind } | null>;
+  ): Promise<{ provider: string; client: OAuthClientKind; lang: string } | null>;
   putSession(tokenHash: string, accountId: string, now: string): Promise<void>;
   sessionAccount(tokenHash: string): Promise<string | null>;
   deleteSession(tokenHash: string): Promise<void>;
@@ -63,7 +65,8 @@ export interface BlobStore {
 }
 
 export interface MagicLinkSender {
-  send(email: string, token: string): Promise<void>;
+  /** `lang` is a resolved RelayLang — the email renders in the app's locale. */
+  send(email: string, token: string, lang: RelayLang): Promise<void>;
 }
 
 /**

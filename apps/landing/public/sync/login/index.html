@@ -7,6 +7,11 @@
   deep link - automatically, then via the button - and shows the copyable
   token for environments where deep links can't reach the app. Self-contained
   static HTML on purpose: it must work without the SPA and never log tokens.
+
+  Locale comes from ?lang= (set by the relay when it minted the link, from
+  the requesting device's app language); the eight app locales are inlined
+  below and unknown values fall back to English. Keep terminology in lockstep
+  with apps/web/src/i18n/locales and apps/relay/src/i18n.ts.
 -->
 <html lang="en">
 <head>
@@ -29,22 +34,123 @@
 <body>
 <main>
   <div id="ok" hidden>
-    <h1>Signed in &middot; 登录成功</h1>
-    <p>Opening ReadAware to finish connecting&hellip;<br>正在打开 ReadAware 完成连接&hellip;</p>
-    <a class="open" id="open" href="#">Open ReadAware &middot; 打开 ReadAware</a>
+    <h1 id="t-signed"></h1>
+    <p id="t-opening"></p>
+    <a class="open" id="open" href="#"></a>
     <details>
-      <summary>The app didn't open? Paste this token instead. &middot; 没有打开？改为粘贴此令牌。</summary>
+      <summary id="t-fallback"></summary>
       <code id="token"></code>
     </details>
-    <p>The token expires in 15 minutes. You can close this tab.<br>令牌 15 分钟内有效，本页可以关闭。</p>
+    <p id="t-expires"></p>
   </div>
   <div id="bad" hidden>
-    <h1>Link incomplete &middot; 链接不完整</h1>
-    <p>This sign-in link is missing its token. Open the link from your email again, or request a new one in ReadAware's Data &amp; Sync settings.<br>此登录链接缺少令牌。请重新打开邮件中的链接，或在 ReadAware 的「数据与同步」设置中重新发送。</p>
+    <h1 id="t-bad-title"></h1>
+    <p id="t-bad-body"></p>
   </div>
 </main>
 <script>
   (function () {
+    var STRINGS = {
+      "en": {
+        signed: "Signed in",
+        opening: "Opening ReadAware to finish connecting…",
+        open: "Open ReadAware",
+        fallback: "The app didn't open? Paste this token instead.",
+        expires: "The token expires in 15 minutes. You can close this tab.",
+        badTitle: "Link incomplete",
+        badBody: "This sign-in link is missing its token. Open the link from your email again, or request a new one in ReadAware's Data & Sync settings."
+      },
+      "zh-Hans": {
+        signed: "登录成功",
+        opening: "正在打开 ReadAware 完成连接…",
+        open: "打开 ReadAware",
+        fallback: "没有打开？改为粘贴此令牌。",
+        expires: "令牌 15 分钟内有效，本页可以关闭。",
+        badTitle: "链接不完整",
+        badBody: "此登录链接缺少令牌。请重新打开邮件中的链接，或在 ReadAware 的「数据与同步」设置中重新发送。"
+      },
+      "zh-Hant": {
+        signed: "登入成功",
+        opening: "正在開啟 ReadAware 完成連接…",
+        open: "開啟 ReadAware",
+        fallback: "沒有開啟？改為貼上此權杖。",
+        expires: "權杖 15 分鐘內有效，本頁可以關閉。",
+        badTitle: "連結不完整",
+        badBody: "此登入連結缺少權杖。請重新開啟郵件中的連結，或在 ReadAware 的「資料與同步」設定中重新發送。"
+      },
+      "ja": {
+        signed: "サインイン完了",
+        opening: "ReadAware を開いて接続を完了しています…",
+        open: "ReadAware を開く",
+        fallback: "開かない場合は、このトークンを貼り付けてください。",
+        expires: "トークンの有効期限は 15 分です。このタブは閉じて構いません。",
+        badTitle: "リンクが不完全です",
+        badBody: "このサインインリンクにはトークンがありません。メールのリンクをもう一度開くか、ReadAware の「データと同期」設定から再送信してください。"
+      },
+      "de": {
+        signed: "Angemeldet",
+        opening: "ReadAware wird geöffnet, um die Verbindung abzuschließen …",
+        open: "ReadAware öffnen",
+        fallback: "App nicht geöffnet? Füge stattdessen dieses Token ein.",
+        expires: "Das Token ist 15 Minuten gültig. Du kannst diesen Tab schließen.",
+        badTitle: "Link unvollständig",
+        badBody: "Diesem Anmeldelink fehlt das Token. Öffne den Link aus deiner E-Mail erneut oder fordere in ReadAwares Einstellungen unter „Daten & Sync“ einen neuen an."
+      },
+      "es": {
+        signed: "Sesión iniciada",
+        opening: "Abriendo ReadAware para terminar de conectar…",
+        open: "Abrir ReadAware",
+        fallback: "¿No se abrió? Pega este token en su lugar.",
+        expires: "El token caduca en 15 minutos. Puedes cerrar esta pestaña.",
+        badTitle: "Enlace incompleto",
+        badBody: "A este enlace de inicio de sesión le falta el token. Vuelve a abrir el enlace de tu correo o solicita uno nuevo en los ajustes de «Datos y sincronización» de ReadAware."
+      },
+      "fr": {
+        signed: "Connecté",
+        opening: "Ouverture de ReadAware pour terminer la connexion…",
+        open: "Ouvrir ReadAware",
+        fallback: "L'application ne s'est pas ouverte ? Collez ce jeton à la place.",
+        expires: "Le jeton expire dans 15 minutes. Vous pouvez fermer cet onglet.",
+        badTitle: "Lien incomplet",
+        badBody: "Ce lien de connexion ne contient pas de jeton. Rouvrez le lien de votre e-mail ou demandez-en un nouveau dans les réglages « Données et synchronisation » de ReadAware."
+      },
+      "ru": {
+        signed: "Вход выполнен",
+        opening: "Открываем ReadAware, чтобы завершить подключение…",
+        open: "Открыть ReadAware",
+        fallback: "Приложение не открылось? Вставьте этот токен вручную.",
+        expires: "Токен действителен 15 минут. Эту вкладку можно закрыть.",
+        badTitle: "Ссылка неполная",
+        badBody: "В этой ссылке для входа нет токена. Откройте ссылку из письма ещё раз или запросите новую в настройках ReadAware «Данные и синхронизация»."
+      }
+    };
+
+    function resolveLang(raw) {
+      if (!raw) return "en";
+      var keys = Object.keys(STRINGS);
+      for (var i = 0; i < keys.length; i++) {
+        if (keys[i].toLowerCase() === raw.toLowerCase()) return keys[i];
+      }
+      var base = raw.split("-")[0].toLowerCase();
+      if (base === "zh") return "zh-Hans";
+      for (var j = 0; j < keys.length; j++) {
+        if (keys[j].split("-")[0] === base) return keys[j];
+      }
+      return "en";
+    }
+
+    var lang = resolveLang(new URLSearchParams(location.search).get("lang"));
+    var t = STRINGS[lang];
+    document.documentElement.lang = lang;
+    var text = function (id, s) { document.getElementById(id).textContent = s; };
+    text("t-signed", t.signed);
+    text("t-opening", t.opening);
+    text("t-fallback", t.fallback);
+    text("t-expires", t.expires);
+    text("t-bad-title", t.badTitle);
+    text("t-bad-body", t.badBody);
+    document.getElementById("open").textContent = t.open;
+
     var hash = location.hash.replace(/^#/, "");
     var token = hash.indexOf("token=") === 0 ? hash.slice(6) : hash;
     if (!token) {

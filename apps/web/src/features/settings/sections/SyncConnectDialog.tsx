@@ -9,7 +9,7 @@
 import { useEffect, useState } from "react";
 import { useAtom } from "jotai";
 import { Button, Caption, Dialog, TextField, useToast } from "@read-aware/ui";
-import { useTranslation } from "../../../i18n";
+import { i18n, useTranslation } from "../../../i18n";
 import { openExternalUrl } from "../../../platform/external-link";
 import { relayBaseUrl } from "../../../platform/sync/sync-scheduler";
 import { syncLoginTokenAtom } from "../../../state/ui";
@@ -62,9 +62,13 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
   };
 
   const handleOauth = (provider: "google" | "github") => {
-    // The dance finishes in the system browser, which shows a one-time token
-    // to paste below — the same token field the magic link uses.
-    void openExternalUrl(`${relayBaseUrl()}/v1/auth/oauth/${provider}/start`);
+    // The dance finishes in the system browser: the relay's finish page fires
+    // the readaware:// deep link back into the app (with a copyable token as
+    // fallback — the same token field the magic link uses). `lang` makes that
+    // page render in the app's locale; it travels with the OAuth state.
+    void openExternalUrl(
+      `${relayBaseUrl()}/v1/auth/oauth/${provider}/start?lang=${encodeURIComponent(i18n.language)}`,
+    );
     setSignInVia("oauth");
     setStep("verify");
   };

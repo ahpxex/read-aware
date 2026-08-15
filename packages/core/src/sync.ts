@@ -52,7 +52,8 @@ export type SyncKeyMaterial = {
 
 // ── /v1/auth ─────────────────────────────────────────────────────────────────
 
-export type AuthRequestBody = { email: string };
+/** `lang` is the requesting device's app locale — the email renders in it. */
+export type AuthRequestBody = { email: string; lang?: string };
 /** `devToken` is present only when the relay runs in echo mode (local dev). */
 export type AuthRequestResponse = { ok: true; devToken?: string };
 

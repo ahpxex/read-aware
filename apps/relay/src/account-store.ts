@@ -117,32 +117,37 @@ export class SqlAccountStore implements AccountStore {
     stateHash: string,
     provider: string,
     client: "app" | "web",
+    lang: string,
     expiresAtMs: number,
     now: string,
   ): Promise<void> {
     await this.db
       .prepare(
         `INSERT OR REPLACE INTO oauth_states
-            (state_hash, provider, client, expires_at_ms, created_at)
-         VALUES (?1, ?2, ?3, ?4, ?5)`,
+            (state_hash, provider, client, lang, expires_at_ms, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)`,
       )
-      .bind(stateHash, provider, client, expiresAtMs, now)
+      .bind(stateHash, provider, client, lang, expiresAtMs, now)
       .run();
   }
 
   async consumeOauthState(
     stateHash: string,
     nowMs: number,
-  ): Promise<{ provider: string; client: "app" | "web" } | null> {
+  ): Promise<{ provider: string; client: "app" | "web"; lang: string } | null> {
     const row = await this.db
       .prepare(
         `DELETE FROM oauth_states WHERE state_hash = ?1 AND expires_at_ms > ?2
-         RETURNING provider, client`,
+         RETURNING provider, client, lang`,
       )
       .bind(stateHash, nowMs)
-      .first<{ provider: string; client: string }>();
+      .first<{ provider: string; client: string; lang: string }>();
     if (!row) return null;
-    return { provider: row.provider, client: row.client === "web" ? "web" : "app" };
+    return {
+      provider: row.provider,
+      client: row.client === "web" ? "web" : "app",
+      lang: row.lang,
+    };
   }
 
   async putSession(tokenHash: string, accountId: string, now: string): Promise<void> {

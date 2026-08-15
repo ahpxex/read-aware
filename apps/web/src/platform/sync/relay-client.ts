@@ -64,8 +64,10 @@ export function createRelayClient(options: RelayClientOptions) {
     request(method, path, body === undefined ? undefined : JSON.stringify(body), "application/json");
 
   return {
-    async requestMagicLink(email: string): Promise<AuthRequestResponse> {
-      return (await (await json("POST", "/v1/auth/request", { email })).json()) as AuthRequestResponse;
+    async requestMagicLink(email: string, lang?: string): Promise<AuthRequestResponse> {
+      return (await (
+        await json("POST", "/v1/auth/request", { email, lang })
+      ).json()) as AuthRequestResponse;
     },
     async verifyMagicLink(token: string): Promise<AuthVerifyResponse> {
       return (await (await json("POST", "/v1/auth/verify", { token })).json()) as AuthVerifyResponse;

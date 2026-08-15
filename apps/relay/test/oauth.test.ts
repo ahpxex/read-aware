@@ -19,8 +19,12 @@ async function startOauth(
   handle: (req: Request) => Promise<Response>,
   provider = "google",
   client?: "web",
+  lang?: string,
 ) {
-  const query = client ? `?client=${client}` : "";
+  const params = new URLSearchParams();
+  if (client) params.set("client", client);
+  if (lang) params.set("lang", lang);
+  const query = params.size ? `?${params}` : "";
   const res = await handle(get(`/v1/auth/oauth/${provider}/start${query}`));
   expect(res.status).toBe(302);
   const location = new URL(res.headers.get("location") ?? "");
@@ -70,9 +74,32 @@ describe("oauth sign-in", () => {
     );
     expect(callback.status).toBe(302);
     const location = callback.headers.get("location") ?? "";
-    expect(location).toStartWith("https://readaware.app/sync/login#token=");
+    expect(location).toStartWith("https://readaware.app/sync/login?lang=en#token=");
     const token = decodeURIComponent(location.split("#token=")[1]);
     expect((await handle(post("/v1/auth/verify", { token }))).status).toBe(200);
+  });
+
+  test("the start's lang survives the state round-trip into the finish page", async () => {
+    const { handle } = makeRelay({}, { google: fakeProvider() });
+    const state = await startOauth(handle, "google", undefined, "ja");
+    const callback = await handle(
+      get(`/v1/auth/oauth/google/callback?code=good-code&state=${encodeURIComponent(state)}`),
+    );
+    expect(callback.status).toBe(200);
+    const html = await callback.text();
+    expect(html).toContain('<html lang="ja">');
+    expect(html).toContain("ReadAware を開く");
+  });
+
+  test("an unknown lang falls back to English", async () => {
+    const { handle } = makeRelay({}, { google: fakeProvider() });
+    const state = await startOauth(handle, "google", undefined, "xx-YY");
+    const callback = await handle(
+      get(`/v1/auth/oauth/google/callback?code=good-code&state=${encodeURIComponent(state)}`),
+    );
+    const html = await callback.text();
+    expect(html).toContain('<html lang="en">');
+    expect(html).toContain("Open ReadAware");
   });
 
   test("magic link and oauth land on the SAME account for the same email", async () => {

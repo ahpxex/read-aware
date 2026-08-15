@@ -4,6 +4,7 @@
  * All policy lives in platform/sync — this hook is the React adapter.
  */
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { i18n } from "../../../i18n";
 import { isTauri } from "../../../platform/environment";
 import { getSecret } from "../../../platform/secret-store";
 import { connectAccount, WrongPassphraseError } from "../../../platform/sync/connect";
@@ -52,7 +53,9 @@ export function useSyncConnection() {
   const sendLink = useCallback(async (email: string): Promise<string | null> => {
     setBusy(true);
     try {
-      const response = await syncRelayClient().requestMagicLink(email.trim());
+      // The active app locale rides along so the email (and the landing page
+      // its link opens) render in the user's language.
+      const response = await syncRelayClient().requestMagicLink(email.trim(), i18n.language);
       return response.devToken ?? null;
     } finally {
       setBusy(false);

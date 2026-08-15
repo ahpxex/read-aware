@@ -10,6 +10,7 @@
  */
 import type { HlcStamp, SealedEventWire, SyncKeyMaterial } from "@read-aware/core";
 import type { Account, RelayPorts } from "./ports";
+import { PAGE, resolveLang, type RelayLang } from "./i18n";
 
 /**
  * The `client=app` OAuth finish: a self-contained page that hands the
@@ -20,11 +21,12 @@ import type { Account, RelayPorts } from "./ports";
  * TTL as a magic link. (Tokens are base64url, safe verbatim in HTML and URLs;
  * the escape is defense in depth.)
  */
-function signInTokenPage(token: string): Response {
+function signInTokenPage(token: string, lang: RelayLang): Response {
   const esc = token.replace(/[&<>"']/g, "");
   const deepLink = `readaware://sync/login/${esc}`;
+  const t = PAGE[lang];
   return new Response(
-    `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ReadAware Sync</title>
 <style>
   body{font-family:ui-sans-serif,system-ui,sans-serif;background:#faf9f7;color:#292524;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0}
@@ -36,14 +38,14 @@ function signInTokenPage(token: string): Response {
   p{line-height:1.6;color:#57534e;font-size:.92rem}
   h1{font-size:1.15rem;font-weight:600}
 </style></head><body><main>
-  <h1>Signed in · 登录成功</h1>
-  <p>Opening ReadAware to finish connecting…<br>正在打开 ReadAware 完成连接…</p>
-  <a class="open" href="${deepLink}">Open ReadAware · 打开 ReadAware</a>
+  <h1>${t.signedIn}</h1>
+  <p>${t.opening}</p>
+  <a class="open" href="${deepLink}">${t.open}</a>
   <details>
-    <summary>The app didn't open? Paste this token instead. · 没有打开？改为粘贴此令牌。</summary>
+    <summary>${t.fallbackSummary}</summary>
     <code>${esc}</code>
   </details>
-  <p>The token expires in 15 minutes. You can close this tab.<br>令牌 15 分钟内有效，本页可以关闭。</p>
+  <p>${t.expires}</p>
   <script>location.href=${JSON.stringify(deepLink)};</script>
 </main></body></html>`,
     { status: 200, headers: { "content-type": "text/html; charset=utf-8" } },
@@ -166,7 +168,12 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
     );
     if (config.echoMagicToken) return json(200, { ok: true, devToken: token });
     if (!ports.magicLink) return failure(501, "magic-link delivery is not configured");
-    await ports.magicLink.send(normalized, token);
+    const lang = resolveLang(
+      isString((body as Record<string, unknown>).lang)
+        ? ((body as Record<string, unknown>).lang as string)
+        : null,
+    );
+    await ports.magicLink.send(normalized, token, lang);
     return json(200, { ok: true });
   }
 
@@ -184,11 +191,15 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
 
     if (action === "start" && req.method === "GET") {
       const client = url.searchParams.get("client") === "web" ? "web" : "app";
+      // The finish page renders in the app's locale, but the callback only
+      // carries `state` — so the language travels with the state row.
+      const lang = resolveLang(url.searchParams.get("lang"));
       const state = randomToken();
       await accounts.putOauthState(
         await tokenHash(state),
         providerId,
         client,
+        lang,
         ports.now() + config.magicTokenTtlMs,
         nowIso(),
       );
@@ -217,15 +228,18 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
         ports.now() + config.magicTokenTtlMs,
         nowIso(),
       );
+      const lang = resolveLang(minted.lang);
       if (minted.client === "web") {
         // Fixed, configured origin only — the state row decides, never a
-        // caller-supplied URL, so this can't become an open redirect.
+        // caller-supplied URL, so this can't become an open redirect. The
+        // lang rides the query; the token stays in the fragment, which the
+        // browser never sends to the landing's server.
         return Response.redirect(
-          `${config.webAppOrigin}/sync/login#token=${encodeURIComponent(signIn)}`,
+          `${config.webAppOrigin}/sync/login?lang=${encodeURIComponent(lang)}#token=${encodeURIComponent(signIn)}`,
           302,
         );
       }
-      return signInTokenPage(signIn);
+      return signInTokenPage(signIn, lang);
     }
     return failure(405, "method not allowed");
   }

@@ -316,7 +316,7 @@
     "storage": "Storage",
     "dataLocation": {
       "title": "Data location",
-      "descTauri": "Stored in the ReadAware application data folder on this Mac.",
+      "descTauri": "Stored in the ReadAware application data folder on this device.",
       "descWeb": "Stored in this browser. The desktop app keeps data in a local folder you control."
     },
     "desktopBadge": "Desktop",

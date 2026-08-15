@@ -320,7 +320,7 @@
     "storage": "Almacenamiento",
     "dataLocation": {
       "title": "Ubicación de los datos",
-      "descTauri": "Se guardan en la carpeta de datos de la aplicación ReadAware en este Mac.",
+      "descTauri": "Se guardan en la carpeta de datos de la aplicación ReadAware en este dispositivo.",
       "descWeb": "Se guardan en este navegador. La app de escritorio mantiene los datos en una carpeta local que tú controlas."
     },
     "desktopBadge": "Escritorio",

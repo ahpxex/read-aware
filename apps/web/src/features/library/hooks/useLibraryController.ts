@@ -253,13 +253,23 @@ export function useLibraryController() {
           } else {
             pendingBookId = result.book.id;
             setPendingBooks((current) => [...current, result.book]);
-            await commitBookImport(result.book, source);
-            imported += 1;
-            outcomes.push({ status: "imported", book: result.book });
-            // Swap the pending entry for the durable book in one React batch.
-            // The id and all sort fields stay identical, so its grid slot does not move.
-            setBooks((current) => [result.book, ...current]);
-            knownBooks.unshift(result.book);
+            const commit = await commitBookImport(result.book, source);
+            if (commit.status === "duplicate") {
+              // The content gate caught what metadata couldn't: this exact
+              // file is already on the shelf (possibly synced in under a
+              // different title). Nothing new was created.
+              const existing =
+                knownBooks.find((entry) => entry.id === commit.existingId) ?? result.book;
+              duplicates.push(existing.title);
+              outcomes.push({ status: "duplicate", book: existing });
+            } else {
+              imported += 1;
+              outcomes.push({ status: "imported", book: result.book });
+              // Swap the pending entry for the durable book in one React batch.
+              // The id and all sort fields stay identical, so its grid slot does not move.
+              setBooks((current) => [result.book, ...current]);
+              knownBooks.unshift(result.book);
+            }
           }
         } finally {
           if (pendingBookId) {

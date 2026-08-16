@@ -133,8 +133,34 @@ fn require(p: &Value, key: &str, event_type: &str) -> Result<String, String> {
 /// Returns `Ok(false)` when the event type has no projection (forward-compatible
 /// unknowns, and the not-yet-projected profile/entity family), `Ok(true)` when
 /// it was handled.
+/// `merged_id → keep_id`, single hop (merge flattens chains at write time).
+fn resolve_book_alias(tx: &Transaction<'_>, id: &str) -> Result<Option<String>, String> {
+    tx.query_row(
+        "SELECT keep_id FROM book_aliases WHERE merged_id = ?1",
+        params![id],
+        |row| row.get(0),
+    )
+    .map(Some)
+    .or_else(|e| match e {
+        rusqlite::Error::QueryReturnedNoRows => Ok(None),
+        other => Err(other.to_string()),
+    })
+}
+
 pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> {
-    let p = &ev.payload;
+    // A late event addressed to a merged-away book (progress from a device
+    // that hadn't seen the merge yet) re-routes to the keeper. One central
+    // rewrite of the payload's `bookId` — every handler below then applies
+    // to the surviving row without knowing merges exist.
+    let rerouted: Option<Value> = match ev.payload.get("bookId").and_then(Value::as_str) {
+        Some(id) => resolve_book_alias(tx, id)?.map(|keep| {
+            let mut clone = ev.payload.clone();
+            clone["bookId"] = Value::String(keep);
+            clone
+        }),
+        None => None,
+    };
+    let p = rerouted.as_ref().unwrap_or(&ev.payload);
     let at = event_time(ev);
     let t = ev.event_type.as_str();
 
@@ -238,6 +264,102 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
             tx.execute("DELETE FROM annotations WHERE book_id = ?1", params![id])
                 .map_err(|e| e.to_string())?;
             tx.execute("DELETE FROM books WHERE id = ?1", params![id])
+                .map_err(|e| e.to_string())?;
+        }
+        // Two records, one content (same source sha256): everything the merged
+        // record accrued folds into the keeper, and the alias re-routes any
+        // later event still addressed to the dead id. Provenance references
+        // (vocabulary context, memory evidence) deliberately keep the original
+        // id — they cite where something happened, not a live aggregate.
+        "book.merged" => {
+            let keep_raw = require(p, "keepId", t)?;
+            let merged = require(p, "mergedId", t)?;
+            // The chosen keeper may itself have been merged away by an earlier
+            // event — follow the alias so chains always flatten to one hop.
+            let keep = resolve_book_alias(tx, &keep_raw)?.unwrap_or(keep_raw);
+            if keep == merged {
+                return Ok(false);
+            }
+            tx.execute(
+                "INSERT OR REPLACE INTO book_aliases (merged_id, keep_id) VALUES (?1, ?2)",
+                params![merged, keep],
+            )
+            .map_err(|e| e.to_string())?;
+            tx.execute(
+                "UPDATE book_aliases SET keep_id = ?2 WHERE keep_id = ?1",
+                params![merged, keep],
+            )
+            .map_err(|e| e.to_string())?;
+            tx.execute(
+                "UPDATE annotations SET book_id = ?2 WHERE book_id = ?1",
+                params![merged, keep],
+            )
+            .map_err(|e| e.to_string())?;
+            // Reading time is additive: same-key rows sum, then the old rows go.
+            tx.execute(
+                "INSERT INTO reading_time_totals (book_id, total_ms, first_started_at, last_read_at)
+                    SELECT ?2, total_ms, first_started_at, last_read_at
+                      FROM reading_time_totals WHERE book_id = ?1
+                 ON CONFLICT(book_id) DO UPDATE SET
+                    total_ms = reading_time_totals.total_ms + excluded.total_ms,
+                    first_started_at = MIN(
+                        COALESCE(reading_time_totals.first_started_at, excluded.first_started_at),
+                        COALESCE(excluded.first_started_at, reading_time_totals.first_started_at)),
+                    last_read_at = MAX(
+                        COALESCE(reading_time_totals.last_read_at, excluded.last_read_at),
+                        COALESCE(excluded.last_read_at, reading_time_totals.last_read_at))",
+                params![merged, keep],
+            )
+            .map_err(|e| e.to_string())?;
+            tx.execute(
+                "INSERT INTO reading_time_daily (book_id, local_day, ms)
+                    SELECT ?2, local_day, ms FROM reading_time_daily WHERE book_id = ?1
+                 ON CONFLICT(book_id, local_day) DO UPDATE SET
+                    ms = reading_time_daily.ms + excluded.ms",
+                params![merged, keep],
+            )
+            .map_err(|e| e.to_string())?;
+            tx.execute(
+                "INSERT INTO reading_time_hourly (book_id, local_hour, ms)
+                    SELECT ?2, local_hour, ms FROM reading_time_hourly WHERE book_id = ?1
+                 ON CONFLICT(book_id, local_hour) DO UPDATE SET
+                    ms = reading_time_hourly.ms + excluded.ms",
+                params![merged, keep],
+            )
+            .map_err(|e| e.to_string())?;
+            tx.execute(
+                "DELETE FROM reading_time_totals WHERE book_id = ?1",
+                params![merged],
+            )
+            .map_err(|e| e.to_string())?;
+            tx.execute("DELETE FROM reading_time_daily WHERE book_id = ?1", params![merged])
+                .map_err(|e| e.to_string())?;
+            tx.execute("DELETE FROM reading_time_hourly WHERE book_id = ?1", params![merged])
+                .map_err(|e| e.to_string())?;
+            // The keeper's metadata wins; reading STATE takes whichever record
+            // got further (progress trio moves together), stars are sticky,
+            // and an unfiled keeper adopts the merged record's shelf.
+            tx.execute(
+                "UPDATE books SET
+                    starred = MAX(starred, COALESCE((SELECT starred FROM books WHERE id = ?1), 0)),
+                    collection_id = COALESCE(collection_id, (SELECT collection_id FROM books WHERE id = ?1)),
+                    last_opened_at = COALESCE(
+                        MAX(last_opened_at, (SELECT last_opened_at FROM books WHERE id = ?1)),
+                        last_opened_at,
+                        (SELECT last_opened_at FROM books WHERE id = ?1)),
+                    progress_json = CASE
+                        WHEN COALESCE((SELECT progress_percent FROM books WHERE id = ?1), 0) > progress_percent
+                        THEN (SELECT progress_json FROM books WHERE id = ?1) ELSE progress_json END,
+                    reading_status = CASE
+                        WHEN COALESCE((SELECT progress_percent FROM books WHERE id = ?1), 0) > progress_percent
+                        THEN (SELECT reading_status FROM books WHERE id = ?1) ELSE reading_status END,
+                    progress_percent = MAX(progress_percent,
+                        COALESCE((SELECT progress_percent FROM books WHERE id = ?1), 0))
+                 WHERE id = ?2",
+                params![merged, keep],
+            )
+            .map_err(|e| e.to_string())?;
+            tx.execute("DELETE FROM books WHERE id = ?1", params![merged])
                 .map_err(|e| e.to_string())?;
         }
         // Membership changes leave updated_at alone for the same reason as
@@ -767,6 +889,7 @@ pub const DERIVED_TABLES: &[&str] = &[
     "reading_time_daily",
     "reading_time_hourly",
     "synced_preferences",
+    "book_aliases",
 ];
 
 pub const DIFF_SPECS: &[DiffSpec] = &[
@@ -823,6 +946,11 @@ pub const DIFF_SPECS: &[DiffSpec] = &[
     },
     DiffSpec {
         table: "synced_preferences",
+        local_columns: &[],
+        domain_rows: None,
+    },
+    DiffSpec {
+        table: "book_aliases",
         local_columns: &[],
         domain_rows: None,
     },

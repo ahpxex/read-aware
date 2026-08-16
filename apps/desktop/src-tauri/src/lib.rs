@@ -881,6 +881,8 @@ pub fn run() {
             storage::library_release_book_files,
             storage::library_list_collections,
             storage::library_put_collection,
+            storage::library_find_book_by_sha,
+            storage::library_duplicate_book_groups,
             storage::annotations_list,
             storage::annotations_search,
             storage::annotation_get,

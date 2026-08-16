@@ -93,6 +93,11 @@ CREATE TABLE synced_preferences ( -- [projection] 漫游偏好：preference.chan
   updated_at TEXT NOT NULL -- 应用该事件时的时间戳；诊断用，LWW 由事件 HLC 序保证而非此列。
 ); -- synced_preferences 表结束。
 
+CREATE TABLE book_aliases ( -- [projection] book.merged 的改道表：同一内容（sourceSha256 相同）在多设备各自导入产生的重复记录合并后，被并掉的 id → 保留者 id。迟到事件经它改道；链式合并在 apply 时压平。
+  merged_id TEXT NOT NULL PRIMARY KEY, -- 被合并掉的书籍 id。
+  keep_id TEXT NOT NULL -- 最终保留者 id；永远直指最终归宿，不成链。
+); -- book_aliases 表结束。
+
 CREATE TABLE domain_events ( -- [synced log] append-only 领域事件日志；这是书籍、标注、阅读进度、记忆等可同步数据的唯一权威来源。事件目录见 packages/core/src/events.ts。
   id TEXT NOT NULL PRIMARY KEY, -- 全局唯一事件 ID，通常是 UUID；同步拉取重复事件时用它幂等去重。
   type TEXT NOT NULL, -- 事件类型（canonical 名以 events.ts 为准），例如 book.imported、highlight.created、book.progressed、memory.promoted。

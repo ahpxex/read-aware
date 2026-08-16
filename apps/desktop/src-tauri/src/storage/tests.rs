@@ -1483,6 +1483,118 @@ fn sync_profile_and_cursor_round_trip() {
 }
 
 #[test]
+fn merging_books_folds_history_and_reroutes_late_events() {
+    let mut conn = migrated_conn();
+    commit_events_inner(
+        &mut conn,
+        &[
+            imported("i1", 1_000, "keep", "卡拉马佐夫兄弟"),
+            imported("i2", 1_001, "dup", "卡拉马佐夫兄弟【上海译文】"),
+            ev_on(
+                "device-b",
+                "h1",
+                1_002,
+                "highlight.created",
+                serde_json::json!({ "highlightId": "h1", "bookId": "dup", "text": "宗教大法官" }),
+            ),
+            ev(
+                "t1",
+                1_003,
+                "book.timeRecorded",
+                serde_json::json!({ "bookId": "dup", "atEpochMs": 1_003,
+                                    "localDay": "2026-08-16", "localHour": 20, "ms": 60000 }),
+            ),
+            ev(
+                "t2",
+                1_004,
+                "book.timeRecorded",
+                serde_json::json!({ "bookId": "keep", "atEpochMs": 1_004,
+                                    "localDay": "2026-08-16", "localHour": 20, "ms": 30000 }),
+            ),
+            ev(
+                "s1",
+                1_005,
+                "book.starred",
+                serde_json::json!({ "bookId": "dup", "starred": true }),
+            ),
+        ],
+    )
+    .unwrap();
+
+    commit_events_inner(
+        &mut conn,
+        &[ev(
+            "m1",
+            2_000,
+            "book.merged",
+            serde_json::json!({ "keepId": "keep", "mergedId": "dup" }),
+        )],
+    )
+    .unwrap();
+
+    assert_eq!(scalar::<i64>(&conn, "SELECT COUNT(*) FROM books"), 1, "one record survives");
+    assert_eq!(
+        scalar::<String>(&conn, "SELECT book_id FROM annotations WHERE id = 'h1'"),
+        "keep",
+        "annotations follow the keeper"
+    );
+    assert_eq!(
+        scalar::<i64>(&conn, "SELECT total_ms FROM reading_time_totals WHERE book_id = 'keep'"),
+        90_000,
+        "reading time sums across the pair"
+    );
+    assert_eq!(
+        scalar::<i64>(&conn, "SELECT ms FROM reading_time_daily WHERE book_id='keep' AND local_day='2026-08-16'"),
+        90_000
+    );
+    assert_eq!(
+        scalar::<i64>(&conn, "SELECT starred FROM books WHERE id = 'keep'"),
+        1,
+        "stars are sticky through a merge"
+    );
+
+    // A late event still addressed to the dead id reroutes to the keeper.
+    apply_remote_events_inner(
+        &mut conn,
+        &[ev(
+            "late",
+            3_000,
+            "book.timeRecorded",
+            serde_json::json!({ "bookId": "dup", "atEpochMs": 3_000,
+                                "localDay": "2026-08-17", "localHour": 9, "ms": 5000 }),
+        )],
+    )
+    .unwrap();
+    assert_eq!(
+        scalar::<i64>(&conn, "SELECT total_ms FROM reading_time_totals WHERE book_id = 'keep'"),
+        95_000,
+        "post-merge events addressed to the merged id land on the keeper"
+    );
+    assert_eq!(
+        scalar::<i64>(&conn, "SELECT COUNT(*) FROM reading_time_totals WHERE book_id = 'dup'"),
+        0
+    );
+
+    // Redelivered merge (the other device detected the same pair): a no-op.
+    apply_remote_events_inner(
+        &mut conn,
+        &[ev(
+            "m2",
+            3_500,
+            "book.merged",
+            serde_json::json!({ "keepId": "keep", "mergedId": "dup" }),
+        )],
+    )
+    .unwrap();
+    assert_eq!(scalar::<i64>(&conn, "SELECT COUNT(*) FROM books"), 1);
+    assert_eq!(
+        scalar::<i64>(&conn, "SELECT total_ms FROM reading_time_totals WHERE book_id = 'keep'"),
+        95_000,
+        "an idempotent redelivery must not double-count anything"
+    );
+}
+
+#[test]
 fn wipe_all_data_leaves_a_fresh_usable_store() {
     let dir = tempfile::tempdir().expect("tempdir");
     let mut conn = migrated_conn();

@@ -11,6 +11,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "../environment";
 import { emitAppEvent } from "../app-events";
+import { reconcileDuplicateBooks } from "../book-dedupe";
 import { observeRemoteHlcStamps, onDomainEventBroadcast } from "../domain-events";
 import { localKV } from "../local-store";
 import { refreshRoamingPreferences, republishRoamingSecrets } from "../roaming-preferences";
@@ -145,6 +146,10 @@ async function runCycle(): Promise<void> {
   try {
     const { pulled, pushed, blobs } = await getEngine().syncOnce();
     if (pulled > 0) {
+      // Another device may have imported content this shelf already holds —
+      // collapse same-sha records BEFORE announcing, so the reload that
+      // follows paints the merged shelf, not a momentary duplicate.
+      await reconcileDuplicateBooks();
       // Merged events write projections straight through Rust — nothing else
       // tells the mounted UI. The shelf already reloads on this event.
       emitAppEvent("library-changed", {});
@@ -314,7 +319,10 @@ export function startSyncScheduler(): () => void {
     }
     window.addEventListener("focus", onFocus);
     setStatus({ state: "idle" });
-    openWatch();
+    // Duplicates that predate this build (or arrived while sync was off)
+    // reconcile once at start; pull-time detection covers everything after.
+    void reconcileDuplicateBooks();
+    void openWatch();
     tick();
   })();
 

@@ -440,6 +440,19 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
             updated_at TEXT NOT NULL
          );",
     ),
+    (
+        16,
+        "book_aliases",
+        // [projection] book.merged 的改道表：被合并的书籍 id → 保留者 id。
+        // 迟到的事件（另一台设备在看到合并前对旧 id 的进度/标注写入）经它
+        // 改道到保留者；重放可完整重建。链式合并在 apply 时压平
+        // （keep_id 永远指向最终保留者，不成链）。
+        "CREATE TABLE IF NOT EXISTS book_aliases (
+            merged_id TEXT PRIMARY KEY,
+            keep_id   TEXT NOT NULL
+         );
+         CREATE INDEX IF NOT EXISTS ix_book_aliases_keep ON book_aliases (keep_id);",
+    ),
 ];
 
 /// Apply migrations newer than the highest recorded version, up to `max_version`

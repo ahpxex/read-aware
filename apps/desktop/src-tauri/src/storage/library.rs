@@ -233,3 +233,82 @@ pub fn library_put_collection(collection: Collection, db: State<'_, Db>) -> Resu
 // Collection deletion has no command of its own: `collection.removed` describes
 // it, and applying that event drops the row and clears its books' membership.
 
+
+// ── Content identity (dedup) ─────────────────────────────────────────────────
+
+/// A book already holding this exact source file, if any — the import gate:
+/// re-importing content the shelf has (including a copy synced in from
+/// another device, whose manifest row carries the sha before any bytes do)
+/// is a duplicate, not a new book.
+#[tauri::command]
+pub fn library_find_book_by_sha(
+    sha256: String,
+    exclude_id: Option<String>,
+    db: State<'_, Db>,
+) -> Result<Option<String>, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    conn.query_row(
+        "SELECT b.id FROM books b
+         JOIN blob_objects bo ON bo.key = 'bookfile:' || b.id
+         WHERE bo.sha256 = ?1 AND bo.sha256 IS NOT NULL AND bo.sha256 != ''
+           AND b.id != COALESCE(?2, '')
+         ORDER BY b.created_at, b.id LIMIT 1",
+        params![sha256, exclude_id],
+        |row| row.get(0),
+    )
+    .map(Some)
+    .or_else(|e| match e {
+        rusqlite::Error::QueryReturnedNoRows => Ok(None),
+        other => Err(other.to_string()),
+    })
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DuplicateBookEntry {
+    pub id: String,
+    pub created_at: String,
+}
+
+/// Groups of shelf books that share one source file (same bookfile sha256) —
+/// the post-pull merge detector's input. Each group is ordered oldest-first
+/// then by id, so `group[0]` IS the deterministic keeper on every device.
+#[tauri::command]
+pub fn library_duplicate_book_groups(
+    db: State<'_, Db>,
+) -> Result<Vec<Vec<DuplicateBookEntry>>, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    let mut stmt = conn
+        .prepare(
+            "SELECT bo.sha256, b.id, b.created_at
+             FROM books b
+             JOIN blob_objects bo ON bo.key = 'bookfile:' || b.id
+             WHERE bo.sha256 IS NOT NULL AND bo.sha256 != ''
+               AND bo.sha256 IN (
+                 SELECT bo2.sha256 FROM books b2
+                 JOIN blob_objects bo2 ON bo2.key = 'bookfile:' || b2.id
+                 WHERE bo2.sha256 IS NOT NULL AND bo2.sha256 != ''
+                 GROUP BY bo2.sha256 HAVING COUNT(*) > 1)
+             ORDER BY bo.sha256, b.created_at, b.id",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                DuplicateBookEntry { id: row.get(1)?, created_at: row.get(2)? },
+            ))
+        })
+        .map_err(|e| e.to_string())?;
+    let mut groups: Vec<Vec<DuplicateBookEntry>> = Vec::new();
+    let mut current_sha: Option<String> = None;
+    for row in rows {
+        let (sha, entry) = row.map_err(|e| e.to_string())?;
+        if current_sha.as_deref() != Some(&sha) {
+            current_sha = Some(sha);
+            groups.push(Vec::new());
+        }
+        groups.last_mut().expect("group pushed above").push(entry);
+    }
+    Ok(groups)
+}

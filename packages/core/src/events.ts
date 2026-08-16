@@ -103,6 +103,16 @@ export type DomainEvent =
       "book.coverExtracted",
       { bookId: Id; status: CoverStatus; coverBlobKey?: string }
     >
+  /**
+   * Two book records turned out to be the same content (matching source
+   * sha256 — e.g. the same file imported independently on two devices).
+   * Everything the merged record accrued (annotations, reading time,
+   * progress) folds into the keeper, and later events addressed to the
+   * merged id re-route through the alias table. `keepId` is chosen
+   * deterministically (earliest import, then smallest id), so concurrent
+   * detection on two devices emits identical, idempotent merges.
+   */
+  | DomainEventEnvelope<"book.merged", { keepId: Id; mergedId: Id }>
   /** Drives books.last_opened_at; emitted when a book is opened in the reader. */
   | DomainEventEnvelope<"book.opened", { bookId: Id }>
   | DomainEventEnvelope<"book.starred", { bookId: Id; starred: boolean }>

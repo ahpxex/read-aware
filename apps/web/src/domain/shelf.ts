@@ -184,8 +184,13 @@ export function createShelfDomain(origin: EventOrigin): ShelfDomain {
       const existing = await listLibraryBooks();
       const result = await prepareBookImport({ kind: "file", file }, t, existing);
       if (result.status === "prepared") {
-        await commitBookImport(result.book, { kind: "file", file }, origin);
-        notifyLibraryChanged();
+        const commit = await commitBookImport(result.book, { kind: "file", file }, origin);
+        if (commit.status === "duplicate") {
+          const original = existing.find((entry) => entry.id === commit.existingId);
+          if (original) return toBookSummary(original);
+        } else {
+          notifyLibraryChanged();
+        }
       }
       return toBookSummary(result.book);
     },

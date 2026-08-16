@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type { EventOrigin } from "@read-aware/core";
 import type { TFunction } from "i18next";
 import {
+  deleteDesktopBlob,
   desktopBlobManifestExists,
   getDesktopBlob,
   getDesktopBlobInfo,
@@ -107,11 +108,16 @@ async function stageCoverExtracted(
   };
 }
 
+export type BookImportCommit =
+  | { status: "imported" }
+  /** The exact same file already lives on the shelf (possibly synced in). */
+  | { status: "duplicate"; existingId: string };
+
 async function storeImportedBook(
   book: LibraryBook,
   source: BookImportSource,
   origin?: EventOrigin,
-): Promise<void> {
+): Promise<BookImportCommit> {
   assertDesktop("Importing a book");
   const { sha256 } = source.kind === "native-path"
     ? await putDesktopBlobFromPath(
@@ -124,6 +130,23 @@ async function storeImportedBook(
         new Uint8Array(await source.file.arrayBuffer()),
         book.mimeType || undefined,
       );
+  // Content gate: the hash knows what the metadata dedupe can't — the same
+  // file re-imported under a different title, or a copy that synced in from
+  // another device (its manifest row carries the sha before any bytes do).
+  const existingId = await invoke<string | null>("library_find_book_by_sha", {
+    sha256,
+    excludeId: book.id,
+  });
+  if (existingId) {
+    // If the existing record is a synced-in shell without local bytes, the
+    // bytes the user just handed us are exactly what it was missing.
+    if (!(await getDesktopBlobInfo(bookFileKey(existingId)))) {
+      const bytes = await getDesktopBlob(bookFileKey(book.id));
+      if (bytes) await putDesktopBlob(bookFileKey(existingId), bytes, book.mimeType || undefined);
+    }
+    await deleteDesktopBlob(bookFileKey(book.id));
+    return { status: "duplicate", existingId };
+  }
   const coverEvent = book.coverUrl ? await stageCoverExtracted(book.id, book.coverUrl) : null;
   await commitDomainEvents({
     type: "book.imported",
@@ -144,6 +167,7 @@ async function storeImportedBook(
   if (book.coverUrl || book.coverChecked) {
     await putBookCover(book.id, book.coverUrl ?? null, Boolean(book.coverChecked));
   }
+  return { status: "imported" };
 }
 
 async function deleteBookRecords(bookIds: string[], origin?: EventOrigin): Promise<void> {
@@ -394,8 +418,8 @@ export async function commitBookImport(
   book: LibraryBook,
   source: BookImportSource,
   origin?: EventOrigin,
-): Promise<void> {
-  await storeImportedBook(book, source, origin);
+): Promise<BookImportCommit> {
+  return storeImportedBook(book, source, origin);
 }
 
 export type EnrichBookResult =

@@ -29,15 +29,30 @@ export const DEFAULT_RELAY_URL = "https://relay.readaware.app";
 /** Dev override (localKV): point the client at `wrangler dev`. */
 const RELAY_URL_KV_KEY = "read-aware-sync-relay-url";
 
+/**
+ * Dev-session default when no KV override exists: `VITE_READAWARE_RELAY_URL`
+ * baked by the dev server. The KV override is DATA, so "Delete all data"
+ * rightly wipes it — which used to silently re-point a dev install at
+ * production mid-test. Env-var fallback survives any wipe; production builds
+ * never see it (DEV-gated, and the release pipeline sets no such var).
+ */
+function defaultRelayUrl(): string {
+  if (import.meta.env.DEV) {
+    const dev = import.meta.env.VITE_READAWARE_RELAY_URL as string | undefined;
+    if (dev) return dev;
+  }
+  return DEFAULT_RELAY_URL;
+}
+
 const PULL_INTERVAL_MS = 5 * 60_000;
 const PUSH_DEBOUNCE_MS = 3_000;
 
 export function relayBaseUrl(): string {
   const raw = localKV.getItem(RELAY_URL_KV_KEY);
-  if (!raw) return DEFAULT_RELAY_URL;
+  if (!raw) return defaultRelayUrl();
   try {
     const parsed: unknown = JSON.parse(raw);
-    return typeof parsed === "string" && parsed.length > 0 ? parsed : DEFAULT_RELAY_URL;
+    return typeof parsed === "string" && parsed.length > 0 ? parsed : defaultRelayUrl();
   } catch {
     return raw;
   }

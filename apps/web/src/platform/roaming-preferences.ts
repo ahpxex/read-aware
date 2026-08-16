@@ -217,8 +217,7 @@ function canonical(json: string | null): string | null {
 }
 
 /** Projection → KV (and sealed rows → the secret store). Returns moved keys. */
-async function overlayFromProjection(): Promise<string[]> {
-  const rows = await invoke<PreferenceRow[]>("preferences_load_all");
+function overlayRows(rows: PreferenceRow[]): string[] {
   const changed: string[] = [];
   for (const row of rows) {
     if (row.key.startsWith(SECRET_EVENT_PREFIX)) {
@@ -239,26 +238,63 @@ async function overlayFromProjection(): Promise<string[]> {
 }
 
 /**
+ * Backfill: local state the log has never seen gets its event. A namespace
+ * saved BEFORE roaming existed (or before this build) has a KV value but no
+ * projection row — without this pass it would never travel, because
+ * publishing otherwise only fires on the next save. Row-presence is the
+ * idempotency guard: committing applies the projection locally, so each
+ * namespace backfills at most once. Same for credentials, gated on the
+ * master key being present.
+ */
+function reconcileUnpublished(rows: PreferenceRow[]): void {
+  const present = new Set(rows.map((row) => row.key));
+  for (const key of Object.keys(ROAMING_POLICIES)) {
+    if (present.has(key)) continue;
+    const raw = localKV.getItem(key);
+    if (!raw) continue;
+    try {
+      publishRoamingPreference(key, JSON.parse(raw));
+    } catch {
+      // A malformed local blob is not worth replicating.
+    }
+  }
+  for (const prefix of ROAMING_SECRET_SLOT_PREFIXES) {
+    for (const slot of listSecretSlots(prefix)) {
+      if (present.has(`${SECRET_EVENT_PREFIX}${slot}`)) continue;
+      const value = getSecret(slot);
+      if (value) publishRoamingSecret(slot, value);
+    }
+  }
+}
+
+/**
  * Boot overlay — MUST run after `hydrateLocalStore` and before the module
  * graph that seeds settings atoms synchronously (see main.tsx ordering).
+ * Overlay first (remote rows win), then backfill what the log has never seen.
  */
 export async function hydrateRoamingPreferences(): Promise<void> {
   if (!isTauri()) return;
   try {
-    await overlayFromProjection();
+    const rows = await invoke<PreferenceRow[]>("preferences_load_all");
+    overlayRows(rows);
+    reconcileUnpublished(rows);
   } catch (error) {
     console.error("[roaming-preferences] boot overlay failed; using device-local values", error);
   }
 }
 
 /**
- * Post-pull refresh: re-overlay and tell mounted consumers which namespaces
- * moved. Called by the sync scheduler after a merge lands remote events.
+ * Post-pull refresh: re-overlay, tell mounted consumers which namespaces
+ * moved, and backfill anything still unpublished (a namespace first touched
+ * on a build older than this one). Called by the sync scheduler after a
+ * merge lands remote events.
  */
 export async function refreshRoamingPreferences(): Promise<void> {
   if (!isTauri()) return;
   try {
-    const changed = await overlayFromProjection();
+    const rows = await invoke<PreferenceRow[]>("preferences_load_all");
+    const changed = overlayRows(rows);
+    reconcileUnpublished(rows);
     if (changed.length > 0) {
       emitAppEvent("roaming-preferences-changed", { keys: changed });
     }

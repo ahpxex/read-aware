@@ -12,6 +12,7 @@ import { isTauri } from "../environment";
 import { emitAppEvent } from "../app-events";
 import { observeRemoteHlcStamps, onDomainEventBroadcast } from "../domain-events";
 import { localKV } from "../local-store";
+import { refreshRoamingPreferences } from "../roaming-preferences";
 import { deleteSecret, getSecret, setSecret } from "../secret-store";
 import { fromBase64 } from "../sync-envelope";
 import { createRelayClient, type RelayClient } from "./relay-client";
@@ -93,6 +94,9 @@ async function runCycle(): Promise<void> {
       // Merged events write projections straight through Rust — nothing else
       // tells the mounted UI. The shelf already reloads on this event.
       emitAppEvent("library-changed", {});
+      // Roamed preferences (theme, typography) follow the same wake-up:
+      // re-overlay the projection onto KV and announce what moved.
+      await refreshRoamingPreferences();
     }
     setStatus({ state: "idle", lastSyncAt: Date.now(), lastError: null });
   } finally {

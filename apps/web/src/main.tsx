@@ -1,6 +1,7 @@
 import { applyPlatformAttributes, disableNativeContextMenu } from "./platform/environment";
 import { syncAndroidSafeArea } from "./platform/safe-area";
 import { hydrateLocalStore } from "./platform/local-store";
+import { hydrateRoamingPreferences } from "./platform/roaming-preferences";
 import { getAppSettings, resolveAppTheme } from "./features/settings/lib/app-settings";
 import { bootAppSkin } from "./features/settings/lib/app-skin";
 import { getGeneralSettings } from "./features/settings/lib/general-settings";
@@ -26,6 +27,10 @@ syncAndroidSafeArea();
 //    it must not evaluate until hydration resolves.
 void (async () => {
   await hydrateLocalStore();
+  // Overlay roamed preferences (theme, reader typography) from the projection
+  // BEFORE anything reads settings — the boot theme below must already see a
+  // value another device may have changed.
+  await hydrateRoamingPreferences();
 
   // Stamp the resolved theme before anything renders so a dark-theme boot
   // paints dark from the first React frame (`useAppearance` takes over once

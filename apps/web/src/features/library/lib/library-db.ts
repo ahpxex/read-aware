@@ -2,7 +2,9 @@ import { invoke } from "@tauri-apps/api/core";
 import type { EventOrigin } from "@read-aware/core";
 import type { TFunction } from "i18next";
 import {
+  desktopBlobManifestExists,
   getDesktopBlob,
+  getDesktopBlobInfo,
   openDesktopBlobFile,
   putDesktopBlob,
   putDesktopBlobFromPath,
@@ -17,6 +19,7 @@ import type {
   LibraryBook,
   ReadingStatus,
 } from "./library-types";
+import { bytesToDataUrl, dataUrlToBytes } from "../../../platform/data-url";
 import {
   extractImportedFileMetadata,
   extractOpenedBookMetadata,
@@ -34,6 +37,9 @@ import { emitAppEvent } from "../../../platform/app-events";
 
 /** Blob-store key for a book's original file bytes (desktop SQLite backend). */
 const bookFileKey = (bookId: string) => `bookfile:${bookId}`;
+
+/** Blob-store key for a book's extracted cover (synced — kind `cover_image`). */
+const bookCoverKey = (bookId: string) => `cover:${bookId}`;
 
 // --- Storage primitives ------------------------------------------------------
 // Desktop-only: native SQLite (Rust commands) + blob store. The browser build
@@ -80,6 +86,27 @@ async function putBookCover(
   await invoke("library_set_book_cover", { id: bookId, coverUrl, coverChecked });
 }
 
+/**
+ * Persist an extracted cover as its synced blob and return the coverExtracted
+ * event to commit alongside whatever the caller is logging. The extraction
+ * RESULT syncs (a small `cover:` blob + event) so other devices paint their
+ * shelves without re-parsing the book — which they may not even hold yet.
+ * Null when the cover isn't a decodable data URL; the caller then keeps it
+ * on the local cache lane only.
+ */
+async function stageCoverExtracted(
+  bookId: string,
+  coverDataUrl: string,
+): Promise<{ type: "book.coverExtracted"; payload: { bookId: string; status: "ready"; coverBlobKey: string } } | null> {
+  const decoded = dataUrlToBytes(coverDataUrl);
+  if (!decoded) return null;
+  await putDesktopBlob(bookCoverKey(bookId), decoded.bytes, decoded.mimeType);
+  return {
+    type: "book.coverExtracted",
+    payload: { bookId, status: "ready", coverBlobKey: bookCoverKey(bookId) },
+  };
+}
+
 async function storeImportedBook(
   book: LibraryBook,
   source: BookImportSource,
@@ -97,6 +124,7 @@ async function storeImportedBook(
         new Uint8Array(await source.file.arrayBuffer()),
         book.mimeType || undefined,
       );
+  const coverEvent = book.coverUrl ? await stageCoverExtracted(book.id, book.coverUrl) : null;
   await commitDomainEvents({
     type: "book.imported",
     payload: {
@@ -111,9 +139,8 @@ async function storeImportedBook(
       sourceSha256: sha256,
     },
     origin,
-  });
-  // The import extractor may already have found a cover; it rides the local
-  // cache lane, not the log.
+  }, ...(coverEvent ? [{ ...coverEvent, origin }] : []));
+  // The data-URL copy still rides the local cache lane for synchronous paint.
   if (book.coverUrl || book.coverChecked) {
     await putBookCover(book.id, book.coverUrl ?? null, Boolean(book.coverChecked));
   }
@@ -418,25 +445,54 @@ async function enrichParsedBook(
     return { status: "duplicate", book: duplicateOf };
   }
 
-  // Two lanes, deliberately separate: title/author are domain facts and go
-  // through the log; the cover is extracted from the book file (object-storage
-  // content) and goes straight to its local cache.
+  // Two lanes, deliberately separate: title/author are domain facts; the
+  // cover's data-URL copy is a local cache for synchronous paint — but the
+  // extraction RESULT syncs as a `cover:` blob + coverExtracted event, so
+  // other devices inherit the artwork instead of re-parsing the book.
+  const events = [];
   if (enriched.title !== current.title || enriched.author !== current.author) {
-    await commitDomainEvents({
-      type: "book.metadataEdited",
+    events.push({
+      type: "book.metadataEdited" as const,
       payload: {
         bookId: imported.id,
         ...(enriched.title !== current.title ? { title: enriched.title } : {}),
         ...(enriched.author !== current.author ? { author: enriched.author } : {}),
       },
       // Parsed-metadata enrichment is app machinery, not a user edit.
-      origin: "system",
+      origin: "system" as const,
     });
+  }
+  if (metadata.coverUrl && metadata.coverUrl !== current.coverUrl) {
+    const coverEvent = await stageCoverExtracted(imported.id, metadata.coverUrl);
+    if (coverEvent) events.push({ ...coverEvent, origin: "system" as const });
+  }
+  if (events.length > 0) {
+    await commitDomainEvents(...events);
   }
   if (enriched.coverUrl !== current.coverUrl || enriched.coverChecked !== current.coverChecked) {
     await putBookCover(imported.id, enriched.coverUrl ?? null, Boolean(enriched.coverChecked));
   }
   return { status: "enriched", book: (await getBookRecord(imported.id)) ?? enriched };
+}
+
+/**
+ * Fill a synced-in book's cover cache from its `cover:` blob — the consumer
+ * half of coverExtracted. The manifest row (left behind by replay) is the
+ * gate: no row means no device ever extracted a cover, so nothing to fetch
+ * and no network probe. Bytes come locally or lazily off the relay, land in
+ * the same data-URL cache lane an import fills, and `coverChecked` flips so
+ * this runs once per book. Null when there is nothing to do.
+ */
+export async function hydrateSyncedCover(book: LibraryBook): Promise<LibraryBook | null> {
+  if (!isTauri() || book.coverUrl || book.coverChecked) return null;
+  const key = bookCoverKey(book.id);
+  if (!(await desktopBlobManifestExists(key))) return null;
+  const bytes = (await getDesktopBlob(key)) ?? (await fetchRemoteBlob(key));
+  if (!bytes) return null;
+  const info = await getDesktopBlobInfo(key);
+  const dataUrl = await bytesToDataUrl(bytes, info?.mimeType || "image/jpeg");
+  await putBookCover(book.id, dataUrl, true);
+  return { ...book, coverUrl: dataUrl, coverChecked: true };
 }
 
 export async function getStoredBookBlob(bookId: string): Promise<Blob | null> {

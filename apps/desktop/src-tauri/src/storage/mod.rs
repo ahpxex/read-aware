@@ -34,6 +34,8 @@ mod sync;
 pub use sync::*;
 mod reading_time;
 pub use reading_time::*;
+mod preferences;
+pub use preferences::*;
 
 use std::io::{BufReader, Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};

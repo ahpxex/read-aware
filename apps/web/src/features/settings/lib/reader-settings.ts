@@ -1,5 +1,6 @@
 import { hasCoarsePointer } from "../../../platform/environment";
 import { localKV } from "../../../platform/local-store";
+import { publishRoamingPreference } from "../../../platform/roaming-preferences";
 import { isPluginRef } from "../../plugins/lib/plugin-theme";
 
 const STORAGE_KEY = "read-aware-reader-settings";
@@ -277,6 +278,8 @@ export function getReaderPreferences(): ReaderSettingsPreferences {
 
 export function saveReaderPreferences(prefs: ReaderSettingsPreferences): void {
   localKV.setItem(STORAGE_KEY, JSON.stringify(prefs));
+  // Reading typography roams: other devices follow through the event log.
+  publishRoamingPreference(STORAGE_KEY, prefs);
 }
 
 /** Resolve a (possibly `auto`) page color against the resolved app theme. */

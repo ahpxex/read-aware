@@ -19,6 +19,8 @@ export type AppEventMap = {
   "library-changed": Record<string, never>;
   /** A plugin's namespaced KV was written on the HOST side (settings change). */
   "plugin-storage-changed": { pluginId: string };
+  /** A sync pull moved roaming preference namespaces (see platform/roaming-preferences). */
+  "roaming-preferences-changed": { keys: string[] };
 };
 
 export type AppEventName = keyof AppEventMap;

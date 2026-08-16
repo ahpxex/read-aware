@@ -48,6 +48,7 @@ export type DomainEventDraft = DomainEvent extends infer E
  * compile error. `null` = no single aggregate (e.g. profile).
  */
 const AGGREGATE_ROUTES: Record<DomainEventType, { type: string; idKey: string } | null> = {
+  "preference.changed": { type: "preference", idKey: "key" },
   "book.imported": { type: "book", idKey: "bookId" },
   "book.metadataEdited": { type: "book", idKey: "bookId" },
   "book.coverExtracted": { type: "book", idKey: "bookId" },

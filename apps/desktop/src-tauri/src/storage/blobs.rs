@@ -452,6 +452,26 @@ pub fn get_blob(
     get_blob_inner(&conn, &data_dir.0, &key).map(tauri::ipc::Response::new)
 }
 
+/// Does the registry know this key at all — locally present OR manifest-only
+/// ("exists remotely, bytes not fetched", the row a replayed blob-referencing
+/// event leaves behind)? `get_blob_info` deliberately hides manifest-only
+/// rows; the lazy-fetch decision needs to see them, without a network probe
+/// per miss.
+#[tauri::command]
+pub fn blob_manifest_exists(key: String, db: State<'_, Db>) -> Result<bool, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    conn.query_row(
+        "SELECT 1 FROM blob_objects WHERE key = ?1 AND deleted_at IS NULL",
+        params![key],
+        |_| Ok(()),
+    )
+    .map(|_| true)
+    .or_else(|e| match e {
+        rusqlite::Error::QueryReturnedNoRows => Ok(false),
+        other => Err(other.to_string()),
+    })
+}
+
 /// Metadata-only lookup used to create a random-access book source in the
 /// webview without first transferring the whole file.
 #[tauri::command]

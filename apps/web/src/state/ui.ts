@@ -148,6 +148,18 @@ export const readerPreferencesAtom = atom(
 
 const contentTypographyBaseAtom = atom<ContentTypographySettings>(getContentTypography());
 
+// Roamed preferences landing via sync pull: the overlay already rewrote the
+// KV cache; re-seed the BASE atoms so mounted UI follows (useAppearance then
+// re-applies the theme). Base atoms, not the public setters — the remote
+// device logged the event, and saving here would echo it straight back.
+// Lifetime listener for the same reason as plugin-storage-changed below.
+onAppEvent("roaming-preferences-changed", () => {
+  const store = getDefaultStore();
+  store.set(appSettingsBaseAtom, getAppSettings());
+  store.set(readerPreferencesBaseAtom, getReaderPreferences());
+  store.set(contentTypographyBaseAtom, getContentTypography());
+});
+
 /** Typography for the app's content surfaces (chat, notes, plugin markdown). */
 export const contentTypographyAtom = atom(
   (get) => get(contentTypographyBaseAtom),

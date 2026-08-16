@@ -32,11 +32,12 @@
 //!     event-sourced. That is everything below.
 //!   - **Book content** — the original file and anything extracted from it
 //!     (covers) — travels as a blob through object storage, never through the
-//!     log. `books.cover_url` / `cover_checked` are therefore a LOCAL DERIVED
-//!     CACHE that sits in the projection table for query convenience only.
-//!     A rebuild preserves those columns (see `rebuild_projections`) and
-//!     `book.coverExtracted` applies to nothing — it records that a local
-//!     extraction pass happened, which is not a domain fact.
+//!     log. `book.coverExtracted` records that an extraction produced a
+//!     `cover:` blob (so other devices fetch the artwork instead of
+//!     re-parsing a book they may not hold), but the event applies to no
+//!     projection column: `books.cover_url` / `cover_checked` are a LOCAL
+//!     DERIVED CACHE materialized from that blob on each device, preserved
+//!     by rebuild (see `rebuild_projections`).
 //!
 //! `profile.updated` / `entity.*` likewise apply to nothing: they are accepted
 //! into the log, but the consolidation pipeline that would own their projection
@@ -625,6 +626,23 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
             }
         }
 
+        // Roaming preferences: key-level last-writer-wins. Events apply in
+        // HLC order (merge replays behind the frontier), so a plain upsert IS
+        // the LWW rule — no timestamps to compare here.
+        "preference.changed" => {
+            if let (Some(key), Some(value)) = (str_of(p, "key"), p.get("value")) {
+                tx.execute(
+                    "INSERT INTO synced_preferences (key, value_json, updated_at)
+                     VALUES (?1, ?2, ?3)
+                     ON CONFLICT(key) DO UPDATE SET
+                        value_json = excluded.value_json,
+                        updated_at = excluded.updated_at",
+                    params![key, value.to_string(), at],
+                )
+                .map_err(|e| e.to_string())?;
+            }
+        }
+
         // ── Accepted into the log, applies to no projection ─────────────────
         // coverExtracted: local extraction bookkeeping over object-storage
         // content, not a domain fact (see the module header). It DOES leave a
@@ -748,6 +766,7 @@ pub const DERIVED_TABLES: &[&str] = &[
     "reading_time_totals",
     "reading_time_daily",
     "reading_time_hourly",
+    "synced_preferences",
 ];
 
 pub const DIFF_SPECS: &[DiffSpec] = &[
@@ -799,6 +818,11 @@ pub const DIFF_SPECS: &[DiffSpec] = &[
     },
     DiffSpec {
         table: "reading_time_hourly",
+        local_columns: &[],
+        domain_rows: None,
+    },
+    DiffSpec {
+        table: "synced_preferences",
         local_columns: &[],
         domain_rows: None,
     },

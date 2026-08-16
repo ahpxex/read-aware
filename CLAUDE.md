@@ -67,7 +67,7 @@
   - long-term user memory — local projection
   - book / highlight / note memory — local projection
   - exportable context bundles — local projection
-- Everything above `raw events` is a **local projection rebuilt from the event log** — projections are recomputed on-device, never synced directly. This is enforced, not aspirational: `storage/apply.rs` is the only writer of a projection row, and `rebuild_projections` can reproduce every one of them from the log. Two things are deliberately NOT derived, and both are excluded from the check: book cover artwork (extracted from object-storage content) and chat presentation state (`parts_json`, `error`)
+- Everything above `raw events` is a **local projection rebuilt from the event log** — projections are recomputed on-device, never synced directly. This is enforced, not aspirational: `storage/apply.rs` is the only writer of a projection row, and `rebuild_projections` can reproduce every one of them from the log. Two things are deliberately NOT derived, and both are excluded from the check: the book cover's data-URL cache (`books.cover_url`/`cover_checked` — the artwork itself DOES sync, as a `cover:` blob recorded by `book.coverExtracted`, and each device materializes its cache from that blob) and chat presentation state (`parts_json`, `error`)
 - Design the **write / consolidation pipeline** as explicitly as retrieval; it is the harder half:
   - promotion from raw events into long-term memory (summarization / consolidation)
   - conflict resolution when new information contradicts old memory

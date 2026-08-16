@@ -17,6 +17,7 @@
  * chat run its own face and size.
  */
 import { localKV } from "../../../platform/local-store";
+import { publishRoamingPreference } from "../../../platform/roaming-preferences";
 import { readerFontSizeRem, resolveReaderFontStack } from "./reader-css";
 import type { PluginFontStackSource } from "./reader-css";
 import {
@@ -132,6 +133,8 @@ export function getContentTypography(): ContentTypographySettings {
 
 export function saveContentTypography(settings: ContentTypographySettings): void {
   localKV.setItem(STORAGE_KEY, JSON.stringify(settings));
+  // Content typography roams with the reader settings it can follow.
+  publishRoamingPreference(STORAGE_KEY, settings);
 }
 
 /** The font selection actually in force, so callers know which face to load. */

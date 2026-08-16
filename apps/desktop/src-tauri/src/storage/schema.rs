@@ -426,6 +426,20 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
         // 按 event_id 去重，重推是幂等的，宁可多推不可漏推。
         "ALTER TABLE sync_profile ADD COLUMN bookkeeping_account_id TEXT;",
     ),
+    (
+        15,
+        "synced_preferences",
+        // [projection] 漫游偏好：preference.changed 事件的投影（key 级
+        // last-writer-wins，HLC 序天然给出）。value_json 是该偏好命名空间的
+        // 完整设置对象。哪些命名空间漫游由 TS 侧 allowlist 决定
+        // （platform/roaming-preferences.ts）；OS 集成类、快捷键、密钥
+        // 永远不进这张表。
+        "CREATE TABLE IF NOT EXISTS synced_preferences (
+            key        TEXT PRIMARY KEY,
+            value_json TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+         );",
+    ),
 ];
 
 /// Apply migrations newer than the highest recorded version, up to `max_version`

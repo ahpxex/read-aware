@@ -26,6 +26,8 @@ import type {
   ReadingStatus,
 } from "@read-aware/core";
 import { isTauri } from "./environment";
+import { putDesktopBlob } from "./blob-store";
+import { dataUrlToBytes } from "./data-url";
 import {
   appendDomainEvents,
   listEventAggregateIds,
@@ -55,6 +57,7 @@ type BookRow = {
   fileName: string;
   mimeType: string;
   fileSize: number;
+  coverUrl?: string | null;
   createdAt: string;
   updatedAt: string;
   progressPercent: number;
@@ -308,8 +311,9 @@ function annotationDraft(annotation: AnnotationRow): DomainEventDraft | null {
  */
 export async function reconcileGenesisEvents(): Promise<void> {
   if (!isTauri()) return;
-  const [covered, coveredConversations, coveredMemories] = await Promise.all([
+  const [covered, coveredCovers, coveredConversations, coveredMemories] = await Promise.all([
     listEventAggregateIds([...CREATION_TYPES]),
+    listEventAggregateIds(["book.coverExtracted"]),
     listEventAggregateIds(["aiConversation.started"]),
     listEventAggregateIds(["memory.promoted"]),
   ]);
@@ -335,6 +339,22 @@ export async function reconcileGenesisEvents(): Promise<void> {
   for (const book of byCreatedAt(books)) {
     if (covered.has(book.id)) continue;
     drafts.push(...bookDrafts(book));
+  }
+  // Covers extracted before coverExtracted had a producer: the cache holds the
+  // artwork but the log never heard of it, so other devices can't inherit it.
+  // Lift each data-URL cover into its synced blob and give it its event. The
+  // covered set is the idempotency guard, same as every genesis pass.
+  for (const book of byCreatedAt(books)) {
+    if (coveredCovers.has(book.id)) continue;
+    const decoded = book.coverUrl?.startsWith("data:") ? dataUrlToBytes(book.coverUrl) : null;
+    if (!decoded) continue;
+    const coverBlobKey = `cover:${book.id}`;
+    await putDesktopBlob(coverBlobKey, decoded.bytes, decoded.mimeType);
+    drafts.push({
+      type: "book.coverExtracted",
+      createdAt: book.updatedAt || book.createdAt,
+      payload: { bookId: book.id, status: "ready", coverBlobKey },
+    });
   }
   for (const annotation of byCreatedAt(annotations)) {
     if (covered.has(annotation.id)) continue;

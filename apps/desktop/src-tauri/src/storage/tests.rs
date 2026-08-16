@@ -1483,6 +1483,44 @@ fn sync_profile_and_cursor_round_trip() {
 }
 
 #[test]
+fn preference_changes_apply_last_writer_wins() {
+    let mut conn = migrated_conn();
+    commit_events_inner(
+        &mut conn,
+        &[ev(
+            "p2",
+            2_000,
+            "preference.changed",
+            serde_json::json!({ "key": "read-aware-app-settings",
+                                "value": { "theme": "light", "motion": "system" } }),
+        )],
+    )
+    .unwrap();
+
+    // An OLDER change arriving later (remote merge behind the frontier) must
+    // not win: the replay re-applies in HLC order, so the upsert lands the
+    // newer value last again.
+    apply_remote_events_inner(
+        &mut conn,
+        &[ev(
+            "p1",
+            1_000,
+            "preference.changed",
+            serde_json::json!({ "key": "read-aware-app-settings",
+                                "value": { "theme": "dark", "motion": "system" } }),
+        )],
+    )
+    .unwrap();
+
+    let rows = preferences_load_all_inner(&conn).unwrap();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].key, "read-aware-app-settings");
+    let value: serde_json::Value = serde_json::from_str(&rows[0].value_json).unwrap();
+    assert_eq!(value["value"]["theme"], serde_json::Value::Null, "payload.value only");
+    assert_eq!(value["theme"], "light", "the HLC-newest write wins regardless of arrival order");
+}
+
+#[test]
 fn adopting_a_different_account_resets_the_bookkeeping() {
     let dir = tempfile::tempdir().expect("tempdir");
     let mut conn = migrated_conn();

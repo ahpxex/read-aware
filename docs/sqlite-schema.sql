@@ -87,6 +87,12 @@ CREATE TABLE sync_cursors ( -- [device-local] 本机读取远端 change feed 的
   updated_at TEXT NOT NULL -- 游标最近更新时间；用于 Data & Sync 显示"上次同步"和排查卡住的 feed。
 ); -- sync_cursors 表结束。
 
+CREATE TABLE synced_preferences ( -- [projection] 漫游偏好：preference.changed 事件的投影，key 级 last-writer-wins（HLC 序天然给出）。哪些命名空间漫游由 TS allowlist 决定（platform/roaming-preferences.ts）；设备本地 KV（app_kv）是它在本机的缓存，boot 与每次拉取后覆盖。OS 集成、快捷键、密钥永不入内。
+  key TEXT NOT NULL PRIMARY KEY, -- 偏好命名空间，与其 device-local KV 键同名（read-aware-app-settings 等）。
+  value_json TEXT NOT NULL, -- 该命名空间的完整设置对象 JSON；整体替换，不做字段级合并（设备形态字段的本地保留发生在 TS overlay 层）。
+  updated_at TEXT NOT NULL -- 应用该事件时的时间戳；诊断用，LWW 由事件 HLC 序保证而非此列。
+); -- synced_preferences 表结束。
+
 CREATE TABLE domain_events ( -- [synced log] append-only 领域事件日志；这是书籍、标注、阅读进度、记忆等可同步数据的唯一权威来源。事件目录见 packages/core/src/events.ts。
   id TEXT NOT NULL PRIMARY KEY, -- 全局唯一事件 ID，通常是 UUID；同步拉取重复事件时用它幂等去重。
   type TEXT NOT NULL, -- 事件类型（canonical 名以 events.ts 为准），例如 book.imported、highlight.created、book.progressed、memory.promoted。

@@ -294,6 +294,20 @@ export type DomainEvent =
   | DomainEventEnvelope<
       "memory.forgotten",
       { memoryId: Id; reason: "decay" | "user" }
+    >
+  // --- Roaming preferences ------------------------------------------------
+  /**
+   * A device-roaming preference changed. `key` is the preference namespace
+   * (the same `read-aware-*` key its device-local KV copy uses), `value` the
+   * whole settings object for that namespace — coarse on purpose: one event
+   * per save keeps last-writer-wins at the granularity users actually edit.
+   * Only ALLOWLISTED namespaces roam (platform/roaming-preferences.ts);
+   * device-local config (OS integration, shortcuts, secrets) never appears
+   * here.
+   */
+  | DomainEventEnvelope<
+      "preference.changed",
+      { key: string; value: unknown }
     >;
 
 export type DomainEventType = DomainEvent["type"];

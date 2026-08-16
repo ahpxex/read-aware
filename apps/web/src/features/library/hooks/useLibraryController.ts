@@ -7,6 +7,7 @@ import { deleteBookText, ensureBookTextExtracted } from "../lib/book-text-store"
 import {
   commitBookImport,
   enrichOpenedBook,
+  hydrateSyncedCover,
   listCollections,
   listLibraryBooks,
   prepareBookImport,
@@ -110,6 +111,19 @@ export function useLibraryController() {
       ]);
       setBooks(loadedBooks);
       setCollections(loadedCollections);
+      // Books that arrived through sync carry a cover blob but an empty
+      // data-URL cache — fill it now (local bytes, or one lazy fetch), and
+      // patch each shelf tile as its artwork lands. `coverChecked` flips in
+      // the store, so every book takes this path at most once.
+      for (const book of loadedBooks) {
+        if (book.coverUrl || book.coverChecked) continue;
+        void hydrateSyncedCover(book).then((hydrated) => {
+          if (!hydrated) return;
+          setBooks((current) =>
+            current.map((entry) => (entry.id === hydrated.id ? hydrated : entry)),
+          );
+        });
+      }
     } catch (error) {
       reportError(error);
     } finally {

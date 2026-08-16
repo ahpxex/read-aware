@@ -52,9 +52,12 @@ type RoamingPolicy = {
 };
 
 const ROAMING_POLICIES: Record<string, RoamingPolicy> = {
+  // App chrome theme (light/dark) + motion: identity-like, follows the user.
+  // Reading APPEARANCE (reader typography, page color, content typography)
+  // deliberately does NOT roam: each device's screen and posture want their
+  // own type size, spacing, and page color — syncing them forces one
+  // device's ergonomics onto another (the WeChat-Reading lesson).
   "read-aware-app-settings": { deviceLocalFields: [] },
-  "read-aware-reader-settings": { deviceLocalFields: ["pageMargins", "readingMode"] },
-  "read-aware-content-typography": { deviceLocalFields: [] },
   "read-aware-ai-preferences": { deviceLocalFields: [] },
   // Provider/model choices roam as plain KV; the API key roams SEPARATELY as
   // a sealed secret (below) — stripped from what we publish here, and

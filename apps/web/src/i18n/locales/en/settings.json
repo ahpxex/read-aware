@@ -333,16 +333,6 @@
     "export": "Export",
     "working": "Working…",
     "dangerZone": "Danger zone",
-    "reset": {
-      "title": "Reset all settings",
-      "description": "Restore every preference to its default. Books and annotations are kept."
-    },
-    "resetButton": "Reset settings",
-    "resetDialog": {
-      "title": "Reset all settings?",
-      "body": "Restore every preference to its default. Your books and annotations are kept — only settings are reset. This can’t be undone.",
-      "cancel": "Cancel"
-    },
     "syncStatus": {
       "idle": "Synced",
       "syncing": "Syncing…",
@@ -379,6 +369,28 @@
       "disconnectTitle": "Disconnect sync?",
       "disconnectBody": "This device keeps all its data and stops syncing. Reconnect anytime with the same passphrase.",
       "cancel": "Cancel"
+    },
+    "progress": {
+      "pulling": "Receiving changes… {{count}} merged",
+      "pushing": "Sending changes… {{count}} sent",
+      "blobs": "Transferring files… {{done}}/{{total}}",
+      "pending": "Waiting to send: {{events}} changes, {{blobs}} files",
+      "pendingNone": "Nothing waiting to send",
+      "lastCycle": "Last cycle: {{pulled}} received · {{pushed}} sent · {{blobs}} files"
+    },
+    "indicator": {
+      "label": "Sync status"
+    },
+    "deleteAll": {
+      "title": "Delete all data",
+      "description": "Erase everything on this device — books, annotations, reading history, settings, and sync credentials. A synced account's copy on other devices is not touched.",
+      "button": "Delete all data",
+      "dialogTitle": "Delete all data?",
+      "dialogBody": "This erases every book, annotation, memory, conversation, and setting on this device, and cannot be undone. Data already synced to other devices stays on those devices.",
+      "confirmLabel": "Type {{phrase}} to confirm",
+      "cancel": "Cancel",
+      "deleting": "Deleting…",
+      "failed": "Couldn't delete all data. Nothing may have been removed — try again."
     }
   },
   "about": {

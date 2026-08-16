@@ -637,3 +637,78 @@ pub fn register_sql_functions(conn: &Connection) -> Result<(), String> {
     .map_err(|e| e.to_string())
 }
 
+
+// ── Factory reset ────────────────────────────────────────────────────────────
+
+/// Every user-data table, resolved by introspection so a future migration's
+/// new table is wiped without anyone remembering to update a list here.
+/// Skipped: SQLite internals, `schema_migrations` (the schema itself is not
+/// user data), and virtual-table shadow tables — wiping a shadow directly
+/// corrupts its FTS index, while `DELETE FROM <vtab>` clears them properly.
+fn wipeable_tables(conn: &Connection) -> Result<Vec<String>, String> {
+    let mut stmt = conn
+        .prepare("SELECT name, sql FROM sqlite_master WHERE type = 'table'")
+        .map_err(|e| e.to_string())?;
+    let rows: Vec<(String, Option<String>)> = stmt
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+        .map_err(|e| e.to_string())?
+        .collect::<Result<_, _>>()
+        .map_err(|e| e.to_string())?;
+    let virtual_tables: Vec<String> = rows
+        .iter()
+        .filter(|(_, sql)| {
+            sql.as_deref()
+                .is_some_and(|s| s.trim_start().to_uppercase().starts_with("CREATE VIRTUAL TABLE"))
+        })
+        .map(|(name, _)| name.clone())
+        .collect();
+    Ok(rows
+        .into_iter()
+        .map(|(name, _)| name)
+        .filter(|name| {
+            !name.starts_with("sqlite_")
+                && name != "schema_migrations"
+                && !virtual_tables
+                    .iter()
+                    .any(|vt| name != vt && name.starts_with(&format!("{vt}_")))
+        })
+        .collect())
+}
+
+/// Delete ALL user data on this device: every table row (log, projections,
+/// registries, app_kv — which includes the sealed secrets), the blob files,
+/// and the local encryption key. The schema survives; the device identity is
+/// re-minted inside the same transaction so the very next write works. The
+/// caller reloads the webview afterwards — in-memory JS state is stale by
+/// definition once this returns.
+#[tauri::command]
+pub fn wipe_all_data(db: State<'_, Db>, data_dir: State<'_, DataDir>) -> Result<(), String> {
+    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+    wipe_all_data_inner(&mut conn, &data_dir.0)
+}
+
+pub(crate) fn wipe_all_data_inner(conn: &mut Connection, data_dir: &Path) -> Result<(), String> {
+    let tables = wipeable_tables(conn)?;
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+    // FK order problems are sidestepped wholesale: defer enforcement to commit,
+    // by which point every referencing row is gone too.
+    tx.execute_batch("PRAGMA defer_foreign_keys = ON;")
+        .map_err(|e| e.to_string())?;
+    for table in &tables {
+        tx.execute(&format!("DELETE FROM \"{table}\""), [])
+            .map_err(|e| format!("wiping {table}: {e}"))?;
+    }
+    ensure_local_device(&tx)?;
+    tx.commit().map_err(|e| e.to_string())?;
+    conn.execute_batch("VACUUM;").map_err(|e| e.to_string())?;
+
+    let blobs_dir = data_dir.join("blobs");
+    if blobs_dir.exists() {
+        std::fs::remove_dir_all(&blobs_dir).map_err(|e| format!("removing blobs: {e}"))?;
+    }
+    let key_file = data_dir.join("secret.key");
+    if key_file.exists() {
+        std::fs::remove_file(&key_file).map_err(|e| format!("removing secret key: {e}"))?;
+    }
+    Ok(())
+}

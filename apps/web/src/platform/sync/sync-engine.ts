@@ -51,6 +51,20 @@ export type SyncRelayApi = {
   getBlob(key: string): Promise<Uint8Array | null>;
 };
 
+/**
+ * Live counters for the cycle in flight — what the sync indicator and the
+ * Data & Sync panel narrate. Counts are cumulative within one `syncOnce`;
+ * `blobsTotal` is this PASS's queue (at most `blobBatchSize`), not the whole
+ * backlog — the backlog is a store question (`sync_outbox_counts`).
+ */
+export type SyncCycleProgress = {
+  phase: "pull" | "push" | "blobs";
+  pulled: number;
+  pushed: number;
+  blobsDone: number;
+  blobsTotal: number;
+};
+
 export type SyncEngineOptions = {
   store: SyncLocalStore;
   relay: SyncRelayApi;
@@ -58,6 +72,8 @@ export type SyncEngineOptions = {
   masterKey: () => Uint8Array | null;
   /** The HLC receive rule (platform/domain-events.observeRemoteHlcStamps). */
   observe: (stamps: HlcStamp[]) => void;
+  /** Called after every page/batch/blob with the cycle's running counters. */
+  onProgress?: (progress: SyncCycleProgress) => void;
   /** Events per push batch / pull page. */
   batchSize?: number;
   /** Blobs attempted per blob pass. */
@@ -104,6 +120,21 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
     return key;
   }
 
+  // Cycle-scoped counters; `syncOnce` zeroes them, each step patches and
+  // emits a copy. Standalone pull/push calls report too — their consumer is
+  // the same status snapshot.
+  let progress: SyncCycleProgress = {
+    phase: "pull",
+    pulled: 0,
+    pushed: 0,
+    blobsDone: 0,
+    blobsTotal: 0,
+  };
+  function report(patch: Partial<SyncCycleProgress>): void {
+    progress = { ...progress, ...patch };
+    options.onProgress?.(progress);
+  }
+
   async function pushOnce(): Promise<number> {
     const key = requireKey();
     let pushed = 0;
@@ -126,6 +157,7 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
         .map((e): [string, number] => [e.id, seqs[e.id]]);
       await store.markEventsPushed(assigned);
       pushed += assigned.length;
+      report({ phase: "push", pushed });
       if (batch.length < batchSize) break;
     }
     if (pushed > 0) await store.touch("push");
@@ -146,6 +178,7 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
         await store.applyRemote(plains);
         await store.setEventsCursor(page.next, maxStamp(page.events.map((e) => e.hlc)));
         merged += page.events.length;
+        report({ phase: "pull", pulled: merged });
       }
       after = page.next;
       if (page.events.length < batchSize) break;
@@ -158,6 +191,7 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
     const key = requireKey();
     const tasks = await store.outboxBlobs(blobBatchSize);
     let uploaded = 0;
+    report({ phase: "blobs", blobsDone: 0, blobsTotal: tasks.length });
     for (const task of tasks) {
       try {
         const bytes = await store.readBlob(task.key);
@@ -181,6 +215,8 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
           await store.markBlobsFailed([task.key], message);
         }
       }
+      // Attempts, not successes: the bar reflects queue movement either way.
+      report({ blobsDone: progress.blobsDone + 1 });
     }
     return uploaded;
   }
@@ -202,6 +238,7 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
     syncBlobsOnce,
     fetchBlob,
     async syncOnce() {
+      report({ phase: "pull", pulled: 0, pushed: 0, blobsDone: 0, blobsTotal: 0 });
       const pulled = await pullOnce();
       const pushed = await pushOnce();
       const blobs = await syncBlobsOnce();

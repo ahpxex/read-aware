@@ -1483,6 +1483,63 @@ fn sync_profile_and_cursor_round_trip() {
 }
 
 #[test]
+fn wipe_all_data_leaves_a_fresh_usable_store() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let mut conn = migrated_conn();
+
+    // A store with life in it: events + projections, a blob on disk, sync
+    // bookkeeping, KV settings, and FTS rows (via the annotation trigger).
+    commit_events_inner(
+        &mut conn,
+        &[
+            imported("e1", 1_000, "b1", "沙丘"),
+            ev_on(
+                "device-a",
+                "h1",
+                1_001,
+                "highlight.created",
+                serde_json::json!({ "highlightId": "h1", "bookId": "b1", "text": "香料" }),
+            ),
+        ],
+    )
+    .unwrap();
+    put_blob_inner(&conn, dir.path(), "bookfile:b1", None, b"bytes").unwrap();
+    sync_cursor_set_inner(
+        &conn,
+        &SyncCursor { feed_name: "events".into(), remote_cursor: Some("7".into()), hlc: None },
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO app_kv (key, value_json, updated_at) VALUES ('read-aware-app-settings', '{}',
+         strftime('%Y-%m-%dT%H:%M:%fZ','now'))",
+        [],
+    )
+    .unwrap();
+    let old_device = ensure_local_device(&conn).unwrap();
+
+    wipe_all_data_inner(&mut conn, dir.path()).unwrap();
+
+    for table in ["domain_events", "books", "annotations", "annotations_fts",
+                  "event_sync_state", "blob_objects", "blob_sync_state",
+                  "sync_cursors", "app_kv"] {
+        assert_eq!(
+            scalar::<i64>(&conn, &format!("SELECT COUNT(*) FROM {table}")),
+            0,
+            "{table} must be empty after the wipe"
+        );
+    }
+    assert!(!dir.path().join("blobs").exists(), "blob files must be gone");
+    // The schema itself survives — this is a wipe, not an uninstall.
+    assert!(scalar::<i64>(&conn, "SELECT COUNT(*) FROM schema_migrations") > 0);
+    // And the store is immediately usable: a fresh device identity exists and
+    // a new commit lands without any re-initialization.
+    let new_device = ensure_local_device(&conn).unwrap();
+    assert_ne!(new_device, old_device, "the wiped install is a NEW device");
+    commit_events_inner(&mut conn, &[imported("e2", 2_000, "b2", "基地")]).unwrap();
+    assert_eq!(scalar::<String>(&conn, "SELECT title FROM books WHERE id='b2'"), "基地");
+}
+
+#[test]
 fn preference_changes_apply_last_writer_wins() {
     let mut conn = migrated_conn();
     commit_events_inner(

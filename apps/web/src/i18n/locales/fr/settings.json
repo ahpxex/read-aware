@@ -337,16 +337,6 @@
     "export": "Exporter",
     "working": "En cours…",
     "dangerZone": "Zone sensible",
-    "reset": {
-      "title": "Réinitialiser tous les paramètres",
-      "description": "Rétablir chaque préférence à sa valeur par défaut. Les livres et annotations sont conservés."
-    },
-    "resetButton": "Réinitialiser les paramètres",
-    "resetDialog": {
-      "title": "Réinitialiser tous les paramètres ?",
-      "body": "Rétablir chaque préférence à sa valeur par défaut. Vos livres et annotations sont conservés — seuls les paramètres sont réinitialisés. Cette action est irréversible.",
-      "cancel": "Annuler"
-    },
     "syncStatus": {
       "idle": "Synchronisé",
       "syncing": "Synchronisation…",
@@ -383,6 +373,28 @@
       "disconnectTitle": "Déconnecter la synchronisation ?",
       "disconnectBody": "Cet appareil conserve toutes ses données et cesse de synchroniser. Reconnectez-vous à tout moment avec la même phrase secrète.",
       "cancel": "Annuler"
+    },
+    "progress": {
+      "pulling": "Réception des modifications… {{count}} fusionnées",
+      "pushing": "Envoi des modifications… {{count}} envoyées",
+      "blobs": "Transfert des fichiers… {{done}}/{{total}}",
+      "pending": "En attente d'envoi : {{events}} modifications, {{blobs}} fichiers",
+      "pendingNone": "Rien en attente d'envoi",
+      "lastCycle": "Dernier cycle : {{pulled}} reçues · {{pushed}} envoyées · {{blobs}} fichiers"
+    },
+    "indicator": {
+      "label": "État de la synchronisation"
+    },
+    "deleteAll": {
+      "title": "Supprimer toutes les données",
+      "description": "Effacer tout ce qui se trouve sur cet appareil — livres, annotations, historique de lecture, réglages et identifiants de synchronisation. Les copies d'un compte synchronisé sur d'autres appareils ne sont pas touchées.",
+      "button": "Supprimer toutes les données",
+      "dialogTitle": "Supprimer toutes les données ?",
+      "dialogBody": "Tous les livres, annotations, souvenirs, conversations et réglages de cet appareil seront effacés, sans retour possible. Les données déjà synchronisées sur d'autres appareils y restent.",
+      "confirmLabel": "Saisissez {{phrase}} pour confirmer",
+      "cancel": "Annuler",
+      "deleting": "Suppression…",
+      "failed": "Impossible de supprimer les données. Rien n'a peut-être été supprimé — réessayez."
     }
   },
   "about": {

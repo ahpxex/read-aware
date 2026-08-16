@@ -329,16 +329,6 @@
     "export": "导出",
     "working": "处理中…",
     "dangerZone": "危险区",
-    "reset": {
-      "title": "重置所有设置",
-      "description": "将每一项偏好恢复为默认值。书籍和批注会保留。"
-    },
-    "resetButton": "重置设置",
-    "resetDialog": {
-      "title": "重置所有设置？",
-      "body": "将每一项偏好恢复为默认值。你的书籍和批注会保留——仅重置设置。此操作无法撤销。",
-      "cancel": "取消"
-    },
     "syncStatus": {
       "idle": "已同步",
       "syncing": "同步中…",
@@ -375,6 +365,28 @@
       "disconnectTitle": "断开同步？",
       "disconnectBody": "本设备保留全部数据并停止同步。可随时用同一口令重新连接。",
       "cancel": "取消"
+    },
+    "progress": {
+      "pulling": "正在接收更改… 已合并 {{count}} 条",
+      "pushing": "正在发送更改… 已发送 {{count}} 条",
+      "blobs": "正在传输文件… {{done}}/{{total}}",
+      "pending": "待发送：{{events}} 条更改、{{blobs}} 个文件",
+      "pendingNone": "没有待发送的内容",
+      "lastCycle": "上次同步：接收 {{pulled}} 条 · 发送 {{pushed}} 条 · 文件 {{blobs}} 个"
+    },
+    "indicator": {
+      "label": "同步状态"
+    },
+    "deleteAll": {
+      "title": "删除全部数据",
+      "description": "抹掉此设备上的一切——书籍、标注、阅读记录、设置与同步凭据。已同步账号在其他设备上的副本不受影响。",
+      "button": "删除全部数据",
+      "dialogTitle": "删除全部数据？",
+      "dialogBody": "这将抹掉此设备上的所有书籍、标注、记忆、对话与设置，且无法撤销。已同步到其他设备的数据仍保留在那些设备上。",
+      "confirmLabel": "输入 {{phrase}} 以确认",
+      "cancel": "取消",
+      "deleting": "正在删除…",
+      "failed": "删除失败，数据可能未被移除——请重试。"
     }
   },
   "about": {

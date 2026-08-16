@@ -1,23 +1,31 @@
 import { useRef, useState } from "react";
-import { Button, Dialog, useToast } from "@read-aware/ui";
+import { Button, Dialog, TextField, useToast } from "@read-aware/ui";
 import { isTauri } from "../../../platform/environment";
 import { useTranslation } from "../../../i18n";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
 import { PendingBadge } from "../components/PendingBadge";
-import { resetAllSettings } from "../lib/settings-io";
+import { deleteAllData } from "../lib/delete-all-data";
 import { exportBackup, importBackup } from "../lib/backup-io";
 import { SyncAccountGroup } from "./SyncAccountGroup";
 
 const BACKUP_FILENAME = "readaware-backup.json";
+/**
+ * The literal the user must type to arm the delete button. Deliberately the
+ * same in every locale: it is a safety ritual, not copy — and an uncommon
+ * enough word that it cannot be typed absent-mindedly in any of them.
+ */
+const DELETE_CONFIRM_PHRASE = "DELETE";
 
 export function DataSyncPanel() {
   const { t } = useTranslation("settings");
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
-  const [resetOpen, setResetOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   const handleExport = async () => {
     setBusy(true);
@@ -74,10 +82,29 @@ export function DataSyncPanel() {
     }
   };
 
-  const confirmReset = () => {
-    setResetOpen(false);
-    resetAllSettings();
-    window.location.reload();
+  const deleteArmed = deleteConfirmText.trim() === DELETE_CONFIRM_PHRASE;
+
+  const closeDeleteDialog = () => {
+    if (deleting) return;
+    setDeleteOpen(false);
+    setDeleteConfirmText("");
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteArmed || deleting) return;
+    setDeleting(true);
+    try {
+      await deleteAllData();
+      window.location.reload();
+    } catch (error) {
+      console.error("[data-sync] delete all data failed", error);
+      setDeleting(false);
+      toast({
+        variant: "destructive",
+        title: t("dataSync.noticeError"),
+        description: t("dataSync.deleteAll.failed"),
+      });
+    }
   };
 
   return (
@@ -145,25 +172,42 @@ export function DataSyncPanel() {
       <SettingsGroup title={t("dataSync.dangerZone")}>
         <SettingsRow
           borderless
-          title={t("dataSync.reset.title")}
-          description={t("dataSync.reset.description")}
+          title={t("dataSync.deleteAll.title")}
+          description={t("dataSync.deleteAll.description")}
           control={
-            <Button variant="danger" size="sm" onClick={() => setResetOpen(true)}>
-              {t("dataSync.resetButton")}
+            <Button variant="danger" size="sm" onClick={() => setDeleteOpen(true)}>
+              {t("dataSync.deleteAll.button")}
             </Button>
           }
         />
       </SettingsGroup>
 
-      <Dialog open={resetOpen} onClose={() => setResetOpen(false)} title={t("dataSync.resetDialog.title")}>
+      <Dialog
+        open={deleteOpen}
+        onClose={closeDeleteDialog}
+        title={t("dataSync.deleteAll.dialogTitle")}
+      >
         <div className="space-y-4">
-          <p>{t("dataSync.resetDialog.body")}</p>
+          <p>{t("dataSync.deleteAll.dialogBody")}</p>
+          <TextField
+            label={t("dataSync.deleteAll.confirmLabel", { phrase: DELETE_CONFIRM_PHRASE })}
+            value={deleteConfirmText}
+            onChange={(event) => setDeleteConfirmText(event.target.value)}
+            placeholder={DELETE_CONFIRM_PHRASE}
+            autoComplete="off"
+            spellCheck={false}
+          />
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setResetOpen(false)}>
-              {t("dataSync.resetDialog.cancel")}
+            <Button variant="ghost" size="sm" disabled={deleting} onClick={closeDeleteDialog}>
+              {t("dataSync.deleteAll.cancel")}
             </Button>
-            <Button variant="danger" size="sm" onClick={confirmReset}>
-              {t("dataSync.resetButton")}
+            <Button
+              variant="danger"
+              size="sm"
+              disabled={!deleteArmed || deleting}
+              onClick={() => void confirmDelete()}
+            >
+              {deleting ? t("dataSync.deleteAll.deleting") : t("dataSync.deleteAll.button")}
             </Button>
           </div>
         </div>

@@ -337,16 +337,6 @@
     "export": "Exportar",
     "working": "Trabajando…",
     "dangerZone": "Zona de peligro",
-    "reset": {
-      "title": "Restablecer todos los ajustes",
-      "description": "Restaura todas las preferencias a sus valores predeterminados. Se conservan los libros y las anotaciones."
-    },
-    "resetButton": "Restablecer ajustes",
-    "resetDialog": {
-      "title": "¿Restablecer todos los ajustes?",
-      "body": "Restaura todas las preferencias a sus valores predeterminados. Tus libros y anotaciones se conservan; solo se restablecen los ajustes. Esto no se puede deshacer.",
-      "cancel": "Cancelar"
-    },
     "syncStatus": {
       "idle": "Sincronizado",
       "syncing": "Sincronizando…",
@@ -383,6 +373,28 @@
       "disconnectTitle": "¿Desconectar la sincronización?",
       "disconnectBody": "Este dispositivo conserva todos sus datos y solo deja de sincronizar. Reconéctate cuando quieras con la misma frase.",
       "cancel": "Cancelar"
+    },
+    "progress": {
+      "pulling": "Recibiendo cambios… {{count}} fusionados",
+      "pushing": "Enviando cambios… {{count}} enviados",
+      "blobs": "Transfiriendo archivos… {{done}}/{{total}}",
+      "pending": "Pendiente de envío: {{events}} cambios, {{blobs}} archivos",
+      "pendingNone": "Nada pendiente de envío",
+      "lastCycle": "Último ciclo: {{pulled}} recibidos · {{pushed}} enviados · {{blobs}} archivos"
+    },
+    "indicator": {
+      "label": "Estado de sincronización"
+    },
+    "deleteAll": {
+      "title": "Eliminar todos los datos",
+      "description": "Borra todo en este dispositivo: libros, anotaciones, historial de lectura, ajustes y credenciales de sincronización. Las copias de una cuenta sincronizada en otros dispositivos no se tocan.",
+      "button": "Eliminar todos los datos",
+      "dialogTitle": "¿Eliminar todos los datos?",
+      "dialogBody": "Se borrarán todos los libros, anotaciones, recuerdos, conversaciones y ajustes de este dispositivo, sin vuelta atrás. Los datos ya sincronizados en otros dispositivos permanecen allí.",
+      "confirmLabel": "Escribe {{phrase}} para confirmar",
+      "cancel": "Cancelar",
+      "deleting": "Eliminando…",
+      "failed": "No se pudieron eliminar los datos. Puede que no se haya eliminado nada; inténtalo de nuevo."
     }
   },
   "about": {

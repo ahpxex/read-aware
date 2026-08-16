@@ -329,16 +329,6 @@
     "export": "匯出",
     "working": "處理中…",
     "dangerZone": "危險區域",
-    "reset": {
-      "title": "重設所有設定",
-      "description": "將所有偏好設定還原為預設值。書籍與註記會保留。"
-    },
-    "resetButton": "重設設定",
-    "resetDialog": {
-      "title": "重設所有設定？",
-      "body": "將所有偏好設定還原為預設值。你的書籍與註記會保留 — 僅重設設定。此操作無法復原。",
-      "cancel": "取消"
-    },
     "syncStatus": {
       "idle": "已同步",
       "syncing": "同步中…",
@@ -375,6 +365,28 @@
       "disconnectTitle": "中斷同步？",
       "disconnectBody": "本裝置保留全部資料並停止同步。可隨時以同一密語重新連線。",
       "cancel": "取消"
+    },
+    "progress": {
+      "pulling": "正在接收變更… 已合併 {{count}} 條",
+      "pushing": "正在傳送變更… 已傳送 {{count}} 條",
+      "blobs": "正在傳輸檔案… {{done}}/{{total}}",
+      "pending": "待傳送：{{events}} 條變更、{{blobs}} 個檔案",
+      "pendingNone": "沒有待傳送的內容",
+      "lastCycle": "上次同步：接收 {{pulled}} 條 · 傳送 {{pushed}} 條 · 檔案 {{blobs}} 個"
+    },
+    "indicator": {
+      "label": "同步狀態"
+    },
+    "deleteAll": {
+      "title": "刪除全部資料",
+      "description": "抹除此裝置上的一切——書籍、標註、閱讀紀錄、設定與同步憑證。已同步帳號在其他裝置上的副本不受影響。",
+      "button": "刪除全部資料",
+      "dialogTitle": "刪除全部資料？",
+      "dialogBody": "這將抹除此裝置上的所有書籍、標註、記憶、對話與設定，且無法復原。已同步到其他裝置的資料仍保留在那些裝置上。",
+      "confirmLabel": "輸入 {{phrase}} 以確認",
+      "cancel": "取消",
+      "deleting": "正在刪除…",
+      "failed": "刪除失敗，資料可能未被移除——請重試。"
     }
   },
   "about": {

@@ -333,16 +333,6 @@
     "export": "Exportieren",
     "working": "Wird ausgeführt…",
     "dangerZone": "Gefahrenzone",
-    "reset": {
-      "title": "Alle Einstellungen zurücksetzen",
-      "description": "Jede Einstellung auf ihren Standard zurücksetzen. Bücher und Anmerkungen bleiben erhalten."
-    },
-    "resetButton": "Einstellungen zurücksetzen",
-    "resetDialog": {
-      "title": "Alle Einstellungen zurücksetzen?",
-      "body": "Jede Einstellung auf ihren Standard zurücksetzen. Deine Bücher und Anmerkungen bleiben erhalten — nur die Einstellungen werden zurückgesetzt. Dies kann nicht rückgängig gemacht werden.",
-      "cancel": "Abbrechen"
-    },
     "syncStatus": {
       "idle": "Synchronisiert",
       "syncing": "Synchronisiere…",
@@ -379,6 +369,28 @@
       "disconnectTitle": "Synchronisierung trennen?",
       "disconnectBody": "Dieses Gerät behält alle Daten und stoppt nur die Synchronisierung. Mit derselben Passphrase jederzeit wieder verbindbar.",
       "cancel": "Abbrechen"
+    },
+    "progress": {
+      "pulling": "Änderungen werden empfangen… {{count}} zusammengeführt",
+      "pushing": "Änderungen werden gesendet… {{count}} gesendet",
+      "blobs": "Dateien werden übertragen… {{done}}/{{total}}",
+      "pending": "Zum Senden anstehend: {{events}} Änderungen, {{blobs}} Dateien",
+      "pendingNone": "Nichts zum Senden anstehend",
+      "lastCycle": "Letzter Durchlauf: {{pulled}} empfangen · {{pushed}} gesendet · {{blobs}} Dateien"
+    },
+    "indicator": {
+      "label": "Synchronisierungsstatus"
+    },
+    "deleteAll": {
+      "title": "Alle Daten löschen",
+      "description": "Alles auf diesem Gerät löschen — Bücher, Anmerkungen, Leseverlauf, Einstellungen und Sync-Zugangsdaten. Die Kopien eines synchronisierten Kontos auf anderen Geräten bleiben unberührt.",
+      "button": "Alle Daten löschen",
+      "dialogTitle": "Alle Daten löschen?",
+      "dialogBody": "Damit werden alle Bücher, Anmerkungen, Erinnerungen, Unterhaltungen und Einstellungen auf diesem Gerät gelöscht — unwiderruflich. Bereits auf andere Geräte synchronisierte Daten bleiben dort erhalten.",
+      "confirmLabel": "Zur Bestätigung {{phrase}} eingeben",
+      "cancel": "Abbrechen",
+      "deleting": "Wird gelöscht…",
+      "failed": "Daten konnten nicht gelöscht werden. Möglicherweise wurde nichts entfernt — bitte erneut versuchen."
     }
   },
   "about": {

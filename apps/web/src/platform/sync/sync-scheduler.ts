@@ -16,7 +16,12 @@ import { refreshRoamingPreferences } from "../roaming-preferences";
 import { deleteSecret, getSecret, setSecret } from "../secret-store";
 import { fromBase64 } from "../sync-envelope";
 import { createRelayClient, type RelayClient } from "./relay-client";
-import { createSyncEngine, nextSyncDelayMs, type SyncEngine } from "./sync-engine";
+import {
+  createSyncEngine,
+  nextSyncDelayMs,
+  type SyncCycleProgress,
+  type SyncEngine,
+} from "./sync-engine";
 import { adoptSyncAccount, createIpcSyncStore, getSyncProfile, setSyncProfile } from "./sync-store";
 
 export const DEFAULT_RELAY_URL = "https://relay.readaware.app";
@@ -43,9 +48,19 @@ export type SyncStatusSnapshot = {
   state: "disabled" | "idle" | "syncing" | "error";
   lastSyncAt: number | null;
   lastError: string | null;
+  /** Live counters while `state === "syncing"`, null otherwise. */
+  progress: SyncCycleProgress | null;
+  /** What the last completed cycle moved (for the detail surfaces). */
+  lastCycle: { pulled: number; pushed: number; blobs: number } | null;
 };
 
-let status: SyncStatusSnapshot = { state: "disabled", lastSyncAt: null, lastError: null };
+let status: SyncStatusSnapshot = {
+  state: "disabled",
+  lastSyncAt: null,
+  lastError: null,
+  progress: null,
+  lastCycle: null,
+};
 const statusListeners = new Set<() => void>();
 
 export const getSyncStatusSnapshot = (): SyncStatusSnapshot => status;
@@ -76,6 +91,9 @@ function buildEngine(): SyncEngine {
       return b64 ? fromBase64(b64) : null;
     },
     observe: observeRemoteHlcStamps,
+    // Every page/batch/blob lands in the status snapshot, which is what the
+    // header indicator and the Data & Sync panel subscribe to.
+    onProgress: (progress) => setStatus({ progress }),
   });
 }
 
@@ -87,9 +105,12 @@ let running = false;
 async function runCycle(): Promise<void> {
   if (running) return;
   running = true;
-  setStatus({ state: "syncing" });
+  setStatus({
+    state: "syncing",
+    progress: { phase: "pull", pulled: 0, pushed: 0, blobsDone: 0, blobsTotal: 0 },
+  });
   try {
-    const { pulled } = await getEngine().syncOnce();
+    const { pulled, pushed, blobs } = await getEngine().syncOnce();
     if (pulled > 0) {
       // Merged events write projections straight through Rust — nothing else
       // tells the mounted UI. The shelf already reloads on this event.
@@ -98,7 +119,13 @@ async function runCycle(): Promise<void> {
       // re-overlay the projection onto KV and announce what moved.
       await refreshRoamingPreferences();
     }
-    setStatus({ state: "idle", lastSyncAt: Date.now(), lastError: null });
+    setStatus({
+      state: "idle",
+      lastSyncAt: Date.now(),
+      lastError: null,
+      progress: null,
+      lastCycle: { pulled, pushed, blobs },
+    });
   } finally {
     running = false;
   }
@@ -134,6 +161,7 @@ export async function syncNow(): Promise<void> {
     setStatus({
       state: "error",
       lastError: error instanceof Error ? error.message : String(error),
+      progress: null,
     });
     throw error;
   }
@@ -170,6 +198,7 @@ export function startSyncScheduler(): () => void {
         setStatus({
           state: "error",
           lastError: error instanceof Error ? error.message : String(error),
+          progress: null,
         });
         schedule(nextSyncDelayMs(failures, { baseMs: PULL_INTERVAL_MS }));
       });

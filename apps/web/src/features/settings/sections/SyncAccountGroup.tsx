@@ -13,6 +13,8 @@ import { syncLoginTokenAtom } from "../../../state/ui";
 import { PendingBadge } from "../components/PendingBadge";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsRow } from "../components/SettingsRow";
+import { SyncProgressDetail } from "../../sync/components/SyncProgressDetail";
+import { useSyncBacklog } from "../../sync/hooks/useSyncStatus";
 import { useSyncConnection } from "../hooks/useSyncConnection";
 import { SyncConnectDialog } from "./SyncConnectDialog";
 
@@ -23,6 +25,7 @@ export function SyncAccountGroup() {
 
   const [connectOpen, setConnectOpen] = useState(false);
   const [disconnectOpen, setDisconnectOpen] = useState(false);
+  const backlog = useSyncBacklog(sync.connected);
 
   // A deep-linked sign-in token opens the connect dialog, which consumes the
   // atom itself. Already connected, the link has nothing left to do.
@@ -82,14 +85,6 @@ export function SyncAccountGroup() {
   }
 
   const syncing = sync.status.state === "syncing";
-  const statusLine =
-    sync.status.state === "error"
-      ? t("dataSync.syncStatus.error")
-      : sync.status.lastSyncAt
-        ? t("dataSync.syncStatus.lastSync", {
-            time: new Date(sync.status.lastSyncAt).toLocaleTimeString(),
-          })
-        : t("dataSync.syncStatus.never");
 
   return (
     <SettingsGroup title={t("dataSync.sync")}>
@@ -103,7 +98,7 @@ export function SyncAccountGroup() {
                 account: sync.profile?.remoteAccountId ?? "",
               })}
             </span>
-            <span className="block">{statusLine}</span>
+            <SyncProgressDetail status={sync.status} backlog={backlog} />
           </>
         }
         control={

@@ -396,6 +396,42 @@ pub fn sync_mark_blobs_failed(
     sync_mark_blobs_inner(&mut conn, &keys, "failed", Some(&error))
 }
 
+/// What still owes the relay a push — the backlog numbers the sync-progress
+/// surfaces show. Same predicates as the two outbox queries, but COUNT-only:
+/// the UI asks on every popover open, and shipping full rows to count them
+/// would read the whole outbox each time.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncOutboxCounts {
+    pub events: i64,
+    pub blobs: i64,
+}
+
+#[tauri::command]
+pub fn sync_outbox_counts(db: State<'_, Db>) -> Result<SyncOutboxCounts, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    let events: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM event_sync_state WHERE push_state IN ('pending','failed')",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|e| e.to_string())?;
+    let blobs: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM blob_objects bo
+             JOIN blob_sync_state bs ON bs.blob_key = bo.key
+             WHERE bs.push_state IN ('pending','failed')
+               AND bo.sync_required = 1
+               AND bo.deleted_at IS NULL
+               AND bo.storage_uri IS NOT NULL",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|e| e.to_string())?;
+    Ok(SyncOutboxCounts { events, blobs })
+}
+
 // ── Account adoption (the bookkeeping ↔ account binding) ─────────────────────
 
 /// Bind the local sync bookkeeping to `account_id`, resetting it first if it

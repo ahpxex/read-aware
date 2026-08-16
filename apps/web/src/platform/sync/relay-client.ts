@@ -97,6 +97,11 @@ export function createRelayClient(options: RelayClientOptions) {
     async logout(): Promise<void> {
       await json("POST", "/v1/auth/logout", {});
     },
+    /** One-shot ticket for the doorbell socket — the session never rides in a URL. */
+    async watchTicket(): Promise<string> {
+      const res = await json("POST", "/v1/events/watch-ticket", {});
+      return ((await res.json()) as { ticket: string }).ticket;
+    },
     async deleteAccount(): Promise<void> {
       await request("DELETE", "/v1/account");
     },

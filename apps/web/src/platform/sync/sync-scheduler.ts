@@ -248,14 +248,24 @@ export function startSyncScheduler(): () => void {
   // The relay rings `{type:"changed",seq}` on every append; the handler just
   // runs the ordinary cycle, so notify-vs-poll never forks the sync logic.
   // The interval cadence stays as the safety net for a dropped socket.
-  const openWatch = () => {
+  const openWatch = async () => {
     if (disposed || watchSocket) return;
-    const session = getSecret("sync.session");
-    if (!session) return;
+    if (!getSecret("sync.session")) return;
+    // Trade the session for a one-shot short-TTL ticket over authenticated
+    // HTTP: only the ticket rides in the socket URL, and it is consumed on
+    // connect — an archived access log holds nothing reusable.
+    let ticket: string;
+    try {
+      ticket = await syncRelayClient().watchTicket();
+    } catch (error) {
+      console.warn("[sync] watch ticket unavailable; falling back to polling", error);
+      return;
+    }
+    if (disposed || watchSocket) return;
     const base = relayBaseUrl().replace(/^http/, "ws");
     let socket: WebSocket;
     try {
-      socket = new WebSocket(`${base}/v1/events/watch?session=${encodeURIComponent(session)}`);
+      socket = new WebSocket(`${base}/v1/events/watch?ticket=${encodeURIComponent(ticket)}`);
     } catch (error) {
       console.warn("[sync] watch socket rejected; falling back to polling", error);
       return;

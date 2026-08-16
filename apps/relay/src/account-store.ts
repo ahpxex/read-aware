@@ -113,6 +113,27 @@ export class SqlAccountStore implements AccountStore {
     return row?.email ?? null;
   }
 
+  async putWatchTicket(tokenHash: string, accountId: string, expiresAtMs: number): Promise<void> {
+    await this.db
+      .prepare(
+        `INSERT OR REPLACE INTO watch_tickets (token_hash, account_id, expires_at_ms)
+         VALUES (?1, ?2, ?3)`,
+      )
+      .bind(tokenHash, accountId, expiresAtMs)
+      .run();
+  }
+
+  async consumeWatchTicket(tokenHash: string, nowMs: number): Promise<string | null> {
+    const row = await this.db
+      .prepare(
+        `DELETE FROM watch_tickets WHERE token_hash = ?1 AND expires_at_ms > ?2
+         RETURNING account_id`,
+      )
+      .bind(tokenHash, nowMs)
+      .first<{ account_id: string }>();
+    return row?.account_id ?? null;
+  }
+
   async putOauthState(
     stateHash: string,
     provider: string,

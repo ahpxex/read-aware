@@ -38,6 +38,10 @@ export interface AccountStore {
   ): Promise<{ provider: string; client: OAuthClientKind; lang: string } | null>;
   putSession(tokenHash: string, accountId: string, now: string): Promise<void>;
   sessionAccount(tokenHash: string): Promise<string | null>;
+  /** One-shot doorbell-socket ticket (the session must never ride in a URL). */
+  putWatchTicket(tokenHash: string, accountId: string, expiresAtMs: number): Promise<void>;
+  /** Atomic single-use redemption; null = unknown, spent, or expired. */
+  consumeWatchTicket(tokenHash: string, nowMs: number): Promise<string | null>;
   deleteSession(tokenHash: string): Promise<void>;
   /** Returns the new total. Clamped at zero (deletes never go negative). */
   adjustBlobBytes(id: string, delta: number): Promise<number>;

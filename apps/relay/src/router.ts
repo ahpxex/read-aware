@@ -340,12 +340,17 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
       return handleOauth(req, url, providerId ?? "", action ?? "");
     }
 
-    // The doorbell socket authenticates via query param: a browser WebSocket
-    // cannot set an Authorization header. Same session lookup, same hash.
+    // The doorbell socket: a browser WebSocket cannot send an Authorization
+    // header, and the long-lived session must never ride in a URL (access
+    // logs). The client trades its session for a one-shot short-TTL ticket
+    // (POST below, ordinary bearer auth), and the socket URL carries only
+    // that ticket — consumed atomically on connect, worthless afterwards.
     if (req.method === "GET" && path === "/v1/events/watch") {
-      const session = url.searchParams.get("session") ?? "";
-      const accountId = session ? await accounts.sessionAccount(await tokenHash(session)) : null;
-      if (!accountId) return failure(401, "authentication required");
+      const ticket = url.searchParams.get("ticket") ?? "";
+      const accountId = ticket
+        ? await accounts.consumeWatchTicket(await tokenHash(ticket), ports.now())
+        : null;
+      if (!accountId) return failure(401, "a valid watch ticket is required");
       const mailbox = ports.mailboxFor(accountId);
       if (!mailbox.watch) return failure(501, "watch is not supported by this deployment");
       return mailbox.watch(req);
@@ -385,6 +390,12 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
       await blobs.wipe(account.id);
       await accounts.deleteAccount(account.id);
       return new Response(null, { status: 204, headers: CORS_HEADERS });
+    }
+    if (req.method === "POST" && path === "/v1/events/watch-ticket") {
+      const ticket = randomToken();
+      // 60 seconds: long enough to open the socket, useless to an archived log.
+      await accounts.putWatchTicket(await tokenHash(ticket), account.id, ports.now() + 60_000);
+      return json(200, { ticket });
     }
     if (path === "/v1/events") {
       if (req.method === "POST") return handlePushEvents(account, req);

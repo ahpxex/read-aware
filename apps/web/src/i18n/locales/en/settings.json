@@ -363,12 +363,13 @@
       "linkReady": "You're signed in. Set your encryption passphrase to finish."
     },
     "connected": {
-      "description": "Connected ({{account}}). Changes sync through the encrypted relay.",
+      "description": "Connected as {{account}} — changes sync through the encrypted relay.",
       "syncNow": "Sync now",
       "disconnect": "Disconnect",
       "disconnectTitle": "Disconnect sync?",
       "disconnectBody": "This device keeps all its data and stops syncing. Reconnect anytime with the same passphrase.",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "storageUsed": "{{used}} stored on the relay"
     },
     "progress": {
       "pulling": "Receiving changes… {{count}} merged",

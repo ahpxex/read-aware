@@ -367,12 +367,13 @@
       "linkReady": "Vous êtes connecté. Définissez votre phrase de chiffrement pour terminer."
     },
     "connected": {
-      "description": "Connecté ({{account}}). Les modifications se synchronisent via le relais chiffré.",
+      "description": "Connecté en tant que {{account}} — les modifications se synchronisent via le relais chiffré.",
       "syncNow": "Synchroniser",
       "disconnect": "Déconnecter",
       "disconnectTitle": "Déconnecter la synchronisation ?",
       "disconnectBody": "Cet appareil conserve toutes ses données et cesse de synchroniser. Reconnectez-vous à tout moment avec la même phrase secrète.",
-      "cancel": "Annuler"
+      "cancel": "Annuler",
+      "storageUsed": "{{used}} stockés sur le relais"
     },
     "progress": {
       "pulling": "Réception des modifications… {{count}} fusionnées",

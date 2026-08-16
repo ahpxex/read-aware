@@ -8,6 +8,7 @@
  * focus pulls (the other device may have moved while we were away); failures
  * back off exponentially (nextSyncDelayMs) instead of hammering the relay.
  */
+import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "../environment";
 import { emitAppEvent } from "../app-events";
 import { observeRemoteHlcStamps, onDomainEventBroadcast } from "../domain-events";
@@ -50,6 +51,12 @@ export type SyncStatusSnapshot = {
   lastError: string | null;
   /** Live counters while `state === "syncing"`, null otherwise. */
   progress: SyncCycleProgress | null;
+  /**
+   * Outbox size measured at cycle start — the denominators that turn the live
+   * counters into a fraction. Pull has no denominator (the relay never says
+   * how much is left), so pull renders indeterminate.
+   */
+  cycleTotals: { events: number; blobs: number } | null;
   /** What the last completed cycle moved (for the detail surfaces). */
   lastCycle: { pulled: number; pushed: number; blobs: number } | null;
 };
@@ -59,6 +66,7 @@ let status: SyncStatusSnapshot = {
   lastSyncAt: null,
   lastError: null,
   progress: null,
+  cycleTotals: null,
   lastCycle: null,
 };
 const statusListeners = new Set<() => void>();
@@ -105,9 +113,19 @@ let running = false;
 async function runCycle(): Promise<void> {
   if (running) return;
   running = true;
+  // Denominators first: what the outbox holds now is what this cycle's push
+  // and blob phases will work through. Best-effort — without them the ring
+  // just stays indeterminate.
+  let cycleTotals: SyncStatusSnapshot["cycleTotals"] = null;
+  try {
+    cycleTotals = await invoke<{ events: number; blobs: number }>("sync_outbox_counts");
+  } catch {
+    // Non-Tauri or transient failure: progress still renders, just unmeasured.
+  }
   setStatus({
     state: "syncing",
     progress: { phase: "pull", pulled: 0, pushed: 0, blobsDone: 0, blobsTotal: 0 },
+    cycleTotals,
   });
   try {
     const { pulled, pushed, blobs } = await getEngine().syncOnce();
@@ -124,6 +142,7 @@ async function runCycle(): Promise<void> {
       lastSyncAt: Date.now(),
       lastError: null,
       progress: null,
+      cycleTotals: null,
       lastCycle: { pulled, pushed, blobs },
     });
   } finally {
@@ -162,6 +181,7 @@ export async function syncNow(): Promise<void> {
       state: "error",
       lastError: error instanceof Error ? error.message : String(error),
       progress: null,
+      cycleTotals: null,
     });
     throw error;
   }
@@ -199,6 +219,7 @@ export function startSyncScheduler(): () => void {
           state: "error",
           lastError: error instanceof Error ? error.message : String(error),
           progress: null,
+          cycleTotals: null,
         });
         schedule(nextSyncDelayMs(failures, { baseMs: PULL_INTERVAL_MS }));
       });

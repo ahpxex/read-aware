@@ -359,12 +359,13 @@
       "linkReady": "已通过链接登录。设置加密口令即可完成连接。"
     },
     "connected": {
-      "description": "已连接（{{account}}）。改动会经加密中继同步。",
+      "description": "已连接：{{account}}——更改通过加密中继同步。",
       "syncNow": "立即同步",
       "disconnect": "断开",
       "disconnectTitle": "断开同步？",
       "disconnectBody": "本设备保留全部数据并停止同步。可随时用同一口令重新连接。",
-      "cancel": "取消"
+      "cancel": "取消",
+      "storageUsed": "云端已用 {{used}}"
     },
     "progress": {
       "pulling": "正在接收更改… 已合并 {{count}} 条",

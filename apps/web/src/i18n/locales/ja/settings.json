@@ -359,12 +359,13 @@
       "linkReady": "リンクでのサインインが完了しました。暗号化パスフレーズを設定して接続を完了してください。"
     },
     "connected": {
-      "description": "{{account}} として接続中。変更は暗号化リレー経由で同期されます。",
+      "description": "{{account}} として接続中——変更は暗号化リレー経由で同期されます。",
       "syncNow": "今すぐ同期",
       "disconnect": "接続解除",
       "disconnectTitle": "同期を解除しますか？",
       "disconnectBody": "この端末のデータはすべて保持され、同期のみ停止します。同じパスフレーズでいつでも再接続できます。",
-      "cancel": "キャンセル"
+      "cancel": "キャンセル",
+      "storageUsed": "リレー使用量 {{used}}"
     },
     "progress": {
       "pulling": "変更を受信中… {{count}} 件マージ済み",

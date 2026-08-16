@@ -359,12 +359,13 @@
       "linkReady": "已透過連結登入。設定加密口令即可完成連接。"
     },
     "connected": {
-      "description": "已連線（{{account}}）。變更會經加密中繼同步。",
+      "description": "已連接：{{account}}——變更透過加密中繼同步。",
       "syncNow": "立即同步",
       "disconnect": "中斷連線",
       "disconnectTitle": "中斷同步？",
       "disconnectBody": "本裝置保留全部資料並停止同步。可隨時以同一密語重新連線。",
-      "cancel": "取消"
+      "cancel": "取消",
+      "storageUsed": "雲端已用 {{used}}"
     },
     "progress": {
       "pulling": "正在接收變更… 已合併 {{count}} 條",

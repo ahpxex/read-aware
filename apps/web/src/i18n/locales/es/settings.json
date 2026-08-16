@@ -367,12 +367,13 @@
       "linkReady": "Has iniciado sesión. Establece tu frase de cifrado para terminar."
     },
     "connected": {
-      "description": "Conectado ({{account}}). Los cambios se sincronizan por el relé cifrado.",
+      "description": "Conectado como {{account}}: los cambios se sincronizan a través del relé cifrado.",
       "syncNow": "Sincronizar ahora",
       "disconnect": "Desconectar",
       "disconnectTitle": "¿Desconectar la sincronización?",
       "disconnectBody": "Este dispositivo conserva todos sus datos y solo deja de sincronizar. Reconéctate cuando quieras con la misma frase.",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "storageUsed": "{{used}} almacenados en el relé"
     },
     "progress": {
       "pulling": "Recibiendo cambios… {{count}} fusionados",

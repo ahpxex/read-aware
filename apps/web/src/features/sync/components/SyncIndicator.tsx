@@ -6,11 +6,12 @@
  * directly — sync has no one-shot action the way "install update" does.
  */
 import { CheckCircle, WarningCircle } from "@phosphor-icons/react";
-import { Button, Popover, Spinner } from "@read-aware/ui";
+import { Button, Popover, ProgressRing } from "@read-aware/ui";
 import { useState } from "react";
 import { useTranslation } from "../../../i18n";
 import { syncNow } from "../../../platform/sync/sync-scheduler";
 import { useSyncBacklog, useSyncStatus } from "../hooks/useSyncStatus";
+import { syncCycleFraction } from "../lib/sync-progress";
 import { SyncProgressDetail } from "./SyncProgressDetail";
 
 export function SyncIndicator() {
@@ -25,8 +26,13 @@ export function SyncIndicator() {
   // user is reading must not vanish because the sync finished under it.
   if (!syncing && !failed && !open) return null;
 
+  // Determinate when the denominators are honest (push/blob phases); the
+  // pull phase spins — the relay never says how much is left.
+  const fraction = syncCycleFraction(status);
   const label = syncing
-    ? t("dataSync.syncStatus.syncing")
+    ? fraction === null
+      ? t("dataSync.syncStatus.syncing")
+      : `${t("dataSync.syncStatus.syncing")} ${Math.round(fraction * 100)}%`
     : failed
       ? t("dataSync.syncStatus.error")
       : t("dataSync.syncStatus.idle");
@@ -44,7 +50,7 @@ export function SyncIndicator() {
           {failed ? (
             <WarningCircle size={15} weight="regular" aria-hidden="true" />
           ) : syncing ? (
-            <Spinner size="sm" className="size-[15px]" />
+            <ProgressRing value={fraction} size={14} label={label} />
           ) : (
             <CheckCircle size={15} weight="regular" aria-hidden="true" />
           )}

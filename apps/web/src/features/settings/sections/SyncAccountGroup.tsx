@@ -15,8 +15,23 @@ import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsRow } from "../components/SettingsRow";
 import { SyncProgressDetail } from "../../sync/components/SyncProgressDetail";
 import { useSyncBacklog } from "../../sync/hooks/useSyncStatus";
+import { useSyncAccountInfo } from "../hooks/useSyncAccountInfo";
 import { useSyncConnection } from "../hooks/useSyncConnection";
 import { SyncConnectDialog } from "./SyncConnectDialog";
+
+/** "12 345 678" bytes → "11.8 MB": one decimal, sensible unit. */
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ["KB", "MB", "GB"] as const;
+  let value = bytes;
+  let unit: (typeof units)[number] = "KB";
+  for (const next of units) {
+    value /= 1024;
+    unit = next;
+    if (value < 1024) break;
+  }
+  return `${value >= 100 ? Math.round(value) : value.toFixed(1)} ${unit}`;
+}
 
 export function SyncAccountGroup() {
   const { t } = useTranslation("settings");
@@ -26,6 +41,7 @@ export function SyncAccountGroup() {
   const [connectOpen, setConnectOpen] = useState(false);
   const [disconnectOpen, setDisconnectOpen] = useState(false);
   const backlog = useSyncBacklog(sync.connected);
+  const accountInfo = useSyncAccountInfo(sync.connected);
 
   // A deep-linked sign-in token opens the connect dialog, which consumes the
   // atom itself. Already connected, the link has nothing left to do.
@@ -85,6 +101,10 @@ export function SyncAccountGroup() {
   }
 
   const syncing = sync.status.state === "syncing";
+  // The email is the human name of the account; the opaque id only appears
+  // while the relay hasn't answered yet (offline), shortened to stay legible.
+  const accountLabel =
+    accountInfo?.email ?? `${(sync.profile?.remoteAccountId ?? "").slice(0, 8)}…`;
 
   return (
     <SettingsGroup title={t("dataSync.sync")}>
@@ -94,10 +114,15 @@ export function SyncAccountGroup() {
         description={
           <>
             <span className="block">
-              {t("dataSync.connected.description", {
-                account: sync.profile?.remoteAccountId ?? "",
-              })}
+              {t("dataSync.connected.description", { account: accountLabel })}
             </span>
+            {accountInfo && (
+              <span className="block">
+                {t("dataSync.connected.storageUsed", {
+                  used: formatBytes(accountInfo.blobBytesUsed),
+                })}
+              </span>
+            )}
             <SyncProgressDetail status={sync.status} backlog={backlog} />
           </>
         }

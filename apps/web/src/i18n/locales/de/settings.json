@@ -363,12 +363,13 @@
       "linkReady": "Du bist angemeldet. Lege zum Abschluss deine Verschlüsselungs-Passphrase fest."
     },
     "connected": {
-      "description": "Verbunden ({{account}}). Änderungen synchronisieren über das verschlüsselte Relay.",
+      "description": "Verbunden als {{account}} — Änderungen werden über das verschlüsselte Relay synchronisiert.",
       "syncNow": "Jetzt synchronisieren",
       "disconnect": "Trennen",
       "disconnectTitle": "Synchronisierung trennen?",
       "disconnectBody": "Dieses Gerät behält alle Daten und stoppt nur die Synchronisierung. Mit derselben Passphrase jederzeit wieder verbindbar.",
-      "cancel": "Abbrechen"
+      "cancel": "Abbrechen",
+      "storageUsed": "{{used}} auf dem Relay belegt"
     },
     "progress": {
       "pulling": "Änderungen werden empfangen… {{count}} zusammengeführt",

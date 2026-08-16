@@ -116,18 +116,26 @@ export function AppHeader({
   // user-arranged shelf items on desktop, contextual actions when a surface
   // supplies them, and (on phones) the inline search icon.
   const actionCount = actions?.length ?? 0;
+  // On phones a contextual surface keeps ONE inline action — its primary —
+  // no matter how many it supplies or how much width the measurement finds:
+  // the centered navigation owns a phone header, and a row of surface icons
+  // (Agent ships three) visibly squeezes it. Everything else stays reachable
+  // from the dots menu.
+  const phoneActionCap = Math.min(actionCount, 1);
   const { containerRef, fixedLeftRef, navBoxRef, rightSpacerRef, capacity } =
     useHeaderClusterCapacity(
-      isPhone ? 1 + actionCount : actions ? actionCount : shelfLayout.visible.length,
+      isPhone ? 1 + phoneActionCap : actions ? actionCount : shelfLayout.visible.length,
     );
   // Contextual actions collapse from the tail; on phones the search icon
   // folds FIRST (it stays reachable from the dots menu either way).
-  const inlineActionEntries =
-    actions?.slice(0, Math.min(actionCount, capacity)) ?? [];
-  const collapsedActionEntries = (
-    actions?.slice(Math.min(actionCount, capacity)) ?? []
-  ).map((entry) => entry.overflow);
-  const showSearchInline = capacity >= actionCount + 1;
+  const inlineActionCap = isPhone
+    ? Math.min(phoneActionCap, capacity)
+    : Math.min(actionCount, capacity);
+  const inlineActionEntries = actions?.slice(0, inlineActionCap) ?? [];
+  const collapsedActionEntries = (actions?.slice(inlineActionCap) ?? []).map(
+    (entry) => entry.overflow,
+  );
+  const showSearchInline = capacity >= inlineActionCap + 1;
 
   const coreShelfNodes: Record<string, ReactNode | null> = {
     "core:search": (

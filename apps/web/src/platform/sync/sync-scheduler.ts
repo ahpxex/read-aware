@@ -9,7 +9,7 @@
  * back off exponentially (nextSyncDelayMs) instead of hammering the relay.
  */
 import { invoke } from "@tauri-apps/api/core";
-import { isTauri } from "../environment";
+import { isAndroid, isTauri } from "../environment";
 import { emitAppEvent } from "../app-events";
 import { reconcileDuplicateBooks } from "../book-dedupe";
 import { observeRemoteHlcStamps, onDomainEventBroadcast } from "../domain-events";
@@ -40,7 +40,9 @@ const RELAY_URL_KV_KEY = "read-aware-sync-relay-url";
 function defaultRelayUrl(): string {
   if (import.meta.env.DEV) {
     const dev = import.meta.env.VITE_READAWARE_RELAY_URL as string | undefined;
-    if (dev) return dev;
+    // The Android emulator's name for the host machine's loopback is
+    // 10.0.2.2 — on the device itself, "localhost" would be the phone.
+    if (dev) return isAndroid() ? dev.replace("localhost", "10.0.2.2") : dev;
   }
   return DEFAULT_RELAY_URL;
 }

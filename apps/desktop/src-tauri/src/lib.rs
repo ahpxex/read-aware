@@ -839,6 +839,7 @@ pub fn run() {
             storage::sync_profile_get,
             storage::sync_profile_set,
             storage::sync_profile_touch,
+            storage::sync_adopt_account,
             storage::sync_cursor_get,
             storage::sync_cursor_set,
             storage::sync_outbox_events,

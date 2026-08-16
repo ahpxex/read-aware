@@ -414,6 +414,18 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
           WHERE key LIKE 'booktext:%';
          DELETE FROM blob_sync_state WHERE blob_key LIKE 'booktext:%';",
     ),
+    (
+        14,
+        "sync_bookkeeping_account",
+        // event_sync_state/blob_sync_state/sync_cursors 都是"对某个账号的邮筒
+        // 推到哪、拉到哪"的记账——换账号连接时它们必须清零重来，否则历史
+        // 事件永远不会推给新账号（首次双桌面实测发现）。这列记录记账归属的
+        // 账号；它故意不随登出清空（remote_account_id 会清），这样断开重连
+        // 同一账号不触发无谓的全量重推，连上不同账号则一定触发。NULL 表示
+        // 归属未知（本迁移之前的库），下次连接一律按换账号重置——中继邮筒
+        // 按 event_id 去重，重推是幂等的，宁可多推不可漏推。
+        "ALTER TABLE sync_profile ADD COLUMN bookkeeping_account_id TEXT;",
+    ),
 ];
 
 /// Apply migrations newer than the highest recorded version, up to `max_version`

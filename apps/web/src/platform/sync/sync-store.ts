@@ -53,3 +53,12 @@ export type SyncProfile = {
 
 export const getSyncProfile = () => invoke<SyncProfile>("sync_profile_get");
 export const setSyncProfile = (profile: SyncProfile) => invoke("sync_profile_set", { profile });
+
+/**
+ * Bind the local push/pull bookkeeping to this account — a connect to a
+ * DIFFERENT account resets it wholesale (every event and blob re-enters the
+ * outbox, the pull cursor rewinds), because "already pushed" was only ever
+ * true of the previous account's mailbox. Resolves to whether a reset ran.
+ */
+export const adoptSyncAccount = (accountId: string) =>
+  invoke<boolean>("sync_adopt_account", { accountId });

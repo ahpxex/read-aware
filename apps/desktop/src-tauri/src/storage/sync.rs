@@ -395,3 +395,69 @@ pub fn sync_mark_blobs_failed(
     let mut conn = db.0.lock().map_err(|e| e.to_string())?;
     sync_mark_blobs_inner(&mut conn, &keys, "failed", Some(&error))
 }
+
+// ── Account adoption (the bookkeeping ↔ account binding) ─────────────────────
+
+/// Bind the local sync bookkeeping to `account_id`, resetting it first if it
+/// belongs to a different account (or to none — a pre-v14 database).
+///
+/// Everything in `event_sync_state` / `blob_sync_state` / `sync_cursors` is
+/// per-mailbox state: "what THIS account's relay has confirmed". A different
+/// account's mailbox has confirmed nothing, so on a mismatch every event the
+/// log holds — locally authored AND merged from other devices under the old
+/// account — enters the push outbox, every syncable blob re-queues, and the
+/// pull cursor rewinds to zero. One transaction: a crash mid-reset must not
+/// leave half the log marked pushed against the wrong account.
+///
+/// Returns whether a reset ran (same-account reconnects are a no-op).
+pub(crate) fn sync_adopt_account_inner(
+    conn: &mut Connection,
+    account_id: &str,
+) -> Result<bool, String> {
+    let current: Option<String> = conn
+        .query_row(
+            "SELECT bookkeeping_account_id FROM sync_profile WHERE id = 1",
+            [],
+            |row| row.get(0),
+        )
+        .or_else(|e| match e {
+            rusqlite::Error::QueryReturnedNoRows => Ok(None),
+            other => Err(other.to_string()),
+        })?;
+    if current.as_deref() == Some(account_id) {
+        return Ok(false);
+    }
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+    tx.execute_batch(
+        "INSERT OR IGNORE INTO event_sync_state (event_id, updated_at)
+             SELECT id, strftime('%Y-%m-%dT%H:%M:%fZ','now') FROM domain_events;
+         UPDATE event_sync_state
+            SET push_state = 'pending', remote_id = NULL, pushed_at = NULL,
+                last_error = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now');
+         INSERT OR IGNORE INTO blob_sync_state (blob_key, updated_at)
+             SELECT key, strftime('%Y-%m-%dT%H:%M:%fZ','now') FROM blob_objects
+              WHERE sync_required = 1 AND deleted_at IS NULL;
+         UPDATE blob_sync_state
+            SET push_state = 'pending', remote_uri = NULL, pushed_at = NULL,
+                last_error = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now');
+         DELETE FROM sync_cursors;",
+    )
+    .map_err(|e| e.to_string())?;
+    tx.execute(
+        "INSERT INTO sync_profile (id, bookkeeping_account_id, updated_at)
+         VALUES (1, ?1, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+         ON CONFLICT(id) DO UPDATE SET
+            bookkeeping_account_id = excluded.bookkeeping_account_id,
+            updated_at = excluded.updated_at",
+        params![account_id],
+    )
+    .map_err(|e| e.to_string())?;
+    tx.commit().map_err(|e| e.to_string())?;
+    Ok(true)
+}
+
+#[tauri::command]
+pub fn sync_adopt_account(account_id: String, db: State<'_, Db>) -> Result<bool, String> {
+    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+    sync_adopt_account_inner(&mut conn, &account_id)
+}

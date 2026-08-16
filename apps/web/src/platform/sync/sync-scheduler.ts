@@ -16,7 +16,7 @@ import { deleteSecret, getSecret, setSecret } from "../secret-store";
 import { fromBase64 } from "../sync-envelope";
 import { createRelayClient, type RelayClient } from "./relay-client";
 import { createSyncEngine, nextSyncDelayMs, type SyncEngine } from "./sync-engine";
-import { createIpcSyncStore, getSyncProfile, setSyncProfile } from "./sync-store";
+import { adoptSyncAccount, createIpcSyncStore, getSyncProfile, setSyncProfile } from "./sync-store";
 
 export const DEFAULT_RELAY_URL = "https://relay.readaware.app";
 /** Dev override (localKV): point the client at `wrangler dev`. */
@@ -224,6 +224,11 @@ export async function persistConnection(options: {
 }): Promise<void> {
   setSecret("sync.session", options.session);
   setSecret("sync.master-key", options.masterKeyBase64);
+  // Before the scheduler wakes up against this account: if the bookkeeping
+  // belongs to a different one, it resets here — otherwise "already pushed"
+  // marks earned against the OLD account's mailbox would silently withhold
+  // the entire history from the new one.
+  await adoptSyncAccount(options.accountId);
   const profile = await getSyncProfile();
   await setSyncProfile({
     ...profile,

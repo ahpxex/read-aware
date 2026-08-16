@@ -62,6 +62,7 @@ CREATE TABLE sync_profile ( -- [device-local] 设备连接远端 encrypted relay
   id INTEGER NOT NULL PRIMARY KEY CHECK (id = 1), -- 单行表固定为 1；当前产品方向是一位本地用户对应一个同步身份。
   sync_enabled INTEGER NOT NULL DEFAULT 0, -- 在 Data & Sync 页面 Account 连接后置为 1；为 0 时所有数据仍完全本地可用。
   remote_account_id TEXT, -- 远端 relay 的账号 ID；只用于认证和变更流定位，不参与本地业务逻辑。
+  bookkeeping_account_id TEXT, -- event_sync_state/blob_sync_state/sync_cursors 这套记账归属的账号；连接不同账号时记账整体清零重来（见 sync_adopt_account）。故意不随登出清空——同账号重连不触发全量重推，换账号一定触发。
   encryption_key_ref TEXT, -- 系统 Keychain 中 E2E 主密钥或包裹密钥的引用；SQLite 不保存真实密钥材料。
   last_push_at TEXT, -- 最近一次把本机新增 domain_events/blob 上传到 relay 的时间，用于同步状态提示。
   last_pull_at TEXT, -- 最近一次从 relay 拉取其他设备事件的时间，用于判断本机是否落后。

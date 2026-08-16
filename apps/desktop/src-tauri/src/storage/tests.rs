@@ -1483,6 +1483,63 @@ fn sync_profile_and_cursor_round_trip() {
 }
 
 #[test]
+fn adopting_a_different_account_resets_the_bookkeeping() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let mut conn = migrated_conn();
+
+    // Life under account A: one local event pushed, one event merged from
+    // another device (Remote source — no outbox row), one blob uploaded,
+    // and a pull cursor deep into A's mailbox.
+    assert!(sync_adopt_account_inner(&mut conn, "acc-a").unwrap());
+    commit_events_inner(&mut conn, &[imported("e1", 1_000, "b1", "沙丘")]).unwrap();
+    apply_remote_events_inner(&mut conn, &[imported("r1", 1_001, "b2", "基地")]).unwrap();
+    sync_mark_events_pushed_inner(&mut conn, &[("e1".to_string(), 7)]).unwrap();
+    put_blob_inner(&conn, dir.path(), "bookfile:b1", None, b"bytes").unwrap();
+    sync_mark_blobs_inner(&mut conn, &["bookfile:b1".to_string()], "synced", None).unwrap();
+    sync_cursor_set_inner(
+        &conn,
+        &SyncCursor {
+            feed_name: "events".into(),
+            remote_cursor: Some("19549".into()),
+            hlc: None,
+        },
+    )
+    .unwrap();
+
+    // Reconnecting the SAME account keeps every mark: nothing to re-push.
+    assert!(!sync_adopt_account_inner(&mut conn, "acc-a").unwrap());
+    assert!(sync_outbox_events_inner(&conn, 100).unwrap().is_empty());
+    assert!(sync_cursor_get_inner(&conn, "events").unwrap().is_some());
+
+    // A DIFFERENT account has confirmed nothing. The whole log re-enters the
+    // outbox — including r1, which never had an outbox row — the blob
+    // re-queues, and the cursor rewinds.
+    assert!(sync_adopt_account_inner(&mut conn, "acc-b").unwrap());
+    let outbox = sync_outbox_events_inner(&conn, 100).unwrap();
+    assert_eq!(
+        outbox.iter().map(|e| e.id.as_str()).collect::<Vec<_>>(),
+        vec!["e1", "r1"],
+        "local and remote-merged events alike owe the new mailbox a push"
+    );
+    let stale_seq: Option<String> = conn
+        .query_row(
+            "SELECT remote_id FROM event_sync_state WHERE event_id = 'e1'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert!(stale_seq.is_none(), "the old account's server_seq must not survive");
+    let blobs = sync_outbox_blobs_inner(&conn, 100).unwrap();
+    assert_eq!(blobs.len(), 1);
+    assert_eq!(blobs[0].key, "bookfile:b1");
+    assert!(sync_cursor_get_inner(&conn, "events").unwrap().is_none());
+    assert_eq!(
+        scalar::<String>(&conn, "SELECT bookkeeping_account_id FROM sync_profile"),
+        "acc-b"
+    );
+}
+
+#[test]
 fn the_blob_outbox_skips_manifests_and_derivable_caches() {
     let dir = tempfile::tempdir().expect("tempdir");
     let mut conn = migrated_conn();

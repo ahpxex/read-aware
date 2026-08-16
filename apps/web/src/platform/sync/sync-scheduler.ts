@@ -9,7 +9,7 @@
  * back off exponentially (nextSyncDelayMs) instead of hammering the relay.
  */
 import { invoke } from "@tauri-apps/api/core";
-import { isAndroid, isTauri } from "../environment";
+import { isTauri } from "../environment";
 import { emitAppEvent } from "../app-events";
 import { reconcileDuplicateBooks } from "../book-dedupe";
 import { observeRemoteHlcStamps, onDomainEventBroadcast } from "../domain-events";
@@ -40,9 +40,18 @@ const RELAY_URL_KV_KEY = "read-aware-sync-relay-url";
 function defaultRelayUrl(): string {
   if (import.meta.env.DEV) {
     const dev = import.meta.env.VITE_READAWARE_RELAY_URL as string | undefined;
-    // The Android emulator's name for the host machine's loopback is
-    // 10.0.2.2 — on the device itself, "localhost" would be the phone.
-    if (dev) return isAndroid() ? dev.replace("localhost", "10.0.2.2") : dev;
+    if (dev) {
+      // On a phone, "localhost" is the phone. But the frontend itself was
+      // served from the dev machine, so the page's own hostname is exactly
+      // the address that reaches it — the LAN IP on a device, 10.0.2.2 in
+      // the Android emulator. Substitute it; a desktop webview loads from
+      // loopback and keeps the URL as written.
+      const pageHost = window.location.hostname;
+      if (pageHost && pageHost !== "localhost" && pageHost !== "127.0.0.1") {
+        return dev.replace("localhost", pageHost);
+      }
+      return dev;
+    }
   }
   return DEFAULT_RELAY_URL;
 }

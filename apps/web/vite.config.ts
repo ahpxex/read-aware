@@ -25,7 +25,10 @@ export default defineConfig({
     strictPort: true,
     // Mobile dev: expose the server on the LAN and pin HMR to the host address
     // (the default HMR endpoint would resolve to the device itself).
-    host: tauriDevHost || false,
+    // Mobile dev: bind every interface (a phone dials the LAN address while
+    // the desktop instances and the Android emulator's 10.0.2.2 alias keep
+    // using loopback); HMR still advertises the address devices can reach.
+    host: tauriDevHost ? "0.0.0.0" : false,
     hmr: tauriDevHost
       ? { protocol: "ws", host: tauriDevHost, port: 5174 }
       : undefined,

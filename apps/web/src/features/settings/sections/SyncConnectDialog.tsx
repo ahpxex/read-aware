@@ -8,6 +8,7 @@
  */
 import { useEffect, useState } from "react";
 import { useAtom } from "jotai";
+import { GithubLogo, GoogleLogo } from "@phosphor-icons/react";
 import { Button, Caption, Dialog, TextField, useToast } from "@read-aware/ui";
 import { i18n, useTranslation } from "../../../i18n";
 import { openExternalUrl } from "../../../platform/external-link";
@@ -130,9 +131,11 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
           <Caption className="text-fg-muted">{t("dataSync.account.description")}</Caption>
           <div className="grid gap-2 sm:grid-cols-2">
             <Button variant="outline" onClick={() => handleOauth("google")}>
+              <GoogleLogo size={16} aria-hidden="true" />
               {t("dataSync.connect.google")}
             </Button>
             <Button variant="outline" onClick={() => handleOauth("github")}>
+              <GithubLogo size={16} aria-hidden="true" />
               {t("dataSync.connect.github")}
             </Button>
           </div>

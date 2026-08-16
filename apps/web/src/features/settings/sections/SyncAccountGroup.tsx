@@ -111,21 +111,7 @@ export function SyncAccountGroup() {
       <SettingsRow
         borderless
         title={t("dataSync.account.title")}
-        description={
-          <>
-            <span className="block">
-              {t("dataSync.connected.description", { account: accountLabel })}
-            </span>
-            {accountInfo && (
-              <span className="block">
-                {t("dataSync.connected.storageUsed", {
-                  used: formatBytes(accountInfo.blobBytesUsed),
-                })}
-              </span>
-            )}
-            <SyncProgressDetail status={sync.status} backlog={backlog} />
-          </>
-        }
+        description={t("dataSync.connected.description", { account: accountLabel })}
         control={
           <span className="flex flex-wrap items-center justify-end gap-2">
             <Button size="sm" variant="outline" disabled={syncing} onClick={() => void handleSyncNow()}>
@@ -137,6 +123,21 @@ export function SyncAccountGroup() {
           </span>
         }
       />
+      {/* Full row width, not the label column: the facts strip breathes
+          horizontally instead of stacking into a tall cramped description. */}
+      <div className="pb-3.5">
+        <SyncProgressDetail
+          status={sync.status}
+          backlog={backlog}
+          storage={
+            accountInfo
+              ? t("dataSync.connected.storageUsed", {
+                  used: formatBytes(accountInfo.blobBytesUsed),
+                })
+              : null
+          }
+        />
+      </div>
       <SettingsRow
         title={t("dataSync.e2e.title")}
         description={t("dataSync.e2e.active")}

@@ -47,6 +47,7 @@ export interface AIConfig {
 }
 
 import { localKV } from "../../../platform/local-store";
+import { publishRoamingPreference } from "../../../platform/roaming-preferences";
 import {
   deleteSecret,
   getSecret,
@@ -248,6 +249,11 @@ export function saveAIConfig(config: AIConfig): void {
       : {}),
   };
   localKV.setItem(CONFIG_KEY, JSON.stringify({ provider, models } satisfies StoredAIConfig));
+  // Provider/model choices roam. The stored record never contains the API
+  // key (and the roaming layer strips one defensively): credentials are
+  // per-device, so the other device inherits the configuration and asks for
+  // its own key.
+  publishRoamingPreference(CONFIG_KEY, { provider, models });
   // Reactive settings rewrite this record as fields change. Avoid needless
   // encrypted-store IPC when the credential itself did not change.
   const slot = keySlot(provider);

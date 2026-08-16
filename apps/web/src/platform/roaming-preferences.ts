@@ -25,16 +25,30 @@ import { isTauri } from "./environment";
 import { localKV } from "./local-store";
 
 /**
- * The allowlist, with per-namespace policy. `deviceLocalFields` names object
- * fields whose value is shaped by the DEVICE (touch vs desktop defaults) —
- * the overlay keeps this device's value for them instead of adopting the
- * remote one, so a phone's single-column paging never follows a desktop's
- * two-page spread.
+ * The allowlist, with per-namespace policy.
+ *
+ * `deviceLocalFields` names object fields whose value is shaped by the
+ * DEVICE (touch vs desktop defaults) — the overlay keeps this device's value
+ * for them instead of adopting the remote one, so a phone's single-column
+ * paging never follows a desktop's two-page spread.
+ *
+ * `stripOnPublish` names fields that must NEVER enter the event log. The AI
+ * config blob is clean on every modern save (the key lives in the secret
+ * store), but a pre-secret-store blob can still carry a plaintext `apiKey`
+ * until its next save — stripping here makes the invariant unconditional.
  */
-const ROAMING_POLICIES: Record<string, { deviceLocalFields: readonly string[] }> = {
+const ROAMING_POLICIES: Record<
+  string,
+  { deviceLocalFields: readonly string[]; stripOnPublish?: readonly string[] }
+> = {
   "read-aware-app-settings": { deviceLocalFields: [] },
   "read-aware-reader-settings": { deviceLocalFields: ["pageMargins", "readingMode"] },
   "read-aware-content-typography": { deviceLocalFields: [] },
+  "read-aware-ai-preferences": { deviceLocalFields: [] },
+  // Provider/model choices roam; the API key is a per-device credential —
+  // stripped from what we publish, and preserved locally on overlay for the
+  // legacy blobs that still carry it inline.
+  "read-aware-ai-config": { deviceLocalFields: ["apiKey"], stripOnPublish: ["apiKey"] },
 };
 
 export const ROAMING_PREFERENCE_KEYS = Object.keys(ROAMING_POLICIES);
@@ -48,7 +62,14 @@ export type RoamingPreferenceKey = keyof typeof ROAMING_POLICIES;
  */
 export function publishRoamingPreference(key: RoamingPreferenceKey, value: unknown): void {
   if (!isTauri()) return;
-  void commitDomainEvents({ type: "preference.changed", payload: { key, value } }).catch(
+  const strip = ROAMING_POLICIES[key]?.stripOnPublish;
+  let published = value;
+  if (strip?.length && value && typeof value === "object" && !Array.isArray(value)) {
+    const clone = { ...(value as Record<string, unknown>) };
+    for (const field of strip) delete clone[field];
+    published = clone;
+  }
+  void commitDomainEvents({ type: "preference.changed", payload: { key, value: published } }).catch(
     (error) => {
       console.error(`[roaming-preferences] failed to log ${key} change`, error);
     },

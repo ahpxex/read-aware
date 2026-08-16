@@ -158,6 +158,9 @@ onAppEvent("roaming-preferences-changed", () => {
   store.set(appSettingsBaseAtom, getAppSettings());
   store.set(readerPreferencesBaseAtom, getReaderPreferences());
   store.set(contentTypographyBaseAtom, getContentTypography());
+  store.set(aiPreferencesBaseAtom, getAIPreferences());
+  // ai-config has no atom: the chat transport reads it per-send, so the KV
+  // overlay alone is enough there.
 });
 
 /** Typography for the app's content surfaces (chat, notes, plugin markdown). */

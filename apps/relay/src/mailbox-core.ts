@@ -94,6 +94,10 @@ export class MailboxCore {
     return { events, next };
   }
 
+  maxSeq(): number {
+    return Number(this.sql.exec(`SELECT COALESCE(MAX(seq), 0) AS s FROM events`).toArray()[0]?.s ?? 0);
+  }
+
   wipe(): void {
     this.sql.exec(`DELETE FROM events`);
   }

@@ -14,18 +14,51 @@ import type { Mailbox } from "./ports";
 type DurableState = {
   storage: { sql: SqlExec };
   blockConcurrencyWhile(fn: () => Promise<void>): void;
+  /** Hibernatable-WebSocket API (Cloudflare): sockets survive DO eviction. */
+  acceptWebSocket(ws: unknown): void;
+  getWebSockets(): Array<{ send(data: string): void }>;
 };
+
+/** Workers global; declared structurally so tests never need workers-types. */
+declare const WebSocketPair: new () => { 0: unknown; 1: unknown };
 
 export class AccountMailbox {
   private core: MailboxCore;
 
-  constructor(state: DurableState) {
+  constructor(private state: DurableState) {
     this.core = new MailboxCore(state.storage.sql);
     state.blockConcurrencyWhile(async () => this.core.ensureSchema());
   }
 
+  /**
+   * The doorbell: every device holds one (hibernated) socket per account;
+   * an append rings all of them with the new high-water seq, and each client
+   * runs its ordinary pull. The socket carries no data — sync logic never
+   * forks between "pushed" and "pulled" paths.
+   */
+  private ringDoorbells(): void {
+    const message = JSON.stringify({ type: "changed", seq: this.core.maxSeq() });
+    for (const ws of this.state.getWebSockets()) {
+      try {
+        ws.send(message);
+      } catch {
+        // A socket mid-close loses this ring; its owner reconnects and pulls.
+      }
+    }
+  }
+
+  /** Hibernation-API callback — inbound frames are ignored (doorbell is one-way). */
+  webSocketMessage(): void {}
+  webSocketClose(): void {}
+  webSocketError(): void {}
+
   async fetch(req: Request): Promise<Response> {
     const url = new URL(req.url);
+    if (url.pathname === "/watch" && req.headers.get("Upgrade")?.toLowerCase() === "websocket") {
+      const pair = new WebSocketPair();
+      this.state.acceptWebSocket(pair[1]);
+      return new Response(null, { status: 101, webSocket: pair[0] } as ResponseInit);
+    }
     if (req.method === "POST" && url.pathname === "/append") {
       const { events, maxEvents } = (await req.json()) as {
         events: SealedEventWire[];
@@ -33,6 +66,7 @@ export class AccountMailbox {
       };
       const seqs = this.core.append(events, new Date().toISOString(), maxEvents);
       if (seqs === "full") return new Response("mailbox full", { status: 413 });
+      this.ringDoorbells();
       return Response.json({ seqs });
     }
     if (req.method === "GET" && url.pathname === "/list") {
@@ -69,6 +103,11 @@ export function stubMailbox(stub: MailboxStub): Mailbox {
     },
     async wipe() {
       await stub.fetch("https://mailbox/wipe", { method: "POST" });
+    },
+    watch(req) {
+      // Forward the Upgrade verbatim — the DO owns the socket, and the
+      // 101 + webSocket pair pass back through the worker untouched.
+      return stub.fetch("https://mailbox/watch", req);
     },
   };
 }

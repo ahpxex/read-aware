@@ -215,6 +215,10 @@ export function startSyncScheduler(): () => void {
   let timer: number | null = null;
   let pushDebounce: number | null = null;
   let failures = 0;
+  let watchSocket: WebSocket | null = null;
+  let watchRetries = 0;
+  let watchReconnect: number | null = null;
+  let doorbellDebounce: number | null = null;
 
   const schedule = (ms: number) => {
     if (disposed) return;
@@ -240,6 +244,43 @@ export function startSyncScheduler(): () => void {
       });
   };
 
+  // ── The doorbell: a WebSocket to the account mailbox ───────────────────────
+  // The relay rings `{type:"changed",seq}` on every append; the handler just
+  // runs the ordinary cycle, so notify-vs-poll never forks the sync logic.
+  // The interval cadence stays as the safety net for a dropped socket.
+  const openWatch = () => {
+    if (disposed || watchSocket) return;
+    const session = getSecret("sync.session");
+    if (!session) return;
+    const base = relayBaseUrl().replace(/^http/, "ws");
+    let socket: WebSocket;
+    try {
+      socket = new WebSocket(`${base}/v1/events/watch?session=${encodeURIComponent(session)}`);
+    } catch (error) {
+      console.warn("[sync] watch socket rejected; falling back to polling", error);
+      return;
+    }
+    watchSocket = socket;
+    socket.onopen = () => {
+      watchRetries = 0;
+      // Catch up on anything that rang while we were disconnected.
+      tick();
+    };
+    socket.onmessage = () => {
+      // Coalesce a burst of rings (a big push lands as many appends).
+      if (doorbellDebounce !== null) window.clearTimeout(doorbellDebounce);
+      doorbellDebounce = window.setTimeout(tick, 300);
+    };
+    socket.onclose = () => {
+      watchSocket = null;
+      if (disposed) return;
+      const delay = Math.min(60_000, 1_000 * 2 ** watchRetries);
+      watchRetries += 1;
+      watchReconnect = window.setTimeout(openWatch, delay);
+    };
+    socket.onerror = () => socket.close();
+  };
+
   const offBroadcast = onDomainEventBroadcast(() => {
     // A local write: push soon, but let a burst (import, batch edit) settle.
     if (disposed) return;
@@ -263,6 +304,7 @@ export function startSyncScheduler(): () => void {
     }
     window.addEventListener("focus", onFocus);
     setStatus({ state: "idle" });
+    openWatch();
     tick();
   })();
 
@@ -270,6 +312,10 @@ export function startSyncScheduler(): () => void {
     disposed = true;
     if (timer !== null) window.clearTimeout(timer);
     if (pushDebounce !== null) window.clearTimeout(pushDebounce);
+    if (watchReconnect !== null) window.clearTimeout(watchReconnect);
+    if (doorbellDebounce !== null) window.clearTimeout(doorbellDebounce);
+    watchSocket?.close();
+    watchSocket = null;
     offBroadcast();
     window.removeEventListener("focus", onFocus);
     document.removeEventListener("visibilitychange", onVisible);

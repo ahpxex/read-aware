@@ -54,6 +54,12 @@ export interface Mailbox {
   append(events: SealedEventWire[], maxEvents: number): Promise<Record<string, number> | "full">;
   listAfter(after: number, limit: number): Promise<{ events: SealedEventWire[]; next: number }>;
   wipe(): Promise<void>;
+  /**
+   * Accept a WebSocket Upgrade — the change doorbell (`{type:"changed",seq}`
+   * on every append). Optional: a transport without sockets (tests) omits it
+   * and the route answers 501.
+   */
+  watch?(req: Request): Promise<Response>;
 }
 
 export interface BlobStore {

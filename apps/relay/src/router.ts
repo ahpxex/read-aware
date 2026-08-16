@@ -340,6 +340,17 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
       return handleOauth(req, url, providerId ?? "", action ?? "");
     }
 
+    // The doorbell socket authenticates via query param: a browser WebSocket
+    // cannot set an Authorization header. Same session lookup, same hash.
+    if (req.method === "GET" && path === "/v1/events/watch") {
+      const session = url.searchParams.get("session") ?? "";
+      const accountId = session ? await accounts.sessionAccount(await tokenHash(session)) : null;
+      if (!accountId) return failure(401, "authentication required");
+      const mailbox = ports.mailboxFor(accountId);
+      if (!mailbox.watch) return failure(501, "watch is not supported by this deployment");
+      return mailbox.watch(req);
+    }
+
     // Everything below requires a session.
     const account = await authenticate(req);
     if (!account) return failure(401, "authentication required");

@@ -23,7 +23,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { emitAppEvent } from "./app-events";
 import { commitDomainEvents } from "./domain-events";
 import { isTauri } from "./environment";
-import { localKV } from "./local-store";
+import { localKV, onLocalKVWrite } from "./local-store";
 import {
   deleteSecret,
   getSecret,
@@ -46,10 +46,12 @@ import { fromBase64, openSecret, sealSecret } from "./sync-envelope";
  * store), but a pre-secret-store blob can still carry a plaintext `apiKey`
  * until its next save — stripping here makes the invariant unconditional.
  */
-const ROAMING_POLICIES: Record<
-  string,
-  { deviceLocalFields: readonly string[]; stripOnPublish?: readonly string[] }
-> = {
+type RoamingPolicy = {
+  deviceLocalFields: readonly string[];
+  stripOnPublish?: readonly string[];
+};
+
+const ROAMING_POLICIES: Record<string, RoamingPolicy> = {
   "read-aware-app-settings": { deviceLocalFields: [] },
   "read-aware-reader-settings": { deviceLocalFields: ["pageMargins", "readingMode"] },
   "read-aware-content-typography": { deviceLocalFields: [] },
@@ -58,11 +60,33 @@ const ROAMING_POLICIES: Record<
   // a sealed secret (below) — stripped from what we publish here, and
   // preserved locally on overlay for legacy blobs that still carry it inline.
   "read-aware-ai-config": { deviceLocalFields: ["apiKey"], stripOnPublish: ["apiKey"] },
+  // The Context page's active thread: cross-device continuation — pick up on
+  // the phone in the conversation the desktop was in.
+  "read-aware-active-global-thread": { deviceLocalFields: [] },
 };
+
+/**
+ * Namespace families where the concrete keys are dynamic. Plugin storage is
+ * `read-aware-plugin.<id>.<key>` — a plugin's settings and small state roam
+ * wholesale; anything a plugin must keep per-device belongs in its own
+ * heuristics, not ours.
+ */
+const ROAMING_PREFIXES: ReadonlyArray<{ prefix: string; policy: RoamingPolicy }> = [
+  { prefix: "read-aware-plugin.", policy: { deviceLocalFields: [] } },
+];
+
+function roamingPolicyFor(key: string): RoamingPolicy | null {
+  const exact = ROAMING_POLICIES[key];
+  if (exact) return exact;
+  for (const { prefix, policy } of ROAMING_PREFIXES) {
+    if (key.startsWith(prefix)) return policy;
+  }
+  return null;
+}
 
 export const ROAMING_PREFERENCE_KEYS = Object.keys(ROAMING_POLICIES);
 
-export type RoamingPreferenceKey = keyof typeof ROAMING_POLICIES;
+export type RoamingPreferenceKey = string;
 
 // ── Roaming secrets ──────────────────────────────────────────────────────────
 //
@@ -157,7 +181,7 @@ function overlaySecret(slot: string, valueJson: string): boolean {
  */
 export function publishRoamingPreference(key: RoamingPreferenceKey, value: unknown): void {
   if (!isTauri()) return;
-  const strip = ROAMING_POLICIES[key]?.stripOnPublish;
+  const strip = roamingPolicyFor(key)?.stripOnPublish;
   let published = value;
   if (strip?.length && value && typeof value === "object" && !Array.isArray(value)) {
     const clone = { ...(value as Record<string, unknown>) };
@@ -170,6 +194,31 @@ export function publishRoamingPreference(key: RoamingPreferenceKey, value: unkno
     },
   );
 }
+
+// ── The write seam ───────────────────────────────────────────────────────────
+//
+// Publishing is POLICY, not a call sites remember to make: every durable KV
+// write flows through localKV, the listener below matches it against the
+// roaming policies, and a matching write becomes its preference.changed
+// event automatically. Save functions know nothing about sync. The overlay
+// mutes the listener while it writes remote values back into KV — without
+// that, every pull would echo its own contents straight back into the log.
+
+let overlayMuted = false;
+
+onLocalKVWrite((key, raw) => {
+  if (overlayMuted || !isTauri()) return;
+  if (!roamingPolicyFor(key)) return;
+  if (raw === null) {
+    publishRoamingPreference(key, null);
+    return;
+  }
+  try {
+    publishRoamingPreference(key, JSON.parse(raw));
+  } catch {
+    // Non-JSON KV values are not part of the roaming contract.
+  }
+});
 
 type PreferenceRow = { key: string; valueJson: string };
 
@@ -219,20 +268,33 @@ function canonical(json: string | null): string | null {
 /** Projection → KV (and sealed rows → the secret store). Returns moved keys. */
 function overlayRows(rows: PreferenceRow[]): string[] {
   const changed: string[] = [];
-  for (const row of rows) {
-    if (row.key.startsWith(SECRET_EVENT_PREFIX)) {
-      if (overlaySecret(row.key.slice(SECRET_EVENT_PREFIX.length), row.valueJson)) {
-        changed.push(row.key);
+  overlayMuted = true;
+  try {
+    for (const row of rows) {
+      if (row.key.startsWith(SECRET_EVENT_PREFIX)) {
+        if (overlaySecret(row.key.slice(SECRET_EVENT_PREFIX.length), row.valueJson)) {
+          changed.push(row.key);
+        }
+        continue;
       }
-      continue;
+      const policy = roamingPolicyFor(row.key);
+      if (!policy) continue;
+      // A roamed deletion (value null) clears the local cache.
+      if (row.valueJson === "null") {
+        if (localKV.getItem(row.key) !== null) {
+          localKV.removeItem(row.key);
+          changed.push(row.key);
+        }
+        continue;
+      }
+      const current = localKV.getItem(row.key);
+      const next = mergeForDevice(row.valueJson, current, policy.deviceLocalFields);
+      if (next === null || canonical(next) === canonical(current)) continue;
+      localKV.setItem(row.key, next);
+      changed.push(row.key);
     }
-    const policy = ROAMING_POLICIES[row.key];
-    if (!policy) continue;
-    const current = localKV.getItem(row.key);
-    const next = mergeForDevice(row.valueJson, current, policy.deviceLocalFields);
-    if (next === null || canonical(next) === canonical(current)) continue;
-    localKV.setItem(row.key, next);
-    changed.push(row.key);
+  } finally {
+    overlayMuted = false;
   }
   return changed;
 }
@@ -248,14 +310,20 @@ function overlayRows(rows: PreferenceRow[]): string[] {
  */
 function reconcileUnpublished(rows: PreferenceRow[]): void {
   const present = new Set(rows.map((row) => row.key));
-  for (const key of Object.keys(ROAMING_POLICIES)) {
-    if (present.has(key)) continue;
+  const publishIfLocal = (key: string) => {
+    if (present.has(key)) return;
     const raw = localKV.getItem(key);
-    if (!raw) continue;
+    if (!raw) return;
     try {
       publishRoamingPreference(key, JSON.parse(raw));
     } catch {
       // A malformed local blob is not worth replicating.
+    }
+  };
+  for (const key of Object.keys(ROAMING_POLICIES)) publishIfLocal(key);
+  for (const { prefix } of ROAMING_PREFIXES) {
+    for (const suffix of Object.keys(localKV.entries(prefix))) {
+      publishIfLocal(prefix + suffix);
     }
   }
   for (const prefix of ROAMING_SECRET_SLOT_PREFIXES) {

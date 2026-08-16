@@ -1,5 +1,4 @@
 import { localKV } from "../../../platform/local-store";
-import { publishRoamingPreference } from "../../../platform/roaming-preferences";
 
 const STORAGE_KEY = "read-aware-ai-preferences";
 
@@ -73,6 +72,4 @@ export function getAIPreferences(): AIPreferences {
 
 export function saveAIPreferences(prefs: AIPreferences): void {
   localKV.setItem(STORAGE_KEY, JSON.stringify(prefs));
-  // AI feature toggles roam: other devices follow through the event log.
-  publishRoamingPreference(STORAGE_KEY, prefs);
 }

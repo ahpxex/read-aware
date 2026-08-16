@@ -34,6 +34,7 @@ import {
 } from "../features/settings/lib/content-typography";
 import {
   getReadingStatsStore,
+  loadReadingStatsStore,
   type ReadingStatsStore,
 } from "../features/reader/lib/reading-stats";
 import {
@@ -218,6 +219,17 @@ export const readerOverridesAtom = atom(
 );
 
 const readingStatsBaseAtom = atom<ReadingStatsStore>(getReadingStatsStore());
+
+// Reading time is event-sourced: a sync pull writes the reading_time
+// projections straight through Rust, and the boot-time snapshot above knows
+// nothing about it — without this, a fresh device shows empty stats until
+// its next restart. Reload whenever merged events repaint the library.
+// (Momentarily un-flushed tracker minutes re-appear on the next tick.)
+onAppEvent("library-changed", () => {
+  void loadReadingStatsStore().then((store) => {
+    getDefaultStore().set(readingStatsBaseAtom, store);
+  });
+});
 
 /**
  * Per-book reading-time stats, seeded from the SQLite projection at boot.

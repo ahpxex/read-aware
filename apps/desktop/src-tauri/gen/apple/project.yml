@@ -12,6 +12,10 @@ settingGroups:
     base:
       PRODUCT_NAME: ReadAware
       PRODUCT_BUNDLE_IDENTIFIER: com.readaware.app
+      # Tauri's build phase rewrites the entitlements file mid-build; Xcode 16+
+      # treats that as an error by default. Tauri owns the entitlements here,
+      # so allowing the modification is the supported arrangement.
+      CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION: YES
 targetTemplates:
   app:
     type: application

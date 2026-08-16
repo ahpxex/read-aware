@@ -38,9 +38,12 @@ const RELAY_URL_KV_KEY = "read-aware-sync-relay-url";
  * never see it (DEV-gated, and the release pipeline sets no such var).
  */
 function defaultRelayUrl(): string {
-  if (import.meta.env.DEV) {
-    const dev = import.meta.env.VITE_READAWARE_RELAY_URL as string | undefined;
-    if (dev) {
+  // Present ONLY when a developer bakes it (dev server env, or a dev-signed
+  // bundled build for a device that cannot reach a dev server) — the release
+  // pipeline sets no such variable, so production always falls through.
+  const dev = import.meta.env.VITE_READAWARE_RELAY_URL as string | undefined;
+  if (dev) {
+    if (import.meta.env.DEV) {
       // On a phone, "localhost" is the phone. But the frontend itself was
       // served from the dev machine, so the page's own hostname is exactly
       // the address that reaches it — the LAN IP on a device, 10.0.2.2 in
@@ -50,8 +53,10 @@ function defaultRelayUrl(): string {
       if (pageHost && pageHost !== "localhost" && pageHost !== "127.0.0.1") {
         return dev.replace("localhost", pageHost);
       }
-      return dev;
     }
+    // Bundled dev builds load from tauri://localhost — no page host to
+    // follow, so the baked URL must already be the reachable address.
+    return dev;
   }
   return DEFAULT_RELAY_URL;
 }

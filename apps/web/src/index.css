@@ -190,6 +190,25 @@ html[data-tauri="true"] {
   overflow: clip;
 }
 
+/* iOS: the WKWebView wraps the document in a NATIVE scroll view, and CSS
+   overflow alone cannot stop it — any pixel of layout past the viewport
+   (safe-area math, a transient overlay) gives the native scroller surplus
+   content and the whole app pans with rubber-band scrollbars. Pin the body
+   to the visual viewport so that surplus can never exist; the app shell is
+   fixed-viewport by design and every surface scrolls internally. */
+html[data-tauri="true"][data-os="ios"] body {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+html[data-tauri="true"][data-os="ios"] #root {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
 /* App-shell defaults belong in the `base` layer: unlayered rules outrank every
    @layer — including utilities — so element selectors here would silently veto
    any `cursor-*` / `select-*` / font utility a component sets on the same

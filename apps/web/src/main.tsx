@@ -25,12 +25,23 @@ syncAndroidSafeArea();
 // 3. `app-mount` stays a dynamic import — its module graph (router → routes →
 //    `state/ui`) seeds Jotai atoms synchronously from the config snapshot, so
 //    it must not evaluate until hydration resolves.
+// TEMPORARY boot-stage beacons — mobile-device boot diagnosis (no console
+// access on a phone webview). Fire-and-forget to a dev-machine listener;
+// stripped after the investigation. Dev builds only.
+const beacon = (stage: string): void => {
+  if (!import.meta.env.DEV) return;
+  void fetch(`http://${window.location.hostname}:9999/boot/${stage}`).catch(() => {});
+};
+
 void (async () => {
+  beacon("start");
   await hydrateLocalStore();
+  beacon("local-store-done");
   // Overlay roamed preferences (theme, reader typography) from the projection
   // BEFORE anything reads settings — the boot theme below must already see a
   // value another device may have changed.
   await hydrateRoamingPreferences();
+  beacon("roaming-done");
 
   // Stamp the resolved theme before anything renders so a dark-theme boot
   // paints dark from the first React frame (`useAppearance` takes over once
@@ -45,9 +56,12 @@ void (async () => {
   // Load the persisted (or auto-detected) locale's catalogs so the first paint
   // is already translated.
   await initI18n(detectInitialLocale(getGeneralSettings().language));
+  beacon("i18n-done");
 
   const { mountApp } = await import("./app-mount");
+  beacon("app-mount-imported");
   mountApp();
+  beacon("mounted");
 
   // The agent chat transport reads its config per-send, so registering just
   // after mount is safe — and it keeps the agent runtime (a heavy dependency

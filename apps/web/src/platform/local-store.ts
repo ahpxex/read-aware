@@ -36,6 +36,22 @@ const CONVERSATIONS_KV_KEY = "read-aware-conversations";
 let snapshot: Map<string, string> | null = null;
 let hydrated = false;
 
+/**
+ * Write observation — the roaming layer's single seam. Every durable KV
+ * write (set or remove) flows through here, so "which namespaces roam" can
+ * be pure policy instead of a publish call hand-planted in every save
+ * function. Listeners must never write KV synchronously (recursion).
+ */
+type KVWriteListener = (key: string, value: string | null) => void;
+const writeListeners = new Set<KVWriteListener>();
+export function onLocalKVWrite(listener: KVWriteListener): () => void {
+  writeListeners.add(listener);
+  return () => writeListeners.delete(listener);
+}
+function notifyWrite(key: string, value: string | null): void {
+  for (const listener of [...writeListeners]) listener(key, value);
+}
+
 async function loadKvSnapshot(): Promise<Map<string, string>> {
   const all = await invoke<Record<string, string>>("load_kv_all");
   return new Map(Object.entries(all));
@@ -57,6 +73,7 @@ export const localKV = {
     void invoke("set_kv", { key, value }).catch((err) => {
       console.error(`[local-store] set_kv failed for "${key}"`, err);
     });
+    notifyWrite(key, value);
   },
 
   removeItem(key: string): void {
@@ -68,6 +85,7 @@ export const localKV = {
     void invoke("delete_kv", { key }).catch((err) => {
       console.error(`[local-store] delete_kv failed for "${key}"`, err);
     });
+    notifyWrite(key, null);
   },
 
   /**

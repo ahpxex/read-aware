@@ -1,5 +1,4 @@
 import { localKV } from "../../../platform/local-store";
-import { publishRoamingPreference } from "../../../platform/roaming-preferences";
 import { isPluginRef } from "../../plugins/lib/plugin-theme";
 import { getAppSkinSnapshot } from "./app-skin";
 
@@ -48,8 +47,6 @@ export function getAppSettings(): AppSettings {
 
 export function saveAppSettings(settings: AppSettings): void {
   localKV.setItem(STORAGE_KEY, JSON.stringify(settings));
-  // Theme and motion roam: other devices follow through the event log.
-  publishRoamingPreference(STORAGE_KEY, settings);
 }
 
 /**

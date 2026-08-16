@@ -13,7 +13,7 @@ import { isTauri } from "../environment";
 import { emitAppEvent } from "../app-events";
 import { observeRemoteHlcStamps, onDomainEventBroadcast } from "../domain-events";
 import { localKV } from "../local-store";
-import { refreshRoamingPreferences } from "../roaming-preferences";
+import { refreshRoamingPreferences, republishRoamingSecrets } from "../roaming-preferences";
 import { deleteSecret, getSecret, setSecret } from "../secret-store";
 import { fromBase64 } from "../sync-envelope";
 import { createRelayClient, type RelayClient } from "./relay-client";
@@ -290,6 +290,10 @@ export async function persistConnection(options: {
     remoteAccountId: options.accountId,
     encryptionKeyRef: "sync.master-key",
   });
+  // Credentials that predate this connection (an API key entered while
+  // offline) get sealed into the log now, so they roam without waiting for
+  // their next edit.
+  republishRoamingSecrets();
   restartSyncScheduler();
 }
 

@@ -87,7 +87,7 @@ CREATE TABLE sync_cursors ( -- [device-local] 本机读取远端 change feed 的
   updated_at TEXT NOT NULL -- 游标最近更新时间；用于 Data & Sync 显示"上次同步"和排查卡住的 feed。
 ); -- sync_cursors 表结束。
 
-CREATE TABLE synced_preferences ( -- [projection] 漫游偏好：preference.changed 事件的投影，key 级 last-writer-wins（HLC 序天然给出）。哪些命名空间漫游由 TS allowlist 决定（platform/roaming-preferences.ts）；设备本地 KV（app_kv）是它在本机的缓存，boot 与每次拉取后覆盖。OS 集成、快捷键、密钥永不入内。
+CREATE TABLE synced_preferences ( -- [projection] 漫游偏好：preference.changed 事件的投影，key 级 last-writer-wins（HLC 序天然给出）。哪些命名空间漫游由 TS allowlist 决定（platform/roaming-preferences.ts）；设备本地 KV（app_kv）是它在本机的缓存，boot 与每次拉取后覆盖。OS 集成、快捷键永不入内；漫游凭据（secret:<slot> 行）只以同步主密钥密封的密文存放，overlay 时解入各设备的加密密钥库，明文不落任何表。
   key TEXT NOT NULL PRIMARY KEY, -- 偏好命名空间，与其 device-local KV 键同名（read-aware-app-settings 等）。
   value_json TEXT NOT NULL, -- 该命名空间的完整设置对象 JSON；整体替换，不做字段级合并（设备形态字段的本地保留发生在 TS overlay 层）。
   updated_at TEXT NOT NULL -- 应用该事件时的时间戳；诊断用，LWW 由事件 HLC 序保证而非此列。

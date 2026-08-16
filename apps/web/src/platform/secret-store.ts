@@ -97,6 +97,11 @@ export function setSecret(key: SecretKey, value: string): void {
   });
 }
 
+/** Hydrated slot names under a prefix — never the values. */
+export function listSecretSlots(prefix: string): SecretKey[] {
+  return [...snapshot.keys()].filter((key) => key.startsWith(prefix));
+}
+
 export function deleteSecret(key: SecretKey): void {
   snapshot.delete(key);
   if (!isTauri()) return;

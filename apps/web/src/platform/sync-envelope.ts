@@ -134,6 +134,38 @@ export function openBlob(key: Uint8Array, blobKey: string, wire: Uint8Array): Ui
   return cipher.decrypt(wire.subarray(1 + NONCE_BYTES));
 }
 
+// ─── Roaming secrets ─────────────────────────────────────────────────────────
+//
+// A credential that roams (an AI API key) is sealed with the master key
+// BEFORE it enters the event log, so every copy at rest — the local
+// append-only log, the relay's mailbox, the synced_preferences projection —
+// holds only ciphertext. Devices sharing the passphrase open it at overlay
+// time straight into their own OS-backed secret store; the plaintext never
+// touches a queryable table. Wire format matches blobs:
+// base64([version:1][nonce:24][ciphertext+tag]), AAD bound to the slot name
+// so a sealed value cannot be replayed into a different secret.
+
+export function sealSecret(key: Uint8Array, slot: string, value: string): string {
+  const nonce = randomBytes(NONCE_BYTES);
+  const cipher = xchacha20poly1305(key, nonce, utf8(`ra-secret:v1:${slot}`));
+  const sealed = cipher.encrypt(utf8(value));
+  const out = new Uint8Array(1 + NONCE_BYTES + sealed.length);
+  out[0] = ENVELOPE_VERSION;
+  out.set(nonce, 1);
+  out.set(sealed, 1 + NONCE_BYTES);
+  return toBase64(out);
+}
+
+export function openSecret(key: Uint8Array, slot: string, sealedBase64: string): string {
+  const wire = fromBase64(sealedBase64);
+  if (wire.length < 1 + NONCE_BYTES || wire[0] !== ENVELOPE_VERSION) {
+    throw new Error("sync envelope: unrecognized secret envelope");
+  }
+  const nonce = wire.subarray(1, 1 + NONCE_BYTES);
+  const cipher = xchacha20poly1305(key, nonce, utf8(`ra-secret:v1:${slot}`));
+  return fromUtf8(cipher.decrypt(wire.subarray(1 + NONCE_BYTES)));
+}
+
 // ─── Passphrase → master key (Argon2id) ──────────────────────────────────────
 
 /**

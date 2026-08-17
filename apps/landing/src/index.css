@@ -16,7 +16,9 @@
 
   --color-fg: #242220;
   --color-fg-muted: #56534d;
-  --color-fg-subtle: #8b877f;
+  /* Lightest text tier that still clears WCAG AA: 4.82:1 on paper, 5.25:1 on
+     surface. Keep it under fg-muted (7:1) so the three-step hierarchy holds. */
+  --color-fg-subtle: #6f6c62;
   --color-inverse-fg: #f6f5f3;
   --color-surface: #ffffff;
   --color-fill: #eceae6;

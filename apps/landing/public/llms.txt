@@ -1,0 +1,24 @@
+# ReadAware
+
+> ReadAware is a free, local-first, AI-native reading app for macOS, Windows, Linux, and Android. One engine reads EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, and PDF with the same highlights, notes, and progress; the built-in assistant builds durable memory from your books, highlights, and conversations, and answers from your own shelf. Your library and memory stay on your device — you bring your own API key, and the cloud is only used to sync between machines.
+
+## Docs
+
+- [Overview](https://readaware.app/docs/): what ReadAware is and how the pieces fit together
+- [Download & install](https://readaware.app/docs/install/): installers for macOS, Windows, Linux, and Android
+- [Getting started](https://readaware.app/docs/getting-started/): import books, read, highlight, and talk to the assistant
+- [Plugin system](https://readaware.app/docs/plugins/): sandboxed plugins and the built-in marketplace
+- [Plugin API reference](https://readaware.app/docs/plugins/api/): the public plugin API surface
+- [Publishing plugins](https://readaware.app/docs/plugins/publishing/): how to submit a plugin to the marketplace
+
+## Blog
+
+- [Reading that remembers](https://readaware.app/blog/reading-that-remembers/): why memory, not chat history, is the product
+- [Your library is not a cloud feature](https://readaware.app/blog/local-first/): the local-first design and why data lives on-device
+- [Plugins: the reader, extended](https://readaware.app/blog/plugins-v1/): the sandboxed plugin system, v1
+
+## Optional
+
+- [Changelog](https://readaware.app/changelog/): what changed in each release
+- [GitHub repository](https://github.com/ahpxex/read-aware): source code and release downloads
+- [Plugin marketplace registry](https://github.com/ahpxex/readaware-plugins): community plugin submissions

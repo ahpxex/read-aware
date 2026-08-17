@@ -27,7 +27,10 @@ import {
 } from "./desktop-import";
 import { reconcileGenesisEvents } from "./event-genesis";
 import { hydrateInterimProjections } from "./interim-projections";
+import { createLogger } from "./logger";
 import { hydrateSecrets } from "./secret-store";
+
+const log = createLogger("local-store");
 
 const MIGRATED_FLAG = "read-aware-migrated-v1";
 const MEMORIES_MIGRATED_FLAG = "read-aware-migrated-memories-v1";
@@ -71,7 +74,7 @@ export const localKV = {
     }
     (snapshot ??= new Map()).set(key, value);
     void invoke("set_kv", { key, value }).catch((err) => {
-      console.error(`[local-store] set_kv failed for "${key}"`, err);
+      log.error(`set_kv failed for "${key}"`, err);
     });
     notifyWrite(key, value);
   },
@@ -83,7 +86,7 @@ export const localKV = {
     }
     snapshot?.delete(key);
     void invoke("delete_kv", { key }).catch((err) => {
-      console.error(`[local-store] delete_kv failed for "${key}"`, err);
+      log.error(`delete_kv failed for "${key}"`, err);
     });
     notifyWrite(key, null);
   },
@@ -125,7 +128,7 @@ export async function hydrateLocalStore(): Promise<void> {
   try {
     snapshot = await loadKvSnapshot();
   } catch (err) {
-    console.error("[local-store] hydrate failed; starting from empty config", err);
+    log.error("hydrate failed; starting from empty config", err);
     snapshot = new Map();
   }
 
@@ -137,7 +140,7 @@ export async function hydrateLocalStore(): Promise<void> {
       await importDesktopDataIntoSqlite();
       snapshot = await loadKvSnapshot();
     } catch (err) {
-      console.error("[local-store] one-time import failed; will retry next launch", err);
+      log.error("one-time import failed; will retry next launch", err);
     }
   }
 
@@ -149,7 +152,7 @@ export async function hydrateLocalStore(): Promise<void> {
       await invoke("set_kv", { key: MEMORIES_MIGRATED_FLAG, value: "1" });
       snapshot.set(MEMORIES_MIGRATED_FLAG, "1");
     } catch (err) {
-      console.error("[local-store] memories import failed; will retry next launch", err);
+      log.error("memories import failed; will retry next launch", err);
     }
   }
 
@@ -163,7 +166,7 @@ export async function hydrateLocalStore(): Promise<void> {
       await invoke("delete_kv", { key: CONVERSATIONS_KV_KEY });
       snapshot.delete(CONVERSATIONS_KV_KEY);
     } catch (err) {
-      console.error("[local-store] conversations import failed; will retry next launch", err);
+      log.error("conversations import failed; will retry next launch", err);
     }
   }
 
@@ -184,7 +187,7 @@ export async function hydrateLocalStore(): Promise<void> {
   // the event log has never seen (pre-event-era data, v1 backup restores,
   // dropped best-effort appends). Idempotent; a failure retries next launch.
   void reconcileGenesisEvents().catch((err) => {
-    console.error("[local-store] genesis event reconciliation failed", err);
+    log.error("genesis event reconciliation failed", err);
   });
 }
 

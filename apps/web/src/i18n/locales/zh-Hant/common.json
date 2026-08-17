@@ -3,5 +3,10 @@
     "backToLibrary": "返回書庫",
     "dismiss": "關閉",
     "openSettings": "開啟設定"
+  },
+  "errorBoundary": {
+    "title": "此介面發生了問題",
+    "body": "錯誤已寫入日誌。ReadAware 的其他部分不受影響,你可以重試。",
+    "retry": "重試"
   }
 }

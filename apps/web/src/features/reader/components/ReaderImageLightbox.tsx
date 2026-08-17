@@ -11,7 +11,10 @@ import { writeImage } from "@tauri-apps/plugin-clipboard-manager";
 import { Caption, IconButton } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { isTauri } from "../../../platform/environment";
+import { createLogger } from "../../../platform/logger";
 import { useZoomPan } from "../hooks/useZoomPan";
+
+const log = createLogger("reader");
 
 type ReaderImageLightboxProps = {
   src: string;
@@ -111,7 +114,7 @@ export function ReaderImageLightbox({ src, alt, onClose }: ReaderImageLightboxPr
         ]);
     write
       .then(flashCopied)
-      .catch((error) => console.warn("[reader] copy image failed", error));
+      .catch((error) => log.warn("copy image failed", error));
   }, [flashCopied, zoom.imgRef]);
   useEffect(() => () => {
     if (copyResetRef.current != null) window.clearTimeout(copyResetRef.current);

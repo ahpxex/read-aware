@@ -2,8 +2,11 @@
  * Imperative bridge into the React toast layer. `useToast` is context-bound;
  * plugin code (and the non-React host) needs a module-level dispatcher. The
  * `PluginToastBridge` component registers the live handler; before it mounts,
- * toasts fall back to the console rather than getting lost silently.
+ * toasts fall back to the log rather than getting lost silently.
  */
+import { createLogger } from "../../../platform/logger";
+
+const log = createLogger("plugins");
 
 type ToastHandler = (message: string) => void;
 
@@ -15,5 +18,5 @@ export function setPluginToastHandler(next: ToastHandler | null): void {
 
 export function showPluginToast(message: string): void {
   if (handler) handler(message);
-  else console.info("[plugins] toast:", message);
+  else log.info("toast:", message);
 }

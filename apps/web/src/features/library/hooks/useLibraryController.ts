@@ -24,6 +24,9 @@ import type {
 } from "../lib/library-types";
 import type { FoliateBook } from "../../reader/lib/foliate-engine";
 import { onAppEvent } from "../../../platform/app-events";
+import { createLogger } from "../../../platform/logger";
+
+const log = createLogger("library");
 
 /**
  * Per-source result of an import batch. A duplicate carries the EXISTING shelf
@@ -73,8 +76,8 @@ export function useLibraryController() {
   const reportError = useCallback(
     (error: unknown) => {
       // The toast shows a translated summary; keep the underlying cause
-      // inspectable in the console/logcat for diagnosis.
-      console.error("[library]", error);
+      // inspectable in the log file for diagnosis.
+      log.error("library operation failed", error);
       toast({
         variant: "destructive",
         title: tRef.current("workspace.errorTitle"),
@@ -229,7 +232,7 @@ export function useLibraryController() {
         await ensureBookTextExtracted(book.id, foliateBook);
       }
     })()
-      .catch((error) => console.warn("[library] lazy enrich failed", error))
+      .catch((error) => log.warn("lazy enrich failed", error))
       .finally(() => bookReadyPendingRef.current.delete(book.id));
   }, [toast]);
 
@@ -373,7 +376,10 @@ export function useLibraryController() {
     void userDomain.shelf.books.remove(book.id)
       .then(() => {
         setBooks((currentBooks) => currentBooks.filter((entry) => entry.id !== book.id));
-        void deleteBookText([book.id]).catch(() => {});
+        // Best-effort: a failure strands orphaned full-text rows, not user data.
+        void deleteBookText([book.id]).catch((error: unknown) => {
+          log.warn("full-text cleanup failed after book removal", error);
+        });
       })
       .catch((error) => {
         reportError(error);
@@ -386,7 +392,10 @@ export function useLibraryController() {
     void userDomain.shelf.books.removeMany(ids)
       .then(() => {
         setBooks((currentBooks) => currentBooks.filter((entry) => !idSet.has(entry.id)));
-        void deleteBookText(ids).catch(() => {});
+        // Best-effort: a failure strands orphaned full-text rows, not user data.
+        void deleteBookText(ids).catch((error: unknown) => {
+          log.warn("full-text cleanup failed after bulk removal", error);
+        });
       })
       .catch((error) => {
         reportError(error);

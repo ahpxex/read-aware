@@ -28,6 +28,9 @@ import {
 } from "../state/plugin-store";
 import { PluginViewRenderer } from "./PluginViewRenderer";
 import { contributionText } from "../lib/plugin-i18n";
+import { createLogger } from "../../../platform/logger";
+
+const log = createLogger("plugins");
 
 type PluginHeaderClusterProps = {
   surface: PluginHeaderSurface;
@@ -174,7 +177,7 @@ function PluginHeaderPopupButton({
         if (!cancelled) setView(next);
       })
       .catch((error) => {
-        console.error(`[plugins] header action "${action.key}" failed`, error);
+        log.error(`header action "${action.key}" failed`, error);
         showPluginToast(
           `${action.pluginName}: ${error instanceof Error ? error.message : String(error)}`,
         );

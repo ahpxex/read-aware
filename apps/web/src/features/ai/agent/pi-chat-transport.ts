@@ -14,6 +14,7 @@ import {
 } from "@read-aware/agent";
 import type { Id } from "@read-aware/core";
 import { AiNotConfiguredError } from "../lib/ai-errors";
+import { createLogger } from "../../../platform/logger";
 import type { ChatTransport } from "../lib/chat-transport";
 import { toolStepDetail, toolTraceText } from "../lib/chat-stream";
 import type { ChatReference, ChatStreamChunk } from "../lib/chat-types";
@@ -28,6 +29,8 @@ const SUPPRESSED_TOOLS: ReadonlySet<string> = new Set([
   ...PRESENT_TOOL_NAMES,
   ...INTERACTIVE_TOOL_NAMES,
 ]);
+
+const log = createLogger("ai");
 
 export function toAgentTurnInput(
   request: ChatTurnRequest,
@@ -166,6 +169,18 @@ export function createPiChatTransport(): ChatTransport {
               } satisfies ChatStreamChunk;
             }
             break;
+          case "metric": {
+            // 无 UI 消费者,但用量/延迟必须留痕 —— 日志文件是生产环境
+            // 唯一的成本与 TTFB 记录(此前这里被静默丢弃)。
+            const tokens = chunk.tokens
+              ? `, tokens in ${chunk.tokens.input} out ${chunk.tokens.output} cacheRead ${chunk.tokens.cacheRead} cacheWrite ${chunk.tokens.cacheWrite}`
+              : "";
+            const cost = chunk.costUsd !== undefined ? `, cost $${chunk.costUsd.toFixed(4)}` : "";
+            log.info(
+              `model round ${chunk.round}: ttfb ${chunk.ttfbMs}ms, total ${chunk.totalMs}ms${tokens}${cost}`,
+            );
+            break;
+          }
           default:
             // "status" carries no user-facing text anymore; the transcript
             // shows its own localized "Thinking…" until the first part lands.

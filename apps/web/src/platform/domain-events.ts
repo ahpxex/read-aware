@@ -28,6 +28,9 @@ import type {
 } from "@read-aware/core";
 import { isTauri } from "./environment";
 import { createHlcClock } from "./hlc";
+import { createLogger } from "./logger";
+
+const log = createLogger("domain-events");
 
 /**
  * What a call site provides: the typed event minus everything this module
@@ -179,7 +182,7 @@ function broadcastDomainEvents(drafts: DomainEventDraft[]): void {
       try {
         listener(event);
       } catch (error) {
-        console.error(`[domain-events] broadcast listener for "${draft.type}" failed`, error);
+        log.error(`broadcast listener for "${draft.type}" failed`, error);
       }
     }
   }

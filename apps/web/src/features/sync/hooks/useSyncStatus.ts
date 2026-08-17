@@ -7,10 +7,13 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "../../../platform/environment";
+import { createLogger } from "../../../platform/logger";
 import {
   getSyncStatusSnapshot,
   subscribeSyncStatus,
 } from "../../../platform/sync/sync-scheduler";
+
+const log = createLogger("sync");
 
 export function useSyncStatus() {
   return useSyncExternalStore(subscribeSyncStatus, getSyncStatusSnapshot);
@@ -38,7 +41,7 @@ export function useSyncBacklog(active: boolean): SyncBacklog | null {
         const counts = await invoke<SyncBacklog>("sync_outbox_counts");
         if (!cancelled) setBacklog(counts);
       } catch (error) {
-        console.warn("[sync] outbox count failed", error);
+        log.warn("outbox count failed", error);
       }
     };
     void load();

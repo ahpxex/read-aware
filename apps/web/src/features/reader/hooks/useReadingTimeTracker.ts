@@ -3,6 +3,9 @@ import { useSetAtom } from "jotai";
 import { readingStatsAtom } from "../../../state/ui";
 import { addReadingTime, localDayKey, localHour } from "../lib/reading-stats";
 import { commitDomainEvents } from "../../../platform/domain-events";
+import { createLogger } from "../../../platform/logger";
+
+const log = createLogger("reading-time");
 
 /** How often accumulated time is flushed to the stats seam. */
 const TICK_MS = 20_000;
@@ -79,7 +82,7 @@ export function useReadingTimeTracker(bookId: string | null, active: boolean) {
         localHour: pending.localHour,
       },
     }).catch((error) => {
-      console.error("[reading-time] flush failed; this bucket is not banked", error);
+      log.error("flush failed; this bucket is not banked", error);
     });
   }, []);
 

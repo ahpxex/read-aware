@@ -12,6 +12,7 @@ import { GithubLogo, GoogleLogo } from "@phosphor-icons/react";
 import { Button, Caption, Dialog, TextField, useToast } from "@read-aware/ui";
 import { i18n, useTranslation } from "../../../i18n";
 import { openExternalUrl } from "../../../platform/external-link";
+import { createLogger } from "../../../platform/logger";
 import { relayBaseUrl } from "../../../platform/sync/sync-scheduler";
 import { syncLoginTokenAtom } from "../../../state/ui";
 import {
@@ -19,6 +20,8 @@ import {
   WrongPassphraseError,
   type useSyncConnection,
 } from "../hooks/useSyncConnection";
+
+const log = createLogger("sync");
 
 type SyncConnectDialogProps = {
   open: boolean;
@@ -81,7 +84,7 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
       if (devToken) setToken(devToken);
       setStep("verify");
     } catch (error) {
-      console.error("[sync] magic link request failed", error);
+      log.error("magic link request failed", error);
       toast({
         variant: "destructive",
         title: t("dataSync.noticeError"),
@@ -110,7 +113,7 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
         setPassphraseError(t("dataSync.connect.wrongPassphrase"));
         return;
       }
-      console.error("[sync] connect failed", error);
+      log.error("connect failed", error);
       toast({
         variant: "destructive",
         title: t("dataSync.noticeError"),

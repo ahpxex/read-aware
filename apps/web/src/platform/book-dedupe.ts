@@ -14,6 +14,9 @@ import { invoke } from "@tauri-apps/api/core";
 import { emitAppEvent } from "./app-events";
 import { commitDomainEvents } from "./domain-events";
 import { isTauri } from "./environment";
+import { createLogger } from "./logger";
+
+const log = createLogger("book-dedupe");
 
 type DuplicateBookEntry = { id: string; createdAt: string };
 
@@ -33,11 +36,11 @@ export async function reconcileDuplicateBooks(): Promise<number> {
     });
     if (merges.length === 0) return 0;
     await commitDomainEvents(...merges);
-    console.info(`[book-dedupe] merged ${merges.length} duplicate book record(s)`);
+    log.info(`merged ${merges.length} duplicate book record(s)`);
     emitAppEvent("library-changed", {});
     return merges.length;
   } catch (error) {
-    console.warn("[book-dedupe] reconcile failed; will retry after the next pull", error);
+    log.warn("reconcile failed; will retry after the next pull", error);
     return 0;
   }
 }

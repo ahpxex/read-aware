@@ -437,6 +437,36 @@
     "contact": {
       "title": "Contact",
       "description": "Questions, bugs, or feedback — reach out directly."
+    },
+    "diagnostics": {
+      "title": "Diagnostics",
+      "description": "ReadAware never sends anything on its own. A diagnostics bundle contains app logs and a storage self-check — no book content, notes, or conversations — and you can inspect everything before it leaves this device.",
+      "exportRow": {
+        "title": "Export diagnostics",
+        "description": "Save the bundle as a JSON file to attach to an email or issue.",
+        "button": "Export"
+      },
+      "reportRow": {
+        "title": "Report a problem",
+        "description": "Review the bundle, then send it to the developers.",
+        "button": "Send report…"
+      },
+      "logsRow": {
+        "title": "Log files",
+        "description": "The rotating log files the bundle is built from.",
+        "button": "Reveal"
+      },
+      "dialogTitle": "Send diagnostics report",
+      "previewBody": "This is exactly what will be sent — nothing else leaves your device.",
+      "send": "Send",
+      "cancel": "Cancel",
+      "done": "Done",
+      "sentBody": "Sent — thank you. Quote this receipt id if you contact us about the problem:",
+      "noticeDone": "Done",
+      "noticeError": "Something went wrong",
+      "exportSuccess": "Diagnostics bundle saved.",
+      "exportError": "The bundle could not be assembled or saved.",
+      "reportError": "The report could not be sent. You can export the bundle and email it instead."
     }
   },
   "menus": {

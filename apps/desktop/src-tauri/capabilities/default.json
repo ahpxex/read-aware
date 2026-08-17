@@ -8,8 +8,10 @@
   "permissions": [
     "core:default",
     "deep-link:default",
+    "log:default",
     "dialog:allow-open",
     "dialog:allow-save",
+    "opener:allow-reveal-item-in-dir",
     "clipboard-manager:allow-write-image",
     {
       "identifier": "opener:allow-open-url",

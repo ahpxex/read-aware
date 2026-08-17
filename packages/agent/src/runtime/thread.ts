@@ -492,8 +492,10 @@ export class AgentThread {
           await this.deps.conversations.putInsights(this.key, summary);
         }
       })
-      .catch(() => {
-        // 轮后管道失败绝不影响对话；巩固管道之后会有自己的重试语义
+      .catch((error: unknown) => {
+        // 轮后管道失败绝不影响对话，但必须留痕：这一轮的记忆巩固与滚动
+        // 摘要没有落下。巩固管道之后会有自己的重试语义。
+        this.deps.log?.warn("post-turn pipeline failed; memory/summary skipped this turn", error);
       });
   }
 }

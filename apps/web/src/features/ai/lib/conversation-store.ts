@@ -1,7 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "../../../platform/environment";
 import { commitDomainEvents, type DomainEventDraft } from "../../../platform/domain-events";
+import { createLogger } from "../../../platform/logger";
 import type { ChatAssistantPart, ChatAttachment, ChatMessage } from "./chat-types";
+
+const log = createLogger("conversation-store");
 
 /**
  * Local persistence for the per-book conversation.
@@ -204,7 +207,7 @@ export async function saveConversation(
   } catch (err) {
     // Best-effort, like the kv store before it: a failed persist must not take
     // down the live conversation; the next committed turn retries a full write.
-    console.error("[conversation-store] persist failed", err);
+    log.error("persist failed", err);
   }
 }
 

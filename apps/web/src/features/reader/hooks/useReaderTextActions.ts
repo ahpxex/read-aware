@@ -35,6 +35,9 @@ import { applyHighlight, applyNote, removeHighlight } from "../lib/highlight-ren
 import type { FoliateView } from "../lib/foliate-engine";
 import type { LibraryBook } from "../../library/lib/library-types";
 import type { SelectionOverlayRect } from "../lib/selection-overlay";
+import { createLogger } from "../../../platform/logger";
+
+const log = createLogger("reader");
 
 /** A passage an action applies to, wherever it came from. */
 export type ActionTarget = {
@@ -229,7 +232,7 @@ export function useReaderTextActions({
         bumpAnnotationsRevision((c) => c + 1);
         return true;
       } catch (highlightError) {
-        console.error("Failed to save highlight:", highlightError);
+        log.error("failed to save highlight", highlightError);
         return false;
       }
     },
@@ -318,7 +321,7 @@ export function useReaderTextActions({
         if (viewRef.current) applyHighlight(viewRef.current, updated);
         bumpAnnotationsRevision((c) => c + 1);
       } catch (recolorError) {
-        console.error("Failed to recolor annotation:", recolorError);
+        log.error("failed to recolor annotation", recolorError);
       }
       setActiveAnnotation(null);
     },
@@ -338,7 +341,7 @@ export function useReaderTextActions({
       }
       bumpAnnotationsRevision((c) => c + 1);
     } catch (removeError) {
-      console.error("Failed to remove annotation:", removeError);
+      log.error("failed to remove annotation", removeError);
     }
     setActiveAnnotation(null);
   }, [activeAnnotation, bumpAnnotationsRevision, highlightsRef, setActiveAnnotation, viewRef]);
@@ -456,7 +459,7 @@ export function useReaderTextActions({
         setCurrentNote(null);
         clearSelection();
       } catch (noteError) {
-        console.error("Failed to save note:", noteError);
+        log.error("failed to save note", noteError);
       }
     },
     [

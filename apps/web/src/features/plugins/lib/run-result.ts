@@ -11,6 +11,9 @@ import {
 } from "../state/plugin-store";
 import { showPluginToast } from "./plugin-toast";
 import type { PluginViewResult } from "./plugin-types";
+import { createLogger } from "../../../platform/logger";
+
+const log = createLogger("plugins");
 
 export async function runPluginContribution(
   pluginId: string,
@@ -26,7 +29,7 @@ export async function runPluginContribution(
     result = await run();
   } catch (error) {
     if (pendingDialogId) closePluginDialog(pendingDialogId);
-    console.error(`[plugins] contribution from "${pluginId}" failed`, error);
+    log.error(`contribution from "${pluginId}" failed`, error);
     showPluginToast(`${pluginName}: ${error instanceof Error ? error.message : String(error)}`);
     return;
   }

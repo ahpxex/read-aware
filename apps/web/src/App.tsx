@@ -41,6 +41,7 @@ import {
   sendAppToBackground,
 } from "./platform/back-navigation";
 import { CommandPalette } from "./features/command/components/CommandPalette";
+import { FeatureErrorBoundary } from "./components/FeatureErrorBoundary";
 import type { CommandContext } from "./features/command/lib/build-commands";
 import { PluginDialogHost } from "./features/plugins/components/PluginDialogHost";
 import { PluginInstallConsentDialog } from "./features/plugins/components/PluginInstallConsentDialog";
@@ -493,37 +494,39 @@ function App() {
         >
           {/* Fallback shows only if warmup hasn't fetched the chunk yet (rare):
             a quiet paper surface, matching the reader's own pre-render state. */}
-          <Suspense fallback={<div className="h-dvh w-full bg-paper" />}>
-            <ReaderWorkspace
-              selectedBook={reader.selectedBook}
-              readerSource={reader.readerSource}
-              readerLoadError={reader.readerLoadError}
-              isReaderLoading={reader.isReaderLoading}
-              readerToc={reader.readerToc}
-              currentChapterHref={reader.currentChapterHref}
-              chapterNavigationRequest={reader.chapterNavigationRequest}
-              annotationNavigationRequest={reader.annotationNavigationRequest}
-              fractionNavigationRequest={reader.fractionNavigationRequest}
-              overlayVisible={reader.overlayVisible}
-              selectedEpubProgress={reader.selectedEpubProgress}
-              readerProgress={reader.readerProgress}
-              currentPage={reader.currentPage}
-              totalPages={reader.totalPages}
-              onCloseReader={closeBook}
-              onRetryOpen={handleOpenBook}
-              onToggleShell={reader.toggleShell}
-              onHideShell={reader.hideShell}
-              onReaderPageChange={reader.handleReaderPageChange}
-              onEpubProgressChange={reader.handleEpubProgressChange}
-              onReaderFractionChange={reader.handleReaderFractionChange}
-              onSeek={reader.handleSeek}
-              onTocChange={reader.setReaderToc}
-              onCurrentChapterChange={reader.setCurrentChapterHref}
-              onBookReady={library.handleBookReady}
-              onChapterSelect={reader.handleChapterSelect}
-              onAnnotationSelect={reader.handleAnnotationSelect}
-            />
-          </Suspense>
+          <FeatureErrorBoundary surface="reader" resetKey={reader.selectedBook.id}>
+            <Suspense fallback={<div className="h-dvh w-full bg-paper" />}>
+              <ReaderWorkspace
+                selectedBook={reader.selectedBook}
+                readerSource={reader.readerSource}
+                readerLoadError={reader.readerLoadError}
+                isReaderLoading={reader.isReaderLoading}
+                readerToc={reader.readerToc}
+                currentChapterHref={reader.currentChapterHref}
+                chapterNavigationRequest={reader.chapterNavigationRequest}
+                annotationNavigationRequest={reader.annotationNavigationRequest}
+                fractionNavigationRequest={reader.fractionNavigationRequest}
+                overlayVisible={reader.overlayVisible}
+                selectedEpubProgress={reader.selectedEpubProgress}
+                readerProgress={reader.readerProgress}
+                currentPage={reader.currentPage}
+                totalPages={reader.totalPages}
+                onCloseReader={closeBook}
+                onRetryOpen={handleOpenBook}
+                onToggleShell={reader.toggleShell}
+                onHideShell={reader.hideShell}
+                onReaderPageChange={reader.handleReaderPageChange}
+                onEpubProgressChange={reader.handleEpubProgressChange}
+                onReaderFractionChange={reader.handleReaderFractionChange}
+                onSeek={reader.handleSeek}
+                onTocChange={reader.setReaderToc}
+                onCurrentChapterChange={reader.setCurrentChapterHref}
+                onBookReady={library.handleBookReady}
+                onChapterSelect={reader.handleChapterSelect}
+                onAnnotationSelect={reader.handleAnnotationSelect}
+              />
+            </Suspense>
+          </FeatureErrorBoundary>
         </div>
       )}
 
@@ -585,21 +588,27 @@ function App() {
                 onSetBooksCollection={library.handleSetBooksCollection}
               />
             ) : activeTopNav === "context" ? (
-              <Suspense fallback={<SurfaceFallback />}>
-                <ContextWorkspace />
-              </Suspense>
+              <FeatureErrorBoundary surface="context" resetKey={activeTopNav}>
+                <Suspense fallback={<SurfaceFallback />}>
+                  <ContextWorkspace />
+                </Suspense>
+              </FeatureErrorBoundary>
             ) : activeTopNav === "stats" ? (
-              <Suspense fallback={<SurfaceFallback />}>
-                <StatsWorkspace
-                  books={library.books}
-                  onOpenBook={handleOpenBook}
-                />
-              </Suspense>
+              <FeatureErrorBoundary surface="stats" resetKey={activeTopNav}>
+                <Suspense fallback={<SurfaceFallback />}>
+                  <StatsWorkspace
+                    books={library.books}
+                    onOpenBook={handleOpenBook}
+                  />
+                </Suspense>
+              </FeatureErrorBoundary>
             ) : (
-              <PluginPageHost
-                navKey={activeTopNav}
-                onExit={() => setActiveTopNav("shelf")}
-              />
+              <FeatureErrorBoundary surface="plugin-page" resetKey={activeTopNav}>
+                <PluginPageHost
+                  navKey={activeTopNav}
+                  onExit={() => setActiveTopNav("shelf")}
+                />
+              </FeatureErrorBoundary>
             )}
           </ScrollArea>
         </main>

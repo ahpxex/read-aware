@@ -433,6 +433,36 @@
     "contact": {
       "title": "联系",
       "description": "有疑问、Bug 或反馈，欢迎直接联系。"
+    },
+    "diagnostics": {
+      "title": "诊断",
+      "description": "ReadAware 绝不会自行上传任何内容。诊断包只包含应用日志和存储自检结果——不含书籍内容、笔记或对话——发送前你可以完整查看。",
+      "exportRow": {
+        "title": "导出诊断包",
+        "description": "保存为 JSON 文件,便于附在邮件或 issue 里。",
+        "button": "导出"
+      },
+      "reportRow": {
+        "title": "报告问题",
+        "description": "先查看诊断包内容,再发送给开发者。",
+        "button": "发送报告…"
+      },
+      "logsRow": {
+        "title": "日志文件",
+        "description": "诊断包所依据的滚动日志文件。",
+        "button": "在文件夹中显示"
+      },
+      "dialogTitle": "发送诊断报告",
+      "previewBody": "以下就是将要发送的全部内容——除此之外不会有任何数据离开你的设备。",
+      "send": "发送",
+      "cancel": "取消",
+      "done": "完成",
+      "sentBody": "已发送,谢谢。若就此问题联系我们,请附上这个回执编号:",
+      "noticeDone": "完成",
+      "noticeError": "出错了",
+      "exportSuccess": "诊断包已保存。",
+      "exportError": "诊断包生成或保存失败。",
+      "reportError": "报告发送失败。你可以改为导出诊断包并通过邮件发送。"
     }
   },
   "menus": {

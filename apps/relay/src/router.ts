@@ -141,6 +141,60 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
   const { accounts, blobs, config } = ports;
   const nowIso = () => new Date(ports.now()).toISOString();
 
+  /**
+   * User-initiated diagnostic report (Settings → export/report diagnostics).
+   * Unauthenticated by design — the user most in need of reporting is the one
+   * whose app cannot sign in — so it is bounded instead: size-capped, per-IP
+   * throttled, write-only (reading reports is a wrangler job, never a route).
+   */
+  async function handleReport(req: Request): Promise<Response> {
+    const raw = await req.text();
+    if (raw.length > config.maxReportBytes) {
+      return failure(413, `report exceeds ${config.maxReportBytes} bytes`);
+    }
+    let body: unknown;
+    try {
+      body = JSON.parse(raw);
+    } catch {
+      return failure(400, "report must be JSON");
+    }
+    if (typeof body !== "object" || body === null) return failure(400, "report must be JSON");
+    const report = body as Record<string, unknown>;
+    if (!isString(report.appVersion) || report.appVersion.length > 64) {
+      return failure(400, "appVersion is required");
+    }
+    if (!isString(report.platform) || report.platform.length > 64) {
+      return failure(400, "platform is required");
+    }
+    if (typeof report.bundle !== "object" || report.bundle === null) {
+      return failure(400, "bundle is required");
+    }
+
+    // Workers put the client address in cf-connecting-ip; hashing keeps the
+    // row throttle-able without storing an identifier.
+    const ipHash = await tokenHash(req.headers.get("cf-connecting-ip") ?? "unknown");
+    const dayAgo = ports.now() - 24 * 60 * 60 * 1000;
+    if ((await ports.reports.countSince(ipHash, dayAgo)) >= config.maxReportsPerIpPerDay) {
+      return failure(429, "too many reports from this address; try again tomorrow");
+    }
+
+    const id = crypto.randomUUID();
+    const payload = new TextEncoder().encode(raw);
+    await ports.reports.submit(
+      {
+        id,
+        createdAt: nowIso(),
+        createdAtMs: ports.now(),
+        ipHash,
+        appVersion: report.appVersion,
+        platform: report.platform,
+        bytes: payload.length,
+      },
+      payload,
+    );
+    return json(200, { ok: true, reportId: id });
+  }
+
   async function authenticate(req: Request): Promise<Account | null> {
     const header = req.headers.get("authorization") ?? "";
     if (!header.startsWith("Bearer ")) return null;
@@ -333,6 +387,7 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
     const path = url.pathname;
 
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
+    if (req.method === "POST" && path === "/v1/report") return handleReport(req);
     if (req.method === "POST" && path === "/v1/auth/request") return handleAuthRequest(req);
     if (req.method === "POST" && path === "/v1/auth/verify") return handleAuthVerify(req);
     if (path.startsWith("/v1/auth/oauth/")) {

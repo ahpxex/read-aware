@@ -780,7 +780,14 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
         "profile.updated" | "entity.resolved" | "entity.merged" => return Ok(false),
 
         // ── Forward compatibility ───────────────────────────────────────────
-        _ => return Ok(false),
+        // Skipping is the contract (an older build must accept a newer log),
+        // but the skip must leave a trace: "a newer device wrote data this
+        // version cannot project" is exactly what a user will report as data
+        // loss, and the log line is the only way to tell the two apart.
+        other => {
+            log::warn!("skipping event type {other:?} unknown to this app version");
+            return Ok(false);
+        }
     }
 
     Ok(true)

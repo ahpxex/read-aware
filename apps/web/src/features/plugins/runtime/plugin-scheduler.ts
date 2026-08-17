@@ -18,6 +18,9 @@ import {
   type PluginScheduleDeclaration,
 } from "@read-aware/plugin-types";
 import { localKV } from "../../../platform/local-store";
+import { createLogger } from "../../../platform/logger";
+
+const log = createLogger("plugins");
 
 /** First sweep waits for boot to settle; later sweeps tick once a minute. */
 const FIRST_SWEEP_DELAY_MS = 5_000;
@@ -81,8 +84,8 @@ function sweep(): void {
     Promise.resolve()
       .then(() => task.run())
       .catch((error) => {
-        console.warn(
-          `[plugins] schedule "${task.pluginId}:${task.scheduleId}" failed`,
+        log.warn(
+          `schedule "${task.pluginId}:${task.scheduleId}" failed`,
           error,
         );
       })

@@ -24,6 +24,7 @@ import { emitAppEvent } from "./app-events";
 import { commitDomainEvents } from "./domain-events";
 import { isTauri } from "./environment";
 import { localKV, onLocalKVWrite } from "./local-store";
+import { createLogger } from "./logger";
 import {
   deleteSecret,
   getSecret,
@@ -32,6 +33,8 @@ import {
   type SecretKey,
 } from "./secret-store";
 import { fromBase64, openSecret, sealSecret } from "./sync-envelope";
+
+const log = createLogger("roaming-preferences");
 
 /**
  * The allowlist, with per-namespace policy.
@@ -131,7 +134,7 @@ export function publishRoamingSecret(slot: SecretKey, value: string | null): voi
       value: value ? { sealed: sealSecret(key, slot, value) } : null,
     },
   }).catch((error) => {
-    console.error(`[roaming-preferences] failed to log secret ${slot} change`, error);
+    log.error(`failed to log secret ${slot} change`, error);
   });
 }
 
@@ -172,7 +175,7 @@ function overlaySecret(slot: string, valueJson: string): boolean {
   } catch (error) {
     // Sealed under a different passphrase epoch, or malformed: leave this
     // device's credential alone rather than clobbering it with garbage.
-    console.warn(`[roaming-preferences] could not open roamed secret ${slot}`, error);
+    log.warn(`could not open roamed secret ${slot}`, error);
     return false;
   }
 }
@@ -193,7 +196,7 @@ export function publishRoamingPreference(key: RoamingPreferenceKey, value: unkno
   }
   void commitDomainEvents({ type: "preference.changed", payload: { key, value: published } }).catch(
     (error) => {
-      console.error(`[roaming-preferences] failed to log ${key} change`, error);
+      log.error(`failed to log ${key} change`, error);
     },
   );
 }
@@ -350,7 +353,7 @@ export async function hydrateRoamingPreferences(): Promise<void> {
     overlayRows(rows);
     reconcileUnpublished(rows);
   } catch (error) {
-    console.error("[roaming-preferences] boot overlay failed; using device-local values", error);
+    log.error("boot overlay failed; using device-local values", error);
   }
 }
 
@@ -370,6 +373,6 @@ export async function refreshRoamingPreferences(): Promise<void> {
       emitAppEvent("roaming-preferences-changed", { keys: changed });
     }
   } catch (error) {
-    console.error("[roaming-preferences] post-pull refresh failed", error);
+    log.error("post-pull refresh failed", error);
   }
 }

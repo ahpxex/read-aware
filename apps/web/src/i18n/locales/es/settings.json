@@ -441,6 +441,36 @@
     "contact": {
       "title": "Contacto",
       "description": "Preguntas, errores o comentarios — escríbenos directamente."
+    },
+    "diagnostics": {
+      "title": "Diagnóstico",
+      "description": "ReadAware nunca envía nada por su cuenta. Un paquete de diagnóstico contiene los registros de la aplicación y una autocomprobación del almacenamiento — sin contenido de libros, notas ni conversaciones — y puedes revisarlo todo antes de que salga de este dispositivo.",
+      "exportRow": {
+        "title": "Exportar diagnóstico",
+        "description": "Guardar el paquete como archivo JSON para adjuntarlo a un correo o un issue.",
+        "button": "Exportar"
+      },
+      "reportRow": {
+        "title": "Informar de un problema",
+        "description": "Revisa el paquete y envíalo a los desarrolladores.",
+        "button": "Enviar informe…"
+      },
+      "logsRow": {
+        "title": "Archivos de registro",
+        "description": "Los registros rotatorios con los que se construye el paquete.",
+        "button": "Mostrar en la carpeta"
+      },
+      "dialogTitle": "Enviar informe de diagnóstico",
+      "previewBody": "Esto es exactamente lo que se enviará; nada más sale de tu dispositivo.",
+      "send": "Enviar",
+      "cancel": "Cancelar",
+      "done": "Hecho",
+      "sentBody": "Enviado, gracias. Cita este identificador si nos contactas sobre el problema:",
+      "noticeDone": "Hecho",
+      "noticeError": "Algo ha salido mal",
+      "exportSuccess": "Paquete de diagnóstico guardado.",
+      "exportError": "No se pudo crear o guardar el paquete.",
+      "reportError": "No se pudo enviar el informe. Puedes exportar el paquete y enviarlo por correo."
     }
   },
   "menus": {

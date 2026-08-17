@@ -15,6 +15,9 @@
  */
 import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "./environment";
+import { createLogger } from "./logger";
+
+const log = createLogger("secrets");
 
 /**
  * Secrets the app stores — two audited families. The `ai-api-key` family:
@@ -57,7 +60,7 @@ export async function hydrateSecrets(): Promise<void> {
     if (legacy) {
       await invoke("secret_set", { key: "ai-api-key", value: legacy });
       localStorage.removeItem(LEGACY_AI_KEY_STORAGE_KEY);
-      console.info("[secrets] moved the API key out of localStorage into encrypted storage");
+      log.info("moved the API key out of localStorage into encrypted storage");
     }
     for (const prefix of SECRET_PREFIXES) {
       const keys = await invoke<string[]>("secret_keys", { prefix });
@@ -68,19 +71,19 @@ export async function hydrateSecrets(): Promise<void> {
           const value = await invoke<string | null>("secret_get", { key });
           if (value) snapshot.set(key as SecretKey, value);
         } catch (error) {
-          console.error(`[secrets] "${key}" is unreadable; skipping`, error);
+          log.error(`"${key}" is unreadable; skipping`, error);
         }
       }
     }
   } catch (error) {
-    console.error("[secrets] hydrate failed; the app starts without stored credentials", error);
+    log.error("hydrate failed; the app starts without stored credentials", error);
   }
   hydrated = true;
 }
 
 export function getSecret(key: SecretKey): string {
   if (!hydrated) {
-    console.warn(`[secrets] read of "${key}" before hydration; returning empty`);
+    log.warn(`read of "${key}" before hydration; returning empty`);
   }
   return snapshot.get(key) ?? "";
 }
@@ -93,7 +96,7 @@ export function setSecret(key: SecretKey, value: string): void {
   snapshot.set(key, value);
   if (!isTauri()) return;
   void invoke("secret_set", { key, value }).catch((error) => {
-    console.error(`[secrets] failed to persist "${key}"`, error);
+    log.error(`failed to persist "${key}"`, error);
   });
 }
 
@@ -106,7 +109,7 @@ export function deleteSecret(key: SecretKey): void {
   snapshot.delete(key);
   if (!isTauri()) return;
   void invoke("secret_delete", { key }).catch((error) => {
-    console.error(`[secrets] failed to delete "${key}"`, error);
+    log.error(`failed to delete "${key}"`, error);
   });
 }
 

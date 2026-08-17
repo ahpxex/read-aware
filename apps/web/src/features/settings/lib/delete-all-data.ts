@@ -16,7 +16,10 @@
  */
 import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "../../../platform/environment";
+import { createLogger } from "../../../platform/logger";
 import { syncRelayClient } from "../../../platform/sync/sync-scheduler";
+
+const log = createLogger("delete-all-data");
 
 const ONE_TIME_IMPORT_FLAGS = ["read-aware-migrated-v1", "read-aware-migrated-memories-v1"];
 
@@ -58,6 +61,6 @@ export async function deleteAllData(): Promise<void> {
   } catch (error) {
     // Legacy webview storage is best-effort: the import flags above already
     // prevent it from ever being read back into SQLite.
-    console.warn("[delete-all-data] webview storage cleanup incomplete", error);
+    log.warn("webview storage cleanup incomplete", error);
   }
 }

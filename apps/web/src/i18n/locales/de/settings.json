@@ -437,6 +437,36 @@
     "contact": {
       "title": "Kontakt",
       "description": "Fragen, Fehler oder Feedback — melde dich direkt."
+    },
+    "diagnostics": {
+      "title": "Diagnose",
+      "description": "ReadAware sendet niemals etwas von selbst. Ein Diagnosepaket enthält App-Protokolle und einen Speicher-Selbsttest – keine Buchinhalte, Notizen oder Unterhaltungen – und du kannst alles prüfen, bevor es dieses Gerät verlässt.",
+      "exportRow": {
+        "title": "Diagnosepaket exportieren",
+        "description": "Als JSON-Datei speichern, um es an eine E-Mail oder ein Issue anzuhängen.",
+        "button": "Exportieren"
+      },
+      "reportRow": {
+        "title": "Problem melden",
+        "description": "Paket prüfen und dann an die Entwickler senden.",
+        "button": "Bericht senden…"
+      },
+      "logsRow": {
+        "title": "Protokolldateien",
+        "description": "Die rotierenden Protokolle, aus denen das Paket entsteht.",
+        "button": "Im Ordner zeigen"
+      },
+      "dialogTitle": "Diagnosebericht senden",
+      "previewBody": "Genau das wird gesendet – sonst verlässt nichts dein Gerät.",
+      "send": "Senden",
+      "cancel": "Abbrechen",
+      "done": "Fertig",
+      "sentBody": "Gesendet – danke. Gib diese Vorgangsnummer an, wenn du uns zu dem Problem kontaktierst:",
+      "noticeDone": "Fertig",
+      "noticeError": "Etwas ist schiefgelaufen",
+      "exportSuccess": "Diagnosepaket gespeichert.",
+      "exportError": "Das Paket konnte nicht erstellt oder gespeichert werden.",
+      "reportError": "Der Bericht konnte nicht gesendet werden. Du kannst das Paket stattdessen exportieren und per E-Mail schicken."
     }
   },
   "menus": {

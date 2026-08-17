@@ -15,6 +15,7 @@ import { DEFAULT_LOCALE, i18n, isAppLocale } from "../../../i18n";
 import { onAppEvent } from "../../../platform/app-events";
 import { exportTextFile } from "../../../platform/export-file";
 import { localKV } from "../../../platform/local-store";
+import { createLogger } from "../../../platform/logger";
 import {
   deletePluginSecret,
   getPluginSecret,
@@ -58,6 +59,8 @@ import {
   registerVoiceProviderContribution,
   updateVoiceProviderVoices,
 } from "../state/plugin-store";
+
+const log = createLogger("plugins");
 
 function toPluginDocument(row: PluginDocumentRow) {
   let data: unknown = null;
@@ -303,8 +306,8 @@ export function buildPluginContext(
               updateVoiceProviderVoices(key, Array.isArray(voices) ? voices : []),
             )
             .catch((error) =>
-              console.warn(
-                `[plugins] listVoices from "${manifest.id}" failed`,
+              log.warn(
+                `listVoices from "${manifest.id}" failed`,
                 error,
               ),
             );
@@ -365,7 +368,7 @@ export function buildPluginContext(
         }
         const off = onAppEvent(event, ((payload: PluginSessionEventMap[typeof event]) => {
           const report = (error: unknown) =>
-            console.error(`[plugins] event handler from "${manifest.id}" failed`, error);
+            log.error(`event handler from "${manifest.id}" failed`, error);
           try {
             // Sandboxed handlers are async proxies; their failures reject.
             const result = handler(payload as never) as unknown;
@@ -458,7 +461,7 @@ export function buildPluginContext(
           try {
             await domain.shelf.books.remove(bookId);
           } catch (error) {
-            console.error("[plugins] virtual book removal", error);
+            log.error("virtual book removal failed", error);
           }
           unbindVirtualBook(bookId);
         },

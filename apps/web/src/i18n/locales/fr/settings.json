@@ -441,6 +441,36 @@
     "contact": {
       "title": "Contact",
       "description": "Questions, bugs ou commentaires — contactez-nous directement."
+    },
+    "diagnostics": {
+      "title": "Diagnostic",
+      "description": "ReadAware n'envoie jamais rien de lui-même. Un paquet de diagnostic contient les journaux de l'application et un auto-contrôle du stockage — aucun contenu de livre, note ou conversation — et vous pouvez tout inspecter avant qu'il ne quitte cet appareil.",
+      "exportRow": {
+        "title": "Exporter le diagnostic",
+        "description": "Enregistrer le paquet en JSON pour le joindre à un e-mail ou à un ticket.",
+        "button": "Exporter"
+      },
+      "reportRow": {
+        "title": "Signaler un problème",
+        "description": "Vérifiez le paquet, puis envoyez-le aux développeurs.",
+        "button": "Envoyer un rapport…"
+      },
+      "logsRow": {
+        "title": "Fichiers journaux",
+        "description": "Les journaux rotatifs à partir desquels le paquet est construit.",
+        "button": "Afficher dans le dossier"
+      },
+      "dialogTitle": "Envoyer le rapport de diagnostic",
+      "previewBody": "Voici exactement ce qui sera envoyé — rien d'autre ne quitte votre appareil.",
+      "send": "Envoyer",
+      "cancel": "Annuler",
+      "done": "Terminé",
+      "sentBody": "Envoyé — merci. Mentionnez cet identifiant si vous nous contactez à propos du problème :",
+      "noticeDone": "Terminé",
+      "noticeError": "Une erreur est survenue",
+      "exportSuccess": "Paquet de diagnostic enregistré.",
+      "exportError": "Le paquet n'a pas pu être créé ou enregistré.",
+      "reportError": "Le rapport n'a pas pu être envoyé. Vous pouvez exporter le paquet et l'envoyer par e-mail."
     }
   },
   "menus": {

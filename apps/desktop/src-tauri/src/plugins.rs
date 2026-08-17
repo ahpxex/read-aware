@@ -124,7 +124,7 @@ fn extract_bundled(app: &tauri::AppHandle) -> Option<PathBuf> {
         fs::write(&stamp_path, &version)
     };
     if let Err(error) = extract() {
-        eprintln!("[plugins] extracting bundled plugins failed: {error}");
+        log::error!("[plugins] extracting bundled plugins failed: {error}");
         return None;
     }
     Some(base)

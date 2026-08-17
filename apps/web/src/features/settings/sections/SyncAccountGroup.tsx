@@ -9,6 +9,7 @@ import { useAtom } from "jotai";
 import { Button, Dialog, useToast } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { isTauri } from "../../../platform/environment";
+import { createLogger } from "../../../platform/logger";
 import { syncLoginTokenAtom } from "../../../state/ui";
 import { PendingBadge } from "../components/PendingBadge";
 import { SettingsGroup } from "../components/SettingsGroup";
@@ -18,6 +19,8 @@ import { useSyncBacklog } from "../../sync/hooks/useSyncStatus";
 import { useSyncAccountInfo } from "../hooks/useSyncAccountInfo";
 import { useSyncConnection } from "../hooks/useSyncConnection";
 import { SyncConnectDialog } from "./SyncConnectDialog";
+
+const log = createLogger("sync");
 
 /** "12 345 678" bytes → "11.8 MB": one decimal, sensible unit. */
 function formatBytes(bytes: number): string {
@@ -73,7 +76,7 @@ export function SyncAccountGroup() {
     try {
       await sync.requestSyncNow();
     } catch (error) {
-      console.error("[sync] manual sync failed", error);
+      log.error("manual sync failed", error);
       toast({
         variant: "destructive",
         title: t("dataSync.noticeError"),

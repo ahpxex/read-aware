@@ -14,6 +14,9 @@ import type { PluginView } from "../lib/plugin-types";
 import { headerActionsAtom } from "../state/plugin-store";
 import { PluginViewRenderer } from "./PluginViewRenderer";
 import { contributionText } from "../lib/plugin-i18n";
+import { createLogger } from "../../../platform/logger";
+
+const log = createLogger("plugins");
 
 export const PLUGIN_NAV_PREFIX = "plugin:";
 
@@ -46,7 +49,7 @@ export function PluginPageHost({ navKey, onExit }: PluginPageHostProps) {
         if (loadRequestIdRef.current === requestId) setView(next);
       })
       .catch((error) => {
-        console.error(`[plugins] page "${key}" failed`, error);
+        log.error(`page "${key}" failed`, error);
         showPluginToast(
           `${action.pluginName}: ${error instanceof Error ? error.message : String(error)}`,
         );
@@ -67,7 +70,7 @@ export function PluginPageHost({ navKey, onExit }: PluginPageHostProps) {
         if (loadRequestIdRef.current === requestId) setView(next);
       })
       .catch((error) => {
-        console.error(`[plugins] page "${key}" refresh failed`, error);
+        log.error(`page "${key}" refresh failed`, error);
         showPluginToast(
           `${action.pluginName}: ${error instanceof Error ? error.message : String(error)}`,
         );

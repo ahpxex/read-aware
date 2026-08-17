@@ -11,6 +11,7 @@
 import { getVersion } from "@tauri-apps/api/app";
 import { getDefaultStore } from "jotai";
 import { isTauri } from "../../../platform/environment";
+import { createLogger } from "../../../platform/logger";
 import { PluginManifestError, parseManifestJson, versionSatisfies } from "../lib/manifest";
 import type {
   InstalledPlugin,
@@ -43,6 +44,8 @@ import {
 import { startPluginWorker, type SandboxedPlugin } from "./plugin-worker-host";
 import { onAppEvent } from "../../../platform/app-events";
 import { unbindVirtualBook } from "../lib/virtual-books";
+
+const log = createLogger("plugins");
 
 type ActivePlugin = {
   manifest: PluginManifest;
@@ -83,7 +86,7 @@ export async function initializePlugins(): Promise<void> {
   try {
     entries = await listPluginEntries();
   } catch (error) {
-    console.error("[plugins] failed to enumerate installed plugins", error);
+    log.error("failed to enumerate installed plugins", error);
     // Nothing will register this session; unblock appearance fallbacks.
     markPluginsReady();
     return;
@@ -156,7 +159,7 @@ async function activatePlugin(manifest: PluginManifest): Promise<void> {
     active.set(manifest.id, { manifest, sandbox, disposables });
     updateInstalledPlugin(manifest.id, { error: undefined });
   } catch (error) {
-    console.error(`[plugins] activation of "${manifest.id}" failed`, error);
+    log.error(`activation of "${manifest.id}" failed`, error);
     updateInstalledPlugin(manifest.id, { error: errorMessage(error) });
   }
 }
@@ -212,13 +215,13 @@ async function deactivatePlugin(id: string): Promise<void> {
     try {
       disposable.dispose();
     } catch (error) {
-      console.error(`[plugins] dispose from "${id}" failed`, error);
+      log.error(`dispose from "${id}" failed`, error);
     }
   }
   try {
     await entry.sandbox.terminate();
   } catch (error) {
-    console.error(`[plugins] terminating "${id}" failed`, error);
+    log.error(`terminating "${id}" failed`, error);
   }
 }
 
@@ -301,7 +304,7 @@ export async function uninstallPlugin(id: string): Promise<void> {
   await deactivatePlugin(id);
   await uninstallPluginFiles(id);
   await pluginDocsClear(id).catch((error) => {
-    console.error(`[plugins] document wipe for "${id}" failed`, error);
+    log.error(`document wipe for "${id}" failed`, error);
   });
   forgetPluginEnabled(id);
   setInstalledPlugins(getInstalled().filter((entry) => entry.manifest.id !== id));

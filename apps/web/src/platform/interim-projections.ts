@@ -10,6 +10,9 @@
  */
 import { invoke } from "@tauri-apps/api/core";
 import { isTauri } from "./environment";
+import { createLogger } from "./logger";
+
+const log = createLogger("interim-projections");
 
 const VOCABULARY_KV_KEY = "read-aware-vocabulary";
 const READING_STATS_KV_KEY = "read-aware-reading-stats";
@@ -78,7 +81,7 @@ async function migrateVocabularyKv(kv: LegacyKvAccess): Promise<void> {
     }
     kv.clear(VOCABULARY_KV_KEY);
   } catch (err) {
-    console.error("[interim-projections] vocabulary import failed; will retry next launch", err);
+    log.error("vocabulary import failed; will retry next launch", err);
   }
 }
 
@@ -122,7 +125,7 @@ async function migrateReadingStatsKv(kv: LegacyKvAccess): Promise<void> {
     }
     kv.clear(READING_STATS_KV_KEY);
   } catch (err) {
-    console.error("[interim-projections] reading-time import failed; will retry next launch", err);
+    log.error("reading-time import failed; will retry next launch", err);
   }
 }
 
@@ -139,14 +142,14 @@ export async function hydrateInterimProjections(kv: LegacyKvAccess): Promise<voi
   // dictionary plugin's document collection (idempotent; empty second run).
   try {
     const moved = await invoke<number>("vocabulary_migrate_to_plugin_documents");
-    if (moved > 0) console.info(`[interim-projections] moved ${moved} vocabulary entries to the plugin`);
+    if (moved > 0) log.info(`moved ${moved} vocabulary entries to the plugin`);
   } catch (err) {
-    console.error("[interim-projections] vocabulary handoff failed; will retry next launch", err);
+    log.error("vocabulary handoff failed; will retry next launch", err);
   }
   try {
     readingTime = await invoke<ReadingTimeWire>("reading_time_load");
   } catch (err) {
-    console.error("[interim-projections] hydrate failed; starting empty", err);
+    log.error("hydrate failed; starting empty", err);
   }
 }
 
@@ -166,7 +169,7 @@ export function recordReadingTimeDelta(
 ): void {
   void invoke("reading_time_record", { bookId, ms, atEpochMs, localDay, localHour }).catch(
     (err) => {
-      console.error("[interim-projections] reading_time_record failed", err);
+      log.error("reading_time_record failed", err);
     },
   );
 }
@@ -174,7 +177,7 @@ export function recordReadingTimeDelta(
 export function importReadingTime(wire: ReadingTimeWire): void {
   readingTime = wire;
   void invoke("reading_time_import", { wire }).catch((err) => {
-    console.error("[interim-projections] reading_time_import failed", err);
+    log.error("reading_time_import failed", err);
   });
 }
 

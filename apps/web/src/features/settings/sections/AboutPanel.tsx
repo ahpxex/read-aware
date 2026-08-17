@@ -8,6 +8,7 @@ import { versionCodename } from "../../update/lib/version-codename";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
+import { DiagnosticsGroup } from "./DiagnosticsGroup";
 
 function valueText(text: string) {
   return <span className="font-sans text-sm text-fg-muted">{text}</span>;
@@ -136,6 +137,8 @@ export function AboutPanel() {
           control={valueText(t("about.vendored"))}
         />
       </SettingsGroup>
+
+      <DiagnosticsGroup />
 
       <SettingsGroup title={t("about.help")}>
         <SettingsRow

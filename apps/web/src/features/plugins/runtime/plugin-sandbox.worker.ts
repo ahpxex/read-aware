@@ -376,6 +376,8 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
       try {
         await plugin?.deactivate?.();
       } catch (error) {
+        // Raw console on purpose: the Worker has no Tauri IPC, so it cannot
+        // reach the logger seam — errors reach it via the host's onerror.
         console.error("[plugin-sandbox] deactivate threw", error);
       }
       handlers.clear();

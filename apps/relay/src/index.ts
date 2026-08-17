@@ -9,6 +9,7 @@ import { AccountMailbox, stubMailbox } from "./do-mailbox";
 import { resendMagicLinkSender } from "./email";
 import { githubProvider, googleProvider } from "./oauth";
 import { DEFAULT_CONFIG, type BlobStore, type OAuthProvider, type RelayPorts } from "./ports";
+import { SqlReportStore } from "./report-store";
 import { createRelayHandler } from "./router";
 
 export { AccountMailbox };
@@ -86,6 +87,13 @@ function portsFromEnv(env: Env): RelayPorts {
     accounts: new SqlAccountStore(env.DB),
     mailboxFor: (accountId) => stubMailbox(env.MAILBOX.get(env.MAILBOX.idFromName(accountId))),
     blobs: r2BlobStore(env.BLOBS),
+    // Payloads live beside the sync blobs under a prefix no account id can
+    // collide with (account ids are UUIDs; "_reports" is not).
+    reports: new SqlReportStore(env.DB, {
+      put: async (id, payload) => {
+        await env.BLOBS.put(`_reports/${id}.json`, payload);
+      },
+    }),
     magicLink:
       env.RESEND_API_KEY && env.MAIL_FROM
         ? resendMagicLinkSender(

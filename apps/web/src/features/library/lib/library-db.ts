@@ -35,6 +35,9 @@ import { isTauri } from "../../../platform/environment";
 import type { FoliateBook } from "../../reader/lib/foliate-engine";
 import type { BookFileSource } from "../../reader/lib/reader-types";
 import { emitAppEvent } from "../../../platform/app-events";
+import { createLogger } from "../../../platform/logger";
+
+const log = createLogger("library");
 
 /** Blob-store key for a book's original file bytes (desktop SQLite backend). */
 const bookFileKey = (bookId: string) => `bookfile:${bookId}`;
@@ -257,7 +260,7 @@ async function sniffImportSource(
     // A head-window File is all the sniffer ever reads from.
     return await sniffBookFormat(new File([head], name));
   } catch (error) {
-    console.warn(`Unable to sniff the format of ${name}`, error);
+    log.warn(`Unable to sniff the format of ${name}`, error);
     return null;
   }
 }

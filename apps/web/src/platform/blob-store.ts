@@ -28,6 +28,9 @@
  */
 import { invoke } from "@tauri-apps/api/core";
 import { isMobileOS } from "./environment";
+import { createLogger } from "./logger";
+
+const log = createLogger("blob-store");
 
 /** Must match `BLOB_KEY_HEADER` / `BLOB_MIME_HEADER` in storage.rs. */
 const BLOB_KEY_HEADER = "x-blob-key";
@@ -121,7 +124,10 @@ async function getBlobChunked(key: string): Promise<Uint8Array | null> {
     }
     return bytes;
   } finally {
-    void invoke("blob_read_close", { key }).catch(() => {});
+    // Failed cleanup leaks a native read session — worth a trace, never a throw.
+    void invoke("blob_read_close", { key }).catch((error: unknown) => {
+      log.warn("blob_read_close failed; native read session may leak", error);
+    });
   }
 }
 
@@ -153,7 +159,10 @@ async function putBlobChunked(
       mimeType: mimeType ?? null,
     });
   } catch (error) {
-    void invoke("blob_write_abort", { key }).catch(() => {});
+    // Failed cleanup leaks a native write session — worth a trace, never a throw.
+    void invoke("blob_write_abort", { key }).catch((abortError: unknown) => {
+      log.warn("blob_write_abort failed; native write session may leak", abortError);
+    });
     throw error;
   }
 }
@@ -227,7 +236,10 @@ async function putBlobChunkedRaw(
       mimeType: mimeType ?? null,
     });
   } catch (error) {
-    void invoke("blob_write_abort", { key }).catch(() => {});
+    // Failed cleanup leaks a native write session — worth a trace, never a throw.
+    void invoke("blob_write_abort", { key }).catch((abortError: unknown) => {
+      log.warn("blob_write_abort failed; native write session may leak", abortError);
+    });
     throw error;
   }
 }

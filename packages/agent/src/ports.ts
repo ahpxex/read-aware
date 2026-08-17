@@ -328,6 +328,16 @@ export interface SettingsPort {
   ): Promise<AgentSettingsUpdateResult>;
 }
 
+/**
+ * 宿主的日志接缝（可选）。运行时只在"一个错误被有意吞掉"的地方使用 ——
+ * 例如轮后巩固管道失败：对话不受影响，但失败必须留下痕迹（产品侧落到
+ * 桌面端的日志文件）。缺省即静默，测试与 CLI 无需提供。
+ */
+export interface AgentLogPort {
+  warn(message: string, detail?: unknown): void;
+  error(message: string, detail?: unknown): void;
+}
+
 export interface RuntimeDeps {
   library: LibraryPort;
   annotations: AnnotationsPort;
@@ -338,6 +348,7 @@ export interface RuntimeDeps {
   memory: MemoryPort;
   bookText: BookTextPort;
   settings: SettingsPort;
+  log?: AgentLogPort;
   /**
    * 宿主注入的额外工具（产品侧：用户插件注册的 agent 工具）。每次 Agent
    * 组装时取一次快照；集合变化后宿主调用 `AgentRuntime.invalidateAgents()`

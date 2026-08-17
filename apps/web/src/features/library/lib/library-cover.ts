@@ -4,7 +4,10 @@ import {
   makeFoliateBook,
   type FoliateBook,
 } from "../../reader/lib/foliate-engine";
+import { createLogger } from "../../../platform/logger";
 import type { BookFormat } from "./library-types";
+
+const log = createLogger("library");
 
 const COVER_ERROR_PREFIX = "Unable to extract book cover";
 
@@ -58,7 +61,7 @@ export async function extractImportedFileMetadata(
   try {
     return await extractOpenedBookMetadata(await makeFoliateBook(file));
   } catch (error) {
-    console.warn(`Unable to extract ${format.toUpperCase()} metadata at import`, error);
+    log.warn(`Unable to extract ${format.toUpperCase()} metadata at import`, error);
     return null;
   }
 }
@@ -73,7 +76,7 @@ export async function extractOpenedBookMetadata(book: FoliateBook): Promise<Extr
     const cover = await opened.getCover?.();
     if (cover) coverUrl = await blobToDataUrl(cover);
   } catch (error) {
-    console.warn(COVER_ERROR_PREFIX, error);
+    log.warn(COVER_ERROR_PREFIX, error);
   }
   return { title, author, coverUrl };
 }

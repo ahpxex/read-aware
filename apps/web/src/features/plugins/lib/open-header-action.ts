@@ -10,6 +10,9 @@ import {
 } from "../state/plugin-store";
 import { showPluginToast } from "./plugin-toast";
 import type { HeaderActionInput, RegisteredHeaderAction } from "./plugin-types";
+import { createLogger } from "../../../platform/logger";
+
+const log = createLogger("plugins");
 
 export async function openHeaderActionDialog(
   action: RegisteredHeaderAction,
@@ -25,7 +28,7 @@ export async function openHeaderActionDialog(
     resolvePluginDialog(requestId, view);
   } catch (error) {
     closePluginDialog(requestId);
-    console.error(`[plugins] header action "${action.key}" failed`, error);
+    log.error(`header action "${action.key}" failed`, error);
     showPluginToast(
       `${action.pluginName}: ${error instanceof Error ? error.message : String(error)}`,
     );

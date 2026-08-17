@@ -24,7 +24,10 @@ import { pluginModuleUrl } from "./plugin-backend";
 import { i18n } from "../../../i18n";
 import { onAppEvent } from "../../../platform/app-events";
 import { localKV } from "../../../platform/local-store";
+import { createLogger } from "../../../platform/logger";
 import { updateInstalledPlugin } from "../state/plugin-store";
+
+const log = createLogger("plugins");
 
 type WorkerMessage =
   | { t: "ready" }
@@ -248,7 +251,7 @@ export function startPluginWorker(
         // (its registrations may still work) but put the error where the
         // settings panel shows it.
         const message = event.message || "plugin crashed at runtime";
-        console.error(`[plugins] runtime error in "${manifest.id}"`, message);
+        log.error(`runtime error in "${manifest.id}"`, message);
         updateInstalledPlugin(manifest.id, { error: message });
         return;
       }
@@ -296,7 +299,7 @@ export function startPluginWorker(
           try {
             disposable?.dispose();
           } catch (error) {
-            console.error(`[plugins] dispose from "${manifest.id}" failed`, error);
+            log.error(`dispose from "${manifest.id}" failed`, error);
           }
           return;
         }

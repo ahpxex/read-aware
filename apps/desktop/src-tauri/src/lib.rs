@@ -1,6 +1,7 @@
 mod android_update;
 mod book_metadata;
 mod comic_metadata;
+mod diagnostics;
 mod external_open;
 mod fb2_metadata;
 mod metadata;
@@ -143,7 +144,7 @@ fn set_status_bar_hidden(app: tauri::AppHandle, hidden: bool) -> Result<(), Stri
     app.run_on_main_thread(move || {
         use tao::platform::android::prelude::main_android_context;
         let Some(ctx) = main_android_context() else {
-            eprintln!("setStatusBarHidden: no android context yet");
+            log::warn!("setStatusBarHidden: no android context yet");
             return;
         };
         let Ok(vm) = (unsafe { jni::JavaVM::from_raw(ctx.java_vm.cast()) }) else {
@@ -159,7 +160,7 @@ fn set_status_bar_hidden(app: tauri::AppHandle, hidden: bool) -> Result<(), Stri
             "(Z)V",
             &[jni::objects::JValue::Bool(hidden as u8)],
         ) {
-            eprintln!("setStatusBarHidden JNI call failed: {err}");
+            log::error!("setStatusBarHidden JNI call failed: {err}");
             let _ = env.exception_clear();
         }
     })
@@ -179,7 +180,7 @@ fn sync_safe_area(app: tauri::AppHandle) -> Result<(), String> {
     app.run_on_main_thread(move || {
         use tao::platform::android::prelude::main_android_context;
         let Some(ctx) = main_android_context() else {
-            eprintln!("syncSafeArea: no android context yet");
+            log::warn!("syncSafeArea: no android context yet");
             return;
         };
         let Ok(vm) = (unsafe { jni::JavaVM::from_raw(ctx.java_vm.cast()) }) else {
@@ -190,7 +191,7 @@ fn sync_safe_area(app: tauri::AppHandle) -> Result<(), String> {
         };
         let activity = unsafe { jni::objects::JObject::from_raw(ctx.context_jobject.cast()) };
         if let Err(err) = env.call_method(&activity, "syncSafeArea", "()V", &[]) {
-            eprintln!("syncSafeArea JNI call failed: {err}");
+            log::error!("syncSafeArea JNI call failed: {err}");
             let _ = env.exception_clear();
         }
     })
@@ -212,7 +213,7 @@ fn set_volume_key_capture(app: tauri::AppHandle, captured: bool) -> Result<(), S
     app.run_on_main_thread(move || {
         use tao::platform::android::prelude::main_android_context;
         let Some(ctx) = main_android_context() else {
-            eprintln!("setVolumeKeyCapture: no android context yet");
+            log::warn!("setVolumeKeyCapture: no android context yet");
             return;
         };
         let Ok(vm) = (unsafe { jni::JavaVM::from_raw(ctx.java_vm.cast()) }) else {
@@ -228,7 +229,7 @@ fn set_volume_key_capture(app: tauri::AppHandle, captured: bool) -> Result<(), S
             "(Z)V",
             &[jni::objects::JValue::Bool(captured as u8)],
         ) {
-            eprintln!("setVolumeKeyCapture JNI call failed: {err}");
+            log::error!("setVolumeKeyCapture JNI call failed: {err}");
             let _ = env.exception_clear();
         }
     })
@@ -250,7 +251,7 @@ fn move_task_to_back(app: tauri::AppHandle) -> Result<(), String> {
     app.run_on_main_thread(move || {
         use tao::platform::android::prelude::main_android_context;
         let Some(ctx) = main_android_context() else {
-            eprintln!("moveTaskToBack: no android context yet");
+            log::warn!("moveTaskToBack: no android context yet");
             return;
         };
         let Ok(vm) = (unsafe { jni::JavaVM::from_raw(ctx.java_vm.cast()) }) else {
@@ -261,7 +262,7 @@ fn move_task_to_back(app: tauri::AppHandle) -> Result<(), String> {
         };
         let activity = unsafe { jni::objects::JObject::from_raw(ctx.context_jobject.cast()) };
         if let Err(err) = env.call_method(&activity, "sendToBackground", "()V", &[]) {
-            eprintln!("sendToBackground JNI call failed: {err}");
+            log::error!("sendToBackground JNI call failed: {err}");
             let _ = env.exception_clear();
         }
     })
@@ -284,7 +285,7 @@ fn book_pick_start(app: tauri::AppHandle, generation: i32) -> Result<(), String>
     app.run_on_main_thread(move || {
         use tao::platform::android::prelude::main_android_context;
         let Some(ctx) = main_android_context() else {
-            eprintln!("bookPickStart: no android context yet");
+            log::warn!("bookPickStart: no android context yet");
             return;
         };
         let Ok(vm) = (unsafe { jni::JavaVM::from_raw(ctx.java_vm.cast()) }) else {
@@ -300,7 +301,7 @@ fn book_pick_start(app: tauri::AppHandle, generation: i32) -> Result<(), String>
             "(I)V",
             &[jni::objects::JValue::Int(generation)],
         ) {
-            eprintln!("startBookPick JNI call failed: {err}");
+            log::error!("startBookPick JNI call failed: {err}");
             let _ = env.exception_clear();
         }
     })
@@ -329,7 +330,7 @@ fn book_pick_poll(app: tauri::AppHandle) -> Result<Option<String>, String> {
             let value = env
                 .call_method(&activity, "takeBookPickResult", "()Ljava/lang/String;", &[])
                 .map_err(|err| {
-                    eprintln!("takeBookPickResult JNI call failed: {err}");
+                    log::error!("takeBookPickResult JNI call failed: {err}");
                     let _ = env.exception_clear();
                 })
                 .ok()?;
@@ -371,7 +372,7 @@ fn set_status_bar_hidden(hidden: bool) {
     const RTLD_DEFAULT: *mut c_void = -2isize as *mut c_void;
     let ptr = unsafe { dlsym(RTLD_DEFAULT, c"ra_set_status_bar_hidden".as_ptr()) };
     if ptr.is_null() {
-        eprintln!("set_status_bar_hidden: StatusBarBridge symbol not found");
+        log::error!("set_status_bar_hidden: StatusBarBridge symbol not found");
         return;
     }
     let bridge: extern "C" fn(bool) = unsafe { std::mem::transmute(ptr) };
@@ -657,8 +658,73 @@ fn boot_theme_script(theme: &str) -> String {
     )
 }
 
+/// The rotating file log in the OS log dir — the only trace a user's machine
+/// keeps of a production run (no console on Windows, no DevTools in release).
+/// The webview's logger feeds the same file through the plugin's IPC command.
+/// Info-level in release so the file stays quiet; ~5 MB × 4 files bounds disk.
+fn build_log_plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
+    use tauri_plugin_log::{RotationStrategy, Target, TargetKind, TimezoneStrategy};
+    tauri_plugin_log::Builder::default()
+        .targets([
+            Target::new(TargetKind::LogDir {
+                file_name: Some("readaware".into()),
+            }),
+            Target::new(TargetKind::Stdout),
+        ])
+        .level(if cfg!(debug_assertions) {
+            log::LevelFilter::Debug
+        } else {
+            log::LevelFilter::Info
+        })
+        // Transport crates narrate every connection at info; only their
+        // problems belong in the file.
+        .level_for("hyper", log::LevelFilter::Warn)
+        .level_for("reqwest", log::LevelFilter::Warn)
+        .level_for("rustls", log::LevelFilter::Warn)
+        .level_for("tao", log::LevelFilter::Warn)
+        .level_for("tracing", log::LevelFilter::Warn)
+        // Dev-build noise: the updater dumps the whole release manifest at
+        // debug, tungstenite narrates every MCP-bridge handshake.
+        .level_for("tauri_plugin_updater", log::LevelFilter::Info)
+        .level_for("tungstenite", log::LevelFilter::Warn)
+        .rotation_strategy(RotationStrategy::KeepSome(4))
+        .max_file_size(5_000_000)
+        .timezone_strategy(TimezoneStrategy::UseLocal)
+        .build()
+}
+
+/// Route panics through the file logger before the default hook aborts. A
+/// release panic is otherwise invisible: Windows builds drop the console
+/// (`windows_subsystem = "windows"`) and the process dies before the webview
+/// could show anything.
+fn install_panic_log_hook() {
+    let default_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        let payload = info
+            .payload()
+            .downcast_ref::<&str>()
+            .map(|s| (*s).to_string())
+            .or_else(|| info.payload().downcast_ref::<String>().cloned())
+            .unwrap_or_else(|| "non-string panic payload".into());
+        let location = info
+            .location()
+            .map(|l| l.to_string())
+            .unwrap_or_else(|| "unknown location".into());
+        log::error!(target: "panic", "panic at {location}: {payload}");
+        let backtrace = std::backtrace::Backtrace::force_capture();
+        if backtrace.status() == std::backtrace::BacktraceStatus::Captured {
+            log::error!(target: "panic", "backtrace:\n{backtrace}");
+        }
+        default_hook(info);
+    }));
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Before the builder: a panic anywhere past logger init must reach the
+    // file. (Panics before the log plugin initializes still hit the chained
+    // default hook and print to stderr, exactly as today.)
+    install_panic_log_hook();
     // Our reqwest `rustls-no-provider` feature choice unifies onto every other
     // reqwest build in the tree — including wry's Android dev-server proxy
     // (RustWebViewClient.shouldInterceptRequest), which constructs a plain
@@ -701,6 +767,10 @@ pub fn run() {
             ),
         );
     }));
+    // Log plugin as early as the ordering constraints allow (single-instance
+    // must stay first on desktop): every later plugin's init logs land in the
+    // file from the first run.
+    let builder = builder.plugin(build_log_plugin());
     // Desktop-only window chrome (macOS traffic-light repositioning); the
     // crate is not compiled for Android/iOS, where the webview is fullscreen.
     #[cfg(desktop)]
@@ -759,8 +829,13 @@ pub fn run() {
                 app.deep_link().register_all()?;
             }
 
-            let (conn, data_dir) =
-                storage::init_db(app.handle()).expect("failed to initialize database");
+            // A failed migration or unreadable database is the most likely
+            // real-world "app dies at launch" cause — make sure it is the
+            // first thing the log file explains before the process goes down.
+            let (conn, data_dir) = storage::init_db(app.handle()).map_err(|error| {
+                log::error!("database initialization failed: {error}");
+                error
+            })?;
             // Read the persisted theme preference BEFORE the main window exists
             // so the very first frame — window background and boot splash —
             // honors the in-app setting, not just the OS scheme. `None` means
@@ -907,6 +982,8 @@ pub fn run() {
             storage::reading_time_record,
             storage::reading_time_import,
             external_open::external_open_take,
+            diagnostics::diagnostics_read_logs,
+            diagnostics::diagnostics_log_dir,
             book_file_size,
             read_book_head,
             write_export_file,

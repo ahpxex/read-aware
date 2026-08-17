@@ -9,10 +9,13 @@ import { CheckCircle, WarningCircle } from "@phosphor-icons/react";
 import { Button, Popover, ProgressRing } from "@read-aware/ui";
 import { useState } from "react";
 import { useTranslation } from "../../../i18n";
+import { createLogger } from "../../../platform/logger";
 import { syncNow } from "../../../platform/sync/sync-scheduler";
 import { useSyncBacklog, useSyncStatus } from "../hooks/useSyncStatus";
 import { syncCycleFraction } from "../lib/sync-progress";
 import { SyncProgressDetail } from "./SyncProgressDetail";
+
+const log = createLogger("sync");
 
 export function SyncIndicator() {
   const { t } = useTranslation("settings");
@@ -70,7 +73,7 @@ export function SyncIndicator() {
               void syncNow().catch((error) => {
                 // The status snapshot already flipped to "error"; the popover
                 // renders it — no toast needed from up here.
-                console.error("[sync] manual sync failed", error);
+                log.error("manual sync failed", error);
               });
             }}
           >

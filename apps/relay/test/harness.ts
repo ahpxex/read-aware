@@ -10,6 +10,7 @@ import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { SqlAccountStore, type D1Like } from "../src/account-store";
 import { MailboxCore, type SqlExec } from "../src/mailbox-core";
+import { SqlReportStore } from "../src/report-store";
 import {
   DEFAULT_CONFIG,
   type BlobStore,
@@ -93,8 +94,14 @@ export function makeRelay(
   let nowMs = 1_755_000_000_000;
   const nowIso = () => new Date(nowMs).toISOString();
   const mailboxes = new Map<string, Mailbox>();
+  const reportPayloads = new Map<string, Uint8Array>();
   const ports: RelayPorts = {
     accounts: new SqlAccountStore(d1Over(db)),
+    reports: new SqlReportStore(d1Over(db), {
+      put: async (id, payload) => {
+        reportPayloads.set(id, payload);
+      },
+    }),
     mailboxFor(accountId) {
       let mailbox = mailboxes.get(accountId);
       if (!mailbox) {
@@ -116,6 +123,7 @@ export function makeRelay(
     advance(ms: number) {
       nowMs += ms;
     },
+    reportPayloads,
   };
 }
 

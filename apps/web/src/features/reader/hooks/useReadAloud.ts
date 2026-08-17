@@ -7,7 +7,10 @@ import {
   type ResolvedPluginVoice,
 } from "../lib/read-aloud-voice";
 import { speakText, speechAvailable } from "../lib/read-aloud-speech";
+import { createLogger } from "../../../platform/logger";
 import type { TextUnitTarget } from "./useTextUnitNavigator";
+
+const log = createLogger("read-aloud");
 
 /** If stepping produces no new unit within this window, the book has ended. */
 const ADVANCE_GUARD_MS = 6_000;
@@ -121,7 +124,7 @@ export function useReadAloud({
       const fallBack = (reason: unknown) => {
         // Degrading to the system voice must be AUDIBLE in the console, or a
         // misconfigured provider looks like it simply doesn't exist.
-        console.warn("[read-aloud] provider voice failed, using system voice", reason);
+        log.warn("provider voice failed, using system voice", reason);
         if (cancelled || !speechAvailable()) {
           callbacks.onError();
           return;

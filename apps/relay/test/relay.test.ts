@@ -280,3 +280,51 @@ describe("the event quota (the operator's bill guard)", () => {
     expect(redelivered.status).toBe(200);
   });
 });
+
+describe("diagnostic reports", () => {
+  const bundle = { logs: [{ name: "readaware.log", text: "boot start" }] };
+  const report = (extra: Record<string, unknown> = {}, ip?: string) =>
+    new Request("https://relay.test/v1/report", {
+      method: "POST",
+      body: JSON.stringify({ appVersion: "0.3.0", platform: "macos", bundle, ...extra }),
+      headers: ip ? { "cf-connecting-ip": ip } : {},
+    });
+
+  test("a valid report is stored: payload bytes + a receipt id", async () => {
+    const { handle, reportPayloads } = makeRelay();
+    const response = await handle(report());
+    expect(response.status).toBe(200);
+    const { reportId } = (await response.json()) as { reportId: string };
+    expect(reportId.length).toBeGreaterThan(10);
+    const stored = reportPayloads.get(reportId);
+    expect(stored).toBeDefined();
+    expect(JSON.parse(new TextDecoder().decode(stored))).toMatchObject({
+      appVersion: "0.3.0",
+      platform: "macos",
+    });
+  });
+
+  test("malformed reports are refused", async () => {
+    const { handle } = makeRelay();
+    expect((await handle(report({ appVersion: undefined }))).status).toBe(400);
+    expect((await handle(report({ platform: 42 }))).status).toBe(400);
+    expect((await handle(report({ bundle: "not an object" }))).status).toBe(400);
+    const notJson = new Request("https://relay.test/v1/report", { method: "POST", body: "{" });
+    expect((await handle(notJson)).status).toBe(400);
+  });
+
+  test("an oversized report is refused before parsing", async () => {
+    const { handle } = makeRelay({ maxReportBytes: 200 });
+    expect((await handle(report({ bundle: { pad: "x".repeat(400) } }))).status).toBe(413);
+  });
+
+  test("per-IP throttle: the day cap refuses, a new day and another IP do not", async () => {
+    const { handle, advance } = makeRelay({ maxReportsPerIpPerDay: 2 });
+    expect((await handle(report({}, "203.0.113.9"))).status).toBe(200);
+    expect((await handle(report({}, "203.0.113.9"))).status).toBe(200);
+    expect((await handle(report({}, "203.0.113.9"))).status).toBe(429);
+    expect((await handle(report({}, "203.0.113.10"))).status).toBe(200);
+    advance(24 * 60 * 60 * 1000 + 1);
+    expect((await handle(report({}, "203.0.113.9"))).status).toBe(200);
+  });
+});

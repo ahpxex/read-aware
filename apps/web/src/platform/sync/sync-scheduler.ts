@@ -14,6 +14,7 @@ import { emitAppEvent } from "../app-events";
 import { reconcileDuplicateBooks } from "../book-dedupe";
 import { observeRemoteHlcStamps, onDomainEventBroadcast } from "../domain-events";
 import { localKV } from "../local-store";
+import { createLogger } from "../logger";
 import { refreshRoamingPreferences, republishRoamingSecrets } from "../roaming-preferences";
 import { deleteSecret, getSecret, setSecret } from "../secret-store";
 import { fromBase64 } from "../sync-envelope";
@@ -25,6 +26,8 @@ import {
   type SyncEngine,
 } from "./sync-engine";
 import { adoptSyncAccount, createIpcSyncStore, getSyncProfile, setSyncProfile } from "./sync-store";
+
+const log = createLogger("sync");
 
 export const DEFAULT_RELAY_URL = "https://relay.readaware.app";
 /** Dev override (localKV): point the client at `wrangler dev`. */
@@ -199,7 +202,7 @@ export async function fetchRemoteBlob(key: string): Promise<Uint8Array | null> {
   try {
     return await getEngine().fetchBlob(key);
   } catch (error) {
-    console.warn(`[sync] remote blob fetch failed for "${key}"`, error);
+    log.warn(`remote blob fetch failed for "${key}"`, error);
     return null;
   }
 }
@@ -279,7 +282,7 @@ export function startSyncScheduler(): () => void {
     try {
       ticket = await syncRelayClient().watchTicket();
     } catch (error) {
-      console.warn("[sync] watch ticket unavailable; falling back to polling", error);
+      log.warn("watch ticket unavailable; falling back to polling", error);
       return;
     }
     if (disposed || watchSocket) return;
@@ -288,7 +291,7 @@ export function startSyncScheduler(): () => void {
     try {
       socket = new WebSocket(`${base}/v1/events/watch?ticket=${encodeURIComponent(ticket)}`);
     } catch (error) {
-      console.warn("[sync] watch socket rejected; falling back to polling", error);
+      log.warn("watch socket rejected; falling back to polling", error);
       return;
     }
     watchSocket = socket;

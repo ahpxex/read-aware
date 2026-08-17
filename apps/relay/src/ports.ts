@@ -74,6 +74,30 @@ export interface BlobStore {
   wipe(accountId: string): Promise<void>;
 }
 
+/**
+ * User-initiated diagnostic reports (the app's "send report" flow — never
+ * automatic). Metadata rows make listing and per-IP throttling queryable; the
+ * payload itself is an opaque JSON document in blob storage. Reports are
+ * write-only through the HTTP surface: the operator reads them with wrangler
+ * (docs/diagnostics.md), so a scraped endpoint can leak nothing.
+ */
+export type DiagnosticReportMeta = {
+  id: string;
+  createdAt: string;
+  createdAtMs: number;
+  /** SHA-256 of the client IP — enough to throttle, nothing to identify. */
+  ipHash: string;
+  appVersion: string;
+  platform: string;
+  bytes: number;
+};
+
+export interface ReportStore {
+  submit(meta: DiagnosticReportMeta, payload: Uint8Array): Promise<void>;
+  /** Reports this ipHash has submitted since `sinceMs` — the throttle input. */
+  countSince(ipHash: string, sinceMs: number): Promise<number>;
+}
+
 export interface MagicLinkSender {
   /** `lang` is a resolved RelayLang — the email renders in the app's locale. */
   send(email: string, token: string, lang: RelayLang): Promise<void>;
@@ -116,6 +140,10 @@ export type RelayConfig = {
   maxAccountEvents: number;
   /** Where a `client=web` OAuth finish is allowed to land (no open redirect). */
   webAppOrigin: string;
+  /** Per diagnostic report, JSON-encoded (the client caps log tails well below). */
+  maxReportBytes: number;
+  /** Diagnostic reports per IP per rolling day — the endpoint is unauthenticated. */
+  maxReportsPerIpPerDay: number;
 };
 
 export const DEFAULT_CONFIG: RelayConfig = {
@@ -133,12 +161,15 @@ export const DEFAULT_CONFIG: RelayConfig = {
   maxAccountBlobBytes: 50 * 1024 * 1024,
   maxAccountEvents: 50_000,
   webAppOrigin: "https://readaware.app",
+  maxReportBytes: 512 * 1024,
+  maxReportsPerIpPerDay: 10,
 };
 
 export type RelayPorts = {
   accounts: AccountStore;
   mailboxFor(accountId: string): Mailbox;
   blobs: BlobStore;
+  reports: ReportStore;
   /** null + echoMagicToken=false ⇒ /v1/auth/request answers 501. No mocks. */
   magicLink: MagicLinkSender | null;
   /** Keyed by URL segment ("google", "github"). Unlisted providers 404. */

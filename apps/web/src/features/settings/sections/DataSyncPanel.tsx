@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Button, Dialog, TextField, useToast } from "@read-aware/ui";
 import { isTauri } from "../../../platform/environment";
+import { createLogger } from "../../../platform/logger";
 import { useTranslation } from "../../../i18n";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
@@ -9,6 +10,8 @@ import { PendingBadge } from "../components/PendingBadge";
 import { deleteAllData } from "../lib/delete-all-data";
 import { exportBackup, importBackup } from "../lib/backup-io";
 import { SyncAccountGroup } from "./SyncAccountGroup";
+
+const log = createLogger("data-sync");
 
 const BACKUP_FILENAME = "readaware-backup.json";
 /**
@@ -45,7 +48,7 @@ export function DataSyncPanel() {
     } catch (error) {
       // The localized line is the user-facing message; the raw error goes to
       // the console for diagnostics instead of leaking English into the toast.
-      console.error("[data-sync] export failed", error);
+      log.error("export failed", error);
       toast({
         variant: "destructive",
         title: t("dataSync.noticeError"),
@@ -72,7 +75,7 @@ export function DataSyncPanel() {
       });
       window.setTimeout(() => window.location.reload(), 900);
     } catch (error) {
-      console.error("[data-sync] import failed", error);
+      log.error("import failed", error);
       toast({
         variant: "destructive",
         title: t("dataSync.noticeError"),
@@ -97,7 +100,7 @@ export function DataSyncPanel() {
       await deleteAllData();
       window.location.reload();
     } catch (error) {
-      console.error("[data-sync] delete all data failed", error);
+      log.error("delete all data failed", error);
       setDeleting(false);
       toast({
         variant: "destructive",

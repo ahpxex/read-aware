@@ -433,6 +433,36 @@
     "contact": {
       "title": "聯絡",
       "description": "有疑問、錯誤或意見，歡迎直接聯絡。"
+    },
+    "diagnostics": {
+      "title": "診斷",
+      "description": "ReadAware 絕不會自行上傳任何內容。診斷包只包含應用日誌與儲存自檢結果——不含書籍內容、筆記或對話——傳送前你可以完整檢視。",
+      "exportRow": {
+        "title": "匯出診斷包",
+        "description": "儲存為 JSON 檔案,方便附在郵件或 issue 裡。",
+        "button": "匯出"
+      },
+      "reportRow": {
+        "title": "回報問題",
+        "description": "先檢視診斷包內容,再傳送給開發者。",
+        "button": "傳送回報…"
+      },
+      "logsRow": {
+        "title": "日誌檔案",
+        "description": "診斷包所依據的滾動日誌檔案。",
+        "button": "在資料夾中顯示"
+      },
+      "dialogTitle": "傳送診斷回報",
+      "previewBody": "以下就是將要傳送的全部內容——除此之外不會有任何資料離開你的裝置。",
+      "send": "傳送",
+      "cancel": "取消",
+      "done": "完成",
+      "sentBody": "已傳送,謝謝。若就此問題聯絡我們,請附上這個回執編號:",
+      "noticeDone": "完成",
+      "noticeError": "發生錯誤",
+      "exportSuccess": "診斷包已儲存。",
+      "exportError": "診斷包產生或儲存失敗。",
+      "reportError": "回報傳送失敗。你可以改為匯出診斷包並透過郵件傳送。"
     }
   },
   "menus": {

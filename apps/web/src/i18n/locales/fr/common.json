@@ -3,5 +3,10 @@
     "backToLibrary": "Retour à la bibliothèque",
     "dismiss": "Fermer",
     "openSettings": "Ouvrir les réglages"
+  },
+  "errorBoundary": {
+    "title": "Un problème est survenu dans cette vue",
+    "body": "L'erreur a été consignée dans le journal. Le reste de ReadAware continue de fonctionner — vous pouvez réessayer.",
+    "retry": "Réessayer"
   }
 }

@@ -8,6 +8,10 @@
  * (platform/domain-events.ts), which plugins observe via the in-app
  * broadcast under their canonical names.
  */
+import { createLogger } from "./logger";
+
+const log = createLogger("app-events");
+
 export type AppEventMap = {
   "book-opened": { book: { id: string; title: string; author?: string } };
   "book-closed": { bookId: string };
@@ -49,7 +53,7 @@ export function emitAppEvent<K extends AppEventName>(event: K, payload: AppEvent
     try {
       (handler as (payload: AppEventMap[K]) => void)(payload);
     } catch (error) {
-      console.error(`[app-events] handler for "${event}" failed`, error);
+      log.error(`handler for "${event}" failed`, error);
     }
   }
 }

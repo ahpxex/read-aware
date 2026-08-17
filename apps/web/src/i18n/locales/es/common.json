@@ -3,5 +3,10 @@
     "backToLibrary": "Volver a la biblioteca",
     "dismiss": "Cerrar",
     "openSettings": "Abrir ajustes"
+  },
+  "errorBoundary": {
+    "title": "Esta vista ha tenido un problema",
+    "body": "El error ha quedado registrado. El resto de ReadAware sigue funcionando; puedes volver a intentarlo.",
+    "retry": "Reintentar"
   }
 }

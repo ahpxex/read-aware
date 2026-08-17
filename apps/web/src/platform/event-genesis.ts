@@ -33,6 +33,9 @@ import {
   listEventAggregateIds,
   type DomainEventDraft,
 } from "./domain-events";
+import { createLogger } from "./logger";
+
+const log = createLogger("event-genesis");
 
 /**
  * Event types whose presence marks an aggregate as already having a genesis.
@@ -378,7 +381,7 @@ export async function reconcileGenesisEvents(): Promise<void> {
 
   if (drafts.length > 0) {
     await appendDomainEvents(drafts);
-    console.info(`[event-genesis] backfilled ${drafts.length} events for pre-event-era rows`);
+    log.info(`backfilled ${drafts.length} events for pre-event-era rows`);
   }
 
   // Reading time needs its own pass: it is an ACCUMULATING projection, so the
@@ -387,6 +390,6 @@ export async function reconcileGenesisEvents(): Promise<void> {
   // that reason. Idempotent — a no-op once the log has any timeRecorded event.
   const ticks = await invoke<number>("reading_time_genesis");
   if (ticks > 0) {
-    console.info(`[event-genesis] reconstructed ${ticks} reading-time events from the aggregates`);
+    log.info(`reconstructed ${ticks} reading-time events from the aggregates`);
   }
 }

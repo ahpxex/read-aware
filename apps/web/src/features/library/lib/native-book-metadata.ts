@@ -1,5 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
+import { createLogger } from "../../../platform/logger";
 import type { BookFormat } from "./library-types";
+
+const log = createLogger("library");
 
 export type NativeBookMetadata = {
   title: string | null;
@@ -35,7 +38,7 @@ export async function extractNativeBookMetadata(
   } catch (error) {
     // Malformed or unusual files still import normally: the reader gets
     // another chance to fill metadata when the book is first opened.
-    console.warn(`Unable to extract lightweight ${format.toUpperCase()} metadata`, error);
+    log.warn(`Unable to extract lightweight ${format.toUpperCase()} metadata`, error);
     return null;
   }
 }

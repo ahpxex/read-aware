@@ -3,5 +3,10 @@
     "backToLibrary": "Back to library",
     "dismiss": "Dismiss",
     "openSettings": "Open settings"
+  },
+  "errorBoundary": {
+    "title": "This view ran into a problem",
+    "body": "The error has been logged. The rest of ReadAware keeps working — you can try again.",
+    "retry": "Try again"
   }
 }

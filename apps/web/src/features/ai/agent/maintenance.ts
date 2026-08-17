@@ -1,4 +1,7 @@
 import { getAgentRuntime } from "./agent-runtime";
+import { createLogger } from "../../../platform/logger";
+
+const log = createLogger("agent");
 
 const CHECK_INTERVAL_MS = 5 * 60_000;
 const IDLE_TIMEOUT_MS = 30_000;
@@ -24,7 +27,7 @@ export function startAgentMaintenance(): () => void {
       await getAgentRuntime()?.consolidateIfNeeded();
     } catch (error) {
       // Maintenance is retried on the next idle tick and must never disturb chat.
-      console.warn("[agent] memory consolidation failed", error);
+      log.warn("memory consolidation failed", error);
     }
   };
 

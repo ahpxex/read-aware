@@ -8,12 +8,15 @@
 import { useEffect } from "react";
 import { useSetAtom } from "jotai";
 import { isTauri } from "../../../platform/environment";
+import { createLogger } from "../../../platform/logger";
 import { subscribeSyncLoginTokens } from "../../../platform/sync/sync-login-link";
 import {
   settingsOpenAtom,
   settingsSectionRequestAtom,
   syncLoginTokenAtom,
 } from "../../../state/ui";
+
+const log = createLogger("sync");
 
 export function useSyncLoginDeepLink(): void {
   const setSettingsOpen = useSetAtom(settingsOpenAtom);
@@ -41,7 +44,7 @@ export function useSyncLoginDeepLink(): void {
       })
       .catch((error) => {
         // Sign-in links degrade to paste-the-token; the app keeps working.
-        console.error("[sync] deep-link subscription failed", error);
+        log.error("deep-link subscription failed", error);
       });
 
     return () => {

@@ -3,5 +3,10 @@
     "backToLibrary": "Zurück zur Bibliothek",
     "dismiss": "Schließen",
     "openSettings": "Einstellungen öffnen"
+  },
+  "errorBoundary": {
+    "title": "In dieser Ansicht ist ein Fehler aufgetreten",
+    "body": "Der Fehler wurde im Protokoll festgehalten. Der Rest von ReadAware funktioniert weiter – du kannst es erneut versuchen.",
+    "retry": "Erneut versuchen"
   }
 }

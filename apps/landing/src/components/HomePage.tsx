@@ -162,6 +162,26 @@ export function HomePage({ locale }: { locale: Locale }) {
             />
           </div>
 
+          {/* The plugins */}
+          <section className="mt-20 max-w-[36rem] sm:mt-24">
+            <h2 className="text-[clamp(1.5rem,3vw,1.9rem)] font-normal leading-[1.18] tracking-[-0.01em]">
+              {content.pluginTitle}
+            </h2>
+            <p className="mt-5 text-[1.0625rem] leading-[1.75] text-fg">
+              {content.pluginBody}
+            </p>
+          </section>
+
+          {/* The sync */}
+          <section className="mt-20 max-w-[36rem] sm:mt-24">
+            <h2 className="text-[clamp(1.5rem,3vw,1.9rem)] font-normal leading-[1.18] tracking-[-0.01em]">
+              {content.syncTitle}
+            </h2>
+            <p className="mt-5 text-[1.0625rem] leading-[1.75] text-fg">
+              {content.syncBody}
+            </p>
+          </section>
+
           {/* In short */}
           <section className="mt-20 max-w-[36rem] sm:mt-24">
             <h2 className="text-[clamp(1.5rem,3vw,1.9rem)] font-normal leading-[1.18] tracking-[-0.01em]">

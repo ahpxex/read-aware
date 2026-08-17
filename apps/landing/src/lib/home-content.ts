@@ -22,6 +22,10 @@ export type HomeContent = {
   memoryBody: string;
   contextAlt: string;
   contextCaption: string;
+  pluginTitle: string;
+  pluginBody: string;
+  syncTitle: string;
+  syncBody: string;
   inShortTitle: string;
   notes: { title: string; body: string }[];
   download: {
@@ -39,12 +43,12 @@ export type HomeContent = {
 
 export const HOME: Record<Locale, HomeContent> = {
   en: {
-    metaTitle: "ReadAware — Reading that remembers",
+    metaTitle: "ReadAware — A reader aware of you",
     metaDescription:
-      "An AI-native reading workspace. Context-rich reading and AI-assisted understanding for EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, and PDF — local-first and private.",
-    heroTitle: "Reading that remembers",
+      "An aware, extensible reading app. One reader for EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, and PDF that builds memory from your reading, grows through plugins, and syncs end-to-end encrypted — local-first and private.",
+    heroTitle: "A reader that's aware of you — and yours to extend",
     heroLead:
-      "ReadAware reads alongside you. It builds memory across your books, highlights, and conversations, so every page arrives with the context it deserves.",
+      "Ask about any passage — ReadAware already knows what you've highlighted, wondered about, and read, across every book on your shelf. That awareness lives on your device, grows through plugins, and follows you — encrypted — to every machine.",
     freeLine: (tag) => `Free and local-first${tag ? `. ${tag}.` : "."}`,
     shelfAlt:
       "The ReadAware library — a grid of book covers across many languages and formats.",
@@ -55,12 +59,18 @@ export const HOME: Record<Locale, HomeContent> = {
     readerAlt:
       "A page of Atomic Habits in the ReadAware reader, one sentence held in focus while the rest of the page recedes.",
     readerCaption: "Reading Atomic Habits one sentence at a time.",
-    memoryTitle: "It remembers what you read",
+    memoryTitle: "It's aware of what you've read",
     memoryBody:
-      "Ask about a passage, a book, or your whole shelf. ReadAware draws on your highlights, notes, and earlier conversations, and keeps a durable memory of what matters, so it picks up where you left off.",
+      "Ask about a passage, a book, or your whole shelf. ReadAware answers from your own reading — the line you marked three books ago, the question you asked last week, the thread that runs through everything on your shelf. It doesn't replay a chat history; it keeps a durable memory of what matters and brings it back at the moment it's relevant.",
     contextAlt:
       "The ReadAware assistant surveying the reader's shelf and recent reading, and naming the thread that runs through it.",
     contextCaption: "The assistant, answering from your own shelf.",
+    pluginTitle: "Extended from the inside",
+    pluginBody:
+      "Sandboxed plugins from the built-in marketplace add read-aloud voices, dictionaries, reading themes, feeds that read like books. And they reach deeper than features: a plugin can hand the assistant a new tool, and it simply starts using it. The reader doesn't just gain buttons — it learns new skills.",
+    syncTitle: "Your reading follows you",
+    syncBody:
+      "Open ReadAware on another machine and everything is already there — your books, your highlights, your place in each of them, and the memory built from all of it. Sync is end-to-end encrypted: the relay only ever stores ciphertext, so nobody in the middle can read what you read. Desktop and Android today; iOS is on the way.",
     inShortTitle: "In short",
     notes: [
       {
@@ -68,16 +78,16 @@ export const HOME: Record<Locale, HomeContent> = {
         body: "EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, and PDF open in the same reader, with the same selection, highlights, and progress. Nothing is converted; the original file is what you keep.",
       },
       {
-        title: "Memory, not transcripts",
-        body: "Reading becomes memory the app can hold onto. ReadAware keeps what matters and brings it back when it's relevant, instead of replaying a long chat history.",
+        title: "Aware, not archival",
+        body: "Reading becomes memory the app can act on. ReadAware keeps what matters and surfaces it when it's relevant — it's there in the moment, not filed away.",
       },
       {
-        title: "Extended from the inside",
-        body: "Sandboxed plugins from the built-in marketplace add read-aloud voices, dictionaries, reading themes, feeds that read like books — and new tools the assistant picks up and uses.",
+        title: "Plugins teach it new skills",
+        body: "Marketplace plugins add voices, dictionaries, themes, and feeds — and hand the assistant tools it picks up and uses.",
       },
       {
-        title: "Local-first and private",
-        body: "Your library and your memory live on your device. You bring your own API key, and the cloud is only there to sync between machines.",
+        title: "Local-first, encrypted sync",
+        body: "Everything lives on your device. Bring your own API key; the cloud is only an encrypted relay between your machines.",
       },
     ],
     download: {
@@ -95,12 +105,12 @@ export const HOME: Record<Locale, HomeContent> = {
     },
   },
   zh: {
-    metaTitle: "ReadAware — 记得住的阅读",
+    metaTitle: "ReadAware — 懂你的阅读器",
     metaDescription:
-      "AI 原生的阅读工作台。为 EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML、PDF 提供带上下文的阅读与 AI 辅助理解——本地优先，数据归你。",
-    heroTitle: "记得住的阅读",
+      "懂你、可扩展的阅读应用。一个阅读器读遍 EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML、PDF，从你的阅读中长出记忆，靠插件生长，端到端加密同步——本地优先，数据归你。",
+    heroTitle: "懂你的阅读器，由你扩展",
     heroLead:
-      "ReadAware 陪着你读。它在你的书、划线和对话之间建立记忆，让每一页翻开时都带着应有的上下文。",
+      "问任何一段文字——ReadAware 早已知道你在整个书架上划过什么、问过什么、读过什么。这份「懂」留在你的设备上，靠插件生长，也会加密着跟你到每一台机器。",
     freeLine: (tag) => `免费、本地优先${tag ? `，当前版本 ${tag}。` : "。"}`,
     shelfAlt: "ReadAware 书架——多语言、多格式的书籍封面网格。",
     shelfCaption: "你的书架——所有格式都在一处。",
@@ -109,11 +119,17 @@ export const HOME: Record<Locale, HomeContent> = {
       "导入文件就能开始读。没有格式转换，也没有云端上传；划线、笔记和阅读位置都附着在原文上。想更专注时，可以逐句阅读——页面退后一步，浮动条带你逐句前进，朗读也能跟着走。",
     readerAlt: "ReadAware 阅读器中的《掌控习惯》，一句话保持聚焦，其余文字退后。",
     readerCaption: "逐句阅读《掌控习惯》。",
-    memoryTitle: "它记得你读过什么",
+    memoryTitle: "它知道你读过什么",
     memoryBody:
-      "问一段话、一本书，或整个书架。ReadAware 会调用你的划线、笔记和过往对话，把重要的沉淀为持久记忆——从你上次停下的地方接着来。",
+      "问一段话、一本书，或整个书架。ReadAware 用你自己的阅读来回答——三本书之前你划下的那句话、上周你问过的那个问题、贯穿整个书架的那条线索。它不回放聊天记录，而是把重要的沉淀为持久记忆，在相关的时刻带回来。",
     contextAlt: "ReadAware 智能助理扫过书架与近期阅读，点出贯穿其中的那条线索。",
     contextCaption: "智能助理，凭你自己的书架作答。",
+    pluginTitle: "从内部生长",
+    pluginBody:
+      "内置市场里的沙箱插件带来朗读声音、词典、阅读主题、像书一样读的订阅源。而且插件能到得更深：它可以交给智能助理一个新工具，助理拿起来就用。这个阅读器长出的不只是按钮——是新本事。",
+    syncTitle: "你的阅读跟着你走",
+    syncBody:
+      "在另一台机器上打开 ReadAware，一切已经就位——你的书、划线、每本书读到的位置，以及由此长出的记忆。同步是端到端加密的：中继服务器只存密文，路上没有任何人能看到你读了什么。桌面和 Android 现已可用；iOS 在路上。",
     inShortTitle: "简而言之",
     notes: [
       {
@@ -121,16 +137,16 @@ export const HOME: Record<Locale, HomeContent> = {
         body: "EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML、PDF 在同一个阅读器里打开，共用同一套选择、划线和进度。不做转换，你保留的就是原始文件。",
       },
       {
-        title: "记忆，而非聊天记录",
-        body: "阅读会变成应用能留住的记忆。ReadAware 记下重要的部分，在相关的时刻带回来，而不是回放冗长的聊天历史。",
+        title: "懂你，而非存档",
+        body: "阅读会变成应用能使用的记忆。ReadAware 记下重要的部分，在相关的时刻拿出来——它在场，而不是躺在档案里。",
       },
       {
-        title: "从内部生长",
-        body: "内置市场里的沙箱插件带来朗读声音、词典、阅读主题、像书一样读的订阅源——以及智能助理立刻会用的新工具。",
+        title: "插件教它新本事",
+        body: "市场里的插件带来声音、词典、主题和订阅源——还会把新工具交到智能助理手里，它拿起来就用。",
       },
       {
-        title: "本地优先，数据归你",
-        body: "书架和记忆都在你的设备上。API key 由你自己带，云端只负责在设备之间同步。",
+        title: "本地优先，加密同步",
+        body: "一切都在你的设备上。API key 由你自己带；云端只是设备之间的一条加密中继。",
       },
     ],
     download: {
@@ -147,12 +163,12 @@ export const HOME: Record<Locale, HomeContent> = {
     },
   },
   ja: {
-    metaTitle: "ReadAware — 覚えている読書",
+    metaTitle: "ReadAware — あなたを知るリーダー",
     metaDescription:
-      "AIネイティブな読書ワークスペース。EPUB・MOBI・AZW3・FB2・CBZ・CBR・TXT・HTML・PDFに、文脈のある読書とAIによる理解を。ローカルファーストでプライベート。",
-    heroTitle: "覚えている読書",
+      "あなたを知り、拡張できる読書アプリ。EPUB・MOBI・AZW3・FB2・CBZ・CBR・TXT・HTML・PDFをひとつのリーダーで読み、読書から記憶を育て、プラグインで広がり、エンドツーエンド暗号化で同期。ローカルファーストでプライベート。",
+    heroTitle: "あなたを知り、あなたが広げるリーダー",
     heroLead:
-      "ReadAwareはあなたと一緒に読みます。本・ハイライト・会話のあいだに記憶を育て、どのページにもふさわしい文脈を添えます。",
+      "どの一節について聞いても——ReadAwareは、棚のすべての本であなたが引いたライン、抱いた問い、読んだページをすでに知っています。その「知っている」はあなたのデバイスに宿り、プラグインで育ち、暗号化されたままどのマシンにもついてきます。",
     freeLine: (tag) => `無料・ローカルファースト${tag ? `。最新版は ${tag}。` : "。"}`,
     shelfAlt: "ReadAwareのライブラリ——多言語・多形式の表紙が並ぶグリッド。",
     shelfCaption: "あなたのライブラリ——あらゆる形式をひとつの場所に。",
@@ -162,12 +178,18 @@ export const HOME: Record<Locale, HomeContent> = {
     readerAlt:
       "ReadAwareのリーダーで開いた『Atomic Habits』。一文に焦点が当たり、残りの文章は後ろに引く。",
     readerCaption: "『Atomic Habits』を一文ずつ読む。",
-    memoryTitle: "読んだことを覚えている",
+    memoryTitle: "読んだことを、知っている",
     memoryBody:
-      "一節でも、一冊でも、棚全体でも聞いてください。ReadAwareはあなたのハイライト・メモ・過去の会話を手がかりに、大事なことを持続する記憶として保ち、前回の続きから応えます。",
+      "一節でも、一冊でも、棚全体でも聞いてください。ReadAwareはあなた自身の読書から答えます——三冊前に引いたあの一行、先週の問い、棚全体を貫く一本の糸。チャット履歴を再生するのではなく、大事なことを持続する記憶として保ち、関係する瞬間に持ち戻します。",
     contextAlt:
       "ReadAwareのアシスタントが棚と最近の読書を見渡し、そこを貫く一本の糸を言い当てる。",
     contextCaption: "アシスタントは、あなた自身の棚から答える。",
+    pluginTitle: "内側から広がる",
+    pluginBody:
+      "内蔵マーケットプレイスのサンドボックス化されたプラグインが、読み上げボイス・辞書・読書テーマ・本のように読めるフィードを加えます。しかもプラグインはもっと深くまで届きます。アシスタントに新しいツールを手渡せば、アシスタントはすぐに使い始める——このリーダーが増やすのはボタンではなく、できることそのものです。",
+    syncTitle: "あなたの読書は、ついてくる",
+    syncBody:
+      "別のマシンでReadAwareを開けば、すべてがもうそこにあります——本、ハイライト、それぞれの読みかけの位置、そこから育った記憶まで。同期はエンドツーエンドで暗号化され、中継サーバーには暗号文しか置かれません。途中の誰にも、あなたが何を読んでいるかは見えません。デスクトップとAndroidは今日から、iOSはまもなく。",
     inShortTitle: "要するに",
     notes: [
       {
@@ -175,16 +197,16 @@ export const HOME: Record<Locale, HomeContent> = {
         body: "EPUB・MOBI・AZW3・FB2・CBZ・CBR・TXT・HTML・PDFが同じリーダーで開き、選択・ハイライト・進捗を共有します。変換はせず、手元に残るのは元のファイルです。",
       },
       {
-        title: "履歴ではなく、記憶",
-        body: "読書はアプリが保てる記憶になります。ReadAwareは大事なことを覚えておき、長いチャット履歴を再生する代わりに、関係する瞬間に持ち戻します。",
+        title: "知っている。しまい込まない。",
+        body: "読書はアプリが使える記憶になります。ReadAwareは大事なことを覚えておき、関係する瞬間に差し出します——アーカイブに眠らせるのではなく、その場にいるのです。",
       },
       {
-        title: "内側から広がる",
-        body: "内蔵マーケットプレイスのサンドボックス化されたプラグインが、読み上げボイス・辞書・読書テーマ・本のように読めるフィード、そしてアシスタントがすぐ使いこなす新しいツールを加えます。",
+        title: "プラグインが新しい技を教える",
+        body: "マーケットプレイスのプラグインがボイス・辞書・テーマ・フィードを加え、アシスタントには新しいツールを手渡します。アシスタントはそれをすぐ使いこなします。",
       },
       {
-        title: "ローカルファースト、プライベート",
-        body: "ライブラリも記憶もあなたのデバイスに。APIキーは自分で用意し、クラウドはデバイス間の同期のためだけにあります。",
+        title: "ローカルファースト、暗号化同期",
+        body: "すべてはあなたのデバイスに。APIキーは自分で用意し、クラウドはマシン間の暗号化された中継にすぎません。",
       },
     ],
     download: {
@@ -204,20 +226,24 @@ export const HOME: Record<Locale, HomeContent> = {
   "zh-hant": {
     freeLine: (tag) =>
       tag ? `免費且本地優先。最新版本是 ${tag}。` : "免費且本地優先。",
-    "metaTitle": "ReadAware — 會記得的閱讀",
-    "metaDescription": "一個 AI 原生閱讀工作區。針對 EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML 和 PDF，提供富含上下文的閱讀與 AI 輔助理解——本地優先且注重隱私。",
-    "heroTitle": "會記得的閱讀",
-    "heroLead": "ReadAware 陪你一起讀。它會在你的書籍、劃線和對話之間建立記憶，讓每一頁都帶著它應有的上下文來到你面前。",
+    "metaTitle": "ReadAware — 懂你的閱讀器",
+    "metaDescription": "懂你、可擴充的閱讀應用程式。一個閱讀器讀遍 EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML 和 PDF，從你的閱讀中長出記憶，靠外掛生長，端對端加密同步——本地優先且注重隱私。",
+    "heroTitle": "懂你的閱讀器，由你擴充",
+    "heroLead": "問任何一段文字——ReadAware 早已知道你在整個書架上劃過什麼、問過什麼、讀過什麼。這份「懂」留在你的裝置上，靠外掛生長，也會加密著跟你到每一台機器。",
     "shelfAlt": "ReadAware 書架——一個包含多種語言和格式的書籍封面格線。",
     "shelfCaption": "你的書架——所有格式，一個地方。",
     "readerTitle": "一個平靜的地方，讀任何東西",
     "readerBody": "匯入檔案就開始讀。不需要轉檔，也不會上傳到雲端；你的劃線、筆記和閱讀進度都留在原始文字裡。想更專注時，可以逐句閱讀——頁面退到一旁，一個浮動列帶你一步步前進，朗讀也可以跟隨。",
     "readerAlt": "ReadAware 閱讀器中的《原子習慣》頁面，一個句子被聚焦，頁面其餘部分退到背景。",
     "readerCaption": "逐句閱讀《原子習慣》。",
-    "memoryTitle": "它記得你讀過什麼",
-    "memoryBody": "詢問某段文字、某本書，或你整個書架。ReadAware 會利用你的劃線、筆記和先前的對話，並對重要內容建立持久記憶，所以它能從你上次停下的地方繼續。",
+    "memoryTitle": "它知道你讀過什麼",
+    "memoryBody": "問一段文字、一本書，或整個書架。ReadAware 用你自己的閱讀來回答——三本書之前你劃下的那句話、上週你問過的那個問題、貫穿整個書架的那條線索。它不重播聊天紀錄，而是把重要的沉澱為持久記憶，在相關的時刻帶回來。",
     "contextAlt": "ReadAware 智慧助理檢視讀者的書架和最近的閱讀，並指出貫穿其中的脈絡。",
     "contextCaption": "智慧助理，從你自己的書架上回答。",
+    "pluginTitle": "從內部生長",
+    "pluginBody": "內建市場的沙盒外掛帶來朗讀語音、字典、閱讀主題、像書一樣讀的訂閱源。而且外掛能走得更深：它可以交給智慧助理一個新工具，助理拿起來就用。這個閱讀器長出的不只是按鈕——是新本事。",
+    "syncTitle": "你的閱讀跟著你走",
+    "syncBody": "在另一台機器上打開 ReadAware，一切已經就位——你的書、劃線、每本書讀到的位置，以及由此長出的記憶。同步是端對端加密的：中繼伺服器只存密文，路上沒有任何人能看到你讀了什麼。桌面與 Android 現已可用；iOS 即將到來。",
     "inShortTitle": "簡單來說",
     "notes": [
       {
@@ -225,16 +251,16 @@ export const HOME: Record<Locale, HomeContent> = {
         "body": "EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML 和 PDF 都在同一個閱讀器中開啟，使用相同的選取、劃線和進度。什麼都不會轉換；你保留的就是原始檔案。"
       },
       {
-        "title": "記憶，不是逐字稿",
-        "body": "閱讀會變成應用程式能記住的記憶。ReadAware 保留重要的內容，並在相關時機帶回來，而不是重播一長串的對話歷史。"
+        "title": "懂你，而非存檔",
+        "body": "閱讀會變成應用程式能使用的記憶。ReadAware 記下重要的部分，在相關的時刻拿出來——它在場，而不是躺在檔案櫃裡。"
       },
       {
-        "title": "從內部擴充",
-        "body": "來自內建外掛市場的沙盒外掛，可以加入朗讀語音、字典、閱讀主題、像書一樣閱讀的訂閱源——還有智慧助理會學習使用的新工具。"
+        "title": "外掛教它新本事",
+        "body": "市場裡的外掛帶來語音、字典、主題和訂閱源——還會把新工具交到智慧助理手裡，它拿起來就用。"
       },
       {
-        "title": "本地優先且注重隱私",
-        "body": "你的書架和記憶都存在你的裝置上。你自備 API 金鑰，雲端只用來在裝置之間同步。"
+        "title": "本地優先，加密同步",
+        "body": "一切都在你的裝置上。API 金鑰由你自備；雲端只是裝置之間的一條加密中繼。"
       }
     ],
     "download": {
@@ -252,20 +278,24 @@ export const HOME: Record<Locale, HomeContent> = {
   fr: {
     freeLine: (tag) =>
       tag ? `Gratuit et local d'abord. La dernière version est ${tag}.` : "Gratuit et local d'abord.",
-    "metaTitle": "ReadAware — Lire, en se souvenant",
-    "metaDescription": "Un espace de lecture natif pour l'IA. Lecture contextuelle et compréhension assistée par l'IA pour EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML et PDF — local d'abord et privé.",
-    "heroTitle": "Lire, en se souvenant",
-    "heroLead": "ReadAware lit à vos côtés. Il construit une mémoire à travers vos livres, surlignages et conversations, pour que chaque page arrive avec le contexte qu'elle mérite.",
+    "metaTitle": "ReadAware — Un lecteur qui vous connaît",
+    "metaDescription": "Une application de lecture attentive et extensible. Un seul lecteur pour EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML et PDF, qui construit une mémoire à partir de vos lectures, grandit par les plugins et se synchronise chiffré de bout en bout — local d'abord et privé.",
+    "heroTitle": "Un lecteur qui vous connaît — et que vous étendez",
+    "heroLead": "Interrogez n'importe quel passage — ReadAware sait déjà ce que vous avez surligné, questionné et lu, à travers tous les livres de votre bibliothèque. Cette connaissance vit sur votre appareil, grandit par les plugins et vous suit, chiffrée, sur chaque machine.",
     "shelfAlt": "La bibliothèque ReadAware — une grille de couvertures de livres dans de nombreuses langues et formats.",
     "shelfCaption": "Votre bibliothèque — tous les formats au même endroit.",
     "readerTitle": "Un endroit calme pour lire n'importe quoi",
     "readerBody": "Importez un fichier et commencez à lire. Pas de conversion ni d'envoi dans le cloud ; vos surlignages, notes et position dans le livre restent avec le texte original. Pour plus de concentration, lisez phrase par phrase — la page s'efface, une bande flottante vous guide, et la lecture à voix haute peut suivre.",
     "readerAlt": "Une page d'Atomic Habits dans le lecteur ReadAware, une phrase en focus pendant que le reste de la page s'efface.",
     "readerCaption": "Lire Atomic Habits une phrase à la fois.",
-    "memoryTitle": "Il se souvient de ce que vous lisez",
-    "memoryBody": "Posez une question sur un passage, un livre ou toute votre bibliothèque. ReadAware s'appuie sur vos surlignages, notes et conversations précédentes, et garde une mémoire durable de ce qui compte, pour reprendre là où vous vous êtes arrêté.",
+    "memoryTitle": "Il sait ce que vous avez lu",
+    "memoryBody": "Interrogez un passage, un livre ou toute votre bibliothèque. ReadAware répond à partir de votre propre lecture — la ligne marquée trois livres plus tôt, la question posée la semaine dernière, le fil qui traverse toute votre étagère. Il ne rejoue pas un historique de discussion : il garde une mémoire durable de ce qui compte et la fait revenir au moment où c'est pertinent.",
     "contextAlt": "L'assistant ReadAware qui examine la bibliothèque et les lectures récentes du lecteur, et nomme le fil qui les traverse.",
     "contextCaption": "L'assistant, répondant à partir de votre propre bibliothèque.",
+    "pluginTitle": "Étendu de l'intérieur",
+    "pluginBody": "Les plugins sandboxés du marketplace intégré ajoutent des voix de lecture, des dictionnaires, des thèmes, des flux qui se lisent comme des livres. Et ils vont plus loin que les fonctionnalités : un plugin peut confier un nouvel outil à l'assistant, qui se met simplement à l'utiliser. Le lecteur ne gagne pas des boutons — il apprend de nouveaux savoir-faire.",
+    "syncTitle": "Votre lecture vous suit",
+    "syncBody": "Ouvrez ReadAware sur une autre machine et tout est déjà là — vos livres, vos surlignages, votre position dans chacun d'eux, et la mémoire construite à partir de tout cela. La synchronisation est chiffrée de bout en bout : le relais ne stocke que du chiffré, personne en chemin ne peut lire ce que vous lisez. Bureau et Android aujourd'hui ; iOS arrive.",
     "inShortTitle": "En bref",
     "notes": [
       {
@@ -273,16 +303,16 @@ export const HOME: Record<Locale, HomeContent> = {
         "body": "EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML et PDF s'ouvrent dans le même lecteur, avec la même sélection, les mêmes surlignages et la même progression. Rien n'est converti ; le fichier original est ce que vous gardez."
       },
       {
-        "title": "De la mémoire, pas des transcriptions",
-        "body": "La lecture devient une mémoire que l'application peut retenir. ReadAware garde ce qui compte et le fait revenir quand c'est pertinent, au lieu de rejouer un long historique de discussion."
+        "title": "Attentif, pas archiviste",
+        "body": "La lecture devient une mémoire que l'application peut mobiliser. ReadAware garde ce qui compte et le ressort quand c'est pertinent — présent sur le moment, pas rangé dans un tiroir."
       },
       {
-        "title": "Extensible de l'intérieur",
-        "body": "Les plugins sandboxés du marketplace intégré ajoutent des voix de lecture à voix haute, des dictionnaires, des thèmes de lecture, des flux qui se lisent comme des livres — et de nouveaux outils que l'assistant peut utiliser."
+        "title": "Les plugins lui apprennent de nouveaux tours",
+        "body": "Les plugins du marketplace ajoutent voix, dictionnaires, thèmes et flux — et confient à l'assistant des outils qu'il adopte aussitôt."
       },
       {
-        "title": "Local d'abord et privé",
-        "body": "Votre bibliothèque et votre mémoire vivent sur votre appareil. Vous apportez votre propre clé API, et le cloud n'est là que pour synchroniser entre machines."
+        "title": "Local d'abord, synchronisation chiffrée",
+        "body": "Tout vit sur votre appareil. Apportez votre clé API ; le cloud n'est qu'un relais chiffré entre vos machines."
       }
     ],
     "download": {
@@ -300,20 +330,24 @@ export const HOME: Record<Locale, HomeContent> = {
   de: {
     freeLine: (tag) =>
       tag ? `Kostenlos und Local-First. Die neueste Version ist ${tag}.` : "Kostenlos und Local-First.",
-    "metaTitle": "ReadAware — Lesen, das sich erinnert",
-    "metaDescription": "Ein KI-nativer Lese-Arbeitsbereich. Kontextreiches Lesen und KI-gestütztes Verstehen für EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML und PDF — Local-First und privat.",
-    "heroTitle": "Lesen, das sich erinnert",
-    "heroLead": "ReadAware liest mit dir. Es baut eine Erinnerung über deine Bücher, Markierungen und Gespräche auf, sodass jede Seite mit dem Kontext ankommt, den sie verdient.",
+    "metaTitle": "ReadAware — Ein Reader, der dich kennt",
+    "metaDescription": "Eine aufmerksame, erweiterbare Lese-App. Ein Reader für EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML und PDF, der aus deinem Lesen Erinnerung aufbaut, durch Plugins wächst und Ende-zu-Ende-verschlüsselt synchronisiert — Local-First und privat.",
+    "heroTitle": "Ein Reader, der dich kennt — und den du erweiterst",
+    "heroLead": "Frag nach irgendeiner Passage — ReadAware weiß bereits, was du markiert, gefragt und gelesen hast, über jedes Buch in deinem Regal hinweg. Dieses Wissen lebt auf deinem Gerät, wächst durch Plugins und folgt dir — verschlüsselt — auf jede Maschine.",
     "shelfAlt": "Die ReadAware-Bibliothek — ein Raster aus Buchcovern in vielen Sprachen und Formaten.",
     "shelfCaption": "Deine Bibliothek — alle Formate an einem Ort.",
     "readerTitle": "Ein ruhiger Ort, um alles zu lesen",
     "readerBody": "Importiere eine Datei und lies los. Es gibt keine Konvertierung und keinen Cloud-Upload; deine Markierungen, Notizen und dein Lesezeichen bleiben beim Originaltext. Wenn du dich besser konzentrieren willst, lies Satz für Satz — die Seite tritt zurück, ein schwebender Streifen führt dich durch, und das Vorlesen kann folgen.",
     "readerAlt": "Eine Seite von „Atomic Habits“ im ReadAware-Reader, ein Satz im Fokus, während der Rest der Seite zurücktritt.",
     "readerCaption": "„Atomic Habits“ Satz für Satz lesen.",
-    "memoryTitle": "Es erinnert sich, was du gelesen hast",
-    "memoryBody": "Frag nach einer Passage, einem Buch oder deinem gesamten Regal. ReadAware greift auf deine Markierungen, Notizen und früheren Gespräche zurück und behält eine dauerhafte Erinnerung an das, was wichtig ist, damit es dort weitermacht, wo du aufgehört hast.",
+    "memoryTitle": "Es weiß, was du gelesen hast",
+    "memoryBody": "Frag nach einer Passage, einem Buch oder deinem ganzen Regal. ReadAware antwortet aus deiner eigenen Lektüre — die Zeile, die du vor drei Büchern markiert hast, die Frage von letzter Woche, der Faden, der sich durch dein ganzes Regal zieht. Es spielt keine Chat-Historie ab; es behält eine dauerhafte Erinnerung an das Wichtige und bringt sie genau dann zurück, wenn sie relevant ist.",
     "contextAlt": "Der ReadAware-Assistent, der das Regal und die letzten Lesefortschritte des Lesers betrachtet und den roten Faden benennt.",
     "contextCaption": "Der Assistent, der aus deinem eigenen Regal antwortet.",
+    "pluginTitle": "Von innen erweitert",
+    "pluginBody": "Sandbox-Plugins aus dem eingebauten Marktplatz bringen Vorlesestimmen, Wörterbücher, Lesethemen, Feeds, die sich wie Bücher lesen. Und sie reichen tiefer als Features: Ein Plugin kann dem Assistenten ein neues Werkzeug in die Hand geben — und er benutzt es einfach. Der Reader bekommt nicht bloß Knöpfe dazu, er lernt Neues.",
+    "syncTitle": "Dein Lesen folgt dir",
+    "syncBody": "Öffne ReadAware auf einer anderen Maschine, und alles ist schon da — deine Bücher, deine Markierungen, deine Stelle in jedem von ihnen und die daraus gewachsene Erinnerung. Die Synchronisierung ist Ende-zu-Ende-verschlüsselt: Das Relay speichert ausschließlich Chiffretext, niemand dazwischen kann lesen, was du liest. Desktop und Android heute; iOS ist unterwegs.",
     "inShortTitle": "Kurz gesagt",
     "notes": [
       {
@@ -321,16 +355,16 @@ export const HOME: Record<Locale, HomeContent> = {
         "body": "EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML und PDF öffnen sich im selben Reader, mit derselben Auswahl, denselben Markierungen und demselben Fortschritt. Nichts wird konvertiert; die Originaldatei ist das, was du behältst."
       },
       {
-        "title": "Erinnerung, keine Transkripte",
-        "body": "Lesen wird zu einer Erinnerung, die die App festhalten kann. ReadAware behält, was wichtig ist, und bringt es zurück, wenn es relevant ist, anstatt eine lange Chat-Historie abzuspielen."
+        "title": "Aufmerksam, nicht archivierend",
+        "body": "Lesen wird zu Erinnerung, mit der die App arbeiten kann. ReadAware behält das Wichtige und holt es hervor, wenn es relevant ist — präsent im Moment, nicht abgelegt."
       },
       {
-        "title": "Von innen erweiterbar",
-        "body": "Sandbox-Plugins aus dem eingebauten Marktplatz fügen Vorlesestimmen, Wörterbücher, Lesethemen, Feeds, die sich wie Bücher lesen, und neue Werkzeuge hinzu, die der Assistent aufgreift und nutzt."
+        "title": "Plugins bringen ihm Neues bei",
+        "body": "Marktplatz-Plugins ergänzen Stimmen, Wörterbücher, Themen und Feeds — und geben dem Assistenten Werkzeuge in die Hand, die er aufgreift und nutzt."
       },
       {
-        "title": "Local-First und privat",
-        "body": "Deine Bibliothek und deine Erinnerung leben auf deinem Gerät. Du bringst deinen eigenen API-Schlüssel mit, und die Cloud ist nur dazu da, um zwischen Geräten zu synchronisieren."
+        "title": "Local-First, verschlüsselte Synchronisierung",
+        "body": "Alles lebt auf deinem Gerät. Bring deinen eigenen API-Schlüssel mit; die Cloud ist nur ein verschlüsseltes Relay zwischen deinen Maschinen."
       }
     ],
     "download": {
@@ -348,20 +382,24 @@ export const HOME: Record<Locale, HomeContent> = {
   ru: {
     freeLine: (tag) =>
       tag ? `Бесплатно и локальный подход (local-first). Последний выпуск — ${tag}.` : "Бесплатно и локальный подход (local-first).",
-    "metaTitle": "ReadAware — Чтение, которое запоминает",
-    "metaDescription": "AI-нативное рабочее пространство для чтения. Контекстное чтение и понимание с помощью ИИ для EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML и PDF — локальный подход (local-first) и приватность.",
-    "heroTitle": "Чтение, которое запоминает",
-    "heroLead": "ReadAware читает вместе с вами. Он выстраивает память по вашим книгам, выделениям и беседам, так что каждая страница приходит с заслуженным контекстом.",
+    "metaTitle": "ReadAware — Ридер, который вас знает",
+    "metaDescription": "Внимательное и расширяемое приложение для чтения. Один ридер для EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML и PDF, который выстраивает память из вашего чтения, растёт благодаря плагинам и синхронизируется со сквозным шифрованием — локальный подход (local-first) и приватность.",
+    "heroTitle": "Ридер, который вас знает — и который вы расширяете",
+    "heroLead": "Спросите о любом фрагменте — ReadAware уже знает, что вы выделяли, о чём спрашивали и что читали, по всем книгам на вашей полке. Это знание живёт на вашем устройстве, растёт благодаря плагинам и следует за вами — в зашифрованном виде — на каждую машину.",
     "shelfAlt": "Библиотека ReadAware — сетка обложек книг на разных языках и в разных форматах.",
     "shelfCaption": "Ваша библиотека — все форматы в одном месте.",
     "readerTitle": "Спокойное место для чтения чего угодно",
     "readerBody": "Импортируйте файл и начинайте читать. Никакой конвертации и загрузки в облако; ваши выделения, заметки и место в книге остаются с исходным текстом. Когда захочется больше сосредоточенности, читайте по предложениям — страница отступает на второй план, плавающая полоса ведёт вас дальше, а чтение вслух может следовать за ней.",
     "readerAlt": "Страница «Атомные привычки» в ридере ReadAware: одно предложение в фокусе, остальная страница отступает.",
     "readerCaption": "Чтение «Атомных привычек» по одному предложению за раз.",
-    "memoryTitle": "Он помнит, что вы читали",
-    "memoryBody": "Спрашивайте о фрагменте, книге или всей полке. ReadAware опирается на ваши выделения, заметки и прошлые разговоры и хранит устойчивую память о важном, так что продолжает с того места, где вы остановились.",
+    "memoryTitle": "Он знает, что вы читали",
+    "memoryBody": "Спросите о фрагменте, книге или всей полке. ReadAware отвечает из вашего собственного чтения — строка, отмеченная три книги назад, вопрос прошлой недели, нить, проходящая через всю полку. Он не проигрывает историю чата: он хранит устойчивую память о важном и возвращает её именно в тот момент, когда она уместна.",
     "contextAlt": "Ассистент ReadAware обозревает полку читателя и недавнее чтение, называя нить, которая их связывает.",
     "contextCaption": "Ассистент отвечает, используя вашу собственную полку.",
+    "pluginTitle": "Расширение изнутри",
+    "pluginBody": "Песочные плагины из встроенного каталога добавляют голоса для чтения вслух, словари, темы оформления, ленты, читаемые как книги. И они идут глубже функций: плагин может вручить ассистенту новый инструмент — и тот просто начинает им пользоваться. Ридер получает не кнопки, а новые умения.",
+    "syncTitle": "Ваше чтение следует за вами",
+    "syncBody": "Откройте ReadAware на другой машине — и всё уже на месте: книги, выделения, позиция в каждой из них и память, выросшая из всего этого. Синхронизация зашифрована сквозным образом: ретранслятор хранит только шифротекст, и никто по пути не может прочитать, что вы читаете. Настольные системы и Android — уже сегодня; iOS на подходе.",
     "inShortTitle": "Короче говоря",
     "notes": [
       {
@@ -369,16 +407,16 @@ export const HOME: Record<Locale, HomeContent> = {
         "body": "EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML и PDF открываются в одном ридере с одинаковым выделением, заметками и прогрессом. Ничего не конвертируется; вы сохраняете исходный файл."
       },
       {
-        "title": "Память, а не расшифровки",
-        "body": "Чтение превращается в память, которую приложение может удерживать. ReadAware сохраняет важное и возвращает его, когда это уместно, вместо проигрывания длинной истории чата."
+        "title": "Знает, а не архивирует",
+        "body": "Чтение становится памятью, с которой приложение может работать. ReadAware хранит важное и достаёт его в нужный момент — оно рядом, а не в архиве."
       },
       {
-        "title": "Расширение изнутри",
-        "body": "Песочные плагины из встроенного каталога плагинов добавляют голоса для чтения вслух, словари, темы оформления, ленты, читаемые как книги, — и новые инструменты, которые ассистент подхватывает и использует."
+        "title": "Плагины учат его новому",
+        "body": "Плагины из каталога добавляют голоса, словари, темы и ленты — и вручают ассистенту инструменты, которые он подхватывает и использует."
       },
       {
-        "title": "Локальный подход (local-first) и приватность",
-        "body": "Ваша библиотека и память живут на вашем устройстве. Вы приносите свой API-ключ, а облако нужно только для синхронизации между машинами."
+        "title": "Local-first и зашифрованная синхронизация",
+        "body": "Всё живёт на вашем устройстве. Приносите свой API-ключ; облако — лишь зашифрованный ретранслятор между вашими машинами."
       }
     ],
     "download": {
@@ -396,20 +434,24 @@ export const HOME: Record<Locale, HomeContent> = {
   es: {
     freeLine: (tag) =>
       tag ? `Gratis y local primero (local-first). La última versión es ${tag}.` : "Gratis y local primero (local-first).",
-    "metaTitle": "ReadAware — Lectura que recuerda",
-    "metaDescription": "Un espacio de lectura con IA. Lectura rica en contexto y comprensión asistida por IA para EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML y PDF: local primero (local-first) y privado.",
-    "heroTitle": "Lectura que recuerda",
-    "heroLead": "ReadAware lee a tu lado. Construye memoria a través de tus libros, subrayados y conversaciones, para que cada página llegue con el contexto que merece.",
+    "metaTitle": "ReadAware — Un lector que te conoce",
+    "metaDescription": "Una app de lectura atenta y extensible. Un solo lector para EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML y PDF que construye memoria a partir de tu lectura, crece con plugins y sincroniza cifrado de extremo a extremo: local primero (local-first) y privado.",
+    "heroTitle": "Un lector que te conoce — y que tú extiendes",
+    "heroLead": "Pregunta por cualquier pasaje: ReadAware ya sabe qué subrayaste, qué preguntaste y qué leíste, en todos los libros de tu estantería. Ese conocimiento vive en tu dispositivo, crece con los plugins y te sigue —cifrado— a cada máquina.",
     "shelfAlt": "La biblioteca de ReadAware: una cuadrícula de portadas de libros en varios idiomas y formatos.",
     "shelfCaption": "Tu biblioteca: todos los formatos en un solo lugar.",
     "readerTitle": "Un lugar tranquilo para leer cualquier cosa",
     "readerBody": "Importa un archivo y empieza a leer. No hay conversión ni carga en la nube; tus subrayados, notas y tu posición en el libro permanecen con el texto original. Cuando quieras más concentración, lee frase a frase: la página se retira, una franja flotante te guía y la lectura en voz alta puede seguir el ritmo.",
     "readerAlt": "Una página de Atomic Habits en el lector de ReadAware, con una frase en foco mientras el resto de la página se atenúa.",
     "readerCaption": "Leyendo Atomic Habits frase a frase.",
-    "memoryTitle": "Recuerda lo que lees",
-    "memoryBody": "Pregunta por un pasaje, un libro o toda tu estantería. ReadAware recurre a tus subrayados, notas y conversaciones anteriores, y guarda una memoria duradera de lo que importa, para retomar justo donde lo dejaste.",
+    "memoryTitle": "Sabe lo que has leído",
+    "memoryBody": "Pregunta por un pasaje, un libro o toda tu estantería. ReadAware responde desde tu propia lectura: la línea que marcaste hace tres libros, la pregunta de la semana pasada, el hilo que atraviesa toda tu estantería. No reproduce un historial de chat; guarda una memoria duradera de lo que importa y la trae de vuelta justo cuando es relevante.",
     "contextAlt": "El asistente de ReadAware revisando la estantería del lector y sus lecturas recientes, y nombrando el hilo que las une.",
     "contextCaption": "El asistente, respondiendo desde tu propia estantería.",
+    "pluginTitle": "Extendido desde adentro",
+    "pluginBody": "Los plugins en sandbox del marketplace integrado añaden voces de lectura, diccionarios, temas, fuentes que se leen como libros. Y llegan más hondo que las funciones: un plugin puede poner una nueva herramienta en manos del asistente, y este simplemente empieza a usarla. El lector no gana botones: aprende nuevas habilidades.",
+    "syncTitle": "Tu lectura te sigue",
+    "syncBody": "Abre ReadAware en otra máquina y todo está ya ahí: tus libros, tus subrayados, tu posición en cada uno y la memoria construida a partir de todo ello. La sincronización está cifrada de extremo a extremo: el relay solo guarda texto cifrado, y nadie en el camino puede leer lo que lees. Escritorio y Android hoy; iOS está en camino.",
     "inShortTitle": "En resumen",
     "notes": [
       {
@@ -417,16 +459,16 @@ export const HOME: Record<Locale, HomeContent> = {
         "body": "EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML y PDF se abren en el mismo lector, con la misma selección, subrayados y progreso. Nada se convierte; el archivo original es lo que conservas."
       },
       {
-        "title": "Memoria, no transcripciones",
-        "body": "La lectura se convierte en memoria que la app puede conservar. ReadAware guarda lo que importa y lo trae de vuelta cuando es relevante, en lugar de reproducir un largo historial de chat."
+        "title": "Atento, no archivador",
+        "body": "La lectura se convierte en memoria que la app puede usar. ReadAware guarda lo que importa y lo saca cuando es relevante: está presente en el momento, no guardado en un cajón."
       },
       {
-        "title": "Extensible desde adentro",
-        "body": "Los plugins en sandbox del marketplace integrado añaden voces para lectura en voz alta, diccionarios, temas de lectura, fuentes que se leen como libros — y nuevas herramientas que el asistente incorpora y utiliza."
+        "title": "Los plugins le enseñan trucos nuevos",
+        "body": "Los plugins del marketplace añaden voces, diccionarios, temas y fuentes — y ponen en manos del asistente herramientas que adopta y usa."
       },
       {
-        "title": "Local primero (local-first) y privado",
-        "body": "Tu biblioteca y tu memoria viven en tu dispositivo. Tú aportas tu propia clave API, y la nube solo sirve para sincronizar entre máquinas."
+        "title": "Local primero, sincronización cifrada",
+        "body": "Todo vive en tu dispositivo. Aporta tu propia clave API; la nube es solo un relay cifrado entre tus máquinas."
       }
     ],
     "download": {

@@ -24,10 +24,9 @@ tokens (`text-fg`, `bg-surface`, `border-border-strong`, …) instead of raw
 | `--color-border` | `border-border` | `rgb(28 25 23 / 0.1)` | `rgb(231 229 228 / 0.12)` | Hairline dividers |
 | `--color-border-strong` | `border-border-strong` | `#d6d3d1` | `rgb(231 229 228 / 0.18)` | Firmer borders (inputs, emphasis) |
 | `--color-paper` | `bg-paper` | `#f5f1e8` | `#1c1917` | App canvas |
-| `--color-paper-warm` | `bg-paper-warm` | `#eee8d5` | `#292524` | Warm canvas variation |
 
 <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem", flexWrap: "wrap" }}>
-  {["fg", "fg-muted", "fg-subtle", "inverse-fg", "surface", "fill", "fill-strong", "border-strong", "paper", "paper-warm"].map((t) => (
+  {["fg", "fg-muted", "fg-subtle", "inverse-fg", "surface", "fill", "fill-strong", "border-strong", "paper"].map((t) => (
     <div key={t} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.25rem" }}>
       <div style={{ width: 56, height: 56, backgroundColor: `var(--color-${t})`, border: "1px solid var(--color-border)" }} />
       <code style={{ fontSize: 10, color: "var(--color-fg-muted)" }}>{t}</code>

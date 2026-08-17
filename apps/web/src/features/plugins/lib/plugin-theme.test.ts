@@ -118,6 +118,23 @@ describe("validateThemeContributions", () => {
     ).toThrow(/unknown app token/);
   });
 
+  test("retired app tokens are accepted and dropped, never a failed install", () => {
+    // Shipped manifests still declare paperWarm (removed 2026-08): it must
+    // neither error nor survive into the parsed theme.
+    const [theme] = validateThemeContributions(
+      [{ ...VALID_THEME, app: { paper: "#14171e", paperWarm: "#101318" } }],
+      fontIds,
+    );
+    expect(theme.app).toEqual({ paper: "#14171e" });
+
+    // A theme whose ONLY app tokens are retired degrades to "no app part".
+    const [onlyRetired] = validateThemeContributions(
+      [{ ...VALID_THEME, app: { paperWarm: "#101318" } }],
+      fontIds,
+    );
+    expect(onlyRetired.app).toBeUndefined();
+  });
+
   test("rejects invalid colors", () => {
     expect(() =>
       validateThemeContributions(

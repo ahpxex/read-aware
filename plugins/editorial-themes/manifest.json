@@ -52,7 +52,6 @@
       "polarity": "light",
       "app": {
         "paper": "#f4ecd9",
-        "paperWarm": "#ecdfc3",
         "border": "rgba(46, 38, 24, 0.12)",
         "fg": "#2b241a",
         "fgMuted": "#6b5f4b",
@@ -90,7 +89,6 @@
       "polarity": "dark",
       "app": {
         "paper": "#14171e",
-        "paperWarm": "#1a1e27",
         "border": "rgba(223, 227, 235, 0.12)",
         "fg": "#e3e6ec",
         "fgMuted": "#9aa2b1",

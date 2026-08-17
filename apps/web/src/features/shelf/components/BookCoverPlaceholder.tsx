@@ -18,7 +18,7 @@ type BookCoverPlaceholderProps = {
 const SURFACES = [
   { bg: "bg-stone-100", title: "text-stone-800", meta: "text-stone-500", rule: "bg-stone-300" },
   { bg: "bg-stone-200", title: "text-stone-800", meta: "text-stone-600", rule: "bg-stone-400" },
-  { bg: "bg-paper-warm", title: "text-stone-700", meta: "text-stone-500", rule: "bg-stone-300" },
+  { bg: "bg-stone-50", title: "text-stone-700", meta: "text-stone-500", rule: "bg-stone-300" },
   { bg: "bg-stone-300", title: "text-stone-900", meta: "text-stone-600", rule: "bg-stone-400" },
   { bg: "bg-stone-700", title: "text-stone-50", meta: "text-stone-300", rule: "bg-stone-500" },
   { bg: "bg-stone-800", title: "text-stone-100", meta: "text-stone-400", rule: "bg-stone-600" },

@@ -4,7 +4,7 @@ import { cn } from "./lib/cn";
 const variantClasses = {
   flat: "bg-paper",
   outlined: "border border-border bg-paper",
-  filled: "bg-paper-warm",
+  filled: "bg-fill",
 } as const;
 
 const paddingClasses = {

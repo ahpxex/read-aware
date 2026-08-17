@@ -29,6 +29,7 @@ import type {
   AgentSettingsQuery,
   AgentSettingsSnapshot,
 } from "../settings";
+import { matchesMemoryQuery } from "../memory/query-match";
 import { searchChapters } from "../text/search";
 
 /** 判别联合的可检索文本（fixtures 的 query 过滤用）。 */
@@ -539,7 +540,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
             (memory) =>
               isActive(memory) &&
               scopes.has(memory.scope) &&
-              (!filter.query || memory.content.includes(filter.query)),
+              (!filter.query || matchesMemoryQuery(memory.content, filter.query)),
           )
           .sort(
             (a, b) =>

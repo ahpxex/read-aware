@@ -39,3 +39,4 @@ export { INTERACTIVE_TOOL_NAMES } from "./tools/user-interaction";
 export { AgentThread, type AgentThreadOptions, type SendTurnInput, type SelectionAttachment } from "./runtime/thread";
 export { type ReadingCursor } from "./runtime/reading-cursor";
 export { AgentRuntime, createAgentRuntime, type AgentRuntimeOptions } from "./runtime/runtime";
+export { matchesMemoryQuery } from "./memory/query-match";

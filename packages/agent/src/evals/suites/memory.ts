@@ -97,14 +97,26 @@ export const memoryEvalSuite: EvalSuite<AgentEvalScenario> = {
       scope: { kind: "global", threadId: "memory-search" },
       seed: {
         profile: "The reader has already completed onboarding.",
+        // 目标记忆压到低重要性、再垫 8 条高重要性噪音：system prompt 只注入
+        // 前 8 条,目标必然落在注入窗外——search_memory 因此是唯一取回路径,
+        // 场景测的才是检索而不是"照抄开场白"。
         memories: [
           seedMemory({
             id: "memory-typescript",
             scope: "user",
             kind: "preference",
             content: "The reader prefers programming examples in TypeScript.",
-            importance: 0.9,
+            importance: 0.2,
           }),
+          ...Array.from({ length: 8 }, (_, index) =>
+            seedMemory({
+              id: `memory-decoy-${index}`,
+              scope: "user",
+              kind: "fact",
+              content: `The reader mentioned enjoying long walks on day ${index + 1} of their reading streak.`,
+              importance: 0.9,
+            }),
+          ),
         ],
       },
       turns: [

@@ -48,6 +48,13 @@ bun run eval:all --list
 DeepSeek is the default provider. The runner reads `DEEPSEEK_API_KEY` or the
 normal Pi CLI credential in `~/.pi/agent/auth.json`.
 
+Thinking defaults to **off** (fast, cheap regression runs — and the floor for
+legacy app configs, whose stored default is also off). Pass `--thinking low`
+or `--thinking medium` to measure the app's configured tier. Tool discipline
+is measurably worse at `off` (zero-retrieval turns, prose instead of ask_user);
+compare runs only at the SAME level — trend files record `thinkingLevel` and
+the delta printer marks cross-level comparisons as INCOMPARABLE.
+
 ```sh
 # One fast pass over the reading suite
 bun run eval:reading

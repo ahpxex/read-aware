@@ -317,7 +317,7 @@ export async function runEvalCli(args: string[]): Promise<void> {
   // 基线趋势：对比上一次同套件的按场景成绩，劣化行以 "!" 标出
   if (options.artifacts) {
     const baselineModel = `${specs[0]!.provider}:${specs[0]!.model ?? "default"}`;
-    const currentTrend = trendFromSummary(result.summary, baselineModel);
+    const currentTrend = trendFromSummary(result.summary, baselineModel, options.thinkingLevel);
     const path = trendPath(resolve(options.outputDir ?? ".eval"), suite.id);
     const previous = await loadTrend(path);
     if (previous) {

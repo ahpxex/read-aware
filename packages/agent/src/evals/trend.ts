@@ -18,15 +18,22 @@ export interface SuiteTrend {
   suiteId: string;
   baselineVariantId: string;
   model: string;
+  /** 解码配置（thinking 档位）。缺失 = 记录该字段之前的旧 trend。 */
+  thinkingLevel?: string;
   generatedAt: string;
   scenarios: TrendScenarioEntry[];
 }
 
-export function trendFromSummary(summary: EvalSummary, model: string): SuiteTrend {
+export function trendFromSummary(
+  summary: EvalSummary,
+  model: string,
+  thinkingLevel?: string,
+): SuiteTrend {
   return {
     suiteId: summary.suiteId,
     baselineVariantId: summary.baselineVariantId,
     model,
+    ...(thinkingLevel === undefined ? {} : { thinkingLevel }),
     generatedAt: summary.generatedAt,
     scenarios: summary.byScenario
       .filter((entry) => entry.variantId === summary.baselineVariantId && entry.scenarioId)
@@ -44,6 +51,13 @@ export function compareTrends(previous: SuiteTrend, current: SuiteTrend): string
   const lines: string[] = [];
   if (previous.model !== current.model) {
     lines.push(`note: baseline model changed (${previous.model} -> ${current.model})`);
+  }
+  // 解码配置不同的两次 run 不构成有效对照：thinking 档位直接改变工具
+  // 纪律与措辞，逐场景 delta 会把解码差异误读成行为回归。
+  if ((previous.thinkingLevel ?? "unrecorded") !== (current.thinkingLevel ?? "unrecorded")) {
+    lines.push(
+      `note: INCOMPARABLE — thinking level changed (${previous.thinkingLevel ?? "unrecorded"} -> ${current.thinkingLevel ?? "unrecorded"}); per-scenario deltas below mix decoding and behavior changes`,
+    );
   }
   const before = new Map(previous.scenarios.map((entry) => [entry.scenarioId, entry]));
   for (const entry of current.scenarios) {

@@ -24,8 +24,9 @@ describe("book system prompt", () => {
     expect(prompt).toContain("compare the tool's ENTIRE possible return range");
     expect(prompt).toContain("NEVER call read_chapter on the current narrative chapter");
     expect(prompt).toContain("NEVER search the current or later narrative chapters");
-    expect(prompt).toContain("explicitly requests spoilers, answer directly");
-    expect(prompt).toContain("do not add an unnecessary permission step");
+    expect(prompt).toContain("explicitly requests spoilers, do not add a permission question");
+    expect(prompt).toContain("READ or SEARCH the later chapters");
+    expect(prompt).toContain("never acceptable: what you remember is another edition");
     expect(prompt).toContain("include unread text after the viewport");
     expect(prompt).toContain("technical, reference, instructional, argumentative");
     expect(prompt).toContain("do not impose a spoiler boundary");

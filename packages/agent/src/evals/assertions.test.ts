@@ -31,8 +31,8 @@ describe("agent eval assertions", () => {
     );
 
     expect(result.passed).toBe(false);
-    // 全局 no-emoji 检查通过 + 一条通过的 forbidden-tool 检查 = 4 中过 2
-    expect(result.score).toBe(0.5);
+    // 全局 no-emoji + script-consistency 通过 + 一条通过的 forbidden-tool 检查 = 5 中过 3
+    expect(result.score).toBe(0.6);
     expect(result.checks.filter((entry) => !entry.passed).map((entry) => entry.message)).toEqual([
       'answer contained forbidden phrase "Rowan"',
       "forbidden tool read_chapter ran",

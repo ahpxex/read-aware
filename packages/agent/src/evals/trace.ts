@@ -197,10 +197,25 @@ export function buildAgentObservation(input: {
   const turns = input.turns.map<AgentEvalTurnObservation>((turn, index) => ({
     turn: index + 1,
     input: toJsonObject(turn.input),
-    answer: turn.chunks
-      .filter((chunk): chunk is Extract<ThreadChunk, { type: "text" }> => chunk.type === "text")
-      .map((chunk) => chunk.text)
-      .join(""),
+    // 轮感知拼接：流式增量轮内无缝连接，但跨模型轮（中间隔着 tool/metric
+    // 块）的文本之间补空行——否则前一轮的过程叙述和最终回答粘成一句
+    // （"...for you.Done."），污染被评分的答案串。
+    answer: turn.chunks.reduce<{ text: string; boundary: boolean }>(
+      (state, chunk) => {
+        if (chunk.type === "text") {
+          return {
+            text:
+              state.boundary && state.text ? `${state.text}\n\n${chunk.text}` : state.text + chunk.text,
+            boundary: false,
+          };
+        }
+        if (chunk.type === "tool-step" || chunk.type === "metric") {
+          return { ...state, boundary: true };
+        }
+        return state;
+      },
+      { text: "", boundary: false },
+    ).text,
     thinking: turn.chunks
       .filter(
         (chunk): chunk is Extract<ThreadChunk, { type: "thinking" }> => chunk.type === "thinking",

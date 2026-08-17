@@ -84,7 +84,9 @@ export function replyLanguageAnchor(content: string): string {
   if (counts.hangul > counts.han) return "Korean";
   if (counts.han > 0) return "Chinese";
   if (counts.cyrillic > 0) return "Russian";
-  return "the exact language of the reader's message above";
+  // 四类非拉丁文字都未检出 → 消息是拉丁字系语言。具体语种之间不猜，
+  // 但可以断言"绝不用非拉丁文字回复"——观测到的漂移全部是漂去中文。
+  return "the exact language of the reader's message above (a Latin-script language — never reply in Chinese or any other non-Latin script, and never switch languages mid-reply)";
 }
 
 /**

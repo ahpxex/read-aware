@@ -5,7 +5,7 @@
  * memories 投影因此可从日志重放，写决策本身成为可同步事实
  * （docs/data-model.md：consolidation as events）。
  */
-import type { MemoryPort, MemoryRecord } from "@read-aware/agent";
+import { matchesMemoryQuery, type MemoryPort, type MemoryRecord } from "@read-aware/agent";
 import { commitDomainEvents } from "../../../../platform/domain-events";
 import { getMemoryRow, listAllMemoryRows } from "./memory-store";
 
@@ -29,7 +29,7 @@ export function createMemoryPort(): MemoryPort {
           (memory) =>
             isActive(memory) &&
             scopes.has(memory.scope) &&
-            (!filter.query || memory.content.includes(filter.query)),
+            (!filter.query || matchesMemoryQuery(memory.content, filter.query)),
         )
         .sort(
           (a, b) =>

@@ -75,6 +75,32 @@ export function evaluateAgentTrace(
       hasEmoji ? "answer contains emoji despite the product-wide ban" : "answer contains no emoji",
     ),
   );
+  // 语言红线（system prompt: "Answer entirely in the language the user writes
+  // in"）：拉丁文字提问、回复却大半是 CJK = 漂移。阈值 0.3 容忍合法引用
+  // 中文书源文的场景；中文提问的场景 userCjkRatio 高，检查自动不适用。
+  const cjkCount = (text: string) => (text.match(/[一-鿿぀-ヿ가-힯]/g) ?? []).length;
+  const userText = observation.turns
+    .map((turn) => {
+      const input = turn.input as { text?: unknown };
+      return typeof input?.text === "string" ? input.text : "";
+    })
+    .join("\n");
+  const userCjkRatio = userText.length ? cjkCount(userText) / userText.length : 0;
+  const answerCjkRatio = observation.answer.length
+    ? cjkCount(observation.answer) / observation.answer.length
+    : 0;
+  const scriptDrift =
+    userCjkRatio < 0.02 && answerCjkRatio > 0.3 && observation.answer.length > 40;
+  checks.push(
+    check(
+      "answer.script-consistency",
+      "quality",
+      !scriptDrift,
+      scriptDrift
+        ? `answer drifted to a CJK script (${Math.round(answerCjkRatio * 100)}% CJK) for a Latin-script prompt`
+        : "answer script matches the reader's script",
+    ),
+  );
   const toolNames = observation.tools.map((tool) => tool.name);
   const interactionKinds = observation.interactions
     .filter((interaction) => interaction.phase === "request")

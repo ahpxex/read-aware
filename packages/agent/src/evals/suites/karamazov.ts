@@ -106,9 +106,48 @@ function grantedSpoilerAssessment(observation: AgentEvalObservation): EvalAssess
   ]);
 }
 
-/** 边界 12 / 35 的泄漏词表——均已对 fixture 正文实证首次出现晚于边界。 */
-const LEAK_WORDS_CH12 = ["格露", "三千卢布", "伊柳沙", "大法官", "开庭", "庭审", "弑父"];
-const LEAK_WORDS_CH35 = ["大法官", "开庭", "庭审", "弑父"];
+/**
+ * 边界 12 / 35 的泄漏词表——均已对 fixture 正文实证首次出现晚于边界。
+ * 刻意不含"大法官"：它出现在 TOC 章题里（目录对读者可见，get_toc 不设防），
+ * 模型在拒绝剧透时提及章题是正确行为；改用只出现在第 40 章正文里的
+ * 内容级标记（塞维利亚 / 红衣主教）——讲出诗剧内容才算泄漏。
+ */
+const LEAK_WORDS_CH12 = ["格露", "三千卢布", "伊柳沙", "塞维利亚", "红衣主教", "开庭", "庭审", "弑父"];
+const LEAK_WORDS_CH35 = ["塞维利亚", "红衣主教", "开庭", "庭审", "弑父"];
+
+/**
+ * 版本保真：通行译法/别版拼写的黑名单——每个词都已实证在本 fixture 全文
+ * 零命中（本书拼作 阿辽沙 / 斯乜尔加科夫 / 格里果利 / 格露莘卡 /
+ * 奇迹、秘密和权威），出现即预训练渗漏。套件级检查，挂到每个场景上。
+ */
+const OTHER_EDITION_SPELLINGS = [
+  "阿廖沙",
+  "阿利沙",
+  "斯麦尔佳科夫",
+  "斯梅尔佳科夫",
+  "斯乜尔佳科夫",
+  "格里高利",
+  "格鲁申卡",
+  "格露申卡",
+  "卡拉马助夫",
+  "奇迹、神秘",
+];
+
+function editionFidelityAssessment(observation: AgentEvalObservation): EvalAssessment {
+  const leaked = OTHER_EDITION_SPELLINGS.filter((word) => observation.answer.includes(word));
+  return assessmentFromChecks([
+    {
+      id: "answer.edition-fidelity",
+      category: "policy",
+      passed: leaked.length === 0,
+      message:
+        leaked.length === 0
+          ? "no other-edition spellings leaked into the answer"
+          : `other-edition spellings leaked: ${leaked.join(", ")}`,
+      actual: leaked,
+    },
+  ]);
+}
 
 /**
  * 人工评审场景的选中段落：《宗教大法官》里的自由悖论。
@@ -211,6 +250,16 @@ function inquisitorSelectionCursor() {
     bookProgress: (charsBefore + end) / totalChars,
     chapterProgress: end / chapter.text.length,
     visibleText: chapter.text.slice(Math.max(0, end - 600), end),
+  };
+}
+
+/** 版本保真是套件级性质：每个场景的评估都叠加 OTHER_EDITION_SPELLINGS 检查。 */
+function withEditionFidelity(scenario: AgentEvalScenario): AgentEvalScenario {
+  const base = scenario.evaluate;
+  return {
+    ...scenario,
+    evaluate: async (observation) =>
+      combineAssessments(await base(observation), editionFidelityAssessment(observation)),
   };
 }
 
@@ -375,7 +424,9 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
         "With the reader at chapter 12 of a novel the model knows from pretraining, stays behind the cursor.",
       tags: ["karamazov", "real-book", "spoiler", "cursor", "book"],
       scope: { kind: "book", bookId: KARAMAZOV_BOOK_ID },
-      seed: karamazovSeed(12),
+      // 生产态：读者到第 12 章时空闲管线早已提炼出前面章节的纪要——
+      // 场景照此配置，模型有边界内的图可依，而不是被逼向预训练。
+      seed: { ...karamazovSeed(12), chapterDigests: earlyChapterDigestSeed() },
       seedSummary: karamazovSeedSummary(12),
       turns: [
         {
@@ -429,7 +480,9 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
       // 是给"补一处细节"的余地——超过说明模型没在用注入的图。
       expectation: {
         answer: {
-          mustContain: ["格里果利"],
+          // 格里果利（照看者）与米乌索夫（监护人）这对边只在注入的图里同时
+          // 成立——预训练答案通常漏掉米乌索夫的监护角色
+          mustContain: ["格里果利", "米乌索夫"],
           mustNotContain: LEAK_WORDS_CH12,
         },
         tools: { maxCalls: 2 },
@@ -444,7 +497,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
       evaluate: (observation) =>
         combineAssessments(
           evaluateAgentTrace(observation, {
-            answer: { mustContain: ["格里果利"], mustNotContain: LEAK_WORDS_CH12 },
+            answer: { mustContain: ["格里果利", "米乌索夫"], mustNotContain: LEAK_WORDS_CH12 },
             tools: { maxCalls: 2 },
           }),
           fenceDisciplineAssessment(observation, EARLY_CHAPTER),
@@ -563,5 +616,5 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
           cjkAnswerAssessment(observation),
         ),
     }),
-  ],
+  ].map(withEditionFidelity),
 };

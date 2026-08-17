@@ -11,6 +11,11 @@ import { renderToString } from "react-dom/server";
 import { RouterProvider, createMemoryHistory } from "@tanstack/react-router";
 import { createAppRouter } from "./router";
 
+// The post registry rides along so the prerender script can emit BlogPosting
+// JSON-LD, article:published_time, and the RSS feed from the same source of
+// truth the pages render from.
+export { POSTS } from "./lib/posts";
+
 /**
  * Every concrete route path in the tree, "/" included. `routesByPath` keys
  * are already canonical ("/docs", not "/docs/"). All landing routes are

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./fonts.css";
 
 /* @read-aware/ui resolves through a node_modules symlink, which Tailwind v4
    skips by default — scan its source explicitly so utility classes used only

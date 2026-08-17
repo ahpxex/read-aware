@@ -13,11 +13,14 @@
       content="An AI-native reading workspace. Context-rich reading and AI-assisted understanding for EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, and PDF — local-first and private."
       data-prerender
     />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Literata is self-hosted (src/fonts.css); preload the latin subset the
+         first paint always needs. -->
     <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400..600;1,7..72,400..500&display=swap"
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="/fonts/literata-normal-latin.woff2"
+      crossorigin
     />
   </head>
   <body>

@@ -19,7 +19,7 @@ import { fileURLToPath } from "node:url";
 const appDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const distDir = join(appDir, "dist");
 
-const { render, staticPaths } = await import(
+const { render, staticPaths, POSTS } = await import(
   join(appDir, "dist-ssr", "entry-server.js")
 );
 
@@ -33,6 +33,10 @@ const OG_IMAGE = `${SITE_ORIGIN}/og.jpg`;
 const OG_IMAGE_ALT =
   "The ReadAware library — a grid of book covers across many languages and formats.";
 const DOWNLOAD_URL = "https://github.com/ahpxex/read-aware/releases/latest";
+const GITHUB_URL = "https://github.com/ahpxex/read-aware";
+const DISCORD_URL = "https://discord.gg/whDrKXwHWU";
+const LOGO_URL = `${SITE_ORIGIN}/favicon.png`;
+const FEED_URL = `${SITE_ORIGIN}/feed.xml`;
 
 // Locale prefixes must mirror src/lib/i18n.ts.
 const LOCALES = [
@@ -158,13 +162,56 @@ function softwareApplicationJsonLd(routePath, description) {
     downloadUrl: DOWNLOAD_URL,
     inLanguage: localeOf(routePath).hreflang,
   };
-  // < keeps a literal "</script>" inside string values from closing the tag.
-  const json = JSON.stringify(data).replace(/</g, "\\u003c");
-  return `<script type="application/ld+json">${json}</script>`;
+  return jsonLdScript(data);
 }
 
 function isHomepage(routePath) {
   return routePath === "/" || LOCALES.some(({ prefix }) => prefix === routePath);
+}
+
+/** The registered post behind a blog-article route, if this is one. */
+function blogPostOf(routePath) {
+  const base = basePathOf(routePath);
+  if (!base.startsWith("/blog/")) return undefined;
+  const slug = base.slice("/blog/".length);
+  return POSTS.find((post) => post.slug === slug);
+}
+
+const ORGANIZATION = {
+  "@type": "Organization",
+  name: SITE_NAME,
+  url: `${SITE_ORIGIN}/`,
+  logo: LOGO_URL,
+};
+
+function jsonLdScript(data) {
+  // \u003c keeps a literal "</script>" inside string values from closing the tag.
+  return `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, "\\u003c")}</script>`;
+}
+
+/** Organization structured data, emitted next to SoftwareApplication on homepages. */
+function organizationJsonLd() {
+  return jsonLdScript({
+    "@context": "https://schema.org",
+    ...ORGANIZATION,
+    sameAs: [GITHUB_URL, DISCORD_URL],
+  });
+}
+
+/** BlogPosting structured data for a blog-article route. */
+function blogPostingJsonLd(routePath, title, description, post) {
+  return jsonLdScript({
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: title,
+    description,
+    url: canonicalUrl(routePath),
+    datePublished: post.date,
+    image: OG_IMAGE,
+    inLanguage: localeOf(routePath).hreflang,
+    author: ORGANIZATION,
+    publisher: ORGANIZATION,
+  });
 }
 
 for (const routePath of paths) {
@@ -200,13 +247,20 @@ for (const routePath of paths) {
 
   const plainTitle = decodeEntities(title);
   const plainDescription = decodeEntities(description);
+  const post = blogPostOf(routePath);
   const headTags = [
     `<link rel="canonical" href="${canonicalUrl(routePath)}" />`,
+    `<link rel="alternate" type="application/rss+xml" title="${escapeAttr(`${SITE_NAME} Blog`)}" href="${FEED_URL}" />`,
     alternateLinks(routePath),
     socialTags(routePath, plainTitle, plainDescription),
+    post
+      ? `<meta property="article:published_time" content="${post.date}" />`
+      : "",
+    post ? blogPostingJsonLd(routePath, plainTitle, plainDescription, post) : "",
     isHomepage(routePath)
       ? softwareApplicationJsonLd(routePath, plainDescription)
       : "",
+    isHomepage(routePath) ? organizationJsonLd() : "",
   ].filter(Boolean);
   html = html.replace("</head>", () => `    ${headTags.join("\n    ")}\n  </head>`);
 
@@ -249,5 +303,37 @@ const sitemap = [
 ].join("\n");
 await writeFile(join(distDir, "sitemap.xml"), sitemap);
 console.log(`wrote sitemap.xml (${paths.length} URLs)`);
+
+// English blog feed; every page's head carries the discovery link.
+const feedItems = [...POSTS]
+  .sort((a, b) => b.date.localeCompare(a.date))
+  .map((post) => {
+    const url = canonicalUrl(`/blog/${post.slug}`);
+    return [
+      "    <item>",
+      `      <title>${escapeXml(post.text.en.title)}</title>`,
+      `      <link>${escapeXml(url)}</link>`,
+      `      <guid isPermaLink="true">${escapeXml(url)}</guid>`,
+      `      <pubDate>${new Date(`${post.date}T00:00:00Z`).toUTCString()}</pubDate>`,
+      `      <description>${escapeXml(post.text.en.description)}</description>`,
+      "    </item>",
+    ].join("\n");
+  });
+const feed = [
+  '<?xml version="1.0" encoding="UTF-8"?>',
+  '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">',
+  "  <channel>",
+  `    <title>${escapeXml(`${SITE_NAME} Blog`)}</title>`,
+  `    <link>${SITE_ORIGIN}/blog/</link>`,
+  "    <description>Notes from building an AI-native, local-first reading app.</description>",
+  "    <language>en</language>",
+  `    <atom:link href="${FEED_URL}" rel="self" type="application/rss+xml"/>`,
+  ...feedItems,
+  "  </channel>",
+  "</rss>",
+  "",
+].join("\n");
+await writeFile(join(distDir, "feed.xml"), feed);
+console.log(`wrote feed.xml (${POSTS.length} posts)`);
 
 console.log(`prerendered ${paths.length} routes`);

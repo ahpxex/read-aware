@@ -470,6 +470,13 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
             PRIMARY KEY (book_id, chapter_index)
          );",
     ),
+    (
+        18,
+        "chapter_digest_relations",
+        // [projection] digestVersion 2：章节纪要长出关系边（叙事图）。
+        // 旧行留空数组——v1 摘要会被空闲管线按版本号逐章重算。
+        "ALTER TABLE chapter_digests ADD COLUMN relations_json TEXT NOT NULL DEFAULT '[]';",
+    ),
 ];
 
 /// Apply migrations newer than the highest recorded version, up to `max_version`

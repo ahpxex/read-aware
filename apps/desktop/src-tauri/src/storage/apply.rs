@@ -343,9 +343,9 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
             tx.execute(
                 "INSERT OR IGNORE INTO chapter_digests
                     (book_id, chapter_index, chapter_href, summary,
-                     characters_json, digest_version, updated_at)
+                     characters_json, relations_json, digest_version, updated_at)
                     SELECT ?2, chapter_index, chapter_href, summary,
-                           characters_json, digest_version, updated_at
+                           characters_json, relations_json, digest_version, updated_at
                       FROM chapter_digests WHERE book_id = ?1",
                 params![merged, keep],
             )
@@ -802,14 +802,19 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                 .get("characters")
                 .map(|value| value.to_string())
                 .unwrap_or_else(|| "[]".to_string());
+            let relations_json = p
+                .get("relations")
+                .map(|value| value.to_string())
+                .unwrap_or_else(|| "[]".to_string());
             tx.execute(
                 "INSERT INTO chapter_digests
                     (book_id, chapter_index, chapter_href, summary,
-                     characters_json, digest_version, updated_at)
-                 VALUES (?1,?2,?3,?4,?5,?6,?7)
+                     characters_json, relations_json, digest_version, updated_at)
+                 VALUES (?1,?2,?3,?4,?5,?6,?7,?8)
                  ON CONFLICT(book_id, chapter_index) DO UPDATE SET
                     chapter_href=excluded.chapter_href, summary=excluded.summary,
                     characters_json=excluded.characters_json,
+                    relations_json=excluded.relations_json,
                     digest_version=excluded.digest_version,
                     updated_at=excluded.updated_at",
                 params![
@@ -818,6 +823,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                     str_of(p, "chapterHref"),
                     require(p, "summary", t)?,
                     characters_json,
+                    relations_json,
                     i64_of(p, "digestVersion").unwrap_or(1),
                     at,
                 ],

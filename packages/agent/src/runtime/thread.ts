@@ -173,8 +173,13 @@ export class AgentThread {
     return agent;
   }
 
-  private async refreshSystemPrompt(agent: Agent, currentChapterHref?: string): Promise<void> {
-    const wantsPosition = this.scope.kind === "book" && !!currentChapterHref;
+  private async refreshSystemPrompt(
+    agent: Agent,
+    currentChapterHref?: string,
+    cursorChapterIndex?: number,
+  ): Promise<void> {
+    const wantsPosition =
+      this.scope.kind === "book" && (!!currentChapterHref || cursorChapterIndex !== undefined);
     const [profile, book, shelf, memories, conversationSummary, toc, digests] = await Promise.all([
       this.deps.profile.getProfileSummary(),
       this.scope.kind === "book" ? this.deps.library.getBook(this.scope.bookId) : undefined,
@@ -189,8 +194,11 @@ export class AgentThread {
         ? this.deps.bookMemory.listDigests(this.scope.bookId).catch(() => [])
         : [],
     ]);
+    // 章节身份：href 反查优先；游标直给的 index（eval、以及 href 缺失的
+    // 宿主）作回退——两者同源于 getToc 的坐标系。
     const chapter =
-      toc && currentChapterHref ? findChapterByHref(toc, currentChapterHref) : undefined;
+      (toc && currentChapterHref ? findChapterByHref(toc, currentChapterHref) : undefined) ??
+      (toc && cursorChapterIndex !== undefined ? toc[cursorChapterIndex] : undefined);
     // 章节纪要按剧透边界过滤：叙事未读完只给当前章之前的；位置不明时
     // 宁缺毋滥（一条都不给）。说明书/已读完不设边界。
     const fenced = book?.narrativity === "narrative" && book.status !== "finished";
@@ -296,7 +304,11 @@ export class AgentThread {
           // 冻结 —— 前缀头部字节级稳定，同章追问跨轮命中 provider 缓存
           // （中段靠 context-slim 存根的确定性保持稳定）。中途提炼的记忆 /
           // 动态章内游标只进最新 user message；滚动摘要正是在这里重读。
-          await this.refreshSystemPrompt(agent, turnChapter ?? this.sessionChapter);
+          await this.refreshSystemPrompt(
+            agent,
+            turnChapter ?? this.sessionChapter,
+            cursor?.chapterIndex,
+          );
           const records = await this.deps.conversations.load(this.key);
           agent.state.messages = turnRecordsToMessages(
             lastTurnTail(records),

@@ -121,6 +121,12 @@ export type DomainEvent =
         summary: string;
         /** 该章出场人物；name/aliases 按本书文本原样拼写。 */
         characters: Array<{ name: string; aliases?: string[]; note?: string }>;
+        /**
+         * 该章确立的人物关系边（digestVersion 2 起）。from/to 引用
+         * characters 的 name；确立章节即本事件的 chapterIndex——叙事图
+         * 的剧透切片靠它。
+         */
+        relations?: Array<{ from: string; kind: string; to: string; note?: string }>;
         digestVersion: number;
         model?: string;
       }

@@ -340,6 +340,19 @@ export interface DigestCharacter {
   note?: string;
 }
 
+/**
+ * 章节读毕提炼的一条关系边（叙事图的边；digestVersion 2 起）。
+ * from/to 用人物名录里的 name 原样拼写；确立章节即所在 digest 的
+ * chapterIndex——剧透边界因此是图上的一次 WHERE 切片，不靠事后裁剪。
+ */
+export interface DigestRelation {
+  from: string;
+  /** 关系种类，本书语言的短名词（"父亲"、"未婚妻"、"仆人"…）。 */
+  kind: string;
+  to: string;
+  note?: string;
+}
+
 /** book.chapterDigested 的物化行：一章一份"读到这里为止"的纪要。 */
 export interface ChapterDigest {
   chapterIndex: number;
@@ -347,6 +360,8 @@ export interface ChapterDigest {
   /** 一两句话的章节纪要，严格来自该章文本。 */
   summary: string;
   characters: DigestCharacter[];
+  /** 该章确立/揭示的人物关系（digestVersion 1 的旧行没有——空数组）。 */
+  relations: DigestRelation[];
   digestVersion: number;
 }
 

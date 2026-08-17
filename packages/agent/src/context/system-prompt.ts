@@ -3,7 +3,7 @@
  * bundle 体系成型后（book_memory / reading_intent / conversation_insights）
  * 在这里逐段注入；全局线程每轮重建，书线程每个章节会话冻结一份快照。
  */
-import { mergeCharacterRegistry } from "../memory/chapter-digest";
+import { mergeCharacterRegistry, mergeRelationGraph } from "../memory/chapter-digest";
 import type { BookOverview, ChapterDigest, MemoryRecord } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 
@@ -82,6 +82,18 @@ function storySoFarSection(digests: ChapterDigest[]): string | undefined {
           `- ${character.name}${character.aliases?.length ? ` (${character.aliases.join(", ")})` : ""}${
             character.note ? ` — ${character.note}` : ""
           }`,
+      ),
+    );
+  }
+  // 关系边（叙事图）：digests 已按剧透边界过滤，这里的边全部是读者已知的。
+  // "A —kind→ B (#ch)" 的出处戳让模型能回答"读者是什么时候知道这层关系的"。
+  const edges = mergeRelationGraph(ordered);
+  if (edges.length) {
+    lines.push(
+      "Relationships so far (from —kind→ to, with the chapter that established it):",
+      ...edges.map(
+        (edge) =>
+          `- ${edge.from} —${edge.kind}→ ${edge.to} (#${edge.establishedAt})${edge.note ? ` — ${edge.note}` : ""}`,
       ),
     );
   }

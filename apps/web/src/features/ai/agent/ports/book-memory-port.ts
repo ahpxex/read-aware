@@ -6,7 +6,12 @@
  * 与其他投影读端的降级姿态一致。
  */
 import { invoke } from "@tauri-apps/api/core";
-import type { BookMemoryPort, ChapterDigest, DigestCharacter } from "@read-aware/agent";
+import type {
+  BookMemoryPort,
+  ChapterDigest,
+  DigestCharacter,
+  DigestRelation,
+} from "@read-aware/agent";
 import { commitDomainEvents } from "../../../../platform/domain-events";
 import { isTauri } from "../../../../platform/environment";
 
@@ -17,6 +22,7 @@ interface ChapterDigestRow {
   chapterHref: string | null;
   summary: string;
   charactersJson: string;
+  relationsJson: string;
   digestVersion: number;
   updatedAt: string;
 }
@@ -34,6 +40,24 @@ function parseCharacters(raw: string): DigestCharacter[] {
   }
 }
 
+function parseRelations(raw: string): DigestRelation[] {
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item): item is DigestRelation => {
+      if (!item || typeof item !== "object") return false;
+      const relation = item as Record<string, unknown>;
+      return (
+        typeof relation.from === "string" &&
+        typeof relation.kind === "string" &&
+        typeof relation.to === "string"
+      );
+    });
+  } catch {
+    return [];
+  }
+}
+
 export function createBookMemoryPort(): BookMemoryPort {
   return {
     listDigests: async (bookId) => {
@@ -46,6 +70,7 @@ export function createBookMemoryPort(): BookMemoryPort {
         ...(row.chapterHref ? { chapterHref: row.chapterHref } : {}),
         summary: row.summary,
         characters: parseCharacters(row.charactersJson),
+        relations: parseRelations(row.relationsJson),
         digestVersion: row.digestVersion,
       }));
     },
@@ -58,6 +83,7 @@ export function createBookMemoryPort(): BookMemoryPort {
           ...(digest.chapterHref ? { chapterHref: digest.chapterHref } : {}),
           summary: digest.summary,
           characters: digest.characters,
+          relations: digest.relations,
           digestVersion: digest.digestVersion,
         },
         origin: "agent",

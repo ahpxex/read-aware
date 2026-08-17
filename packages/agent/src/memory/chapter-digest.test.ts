@@ -7,6 +7,7 @@ import {
   digestMissingChapters,
   extractChapterDigest,
   mergeCharacterRegistry,
+  mergeRelationGraph,
 } from "./chapter-digest";
 
 const MODEL = { id: "stub", provider: "stub", api: "openai-completions" } as unknown as Model<Api>;
@@ -37,7 +38,7 @@ describe("extractChapterDigest", () => {
     const digest = await extractChapterDigest({
       complete: async () =>
         reply(
-          '{"summary": "阿辽沙进城见到了父亲。", "characters": [{"name": "阿辽沙", "aliases": ["阿列克塞"], "note": "幼子"}]}',
+          '{"summary": "阿辽沙进城见到了父亲。", "characters": [{"name": "阿辽沙", "aliases": ["阿列克塞"], "note": "幼子"}, {"name": "费奥多尔"}], "relations": [{"from": "费奥多尔", "kind": "父亲", "to": "阿辽沙"}, {"from": "费奥多尔", "kind": "仇敌", "to": "书里没有的人"}, {"from": "阿辽沙", "kind": "自己", "to": "阿辽沙"}]}',
         ),
       model: MODEL,
       chapterIndex: 3,
@@ -48,7 +49,9 @@ describe("extractChapterDigest", () => {
     expect(digest).toEqual({
       chapterIndex: 3,
       summary: "阿辽沙进城见到了父亲。",
-      characters: [{ name: "阿辽沙", aliases: ["阿列克塞"], note: "幼子" }],
+      characters: [{ name: "阿辽沙", aliases: ["阿列克塞"], note: "幼子" }, { name: "费奥多尔" }],
+      // 未知端点与自环被剪掉——挂空边比缺边更毒
+      relations: [{ from: "费奥多尔", kind: "父亲", to: "阿辽沙" }],
       digestVersion: DIGEST_VERSION,
     });
   });
@@ -99,17 +102,50 @@ describe("mergeCharacterRegistry", () => {
         summary: "b",
         digestVersion: 1,
         characters: [{ name: "米嘉", aliases: ["德米特里"], note: "长子，与父亲争产" }],
+        relations: [{ from: "米嘉", kind: "儿子", to: "费奥多尔" }],
       },
       {
         chapterIndex: 1,
         summary: "a",
         digestVersion: 1,
         characters: [{ name: "米嘉", aliases: ["米剑卡"], note: "长子" }],
+        relations: [{ from: "米嘉", kind: "儿子", to: "费奥多尔" }],
       },
     ];
     expect(mergeCharacterRegistry(digests)).toEqual([
       { name: "米嘉", aliases: ["米剑卡", "德米特里"], note: "长子，与父亲争产" },
     ]);
+  });
+});
+
+describe("mergeRelationGraph", () => {
+  test("keeps the earliest establishing chapter per edge and the latest note", () => {
+    const edges = mergeRelationGraph([
+      {
+        chapterIndex: 7,
+        summary: "b",
+        characters: [],
+        relations: [{ from: "米嘉", kind: "未婚夫", to: "卡捷琳娜", note: "婚约已危" }],
+        digestVersion: 2,
+      },
+      {
+        chapterIndex: 3,
+        summary: "a",
+        characters: [],
+        relations: [{ from: "米嘉", kind: "未婚夫", to: "卡捷琳娜" }],
+        digestVersion: 2,
+      },
+    ]);
+    expect(edges).toEqual([
+      { from: "米嘉", kind: "未婚夫", to: "卡捷琳娜", establishedAt: 3, note: "婚约已危" },
+    ]);
+  });
+
+  test("tolerates v1 digests without a relations field", () => {
+    const edges = mergeRelationGraph([
+      { chapterIndex: 0, summary: "旧", characters: [], digestVersion: 1 } as never,
+    ]);
+    expect(edges).toEqual([]);
   });
 });
 
@@ -138,7 +174,7 @@ describe("digestMissingChapters", () => {
         const text = String(context.messages[0]?.content ?? "");
         const match = text.match(/Chapter #(\d+)/);
         digested.push(Number(match?.[1]));
-        return reply(`{"summary": "第${match?.[1]}章摘要", "characters": []}`);
+        return reply(`{"summary": "第${match?.[1]}章摘要", "characters": [], "relations": []}`);
       },
     };
     return { deps, saved, digested };
@@ -162,7 +198,7 @@ describe("digestMissingChapters", () => {
 
   test("skips chapters that already carry a current-version digest", async () => {
     const { deps, digested } = harness([
-      { chapterIndex: 0, summary: "已有", characters: [], digestVersion: DIGEST_VERSION },
+      { chapterIndex: 0, summary: "已有", characters: [], relations: [], digestVersion: DIGEST_VERSION },
     ]);
     const count = await digestMissingChapters({
       ...deps,
@@ -178,7 +214,7 @@ describe("digestMissingChapters", () => {
 
   test("an outdated digest version is recomputed", async () => {
     const { deps, digested } = harness([
-      { chapterIndex: 0, summary: "旧版", characters: [], digestVersion: DIGEST_VERSION - 1 },
+      { chapterIndex: 0, summary: "旧版", characters: [], relations: [], digestVersion: DIGEST_VERSION - 1 },
     ]);
     await digestMissingChapters({
       ...deps,

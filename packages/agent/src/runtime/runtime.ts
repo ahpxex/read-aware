@@ -3,12 +3,15 @@
  * 将来 apps/web 的适配器就是「new 一个 AgentRuntime + 映射 chunk 类型」这么薄。
  */
 import type { ThreadChunk } from "../chunks";
+import { digestMissingChapters } from "../memory/chapter-digest";
 import { runConsolidation, type ConsolidationReport } from "../memory/consolidation";
+import { findChapterByHref } from "../text/chapter-lookup";
 import { createModelResolver, type LlmAccount, type RoleModels } from "../models/accounts";
 import { createCompleteFn, createStreamFn, type CompleteFn, type StreamFn } from "../models/complete";
 import { buildProviderRegistry } from "../models/registry";
 import type { ModelRole, RoleThinking } from "../models/roles";
 import type { AgentFetch } from "../models/transport";
+import type { Id } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import { extractJsonObject, schemaViolations } from "../structured";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
@@ -237,6 +240,40 @@ export class AgentRuntime {
    */
   consolidateIfNeeded(): Promise<ConsolidationReport | null> {
     return this.runConsolidation(false);
+  }
+
+  /**
+   * 章节读毕提炼（book_memory 投影 v1 的写管道；空闲节拍调用）。
+   * `throughChapterHref` 是读者当前所在章——只提炼它之前的章节；缺失时
+   * 仅已读完的书提炼全书。跑在 fast 档；返回本次实际提炼的章数。
+   */
+  async digestBook(
+    bookId: Id,
+    options?: { throughChapterHref?: string; maxChapters?: number },
+  ): Promise<number> {
+    const deps = this.options.deps;
+    const book = await deps.library.getBook(bookId);
+    if (!book) return 0;
+    let beforeChapterIndex: number | undefined;
+    if (options?.throughChapterHref) {
+      const toc = await deps.bookText.getToc(bookId).catch(() => undefined);
+      const chapter = toc ? findChapterByHref(toc, options.throughChapterHref) : undefined;
+      beforeChapterIndex = chapter?.index;
+    }
+    if (beforeChapterIndex === undefined) {
+      if (book.status !== "finished") return 0;
+      const toc = await deps.bookText.getToc(bookId).catch(() => undefined);
+      beforeChapterIndex = toc?.length ?? 0;
+    }
+    return digestMissingChapters({
+      bookText: deps.bookText,
+      bookMemory: deps.bookMemory,
+      complete: this.completeFns.fast,
+      model: this.resolveModel("fast"),
+      bookId,
+      beforeChapterIndex,
+      maxChapters: options?.maxChapters,
+    });
   }
 
   private runConsolidation(force: boolean): Promise<ConsolidationReport | null> {

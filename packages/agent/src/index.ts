@@ -28,6 +28,12 @@ export { testLlmConnection } from "./models/test-connection";
 export { extractJsonObject, schemaViolations } from "./structured";
 export * from "./onboarding";
 export type { ConsolidationReport } from "./memory/consolidation";
+export {
+  DIGEST_VERSION,
+  digestMissingChapters,
+  extractChapterDigest,
+  mergeCharacterRegistry,
+} from "./memory/chapter-digest";
 export { PRESENT_TOOL_NAMES, MAX_PRESENTED_ITEMS } from "./tools/present-tools";
 export { INTERACTIVE_TOOL_NAMES } from "./tools/user-interaction";
 export { AgentThread, type AgentThreadOptions, type SendTurnInput, type SelectionAttachment } from "./runtime/thread";

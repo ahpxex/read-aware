@@ -11,6 +11,7 @@ import {
   KARAMAZOV_BOOK_ID,
   chapterTitleKey,
   chapterViewport,
+  karamazovEpub,
   karamazovSeed,
   karamazovSeedSummary,
   pickSentence,
@@ -109,6 +110,35 @@ function grantedSpoilerAssessment(observation: AgentEvalObservation): EvalAssess
 const LEAK_WORDS_CH12 = ["格露", "三千卢布", "伊柳沙", "大法官", "开庭", "庭审", "弑父"];
 const LEAK_WORDS_CH35 = ["大法官", "开庭", "庭审", "弑父"];
 
+/**
+ * 人工评审场景的选中段落：《宗教大法官》里的自由悖论。
+ * 游标与视口全部从 fixture 文本推导——视口恰好截止在选中段落末尾，
+ * 也就是读者的确切当前位置。
+ */
+const INQUISITOR_CHAPTER = 40;
+const INQUISITOR_SELECTION =
+  "如今，正是现在而不是过去，这些人比任何时候都相信他们有充分的自由，其实是他们自己把他们的自由乖乖地放到我们的脚边。";
+
+function inquisitorSelectionCursor() {
+  const epub = karamazovEpub();
+  const chapter = epub.chapters[INQUISITOR_CHAPTER];
+  if (!chapter) throw new Error(`karamazov fixture has no chapter ${INQUISITOR_CHAPTER}`);
+  const at = chapter.text.indexOf(INQUISITOR_SELECTION);
+  if (at < 0) throw new Error("karamazov fixture lost the Grand Inquisitor selection passage");
+  const end = at + INQUISITOR_SELECTION.length;
+  const charsBefore = epub.chapters
+    .slice(0, INQUISITOR_CHAPTER)
+    .reduce((sum, c) => sum + c.text.length, 0);
+  const totalChars = epub.chapters.reduce((sum, c) => sum + c.text.length, 0);
+  return {
+    chapterIndex: INQUISITOR_CHAPTER,
+    chapterTitle: chapter.title,
+    bookProgress: (charsBefore + end) / totalChars,
+    chapterProgress: end / chapter.text.length,
+    visibleText: chapter.text.slice(Math.max(0, end - 600), end),
+  };
+}
+
 export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "karamazov",
   description: "Real-book scenarios on the full Chinese Brothers Karamazov EPUB.",
@@ -139,6 +169,32 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
             answer: { mustContain: [chapterTitleKey(QUOTE_CHAPTER)] },
             tools: { required: ["search_book_text"], noErrors: true },
           }),
+          cjkAnswerAssessment(observation),
+        ),
+    }),
+    defineAgentEvalScenario({
+      id: "selected-passage-explain",
+      description:
+        "Human-review: the reader selects the Grand Inquisitor freedom paradox mid-chapter and asks what it means.",
+      tags: ["karamazov", "real-book", "selection", "human-review", "book"],
+      scope: { kind: "book", bookId: KARAMAZOV_BOOK_ID },
+      seed: karamazovSeed(33),
+      seedSummary: karamazovSeedSummary(33),
+      turns: [
+        {
+          text: "这段话我没看懂——为什么说人们比任何时候都相信自己有充分的自由，却又把自由放到了他们脚边？帮我讲讲。",
+          attachments: [{ text: INQUISITOR_SELECTION }],
+          readingCursor: inquisitorSelectionCursor(),
+        },
+      ],
+      // 人工评审场景：deterministic 只守语言与围栏纪律，答案质量留给人看（或 --judge）。
+      rubric: [
+        "Explains the freedom paradox using the Inquisitor's own argument as it stands in the visible text, staying within what the reader has read",
+        "Reads as a companion talking through this passage with the reader, not a generic lecture on the novel's themes",
+      ],
+      evaluate: (observation) =>
+        combineAssessments(
+          fenceDisciplineAssessment(observation, INQUISITOR_CHAPTER),
           cjkAnswerAssessment(observation),
         ),
     }),

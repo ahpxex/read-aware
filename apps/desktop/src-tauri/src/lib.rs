@@ -964,6 +964,7 @@ pub fn run() {
             storage::annotation_put,
             storage::annotation_delete,
             storage::memories_list_all,
+            storage::chapter_digests_list,
             storage::memory_get,
             storage::memory_put,
             storage::ai_chat_load,

@@ -14,6 +14,7 @@ import type {
   AnnotationItem,
   BookOverview,
   BookTextHit,
+  ChapterDigest,
   ChapterRef,
   MemoryRecord,
   NewMemoryInput,
@@ -62,6 +63,8 @@ export interface InMemoryStores {
   profile: { summary: string | undefined };
   /** bookId → 章节文本（正文抽取的模拟） */
   chapters: Map<string, ChapterSeed[]>;
+  /** bookId → 章节读毕纪要（book_memory 投影的模拟） */
+  chapterDigests: Map<string, ChapterDigest[]>;
   interactions: UserInteractionRequest[];
   readerRequests: Array<
     | { type: "open"; bookId: Id }
@@ -76,6 +79,7 @@ export interface InMemorySeed {
   profile?: string;
   memories?: MemoryRecord[];
   chapters?: Record<string, ChapterSeed[]>;
+  chapterDigests?: Record<string, ChapterDigest[]>;
   collections?: CollectionSummary[];
   bookStats?: BookStats[];
   statsOverview?: StatsOverview;
@@ -323,6 +327,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
     savedMemoryInputs: [],
     profile: { summary: seed.profile },
     chapters: new Map(Object.entries(structuredClone(seed.chapters ?? {}))),
+    chapterDigests: new Map(Object.entries(structuredClone(seed.chapterDigests ?? {}))),
     interactions: [],
     readerRequests: [],
     settings: structuredClone(seed.settings ?? defaultSettings()),
@@ -630,6 +635,16 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
           }
         }
         return results.slice(0, limit ?? 16);
+      },
+    },
+    bookMemory: {
+      listDigests: async (bookId) => structuredClone(stores.chapterDigests.get(bookId) ?? []),
+      saveDigest: async (bookId, digest) => {
+        const digests = stores.chapterDigests.get(bookId) ?? [];
+        const next = digests.filter((entry) => entry.chapterIndex !== digest.chapterIndex);
+        next.push(structuredClone(digest));
+        next.sort((a, b) => a.chapterIndex - b.chapterIndex);
+        stores.chapterDigests.set(bookId, next);
       },
     },
     settings: {

@@ -157,6 +157,7 @@ row's historical timestamp while their HLC is stamped at synthesis time.
 | `book.removed` | `{ bookId }` (tombstone) |
 | `collection.created` / `collection.renamed` / `collection.removed` | `{ collectionId, name? }` |
 | `book.addedToCollection` / `book.removedFromCollection` | `{ bookId, collectionId }` (set semantics → reconstructable as many-to-many later) |
+| `book.chapterDigested` | `{ bookId, chapterIndex, chapterHref?, summary, characters[], digestVersion, model? }` — 章节读毕提炼（book_memory 投影原料）。LLM 产物不可确定性重算，所以像 `coverExtracted` 一样记录成事件；`chapter_digests` 投影可从日志整体重建，同章新事件整行覆盖 |
 | `book.progressed` | `{ bookId, locator, chapterHref?, currentLocation?, totalLocations?, progressPercent?, status? }` |
 | `book.timeRecorded` | `{ bookId, ms, atEpochMs, localDay, localHour }` — day/hour buckets are stamped at **record** time in the recording device's timezone; deriving them at replay time would shift history across timezones |
 | `highlight.created` | `{ highlightId, bookId, anchor?, chapterHref?, text, color?, style? }` |
@@ -254,6 +255,10 @@ explicitly as retrieval. Tables (all forward-looking, no producer yet):
   (dedup + audit).
 - **`working_memory`** — short-horizon, decaying projection for the active
   session (`salience`, `expires_at`); cheap to rebuild/discard.
+- **`chapter_digests`** *(live since v17)* — book_memory v1：每本书每个已读完
+  章节一行（`summary` + `characters_json` 人物名录，按本书文本原样拼写）。
+  由 `book.chapterDigested` 物化，空闲管线（`digestBook`）逐章补齐；注入
+  book 线程 system prompt 的 "story so far" 一节，剧透边界在注入时过滤。
 
 ### 5.3 Context bundles (versioned, exportable)
 

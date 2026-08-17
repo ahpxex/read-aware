@@ -333,6 +333,33 @@ export interface SettingsPort {
  * 例如轮后巩固管道失败：对话不受影响，但失败必须留下痕迹（产品侧落到
  * 桌面端的日志文件）。缺省即静默，测试与 CLI 无需提供。
  */
+/** 章节读毕提炼的一条人物记录；name/aliases 按本书文本原样拼写。 */
+export interface DigestCharacter {
+  name: string;
+  aliases?: string[];
+  note?: string;
+}
+
+/** book.chapterDigested 的物化行：一章一份"读到这里为止"的纪要。 */
+export interface ChapterDigest {
+  chapterIndex: number;
+  chapterHref?: string;
+  /** 一两句话的章节纪要，严格来自该章文本。 */
+  summary: string;
+  characters: DigestCharacter[];
+  digestVersion: number;
+}
+
+/**
+ * 书籍记忆读写（book_memory 投影 v1：章节纪要 + 人物名录）。
+ * 实现方以 book.chapterDigested 事件为写入口径——摘要是 LLM 产物、不可
+ * 确定性重算，所以记录成事件而非只写投影；listDigests 读物化表。
+ */
+export interface BookMemoryPort {
+  listDigests(bookId: Id): Promise<ChapterDigest[]>;
+  saveDigest(bookId: Id, digest: ChapterDigest): Promise<void>;
+}
+
 export interface AgentLogPort {
   warn(message: string, detail?: unknown): void;
   error(message: string, detail?: unknown): void;
@@ -347,6 +374,7 @@ export interface RuntimeDeps {
   profile: ProfilePort;
   memory: MemoryPort;
   bookText: BookTextPort;
+  bookMemory: BookMemoryPort;
   settings: SettingsPort;
   log?: AgentLogPort;
   /**

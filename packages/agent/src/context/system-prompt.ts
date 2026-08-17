@@ -3,7 +3,8 @@
  * bundle 体系成型后（book_memory / reading_intent / conversation_insights）
  * 在这里逐段注入；全局线程每轮重建，书线程每个章节会话冻结一份快照。
  */
-import type { BookOverview, MemoryRecord } from "../ports";
+import { mergeCharacterRegistry } from "../memory/chapter-digest";
+import type { BookOverview, ChapterDigest, MemoryRecord } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 
 export interface SystemPromptInput {
@@ -21,6 +22,11 @@ export interface SystemPromptInput {
   shelfSize?: number;
   /** 注入的高置信记忆（book_memory / user 记忆 bundle 的 v0） */
   memories?: MemoryRecord[];
+  /**
+   * 已读完章节的纪要（book_memory 投影 v1）：调用方已按剧透边界过滤。
+   * 人物名录按本书文本原样拼写——版本保真（译名、称呼、谁是谁）的数据源。
+   */
+  chapterDigests?: ChapterDigest[];
   /** 本线程的滚动摘要（conversation_insights bundle v0）—— 窗口外历史经由它进入 */
   conversationSummary?: string;
   /** 全局线程首次使用且画像为空 → 访谈模式（doc §9：onboarding 的对话半场） */
@@ -51,6 +57,42 @@ function readingPositionLine(input: SystemPromptInput): string {
     ? ""
     : ' The current chapter is not identified: a live <reading_cursor> on the newest message is authoritative, and if spoiler safety needs the exact position and none is present, ask the reader.';
   return `Reading position: ${parts.join("; ")}.${protocol}`;
+}
+
+/** "故事至此"一节里保留完整摘要的章数；更早章节只留人物名录。 */
+const DIGEST_SUMMARY_CHAPTERS = 8;
+
+/**
+ * 已读章节纪要 → system prompt 的"故事至此"一节。人物名录全量注入
+ * （紧凑单行），章节摘要只带最近几章——更早的细节靠 read_chapter /
+ * search_book_text 按需取。
+ */
+function storySoFarSection(digests: ChapterDigest[]): string | undefined {
+  if (!digests.length) return undefined;
+  const ordered = [...digests].sort((a, b) => a.chapterIndex - b.chapterIndex);
+  const lines: string[] = [
+    "The story so far, built from THIS book's own text (chapters the reader has finished). Names and aliases are spelled exactly as this edition spells them — always use these spellings, never a variant you remember from another edition or translation.",
+  ];
+  const registry = mergeCharacterRegistry(ordered);
+  if (registry.length) {
+    lines.push(
+      "Characters so far:",
+      ...registry.map(
+        (character) =>
+          `- ${character.name}${character.aliases?.length ? ` (${character.aliases.join(", ")})` : ""}${
+            character.note ? ` — ${character.note}` : ""
+          }`,
+      ),
+    );
+  }
+  const recent = ordered.slice(-DIGEST_SUMMARY_CHAPTERS);
+  if (recent.length) {
+    lines.push(
+      "Recent finished chapters:",
+      ...recent.map((digest) => `- #${digest.chapterIndex}: ${digest.summary}`),
+    );
+  }
+  return lines.join("\n");
 }
 
 /**
@@ -105,6 +147,7 @@ function sharedRules(scope: ThreadScope): string {
 
 ## Grounding
 - Ground your answers: clearly separate what comes from the user's books/annotations and what comes from your general knowledge.
+- Edition fidelity: whatever you remember about a book comes from OTHER editions and translations. Character names, spellings, wording, and who-said-what must follow the text retrieved from THIS book (tool results, visible_text, grounding_context excerpts); if you have not seen it in this book's text, do not quote it or attribute it.
 - Grounding limits citations, not conversation: when the reader asks you to expand on a point from your earlier discussion, develop it from the conversation record and your own reasoning. Unavailable book text means fewer quotes, never a refusal to discuss.
 ${bookRules}`.trim();
 }
@@ -135,6 +178,11 @@ export function buildSystemPrompt(scope: ThreadScope, input: SystemPromptInput):
         `This is the reader's first session and you know nothing about them yet. Before answering at length, get to know them: use ask_user for 2-4 short, warm questions across the conversation (one at a time) about their reading goals, domain background, and how deep they like explanations. Use the remember tool to save what you learn (scope "user"). Do not interrogate — weave questions naturally, and stop once you have a working picture.`,
       );
     }
+  }
+
+  if (scope.kind === "book" && input.chapterDigests?.length) {
+    const story = storySoFarSection(input.chapterDigests);
+    if (story) sections.push(story);
   }
 
   if (input.profile) {

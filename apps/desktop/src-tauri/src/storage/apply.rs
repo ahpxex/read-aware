@@ -263,6 +263,8 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
             // are not emitted per-annotation on a book delete.
             tx.execute("DELETE FROM annotations WHERE book_id = ?1", params![id])
                 .map_err(|e| e.to_string())?;
+            tx.execute("DELETE FROM chapter_digests WHERE book_id = ?1", params![id])
+                .map_err(|e| e.to_string())?;
             tx.execute("DELETE FROM books WHERE id = ?1", params![id])
                 .map_err(|e| e.to_string())?;
         }
@@ -335,6 +337,20 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
             tx.execute("DELETE FROM reading_time_daily WHERE book_id = ?1", params![merged])
                 .map_err(|e| e.to_string())?;
             tx.execute("DELETE FROM reading_time_hourly WHERE book_id = ?1", params![merged])
+                .map_err(|e| e.to_string())?;
+            // Chapter digests describe the same content on both records: the
+            // keeper's own rows win per chapter, the merged record fills gaps.
+            tx.execute(
+                "INSERT OR IGNORE INTO chapter_digests
+                    (book_id, chapter_index, chapter_href, summary,
+                     characters_json, digest_version, updated_at)
+                    SELECT ?2, chapter_index, chapter_href, summary,
+                           characters_json, digest_version, updated_at
+                      FROM chapter_digests WHERE book_id = ?1",
+                params![merged, keep],
+            )
+            .map_err(|e| e.to_string())?;
+            tx.execute("DELETE FROM chapter_digests WHERE book_id = ?1", params![merged])
                 .map_err(|e| e.to_string())?;
             // The keeper's metadata wins; reading STATE takes whichever record
             // got further (progress trio moves together), stars are sticky,
@@ -776,6 +792,38 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
             }
             return Ok(false);
         }
+        // 章节读毕提炼：LLM 产物不可确定性重算，因此以事件为准物化整行；
+        // 同章后到的事件（管线升版重算）整行覆盖。
+        "book.chapterDigested" => {
+            let id = require(p, "bookId", t)?;
+            let chapter_index = i64_of(p, "chapterIndex")
+                .ok_or_else(|| format!("{t}: missing chapterIndex"))?;
+            let characters_json = p
+                .get("characters")
+                .map(|value| value.to_string())
+                .unwrap_or_else(|| "[]".to_string());
+            tx.execute(
+                "INSERT INTO chapter_digests
+                    (book_id, chapter_index, chapter_href, summary,
+                     characters_json, digest_version, updated_at)
+                 VALUES (?1,?2,?3,?4,?5,?6,?7)
+                 ON CONFLICT(book_id, chapter_index) DO UPDATE SET
+                    chapter_href=excluded.chapter_href, summary=excluded.summary,
+                    characters_json=excluded.characters_json,
+                    digest_version=excluded.digest_version,
+                    updated_at=excluded.updated_at",
+                params![
+                    id,
+                    chapter_index,
+                    str_of(p, "chapterHref"),
+                    require(p, "summary", t)?,
+                    characters_json,
+                    i64_of(p, "digestVersion").unwrap_or(1),
+                    at,
+                ],
+            )
+            .map_err(|e| e.to_string())?;
+        }
         // profile/entity: no projection table until the consolidation pipeline.
         "profile.updated" | "entity.resolved" | "entity.merged" => return Ok(false),
 
@@ -897,6 +945,7 @@ pub const DERIVED_TABLES: &[&str] = &[
     "reading_time_hourly",
     "synced_preferences",
     "book_aliases",
+    "chapter_digests",
 ];
 
 pub const DIFF_SPECS: &[DiffSpec] = &[
@@ -958,6 +1007,11 @@ pub const DIFF_SPECS: &[DiffSpec] = &[
     },
     DiffSpec {
         table: "book_aliases",
+        local_columns: &[],
+        domain_rows: None,
+    },
+    DiffSpec {
+        table: "chapter_digests",
         local_columns: &[],
         domain_rows: None,
     },

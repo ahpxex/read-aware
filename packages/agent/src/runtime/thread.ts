@@ -28,6 +28,7 @@ import {
   lastTurnTail,
   turnRecordsToMessages,
 } from "./history";
+import { buildGroundingContext } from "./grounding-context";
 import { formatPromptTurn, type ReadingCursor } from "./reading-cursor";
 import { toolResultText } from "./tool-trace";
 import { windowByTurns } from "./windowing";
@@ -174,7 +175,7 @@ export class AgentThread {
 
   private async refreshSystemPrompt(agent: Agent, currentChapterHref?: string): Promise<void> {
     const wantsPosition = this.scope.kind === "book" && !!currentChapterHref;
-    const [profile, book, shelf, memories, conversationSummary, toc] = await Promise.all([
+    const [profile, book, shelf, memories, conversationSummary, toc, digests] = await Promise.all([
       this.deps.profile.getProfileSummary(),
       this.scope.kind === "book" ? this.deps.library.getBook(this.scope.bookId) : undefined,
       this.scope.kind === "global" ? this.deps.library.listBooks() : undefined,
@@ -184,12 +185,27 @@ export class AgentThread {
       wantsPosition && this.scope.kind === "book"
         ? this.deps.bookText.getToc(this.scope.bookId).catch(() => undefined)
         : undefined,
+      this.scope.kind === "book"
+        ? this.deps.bookMemory.listDigests(this.scope.bookId).catch(() => [])
+        : [],
     ]);
     const chapter =
       toc && currentChapterHref ? findChapterByHref(toc, currentChapterHref) : undefined;
+    // 章节纪要按剧透边界过滤：叙事未读完只给当前章之前的；位置不明时
+    // 宁缺毋滥（一条都不给）。说明书/已读完不设边界。
+    const fenced = book?.narrativity === "narrative" && book.status !== "finished";
+    const chapterDigests =
+      this.scope.kind !== "book"
+        ? undefined
+        : fenced
+          ? chapter
+            ? digests.filter((digest) => digest.chapterIndex < chapter.index)
+            : []
+          : digests;
     const systemPrompt = buildSystemPrompt(this.scope, {
       book,
       currentChapter: chapter && { index: chapter.index, title: chapter.title },
+      chapterDigests,
       profile,
       shelfSize: shelf?.length,
       memories,
@@ -215,21 +231,54 @@ export class AgentThread {
     // 不可信，下一轮从持久记录重建基线（等价于今天的无状态装配）。
     let turnCompleted = false;
     this.turnState.presentedBookIds.clear();
-    // 剧透围栏：叙事书 + 未读完 + 本轮游标带章节 index → 正文工具越界需 confirmSpoiler
-    this.turnState.spoilerFence = undefined;
-    if (this.scope.kind === "book" && input.readingCursor?.chapterIndex !== undefined) {
-      const book = await this.deps.library.getBook(this.scope.bookId);
-      if (book?.narrativity === "narrative" && book.status !== "finished") {
-        this.turnState.spoilerFence = {
-          throughChapterIndex: input.readingCursor.chapterIndex,
+    // 游标章节坐标归一：宿主（阅读器）只带 href——抽取章节 index 由 agent 用
+    // 自己的权威映射反查（与 read_chapter 同一坐标系）。eval 等直接给 index
+    // 的调用方原样通过。围栏与接地装配都以归一后的游标为准。
+    let cursor = input.readingCursor;
+    if (
+      this.scope.kind === "book" &&
+      cursor?.chapter !== undefined &&
+      cursor.chapterIndex === undefined
+    ) {
+      const toc = await this.deps.bookText.getToc(this.scope.bookId).catch(() => undefined);
+      const chapter = toc ? findChapterByHref(toc, cursor.chapter) : undefined;
+      if (chapter) {
+        cursor = {
+          ...cursor,
+          chapterIndex: chapter.index,
+          chapterTitle: cursor.chapterTitle ?? chapter.title,
         };
       }
     }
+    // 剧透围栏：叙事书 + 未读完 + 本轮游标带章节 index → 正文工具越界需 confirmSpoiler
+    this.turnState.spoilerFence = undefined;
+    let narrativeUnfinished = false;
+    if (this.scope.kind === "book" && (cursor || input.attachments?.length)) {
+      const book = await this.deps.library.getBook(this.scope.bookId);
+      narrativeUnfinished = book?.narrativity === "narrative" && book.status !== "finished";
+      if (narrativeUnfinished && cursor?.chapterIndex !== undefined) {
+        this.turnState.spoilerFence = {
+          throughChapterIndex: cursor.chapterIndex,
+        };
+      }
+    }
+    // 选中提问的确定性接地：边界内原文证据随本轮注入（见 grounding-context.ts）。
+    // 装配失败静默降级；叙事书没有章节坐标时宁缺毋滥。
+    const groundingContext =
+      this.scope.kind === "book" && input.attachments?.length
+        ? await buildGroundingContext({
+            bookText: this.deps.bookText,
+            bookId: this.scope.bookId,
+            attachments: input.attachments,
+            cursor,
+            narrativeFence: narrativeUnfinished,
+          })
+        : undefined;
     try {
       const agent = await this.ensureAgent();
       // 本轮所在章节：选区的章节优先于阅读位置（问哪段话,会话就属于哪章）。
       // 双重职责：章节会话的边界信号 + system prompt 的稳定章节身份。
-      const turnChapter = input.attachments?.[0]?.chapter ?? input.readingCursor?.chapter;
+      const turnChapter = input.attachments?.[0]?.chapter ?? cursor?.chapter;
       if (this.scope.kind === "book") {
         // 书线程章节会话（doc §5）：同章节内的轮次共享同一个上下文树
         // （agent.state 连续累积，windowByTurns 封顶）；当且仅当这条消息
@@ -266,7 +315,7 @@ export class AgentThread {
       input.signal?.addEventListener("abort", onAbort, { once: true });
 
       const userText = formatUserTurn(input.text, input.attachments);
-      const promptText = formatPromptTurn(input.text, input.attachments, input.readingCursor);
+      const promptText = formatPromptTurn(input.text, input.attachments, cursor, groundingContext);
       // UI 在流开始前就把本轮用户消息持久化（retry 的截断可见性依赖这一点）。
       // 全局线程水化 / 未来任何全量重建会把它带进 state，而 prompt() 马上又
       // 注入同一条 —— 尾部等值的 user 消息属于本轮，丢弃避免问题被喂两遍。

@@ -3,6 +3,7 @@ import type { RuntimeDeps } from "@read-aware/agent";
 import { createLogger } from "../../../../platform/logger";
 import { getPluginAgentTools } from "../../../plugins/runtime/plugin-tools";
 import { createAnnotationsPort } from "./annotations-port";
+import { createBookMemoryPort } from "./book-memory-port";
 import { createBookTextPort } from "./book-text-port";
 import { createConversationPort } from "./conversation-port";
 import { createLibraryPort } from "./library-port";
@@ -24,6 +25,7 @@ export function buildRuntimeDeps(): RuntimeDeps {
     profile: createProfilePort(),
     memory: createMemoryPort(),
     bookText: createBookTextPort(),
+    bookMemory: createBookMemoryPort(),
     settings: createSettingsPort(),
     log: createLogger("agent"),
     extraTools: getPluginAgentTools,

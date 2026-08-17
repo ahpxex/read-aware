@@ -104,6 +104,28 @@ export type DomainEvent =
       { bookId: Id; status: CoverStatus; coverBlobKey?: string }
     >
   /**
+   * 章节读毕提炼（book_memory 投影的原料）：读者读完一章后，后台管线从
+   * 该章文本提炼出的摘要与人物名录。像 coverExtracted 一样，这是"记录一个
+   * 派生事实"——LLM 产物不可确定性重算，所以入事件而非只入投影；投影表
+   * chapter_digests 可从事件流完整重建。名字必须按本书文本原样拼写——
+   * 这是版本保真（译名、称呼）的数据源。digestVersion 升版意味着提炼
+   * 管线换代，旧摘要可被同章新事件整体覆盖。
+   */
+  | DomainEventEnvelope<
+      "book.chapterDigested",
+      {
+        bookId: Id;
+        chapterIndex: number;
+        chapterHref?: string;
+        /** 一两句话的章节纪要，严格来自该章文本。 */
+        summary: string;
+        /** 该章出场人物；name/aliases 按本书文本原样拼写。 */
+        characters: Array<{ name: string; aliases?: string[]; note?: string }>;
+        digestVersion: number;
+        model?: string;
+      }
+    >
+  /**
    * Two book records turned out to be the same content (matching source
    * sha256 — e.g. the same file imported independently on two devices).
    * Everything the merged record accrued (annotations, reading time,

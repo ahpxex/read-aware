@@ -32,6 +32,12 @@
 >   reports them; they cannot be recovered, only outgrown.
 > - Not built yet: the sync engine, and the consolidation pipeline behind
 >   profile/entity events (they are logged but project to nothing).
+> - **Book memory v1 is live**: `book.chapterDigested` events project to
+>   `chapter_digests` (per-finished-chapter summary + character registry,
+>   names spelled as THIS edition spells them), filled by an idle pipeline
+>   and injected into the book-thread system prompt behind the spoiler
+>   boundary. Selection turns additionally get deterministic grounding
+>   context (`runtime/grounding-context.ts`) assembled host-side.
 > - Target on-device schema: `docs/data-model.md`. Current audit:
 >   `docs/review-0.3.0.html`.
 

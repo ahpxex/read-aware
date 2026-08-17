@@ -103,3 +103,50 @@ pub fn memory_put(memory: Memory, db: State<'_, Db>) -> Result<(), String> {
     Ok(())
 }
 
+
+// --- Chapter digests projection (book memory; book.chapterDigested) ---
+
+/// Mirrors `ChapterDigest` in packages/agent (…/src/ports.ts). `characters`
+/// stays an opaque JSON string here — the TS port owns its shape.
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChapterDigest {
+    pub book_id: String,
+    pub chapter_index: i64,
+    pub chapter_href: Option<String>,
+    pub summary: String,
+    pub characters_json: String,
+    pub digest_version: i64,
+    pub updated_at: String,
+}
+
+#[tauri::command]
+pub fn chapter_digests_list(db: State<'_, Db>, book_id: String) -> Result<Vec<ChapterDigest>, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    let mut stmt = conn
+        .prepare(
+            "SELECT book_id, chapter_index, chapter_href, summary,
+                    characters_json, digest_version, updated_at
+               FROM chapter_digests WHERE book_id = ?1
+              ORDER BY chapter_index",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map(params![book_id], |row| {
+            Ok(ChapterDigest {
+                book_id: row.get(0)?,
+                chapter_index: row.get(1)?,
+                chapter_href: row.get(2)?,
+                summary: row.get(3)?,
+                characters_json: row.get(4)?,
+                digest_version: row.get(5)?,
+                updated_at: row.get(6)?,
+            })
+        })
+        .map_err(|e| e.to_string())?;
+    let mut out = Vec::new();
+    for r in rows {
+        out.push(r.map_err(|e| e.to_string())?);
+    }
+    Ok(out)
+}

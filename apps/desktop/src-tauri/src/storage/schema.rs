@@ -453,6 +453,23 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
          );
          CREATE INDEX IF NOT EXISTS ix_book_aliases_keep ON book_aliases (keep_id);",
     ),
+    (
+        17,
+        "chapter_digests",
+        // [projection] book.chapterDigested 的物化：每本书每个已读完章节
+        // 一行（摘要 + 人物名录 JSON）。完全由事件流重建；同章新事件
+        // （digest_version 升级或重放）整行覆盖。
+        "CREATE TABLE IF NOT EXISTS chapter_digests (
+            book_id         TEXT NOT NULL,
+            chapter_index   INTEGER NOT NULL,
+            chapter_href    TEXT,
+            summary         TEXT NOT NULL,
+            characters_json TEXT NOT NULL DEFAULT '[]',
+            digest_version  INTEGER NOT NULL DEFAULT 1,
+            updated_at      TEXT NOT NULL,
+            PRIMARY KEY (book_id, chapter_index)
+         );",
+    ),
 ];
 
 /// Apply migrations newer than the highest recorded version, up to `max_version`

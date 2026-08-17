@@ -95,9 +95,13 @@ export function formatPromptTurn(
   content: string,
   attachments?: TurnAttachment[],
   cursor?: ReadingCursor,
+  groundingContext?: string,
 ): string {
   const authoredTurn = formatUserTurn(content, attachments);
   const anchor = `[host note: reply entirely in ${replyLanguageAnchor(content)}]`;
-  if (!cursor) return `${authoredTurn}\n\n${anchor}`;
-  return `${formatReadingCursor(cursor)}\n\nReader turn:\n${authoredTurn}\n\n${anchor}`;
+  const prefix = [cursor ? formatReadingCursor(cursor) : undefined, groundingContext]
+    .filter(Boolean)
+    .join("\n\n");
+  if (!prefix) return `${authoredTurn}\n\n${anchor}`;
+  return `${prefix}\n\nReader turn:\n${authoredTurn}\n\n${anchor}`;
 }

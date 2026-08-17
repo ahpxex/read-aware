@@ -222,9 +222,7 @@ export type PluginThemeColor = string;
  * The app-chrome token vocabulary a theme may override. Every key is optional:
  * unset tokens keep the host's own values for the theme's polarity, so a
  * near-default theme only states its differences. This vocabulary is a
- * long-term contract (only ever extended, never renamed). One exception on
- * record: `paperWarm` was retired when the app dropped its warm secondary
- * canvas — hosts still accept it in manifests but ignore it.
+ * long-term contract (only ever extended, never renamed).
  */
 export type PluginAppThemeTokens = {
   /** The app canvas. */

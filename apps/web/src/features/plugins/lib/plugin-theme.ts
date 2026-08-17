@@ -111,8 +111,7 @@ export function findRegisteredByRef<T extends { pluginId: string; id: string }>(
  * Manifest token name → CSS custom property. The keys are the public
  * vocabulary (documented on `PluginAppThemeTokens`); the values are the app's
  * own semantic tokens from index.css. Extending this map is how the
- * vocabulary grows — entries are never renamed, and a removed entry moves to
- * `RETIRED_APP_THEME_TOKENS` so shipped manifests keep installing.
+ * vocabulary grows.
  */
 export const APP_THEME_TOKEN_VARS: Record<keyof PluginAppThemeTokens, string> = {
   paper: "--color-paper",
@@ -130,14 +129,6 @@ export const APP_THEME_TOKEN_VARS: Record<keyof PluginAppThemeTokens, string> = 
 };
 
 const APP_THEME_TOKEN_NAMES = Object.keys(APP_THEME_TOKEN_VARS) as (keyof PluginAppThemeTokens)[];
-
-/**
- * Tokens the vocabulary once had and no longer maps to anything. Validation
- * accepts them (a published theme must not start failing to install because
- * the app retired a color) and application silently drops them.
- * - `paperWarm`: the warm secondary canvas, removed with the token itself.
- */
-const RETIRED_APP_THEME_TOKENS = new Set(["paperWarm"]);
 
 // ─── Manifest validation ─────────────────────────────────────────────────────
 
@@ -276,7 +267,6 @@ export function validateThemeContributions(
       }
       app = {};
       for (const [token, value] of Object.entries(record.app)) {
-        if (RETIRED_APP_THEME_TOKENS.has(token)) continue;
         if (!APP_THEME_TOKEN_NAMES.includes(token as keyof PluginAppThemeTokens)) {
           throw new Error(
             `theme "${id}" has unknown app token "${token}" (valid: ${APP_THEME_TOKEN_NAMES.join(", ")})`,
@@ -288,13 +278,7 @@ export function validateThemeContributions(
         app[token as keyof PluginAppThemeTokens] = value;
       }
       if (Object.keys(app).length === 0) {
-        if (Object.keys(record.app).length > 0) {
-          // Every declared token was retired: degrade to "no app part", not a
-          // failed install.
-          app = undefined;
-        } else {
-          throw new Error(`theme "${id}" app part must set at least one token`);
-        }
+        throw new Error(`theme "${id}" app part must set at least one token`);
       }
     }
 

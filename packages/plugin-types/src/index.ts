@@ -986,6 +986,7 @@ export type ShelfDomainEventType =
   | "book.imported"
   | "book.metadataEdited"
   | "book.coverExtracted"
+  | "book.merged"
   | "book.opened"
   | "book.starred"
   | "book.finished"

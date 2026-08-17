@@ -43,10 +43,36 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  --selection: rgb(38 36 32 / 0.12);
+}
+
+/* The dark page: the same ink-on-paper voice with the values swapped — warm
+   near-black paper, soft warm-white ink. Follows the system; there is no
+   toggle. Every color in the site flows through these tokens, so this block
+   is the whole theme. fg-subtle keeps ≥4.5:1 on paper and stays below
+   fg-muted so the three-step hierarchy still reads. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --color-paper: #201d1a;
+    --color-border: rgb(236 233 228 / 0.14);
+    --color-border-strong: #3d3934;
+    --color-fg: #ece9e4;
+    --color-fg-muted: #aaa49c;
+    --color-fg-subtle: #948e84;
+    --color-inverse-fg: #201d1a;
+    --color-surface: #282420;
+    --color-fill: #2c2823;
+    --color-fill-strong: #3a352f;
+
+    --selection: rgb(236 233 228 / 0.2);
+  }
 }
 
 ::selection {
-  background-color: rgb(38 36 32 / 0.12);
+  background-color: var(--selection);
 }
 
 *,

@@ -24,6 +24,8 @@ export type HomeContent = {
   contextCaption: string;
   pluginTitle: string;
   pluginBody: string;
+  pluginAlt: string;
+  pluginCaption: string;
   syncTitle: string;
   syncBody: string;
   inShortTitle: string;
@@ -57,8 +59,8 @@ export const HOME: Record<Locale, HomeContent> = {
     readerBody:
       "Import a file and start reading. There is no conversion and no cloud upload; your highlights, notes, and place in the book stay with the original text. When you want more focus, read sentence by sentence — the page holds back, a floating strip steps you through, and read-aloud can follow along.",
     readerAlt:
-      "A page of Atomic Habits in the ReadAware reader, one sentence held in focus while the rest of the page recedes.",
-    readerCaption: "Reading Atomic Habits one sentence at a time.",
+      "A page of Pride and Prejudice in the ReadAware reader, one sentence held in focus while the rest of the page recedes.",
+    readerCaption: "Reading Pride and Prejudice one sentence at a time.",
     memoryTitle: "It's aware of what you've read",
     memoryBody:
       "Ask about a passage, a book, or your whole shelf. ReadAware answers from your own reading — the line you marked three books ago, the question you asked last week, the thread that runs through everything on your shelf. It doesn't replay a chat history; it keeps a durable memory of what matters and brings it back at the moment it's relevant.",
@@ -68,6 +70,9 @@ export const HOME: Record<Locale, HomeContent> = {
     pluginTitle: "Extended from the inside",
     pluginBody:
       "Sandboxed plugins from the built-in marketplace add read-aloud voices, dictionaries, reading themes, feeds that read like books. And they reach deeper than features: a plugin can hand the assistant a new tool, and it simply starts using it. The reader doesn't just gain buttons — it learns new skills.",
+    pluginAlt:
+      "The ReadAware plugin panel — dictionary, themes, and RSS reader installed, each in its own sandbox, some handing the assistant new tools.",
+    pluginCaption: "Voices, dictionaries, themes, feeds — and tools the assistant picks up.",
     syncTitle: "Your reading follows you",
     syncBody:
       "Open ReadAware on another machine and everything is already there — your books, your highlights, your place in each of them, and the memory built from all of it. Sync is end-to-end encrypted: the relay only ever stores ciphertext, so nobody in the middle can read what you read. Desktop and Android today; iOS is on the way.",
@@ -117,8 +122,8 @@ export const HOME: Record<Locale, HomeContent> = {
     readerTitle: "安静地读任何书",
     readerBody:
       "导入文件就能开始读。没有格式转换，也没有云端上传；划线、笔记和阅读位置都附着在原文上。想更专注时，可以逐句阅读——页面退后一步，浮动条带你逐句前进，朗读也能跟着走。",
-    readerAlt: "ReadAware 阅读器中的《掌控习惯》，一句话保持聚焦，其余文字退后。",
-    readerCaption: "逐句阅读《掌控习惯》。",
+    readerAlt: "ReadAware 阅读器中的《傲慢与偏见》，一句话保持聚焦，其余文字退后。",
+    readerCaption: "逐句阅读《傲慢与偏见》。",
     memoryTitle: "它知道你读过什么",
     memoryBody:
       "问一段话、一本书，或整个书架。ReadAware 用你自己的阅读来回答——三本书之前你划下的那句话、上周你问过的那个问题、贯穿整个书架的那条线索。它不回放聊天记录，而是把重要的沉淀为持久记忆，在相关的时刻带回来。",
@@ -127,6 +132,9 @@ export const HOME: Record<Locale, HomeContent> = {
     pluginTitle: "从内部生长",
     pluginBody:
       "内置市场里的沙箱插件带来朗读声音、词典、阅读主题、像书一样读的订阅源。而且插件能到得更深：它可以交给智能助理一个新工具，助理拿起来就用。这个阅读器长出的不只是按钮——是新本事。",
+    pluginAlt:
+      "ReadAware 插件面板——词典、主题、RSS 阅读器各自装在沙箱里，有的还给智能助理带来新工具。",
+    pluginCaption: "声音、词典、主题、订阅源——还有交到助理手里的新工具。",
     syncTitle: "你的阅读跟着你走",
     syncBody:
       "在另一台机器上打开 ReadAware，一切已经就位——你的书、划线、每本书读到的位置，以及由此长出的记忆。同步是端到端加密的：中继服务器只存密文，路上没有任何人能看到你读了什么。桌面和 Android 现已可用；iOS 在路上。",
@@ -176,8 +184,8 @@ export const HOME: Record<Locale, HomeContent> = {
     readerBody:
       "ファイルを取り込めばすぐ読み始められます。変換もクラウドへのアップロードもなく、ハイライトやメモ、読書位置は原文に付いたまま。集中したいときは一文ずつ——ページは一歩引き、フローティングバーが文を進め、読み上げも並走します。",
     readerAlt:
-      "ReadAwareのリーダーで開いた『Atomic Habits』。一文に焦点が当たり、残りの文章は後ろに引く。",
-    readerCaption: "『Atomic Habits』を一文ずつ読む。",
+      "ReadAwareのリーダーで開いた『高慢と偏見』。一文に焦点が当たり、残りの文章は後ろに引く。",
+    readerCaption: "『高慢と偏見』を一文ずつ読む。",
     memoryTitle: "読んだことを、知っている",
     memoryBody:
       "一節でも、一冊でも、棚全体でも聞いてください。ReadAwareはあなた自身の読書から答えます——三冊前に引いたあの一行、先週の問い、棚全体を貫く一本の糸。チャット履歴を再生するのではなく、大事なことを持続する記憶として保ち、関係する瞬間に持ち戻します。",
@@ -187,6 +195,9 @@ export const HOME: Record<Locale, HomeContent> = {
     pluginTitle: "内側から広がる",
     pluginBody:
       "内蔵マーケットプレイスのサンドボックス化されたプラグインが、読み上げボイス・辞書・読書テーマ・本のように読めるフィードを加えます。しかもプラグインはもっと深くまで届きます。アシスタントに新しいツールを手渡せば、アシスタントはすぐに使い始める——このリーダーが増やすのはボタンではなく、できることそのものです。",
+    pluginAlt:
+      "ReadAwareのプラグインパネル——辞書・テーマ・RSSリーダーがそれぞれサンドボックスで動き、アシスタントに新しいツールを渡すものもある。",
+    pluginCaption: "ボイス・辞書・テーマ・フィード——そしてアシスタントの手に渡るツール。",
     syncTitle: "あなたの読書は、ついてくる",
     syncBody:
       "別のマシンでReadAwareを開けば、すべてがもうそこにあります——本、ハイライト、それぞれの読みかけの位置、そこから育った記憶まで。同期はエンドツーエンドで暗号化され、中継サーバーには暗号文しか置かれません。途中の誰にも、あなたが何を読んでいるかは見えません。デスクトップとAndroidは今日から、iOSはまもなく。",
@@ -234,14 +245,16 @@ export const HOME: Record<Locale, HomeContent> = {
     "shelfCaption": "你的書架——所有格式，一個地方。",
     "readerTitle": "一個平靜的地方，讀任何東西",
     "readerBody": "匯入檔案就開始讀。不需要轉檔，也不會上傳到雲端；你的劃線、筆記和閱讀進度都留在原始文字裡。想更專注時，可以逐句閱讀——頁面退到一旁，一個浮動列帶你一步步前進，朗讀也可以跟隨。",
-    "readerAlt": "ReadAware 閱讀器中的《原子習慣》頁面，一個句子被聚焦，頁面其餘部分退到背景。",
-    "readerCaption": "逐句閱讀《原子習慣》。",
+    "readerAlt": "ReadAware 閱讀器中的《傲慢與偏見》頁面，一個句子被聚焦，頁面其餘部分退到背景。",
+    "readerCaption": "逐句閱讀《傲慢與偏見》。",
     "memoryTitle": "它知道你讀過什麼",
     "memoryBody": "問一段文字、一本書，或整個書架。ReadAware 用你自己的閱讀來回答——三本書之前你劃下的那句話、上週你問過的那個問題、貫穿整個書架的那條線索。它不重播聊天紀錄，而是把重要的沉澱為持久記憶，在相關的時刻帶回來。",
     "contextAlt": "ReadAware 智慧助理檢視讀者的書架和最近的閱讀，並指出貫穿其中的脈絡。",
     "contextCaption": "智慧助理，從你自己的書架上回答。",
     "pluginTitle": "從內部生長",
     "pluginBody": "內建市場的沙盒外掛帶來朗讀語音、字典、閱讀主題、像書一樣讀的訂閱源。而且外掛能走得更深：它可以交給智慧助理一個新工具，助理拿起來就用。這個閱讀器長出的不只是按鈕——是新本事。",
+    "pluginAlt": "ReadAware 外掛面板——字典、主題、RSS 閱讀器各自裝在沙盒裡，有的還給智慧助理帶來新工具。",
+    "pluginCaption": "語音、字典、主題、訂閱源——還有交到助理手裡的新工具。",
     "syncTitle": "你的閱讀跟著你走",
     "syncBody": "在另一台機器上打開 ReadAware，一切已經就位——你的書、劃線、每本書讀到的位置，以及由此長出的記憶。同步是端對端加密的：中繼伺服器只存密文，路上沒有任何人能看到你讀了什麼。桌面與 Android 現已可用；iOS 即將到來。",
     "inShortTitle": "簡單來說",
@@ -286,14 +299,16 @@ export const HOME: Record<Locale, HomeContent> = {
     "shelfCaption": "Votre bibliothèque — tous les formats au même endroit.",
     "readerTitle": "Un endroit calme pour lire n'importe quoi",
     "readerBody": "Importez un fichier et commencez à lire. Pas de conversion ni d'envoi dans le cloud ; vos surlignages, notes et position dans le livre restent avec le texte original. Pour plus de concentration, lisez phrase par phrase — la page s'efface, une bande flottante vous guide, et la lecture à voix haute peut suivre.",
-    "readerAlt": "Une page d'Atomic Habits dans le lecteur ReadAware, une phrase en focus pendant que le reste de la page s'efface.",
-    "readerCaption": "Lire Atomic Habits une phrase à la fois.",
+    "readerAlt": "Une page d'Orgueil et Préjugés dans le lecteur ReadAware, une phrase en focus pendant que le reste de la page s'efface.",
+    "readerCaption": "Lire Orgueil et Préjugés une phrase à la fois.",
     "memoryTitle": "Il sait ce que vous avez lu",
     "memoryBody": "Interrogez un passage, un livre ou toute votre bibliothèque. ReadAware répond à partir de votre propre lecture — la ligne marquée trois livres plus tôt, la question posée la semaine dernière, le fil qui traverse toute votre étagère. Il ne rejoue pas un historique de discussion : il garde une mémoire durable de ce qui compte et la fait revenir au moment où c'est pertinent.",
     "contextAlt": "L'assistant ReadAware qui examine la bibliothèque et les lectures récentes du lecteur, et nomme le fil qui les traverse.",
     "contextCaption": "L'assistant, répondant à partir de votre propre bibliothèque.",
     "pluginTitle": "Étendu de l'intérieur",
     "pluginBody": "Les plugins sandboxés du marketplace intégré ajoutent des voix de lecture, des dictionnaires, des thèmes, des flux qui se lisent comme des livres. Et ils vont plus loin que les fonctionnalités : un plugin peut confier un nouvel outil à l'assistant, qui se met simplement à l'utiliser. Le lecteur ne gagne pas des boutons — il apprend de nouveaux savoir-faire.",
+    "pluginAlt": "Le panneau de plugins de ReadAware — dictionnaire, thèmes et lecteur RSS, chacun dans son bac à sable, certains confiant de nouveaux outils à l'assistant.",
+    "pluginCaption": "Voix, dictionnaires, thèmes, flux — et des outils que l'assistant adopte.",
     "syncTitle": "Votre lecture vous suit",
     "syncBody": "Ouvrez ReadAware sur une autre machine et tout est déjà là — vos livres, vos surlignages, votre position dans chacun d'eux, et la mémoire construite à partir de tout cela. La synchronisation est chiffrée de bout en bout : le relais ne stocke que du chiffré, personne en chemin ne peut lire ce que vous lisez. Bureau et Android aujourd'hui ; iOS arrive.",
     "inShortTitle": "En bref",
@@ -338,14 +353,16 @@ export const HOME: Record<Locale, HomeContent> = {
     "shelfCaption": "Deine Bibliothek — alle Formate an einem Ort.",
     "readerTitle": "Ein ruhiger Ort, um alles zu lesen",
     "readerBody": "Importiere eine Datei und lies los. Es gibt keine Konvertierung und keinen Cloud-Upload; deine Markierungen, Notizen und dein Lesezeichen bleiben beim Originaltext. Wenn du dich besser konzentrieren willst, lies Satz für Satz — die Seite tritt zurück, ein schwebender Streifen führt dich durch, und das Vorlesen kann folgen.",
-    "readerAlt": "Eine Seite von „Atomic Habits“ im ReadAware-Reader, ein Satz im Fokus, während der Rest der Seite zurücktritt.",
-    "readerCaption": "„Atomic Habits“ Satz für Satz lesen.",
+    "readerAlt": "Eine Seite von „Stolz und Vorurteil“ im ReadAware-Reader, ein Satz im Fokus, während der Rest der Seite zurücktritt.",
+    "readerCaption": "„Stolz und Vorurteil“ Satz für Satz lesen.",
     "memoryTitle": "Es weiß, was du gelesen hast",
     "memoryBody": "Frag nach einer Passage, einem Buch oder deinem ganzen Regal. ReadAware antwortet aus deiner eigenen Lektüre — die Zeile, die du vor drei Büchern markiert hast, die Frage von letzter Woche, der Faden, der sich durch dein ganzes Regal zieht. Es spielt keine Chat-Historie ab; es behält eine dauerhafte Erinnerung an das Wichtige und bringt sie genau dann zurück, wenn sie relevant ist.",
     "contextAlt": "Der ReadAware-Assistent, der das Regal und die letzten Lesefortschritte des Lesers betrachtet und den roten Faden benennt.",
     "contextCaption": "Der Assistent, der aus deinem eigenen Regal antwortet.",
     "pluginTitle": "Von innen erweitert",
     "pluginBody": "Sandbox-Plugins aus dem eingebauten Marktplatz bringen Vorlesestimmen, Wörterbücher, Lesethemen, Feeds, die sich wie Bücher lesen. Und sie reichen tiefer als Features: Ein Plugin kann dem Assistenten ein neues Werkzeug in die Hand geben — und er benutzt es einfach. Der Reader bekommt nicht bloß Knöpfe dazu, er lernt Neues.",
+    "pluginAlt": "Das Plugin-Panel von ReadAware — Wörterbuch, Themes und RSS-Reader, jedes in seiner Sandbox, manche geben dem Assistenten neue Werkzeuge.",
+    "pluginCaption": "Stimmen, Wörterbücher, Themes, Feeds — und Werkzeuge für den Assistenten.",
     "syncTitle": "Dein Lesen folgt dir",
     "syncBody": "Öffne ReadAware auf einer anderen Maschine, und alles ist schon da — deine Bücher, deine Markierungen, deine Stelle in jedem von ihnen und die daraus gewachsene Erinnerung. Die Synchronisierung ist Ende-zu-Ende-verschlüsselt: Das Relay speichert ausschließlich Chiffretext, niemand dazwischen kann lesen, was du liest. Desktop und Android heute; iOS ist unterwegs.",
     "inShortTitle": "Kurz gesagt",
@@ -390,14 +407,16 @@ export const HOME: Record<Locale, HomeContent> = {
     "shelfCaption": "Ваша библиотека — все форматы в одном месте.",
     "readerTitle": "Спокойное место для чтения чего угодно",
     "readerBody": "Импортируйте файл и начинайте читать. Никакой конвертации и загрузки в облако; ваши выделения, заметки и место в книге остаются с исходным текстом. Когда захочется больше сосредоточенности, читайте по предложениям — страница отступает на второй план, плавающая полоса ведёт вас дальше, а чтение вслух может следовать за ней.",
-    "readerAlt": "Страница «Атомные привычки» в ридере ReadAware: одно предложение в фокусе, остальная страница отступает.",
-    "readerCaption": "Чтение «Атомных привычек» по одному предложению за раз.",
+    "readerAlt": "Страница «Гордости и предубеждения» в ридере ReadAware: одно предложение в фокусе, остальная страница отступает.",
+    "readerCaption": "Чтение «Гордости и предубеждения» по одному предложению за раз.",
     "memoryTitle": "Он знает, что вы читали",
     "memoryBody": "Спросите о фрагменте, книге или всей полке. ReadAware отвечает из вашего собственного чтения — строка, отмеченная три книги назад, вопрос прошлой недели, нить, проходящая через всю полку. Он не проигрывает историю чата: он хранит устойчивую память о важном и возвращает её именно в тот момент, когда она уместна.",
     "contextAlt": "Ассистент ReadAware обозревает полку читателя и недавнее чтение, называя нить, которая их связывает.",
     "contextCaption": "Ассистент отвечает, используя вашу собственную полку.",
     "pluginTitle": "Расширение изнутри",
     "pluginBody": "Песочные плагины из встроенного каталога добавляют голоса для чтения вслух, словари, темы оформления, ленты, читаемые как книги. И они идут глубже функций: плагин может вручить ассистенту новый инструмент — и тот просто начинает им пользоваться. Ридер получает не кнопки, а новые умения.",
+    "pluginAlt": "Панель плагинов ReadAware — словарь, темы и RSS-ридер, каждый в своей песочнице; некоторые вручают ассистенту новые инструменты.",
+    "pluginCaption": "Голоса, словари, темы, ленты — и инструменты для ассистента.",
     "syncTitle": "Ваше чтение следует за вами",
     "syncBody": "Откройте ReadAware на другой машине — и всё уже на месте: книги, выделения, позиция в каждой из них и память, выросшая из всего этого. Синхронизация зашифрована сквозным образом: ретранслятор хранит только шифротекст, и никто по пути не может прочитать, что вы читаете. Настольные системы и Android — уже сегодня; iOS на подходе.",
     "inShortTitle": "Короче говоря",
@@ -442,14 +461,16 @@ export const HOME: Record<Locale, HomeContent> = {
     "shelfCaption": "Tu biblioteca: todos los formatos en un solo lugar.",
     "readerTitle": "Un lugar tranquilo para leer cualquier cosa",
     "readerBody": "Importa un archivo y empieza a leer. No hay conversión ni carga en la nube; tus subrayados, notas y tu posición en el libro permanecen con el texto original. Cuando quieras más concentración, lee frase a frase: la página se retira, una franja flotante te guía y la lectura en voz alta puede seguir el ritmo.",
-    "readerAlt": "Una página de Atomic Habits en el lector de ReadAware, con una frase en foco mientras el resto de la página se atenúa.",
-    "readerCaption": "Leyendo Atomic Habits frase a frase.",
+    "readerAlt": "Una página de Orgullo y prejuicio en el lector de ReadAware, con una frase en foco mientras el resto de la página se atenúa.",
+    "readerCaption": "Leyendo Orgullo y prejuicio frase a frase.",
     "memoryTitle": "Sabe lo que has leído",
     "memoryBody": "Pregunta por un pasaje, un libro o toda tu estantería. ReadAware responde desde tu propia lectura: la línea que marcaste hace tres libros, la pregunta de la semana pasada, el hilo que atraviesa toda tu estantería. No reproduce un historial de chat; guarda una memoria duradera de lo que importa y la trae de vuelta justo cuando es relevante.",
     "contextAlt": "El asistente de ReadAware revisando la estantería del lector y sus lecturas recientes, y nombrando el hilo que las une.",
     "contextCaption": "El asistente, respondiendo desde tu propia estantería.",
     "pluginTitle": "Extendido desde adentro",
     "pluginBody": "Los plugins en sandbox del marketplace integrado añaden voces de lectura, diccionarios, temas, fuentes que se leen como libros. Y llegan más hondo que las funciones: un plugin puede poner una nueva herramienta en manos del asistente, y este simplemente empieza a usarla. El lector no gana botones: aprende nuevas habilidades.",
+    "pluginAlt": "El panel de plugins de ReadAware: diccionario, temas y lector RSS, cada uno en su sandbox; algunos ponen nuevas herramientas en manos del asistente.",
+    "pluginCaption": "Voces, diccionarios, temas, fuentes — y herramientas que el asistente adopta.",
     "syncTitle": "Tu lectura te sigue",
     "syncBody": "Abre ReadAware en otra máquina y todo está ya ahí: tus libros, tus subrayados, tu posición en cada uno y la memoria construida a partir de todo ello. La sincronización está cifrada de extremo a extremo: el relay solo guarda texto cifrado, y nadie en el camino puede leer lo que lees. Escritorio y Android hoy; iOS está en camino.",
     "inShortTitle": "En resumen",

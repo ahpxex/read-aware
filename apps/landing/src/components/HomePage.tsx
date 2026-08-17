@@ -9,7 +9,7 @@ import { HOME } from "../lib/home-content";
 import { LOCALES, LOCALE_CHOICE_KEY, type Locale } from "../lib/i18n";
 
 // Cache-buster for the retaken screenshot set (bump when replacing the files).
-const SHOT_VERSION = "?v=041";
+const SHOT_VERSION = "?v=043";
 
 /**
  * First visit to `/`: follow the browser language to /zh or /ja. An explicit
@@ -58,27 +58,36 @@ function detectBrowserLocale(): Exclude<Locale, "en"> | null {
 
 // A screenshot printed as a plate: a hairline frame does the separating, and a
 // plain caption says what it is. No shadow, no border-radius, no figure number.
+// Every shot exists in a light and a dark take (`<base>-light.webp` /
+// `<base>-dark.webp`); the <picture> serves whichever matches the visitor's
+// color scheme, so the app in the pictures always wears the page's palette.
 function Plate({
-  src,
+  base,
   alt,
   caption,
   eager = false,
 }: {
-  src: string;
+  base: string;
   alt: string;
   caption: string;
   eager?: boolean;
 }) {
   return (
     <figure className="m-0">
-      <img
-        src={src}
-        alt={alt}
-        width={2400}
-        height={1600}
-        loading={eager ? "eager" : "lazy"}
-        className="block w-full border border-border-strong"
-      />
+      <picture>
+        <source
+          media="(prefers-color-scheme: dark)"
+          srcSet={`/screenshots/${base}-dark.webp${SHOT_VERSION}`}
+        />
+        <img
+          src={`/screenshots/${base}-light.webp${SHOT_VERSION}`}
+          alt={alt}
+          width={2400}
+          height={1600}
+          loading={eager ? "eager" : "lazy"}
+          className="block w-full border border-border-strong"
+        />
+      </picture>
       <figcaption className="mt-3 text-[0.9375rem] italic leading-normal text-fg-muted">
         {caption}
       </figcaption>
@@ -121,7 +130,7 @@ export function HomePage({ locale }: { locale: Locale }) {
           {/* Plate: the shelf */}
           <div className="mt-14 sm:mt-16">
             <Plate
-              src={`/screenshots/shelf.webp${SHOT_VERSION}`}
+              base="shelf"
               alt={content.shelfAlt}
               caption={content.shelfCaption}
               eager
@@ -139,7 +148,7 @@ export function HomePage({ locale }: { locale: Locale }) {
           </section>
           <div className="mt-10">
             <Plate
-              src={`/screenshots/reader.webp${SHOT_VERSION}`}
+              base="reader"
               alt={content.readerAlt}
               caption={content.readerCaption}
             />
@@ -156,7 +165,7 @@ export function HomePage({ locale }: { locale: Locale }) {
           </section>
           <div className="mt-10">
             <Plate
-              src={`/screenshots/context.webp${SHOT_VERSION}`}
+              base="context"
               alt={content.contextAlt}
               caption={content.contextCaption}
             />
@@ -171,6 +180,13 @@ export function HomePage({ locale }: { locale: Locale }) {
               {content.pluginBody}
             </p>
           </section>
+          <div className="mt-10">
+            <Plate
+              base="plugins"
+              alt={content.pluginAlt}
+              caption={content.pluginCaption}
+            />
+          </div>
 
           {/* The sync */}
           <section className="mt-20 max-w-[36rem] sm:mt-24">

@@ -159,24 +159,32 @@ const INQUISITOR_CHAPTER = 40;
 const INQUISITOR_SELECTION =
   "如今，正是现在而不是过去，这些人比任何时候都相信他们有充分的自由，其实是他们自己把他们的自由乖乖地放到我们的脚边。";
 
-function inquisitorSelectionCursor() {
+/**
+ * 选区游标构造器：视口恰好截止在选区末尾（读者的确切当前位置），
+ * 进度按字符数从 fixture 推导。选区在正文里找不到直接抛错。
+ */
+function selectionCursor(chapterIndex: number, selection: string) {
   const epub = karamazovEpub();
-  const chapter = epub.chapters[INQUISITOR_CHAPTER];
-  if (!chapter) throw new Error(`karamazov fixture has no chapter ${INQUISITOR_CHAPTER}`);
-  const at = chapter.text.indexOf(INQUISITOR_SELECTION);
-  if (at < 0) throw new Error("karamazov fixture lost the Grand Inquisitor selection passage");
-  const end = at + INQUISITOR_SELECTION.length;
+  const chapter = epub.chapters[chapterIndex];
+  if (!chapter) throw new Error(`karamazov fixture has no chapter ${chapterIndex}`);
+  const at = chapter.text.indexOf(selection);
+  if (at < 0) throw new Error(`karamazov fixture lost the selection in chapter ${chapterIndex}`);
+  const end = at + selection.length;
   const charsBefore = epub.chapters
-    .slice(0, INQUISITOR_CHAPTER)
+    .slice(0, chapterIndex)
     .reduce((sum, c) => sum + c.text.length, 0);
   const totalChars = epub.chapters.reduce((sum, c) => sum + c.text.length, 0);
   return {
-    chapterIndex: INQUISITOR_CHAPTER,
+    chapterIndex,
     chapterTitle: chapter.title,
     bookProgress: (charsBefore + end) / totalChars,
     chapterProgress: end / chapter.text.length,
     visibleText: chapter.text.slice(Math.max(0, end - 600), end),
   };
+}
+
+function inquisitorSelectionCursor() {
+  return selectionCursor(INQUISITOR_CHAPTER, INQUISITOR_SELECTION);
 }
 
 /** 版本保真是套件级性质：每个场景的评估都叠加 OTHER_EDITION_SPELLINGS 检查。 */
@@ -542,6 +550,160 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
             answer: { mustContain: ["伊万"] },
             tools: { requiredAny: ["read_chapter", "search_book_text"], noErrors: true },
           }),
+          cjkAnswerAssessment(observation),
+        ),
+    }),
+    defineAgentEvalScenario({
+      id: "quote-attribution-cross-chapter",
+      description:
+        "Attributes a verbatim line to its speaker when the quote lives many chapters behind the reading position.",
+      tags: ["karamazov", "real-book", "attribution", "retrieval", "book"],
+      scope: { kind: "book", bookId: KARAMAZOV_BOOK_ID },
+      seed: { ...karamazovSeed(MID_PROGRESS), chapterDigests: karamazovDigestsSeed(35) },
+      seedSummary: karamazovSeedSummary(MID_PROGRESS),
+      turns: [
+        {
+          // 第 11 章佐西马对费奥多尔说的"勿对自己说谎"——读者在第 35 章,
+          // 引语与位置远隔 24 章:归属必须靠检索定位,不是靠当前上下文
+          text: '书里有一句：“对自己说谎和听自己说谎的人会落到这样的地步：无论在自己身上还是周围，即使有真理，他也无法辨别。”这话是谁说的？在什么场合、对谁说的？',
+          readingCursor: midCursor(),
+        },
+      ],
+      expectation: {
+        answer: { mustContain: ["佐西马"], mustNotContain: LEAK_WORDS_CH35 },
+        tools: { requiredAny: ["search_book_text", "read_chapter"], noErrors: true },
+      },
+      criteria: {
+        speaker: "佐西马长老",
+        addressee: "费奥多尔·巴甫洛维奇(修道院会晤)",
+        sourceChapter: 11,
+      },
+      rubric: [
+        "Attributes the line to the elder Zosima speaking to Fyodor at the monastery meeting, grounded in retrieved text rather than recollection",
+      ],
+      evaluate: (observation) =>
+        combineAssessments(
+          evaluateAgentTrace(observation, {
+            answer: { mustContain: ["佐西马"], mustNotContain: LEAK_WORDS_CH35 },
+            tools: { requiredAny: ["search_book_text", "read_chapter"], noErrors: true },
+          }),
+          fenceDisciplineAssessment(observation, 35),
+          cjkAnswerAssessment(observation),
+        ),
+    }),
+    defineAgentEvalScenario({
+      id: "alias-resolves-to-entity",
+      description:
+        "Resolves a character's formal name to the person the reader knows by nickname, via the injected registry.",
+      tags: ["karamazov", "real-book", "graph", "alias", "book"],
+      scope: { kind: "book", bookId: KARAMAZOV_BOOK_ID },
+      seed: { ...karamazovSeed(MID_PROGRESS), chapterDigests: karamazovDigestsSeed(35) },
+      seedSummary: karamazovSeedSummary(MID_PROGRESS),
+      turns: [
+        {
+          // 正式名"阿格拉菲娜·亚历山德罗夫娜"第 27 章入图,别名归并应答出格露莘卡
+          text: "书里提到的'阿格拉菲娜·亚历山德罗夫娜'到底是谁?她和米嘉是什么关系?",
+          readingCursor: midCursor(),
+        },
+      ],
+      expectation: {
+        answer: { mustContain: ["格露莘卡"], mustNotContain: LEAK_WORDS_CH35 },
+      },
+      criteria: { aliasOf: "格露莘卡", knownSince: "第 27 章(纪要 registry 的别名证据)" },
+      rubric: [
+        "Identifies the formal name as Grushenka using this edition's spelling, and describes her entanglement with Mitya (and his father) using only material up to the reader's position",
+      ],
+      evaluate: (observation) =>
+        combineAssessments(
+          evaluateAgentTrace(observation, {
+            answer: { mustContain: ["格露莘卡"], mustNotContain: LEAK_WORDS_CH35 },
+          }),
+          fenceDisciplineAssessment(observation, 35),
+          cjkAnswerAssessment(observation),
+        ),
+    }),
+    defineAgentEvalScenario({
+      id: "pronoun-antecedent-in-passage",
+      description:
+        "Resolves a pronoun in a selected passage to its antecedent, which sits before the viewport.",
+      tags: ["karamazov", "real-book", "selection", "pronoun", "book"],
+      scope: { kind: "book", bookId: KARAMAZOV_BOOK_ID },
+      seed: { ...karamazovSeed(12), chapterDigests: karamazovDigestsSeed(EARLY_CHAPTER) },
+      seedSummary: karamazovSeedSummary(12),
+      turns: [
+        {
+          // 先行词"霍赫拉科娃太太"在选区前约 60 字——由接地前文窗口供给
+          text: "这句里的'她'指的是谁?",
+          attachments: [{ text: "她那十四岁的女儿下肢瘫痪。可怜的少女已经半年不能走路" }],
+          readingCursor: selectionCursor(
+            EARLY_CHAPTER,
+            "她那十四岁的女儿下肢瘫痪。可怜的少女已经半年不能走路",
+          ),
+        },
+      ],
+      expectation: {
+        answer: { mustContain: ["霍赫拉科娃"], mustNotContain: LEAK_WORDS_CH12 },
+      },
+      criteria: { antecedent: "霍赫拉科娃太太", evidence: "选区前文(接地窗口)即含先行词" },
+      rubric: [
+        "Resolves 她 to Madame Khokhlakova from the immediately preceding text, without wandering into unrelated characters",
+      ],
+      evaluate: (observation) =>
+        combineAssessments(
+          evaluateAgentTrace(observation, {
+            answer: { mustContain: ["霍赫拉科娃"], mustNotContain: LEAK_WORDS_CH12 },
+          }),
+          fenceDisciplineAssessment(observation, EARLY_CHAPTER),
+          cjkAnswerAssessment(observation),
+        ),
+    }),
+    defineAgentEvalScenario({
+      id: "pronoun-across-turns",
+      description:
+        "Resolves a conversational pronoun ('他') to the subject of the previous turn, then answers from the graph.",
+      tags: ["karamazov", "real-book", "pronoun", "multi-turn", "book"],
+      scope: { kind: "book", bookId: KARAMAZOV_BOOK_ID },
+      seed: { ...karamazovSeed(12), chapterDigests: karamazovDigestsSeed(EARLY_CHAPTER) },
+      seedSummary: karamazovSeedSummary(12),
+      turns: [
+        {
+          text: "米嘉现在跟他父亲主要在闹什么矛盾?",
+          readingCursor: {
+            chapterIndex: EARLY_CHAPTER,
+            chapterTitle: chapterTitleKey(EARLY_CHAPTER),
+            bookProgress: 0.12,
+            chapterProgress: 0.5,
+            visibleText: chapterViewport(EARLY_CHAPTER),
+          },
+        },
+        {
+          // "他" 承接上一轮主语米嘉;生母阿黛拉伊达的下落在第 5 章纪要里
+          text: "那他的生母是谁?后来怎么样了?",
+          readingCursor: {
+            chapterIndex: EARLY_CHAPTER,
+            chapterTitle: chapterTitleKey(EARLY_CHAPTER),
+            bookProgress: 0.12,
+            chapterProgress: 0.5,
+            visibleText: chapterViewport(EARLY_CHAPTER),
+          },
+        },
+      ],
+      expectation: {
+        answer: { mustContain: ["阿黛拉伊达"], mustNotContain: LEAK_WORDS_CH12 },
+      },
+      criteria: {
+        pronounRefersTo: "米嘉(上一轮主语)",
+        expectedAnswer: "生母阿黛拉伊达·伊万诺夫娜,私奔离家后死于彼得堡",
+      },
+      rubric: [
+        "Reads 他 as Mitya from the previous turn and answers with Adelaida's fate as established in the early chapters, not Ivan's or Alyosha's mother",
+      ],
+      evaluate: (observation) =>
+        combineAssessments(
+          evaluateAgentTrace(observation, {
+            answer: { mustContain: ["阿黛拉伊达"], mustNotContain: LEAK_WORDS_CH12 },
+          }),
+          fenceDisciplineAssessment(observation, EARLY_CHAPTER),
           cjkAnswerAssessment(observation),
         ),
     }),

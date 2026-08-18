@@ -61,11 +61,18 @@ function readingPositionLine(input: SystemPromptInput): string {
 
 /** "故事至此"一节里保留完整摘要的章数；更早章节只留人物名录。 */
 const DIGEST_SUMMARY_CHAPTERS = 8;
+/**
+ * 名录/边的注入上限。长篇读到后期 registry 会到几百节点（卡拉马佐夫全书
+ * 243 节点 / 341 边 ≈ 1.1 万字符），全量注入吃掉预算还稀释注意力——按
+ * 提及章数排序截断，长尾人物靠 search_book_text 按需取。
+ */
+const MAX_REGISTRY_CHARACTERS = 48;
+const MAX_REGISTRY_EDGES = 64;
 
 /**
- * 已读章节纪要 → system prompt 的"故事至此"一节。人物名录全量注入
- * （紧凑单行），章节摘要只带最近几章——更早的细节靠 read_chapter /
- * search_book_text 按需取。
+ * 已读章节纪要 → system prompt 的"故事至此"一节。人物名录按提及频次
+ * 截断注入（紧凑单行），章节摘要只带最近几章——更早的细节靠
+ * read_chapter / search_book_text 按需取。
  */
 function storySoFarSection(digests: ChapterDigest[]): string | undefined {
   if (!digests.length) return undefined;
@@ -73,10 +80,20 @@ function storySoFarSection(digests: ChapterDigest[]): string | undefined {
   const lines: string[] = [
     "The story so far, built from THIS book's own text (chapters the reader has finished). Names and aliases are spelled exactly as this edition spells them — always use these spellings, never a variant you remember from another edition or translation.",
   ];
-  const registry = mergeCharacterRegistry(ordered);
+  // 提及章数 = 人物/边的重要性代理：主角出现在几十章里，路人只在一章。
+  const mentions = new Map<string, number>();
+  for (const digest of ordered) {
+    for (const character of digest.characters) {
+      mentions.set(character.name, (mentions.get(character.name) ?? 0) + 1);
+    }
+  }
+  const weight = (name: string) => mentions.get(name) ?? 0;
+  const registry = mergeCharacterRegistry(ordered)
+    .sort((a, b) => weight(b.name) - weight(a.name))
+    .slice(0, MAX_REGISTRY_CHARACTERS);
   if (registry.length) {
     lines.push(
-      "Characters so far:",
+      "Characters so far (most recurring first; minor figures omitted — search the book text for them):",
       ...registry.map(
         (character) =>
           `- ${character.name}${character.aliases?.length ? ` (${character.aliases.join(", ")})` : ""}${
@@ -87,7 +104,9 @@ function storySoFarSection(digests: ChapterDigest[]): string | undefined {
   }
   // 关系边（叙事图）：digests 已按剧透边界过滤，这里的边全部是读者已知的。
   // "A —kind→ B (#ch)" 的出处戳让模型能回答"读者是什么时候知道这层关系的"。
-  const edges = mergeRelationGraph(ordered);
+  const edges = mergeRelationGraph(ordered)
+    .sort((a, b) => weight(b.from) + weight(b.to) - (weight(a.from) + weight(a.to)))
+    .slice(0, MAX_REGISTRY_EDGES);
   if (edges.length) {
     lines.push(
       "Relationships so far (from —kind→ to, with the chapter that established it):",

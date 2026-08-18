@@ -25,6 +25,8 @@ import { Eye, EyeSlash } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { Trans, useTranslation } from "../../../i18n";
 import { useReactiveSetting } from "../../../hooks/useReactiveSetting";
+import { useSyncAccountInfo } from "../hooks/useSyncAccountInfo";
+import { useSyncConnection } from "../hooks/useSyncConnection";
 import { accountFromConfig } from "../../ai/agent/account";
 import {
   getAIConfig,
@@ -105,6 +107,16 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [showKey, setShowKey] = useState(false);
+
+  // The ReadAware subscription rides the sync account: the panel reads its
+  // tier + credits to render an honest status line, but the relay is the
+  // enforcement point either way — offline the panel lets the attempt through
+  // and the proxy answers.
+  const sync = useSyncConnection();
+  const subscriptionInfo = useSyncAccountInfo(sync.connected && provider === "readaware");
+  const subscriptionCredits = subscriptionInfo?.limits?.aiMonthlyCredits;
+  const subscriptionReady =
+    sync.connected && (subscriptionInfo === null || subscriptionCredits !== 0);
 
   const parsedCustomMaxOutputTokens = parsePositiveInteger(customMaxOutputTokens);
   const hasInvalidCustomMaxOutputTokens =
@@ -266,7 +278,7 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
   ];
   const keyUrl = PROVIDER_KEY_URLS[provider];
   const isIncomplete =
-    !apiKey.trim() ||
+    (provider === "readaware" ? !subscriptionReady : !apiKey.trim()) ||
     !model.trim() ||
     (provider === "custom" && !customBaseUrl.trim()) ||
     hasInvalidCustomMaxOutputTokens ||
@@ -334,28 +346,58 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
           </>
         )}
 
-        <TextField
-          label={t("aiConfig.apiKey.label")}
-          type={showKey ? "text" : "password"}
-          value={apiKey}
-          onChange={(event) => {
-            setApiKey(event.target.value);
-            markConfigChanged();
-          }}
-          onBlur={flushConfig}
-          placeholder={t("aiConfig.apiKey.placeholder", {
-            provider: PROVIDER_LABELS[provider],
-          })}
-          helperText={t("aiConfig.apiKey.helper")}
-          trailingAction={
-            <IconButton
-              size="sm"
-              label={showKey ? t("aiConfig.hide") : t("aiConfig.show")}
-              icon={showKey ? <EyeSlash size={16} /> : <Eye size={16} />}
-              onClick={() => setShowKey(!showKey)}
-            />
-          }
-        />
+        {provider === "readaware" ? (
+          <Stack gap="xs">
+            <Caption as="p" className="leading-relaxed">
+              {t("aiConfig.readaware.description")}
+            </Caption>
+            {!sync.connected ? (
+              <p className="text-xs leading-relaxed text-fg-muted">
+                {t("aiConfig.readaware.notConnected")}
+              </p>
+            ) : subscriptionInfo ? (
+              <p className="text-xs leading-relaxed text-fg-muted">
+                {t("dataSync.connected.plan", {
+                  tier: t(`dataSync.tier.${subscriptionInfo.tier ?? "free"}`),
+                })}
+                {" · "}
+                {subscriptionCredits === 0
+                  ? t("aiConfig.readaware.requiresPaid")
+                  : subscriptionCredits == null
+                    ? t("aiConfig.readaware.creditsUnlimited", {
+                        used: subscriptionInfo.aiCreditsUsed ?? 0,
+                      })
+                    : t("aiConfig.readaware.credits", {
+                        used: subscriptionInfo.aiCreditsUsed ?? 0,
+                        total: subscriptionCredits,
+                      })}
+              </p>
+            ) : null}
+          </Stack>
+        ) : (
+          <TextField
+            label={t("aiConfig.apiKey.label")}
+            type={showKey ? "text" : "password"}
+            value={apiKey}
+            onChange={(event) => {
+              setApiKey(event.target.value);
+              markConfigChanged();
+            }}
+            onBlur={flushConfig}
+            placeholder={t("aiConfig.apiKey.placeholder", {
+              provider: PROVIDER_LABELS[provider],
+            })}
+            helperText={t("aiConfig.apiKey.helper")}
+            trailingAction={
+              <IconButton
+                size="sm"
+                label={showKey ? t("aiConfig.hide") : t("aiConfig.show")}
+                icon={showKey ? <EyeSlash size={16} /> : <Eye size={16} />}
+                onClick={() => setShowKey(!showKey)}
+              />
+            }
+          />
+        )}
 
         {keyUrl && (
           <Caption as="p">
@@ -501,8 +543,11 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
 
                 {/* pi maps these levels onto each provider's thinking
                     parameters. Unsupported models ignore them. A shared model
-                    has one effort; separate model tiers may diverge. */}
-                {(provider !== "custom" || customSupportsThinking) &&
+                    has one effort; separate model tiers may diverge. The
+                    subscription proxy leaves reasoning to the upstream, so it
+                    offers no effort dial. */}
+                {provider !== "readaware" &&
+                  (provider !== "custom" || customSupportsThinking) &&
                   (useSeparateFastModel ? (
                     <>
                       <Select

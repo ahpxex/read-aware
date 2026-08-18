@@ -4,6 +4,7 @@
 
 import {
   DEFAULT_CUSTOM_OPENAI_API,
+  DEFAULT_READAWARE_MODEL,
   LEGACY_CUSTOM_OPENAI_API,
   getProviderModelCatalog,
   isCustomOpenAIApi,
@@ -14,6 +15,7 @@ import {
 } from "@read-aware/agent";
 
 export type AIProvider =
+  | "readaware"
   | "openai"
   | "anthropic"
   | "openrouter"
@@ -281,6 +283,7 @@ export function hasAIConfig(): boolean {
 
 // Default "smart" model for each provider (chat, onboarding, synthesis).
 export const DEFAULT_MODELS: Record<AIProvider, string> = {
+  readaware: DEFAULT_READAWARE_MODEL,
   openai: "gpt-5.5",
   anthropic: "claude-opus-5",
   openrouter: "~anthropic/claude-opus-latest",
@@ -298,6 +301,7 @@ export const DEFAULT_MODELS: Record<AIProvider, string> = {
 // Suggested model when an advanced user opts into a separate cheap/quick tier.
 // The default path does not use this table: Fast follows the primary model.
 export const SUGGESTED_FAST_MODELS: Record<AIProvider, string> = {
+  readaware: DEFAULT_READAWARE_MODEL,
   openai: "gpt-5.4-mini",
   anthropic: "claude-haiku-4-5",
   openrouter: "~openai/gpt-mini-latest",
@@ -406,6 +410,12 @@ export const PROVIDER_MODELS: Record<
   AIProvider,
   { label: string; value: string }[]
 > = {
+  // The subscription catalog — keep in lockstep with the relay's aiModels
+  // (apps/relay/src/ai-proxy.ts); the proxy refuses anything else anyway.
+  readaware: [
+    { label: "DeepSeek V4 Flash", value: "deepseek-v4-flash" },
+    { label: "DeepSeek V4 Pro", value: "deepseek-v4-pro" },
+  ],
   openai: recommendedModelOptions("openai"),
   anthropic: recommendedModelOptions("anthropic"),
   openrouter: recommendedModelOptions("openrouter"),
@@ -421,6 +431,7 @@ export const PROVIDER_MODELS: Record<
 };
 
 export const PROVIDER_LABELS: Record<AIProvider, string> = {
+  readaware: "ReadAware AI",
   openai: "OpenAI",
   anthropic: "Anthropic",
   openrouter: "OpenRouter",

@@ -203,6 +203,13 @@
   },
   "aiConfig": {
     "provider": "Fournisseur d’IA",
+    "readaware": {
+      "description": "Modèles intégrés, sans clé API personnelle — l’usage est mesuré chaque mois en crédits selon votre offre.",
+      "notConnected": "Connectez d’abord votre compte dans « Données et synchronisation » : l’abonnement s’y identifie.",
+      "requiresPaid": "L’IA intégrée nécessite l’offre Pro ou Max ; l’offre gratuite utilise votre propre clé.",
+      "credits": "{{used}} / {{total}} crédits utilisés ce mois-ci",
+      "creditsUnlimited": "{{used}} crédits utilisés ce mois-ci (sans limite)"
+    },
     "customBaseUrl": {
       "label": "URL de base personnalisée",
       "helper": "Saisissez l’URL de base de votre point de terminaison d’API compatible OpenAI."

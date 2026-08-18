@@ -13,6 +13,7 @@ export type SyncAccountInfo = {
   email: string;
   blobBytesUsed: number;
   eventsUsed: number;
+  aiCreditsUsed: number;
   tier: SyncTier;
   limits: SyncTierLimits;
 };
@@ -34,6 +35,7 @@ export function useSyncAccountInfo(connected: boolean): SyncAccountInfo | null {
             email: account.email,
             blobBytesUsed: account.blobBytesUsed,
             eventsUsed: account.eventsUsed,
+            aiCreditsUsed: account.aiCreditsUsed,
             tier: account.tier,
             limits: account.limits,
           });

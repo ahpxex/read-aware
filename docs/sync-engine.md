@@ -369,9 +369,12 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
 - **账号档位（2026-08-18 落地）**：对外 `free` / `pro` / `max`，内部
   `staff`。账号行只存 `tier` + `tier_expires_at_ms`（D1 迁移 0006）；
   档位 → 配额的映射在代码里（`ports.ts quotasForTier`）——free 读 env
-  基线，pro = 10 GiB / 100 万事件，max = 100 GiB / 1000 万事件，staff
-  不限量；付费档单文件上限 100 MB（Workers 非企业版请求体上限即
-  100 MB，再往上要做分片上传，不是改常数）。到期回落 free；执行只在
+  基线，pro = 10 GiB / 250 万事件，max = 100 GiB / 2500 万事件（事件阶梯
+  50k → 50× → 10×），staff 不限量；付费档单文件上限 100 MB（Workers
+  非企业版请求体上限即 100 MB，再往上要做分片上传，不是改常数）。
+  定价定案（2026-08-19）：pro $20/月、max $50/月——对照 bundled AI 的
+  计量上限（$5 / $30），最坏情况毛利分别为 $15 与 $20，有界且为正。
+  到期回落 free；执行只在
   写入侧——超额账号 pull 永远可用，push 被 413 拒，数据不删。写入口是
   `POST /v1/admin/tier`（`ADMIN_TOKEN` secret 鉴权，未配置则 501；
   body `{email, tier, expiresAtMs?}`），将来支付 webhook 走同一接缝。
@@ -379,8 +382,19 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
   （`blobBytesUsed` / `eventsUsed`），客户端 Data & Sync 面板据此显示
   「方案 + 已用/上限」。事件日志 append-only 的先天约束：降级后若已超
   事件配额，push 永久只读直到重新升级——这是接受的语义，不做 compaction。
+- **Bundled AI = 计量代理（2026-08-19 落地）**：`POST /v1/ai/chat/completions`
+  （OpenAI 兼容透传，session 鉴权）+ `GET /v1/ai/models`。目录在代码里
+  （`ai-proxy.ts`，一等公民 DeepSeek V4 Flash；配了哪家 key 哪家上架，
+  未配则 501），费率按上游峰值价刻死，非峰差价即毛利。计量单位 credit
+  （1 credit = $0.001），按账号 × UTC 月聚合进 D1 `ai_usage`（迁移 0007）；
+  月度预算挂在档位上（free 0 = 仅 BYOK、pro 5000、max 30000、staff 不限），
+  超额 402，行进中的单个请求最多超一笔。流式响应用字节透明的 SSE tap 读
+  末尾 usage 块记账（`ctx.waitUntil` 保活）。**隐私语义与同步数据不同**：
+  AI 请求内容明文过 relay（TLS 之内、E2E 之外），因此代码约定唯一可落存储
+  的是 token 数——内容零日志；不接受该语义的用户永远可以用 BYOK。
 - **账号删除与 GDPR**：`DELETE /v1/account` 清 D1 行 + R2 前缀，
-  服务端无明文所以无残留解读风险；需要写进隐私政策。
+  服务端无明文所以无残留解读风险；需要写进隐私政策。AI 用量行随账号
+  级联删除，且本就只有数字。
 - **时钟严重漂移的设备**：HLC 的 wallMs 会被 `observe()` 拉齐，但一台
   钟快数年的设备会把全网 HLC 抬高。可在 push 端加合理性检查
   （wallMs 超前服务器时间过多则拒收并提示用户校时）。
@@ -401,7 +415,8 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
 5. `bunx wrangler secret put GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET /
    GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET`（邮件链路可选：
    `RESEND_API_KEY` + `MAIL_FROM`——有 OAuth 后可以晚配；档位管理可选：
-   `ADMIN_TOKEN`，不配则 `/v1/admin/*` 一律 501。升降级示例：
+   `ADMIN_TOKEN`，不配则 `/v1/admin/*` 一律 501；bundled AI 可选：
+   `DEEPSEEK_API_KEY`，不配则 `/v1/ai/*` 一律 501。升降级示例：
    `curl -X POST https://relay.readaware.app/v1/admin/tier -H "authorization: Bearer $ADMIN_TOKEN" -H "content-type: application/json" -d '{"email":"reader@example.com","tier":"pro","expiresAtMs":1787000000000}'`）；
 6. 生产 `wrangler.jsonc` 删掉 `MAGIC_LINK_ECHO`；配自定义域
    `relay.readaware.app`（Workers 控制台 Custom Domains，DNS 本就在

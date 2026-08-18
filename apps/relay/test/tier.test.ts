@@ -76,6 +76,7 @@ describe("what /v1/account reports", () => {
       maxBlobBytes: 50 * 1024 * 1024,
       maxAccountBlobBytes: 1000,
       maxAccountEvents: 7,
+      aiMonthlyCredits: 0,
     });
     expect(account.eventsUsed).toBe(0);
     expect(account.blobBytesUsed).toBe(0);

@@ -10,7 +10,7 @@ import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import type { CompleteFn, StreamFn } from "../models/complete";
 import { createStreamFn } from "../models/complete";
 import type { LlmAccount } from "../models/accounts";
-import { createModelResolver } from "../models/accounts";
+import { accountCredential, accountProviderId, createModelResolver } from "../models/accounts";
 import type { ProviderRegistry } from "../models/registry";
 import type { ResolveModel } from "../models/roles";
 import type { RuntimeDeps } from "../ports";
@@ -163,7 +163,7 @@ export function createAgentEvalVariant(
     id: options.id,
     description: options.description,
     metadata: {
-      provider: options.account?.provider ?? selectedModel.provider,
+      provider: options.account ? accountProviderId(options.account) : selectedModel.provider,
       model: options.modelId,
       thinkingLevel,
       ...(options.maxWindowTurns === undefined
@@ -201,7 +201,8 @@ export function createAgentEvalVariant(
         deps: setupContext.deps,
         resolveModel,
         getApiKey:
-          options.getApiKey ?? (() => options.account?.apiKey),
+          options.getApiKey ??
+          (() => (options.account ? accountCredential(options.account) : undefined)),
         completeFn,
         streamFn: tracedStreamFn,
         thinkingLevel,

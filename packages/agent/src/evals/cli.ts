@@ -1,6 +1,7 @@
 import { parseArgs } from "node:util";
 import { resolve } from "node:path";
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
+import { accountCredential } from "../models/accounts";
 import { buildProviderRegistry } from "../models/registry";
 import { createAgentEvalVariant } from "./agent-harness";
 import { EvalArtifactStore } from "./artifacts";
@@ -239,7 +240,7 @@ function buildVariant(
       registry,
       thinkingLevel,
     }),
-    secret: resolved.account.apiKey,
+    secret: accountCredential(resolved.account),
   };
 }
 

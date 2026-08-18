@@ -203,6 +203,13 @@
   },
   "aiConfig": {
     "provider": "Proveedor de IA",
+    "readaware": {
+      "description": "Modelos integrados, sin necesidad de tu propia clave API: el uso se mide cada mes en créditos según tu plan.",
+      "notConnected": "Conecta primero tu cuenta en «Datos y sincronización»; la suscripción inicia sesión con ella.",
+      "requiresPaid": "La IA integrada requiere el plan Pro o Max; el plan gratuito usa tu propia clave.",
+      "credits": "{{used}} / {{total}} créditos usados este mes",
+      "creditsUnlimited": "{{used}} créditos usados este mes (sin límite)"
+    },
     "customBaseUrl": {
       "label": "URL base personalizada",
       "helper": "Introduce la URL base de tu endpoint de API compatible con OpenAI."

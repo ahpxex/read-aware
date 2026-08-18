@@ -203,6 +203,13 @@
   },
   "aiConfig": {
     "provider": "AI 提供方",
+    "readaware": {
+      "description": "内置模型,无需自己的 API key——用量按方案以 credits 逐月计量。",
+      "notConnected": "请先在「数据与同步」里连接账号,订阅使用该账号登录。",
+      "requiresPaid": "内置 AI 需要 Pro 或 Max 方案;免费方案请使用自己的 key。",
+      "credits": "本月已用 {{used}} / {{total}} credits",
+      "creditsUnlimited": "本月已用 {{used}} credits(不限量)"
+    },
     "customBaseUrl": {
       "label": "自定义 Base URL",
       "helper": "输入你的 OpenAI 兼容 API 端点的 Base URL。"

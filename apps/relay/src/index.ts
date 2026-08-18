@@ -5,6 +5,8 @@
  * bun toolchain without Cloudflare's ambient types.
  */
 import { SqlAccountStore, type D1Like } from "./account-store";
+import { deepseekModels } from "./ai-proxy";
+import { SqlAiUsageStore } from "./ai-usage-store";
 import { AccountMailbox, stubMailbox } from "./do-mailbox";
 import { resendMagicLinkSender } from "./email";
 import { githubProvider, googleProvider } from "./oauth";
@@ -44,6 +46,8 @@ type Env = {
   MAX_ACCOUNT_EVENTS?: string;
   /** Enables /v1/admin/* (tier assignment). Unset ⇒ those routes answer 501. */
   ADMIN_TOKEN?: string;
+  /** Enables the bundled-AI proxy's DeepSeek catalog. Unset ⇒ /v1/ai answers 501. */
+  DEEPSEEK_API_KEY?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   GITHUB_CLIENT_ID?: string;
@@ -77,7 +81,7 @@ function r2BlobStore(bucket: R2Like): BlobStore {
   };
 }
 
-function portsFromEnv(env: Env): RelayPorts {
+function portsFromEnv(env: Env, ctx?: { waitUntil(promise: Promise<unknown>): void }): RelayPorts {
   const oauthProviders: Record<string, OAuthProvider> = {};
   if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
     oauthProviders.google = googleProvider(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET);
@@ -89,6 +93,8 @@ function portsFromEnv(env: Env): RelayPorts {
     accounts: new SqlAccountStore(env.DB),
     mailboxFor: (accountId) => stubMailbox(env.MAILBOX.get(env.MAILBOX.idFromName(accountId))),
     blobs: r2BlobStore(env.BLOBS),
+    aiUsage: new SqlAiUsageStore(env.DB),
+    aiModels: env.DEEPSEEK_API_KEY ? deepseekModels(env.DEEPSEEK_API_KEY) : [],
     // Payloads live beside the sync blobs under a prefix no account id can
     // collide with (account ids are UUIDs; "_reports" is not).
     reports: new SqlReportStore(env.DB, {
@@ -115,11 +121,16 @@ function portsFromEnv(env: Env): RelayPorts {
       adminToken: env.ADMIN_TOKEN ?? null,
     },
     now: () => Date.now(),
+    waitUntil: ctx ? (promise) => ctx.waitUntil(promise) : undefined,
   };
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
-    return createRelayHandler(portsFromEnv(env))(request);
+  async fetch(
+    request: Request,
+    env: Env,
+    ctx: { waitUntil(promise: Promise<unknown>): void },
+  ): Promise<Response> {
+    return createRelayHandler(portsFromEnv(env, ctx))(request);
   },
 };

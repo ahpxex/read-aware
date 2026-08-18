@@ -203,6 +203,13 @@
   },
   "aiConfig": {
     "provider": "AI Provider",
+    "readaware": {
+      "description": "Built-in models, no API key of your own — usage is metered monthly in credits against your plan.",
+      "notConnected": "Connect your account in Data & Sync first — the subscription signs in with it.",
+      "requiresPaid": "Bundled AI needs a Pro or Max plan; the Free plan uses your own key.",
+      "credits": "{{used}} / {{total}} credits used this month",
+      "creditsUnlimited": "{{used}} credits used this month (unmetered)"
+    },
     "customBaseUrl": {
       "label": "Custom Base URL",
       "helper": "Enter the base URL for your OpenAI-compatible API endpoint."

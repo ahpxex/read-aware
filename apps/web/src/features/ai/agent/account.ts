@@ -11,6 +11,8 @@ import {
   type RoleModels,
   type RoleThinking,
 } from "@read-aware/agent";
+import { getSecret } from "../../../platform/secret-store";
+import { relayBaseUrl } from "../../../platform/sync/sync-scheduler";
 import {
   DEFAULT_MODELS,
   DEFAULT_THINKING_LEVEL,
@@ -23,19 +25,28 @@ export function accountFromConfig(config: AIConfig): {
   thinking: RoleThinking;
 } {
   const account: LlmAccount =
-    config.provider === "custom"
+    config.provider === "readaware"
       ? {
-          kind: "api-key",
-          provider: CUSTOM_OPENAI_PROVIDER_ID,
-          apiKey: config.apiKey,
-          baseUrl: normalizeCustomOpenAIBaseUrl(config.customBaseUrl ?? ""),
-          // Direct callers may still hand us the pre-migration shape. Stored
-          // configs resolve this field before reaching accountFromConfig.
-          api: config.customApi ?? LEGACY_CUSTOM_OPENAI_API,
-          supportsThinking: Boolean(config.customSupportsThinking),
-          maxOutputTokens: config.customMaxOutputTokens,
+          // The subscription authenticates with the sync session — no key of
+          // its own. Signed out, the session is "" and the relay answers 401,
+          // which the settings panel pre-empts with its "connect first" state.
+          kind: "readaware",
+          baseUrl: `${relayBaseUrl()}/v1/ai`,
+          session: getSecret("sync.session"),
         }
-      : { kind: "api-key", provider: config.provider, apiKey: config.apiKey };
+      : config.provider === "custom"
+        ? {
+            kind: "api-key",
+            provider: CUSTOM_OPENAI_PROVIDER_ID,
+            apiKey: config.apiKey,
+            baseUrl: normalizeCustomOpenAIBaseUrl(config.customBaseUrl ?? ""),
+            // Direct callers may still hand us the pre-migration shape. Stored
+            // configs resolve this field before reaching accountFromConfig.
+            api: config.customApi ?? LEGACY_CUSTOM_OPENAI_API,
+            supportsThinking: Boolean(config.customSupportsThinking),
+            maxOutputTokens: config.customMaxOutputTokens,
+          }
+        : { kind: "api-key", provider: config.provider, apiKey: config.apiKey };
 
   const smart = config.model || DEFAULT_MODELS[config.provider];
   // The simple setup path uses one model for both roles. A distinct Fast model

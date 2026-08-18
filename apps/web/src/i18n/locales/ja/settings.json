@@ -203,6 +203,13 @@
   },
   "aiConfig": {
     "provider": "AIプロバイダー",
+    "readaware": {
+      "description": "内蔵モデル。ご自身の API キーは不要で、利用量はプランに応じてクレジットで毎月計測されます。",
+      "notConnected": "まず「データと同期」でアカウントを接続してください。サブスクリプションはそのアカウントでサインインします。",
+      "requiresPaid": "内蔵 AI には Pro または Max プランが必要です。無料プランではご自身のキーをお使いください。",
+      "credits": "今月の使用量 {{used}} / {{total}} クレジット",
+      "creditsUnlimited": "今月の使用量 {{used}} クレジット(無制限)"
+    },
     "customBaseUrl": {
       "label": "カスタムベースURL",
       "helper": "OpenAI互換APIエンドポイントのベースURLを入力してください。"

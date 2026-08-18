@@ -327,20 +327,22 @@ resolveModel(role): PiAiModel             // 从账户配置解析
 
 ```ts
 type LlmAccount =
-  | { kind: "api-key"; provider: ProviderId; keyRef: KeychainRef; baseUrl?: string }  // BYOK —— 现在
+  | { kind: "api-key"; provider: ProviderId; keyRef: KeychainRef; baseUrl?: string }  // BYOK —— 落地
+  | { kind: "readaware"; baseUrl: string; session: string }                           // 我们的订阅 + 计量 proxy —— 落地（2026-08-19）
   | { kind: "oauth";   provider: ProviderId; tokenRef: KeychainRef }                  // OpenAI/Anthropic 订阅 —— 之后
-  | { kind: "readaware"; sessionRef: KeychainRef }                                    // 我们自己的订阅 + LLM proxy —— 更晚，not now
 ```
 
-- **BYOK（现在）：** 即今天已有的模式，按 `docs/data-model.md` §7 把 key
+- **BYOK（落地）：** 即今天已有的模式，按 `docs/data-model.md` §7 把 key
   迁移到 Keychain 引用。
+- **ReadAware 订阅（落地，2026-08-19）：** 中继的计量代理
+  （`apps/relay/src/ai-proxy.ts`，docs/sync-engine.md §11）。OpenAI 兼容
+  透传，认证复用同步会话，所以实现上骑在 custom-openai 机制上——正如
+  预言的，agent 核心零改动（`accounts.ts` 的 `ReadAwareAccount`）。目录
+  一等公民 DeepSeek V4 Flash；用量按 credit 逐月计量，预算挂档位
+  （free 仅 BYOK）。代理不带思考档参数——上游模型自行决定推理。
 - **订阅 OAuth（之后）：** `pi-ai` 已内置 OAuth 机制（OpenAI Codex /
   ChatGPT 订阅、GitHub Copilot、Vertex；Anthropic 订阅 OAuth 待验证 —— §13）。
   Tauri 通过 deep link 处理回调；token 存 OS keychain。
-- **ReadAware 订阅（更晚，明确 not now）：** 我们自己的套餐，背后是
-  `CLAUDE.md` 已经许可的 LLM proxy（"optionally, an LLM proxy"）。因为
-  `pi-ai` 的模型可带自定义 `baseUrl` + headers，这只是新增一种 `LlmAccount`
-  变体 —— agent 代码零改动。Proxy 保持哑计量中继；服务端不放业务逻辑。
 
 模型档位从当前激活账户的模型目录里解析，所以切换账户永远不触及 agent 内部。
 

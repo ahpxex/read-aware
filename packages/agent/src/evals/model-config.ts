@@ -1,6 +1,6 @@
 import { readPiCliKey } from "../dev-key";
 import type { LlmAccount } from "../models/accounts";
-import { createModelResolver } from "../models/accounts";
+import { accountCredential, accountProviderId, createModelResolver } from "../models/accounts";
 import { createCompleteFn } from "../models/complete";
 import { isCustomOpenAIApi } from "../models/custom-openai";
 import {
@@ -100,7 +100,7 @@ export function resolveJudgeCompletion(
         .flatMap((part) => (part.type === "text" ? [part.text] : []))
         .join("");
     },
-    secret: resolved.account.apiKey,
-    metadata: { provider: resolved.account.provider, model: resolved.modelId },
+    secret: accountCredential(resolved.account),
+    metadata: { provider: accountProviderId(resolved.account), model: resolved.modelId },
   };
 }

@@ -203,6 +203,13 @@
   },
   "aiConfig": {
     "provider": "KI-Anbieter",
+    "readaware": {
+      "description": "Integrierte Modelle, kein eigener API-Schlüssel nötig — die Nutzung wird monatlich in Credits gemäß Tarif gemessen.",
+      "notConnected": "Verbinde zuerst dein Konto unter „Daten & Sync“ — das Abo meldet sich damit an.",
+      "requiresPaid": "Integrierte KI erfordert den Pro- oder Max-Tarif; der kostenlose Tarif nutzt deinen eigenen Schlüssel.",
+      "credits": "{{used}} / {{total}} Credits diesen Monat verbraucht",
+      "creditsUnlimited": "{{used}} Credits diesen Monat verbraucht (unbegrenzt)"
+    },
     "customBaseUrl": {
       "label": "Benutzerdefinierte Basis-URL",
       "helper": "Gib die Basis-URL für deinen OpenAI-kompatiblen API-Endpunkt ein."

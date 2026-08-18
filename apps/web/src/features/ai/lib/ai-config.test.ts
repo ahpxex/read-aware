@@ -14,6 +14,7 @@ Object.defineProperty(globalThis, "localStorage", {
 import {
   DEFAULT_CUSTOM_OPENAI_API,
   LEGACY_CUSTOM_OPENAI_API,
+  READAWARE_MODEL_IDS,
   getProviderModelCatalog,
   type KnownProviderId,
 } from "@read-aware/agent";
@@ -28,8 +29,11 @@ import {
 } from "./ai-config";
 import { hydrateSecrets } from "../../../platform/secret-store";
 
+// "custom" has no catalog at all; "readaware" is cataloged by the relay
+// proxy, not pi-ai — it gets its own assertion below.
 const catalogProviders = Object.keys(PROVIDER_MODELS).filter(
-  (provider): provider is KnownProviderId => provider !== "custom",
+  (provider): provider is KnownProviderId =>
+    provider !== "custom" && provider !== "readaware",
 );
 
 beforeAll(() => hydrateSecrets());
@@ -193,5 +197,12 @@ describe("recommended model options", () => {
       expect(optionIds).toContain(DEFAULT_MODELS[provider as AIProvider]);
       expect(optionIds).toContain(SUGGESTED_FAST_MODELS[provider as AIProvider]);
     }
+  });
+
+  test("the readaware options mirror the agent's subscription catalog", () => {
+    const optionIds = PROVIDER_MODELS.readaware.map((option) => option.value);
+    expect(optionIds).toEqual([...READAWARE_MODEL_IDS]);
+    expect(optionIds).toContain(DEFAULT_MODELS.readaware);
+    expect(optionIds).toContain(SUGGESTED_FAST_MODELS.readaware);
   });
 });

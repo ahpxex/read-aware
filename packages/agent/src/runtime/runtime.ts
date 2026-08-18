@@ -6,7 +6,12 @@ import type { ThreadChunk } from "../chunks";
 import { digestMissingChapters } from "../memory/chapter-digest";
 import { runConsolidation, type ConsolidationReport } from "../memory/consolidation";
 import { findChapterByHref } from "../text/chapter-lookup";
-import { createModelResolver, type LlmAccount, type RoleModels } from "../models/accounts";
+import {
+  accountCredential,
+  createModelResolver,
+  type LlmAccount,
+  type RoleModels,
+} from "../models/accounts";
 import { createCompleteFn, createStreamFn, type CompleteFn, type StreamFn } from "../models/complete";
 import { buildProviderRegistry } from "../models/registry";
 import type { ModelRole, RoleThinking } from "../models/roles";
@@ -103,7 +108,7 @@ export class AgentRuntime {
         scope,
         deps: this.deps,
         resolveModel: this.resolveModel,
-        getApiKey: () => this.options.account.apiKey,
+        getApiKey: () => accountCredential(this.options.account),
         completeFn: this.completeFns.fast,
         streamFn: this.streamFns.smart,
         thinkingLevel: this.thinking.smart,

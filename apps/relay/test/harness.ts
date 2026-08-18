@@ -9,6 +9,8 @@ import { Database } from "bun:sqlite";
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { SqlAccountStore, type D1Like } from "../src/account-store";
+import type { AiModel } from "../src/ai-proxy";
+import { SqlAiUsageStore } from "../src/ai-usage-store";
 import { MailboxCore, type SqlExec } from "../src/mailbox-core";
 import { SqlReportStore } from "../src/report-store";
 import {
@@ -89,6 +91,7 @@ function memoryBlobStore(): BlobStore {
 export function makeRelay(
   config: Partial<RelayConfig> = {},
   oauthProviders: Record<string, OAuthProvider> = {},
+  ai: { models?: AiModel[]; fetch?: typeof fetch } = {},
 ) {
   const db = new Database(":memory:");
   for (const migration of MIGRATIONS) db.exec(migration);
@@ -96,6 +99,7 @@ export function makeRelay(
   const nowIso = () => new Date(nowMs).toISOString();
   const mailboxes = new Map<string, Mailbox>();
   const reportPayloads = new Map<string, Uint8Array>();
+  const background: Promise<unknown>[] = [];
   const ports: RelayPorts = {
     accounts: new SqlAccountStore(d1Over(db)),
     reports: new SqlReportStore(d1Over(db), {
@@ -114,15 +118,25 @@ export function makeRelay(
       return mailbox;
     },
     blobs: memoryBlobStore(),
+    aiUsage: new SqlAiUsageStore(d1Over(db)),
+    aiModels: ai.models ?? [],
+    aiFetch: ai.fetch,
     magicLink: null,
     oauthProviders,
     config: { ...DEFAULT_CONFIG, echoMagicToken: true, ...config },
     now: () => nowMs,
+    waitUntil: (promise) => {
+      background.push(promise);
+    },
   };
   return {
     handle: createRelayHandler(ports),
     advance(ms: number) {
       nowMs += ms;
+    },
+    /** Await the accounting writes a streamed AI response left behind. */
+    async settleBackground() {
+      await Promise.all(background.splice(0));
     },
     reportPayloads,
   };

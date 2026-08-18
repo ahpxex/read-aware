@@ -84,6 +84,8 @@ export type SyncTierLimits = {
   maxAccountBlobBytes: number | null;
   /** Per account, total events in the mailbox. */
   maxAccountEvents: number | null;
+  /** Bundled-AI budget per month; 0 = BYOK only (free tier), null = unmetered. */
+  aiMonthlyCredits: number | null;
 };
 
 export type AccountResponse = {
@@ -96,7 +98,21 @@ export type AccountResponse = {
   /** When the paid tier lapses (ms epoch); null = never / not applicable. */
   tierExpiresAtMs: number | null;
   eventsUsed: number;
+  /** Bundled-AI credits consumed this UTC month (1 credit = $0.001). */
+  aiCreditsUsed: number;
   limits: SyncTierLimits;
+};
+
+// ── /v1/ai ───────────────────────────────────────────────────────────────────
+
+/**
+ * The bundled-AI proxy surface. `POST /v1/ai/chat/completions` is
+ * OpenAI-compatible passthrough (session bearer, model from this catalog);
+ * this response describes what the deployment offers.
+ */
+export type AiModelsResponse = {
+  /** First entry is the recommended default. */
+  models: { id: string; name: string }[];
 };
 
 // ── /v1/events ───────────────────────────────────────────────────────────────

@@ -28,19 +28,26 @@ function requestOptions(
   base: SimpleStreamOptions = {},
 ): SimpleStreamOptions {
   const upstreamPayload = base.onPayload;
-  const onPayload = isCustomOpenAIAccount(account)
-    ? async (payload: unknown, model: Model<Api>) => {
-        const transformed = await upstreamPayload?.(payload, model);
-        return sanitizeCustomOpenAIPayload(
-          transformed === undefined ? payload : transformed,
-          account.maxOutputTokens,
-        );
-      }
-    : upstreamPayload;
+  // The readaware subscription rides the same custom-openai wire, so its
+  // payloads need the same compatibility sanitation; its output cap lives on
+  // the relay proxy, hence no client-side maxOutputTokens.
+  const sanitizedMaxOutputTokens = isCustomOpenAIAccount(account)
+    ? account.maxOutputTokens
+    : undefined;
+  const onPayload =
+    isCustomOpenAIAccount(account) || account.kind === "readaware"
+      ? async (payload: unknown, model: Model<Api>) => {
+          const transformed = await upstreamPayload?.(payload, model);
+          return sanitizeCustomOpenAIPayload(
+            transformed === undefined ? payload : transformed,
+            sanitizedMaxOutputTokens,
+          );
+        }
+      : upstreamPayload;
 
   return {
     ...base,
-    apiKey: account.apiKey,
+    apiKey: account.kind === "readaware" ? account.session : account.apiKey,
     reasoning:
       thinking === undefined ? base.reasoning : asReasoning(thinking),
     fetch: fetch ?? base.fetch,

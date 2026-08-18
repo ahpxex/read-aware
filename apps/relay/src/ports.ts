@@ -10,6 +10,7 @@ import type {
   SyncTier,
   SyncTierLimits,
 } from "@read-aware/core";
+import type { AiModel } from "./ai-proxy";
 import type { RelayLang } from "./i18n";
 
 export const ACCOUNT_TIERS: readonly SyncTier[] = ["free", "pro", "max", "staff"];
@@ -56,6 +57,17 @@ export function resolveTier(
  * Per-file stays 100 MB on every paid tier: the Worker buffers uploads and
  * Cloudflare caps request bodies at 100 MB on non-enterprise plans anyway —
  * raising it needs multipart upload work, not a bigger constant.
+ *
+ * Events ladder reads 50k → 2.5M → 25M: a clean 50× / 10× story, and event
+ * rows are so small the cost difference is noise.
+ *
+ * aiMonthlyCredits is the bundled-AI budget (1 credit = $0.001; ai-proxy.ts):
+ * free = 0 — bundled AI is a paid feature, BYOK is always available; an
+ * open-source client base with a free LLM allowance is a bill nobody can
+ * bound. pro 5,000 ≈ 1,200+ DeepSeek-Flash turns/month; max 30,000. Against
+ * the decided pricing (pro $20, max $50 — 2026-08-19) the metering ceilings
+ * leave hard worst-case margins of $15 and $20: even an account that burns
+ * its budget to the last credit is profitable.
  */
 export function quotasForTier(tier: SyncTier, config: RelayConfig): SyncTierLimits {
   switch (tier) {
@@ -64,21 +76,29 @@ export function quotasForTier(tier: SyncTier, config: RelayConfig): SyncTierLimi
         maxBlobBytes: config.maxBlobBytes,
         maxAccountBlobBytes: config.maxAccountBlobBytes,
         maxAccountEvents: config.maxAccountEvents,
+        aiMonthlyCredits: 0,
       };
     case "pro":
       return {
         maxBlobBytes: 100 * 1024 * 1024,
         maxAccountBlobBytes: 10 * 1024 * 1024 * 1024,
-        maxAccountEvents: 1_000_000,
+        maxAccountEvents: 2_500_000,
+        aiMonthlyCredits: 5_000,
       };
     case "max":
       return {
         maxBlobBytes: 100 * 1024 * 1024,
         maxAccountBlobBytes: 100 * 1024 * 1024 * 1024,
-        maxAccountEvents: 10_000_000,
+        maxAccountEvents: 25_000_000,
+        aiMonthlyCredits: 30_000,
       };
     case "staff":
-      return { maxBlobBytes: 100 * 1024 * 1024, maxAccountBlobBytes: null, maxAccountEvents: null };
+      return {
+        maxBlobBytes: 100 * 1024 * 1024,
+        maxAccountBlobBytes: null,
+        maxAccountEvents: null,
+        aiMonthlyCredits: null,
+      };
   }
 }
 
@@ -177,6 +197,13 @@ export interface ReportStore {
   countSince(ipHash: string, sinceMs: number): Promise<number>;
 }
 
+/** Monthly bundled-AI accounting (migrations/0007): micro-USD per account-month. */
+export interface AiUsageStore {
+  usedMicroUsd(accountId: string, month: string): Promise<number>;
+  /** One completed request's cost — upsert-increment, monotonic. */
+  add(accountId: string, month: string, microUsd: number): Promise<void>;
+}
+
 export interface MagicLinkSender {
   /** `lang` is a resolved RelayLang — the email renders in the app's locale. */
   send(email: string, token: string, lang: RelayLang): Promise<void>;
@@ -221,6 +248,10 @@ export type RelayConfig = {
   maxAccountEvents: number;
   /** Bearer token for /v1/admin/* (wrangler secret); null disables the routes. */
   adminToken: string | null;
+  /** Per AI proxy request body, JSON-encoded (reading contexts are big; books are not). */
+  maxAiRequestBytes: number;
+  /** Ceiling injected over a caller's max_tokens on the AI proxy. */
+  maxAiOutputTokens: number;
   /** Where a `client=web` OAuth finish is allowed to land (no open redirect). */
   webAppOrigin: string;
   /** Per diagnostic report, JSON-encoded (the client caps log tails well below). */
@@ -244,6 +275,8 @@ export const DEFAULT_CONFIG: RelayConfig = {
   maxAccountBlobBytes: 50 * 1024 * 1024,
   maxAccountEvents: 50_000,
   adminToken: null,
+  maxAiRequestBytes: 2 * 1024 * 1024,
+  maxAiOutputTokens: 32_768,
   webAppOrigin: "https://readaware.app",
   maxReportBytes: 512 * 1024,
   maxReportsPerIpPerDay: 10,
@@ -254,10 +287,18 @@ export type RelayPorts = {
   mailboxFor(accountId: string): Mailbox;
   blobs: BlobStore;
   reports: ReportStore;
+  aiUsage: AiUsageStore;
+  /** Catalog order matters: the first entry is the client-facing default.
+   * Empty ⇒ the AI proxy answers 501 (no upstream key configured). */
+  aiModels: readonly AiModel[];
   /** null + echoMagicToken=false ⇒ /v1/auth/request answers 501. No mocks. */
   magicLink: MagicLinkSender | null;
   /** Keyed by URL segment ("google", "github"). Unlisted providers 404. */
   oauthProviders: Record<string, OAuthProvider>;
   config: RelayConfig;
   now(): number;
+  /** Upstream HTTP for the AI proxy — injectable so tests fake the LLM side. */
+  aiFetch?: typeof fetch;
+  /** Cloudflare's ctx.waitUntil — keeps post-stream accounting writes alive. */
+  waitUntil?(promise: Promise<unknown>): void;
 };

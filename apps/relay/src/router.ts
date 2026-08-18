@@ -9,6 +9,15 @@
  * back. Client schema evolution must never require touching this file.
  */
 import type { HlcStamp, SealedEventWire, SyncKeyMaterial } from "@read-aware/core";
+import {
+  costMicroUsd,
+  creditsFromMicroUsd,
+  meterSseStream,
+  monthKey,
+  MICRO_USD_PER_CREDIT,
+  usageFromOpenAI,
+  type AiUsage,
+} from "./ai-proxy";
 import { isAccountTier, quotasForTier, resolveTier, type Account, type RelayPorts } from "./ports";
 import { PAGE, resolveLang, type RelayLang } from "./i18n";
 
@@ -426,6 +435,114 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
     return failure(405, "method not allowed");
   }
 
+  /**
+   * The bundled-AI proxy: OpenAI-compatible passthrough with the operator's
+   * upstream key injected and the usage numbers metered (docs/sync-engine.md
+   * §11). The relay never logs or stores request/response CONTENT — these
+   * requests are plaintext inside TLS (not E2E like sync data), so the only
+   * thing allowed to touch storage is token counts. Admission is the tier's
+   * monthly credit budget, checked before forwarding and charged after the
+   * upstream answers; a request in flight can overshoot by itself at most.
+   */
+  async function handleAiCompletions(account: Account, req: Request): Promise<Response> {
+    if (ports.aiModels.length === 0) return failure(501, "bundled AI is not configured");
+    const budgetCredits = quotasOf(account).aiMonthlyCredits;
+    if (budgetCredits === 0) return failure(403, "bundled AI requires a paid plan");
+    const month = monthKey(ports.now());
+    if (budgetCredits !== null) {
+      const used = await ports.aiUsage.usedMicroUsd(account.id, month);
+      if (used >= budgetCredits * MICRO_USD_PER_CREDIT) {
+        return failure(402, "monthly AI credits exhausted");
+      }
+    }
+
+    const raw = await req.text();
+    if (raw.length > config.maxAiRequestBytes) {
+      return failure(413, `request exceeds ${config.maxAiRequestBytes} bytes`);
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return failure(400, "a JSON body is required");
+    }
+    if (typeof parsed !== "object" || parsed === null) return failure(400, "a JSON body is required");
+    const body = parsed as Record<string, unknown>;
+    const model = ports.aiModels.find((m) => m.id === body.model);
+    if (!model) return failure(400, "unknown model");
+    body.model = model.upstreamModel;
+    // The meter depends on the final chunk carrying usage — non-negotiable.
+    const stream = body.stream === true;
+    if (stream) {
+      const streamOptions =
+        typeof body.stream_options === "object" && body.stream_options !== null
+          ? (body.stream_options as Record<string, unknown>)
+          : {};
+      body.stream_options = { ...streamOptions, include_usage: true };
+    }
+    // Output ceiling: a single request must not be able to burn a whole
+    // month's budget. Clients that want less may ask for less.
+    if (
+      typeof body.max_tokens !== "number" ||
+      !Number.isFinite(body.max_tokens) ||
+      body.max_tokens > config.maxAiOutputTokens
+    ) {
+      body.max_tokens = config.maxAiOutputTokens;
+    }
+
+    const fetchFn = ports.aiFetch ?? fetch;
+    const upstream = await fetchFn(`${model.upstreamBaseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${model.apiKey}`,
+      },
+      body: JSON.stringify(body),
+    });
+    if (!upstream.ok) {
+      // Status + body pass through (they may explain a content filter); the
+      // status alone is logged — never the content.
+      console.error(`[relay] ai upstream ${model.id} answered ${upstream.status}`);
+      return new Response(await upstream.text(), {
+        status: upstream.status,
+        headers: {
+          "content-type": upstream.headers.get("content-type") ?? "application/json",
+          ...CORS_HEADERS,
+        },
+      });
+    }
+
+    const record = (usage: AiUsage): Promise<void> => {
+      const write = ports.aiUsage.add(account.id, month, costMicroUsd(model, usage));
+      // The streamed response outlives the handler — waitUntil keeps the
+      // accounting write alive past it.
+      ports.waitUntil?.(write);
+      return write;
+    };
+
+    if (stream && upstream.body) {
+      return new Response(upstream.body.pipeThrough(meterSseStream((usage) => void record(usage))), {
+        status: 200,
+        headers: {
+          "content-type": upstream.headers.get("content-type") ?? "text/event-stream",
+          "cache-control": "no-store",
+          ...CORS_HEADERS,
+        },
+      });
+    }
+    const text = await upstream.text();
+    try {
+      const usage = usageFromOpenAI((JSON.parse(text) as { usage?: unknown }).usage);
+      if (usage) await record(usage);
+    } catch {
+      // Unparseable success body: pass it through unmetered rather than eat it.
+    }
+    return new Response(text, {
+      status: 200,
+      headers: { "content-type": "application/json", ...CORS_HEADERS },
+    });
+  }
+
   return async function handle(req: Request): Promise<Response> {
     const url = new URL(req.url);
     const path = url.pathname;
@@ -475,6 +592,9 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
         tier,
         tierExpiresAtMs: account.tierExpiresAtMs,
         eventsUsed: await ports.mailboxFor(account.id).count(),
+        aiCreditsUsed: creditsFromMicroUsd(
+          await ports.aiUsage.usedMicroUsd(account.id, monthKey(ports.now())),
+        ),
         limits: quotasForTier(tier, config),
       });
     }
@@ -501,6 +621,12 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
       // 60 seconds: long enough to open the socket, useless to an archived log.
       await accounts.putWatchTicket(await tokenHash(ticket), account.id, ports.now() + 60_000);
       return json(200, { ticket });
+    }
+    if (req.method === "GET" && path === "/v1/ai/models") {
+      return json(200, { models: ports.aiModels.map(({ id, name }) => ({ id, name })) });
+    }
+    if (req.method === "POST" && path === "/v1/ai/chat/completions") {
+      return handleAiCompletions(account, req);
     }
     if (path === "/v1/events") {
       if (req.method === "POST") return handlePushEvents(account, req);

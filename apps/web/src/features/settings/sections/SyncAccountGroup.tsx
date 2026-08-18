@@ -132,11 +132,25 @@ export function SyncAccountGroup() {
         <SyncProgressDetail
           status={sync.status}
           backlog={backlog}
+          plan={
+            accountInfo
+              ? t("dataSync.connected.plan", {
+                  tier: t(`dataSync.tier.${accountInfo.tier ?? "free"}`),
+                })
+              : null
+          }
           storage={
             accountInfo
-              ? t("dataSync.connected.storageUsed", {
-                  used: formatBytes(accountInfo.blobBytesUsed),
-                })
+              ? // A self-hosted relay predating tiers sends no limits — fall
+                // back to the plain usage line rather than "of undefined".
+                accountInfo.limits?.maxAccountBlobBytes != null
+                ? t("dataSync.connected.storageUsedOfLimit", {
+                    used: formatBytes(accountInfo.blobBytesUsed),
+                    limit: formatBytes(accountInfo.limits.maxAccountBlobBytes),
+                  })
+                : t("dataSync.connected.storageUsed", {
+                    used: formatBytes(accountInfo.blobBytesUsed),
+                  })
               : null
           }
         />

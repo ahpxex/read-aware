@@ -373,7 +373,15 @@
       "disconnectTitle": "Déconnecter la synchronisation ?",
       "disconnectBody": "Cet appareil conserve toutes ses données et cesse de synchroniser. Reconnectez-vous à tout moment avec la même phrase secrète.",
       "cancel": "Annuler",
-      "storageUsed": "{{used}} stockés sur le relais"
+      "storageUsed": "{{used}} stockés sur le relais",
+      "storageUsedOfLimit": "{{used}} sur {{limit}} stockés sur le relais",
+      "plan": "Offre : {{tier}}"
+    },
+    "tier": {
+      "free": "Gratuite",
+      "pro": "Pro",
+      "max": "Max",
+      "staff": "Interne"
     },
     "progress": {
       "pulling": "Réception des modifications… {{count}} fusionnées",

@@ -26,6 +26,7 @@
     // 本地开发的回显由 `bun run dev` 脚本以 --var 注入。
     // 邮件链路（可选）：`wrangler secret put RESEND_API_KEY` + 此处 MAIL_FROM。
     // OAuth：`wrangler secret put GOOGLE_CLIENT_ID/SECRET、GITHUB_CLIENT_ID/SECRET`。
+    // 档位管理（可选）：`wrangler secret put ADMIN_TOKEN` 启用 /v1/admin/tier。
     "APP_ORIGIN": "https://readaware.app"
   }
 }

@@ -45,9 +45,7 @@ export class MailboxCore {
       const row = this.sql.exec(`SELECT seq FROM events WHERE event_id = ?1`, ev.id).toArray()[0];
       if (row) known.add(ev.id);
     }
-    const stored = Number(
-      this.sql.exec(`SELECT COUNT(*) AS n FROM events`).toArray()[0]?.n ?? 0,
-    );
+    const stored = this.count();
     const freshIds = new Set(events.filter((ev) => !known.has(ev.id)).map((ev) => ev.id));
     if (stored + freshIds.size > maxEvents) return "full";
 
@@ -92,6 +90,10 @@ export class MailboxCore {
     const events = rows.map((row) => JSON.parse(String(row.envelope_json)) as SealedEventWire);
     const next = rows.length > 0 ? Number(rows[rows.length - 1].seq) : after;
     return { events, next };
+  }
+
+  count(): number {
+    return Number(this.sql.exec(`SELECT COUNT(*) AS n FROM events`).toArray()[0]?.n ?? 0);
   }
 
   maxSeq(): number {

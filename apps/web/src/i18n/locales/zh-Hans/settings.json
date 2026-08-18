@@ -365,7 +365,15 @@
       "disconnectTitle": "断开同步？",
       "disconnectBody": "本设备保留全部数据并停止同步。可随时用同一口令重新连接。",
       "cancel": "取消",
-      "storageUsed": "云端已用 {{used}}"
+      "storageUsed": "云端已用 {{used}}",
+      "storageUsedOfLimit": "云端已用 {{used}} / {{limit}}",
+      "plan": "方案:{{tier}}"
+    },
+    "tier": {
+      "free": "免费",
+      "pro": "Pro",
+      "max": "Max",
+      "staff": "内部"
     },
     "progress": {
       "pulling": "正在接收更改… 已合并 {{count}} 条",

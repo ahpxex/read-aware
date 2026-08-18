@@ -7,8 +7,8 @@
  * Magic-link and session tokens are stored as SHA-256 hashes: a leaked
  * database yields nothing replayable.
  */
-import type { SyncKeyMaterial } from "@read-aware/core";
-import type { Account, AccountStore } from "./ports";
+import type { SyncKeyMaterial, SyncTier } from "@read-aware/core";
+import { isAccountTier, type Account, type AccountStore } from "./ports";
 
 export type D1Like = {
   prepare(sql: string): {
@@ -27,6 +27,8 @@ type AccountRow = {
   kdf_params_json: string | null;
   key_check: string | null;
   blob_bytes_used: number;
+  tier: string;
+  tier_expires_at_ms: number | null;
   created_at: string;
 };
 
@@ -44,6 +46,10 @@ function rowToAccount(row: AccountRow): Account {
     email: row.email,
     keys,
     blobBytesUsed: Number(row.blob_bytes_used),
+    // A row can only hold an unknown tier if someone hand-edited the column;
+    // read it as free rather than granting quotas the code never defined.
+    tier: isAccountTier(row.tier) ? row.tier : "free",
+    tierExpiresAtMs: row.tier_expires_at_ms === null ? null : Number(row.tier_expires_at_ms),
     createdAt: row.created_at,
   };
 }
@@ -190,6 +196,21 @@ export class SqlAccountStore implements AccountStore {
 
   async deleteSession(tokenHash: string): Promise<void> {
     await this.db.prepare(`DELETE FROM sessions WHERE token_hash = ?1`).bind(tokenHash).run();
+  }
+
+  async setTierByEmail(
+    email: string,
+    tier: SyncTier,
+    tierExpiresAtMs: number | null,
+  ): Promise<Account | null> {
+    const row = await this.db
+      .prepare(
+        `UPDATE accounts SET tier = ?2, tier_expires_at_ms = ?3
+          WHERE email = ?1 RETURNING *`,
+      )
+      .bind(email, tier, tierExpiresAtMs)
+      .first<AccountRow>();
+    return row ? rowToAccount(row) : null;
   }
 
   async adjustBlobBytes(id: string, delta: number): Promise<number> {

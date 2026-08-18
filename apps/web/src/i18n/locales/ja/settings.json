@@ -365,7 +365,15 @@
       "disconnectTitle": "同期を解除しますか？",
       "disconnectBody": "この端末のデータはすべて保持され、同期のみ停止します。同じパスフレーズでいつでも再接続できます。",
       "cancel": "キャンセル",
-      "storageUsed": "リレー使用量 {{used}}"
+      "storageUsed": "リレー使用量 {{used}}",
+      "storageUsedOfLimit": "リレー使用量 {{used}} / {{limit}}",
+      "plan": "プラン: {{tier}}"
+    },
+    "tier": {
+      "free": "無料",
+      "pro": "Pro",
+      "max": "Max",
+      "staff": "スタッフ"
     },
     "progress": {
       "pulling": "変更を受信中… {{count}} 件マージ済み",

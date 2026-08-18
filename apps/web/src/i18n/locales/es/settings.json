@@ -373,7 +373,15 @@
       "disconnectTitle": "¿Desconectar la sincronización?",
       "disconnectBody": "Este dispositivo conserva todos sus datos y solo deja de sincronizar. Reconéctate cuando quieras con la misma frase.",
       "cancel": "Cancelar",
-      "storageUsed": "{{used}} almacenados en el relé"
+      "storageUsed": "{{used}} almacenados en el relé",
+      "storageUsedOfLimit": "{{used}} de {{limit}} almacenados en el relé",
+      "plan": "Plan: {{tier}}"
+    },
+    "tier": {
+      "free": "Gratis",
+      "pro": "Pro",
+      "max": "Max",
+      "staff": "Interno"
     },
     "progress": {
       "pulling": "Recibiendo cambios… {{count}} fusionados",

@@ -67,11 +67,36 @@ export type AuthVerifyResponse = {
 
 // ── /v1/account ──────────────────────────────────────────────────────────────
 
+/**
+ * Account tiers: `free` / `pro` / `max` are the public ladder, `staff` is
+ * internal-only. The tier decides quotas and nothing else — the relay stores
+ * ciphertext either way. Tier → quota mapping lives server-side
+ * (apps/relay/src/ports.ts); the wire carries the resolved numbers in
+ * `AccountResponse.limits` so the client never hardcodes them.
+ */
+export type SyncTier = "free" | "pro" | "max" | "staff";
+
+/** Resolved quota numbers for the account's current tier; null = unlimited. */
+export type SyncTierLimits = {
+  /** Per single blob upload. */
+  maxBlobBytes: number | null;
+  /** Per account, total blob bytes. */
+  maxAccountBlobBytes: number | null;
+  /** Per account, total events in the mailbox. */
+  maxAccountEvents: number | null;
+};
+
 export type AccountResponse = {
   accountId: string;
   email: string;
   keys: SyncKeyMaterial | null;
   blobBytesUsed: number;
+  /** Already resolved: an expired paid tier reads as "free" here. */
+  tier: SyncTier;
+  /** When the paid tier lapses (ms epoch); null = never / not applicable. */
+  tierExpiresAtMs: number | null;
+  eventsUsed: number;
+  limits: SyncTierLimits;
 };
 
 // ── /v1/events ───────────────────────────────────────────────────────────────

@@ -42,6 +42,8 @@ type Env = {
   /** Free-tier quota overrides (integers); defaults in DEFAULT_CONFIG. */
   MAX_ACCOUNT_BLOB_BYTES?: string;
   MAX_ACCOUNT_EVENTS?: string;
+  /** Enables /v1/admin/* (tier assignment). Unset ⇒ those routes answer 501. */
+  ADMIN_TOKEN?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   GITHUB_CLIENT_ID?: string;
@@ -110,6 +112,7 @@ function portsFromEnv(env: Env): RelayPorts {
       maxAccountBlobBytes:
         Number(env.MAX_ACCOUNT_BLOB_BYTES) || DEFAULT_CONFIG.maxAccountBlobBytes,
       maxAccountEvents: Number(env.MAX_ACCOUNT_EVENTS) || DEFAULT_CONFIG.maxAccountEvents,
+      adminToken: env.ADMIN_TOKEN ?? null,
     },
     now: () => Date.now(),
   };

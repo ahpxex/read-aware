@@ -369,7 +369,15 @@
       "disconnectTitle": "Disconnect sync?",
       "disconnectBody": "This device keeps all its data and stops syncing. Reconnect anytime with the same passphrase.",
       "cancel": "Cancel",
-      "storageUsed": "{{used}} stored on the relay"
+      "storageUsed": "{{used}} stored on the relay",
+      "storageUsedOfLimit": "{{used}} of {{limit}} stored on the relay",
+      "plan": "Plan: {{tier}}"
+    },
+    "tier": {
+      "free": "Free",
+      "pro": "Pro",
+      "max": "Max",
+      "staff": "Staff"
     },
     "progress": {
       "pulling": "Receiving changes… {{count}} merged",

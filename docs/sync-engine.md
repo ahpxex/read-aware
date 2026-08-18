@@ -365,8 +365,20 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
   自付 Cloudflare 账单，意味着配额必须是硬性的、默认从紧的。默认每账号
   blob 50 MB + 事件 5 万条，双双 413 原子拒绝（重投递已知事件不算新用量、
   不受锁）；env 可调（`MAX_ACCOUNT_BLOB_BYTES` / `MAX_ACCOUNT_EVENTS`）。
-  最坏情况有界：1000 个满额免费账号 ≈ 50 GB R2 ≈ $0.60/月。将来付费档
-  把这两个数搬到账号行上按 plan 取值即可。
+  最坏情况有界：1000 个满额免费账号 ≈ 50 GB R2 ≈ $0.60/月。
+- **账号档位（2026-08-18 落地）**：对外 `free` / `pro` / `max`，内部
+  `staff`。账号行只存 `tier` + `tier_expires_at_ms`（D1 迁移 0006）；
+  档位 → 配额的映射在代码里（`ports.ts quotasForTier`）——free 读 env
+  基线，pro = 10 GiB / 100 万事件，max = 100 GiB / 1000 万事件，staff
+  不限量；付费档单文件上限 100 MB（Workers 非企业版请求体上限即
+  100 MB，再往上要做分片上传，不是改常数）。到期回落 free；执行只在
+  写入侧——超额账号 pull 永远可用，push 被 413 拒，数据不删。写入口是
+  `POST /v1/admin/tier`（`ADMIN_TOKEN` secret 鉴权，未配置则 501；
+  body `{email, tier, expiresAtMs?}`），将来支付 webhook 走同一接缝。
+  `GET /v1/account` 返回解析后的 `tier` + `limits` + 用量
+  （`blobBytesUsed` / `eventsUsed`），客户端 Data & Sync 面板据此显示
+  「方案 + 已用/上限」。事件日志 append-only 的先天约束：降级后若已超
+  事件配额，push 永久只读直到重新升级——这是接受的语义，不做 compaction。
 - **账号删除与 GDPR**：`DELETE /v1/account` 清 D1 行 + R2 前缀，
   服务端无明文所以无残留解读风险；需要写进隐私政策。
 - **时钟严重漂移的设备**：HLC 的 wallMs 会被 `observe()` 拉齐，但一台
@@ -388,7 +400,9 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
    `https://<relay 域>/v1/auth/oauth/{google|github}/callback`；
 5. `bunx wrangler secret put GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET /
    GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET`（邮件链路可选：
-   `RESEND_API_KEY` + `MAIL_FROM`——有 OAuth 后可以晚配）；
+   `RESEND_API_KEY` + `MAIL_FROM`——有 OAuth 后可以晚配；档位管理可选：
+   `ADMIN_TOKEN`，不配则 `/v1/admin/*` 一律 501。升降级示例：
+   `curl -X POST https://relay.readaware.app/v1/admin/tier -H "authorization: Bearer $ADMIN_TOKEN" -H "content-type: application/json" -d '{"email":"reader@example.com","tier":"pro","expiresAtMs":1787000000000}'`）；
 6. 生产 `wrangler.jsonc` 删掉 `MAGIC_LINK_ECHO`；配自定义域
    `relay.readaware.app`（Workers 控制台 Custom Domains，DNS 本就在
    Cloudflare）；

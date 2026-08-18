@@ -4,16 +4,83 @@
  * tests bind the SAME sql-backed cores to bun:sqlite — so what the suite
  * exercises is the real storage logic, not a parallel in-memory fiction.
  */
-import type { SealedEventWire, SyncKeyMaterial } from "@read-aware/core";
+import type {
+  SealedEventWire,
+  SyncKeyMaterial,
+  SyncTier,
+  SyncTierLimits,
+} from "@read-aware/core";
 import type { RelayLang } from "./i18n";
+
+export const ACCOUNT_TIERS: readonly SyncTier[] = ["free", "pro", "max", "staff"];
+
+export const isAccountTier = (v: unknown): v is SyncTier =>
+  typeof v === "string" && (ACCOUNT_TIERS as readonly string[]).includes(v);
 
 export type Account = {
   id: string;
   email: string;
   keys: SyncKeyMaterial | null;
   blobBytesUsed: number;
+  /** As stored — resolve through `resolveTier` before reading quotas off it. */
+  tier: SyncTier;
+  tierExpiresAtMs: number | null;
   createdAt: string;
 };
+
+/**
+ * The stored tier, downgraded to `free` once its expiry passes. Enforcement
+ * is write-time only: an over-quota downgraded account keeps pulling and
+ * reading forever — data is never deleted, new pushes are refused.
+ */
+export function resolveTier(
+  account: Pick<Account, "tier" | "tierExpiresAtMs">,
+  nowMs: number,
+): SyncTier {
+  if (account.tier === "free") return "free";
+  if (account.tierExpiresAtMs !== null && account.tierExpiresAtMs <= nowMs) return "free";
+  return account.tier;
+}
+
+/**
+ * Tier → quota mapping — code, not rows, so changing a tier's quotas is a
+ * deploy, never a data migration. `free` reads the (env-overridable) config
+ * baseline; paid tiers are fixed here. null = unlimited.
+ *
+ * Numbers, with the bill math that justifies them (R2 ≈ $0.015/GB-month):
+ * - pro: 10 GiB of books + 1M events — effectively "your whole library",
+ *   worst case ≈ $0.15/month/account of storage.
+ * - max: 100 GiB + 10M events — an order of magnitude of headroom,
+ *   worst case ≈ $1.50/month/account.
+ * - staff: internal accounts, unmetered.
+ * Per-file stays 100 MB on every paid tier: the Worker buffers uploads and
+ * Cloudflare caps request bodies at 100 MB on non-enterprise plans anyway —
+ * raising it needs multipart upload work, not a bigger constant.
+ */
+export function quotasForTier(tier: SyncTier, config: RelayConfig): SyncTierLimits {
+  switch (tier) {
+    case "free":
+      return {
+        maxBlobBytes: config.maxBlobBytes,
+        maxAccountBlobBytes: config.maxAccountBlobBytes,
+        maxAccountEvents: config.maxAccountEvents,
+      };
+    case "pro":
+      return {
+        maxBlobBytes: 100 * 1024 * 1024,
+        maxAccountBlobBytes: 10 * 1024 * 1024 * 1024,
+        maxAccountEvents: 1_000_000,
+      };
+    case "max":
+      return {
+        maxBlobBytes: 100 * 1024 * 1024,
+        maxAccountBlobBytes: 100 * 1024 * 1024 * 1024,
+        maxAccountEvents: 10_000_000,
+      };
+    case "staff":
+      return { maxBlobBytes: 100 * 1024 * 1024, maxAccountBlobBytes: null, maxAccountEvents: null };
+  }
+}
 
 export interface AccountStore {
   findOrCreateByEmail(email: string, now: string): Promise<Account>;
@@ -45,6 +112,16 @@ export interface AccountStore {
   deleteSession(tokenHash: string): Promise<void>;
   /** Returns the new total. Clamped at zero (deletes never go negative). */
   adjustBlobBytes(id: string, delta: number): Promise<number>;
+  /**
+   * The single tier write seam (admin endpoint today, payment webhook later).
+   * Keyed by email — that is how an operator identifies an account. Returns
+   * the updated account, or null when no account has that email.
+   */
+  setTierByEmail(
+    email: string,
+    tier: SyncTier,
+    tierExpiresAtMs: number | null,
+  ): Promise<Account | null>;
   deleteAccount(id: string): Promise<void>;
 }
 
@@ -56,6 +133,8 @@ export interface Mailbox {
    * atomically, nothing appended (redelivery of known ids still succeeds).
    */
   append(events: SealedEventWire[], maxEvents: number): Promise<Record<string, number> | "full">;
+  /** Stored events — the usage half of the quota (`/v1/account` reporting). */
+  count(): Promise<number>;
   listAfter(after: number, limit: number): Promise<{ events: SealedEventWire[]; next: number }>;
   wipe(): Promise<void>;
   /**
@@ -131,13 +210,17 @@ export type RelayConfig = {
   maxBatch: number;
   /** Events per pull page (also the default). */
   maxPullLimit: number;
-  /** Per single blob. */
+  /** Per single blob — the FREE-tier baseline (paid tiers: `quotasForTier`). */
   maxBlobBytes: number;
-  /** Per account, total. THE bill guard — an open-source client base must
-   * never be able to run the operator's R2 bill up (docs/sync-engine.md §11). */
+  /** Per free-tier account, total. THE bill guard — an open-source client base
+   * must never be able to run the operator's R2 bill up (docs/sync-engine.md
+   * §11). Paid tiers read their own numbers from `quotasForTier`. */
   maxAccountBlobBytes: number;
-  /** Per account, total events in the mailbox. Same guard for DO storage. */
+  /** Per free-tier account, total events in the mailbox. Same guard for DO
+   * storage. */
   maxAccountEvents: number;
+  /** Bearer token for /v1/admin/* (wrangler secret); null disables the routes. */
+  adminToken: string | null;
   /** Where a `client=web` OAuth finish is allowed to land (no open redirect). */
   webAppOrigin: string;
   /** Per diagnostic report, JSON-encoded (the client caps log tails well below). */
@@ -156,10 +239,11 @@ export const DEFAULT_CONFIG: RelayConfig = {
   // Free-tier defaults, deliberately tight: 50 MB of books and 50k events per
   // account. 1000 free accounts at the cap ≈ 50 GB R2 ≈ $0.60/month — the
   // worst case is bounded and known. Raise per deployment via env vars
-  // (MAX_ACCOUNT_BLOB_BYTES / MAX_ACCOUNT_EVENTS); a paid tier later turns
-  // these into per-account values read off the account row.
+  // (MAX_ACCOUNT_BLOB_BYTES / MAX_ACCOUNT_EVENTS). Paid tiers read their
+  // quotas off the account row's tier through `quotasForTier` instead.
   maxAccountBlobBytes: 50 * 1024 * 1024,
   maxAccountEvents: 50_000,
+  adminToken: null,
   webAppOrigin: "https://readaware.app",
   maxReportBytes: 512 * 1024,
   maxReportsPerIpPerDay: 10,

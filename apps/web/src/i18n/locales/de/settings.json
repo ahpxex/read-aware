@@ -369,7 +369,15 @@
       "disconnectTitle": "Synchronisierung trennen?",
       "disconnectBody": "Dieses Gerät behält alle Daten und stoppt nur die Synchronisierung. Mit derselben Passphrase jederzeit wieder verbindbar.",
       "cancel": "Abbrechen",
-      "storageUsed": "{{used}} auf dem Relay belegt"
+      "storageUsed": "{{used}} auf dem Relay belegt",
+      "storageUsedOfLimit": "{{used}} von {{limit}} auf dem Relay belegt",
+      "plan": "Tarif: {{tier}}"
+    },
+    "tier": {
+      "free": "Kostenlos",
+      "pro": "Pro",
+      "max": "Max",
+      "staff": "Intern"
     },
     "progress": {
       "pulling": "Änderungen werden empfangen… {{count}} zusammengeführt",

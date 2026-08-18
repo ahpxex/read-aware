@@ -69,6 +69,9 @@ export class AccountMailbox {
       this.ringDoorbells();
       return Response.json({ seqs });
     }
+    if (req.method === "GET" && url.pathname === "/count") {
+      return Response.json({ count: this.core.count() });
+    }
     if (req.method === "GET" && url.pathname === "/list") {
       const after = Number(url.searchParams.get("after") ?? "0");
       const limit = Number(url.searchParams.get("limit") ?? "500");
@@ -96,6 +99,10 @@ export function stubMailbox(stub: MailboxStub): Mailbox {
       if (res.status === 413) return "full";
       const body = (await res.json()) as { seqs: Record<string, number> };
       return body.seqs;
+    },
+    async count() {
+      const res = await stub.fetch("https://mailbox/count");
+      return ((await res.json()) as { count: number }).count;
     },
     async listAfter(after, limit) {
       const res = await stub.fetch(`https://mailbox/list?after=${after}&limit=${limit}`);

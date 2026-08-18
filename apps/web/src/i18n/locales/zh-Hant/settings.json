@@ -365,7 +365,15 @@
       "disconnectTitle": "中斷同步？",
       "disconnectBody": "本裝置保留全部資料並停止同步。可隨時以同一密語重新連線。",
       "cancel": "取消",
-      "storageUsed": "雲端已用 {{used}}"
+      "storageUsed": "雲端已用 {{used}}",
+      "storageUsedOfLimit": "雲端已用 {{used}} / {{limit}}",
+      "plan": "方案:{{tier}}"
+    },
+    "tier": {
+      "free": "免費",
+      "pro": "Pro",
+      "max": "Max",
+      "staff": "內部"
     },
     "progress": {
       "pulling": "正在接收變更… 已合併 {{count}} 條",

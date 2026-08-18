@@ -9,7 +9,7 @@
  * back. Client schema evolution must never require touching this file.
  */
 import type { HlcStamp, SealedEventWire, SyncKeyMaterial } from "@read-aware/core";
-import type { Account, RelayPorts } from "./ports";
+import { isAccountTier, quotasForTier, resolveTier, type Account, type RelayPorts } from "./ports";
 import { PAGE, resolveLang, type RelayLang } from "./i18n";
 
 /**
@@ -195,6 +195,11 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
     return json(200, { ok: true, reportId: id });
   }
 
+  /** The account's quota numbers, expiry already applied. Enforcement is
+   * write-time only — pulls and reads never consult this. */
+  const quotasOf = (account: Account) =>
+    quotasForTier(resolveTier(account, ports.now()), config);
+
   async function authenticate(req: Request): Promise<Account | null> {
     const header = req.headers.get("authorization") ?? "";
     if (!header.startsWith("Bearer ")) return null;
@@ -298,6 +303,43 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
     return failure(405, "method not allowed");
   }
 
+  /**
+   * The tier write seam — operator-only, its own bearer secret (never a user
+   * session). Today a human runs it with curl; a payment webhook later calls
+   * the same route. Comparing SHA-256 hashes instead of the raw strings keeps
+   * the comparison's timing independent of how much of the secret matched.
+   */
+  async function handleAdminTier(req: Request): Promise<Response> {
+    if (!config.adminToken) return failure(501, "admin operations are not configured");
+    const header = req.headers.get("authorization") ?? "";
+    const presented = header.startsWith("Bearer ") ? header.slice(7) : "";
+    if ((await tokenHash(presented)) !== (await tokenHash(config.adminToken))) {
+      return failure(401, "a valid admin token is required");
+    }
+    const body = await readJson(req);
+    if (typeof body !== "object" || body === null) return failure(400, "a JSON body is required");
+    const { email, tier, expiresAtMs } = body as Record<string, unknown>;
+    if (!isString(email) || !EMAIL_SHAPE.test(email)) {
+      return failure(400, "a valid email is required");
+    }
+    if (!isAccountTier(tier)) return failure(400, "unknown tier");
+    if (expiresAtMs !== undefined && expiresAtMs !== null && !isFiniteNumber(expiresAtMs)) {
+      return failure(400, "expiresAtMs must be a millisecond timestamp or null");
+    }
+    const updated = await accounts.setTierByEmail(
+      email.trim().toLowerCase(),
+      tier,
+      expiresAtMs ?? null,
+    );
+    if (!updated) return failure(404, "no account with that email");
+    return json(200, {
+      accountId: updated.id,
+      email: updated.email,
+      tier: updated.tier,
+      tierExpiresAtMs: updated.tierExpiresAtMs,
+    });
+  }
+
   async function handleAuthVerify(req: Request): Promise<Response> {
     const body = await readJson(req);
     const token =
@@ -329,9 +371,10 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
         return failure(413, `event exceeds ${config.maxEventBytes} bytes`);
       }
     }
+    const quota = quotasOf(account).maxAccountEvents;
     const seqs = await ports
       .mailboxFor(account.id)
-      .append(events as SealedEventWire[], config.maxAccountEvents);
+      .append(events as SealedEventWire[], quota ?? Number.MAX_SAFE_INTEGER);
     if (seqs === "full") return failure(413, "account event quota exceeded");
     return json(200, { seqs });
   }
@@ -358,16 +401,17 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
       });
     }
     if (req.method === "PUT") {
+      const quotas = quotasOf(account);
       const bytes = new Uint8Array(await req.arrayBuffer());
       if (bytes.length === 0) return failure(400, "empty blob");
-      if (bytes.length > config.maxBlobBytes) {
-        return failure(413, `blob exceeds ${config.maxBlobBytes} bytes`);
+      if (quotas.maxBlobBytes !== null && bytes.length > quotas.maxBlobBytes) {
+        return failure(413, `blob exceeds ${quotas.maxBlobBytes} bytes`);
       }
       // Replacing a key frees its old bytes first, so re-uploads don't leak
       // quota. The account row is the accountant; R2 is just the shelf.
       const freed = await blobs.delete(account.id, key);
       const used = await accounts.adjustBlobBytes(account.id, bytes.length - freed);
-      if (used > config.maxAccountBlobBytes) {
+      if (quotas.maxAccountBlobBytes !== null && used > quotas.maxAccountBlobBytes) {
         await accounts.adjustBlobBytes(account.id, -bytes.length);
         return failure(413, "account blob quota exceeded");
       }
@@ -390,6 +434,7 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
     if (req.method === "POST" && path === "/v1/report") return handleReport(req);
     if (req.method === "POST" && path === "/v1/auth/request") return handleAuthRequest(req);
     if (req.method === "POST" && path === "/v1/auth/verify") return handleAuthVerify(req);
+    if (req.method === "POST" && path === "/v1/admin/tier") return handleAdminTier(req);
     if (path.startsWith("/v1/auth/oauth/")) {
       const [providerId, action] = path.slice("/v1/auth/oauth/".length).split("/");
       return handleOauth(req, url, providerId ?? "", action ?? "");
@@ -421,11 +466,16 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
       return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
     if (req.method === "GET" && path === "/v1/account") {
+      const tier = resolveTier(account, ports.now());
       return json(200, {
         accountId: account.id,
         email: account.email,
         keys: account.keys,
         blobBytesUsed: account.blobBytesUsed,
+        tier,
+        tierExpiresAtMs: account.tierExpiresAtMs,
+        eventsUsed: await ports.mailboxFor(account.id).count(),
+        limits: quotasForTier(tier, config),
       });
     }
     if (req.method === "POST" && path === "/v1/account/keys") {

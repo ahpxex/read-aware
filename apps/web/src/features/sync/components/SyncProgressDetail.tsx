@@ -10,6 +10,7 @@ import {
   ArrowsClockwise,
   ClockCounterClockwise,
   CloudCheck,
+  IdentificationBadge,
   UploadSimple,
   WarningCircle,
 } from "@phosphor-icons/react";
@@ -25,6 +26,8 @@ type SyncProgressDetailProps = {
   backlog: SyncBacklog | null;
   /** Formatted relay storage usage (settings panel only). */
   storage?: string | null;
+  /** Formatted account plan, e.g. "Plan: Pro" (settings panel only). */
+  plan?: string | null;
 };
 
 function Item({ icon, tone, children }: { icon: ReactNode; tone?: "error"; children: ReactNode }) {
@@ -40,7 +43,7 @@ function Item({ icon, tone, children }: { icon: ReactNode; tone?: "error"; child
 
 const ICON = { size: 14, weight: "regular", "aria-hidden": true } as const;
 
-export function SyncProgressDetail({ status, backlog, storage }: SyncProgressDetailProps) {
+export function SyncProgressDetail({ status, backlog, storage, plan }: SyncProgressDetailProps) {
   const { t } = useTranslation("settings");
   const { progress } = status;
   const syncing = status.state === "syncing";
@@ -78,6 +81,7 @@ export function SyncProgressDetail({ status, backlog, storage }: SyncProgressDet
               : t("dataSync.syncStatus.never")}
           </Item>
         )}
+        {plan && <Item icon={<IdentificationBadge {...ICON} />}>{plan}</Item>}
         {storage && <Item icon={<CloudCheck {...ICON} />}>{storage}</Item>}
         {hasBacklog && (
           <Item icon={<UploadSimple {...ICON} />}>

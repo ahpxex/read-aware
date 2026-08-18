@@ -34,10 +34,11 @@ import { CONTACT_EMAIL, DISCORD_URL } from "../lib/site";
  * prerendered HTML; external links carry an arrow so the boundary is visible
  * before the click.
  */
-/** Blog mirrors exist only in the docs-locale subset; changelog is every locale. */
-function moreTo(locale: Locale): { blog: string; changelog: string } {
+/** Blog mirrors exist only in the docs-locale subset; pricing and changelog are every locale. */
+function moreTo(locale: Locale): { blog: string; pricing: string; changelog: string } {
   return {
     blog: isDocsLocale(locale) ? localizePath("/blog", locale) : "/blog",
+    pricing: localizePath("/pricing", locale),
     changelog: localizePath("/changelog", locale),
   };
 }
@@ -101,6 +102,15 @@ export function MoreMenu({
           role="menu"
           className="absolute right-0 top-[calc(100%+0.625rem)] z-30 w-48 rounded-md border border-border-strong bg-surface p-1 shadow-[0_10px_30px_-12px_rgba(38,36,32,0.28)]"
         >
+          <Link
+            to={moreTo(locale).pricing}
+            role="menuitem"
+            onClick={close}
+            activeProps={{ className: "text-fg" }}
+            className={itemClass}
+          >
+            {strings.pricing}
+          </Link>
           <Link
             to={moreTo(locale).blog}
             role="menuitem"

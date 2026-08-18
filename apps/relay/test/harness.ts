@@ -92,6 +92,7 @@ export function makeRelay(
   config: Partial<RelayConfig> = {},
   oauthProviders: Record<string, OAuthProvider> = {},
   ai: { models?: AiModel[]; fetch?: typeof fetch } = {},
+  stripe: RelayPorts["stripe"] = null,
 ) {
   const db = new Database(":memory:");
   for (const migration of MIGRATIONS) db.exec(migration);
@@ -121,6 +122,7 @@ export function makeRelay(
     aiUsage: new SqlAiUsageStore(d1Over(db)),
     aiModels: ai.models ?? [],
     aiFetch: ai.fetch,
+    stripe,
     magicLink: null,
     oauthProviders,
     config: { ...DEFAULT_CONFIG, echoMagicToken: true, ...config },

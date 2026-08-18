@@ -13,7 +13,7 @@ import type {
 import type { AiModel } from "./ai-proxy";
 import type { RelayLang } from "./i18n";
 
-export const ACCOUNT_TIERS: readonly SyncTier[] = ["free", "pro", "max", "staff"];
+export const ACCOUNT_TIERS: readonly SyncTier[] = ["free", "sync", "pro", "max", "staff"];
 
 export const isAccountTier = (v: unknown): v is SyncTier =>
   typeof v === "string" && (ACCOUNT_TIERS as readonly string[]).includes(v);
@@ -26,6 +26,8 @@ export type Account = {
   /** As stored — resolve through `resolveTier` before reading quotas off it. */
   tier: SyncTier;
   tierExpiresAtMs: number | null;
+  /** Linked at first checkout; subscription webhooks find the account by it. */
+  stripeCustomerId: string | null;
   createdAt: string;
 };
 
@@ -49,9 +51,12 @@ export function resolveTier(
  * baseline; paid tiers are fixed here. null = unlimited.
  *
  * Numbers, with the bill math that justifies them (R2 ≈ $0.015/GB-month):
- * - pro: 10 GiB of books + 1M events — effectively "your whole library",
+ * - sync ($5/month): pro's data quotas with zero AI — the plan for BYOK
+ *   users who want multi-device sync and already hold their own LLM key.
+ *   Worst case ≈ $0.15/month of storage; ~97% margin.
+ * - pro: 10 GiB of books + 2.5M events — effectively "your whole library",
  *   worst case ≈ $0.15/month/account of storage.
- * - max: 100 GiB + 10M events — an order of magnitude of headroom,
+ * - max: 100 GiB + 25M events — an order of magnitude of headroom,
  *   worst case ≈ $1.50/month/account.
  * - staff: internal accounts, unmetered.
  * Per-file stays 100 MB on every paid tier: the Worker buffers uploads and
@@ -76,6 +81,13 @@ export function quotasForTier(tier: SyncTier, config: RelayConfig): SyncTierLimi
         maxBlobBytes: config.maxBlobBytes,
         maxAccountBlobBytes: config.maxAccountBlobBytes,
         maxAccountEvents: config.maxAccountEvents,
+        aiMonthlyCredits: 0,
+      };
+    case "sync":
+      return {
+        maxBlobBytes: 100 * 1024 * 1024,
+        maxAccountBlobBytes: 10 * 1024 * 1024 * 1024,
+        maxAccountEvents: 2_500_000,
         aiMonthlyCredits: 0,
       };
     case "pro":
@@ -133,15 +145,19 @@ export interface AccountStore {
   /** Returns the new total. Clamped at zero (deletes never go negative). */
   adjustBlobBytes(id: string, delta: number): Promise<number>;
   /**
-   * The single tier write seam (admin endpoint today, payment webhook later).
-   * Keyed by email — that is how an operator identifies an account. Returns
-   * the updated account, or null when no account has that email.
+   * The tier write seam, admin flavor — keyed by email, that is how an
+   * operator identifies an account. Returns the updated account, or null
+   * when no account has that email.
    */
   setTierByEmail(
     email: string,
     tier: SyncTier,
     tierExpiresAtMs: number | null,
   ): Promise<Account | null>;
+  /** The same seam, webhook flavor — the billing handler already holds the id. */
+  setTierById(id: string, tier: SyncTier, tierExpiresAtMs: number | null): Promise<void>;
+  setStripeCustomer(id: string, customerId: string): Promise<void>;
+  findByStripeCustomer(customerId: string): Promise<Account | null>;
   deleteAccount(id: string): Promise<void>;
 }
 
@@ -282,12 +298,21 @@ export const DEFAULT_CONFIG: RelayConfig = {
   maxReportsPerIpPerDay: 10,
 };
 
+/** Stripe billing wiring; null ⇒ /v1/billing/* answers 501. */
+export type StripePorts = {
+  secretKey: string;
+  webhookSecret: string;
+  /** Injectable so tests fake api.stripe.com. */
+  fetch?: typeof fetch;
+};
+
 export type RelayPorts = {
   accounts: AccountStore;
   mailboxFor(accountId: string): Mailbox;
   blobs: BlobStore;
   reports: ReportStore;
   aiUsage: AiUsageStore;
+  stripe: StripePorts | null;
   /** Catalog order matters: the first entry is the client-facing default.
    * Empty ⇒ the AI proxy answers 501 (no upstream key configured). */
   aiModels: readonly AiModel[];

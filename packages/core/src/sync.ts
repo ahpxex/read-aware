@@ -68,13 +68,14 @@ export type AuthVerifyResponse = {
 // ── /v1/account ──────────────────────────────────────────────────────────────
 
 /**
- * Account tiers: `free` / `pro` / `max` are the public ladder, `staff` is
- * internal-only. The tier decides quotas and nothing else — the relay stores
- * ciphertext either way. Tier → quota mapping lives server-side
- * (apps/relay/src/ports.ts); the wire carries the resolved numbers in
- * `AccountResponse.limits` so the client never hardcodes them.
+ * Account tiers: `free` / `sync` / `pro` / `max` are the public ladder
+ * (`sync` = the data plan: pro-sized storage, no bundled AI — built for BYOK
+ * users), `staff` is internal-only. The tier decides quotas and nothing else
+ * — the relay stores ciphertext either way. Tier → quota mapping lives
+ * server-side (apps/relay/src/ports.ts); the wire carries the resolved
+ * numbers in `AccountResponse.limits` so the client never hardcodes them.
  */
-export type SyncTier = "free" | "pro" | "max" | "staff";
+export type SyncTier = "free" | "sync" | "pro" | "max" | "staff";
 
 /** Resolved quota numbers for the account's current tier; null = unlimited. */
 export type SyncTierLimits = {
@@ -100,8 +101,18 @@ export type AccountResponse = {
   eventsUsed: number;
   /** Bundled-AI credits consumed this UTC month (1 credit = $0.001). */
   aiCreditsUsed: number;
+  /** True once a Stripe customer is linked — the portal button's gate. */
+  hasBilling: boolean;
   limits: SyncTierLimits;
 };
+
+// ── /v1/billing ──────────────────────────────────────────────────────────────
+
+export type BillingPlanId = "sync" | "pro" | "max";
+/** POST /v1/billing/checkout — bearer optional (signed-out = web checkout). */
+export type BillingCheckoutBody = { plan: BillingPlanId; locale?: string };
+/** Both checkout and portal answer with a hosted-page URL to open. */
+export type BillingSessionResponse = { url: string };
 
 // ── /v1/ai ───────────────────────────────────────────────────────────────────
 

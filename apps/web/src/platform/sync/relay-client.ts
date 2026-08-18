@@ -7,6 +7,8 @@ import type {
   AccountResponse,
   AuthRequestResponse,
   AuthVerifyResponse,
+  BillingPlanId,
+  BillingSessionResponse,
   PullEventsResponse,
   PushEventsResponse,
   SealedEventWire,
@@ -104,6 +106,16 @@ export function createRelayClient(options: RelayClientOptions) {
     },
     async deleteAccount(): Promise<void> {
       await request("DELETE", "/v1/account");
+    },
+    /** Hosted Stripe checkout for a plan — the URL opens in the system browser. */
+    async createCheckout(plan: BillingPlanId, locale?: string): Promise<string> {
+      const res = await json("POST", "/v1/billing/checkout", { plan, locale });
+      return ((await res.json()) as BillingSessionResponse).url;
+    },
+    /** Hosted subscription management; 404 until a purchase linked a customer. */
+    async createPortal(): Promise<string> {
+      const res = await json("POST", "/v1/billing/portal", {});
+      return ((await res.json()) as BillingSessionResponse).url;
     },
     async pushEvents(events: SealedEventWire[]): Promise<Record<string, number>> {
       const res = await json("POST", "/v1/events", { events });

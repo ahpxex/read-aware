@@ -1,1 +1,3 @@
 .wrangler/
+# Local dev secrets (wrangler dev auto-loads; production uses `wrangler secret put`)
+.dev.vars

@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as ChangelogRouteImport } from './routes/changelog'
 import { Route as BlogRouteImport } from './routes/blog'
@@ -22,18 +23,25 @@ import { Route as EsIndexRouteImport } from './routes/es/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as DeIndexRouteImport } from './routes/de/index'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
+import { Route as ZhPricingRouteImport } from './routes/zh/pricing'
 import { Route as ZhDocsRouteImport } from './routes/zh/docs'
 import { Route as ZhChangelogRouteImport } from './routes/zh/changelog'
 import { Route as ZhBlogRouteImport } from './routes/zh/blog'
+import { Route as ZhHantPricingRouteImport } from './routes/zh-hant/pricing'
 import { Route as ZhHantChangelogRouteImport } from './routes/zh-hant/changelog'
+import { Route as RuPricingRouteImport } from './routes/ru/pricing'
 import { Route as RuChangelogRouteImport } from './routes/ru/changelog'
+import { Route as JaPricingRouteImport } from './routes/ja/pricing'
 import { Route as JaDocsRouteImport } from './routes/ja/docs'
 import { Route as JaChangelogRouteImport } from './routes/ja/changelog'
 import { Route as JaBlogRouteImport } from './routes/ja/blog'
+import { Route as FrPricingRouteImport } from './routes/fr/pricing'
 import { Route as FrChangelogRouteImport } from './routes/fr/changelog'
+import { Route as EsPricingRouteImport } from './routes/es/pricing'
 import { Route as EsChangelogRouteImport } from './routes/es/changelog'
 import { Route as DocsInstallRouteImport } from './routes/docs/install'
 import { Route as DocsGettingStartedRouteImport } from './routes/docs/getting-started'
+import { Route as DePricingRouteImport } from './routes/de/pricing'
 import { Route as DeChangelogRouteImport } from './routes/de/changelog'
 import { Route as BlogReadingThatRemembersRouteImport } from './routes/blog/reading-that-remembers'
 import { Route as BlogPluginsV1RouteImport } from './routes/blog/plugins-v1'
@@ -62,6 +70,11 @@ import { Route as ZhDocsPluginsApiRouteImport } from './routes/zh/docs/plugins/a
 import { Route as JaDocsPluginsPublishingRouteImport } from './routes/ja/docs/plugins/publishing'
 import { Route as JaDocsPluginsApiRouteImport } from './routes/ja/docs/plugins/api'
 
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DocsRoute = DocsRouteImport.update({
   id: '/docs',
   path: '/docs',
@@ -127,6 +140,11 @@ const BlogIndexRoute = BlogIndexRouteImport.update({
   path: '/',
   getParentRoute: () => BlogRoute,
 } as any)
+const ZhPricingRoute = ZhPricingRouteImport.update({
+  id: '/zh/pricing',
+  path: '/zh/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ZhDocsRoute = ZhDocsRouteImport.update({
   id: '/zh/docs',
   path: '/zh/docs',
@@ -142,14 +160,29 @@ const ZhBlogRoute = ZhBlogRouteImport.update({
   path: '/zh/blog',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ZhHantPricingRoute = ZhHantPricingRouteImport.update({
+  id: '/zh-hant/pricing',
+  path: '/zh-hant/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ZhHantChangelogRoute = ZhHantChangelogRouteImport.update({
   id: '/zh-hant/changelog',
   path: '/zh-hant/changelog',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RuPricingRoute = RuPricingRouteImport.update({
+  id: '/ru/pricing',
+  path: '/ru/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RuChangelogRoute = RuChangelogRouteImport.update({
   id: '/ru/changelog',
   path: '/ru/changelog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JaPricingRoute = JaPricingRouteImport.update({
+  id: '/ja/pricing',
+  path: '/ja/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JaDocsRoute = JaDocsRouteImport.update({
@@ -167,9 +200,19 @@ const JaBlogRoute = JaBlogRouteImport.update({
   path: '/ja/blog',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FrPricingRoute = FrPricingRouteImport.update({
+  id: '/fr/pricing',
+  path: '/fr/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FrChangelogRoute = FrChangelogRouteImport.update({
   id: '/fr/changelog',
   path: '/fr/changelog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EsPricingRoute = EsPricingRouteImport.update({
+  id: '/es/pricing',
+  path: '/es/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EsChangelogRoute = EsChangelogRouteImport.update({
@@ -186,6 +229,11 @@ const DocsGettingStartedRoute = DocsGettingStartedRouteImport.update({
   id: '/getting-started',
   path: '/getting-started',
   getParentRoute: () => DocsRoute,
+} as any)
+const DePricingRoute = DePricingRouteImport.update({
+  id: '/de/pricing',
+  path: '/de/pricing',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const DeChangelogRoute = DeChangelogRouteImport.update({
   id: '/de/changelog',
@@ -331,22 +379,30 @@ export interface FileRoutesByFullPath {
   '/blog': typeof BlogRouteWithChildren
   '/changelog': typeof ChangelogRoute
   '/docs': typeof DocsRouteWithChildren
+  '/pricing': typeof PricingRoute
   '/blog/local-first': typeof BlogLocalFirstRoute
   '/blog/plugins-v1': typeof BlogPluginsV1Route
   '/blog/reading-that-remembers': typeof BlogReadingThatRemembersRoute
   '/de/changelog': typeof DeChangelogRoute
+  '/de/pricing': typeof DePricingRoute
   '/docs/getting-started': typeof DocsGettingStartedRoute
   '/docs/install': typeof DocsInstallRoute
   '/es/changelog': typeof EsChangelogRoute
+  '/es/pricing': typeof EsPricingRoute
   '/fr/changelog': typeof FrChangelogRoute
+  '/fr/pricing': typeof FrPricingRoute
   '/ja/blog': typeof JaBlogRouteWithChildren
   '/ja/changelog': typeof JaChangelogRoute
   '/ja/docs': typeof JaDocsRouteWithChildren
+  '/ja/pricing': typeof JaPricingRoute
   '/ru/changelog': typeof RuChangelogRoute
+  '/ru/pricing': typeof RuPricingRoute
   '/zh-hant/changelog': typeof ZhHantChangelogRoute
+  '/zh-hant/pricing': typeof ZhHantPricingRoute
   '/zh/blog': typeof ZhBlogRouteWithChildren
   '/zh/changelog': typeof ZhChangelogRoute
   '/zh/docs': typeof ZhDocsRouteWithChildren
+  '/zh/pricing': typeof ZhPricingRoute
   '/blog/': typeof BlogIndexRoute
   '/de/': typeof DeIndexRoute
   '/docs/': typeof DocsIndexRoute
@@ -383,18 +439,26 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/changelog': typeof ChangelogRoute
+  '/pricing': typeof PricingRoute
   '/blog/local-first': typeof BlogLocalFirstRoute
   '/blog/plugins-v1': typeof BlogPluginsV1Route
   '/blog/reading-that-remembers': typeof BlogReadingThatRemembersRoute
   '/de/changelog': typeof DeChangelogRoute
+  '/de/pricing': typeof DePricingRoute
   '/docs/getting-started': typeof DocsGettingStartedRoute
   '/docs/install': typeof DocsInstallRoute
   '/es/changelog': typeof EsChangelogRoute
+  '/es/pricing': typeof EsPricingRoute
   '/fr/changelog': typeof FrChangelogRoute
+  '/fr/pricing': typeof FrPricingRoute
   '/ja/changelog': typeof JaChangelogRoute
+  '/ja/pricing': typeof JaPricingRoute
   '/ru/changelog': typeof RuChangelogRoute
+  '/ru/pricing': typeof RuPricingRoute
   '/zh-hant/changelog': typeof ZhHantChangelogRoute
+  '/zh-hant/pricing': typeof ZhHantPricingRoute
   '/zh/changelog': typeof ZhChangelogRoute
+  '/zh/pricing': typeof ZhPricingRoute
   '/blog': typeof BlogIndexRoute
   '/de': typeof DeIndexRoute
   '/docs': typeof DocsIndexRoute
@@ -434,22 +498,30 @@ export interface FileRoutesById {
   '/blog': typeof BlogRouteWithChildren
   '/changelog': typeof ChangelogRoute
   '/docs': typeof DocsRouteWithChildren
+  '/pricing': typeof PricingRoute
   '/blog/local-first': typeof BlogLocalFirstRoute
   '/blog/plugins-v1': typeof BlogPluginsV1Route
   '/blog/reading-that-remembers': typeof BlogReadingThatRemembersRoute
   '/de/changelog': typeof DeChangelogRoute
+  '/de/pricing': typeof DePricingRoute
   '/docs/getting-started': typeof DocsGettingStartedRoute
   '/docs/install': typeof DocsInstallRoute
   '/es/changelog': typeof EsChangelogRoute
+  '/es/pricing': typeof EsPricingRoute
   '/fr/changelog': typeof FrChangelogRoute
+  '/fr/pricing': typeof FrPricingRoute
   '/ja/blog': typeof JaBlogRouteWithChildren
   '/ja/changelog': typeof JaChangelogRoute
   '/ja/docs': typeof JaDocsRouteWithChildren
+  '/ja/pricing': typeof JaPricingRoute
   '/ru/changelog': typeof RuChangelogRoute
+  '/ru/pricing': typeof RuPricingRoute
   '/zh-hant/changelog': typeof ZhHantChangelogRoute
+  '/zh-hant/pricing': typeof ZhHantPricingRoute
   '/zh/blog': typeof ZhBlogRouteWithChildren
   '/zh/changelog': typeof ZhChangelogRoute
   '/zh/docs': typeof ZhDocsRouteWithChildren
+  '/zh/pricing': typeof ZhPricingRoute
   '/blog/': typeof BlogIndexRoute
   '/de/': typeof DeIndexRoute
   '/docs/': typeof DocsIndexRoute
@@ -490,22 +562,30 @@ export interface FileRouteTypes {
     | '/blog'
     | '/changelog'
     | '/docs'
+    | '/pricing'
     | '/blog/local-first'
     | '/blog/plugins-v1'
     | '/blog/reading-that-remembers'
     | '/de/changelog'
+    | '/de/pricing'
     | '/docs/getting-started'
     | '/docs/install'
     | '/es/changelog'
+    | '/es/pricing'
     | '/fr/changelog'
+    | '/fr/pricing'
     | '/ja/blog'
     | '/ja/changelog'
     | '/ja/docs'
+    | '/ja/pricing'
     | '/ru/changelog'
+    | '/ru/pricing'
     | '/zh-hant/changelog'
+    | '/zh-hant/pricing'
     | '/zh/blog'
     | '/zh/changelog'
     | '/zh/docs'
+    | '/zh/pricing'
     | '/blog/'
     | '/de/'
     | '/docs/'
@@ -542,18 +622,26 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/changelog'
+    | '/pricing'
     | '/blog/local-first'
     | '/blog/plugins-v1'
     | '/blog/reading-that-remembers'
     | '/de/changelog'
+    | '/de/pricing'
     | '/docs/getting-started'
     | '/docs/install'
     | '/es/changelog'
+    | '/es/pricing'
     | '/fr/changelog'
+    | '/fr/pricing'
     | '/ja/changelog'
+    | '/ja/pricing'
     | '/ru/changelog'
+    | '/ru/pricing'
     | '/zh-hant/changelog'
+    | '/zh-hant/pricing'
     | '/zh/changelog'
+    | '/zh/pricing'
     | '/blog'
     | '/de'
     | '/docs'
@@ -592,22 +680,30 @@ export interface FileRouteTypes {
     | '/blog'
     | '/changelog'
     | '/docs'
+    | '/pricing'
     | '/blog/local-first'
     | '/blog/plugins-v1'
     | '/blog/reading-that-remembers'
     | '/de/changelog'
+    | '/de/pricing'
     | '/docs/getting-started'
     | '/docs/install'
     | '/es/changelog'
+    | '/es/pricing'
     | '/fr/changelog'
+    | '/fr/pricing'
     | '/ja/blog'
     | '/ja/changelog'
     | '/ja/docs'
+    | '/ja/pricing'
     | '/ru/changelog'
+    | '/ru/pricing'
     | '/zh-hant/changelog'
+    | '/zh-hant/pricing'
     | '/zh/blog'
     | '/zh/changelog'
     | '/zh/docs'
+    | '/zh/pricing'
     | '/blog/'
     | '/de/'
     | '/docs/'
@@ -647,17 +743,25 @@ export interface RootRouteChildren {
   BlogRoute: typeof BlogRouteWithChildren
   ChangelogRoute: typeof ChangelogRoute
   DocsRoute: typeof DocsRouteWithChildren
+  PricingRoute: typeof PricingRoute
   DeChangelogRoute: typeof DeChangelogRoute
+  DePricingRoute: typeof DePricingRoute
   EsChangelogRoute: typeof EsChangelogRoute
+  EsPricingRoute: typeof EsPricingRoute
   FrChangelogRoute: typeof FrChangelogRoute
+  FrPricingRoute: typeof FrPricingRoute
   JaBlogRoute: typeof JaBlogRouteWithChildren
   JaChangelogRoute: typeof JaChangelogRoute
   JaDocsRoute: typeof JaDocsRouteWithChildren
+  JaPricingRoute: typeof JaPricingRoute
   RuChangelogRoute: typeof RuChangelogRoute
+  RuPricingRoute: typeof RuPricingRoute
   ZhHantChangelogRoute: typeof ZhHantChangelogRoute
+  ZhHantPricingRoute: typeof ZhHantPricingRoute
   ZhBlogRoute: typeof ZhBlogRouteWithChildren
   ZhChangelogRoute: typeof ZhChangelogRoute
   ZhDocsRoute: typeof ZhDocsRouteWithChildren
+  ZhPricingRoute: typeof ZhPricingRoute
   DeIndexRoute: typeof DeIndexRoute
   EsIndexRoute: typeof EsIndexRoute
   FrIndexRoute: typeof FrIndexRoute
@@ -669,6 +773,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/docs': {
       id: '/docs'
       path: '/docs'
@@ -760,6 +871,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogIndexRouteImport
       parentRoute: typeof BlogRoute
     }
+    '/zh/pricing': {
+      id: '/zh/pricing'
+      path: '/zh/pricing'
+      fullPath: '/zh/pricing'
+      preLoaderRoute: typeof ZhPricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/zh/docs': {
       id: '/zh/docs'
       path: '/zh/docs'
@@ -781,6 +899,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ZhBlogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/zh-hant/pricing': {
+      id: '/zh-hant/pricing'
+      path: '/zh-hant/pricing'
+      fullPath: '/zh-hant/pricing'
+      preLoaderRoute: typeof ZhHantPricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/zh-hant/changelog': {
       id: '/zh-hant/changelog'
       path: '/zh-hant/changelog'
@@ -788,11 +913,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ZhHantChangelogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ru/pricing': {
+      id: '/ru/pricing'
+      path: '/ru/pricing'
+      fullPath: '/ru/pricing'
+      preLoaderRoute: typeof RuPricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ru/changelog': {
       id: '/ru/changelog'
       path: '/ru/changelog'
       fullPath: '/ru/changelog'
       preLoaderRoute: typeof RuChangelogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ja/pricing': {
+      id: '/ja/pricing'
+      path: '/ja/pricing'
+      fullPath: '/ja/pricing'
+      preLoaderRoute: typeof JaPricingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ja/docs': {
@@ -816,11 +955,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JaBlogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/fr/pricing': {
+      id: '/fr/pricing'
+      path: '/fr/pricing'
+      fullPath: '/fr/pricing'
+      preLoaderRoute: typeof FrPricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/fr/changelog': {
       id: '/fr/changelog'
       path: '/fr/changelog'
       fullPath: '/fr/changelog'
       preLoaderRoute: typeof FrChangelogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/es/pricing': {
+      id: '/es/pricing'
+      path: '/es/pricing'
+      fullPath: '/es/pricing'
+      preLoaderRoute: typeof EsPricingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/es/changelog': {
@@ -843,6 +996,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/docs/getting-started'
       preLoaderRoute: typeof DocsGettingStartedRouteImport
       parentRoute: typeof DocsRoute
+    }
+    '/de/pricing': {
+      id: '/de/pricing'
+      path: '/de/pricing'
+      fullPath: '/de/pricing'
+      preLoaderRoute: typeof DePricingRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/de/changelog': {
       id: '/de/changelog'
@@ -1153,17 +1313,25 @@ const rootRouteChildren: RootRouteChildren = {
   BlogRoute: BlogRouteWithChildren,
   ChangelogRoute: ChangelogRoute,
   DocsRoute: DocsRouteWithChildren,
+  PricingRoute: PricingRoute,
   DeChangelogRoute: DeChangelogRoute,
+  DePricingRoute: DePricingRoute,
   EsChangelogRoute: EsChangelogRoute,
+  EsPricingRoute: EsPricingRoute,
   FrChangelogRoute: FrChangelogRoute,
+  FrPricingRoute: FrPricingRoute,
   JaBlogRoute: JaBlogRouteWithChildren,
   JaChangelogRoute: JaChangelogRoute,
   JaDocsRoute: JaDocsRouteWithChildren,
+  JaPricingRoute: JaPricingRoute,
   RuChangelogRoute: RuChangelogRoute,
+  RuPricingRoute: RuPricingRoute,
   ZhHantChangelogRoute: ZhHantChangelogRoute,
+  ZhHantPricingRoute: ZhHantPricingRoute,
   ZhBlogRoute: ZhBlogRouteWithChildren,
   ZhChangelogRoute: ZhChangelogRoute,
   ZhDocsRoute: ZhDocsRouteWithChildren,
+  ZhPricingRoute: ZhPricingRoute,
   DeIndexRoute: DeIndexRoute,
   EsIndexRoute: EsIndexRoute,
   FrIndexRoute: FrIndexRoute,

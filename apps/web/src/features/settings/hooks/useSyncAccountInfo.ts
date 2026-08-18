@@ -15,6 +15,7 @@ export type SyncAccountInfo = {
   eventsUsed: number;
   aiCreditsUsed: number;
   tier: SyncTier;
+  hasBilling: boolean;
   limits: SyncTierLimits;
 };
 
@@ -37,6 +38,7 @@ export function useSyncAccountInfo(connected: boolean): SyncAccountInfo | null {
             eventsUsed: account.eventsUsed,
             aiCreditsUsed: account.aiCreditsUsed,
             tier: account.tier,
+            hasBilling: account.hasBilling ?? false,
             limits: account.limits,
           });
         }

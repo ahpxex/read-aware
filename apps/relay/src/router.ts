@@ -18,6 +18,15 @@ import {
   usageFromOpenAI,
   type AiUsage,
 } from "./ai-proxy";
+import {
+  applyStripeEvent,
+  createBillingContext,
+  createCheckoutSession,
+  createPortalSession,
+  isBillingPlan,
+  verifyStripeSignature,
+  StripeError,
+} from "./billing";
 import { isAccountTier, quotasForTier, resolveTier, type Account, type RelayPorts } from "./ports";
 import { PAGE, resolveLang, type RelayLang } from "./i18n";
 
@@ -149,6 +158,7 @@ const BLOB_KEY_SHAPE = /^[A-Za-z0-9][A-Za-z0-9:._-]{0,255}$/;
 export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise<Response> {
   const { accounts, blobs, config } = ports;
   const nowIso = () => new Date(ports.now()).toISOString();
+  const billing = ports.stripe ? createBillingContext(ports.stripe) : null;
 
   /**
    * User-initiated diagnostic report (Settings → export/report diagnostics).
@@ -435,6 +445,88 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
     return failure(405, "method not allowed");
   }
 
+  // ── Billing ───────────────────────────────────────────────────────────────
+
+  /** The landing's locale prefixes; anything unrecognized lands on English. */
+  const localePrefix = (locale: unknown): string =>
+    typeof locale === "string" && ["zh", "zh-hant", "ja", "fr", "de", "ru", "es"].includes(locale)
+      ? `/${locale}`
+      : "";
+
+  const stripeFailure = (error: unknown): Response => {
+    if (error instanceof StripeError) {
+      // 409 (already subscribed) is the caller's to handle; anything else is
+      // an upstream fault this endpoint can only report.
+      return failure(error.status === 409 ? 409 : 502, error.message);
+    }
+    throw error;
+  };
+
+  /**
+   * Checkout works signed-in AND signed-out. Signed-in (bearer present) the
+   * session is tied to the account and the email is locked; signed-out (the
+   * landing's pricing page) Stripe collects the email and the webhook keys
+   * fulfillment to it — accounts are keyed by email, so the buyer's later
+   * sign-in lands on the already-upgraded row.
+   */
+  async function handleBillingCheckout(req: Request): Promise<Response> {
+    if (!billing) return failure(501, "billing is not configured");
+    const body = await readJson(req);
+    if (typeof body !== "object" || body === null) return failure(400, "a JSON body is required");
+    const { plan, locale } = body as Record<string, unknown>;
+    if (!isBillingPlan(plan)) return failure(400, "unknown plan");
+    const account = await authenticate(req);
+    const pricingUrl = `${config.webAppOrigin}${localePrefix(locale)}/pricing`;
+    try {
+      const { url } = await createCheckoutSession(billing, {
+        plan,
+        successUrl: `${pricingUrl}?purchase=success`,
+        cancelUrl: pricingUrl,
+        account: account
+          ? { id: account.id, email: account.email, stripeCustomerId: account.stripeCustomerId }
+          : undefined,
+      });
+      return json(200, { url });
+    } catch (error) {
+      return stripeFailure(error);
+    }
+  }
+
+  async function handleBillingPortal(account: Account): Promise<Response> {
+    if (!billing) return failure(501, "billing is not configured");
+    if (!account.stripeCustomerId) return failure(404, "no billing profile for this account");
+    try {
+      const { url } = await createPortalSession(
+        billing,
+        account.stripeCustomerId,
+        `${config.webAppOrigin}/pricing`,
+      );
+      return json(200, { url });
+    } catch (error) {
+      return stripeFailure(error);
+    }
+  }
+
+  async function handleBillingWebhook(req: Request): Promise<Response> {
+    if (!ports.stripe) return failure(501, "billing is not configured");
+    const payload = await req.text();
+    const valid = await verifyStripeSignature(
+      payload,
+      req.headers.get("stripe-signature"),
+      ports.stripe.webhookSecret,
+      ports.now(),
+    );
+    if (!valid) return failure(400, "invalid webhook signature");
+    let event: unknown;
+    try {
+      event = JSON.parse(payload);
+    } catch {
+      return failure(400, "malformed event payload");
+    }
+    await applyStripeEvent(accounts, event as { type?: unknown; data?: { object?: unknown } }, nowIso());
+    return json(200, { received: true });
+  }
+
   /**
    * The bundled-AI proxy: OpenAI-compatible passthrough with the operator's
    * upstream key injected and the usage numbers metered (docs/sync-engine.md
@@ -552,6 +644,10 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
     if (req.method === "POST" && path === "/v1/auth/request") return handleAuthRequest(req);
     if (req.method === "POST" && path === "/v1/auth/verify") return handleAuthVerify(req);
     if (req.method === "POST" && path === "/v1/admin/tier") return handleAdminTier(req);
+    if (req.method === "POST" && path === "/v1/billing/webhook") return handleBillingWebhook(req);
+    // Optional auth: signed-in checkout binds the account, signed-out is the
+    // landing page's flow. Placed before the session gate on purpose.
+    if (req.method === "POST" && path === "/v1/billing/checkout") return handleBillingCheckout(req);
     if (path.startsWith("/v1/auth/oauth/")) {
       const [providerId, action] = path.slice("/v1/auth/oauth/".length).split("/");
       return handleOauth(req, url, providerId ?? "", action ?? "");
@@ -595,6 +691,7 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
         aiCreditsUsed: creditsFromMicroUsd(
           await ports.aiUsage.usedMicroUsd(account.id, monthKey(ports.now())),
         ),
+        hasBilling: account.stripeCustomerId !== null,
         limits: quotasForTier(tier, config),
       });
     }
@@ -621,6 +718,9 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
       // 60 seconds: long enough to open the socket, useless to an archived log.
       await accounts.putWatchTicket(await tokenHash(ticket), account.id, ports.now() + 60_000);
       return json(200, { ticket });
+    }
+    if (req.method === "POST" && path === "/v1/billing/portal") {
+      return handleBillingPortal(account);
     }
     if (req.method === "GET" && path === "/v1/ai/models") {
       return json(200, { models: ports.aiModels.map(({ id, name }) => ({ id, name })) });

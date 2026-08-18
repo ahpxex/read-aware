@@ -115,6 +115,17 @@ describe("per-tier enforcement", () => {
     expect((await handle(putBytes("/v1/blobs/b%3A3", new Uint8Array(15), session))).status).toBe(200);
   });
 
+  test("the sync plan carries pro-sized data quotas with zero AI", async () => {
+    const { handle } = makeRelay({ adminToken: ADMIN, maxBlobBytes: 10, maxAccountBlobBytes: 20 });
+    const { session } = await login(handle, "reader@example.com");
+    await setTier(handle, { email: "reader@example.com", tier: "sync" });
+    // Free's caps would refuse this 25-byte file twice over; sync lifts both.
+    expect((await handle(putBytes("/v1/blobs/b%3A1", new Uint8Array(25), session))).status).toBe(200);
+    const account = await accountOf(handle, session);
+    expect(account.limits.maxAccountBlobBytes).toBe(10 * 1024 * 1024 * 1024);
+    expect(account.limits.aiMonthlyCredits).toBe(0);
+  });
+
   test("an upgrade lifts the event quota; staff is unmetered", async () => {
     const { handle } = makeRelay({ adminToken: ADMIN, maxAccountEvents: 2 });
     const { session } = await login(handle, "reader@example.com");

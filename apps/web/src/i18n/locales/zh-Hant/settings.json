@@ -378,9 +378,15 @@
     },
     "tier": {
       "free": "免費",
+      "sync": "Sync",
       "pro": "Pro",
       "max": "Max",
       "staff": "內部"
+    },
+    "billing": {
+      "upgrade": "升級方案",
+      "manage": "管理訂閱",
+      "failed": "無法開啟付款頁面,請重試。"
     },
     "progress": {
       "pulling": "正在接收變更… 已合併 {{count}} 條",

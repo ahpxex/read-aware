@@ -382,9 +382,15 @@
     },
     "tier": {
       "free": "Free",
+      "sync": "Sync",
       "pro": "Pro",
       "max": "Max",
       "staff": "Staff"
+    },
+    "billing": {
+      "upgrade": "Upgrade plan",
+      "manage": "Manage subscription",
+      "failed": "Couldn't open the billing page. Try again."
     },
     "progress": {
       "pulling": "Receiving changes… {{count}} merged",

@@ -29,6 +29,7 @@ type AccountRow = {
   blob_bytes_used: number;
   tier: string;
   tier_expires_at_ms: number | null;
+  stripe_customer_id: string | null;
   created_at: string;
 };
 
@@ -50,6 +51,7 @@ function rowToAccount(row: AccountRow): Account {
     // read it as free rather than granting quotas the code never defined.
     tier: isAccountTier(row.tier) ? row.tier : "free",
     tierExpiresAtMs: row.tier_expires_at_ms === null ? null : Number(row.tier_expires_at_ms),
+    stripeCustomerId: row.stripe_customer_id,
     createdAt: row.created_at,
   };
 }
@@ -209,6 +211,28 @@ export class SqlAccountStore implements AccountStore {
           WHERE email = ?1 RETURNING *`,
       )
       .bind(email, tier, tierExpiresAtMs)
+      .first<AccountRow>();
+    return row ? rowToAccount(row) : null;
+  }
+
+  async setTierById(id: string, tier: SyncTier, tierExpiresAtMs: number | null): Promise<void> {
+    await this.db
+      .prepare(`UPDATE accounts SET tier = ?2, tier_expires_at_ms = ?3 WHERE id = ?1`)
+      .bind(id, tier, tierExpiresAtMs)
+      .run();
+  }
+
+  async setStripeCustomer(id: string, customerId: string): Promise<void> {
+    await this.db
+      .prepare(`UPDATE accounts SET stripe_customer_id = ?2 WHERE id = ?1`)
+      .bind(id, customerId)
+      .run();
+  }
+
+  async findByStripeCustomer(customerId: string): Promise<Account | null> {
+    const row = await this.db
+      .prepare(`SELECT * FROM accounts WHERE stripe_customer_id = ?1`)
+      .bind(customerId)
       .first<AccountRow>();
     return row ? rowToAccount(row) : null;
   }

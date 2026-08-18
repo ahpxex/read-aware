@@ -366,15 +366,16 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
   blob 50 MB + 事件 5 万条，双双 413 原子拒绝（重投递已知事件不算新用量、
   不受锁）；env 可调（`MAX_ACCOUNT_BLOB_BYTES` / `MAX_ACCOUNT_EVENTS`）。
   最坏情况有界：1000 个满额免费账号 ≈ 50 GB R2 ≈ $0.60/月。
-- **账号档位（2026-08-18 落地）**：对外 `free` / `pro` / `max`，内部
-  `staff`。账号行只存 `tier` + `tier_expires_at_ms`（D1 迁移 0006）；
-  档位 → 配额的映射在代码里（`ports.ts quotasForTier`）——free 读 env
-  基线，pro = 10 GiB / 250 万事件，max = 100 GiB / 2500 万事件（事件阶梯
-  50k → 50× → 10×），staff 不限量；付费档单文件上限 100 MB（Workers
-  非企业版请求体上限即 100 MB，再往上要做分片上传，不是改常数）。
-  定价定案（2026-08-19）：pro $20/月、max $50/月——对照 bundled AI 的
-  计量上限（$5 / $30），最坏情况毛利分别为 $15 与 $20，有界且为正。
-  到期回落 free；执行只在
+- **账号档位（2026-08-18 落地，2026-08-19 增补 sync 档）**：对外
+  `free` / `sync` / `pro` / `max`，内部 `staff`。账号行只存 `tier` +
+  `tier_expires_at_ms`（D1 迁移 0006）；档位 → 配额的映射在代码里
+  （`ports.ts quotasForTier`）——free 读 env 基线，sync = pro 的数据配额
+  但 AI 为零（给 BYOK 用户的纯同步档），pro = 10 GiB / 250 万事件，
+  max = 100 GiB / 2500 万事件（事件阶梯 50k → 50× → 10×），staff 不限量；
+  付费档单文件上限 100 MB（Workers 非企业版请求体上限即 100 MB，再往上
+  要做分片上传，不是改常数）。定价定案（2026-08-19）：sync $5/月、
+  pro $20/月、max $50/月——对照 bundled AI 的计量上限（$0 / $5 / $30），
+  最坏情况毛利分别约 $4.85、$15、$20，有界且为正。到期回落 free；执行只在
   写入侧——超额账号 pull 永远可用，push 被 413 拒，数据不删。写入口是
   `POST /v1/admin/tier`（`ADMIN_TOKEN` secret 鉴权，未配置则 501；
   body `{email, tier, expiresAtMs?}`），将来支付 webhook 走同一接缝。
@@ -382,6 +383,22 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
   （`blobBytesUsed` / `eventsUsed`），客户端 Data & Sync 面板据此显示
   「方案 + 已用/上限」。事件日志 append-only 的先天约束：降级后若已超
   事件配额，push 永久只读直到重新升级——这是接受的语义，不做 compaction。
+- **Stripe 计费（2026-08-19 落地，本地沙盒全链路已验证）**：零依赖实现
+  （fetch + WebCrypto，`billing.ts`）。三个端点：`POST /v1/billing/checkout`
+  （**登录态可选**——带 session 则绑定账号并锁定邮箱；不带则是官网
+  pricing 页的匿名购买流，Stripe 收集邮箱、webhook 按邮箱
+  `findOrCreateByEmail` 履约，买家之后用同一邮箱登录即落在已升级的行上）、
+  `POST /v1/billing/webhook`（签名校验 = 手写 HMAC-SHA256 + 5 分钟重放
+  fence；付费用户的 tier 唯一写入路径，走与 /v1/admin/tier 相同接缝；
+  幂等靠纯覆盖写）、`POST /v1/billing/portal`（改套餐/退订全交给 Stripe
+  托管页，relay 自己从不改订阅）。价格按 lookup_key 解析（sync_monthly /
+  pro_monthly / max_monthly），永不硬编码 price id。生命周期语义：
+  `checkout.session.completed` → 升档并挂接 customer（迁移 0008）；
+  `subscription.updated` 按价格重定档,cancel_at_period_end 写
+  tier_expires_at_ms（兼容新 API 版本里 current_period_end 落在
+  subscription item 上）；`deleted`/`canceled`/`unpaid` → free;`past_due`
+  是宽限不降档。已订阅账号再 checkout 会 409 → 客户端转 portal。桌面端
+  入口在 Data & Sync(free → 升级菜单,付费中 → 管理订阅)。
 - **Bundled AI = 计量代理（2026-08-19 落地）**：`POST /v1/ai/chat/completions`
   （OpenAI 兼容透传，session 鉴权）+ `GET /v1/ai/models`。目录在代码里
   （`ai-proxy.ts`，一等公民 DeepSeek V4 Flash；配了哪家 key 哪家上架，
@@ -416,7 +433,15 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
    GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET`（邮件链路可选：
    `RESEND_API_KEY` + `MAIL_FROM`——有 OAuth 后可以晚配；档位管理可选：
    `ADMIN_TOKEN`，不配则 `/v1/admin/*` 一律 501；bundled AI 可选：
-   `DEEPSEEK_API_KEY`，不配则 `/v1/ai/*` 一律 501。升降级示例：
+   `DEEPSEEK_API_KEY`，不配则 `/v1/ai/*` 一律 501；计费可选：
+   `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` 双双配齐才启用
+   `/v1/billing/*`（生产 webhook secret 来自 Stripe Dashboard →
+   Webhooks 添加 endpoint `https://relay.readaware.app/v1/billing/webhook`，
+   订阅 `checkout.session.completed`、`customer.subscription.updated`、
+   `customer.subscription.deleted` 三类事件；本地联调用
+   `stripe listen --project-name readaware --forward-to
+   localhost:8787/v1/billing/webhook` 打印的 whsec 填 .dev.vars）。
+   升降级示例：
    `curl -X POST https://relay.readaware.app/v1/admin/tier -H "authorization: Bearer $ADMIN_TOKEN" -H "content-type: application/json" -d '{"email":"reader@example.com","tier":"pro","expiresAtMs":1787000000000}'`）；
 6. 生产 `wrangler.jsonc` 删掉 `MAGIC_LINK_ECHO`；配自定义域
    `relay.readaware.app`（Workers 控制台 Custom Domains，DNS 本就在

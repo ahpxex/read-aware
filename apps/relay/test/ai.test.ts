@@ -103,6 +103,15 @@ describe("admission", () => {
     expect(requests).toHaveLength(0);
   });
 
+  test("the sync plan is data-only: bundled AI answers 403", async () => {
+    const { fetchFn, requests } = jsonUpstream({});
+    const { handle } = makeRelay({ adminToken: ADMIN }, {}, { models: MODELS, fetch: fetchFn });
+    const session = await proAccount(handle, "sync");
+    const res = await completions(handle, session, { model: "deepseek-v4-flash", messages: [] });
+    expect(res.status).toBe(403);
+    expect(requests).toHaveLength(0);
+  });
+
   test("a model outside the catalog is refused", async () => {
     const { fetchFn } = jsonUpstream({});
     const { handle } = makeRelay({ adminToken: ADMIN }, {}, { models: MODELS, fetch: fetchFn });

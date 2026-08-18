@@ -386,9 +386,15 @@
     },
     "tier": {
       "free": "Gratis",
+      "sync": "Sync",
       "pro": "Pro",
       "max": "Max",
       "staff": "Interno"
+    },
+    "billing": {
+      "upgrade": "Mejorar plan",
+      "manage": "Gestionar suscripción",
+      "failed": "No se pudo abrir la página de pago. Inténtalo de nuevo."
     },
     "progress": {
       "pulling": "Recibiendo cambios… {{count}} fusionados",

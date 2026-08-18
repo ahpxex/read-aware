@@ -382,9 +382,15 @@
     },
     "tier": {
       "free": "Kostenlos",
+      "sync": "Sync",
       "pro": "Pro",
       "max": "Max",
       "staff": "Intern"
+    },
+    "billing": {
+      "upgrade": "Tarif upgraden",
+      "manage": "Abo verwalten",
+      "failed": "Die Abrechnungsseite konnte nicht geöffnet werden. Bitte erneut versuchen."
     },
     "progress": {
       "pulling": "Änderungen werden empfangen… {{count}} zusammengeführt",

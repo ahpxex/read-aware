@@ -378,9 +378,15 @@
     },
     "tier": {
       "free": "無料",
+      "sync": "Sync",
       "pro": "Pro",
       "max": "Max",
       "staff": "スタッフ"
+    },
+    "billing": {
+      "upgrade": "プランをアップグレード",
+      "manage": "サブスクリプションを管理",
+      "failed": "決済ページを開けませんでした。もう一度お試しください。"
     },
     "progress": {
       "pulling": "変更を受信中… {{count}} 件マージ済み",

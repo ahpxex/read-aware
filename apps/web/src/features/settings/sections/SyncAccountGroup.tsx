@@ -6,10 +6,14 @@
  */
 import { useEffect, useState } from "react";
 import { useAtom } from "jotai";
-import { Button, Dialog, useToast } from "@read-aware/ui";
+import { Button, Dialog, DropdownMenu, useToast } from "@read-aware/ui";
+import type { BillingPlanId } from "@read-aware/core";
 import { useTranslation } from "../../../i18n";
 import { isTauri } from "../../../platform/environment";
+import { openExternalUrl } from "../../../platform/external-link";
 import { createLogger } from "../../../platform/logger";
+import { RelayError } from "../../../platform/sync/relay-client";
+import { syncRelayClient } from "../../../platform/sync/sync-scheduler";
 import { syncLoginTokenAtom } from "../../../state/ui";
 import { PendingBadge } from "../components/PendingBadge";
 import { SettingsGroup } from "../components/SettingsGroup";
@@ -21,6 +25,17 @@ import { useSyncConnection } from "../hooks/useSyncConnection";
 import { SyncConnectDialog } from "./SyncConnectDialog";
 
 const log = createLogger("sync");
+
+/** App locale → the landing's pricing-page locale prefix (relay validates). */
+const CHECKOUT_LOCALE: Record<string, string> = {
+  "zh-Hans": "zh",
+  "zh-Hant": "zh-hant",
+  ja: "ja",
+  fr: "fr",
+  de: "de",
+  ru: "ru",
+  es: "es",
+};
 
 /** "12 345 678" bytes → "11.8 MB": one decimal, sensible unit. */
 function formatBytes(bytes: number): string {
@@ -37,7 +52,7 @@ function formatBytes(bytes: number): string {
 }
 
 export function SyncAccountGroup() {
-  const { t } = useTranslation("settings");
+  const { t, i18n } = useTranslation("settings");
   const { toast } = useToast();
   const sync = useSyncConnection();
 
@@ -85,6 +100,35 @@ export function SyncAccountGroup() {
     }
   };
 
+  const billingFailed = (error: unknown) => {
+    log.error("billing session failed", error);
+    toast({
+      variant: "destructive",
+      title: t("dataSync.noticeError"),
+      description: t("dataSync.billing.failed"),
+    });
+  };
+
+  const openPortal = async () => {
+    try {
+      await openExternalUrl(await syncRelayClient().createPortal());
+    } catch (error) {
+      billingFailed(error);
+    }
+  };
+
+  const openCheckout = async (plan: BillingPlanId) => {
+    try {
+      const url = await syncRelayClient().createCheckout(plan, CHECKOUT_LOCALE[i18n.language]);
+      await openExternalUrl(url);
+    } catch (error) {
+      // 409 = an active subscription already exists (e.g. re-tiering): the
+      // portal, not a second checkout, is the right door — open it instead.
+      if (error instanceof RelayError && error.status === 409) return openPortal();
+      billingFailed(error);
+    }
+  };
+
   if (!sync.connected) {
     return (
       <SettingsGroup title={t("dataSync.sync")}>
@@ -117,6 +161,35 @@ export function SyncAccountGroup() {
         description={t("dataSync.connected.description", { account: accountLabel })}
         control={
           <span className="flex flex-wrap items-center justify-end gap-2">
+            {/* A currently-paying account manages its plan in Stripe's portal.
+                Free accounts get the upgrade menu even when a past customer
+                exists (checkout reuses it — after a cancellation the portal
+                has nothing left to manage). A paid tier WITHOUT billing was
+                granted by the operator; staff plans are never sold. */}
+            {accountInfo && accountInfo.tier !== "staff" && (
+              accountInfo.tier !== "free" ? (
+                accountInfo.hasBilling && (
+                  <Button size="sm" variant="ghost" onClick={() => void openPortal()}>
+                    {t("dataSync.billing.manage")}
+                  </Button>
+                )
+              ) : (
+                <DropdownMenu
+                  align="right"
+                  triggerLabel={t("dataSync.billing.upgrade")}
+                  trigger={
+                    <span className="inline-flex h-8 items-center rounded-md px-3 text-sm text-fg-muted transition-colors hover:text-fg">
+                      {t("dataSync.billing.upgrade")}
+                    </span>
+                  }
+                  items={[
+                    { label: "Sync · $5", onClick: () => void openCheckout("sync") },
+                    { label: "Pro · $20", onClick: () => void openCheckout("pro") },
+                    { label: "Max · $50", onClick: () => void openCheckout("max") },
+                  ]}
+                />
+              )
+            )}
             <Button size="sm" variant="outline" disabled={syncing} onClick={() => void handleSyncNow()}>
               {syncing ? t("dataSync.syncStatus.syncing") : t("dataSync.connected.syncNow")}
             </Button>

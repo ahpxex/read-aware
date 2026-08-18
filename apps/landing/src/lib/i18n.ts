@@ -99,7 +99,9 @@ export function localizePath(pathname: string, locale: Locale): string {
 /** The locales this page actually exists in (drives the switcher and hreflang). */
 export function availableLocales(pathname: string): readonly Locale[] {
   const base = localizePath(pathname, "en");
-  if (base === "/" || base.startsWith("/changelog")) return LOCALES;
+  if (base === "/" || base.startsWith("/changelog") || base.startsWith("/pricing")) {
+    return LOCALES;
+  }
   if (base.startsWith("/docs") || base.startsWith("/blog")) return DOCS_LOCALES;
   return [];
 }
@@ -119,6 +121,7 @@ export const UI_STRINGS: Record<
     tagline: string;
     more: string;
     language: string;
+    pricing: string;
     changelog: string;
     changelogTitle: string;
     changelogLead: string;
@@ -137,6 +140,7 @@ export const UI_STRINGS: Record<
     tagline: "Local-first. Yours.",
     more: "More",
     language: "Language",
+    pricing: "Pricing",
     changelog: "Changelog",
     changelogTitle: "Changelog",
     changelogLead:
@@ -155,6 +159,7 @@ export const UI_STRINGS: Record<
     tagline: "本地优先，数据归你。",
     more: "更多",
     language: "语言",
+    pricing: "定价",
     changelog: "更新日志",
     changelogTitle: "更新日志",
     changelogLead:
@@ -173,6 +178,7 @@ export const UI_STRINGS: Record<
     tagline: "ローカルファースト。あなたのもの。",
     more: "その他",
     language: "言語",
+    pricing: "料金",
     changelog: "変更履歴",
     changelogTitle: "変更履歴",
     changelogLead:
@@ -191,6 +197,7 @@ export const UI_STRINGS: Record<
     "tagline": "本地優先。屬於你。",
     "more": "更多",
     "language": "語言",
+    "pricing": "定價",
     "changelog": "更新日誌",
     "changelogTitle": "更新日誌",
     "changelogLead": "每個版本變了什麼，寫給使用的人看。每個版本的完整說明與下載都在 GitHub 上。",
@@ -208,6 +215,7 @@ export const UI_STRINGS: Record<
     "tagline": "Local d'abord. À vous.",
     "more": "Plus",
     "language": "Langue",
+    "pricing": "Tarifs",
     "changelog": "Journal des modifications",
     "changelogTitle": "Journal des modifications",
     "changelogLead": "Ce qui a changé dans chaque version, écrit pour celles et ceux qui utilisent l'application. Les notes complètes et les téléchargements de chaque version sont sur GitHub.",
@@ -225,6 +233,7 @@ export const UI_STRINGS: Record<
     "tagline": "Local-First. Deins.",
     "more": "Mehr",
     "language": "Sprache",
+    "pricing": "Preise",
     "changelog": "Änderungsprotokoll",
     "changelogTitle": "Änderungsprotokoll",
     "changelogLead": "Was sich in jeder Version geändert hat, geschrieben für die Menschen, die sie nutzen. Die vollständigen Notizen und Downloads jeder Version gibt es auf GitHub.",
@@ -242,6 +251,7 @@ export const UI_STRINGS: Record<
     "tagline": "Локальный подход (local-first). Ваше.",
     "more": "Ещё",
     "language": "Язык",
+    "pricing": "Тарифы",
     "changelog": "Журнал изменений",
     "changelogTitle": "Журнал изменений",
     "changelogLead": "Что изменилось в каждом выпуске, написанное для тех, кто этим пользуется. Полные примечания и загрузки каждой версии — на GitHub.",
@@ -259,6 +269,7 @@ export const UI_STRINGS: Record<
     "tagline": "Local primero (local-first). Tuyo.",
     "more": "Más",
     "language": "Idioma",
+    "pricing": "Precios",
     "changelog": "Registro de cambios",
     "changelogTitle": "Registro de cambios",
     "changelogLead": "Lo que cambió en cada versión, escrito para quienes la usan. Las notas completas y las descargas de cada versión viven en GitHub.",

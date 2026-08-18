@@ -378,9 +378,15 @@
     },
     "tier": {
       "free": "免费",
+      "sync": "Sync",
       "pro": "Pro",
       "max": "Max",
       "staff": "内部"
+    },
+    "billing": {
+      "upgrade": "升级方案",
+      "manage": "管理订阅",
+      "failed": "打不开支付页面,请重试。"
     },
     "progress": {
       "pulling": "正在接收更改… 已合并 {{count}} 条",

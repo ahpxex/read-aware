@@ -69,7 +69,7 @@ const edges = DATA.edges.filter(e => byId.has(e.s) && byId.has(e.t));
 for (const e of edges) { byId.get(e.s).deg++; byId.get(e.t).deg++; }
 // 初始位置：按首次出场章节排成螺旋，主角靠中心
 nodes.sort((a,b) => b.deg - a.deg).forEach((n,i) => {
-  const r = 40 + 14 * Math.sqrt(i) * 4, a = i * 2.399963;
+  const r = 30 + 28 * Math.sqrt(i), a = i * 2.399963;
   n.x = Math.cos(a) * r; n.y = Math.sin(a) * r;
 });
 
@@ -123,7 +123,9 @@ function pt(ev) {
 function showTip(n, ev) {
   const rels = edges.filter(e => e.at <= through && (e.s === n.id || e.t === n.id))
     .sort((a,b) => a.at - b.at).slice(0, 12)
-    .map(e => `<div>${e.s === n.id ? "" : e.s + " "}<span class="k">—${e.k}→</span> ${e.t === n.id ? (e.s === n.id ? e.t : "") : e.t} <span style="color:var(--muted)">#${e.at}</span></div>`)
+    .map(e => e.s === n.id
+      ? `<div><span class="k">—${e.k}→</span> ${e.t} <span style="color:var(--muted)">#${e.at}</span></div>`
+      : `<div>${e.s} <span class="k">—${e.k}→</span> 本人 <span style="color:var(--muted)">#${e.at}</span></div>`)
     .join("");
   tip.innerHTML = `<div class="n">${n.id} <span style="color:var(--muted);font-weight:400">首见 #${n.first} · ${n.m} 章提及</span></div>`
     + (n.aliases.length ? `<div class="a">${n.aliases.join(" · ")}</div>` : "")
@@ -142,27 +144,29 @@ function step() {
   // repulsion (grid-free O(n²)：170 节点足够快)
   for (let i = 0; i < ns.length; i++) for (let j = i + 1; j < ns.length; j++) {
     const a = ns[i], b = ns[j];
-    let dx = a.x - b.x, dy = a.y - b.y, d2 = dx*dx + dy*dy || 1;
-    if (d2 > 90000) continue;
-    const f = 1500 / d2 * k;
+    let dx = a.x - b.x, dy = a.y - b.y;
+    const d2 = Math.max(dx*dx + dy*dy, 64);
+    if (d2 > 160000) continue;
     const d = Math.sqrt(d2);
+    const f = 2200 / d2 * k;
     dx /= d; dy /= d;
     a.vx += dx * f; a.vy += dy * f; b.vx -= dx * f; b.vy -= dy * f;
   }
+  // spring：胡克定律,静止长度 90,力与伸长量线性——绝不额外乘 d
   for (const e of es) {
     const a = byId.get(e.s), b = byId.get(e.t);
     let dx = b.x - a.x, dy = b.y - a.y;
     const d = Math.sqrt(dx*dx + dy*dy) || 1;
-    const f = (d - 90) * 0.012 * k;
+    const f = (d - 90) * 0.02 * k;
     dx /= d; dy /= d;
-    a.vx += dx * f * d * .02; a.vy += dy * f * d * .02;
-    b.vx -= dx * f * d * .02; b.vy -= dy * f * d * .02;
+    a.vx += dx * f; a.vy += dy * f;
+    b.vx -= dx * f; b.vy -= dy * f;
   }
   for (const n of ns) {
-    n.vx -= n.x * 0.0016 * k; n.vy -= n.y * 0.0016 * k;   // gravity
-    n.x += n.vx; n.y += n.vy; n.vx *= .82; n.vy *= .82;
+    n.vx -= n.x * 0.004 * k; n.vy -= n.y * 0.004 * k;   // gravity
+    n.x += n.vx; n.y += n.vy; n.vx *= .85; n.vy *= .85;
   }
-  heat = Math.max(0.02, heat * .995);
+  heat = Math.max(0.03, heat * .996);
 }
 
 function draw() {

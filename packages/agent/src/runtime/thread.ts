@@ -73,6 +73,17 @@ export interface AgentThreadOptions {
 
 const DEFAULT_WINDOW_TURNS = 12;
 
+/**
+ * "Never use emoji" 是产品级绝对禁令（设计系统: editorial restraint）——
+ * 在流层确定性执行,不赌模型自觉(低 thinking 档位实测会违禁)。
+ * 只剥 emoji 图形符号、区域指示符(旗帜)与 VS16;刻意不动 ZWJ —— 阿拉伯
+ * 语/印地语等书目正文合法依赖它,剥了会损坏引文。
+ */
+const EMOJI_PATTERN = /[\p{Extended_Pictographic}\p{Regional_Indicator}\uFE0F]/gu;
+function stripEmoji(text: string): string {
+  return text.replace(EMOJI_PATTERN, "");
+}
+
 export class AgentThread {
   readonly scope: ThreadScope;
   readonly key: string;
@@ -387,7 +398,7 @@ export class AgentThread {
           case "message_update":
             if (!firstDeltaAt) firstDeltaAt = performance.now();
             if (event.assistantMessageEvent.type === "text_delta") {
-              yield { type: "text", text: event.assistantMessageEvent.delta };
+              yield { type: "text", text: stripEmoji(event.assistantMessageEvent.delta) };
             } else if (event.assistantMessageEvent.type === "thinking_delta") {
               yield { type: "thinking", text: event.assistantMessageEvent.delta };
             }

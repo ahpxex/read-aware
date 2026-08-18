@@ -189,17 +189,29 @@ export interface GraphEdge extends DigestRelation {
 }
 
 /**
- * 跨章归并关系边：同 (from, kind, to) 只保留最早确立的那条（出处戳最小），
- * note 取最新章的。输入 digests 无需有序。
+ * 跨章归并关系边：端点先过实体归并（"米嘉→费奥多尔"与
+ * "德米特里·费奥多罗维奇→费奥多尔·巴甫洛维奇"是同一条边），再按
+ * (from, kind, to) 去重——保留最早确立的出处戳，note 取最新章的。
  */
 export function mergeRelationGraph(digests: ChapterDigest[]): GraphEdge[] {
+  const resolution = resolveEntityNames(digests);
+  const canonical = (name: string) => resolution.get(name) ?? name;
   const byKey = new Map<string, GraphEdge>();
   for (const digest of [...digests].sort((a, b) => a.chapterIndex - b.chapterIndex)) {
     for (const relation of digest.relations ?? []) {
-      const key = `${relation.from}|${relation.kind}|${relation.to}`;
+      const from = canonical(relation.from);
+      const to = canonical(relation.to);
+      if (from === to) continue;
+      const key = `${from}|${relation.kind}|${to}`;
       const existing = byKey.get(key);
       if (!existing) {
-        byKey.set(key, { ...relation, establishedAt: digest.chapterIndex });
+        byKey.set(key, {
+          from,
+          kind: relation.kind,
+          to,
+          ...(relation.note ? { note: relation.note } : {}),
+          establishedAt: digest.chapterIndex,
+        });
         continue;
       }
       if (relation.note) byKey.set(key, { ...existing, note: relation.note });
@@ -208,21 +220,125 @@ export function mergeRelationGraph(digests: ChapterDigest[]): GraphEdge[] {
   return [...byKey.values()];
 }
 
-/** 跨章节归并人物名录：同名合并、别名求并、note 取最新章的。 */
+/**
+ * 实体归并（碎片消解）：同一人物在不同章被写成"米嘉"或
+ * "德米特里·费奥多罗维奇·卡拉马佐夫"——但纪要自带别名证据，
+ * name 与 aliases 的共现即等价关系，跨章累积后用并查集把碎片
+ * 缩成一个实体。返回 任意名字 → 规范名 的映射；规范名取
+ * 提及章数最多者（并列取更长的全名）。
+ *
+ * 防误并：同一章的纪要里并列出现的两个 name 是模型明确区分的两个人，
+ * 绝不允许被别名证据合并——family surname 之类的共享别名（同章内
+ * 指向多个 name 的歧义别名）直接作废，不参与任何合并。
+ */
+export function resolveEntityNames(digests: ChapterDigest[]): Map<string, string> {
+  const parent = new Map<string, string>();
+  const find = (x: string): string => {
+    const p = parent.get(x);
+    if (p === undefined || p === x) return x;
+    const root = find(p);
+    parent.set(x, root);
+    return root;
+  };
+
+  const ordered = [...digests].sort((a, b) => a.chapterIndex - b.chapterIndex);
+  // 1) 收集互斥对（同章并列的 name）与歧义别名（同章指向多个 name）。
+  const distinctPairs = new Set<string>();
+  const ambiguousAliases = new Set<string>();
+  for (const digest of ordered) {
+    const names = digest.characters.map((character) => character.name);
+    for (let i = 0; i < names.length; i++) {
+      for (let j = i + 1; j < names.length; j++) {
+        distinctPairs.add(`${names[i]} ${names[j]}`);
+        distinctPairs.add(`${names[j]} ${names[i]}`);
+      }
+    }
+    const aliasOwners = new Map<string, string>();
+    for (const character of digest.characters) {
+      for (const alias of character.aliases ?? []) {
+        const owner = aliasOwners.get(alias);
+        if (owner !== undefined && owner !== character.name) ambiguousAliases.add(alias);
+        aliasOwners.set(alias, character.name);
+      }
+    }
+  }
+  const conflicts = (a: string, b: string) => {
+    // 并查集合并前检查：两簇的任意成员在同章并列过 → 不是同一人。
+    const membersOf = (root: string) =>
+      [...parent.keys()].filter((name) => find(name) === root);
+    const left = membersOf(find(a));
+    const right = membersOf(find(b));
+    return left.some((x) => right.some((y) => distinctPairs.has(`${x} ${y}`)));
+  };
+  const union = (a: string, b: string) => {
+    const ra = find(a);
+    const rb = find(b);
+    if (ra === rb || conflicts(ra, rb)) return;
+    parent.set(ra, rb);
+  };
+  const ensure = (name: string) => {
+    if (!parent.has(name)) parent.set(name, name);
+  };
+
+  // 2) 别名证据驱动合并：字符串相等（name↔name 跨章天然同簇）之外，
+  //    name 与 alias 的共现即等价——除非冲突检查拦下。
+  for (const digest of ordered) {
+    for (const character of digest.characters) {
+      ensure(character.name);
+      for (const alias of character.aliases ?? []) {
+        if (ambiguousAliases.has(alias)) continue;
+        ensure(alias);
+        union(alias, character.name);
+      }
+    }
+  }
+
+  // 3) 规范名：簇内提及章数最多的名字，并列取更长者。
+  const mentions = new Map<string, number>();
+  for (const digest of ordered) {
+    for (const character of digest.characters) {
+      mentions.set(character.name, (mentions.get(character.name) ?? 0) + 1);
+    }
+  }
+  const clusters = new Map<string, string[]>();
+  for (const name of parent.keys()) {
+    const root = find(name);
+    clusters.set(root, [...(clusters.get(root) ?? []), name]);
+  }
+  const resolution = new Map<string, string>();
+  for (const members of clusters.values()) {
+    const canonical = [...members].sort(
+      (a, b) =>
+        (mentions.get(b) ?? 0) - (mentions.get(a) ?? 0) ||
+        b.length - a.length ||
+        a.localeCompare(b),
+    )[0]!;
+    for (const member of members) resolution.set(member, canonical);
+  }
+  return resolution;
+}
+
+/** 跨章节归并人物名录：实体归并 + 别名求并、note 取最新章的。 */
 export function mergeCharacterRegistry(digests: ChapterDigest[]): DigestCharacter[] {
+  const resolution = resolveEntityNames(digests);
+  const canonical = (name: string) => resolution.get(name) ?? name;
   const byName = new Map<string, DigestCharacter>();
   for (const digest of [...digests].sort((a, b) => a.chapterIndex - b.chapterIndex)) {
     for (const character of digest.characters) {
-      const existing = byName.get(character.name);
-      if (!existing) {
-        byName.set(character.name, { ...character });
-        continue;
-      }
-      const aliases = new Set([...(existing.aliases ?? []), ...(character.aliases ?? [])]);
-      byName.set(character.name, {
-        name: character.name,
+      const key = canonical(character.name);
+      const incomingAliases = [character.name, ...(character.aliases ?? [])].filter(
+        (alias) => alias !== key,
+      );
+      const existing = byName.get(key);
+      const aliases = new Set([...(existing?.aliases ?? []), ...incomingAliases]);
+      byName.set(key, {
+        name: key,
         ...(aliases.size ? { aliases: [...aliases] } : {}),
-        ...(character.note ? { note: character.note } : existing.note ? { note: existing.note } : {}),
+        ...(character.note
+          ? { note: character.note }
+          : existing?.note
+            ? { note: existing.note }
+            : {}),
       });
     }
   }

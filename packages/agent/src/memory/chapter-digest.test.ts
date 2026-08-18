@@ -8,6 +8,7 @@ import {
   extractChapterDigest,
   mergeCharacterRegistry,
   mergeRelationGraph,
+  resolveEntityNames,
 } from "./chapter-digest";
 
 const MODEL = { id: "stub", provider: "stub", api: "openai-completions" } as unknown as Model<Api>;
@@ -238,5 +239,68 @@ describe("digestMissingChapters", () => {
     });
     expect(count).toBe(0);
     expect(digested).toEqual([]);
+  });
+});
+
+describe("resolveEntityNames", () => {
+  test("merges nickname and full-name fragments via accumulated alias evidence", () => {
+    const digests: ChapterDigest[] = [
+      {
+        chapterIndex: 1,
+        summary: "a",
+        digestVersion: 2,
+        characters: [
+          { name: "德米特里·费奥多罗维奇·卡拉马佐夫", aliases: ["米嘉"] },
+          { name: "费奥多尔·巴甫洛维奇" },
+        ],
+        relations: [],
+      },
+      {
+        chapterIndex: 2,
+        summary: "b",
+        digestVersion: 2,
+        characters: [{ name: "米嘉", aliases: ["米剑卡"] }],
+        relations: [{ from: "米嘉", kind: "儿子", to: "费奥多尔·巴甫洛维奇" }],
+      },
+      {
+        chapterIndex: 3,
+        summary: "c",
+        digestVersion: 2,
+        characters: [{ name: "米嘉" }],
+        relations: [
+          { from: "德米特里·费奥多罗维奇·卡拉马佐夫", kind: "儿子", to: "费奥多尔·巴甫洛维奇" },
+        ],
+      },
+    ];
+    const resolution = resolveEntityNames(digests);
+    // 米嘉提及 2 章 > 全名 1 章 → 规范名是米嘉
+    expect(resolution.get("德米特里·费奥多罗维奇·卡拉马佐夫")).toBe("米嘉");
+    expect(resolution.get("米剑卡")).toBe("米嘉");
+    const registry = mergeCharacterRegistry(digests);
+    expect(registry.filter((c) => c.name === "米嘉")).toHaveLength(1);
+    // 两条不同拼写的"儿子"边归并为一条，出处戳取最早章
+    const edges = mergeRelationGraph(digests);
+    expect(edges).toEqual([
+      { from: "米嘉", kind: "儿子", to: "费奥多尔·巴甫洛维奇", establishedAt: 2 },
+    ]);
+  });
+
+  test("never merges two characters listed side by side in the same chapter", () => {
+    const digests: ChapterDigest[] = [
+      {
+        chapterIndex: 1,
+        summary: "a",
+        digestVersion: 2,
+        characters: [
+          // 共享姓氏作为别名——歧义证据必须作废，父子不得合并
+          { name: "费奥多尔", aliases: ["卡拉马佐夫"] },
+          { name: "米嘉", aliases: ["卡拉马佐夫"] },
+        ],
+        relations: [],
+      },
+    ];
+    const resolution = resolveEntityNames(digests);
+    expect(resolution.get("费奥多尔")).toBe("费奥多尔");
+    expect(resolution.get("米嘉")).toBe("米嘉");
   });
 });

@@ -6,16 +6,18 @@
 //! manifest URL here. The URL is allow-listed to our own GitHub release
 //! assets, and integrity never rests on it anyway — every manifest and
 //! artifact is verified against the minisign pubkey baked into the config.
-//! Mobile never calls these commands (Android has its own APK path).
-
-use std::sync::Mutex;
+//!
+//! The updater plugin is a DESKTOP-ONLY dependency (Android updates through
+//! its own APK path, iOS through the store), so like android_update.rs this
+//! module compiles everywhere and swaps the bodies: mobile gets stubs the
+//! frontend never calls.
 
 use serde::Serialize;
-use tauri::{AppHandle, Emitter, Manager, State};
-use tauri_plugin_updater::UpdaterExt;
 
 #[derive(Default)]
-pub struct DesktopUpdateState(Mutex<Option<tauri_plugin_updater::Update>>);
+pub struct DesktopUpdateState(
+    #[cfg(desktop)] std::sync::Mutex<Option<tauri_plugin_updater::Update>>,
+);
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -25,6 +27,7 @@ pub struct AvailableDesktopUpdate {
 }
 
 /// Payload of the `ra-desktop-update-progress` event stream during install.
+#[cfg(desktop)]
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct DesktopUpdateProgress {
@@ -35,6 +38,7 @@ struct DesktopUpdateProgress {
 
 /// Only manifests that live under our own repo's release assets are accepted
 /// as endpoint overrides: https://github.com/ahpxex/read-aware/releases/download/v…/latest.json
+#[cfg(desktop)]
 fn validate_manifest_url(raw: &str) -> Result<url::Url, String> {
     let url = url::Url::parse(raw).map_err(|err| format!("Invalid manifest URL: {err}"))?;
     let path_ok = url
@@ -55,11 +59,15 @@ fn validate_manifest_url(raw: &str) -> Result<url::Url, String> {
 /// `endpoint: None` checks the config default (the newest STABLE release —
 /// GitHub's `releases/latest` never includes pre-releases). A found update is
 /// parked in state for `desktop_update_install`.
+#[cfg(desktop)]
 #[tauri::command]
 pub async fn desktop_update_check(
-    app: AppHandle,
+    app: tauri::AppHandle,
     endpoint: Option<String>,
 ) -> Result<Option<AvailableDesktopUpdate>, String> {
+    use tauri::Manager;
+    use tauri_plugin_updater::UpdaterExt;
+
     let mut builder = app.updater_builder();
     if let Some(raw) = endpoint {
         let url = validate_manifest_url(&raw)?;
@@ -75,7 +83,7 @@ pub async fn desktop_update_check(
         .await
         .map_err(|err| format!("Update check failed: {err}"))?;
 
-    let state: State<'_, DesktopUpdateState> = app.state();
+    let state: tauri::State<'_, DesktopUpdateState> = app.state();
     let info = update.as_ref().map(|u| AvailableDesktopUpdate {
         current_version: u.current_version.clone(),
         version: u.version.clone(),
@@ -86,10 +94,13 @@ pub async fn desktop_update_check(
 
 /// Downloads and installs the parked update, streaming progress to the
 /// webview as `ra-desktop-update-progress` events. The caller relaunches.
+#[cfg(desktop)]
 #[tauri::command]
-pub async fn desktop_update_install(app: AppHandle) -> Result<(), String> {
+pub async fn desktop_update_install(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri::{Emitter, Manager};
+
     let update = {
-        let state: State<'_, DesktopUpdateState> = app.state();
+        let state: tauri::State<'_, DesktopUpdateState> = app.state();
         let taken = state.0.lock().expect("desktop update state poisoned").take();
         taken.ok_or_else(|| "No software update is ready to install.".to_string())?
     };
@@ -115,4 +126,20 @@ pub async fn desktop_update_install(app: AppHandle) -> Result<(), String> {
         )
         .await
         .map_err(|err| format!("Update install failed: {err}"))
+}
+
+// ── Mobile stubs: registered but never called (Android has android_update). ──
+
+#[cfg(not(desktop))]
+#[tauri::command]
+pub async fn desktop_update_check(
+    _endpoint: Option<String>,
+) -> Result<Option<AvailableDesktopUpdate>, String> {
+    Ok(None)
+}
+
+#[cfg(not(desktop))]
+#[tauri::command]
+pub async fn desktop_update_install() -> Result<(), String> {
+    Err("Desktop updates are not available on this platform.".into())
 }

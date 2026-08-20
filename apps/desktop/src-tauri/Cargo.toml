@@ -26,9 +26,6 @@ tauri-plugin-log = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 base64 = "0.22"
-# Already in the tree via tauri; used directly to allow-list update-manifest
-# URLs (desktop_update.rs).
-url = "2"
 # Bundled SQLite — no system dependency; compiles SQLite from source.
 # `functions` lets us register ra_fts_segment (CJK bigram segmentation) as a
 # SQL function so the FTS triggers can call it.
@@ -88,6 +85,9 @@ tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 # mobile, where store-managed updates remain the platform-native path.
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
+# Already in the tree via tauri; used directly to allow-list update-manifest
+# URLs (desktop_update.rs).
+url = "2"
 # Dev-only bridge that lets the Tauri MCP server drive/inspect the webview.
 # Linked in all desktop builds (so its capability permission resolves) but only
 # initialized under debug_assertions — see lib.rs.

@@ -71,15 +71,23 @@ export function PricingPage({ locale }: { locale: Locale }) {
             </p>
           )}
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Subgrid ladder: the outer grid owns five shared row tracks —
+              name, price, tagline, features, CTA — and every card spans them
+              (`grid-rows-subgrid`), so dividers, list starts, and footers sit
+              on the same line across cards regardless of copy length. The
+              outer grid keeps row-gap 0 (a row gap would open the cards'
+              internal seams too); card separation between bands comes from a
+              uniform card margin instead. */}
+          <div className="mt-6 grid gap-x-4 sm:grid-cols-2 lg:grid-cols-4">
             {copy.plans.map((plan) => (
               <section
                 key={plan.id}
                 className={cn(
-                  "flex flex-col rounded-md border bg-surface p-5",
+                  "mt-4 grid row-span-5 grid-rows-subgrid rounded-md border bg-surface p-5",
                   plan.highlight ? "border-border-strong" : "border-border",
                 )}
               >
+                {/* Header — rows 1-3: identity, price, pitch. */}
                 <div className="flex items-baseline justify-between gap-2">
                   <h2 className="text-[1.0625rem] font-medium tracking-tight">
                     {plan.name}
@@ -96,10 +104,12 @@ export function PricingPage({ locale }: { locale: Locale }) {
                     {copy.perMonth}
                   </span>
                 </p>
-                <p className="mt-2 text-[0.875rem] leading-relaxed text-fg-muted">
+                <p className="mt-2 mb-4 text-[0.875rem] leading-relaxed text-fg-muted">
                   {plan.tagline}
                 </p>
-                <ul className="mt-4 flex flex-col gap-2 border-t border-border pt-4 text-[0.875rem] leading-relaxed text-fg-muted">
+                {/* Body — row 4: the divider tops the shared track, one line
+                    across all cards. */}
+                <ul className="flex flex-col gap-2 border-t border-border pt-4 text-[0.875rem] leading-relaxed text-fg-muted">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex gap-2">
                       <Check
@@ -112,16 +122,18 @@ export function PricingPage({ locale }: { locale: Locale }) {
                     </li>
                   ))}
                 </ul>
-                {plan.id === "free" ? (
-                  <Link
-                    to="/"
-                    hash="download"
-                    className="mt-auto pt-5 text-[0.9375rem] text-fg underline underline-offset-4 transition-colors hover:text-fg-muted"
-                  >
-                    {copy.ctaFree}
-                  </Link>
-                ) : (
-                  <div className="mt-auto pt-5">
+                {/* Footer — row 5: every plan gets the same button-shaped
+                    slot; the free plan's is a download link wearing it. */}
+                <div className="self-end pt-5">
+                  {plan.id === "free" ? (
+                    <Link
+                      to="/"
+                      hash="download"
+                      className="block w-full rounded-md border border-border-strong px-4 py-2 text-center text-[0.9375rem] text-fg transition-colors hover:bg-fill"
+                    >
+                      {copy.ctaFree}
+                    </Link>
+                  ) : (
                     <button
                       type="button"
                       onClick={() => void startCheckout(plan.id)}
@@ -136,8 +148,8 @@ export function PricingPage({ locale }: { locale: Locale }) {
                     >
                       {busyPlan === plan.id ? copy.ctaPaidBusy : copy.ctaPaid}
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </section>
             ))}
           </div>

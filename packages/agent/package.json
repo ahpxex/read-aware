@@ -17,6 +17,7 @@
     "eval:agent": "bun src/eval-run.ts",
     "eval:all": "bun src/eval-all-run.ts",
     "eval:rescore": "bun src/eval-rescore-run.ts",
+    "eval:digests": "bun src/eval-digests-run.ts",
     "eval:reading": "bun src/eval-run.ts reading"
   },
   "dependencies": {

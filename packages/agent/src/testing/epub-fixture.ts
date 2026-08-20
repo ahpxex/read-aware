@@ -53,6 +53,16 @@ function attr(tag: string, name: string): string | undefined {
   return new RegExp(`${name}="([^"]*)"`).exec(tag)?.[1];
 }
 
+/** 章节 HTML 里的标题回退：NCX 没条目、<title> 为空时取首个 h1–h6 的文本。 */
+function firstHeadingText(html: string): string | undefined {
+  const heading = /<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/i.exec(html)?.[1];
+  if (!heading) return undefined;
+  const text = decodeEntities(heading.replace(/<[^>]+>/g, ""))
+    .replace(/\s+/g, " ")
+    .trim();
+  return text || undefined;
+}
+
 /** 相对 href 归一到 zip 内路径（仅处理同级/子级与 `../`，fixture 足够）。 */
 function resolveHref(baseDir: string, href: string): string {
   const parts = `${baseDir}${href}`.split("/");
@@ -115,9 +125,13 @@ export function loadEpubFixture(path: string): EpubFixture {
     if (!html) continue;
     const text = htmlToText(html);
     if (text.length < 40) continue;
+    // 标题回退链：NCX 条目 → 非空 <title> → 正文首个 h1–h6（mobiunpack 类
+    // 转制书 NCX 只有卷级条目、<title> 全空，章题都在 h2 里）。
     const chapterTitle =
-      titleByPath.get(zipPath) ?? /<title>([\s\S]*?)<\/title>/.exec(html)?.[1]?.trim();
-    chapters.push({ title: chapterTitle, text });
+      titleByPath.get(zipPath) ||
+      /<title>([\s\S]*?)<\/title>/.exec(html)?.[1]?.trim() ||
+      firstHeadingText(html);
+    chapters.push({ title: chapterTitle || undefined, text });
   }
 
   return { title, author, chapters };

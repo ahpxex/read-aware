@@ -20,6 +20,17 @@ surface case there; the completeness check fails otherwise.
   Chinese-language consistency, memory updates, and pretraining-knowledge
   spoiler pressure against an early cursor. Assertions derive from the fixture
   text itself; `seedSummary` keeps the novel out of run artifacts.
+- `santi`: second narrative real book — the full Chinese Three-Body trilogy
+  omnibus (`fixtures/santi.epub`, 61 sections / ~900k chars). What karamazov
+  cannot test: maximum pretraining fame (the model knows the whole plot) vs an
+  early cursor, multi-volume TOC navigation (volume titles are reader-visible,
+  volume contents are not), and the messy real structure of a converted
+  omnibus (volume-level NCX, whole-part mega-chapters in volumes II/III).
+- `lebon`: expository real book — the full Chinese Le Bon
+  (`fixtures/lebon.epub`, 18 chapters). The counterpart surface to the
+  narrative suites: concept-graph injection ("argument so far" instead of
+  characters/relations), free forward retrieval with zero spoiler ceremony,
+  and this-edition terminology fidelity.
 - `grounding`: honesty when data is missing — no invented chapters, durations,
   or shelf books.
 - `reading`: reading-cursor grounding, selective spoiler protection, forward

@@ -8,6 +8,7 @@
 import { searchChapters, type BookTextHit, type BookTextPort, type ChapterRef } from "@read-aware/agent";
 import type { Id } from "@read-aware/core";
 import { getExtractedChapters, getPersistedChapters } from "../../../../domain";
+import { getBookTextStatus } from "../../../library/lib/book-text-store";
 import { listLibraryBooks } from "../../../library/lib/library-db";
 
 export function createBookTextPort(): BookTextPort {
@@ -19,6 +20,9 @@ export function createBookTextPort(): BookTextPort {
         chars: chapter.text.length,
         hrefs: chapter.hrefs,
       })),
+    // "没字"与"没抽"要说成两回事——纯图扫描版是终局事实（get_toc 会
+    // 触发一次抽取；抽完落定论后这里读到 textless），重试无益。
+    getTextStatus: (bookId) => getBookTextStatus(String(bookId)),
     getChapterText: async (bookId, chapterIndex) =>
       (await getExtractedChapters(String(bookId)))[chapterIndex]?.text,
     searchText: async ({ queries, bookId, throughChapterIndex, limit }) => {

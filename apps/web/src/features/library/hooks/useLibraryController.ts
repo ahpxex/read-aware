@@ -221,16 +221,13 @@ export function useLibraryController() {
           current.map((entry) => (entry.id === book.id ? result.book : entry)),
         );
       }
-      // Full PDF text extraction is deliberately lazy for very large/scanned
-      // documents. Starting hundreds of page decodes immediately after the
-      // first paint would make "open book" feel busy again; the agent's text
-      // port will trigger the same extraction only when whole-book context is
-      // actually requested.
-      const pageCount = foliateBook.sections?.length ?? 0;
-      const eagerPdfText = book.fileSize <= 64 * 1024 * 1024 && pageCount <= 300;
-      if (book.format !== "pdf" || eagerPdfText) {
-        await ensureBookTextExtracted(book.id, foliateBook);
-      }
+      // Text extraction always starts on first open, reusing the reader's
+      // already-parsed book. It yields between sections and (for long books)
+      // checkpoints its progress, so a big scanned PDF neither freezes the UI
+      // nor loses its work when the reader closes mid-pass — the old
+      // size/page-count gate that skipped exactly the scanned-book profile
+      // (and left the agent to re-parse from scratch on demand) is gone.
+      await ensureBookTextExtracted(book.id, foliateBook);
     })()
       .catch((error) => log.warn("lazy enrich failed", error))
       .finally(() => bookReadyPendingRef.current.delete(book.id));

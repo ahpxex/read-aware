@@ -39,13 +39,33 @@ export function buildBookTextTools(
     name: "get_toc",
     label: "Table of contents",
     description:
-      "Get a book's table of contents. Each entry carries chapterIndex (what read_chapter takes) AND chapterNumber (how the reader counts, 1-based): when the reader says \"chapter N\", find the entry whose chapterNumber is N and pass its chapterIndex — never do the arithmetic yourself. chars = text length (one read_chapter part covers 12000 chars). A TOC does not prove whether a topic appears in the prose: if the reader asks you to check coverage, continue with search_book_text or read_chapter in this same turn instead of offering to look later. Empty when the book's text has not been extracted. bookId defaults to the current book.",
+      "Get a book's table of contents. Each entry carries chapterIndex (what read_chapter takes) AND chapterNumber (how the reader counts, 1-based): when the reader says \"chapter N\", find the entry whose chapterNumber is N and pass its chapterIndex — never do the arithmetic yourself. chars = text length (one read_chapter part covers 12000 chars). A TOC does not prove whether a topic appears in the prose: if the reader asks you to check coverage, continue with search_book_text or read_chapter in this same turn instead of offering to look later. An empty result carries textStatus: \"textless\" means the book has no text layer at all (image-only scan — do not retry, tell the reader honestly), \"unextracted\" means extraction has not finished yet. bookId defaults to the current book.",
     parameters: Type.Object({
       bookId: Type.Optional(Type.String()),
     }),
     execute: async (_id, params) => {
       const { bookId } = params as { bookId?: string };
-      const toc = await deps.bookText.getToc(resolveBookId(bookId));
+      const target = resolveBookId(bookId);
+      const toc = await deps.bookText.getToc(target);
+      // 空目录要说真话：纯图扫描版（无文字层）与"还没抽取"是两种事实，
+      // 前者重试无益，模型该向读者如实解释，而不是对着空数组瞎猜。
+      if (toc.length === 0 && deps.bookText.getTextStatus) {
+        const status = await deps.bookText.getTextStatus(target).catch(() => undefined);
+        if (status === "textless") {
+          return textResult({
+            chapters: [],
+            textStatus: "textless",
+            note: "This book has no extractable text layer (likely an image-only scan). Book-text tools cannot read it; be honest with the reader about this limitation instead of retrying.",
+          });
+        }
+        if (status === "unextracted") {
+          return textResult({
+            chapters: [],
+            textStatus: "unextracted",
+            note: "This book's text has not been fully extracted yet. Extraction has been started (or resumes) in the background and also runs while the book is open in the reader; for a long scanned PDF it can take a few minutes. Tell the reader, and try again later in the conversation rather than retrying immediately.",
+          });
+        }
+      }
       // hrefs 是运行时的反查键（阅读位置 → 章节），对模型是纯噪音。
       // chapterNumber 让"第 N 章 → index"从心算变成查表——off-by-one 的根除。
       return textResult(

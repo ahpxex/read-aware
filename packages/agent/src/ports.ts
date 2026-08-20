@@ -318,6 +318,13 @@ export interface BookTextPort {
     throughChapterIndex?: number;
     limit?: number;
   }): Promise<BookTextHit[]>;
+  /**
+   * 正文可用性三态（可选；缺省视为 getToc 空即 unextracted）：
+   * textless = 抽取跑完的定论——这本书没有可抽取的文字层（纯图扫描版），
+   * 工具层据此对模型说真话（"这本书读不出字"），而不是让它对着永远的
+   * 空目录反复重试。
+   */
+  getTextStatus?(bookId: Id): Promise<"ok" | "unextracted" | "textless">;
 }
 
 /**

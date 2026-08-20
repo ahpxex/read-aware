@@ -580,6 +580,62 @@ fn scalar<T: rusqlite::types::FromSql>(conn: &Connection, sql: &str) -> T {
 }
 
 #[test]
+fn narrativity_classification_and_digest_flavor_project_and_replay() {
+    let mut conn = migrated_conn();
+    commit_events_inner(
+        &mut conn,
+        &[
+            imported("e1", 1, "b1", "乌合之众"),
+            ev(
+                "e2",
+                2,
+                "book.narrativityClassified",
+                serde_json::json!({ "bookId": "b1", "narrativity": "expository" }),
+            ),
+            ev(
+                "e3",
+                3,
+                "book.chapterDigested",
+                serde_json::json!({
+                    "bookId": "b1", "chapterIndex": 4,
+                    "summary": "群体的时代",
+                    "characters": [{ "name": "群体心理" }],
+                    "relations": [], "digestVersion": 2, "flavor": "expository",
+                }),
+            ),
+        ],
+    )
+    .unwrap();
+    let narrativity: String =
+        scalar(&conn, "SELECT narrativity FROM books WHERE id = 'b1'");
+    assert_eq!(narrativity, "expository");
+    let flavor: String = scalar(
+        &conn,
+        "SELECT flavor FROM chapter_digests WHERE book_id = 'b1' AND chapter_index = 4",
+    );
+    assert_eq!(flavor, "expository");
+    // 旧事件（没有 flavor 字段）落 NULL —— 读端把 NULL 解释为 narrative。
+    commit_events_inner(
+        &mut conn,
+        &[ev(
+            "e4",
+            4,
+            "book.chapterDigested",
+            serde_json::json!({
+                "bookId": "b1", "chapterIndex": 5,
+                "summary": "旧口径", "characters": [], "digestVersion": 2,
+            }),
+        )],
+    )
+    .unwrap();
+    let legacy: Option<String> = scalar(
+        &conn,
+        "SELECT flavor FROM chapter_digests WHERE book_id = 'b1' AND chapter_index = 5",
+    );
+    assert_eq!(legacy, None);
+}
+
+#[test]
 fn rust_and_sqlite_agree_on_event_timestamps() {
     // apply_event derives created_at in Rust; append_events derives it in SQL.
     // A mismatch would make replayed rows differ from live ones by timestamp

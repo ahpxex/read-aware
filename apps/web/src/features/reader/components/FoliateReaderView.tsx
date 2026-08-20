@@ -1715,24 +1715,38 @@ export function FoliateReaderView({
     const root = readerRootRef.current;
     if (!root) return;
 
-    // Same containment guard as onClick below: the overlays that render as
+    // Containment guard for every bridge below: the overlays that render as
     // viewport siblings (image lightbox, selection/annotation menus, footnote
-    // popover) bubble their wheel events through this host too — React-level
-    // stopPropagation can't help, React 19 listens at the app root, ABOVE this
-    // native listener on the bubble path. Scrolling or pinch-zooming inside an
-    // overlay must not turn the page under it.
-    const onWheel = (event: WheelEvent) => {
+    // popover) bubble their wheel/touch/click events through this host too —
+    // React-level stopPropagation can't help, React 19 listens at the app
+    // root, ABOVE this native listener on the bubble path. Scrolling, pinch-
+    // zooming, or dragging inside an overlay must not move the book under it.
+    const insideViewport = (event: Event): boolean => {
       const target = event.target as Node | null;
-      if (!target || !viewportRef.current?.contains(target)) return;
+      return target != null && !!viewportRef.current?.contains(target);
+    };
+
+    const onWheel = (event: WheelEvent) => {
+      if (!insideViewport(event)) return;
       handleWheelEventRef.current(event);
     };
 
     // Touch parallel for the same dead zone, with its own per-surface tracker.
-    const { onTouchStart, onTouchMove, onTouchEnd } = createTouchNavHandlers();
+    // Every event of a touch sequence targets the element the finger landed
+    // on, so the per-event guard admits or excludes whole gestures. touchend
+    // stays unguarded: it only clears the tracker, and clearing is always
+    // safe — gating it could strand a stale tracker instead.
+    const touchNav = createTouchNavHandlers();
+    const onTouchStart = (event: TouchEvent) => {
+      if (insideViewport(event)) touchNav.onTouchStart(event);
+    };
+    const onTouchMove = (event: TouchEvent) => {
+      if (insideViewport(event)) touchNav.onTouchMove(event);
+    };
+    const onTouchEnd = () => touchNav.onTouchEnd();
 
     const onClick = (event: MouseEvent) => {
-      const target = event.target as Node | null;
-      if (!target || !viewportRef.current?.contains(target)) return;
+      if (!insideViewport(event)) return;
       if (selectionRef.current) {
         clearSelection();
         return;

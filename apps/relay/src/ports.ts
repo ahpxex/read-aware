@@ -141,6 +141,9 @@ export interface AccountStore {
   putWatchTicket(tokenHash: string, accountId: string, expiresAtMs: number): Promise<void>;
   /** Atomic single-use redemption; null = unknown, spent, or expired. */
   consumeWatchTicket(tokenHash: string, nowMs: number): Promise<string | null>;
+  /** Non-consuming lookup (billing tickets — valid until expiry, so a
+   * cancelled checkout retries with its account binding intact). */
+  ticketAccount(tokenHash: string, nowMs: number): Promise<string | null>;
   deleteSession(tokenHash: string): Promise<void>;
   /** Returns the new total. Clamped at zero (deletes never go negative). */
   adjustBlobBytes(id: string, delta: number): Promise<number>;
@@ -270,6 +273,13 @@ export type RelayConfig = {
   maxAiOutputTokens: number;
   /** Where a `client=web` OAuth finish is allowed to land (no open redirect). */
   webAppOrigin: string;
+  /**
+   * The relay's own public origin, for URLs it hands to third parties (the
+   * Stripe success redirect). NEVER derived from `req.url`: wrangler dev
+   * rewrites the request host to the configured route's domain, so a local
+   * checkout would send the buyer to production.
+   */
+  relayOrigin: string;
   /** Per diagnostic report, JSON-encoded (the client caps log tails well below). */
   maxReportBytes: number;
   /** Diagnostic reports per IP per rolling day — the endpoint is unauthenticated. */
@@ -294,6 +304,7 @@ export const DEFAULT_CONFIG: RelayConfig = {
   maxAiRequestBytes: 2 * 1024 * 1024,
   maxAiOutputTokens: 32_768,
   webAppOrigin: "https://readaware.app",
+  relayOrigin: "https://relay.readaware.app",
   maxReportBytes: 512 * 1024,
   maxReportsPerIpPerDay: 10,
 };

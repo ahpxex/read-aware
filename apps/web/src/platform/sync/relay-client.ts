@@ -112,6 +112,15 @@ export function createRelayClient(options: RelayClientOptions) {
       const res = await json("POST", "/v1/billing/checkout", { plan, locale });
       return ((await res.json()) as BillingSessionResponse).url;
     },
+    /**
+     * Short-lived ticket that lets the pricing page start a checkout BOUND to
+     * this account (and return the buyer to the app) — the session itself
+     * never rides in a URL.
+     */
+    async billingTicket(): Promise<string> {
+      const res = await json("POST", "/v1/billing/ticket", {});
+      return ((await res.json()) as { ticket: string }).ticket;
+    },
     /** Hosted subscription management; 404 until a purchase linked a customer. */
     async createPortal(): Promise<string> {
       const res = await json("POST", "/v1/billing/portal", {});

@@ -131,6 +131,19 @@ export class SqlAccountStore implements AccountStore {
       .run();
   }
 
+  /**
+   * Non-consuming ticket lookup (billing tickets): the ticket stays valid
+   * until expiry, so a cancelled checkout can retry with the same account
+   * binding instead of silently degrading to the email-matched web flow.
+   */
+  async ticketAccount(tokenHash: string, nowMs: number): Promise<string | null> {
+    const row = await this.db
+      .prepare(`SELECT account_id FROM watch_tickets WHERE token_hash = ?1 AND expires_at_ms > ?2`)
+      .bind(tokenHash, nowMs)
+      .first<{ account_id: string }>();
+    return row?.account_id ?? null;
+  }
+
   async consumeWatchTicket(tokenHash: string, nowMs: number): Promise<string | null> {
     const row = await this.db
       .prepare(

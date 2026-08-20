@@ -28,7 +28,7 @@ import {
   StripeError,
 } from "./billing";
 import { isAccountTier, quotasForTier, resolveTier, type Account, type RelayPorts } from "./ports";
-import { PAGE, resolveLang, type RelayLang } from "./i18n";
+import { BILLING_PAGE, PAGE, resolveLang, type RelayLang } from "./i18n";
 
 /**
  * The `client=app` OAuth finish: a self-contained page that hands the
@@ -64,6 +64,35 @@ function signInTokenPage(token: string, lang: RelayLang): Response {
     <code>${esc}</code>
   </details>
   <p>${t.expires}</p>
+  <script>location.href=${JSON.stringify(deepLink)};</script>
+</main></body></html>`,
+    { status: 200, headers: { "content-type": "text/html; charset=utf-8" } },
+  );
+}
+
+/**
+ * Where Stripe sends an APP-initiated checkout after payment: a page in the
+ * OAuth-finish mold that bounces straight back into the app through the
+ * readaware:// deep link. Web-visitor checkouts never come here — they return
+ * to the pricing page, whose banner explains the email-keyed sign-in.
+ */
+function billingReturnPage(lang: RelayLang): Response {
+  const deepLink = "readaware://billing/success";
+  const t = BILLING_PAGE[lang];
+  return new Response(
+    `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReadAware</title>
+<style>
+  body{font-family:ui-sans-serif,system-ui,sans-serif;background:#faf9f7;color:#292524;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0}
+  main{max-width:26rem;padding:2rem;text-align:center}
+  a.open{display:inline-block;margin:1.25rem 0 .5rem;padding:.7rem 1.6rem;background:#1c1917;color:#faf9f7;border-radius:.5rem;text-decoration:none;font-weight:600}
+  p{line-height:1.6;color:#57534e;font-size:.92rem}
+  h1{font-size:1.15rem;font-weight:600}
+</style></head><body><main>
+  <h1>${t.title}</h1>
+  <p>${t.returning}</p>
+  <a class="open" href="${deepLink}">${t.open}</a>
+  <p>${t.close}</p>
   <script>location.href=${JSON.stringify(deepLink)};</script>
 </main></body></html>`,
     { status: 200, headers: { "content-type": "text/html; charset=utf-8" } },
@@ -473,15 +502,40 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
     if (!billing) return failure(501, "billing is not configured");
     const body = await readJson(req);
     if (typeof body !== "object" || body === null) return failure(400, "a JSON body is required");
-    const { plan, locale } = body as Record<string, unknown>;
+    const { plan, locale, ticket } = body as Record<string, unknown>;
     if (!isBillingPlan(plan)) return failure(400, "unknown plan");
-    const account = await authenticate(req);
+    // Three doors, one handler: a billing ticket (the pricing page opened
+    // FROM the app — bind that account and return the buyer to the app), a
+    // bearer session (in-app callers), or neither (a web visitor — Stripe
+    // collects the email and the webhook keys fulfillment to it).
+    let account: Account | null = null;
+    let appInitiated = false;
+    if (isString(ticket) && ticket.length > 0) {
+      const accountId = await accounts.ticketAccount(
+        await tokenHash(`billing:${ticket}`),
+        ports.now(),
+      );
+      if (!accountId) return failure(401, "invalid or expired upgrade ticket");
+      account = await accounts.get(accountId);
+      appInitiated = true;
+    } else {
+      account = await authenticate(req);
+    }
     const pricingUrl = `${config.webAppOrigin}${localePrefix(locale)}/pricing`;
+    const lang = resolveLang(isString(locale) ? locale : null);
     try {
       const { url } = await createCheckoutSession(billing, {
         plan,
-        successUrl: `${pricingUrl}?purchase=success`,
-        cancelUrl: pricingUrl,
+        successUrl: appInitiated
+          ? // Back into the app, not to the pricing page: the deep-link page
+            // returns the buyer to a session that is already signed in. The
+            // origin comes from config — req.url's host is a lie under
+            // wrangler dev (rewritten to the production route's domain).
+            `${config.relayOrigin}/v1/billing/return?lang=${encodeURIComponent(lang)}`
+          : `${pricingUrl}?purchase=success`,
+        // The ticket survives a cancel (non-consuming lookup), so the retry
+        // keeps its account binding instead of degrading to the web flow.
+        cancelUrl: appInitiated ? `${pricingUrl}#upgrade=${ticket as string}` : pricingUrl,
         account: account
           ? { id: account.id, email: account.email, stripeCustomerId: account.stripeCustomerId }
           : undefined,
@@ -648,6 +702,11 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
     // Optional auth: signed-in checkout binds the account, signed-out is the
     // landing page's flow. Placed before the session gate on purpose.
     if (req.method === "POST" && path === "/v1/billing/checkout") return handleBillingCheckout(req);
+    // Stripe's success redirect for app-initiated checkouts — a public page,
+    // like the OAuth finish; it carries nothing but a language.
+    if (req.method === "GET" && path === "/v1/billing/return") {
+      return billingReturnPage(resolveLang(url.searchParams.get("lang")));
+    }
     if (path.startsWith("/v1/auth/oauth/")) {
       const [providerId, action] = path.slice("/v1/auth/oauth/".length).split("/");
       return handleOauth(req, url, providerId ?? "", action ?? "");
@@ -721,6 +780,20 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
     }
     if (req.method === "POST" && path === "/v1/billing/portal") {
       return handleBillingPortal(account);
+    }
+    if (req.method === "POST" && path === "/v1/billing/ticket") {
+      // The upgrade hand-off to the pricing page: a short-lived ticket rides
+      // in the URL fragment instead of the session (fragments never reach
+      // servers or logs). Domain-separated hash — a watch ticket can never
+      // redeem as a billing ticket or vice versa. 15 minutes: the buyer may
+      // read the plans before clicking Subscribe.
+      const ticket = randomToken();
+      await accounts.putWatchTicket(
+        await tokenHash(`billing:${ticket}`),
+        account.id,
+        ports.now() + 15 * 60_000,
+      );
+      return json(200, { ticket });
     }
     if (req.method === "GET" && path === "/v1/ai/models") {
       return json(200, { models: ports.aiModels.map(({ id, name }) => ({ id, name })) });

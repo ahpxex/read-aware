@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Check } from "@phosphor-icons/react";
+import { Check, CircleNotch } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { useDocumentLang } from "../hooks/useDocumentLang";
 import type { Locale } from "../lib/i18n";
@@ -30,6 +30,15 @@ export function PricingPage({ locale }: { locale: Locale }) {
   const [purchased] = useState(
     () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("purchase") === "success",
   );
+  // The app's Upgrade button arrives with #upgrade=<ticket> in the fragment:
+  // a short-lived relay ticket that binds the checkout to the signed-in
+  // account and sends the buyer back into the app after paying. Fragment,
+  // not query — it never reaches a server or an access log.
+  const [upgradeTicket] = useState(() =>
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.hash.replace(/^#/, "")).get("upgrade")
+      : null,
+  );
   const [busyPlan, setBusyPlan] = useState<PricingPlan["id"] | null>(null);
   const [checkoutError, setCheckoutError] = useState(false);
 
@@ -41,7 +50,11 @@ export function PricingPage({ locale }: { locale: Locale }) {
       const res = await fetch(`${RELAY_URL}/v1/billing/checkout`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ plan, locale: locale === "en" ? undefined : locale }),
+        body: JSON.stringify({
+          plan,
+          locale: locale === "en" ? undefined : locale,
+          ticket: upgradeTicket ?? undefined,
+        }),
       });
       const { url } = (await res.json()) as { url?: string };
       if (!res.ok || !url) throw new Error(`checkout answered ${res.status}`);
@@ -138,6 +151,7 @@ export function PricingPage({ locale }: { locale: Locale }) {
                       type="button"
                       onClick={() => void startCheckout(plan.id)}
                       disabled={busyPlan !== null}
+                      aria-busy={busyPlan === plan.id}
                       className={cn(
                         "w-full rounded-md px-4 py-2 text-[0.9375rem] transition-colors",
                         plan.highlight
@@ -146,7 +160,20 @@ export function PricingPage({ locale }: { locale: Locale }) {
                         busyPlan !== null && "opacity-60",
                       )}
                     >
-                      {busyPlan === plan.id ? copy.ctaPaidBusy : copy.ctaPaid}
+                      {busyPlan === plan.id ? (
+                        // Same box the label occupied (1.5em line), so the
+                        // button doesn't change height while it waits.
+                        <span className="flex h-[1.5em] items-center justify-center">
+                          <CircleNotch
+                            size={16}
+                            className="animate-spin"
+                            role="status"
+                            aria-label={copy.ctaPaidBusy}
+                          />
+                        </span>
+                      ) : (
+                        copy.ctaPaid
+                      )}
                     </button>
                   )}
                 </div>

@@ -32,6 +32,7 @@ import { newGlobalThreadId } from "./features/ai/lib/conversation-store";
 import { activeGlobalThreadAtom } from "./features/ai/state/global-thread";
 import { useReaderSession } from "./features/reader/hooks/useReaderSession";
 import { useGlobalShortcuts } from "./features/settings/hooks/useGlobalShortcuts";
+import { useBillingReturnDeepLink } from "./features/settings/hooks/useBillingReturnDeepLink";
 import { useSyncLoginDeepLink } from "./features/settings/hooks/useSyncLoginDeepLink";
 import { usePluginCommandShortcuts } from "./features/plugins/hooks/usePluginCommandShortcuts";
 import { useSurfaceHandoff } from "./hooks/useSurfaceHandoff";
@@ -143,6 +144,9 @@ function App() {
   usePluginCommandShortcuts();
   // Sign-in links (readaware://sync/login/…) land in Settings → Data & Sync.
   useSyncLoginDeepLink();
+  // Post-checkout returns (readaware://billing/success) land there too — the
+  // panel's fresh account fetch shows the new plan, no sign-in step.
+  useBillingReturnDeepLink();
 
   const [activeTopNav, setActiveTopNav] = useAtom(activeTopNavAtom);
   const setActiveGlobalThreadId = useSetAtom(activeGlobalThreadAtom);

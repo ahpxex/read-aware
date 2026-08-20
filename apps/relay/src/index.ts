@@ -41,6 +41,9 @@ type Env = {
   APP_ORIGIN?: string;
   /** Where `client=web` OAuth finishes land; defaults to the app origin. */
   WEB_APP_ORIGIN?: string;
+  /** The relay's own public origin (Stripe success redirects); dev overrides
+   * to http://localhost:8787 in .dev.vars. */
+  RELAY_ORIGIN?: string;
   /** Free-tier quota overrides (integers); defaults in DEFAULT_CONFIG. */
   MAX_ACCOUNT_BLOB_BYTES?: string;
   MAX_ACCOUNT_EVENTS?: string;
@@ -122,6 +125,7 @@ function portsFromEnv(env: Env, ctx?: { waitUntil(promise: Promise<unknown>): vo
       ...DEFAULT_CONFIG,
       echoMagicToken: env.MAGIC_LINK_ECHO === "1",
       webAppOrigin: env.WEB_APP_ORIGIN ?? env.APP_ORIGIN ?? DEFAULT_CONFIG.webAppOrigin,
+      relayOrigin: env.RELAY_ORIGIN ?? DEFAULT_CONFIG.relayOrigin,
       maxAccountBlobBytes:
         Number(env.MAX_ACCOUNT_BLOB_BYTES) || DEFAULT_CONFIG.maxAccountBlobBytes,
       maxAccountEvents: Number(env.MAX_ACCOUNT_EVENTS) || DEFAULT_CONFIG.maxAccountEvents,

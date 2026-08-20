@@ -48,6 +48,14 @@ type PageStrings = {
   expires: string;
 };
 
+/** The billing return page — shown after an app-initiated checkout pays. */
+type BillingPageStrings = {
+  title: string;
+  returning: string;
+  open: string;
+  close: string;
+};
+
 export const EMAIL: Record<RelayLang, EmailStrings> = {
   en: {
     subject: "Sign in to ReadAware Sync",
@@ -164,5 +172,56 @@ export const PAGE: Record<RelayLang, PageStrings> = {
     open: "Открыть ReadAware",
     fallbackSummary: "Приложение не открылось? Вставьте этот токен вручную.",
     expires: "Токен действителен 15 минут. Эту вкладку можно закрыть.",
+  },
+};
+
+export const BILLING_PAGE: Record<RelayLang, BillingPageStrings> = {
+  en: {
+    title: "Payment received",
+    returning: "Your plan is active — returning to ReadAware…",
+    open: "Open ReadAware",
+    close: "You can close this tab.",
+  },
+  "zh-Hans": {
+    title: "支付成功",
+    returning: "方案已生效——正在返回 ReadAware…",
+    open: "打开 ReadAware",
+    close: "本页可以关闭。",
+  },
+  "zh-Hant": {
+    title: "付款成功",
+    returning: "方案已生效——正在返回 ReadAware…",
+    open: "開啟 ReadAware",
+    close: "本頁可以關閉。",
+  },
+  ja: {
+    title: "お支払い完了",
+    returning: "プランが有効になりました——ReadAware に戻ります…",
+    open: "ReadAware を開く",
+    close: "このタブは閉じて構いません。",
+  },
+  de: {
+    title: "Zahlung erhalten",
+    returning: "Dein Tarif ist aktiv — zurück zu ReadAware …",
+    open: "ReadAware öffnen",
+    close: "Du kannst diesen Tab schließen.",
+  },
+  es: {
+    title: "Pago recibido",
+    returning: "Tu plan está activo: volviendo a ReadAware…",
+    open: "Abrir ReadAware",
+    close: "Puedes cerrar esta pestaña.",
+  },
+  fr: {
+    title: "Paiement reçu",
+    returning: "Votre formule est active — retour vers ReadAware…",
+    open: "Ouvrir ReadAware",
+    close: "Vous pouvez fermer cet onglet.",
+  },
+  ru: {
+    title: "Платёж получен",
+    returning: "Тариф активен — возвращаемся в ReadAware…",
+    open: "Открыть ReadAware",
+    close: "Эту вкладку можно закрыть.",
   },
 };

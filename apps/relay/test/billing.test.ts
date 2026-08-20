@@ -46,7 +46,9 @@ function relayWithStripe(options: { activeSubs?: number } = {}) {
     webhookSecret: WHSEC,
     fetch: stripe.fetchFn,
   };
-  return { ...makeRelay({}, {}, {}, ports), stripe };
+  // relayOrigin is CONFIG, never req.url — wrangler dev rewrites the request
+  // host to the production route domain, which is exactly the bug this guards.
+  return { ...makeRelay({ relayOrigin: "https://relay.test" }, {}, {}, ports), stripe };
 }
 
 const encoder = new TextEncoder();
@@ -132,6 +134,60 @@ describe("checkout", () => {
   test("refuses an unknown plan", async () => {
     const { handle } = relayWithStripe();
     expect((await handle(post("/v1/billing/checkout", { plan: "staff" }))).status).toBe(400);
+  });
+
+  test("minting a billing ticket requires a session", async () => {
+    const { handle } = relayWithStripe();
+    expect((await handle(post("/v1/billing/ticket", {}))).status).toBe(401);
+  });
+
+  test("ticketed checkout binds the account and returns the buyer to the app", async () => {
+    const { handle, stripe } = relayWithStripe();
+    const { session, accountId } = await login(handle, "reader@example.com");
+    const minted = await handle(post("/v1/billing/ticket", {}, session));
+    expect(minted.status).toBe(200);
+    const { ticket } = (await minted.json()) as { ticket: string };
+
+    // No Authorization header — the ticket alone carries the binding.
+    const res = await handle(post("/v1/billing/checkout", { plan: "pro", locale: "zh", ticket }));
+    expect(res.status).toBe(200);
+    const created = stripe.calls.find((c) => c.url.includes("/v1/checkout/sessions"))!;
+    expect(created.form?.get("client_reference_id")).toBe(accountId);
+    expect(created.form?.get("customer_email")).toBe("reader@example.com");
+    expect(created.form?.get("success_url")).toBe(
+      "https://relay.test/v1/billing/return?lang=zh-Hans",
+    );
+    // A cancel keeps the ticket in the URL, so the retry stays bound.
+    expect(created.form?.get("cancel_url")).toContain(`#upgrade=${ticket}`);
+  });
+
+  test("a billing ticket survives a first redemption (cancel-then-retry)", async () => {
+    const { handle, stripe } = relayWithStripe();
+    const { session } = await login(handle, "reader@example.com");
+    const { ticket } = (await (
+      await handle(post("/v1/billing/ticket", {}, session))
+    ).json()) as { ticket: string };
+    expect((await handle(post("/v1/billing/checkout", { plan: "pro", ticket }))).status).toBe(200);
+    expect((await handle(post("/v1/billing/checkout", { plan: "pro", ticket }))).status).toBe(200);
+    const bound = stripe.calls.filter(
+      (c) => c.url.includes("/v1/checkout/sessions") && c.form?.get("client_reference_id"),
+    );
+    expect(bound.length).toBe(2);
+  });
+
+  test("a bogus ticket is refused, not downgraded to a web checkout", async () => {
+    const { handle } = relayWithStripe();
+    const res = await handle(post("/v1/billing/checkout", { plan: "pro", ticket: "forged" }));
+    expect(res.status).toBe(401);
+  });
+
+  test("the billing return page carries the deep link", async () => {
+    const { handle } = relayWithStripe();
+    const res = await handle(get("/v1/billing/return?lang=ja"));
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain("readaware://billing/success");
+    expect(html).toContain('lang="ja"');
   });
 });
 

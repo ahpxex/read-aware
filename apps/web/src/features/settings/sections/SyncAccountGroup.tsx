@@ -131,6 +131,25 @@ export function SyncAccountGroup() {
     }
   };
 
+  const openUpgrade = async () => {
+    let target = pricingUrl(i18n.language);
+    try {
+      // The ticket lets the pricing page bind its checkout to THIS account
+      // and return the buyer to the app afterwards. It rides in the fragment
+      // — never sent to any server, never logged.
+      const ticket = await syncRelayClient().billingTicket();
+      target += `#upgrade=${encodeURIComponent(ticket)}`;
+    } catch {
+      // Offline or a pre-ticket relay: the plain pricing page still sells —
+      // fulfillment falls back to matching the checkout email.
+    }
+    try {
+      await openExternalUrl(target);
+    } catch (error) {
+      billingFailed(error);
+    }
+  };
+
   if (!sync.connected) {
     return (
       <SettingsGroup title={t("dataSync.sync")}>
@@ -197,11 +216,7 @@ export function SyncAccountGroup() {
       ) : (
         // Plans are compared and bought on the landing's pricing page — the
         // app doesn't reprint the catalog, it opens the one source of it.
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => void openExternalUrl(pricingUrl(i18n.language)).catch(billingFailed)}
-        >
+        <Button size="sm" variant="outline" onClick={() => void openUpgrade()}>
           {t("dataSync.billing.upgrade")}
         </Button>
       )

@@ -167,5 +167,13 @@
   "textUnitMode": {
     "progress": "Position in chapter",
     "sessionTime": "Time this session"
+  },
+  "fileMissing": {
+    "no-sync": "This book's file isn't on this device, and sync is off. Import the original file to read it here.",
+    "not-on-relay": "This book's file never finished uploading from the device it was imported on. Open ReadAware there to let it upload, or import the original file here.",
+    "unauthenticated": "Sign in to your sync account again to download this book's file.",
+    "unreachable": "This book's file is in your cloud library, but the sync server can't be reached right now.",
+    "undecodable": "The downloaded file couldn't be decrypted with this device's sync passphrase.",
+    "reimport": "Import the file"
   }
 }

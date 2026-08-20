@@ -70,6 +70,10 @@ function r2BlobStore(bucket: R2Like): BlobStore {
       const object = await bucket.get(path(accountId, key));
       return object ? new Uint8Array(await object.arrayBuffer()) : null;
     },
+    async head(accountId, key) {
+      const object = await bucket.head(path(accountId, key));
+      return object ? object.size : null;
+    },
     async delete(accountId, key) {
       const head = await bucket.head(path(accountId, key));
       if (!head) return 0;

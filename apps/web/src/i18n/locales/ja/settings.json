@@ -401,7 +401,11 @@
       "blobs": "ファイルを転送中… {{done}}/{{total}}",
       "pending": "送信待ち：変更 {{events}} 件、ファイル {{blobs}} 件",
       "pendingNone": "送信待ちはありません",
-      "lastCycle": "前回の同期：受信 {{pulled}} 件 · 送信 {{pushed}} 件 · ファイル {{blobs}} 件"
+      "lastCycle": "前回の同期：受信 {{pulled}} 件 · 送信 {{pushed}} 件 · ファイル {{blobs}} 件",
+      "bookUp": "「{{title}}」をアップロード中",
+      "bookDown": "「{{title}}」をダウンロード中",
+      "bookUpParts": "「{{title}}」をアップロード中（{{done}}/{{total}}）",
+      "bookDownParts": "「{{title}}」をダウンロード中（{{done}}/{{total}}）"
     },
     "indicator": {
       "label": "同期の状態"
@@ -416,6 +420,16 @@
       "cancel": "キャンセル",
       "deleting": "削除中…",
       "failed": "削除に失敗しました。データは削除されていない可能性があります——もう一度お試しください。"
+    },
+    "books": {
+      "title": "書籍ファイル",
+      "pending": "アップロード待ち",
+      "failed": "アップロード失敗 — 再試行します",
+      "rejectedQuota": "クラウド容量不足のため未アップロード",
+      "rejected": "サーバーに拒否されました",
+      "rejectedWith": "拒否: {{reason}}",
+      "awaitingOtherDevice": "ファイルを持つ端末の送信待ち",
+      "quotaFull": "クラウド容量が上限に達しました。空きを作るかプランを拡張するまで、以降の本はこの端末のみに保存されます。"
     }
   },
   "about": {

@@ -3,6 +3,7 @@ import { useAtomValue } from "jotai";
 import { Body, Button, Spinner } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import type { BookFormat, LibraryBook, ReaderProgress } from "../../library/lib/library-types";
+import type { ReaderLoadError } from "../hooks/useReaderSession";
 import { useReaderPalette } from "../../settings/hooks/useReaderPalette";
 import { useDelayedFlag } from "../hooks/useDelayedFlag";
 import { readTextUnitModeState } from "../lib/text-unit-mode-state";
@@ -18,7 +19,7 @@ import { textUnitReaderModeAtom } from "../../plugins/state/plugin-store";
 type ReaderWorkspaceProps = {
   selectedBook: LibraryBook;
   readerSource: { format: BookFormat; data: LoadedBook } | null;
-  readerLoadError: string | null;
+  readerLoadError: ReaderLoadError | null;
   isReaderLoading: boolean;
   readerToc: TocEntry[];
   currentChapterHref: string | null;
@@ -41,6 +42,9 @@ type ReaderWorkspaceProps = {
   totalPages: number;
   onCloseReader: () => void;
   onRetryOpen: (book: LibraryBook) => void;
+  /** Open the import picker — re-importing the same file heals a book whose
+   *  bytes never reached this device (sha-keyed dedup binds them back). */
+  onReimportBook: () => void;
   onToggleShell: () => void;
   onHideShell: () => void;
   onReaderPageChange: (current: number, total: number) => void;
@@ -71,6 +75,7 @@ export function ReaderWorkspace({
   totalPages,
   onCloseReader,
   onRetryOpen,
+  onReimportBook,
   onToggleShell,
   onHideShell,
   onReaderPageChange,
@@ -183,11 +188,27 @@ export function ReaderWorkspace({
         <div className="absolute inset-0 flex items-center justify-center px-8 text-center">
           {readerLoadError ? (
             <div className="max-w-md space-y-4">
-              <Body className="text-sm text-fg-muted">{readerLoadError}</Body>
+              <Body className="text-sm text-fg-muted">
+                {readerLoadError.kind === "generic"
+                  ? readerLoadError.message
+                  : t(`fileMissing.${readerLoadError.reason}`)}
+              </Body>
               <div className="flex items-center justify-center gap-2">
-                <Button size="sm" variant="outline" onClick={() => onRetryOpen(selectedBook)}>
-                  {t("tryAgain")}
-                </Button>
+                {/* Retry leads only where retrying can succeed (a transient
+                    fetch failure); a file the cloud never had needs the
+                    original file back instead — re-importing it heals this
+                    book in place through the sha dedup gate. */}
+                {readerLoadError.kind === "file-missing" &&
+                (readerLoadError.reason === "no-sync" ||
+                  readerLoadError.reason === "not-on-relay") ? (
+                  <Button size="sm" variant="outline" onClick={onReimportBook}>
+                    {t("fileMissing.reimport")}
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="outline" onClick={() => onRetryOpen(selectedBook)}>
+                    {t("tryAgain")}
+                  </Button>
+                )}
                 <Button size="sm" variant="ghost" onClick={onCloseReader}>
                   {t("backToLibrary")}
                 </Button>

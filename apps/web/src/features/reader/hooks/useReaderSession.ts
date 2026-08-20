@@ -4,7 +4,12 @@ import { useTranslation } from "../../../i18n";
 import { useLocalAtom } from "@read-aware/ui/state";
 import { askAiRequestAtom } from "../../ai/state/chat-intent";
 import { readerPanelIntentAtom } from "../state/panel-intent";
-import { getStoredBookFile, markLibraryBookOpened, updateLibraryBookProgress } from "../../library/lib/library-db";
+import {
+  markLibraryBookOpened,
+  resolveStoredBookFile,
+  updateLibraryBookProgress,
+  type BookFileMissingReason,
+} from "../../library/lib/library-db";
 import { formatLibraryError } from "../../library/lib/format-library-error";
 import { createProgressPatch } from "../../library/lib/library-progress";
 import type {
@@ -21,6 +26,17 @@ type ReaderSource =
   | { format: BookFormat; data: LoadedBook }
   | null;
 
+/**
+ * Why the reader couldn't open. `file-missing` keeps the CAUSE, because the
+ * error screen owes each one different words and a different action — "retry"
+ * heals an unreachable relay but never a file the cloud simply doesn't have,
+ * where re-importing the original file is the honest way out (a re-import of
+ * the same bytes heals the existing record in place via the sha dedup gate).
+ */
+export type ReaderLoadError =
+  | { kind: "generic"; message: string }
+  | { kind: "file-missing"; reason: BookFileMissingReason };
+
 type UseReaderSessionOptions = {
   applyOptimisticProgress: (bookId: string, progress: BookProgress) => void;
   replaceBookInState: (book: LibraryBook) => void;
@@ -36,7 +52,7 @@ export function useReaderSession({
   const { t } = useTranslation("shelf");
   const [selectedBook, setSelectedBook] = useState<LibraryBook | null>(null);
   const [readerSource, setReaderSource] = useState<ReaderSource>(null);
-  const [readerLoadError, setReaderLoadError] = useState<string | null>(null);
+  const [readerLoadError, setReaderLoadError] = useState<ReaderLoadError | null>(null);
   const [isReaderLoading, setIsReaderLoading] = useState(false);
   const [shellVisible, setShellVisible] = useLocalAtom(false);
   const [readerPage, setReaderPage] = useLocalAtom({ current: 0, total: 0 });
@@ -172,18 +188,20 @@ export function useReaderSession({
           });
           setIsReaderLoading(false);
         } else {
-        const file = await getStoredBookFile(book);
-        if (!file) {
-          throw new Error("The imported file for this book could not be found on this device.");
-        }
+        const resolved = await resolveStoredBookFile(book);
         if (readerLoadRequestIdRef.current !== requestId) return;
+        if (resolved.status === "missing") {
+          setReaderLoadError({ kind: "file-missing", reason: resolved.reason });
+          setIsReaderLoading(false);
+          return;
+        }
 
         setReaderSource({
           format: book.format,
           data: {
             fileName: book.fileName,
             format: book.format,
-            file,
+            file: resolved.file,
           },
         });
         setIsReaderLoading(false);
@@ -203,7 +221,7 @@ export function useReaderSession({
           });
       } catch (error) {
         if (readerLoadRequestIdRef.current !== requestId) return;
-        setReaderLoadError(formatLibraryError(error, t));
+        setReaderLoadError({ kind: "generic", message: formatLibraryError(error, t) });
         setIsReaderLoading(false);
       }
     })();

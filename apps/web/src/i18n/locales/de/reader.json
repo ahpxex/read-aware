@@ -167,5 +167,13 @@
   "textUnitMode": {
     "progress": "Position im Kapitel",
     "sessionTime": "Zeit dieser Sitzung"
+  },
+  "fileMissing": {
+    "no-sync": "Die Datei dieses Buches ist nicht auf diesem Gerät und Sync ist aus. Importiere die Originaldatei, um es hier zu lesen.",
+    "not-on-relay": "Die Datei dieses Buches wurde vom Import-Gerät nie fertig hochgeladen. Öffne ReadAware dort, damit sie hochlädt, oder importiere die Originaldatei hier.",
+    "unauthenticated": "Melde dich erneut bei deinem Sync-Konto an, um die Datei dieses Buches herunterzuladen.",
+    "unreachable": "Die Datei dieses Buches liegt in deiner Cloud-Bibliothek, aber der Sync-Server ist gerade nicht erreichbar.",
+    "undecodable": "Die heruntergeladene Datei konnte mit der Sync-Passphrase dieses Geräts nicht entschlüsselt werden.",
+    "reimport": "Datei importieren"
   }
 }

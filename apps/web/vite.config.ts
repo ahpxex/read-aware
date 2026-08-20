@@ -10,6 +10,12 @@ const isStorybook = process.argv.some((arg) => arg.includes("storybook"));
 const tauriDevHost = process.env.TAURI_DEV_HOST;
 
 export default defineConfig({
+  // Ground truth for "where is the dev machine?" — baked into the bundle so
+  // runtime code (the dev relay URL, sync-scheduler.ts) never has to guess it
+  // from the page host. Empty on desktop dev and in production builds.
+  define: {
+    "import.meta.env.VITE_TAURI_DEV_HOST": JSON.stringify(tauriDevHost ?? ""),
+  },
   plugins: [
     tailwindcss(),
     // Router plugin must run before the React plugin so generated routes are transformed.

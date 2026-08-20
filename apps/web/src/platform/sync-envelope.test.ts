@@ -1,13 +1,19 @@
 import { describe, expect, test } from "bun:test";
 import {
+  BLOB_CHUNK_BYTES,
   DEFAULT_KDF_PARAMS,
+  blobPartCount,
+  decodeBlobHead,
   deriveMasterKey,
+  encodeBlobDescriptor,
   fromBase64,
   makeKeyCheck,
   newKdfSalt,
   openBlob,
+  openBlobPart,
   openEvent,
   sealBlob,
+  sealBlobPart,
   sealEvent,
   toBase64,
   verifyKeyCheck,
@@ -110,6 +116,61 @@ describe("blob envelope", () => {
     const wire = sealBlob(key, "bookfile:b1", bytes);
     wire[0] = 9;
     expect(() => openBlob(key, "bookfile:b1", wire)).toThrow(/unrecognized/);
+  });
+});
+
+describe("chunked blob envelope (v2)", () => {
+  // Big enough to split without paying 16MB of test time: pretend-chunking is
+  // NOT used — real BLOB_CHUNK_BYTES splits a 20MB plaintext into 3 parts.
+  const plain = new Uint8Array(2 * BLOB_CHUNK_BYTES + 1234).map((_, i) => i % 251);
+
+  const sealAll = (blobKey: string) => {
+    const parts = blobPartCount(plain.length);
+    return Array.from({ length: parts }, (_, i) =>
+      sealBlobPart(key, blobKey, i, parts, plain.subarray(i * BLOB_CHUNK_BYTES, (i + 1) * BLOB_CHUNK_BYTES)),
+    );
+  };
+
+  test("split, seal, reassemble round-trips the plaintext", () => {
+    const parts = blobPartCount(plain.length);
+    expect(parts).toBe(3);
+    const opened = sealAll("bookfile:big").map((wire, i) =>
+      openBlobPart(key, "bookfile:big", i, parts, wire),
+    );
+    const joined = new Uint8Array(plain.length);
+    let offset = 0;
+    for (const chunk of opened) {
+      joined.set(chunk, offset);
+      offset += chunk.length;
+    }
+    expect(joined).toEqual(plain);
+  });
+
+  test("a part replayed at a different index is rejected (AAD binds position)", () => {
+    const wires = sealAll("bookfile:big");
+    expect(() => openBlobPart(key, "bookfile:big", 1, 3, wires[0])).toThrow();
+  });
+
+  test("a part under a different declared total is rejected (AAD binds count)", () => {
+    const wires = sealAll("bookfile:big");
+    expect(() => openBlobPart(key, "bookfile:big", 0, 2, wires[0])).toThrow();
+  });
+
+  test("a part served under another blob key is rejected", () => {
+    const wires = sealAll("bookfile:big");
+    expect(() => openBlobPart(key, "bookfile:other", 0, 3, wires[0])).toThrow();
+  });
+
+  test("descriptor round-trips and discriminates from v1", () => {
+    expect(decodeBlobHead(encodeBlobDescriptor(3))).toEqual({ format: "v2", partCount: 3 });
+    const v1 = sealBlob(key, "bookfile:b1", new Uint8Array([1, 2, 3]));
+    expect(decodeBlobHead(v1)).toEqual({ format: "v1" });
+  });
+
+  test("descriptor with a zero or absurd part count is refused", () => {
+    expect(() => decodeBlobHead(encodeBlobDescriptor(0))).toThrow(/unrecognized/);
+    expect(() => decodeBlobHead(encodeBlobDescriptor(1_000_000))).toThrow(/unrecognized/);
+    expect(() => decodeBlobHead(new Uint8Array([7, 7, 7]))).toThrow(/unrecognized/);
   });
 });
 

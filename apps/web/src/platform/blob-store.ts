@@ -244,6 +244,51 @@ async function putBlobChunkedRaw(
   }
 }
 
+/**
+ * Incremental writer over the native staged-write session — for callers that
+ * produce a large blob piece by piece (the sync engine's chunked download
+ * decrypts one part at a time) and must not assemble it in webview memory.
+ * Same wire mechanics as the putBlobChunked* one-shots: base64 slices on
+ * mobile, raw-body slices on desktop, commit lands through `put_blob_inner`
+ * (registers the blob and enqueues it for push like any local write).
+ */
+export type DesktopBlobWriter = {
+  append(bytes: Uint8Array): Promise<void>;
+  commit(mimeType?: string): Promise<BlobPutResult>;
+  abort(): Promise<void>;
+};
+
+export async function openDesktopBlobWriter(key: string): Promise<DesktopBlobWriter> {
+  await invoke("blob_write_open", { key });
+  const mobile = isMobileOS();
+  return {
+    async append(bytes) {
+      if (mobile) {
+        for (let offset = 0; offset < bytes.length; offset += BLOB_CHUNK_BYTES) {
+          await invoke("blob_write_chunk", {
+            key,
+            chunkBase64: toBase64(bytes.subarray(offset, offset + BLOB_CHUNK_BYTES)),
+          });
+        }
+        return;
+      }
+      for (let offset = 0; offset < bytes.length; offset += DESKTOP_RAW_CHUNK_BYTES) {
+        await invoke("blob_write_chunk_raw", bytes.subarray(offset, offset + DESKTOP_RAW_CHUNK_BYTES), {
+          headers: { [BLOB_KEY_HEADER]: key },
+        });
+      }
+    },
+    commit(mimeType) {
+      return invoke<BlobPutResult>("blob_write_commit", { key, mimeType: mimeType ?? null });
+    },
+    async abort() {
+      await invoke("blob_write_abort", { key }).catch((abortError: unknown) => {
+        log.warn("blob_write_abort failed; native write session may leak", abortError);
+      });
+    },
+  };
+}
+
 /** Store a blob's bytes under `key`, transferred as a raw binary body. */
 export async function putDesktopBlob(
   key: string,

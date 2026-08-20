@@ -432,6 +432,67 @@ pub fn sync_outbox_counts(db: State<'_, Db>) -> Result<SyncOutboxCounts, String>
     Ok(SyncOutboxCounts { events, blobs })
 }
 
+/// One book whose file the relay doesn't (yet) hold, for the Data & Sync
+/// panel's per-book listing. `push_state` says why: `pending` waits its turn,
+/// `failed` retries, `rejected` is the relay's final word (`last_error`
+/// carries its reason — today that means the account quota). `local_bytes`
+/// distinguishes "this device has the file and owes the upload" from a
+/// manifest-only ghost that some OTHER device still owes.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncBookBacklogRow {
+    pub book_id: String,
+    pub title: String,
+    pub byte_size: Option<i64>,
+    pub push_state: String,
+    pub last_error: Option<String>,
+    pub local_bytes: bool,
+}
+
+#[tauri::command]
+pub fn sync_book_backlog(db: State<'_, Db>) -> Result<Vec<SyncBookBacklogRow>, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    let mut stmt = conn
+        .prepare(
+            "SELECT substr(bo.key, length('bookfile:') + 1),
+                    b.title,
+                    bo.byte_size,
+                    bs.push_state,
+                    bs.last_error,
+                    bo.storage_uri IS NOT NULL
+               FROM blob_objects bo
+               JOIN blob_sync_state bs ON bs.blob_key = bo.key
+               -- INNER: a blob row whose book is gone (an orphan a delete left
+               -- behind) is bookkeeping residue, not a book the user can see.
+               JOIN books b ON b.id = substr(bo.key, length('bookfile:') + 1)
+              WHERE bo.key LIKE 'bookfile:%'
+                AND bo.deleted_at IS NULL
+                AND bs.push_state IN ('pending', 'failed', 'rejected')
+              ORDER BY CASE bs.push_state
+                         WHEN 'rejected' THEN 0
+                         WHEN 'failed' THEN 1
+                         ELSE 2
+                       END,
+                       bo.byte_size DESC",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |row| {
+            Ok(SyncBookBacklogRow {
+                book_id: row.get(0)?,
+                title: row.get(1)?,
+                byte_size: row.get(2)?,
+                push_state: row.get(3)?,
+                last_error: row.get(4)?,
+                local_bytes: row.get(5)?,
+            })
+        })
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+    Ok(rows)
+}
+
 // ── Account adoption (the bookkeeping ↔ account binding) ─────────────────────
 
 /// Bind the local sync bookkeeping to `account_id`, resetting it first if it

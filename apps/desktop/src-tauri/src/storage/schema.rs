@@ -477,6 +477,19 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
         // 旧行留空数组——v1 摘要会被空闲管线按版本号逐章重算。
         "ALTER TABLE chapter_digests ADD COLUMN relations_json TEXT NOT NULL DEFAULT '[]';",
     ),
+    (
+        19,
+        "requeue_rejected_blobs",
+        // [device-local] 分块上传落地：中继的"单文件 50MB"上限没了，此前
+        // 因它被 413 永久拒收（rejected）的大书现在能传了。rejected 是
+        // "中继的最终答复、永不重试"——上传能力变了，答复就过期了：全部
+        // 重新入队一次。真正超配额的会再次被拒（这次带准确的配额理由），
+        // 幂等无害；本地根本没字节的（manifest-only）会被引擎标回 rejected。
+        "UPDATE blob_sync_state
+            SET push_state = 'pending', last_error = NULL,
+                updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+          WHERE push_state = 'rejected';",
+    ),
 ];
 
 /// Apply migrations newer than the highest recorded version, up to `max_version`

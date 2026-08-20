@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { LibraryBook } from "../features/library/lib/library-types";
+import type { ReaderLoadError } from "../features/reader/hooks/useReaderSession";
 import { prefersReducedMotion } from "../features/settings/lib/app-settings";
 
 /**
@@ -23,7 +24,7 @@ import { prefersReducedMotion } from "../features/settings/lib/app-settings";
 
 type ReaderSessionSlice = {
   selectedBook: LibraryBook | null;
-  readerLoadError: string | null;
+  readerLoadError: ReaderLoadError | null;
   currentPage: number;
   totalPages: number;
   openReader: (book: LibraryBook) => void;

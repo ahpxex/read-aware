@@ -302,11 +302,25 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
 
 ## 8. Blob 同步
 
-- **上行**：`blob_sync_state` pending 的 blob，整块加密
-  （同主密钥，XChaCha20-Poly1305，AAD 绑定 blob key 防串挪）后
-  `PUT /v1/blobs/<key>`。**落地偏差**：v1 采用整文件单次 AEAD 而非分块
-  流式——书文件在传输两端本就整块在内存里，分块此刻不省任何东西；
-  线格式首字节是版本号，将来需要分块格式时从那里演进。
+- **上行**：`blob_sync_state` pending 的 blob，加密后推给中继。
+  ≤ 8 MiB 的走 v1 整块 AEAD（`PUT /v1/blobs/<key>`，线格式
+  `[1][nonce:24][ct+tag]`，AAD 绑定 blob key 防串挪）；超过的走
+  **v2 分块**（2026-08-21 落地，动机：中继单请求 50MB 上限曾把大书
+  413 永久拒收成"幽灵书"）：
+  - 明文按固定 8 MiB 切片，每片独立 AEAD，AAD =
+    `ra-blob:v2:<key>:<index>:<partCount>` —— 位置与总数都进 AAD，
+    重排/截断/换 key 任何一片都解不开；
+  - 逐片 `PUT /v1/blobs/<key>?part=i&parts=N` 暂存（中继按片记账入
+    配额），最后 `PUT ...?commit=1&parts=N` 校验齐全后在主 key 写下
+    5 字节描述符 `[2][partCount:u32be]` 并清扫旧上传的多余片；
+  - **单文件大小上限就此取消**——分块路径只受账号总配额约束
+    （per-part 12MB 只是请求级护栏）；v1 单发路径保留 `maxBlobBytes`
+    检查以兜住旧客户端。
+  - 曾被 413 标成 `rejected` 的行由 schema v19 迁移一次性重入队。
+- **下行按首字节分流**：`GET /v1/blobs/<key>` 拿到 `1` 开头整块解密；
+  `2` 开头是描述符，逐片 `GET ...?part=i`、逐片解密、经原生分段写入
+  会话（`blob_write_open/chunk/commit`）直接落盘——大书永远不在
+  webview 内存里整体拼装。
 - **下行是惰性的**：bootstrap 只重放事件；`storage_uri = NULL` 的 blob
   在**首次被需要时**（打开书、展示封面）拉取。书架先可见，书按需到位。
   封面（小）可在 bootstrap 后台预取，书文件（大）严格惰性。

@@ -25,6 +25,22 @@ export class RelayError extends Error {
   }
 }
 
+/**
+ * The URL answered 200 but with the wrong kind of content — an HTML page where
+ * ciphertext or JSON was expected. That is never the relay talking: it is a
+ * misconfigured relay URL (e.g. a host whose interceptor answers every path),
+ * a captive portal, or a proxy. Distinct from RelayError so callers can say
+ * "wrong server" instead of surfacing a misleading decode failure.
+ */
+export class RelayMisdirectedError extends Error {
+  constructor(contentType: string) {
+    super(
+      `relay answered "${contentType || "unknown content"}" where ${""}sync data was expected — the relay URL likely points at the wrong server`,
+    );
+    this.name = "RelayMisdirectedError";
+  }
+}
+
 export type RelayClientOptions = {
   baseUrl: string;
   /** Current session token; null while signed out. */
@@ -43,6 +59,7 @@ export function createRelayClient(options: RelayClientOptions) {
     path: string,
     body?: BodyInit,
     contentType?: string,
+    expect: "json" | "binary" | "none" = "json",
   ): Promise<Response> {
     const headers: Record<string, string> = {};
     const session = options.session();
@@ -58,6 +75,17 @@ export function createRelayClient(options: RelayClientOptions) {
         // non-JSON error body; keep the status text
       }
       throw new RelayError(res.status, message);
+    }
+    // A 200 with the wrong content kind is not the relay: it is some other
+    // server answering on the relay's URL (misconfigured base URL, captive
+    // portal, an intercepting proxy). Catching it here turns "envelope failed
+    // to decode" mysteries into a diagnosable "wrong server" upfront.
+    const kind = (res.headers.get("content-type") ?? "").toLowerCase();
+    if (expect === "json" && res.status !== 204 && !kind.includes("application/json")) {
+      throw new RelayMisdirectedError(kind);
+    }
+    if (expect === "binary" && !kind.includes("application/octet-stream")) {
+      throw new RelayMisdirectedError(kind);
     }
     return res;
   }
@@ -137,14 +165,43 @@ export function createRelayClient(options: RelayClientOptions) {
     async putBlob(key: string, bytes: Uint8Array): Promise<void> {
       await request("PUT", `/v1/blobs/${encodeURIComponent(key)}`, bytes as unknown as BodyInit);
     },
+    /** Stage one sealed part of a chunked blob (see sync-envelope.ts v2). */
+    async putBlobPart(key: string, index: number, parts: number, bytes: Uint8Array): Promise<void> {
+      await request(
+        "PUT",
+        `/v1/blobs/${encodeURIComponent(key)}?part=${index}&parts=${parts}`,
+        bytes as unknown as BodyInit,
+      );
+    },
+    /** Commit a chunked upload: all `parts` staged parts become the blob. */
+    async commitBlob(key: string, parts: number): Promise<void> {
+      await request("PUT", `/v1/blobs/${encodeURIComponent(key)}?commit=1&parts=${parts}`);
+    },
     async getBlob(key: string): Promise<Uint8Array | null> {
       try {
-        const res = await request("GET", `/v1/blobs/${encodeURIComponent(key)}`);
+        const res = await request(
+          "GET",
+          `/v1/blobs/${encodeURIComponent(key)}`,
+          undefined,
+          undefined,
+          "binary",
+        );
         return new Uint8Array(await res.arrayBuffer());
       } catch (error) {
         if (error instanceof RelayError && error.status === 404) return null;
         throw error;
       }
+    },
+    /** Fetch one sealed part of a chunked blob. */
+    async getBlobPart(key: string, index: number): Promise<Uint8Array> {
+      const res = await request(
+        "GET",
+        `/v1/blobs/${encodeURIComponent(key)}?part=${index}`,
+        undefined,
+        undefined,
+        "binary",
+      );
+      return new Uint8Array(await res.arrayBuffer());
     },
     async deleteBlob(key: string): Promise<void> {
       await request("DELETE", `/v1/blobs/${encodeURIComponent(key)}`);

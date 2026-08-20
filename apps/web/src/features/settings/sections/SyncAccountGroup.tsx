@@ -20,7 +20,12 @@ import { PendingBadge } from "../components/PendingBadge";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsRow } from "../components/SettingsRow";
 import { syncCycleFraction } from "../../sync/lib/sync-progress";
-import { useSyncBacklog } from "../../sync/hooks/useSyncStatus";
+import { useBlobBookTitle } from "../../sync/hooks/useBlobBookTitle";
+import {
+  useSyncBacklog,
+  useSyncBookBacklog,
+  type SyncBookBacklogRow,
+} from "../../sync/hooks/useSyncStatus";
 import { useSyncAccountInfo } from "../hooks/useSyncAccountInfo";
 import { useSyncConnection } from "../hooks/useSyncConnection";
 import { SyncConnectDialog } from "./SyncConnectDialog";
@@ -70,7 +75,11 @@ export function SyncAccountGroup() {
   const [connectOpen, setConnectOpen] = useState(false);
   const [disconnectOpen, setDisconnectOpen] = useState(false);
   const backlog = useSyncBacklog(sync.connected);
+  const bookBacklog = useSyncBookBacklog(sync.connected);
   const accountInfo = useSyncAccountInfo(sync.connected);
+  const movingBookTitle = useBlobBookTitle(
+    sync.status.state === "syncing" ? (sync.status.progress?.blobKey ?? null) : null,
+  );
 
   // A deep-linked sign-in token opens the connect dialog, which consumes the
   // atom itself. Already connected — with a session the relay still honors —
@@ -183,9 +192,33 @@ export function SyncAccountGroup() {
   ) : sync.status.state === "error" ? (
     <span className="text-red-700">{sync.status.lastError ?? t("dataSync.syncStatus.error")}</span>
   ) : syncing ? (
-    fraction === null
-      ? t("dataSync.syncStatus.syncing")
-      : `${t("dataSync.syncStatus.syncing")} ${Math.round(fraction * 100)}%`
+    [
+      fraction === null
+        ? t("dataSync.syncStatus.syncing")
+        : `${t("dataSync.syncStatus.syncing")} ${Math.round(fraction * 100)}%`,
+      // Which book is moving right now, with part progress for chunked files.
+      movingBookTitle &&
+        sync.status.progress &&
+        (sync.status.progress.blobPartsTotal > 0
+          ? t(
+              sync.status.progress.blobDirection === "down"
+                ? "dataSync.progress.bookDownParts"
+                : "dataSync.progress.bookUpParts",
+              {
+                title: movingBookTitle,
+                done: sync.status.progress.blobPartsDone,
+                total: sync.status.progress.blobPartsTotal,
+              },
+            )
+          : t(
+              sync.status.progress.blobDirection === "down"
+                ? "dataSync.progress.bookDown"
+                : "dataSync.progress.bookUp",
+              { title: movingBookTitle },
+            )),
+    ]
+      .filter(Boolean)
+      .join(" · ")
   ) : (
     [
       sync.status.lastSyncAt
@@ -225,6 +258,27 @@ export function SyncAccountGroup() {
   const overLimit =
     accountInfo?.limits?.maxAccountBlobBytes != null &&
     accountInfo.blobBytesUsed > accountInfo.limits.maxAccountBlobBytes;
+
+  // The relay's refusals name quotas ("account blob quota exceeded", legacy
+  // "blob exceeds N bytes") — the one rejection class a user can act on
+  // (free space or upgrade). Anything else is surfaced verbatim.
+  const isQuotaRejection = (row: SyncBookBacklogRow) =>
+    row.pushState === "rejected" &&
+    ((row.lastError ?? "").includes("quota") || (row.lastError ?? "").includes("exceeds"));
+  const quotaBlocked = (bookBacklog ?? []).some(isQuotaRejection);
+
+  const bookStateLabel = (row: SyncBookBacklogRow): { text: string; tone?: "error" } => {
+    if (!row.localBytes) return { text: t("dataSync.books.awaitingOtherDevice") };
+    if (row.pushState === "pending") return { text: t("dataSync.books.pending") };
+    if (row.pushState === "failed") return { text: t("dataSync.books.failed") };
+    if (isQuotaRejection(row)) return { text: t("dataSync.books.rejectedQuota"), tone: "error" };
+    return {
+      text: row.lastError
+        ? t("dataSync.books.rejectedWith", { reason: row.lastError })
+        : t("dataSync.books.rejected"),
+      tone: "error",
+    };
+  };
 
   return (
     <SettingsGroup title={t("dataSync.sync")}>
@@ -283,6 +337,34 @@ export function SyncAccountGroup() {
             </>
           }
           control={planControl}
+        />
+      )}
+      {/* Per-book upload backlog: which files the relay doesn't hold yet and
+          why. Absent entirely when every book's file made it — the panel says
+          nothing when there is nothing to say. */}
+      {bookBacklog !== null && (quotaBlocked || overLimit || bookBacklog.length > 0) && (
+        <SettingsRow
+          title={t("dataSync.books.title")}
+          description={
+            <span className="block space-y-1.5">
+              {(quotaBlocked || overLimit) && (
+                <span className="block text-red-700">{t("dataSync.books.quotaFull")}</span>
+              )}
+              {bookBacklog.map((row) => {
+                const state = bookStateLabel(row);
+                return (
+                  <span key={row.bookId} className="block">
+                    <span className="text-fg">{row.title}</span>
+                    {row.byteSize != null && ` · ${formatBytes(row.byteSize)}`}
+                    {" · "}
+                    <span className={state.tone === "error" ? "text-red-700" : undefined}>
+                      {state.text}
+                    </span>
+                  </span>
+                );
+              })}
+            </span>
+          }
         />
       )}
       <SettingsRow

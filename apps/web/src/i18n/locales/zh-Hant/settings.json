@@ -401,7 +401,11 @@
       "blobs": "正在傳輸檔案… {{done}}/{{total}}",
       "pending": "待傳送：{{events}} 條變更、{{blobs}} 個檔案",
       "pendingNone": "沒有待傳送的內容",
-      "lastCycle": "上次同步：接收 {{pulled}} 條 · 傳送 {{pushed}} 條 · 檔案 {{blobs}} 個"
+      "lastCycle": "上次同步：接收 {{pulled}} 條 · 傳送 {{pushed}} 條 · 檔案 {{blobs}} 個",
+      "bookUp": "正在上傳《{{title}}》",
+      "bookDown": "正在下載《{{title}}》",
+      "bookUpParts": "正在上傳《{{title}}》（{{done}}/{{total}}）",
+      "bookDownParts": "正在下載《{{title}}》（{{done}}/{{total}}）"
     },
     "indicator": {
       "label": "同步狀態"
@@ -416,6 +420,16 @@
       "cancel": "取消",
       "deleting": "正在刪除…",
       "failed": "刪除失敗，資料可能未被移除——請重試。"
+    },
+    "books": {
+      "title": "書籍檔案",
+      "pending": "等待上傳",
+      "failed": "上傳失敗，稍後重試",
+      "rejectedQuota": "雲端容量不足，未上傳",
+      "rejected": "被雲端拒絕",
+      "rejectedWith": "被拒絕：{{reason}}",
+      "awaitingOtherDevice": "等待持有檔案的裝置上傳",
+      "quotaFull": "雲端容量已滿——騰出空間或升級方案之前，之後的書只保留在本裝置。"
     }
   },
   "about": {

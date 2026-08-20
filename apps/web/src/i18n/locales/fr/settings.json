@@ -409,7 +409,11 @@
       "blobs": "Transfert des fichiers… {{done}}/{{total}}",
       "pending": "En attente d'envoi : {{events}} modifications, {{blobs}} fichiers",
       "pendingNone": "Rien en attente d'envoi",
-      "lastCycle": "Dernier cycle : {{pulled}} reçues · {{pushed}} envoyées · {{blobs}} fichiers"
+      "lastCycle": "Dernier cycle : {{pulled}} reçues · {{pushed}} envoyées · {{blobs}} fichiers",
+      "bookUp": "Envoi de « {{title}} »",
+      "bookDown": "Téléchargement de « {{title}} »",
+      "bookUpParts": "Envoi de « {{title}} » ({{done}}/{{total}})",
+      "bookDownParts": "Téléchargement de « {{title}} » ({{done}}/{{total}})"
     },
     "indicator": {
       "label": "État de la synchronisation"
@@ -424,6 +428,16 @@
       "cancel": "Annuler",
       "deleting": "Suppression…",
       "failed": "Impossible de supprimer les données. Rien n'a peut-être été supprimé — réessayez."
+    },
+    "books": {
+      "title": "Fichiers de livres",
+      "pending": "En attente d'envoi",
+      "failed": "Échec de l'envoi — nouvelle tentative à venir",
+      "rejectedQuota": "Stockage du forfait dépassé — non envoyé",
+      "rejected": "Refusé par le serveur",
+      "rejectedWith": "Refusé : {{reason}}",
+      "awaitingOtherDevice": "En attente de l'appareil qui détient le fichier",
+      "quotaFull": "Stockage cloud plein — les prochains livres restent sur cet appareil jusqu'à libérer de l'espace ou changer de forfait."
     }
   },
   "about": {

@@ -7,6 +7,7 @@ import {
   createSyncEngine,
   nextSyncDelayMs,
   type MergeReport,
+  type SyncCycleProgress,
   type SyncLocalStore,
   type SyncRelayApi,
 } from "./sync-engine";
@@ -92,6 +93,30 @@ function fakeDevice() {
       blobs.set(k, bytes);
       blobOutbox.add(k); // a local write enqueues, exactly like put_blob
     },
+    async openBlobWriter(k) {
+      // Mirrors the native staged-write session: chunks accumulate, commit
+      // lands through the same enqueue as writeBlob, abort drops the buffer.
+      const staged: Uint8Array[] = [];
+      return {
+        async append(bytes: Uint8Array) {
+          staged.push(bytes);
+        },
+        async commit() {
+          const total = staged.reduce((sum, c) => sum + c.length, 0);
+          const joined = new Uint8Array(total);
+          let offset = 0;
+          for (const c of staged) {
+            joined.set(c, offset);
+            offset += c.length;
+          }
+          blobs.set(k, joined);
+          blobOutbox.add(k);
+        },
+        async abort() {
+          staged.length = 0;
+        },
+      };
+    },
     async touch() {},
   };
 
@@ -154,6 +179,25 @@ function fakeRelay(): SyncRelayApi & { count(): number; failNextPush?: boolean }
     },
     async getBlob(key: string) {
       return shelf.get(key) ?? null;
+    },
+    // Chunked transport, faked the way the relay implements it: parts stage
+    // at `key#i`, commit publishes the [2][partCount u32be] descriptor.
+    async putBlobPart(key: string, index: number, _parts: number, bytes: Uint8Array) {
+      shelf.set(`${key}#${index}`, bytes);
+    },
+    async commitBlob(key: string, parts: number) {
+      for (let i = 0; i < parts; i += 1) {
+        if (!shelf.has(`${key}#${i}`)) throw Object.assign(new Error(`relay 400: missing staged part ${i}`), { status: 400 });
+      }
+      const descriptor = new Uint8Array(5);
+      descriptor[0] = 2;
+      new DataView(descriptor.buffer).setUint32(1, parts, false);
+      shelf.set(key, descriptor);
+    },
+    async getBlobPart(key: string, index: number) {
+      const part = shelf.get(`${key}#${index}`);
+      if (!part) throw Object.assign(new Error("relay 404: no such blob"), { status: 404 });
+      return part;
     },
   };
   return api;
@@ -280,14 +324,73 @@ describe("two devices through one relay", () => {
     expect(await engineFor(a, relay).syncBlobsOnce()).toBe(1);
     expect(a.blobStates.get("bookfile:b1")).toBe("synced");
 
-    const fetched = await engineFor(b, relay).fetchBlob("bookfile:b1");
-    expect(fetched && [...fetched]).toEqual([...bytes]);
+    expect(await engineFor(b, relay).fetchBlob("bookfile:b1")).toBe("fetched");
     expect([...(b.blobs.get("bookfile:b1") ?? [])]).toEqual([...bytes]);
     // The local write enqueued it; fetchBlob must flip it straight to synced.
     expect(b.blobStates.get("bookfile:b1")).toBe("synced");
     expect(b.blobOutbox.size).toBe(0);
 
-    expect(await engineFor(b, relay).fetchBlob("bookfile:missing")).toBeNull();
+    expect(await engineFor(b, relay).fetchBlob("bookfile:missing")).toBe("absent");
+  });
+
+  test("a blob over one chunk uploads as sealed parts and downloads back whole", async () => {
+    const relay = fakeRelay();
+    const a = fakeDevice();
+    const b = fakeDevice();
+    // 3 chunks at the test chunk size: 16 + 16 + 9 bytes of plaintext.
+    const chunkBytes = 16;
+    const plain = new Uint8Array(41).map((_, i) => (i * 7) % 256);
+    a.putLocalBlob("bookfile:big", plain);
+
+    const seen: SyncCycleProgress[] = [];
+    const engineA = createSyncEngine({
+      store: a.store,
+      relay,
+      masterKey: () => key,
+      observe: () => {},
+      blobChunkBytes: chunkBytes,
+      onProgress: (p) => seen.push({ ...p }),
+    });
+    expect(await engineA.syncBlobsOnce()).toBe(1);
+    expect(a.blobStates.get("bookfile:big")).toBe("synced");
+    // Part progress was narrated with the blob's identity attached.
+    expect(seen.some((p) => p.blobKey === "bookfile:big" && p.blobPartsTotal === 3)).toBe(true);
+    expect(Math.max(...seen.map((p) => p.blobPartsDone))).toBe(3);
+
+    // Device B reassembles through its staged writer — chunk size is NOT
+    // negotiated: the descriptor + per-part AAD carry everything needed.
+    const engineB = engineFor(b, relay);
+    expect(await engineB.fetchBlob("bookfile:big")).toBe("fetched");
+    expect([...(b.blobs.get("bookfile:big") ?? [])]).toEqual([...plain]);
+    expect(b.blobStates.get("bookfile:big")).toBe("synced");
+  });
+
+  test("a corrupted part aborts the staged write and leaves no local blob", async () => {
+    const relay = fakeRelay();
+    const a = fakeDevice();
+    const b = fakeDevice();
+    const plain = new Uint8Array(40).fill(5);
+    a.putLocalBlob("bookfile:big", plain);
+    const engineA = createSyncEngine({
+      store: a.store,
+      relay,
+      masterKey: () => key,
+      observe: () => {},
+      blobChunkBytes: 16,
+    });
+    await engineA.syncBlobsOnce();
+
+    const corrupting: SyncRelayApi = {
+      ...relay,
+      async getBlobPart(key, index) {
+        const part = await relay.getBlobPart(key, index);
+        if (index === 1) part[part.length - 1] ^= 0x01;
+        return part;
+      },
+    };
+    await expect(engineFor(b, corrupting).fetchBlob("bookfile:big")).rejects.toThrow();
+    expect(b.blobs.has("bookfile:big")).toBe(false);
+    expect(b.blobStates.get("bookfile:big")).toBeUndefined();
   });
 
   test("a 4xx refusal is terminal, a 5xx stays queued, and neither dams the queue", async () => {

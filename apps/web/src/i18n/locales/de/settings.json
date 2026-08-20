@@ -405,7 +405,11 @@
       "blobs": "Dateien werden übertragen… {{done}}/{{total}}",
       "pending": "Zum Senden anstehend: {{events}} Änderungen, {{blobs}} Dateien",
       "pendingNone": "Nichts zum Senden anstehend",
-      "lastCycle": "Letzter Durchlauf: {{pulled}} empfangen · {{pushed}} gesendet · {{blobs}} Dateien"
+      "lastCycle": "Letzter Durchlauf: {{pulled}} empfangen · {{pushed}} gesendet · {{blobs}} Dateien",
+      "bookUp": "„{{title}}“ wird hochgeladen",
+      "bookDown": "„{{title}}“ wird heruntergeladen",
+      "bookUpParts": "„{{title}}“ wird hochgeladen ({{done}}/{{total}})",
+      "bookDownParts": "„{{title}}“ wird heruntergeladen ({{done}}/{{total}})"
     },
     "indicator": {
       "label": "Synchronisierungsstatus"
@@ -420,6 +424,16 @@
       "cancel": "Abbrechen",
       "deleting": "Wird gelöscht…",
       "failed": "Daten konnten nicht gelöscht werden. Möglicherweise wurde nichts entfernt — bitte erneut versuchen."
+    },
+    "books": {
+      "title": "Buchdateien",
+      "pending": "Wartet auf Upload",
+      "failed": "Upload fehlgeschlagen — wird erneut versucht",
+      "rejectedQuota": "Speicherplatz überschritten — nicht hochgeladen",
+      "rejected": "Vom Server abgelehnt",
+      "rejectedWith": "Abgelehnt: {{reason}}",
+      "awaitingOtherDevice": "Wartet auf das Gerät mit der Datei",
+      "quotaFull": "Cloud-Speicher voll — weitere Bücher bleiben auf diesem Gerät, bis Platz frei wird oder der Tarif wächst."
     }
   },
   "about": {

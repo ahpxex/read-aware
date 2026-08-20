@@ -518,6 +518,7 @@ function App() {
                 totalPages={reader.totalPages}
                 onCloseReader={closeBook}
                 onRetryOpen={handleOpenBook}
+                onReimportBook={library.openImportPicker}
                 onToggleShell={reader.toggleShell}
                 onHideShell={reader.hideShell}
                 onReaderPageChange={reader.handleReaderPageChange}

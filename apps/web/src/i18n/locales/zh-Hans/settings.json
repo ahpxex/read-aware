@@ -401,7 +401,11 @@
       "blobs": "正在传输文件… {{done}}/{{total}}",
       "pending": "待发送：{{events}} 条更改、{{blobs}} 个文件",
       "pendingNone": "没有待发送的内容",
-      "lastCycle": "上次同步：接收 {{pulled}} 条 · 发送 {{pushed}} 条 · 文件 {{blobs}} 个"
+      "lastCycle": "上次同步：接收 {{pulled}} 条 · 发送 {{pushed}} 条 · 文件 {{blobs}} 个",
+      "bookUp": "正在上传《{{title}}》",
+      "bookDown": "正在下载《{{title}}》",
+      "bookUpParts": "正在上传《{{title}}》（{{done}}/{{total}}）",
+      "bookDownParts": "正在下载《{{title}}》（{{done}}/{{total}}）"
     },
     "indicator": {
       "label": "同步状态"
@@ -416,6 +420,16 @@
       "cancel": "取消",
       "deleting": "正在删除…",
       "failed": "删除失败，数据可能未被移除——请重试。"
+    },
+    "books": {
+      "title": "书籍文件",
+      "pending": "等待上传",
+      "failed": "上传失败，稍后重试",
+      "rejectedQuota": "云端容量不足，未上传",
+      "rejected": "被云端拒绝",
+      "rejectedWith": "被拒绝：{{reason}}",
+      "awaitingOtherDevice": "等待持有文件的设备上传",
+      "quotaFull": "云端容量已满——腾出空间或升级方案之前，之后的书只保留在本设备。"
     }
   },
   "about": {

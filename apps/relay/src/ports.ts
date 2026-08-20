@@ -187,6 +187,8 @@ export interface Mailbox {
 export interface BlobStore {
   put(accountId: string, key: string, bytes: Uint8Array): Promise<void>;
   get(accountId: string, key: string): Promise<Uint8Array | null>;
+  /** Byte size without fetching the bytes; null when absent. */
+  head(accountId: string, key: string): Promise<number | null>;
   /** Returns the byte size freed (0 when the key was absent). */
   delete(accountId: string, key: string): Promise<number>;
   wipe(accountId: string): Promise<void>;

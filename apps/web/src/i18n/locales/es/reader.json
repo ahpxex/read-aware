@@ -167,5 +167,13 @@
   "textUnitMode": {
     "progress": "Posición en el capítulo",
     "sessionTime": "Tiempo de la sesión"
+  },
+  "fileMissing": {
+    "no-sync": "El archivo de este libro no está en este dispositivo y la sincronización está desactivada. Importa el archivo original para leerlo aquí.",
+    "not-on-relay": "El archivo de este libro nunca terminó de subirse desde el dispositivo donde se importó. Abre ReadAware allí para que se suba, o importa el archivo original aquí.",
+    "unauthenticated": "Vuelve a iniciar sesión en tu cuenta de sincronización para descargar el archivo de este libro.",
+    "unreachable": "El archivo de este libro está en tu biblioteca en la nube, pero ahora mismo no se puede contactar con el servidor de sincronización.",
+    "undecodable": "El archivo descargado no se pudo descifrar con la frase de sincronización de este dispositivo.",
+    "reimport": "Importar el archivo"
   }
 }

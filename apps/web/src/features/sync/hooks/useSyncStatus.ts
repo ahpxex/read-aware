@@ -56,3 +56,46 @@ export function useSyncBacklog(active: boolean): SyncBacklog | null {
 
   return backlog;
 }
+
+/** One book the relay doesn't hold yet, from `sync_book_backlog` (sync.rs). */
+export type SyncBookBacklogRow = {
+  bookId: string;
+  title: string;
+  byteSize: number | null;
+  pushState: "pending" | "failed" | "rejected";
+  lastError: string | null;
+  /** false = a manifest-only ghost: some OTHER device owes this upload. */
+  localBytes: boolean;
+};
+
+/**
+ * Per-book upload backlog for the Data & Sync panel — same activation and
+ * pacing rules as the counts above, one query heavier.
+ */
+export function useSyncBookBacklog(active: boolean): SyncBookBacklogRow[] | null {
+  const status = useSyncStatus();
+  const [rows, setRows] = useState<SyncBookBacklogRow[] | null>(null);
+  const syncing = status.state === "syncing";
+
+  useEffect(() => {
+    if (!active || !isTauri()) return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const backlog = await invoke<SyncBookBacklogRow[]>("sync_book_backlog");
+        if (!cancelled) setRows(backlog);
+      } catch (error) {
+        log.warn("book backlog failed", error);
+      }
+    };
+    void load();
+    if (!syncing) return () => { cancelled = true; };
+    const timer = window.setInterval(() => void load(), BACKLOG_POLL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [active, syncing, status.lastSyncAt]);
+
+  return rows;
+}

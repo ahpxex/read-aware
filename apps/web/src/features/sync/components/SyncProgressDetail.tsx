@@ -10,6 +10,7 @@
 import {
   ArrowsClockwise,
   ClockCounterClockwise,
+  DownloadSimple,
   UploadSimple,
   WarningCircle,
 } from "@phosphor-icons/react";
@@ -18,6 +19,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "../../../i18n";
 import type { SyncStatusSnapshot } from "../../../platform/sync/sync-scheduler";
 import type { SyncBacklog } from "../hooks/useSyncStatus";
+import { useBlobBookTitle } from "../hooks/useBlobBookTitle";
 import { syncCycleFraction } from "../lib/sync-progress";
 
 type SyncProgressDetailProps = {
@@ -46,6 +48,7 @@ export function SyncProgressDetail({ status, backlog }: SyncProgressDetailProps)
   const { progress } = status;
   const syncing = status.state === "syncing";
   const fraction = syncCycleFraction(status);
+  const movingTitle = useBlobBookTitle(syncing ? (progress?.blobKey ?? null) : null);
 
   const hasBacklog = backlog !== null && backlog.events + backlog.blobs > 0;
   const lastCycle = status.lastCycle;
@@ -81,6 +84,35 @@ export function SyncProgressDetail({ status, backlog }: SyncProgressDetailProps)
                   time: new Date(status.lastSyncAt).toLocaleTimeString(),
                 })
               : t("dataSync.syncStatus.never")}
+          </Item>
+        )}
+        {syncing && progress?.blobKey && movingTitle && (
+          <Item
+            icon={
+              progress.blobDirection === "down" ? (
+                <DownloadSimple {...ICON} />
+              ) : (
+                <UploadSimple {...ICON} />
+              )
+            }
+          >
+            {progress.blobPartsTotal > 0
+              ? t(
+                  progress.blobDirection === "down"
+                    ? "dataSync.progress.bookDownParts"
+                    : "dataSync.progress.bookUpParts",
+                  {
+                    title: movingTitle,
+                    done: progress.blobPartsDone,
+                    total: progress.blobPartsTotal,
+                  },
+                )
+              : t(
+                  progress.blobDirection === "down"
+                    ? "dataSync.progress.bookDown"
+                    : "dataSync.progress.bookUp",
+                  { title: movingTitle },
+                )}
           </Item>
         )}
         {hasBacklog && (

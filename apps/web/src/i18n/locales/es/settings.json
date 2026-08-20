@@ -409,7 +409,11 @@
       "blobs": "Transfiriendo archivos… {{done}}/{{total}}",
       "pending": "Pendiente de envío: {{events}} cambios, {{blobs}} archivos",
       "pendingNone": "Nada pendiente de envío",
-      "lastCycle": "Último ciclo: {{pulled}} recibidos · {{pushed}} enviados · {{blobs}} archivos"
+      "lastCycle": "Último ciclo: {{pulled}} recibidos · {{pushed}} enviados · {{blobs}} archivos",
+      "bookUp": "Subiendo «{{title}}»",
+      "bookDown": "Descargando «{{title}}»",
+      "bookUpParts": "Subiendo «{{title}}» ({{done}}/{{total}})",
+      "bookDownParts": "Descargando «{{title}}» ({{done}}/{{total}})"
     },
     "indicator": {
       "label": "Estado de sincronización"
@@ -424,6 +428,16 @@
       "cancel": "Cancelar",
       "deleting": "Eliminando…",
       "failed": "No se pudieron eliminar los datos. Puede que no se haya eliminado nada; inténtalo de nuevo."
+    },
+    "books": {
+      "title": "Archivos de libros",
+      "pending": "Pendiente de subir",
+      "failed": "Error al subir — se reintentará",
+      "rejectedQuota": "Supera el almacenamiento del plan — no subido",
+      "rejected": "Rechazado por el servidor",
+      "rejectedWith": "Rechazado: {{reason}}",
+      "awaitingOtherDevice": "Esperando al dispositivo que tiene el archivo",
+      "quotaFull": "El almacenamiento en la nube está lleno: los próximos libros permanecen en este dispositivo hasta liberar espacio o ampliar el plan."
     }
   },
   "about": {

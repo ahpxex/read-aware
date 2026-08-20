@@ -918,6 +918,7 @@ pub fn run() {
             storage::sync_profile_touch,
             storage::sync_adopt_account,
             storage::sync_outbox_counts,
+            storage::sync_book_backlog,
             storage::preferences_load_all,
             storage::wipe_all_data,
             storage::sync_cursor_get,

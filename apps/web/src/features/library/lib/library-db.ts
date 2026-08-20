@@ -514,7 +514,10 @@ export async function hydrateSyncedCover(book: LibraryBook): Promise<LibraryBook
   if (!isTauri() || book.coverUrl || book.coverChecked) return null;
   const key = bookCoverKey(book.id);
   if (!(await desktopBlobManifestExists(key))) return null;
-  const bytes = (await getDesktopBlob(key)) ?? (await fetchRemoteBlob(key));
+  let bytes = await getDesktopBlob(key);
+  if (!bytes && (await fetchRemoteBlob(key)).outcome === "fetched") {
+    bytes = await getDesktopBlob(key);
+  }
   if (!bytes) return null;
   const info = await getDesktopBlobInfo(key);
   const dataUrl = await bytesToDataUrl(bytes, info?.mimeType || "image/jpeg");
@@ -522,54 +525,113 @@ export async function hydrateSyncedCover(book: LibraryBook): Promise<LibraryBook
   return { ...book, coverUrl: dataUrl, coverChecked: true };
 }
 
+/**
+ * Why a book's file isn't openable on this device — the reader's error surface
+ * owes each cause different words and a different next step:
+ * - `no-sync`         this device can't ask the relay (sync off / signed out);
+ *                     re-importing the file is the only route.
+ * - `not-on-relay`    the relay answered: it has no bytes. The importing
+ *                     device never (successfully) uploaded them.
+ * - `unauthenticated` the session died — signing in again may be all it takes.
+ * - `unreachable`     the ask failed in transit (offline, wrong server, 5xx) —
+ *                     retrying can genuinely succeed.
+ * - `undecodable`     ciphertext came back but this passphrase can't open it.
+ */
+export type BookFileMissingReason =
+  | "no-sync"
+  | "not-on-relay"
+  | "unauthenticated"
+  | "unreachable"
+  | "undecodable";
+
+export type StoredBookFileResult =
+  | { status: "ok"; file: BookFileSource }
+  | { status: "missing"; reason: BookFileMissingReason };
+
+/** Pull a book's bytes off the relay into the local store, mapping the typed
+ *  fetch outcome onto the reader-facing missing reasons. */
+async function fetchBookFile(bookId: string): Promise<{ ok: true } | { ok: false; reason: BookFileMissingReason }> {
+  const fetched = await fetchRemoteBlob(bookFileKey(bookId));
+  switch (fetched.outcome) {
+    case "fetched":
+      return { ok: true };
+    case "unavailable":
+      return { ok: false, reason: "no-sync" };
+    case "missing":
+      return { ok: false, reason: "not-on-relay" };
+    case "failed":
+      return {
+        ok: false,
+        reason:
+          fetched.reason === "unauthenticated"
+            ? "unauthenticated"
+            : fetched.reason === "undecodable"
+              ? "undecodable"
+              : "unreachable",
+      };
+  }
+}
+
 export async function getStoredBookBlob(bookId: string): Promise<Blob | null> {
   if (!isTauri()) return null;
-  const bytes = await getDesktopBlob(bookFileKey(bookId));
-  if (bytes) return new Blob([bytes]);
+  let bytes = await getDesktopBlob(bookFileKey(bookId));
   // Not on this device — the new-device bootstrap case: the manifest row came
   // from replaying `book.imported`, the bytes live on the relay. Lazy-fetch
-  // decrypts and stores locally, so this path runs once per book. Null when
-  // sync is off or the relay has nothing.
-  const fetched = await fetchRemoteBlob(bookFileKey(bookId));
-  return fetched ? new Blob([fetched]) : null;
+  // decrypts into the local store, so this path runs once per book.
+  if (!bytes && (await fetchBookFile(bookId)).ok) {
+    bytes = await getDesktopBlob(bookFileKey(bookId));
+  }
+  return bytes ? new Blob([bytes]) : null;
 }
 
 /**
- * Reader source for an imported book. PDFs stay file-backed and random-access;
- * the other parsers still receive a whole-file blob until they expose the same
- * structural range contract end to end.
+ * Reader source for an imported book, with the missing-file cause attached.
+ * PDFs stay file-backed and random-access; the other parsers still receive a
+ * whole-file blob until they expose the same structural range contract end to
+ * end.
  *
  * The blob is always wrapped back into a named `File`: foliate's `makeBook`
  * picks the loader for ZIP containers from the file NAME (a `.cbz` comic and a
  * `.fbz` FictionBook are both zips), so a nameless blob would be read as an
  * EPUB — and, before that, crash on `name.endsWith`.
  */
+export async function resolveStoredBookFile(
+  bookOrId: Pick<LibraryBook, "id" | "format" | "fileName" | "mimeType"> | string,
+): Promise<StoredBookFileResult> {
+  if (!isTauri()) return { status: "missing", reason: "no-sync" };
+  const book = typeof bookOrId === "string" ? await getBookRecord(bookOrId) : bookOrId;
+  if (!book) return { status: "missing", reason: "no-sync" };
+  const openLocal = async (): Promise<BookFileSource | null> => {
+    if (book.format === "pdf") {
+      // File-backed so PDFs keep their random-access path.
+      return openDesktopBlobFile(
+        bookFileKey(book.id),
+        book.fileName,
+        book.mimeType || "application/pdf",
+      );
+    }
+    const bytes = await getDesktopBlob(bookFileKey(book.id));
+    if (!bytes) return null;
+    return new File([bytes], book.fileName, { type: book.mimeType || "" });
+  };
+
+  const local = await openLocal();
+  if (local) return { status: "ok", file: local };
+  const fetched = await fetchBookFile(book.id);
+  if (!fetched.ok) return { status: "missing", reason: fetched.reason };
+  const pulled = await openLocal();
+  // A successful fetch that still opens nothing means the local write raced a
+  // wipe — treat as unreachable so the user retries rather than re-imports.
+  return pulled
+    ? { status: "ok", file: pulled }
+    : { status: "missing", reason: "unreachable" };
+}
+
 export async function getStoredBookFile(
   bookOrId: Pick<LibraryBook, "id" | "format" | "fileName" | "mimeType"> | string,
 ): Promise<BookFileSource | null> {
-  if (!isTauri()) return null;
-  const book = typeof bookOrId === "string" ? await getBookRecord(bookOrId) : bookOrId;
-  if (!book) return null;
-  if (book.format === "pdf") {
-    const local = await openDesktopBlobFile(
-      bookFileKey(book.id),
-      book.fileName,
-      book.mimeType || "application/pdf",
-    );
-    if (local) return local;
-    // Same bootstrap case as getStoredBookBlob: pull the bytes down, then
-    // reopen file-backed so PDFs keep their random-access path.
-    const fetched = await fetchRemoteBlob(bookFileKey(book.id));
-    if (!fetched) return null;
-    return openDesktopBlobFile(
-      bookFileKey(book.id),
-      book.fileName,
-      book.mimeType || "application/pdf",
-    );
-  }
-  const blob = await getStoredBookBlob(book.id);
-  if (!blob) return null;
-  return new File([blob], book.fileName, { type: book.mimeType || blob.type });
+  const resolved = await resolveStoredBookFile(bookOrId);
+  return resolved.status === "ok" ? resolved.file : null;
 }
 
 export async function updateLibraryBookProgress(bookId: string, progress: BookProgress) {

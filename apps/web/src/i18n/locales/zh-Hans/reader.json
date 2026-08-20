@@ -167,5 +167,13 @@
   "textUnitMode": {
     "progress": "本章位置",
     "sessionTime": "本次用时"
+  },
+  "fileMissing": {
+    "no-sync": "这本书的文件不在此设备上，且未开启同步。重新导入原文件即可在此阅读。",
+    "not-on-relay": "这本书的文件尚未从导入它的设备上传完成。在那台设备上打开 ReadAware 让它上传，或在这里重新导入原文件。",
+    "unauthenticated": "重新登录同步账号后即可下载这本书的文件。",
+    "unreachable": "这本书的文件在云端书库中，但目前无法连接同步服务器。",
+    "undecodable": "已下载的文件无法用此设备的同步口令解密。",
+    "reimport": "重新导入文件"
   }
 }

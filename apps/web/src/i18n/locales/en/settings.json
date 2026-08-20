@@ -405,7 +405,11 @@
       "blobs": "Transferring files… {{done}}/{{total}}",
       "pending": "Waiting to send: {{events}} changes, {{blobs}} files",
       "pendingNone": "Nothing waiting to send",
-      "lastCycle": "Last cycle: {{pulled}} received · {{pushed}} sent · {{blobs}} files"
+      "lastCycle": "Last cycle: {{pulled}} received · {{pushed}} sent · {{blobs}} files",
+      "bookUp": "Uploading “{{title}}”",
+      "bookDown": "Downloading “{{title}}”",
+      "bookUpParts": "Uploading “{{title}}” ({{done}}/{{total}})",
+      "bookDownParts": "Downloading “{{title}}” ({{done}}/{{total}})"
     },
     "indicator": {
       "label": "Sync status"
@@ -420,6 +424,16 @@
       "cancel": "Cancel",
       "deleting": "Deleting…",
       "failed": "Couldn't delete all data. Nothing may have been removed — try again."
+    },
+    "books": {
+      "title": "Book files",
+      "pending": "Waiting to upload",
+      "failed": "Upload failed — will retry",
+      "rejectedQuota": "Over the plan's storage — not uploaded",
+      "rejected": "Refused by the relay",
+      "rejectedWith": "Refused: {{reason}}",
+      "awaitingOtherDevice": "Waiting for the device that holds the file",
+      "quotaFull": "Cloud storage is full — further books stay on this device until space frees up or the plan grows."
     }
   },
   "about": {

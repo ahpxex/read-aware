@@ -7,7 +7,7 @@
  */
 import { invoke } from "@tauri-apps/api/core";
 import type { HlcStamp } from "@read-aware/core";
-import { getDesktopBlob, putDesktopBlob } from "../blob-store";
+import { getDesktopBlob, openDesktopBlobWriter, putDesktopBlob } from "../blob-store";
 import type { PlainEvent } from "../sync-envelope";
 import type { MergeReport, SyncLocalStore } from "./sync-engine";
 
@@ -38,6 +38,16 @@ export function createIpcSyncStore(): SyncLocalStore {
     readBlob: (key) => getDesktopBlob(key),
     async writeBlob(key, bytes) {
       await putDesktopBlob(key, bytes);
+    },
+    async openBlobWriter(key) {
+      const writer = await openDesktopBlobWriter(key);
+      return {
+        append: (bytes) => writer.append(bytes),
+        commit: async () => {
+          await writer.commit();
+        },
+        abort: () => writer.abort(),
+      };
     },
     touch: (kind) => invoke("sync_profile_touch", { field: kind }),
   };

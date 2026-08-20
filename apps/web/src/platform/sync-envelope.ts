@@ -105,14 +105,12 @@ export function openEvent(key: Uint8Array, sealed: SealedEvent): PlainEvent {
   return event;
 }
 
-// ─── Blobs ───────────────────────────────────────────────────────────────────
+// ─── Blobs (v1: whole) ───────────────────────────────────────────────────────
 //
-// Wire format: [version:1][nonce:24][ciphertext+tag]. Whole-blob AEAD — a book
-// file is already a single in-memory buffer on both ends of the transfer, so
-// chunked streaming encryption would buy nothing today; the version byte is
-// where a chunked format would slot in if file sizes ever demand it. The AAD
-// binds the ciphertext to its blob key, so relay data can't be served back
-// under another key.
+// Wire format: [version:1][nonce:24][ciphertext+tag]. Whole-blob AEAD for
+// anything that fits one relay request (at or under BLOB_CHUNK_BYTES); larger
+// blobs ride the chunked v2 format below. The AAD binds the ciphertext to its
+// blob key, so relay data can't be served back under another key.
 
 export function sealBlob(key: Uint8Array, blobKey: string, bytes: Uint8Array): Uint8Array {
   const nonce = randomBytes(NONCE_BYTES);
@@ -132,6 +130,97 @@ export function openBlob(key: Uint8Array, blobKey: string, wire: Uint8Array): Ui
   const nonce = wire.subarray(1, 1 + NONCE_BYTES);
   const cipher = xchacha20poly1305(key, nonce, utf8(`ra-blob:v1:${blobKey}`));
   return cipher.decrypt(wire.subarray(1 + NONCE_BYTES));
+}
+
+// ─── Chunked blobs (v2) ──────────────────────────────────────────────────────
+//
+// The v1 whole-blob format caps a blob at whatever one HTTP request may carry
+// (the Worker buffers the body; Cloudflare caps request bodies) — which made
+// large books silently unsyncable. v2 splits the PLAINTEXT into fixed-size
+// chunks and seals each one independently:
+//
+//   part wire:       [2][nonce:24][ciphertext+tag]
+//   part AAD:        ra-blob:v2:<blobKey>:<index>:<partCount>
+//   descriptor wire: [2][partCount:u32be]   (stored at the blob's main key)
+//
+// The AAD binds every part to its blob key, its position, AND the total part
+// count — so relay data can't be served under another key, reordered,
+// truncated, or extended without every decrypt failing. The descriptor itself
+// is unauthenticated (5 clear bytes), but lying in it buys nothing: a wrong
+// partCount changes every part's expected AAD and decryption refuses.
+//
+// The version byte doubles as the format discriminator on download: a v1 blob
+// starts with 1 and opens whole; a chunked blob's main object starts with 2
+// and tells the client how many parts to fetch.
+
+/** Plaintext bytes per sealed part. Fixed — it participates in nothing
+ *  cryptographic, but a stable size keeps re-uploads byte-identical. */
+export const BLOB_CHUNK_BYTES = 8 * 1024 * 1024;
+const BLOB_ENVELOPE_V2 = 2 as const;
+/** Upper bound a client accepts from a descriptor (8 TiB of book is a lie). */
+const MAX_BLOB_PARTS = 100_000;
+
+function blobPartAad(blobKey: string, index: number, partCount: number): Uint8Array {
+  return utf8(`ra-blob:v2:${blobKey}:${index}:${partCount}`);
+}
+
+/** How many parts a plaintext of `byteLength` splits into (at least 1). */
+export function blobPartCount(byteLength: number): number {
+  return Math.max(1, Math.ceil(byteLength / BLOB_CHUNK_BYTES));
+}
+
+/** Seal one chunk of a chunked blob. `chunk` must be the exact slice
+ *  `plain[index * BLOB_CHUNK_BYTES ..]` — the AAD commits to its position. */
+export function sealBlobPart(
+  key: Uint8Array,
+  blobKey: string,
+  index: number,
+  partCount: number,
+  chunk: Uint8Array,
+): Uint8Array {
+  const nonce = randomBytes(NONCE_BYTES);
+  const cipher = xchacha20poly1305(key, nonce, blobPartAad(blobKey, index, partCount));
+  const sealed = cipher.encrypt(chunk);
+  const out = new Uint8Array(1 + NONCE_BYTES + sealed.length);
+  out[0] = BLOB_ENVELOPE_V2;
+  out.set(nonce, 1);
+  out.set(sealed, 1 + NONCE_BYTES);
+  return out;
+}
+
+/** Open one part; throws on tampering, reordering, or a foreign key. */
+export function openBlobPart(
+  key: Uint8Array,
+  blobKey: string,
+  index: number,
+  partCount: number,
+  wire: Uint8Array,
+): Uint8Array {
+  if (wire.length < 1 + NONCE_BYTES || wire[0] !== BLOB_ENVELOPE_V2) {
+    throw new Error("sync envelope: unrecognized blob part envelope");
+  }
+  const nonce = wire.subarray(1, 1 + NONCE_BYTES);
+  const cipher = xchacha20poly1305(key, nonce, blobPartAad(blobKey, index, partCount));
+  return cipher.decrypt(wire.subarray(1 + NONCE_BYTES));
+}
+
+/** The 5-byte object stored at a chunked blob's main key. */
+export function encodeBlobDescriptor(partCount: number): Uint8Array {
+  const out = new Uint8Array(5);
+  out[0] = BLOB_ENVELOPE_V2;
+  new DataView(out.buffer).setUint32(1, partCount, false);
+  return out;
+}
+
+/** Parse a main-key object: a part count for v2, "v1" for a whole-blob seal,
+ *  or a thrown error for anything neither format produced. */
+export function decodeBlobHead(wire: Uint8Array): { format: "v1" } | { format: "v2"; partCount: number } {
+  if (wire.length >= 1 && wire[0] === ENVELOPE_VERSION) return { format: "v1" };
+  if (wire.length === 5 && wire[0] === BLOB_ENVELOPE_V2) {
+    const partCount = new DataView(wire.buffer, wire.byteOffset).getUint32(1, false);
+    if (partCount >= 1 && partCount <= MAX_BLOB_PARTS) return { format: "v2", partCount };
+  }
+  throw new Error("sync envelope: unrecognized blob envelope");
 }
 
 // ─── Roaming secrets ─────────────────────────────────────────────────────────

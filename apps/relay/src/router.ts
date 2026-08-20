@@ -438,17 +438,104 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
     return json(200, page);
   }
 
-  async function handleBlob(account: Account, req: Request, key: string): Promise<Response> {
+  // ── Chunked blobs ──────────────────────────────────────────────────────────
+  //
+  // A whole blob in one request caps a book at whatever one Worker request may
+  // buffer, so large files ride as SEALED PARTS instead (client protocol in
+  // apps/web sync-envelope.ts v2): each part is staged at the internal R2 key
+  // `<key>#<index>` (BLOB_KEY_SHAPE forbids '#', so parts can never collide
+  // with a client key), then a commit writes a 5-byte descriptor
+  // [2][partCount:u32be] at the main key. GET of the main key hands the client
+  // that descriptor; the leading version byte tells it whether to open a v1
+  // whole blob or fetch parts. The relay understands none of the contents —
+  // both formats are ciphertext, and part integrity/ordering is the client's
+  // AEAD (each part's AAD binds key+index+count), not ours.
+  //
+  // Accounting: parts count toward the account total AS THEY ARE STAGED — an
+  // abandoned upload holds quota until re-staged, committed, or deleted, which
+  // keeps "cost to the operator" and "usage shown to the user" the same number
+  // with no separate staging ledger. There is deliberately NO per-file cap on
+  // a chunked blob: the per-part cap bounds each request, and the account
+  // quota is the real bill guard. (`maxBlobBytes` still caps the legacy
+  // single-request PUT.)
+  const partKey = (key: string, index: number) => `${key}#${index}`;
+  const MAX_BLOB_PARTS = 100_000;
+  // Sealed part = 8 MiB plaintext + 41 bytes of envelope; leave headroom.
+  const MAX_PART_BYTES = 12 * 1024 * 1024;
+
+  /** Delete staged/stale parts of `key` starting at `from` until a gap;
+   *  returns the bytes freed. Parts are contiguous from 0 by construction. */
+  async function sweepParts(accountId: string, key: string, from: number): Promise<number> {
+    let freed = 0;
+    for (let index = from; index < MAX_BLOB_PARTS; index += 1) {
+      const size = await blobs.delete(accountId, partKey(key, index));
+      if (size === 0) break;
+      freed += size;
+    }
+    return freed;
+  }
+
+  async function handleBlob(account: Account, req: Request, key: string, url: URL): Promise<Response> {
     if (!BLOB_KEY_SHAPE.test(key)) return failure(400, "malformed blob key");
+    const partParam = url.searchParams.get("part");
+    const part = partParam === null ? null : Number(partParam);
+    if (part !== null && (!Number.isInteger(part) || part < 0 || part >= MAX_BLOB_PARTS)) {
+      return failure(400, "malformed part index");
+    }
+
     if (req.method === "GET") {
-      const bytes = await blobs.get(account.id, key);
+      const bytes = await blobs.get(account.id, part === null ? key : partKey(key, part));
       if (!bytes) return failure(404, "no such blob");
       return new Response(bytes, {
         status: 200,
         headers: { "content-type": "application/octet-stream", ...CORS_HEADERS },
       });
     }
+
+    if (req.method === "PUT" && part !== null) {
+      // Stage one part of a chunked upload.
+      const quotas = quotasOf(account);
+      const bytes = new Uint8Array(await req.arrayBuffer());
+      if (bytes.length === 0) return failure(400, "empty blob part");
+      if (bytes.length > MAX_PART_BYTES) {
+        return failure(413, `blob part exceeds ${MAX_PART_BYTES} bytes`);
+      }
+      const freed = await blobs.delete(account.id, partKey(key, part));
+      const used = await accounts.adjustBlobBytes(account.id, bytes.length - freed);
+      if (quotas.maxAccountBlobBytes !== null && used > quotas.maxAccountBlobBytes) {
+        await accounts.adjustBlobBytes(account.id, -bytes.length);
+        return failure(413, "account blob quota exceeded");
+      }
+      await blobs.put(account.id, partKey(key, part), bytes);
+      return json(200, { ok: true, bytesUsed: used });
+    }
+
+    if (req.method === "PUT" && url.searchParams.get("commit") !== null) {
+      // Commit a chunked upload: verify the staged run, publish the
+      // descriptor, sweep whatever a previous (larger) upload left behind.
+      const parts = Number(url.searchParams.get("parts"));
+      if (!Number.isInteger(parts) || parts < 1 || parts > MAX_BLOB_PARTS) {
+        return failure(400, "malformed parts count");
+      }
+      for (let index = 0; index < parts; index += 1) {
+        const size = await blobs.head(account.id, partKey(key, index));
+        if (size === null) return failure(400, `missing staged part ${index}`);
+      }
+      const descriptor = new Uint8Array(5);
+      descriptor[0] = 2;
+      new DataView(descriptor.buffer).setUint32(1, parts, false);
+      const freedMain = await blobs.delete(account.id, key);
+      const freedStale = await sweepParts(account.id, key, parts);
+      const used = await accounts.adjustBlobBytes(
+        account.id,
+        descriptor.length - freedMain - freedStale,
+      );
+      await blobs.put(account.id, key, descriptor);
+      return json(200, { ok: true, bytesUsed: used });
+    }
+
     if (req.method === "PUT") {
+      // Legacy/small path: the whole sealed blob in one request.
       const quotas = quotasOf(account);
       const bytes = new Uint8Array(await req.arrayBuffer());
       if (bytes.length === 0) return failure(400, "empty blob");
@@ -458,7 +545,11 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
       // Replacing a key frees its old bytes first, so re-uploads don't leak
       // quota. The account row is the accountant; R2 is just the shelf.
       const freed = await blobs.delete(account.id, key);
-      const used = await accounts.adjustBlobBytes(account.id, bytes.length - freed);
+      const freedParts = await sweepParts(account.id, key, 0);
+      const used = await accounts.adjustBlobBytes(
+        account.id,
+        bytes.length - freed - freedParts,
+      );
       if (quotas.maxAccountBlobBytes !== null && used > quotas.maxAccountBlobBytes) {
         await accounts.adjustBlobBytes(account.id, -bytes.length);
         return failure(413, "account blob quota exceeded");
@@ -466,8 +557,10 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
       await blobs.put(account.id, key, bytes);
       return json(200, { ok: true, bytesUsed: used });
     }
+
     if (req.method === "DELETE") {
-      const freed = await blobs.delete(account.id, key);
+      const freed =
+        (await blobs.delete(account.id, key)) + (await sweepParts(account.id, key, 0));
       if (freed > 0) await accounts.adjustBlobBytes(account.id, -freed);
       return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
@@ -807,7 +900,7 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
       return failure(405, "method not allowed");
     }
     if (path.startsWith("/v1/blobs/")) {
-      return handleBlob(account, req, decodeURIComponent(path.slice("/v1/blobs/".length)));
+      return handleBlob(account, req, decodeURIComponent(path.slice("/v1/blobs/".length)), url);
     }
     return failure(404, "no such route");
   };

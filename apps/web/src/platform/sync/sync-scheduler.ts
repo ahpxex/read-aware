@@ -19,7 +19,7 @@ import { refreshRoamingPreferences, republishRoamingSecrets } from "../roaming-p
 import { deleteSecret, getSecret, setSecret } from "../secret-store";
 import { fromBase64 } from "../sync-envelope";
 import { clearReauthNoticeDismissal } from "./reauth-notice";
-import { createRelayClient, RelayError, type RelayClient } from "./relay-client";
+import { createRelayClient, RelayError, RelayMisdirectedError, type RelayClient } from "./relay-client";
 import {
   createSyncEngine,
   nextSyncDelayMs,
@@ -48,13 +48,27 @@ function defaultRelayUrl(): string {
   const dev = import.meta.env.VITE_READAWARE_RELAY_URL as string | undefined;
   if (dev) {
     if (import.meta.env.DEV) {
-      // On a phone, "localhost" is the phone. But the frontend itself was
-      // served from the dev machine, so the page's own hostname is exactly
-      // the address that reaches it — the LAN IP on a device, 10.0.2.2 in
-      // the Android emulator. Substitute it; a desktop webview loads from
-      // loopback and keeps the URL as written.
+      // On a phone, "localhost" is the phone — the URL needs the dev
+      // machine's address instead. The Tauri CLI knows it exactly
+      // (TAURI_DEV_HOST, baked in by vite.config), so prefer that ground
+      // truth over any guessing.
+      const devHost = import.meta.env.VITE_TAURI_DEV_HOST as string | undefined;
+      if (devHost) return dev.replace("localhost", devHost);
+      // No TAURI_DEV_HOST: fall back to the page's own hostname — the
+      // frontend was served from the dev machine, so on a LAN-served device
+      // that hostname reaches it. But NEVER substitute a `*.localhost` host:
+      // that is Tauri's own proxy scheme (`tauri.localhost` on mobile dev
+      // without TAURI_DEV_HOST), and its interceptor answers EVERY port with
+      // the SPA itself — the relay would "reply" 200 index.html and every
+      // sync call would fail with a misleading decode error. Keeping
+      // "localhost" fails honestly (connection refused) instead.
       const pageHost = window.location.hostname;
-      if (pageHost && pageHost !== "localhost" && pageHost !== "127.0.0.1") {
+      if (
+        pageHost &&
+        pageHost !== "localhost" &&
+        pageHost !== "127.0.0.1" &&
+        !pageHost.endsWith(".localhost")
+      ) {
         return dev.replace("localhost", pageHost);
       }
     }
@@ -169,7 +183,17 @@ async function runCycle(): Promise<void> {
   }
   setStatus({
     state: "syncing",
-    progress: { phase: "pull", pulled: 0, pushed: 0, blobsDone: 0, blobsTotal: 0 },
+    progress: {
+      phase: "pull",
+      pulled: 0,
+      pushed: 0,
+      blobsDone: 0,
+      blobsTotal: 0,
+      blobKey: null,
+      blobDirection: null,
+      blobPartsDone: 0,
+      blobPartsTotal: 0,
+    },
     cycleTotals,
   });
   try {
@@ -200,20 +224,57 @@ async function runCycle(): Promise<void> {
 }
 
 /**
- * Lazy blob download for read paths (library-db): returns null when sync is
- * off, not connected, or the relay has no such blob — callers treat every
- * null identically as "not available".
+ * Lazy blob download for read paths (library-db). The outcome names WHY the
+ * bytes are or aren't available, because the reader's error surface owes the
+ * user different words (and different actions) for "sync is off", "the relay
+ * never got this file", and "the relay didn't answer":
+ *
+ * - `fetched`      — the bytes now sit in the local store; re-read them there.
+ * - `unavailable`  — this device cannot ask at all (no sync / signed out).
+ * - `missing`      — the relay answered: it has no such blob. The origin
+ *                    device never (successfully) uploaded it.
+ * - `failed`       — the ask itself failed: dead session, wrong server,
+ *                    network, or ciphertext this passphrase cannot open.
  */
-export async function fetchRemoteBlob(key: string): Promise<Uint8Array | null> {
-  if (!isTauri()) return null;
-  if (!getSecret("sync.master-key") || !getSecret("sync.session")) return null;
+export type RemoteBlobFetch =
+  | { outcome: "fetched" }
+  | { outcome: "unavailable"; reason: "not-tauri" | "sync-off" | "not-connected" }
+  | { outcome: "missing" }
+  | {
+      outcome: "failed";
+      reason: "unauthenticated" | "misdirected" | "undecodable" | "unreachable";
+      detail: string;
+    };
+
+export async function fetchRemoteBlob(key: string): Promise<RemoteBlobFetch> {
+  if (!isTauri()) return { outcome: "unavailable", reason: "not-tauri" };
+  if (!getSecret("sync.master-key") || !getSecret("sync.session")) {
+    return { outcome: "unavailable", reason: "not-connected" };
+  }
   const profile = await getSyncProfile();
-  if (!profile.syncEnabled) return null;
+  if (!profile.syncEnabled) return { outcome: "unavailable", reason: "sync-off" };
+  // Surface the download like any sync activity: the indicator ring narrates
+  // "syncing <book> n/m" while parts stream in, then yields to the prior state.
+  const restoreState = status.state === "syncing" ? null : status.state;
+  setStatus({ state: "syncing" });
   try {
-    return await getEngine().fetchBlob(key);
+    const result = await getEngine().fetchBlob(key);
+    return result === "fetched" ? { outcome: "fetched" } : { outcome: "missing" };
   } catch (error) {
     log.warn(`remote blob fetch failed for "${key}"`, error);
-    return null;
+    const detail = error instanceof Error ? error.message : String(error);
+    if (isAuthRejection(error)) {
+      return { outcome: "failed", reason: "unauthenticated", detail };
+    }
+    if (error instanceof RelayMisdirectedError) {
+      return { outcome: "failed", reason: "misdirected", detail };
+    }
+    if (detail.startsWith("sync envelope:")) {
+      return { outcome: "failed", reason: "undecodable", detail };
+    }
+    return { outcome: "failed", reason: "unreachable", detail };
+  } finally {
+    if (restoreState !== null) setStatus({ state: restoreState, progress: null });
   }
 }
 

@@ -75,6 +75,9 @@ function memoryBlobStore(): BlobStore {
     async get(accountId, key) {
       return objects.get(path(accountId, key)) ?? null;
     },
+    async head(accountId, key) {
+      return objects.get(path(accountId, key))?.length ?? null;
+    },
     async delete(accountId, key) {
       const existing = objects.get(path(accountId, key));
       objects.delete(path(accountId, key));

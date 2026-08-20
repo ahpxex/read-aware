@@ -209,6 +209,106 @@ describe("blobs", () => {
     expect(((await account.json()) as { blobBytesUsed: number }).blobBytesUsed).toBe(15);
   });
 
+  test("chunked upload: stage, commit, descriptor + parts served back", async () => {
+    const { handle } = makeRelay();
+    const { session } = await login(handle, "reader@example.com");
+    const part0 = new Uint8Array(40).fill(1);
+    const part1 = new Uint8Array(17).fill(2);
+    expect(
+      (await handle(putBytes("/v1/blobs/bookfile%3Abig?part=0&parts=2", part0, session))).status,
+    ).toBe(200);
+    expect(
+      (await handle(putBytes("/v1/blobs/bookfile%3Abig?part=1&parts=2", part1, session))).status,
+    ).toBe(200);
+    const commit = await handle(putBytes("/v1/blobs/bookfile%3Abig?commit=1&parts=2", new Uint8Array(0), session));
+    expect(commit.status).toBe(200);
+
+    // Main key answers with the 5-byte descriptor: [2][partCount u32be].
+    const head = await handle(get("/v1/blobs/bookfile%3Abig", session));
+    expect([...new Uint8Array(await head.arrayBuffer())]).toEqual([2, 0, 0, 0, 2]);
+    const got0 = await handle(get("/v1/blobs/bookfile%3Abig?part=0", session));
+    expect([...new Uint8Array(await got0.arrayBuffer())]).toEqual([...part0]);
+    const got1 = await handle(get("/v1/blobs/bookfile%3Abig?part=1", session));
+    expect([...new Uint8Array(await got1.arrayBuffer())]).toEqual([...part1]);
+
+    const account = await handle(get("/v1/account", session));
+    expect(((await account.json()) as { blobBytesUsed: number }).blobBytesUsed).toBe(
+      part0.length + part1.length + 5,
+    );
+  });
+
+  test("commit refuses a run with a missing part", async () => {
+    const { handle } = makeRelay();
+    const { session } = await login(handle, "reader@example.com");
+    await handle(putBytes("/v1/blobs/bookfile%3Abig?part=0&parts=3", new Uint8Array(8), session));
+    await handle(putBytes("/v1/blobs/bookfile%3Abig?part=2&parts=3", new Uint8Array(8), session));
+    const commit = await handle(
+      putBytes("/v1/blobs/bookfile%3Abig?commit=1&parts=3", new Uint8Array(0), session),
+    );
+    expect(commit.status).toBe(400);
+    expect((await handle(get("/v1/blobs/bookfile%3Abig", session))).status).toBe(404);
+  });
+
+  test("the per-file cap governs single PUTs, not chunked uploads", async () => {
+    const { handle } = makeRelay({ maxBlobBytes: 10 });
+    const { session } = await login(handle, "reader@example.com");
+    // 15 bytes in one request: over the per-file cap.
+    expect(
+      (await handle(putBytes("/v1/blobs/bookfile%3Ab1", new Uint8Array(15), session))).status,
+    ).toBe(413);
+    // The same 15 bytes as two staged parts: fine — only the account total governs.
+    expect(
+      (await handle(putBytes("/v1/blobs/bookfile%3Ab1?part=0&parts=2", new Uint8Array(8), session))).status,
+    ).toBe(200);
+    expect(
+      (await handle(putBytes("/v1/blobs/bookfile%3Ab1?part=1&parts=2", new Uint8Array(7), session))).status,
+    ).toBe(200);
+    expect(
+      (await handle(putBytes("/v1/blobs/bookfile%3Ab1?commit=1&parts=2", new Uint8Array(0), session))).status,
+    ).toBe(200);
+  });
+
+  test("re-uploading with fewer parts sweeps the stale tail", async () => {
+    const { handle } = makeRelay();
+    const { session } = await login(handle, "reader@example.com");
+    for (let i = 0; i < 3; i += 1) {
+      await handle(putBytes(`/v1/blobs/bookfile%3Ab1?part=${i}&parts=3`, new Uint8Array(10), session));
+    }
+    await handle(putBytes("/v1/blobs/bookfile%3Ab1?commit=1&parts=3", new Uint8Array(0), session));
+    // Second upload of a now-smaller book: one part only.
+    await handle(putBytes("/v1/blobs/bookfile%3Ab1?part=0&parts=1", new Uint8Array(6), session));
+    await handle(putBytes("/v1/blobs/bookfile%3Ab1?commit=1&parts=1", new Uint8Array(0), session));
+    expect((await handle(get("/v1/blobs/bookfile%3Ab1?part=1", session))).status).toBe(404);
+    const account = await handle(get("/v1/account", session));
+    expect(((await account.json()) as { blobBytesUsed: number }).blobBytesUsed).toBe(6 + 5);
+  });
+
+  test("DELETE removes descriptor and parts and refunds the quota", async () => {
+    const { handle } = makeRelay();
+    const { session } = await login(handle, "reader@example.com");
+    await handle(putBytes("/v1/blobs/bookfile%3Ab1?part=0&parts=1", new Uint8Array(9), session));
+    await handle(putBytes("/v1/blobs/bookfile%3Ab1?commit=1&parts=1", new Uint8Array(0), session));
+    expect((await handle(del("/v1/blobs/bookfile%3Ab1", session))).status).toBe(204);
+    expect((await handle(get("/v1/blobs/bookfile%3Ab1", session))).status).toBe(404);
+    expect((await handle(get("/v1/blobs/bookfile%3Ab1?part=0", session))).status).toBe(404);
+    const account = await handle(get("/v1/account", session));
+    expect(((await account.json()) as { blobBytesUsed: number }).blobBytesUsed).toBe(0);
+  });
+
+  test("staged parts respect the account quota and refusals charge nothing", async () => {
+    const { handle } = makeRelay({ maxAccountBlobBytes: 20 });
+    const { session } = await login(handle, "reader@example.com");
+    expect(
+      (await handle(putBytes("/v1/blobs/bookfile%3Ab1?part=0&parts=2", new Uint8Array(15), session))).status,
+    ).toBe(200);
+    const refused = await handle(
+      putBytes("/v1/blobs/bookfile%3Ab1?part=1&parts=2", new Uint8Array(15), session),
+    );
+    expect(refused.status).toBe(413);
+    const account = await handle(get("/v1/account", session));
+    expect(((await account.json()) as { blobBytesUsed: number }).blobBytesUsed).toBe(15);
+  });
+
   test("accounts are isolated even under the same blob key", async () => {
     const { handle } = makeRelay();
     const a = await login(handle, "a@example.com");

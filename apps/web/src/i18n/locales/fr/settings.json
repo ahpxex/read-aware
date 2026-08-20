@@ -439,6 +439,12 @@
       "title": "Mises à jour",
       "description": "Rechercher et installer la dernière version."
     },
+    "channel": {
+      "title": "Canal de mise à jour",
+      "description": "Stable ne reçoit que les versions finales. Bêta reçoit aussi les préversions — les nouveautés plus tôt, avec plus d'aspérités.",
+      "stable": "Stable",
+      "beta": "Bêta"
+    },
     "checkUpdates": "Rechercher des mises à jour",
     "checkingUpdates": "Recherche...",
     "installUpdate": "Installer la mise à jour",

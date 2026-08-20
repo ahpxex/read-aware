@@ -1,5 +1,6 @@
 mod android_update;
 mod book_metadata;
+mod desktop_update;
 mod comic_metadata;
 mod diagnostics;
 mod external_open;
@@ -799,6 +800,7 @@ pub fn run() {
             plugins::serve_plugin_asset(ctx.app_handle(), request)
         })
         .manage(android_update::AndroidUpdateState::default())
+        .manage(desktop_update::DesktopUpdateState::default())
         .manage(external_open::ExternalOpenQueue(Mutex::new(launch_open_paths)))
         .manage(storage::BlobReadSessions::default())
         .manage(storage::BlobWriteSessions::default())
@@ -990,6 +992,8 @@ pub fn run() {
             write_export_file,
             android_update::android_update_check,
             android_update::android_update_install,
+            desktop_update::desktop_update_check,
+            desktop_update::desktop_update_install,
             set_status_bar_hidden,
             sync_safe_area,
             set_volume_key_capture,

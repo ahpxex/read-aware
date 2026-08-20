@@ -435,6 +435,12 @@
       "title": "Updates",
       "description": "Check for and install the latest release."
     },
+    "channel": {
+      "title": "Update channel",
+      "description": "Stable gets finished releases. Beta also gets pre-releases — earlier features, rougher edges.",
+      "stable": "Stable",
+      "beta": "Beta"
+    },
     "checkUpdates": "Check for updates",
     "checkingUpdates": "Checking...",
     "installUpdate": "Install update",

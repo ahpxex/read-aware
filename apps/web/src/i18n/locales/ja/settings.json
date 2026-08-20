@@ -431,6 +431,12 @@
       "title": "更新",
       "description": "最新リリースを確認してインストールします。"
     },
+    "channel": {
+      "title": "更新チャンネル",
+      "description": "安定版は正式リリースのみを受け取ります。ベータ版はプレリリースも受け取ります——新機能をいち早く、ただし粗さも含めて。",
+      "stable": "安定版",
+      "beta": "ベータ版"
+    },
     "checkUpdates": "更新を確認",
     "checkingUpdates": "確認中…",
     "installUpdate": "アップデートをインストール",

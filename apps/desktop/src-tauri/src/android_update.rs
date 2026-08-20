@@ -100,10 +100,40 @@ fn client(current_version: &str, timeout: std::time::Duration) -> Result<reqwest
         .map_err(|err| format!("Failed to create Android update client: {err}"))
 }
 
+/// Only manifests under our own repo's release assets may override the
+/// default (the beta channel points at a specific pre-release's manifest).
 #[cfg(target_os = "android")]
-async fn fetch_manifest(current_version: &str) -> Result<AndroidUpdateManifest, String> {
+fn validate_manifest_source(raw: &str) -> Result<(), String> {
+    let url = reqwest::Url::parse(raw).map_err(|err| format!("Invalid manifest URL: {err}"))?;
+    let path_ok = url
+        .path()
+        .strip_prefix("/ahpxex/read-aware/releases/download/v")
+        .is_some_and(|rest| rest.ends_with("/latest-android.json"));
+    if url.scheme() != "https"
+        || url.host_str() != Some("github.com")
+        || !path_ok
+        || url.query().is_some()
+        || url.fragment().is_some()
+    {
+        return Err("Manifest URL does not match the expected GitHub release asset".into());
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "android")]
+async fn fetch_manifest(
+    current_version: &str,
+    manifest_url: Option<&str>,
+) -> Result<AndroidUpdateManifest, String> {
+    let source = match manifest_url {
+        Some(raw) => {
+            validate_manifest_source(raw)?;
+            raw
+        }
+        None => MANIFEST_URL,
+    };
     let response = client(current_version, std::time::Duration::from_secs(15))?
-        .get(MANIFEST_URL)
+        .get(source)
         .send()
         .await
         .map_err(|err| format!("Failed to check for Android updates: {err}"))?
@@ -299,10 +329,11 @@ fn installed_version_code(app: tauri::AppHandle) -> Result<u64, String> {
 pub async fn android_update_check(
     app: tauri::AppHandle,
     state: tauri::State<'_, AndroidUpdateState>,
+    manifest_url: Option<String>,
 ) -> Result<Option<AvailableAndroidUpdate>, String> {
     *state.0.lock().map_err(|err| err.to_string())? = None;
     let current_version = app.package_info().version.to_string();
-    let manifest = fetch_manifest(&current_version).await?;
+    let manifest = fetch_manifest(&current_version, manifest_url.as_deref()).await?;
     let current = semver::Version::parse(&current_version)
         .map_err(|err| format!("Invalid current app version: {err}"))?;
     let available = semver::Version::parse(&manifest.version)

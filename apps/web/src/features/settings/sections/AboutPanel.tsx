@@ -1,9 +1,14 @@
-import { useEffect } from "react";
-import { Button, Spinner } from "@read-aware/ui";
+import { useEffect, useState } from "react";
+import { Button, ChoiceGroup, Spinner } from "@read-aware/ui";
 import { isAndroid, isIOS, isTauri } from "../../../platform/environment";
 import { openExternalUrl } from "../../../platform/external-link";
 import { useTranslation } from "../../../i18n";
 import { useSoftwareUpdate } from "../../update/hooks/useSoftwareUpdate";
+import {
+  getUpdateChannel,
+  setUpdateChannel,
+  type UpdateChannel,
+} from "../../update/lib/update-channel";
 import { versionCodename } from "../../update/lib/version-codename";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
@@ -42,6 +47,7 @@ function linkValue(href: string, label: string) {
 export function AboutPanel() {
   const { t } = useTranslation("settings");
   const update = useSoftwareUpdate();
+  const [channel, setChannel] = useState<UpdateChannel>(() => getUpdateChannel());
   const buildLabel = !isTauri()
     ? t("about.buildWeb")
     : isAndroid()
@@ -122,6 +128,23 @@ export function AboutPanel() {
                     : t("about.checkUpdates")}
               </Button>
             </span>
+          }
+        />
+        <SettingsRow
+          title={t("about.channel.title")}
+          description={t("about.channel.description")}
+          control={
+            <ChoiceGroup
+              value={channel}
+              options={[
+                { value: "stable", label: t("about.channel.stable") },
+                { value: "beta", label: t("about.channel.beta") },
+              ]}
+              onChange={(next) => {
+                setUpdateChannel(next);
+                setChannel(next);
+              }}
+            />
           }
         />
       </SettingsGroup>

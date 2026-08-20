@@ -3917,6 +3917,7 @@ dependencies = [
  "tauri-plugin-single-instance",
  "tauri-plugin-updater",
  "tempfile",
+ "url",
  "uuid",
  "webpki-roots",
  "windows 0.61.3",

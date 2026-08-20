@@ -431,6 +431,12 @@
       "title": "更新",
       "description": "检查并安装最新版本。"
     },
+    "channel": {
+      "title": "更新通道",
+      "description": "稳定版只接收正式发布;测试版还会接收预发布版本——更早用上新功能,也更可能遇到毛边。",
+      "stable": "稳定版",
+      "beta": "测试版"
+    },
     "checkUpdates": "检查更新",
     "checkingUpdates": "正在检查…",
     "installUpdate": "安装更新",

@@ -435,6 +435,12 @@
       "title": "Updates",
       "description": "Nach dem neuesten Release suchen und es installieren."
     },
+    "channel": {
+      "title": "Update-Kanal",
+      "description": "Stabil erhält nur fertige Releases. Beta erhält auch Vorabversionen — frühere Funktionen, rauere Kanten.",
+      "stable": "Stabil",
+      "beta": "Beta"
+    },
     "checkUpdates": "Nach Updates suchen",
     "checkingUpdates": "Wird geprüft...",
     "installUpdate": "Update installieren",

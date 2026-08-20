@@ -439,6 +439,12 @@
       "title": "Actualizaciones",
       "description": "Busca e instala la última versión."
     },
+    "channel": {
+      "title": "Canal de actualizaciones",
+      "description": "Estable solo recibe versiones finales. Beta también recibe prelanzamientos: funciones antes, con más aristas.",
+      "stable": "Estable",
+      "beta": "Beta"
+    },
     "checkUpdates": "Buscar actualizaciones",
     "checkingUpdates": "Buscando...",
     "installUpdate": "Instalar actualización",

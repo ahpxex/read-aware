@@ -345,7 +345,13 @@
       "syncing": "Synchronisiere…",
       "error": "Synchronisierungsfehler",
       "lastSync": "Zuletzt synchronisiert {{time}}",
-      "never": "Noch nicht synchronisiert"
+      "never": "Noch nicht synchronisiert",
+      "signedOut": "Abgemeldet — erneut anmelden, um die Synchronisierung fortzusetzen"
+    },
+    "reauth": {
+      "notice": "Sync-Anmeldung abgelaufen",
+      "action": "Erneut anmelden",
+      "dismiss": "Anmeldehinweis schließen"
     },
     "connect": {
       "emailLabel": "E-Mail",
@@ -370,7 +376,8 @@
       "linkReady": "Du bist angemeldet. Lege zum Abschluss deine Verschlüsselungs-Passphrase fest."
     },
     "connected": {
-      "description": "Verbunden als {{account}} — Änderungen werden über das verschlüsselte Relay synchronisiert.",
+      "statusTitle": "Status",
+      "planTitle": "Tarif",
       "syncNow": "Jetzt synchronisieren",
       "disconnect": "Trennen",
       "disconnectTitle": "Synchronisierung trennen?",

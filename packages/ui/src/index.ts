@@ -6,7 +6,7 @@ export { Eyebrow } from "./typography/Eyebrow";
 export { Caption } from "./typography/Caption";
 
 // Components
-export { Button } from "./Button";
+export { Button, buttonClassName } from "./Button";
 export { Accordion } from "./Accordion";
 export { Avatar } from "./Avatar";
 export { Badge } from "./Badge";

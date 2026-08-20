@@ -21,6 +21,24 @@ type ButtonProps = {
   size?: keyof typeof sizeClasses;
 } & ButtonHTMLAttributes<HTMLButtonElement>;
 
+/**
+ * The Button look as a class string, for elements that must render as
+ * something other than <button> (a DropdownMenu trigger span, a link styled
+ * as a button). One source of truth — hand-copied button styles drift.
+ */
+export function buttonClassName(options?: {
+  variant?: keyof typeof variantClasses;
+  size?: keyof typeof sizeClasses;
+  className?: string;
+}): string {
+  return cn(
+    "inline-flex items-center justify-center font-sans font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg disabled:pointer-events-none disabled:opacity-40",
+    variantClasses[options?.variant ?? "solid"],
+    sizeClasses[options?.size ?? "md"],
+    options?.className,
+  );
+}
+
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   function Button(
     { variant = "solid", size = "md", className, type = "button", ...props },
@@ -30,12 +48,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         type={type}
-        className={cn(
-          "inline-flex items-center justify-center font-sans font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg disabled:pointer-events-none disabled:opacity-40",
-          variantClasses[variant],
-          sizeClasses[size],
-          className,
-        )}
+        className={buttonClassName({ variant, size, className })}
         {...props}
       />
     );

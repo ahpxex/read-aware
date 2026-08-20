@@ -22,6 +22,7 @@ import { AppHeader } from "./features/navigation/components/AppHeader";
 import { usePrimaryDestinations } from "./features/navigation/hooks/usePrimaryDestinations";
 import { useContextHeaderActions } from "./features/context/hooks/useContextHeaderActions";
 import { SyncIndicator } from "./features/sync/components/SyncIndicator";
+import { SyncReauthNotice } from "./features/sync/components/SyncReauthNotice";
 import { UpdateIndicator } from "./features/update/components/UpdateIndicator";
 import { WhatsNewNotice } from "./features/update/components/WhatsNewNotice";
 import { useSoftwareUpdate } from "./features/update/hooks/useSoftwareUpdate";
@@ -555,6 +556,7 @@ function App() {
             leadingStatus={
               <>
                 <SyncIndicator />
+                <SyncReauthNotice />
                 <UpdateIndicator />
                 <WhatsNewNotice />
               </>

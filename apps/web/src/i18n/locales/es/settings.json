@@ -349,7 +349,13 @@
       "syncing": "Sincronizando…",
       "error": "Error de sincronización",
       "lastSync": "Última sincronización {{time}}",
-      "never": "Aún sin sincronizar"
+      "never": "Aún sin sincronizar",
+      "signedOut": "Sesión cerrada: inicia sesión de nuevo para reanudar la sincronización"
+    },
+    "reauth": {
+      "notice": "La sesión de sincronización caducó",
+      "action": "Iniciar sesión de nuevo",
+      "dismiss": "Cerrar el aviso de inicio de sesión"
     },
     "connect": {
       "emailLabel": "Correo",
@@ -374,7 +380,8 @@
       "linkReady": "Has iniciado sesión. Establece tu frase de cifrado para terminar."
     },
     "connected": {
-      "description": "Conectado como {{account}}: los cambios se sincronizan a través del relé cifrado.",
+      "statusTitle": "Estado",
+      "planTitle": "Plan",
       "syncNow": "Sincronizar ahora",
       "disconnect": "Desconectar",
       "disconnectTitle": "¿Desconectar la sincronización?",

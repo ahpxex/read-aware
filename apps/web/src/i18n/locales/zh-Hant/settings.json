@@ -341,7 +341,13 @@
       "syncing": "同步中…",
       "error": "同步出錯",
       "lastSync": "上次同步 {{time}}",
-      "never": "尚未同步"
+      "never": "尚未同步",
+      "signedOut": "登入已失效——重新登入後繼續同步"
+    },
+    "reauth": {
+      "notice": "同步登入已失效",
+      "action": "重新登入",
+      "dismiss": "關閉登入提示"
     },
     "connect": {
       "emailLabel": "電子郵件",
@@ -366,7 +372,8 @@
       "linkReady": "已透過連結登入。設定加密口令即可完成連接。"
     },
     "connected": {
-      "description": "已連接：{{account}}——變更透過加密中繼同步。",
+      "statusTitle": "狀態",
+      "planTitle": "方案",
       "syncNow": "立即同步",
       "disconnect": "中斷連線",
       "disconnectTitle": "中斷同步？",

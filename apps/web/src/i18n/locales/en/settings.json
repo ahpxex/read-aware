@@ -345,7 +345,13 @@
       "syncing": "Syncing…",
       "error": "Sync error",
       "lastSync": "Last synced {{time}}",
-      "never": "Not synced yet"
+      "never": "Not synced yet",
+      "signedOut": "Signed out — sign in again to resume syncing"
+    },
+    "reauth": {
+      "notice": "Sync sign-in expired",
+      "action": "Sign in again",
+      "dismiss": "Dismiss sign-in reminder"
     },
     "connect": {
       "emailLabel": "Email",
@@ -370,7 +376,8 @@
       "linkReady": "You're signed in. Set your encryption passphrase to finish."
     },
     "connected": {
-      "description": "Connected as {{account}} — changes sync through the encrypted relay.",
+      "statusTitle": "Status",
+      "planTitle": "Plan",
       "syncNow": "Sync now",
       "disconnect": "Disconnect",
       "disconnectTitle": "Disconnect sync?",

@@ -349,7 +349,13 @@
       "syncing": "Synchronisation…",
       "error": "Erreur de synchronisation",
       "lastSync": "Dernière synchro {{time}}",
-      "never": "Pas encore synchronisé"
+      "never": "Pas encore synchronisé",
+      "signedOut": "Déconnecté — reconnectez-vous pour reprendre la synchronisation"
+    },
+    "reauth": {
+      "notice": "Connexion de synchro expirée",
+      "action": "Se reconnecter",
+      "dismiss": "Fermer le rappel de connexion"
     },
     "connect": {
       "emailLabel": "E-mail",
@@ -374,7 +380,8 @@
       "linkReady": "Vous êtes connecté. Définissez votre phrase de chiffrement pour terminer."
     },
     "connected": {
-      "description": "Connecté en tant que {{account}} — les modifications se synchronisent via le relais chiffré.",
+      "statusTitle": "État",
+      "planTitle": "Formule",
       "syncNow": "Synchroniser",
       "disconnect": "Déconnecter",
       "disconnectTitle": "Déconnecter la synchronisation ?",

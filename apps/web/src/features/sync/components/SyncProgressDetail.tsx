@@ -1,16 +1,15 @@
 /**
  * The sync facts as a quiet metadata strip — icon + caption pairs that wrap,
- * shared by the header popover and the Data & Sync panel. Editorial
- * restraint: an item renders only when it says something (an empty outbox
- * and an all-zero cycle say nothing). While a cycle runs with honest
- * denominators (push/blob phases), a thin bar tracks it; the pull phase
- * stays textual because its total is unknowable.
+ * rendered in the header indicator's popover. (The Data & Sync panel states
+ * the same facts as settings rows instead.) Editorial restraint: an item
+ * renders only when it says something (an empty outbox and an all-zero cycle
+ * say nothing). While a cycle runs with honest denominators (push/blob
+ * phases), a thin bar tracks it; the pull phase stays textual because its
+ * total is unknowable.
  */
 import {
   ArrowsClockwise,
   ClockCounterClockwise,
-  CloudCheck,
-  IdentificationBadge,
   UploadSimple,
   WarningCircle,
 } from "@phosphor-icons/react";
@@ -24,26 +23,25 @@ import { syncCycleFraction } from "../lib/sync-progress";
 type SyncProgressDetailProps = {
   status: SyncStatusSnapshot;
   backlog: SyncBacklog | null;
-  /** Formatted relay storage usage (settings panel only). */
-  storage?: string | null;
-  /** Formatted account plan, e.g. "Plan: Pro" (settings panel only). */
-  plan?: string | null;
 };
 
 function Item({ icon, tone, children }: { icon: ReactNode; tone?: "error"; children: ReactNode }) {
+  // Caption pins its own text-fg-muted, so the tone must be repeated on it —
+  // coloring only the wrapper leaves a red icon beside gray text.
+  const toneClass = tone === "error" ? "text-red-700" : undefined;
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 ${tone === "error" ? "text-red-700" : "text-fg-muted"}`}
-    >
+    <span className={`inline-flex items-center gap-1.5 ${toneClass ?? "text-fg-muted"}`}>
       {icon}
-      <Caption as="span">{children}</Caption>
+      <Caption as="span" className={toneClass}>
+        {children}
+      </Caption>
     </span>
   );
 }
 
 const ICON = { size: 14, weight: "regular", "aria-hidden": true } as const;
 
-export function SyncProgressDetail({ status, backlog, storage, plan }: SyncProgressDetailProps) {
+export function SyncProgressDetail({ status, backlog }: SyncProgressDetailProps) {
   const { t } = useTranslation("settings");
   const { progress } = status;
   const syncing = status.state === "syncing";
@@ -68,6 +66,10 @@ export function SyncProgressDetail({ status, backlog, storage, plan }: SyncProgr
                     total: progress.blobsTotal,
                   })}
           </Item>
+        ) : status.state === "unauthenticated" ? (
+          <Item tone="error" icon={<WarningCircle {...ICON} />}>
+            {t("dataSync.syncStatus.signedOut")}
+          </Item>
         ) : status.state === "error" ? (
           <Item tone="error" icon={<WarningCircle {...ICON} />}>
             {status.lastError ?? t("dataSync.syncStatus.error")}
@@ -81,8 +83,6 @@ export function SyncProgressDetail({ status, backlog, storage, plan }: SyncProgr
               : t("dataSync.syncStatus.never")}
           </Item>
         )}
-        {plan && <Item icon={<IdentificationBadge {...ICON} />}>{plan}</Item>}
-        {storage && <Item icon={<CloudCheck {...ICON} />}>{storage}</Item>}
         {hasBacklog && (
           <Item icon={<UploadSimple {...ICON} />}>
             {t("dataSync.progress.pending", { events: backlog.events, blobs: backlog.blobs })}

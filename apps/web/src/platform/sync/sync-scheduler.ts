@@ -18,7 +18,8 @@ import { createLogger } from "../logger";
 import { refreshRoamingPreferences, republishRoamingSecrets } from "../roaming-preferences";
 import { deleteSecret, getSecret, setSecret } from "../secret-store";
 import { fromBase64 } from "../sync-envelope";
-import { createRelayClient, type RelayClient } from "./relay-client";
+import { clearReauthNoticeDismissal } from "./reauth-notice";
+import { createRelayClient, RelayError, type RelayClient } from "./relay-client";
 import {
   createSyncEngine,
   nextSyncDelayMs,
@@ -81,7 +82,12 @@ export function relayBaseUrl(): string {
 // ── Status (subscribable snapshot for useSyncExternalStore) ──────────────────
 
 export type SyncStatusSnapshot = {
-  state: "disabled" | "idle" | "syncing" | "error";
+  /**
+   * `unauthenticated`: credentials exist locally but the relay rejected the
+   * session (401). Unlike `error` it is terminal — no retry heals a dead
+   * session — so the scheduler goes dormant until a reconnect restarts it.
+   */
+  state: "disabled" | "idle" | "syncing" | "error" | "unauthenticated";
   lastSyncAt: number | null;
   lastError: string | null;
   /** Live counters while `state === "syncing"`, null otherwise. */
@@ -142,6 +148,10 @@ function buildEngine(): SyncEngine {
 
 let engine: SyncEngine | null = null;
 const getEngine = (): SyncEngine => (engine ??= buildEngine());
+
+/** 401 = the relay no longer knows this session; nothing but a re-login helps. */
+const isAuthRejection = (error: unknown): boolean =>
+  error instanceof RelayError && error.status === 401;
 
 let running = false;
 
@@ -217,7 +227,7 @@ export async function syncNow(): Promise<void> {
     await runCycle();
   } catch (error) {
     setStatus({
-      state: "error",
+      state: isAuthRejection(error) ? "unauthenticated" : "error",
       lastError: error instanceof Error ? error.message : String(error),
       progress: null,
       cycleTotals: null,
@@ -243,6 +253,7 @@ export function startSyncScheduler(): () => void {
   let watchRetries = 0;
   let watchReconnect: number | null = null;
   let doorbellDebounce: number | null = null;
+  let sessionRejected = false;
 
   const schedule = (ms: number) => {
     if (disposed) return;
@@ -250,13 +261,38 @@ export function startSyncScheduler(): () => void {
     timer = window.setTimeout(tick, ms);
   };
 
+  // A dead session cannot heal on its own, so retrying (or keeping the
+  // doorbell alive) would only hammer the relay with 401s. Go dormant; a
+  // reconnect through the settings panel restarts the scheduler fresh.
+  const onAuthRejected = () => {
+    if (sessionRejected) return;
+    sessionRejected = true;
+    if (timer !== null) window.clearTimeout(timer);
+    if (pushDebounce !== null) window.clearTimeout(pushDebounce);
+    if (watchReconnect !== null) window.clearTimeout(watchReconnect);
+    if (doorbellDebounce !== null) window.clearTimeout(doorbellDebounce);
+    watchSocket?.close();
+    watchSocket = null;
+    setStatus({
+      state: "unauthenticated",
+      lastError: null,
+      progress: null,
+      cycleTotals: null,
+    });
+  };
+
   const tick = () => {
+    if (sessionRejected) return;
     void runCycle()
       .then(() => {
         failures = 0;
         schedule(PULL_INTERVAL_MS);
       })
       .catch((error) => {
+        if (isAuthRejection(error)) {
+          onAuthRejected();
+          return;
+        }
         failures += 1;
         setStatus({
           state: "error",
@@ -273,7 +309,7 @@ export function startSyncScheduler(): () => void {
   // runs the ordinary cycle, so notify-vs-poll never forks the sync logic.
   // The interval cadence stays as the safety net for a dropped socket.
   const openWatch = async () => {
-    if (disposed || watchSocket) return;
+    if (disposed || watchSocket || sessionRejected) return;
     if (!getSecret("sync.session")) return;
     // Trade the session for a one-shot short-TTL ticket over authenticated
     // HTTP: only the ticket rides in the socket URL, and it is consumed on
@@ -282,6 +318,10 @@ export function startSyncScheduler(): () => void {
     try {
       ticket = await syncRelayClient().watchTicket();
     } catch (error) {
+      if (isAuthRejection(error)) {
+        onAuthRejected();
+        return;
+      }
       log.warn("watch ticket unavailable; falling back to polling", error);
       return;
     }
@@ -392,6 +432,9 @@ export async function persistConnection(options: {
   // offline) get sealed into the log now, so they roam without waiting for
   // their next edit.
   republishRoamingSecrets();
+  // A fresh session opens a fresh epoch: if THIS one ever dies, the "sign in
+  // again" notice must prompt anew, whatever the user dismissed before.
+  clearReauthNoticeDismissal();
   restartSyncScheduler();
 }
 
@@ -403,6 +446,7 @@ export async function disconnectSync(): Promise<void> {
   }
   deleteSecret("sync.session");
   deleteSecret("sync.master-key");
+  clearReauthNoticeDismissal();
   const profile = await getSyncProfile();
   await setSyncProfile({
     ...profile,

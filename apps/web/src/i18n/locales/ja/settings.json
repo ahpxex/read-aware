@@ -341,7 +341,13 @@
       "syncing": "同期中…",
       "error": "同期エラー",
       "lastSync": "最終同期 {{time}}",
-      "never": "まだ同期していません"
+      "never": "まだ同期していません",
+      "signedOut": "サインインが無効になりました——再サインインすると同期を再開します"
+    },
+    "reauth": {
+      "notice": "同期のサインインが無効です",
+      "action": "再サインイン",
+      "dismiss": "サインインの通知を閉じる"
     },
     "connect": {
       "emailLabel": "メールアドレス",
@@ -366,7 +372,8 @@
       "linkReady": "リンクでのサインインが完了しました。暗号化パスフレーズを設定して接続を完了してください。"
     },
     "connected": {
-      "description": "{{account}} として接続中——変更は暗号化リレー経由で同期されます。",
+      "statusTitle": "ステータス",
+      "planTitle": "プラン",
       "syncNow": "今すぐ同期",
       "disconnect": "接続解除",
       "disconnectTitle": "同期を解除しますか？",

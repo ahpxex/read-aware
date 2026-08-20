@@ -18,7 +18,10 @@
   </p>
 </div>
 
-![ReadAware 中的多语言书架](apps/landing/public/screenshots/shelf.webp)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="apps/landing/public/screenshots/shelf-dark.webp" />
+  <img src="apps/landing/public/screenshots/shelf-light.webp" alt="ReadAware 中的多语言书架" />
+</picture>
 
 > ReadAware 免费且完全开源。如果它让你的阅读更好，欢迎给项目
 > [点一个 Star](https://github.com/ahpxex/read-aware)——这是新读者发现
@@ -46,8 +49,14 @@ iOS。它的中心是一个 agent——能调用工具、结合上下文回答�
 
 <table>
   <tr>
-    <td width="50%"><img src="apps/landing/public/screenshots/reader.webp" alt="ReadAware 逐句阅读器" /></td>
-    <td width="50%"><img src="apps/landing/public/screenshots/context.webp" alt="ReadAware 上下文感知助手" /></td>
+    <td width="50%"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="apps/landing/public/screenshots/reader-dark.webp" />
+  <img src="apps/landing/public/screenshots/reader-light.webp" alt="ReadAware 逐句阅读器" />
+</picture></td>
+    <td width="50%"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="apps/landing/public/screenshots/context-dark.webp" />
+  <img src="apps/landing/public/screenshots/context-light.webp" alt="ReadAware 上下文感知助手" />
+</picture></td>
   </tr>
 </table>
 

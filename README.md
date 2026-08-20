@@ -17,7 +17,10 @@
   </p>
 </div>
 
-![A multilingual library in ReadAware](apps/landing/public/screenshots/shelf.webp)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="apps/landing/public/screenshots/shelf-dark.webp" />
+  <img src="apps/landing/public/screenshots/shelf-light.webp" alt="A multilingual library in ReadAware" />
+</picture>
 
 > ReadAware is free and built in the open. If it makes your reading better,
 > [give it a star](https://github.com/ahpxex/read-aware) — stars are how new
@@ -52,8 +55,14 @@ extends the reader — and the agent — from the inside.
 
 <table>
   <tr>
-    <td width="50%"><img src="apps/landing/public/screenshots/reader.webp" alt="ReadAware sentence-by-sentence reader" /></td>
-    <td width="50%"><img src="apps/landing/public/screenshots/context.webp" alt="ReadAware context-aware assistant" /></td>
+    <td width="50%"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="apps/landing/public/screenshots/reader-dark.webp" />
+  <img src="apps/landing/public/screenshots/reader-light.webp" alt="ReadAware sentence-by-sentence reader" />
+</picture></td>
+    <td width="50%"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="apps/landing/public/screenshots/context-dark.webp" />
+  <img src="apps/landing/public/screenshots/context-light.webp" alt="ReadAware context-aware assistant" />
+</picture></td>
   </tr>
 </table>
 

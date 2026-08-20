@@ -18,7 +18,10 @@
   </p>
 </div>
 
-![ReadAware の多言語ライブラリ](apps/landing/public/screenshots/shelf.webp)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="apps/landing/public/screenshots/shelf-dark.webp" />
+  <img src="apps/landing/public/screenshots/shelf-light.webp" alt="ReadAware の多言語ライブラリ" />
+</picture>
 
 > ReadAware は無料で、オープンに開発されています。読書がより良くなったと
 > 感じたら、[スターを付けて](https://github.com/ahpxex/read-aware)応援して
@@ -53,8 +56,14 @@ ReadAware は macOS、Windows、Linux、Android、iOS で使える無料のオ�
 
 <table>
   <tr>
-    <td width="50%"><img src="apps/landing/public/screenshots/reader.webp" alt="ReadAware の一文ずつ読むリーダー" /></td>
-    <td width="50%"><img src="apps/landing/public/screenshots/context.webp" alt="ReadAware の文脈を理解するアシスタント" /></td>
+    <td width="50%"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="apps/landing/public/screenshots/reader-dark.webp" />
+  <img src="apps/landing/public/screenshots/reader-light.webp" alt="ReadAware の一文ずつ読むリーダー" />
+</picture></td>
+    <td width="50%"><picture>
+  <source media="(prefers-color-scheme: dark)" srcset="apps/landing/public/screenshots/context-dark.webp" />
+  <img src="apps/landing/public/screenshots/context-light.webp" alt="ReadAware の文脈を理解するアシスタント" />
+</picture></td>
   </tr>
 </table>
 

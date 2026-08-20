@@ -32,6 +32,11 @@ export interface BookSummary {
   /** Original import file name/size; absent on virtual books. */
   fileName?: string;
   fileSize?: number;
+  /**
+   * Narrativity classification (spoiler fence + digest-flavor signal), written
+   * by the idle classification pipeline. Absent = not yet classified.
+   */
+  narrativity?: "narrative" | "expository";
 }
 
 export interface CollectionSummary {

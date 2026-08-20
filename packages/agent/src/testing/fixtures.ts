@@ -378,6 +378,11 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         if (!book) throw new Error(`unknown book: ${bookId}`);
         book.status = finished ? "finished" : "reading";
       },
+      setBookNarrativity: async (bookId, narrativity) => {
+        const book = books.find((entry) => entry.id === bookId);
+        if (!book) throw new Error(`unknown book: ${bookId}`);
+        book.narrativity = narrativity;
+      },
       removeBook: async (bookId) => {
         const index = books.findIndex((entry) => entry.id === bookId);
         if (index < 0) throw new Error(`unknown book: ${bookId}`);

@@ -4,6 +4,7 @@
  */
 import type { ThreadChunk } from "../chunks";
 import { digestMissingChapters } from "../memory/chapter-digest";
+import { classifyNarrativity } from "../memory/narrativity";
 import { runConsolidation, type ConsolidationReport } from "../memory/consolidation";
 import { findChapterByHref } from "../text/chapter-lookup";
 import {
@@ -270,6 +271,10 @@ export class AgentRuntime {
       const toc = await deps.bookText.getToc(bookId).catch(() => undefined);
       beforeChapterIndex = toc?.length ?? 0;
     }
+    // 纪要口径跟着书的叙事性走。未分类的书先分类（fast 档一次调用，落
+    // book.narrativityClassified 事件）；分类失败本节拍按 narrative 保守
+    // 提炼——它的产物起码无害，分类落库后口径不符的行会被重算。
+    const narrativity = book.narrativity ?? (await this.classifyBookNarrativity(bookId));
     return digestMissingChapters({
       bookText: deps.bookText,
       bookMemory: deps.bookMemory,
@@ -278,7 +283,47 @@ export class AgentRuntime {
       bookId,
       beforeChapterIndex,
       maxChapters: options?.maxChapters,
+      flavor: narrativity ?? "narrative",
     });
+  }
+
+  /**
+   * 叙事性分类（空闲管线的前置步骤）：书名/作者 + 目录 + 正文开头样本
+   * 交给 fast 模型判定，成功即经 LibraryPort 落成事件。失败返回
+   * undefined（不落库，下个空闲节拍重试）；失败静默——与纪要管线同一
+   * 失败哲学，但留日志痕迹的责任在宿主的 log port（若配置）。
+   */
+  private async classifyBookNarrativity(
+    bookId: Id,
+  ): Promise<"narrative" | "expository" | undefined> {
+    const deps = this.options.deps;
+    const book = await deps.library.getBook(bookId);
+    if (!book) return undefined;
+    if (book.narrativity) return book.narrativity;
+    const toc = await deps.bookText.getToc(bookId).catch(() => undefined);
+    if (!toc?.length) return undefined;
+    // 正文样本：跳过版权页等空转小节，取第一段像样的实文。
+    let sampleText = "";
+    for (let index = 0; index < Math.min(toc.length, 8) && sampleText.length < 600; index++) {
+      const text = await deps.bookText.getChapterText(bookId, index).catch(() => undefined);
+      if (text && text.trim().length > sampleText.length) sampleText = text.trim();
+    }
+    if (!sampleText) return undefined;
+    const narrativity = await classifyNarrativity({
+      complete: this.completeFns.fast,
+      model: this.resolveModel("fast"),
+      title: book.title,
+      author: book.author,
+      toc,
+      sampleText,
+    });
+    if (!narrativity) return undefined;
+    try {
+      await deps.library.setBookNarrativity(bookId, narrativity);
+    } catch {
+      return undefined;
+    }
+    return narrativity;
   }
 
   private runConsolidation(force: boolean): Promise<ConsolidationReport | null> {

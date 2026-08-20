@@ -86,6 +86,11 @@ export interface LibraryPort {
   ): Promise<void>;
   setBookStarred(bookId: Id, starred: boolean): Promise<void>;
   setBookFinished(bookId: Id, finished: boolean): Promise<void>;
+  /**
+   * 落库叙事性分类（空闲管线的 LLM 判定；宿主实现记 book.narrativityClassified
+   * 事件）。用户可见工具永远不该直接调它——它是管线接缝，不是编辑功能。
+   */
+  setBookNarrativity(bookId: Id, narrativity: "narrative" | "expository"): Promise<void>;
   removeBook(bookId: Id): Promise<void>;
   createCollection(name: string): Promise<CollectionSummary>;
   renameCollection(collectionId: string, name: string): Promise<void>;
@@ -333,7 +338,18 @@ export interface SettingsPort {
  * 例如轮后巩固管道失败：对话不受影响，但失败必须留下痕迹（产品侧落到
  * 桌面端的日志文件）。缺省即静默，测试与 CLI 无需提供。
  */
-/** 章节读毕提炼的一条人物记录；name/aliases 按本书文本原样拼写。 */
+/**
+ * 纪要口径：书的叙事性决定纪要抽什么。narrative 抽人物与人物关系
+ * （叙事图），expository 抽概念/术语与概念关系（论证图）。旧行没有
+ * flavor 字段——按 narrative 解释（当时只有这一种口径）。
+ */
+export type DigestFlavor = "narrative" | "expository";
+
+/**
+ * 章节读毕提炼的一条实体记录；name/aliases 按本书文本原样拼写。
+ * narrative 口径下是人物，expository 口径下是概念/术语——形状同一，
+ * 语义由所在 digest 的 flavor 决定。
+ */
 export interface DigestCharacter {
   name: string;
   aliases?: string[];
@@ -341,13 +357,14 @@ export interface DigestCharacter {
 }
 
 /**
- * 章节读毕提炼的一条关系边（叙事图的边；digestVersion 2 起）。
- * from/to 用人物名录里的 name 原样拼写；确立章节即所在 digest 的
+ * 章节读毕提炼的一条关系边（digestVersion 2 起）。narrative 口径是
+ * 人物关系（叙事图的边），expository 口径是概念关系（论证图的边）。
+ * from/to 用实体名录里的 name 原样拼写；确立章节即所在 digest 的
  * chapterIndex——剧透边界因此是图上的一次 WHERE 切片，不靠事后裁剪。
  */
 export interface DigestRelation {
   from: string;
-  /** 关系种类，本书语言的短名词（"父亲"、"未婚妻"、"仆人"…）。 */
+  /** 关系种类，本书语言的短名词（"父亲"、"未婚妻"…；"属于"、"导致"…）。 */
   kind: string;
   to: string;
   note?: string;
@@ -360,9 +377,11 @@ export interface ChapterDigest {
   /** 一两句话的章节纪要，严格来自该章文本。 */
   summary: string;
   characters: DigestCharacter[];
-  /** 该章确立/揭示的人物关系（digestVersion 1 的旧行没有——空数组）。 */
+  /** 该章确立/揭示的实体关系（digestVersion 1 的旧行没有——空数组）。 */
   relations: DigestRelation[];
   digestVersion: number;
+  /** 提炼口径；旧行缺省 = narrative（当时唯一的口径）。 */
+  flavor?: DigestFlavor;
 }
 
 /**

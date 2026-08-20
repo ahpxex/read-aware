@@ -490,6 +490,22 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
                 updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
           WHERE push_state = 'rejected';",
     ),
+    (
+        20,
+        "book_narrativity",
+        // [projection] book.narrativityClassified 的物化：书的叙事性分类
+        // （'narrative' / 'expository'）。剧透围栏与纪要口径的分流信号；
+        // NULL = 未分类（空闲管线首次提炼该书前先分类）。
+        "ALTER TABLE books ADD COLUMN narrativity TEXT;",
+    ),
+    (
+        21,
+        "chapter_digest_flavor",
+        // [projection] 纪要口径落行：narrative 抽人物图、expository 抽概念图。
+        // NULL = narrative（口径分流之前的旧行）；书被重新分类后口径不符的
+        // 行会被空闲管线按章重算（同章新事件整行覆盖）。
+        "ALTER TABLE chapter_digests ADD COLUMN flavor TEXT;",
+    ),
 ];
 
 /// Apply migrations newer than the highest recorded version, up to `max_version`

@@ -53,6 +53,12 @@ export interface LibraryBook {
   starred?: boolean;
   /** The collection this book belongs to, or null/absent when ungrouped. */
   collectionId?: string | null;
+  /**
+   * Narrativity classification (book.narrativityClassified projection):
+   * narrative books get the spoiler fence and a character graph, expository
+   * books an unfenced concept graph. Absent/null = not yet classified.
+   */
+  narrativity?: "narrative" | "expository" | null;
 }
 
 /**

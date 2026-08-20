@@ -127,6 +127,61 @@ function storySoFarSection(digests: ChapterDigest[]): string | undefined {
 }
 
 /**
+ * expository 口径的姊妹节："本书脉络"——概念名录（术语表）+ 概念关系边
+ * （论证图）+ 最近几章的论点摘要。与叙事节共享同一实体/边机械
+ * （mergeCharacterRegistry / mergeRelationGraph 对形状泛型），措辞换成
+ * 概念语义；无剧透围栏语境，出处戳仍保留（"这个说法书里哪儿立的"）。
+ */
+function subjectSoFarSection(digests: ChapterDigest[]): string | undefined {
+  if (!digests.length) return undefined;
+  const ordered = [...digests].sort((a, b) => a.chapterIndex - b.chapterIndex);
+  const lines: string[] = [
+    "The book's argument so far, built from THIS book's own text (chapters the reader has finished). Terms are spelled exactly as this edition spells them — always use these spellings and definitions, never a variant you remember from elsewhere; where the book's usage differs from the field's, the book's usage wins in this conversation.",
+  ];
+  const mentions = new Map<string, number>();
+  for (const digest of ordered) {
+    for (const concept of digest.characters) {
+      mentions.set(concept.name, (mentions.get(concept.name) ?? 0) + 1);
+    }
+  }
+  const weight = (name: string) => mentions.get(name) ?? 0;
+  const registry = mergeCharacterRegistry(ordered)
+    .sort((a, b) => weight(b.name) - weight(a.name))
+    .slice(0, MAX_REGISTRY_CHARACTERS);
+  if (registry.length) {
+    lines.push(
+      "Key concepts so far (most recurring first; minor terms omitted — search the book text for them):",
+      ...registry.map(
+        (concept) =>
+          `- ${concept.name}${concept.aliases?.length ? ` (${concept.aliases.join(", ")})` : ""}${
+            concept.note ? ` — ${concept.note}` : ""
+          }`,
+      ),
+    );
+  }
+  const edges = mergeRelationGraph(ordered)
+    .sort((a, b) => weight(b.from) + weight(b.to) - (weight(a.from) + weight(a.to)))
+    .slice(0, MAX_REGISTRY_EDGES);
+  if (edges.length) {
+    lines.push(
+      "Conceptual relations the book has established (from —kind→ to, with the chapter that established it):",
+      ...edges.map(
+        (edge) =>
+          `- ${edge.from} —${edge.kind}→ ${edge.to} (#${edge.establishedAt})${edge.note ? ` — ${edge.note}` : ""}`,
+      ),
+    );
+  }
+  const recent = ordered.slice(-DIGEST_SUMMARY_CHAPTERS);
+  if (recent.length) {
+    lines.push(
+      "Recent finished chapters (what each argues):",
+      ...recent.map((digest) => `- #${digest.chapterIndex}: ${digest.summary}`),
+    );
+  }
+  return lines.join("\n");
+}
+
+/**
  * 规则分节（Codex 式结构，内容句子不动）：标题让模型按主题索引规则，
  * 也让人能一眼发现同节内的自相矛盾。scope 决定挂"阅读边界"节还是"卡片"节。
  */
@@ -213,7 +268,12 @@ export function buildSystemPrompt(scope: ThreadScope, input: SystemPromptInput):
   }
 
   if (scope.kind === "book" && input.chapterDigests?.length) {
-    const story = storySoFarSection(input.chapterDigests);
+    // 注入措辞跟着书的分类走：说明文的图是概念/论点，小说的图是人物/关系。
+    // 未分类按叙事措辞（与围栏的保守默认同向）。
+    const story =
+      input.book?.narrativity === "expository"
+        ? subjectSoFarSection(input.chapterDigests)
+        : storySoFarSection(input.chapterDigests);
     if (story) sections.push(story);
   }
 

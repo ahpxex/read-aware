@@ -128,8 +128,22 @@ export type DomainEvent =
          */
         relations?: Array<{ from: string; kind: string; to: string; note?: string }>;
         digestVersion: number;
+        /**
+         * 提炼口径（narrative 抽人物图 / expository 抽概念图）；缺省 =
+         * narrative（口径分流之前的旧事件）。
+         */
+        flavor?: "narrative" | "expository";
         model?: string;
       }
+    >
+  /**
+   * 叙事性分类：空闲管线从书名/目录/正文样本判定这本书是叙事作品还是
+   * 说明文类。剧透围栏与纪要口径的分流信号。与 chapterDigested 同理，
+   * LLM 判定不可确定性重算——入事件流，投影落 books.narrativity。
+   */
+  | DomainEventEnvelope<
+      "book.narrativityClassified",
+      { bookId: Id; narrativity: "narrative" | "expository"; model?: string }
     >
   /**
    * Two book records turned out to be the same content (matching source

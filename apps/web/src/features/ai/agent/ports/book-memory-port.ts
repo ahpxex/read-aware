@@ -24,6 +24,8 @@ interface ChapterDigestRow {
   charactersJson: string;
   relationsJson: string;
   digestVersion: number;
+  /** 提炼口径；null = narrative（口径分流之前的旧行）。 */
+  flavor: string | null;
   updatedAt: string;
 }
 
@@ -72,6 +74,9 @@ export function createBookMemoryPort(): BookMemoryPort {
         characters: parseCharacters(row.charactersJson),
         relations: parseRelations(row.relationsJson),
         digestVersion: row.digestVersion,
+        ...(row.flavor === "narrative" || row.flavor === "expository"
+          ? { flavor: row.flavor }
+          : {}),
       }));
     },
     saveDigest: async (bookId, digest) => {
@@ -85,6 +90,7 @@ export function createBookMemoryPort(): BookMemoryPort {
           characters: digest.characters,
           relations: digest.relations,
           digestVersion: digest.digestVersion,
+          ...(digest.flavor ? { flavor: digest.flavor } : {}),
         },
         origin: "agent",
       });

@@ -38,6 +38,9 @@ pub struct LibraryBook {
     pub starred: Option<bool>,
     #[serde(default)]
     pub collection_id: Option<String>,
+    /// 叙事性分类（book.narrativityClassified 的物化）；None = 未分类。
+    #[serde(default)]
+    pub narrativity: Option<String>,
 }
 
 /// Mirrors `Collection` in library-types.ts.
@@ -74,6 +77,7 @@ pub(crate) fn row_to_library_book(row: &rusqlite::Row) -> rusqlite::Result<Libra
         progress,
         starred: Some(row.get::<_, i64>("starred")? != 0),
         collection_id: row.get("collection_id")?,
+        narrativity: row.get("narrativity")?,
     })
 }
 
@@ -119,8 +123,8 @@ pub fn library_put_book(book: LibraryBook, db: State<'_, Db>) -> Result<(), Stri
         "INSERT INTO books
             (id, title, author, format, file_name, mime_type, file_size, cover_url,
              cover_checked, created_at, updated_at, last_opened_at, progress_percent,
-             reading_status, progress_json, starred, collection_id)
-         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17)
+             reading_status, progress_json, starred, collection_id, narrativity)
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18)
          ON CONFLICT(id) DO UPDATE SET
             title=excluded.title, author=excluded.author, format=excluded.format,
             file_name=excluded.file_name, mime_type=excluded.mime_type,
@@ -129,7 +133,7 @@ pub fn library_put_book(book: LibraryBook, db: State<'_, Db>) -> Result<(), Stri
             updated_at=excluded.updated_at, last_opened_at=excluded.last_opened_at,
             progress_percent=excluded.progress_percent, reading_status=excluded.reading_status,
             progress_json=excluded.progress_json, starred=excluded.starred,
-            collection_id=excluded.collection_id",
+            collection_id=excluded.collection_id, narrativity=excluded.narrativity",
         params![
             book.id,
             book.title,
@@ -148,6 +152,7 @@ pub fn library_put_book(book: LibraryBook, db: State<'_, Db>) -> Result<(), Stri
             progress_json,
             book.starred.unwrap_or(false) as i64,
             book.collection_id,
+            book.narrativity,
         ],
     )
     .map_err(|e| e.to_string())?;

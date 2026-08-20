@@ -33,11 +33,16 @@
 > - Not built yet: the sync engine, and the consolidation pipeline behind
 >   profile/entity events (they are logged but project to nothing).
 > - **Book memory v1 is live**: `book.chapterDigested` events project to
->   `chapter_digests` (per-finished-chapter summary + character registry,
+>   `chapter_digests` (per-finished-chapter summary + entity registry,
 >   names spelled as THIS edition spells them), filled by an idle pipeline
 >   and injected into the book-thread system prompt behind the spoiler
 >   boundary. Selection turns additionally get deterministic grounding
 >   context (`runtime/grounding-context.ts`) assembled host-side.
+> - **Digests are narrativity-flavored**: the idle pipeline first classifies
+>   an unclassified book (`book.narrativityClassified` → `books.narrativity`);
+>   narrative books digest to a character/relation graph behind the spoiler
+>   fence, expository books to a concept graph ("argument so far") with no
+>   fence. Flavor-mismatched rows (reclassified book) redigest lazily.
 > - Target on-device schema: `docs/data-model.md`. Current audit:
 >   `docs/review-0.3.0.html`.
 

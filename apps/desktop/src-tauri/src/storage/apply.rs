@@ -343,9 +343,9 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
             tx.execute(
                 "INSERT OR IGNORE INTO chapter_digests
                     (book_id, chapter_index, chapter_href, summary,
-                     characters_json, relations_json, digest_version, updated_at)
+                     characters_json, relations_json, digest_version, flavor, updated_at)
                     SELECT ?2, chapter_index, chapter_href, summary,
-                           characters_json, relations_json, digest_version, updated_at
+                           characters_json, relations_json, digest_version, flavor, updated_at
                       FROM chapter_digests WHERE book_id = ?1",
                 params![merged, keep],
             )
@@ -359,6 +359,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                 "UPDATE books SET
                     starred = MAX(starred, COALESCE((SELECT starred FROM books WHERE id = ?1), 0)),
                     collection_id = COALESCE(collection_id, (SELECT collection_id FROM books WHERE id = ?1)),
+                    narrativity = COALESCE(narrativity, (SELECT narrativity FROM books WHERE id = ?1)),
                     last_opened_at = COALESCE(
                         MAX(last_opened_at, (SELECT last_opened_at FROM books WHERE id = ?1)),
                         last_opened_at,
@@ -809,13 +810,14 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
             tx.execute(
                 "INSERT INTO chapter_digests
                     (book_id, chapter_index, chapter_href, summary,
-                     characters_json, relations_json, digest_version, updated_at)
-                 VALUES (?1,?2,?3,?4,?5,?6,?7,?8)
+                     characters_json, relations_json, digest_version, flavor, updated_at)
+                 VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)
                  ON CONFLICT(book_id, chapter_index) DO UPDATE SET
                     chapter_href=excluded.chapter_href, summary=excluded.summary,
                     characters_json=excluded.characters_json,
                     relations_json=excluded.relations_json,
                     digest_version=excluded.digest_version,
+                    flavor=excluded.flavor,
                     updated_at=excluded.updated_at",
                 params![
                     id,
@@ -825,8 +827,20 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                     characters_json,
                     relations_json,
                     i64_of(p, "digestVersion").unwrap_or(1),
+                    str_of(p, "flavor"),
                     at,
                 ],
+            )
+            .map_err(|e| e.to_string())?;
+        }
+        // 叙事性分类（剧透围栏与纪要口径的分流信号）：空闲管线的 LLM 判定，
+        // 与 chapterDigested 同理入事件——不可确定性重算，重放可复原。
+        "book.narrativityClassified" => {
+            let id = require(p, "bookId", t)?;
+            let narrativity = require(p, "narrativity", t)?;
+            tx.execute(
+                "UPDATE books SET narrativity = ?2, updated_at = ?3 WHERE id = ?1",
+                params![id, narrativity, at],
             )
             .map_err(|e| e.to_string())?;
         }

@@ -6,6 +6,7 @@
 import type { BookOverview, LibraryPort } from "@read-aware/agent";
 import type { BookStats, BookSummary, Id } from "@read-aware/core";
 import { createShelfDomain } from "../../../../domain";
+import { commitDomainEvents } from "../../../../platform/domain-events";
 
 function toOverview(book: BookSummary, state: BookStats | undefined): BookOverview {
   return {
@@ -17,6 +18,7 @@ function toOverview(book: BookSummary, state: BookStats | undefined): BookOvervi
     collectionId: book.collectionId,
     progressPercent: state?.progressPercent,
     status: state?.status,
+    narrativity: book.narrativity,
     addedAt: book.addedAt,
     updatedAt: book.updatedAt,
     lastOpenedAt: book.lastOpenedAt,
@@ -45,6 +47,15 @@ export function createLibraryPort(): LibraryPort {
     editBookMetadata: (bookId, patch) => shelf.books.editMetadata(String(bookId), patch),
     setBookStarred: (bookId, starred) => shelf.books.setStarred(String(bookId), starred),
     setBookFinished: (bookId, finished) => shelf.books.setFinished(String(bookId), finished),
+    // 管线接缝（与 book-memory-port 的 saveDigest 同构）：LLM 判定入事件流，
+    // apply.rs 物化到 books.narrativity。
+    setBookNarrativity: async (bookId, narrativity) => {
+      await commitDomainEvents({
+        type: "book.narrativityClassified",
+        payload: { bookId: String(bookId) as Id, narrativity },
+        origin: "agent",
+      });
+    },
     removeBook: (bookId) => shelf.books.remove(String(bookId)),
     createCollection: (name) => shelf.collections.create(name),
     renameCollection: (collectionId, name) => shelf.collections.rename(collectionId, name),

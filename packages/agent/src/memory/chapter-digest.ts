@@ -1,10 +1,14 @@
 /**
  * 章节读毕提炼（book_memory 投影 v1 的写管道）：读者每读完一章，后台在
- * `fast` 档位上从该章文本提炼一份纪要——摘要 + 人物名录（含别名/称呼）。
+ * `fast` 档位上从该章文本提炼一份纪要。口径随书的叙事性分流——
+ * narrative 抽摘要 + 人物名录（含别名/称呼）+ 人物关系边（叙事图）；
+ * expository 抽摘要 + 概念/术语名录 + 概念关系边（论证图）。
  *
- * 这是"给每本书造它自己的人物表"：大多数书没有前置角色表，而 flash 级
- * 模型凭预训练记忆最容易在译名拼写和"谁说了什么"上翻车。名录严格取自
- * 本书文本、按本书拼写，注入 system prompt 后模型照抄即可，不必猜。
+ * narrative 口径是"给每本书造它自己的人物表"：大多数书没有前置角色表，
+ * 而 flash 级模型凭预训练记忆最容易在译名拼写和"谁说了什么"上翻车。
+ * expository 口径是"给每本书造它自己的术语表"：技术书/论著的价值在
+ * 概念脉络，硬套人物表只会抽出噪音。两种口径共享同一存储形状
+ * （name/aliases/note 实体 + from/kind/to 边），语义由 flavor 区分。
  *
  * 与逐轮记忆提炼同一失败哲学：任何失败都静默跳过该章，绝不冒泡；
  * 产物经 BookMemoryPort 落成 book.chapterDigested 事件（LLM 产物不可
@@ -18,6 +22,7 @@ import type {
   BookTextPort,
   ChapterDigest,
   DigestCharacter,
+  DigestFlavor,
   DigestRelation,
 } from "../ports";
 
@@ -31,7 +36,7 @@ const MAX_CHARACTERS = 12;
 /** 单章关系边上限——只要该章确立/揭示的，不是全书关系的重述。 */
 const MAX_RELATIONS = 12;
 
-function buildDigestPrompt(known: DigestCharacter[]): string {
+function buildNarrativeDigestPrompt(known: DigestCharacter[]): string {
   const knownBlock = known.length
     ? `Characters already known from earlier chapters (merge into these — reuse the EXACT same "name" when the same person appears again, adding any new alias):\n${known
         .map(
@@ -53,6 +58,35 @@ ${knownBlock}
 
 Output STRICT JSON only, no prose, no code fences:
 {"summary": "...", "characters": [{"name": "...", "aliases": ["..."], "note": "..."}], "relations": [{"from": "...", "kind": "...", "to": "...", "note": "..."}]}`;
+}
+
+/**
+ * expository 口径：概念/术语名录 + 概念关系边。提示词按语义要求
+ * "concepts"，落库前归一回存储形状的 "characters" 键（同一形状，
+ * flavor 字段区分语义）。
+ */
+function buildExpositoryDigestPrompt(known: DigestCharacter[]): string {
+  const knownBlock = known.length
+    ? `Concepts already known from earlier chapters (merge into these — reuse the EXACT same "name" when the same concept reappears, adding any new alias or synonym):\n${known
+        .map(
+          (concept) =>
+            `- ${concept.name}${concept.aliases?.length ? ` (${concept.aliases.join(", ")})` : ""}`,
+        )
+        .join("\n")}`
+    : "Concepts already known from earlier chapters: (none yet)";
+  return `You maintain a reading companion's per-book memory. Digest ONE chapter of a NON-FICTION book (technical, argumentative, instructional, or reference) from its verbatim text.
+
+Hard rules:
+- Use ONLY the chapter text below. Nothing from your general knowledge of this subject — this book may define terms differently, and your memory of the field may contradict THIS author's argument.
+- Copy every term EXACTLY as this text spells it, character for character. Never normalize a term to the spelling or translation you remember from elsewhere.
+- "concepts": the key concepts, terms, methods, named entities, or works this chapter INTRODUCES or substantially DEVELOPS (at most ${MAX_CHARACTERS}). "note" is one short clause stating what THIS chapter says about it — its definition, role, or the claim made about it, grounded in this chapter only. Skip incidental mentions.
+- "relations": conceptual relationships this chapter ESTABLISHES between those items (at most ${MAX_RELATIONS}) — e.g. one causes/explains/contains/contrasts-with/supports/exemplifies another. "from"/"to" must reuse exact "name" values (from this chapter's list or the known list). "kind" is a short word in the chapter's language, read from "from" toward "to" (e.g. {"from": "甲", "kind": "导致", "to": "乙"} means the chapter claims 甲 causes 乙). Do NOT restate relations already established in earlier chapters unless this chapter adds something; do NOT import relations from your general knowledge of the field.
+- "summary": 1-3 sentences on what this chapter argues, explains, or establishes — its claims and conclusions, in the same language as the chapter text. No evaluation of whether the argument is correct, no outside context.
+
+${knownBlock}
+
+Output STRICT JSON only, no prose, no code fences:
+{"summary": "...", "concepts": [{"name": "...", "aliases": ["..."], "note": "..."}], "relations": [{"from": "...", "kind": "...", "to": "...", "note": "..."}]}`;
 }
 
 function extractText(message: AssistantMessage): string {
@@ -135,20 +169,26 @@ export interface ExtractChapterDigestInput {
   chapterHref?: string;
   chapterTitle?: string;
   chapterText: string;
-  /** 已读章节里累计的人物名录——别名归并的锚点。 */
+  /** 已读章节里累计的实体名录（人物或概念，随口径）——别名归并的锚点。 */
   knownCharacters: DigestCharacter[];
+  /** 提炼口径；缺省 narrative（既有调用方的原语义）。 */
+  flavor?: DigestFlavor;
 }
 
 /** 提炼单章；任何失败返回 undefined（调用方跳过该章，下次再试）。 */
 export async function extractChapterDigest(
   input: ExtractChapterDigestInput,
 ): Promise<ChapterDigest | undefined> {
+  const flavor: DigestFlavor = input.flavor ?? "narrative";
   const text = input.chapterText.trim();
   if (!text) return undefined;
   let message: AssistantMessage;
   try {
     message = await input.complete(input.model, {
-      systemPrompt: buildDigestPrompt(input.knownCharacters),
+      systemPrompt:
+        flavor === "expository"
+          ? buildExpositoryDigestPrompt(input.knownCharacters)
+          : buildNarrativeDigestPrompt(input.knownCharacters),
       messages: [
         {
           role: "user",
@@ -164,11 +204,14 @@ export async function extractChapterDigest(
   }
   const parsed = parseJson(extractText(message));
   if (!parsed || typeof parsed !== "object") return undefined;
-  const { summary, characters, relations } = parsed as Record<string, unknown>;
+  const { summary, characters, concepts, relations } = parsed as Record<string, unknown>;
   if (typeof summary !== "string" || !summary.trim()) return undefined;
-  const normalizedCharacters = normalizeCharacters(characters);
-  // 关系端点允许引用本章名录或此前已知的人物——跨章关系（本章才揭示
-  // 两个旧角色的关联）是常态。
+  // expository 提示词按语义要 "concepts" 键；存储形状统一在 characters。
+  // 模型偶尔仍答 "characters"（或反之）——两个键都认，语义键优先。
+  const entities = flavor === "expository" ? (concepts ?? characters) : (characters ?? concepts);
+  const normalizedCharacters = normalizeCharacters(entities);
+  // 关系端点允许引用本章名录或此前已知的实体——跨章关系（本章才揭示
+  // 两个旧实体的关联）是常态。
   const knownNames = new Set([
     ...normalizedCharacters.map((character) => character.name),
     ...input.knownCharacters.map((character) => character.name),
@@ -180,6 +223,7 @@ export async function extractChapterDigest(
     characters: normalizedCharacters,
     relations: normalizeRelations(relations, knownNames),
     digestVersion: DIGEST_VERSION,
+    flavor,
   };
 }
 
@@ -355,24 +399,33 @@ export interface DigestMissingChaptersInput {
   beforeChapterIndex: number;
   /** 单次调用的章节预算（后台管线按 idle 节拍分摊成本）。 */
   maxChapters?: number;
+  /** 提炼口径（书的叙事性）；缺省 narrative。口径不符的旧行视同缺失重算。 */
+  flavor?: DigestFlavor;
 }
 
 /**
- * 补齐缺失（或版本过期）的章节纪要，按序逐章、每次最多 maxChapters 章。
+ * 补齐缺失（或版本/口径过期）的章节纪要，按序逐章、每次最多 maxChapters 章。
  * 返回本次实际提炼的章数；单章失败跳过不中断。
  */
 export async function digestMissingChapters(
   input: DigestMissingChaptersInput,
 ): Promise<number> {
   const max = input.maxChapters ?? 2;
+  const flavor: DigestFlavor = input.flavor ?? "narrative";
   if (max <= 0 || input.beforeChapterIndex <= 0) return 0;
   const [toc, existing] = await Promise.all([
     input.bookText.getToc(input.bookId),
     input.bookMemory.listDigests(input.bookId),
   ]);
+  // 口径不符的行（书被重新分类，或旧的全量 narrative 时代抽了说明书）
+  // 视同缺失——注入侧读什么口径，行里就得是什么口径，否则概念图里
+  // 会站着一排"人物"。
   const current = new Map(
     existing
-      .filter((digest) => digest.digestVersion >= DIGEST_VERSION)
+      .filter(
+        (digest) =>
+          digest.digestVersion >= DIGEST_VERSION && (digest.flavor ?? "narrative") === flavor,
+      )
       .map((digest) => [digest.chapterIndex, digest]),
   );
   let digested = 0;
@@ -389,6 +442,7 @@ export async function digestMissingChapters(
       chapterTitle: toc[index]?.title,
       chapterText,
       knownCharacters: mergeCharacterRegistry([...current.values()]),
+      flavor,
     });
     if (!digest) continue;
     await input.bookMemory.saveDigest(input.bookId, digest);

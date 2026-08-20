@@ -63,6 +63,7 @@ export function toBookSummary(book: LibraryBook): BookSummary {
     lastOpenedAt: book.lastOpenedAt ?? undefined,
     fileName: book.fileName || undefined,
     fileSize: book.fileSize || undefined,
+    narrativity: book.narrativity ?? undefined,
   };
 }
 

@@ -118,6 +118,8 @@ pub struct ChapterDigest {
     pub characters_json: String,
     pub relations_json: String,
     pub digest_version: i64,
+    /// 纪要口径；None = narrative（口径分流之前的旧行）。
+    pub flavor: Option<String>,
     pub updated_at: String,
 }
 
@@ -127,7 +129,7 @@ pub fn chapter_digests_list(db: State<'_, Db>, book_id: String) -> Result<Vec<Ch
     let mut stmt = conn
         .prepare(
             "SELECT book_id, chapter_index, chapter_href, summary,
-                    characters_json, relations_json, digest_version, updated_at
+                    characters_json, relations_json, digest_version, flavor, updated_at
                FROM chapter_digests WHERE book_id = ?1
               ORDER BY chapter_index",
         )
@@ -142,7 +144,8 @@ pub fn chapter_digests_list(db: State<'_, Db>, book_id: String) -> Result<Vec<Ch
                 characters_json: row.get(4)?,
                 relations_json: row.get(5)?,
                 digest_version: row.get(6)?,
-                updated_at: row.get(7)?,
+                flavor: row.get(7)?,
+                updated_at: row.get(8)?,
             })
         })
         .map_err(|e| e.to_string())?;

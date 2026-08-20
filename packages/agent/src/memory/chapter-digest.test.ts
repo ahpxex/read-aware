@@ -54,6 +54,7 @@ describe("extractChapterDigest", () => {
       // 未知端点与自环被剪掉——挂空边比缺边更毒
       relations: [{ from: "费奥多尔", kind: "父亲", to: "阿辽沙" }],
       digestVersion: DIGEST_VERSION,
+      flavor: "narrative",
     });
   });
 
@@ -76,6 +77,37 @@ describe("extractChapterDigest", () => {
       knownCharacters: [],
     });
     expect(malformed).toBeUndefined();
+  });
+
+  test("expository flavor prompts for concepts and accepts the semantic key", async () => {
+    let systemPrompt = "";
+    const digest = await extractChapterDigest({
+      complete: async (_model, context) => {
+        systemPrompt = String((context as { systemPrompt?: unknown }).systemPrompt ?? "");
+        return reply(
+          '{"summary": "本章立论：群体智力低于个体。", "concepts": [{"name": "群体心理", "aliases": ["集体心理"], "note": "个体聚成群后的共同心理状态"}, {"name": "无意识"}], "relations": [{"from": "无意识", "kind": "支配", "to": "群体心理"}]}',
+        );
+      },
+      model: MODEL,
+      chapterIndex: 5,
+      chapterTitle: "第一章",
+      chapterText: "正文……",
+      knownCharacters: [],
+      flavor: "expository",
+    });
+    expect(systemPrompt).toContain("NON-FICTION");
+    expect(systemPrompt).toContain('"concepts"');
+    expect(digest).toEqual({
+      chapterIndex: 5,
+      summary: "本章立论：群体智力低于个体。",
+      characters: [
+        { name: "群体心理", aliases: ["集体心理"], note: "个体聚成群后的共同心理状态" },
+        { name: "无意识" },
+      ],
+      relations: [{ from: "无意识", kind: "支配", to: "群体心理" }],
+      digestVersion: DIGEST_VERSION,
+      flavor: "expository",
+    });
   });
 
   test("empty chapter text never calls the model", async () => {
@@ -226,6 +258,31 @@ describe("digestMissingChapters", () => {
       maxChapters: 5,
     });
     expect(digested).toEqual([0]);
+  });
+
+  test("a flavor-mismatched digest is recomputed (book reclassified, or pre-classification narrative rows on an expository book)", async () => {
+    const { deps, digested, saved } = harness([
+      {
+        chapterIndex: 0,
+        summary: "人物口径的旧行",
+        characters: [{ name: "勒庞" }],
+        relations: [],
+        digestVersion: DIGEST_VERSION,
+        // flavor 缺省 = narrative —— 分类为 expository 后视同缺失
+      },
+    ]);
+    const count = await digestMissingChapters({
+      ...deps,
+      complete: deps.complete as never,
+      model: MODEL,
+      bookId: BOOK_ID,
+      beforeChapterIndex: 1,
+      maxChapters: 5,
+      flavor: "expository",
+    });
+    expect(count).toBe(1);
+    expect(digested).toEqual([0]);
+    expect(saved[0]!.digest.flavor).toBe("expository");
   });
 
   test("reader still in the first chapter digests nothing", async () => {

@@ -166,7 +166,9 @@ const TOUCH_SECTION_CROSS_OVERSCROLL_PX = 120;
 const COMPLETION_FADE_MS = 240;
 // Discrete wheel gestures (see wheel-gesture.ts): travel that fires a navigator
 // step while its scroll-to-step option claims the wheel, and travel that turns
-// a page on a horizontal trackpad swipe in paginated layouts.
+// a page in paginated layouts (a horizontal trackpad swipe, or — since a
+// paginated layout has no vertical scroll to consume it — a vertical wheel:
+// a mouse's scroll wheel, or a vertical trackpad swipe).
 const WHEEL_STEP_THRESHOLD_PX = 48;
 const WHEEL_PAGE_TURN_THRESHOLD_PX = 60;
 // Touch swipe-to-step is simpler — one touch is one gesture: this much mostly-
@@ -1053,8 +1055,14 @@ export function FoliateReaderView({
   //   (goLeft/goRight keep it correct in RTL books).
   // - Navigator with scroll-to-step on: the wheel is claimed for stepping —
   //   one step per gesture (scroll down / swipe up = forward), never a scroll.
+  // - Paginated layouts, mostly-vertical delta: nothing scrolls vertically in
+  //   a paginated layout, so the wheel turns the page — a mouse's scroll
+  //   wheel's only axis (issue #20), and a vertical trackpad swipe. Scroll
+  //   down reads forward; turnPage's logical next/prev stays correct in RTL
+  //   books and ends at the completion screen. ctrl+wheel is a trackpad
+  //   pinch, never a page turn.
   // - Otherwise: scroll mode's shell-dismissal and section-crossing
-  //   accumulators, as before (both no-op in paginated layouts).
+  //   accumulators, as before.
   const handleWheelEvent = useCallback((event: WheelEvent) => {
     const gestures = wheelGesturesRef.current;
     if (!gestures) return;
@@ -1081,9 +1089,18 @@ export function FoliateReaderView({
       if (stepped !== 0) textUnitModeActionsRef.current?.[stepped > 0 ? "next" : "prev"]();
       return;
     }
+    if (readingModeRef.current !== "scroll" && !event.ctrlKey) {
+      if (event.cancelable) event.preventDefault();
+      // The SAME machine as the horizontal branch, so a diagonal swipe (each
+      // event routed by its dominant axis) accumulates as one gesture instead
+      // of firing once per axis.
+      const turned = gestures.pageTurn.feed(event.deltaY, wheelEventTime(event));
+      if (turned !== 0) void turnPage(turned);
+      return;
+    }
     dismissShellOnScrollDistanceRef.current(event.deltaY);
     handleWheelCrossingRef.current(event.deltaY);
-  }, [clearSelection, enqueuePageTurn, wheelEventTime]);
+  }, [clearSelection, enqueuePageTurn, turnPage, wheelEventTime]);
   const handleWheelEventRef = useRef(handleWheelEvent);
   useEffect(() => { handleWheelEventRef.current = handleWheelEvent; }, [handleWheelEvent]);
 
@@ -1698,7 +1715,17 @@ export function FoliateReaderView({
     const root = readerRootRef.current;
     if (!root) return;
 
-    const onWheel = (event: WheelEvent) => handleWheelEventRef.current(event);
+    // Same containment guard as onClick below: the overlays that render as
+    // viewport siblings (image lightbox, selection/annotation menus, footnote
+    // popover) bubble their wheel events through this host too — React-level
+    // stopPropagation can't help, React 19 listens at the app root, ABOVE this
+    // native listener on the bubble path. Scrolling or pinch-zooming inside an
+    // overlay must not turn the page under it.
+    const onWheel = (event: WheelEvent) => {
+      const target = event.target as Node | null;
+      if (!target || !viewportRef.current?.contains(target)) return;
+      handleWheelEventRef.current(event);
+    };
 
     // Touch parallel for the same dead zone, with its own per-surface tracker.
     const { onTouchStart, onTouchMove, onTouchEnd } = createTouchNavHandlers();

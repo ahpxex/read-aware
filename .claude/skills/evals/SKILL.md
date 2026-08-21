@@ -17,6 +17,11 @@ bun run eval:agent <suite> --scenario <id>       # 单场景
 bun run eval:agent <suite> --repetitions 3       # 抽样（行为有随机性，回归判断至少 3 次）
 bun run eval:all --concurrency 4                 # 全量（~109 场景）
 bun run eval:agent <suite> --judge               # 附加 LLM judge 评 rubric（另付 judge 模型费）
+bun run eval:agent <suite> \
+  --candidate glm=zai-coding-cn:glm-5.3 \
+  --candidate ds=deepseek:deepseek-chat           # 多 provider 同 run 对比：全部变体进同一并发池
+                                                  # 真并行；summary 出配对比较，viewer Run 页出
+                                                  # 变体对比矩阵（场景 × 变体）
 bun run eval:agent <suite> --gate                # 行为失败也变非零退出码（CI 用）
 ```
 

@@ -25,7 +25,8 @@ function RunCard({ record, refOf }: { record: RunRecord; refOf: (scenarioId: str
         <span className="refchip">{refOf(record.scenarioId)}</span>
         <span className="title mono">{record.scenarioId}</span>
         <span className="meta">
-          #{record.repetition} · score {record.assessment ? record.assessment.score.toFixed(2) : "—"} ·{" "}
+          {record.variantId !== "baseline" ? `${record.variantId} · ` : ""}#{record.repetition} · score{" "}
+          {record.assessment ? record.assessment.score.toFixed(2) : "—"} ·{" "}
           {ms(record.telemetry.wallTimeMs)} · {record.telemetry.rounds ?? "—"} rounds · {tools.length}{" "}
           tools · {usd(record.telemetry.costUsd)}
         </span>
@@ -102,7 +103,8 @@ function synthesizeSummary(
 ): NonNullable<RunDetail["summary"]> {
   const byScenario = new Map<string, RunRecord[]>();
   for (const record of records) {
-    byScenario.set(record.scenarioId, [...(byScenario.get(record.scenarioId) ?? []), record]);
+    const key = `${record.variantId}\u0000${record.scenarioId}`;
+    byScenario.set(key, [...(byScenario.get(key) ?? []), record]);
   }
   const mean = (values: number[]) =>
     values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
@@ -113,8 +115,9 @@ function synthesizeSummary(
     passed: records.filter((record) => record.status === "passed").length,
     failed: records.filter((record) => record.status === "failed").length,
     errors: records.filter((record) => record.status === "error").length,
-    byScenario: Array.from(byScenario.entries()).map(([scenarioId, group]) => ({
-      scenarioId,
+    byScenario: Array.from(byScenario.entries()).map(([key, group]) => ({
+      variantId: key.split("\u0000")[0]!,
+      scenarioId: key.split("\u0000")[1]!,
       runs: group.length,
       passed: group.filter((record) => record.status === "passed").length,
       meanScore: mean(group.map((record) => record.assessment?.score ?? 0)),
@@ -234,12 +237,75 @@ export function RunPage({
         </div>
       </div>
 
+      {variants.length > 1 && (
+        <>
+          <h2>变体对比</h2>
+          {summary.comparisons.length > 0 && (
+            <p className="sub">
+              {summary.comparisons.map((comparison) => (
+                <span key={comparison.candidateVariantId}>
+                  {comparison.candidateVariantId} vs baseline：pass{" "}
+                  {comparison.passRateDelta >= 0 ? "+" : ""}
+                  {(comparison.passRateDelta * 100).toFixed(1)}pp · score{" "}
+                  {comparison.meanScoreDelta >= 0 ? "+" : ""}
+                  {comparison.meanScoreDelta.toFixed(3)}（配对 {comparison.pairedRuns}）
+                  {"　"}
+                </span>
+              ))}
+            </p>
+          )}
+          <table>
+            <thead>
+              <tr>
+                <th>坐标</th>
+                <th>场景</th>
+                {variants.map((variant) => (
+                  <th key={variant.id}>{variant.id}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from(new Set(summary.byScenario.map((entry) => entry.scenarioId ?? ""))).map(
+                (scenarioId) => {
+                  const cells = variants.map((variant) =>
+                    summary.byScenario.find(
+                      (entry) => entry.scenarioId === scenarioId && entry.variantId === variant.id,
+                    ),
+                  );
+                  const allPass = cells.every((cell) => cell && cell.passed === cell.runs);
+                  return (
+                    <tr key={scenarioId} className={allPass ? "" : "attention"}>
+                      <td>
+                        <span className="refchip">{refOf(scenarioId)}</span>
+                      </td>
+                      <td className="mono">{scenarioId}</td>
+                      {cells.map((cell, index) => (
+                        <td key={variants[index]!.id}>
+                          {cell && cell.runs > 0 ? (
+                            <span className={`badge ${cell.passed === cell.runs ? "ok" : "fail"}`}>
+                              {cell.passed}/{cell.runs} · {cell.meanScore.toFixed(2)}
+                            </span>
+                          ) : (
+                            <span className="badge neutral">—</span>
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                },
+              )}
+            </tbody>
+          </table>
+        </>
+      )}
+
       <h2>场景</h2>
       <table>
         <thead>
           <tr>
             <th>坐标</th>
             <th>场景</th>
+            {variants.length > 1 && <th>变体</th>}
             <th>通过</th>
             <th>score</th>
             <th>耗时</th>
@@ -250,13 +316,14 @@ export function RunPage({
         <tbody>
           {summary.byScenario.map((aggregate) => (
             <tr
-              key={aggregate.scenarioId}
+              key={`${aggregate.variantId ?? ""}-${aggregate.scenarioId}`}
               className={aggregate.passed === aggregate.runs ? "" : "attention"}
             >
               <td>
                 <span className="refchip">{refOf(aggregate.scenarioId ?? "")}</span>
               </td>
               <td className="mono">{aggregate.scenarioId}</td>
+              {variants.length > 1 && <td className="mono">{aggregate.variantId}</td>}
               <td>
                 {aggregate.passed}/{aggregate.runs}
               </td>

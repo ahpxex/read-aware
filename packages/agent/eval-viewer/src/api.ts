@@ -88,6 +88,7 @@ export interface RunDetail {
     failed: number;
     errors: number;
     byScenario: Array<{
+      variantId?: string;
       scenarioId?: string;
       runs: number;
       passed: number;

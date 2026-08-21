@@ -218,11 +218,20 @@ export async function runEvalSuite<
   const records: EvalRunRecord[] = [];
   let executionIndex = 0;
 
-  // 工作单元 = (repetition, scenario)；单元内 variant 按轮转顺序串行，
-  // 保住配对比较（同 scenario/repetition 的 baseline 与 candidate 时间上相邻）。
-  const units: Array<{ repetition: number; scenario: TScenario }> = [];
+  // 工作单元 = (repetition, scenario, variant)，统一并发池——多 provider
+  // 对比时各 variant 真并行（跨 provider 的限流池本就独立，串行只是白等）。
+  // 展开顺序按 repetition 轮转 variant 起点：同一 scenario 的各 variant 在
+  // 队列里相邻（时间上仍然贴近，配对比较的时段偏差小），且没有哪个
+  // variant 永远排最后吃满时段漂移。配对比较本身按 (scenario, repetition)
+  // 事后配对，与执行顺序无关。
+  const units: Array<{ repetition: number; scenario: TScenario; variant: (typeof variants)[number] }> =
+    [];
   for (let repetition = 1; repetition <= repetitions; repetition += 1) {
-    for (const scenario of suite.scenarios) units.push({ repetition, scenario });
+    for (const scenario of suite.scenarios) {
+      for (const variant of rotate(variants, repetition - 1)) {
+        units.push({ repetition, scenario, variant });
+      }
+    }
   }
 
   let unitCursor = 0;
@@ -231,21 +240,17 @@ export async function runEvalSuite<
       const index = unitCursor++;
       const unit = units[index];
       if (!unit) return;
-      // Rotate execution order to reduce provider-load and time-of-day bias while
-      // preserving scenario/repetition pairing for baseline comparisons.
-      for (const variant of rotate(variants, unit.repetition - 1)) {
-        executionIndex += 1;
-        const record = await executeRun({
-          suite,
-          scenario: unit.scenario,
-          variant,
-          repetition: unit.repetition,
-          executionIndex,
-          timeoutMs,
-        });
-        records.push(record);
-        await options.hooks?.onRunComplete?.(record);
-      }
+      executionIndex += 1;
+      const record = await executeRun({
+        suite,
+        scenario: unit.scenario,
+        variant: unit.variant,
+        repetition: unit.repetition,
+        executionIndex,
+        timeoutMs,
+      });
+      records.push(record);
+      await options.hooks?.onRunComplete?.(record);
     }
   };
   await Promise.all(

@@ -24,6 +24,8 @@ export interface DigestBookTickInput {
   throughChapterHref?: string;
   /** 本节拍的章节预算。 */
   maxChapters?: number;
+  /** 批内并发度（见 digestMissingChapters.concurrency）。 */
+  concurrency?: number;
 }
 
 /**
@@ -96,5 +98,35 @@ export async function digestBookTick(input: DigestBookTickInput): Promise<number
     beforeChapterIndex,
     maxChapters: input.maxChapters,
     flavor: narrativity ?? "narrative",
+    concurrency: input.concurrency,
   });
+}
+
+export interface DigestBookCatchUpInput extends Omit<DigestBookTickInput, "maxChapters"> {
+  /** 每轮循环的批大小；缺省 = concurrency（一轮一批）。 */
+  batchChapters?: number;
+  /** 取消信号（关书/退出时宿主中止；已落库的章节无损保留）。 */
+  signal?: AbortSignal;
+  /** 每批完成后的进度回调（累计已提炼章数）。 */
+  onProgress?: (digestedSoFar: number) => void;
+}
+
+/**
+ * 持续追平：只要读者还在这本书里（signal 未中止），并行批次一轮接一轮
+ * 跑到欠账清零。这是存量进度的根治路径——打开书即开始建图，不等空闲
+ * 节拍也不等聊天；每章成功即落库，中断只丢在飞的那一批。
+ * 返回本次总共提炼的章数。
+ */
+export async function digestBookCatchUp(input: DigestBookCatchUpInput): Promise<number> {
+  const concurrency = Math.max(1, Math.floor(input.concurrency ?? 1));
+  const batch = Math.max(1, Math.floor(input.batchChapters ?? concurrency));
+  let total = 0;
+  for (;;) {
+    if (input.signal?.aborted) break;
+    const digested = await digestBookTick({ ...input, maxChapters: batch });
+    if (digested === 0) break;
+    total += digested;
+    input.onProgress?.(total);
+  }
+  return total;
 }

@@ -316,6 +316,57 @@ describe("digestMissingChapters", () => {
     expect(saved.every((digest) => digest.flavor === "expository")).toBe(true);
   });
 
+  test("the worker pool keeps N chapters in flight and later chapters see completed entities in their anchor registry", async () => {
+    const saved: ChapterDigest[] = [];
+    const knownBlocks: string[] = [];
+    let inFlight = 0;
+    let peakInFlight = 0;
+    const deps = {
+      bookText: {
+        getToc: async () =>
+          [0, 1, 2, 3, 4].map((index) => ({
+            index,
+            title: `第${index}章`,
+            chars: 100,
+            hrefs: [`ch${index}.html`],
+          })),
+        getChapterText: async (_bookId: Id, index: number) => `第${index}章正文`,
+      },
+      bookMemory: {
+        listDigests: async () => [...saved],
+        saveDigest: async (_bookId: Id, digest: ChapterDigest) => {
+          saved.push(digest);
+        },
+      },
+      complete: (async (_model: unknown, context: { systemPrompt?: string; messages: Array<{ content: unknown }> }) => {
+        inFlight += 1;
+        peakInFlight = Math.max(peakInFlight, inFlight);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        inFlight -= 1;
+        knownBlocks.push(String(context.systemPrompt ?? "").split("Characters already known")[1] ?? "");
+        const match = String(context.messages[0]?.content ?? "").match(/Chapter #(\d+)/);
+        return reply(
+          `{"summary": "第${match?.[1]}章摘要", "characters": [{"name": "人物${match?.[1]}"}], "relations": []}`,
+        );
+      }) as never,
+    };
+    const count = await digestMissingChapters({
+      ...deps,
+      model: MODEL,
+      bookId: BOOK_ID,
+      beforeChapterIndex: 5,
+      maxChapters: 10,
+      concurrency: 3,
+    });
+    expect(count).toBe(5);
+    expect(peakInFlight).toBe(3); // 滑动窗口确实保持 3 章在飞
+    expect(saved.map((digest) => digest.chapterIndex).sort()).toEqual([0, 1, 2, 3, 4]);
+    // 起跑的前 3 章在任何完成之前启动——锚名录为空；后续补位的章启动时
+    // 已有完成章落库，锚名录携带其实体。
+    expect(knownBlocks.slice(0, 3).every((block) => block.includes("(none yet)"))).toBe(true);
+    expect(knownBlocks.slice(3).every((block) => !block.includes("(none yet)"))).toBe(true);
+  });
+
   test("reader still in the first chapter digests nothing", async () => {
     const { deps, digested } = harness();
     const count = await digestMissingChapters({

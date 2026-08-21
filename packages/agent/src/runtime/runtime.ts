@@ -3,7 +3,7 @@
  * 将来 apps/web 的适配器就是「new 一个 AgentRuntime + 映射 chunk 类型」这么薄。
  */
 import type { ThreadChunk } from "../chunks";
-import { digestBookTick } from "../memory/graph-upkeep";
+import { digestBookCatchUp, digestBookTick } from "../memory/graph-upkeep";
 import { runConsolidation, type ConsolidationReport } from "../memory/consolidation";
 import {
   accountCredential,
@@ -262,6 +262,31 @@ export class AgentRuntime {
       bookId,
       throughChapterHref: options?.throughChapterHref,
       maxChapters: options?.maxChapters,
+    });
+  }
+
+  /**
+   * 持续追平一本书的图谱欠账（并行批次跑到清零或 signal 中止）。
+   * 宿主在阅读会话开始时调用——只要用户在读这本书，图就在后台建。
+   */
+  async digestBookCatchUp(
+    bookId: Id,
+    options?: {
+      throughChapterHref?: string;
+      concurrency?: number;
+      signal?: AbortSignal;
+      onProgress?: (digestedSoFar: number) => void;
+    },
+  ): Promise<number> {
+    return digestBookCatchUp({
+      deps: this.options.deps,
+      complete: this.completeFns.fast,
+      model: this.resolveModel("fast"),
+      bookId,
+      throughChapterHref: options?.throughChapterHref,
+      concurrency: options?.concurrency,
+      signal: options?.signal,
+      onProgress: options?.onProgress,
     });
   }
 

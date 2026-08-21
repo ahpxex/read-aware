@@ -4,6 +4,7 @@ import { useToast } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { formatLibraryError } from "../lib/format-library-error";
 import { deleteBookText, ensureBookTextExtracted } from "../lib/book-text-store";
+import { catchUpBookGraph } from "../../ai/agent/maintenance";
 import {
   commitBookImport,
   enrichOpenedBook,
@@ -228,6 +229,9 @@ export function useLibraryController() {
       // size/page-count gate that skipped exactly the scanned-book profile
       // (and left the agent to re-parse from scratch on demand) is gone.
       await ensureBookTextExtracted(book.id, foliateBook);
+      // 正文就绪后立刻并行追平这本书的图谱欠账（读者在读 = 这本书的图
+      // 最值得建）。存量进度从开卷起补，不等空闲节拍或聊天。
+      catchUpBookGraph(book.id, book.progress?.href ?? undefined);
     })()
       .catch((error) => log.warn("lazy enrich failed", error))
       .finally(() => bookReadyPendingRef.current.delete(book.id));

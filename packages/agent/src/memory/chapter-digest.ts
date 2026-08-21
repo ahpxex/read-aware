@@ -401,6 +401,8 @@ export interface DigestMissingChaptersInput {
   maxChapters?: number;
   /** 提炼口径（书的叙事性）；缺省 narrative。口径不符的旧行视同缺失重算。 */
   flavor?: DigestFlavor;
+  /** 批内并发度（缺省 1 = 串行）。批间仍串行并刷新实体名录锚。 */
+  concurrency?: number;
 }
 
 /**
@@ -428,26 +430,43 @@ export async function digestMissingChapters(
       )
       .map((digest) => [digest.chapterIndex, digest]),
   );
-  let digested = 0;
   const ceiling = Math.min(input.beforeChapterIndex, toc.length);
-  for (let index = 0; index < ceiling && digested < max; index++) {
-    if (current.has(index)) continue;
-    const chapterText = await input.bookText.getChapterText(input.bookId, index);
-    if (!chapterText?.trim()) continue;
-    const digest = await extractChapterDigest({
-      complete: input.complete,
-      model: input.model,
-      chapterIndex: index,
-      chapterHref: toc[index]?.hrefs?.[0],
-      chapterTitle: toc[index]?.title,
-      chapterText,
-      knownCharacters: mergeCharacterRegistry([...current.values()]),
-      flavor,
-    });
-    if (!digest) continue;
-    await input.bookMemory.saveDigest(input.bookId, digest);
-    current.set(index, digest);
-    digested += 1;
+  const missing: number[] = [];
+  for (let index = 0; index < ceiling && missing.length < max; index++) {
+    if (!current.has(index)) missing.push(index);
   }
+  // 滑动窗口并行（worker pool）：始终保持 concurrency 章在飞，完成一章
+  // 立刻补位——不分批，避免"每批等最慢章"的木桶效应（章长方差大的书
+  // 会把批式并行拖回串行）。每章启动时取当下已完成名录的最新快照作
+  // 拼写归并锚；同时在飞的章互相看不见的实体碎片，事后由
+  // resolveEntityNames 的别名共现并查集兜底归并。concurrency=1 即原
+  // 串行语义（含名录逐章累积）。
+  const concurrency = Math.max(1, Math.floor(input.concurrency ?? 1));
+  let digested = 0;
+  let cursor = 0;
+  const worker = async (): Promise<void> => {
+    for (;;) {
+      const slot = cursor++;
+      if (slot >= missing.length) return;
+      const index = missing[slot]!;
+      const chapterText = await input.bookText.getChapterText(input.bookId, index);
+      if (!chapterText?.trim()) continue;
+      const digest = await extractChapterDigest({
+        complete: input.complete,
+        model: input.model,
+        chapterIndex: index,
+        chapterHref: toc[index]?.hrefs?.[0],
+        chapterTitle: toc[index]?.title,
+        chapterText,
+        knownCharacters: mergeCharacterRegistry([...current.values()]),
+        flavor,
+      });
+      if (!digest) continue;
+      await input.bookMemory.saveDigest(input.bookId, digest);
+      current.set(index, digest);
+      digested += 1;
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(concurrency, missing.length) }, worker));
   return digested;
 }

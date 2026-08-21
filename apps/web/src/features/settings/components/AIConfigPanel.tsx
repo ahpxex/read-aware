@@ -45,6 +45,7 @@ import {
   type AIProvider,
   type ThinkingLevel,
 } from "../../ai/lib/ai-config";
+import { ModelPicker } from "./ModelPicker";
 
 type ModelOption = { label: string; value: string };
 
@@ -102,6 +103,15 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
       ? String(initialConfig.customMaxOutputTokens)
       : "",
   );
+  const [openRouterSort, setOpenRouterSort] = useState<string>(
+    initialConfig?.openRouterRouting?.sort ?? "",
+  );
+  const [openRouterOrder, setOpenRouterOrder] = useState(
+    (initialConfig?.openRouterRouting?.order ?? []).join(", "),
+  );
+  const [openRouterAllowFallbacks, setOpenRouterAllowFallbacks] = useState(
+    initialConfig?.openRouterRouting?.allowFallbacks !== false,
+  );
   const [isConfigured, setIsConfigured] = useState(Boolean(initialConfig));
   const [saveRevision, setSaveRevision] = useState(0);
   const [isTesting, setIsTesting] = useState(false);
@@ -141,6 +151,22 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
       provider === "custom" ? customSupportsThinking : undefined,
     customMaxOutputTokens:
       provider === "custom" ? parsedCustomMaxOutputTokens : undefined,
+    openRouterRouting:
+      provider === "openrouter"
+        ? {
+            sort:
+              openRouterSort === "price" ||
+              openRouterSort === "throughput" ||
+              openRouterSort === "latency"
+                ? openRouterSort
+                : undefined,
+            order: openRouterOrder
+              .split(",")
+              .map((slug) => slug.trim())
+              .filter(Boolean),
+            allowFallbacks: openRouterAllowFallbacks,
+          }
+        : undefined,
   };
   const { flush: flushConfig, discardPending } = useReactiveSetting({
     value: reactiveConfig,
@@ -185,6 +211,9 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
         ? String(remembered.customMaxOutputTokens)
         : "",
     );
+    setOpenRouterSort(remembered.openRouterRouting?.sort ?? "");
+    setOpenRouterOrder((remembered.openRouterRouting?.order ?? []).join(", "));
+    setOpenRouterAllowFallbacks(remembered.openRouterRouting?.allowFallbacks !== false);
     markConfigChanged();
   };
 
@@ -202,6 +231,9 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
     setCustomApi(DEFAULT_CUSTOM_OPENAI_API);
     setCustomSupportsThinking(false);
     setCustomMaxOutputTokens("");
+    setOpenRouterSort("");
+    setOpenRouterOrder("");
+    setOpenRouterAllowFallbacks(true);
     setIsConfigured(false);
     setTestResult(null);
   };
@@ -421,7 +453,16 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
 
         {/* The simple setup has one model. Fast follows it unless the advanced
             override is enabled below. */}
-        {hasModelCatalog ? (
+        {hasModelCatalog && provider !== "readaware" && provider !== "custom" ? (
+          <ModelPicker
+            label={t("aiConfig.model")}
+            value={model}
+            onChange={handleModelChange}
+            provider={provider}
+            recommended={modelOptions}
+            helperText={t("aiConfig.modelHelper")}
+          />
+        ) : hasModelCatalog ? (
           <Select
             label={t("aiConfig.model")}
             value={model}
@@ -516,7 +557,19 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
                 />
 
                 {useSeparateFastModel &&
-                  (hasModelCatalog ? (
+                  (hasModelCatalog && provider !== "readaware" && provider !== "custom" ? (
+                    <ModelPicker
+                      label={t("aiConfig.fastModel")}
+                      value={fastModel}
+                      onChange={(value) => {
+                        setFastModel(value);
+                        markConfigChanged();
+                      }}
+                      provider={provider}
+                      recommended={modelOptions}
+                      helperText={t("aiConfig.fastModelHelper")}
+                    />
+                  ) : hasModelCatalog ? (
                     <Select
                       label={t("aiConfig.fastModel")}
                       value={fastModel}
@@ -580,6 +633,48 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
                       helperText={t("aiConfig.thinkingHelper")}
                     />
                   ))}
+
+                {provider === "openrouter" && (
+                  <>
+                    <Divider />
+                    <Stack gap="md">
+                      <Select
+                        label={t("aiConfig.openRouter.sort.label")}
+                        value={openRouterSort}
+                        onChange={(value) => {
+                          setOpenRouterSort(value);
+                          markConfigChanged();
+                        }}
+                        options={[
+                          { value: "", label: t("aiConfig.openRouter.sort.default") },
+                          { value: "price", label: t("aiConfig.openRouter.sort.price") },
+                          { value: "throughput", label: t("aiConfig.openRouter.sort.throughput") },
+                          { value: "latency", label: t("aiConfig.openRouter.sort.latency") },
+                        ]}
+                        helperText={t("aiConfig.openRouter.sort.helper")}
+                      />
+                      <TextField
+                        label={t("aiConfig.openRouter.order.label")}
+                        value={openRouterOrder}
+                        onChange={(event) => {
+                          setOpenRouterOrder(event.target.value);
+                          markConfigChanged();
+                        }}
+                        onBlur={flushConfig}
+                        placeholder="coreweave, deepinfra"
+                        helperText={t("aiConfig.openRouter.order.helper")}
+                      />
+                      <Toggle
+                        label={t("aiConfig.openRouter.allowFallbacks")}
+                        checked={openRouterAllowFallbacks}
+                        onChange={(checked) => {
+                          setOpenRouterAllowFallbacks(checked);
+                          markConfigChanged();
+                        }}
+                      />
+                    </Stack>
+                  </>
+                )}
 
                 <Caption as="p" className="leading-relaxed">
                   {t("aiConfig.byok.body")}

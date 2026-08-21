@@ -29,6 +29,20 @@ export type AIProvider =
   | "moonshotai"
   | "custom";
 
+/**
+ * OpenRouter 上游路由偏好（仅 provider = openrouter 时生效）。整体作为
+ * 请求体的 `provider` 字段发给 OpenRouter：order 是有序的上游 slug 列表
+ * （如 "coreweave", "deepinfra"），sort 是无指定上游时的排序策略。
+ */
+export interface OpenRouterRoutingConfig {
+  /** 排序策略；undefined = OpenRouter 默认（负载均衡）。 */
+  sort?: "price" | "throughput" | "latency";
+  /** 优先上游 slug（有序）；空数组视同未设置。 */
+  order?: string[];
+  /** 指定上游不可用时允许回退到其他上游；默认 true。 */
+  allowFallbacks?: boolean;
+}
+
 export interface AIConfig {
   provider: AIProvider;
   apiKey: string;
@@ -46,6 +60,8 @@ export interface AIConfig {
   customSupportsThinking?: boolean;
   /** Undefined lets a custom upstream choose its own output limit. */
   customMaxOutputTokens?: number;
+  /** OpenRouter 专属：上游路由偏好。 */
+  openRouterRouting?: OpenRouterRoutingConfig;
 }
 
 import { localKV } from "../../../platform/local-store";
@@ -73,6 +89,7 @@ export function getStoredApiKey(provider: AIProvider): string {
 /** Connection settings remembered per provider (models, efforts, custom endpoint). */
 type ProviderSettings = {
   model?: string;
+  openRouterRouting?: OpenRouterRoutingConfig;
   fastModel?: string;
   thinkingLevel?: ThinkingLevel;
   fastThinkingLevel?: ThinkingLevel;
@@ -84,6 +101,7 @@ type ProviderSettings = {
 
 export type ResolvedProviderSettings = {
   model: string;
+  openRouterRouting?: OpenRouterRoutingConfig;
   fastModel: string;
   thinkingLevel: ThinkingLevel;
   fastThinkingLevel: ThinkingLevel;
@@ -104,6 +122,30 @@ type StoredAIConfig = Partial<AIConfig> & {
 
 /** The simple setup path enables reasoning for both model roles. */
 export const DEFAULT_THINKING_LEVEL: ThinkingLevel = "medium";
+
+/** 存储层的路由偏好消毒：slug 去空白/小写，空对象归一成 undefined。 */
+function sanitizeOpenRouterRouting(
+  value: OpenRouterRoutingConfig | undefined,
+): OpenRouterRoutingConfig | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const sort =
+    value.sort === "price" || value.sort === "throughput" || value.sort === "latency"
+      ? value.sort
+      : undefined;
+  const order = Array.isArray(value.order)
+    ? value.order
+        .map((slug) => String(slug).trim().toLowerCase())
+        .filter(Boolean)
+        .slice(0, 8)
+    : [];
+  const allowFallbacks = value.allowFallbacks !== false;
+  if (!sort && order.length === 0) return undefined;
+  return {
+    ...(sort ? { sort } : {}),
+    ...(order.length ? { order } : {}),
+    allowFallbacks,
+  };
+}
 
 function positiveInteger(value: unknown): number | undefined {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
@@ -155,6 +197,10 @@ export function getStoredProviderSettings(
       : DEFAULT_CUSTOM_OPENAI_API;
   return {
     model,
+    openRouterRouting:
+      provider === "openrouter"
+        ? sanitizeOpenRouterRouting(entry?.openRouterRouting)
+        : undefined,
     fastModel: hasSeparateFastModel ? (explicitFastModel ?? model) : model,
     thinkingLevel,
     fastThinkingLevel: hasSeparateFastModel
@@ -220,14 +266,18 @@ export function saveAIConfig(config: AIConfig): void {
     customApi,
     customSupportsThinking,
     customMaxOutputTokens,
+    openRouterRouting,
   } = config;
   const hasSeparateFastModel = Boolean(fastModel && fastModel !== model);
   const resolvedThinkingLevel = thinkingLevel ?? DEFAULT_THINKING_LEVEL;
   const resolvedCustomMaxOutputTokens = positiveInteger(customMaxOutputTokens);
   // Merge this provider's settings into the map; other providers keep theirs.
   const models = { ...(readStored()?.models ?? {}) };
+  const resolvedRouting =
+    provider === "openrouter" ? sanitizeOpenRouterRouting(openRouterRouting) : undefined;
   models[provider] = {
     model,
+    ...(resolvedRouting ? { openRouterRouting: resolvedRouting } : {}),
     fastModel: hasSeparateFastModel ? fastModel : undefined,
     // Persist Off explicitly now that new providers default to Medium. This
     // keeps a deliberate opt-out stable across provider switches and reloads.

@@ -275,6 +275,27 @@
       "high": "High",
       "xhigh": "Extra high",
       "max": "Maximum"
+    },
+    "modelPicker": {
+      "search": "Search models…",
+      "recommended": "Recommended",
+      "useCustom": "Use “{{id}}” as the model ID",
+      "empty": "No matching models"
+    },
+    "openRouter": {
+      "sort": {
+        "label": "Upstream sorting",
+        "default": "OpenRouter default (load balanced)",
+        "price": "Lowest price first",
+        "throughput": "Highest throughput first",
+        "latency": "Lowest latency first",
+        "helper": "How OpenRouter picks among the upstream providers serving your model."
+      },
+      "order": {
+        "label": "Preferred upstreams",
+        "helper": "Comma-separated provider slugs tried in order (e.g. coreweave, deepinfra). Leave empty for no preference."
+      },
+      "allowFallbacks": "Fall back to other upstreams when preferred ones are unavailable"
     }
   },
   "font": {

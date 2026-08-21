@@ -33,6 +33,8 @@ export type ProviderModelCatalogEntry = {
   id: string;
   name: string;
   reasoning: boolean;
+  /** USD per million tokens（产品的模型选择器展示用；目录缺价则 undefined）。 */
+  cost?: { input: number; output: number };
 };
 
 export function buildProviderRegistry(): ProviderRegistry {
@@ -62,9 +64,10 @@ export function getProviderModelCatalog(
   provider: KnownProviderId,
 ): ProviderModelCatalogEntry[] {
   catalogRegistry ??= buildProviderRegistry();
-  return catalogRegistry.getModels(provider).map(({ id, name, reasoning }) => ({
+  return catalogRegistry.getModels(provider).map(({ id, name, reasoning, cost }) => ({
     id,
     name,
     reasoning,
+    ...(cost ? { cost: { input: cost.input, output: cost.output } } : {}),
   }));
 }

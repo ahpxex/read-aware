@@ -12,7 +12,7 @@ import type { Id } from "@read-aware/core";
 import { getDefaultStore } from "jotai";
 import { appHttpFetch } from "../../../platform/http-client";
 import { pluginToolsAtom } from "../../plugins/state/plugin-store";
-import { getAIConfig } from "../lib/ai-config";
+import { getAIConfig, type OpenRouterRoutingConfig } from "../lib/ai-config";
 import { accountFromConfig } from "./account";
 import { buildRuntimeDeps } from "./ports";
 import { clearStoredConversationInsights } from "./ports/conversation-port";
@@ -24,13 +24,28 @@ getDefaultStore().sub(pluginToolsAtom, () => {
   cached?.runtime.invalidateAgents();
 });
 
+/** 用户配置的 OpenRouter 上游路由 → pi-ai 的 compat.openRouterRouting。 */
+function routingTransform(routing: OpenRouterRoutingConfig | undefined) {
+  if (!routing) return undefined;
+  const preference = {
+    ...(routing.order?.length ? { order: routing.order } : {}),
+    ...(routing.sort ? { sort: routing.sort } : {}),
+    allow_fallbacks: routing.allowFallbacks !== false,
+  };
+  return <T extends { provider: string; compat?: object }>(model: T): T =>
+    model.provider === "openrouter"
+      ? { ...model, compat: { ...model.compat, openRouterRouting: preference } }
+      : model;
+}
+
 export function getAgentRuntime(): AgentRuntime | null {
   const config = getAIConfig();
   if (!config?.apiKey) return null;
 
   const { account, models, thinking } = accountFromConfig(config);
+  const routing = config.provider === "openrouter" ? config.openRouterRouting : undefined;
 
-  const key = JSON.stringify([account, models, thinking]);
+  const key = JSON.stringify([account, models, thinking, routing ?? null]);
   if (cached?.key !== key) {
     cached = {
       key,
@@ -40,6 +55,7 @@ export function getAgentRuntime(): AgentRuntime | null {
         models,
         thinking,
         fetch: appHttpFetch,
+        transformModel: routingTransform(routing),
       }),
     };
   }

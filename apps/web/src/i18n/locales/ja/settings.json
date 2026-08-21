@@ -275,6 +275,27 @@
       "high": "高",
       "xhigh": "非常に高い",
       "max": "最大"
+    },
+    "modelPicker": {
+      "search": "モデルを検索…",
+      "recommended": "おすすめ",
+      "useCustom": "「{{id}}」をモデル ID として使用",
+      "empty": "一致するモデルがありません"
+    },
+    "openRouter": {
+      "sort": {
+        "label": "アップストリームの並び順",
+        "default": "OpenRouter 既定（負荷分散）",
+        "price": "価格優先",
+        "throughput": "スループット優先",
+        "latency": "レイテンシ優先",
+        "helper": "モデルを提供する複数のアップストリームから OpenRouter がどう選ぶかを指定します。"
+      },
+      "order": {
+        "label": "優先アップストリーム",
+        "helper": "順に試すプロバイダー slug をカンマ区切りで（例: coreweave, deepinfra）。空欄で指定なし。"
+      },
+      "allowFallbacks": "優先アップストリームが利用できない場合は他へフォールバック"
     }
   },
   "font": {

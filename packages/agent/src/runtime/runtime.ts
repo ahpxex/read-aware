@@ -30,6 +30,12 @@ export interface AgentRuntimeOptions {
   /** HTTP transport supplied by the desktop host (Tauri native fetch in production). */
   fetch?: AgentFetch;
   maxWindowTurns?: number;
+  /**
+   * 宿主对解析出的模型做最后修饰的接缝——产品用它注入用户配置的
+   * OpenRouter 上游路由（compat.openRouterRouting），eval 用同型接缝
+   * 注入 CoreWeave 偏好。缺省恒等。
+   */
+  transformModel?: <T extends { provider: string; compat?: object }>(model: T) => T;
 }
 
 export class AgentRuntime {
@@ -67,7 +73,10 @@ export class AgentRuntime {
       },
     };
     const registry = buildProviderRegistry();
-    this.resolveModel = createModelResolver(options.account, options.models, registry);
+    const baseResolve = createModelResolver(options.account, options.models, registry);
+    this.resolveModel = options.transformModel
+      ? (role) => options.transformModel!(baseResolve(role))
+      : baseResolve;
     this.thinking = options.thinking ?? { smart: "off", fast: "off" };
     this.completeFns = {
       smart: createCompleteFn(

@@ -275,6 +275,27 @@
       "high": "Élevé",
       "xhigh": "Très élevé",
       "max": "Maximum"
+    },
+    "modelPicker": {
+      "search": "Rechercher des modèles…",
+      "recommended": "Recommandé",
+      "useCustom": "Utiliser « {{id}} » comme ID de modèle",
+      "empty": "Aucun modèle correspondant"
+    },
+    "openRouter": {
+      "sort": {
+        "label": "Tri des fournisseurs",
+        "default": "Défaut OpenRouter (équilibrage)",
+        "price": "Prix le plus bas d'abord",
+        "throughput": "Débit le plus élevé d'abord",
+        "latency": "Latence la plus faible d'abord",
+        "helper": "Comment OpenRouter choisit parmi les fournisseurs qui servent votre modèle."
+      },
+      "order": {
+        "label": "Fournisseurs préférés",
+        "helper": "Slugs séparés par des virgules, essayés dans l'ordre (ex. coreweave, deepinfra). Vide = aucune préférence."
+      },
+      "allowFallbacks": "Basculer vers d'autres fournisseurs si les préférés sont indisponibles"
     }
   },
   "font": {

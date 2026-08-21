@@ -275,6 +275,27 @@
       "high": "高",
       "xhigh": "极高",
       "max": "最高"
+    },
+    "modelPicker": {
+      "search": "搜索模型…",
+      "recommended": "推荐",
+      "useCustom": "把“{{id}}”用作模型 ID",
+      "empty": "没有匹配的模型"
+    },
+    "openRouter": {
+      "sort": {
+        "label": "上游排序",
+        "default": "OpenRouter 默认（负载均衡）",
+        "price": "价格优先",
+        "throughput": "吞吐优先",
+        "latency": "延迟优先",
+        "helper": "OpenRouter 在承载该模型的多家上游之间如何选择。"
+      },
+      "order": {
+        "label": "优先上游",
+        "helper": "按顺序尝试的上游 slug，逗号分隔（如 coreweave, deepinfra）。留空表示不指定。"
+      },
+      "allowFallbacks": "优先上游不可用时回退到其他上游"
     }
   },
   "font": {

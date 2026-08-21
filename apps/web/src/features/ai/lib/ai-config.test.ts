@@ -206,3 +206,43 @@ describe("recommended model options", () => {
     expect(optionIds).toContain(SUGGESTED_FAST_MODELS.readaware);
   });
 });
+
+describe("OpenRouter routing preferences", () => {
+  test("round-trips through save with slugs sanitized to lowercase", () => {
+    saveAIConfig({
+      provider: "openrouter",
+      apiKey: "",
+      model: "deepseek/deepseek-v4-flash",
+      openRouterRouting: {
+        sort: "throughput",
+        order: ["  CoreWeave ", "DeepInfra", ""],
+        allowFallbacks: false,
+      },
+    });
+    expect(getStoredProviderSettings("openrouter").openRouterRouting).toEqual({
+      sort: "throughput",
+      order: ["coreweave", "deepinfra"],
+      allowFallbacks: false,
+    });
+  });
+
+  test("an empty preference normalizes away instead of persisting noise", () => {
+    saveAIConfig({
+      provider: "openrouter",
+      apiKey: "",
+      model: "deepseek/deepseek-v4-flash",
+      openRouterRouting: { order: [], allowFallbacks: true },
+    });
+    expect(getStoredProviderSettings("openrouter").openRouterRouting).toBeUndefined();
+  });
+
+  test("non-OpenRouter providers never carry a routing preference", () => {
+    saveAIConfig({
+      provider: "deepseek",
+      apiKey: "",
+      model: "deepseek-v4-flash",
+      openRouterRouting: { order: ["coreweave"] },
+    });
+    expect(getStoredProviderSettings("deepseek").openRouterRouting).toBeUndefined();
+  });
+});

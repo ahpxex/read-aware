@@ -14,7 +14,11 @@ import type { ProviderRegistry } from "./registry";
 import type { ThinkingLevel } from "./roles";
 import { asProviderFetch, type AgentFetch } from "./transport";
 
-export type CompleteFn = (model: Model<Api>, context: Context) => Promise<AssistantMessage>;
+export type CompleteFn = (
+  model: Model<Api>,
+  context: Context,
+  options?: { signal?: AbortSignal },
+) => Promise<AssistantMessage>;
 
 /** "off" → 不发 reasoning 参数；其余原样传给 pi。 */
 function asReasoning(thinking?: ThinkingLevel) {
@@ -62,11 +66,11 @@ export function createCompleteFn(
   fetch?: AgentFetch,
 ): CompleteFn {
   const providerFetch = asProviderFetch(fetch);
-  return (model, context) =>
+  return (model, context, options) =>
     registry.completeSimple(
       model,
       context,
-      requestOptions(account, thinking, providerFetch),
+      requestOptions(account, thinking, providerFetch, options),
     );
 }
 

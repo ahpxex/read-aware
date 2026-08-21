@@ -105,6 +105,13 @@ export class AgentThread {
   private agent: Agent | undefined;
   private busy = false;
   private disposed = false;
+  /**
+   * 线程生命周期的取消信号：dispose 时 abort，贯穿到后台管道的每次
+   * completeFn 调用——否则超时/关闭后 in-flight 的提炼请求会孤儿化，
+   * 挂满到 provider 的连接池（GLM 全量实测：一个超时场景的孤儿把后续
+   * 套件饿了二十多分钟）。
+   */
+  private readonly lifecycle = new AbortController();
   private backgroundWork: Promise<void> = Promise.resolve();
   /**
    * 书线程的章节会话（doc §5）：会话内 agent.state 连续累积（含工具调用的
@@ -122,7 +129,9 @@ export class AgentThread {
     this.deps = options.deps;
     this.resolveModel = options.resolveModel;
     this.getApiKey = options.getApiKey;
-    this.completeFn = options.completeFn;
+    const rawComplete = options.completeFn;
+    this.completeFn = (model, context, callOptions) =>
+      rawComplete(model, context, { signal: this.lifecycle.signal, ...callOptions });
     this.streamFn = options.streamFn;
     this.thinkingLevel = options.thinkingLevel ?? "off";
     this.maxWindowTurns = options.maxWindowTurns ?? DEFAULT_WINDOW_TURNS;
@@ -145,6 +154,7 @@ export class AgentThread {
   /** Permanently stop this cached instance when its conversation is cleared. */
   dispose(): void {
     this.disposed = true;
+    this.lifecycle.abort();
     this.agent?.abort();
     this.discardAgent();
   }

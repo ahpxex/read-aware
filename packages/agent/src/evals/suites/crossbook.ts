@@ -45,6 +45,7 @@ function shelfSummary() {
 
 export const crossbookEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "crossbook",
+  code: "S03",
   description: "Global-thread behaviors across a shelf of real books.",
   scenarios: [
     defineAgentEvalScenario({

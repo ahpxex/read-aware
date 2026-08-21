@@ -43,7 +43,7 @@ describe("eval runner", () => {
   test("repeats, balances variant order, and computes paired comparisons", async () => {
     const order: string[] = [];
     const result = await runEvalSuite(
-      { id: "suite", description: "suite", scenarios: [scenario((output) => assessmentFromChecks([
+      { id: "suite", code: "S00", description: "suite", scenarios: [scenario((output) => assessmentFromChecks([
         {
           id: "value",
           category: "quality",
@@ -98,6 +98,7 @@ describe("eval runner", () => {
     const result = await runEvalSuite(
       {
         id: "errors",
+        code: "S00",
         description: "errors",
         scenarios: [
           scenario(() => {
@@ -121,7 +122,7 @@ describe("eval runner", () => {
     const duplicate = variant("same", 1);
     await expect(
       runEvalSuite(
-        { id: "suite", description: "suite", scenarios: [scenario(() => assessmentFromChecks([]))] },
+        { id: "suite", code: "S00", description: "suite", scenarios: [scenario(() => assessmentFromChecks([]))] },
         [duplicate, duplicate],
       ),
     ).rejects.toThrow("variants contains duplicate id");
@@ -138,7 +139,7 @@ describe("eval runner concurrency", () => {
       id,
     }));
     const result = await runEvalSuite(
-      { id: "suite", description: "d", scenarios },
+      { id: "suite", code: "S00", description: "d", scenarios },
       [variant("baseline", 1), variant("candidate", 2)],
       { repetitions: 3, concurrency: 3 },
     );

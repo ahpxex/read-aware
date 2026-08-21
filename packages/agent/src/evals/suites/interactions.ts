@@ -49,6 +49,7 @@ const observeBooks = ({ stores }: Parameters<NonNullable<AgentEvalScenario["obse
 
 export const interactionsEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "interactions",
+  code: "S05",
   description: "Clarification and destructive permission behavior through the in-chat interaction UI.",
   scenarios: [
     defineAgentEvalScenario({

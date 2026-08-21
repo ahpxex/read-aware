@@ -467,6 +467,7 @@ function scenariosFor(config: GridBookConfig): AgentEvalScenario[] {
 
 export const realBooksEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "realbooks",
+  code: "S13",
   description:
     "The common behavior grid, generated over every registered real book (topical lookup, selection, annotation fidelity, chapter-crossing recall, no-cursor caution, quote location).",
   scenarios: GRID.flatMap(scenariosFor),

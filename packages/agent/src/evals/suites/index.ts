@@ -3,6 +3,7 @@ import { bergerEvalSuite } from "./berger";
 import { crossbookEvalSuite } from "./crossbook";
 import { groundingEvalSuite } from "./grounding";
 import { interactionsEvalSuite } from "./interactions";
+import { journeysEvalSuite } from "./journeys";
 import { karamazovEvalSuite } from "./karamazov";
 import { legacyEvalSuite } from "./legacy";
 import { lebonEvalSuite } from "./lebon";
@@ -21,6 +22,7 @@ export const evalSuites = {
   crossbook: crossbookEvalSuite,
   grounding: groundingEvalSuite,
   interactions: interactionsEvalSuite,
+  journeys: journeysEvalSuite,
   karamazov: karamazovEvalSuite,
   legacy: legacyEvalSuite,
   lebon: lebonEvalSuite,

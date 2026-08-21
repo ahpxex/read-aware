@@ -211,6 +211,13 @@ summary.json              aggregate and paired-comparison data
 report.md                 readable summary
 ```
 
+Browse everything in the **eval viewer** (`bun run eval:ui`, port 5199 —
+`apps/eval-viewer`): the suite catalog with stable reference codes
+(scenarios are cited as `S07.3`), each scenario's definition (turns,
+expectations, rubric, seed), and every run bundle rendered as a full
+report. Suites carry a `code` field — codes are append-only and never
+reused.
+
 Bundles can contain book excerpts, questions, model reasoning, tool arguments,
 and local paths. They are local diagnostic artifacts, not telemetry. API keys
 are explicitly removed and common `sk-...` credential shapes are redacted as a

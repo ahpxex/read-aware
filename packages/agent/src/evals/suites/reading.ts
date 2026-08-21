@@ -55,6 +55,7 @@ function stableCursorContextAssessment(observation: AgentEvalObservation): EvalA
 
 export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "reading",
+  code: "S12",
   description: "Reading-cursor grounding, narrative spoiler policy, and expository retrieval.",
   scenarios: [
     defineAgentEvalScenario({

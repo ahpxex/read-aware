@@ -116,6 +116,7 @@ function memoryDiscretionAssessment(
 
 export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "personalization",
+  code: "S11",
   description:
     "Memory must change the answer: style, domain connection, analogies, discretion, and transparency for a concrete user persona (with no-profile controls).",
   scenarios: [

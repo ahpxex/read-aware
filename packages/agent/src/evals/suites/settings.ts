@@ -41,6 +41,7 @@ function settingValue(path: string) {
 
 export const settingsEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "settings",
+  code: "S16",
   description: "Generic settings discovery, scoped mutation, clarification, and credential boundaries.",
   scenarios: [
     defineAgentEvalScenario({

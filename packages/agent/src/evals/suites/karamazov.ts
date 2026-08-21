@@ -121,6 +121,7 @@ function withEditionFidelity(scenario: AgentEvalScenario): AgentEvalScenario {
 
 export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "karamazov",
+  code: "S07",
   description: "Real-book scenarios on the full Chinese Brothers Karamazov EPUB.",
   scenarios: [
     defineAgentEvalScenario({

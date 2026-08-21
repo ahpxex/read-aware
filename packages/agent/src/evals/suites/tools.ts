@@ -117,6 +117,7 @@ function modelToolAssessment(
 
 export const toolsEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "tools",
+  code: "S17",
   description: "Tool planning, host presentation behavior, and plugin scope exposure.",
   scenarios: [
     defineAgentEvalScenario({

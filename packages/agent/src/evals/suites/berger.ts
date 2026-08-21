@@ -39,6 +39,7 @@ function readerCursor() {
 
 export const bergerEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "berger",
+  code: "S02",
   description:
     "Real-book how-to scenarios on the full Chinese Berger (applying the book's methods to the reader's situation).",
   scenarios: [

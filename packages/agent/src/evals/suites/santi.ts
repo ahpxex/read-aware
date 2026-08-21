@@ -64,6 +64,7 @@ const readerProgress = () => Math.round(cursorAt(READER_CHAPTER).bookProgress * 
 
 export const santiEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "santi",
+  code: "S15",
   description:
     "Real-book scenarios on the full Chinese Three-Body trilogy omnibus (pretraining-famous, multi-volume).",
   scenarios: [

@@ -73,6 +73,7 @@ function bilingualAssessment(
 
 export const refactoringEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "refactoring",
+  code: "S14",
   description:
     "Real-book technical scenarios on the full English Refactoring 2nd edition (catalog lookup, concept graph, bilingual terminology).",
   scenarios: [
@@ -215,6 +216,42 @@ export const refactoringEvalSuite: EvalSuite<AgentEvalScenario> = {
           }),
           bilingualAssessment(observation, ["Replace Conditional with Polymorphism"]),
           forwardBeyond(observation, READER_CHAPTER),
+          noFenceAssessment(observation),
+        ),
+    }),
+    defineAgentEvalScenario({
+      id: "english-reader-native-flow",
+      description:
+        "An English question about the English book gets an English answer grounded in the text — the bilingual discipline works both ways.",
+      tags: ["refactoring", "real-book", "technical", "language", "book"],
+      scope: { kind: "book", bookId: fowler.bookId },
+      seed: {
+        ...fowler.seed(60),
+        chapterDigests: fowler.digestsSeed(READER_CHAPTER),
+      },
+      seedSummary: fowler.seedSummary(60),
+      turns: [
+        {
+          text: "When does Fowler say you should NOT extract a function? What are his criteria?",
+          readingCursor: readerCursor(),
+        },
+      ],
+      expectation: {
+        answer: { mustContain: ["extract"] },
+        tools: { requiredAny: ["search_book_text", "read_chapter"], noErrors: true },
+      },
+      criteria: {
+        language: "English question → English answer (the global script-consistency check bites on CJK drift)",
+      },
+      rubric: [
+        "Answers in English from the book's actual guidance (intention vs implementation, naming), not generic advice",
+      ],
+      evaluate: (observation) =>
+        combineAssessments(
+          evaluateAgentTrace(observation, {
+            answer: { mustContain: ["extract"] },
+            tools: { requiredAny: ["search_book_text", "read_chapter"], noErrors: true },
+          }),
           noFenceAssessment(observation),
         ),
     }),

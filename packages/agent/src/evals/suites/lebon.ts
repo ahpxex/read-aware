@@ -41,6 +41,7 @@ function readerCursor() {
 
 export const lebonEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "lebon",
+  code: "S08",
   description:
     "Real-book expository scenarios on the full Chinese Le Bon (concept graph, no spoiler fence).",
   scenarios: [

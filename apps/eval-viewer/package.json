@@ -1,0 +1,24 @@
+{
+  "name": "@read-aware/eval-viewer",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5199",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@read-aware/agent": "workspace:*",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@read-aware/tsconfig": "workspace:*",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.6.0",
+    "typescript": "~5.8.3",
+    "vite": "^7.0.4",
+    "@types/node": "^24.0.0"
+  }
+}

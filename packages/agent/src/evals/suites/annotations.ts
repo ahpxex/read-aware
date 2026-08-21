@@ -71,6 +71,7 @@ function highlightVerbatimAssessment(observation: AgentEvalObservation): EvalAss
 
 export const annotationsEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "annotations",
+  code: "S01",
   description: "Creating, editing, and grounding on the user's notes and highlights.",
   scenarios: [
     defineAgentEvalScenario({

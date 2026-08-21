@@ -71,6 +71,7 @@ function legacyTranscript(): TurnRecord[] {
 
 export const legacyEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "legacy",
+  code: "S09",
   description:
     "Long-time users arriving with old baggage: graph backlog interim state, old-transcript inheritance, and critical appraisal of the old agent's claims.",
   scenarios: [

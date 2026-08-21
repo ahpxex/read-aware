@@ -45,6 +45,7 @@ const observeSaved = ({ stores }: Parameters<NonNullable<AgentEvalScenario["obse
 
 export const memoryEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "memory",
+  code: "S10",
   description: "Explicit durable writes, book scoping, and grounded long-term recall.",
   scenarios: [
     defineAgentEvalScenario({

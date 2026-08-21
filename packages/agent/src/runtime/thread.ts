@@ -10,6 +10,7 @@ import type { Usage } from "@earendil-works/pi-ai";
 import type { ThreadChunk } from "../chunks";
 import { buildSystemPrompt } from "../context/system-prompt";
 import { extractMemories, extractMemoriesFromTranscript } from "../memory/extraction";
+import { digestBookTick } from "../memory/graph-upkeep";
 import {
   bootstrapSummaryFromHistory,
   formatTurnsForFolding,
@@ -513,8 +514,9 @@ export class AgentThread {
         });
       }
 
-      // 轮后管道：记忆提炼 + 滚动摘要。异步、不阻塞、失败静默（doc §10 第 6 步）
-      this.scheduleBackgroundPipeline(userText, answer);
+      // 轮后管道：记忆提炼 + 滚动摘要 + 图谱节拍。异步、不阻塞、失败静默
+      // （doc §10 第 6 步）
+      this.scheduleBackgroundPipeline(userText, answer, cursor?.chapter);
       turnCompleted = true;
     } finally {
       // 中断/报错后 agent.state 不可信 —— pi 会把 stopReason=error/aborted 的
@@ -577,7 +579,14 @@ export class AgentThread {
     return summary;
   }
 
-  private scheduleBackgroundPipeline(userText: string, assistantText: string): void {
+  /** 每轮对话为当前书补建的纪要章数（聊哪本书，哪本书的图就优先追平）。 */
+  private static readonly DIGEST_CHAPTERS_PER_TURN = 2;
+
+  private scheduleBackgroundPipeline(
+    userText: string,
+    assistantText: string,
+    cursorChapterHref?: string,
+  ): void {
     if (!assistantText) return;
     const fast = () => this.resolveModel("fast");
     this.backgroundWork = this.backgroundWork
@@ -623,6 +632,20 @@ export class AgentThread {
         });
         if (!this.disposed && summary && summary !== previousInsights) {
           await this.deps.conversations.putInsights(this.key, summary);
+        }
+
+        // 图谱节拍：书线程每轮顺手补建这本书的纪要欠账。存量用户换新
+        // agent 后从第一条消息起，图随对话逐轮追平——不必等空闲维护循环
+        // （它 5 分钟一拍、只照顾最近打开的书）。账已清时这里是纯读空转。
+        if (!this.disposed && this.scope.kind === "book") {
+          await digestBookTick({
+            deps: this.deps,
+            complete: this.completeFn,
+            model: fast(),
+            bookId: this.scope.bookId,
+            throughChapterHref: cursorChapterHref,
+            maxChapters: AgentThread.DIGEST_CHAPTERS_PER_TURN,
+          });
         }
       })
       .catch((error: unknown) => {

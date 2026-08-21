@@ -53,6 +53,17 @@ surface case there; the completeness check fails otherwise.
   the watchpost for the known gap that the global thread arms no host
   spoiler fence — prompt discipline only), and shelf-grounded
   recommendations rendered as cards.
+- `personalization`: memory must CHANGE the answer, or it is a black box and
+  the memory-first principle is violated. A concrete persona (family wound,
+  political-science grad student, prefers short plain answers, plays
+  Minecraft, builds products with coding agents) drives five application
+  surfaces: style (a hard length gate the concision preference must pass),
+  unprompted domain connection, analogies drawn from the reader's world,
+  discretion (no verbatim dossier recitals, no off-topic memory dumping), and
+  transparency ("what do you remember about me" gets an honest, correctable
+  answer) — plus a stale-memory correction that must be recorded via
+  remember. Key scenarios carry no-profile CONTROL twins whose assertions
+  invert (a field the agent cannot know must NOT appear).
 - `legacy`: long-time users arriving with old baggage. Three inheritance
   pressures: the graph-backlog interim state (mid-book progress, zero digests
   — degrade to retrieval, don't hallucinate a graph), old-transcript

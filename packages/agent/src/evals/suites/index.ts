@@ -7,6 +7,7 @@ import { karamazovEvalSuite } from "./karamazov";
 import { legacyEvalSuite } from "./legacy";
 import { lebonEvalSuite } from "./lebon";
 import { memoryEvalSuite } from "./memory";
+import { personalizationEvalSuite } from "./personalization";
 import { readingEvalSuite } from "./reading";
 import { realBooksEvalSuite } from "./real-book-common";
 import { refactoringEvalSuite } from "./refactoring";
@@ -24,6 +25,7 @@ export const evalSuites = {
   legacy: legacyEvalSuite,
   lebon: lebonEvalSuite,
   memory: memoryEvalSuite,
+  personalization: personalizationEvalSuite,
   reading: readingEvalSuite,
   realbooks: realBooksEvalSuite,
   refactoring: refactoringEvalSuite,

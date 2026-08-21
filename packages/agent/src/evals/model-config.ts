@@ -36,6 +36,9 @@ export interface ResolvedEvalModel {
  */
 const EVAL_DEFAULT_MODELS: Partial<Record<KnownProviderId, string>> = {
   openrouter: "deepseek/deepseek-v4-flash",
+  // Coding Plan 包月端点：catalog 滞后（此刻只收录到 5.2），id 会原样透传，
+  // 端点实测认识 glm-5.3——不钉住会碰运气落到目录第一个 reasoning 模型。
+  "zai-coding-cn": "glm-5.3",
 };
 
 /**

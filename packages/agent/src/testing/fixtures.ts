@@ -369,29 +369,29 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         },
       editBookMetadata: async (bookId, patch) => {
         const book = books.find((entry) => entry.id === bookId);
-        if (!book) throw new Error(`unknown book: ${bookId}`);
+        if (!book) throw new Error(`unknown book id: ${bookId} — ids come from list_books; in a book thread just omit bookId for the current book, never guess from a title`);
         if (patch.title !== undefined) book.title = patch.title;
         if (patch.author !== undefined) book.author = patch.author;
         book.updatedAt = new Date().toISOString();
       },
       setBookStarred: async (bookId, starred) => {
         const book = books.find((entry) => entry.id === bookId);
-        if (!book) throw new Error(`unknown book: ${bookId}`);
+        if (!book) throw new Error(`unknown book id: ${bookId} — ids come from list_books; in a book thread just omit bookId for the current book, never guess from a title`);
         book.starred = starred;
       },
       setBookFinished: async (bookId, finished) => {
         const book = books.find((entry) => entry.id === bookId);
-        if (!book) throw new Error(`unknown book: ${bookId}`);
+        if (!book) throw new Error(`unknown book id: ${bookId} — ids come from list_books; in a book thread just omit bookId for the current book, never guess from a title`);
         book.status = finished ? "finished" : "reading";
       },
       setBookNarrativity: async (bookId, narrativity) => {
         const book = books.find((entry) => entry.id === bookId);
-        if (!book) throw new Error(`unknown book: ${bookId}`);
+        if (!book) throw new Error(`unknown book id: ${bookId} — ids come from list_books; in a book thread just omit bookId for the current book, never guess from a title`);
         book.narrativity = narrativity;
       },
       removeBook: async (bookId) => {
         const index = books.findIndex((entry) => entry.id === bookId);
-        if (index < 0) throw new Error(`unknown book: ${bookId}`);
+        if (index < 0) throw new Error(`unknown book id: ${bookId} — ids come from list_books; in a book thread just omit bookId for the current book, never guess from a title`);
         books.splice(index, 1);
       },
       createCollection: async (name) => {

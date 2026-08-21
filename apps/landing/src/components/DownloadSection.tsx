@@ -14,7 +14,7 @@ export type DownloadSectionStrings = {
 const DEFAULT_STRINGS: DownloadSectionStrings = {
   title: "Get ReadAware",
   intro:
-    "Free and local-first. Bring your own API key; your library and memory stay on your device.",
+    "Free, open source, and local-first. Bring your own API key; your library and memory stay on your device.",
   latest: (tag) => ` The latest release is ${tag}.`,
   yourPlatform: "— your platform",
   comingSoon: "Coming soon",

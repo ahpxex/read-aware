@@ -10,8 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as OpenSourceEbookReaderRouteImport } from './routes/open-source-ebook-reader'
+import { Route as EpubReaderForWindowsRouteImport } from './routes/epub-reader-for-windows'
+import { Route as EpubReaderForAndroidRouteImport } from './routes/epub-reader-for-android'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as ChangelogRouteImport } from './routes/changelog'
+import { Route as CbzCbrReaderRouteImport } from './routes/cbz-cbr-reader'
 import { Route as BlogRouteImport } from './routes/blog'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ZhIndexRouteImport } from './routes/zh/index'
@@ -75,6 +79,21 @@ const PricingRoute = PricingRouteImport.update({
   path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OpenSourceEbookReaderRoute = OpenSourceEbookReaderRouteImport.update({
+  id: '/open-source-ebook-reader',
+  path: '/open-source-ebook-reader',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EpubReaderForWindowsRoute = EpubReaderForWindowsRouteImport.update({
+  id: '/epub-reader-for-windows',
+  path: '/epub-reader-for-windows',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EpubReaderForAndroidRoute = EpubReaderForAndroidRouteImport.update({
+  id: '/epub-reader-for-android',
+  path: '/epub-reader-for-android',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DocsRoute = DocsRouteImport.update({
   id: '/docs',
   path: '/docs',
@@ -83,6 +102,11 @@ const DocsRoute = DocsRouteImport.update({
 const ChangelogRoute = ChangelogRouteImport.update({
   id: '/changelog',
   path: '/changelog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CbzCbrReaderRoute = CbzCbrReaderRouteImport.update({
+  id: '/cbz-cbr-reader',
+  path: '/cbz-cbr-reader',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BlogRoute = BlogRouteImport.update({
@@ -377,8 +401,12 @@ const JaDocsPluginsApiRoute = JaDocsPluginsApiRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/blog': typeof BlogRouteWithChildren
+  '/cbz-cbr-reader': typeof CbzCbrReaderRoute
   '/changelog': typeof ChangelogRoute
   '/docs': typeof DocsRouteWithChildren
+  '/epub-reader-for-android': typeof EpubReaderForAndroidRoute
+  '/epub-reader-for-windows': typeof EpubReaderForWindowsRoute
+  '/open-source-ebook-reader': typeof OpenSourceEbookReaderRoute
   '/pricing': typeof PricingRoute
   '/blog/local-first': typeof BlogLocalFirstRoute
   '/blog/plugins-v1': typeof BlogPluginsV1Route
@@ -438,7 +466,11 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/cbz-cbr-reader': typeof CbzCbrReaderRoute
   '/changelog': typeof ChangelogRoute
+  '/epub-reader-for-android': typeof EpubReaderForAndroidRoute
+  '/epub-reader-for-windows': typeof EpubReaderForWindowsRoute
+  '/open-source-ebook-reader': typeof OpenSourceEbookReaderRoute
   '/pricing': typeof PricingRoute
   '/blog/local-first': typeof BlogLocalFirstRoute
   '/blog/plugins-v1': typeof BlogPluginsV1Route
@@ -496,8 +528,12 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/blog': typeof BlogRouteWithChildren
+  '/cbz-cbr-reader': typeof CbzCbrReaderRoute
   '/changelog': typeof ChangelogRoute
   '/docs': typeof DocsRouteWithChildren
+  '/epub-reader-for-android': typeof EpubReaderForAndroidRoute
+  '/epub-reader-for-windows': typeof EpubReaderForWindowsRoute
+  '/open-source-ebook-reader': typeof OpenSourceEbookReaderRoute
   '/pricing': typeof PricingRoute
   '/blog/local-first': typeof BlogLocalFirstRoute
   '/blog/plugins-v1': typeof BlogPluginsV1Route
@@ -560,8 +596,12 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/blog'
+    | '/cbz-cbr-reader'
     | '/changelog'
     | '/docs'
+    | '/epub-reader-for-android'
+    | '/epub-reader-for-windows'
+    | '/open-source-ebook-reader'
     | '/pricing'
     | '/blog/local-first'
     | '/blog/plugins-v1'
@@ -621,7 +661,11 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/cbz-cbr-reader'
     | '/changelog'
+    | '/epub-reader-for-android'
+    | '/epub-reader-for-windows'
+    | '/open-source-ebook-reader'
     | '/pricing'
     | '/blog/local-first'
     | '/blog/plugins-v1'
@@ -678,8 +722,12 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/blog'
+    | '/cbz-cbr-reader'
     | '/changelog'
     | '/docs'
+    | '/epub-reader-for-android'
+    | '/epub-reader-for-windows'
+    | '/open-source-ebook-reader'
     | '/pricing'
     | '/blog/local-first'
     | '/blog/plugins-v1'
@@ -741,8 +789,12 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BlogRoute: typeof BlogRouteWithChildren
+  CbzCbrReaderRoute: typeof CbzCbrReaderRoute
   ChangelogRoute: typeof ChangelogRoute
   DocsRoute: typeof DocsRouteWithChildren
+  EpubReaderForAndroidRoute: typeof EpubReaderForAndroidRoute
+  EpubReaderForWindowsRoute: typeof EpubReaderForWindowsRoute
+  OpenSourceEbookReaderRoute: typeof OpenSourceEbookReaderRoute
   PricingRoute: typeof PricingRoute
   DeChangelogRoute: typeof DeChangelogRoute
   DePricingRoute: typeof DePricingRoute
@@ -780,6 +832,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/open-source-ebook-reader': {
+      id: '/open-source-ebook-reader'
+      path: '/open-source-ebook-reader'
+      fullPath: '/open-source-ebook-reader'
+      preLoaderRoute: typeof OpenSourceEbookReaderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/epub-reader-for-windows': {
+      id: '/epub-reader-for-windows'
+      path: '/epub-reader-for-windows'
+      fullPath: '/epub-reader-for-windows'
+      preLoaderRoute: typeof EpubReaderForWindowsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/epub-reader-for-android': {
+      id: '/epub-reader-for-android'
+      path: '/epub-reader-for-android'
+      fullPath: '/epub-reader-for-android'
+      preLoaderRoute: typeof EpubReaderForAndroidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/docs': {
       id: '/docs'
       path: '/docs'
@@ -792,6 +865,13 @@ declare module '@tanstack/react-router' {
       path: '/changelog'
       fullPath: '/changelog'
       preLoaderRoute: typeof ChangelogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cbz-cbr-reader': {
+      id: '/cbz-cbr-reader'
+      path: '/cbz-cbr-reader'
+      fullPath: '/cbz-cbr-reader'
+      preLoaderRoute: typeof CbzCbrReaderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/blog': {
@@ -1311,8 +1391,12 @@ const ZhDocsRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BlogRoute: BlogRouteWithChildren,
+  CbzCbrReaderRoute: CbzCbrReaderRoute,
   ChangelogRoute: ChangelogRoute,
   DocsRoute: DocsRouteWithChildren,
+  EpubReaderForAndroidRoute: EpubReaderForAndroidRoute,
+  EpubReaderForWindowsRoute: EpubReaderForWindowsRoute,
+  OpenSourceEbookReaderRoute: OpenSourceEbookReaderRoute,
   PricingRoute: PricingRoute,
   DeChangelogRoute: DeChangelogRoute,
   DePricingRoute: DePricingRoute,

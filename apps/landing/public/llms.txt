@@ -1,6 +1,6 @@
 # ReadAware
 
-> ReadAware is a free, local-first, AI-native reading app for macOS, Windows, Linux, and Android. One engine reads EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, and PDF with the same highlights, notes, and progress; the built-in assistant builds durable memory from your books, highlights, and conversations, and answers from your own shelf. Your library and memory stay on your device — you bring your own API key, and the cloud is only used to sync between machines.
+> ReadAware is a free, open-source (AGPL-3.0), local-first, AI-native ebook reader for macOS, Windows, Linux, and Android. One engine reads EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, and PDF with the same highlights, notes, and progress; the built-in assistant builds durable memory from your books, highlights, and conversations, and answers from your own shelf. Your library and memory stay on your device — you bring your own API key, and the cloud is only used to sync between machines.
 
 ## Docs
 
@@ -19,6 +19,10 @@
 
 ## Optional
 
+- [Open-source ebook reader](https://readaware.app/open-source-ebook-reader/): the open-source story — AGPL-3.0, local-first, DRM-free
+- [EPUB reader for Windows](https://readaware.app/epub-reader-for-windows/): reading EPUB (and more) on Windows
+- [EPUB reader for Android](https://readaware.app/epub-reader-for-android/): the Android app and desktop sync
+- [CBZ & CBR comic reader](https://readaware.app/cbz-cbr-reader/): comic archives on the same shelf as your books
 - [Changelog](https://readaware.app/changelog/): what changed in each release
 - [GitHub repository](https://github.com/ahpxex/read-aware): source code and release downloads
 - [Plugin marketplace registry](https://github.com/ahpxex/readaware-plugins): community plugin submissions

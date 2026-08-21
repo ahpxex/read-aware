@@ -45,13 +45,13 @@ export type HomeContent = {
 
 export const HOME: Record<Locale, HomeContent> = {
   en: {
-    metaTitle: "ReadAware — A reader aware of you",
+    metaTitle: "ReadAware — Free, Open-Source Ebook Reader That's Aware of You",
     metaDescription:
-      "An aware, extensible reading app. One reader for EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, and PDF that builds memory from your reading, grows through plugins, and syncs end-to-end encrypted — local-first and private.",
-    heroTitle: "A reader that's aware of you — and yours to extend",
+      "A free, open-source ebook reader for Windows, macOS, Linux, and Android. One reader for EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, and PDF that builds memory from your reading, grows through plugins, and syncs end-to-end encrypted — local-first and private.",
+    heroTitle: "An ebook reader that's aware of you — and yours to extend",
     heroLead:
       "Ask about any passage — ReadAware already knows what you've highlighted, wondered about, and read, across every book on your shelf. That awareness lives on your device, grows through plugins, and follows you — encrypted — to every machine.",
-    freeLine: (tag) => `Free and local-first${tag ? `. ${tag}.` : "."}`,
+    freeLine: (tag) => `Free, open source, local-first${tag ? `. ${tag}.` : "."}`,
     shelfAlt:
       "The ReadAware library — a grid of book covers across many languages and formats.",
     shelfCaption: "Your library — every format in one place.",
@@ -91,14 +91,14 @@ export const HOME: Record<Locale, HomeContent> = {
         body: "Marketplace plugins add voices, dictionaries, themes, and feeds — and hand the assistant tools it picks up and uses.",
       },
       {
-        title: "Local-first, encrypted sync",
-        body: "Everything lives on your device. Bring your own API key; the cloud is only an encrypted relay between your machines.",
+        title: "Open source, local-first, encrypted sync",
+        body: "The code is public under AGPL-3.0, and everything lives on your device. Bring your own API key; the cloud is only an encrypted relay between your machines.",
       },
     ],
     download: {
       title: "Get ReadAware",
       intro:
-        "Free and local-first. Bring your own API key; your library and memory stay on your device.",
+        "Free, open source, and local-first. Bring your own API key; your library and memory stay on your device.",
       latest: (tag) => ` The latest release is ${tag}.`,
       yourPlatform: "— your platform",
       comingSoon: "Coming soon",
@@ -110,13 +110,13 @@ export const HOME: Record<Locale, HomeContent> = {
     },
   },
   zh: {
-    metaTitle: "ReadAware — 懂你的阅读器",
+    metaTitle: "ReadAware — 懂你的免费开源电子书阅读器",
     metaDescription:
-      "懂你、可扩展的阅读应用。一个阅读器读遍 EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML、PDF，从你的阅读中长出记忆，靠插件生长，端到端加密同步——本地优先，数据归你。",
-    heroTitle: "懂你的阅读器，由你扩展",
+      "免费开源的电子书阅读器，支持 Windows、macOS、Linux 和 Android。一个阅读器读遍 EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML、PDF，从你的阅读中长出记忆，靠插件生长，端到端加密同步——本地优先，数据归你。",
+    heroTitle: "懂你的电子书阅读器，由你扩展",
     heroLead:
       "问任何一段文字——ReadAware 早已知道你在整个书架上划过什么、问过什么、读过什么。这份「懂」留在你的设备上，靠插件生长，也会加密着跟你到每一台机器。",
-    freeLine: (tag) => `免费、本地优先${tag ? `，当前版本 ${tag}。` : "。"}`,
+    freeLine: (tag) => `免费开源、本地优先${tag ? `，当前版本 ${tag}。` : "。"}`,
     shelfAlt: "ReadAware 书架——多语言、多格式的书籍封面网格。",
     shelfCaption: "你的书架——所有格式都在一处。",
     readerTitle: "安静地读任何书",
@@ -153,13 +153,13 @@ export const HOME: Record<Locale, HomeContent> = {
         body: "市场里的插件带来声音、词典、主题和订阅源——还会把新工具交到智能助理手里，它拿起来就用。",
       },
       {
-        title: "本地优先，加密同步",
-        body: "一切都在你的设备上。API key 由你自己带；云端只是设备之间的一条加密中继。",
+        title: "开源、本地优先，加密同步",
+        body: "代码以 AGPL-3.0 公开，一切都在你的设备上。API key 由你自己带；云端只是设备之间的一条加密中继。",
       },
     ],
     download: {
       title: "获取 ReadAware",
-      intro: "免费、本地优先。自带 API key；书架和记忆都留在你的设备上。",
+      intro: "免费开源、本地优先。自带 API key；书架和记忆都留在你的设备上。",
       latest: (tag) => `当前版本 ${tag}。`,
       yourPlatform: "——你的平台",
       comingSoon: "即将推出",
@@ -171,13 +171,13 @@ export const HOME: Record<Locale, HomeContent> = {
     },
   },
   ja: {
-    metaTitle: "ReadAware — あなたを知るリーダー",
+    metaTitle: "ReadAware — あなたを知る無料・オープンソースの電子書籍リーダー",
     metaDescription:
-      "あなたを知り、拡張できる読書アプリ。EPUB・MOBI・AZW3・FB2・CBZ・CBR・TXT・HTML・PDFをひとつのリーダーで読み、読書から記憶を育て、プラグインで広がり、エンドツーエンド暗号化で同期。ローカルファーストでプライベート。",
-    heroTitle: "あなたを知り、あなたが広げるリーダー",
+      "無料・オープンソースの電子書籍リーダー。Windows・macOS・Linux・Androidに対応し、EPUB・MOBI・AZW3・FB2・CBZ・CBR・TXT・HTML・PDFをひとつのリーダーで読み、読書から記憶を育て、プラグインで広がり、エンドツーエンド暗号化で同期。ローカルファーストでプライベート。",
+    heroTitle: "あなたを知り、あなたが広げる電子書籍リーダー",
     heroLead:
       "どの一節について聞いても——ReadAwareは、棚のすべての本であなたが引いたライン、抱いた問い、読んだページをすでに知っています。その「知っている」はあなたのデバイスに宿り、プラグインで育ち、暗号化されたままどのマシンにもついてきます。",
-    freeLine: (tag) => `無料・ローカルファースト${tag ? `。最新版は ${tag}。` : "。"}`,
+    freeLine: (tag) => `無料・オープンソース・ローカルファースト${tag ? `。最新版は ${tag}。` : "。"}`,
     shelfAlt: "ReadAwareのライブラリ——多言語・多形式の表紙が並ぶグリッド。",
     shelfCaption: "あなたのライブラリ——あらゆる形式をひとつの場所に。",
     readerTitle: "何でも静かに読める場所",
@@ -216,14 +216,14 @@ export const HOME: Record<Locale, HomeContent> = {
         body: "マーケットプレイスのプラグインがボイス・辞書・テーマ・フィードを加え、アシスタントには新しいツールを手渡します。アシスタントはそれをすぐ使いこなします。",
       },
       {
-        title: "ローカルファースト、暗号化同期",
-        body: "すべてはあなたのデバイスに。APIキーは自分で用意し、クラウドはマシン間の暗号化された中継にすぎません。",
+        title: "オープンソース、ローカルファースト、暗号化同期",
+        body: "コードはAGPL-3.0で公開され、すべてはあなたのデバイスに。APIキーは自分で用意し、クラウドはマシン間の暗号化された中継にすぎません。",
       },
     ],
     download: {
       title: "ReadAwareを入手",
       intro:
-        "無料・ローカルファースト。APIキーは自分で用意し、ライブラリと記憶はデバイスに残ります。",
+        "無料・オープンソース・ローカルファースト。APIキーは自分で用意し、ライブラリと記憶はデバイスに残ります。",
       latest: (tag) => `最新版は ${tag}。`,
       yourPlatform: "——お使いのプラットフォーム",
       comingSoon: "近日公開",
@@ -236,10 +236,10 @@ export const HOME: Record<Locale, HomeContent> = {
   },
   "zh-hant": {
     freeLine: (tag) =>
-      tag ? `免費且本地優先。最新版本是 ${tag}。` : "免費且本地優先。",
-    "metaTitle": "ReadAware — 懂你的閱讀器",
-    "metaDescription": "懂你、可擴充的閱讀應用程式。一個閱讀器讀遍 EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML 和 PDF，從你的閱讀中長出記憶，靠外掛生長，端對端加密同步——本地優先且注重隱私。",
-    "heroTitle": "懂你的閱讀器，由你擴充",
+      tag ? `免費開源且本地優先。最新版本是 ${tag}。` : "免費開源且本地優先。",
+    "metaTitle": "ReadAware — 懂你的免費開源電子書閱讀器",
+    "metaDescription": "免費開源的電子書閱讀器，支援 Windows、macOS、Linux 和 Android。一個閱讀器讀遍 EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML 和 PDF，從你的閱讀中長出記憶，靠外掛生長，端對端加密同步——本地優先且注重隱私。",
+    "heroTitle": "懂你的電子書閱讀器，由你擴充",
     "heroLead": "問任何一段文字——ReadAware 早已知道你在整個書架上劃過什麼、問過什麼、讀過什麼。這份「懂」留在你的裝置上，靠外掛生長，也會加密著跟你到每一台機器。",
     "shelfAlt": "ReadAware 書架——一個包含多種語言和格式的書籍封面格線。",
     "shelfCaption": "你的書架——所有格式，一個地方。",
@@ -272,15 +272,15 @@ export const HOME: Record<Locale, HomeContent> = {
         "body": "市場裡的外掛帶來語音、字典、主題和訂閱源——還會把新工具交到智慧助理手裡，它拿起來就用。"
       },
       {
-        "title": "本地優先，加密同步",
-        "body": "一切都在你的裝置上。API 金鑰由你自備；雲端只是裝置之間的一條加密中繼。"
+        "title": "開源、本地優先，加密同步",
+        "body": "程式碼以 AGPL-3.0 公開，一切都在你的裝置上。API 金鑰由你自備；雲端只是裝置之間的一條加密中繼。"
       }
     ],
     "download": {
       latest: (tag) => `最新版本是 ${tag}。`,
       downloadFor: (name) => `下載 ${name} 版`,
       "title": "取得 ReadAware",
-      "intro": "免費且本地優先。自備 API 金鑰；你的書架和記憶都留在你的裝置上。",
+      "intro": "免費開源且本地優先。自備 API 金鑰；你的書架和記憶都留在你的裝置上。",
       "yourPlatform": "— 你的平台",
       "comingSoon": "即將推出",
       "download": "下載",
@@ -290,10 +290,10 @@ export const HOME: Record<Locale, HomeContent> = {
     },
   fr: {
     freeLine: (tag) =>
-      tag ? `Gratuit et local d'abord. La dernière version est ${tag}.` : "Gratuit et local d'abord.",
-    "metaTitle": "ReadAware — Un lecteur qui vous connaît",
-    "metaDescription": "Une application de lecture attentive et extensible. Un seul lecteur pour EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML et PDF, qui construit une mémoire à partir de vos lectures, grandit par les plugins et se synchronise chiffré de bout en bout — local d'abord et privé.",
-    "heroTitle": "Un lecteur qui vous connaît — et que vous étendez",
+      tag ? `Gratuit, open source et local d'abord. La dernière version est ${tag}.` : "Gratuit, open source et local d'abord.",
+    "metaTitle": "ReadAware — Lecteur d'ebooks gratuit et open source qui vous connaît",
+    "metaDescription": "Un lecteur d'ebooks gratuit et open source pour Windows, macOS, Linux et Android. Un seul lecteur pour EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML et PDF, qui construit une mémoire à partir de vos lectures, grandit par les plugins et se synchronise chiffré de bout en bout — local d'abord et privé.",
+    "heroTitle": "Un lecteur d'ebooks qui vous connaît — et que vous étendez",
     "heroLead": "Interrogez n'importe quel passage — ReadAware sait déjà ce que vous avez surligné, questionné et lu, à travers tous les livres de votre bibliothèque. Cette connaissance vit sur votre appareil, grandit par les plugins et vous suit, chiffrée, sur chaque machine.",
     "shelfAlt": "La bibliothèque ReadAware — une grille de couvertures de livres dans de nombreuses langues et formats.",
     "shelfCaption": "Votre bibliothèque — tous les formats au même endroit.",
@@ -326,15 +326,15 @@ export const HOME: Record<Locale, HomeContent> = {
         "body": "Les plugins du marketplace ajoutent voix, dictionnaires, thèmes et flux — et confient à l'assistant des outils qu'il adopte aussitôt."
       },
       {
-        "title": "Local d'abord, synchronisation chiffrée",
-        "body": "Tout vit sur votre appareil. Apportez votre clé API ; le cloud n'est qu'un relais chiffré entre vos machines."
+        "title": "Open source, local d'abord, synchronisation chiffrée",
+        "body": "Le code est public sous licence AGPL-3.0, et tout vit sur votre appareil. Apportez votre clé API ; le cloud n'est qu'un relais chiffré entre vos machines."
       }
     ],
     "download": {
       latest: (tag) => `La dernière version est ${tag}.`,
       downloadFor: (name) => `Télécharger pour ${name}`,
       "title": "Obtenir ReadAware",
-      "intro": "Gratuit et local d'abord. Apportez votre propre clé API ; votre bibliothèque et votre mémoire restent sur votre appareil.",
+      "intro": "Gratuit, open source et local d'abord. Apportez votre propre clé API ; votre bibliothèque et votre mémoire restent sur votre appareil.",
       "yourPlatform": "— votre plateforme",
       "comingSoon": "Bientôt disponible",
       "download": "Télécharger",
@@ -344,10 +344,10 @@ export const HOME: Record<Locale, HomeContent> = {
     },
   de: {
     freeLine: (tag) =>
-      tag ? `Kostenlos und Local-First. Die neueste Version ist ${tag}.` : "Kostenlos und Local-First.",
-    "metaTitle": "ReadAware — Ein Reader, der dich kennt",
-    "metaDescription": "Eine aufmerksame, erweiterbare Lese-App. Ein Reader für EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML und PDF, der aus deinem Lesen Erinnerung aufbaut, durch Plugins wächst und Ende-zu-Ende-verschlüsselt synchronisiert — Local-First und privat.",
-    "heroTitle": "Ein Reader, der dich kennt — und den du erweiterst",
+      tag ? `Kostenlos, Open Source und Local-First. Die neueste Version ist ${tag}.` : "Kostenlos, Open Source und Local-First.",
+    "metaTitle": "ReadAware — Kostenloser Open-Source-E-Book-Reader, der dich kennt",
+    "metaDescription": "Ein kostenloser Open-Source-E-Book-Reader für Windows, macOS, Linux und Android. Ein Reader für EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML und PDF, der aus deinem Lesen Erinnerung aufbaut, durch Plugins wächst und Ende-zu-Ende-verschlüsselt synchronisiert — Local-First und privat.",
+    "heroTitle": "Ein E-Book-Reader, der dich kennt — und den du erweiterst",
     "heroLead": "Frag nach irgendeiner Passage — ReadAware weiß bereits, was du markiert, gefragt und gelesen hast, über jedes Buch in deinem Regal hinweg. Dieses Wissen lebt auf deinem Gerät, wächst durch Plugins und folgt dir — verschlüsselt — auf jede Maschine.",
     "shelfAlt": "Die ReadAware-Bibliothek — ein Raster aus Buchcovern in vielen Sprachen und Formaten.",
     "shelfCaption": "Deine Bibliothek — alle Formate an einem Ort.",
@@ -380,15 +380,15 @@ export const HOME: Record<Locale, HomeContent> = {
         "body": "Marktplatz-Plugins ergänzen Stimmen, Wörterbücher, Themen und Feeds — und geben dem Assistenten Werkzeuge in die Hand, die er aufgreift und nutzt."
       },
       {
-        "title": "Local-First, verschlüsselte Synchronisierung",
-        "body": "Alles lebt auf deinem Gerät. Bring deinen eigenen API-Schlüssel mit; die Cloud ist nur ein verschlüsseltes Relay zwischen deinen Maschinen."
+        "title": "Open Source, Local-First, verschlüsselte Synchronisierung",
+        "body": "Der Code ist unter AGPL-3.0 öffentlich, und alles lebt auf deinem Gerät. Bring deinen eigenen API-Schlüssel mit; die Cloud ist nur ein verschlüsseltes Relay zwischen deinen Maschinen."
       }
     ],
     "download": {
       latest: (tag) => `Die neueste Version ist ${tag}.`,
       downloadFor: (name) => `Download für ${name}`,
       "title": "ReadAware herunterladen",
-      "intro": "Kostenlos und Local-First. Bring deinen eigenen API-Schlüssel mit; deine Bibliothek und Erinnerung bleiben auf deinem Gerät.",
+      "intro": "Kostenlos, Open Source und Local-First. Bring deinen eigenen API-Schlüssel mit; deine Bibliothek und Erinnerung bleiben auf deinem Gerät.",
       "yourPlatform": "— deine Plattform",
       "comingSoon": "Bald verfügbar",
       "download": "Download",
@@ -398,10 +398,10 @@ export const HOME: Record<Locale, HomeContent> = {
     },
   ru: {
     freeLine: (tag) =>
-      tag ? `Бесплатно и локальный подход (local-first). Последний выпуск — ${tag}.` : "Бесплатно и локальный подход (local-first).",
-    "metaTitle": "ReadAware — Ридер, который вас знает",
-    "metaDescription": "Внимательное и расширяемое приложение для чтения. Один ридер для EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML и PDF, который выстраивает память из вашего чтения, растёт благодаря плагинам и синхронизируется со сквозным шифрованием — локальный подход (local-first) и приватность.",
-    "heroTitle": "Ридер, который вас знает — и который вы расширяете",
+      tag ? `Бесплатно, открытый код и local-first. Последний выпуск — ${tag}.` : "Бесплатно, открытый код и local-first.",
+    "metaTitle": "ReadAware — Бесплатная читалка электронных книг с открытым кодом",
+    "metaDescription": "Бесплатная читалка электронных книг с открытым исходным кодом для Windows, macOS, Linux и Android. Один ридер для EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML и PDF, который выстраивает память из вашего чтения, растёт благодаря плагинам и синхронизируется со сквозным шифрованием — локальный подход (local-first) и приватность.",
+    "heroTitle": "Ридер электронных книг, который вас знает — и который вы расширяете",
     "heroLead": "Спросите о любом фрагменте — ReadAware уже знает, что вы выделяли, о чём спрашивали и что читали, по всем книгам на вашей полке. Это знание живёт на вашем устройстве, растёт благодаря плагинам и следует за вами — в зашифрованном виде — на каждую машину.",
     "shelfAlt": "Библиотека ReadAware — сетка обложек книг на разных языках и в разных форматах.",
     "shelfCaption": "Ваша библиотека — все форматы в одном месте.",
@@ -434,15 +434,15 @@ export const HOME: Record<Locale, HomeContent> = {
         "body": "Плагины из каталога добавляют голоса, словари, темы и ленты — и вручают ассистенту инструменты, которые он подхватывает и использует."
       },
       {
-        "title": "Local-first и зашифрованная синхронизация",
-        "body": "Всё живёт на вашем устройстве. Приносите свой API-ключ; облако — лишь зашифрованный ретранслятор между вашими машинами."
+        "title": "Открытый код, local-first, зашифрованная синхронизация",
+        "body": "Код открыт под лицензией AGPL-3.0, и всё живёт на вашем устройстве. Приносите свой API-ключ; облако — лишь зашифрованный ретранслятор между вашими машинами."
       }
     ],
     "download": {
       latest: (tag) => `Последний выпуск — ${tag}.`,
       downloadFor: (name) => `Скачать для ${name}`,
       "title": "Скачать ReadAware",
-      "intro": "Бесплатно и локальный подход (local-first). Принесите свой API-ключ; библиотека и память остаются на вашем устройстве.",
+      "intro": "Бесплатно, открытый код и local-first. Принесите свой API-ключ; библиотека и память остаются на вашем устройстве.",
       "yourPlatform": "— ваша платформа",
       "comingSoon": "Скоро",
       "download": "Скачать",
@@ -452,10 +452,10 @@ export const HOME: Record<Locale, HomeContent> = {
     },
   es: {
     freeLine: (tag) =>
-      tag ? `Gratis y local primero (local-first). La última versión es ${tag}.` : "Gratis y local primero (local-first).",
-    "metaTitle": "ReadAware — Un lector que te conoce",
-    "metaDescription": "Una app de lectura atenta y extensible. Un solo lector para EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML y PDF que construye memoria a partir de tu lectura, crece con plugins y sincroniza cifrado de extremo a extremo: local primero (local-first) y privado.",
-    "heroTitle": "Un lector que te conoce — y que tú extiendes",
+      tag ? `Gratis, de código abierto y local primero (local-first). La última versión es ${tag}.` : "Gratis, de código abierto y local primero (local-first).",
+    "metaTitle": "ReadAware — Lector de ebooks gratuito y de código abierto que te conoce",
+    "metaDescription": "Un lector de ebooks gratuito y de código abierto para Windows, macOS, Linux y Android. Un solo lector para EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML y PDF que construye memoria a partir de tu lectura, crece con plugins y sincroniza cifrado de extremo a extremo: local primero (local-first) y privado.",
+    "heroTitle": "Un lector de ebooks que te conoce — y que tú extiendes",
     "heroLead": "Pregunta por cualquier pasaje: ReadAware ya sabe qué subrayaste, qué preguntaste y qué leíste, en todos los libros de tu estantería. Ese conocimiento vive en tu dispositivo, crece con los plugins y te sigue —cifrado— a cada máquina.",
     "shelfAlt": "La biblioteca de ReadAware: una cuadrícula de portadas de libros en varios idiomas y formatos.",
     "shelfCaption": "Tu biblioteca: todos los formatos en un solo lugar.",
@@ -488,15 +488,15 @@ export const HOME: Record<Locale, HomeContent> = {
         "body": "Los plugins del marketplace añaden voces, diccionarios, temas y fuentes — y ponen en manos del asistente herramientas que adopta y usa."
       },
       {
-        "title": "Local primero, sincronización cifrada",
-        "body": "Todo vive en tu dispositivo. Aporta tu propia clave API; la nube es solo un relay cifrado entre tus máquinas."
+        "title": "Código abierto, local primero, sincronización cifrada",
+        "body": "El código es público bajo AGPL-3.0, y todo vive en tu dispositivo. Aporta tu propia clave API; la nube es solo un relay cifrado entre tus máquinas."
       }
     ],
     "download": {
       latest: (tag) => `La última versión es ${tag}.`,
       downloadFor: (name) => `Descargar para ${name}`,
       "title": "Obtén ReadAware",
-      "intro": "Gratis y local primero (local-first). Aporta tu propia clave API; tu biblioteca y tu memoria permanecen en tu dispositivo.",
+      "intro": "Gratis, de código abierto y local primero (local-first). Aporta tu propia clave API; tu biblioteca y tu memoria permanecen en tu dispositivo.",
       "yourPlatform": "— tu plataforma",
       "comingSoon": "Próximamente",
       "download": "Descargar",

@@ -48,6 +48,20 @@ const REAL_BOOKS = {
     firstContentChapter: 4,
     title: "三体全集",
   },
+  refactoring: {
+    slug: "refactoring",
+    narrativity: "expository",
+    // 0-5 是电子书说明/环衬/版权/目录/初版序；Preface 起是 Fowler 本人的实文。
+    // fixture 已剥离全部插图（原 36MB → 文本骨架），正文一字未动。
+    firstContentChapter: 6,
+  },
+  berger: {
+    slug: "berger",
+    narrativity: "expository",
+    // 0-2 是版权/推荐序/自测页；前言起是作者正文。
+    firstContentChapter: 3,
+    title: "如何用提问解决问题",
+  },
 } as const satisfies Record<string, RealBookSpec>;
 
 export type RealBookSlug = keyof typeof REAL_BOOKS;

@@ -31,6 +31,16 @@ surface case there; the completeness check fails otherwise.
   narrative suites: concept-graph injection ("argument so far" instead of
   characters/relations), free forward retrieval with zero spoiler ceremony,
   and this-edition terminology fidelity.
+- `refactoring`: technical real book — the full English Refactoring 2nd ed
+  (`fixtures/refactoring.epub`, 23 sections / ~730k chars, images stripped
+  from the fixture, text untouched). What only a technical book tests:
+  catalog lookup landing on the book's own chapter numbering, the smell
+  vocabulary answered from the concept graph, and bilingual discipline — a
+  Chinese reader gets a Chinese answer with the book's English terms intact.
+- `berger`: how-to real book — the full Chinese Berger
+  (`fixtures/berger.epub`, 10 chapters). The tool-book angle: the reader
+  brings a real situation and the answer must APPLY the finished chapters'
+  methods to it, plus zero-ceremony forward peeks at later chapters.
 - `grounding`: honesty when data is missing — no invented chapters, durations,
   or shelf books.
 - `reading`: reading-cursor grounding, selective spoiler protection, forward
@@ -59,9 +69,8 @@ bun run eval:all --list
 DeepSeek is the default provider. The runner reads `DEEPSEEK_API_KEY` or the
 normal Pi CLI credential in `~/.pi/agent/auth.json`.
 
-Thinking defaults to **off** (fast, cheap regression runs — and the floor for
-legacy app configs, whose stored default is also off). Pass `--thinking low`
-or `--thinking medium` to measure the app's configured tier. Tool discipline
+Thinking defaults to **medium** — the tier regressions should be measured at.
+Pass `--thinking off` only for a deliberately cheap smoke pass. Tool discipline
 is measurably worse at `off` (zero-retrieval turns, prose instead of ask_user);
 compare runs only at the SAME level — trend files record `thinkingLevel` and
 the delta printer marks cross-level comparisons as INCOMPARABLE.

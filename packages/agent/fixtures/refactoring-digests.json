@@ -1,0 +1,2028 @@
+[
+ {
+  "chapterIndex": 0,
+  "summary": "该章节介绍了EPUB电子书的格式特性，以及在不同阅读设备上的可定制设置，并说明了本书中代码示例的呈现方式，包括可点击的代码图像链接及返回操作。",
+  "characters": [
+   {
+    "name": "EPUB",
+    "note": "一种开放、行业标准的电子书格式，但其支持在不同设备上有所差异。"
+   },
+   {
+    "name": "reading devices and applications",
+    "note": "用于阅读电子书的设备或应用，支持用户自定义多项显示设置。"
+   },
+   {
+    "name": "Settings",
+    "note": "用户可调整的显示选项，包括字体、字号、单双栏、横竖屏等。"
+   },
+   {
+    "name": "reflowable text format",
+    "note": "一种可重新排版的文本格式，用于呈现代码和配置示例。"
+   },
+   {
+    "name": "print-fidelity code image",
+    "note": "模仿印刷版书籍中代码展示的图片，供在可重排格式受损时点击查看。"
+   },
+   {
+    "name": "Click here to view code image",
+    "note": "一个链接，点击后显示印刷保真度的代码图像。"
+   },
+   {
+    "name": "Back button",
+    "note": "设备或应用上的按钮，用于返回之前查看的页面。"
+   }
+  ],
+  "relations": [
+   {
+    "from": "EPUB",
+    "kind": "包含",
+    "to": "Settings",
+    "note": "EPUB格式支持用户通过设备设置自定义显示。"
+   },
+   {
+    "from": "print-fidelity code image",
+    "kind": "替代",
+    "to": "reflowable text format",
+    "note": "当可重排格式受影响时，使用印刷保真度代码图像替代。"
+   },
+   {
+    "from": "Click here to view code image",
+    "kind": "链接至",
+    "to": "print-fidelity code image",
+    "note": "点击该链接可查看印刷保真度代码图像。"
+   }
+  ],
+  "digestVersion": 2,
+  "flavor": "expository"
+ },
+ {
+  "chapterIndex": 1,
+  "summary": "本章为重构手法目录，列出了全部重构方法的名称（附页码）。这些名称是后续章节详细讲解的索引。",
+  "characters": [
+   {
+    "name": "Change Function Declaration",
+    "note": "一种重构手法，用于更改函数的声明。"
+   },
+   {
+    "name": "Change Reference to Value",
+    "note": "将引用改为值的重构手法。"
+   },
+   {
+    "name": "Change Value to Reference",
+    "note": "将值改为引用的重构手法。"
+   },
+   {
+    "name": "Collapse Hierarchy",
+    "note": "折叠类层次的重构手法。"
+   },
+   {
+    "name": "Combine Functions into Class",
+    "note": "将函数组合成类的重构手法。"
+   },
+   {
+    "name": "Combine Functions into Transform",
+    "note": "将函数组合成变换的重构手法。"
+   },
+   {
+    "name": "Consolidate Conditional Expression",
+    "note": "合并条件表达式的重构手法。"
+   },
+   {
+    "name": "Decompose Conditional",
+    "note": "分解条件表达式的重构手法。"
+   },
+   {
+    "name": "Encapsulate Collection",
+    "note": "封装集合的重构手法。"
+   },
+   {
+    "name": "Encapsulate Record",
+    "note": "封装记录的重构手法。"
+   },
+   {
+    "name": "Encapsulate Variable",
+    "note": "封装变量的重构手法。"
+   },
+   {
+    "name": "Extract Class",
+    "note": "提取类的重构手法。"
+   }
+  ],
+  "relations": [],
+  "digestVersion": 2,
+  "flavor": "expository"
+ },
+ {
+  "chapterIndex": 2,
+  "summary": "This is the title page of the book 'Refactoring: Improving the Design of Existing Code', Second Edition, authored by Martin Fowler with contributions from Kent Beck. It establishes the work's title, subtitle, edition, author, and publisher location information.",
+  "characters": [
+   {
+    "name": "Refactoring",
+    "note": "The book's main title, referring to improving the design of existing code."
+   },
+   {
+    "name": "Improving the Design of Existing Code",
+    "note": "The subtitle, describing the book's purpose."
+   },
+   {
+    "name": "Second Edition",
+    "note": "The edition of the book."
+   },
+   {
+    "name": "Martin Fowler",
+    "note": "The author of the book."
+   },
+   {
+    "name": "Kent Beck",
+    "note": "A contributor to the book."
+   }
+  ],
+  "relations": [
+   {
+    "from": "Refactoring",
+    "kind": "拥有副标题",
+    "to": "Improving the Design of Existing Code",
+    "note": "The main title has the subtitle describing its purpose."
+   },
+   {
+    "from": "Refactoring",
+    "kind": "属于版本",
+    "to": "Second Edition",
+    "note": "This book is the second edition of Refactoring."
+   },
+   {
+    "from": "Refactoring",
+    "kind": "由...编写",
+    "to": "Martin Fowler",
+    "note": "The book is authored by Martin Fowler."
+   },
+   {
+    "from": "Refactoring",
+    "kind": "由...贡献",
+    "to": "Kent Beck",
+    "note": "The book includes contributions from Kent Beck."
+   }
+  ],
+  "digestVersion": 2,
+  "flavor": "expository"
+ },
+ {
+  "chapterIndex": 3,
+  "summary": "本章为版权页，包含商标声明、免责声明、批量购买与销售联系方式、政府销售与国外销售联系方式、网址、国会图书馆控制号、版权信息、封面图片来源、保留所有权利声明、许可请求联系方式及ISBN信息。",
+  "characters": [
+   {
+    "name": "商标声明",
+    "note": "制造商和销售商用于区分其产品的名称被声明为商标，本书中以首字母大写或全大写形式印刷。"
+   },
+   {
+    "name": "免责声明",
+    "note": "作者和出版商已尽力准备本书，但不作任何明示或暗示的保证，不承担错误或遗漏的责任。"
+   },
+   {
+    "name": "批量购买",
+    "note": "可通过corpsales@pearsoned.com或(800) 382–3419联系公司销售部门。"
+   },
+   {
+    "name": "政府销售",
+    "note": "可通过governmentsales@pearsoned.com联系政府销售部门。"
+   },
+   {
+    "name": "美国以外销售",
+    "note": "可通过intlcs@pearson.com联系国际销售部门。"
+   },
+   {
+    "name": "版权所有",
+    "note": "版权© 2019 Pearson Education, Inc.，保留所有权利。"
+   },
+   {
+    "name": "ISBN-13",
+    "note": "为978-0-13-475759-9。"
+   },
+   {
+    "name": "ISBN-10",
+    "note": "为0-13-475759-9。"
+   }
+  ],
+  "relations": [
+   {
+    "from": "批量购买",
+    "kind": "提供联系方式",
+    "to": "ISBN-13",
+    "note": "批量购买可联系公司销售部门，但具体联系与ISBN无直接关系，此处未建立关系。"
+   }
+  ],
+  "digestVersion": 2,
+  "flavor": "expository"
+ },
+ {
+  "chapterIndex": 4,
+  "summary": "This chapter is the table of contents for the book, listing all chapter titles and their section headings.",
+  "characters": [],
+  "relations": [],
+  "digestVersion": 2,
+  "flavor": "expository"
+ },
+ {
+  "chapterIndex": 5,
+  "summary": "This foreword argues that refactoring, though integral to framework development and keeping code readable and modifiable, is risky and must be done systematically rather than informally. It introduces the book's core catalog of refactorings, which explain the motivation and mechanics of proven code transformations to reduce risk by changing code one small step at a time, and shares the author's positive experience applying them with Kent Beck.",
+  "characters": [
+   {
+    "name": "refactoring",
+    "note": "Integral to framework development; key to keeping code readable and modifiable; risky if not done properly; must be done systematically; practiced one small step at a time."
+   },
+   {
+    "name": "framework development",
+    "note": "A context where refactoring is integral and the term comes up quickly among 'frameworkers'; frameworks won't be right the first time and must evolve as experience is gained."
+   },
+   {
+    "name": "frameworkers",
+    "note": "People who talk about their craft using refactoring; refine class hierarchies and delete lines of code; know code will be read and modified more frequently than written."
+   },
+   {
+    "name": "Design Patterns",
+    "note": "A book by the author and coauthors that mentioned design patterns provide targets for refactorings; identifying the target is only one part of the problem."
+   },
+   {
+    "name": "catalog of refactorings",
+    "note": "The core of the book; each refactoring describes the motivation and mechanics of a proven code transformation."
+   },
+   {
+    "name": "Extract Method",
+    "note": "One of the refactorings in the catalog; may seem obvious but understanding its mechanics is key to disciplined refactoring."
+   },
+   {
+    "name": "Move Field",
+    "note": "One of the refactorings in the catalog; may seem obvious but understanding its mechanics is key to disciplined refactoring."
+   },
+   {
+    "name": "Kent Beck",
+    "note": "Someone the author pair-programmed with at 30,000 feet; ensured refactorings from the catalog were applied one step at a time."
+   },
+   {
+    "name": "Erich Gamma",
+    "note": "The author of this foreword, affiliated with Object Technology International, Inc.; recommends trying the refactorings."
+   },
+   {
+    "name": "Object Technology International, Inc.",
+    "note": "The organization the foreword author was with in January 1999."
+   }
+  ],
+  "relations": [
+   {
+    "from": "refactoring",
+    "kind": "integral to",
+    "to": "framework development",
+    "note": "Refactoring is integral to framework development, and the term comes up quickly when frameworkers talk about their craft."
+   },
+   {
+    "from": "refactoring",
+    "kind": "key to",
+    "to": "framework development",
+    "note": "Refactoring is the key to keeping code readable and modifiable, for frameworks in particular but also software in general."
+   },
+   {
+    "from": "Design Patterns",
+    "kind": "provide targets for",
+    "to": "refactoring",
+    "note": "Design patterns provide targets for refactorings, but identifying the target is only one part of the problem."
+   },
+   {
+    "from": "catalog of refactorings",
+    "kind": "contains",
+    "to": "Extract Method",
+    "note": "The catalog includes refactorings such as Extract Method, which may seem obvious."
+   },
+   {
+    "from": "catalog of refactorings",
+    "kind": "contains",
+    "to": "Move Field",
+    "note": "The catalog includes refactorings such as Move Field, which may seem obvious."
+   },
+   {
+    "from": "catalog of refactorings",
+    "kind": "explains",
+    "to": "refactoring",
+    "note": "Each refactoring in the catalog describes the motivation and mechanics of a proven code transformation, helping change code one small step at a time to reduce risks."
+   },
+   {
+    "from": "Kent Beck",
+    "kind": "applied",
+    "to": "catalog of refactorings",
+    "note": "Kent Beck made sure the author applied refactorings from the book's catalog one step at a time during pair-programming."
+   }
+  ],
+  "digestVersion": 2,
+  "flavor": "expository"
+ },
+ {
+  "chapterIndex": 6,
+  "summary": "The preface recounts a failed project where the consultant (the author) recommended cleanup but management refused, leading to failure; Kent Beck's continuous refactoring approach inspired the book. It defines refactoring, outlines the book's structure, discusses the web-first approach and JavaScript examples, and acknowledges the field's founders and contributors.",
+  "characters": [
+   {
+    "name": "refactoring",
+    "note": "The process of changing a software system without altering external behavior but improving internal structure; a disciplined way to clean up code that minimizes bugs."
+   },
+   {
+    "name": "Kent Beck",
+    "note": "Brought in to restart the failed project; insisted on continuous refactoring; co-developed the field and inspired the first edition; came up with the idea of Code Smells."
+   },
+   {
+    "name": "Code Smells",
+    "note": "Term coined by Kent Beck to describe signs that suggest the need for refactoring."
+   },
+   {
+    "name": "catalog of refactorings",
+    "note": "The heart of the book; a reference section covering key refactorings, organized consistently, used for step-by-step guidance."
+   },
+   {
+    "name": "Extract Function (106)",
+    "note": "A refactoring that pulls code out of a method into its own method; named as part of the refactoring vocabulary."
+   },
+   {
+    "name": "Split Phase (154)",
+    "note": "A refactoring that splits a computation into separate phases; referenced as an example of a catalog entry."
+   },
+   {
+    "name": "Refactoring Browser",
+    "note": "The first automated refactoring tool, created by John Brant and Don Roberts for refactoring Smalltalk programs."
+   },
+   {
+    "name": "Ward Cunningham",
+    "note": "Leading early proponent of refactoring; used it as a foundation of development in the early days."
+   },
+   {
+    "name": "Bill Opdyke",
+    "note": "Developed the first detailed written work on refactoring in his doctoral thesis."
+   },
+   {
+    "name": "Ralph Johnson",
+    "note": "Leads a group at the University of Illinois at Urbana-Champaign; long-time champion of refactoring; his students did vital early work."
+   },
+   {
+    "name": "John Brant",
+    "note": "Co-creator of the Refactoring Browser, the first automated refactoring tool."
+   },
+   {
+    "name": "Don Roberts",
+    "note": "Co-creator of the Refactoring Browser; also acknowledged in the mailing list."
+   }
+  ],
+  "relations": [
+   {
+    "from": "Kent Beck",
+    "kind": "inspired",
+    "to": "refactoring",
+    "note": "Kent Beck's insistence on continuous refactoring inspired the author to write the first edition."
+   },
+   {
+    "from": "Kent Beck",
+    "kind": "coined",
+    "to": "Code Smells",
+    "note": "Kent Beck came up with the idea of Code Smells."
+   },
+   {
+    "from": "refactoring",
+    "kind": "improves",
+    "to": "catalog of refactorings",
+    "note": "The catalog documents refactorings that improve code structure."
+   },
+   {
+    "from": "Extract Function (106)",
+    "kind": "is an example of",
+    "to": "catalog of refactorings",
+    "note": "Extract Function is one of the refactorings in the catalog, referenced by page number."
+   },
+   {
+    "from": "Split Phase (154)",
+    "kind": "is an example of",
+    "to": "catalog of refactorings",
+    "note": "Split Phase is another refactoring in the catalog, also referenced by page number."
+   },
+   {
+    "from": "John Brant",
+    "kind": "co-created",
+    "to": "Refactoring Browser",
+    "note": "John Brant, along with Don Roberts, created the first automated refactoring tool."
+   },
+   {
+    "from": "Don Roberts",
+    "kind": "co-created",
+    "to": "Refactoring Browser",
+    "note": "Don Roberts, along with John Brant, created the first automated refactoring tool."
+   },
+   {
+    "from": "Ward Cunningham",
+    "kind": "used",
+    "to": "refactoring",
+    "note": "Ward Cunningham used refactoring as a foundation of development in the early days."
+   },
+   {
+    "from": "Bill Opdyke",
+    "kind": "developed",
+    "to": "refactoring",
+    "note": "Bill Opdyke developed the first detailed written work on refactoring."
+   },
+   {
+    "from": "Ralph Johnson",
+    "kind": "championed",
+    "to": "refactoring",
+    "note": "Ralph Johnson has long been a champion of refactoring."
+   }
+  ],
+  "digestVersion": 2,
+  "flavor": "expository"
+ },
+ {
+  "chapterIndex": 7,
+  "summary": "This chapter introduces refactoring through a concrete example: a theatrical billing program that prints statements and calculates volume credits. It argues that refactoring is necessary when code will change and emphasizes starting with a solid, self-checking test suite, then making small changes with testing after each step. The chapter demonstrates the first refactoring—decomposing the statement function by extracting the amountFor function and renaming variables for clarity.",
+  "characters": [
+   {
+    "name": "statement function",
+    "note": "The initial inline function that prints a bill for theatrical performances, containing charging logic, volume credit calculation, and result formatting."
+   },
+   {
+    "name": "volume credits",
+    "note": "A customer loyalty mechanism where credits are earned based on audience size and comedy attendance, used for discounts on future performances."
+   },
+   {
+    "name": "tragedy",
+    "note": "A kind of play with specific charging: base 40000, plus 1000 per audience member over 30."
+   },
+   {
+    "name": "comedy",
+    "note": "A kind of play with charging: base 30000, plus 10000 and 500 per audience over 20, and 300 per audience; also earns extra volume credits."
+   },
+   {
+    "name": "plays.json",
+    "note": "JSON file storing play data (name and type) for each play ID."
+   },
+   {
+    "name": "invoices.json",
+    "note": "JSON file with customer and performance data (playID and audience) for billing."
+   },
+   {
+    "name": "self-checking tests",
+    "note": "Tests that report green or red without manual checking; essential before refactoring to detect bugs."
+   },
+   {
+    "name": "Extract Function (106)",
+    "note": "A refactoring procedure to turn a chunk of code into its own function, minimizing errors by handling scope and variables."
+   },
+   {
+    "name": "amountFor",
+    "note": "Extracted function that calculates the charge for one performance, taking aPerformance and play as parameters."
+   },
+   {
+    "name": "result",
+    "note": "Conventionally the name for a function's return value, used in amountFor after renaming from thisAmount."
+   },
+   {
+    "name": "aPerformance",
+    "note": "Parameter name following the convention of using an indefinite article with type names for clarity in dynamic languages."
+   },
+   {
+    "name": "version control system",
+    "note": "Tools like git or mercurial used to commit after each successful refactoring for easy rollback."
+   }
+  ],
+  "relations": [
+   {
+    "from": "amountFor",
+    "kind": "extracts from",
+    "to": "statement function",
+    "note": "amountFor is extracted from the switch statement in the statement function."
+   },
+   {
+    "from": "Extract Function (106)",
+    "kind": "produces",
+    "to": "amountFor",
+    "note": "The Extract Function refactoring is used to create amountFor from the code chunk."
+   },
+   {
+    "from": "self-checking tests",
+    "kind": "precede",
+    "to": "refactoring",
+    "note": "A solid suite of self-checking tests must be in place before starting refactoring."
+   },
+   {
+    "from": "tragedy",
+    "kind": "determines",
+    "to": "volume credits",
+    "note": "Tragedy type affects the charge amount calculated in amountFor, which contributes to total volume credits."
+   },
+   {
+    "from": "comedy",
+    "kind": "adds extra",
+    "to": "volume credits",
+    "note": "Comedy plays earn extra volume credits based on audience count."
+   },
+   {
+    "from": "plays.json",
+    "kind": "provides data for",
+    "to": "statement function",
+    "note": "plays.json supplies play names and types used by the statement function via the plays object."
+   },
+   {
+    "from": "invoices.json",
+    "kind": "provides data for",
+    "to": "statement function",
+    "note": "invoices.json supplies customer and performance data used by the statement function."
+   },
+   {
+    "from": "version control system",
+    "kind": "enables",
+    "to": "refactoring",
+    "note": "Committing after each refactoring allows easy reversion to a working state."
+   }
+  ],
+  "digestVersion": 2,
+  "flavor": "expository"
+ },
+ {
+  "chapterIndex": 8,
+  "summary": "本章系统地定义了重构（作为名词和动词），阐述了重构的两个帽子隐喻、重构的四个理由（改善设计、易于理解、发现bug、提高开发速度），以及何时重构的指导原则（三的法则、预备性重构、理解性重构、捡垃圾重构、计划性与机会性重构）。",
+  "characters": [
+   {
+    "name": "Refactoring",
+    "aliases": [
+     "refactoring"
+    ],
+    "note": "作为名词，指改变软件内部结构以使其更易理解和更便宜修改而不改变可观察行为的变更；作为动词，指通过应用一系列重构而不改变可观察行为来重构软件。"
+   },
+   {
+    "name": "observable behavior",
+    "note": "故意宽松的术语，表示代码总体上应做与之前相同的事，但性能特征或接口可能改变，且用户不应关心这些改变。"
+   },
+   {
+    "name": "restructuring",
+    "note": "泛指任何重组或清理代码库的行为，重构是其中的一种特定类型。"
+   },
+   {
+    "name": "The Two Hats",
+    "aliases": [
+     "two hats"
+    ],
+    "note": "Kent Beck提出的隐喻，将开发时间分为添加功能和重构两个不同活动，添加功能时不改变现有代码，重构时不添加功能。"
+   },
+   {
+    "name": "Design Stamina Hypothesis",
+    "aliases": [
+     "mf-dsh"
+    ],
+    "note": "通过投入良好内部设计，增加软件努力的耐力，允许更长时间地更快前进的假设，无法证明但解释了许多程序员的经验。"
+   },
+   {
+    "name": "The Rule of Three",
+    "aliases": [
+     "Three strikes"
+    ],
+    "note": "Don Roberts给出的指导原则：第一次做事直接做，第二次做类似的事时勉强做重复，第三次做类似的事时进行重构。"
+   },
+   {
+    "name": "Preparatory Refactoring",
+    "note": "在添加新功能或修复bug之前进行的重构，使现有代码的结构更利于添加功能。"
+   },
+   {
+    "name": "Comprehension Refactoring",
+    "note": "在理解代码之前进行的重构，将理解从头脑中移到代码本身，使理解更持久且可见。"
+   },
+   {
+    "name": "Litter-Pickup Refactoring",
+    "note": "理解代码但意识到它做得不好时进行的重构，权衡是否立即修复或稍后处理，遵循露营格言保持营地比发现时更干净。"
+   },
+   {
+    "name": "Planned Refactoring",
+    "note": "团队因忽视重构而需要专门时间改善代码库状态的重构，一周的重构可以换取后续速度。"
+   },
+   {
+    "name": "Opportunistic Refactoring",
+    "note": "在添加功能或修复bug过程中自然发生的重构，是编程流程的一部分，不是单独安排的活动。"
+   },
+   {
+    "name": "Parameterize Function",
+    "note": "用于预备性重构的重构方法，通过参数化函数来避免复制代码和重复。"
+   }
+  ],
+  "relations": [
+   {
+    "from": "Refactoring",
+    "kind": "包含",
+    "to": "observable behavior",
+    "note": "重构的定义要求不改变可观察行为。"
+   },
+   {
+    "from": "restructuring",
+    "kind": "包含",
+    "to": "Refactoring",
+    "note": "重构是重组的一种特定类型。"
+   },
+   {
+    "from": "The Two Hats",
+    "kind": "划分",
+    "to": "Refactoring",
+    "note": "两个帽子隐喻将开发时间分为添加功能和重构两个活动。"
+   },
+   {
+    "from": "Refactoring",
+    "kind": "支持",
+    "to": "Design Stamina Hypothesis",
+    "note": "重构帮助改善内部设计，从而增加软件努力的耐力。"
+   },
+   {
+    "from": "The Rule of Three",
+    "kind": "指导",
+    "to": "Refactoring",
+    "note": "三的法则指导何时进行重构：第三次做类似的事时重构。"
+   },
+   {
+    "from": "Preparatory Refactoring",
+    "kind": "使用",
+    "to": "Parameterize Function",
+    "note": "预备性重构常使用Parameterize Function来避免复制代码。"
+   },
+   {
+    "from": "Comprehension Refactoring",
+    "kind": "转移",
+    "to": "observable behavior",
+    "note": "理解性重构将理解从头脑移到代码中，并通过测试验证可观察行为未变。"
+   },
+   {
+    "from": "Litter-Pickup Refactoring",
+    "kind": "变体",
+    "to": "Comprehension Refactoring",
+    "note": "捡垃圾重构是理解性重构的变体，当代码做得不好时进行。"
+   },
+   {
+    "from": "Planned Refactoring",
+    "kind": "对比",
+    "to": "Opportunistic Refactoring",
+    "note": "计划性重构与机会性重构相对，后者是自然流程的一部分，前者是专门安排的时间。"
+   },
+   {
+    "from": "Refactoring",
+    "kind": "对比",
+    "to": "restructuring",
+    "note": "重构是行为保持的小步骤序列，而重组是任何重新组织或清理的通用术语。"
+   }
+  ],
+  "digestVersion": 2,
+  "flavor": "expository"
+ },
+ {
+  "chapterIndex": 9,
+  "summary": "本章由Kent Beck和Martin Fowler合著，提出用“代码坏味道”来描述何时进行重构的经验性指引，而非精确的度量标准。它列举了多种常见的坏味道（如神秘命名、重复代码、过长函数等），并为每种坏味道推荐了相应的重构手法（如改名、提取函数、搬移函数等），强调重构的时机依赖于开发者的直觉和对这些信号的识别。",
+  "characters": [
+   {
+    "name": "Mysterious Name",
+    "note": "代码中命名不清导致难以理解，是常见的坏味道；解决方法是进行重命名重构。"
+   },
+   {
+    "name": "Duplicated Code",
+    "note": "相同或相似的代码结构出现在多处，需要统一以避免重复维护。"
+   },
+   {
+    "name": "Long Function",
+    "note": "函数过长难以理解，应积极分解为短函数；启发法是当需要注释时就写一个函数。"
+   },
+   {
+    "name": "Long Parameter List",
+    "note": "参数列表过长令人困惑，可以通过查询替换参数、保持整个对象或引入参数对象来缩短。"
+   },
+   {
+    "name": "Global Data",
+    "note": "全局数据可从任何地方修改，难以追踪变更来源；应封装变量并限制作用域。"
+   },
+   {
+    "name": "Mutable Data",
+    "note": "数据可变会导致意外后果和难以发现的错误；应封装变量、拆分变量或使用查询替代派生变量。"
+   },
+   {
+    "name": "Divergent Change",
+    "note": "一个模块因不同原因而经常以不同方式被修改；应分离上下文到独立模块。"
+   },
+   {
+    "name": "Shotgun Surgery",
+    "note": "每次修改都需要在许多类中做大量小改动；应把改动集中到一个模块。"
+   },
+   {
+    "name": "Feature Envy",
+    "note": "一个函数更多使用其他模块的功能而非自身模块；应将函数搬移到数据所在的模块。"
+   },
+   {
+    "name": "Data Clumps",
+    "note": "相同的数据项常一起出现，应提取为类并简化方法签名。"
+   },
+   {
+    "name": "Primitive Obsession",
+    "note": "过度使用基本类型而非小对象（如日期），暗示应引入更丰富的类型。"
+   },
+   {
+    "name": "Rename Variable",
+    "note": "用于重命名变量的重构手法，属于解决神秘命名的常见重命名之一。"
+   }
+  ],
+  "relations": [
+   {
+    "from": "Mysterious Name",
+    "kind": "解决",
+    "to": "Change Function Declaration",
+    "note": "改名函数是处理神秘命名的常见重构。"
+   },
+   {
+    "from": "Mysterious Name",
+    "kind": "解决",
+    "to": "Rename Variable",
+    "note": "重命名变量是处理神秘命名的常见重构。"
+   },
+   {
+    "from": "Global Data",
+    "kind": "解决",
+    "to": "Encapsulate Variable",
+    "note": "封装变量是应对全局数据的首要手段。"
+   },
+   {
+    "from": "Mutable Data",
+    "kind": "解决",
+    "to": "Encapsulate Variable",
+    "note": "封装变量确保更新通过窄函数进行。"
+   }
+  ],
+  "digestVersion": 2,
+  "flavor": "expository"
+ },
+ {
+  "chapterIndex": 10,
+  "summary": "本章阐述自测试代码的重要性：通过自动化测试套件快速发现错误，显著减少调试时间。作者介绍了测试优先的开发习惯（TDD），并展示了如何用Mocha和Chai框架为JavaScript业务逻辑类（Province和Producer）编写单元测试。重点强调测试应风险驱动、测试之间应避免共享可变夹具，且要验证测试确实会失败。",
+  "characters": [
+   {
+    "name": "self-testing code",
+    "aliases": [
+     "自测试代码"
+    ],
+    "note": "软件能自动运行测试并检查自身结果，无需人工查看输出，通过频繁运行测试成为强大的bug检测器。"
+   },
+   {
+    "name": "test suite",
+    "aliases": [
+     "测试套件"
+    ],
+    "note": "一组自动化测试，用于检查代码的正确性，是进行重构的必要前提。"
+   },
+   {
+    "name": "debugging",
+    "aliases": [
+     "调试"
+    ],
+    "note": "程序员花费大量时间寻找bug的过程，自测试代码能大幅缩短这一时间。"
+   },
+   {
+    "name": "OOPSLA",
+    "note": "1992年的一个会议，作者在会议上听到“类应该包含自己的测试”的观点，启发了自测试代码的开发。"
+   },
+   {
+    "name": "JUnit",
+    "note": "Kent Beck和Erich Gamma在1997年将单元测试框架从Smalltalk移植到Java的成果，对程序测试影响深远，启发了多种语言的类似工具。"
+   },
+   {
+    "name": "Test-Driven Development (TDD)",
+    "aliases": [
+     "测试驱动开发"
+    ],
+    "note": "Kent Beck提出的技术，依赖短周期：编写（失败的）测试、写代码使测试通过、重构，循环每小时应发生多次。"
+   },
+   {
+    "name": "Mocha",
+    "aliases": [
+     "mocha"
+    ],
+    "note": "作者使用的JavaScript测试框架，将测试代码分为描述块和测试块，输出简单的测试结果摘要。"
+   },
+   {
+    "name": "Chai",
+    "aliases": [
+     "chai"
+    ],
+    "note": "作者使用的断言库，支持assert和expect两种风格来验证测试结果。"
+   },
+   {
+    "name": "assertion libraries",
+    "aliases": [
+     "断言库"
+    ],
+    "note": "测试框架可使用的不同库，用于验证测试的固定装置（fixture）。"
+   },
+   {
+    "name": "fixture",
+    "aliases": [
+     "固定装置"
+    ],
+    "note": "测试中需要设置的数据和对象，用于验证代码行为。"
+   },
+   {
+    "name": "shared fixture",
+    "aliases": [
+     "共享夹具"
+    ],
+    "note": "被多个测试共享的可变对象，会导致测试交互，产生间歇性失败，是测试中严重的bug源。"
+   },
+   {
+    "name": "risk-driven testing",
+    "aliases": [
+     "风险驱动测试"
+    ],
+    "note": "测试应针对最可能出错的区域，而非测试所有公共方法，这样能以最少努力获得最大收益。"
+   }
+  ],
+  "relations": [
+   {
+    "from": "self-testing code",
+    "kind": "需要",
+    "to": "test suite",
+    "note": "自测试代码依赖一套自动化的测试套件来检查结果。"
+   },
+   {
+    "from": "test suite",
+    "kind": "检测",
+    "to": "debugging",
+    "note": "测试套件作为强大的bug检测器，显著缩短查找bug的时间。"
+   },
+   {
+    "from": "JUnit",
+    "kind": "源自",
+    "to": "OOPSLA",
+    "note": "JUnit是在OOPSLA 1997会议上由Kent Beck和Erich Gamma创建的。"
+   },
+   {
+    "from": "Test-Driven Development (TDD)",
+    "kind": "引入",
+    "to": "self-testing code",
+    "note": "TDD将测试优先的习惯融入开发流程，依赖自测试代码。"
+   },
+   {
+    "from": "Mocha",
+    "kind": "使用",
+    "to": "Chai",
+    "note": "Mocha框架可以使用Chai作为断言库来验证测试结果。"
+   },
+   {
+    "from": "Mocha",
+    "kind": "划分",
+    "to": "fixture",
+    "note": "Mocha中的测试块（it）设置固定装置（fixture）来验证代码特性。"
+   },
+   {
+    "from": "shared fixture",
+    "kind": "导致",
+    "to": "debugging",
+    "note": "共享的夹具会导致测试交互，产生难以调试的间歇性失败。"
+   },
+   {
+    "from": "risk-driven testing",
+    "kind": "指导",
+    "to": "test suite",
+    "note": "风险驱动的测试策略指导如何设计测试套件，聚焦于高风险区域。"
+   }
+  ],
+  "digestVersion": 2,
+  "flavor": "expository"
+ },
+ {
+  "chapterIndex": 11,
+  "summary": "本章介绍了本书其余部分的重构目录的格式和选择标准。每个重构条目包括名称、简短描述、动机、机制和示例五个部分，其中机制以最小的步骤和测试为指导，示例旨在简单说明单一重构。目录并非完整，只收录最常用且值得命名和描述的重构，某些过小或逻辑上存在但不常使用的重构会被省略。",
+  "characters": [
+   {
+    "name": "catalog of refactorings",
+    "aliases": [
+     "catalog"
+    ],
+    "note": "本书其余部分是一个重构目录，源自作者的个人笔记并经过提炼，用于安全高效地执行重构。"
+   },
+   {
+    "name": "name",
+    "note": "每个重构条目的第一部分，对于构建重构词汇表很重要，并列出常见的别名。"
+   },
+   {
+    "name": "sketch",
+    "note": "重构的简短描述，帮助读者更快地找到所需的重构。"
+   },
+   {
+    "name": "motivation",
+    "note": "描述为什么应该进行该重构，以及哪些情况下不应进行。"
+   },
+   {
+    "name": "mechanics",
+    "note": "逐步、简洁的重构执行描述，来源于作者的个人笔记，强调尽可能小的步骤并在每步后测试。"
+   },
+   {
+    "name": "examples",
+    "note": "非常简单使用的重构示例，用于说明重构如何运作，但仅用于演示单一重构而非完整的代码修复。"
+   },
+   {
+    "name": "Slide Statements (223)",
+    "note": "第一版中缺失的重构示例，因为它被视为太小和直接而未收录，但在本版中已添加。"
+   },
+   {
+    "name": "Encapsulate Variable (132)",
+    "note": "一个常见且强大的重构，但其逻辑逆重构很少使用且易于执行，因此未在目录中单独收录。"
+   },
+   {
+    "name": "logical inverse refactoring",
+    "note": "每个重构逻辑上都有一个逆重构，但并非所有逆重构都被写入目录，因为多数逆重构不够有趣。"
+   }
+  ],
+  "relations": [
+   {
+    "from": "catalog of refactorings",
+    "kind": "包含",
+    "to": "name",
+    "note": "目录中每个重构以名称开始，名称对建立词汇表很重要。"
+   },
+   {
+    "from": "catalog of refactorings",
+    "kind": "包含",
+    "to": "sketch",
+    "note": "每个重构条目包含一个简短描述以帮助快速查找。"
+   },
+   {
+    "from": "catalog of refactorings",
+    "kind": "包含",
+    "to": "motivation",
+    "note": "每个重构条目包含动机部分，说明为何及何时不应进行该重构。"
+   },
+   {
+    "from": "catalog of refactorings",
+    "kind": "包含",
+    "to": "mechanics",
+    "note": "每个重构条目包含逐步的执行机制，强调小步骤和测试。"
+   },
+   {
+    "from": "catalog of refactorings",
+    "kind": "包含",
+    "to": "examples",
+    "note": "每个重构条目包含简单示例以说明如何使用。"
+   },
+   {
+    "from": "mechanics",
+    "kind": "指导",
+    "to": "examples",
+    "note": "机制来自个人笔记，通常简短，而示例提供更详细的解释，初次执行时可能需要阅读示例。"
+   },
+   {
+    "from": "Slide Statements (223)",
+    "kind": "属于",
+    "to": "catalog of refactorings",
+    "note": "第一版中缺失但本版已添加，因为它常用且值得描述。"
+   },
+   {
+    "from": "Encapsulate Variable (132)",
+    "kind": "具有",
+    "to": "logical inverse refactoring",
+    "note": "该重构有一个逻辑逆重构，但逆重构很少使用且易执行，故未单独收录。"
+   },
+   {
+    "from": "logical inverse refactoring",
+    "kind": "被省略于",
+    "to": "catalog of refactorings",
+    "note": "每个重构都有逻辑逆，但目录未收录所有逆重构，因为多数不有趣。"
+   }
+  ],
+  "digestVersion": 2,
+  "flavor": "expository"
+ },
+ {
+  "chapterIndex": 12,
+  "summary": "This chapter introduces the first set of refactorings in the catalog, focusing on extracting and inlining code, renaming variables, and grouping functions into modules. It provides detailed mechanics and examples for Extract Function and Inline Function, emphasizing the separation between intention and implementation, the importance of good naming, and strategies for handling local variables and reassignments. The chapter also mentions related refactorings such as Extract Variable, Inline Variable, Change Function Declaration, Rename Variable, Encapsulate Variable, Introduce Parameter Object, Combine Functions into Class, Combine Functions into Transform, and Split Phase.",
+  "characters": [
+   {
+    "name": "Extract Function",
+    "aliases": [
+     "Extract Method"
+    ],
+    "note": "A refactoring that extracts a fragment of code into its own function named after its purpose, based on the separation between intention and implementation. It is the inverse of Inline Function."
+   },
+   {
+    "name": "Inline Function",
+    "aliases": [
+     "Inline Method"
+    ],
+    "note": "A refactoring that replaces a function call with the function's body when the body is as clear as the name, or when there is too much indirection. It is the inverse of Extract Function."
+   },
+   {
+    "name": "Extract Variable",
+    "note": "A refactoring mentioned as one of the most common, extracting code into a variable."
+   },
+   {
+    "name": "Inline Variable",
+    "note": "A refactoring mentioned as the inverse of Extract Variable, used frequently."
+   },
+   {
+    "name": "Change Function Declaration",
+    "note": "A refactoring that changes names of functions and adds or removes function arguments."
+   },
+   {
+    "name": "Rename Variable",
+    "note": "A refactoring for renaming variables, which relies on Encapsulate Variable."
+   },
+   {
+    "name": "Encapsulate Variable",
+    "note": "A refactoring that Rename Variable relies on."
+   },
+   {
+    "name": "Introduce Parameter Object",
+    "note": "A refactoring that combines a common clump of arguments into a single object when changing function arguments."
+   },
+   {
+    "name": "Combine Functions into Class",
+    "note": "A refactoring that groups functions together with the data they operate on into a class."
+   },
+   {
+    "name": "Combine Functions into Transform",
+    "note": "A refactoring that combines functions into a transform, particularly handy with read-only data."
+   },
+   {
+    "name": "Split Phase",
+    "note": "A refactoring that forms modules into distinct processing phases at a further step in scale."
+   },
+   {
+    "name": "Clock Wrapper",
+    "aliases": [
+     "mf-cw"
+    ],
+    "note": "An object that wraps calls to the system clock to avoid nondeterministic tests and difficulties in reproducing error conditions."
+   }
+  ],
+  "relations": [
+   {
+    "from": "Extract Function",
+    "kind": "is inverse of",
+    "to": "Inline Function",
+    "note": "Extract Function and Inline Function are inverses of each other."
+   },
+   {
+    "from": "Extract Variable",
+    "kind": "is inverse of",
+    "to": "Inline Variable",
+    "note": "Extract Variable and Inline Variable are inverses of each other."
+   },
+   {
+    "from": "Rename Variable",
+    "kind": "relies on",
+    "to": "Encapsulate Variable",
+    "note": "Rename Variable relies on Encapsulate Variable."
+   },
+   {
+    "from": "Change Function Declaration",
+    "kind": "combined with",
+    "to": "Introduce Parameter Object",
+    "note": "When changing function arguments, it is often useful to combine a common clump of arguments into a single object with Introduce Parameter Object."
+   }
+  ],
+  "digestVersion": 2,
+  "flavor": "expository"
+ },
+ {
+  "chapterIndex": 13,
+  "summary": "本章讨论封装的各种重构手法，包括 Encapsulate Record、Encapsulate Collection、Replace Primitive with Object、Replace Temp with Query、Extract Class、Inline Class、Hide Delegate、Remove Middle Man 和 Substitute Algorithm，重点阐述如何隐藏数据结构、控制集合修改以及处理嵌套记录的封装。",
+  "characters": [
+   {
+    "name": "Encapsulate Record",
+    "aliases": [
+     "Replace Record with Data Class"
+    ],
+    "note": "将记录结构封装为类，隐藏存储细节，提供访问器方法控制读写。"
+   },
+   {
+    "name": "Encapsulate Collection",
+    "note": "封装集合的修改操作，提供 add/remove 方法，避免客户端直接修改原始集合。"
+   },
+   {
+    "name": "Replace Primitive with Object",
+    "note": "将原始数据值封装为对象，带来二阶好处。"
+   },
+   {
+    "name": "Replace Temp with Query",
+    "note": "用查询函数替代临时变量，有助于拆分过长函数。"
+   },
+   {
+    "name": "Extract Class",
+    "note": "将类的一部分职责提取到新类中。"
+   },
+   {
+    "name": "Inline Class",
+    "note": "将类的职责合并到另一个类中。"
+   },
+   {
+    "name": "Hide Delegate",
+    "note": "隐藏类之间的连接关系，减少客户端对委托类的依赖。"
+   },
+   {
+    "name": "Remove Middle Man",
+    "note": "撤销过度的委托隐藏，避免接口臃肿。"
+   },
+   {
+    "name": "Substitute Algorithm",
+    "note": "用更清晰的算法替换原有算法实现。"
+   },
+   {
+    "name": "CustomerData",
+    "note": "封装嵌套客户数据的类，提供 setUsage 和 usage 等方法控制访问。"
+   },
+   {
+    "name": "rawData",
+    "note": "返回数据深拷贝的访问器，用于防止客户端修改原始数据。"
+   },
+   {
+    "name": "read-only proxy",
+    "note": "只读代理，阻止客户端修改底层数据，可抛出异常。"
+   }
+  ],
+  "relations": [
+   {
+    "from": "Encapsulate Record",
+    "kind": "使用",
+    "to": "Encapsulate Variable",
+    "note": "首先对记录变量应用封装变量。"
+   },
+   {
+    "from": "Encapsulate Record",
+    "kind": "可以递归应用",
+    "to": "Encapsulate Collection",
+    "note": "嵌套记录可递归使用封装记录和封装集合。"
+   },
+   {
+    "from": "Encapsulate Collection",
+    "kind": "防止",
+    "to": "Mutable Data",
+    "note": "通过提供修改方法和返回副本防止集合被意外修改。"
+   },
+   {
+    "from": "Hide Delegate",
+    "kind": "反向于",
+    "to": "Remove Middle Man",
+    "note": "过度隐藏需要移除中间人。"
+   }
+  ],
+  "digestVersion": 2,
+  "flavor": "expository"
+ },
+ {
+  "chapterIndex": 14,
+  "summary": "本章介绍“移动特性”这一重构主题，包括Move Function和Move Field等重构方法，说明在软件设计中根据模块化理解和数据结构的正确性来移动元素的重要性，并给出移动函数和字段的动机、步骤及示例。",
+  "characters": [
+   {
+    "name": "Move Function",
+    "aliases": [
+     "Move Method"
+    ],
+    "note": "将函数从一个上下文（如类、模块）移动到另一个上下文的refactoring，动机包括函数引用其他上下文元素过多、调用者位置或未来使用需求，以及函数本身可能独立成模块。"
+   },
+   {
+    "name": "Move Field",
+    "note": "将字段从一个记录（或类）移动到另一个记录（或类）的refactoring，动机包括数据总是与另一记录一起传递、字段变更引发多处更新、或数据结构不佳需要调整。"
+   },
+   {
+    "name": "Move Statements into Function",
+    "note": "将语句移入函数内部的refactoring，本章作为移动语句的一种列举，但未详细展开。"
+   },
+   {
+    "name": "Move Statements to Callers",
+    "note": "将语句移出函数至调用者的refactoring，本章作为移动语句的列举之一，未详细展开。"
+   },
+   {
+    "name": "Slide Statements",
+    "note": "在函数内移动语句的refactoring，本章提及它是移动语句的一种，既涉及函数外的移动也涉及函数内的移动。"
+   },
+   {
+    "name": "Replace Inline Code with Function Call",
+    "note": "用已有函数的调用替换匹配的语句块以消除重复，本章提及可作为移动语句的一种方式。"
+   },
+   {
+    "name": "Split Loop",
+    "note": "确保一个循环只做一件事的refactoring，属于移动特性的一部分。"
+   },
+   {
+    "name": "Replace Loop with Pipeline",
+    "note": "用管线操作（如map/filter）替换整个循环的refactoring。"
+   },
+   {
+    "name": "Remove Dead Code",
+    "note": "删除多余、无用语句的refactoring，本章称之为许多优秀程序员的“最爱”。"
+   },
+   {
+    "name": "Inlining",
+    "note": "本章中作为Move Function后的选项，指将源函数删除并让调用者直接调用目标函数，或替换为直接调用。"
+   },
+   {
+    "name": "delegating function",
+    "aliases": [
+     "source function"
+    ],
+    "note": "在Move Function中，源函数在移动后变为仅转发调用目标函数的函数，可以保留或内联。"
+   },
+   {
+    "name": "Encapsulate Variable",
+    "note": "将字段封装为私有并提供访问器的重构，本章在Move Field的步骤中要求先封装源字段。"
+   }
+  ],
+  "relations": [
+   {
+    "from": "Move Function",
+    "kind": "涉及",
+    "to": "delegating function",
+    "note": "Move Function后，源函数可成为仅转发调用的delegating function，并可选择内联或删除。"
+   },
+   {
+    "from": "Move Function",
+    "kind": "关联",
+    "to": "Inlining",
+    "note": "Move Function中可选使用Inline Function（内联）来消除中间层。"
+   },
+   {
+    "from": "Move Function",
+    "kind": "可能触发",
+    "to": "Replace Inline Code with Function Call",
+    "note": "移动时若语句与现有函数匹配，可用Replace Inline Code with Function Call消除重复。"
+   },
+   {
+    "from": "Move Field",
+    "kind": "需要",
+    "to": "Encapsulate Variable",
+    "note": "Move Field的第一步是确保源字段被封装，即使用Encapsulate Variable。"
+   },
+   {
+    "from": "Move Field",
+    "kind": "在上下文中",
+    "to": "Move Function",
+    "note": "Move Field通常在更广泛的变更上下文中进行，之后常需其他重构（如移动函数）。"
+   }
+  ],
+  "digestVersion": 2,
+  "flavor": "expository"
+ },
+ {
+  "chapterIndex": 15,
+  "summary": "本章讨论组织数据的重构手法，包括拆分变量以区分不同职责、重命名字段以保持数据结构清晰、用查询代替派生变量以减少可变数据，以及在引用与值之间转换对象。",
+  "characters": [
+   {
+    "name": "Split Variable",
+    "aliases": [
+     "Remove Assignments to Parameters",
+     "Split Temp"
+    ],
+    "note": "将赋多次值的变量拆分为多个变量，每个变量对应单一职责。"
+   },
+   {
+    "name": "Rename Field",
+    "note": "重命名记录结构或类中的字段（包括访问器），通过封装记录来逐步进行。"
+   },
+   {
+    "name": "Replace Derived Variable with Query",
+    "note": "用计算函数代替派生变量，减少可变数据，通过断言验证计算一致性。"
+   },
+   {
+    "name": "Change Reference to Value",
+    "note": "将嵌套对象从引用改为值，通常通过替换整个对象来实现不可变性。"
+   },
+   {
+    "name": "Encapsulate Record",
+    "note": "将记录结构封装成类，便于逐步重命名字段。"
+   },
+   {
+    "name": "Rename Function",
+    "note": "用于重命名访问器。"
+   },
+   {
+    "name": "Introduce Assertion",
+    "note": "在替代变量时断言变量与计算值相等，验证重构正确性。"
+   },
+   {
+    "name": "Remove Dead Code",
+    "note": "移除不再使用的变量声明和更新。"
+   },
+   {
+    "name": "Inline Function",
+    "note": "将计算函数内联到使用处。"
+   },
+   {
+    "name": "Split Variable (240)",
+    "note": "用于分离多个更新点，在Replace Derived Variable with Query中应用。"
+   }
+  ],
+  "relations": [
+   {
+    "from": "Split Variable (240)",
+    "kind": "先于",
+    "to": "Replace Derived Variable with Query",
+    "note": "当派生变量有多个来源时，先拆分变量。"
+   },
+   {
+    "from": "Encapsulate Record",
+    "kind": "用于",
+    "to": "Rename Field",
+    "note": "重命名字段前先封装记录。"
+   },
+   {
+    "from": "Introduce Assertion",
+    "kind": "验证",
+    "to": "Replace Derived Variable with Query",
+    "note": "断言变量与计算值相等。"
+   },
+   {
+    "from": "Remove Dead Code",
+    "kind": "清理",
+    "to": "Replace Derived Variable with Query",
+    "note": "移除不再需要的变量声明和更新。"
+   },
+   {
+    "from": "Inline Function",
+    "kind": "简化",
+    "to": "Replace Derived Variable with Query",
+    "note": "内联计算函数到读取处。"
+   }
+  ],
+  "digestVersion": 2,
+  "flavor": "expository"
+ },
+ {
+  "chapterIndex": 16,
+  "summary": "This chapter introduces several refactorings to simplify conditional logic: Decompose Conditional, Consolidate Conditional Expression, Replace Nested Conditional with Guard Clauses, Replace Conditional with Polymorphism, Introduce Special Case (also known as Introduce Null Object), and Introduce Assertion. Each refactoring is motivated by the goal of making conditionals clearer and more intention-revealing, often by extracting conditions into named functions, combining independent checks, using early returns for unusual cases, or leveraging polymorphism to handle type-specific behavior. The chapter provides detailed mechanics and examples for each refactoring.",
+  "characters": [
+   {
+    "name": "Decompose Conditional",
+    "note": "A refactoring that extracts the condition and each leg of a conditional into separate functions to make the intention clearer."
+   },
+   {
+    "name": "Consolidate Conditional Expression",
+    "note": "A refactoring that combines a series of conditional checks with the same result into a single conditional using logical operators (and/or)."
+   },
+   {
+    "name": "Replace Nested Conditional with Guard Clauses",
+    "note": "A refactoring that replaces nested if-else conditionals with early returns (guard clauses) to clarify that one leg is unusual or not the core behavior."
+   },
+   {
+    "name": "Replace Conditional with Polymorphism",
+    "note": "A refactoring that replaces complex conditional logic (often switch statements on type code) with classes and polymorphism to make type-specific behavior explicit."
+   },
+   {
+    "name": "Introduce Special Case",
+    "aliases": [
+     "Introduce Null Object"
+    ],
+    "note": "A refactoring to handle special cases (such as nulls) by introducing a special case object, removing duplicate code when logic is mostly the same."
+   },
+   {
+    "name": "Introduce Assertion",
+    "note": "A refactoring that communicates and checks a program's state by adding an assertion."
+   },
+   {
+    "name": "guard clause",
+    "note": "A conditional check that returns early from a function if an unusual condition is true, emphasizing that this is not the core behavior."
+   },
+   {
+    "name": "Separate Query from Modifier",
+    "note": "A refactoring mentioned in the mechanics of Consolidate Conditional Expression; applied to conditionals that have side effects before combining them."
+   },
+   {
+    "name": "factory function",
+    "note": "In the mechanics of Replace Conditional with Polymorphism, a factory function is created to return the correct instance of a class."
+   },
+   {
+    "name": "superclass",
+    "note": "In Replace Conditional with Polymorphism, the superclass contains the base case logic; subclass methods override it for variants."
+   },
+   {
+    "name": "subclass",
+    "note": "In Replace Conditional with Polymorphism, each subclass represents a variant case and overrides the conditional statement method."
+   }
+  ],
+  "relations": [
+   {
+    "from": "Decompose Conditional",
+    "kind": "应用",
+    "to": "Extract Function (106)",
+    "note": "Decompose Conditional is a particular case of applying Extract Function (106) to the condition and each leg of the conditional."
+   },
+   {
+    "from": "Consolidate Conditional Expression",
+    "kind": "设置",
+    "to": "Extract Function (106)",
+    "note": "Consolidating the conditional often sets the code up for Extract Function (106) on the resulting condition."
+   },
+   {
+    "from": "Replace Nested Conditional with Guard Clauses",
+    "kind": "使用",
+    "to": "guard clause",
+    "note": "The refactoring turns unusual conditions into guard clauses that return early."
+   },
+   {
+    "from": "Replace Conditional with Polymorphism",
+    "kind": "使用",
+    "to": "Extract Function (106)",
+    "note": "If the conditional logic is not a self-contained function, use Extract Function (106) to make it so before moving to superclass."
+   },
+   {
+    "from": "Replace Conditional with Polymorphism",
+    "kind": "创建",
+    "to": "factory function",
+    "note": "If classes do not exist, create them together with a factory function to return the correct instance."
+   },
+   {
+    "from": "Replace Conditional with Polymorphism",
+    "kind": "将条件逻辑移至",
+    "to": "superclass",
+    "note": "Move the conditional function to the superclass, then override in subclasses."
+   },
+   {
+    "from": "superclass",
+    "kind": "拥有基类逻辑",
+    "to": "subclass",
+    "note": "The superclass contains the base case logic; subclasses express variants as differences from the base case."
+   }
+  ],
+  "digestVersion": 2,
+  "flavor": "expository"
+ },
+ {
+  "chapterIndex": 17,
+  "summary": "本章介绍了八个重构手法，旨在改善API的设计：分离查询与修改函数、参数化函数、移除标志参数、保持对象完整、以查询取代参数、以参数取代查询、移除设值函数、以工厂函数取代构造函数、以命令取代函数、以函数取代命令。这些手法通过调整函数签名、参数传递方式和对象封装，使API更清晰、易用，并提高代码的可维护性。",
+  "characters": [
+   {
+    "name": "Separate Query from Modifier",
+    "note": "将返回值的函数与有副作用的函数分离，使查询函数无副作用，便于测试和调用。"
+   },
+   {
+    "name": "Parameterize Function",
+    "aliases": [
+     "Parameterize Method"
+    ],
+    "note": "将逻辑相似但字面值不同的多个函数合并为一个带参数的函数，消除重复。"
+   },
+   {
+    "name": "Remove Flag Argument",
+    "aliases": [
+     "Replace Parameter with Explicit Methods"
+    ],
+    "note": "移除标志参数，为每个参数值创建显式函数，避免调用方使用字面量导致意图不明。"
+   },
+   {
+    "name": "flag argument",
+    "note": "调用方用来指示被调函数执行哪个逻辑的参数，通常为字面量布尔值、枚举或字符串，应避免使用。"
+   },
+   {
+    "name": "Preserve Whole Object",
+    "note": "将多个从记录中派生的值替换为整个记录，减少参数列表并提高变化适应性。"
+   },
+   {
+    "name": "Replace Parameter with Query",
+    "note": "当参数可以由被调函数自行查询时，用查询取代该参数。"
+   },
+   {
+    "name": "Replace Query with Parameter",
+    "note": "将函数内部的查询改为由调用方传入的参数，适用于需要控制依赖的场景。"
+   },
+   {
+    "name": "Remove Setting Method",
+    "note": "移除设值函数，使对象尽可能不可变。"
+   },
+   {
+    "name": "Replace Constructor with Factory Function",
+    "note": "用工厂函数替代构造函数，提供比简单构造器更大的灵活性。"
+   },
+   {
+    "name": "Replace Function with Command",
+    "note": "将复杂函数转换为命令对象，便于使用Extract Function分解函数体。"
+   },
+   {
+    "name": "Replace Command with Function",
+    "note": "当命令对象不再需要时，将其转回为函数。"
+   }
+  ],
+  "relations": [
+   {
+    "from": "Separate Query from Modifier",
+    "kind": "分离",
+    "to": "flag argument",
+    "note": "分离查询和修改函数，使查询无副作用，而标志参数通常与副作用相关，需移除。"
+   },
+   {
+    "from": "Remove Flag Argument",
+    "kind": "使用",
+    "to": "Decompose Conditional",
+    "note": "使用Decompose Conditional创建显式函数来移除标志参数。"
+   },
+   {
+    "from": "Preserve Whole Object",
+    "kind": "可能触发",
+    "to": "Feature Envy",
+    "note": "从对象中提取值进行逻辑操作是一种Feature Envy迹象，应移动逻辑到整体。"
+   },
+   {
+    "from": "Preserve Whole Object",
+    "kind": "常用于",
+    "to": "Introduce Parameter Object",
+    "note": "在引入参数对象后，常使用Preserve Whole Object替换原始数据泥团。"
+   },
+   {
+    "from": "Replace Function with Command",
+    "kind": "便于",
+    "to": "Extract Function",
+    "note": "将函数转换为命令对象后，更容易在函数体上应用Extract Function。"
+   },
+   {
+    "from": "Replace Command with Function",
+    "kind": "反向于",
+    "to": "Replace Function with Command",
+    "note": "这两个重构互为逆操作，根据是否需要命令对象来选择。"
+   }
+  ],
+  "digestVersion": 2,
+  "flavor": "expository"
+ },
+ {
+  "chapterIndex": 18,
+  "summary": "本章讨论了处理继承关系的各种重构手法，包括将方法和字段在继承层次中上下移动（Pull Up Method、Pull Up Field、Push Down Method、Push Down Field），构造函数的重构（Pull Up Constructor Body），以及用子类替换类型码（Replace Type Code with Subclasses），并指出继承有时需要被替换为委托（Replace Subclass with Delegate等）。",
+  "characters": [
+   {
+    "name": "Pull Up Method",
+    "note": "将两个子类的相同方法上移到一个超类的方法重构；其逆操作是Push Down Method。也可在参数化后使用。"
+   },
+   {
+    "name": "Push Down Method",
+    "note": "将超类中只对某些子类相关的方法下移到需要的子类中；是Pull Up Method的逆向。"
+   },
+   {
+    "name": "Pull Up Field",
+    "note": "将子类中重复的字段上移到超类；这既移除重复数据声明，也能移动使用该字段的行为。"
+   },
+   {
+    "name": "Push Down Field",
+    "note": "将超类中只被某些子类使用的字段下移到相应子类中；是Pull Up Field的逆向。"
+   },
+   {
+    "name": "Pull Up Constructor Body",
+    "note": "将子类构造函数中共同的语句上移到超类构造函数，并在子类中通过super调用。"
+   },
+   {
+    "name": "Replace Type Code with Subclasses",
+    "note": "将类型码（enum、symbol、string或number）替换为子类，以利用多态处理条件逻辑，并使仅适用于某类型的字段或方法更明显。"
+   },
+   {
+    "name": "SubclassResponsibilityError",
+    "note": "一种陷阱方法，当子类未实现期望的方法时抛出的错误；名称源自Smalltalk。"
+   },
+   {
+    "name": "CreateEmployee",
+    "note": "直接继承时，将选择逻辑放入创建员工的工厂函数的示例。"
+   },
+   {
+    "name": "Engineer",
+    "note": "类型码中'engineer'的子类，覆盖类型码getter以返回字面量'engineer'。"
+   },
+   {
+    "name": "Salesman",
+    "note": "类型码中'salesman'的子类，覆盖类型码getter以返回字面量'salesman'。"
+   },
+   {
+    "name": "Manager",
+    "note": "类型码中'manager'的子类，覆盖类型码getter以返回字面量'manager'。"
+   },
+   {
+    "name": "Form Template Method",
+    "note": "当两个方法流程相似但细节不同时，作者考虑使用的模板方法模式。"
+   }
+  ],
+  "relations": [
+   {
+    "from": "Pull Up Method",
+    "kind": "is inverse of",
+    "to": "Push Down Method"
+   },
+   {
+    "from": "Pull Up Field",
+    "kind": "is inverse of",
+    "to": "Push Down Field"
+   },
+   {
+    "from": "Pull Up Constructor Body",
+    "kind": "uses",
+    "to": "Slide Statements",
+    "note": "用于将共同语句移到super调用后。"
+   },
+   {
+    "from": "Pull Up Constructor Body",
+    "kind": "may use",
+    "to": "Extract Function",
+    "note": "对于无法移到构造函数开头的共同代码，用Extract Function后接Pull Up Method。"
+   },
+   {
+    "from": "Replace Type Code with Subclasses",
+    "kind": "uses",
+    "to": "Encapsulate Variable",
+    "note": "先自封装类型码字段。"
+   },
+   {
+    "from": "Replace Type Code with Subclasses",
+    "kind": "uses",
+    "to": "Replace Constructor with Factory Function",
+    "note": "直接继承时，选择逻辑放在工厂函数中。"
+   },
+   {
+    "from": "Replace Type Code with Subclasses",
+    "kind": "may use",
+    "to": "Push Down Method",
+    "note": "在移除类型码访问器时，可下移方法。"
+   },
+   {
+    "from": "Replace Type Code with Subclasses",
+    "kind": "may use",
+    "to": "Replace Conditional with Polymorphism",
+    "note": "在移除类型码访问器时，可应用多态替换条件逻辑。"
+   },
+   {
+    "from": "Replace Type Code with Subclasses",
+    "kind": "may use",
+    "to": "Replace Primitive with Object",
+    "note": "如果类型可变化或需要为其他目保留子类，可先用该重构创建员工类型类。"
+   },
+   {
+    "from": "Replace Type Code with Subclasses",
+    "kind": "uses",
+    "to": "Change Function Declaration",
+    "note": "完成类型码移除后，可从构造函数删除无用参数。"
+   }
+  ],
+  "digestVersion": 2,
+  "flavor": "expository"
+ },
+ {
+  "chapterIndex": 19,
+  "summary": "This chapter presents a bibliography of works referenced in the book, noting that an online version is available and many entries link to the author's 'bliki' where concise term descriptions are provided. It lists various books, articles, and resources related to software development and refactoring, including works by Ambler & Sadalage, Beck, Feathers, Fields et al., Ford et al., Forsgren et al., Gamma et al., Harold, Kerievsky, Opdyke, Parnas, Wake, and Fowler himself, along with URLs for tools and online references.",
+  "characters": [
+   {
+    "name": "bliki",
+    "note": "A section of martinfowler.com providing concise descriptions of various terms used in software development, referred to throughout the bibliography."
+   },
+   {
+    "name": "Refactoring Databases",
+    "note": "Book by Scott W. Ambler and Pramod J. Sadalage, Addison-Wesley, 2006, ISBN 0321293533."
+   },
+   {
+    "name": "Smalltalk Best Practice Patterns",
+    "note": "Book by Kent Beck, Addison-Wesley, 1997, ISBN 013476904X."
+   },
+   {
+    "name": "Working Effectively with Legacy Code",
+    "note": "Book by Michael Feathers, Prentice Hall, 2004, ISBN 0131177052."
+   },
+   {
+    "name": "Refactoring Ruby Edition",
+    "note": "Book by Jay Fields, Shane Harvie, and Martin Fowler, Addison-Wesley, 2009, ISBN 0321603508."
+   },
+   {
+    "name": "Building Evolutionary Architectures",
+    "note": "Book by Neal Ford, Rebecca Parsons, and Patrick Kua, O'Reilly, 2017, ISBN 1491986360."
+   },
+   {
+    "name": "Accelerate",
+    "note": "Book by Nicole Forsgren, Jez Humble, and Gene Kim, IT Revolution Press, 2018, ISBN 1942788339."
+   },
+   {
+    "name": "Design Patterns",
+    "note": "Book by Erich Gamma, Richard Helm, Ralph Johnson, and John Vlissides, Addison-Wesley, 1994, ISBN 0201634988."
+   },
+   {
+    "name": "Refactoring HTML",
+    "note": "Book by Elliotte Rusty Harold, Addison-Wesley, 2008, ISBN 0321503635."
+   },
+   {
+    "name": "Refactoring to Patterns",
+    "note": "Book by Joshua Kerievsky, Addison-Wesley, 2004, ISBN 0321213351."
+   },
+   {
+    "name": "Refactoring Object-Oriented Frameworks",
+    "note": "Doctoral dissertation by William F. Opdyke, University of Illinois at Urbana-Champaign, 1992."
+   },
+   {
+    "name": "Refactoring Workbook",
+    "note": "Book by William C. Wake, Addison-Wesley, 2003, ISBN 0321109295."
+   }
+  ],
+  "relations": [
+   {
+    "from": "bliki",
+    "kind": "refers to",
+    "to": "Design Patterns",
+    "note": "The bibliography refers readers to bliki explanations rather than incorporating them into text, and lists the Design Patterns book."
+   },
+   {
+    "from": "Design Patterns",
+    "kind": "is cited in",
+    "to": "bliki",
+    "note": "Design Patterns is one of the cited works in the bibliography that references the bliki."
+   },
+   {
+    "from": "bliki",
+    "kind": "supplements",
+    "to": "Design Patterns",
+    "note": "The bliki provides concise descriptions of terms used in software development, supplementing the book."
+   }
+  ],
+  "digestVersion": 2,
+  "flavor": "expository"
+ },
+ {
+  "chapterIndex": 20,
+  "summary": "This is the index of the book, listing terms, concepts, and page references alphabetically. It covers refactoring techniques, code smells, programming concepts, tools, and notable figures in software development.",
+  "characters": [
+   {
+    "name": "Add Parameter",
+    "note": "See Change Function Declaration"
+   },
+   {
+    "name": "Agile software methods",
+    "note": "Referenced in relation to refactoring, page 63."
+   },
+   {
+    "name": "Alternative classes with different interfaces",
+    "note": "A code smell, page 83."
+   },
+   {
+    "name": "Application Programming Interfaces (APIs)",
+    "aliases": [
+     "APIs"
+    ],
+    "note": "Refactoring APIs is discussed on pages 126–128."
+   },
+   {
+    "name": "Architecture",
+    "note": "Decays over time (page 47), refactoring affects it (pages 62–63), and testability is a factor (page 99)."
+   },
+   {
+    "name": "Assertion libraries",
+    "note": "Mocha framework provides assertion libraries, page 92."
+   },
+   {
+    "name": "Assertions",
+    "note": "Introducing them is discussed on pages 302–304; applicability on page 302."
+   },
+   {
+    "name": "Assignments",
+    "note": "Removing assignments to parameters is discussed on page 112."
+   },
+   {
+    "name": "Automated refactoring tools",
+    "note": "Referenced on page 131."
+   },
+   {
+    "name": "Babel",
+    "note": "A tool mentioned on page 37."
+   },
+   {
+    "name": "Boundary conditions",
+    "note": "Referenced on page 97."
+   },
+   {
+    "name": "Branch by abstraction tactic",
+    "note": "Referenced on page 54."
+   }
+  ],
+  "relations": [
+   {
+    "from": "Mocha",
+    "kind": "provides",
+    "to": "Assertion libraries",
+    "note": "Mocha framework provides assertion libraries, page 92."
+   },
+   {
+    "from": "Extract Class",
+    "kind": "inversed by",
+    "to": "Inline Class",
+    "note": "Extract Class is inversed by Inline Class, page 186."
+   },
+   {
+    "from": "Inline Function",
+    "kind": "inversed by",
+    "to": "Extract Function",
+    "note": "Inline Function is inversed by Extract Function, page 115."
+   },
+   {
+    "from": "Hide Delegate",
+    "kind": "inversed by",
+    "to": "Remove Middle Man",
+    "note": "Hide Delegate is inversed by Remove Middle Man, page 192."
+   },
+   {
+    "from": "Parameterize Function",
+    "kind": "related to",
+    "to": "Change Function Declaration",
+    "note": "Parameterize Function is related to changing function declarations, pages 310–313."
+   }
+  ],
+  "digestVersion": 2,
+  "flavor": "expository"
+ },
+ {
+  "chapterIndex": 21,
+  "summary": "This chapter is a back-end reference table that maps each code smell to its common refactorings. It is organized as a table with two columns: Smell and Common Refactorings, listing for each smell the refactorings typically applied to address it.",
+  "characters": [
+   {
+    "name": "Alternative Classes with Different Interfaces",
+    "note": "A code smell addressed by Change Function Declaration, Move Function, or Extract Superclass."
+   },
+   {
+    "name": "Comments",
+    "note": "A code smell addressed by Extract Function, Change Function Declaration, or Introduce Assertion."
+   },
+   {
+    "name": "Data Class",
+    "note": "A code smell addressed by Encapsulate Record, Remove Setting Method, Move Function, Extract Function, or Split Phase."
+   },
+   {
+    "name": "Insider Trading",
+    "note": "A code smell addressed by Move Function, Move Field, Hide Delegate, Replace Subclass with Delegate, or Replace Superclass with Delegate."
+   },
+   {
+    "name": "Large Class",
+    "note": "A code smell addressed by Extract Class, Extract Superclass, or Replace Type Code with Subclasses."
+   },
+   {
+    "name": "Lazy Element",
+    "note": "A code smell addressed by Inline Function, Inline Class, or Collapse Hierarchy."
+   },
+   {
+    "name": "Loops",
+    "note": "A code smell addressed by Replace Loop with Pipeline."
+   },
+   {
+    "name": "Message Chains",
+    "note": "A code smell addressed by Hide Delegate, Extract Function, or Move Function."
+   },
+   {
+    "name": "Middle Man",
+    "note": "A code smell addressed by Remove Middle Man, Inline Function, Replace Superclass with Delegate, or Replace Subclass with Delegate."
+   },
+   {
+    "name": "Refused Bequest",
+    "note": "A code smell addressed by Push Down Method, Push Down Field, Replace Subclass with Delegate, or Replace Superclass with Delegate."
+   },
+   {
+    "name": "Repeated Switches",
+    "note": "A code smell addressed by Replace Conditional with Polymorphism."
+   },
+   {
+    "name": "Speculative Generality",
+    "note": "A code smell addressed by Collapse Hierarchy, Inline Function, Inline Class, Change Function Declaration, or Remove Dead Code."
+   }
+  ],
+  "relations": [
+   {
+    "from": "Alternative Classes with Different Interfaces",
+    "kind": "addressed by",
+    "to": "Change Function Declaration",
+    "note": "Alternative Classes with Different Interfaces is refactored using Change Function Declaration."
+   },
+   {
+    "from": "Data Class",
+    "kind": "addressed by",
+    "to": "Encapsulate Record",
+    "note": "Data Class is refactored using Encapsulate Record."
+   },
+   {
+    "from": "Data Clumps",
+    "kind": "addressed by",
+    "to": "Extract Class",
+    "note": "Data Clumps is refactored using Extract Class."
+   },
+   {
+    "from": "Divergent Change",
+    "kind": "addressed by",
+    "to": "Split Phase",
+    "note": "Divergent Change is refactored using Split Phase."
+   },
+   {
+    "from": "Duplicated Code",
+    "kind": "addressed by",
+    "to": "Extract Function",
+    "note": "Duplicated Code is refactored using Extract Function."
+   },
+   {
+    "from": "Feature Envy",
+    "kind": "addressed by",
+    "to": "Move Function",
+    "note": "Feature Envy is refactored using Move Function."
+   },
+   {
+    "from": "Global Data",
+    "kind": "addressed by",
+    "to": "Encapsulate Variable",
+    "note": "Global Data is refactored using Encapsulate Variable."
+   },
+   {
+    "from": "Insider Trading",
+    "kind": "addressed by",
+    "to": "Move Function",
+    "note": "Insider Trading is refactored using Move Function."
+   },
+   {
+    "from": "Large Class",
+    "kind": "addressed by",
+    "to": "Extract Class",
+    "note": "Large Class is refactored using Extract Class."
+   },
+   {
+    "from": "Lazy Element",
+    "kind": "addressed by",
+    "to": "Inline Function",
+    "note": "Lazy Element is refactored using Inline Function."
+   },
+   {
+    "from": "Long Function",
+    "kind": "addressed by",
+    "to": "Extract Function",
+    "note": "Long Function is refactored using Extract Function."
+   },
+   {
+    "from": "Long Parameter List",
+    "kind": "addressed by",
+    "to": "Replace Parameter with Query",
+    "note": "Long Parameter List is refactored using Replace Parameter with Query."
+   }
+  ],
+  "digestVersion": 2,
+  "flavor": "expository"
+ },
+ {
+  "chapterIndex": 22,
+  "summary": "本章说明如何优化电子书中编程代码和配置示例的呈现：建议使用单列横向模式并将字体调到最小，同时提供与印刷版一致的代码图像，并在需要时通过“Click here to view code image”链接查看，以返回使用Back按钮。",
+  "characters": [
+   {
+    "name": "Code Snippets",
+    "note": "指书中包含的编程代码或配置示例，本章提供优化其呈现的方法。"
+   },
+   {
+    "name": "single-column, landscape mode",
+    "note": "推荐用于查看代码片段的电子书显示模式，以优化呈现。"
+   },
+   {
+    "name": "smallest setting",
+    "note": "指调整字体大小至最小，以配合代码片段的呈现。"
+   },
+   {
+    "name": "reflowable text format",
+    "note": "用于呈现代码和配置的格式，但可能影响代码列表的展示。"
+   },
+   {
+    "name": "print-fidelity code image",
+    "note": "模仿印刷版书籍的代码图像，用于在reflowable格式可能影响展示时提供准确版本。"
+   },
+   {
+    "name": "Click here to view code image",
+    "note": "链接，点击可查看印刷保真度的代码图像。"
+   },
+   {
+    "name": "Back button",
+    "note": "设备或应用上的按钮，用于返回之前浏览的页面。"
+   }
+  ],
+  "relations": [
+   {
+    "from": "Code Snippets",
+    "kind": "呈现于",
+    "to": "reflowable text format",
+    "note": "代码片段通常以reflowable text format呈现，但可能影响展示。"
+   },
+   {
+    "from": "Code Snippets",
+    "kind": "可能有",
+    "to": "Click here to view code image",
+    "note": "当reflowable格式影响代码呈现时，会提供此链接以查看图像。"
+   },
+   {
+    "from": "Click here to view code image",
+    "kind": "查看",
+    "to": "print-fidelity code image",
+    "note": "点击链接可查看印刷保真度的代码图像。"
+   },
+   {
+    "from": "Back button",
+    "kind": "用于",
+    "to": "print-fidelity code image",
+    "note": "查看图像后，通过Back按钮返回之前的页面。"
+   },
+   {
+    "from": "single-column, landscape mode",
+    "kind": "优化",
+    "to": "Code Snippets",
+    "note": "推荐此显示模式以优化代码片段的呈现。"
+   },
+   {
+    "from": "smallest setting",
+    "kind": "调整",
+    "to": "Code Snippets",
+    "note": "建议将字体调整至最小，以更好地呈现代码片段。"
+   }
+  ],
+  "digestVersion": 2,
+  "flavor": "expository"
+ }
+]

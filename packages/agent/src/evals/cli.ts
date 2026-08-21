@@ -72,7 +72,7 @@ Options:
   --timeout-ms <ms>            Per-run timeout (default: 120000)
   --scenario <id[,id]>         Run selected scenarios (repeatable)
   --tag <tag[,tag]>            Run scenarios matching any selected tag
-  --thinking <level>           off|minimal|low|medium|high|xhigh|max (default: off)
+  --thinking <level>           off|minimal|low|medium|high|xhigh|max (default: medium)
   --judge                      Score rubric scenarios with an LLM judge (quality checks)
   --judge-provider <id>        Judge provider (default: baseline provider)
   --judge-model <id>           Judge model (default: provider default)
@@ -106,7 +106,9 @@ function listValues(values: string[] | undefined): string[] {
 }
 
 function parseThinkingLevel(value: string | undefined): ThinkingLevel {
-  const level = value ?? "off";
+  // medium 是产品默认档，也是回归基线该量的档位；off 只该在刻意省钱的
+  // 快扫时显式传（跨档位的 trend 对比会被标 INCOMPARABLE）。
+  const level = value ?? "medium";
   if (!THINKING_LEVELS.includes(level as ThinkingLevel)) {
     throw new Error(`invalid thinking level ${JSON.stringify(level)}`);
   }

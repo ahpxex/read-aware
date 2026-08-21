@@ -1,22 +1,26 @@
 import { annotationsEvalSuite } from "./annotations";
+import { bergerEvalSuite } from "./berger";
 import { groundingEvalSuite } from "./grounding";
 import { interactionsEvalSuite } from "./interactions";
 import { karamazovEvalSuite } from "./karamazov";
 import { lebonEvalSuite } from "./lebon";
 import { memoryEvalSuite } from "./memory";
 import { readingEvalSuite } from "./reading";
+import { refactoringEvalSuite } from "./refactoring";
 import { santiEvalSuite } from "./santi";
 import { settingsEvalSuite } from "./settings";
 import { toolsEvalSuite } from "./tools";
 
 export const evalSuites = {
   annotations: annotationsEvalSuite,
+  berger: bergerEvalSuite,
   grounding: groundingEvalSuite,
   interactions: interactionsEvalSuite,
   karamazov: karamazovEvalSuite,
   lebon: lebonEvalSuite,
   memory: memoryEvalSuite,
   reading: readingEvalSuite,
+  refactoring: refactoringEvalSuite,
   santi: santiEvalSuite,
   settings: settingsEvalSuite,
   tools: toolsEvalSuite,

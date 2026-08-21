@@ -9,17 +9,17 @@
  * 领养管线（bootstrap 摘要 + 继承提炼）的确定性行为在
  * runtime/legacy-adoption.test.ts；这里测模型面对存量状态的行为。
  */
-import { combineAssessments, evaluateAgentTrace } from "../assertions";
-import { defineAgentEvalScenario, type AgentEvalScenario } from "../agent-harness";
-import { realBook } from "../book-fixtures";
-import type { TurnRecord } from "../../ports";
-import type { EvalSuite } from "../types";
+import { combineAssessments, evaluateAgentTrace } from "../../assertions";
+import { defineAgentEvalScenario, type AgentEvalScenario } from "../../agent-harness";
+import { realBook } from "../../book-fixtures";
+import type { TurnRecord } from "../../../ports";
+import type { EvalSuite } from "../../types";
 import {
   cjkAnswerAssessment,
   coverageAssessment,
   fenceDisciplineAssessment,
   leakAssessment,
-} from "./real-book-helpers";
+} from "../realbook/real-book-helpers";
 
 const kara = realBook("karamazov");
 
@@ -79,7 +79,7 @@ export const legacyEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "mid-book-no-digests-graceful",
       description:
         "读者正在阅读中但摘要管道尚未完成（无摘要）：Agent降级为检索而非虚构图谱或否认读者进度。",
-      tags: ["legacy", "karamazov", "real-book", "graph-backlog", "book"],
+      tags: ["honesty", "digest", "karamazov", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       // 刻意不 seed chapterDigests —— 存量进度、空图谱的过渡态。
       seed: kara.seed(MID_PROGRESS),
@@ -119,7 +119,7 @@ export const legacyEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "legacy-thread-view-recall",
       description:
         "数月前的对话早于记忆管道：要求回忆读者已有观点时，Agent搜索对话记录而非声称遗忘。",
-      tags: ["legacy", "karamazov", "real-book", "inheritance", "conversation", "book"],
+      tags: ["continuity", "retrieval", "karamazov", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: {
         ...kara.seed(MID_PROGRESS),
@@ -158,7 +158,7 @@ export const legacyEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "same-chapter-last-question",
       description:
         "在同一章节会话内，“我刚才问了什么”通过实时上下文回答——无遗忘或回避。",
-      tags: ["legacy", "karamazov", "real-book", "continuity", "multi-turn", "book"],
+      tags: ["continuity", "multi-turn", "karamazov", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: {
         ...kara.seed(MID_PROGRESS),
@@ -184,7 +184,7 @@ export const legacyEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "cross-chapter-last-question",
       description:
         "跨越章节边界后会话重置到基线状态，但该状态必须保留上一轮对话原文，因此“我刚才问了什么”得以存活。",
-      tags: ["legacy", "karamazov", "real-book", "continuity", "multi-turn", "book"],
+      tags: ["continuity", "multi-turn", "karamazov", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: {
         ...kara.seed(MID_PROGRESS),
@@ -219,7 +219,7 @@ export const legacyEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "paraphrased-history-search",
       description:
         "关于旧讨论的通俗化转述问题仍能定位原始对话轮次——基于令牌回退匹配，而非完全匹配。",
-      tags: ["legacy", "karamazov", "real-book", "continuity", "conversation", "book"],
+      tags: ["continuity", "karamazov", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: {
         ...kara.seed(MID_PROGRESS),
@@ -255,7 +255,7 @@ export const legacyEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "stale-claim-reverify",
       description:
         "旧Agent在往期会话中误引了引文：要求复核时，新Agent重新对照书籍原文校验并更正记录，而非机械重复。",
-      tags: ["legacy", "karamazov", "real-book", "critical-inheritance", "book"],
+      tags: ["continuity", "retrieval", "honesty", "karamazov", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: {
         ...kara.seed(MID_PROGRESS),

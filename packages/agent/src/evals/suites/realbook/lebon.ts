@@ -5,16 +5,17 @@
  * 以及本版本术语的拼写保真（译名、分类名按本书用词）。
  * 断言关键词全部从 fixture 文本与纪要派生。
  */
-import { combineAssessments, evaluateAgentTrace } from "../assertions";
-import { defineAgentEvalScenario, type AgentEvalScenario } from "../agent-harness";
-import { realBook } from "../book-fixtures";
-import type { EvalSuite } from "../types";
+import { combineAssessments, evaluateAgentTrace } from "../../assertions";
+import { defineAgentEvalScenario, type AgentEvalScenario } from "../../agent-harness";
+import { realBook } from "../../book-fixtures";
+import type { EvalSuite } from "../../types";
 import {
   cjkAnswerAssessment,
   coverageAssessment,
   forwardRetrievalAssessment as forwardBeyond,
   noFenceAssessment,
 } from "./real-book-helpers";
+import { lebonQuestionScenarios } from "./lebon-questions";
 
 const lebon = realBook("lebon");
 
@@ -49,7 +50,7 @@ export const lebonEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "concept-graph-answers",
       description:
         "注入概念图后，机制问题从摘要关系回答——少量工具调用，本版术语。",
-      tags: ["lebon", "real-book", "graph", "digest", "expository", "book"],
+      tags: ["digest", "lebon", "book"],
       scope: { kind: "book", bookId: lebon.bookId },
       seed: {
         ...lebon.seed(READER_PROGRESS),
@@ -88,7 +89,7 @@ export const lebonEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "forward-retrieval-unfenced",
       description:
         "关于说明性图书后续章节的问题自由向前检索——无需权限，无剧透仪式。",
-      tags: ["lebon", "real-book", "expository", "forward", "book"],
+      tags: ["retrieval", "forward", "lebon", "book"],
       scope: { kind: "book", bookId: lebon.bookId },
       seed: {
         ...lebon.seed(READER_PROGRESS),
@@ -134,7 +135,7 @@ export const lebonEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "term-taxonomy-fidelity",
       description:
         "Recites a term's in-book taxonomy using this edition's own category names (威望 → 被赋予的/个人的).",
-      tags: ["lebon", "real-book", "expository", "fidelity", "book"],
+      tags: ["digest", "lebon", "book"],
       scope: { kind: "book", bookId: lebon.bookId },
       seed: {
         ...lebon.seed(READER_PROGRESS),
@@ -168,5 +169,90 @@ export const lebonEvalSuite: EvalSuite<AgentEvalScenario> = {
           cjkAnswerAssessment(observation),
         ),
     }),
-  ],
+    defineAgentEvalScenario({
+      id: "argument-arc-from-digest",
+      description:
+        "复述全书到此的论证弧（群体心理→机制→领袖→手段）——概念图的谱系面，信任注入的图而非重读全书。",
+      tags: ["digest", "lebon", "book"],
+      scope: { kind: "book", bookId: lebon.bookId },
+      seed: {
+        ...lebon.seed(READER_PROGRESS),
+        chapterDigests: lebon.digestsSeed(READER_CHAPTER),
+      },
+      seedSummary: lebon.seedSummary(READER_PROGRESS),
+      turns: [
+        {
+          text: "读到现在，这本书从头到这里的整体论证脉络是什么？帮我把主线串一遍，别一行章一章地罗列。",
+          readingCursor: readerCursor(),
+        },
+      ],
+      expectation: {
+        tools: { maxCalls: 3 },
+        maxRounds: 4,
+      },
+      criteria: {
+        arc: "群体心理特征(暗示/无理性) → 信念机制(断言/重复/传染) → 领袖与威望 — all terms verified present in the digests",
+      },
+      rubric: [
+        "Tells it as one developing argument in the book's own terms — how crowd psychology makes the mechanisms possible, how mechanisms serve leaders — rather than a chapter-by-chapter table of contents",
+      ],
+      evaluate: (observation) =>
+        combineAssessments(
+          evaluateAgentTrace(observation, {
+            tools: { maxCalls: 3 },
+            maxRounds: 4,
+          }),
+          coverageAssessment(
+            observation,
+            "answer.argument-arc",
+            ["群体", "暗示", "领袖", "传染", "威望", "断言"],
+            4,
+          ),
+          noFenceAssessment(observation),
+          cjkAnswerAssessment(observation),
+        ),
+    }),
+    defineAgentEvalScenario({
+      id: "modern-transfer-application",
+      description:
+        "把概念图迁移到书写不存在的现代域（社交媒体）：用本书术语评估哪里说中、哪里预见不到。",
+      tags: ["digest", "lebon", "book"],
+      scope: { kind: "book", bookId: lebon.bookId },
+      seed: {
+        ...lebon.seed(READER_PROGRESS),
+        chapterDigests: lebon.digestsSeed(READER_CHAPTER),
+      },
+      seedSummary: lebon.seedSummary(READER_PROGRESS),
+      turns: [
+        {
+          text: "勒庞这套分析放到今天的社交媒体时代还成立吗？哪些他说中了，哪些是他不可能预见的？",
+          readingCursor: readerCursor(),
+        },
+      ],
+      criteria: {
+        transfer:
+          "the book cannot answer this — the answer must reason FROM the digest graph (断言/重复/传染/威望) about a domain the book predates",
+      },
+      rubric: [
+        "Applies the book's actual mechanisms to feeds and virality (assertion-repetition-contagion fits, leader-prestige maps to influencers) while honestly marking the limits — no pretending Le Bon wrote about the internet, no discarding the book as outdated",
+      ],
+      evaluate: (observation) =>
+        combineAssessments(
+          coverageAssessment(
+            observation,
+            "answer.book-mechanism-terms",
+            ["断言", "重复", "传染", "威望", "暗示", "情感夸张", "固定信仰"],
+            3,
+          ),
+          coverageAssessment(
+            observation,
+            "answer.engages-modern-domain",
+            ["社交媒体", "网络", "算法", "平台", "流量"],
+            1,
+          ),
+          noFenceAssessment(observation),
+          cjkAnswerAssessment(observation),
+        ),
+    }),
+    ...lebonQuestionScenarios,  ],
 };

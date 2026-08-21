@@ -1,43 +1,55 @@
-import { annotationsEvalSuite } from "./annotations";
-import { bergerEvalSuite } from "./berger";
-import { crossbookEvalSuite } from "./crossbook";
-import { groundingEvalSuite } from "./grounding";
-import { interactionsEvalSuite } from "./interactions";
-import { journeysEvalSuite } from "./journeys";
-import { karamazovEvalSuite } from "./karamazov";
-import { legacyEvalSuite } from "./legacy";
-import { lebonEvalSuite } from "./lebon";
-import { memoryEvalSuite } from "./memory";
-import { personalizationEvalSuite } from "./personalization";
-import { readingEvalSuite } from "./reading";
-import { realBooksEvalSuite } from "./real-book-common";
-import { refactoringEvalSuite } from "./refactoring";
-import { santiEvalSuite } from "./santi";
-import { settingsEvalSuite } from "./settings";
-import { toolsEvalSuite } from "./tools";
+/**
+ * 套件注册表。两条正交的组织轴在此汇合：
+ *
+ *   组（group）——套件之上的运行/汇报单位：
+ *     behavior  能力套件（合成 fixture 或横切行为）——见 ./behavior/index.ts
+ *     realbook  真书套件（每书一个 + 配置驱动的网格）——见 ./realbook/index.ts
+ *
+ *   suite id 保持稳定不变：它是 trend 文件（trend-<id>.json）、工件目录与
+ *   viewer 路由的外键。新增套件时顺延 code（S01…只增不改），并归入一组。
+ */
+import { behaviorSuites, type BehaviorSuiteId } from "./behavior";
+import { realbookSuites, type RealbookSuiteId } from "./realbook";
 
-export const evalSuites = {
-  annotations: annotationsEvalSuite,
-  berger: bergerEvalSuite,
-  crossbook: crossbookEvalSuite,
-  grounding: groundingEvalSuite,
-  interactions: interactionsEvalSuite,
-  journeys: journeysEvalSuite,
-  karamazov: karamazovEvalSuite,
-  legacy: legacyEvalSuite,
-  lebon: lebonEvalSuite,
-  memory: memoryEvalSuite,
-  personalization: personalizationEvalSuite,
-  reading: readingEvalSuite,
-  realbooks: realBooksEvalSuite,
-  refactoring: refactoringEvalSuite,
-  santi: santiEvalSuite,
-  settings: settingsEvalSuite,
-  tools: toolsEvalSuite,
-} as const;
+export const evalSuites = { ...behaviorSuites, ...realbookSuites } as const;
 
 export type EvalSuiteId = keyof typeof evalSuites;
 
+export type EvalSuiteGroupId = "behavior" | "realbook";
+
+export interface EvalSuiteGroup {
+  id: EvalSuiteGroupId;
+  /** 组的一句定位（EVALS.md 与 CLI 报错都会引用）。 */
+  description: string;
+  suites: Readonly<Record<string, unknown>>;
+  /** 组内套件 id 的稳定顺序。 */
+  suiteIds: readonly EvalSuiteId[];
+}
+
+export const evalSuiteGroups = {
+  behavior: {
+    id: "behavior",
+    description: "能力套件：合成 fixture 上的行为纪律（阅读、记忆、交互、工具、诚实性…）",
+    suites: behaviorSuites,
+    suiteIds: Object.keys(behaviorSuites) as BehaviorSuiteId[],
+  },
+  realbook: {
+    id: "realbook",
+    description: "真书套件：每本注册真书一个专属套件 + 全书公共行为网格",
+    suites: realbookSuites,
+    suiteIds: Object.keys(realbookSuites) as RealbookSuiteId[],
+  },
+} satisfies Record<EvalSuiteGroupId, EvalSuiteGroup>;
+
 export function isEvalSuiteId(value: string): value is EvalSuiteId {
   return Object.prototype.hasOwnProperty.call(evalSuites, value);
+}
+
+export function isEvalSuiteGroupId(value: string): value is EvalSuiteGroupId {
+  return Object.prototype.hasOwnProperty.call(evalSuiteGroups, value);
+}
+
+/** 组选择器（"behavior" / "realbook"）展开为组内套件 id。 */
+export function suiteIdsOfGroup(group: EvalSuiteGroupId): readonly EvalSuiteId[] {
+  return evalSuiteGroups[group].suiteIds;
 }

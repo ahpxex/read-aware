@@ -4,9 +4,9 @@
  * 以及编辑前没有先检索定位到正确的标注。
  */
 import type { Id } from "@read-aware/core";
-import { assessmentFromChecks, combineAssessments, evaluateAgentTrace } from "../assertions";
-import { defineAgentEvalScenario, type AgentEvalScenario } from "../agent-harness";
-import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../types";
+import { assessmentFromChecks, combineAssessments, evaluateAgentTrace } from "../../assertions";
+import { defineAgentEvalScenario, type AgentEvalScenario } from "../../agent-harness";
+import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../../types";
 
 const BOOK_ID = "eval-annotation-book" as Id;
 const CHAPTER_TEXT =
@@ -77,7 +77,7 @@ export const annotationsEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "highlight-verbatim-text",
       description: "用书籍的精确措辞高亮请求的段落。",
-      tags: ["annotations", "highlight", "state"],
+      tags: ["state", "book"],
       scope: { kind: "book", bookId: BOOK_ID },
       seed: seed(),
       turns: [
@@ -104,7 +104,7 @@ export const annotationsEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "note-on-request",
       description: "保存用户的想法作为笔记，不编造内容。",
-      tags: ["annotations", "note", "state"],
+      tags: ["state", "book"],
       scope: { kind: "book", bookId: BOOK_ID },
       seed: seed(),
       turns: [
@@ -141,7 +141,7 @@ export const annotationsEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "edit-note-after-lookup",
       description: "先找到现有笔记，然后就地扩展。",
-      tags: ["annotations", "edit", "trajectory"],
+      tags: ["state", "economy", "book"],
       scope: { kind: "book", bookId: BOOK_ID },
       seed: {
         ...seed(),
@@ -191,7 +191,7 @@ export const annotationsEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "summarize-highlights-grounded",
       description: "从记录中总结读者的高亮，而非凭想象。",
-      tags: ["annotations", "grounding", "quality"],
+      tags: ["retrieval", "book"],
       scope: { kind: "book", bookId: BOOK_ID },
       seed: {
         ...seed(),

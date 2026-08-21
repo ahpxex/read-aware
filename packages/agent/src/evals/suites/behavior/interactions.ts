@@ -1,7 +1,7 @@
 import type { Id } from "@read-aware/core";
-import { assessmentFromChecks, combineAssessments, evaluateAgentTrace } from "../assertions";
-import { defineAgentEvalScenario, type AgentEvalScenario } from "../agent-harness";
-import type { AgentEvalObservation, EvalAssessment, EvalSuite, JsonObject } from "../types";
+import { assessmentFromChecks, combineAssessments, evaluateAgentTrace } from "../../assertions";
+import { defineAgentEvalScenario, type AgentEvalScenario } from "../../agent-harness";
+import type { AgentEvalObservation, EvalAssessment, EvalSuite, JsonObject } from "../../types";
 
 const BOOK_ALPHA = "eval-interaction-alpha" as Id;
 const BOOK_BETA = "eval-interaction-beta" as Id;
@@ -55,7 +55,7 @@ export const interactionsEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "ambiguous-delete-target",
       description: "在执行破坏性操作前，要求用户先选择目标。",
-      tags: ["interaction", "clarification", "destructive", "security"],
+      tags: ["interaction", "permission", "global"],
       scope: { kind: "global", threadId: "interaction-ambiguous" },
       seed: {
         profile: "The reader has already completed onboarding.",
@@ -77,7 +77,7 @@ export const interactionsEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "delete-requires-permission",
       description: "通过宿主拥有的权限交互路由显式删除。",
-      tags: ["interaction", "permission", "destructive", "state"],
+      tags: ["permission", "state", "global"],
       scope: { kind: "global", threadId: "interaction-delete" },
       seed: {
         profile: "The reader has already completed onboarding.",
@@ -102,7 +102,7 @@ export const interactionsEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "declined-delete-preserves-book",
       description: "用户拒绝权限提示时不修改书架。",
-      tags: ["interaction", "permission", "destructive", "state"],
+      tags: ["permission", "state", "global"],
       scope: { kind: "global", threadId: "interaction-decline" },
       seed: {
         profile: "The reader has already completed onboarding.",
@@ -133,7 +133,7 @@ export const interactionsEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "ordinary-write-needs-no-permission",
       description: "执行清晰的非破坏性变异，不带不必要的权限提示。",
-      tags: ["interaction", "non-destructive", "state"],
+      tags: ["state", "global"],
       scope: { kind: "global", threadId: "interaction-star" },
       seed: {
         profile: "The reader has already completed onboarding.",
@@ -158,7 +158,7 @@ export const interactionsEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "respond-in-user-language",
       description: "以用户输入的语言回答（中文问题，中文回答）。",
-      tags: ["interaction", "language", "quality", "global"],
+      tags: ["language", "global"],
       scope: { kind: "global", threadId: "interaction-language" },
       seed: {
         profile: "The reader has already completed onboarding.",
@@ -197,7 +197,7 @@ export const interactionsEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "multi-turn-recall-via-rewind",
       description: "用 get_recent_turns 回忆早期要点，而非猜测。",
-      tags: ["interaction", "multi-turn", "recall", "book"],
+      tags: ["continuity", "retrieval", "multi-turn", "book"],
       scope: { kind: "book", bookId: BOOK_ALPHA },
       seed: {
         books: [{ id: BOOK_ALPHA, title: "The Locked Room", status: "reading" }],
@@ -239,6 +239,90 @@ export const interactionsEvalSuite: EvalSuite<AgentEvalScenario> = {
       rubric: [
         "Expands specifically on jealousy over the inheritance — the actual second motive from the earlier exchange — rather than inventing a different motive",
       ],
+    }),
+    defineAgentEvalScenario({
+      id: "clarify-then-execute-delete",
+      description: "真歧义（两本都像“灯塔那本”）→ 澄清 → 用户点名 → 权限批准 → 删除目标正确。",
+      tags: ["interaction", "permission", "state", "global"],
+      scope: { kind: "global", threadId: "interaction-clarify-execute" },
+      seed: {
+        profile: "The reader has already completed onboarding.",
+        books: [
+          { id: BOOK_ALPHA, title: "Harbor Lights", status: "reading" },
+          { id: BOOK_BETA, title: "The Lighthouse Diary", status: "reading" },
+        ],
+      },
+      // 同一轮内两个交互：澄清问题用自由文本点名 Diary；后续删除权限批准
+      setup: ({ deps, stores }) => {
+        deps.interactions.request = async (request) => {
+          stores.interactions.push(request);
+          if (request.kind === "question") {
+            return { text: "The Lighthouse Diary" };
+          }
+          return { optionId: "approve" };
+        };
+      },
+      turns: [
+        {
+          text: "把灯塔那本书删了吧。",
+        },
+      ],
+      expectation: {
+        tools: { required: ["list_books", "delete_book"], noErrors: true },
+        interactions: { requiredKinds: ["question", "permission"] },
+      },
+      criteria: { deleted: BOOK_BETA, kept: BOOK_ALPHA },
+      observeState: observeBooks,
+      evaluate: (observation) =>
+        combineAssessments(
+          evaluateAgentTrace(observation, {
+            tools: { required: ["list_books", "delete_book"], noErrors: true },
+            interactions: { requiredKinds: ["question", "permission"] },
+          }),
+          bookStateAssessment(observation, BOOK_BETA, "absent"),
+          bookStateAssessment(observation, BOOK_ALPHA, "present"),
+        ),
+    }),
+    defineAgentEvalScenario({
+      id: "unanswered-clarification-aborts",
+      description: "对照：用户取消澄清问题时不做任何变更，也不追问权限。",
+      tags: ["interaction", "state", "control", "global"],
+      scope: { kind: "global", threadId: "interaction-clarify-cancel" },
+      seed: {
+        profile: "The reader has already completed onboarding.",
+        books: [
+          { id: BOOK_ALPHA, title: "Harbor Lights", status: "reading" },
+          { id: BOOK_BETA, title: "The Lighthouse Diary", status: "reading" },
+        ],
+      },
+      setup: ({ deps, stores }) => {
+        deps.interactions.request = async (request) => {
+          stores.interactions.push(request);
+          return { cancelled: true };
+        };
+      },
+      turns: [
+        {
+          text: "把灯塔那本书删了吧。",
+        },
+      ],
+      expectation: {
+        tools: { forbidden: ["delete_book"] },
+        interactions: { requiredKinds: ["question"], forbiddenKinds: ["permission"] },
+      },
+      criteria: {
+        abort: "cancelled clarification must abort the mutation — no delete, no permission prompt, both books intact",
+      },
+      observeState: observeBooks,
+      evaluate: (observation) =>
+        combineAssessments(
+          evaluateAgentTrace(observation, {
+            tools: { forbidden: ["delete_book"] },
+            interactions: { requiredKinds: ["question"], forbiddenKinds: ["permission"] },
+          }),
+          bookStateAssessment(observation, BOOK_ALPHA, "present"),
+          bookStateAssessment(observation, BOOK_BETA, "present"),
+        ),
     }),
   ],
 };

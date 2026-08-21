@@ -5,15 +5,17 @@
  * 双语纪律——中文读者读英文技术书，回答用中文但术语必须保留本书的英文
  * 拼写，不许翻译成自造译名。断言关键词全部从 fixture 文本实证派生。
  */
-import { assessmentFromChecks, combineAssessments, evaluateAgentTrace } from "../assertions";
-import { defineAgentEvalScenario, type AgentEvalScenario } from "../agent-harness";
-import { realBook } from "../book-fixtures";
-import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../types";
+import { assessmentFromChecks, combineAssessments, evaluateAgentTrace } from "../../assertions";
+import { defineAgentEvalScenario, type AgentEvalScenario } from "../../agent-harness";
+import { realBook } from "../../book-fixtures";
+import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../../types";
 import {
+  cjkAnswerAssessment,
   coverageAssessment,
   forwardRetrievalAssessment as forwardBeyond,
   noFenceAssessment,
 } from "./real-book-helpers";
+import { refactoringQuestionScenarios } from "./refactoring-questions";
 
 const fowler = realBook("refactoring");
 
@@ -81,7 +83,7 @@ export const refactoringEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "catalog-lookup-by-name",
       description:
         "在目录中定位指定重构的对应章节，从文本解释其机制——中文回答，英文术语保留。",
-      tags: ["refactoring", "real-book", "technical", "retrieval", "book"],
+      tags: ["retrieval", "toc", "refactoring", "book"],
       scope: { kind: "book", bookId: fowler.bookId },
       seed: {
         ...fowler.seed(60),
@@ -130,7 +132,7 @@ export const refactoringEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "smells-from-concept-graph",
       description:
         "从注入的概念图谱背诵坏味道词汇——该版多个味道名称，少量工具调用。",
-      tags: ["refactoring", "real-book", "technical", "graph", "digest", "book"],
+      tags: ["digest", "refactoring", "book"],
       scope: { kind: "book", bookId: fowler.bookId },
       seed: {
         ...fowler.seed(60),
@@ -179,7 +181,7 @@ export const refactoringEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "forward-lookup-inheritance",
       description:
         "技术书籍后续章节的问题，自由前向查找并用该书术语回答。",
-      tags: ["refactoring", "real-book", "technical", "forward", "book"],
+      tags: ["retrieval", "forward", "refactoring", "book"],
       scope: { kind: "book", bookId: fowler.bookId },
       seed: {
         ...fowler.seed(60),
@@ -223,7 +225,7 @@ export const refactoringEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "english-reader-native-flow",
       description:
         "关于英文书的英文问题，基于文本给出英文回答——双语纪律双向适用。",
-      tags: ["refactoring", "real-book", "technical", "language", "book"],
+      tags: ["language", "refactoring", "book"],
       scope: { kind: "book", bookId: fowler.bookId },
       seed: {
         ...fowler.seed(60),
@@ -255,5 +257,100 @@ export const refactoringEvalSuite: EvalSuite<AgentEvalScenario> = {
           noFenceAssessment(observation),
         ),
     }),
-  ],
+    defineAgentEvalScenario({
+      id: "smell-diagnosis-mapping",
+      description:
+        "从症状反推：三百行长函数嵌套分支 → 指认坏味道并开出对症手法（目录查找的逆向）。",
+      tags: ["digest", "retrieval", "refactoring", "book"],
+      scope: { kind: "book", bookId: fowler.bookId },
+      seed: {
+        ...fowler.seed(60),
+        chapterDigests: fowler.digestsSeed(READER_CHAPTER),
+      },
+      seedSummary: fowler.seedSummary(60),
+      turns: [
+        {
+          text: "我们有个函数三百多行，里面一堆嵌套的 if-else，一直不敢动。按这本书的讲法，这算什么问题？该从哪个手法下手？",
+          readingCursor: readerCursor(),
+        },
+      ],
+      expectation: {
+        tools: {
+          requiredAny: ["search_book_text", "read_chapter", "get_toc"],
+          noErrors: true,
+        },
+        interactions: { forbiddenKinds: ["permission"] },
+      },
+      criteria: {
+        mapping:
+          "Long Function (smells ch9) → Extract Function (ch6 catalog) → Decompose Conditional for the nesting — all names verified in fixture text",
+      },
+      rubric: [
+        "Names the smell(s) and prescribes the specific refactoring(s) the book pairs with them, in the book's own framing — not generic cleanup advice",
+      ],
+      evaluate: (observation) =>
+        combineAssessments(
+          evaluateAgentTrace(observation, {
+            tools: {
+              requiredAny: ["search_book_text", "read_chapter", "get_toc"],
+              noErrors: true,
+            },
+            interactions: { forbiddenKinds: ["permission"] },
+          }),
+          coverageAssessment(
+            observation,
+            "answer.smell-to-refactoring",
+            [
+              "Long Function",
+              "Extract Function",
+              "Decompose Conditional",
+              "Replace Conditional with Polymorphism",
+            ],
+            2,
+          ),
+          bilingualAssessment(observation, ["Extract Function"]),
+          noFenceAssessment(observation),
+        ),
+    }),
+    defineAgentEvalScenario({
+      id: "reading-goal-then-next-chapter",
+      description:
+        "先记下学习目标，再按书的结构荐下一章——记忆写入与目录综合的多轮教练面。",
+      tags: ["memory", "toc", "multi-turn", "refactoring", "book"],
+      scope: { kind: "book", bookId: fowler.bookId },
+      seed: {
+        ...fowler.seed(60),
+        chapterDigests: fowler.digestsSeed(READER_CHAPTER),
+      },
+      seedSummary: fowler.seedSummary(60),
+      turns: [
+        {
+          text: "记住：我这阵子在给我们组的一个老 TypeScript 模块做重构，想借这本书系统学一遍。",
+          readingCursor: readerCursor(),
+        },
+        {
+          text: "接着我上次跟你说的那个目标，按这本书的结构，接下来最值得读哪一章？为什么？",
+          readingCursor: readerCursor(),
+        },
+      ],
+      expectation: {
+        tools: { required: ["remember"], noErrors: true },
+      },
+      criteria: {
+        goal: "a legacy-module refactoring goal, remembered (user scope) in turn 1",
+        synthesis: "turn 2 must name an actual chapter of THIS book's TOC and tie it to the goal",
+      },
+      rubric: [
+        "Recommends a real chapter from this book's structure (by its own title) with a reason tied to the legacy-module goal — a coaching recommendation, not a generic 'it depends'",
+      ],
+      evaluate: (observation) =>
+        combineAssessments(
+          evaluateAgentTrace(observation, {
+            tools: { required: ["remember"], noErrors: true },
+          }),
+          noFenceAssessment(observation),
+          cjkAnswerAssessment(observation),
+        ),
+    }),
+    ...refactoringQuestionScenarios,  ],
 };

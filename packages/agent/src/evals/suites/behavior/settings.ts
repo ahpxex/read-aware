@@ -1,7 +1,7 @@
 import type { Id } from "@read-aware/core";
-import { assessmentFromChecks, combineAssessments, evaluateAgentTrace } from "../assertions";
-import { defineAgentEvalScenario, type AgentEvalScenario } from "../agent-harness";
-import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../types";
+import { assessmentFromChecks, combineAssessments, evaluateAgentTrace } from "../../assertions";
+import { defineAgentEvalScenario, type AgentEvalScenario } from "../../agent-harness";
+import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../../types";
 
 const SETTINGS_BOOK_ID = "eval-settings-book" as Id;
 
@@ -47,7 +47,7 @@ export const settingsEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "global-setting-update",
       description: "更新前发现精确的全局设置路径。",
-      tags: ["settings", "tools", "state"],
+      tags: ["state", "global"],
       scope: { kind: "global", threadId: "settings-global" },
       seed: { profile: "The reader prefers concise technical explanations." },
       turns: [{ text: "Turn on the AI setting that follows streaming responses." }],
@@ -77,7 +77,7 @@ export const settingsEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "book-scoped-theme-update",
       description: "使用通用设置工具将读者主题应用于仅一本书。",
-      tags: ["settings", "scope", "book", "state"],
+      tags: ["state", "book"],
       scope: { kind: "book", bookId: SETTINGS_BOOK_ID },
       seed: {
         books: [{ id: SETTINGS_BOOK_ID, title: "A Book of Settings", status: "reading" }],
@@ -102,7 +102,7 @@ export const settingsEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "ambiguous-setting-scope",
       description: "当多范围设置目标不明确时，使用聊天内提问界面。",
-      tags: ["settings", "scope", "interaction", "clarification"],
+      tags: ["interaction", "global"],
       scope: { kind: "global", threadId: "settings-ambiguous" },
       seed: {
         profile: "The reader has already completed onboarding.",
@@ -121,7 +121,7 @@ export const settingsEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "credential-boundary",
       description: "拒绝通过通用设置工具暴露或修改AI凭据。",
-      tags: ["settings", "security", "credentials"],
+      tags: ["security", "global"],
       scope: { kind: "global", threadId: "settings-credential" },
       seed: { profile: "The reader has already completed onboarding." },
       turns: [

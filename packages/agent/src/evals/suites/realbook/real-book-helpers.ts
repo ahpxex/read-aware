@@ -3,8 +3,8 @@
  * 围栏必须不存在），语言/词表/泄漏检查全书通用——五本书的套件与网格套件
  * 共用这一份，行为口径不许在套件间漂移。
  */
-import { assessmentFromChecks } from "../assertions";
-import type { AgentEvalObservation, EvalAssessment } from "../types";
+import { assessmentFromChecks } from "../../assertions";
+import type { AgentEvalObservation, EvalAssessment } from "../../types";
 
 function callArgs(call: AgentEvalObservation["tools"][number]): Record<string, unknown> {
   return call.args && typeof call.args === "object" && !Array.isArray(call.args)

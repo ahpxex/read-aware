@@ -1,10 +1,10 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { Type } from "@earendil-works/pi-ai";
 import type { Id } from "@read-aware/core";
-import { assessmentFromChecks, combineAssessments, evaluateAgentTrace } from "../assertions";
-import { defineAgentEvalScenario, type AgentEvalScenario } from "../agent-harness";
-import { textResult } from "../../tools/tool-result";
-import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../types";
+import { assessmentFromChecks, combineAssessments, evaluateAgentTrace } from "../../assertions";
+import { defineAgentEvalScenario, type AgentEvalScenario } from "../../agent-harness";
+import { textResult } from "../../../tools/tool-result";
+import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../../types";
 
 const TOOL_BOOK_ID = "eval-tool-book" as Id;
 const PLUGIN_TOOL = "plugin_recommend_passage";
@@ -123,7 +123,7 @@ export const toolsEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "shelf-query-presents-cards",
       description: "获取真实书架并通过宿主自有卡片展示返回的书籍。",
-      tags: ["tools", "shelf", "presentation", "global"],
+      tags: ["presentation", "global"],
       scope: { kind: "global", threadId: "tools-shelf" },
       seed: {
         profile: "The reader has already completed onboarding.",
@@ -144,7 +144,7 @@ export const toolsEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "humane-reading-stats",
       description: "从 stats 工具以人类可读单位报告阅读时长，不使用原始计数器。",
-      tags: ["tools", "stats", "quality", "global"],
+      tags: ["presentation", "global"],
       scope: { kind: "global", threadId: "tools-stats" },
       seed: {
         profile: "The reader has already completed onboarding.",
@@ -196,7 +196,7 @@ export const toolsEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "multi-query-search-batching",
       description: "一次调用多个查询变体进行搜索，而非逐个重试。",
-      tags: ["tools", "trajectory", "economy", "book"],
+      tags: ["economy", "retrieval", "book"],
       scope: { kind: "book", bookId: ECONOMY_BOOK_ID },
       seed: {
         books: [
@@ -241,7 +241,7 @@ export const toolsEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "toc-chapter-economy",
       description: "通过 TOC + 一次定向阅读回答章节摘要，而非扫描全书。",
-      tags: ["tools", "trajectory", "economy", "book"],
+      tags: ["economy", "retrieval", "book"],
       scope: { kind: "book", bookId: ECONOMY_BOOK_ID },
       seed: {
         books: [
@@ -317,7 +317,7 @@ export const toolsEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "toc-chapter-position-unknown",
       description:
         "无光标且无记录位置时，以警告回答显式章节请求——绝不探测 status 工具。",
-      tags: ["tools", "trajectory", "position", "book"],
+      tags: ["honesty", "toc", "economy", "book"],
       scope: { kind: "book", bookId: ECONOMY_BOOK_ID },
       seed: {
         books: [
@@ -349,7 +349,7 @@ export const toolsEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "missing-book-no-false-success",
       description: "当指定书名不在书架上时，拒绝捏造成功。",
-      tags: ["tools", "honesty", "error-recovery", "global"],
+      tags: ["honesty", "global"],
       scope: { kind: "global", threadId: "tools-missing-book" },
       seed: {
         profile: "The reader has already completed onboarding.",
@@ -376,7 +376,7 @@ export const toolsEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "present-restraint-recommendation",
       description: "一次推荐若干卡片，而非以散文形式重新列出整个书架。",
-      tags: ["tools", "presentation", "restraint", "global"],
+      tags: ["presentation", "global"],
       scope: { kind: "global", threadId: "tools-recommend" },
       seed: {
         profile: "The reader has already completed onboarding.",
@@ -431,7 +431,7 @@ export const toolsEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "global-plugin-tool",
       description: "暴露并执行注册为全局作用域的插件工具。",
-      tags: ["tools", "plugin", "scope", "global"],
+      tags: ["tool-surface", "global"],
       scope: { kind: "global", threadId: "tools-plugin-global" },
       seed: { profile: "The reader has already completed onboarding." },
       setup: configureGlobalPlugin,
@@ -457,7 +457,7 @@ export const toolsEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "book-hides-global-plugin-tool",
       description: "不向书内 agent 暴露仅全局可用的插件工具。",
-      tags: ["tools", "plugin", "scope", "book", "security"],
+      tags: ["tool-surface", "security", "book"],
       scope: { kind: "book", bookId: TOOL_BOOK_ID },
       seed: {
         profile: "The reader has already completed onboarding.",

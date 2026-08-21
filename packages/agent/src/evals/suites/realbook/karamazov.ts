@@ -5,15 +5,17 @@
  * （模型"知道"弑父案，但读者还在第 12 章）。
  * 断言关键词全部从 fixture 文本派生 —— 不依赖任何外部书目知识。
  */
-import { assessmentFromChecks, combineAssessments, evaluateAgentTrace } from "../assertions";
-import { defineAgentEvalScenario, type AgentEvalScenario } from "../agent-harness";
-import { realBook } from "../book-fixtures";
-import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../types";
+import { assessmentFromChecks, combineAssessments, evaluateAgentTrace } from "../../assertions";
+import { LEAK_WORDS_CH12, LEAK_WORDS_CH35, withEditionFidelity } from "./karamazov-shared";
+import { defineAgentEvalScenario, type AgentEvalScenario } from "../../agent-harness";
+import { realBook } from "../../book-fixtures";
+import type { EvalSuite } from "../../types";
 import {
   cjkAnswerAssessment,
   fenceDisciplineAssessment,
   grantedSpoilerAssessment,
 } from "./real-book-helpers";
+import { karamazovQuestionScenarios } from "./karamazov-questions";
 
 const kara = realBook("karamazov");
 
@@ -35,42 +37,9 @@ const midCursor = () => ({
  * 模型在拒绝剧透时提及章题是正确行为；改用只出现在第 40 章正文里的
  * 内容级标记（塞维利亚 / 红衣主教）——讲出诗剧内容才算泄漏。
  */
-const LEAK_WORDS_CH12 = ["格露", "三千卢布", "伊柳沙", "塞维利亚", "红衣主教", "开庭", "庭审", "弑父"];
-const LEAK_WORDS_CH35 = ["塞维利亚", "红衣主教", "开庭", "庭审", "弑父"];
 
-/**
- * 版本保真：通行译法/别版拼写的黑名单——每个词都已实证在本 fixture 全文
- * 零命中（本书拼作 阿辽沙 / 斯乜尔加科夫 / 格里果利 / 格露莘卡 /
- * 奇迹、秘密和权威），出现即预训练渗漏。套件级检查，挂到每个场景上。
- */
-const OTHER_EDITION_SPELLINGS = [
-  "阿廖沙",
-  "阿利沙",
-  "斯麦尔佳科夫",
-  "斯梅尔佳科夫",
-  "斯乜尔佳科夫",
-  "格里高利",
-  "格鲁申卡",
-  "格露申卡",
-  "卡拉马助夫",
-  "奇迹、神秘",
-];
 
-function editionFidelityAssessment(observation: AgentEvalObservation): EvalAssessment {
-  const leaked = OTHER_EDITION_SPELLINGS.filter((word) => observation.answer.includes(word));
-  return assessmentFromChecks([
-    {
-      id: "answer.edition-fidelity",
-      category: "policy",
-      passed: leaked.length === 0,
-      message:
-        leaked.length === 0
-          ? "no other-edition spellings leaked into the answer"
-          : `other-edition spellings leaked: ${leaked.join(", ")}`,
-      actual: leaked,
-    },
-  ]);
-}
+
 
 /**
  * 人工评审场景的选中段落：《宗教大法官》里的自由悖论。
@@ -110,24 +79,18 @@ function inquisitorSelectionCursor() {
 }
 
 /** 版本保真是套件级性质：每个场景的评估都叠加 OTHER_EDITION_SPELLINGS 检查。 */
-function withEditionFidelity(scenario: AgentEvalScenario): AgentEvalScenario {
-  const base = scenario.evaluate;
-  return {
-    ...scenario,
-    evaluate: async (observation) =>
-      combineAssessments(await base(observation), editionFidelityAssessment(observation)),
-  };
-}
 
 export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "karamazov",
   code: "S07",
   description: "基于完整中文版《卡拉马佐夫兄弟》EPUB的真实书籍场景。",
   scenarios: [
+    ...[
+    // 手写核心场景 + 工厂生产的真实读者问题集（词句/模糊/进度/标注/书架外）
     defineAgentEvalScenario({
       id: "quote-locates-chapter",
       description: "在102章的书中定位逐字引文，并结合上下文解释。",
-      tags: ["karamazov", "real-book", "retrieval", "book"],
+      tags: ["retrieval", "karamazov", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: { ...kara.seed(MID_PROGRESS), chapterDigests: kara.digestsSeed(35) },
       seedSummary: kara.seedSummary(MID_PROGRESS),
@@ -157,7 +120,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "selected-passage-explain",
       description:
         "人工审核：读者在章节中间选择关于宗教大法官自由悖论的内容，询问其含义。",
-      tags: ["karamazov", "real-book", "selection", "human-review", "book"],
+      tags: ["selection", "karamazov", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: { ...kara.seed(33), chapterDigests: kara.digestsSeed(INQUISITOR_CHAPTER) },
       seedSummary: kara.seedSummary(33),
@@ -182,7 +145,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "remember-reading-goal",
       description: "将读者陈述的研究目标保存为用户持久记忆（中文）。",
-      tags: ["karamazov", "real-book", "memory", "book"],
+      tags: ["memory", "karamazov", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: { ...kara.seed(MID_PROGRESS), chapterDigests: kara.digestsSeed(35) },
       seedSummary: kara.seedSummary(MID_PROGRESS),
@@ -231,7 +194,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "highlights-recited",
       description: "逐字复述读者的真实文本高亮，并为每条加上评论。",
-      tags: ["karamazov", "real-book", "annotations", "book"],
+      tags: ["state", "karamazov", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: {
         ...kara.seed(MID_PROGRESS),
@@ -280,7 +243,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "early-cursor-no-spoiler",
       description:
         "读者位于小说第12章（模型预训练已知），代理停留在光标之后。",
-      tags: ["karamazov", "real-book", "spoiler", "cursor", "book"],
+      tags: ["spoiler", "cursor", "karamazov", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       // 生产态：读者到第 12 章时空闲管线早已提炼出前面章节的纪要——
       // 场景照此配置，模型有边界内的图可依，而不是被逼向预训练。
@@ -318,7 +281,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "story-so-far-relations",
       description:
         "名录注入瘦身后回答人物关系问题——注入只带名字与别名，关系边须经 query_book_graph 取得：少量工具调用，使用本版本拼写，无泄露。",
-      tags: ["karamazov", "real-book", "graph", "digest", "cursor", "book"],
+      tags: ["digest", "karamazov", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: { ...kara.seed(12), chapterDigests: kara.digestsSeed(EARLY_CHAPTER) },
       seedSummary: kara.seedSummary(12),
@@ -368,7 +331,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "graph-entity-profile",
       description:
         "次要人物的档案与出处走图工具——注入名录只带名字，问格里果利与这家人的关系及出处章时，必须 query_book_graph 取关系边（#7 确立的照料者边）与出场章，而非盲扫正文或凭预训练作答。",
-      tags: ["karamazov", "real-book", "graph", "tool", "book"],
+      tags: ["digest", "economy", "karamazov", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: { ...kara.seed(12), chapterDigests: kara.digestsSeed(EARLY_CHAPTER) },
       seedSummary: kara.seedSummary(12),
@@ -409,7 +372,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "mid-book-ivan-no-lookahead",
       description:
         "关于伊万的中途问题，不得提前触及宗教大法官章节。",
-      tags: ["karamazov", "real-book", "spoiler", "cursor", "book"],
+      tags: ["spoiler", "cursor", "karamazov", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: { ...kara.seed(MID_PROGRESS), chapterDigests: kara.digestsSeed(35) },
       seedSummary: kara.seedSummary(MID_PROGRESS),
@@ -445,7 +408,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "explicit-spoiler-crosses-fence",
       description:
         "明确的剧透请求通过confirmSpoiler跨越围栏，并从实际文本作答。",
-      tags: ["karamazov", "real-book", "spoiler", "grant", "book"],
+      tags: ["spoiler", "grant", "retrieval", "karamazov", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: { ...kara.seed(12), chapterDigests: kara.digestsSeed(EARLY_CHAPTER) },
       seedSummary: kara.seedSummary(12),
@@ -492,7 +455,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "finished-book-free-discussion",
       description: "已读完的读者获得无围栏的全书讨论，以检索为支撑。",
-      tags: ["karamazov", "real-book", "finished", "book"],
+      tags: ["spoiler", "finished", "karamazov", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: { ...kara.seed(100, "finished"), chapterDigests: kara.digestsSeed(102) },
       seedSummary: kara.seedSummary(100),
@@ -521,7 +484,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "quote-attribution-cross-chapter",
       description:
         "当引文位于阅读位置前许多章时，将逐字台词归属到说话者。",
-      tags: ["karamazov", "real-book", "attribution", "retrieval", "book"],
+      tags: ["retrieval", "karamazov", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: { ...kara.seed(MID_PROGRESS), chapterDigests: kara.digestsSeed(35) },
       seedSummary: kara.seedSummary(MID_PROGRESS),
@@ -559,7 +522,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "alias-resolves-to-entity",
       description:
         "通过注入的注册表，将角色正式名称解析为读者熟知昵称对应的人物。",
-      tags: ["karamazov", "real-book", "graph", "alias", "book"],
+      tags: ["digest", "karamazov", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: { ...kara.seed(MID_PROGRESS), chapterDigests: kara.digestsSeed(35) },
       seedSummary: kara.seedSummary(MID_PROGRESS),
@@ -590,7 +553,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "pronoun-antecedent-in-passage",
       description:
         "将选中段落中的代词解析到其前指对象（该对象位于可见区之前）。",
-      tags: ["karamazov", "real-book", "selection", "pronoun", "book"],
+      tags: ["selection", "karamazov", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: { ...kara.seed(12), chapterDigests: kara.digestsSeed(EARLY_CHAPTER) },
       seedSummary: kara.seedSummary(12),
@@ -625,7 +588,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "pronoun-across-turns",
       description:
         "Resolves a conversational pronoun ('他') to the subject of the previous turn, then answers from the graph.",
-      tags: ["karamazov", "real-book", "pronoun", "multi-turn", "book"],
+      tags: ["continuity", "multi-turn", "karamazov", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: { ...kara.seed(12), chapterDigests: kara.digestsSeed(EARLY_CHAPTER) },
       seedSummary: kara.seedSummary(12),
@@ -671,5 +634,8 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
           cjkAnswerAssessment(observation),
         ),
     }),
-  ].map(withEditionFidelity),
+    ].map(withEditionFidelity),
+    // 工厂生产的长尾问题（fidelity 已在场景内叠加，不重复 map）
+    ...karamazovQuestionScenarios,
+  ],
 };

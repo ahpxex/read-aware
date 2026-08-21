@@ -9,15 +9,15 @@
  * 对照（控制侧断言反向成立：不许幻觉出画像）。读写更新由 memory 套件 +
  * 本套件的 update 场景覆盖。
  */
-import { assessmentFromChecks, combineAssessments, evaluateAgentTrace } from "../assertions";
-import { defineAgentEvalScenario, type AgentEvalScenario } from "../agent-harness";
-import { realBook } from "../book-fixtures";
-import { seedMemory } from "../../testing/fixtures";
-import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../types";
+import { assessmentFromChecks, combineAssessments, evaluateAgentTrace } from "../../assertions";
+import { defineAgentEvalScenario, type AgentEvalScenario } from "../../agent-harness";
+import { realBook } from "../../book-fixtures";
+import { seedMemory } from "../../../testing/fixtures";
+import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../../types";
 import {
   cjkAnswerAssessment,
   coverageAssessment,
-} from "./real-book-helpers";
+} from "../realbook/real-book-helpers";
 
 const lebon = realBook("lebon");
 const kara = realBook("karamazov");
@@ -124,7 +124,7 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "concise-preference-shapes-summary",
       description:
         "当记忆中有简洁偏好时，摘要请求得到简短直白的回答——被忽略的记忆无法通过严格的长度限制。",
-      tags: ["personalization", "memory-application", "style", "lebon", "book"],
+      tags: ["memory", "lebon", "book"],
       scope: { kind: "book", bookId: lebon.bookId },
       seed: {
         ...lebon.seed(68),
@@ -154,7 +154,7 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "style-control-no-profile",
       description:
         "对照：相同的摘要请求，没有个人记忆——对话对记录记忆是否改变回答。",
-      tags: ["personalization", "control", "style", "lebon", "book"],
+      tags: ["memory", "control", "lebon", "book"],
       scope: { kind: "book", bookId: lebon.bookId },
       seed: {
         ...lebon.seed(68),
@@ -177,7 +177,7 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "domain-connection-unprompted",
       description:
         "当被问及书籍如何帮助“我的研究”时，代理连接记忆中的领域（政治学）而不盘问读者。",
-      tags: ["personalization", "memory-application", "domain", "lebon", "book"],
+      tags: ["memory", "lebon", "book"],
       scope: { kind: "book", bookId: lebon.bookId },
       seed: {
         ...lebon.seed(68),
@@ -214,7 +214,7 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "domain-control-no-profile",
       description:
         "对照：相同的研究问题，没有个人资料——代理不得捏造其无法知道的领域。",
-      tags: ["personalization", "control", "domain", "lebon", "book"],
+      tags: ["memory", "control", "lebon", "book"],
       scope: { kind: "book", bookId: lebon.bookId },
       seed: {
         ...lebon.seed(68),
@@ -249,7 +249,7 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "analogy-from-reader-world",
       description:
         "当被要求“从我已知的事物”中寻找类比时，代理利用记忆中的兴趣爱好/工作世界（Minecraft、产品开发、编码代理）。",
-      tags: ["personalization", "memory-application", "analogy", "lebon", "book"],
+      tags: ["memory", "lebon", "book"],
       scope: { kind: "book", bookId: lebon.bookId },
       seed: {
         ...lebon.seed(68),
@@ -284,7 +284,7 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "sensitive-memory-tact",
       description:
         "有家庭创伤的读者将费奥多尔视为父亲：代理可以温和但绝不照本宣科地复述档案，也不带入不相关的记忆。",
-      tags: ["personalization", "memory-application", "discretion", "karamazov", "book"],
+      tags: ["memory", "karamazov", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: {
         ...kara.seed(35),
@@ -326,7 +326,7 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "memory-restraint-off-topic",
       description:
         "加载完整个人资料的技术问题：记忆不被丢弃在不该出现的地方，同时简洁偏好仍有效。",
-      tags: ["personalization", "memory-application", "discretion", "refactoring", "book"],
+      tags: ["memory", "refactoring", "book"],
       scope: { kind: "book", bookId: fowler.bookId },
       seed: {
         ...fowler.seed(60),
@@ -366,7 +366,7 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "memory-transparency",
       description:
         "被问“你记得我什么”，代理诚实复述其真实记忆并将其框定为可修正——记忆不再是个黑匣。",
-      tags: ["personalization", "memory-application", "transparency", "global"],
+      tags: ["memory", "global"],
       scope: { kind: "global", threadId: "personalization" },
       seed: {
         books: lebon.seed(68).books,
@@ -394,7 +394,7 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "memory-update-correction",
       description:
         "读者更正过时记忆（不玩Minecraft了，现玩Factorio）：代理记录更新而非争论或忽略。",
-      tags: ["personalization", "memory-application", "update", "state", "global"],
+      tags: ["memory", "global"],
       scope: { kind: "global", threadId: "personalization" },
       seed: {
         books: lebon.seed(68).books,

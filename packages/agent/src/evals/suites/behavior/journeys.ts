@@ -5,15 +5,15 @@
  * 叠加不劣化——跨章重置不丢话题、标注穿插不打断对话、末轮回顾能把
  * 整个会话串起来。断言素材照旧全部从 fixture 文本实证。
  */
-import { assessmentFromChecks, combineAssessments } from "../assertions";
-import { defineAgentEvalScenario, type AgentEvalScenario } from "../agent-harness";
-import { realBook } from "../book-fixtures";
-import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../types";
+import { assessmentFromChecks, combineAssessments } from "../../assertions";
+import { defineAgentEvalScenario, type AgentEvalScenario } from "../../agent-harness";
+import { realBook } from "../../book-fixtures";
+import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../../types";
 import {
   cjkAnswerAssessment,
   fenceDisciplineAssessment,
   noFenceAssessment,
-} from "./real-book-helpers";
+} from "../realbook/real-book-helpers";
 
 const kara = realBook("karamazov");
 const fowler = realBook("refactoring");
@@ -155,7 +155,7 @@ export const journeysEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "karamazov-reading-session",
       description:
         "六轮文学阅读会话：选段→追问→高亮+笔记→跨章→记忆→总结。",
-      tags: ["journeys", "karamazov", "real-book", "multi-turn", "state", "book"],
+      tags: ["state", "memory", "continuity", "multi-turn", "karamazov", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: {
         ...kara.seed(10),
@@ -219,7 +219,7 @@ export const journeysEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "refactoring-work-session",
       description:
         "五轮技术著作会话：机制→应用至我的代码→边界问题→记录原则→关联坏味道。",
-      tags: ["journeys", "refactoring", "real-book", "multi-turn", "technical", "book"],
+      tags: ["state", "memory", "continuity", "multi-turn", "refactoring", "book"],
       scope: { kind: "book", bookId: fowler.bookId },
       seed: {
         ...fowler.seed(60),

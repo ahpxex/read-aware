@@ -5,10 +5,10 @@
  * 标注逐字保真、跨章会话能召回上一章聊过的主题、叙事书无游标时不泄漏。
  * 每本书一份配置，场景由工厂统一生成；断言素材全部从 fixture 文本实证。
  */
-import { combineAssessments, evaluateAgentTrace } from "../assertions";
-import { defineAgentEvalScenario, type AgentEvalScenario } from "../agent-harness";
-import { realBook, type RealBookFixture, type RealBookSlug } from "../book-fixtures";
-import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../types";
+import { combineAssessments, evaluateAgentTrace } from "../../assertions";
+import { defineAgentEvalScenario, type AgentEvalScenario } from "../../agent-harness";
+import { realBook, type RealBookFixture, type RealBookSlug } from "../../book-fixtures";
+import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../../types";
 import {
   cjkAnswerAssessment,
   coverageAssessment,
@@ -16,7 +16,8 @@ import {
   leakAssessment,
   noFenceAssessment,
 } from "./real-book-helpers";
-import { assessmentFromChecks } from "../assertions";
+import { assessmentFromChecks } from "../../assertions";
+import { SPOILER_POLICY } from "../../../context/spoiler-policy";
 
 interface GridBookConfig {
   slug: RealBookSlug;
@@ -31,8 +32,13 @@ interface GridBookConfig {
   annotationChapter: number;
   /** 跨章召回：turn1 在 firstChapter 聊一个主题，turn2 越到下一章用指代追问。 */
   crossing: { firstChapter: number; ask: string; followup: string; recallAnyOf: string[] };
-  /** 叙事书专用：无游标 + 剧透敏感问题 → 不泄漏（词表实证晚于全书大半）。 */
-  noCursor?: { question: string; leakWords: string[] };
+  /** 叙事书专用：无游标时，显式授权与未授权控制组必须走不同策略。 */
+  noCursor?: {
+    explicitQuestion: string;
+    answerAnyOf: string[];
+    ambiguousQuestion: string;
+    leakWords: string[];
+  };
   /** 语录定位（karamazov/santi 的专属套件已覆盖，其余书在网格里补齐）。 */
   quoteChapter?: number;
 }
@@ -54,7 +60,9 @@ const GRID: GridBookConfig[] = [
       recallAnyOf: ["阿辽沙"],
     },
     noCursor: {
-      question: "伊万最后的结局是什么？",
+      explicitQuestion: "可以直接剧透。伊万最后的结局是什么？请查原文后告诉我。",
+      answerAnyOf: ["发烧", "昏睡", "病", "谵妄"],
+      ambiguousQuestion: "先别剧透。伊万后面的变化现在适合聊吗？如果需要，请先问我读到哪里。",
       // 均实证首次出现晚于 35% 进度且不在目录题名里（与 karamazov 套件同源词表）。
       leakWords: ["塞维利亚", "红衣主教", "开庭", "庭审", "弑父"],
     },
@@ -78,7 +86,9 @@ const GRID: GridBookConfig[] = [
       recallAnyOf: ["叶文洁", "杨冬", "红岸"],
     },
     noCursor: {
-      question: "地球文明最后的结局是什么？",
+      explicitQuestion: "可以直接剧透。地球文明最后的结局是什么？请查原文后告诉我。",
+      answerAnyOf: ["小宇宙", "程心", "关一帆", "回归", "生态球"],
+      ambiguousQuestion: "先别剧透。地球文明后面的走势现在适合聊吗？如果需要，请先问我读到哪里。",
       // 实证首次出现：执剑人 #53、二向箔 #56、云天明 #52、归零者 #57；目录无。
       leakWords: ["执剑人", "二向箔", "云天明", "归零者"],
     },
@@ -246,7 +256,7 @@ function scenariosFor(config: GridBookConfig): AgentEvalScenario[] {
     defineAgentEvalScenario({
       id: `${config.slug}-topical-lookup`,
       description: `Topical coverage lookup on ${config.slug}: search and cite, no position interrogation, no spoiler ceremony.`,
-      tags: [config.slug, "real-book", "grid", "topical", "book"],
+      tags: [config.slug, "retrieval", "book"],
       scope,
       seed: baseSeed(),
       seedSummary: book.seedSummary(config.progressPercent),
@@ -292,7 +302,7 @@ function scenariosFor(config: GridBookConfig): AgentEvalScenario[] {
       defineAgentEvalScenario({
         id: `${config.slug}-selection-explain`,
         description: `Selected-passage explanation on ${config.slug}: grounded in the selection, boundary-safe.`,
-        tags: [config.slug, "real-book", "grid", "selection", "book"],
+        tags: [config.slug, "selection", "book"],
         scope,
         seed: baseSeed(),
         seedSummary: book.seedSummary(config.progressPercent),
@@ -324,7 +334,7 @@ function scenariosFor(config: GridBookConfig): AgentEvalScenario[] {
       defineAgentEvalScenario({
         id: `${config.slug}-annotate-verbatim`,
         description: `Highlight + note flow on ${config.slug}: verbatim highlight text, note recorded.`,
-        tags: [config.slug, "real-book", "grid", "annotations", "state", "book"],
+        tags: [config.slug, "state", "book"],
         scope,
         seed: baseSeed(),
         seedSummary: book.seedSummary(config.progressPercent),
@@ -359,7 +369,7 @@ function scenariosFor(config: GridBookConfig): AgentEvalScenario[] {
     defineAgentEvalScenario({
       id: `${config.slug}-crossing-recall`,
       description: `Chapter-crossing recall on ${config.slug}: a follow-up after the chapter boundary still resolves the prior topic.`,
-      tags: [config.slug, "real-book", "grid", "multi-turn", "book"],
+      tags: [config.slug, "continuity", "multi-turn", "book"],
       scope,
       seed: baseSeed(),
       seedSummary: book.seedSummary(config.progressPercent),
@@ -398,28 +408,75 @@ function scenariosFor(config: GridBookConfig): AgentEvalScenario[] {
     }),
   );
 
-  // ── 无游标 + 剧透敏感（叙事书）：位置不明时宁问勿泄。 ──
+  // ── 无游标策略对照：显式授权直读；未授权请求询问位置且不碰正文。 ──
   const noCursor = config.noCursor;
   if (noCursor) {
     scenarios.push(
       defineAgentEvalScenario({
-        id: `${config.slug}-no-cursor-caution`,
-        description: `No-cursor spoiler caution on ${config.slug}: position unknown, ending question, nothing leaks.`,
-        tags: [config.slug, "real-book", "grid", "spoiler", "no-cursor", "book"],
+        id: `${config.slug}-no-cursor-explicit-spoiler`,
+        description: `No-cursor explicit spoiler request on ${config.slug}: retrieve actual later text and answer directly without another permission question.`,
+        tags: [config.slug, "spoiler", "book"],
         scope,
         seed: baseSeed(),
         seedSummary: book.seedSummary(config.progressPercent),
-        turns: [{ text: noCursor.question }],
+        turns: [{ text: noCursor.explicitQuestion }],
         criteria: {
-          rule: "no visible cursor + unknown current chapter → ask for the reader's position or refuse with a one-line caution; never retell the ending",
-          leakWords: noCursor.leakWords,
+          rule: SPOILER_POLICY.explicitRequest,
+          answerAnyOf: noCursor.answerAnyOf,
         },
         rubric: [
-          "Either asks where the reader currently is or gives a spoiler-cautious deferral — and reveals nothing about the ending either way",
+          "Uses this edition's actual later text and directly answers the explicitly authorized ending question",
         ],
         evaluate: (observation) =>
           combineAssessments(
+            evaluateAgentTrace(observation, {
+              tools: {
+                requiredAny: ["read_chapter", "search_book_text"],
+                noErrors: true,
+              },
+            }),
+            coverageAssessment(
+              observation,
+              "answer.explicit-ending",
+              noCursor.answerAnyOf,
+              1,
+            ),
+            cjkAnswerAssessment(observation),
+          ),
+      }),
+      defineAgentEvalScenario({
+        id: `${config.slug}-no-cursor-ambiguous-control`,
+        description: `No-cursor ungranted control on ${config.slug}: ask for position without opening narrative text.`,
+        tags: [config.slug, "spoiler", "book"],
+        scope,
+        seed: baseSeed(),
+        seedSummary: book.seedSummary(config.progressPercent),
+        turns: [{ text: noCursor.ambiguousQuestion }],
+        criteria: {
+          rule: SPOILER_POLICY.unknownPositionAmbiguous,
+          leakWords: noCursor.leakWords,
+          fixturePolicy: {
+            bookSlug: config.slug,
+            boundaryChapter: -1,
+            leakWords: noCursor.leakWords,
+          },
+        },
+        expectation: {
+          tools: { forbidden: ["read_chapter", "search_book_text"] },
+        },
+        rubric: ["Asks for the reader's position or gives a concise spoiler-safe deferral"],
+        evaluate: (observation) =>
+          combineAssessments(
+            evaluateAgentTrace(observation, {
+              tools: { forbidden: ["read_chapter", "search_book_text"] },
+            }),
             leakAssessment(observation, noCursor.leakWords),
+            coverageAssessment(
+              observation,
+              "answer.position-or-caution",
+              ["读到", "进度", "哪里", "哪一章", "剧透"],
+              1,
+            ),
             cjkAnswerAssessment(observation),
           ),
       }),
@@ -434,7 +491,7 @@ function scenariosFor(config: GridBookConfig): AgentEvalScenario[] {
       defineAgentEvalScenario({
         id: `${config.slug}-quote-locates`,
         description: `Verbatim quote location on ${config.slug}: names the chapter the quote lives in.`,
-        tags: [config.slug, "real-book", "grid", "retrieval", "book"],
+        tags: [config.slug, "retrieval", "book"],
         scope,
         seed: baseSeed(),
         seedSummary: book.seedSummary(config.progressPercent),

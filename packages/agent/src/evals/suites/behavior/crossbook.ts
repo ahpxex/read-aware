@@ -5,11 +5,11 @@
  * 只能靠提示词规则自律——泄漏检查在此是行为观察哨），以及基于书架
  * 实况的推荐（卡片呈现、不编造书目）。
  */
-import { combineAssessments, evaluateAgentTrace } from "../assertions";
-import { defineAgentEvalScenario, type AgentEvalScenario } from "../agent-harness";
-import { realBook } from "../book-fixtures";
-import type { EvalSuite } from "../types";
-import { cjkAnswerAssessment, leakAssessment } from "./real-book-helpers";
+import { combineAssessments, evaluateAgentTrace } from "../../assertions";
+import { defineAgentEvalScenario, type AgentEvalScenario } from "../../agent-harness";
+import { realBook } from "../../book-fixtures";
+import type { EvalSuite } from "../../types";
+import { cjkAnswerAssessment, leakAssessment } from "../realbook/real-book-helpers";
 
 const kara = realBook("karamazov");
 const santi = realBook("santi");
@@ -52,7 +52,7 @@ export const crossbookEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "which-book-said-it",
       description:
         "在书架全局定位一句模糊记得的句子，并归因到正确书籍。",
-      tags: ["crossbook", "real-book", "global", "retrieval"],
+      tags: ["retrieval", "global"],
       scope: { kind: "global", threadId: "crossbook" },
       seed: shelfSeed(),
       seedSummary: shelfSummary(),
@@ -82,7 +82,7 @@ export const crossbookEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "cross-book-synthesis-spoiler-safe",
       description:
         "将勒庞的群体心理学与《三体》崇拜综合，但不泄露读者在《三体》中的早期位置（全局线程无宿主围栏——仅靠提示纪律）。",
-      tags: ["crossbook", "real-book", "global", "synthesis", "spoiler"],
+      tags: ["retrieval", "spoiler", "global"],
       scope: { kind: "global", threadId: "crossbook" },
       seed: shelfSeed(),
       seedSummary: shelfSummary(),
@@ -118,7 +118,7 @@ export const crossbookEvalSuite: EvalSuite<AgentEvalScenario> = {
       id: "shelf-grounded-recommendation",
       description:
         "基于实际书架推荐下一步，并将书籍渲染为卡片。",
-      tags: ["crossbook", "real-book", "global", "recommendation", "cards"],
+      tags: ["presentation", "retrieval", "global"],
       scope: { kind: "global", threadId: "crossbook" },
       seed: shelfSeed(),
       seedSummary: shelfSummary(),

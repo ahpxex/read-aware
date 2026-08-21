@@ -1,8 +1,8 @@
 import type { Id } from "@read-aware/core";
-import type { BookOverview } from "../../ports";
-import { assessmentFromChecks, combineAssessments, evaluateAgentTrace } from "../assertions";
-import { defineAgentEvalScenario, type AgentEvalScenario } from "../agent-harness";
-import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../types";
+import type { BookOverview } from "../../../ports";
+import { assessmentFromChecks, combineAssessments, evaluateAgentTrace } from "../../assertions";
+import { defineAgentEvalScenario, type AgentEvalScenario } from "../../agent-harness";
+import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../../types";
 
 const NARRATIVE_BOOK_ID = "eval-locked-room" as Id;
 const narrativeBook: BookOverview = {
@@ -61,7 +61,7 @@ export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "narrative-no-spoiler",
       description: "尊重当前光标位置，避免拉取后续情节剧透。",
-      tags: ["reading", "cursor", "spoiler", "narrative"],
+      tags: ["spoiler", "cursor", "book"],
       scope: { kind: "book", bookId: NARRATIVE_BOOK_ID },
       seed: {
         books: [narrativeBook],
@@ -93,7 +93,7 @@ export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "explicit-spoiler",
       description: "允许请求的剧透，但需基于实际书籍文本。",
-      tags: ["reading", "spoiler", "retrieval", "narrative"],
+      tags: ["spoiler", "grant", "retrieval", "book"],
       scope: { kind: "book", bookId: NARRATIVE_BOOK_ID },
       seed: {
         books: [narrativeBook],
@@ -119,7 +119,7 @@ export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "cursor-grounding",
       description: "根据可见的读者文本回答页面级问题。",
-      tags: ["reading", "cursor", "grounding"],
+      tags: ["cursor", "book"],
       scope: { kind: "book", bookId: NARRATIVE_BOOK_ID },
       seed: {
         books: [narrativeBook],
@@ -141,7 +141,7 @@ export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "expository-can-look-ahead",
       description: "当前向查找有用且无剧透时，拉取后续材料。",
-      tags: ["reading", "retrieval", "expository"],
+      tags: ["retrieval", "forward", "book"],
       scope: { kind: "book", bookId: "eval-data-structures" as Id },
       seed: {
         books: [
@@ -188,7 +188,7 @@ export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "same-chapter-cursor-refresh",
       description: "每轮刷新实时光标，但不使稳定的 prompt 前缀失效。",
-      tags: ["reading", "cursor", "multi-turn", "cache"],
+      tags: ["cursor", "multi-turn", "book"],
       scope: { kind: "book", bookId: NARRATIVE_BOOK_ID },
       seed: {
         books: [narrativeBook],
@@ -237,7 +237,7 @@ export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "cross-book-search",
       description: "通过搜索书架全书文本来回答“哪本书是我的”问题。",
-      tags: ["reading", "retrieval", "cross-book", "global"],
+      tags: ["retrieval", "global"],
       scope: { kind: "global", threadId: "reading-cross-book" },
       seed: {
         books: [

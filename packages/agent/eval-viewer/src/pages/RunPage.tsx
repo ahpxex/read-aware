@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import DOMPurify from "dompurify";
 import { marked } from "marked";
 import {
   fetchRun,
@@ -60,8 +61,12 @@ function RunCard({ record, refOf }: { record: RunRecord; refOf: (scenarioId: str
             <div className="who">agent</div>
             <div
               className="bubble answer md"
-              // 本地可信工件（自己的 eval 输出）——marked 直接渲染。
-              dangerouslySetInnerHTML={{ __html: marked.parse(turn.answer ?? "", { async: false }) }}
+              // 回答里含模型转述的书文本，而 fixture EPUB 是第三方文件——
+              // 恶意书的 HTML 载荷可顺"书 → 回答 → 工件 → viewer"链路进来，
+              // 渲染前必须消毒。
+              dangerouslySetInnerHTML={{
+                __html: DOMPurify.sanitize(marked.parse(turn.answer ?? "", { async: false })),
+              }}
             />
           </div>
         ))}

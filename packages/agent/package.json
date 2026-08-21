@@ -28,15 +28,16 @@
     "@read-aware/core": "workspace:*"
   },
   "devDependencies": {
-    "fflate": "^0.8.3",
-    "typescript": "~5.8.3",
     "@types/node": "^24.0.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
+    "dompurify": "^3.4.14",
+    "fflate": "^0.8.3",
     "marked": "^15.0.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "typescript": "~5.8.3",
     "vite": "^7.0.4"
   }
 }

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { searchChapters } from "./search";
+import { searchChapters, searchTurnRecords } from "./search";
 
 const CHAPTERS = [
   {
@@ -37,5 +37,49 @@ describe("searchChapters", () => {
 
   test("空查询集返回空", () => {
     expect(searchChapters(CHAPTERS, ["  "])).toEqual([]);
+  });
+});
+
+describe("searchTurnRecords", () => {
+  const turns = [
+    { role: "user", content: "有什么著名实验？", createdAt: "t1" },
+    {
+      role: "assistant",
+      content: "最著名的是利贝特实验：准备电位早于报告的意图约 350 毫秒。",
+      createdAt: "t2",
+    },
+    { role: "user", content: "无关的一轮闲聊。", createdAt: "t3" },
+  ];
+
+  test("exact substring hits come first", () => {
+    const hits = searchTurnRecords(turns, ["利贝特实验"]);
+    expect(hits).toHaveLength(1);
+    expect(hits[0]!.match).toBe("exact");
+    expect(hits[0]!.content).toContain("350");
+  });
+
+  test("colloquial rephrasings fall back to token matching (the old substring-only matcher returned nothing)", () => {
+    // 逐字不含："利贝特实验 报告的意图" 换了组织方式
+    const hits = searchTurnRecords(turns, ["利贝特 意图 报告"]);
+    expect(hits).toHaveLength(1);
+    expect(hits[0]!.match).toBe("partial");
+  });
+
+  test("multiple query variants merge and dedupe", () => {
+    const hits = searchTurnRecords(turns, ["著名实验", "利贝特实验", "完全无关词"]);
+    expect(hits).toHaveLength(2);
+    expect(new Set(hits.map((hit) => hit.createdAt)).size).toBe(2);
+  });
+
+  test("attachment text participates in the haystack", () => {
+    const withAttachment = [
+      {
+        role: "user",
+        content: "这段怎么理解？",
+        createdAt: "t4",
+        attachments: [{ text: "准备电位的哲学含义超出实验本身" }],
+      },
+    ];
+    expect(searchTurnRecords(withAttachment, ["准备电位 哲学"])).toHaveLength(1);
   });
 });

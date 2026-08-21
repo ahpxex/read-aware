@@ -154,6 +154,103 @@ export const legacyEvalSuite: EvalSuite<AgentEvalScenario> = {
         ),
     }),
     defineAgentEvalScenario({
+      id: "same-chapter-last-question",
+      description:
+        "Within one chapter session, 'what did I just ask' is answered from the live context — no amnesia, no deflection.",
+      tags: ["legacy", "karamazov", "real-book", "continuity", "multi-turn", "book"],
+      scope: { kind: "book", bookId: kara.bookId },
+      seed: {
+        ...kara.seed(MID_PROGRESS),
+        chapterDigests: kara.digestsSeed(READER_CHAPTER),
+      },
+      seedSummary: kara.seedSummary(MID_PROGRESS),
+      turns: [
+        { text: "格里果利在这家是个什么样的仆人？", readingCursor: midCursor() },
+        { text: "我上一句问你的是什么？帮我原样复述一下。", readingCursor: midCursor() },
+      ],
+      criteria: {
+        design: "same-chapter turns share one accumulating context tree (doc §5)",
+      },
+      rubric: ["Restates the previous question faithfully, without claiming it cannot recall"],
+      evaluate: (observation) =>
+        combineAssessments(
+          evaluateAgentTrace(observation, { answer: { mustContain: ["格里果利"] } }),
+          fenceDisciplineAssessment(observation, READER_CHAPTER),
+          cjkAnswerAssessment(observation),
+        ),
+    }),
+    defineAgentEvalScenario({
+      id: "cross-chapter-last-question",
+      description:
+        "Crossing a chapter boundary resets the session to its baseline — which must still carry the previous exchange verbatim, so 'what did I just ask' survives the reset.",
+      tags: ["legacy", "karamazov", "real-book", "continuity", "multi-turn", "book"],
+      scope: { kind: "book", bookId: kara.bookId },
+      seed: {
+        ...kara.seed(MID_PROGRESS),
+        chapterDigests: kara.digestsSeed(READER_CHAPTER),
+      },
+      seedSummary: kara.seedSummary(MID_PROGRESS),
+      turns: [
+        {
+          text: "格里果利在这家是个什么样的仆人？",
+          readingCursor: {
+            ...midCursor(),
+            chapterIndex: READER_CHAPTER - 1,
+            chapterTitle: kara.epub().chapters[READER_CHAPTER - 1]!.title,
+            visibleText: kara.chapterViewport(READER_CHAPTER - 1),
+          },
+        },
+        { text: "我上一句问你的是什么？帮我原样复述一下。", readingCursor: midCursor() },
+      ],
+      criteria: {
+        design:
+          "chapter change → session reset to baseline = last exchange verbatim + rolling summary; the last question must never be lost",
+      },
+      rubric: ["Restates the previous question faithfully despite the chapter-session reset"],
+      evaluate: (observation) =>
+        combineAssessments(
+          evaluateAgentTrace(observation, { answer: { mustContain: ["格里果利"] } }),
+          fenceDisciplineAssessment(observation, READER_CHAPTER),
+          cjkAnswerAssessment(observation),
+        ),
+    }),
+    defineAgentEvalScenario({
+      id: "paraphrased-history-search",
+      description:
+        "A colloquially rephrased question about an old discussion still finds the original turns — token-fallback matching, not verbatim luck.",
+      tags: ["legacy", "karamazov", "real-book", "continuity", "conversation", "book"],
+      scope: { kind: "book", bookId: kara.bookId },
+      seed: {
+        ...kara.seed(MID_PROGRESS),
+        chapterDigests: kara.digestsSeed(READER_CHAPTER),
+        turns: { [`book:${kara.bookId}`]: legacyTranscript() },
+      },
+      seedSummary: kara.seedSummary(MID_PROGRESS),
+      turns: [
+        {
+          text: "咱们之前是不是讨论过“接不接受这个世界”那个话题？我当时具体是怎么表述的来着？",
+          readingCursor: midCursor(),
+        },
+      ],
+      expectation: {
+        tools: { requiredAny: ["search_conversation", "get_recent_turns"], noErrors: true },
+        answer: { mustContain: ["上帝"] },
+      },
+      criteria: {
+        seeded: "读者原话：他的问题不是不信上帝，而是不肯接受上帝造出的这个世界",
+        matcher: "colloquial rephrasing must survive the token-fallback matcher",
+      },
+      rubric: ["Quotes or closely restates the reader's original wording, retrieved not reconstructed"],
+      evaluate: (observation) =>
+        combineAssessments(
+          evaluateAgentTrace(observation, {
+            tools: { requiredAny: ["search_conversation", "get_recent_turns"], noErrors: true },
+            answer: { mustContain: ["上帝"] },
+          }),
+          cjkAnswerAssessment(observation),
+        ),
+    }),
+    defineAgentEvalScenario({
       id: "stale-claim-reverify",
       description:
         "The old agent misattributed a quote in a past session: asked to double-check, the new agent re-verifies against the book text and corrects the record instead of parroting.",

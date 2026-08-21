@@ -17,9 +17,12 @@ export function buildConversationTools(scope: ThreadScope, deps: RuntimeDeps): A
     name: "search_conversation",
     label: "Search past turns",
     description:
-      "Search the verbatim conversation history. Use when the reader asks what was said earlier — quote the actual turns, never reconstruct them from memory.",
+      "Search the verbatim conversation history. Use when the reader asks what was said earlier — quote the actual turns, never reconstruct them from memory. Pass SEVERAL phrasings/synonyms in `queries` in this ONE call (results are merged); recall depends on wording and each retry costs a whole round trip.",
     parameters: Type.Object({
-      query: Type.String({ description: "Text to look for in past turns" }),
+      queries: Type.Array(Type.String(), {
+        minItems: 1,
+        description: "Query variants, searched together. 2-4 focused variants beat one broad phrase.",
+      }),
       allThreads: Type.Optional(
         Type.Boolean({
           description:
@@ -28,9 +31,9 @@ export function buildConversationTools(scope: ThreadScope, deps: RuntimeDeps): A
       ),
     }),
     execute: async (_id, params) => {
-      const { query, allThreads } = params as { query: string; allThreads?: boolean };
+      const { queries, allThreads } = params as { queries: string[]; allThreads?: boolean };
       const results = await deps.conversations.searchTurns({
-        query,
+        queries: queries.slice(0, 8),
         threadKey:
           allThreads || scope.kind === "global" ? undefined : threadScopeKey(scope),
         limit: 10,

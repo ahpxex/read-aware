@@ -262,10 +262,13 @@ export interface ConversationPort {
   append(threadKey: string, turn: TurnRecord): Promise<void>;
   /**
    * 历史对话原文检索（search_conversation 工具的后端；doc §6）。
-   * threadKey 缺省时检索全部线程。实现方决定匹配方式（目标态是 FTS）。
+   * threadKey 缺省时检索全部线程。一次接收多个查询变体（与
+   * BookTextPort.searchText 同构——口语查询逐字命中率低，换词的成本
+   * 不该是一个模型往返）；实现方必须走 text/search.ts 的
+   * searchTurnRecords 做匹配（目标态被 FTS 替换）。
    */
   searchTurns(filter: {
-    query: string;
+    queries: string[];
     threadKey?: string;
     limit?: number;
   }): Promise<Array<TurnRecord & { threadKey: string }>>;

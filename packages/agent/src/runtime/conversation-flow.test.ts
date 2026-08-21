@@ -119,7 +119,7 @@ describe("conversation flow", () => {
     const model = makeFaux();
     let toolResultPayload = "";
     faux.setResponses([
-      fauxAssistantMessage([fauxToolCall("search_conversation", { query: "利贝特" })], {
+      fauxAssistantMessage([fauxToolCall("search_conversation", { queries: ["利贝特"] })], {
         stopReason: "toolUse",
       }),
       (context) => {

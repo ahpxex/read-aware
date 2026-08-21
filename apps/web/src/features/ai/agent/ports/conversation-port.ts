@@ -4,7 +4,7 @@
  * useGlobalConversation（它们存的是带 attachments 的原始消息，对 UI 更有用）。
  * 运行时只*读*转录做水化与原话检索，写摘要（insights）归自己。
  */
-import type { ConversationPort, TurnRecord } from "@read-aware/agent";
+import { searchTurnRecords, type ConversationPort, type TurnRecord } from "@read-aware/agent";
 import { localKV } from "../../../../platform/local-store";
 import {
   GLOBAL_CONVERSATION_ID,
@@ -67,22 +67,18 @@ export function createConversationPort(): ConversationPort {
     append: async () => {
       // no-op：见文件头注释
     },
-    searchTurns: async ({ query, threadKey, limit }) => {
+    searchTurns: async ({ queries, threadKey, limit }) => {
+      // 匹配核心与 eval 的内存端口同源（searchTurnRecords：多变体合并 +
+      // 精确优先 + 词元回退）——此前这里是逐字子串匹配，口语查询几乎
+      // 永远命不中原话，工具形同虚设。
       const all = await loadAllConversations();
-      const matches: Array<TurnRecord & { threadKey: string }> = [];
+      const pool: Array<TurnRecord & { threadKey: string }> = [];
       for (const [storeId, messages] of Object.entries(all)) {
         const key = storeIdToThreadKey(storeId);
         if (threadKey && key !== threadKey) continue;
-        for (const turn of toTurns(messages)) {
-          if (
-            turn.content.includes(query) ||
-            turn.attachments?.some((attachment) => attachment.text.includes(query))
-          ) {
-            matches.push({ ...turn, threadKey: key });
-          }
-        }
+        for (const turn of toTurns(messages)) pool.push({ ...turn, threadKey: key });
       }
-      return matches.slice(0, limit ?? 20);
+      return searchTurnRecords(pool, queries, limit ?? 20);
     },
     getInsights: async (threadKey) => {
       const insights = readInsights();

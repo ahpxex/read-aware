@@ -30,7 +30,7 @@ import type {
   AgentSettingsSnapshot,
 } from "../settings";
 import { matchesMemoryQuery } from "../memory/query-match";
-import { searchChapters } from "../text/search";
+import { searchChapters, searchTurnRecords } from "../text/search";
 
 /** 判别联合的可检索文本（fixtures 的 query 过滤用）。 */
 function annotationText(a: AnnotationItem): string {
@@ -515,19 +515,15 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         list.push(turn);
         stores.turns.set(key, list);
       },
-      searchTurns: async ({ query, threadKey, limit }) => {
-        const matches: Array<TurnRecord & { threadKey: string }> = [];
+      searchTurns: async ({ queries, threadKey, limit }) => {
+        // 与产品端口同一套匹配核心（searchTurnRecords）——匹配语义在
+        // 接缝两侧不许漂移，eval 不许替产品圆谎。
+        const pool: Array<TurnRecord & { threadKey: string }> = [];
         for (const [key, list] of stores.turns) {
           if (threadKey && key !== threadKey) continue;
-          for (const turn of list) {
-            if (
-              turn.content.includes(query) ||
-              turn.attachments?.some((attachment) => attachment.text.includes(query))
-            )
-              matches.push({ ...turn, threadKey: key });
-          }
+          for (const turn of list) pool.push({ ...turn, threadKey: key });
         }
-        return matches.slice(0, limit ?? 20);
+        return searchTurnRecords(pool, queries, limit ?? 20);
       },
       getInsights: async (key) => stores.insights.get(key),
       putInsights: async (key, summary) => {

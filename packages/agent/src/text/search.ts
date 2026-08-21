@@ -98,3 +98,54 @@ export function searchChapters(
 
   return [...exact, ...partial].slice(0, limit);
 }
+
+export interface TurnLike {
+  content: string;
+  attachments?: Array<{ text: string }>;
+}
+
+/**
+ * 历史对话原话检索的共享匹配（ConversationPort.searchTurns 的实现核心）。
+ * 与 searchChapters 同一套哲学：多查询变体合并、精确子串优先、词元 AND
+ * 回退（"你上次怎么说伊万的动机来着"这种口语查询逐字永远 miss——词元
+ * 回退才是可用性的下限）。eval 的内存端口与产品端口都必须走这一个实现，
+ * 匹配语义在接缝两侧不许漂移。
+ */
+export function searchTurnRecords<T extends TurnLike>(
+  turns: T[],
+  queries: string[],
+  limit = 10,
+): Array<T & { match: "exact" | "partial" }> {
+  const cleanQueries = [...new Set(queries.map((query) => query.trim()).filter(Boolean))];
+  if (!cleanQueries.length) return [];
+  const haystack = (turn: TurnLike) =>
+    [turn.content, ...(turn.attachments?.map((attachment) => attachment.text) ?? [])].join("\n");
+
+  const exact: Array<T & { match: "exact" | "partial" }> = [];
+  const partial: Array<T & { match: "exact" | "partial" }> = [];
+  const seen = new Set<T>();
+  for (const query of cleanQueries) {
+    let queryHasExact = false;
+    for (const turn of turns) {
+      if (seen.has(turn)) continue;
+      if (haystack(turn).includes(query)) {
+        queryHasExact = true;
+        seen.add(turn);
+        exact.push({ ...turn, match: "exact" });
+      }
+    }
+    if (queryHasExact) continue;
+    const tokens = tokenize(query);
+    if (tokens.length < 2) continue;
+    const required = tokens.length >= 4 ? Math.ceil(tokens.length / 2) : tokens.length;
+    for (const turn of turns) {
+      if (seen.has(turn)) continue;
+      const text = haystack(turn);
+      const present = tokens.filter((token) => text.includes(token));
+      if (present.length < required) continue;
+      seen.add(turn);
+      partial.push({ ...turn, match: "partial" });
+    }
+  }
+  return [...exact, ...partial].slice(0, limit);
+}

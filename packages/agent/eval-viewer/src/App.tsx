@@ -53,19 +53,25 @@ export function App() {
         <a className={`navitem ${route === "/" ? "active" : ""}`} href="#/">
           <span className="code">◎</span> 总览
         </a>
-        <div className="navgroup">
-          <div className="label">套件</div>
-          {(catalog ?? []).map((suite) => (
-            <a
-              key={suite.id}
-              className={`navitem ${activeSuite === suite.id ? "active" : ""}`}
-              href={`#/suites/${suite.id}`}
-            >
-              <span className="code">{suite.code}</span>
-              <span>{suite.id}</span>
-            </a>
-          ))}
-        </div>
+        {(["behavior", "realbook"] as const).map((group) => (
+          <div className="navgroup" key={group}>
+            <div className="label">
+              {group === "behavior" ? "能力套件" : "真书套件"}
+            </div>
+            {(catalog ?? [])
+              .filter((suite) => suite.group === group)
+              .map((suite) => (
+                <a
+                  key={suite.id}
+                  className={`navitem ${activeSuite === suite.id ? "active" : ""}`}
+                  href={`#/suites/${suite.id}`}
+                >
+                  <span className="code">{suite.code}</span>
+                  <span>{suite.id}</span>
+                </a>
+              ))}
+          </div>
+        ))}
       </nav>
       <main className="content">
         {error && <div className="error">{error}</div>}

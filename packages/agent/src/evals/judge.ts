@@ -8,8 +8,14 @@ import { assessmentFromChecks, combineAssessments } from "./assertions";
 import type { AgentEvalScenario } from "./agent-harness";
 import type { EvalAssessment, EvalCheck, JsonValue } from "./types";
 
+/** Bump whenever the judge-visible transcript or grading prompt semantics change. */
+export const JUDGE_IMPLEMENTATION_VERSION = 2;
+
 /** 单次非流式补全；生产由 CLI 构造，测试注入假实现。 */
-export type JudgeCompletion = (prompt: string) => Promise<string>;
+export type JudgeCompletion = (
+  prompt: string,
+  options?: { signal?: AbortSignal },
+) => Promise<string>;
 
 export interface AgentEvalJudgeOptions {
   complete: JudgeCompletion;
@@ -19,6 +25,7 @@ export interface AgentEvalJudgeOptions {
 
 export interface JudgeObservationDigest {
   userTurns: string[];
+  turns: Array<{ user: string; assistant?: string }>;
   answer: string;
   tools: Array<{ name: string; args?: string }>;
 }
@@ -42,14 +49,24 @@ export function digestObservation(observation: unknown): JudgeObservationDigest 
       ? (observation as Record<string, unknown>)
       : {};
   const answer = typeof record.answer === "string" ? record.answer : "";
-  const turns = Array.isArray(record.turns) ? record.turns : [];
-  const userTurns = turns.flatMap((turn) => {
+  const rawTurns = Array.isArray(record.turns) ? record.turns : [];
+  const turns = rawTurns.flatMap((turn) => {
     if (!turn || typeof turn !== "object" || Array.isArray(turn)) return [];
-    const input = (turn as Record<string, unknown>).input;
+    const entry = turn as Record<string, unknown>;
+    const input = entry.input;
     if (!input || typeof input !== "object" || Array.isArray(input)) return [];
     const text = (input as Record<string, unknown>).text;
-    return typeof text === "string" ? [text] : [];
+    if (typeof text !== "string") return [];
+    return [
+      {
+        user: text,
+        ...(typeof entry.answer === "string"
+          ? { assistant: entry.answer.slice(0, MAX_ANSWER_CHARS) }
+          : {}),
+      },
+    ];
   });
+  const userTurns = turns.map((turn) => turn.user);
   const tools = (Array.isArray(record.tools) ? record.tools : []).flatMap((tool) => {
     if (!tool || typeof tool !== "object" || Array.isArray(tool)) return [];
     const entry = tool as Record<string, unknown>;
@@ -58,7 +75,7 @@ export function digestObservation(observation: unknown): JudgeObservationDigest 
       entry.args === undefined ? undefined : JSON.stringify(entry.args).slice(0, MAX_ARGS_CHARS);
     return [{ name: entry.name, ...(args === undefined ? {} : { args }) }];
   });
-  return { userTurns, answer: answer.slice(0, MAX_ANSWER_CHARS), tools };
+  return { userTurns, turns, answer: answer.slice(0, MAX_ANSWER_CHARS), tools };
 }
 
 export function buildJudgePrompt(input: {
@@ -66,7 +83,16 @@ export function buildJudgePrompt(input: {
   rubric: string[];
   digest: JudgeObservationDigest;
 }): string {
-  const turns = input.digest.userTurns.map((text, index) => `${index + 1}. ${text}`).join("\n");
+  const turns = input.digest.turns
+    .map((turn, index) =>
+      [
+        `Turn ${index + 1} reader: ${turn.user}`,
+        ...(turn.assistant === undefined
+          ? []
+          : [`Turn ${index + 1} assistant:\n\"\"\"\n${turn.assistant}\n\"\"\"`]),
+      ].join("\n"),
+    )
+    .join("\n\n");
   const tools =
     input.digest.tools
       .map((tool) => `- ${tool.name}${tool.args ? ` ${tool.args}` : ""}`)
@@ -76,8 +102,8 @@ export function buildJudgePrompt(input: {
 
 Scenario: ${input.description}
 
-User turns:
-${turns || "1. (empty)"}
+Recorded conversation:
+${turns || "(empty)"}
 
 Tools the agent called:
 ${tools}
@@ -144,18 +170,19 @@ export class AgentEvalJudge {
     description: string;
     rubric: string[];
     observation: unknown;
+    signal?: AbortSignal;
   }): Promise<EvalAssessment> {
     const prompt = buildJudgePrompt({
       description: input.description,
       rubric: input.rubric,
       digest: digestObservation(input.observation),
     });
-    const first = await this.complete(prompt);
+    const first = await this.complete(prompt, { signal: input.signal });
     let verdicts = parseVerdicts(first, input.rubric);
     if (!verdicts) {
       // 重试带纠错反馈，而不是原样重发
       const corrective = `${prompt}\n\nYour previous reply could not be parsed as the required JSON:\n"""\n${first.slice(0, 400)}\n"""\nReply again with ONLY the JSON object described above — exactly ${input.rubric.length} criteria entries in order, no fences, no prose.`;
-      const second = await this.complete(corrective);
+      const second = await this.complete(corrective, { signal: input.signal });
       verdicts = parseVerdicts(second, input.rubric);
       if (!verdicts) {
         throw new Error(
@@ -193,10 +220,15 @@ export function withJudge(
   const base = scenario.evaluate;
   return {
     ...scenario,
-    evaluate: async (observation) =>
+    evaluate: async (observation, context) =>
       combineAssessments(
-        await base(observation),
-        await judge.assess({ description: scenario.description, rubric, observation }),
+        await base(observation, context),
+        await judge.assess({
+          description: scenario.description,
+          rubric,
+          observation,
+          signal: context?.signal,
+        }),
       ),
   };
 }

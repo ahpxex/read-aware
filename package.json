@@ -25,6 +25,8 @@
     "eval:digests": "bun packages/agent/src/eval-digests-run.ts",
     "eval:classify": "bun packages/agent/src/eval-classify-run.ts",
     "eval:reading": "bun packages/agent/src/eval-run.ts reading",
+    "eval:behavior": "bun packages/agent/src/eval-run.ts behavior",
+    "eval:realbook": "bun packages/agent/src/eval-run.ts realbook",
     "translate": "bun packages/agent/src/translate-run.ts",
     "storybook": "turbo run storybook --filter=@read-aware/web",
     "build-storybook": "turbo run build-storybook --filter=@read-aware/web",

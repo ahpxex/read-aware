@@ -104,7 +104,10 @@ export interface EvalScenario<TObservation> {
   tags?: string[];
   /** Stable, secret-free scenario definition written into run artifacts. */
   input: JsonValue;
-  evaluate: (observation: TObservation) => EvalAssessment | Promise<EvalAssessment>;
+  evaluate: (
+    observation: TObservation,
+    context?: { signal?: AbortSignal },
+  ) => EvalAssessment | Promise<EvalAssessment>;
 }
 
 export interface EvalHarnessContext {
@@ -173,6 +176,8 @@ export interface EvalRunRecord {
 export interface EvalAggregate {
   variantId: string;
   scenarioId?: string;
+  /** byTag 汇总行携带的能力标签。 */
+  tag?: string;
   runs: number;
   passed: number;
   failed: number;
@@ -207,6 +212,8 @@ export interface EvalComparison {
 
 export interface EvalSummary {
   suiteId: string;
+  /** Scenario inputs + evaluator implementation + scoring configuration. */
+  definitionHash?: string;
   baselineVariantId: string;
   generatedAt: string;
   runs: number;
@@ -215,15 +222,19 @@ export interface EvalSummary {
   errors: number;
   byVariant: EvalAggregate[];
   byScenario: EvalAggregate[];
+  /** 能力标签维度的汇总（variant × tag）："测什么"的机器可读答案。 */
+  byTag: EvalAggregate[];
   comparisons: EvalComparison[];
 }
 
 export interface EvalRunPlan {
   suiteId: string;
+  definitionHash: string;
+  definitionMetadata?: JsonValue;
   suiteDescription: string;
   repetitions: number;
   timeoutMs: number;
-  scenarios: Array<{ id: string; description: string; tags: string[] }>;
+  scenarios: Array<{ id: string; description: string; tags: string[]; inputHash: string }>;
   variants: Array<{ id: string; description?: string; metadata: JsonObject }>;
 }
 

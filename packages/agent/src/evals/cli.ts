@@ -5,13 +5,21 @@ import { accountCredential } from "../models/accounts";
 import { evalProviderRegistry } from "./model-config";
 import { createAgentEvalVariant } from "./agent-harness";
 import { EvalArtifactStore } from "./artifacts";
-import { AgentEvalJudge, withJudge } from "./judge";
+import { AgentEvalJudge, JUDGE_IMPLEMENTATION_VERSION, withJudge } from "./judge";
 import { resolveEvalModel, resolveJudgeCompletion } from "./model-config";
 import { formatEvalReport, formatRunFailures, formatRunLine } from "./report";
 import { runEvalSuite } from "./runner";
-import { evalSuites, isEvalSuiteId, type EvalSuiteId } from "./suites";
+import {
+  evalSuites,
+  evalSuiteGroups,
+  isEvalSuiteGroupId,
+  isEvalSuiteId,
+  suiteIdsOfGroup,
+  type EvalSuiteGroupId,
+  type EvalSuiteId,
+} from "./suites";
 import { compareTrends, loadTrend, saveTrend, trendFromSummary, trendPath } from "./trend";
-import type { EvalRunRecord, EvalVariant } from "./types";
+import type { EvalRunRecord, EvalVariant, JsonObject } from "./types";
 import type { AgentEvalObservation } from "./types";
 import type { AgentEvalScenario } from "./agent-harness";
 
@@ -32,7 +40,8 @@ interface CandidateSpec {
 }
 
 export interface EvalCliOptions {
-  suiteId: EvalSuiteId;
+  /** 套件 id 或组选择器（behavior / realbook）。 */
+  suiteId: EvalSuiteId | EvalSuiteGroupId;
   provider: string;
   model?: string;
   baselineName: string;
@@ -58,8 +67,13 @@ function usage(): string {
   return `ReadAware agent evaluations
 
 Usage:
-  bun run eval:agent [suite] [provider] [model] [options]
+  bun run eval:agent [suite|group] [provider] [model] [options]
   bun run eval:reading [provider] [model] [options]
+
+Targets:
+  <suite>                      A single suite id (e.g. reading, karamazov)
+  behavior                     All capability suites on synthetic fixtures
+  realbook                     All per-book suites + the real-book grid
 
 Options:
   --provider <id>              Baseline provider (default: openrouter)
@@ -71,7 +85,8 @@ Options:
   --concurrency <n>            Parallel (scenario, repetition) units (default: 1)
   --timeout-ms <ms>            Per-run timeout (default: 240000)
   --scenario <id[,id]>         Run selected scenarios (repeatable)
-  --tag <tag[,tag]>            Run scenarios matching any selected tag
+  --tag <tag[,tag]>            Run scenarios matching any selected tag (closed
+                               vocabulary, see evals/tags.ts)
   --thinking <level>           off|minimal|low|medium|high|xhigh|max (default: medium)
   --judge                      Score rubric scenarios with an LLM judge (quality checks)
   --judge-provider <id>        Judge provider (default: baseline provider)
@@ -158,9 +173,9 @@ export function parseEvalCliArgs(args: string[]): EvalCliOptions {
   });
   const positionals = [...parsed.positionals];
   const suiteInput = positionals.shift() ?? "reading";
-  if (!isEvalSuiteId(suiteInput)) {
+  if (!isEvalSuiteId(suiteInput) && !isEvalSuiteGroupId(suiteInput)) {
     throw new Error(
-      `unknown eval suite ${JSON.stringify(suiteInput)}; available: ${Object.keys(evalSuites).join(", ")}`,
+      `unknown eval suite ${JSON.stringify(suiteInput)}; available suites: ${Object.keys(evalSuites).join(", ")}; groups: ${Object.keys(evalSuiteGroups).join(", ")}`,
     );
   }
   const provider = parsed.values.provider ?? positionals.shift() ?? "openrouter";
@@ -199,16 +214,32 @@ export function parseEvalCliArgs(args: string[]): EvalCliOptions {
   };
 }
 
-function selectScenarios(options: EvalCliOptions): AgentEvalScenario[] {
-  const suite = evalSuites[options.suiteId];
-  const known = new Set(suite.scenarios.map((scenario) => scenario.id));
-  const unknown = options.scenarioIds.filter((id) => !known.has(id));
+interface EvalTarget {
+  suiteId: EvalSuiteId;
+  scenarios: AgentEvalScenario[];
+}
+/** 把目标（套件或组）+ 过滤器解析为逐套件的待跑场景列表。 */
+export function resolveEvalTargets(options: EvalCliOptions): EvalTarget[] {
+  const suiteIds = isEvalSuiteGroupId(options.suiteId)
+    ? suiteIdsOfGroup(options.suiteId)
+    : [options.suiteId];
+  // 未知场景 id 直接报错（拼写保护）：单套件对它自己的场景集，组对全组并集
+  const union = new Set(suiteIds.flatMap((id) => evalSuites[id].scenarios.map((s) => s.id)));
+  const unknown = options.scenarioIds.filter((id) => !union.has(id));
   if (unknown.length > 0) throw new Error(`unknown scenarios: ${unknown.join(", ")}`);
-  return suite.scenarios.filter(
-    (scenario) =>
-      (options.scenarioIds.length === 0 || options.scenarioIds.includes(scenario.id)) &&
-      (options.tags.length === 0 || scenario.tags?.some((tag) => options.tags.includes(tag))),
-  );
+  const targets = suiteIds
+    .map((suiteId) => {
+      const suite = evalSuites[suiteId];
+      const scenarios = suite.scenarios.filter(
+        (scenario) =>
+          (options.scenarioIds.length === 0 || options.scenarioIds.includes(scenario.id)) &&
+          (options.tags.length === 0 || scenario.tags?.some((tag) => options.tags.includes(tag))),
+      );
+      return { suiteId, scenarios };
+    })
+    .filter((target) => target.scenarios.length > 0);
+  if (targets.length === 0) throw new Error("no eval scenarios matched the selected filters");
+  return targets;
 }
 
 function printVerboseRun(record: EvalRunRecord): void {
@@ -253,50 +284,103 @@ export async function runEvalCli(args: string[]): Promise<void> {
     console.log(usage());
     return;
   }
-  const scenarios = selectScenarios(options);
-  if (scenarios.length === 0) throw new Error("no eval scenarios matched the selected filters");
+  const targets = resolveEvalTargets(options);
   if (options.list) {
-    for (const scenario of scenarios) {
-      console.log(`${scenario.id}\t${scenario.tags?.join(",") ?? ""}\t${scenario.description}`);
+    // 组目标多一列套件 id，行才能全局无歧义地被 --scenario 引用
+    const withSuite = isEvalSuiteGroupId(options.suiteId) || targets.length > 1;
+    for (const target of targets) {
+      for (const scenario of target.scenarios) {
+        const prefix = withSuite ? `${target.suiteId}\t` : "";
+        console.log(
+          `${prefix}${scenario.id}\t${scenario.tags?.join(",") ?? ""}\t${scenario.description}`,
+        );
+      }
     }
     return;
   }
 
+  // judge 与变体只建一次，跨套件复用（变体内部逐 run 自建 thread/deps）
+  let judge: AgentEvalJudge | undefined;
   let judgeSecret: string | undefined;
-  let scoredScenarios = scenarios;
+  let judgeLabel = "";
+  let judgeMetadata: JsonObject = { enabled: false };
   if (options.judge) {
     const judgeCompletion = resolveJudgeCompletion(
       options.judgeProvider ?? options.provider,
       options.judgeModel,
     );
     judgeSecret = judgeCompletion.secret;
-    const judge = new AgentEvalJudge({ complete: judgeCompletion.complete });
-    scoredScenarios = scenarios.map((scenario) => withJudge(scenario, judge));
-    const judged = scenarios.filter((scenario) => scenario.rubric?.length).length;
-    console.log(
-      `Judge: ${judgeCompletion.metadata.provider}:${judgeCompletion.metadata.model} scoring ${judged}/${scenarios.length} scenarios with rubrics`,
-    );
+    judgeLabel = `${judgeCompletion.metadata.provider}:${judgeCompletion.metadata.model}`;
+    judgeMetadata = {
+      enabled: true,
+      provider: judgeCompletion.metadata.provider,
+      model: judgeCompletion.metadata.model,
+      threshold: 0.6,
+      implementationVersion: JUDGE_IMPLEMENTATION_VERSION,
+    };
+    judge = new AgentEvalJudge({ complete: judgeCompletion.complete });
   }
-
-  const suite = { ...evalSuites[options.suiteId], scenarios: scoredScenarios };
   const specs: CandidateSpec[] = [
     { id: options.baselineName, provider: options.provider, model: options.model },
     ...options.candidates,
   ];
   const built = specs.map((spec) => buildVariant(spec, options.thinkingLevel));
   const variants = built.map((entry) => entry.variant);
+  if (judge) {
+    const judged = targets.reduce(
+      (total, target) =>
+        total + target.scenarios.filter((scenario) => scenario.rubric?.length).length,
+      0,
+    );
+    const total = targets.reduce((sum, target) => sum + target.scenarios.length, 0);
+    console.log(`Judge: ${judgeLabel} scoring ${judged}/${total} scenarios with rubrics`);
+  }
+
+  for (const [index, target] of targets.entries()) {
+    if (targets.length > 1) console.log(`\n=== [${index + 1}/${targets.length}] suite ${target.suiteId}`);
+    await runSuiteTarget(options, target, {
+      variants,
+      judge,
+      judgeSecret,
+      specSecrets: built.map((entry) => entry.secret),
+      specs,
+      judgeMetadata,
+    });
+  }
+}
+
+interface SuiteRunContext {
+  variants: EvalVariant<AgentEvalScenario, AgentEvalObservation>[];
+  judge?: AgentEvalJudge;
+  judgeSecret?: string;
+  specSecrets: string[];
+  specs: CandidateSpec[];
+  judgeMetadata: JsonObject;
+}
+
+async function runSuiteTarget(
+  options: EvalCliOptions,
+  target: EvalTarget,
+  context: SuiteRunContext,
+): Promise<void> {
+  const { judge } = context;
+  const scenarios = judge
+    ? target.scenarios.map((scenario) => withJudge(scenario, judge))
+    : target.scenarios;
+  const suite = { ...evalSuites[target.suiteId], scenarios };
   const artifactStore = options.artifacts
     ? await EvalArtifactStore.create({
         suiteId: suite.id,
         rootDir: options.outputDir,
-        secrets: [...built.map((entry) => entry.secret), ...(judgeSecret ? [judgeSecret] : [])],
+        secrets: [...context.specSecrets, ...(context.judgeSecret ? [context.judgeSecret] : [])],
       })
     : undefined;
 
-  const result = await runEvalSuite(suite, variants, {
+  const result = await runEvalSuite(suite, context.variants, {
     repetitions: options.repetitions,
     concurrency: options.concurrency,
     timeoutMs: options.timeoutMs,
+    definitionMetadata: { judge: context.judgeMetadata },
     hooks: {
       onPlan: async (plan) => {
         console.log(
@@ -318,10 +402,22 @@ export async function runEvalCli(args: string[]): Promise<void> {
     `\nSummary: ${result.summary.passed}/${result.summary.runs} passed, ${result.summary.failed} failed, ${result.summary.errors} errors`,
   );
 
-  // 基线趋势：对比上一次同套件的按场景成绩，劣化行以 "!" 标出
-  if (options.artifacts) {
-    const baselineModel = `${specs[0]!.provider}:${specs[0]!.model ?? "default"}`;
-    const currentTrend = trendFromSummary(result.summary, baselineModel, options.thinkingLevel);
+  // 基线趋势只接受完整套件；筛选快扫不能把未运行的场景记成“移除”。
+  const registeredScenarioIds = new Set(
+    evalSuites[target.suiteId].scenarios.map((scenario) => scenario.id),
+  );
+  const completeSuiteRun =
+    suite.scenarios.length === registeredScenarioIds.size &&
+    suite.scenarios.every((scenario) => registeredScenarioIds.has(scenario.id));
+  if (options.artifacts && completeSuiteRun) {
+    const baselineModel = `${context.specs[0]!.provider}:${context.specs[0]!.model ?? "default"}`;
+    const tags = new Map(suite.scenarios.map((scenario) => [scenario.id, scenario.tags ?? []]));
+    const currentTrend = trendFromSummary(
+      result.summary,
+      baselineModel,
+      options.thinkingLevel,
+      tags,
+    );
     const path = trendPath(resolve(options.outputDir ?? ".eval"), suite.id);
     const previous = await loadTrend(path);
     if (previous) {
@@ -334,6 +430,8 @@ export async function runEvalCli(args: string[]): Promise<void> {
       }
     }
     await saveTrend(path, currentTrend);
+  } else if (options.artifacts) {
+    console.log("Trend: skipped for a filtered scenario run");
   }
   for (const comparison of result.summary.comparisons) {
     console.log(

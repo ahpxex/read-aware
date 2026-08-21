@@ -20,6 +20,8 @@ export interface CatalogScenario {
 export interface CatalogSuite {
   id: string;
   code: string;
+  /** 所属组：behavior（能力套件）/ realbook（真书套件）。 */
+  group: "behavior" | "realbook";
   description: string;
   scenarios: CatalogScenario[];
 }
@@ -103,6 +105,12 @@ export interface RunDetail {
     }>;
   };
   records: RunRecord[];
+  selectedRescore?: string;
+  rescores?: Array<{
+    id: string;
+    createdAt?: string;
+    compatibility?: { comparable?: boolean };
+  }>;
 }
 
 async function get<T>(path: string): Promise<T> {
@@ -134,7 +142,10 @@ export function subscribeRunEvents(onChange: () => void): () => void {
 }
 export const fetchCatalog = () => get<CatalogSuite[]>("/api/catalog");
 export const fetchRuns = () => get<RunListing[]>("/api/runs");
-export const fetchRun = (runId: string) => get<RunDetail>(`/api/runs/${encodeURIComponent(runId)}`);
+export const fetchRun = (runId: string, rescoreId?: string) =>
+  get<RunDetail>(
+    `/api/runs/${encodeURIComponent(runId)}${rescoreId ? `?rescore=${encodeURIComponent(rescoreId)}` : ""}`,
+  );
 
 export function ms(value: number | undefined): string {
   if (value === undefined) return "—";

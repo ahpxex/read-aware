@@ -31,6 +31,9 @@ describe("digestObservation", () => {
   test("extracts turns, answer, and truncated tool args from loose JSON", () => {
     const digest = digestObservation(observation("About 1h 30m."));
     expect(digest.userTurns).toEqual(["How long did I read?"]);
+    expect(digest.turns).toEqual([
+      { user: "How long did I read?", assistant: "About 1h 30m." },
+    ]);
     expect(digest.answer).toBe("About 1h 30m.");
     expect(digest.tools).toEqual([
       { name: "get_reading_stats", args: '{"allBooks":true}' },
@@ -38,9 +41,15 @@ describe("digestObservation", () => {
   });
 
   test("tolerates malformed observations", () => {
-    expect(digestObservation(null)).toEqual({ userTurns: [], answer: "", tools: [] });
+    expect(digestObservation(null)).toEqual({
+      userTurns: [],
+      turns: [],
+      answer: "",
+      tools: [],
+    });
     expect(digestObservation({ answer: 42, turns: "x", tools: [{}] })).toEqual({
       userTurns: [],
+      turns: [],
       answer: "",
       tools: [],
     });
@@ -76,6 +85,7 @@ describe("AgentEvalJudge", () => {
     expect(prompts).toHaveLength(1);
     expect(prompts[0]).toContain("Humane stats");
     expect(prompts[0]).toContain("get_reading_stats");
+    expect(prompts[0]).toContain("Turn 1 assistant");
   });
 
   test("retries once on malformed output, then fails loudly", async () => {

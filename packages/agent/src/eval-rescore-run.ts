@@ -1,5 +1,5 @@
 import { parseArgs } from "node:util";
-import { AgentEvalJudge } from "./evals/judge";
+import { AgentEvalJudge, JUDGE_IMPLEMENTATION_VERSION } from "./evals/judge";
 import { resolveJudgeCompletion } from "./evals/model-config";
 import { rescoreEvalBundle } from "./evals/rescore";
 
@@ -26,15 +26,23 @@ if (parsed.values.help || !directory) {
   );
 } else {
   let judge: AgentEvalJudge | undefined;
+  let judgeMetadata: Record<string, string | number | boolean> = { enabled: false };
   if (parsed.values.judge) {
     const completion = resolveJudgeCompletion(
       parsed.values["judge-provider"] ?? "deepseek",
       parsed.values["judge-model"],
     );
     judge = new AgentEvalJudge({ complete: completion.complete });
+    judgeMetadata = {
+      enabled: true,
+      provider: completion.metadata.provider,
+      model: completion.metadata.model,
+      threshold: 0.6,
+      implementationVersion: JUDGE_IMPLEMENTATION_VERSION,
+    };
     console.log(`Judge: ${completion.metadata.provider}:${completion.metadata.model}`);
   }
-  const result = await rescoreEvalBundle(directory, { judge });
+  const result = await rescoreEvalBundle(directory, { judge, judgeMetadata });
   console.log(
     `Rescored ${result.summary.runs} runs: ${result.summary.passed} passed, ${result.summary.failed} failed, ${result.summary.errors} errors`,
   );

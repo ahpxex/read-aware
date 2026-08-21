@@ -196,11 +196,22 @@ function evalDataPlugin(): Plugin {
                     }>;
                   }
                 >;
+                evalSuiteGroups: Record<
+                  string,
+                  { id: string; description: string; suiteIds: string[] }
+                >;
               };
-              catalogCache = Object.values(agent.evalSuites)
-                .map((suite) => ({
+              catalogCache = Object.entries(agent.evalSuiteGroups)
+                .flatMap(([, definition]) =>
+                  definition.suiteIds.map((suiteId) => ({
+                    suite: agent.evalSuites[suiteId]!,
+                    group: definition.id as "behavior" | "realbook",
+                  })),
+                )
+                .map(({ suite, group }) => ({
                   id: suite.id,
                   code: suite.code,
+                  group,
                   description: suite.description,
                   scenarios: suite.scenarios.map((scenario, index) => ({
                     ref: `${suite.code}.${index + 1}`,
@@ -293,9 +304,28 @@ function evalDataPlugin(): Plugin {
             const directory = findRunDirectory(runMatch[1]!);
             if (!directory) return sendJson(res, { error: "run not found" }, 404);
             const manifest = readJson(join(directory, "manifest.json"));
-            const summary = readJson(join(directory, "summary.json"));
-            const rawRecords = existsSync(join(directory, "runs.jsonl"))
-              ? readFileSync(join(directory, "runs.jsonl"), "utf8")
+            const rescoreRoot = join(directory, "rescored");
+            const rescores = existsSync(rescoreRoot)
+              ? readdirSync(rescoreRoot)
+                  .filter((id) => /^[A-Za-z0-9._-]+$/.test(id))
+                  .flatMap((id) => {
+                    const value = readJson(join(rescoreRoot, id, "manifest.json")) as
+                      | { createdAt?: string; compatibility?: { comparable?: boolean } }
+                      | undefined;
+                    return value ? [{ id, ...value }] : [];
+                  })
+                  .sort((a, b) => (b.createdAt ?? b.id).localeCompare(a.createdAt ?? a.id))
+              : [];
+            const requestedRescore = url.searchParams.get("rescore") ?? undefined;
+            const selectedRescore = rescores.some((entry) => entry.id === requestedRescore)
+              ? requestedRescore
+              : undefined;
+            const dataDirectory = selectedRescore
+              ? join(rescoreRoot, selectedRescore)
+              : directory;
+            const summary = readJson(join(dataDirectory, "summary.json"));
+            const rawRecords = existsSync(join(dataDirectory, "runs.jsonl"))
+              ? readFileSync(join(dataDirectory, "runs.jsonl"), "utf8")
               : "";
             const records: unknown[] = [];
             for (const line of rawRecords.split("\n")) {
@@ -307,7 +337,14 @@ function evalDataPlugin(): Plugin {
               }
             }
             const status = summary ? "complete" : livenessOf(directory);
-            return sendJson(res, { manifest, summary, records, status });
+            return sendJson(res, {
+              manifest,
+              summary,
+              records,
+              status,
+              rescores,
+              ...(selectedRescore ? { selectedRescore } : {}),
+            });
           }
           return sendJson(res, { error: "unknown endpoint" }, 404);
         } catch (error) {

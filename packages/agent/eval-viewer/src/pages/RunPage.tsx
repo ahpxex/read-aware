@@ -143,17 +143,18 @@ export function RunPage({
   const [detail, setDetail] = useState<RunDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [failedOnly, setFailedOnly] = useState(false);
+  const [activeRescore, setActiveRescore] = useState("");
 
   useEffect(() => {
     setDetail(null);
-    fetchRun(runId).then(setDetail).catch((cause) => setError(String(cause)));
-  }, [runId]);
+    fetchRun(runId, activeRescore || undefined).then(setDetail).catch((cause) => setError(String(cause)));
+  }, [runId, activeRescore]);
 
   // 直播刷新：tick 变化时静默重拉（不清空，避免闪加载态）。
   useEffect(() => {
     if (tick === undefined || tick === 0) return;
-    fetchRun(runId).then(setDetail).catch(() => {});
-  }, [runId, tick]);
+    fetchRun(runId, activeRescore || undefined).then(setDetail).catch(() => {});
+  }, [runId, activeRescore, tick]);
 
   if (error) return <div className="error">{error}</div>;
   if (!detail) return <div className="loading">加载运行数据…</div>;
@@ -211,6 +212,24 @@ export function RunPage({
           )})`;
         })}
       </p>
+      {(detail.rescores?.length ?? 0) > 0 && (
+        <div className="filters">
+          <label htmlFor="rescore-view">评分版本</label>
+          <select
+            id="rescore-view"
+            value={activeRescore}
+            onChange={(event) => setActiveRescore(event.target.value)}
+          >
+            <option value="">原始评分</option>
+            {detail.rescores!.map((rescore) => (
+              <option key={rescore.id} value={rescore.id}>
+                {rescore.createdAt ?? rescore.id}
+                {rescore.compatibility?.comparable === false ? " · 不可直接对比" : ""}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="stats">
         <div className="stat">

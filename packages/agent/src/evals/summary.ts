@@ -165,10 +165,20 @@ export function buildEvalSummary(
   variantIds: string[],
   scenarioIds: string[],
   records: EvalRunRecord[],
+  tagsByScenario: ReadonlyMap<string, readonly string[]> = new Map(),
+  definitionHash?: string,
 ): EvalSummary {
   const baselineVariantId = variantIds[0] ?? "baseline";
+  // 场景按标签分桶后逐 (tag, variant) 聚合：byTag 是"测什么"维度的机器可读汇总
+  const scenariosByTag = new Map<string, string[]>();
+  for (const scenarioId of scenarioIds) {
+    for (const tag of tagsByScenario.get(scenarioId) ?? []) {
+      scenariosByTag.set(tag, [...(scenariosByTag.get(tag) ?? []), scenarioId]);
+    }
+  }
   return {
     suiteId,
+    ...(definitionHash ? { definitionHash } : {}),
     baselineVariantId,
     generatedAt: new Date().toISOString(),
     runs: records.length,
@@ -179,6 +189,18 @@ export function buildEvalSummary(
     byScenario: variantIds.flatMap((variantId) =>
       scenarioIds.map((scenarioId) => aggregate(records, variantId, scenarioId)),
     ),
+    byTag: [...scenariosByTag.keys()]
+      .sort()
+      .flatMap((tag) =>
+        variantIds.flatMap((variantId) => {
+          const members = new Set(scenariosByTag.get(tag));
+          const entry = aggregate(
+            records.filter((record) => members.has(record.scenarioId)),
+            variantId,
+          );
+          return entry.runs === 0 ? [] : [{ ...entry, tag }];
+        }),
+      ),
     comparisons: variantIds
       .slice(1)
       .map((candidateVariantId) => compare(records, baselineVariantId, candidateVariantId)),

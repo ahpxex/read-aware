@@ -127,6 +127,36 @@ describe("eval runner", () => {
       ),
     ).rejects.toThrow("variants contains duplicate id");
   });
+
+  test("bounds scoring and aborts the judge signal", async () => {
+    let aborted = false;
+    const result = await runEvalSuite(
+      {
+        id: "scoring-timeout",
+        code: "S00",
+        description: "scoring timeout",
+        scenarios: [
+          scenario((_observation, context) =>
+            new Promise((_resolve, reject) => {
+              context?.signal?.addEventListener(
+                "abort",
+                () => {
+                  aborted = true;
+                  reject(context.signal?.reason);
+                },
+                { once: true },
+              );
+            }),
+          ),
+        ],
+      },
+      [variant("candidate", 1)],
+      { timeoutMs: 5 },
+    );
+
+    expect(aborted).toBe(true);
+    expect(result.records[0]?.error?.stage).toBe("timeout");
+  });
 });
 
 describe("eval runner concurrency", () => {

@@ -47,9 +47,13 @@ export interface ResolvedEvalModel {
  * provider 未指定模型时的 eval 缺省。OpenRouter 目录三百多个模型，
  * "第一个 reasoning 模型"是碰运气——显式钉住与 DeepSeek 官方档相同的
  * 模型（OpenRouter slug 形态）。
+ *
+ * 注意：不带日期的 `deepseek/deepseek-v4-flash` 在 OpenRouter 上是
+ * 0423 旧快照（目录名 "DeepSeek V4 Flash 0423"），不是滚动别名——
+ * 新快照走独立 slug，所以这里必须钉带日期的 0731。
  */
 const EVAL_DEFAULT_MODELS: Partial<Record<KnownProviderId, string>> = {
-  openrouter: "deepseek/deepseek-v4-flash",
+  openrouter: "deepseek/deepseek-v4-flash-0731",
   // Coding Plan 包月端点：catalog 滞后（此刻只收录到 5.2），id 会原样透传，
   // 端点实测认识 glm-5.3——不钉住会碰运气落到目录第一个 reasoning 模型。
   "zai-coding-cn": "glm-5.3",
@@ -129,7 +133,7 @@ export function resolveEvalModel(
 }
 
 export interface ResolvedJudgeCompletion {
-  complete: (prompt: string) => Promise<string>;
+  complete: (prompt: string, options?: { signal?: AbortSignal }) => Promise<string>;
   secret: string;
   metadata: { provider: string; model: string };
 }
@@ -150,10 +154,14 @@ export function resolveJudgeCompletion(
     )("smart"),
   );
   return {
-    complete: async (prompt) => {
-      const message = await completeFn(model, {
-        messages: [{ role: "user", content: prompt, timestamp: Date.now() }],
-      });
+    complete: async (prompt, options) => {
+      const message = await completeFn(
+        model,
+        {
+          messages: [{ role: "user", content: prompt, timestamp: Date.now() }],
+        },
+        { signal: options?.signal },
+      );
       return message.content
         .flatMap((part) => (part.type === "text" ? [part.text] : []))
         .join("");

@@ -25,7 +25,7 @@ bun run eval:agent <suite> \
 bun run eval:agent <suite> --gate                # 行为失败也变非零退出码（CI 用）
 ```
 
-缺省即正确姿势：provider **openrouter**（模型钉 `deepseek/deepseek-v4-flash`，
+缺省即正确姿势：provider **openrouter**（模型钉 `deepseek/deepseek-v4-flash-0731`，不带日期的 slug 是 0423 旧快照，
 CoreWeave 优先路由，key 在 `~/.pi/agent/auth.json`）、thinking **medium**、
 单场景超时 **240s**。`--provider deepseek` 是旧直连路径；跨 provider/thinking
 档位的结果**不可比**（trend 会标 INCOMPARABLE）。

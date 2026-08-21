@@ -21,6 +21,8 @@
     "eval:digests": "bun src/eval-digests-run.ts",
     "eval:classify": "bun src/eval-classify-run.ts",
     "eval:reading": "bun src/eval-run.ts reading",
+    "eval:behavior": "bun src/eval-run.ts behavior",
+    "eval:realbook": "bun src/eval-run.ts realbook",
     "eval:ui": "vite --config eval-viewer/vite.config.ts --port 5199"
   },
   "dependencies": {

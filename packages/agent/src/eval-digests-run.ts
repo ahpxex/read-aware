@@ -6,7 +6,7 @@
  *
  * 用法（OpenRouter 为缺省 provider——CoreWeave 优先路由，key 解析与 eval
  * runner 同源）：
- *   bun run eval:digests <slug> [--provider openrouter] [--model deepseek/deepseek-v4-flash]
+ *   bun run eval:digests <slug> [--provider openrouter] [--model deepseek/deepseek-v4-flash-0731]
  *   bun run eval:digests santi --resume     # 续跑：保留已有章节，只补缺失
  *
  * 断点续跑是刻意设计：几十章的全书跑一次要几分钟，网络抖动不该从头再来。

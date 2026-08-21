@@ -21,10 +21,18 @@ describe("eval artifact store", () => {
     const store = await EvalArtifactStore.create({ suiteId: "reading", cwd, secrets: [secret] });
     const plan: EvalRunPlan = {
       suiteId: "reading",
+      definitionHash: "sha256:definition",
       suiteDescription: "Reading",
       repetitions: 1,
       timeoutMs: 100,
-      scenarios: [{ id: "cursor", description: "Cursor", tags: ["reading"] }],
+      scenarios: [
+        {
+          id: "cursor",
+          description: "Cursor",
+          tags: ["reading"],
+          inputHash: "sha256:input",
+        },
+      ],
       variants: [{ id: "baseline", metadata: { provider: "test" } }],
     };
     const record: EvalRunRecord = {
@@ -52,6 +60,7 @@ describe("eval artifact store", () => {
       errors: 0,
       byVariant: [],
       byScenario: [],
+      byTag: [],
       comparisons: [],
     };
 
@@ -65,7 +74,9 @@ describe("eval artifact store", () => {
       "utf8",
     );
     const index = await readFile(join(store.directory, "runs.jsonl"), "utf8");
-    expect(manifest).toContain('"schemaVersion": 1');
+    expect(manifest).toContain('"schemaVersion": 2');
+    expect(manifest).toContain('"provenance"');
+    expect(manifest).toContain('"definitionHash": "sha256:definition"');
     expect(run).not.toContain(secret);
     expect(run).toContain("[REDACTED]");
     expect(JSON.parse(index)).toMatchObject({ status: "passed", scenarioId: "cursor" });

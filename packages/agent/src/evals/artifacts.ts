@@ -1,8 +1,9 @@
-import { appendFile, mkdir, rename, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { appendFile, mkdir, readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
+import { join, relative, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { redactUnknown } from "./json";
 import type { EvalRunPlan, EvalRunRecord, EvalSummary, JsonValue } from "./types";
+import { fingerprintJson, sha256 } from "./fingerprint";
 
 export interface EvalArtifactStoreOptions {
   suiteId: string;
@@ -15,6 +16,17 @@ export interface EvalGitMetadata {
   commit?: string;
   branch?: string;
   dirty?: boolean;
+}
+
+export interface EvalArtifactProvenance {
+  planHash: string;
+  definitionHash: string;
+  promptHash: string;
+  evaluatorHash: string;
+  runtimeSafetyHash: string;
+  fixtureHash: string;
+  gitStatusHash?: string;
+  workspaceHash: string;
 }
 
 function safeSegment(value: string): string {
@@ -50,6 +62,75 @@ export function collectGitMetadata(cwd: string): EvalGitMetadata {
     commit: runGit(cwd, ["rev-parse", "HEAD"]),
     branch: runGit(cwd, ["branch", "--show-current"]),
     ...(status === undefined ? {} : { dirty: status.length > 0 }),
+  };
+}
+
+async function filesUnder(path: string): Promise<string[]> {
+  try {
+    const info = await stat(path);
+    if (info.isFile()) return [path];
+    if (!info.isDirectory()) return [];
+    const entries = await readdir(path, { withFileTypes: true });
+    const nested = await Promise.all(
+      entries.map((entry) => {
+        const child = join(path, entry.name);
+        return entry.isDirectory() ? filesUnder(child) : Promise.resolve([child]);
+      }),
+    );
+    return nested.flat().sort();
+  } catch {
+    return [];
+  }
+}
+
+async function hashPaths(repoRoot: string, paths: string[]): Promise<string> {
+  const files = (
+    await Promise.all(paths.map((path) => filesUnder(resolve(repoRoot, path))))
+  ).flat().sort();
+  const parts: Array<string | Uint8Array> = [];
+  for (const file of files) {
+    parts.push(relative(repoRoot, file), await readFile(file));
+  }
+  return sha256(parts);
+}
+
+export async function collectEvalProvenance(
+  cwd: string,
+  plan: EvalRunPlan,
+): Promise<EvalArtifactProvenance> {
+  const repoRoot = runGit(cwd, ["rev-parse", "--show-toplevel"]) ?? cwd;
+  const [promptHash, evaluatorHash, runtimeSafetyHash, fixtureHash] = await Promise.all([
+    hashPaths(repoRoot, [
+      "packages/agent/src/context/system-prompt.ts",
+      "packages/agent/src/context/spoiler-policy.ts",
+    ]),
+    hashPaths(repoRoot, ["packages/agent/src/evals"]),
+    hashPaths(repoRoot, [
+      "packages/agent/src/runtime/thread.ts",
+      "packages/agent/src/runtime/narrative-evidence.ts",
+      "packages/agent/src/tools/book-text-tools.ts",
+      "packages/agent/src/tools/turn-state.ts",
+    ]),
+    hashPaths(repoRoot, ["packages/agent/fixtures"]),
+  ]);
+  const gitStatus = runGit(repoRoot, ["status", "--porcelain=v1", "--untracked-files=all"]);
+  const gitStatusHash = gitStatus === undefined ? undefined : sha256([gitStatus]);
+  const planHash = fingerprintJson(plan as unknown as JsonValue);
+  return {
+    planHash,
+    definitionHash: plan.definitionHash,
+    promptHash,
+    evaluatorHash,
+    runtimeSafetyHash,
+    fixtureHash,
+    ...(gitStatusHash ? { gitStatusHash } : {}),
+    workspaceHash: sha256([
+      promptHash,
+      evaluatorHash,
+      runtimeSafetyHash,
+      fixtureHash,
+      gitStatusHash ?? "git-status-unavailable",
+    ]),
   };
 }
 
@@ -106,8 +187,9 @@ export class EvalArtifactStore {
   }
 
   async writePlan(plan: EvalRunPlan): Promise<void> {
+    const provenance = await collectEvalProvenance(this.cwd, plan);
     const manifest = this.sanitize({
-      schemaVersion: 1,
+      schemaVersion: 2,
       runId: this.runId,
       createdAt: this.createdAt,
       cwd: this.cwd,
@@ -117,6 +199,7 @@ export class EvalArtifactStore {
         platform: process.platform,
         arch: process.arch,
       },
+      provenance,
       plan,
     });
     await atomicWrite(join(this.directory, "manifest.json"), pretty(manifest));

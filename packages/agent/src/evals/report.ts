@@ -64,6 +64,16 @@ function comparisonLines(comparison: EvalComparison): string[] {
   ];
 }
 
+function tagRow(aggregate: EvalAggregate): string {
+  return [
+    aggregate.tag,
+    aggregate.variantId,
+    `${aggregate.passed}/${aggregate.runs}`,
+    percent(aggregate.passRate),
+    fixed(aggregate.meanScore, 3),
+  ].join(" | ");
+}
+
 export function formatEvalReport(summary: EvalSummary): string {
   const lines = [
     `# Eval Report: ${summary.suiteId}`,
@@ -85,6 +95,16 @@ export function formatEvalReport(summary: EvalSummary): string {
     ...summary.byScenario.map(aggregateRow),
     "",
   ];
+  if (summary.byTag.length > 0) {
+    lines.push(
+      "## Tags",
+      "",
+      "Tag | Variant | Passed | Pass rate | Mean score",
+      "--- | --- | ---: | ---: | ---:",
+      ...summary.byTag.map(tagRow),
+      "",
+    );
+  }
   if (summary.comparisons.length > 0) {
     lines.push(
       "## Comparisons",

@@ -8,7 +8,7 @@ import type {
 } from "@earendil-works/pi-ai";
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import type { CompleteFn, StreamFn } from "../models/complete";
-import { createStreamFn } from "../models/complete";
+import { createCompleteFn, createStreamFn } from "../models/complete";
 import type { LlmAccount } from "../models/accounts";
 import { accountCredential, accountProviderId, createModelResolver } from "../models/accounts";
 import { applyEvalRouting } from "./model-config";
@@ -80,6 +80,7 @@ export interface AgentEvalVariantOptions {
   thinkingLevel?: ThinkingLevel;
   maxWindowTurns?: number;
   completeFn?: CompleteFn;
+  repairCompleteFn?: CompleteFn;
   streamFn?: StreamFn;
   transformSystemPrompt?: (prompt: string, scope: ThreadScope) => string;
 }
@@ -151,6 +152,11 @@ export function createAgentEvalVariant(
   const baseStreamFn =
     options.streamFn ?? createStreamFn(options.registry!, options.account!, thinkingLevel);
   const completeFn = options.completeFn ?? noMemoryComplete;
+  const baseRepairCompleteFn =
+    options.repairCompleteFn ??
+    (options.account && options.registry
+      ? createCompleteFn(options.registry, options.account, thinkingLevel)
+      : completeFn);
   const baseResolve =
     options.resolveModel ??
     createModelResolver(
@@ -198,6 +204,13 @@ export function createAgentEvalVariant(
         );
         return baseStreamFn(model, modelContext, streamOptions);
       };
+      const tracedRepairCompleteFn: CompleteFn = (model, modelContext, completeOptions) => {
+        activeRound += 1;
+        modelRequests.push(
+          captureModelRequest(activeTurn, activeRound, model, modelContext, completeOptions),
+        );
+        return baseRepairCompleteFn(model, modelContext, completeOptions);
+      };
 
       const thread = new AgentThread({
         scope: scenario.scope,
@@ -207,6 +220,7 @@ export function createAgentEvalVariant(
           options.getApiKey ??
           (() => (options.account ? accountCredential(options.account) : undefined)),
         completeFn,
+        repairCompleteFn: tracedRepairCompleteFn,
         streamFn: tracedStreamFn,
         thinkingLevel,
         maxWindowTurns: options.maxWindowTurns,

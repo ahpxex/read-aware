@@ -1,5 +1,6 @@
 import { toJsonValue } from "./json";
 import { buildEvalSummary } from "./summary";
+import { fingerprintJson, fingerprintSuite } from "./fingerprint";
 import {
   EvalStageError,
   type EvalErrorStage,
@@ -21,6 +22,8 @@ export interface RunEvalSuiteOptions {
    * 单元内部各 variant 仍按轮转顺序串行执行，配对比较不受影响。
    */
   concurrency?: number;
+  /** Judge/scoring configuration that changes the meaning of a score. */
+  definitionMetadata?: import("./types").JsonValue;
   hooks?: EvalRunHooks;
 }
 
@@ -159,7 +162,9 @@ async function executeRun<TObservation, TScenario extends EvalScenario<TObservat
   }
 
   try {
-    const assessment = await input.scenario.evaluate(harnessOutput.observation);
+    const assessment = await runWithTimeout(input.timeoutMs, (signal) =>
+      Promise.resolve(input.scenario.evaluate(harnessOutput.observation, { signal })),
+    );
     return {
       ...base,
       status: assessment.passed ? "passed" : "failed",
@@ -173,7 +178,7 @@ async function executeRun<TObservation, TScenario extends EvalScenario<TObservat
       status: "error",
       output: toJsonValue(harnessOutput.observation),
       telemetry: { ...harnessOutput.telemetry, wallTimeMs },
-      error: errorDetails(error, "scoring"),
+      error: errorDetails(error, error instanceof EvalTimeoutError ? "timeout" : "scoring"),
     };
   }
 }
@@ -197,8 +202,16 @@ export async function runEvalSuite<
   assertUnique(suite.scenarios.map((scenario) => scenario.id), "scenarios");
   assertUnique(variants.map((variant) => variant.id), "variants");
 
+  const definitionHash = fingerprintSuite(
+    suite as unknown as EvalSuite<EvalScenario<unknown>>,
+    options.definitionMetadata,
+  );
   const plan: EvalRunPlan = {
     suiteId: suite.id,
+    definitionHash,
+    ...(options.definitionMetadata === undefined
+      ? {}
+      : { definitionMetadata: options.definitionMetadata }),
     suiteDescription: suite.description,
     repetitions,
     timeoutMs,
@@ -206,6 +219,7 @@ export async function runEvalSuite<
       id: scenario.id,
       description: scenario.description,
       tags: scenario.tags ?? [],
+      inputHash: fingerprintJson(scenario.input),
     })),
     variants: variants.map((variant) => ({
       id: variant.id,
@@ -262,6 +276,8 @@ export async function runEvalSuite<
     variants.map((variant) => variant.id),
     suite.scenarios.map((scenario) => scenario.id),
     records,
+    new Map(suite.scenarios.map((scenario) => [scenario.id, scenario.tags ?? []])),
+    definitionHash,
   );
   await options.hooks?.onComplete?.(summary);
   return { plan, records, summary };

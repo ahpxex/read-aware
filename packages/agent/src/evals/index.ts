@@ -4,6 +4,14 @@
  * 挂在主入口上会被产品的浏览器 bundle 拉进来并炸掉构建 —— eval-viewer
  * 的 ssrLoadModule 与脚本从这里走，产品只认主入口。
  */
-export { evalSuites, isEvalSuiteId, type EvalSuiteId } from "./suites";
+export {
+  evalSuites,
+  evalSuiteGroups,
+  isEvalSuiteId,
+  isEvalSuiteGroupId,
+  suiteIdsOfGroup,
+  type EvalSuiteId,
+  type EvalSuiteGroupId,
+} from "./suites";
 export type { AgentEvalScenario } from "./agent-harness";
 export type { EvalSuite, EvalRunRecord, EvalSummary } from "./types";

@@ -4,7 +4,7 @@
  * 注册表里的人工标注。分类错一本，围栏与纪要口径就整本走错——这是
  * 分类管线的最小活体测试，跑一次五个调用，秒级。
  *
- *   bun run eval:classify [--provider openrouter] [--model deepseek/deepseek-v4-flash]
+ *   bun run eval:classify [--provider openrouter] [--model deepseek/deepseek-v4-flash-0731]
  */
 import { classifyNarrativity } from "./memory/narrativity";
 import { createModelResolver } from "./models/accounts";

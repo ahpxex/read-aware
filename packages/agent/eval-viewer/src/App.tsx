@@ -6,7 +6,7 @@
  * 场景引用坐标 = 套件编号.场景序号（如 S07.3）——反馈时报这个号。
  */
 import { useEffect, useState } from "react";
-import { fetchCatalog, fetchRuns, type CatalogSuite, type RunListing } from "./api";
+import { fetchCatalog, fetchRuns, subscribeRunEvents, type CatalogSuite, type RunListing } from "./api";
 import { CatalogPage } from "./pages/CatalogPage";
 import { RunPage } from "./pages/RunPage";
 import { SuitePage } from "./pages/SuitePage";
@@ -26,11 +26,17 @@ export function App() {
   const [catalog, setCatalog] = useState<CatalogSuite[] | null>(null);
   const [runs, setRuns] = useState<RunListing[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // 工件目录的写入直播：eval 跑动时 tick 递增，依赖它的取数自动重拉。
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     fetchCatalog().then(setCatalog).catch((cause) => setError(String(cause)));
-    fetchRuns().then(setRuns).catch((cause) => setError(String(cause)));
+    return subscribeRunEvents(() => setTick((value) => value + 1));
   }, []);
+
+  useEffect(() => {
+    fetchRuns().then(setRuns).catch((cause) => setError(String(cause)));
+  }, [tick]);
 
   const suiteMatch = route.match(/^\/suites\/([^/]+)$/);
   const runMatch = route.match(/^\/runs\/([^/]+)$/);
@@ -66,11 +72,11 @@ export function App() {
         {!catalog || !runs ? (
           <div className="loading">加载套件目录…</div>
         ) : runMatch ? (
-          <RunPage runId={runMatch[1]!} catalog={catalog} />
+          <RunPage runId={runMatch[1]!} catalog={catalog} tick={tick} />
         ) : suiteMatch ? (
           <SuitePage suiteId={suiteMatch[1]!} catalog={catalog} runs={runs} />
         ) : (
-          <CatalogPage catalog={catalog} runs={runs} />
+          <CatalogPage catalog={catalog} runs={runs} tick={tick} />
         )}
       </main>
     </div>

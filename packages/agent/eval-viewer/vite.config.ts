@@ -2,11 +2,15 @@
  * Eval viewer 的数据面走 vite dev 中间件（本地开发工具，dev 模式即产品形态）：
  *  - /api/catalog  套件目录——经 ssrLoadModule 直接加载 @read-aware/agent/evals 的
  *    evalSuites（场景定义天生可序列化），所以不跑 eval 也能浏览"测什么、怎么测"。
- *  - /api/runs     扫描 repo 根与 packages/agent 下的 .eval/ 工件目录。
+ *  - /api/runs     扫描 repo 根与 packages/agent 下的 .eval/ 工件目录——
+ *    没有 summary.json 的 bundle 是进行中的 run（runs.jsonl 逐行落盘），
+ *    照样列出并给出实时进度；目录十分钟没动静则判定为中断（stale）。
  *  - /api/runs/:id 单次运行的 manifest + summary + runs.jsonl 全量记录。
+ *  - /api/events   SSE：fs.watch 两个工件根，有任何写入即广播——前端借此
+ *    在 eval 跑动时自动刷新，不需要手动刷新页面。
  * 工件含书文本与模型输出，属本地诊断数据——server 只绑 localhost。
  */
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync, watch } from "node:fs";
 import { join, resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
@@ -17,15 +21,52 @@ const EVAL_ROOTS = [join(REPO_ROOT, ".eval"), join(REPO_ROOT, "packages/agent/.e
 interface RunListing {
   runId: string;
   suiteId: string;
+  status: "running" | "stale" | "complete";
   generatedAt?: string;
   runs?: number;
   passed?: number;
   failed?: number;
   errors?: number;
+  /** 计划内的总 run 数（场景 × 变体 × 重复）——进行中 run 的进度分母。 */
+  total?: number;
   model?: string;
   provider?: string;
   thinkingLevel?: string;
   repetitions?: number;
+}
+
+/** 进行中判定的静默阈值：目录超过这个时长没有写入即视为中断。 */
+const STALE_AFTER_MS = 10 * 60 * 1000;
+
+function liveProgress(directory: string): { runs: number; passed: number; failed: number; errors: number } {
+  const counts = { runs: 0, passed: 0, failed: 0, errors: 0 };
+  const path = join(directory, "runs.jsonl");
+  if (!existsSync(path)) return counts;
+  for (const line of readFileSync(path, "utf8").split("\n")) {
+    if (!line) continue;
+    try {
+      const record = JSON.parse(line) as { status?: string };
+      counts.runs += 1;
+      if (record.status === "passed") counts.passed += 1;
+      else if (record.status === "error") counts.errors += 1;
+      else counts.failed += 1;
+    } catch {
+      // 半行（正在写入）——跳过
+    }
+  }
+  return counts;
+}
+
+function livenessOf(directory: string): "running" | "stale" {
+  try {
+    const candidates = [join(directory, "runs.jsonl"), directory];
+    const newest = Math.max(
+      ...candidates.filter((path) => existsSync(path)).map((path) => statSync(path).mtimeMs),
+    );
+    return Date.now() - newest > STALE_AFTER_MS ? "stale" : "running";
+  } catch {
+    return "stale";
+  }
 }
 
 function readJson(path: string): unknown {
@@ -50,9 +91,11 @@ function listRuns(): RunListing[] {
       const manifest = readJson(join(directory, "manifest.json")) as
         | {
             runId?: string;
+            createdAt?: string;
             plan?: {
               suiteId?: string;
               repetitions?: number;
+              scenarios?: Array<unknown>;
               variants?: Array<{ metadata?: Record<string, unknown> }>;
             };
           }
@@ -62,14 +105,21 @@ function listRuns(): RunListing[] {
         | { generatedAt?: string; runs?: number; passed?: number; failed?: number; errors?: number }
         | undefined;
       const meta = manifest.plan.variants?.[0]?.metadata ?? {};
+      const total =
+        (manifest.plan.scenarios?.length ?? 0) *
+        (manifest.plan.repetitions ?? 1) *
+        Math.max(1, manifest.plan.variants?.length ?? 1);
+      const progress = summary ? undefined : liveProgress(directory);
       listings.push({
         runId: manifest.runId ?? entry,
         suiteId: manifest.plan.suiteId,
-        generatedAt: summary?.generatedAt,
-        runs: summary?.runs,
-        passed: summary?.passed,
-        failed: summary?.failed,
-        errors: summary?.errors,
+        status: summary ? "complete" : livenessOf(directory),
+        generatedAt: summary?.generatedAt ?? manifest.createdAt,
+        runs: summary?.runs ?? progress?.runs,
+        passed: summary?.passed ?? progress?.passed,
+        failed: summary?.failed ?? progress?.failed,
+        errors: summary?.errors ?? progress?.errors,
+        ...(total ? { total } : {}),
         model: typeof meta.model === "string" ? meta.model : undefined,
         provider: typeof meta.provider === "string" ? meta.provider : undefined,
         thinkingLevel: typeof meta.thinkingLevel === "string" ? meta.thinkingLevel : undefined,
@@ -101,6 +151,28 @@ function evalDataPlugin(): Plugin {
   return {
     name: "readaware-eval-data",
     configureServer(server: ViteDevServer) {
+      // 动态面：watch 两个工件根，任何写入（新 bundle、runs.jsonl 追加、
+      // summary 落盘）去抖后广播给所有 SSE 客户端——viewer 随 eval 直播。
+      const sseClients = new Set<import("node:http").ServerResponse>();
+      let debounce: ReturnType<typeof setTimeout> | undefined;
+      const broadcast = () => {
+        clearTimeout(debounce);
+        debounce = setTimeout(() => {
+          for (const client of sseClients) client.write(`data: changed\n\n`);
+        }, 400);
+      };
+      for (const root of EVAL_ROOTS) {
+        try {
+          if (existsSync(root)) watch(root, { recursive: true }, broadcast);
+        } catch {
+          // watch 失败只是丢直播，不影响静态取数
+        }
+      }
+      const heartbeat = setInterval(() => {
+        for (const client of sseClients) client.write(`: ping\n\n`);
+      }, 25_000);
+      heartbeat.unref?.();
+
       server.middlewares.use(async (req, res, next) => {
         const url = new URL(req.url ?? "/", "http://localhost");
         if (!url.pathname.startsWith("/api/")) return next();
@@ -144,6 +216,17 @@ function evalDataPlugin(): Plugin {
           }
           if (url.pathname === "/api/runs") {
             return sendJson(res, listRuns());
+          }
+          if (url.pathname === "/api/events") {
+            res.writeHead(200, {
+              "content-type": "text/event-stream",
+              "cache-control": "no-cache",
+              connection: "keep-alive",
+            });
+            res.write(`data: connected\n\n`);
+            sseClients.add(res);
+            req.on("close", () => sseClients.delete(res));
+            return;
           }
           if (url.pathname === "/api/attention") {
             // 各套件"最新一次 run"里的失败/错误场景聚合——打开页面第一眼
@@ -214,11 +297,17 @@ function evalDataPlugin(): Plugin {
             const rawRecords = existsSync(join(directory, "runs.jsonl"))
               ? readFileSync(join(directory, "runs.jsonl"), "utf8")
               : "";
-            const records = rawRecords
-              .split("\n")
-              .filter(Boolean)
-              .map((line) => JSON.parse(line));
-            return sendJson(res, { manifest, summary, records });
+            const records: unknown[] = [];
+            for (const line of rawRecords.split("\n")) {
+              if (!line) continue;
+              try {
+                records.push(JSON.parse(line));
+              } catch {
+                // 进行中 run 的半行
+              }
+            }
+            const status = summary ? "complete" : livenessOf(directory);
+            return sendJson(res, { manifest, summary, records, status });
           }
           return sendJson(res, { error: "unknown endpoint" }, 404);
         } catch (error) {

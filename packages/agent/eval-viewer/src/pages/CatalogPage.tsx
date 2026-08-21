@@ -14,13 +14,21 @@ function latestBySuite(runs: RunListing[]): Map<string, RunListing> {
   return map;
 }
 
-export function CatalogPage({ catalog, runs }: { catalog: CatalogSuite[]; runs: RunListing[] }) {
+export function CatalogPage({
+  catalog,
+  runs,
+  tick,
+}: {
+  catalog: CatalogSuite[];
+  runs: RunListing[];
+  tick?: number;
+}) {
   const totalScenarios = catalog.reduce((sum, suite) => sum + suite.scenarios.length, 0);
   const latest = latestBySuite(runs);
   const [attention, setAttention] = useState<AttentionItem[] | null>(null);
   useEffect(() => {
     fetchAttention().then(setAttention).catch(() => setAttention([]));
-  }, []);
+  }, [tick]);
 
   const refOf = (suiteId: string, scenarioId: string): string => {
     const suite = catalog.find((entry) => entry.id === suiteId);
@@ -28,8 +36,8 @@ export function CatalogPage({ catalog, runs }: { catalog: CatalogSuite[]; runs: 
     return suite && index >= 0 ? `${suite.code}.${index + 1}` : suiteId;
   };
 
-  // 各套件最新一次的通过聚合——顶部大盘
-  const latestList = Array.from(latest.values());
+  // 各套件最新一次的通过聚合——顶部大盘（进行中/中断的 run 不进聚合）
+  const latestList = Array.from(latest.values()).filter((run) => run.status === "complete");
   const latestRuns = latestList.reduce((sum, run) => sum + (run.runs ?? 0), 0);
   const latestPassed = latestList.reduce((sum, run) => sum + (run.passed ?? 0), 0);
 
@@ -116,9 +124,15 @@ export function CatalogPage({ catalog, runs }: { catalog: CatalogSuite[]; runs: 
                 <td>{suite.scenarios.length}</td>
                 <td>
                   {run ? (
-                    <span className={`badge ${healthy ? "ok" : "fail"}`}>
-                      {run.passed}/{run.runs}
-                    </span>
+                    run.status === "complete" ? (
+                      <span className={`badge ${healthy ? "ok" : "fail"}`}>
+                        {run.passed}/{run.runs}
+                      </span>
+                    ) : (
+                      <span className={`badge ${run.status === "running" ? "running" : "neutral"}`}>
+                        {run.status === "running" ? `跑 ${run.runs ?? 0}/${run.total ?? "?"}` : "中断"}
+                      </span>
+                    )
                   ) : (
                     <span className="badge neutral">未跑过</span>
                   )}
@@ -150,9 +164,15 @@ export function CatalogPage({ catalog, runs }: { catalog: CatalogSuite[]; runs: 
               <td className="mono">{run.runId}</td>
               <td className="mono">{run.suiteId}</td>
               <td>
-                <span className={`badge ${run.passed === run.runs ? "ok" : "fail"}`}>
-                  {run.passed ?? "?"}/{run.runs ?? "?"}
-                </span>
+                {run.status === "running" ? (
+                  <span className="badge running">跑 {run.runs ?? 0}/{run.total ?? "?"}</span>
+                ) : run.status === "stale" ? (
+                  <span className="badge neutral">中断 {run.runs ?? 0}/{run.total ?? "?"}</span>
+                ) : (
+                  <span className={`badge ${run.passed === run.runs ? "ok" : "fail"}`}>
+                    {run.passed ?? "?"}/{run.runs ?? "?"}
+                  </span>
+                )}
                 {run.errors ? <span className="badge err"> {run.errors} 错误</span> : null}
               </td>
               <td className="mono">

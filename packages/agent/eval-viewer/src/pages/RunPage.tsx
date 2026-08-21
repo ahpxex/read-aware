@@ -95,7 +95,48 @@ function RunCard({ record, refOf }: { record: RunRecord; refOf: (scenarioId: str
   );
 }
 
-export function RunPage({ runId, catalog }: { runId: string; catalog: CatalogSuite[] }) {
+/** 进行中 run 没有 summary——从已落盘的 records 现场聚合一份等形状的。 */
+function synthesizeSummary(
+  records: RunRecord[],
+  suiteId: string,
+): NonNullable<RunDetail["summary"]> {
+  const byScenario = new Map<string, RunRecord[]>();
+  for (const record of records) {
+    byScenario.set(record.scenarioId, [...(byScenario.get(record.scenarioId) ?? []), record]);
+  }
+  const mean = (values: number[]) =>
+    values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+  return {
+    suiteId,
+    generatedAt: "",
+    runs: records.length,
+    passed: records.filter((record) => record.status === "passed").length,
+    failed: records.filter((record) => record.status === "failed").length,
+    errors: records.filter((record) => record.status === "error").length,
+    byScenario: Array.from(byScenario.entries()).map(([scenarioId, group]) => ({
+      scenarioId,
+      runs: group.length,
+      passed: group.filter((record) => record.status === "passed").length,
+      meanScore: mean(group.map((record) => record.assessment?.score ?? 0)),
+      telemetry: {
+        meanWallTimeMs: mean(group.map((record) => record.telemetry.wallTimeMs)),
+        meanRounds: mean(group.map((record) => record.telemetry.rounds ?? 0)),
+        meanCostUsd: mean(group.map((record) => record.telemetry.costUsd ?? 0)),
+      },
+    })),
+    comparisons: [],
+  };
+}
+
+export function RunPage({
+  runId,
+  catalog,
+  tick,
+}: {
+  runId: string;
+  catalog: CatalogSuite[];
+  tick?: number;
+}) {
   const [detail, setDetail] = useState<RunDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [failedOnly, setFailedOnly] = useState(false);
@@ -105,10 +146,20 @@ export function RunPage({ runId, catalog }: { runId: string; catalog: CatalogSui
     fetchRun(runId).then(setDetail).catch((cause) => setError(String(cause)));
   }, [runId]);
 
-  if (error) return <div className="error">{error}</div>;
-  if (!detail?.summary) return <div className="loading">加载运行数据…</div>;
+  // 直播刷新：tick 变化时静默重拉（不清空，避免闪加载态）。
+  useEffect(() => {
+    if (tick === undefined || tick === 0) return;
+    fetchRun(runId).then(setDetail).catch(() => {});
+  }, [runId, tick]);
 
-  const { summary, records } = detail;
+  if (error) return <div className="error">{error}</div>;
+  if (!detail) return <div className="loading">加载运行数据…</div>;
+
+  const { records } = detail;
+  const planSuiteId =
+    (detail.manifest?.plan as { suiteId?: string } | undefined)?.suiteId ?? runId.split("-")[0]!;
+  const summary = detail.summary ?? synthesizeSummary(records, planSuiteId);
+  const live = detail.status === "running";
   const suite = catalog.find((entry) => entry.id === summary.suiteId);
   const refOf = (scenarioId: string) => {
     const index = suite?.scenarios.findIndex((scenario) => scenario.id === scenarioId) ?? -1;
@@ -116,6 +167,13 @@ export function RunPage({ runId, catalog }: { runId: string; catalog: CatalogSui
   };
 
   const totalCost = records.reduce((sum, record) => sum + (record.telemetry.costUsd ?? 0), 0);
+  const liveBanner = live ? (
+    <div className="livebanner">
+      <span className="pulse" /> 运行中——已完成 {summary.runs} 个，页面随落盘自动更新
+    </div>
+  ) : detail.status === "stale" ? (
+    <div className="livebanner stale">此 run 未完成且已无写入（可能被中断）——以下为已落盘的部分</div>
+  ) : null;
   const totalTokens = records.reduce(
     (sum, record) => sum + (record.telemetry.tokens?.total ?? 0),
     0,
@@ -133,6 +191,7 @@ export function RunPage({ runId, catalog }: { runId: string; catalog: CatalogSui
 
   return (
     <>
+      {liveBanner}
       <h1>
         <a href={`#/suites/${summary.suiteId}`} className="refchip" style={{ fontSize: 14 }}>
           {suite?.code ?? summary.suiteId}

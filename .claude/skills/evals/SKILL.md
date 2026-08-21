@@ -42,8 +42,9 @@ bun run eval:ui        # http://127.0.0.1:5199 （apps/eval-viewer，Vercel 文�
   按序号定位场景。
 - 数据即 `.eval/` 工件目录（repo 根 + packages/agent 两处都扫）+ 从 agent 包
   实时加载的套件定义——**不跑 eval 也能浏览目录**。
-- 跑完一个套件后：viewer 刷新即见新 run；终端仍打印 trend delta（`!` 前缀 =
-  回归场景）。bundle 含书文本与模型输出——本地诊断工件，**不许 commit、不许外发**。
+- viewer 是**直播的**：正在跑的 run（含进行中进度 n/total）实时出现在列表与 Run 页，
+  SSE 随工件落盘自动刷新，无须手动刷新；十分钟无写入的未完成 run 标"中断"。
+  终端仍打印 trend delta（`!` 前缀 = 回归场景）。bundle 含书文本与模型输出——本地诊断工件，**不许 commit、不许外发**。
 
 ## 失败分诊（顺序固定）
 

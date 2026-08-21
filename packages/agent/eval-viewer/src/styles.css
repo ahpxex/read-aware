@@ -258,3 +258,39 @@ details.tool .args { color: var(--subtle); font-family: ui-monospace, monospace;
 .attention-card:hover { filter: brightness(0.98); }
 .attention-card .head { display: flex; gap: 10px; align-items: center; }
 .attention-card .checks { color: var(--fail); font-size: 12.5px; margin: 6px 0 0; padding-left: 16px; }
+
+/* 直播态 */
+.badge.running {
+  background: color-mix(in srgb, #0070f3 14%, transparent);
+  color: #0070f3;
+  border: 1px solid color-mix(in srgb, #0070f3 30%, transparent);
+  animation: livepulse 1.6s ease-in-out infinite;
+}
+.livebanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  border: 1px solid color-mix(in srgb, #0070f3 35%, transparent);
+  background: color-mix(in srgb, #0070f3 8%, transparent);
+  border-radius: 8px;
+  font-size: 13px;
+  color: #0070f3;
+}
+.livebanner.stale {
+  border-color: var(--border);
+  background: var(--bg-subtle);
+  color: var(--fg-muted);
+}
+.livebanner .pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #0070f3;
+  animation: livepulse 1.2s ease-in-out infinite;
+}
+@keyframes livepulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}

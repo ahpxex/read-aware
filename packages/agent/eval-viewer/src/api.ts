@@ -27,6 +27,10 @@ export interface CatalogSuite {
 export interface RunListing {
   runId: string;
   suiteId: string;
+  /** running = 正在写入；stale = 十分钟无写入的未完成 run（大概率被杀）。 */
+  status: "running" | "stale" | "complete";
+  /** 计划内总 run 数——进行中 run 的进度分母。 */
+  total?: number;
   generatedAt?: string;
   runs?: number;
   passed?: number;
@@ -67,6 +71,7 @@ export interface RunRecord {
 }
 
 export interface RunDetail {
+  status?: "running" | "stale" | "complete";
   manifest?: {
     runId?: string;
     git?: { commit?: string; branch?: string; dirty?: boolean };
@@ -114,6 +119,18 @@ export interface AttentionItem {
 }
 
 export const fetchAttention = () => get<AttentionItem[]>("/api/attention");
+
+/**
+ * 订阅工件目录的写入直播（SSE）：任何 bundle 变化（新 run、逐场景落盘、
+ * summary 完成）触发 onChange——调用方借此重拉当前页数据。返回退订函数。
+ */
+export function subscribeRunEvents(onChange: () => void): () => void {
+  const source = new EventSource("/api/events");
+  source.onmessage = (event) => {
+    if (event.data !== "connected") onChange();
+  };
+  return () => source.close();
+}
 export const fetchCatalog = () => get<CatalogSuite[]>("/api/catalog");
 export const fetchRuns = () => get<RunListing[]>("/api/runs");
 export const fetchRun = (runId: string) => get<RunDetail>(`/api/runs/${encodeURIComponent(runId)}`);

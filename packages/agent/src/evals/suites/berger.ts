@@ -5,10 +5,15 @@
  * 以及"后面讲不讲 X"的前向窥视对工具书理应零仪式。
  * 断言关键词从 fixture 文本实证派生。
  */
-import { assessmentFromChecks, combineAssessments, evaluateAgentTrace } from "../assertions";
+import { combineAssessments, evaluateAgentTrace } from "../assertions";
 import { defineAgentEvalScenario, type AgentEvalScenario } from "../agent-harness";
 import { realBook } from "../book-fixtures";
-import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../types";
+import type { EvalSuite } from "../types";
+import {
+  cjkAnswerAssessment,
+  coverageAssessment,
+  noFenceAssessment,
+} from "./real-book-helpers";
 
 const berger = realBook("berger");
 
@@ -30,72 +35,6 @@ function readerCursor() {
     chapterProgress: 0.2,
     visibleText: berger.chapterViewport(READER_CHAPTER),
   };
-}
-
-function cjkAnswerAssessment(observation: AgentEvalObservation): EvalAssessment {
-  const cjk = /[一-鿿]/.test(observation.answer);
-  return assessmentFromChecks([
-    {
-      id: "answer.language-chinese",
-      category: "quality",
-      passed: cjk,
-      message: cjk
-        ? "answer is in Chinese for a Chinese reader"
-        : "answer to a Chinese question contains no Chinese",
-    },
-  ]);
-}
-
-function noFenceAssessment(observation: AgentEvalObservation): EvalAssessment {
-  const spoilerArgs = observation.tools.filter((call) => {
-    const args =
-      call.args && typeof call.args === "object" && !Array.isArray(call.args)
-        ? (call.args as Record<string, unknown>)
-        : {};
-    return args.confirmSpoiler === true;
-  });
-  const hedged = /剧透|spoiler/i.test(observation.answer);
-  return assessmentFromChecks([
-    {
-      id: "tools.no-spoiler-machinery",
-      category: "policy",
-      passed: spoilerArgs.length === 0,
-      message:
-        spoilerArgs.length === 0
-          ? "no confirmSpoiler argument appeared on an expository book"
-          : `confirmSpoiler used on an expository book: ${spoilerArgs.map((call) => call.name).join(", ")}`,
-    },
-    {
-      id: "answer.no-spoiler-hedging",
-      category: "policy",
-      passed: !hedged,
-      message: hedged
-        ? "answer hedged about spoilers on an expository book"
-        : "answer contains no spoiler hedging",
-    },
-  ]);
-}
-
-/** 至少命中 minHits 个本版本方法词（书中决策章的实证词表）。 */
-function methodVocabularyAssessment(
-  observation: AgentEvalObservation,
-  candidates: string[],
-  minHits: number,
-): EvalAssessment {
-  const hits = candidates.filter((word) => observation.answer.includes(word));
-  return assessmentFromChecks([
-    {
-      id: "answer.method-vocabulary",
-      category: "answer",
-      passed: hits.length >= minHits,
-      message:
-        hits.length >= minHits
-          ? `answer applies the book's method vocabulary: ${hits.join(", ")}`
-          : `answer uses too little of the book's vocabulary (hit: ${hits.join(", ") || "none"})`,
-      expected: { candidates, minHits },
-      actual: hits,
-    },
-  ]);
 }
 
 export const bergerEvalSuite: EvalSuite<AgentEvalScenario> = {
@@ -136,7 +75,7 @@ export const bergerEvalSuite: EvalSuite<AgentEvalScenario> = {
           evaluateAgentTrace(observation, {
             interactions: { forbiddenKinds: ["permission"] },
           }),
-          methodVocabularyAssessment(observation, ["开放式", "如果", "假设", "选项"], 2),
+          coverageAssessment(observation, "answer.method-vocabulary", ["开放式", "如果", "假设", "选项"], 2),
           noFenceAssessment(observation),
           cjkAnswerAssessment(observation),
         ),

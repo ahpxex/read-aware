@@ -5,10 +5,16 @@
  * 以及本版本术语的拼写保真（译名、分类名按本书用词）。
  * 断言关键词全部从 fixture 文本与纪要派生。
  */
-import { assessmentFromChecks, combineAssessments, evaluateAgentTrace } from "../assertions";
+import { combineAssessments, evaluateAgentTrace } from "../assertions";
 import { defineAgentEvalScenario, type AgentEvalScenario } from "../agent-harness";
 import { realBook } from "../book-fixtures";
-import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../types";
+import type { EvalSuite } from "../types";
+import {
+  cjkAnswerAssessment,
+  coverageAssessment,
+  forwardRetrievalAssessment as forwardBeyond,
+  noFenceAssessment,
+} from "./real-book-helpers";
 
 const lebon = realBook("lebon");
 
@@ -31,103 +37,6 @@ function readerCursor() {
     chapterProgress: 0.2,
     visibleText: lebon.chapterViewport(READER_CHAPTER),
   };
-}
-
-function cjkAnswerAssessment(observation: AgentEvalObservation): EvalAssessment {
-  const cjk = /[一-鿿]/.test(observation.answer);
-  return assessmentFromChecks([
-    {
-      id: "answer.language-chinese",
-      category: "quality",
-      passed: cjk,
-      message: cjk
-        ? "answer is in Chinese for a Chinese reader"
-        : "answer to a Chinese question contains no Chinese",
-    },
-  ]);
-}
-
-/**
- * 说明文红线：不许出现剧透机器的任何痕迹——没有 confirmSpoiler 参数、
- * 没有"剧透"措辞的推脱、越过游标的正文工具调用一律应当成功。
- * （对叙事书这是围栏纪律；对说明书这是围栏必须不存在。）
- */
-function noFenceAssessment(observation: AgentEvalObservation): EvalAssessment {
-  const spoilerArgs = observation.tools.filter((call) => {
-    const args =
-      call.args && typeof call.args === "object" && !Array.isArray(call.args)
-        ? (call.args as Record<string, unknown>)
-        : {};
-    return args.confirmSpoiler === true;
-  });
-  const hedged = /剧透|spoiler/i.test(observation.answer);
-  return assessmentFromChecks([
-    {
-      id: "tools.no-spoiler-machinery",
-      category: "policy",
-      passed: spoilerArgs.length === 0,
-      message:
-        spoilerArgs.length === 0
-          ? "no confirmSpoiler argument appeared on an expository book"
-          : `confirmSpoiler used on an expository book: ${spoilerArgs.map((call) => call.name).join(", ")}`,
-    },
-    {
-      id: "answer.no-spoiler-hedging",
-      category: "policy",
-      passed: !hedged,
-      message: hedged
-        ? "answer hedged about spoilers on an expository book"
-        : "answer contains no spoiler hedging",
-    },
-  ]);
-}
-
-/** 前向检索确实发生：至少一次成功的正文工具调用越过了读者游标。 */
-function forwardRetrievalAssessment(observation: AgentEvalObservation): EvalAssessment {
-  const forward = observation.tools.some((call) => {
-    if (call.isError) return false;
-    const args =
-      call.args && typeof call.args === "object" && !Array.isArray(call.args)
-        ? (call.args as Record<string, unknown>)
-        : {};
-    if (call.name === "read_chapter") {
-      return typeof args.chapterIndex === "number" && args.chapterIndex > READER_CHAPTER;
-    }
-    // search_book_text 不带章界即覆盖全书——算前向。
-    return call.name === "search_book_text";
-  });
-  return assessmentFromChecks([
-    {
-      id: "tools.forward-retrieval",
-      category: "tool",
-      passed: forward,
-      message: forward
-        ? "retrieval reached beyond the reading cursor without ceremony"
-        : "no successful retrieval reached beyond the reading cursor",
-    },
-  ]);
-}
-
-/** 答案至少命中一组本版本分类名之一（措辞按本书拼写）。 */
-function anyOfAssessment(
-  observation: AgentEvalObservation,
-  id: string,
-  candidates: string[],
-): EvalAssessment {
-  const hit = candidates.filter((word) => observation.answer.includes(word));
-  return assessmentFromChecks([
-    {
-      id,
-      category: "answer",
-      passed: hit.length > 0,
-      message:
-        hit.length > 0
-          ? `answer uses this edition's terms: ${hit.join(", ")}`
-          : `answer used none of this edition's terms: ${candidates.join(", ")}`,
-      expected: candidates,
-      actual: hit,
-    },
-  ]);
 }
 
 export const lebonEvalSuite: EvalSuite<AgentEvalScenario> = {
@@ -216,7 +125,7 @@ export const lebonEvalSuite: EvalSuite<AgentEvalScenario> = {
             interactions: { forbiddenKinds: ["permission"] },
           }),
           noFenceAssessment(observation),
-          forwardRetrievalAssessment(observation),
+          forwardBeyond(observation, READER_CHAPTER),
           cjkAnswerAssessment(observation),
         ),
     }),
@@ -249,11 +158,11 @@ export const lebonEvalSuite: EvalSuite<AgentEvalScenario> = {
       evaluate: (observation) =>
         combineAssessments(
           evaluateAgentTrace(observation, { answer: { mustContain: ["威望"] } }),
-          anyOfAssessment(observation, "answer.taxonomy-edition-terms", [
+          coverageAssessment(observation, "answer.taxonomy-edition-terms", [
             "被赋予的威望",
             "人为的威望",
             "个人的威望",
-          ]),
+          ], 1),
           noFenceAssessment(observation),
           cjkAnswerAssessment(observation),
         ),

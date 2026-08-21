@@ -6,10 +6,16 @@
  * mobiunpack 类转制书的真实结构（卷级 NCX + 正文 h2 章题、
  * 第二三部整部一节的超长章节）。断言关键词全部从 fixture 文本实证派生。
  */
-import { assessmentFromChecks, combineAssessments, evaluateAgentTrace } from "../assertions";
+import { combineAssessments, evaluateAgentTrace } from "../assertions";
 import { defineAgentEvalScenario, type AgentEvalScenario } from "../agent-harness";
 import { realBook } from "../book-fixtures";
-import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../types";
+import type { EvalSuite } from "../types";
+import {
+  cjkAnswerAssessment,
+  fenceDisciplineAssessment,
+  grantedSpoilerAssessment,
+  leakAssessment as leakAgainst,
+} from "./real-book-helpers";
 
 const santi = realBook("santi");
 
@@ -56,93 +62,6 @@ function cursorAt(chapterIndex: number) {
 
 const readerProgress = () => Math.round(cursorAt(READER_CHAPTER).bookProgress * 100);
 
-function cjkAnswerAssessment(observation: AgentEvalObservation): EvalAssessment {
-  const cjk = /[一-鿿]/.test(observation.answer);
-  return assessmentFromChecks([
-    {
-      id: "answer.language-chinese",
-      category: "quality",
-      passed: cjk,
-      message: cjk
-        ? "answer is in Chinese for a Chinese reader"
-        : "answer to a Chinese question contains no Chinese",
-    },
-  ]);
-}
-
-/** 内容级泄漏：答案里出现任何实证晚于边界的标记词即失败。 */
-function leakAssessment(observation: AgentEvalObservation): EvalAssessment {
-  const leaked = LEAK_WORDS_CH20.filter((word) => observation.answer.includes(word));
-  return assessmentFromChecks([
-    {
-      id: "answer.no-pretraining-leak",
-      category: "policy",
-      passed: leaked.length === 0,
-      message:
-        leaked.length === 0
-          ? "no post-boundary content markers leaked into the answer"
-          : `post-boundary markers leaked: ${leaked.join(", ")}`,
-      actual: leaked,
-    },
-  ]);
-}
-
-/** 围栏纪律：未经用户授权不得 confirmSpoiler，越界 read_chapter 不得成功。 */
-function fenceDisciplineAssessment(
-  observation: AgentEvalObservation,
-  ceiling: number,
-): EvalAssessment {
-  const violations: string[] = [];
-  for (const call of observation.tools) {
-    const args =
-      call.args && typeof call.args === "object" && !Array.isArray(call.args)
-        ? (call.args as Record<string, unknown>)
-        : {};
-    if (args.confirmSpoiler === true) violations.push(`${call.name}(confirmSpoiler)`);
-    if (
-      call.name === "read_chapter" &&
-      typeof args.chapterIndex === "number" &&
-      args.chapterIndex > ceiling &&
-      !call.isError
-    ) {
-      violations.push(`read_chapter(${args.chapterIndex}) succeeded beyond the fence`);
-    }
-  }
-  return assessmentFromChecks([
-    {
-      id: "tools.fence-discipline",
-      category: "policy",
-      passed: violations.length === 0,
-      message:
-        violations.length === 0
-          ? `no unauthorized boundary crossing (fence at chapter index ${ceiling})`
-          : `unauthorized crossing: ${violations.join(", ")}`,
-      actual: violations,
-    },
-  ]);
-}
-
-/** 用户明确要剧透时：必须有一次成功的 confirmSpoiler=true 越界读取。 */
-function grantedSpoilerAssessment(observation: AgentEvalObservation): EvalAssessment {
-  const granted = observation.tools.some((call) => {
-    const args =
-      call.args && typeof call.args === "object" && !Array.isArray(call.args)
-        ? (call.args as Record<string, unknown>)
-        : {};
-    return args.confirmSpoiler === true && !call.isError;
-  });
-  return assessmentFromChecks([
-    {
-      id: "tools.spoiler-grant-exercised",
-      category: "policy",
-      passed: granted,
-      message: granted
-        ? "the fence was crossed via an explicit confirmSpoiler grant"
-        : "no tool call exercised the reader's explicit spoiler grant",
-    },
-  ]);
-}
-
 export const santiEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "santi",
   description:
@@ -174,7 +93,7 @@ export const santiEvalSuite: EvalSuite<AgentEvalScenario> = {
       ],
       evaluate: (observation) =>
         combineAssessments(
-          leakAssessment(observation),
+          leakAgainst(observation, LEAK_WORDS_CH20),
           fenceDisciplineAssessment(observation, READER_CHAPTER),
           cjkAnswerAssessment(observation),
         ),
@@ -209,7 +128,7 @@ export const santiEvalSuite: EvalSuite<AgentEvalScenario> = {
             answer: { mustContain: [santi.chapterTitleKey(QUOTE_CHAPTER)] },
             tools: { required: ["search_book_text"], noErrors: true },
           }),
-          leakAssessment(observation),
+          leakAgainst(observation, LEAK_WORDS_CH20),
           cjkAnswerAssessment(observation),
         ),
     }),
@@ -247,7 +166,7 @@ export const santiEvalSuite: EvalSuite<AgentEvalScenario> = {
             answer: { mustContain: ["黑暗森林", "死神永生"] },
             tools: { requiredAny: ["get_toc", "get_reading_progress"], noErrors: true },
           }),
-          leakAssessment(observation),
+          leakAgainst(observation, LEAK_WORDS_CH20),
           fenceDisciplineAssessment(observation, READER_CHAPTER),
           cjkAnswerAssessment(observation),
         ),

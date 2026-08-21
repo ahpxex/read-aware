@@ -69,7 +69,7 @@ Options:
   --candidate <spec>           Compare name=provider:model (repeatable)
   --repetitions <n>            Runs per scenario and variant (default: 1)
   --concurrency <n>            Parallel (scenario, repetition) units (default: 1)
-  --timeout-ms <ms>            Per-run timeout (default: 120000)
+  --timeout-ms <ms>            Per-run timeout (default: 240000)
   --scenario <id[,id]>         Run selected scenarios (repeatable)
   --tag <tag[,tag]>            Run scenarios matching any selected tag
   --thinking <level>           off|minimal|low|medium|high|xhigh|max (default: medium)
@@ -182,7 +182,8 @@ export function parseEvalCliArgs(args: string[]): EvalCliOptions {
     candidates: [...directCandidates, ...modelCandidates],
     repetitions: integer(parsed.values.repetitions, 1, "repetitions"),
     concurrency: integer(parsed.values.concurrency, 1, "concurrency"),
-    timeoutMs: integer(parsed.values["timeout-ms"], 120_000, "timeout-ms"),
+    // medium thinking 是缺省档：多书检索 + 深思考的场景 120s 会被误杀。
+    timeoutMs: integer(parsed.values["timeout-ms"], 240_000, "timeout-ms"),
     scenarioIds: listValues(parsed.values.scenario),
     tags: listValues(parsed.values.tag),
     thinkingLevel: parseThinkingLevel(parsed.values.thinking),

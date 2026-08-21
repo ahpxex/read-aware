@@ -41,6 +41,18 @@ surface case there; the completeness check fails otherwise.
   (`fixtures/berger.epub`, 10 chapters). The tool-book angle: the reader
   brings a real situation and the answer must APPLY the finished chapters'
   methods to it, plus zero-ceremony forward peeks at later chapters.
+- `realbooks`: the common behavior grid, GENERATED over every registered real
+  book from one config table (`suites/real-book-common.ts`) — topical lookup
+  without position interrogation, selected-passage explanation, verbatim
+  highlight + note flows, chapter-crossing recall across the context reset,
+  no-cursor spoiler caution (narrative books), and quote location for books
+  whose own suites don't cover it. Adding a book to the registry
+  automatically enrolls it here.
+- `crossbook`: global-thread behaviors over a shelf of four real books —
+  "which book said this" attribution, cross-book synthesis (deliberately also
+  the watchpost for the known gap that the global thread arms no host
+  spoiler fence — prompt discipline only), and shelf-grounded
+  recommendations rendered as cards.
 - `grounding`: honesty when data is missing — no invented chapters, durations,
   or shelf books.
 - `reading`: reading-cursor grounding, selective spoiler protection, forward
@@ -62,6 +74,17 @@ List scenarios without loading credentials or calling a model:
 ```sh
 bun run eval:agent settings --list
 bun run eval:all --list
+```
+
+Two standalone runners sit beside the suites:
+
+```sh
+# Regenerate a real book's digest fixture with the production pipeline
+bun run eval:digests <slug> [--resume]
+
+# The narrativity classifier against every registered book (5 fast calls;
+# a misclassification flips the fence AND the digest flavor for that book)
+bun run eval:classify
 ```
 
 ## Running

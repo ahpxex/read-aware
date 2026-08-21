@@ -9,6 +9,11 @@ import { assessmentFromChecks, combineAssessments, evaluateAgentTrace } from "..
 import { defineAgentEvalScenario, type AgentEvalScenario } from "../agent-harness";
 import { realBook } from "../book-fixtures";
 import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../types";
+import {
+  coverageAssessment,
+  forwardRetrievalAssessment as forwardBeyond,
+  noFenceAssessment,
+} from "./real-book-helpers";
 
 const fowler = realBook("refactoring");
 
@@ -62,85 +67,6 @@ function bilingualAssessment(
           : `terms lost or translated away: ${requiredTerms.filter((t) => !kept.includes(t)).join(", ")}`,
       expected: requiredTerms,
       actual: kept,
-    },
-  ]);
-}
-
-/** 说明书红线：无 confirmSpoiler、无剧透推脱（与 lebon 套件同责）。 */
-function noFenceAssessment(observation: AgentEvalObservation): EvalAssessment {
-  const spoilerArgs = observation.tools.filter((call) => {
-    const args =
-      call.args && typeof call.args === "object" && !Array.isArray(call.args)
-        ? (call.args as Record<string, unknown>)
-        : {};
-    return args.confirmSpoiler === true;
-  });
-  const hedged = /剧透|spoiler/i.test(observation.answer);
-  return assessmentFromChecks([
-    {
-      id: "tools.no-spoiler-machinery",
-      category: "policy",
-      passed: spoilerArgs.length === 0,
-      message:
-        spoilerArgs.length === 0
-          ? "no confirmSpoiler argument appeared on an expository book"
-          : `confirmSpoiler used on an expository book: ${spoilerArgs.map((call) => call.name).join(", ")}`,
-    },
-    {
-      id: "answer.no-spoiler-hedging",
-      category: "policy",
-      passed: !hedged,
-      message: hedged
-        ? "answer hedged about spoilers on an expository book"
-        : "answer contains no spoiler hedging",
-    },
-  ]);
-}
-
-/** 前向检索确实发生：成功的正文调用越过了读者游标。 */
-function forwardRetrievalAssessment(observation: AgentEvalObservation): EvalAssessment {
-  const forward = observation.tools.some((call) => {
-    if (call.isError) return false;
-    const args =
-      call.args && typeof call.args === "object" && !Array.isArray(call.args)
-        ? (call.args as Record<string, unknown>)
-        : {};
-    if (call.name === "read_chapter") {
-      return typeof args.chapterIndex === "number" && args.chapterIndex > READER_CHAPTER;
-    }
-    return call.name === "search_book_text";
-  });
-  return assessmentFromChecks([
-    {
-      id: "tools.forward-retrieval",
-      category: "tool",
-      passed: forward,
-      message: forward
-        ? "retrieval reached beyond the reading cursor without ceremony"
-        : "no successful retrieval reached beyond the reading cursor",
-    },
-  ]);
-}
-
-/** 答案命中至少 minHits 个本版本词表项（概念图广度断言）。 */
-function coverageAssessment(
-  observation: AgentEvalObservation,
-  id: string,
-  candidates: string[],
-  minHits: number,
-): EvalAssessment {
-  const hits = candidates.filter((word) => observation.answer.includes(word));
-  return assessmentFromChecks([
-    {
-      id,
-      category: "answer",
-      passed: hits.length >= minHits,
-      message:
-        hits.length >= minHits
-          ? `answer names ${hits.length} of this edition's terms: ${hits.join(", ")}`
-          : `answer names only ${hits.length}/${minHits} required terms (hit: ${hits.join(", ") || "none"})`,
-      expected: { candidates, minHits },
-      actual: hits,
     },
   ]);
 }
@@ -288,7 +214,7 @@ export const refactoringEvalSuite: EvalSuite<AgentEvalScenario> = {
             interactions: { forbiddenKinds: ["permission"] },
           }),
           bilingualAssessment(observation, ["Replace Conditional with Polymorphism"]),
-          forwardRetrievalAssessment(observation),
+          forwardBeyond(observation, READER_CHAPTER),
           noFenceAssessment(observation),
         ),
     }),

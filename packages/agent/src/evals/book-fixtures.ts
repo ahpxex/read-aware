@@ -159,17 +159,38 @@ function createRealBook(spec: RealBookSpec): RealBookFixture {
     }),
     chapterTitleKey: (chapterIndex) => {
       const chapterTitle = epub().chapters[chapterIndex]?.title ?? "";
-      return chapterTitle.replace(/^[第一二三四五六七八九十百零〇\s]+[章节部卷]?\s*/, "").trim();
+      // 剥中文序号（"四 老三阿辽沙"）与英文 "Chapter N" 前缀——断言关键词
+      // 只留题名本体，模型换一种编号说法（第四章/Chapter 4/#4）不该判错。
+      return chapterTitle
+        .replace(/^[第一二三四五六七八九十百零〇\s]+[章节部卷]?\s*/, "")
+        .replace(/^Chapter\s+\d+\s*/i, "")
+        .trim();
     },
     pickSentence: (chapterIndex) => {
       const chapter = epub().chapters[chapterIndex];
       if (!chapter) throw new Error(`${spec.slug} fixture has no chapter ${chapterIndex}`);
       // 正文以"章题\n\n"开头——先剥掉，且句子内不得含换行，否则断言片段永远匹配不上散文
       const body = chapter.text.replace(/^[^\n]*\n+/, "");
-      const sentence = body
-        .split(/(?<=[。！？])/)
-        .map((part) => part.trim())
-        .find((part) => part.length >= 20 && part.length <= 80 && !part.includes("\n"));
+      // 文种感知取句：CJK 书按句号类断句（20–80 字），拉丁文书按 ". " 断句
+      // （60–180 字符，且句首大写——避开缩写误断的碎片）。
+      const cjkRatio =
+        (body.slice(0, 2000).match(/[一-鿿]/g)?.length ?? 0) / Math.min(body.length, 2000);
+      const sentence =
+        cjkRatio > 0.2
+          ? body
+              .split(/(?<=[。！？])/)
+              .map((part) => part.trim())
+              .find((part) => part.length >= 20 && part.length <= 80 && !part.includes("\n"))
+          : body
+              .split(/(?<=[.!?])\s+/)
+              .map((part) => part.trim())
+              .find(
+                (part) =>
+                  part.length >= 60 &&
+                  part.length <= 180 &&
+                  !part.includes("\n") &&
+                  /^[A-Z“"]/.test(part),
+              );
       return sentence ?? body.slice(0, 60).replace(/\n+/g, "");
     },
     chapterViewport: (chapterIndex, chars = 320) => {

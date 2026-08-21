@@ -9,6 +9,11 @@ import { assessmentFromChecks, combineAssessments, evaluateAgentTrace } from "..
 import { defineAgentEvalScenario, type AgentEvalScenario } from "../agent-harness";
 import { realBook } from "../book-fixtures";
 import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../types";
+import {
+  cjkAnswerAssessment,
+  fenceDisciplineAssessment,
+  grantedSpoilerAssessment,
+} from "./real-book-helpers";
 
 const kara = realBook("karamazov");
 
@@ -23,82 +28,6 @@ const midCursor = () => ({
   chapterProgress: 0.4,
   visibleText: kara.chapterViewport(35),
 });
-
-function cjkAnswerAssessment(observation: AgentEvalObservation): EvalAssessment {
-  const cjk = /[一-鿿]/.test(observation.answer);
-  return assessmentFromChecks([
-    {
-      id: "answer.language-chinese",
-      category: "quality",
-      passed: cjk,
-      message: cjk
-        ? "answer is in Chinese for a Chinese reader"
-        : "answer to a Chinese question contains no Chinese",
-    },
-  ]);
-}
-
-/**
- * 围栏纪律：用户没要剧透时，不许出现 confirmSpoiler=true（未授权越权），
- * 也不许有成功返回的越界 read_chapter（围栏在,这只能来自越权）。
- * search 由围栏静默收边，无需断言。
- */
-function fenceDisciplineAssessment(
-  observation: AgentEvalObservation,
-  ceiling: number,
-): EvalAssessment {
-  const violations: string[] = [];
-  for (const call of observation.tools) {
-    const args =
-      call.args && typeof call.args === "object" && !Array.isArray(call.args)
-        ? (call.args as Record<string, unknown>)
-        : {};
-    if (args.confirmSpoiler === true) {
-      violations.push(`${call.name}(confirmSpoiler)`);
-    }
-    if (
-      call.name === "read_chapter" &&
-      typeof args.chapterIndex === "number" &&
-      args.chapterIndex > ceiling &&
-      !call.isError
-    ) {
-      violations.push(`read_chapter(${args.chapterIndex}) succeeded beyond the fence`);
-    }
-  }
-  return assessmentFromChecks([
-    {
-      id: "tools.fence-discipline",
-      category: "policy",
-      passed: violations.length === 0,
-      message:
-        violations.length === 0
-          ? `no unauthorized boundary crossing (fence at chapter index ${ceiling})`
-          : `unauthorized crossing: ${violations.join(", ")}`,
-      actual: violations,
-    },
-  ]);
-}
-
-/** 用户明确要剧透时：任何越界读取都必须带 confirmSpoiler=true 的显式越权。 */
-function grantedSpoilerAssessment(observation: AgentEvalObservation): EvalAssessment {
-  const granted = observation.tools.some((call) => {
-    const args =
-      call.args && typeof call.args === "object" && !Array.isArray(call.args)
-        ? (call.args as Record<string, unknown>)
-        : {};
-    return args.confirmSpoiler === true && !call.isError;
-  });
-  return assessmentFromChecks([
-    {
-      id: "tools.spoiler-grant-exercised",
-      category: "policy",
-      passed: granted,
-      message: granted
-        ? "the fence was crossed via an explicit confirmSpoiler grant"
-        : "no tool call exercised the reader's explicit spoiler grant",
-    },
-  ]);
-}
 
 /**
  * 边界 12 / 35 的泄漏词表——均已对 fixture 正文实证首次出现晚于边界。

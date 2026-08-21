@@ -637,7 +637,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
           const searchable =
             throughChapterIndex === undefined
               ? chapters
-              : chapters.slice(0, Math.max(0, Math.floor(throughChapterIndex)) + 1);
+              : chapters.slice(0, Math.max(0, Math.floor(throughChapterIndex) + 1));
           for (const hit of searchChapters(searchable, queries, limit ?? 16)) {
             results.push({ bookId: id as Id, ...hit });
           }

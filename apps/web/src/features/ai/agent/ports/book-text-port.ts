@@ -33,7 +33,7 @@ export function createBookTextPort(): BookTextPort {
         const chapters =
           throughChapterIndex === undefined
             ? extracted
-            : extracted.slice(0, Math.max(0, Math.floor(throughChapterIndex)) + 1);
+            : extracted.slice(0, Math.max(0, Math.floor(throughChapterIndex) + 1));
         for (const hit of searchChapters(chapters, queries, max)) {
           results.push({ bookId, ...hit });
         }

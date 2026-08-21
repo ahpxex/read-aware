@@ -24,6 +24,7 @@ import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { visibleScopes } from "../tools/memory-tools";
 import { referenceFromToolDetails } from "../tools/present-tools";
 import { buildAgentTools, createAgentTurnState } from "../tools/registry";
+import { hasExplicitSpoilerPermission } from "../tools/spoiler-permission";
 import { interactionFromToolDetails } from "../tools/user-interaction";
 import { AsyncQueue } from "./async-queue";
 import { elideStaleToolResults } from "./context-slim";
@@ -34,6 +35,13 @@ import {
   turnRecordsToMessages,
 } from "./history";
 import { buildGroundingContext } from "./grounding-context";
+import {
+  inspectNarrativeEvidence,
+  loadNarrativeBookIndex,
+  normalizeEvidenceText,
+  type NarrativeBookIndex,
+  type NarrativeEvidenceViolation,
+} from "./narrative-evidence";
 import { formatPromptTurn, type ReadingCursor } from "./reading-cursor";
 import { toolResultText } from "./tool-trace";
 import { windowByTurns } from "./windowing";
@@ -63,6 +71,8 @@ export interface AgentThreadOptions {
   getApiKey: (provider: string) => string | undefined;
   /** 后台管道（记忆提炼）的补全调用，跑在 fast 档位上 */
   completeFn: CompleteFn;
+  /** 剧透证据闸触发后的重写调用；生产使用 smart，测试可独立注入。 */
+  repairCompleteFn?: CompleteFn;
   /** 主聊天的流式调用，使用与后台管道相同的 provider registry。 */
   streamFn: StreamFn;
   /** 聊天轮次（smart 档）的 thinking effort，默认 "off" */
@@ -97,6 +107,7 @@ export class AgentThread {
   private readonly resolveModel: ResolveModel;
   private readonly getApiKey: (provider: string) => string | undefined;
   private readonly completeFn: CompleteFn;
+  private readonly repairCompleteFn: CompleteFn;
   private readonly streamFn: StreamFn;
   private readonly thinkingLevel: ThinkingLevel;
   private readonly maxWindowTurns: number;
@@ -122,6 +133,8 @@ export class AgentThread {
   private sessionChapter: string | undefined;
   /** 一轮内的工具侧状态（出卡去重 + 剧透围栏）；每轮 sendTurn 开始时重算。 */
   private readonly turnState = createAgentTurnState();
+  /** 未读正文只留在宿主侧作负证据索引，绝不进入模型上下文。 */
+  private narrativeBookIndex?: Promise<NarrativeBookIndex>;
 
   constructor(options: AgentThreadOptions) {
     this.scope = options.scope;
@@ -132,6 +145,9 @@ export class AgentThread {
     const rawComplete = options.completeFn;
     this.completeFn = (model, context, callOptions) =>
       rawComplete(model, context, { signal: this.lifecycle.signal, ...callOptions });
+    const rawRepair = options.repairCompleteFn ?? options.completeFn;
+    this.repairCompleteFn = (model, context, callOptions) =>
+      rawRepair(model, context, { signal: this.lifecycle.signal, ...callOptions });
     this.streamFn = options.streamFn;
     this.thinkingLevel = options.thinkingLevel ?? "off";
     this.maxWindowTurns = options.maxWindowTurns ?? DEFAULT_WINDOW_TURNS;
@@ -168,6 +184,105 @@ export class AgentThread {
     this.agent = undefined;
     this.sessionStarted = false;
     this.sessionChapter = undefined;
+  }
+
+  private loadNarrativeIndex(): Promise<NarrativeBookIndex> | undefined {
+    if (this.scope.kind !== "book") return undefined;
+    this.narrativeBookIndex ??= loadNarrativeBookIndex(
+      this.deps.bookText,
+      this.scope.bookId,
+    );
+    return this.narrativeBookIndex;
+  }
+
+  private fallbackForUnsafeAnswer(readerText: string): string {
+    if (/[぀-ヿ]/u.test(readerText)) {
+      return "今の読書位置を守るため、この先の内容には触れません。どこまで読んだか、またはネタバレ可だと明示してください。";
+    }
+    if (/[가-힯]/u.test(readerText)) {
+      return "현재 읽는 위치를 지키기 위해 이후 내용은 설명하지 않겠습니다. 어디까지 읽었는지 알려 주거나 스포일러를 허용한다고 명확히 말해 주세요.";
+    }
+    if (/[一-鿿]/u.test(readerText)) {
+      return "为了守住你当前的阅读进度，我先不展开这部分。请告诉我读到哪里，或者明确说明可以剧透。";
+    }
+    if (/[Ѐ-ӿ]/u.test(readerText)) {
+      return "Чтобы не раскрывать непрочитанное, я пока не буду развивать эту часть. Скажите, где вы остановились, или явно разрешите спойлеры.";
+    }
+    return "To protect your current reading position, I will not expand on that yet. Tell me where you are, or explicitly allow spoilers.";
+  }
+
+  /** Drop whole prose blocks that carry a detected leak; coherent safe blocks survive. */
+  private redactUnsafeBlocks(
+    draft: string,
+    violations: NarrativeEvidenceViolation[],
+  ): string {
+    const forbidden = violations.map((item) => normalizeEvidenceText(item.phrase));
+    return draft
+      .split(/\n\s*\n/u)
+      .filter((block) => {
+        const normalized = normalizeEvidenceText(block);
+        return !forbidden.some((phrase) => normalized.includes(phrase));
+      })
+      .join("\n\n")
+      .trim();
+  }
+
+  private async repairUnsafeAnswer(input: {
+    readerText: string;
+    draft: string;
+    cursor?: ReadingCursor;
+    attachments?: TurnAttachment[];
+    violations: NarrativeEvidenceViolation[];
+    book: NarrativeBookIndex;
+  }): Promise<{ answer: string; usage?: Usage; elapsedMs: number }> {
+    const started = performance.now();
+    const forbidden = input.violations.map((item) => item.phrase);
+    const safeEvidence = [
+      input.cursor?.visibleText,
+      ...(input.attachments?.map((attachment) => attachment.text) ?? []),
+      ...this.turnState.evidenceTexts,
+    ].filter((value): value is string => !!value?.trim());
+    const message = await this.repairCompleteFn(
+      this.resolveModel("smart"),
+      {
+        systemPrompt: [
+          "You are a final response safety rewriter for a reading app.",
+          "Return only the replacement answer, in the reader's language.",
+          "Use only the reader message and the safe evidence below for book-specific claims.",
+          "Remove every future-only or edition-ungrounded detail. Do not name, quote, negate, hint at, or apologize for the removed details.",
+          "For a progress or TOC question, give only the requested position or structure without previews.",
+        ].join("\n"),
+        messages: [
+          {
+            role: "user",
+            content: JSON.stringify({
+              readerMessage: input.readerText,
+              safeEvidence,
+              unsafeDraft: input.draft,
+              forbiddenMaterial: forbidden,
+            }),
+            timestamp: Date.now(),
+          },
+        ],
+      },
+    );
+    const candidate = stripEmoji(lastAssistantText([message]));
+    const remaining = inspectNarrativeEvidence({
+      answer: candidate,
+      readerText: input.readerText,
+      attachments: input.attachments,
+      cursor: input.cursor,
+      toolEvidence: this.turnState.evidenceTexts,
+      book: input.book,
+      allowFuture: this.turnState.spoilerGranted,
+    });
+    return {
+      answer: candidate.trim() && remaining.length === 0
+        ? candidate
+        : this.fallbackForUnsafeAnswer(input.readerText),
+      usage: message.usage,
+      elapsedMs: Math.round(performance.now() - started),
+    };
   }
 
   /**
@@ -265,6 +380,10 @@ export class AgentThread {
     // 不可信，下一轮从持久记录重建基线（等价于今天的无状态装配）。
     let turnCompleted = false;
     this.turnState.presentedBookIds.clear();
+    this.turnState.spoilerPermissionGranted = hasExplicitSpoilerPermission(input.text);
+    this.turnState.spoilerPermissionDenied = false;
+    this.turnState.spoilerGranted = false;
+    this.turnState.evidenceTexts.length = 0;
     // 游标章节坐标归一：宿主（阅读器）只带 href——抽取章节 index 由 agent 用
     // 自己的权威映射反查（与 read_chapter 同一坐标系）。eval 等直接给 index
     // 的调用方原样通过。围栏与接地装配都以归一后的游标为准。
@@ -287,15 +406,20 @@ export class AgentThread {
     // 剧透围栏：叙事书 + 未读完 + 本轮游标带章节 index → 正文工具越界需 confirmSpoiler
     this.turnState.spoilerFence = undefined;
     let narrativeUnfinished = false;
-    if (this.scope.kind === "book" && (cursor || input.attachments?.length)) {
+    if (this.scope.kind === "book") {
       const book = await this.deps.library.getBook(this.scope.bookId);
       narrativeUnfinished = book?.narrativity === "narrative" && book.status !== "finished";
       if (narrativeUnfinished && cursor?.chapterIndex !== undefined) {
         this.turnState.spoilerFence = {
-          throughChapterIndex: cursor.chapterIndex,
+          throughChapterIndex: cursor.visibleText?.trim()
+            ? cursor.chapterIndex - 1
+            : cursor.chapterIndex,
+          readerChapterIndex: cursor.chapterIndex,
         };
       }
     }
+    // 与远端推理并行预热；未读正文不会进入 prompt，只在回包前作负证据比对。
+    const narrativeIndexPromise = narrativeUnfinished ? this.loadNarrativeIndex() : undefined;
     // 选中提问的确定性接地：边界内原文证据随本轮注入（见 grounding-context.ts）。
     // 装配失败静默降级；叙事书没有章节坐标时宁缺毋滥。
     const groundingContext =
@@ -385,6 +509,7 @@ export class AgentThread {
       let round = 0;
       let roundStartedAt = 0;
       let firstDeltaAt = 0;
+      let bufferedText = "";
       for await (const event of queue) {
         switch (event.type) {
           case "turn_start":
@@ -413,7 +538,9 @@ export class AgentThread {
           case "message_update":
             if (!firstDeltaAt) firstDeltaAt = performance.now();
             if (event.assistantMessageEvent.type === "text_delta") {
-              yield { type: "text", text: stripEmoji(event.assistantMessageEvent.delta) };
+              const delta = stripEmoji(event.assistantMessageEvent.delta);
+              if (narrativeUnfinished) bufferedText += delta;
+              else yield { type: "text", text: delta };
             } else if (event.assistantMessageEvent.type === "thinking_delta") {
               yield { type: "thinking", text: event.assistantMessageEvent.delta };
             }
@@ -498,13 +625,98 @@ export class AgentThread {
       if (runError) throw runError;
       if (agent.state.errorMessage) throw new Error(agent.state.errorMessage);
 
+      let answer = lastAssistantText(agent.state.messages);
+      let discardUnsafeAgent = false;
+      if (narrativeUnfinished) {
+        const visibleDraft = bufferedText || stripEmoji(answer);
+        if (this.turnState.spoilerPermissionDenied && !this.turnState.spoilerGranted) {
+          answer = this.fallbackForUnsafeAnswer(input.text);
+          discardUnsafeAgent = true;
+          this.deps.log?.warn(
+            "narrative answer replaced after an unauthorized spoiler-tool attempt",
+          );
+          yield { type: "text", text: answer };
+        } else {
+          const bookIndex = await narrativeIndexPromise?.catch((error) => {
+            this.deps.log?.warn("narrative evidence index failed to load", error);
+            return undefined;
+          });
+          const violations = bookIndex
+            ? inspectNarrativeEvidence({
+                answer: visibleDraft,
+                readerText: input.text,
+                attachments: input.attachments,
+                cursor,
+                toolEvidence: this.turnState.evidenceTexts,
+                book: bookIndex,
+                allowFuture: this.turnState.spoilerGranted,
+              })
+            : [];
+          if (violations.length > 0 && bookIndex) {
+            const redacted = this.redactUnsafeBlocks(visibleDraft, violations);
+            const redactedViolations = redacted
+              ? inspectNarrativeEvidence({
+                  answer: redacted,
+                  readerText: input.text,
+                  attachments: input.attachments,
+                  cursor,
+                  toolEvidence: this.turnState.evidenceTexts,
+                  book: bookIndex,
+                  allowFuture: this.turnState.spoilerGranted,
+                })
+              : violations;
+            const repaired =
+              redacted.length >= 20 && redactedViolations.length === 0
+                ? { answer: redacted, usage: undefined, elapsedMs: 0 }
+                : await this.repairUnsafeAnswer({
+                    readerText: input.text,
+                    draft: visibleDraft,
+                    cursor,
+                    attachments: input.attachments,
+                    violations,
+                    book: bookIndex,
+                  }).catch((error) => {
+                    this.deps.log?.warn(
+                      "narrative answer rewrite failed; using deterministic fallback",
+                      error,
+                    );
+                    return {
+                      answer: this.fallbackForUnsafeAnswer(input.text),
+                      usage: undefined,
+                      elapsedMs: 0,
+                    };
+                  });
+            answer = repaired.answer;
+            discardUnsafeAgent = true;
+            this.deps.log?.warn("narrative answer replaced at evidence boundary", violations);
+            if (repaired.elapsedMs > 0 || repaired.usage) {
+              yield {
+                type: "metric",
+                round: round + 1,
+                ttfbMs: repaired.elapsedMs,
+                totalMs: repaired.elapsedMs,
+                tokens: repaired.usage && {
+                  input: repaired.usage.input,
+                  output: repaired.usage.output,
+                  cacheRead: repaired.usage.cacheRead,
+                  cacheWrite: repaired.usage.cacheWrite,
+                },
+                costUsd: repaired.usage?.cost.total,
+              };
+            }
+            yield { type: "text", text: answer };
+          } else if (visibleDraft) {
+            yield { type: "text", text: visibleDraft };
+          }
+        }
+      }
+
       await this.deps.conversations.append(this.key, {
         role: "user",
         content: input.text,
         createdAt: startedAt,
         attachments: input.attachments,
       });
-      const answer = lastAssistantText(agent.state.messages);
       if (answer) {
         await this.deps.conversations.append(this.key, {
           role: "assistant",
@@ -527,6 +739,7 @@ export class AgentThread {
       // 轮后管道：记忆提炼 + 滚动摘要 + 图谱节拍。异步、不阻塞、失败静默
       // （doc §10 第 6 步）
       this.scheduleBackgroundPipeline(userText, answer, cursor?.chapter);
+      if (discardUnsafeAgent) this.discardAgent();
       turnCompleted = true;
     } finally {
       // 中断/报错后 agent.state 不可信 —— pi 会把 stopReason=error/aborted 的

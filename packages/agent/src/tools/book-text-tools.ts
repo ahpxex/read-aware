@@ -30,6 +30,20 @@ export function spoilerGranted(value: unknown): boolean {
   return value === true || value === "true";
 }
 
+/** confirmSpoiler is capability use, not authorization creation. */
+export function assertSpoilerPermission(
+  confirmSpoiler: boolean,
+  turnState: AgentTurnState | undefined,
+  targetIsCurrentBook: boolean,
+): void {
+  if (!confirmSpoiler || !turnState || !targetIsCurrentBook) return;
+  if (turnState.spoilerPermissionGranted) return;
+  turnState.spoilerPermissionDenied = true;
+  throw new Error(
+    "confirmSpoiler was rejected because the reader has not explicitly granted spoiler permission. Stay within the reading boundary or ask the reader with ask_user; the tool argument cannot grant itself permission.",
+  );
+}
+
 /** 数字参数归一化（模型偶发发成字符串数字）；非数字返回 undefined。 */
 function asIndex(value: unknown): number | undefined {
   const parsed = typeof value === "string" ? Number(value) : value;
@@ -125,9 +139,10 @@ export function buildBookTextTools(
       const confirmSpoiler = spoilerGranted(raw.confirmSpoiler);
       const target = resolveBookId(bookId);
       const fence = fenceFor(target);
+      assertSpoilerPermission(confirmSpoiler, turnState, target === defaultBookId);
       if (fence && chapterIndex > fence.throughChapterIndex && !confirmSpoiler) {
         throw new Error(
-          `chapter ${chapterIndex} is beyond the reader's position (chapter index ${fence.throughChapterIndex}) in this narrative book. If the reader explicitly asked for spoilers this turn, retry with confirmSpoiler: true; otherwise stay within the boundary.`,
+          `chapter ${chapterIndex} is beyond the reader's position or viewport boundary (reader chapter index ${fence.readerChapterIndex ?? fence.throughChapterIndex}) in this narrative book. If the reader explicitly asked for spoilers this turn, retry with confirmSpoiler: true; otherwise stay within the boundary.`,
         );
       }
       const text = await deps.bookText.getChapterText(target, chapterIndex);
@@ -136,12 +151,20 @@ export function buildBookTextTools(
       }
       const totalParts = Math.max(1, Math.ceil(text.length / CHAPTER_PART_CHARS));
       const window = Math.min(Math.max(0, part), totalParts - 1);
+      const returnedText = text.slice(
+        window * CHAPTER_PART_CHARS,
+        (window + 1) * CHAPTER_PART_CHARS,
+      );
+      if (turnState) {
+        turnState.evidenceTexts.push(returnedText);
+        if (confirmSpoiler && target === defaultBookId) turnState.spoilerGranted = true;
+      }
       return textResult({
         bookId: target,
         chapterIndex,
         part: window,
         totalParts,
-        text: text.slice(window * CHAPTER_PART_CHARS, (window + 1) * CHAPTER_PART_CHARS),
+        text: returnedText,
       });
     },
   };
@@ -179,6 +202,7 @@ export function buildBookTextTools(
       // 变体轰炸（25 个查询）就地截断，别让 schema 报错烧掉一轮往返
       const queries = rawQueries.slice(0, 12);
       const target = normalizeBookIdParam(bookId) ?? defaultBookId;
+      assertSpoilerPermission(confirmSpoiler, turnState, target === defaultBookId);
       if (throughChapterIndex !== undefined && !target) {
         throw new Error("throughChapterIndex requires bookId in the global thread");
       }
@@ -196,6 +220,10 @@ export function buildBookTextTools(
         throughChapterIndex,
         limit: 16,
       });
+      if (turnState) {
+        turnState.evidenceTexts.push(...hits.map((hit) => hit.snippet));
+        if (confirmSpoiler && target === defaultBookId) turnState.spoilerGranted = true;
+      }
       return textResult({
         totalHits: hits.length,
         ...(throughChapterIndex !== undefined ? { throughChapterIndex } : {}),

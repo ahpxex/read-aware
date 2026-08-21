@@ -118,6 +118,7 @@ export class AgentRuntime {
         resolveModel: this.resolveModel,
         getApiKey: () => accountCredential(this.options.account),
         completeFn: this.completeFns.fast,
+        repairCompleteFn: this.completeFns.smart,
         streamFn: this.streamFns.smart,
         thinkingLevel: this.thinking.smart,
         maxWindowTurns: this.options.maxWindowTurns,

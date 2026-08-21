@@ -20,7 +20,11 @@ import {
 } from "../memory/chapter-digest";
 import type { ChapterDigest, DigestCharacter, RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
-import { confirmSpoilerSchema, spoilerGranted } from "./book-text-tools";
+import {
+  assertSpoilerPermission,
+  confirmSpoilerSchema,
+  spoilerGranted,
+} from "./book-text-tools";
 import { resolveBookId as resolveScopedBookId } from "./current-book";
 import { textResult } from "./tool-result";
 import type { AgentTurnState } from "./turn-state";
@@ -95,6 +99,11 @@ export function buildGraphTools(
           ? chapterQueryRaw
           : undefined;
       const target = resolveScopedBookId(scope, raw.bookId);
+      assertSpoilerPermission(
+        confirmSpoiler,
+        turnState,
+        scope.kind === "book" && target === scope.bookId,
+      );
       const digests = await deps.bookMemory.listDigests(target);
       if (!digests.length) {
         return textResult({
@@ -127,6 +136,9 @@ export function buildGraphTools(
           graph: "empty",
           ...(fenceNote ? { note: `${fenceNote}; no digests fall within that range` } : {}),
         });
+      }
+      if (confirmSpoiler && turnState && scope.kind === "book" && target === scope.bookId) {
+        turnState.spoilerGranted = true;
       }
 
       // 单章模式：该章的摘要 + 新增实体 + 该章确立的边。

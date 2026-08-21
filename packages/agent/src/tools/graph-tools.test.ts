@@ -38,7 +38,12 @@ const DIGESTS: ChapterDigest[] = [
   },
 ];
 
-function tools(options?: { fenceAt?: number; finished?: boolean; global?: boolean }) {
+function tools(options?: {
+  fenceAt?: number;
+  finished?: boolean;
+  global?: boolean;
+  permissionGranted?: boolean;
+}) {
   const { deps } = createInMemoryDeps({
     books: [
       {
@@ -51,6 +56,7 @@ function tools(options?: { fenceAt?: number; finished?: boolean; global?: boolea
     chapterDigests: { [BOOK]: DIGESTS },
   });
   const state = createAgentTurnState();
+  state.spoilerPermissionGranted = options?.permissionGranted ?? false;
   if (options?.fenceAt !== undefined) state.spoilerFence = { throughChapterIndex: options.fenceAt };
   const scope = options?.global
     ? ({ kind: "global", threadId: "graph-thread" } as const)
@@ -99,7 +105,7 @@ describe("query_book_graph", () => {
   });
 
   test("confirmSpoiler lifts the clamp; string 'false' does not", async () => {
-    const { query_book_graph } = tools({ fenceAt: 1 });
+    const { query_book_graph } = tools({ fenceAt: 1, permissionGranted: true });
     const granted = parse(
       await query_book_graph!.execute("q5", { confirmSpoiler: true }),
     );
@@ -108,6 +114,13 @@ describe("query_book_graph", () => {
       await query_book_graph!.execute("q6", { confirmSpoiler: "false" }),
     );
     expect(denied.chaptersDigested).toBe(1);
+  });
+
+  test("confirmSpoiler cannot self-authorize graph access", async () => {
+    const { query_book_graph } = tools({ fenceAt: 1 });
+    await expect(query_book_graph!.execute("q-denied", { confirmSpoiler: true })).rejects.toThrow(
+      "reader has not explicitly granted spoiler permission",
+    );
   });
 
   test("chapter mode beyond the fence explains instead of leaking", async () => {

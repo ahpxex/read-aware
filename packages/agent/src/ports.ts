@@ -317,7 +317,7 @@ export interface BookTextPort {
   searchText(filter: {
     queries: string[];
     bookId?: Id;
-    /** Inclusive upper chapter bound, used by narrative spoiler protection. */
+    /** Inclusive upper chapter bound; -1 means no chapter is safe at an in-chapter viewport. */
     throughChapterIndex?: number;
     limit?: number;
   }): Promise<BookTextHit[]>;

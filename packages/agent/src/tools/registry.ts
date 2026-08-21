@@ -33,7 +33,7 @@ export function buildAgentTools(
     ...buildGraphTools(scope, deps, turnState),
     ...(scope.kind === "global" ? buildPresentTools(deps, turnState) : []),
     ...buildReaderTools(scope, deps),
-    ...buildInteractionTools(scope, deps),
+    ...buildInteractionTools(scope, deps, turnState),
     ...buildSettingsTools(scope, deps),
     ...(deps.extraTools?.(scope) ?? []),
   ];

@@ -3,6 +3,7 @@ import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { buildAnnotationTools } from "./annotation-tools";
 import { buildBookTextTools } from "./book-text-tools";
+import { buildGraphTools } from "./graph-tools";
 import { buildConversationTools } from "./conversation-tools";
 import { buildInteractionTools } from "./interaction-tools";
 import { buildThreadTools } from "./library-tools";
@@ -29,6 +30,7 @@ export function buildAgentTools(
     ...buildMemoryTools(scope, deps),
     ...buildConversationTools(scope, deps),
     ...buildBookTextTools(scope, deps, turnState),
+    ...buildGraphTools(scope, deps, turnState),
     ...(scope.kind === "global" ? buildPresentTools(deps, turnState) : []),
     ...buildReaderTools(scope, deps),
     ...buildInteractionTools(scope, deps),

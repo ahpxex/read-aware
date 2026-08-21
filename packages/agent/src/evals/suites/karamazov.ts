@@ -317,7 +317,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "story-so-far-relations",
       description:
-        "注入叙事图谱后，回答人物关系问题——从摘要注册中应答：少量工具调用，使用本版本拼写，无泄露。",
+        "名录注入瘦身后回答人物关系问题——注入只带名字与别名，关系边须经 query_book_graph 取得：少量工具调用，使用本版本拼写，无泄露。",
       tags: ["karamazov", "real-book", "graph", "digest", "cursor", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: { ...kara.seed(12), chapterDigests: kara.digestsSeed(EARLY_CHAPTER) },
@@ -334,8 +334,8 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
           },
         },
       ],
-      // 图已在 system prompt 里：正确答案不需要扫书。允许零调用；上限 2
-      // 是给"补一处细节"的余地——超过说明模型没在用注入的图。
+      // 名录在 system prompt、关系边在 query_book_graph：正确答案 = 一次
+      // 图查询；上限 6 给"补一处细节"的余地——超过说明模型在盲扫正文。
       expectation: {
         answer: {
           // 米乌索夫的监护角色是注入图特有的边——预训练答案通常漏掉它。
@@ -348,10 +348,10 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
         tools: { maxCalls: 6 },
       },
       criteria: {
-        graphAnswer: "关系事实来自注入的叙事图（父子、母系、仆人、监护人），不靠扫书也不靠预训练",
+        graphAnswer: "关系事实来自图谱（query_book_graph 的边：父子、母系、仆人、监护人），不靠扫书也不靠预训练",
       },
       rubric: [
-        "States Mitya's relationships (father Fyodor, half-brothers Ivan and Alyosha, caretaker Grigory and guardian Miusov) consistently with the injected registry, using this edition's spellings",
+        "States Mitya's relationships (father Fyodor, half-brothers Ivan and Alyosha, caretaker Grigory and guardian Miusov) consistently with the graph, using this edition's spellings",
         "Does not volunteer characters or events beyond the reader's position",
       ],
       evaluate: (observation) =>
@@ -359,6 +359,47 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
           evaluateAgentTrace(observation, {
             answer: { mustContain: ["米乌索夫"], mustNotContain: LEAK_WORDS_CH12 },
             tools: { maxCalls: 6 },
+          }),
+          fenceDisciplineAssessment(observation, EARLY_CHAPTER),
+          cjkAnswerAssessment(observation),
+        ),
+    }),
+    defineAgentEvalScenario({
+      id: "graph-entity-profile",
+      description:
+        "次要人物的档案与出处走图工具——注入名录只带名字，问格里果利与这家人的关系及出处章时，必须 query_book_graph 取关系边（#7 确立的照料者边）与出场章，而非盲扫正文或凭预训练作答。",
+      tags: ["karamazov", "real-book", "graph", "tool", "book"],
+      scope: { kind: "book", bookId: kara.bookId },
+      seed: { ...kara.seed(12), chapterDigests: kara.digestsSeed(EARLY_CHAPTER) },
+      seedSummary: kara.seedSummary(12),
+      turns: [
+        {
+          text: "格里果利这个人跟卡拉马佐夫一家都是什么关系？书里是哪几章讲到他的？",
+          readingCursor: {
+            chapterIndex: EARLY_CHAPTER,
+            chapterTitle: kara.chapterTitleKey(EARLY_CHAPTER),
+            bookProgress: 0.12,
+            chapterProgress: 0.5,
+            visibleText: kara.chapterViewport(EARLY_CHAPTER),
+          },
+        },
+      ],
+      expectation: {
+        answer: { mustContain: ["格里果利"], mustNotContain: LEAK_WORDS_CH12 },
+        tools: { required: ["query_book_graph"], noErrors: true, maxCalls: 6 },
+      },
+      criteria: {
+        graphFirst: "档案与出处来自 query_book_graph（照料者边、出场章列表），不盲扫正文",
+      },
+      rubric: [
+        "Answers Grigory's role from the graph (the household servant who cared for Sofia's sons) and cites where the book covers him, consistent with the graph's provenance chapters",
+        "Does not volunteer events beyond the reader's position",
+      ],
+      evaluate: (observation) =>
+        combineAssessments(
+          evaluateAgentTrace(observation, {
+            answer: { mustContain: ["格里果利"], mustNotContain: LEAK_WORDS_CH12 },
+            tools: { required: ["query_book_graph"], noErrors: true, maxCalls: 6 },
           }),
           fenceDisciplineAssessment(observation, EARLY_CHAPTER),
           cjkAnswerAssessment(observation),

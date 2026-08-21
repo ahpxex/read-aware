@@ -88,6 +88,7 @@ const SURFACE_CASES: Record<string, Record<string, unknown>> = {
   get_toc: { bookId: BOOK_ID },
   read_chapter: { bookId: BOOK_ID, chapterIndex: 0 },
   search_book_text: { queries: ["footprints"], bookId: BOOK_ID },
+  query_book_graph: { bookId: BOOK_ID },
   present_books: { bookIds: [BOOK_ID] },
   open_book: { bookId: BOOK_ID },
   ask_user: {

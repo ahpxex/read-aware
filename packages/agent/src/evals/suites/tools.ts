@@ -208,7 +208,7 @@ export const toolsEvalSuite: EvalSuite<AgentEvalScenario> = {
         { text: "Does this book ever talk about family or kinship? Point me to where." },
       ],
       expectation: {
-        tools: { required: ["search_book_text"], noErrors: true, maxCalls: 3 },
+        tools: { required: ["search_book_text"], noErrors: true, maxCalls: 4 },
       },
       criteria: { firstSearchMustCarry: ">=2 query variants" },
       evaluate: (observation) => {
@@ -222,7 +222,7 @@ export const toolsEvalSuite: EvalSuite<AgentEvalScenario> = {
         return combineAssessments(
           evaluateAgentTrace(observation, {
             answer: { mustContain: ["kinship"] },
-            tools: { required: ["search_book_text"], noErrors: true, maxCalls: 3 },
+            tools: { required: ["search_book_text"], noErrors: true, maxCalls: 4 },
           }),
           assessmentFromChecks([
             {

@@ -15,7 +15,7 @@ import type { AgentTurnState } from "./turn-state";
 
 const CHAPTER_PART_CHARS = 12000;
 
-const confirmSpoilerSchema = Type.Optional(
+export const confirmSpoilerSchema = Type.Optional(
   Type.Boolean({
     description:
       "Set true ONLY when the reader explicitly asked for spoilers in this conversation; lifts the narrative reading-position fence for this call. NEVER set it to widen search coverage, on expository/technical books (they have no fence), or 'just in case' — setting it without the reader's explicit grant is a policy violation.",
@@ -26,7 +26,7 @@ const confirmSpoilerSchema = Type.Optional(
  * 授权参数归一化：模型偶发把布尔发成字符串。宽松 truthy 判断会让
  * "false" 字符串穿透围栏——只认 true 与 "true"，其余一律视为未授权。
  */
-function spoilerGranted(value: unknown): boolean {
+export function spoilerGranted(value: unknown): boolean {
   return value === true || value === "true";
 }
 
@@ -150,7 +150,7 @@ export function buildBookTextTools(
     name: "search_book_text",
     label: "Search book text",
     description:
-      "Full-text search inside the books' actual prose. Pass SEVERAL phrasings/synonyms in `queries` in this ONE call (results are merged and deduped) instead of retrying one query at a time — recall depends on wording and each retry costs a whole round trip. Exact matches come first; token-level fallback matches are marked \"partial\". Each hit reports the read_chapter `part` it falls in, so you can jump straight to it. throughChapterIndex is an inclusive chapter ceiling, but it cannot hide unread text later inside that same chapter. When a narrative book has cursor.visible_text and the reader did not request spoilers, NEVER search the current or later chapters, even to gather or verify clues the reader has already seen; use visible_text for the current passage and search only earlier chapters. bookId defaults to the current book; omit bookId in the global thread to search the whole shelf.",
+      "Full-text search inside the books' actual prose. For who/what/relation/arc questions, query_book_graph first — it answers those directly and names the provenance chapters, turning this from a blind sweep into a targeted fetch; use THIS tool for exact wording, quotes, and anything the graph does not carry. Pass SEVERAL phrasings/synonyms in `queries` in this ONE call (results are merged and deduped) instead of retrying one query at a time — recall depends on wording and each retry costs a whole round trip. Exact matches come first; token-level fallback matches are marked \"partial\". Each hit reports the read_chapter `part` it falls in, so you can jump straight to it. throughChapterIndex is an inclusive chapter ceiling, but it cannot hide unread text later inside that same chapter. When a narrative book has cursor.visible_text and the reader did not request spoilers, NEVER search the current or later chapters, even to gather or verify clues the reader has already seen; use visible_text for the current passage and search only earlier chapters. bookId defaults to the current book; omit bookId in the global thread to search the whole shelf.",
     parameters: Type.Object({
       queries: Type.Array(Type.String(), {
         minItems: 1,

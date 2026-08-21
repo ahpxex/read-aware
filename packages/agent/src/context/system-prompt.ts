@@ -3,7 +3,7 @@
  * bundle 体系成型后（book_memory / reading_intent / conversation_insights）
  * 在这里逐段注入；全局线程每轮重建，书线程每个章节会话冻结一份快照。
  */
-import { mergeCharacterRegistry, mergeRelationGraph } from "../memory/chapter-digest";
+import { mergeCharacterRegistry } from "../memory/chapter-digest";
 import type { BookOverview, ChapterDigest, MemoryRecord } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 
@@ -59,15 +59,16 @@ function readingPositionLine(input: SystemPromptInput): string {
   return `Reading position: ${parts.join("; ")}.${protocol}`;
 }
 
-/** "故事至此"一节里保留完整摘要的章数；更早章节只留人物名录。 */
-const DIGEST_SUMMARY_CHAPTERS = 8;
+/** "故事至此"一节里保留完整摘要的章数；更早章节只进名录。 */
+const DIGEST_SUMMARY_CHAPTERS = 3;
 /**
- * 名录/边的注入上限。长篇读到后期 registry 会到几百节点（卡拉马佐夫全书
- * 243 节点 / 341 边 ≈ 1.1 万字符），全量注入吃掉预算还稀释注意力——按
- * 提及章数排序截断，长尾人物靠 search_book_text 按需取。
+ * 名录注入上限。注入的职责收缩为"拼写校准 + 谁在场"的最小集（name +
+ * aliases 单行）：这是模型不知道自己需要的部分，必须常驻——而 note、
+ * 关系边、长尾实体全部退到 query_book_graph 按需查询（读端见
+ * tools/graph-tools.ts）。长篇读到后期 registry 有几百节点，全量注入
+ * 吃预算还稀释注意力。
  */
 const MAX_REGISTRY_CHARACTERS = 48;
-const MAX_REGISTRY_EDGES = 64;
 
 /**
  * 已读章节纪要 → system prompt 的"故事至此"一节。人物名录按提及频次
@@ -78,7 +79,7 @@ function storySoFarSection(digests: ChapterDigest[]): string | undefined {
   if (!digests.length) return undefined;
   const ordered = [...digests].sort((a, b) => a.chapterIndex - b.chapterIndex);
   const lines: string[] = [
-    "The story so far, built from THIS book's own text (chapters the reader has finished). Names and aliases are spelled exactly as this edition spells them — always use these spellings, never a variant you remember from another edition or translation.",
+    "The story so far, built from THIS book's own text (chapters the reader has finished). Names and aliases are spelled exactly as this edition spells them — always use these spellings, never a variant you remember from another edition or translation. This is only the roster: relations, per-entity notes, minor figures, and provenance chapters live in query_book_graph.",
   ];
   // 提及章数 = 人物/边的重要性代理：主角出现在几十章里，路人只在一章。
   const mentions = new Map<string, number>();
@@ -93,26 +94,10 @@ function storySoFarSection(digests: ChapterDigest[]): string | undefined {
     .slice(0, MAX_REGISTRY_CHARACTERS);
   if (registry.length) {
     lines.push(
-      "Characters so far (most recurring first; minor figures omitted — search the book text for them):",
+      "Characters so far (most recurring first; query_book_graph for their profiles, relations, and the minor figures omitted here):",
       ...registry.map(
         (character) =>
-          `- ${character.name}${character.aliases?.length ? ` (${character.aliases.join(", ")})` : ""}${
-            character.note ? ` — ${character.note}` : ""
-          }`,
-      ),
-    );
-  }
-  // 关系边（叙事图）：digests 已按剧透边界过滤，这里的边全部是读者已知的。
-  // "A —kind→ B (#ch)" 的出处戳让模型能回答"读者是什么时候知道这层关系的"。
-  const edges = mergeRelationGraph(ordered)
-    .sort((a, b) => weight(b.from) + weight(b.to) - (weight(a.from) + weight(a.to)))
-    .slice(0, MAX_REGISTRY_EDGES);
-  if (edges.length) {
-    lines.push(
-      "Relationships so far (from —kind→ to, with the chapter that established it):",
-      ...edges.map(
-        (edge) =>
-          `- ${edge.from} —${edge.kind}→ ${edge.to} (#${edge.establishedAt})${edge.note ? ` — ${edge.note}` : ""}`,
+          `- ${character.name}${character.aliases?.length ? ` (${character.aliases.join(", ")})` : ""}`,
       ),
     );
   }
@@ -136,7 +121,7 @@ function subjectSoFarSection(digests: ChapterDigest[]): string | undefined {
   if (!digests.length) return undefined;
   const ordered = [...digests].sort((a, b) => a.chapterIndex - b.chapterIndex);
   const lines: string[] = [
-    "The book's argument so far, built from THIS book's own text (chapters the reader has finished). Terms are spelled exactly as this edition spells them — always use these spellings and definitions, never a variant you remember from elsewhere; where the book's usage differs from the field's, the book's usage wins in this conversation.",
+    "The book's argument so far, built from THIS book's own text (chapters the reader has finished). Terms are spelled exactly as this edition spells them — always use these spellings and definitions, never a variant you remember from elsewhere; where the book's usage differs from the field's, the book's usage wins in this conversation. This is only the roster: each term's definition note, conceptual relations, and provenance chapters live in query_book_graph.",
   ];
   const mentions = new Map<string, number>();
   for (const digest of ordered) {
@@ -150,24 +135,10 @@ function subjectSoFarSection(digests: ChapterDigest[]): string | undefined {
     .slice(0, MAX_REGISTRY_CHARACTERS);
   if (registry.length) {
     lines.push(
-      "Key concepts so far (most recurring first; minor terms omitted — search the book text for them):",
+      "Key concepts so far (most recurring first; query_book_graph for definitions, conceptual relations, and the minor terms omitted here):",
       ...registry.map(
         (concept) =>
-          `- ${concept.name}${concept.aliases?.length ? ` (${concept.aliases.join(", ")})` : ""}${
-            concept.note ? ` — ${concept.note}` : ""
-          }`,
-      ),
-    );
-  }
-  const edges = mergeRelationGraph(ordered)
-    .sort((a, b) => weight(b.from) + weight(b.to) - (weight(a.from) + weight(a.to)))
-    .slice(0, MAX_REGISTRY_EDGES);
-  if (edges.length) {
-    lines.push(
-      "Conceptual relations the book has established (from —kind→ to, with the chapter that established it):",
-      ...edges.map(
-        (edge) =>
-          `- ${edge.from} —${edge.kind}→ ${edge.to} (#${edge.establishedAt})${edge.note ? ` — ${edge.note}` : ""}`,
+          `- ${concept.name}${concept.aliases?.length ? ` (${concept.aliases.join(", ")})` : ""}`,
       ),
     );
   }
@@ -223,6 +194,7 @@ function sharedRules(scope: ThreadScope): string {
 - Tool calls in one batch run in parallel — when you need several independent lookups (multiple chapters, toc + annotations, …), issue them together instead of one per turn.
 - When the reader asks you to check, find, read, compare, or verify something and an available tool can do it, call the tool in this turn and finish the answer. Never stop at "I can look that up" or ask the reader to trigger a lookup you can perform yourself.
 - A table of contents names sections; it does not prove whether a topic appears in their prose. Search or read the actual text before claiming that a book does or does not cover something.
+- Retrieval is layered: query_book_graph is the map (entities, relations, this edition's spellings, provenance chapters — first stop for who/what/relation/so-far questions), the text tools are the ground (exact prose at the chapters the graph points to). The graph is a distilled summary: verbatim quotes and anything outside its schema still require the text.
 - During a multi-round tool loop, continue from the reasoning already present. Do not restate the same plan, observations, or tool results in later reasoning; once the evidence is sufficient, answer instead of narrating another plan.
 
 ## Writes, safety, and clarification

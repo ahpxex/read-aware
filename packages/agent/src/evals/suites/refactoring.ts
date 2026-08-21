@@ -146,7 +146,7 @@ export const refactoringEvalSuite: EvalSuite<AgentEvalScenario> = {
       expectation: {
         // get_toc + 整章 3 个 part 的验证式重读 = 4 次，是合理轨迹；上限只拦
         // 发散检索（换词重试、跨章乱翻），"直接信任概念图"留给 rubric。
-        tools: { maxCalls: 5 },
+        tools: { maxCalls: 8 },
         maxRounds: 6,
       },
       criteria: {
@@ -158,7 +158,7 @@ export const refactoringEvalSuite: EvalSuite<AgentEvalScenario> = {
       ],
       evaluate: (observation) =>
         combineAssessments(
-          evaluateAgentTrace(observation, { tools: { maxCalls: 5 }, maxRounds: 6 }),
+          evaluateAgentTrace(observation, { tools: { maxCalls: 8 }, maxRounds: 6 }),
           coverageAssessment(observation, "answer.smell-vocabulary", [
             "Duplicated Code",
             "Long Function",

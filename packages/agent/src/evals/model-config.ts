@@ -29,6 +29,34 @@ export interface ResolvedEvalModel {
   modelId: string;
 }
 
+/**
+ * provider 未指定模型时的 eval 缺省。OpenRouter 目录三百多个模型，
+ * "第一个 reasoning 模型"是碰运气——显式钉住与 DeepSeek 官方档相同的
+ * 模型（OpenRouter slug 形态）。
+ */
+const EVAL_DEFAULT_MODELS: Partial<Record<KnownProviderId, string>> = {
+  openrouter: "deepseek/deepseek-v4-flash",
+};
+
+/**
+ * eval 侧的 OpenRouter 上游路由：优先 CoreWeave（fp8 端点，快且稳定），
+ * 不可用时允许回退——eval 不该因单一上游抖动而全挂。只影响 eval/开发
+ * 链路；产品用户的 OpenRouter 路由归他们自己的账户偏好。
+ */
+const OPENROUTER_EVAL_ROUTING = {
+  order: ["coreweave"],
+  allow_fallbacks: true,
+} as const;
+
+/** 给 eval 解析出的模型注入路由偏好（仅 openrouter；其余原样返回）。 */
+export function applyEvalRouting<T extends { provider: string; compat?: object }>(model: T): T {
+  if (model.provider !== "openrouter") return model;
+  return {
+    ...model,
+    compat: { ...model.compat, openRouterRouting: OPENROUTER_EVAL_ROUTING },
+  };
+}
+
 export function resolveEvalModel(
   registry: ProviderRegistry,
   providerInput: string,
@@ -67,7 +95,11 @@ export function resolveEvalModel(
     throw new Error(`no API key: set ${envKeys[provider]} or configure pi CLI auth`);
   }
   const catalog = registry.getModels(provider);
-  const modelId = requestedModel?.trim() || catalog.find((model) => model.reasoning)?.id || catalog[0]?.id;
+  const modelId =
+    requestedModel?.trim() ||
+    EVAL_DEFAULT_MODELS[provider] ||
+    catalog.find((model) => model.reasoning)?.id ||
+    catalog[0]?.id;
   if (!modelId) throw new Error(`provider ${provider} has no registered model`);
   return { account: { kind: "api-key", provider, apiKey }, modelId };
 }
@@ -86,11 +118,13 @@ export function resolveJudgeCompletion(
   const registry = buildProviderRegistry();
   const resolved = resolveEvalModel(registry, providerInput, requestedModel);
   const completeFn = createCompleteFn(registry, resolved.account, "off");
-  const model = createModelResolver(
-    resolved.account,
-    { smart: resolved.modelId, fast: resolved.modelId },
-    registry,
-  )("smart");
+  const model = applyEvalRouting(
+    createModelResolver(
+      resolved.account,
+      { smart: resolved.modelId, fast: resolved.modelId },
+      registry,
+    )("smart"),
+  );
   return {
     complete: async (prompt) => {
       const message = await completeFn(model, {

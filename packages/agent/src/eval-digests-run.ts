@@ -4,8 +4,9 @@
  * 写成 fixtures/<slug>-digests.json —— eval 场景以此获得"生产同形"的图
  * 切片，一次生成、入库为 fixture、永远确定。
  *
- * 用法（DeepSeek 为缺省 provider，key 解析与 eval runner 同源）：
- *   bun run eval:digests <slug> [--provider deepseek] [--model deepseek-v4-flash]
+ * 用法（OpenRouter 为缺省 provider——CoreWeave 优先路由，key 解析与 eval
+ * runner 同源）：
+ *   bun run eval:digests <slug> [--provider openrouter] [--model deepseek/deepseek-v4-flash]
  *   bun run eval:digests santi --resume     # 续跑：保留已有章节，只补缺失
  *
  * 断点续跑是刻意设计：几十章的全书跑一次要几分钟，网络抖动不该从头再来。
@@ -23,7 +24,7 @@ import { createCompleteFn } from "./models/complete";
 import { buildProviderRegistry } from "./models/registry";
 import type { ChapterDigest } from "./ports";
 import { realBook, realBookSlugs, type RealBookSlug } from "./evals/book-fixtures";
-import { resolveEvalModel } from "./evals/model-config";
+import { applyEvalRouting, resolveEvalModel } from "./evals/model-config";
 
 function argValue(flag: string): string | undefined {
   const index = process.argv.indexOf(flag);
@@ -38,7 +39,7 @@ if (!slugArg || !(realBookSlugs() as string[]).includes(slugArg)) {
 }
 const slug = slugArg as RealBookSlug;
 const book = realBook(slug);
-const provider = argValue("--provider") ?? "deepseek";
+const provider = argValue("--provider") ?? "openrouter";
 const requestedModel = argValue("--model");
 const resume = process.argv.includes("--resume");
 
@@ -52,6 +53,7 @@ const model = createModelResolver(
   { smart: resolved.modelId, fast: resolved.modelId },
   registry,
 )("fast");
+const routedModel = applyEvalRouting(model);
 
 const epub = book.epub();
 const flavor = book.spec.narrativity;
@@ -84,7 +86,7 @@ for (let index = 0; index < epub.chapters.length; index++) {
   );
   const digest = await extractChapterDigest({
     complete,
-    model,
+    model: routedModel,
     chapterIndex: index,
     chapterTitle: chapter.title,
     chapterText: chapter.text,

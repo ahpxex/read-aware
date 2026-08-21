@@ -11,6 +11,7 @@ import type { CompleteFn, StreamFn } from "../models/complete";
 import { createStreamFn } from "../models/complete";
 import type { LlmAccount } from "../models/accounts";
 import { accountCredential, accountProviderId, createModelResolver } from "../models/accounts";
+import { applyEvalRouting } from "./model-config";
 import type { ProviderRegistry } from "../models/registry";
 import type { ResolveModel } from "../models/roles";
 import type { RuntimeDeps } from "../ports";
@@ -150,13 +151,15 @@ export function createAgentEvalVariant(
   const baseStreamFn =
     options.streamFn ?? createStreamFn(options.registry!, options.account!, thinkingLevel);
   const completeFn = options.completeFn ?? noMemoryComplete;
-  const resolveModel =
+  const baseResolve =
     options.resolveModel ??
     createModelResolver(
       options.account!,
       { smart: options.modelId, fast: options.modelId },
       options.registry,
     );
+  // OpenRouter 变体统一带上 eval 的上游路由偏好（CoreWeave 优先）。
+  const resolveModel: ResolveModel = (role) => applyEvalRouting(baseResolve(role));
   const selectedModel = resolveModel("smart");
 
   return {

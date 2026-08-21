@@ -62,7 +62,7 @@ Usage:
   bun run eval:reading [provider] [model] [options]
 
 Options:
-  --provider <id>              Baseline provider (default: deepseek)
+  --provider <id>              Baseline provider (default: openrouter)
   --model <id>                 Baseline model (default: provider reasoning model)
   --baseline-name <name>       Stable baseline variant id (default: baseline)
   --candidate-model <id>       Compare another model from the baseline provider
@@ -163,7 +163,7 @@ export function parseEvalCliArgs(args: string[]): EvalCliOptions {
       `unknown eval suite ${JSON.stringify(suiteInput)}; available: ${Object.keys(evalSuites).join(", ")}`,
     );
   }
-  const provider = parsed.values.provider ?? positionals.shift() ?? "deepseek";
+  const provider = parsed.values.provider ?? positionals.shift() ?? "openrouter";
   const model = parsed.values.model ?? positionals.shift();
   if (positionals.length > 0) {
     throw new Error(`unexpected positional arguments: ${positionals.join(" ")}`);

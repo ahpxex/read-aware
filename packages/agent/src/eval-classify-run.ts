@@ -4,7 +4,7 @@
  * 注册表里的人工标注。分类错一本，围栏与纪要口径就整本走错——这是
  * 分类管线的最小活体测试，跑一次五个调用，秒级。
  *
- *   bun run eval:classify [--provider deepseek] [--model deepseek-v4-flash]
+ *   bun run eval:classify [--provider openrouter] [--model deepseek/deepseek-v4-flash]
  */
 import { classifyNarrativity } from "./memory/narrativity";
 import { createModelResolver } from "./models/accounts";
@@ -12,14 +12,14 @@ import { createCompleteFn } from "./models/complete";
 import { buildProviderRegistry } from "./models/registry";
 import type { ChapterRef } from "./ports";
 import { realBook, realBookSlugs } from "./evals/book-fixtures";
-import { resolveEvalModel } from "./evals/model-config";
+import { applyEvalRouting, resolveEvalModel } from "./evals/model-config";
 
 function argValue(flag: string): string | undefined {
   const index = process.argv.indexOf(flag);
   return index >= 0 ? process.argv[index + 1] : undefined;
 }
 
-const provider = argValue("--provider") ?? "deepseek";
+const provider = argValue("--provider") ?? "openrouter";
 const registry = buildProviderRegistry();
 const resolved = resolveEvalModel(registry, provider, argValue("--model"));
 const complete = createCompleteFn(registry, resolved.account, "off");
@@ -28,6 +28,7 @@ const model = createModelResolver(
   { smart: resolved.modelId, fast: resolved.modelId },
   registry,
 )("fast");
+const routedModel = applyEvalRouting(model);
 
 let failures = 0;
 for (const slug of realBookSlugs()) {
@@ -41,7 +42,7 @@ for (const slug of realBookSlugs()) {
   const sampleText = epub.chapters[book.spec.firstContentChapter]?.text ?? "";
   const verdict = await classifyNarrativity({
     complete,
-    model,
+    model: routedModel,
     title: book.title(),
     author: epub.author,
     toc,

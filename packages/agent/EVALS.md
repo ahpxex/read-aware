@@ -109,8 +109,15 @@ bun run eval:classify
 
 ## Running
 
-DeepSeek is the default provider. The runner reads `DEEPSEEK_API_KEY` or the
-normal Pi CLI credential in `~/.pi/agent/auth.json`.
+**OpenRouter is the default provider** (default model
+`deepseek/deepseek-v4-flash`), reading `OPENROUTER_API_KEY` or the Pi CLI
+credential in `~/.pi/agent/auth.json` (`openrouter` entry; the key itself
+lives in 1Password as "OpenRouter API Key - Deepseek"). Every eval-side
+OpenRouter request carries a routing preference — CoreWeave first,
+fallbacks allowed (`applyEvalRouting` in `evals/model-config.ts`) — because
+the official DeepSeek API got expensive; this preference is eval-only and
+never leaks into the product, where OpenRouter users own their account
+routing. `--provider deepseek` still works for the old direct path.
 
 Thinking defaults to **medium** — the tier regressions should be measured at.
 Pass `--thinking off` only for a deliberately cheap smoke pass. Tool discipline

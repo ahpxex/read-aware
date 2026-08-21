@@ -9,6 +9,7 @@ import { runPiSpike, type SpikeConfig } from "./spike";
 const ENV_KEYS: Record<SpikeConfig["provider"], string> = {
   anthropic: "ANTHROPIC_API_KEY",
   openai: "OPENAI_API_KEY",
+  "openai-codex": "OPENAI_CODEX_ACCESS_TOKEN",
   openrouter: "OPENROUTER_API_KEY",
   zai: "ZAI_API_KEY",
   "zai-coding-cn": "ZAI_CODING_CN_API_KEY",
@@ -23,6 +24,7 @@ const ENV_KEYS: Record<SpikeConfig["provider"], string> = {
 const DEFAULT_MODELS: Record<SpikeConfig["provider"], string> = {
   anthropic: "claude-haiku-4-5",
   openai: "gpt-5-mini",
+  "openai-codex": "gpt-5.6-luna",
   openrouter: "openai/gpt-5-mini",
   zai: "glm-5.2",
   "zai-coding-cn": "glm-5.2",

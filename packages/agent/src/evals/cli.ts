@@ -2,7 +2,7 @@ import { parseArgs } from "node:util";
 import { resolve } from "node:path";
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import { accountCredential } from "../models/accounts";
-import { buildProviderRegistry } from "../models/registry";
+import { evalProviderRegistry } from "./model-config";
 import { createAgentEvalVariant } from "./agent-harness";
 import { EvalArtifactStore } from "./artifacts";
 import { AgentEvalJudge, withJudge } from "./judge";
@@ -233,7 +233,7 @@ function buildVariant(
   spec: CandidateSpec,
   thinkingLevel: ThinkingLevel,
 ): { variant: EvalVariant<AgentEvalScenario, AgentEvalObservation>; secret: string } {
-  const registry = buildProviderRegistry();
+  const registry = evalProviderRegistry();
   const resolved = resolveEvalModel(registry, spec.provider, spec.model);
   return {
     variant: createAgentEvalVariant({

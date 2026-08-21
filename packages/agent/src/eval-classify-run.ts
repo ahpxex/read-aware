@@ -9,7 +9,7 @@
 import { classifyNarrativity } from "./memory/narrativity";
 import { createModelResolver } from "./models/accounts";
 import { createCompleteFn } from "./models/complete";
-import { buildProviderRegistry } from "./models/registry";
+import { evalProviderRegistry } from "./evals/model-config";
 import type { ChapterRef } from "./ports";
 import { realBook, realBookSlugs } from "./evals/book-fixtures";
 import { applyEvalRouting, resolveEvalModel } from "./evals/model-config";
@@ -20,7 +20,7 @@ function argValue(flag: string): string | undefined {
 }
 
 const provider = argValue("--provider") ?? "openrouter";
-const registry = buildProviderRegistry();
+const registry = evalProviderRegistry();
 const resolved = resolveEvalModel(registry, provider, argValue("--model"));
 const complete = createCompleteFn(registry, resolved.account, "off");
 const model = createModelResolver(

@@ -21,7 +21,7 @@ import {
 } from "./memory/chapter-digest";
 import { createModelResolver } from "./models/accounts";
 import { createCompleteFn } from "./models/complete";
-import { buildProviderRegistry } from "./models/registry";
+import { evalProviderRegistry } from "./evals/model-config";
 import type { ChapterDigest } from "./ports";
 import { realBook, realBookSlugs, type RealBookSlug } from "./evals/book-fixtures";
 import { applyEvalRouting, resolveEvalModel } from "./evals/model-config";
@@ -45,7 +45,7 @@ const resume = process.argv.includes("--resume");
 
 const outPath = fileURLToPath(new URL(`../fixtures/${slug}-digests.json`, import.meta.url));
 
-const registry = buildProviderRegistry();
+const registry = evalProviderRegistry();
 const resolved = resolveEvalModel(registry, provider, requestedModel);
 const complete = createCompleteFn(registry, resolved.account, "off");
 const model = createModelResolver(

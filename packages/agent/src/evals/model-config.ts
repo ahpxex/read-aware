@@ -9,10 +9,24 @@ import {
   type KnownProviderId,
   type ProviderRegistry,
 } from "../models/registry";
+import { PiCliCredentialStore } from "./pi-cli-credentials";
+
+/**
+ * eval/dev 链路的 registry：挂上 pi CLI 的凭证仓，OAuth 订阅 provider
+ * （openai-codex 等）由 pi-ai 自动解析并刷新 token；api-key provider 的
+ * 显式 apiKey override 优先级更高，行为不变。
+ */
+export function evalProviderRegistry(): ProviderRegistry {
+  return buildProviderRegistry({ credentials: new PiCliCredentialStore() });
+}
+
+/** 走 pi-ai 凭证仓解析（无 auth.apiKey 声明）的订阅式 provider。 */
+const OAUTH_PROVIDERS = new Set<KnownProviderId>(["openai-codex"]);
 
 const envKeys: Record<KnownProviderId, string> = {
   anthropic: "ANTHROPIC_API_KEY",
   openai: "OPENAI_API_KEY",
+  "openai-codex": "OPENAI_CODEX_ACCESS_TOKEN",
   openrouter: "OPENROUTER_API_KEY",
   zai: "ZAI_API_KEY",
   "zai-coding-cn": "ZAI_CODING_CN_API_KEY",
@@ -39,6 +53,8 @@ const EVAL_DEFAULT_MODELS: Partial<Record<KnownProviderId, string>> = {
   // Coding Plan 包月端点：catalog 滞后（此刻只收录到 5.2），id 会原样透传，
   // 端点实测认识 glm-5.3——不钉住会碰运气落到目录第一个 reasoning 模型。
   "zai-coding-cn": "glm-5.3",
+  // Codex 订阅（pi CLI oauth）：不钉住会落到目录第一个 reasoning 模型。
+  "openai-codex": "gpt-5.6-luna",
 };
 
 /**
@@ -94,8 +110,13 @@ export function resolveEvalModel(
   }
   const provider = providerArg as KnownProviderId;
   const apiKey = process.env[envKeys[provider]] ?? readPiCliKey(provider) ?? "";
-  if (!apiKey) {
+  if (!apiKey && !OAUTH_PROVIDERS.has(provider)) {
     throw new Error(`no API key: set ${envKeys[provider]} or configure pi CLI auth`);
+  }
+  if (OAUTH_PROVIDERS.has(provider) && !apiKey) {
+    throw new Error(
+      `provider ${provider} needs a pi CLI oauth login (run \`pi\` and sign in) — no entry found in ~/.pi/agent/auth.json`,
+    );
   }
   const catalog = registry.getModels(provider);
   const modelId =
@@ -118,7 +139,7 @@ export function resolveJudgeCompletion(
   providerInput: string,
   requestedModel?: string,
 ): ResolvedJudgeCompletion {
-  const registry = buildProviderRegistry();
+  const registry = evalProviderRegistry();
   const resolved = resolveEvalModel(registry, providerInput, requestedModel);
   const completeFn = createCompleteFn(registry, resolved.account, "off");
   const model = applyEvalRouting(

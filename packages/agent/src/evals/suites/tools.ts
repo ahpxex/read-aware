@@ -286,7 +286,7 @@ export const toolsEvalSuite: EvalSuite<AgentEvalScenario> = {
               !!args &&
               typeof args === "object" &&
               !Array.isArray(args) &&
-              (args as { chapterIndex?: unknown }).chapterIndex === 2
+              Number((args as { chapterIndex?: unknown }).chapterIndex) === 2
             );
           });
         return combineAssessments(

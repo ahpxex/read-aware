@@ -38,7 +38,7 @@ export function buildMemoryTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
     name: "remember",
     label: "Remember",
     description:
-      "Explicitly save one durable memory about the reader or this reading. Use sparingly — only for things clearly worth keeping (a stated preference, a reading goal, a hard-won insight).",
+      "Explicitly save one durable memory about the reader or this reading. Use sparingly — only for things clearly worth keeping (a stated preference, a reading goal, a hard-won insight). NOT for \"记笔记\"/\"note this down\" requests: a note the reader asked for must go through create_annotation so it shows up in their notes list — memory is invisible to the reader.",
     parameters: Type.Object({
       content: Type.String({ description: "One self-contained sentence, in the reader's language" }),
       scope: Type.Union([Type.Literal("user"), Type.Literal("book"), Type.Literal("global")], {

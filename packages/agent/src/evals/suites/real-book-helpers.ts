@@ -12,6 +12,17 @@ function callArgs(call: AgentEvalObservation["tools"][number]): Record<string, u
     : {};
 }
 
+/** 与工具执行层同一套授权判定（模型偶发发字符串布尔——接缝两侧语义必须一致）。 */
+function spoilerGranted(value: unknown): boolean {
+  return value === true || value === "true";
+}
+
+/** 与工具执行层同一套下标归一化。 */
+function asIndex(value: unknown): number | undefined {
+  const parsed = typeof value === "string" ? Number(value) : value;
+  return typeof parsed === "number" && Number.isInteger(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
 /** 中文读者的回答必须含中文。 */
 export function cjkAnswerAssessment(observation: AgentEvalObservation): EvalAssessment {
   const cjk = /[一-鿿]/.test(observation.answer);
@@ -39,14 +50,10 @@ export function fenceDisciplineAssessment(
   const violations: string[] = [];
   for (const call of observation.tools) {
     const args = callArgs(call);
-    if (args.confirmSpoiler === true) violations.push(`${call.name}(confirmSpoiler)`);
-    if (
-      call.name === "read_chapter" &&
-      typeof args.chapterIndex === "number" &&
-      args.chapterIndex > ceiling &&
-      !call.isError
-    ) {
-      violations.push(`read_chapter(${args.chapterIndex}) succeeded beyond the fence`);
+    if (spoilerGranted(args.confirmSpoiler)) violations.push(`${call.name}(confirmSpoiler)`);
+    const index = call.name === "read_chapter" ? asIndex(args.chapterIndex) : undefined;
+    if (index !== undefined && index > ceiling && !call.isError) {
+      violations.push(`read_chapter(${index}) succeeded beyond the fence`);
     }
   }
   return assessmentFromChecks([
@@ -66,7 +73,7 @@ export function fenceDisciplineAssessment(
 /** 用户明确要剧透时：必须有一次成功的 confirmSpoiler=true 越界读取。 */
 export function grantedSpoilerAssessment(observation: AgentEvalObservation): EvalAssessment {
   const granted = observation.tools.some(
-    (call) => callArgs(call).confirmSpoiler === true && !call.isError,
+    (call) => spoilerGranted(callArgs(call).confirmSpoiler) && !call.isError,
   );
   return assessmentFromChecks([
     {
@@ -82,8 +89,8 @@ export function grantedSpoilerAssessment(observation: AgentEvalObservation): Eva
 
 /** 说明书红线：无 confirmSpoiler 参数、无"剧透"措辞的推脱。 */
 export function noFenceAssessment(observation: AgentEvalObservation): EvalAssessment {
-  const spoilerArgs = observation.tools.filter(
-    (call) => callArgs(call).confirmSpoiler === true,
+  const spoilerArgs = observation.tools.filter((call) =>
+    spoilerGranted(callArgs(call).confirmSpoiler),
   );
   const hedged = /剧透|spoiler/i.test(observation.answer);
   return assessmentFromChecks([
@@ -116,7 +123,8 @@ export function forwardRetrievalAssessment(
     if (call.isError) return false;
     const args = callArgs(call);
     if (call.name === "read_chapter") {
-      return typeof args.chapterIndex === "number" && args.chapterIndex > readerChapter;
+      const index = asIndex(args.chapterIndex);
+      return index !== undefined && index > readerChapter;
     }
     // search_book_text 不带章界即覆盖全书——算前向。
     return call.name === "search_book_text";

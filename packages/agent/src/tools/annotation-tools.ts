@@ -28,7 +28,7 @@ export function buildAnnotationTools(scope: ThreadScope, deps: RuntimeDeps): Age
     name: "create_annotation",
     label: "Create annotation",
     description:
-      "Create a note or a highlight when the user explicitly asks. kind=note needs body (quotedText optional); kind=highlight needs text (the exact quoted passage, color optional). Both can be unanchored, or anchored when anchor/chapterHref are known. bookId defaults to the current book.",
+      "Create a note or a highlight when the user explicitly asks. When the reader asks to note something down (\"记条笔记\", \"note this\", \"帮我记一下\"), THIS is the tool — the note must land in the book's annotation list where the reader can see it; the remember tool (invisible long-term memory) is never a substitute for a requested note. kind=note needs body (quotedText optional); kind=highlight needs text (the exact quoted passage, color optional). Both can be unanchored, or anchored when anchor/chapterHref are known. bookId defaults to the current book.",
     parameters: Type.Object({
       kind: Type.Union([Type.Literal("note"), Type.Literal("highlight")], {
         description: "note = the user's own words; highlight = exact book text",

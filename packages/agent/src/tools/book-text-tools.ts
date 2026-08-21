@@ -18,9 +18,25 @@ const CHAPTER_PART_CHARS = 12000;
 const confirmSpoilerSchema = Type.Optional(
   Type.Boolean({
     description:
-      "Set true ONLY when the reader explicitly asked for spoilers in this conversation; lifts the narrative reading-position fence for this call.",
+      "Set true ONLY when the reader explicitly asked for spoilers in this conversation; lifts the narrative reading-position fence for this call. NEVER set it to widen search coverage, on expository/technical books (they have no fence), or 'just in case' — setting it without the reader's explicit grant is a policy violation.",
   }),
 );
+
+/**
+ * 授权参数归一化：模型偶发把布尔发成字符串。宽松 truthy 判断会让
+ * "false" 字符串穿透围栏——只认 true 与 "true"，其余一律视为未授权。
+ */
+function spoilerGranted(value: unknown): boolean {
+  return value === true || value === "true";
+}
+
+/** 数字参数归一化（模型偶发发成字符串数字）；非数字返回 undefined。 */
+function asIndex(value: unknown): number | undefined {
+  const parsed = typeof value === "string" ? Number(value) : value;
+  return typeof parsed === "number" && Number.isInteger(parsed) && parsed >= 0
+    ? parsed
+    : undefined;
+}
 
 export function buildBookTextTools(
   scope: ThreadScope,
@@ -94,12 +110,19 @@ export function buildBookTextTools(
       confirmSpoiler: confirmSpoilerSchema,
     }),
     execute: async (_id, params) => {
-      const { chapterIndex, part = 0, bookId, confirmSpoiler = false } = params as {
-        chapterIndex: number;
-        part?: number;
+      const raw = params as {
+        chapterIndex: unknown;
+        part?: unknown;
         bookId?: string;
-        confirmSpoiler?: boolean;
+        confirmSpoiler?: unknown;
       };
+      const chapterIndex = asIndex(raw.chapterIndex);
+      if (chapterIndex === undefined) {
+        throw new Error("chapterIndex must be a non-negative integer");
+      }
+      const part = asIndex(raw.part) ?? 0;
+      const bookId = raw.bookId;
+      const confirmSpoiler = spoilerGranted(raw.confirmSpoiler);
       const target = resolveBookId(bookId);
       const fence = fenceFor(target);
       if (fence && chapterIndex > fence.throughChapterIndex && !confirmSpoiler) {
@@ -145,13 +168,14 @@ export function buildBookTextTools(
       confirmSpoiler: confirmSpoilerSchema,
     }),
     execute: async (_id, params) => {
-      const { queries: rawQueries, bookId, confirmSpoiler = false, ...rest } = params as {
+      const { queries: rawQueries, bookId, ...rest } = params as {
         queries: string[];
         bookId?: string;
-        throughChapterIndex?: number;
-        confirmSpoiler?: boolean;
+        throughChapterIndex?: unknown;
+        confirmSpoiler?: unknown;
       };
-      let throughChapterIndex = rest.throughChapterIndex;
+      const confirmSpoiler = spoilerGranted(rest.confirmSpoiler);
+      let throughChapterIndex = asIndex(rest.throughChapterIndex);
       // 变体轰炸（25 个查询）就地截断，别让 schema 报错烧掉一轮往返
       const queries = rawQueries.slice(0, 12);
       const target = normalizeBookIdParam(bookId) ?? defaultBookId;

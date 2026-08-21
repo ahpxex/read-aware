@@ -247,12 +247,24 @@ ${bookRules}`.trim();
 }
 
 export function buildSystemPrompt(scope: ThreadScope, input: SystemPromptInput): string {
+  // 节序即缓存布局：提供商的前缀缓存从第一个差异字节断开，所以按
+  // 变化频率排——纯静态（角色句、规则块）打头，同章稳定的（书元数据、
+  // 章节纪要）居中，每轮必变的滚动摘要沉底。挪一节 = 炸掉其后全部前缀。
   const sections: string[] = [];
 
   if (scope.kind === "book") {
     sections.push(
       "You are ReadAware's reading companion inside one specific book. You help the reader understand, question, and connect what they are reading right now.",
     );
+  } else {
+    sections.push(
+      "You are ReadAware's librarian across the user's whole shelf. You answer questions about any book, connect ideas across books, and draw cross-book conclusions.",
+    );
+  }
+
+  sections.push(sharedRules(scope));
+
+  if (scope.kind === "book") {
     if (input.book) {
       const finished =
         input.book.status === "finished" ? " The reader has marked this book finished." : "";
@@ -261,9 +273,6 @@ export function buildSystemPrompt(scope: ThreadScope, input: SystemPromptInput):
       );
     }
   } else {
-    sections.push(
-      "You are ReadAware's librarian across the user's whole shelf. You answer questions about any book, connect ideas across books, and draw cross-book conclusions.",
-    );
     if (input.shelfSize !== undefined) {
       sections.push(`The shelf currently holds ${input.shelfSize} book(s).`);
     }
@@ -288,14 +297,6 @@ export function buildSystemPrompt(scope: ThreadScope, input: SystemPromptInput):
     sections.push(`About the reader:\n${input.profile}`);
   }
 
-  if (input.conversationSummary) {
-    sections.push(
-      scope.kind === "book"
-        ? `Conversation so far (rolling summary — only the immediately previous exchange follows verbatim; call get_recent_turns or search_conversation to revisit anything older):\n${input.conversationSummary}`
-        : `Conversation so far (rolling summary — recent turns follow verbatim):\n${input.conversationSummary}`,
-    );
-  }
-
   if (input.memories?.length) {
     sections.push(
       `What you remember from earlier conversations (long-term memory; treat as context, verify with tools when it matters):\n${input.memories
@@ -304,6 +305,13 @@ export function buildSystemPrompt(scope: ThreadScope, input: SystemPromptInput):
     );
   }
 
-  sections.push(sharedRules(scope));
+  if (input.conversationSummary) {
+    sections.push(
+      scope.kind === "book"
+        ? `Conversation so far (rolling summary — only the immediately previous exchange follows verbatim; call get_recent_turns or search_conversation to revisit anything older):\n${input.conversationSummary}`
+        : `Conversation so far (rolling summary — recent turns follow verbatim):\n${input.conversationSummary}`,
+    );
+  }
+
   return sections.join("\n\n");
 }

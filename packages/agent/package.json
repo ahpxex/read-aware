@@ -19,7 +19,8 @@
     "eval:rescore": "bun src/eval-rescore-run.ts",
     "eval:digests": "bun src/eval-digests-run.ts",
     "eval:classify": "bun src/eval-classify-run.ts",
-    "eval:reading": "bun src/eval-run.ts reading"
+    "eval:reading": "bun src/eval-run.ts reading",
+    "eval:ui": "vite --config eval-viewer/vite.config.ts --port 5199"
   },
   "dependencies": {
     "@earendil-works/pi-agent-core": "^0.83.0",
@@ -28,6 +29,14 @@
   },
   "devDependencies": {
     "fflate": "^0.8.3",
-    "typescript": "~5.8.3"
+    "typescript": "~5.8.3",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.6.0",
+    "marked": "^15.0.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "vite": "^7.0.4"
   }
 }

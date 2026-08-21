@@ -46,11 +46,11 @@ const observeSaved = ({ stores }: Parameters<NonNullable<AgentEvalScenario["obse
 export const memoryEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "memory",
   code: "S10",
-  description: "Explicit durable writes, book scoping, and grounded long-term recall.",
+  description: "显式持久写入、书籍作用域限定及基于文本的长期记忆。",
   scenarios: [
     defineAgentEvalScenario({
       id: "remember-user-preference",
-      description: "Writes an explicit durable reader preference to user memory.",
+      description: "将显式的持久读者偏好写入用户记忆。",
       tags: ["memory", "write", "user-scope"],
       scope: { kind: "global", threadId: "memory-user" },
       seed: { profile: "The reader has already completed onboarding." },
@@ -68,7 +68,7 @@ export const memoryEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "remember-book-insight",
-      description: "Keeps an explicit insight inside the current book's memory scope.",
+      description: "将显式洞察保留在当前书籍的记忆范围。",
       tags: ["memory", "write", "book-scope"],
       scope: { kind: "book", bookId: MEMORY_BOOK_ID },
       seed: {
@@ -93,7 +93,7 @@ export const memoryEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "search-long-term-memory",
-      description: "Uses memory retrieval rather than inventing a stated reader preference.",
+      description: "通过记忆检索而非捏造来回答读者已有偏好。",
       tags: ["memory", "retrieval", "grounding"],
       scope: { kind: "global", threadId: "memory-search" },
       seed: {
@@ -132,7 +132,7 @@ export const memoryEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "remember-restraint",
-      description: "Does not pollute long-term memory with small talk.",
+      description: "不将闲聊内容写入长期记忆。",
       tags: ["memory", "restraint"],
       scope: { kind: "book", bookId: MEMORY_BOOK_ID },
       seed: {

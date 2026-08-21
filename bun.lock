@@ -23,24 +23,6 @@
         "@tauri-apps/cli": "^2.9.1",
       },
     },
-    "apps/eval-viewer": {
-      "name": "@read-aware/eval-viewer",
-      "version": "0.0.1",
-      "dependencies": {
-        "@read-aware/agent": "workspace:*",
-        "react": "^19.1.0",
-        "react-dom": "^19.1.0",
-      },
-      "devDependencies": {
-        "@read-aware/tsconfig": "workspace:*",
-        "@types/node": "^24.0.0",
-        "@types/react": "^19.1.8",
-        "@types/react-dom": "^19.1.6",
-        "@vitejs/plugin-react": "^4.6.0",
-        "typescript": "~5.8.3",
-        "vite": "^7.0.4",
-      },
-    },
     "apps/landing": {
       "name": "@read-aware/landing",
       "version": "0.1.0",
@@ -137,8 +119,16 @@
         "@read-aware/core": "workspace:*",
       },
       "devDependencies": {
+        "@types/node": "^24.0.0",
+        "@types/react": "^19.1.8",
+        "@types/react-dom": "^19.1.6",
+        "@vitejs/plugin-react": "^4.6.0",
         "fflate": "^0.8.3",
+        "marked": "^15.0.0",
+        "react": "^19.1.0",
+        "react-dom": "^19.1.0",
         "typescript": "~5.8.3",
+        "vite": "^7.0.4",
       },
     },
     "packages/core": {
@@ -556,8 +546,6 @@
     "@read-aware/core": ["@read-aware/core@workspace:packages/core"],
 
     "@read-aware/desktop": ["@read-aware/desktop@workspace:apps/desktop"],
-
-    "@read-aware/eval-viewer": ["@read-aware/eval-viewer@workspace:apps/eval-viewer"],
 
     "@read-aware/landing": ["@read-aware/landing@workspace:apps/landing"],
 
@@ -1555,7 +1543,7 @@
 
     "markdown-table": ["markdown-table@3.0.4", "", {}, "sha512-wiYz4+JrLyb/DqW2hkFJxP7Vd7JuTDm77fvbM8VfEQdmSMqcImWeeRbHwZjBjIFki/VaMK2BhFi7oUUZeM5bqw=="],
 
-    "marked": ["marked@17.0.6", "", { "bin": { "marked": "bin/marked.js" } }, "sha512-gB0gkNafnonOw0obSTEGZTT86IuhILt2Wfx0mWH/1Au83kybTayroZ/V6nS25mN7u8ASy+5fMhgB3XPNrOZdmA=="],
+    "marked": ["marked@15.0.12", "", { "bin": { "marked": "bin/marked.js" } }, "sha512-8dD6FusOQSrpv9Z1rdNMdlSgQOIP880DHqnohobOmYLElGEqAL/JvxvuxZO16r4HtjTlfPRDC1hbvxC9dPN2nA=="],
 
     "matcher-collection": ["matcher-collection@2.0.1", "", { "dependencies": { "@types/minimatch": "^3.0.3", "minimatch": "^3.0.2" } }, "sha512-daE62nS2ZQsDg9raM0IlZzLmI2u+7ZapXBwdoeBUKAYERPDDIc0qNqA8E0Rp2D+gspKR7BgIFP52GeujaGXWeQ=="],
 
@@ -2228,6 +2216,8 @@
     "sass-lookup/enhanced-resolve": ["enhanced-resolve@5.24.3", "", { "dependencies": { "graceful-fs": "^4.2.4", "tapable": "^2.3.3" } }, "sha512-PwKooW9JUzh5chmYfHM3IQl5OkK2u2Nm011MgeZrss3JmFraUx/fqrf78kk8GUMYoibx/14MdwTl/1WKkG7TpQ=="],
 
     "sharp/semver": ["semver@7.8.5", "", { "bin": { "semver": "bin/semver.js" } }, "sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA=="],
+
+    "streamdown/marked": ["marked@17.0.6", "", { "bin": { "marked": "bin/marked.js" } }, "sha512-gB0gkNafnonOw0obSTEGZTT86IuhILt2Wfx0mWH/1Au83kybTayroZ/V6nS25mN7u8ASy+5fMhgB3XPNrOZdmA=="],
 
     "string-width-cjs/emoji-regex": ["emoji-regex@8.0.0", "", {}, "sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A=="],
 

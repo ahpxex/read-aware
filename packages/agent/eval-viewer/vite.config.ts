@@ -11,7 +11,7 @@ import { join, resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 
-const REPO_ROOT = resolve(__dirname, "../..");
+const REPO_ROOT = resolve(__dirname, "../../..");
 const EVAL_ROOTS = [join(REPO_ROOT, ".eval"), join(REPO_ROOT, "packages/agent/.eval")];
 
 interface RunListing {
@@ -145,6 +145,66 @@ function evalDataPlugin(): Plugin {
           if (url.pathname === "/api/runs") {
             return sendJson(res, listRuns());
           }
+          if (url.pathname === "/api/attention") {
+            // 各套件"最新一次 run"里的失败/错误场景聚合——打开页面第一眼
+            // 要看的就是"现在什么是红的、为什么"。
+            const latest = new Map<string, RunListing & { directory?: string }>();
+            for (const root of EVAL_ROOTS) {
+              if (!existsSync(root)) continue;
+              for (const entry of readdirSync(root)) {
+                const directory = join(root, entry);
+                const manifest = readJson(join(directory, "manifest.json")) as
+                  | { runId?: string; plan?: { suiteId?: string } }
+                  | undefined;
+                const summary = readJson(join(directory, "summary.json")) as
+                  | { generatedAt?: string }
+                  | undefined;
+                if (!manifest?.plan?.suiteId || !summary?.generatedAt) continue;
+                const known = latest.get(manifest.plan.suiteId);
+                if (!known || (known.generatedAt ?? "") < summary.generatedAt) {
+                  latest.set(manifest.plan.suiteId, {
+                    runId: manifest.runId ?? entry,
+                    suiteId: manifest.plan.suiteId,
+                    generatedAt: summary.generatedAt,
+                    directory,
+                  } as RunListing & { directory: string });
+                }
+              }
+            }
+            const attention: Array<{
+              suiteId: string;
+              runId: string;
+              scenarioId: string;
+              status: string;
+              failedChecks: Array<{ id: string; message: string }>;
+            }> = [];
+            for (const run of Array.from(latest.values())) {
+              const directory = (run as { directory?: string }).directory;
+              if (!directory || !existsSync(join(directory, "runs.jsonl"))) continue;
+              for (const line of readFileSync(join(directory, "runs.jsonl"), "utf8").split("\n")) {
+                if (!line) continue;
+                const record = JSON.parse(line) as {
+                  scenarioId: string;
+                  status: string;
+                  assessment?: { checks?: Array<{ id: string; message: string; passed: boolean }> };
+                  error?: { message: string };
+                };
+                if (record.status === "passed") continue;
+                attention.push({
+                  suiteId: run.suiteId,
+                  runId: run.runId,
+                  scenarioId: record.scenarioId,
+                  status: record.status,
+                  failedChecks:
+                    record.assessment?.checks
+                      ?.filter((check) => !check.passed)
+                      .map(({ id, message }) => ({ id, message })) ??
+                    (record.error ? [{ id: "error", message: record.error.message }] : []),
+                });
+              }
+            }
+            return sendJson(res, attention);
+          }
           const runMatch = url.pathname.match(/^\/api\/runs\/([^/]+)$/);
           if (runMatch) {
             const directory = findRunDirectory(runMatch[1]!);
@@ -170,6 +230,7 @@ function evalDataPlugin(): Plugin {
 }
 
 export default defineConfig({
+  root: __dirname,
   plugins: [react(), evalDataPlugin()],
   server: { host: "127.0.0.1" },
 });

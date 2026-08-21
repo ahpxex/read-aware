@@ -45,10 +45,10 @@ export function App() {
           </a>
         </div>
         <a className={`navitem ${route === "/" ? "active" : ""}`} href="#/">
-          <span className="code">◎</span> Overview
+          <span className="code">◎</span> 总览
         </a>
         <div className="navgroup">
-          <div className="label">Suites</div>
+          <div className="label">套件</div>
           {(catalog ?? []).map((suite) => (
             <a
               key={suite.id}
@@ -64,7 +64,7 @@ export function App() {
       <main className="content">
         {error && <div className="error">{error}</div>}
         {!catalog || !runs ? (
-          <div className="loading">Loading catalog…</div>
+          <div className="loading">加载套件目录…</div>
         ) : runMatch ? (
           <RunPage runId={runMatch[1]!} catalog={catalog} />
         ) : suiteMatch ? (

@@ -122,11 +122,11 @@ function withEditionFidelity(scenario: AgentEvalScenario): AgentEvalScenario {
 export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "karamazov",
   code: "S07",
-  description: "Real-book scenarios on the full Chinese Brothers Karamazov EPUB.",
+  description: "基于完整中文版《卡拉马佐夫兄弟》EPUB的真实书籍场景。",
   scenarios: [
     defineAgentEvalScenario({
       id: "quote-locates-chapter",
-      description: "Locates a verbatim quote in the 102-chapter book and explains it in context.",
+      description: "在102章的书中定位逐字引文，并结合上下文解释。",
       tags: ["karamazov", "real-book", "retrieval", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: { ...kara.seed(MID_PROGRESS), chapterDigests: kara.digestsSeed(35) },
@@ -156,7 +156,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "selected-passage-explain",
       description:
-        "Human-review: the reader selects the Grand Inquisitor freedom paradox mid-chapter and asks what it means.",
+        "人工审核：读者在章节中间选择关于宗教大法官自由悖论的内容，询问其含义。",
       tags: ["karamazov", "real-book", "selection", "human-review", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: { ...kara.seed(33), chapterDigests: kara.digestsSeed(INQUISITOR_CHAPTER) },
@@ -181,7 +181,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "remember-reading-goal",
-      description: "Saves the reader's stated research goal as a durable user memory, in Chinese.",
+      description: "将读者陈述的研究目标保存为用户持久记忆（中文）。",
       tags: ["karamazov", "real-book", "memory", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: { ...kara.seed(MID_PROGRESS), chapterDigests: kara.digestsSeed(35) },
@@ -230,7 +230,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "highlights-recited",
-      description: "Recites the reader's real-text highlights verbatim with a comment each.",
+      description: "逐字复述读者的真实文本高亮，并为每条加上评论。",
       tags: ["karamazov", "real-book", "annotations", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: {
@@ -279,7 +279,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "early-cursor-no-spoiler",
       description:
-        "With the reader at chapter 12 of a novel the model knows from pretraining, stays behind the cursor.",
+        "读者位于小说第12章（模型预训练已知），代理停留在光标之后。",
       tags: ["karamazov", "real-book", "spoiler", "cursor", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       // 生产态：读者到第 12 章时空闲管线早已提炼出前面章节的纪要——
@@ -317,7 +317,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "story-so-far-relations",
       description:
-        "With the narrative graph injected, a who-is-who question answers from the digest registry — few tool calls, this edition's spellings, no leak.",
+        "注入叙事图谱后，回答人物关系问题——从摘要注册中应答：少量工具调用，使用本版本拼写，无泄露。",
       tags: ["karamazov", "real-book", "graph", "digest", "cursor", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: { ...kara.seed(12), chapterDigests: kara.digestsSeed(EARLY_CHAPTER) },
@@ -367,7 +367,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "mid-book-ivan-no-lookahead",
       description:
-        "A mid-book question about Ivan must not reach for the Grand Inquisitor chapters ahead.",
+        "关于伊万的中途问题，不得提前触及宗教大法官章节。",
       tags: ["karamazov", "real-book", "spoiler", "cursor", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: { ...kara.seed(MID_PROGRESS), chapterDigests: kara.digestsSeed(35) },
@@ -403,7 +403,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "explicit-spoiler-crosses-fence",
       description:
-        "An explicit spoiler request crosses the fence via confirmSpoiler and answers from the actual text.",
+        "明确的剧透请求通过confirmSpoiler跨越围栏，并从实际文本作答。",
       tags: ["karamazov", "real-book", "spoiler", "grant", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: { ...kara.seed(12), chapterDigests: kara.digestsSeed(EARLY_CHAPTER) },
@@ -450,7 +450,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "finished-book-free-discussion",
-      description: "A finished reader gets unfenced whole-book discussion, grounded by retrieval.",
+      description: "已读完的读者获得无围栏的全书讨论，以检索为支撑。",
       tags: ["karamazov", "real-book", "finished", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: { ...kara.seed(100, "finished"), chapterDigests: kara.digestsSeed(102) },
@@ -479,7 +479,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "quote-attribution-cross-chapter",
       description:
-        "Attributes a verbatim line to its speaker when the quote lives many chapters behind the reading position.",
+        "当引文位于阅读位置前许多章时，将逐字台词归属到说话者。",
       tags: ["karamazov", "real-book", "attribution", "retrieval", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: { ...kara.seed(MID_PROGRESS), chapterDigests: kara.digestsSeed(35) },
@@ -517,7 +517,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "alias-resolves-to-entity",
       description:
-        "Resolves a character's formal name to the person the reader knows by nickname, via the injected registry.",
+        "通过注入的注册表，将角色正式名称解析为读者熟知昵称对应的人物。",
       tags: ["karamazov", "real-book", "graph", "alias", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: { ...kara.seed(MID_PROGRESS), chapterDigests: kara.digestsSeed(35) },
@@ -548,7 +548,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "pronoun-antecedent-in-passage",
       description:
-        "Resolves a pronoun in a selected passage to its antecedent, which sits before the viewport.",
+        "将选中段落中的代词解析到其前指对象（该对象位于可见区之前）。",
       tags: ["karamazov", "real-book", "selection", "pronoun", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: { ...kara.seed(12), chapterDigests: kara.digestsSeed(EARLY_CHAPTER) },

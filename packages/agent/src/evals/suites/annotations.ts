@@ -72,11 +72,11 @@ function highlightVerbatimAssessment(observation: AgentEvalObservation): EvalAss
 export const annotationsEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "annotations",
   code: "S01",
-  description: "Creating, editing, and grounding on the user's notes and highlights.",
+  description: "创建、编辑用户笔记和高亮，并基于它们进行推理。",
   scenarios: [
     defineAgentEvalScenario({
       id: "highlight-verbatim-text",
-      description: "Highlights the requested passage using the book's exact words.",
+      description: "用书籍的精确措辞高亮请求的段落。",
       tags: ["annotations", "highlight", "state"],
       scope: { kind: "book", bookId: BOOK_ID },
       seed: seed(),
@@ -103,7 +103,7 @@ export const annotationsEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "note-on-request",
-      description: "Saves the user's thought as a note without inventing content.",
+      description: "保存用户的想法作为笔记，不编造内容。",
       tags: ["annotations", "note", "state"],
       scope: { kind: "book", bookId: BOOK_ID },
       seed: seed(),
@@ -140,7 +140,7 @@ export const annotationsEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "edit-note-after-lookup",
-      description: "Finds the existing note first, then extends it in place.",
+      description: "先找到现有笔记，然后就地扩展。",
       tags: ["annotations", "edit", "trajectory"],
       scope: { kind: "book", bookId: BOOK_ID },
       seed: {
@@ -190,7 +190,7 @@ export const annotationsEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "summarize-highlights-grounded",
-      description: "Summarizes the reader's highlights from the record, not from imagination.",
+      description: "从记录中总结读者的高亮，而非凭想象。",
       tags: ["annotations", "grounding", "quality"],
       scope: { kind: "book", bookId: BOOK_ID },
       seed: {

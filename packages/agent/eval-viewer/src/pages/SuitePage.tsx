@@ -1,4 +1,4 @@
-import type { CatalogScenario, CatalogSuite, RunListing } from "../api";
+import { turnsLanguage, type CatalogScenario, type CatalogSuite, type RunListing } from "../api";
 
 /** 场景定义的"怎么测"视图：轮次原文 + 断言/评分标准 + 种子摘要。 */
 function ScenarioCard({ scenario }: { scenario: CatalogScenario }) {
@@ -9,9 +9,8 @@ function ScenarioCard({ scenario }: { scenario: CatalogScenario }) {
       <summary>
         <span className="refchip">{scenario.ref}</span>
         <span className="title mono">{scenario.id}</span>
-        <span className="meta">
-          {turns.length} turn{turns.length === 1 ? "" : "s"}
-        </span>
+        <span className="langbadge">{turnsLanguage(turns)}</span>
+        <span className="meta">{turns.length} 轮</span>
       </summary>
       <div className="cardbody">
         <p className="sub">{scenario.description}</p>
@@ -23,15 +22,15 @@ function ScenarioCard({ scenario }: { scenario: CatalogScenario }) {
           ))}
         </div>
 
-        <div className="section-label">Turns (what the reader says)</div>
+        <div className="section-label">轮次（读者原话）</div>
         {turns.map((turn, index) => (
           <div key={index}>
-            <div className="who">reader · turn {index + 1}</div>
+            <div className="who">读者 · 第 {index + 1} 轮</div>
             <div className="bubble">
               {turn.text}
               {turn.attachments?.length ? (
                 <div style={{ marginTop: 8, color: "var(--muted)", fontSize: 12 }}>
-                  selection: “{turn.attachments[0]!.text.slice(0, 120)}
+                  选区：“{turn.attachments[0]!.text.slice(0, 120)}
                   {turn.attachments[0]!.text.length > 120 ? "…" : ""}”
                 </div>
               ) : null}
@@ -41,19 +40,19 @@ function ScenarioCard({ scenario }: { scenario: CatalogScenario }) {
 
         {input.expectation !== undefined && Object.keys(input.expectation as object).length > 0 && (
           <>
-            <div className="section-label">Deterministic expectation</div>
+            <div className="section-label">确定性断言</div>
             <pre>{JSON.stringify(input.expectation, null, 2)}</pre>
           </>
         )}
         {input.criteria !== undefined && (
           <>
-            <div className="section-label">Criteria (custom checks)</div>
+            <div className="section-label">自定义检查（criteria）</div>
             <pre>{JSON.stringify(input.criteria, null, 2)}</pre>
           </>
         )}
         {input.rubric?.length ? (
           <>
-            <div className="section-label">Judge rubric (scored with --judge)</div>
+            <div className="section-label">评分标准（--judge 时由 LLM judge 评）</div>
             <ul style={{ margin: 0, paddingLeft: 18 }}>
               {input.rubric.map((line, index) => (
                 <li key={index}>{line}</li>
@@ -63,7 +62,7 @@ function ScenarioCard({ scenario }: { scenario: CatalogScenario }) {
         ) : null}
         {input.seed !== undefined && (
           <>
-            <div className="section-label">Seed (world state)</div>
+            <div className="section-label">种子世界态（seed）</div>
             <pre>{JSON.stringify(input.seed, null, 2).slice(0, 1200)}</pre>
           </>
         )}
@@ -95,24 +94,22 @@ export function SuitePage({
       </h1>
       <p className="sub">{suite.description}</p>
 
-      <h2>
-        Scenarios · {suite.scenarios.length}
-      </h2>
+      <h2>场景 · {suite.scenarios.length}</h2>
       {suite.scenarios.map((scenario) => (
         <ScenarioCard key={scenario.id} scenario={scenario} />
       ))}
 
-      <h2>Run history</h2>
+      <h2>运行历史</h2>
       {history.length === 0 ? (
-        <p className="sub">This suite has not been run yet — `bun run eval:agent {suite.id}`.</p>
+        <p className="sub">这个套件还没跑过 —— `bun run eval:agent {suite.id}`。</p>
       ) : (
         <table>
           <thead>
             <tr>
               <th>run</th>
-              <th>result</th>
-              <th>model</th>
-              <th>when</th>
+              <th>结果</th>
+              <th>模型</th>
+              <th>时间</th>
             </tr>
           </thead>
           <tbody>

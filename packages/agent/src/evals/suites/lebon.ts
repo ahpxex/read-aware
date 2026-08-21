@@ -43,12 +43,12 @@ export const lebonEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "lebon",
   code: "S08",
   description:
-    "Real-book expository scenarios on the full Chinese Le Bon (concept graph, no spoiler fence).",
+    "基于完整中文勒庞图书的真实场景（概念图，无剧透栅栏）。",
   scenarios: [
     defineAgentEvalScenario({
       id: "concept-graph-answers",
       description:
-        "With the concept graph injected, a mechanism question answers from the digest relations — few tool calls, this edition's terms.",
+        "注入概念图后，机制问题从摘要关系回答——少量工具调用，本版术语。",
       tags: ["lebon", "real-book", "graph", "digest", "expository", "book"],
       scope: { kind: "book", bookId: lebon.bookId },
       seed: {
@@ -87,7 +87,7 @@ export const lebonEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "forward-retrieval-unfenced",
       description:
-        "A question about a later chapter of an expository book retrieves ahead freely — no permission, no spoiler ceremony.",
+        "关于说明性图书后续章节的问题自由向前检索——无需权限，无剧透仪式。",
       tags: ["lebon", "real-book", "expository", "forward", "book"],
       scope: { kind: "book", bookId: lebon.bookId },
       seed: {

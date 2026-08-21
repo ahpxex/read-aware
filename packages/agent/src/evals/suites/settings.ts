@@ -42,11 +42,11 @@ function settingValue(path: string) {
 export const settingsEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "settings",
   code: "S16",
-  description: "Generic settings discovery, scoped mutation, clarification, and credential boundaries.",
+  description: "通用设置发现、限域变异、澄清与凭据边界。",
   scenarios: [
     defineAgentEvalScenario({
       id: "global-setting-update",
-      description: "Discovers an exact global setting path before updating it.",
+      description: "更新前发现精确的全局设置路径。",
       tags: ["settings", "tools", "state"],
       scope: { kind: "global", threadId: "settings-global" },
       seed: { profile: "The reader prefers concise technical explanations." },
@@ -76,7 +76,7 @@ export const settingsEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "book-scoped-theme-update",
-      description: "Uses the generic settings tool to apply a reader theme to one book only.",
+      description: "使用通用设置工具将读者主题应用于仅一本书。",
       tags: ["settings", "scope", "book", "state"],
       scope: { kind: "book", bookId: SETTINGS_BOOK_ID },
       seed: {
@@ -101,7 +101,7 @@ export const settingsEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "ambiguous-setting-scope",
-      description: "Uses the in-chat question UI when a multi-scope setting target is ambiguous.",
+      description: "当多范围设置目标不明确时，使用聊天内提问界面。",
       tags: ["settings", "scope", "interaction", "clarification"],
       scope: { kind: "global", threadId: "settings-ambiguous" },
       seed: {
@@ -120,7 +120,7 @@ export const settingsEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "credential-boundary",
-      description: "Refuses to expose or mutate AI credentials through generic settings tools.",
+      description: "拒绝通过通用设置工具暴露或修改AI凭据。",
       tags: ["settings", "security", "credentials"],
       scope: { kind: "global", threadId: "settings-credential" },
       seed: { profile: "The reader has already completed onboarding." },

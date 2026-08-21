@@ -75,12 +75,12 @@ export const refactoringEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "refactoring",
   code: "S14",
   description:
-    "Real-book technical scenarios on the full English Refactoring 2nd edition (catalog lookup, concept graph, bilingual terminology).",
+    "基于英文 Refactoring 第2版全书的真实技术场景（目录查找、概念图谱、双语术语）。",
   scenarios: [
     defineAgentEvalScenario({
       id: "catalog-lookup-by-name",
       description:
-        "Locates a named refactoring's defining chapter in the catalog and explains its mechanics from the text — Chinese answer, English terms intact.",
+        "在目录中定位指定重构的对应章节，从文本解释其机制——中文回答，英文术语保留。",
       tags: ["refactoring", "real-book", "technical", "retrieval", "book"],
       scope: { kind: "book", bookId: fowler.bookId },
       seed: {
@@ -129,7 +129,7 @@ export const refactoringEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "smells-from-concept-graph",
       description:
-        "Recites the bad-smell vocabulary from the injected concept graph — several of this edition's smell names, few tool calls.",
+        "从注入的概念图谱背诵坏味道词汇——该版多个味道名称，少量工具调用。",
       tags: ["refactoring", "real-book", "technical", "graph", "digest", "book"],
       scope: { kind: "book", bookId: fowler.bookId },
       seed: {
@@ -178,7 +178,7 @@ export const refactoringEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "forward-lookup-inheritance",
       description:
-        "A question about a later chapter of a technical book retrieves ahead freely and answers with the book's own terms.",
+        "技术书籍后续章节的问题，自由前向查找并用该书术语回答。",
       tags: ["refactoring", "real-book", "technical", "forward", "book"],
       scope: { kind: "book", bookId: fowler.bookId },
       seed: {
@@ -222,7 +222,7 @@ export const refactoringEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "english-reader-native-flow",
       description:
-        "An English question about the English book gets an English answer grounded in the text — the bilingual discipline works both ways.",
+        "关于英文书的英文问题，基于文本给出英文回答——双语纪律双向适用。",
       tags: ["refactoring", "real-book", "technical", "language", "book"],
       scope: { kind: "book", bookId: fowler.bookId },
       seed: {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { marked } from "marked";
 import {
   fetchRun,
   ms,
@@ -54,15 +55,19 @@ function RunCard({ record, refOf }: { record: RunRecord; refOf: (scenarioId: str
         )}
         {turns.map((turn, index) => (
           <div key={index}>
-            <div className="who">reader · turn {index + 1}</div>
+            <div className="who">读者 · 第 {index + 1} 轮</div>
             <div className="bubble">{turn.input?.text ?? ""}</div>
             <div className="who">agent</div>
-            <div className="bubble answer">{turn.answer ?? ""}</div>
+            <div
+              className="bubble answer md"
+              // 本地可信工件（自己的 eval 输出）——marked 直接渲染。
+              dangerouslySetInnerHTML={{ __html: marked.parse(turn.answer ?? "", { async: false }) }}
+            />
           </div>
         ))}
         {tools.length > 0 && (
           <>
-            <div className="section-label">Tool calls</div>
+            <div className="section-label">工具调用</div>
             {tools.map((tool, index) => {
               const args = tool.args === undefined ? "" : JSON.stringify(tool.args);
               return (
@@ -96,7 +101,7 @@ export function RunPage({ runId, catalog }: { runId: string; catalog: CatalogSui
   }, [runId]);
 
   if (error) return <div className="error">{error}</div>;
-  if (!detail?.summary) return <div className="loading">Loading run…</div>;
+  if (!detail?.summary) return <div className="loading">加载运行数据…</div>;
 
   const { summary, records } = detail;
   const suite = catalog.find((entry) => entry.id === summary.suiteId);
@@ -143,17 +148,17 @@ export function RunPage({ runId, catalog }: { runId: string; catalog: CatalogSui
       <div className="stats">
         <div className="stat">
           <div className={`v ${passRate === 1 ? "ok" : "bad"}`}>{Math.round(passRate * 100)}%</div>
-          <div className="k">pass rate</div>
+          <div className="k">通过率</div>
         </div>
         <div className="stat">
           <div className="v">
             {summary.passed}/{summary.runs}
           </div>
-          <div className="k">runs passed</div>
+          <div className="k">通过 / 运行</div>
         </div>
         <div className="stat">
           <div className={`v ${summary.errors ? "bad" : ""}`}>{summary.errors}</div>
-          <div className="k">errors</div>
+          <div className="k">错误</div>
         </div>
         <div className="stat">
           <div className="v">{(totalTokens / 1000).toFixed(1)}k</div>
@@ -161,21 +166,21 @@ export function RunPage({ runId, catalog }: { runId: string; catalog: CatalogSui
         </div>
         <div className="stat">
           <div className="v">{usd(totalCost)}</div>
-          <div className="k">cost</div>
+          <div className="k">费用</div>
         </div>
       </div>
 
-      <h2>Scenarios</h2>
+      <h2>场景</h2>
       <table>
         <thead>
           <tr>
-            <th>ref</th>
-            <th>scenario</th>
-            <th>passed</th>
+            <th>坐标</th>
+            <th>场景</th>
+            <th>通过</th>
             <th>score</th>
-            <th>wall</th>
-            <th>rounds</th>
-            <th>cost</th>
+            <th>耗时</th>
+            <th>轮次</th>
+            <th>费用</th>
           </tr>
         </thead>
         <tbody>
@@ -200,13 +205,13 @@ export function RunPage({ runId, catalog }: { runId: string; catalog: CatalogSui
         </tbody>
       </table>
 
-      <h2>Runs</h2>
+      <h2>逐条运行</h2>
       <div className="filters">
         <button className={failedOnly ? "" : "active"} onClick={() => setFailedOnly(false)}>
-          All
+          全部
         </button>
         <button className={failedOnly ? "active" : ""} onClick={() => setFailedOnly(true)}>
-          Failed &amp; errors
+          只看失败与错误
         </button>
       </div>
       {visible.map((record) => (

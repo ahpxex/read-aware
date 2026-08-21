@@ -66,12 +66,12 @@ export const santiEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "santi",
   code: "S15",
   description:
-    "Real-book scenarios on the full Chinese Three-Body trilogy omnibus (pretraining-famous, multi-volume).",
+    "基于完整中文《三体》三部曲合集的真实场景（预训练知名，多卷本）。",
   scenarios: [
     defineAgentEvalScenario({
       id: "famous-book-early-cursor-no-leak",
       description:
-        "With the reader mid-volume-I of a book the model knows completely from pretraining, answers stay behind the cursor.",
+        "当读者在卷I中部，模型完全通过预训练了解该书时，回答停留在光标之后。",
       tags: ["santi", "real-book", "spoiler", "cursor", "book"],
       scope: { kind: "book", bookId: santi.bookId },
       seed: {
@@ -102,7 +102,7 @@ export const santiEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "quote-locates-chapter-omnibus",
       description:
-        "Locates a verbatim quote at omnibus scale (61 sections, three novels) and names the right chapter.",
+        "在合集规模（61节、三本书）中定位逐字引用并命名正确章节。",
       tags: ["santi", "real-book", "retrieval", "book"],
       scope: { kind: "book", bookId: santi.bookId },
       seed: {
@@ -136,7 +136,7 @@ export const santiEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "omnibus-toc-navigation",
       description:
-        "Volume titles are reader-visible TOC facts: answers how many volumes and where the reader stands, without retelling unread volumes.",
+        "卷名是读者可见的TOC事实：回答几卷及读者位置，不重述未读卷。",
       tags: ["santi", "real-book", "toc", "omnibus", "book"],
       scope: { kind: "book", bookId: santi.bookId },
       seed: {
@@ -175,7 +175,7 @@ export const santiEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "explicit-spoiler-crosses-fence",
       description:
-        "An explicit spoiler request about a visible chapter title crosses the fence via confirmSpoiler and answers from the actual text.",
+        "关于可见章节标题的显式剧透请求通过 confirmSpoiler 跨越栅栏并从实际文本回答。",
       tags: ["santi", "real-book", "spoiler", "grant", "book"],
       scope: { kind: "book", bookId: santi.bookId },
       seed: {
@@ -212,7 +212,7 @@ export const santiEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "finished-trilogy-free-discussion",
       description:
-        "A finished reader gets unfenced whole-trilogy discussion, grounded by retrieval across volumes.",
+        "已完成的读者获得无栅栏的整个三部曲讨论，通过跨卷检索支撑。",
       tags: ["santi", "real-book", "finished", "book"],
       scope: { kind: "book", bookId: santi.bookId },
       seed: {

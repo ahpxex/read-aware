@@ -469,6 +469,6 @@ export const realBooksEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "realbooks",
   code: "S13",
   description:
-    "The common behavior grid, generated over every registered real book (topical lookup, selection, annotation fidelity, chapter-crossing recall, no-cursor caution, quote location).",
+    "对所有注册的真实书籍生成的通用行为网格（主题查找、选择、标注忠实度、跨章召回、无光标警告、引文定位）。",
   scenarios: GRID.flatMap(scenariosFor),
 };

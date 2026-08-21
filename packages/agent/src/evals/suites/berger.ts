@@ -41,12 +41,12 @@ export const bergerEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "berger",
   code: "S02",
   description:
-    "Real-book how-to scenarios on the full Chinese Berger (applying the book's methods to the reader's situation).",
+    "基于中文《贝格尔》全书的真实“怎么做”场景（将书的方法应用于读者情境）。",
   scenarios: [
     defineAgentEvalScenario({
       id: "apply-method-to-situation",
       description:
-        "The reader brings a real decision; the answer applies the finished decision chapter's questioning methods to it, actionably.",
+        "读者带来真实决策，回答应用已读决策章节的提问方法，提供可操作建议。",
       tags: ["berger", "real-book", "how-to", "application", "book"],
       scope: { kind: "book", bookId: berger.bookId },
       seed: {
@@ -84,7 +84,7 @@ export const bergerEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "forward-peek-for-new-manager",
       description:
-        "A how-to book's later chapter is fair game: a new manager asks whether the book covers leading with questions.",
+        "指导类书籍的后续章节可自由访问：新任经理询问该书是否涵盖以提问领导。",
       tags: ["berger", "real-book", "how-to", "forward", "book"],
       scope: { kind: "book", bookId: berger.bookId },
       seed: {

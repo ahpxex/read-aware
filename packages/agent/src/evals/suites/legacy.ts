@@ -73,12 +73,12 @@ export const legacyEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "legacy",
   code: "S09",
   description:
-    "Long-time users arriving with old baggage: graph backlog interim state, old-transcript inheritance, and critical appraisal of the old agent's claims.",
+    "老用户带着旧数据出现时：处理图谱回填中间态、旧对话继承，以及对旧Agent声明的关键评估。",
   scenarios: [
     defineAgentEvalScenario({
       id: "mid-book-no-digests-graceful",
       description:
-        "Reader is mid-book but the digest pipeline has not caught up (zero digests): the agent degrades to retrieval instead of hallucinating a graph or denying the reader's progress.",
+        "读者正在阅读中但摘要管道尚未完成（无摘要）：Agent降级为检索而非虚构图谱或否认读者进度。",
       tags: ["legacy", "karamazov", "real-book", "graph-backlog", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       // 刻意不 seed chapterDigests —— 存量进度、空图谱的过渡态。
@@ -118,7 +118,7 @@ export const legacyEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "legacy-thread-view-recall",
       description:
-        "A months-old transcript predates the memory pipeline: asked to recall the reader's stated view, the agent searches the conversation record instead of claiming amnesia.",
+        "数月前的对话早于记忆管道：要求回忆读者已有观点时，Agent搜索对话记录而非声称遗忘。",
       tags: ["legacy", "karamazov", "real-book", "inheritance", "conversation", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: {
@@ -157,7 +157,7 @@ export const legacyEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "same-chapter-last-question",
       description:
-        "Within one chapter session, 'what did I just ask' is answered from the live context — no amnesia, no deflection.",
+        "在同一章节会话内，“我刚才问了什么”通过实时上下文回答——无遗忘或回避。",
       tags: ["legacy", "karamazov", "real-book", "continuity", "multi-turn", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: {
@@ -183,7 +183,7 @@ export const legacyEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "cross-chapter-last-question",
       description:
-        "Crossing a chapter boundary resets the session to its baseline — which must still carry the previous exchange verbatim, so 'what did I just ask' survives the reset.",
+        "跨越章节边界后会话重置到基线状态，但该状态必须保留上一轮对话原文，因此“我刚才问了什么”得以存活。",
       tags: ["legacy", "karamazov", "real-book", "continuity", "multi-turn", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: {
@@ -218,7 +218,7 @@ export const legacyEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "paraphrased-history-search",
       description:
-        "A colloquially rephrased question about an old discussion still finds the original turns — token-fallback matching, not verbatim luck.",
+        "关于旧讨论的通俗化转述问题仍能定位原始对话轮次——基于令牌回退匹配，而非完全匹配。",
       tags: ["legacy", "karamazov", "real-book", "continuity", "conversation", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: {
@@ -254,7 +254,7 @@ export const legacyEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "stale-claim-reverify",
       description:
-        "The old agent misattributed a quote in a past session: asked to double-check, the new agent re-verifies against the book text and corrects the record instead of parroting.",
+        "旧Agent在往期会话中误引了引文：要求复核时，新Agent重新对照书籍原文校验并更正记录，而非机械重复。",
       tags: ["legacy", "karamazov", "real-book", "critical-inheritance", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: {

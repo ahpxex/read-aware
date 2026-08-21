@@ -46,12 +46,12 @@ function shelfSummary() {
 export const crossbookEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "crossbook",
   code: "S03",
-  description: "Global-thread behaviors across a shelf of real books.",
+  description: "跨真实书籍书架的全局线程行为。",
   scenarios: [
     defineAgentEvalScenario({
       id: "which-book-said-it",
       description:
-        "A half-remembered line is located across the whole shelf and attributed to the right book.",
+        "在书架全局定位一句模糊记得的句子，并归因到正确书籍。",
       tags: ["crossbook", "real-book", "global", "retrieval"],
       scope: { kind: "global", threadId: "crossbook" },
       seed: shelfSeed(),
@@ -81,7 +81,7 @@ export const crossbookEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "cross-book-synthesis-spoiler-safe",
       description:
-        "Synthesizes Le Bon's crowd psychology with the Three-Body cult WITHOUT leaking beyond the reader's early Three-Body position (the global thread has no host fence — prompt discipline only).",
+        "将勒庞的群体心理学与《三体》崇拜综合，但不泄露读者在《三体》中的早期位置（全局线程无宿主围栏——仅靠提示纪律）。",
       tags: ["crossbook", "real-book", "global", "synthesis", "spoiler"],
       scope: { kind: "global", threadId: "crossbook" },
       seed: shelfSeed(),
@@ -117,7 +117,7 @@ export const crossbookEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "shelf-grounded-recommendation",
       description:
-        "A what-next recommendation stays on the actual shelf and renders books as cards.",
+        "基于实际书架推荐下一步，并将书籍渲染为卡片。",
       tags: ["crossbook", "real-book", "global", "recommendation", "cards"],
       scope: { kind: "global", threadId: "crossbook" },
       seed: shelfSeed(),

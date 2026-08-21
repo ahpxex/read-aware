@@ -149,12 +149,12 @@ export const journeysEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "journeys",
   code: "S06",
   description:
-    "Full multi-turn reading sessions — selection, follow-ups, annotations, chapter crossings, explicit memory, and an end-of-session recap, asserted turn by turn.",
+    "完整的多轮阅读会话：选段提问、追问、标注、跨章节、显式记忆、会话末总结，逐轮断言。",
   scenarios: [
     defineAgentEvalScenario({
       id: "karamazov-reading-session",
       description:
-        "A six-turn literary reading session: selection → follow-up → highlight+note → chapter crossing → remember → recap.",
+        "六轮文学阅读会话：选段→追问→高亮+笔记→跨章→记忆→总结。",
       tags: ["journeys", "karamazov", "real-book", "multi-turn", "state", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: {
@@ -218,7 +218,7 @@ export const journeysEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "refactoring-work-session",
       description:
-        "A five-turn technical work session: mechanics → apply to my code → boundary question → note a principle → connect back to smells.",
+        "五轮技术著作会话：机制→应用至我的代码→边界问题→记录原则→关联坏味道。",
       tags: ["journeys", "refactoring", "real-book", "multi-turn", "technical", "book"],
       scope: { kind: "book", bookId: fowler.bookId },
       seed: {

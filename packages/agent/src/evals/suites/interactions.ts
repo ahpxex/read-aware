@@ -50,11 +50,11 @@ const observeBooks = ({ stores }: Parameters<NonNullable<AgentEvalScenario["obse
 export const interactionsEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "interactions",
   code: "S05",
-  description: "Clarification and destructive permission behavior through the in-chat interaction UI.",
+  description: "通过聊天内交互界面的澄清和破坏性权限行为。",
   scenarios: [
     defineAgentEvalScenario({
       id: "ambiguous-delete-target",
-      description: "Asks the user to choose a target before attempting a destructive operation.",
+      description: "在执行破坏性操作前，要求用户先选择目标。",
       tags: ["interaction", "clarification", "destructive", "security"],
       scope: { kind: "global", threadId: "interaction-ambiguous" },
       seed: {
@@ -76,7 +76,7 @@ export const interactionsEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "delete-requires-permission",
-      description: "Routes an explicit deletion through the host-owned permission interaction.",
+      description: "通过宿主拥有的权限交互路由显式删除。",
       tags: ["interaction", "permission", "destructive", "state"],
       scope: { kind: "global", threadId: "interaction-delete" },
       seed: {
@@ -101,7 +101,7 @@ export const interactionsEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "declined-delete-preserves-book",
-      description: "Does not mutate the shelf when the user declines the permission prompt.",
+      description: "用户拒绝权限提示时不修改书架。",
       tags: ["interaction", "permission", "destructive", "state"],
       scope: { kind: "global", threadId: "interaction-decline" },
       seed: {
@@ -132,7 +132,7 @@ export const interactionsEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "ordinary-write-needs-no-permission",
-      description: "Performs a clear non-destructive mutation without an unnecessary permission prompt.",
+      description: "执行清晰的非破坏性变异，不带不必要的权限提示。",
       tags: ["interaction", "non-destructive", "state"],
       scope: { kind: "global", threadId: "interaction-star" },
       seed: {
@@ -157,7 +157,7 @@ export const interactionsEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "respond-in-user-language",
-      description: "Answers in the language the user wrote in (Chinese question, Chinese answer).",
+      description: "以用户输入的语言回答（中文问题，中文回答）。",
       tags: ["interaction", "language", "quality", "global"],
       scope: { kind: "global", threadId: "interaction-language" },
       seed: {
@@ -196,7 +196,7 @@ export const interactionsEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "multi-turn-recall-via-rewind",
-      description: "Recalls an earlier point with get_recent_turns instead of guessing.",
+      description: "用 get_recent_turns 回忆早期要点，而非猜测。",
       tags: ["interaction", "multi-turn", "recall", "book"],
       scope: { kind: "book", bookId: BOOK_ALPHA },
       seed: {

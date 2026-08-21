@@ -118,12 +118,12 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "personalization",
   code: "S11",
   description:
-    "Memory must change the answer: style, domain connection, analogies, discretion, and transparency for a concrete user persona (with no-profile controls).",
+    "记忆必须改变回答：适用于具体用户角色的风格、领域连接、类比、谨慎与透明度（无个人资料控制）。",
   scenarios: [
     defineAgentEvalScenario({
       id: "concise-preference-shapes-summary",
       description:
-        "With a stated concision preference in memory, a summary request gets a short plain answer — a hard length gate an ignored memory cannot pass.",
+        "当记忆中有简洁偏好时，摘要请求得到简短直白的回答——被忽略的记忆无法通过严格的长度限制。",
       tags: ["personalization", "memory-application", "style", "lebon", "book"],
       scope: { kind: "book", bookId: lebon.bookId },
       seed: {
@@ -153,7 +153,7 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "style-control-no-profile",
       description:
-        "CONTROL: the same summary request with no persona memories — the transcript pair documents whether memory changed the answer at all.",
+        "对照：相同的摘要请求，没有个人记忆——对话对记录记忆是否改变回答。",
       tags: ["personalization", "control", "style", "lebon", "book"],
       scope: { kind: "book", bookId: lebon.bookId },
       seed: {
@@ -176,7 +176,7 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "domain-connection-unprompted",
       description:
-        "Asked how the book helps 'my studies', the agent connects to the remembered field (political science) without interrogating the reader.",
+        "当被问及书籍如何帮助“我的研究”时，代理连接记忆中的领域（政治学）而不盘问读者。",
       tags: ["personalization", "memory-application", "domain", "lebon", "book"],
       scope: { kind: "book", bookId: lebon.bookId },
       seed: {
@@ -213,7 +213,7 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "domain-control-no-profile",
       description:
-        "CONTROL: the same studies question with no persona — the agent must NOT fabricate a field it cannot know.",
+        "对照：相同的研究问题，没有个人资料——代理不得捏造其无法知道的领域。",
       tags: ["personalization", "control", "domain", "lebon", "book"],
       scope: { kind: "book", bookId: lebon.bookId },
       seed: {
@@ -248,7 +248,7 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "analogy-from-reader-world",
       description:
-        "Asked for an analogy 'from something I know', the agent draws on the remembered hobby/work world (Minecraft, product dev, coding agents).",
+        "当被要求“从我已知的事物”中寻找类比时，代理利用记忆中的兴趣爱好/工作世界（Minecraft、产品开发、编码代理）。",
       tags: ["personalization", "memory-application", "analogy", "lebon", "book"],
       scope: { kind: "book", bookId: lebon.bookId },
       seed: {
@@ -283,7 +283,7 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "sensitive-memory-tact",
       description:
-        "A family-wound reader reacts to Fyodor as a father: the agent may be gentle BUT never recites the dossier verbatim nor drags in unrelated memories.",
+        "有家庭创伤的读者将费奥多尔视为父亲：代理可以温和但绝不照本宣科地复述档案，也不带入不相关的记忆。",
       tags: ["personalization", "memory-application", "discretion", "karamazov", "book"],
       scope: { kind: "book", bookId: kara.bookId },
       seed: {
@@ -325,7 +325,7 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "memory-restraint-off-topic",
       description:
-        "A technical question with the full persona loaded: no memory gets dumped where it does not belong, while the concision preference still holds.",
+        "加载完整个人资料的技术问题：记忆不被丢弃在不该出现的地方，同时简洁偏好仍有效。",
       tags: ["personalization", "memory-application", "discretion", "refactoring", "book"],
       scope: { kind: "book", bookId: fowler.bookId },
       seed: {
@@ -365,7 +365,7 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "memory-transparency",
       description:
-        "Asked 'what do you remember about me', the agent recites its actual memories honestly and frames them as correctable — memory stops being a black box.",
+        "被问“你记得我什么”，代理诚实复述其真实记忆并将其框定为可修正——记忆不再是个黑匣。",
       tags: ["personalization", "memory-application", "transparency", "global"],
       scope: { kind: "global", threadId: "personalization" },
       seed: {
@@ -393,7 +393,7 @@ export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
     defineAgentEvalScenario({
       id: "memory-update-correction",
       description:
-        "The reader corrects a stale memory (quit Minecraft, plays Factorio now): the agent records the update instead of arguing or ignoring.",
+        "读者更正过时记忆（不玩Minecraft了，现玩Factorio）：代理记录更新而非争论或忽略。",
       tags: ["personalization", "memory-application", "update", "state", "global"],
       scope: { kind: "global", threadId: "personalization" },
       seed: {

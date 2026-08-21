@@ -56,11 +56,11 @@ function stableCursorContextAssessment(observation: AgentEvalObservation): EvalA
 export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "reading",
   code: "S12",
-  description: "Reading-cursor grounding, narrative spoiler policy, and expository retrieval.",
+  description: "阅读光标定位、叙述性剧透策略与说明性图书检索。",
   scenarios: [
     defineAgentEvalScenario({
       id: "narrative-no-spoiler",
-      description: "Respects the current cursor and avoids retrieving later narrative reveals.",
+      description: "尊重当前光标位置，避免拉取后续情节剧透。",
       tags: ["reading", "cursor", "spoiler", "narrative"],
       scope: { kind: "book", bookId: NARRATIVE_BOOK_ID },
       seed: {
@@ -92,7 +92,7 @@ export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "explicit-spoiler",
-      description: "Allows a requested spoiler but grounds it in the actual book text.",
+      description: "允许请求的剧透，但需基于实际书籍文本。",
       tags: ["reading", "spoiler", "retrieval", "narrative"],
       scope: { kind: "book", bookId: NARRATIVE_BOOK_ID },
       seed: {
@@ -118,7 +118,7 @@ export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "cursor-grounding",
-      description: "Answers a page-specific question from visible reader text.",
+      description: "根据可见的读者文本回答页面级问题。",
       tags: ["reading", "cursor", "grounding"],
       scope: { kind: "book", bookId: NARRATIVE_BOOK_ID },
       seed: {
@@ -140,7 +140,7 @@ export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "expository-can-look-ahead",
-      description: "Retrieves later material when forward lookup is useful and non-spoilery.",
+      description: "当前向查找有用且无剧透时，拉取后续材料。",
       tags: ["reading", "retrieval", "expository"],
       scope: { kind: "book", bookId: "eval-data-structures" as Id },
       seed: {
@@ -187,7 +187,7 @@ export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "same-chapter-cursor-refresh",
-      description: "Refreshes the live cursor each turn without invalidating the stable prompt prefix.",
+      description: "每轮刷新实时光标，但不使稳定的 prompt 前缀失效。",
       tags: ["reading", "cursor", "multi-turn", "cache"],
       scope: { kind: "book", bookId: NARRATIVE_BOOK_ID },
       seed: {
@@ -236,7 +236,7 @@ export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "cross-book-search",
-      description: "Answers a which-of-my-books question by searching prose across the shelf.",
+      description: "通过搜索书架全书文本来回答“哪本书是我的”问题。",
       tags: ["reading", "retrieval", "cross-book", "global"],
       scope: { kind: "global", threadId: "reading-cross-book" },
       seed: {

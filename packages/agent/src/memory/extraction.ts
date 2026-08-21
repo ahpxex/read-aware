@@ -91,7 +91,37 @@ export interface ExtractMemoriesInput {
   existing: MemoryRecord[];
 }
 
-export async function extractMemories(input: ExtractMemoriesInput): Promise<ExtractionResult> {
+export function extractMemories(input: ExtractMemoriesInput): Promise<ExtractionResult> {
+  return runExtraction(
+    input,
+    `READER: ${input.userText}\n\nASSISTANT: ${input.assistantText}`,
+  );
+}
+
+export interface ExtractFromTranscriptInput {
+  complete: CompleteFn;
+  model: Model<Api>;
+  scope: ThreadScope;
+  /** 已格式化的多轮转录（READER/ASSISTANT 行；见 formatTurnsForFolding）。 */
+  transcript: string;
+  existing: MemoryRecord[];
+}
+
+/**
+ * 旧线程领养的继承提炼：对记忆管线上线前的历史窗口跑同一套保守提炼。
+ * 与逐轮提炼共享全部规则（≤3 条候选、命中已有记忆报 reinforced）——
+ * 重复领养因此近似幂等：再跑一遍多是强化而非重复写入。
+ */
+export function extractMemoriesFromTranscript(
+  input: ExtractFromTranscriptInput,
+): Promise<ExtractionResult> {
+  return runExtraction(input, input.transcript);
+}
+
+async function runExtraction(
+  input: Pick<ExtractMemoriesInput, "complete" | "model" | "scope" | "existing">,
+  content: string,
+): Promise<ExtractionResult> {
   let message: AssistantMessage;
   try {
     message = await input.complete(input.model, {
@@ -99,7 +129,7 @@ export async function extractMemories(input: ExtractMemoriesInput): Promise<Extr
       messages: [
         {
           role: "user",
-          content: `READER: ${input.userText}\n\nASSISTANT: ${input.assistantText}`,
+          content,
           timestamp: Date.now(),
         },
       ],

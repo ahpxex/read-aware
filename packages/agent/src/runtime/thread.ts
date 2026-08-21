@@ -9,8 +9,12 @@ import { Agent, type AgentEvent, type ThinkingLevel } from "@earendil-works/pi-a
 import type { Usage } from "@earendil-works/pi-ai";
 import type { ThreadChunk } from "../chunks";
 import { buildSystemPrompt } from "../context/system-prompt";
-import { extractMemories } from "../memory/extraction";
-import { updateRollingSummary } from "../memory/rolling-summary";
+import { extractMemories, extractMemoriesFromTranscript } from "../memory/extraction";
+import {
+  bootstrapSummaryFromHistory,
+  formatTurnsForFolding,
+  updateRollingSummary,
+} from "../memory/rolling-summary";
 import type { CompleteFn, StreamFn } from "../models/complete";
 import type { ResolveModel } from "../models/roles";
 import type { RuntimeDeps, TurnAttachment } from "../ports";
@@ -522,11 +526,68 @@ export class AgentThread {
     }
   }
 
+  /** 旧线程领养的历史窗口：折叠成 bootstrap 摘要 + 跑一次继承提炼的轮数上限。 */
+  private static readonly ADOPTION_WINDOW_TURNS = 24;
+
+  /**
+   * 旧线程领养（存量用户的继承半场）：这条线程在摘要/记忆管线上线之前就
+   * 积累了转录（有历史、无 insights 行）——把历史尾部折叠成初始滚动摘要，
+   * 并对同一窗口跑一次保守记忆提炼（提炼自身对已知记忆去重/强化）。
+   * insights 落库后门条件永不再成立——它就是领养的水位线。更早的历史
+   * 不强行蒸馏：转录是 raw source，按需靠 search_conversation 取。
+   * 返回 bootstrap 摘要（作本轮滚动摘要的 previous）；失败返回 undefined，
+   * 本轮按无摘要继续、下轮门条件仍在，自动重试。
+   */
+  private async adoptLegacyThread(
+    fast: () => ReturnType<ResolveModel>,
+  ): Promise<string | undefined> {
+    const persisted = await this.deps.conversations.load(this.key).catch(() => []);
+    // load() 此刻已含本轮 user+assistant 两条；历史 = 之前的部分。
+    const history = persisted.slice(0, Math.max(0, persisted.length - 2));
+    if (history.length < 2) return undefined;
+    const window = history.slice(-AgentThread.ADOPTION_WINDOW_TURNS);
+    const summary = await bootstrapSummaryFromHistory({
+      complete: this.completeFn,
+      model: fast(),
+      turns: window,
+    });
+    if (this.disposed) return summary;
+    const existing = await this.deps.memory.searchMemories({
+      scopes: visibleScopes(this.scope),
+      limit: 20,
+    });
+    const inherited = await extractMemoriesFromTranscript({
+      complete: this.completeFn,
+      model: fast(),
+      scope: this.scope,
+      transcript: formatTurnsForFolding(window),
+      existing,
+    });
+    if (this.disposed) return summary;
+    for (const candidate of inherited.newMemories) {
+      await this.deps.memory.saveMemory({
+        ...candidate,
+        origin: "extraction",
+        sourceThreadKey: this.key,
+      });
+    }
+    for (const id of inherited.reinforcedIds) {
+      await this.deps.memory.reinforceMemory(id);
+    }
+    return summary;
+  }
+
   private scheduleBackgroundPipeline(userText: string, assistantText: string): void {
     if (!assistantText) return;
     const fast = () => this.resolveModel("fast");
     this.backgroundWork = this.backgroundWork
       .then(async () => {
+        if (this.disposed) return;
+        // 领养先于逐轮提炼：先继承的记忆会出现在本轮提炼的已知清单里，
+        // 同一事实不会被写两遍。
+        const previousInsights = await this.deps.conversations.getInsights(this.key);
+        const bootstrapped =
+          previousInsights === undefined ? await this.adoptLegacyThread(fast) : undefined;
         if (this.disposed) return;
         const existing = await this.deps.memory.searchMemories({
           scopes: visibleScopes(this.scope),
@@ -552,7 +613,7 @@ export class AgentThread {
           await this.deps.memory.reinforceMemory(id);
         }
 
-        const previous = await this.deps.conversations.getInsights(this.key);
+        const previous = previousInsights ?? bootstrapped;
         const summary = await updateRollingSummary({
           complete: this.completeFn,
           model: fast(),
@@ -560,7 +621,7 @@ export class AgentThread {
           userText,
           assistantText,
         });
-        if (!this.disposed && summary && summary !== previous) {
+        if (!this.disposed && summary && summary !== previousInsights) {
           await this.deps.conversations.putInsights(this.key, summary);
         }
       })

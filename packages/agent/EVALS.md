@@ -53,6 +53,15 @@ surface case there; the completeness check fails otherwise.
   the watchpost for the known gap that the global thread arms no host
   spoiler fence — prompt discipline only), and shelf-grounded
   recommendations rendered as cards.
+- `legacy`: long-time users arriving with old baggage. Three inheritance
+  pressures: the graph-backlog interim state (mid-book progress, zero digests
+  — degrade to retrieval, don't hallucinate a graph), old-transcript
+  inheritance (recall the reader's stated views via search_conversation /
+  get_recent_turns, never claim amnesia), and critical appraisal — a past
+  assistant's misattribution must be re-verified against the book and
+  corrected, not parroted. The deterministic half (legacy-thread adoption:
+  bootstrap rolling summary + inherited memory extraction, insights row as
+  the watermark) lives in runtime/legacy-adoption.test.ts.
 - `grounding`: honesty when data is missing — no invented chapters, durations,
   or shelf books.
 - `reading`: reading-cursor grounding, selective spoiler protection, forward

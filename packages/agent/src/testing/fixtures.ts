@@ -79,6 +79,10 @@ export interface InMemorySeed {
   annotations?: AnnotationItem[];
   profile?: string;
   memories?: MemoryRecord[];
+  /** threadKey → 既有转录（存量用户/旧 agent 场景：记忆管线上线前的历史对话）。 */
+  turns?: Record<string, TurnRecord[]>;
+  /** threadKey → 既有滚动摘要（缺失 + 有 turns = 待领养的旧线程）。 */
+  insights?: Record<string, string>;
   chapters?: Record<string, ChapterSeed[]>;
   chapterDigests?: Record<string, ChapterDigest[]>;
   collections?: CollectionSummary[];
@@ -321,8 +325,10 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
     annotations,
     collections,
     bookStats,
-    turns: new Map(),
-    insights: new Map(),
+    turns: new Map(
+      Object.entries(structuredClone(seed.turns ?? {})).map(([key, list]) => [key, [...list]]),
+    ),
+    insights: new Map(Object.entries(structuredClone(seed.insights ?? {}))),
     asks: [],
     memories: structuredClone(seed.memories ?? []),
     savedMemoryInputs: [],

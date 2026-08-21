@@ -4,6 +4,7 @@ import { crossbookEvalSuite } from "./crossbook";
 import { groundingEvalSuite } from "./grounding";
 import { interactionsEvalSuite } from "./interactions";
 import { karamazovEvalSuite } from "./karamazov";
+import { legacyEvalSuite } from "./legacy";
 import { lebonEvalSuite } from "./lebon";
 import { memoryEvalSuite } from "./memory";
 import { readingEvalSuite } from "./reading";
@@ -20,6 +21,7 @@ export const evalSuites = {
   grounding: groundingEvalSuite,
   interactions: interactionsEvalSuite,
   karamazov: karamazovEvalSuite,
+  legacy: legacyEvalSuite,
   lebon: lebonEvalSuite,
   memory: memoryEvalSuite,
   reading: readingEvalSuite,

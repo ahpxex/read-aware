@@ -285,6 +285,37 @@ describe("digestMissingChapters", () => {
     expect(saved[0]!.digest.flavor).toBe("expository");
   });
 
+  test("legacy progress catches up across idle ticks: repeated budgeted calls digest the whole backlog", async () => {
+    // 存量用户场景：书已读到第 4 章（beforeChapterIndex=3 之前全部欠账），
+    // 纪要管线后上线——每个空闲节拍最多 2 章，几拍之后账清、之后空转。
+    const saved: ChapterDigest[] = [];
+    const { deps } = (() => {
+      const base = harness();
+      base.deps.bookMemory = {
+        listDigests: async () => [...saved],
+        saveDigest: async (_bookId: Id, digest: ChapterDigest) => {
+          saved.push(digest);
+        },
+      };
+      return base;
+    })();
+    const tick = () =>
+      digestMissingChapters({
+        ...deps,
+        complete: deps.complete as never,
+        model: MODEL,
+        bookId: BOOK_ID,
+        beforeChapterIndex: 3,
+        maxChapters: 2,
+        flavor: "expository",
+      });
+    expect(await tick()).toBe(2);
+    expect(await tick()).toBe(1);
+    expect(await tick()).toBe(0); // 账已清——之后的节拍是无害空转
+    expect(saved.map((digest) => digest.chapterIndex)).toEqual([0, 1, 2]);
+    expect(saved.every((digest) => digest.flavor === "expository")).toBe(true);
+  });
+
   test("reader still in the first chapter digests nothing", async () => {
     const { deps, digested } = harness();
     const count = await digestMissingChapters({

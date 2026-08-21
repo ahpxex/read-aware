@@ -1768,11 +1768,21 @@ fn adopting_a_different_account_resets_the_bookkeeping() {
         },
     )
     .unwrap();
+    conn.execute(
+        "UPDATE sync_profile
+            SET last_push_at = '2026-08-21T10:00:00.000Z',
+                last_pull_at = '2026-08-21T10:05:00.000Z'",
+        [],
+    )
+    .unwrap();
 
     // Reconnecting the SAME account keeps every mark: nothing to re-push.
     assert!(!sync_adopt_account_inner(&mut conn, "acc-a").unwrap());
     assert!(sync_outbox_events_inner(&conn, 100).unwrap().is_empty());
     assert!(sync_cursor_get_inner(&conn, "events").unwrap().is_some());
+    let same_account_profile = sync_profile_get_inner(&conn).unwrap();
+    assert!(same_account_profile.last_push_at.is_some());
+    assert!(same_account_profile.last_pull_at.is_some());
 
     // A DIFFERENT account has confirmed nothing. The whole log re-enters the
     // outbox — including r1, which never had an outbox row — the blob
@@ -1800,6 +1810,9 @@ fn adopting_a_different_account_resets_the_bookkeeping() {
         scalar::<String>(&conn, "SELECT bookkeeping_account_id FROM sync_profile"),
         "acc-b"
     );
+    let new_account_profile = sync_profile_get_inner(&conn).unwrap();
+    assert!(new_account_profile.last_push_at.is_none());
+    assert!(new_account_profile.last_pull_at.is_none());
 }
 
 #[test]

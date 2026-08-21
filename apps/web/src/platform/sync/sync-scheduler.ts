@@ -27,6 +27,7 @@ import {
   type SyncEngine,
 } from "./sync-engine";
 import { adoptSyncAccount, createIpcSyncStore, getSyncProfile, setSyncProfile } from "./sync-store";
+import { lastSuccessfulSyncAt } from "./sync-status";
 
 const log = createLogger("sync");
 
@@ -102,6 +103,8 @@ export type SyncStatusSnapshot = {
    * session — so the scheduler goes dormant until a reconnect restarts it.
    */
   state: "disabled" | "idle" | "syncing" | "error" | "unauthenticated";
+  /** The local profile and both credentials identify a connected account. */
+  accountConnected: boolean;
   lastSyncAt: number | null;
   lastError: string | null;
   /** Live counters while `state === "syncing"`, null otherwise. */
@@ -118,6 +121,7 @@ export type SyncStatusSnapshot = {
 
 let status: SyncStatusSnapshot = {
   state: "disabled",
+  accountConnected: false,
   lastSyncAt: null,
   lastError: null,
   progress: null,
@@ -304,6 +308,17 @@ export async function syncNow(): Promise<void> {
  */
 export function startSyncScheduler(): () => void {
   disposeScheduler?.();
+  // Restarting is also the account-boundary transition. Clear the previous
+  // account's live status synchronously while the persisted profile loads.
+  setStatus({
+    state: "disabled",
+    accountConnected: false,
+    lastSyncAt: null,
+    lastError: null,
+    progress: null,
+    cycleTotals: null,
+    lastCycle: null,
+  });
   if (!isTauri()) return () => {};
 
   let disposed = false;
@@ -433,12 +448,20 @@ export function startSyncScheduler(): () => void {
   void (async () => {
     const profile = await getSyncProfile().catch(() => null);
     if (disposed) return;
-    if (!profile?.syncEnabled || !getSecret("sync.session") || !getSecret("sync.master-key")) {
-      setStatus({ state: "disabled" });
+    if (
+      !profile?.syncEnabled ||
+      !profile.remoteAccountId ||
+      !getSecret("sync.session") ||
+      !getSecret("sync.master-key")
+    ) {
       return;
     }
     window.addEventListener("focus", onFocus);
-    setStatus({ state: "idle" });
+    setStatus({
+      state: "idle",
+      accountConnected: true,
+      lastSyncAt: lastSuccessfulSyncAt(profile),
+    });
     // Duplicates that predate this build (or arrived while sync was off)
     // reconcile once at start; pull-time detection covers everything after.
     void reconcileDuplicateBooks();

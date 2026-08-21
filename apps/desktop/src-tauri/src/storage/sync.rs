@@ -545,6 +545,8 @@ pub(crate) fn sync_adopt_account_inner(
          VALUES (1, ?1, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
          ON CONFLICT(id) DO UPDATE SET
             bookkeeping_account_id = excluded.bookkeeping_account_id,
+            last_push_at = NULL,
+            last_pull_at = NULL,
             updated_at = excluded.updated_at",
         params![account_id],
     )

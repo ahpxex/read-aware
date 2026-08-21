@@ -12,6 +12,7 @@ import { useTranslation } from "../../../i18n";
 import { createLogger } from "../../../platform/logger";
 import { syncNow } from "../../../platform/sync/sync-scheduler";
 import { useSyncBacklog, useSyncStatus } from "../hooks/useSyncStatus";
+import { shouldShowSyncIndicator } from "../lib/sync-indicator-visibility";
 import { syncCycleFraction } from "../lib/sync-progress";
 import { SyncProgressDetail } from "./SyncProgressDetail";
 
@@ -26,8 +27,9 @@ export function SyncIndicator() {
   const syncing = status.state === "syncing";
   const failed = status.state === "error";
   // `open` keeps the chip mounted through the end of a cycle — a popover the
-  // user is reading must not vanish because the sync finished under it.
-  if (!syncing && !failed && !open) return null;
+  // user is reading must not vanish because the sync finished under it. It
+  // never overrides the account/first-success error policy, though.
+  if (!shouldShowSyncIndicator(status, open)) return null;
 
   // Determinate when the denominators are honest (push/blob phases); the
   // pull phase spins — the relay never says how much is left.

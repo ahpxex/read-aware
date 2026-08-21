@@ -28,8 +28,10 @@ git push 优先走 SSH remote（`git@github.com:ahpxex/read-aware.git`）——H
   两次：Windows portable-zip 步骤找 `ReadAware.exe`，而 target 目录里的产物
   一直叫 `read-aware-desktop.exe`，5db382a 才修掉）。先修流水线，再发版。
 - 读当前版本：`apps/desktop/src-tauri/tauri.conf.json` 的 `version`。
-- 定新版本号：用户指定了就用用户的；没指定则默认 patch +1，若本次包含明显的新
-  功能可建议 minor，并把选择告诉用户（不必等确认，用户有异议会说）。
+- 定新版本号：用户指定了就用用户的；**没指定则必须先问用户 bump 到哪个版本，
+  拿到答复才动手**——不许自己推断、不许"先做了再说"（2026-08-21 实测教训：
+  agent 按功能量级自作主张 bump 到 0.6.0-1，用户要的其实是 0.5.0-2）。
+  问的时候可以给出建议项（如 patch +1 / beta 序号 +1 / minor），但决定权在用户。
 - **minor 版本代号**：每个 minor 系列有一个 verbal 代号（0.4 = El Alto），由用户
   在开新 minor 时命名。代号进 GitHub release 标题（`v0.4.0 「El Alto」`）与官网
   changelog 的版本标题；patch 沿用所在 minor 的代号。tag 与资产命名不含代号。

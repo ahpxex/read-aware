@@ -43,6 +43,3 @@ export { AgentRuntime, createAgentRuntime, type AgentRuntimeOptions } from "./ru
 export { matchesMemoryQuery } from "./memory/query-match";
 
 // eval viewer 的数据源：套件目录（场景定义本身就是可序列化的）。
-export { evalSuites, isEvalSuiteId, type EvalSuiteId } from "./evals/suites";
-export type { AgentEvalScenario } from "./evals/agent-harness";
-export type { EvalSuite, EvalRunRecord, EvalSummary } from "./evals/types";

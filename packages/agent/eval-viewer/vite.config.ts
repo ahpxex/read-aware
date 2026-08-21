@@ -1,6 +1,6 @@
 /**
  * Eval viewer 的数据面走 vite dev 中间件（本地开发工具，dev 模式即产品形态）：
- *  - /api/catalog  套件目录——经 ssrLoadModule 直接加载 @read-aware/agent 的
+ *  - /api/catalog  套件目录——经 ssrLoadModule 直接加载 @read-aware/agent/evals 的
  *    evalSuites（场景定义天生可序列化），所以不跑 eval 也能浏览"测什么、怎么测"。
  *  - /api/runs     扫描 repo 根与 packages/agent 下的 .eval/ 工件目录。
  *  - /api/runs/:id 单次运行的 manifest + summary + runs.jsonl 全量记录。
@@ -109,7 +109,7 @@ function evalDataPlugin(): Plugin {
             if (!catalogCache) {
               // ssrLoadModule 现场编译 agent 包 TS；套件构造会加载真书
               // fixture 全文（一次约一两秒），进程内缓存。
-              const agent = (await server.ssrLoadModule("@read-aware/agent")) as {
+              const agent = (await server.ssrLoadModule("@read-aware/agent/evals")) as {
                 evalSuites: Record<
                   string,
                   {

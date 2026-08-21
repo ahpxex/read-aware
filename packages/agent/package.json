@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./spike": "./src/spike.ts",
+    "./evals": "./src/evals/index.ts",
     "./testing": "./src/testing/fixtures.ts"
   },
   "scripts": {

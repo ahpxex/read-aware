@@ -32,7 +32,7 @@ import { hydrateSecrets } from "../../../platform/secret-store";
 // "custom" has no catalog at all; "readaware" is cataloged by the relay
 // proxy, not pi-ai — it gets its own assertion below.
 const catalogProviders = Object.keys(PROVIDER_MODELS).filter(
-  (provider): provider is KnownProviderId =>
+  (provider): provider is KnownProviderId & keyof typeof PROVIDER_MODELS =>
     provider !== "custom" && provider !== "readaware",
 );
 

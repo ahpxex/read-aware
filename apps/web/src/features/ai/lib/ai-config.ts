@@ -14,6 +14,13 @@ import {
   type ThinkingLevel,
 } from "@read-aware/agent";
 
+/**
+ * 产品 BYO-key 面可配置的 provider：KNOWN_PROVIDERS 去掉 OAuth 订阅式
+ * 条目（openai-codex 走 pi CLI 的 OAuth 登录，产品没有对应登录流，
+ * 只服务 eval/dev 链路）。
+ */
+type ByoProviderId = Exclude<KnownProviderId, "openai-codex">;
+
 export type AIProvider =
   | "readaware"
   | "openai"
@@ -444,9 +451,9 @@ const RECOMMENDED_MODEL_IDS = {
     "kimi-k2.7-code",
     "kimi-k2.6",
   ],
-} as const satisfies Record<KnownProviderId, readonly string[]>;
+} as const satisfies Record<ByoProviderId, readonly string[]>;
 
-function recommendedModelOptions(provider: KnownProviderId) {
+function recommendedModelOptions(provider: ByoProviderId) {
   const catalog = new Map(
     getProviderModelCatalog(provider).map((entry) => [entry.id, entry]),
   );

@@ -1,7 +1,7 @@
 # ReadAware — Local Data Model & Schema (Design)
 
 > **Status:** Live in production (v0.5.x, 2026-08). The Tauri app persists to
-> SQLite; schema migration **v23** brings the live database to this document's
+> SQLite; the live database is at schema migration **v23** in this document's
 > sync shape: `domain_events` (full envelope) + `event_sync_state` /
 > `blob_sync_state` outboxes + the `blob_objects` registry, with blob **bytes on
 > the filesystem** (`<app_data>/blobs/`), WAL journaling, and a stable
@@ -209,12 +209,16 @@ row's historical timestamp while their HLC is stamped at synthesis time.
 > creation events for rows that predate the write path.
 > **`book.narrativityClassified` and `book.chapterDigested` are live** (idle
 > pipeline producers; see [§5.2](#52-memory-long-term--working)).
-> **`memory.*` events are declared and logged by the agent runtime**, but the
-> consolidation pipeline that produces them is **not yet built** — they project
-> to nothing today ([§10](#10-open-decisions)).
+> **`memory.*` events are live**: the agent runtime's idle maintenance
+> (decay / merge / contradiction / promotion, `packages/agent/src/memory/`
+> `consolidation.ts`) produces them, and `apply.rs` materializes every one
+> of `memory.promoted / revised / superseded / forgotten / feedback` into the
+> `memories` table.
 > `profile.*` and `entity.*` are declared so the projection tables are
-> well-defined, but **have no producer yet** — the profile store is interim
-> `app_kv` and entity resolution is future work ([§10](#10-open-decisions)).
+> well-defined, but **apply to nothing today** (`apply.rs` returns no-op for
+> them) — the consolidation pipeline that would own their projection is not
+> built; the profile store is interim `app_kv` and entity resolution is future
+> work ([§10](#10-open-decisions)).
 >
 > **Origin.** Every envelope carries `origin` — which software actor produced
 > the event: `user` (default), `agent`, `system`, or `plugin:<id>` (plugin
@@ -268,7 +272,8 @@ insert a fresh id.
 ### 5.2 Memory (long-term + working)
 
 The hard half (per CLAUDE.md): the write/consolidation pipeline is modeled as
-explicitly as retrieval. Tables (all forward-looking, no producer yet):
+explicitly as retrieval. Tables (`memories` is live with its producer — see
+the Producer status note above; the rest are forward-looking, no producer yet):
 
 - **`entities`** + **`entity_aliases`** — resolved entities behind "repeated
   appearance across books/conversations"; `entities.merged_into_id` records an
@@ -282,13 +287,14 @@ explicitly as retrieval. Tables (all forward-looking, no producer yet):
 - **`working_memory`** — short-horizon, decaying projection for the active
   session (`salience`, `expires_at`); cheap to rebuild/discard.
 - **`chapter_digests`** *(live since v17)* — book_memory v1：每本书每个已读完
-  章节一行（`summary` + `characters_json` 人物名录或 `concepts_json`
-  概念图，按本书文本原样拼写）。由 `book.chapterDigested` 物化，空闲管线
-  （`digestBook`）逐章补齐。管线先分类书籍 narrativity（`book.narrativityClassified`
-  → `books.narrativity`）：叙事类书消化为人物/关系图（剧透栏栅内），论述类书消化为
-  概念图（"argument so far"，无栏栅）。Flavor 不匹配的行（重分类的书）惰性
-  重消化。注入 book 线程 system prompt 的 "story so far" 一节，剧透边界在
-  注入时过滤。
+  章节一行（`summary` + `characters_json` 实体名录 + `relations_json` 关系，
+  外加 `flavor` 标记，按本书文本原样拼写；论述类书的概念同样归一存进
+  `characters_json`，存储形状不因 flavor 而变）。由 `book.chapterDigested` 物化，
+  空闲管线（`digestBook`）逐章补齐。管线先分类书籍 narrativity
+  （`book.narrativityClassified` → `books.narrativity`）：叙事类书消化为
+  人物/关系图（剧透栏栅内），论述类书消化为概念图（"argument so far"，
+  无栏栅）。Flavor 不匹配的行（重分类的书）惰性重消化。注入 book 线程
+  system prompt 的 "story so far" 一节，剧透边界在注入时过滤。
 
 ### 5.3 Context bundles (versioned, exportable)
 

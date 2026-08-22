@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 export const Route = createFileRoute("/de/docs/getting-started")({
   head: () => ({
     meta: [
-      { title: "Erste Schritte — ReadAware Docs" },
+      { title: "Erste Schritte — ReadAware Dokumentation" },
       {
         name: "description",
         content:
@@ -80,7 +80,8 @@ function GettingStartedPage() {
         anderes bereits gesetzt hat; es gibt in ihnen keine Typografie zu
         ändern, und diese Bedienelemente werden ausgeblendet. Die Seitenfarbe
         greift weiterhin: Eine helle tönt das Papier beim Zeichnen der Seite
-        und lässt jede Tinte und jedes Foto wie gedruckt, eine dunkle baut die
+        und lässt jede Tinte und jedes Foto wie gedruckt aussehen, eine
+        dunkle baut die
         Seite in zwei Tönen neu auf, damit der Text lesbar bleibt. Setze die{" "}
         <strong>Seitenwiedergabe</strong> auf <strong>Original</strong>, um ein
         Buch auf seinen eigenen Farben zu lassen — pro Buch gemerkt, für Kunst

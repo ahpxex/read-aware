@@ -34,7 +34,7 @@
     "installZip": "从 zip 安装…",
     "installing": "安装中…",
     "installedToast": "{{name}} 已安装并启用",
-    "updateAvailableToast": "插件有更新：{{name}} v{{version}}——设置 → 插件 → 市场",
+    "updateAvailableToast": "插件有更新：{{name}} v{{version}}——设置 → 插件 → 插件市场",
     "installFailed": "安装失败:{{message}}",
     "empty": "尚未安装插件。插件是一个包含 manifest.json 和 main.js 的文件夹。",
     "uninstall": "卸载",

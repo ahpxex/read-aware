@@ -25,7 +25,7 @@ function PluginApiPage() {
         se envía como un archivo de declaración TypeScript
         (<code>types/plugin-api.d.ts</code>) en el{" "}
         <a href={MARKETPLACE_REPO_URL} target="_blank" rel="noopener noreferrer">
-          repositorio del marketplace
+          repositorio del Mercado
         </a>
         , por lo que los editores autocompletarán todo lo que sigue.
       </p>
@@ -97,7 +97,7 @@ function PluginApiPage() {
               <td>
                 <code>name</code>, <code>version</code>
               </td>
-              <td>Mostrados en Ajustes → Plugins y el marketplace.</td>
+              <td>Mostrados en Ajustes → Plugins y el Mercado.</td>
             </tr>
             <tr>
               <td>
@@ -530,7 +530,7 @@ ctx.schedule.on("refresh", async () => {
           <code>.ttf</code>/<code>.otf</code> servidas directamente desde la carpeta del
           plugin; cada una aparece en el selector de fuentes del lector mientras el
           plugin está habilitado. Un tema referencia sus propias fuentes como{" "}
-          <code>plugin:&lt;fontId&gt;</code>. Los plugins del marketplace deben listar
+          <code>plugin:&lt;fontId&gt;</code>. Los plugins del Mercado deben listar
           archivos de fuente en el <code>files</code> de la entrada del registro.
         </li>
         <li>

@@ -38,8 +38,8 @@ function GettingStartedPage() {
       </p>
       <p>
         Les fichiers protégés par DRM ne peuvent pas être ouverts — les livres achetés sur des
-        boutiques chiffrées restent verrouillés. Si le format est pris en charge mais que le
-        fichier ne s'ouvre pas, c'est presque toujours pourquoi.
+        boutiques qui chiffrent leurs fichiers restent verrouillés. Si le format est pris en charge mais que le
+        fichier ne s'ouvre pas, c'est presque toujours la raison.
       </p>
 
       <h2>Lire</h2>
@@ -66,7 +66,7 @@ function GettingStartedPage() {
       <p>
         Ces mêmes paramètres d'apparence régissent également la typographie : police, taille,
         graisse, interligne, espacement des paragraphes, marges et couleur de page. L'alignement
-        par défaut est <strong>respecter le livre</strong> — la feuille de style du livre dicte ;
+        par défaut est <strong>respecter le livre</strong> — la feuille de style du livre dicte l'alignement ;
         si vous préférez la cohérence, forcez l'alignement à gauche ou justifié partout.
       </p>
       <p>

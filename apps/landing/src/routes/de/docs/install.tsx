@@ -5,7 +5,7 @@ import { RELEASES_URL } from "../../../lib/releases";
 export const Route = createFileRoute("/de/docs/install")({
   head: () => ({
     meta: [
-      { title: "Download & Installation — ReadAware Docs" },
+      { title: "Download & Installation — ReadAware Dokumentation" },
       {
         name: "description",
         content:

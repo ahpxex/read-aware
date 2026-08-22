@@ -473,7 +473,7 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
 `defaultRelayUrl` 与 `platform/app-identity.ts`，提交 059f380）：
 
 1. **localKV 键 `read-aware-sync-relay-url`**（用户数据，`Delete all data`
-   重置）— 设置面板可覆盖，dev 联调用它指向 `wrangler dev` 地址；
+   重置）— dev 联调用它指向 `wrangler dev` 地址（无设置 UI，需手动写 KV）；
 2. **构建时烘焙的 `VITE_READAWARE_RELAY_URL`**（dev server 通过
    `apps/web/.env.development` 读取）；
 3. **dev 会话兜底**（`apps/web/.env.development`）— dev server 默认

@@ -4,7 +4,7 @@ import { MARKETPLACE_REPO_URL } from "../../../../lib/site";
 export const Route = createFileRoute("/de/docs/plugins/")({
   head: () => ({
     meta: [
-      { title: "Plugin-System — ReadAware Docs" },
+      { title: "Plugin-System — ReadAware Dokumentation" },
       {
         name: "description",
         content:
@@ -64,7 +64,7 @@ function PluginsOverviewPage() {
         </li>
         <li>
           <strong>Einstellungen und Zeitpläne</strong> — deklarierte
-          Einstellungen werden die eigene Sektion des Plugins in den
+          Einstellungen werden zur eigenen Sektion des Plugins in den
           Einstellungen (API-Schlüssel inklusive, verschlüsselt gespeichert),
           und deklarierte Zeitpläne führen wiederkehrende Arbeit aus, während
           die App offen ist.

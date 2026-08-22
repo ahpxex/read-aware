@@ -9,7 +9,7 @@ export const Route = createFileRoute("/fr/docs/install")({
       {
         name: "description",
         content:
-          "Installer ReadAware sur macOS, Windows, Linux, Android ou iOS, et ce qu'il faut savoir pour les builds non signées au premier lancement.",
+          "Installer ReadAware sur macOS, Windows, Linux, Android ou iOS, et ce qu'il faut savoir pour les builds non signés au premier lancement.",
       },
     ],
   }),
@@ -62,7 +62,7 @@ function InstallPage() {
         Applications.
       </p>
       <p>
-        Les builds de bureau ne sont pas encore notarisées par Apple, donc au premier lancement,
+        Les builds de bureau ne sont pas encore notarisés par Apple, donc au premier lancement,
         le système vous empêchera d'ouvrir l'application en disant qu'elle ne peut pas être
         vérifiée. Pour continuer :
       </p>

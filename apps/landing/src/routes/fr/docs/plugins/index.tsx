@@ -59,7 +59,7 @@ function PluginsOverviewPage() {
         <li>
           <strong>Voix de lecture à haute voix</strong> — connecte des moteurs TTS à la fonction
           de lecture à voix haute de la page de lecture. L'extension synthétise l'audio,
-          l'application la lit, et si une seule phrase échoue, elle revient à la voix système.
+          l'application le lit, et si une seule phrase échoue, elle revient à la voix système.
         </li>
         <li>
           <strong>Paramètres et tâches planifiées</strong> — les paramètres déclaratifs deviennent
@@ -124,7 +124,7 @@ function PluginsOverviewPage() {
         </li>
       </ul>
 
-      <h2>Le layout est à vous</h2>
+      <h2>La disposition est à vous</h2>
       <p>
         Les extensions contribuent des capacités ; où vont les boutons, c'est vous qui décidez.
         « Réglages → Personnaliser » vous permet d'organiser chaque surface (en-tête de la

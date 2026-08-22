@@ -105,7 +105,7 @@ function PluginsOverviewPage() {
       <h2>Instalación de plugins</h2>
       <ul>
         <li>
-          <strong>Marketplace</strong> — Ajustes → Plugins → Marketplace lista plugins
+          <strong>Mercado</strong> — Ajustes → Plugins → Mercado lista plugins
           de la comunidad del{" "}
           <a
             href={MARKETPLACE_REPO_URL}
@@ -126,7 +126,7 @@ function PluginsOverviewPage() {
       <h2>Tú controlas el diseño</h2>
       <p>
         Los plugins contribuyen capacidades; tú decides dónde viven los botones. Ajustes
-        → Menús organiza cada superficie (barra superior de la estantería, barra
+        → Personalizar organiza cada superficie (barra superior de la estantería, barra
         superior del lector, menú de selección): arrastra elementos entre la fila
         visible y el menú de desbordamiento, reordénalos o restablece los valores
         predeterminados. Las nuevas acciones de plugins llegan al menú de desbordamiento
@@ -185,7 +185,7 @@ function PluginsOverviewPage() {
         <code>main.js</code>. La <Link to="/es/docs/plugins/api">referencia API</Link>{" "}
         cubre todo el contrato, y{" "}
         <Link to="/es/docs/plugins/publishing">Publicación</Link> muestra cómo enviarlo
-        al marketplace.
+        al Mercado.
       </p>
     </article>
   );

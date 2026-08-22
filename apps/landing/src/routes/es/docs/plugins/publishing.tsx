@@ -8,7 +8,7 @@ export const Route = createFileRoute("/es/docs/plugins/publishing")({
       {
         name: "description",
         content:
-          "Cómo enviar un plugin al marketplace de ReadAware: estructura del repositorio, validación y expectativas de revisión.",
+          "Cómo enviar un plugin al Mercado de ReadAware: estructura del repositorio, validación y expectativas de revisión.",
       },
     ],
   }),
@@ -20,13 +20,13 @@ function PublishingPage() {
     <article className="doc-prose">
       <h1>Publicar un plugin</h1>
       <p className="lead">
-        El marketplace funciona como el repositorio de extensiones de Raycast: tu plugin
+        El Mercado funciona como el repositorio de extensiones de Raycast: tu plugin
         vive en el repositorio público{" "}
         <a href={MARKETPLACE_REPO_URL} target="_blank" rel="noopener noreferrer">
           readaware-plugins
         </a>{" "}
         y llega vía pull request. Una vez fusionado, aparece en la aplicación bajo
-        Ajustes → Plugins → Marketplace y se instala con un clic.
+        Ajustes → Plugins → Mercado y se instala con un clic.
       </p>
 
       <h2>Escribe en TypeScript</h2>
@@ -40,9 +40,9 @@ function PublishingPage() {
         <code>bun build src/main.ts --outfile main.js --format esm</code>
       </pre>
       <p>
-        Lo que se envía es siempre el <code>main.js</code> compilado; mantén{" "}
-        <code>src/</code> comprometido para que los revisores puedan leer el código
-        real. JavaScript simple es igualmente aceptado. Los plugins oficiales en{" "}
+        Lo que se envía es siempre el <code>main.js</code> compilado; no dejes de
+        hacer commit de <code>src/</code> para que los revisores puedan leer el
+        código real. JavaScript simple es igualmente aceptado. Los plugins oficiales en{" "}
         <code>plugins/</code> están escritos de esta manera — úsalos como ejemplos
         vivos.
       </p>
@@ -84,7 +84,7 @@ npx tsc --noEmit`}</code>
         <code>manifest.json</code> como en <code>registry.json</code> en un pull
         request. Ten en cuenta que la aplicación lee el registro a través de un CDN, por
         lo que una actualización fusionada puede tardar un poco en aparecer en la
-        pestaña del marketplace.
+        pestaña del Mercado.
       </p>
 
       <h2>Expectativas de revisión</h2>

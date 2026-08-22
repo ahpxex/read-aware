@@ -34,7 +34,7 @@
     "installZip": "Установить из zip…",
     "installing": "Установка…",
     "installedToast": "{{name}} установлен и включён",
-    "updateAvailableToast": "Доступно обновление: {{name}} v{{version}} — Настройки → Плагины → Маркет",
+    "updateAvailableToast": "Доступно обновление: {{name}} v{{version}} — Настройки → Плагины → Каталог",
     "installFailed": "Ошибка установки: {{message}}",
     "empty": "Плагины не установлены. Плагин — это папка с manifest.json и main.js.",
     "uninstall": "Удалить",

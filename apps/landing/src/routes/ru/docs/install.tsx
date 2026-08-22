@@ -132,7 +132,7 @@ sudo dnf install ./ReadAware-*-linux-x64.rpm`}</code>
         <a href={RELEASES_URL} target="_blank" rel="noopener noreferrer">
           странице релизов
         </a>{" "}
-        для sideloading: инструменты вроде AltStore, SideStore или Sideloadly пере-подписывают
+        для sideloading: инструменты вроде AltStore, SideStore или Sideloadly переподписывают
         его вашим собственным Apple ID и устанавливают на ваше устройство. Этот путь
         для людей, уже знакомых с sideloading; релиз в магазине появится позже.
       </p>

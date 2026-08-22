@@ -34,7 +34,7 @@
     "installZip": "Instalar desde zip…",
     "installing": "Instalando…",
     "installedToast": "{{name}} instalado y activado",
-    "updateAvailableToast": "Actualización disponible: {{name}} v{{version}} — Ajustes → Plugins → Marketplace",
+    "updateAvailableToast": "Actualización disponible: {{name}} v{{version}} — Ajustes → Plugins → Mercado",
     "installFailed": "Error al instalar: {{message}}",
     "empty": "No hay plugins instalados. Un plugin es una carpeta con manifest.json y main.js.",
     "uninstall": "Desinstalar",

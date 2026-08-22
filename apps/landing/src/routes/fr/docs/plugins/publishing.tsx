@@ -39,7 +39,7 @@ function PublishingPage() {
         <code>bun build src/main.ts --outfile main.js --format esm</code>
       </pre>
       <p>
-        Ce qui est soumis au marketplace est toujours le <code>main.js</code> construit ; gardez
+        Ce qui est soumis au marché d'extensions est toujours le <code>main.js</code> construit ; gardez
         les commits de <code>src/</code> pour que les réviseurs puissent lire le vrai code.
         JavaScript pur est également accepté. Les extensions officielles dans <code>plugins/</code>{" "}
         sont écrites ainsi — traitez-les comme des exemples vivants.

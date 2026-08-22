@@ -5,7 +5,7 @@ import { DISCORD_URL } from "../../../lib/site";
 export const Route = createFileRoute("/de/docs/")({
   head: () => ({
     meta: [
-      { title: "Dokumentation — ReadAware" },
+      { title: "Dokumentation — ReadAware Dokumentation" },
       {
         name: "description",
         content:

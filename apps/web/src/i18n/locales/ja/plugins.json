@@ -34,7 +34,7 @@
     "installZip": "zip からインストール…",
     "installing": "インストール中…",
     "installedToast": "{{name}} をインストールして有効化しました",
-    "updateAvailableToast": "アップデートがあります:{{name}} v{{version}}(設定 → プラグイン → マーケット)",
+    "updateAvailableToast": "アップデート可能：{{name}} v{{version}}（設定 → プラグイン → マーケットプレイス）",
     "installFailed": "インストールに失敗しました:{{message}}",
     "empty": "プラグインはまだありません。プラグインは manifest.json と main.js を含むフォルダです。",
     "uninstall": "アンインストール",

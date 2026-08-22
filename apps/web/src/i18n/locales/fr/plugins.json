@@ -34,7 +34,7 @@
     "installZip": "Installer depuis un zip…",
     "installing": "Installation…",
     "installedToast": "{{name}} installée et activée",
-    "updateAvailableToast": "Mise à jour disponible : {{name}} v{{version}} — Réglages → Plugins → Marketplace",
+    "updateAvailableToast": "Mise à jour disponible : {{name}} v{{version}} — Réglages → Plugins → Marché",
     "installFailed": "Échec de l'installation : {{message}}",
     "empty": "Aucune extension installée. Une extension est un dossier contenant manifest.json et main.js.",
     "uninstall": "Désinstaller",

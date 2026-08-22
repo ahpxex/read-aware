@@ -4,7 +4,7 @@ import { MARKETPLACE_REPO_URL } from "../../../../lib/site";
 export const Route = createFileRoute("/de/docs/plugins/publishing")({
   head: () => ({
     meta: [
-      { title: "Ein Plugin veröffentlichen — ReadAware Docs" },
+      { title: "Ein Plugin veröffentlichen — ReadAware Dokumentation" },
       {
         name: "description",
         content:
@@ -43,7 +43,7 @@ function PublishingPage() {
       </pre>
       <p>
         Was ausgeliefert wird, ist immer die gebaute <code>main.js</code>;
-        commite <code>src/</code> mit, damit Reviewer den echten Code lesen
+        committe <code>src/</code> mit, damit Reviewer den echten Code lesen
         können. Pures JavaScript ist genauso willkommen. Die offiziellen
         Plugins in <code>plugins/</code> sind so geschrieben — nimm sie als
         lebende Beispiele.

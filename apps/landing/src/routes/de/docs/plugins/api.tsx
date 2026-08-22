@@ -4,7 +4,7 @@ import { MARKETPLACE_REPO_URL } from "../../../../lib/site";
 export const Route = createFileRoute("/de/docs/plugins/api")({
   head: () => ({
     meta: [
-      { title: "Plugin-API-Referenz — ReadAware Docs" },
+      { title: "Plugin-API-Referenz — ReadAware Dokumentation" },
       {
         name: "description",
         content:

@@ -53,7 +53,7 @@ function DocsOverview() {
         </li>
         <li>
           <Link to="/es/docs/plugins/publishing">Publicación</Link> — cómo llevar
-          tu plugin al marketplace integrado en la aplicación.
+          tu plugin al Mercado integrado en la aplicación.
         </li>
       </ul>
 

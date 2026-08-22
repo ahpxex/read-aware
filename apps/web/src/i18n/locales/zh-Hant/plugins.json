@@ -34,7 +34,7 @@
     "installZip": "從 zip 安裝…",
     "installing": "安裝中…",
     "installedToast": "{{name}} 已安裝並啟用",
-    "updateAvailableToast": "外掛有更新:{{name}} v{{version}}——設定 → 外掛 → 市集",
+    "updateAvailableToast": "外掛有更新:{{name}} v{{version}}——設定 → 外掛 → 外掛市集",
     "installFailed": "安裝失敗:{{message}}",
     "empty": "尚未安裝外掛。外掛是一個包含 manifest.json 和 main.js 的資料夾。",
     "uninstall": "解除安裝",

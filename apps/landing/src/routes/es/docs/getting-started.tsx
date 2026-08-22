@@ -166,7 +166,7 @@ function GettingStartedPage() {
         red se usa para solicitudes de IA a tu propio proveedor — y, si conectas una
         cuenta de sincronización, un relé cifrado de extremo a extremo que mantiene tu
         biblioteca sincronizada entre dispositivos. La aplicación permanece totalmente
-        utilizable sin conexión de cualquier manera.
+        utilizable sin conexión en ambos casos.
       </p>
       <p>
         La sincronización se mantiene fuera de vista mientras funciona: su progreso vive

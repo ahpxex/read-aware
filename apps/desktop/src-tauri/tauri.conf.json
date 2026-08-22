@@ -90,7 +90,7 @@
       }
     ],
     "android": {
-      "versionCode": 5000003
+      "versionCode": 5000004
     },
     "macOS": {
       "dmg": {

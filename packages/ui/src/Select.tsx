@@ -22,7 +22,14 @@ type MenuPosition = {
 type SelectOption = { label: string; value: string };
 
 type SelectProps = {
-  label: string;
+  /**
+   * Visible label. Omit ONLY inside a composite control that labels the group
+   * itself (see TimeField) — then pass `ariaLabel` so the combobox still has
+   * an accessible name.
+   */
+  label?: string;
+  /** Accessible name when there is no visible label. */
+  ariaLabel?: string;
   options: SelectOption[];
   value?: string;
   defaultValue?: string;
@@ -38,6 +45,7 @@ type SelectProps = {
 
 export function Select({
   label,
+  ariaLabel,
   options,
   value: controlledValue,
   defaultValue,
@@ -173,15 +181,17 @@ export function Select({
 
   return (
     <div ref={containerRef} className={cn("flex flex-col gap-1.5", className)}>
-      <label
-        id={`${id}-label`}
-        className={cn(
-          "font-sans text-[13px] font-medium",
-          hasError ? "text-red-700 dark:text-red-400" : "text-fg-muted",
-        )}
-      >
-        {label}
-      </label>
+      {label !== undefined && (
+        <label
+          id={`${id}-label`}
+          className={cn(
+            "font-sans text-[13px] font-medium",
+            hasError ? "text-red-700 dark:text-red-400" : "text-fg-muted",
+          )}
+        >
+          {label}
+        </label>
+      )}
 
       {/* hidden native input for form submission */}
       {name && <input type="hidden" name={name} value={currentValue} />}
@@ -195,7 +205,8 @@ export function Select({
           aria-expanded={open}
           aria-haspopup="listbox"
           aria-controls={`${id}-listbox`}
-          aria-labelledby={`${id}-label`}
+          aria-labelledby={label !== undefined ? `${id}-label` : undefined}
+          aria-label={label === undefined ? ariaLabel : undefined}
           aria-activedescendant={activeDescendant}
           aria-invalid={hasError || undefined}
           aria-describedby={

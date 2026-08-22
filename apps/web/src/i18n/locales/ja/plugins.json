@@ -7,6 +7,8 @@
     "enterManually": "手動で入力…",
     "secretConfigured": "保存済み — 新しい値を入力すると置き換え",
     "secretClear": "クリア",
+    "hours": "時",
+    "minutes": "分",
     "loading": "読み込み中…",
     "empty": "まだ何もありません",
     "search": "検索",
@@ -46,6 +48,7 @@
     "permissionName": {
       "reader_modes": "読書モード",
       "ui_themes": "テーマ",
+      "ui_appearance": "テーマの切り替え",
       "shelf_read": "本棚の読み取り",
       "shelf_write": "本棚の管理",
       "annotations_read": "注釈の読み取り",
@@ -59,6 +62,7 @@
     "permission": {
       "reader_modes": "アプリが描画するガイド付き読書モードの追加",
       "ui_themes": "アプリと本文ページのテーマ（同梱フォント付き）を提供。選択したときのみ適用",
+      "ui_appearance": "アプリと本文ページが現在使っているテーマを変更する",
       "shelf_read": "本棚の読み取り：書籍・コレクション・本文・読書統計",
       "shelf_write": "本棚の管理：書籍とコレクションの追加・編集・削除",
       "annotations_read": "ハイライト・メモ・質問履歴の読み取り",

@@ -10,6 +10,7 @@ import {
   type PluginPermission,
 } from "./plugin-types";
 import { validateFontContributions, validateThemeContributions } from "./plugin-theme";
+import { isTimeOfDay } from "./time-of-day";
 
 export class PluginManifestError extends Error {}
 
@@ -99,6 +100,7 @@ export function validateManifest(raw: unknown): PluginManifest {
       "text",
       "textarea",
       "number",
+      "time",
       "select",
       "toggle",
       "checkbox",
@@ -123,6 +125,11 @@ export function validateManifest(raw: unknown): PluginManifest {
       ) {
         throw new PluginManifestError(
           "manifest.settings entries need a valid kind, id, and label",
+        );
+      }
+      if (field.kind === "time" && field.value != null && !isTimeOfDay(field.value)) {
+        throw new PluginManifestError(
+          "manifest.settings time fields need a 24-hour HH:MM value",
         );
       }
       if (field.kind === "secret" && !SECRET_ID.test(String(field.id))) {

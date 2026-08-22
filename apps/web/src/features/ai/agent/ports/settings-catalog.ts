@@ -27,7 +27,9 @@ import type {
   ReaderThemePreference,
 } from "../../../settings/lib/reader-settings";
 import { applyReaderThemeSelection } from "../../../settings/lib/reader-theme";
+import { builtinThemesFor } from "../../../settings/lib/appearance-control";
 import { contributionText } from "../../../plugins/lib/plugin-i18n";
+import { isTimeOfDay } from "../../../plugins/lib/time-of-day";
 import {
   findRegisteredByRef,
   toPluginRef,
@@ -120,13 +122,33 @@ function enumOptions(values: readonly string[]): AgentSettingOption[] {
   return values.map((value) => option(value));
 }
 
-function appThemeOptions(draft: SettingsDraft): AgentSettingOption[] {
+/**
+ * The agent names theme values in English regardless of the UI language —
+ * its settings snapshot is model-facing, not user-facing. The VALUES come
+ * from the shared appearance vocabulary (`appearance-control`), so the agent
+ * and the `ui:appearance` plugin capability can never offer different sets.
+ */
+const BUILTIN_THEME_LABELS: Record<string, string> = {
+  system: "System",
+  auto: "Automatic",
+  light: "Light",
+  warm: "Warm",
+  dark: "Dark",
+};
+
+function themeOptions(
+  draft: SettingsDraft,
+  surface: "app" | "reader",
+): AgentSettingOption[] {
   return [
-    { value: "system", label: "System", source: "builtin" },
-    { value: "light", label: "Light", source: "builtin", polarity: "light" },
-    { value: "dark", label: "Dark", source: "builtin", polarity: "dark" },
+    ...builtinThemesFor(surface).map((builtin) => ({
+      value: builtin.value,
+      label: BUILTIN_THEME_LABELS[builtin.value] ?? builtin.value,
+      source: "builtin" as const,
+      ...(builtin.polarity ? { polarity: builtin.polarity } : {}),
+    })),
     ...draft.pluginThemes
-      .filter((theme) => theme.app)
+      .filter((theme) => (surface === "app" ? theme.app : theme.reader))
       .map((theme) => ({
         value: toPluginRef(theme.pluginId, theme.id),
         label: contributionText(theme.name),
@@ -137,22 +159,12 @@ function appThemeOptions(draft: SettingsDraft): AgentSettingOption[] {
   ];
 }
 
+function appThemeOptions(draft: SettingsDraft): AgentSettingOption[] {
+  return themeOptions(draft, "app");
+}
+
 function readerThemeOptions(draft: SettingsDraft): AgentSettingOption[] {
-  return [
-    { value: "auto", label: "Automatic", source: "builtin" },
-    { value: "light", label: "Light", source: "builtin", polarity: "light" },
-    { value: "warm", label: "Warm", source: "builtin", polarity: "light" },
-    { value: "dark", label: "Dark", source: "builtin", polarity: "dark" },
-    ...draft.pluginThemes
-      .filter((theme) => theme.reader)
-      .map((theme) => ({
-        value: toPluginRef(theme.pluginId, theme.id),
-        label: contributionText(theme.name),
-        source: "plugin" as const,
-        pluginName: theme.pluginName,
-        polarity: theme.polarity,
-      })),
-  ];
+  return themeOptions(draft, "reader");
 }
 
 function fontOptions(draft: SettingsDraft): AgentSettingOption[] {
@@ -558,7 +570,9 @@ function pluginFieldDefinition(
     label: `${plugin.pluginName} — ${fieldLabel}`,
     ...("helperText" in field && field.helperText
       ? { description: contributionText(field.helperText) }
-      : {}),
+      : field.kind === "time"
+        ? { description: "A time of day as HH:MM (24-hour)." }
+        : {}),
     kind,
     ...(hasDefault ? {} : { nullable: true }),
     ...(kind === "enum" && "options" in field
@@ -583,6 +597,9 @@ function pluginFieldDefinition(
       }
       if (kind === "string" && typeof value !== "string") {
         throw new Error(`${path} must be a string`);
+      }
+      if (field.kind === "time" && !isTimeOfDay(value)) {
+        throw new Error(`${path} must be a time of day as HH:MM (24-hour)`);
       }
       if (kind === "enum") {
         const choices =

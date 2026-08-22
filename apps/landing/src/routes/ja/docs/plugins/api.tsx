@@ -256,6 +256,16 @@ function PluginApiPage() {
             </tr>
             <tr>
               <td>
+                <code>ui:appearance</code>
+              </td>
+              <td>
+                <code>ctx.appearance</code> —— 2つの外観サーフェスが提供する全テーマの列挙、現在の外観の取得、アプリのテーマや本文ページ配色の切り替え。{" "}
+                <code>ui:themes</code>{" "}
+                とは意図的に別：テーマを提供するのは受動的だが、切り替えるのはそうではない。
+              </td>
+            </tr>
+            <tr>
+              <td>
                 <code>agent:tools</code>
               </td>
               <td>
@@ -508,7 +518,7 @@ ctx.schedule.on("refresh", async () => {
           <code>list</code> — 固定 debounce の検索、keywords、accessories、空状態。<code>timeline</code> は今日／今週／今月／すべての絞り込みとローカル日付のグループを追加し、項目の <code>presentation: "dialog"</code> で子ページではなく一覧の上に結果を表示できます。
         </li>
         <li>
-          <code>form</code> — ReadAware コンポーネントの text、textarea、number、select、choice、checkbox、toggle と
+          <code>form</code> — ReadAware コンポーネントの text、textarea、number、time、select、choice、checkbox、toggle と
           <code>onSubmit</code>
           。値を受け取り、結果のビューまたはフィールドエラーを返せます。
         </li>

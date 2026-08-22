@@ -255,6 +255,15 @@ function PluginApiPage() {
             </tr>
             <tr>
               <td>
+                <code>ui:appearance</code>
+              </td>
+              <td>
+                <code>ctx.appearance</code> —— 列出两个外观面当前提供的全部主题、读当前外观、切换应用主题或阅读页配色。与{" "}
+                <code>ui:themes</code> 刻意分开：提供主题是被动的，切换主题不是。
+              </td>
+            </tr>
+            <tr>
+              <td>
                 <code>agent:tools</code>
               </td>
               <td>
@@ -510,7 +519,7 @@ ctx.schedule.on("refresh", async () => {
           在列表上方打开返回视图，而不是下钻成子页面。
         </li>
         <li>
-          <code>form</code>——使用 ReadAware 组件库的 text、textarea、number、select、choice、checkbox、toggle，加上{" "}
+          <code>form</code>——使用 ReadAware 组件库的 text、textarea、number、time、select、choice、checkbox、toggle，加上{" "}
           <code>onSubmit</code>
           ；后者接收表单值，可返回结果视图或字段错误。
         </li>

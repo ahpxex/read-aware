@@ -208,6 +208,45 @@ describe("normalizePluginView", () => {
     });
   });
 
+  test("a dynamic select can declare its list to be the whole set", () => {
+    const view = normalizePluginView({
+      kind: "form",
+      fields: [
+        { kind: "select", id: "catalog", label: "Voice", options: [], dynamicOptions: true },
+        {
+          kind: "select",
+          id: "closed",
+          label: "Theme",
+          options: [],
+          dynamicOptions: true,
+          allowManualEntry: false,
+        },
+      ],
+      onSubmit: () => ({}),
+    });
+    const fields = (view as { fields: Record<string, unknown>[] }).fields;
+    // Catalogs stay open by default — the escape hatch is opt-OUT.
+    expect(fields[0].allowManualEntry).toBeUndefined();
+    expect(fields[1].allowManualEntry).toBe(false);
+  });
+
+  test("normalizes time fields and drops a value that is not a time", () => {
+    const view = normalizePluginView({
+      kind: "form",
+      fields: [
+        { kind: "time", id: "start", label: "Starts at", value: "07:00", minuteStep: 15 },
+        { kind: "time", id: "end", label: "Ends at", value: "7pm" },
+        { kind: "time", id: "wrap", label: "Wraps at", value: "24:00" },
+      ],
+      onSubmit: () => ({}),
+    });
+    const fields = (view as { fields: Record<string, unknown>[] }).fields;
+    expect(fields[0]).toMatchObject({ kind: "time", value: "07:00", minuteStep: 15 });
+    // A junk time renders as unset rather than failing the whole view.
+    expect(fields[1].value).toBeUndefined();
+    expect(fields[2].value).toBeUndefined();
+  });
+
   test("rejects malformed visibleWhen conditions and non-dynamic selects without options", () => {
     expect(() =>
       normalizePluginView({

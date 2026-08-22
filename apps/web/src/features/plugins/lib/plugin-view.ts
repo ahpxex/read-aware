@@ -15,6 +15,7 @@ import type {
   PluginText,
   PluginView,
 } from "./plugin-types";
+import { isTimeOfDay } from "./time-of-day";
 
 const MAX_DEPTH = 6;
 const MAX_BLOCKS = 120;
@@ -293,6 +294,23 @@ function normalizeFormField(input: unknown, context: string): PluginFormField {
       ),
     };
   }
+  if (kind === "time") {
+    const declared = string(value.value, `${context}.value`, true);
+    const step = value.minuteStep == null
+      ? undefined
+      : finiteNumber(value.minuteStep, `${context}.minuteStep`);
+    return {
+      ...base,
+      kind,
+      id,
+      label,
+      // A junk time is dropped rather than rejected: the control renders
+      // unset, which is honest, instead of failing the whole view.
+      value: isTimeOfDay(declared) ? declared : undefined,
+      helperText: pluginText(value.helperText, `${context}.helperText`, true),
+      ...(step === undefined ? {} : { minuteStep: step }),
+    };
+  }
   if (kind === "textarea") {
     const rows = value.rows == null ? undefined : finiteNumber(value.rows, `${context}.rows`);
     return {
@@ -344,7 +362,16 @@ function normalizeFormField(input: unknown, context: string): PluginFormField {
       ...(kind === "select"
         ? {
             helperText: pluginText(value.helperText, `${context}.helperText`, true),
-            ...(dynamicOptions ? { dynamicOptions: true } : {}),
+            ...(dynamicOptions
+              ? {
+                  dynamicOptions: true,
+                  // Opt-out only: a list is a catalog unless the plugin says
+                  // it is the whole set.
+                  ...(value.allowManualEntry === false
+                    ? { allowManualEntry: false }
+                    : {}),
+                }
+              : {}),
           }
         : {}),
     } as PluginFormField;

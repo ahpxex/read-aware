@@ -16,6 +16,7 @@ import {
   buildPluginSettingsView,
   readPluginSettingsValues,
 } from "./plugin-settings";
+import { parseManifestJson } from "./manifest";
 
 const manifest: PluginManifest = {
   id: "settings-test",
@@ -63,5 +64,35 @@ describe("plugin settings", () => {
         value: false,
       },
     ]);
+  });
+});
+
+describe("time settings fields", () => {
+  const base = {
+    id: "time-test",
+    name: "Time Test",
+    version: "1.0.0",
+    settings: [{ kind: "time", id: "start", label: "Starts at", value: "07:00" }],
+  };
+
+  test("a declared 24-hour value survives manifest validation", () => {
+    const parsed = parseManifestJson(JSON.stringify(base));
+    expect(parsed.settings?.[0]).toMatchObject({ kind: "time", value: "07:00" });
+  });
+
+  test("anything that is not a 24-hour HH:MM is rejected at install", () => {
+    for (const value of ["7:00", "7pm", "24:00", "07:60", "0700", ""]) {
+      const manifest = { ...base, settings: [{ ...base.settings[0], value }] };
+      expect(() => parseManifestJson(JSON.stringify(manifest))).toThrow(/HH:MM/);
+    }
+  });
+
+  test("the form prefills from the stored time, not the declared default", () => {
+    storage.set(
+      "read-aware-plugin.time-test.settings",
+      JSON.stringify({ start: "21:30" }),
+    );
+    const view = buildPluginSettingsView(parseManifestJson(JSON.stringify(base)));
+    expect(view?.fields[0]).toMatchObject({ value: "21:30" });
   });
 });

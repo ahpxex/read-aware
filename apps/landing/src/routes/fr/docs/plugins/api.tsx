@@ -271,6 +271,18 @@ function PluginApiPage() {
             </tr>
             <tr>
               <td>
+                <code>ui:appearance</code>
+              </td>
+              <td>
+                <code>ctx.appearance</code> — lister tous les thèmes proposés
+                par les deux surfaces, lire l’apparence actuelle et changer le
+                thème de l’application ou la couleur de page. Volontairement
+                distinct de <code>ui:themes</code> : proposer un thème est
+                passif, en changer ne l’est pas.
+              </td>
+            </tr>
+            <tr>
+              <td>
                 <code>agent:tools</code>
               </td>
               <td>
@@ -557,7 +569,7 @@ ctx.schedule.on("refresh", async () => {
           la liste, au lieu de descendre dans une sous-page.
         </li>
         <li>
-          <code>form</code> — text, textarea, number, select, choice, checkbox, toggle utilisant
+          <code>form</code> — text, textarea, number, time, select, choice, checkbox, toggle utilisant
           la bibliothèque de composants ReadAware, plus <code>onSubmit</code> ; ce dernier reçoit
           les valeurs du formulaire, peut retourner une vue de résultat ou des erreurs de champ.
         </li>

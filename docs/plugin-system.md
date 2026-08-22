@@ -23,8 +23,12 @@
 > - **声明式设置成为一等面**：启用且声明 `settings` 的插件在设置对话框
 >   拥有自己的分区；字段支持 `visibleWhen` 条件显示、`dynamicOptions`
 >   运行时选项（`ctx.settings.provideOptions` 绑定，列不出即退回文本
->   输入）、`kind: "secret"` 加密凭据字段（直写 secret store，永不进
->   明文设置与 agent 目录）；所有字段文案接受 `PluginText` 本地化包。
+>   输入；`allowManualEntry: false` 声明"这份列表就是全集"——主题、
+>   已装字体这类闭集没有手输的意义，于是不给"手动输入"出口，空列表
+>   就是没得选而非邀请你乱填）、`kind: "time"` 时刻字段（宿主渲染
+>   时/分下拉，存 24 小时 `HH:MM`）、`kind: "secret"` 加密凭据字段
+>   （直写 secret store，永不进明文设置与 agent 目录）；所有字段文案
+>   接受 `PluginText` 本地化包。
 > - **新增贡献面**：manifest 声明的定时任务（`schedules` +
 >   `ctx.schedule.on`，15 分钟下限）、朗读声音提供方
 >   （`ctx.audio.registerVoiceProvider`，启用即选用、失败回退系统语音）、
@@ -189,7 +193,9 @@ registry，已装插件有新版则 toast 提醒（每版本只提醒一次）�
 
 manifest 声明，安装时逐条展示给用户，设置页里可整体启停插件。
 `storage`（命名空间 KV + **文档集合** `storage.collection(name)`：结构化
-插件私有数据，可带 bookId/anchor 出处索引、无书籍级联、随插件卸载清除）、
+插件私有数据，可带 bookId/anchor 出处索引、无书籍级联、随插件卸载清除；
+`storage.onChange(fn)` 在**插件之外**改写这个命名空间时触发——设置页、
+agent、任何写同一份设置对象的界面，插件自己的写入不回声）、
 UI 贡献、会话事实、应用语言（`ctx.locale`，随设置实时更新）、
 **加密凭据存储**（`ctx.secrets`：按插件命名空间隔离的 token 仓，
 落在应用加密 secret store 里——不进 SQLite、不进备份、卸载后保留）、
@@ -219,6 +225,7 @@ workspace 位于 `plugins/<id>/`。每个包以模块化 TypeScript 编写并产
 |---|---|
 | `reader:modes` | `ctx.reader.modes.register`：注册宿主渲染的文本单元阅读模式；目前仅 bundled 插件 |
 | `ui:themes` | manifest 的 `themes` / `fonts` 声明式贡献：应用换肤 token、阅读页六色调色板、随插件分发的字体文件。唯一需要权限的 UI 贡献——它对全应用有视觉影响力，安装确认必须列出。纯数据，无运行时 API 面 |
+| `ui:appearance` | `ctx.appearance`：列出两个挂载面当前提供的全部主题值（内置 + 已启用插件贡献，标签按当前语言）、读当前外观、**切换**应用主题与阅读页配色。与 `ui:themes` 刻意分开：提供主题是被动的（选中才生效），切换主题是对整个应用的一次未经请求的改动，主题包不该顺带获得 |
 | `shelf:read` | `ctx.shelf`：书目读模型、目录、章节全文（内容层读取）、分组列表与成员、stats（单本 `stats.forBook` / 全体 `stats.list` / 全局聚合 `stats.overview`——stats 无写面，见规则 3） |
 | `shelf:write` | `ctx.shelf.books.write`：导入文件、改元数据、星标、标记读完、删除；**内容提供者**（`registerContentProvider` / `addVirtualBook`——虚拟书为设备本地，内容依赖本插件在场，刻意不进同步日志）。`ctx.shelf.collections.write`：建组、改名、删组、分配书籍 |
 | `annotations:read` | `ctx.annotations`：高亮/笔记/提问痕迹（判别联合读模型 + FTS 检索） |
@@ -378,6 +385,36 @@ DOM Range 或 Foliate 实例。
 阅读页回 warm），但用户的选择值保留——重新启用插件即恢复原样。
 首个第一方住户：**Editorial Themes**（Gutenberg 亮色 + Nocturne 暗色，
 自带 EB Garamond）。
+
+### 切换外观（`ui:appearance`）
+
+`ui:themes` 只解决"主题从哪来"，不解决"什么时候换"。按时间自动换主题这类
+需求（早晚不同的应用皮肤与阅读页配色）必须有人**主动写**这两个偏好，于是
+有了第二个、也是更强的一个权限：
+
+- `appearance.listThemes()` —— 两个挂载面当前提供的全部值合成一张表：内置
+  值（app：`system`/`light`/`dark`；阅读页：`auto`/`light`/`warm`/`dark`）
+  加所有已启用插件贡献的主题，每项带 `surfaces`（这个值能设到哪个面）、
+  `polarity`（`system`/`auto` 为 null——它们的极性取决于别处）和按当前
+  UI 语言解析好的 `label`。插件不必自己拼主题词汇表，也就不会与宿主漂移。
+- `appearance.get()` —— 读当前两个偏好，外加 `auto` 解析后的结果。
+- `appearance.setAppTheme(v)` / `setReaderTheme(v)` —— 写。值必须是
+  `listThemes()` 当下提供的：悬空 ref 作为**已存状态**是合法的（贡献它的
+  插件可能只是暂时禁用），作为**入站写入**则一律拒绝——调用方刚列过表，
+  静默存一个解析不出来的 ref 只会表现为回退配色而没有任何解释。
+
+实现上它不是第二条写路径：`features/settings/lib/appearance-control.ts`
+是唯一的接缝，写的就是设置面板写的那两个偏好，因此选中插件阅读主题时同样
+会一次性套用它声明的排版预设——与用户手点完全一致。被刻意排除在外的是
+**单本书的外观覆写**：用户为某本书钉死的配色不会被这条路径改掉，全局偏好
+才是这里变动的对象。agent 的设置目录也从同一份内置词汇表构建，两条程序化
+路径不可能给出不同的选项集。
+
+首个住户是不内置的第一方插件 **Theme Schedule**（市场仓
+`readaware-plugins`）：白天与夜间两段，各自选应用主题与阅读页配色，
+两者都可以选"不改变"。开始时刻用声明式设置的 `time` 字段——宿主渲染
+时/分两个下拉（`TimeField`），不给插件手输时间的机会：手输时间意味着
+"7pm"、地区格式歧义与半截状态，那些不该由插件来解析。
 
 ## 7. 摆放权：插件贡献能力，用户掌管布局
 

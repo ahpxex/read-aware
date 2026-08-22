@@ -7,6 +7,8 @@
     "enterManually": "手動輸入…",
     "secretConfigured": "已儲存——輸入新值可替換",
     "secretClear": "清除",
+    "hours": "小時",
+    "minutes": "分鐘",
     "loading": "載入中…",
     "empty": "這裡還沒有內容",
     "search": "搜尋",
@@ -46,6 +48,7 @@
     "permissionName": {
       "reader_modes": "閱讀模式",
       "ui_themes": "主題",
+      "ui_appearance": "切換主題",
       "shelf_read": "讀取書架",
       "shelf_write": "管理書架",
       "annotations_read": "讀取標註",
@@ -59,6 +62,7 @@
     "permission": {
       "reader_modes": "新增由應用程式渲染並控制引導導覽的閱讀模式",
       "ui_themes": "提供應用程式與閱讀頁主題（可附帶字型），僅在你選用後生效",
+      "ui_appearance": "直接更改應用程式與閱讀頁目前使用的主題",
       "shelf_read": "讀取書架：書籍、分組、章節全文與閱讀統計",
       "shelf_write": "管理書架：新增、編輯與刪除書籍和分組",
       "annotations_read": "讀取螢光標記、筆記與提問記錄",

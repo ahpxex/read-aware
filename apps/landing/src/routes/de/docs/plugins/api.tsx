@@ -278,6 +278,18 @@ function PluginApiPage() {
             </tr>
             <tr>
               <td>
+                <code>ui:appearance</code>
+              </td>
+              <td>
+                <code>ctx.appearance</code> — alle Themes auflisten, die beide
+                Oberflächen anbieten, das aktuelle Erscheinungsbild lesen und
+                App-Theme oder Seitenfarbe umschalten. Bewusst getrennt von{" "}
+                <code>ui:themes</code>: ein Theme anzubieten ist passiv, eines
+                umzuschalten nicht.
+              </td>
+            </tr>
+            <tr>
+              <td>
                 <code>agent:tools</code>
               </td>
               <td>
@@ -568,7 +580,7 @@ ctx.schedule.on("refresh", async () => {
           Timelines platzieren sie ganz rechts in der Tab-Reihe.
         </li>
         <li>
-          <code>form</code> — Text-, Textarea-, Number-, Select-, Choice-, Checkbox-
+          <code>form</code> — Text-, Textarea-, Number-, Time-, Select-, Choice-, Checkbox-
           und Toggle-Steuerelemente aus der ReadAware-Komponentenbibliothek, plus{" "}
           <code>onSubmit</code>.
         </li>

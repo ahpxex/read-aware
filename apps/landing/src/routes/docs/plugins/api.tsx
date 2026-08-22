@@ -272,6 +272,18 @@ function PluginApiPage() {
             </tr>
             <tr>
               <td>
+                <code>ui:appearance</code>
+              </td>
+              <td>
+                <code>ctx.appearance</code> — list everything both appearance
+                surfaces offer, read the current appearance, and switch the app
+                theme or the reader page color. Separate from{" "}
+                <code>ui:themes</code> on purpose: offering a theme is passive,
+                switching one is not.
+              </td>
+            </tr>
+            <tr>
+              <td>
                 <code>agent:tools</code>
               </td>
               <td>
@@ -557,7 +569,7 @@ ctx.schedule.on("refresh", async () => {
           them at the far right of the tab row.
         </li>
         <li>
-          <code>form</code> — text, textarea, number, select, choice, checkbox,
+          <code>form</code> — text, textarea, number, time, select, choice, checkbox,
           and toggle controls from the ReadAware component library, plus{" "}
           <code>onSubmit</code>.
         </li>

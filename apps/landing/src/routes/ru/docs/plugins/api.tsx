@@ -272,6 +272,18 @@ function PluginApiPage() {
             </tr>
             <tr>
               <td>
+                <code>ui:appearance</code>
+              </td>
+              <td>
+                <code>ctx.appearance</code> — список всех тем, доступных обеим
+                поверхностям, чтение текущего оформления и переключение темы
+                приложения или цвета страницы. Намеренно отделено от{" "}
+                <code>ui:themes</code>: предлагать тему — пассивно, переключать
+                — нет.
+              </td>
+            </tr>
+            <tr>
+              <td>
                 <code>agent:tools</code>
               </td>
               <td>
@@ -555,7 +567,7 @@ ctx.schedule.on("refresh", async () => {
           их в крайнем правом углу строки вкладок.
         </li>
         <li>
-          <code>form</code> — контролы text, textarea, number, select, choice, checkbox
+          <code>form</code> — контролы text, textarea, number, time, select, choice, checkbox
           и toggle из библиотеки компонентов ReadAware, плюс{" "}
           <code>onSubmit</code>.
         </li>

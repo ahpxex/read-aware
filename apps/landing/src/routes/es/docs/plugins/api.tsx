@@ -273,6 +273,18 @@ function PluginApiPage() {
             </tr>
             <tr>
               <td>
+                <code>ui:appearance</code>
+              </td>
+              <td>
+                <code>ctx.appearance</code> — listar todos los temas que
+                ofrecen ambas superficies, leer la apariencia actual y cambiar
+                el tema de la aplicación o el color de página. Deliberadamente
+                separado de <code>ui:themes</code>: ofrecer un tema es pasivo,
+                cambiarlo no.
+              </td>
+            </tr>
+            <tr>
+              <td>
                 <code>agent:tools</code>
               </td>
               <td>
@@ -561,7 +573,7 @@ ctx.schedule.on("refresh", async () => {
           colocan a la derecha de la fila de pestañas.
         </li>
         <li>
-          <code>form</code> — controles text, textarea, number, select, choice, checkbox
+          <code>form</code> — controles text, textarea, number, time, select, choice, checkbox
           y toggle de la biblioteca de componentes de ReadAware, más{" "}
           <code>onSubmit</code>.
         </li>

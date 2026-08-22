@@ -7,6 +7,8 @@
     "enterManually": "Enter manually…",
     "secretConfigured": "Saved — enter a new value to replace",
     "secretClear": "Clear",
+    "hours": "Hours",
+    "minutes": "Minutes",
     "loading": "Loading…",
     "empty": "Nothing here yet",
     "search": "Search",
@@ -46,6 +48,7 @@
     "permissionName": {
       "reader_modes": "Reading modes",
       "ui_themes": "Themes",
+      "ui_appearance": "Switch themes",
       "shelf_read": "Read shelf",
       "shelf_write": "Manage shelf",
       "annotations_read": "Read annotations",
@@ -59,6 +62,7 @@
     "permission": {
       "reader_modes": "Add a host-rendered reading mode that controls guided navigation",
       "ui_themes": "Offer app and reader themes, with bundled fonts, that apply only when you select them",
+      "ui_appearance": "Change the theme the app and the book page use right now",
       "shelf_read": "Read your shelf: books, collections, chapter text, and reading stats",
       "shelf_write": "Manage your shelf: add, edit, and remove books and collections",
       "annotations_read": "Read your highlights, notes, and asked questions",

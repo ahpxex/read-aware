@@ -191,6 +191,10 @@ function buildContext(
       storageSnapshot.delete(key);
       post({ t: "storage", op: "remove", key });
     },
+    // Host-side writes (settings page, agent) arrive as a `sync` patch and
+    // then as this notification — in that order, so the mirror the handler
+    // reads from is already fresh. The plugin's own writes do not echo.
+    onChange: (handler: () => void) => callHost("storage.onChange", [handler]),
     collection: (name: string) =>
       remoteNamespace(`storage.collection(${name})`, collectionShape as ContextShape),
   };

@@ -7,6 +7,8 @@
     "enterManually": "Saisir manuellement…",
     "secretConfigured": "Enregistré — saisissez une nouvelle valeur pour remplacer",
     "secretClear": "Effacer",
+    "hours": "Heures",
+    "minutes": "Minutes",
     "loading": "Chargement…",
     "empty": "Rien ici pour l'instant",
     "search": "Rechercher",
@@ -46,6 +48,7 @@
     "permissionName": {
       "reader_modes": "Modes de lecture",
       "ui_themes": "Thèmes",
+      "ui_appearance": "Changer de thème",
       "shelf_read": "Lire la bibliothèque",
       "shelf_write": "Gérer la bibliothèque",
       "annotations_read": "Lire les annotations",
@@ -59,6 +62,7 @@
     "permission": {
       "reader_modes": "Ajouter un mode de lecture guidée rendu par l’application",
       "ui_themes": "Proposer des thèmes pour l’application et la lecture, avec polices incluses, appliqués uniquement à la sélection",
+      "ui_appearance": "Modifier le thème actuellement utilisé par l’application et la page du livre",
       "shelf_read": "Lire votre bibliothèque : livres, collections, texte des chapitres et statistiques de lecture",
       "shelf_write": "Gérer votre bibliothèque : ajouter, modifier et supprimer livres et collections",
       "annotations_read": "Lire vos surlignages, notes et questions posées",

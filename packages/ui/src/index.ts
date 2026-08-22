@@ -18,6 +18,7 @@ export { ProgressRing } from "./ProgressRing";
 export { Divider } from "./Divider";
 export { EmptyState } from "./EmptyState";
 export { TextField } from "./TextField";
+export { TimeField, splitTimeValue } from "./TimeField";
 export { SearchField } from "./SearchField";
 export { TextArea } from "./TextArea";
 export { Select } from "./Select";

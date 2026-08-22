@@ -31,6 +31,12 @@ import {
   unbindVirtualBook,
 } from "../lib/virtual-books";
 import { showPluginToast } from "../lib/plugin-toast";
+import {
+  listAppearanceThemes,
+  readAppearanceState,
+  setAppThemePreference,
+  setReaderThemePreference,
+} from "../../settings/lib/appearance-control";
 import { normalizeReaderMode } from "../lib/reader-mode";
 import { registerPluginSchedule } from "./plugin-scheduler";
 import {
@@ -178,6 +184,17 @@ export function buildPluginContext(
       remove: (key) => {
         localKV.removeItem(storagePrefix + key);
       },
+      onChange: (handler) =>
+        track({
+          dispose: onAppEvent("plugin-storage-changed", ({ pluginId }) => {
+            if (pluginId !== manifest.id) return;
+            try {
+              handler();
+            } catch (error) {
+              log.error(`storage.onChange handler from "${manifest.id}" failed`, error);
+            }
+          }),
+        }),
       collection: (name) => {
         const collection = String(name);
         if (!NAMESPACE_KEY.test(collection)) {
@@ -381,6 +398,21 @@ export function buildPluginContext(
       },
     },
   };
+
+  // ─── Appearance control ───────────────────────────────────────────────────
+  //
+  // Reading is ambient (what the user is looking at is not private data), but
+  // WRITING changes the whole app unprompted, so the pair sits behind one
+  // permission rather than splitting read from write.
+
+  if (permissions.has("ui:appearance")) {
+    ctx.appearance = {
+      listThemes: async () => listAppearanceThemes(),
+      get: async () => readAppearanceState(),
+      setAppTheme: async (value) => setAppThemePreference(value),
+      setReaderTheme: async (value) => setReaderThemePreference(value),
+    };
+  }
 
   // ─── Shelf (books + collections + stats) ──────────────────────────────────
 

@@ -246,6 +246,103 @@ pub(crate) fn apply_remote_events_inner(
     Ok(report)
 }
 
+// ─── Staged merge (batched backlog replay) ───────────────────────────────────
+
+/// Read the deferred-replay marker (missing sync_profile row = not stale).
+fn projections_stale(tx: &Transaction<'_>) -> Result<bool, String> {
+    tx.query_row(
+        "SELECT projections_stale FROM sync_profile WHERE id = 1",
+        [],
+        |row| row.get::<_, i64>(0),
+    )
+    .map(|v| v != 0)
+    .or_else(|e| match e {
+        rusqlite::Error::QueryReturnedNoRows => Ok(false),
+        other => Err(other.to_string()),
+    })
+}
+
+fn set_projections_stale(tx: &Transaction<'_>, stale: bool) -> Result<(), String> {
+    tx.execute(
+        "INSERT INTO sync_profile (id, projections_stale, updated_at)
+         VALUES (1, ?1, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+         ON CONFLICT(id) DO UPDATE SET
+            projections_stale = excluded.projections_stale,
+            updated_at = excluded.updated_at",
+        params![stale as i64],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Append pulled events to the log WITHOUT touching the projections, and mark
+/// them stale. The batched half of merging a large backlog: when a pull's
+/// first page already fell behind the local HLC frontier (see
+/// `apply_remote_events_inner`), every following page of that backlog will
+/// too, and replaying per 200-event page costs O(pages × log). So the pull
+/// loop stages the remaining pages here and replays ONCE via
+/// `finalize_staged_events` after the last page.
+///
+/// Durability: staged events are committed to the log before the cursor
+/// advances, and the stale marker survives a crash — recovery (boot and the
+/// start of every pull) finalizes whatever a previous session left behind.
+pub(crate) fn stage_remote_events_inner(
+    conn: &mut Connection,
+    events: &[EventRow],
+) -> Result<usize, String> {
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+    let mut appended = 0usize;
+    for ev in events {
+        if insert_event_row(&tx, ev, EventSource::Remote)? {
+            appended += 1;
+        }
+    }
+    if appended > 0 {
+        set_projections_stale(&tx, true)?;
+    }
+    tx.commit().map_err(|e| e.to_string())?;
+    Ok(appended)
+}
+
+#[tauri::command]
+pub async fn stage_remote_events(events: Vec<EventRow>, app: AppHandle) -> Result<usize, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let db = app.state::<Db>();
+        let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+        stage_remote_events_inner(&mut conn, &events)
+    })
+    .await
+    .map_err(|e| format!("stage_remote_events task failed: {e}"))?
+}
+
+/// Bring the projections up to date with everything staged: one full replay,
+/// then clear the marker — atomically, so a crash mid-replay leaves the marker
+/// set and recovery runs it again. A no-op (None) when nothing is staged,
+/// which makes it safe to call defensively.
+pub(crate) fn finalize_staged_events_inner(
+    conn: &mut Connection,
+) -> Result<Option<RebuildReport>, String> {
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+    if !projections_stale(&tx)? {
+        return Ok(None);
+    }
+    let report = replay_into(&tx)?;
+    set_projections_stale(&tx, false)?;
+    tx.commit().map_err(|e| e.to_string())?;
+    Ok(Some(report))
+}
+
+#[tauri::command]
+pub async fn finalize_staged_events(app: AppHandle) -> Result<Option<RebuildReport>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let db = app.state::<Db>();
+        let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+        finalize_staged_events_inner(&mut conn)
+    })
+    .await
+    .map_err(|e| format!("finalize_staged_events task failed: {e}"))?
+}
+
 /// The sync engine's merge entry point: append events pulled from the relay
 /// and bring the projections up to date, in ONE transaction.
 ///

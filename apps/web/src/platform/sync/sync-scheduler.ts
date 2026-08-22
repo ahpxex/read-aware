@@ -210,6 +210,10 @@ async function runCycle(): Promise<void> {
       // Merged events write projections straight through Rust — nothing else
       // tells the mounted UI. The shelf already reloads on this event.
       emitAppEvent("library-changed", {});
+      // Mounted conversations must re-read too: their save path upserts the
+      // in-memory transcript, and a stale one would keep hiding (though no
+      // longer deleting — see ai_chat_replace) freshly merged peer messages.
+      emitAppEvent("conversations-changed", {});
       // Roamed preferences (theme, typography) follow the same wake-up:
       // re-overlay the projection onto KV and announce what moved.
       await refreshRoamingPreferences();

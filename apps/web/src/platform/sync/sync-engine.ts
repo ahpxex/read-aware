@@ -9,7 +9,9 @@
  * Merge pipeline (docs/sync-engine.md §3): pull page → observe every HLC stamp
  * (clock first — an event must never be applied by a clock that hasn't seen
  * its stamp) → decrypt → `apply_remote_events` (skips the outbox; replays when
- * events land behind the frontier) → advance the cursor. Push and pull never
+ * events land behind the frontier) → advance the cursor. A multi-page backlog
+ * behind the frontier switches to stage-then-finalize so the whole pull costs
+ * one replay instead of one per page (§11 攒页重放). Push and pull never
  * conflict-resolve anything: projections are a pure function of the log.
  */
 import type { HlcStamp } from "@read-aware/core";
@@ -34,6 +36,11 @@ export type SyncLocalStore = {
   markEventsPushed(assigned: Array<[string, number]>): Promise<void>;
   markEventsFailed(ids: string[], error: string): Promise<void>;
   applyRemote(events: PlainEvent[]): Promise<MergeReport>;
+  /** Append pulled events to the log WITHOUT applying — the batched half of a
+   *  large backlog merge; `finalizeStaged` replays once for all of them. */
+  stageRemote(events: PlainEvent[]): Promise<number>;
+  /** Replay everything staged (no-op when nothing is). Safe to call anytime. */
+  finalizeStaged(): Promise<void>;
   eventsCursor(): Promise<number>;
   setEventsCursor(cursor: number, hlc: HlcStamp | null): Promise<void>;
   outboxBlobs(limit: number): Promise<Array<{ key: string }>>;
@@ -197,22 +204,42 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
 
   async function pullOnce(): Promise<number> {
     const key = requireKey();
+    // A previous session may have staged events it never finalized (crash,
+    // killed process); heal before pulling more on top. No-op normally.
+    await store.finalizeStaged();
     let after = await store.eventsCursor();
     let merged = 0;
-    for (;;) {
-      const page = await relay.pullEvents(after, batchSize);
-      if (page.events.length > 0) {
-        // Clock BEFORE content: once a stamp has been seen, no later local
-        // stamp may sort under it — even if decrypting then fails.
-        observe(page.events.map((e) => e.hlc));
-        const plains = page.events.map((sealedEvent) => openEvent(key, sealedEvent));
-        await store.applyRemote(plains);
-        await store.setEventsCursor(page.next, maxStamp(page.events.map((e) => e.hlc)));
-        merged += page.events.length;
-        report({ phase: "pull", pulled: merged });
+    // Once a page falls behind the local HLC frontier, `applyRemote` rebuilds
+    // the projections by full replay — and every later page of the same
+    // backlog is behind the frontier too, so replaying per page would cost
+    // O(pages × log). After the first replayed full page, switch to staging:
+    // remaining pages enter the log untouched and ONE replay finishes the job.
+    let staging = false;
+    try {
+      for (;;) {
+        const page = await relay.pullEvents(after, batchSize);
+        if (page.events.length > 0) {
+          // Clock BEFORE content: once a stamp has been seen, no later local
+          // stamp may sort under it — even if decrypting then fails.
+          observe(page.events.map((e) => e.hlc));
+          const plains = page.events.map((sealedEvent) => openEvent(key, sealedEvent));
+          if (staging) {
+            await store.stageRemote(plains);
+          } else {
+            const outcome = await store.applyRemote(plains);
+            if (outcome.replayed && page.events.length === batchSize) staging = true;
+          }
+          await store.setEventsCursor(page.next, maxStamp(page.events.map((e) => e.hlc)));
+          merged += page.events.length;
+          report({ phase: "pull", pulled: merged });
+        }
+        after = page.next;
+        if (page.events.length < batchSize) break;
       }
-      after = page.next;
-      if (page.events.length < batchSize) break;
+    } finally {
+      // Also runs when a mid-backlog page throws: whatever made it into the
+      // log must reach the projections before anyone reads them.
+      if (staging) await store.finalizeStaged();
     }
     await store.touch("pull");
     return merged;

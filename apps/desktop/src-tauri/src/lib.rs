@@ -846,6 +846,33 @@ pub fn run() {
             app.manage(storage::Db(Mutex::new(conn)));
             app.manage(storage::DataDir(data_dir));
 
+            // A previous session may have died between staging pulled events
+            // and the finishing replay (see `stage_remote_events`) — the
+            // projections are then behind the log. Heal in the background;
+            // reads racing it see the same staleness the crash left anyway,
+            // and the replay is one transaction.
+            {
+                let handle = app.handle().clone();
+                tauri::async_runtime::spawn_blocking(move || {
+                    let db = handle.state::<storage::Db>();
+                    let result = db
+                        .0
+                        .lock()
+                        .map_err(|e| e.to_string())
+                        .and_then(|mut conn| storage::finalize_staged_events_inner(&mut conn));
+                    match result {
+                        Ok(Some(report)) => log::info!(
+                            "recovered staged sync events: replayed {} event(s)",
+                            report.events_replayed
+                        ),
+                        Ok(None) => {}
+                        Err(error) => {
+                            log::error!("staged-event recovery failed: {error}");
+                        }
+                    }
+                });
+            }
+
             // The main window is declared in tauri.conf.json with `create:
             // false` and built here instead: an initialization script can only
             // be attached before creation, and it needs the stored theme.
@@ -908,6 +935,8 @@ pub fn run() {
             storage::append_events,
             storage::commit_events,
             storage::apply_remote_events,
+            storage::stage_remote_events,
+            storage::finalize_staged_events,
             storage::rebuild_projections,
             storage::verify_projections,
             storage::read_events_since,

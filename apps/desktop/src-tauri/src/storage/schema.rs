@@ -506,6 +506,30 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
         // 行会被空闲管线按章重算（同章新事件整行覆盖）。
         "ALTER TABLE chapter_digests ADD COLUMN flavor TEXT;",
     ),
+    (
+        22,
+        "ai_messages_seq_not_unique",
+        // seq 是"保存时该设备转录数组的下标"——单设备视角的显示顺序提示,
+        // 不是跨设备不变量。书线程的 conversation_id 就是裸 bookId,两台设备
+        // 各自聊过同一本书,双方事件流里必然出现同 (conversation_id, seq)
+        // 而 messageId 不同的消息;v6 的唯一索引让 apply_remote_events 与
+        // 重放兜底在此双双炸掉,整个合并事务回滚、游标卡死。降级为普通
+        // 索引;展示顺序由 (seq, created_at, id) 的确定性复合序给出
+        // (chat.rs),两台设备的消息按时间自然交错。
+        "DROP INDEX IF EXISTS ix_ai_messages_conversation_seq;
+         CREATE INDEX IF NOT EXISTS ix_ai_messages_conversation
+            ON ai_messages (conversation_id, seq);",
+    ),
+    (
+        23,
+        "sync_profile_projections_stale",
+        // [device-local] 大批量落后事件的"攒页重放"标记:拉取循环把整页
+        // 事件只写进日志(stage_remote_events)、投影先不动,全部拉完后
+        // 统一重放一次(finalize_staged_events)。此列在 stage 置 1、
+        // finalize 重放后清 0——攒的过程中断电,启动恢复与下轮拉取开头
+        // 都会按它补一次重放,幂等。
+        "ALTER TABLE sync_profile ADD COLUMN projections_stale INTEGER NOT NULL DEFAULT 0;",
+    ),
 ];
 
 /// Apply migrations newer than the highest recorded version, up to `max_version`

@@ -370,6 +370,13 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
   永远提交最新位置；关书时 flush（顺带修掉了旧实现卸载即丢弃待写进度的
   问题）。不做事后 compaction——它破坏"日志不可变"的心智模型，且与 E2E
   中继的 append-only 存储冲突。
+- **大批量落后事件的攒页重放（2026-08-22 落地）**：双满库首次合流时每一
+  页都落在本地 frontier 之前，逐页全量重放是 O(页数 × 日志长)。拉取循环
+  在首个整页触发重放兜底后切换 staging：后续页只入日志
+  （`stage_remote_events`，置 `sync_profile.projections_stale`），拉完
+  统一重放一次（`finalize_staged_events`，重放 + 清标记同事务）。断电
+  恢复：启动时与每轮拉取开头都按标记补一次收尾，幂等。语义不变——重放
+  始终是"全日志按 HLC 序放一遍"，只是省掉中间白干的次数。
 - **设备信任 v2**。对称口令派生密钥下，"撤销一台设备"只能靠改口令 +
   全量重加密重传。`sync_devices` 的 `public_key`/`trusted` 字段留给
   将来的非对称方案；第一版明确不做。

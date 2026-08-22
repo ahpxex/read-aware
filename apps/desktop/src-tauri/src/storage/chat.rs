@@ -1,5 +1,5 @@
-//! Conversation transcripts: one row per message, whole-transcript replace on
-//! save, tombstoned clear.
+//! Conversation transcripts: one row per message, upsert-on-save (facts are
+//! event-owned; see `ai_chat_replace`), tombstoned clear.
 //!
 //! Split out of `storage/mod.rs`; `use super::*` keeps the shared types in
 //! scope, so this is a move rather than a rewrite.
@@ -45,7 +45,13 @@ pub(crate) fn row_to_ai_message(row: &rusqlite::Row) -> rusqlite::Result<AiMessa
 pub fn ai_chat_load(conversation_id: String, db: State<'_, Db>) -> Result<Vec<AiMessage>, String> {
     let conn = db.0.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn
-        .prepare("SELECT * FROM ai_messages WHERE conversation_id = ?1 ORDER BY seq")
+        // seq alone is not unique across devices (each device numbers its own
+        // transcript); created_at then id break ties deterministically so
+        // merged conversations interleave the same way everywhere.
+        .prepare(
+            "SELECT * FROM ai_messages WHERE conversation_id = ?1
+             ORDER BY seq, created_at, id",
+        )
         .map_err(|e| e.to_string())?;
     let rows = stmt
         .query_map(params![conversation_id], row_to_ai_message)
@@ -61,7 +67,7 @@ pub fn ai_chat_load(conversation_id: String, db: State<'_, Db>) -> Result<Vec<Ai
 pub fn ai_chat_load_all(db: State<'_, Db>) -> Result<Vec<AiMessage>, String> {
     let conn = db.0.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn
-        .prepare("SELECT * FROM ai_messages ORDER BY conversation_id, seq")
+        .prepare("SELECT * FROM ai_messages ORDER BY conversation_id, seq, created_at, id")
         .map_err(|e| e.to_string())?;
     let rows = stmt
         .query_map([], row_to_ai_message)
@@ -73,9 +79,20 @@ pub fn ai_chat_load_all(db: State<'_, Db>) -> Result<Vec<AiMessage>, String> {
     Ok(out)
 }
 
-/// Whole-transcript replace, mirroring the store's save semantics (the hook
-/// persists the full message array after each committed turn). `seq` is
-/// assigned here from array order.
+/// Persist the saving device's view of a transcript WITHOUT claiming to be the
+/// only writer. The conversation's facts (which messages exist) are owned by
+/// the event log: `aiMessage.appended` inserts, `aiMessage.removed` /
+/// `aiConversation.cleared` delete — including rows another device merged in
+/// through sync, which this webview may have never loaded. So this command
+/// only upserts the rows it was handed (renumbering `seq` from array order —
+/// a device-local display hint) and deletes nothing it doesn't know, with one
+/// exception: error stubs (`error IS NOT NULL`) are device-local presentation
+/// no event describes, so stale ones are swept here and live ones re-inserted
+/// from the payload.
+///
+/// The pre-sync version of this command was DELETE-all-then-reinsert; after a
+/// merge wrote peer messages underneath a mounted conversation, the next save
+/// silently wiped them from the projection.
 #[tauri::command]
 pub fn ai_chat_replace(
     conversation_id: String,
@@ -83,6 +100,14 @@ pub fn ai_chat_replace(
     db: State<'_, Db>,
 ) -> Result<(), String> {
     let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+    ai_chat_replace_inner(&mut conn, &conversation_id, &messages)
+}
+
+pub(crate) fn ai_chat_replace_inner(
+    conn: &mut Connection,
+    conversation_id: &str,
+    messages: &[AiMessage],
+) -> Result<(), String> {
     let tx = conn.transaction().map_err(|e| e.to_string())?;
     tx.execute(
         "INSERT INTO ai_conversations (id, created_at, updated_at, cleared_at)
@@ -94,7 +119,7 @@ pub fn ai_chat_replace(
     )
     .map_err(|e| e.to_string())?;
     tx.execute(
-        "DELETE FROM ai_messages WHERE conversation_id = ?1",
+        "DELETE FROM ai_messages WHERE conversation_id = ?1 AND error IS NOT NULL",
         params![conversation_id],
     )
     .map_err(|e| e.to_string())?;
@@ -103,7 +128,12 @@ pub fn ai_chat_replace(
             "INSERT INTO ai_messages
                 (id, conversation_id, role, seq, content, created_at,
                  attachments_json, parts_json, error)
-             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)
+             ON CONFLICT(id) DO UPDATE SET
+                role=excluded.role, seq=excluded.seq, content=excluded.content,
+                created_at=excluded.created_at,
+                attachments_json=excluded.attachments_json,
+                parts_json=excluded.parts_json, error=excluded.error",
             params![
                 message.id,
                 conversation_id,
@@ -140,7 +170,7 @@ pub fn ai_chat_list(db: State<'_, Db>) -> Result<Vec<AiChatSummary>, String> {
             "SELECT c.id, c.updated_at, COUNT(m.id) AS message_count,
                     (SELECT content FROM ai_messages
                      WHERE conversation_id = c.id AND role = 'user'
-                     ORDER BY seq LIMIT 1) AS preview
+                     ORDER BY seq, created_at, id LIMIT 1) AS preview
              FROM ai_conversations c
              LEFT JOIN ai_messages m ON m.conversation_id = c.id
              GROUP BY c.id

@@ -10,8 +10,9 @@ const log = createLogger("conversation-store");
  * Local persistence for the per-book conversation.
  *
  * Desktop (the product): SQLite `ai_conversations` / `ai_messages`
- * (storage.rs migration v6) — one row per message, whole-transcript replace on
- * save (mirrors how the conversation hook commits turns), tombstoned clear.
+ * (storage.rs migration v6) — one row per message, upsert-on-save (a sync
+ * merge may have written peer rows this webview never loaded; the save must
+ * not clobber them — see `ai_chat_replace`), tombstoned clear.
  * Saves COMMIT the conversation domain events by diffing against the
  * last-known persisted transcript: `aiConversation.started` on the empty →
  * non-empty transition, `aiMessage.appended` per committed message (origin
@@ -150,13 +151,15 @@ async function conversationEventDrafts(
       createdAt: next[0]?.createdAt,
     });
   }
-  for (const [seq, message] of next.entries()) {
-    if (!prev.has(message.id)) drafts.push(toAppendedDraft(conversationId, message, seq));
-  }
+  // Removals first: a retried turn's replacement reuses the removed message's
+  // position, so the tombstone must precede the append in the applied order.
   for (const id of prev) {
     if (!nextIds.has(id)) {
       drafts.push({ type: "aiMessage.removed", payload: { messageId: id, conversationId } });
     }
+  }
+  for (const [seq, message] of next.entries()) {
+    if (!prev.has(message.id)) drafts.push(toAppendedDraft(conversationId, message, seq));
   }
   return drafts;
 }
@@ -192,11 +195,12 @@ export async function saveConversation(
   }
   try {
     // The events carry the conversation facts (role/seq/content/attachments)
-    // and the store applies them to `ai_messages` as it appends. The replace
-    // that follows re-states the same transcript plus the two columns no event
+    // and the store applies them to `ai_messages` as it appends. The upsert
+    // that follows re-states the same transcript plus the columns no event
     // describes: `parts_json` (rendered structure) and `error` (a failed turn's
     // stub, replaced on retry). Both are presentation state — see DIFF_SPECS in
-    // storage/apply.rs, which excludes them from the consistency check.
+    // storage/apply.rs, which excludes them from the consistency check. Rows
+    // this webview doesn't know (merged from a peer device) are left alone.
     const drafts = await conversationEventDrafts(conversationId, messages);
     if (drafts.length > 0) await commitDomainEvents(...drafts);
     await invoke("ai_chat_replace", {

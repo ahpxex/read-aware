@@ -988,8 +988,12 @@ pub const DIFF_SPECS: &[DiffSpec] = &[
         table: "ai_messages",
         // `parts_json` holds the assistant's rendered structure and `error`
         // marks a failed turn — presentation state layered on the message,
-        // which the log records by role/seq/content/attachments.
-        local_columns: &["parts_json", "error"],
+        // which the log records by role/content/attachments. `seq` is a
+        // device-local display hint: events carry the saving device's array
+        // index, but after a multi-device merge the next local save renumbers
+        // the interleaved transcript (`ai_chat_replace`), so live and replayed
+        // seq legitimately disagree.
+        local_columns: &["parts_json", "error", "seq"],
         // Error stubs are transient UX (a retry replaces them), never a
         // conversation fact, so they are not expected in a replay at all.
         domain_rows: Some("error IS NULL"),

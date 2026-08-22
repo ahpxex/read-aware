@@ -25,6 +25,12 @@ export type AppEventMap = {
   "plugin-storage-changed": { pluginId: string };
   /** A sync pull moved roaming preference namespaces (see platform/roaming-preferences). */
   "roaming-preferences-changed": { keys: string[] };
+  /**
+   * A sync pull merged events into the store — AI transcripts may have gained
+   * or lost rows underneath any mounted conversation, which must reload rather
+   * than keep saving its stale in-memory view.
+   */
+  "conversations-changed": Record<string, never>;
 };
 
 export type AppEventName = keyof AppEventMap;

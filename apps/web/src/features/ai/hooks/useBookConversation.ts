@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "../../../i18n";
+import { onAppEvent } from "../../../platform/app-events";
 import { discardAgentThread } from "../agent/agent-runtime";
 import { AiNotConfiguredError } from "../lib/ai-errors";
 import { appendStreamChunk, finalizeParts, partsText } from "../lib/chat-stream";
@@ -63,6 +64,14 @@ export function useBookConversation(
   // Latest committed messages, reachable synchronously inside the async turn.
   const messagesRef = useRef<ChatMessage[]>([]);
   messagesRef.current = messages;
+  // Turn-in-flight marker + deferred sync reload; refs because the stream
+  // callbacks and the app-event handler both need the value synchronously.
+  const inFlightRef = useRef(false);
+  const pendingReloadRef = useRef(false);
+  // Which conversation the hook is currently mounted on — a reload resolving
+  // after the user switched books must not paint the old transcript.
+  const mountedIdRef = useRef(bookId);
+  mountedIdRef.current = bookId;
   // Sampled at send time via a ref so `send` stays stable across page turns.
   const readingCursorRef = useRef<ChatReadingCursor | null>(readingCursor);
   readingCursorRef.current = readingCursor;
@@ -83,6 +92,31 @@ export function useBookConversation(
     };
   }, [bookId]);
 
+  /**
+   * Re-read the persisted transcript (a sync pull may have merged peer
+   * messages underneath this conversation; loading also re-baselines the
+   * store's event diff). Skipped while a turn is in flight — swapping the
+   * transcript under a streaming reply would race its final persist — and
+   * re-checked when the load resolves, since a turn may have started meanwhile.
+   */
+  const reloadFromStore = useCallback(() => {
+    if (inFlightRef.current) {
+      pendingReloadRef.current = true;
+      return;
+    }
+    const id = mountedIdRef.current;
+    void loadConversation(id).then((loaded) => {
+      if (mountedIdRef.current !== id) return;
+      if (inFlightRef.current) {
+        pendingReloadRef.current = true;
+        return;
+      }
+      setMessages(loaded);
+    });
+  }, []);
+
+  useEffect(() => onAppEvent("conversations-changed", reloadFromStore), [reloadFromStore]);
+
   const persist = useCallback(
     (next: ChatMessage[]) => {
       setMessages(next);
@@ -100,6 +134,7 @@ export function useBookConversation(
   const runTurn = useCallback(
     (history: ChatMessage[], userMessage: ChatMessage, reset = false) => {
       const withUser = [...history, userMessage];
+      inFlightRef.current = true;
       const persisted = persist(withUser);
 
       setStreamingParts([]);
@@ -158,6 +193,7 @@ export function useBookConversation(
           const hasStructuredOutput = parts.some(
             (part) => part.type === "reference" || part.type === "interaction",
           );
+          let committed: Promise<void> = Promise.resolve();
           if (content || hasStructuredOutput || failure) {
             const assistantMessage: ChatMessage = {
               id: crypto.randomUUID(),
@@ -168,16 +204,23 @@ export function useBookConversation(
               error: failure ?? undefined,
               errorCode: failure ? failureCode : undefined,
             };
-            void persist([...withUser, assistantMessage]);
+            committed = persist([...withUser, assistantMessage]);
           }
           setStreamingParts([]);
           setStatus(null);
           setIsStreaming(false);
           abortRef.current = null;
+          inFlightRef.current = false;
+          // A sync pull landed mid-turn: reload now that the turn's own
+          // persist has the transcript on disk.
+          if (pendingReloadRef.current) {
+            pendingReloadRef.current = false;
+            void committed.then(reloadFromStore);
+          }
         }
       })();
     },
-    [bookId, bookTitle, thread, persist, t],
+    [bookId, bookTitle, thread, persist, reloadFromStore, t],
   );
 
   const send = useCallback(

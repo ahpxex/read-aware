@@ -20,6 +20,10 @@ export function createIpcSyncStore(): SyncLocalStore {
     markEventsFailed: (eventIds, error) =>
       invoke("sync_mark_events_failed", { eventIds, error }),
     applyRemote: (events) => invoke<MergeReport>("apply_remote_events", { events }),
+    stageRemote: (events) => invoke<number>("stage_remote_events", { events }),
+    finalizeStaged: async () => {
+      await invoke("finalize_staged_events");
+    },
     async eventsCursor() {
       const cursor = await invoke<{ remoteCursor: string | null } | null>("sync_cursor_get", {
         feed: EVENTS_FEED,

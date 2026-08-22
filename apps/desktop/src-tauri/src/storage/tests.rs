@@ -137,14 +137,27 @@ fn ai_chat_replace_orders_by_seq_and_clear_leaves_tombstone() {
         .collect();
     assert_eq!(contents, vec!["first".to_string(), "second".to_string()]);
 
-    // 同一 (conversation, seq) 唯一
-    let dup = conn.execute(
+    // 同一 (conversation, seq) 不再唯一(v22):两台设备各自给同一本书的
+    // 线程编号,合并后必然同 seq 不同 id——按 (seq, created_at, id) 交错。
+    conn.execute(
         "INSERT INTO ai_messages
             (id, conversation_id, role, seq, content, created_at)
-         VALUES ('m3', 'book-1', 'user', 0, 'dup', '2026-07-06T00:00:00Z')",
+         VALUES ('m3', 'book-1', 'user', 0, 'peer', '2026-07-06T00:30:00Z')",
         [],
-    );
-    assert!(dup.is_err());
+    )
+    .unwrap();
+    let mut stmt = conn
+        .prepare(
+            "SELECT content FROM ai_messages WHERE conversation_id = 'book-1'
+             ORDER BY seq, created_at, id",
+        )
+        .unwrap();
+    let interleaved: Vec<String> = stmt
+        .query_map([], |row| row.get(0))
+        .unwrap()
+        .map(|r| r.unwrap())
+        .collect();
+    assert_eq!(interleaved, vec!["first", "peer", "second"]);
 
     // 清空：消息删除，会话行留墓碑
     conn.execute(
@@ -1224,6 +1237,173 @@ fn merged_remote_events_apply_but_never_enter_the_outbox() {
     let again = apply_remote_events_inner(&mut conn, &[imported("r1", 1_000, "b1", "沙丘")]).unwrap();
     assert_eq!(again.appended, 0);
     assert!(!again.replayed);
+}
+
+#[test]
+fn a_stale_save_neither_deletes_merged_peer_messages_nor_keeps_dead_error_stubs() {
+    let message = |id: &str, seq: i64, content: &str, error: Option<&str>| chat::AiMessage {
+        id: id.into(),
+        conversation_id: "b1".into(),
+        role: "user".into(),
+        seq,
+        content: content.into(),
+        created_at: format!("2026-08-20T00:00:0{seq}Z"),
+        attachments_json: None,
+        parts_json: None,
+        error: error.map(Into::into),
+    };
+    let mut conn = migrated_conn();
+    // 本机保存:一条正常消息 + 一条 error 存根(存根不进事件日志)。
+    chat::ai_chat_replace_inner(
+        &mut conn,
+        "b1",
+        &[message("m-a1", 0, "本机", None), message("m-err", 1, "", Some("boom"))],
+    )
+    .unwrap();
+    // 对端消息经同步合并写入投影——本 webview 的内存转录不知道它。
+    apply_remote_events_inner(
+        &mut conn,
+        &[ev_on(
+            "device-b",
+            "r1",
+            2_000,
+            "aiMessage.appended",
+            serde_json::json!({
+                "messageId": "m-b1", "conversationId": "b1",
+                "role": "user", "seq": 0, "content": "对端",
+            }),
+        )],
+    )
+    .unwrap();
+    // 陈旧保存:重试后存根被替换,数组里只有本机视角的两条。
+    chat::ai_chat_replace_inner(
+        &mut conn,
+        "b1",
+        &[message("m-a1", 0, "本机", None), message("m-a2", 1, "重试成功", None)],
+    )
+    .unwrap();
+    let survivors: Vec<String> = {
+        let mut stmt = conn
+            .prepare("SELECT id FROM ai_messages WHERE conversation_id = 'b1' ORDER BY id")
+            .unwrap();
+        let rows: Vec<String> = stmt
+            .query_map([], |row| row.get(0))
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
+        rows
+    };
+    // 对端行幸存,error 存根被清扫,本机两条都在。
+    assert_eq!(survivors, vec!["m-a1", "m-a2", "m-b1"]);
+}
+
+#[test]
+fn v22_downgrades_the_conversation_seq_index_on_an_existing_db() {
+    let mut conn = test_conn();
+    run_migrations_up_to(&mut conn, 21).expect("stage v21");
+    let insert = |conn: &Connection, id: &str| {
+        conn.execute(
+            "INSERT INTO ai_messages
+                (id, conversation_id, role, seq, content, created_at)
+             VALUES (?1, 'b1', 'user', 0, 'x', '2026-08-01T00:00:00Z')",
+            params![id],
+        )
+    };
+    insert(&conn, "m1").unwrap();
+    assert!(insert(&conn, "m2").is_err(), "v21 still enforces unique (conversation, seq)");
+    run_migrations(&mut conn).expect("migrate to latest");
+    insert(&conn, "m2").expect("v22 tolerates colliding seq");
+}
+
+#[test]
+fn same_book_thread_from_two_devices_merges_despite_colliding_seq() {
+    // beta 的同步卡死复现:书线程 conversation_id 就是裸 bookId,两台设备
+    // 各自聊过同一本书,seq 都从 0 编——合并(以及重放兜底)曾撞
+    // ix_ai_messages_conversation_seq 唯一索引,整个事务回滚、游标不前进。
+    let appended = |device: &str, id: &str, wall: i64, msg: &str, seq: i64, content: &str| {
+        ev_on(
+            device,
+            id,
+            wall,
+            "aiMessage.appended",
+            serde_json::json!({
+                "messageId": msg, "conversationId": "b1",
+                "role": "user", "seq": seq, "content": content,
+            }),
+        )
+    };
+    let mut conn = migrated_conn();
+    commit_events_inner(
+        &mut conn,
+        &[
+            ev(
+                "e1",
+                1_000,
+                "aiConversation.started",
+                serde_json::json!({ "conversationId": "b1", "bookId": "b1" }),
+            ),
+            appended("device-a", "e2", 1_001, "m-a1", 0, "本机第一条"),
+            appended("device-a", "e3", 1_003, "m-a2", 1, "本机第二条"),
+        ],
+    )
+    .unwrap();
+
+    // 对端的 seq 0/1 撞本机的 seq 0/1;其戳位于本机 frontier 之后 → 增量路径。
+    let incremental = apply_remote_events_inner(
+        &mut conn,
+        &[
+            appended("device-b", "r1", 1_004, "m-b1", 0, "对端第一条"),
+            appended("device-b", "r2", 1_005, "m-b2", 1, "对端第二条"),
+        ],
+    )
+    .unwrap();
+    assert_eq!(incremental.appended, 2);
+    assert!(!incremental.replayed);
+
+    // 再来一条落在 frontier 之前的 → 重放兜底,同样要能吞下 seq 冲突。
+    let replayed = apply_remote_events_inner(
+        &mut conn,
+        &[appended("device-b", "r3", 1_002, "m-b0", 0, "对端更早一条")],
+    )
+    .unwrap();
+    assert!(replayed.replayed);
+
+    let mut stmt = conn
+        .prepare(
+            "SELECT content FROM ai_messages WHERE conversation_id = 'b1'
+             ORDER BY seq, created_at, id",
+        )
+        .unwrap();
+    let contents: Vec<String> = stmt
+        .query_map([], |row| row.get(0))
+        .unwrap()
+        .map(|r| r.unwrap())
+        .collect();
+    // seq 组内按 created_at(= HLC wall)交错,全部五条都在。
+    assert_eq!(
+        contents,
+        vec!["本机第一条", "对端更早一条", "对端第一条", "本机第二条", "对端第二条"]
+    );
+}
+
+#[test]
+fn staged_events_reach_projections_only_at_finalize() {
+    let mut conn = migrated_conn();
+    // Nothing staged → finalize is a no-op (the defensive call sites rely on it).
+    assert!(finalize_staged_events_inner(&mut conn).unwrap().is_none());
+
+    let n = stage_remote_events_inner(&mut conn, &[imported("r1", 1_000, "b1", "沙丘")]).unwrap();
+    assert_eq!(n, 1);
+    // 在日志里、不在投影里、不进推送 outbox(来自中继,回推会成环)。
+    assert_eq!(scalar::<i64>(&conn, "SELECT COUNT(*) FROM domain_events"), 1);
+    assert_eq!(scalar::<i64>(&conn, "SELECT COUNT(*) FROM books"), 0);
+    assert_eq!(scalar::<i64>(&conn, "SELECT COUNT(*) FROM event_sync_state"), 0);
+
+    // finalize 即崩溃恢复路径本身:重放落地、标记清零、再调是 no-op。
+    let report = finalize_staged_events_inner(&mut conn).unwrap().expect("marker was set");
+    assert_eq!(report.events_replayed, 1);
+    assert_eq!(scalar::<String>(&conn, "SELECT title FROM books WHERE id='b1'"), "沙丘");
+    assert!(finalize_staged_events_inner(&mut conn).unwrap().is_none());
 }
 
 #[test]

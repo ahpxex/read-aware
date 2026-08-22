@@ -35,6 +35,10 @@ function fakeDevice() {
   const blobStates = new Map<string, string>();
   let cursor = 0;
   const knownIds = new Set<string>();
+  const staged: PlainEvent[] = [];
+  // Test control: make applyRemote report the replay fallback (events behind
+  // the local frontier), which is what flips the pull loop into staging.
+  const controls = { replayOnApply: false, applyCalls: 0, stageCalls: 0, finalizeCalls: 0 };
 
   const store: SyncLocalStore = {
     async outboxEvents(limit) {
@@ -51,6 +55,7 @@ function fakeDevice() {
       for (const id of ids) failed.set(id, error);
     },
     async applyRemote(events): Promise<MergeReport> {
+      controls.applyCalls += 1;
       let appended = 0;
       for (const event of events) {
         if (knownIds.has(event.id)) continue;
@@ -58,7 +63,25 @@ function fakeDevice() {
         applied.push(event);
         appended += 1;
       }
-      return { appended, applied: appended, replayed: false };
+      return { appended, applied: appended, replayed: controls.replayOnApply };
+    },
+    async stageRemote(events) {
+      controls.stageCalls += 1;
+      let appended = 0;
+      for (const event of events) {
+        if (knownIds.has(event.id)) continue;
+        knownIds.add(event.id);
+        staged.push(event);
+        appended += 1;
+      }
+      return appended;
+    },
+    async finalizeStaged() {
+      controls.finalizeCalls += 1;
+      if (staged.length > 0) {
+        applied.push(...staged);
+        staged.length = 0;
+      }
     },
     async eventsCursor() {
       return cursor;
@@ -139,6 +162,8 @@ function fakeDevice() {
       blobOutbox.add(key);
     },
     cursorValue: () => cursor,
+    staged,
+    controls,
   };
 }
 
@@ -277,6 +302,47 @@ describe("pull", () => {
     // Nothing new: the cursor holds still and nothing re-applies.
     expect(await engineFor(consumer, relay).pullOnce()).toBe(0);
     expect(consumer.applied.length).toBe(5);
+  });
+
+  test("a backlog behind the frontier stages later pages and replays once at the end", async () => {
+    const relay = fakeRelay();
+    const producer = fakeDevice();
+    // 7 events at batchSize 2 = 4 pages (2+2+2+1).
+    for (let i = 1; i <= 7; i += 1) {
+      producer.commitLocal(plain(`e${i}`, 2_000 + i, "device-b", `第${i}条`));
+    }
+    await engineFor(producer, relay).pushOnce();
+
+    // The consumer has its own newer history: every pulled page lands behind
+    // its frontier, so applyRemote reports the replay fallback.
+    const consumer = fakeDevice();
+    consumer.controls.replayOnApply = true;
+    const merged = await engineFor(consumer, relay).pullOnce();
+    expect(merged).toBe(7);
+    // Page 1 applied (and replayed) — then the loop switches to staging.
+    expect(consumer.controls.applyCalls).toBe(1);
+    expect(consumer.controls.stageCalls).toBe(3);
+    // One defensive finalize at the start + ONE finishing replay at the end.
+    expect(consumer.controls.finalizeCalls).toBe(2);
+    expect(consumer.staged).toEqual([]);
+    expect(consumer.applied.map((e) => e.id)).toEqual(["e1", "e2", "e3", "e4", "e5", "e6", "e7"]);
+    expect(consumer.cursorValue()).toBe(7);
+  });
+
+  test("a replayed FINAL page never enters staging mode", async () => {
+    const relay = fakeRelay();
+    const producer = fakeDevice();
+    producer.commitLocal(plain("e1", 2_001, "device-b", "唯一一条"));
+    await engineFor(producer, relay).pushOnce();
+
+    const consumer = fakeDevice();
+    consumer.controls.replayOnApply = true;
+    await engineFor(consumer, relay).pullOnce();
+    // A short (< batchSize) page is the last one — nothing follows that could
+    // amortize, so it applies directly and only the defensive finalize ran.
+    expect(consumer.controls.applyCalls).toBe(1);
+    expect(consumer.controls.stageCalls).toBe(0);
+    expect(consumer.controls.finalizeCalls).toBe(1);
   });
 
   test("the wrong key fails loudly instead of merging garbage", async () => {

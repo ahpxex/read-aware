@@ -1,6 +1,7 @@
 import { applyPlatformAttributes, disableNativeContextMenu } from "./platform/environment";
 import { syncAndroidSafeArea } from "./platform/safe-area";
 import { hydrateLocalStore } from "./platform/local-store";
+import { hydrateAppIdentity } from "./platform/app-identity";
 import { hydrateRoamingPreferences } from "./platform/roaming-preferences";
 import { installGlobalErrorLogging } from "./platform/global-error-log";
 import { createLogger } from "./platform/logger";
@@ -40,6 +41,10 @@ void (async () => {
   log.info("start");
   await hydrateLocalStore();
   log.info("local store hydrated");
+  // Which bundle is this (dev vs production identifier)? The sync layer's
+  // relay default depends on it; one IPC roundtrip, before any consumer.
+  await hydrateAppIdentity();
+  log.info("app identity hydrated");
   // Overlay roamed preferences (theme, reader typography) from the projection
   // BEFORE anything reads settings — the boot theme below must already see a
   // value another device may have changed.

@@ -27,6 +27,7 @@ import {
   type SyncEngine,
 } from "./sync-engine";
 import { adoptSyncAccount, createIpcSyncStore, getSyncProfile, setSyncProfile } from "./sync-store";
+import { isDevBundle } from "../app-identity";
 import { lastSuccessfulSyncAt } from "./sync-status";
 
 const log = createLogger("sync");
@@ -42,6 +43,9 @@ const RELAY_URL_KV_KEY = "read-aware-sync-relay-url";
  * production mid-test. Env-var fallback survives any wipe; production builds
  * never see it (DEV-gated, and the release pipeline sets no such var).
  */
+/** Where a dev-IDENTIFIED bundle points when nothing else says otherwise. */
+const DEV_BUNDLE_RELAY_URL = "http://localhost:8787";
+
 function defaultRelayUrl(): string {
   // Present ONLY when a developer bakes it (dev server env, or a dev-signed
   // bundled build for a device that cannot reach a dev server) — the release
@@ -77,6 +81,12 @@ function defaultRelayUrl(): string {
     // follow, so the baked URL must already be the reachable address.
     return dev;
   }
+  // The last fallback is gated on runtime identity: a dev-IDENTIFIED bundle
+  // built in release mode (`tauri build --config tauri.dev.conf.json`) sees
+  // no VITE_* defaults at all, and without this guard would silently point a
+  // dev install at the production relay. Local relay or bust — an
+  // unreachable local relay fails loudly instead of polluting production.
+  if (isDevBundle()) return DEV_BUNDLE_RELAY_URL;
   return DEFAULT_RELAY_URL;
 }
 

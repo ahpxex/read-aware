@@ -16,6 +16,7 @@ import {
   grantedSpoilerAssessment,
 } from "./real-book-helpers";
 import { karamazovQuestionScenarios } from "./karamazov-questions";
+import { commonRealBookScenarios } from "./real-book-common";
 
 const kara = realBook("karamazov");
 
@@ -82,6 +83,7 @@ function inquisitorSelectionCursor() {
 
 export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "karamazov",
+  displayName: "《卡拉马佐夫兄弟》",
   code: "S07",
   description: "基于完整中文版《卡拉马佐夫兄弟》EPUB的真实书籍场景。",
   scenarios: [
@@ -637,5 +639,6 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
     ].map(withEditionFidelity),
     // 工厂生产的长尾问题（fidelity 已在场景内叠加，不重复 map）
     ...karamazovQuestionScenarios,
+    ...commonRealBookScenarios("karamazov"),
   ],
 };

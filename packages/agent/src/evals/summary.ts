@@ -167,6 +167,7 @@ export function buildEvalSummary(
   records: EvalRunRecord[],
   tagsByScenario: ReadonlyMap<string, readonly string[]> = new Map(),
   definitionHash?: string,
+  suiteDisplayName?: string,
 ): EvalSummary {
   const baselineVariantId = variantIds[0] ?? "baseline";
   // 场景按标签分桶后逐 (tag, variant) 聚合：byTag 是"测什么"维度的机器可读汇总
@@ -178,6 +179,7 @@ export function buildEvalSummary(
   }
   return {
     suiteId,
+    ...(suiteDisplayName ? { suiteDisplayName } : {}),
     ...(definitionHash ? { definitionHash } : {}),
     baselineVariantId,
     generatedAt: new Date().toISOString(),

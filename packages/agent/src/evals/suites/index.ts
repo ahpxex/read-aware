@@ -3,7 +3,7 @@
  *
  *   组（group）——套件之上的运行/汇报单位：
  *     behavior  能力套件（合成 fixture 或横切行为）——见 ./behavior/index.ts
- *     realbook  真书套件（每书一个 + 配置驱动的网格）——见 ./realbook/index.ts
+ *     realbook  真书套件（每书一个，内含专属场景与公共场景）——见 ./realbook/index.ts
  *
  *   suite id 保持稳定不变：它是 trend 文件（trend-<id>.json）、工件目录与
  *   viewer 路由的外键。新增套件时顺延 code（S01…只增不改），并归入一组。
@@ -35,7 +35,7 @@ export const evalSuiteGroups = {
   },
   realbook: {
     id: "realbook",
-    description: "真书套件：每本注册真书一个专属套件 + 全书公共行为网格",
+    description: "真书套件：按书名组织，每本书同时覆盖专属能力与公共阅读行为",
     suites: realbookSuites,
     suiteIds: Object.keys(realbookSuites) as RealbookSuiteId[],
   },

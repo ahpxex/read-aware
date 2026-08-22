@@ -50,6 +50,7 @@ function honestAbsenceAssessment(observation: AgentEvalObservation): EvalAssessm
 
 export const groundingEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "grounding",
+  displayName: "事实依据与诚实性",
   code: "S04",
   description: "数据缺失时保持诚实：不编造章节、时长或书籍。",
   scenarios: [

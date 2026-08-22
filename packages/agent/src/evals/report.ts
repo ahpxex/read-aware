@@ -75,8 +75,11 @@ function tagRow(aggregate: EvalAggregate): string {
 }
 
 export function formatEvalReport(summary: EvalSummary): string {
+  const suiteTitle = summary.suiteDisplayName
+    ? `${summary.suiteDisplayName} (${summary.suiteId})`
+    : summary.suiteId;
   const lines = [
-    `# Eval Report: ${summary.suiteId}`,
+    `# Eval Report: ${suiteTitle}`,
     "",
     `Generated: ${summary.generatedAt}`,
     "",

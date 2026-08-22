@@ -28,6 +28,7 @@ export interface CatalogScenario {
 
 export interface CatalogSuite {
   id: string;
+  displayName: string;
   code: string;
   /** 所属组：behavior（能力套件）/ realbook（真书套件）。 */
   group: "behavior" | "realbook";
@@ -101,12 +102,15 @@ export interface RunDetail {
     runId?: string;
     git?: { commit?: string; branch?: string; dirty?: boolean };
     plan?: {
+      suiteId?: string;
+      suiteDisplayName?: string;
       repetitions?: number;
       variants?: Array<{ id: string; metadata?: Record<string, unknown> }>;
     };
   };
   summary?: {
     suiteId: string;
+    suiteDisplayName?: string;
     generatedAt: string;
     runs: number;
     passed: number;

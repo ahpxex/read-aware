@@ -41,6 +41,7 @@ function settingValue(path: string) {
 
 export const settingsEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "settings",
+  displayName: "设置管理",
   code: "S16",
   description: "通用设置发现、限域变异、澄清与凭据边界。",
   scenarios: [

@@ -40,7 +40,7 @@ describe("eval artifact rescoring", () => {
         ]),
     };
     const result = await rescoreEvalRecords(
-      { id: "suite", code: "S00", description: "suite", scenarios: [scenario] },
+      { id: "suite", displayName: "Suite", code: "S00", description: "suite", scenarios: [scenario] },
       ["baseline"],
       [record({ error: { stage: "scoring", name: "Error", message: "old scorer" } })],
     );
@@ -63,7 +63,7 @@ describe("eval artifact rescoring", () => {
       error: { stage: "execution", name: "Error", message: "provider unavailable" },
     });
     const result = await rescoreEvalRecords(
-      { id: "suite", code: "S00", description: "suite", scenarios: [scenario] },
+      { id: "suite", displayName: "Suite", code: "S00", description: "suite", scenarios: [scenario] },
       ["baseline"],
       [failed],
     );

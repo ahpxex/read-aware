@@ -83,11 +83,12 @@ export function App() {
                       : "text-[var(--muted)]"
                   }`}
                   href={`#/suites/${suite.id}`}
+                  title={suite.id}
                 >
                   <span className={`w-[30px] shrink-0 font-mono text-[11px] ${activeSuite === suite.id ? "text-[var(--accent)]" : "text-[var(--subtle)]"}`}>
                     {suite.code}
                   </span>
-                  <span>{suite.id}</span>
+                  <span>{suite.displayName}</span>
                 </a>
               ))}
           </div>

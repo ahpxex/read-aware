@@ -45,6 +45,7 @@ function shelfSummary() {
 
 export const crossbookEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "crossbook",
+  displayName: "跨书检索与关联",
   code: "S03",
   description: "跨真实书籍书架的全局线程行为。",
   scenarios: [

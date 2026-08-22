@@ -43,7 +43,7 @@ describe("eval runner", () => {
   test("repeats, balances variant order, and computes paired comparisons", async () => {
     const order: string[] = [];
     const result = await runEvalSuite(
-      { id: "suite", code: "S00", description: "suite", scenarios: [scenario((output) => assessmentFromChecks([
+      { id: "suite", displayName: "Suite", code: "S00", description: "suite", scenarios: [scenario((output) => assessmentFromChecks([
         {
           id: "value",
           category: "quality",
@@ -61,7 +61,14 @@ describe("eval runner", () => {
       "2:candidate",
       "2:baseline",
     ]);
-    expect(result.summary).toMatchObject({ runs: 4, passed: 2, failed: 2, errors: 0 });
+    expect(result.plan.suiteDisplayName).toBe("Suite");
+    expect(result.summary).toMatchObject({
+      suiteDisplayName: "Suite",
+      runs: 4,
+      passed: 2,
+      failed: 2,
+      errors: 0,
+    });
     expect(result.summary.comparisons).toEqual([
       expect.objectContaining({
         baselineVariantId: "baseline",
@@ -98,6 +105,7 @@ describe("eval runner", () => {
     const result = await runEvalSuite(
       {
         id: "errors",
+        displayName: "Errors",
         code: "S00",
         description: "errors",
         scenarios: [
@@ -122,7 +130,7 @@ describe("eval runner", () => {
     const duplicate = variant("same", 1);
     await expect(
       runEvalSuite(
-        { id: "suite", code: "S00", description: "suite", scenarios: [scenario(() => assessmentFromChecks([]))] },
+        { id: "suite", displayName: "Suite", code: "S00", description: "suite", scenarios: [scenario(() => assessmentFromChecks([]))] },
         [duplicate, duplicate],
       ),
     ).rejects.toThrow("variants contains duplicate id");
@@ -133,6 +141,7 @@ describe("eval runner", () => {
     const result = await runEvalSuite(
       {
         id: "scoring-timeout",
+        displayName: "Scoring timeout",
         code: "S00",
         description: "scoring timeout",
         scenarios: [
@@ -169,7 +178,7 @@ describe("eval runner concurrency", () => {
       id,
     }));
     const result = await runEvalSuite(
-      { id: "suite", code: "S00", description: "d", scenarios },
+      { id: "suite", displayName: "Suite", code: "S00", description: "d", scenarios },
       [variant("baseline", 1), variant("candidate", 2)],
       { repetitions: 3, concurrency: 3 },
     );

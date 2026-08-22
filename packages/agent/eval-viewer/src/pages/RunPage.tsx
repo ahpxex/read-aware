@@ -56,7 +56,7 @@ export function RunPage({
 
   const { records } = detail;
   const planSuiteId =
-    (detail.manifest?.plan as { suiteId?: string } | undefined)?.suiteId ?? runId.split("-")[0]!;
+    detail.manifest?.plan?.suiteId ?? runId.split("-")[0]!;
   const summary = detail.summary ?? synthesizeSummary(records, planSuiteId);
   const suite = catalog.find((entry) => entry.id === summary.suiteId);
   const refOf = (scenarioId: string) => {
@@ -92,9 +92,12 @@ export function RunPage({
             <a href={`#/suites/${summary.suiteId}`} className={`${refChipClass} align-middle text-sm`}>
               {suite?.code ?? summary.suiteId}
             </a>{" "}
-            {summary.suiteId}
+            {suite?.displayName ?? summary.suiteDisplayName ?? detail.manifest?.plan?.suiteDisplayName ?? summary.suiteId}
           </h1>
-          <p className="mt-1 text-[13px] text-[var(--muted)]">{summary.generatedAt || runId}</p>
+          <p className="mt-1 text-[13px] text-[var(--muted)]">
+            <span className="mr-2 font-mono text-[11px] text-[var(--subtle)]">{summary.suiteId}</span>
+            {summary.generatedAt || runId}
+          </p>
         </div>
         {(detail.rescores?.length ?? 0) > 0 && (
           <label className="grid shrink-0 gap-1 text-[11px] text-[var(--muted)] max-md:w-full">

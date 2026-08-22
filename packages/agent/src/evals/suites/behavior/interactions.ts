@@ -49,6 +49,7 @@ const observeBooks = ({ stores }: Parameters<NonNullable<AgentEvalScenario["obse
 
 export const interactionsEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "interactions",
+  displayName: "交互与权限确认",
   code: "S05",
   description: "通过聊天内交互界面的澄清和破坏性权限行为。",
   scenarios: [

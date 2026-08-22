@@ -102,9 +102,13 @@ export function SuitePage({
       <header className="mb-4 flex items-start justify-between gap-6 max-md:grid">
         <div>
           <h1 className="m-0 text-2xl font-semibold tracking-normal">
-            <span className={`${refChipClass} align-middle text-sm`}>{suite.code}</span> {suite.id}
+            <span className={`${refChipClass} align-middle text-sm`}>{suite.code}</span>{" "}
+            {suite.displayName}
           </h1>
-          <p className="mt-1 text-[13px] text-[var(--muted)]">{suite.description}</p>
+          <p className="mt-1 text-[13px] text-[var(--muted)]">
+            <span className="mr-2 font-mono text-[11px] text-[var(--subtle)]">{suite.id}</span>
+            {suite.description}
+          </p>
         </div>
         {history.length > 0 && (
           <label className="grid shrink-0 gap-1 text-[11px] text-[var(--muted)] max-md:w-full">

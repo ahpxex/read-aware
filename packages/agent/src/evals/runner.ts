@@ -208,6 +208,7 @@ export async function runEvalSuite<
   );
   const plan: EvalRunPlan = {
     suiteId: suite.id,
+    suiteDisplayName: suite.displayName,
     definitionHash,
     ...(options.definitionMetadata === undefined
       ? {}
@@ -278,6 +279,7 @@ export async function runEvalSuite<
     records,
     new Map(suite.scenarios.map((scenario) => [scenario.id, scenario.tags ?? []])),
     definitionHash,
+    suite.displayName,
   );
   await options.hooks?.onComplete?.(summary);
   return { plan, records, summary };

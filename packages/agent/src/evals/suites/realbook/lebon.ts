@@ -16,6 +16,7 @@ import {
   noFenceAssessment,
 } from "./real-book-helpers";
 import { lebonQuestionScenarios } from "./lebon-questions";
+import { commonRealBookScenarios } from "./real-book-common";
 
 const lebon = realBook("lebon");
 
@@ -42,6 +43,7 @@ function readerCursor() {
 
 export const lebonEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "lebon",
+  displayName: "《乌合之众》",
   code: "S08",
   description:
     "基于完整中文勒庞图书的真实场景（概念图，无剧透栅栏）。",
@@ -254,5 +256,7 @@ export const lebonEvalSuite: EvalSuite<AgentEvalScenario> = {
           cjkAnswerAssessment(observation),
         ),
     }),
-    ...lebonQuestionScenarios,  ],
+    ...lebonQuestionScenarios,
+    ...commonRealBookScenarios("lebon"),
+  ],
 };

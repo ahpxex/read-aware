@@ -46,6 +46,17 @@ describe("eval suite registry", () => {
     for (const code of codes) expect(code).toMatch(/^S\d{2,}$/);
   });
 
+  test("every suite has a readable display name", () => {
+    for (const suite of allSuites) {
+      expect(suite.displayName.trim().length, suite.id).toBeGreaterThan(0);
+      expect(suite.displayName, suite.id).not.toBe(suite.id);
+    }
+  });
+
+  test("real-book suites are organized one-to-one by registered book slug", () => {
+    expect([...suiteIdsOfGroup("realbook")].sort()).toEqual([...BOOK_SLUGS].sort());
+  });
+
   test("scenario ids are unique within each suite and non-empty everywhere", () => {
     for (const suite of allSuites) {
       expect(suite.scenarios.length).toBeGreaterThan(0);

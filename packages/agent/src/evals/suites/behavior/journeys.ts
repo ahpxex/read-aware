@@ -147,6 +147,7 @@ function observeJourneyState({ stores }: SetupContext) {
 
 export const journeysEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "journeys",
+  displayName: "完整阅读旅程",
   code: "S06",
   description:
     "完整的多轮阅读会话：选段提问、追问、标注、跨章节、显式记忆、会话末总结，逐轮断言。",

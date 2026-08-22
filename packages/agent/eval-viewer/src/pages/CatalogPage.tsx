@@ -41,7 +41,9 @@ export function CatalogPage({
   tick?: number;
 }) {
   const totalScenarios = catalog.reduce((sum, suite) => sum + suite.scenarios.length, 0);
-  const latest = latestBySuite(runs);
+  const activeSuiteIds = new Set(catalog.map((suite) => suite.id));
+  const visibleRuns = runs.filter((run) => activeSuiteIds.has(run.suiteId));
+  const latest = latestBySuite(visibleRuns);
   const [attention, setAttention] = useState<AttentionItem[] | null>(null);
   useEffect(() => {
     fetchAttention().then(setAttention).catch(() => setAttention([]));
@@ -52,6 +54,9 @@ export function CatalogPage({
     const index = suite?.scenarios.findIndex((scenario) => scenario.id === scenarioId) ?? -1;
     return suite && index >= 0 ? `${suite.code}.${index + 1}` : suiteId;
   };
+  const suiteName = (suiteId: string): string =>
+    catalog.find((suite) => suite.id === suiteId)?.displayName ?? suiteId;
+  const visibleAttention = (attention ?? []).filter((item) => activeSuiteIds.has(item.suiteId));
 
   // 各套件最新一次的通过聚合——顶部大盘（进行中/中断的 run 不进聚合）
   const latestList = Array.from(latest.values()).filter((run) => run.status === "complete");
@@ -80,21 +85,21 @@ export function CatalogPage({
           <div className="mt-0.5 text-xs text-[var(--muted)]">通过 / 运行</div>
         </div>
         <div className="bg-[var(--bg)] px-4 py-4">
-          <div className={`text-[22px] font-semibold tabular-nums ${attention?.length ? "text-[var(--fail)]" : "text-[var(--ok)]"}`}>
-            {attention?.length ?? "…"}
+          <div className={`text-[22px] font-semibold tabular-nums ${visibleAttention.length ? "text-[var(--fail)]" : "text-[var(--ok)]"}`}>
+            {attention === null ? "…" : visibleAttention.length}
           </div>
           <div className="mt-0.5 text-xs text-[var(--muted)]">当前失败场景</div>
         </div>
         <div className="bg-[var(--bg)] px-4 py-4">
-          <div className="text-[22px] font-semibold tabular-nums">{runs.length}</div>
-          <div className="mt-0.5 text-xs text-[var(--muted)]">历史 run 总数</div>
+          <div className="text-[22px] font-semibold tabular-nums">{visibleRuns.length}</div>
+          <div className="mt-0.5 text-xs text-[var(--muted)]">当前套件历史 run 总数</div>
         </div>
       </div>
 
-      {attention && attention.length > 0 && (
+      {visibleAttention.length > 0 && (
         <>
           <h2 className="mt-9 mb-3 text-[15px] font-semibold tracking-normal">当前失败（各套件最近一次运行）</h2>
-          {attention.map((item) => (
+          {visibleAttention.map((item) => (
             <a
               key={`${item.runId}-${item.scenarioId}`}
               className="mb-2 block rounded-[6px] border border-[var(--fail)] bg-[var(--fail-bg)] px-4 py-3 transition-opacity hover:opacity-90"
@@ -106,7 +111,7 @@ export function CatalogPage({
                 <span className={statusClass(item.status === "error" ? "error" : "fail")}>
                   {item.status === "error" ? "错误" : "失败"}
                 </span>
-                <span className="ml-auto text-xs text-[var(--subtle)]">{item.suiteId}</span>
+                <span className="ml-auto text-xs text-[var(--subtle)]">{suiteName(item.suiteId)}</span>
               </div>
               <ul className="mt-1.5 mb-0 list-disc pl-4 text-xs text-[var(--fail)]">
                 {item.failedChecks.slice(0, 3).map((check) => (
@@ -150,7 +155,10 @@ export function CatalogPage({
                   }}
                 >
                   <td className={`${tdClass} font-mono text-xs`}>{suite.code}</td>
-                  <td className={`${tdClass} font-mono text-xs`}>{suite.id}</td>
+                  <td className={tdClass}>
+                    <div className="font-medium">{suite.displayName}</div>
+                    <div className="font-mono text-[11px] text-[var(--subtle)]">{suite.id}</div>
+                  </td>
                   <td className={tdClass}>{suite.description}</td>
                   <td className={tdClass}>{suite.scenarios.length}</td>
                   <td className={tdClass}>
@@ -188,7 +196,7 @@ export function CatalogPage({
             </tr>
           </thead>
           <tbody>
-            {runs.slice(0, 30).map((run) => {
+            {visibleRuns.slice(0, 30).map((run) => {
               const href = `#/runs/${run.runId}`;
               return (
                 <tr
@@ -203,7 +211,10 @@ export function CatalogPage({
                   }}
                 >
                   <td className={`${tdClass} font-mono text-xs`}>{run.runId}</td>
-                  <td className={`${tdClass} font-mono text-xs`}>{run.suiteId}</td>
+                  <td className={tdClass}>
+                    <div>{suiteName(run.suiteId)}</div>
+                    <div className="font-mono text-[11px] text-[var(--subtle)]">{run.suiteId}</div>
+                  </td>
                   <td className={tdClass}>
                     {run.status === "running" ? (
                       <span className={statusClass("running")}>跑 {run.runs ?? 0}/{run.total ?? "?"}</span>

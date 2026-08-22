@@ -71,6 +71,7 @@ function legacyTranscript(): TurnRecord[] {
 
 export const legacyEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "legacy",
+  displayName: "旧数据兼容",
   code: "S09",
   description:
     "老用户带着旧数据出现时：处理图谱回填中间态、旧对话继承，以及对旧Agent声明的关键评估。",

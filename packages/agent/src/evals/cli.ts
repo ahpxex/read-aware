@@ -73,7 +73,7 @@ Usage:
 Targets:
   <suite>                      A single suite id (e.g. reading, karamazov)
   behavior                     All capability suites on synthetic fixtures
-  realbook                     All per-book suites + the real-book grid
+  realbook                     All book-title suites (each includes common scenarios)
 
 Options:
   --provider <id>              Baseline provider (default: openrouter)
@@ -337,7 +337,11 @@ export async function runEvalCli(args: string[]): Promise<void> {
   }
 
   for (const [index, target] of targets.entries()) {
-    if (targets.length > 1) console.log(`\n=== [${index + 1}/${targets.length}] suite ${target.suiteId}`);
+    if (targets.length > 1) {
+      console.log(
+        `\n=== [${index + 1}/${targets.length}] ${evalSuites[target.suiteId].displayName} (${target.suiteId})`,
+      );
+    }
     await runSuiteTarget(options, target, {
       variants,
       judge,
@@ -384,7 +388,7 @@ async function runSuiteTarget(
     hooks: {
       onPlan: async (plan) => {
         console.log(
-          `Eval ${plan.suiteId}: ${plan.scenarios.length} scenarios x ${plan.variants.length} variants x ${plan.repetitions} repetitions`,
+          `Eval ${plan.suiteDisplayName ?? plan.suiteId} (${plan.suiteId}): ${plan.scenarios.length} scenarios x ${plan.variants.length} variants x ${plan.repetitions} repetitions`,
         );
         await artifactStore?.writePlan(plan);
       },

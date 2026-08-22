@@ -132,6 +132,8 @@ export interface EvalVariant<TScenario, TObservation> {
 
 export interface EvalSuite<TScenario> {
   id: string;
+  /** Human-readable name for navigation and reports; `id` remains the stable machine key. */
+  displayName: string;
   /**
    * 稳定短编号（S01…），做人与 agent 之间的引用坐标（"S07.3 挂了"）。
    * 只增不改：新套件顺延编号，永不复用旧号。
@@ -212,6 +214,8 @@ export interface EvalComparison {
 
 export interface EvalSummary {
   suiteId: string;
+  /** Optional for compatibility with summaries written before readable names. */
+  suiteDisplayName?: string;
   /** Scenario inputs + evaluator implementation + scoring configuration. */
   definitionHash?: string;
   baselineVariantId: string;
@@ -229,6 +233,8 @@ export interface EvalSummary {
 
 export interface EvalRunPlan {
   suiteId: string;
+  /** Optional because run bundles written before display names remain readable. */
+  suiteDisplayName?: string;
   definitionHash: string;
   definitionMetadata?: JsonValue;
   suiteDescription: string;

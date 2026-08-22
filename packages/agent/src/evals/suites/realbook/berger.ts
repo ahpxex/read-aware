@@ -15,6 +15,7 @@ import {
   noFenceAssessment,
 } from "./real-book-helpers";
 import { bergerQuestionScenarios } from "./berger-questions";
+import { commonRealBookScenarios } from "./real-book-common";
 
 const berger = realBook("berger");
 
@@ -40,6 +41,7 @@ function readerCursor() {
 
 export const bergerEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "berger",
+  displayName: "《如何用提问解决问题》",
   code: "S02",
   description:
     "基于中文《贝格尔》全书的真实“怎么做”场景（将书的方法应用于读者情境）。",
@@ -208,5 +210,7 @@ export const bergerEvalSuite: EvalSuite<AgentEvalScenario> = {
           cjkAnswerAssessment(observation),
         ),
     }),
-    ...bergerQuestionScenarios,  ],
+    ...bergerQuestionScenarios,
+    ...commonRealBookScenarios("berger"),
+  ],
 };

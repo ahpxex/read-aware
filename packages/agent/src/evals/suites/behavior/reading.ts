@@ -55,6 +55,7 @@ function stableCursorContextAssessment(observation: AgentEvalObservation): EvalA
 
 export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "reading",
+  displayName: "阅读位置与剧透",
   code: "S12",
   description: "阅读光标定位、叙述性剧透策略与说明性图书检索。",
   scenarios: [

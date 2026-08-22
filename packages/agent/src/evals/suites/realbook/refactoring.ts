@@ -16,6 +16,7 @@ import {
   noFenceAssessment,
 } from "./real-book-helpers";
 import { refactoringQuestionScenarios } from "./refactoring-questions";
+import { commonRealBookScenarios } from "./real-book-common";
 
 const fowler = realBook("refactoring");
 
@@ -75,6 +76,7 @@ function bilingualAssessment(
 
 export const refactoringEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "refactoring",
+  displayName: "《重构（第2版）》",
   code: "S14",
   description:
     "基于英文 Refactoring 第2版全书的真实技术场景（目录查找、概念图谱、双语术语）。",
@@ -352,5 +354,7 @@ export const refactoringEvalSuite: EvalSuite<AgentEvalScenario> = {
           cjkAnswerAssessment(observation),
         ),
     }),
-    ...refactoringQuestionScenarios,  ],
+    ...refactoringQuestionScenarios,
+    ...commonRealBookScenarios("refactoring"),
+  ],
 };

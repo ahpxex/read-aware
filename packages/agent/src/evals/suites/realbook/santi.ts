@@ -20,6 +20,7 @@ import {
   leakAssessment as leakAgainst,
 } from "./real-book-helpers";
 import { santiQuestionScenarios } from "./santi-questions";
+import { commonRealBookScenarios } from "./real-book-common";
 
 const santi = realBook("santi");
 
@@ -91,6 +92,7 @@ const vol1DoneProgress = () => Math.round(cursorAt(VOL1_DONE_CHAPTER).bookProgre
 
 export const santiEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "santi",
+  displayName: "《三体》三部曲",
   code: "S15",
   description:
     "基于完整中文《三体》三部曲合集的真实场景（预训练知名，多卷本）。",
@@ -398,5 +400,7 @@ export const santiEvalSuite: EvalSuite<AgentEvalScenario> = {
           cjkAnswerAssessment(observation),
         ),
     }),
-    ...santiQuestionScenarios,  ],
+    ...santiQuestionScenarios,
+    ...commonRealBookScenarios("santi"),
+  ],
 };

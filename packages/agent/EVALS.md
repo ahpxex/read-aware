@@ -123,9 +123,13 @@ deltas print next to per-scenario regressions.
   bootstrap rolling summary + inherited memory extraction, insights row as
   the watermark) lives in runtime/legacy-adoption.test.ts.
 
-### realbook — per-book suites + the grid
+### realbook — one suite per book
 
-Each per-book suite has two layers: **hand-written core scenarios** (the
+Every suite has a stable machine `id` and a human-readable `displayName` used
+by the viewer. Real-book suites are organized only by book title; there is no
+standalone aggregate suite.
+
+Each per-book suite has three layers: **hand-written core scenarios** (the
 angles only that book can test — spoiler tension, concept graphs, catalog
 lookup) in the book's main file, plus a **real-reader question bank**
 (`suites/realbook/<book>-questions.ts`, ~22-27 scenarios each, produced
@@ -139,7 +143,12 @@ not answered from later-book truth), same-question-two-positions (the
 answer should deepen as the cursor advances — or stay invariant on
 expository books), paraphrase invariance (same intent, three wordings),
 annotation/note assists with verbatim fidelity, reading-stats queries, and
-off-shelf recommendations (framed as world knowledge, never fake cards).
+off-shelf recommendations (framed as world knowledge, never fake cards), plus
+the **generated common scenarios** from `real-book-common.ts` for topical
+lookup, selected-passage explanation, verbatim annotation, chapter-crossing
+recall, no-cursor policy, and quote location. The generated scenarios are
+appended to that book's own suite instead of forming a separate `realbooks`
+suite.
 Every assertion word is verified against the fixture (first occurrence ≤
 cursor, or an explicitly legal forward target; leak words verified beyond).
 
@@ -200,14 +209,6 @@ cursor, or an explicitly legal forward target; leak words verified beyond).
   English from Chinese), more catalog lookups, a three-turn code
   consultation ending on the testing discipline, and the
   how-to-use-a-big-book guidance case.
-- `realbooks` (S13): the common behavior grid, GENERATED over every registered
-  real book from one config table (`suites/realbook/real-book-common.ts`) —
-  topical lookup without position interrogation, selected-passage
-  explanation, verbatim highlight + note flows, chapter-crossing recall
-  across the context reset, no-cursor spoiler caution (narrative books), and
-  quote location for books whose own suites don't cover it. Adding a book to
-  the registry automatically enrolls it here.
-
 List scenarios without loading credentials or calling a model:
 
 ```sh

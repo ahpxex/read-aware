@@ -71,6 +71,7 @@ function highlightVerbatimAssessment(observation: AgentEvalObservation): EvalAss
 
 export const annotationsEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "annotations",
+  displayName: "标注与笔记",
   code: "S01",
   description: "创建、编辑用户笔记和高亮，并基于它们进行推理。",
   scenarios: [

@@ -116,6 +116,7 @@ function memoryDiscretionAssessment(
 
 export const personalizationEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "personalization",
+  displayName: "个性化回答",
   code: "S11",
   description:
     "记忆必须改变回答：适用于具体用户角色的风格、领域连接、类比、谨慎与透明度（无个人资料控制）。",

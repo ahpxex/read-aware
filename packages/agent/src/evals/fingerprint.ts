@@ -20,6 +20,7 @@ export function fingerprintSuite<TScenario extends EvalScenario<unknown>>(
 ): string {
   return sha256([
     suite.id,
+    suite.displayName,
     suite.code,
     suite.description,
     JSON.stringify(metadata ?? null),

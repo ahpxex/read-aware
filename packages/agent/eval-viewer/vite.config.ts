@@ -253,6 +253,7 @@ function evalDataPlugin(): Plugin {
                   string,
                   {
                     id: string;
+                    displayName: string;
                     code: string;
                     description: string;
                     scenarios: Array<{
@@ -277,6 +278,7 @@ function evalDataPlugin(): Plugin {
                 )
                 .map(({ suite, group }) => ({
                   id: suite.id,
+                  displayName: suite.displayName,
                   code: suite.code,
                   group,
                   description: suite.description,

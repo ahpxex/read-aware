@@ -91,9 +91,8 @@ LLM `--judge` 是可扩展的机器评分器，不是最终产品判断，也不
 
 | 套件 | 面 |
 |---|---|
-| karamazov / santi | 叙事真书：剧透围栏、版本保真、预训练知名度压力 |
-| lebon / refactoring / berger | 说明文/技术书/工具书：概念图、双语纪律、方法应用 |
-| realbooks | 行为网格：一张配置表 × 每本注册书自动生成（新书自动入网格） |
+| karamazov / santi | 叙事真书：剧透围栏、版本保真、预训练知名度压力 + 本书公共行为场景 |
+| lebon / refactoring / berger | 说明文/技术书/工具书：概念图、双语纪律、方法应用 + 本书公共行为场景 |
 | journeys | 多轮长会话一条龙（选段→追问→标注→跨章→记忆→回顾） |
 | legacy | 存量用户：图谱欠账过渡态、旧转录继承、旧断言扬弃 |
 | personalization | 记忆必须改变回答（画像 A/B 带对照组） |
@@ -110,8 +109,9 @@ bun run eval:classify                    # 叙事性分类器对全部注册书�
 ## 新增场景 / 新书（纪律不可省）
 
 - 新书：EPUB 拷进 `packages/agent/fixtures/<slug>.epub`（超大文件先剥图）→
-  `book-fixtures.ts` 注册表加 spec → `eval:digests <slug>` → 写专属套件；
-  realbooks 网格自动覆盖它。
+  `book-fixtures.ts` 注册表加 spec → `eval:digests <slug>` → 写以书名为
+  `displayName` 的专属套件，并在 `real-book-common.ts` 加配置；公共场景会直接
+  并入这本书的套件，不另建聚合套件。
 - **断言素材必须从 fixture 文本实证**：泄漏词要双重实证（正文首现晚于读者
   边界 && 不出现在任何章题/卷题——目录对读者可见，引用卷题是正确行为）。
 - 断言分层：确定性检查（answer/tools/interactions/state）优先；语义质量走

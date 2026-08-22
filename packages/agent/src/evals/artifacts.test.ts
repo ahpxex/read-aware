@@ -21,6 +21,7 @@ describe("eval artifact store", () => {
     const store = await EvalArtifactStore.create({ suiteId: "reading", cwd, secrets: [secret] });
     const plan: EvalRunPlan = {
       suiteId: "reading",
+      suiteDisplayName: "阅读位置与剧透",
       definitionHash: "sha256:definition",
       suiteDescription: "Reading",
       repetitions: 1,

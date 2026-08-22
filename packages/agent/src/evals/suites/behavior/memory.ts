@@ -46,6 +46,7 @@ const observeSaved = ({ stores }: Parameters<NonNullable<AgentEvalScenario["obse
 
 export const memoryEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "memory",
+  displayName: "读者记忆",
   code: "S10",
   description: "显式持久写入、书籍作用域限定及基于文本的长期记忆。",
   scenarios: [

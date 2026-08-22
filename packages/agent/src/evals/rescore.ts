@@ -97,6 +97,7 @@ export async function rescoreEvalRecords<
       rescored,
       new Map(suite.scenarios.map((scenario) => [scenario.id, scenario.tags ?? []])),
       definitionHash,
+      suite.displayName,
     ),
   };
 }
@@ -143,6 +144,7 @@ export async function rescoreEvalBundle(
   );
   const currentPlan: EvalRunPlan = {
     ...manifest.plan,
+    suiteDisplayName: suite.displayName,
     definitionHash,
     definitionMetadata,
     scenarios: suite.scenarios.map((scenario) => ({

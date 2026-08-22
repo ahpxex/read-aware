@@ -117,6 +117,7 @@ function modelToolAssessment(
 
 export const toolsEvalSuite: EvalSuite<AgentEvalScenario> = {
   id: "tools",
+  displayName: "工具调用与展示",
   code: "S17",
   description: "工具规划、宿主展示行为及插件作用域暴露。",
   scenarios: [

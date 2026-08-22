@@ -1,14 +1,13 @@
 /**
- * 真书行为网格：同一组公共行为 × 注册表里的每一本书。各书的专属套件测
- * 它独有的角度（预训练剧透张力、手法目录、方法应用……），这里保证的是
- * 基础行为在所有书型上一致成立——话题检索不问坐标、选区讲解守住围栏、
- * 标注逐字保真、跨章会话能召回上一章聊过的主题、叙事书无游标时不泄漏。
- * 每本书一份配置，场景由工厂统一生成；断言素材全部从 fixture 文本实证。
+ * 真书公共场景工厂：同一组基础行为按书生成，然后并入对应书名套件。
+ * 各书手写场景测它独有的角度（预训练剧透张力、手法目录、方法应用……）；
+ * 这里保证话题检索、选区讲解、标注保真、跨章召回与无游标策略在不同书型
+ * 上一致成立。断言素材全部从 fixture 文本实证。
  */
 import { combineAssessments, evaluateAgentTrace } from "../../assertions";
 import { defineAgentEvalScenario, type AgentEvalScenario } from "../../agent-harness";
 import { realBook, type RealBookFixture, type RealBookSlug } from "../../book-fixtures";
-import type { AgentEvalObservation, EvalAssessment, EvalSuite } from "../../types";
+import type { AgentEvalObservation, EvalAssessment } from "../../types";
 import {
   cjkAnswerAssessment,
   coverageAssessment,
@@ -522,10 +521,8 @@ function scenariosFor(config: GridBookConfig): AgentEvalScenario[] {
   return scenarios;
 }
 
-export const realBooksEvalSuite: EvalSuite<AgentEvalScenario> = {
-  id: "realbooks",
-  code: "S13",
-  description:
-    "对所有注册的真实书籍生成的通用行为网格（主题查找、选择、标注忠实度、跨章召回、无光标警告、引文定位）。",
-  scenarios: GRID.flatMap(scenariosFor),
-};
+export function commonRealBookScenarios(slug: RealBookSlug): AgentEvalScenario[] {
+  const config = GRID.find((entry) => entry.slug === slug);
+  if (!config) throw new Error(`real-book common scenarios have no config for ${slug}`);
+  return scenariosFor(config);
+}

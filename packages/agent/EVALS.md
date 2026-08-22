@@ -345,12 +345,14 @@ asks whether the response is correct, sufficiently grounded, complete, useful
 at that reading moment, and appropriately restrained. Machine pass rate and an
 LLM judge score must never be reported as a substitute for this judgement.
 
-The Run page in the eval viewer is the shared review workspace. It shows the
-reader question and complete model answer without a collapsed disclosure, and
-stores a human verdict (`pass` / `partial` / `fail`), four 1–5 dimensions
-(correctness, completeness, helpfulness, restraint), issue flags, and notes.
-Both the primary agent and the user can review the same samples and revise a
-saved assessment.
+The Suite page is the shared review surface and defaults to its latest run.
+Each item shows the reader question and complete model answer, followed
+immediately by a 1–5 human score, issue flags, and comment. Changes save
+reactively without a submit button. Scores map to a verdict (`pass` /
+`partial` / `fail`); earlier dimension scores remain readable for artifact
+compatibility. Both the primary agent and the user can review the same samples
+and revise an assessment. Test definitions, machine checks, and seed data are
+secondary diagnostics rather than the page's main content.
 
 Fixed scenarios are not enough for qualitative behavior. From any recorded
 scenario, the viewer can start a manual session that reconstructs the same

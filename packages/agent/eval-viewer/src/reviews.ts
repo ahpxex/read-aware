@@ -20,8 +20,15 @@ export const REVIEW_FLAGS = [
 
 export type ReviewFlag = (typeof REVIEW_FLAGS)[number];
 
+export function verdictForScore(score: number): HumanVerdict {
+  if (score >= 4) return "pass";
+  if (score === 3) return "partial";
+  return "fail";
+}
+
 export interface HumanReview {
   targetId: string;
+  score?: number;
   verdict?: HumanVerdict;
   dimensions: Partial<Record<ReviewDimension, number>>;
   flags: ReviewFlag[];
@@ -31,6 +38,7 @@ export interface HumanReview {
 
 export interface HumanReviewInput {
   targetId: string;
+  score?: number;
   verdict?: HumanVerdict;
   dimensions?: Partial<Record<ReviewDimension, number>>;
   flags?: ReviewFlag[];
@@ -89,6 +97,10 @@ export function normalizeHumanReviewInput(value: unknown): HumanReviewInput {
   if (verdict !== undefined && verdict !== "pass" && verdict !== "partial" && verdict !== "fail") {
     throw new Error("review verdict must be pass, partial, or fail");
   }
+  const score = value.score;
+  if (score !== undefined && (typeof score !== "number" || !Number.isInteger(score) || score < 1 || score > 5)) {
+    throw new Error("review score must be an integer from 1 to 5");
+  }
   const dimensions: Partial<Record<ReviewDimension, number>> = {};
   if (value.dimensions !== undefined) {
     if (!isRecord(value.dimensions)) throw new Error("review dimensions must be an object");
@@ -109,7 +121,12 @@ export function normalizeHumanReviewInput(value: unknown): HumanReviewInput {
   }
   return {
     targetId: value.targetId.trim(),
-    ...(verdict === undefined ? {} : { verdict }),
+    ...(score === undefined ? {} : { score }),
+    ...(verdict === undefined
+      ? score === undefined
+        ? {}
+        : { verdict: verdictForScore(score) }
+      : { verdict }),
     dimensions,
     flags: [...new Set(rawFlags)] as ReviewFlag[],
     notes,
@@ -118,8 +135,8 @@ export function normalizeHumanReviewInput(value: unknown): HumanReviewInput {
 
 export function reviewMean(review: HumanReview | undefined): number | undefined {
   if (!review) return undefined;
+  if (review.score !== undefined) return review.score;
   const scores = Object.values(review.dimensions);
   if (scores.length === 0) return undefined;
   return scores.reduce((sum, score) => sum + score, 0) / scores.length;
 }
-

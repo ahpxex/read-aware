@@ -13,6 +13,7 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync, watch } from "node:fs";
 import { join, resolve } from "node:path";
+import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
@@ -563,6 +564,6 @@ function evalDataPlugin(): Plugin {
 
 export default defineConfig({
   root: __dirname,
-  plugins: [react(), evalDataPlugin()],
+  plugins: [tailwindcss(), react(), evalDataPlugin()],
   server: { host: "127.0.0.1" },
 });

@@ -6,6 +6,7 @@ describe("human review input", () => {
     expect(
       normalizeHumanReviewInput({
         targetId: "run:one",
+        score: 3,
         verdict: "partial",
         dimensions: { correctness: 2, helpfulness: 4 },
         flags: ["事实错误", "事实错误"],
@@ -13,6 +14,7 @@ describe("human review input", () => {
       }),
     ).toEqual({
       targetId: "run:one",
+      score: 3,
       verdict: "partial",
       dimensions: { correctness: 2, helpfulness: 4 },
       flags: ["事实错误"],
@@ -29,6 +31,18 @@ describe("human review input", () => {
     ).toThrow("invalid review dimension correctness");
   });
 
+  test("rejects an invalid overall score", () => {
+    expect(() => normalizeHumanReviewInput({ targetId: "run:one", score: 0 })).toThrow(
+      "review score must be an integer from 1 to 5",
+    );
+  });
+
+  test("derives the human verdict from an overall score", () => {
+    expect(normalizeHumanReviewInput({ targetId: "run:one", score: 2 }).verdict).toBe("fail");
+    expect(normalizeHumanReviewInput({ targetId: "run:one", score: 3 }).verdict).toBe("partial");
+    expect(normalizeHumanReviewInput({ targetId: "run:one", score: 5 }).verdict).toBe("pass");
+  });
+
   test("computes the mean over scored dimensions only", () => {
     expect(
       reviewMean({
@@ -42,4 +56,3 @@ describe("human review input", () => {
     ).toBe(4.5);
   });
 });
-

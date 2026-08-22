@@ -1,4 +1,4 @@
-import type { DocsLocale } from "./i18n";
+import type { BlogLocale } from "./i18n";
 
 /**
  * The blog's post registry. Each post is one route file per locale —
@@ -16,7 +16,7 @@ export type PostMeta = {
   slug: string;
   /** ISO date (YYYY-MM-DD). */
   date: string;
-  text: Record<DocsLocale, PostText>;
+  text: Record<BlogLocale, PostText>;
 };
 
 export const POSTS = [
@@ -101,14 +101,14 @@ export function getPost(slug: string): Post {
   return post;
 }
 
-const DATE_LOCALE: Record<DocsLocale, string> = {
+const DATE_LOCALE: Record<BlogLocale, string> = {
   en: "en-US",
   zh: "zh-CN",
   ja: "ja-JP",
 };
 
 /** "2026-07-22" → "July 22, 2026" / "2026年7月22日", stable per locale. */
-export function formatPostDate(isoDate: string, locale: DocsLocale = "en"): string {
+export function formatPostDate(isoDate: string, locale: BlogLocale = "en"): string {
   const [year, month, day] = isoDate.split("-").map(Number);
   return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString(
     DATE_LOCALE[locale],

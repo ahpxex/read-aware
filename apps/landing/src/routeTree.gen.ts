@@ -32,47 +32,82 @@ import { Route as ZhDocsRouteImport } from './routes/zh/docs'
 import { Route as ZhChangelogRouteImport } from './routes/zh/changelog'
 import { Route as ZhBlogRouteImport } from './routes/zh/blog'
 import { Route as ZhHantPricingRouteImport } from './routes/zh-hant/pricing'
+import { Route as ZhHantDocsRouteImport } from './routes/zh-hant/docs'
 import { Route as ZhHantChangelogRouteImport } from './routes/zh-hant/changelog'
 import { Route as RuPricingRouteImport } from './routes/ru/pricing'
+import { Route as RuDocsRouteImport } from './routes/ru/docs'
 import { Route as RuChangelogRouteImport } from './routes/ru/changelog'
 import { Route as JaPricingRouteImport } from './routes/ja/pricing'
 import { Route as JaDocsRouteImport } from './routes/ja/docs'
 import { Route as JaChangelogRouteImport } from './routes/ja/changelog'
 import { Route as JaBlogRouteImport } from './routes/ja/blog'
 import { Route as FrPricingRouteImport } from './routes/fr/pricing'
+import { Route as FrDocsRouteImport } from './routes/fr/docs'
 import { Route as FrChangelogRouteImport } from './routes/fr/changelog'
 import { Route as EsPricingRouteImport } from './routes/es/pricing'
+import { Route as EsDocsRouteImport } from './routes/es/docs'
 import { Route as EsChangelogRouteImport } from './routes/es/changelog'
 import { Route as DocsInstallRouteImport } from './routes/docs/install'
 import { Route as DocsGettingStartedRouteImport } from './routes/docs/getting-started'
 import { Route as DePricingRouteImport } from './routes/de/pricing'
+import { Route as DeDocsRouteImport } from './routes/de/docs'
 import { Route as DeChangelogRouteImport } from './routes/de/changelog'
 import { Route as BlogReadingThatRemembersRouteImport } from './routes/blog/reading-that-remembers'
 import { Route as BlogPluginsV1RouteImport } from './routes/blog/plugins-v1'
 import { Route as BlogLocalFirstRouteImport } from './routes/blog/local-first'
 import { Route as ZhDocsIndexRouteImport } from './routes/zh/docs/index'
 import { Route as ZhBlogIndexRouteImport } from './routes/zh/blog/index'
+import { Route as ZhHantDocsIndexRouteImport } from './routes/zh-hant/docs/index'
+import { Route as RuDocsIndexRouteImport } from './routes/ru/docs/index'
 import { Route as JaDocsIndexRouteImport } from './routes/ja/docs/index'
 import { Route as JaBlogIndexRouteImport } from './routes/ja/blog/index'
+import { Route as FrDocsIndexRouteImport } from './routes/fr/docs/index'
+import { Route as EsDocsIndexRouteImport } from './routes/es/docs/index'
 import { Route as DocsPluginsIndexRouteImport } from './routes/docs/plugins/index'
+import { Route as DeDocsIndexRouteImport } from './routes/de/docs/index'
 import { Route as ZhDocsInstallRouteImport } from './routes/zh/docs/install'
 import { Route as ZhDocsGettingStartedRouteImport } from './routes/zh/docs/getting-started'
 import { Route as ZhBlogReadingThatRemembersRouteImport } from './routes/zh/blog/reading-that-remembers'
 import { Route as ZhBlogPluginsV1RouteImport } from './routes/zh/blog/plugins-v1'
 import { Route as ZhBlogLocalFirstRouteImport } from './routes/zh/blog/local-first'
+import { Route as ZhHantDocsInstallRouteImport } from './routes/zh-hant/docs/install'
+import { Route as ZhHantDocsGettingStartedRouteImport } from './routes/zh-hant/docs/getting-started'
+import { Route as RuDocsInstallRouteImport } from './routes/ru/docs/install'
+import { Route as RuDocsGettingStartedRouteImport } from './routes/ru/docs/getting-started'
 import { Route as JaDocsInstallRouteImport } from './routes/ja/docs/install'
 import { Route as JaDocsGettingStartedRouteImport } from './routes/ja/docs/getting-started'
 import { Route as JaBlogReadingThatRemembersRouteImport } from './routes/ja/blog/reading-that-remembers'
 import { Route as JaBlogPluginsV1RouteImport } from './routes/ja/blog/plugins-v1'
 import { Route as JaBlogLocalFirstRouteImport } from './routes/ja/blog/local-first'
+import { Route as FrDocsInstallRouteImport } from './routes/fr/docs/install'
+import { Route as FrDocsGettingStartedRouteImport } from './routes/fr/docs/getting-started'
+import { Route as EsDocsInstallRouteImport } from './routes/es/docs/install'
+import { Route as EsDocsGettingStartedRouteImport } from './routes/es/docs/getting-started'
 import { Route as DocsPluginsPublishingRouteImport } from './routes/docs/plugins/publishing'
 import { Route as DocsPluginsApiRouteImport } from './routes/docs/plugins/api'
+import { Route as DeDocsInstallRouteImport } from './routes/de/docs/install'
+import { Route as DeDocsGettingStartedRouteImport } from './routes/de/docs/getting-started'
 import { Route as ZhDocsPluginsIndexRouteImport } from './routes/zh/docs/plugins/index'
+import { Route as ZhHantDocsPluginsIndexRouteImport } from './routes/zh-hant/docs/plugins/index'
+import { Route as RuDocsPluginsIndexRouteImport } from './routes/ru/docs/plugins/index'
 import { Route as JaDocsPluginsIndexRouteImport } from './routes/ja/docs/plugins/index'
+import { Route as FrDocsPluginsIndexRouteImport } from './routes/fr/docs/plugins/index'
+import { Route as EsDocsPluginsIndexRouteImport } from './routes/es/docs/plugins/index'
+import { Route as DeDocsPluginsIndexRouteImport } from './routes/de/docs/plugins/index'
 import { Route as ZhDocsPluginsPublishingRouteImport } from './routes/zh/docs/plugins/publishing'
 import { Route as ZhDocsPluginsApiRouteImport } from './routes/zh/docs/plugins/api'
+import { Route as ZhHantDocsPluginsPublishingRouteImport } from './routes/zh-hant/docs/plugins/publishing'
+import { Route as ZhHantDocsPluginsApiRouteImport } from './routes/zh-hant/docs/plugins/api'
+import { Route as RuDocsPluginsPublishingRouteImport } from './routes/ru/docs/plugins/publishing'
+import { Route as RuDocsPluginsApiRouteImport } from './routes/ru/docs/plugins/api'
 import { Route as JaDocsPluginsPublishingRouteImport } from './routes/ja/docs/plugins/publishing'
 import { Route as JaDocsPluginsApiRouteImport } from './routes/ja/docs/plugins/api'
+import { Route as FrDocsPluginsPublishingRouteImport } from './routes/fr/docs/plugins/publishing'
+import { Route as FrDocsPluginsApiRouteImport } from './routes/fr/docs/plugins/api'
+import { Route as EsDocsPluginsPublishingRouteImport } from './routes/es/docs/plugins/publishing'
+import { Route as EsDocsPluginsApiRouteImport } from './routes/es/docs/plugins/api'
+import { Route as DeDocsPluginsPublishingRouteImport } from './routes/de/docs/plugins/publishing'
+import { Route as DeDocsPluginsApiRouteImport } from './routes/de/docs/plugins/api'
 
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
@@ -189,6 +224,11 @@ const ZhHantPricingRoute = ZhHantPricingRouteImport.update({
   path: '/zh-hant/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ZhHantDocsRoute = ZhHantDocsRouteImport.update({
+  id: '/zh-hant/docs',
+  path: '/zh-hant/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ZhHantChangelogRoute = ZhHantChangelogRouteImport.update({
   id: '/zh-hant/changelog',
   path: '/zh-hant/changelog',
@@ -197,6 +237,11 @@ const ZhHantChangelogRoute = ZhHantChangelogRouteImport.update({
 const RuPricingRoute = RuPricingRouteImport.update({
   id: '/ru/pricing',
   path: '/ru/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RuDocsRoute = RuDocsRouteImport.update({
+  id: '/ru/docs',
+  path: '/ru/docs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RuChangelogRoute = RuChangelogRouteImport.update({
@@ -229,6 +274,11 @@ const FrPricingRoute = FrPricingRouteImport.update({
   path: '/fr/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FrDocsRoute = FrDocsRouteImport.update({
+  id: '/fr/docs',
+  path: '/fr/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FrChangelogRoute = FrChangelogRouteImport.update({
   id: '/fr/changelog',
   path: '/fr/changelog',
@@ -237,6 +287,11 @@ const FrChangelogRoute = FrChangelogRouteImport.update({
 const EsPricingRoute = EsPricingRouteImport.update({
   id: '/es/pricing',
   path: '/es/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EsDocsRoute = EsDocsRouteImport.update({
+  id: '/es/docs',
+  path: '/es/docs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EsChangelogRoute = EsChangelogRouteImport.update({
@@ -257,6 +312,11 @@ const DocsGettingStartedRoute = DocsGettingStartedRouteImport.update({
 const DePricingRoute = DePricingRouteImport.update({
   id: '/de/pricing',
   path: '/de/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeDocsRoute = DeDocsRouteImport.update({
+  id: '/de/docs',
+  path: '/de/docs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DeChangelogRoute = DeChangelogRouteImport.update({
@@ -290,6 +350,16 @@ const ZhBlogIndexRoute = ZhBlogIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ZhBlogRoute,
 } as any)
+const ZhHantDocsIndexRoute = ZhHantDocsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ZhHantDocsRoute,
+} as any)
+const RuDocsIndexRoute = RuDocsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => RuDocsRoute,
+} as any)
 const JaDocsIndexRoute = JaDocsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -300,10 +370,25 @@ const JaBlogIndexRoute = JaBlogIndexRouteImport.update({
   path: '/',
   getParentRoute: () => JaBlogRoute,
 } as any)
+const FrDocsIndexRoute = FrDocsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => FrDocsRoute,
+} as any)
+const EsDocsIndexRoute = EsDocsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => EsDocsRoute,
+} as any)
 const DocsPluginsIndexRoute = DocsPluginsIndexRouteImport.update({
   id: '/plugins/',
   path: '/plugins/',
   getParentRoute: () => DocsRoute,
+} as any)
+const DeDocsIndexRoute = DeDocsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DeDocsRoute,
 } as any)
 const ZhDocsInstallRoute = ZhDocsInstallRouteImport.update({
   id: '/install',
@@ -331,6 +416,27 @@ const ZhBlogLocalFirstRoute = ZhBlogLocalFirstRouteImport.update({
   path: '/local-first',
   getParentRoute: () => ZhBlogRoute,
 } as any)
+const ZhHantDocsInstallRoute = ZhHantDocsInstallRouteImport.update({
+  id: '/install',
+  path: '/install',
+  getParentRoute: () => ZhHantDocsRoute,
+} as any)
+const ZhHantDocsGettingStartedRoute =
+  ZhHantDocsGettingStartedRouteImport.update({
+    id: '/getting-started',
+    path: '/getting-started',
+    getParentRoute: () => ZhHantDocsRoute,
+  } as any)
+const RuDocsInstallRoute = RuDocsInstallRouteImport.update({
+  id: '/install',
+  path: '/install',
+  getParentRoute: () => RuDocsRoute,
+} as any)
+const RuDocsGettingStartedRoute = RuDocsGettingStartedRouteImport.update({
+  id: '/getting-started',
+  path: '/getting-started',
+  getParentRoute: () => RuDocsRoute,
+} as any)
 const JaDocsInstallRoute = JaDocsInstallRouteImport.update({
   id: '/install',
   path: '/install',
@@ -357,6 +463,26 @@ const JaBlogLocalFirstRoute = JaBlogLocalFirstRouteImport.update({
   path: '/local-first',
   getParentRoute: () => JaBlogRoute,
 } as any)
+const FrDocsInstallRoute = FrDocsInstallRouteImport.update({
+  id: '/install',
+  path: '/install',
+  getParentRoute: () => FrDocsRoute,
+} as any)
+const FrDocsGettingStartedRoute = FrDocsGettingStartedRouteImport.update({
+  id: '/getting-started',
+  path: '/getting-started',
+  getParentRoute: () => FrDocsRoute,
+} as any)
+const EsDocsInstallRoute = EsDocsInstallRouteImport.update({
+  id: '/install',
+  path: '/install',
+  getParentRoute: () => EsDocsRoute,
+} as any)
+const EsDocsGettingStartedRoute = EsDocsGettingStartedRouteImport.update({
+  id: '/getting-started',
+  path: '/getting-started',
+  getParentRoute: () => EsDocsRoute,
+} as any)
 const DocsPluginsPublishingRoute = DocsPluginsPublishingRouteImport.update({
   id: '/plugins/publishing',
   path: '/plugins/publishing',
@@ -367,15 +493,50 @@ const DocsPluginsApiRoute = DocsPluginsApiRouteImport.update({
   path: '/plugins/api',
   getParentRoute: () => DocsRoute,
 } as any)
+const DeDocsInstallRoute = DeDocsInstallRouteImport.update({
+  id: '/install',
+  path: '/install',
+  getParentRoute: () => DeDocsRoute,
+} as any)
+const DeDocsGettingStartedRoute = DeDocsGettingStartedRouteImport.update({
+  id: '/getting-started',
+  path: '/getting-started',
+  getParentRoute: () => DeDocsRoute,
+} as any)
 const ZhDocsPluginsIndexRoute = ZhDocsPluginsIndexRouteImport.update({
   id: '/plugins/',
   path: '/plugins/',
   getParentRoute: () => ZhDocsRoute,
 } as any)
+const ZhHantDocsPluginsIndexRoute = ZhHantDocsPluginsIndexRouteImport.update({
+  id: '/plugins/',
+  path: '/plugins/',
+  getParentRoute: () => ZhHantDocsRoute,
+} as any)
+const RuDocsPluginsIndexRoute = RuDocsPluginsIndexRouteImport.update({
+  id: '/plugins/',
+  path: '/plugins/',
+  getParentRoute: () => RuDocsRoute,
+} as any)
 const JaDocsPluginsIndexRoute = JaDocsPluginsIndexRouteImport.update({
   id: '/plugins/',
   path: '/plugins/',
   getParentRoute: () => JaDocsRoute,
+} as any)
+const FrDocsPluginsIndexRoute = FrDocsPluginsIndexRouteImport.update({
+  id: '/plugins/',
+  path: '/plugins/',
+  getParentRoute: () => FrDocsRoute,
+} as any)
+const EsDocsPluginsIndexRoute = EsDocsPluginsIndexRouteImport.update({
+  id: '/plugins/',
+  path: '/plugins/',
+  getParentRoute: () => EsDocsRoute,
+} as any)
+const DeDocsPluginsIndexRoute = DeDocsPluginsIndexRouteImport.update({
+  id: '/plugins/',
+  path: '/plugins/',
+  getParentRoute: () => DeDocsRoute,
 } as any)
 const ZhDocsPluginsPublishingRoute = ZhDocsPluginsPublishingRouteImport.update({
   id: '/plugins/publishing',
@@ -387,6 +548,27 @@ const ZhDocsPluginsApiRoute = ZhDocsPluginsApiRouteImport.update({
   path: '/plugins/api',
   getParentRoute: () => ZhDocsRoute,
 } as any)
+const ZhHantDocsPluginsPublishingRoute =
+  ZhHantDocsPluginsPublishingRouteImport.update({
+    id: '/plugins/publishing',
+    path: '/plugins/publishing',
+    getParentRoute: () => ZhHantDocsRoute,
+  } as any)
+const ZhHantDocsPluginsApiRoute = ZhHantDocsPluginsApiRouteImport.update({
+  id: '/plugins/api',
+  path: '/plugins/api',
+  getParentRoute: () => ZhHantDocsRoute,
+} as any)
+const RuDocsPluginsPublishingRoute = RuDocsPluginsPublishingRouteImport.update({
+  id: '/plugins/publishing',
+  path: '/plugins/publishing',
+  getParentRoute: () => RuDocsRoute,
+} as any)
+const RuDocsPluginsApiRoute = RuDocsPluginsApiRouteImport.update({
+  id: '/plugins/api',
+  path: '/plugins/api',
+  getParentRoute: () => RuDocsRoute,
+} as any)
 const JaDocsPluginsPublishingRoute = JaDocsPluginsPublishingRouteImport.update({
   id: '/plugins/publishing',
   path: '/plugins/publishing',
@@ -396,6 +578,36 @@ const JaDocsPluginsApiRoute = JaDocsPluginsApiRouteImport.update({
   id: '/plugins/api',
   path: '/plugins/api',
   getParentRoute: () => JaDocsRoute,
+} as any)
+const FrDocsPluginsPublishingRoute = FrDocsPluginsPublishingRouteImport.update({
+  id: '/plugins/publishing',
+  path: '/plugins/publishing',
+  getParentRoute: () => FrDocsRoute,
+} as any)
+const FrDocsPluginsApiRoute = FrDocsPluginsApiRouteImport.update({
+  id: '/plugins/api',
+  path: '/plugins/api',
+  getParentRoute: () => FrDocsRoute,
+} as any)
+const EsDocsPluginsPublishingRoute = EsDocsPluginsPublishingRouteImport.update({
+  id: '/plugins/publishing',
+  path: '/plugins/publishing',
+  getParentRoute: () => EsDocsRoute,
+} as any)
+const EsDocsPluginsApiRoute = EsDocsPluginsApiRouteImport.update({
+  id: '/plugins/api',
+  path: '/plugins/api',
+  getParentRoute: () => EsDocsRoute,
+} as any)
+const DeDocsPluginsPublishingRoute = DeDocsPluginsPublishingRouteImport.update({
+  id: '/plugins/publishing',
+  path: '/plugins/publishing',
+  getParentRoute: () => DeDocsRoute,
+} as any)
+const DeDocsPluginsApiRoute = DeDocsPluginsApiRouteImport.update({
+  id: '/plugins/api',
+  path: '/plugins/api',
+  getParentRoute: () => DeDocsRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -412,20 +624,25 @@ export interface FileRoutesByFullPath {
   '/blog/plugins-v1': typeof BlogPluginsV1Route
   '/blog/reading-that-remembers': typeof BlogReadingThatRemembersRoute
   '/de/changelog': typeof DeChangelogRoute
+  '/de/docs': typeof DeDocsRouteWithChildren
   '/de/pricing': typeof DePricingRoute
   '/docs/getting-started': typeof DocsGettingStartedRoute
   '/docs/install': typeof DocsInstallRoute
   '/es/changelog': typeof EsChangelogRoute
+  '/es/docs': typeof EsDocsRouteWithChildren
   '/es/pricing': typeof EsPricingRoute
   '/fr/changelog': typeof FrChangelogRoute
+  '/fr/docs': typeof FrDocsRouteWithChildren
   '/fr/pricing': typeof FrPricingRoute
   '/ja/blog': typeof JaBlogRouteWithChildren
   '/ja/changelog': typeof JaChangelogRoute
   '/ja/docs': typeof JaDocsRouteWithChildren
   '/ja/pricing': typeof JaPricingRoute
   '/ru/changelog': typeof RuChangelogRoute
+  '/ru/docs': typeof RuDocsRouteWithChildren
   '/ru/pricing': typeof RuPricingRoute
   '/zh-hant/changelog': typeof ZhHantChangelogRoute
+  '/zh-hant/docs': typeof ZhHantDocsRouteWithChildren
   '/zh-hant/pricing': typeof ZhHantPricingRoute
   '/zh/blog': typeof ZhBlogRouteWithChildren
   '/zh/changelog': typeof ZhChangelogRoute
@@ -440,28 +657,58 @@ export interface FileRoutesByFullPath {
   '/ru/': typeof RuIndexRoute
   '/zh-hant/': typeof ZhHantIndexRoute
   '/zh/': typeof ZhIndexRoute
+  '/de/docs/getting-started': typeof DeDocsGettingStartedRoute
+  '/de/docs/install': typeof DeDocsInstallRoute
   '/docs/plugins/api': typeof DocsPluginsApiRoute
   '/docs/plugins/publishing': typeof DocsPluginsPublishingRoute
+  '/es/docs/getting-started': typeof EsDocsGettingStartedRoute
+  '/es/docs/install': typeof EsDocsInstallRoute
+  '/fr/docs/getting-started': typeof FrDocsGettingStartedRoute
+  '/fr/docs/install': typeof FrDocsInstallRoute
   '/ja/blog/local-first': typeof JaBlogLocalFirstRoute
   '/ja/blog/plugins-v1': typeof JaBlogPluginsV1Route
   '/ja/blog/reading-that-remembers': typeof JaBlogReadingThatRemembersRoute
   '/ja/docs/getting-started': typeof JaDocsGettingStartedRoute
   '/ja/docs/install': typeof JaDocsInstallRoute
+  '/ru/docs/getting-started': typeof RuDocsGettingStartedRoute
+  '/ru/docs/install': typeof RuDocsInstallRoute
+  '/zh-hant/docs/getting-started': typeof ZhHantDocsGettingStartedRoute
+  '/zh-hant/docs/install': typeof ZhHantDocsInstallRoute
   '/zh/blog/local-first': typeof ZhBlogLocalFirstRoute
   '/zh/blog/plugins-v1': typeof ZhBlogPluginsV1Route
   '/zh/blog/reading-that-remembers': typeof ZhBlogReadingThatRemembersRoute
   '/zh/docs/getting-started': typeof ZhDocsGettingStartedRoute
   '/zh/docs/install': typeof ZhDocsInstallRoute
+  '/de/docs/': typeof DeDocsIndexRoute
   '/docs/plugins/': typeof DocsPluginsIndexRoute
+  '/es/docs/': typeof EsDocsIndexRoute
+  '/fr/docs/': typeof FrDocsIndexRoute
   '/ja/blog/': typeof JaBlogIndexRoute
   '/ja/docs/': typeof JaDocsIndexRoute
+  '/ru/docs/': typeof RuDocsIndexRoute
+  '/zh-hant/docs/': typeof ZhHantDocsIndexRoute
   '/zh/blog/': typeof ZhBlogIndexRoute
   '/zh/docs/': typeof ZhDocsIndexRoute
+  '/de/docs/plugins/api': typeof DeDocsPluginsApiRoute
+  '/de/docs/plugins/publishing': typeof DeDocsPluginsPublishingRoute
+  '/es/docs/plugins/api': typeof EsDocsPluginsApiRoute
+  '/es/docs/plugins/publishing': typeof EsDocsPluginsPublishingRoute
+  '/fr/docs/plugins/api': typeof FrDocsPluginsApiRoute
+  '/fr/docs/plugins/publishing': typeof FrDocsPluginsPublishingRoute
   '/ja/docs/plugins/api': typeof JaDocsPluginsApiRoute
   '/ja/docs/plugins/publishing': typeof JaDocsPluginsPublishingRoute
+  '/ru/docs/plugins/api': typeof RuDocsPluginsApiRoute
+  '/ru/docs/plugins/publishing': typeof RuDocsPluginsPublishingRoute
+  '/zh-hant/docs/plugins/api': typeof ZhHantDocsPluginsApiRoute
+  '/zh-hant/docs/plugins/publishing': typeof ZhHantDocsPluginsPublishingRoute
   '/zh/docs/plugins/api': typeof ZhDocsPluginsApiRoute
   '/zh/docs/plugins/publishing': typeof ZhDocsPluginsPublishingRoute
+  '/de/docs/plugins/': typeof DeDocsPluginsIndexRoute
+  '/es/docs/plugins/': typeof EsDocsPluginsIndexRoute
+  '/fr/docs/plugins/': typeof FrDocsPluginsIndexRoute
   '/ja/docs/plugins/': typeof JaDocsPluginsIndexRoute
+  '/ru/docs/plugins/': typeof RuDocsPluginsIndexRoute
+  '/zh-hant/docs/plugins/': typeof ZhHantDocsPluginsIndexRoute
   '/zh/docs/plugins/': typeof ZhDocsPluginsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -500,28 +747,58 @@ export interface FileRoutesByTo {
   '/ru': typeof RuIndexRoute
   '/zh-hant': typeof ZhHantIndexRoute
   '/zh': typeof ZhIndexRoute
+  '/de/docs/getting-started': typeof DeDocsGettingStartedRoute
+  '/de/docs/install': typeof DeDocsInstallRoute
   '/docs/plugins/api': typeof DocsPluginsApiRoute
   '/docs/plugins/publishing': typeof DocsPluginsPublishingRoute
+  '/es/docs/getting-started': typeof EsDocsGettingStartedRoute
+  '/es/docs/install': typeof EsDocsInstallRoute
+  '/fr/docs/getting-started': typeof FrDocsGettingStartedRoute
+  '/fr/docs/install': typeof FrDocsInstallRoute
   '/ja/blog/local-first': typeof JaBlogLocalFirstRoute
   '/ja/blog/plugins-v1': typeof JaBlogPluginsV1Route
   '/ja/blog/reading-that-remembers': typeof JaBlogReadingThatRemembersRoute
   '/ja/docs/getting-started': typeof JaDocsGettingStartedRoute
   '/ja/docs/install': typeof JaDocsInstallRoute
+  '/ru/docs/getting-started': typeof RuDocsGettingStartedRoute
+  '/ru/docs/install': typeof RuDocsInstallRoute
+  '/zh-hant/docs/getting-started': typeof ZhHantDocsGettingStartedRoute
+  '/zh-hant/docs/install': typeof ZhHantDocsInstallRoute
   '/zh/blog/local-first': typeof ZhBlogLocalFirstRoute
   '/zh/blog/plugins-v1': typeof ZhBlogPluginsV1Route
   '/zh/blog/reading-that-remembers': typeof ZhBlogReadingThatRemembersRoute
   '/zh/docs/getting-started': typeof ZhDocsGettingStartedRoute
   '/zh/docs/install': typeof ZhDocsInstallRoute
+  '/de/docs': typeof DeDocsIndexRoute
   '/docs/plugins': typeof DocsPluginsIndexRoute
+  '/es/docs': typeof EsDocsIndexRoute
+  '/fr/docs': typeof FrDocsIndexRoute
   '/ja/blog': typeof JaBlogIndexRoute
   '/ja/docs': typeof JaDocsIndexRoute
+  '/ru/docs': typeof RuDocsIndexRoute
+  '/zh-hant/docs': typeof ZhHantDocsIndexRoute
   '/zh/blog': typeof ZhBlogIndexRoute
   '/zh/docs': typeof ZhDocsIndexRoute
+  '/de/docs/plugins/api': typeof DeDocsPluginsApiRoute
+  '/de/docs/plugins/publishing': typeof DeDocsPluginsPublishingRoute
+  '/es/docs/plugins/api': typeof EsDocsPluginsApiRoute
+  '/es/docs/plugins/publishing': typeof EsDocsPluginsPublishingRoute
+  '/fr/docs/plugins/api': typeof FrDocsPluginsApiRoute
+  '/fr/docs/plugins/publishing': typeof FrDocsPluginsPublishingRoute
   '/ja/docs/plugins/api': typeof JaDocsPluginsApiRoute
   '/ja/docs/plugins/publishing': typeof JaDocsPluginsPublishingRoute
+  '/ru/docs/plugins/api': typeof RuDocsPluginsApiRoute
+  '/ru/docs/plugins/publishing': typeof RuDocsPluginsPublishingRoute
+  '/zh-hant/docs/plugins/api': typeof ZhHantDocsPluginsApiRoute
+  '/zh-hant/docs/plugins/publishing': typeof ZhHantDocsPluginsPublishingRoute
   '/zh/docs/plugins/api': typeof ZhDocsPluginsApiRoute
   '/zh/docs/plugins/publishing': typeof ZhDocsPluginsPublishingRoute
+  '/de/docs/plugins': typeof DeDocsPluginsIndexRoute
+  '/es/docs/plugins': typeof EsDocsPluginsIndexRoute
+  '/fr/docs/plugins': typeof FrDocsPluginsIndexRoute
   '/ja/docs/plugins': typeof JaDocsPluginsIndexRoute
+  '/ru/docs/plugins': typeof RuDocsPluginsIndexRoute
+  '/zh-hant/docs/plugins': typeof ZhHantDocsPluginsIndexRoute
   '/zh/docs/plugins': typeof ZhDocsPluginsIndexRoute
 }
 export interface FileRoutesById {
@@ -539,20 +816,25 @@ export interface FileRoutesById {
   '/blog/plugins-v1': typeof BlogPluginsV1Route
   '/blog/reading-that-remembers': typeof BlogReadingThatRemembersRoute
   '/de/changelog': typeof DeChangelogRoute
+  '/de/docs': typeof DeDocsRouteWithChildren
   '/de/pricing': typeof DePricingRoute
   '/docs/getting-started': typeof DocsGettingStartedRoute
   '/docs/install': typeof DocsInstallRoute
   '/es/changelog': typeof EsChangelogRoute
+  '/es/docs': typeof EsDocsRouteWithChildren
   '/es/pricing': typeof EsPricingRoute
   '/fr/changelog': typeof FrChangelogRoute
+  '/fr/docs': typeof FrDocsRouteWithChildren
   '/fr/pricing': typeof FrPricingRoute
   '/ja/blog': typeof JaBlogRouteWithChildren
   '/ja/changelog': typeof JaChangelogRoute
   '/ja/docs': typeof JaDocsRouteWithChildren
   '/ja/pricing': typeof JaPricingRoute
   '/ru/changelog': typeof RuChangelogRoute
+  '/ru/docs': typeof RuDocsRouteWithChildren
   '/ru/pricing': typeof RuPricingRoute
   '/zh-hant/changelog': typeof ZhHantChangelogRoute
+  '/zh-hant/docs': typeof ZhHantDocsRouteWithChildren
   '/zh-hant/pricing': typeof ZhHantPricingRoute
   '/zh/blog': typeof ZhBlogRouteWithChildren
   '/zh/changelog': typeof ZhChangelogRoute
@@ -567,28 +849,58 @@ export interface FileRoutesById {
   '/ru/': typeof RuIndexRoute
   '/zh-hant/': typeof ZhHantIndexRoute
   '/zh/': typeof ZhIndexRoute
+  '/de/docs/getting-started': typeof DeDocsGettingStartedRoute
+  '/de/docs/install': typeof DeDocsInstallRoute
   '/docs/plugins/api': typeof DocsPluginsApiRoute
   '/docs/plugins/publishing': typeof DocsPluginsPublishingRoute
+  '/es/docs/getting-started': typeof EsDocsGettingStartedRoute
+  '/es/docs/install': typeof EsDocsInstallRoute
+  '/fr/docs/getting-started': typeof FrDocsGettingStartedRoute
+  '/fr/docs/install': typeof FrDocsInstallRoute
   '/ja/blog/local-first': typeof JaBlogLocalFirstRoute
   '/ja/blog/plugins-v1': typeof JaBlogPluginsV1Route
   '/ja/blog/reading-that-remembers': typeof JaBlogReadingThatRemembersRoute
   '/ja/docs/getting-started': typeof JaDocsGettingStartedRoute
   '/ja/docs/install': typeof JaDocsInstallRoute
+  '/ru/docs/getting-started': typeof RuDocsGettingStartedRoute
+  '/ru/docs/install': typeof RuDocsInstallRoute
+  '/zh-hant/docs/getting-started': typeof ZhHantDocsGettingStartedRoute
+  '/zh-hant/docs/install': typeof ZhHantDocsInstallRoute
   '/zh/blog/local-first': typeof ZhBlogLocalFirstRoute
   '/zh/blog/plugins-v1': typeof ZhBlogPluginsV1Route
   '/zh/blog/reading-that-remembers': typeof ZhBlogReadingThatRemembersRoute
   '/zh/docs/getting-started': typeof ZhDocsGettingStartedRoute
   '/zh/docs/install': typeof ZhDocsInstallRoute
+  '/de/docs/': typeof DeDocsIndexRoute
   '/docs/plugins/': typeof DocsPluginsIndexRoute
+  '/es/docs/': typeof EsDocsIndexRoute
+  '/fr/docs/': typeof FrDocsIndexRoute
   '/ja/blog/': typeof JaBlogIndexRoute
   '/ja/docs/': typeof JaDocsIndexRoute
+  '/ru/docs/': typeof RuDocsIndexRoute
+  '/zh-hant/docs/': typeof ZhHantDocsIndexRoute
   '/zh/blog/': typeof ZhBlogIndexRoute
   '/zh/docs/': typeof ZhDocsIndexRoute
+  '/de/docs/plugins/api': typeof DeDocsPluginsApiRoute
+  '/de/docs/plugins/publishing': typeof DeDocsPluginsPublishingRoute
+  '/es/docs/plugins/api': typeof EsDocsPluginsApiRoute
+  '/es/docs/plugins/publishing': typeof EsDocsPluginsPublishingRoute
+  '/fr/docs/plugins/api': typeof FrDocsPluginsApiRoute
+  '/fr/docs/plugins/publishing': typeof FrDocsPluginsPublishingRoute
   '/ja/docs/plugins/api': typeof JaDocsPluginsApiRoute
   '/ja/docs/plugins/publishing': typeof JaDocsPluginsPublishingRoute
+  '/ru/docs/plugins/api': typeof RuDocsPluginsApiRoute
+  '/ru/docs/plugins/publishing': typeof RuDocsPluginsPublishingRoute
+  '/zh-hant/docs/plugins/api': typeof ZhHantDocsPluginsApiRoute
+  '/zh-hant/docs/plugins/publishing': typeof ZhHantDocsPluginsPublishingRoute
   '/zh/docs/plugins/api': typeof ZhDocsPluginsApiRoute
   '/zh/docs/plugins/publishing': typeof ZhDocsPluginsPublishingRoute
+  '/de/docs/plugins/': typeof DeDocsPluginsIndexRoute
+  '/es/docs/plugins/': typeof EsDocsPluginsIndexRoute
+  '/fr/docs/plugins/': typeof FrDocsPluginsIndexRoute
   '/ja/docs/plugins/': typeof JaDocsPluginsIndexRoute
+  '/ru/docs/plugins/': typeof RuDocsPluginsIndexRoute
+  '/zh-hant/docs/plugins/': typeof ZhHantDocsPluginsIndexRoute
   '/zh/docs/plugins/': typeof ZhDocsPluginsIndexRoute
 }
 export interface FileRouteTypes {
@@ -607,20 +919,25 @@ export interface FileRouteTypes {
     | '/blog/plugins-v1'
     | '/blog/reading-that-remembers'
     | '/de/changelog'
+    | '/de/docs'
     | '/de/pricing'
     | '/docs/getting-started'
     | '/docs/install'
     | '/es/changelog'
+    | '/es/docs'
     | '/es/pricing'
     | '/fr/changelog'
+    | '/fr/docs'
     | '/fr/pricing'
     | '/ja/blog'
     | '/ja/changelog'
     | '/ja/docs'
     | '/ja/pricing'
     | '/ru/changelog'
+    | '/ru/docs'
     | '/ru/pricing'
     | '/zh-hant/changelog'
+    | '/zh-hant/docs'
     | '/zh-hant/pricing'
     | '/zh/blog'
     | '/zh/changelog'
@@ -635,28 +952,58 @@ export interface FileRouteTypes {
     | '/ru/'
     | '/zh-hant/'
     | '/zh/'
+    | '/de/docs/getting-started'
+    | '/de/docs/install'
     | '/docs/plugins/api'
     | '/docs/plugins/publishing'
+    | '/es/docs/getting-started'
+    | '/es/docs/install'
+    | '/fr/docs/getting-started'
+    | '/fr/docs/install'
     | '/ja/blog/local-first'
     | '/ja/blog/plugins-v1'
     | '/ja/blog/reading-that-remembers'
     | '/ja/docs/getting-started'
     | '/ja/docs/install'
+    | '/ru/docs/getting-started'
+    | '/ru/docs/install'
+    | '/zh-hant/docs/getting-started'
+    | '/zh-hant/docs/install'
     | '/zh/blog/local-first'
     | '/zh/blog/plugins-v1'
     | '/zh/blog/reading-that-remembers'
     | '/zh/docs/getting-started'
     | '/zh/docs/install'
+    | '/de/docs/'
     | '/docs/plugins/'
+    | '/es/docs/'
+    | '/fr/docs/'
     | '/ja/blog/'
     | '/ja/docs/'
+    | '/ru/docs/'
+    | '/zh-hant/docs/'
     | '/zh/blog/'
     | '/zh/docs/'
+    | '/de/docs/plugins/api'
+    | '/de/docs/plugins/publishing'
+    | '/es/docs/plugins/api'
+    | '/es/docs/plugins/publishing'
+    | '/fr/docs/plugins/api'
+    | '/fr/docs/plugins/publishing'
     | '/ja/docs/plugins/api'
     | '/ja/docs/plugins/publishing'
+    | '/ru/docs/plugins/api'
+    | '/ru/docs/plugins/publishing'
+    | '/zh-hant/docs/plugins/api'
+    | '/zh-hant/docs/plugins/publishing'
     | '/zh/docs/plugins/api'
     | '/zh/docs/plugins/publishing'
+    | '/de/docs/plugins/'
+    | '/es/docs/plugins/'
+    | '/fr/docs/plugins/'
     | '/ja/docs/plugins/'
+    | '/ru/docs/plugins/'
+    | '/zh-hant/docs/plugins/'
     | '/zh/docs/plugins/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -695,28 +1042,58 @@ export interface FileRouteTypes {
     | '/ru'
     | '/zh-hant'
     | '/zh'
+    | '/de/docs/getting-started'
+    | '/de/docs/install'
     | '/docs/plugins/api'
     | '/docs/plugins/publishing'
+    | '/es/docs/getting-started'
+    | '/es/docs/install'
+    | '/fr/docs/getting-started'
+    | '/fr/docs/install'
     | '/ja/blog/local-first'
     | '/ja/blog/plugins-v1'
     | '/ja/blog/reading-that-remembers'
     | '/ja/docs/getting-started'
     | '/ja/docs/install'
+    | '/ru/docs/getting-started'
+    | '/ru/docs/install'
+    | '/zh-hant/docs/getting-started'
+    | '/zh-hant/docs/install'
     | '/zh/blog/local-first'
     | '/zh/blog/plugins-v1'
     | '/zh/blog/reading-that-remembers'
     | '/zh/docs/getting-started'
     | '/zh/docs/install'
+    | '/de/docs'
     | '/docs/plugins'
+    | '/es/docs'
+    | '/fr/docs'
     | '/ja/blog'
     | '/ja/docs'
+    | '/ru/docs'
+    | '/zh-hant/docs'
     | '/zh/blog'
     | '/zh/docs'
+    | '/de/docs/plugins/api'
+    | '/de/docs/plugins/publishing'
+    | '/es/docs/plugins/api'
+    | '/es/docs/plugins/publishing'
+    | '/fr/docs/plugins/api'
+    | '/fr/docs/plugins/publishing'
     | '/ja/docs/plugins/api'
     | '/ja/docs/plugins/publishing'
+    | '/ru/docs/plugins/api'
+    | '/ru/docs/plugins/publishing'
+    | '/zh-hant/docs/plugins/api'
+    | '/zh-hant/docs/plugins/publishing'
     | '/zh/docs/plugins/api'
     | '/zh/docs/plugins/publishing'
+    | '/de/docs/plugins'
+    | '/es/docs/plugins'
+    | '/fr/docs/plugins'
     | '/ja/docs/plugins'
+    | '/ru/docs/plugins'
+    | '/zh-hant/docs/plugins'
     | '/zh/docs/plugins'
   id:
     | '__root__'
@@ -733,20 +1110,25 @@ export interface FileRouteTypes {
     | '/blog/plugins-v1'
     | '/blog/reading-that-remembers'
     | '/de/changelog'
+    | '/de/docs'
     | '/de/pricing'
     | '/docs/getting-started'
     | '/docs/install'
     | '/es/changelog'
+    | '/es/docs'
     | '/es/pricing'
     | '/fr/changelog'
+    | '/fr/docs'
     | '/fr/pricing'
     | '/ja/blog'
     | '/ja/changelog'
     | '/ja/docs'
     | '/ja/pricing'
     | '/ru/changelog'
+    | '/ru/docs'
     | '/ru/pricing'
     | '/zh-hant/changelog'
+    | '/zh-hant/docs'
     | '/zh-hant/pricing'
     | '/zh/blog'
     | '/zh/changelog'
@@ -761,28 +1143,58 @@ export interface FileRouteTypes {
     | '/ru/'
     | '/zh-hant/'
     | '/zh/'
+    | '/de/docs/getting-started'
+    | '/de/docs/install'
     | '/docs/plugins/api'
     | '/docs/plugins/publishing'
+    | '/es/docs/getting-started'
+    | '/es/docs/install'
+    | '/fr/docs/getting-started'
+    | '/fr/docs/install'
     | '/ja/blog/local-first'
     | '/ja/blog/plugins-v1'
     | '/ja/blog/reading-that-remembers'
     | '/ja/docs/getting-started'
     | '/ja/docs/install'
+    | '/ru/docs/getting-started'
+    | '/ru/docs/install'
+    | '/zh-hant/docs/getting-started'
+    | '/zh-hant/docs/install'
     | '/zh/blog/local-first'
     | '/zh/blog/plugins-v1'
     | '/zh/blog/reading-that-remembers'
     | '/zh/docs/getting-started'
     | '/zh/docs/install'
+    | '/de/docs/'
     | '/docs/plugins/'
+    | '/es/docs/'
+    | '/fr/docs/'
     | '/ja/blog/'
     | '/ja/docs/'
+    | '/ru/docs/'
+    | '/zh-hant/docs/'
     | '/zh/blog/'
     | '/zh/docs/'
+    | '/de/docs/plugins/api'
+    | '/de/docs/plugins/publishing'
+    | '/es/docs/plugins/api'
+    | '/es/docs/plugins/publishing'
+    | '/fr/docs/plugins/api'
+    | '/fr/docs/plugins/publishing'
     | '/ja/docs/plugins/api'
     | '/ja/docs/plugins/publishing'
+    | '/ru/docs/plugins/api'
+    | '/ru/docs/plugins/publishing'
+    | '/zh-hant/docs/plugins/api'
+    | '/zh-hant/docs/plugins/publishing'
     | '/zh/docs/plugins/api'
     | '/zh/docs/plugins/publishing'
+    | '/de/docs/plugins/'
+    | '/es/docs/plugins/'
+    | '/fr/docs/plugins/'
     | '/ja/docs/plugins/'
+    | '/ru/docs/plugins/'
+    | '/zh-hant/docs/plugins/'
     | '/zh/docs/plugins/'
   fileRoutesById: FileRoutesById
 }
@@ -797,18 +1209,23 @@ export interface RootRouteChildren {
   OpenSourceEbookReaderRoute: typeof OpenSourceEbookReaderRoute
   PricingRoute: typeof PricingRoute
   DeChangelogRoute: typeof DeChangelogRoute
+  DeDocsRoute: typeof DeDocsRouteWithChildren
   DePricingRoute: typeof DePricingRoute
   EsChangelogRoute: typeof EsChangelogRoute
+  EsDocsRoute: typeof EsDocsRouteWithChildren
   EsPricingRoute: typeof EsPricingRoute
   FrChangelogRoute: typeof FrChangelogRoute
+  FrDocsRoute: typeof FrDocsRouteWithChildren
   FrPricingRoute: typeof FrPricingRoute
   JaBlogRoute: typeof JaBlogRouteWithChildren
   JaChangelogRoute: typeof JaChangelogRoute
   JaDocsRoute: typeof JaDocsRouteWithChildren
   JaPricingRoute: typeof JaPricingRoute
   RuChangelogRoute: typeof RuChangelogRoute
+  RuDocsRoute: typeof RuDocsRouteWithChildren
   RuPricingRoute: typeof RuPricingRoute
   ZhHantChangelogRoute: typeof ZhHantChangelogRoute
+  ZhHantDocsRoute: typeof ZhHantDocsRouteWithChildren
   ZhHantPricingRoute: typeof ZhHantPricingRoute
   ZhBlogRoute: typeof ZhBlogRouteWithChildren
   ZhChangelogRoute: typeof ZhChangelogRoute
@@ -986,6 +1403,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ZhHantPricingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/zh-hant/docs': {
+      id: '/zh-hant/docs'
+      path: '/zh-hant/docs'
+      fullPath: '/zh-hant/docs'
+      preLoaderRoute: typeof ZhHantDocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/zh-hant/changelog': {
       id: '/zh-hant/changelog'
       path: '/zh-hant/changelog'
@@ -998,6 +1422,13 @@ declare module '@tanstack/react-router' {
       path: '/ru/pricing'
       fullPath: '/ru/pricing'
       preLoaderRoute: typeof RuPricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ru/docs': {
+      id: '/ru/docs'
+      path: '/ru/docs'
+      fullPath: '/ru/docs'
+      preLoaderRoute: typeof RuDocsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ru/changelog': {
@@ -1042,6 +1473,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FrPricingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/fr/docs': {
+      id: '/fr/docs'
+      path: '/fr/docs'
+      fullPath: '/fr/docs'
+      preLoaderRoute: typeof FrDocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/fr/changelog': {
       id: '/fr/changelog'
       path: '/fr/changelog'
@@ -1054,6 +1492,13 @@ declare module '@tanstack/react-router' {
       path: '/es/pricing'
       fullPath: '/es/pricing'
       preLoaderRoute: typeof EsPricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/es/docs': {
+      id: '/es/docs'
+      path: '/es/docs'
+      fullPath: '/es/docs'
+      preLoaderRoute: typeof EsDocsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/es/changelog': {
@@ -1082,6 +1527,13 @@ declare module '@tanstack/react-router' {
       path: '/de/pricing'
       fullPath: '/de/pricing'
       preLoaderRoute: typeof DePricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/de/docs': {
+      id: '/de/docs'
+      path: '/de/docs'
+      fullPath: '/de/docs'
+      preLoaderRoute: typeof DeDocsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/de/changelog': {
@@ -1126,6 +1578,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ZhBlogIndexRouteImport
       parentRoute: typeof ZhBlogRoute
     }
+    '/zh-hant/docs/': {
+      id: '/zh-hant/docs/'
+      path: '/'
+      fullPath: '/zh-hant/docs/'
+      preLoaderRoute: typeof ZhHantDocsIndexRouteImport
+      parentRoute: typeof ZhHantDocsRoute
+    }
+    '/ru/docs/': {
+      id: '/ru/docs/'
+      path: '/'
+      fullPath: '/ru/docs/'
+      preLoaderRoute: typeof RuDocsIndexRouteImport
+      parentRoute: typeof RuDocsRoute
+    }
     '/ja/docs/': {
       id: '/ja/docs/'
       path: '/'
@@ -1140,12 +1606,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JaBlogIndexRouteImport
       parentRoute: typeof JaBlogRoute
     }
+    '/fr/docs/': {
+      id: '/fr/docs/'
+      path: '/'
+      fullPath: '/fr/docs/'
+      preLoaderRoute: typeof FrDocsIndexRouteImport
+      parentRoute: typeof FrDocsRoute
+    }
+    '/es/docs/': {
+      id: '/es/docs/'
+      path: '/'
+      fullPath: '/es/docs/'
+      preLoaderRoute: typeof EsDocsIndexRouteImport
+      parentRoute: typeof EsDocsRoute
+    }
     '/docs/plugins/': {
       id: '/docs/plugins/'
       path: '/plugins'
       fullPath: '/docs/plugins/'
       preLoaderRoute: typeof DocsPluginsIndexRouteImport
       parentRoute: typeof DocsRoute
+    }
+    '/de/docs/': {
+      id: '/de/docs/'
+      path: '/'
+      fullPath: '/de/docs/'
+      preLoaderRoute: typeof DeDocsIndexRouteImport
+      parentRoute: typeof DeDocsRoute
     }
     '/zh/docs/install': {
       id: '/zh/docs/install'
@@ -1182,6 +1669,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ZhBlogLocalFirstRouteImport
       parentRoute: typeof ZhBlogRoute
     }
+    '/zh-hant/docs/install': {
+      id: '/zh-hant/docs/install'
+      path: '/install'
+      fullPath: '/zh-hant/docs/install'
+      preLoaderRoute: typeof ZhHantDocsInstallRouteImport
+      parentRoute: typeof ZhHantDocsRoute
+    }
+    '/zh-hant/docs/getting-started': {
+      id: '/zh-hant/docs/getting-started'
+      path: '/getting-started'
+      fullPath: '/zh-hant/docs/getting-started'
+      preLoaderRoute: typeof ZhHantDocsGettingStartedRouteImport
+      parentRoute: typeof ZhHantDocsRoute
+    }
+    '/ru/docs/install': {
+      id: '/ru/docs/install'
+      path: '/install'
+      fullPath: '/ru/docs/install'
+      preLoaderRoute: typeof RuDocsInstallRouteImport
+      parentRoute: typeof RuDocsRoute
+    }
+    '/ru/docs/getting-started': {
+      id: '/ru/docs/getting-started'
+      path: '/getting-started'
+      fullPath: '/ru/docs/getting-started'
+      preLoaderRoute: typeof RuDocsGettingStartedRouteImport
+      parentRoute: typeof RuDocsRoute
+    }
     '/ja/docs/install': {
       id: '/ja/docs/install'
       path: '/install'
@@ -1217,6 +1732,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JaBlogLocalFirstRouteImport
       parentRoute: typeof JaBlogRoute
     }
+    '/fr/docs/install': {
+      id: '/fr/docs/install'
+      path: '/install'
+      fullPath: '/fr/docs/install'
+      preLoaderRoute: typeof FrDocsInstallRouteImport
+      parentRoute: typeof FrDocsRoute
+    }
+    '/fr/docs/getting-started': {
+      id: '/fr/docs/getting-started'
+      path: '/getting-started'
+      fullPath: '/fr/docs/getting-started'
+      preLoaderRoute: typeof FrDocsGettingStartedRouteImport
+      parentRoute: typeof FrDocsRoute
+    }
+    '/es/docs/install': {
+      id: '/es/docs/install'
+      path: '/install'
+      fullPath: '/es/docs/install'
+      preLoaderRoute: typeof EsDocsInstallRouteImport
+      parentRoute: typeof EsDocsRoute
+    }
+    '/es/docs/getting-started': {
+      id: '/es/docs/getting-started'
+      path: '/getting-started'
+      fullPath: '/es/docs/getting-started'
+      preLoaderRoute: typeof EsDocsGettingStartedRouteImport
+      parentRoute: typeof EsDocsRoute
+    }
     '/docs/plugins/publishing': {
       id: '/docs/plugins/publishing'
       path: '/plugins/publishing'
@@ -1231,6 +1774,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsPluginsApiRouteImport
       parentRoute: typeof DocsRoute
     }
+    '/de/docs/install': {
+      id: '/de/docs/install'
+      path: '/install'
+      fullPath: '/de/docs/install'
+      preLoaderRoute: typeof DeDocsInstallRouteImport
+      parentRoute: typeof DeDocsRoute
+    }
+    '/de/docs/getting-started': {
+      id: '/de/docs/getting-started'
+      path: '/getting-started'
+      fullPath: '/de/docs/getting-started'
+      preLoaderRoute: typeof DeDocsGettingStartedRouteImport
+      parentRoute: typeof DeDocsRoute
+    }
     '/zh/docs/plugins/': {
       id: '/zh/docs/plugins/'
       path: '/plugins'
@@ -1238,12 +1795,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ZhDocsPluginsIndexRouteImport
       parentRoute: typeof ZhDocsRoute
     }
+    '/zh-hant/docs/plugins/': {
+      id: '/zh-hant/docs/plugins/'
+      path: '/plugins'
+      fullPath: '/zh-hant/docs/plugins/'
+      preLoaderRoute: typeof ZhHantDocsPluginsIndexRouteImport
+      parentRoute: typeof ZhHantDocsRoute
+    }
+    '/ru/docs/plugins/': {
+      id: '/ru/docs/plugins/'
+      path: '/plugins'
+      fullPath: '/ru/docs/plugins/'
+      preLoaderRoute: typeof RuDocsPluginsIndexRouteImport
+      parentRoute: typeof RuDocsRoute
+    }
     '/ja/docs/plugins/': {
       id: '/ja/docs/plugins/'
       path: '/plugins'
       fullPath: '/ja/docs/plugins/'
       preLoaderRoute: typeof JaDocsPluginsIndexRouteImport
       parentRoute: typeof JaDocsRoute
+    }
+    '/fr/docs/plugins/': {
+      id: '/fr/docs/plugins/'
+      path: '/plugins'
+      fullPath: '/fr/docs/plugins/'
+      preLoaderRoute: typeof FrDocsPluginsIndexRouteImport
+      parentRoute: typeof FrDocsRoute
+    }
+    '/es/docs/plugins/': {
+      id: '/es/docs/plugins/'
+      path: '/plugins'
+      fullPath: '/es/docs/plugins/'
+      preLoaderRoute: typeof EsDocsPluginsIndexRouteImport
+      parentRoute: typeof EsDocsRoute
+    }
+    '/de/docs/plugins/': {
+      id: '/de/docs/plugins/'
+      path: '/plugins'
+      fullPath: '/de/docs/plugins/'
+      preLoaderRoute: typeof DeDocsPluginsIndexRouteImport
+      parentRoute: typeof DeDocsRoute
     }
     '/zh/docs/plugins/publishing': {
       id: '/zh/docs/plugins/publishing'
@@ -1259,6 +1851,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ZhDocsPluginsApiRouteImport
       parentRoute: typeof ZhDocsRoute
     }
+    '/zh-hant/docs/plugins/publishing': {
+      id: '/zh-hant/docs/plugins/publishing'
+      path: '/plugins/publishing'
+      fullPath: '/zh-hant/docs/plugins/publishing'
+      preLoaderRoute: typeof ZhHantDocsPluginsPublishingRouteImport
+      parentRoute: typeof ZhHantDocsRoute
+    }
+    '/zh-hant/docs/plugins/api': {
+      id: '/zh-hant/docs/plugins/api'
+      path: '/plugins/api'
+      fullPath: '/zh-hant/docs/plugins/api'
+      preLoaderRoute: typeof ZhHantDocsPluginsApiRouteImport
+      parentRoute: typeof ZhHantDocsRoute
+    }
+    '/ru/docs/plugins/publishing': {
+      id: '/ru/docs/plugins/publishing'
+      path: '/plugins/publishing'
+      fullPath: '/ru/docs/plugins/publishing'
+      preLoaderRoute: typeof RuDocsPluginsPublishingRouteImport
+      parentRoute: typeof RuDocsRoute
+    }
+    '/ru/docs/plugins/api': {
+      id: '/ru/docs/plugins/api'
+      path: '/plugins/api'
+      fullPath: '/ru/docs/plugins/api'
+      preLoaderRoute: typeof RuDocsPluginsApiRouteImport
+      parentRoute: typeof RuDocsRoute
+    }
     '/ja/docs/plugins/publishing': {
       id: '/ja/docs/plugins/publishing'
       path: '/plugins/publishing'
@@ -1272,6 +1892,48 @@ declare module '@tanstack/react-router' {
       fullPath: '/ja/docs/plugins/api'
       preLoaderRoute: typeof JaDocsPluginsApiRouteImport
       parentRoute: typeof JaDocsRoute
+    }
+    '/fr/docs/plugins/publishing': {
+      id: '/fr/docs/plugins/publishing'
+      path: '/plugins/publishing'
+      fullPath: '/fr/docs/plugins/publishing'
+      preLoaderRoute: typeof FrDocsPluginsPublishingRouteImport
+      parentRoute: typeof FrDocsRoute
+    }
+    '/fr/docs/plugins/api': {
+      id: '/fr/docs/plugins/api'
+      path: '/plugins/api'
+      fullPath: '/fr/docs/plugins/api'
+      preLoaderRoute: typeof FrDocsPluginsApiRouteImport
+      parentRoute: typeof FrDocsRoute
+    }
+    '/es/docs/plugins/publishing': {
+      id: '/es/docs/plugins/publishing'
+      path: '/plugins/publishing'
+      fullPath: '/es/docs/plugins/publishing'
+      preLoaderRoute: typeof EsDocsPluginsPublishingRouteImport
+      parentRoute: typeof EsDocsRoute
+    }
+    '/es/docs/plugins/api': {
+      id: '/es/docs/plugins/api'
+      path: '/plugins/api'
+      fullPath: '/es/docs/plugins/api'
+      preLoaderRoute: typeof EsDocsPluginsApiRouteImport
+      parentRoute: typeof EsDocsRoute
+    }
+    '/de/docs/plugins/publishing': {
+      id: '/de/docs/plugins/publishing'
+      path: '/plugins/publishing'
+      fullPath: '/de/docs/plugins/publishing'
+      preLoaderRoute: typeof DeDocsPluginsPublishingRouteImport
+      parentRoute: typeof DeDocsRoute
+    }
+    '/de/docs/plugins/api': {
+      id: '/de/docs/plugins/api'
+      path: '/plugins/api'
+      fullPath: '/de/docs/plugins/api'
+      preLoaderRoute: typeof DeDocsPluginsApiRouteImport
+      parentRoute: typeof DeDocsRoute
     }
   }
 }
@@ -1312,6 +1974,69 @@ const DocsRouteChildren: DocsRouteChildren = {
 
 const DocsRouteWithChildren = DocsRoute._addFileChildren(DocsRouteChildren)
 
+interface DeDocsRouteChildren {
+  DeDocsGettingStartedRoute: typeof DeDocsGettingStartedRoute
+  DeDocsInstallRoute: typeof DeDocsInstallRoute
+  DeDocsIndexRoute: typeof DeDocsIndexRoute
+  DeDocsPluginsApiRoute: typeof DeDocsPluginsApiRoute
+  DeDocsPluginsPublishingRoute: typeof DeDocsPluginsPublishingRoute
+  DeDocsPluginsIndexRoute: typeof DeDocsPluginsIndexRoute
+}
+
+const DeDocsRouteChildren: DeDocsRouteChildren = {
+  DeDocsGettingStartedRoute: DeDocsGettingStartedRoute,
+  DeDocsInstallRoute: DeDocsInstallRoute,
+  DeDocsIndexRoute: DeDocsIndexRoute,
+  DeDocsPluginsApiRoute: DeDocsPluginsApiRoute,
+  DeDocsPluginsPublishingRoute: DeDocsPluginsPublishingRoute,
+  DeDocsPluginsIndexRoute: DeDocsPluginsIndexRoute,
+}
+
+const DeDocsRouteWithChildren =
+  DeDocsRoute._addFileChildren(DeDocsRouteChildren)
+
+interface EsDocsRouteChildren {
+  EsDocsGettingStartedRoute: typeof EsDocsGettingStartedRoute
+  EsDocsInstallRoute: typeof EsDocsInstallRoute
+  EsDocsIndexRoute: typeof EsDocsIndexRoute
+  EsDocsPluginsApiRoute: typeof EsDocsPluginsApiRoute
+  EsDocsPluginsPublishingRoute: typeof EsDocsPluginsPublishingRoute
+  EsDocsPluginsIndexRoute: typeof EsDocsPluginsIndexRoute
+}
+
+const EsDocsRouteChildren: EsDocsRouteChildren = {
+  EsDocsGettingStartedRoute: EsDocsGettingStartedRoute,
+  EsDocsInstallRoute: EsDocsInstallRoute,
+  EsDocsIndexRoute: EsDocsIndexRoute,
+  EsDocsPluginsApiRoute: EsDocsPluginsApiRoute,
+  EsDocsPluginsPublishingRoute: EsDocsPluginsPublishingRoute,
+  EsDocsPluginsIndexRoute: EsDocsPluginsIndexRoute,
+}
+
+const EsDocsRouteWithChildren =
+  EsDocsRoute._addFileChildren(EsDocsRouteChildren)
+
+interface FrDocsRouteChildren {
+  FrDocsGettingStartedRoute: typeof FrDocsGettingStartedRoute
+  FrDocsInstallRoute: typeof FrDocsInstallRoute
+  FrDocsIndexRoute: typeof FrDocsIndexRoute
+  FrDocsPluginsApiRoute: typeof FrDocsPluginsApiRoute
+  FrDocsPluginsPublishingRoute: typeof FrDocsPluginsPublishingRoute
+  FrDocsPluginsIndexRoute: typeof FrDocsPluginsIndexRoute
+}
+
+const FrDocsRouteChildren: FrDocsRouteChildren = {
+  FrDocsGettingStartedRoute: FrDocsGettingStartedRoute,
+  FrDocsInstallRoute: FrDocsInstallRoute,
+  FrDocsIndexRoute: FrDocsIndexRoute,
+  FrDocsPluginsApiRoute: FrDocsPluginsApiRoute,
+  FrDocsPluginsPublishingRoute: FrDocsPluginsPublishingRoute,
+  FrDocsPluginsIndexRoute: FrDocsPluginsIndexRoute,
+}
+
+const FrDocsRouteWithChildren =
+  FrDocsRoute._addFileChildren(FrDocsRouteChildren)
+
 interface JaBlogRouteChildren {
   JaBlogLocalFirstRoute: typeof JaBlogLocalFirstRoute
   JaBlogPluginsV1Route: typeof JaBlogPluginsV1Route
@@ -1349,6 +2074,49 @@ const JaDocsRouteChildren: JaDocsRouteChildren = {
 
 const JaDocsRouteWithChildren =
   JaDocsRoute._addFileChildren(JaDocsRouteChildren)
+
+interface RuDocsRouteChildren {
+  RuDocsGettingStartedRoute: typeof RuDocsGettingStartedRoute
+  RuDocsInstallRoute: typeof RuDocsInstallRoute
+  RuDocsIndexRoute: typeof RuDocsIndexRoute
+  RuDocsPluginsApiRoute: typeof RuDocsPluginsApiRoute
+  RuDocsPluginsPublishingRoute: typeof RuDocsPluginsPublishingRoute
+  RuDocsPluginsIndexRoute: typeof RuDocsPluginsIndexRoute
+}
+
+const RuDocsRouteChildren: RuDocsRouteChildren = {
+  RuDocsGettingStartedRoute: RuDocsGettingStartedRoute,
+  RuDocsInstallRoute: RuDocsInstallRoute,
+  RuDocsIndexRoute: RuDocsIndexRoute,
+  RuDocsPluginsApiRoute: RuDocsPluginsApiRoute,
+  RuDocsPluginsPublishingRoute: RuDocsPluginsPublishingRoute,
+  RuDocsPluginsIndexRoute: RuDocsPluginsIndexRoute,
+}
+
+const RuDocsRouteWithChildren =
+  RuDocsRoute._addFileChildren(RuDocsRouteChildren)
+
+interface ZhHantDocsRouteChildren {
+  ZhHantDocsGettingStartedRoute: typeof ZhHantDocsGettingStartedRoute
+  ZhHantDocsInstallRoute: typeof ZhHantDocsInstallRoute
+  ZhHantDocsIndexRoute: typeof ZhHantDocsIndexRoute
+  ZhHantDocsPluginsApiRoute: typeof ZhHantDocsPluginsApiRoute
+  ZhHantDocsPluginsPublishingRoute: typeof ZhHantDocsPluginsPublishingRoute
+  ZhHantDocsPluginsIndexRoute: typeof ZhHantDocsPluginsIndexRoute
+}
+
+const ZhHantDocsRouteChildren: ZhHantDocsRouteChildren = {
+  ZhHantDocsGettingStartedRoute: ZhHantDocsGettingStartedRoute,
+  ZhHantDocsInstallRoute: ZhHantDocsInstallRoute,
+  ZhHantDocsIndexRoute: ZhHantDocsIndexRoute,
+  ZhHantDocsPluginsApiRoute: ZhHantDocsPluginsApiRoute,
+  ZhHantDocsPluginsPublishingRoute: ZhHantDocsPluginsPublishingRoute,
+  ZhHantDocsPluginsIndexRoute: ZhHantDocsPluginsIndexRoute,
+}
+
+const ZhHantDocsRouteWithChildren = ZhHantDocsRoute._addFileChildren(
+  ZhHantDocsRouteChildren,
+)
 
 interface ZhBlogRouteChildren {
   ZhBlogLocalFirstRoute: typeof ZhBlogLocalFirstRoute
@@ -1399,18 +2167,23 @@ const rootRouteChildren: RootRouteChildren = {
   OpenSourceEbookReaderRoute: OpenSourceEbookReaderRoute,
   PricingRoute: PricingRoute,
   DeChangelogRoute: DeChangelogRoute,
+  DeDocsRoute: DeDocsRouteWithChildren,
   DePricingRoute: DePricingRoute,
   EsChangelogRoute: EsChangelogRoute,
+  EsDocsRoute: EsDocsRouteWithChildren,
   EsPricingRoute: EsPricingRoute,
   FrChangelogRoute: FrChangelogRoute,
+  FrDocsRoute: FrDocsRouteWithChildren,
   FrPricingRoute: FrPricingRoute,
   JaBlogRoute: JaBlogRouteWithChildren,
   JaChangelogRoute: JaChangelogRoute,
   JaDocsRoute: JaDocsRouteWithChildren,
   JaPricingRoute: JaPricingRoute,
   RuChangelogRoute: RuChangelogRoute,
+  RuDocsRoute: RuDocsRouteWithChildren,
   RuPricingRoute: RuPricingRoute,
   ZhHantChangelogRoute: ZhHantChangelogRoute,
+  ZhHantDocsRoute: ZhHantDocsRouteWithChildren,
   ZhHantPricingRoute: ZhHantPricingRoute,
   ZhBlogRoute: ZhBlogRouteWithChildren,
   ZhChangelogRoute: ZhChangelogRoute,

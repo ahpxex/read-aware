@@ -4,12 +4,12 @@ import { ArrowUpRight, CaretDown, Check } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import {
   availableLocales,
+  isBlogLocale,
   LOCALE_CHOICE_KEY,
   LOCALE_LABEL,
   LOCALE_LANG,
   UI_STRINGS,
   hasLocaleVariants,
-  isDocsLocale,
   localizePath,
   type Locale,
 } from "../lib/i18n";
@@ -34,10 +34,10 @@ import { CONTACT_EMAIL, DISCORD_URL } from "../lib/site";
  * prerendered HTML; external links carry an arrow so the boundary is visible
  * before the click.
  */
-/** Blog mirrors exist only in the docs-locale subset; pricing and changelog are every locale. */
+/** Blog mirrors exist only in the three-language subset; pricing and changelog are every locale. */
 function moreTo(locale: Locale): { blog: string; pricing: string; changelog: string } {
   return {
-    blog: isDocsLocale(locale) ? localizePath("/blog", locale) : "/blog",
+    blog: isBlogLocale(locale) ? localizePath("/blog", locale) : "/blog",
     pricing: localizePath("/pricing", locale),
     changelog: localizePath("/changelog", locale),
   };

@@ -62,4 +62,94 @@ export const DOCS_NAV = {
       ],
     },
   ],
+  fr: [
+    {
+      title: "Démarrer",
+      items: [
+        { to: "/fr/docs", label: "Vue d'ensemble", exact: true },
+        { to: "/fr/docs/install", label: "Téléchargement et installation" },
+        { to: "/fr/docs/getting-started", label: "Démarrage rapide" },
+      ],
+    },
+    {
+      title: "Extensions",
+      items: [
+        { to: "/fr/docs/plugins", label: "Système d'extensions", exact: true },
+        { to: "/fr/docs/plugins/api", label: "Référence de l'API Extension" },
+        { to: "/fr/docs/plugins/publishing", label: "Publier une extension" },
+      ],
+    },
+  ],
+  de: [
+    {
+      title: "Start",
+      items: [
+        { to: "/de/docs", label: "Übersicht", exact: true },
+        { to: "/de/docs/install", label: "Download & Installation" },
+        { to: "/de/docs/getting-started", label: "Erste Schritte" },
+      ],
+    },
+    {
+      title: "Plugins",
+      items: [
+        { to: "/de/docs/plugins", label: "Plugin-System", exact: true },
+        { to: "/de/docs/plugins/api", label: "Plugin-API-Referenz" },
+        { to: "/de/docs/plugins/publishing", label: "Ein Plugin veröffentlichen" },
+      ],
+    },
+  ],
+  ru: [
+    {
+      title: "Начало",
+      items: [
+        { to: "/ru/docs", label: "Обзор", exact: true },
+        { to: "/ru/docs/install", label: "Скачать и установить" },
+        { to: "/ru/docs/getting-started", label: "Начало работы" },
+      ],
+    },
+    {
+      title: "Плагины",
+      items: [
+        { to: "/ru/docs/plugins", label: "Система плагинов", exact: true },
+        { to: "/ru/docs/plugins/api", label: "Справка по API плагинов" },
+        { to: "/ru/docs/plugins/publishing", label: "Публикация плагина" },
+      ],
+    },
+  ],
+  es: [
+    {
+      title: "Inicio",
+      items: [
+        { to: "/es/docs", label: "Descripción general", exact: true },
+        { to: "/es/docs/install", label: "Descarga e instalación" },
+        { to: "/es/docs/getting-started", label: "Primeros pasos" },
+      ],
+    },
+    {
+      title: "Plugins",
+      items: [
+        { to: "/es/docs/plugins", label: "Sistema de plugins", exact: true },
+        { to: "/es/docs/plugins/api", label: "Referencia API de plugins" },
+        { to: "/es/docs/plugins/publishing", label: "Publicar un plugin" },
+      ],
+    },
+  ],
+  "zh-hant": [
+    {
+      title: "開始",
+      items: [
+        { to: "/zh-hant/docs", label: "總覽", exact: true },
+        { to: "/zh-hant/docs/install", label: "下載安裝" },
+        { to: "/zh-hant/docs/getting-started", label: "快速上手" },
+      ],
+    },
+    {
+      title: "外掛",
+      items: [
+        { to: "/zh-hant/docs/plugins", label: "外掛系統", exact: true },
+        { to: "/zh-hant/docs/plugins/api", label: "外掛 API 參考" },
+        { to: "/zh-hant/docs/plugins/publishing", label: "發佈外掛" },
+      ],
+    },
+  ],
 } as const;

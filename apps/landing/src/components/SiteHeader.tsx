@@ -1,12 +1,12 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { isDocsLocale, localizePath, UI_STRINGS, type Locale } from "../lib/i18n";
+import { localizePath, UI_STRINGS, type Locale } from "../lib/i18n";
 import { REPO_URL } from "../lib/releases";
 import { HEADER_ICON_URL } from "../lib/site";
 import { MoreMenu } from "./MoreMenu";
 
-/** Docs exist only in the docs-locale subset; other locales fall back to English. */
+/** Docs exist in every locale; the path is always localized. */
 function docsPath(locale: Locale): string {
-  return isDocsLocale(locale) ? localizePath("/docs", locale) : "/docs";
+  return localizePath("/docs", locale);
 }
 
 /**

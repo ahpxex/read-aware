@@ -28,16 +28,26 @@ export const LOCALES: readonly Locale[] = [
 ];
 
 /**
- * Docs and blog pages are hand-maintained TSX mirrors, so they exist only in
- * this subset; the homepage and changelog render per-locale content objects
- * and exist in every locale.
+ * Docs pages are hand-maintained TSX mirrors and now exist in every locale.
+ * Blog mirrors remain a three-language subset (English source + zh/ja); the
+ * homepage and changelog render per-locale content objects and exist in every
+ * locale.
  */
-export type DocsLocale = "en" | "zh" | "ja";
+export type DocsLocale = Locale;
 
-export const DOCS_LOCALES: readonly DocsLocale[] = ["en", "zh", "ja"];
+export const DOCS_LOCALES: readonly DocsLocale[] = LOCALES;
 
 export function isDocsLocale(locale: Locale): locale is DocsLocale {
   return (DOCS_LOCALES as readonly Locale[]).includes(locale);
+}
+
+/** Blog mirrors exist only in this three-language subset. */
+export type BlogLocale = "en" | "zh" | "ja";
+
+export const BLOG_LOCALES: readonly BlogLocale[] = ["en", "zh", "ja"];
+
+export function isBlogLocale(locale: Locale): locale is BlogLocale {
+  return (BLOG_LOCALES as readonly Locale[]).includes(locale);
 }
 
 /** BCP 47 tags for <html lang>, hreflang, and date formatting. */
@@ -102,7 +112,8 @@ export function availableLocales(pathname: string): readonly Locale[] {
   if (base === "/" || base.startsWith("/changelog") || base.startsWith("/pricing")) {
     return LOCALES;
   }
-  if (base.startsWith("/docs") || base.startsWith("/blog")) return DOCS_LOCALES;
+  if (base.startsWith("/docs")) return DOCS_LOCALES;
+  if (base.startsWith("/blog")) return BLOG_LOCALES;
   return [];
 }
 

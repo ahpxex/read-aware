@@ -165,9 +165,15 @@ function GettingStartedPage() {
       <h2>Where your data lives</h2>
       <p>
         Books, annotations, conversations, and memory are stored on your
-        device. The network is used for AI requests to your own provider and
-        nothing else — the app is fully usable offline against your local
-        library.
+        device. The network is used for AI requests to your own provider —
+        and, if you connect a sync account, an end-to-end-encrypted relay
+        that keeps your library in step across devices. The app stays fully
+        usable offline either way.
+      </p>
+      <p>
+        Sync keeps out of sight while it works: its progress lives in Settings
+        → Data &amp; Sync, and the main window only speaks when something
+        fails — one quiet error you can silence for a day.
       </p>
     </article>
   );

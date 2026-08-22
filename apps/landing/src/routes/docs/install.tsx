@@ -146,6 +146,12 @@ sudo dnf install ./ReadAware-*-linux-x64.rpm`}</code>
         into the app, independent of OS code signing. On Android and iOS,
         install new versions manually from the releases page for now.
       </p>
+      <p>
+        When an update lands, a small dialog introduces what changed — the
+        release notes, in your language, shown right in the app. Closing it is
+        permanent for that version, and the dialog can be turned off entirely
+        in Settings → General.
+      </p>
     </article>
   );
 }

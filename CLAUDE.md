@@ -244,9 +244,11 @@ read-aware/
     plugin-types/      # @read-aware/plugin-types — the public plugin API surface
     tsconfig/          # @read-aware/tsconfig — shared TypeScript base config
   plugins/             # First-party plugins, each built via scripts/build-plugin.ts
-    dictionary/        # @read-aware/plugin-dictionary
-    rss-reader/        # @read-aware/plugin-rss-reader
-    sentence-reader/   # @read-aware/plugin-sentence-reader
+    dictionary/        # @read-aware/plugin-dictionary — word lookup & vocabulary
+    editorial-themes/  # @read-aware/plugin-editorial-themes — app/reader themes
+    rss-reader/        # @read-aware/plugin-rss-reader — RSS/Atom feed reader
+    sentence-reader/   # @read-aware/plugin-sentence-reader — sentence/paragraph modes
+    tts/               # @read-aware/plugin-tts — text-to-speech synthesis
 ```
 
 Note: design-system imports use the `@read-aware/ui` package barrel, e.g.

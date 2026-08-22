@@ -469,7 +469,27 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
    Cloudflare）；
 7. `bun run deploy`。
 
-客户端默认指向 `https://relay.readaware.app`；dev 联调用 localKV 键
-`read-aware-sync-relay-url` 指向 `wrangler dev` 地址。发版前的验收：两台
-设备（或两份 app data 目录）连同一账号，双向写入 → 收敛，新设备
-bootstrap → 书架完整、书可打开。
+**客户端 relay 解析顺序**（`apps/web/src/platform/sync/sync-scheduler.ts`
+`defaultRelayUrl` 与 `platform/app-identity.ts`，提交 059f380）：
+
+1. **localKV 键 `read-aware-sync-relay-url`**（用户数据，`Delete all data`
+   重置）— 设置面板可覆盖，dev 联调用它指向 `wrangler dev` 地址；
+2. **构建时烘焙的 `VITE_READAWARE_RELAY_URL`**（dev server 通过
+   `apps/web/.env.development` 读取）；
+3. **dev 会话兜底**（`apps/web/.env.development`）— dev server 默认
+   `http://localhost:8787`，env 形式是防 KV 数据 wipe 的兜底；
+4. **dev 身份 bundle 强制本地**（`productName` 以 `ReadAware Dev` 开头者，
+   boot 时经 `getName` 判定）— 绝不允许默认指向生产 relay，一律落
+   `http://localhost:8787`（本地没开就响亮失败，不污染生产）；
+5. **生产默认** `https://relay.readaware.app`。
+
+**同步状态在 UI 的呈现**（`features/settings/sections/DataSyncPanel.tsx`）：
+
+- 同步进行中，header 完全安静（进度只在 设置 → Data & Sync 面板）；
+- header 只在出错时浮出 chip，可点 X 静音 24 小时（localKV 键
+  `read-aware-sync-error-dismissed`；UI 呈现状态不进事件日志）；
+- relay 401 时进入 `unauthenticated` 终态，出现「重新登录」提示（可按会话
+  epoch 关闭，见 `platform/sync/reauth-notice.ts`）。
+
+**发版前验收**：两台设备（或两份 app data 目录）连同一账号，双向写入 →
+收敛，新设备 bootstrap → 书架完整、书可打开。

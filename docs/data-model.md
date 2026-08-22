@@ -1,18 +1,38 @@
 # ReadAware — Local Data Model & Schema (Design)
 
-> **Status:** Decided direction; the sync foundation is **now live on desktop**
-> (2026-07). The Tauri app persists to SQLite; schema migration v3 brings the
-> live database to this document's sync shape: `domain_events` (full envelope) +
-> `event_sync_state` / `blob_sync_state` outboxes + the `blob_objects` registry,
-> with blob **bytes on the filesystem** (`<app_data>/blobs/`), WAL journaling,
-> and a stable `local_device` identity. Events are **dual-written** from every
-> UX persistence seam (library, annotations, reading time), and a boot-time
+> **Status:** Live in production (v0.5.x, 2026-08). The Tauri app persists to
+> SQLite; schema migration **v23** brings the live database to this document's
+> sync shape: `domain_events` (full envelope) + `event_sync_state` /
+> `blob_sync_state` outboxes + the `blob_objects` registry, with blob **bytes on
+> the filesystem** (`<app_data>/blobs/`), WAL journaling, and a stable
+> `local_device` identity. Events are **dual-written** from every UX persistence
+> seam (library, annotations, reading time, AI conversations), and a boot-time
 > **genesis reconciliation** synthesizes creation events for any projection row
-> the log has never seen (pre-event-era data, old backup restores). Still not
-> built: the relay itself, projection replay/rebuild from the log, and the
-> normalized projection tables (the interim denormalized `books`/`annotations`
-> tables from migration v2 remain the read models; [§8](#8-mapping-from-the-current-storage)
-> documents the remaining mapping).
+> the log has never seen (pre-event-era data, old backup restores).
+>
+> **`storage/apply.rs` is the sole projection writer**, and `rebuild_projections`
+> replays the entire log to reconstitute every projection table;
+> `verify_projections` replays into scratch tables and diffs to detect drift.
+> **Known gap:** rows written before event-sourcing landed still carry mutations
+> the log never recorded (a recolor, a memory reinforcement);
+> `verify_projections` reports them, but they cannot be recovered—only outgrown.
+>
+> **The relay is live** at `relay.readaware.app` (Cloudflare Worker + D1 + R2;
+> see `docs/sync-engine.md` §12 runbook). Push/pull, E2E encryption, and blob
+> sync operate in production. **Book memory v1 is live:** `book.chapterDigested`
+> events project to `chapter_digests` (per-finished-chapter summary + entity
+> registry, names spelled as the edition spells them), filled by an idle
+> pipeline and injected into the book-thread system prompt behind the spoiler
+> boundary; the idle pipeline first classifies books by narrativity
+> (`book.narrativityClassified` → `books.narrativity`), so narrative books
+> digest to a character/relation graph (behind the spoiler fence) and expository
+> books to a concept graph ("argument so far," no fence). Flavor-mismatched rows
+> (reclassified books) redigest lazily.
+>
+> **Still not built:** the consolidation pipeline behind `profile.*` and
+> `entity.*` events (declared, logged by the agent runtime, but project to
+> nothing—the profile store is interim `app_kv`, and entity resolution is future
+> work).
 >
 > **Single source of truth for the schema is
 > [`docs/sqlite-schema.sql`](./sqlite-schema.sql)** — the exact, field-level DDL
@@ -51,10 +71,10 @@
   source of truth** and the **unit of sync**. Every structured table (and any
   derived index) is a **deterministic projection rebuilt from the log** —
   projections are recomputed on-device and never synced directly.
-- **The backend is sync + relay only.** It stores the (preferably E2E-encrypted)
-  event log + large blobs and exposes a change feed. It holds no business logic.
-  *The cloud relay is not built yet; the schema provisions for it but the app is
-  fully usable with sync disabled.*
+- **The backend is sync + relay only.** It stores E2E-encrypted event log +
+  large blobs and exposes a change feed. It holds no business logic. The cloud
+  relay is **live at `relay.readaware.app`** (Cloudflare Worker + D1 + R2); the
+  app is fully usable with sync disabled (local-first).
 - **Reach storage through a `StorageAdapter`** (native FS/blob store + SQLite
   in the Tauri desktop app).
 
@@ -76,9 +96,10 @@
 ## 2. Layered model
 
 ```
-                          remote backend (sync + relay only — NOT BUILT YET)
+                          remote backend (sync + relay only — LIVE)
                  ┌─────────────────────────────────────────────┐
                  │  encrypted event log replica · blobs · feed  │
+                 │         (relay.readaware.app)                 │
                  └───────────────▲─────────────────────┬────────┘
                           push/pull events             │ blobs
 ON DEVICE                       │                      │
@@ -157,6 +178,7 @@ row's historical timestamp while their HLC is stamped at synthesis time.
 | `book.removed` | `{ bookId }` (tombstone) |
 | `collection.created` / `collection.renamed` / `collection.removed` | `{ collectionId, name? }` |
 | `book.addedToCollection` / `book.removedFromCollection` | `{ bookId, collectionId }` (set semantics → reconstructable as many-to-many later) |
+| `book.narrativityClassified` | `{ bookId, narrativity, model? }` — LLM classifies book as `narrative` or `expository`; drives digest flavor (character graph vs. concept graph) |
 | `book.chapterDigested` | `{ bookId, chapterIndex, chapterHref?, summary, characters[], digestVersion, model? }` — 章节读毕提炼（book_memory 投影原料）。LLM 产物不可确定性重算，所以像 `coverExtracted` 一样记录成事件；`chapter_digests` 投影可从日志整体重建，同章新事件整行覆盖 |
 | `book.progressed` | `{ bookId, locator, chapterHref?, currentLocation?, totalLocations?, progressPercent?, status? }` |
 | `book.timeRecorded` | `{ bookId, ms, atEpochMs, localDay, localHour }` — day/hour buckets are stamped at **record** time in the recording device's timezone; deriving them at replay time would shift history across timezones |
@@ -181,14 +203,18 @@ row's historical timestamp while their HLC is stamped at synthesis time.
 > *outcomes* are logged.
 >
 > **Producer status.** Book / collection / annotation / ask / reading /
-> **AI-conversation** / **memory** events are **live**: the UX
-> persistence seams dual-write them (event first, projection second — the
-> chat store diffs transcripts into appended/removed events; the memory port
-> emits at each consolidation intent), and boot-time genesis reconciliation
-> backfills creation events for rows that predate the write path.
+> **AI-conversation** events are **live**: the UX persistence seams dual-write
+> them (event first, projection second — the chat store diffs transcripts into
+> appended/removed events), and boot-time genesis reconciliation backfills
+> creation events for rows that predate the write path.
+> **`book.narrativityClassified` and `book.chapterDigested` are live** (idle
+> pipeline producers; see [§5.2](#52-memory-long-term--working)).
+> **`memory.*` events are declared and logged by the agent runtime**, but the
+> consolidation pipeline that produces them is **not yet built** — they project
+> to nothing today ([§10](#10-open-decisions)).
 > `profile.*` and `entity.*` are declared so the projection tables are
 > well-defined, but **have no producer yet** — the profile store is interim
-> localKV and entity resolution is future work ([§10](#10-open-decisions)).
+> `app_kv` and entity resolution is future work ([§10](#10-open-decisions)).
 >
 > **Origin.** Every envelope carries `origin` — which software actor produced
 > the event: `user` (default), `agent`, `system`, or `plugin:<id>` (plugin
@@ -256,9 +282,13 @@ explicitly as retrieval. Tables (all forward-looking, no producer yet):
 - **`working_memory`** — short-horizon, decaying projection for the active
   session (`salience`, `expires_at`); cheap to rebuild/discard.
 - **`chapter_digests`** *(live since v17)* — book_memory v1：每本书每个已读完
-  章节一行（`summary` + `characters_json` 人物名录，按本书文本原样拼写）。
-  由 `book.chapterDigested` 物化，空闲管线（`digestBook`）逐章补齐；注入
-  book 线程 system prompt 的 "story so far" 一节，剧透边界在注入时过滤。
+  章节一行（`summary` + `characters_json` 人物名录或 `concepts_json`
+  概念图，按本书文本原样拼写）。由 `book.chapterDigested` 物化，空闲管线
+  （`digestBook`）逐章补齐。管线先分类书籍 narrativity（`book.narrativityClassified`
+  → `books.narrativity`）：叙事类书消化为人物/关系图（剧透栏栅内），论述类书消化为
+  概念图（"argument so far"，无栏栅）。Flavor 不匹配的行（重分类的书）惰性
+  重消化。注入 book 线程 system prompt 的 "story so far" 一节，剧透边界在
+  注入时过滤。
 
 ### 5.3 Context bundles (versioned, exportable)
 
@@ -472,14 +502,11 @@ order within a transaction.
 
 ## 10. Open decisions
 
-- **Progress: event vs. high-frequency projection.** `book.progressed` can be
-  chatty. Today the UI debounces; the long-term rule (coarse event on
-  session-end / chapter change vs. fast local `reading_positions` + periodic
-  event) still needs to be fixed so the log doesn't bloat.
 - **Memory pipeline depth.** [§5.2](#52-memory-long-term--working) tables are
-  defined but unproduced; the decay function, conflict-resolution policy, and
-  entity-resolution thresholds are pipeline decisions to spec separately before
-  the `memory.*` / `entity.*` producers are built.
+  defined but the consolidation pipeline is not yet built; the decay function,
+  conflict-resolution policy, and entity-resolution thresholds are pipeline
+  decisions to spec separately before the `memory.*` / `entity.*` producers are
+  fully wired.
 - **Context bundle retention.** How many versions to keep per `bundle_key`
   before pruning (vs. full reproducibility from the log).
 - **`per-user` scoping.** Single-user on-device today; multi-profile would add a
@@ -489,6 +516,11 @@ order within a transaction.
 
 ### Resolved (previously open)
 
+- **Progress throttling** (v0.5.x): `book.progressed` throttles at commit time
+  (`features/reader/lib/progress-throttle.ts`). Chapter boundaries and first
+  position commit immediately (true landmarks); in-chapter page turns merge to
+  at most one event per 30 seconds (always the latest position); on close, flush
+  pending progress. No post-hoc compaction — the log stays immutable.
 - **Reader settings are device-local**, in the typed `settings` table (+ `app_kv`
   for experimental flags), not the event log — promote to a `settings.changed`
   event stream only if cross-device settings sync is ever wanted.
@@ -497,5 +529,5 @@ order within a transaction.
 
 ---
 
-*Implementation (StorageAdapter for desktop, projection builders, IndexedDB→
-SQLite migration) is deferred — see the status note at the top.*
+*For migration status, relay deployment, and operational details, see the status
+block at the top and `docs/sync-engine.md`.*

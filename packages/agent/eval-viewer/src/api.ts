@@ -1,5 +1,14 @@
 /** viewer 的数据类型与取数（与 vite 中间件的 /api/* 对应）。 */
 
+import type {
+  AskManualSessionInput,
+  CreateManualSessionInput,
+  HumanReview,
+  HumanReviewInput,
+  ManualReviewSession,
+  ManualReviewTurn,
+} from "./reviews";
+
 export interface CatalogScenario {
   /** 稳定引用坐标，如 "S07.3"。 */
   ref: string;
@@ -54,6 +63,7 @@ export interface EvalCheck {
 }
 
 export interface RunRecord {
+  id: string;
   scenarioId: string;
   variantId: string;
   repetition: number;
@@ -66,8 +76,21 @@ export interface RunRecord {
     tokens?: { total: number };
   };
   output?: {
-    turns?: Array<{ input?: { text?: string }; answer?: string }>;
-    tools?: Array<{ name: string; args?: unknown; output?: string; isError?: boolean }>;
+    turns?: Array<{
+      input?: {
+        text?: string;
+        attachments?: Array<{ text?: string }>;
+        readingCursor?: {
+          chapterIndex?: number;
+          chapterTitle?: string;
+          bookProgress?: number;
+          chapterProgress?: number;
+          visibleText?: string;
+        };
+      };
+      answer?: string;
+    }>;
+    tools?: Array<{ turn?: number; name: string; args?: unknown; output?: string; isError?: boolean }>;
   };
   error?: { stage: string; name: string; message: string };
 }
@@ -105,6 +128,8 @@ export interface RunDetail {
     }>;
   };
   records: RunRecord[];
+  humanReviews?: Record<string, HumanReview>;
+  manualSessions?: ManualReviewSession[];
   selectedRescore?: string;
   rescores?: Array<{
     id: string;
@@ -117,6 +142,17 @@ async function get<T>(path: string): Promise<T> {
   const response = await fetch(path);
   if (!response.ok) throw new Error(`${path} → ${response.status}`);
   return (await response.json()) as T;
+}
+
+async function post<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetch(path, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const value = (await response.json()) as T & { error?: string };
+  if (!response.ok) throw new Error(value.error ?? `${path} → ${response.status}`);
+  return value;
 }
 
 export interface AttentionItem {
@@ -146,6 +182,15 @@ export const fetchRun = (runId: string, rescoreId?: string) =>
   get<RunDetail>(
     `/api/runs/${encodeURIComponent(runId)}${rescoreId ? `?rescore=${encodeURIComponent(rescoreId)}` : ""}`,
   );
+
+export const saveHumanReview = (runId: string, review: HumanReviewInput) =>
+  post<HumanReview>(`/api/runs/${encodeURIComponent(runId)}/human-reviews`, review);
+
+export const createManualSession = (runId: string, input: CreateManualSessionInput) =>
+  post<ManualReviewSession>(`/api/runs/${encodeURIComponent(runId)}/manual-sessions`, input);
+
+export const askManualSession = (sessionId: string, input: AskManualSessionInput) =>
+  post<ManualReviewTurn>(`/api/manual-sessions/${encodeURIComponent(sessionId)}/turns`, input);
 
 export function ms(value: number | undefined): string {
   if (value === undefined) return "—";

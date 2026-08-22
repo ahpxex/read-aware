@@ -306,7 +306,7 @@ bun run eval:reading custom
 
 `READAWARE_EVAL_API` may be `openai-completions` or `openai-responses`.
 
-## Quality Judge
+## Machine Quality Judge
 
 Scenarios may declare a `rubric` — short, individually decidable statements
 about answer quality that deterministic assertions cannot express (human units,
@@ -332,6 +332,38 @@ retry once, then surface as scoring errors — never silent passes. Judge checks
 follow the usual gating rules: observations by default, failures only with
 `--gate`.
 
+This model-based judge is a scalable signal, not the release owner. In
+particular, using the evaluated model as its own judge is not independent
+evidence. Real-book release decisions require the qualitative workflow below.
+
+## Qualitative And Human Judge
+
+For real-book evals, the primary agent owns a reader-level review of the actual
+answers. It must inspect every failed/error sample, every scenario directly
+affected by the change, and a representative set of machine passes. The review
+asks whether the response is correct, sufficiently grounded, complete, useful
+at that reading moment, and appropriately restrained. Machine pass rate and an
+LLM judge score must never be reported as a substitute for this judgement.
+
+The Run page in the eval viewer is the shared review workspace. It shows the
+reader question and complete model answer without a collapsed disclosure, and
+stores a human verdict (`pass` / `partial` / `fail`), four 1–5 dimensions
+(correctness, completeness, helpfulness, restraint), issue flags, and notes.
+Both the primary agent and the user can review the same samples and revise a
+saved assessment.
+
+Fixed scenarios are not enough for qualitative behavior. From any recorded
+scenario, the viewer can start a manual session that reconstructs the same
+book seed, scope, reading cursor, optional selection, provider, model, and
+thinking level. Questions and follow-ups run through a real persistent
+`AgentThread`. Manual sessions survive as review artifacts; after the viewer
+server restarts their transcripts remain reviewable, but a new live session is
+required for another follow-up.
+
+A release conclusion reports three signals separately: deterministic checks,
+machine quality judge, and primary-agent/human satisfaction. A machine-green
+answer that a reader would reject is a product failure, not an eval success.
+
 ## Artifacts
 
 Every invocation creates an ignored `.eval/<run-id>/` bundle:
@@ -343,14 +375,16 @@ runs.jsonl                one normalized record per attempted run
 runs/<variant>/<case>/    full model-visible context, chunks, tools, answer
 summary.json              aggregate and paired-comparison data
 report.md                 readable summary
+human-reviews.json         mutable local human verdicts, dimension scores, flags, notes
+manual-sessions.json       freeform reader questions, follow-ups, answers, tools, telemetry
 ```
 
 Browse everything in the **eval viewer** (`bun run eval:ui`, port 5199 —
-`apps/eval-viewer`): the suite catalog grouped by behavior/realbook with
+`packages/agent/eval-viewer`): the suite catalog grouped by behavior/realbook with
 stable reference codes (scenarios are cited as `S07.3`), each scenario's
 definition (turns, expectations, rubric, seed), and every run bundle rendered
-as a full report. Suites carry a `code` field — codes are append-only and never
-reused.
+as a full report and review workspace. Suites carry a `code` field — codes are
+append-only and never reused.
 
 Bundles can contain book excerpts, questions, model reasoning, tool arguments,
 and local paths. They are local diagnostic artifacts, not telemetry. API keys

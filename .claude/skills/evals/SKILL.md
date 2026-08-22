@@ -1,6 +1,6 @@
 ---
 name: evals
-description: ReadAware agent eval 流水线：跑套件 → 在 eval viewer SPA（bun run eval:ui，S01…编号目录 + run 报告）里可视化 → 读趋势 → 修断言用 rescore 免费重评 → 新书/新场景入库规程。触发词："跑 eval"、"eval 一下"、"回归一下 agent"、"run evals"、"eval viewer"、"加个 eval 场景"、"S07.3"这类场景编号。
+description: ReadAware agent eval 流水线：跑套件 → 在 eval viewer SPA（bun run eval:ui，S01…编号目录 + run 报告）里做机器与人工评测 → 主 Agent 以真实读者视角做质性 Judge → 修断言用 rescore 免费重评 → 新书/新场景入库规程。触发词："跑 eval"、"eval 一下"、"回归一下 agent"、"run evals"、"eval viewer"、"人工评测"、"加个 eval 场景"、"S07.3"这类场景编号。
 ---
 
 # ReadAware Agent Evals
@@ -33,15 +33,21 @@ CoreWeave 优先路由，key 在 `~/.pi/agent/auth.json`）、thinking **medium*
 ## 可视化：eval viewer SPA
 
 ```sh
-bun run eval:ui        # http://127.0.0.1:5199 （apps/eval-viewer，Vercel 文档风格）
+bun run eval:ui        # http://127.0.0.1:5199 （packages/agent/eval-viewer）
 ```
 
 - **Overview**：全部套件（S01…S17 编号）+ 最近 runs 列表。
 - **Suite 页**：这个套件测什么、每个场景怎么测——读者原话轮次、确定性
   expectation、criteria、judge rubric、seed 世界态，全部可展开。
-- **Run 页**：一次运行的完整报告——pass 率/费用/token 大盘、逐场景表、每个
-  run 展开（checks 失败置顶带 expected/actual、完整对话、工具轨迹）、"只看
-  失败"过滤。
+- **Run 页**：一次运行的完整报告——机器 pass 率/费用/token 大盘；评测工作台
+  首屏直接并排呈现样本目录、读者问题、模型完整回答、工具轨迹与人工评分，
+  不再把问答藏在折叠区。可按全部/待评/有问题筛选。
+- **人工 Judge**：每个固定样本或自由会话回答都可记录总体判断（满意/有保留/
+  不满意）、正确可信/回答完整/阅读帮助/表达分寸四项 1–5 分、问题标签与评语。
+  结果分别落在 run bundle 的 `human-reviews.json` 与 `manual-sessions.json`。
+- **自由评测**：从任一固定场景继承同一本书、seed、阅读位置和可选选区，直接输入
+  新问题；同一会话可连续追问，使用真实 `AgentThread` 和该 run 的模型配置。进程
+  重启后历史仍可阅读和评分，但模型会话不可恢复，需要新开会话。
 - **引用坐标**：场景一律用 `S07.3` 这种编号沟通（套件 code + 套件内序号）；
   编号只增不改。用户报编号 → 在 viewer 的 Suite 页或 `evalSuites` 注册表
   按序号定位场景。
@@ -50,6 +56,24 @@ bun run eval:ui        # http://127.0.0.1:5199 （apps/eval-viewer，Vercel 文�
 - viewer 是**直播的**：正在跑的 run（含进行中进度 n/total）实时出现在列表与 Run 页，
   SSE 随工件落盘自动刷新，无须手动刷新；十分钟无写入的未完成 run 标"中断"。
   终端仍打印 trend delta（`!` 前缀 = 回归场景）。bundle 含书文本与模型输出——本地诊断工件，**不许 commit、不许外发**。
+
+## 主 Agent / 人工 Judge（真书 eval 必做）
+
+LLM `--judge` 是可扩展的机器评分器，不是最终产品判断，也不能让被测模型在没有
+独立复核时给自己背书。每次判断真书 eval 是否修好、是否可发布，主 Agent 必须：
+
+1. 先读全部失败与 error、全部本次改动直接相关的场景，再抽读各真书套件的机器
+   pass；不能只转述通过率或 judge 分数。
+2. 把自己当成读到该位置的真实读者，逐条判断回答是否正确、有依据、答完整、对
+   阅读有帮助且有分寸；在 Viewer 写入总体判断、四维评分、问题标签和可追溯评语。
+3. 对被修改的能力至少补一个固定题库之外的真实问题，并在需要时连续追问，检查
+   模型是否只会命中结构化断言。自由问题和回答必须保留在同一 run 工件里供用户复核。
+4. 结论必须分开报告：确定性检查、LLM judge、主 Agent/人工满意度。机器绿但读者
+   不满意仍算产品问题；说明原因属于检索、上下文、工具轨迹、回答组织还是评测盲区。
+5. 用户可在同一 Viewer 继续评分、改评语和补问。主 Agent 的判断是有证据的首轮
+   产品评审，不是替用户关闭讨论。
+
+发布前至少完成上面这轮质性审阅；未审的机器 pass 不得表述为“读者体验已通过”。
 
 ## 失败分诊（顺序固定）
 

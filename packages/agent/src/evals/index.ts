@@ -14,4 +14,5 @@ export {
   type EvalSuiteGroupId,
 } from "./suites";
 export type { AgentEvalScenario } from "./agent-harness";
+export { createManualEvalSession, type ManualEvalSession } from "./manual-session";
 export type { EvalSuite, EvalRunRecord, EvalSummary } from "./types";

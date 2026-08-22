@@ -1,6 +1,4 @@
 import { useEffect, useState } from "react";
-import DOMPurify from "dompurify";
-import { marked } from "marked";
 import {
   fetchRun,
   ms,
@@ -9,92 +7,7 @@ import {
   type RunDetail,
   type RunRecord,
 } from "../api";
-
-function RunCard({ record, refOf }: { record: RunRecord; refOf: (scenarioId: string) => string }) {
-  const checks = record.assessment?.checks ?? [];
-  const failedFirst = [...checks].sort((a, b) => Number(a.passed) - Number(b.passed));
-  const turns = record.output?.turns ?? [];
-  const tools = record.output?.tools ?? [];
-  const badge =
-    record.status === "passed" ? "ok" : record.status === "failed" ? "fail" : "err";
-
-  return (
-    <details className="card" data-status={record.status}>
-      <summary>
-        <span className={`badge ${badge}`}>{record.status}</span>
-        <span className="refchip">{refOf(record.scenarioId)}</span>
-        <span className="title mono">{record.scenarioId}</span>
-        <span className="meta">
-          {record.variantId !== "baseline" ? `${record.variantId} · ` : ""}#{record.repetition} · score{" "}
-          {record.assessment ? record.assessment.score.toFixed(2) : "—"} ·{" "}
-          {ms(record.telemetry.wallTimeMs)} · {record.telemetry.rounds ?? "—"} rounds · {tools.length}{" "}
-          tools · {usd(record.telemetry.costUsd)}
-        </span>
-      </summary>
-      <div className="cardbody">
-        {record.error && (
-          <pre style={{ borderColor: "var(--fail)", color: "var(--fail)" }}>
-            {record.error.stage} · {record.error.name}: {record.error.message}
-          </pre>
-        )}
-        {failedFirst.length > 0 && (
-          <ul className="checks">
-            {failedFirst.map((check) => (
-              <li key={check.id + check.message} className={`check ${check.passed ? "ok" : "fail"}`}>
-                <span className="dot" />
-                <span className="cat">{check.category}</span>
-                <span className="cid">{check.id}</span>
-                <span>{check.message}</span>
-                {(check.expected !== undefined || check.actual !== undefined) && (
-                  <pre className="kv">
-                    {check.expected !== undefined && `expected: ${JSON.stringify(check.expected)}\n`}
-                    {check.actual !== undefined && `actual:   ${JSON.stringify(check.actual)}`}
-                  </pre>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-        {turns.map((turn, index) => (
-          <div key={index}>
-            <div className="who">读者 · 第 {index + 1} 轮</div>
-            <div className="bubble">{turn.input?.text ?? ""}</div>
-            <div className="who">agent</div>
-            <div
-              className="bubble answer md"
-              // 回答里含模型转述的书文本，而 fixture EPUB 是第三方文件——
-              // 恶意书的 HTML 载荷可顺"书 → 回答 → 工件 → viewer"链路进来，
-              // 渲染前必须消毒。
-              dangerouslySetInnerHTML={{
-                __html: DOMPurify.sanitize(marked.parse(turn.answer ?? "", { async: false })),
-              }}
-            />
-          </div>
-        ))}
-        {tools.length > 0 && (
-          <>
-            <div className="section-label">工具调用</div>
-            {tools.map((tool, index) => {
-              const args = tool.args === undefined ? "" : JSON.stringify(tool.args);
-              return (
-                <details key={index} className={`tool ${tool.isError ? "fail" : ""}`}>
-                  <summary>
-                    <code>{tool.name}</code>{" "}
-                    <span className="args">{args.length > 200 ? `${args.slice(0, 200)}…` : args}</span>
-                    {tool.isError && <span className="badge fail"> error</span>}
-                  </summary>
-                  {tool.output && (
-                    <pre>{tool.output.length > 600 ? `${tool.output.slice(0, 600)}…` : tool.output}</pre>
-                  )}
-                </details>
-              );
-            })}
-          </>
-        )}
-      </div>
-    </details>
-  );
-}
+import { RunReviewWorkspace } from "../components/RunReviewWorkspace";
 
 /** 进行中 run 没有 summary——从已落盘的 records 现场聚合一份等形状的。 */
 function synthesizeSummary(
@@ -142,7 +55,6 @@ export function RunPage({
 }) {
   const [detail, setDetail] = useState<RunDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [failedOnly, setFailedOnly] = useState(false);
   const [activeRescore, setActiveRescore] = useState("");
 
   useEffect(() => {
@@ -186,13 +98,6 @@ export function RunPage({
   const variants = detail.manifest?.plan?.variants ?? [];
   const passRate = summary.runs ? summary.passed / summary.runs : 0;
 
-  const ordered = [...records].sort((a, b) => {
-    const rank = (record: RunRecord) =>
-      record.status === "error" ? 0 : record.status === "failed" ? 1 : 2;
-    return rank(a) - rank(b) || a.scenarioId.localeCompare(b.scenarioId) || a.repetition - b.repetition;
-  });
-  const visible = failedOnly ? ordered.filter((record) => record.status !== "passed") : ordered;
-
   return (
     <>
       {liveBanner}
@@ -234,13 +139,13 @@ export function RunPage({
       <div className="stats">
         <div className="stat">
           <div className={`v ${passRate === 1 ? "ok" : "bad"}`}>{Math.round(passRate * 100)}%</div>
-          <div className="k">通过率</div>
+          <div className="k">机器通过率</div>
         </div>
         <div className="stat">
           <div className="v">
             {summary.passed}/{summary.runs}
           </div>
-          <div className="k">通过 / 运行</div>
+          <div className="k">机器通过 / 运行</div>
         </div>
         <div className="stat">
           <div className={`v ${summary.errors ? "bad" : ""}`}>{summary.errors}</div>
@@ -255,6 +160,35 @@ export function RunPage({
           <div className="k">费用</div>
         </div>
       </div>
+
+      <h2>人工评测工作台</h2>
+      <RunReviewWorkspace
+        runId={runId}
+        records={records}
+        refOf={refOf}
+        humanReviews={detail.humanReviews ?? {}}
+        manualSessions={detail.manualSessions ?? []}
+        onReviewChange={(review) =>
+          setDetail((current) =>
+            current
+              ? {
+                  ...current,
+                  humanReviews: { ...(current.humanReviews ?? {}), [review.targetId]: review },
+                }
+              : current,
+          )
+        }
+        onManualSessionChange={(session) =>
+          setDetail((current) => {
+            if (!current) return current;
+            const sessions = [...(current.manualSessions ?? [])];
+            const index = sessions.findIndex((entry) => entry.id === session.id);
+            if (index >= 0) sessions[index] = session;
+            else sessions.unshift(session);
+            return { ...current, manualSessions: sessions };
+          })
+        }
+      />
 
       {variants.length > 1 && (
         <>
@@ -355,22 +289,6 @@ export function RunPage({
         </tbody>
       </table>
 
-      <h2>逐条运行</h2>
-      <div className="filters">
-        <button className={failedOnly ? "" : "active"} onClick={() => setFailedOnly(false)}>
-          全部
-        </button>
-        <button className={failedOnly ? "active" : ""} onClick={() => setFailedOnly(true)}>
-          只看失败与错误
-        </button>
-      </div>
-      {visible.map((record) => (
-        <RunCard
-          key={`${record.scenarioId}-${record.variantId}-${record.repetition}`}
-          record={record}
-          refOf={refOf}
-        />
-      ))}
     </>
   );
 }

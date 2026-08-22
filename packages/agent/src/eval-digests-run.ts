@@ -4,7 +4,7 @@
  * 写成 fixtures/<slug>-digests.json —— eval 场景以此获得"生产同形"的图
  * 切片，一次生成、入库为 fixture、永远确定。
  *
- * 用法（OpenRouter 为缺省 provider——CoreWeave 优先路由，key 解析与 eval
+ * 用法（OpenRouter 为缺省 provider——Baidu/千帆优先路由，key 解析与 eval
  * runner 同源）：
  *   bun run eval:digests <slug> [--provider openrouter] [--model deepseek/deepseek-v4-flash-0731]
  *   bun run eval:digests santi --resume     # 续跑：保留已有章节，只补缺失

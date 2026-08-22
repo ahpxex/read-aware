@@ -164,7 +164,7 @@ export function createAgentEvalVariant(
       { smart: options.modelId, fast: options.modelId },
       options.registry,
     );
-  // OpenRouter 变体统一带上 eval 的上游路由偏好（CoreWeave 优先）。
+  // OpenRouter 变体统一带上 eval 的上游路由偏好（Baidu/千帆优先）。
   const resolveModel: ResolveModel = (role) => applyEvalRouting(baseResolve(role));
   const selectedModel = resolveModel("smart");
 

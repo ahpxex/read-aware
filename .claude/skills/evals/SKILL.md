@@ -26,7 +26,7 @@ bun run eval:agent <suite> --gate                # 行为失败也变非零退�
 ```
 
 缺省即正确姿势：provider **openrouter**（模型钉 `deepseek/deepseek-v4-flash-0731`，不带日期的 slug 是 0423 旧快照，
-CoreWeave 优先路由，key 在 `~/.pi/agent/auth.json`）、thinking **medium**、
+Baidu/千帆优先路由（CoreWeave 次选），key 在 `~/.pi/agent/auth.json`）、thinking **medium**、
 单场景超时 **240s**。`--provider deepseek` 是旧直连路径；跨 provider/thinking
 档位的结果**不可比**（trend 会标 INCOMPARABLE）。
 
@@ -121,7 +121,7 @@ bun run eval:classify                    # 叙事性分类器对全部注册书�
 - 凡"管线写入、agent 消费"的字段，产品投影链必须有直测——eval 的内存端口
   与产品端口共享实现（如 searchTurnRecords），不许让 fixture 在接缝处替产品圆谎。
 
-## 成本量级（OpenRouter × CoreWeave，medium thinking）
+## 成本量级（OpenRouter × Baidu/千帆折扣价，medium thinking）
 
 单场景 ≈ $0.001–0.01；全量一遍 ≈ 数十美分；digests 全书重生成一本 ≈ 几美分。
 放开跑，别为省这点钱牺牲 repetitions。

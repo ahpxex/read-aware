@@ -33,7 +33,7 @@ export interface AgentRuntimeOptions {
   /**
    * 宿主对解析出的模型做最后修饰的接缝——产品用它注入用户配置的
    * OpenRouter 上游路由（compat.openRouterRouting），eval 用同型接缝
-   * 注入 CoreWeave 偏好。缺省恒等。
+   * 注入 Baidu/千帆偏好。缺省恒等。
    */
   transformModel?: <T extends { provider: string; compat?: object }>(model: T) => T;
 }

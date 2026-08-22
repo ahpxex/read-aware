@@ -235,9 +235,12 @@ bun run eval:classify
 snapshot, not a rolling alias), reading `OPENROUTER_API_KEY` or the Pi CLI
 credential in `~/.pi/agent/auth.json` (`openrouter` entry; the key itself
 lives in 1Password as "OpenRouter API Key - Deepseek"). Every eval-side
-OpenRouter request carries a routing preference — CoreWeave first,
-fallbacks allowed (`applyEvalRouting` in `evals/model-config.ts`) — because
-the official DeepSeek API got expensive; this preference is eval-only and
+OpenRouter request carries a routing preference — Baidu (Qianfan) first,
+CoreWeave second, fallbacks allowed (`applyEvalRouting` in
+`evals/model-config.ts`; same model snapshot and fp8 quantization, Baidu's
+catalog price carries a ~49% discount, so effective eval cost is roughly half
+the old CoreWeave-only routing) — because the official DeepSeek API got
+expensive; this preference is eval-only and
 never leaks into the product, where OpenRouter users own their account
 routing. `--provider deepseek` still works for the old direct path.
 

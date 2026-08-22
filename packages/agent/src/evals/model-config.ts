@@ -62,12 +62,13 @@ const EVAL_DEFAULT_MODELS: Partial<Record<KnownProviderId, string>> = {
 };
 
 /**
- * eval 侧的 OpenRouter 上游路由：优先 CoreWeave（fp8 端点，快且稳定），
+ * eval 侧的 OpenRouter 上游路由：Baidu（千帆）fp8 端点首选——同快照同量化，
+ * 目录价还带 ~49% 折扣，实付约为 CoreWeave 的一半；CoreWeave 列为显式次选，
  * 不可用时允许回退——eval 不该因单一上游抖动而全挂。只影响 eval/开发
  * 链路；产品用户的 OpenRouter 路由归他们自己的账户偏好。
  */
 const OPENROUTER_EVAL_ROUTING = {
-  order: ["coreweave"],
+  order: ["baidu", "coreweave"],
   allow_fallbacks: true,
 } as const;
 

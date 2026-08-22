@@ -12,7 +12,8 @@ import { useSyncStatus } from "../hooks/useSyncStatus";
 
 /**
  * The "sign in again" prompt for a relay-rejected session, living in the same
- * leading-status slot (and following the same manners) as WhatsNewNotice.
+ * leading-status slot (and following the same manners) as the update
+ * surfaces.
  * Clicking opens Settings → Data & Sync where the re-login lives; the X
  * silences it for this dead session's epoch (persisted — see
  * platform/sync/reauth-notice.ts), after which settings stays the one door.

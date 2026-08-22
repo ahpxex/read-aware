@@ -25,8 +25,13 @@
     "downloadingProgress": "Загрузка {{progress}}%",
     "installing": "Установка обновления...",
     "failed": "Не удалось обновить. Повторить",
-    "whatsNew": "Что нового в v{{version}}",
-    "whatsNewDismiss": "Скрыть заметку об обновлении"
+    "whatsNewTitle": "ReadAware обновлён до v{{version}}",
+    "whatsNewBody": "Посмотрите, что изменилось в этой версии.",
+    "whatsNewChangelog": "Открыть список изменений",
+    "whatsNewDone": "Понятно",
+    "whatsNewNew": "Новое",
+    "whatsNewImproved": "Улучшения",
+    "whatsNewFixed": "Исправления"
   },
   "error": {
     "title": "Что-то прервало процесс чтения.",

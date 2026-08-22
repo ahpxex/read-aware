@@ -19,7 +19,7 @@ import { fileURLToPath } from "node:url";
 const appDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const distDir = join(appDir, "dist");
 
-const { render, staticPaths, POSTS } = await import(
+const { render, staticPaths, POSTS, CHANGELOG } = await import(
   join(appDir, "dist-ssr", "entry-server.js")
 );
 
@@ -335,5 +335,12 @@ const feed = [
 ].join("\n");
 await writeFile(join(distDir, "feed.xml"), feed);
 console.log(`wrote feed.xml (${POSTS.length} posts)`);
+
+// The desktop app's post-update dialog fetches this (features/update/lib/
+// changelog-feed.ts): the same hand-written, all-locale registry the /changelog
+// pages render from, as one static JSON file. Published verbatim — the client
+// picks the version and locale it needs.
+await writeFile(join(distDir, "changelog.json"), JSON.stringify(CHANGELOG));
+console.log(`wrote changelog.json (${CHANGELOG.length} versions)`);
 
 console.log(`prerendered ${paths.length} routes`);

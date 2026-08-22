@@ -25,8 +25,13 @@
     "downloadingProgress": "ダウンロード中 {{progress}}%",
     "installing": "アップデートをインストール中…",
     "failed": "アップデートに失敗しました。再試行",
-    "whatsNew": "v{{version}} の新機能を見る",
-    "whatsNewDismiss": "更新のお知らせを閉じる"
+    "whatsNewTitle": "ReadAware が v{{version}} になりました",
+    "whatsNewBody": "このバージョンの変更点をチェックしてみましょう。",
+    "whatsNewChangelog": "更新履歴を見る",
+    "whatsNewDone": "閉じる",
+    "whatsNewNew": "新機能",
+    "whatsNewImproved": "改善",
+    "whatsNewFixed": "修正"
   },
   "error": {
     "title": "読書の流れが中断されました。",

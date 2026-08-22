@@ -15,6 +15,10 @@ import { createAppRouter } from "./router";
 // JSON-LD, article:published_time, and the RSS feed from the same source of
 // truth the pages render from.
 export { POSTS } from "./lib/posts";
+// The changelog registry rides along for the same reason: the prerender
+// script publishes it as /changelog.json, which the desktop app's
+// post-update dialog reads (features/update/lib/changelog-feed.ts).
+export { CHANGELOG } from "./lib/changelog";
 
 /**
  * Every concrete route path in the tree, "/" included. `routesByPath` keys

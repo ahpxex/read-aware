@@ -38,6 +38,10 @@
       "autoUpdate": {
         "title": "Automatically check for updates",
         "description": "Show a quiet notice in the main window when a new version is available."
+      },
+      "whatsNewDialog": {
+        "title": "Show the \"what's new\" notice after updates",
+        "description": "After an update, show a small dialog once summarizing where to find what changed."
       }
     },
     "languagePrivacy": "Language & privacy",
@@ -433,7 +437,8 @@
       "bookDownParts": "Downloading “{{title}}” ({{done}}/{{total}})"
     },
     "indicator": {
-      "label": "Sync status"
+      "label": "Sync status",
+      "errorDismiss": "Silence the sync error for now"
     },
     "deleteAll": {
       "title": "Delete all data",

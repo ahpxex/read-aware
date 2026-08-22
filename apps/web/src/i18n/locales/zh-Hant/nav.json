@@ -25,8 +25,13 @@
     "downloadingProgress": "正在下載 {{progress}}%",
     "installing": "正在安裝更新…",
     "failed": "更新失敗，重試",
-    "whatsNew": "看看 v{{version}} 更新了什麼",
-    "whatsNewDismiss": "關閉更新提示"
+    "whatsNewTitle": "ReadAware 已更新到 v{{version}}",
+    "whatsNewBody": "看看這個版本更新了什麼。",
+    "whatsNewChangelog": "檢視更新日誌",
+    "whatsNewDone": "知道了",
+    "whatsNewNew": "新功能",
+    "whatsNewImproved": "改進",
+    "whatsNewFixed": "修復"
   },
   "error": {
     "title": "有狀況打斷了閱讀流程。",

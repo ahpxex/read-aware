@@ -9,6 +9,28 @@ describe("shouldShowSyncIndicator", () => {
         true,
       ),
     ).toBe(false);
+    expect(
+      shouldShowSyncIndicator(
+        { accountConnected: false, lastSyncAt: Date.now(), state: "syncing" },
+        false,
+      ),
+    ).toBe(false);
+  });
+
+  test("a running cycle is invisible in the header — progress lives in settings", () => {
+    expect(
+      shouldShowSyncIndicator(
+        { accountConnected: true, lastSyncAt: Date.now(), state: "syncing" },
+        false,
+      ),
+    ).toBe(false);
+    // The very first sync is no different: the header stays quiet.
+    expect(
+      shouldShowSyncIndicator(
+        { accountConnected: true, lastSyncAt: null, state: "syncing" },
+        false,
+      ),
+    ).toBe(false);
   });
 
   test("hides an error until the account has synchronized successfully", () => {
@@ -35,16 +57,33 @@ describe("shouldShowSyncIndicator", () => {
     ).toBe(true);
   });
 
-  test("still shows live progress for the first sync", () => {
+  test("a snoozed error stays hidden, open popover or not", () => {
     expect(
       shouldShowSyncIndicator(
-        { accountConnected: true, lastSyncAt: null, state: "syncing" },
+        { accountConnected: true, lastSyncAt: Date.now(), state: "error" },
         false,
+        true,
       ),
-    ).toBe(true);
+    ).toBe(false);
+    expect(
+      shouldShowSyncIndicator(
+        { accountConnected: true, lastSyncAt: Date.now(), state: "error" },
+        true,
+        true,
+      ),
+    ).toBe(false);
   });
 
-  test("keeps an open idle popover mounted only while connected", () => {
+  test("keeps an already-open chip mounted through a follow-up cycle", () => {
+    // The chip opened from its error state; the user hits "sync now" in the
+    // popover — the popover they are reading must not vanish mid-retry, nor
+    // in the idle aftermath, but a fresh mount after closing stays gone.
+    expect(
+      shouldShowSyncIndicator(
+        { accountConnected: true, lastSyncAt: Date.now(), state: "syncing" },
+        true,
+      ),
+    ).toBe(true);
     expect(
       shouldShowSyncIndicator(
         { accountConnected: true, lastSyncAt: Date.now(), state: "idle" },

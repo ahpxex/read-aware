@@ -25,8 +25,13 @@
     "downloadingProgress": "Download {{progress}}%",
     "installing": "Update wird installiert...",
     "failed": "Update fehlgeschlagen. Erneut versuchen",
-    "whatsNew": "Neues in v{{version}} ansehen",
-    "whatsNewDismiss": "Update-Hinweis schließen"
+    "whatsNewTitle": "ReadAware ist jetzt v{{version}}",
+    "whatsNewBody": "Sieh nach, was in dieser Version neu ist.",
+    "whatsNewChangelog": "Änderungsprotokoll ansehen",
+    "whatsNewDone": "Alles klar",
+    "whatsNewNew": "Neu",
+    "whatsNewImproved": "Verbessert",
+    "whatsNewFixed": "Behoben"
   },
   "error": {
     "title": "Etwas hat den Lesefluss unterbrochen.",

@@ -38,6 +38,10 @@
       "autoUpdate": {
         "title": "Automatisch nach Updates suchen",
         "description": "Bei einer neuen Version einen dezenten Hinweis im Hauptfenster anzeigen."
+      },
+      "whatsNewDialog": {
+        "title": "Hinweis nach Updates anzeigen",
+        "description": "Nach einem Update einmalig einen kleinen Dialog mit den Neuerungen anzeigen."
       }
     },
     "languagePrivacy": "Sprache & Datenschutz",
@@ -433,7 +437,8 @@
       "bookDownParts": "„{{title}}“ wird heruntergeladen ({{done}}/{{total}})"
     },
     "indicator": {
-      "label": "Synchronisierungsstatus"
+      "label": "Synchronisierungsstatus",
+      "errorDismiss": "Fehlerhinweis vorübergehend ausblenden"
     },
     "deleteAll": {
       "title": "Alle Daten löschen",

@@ -25,8 +25,13 @@
     "downloadingProgress": "Descargando {{progress}}%",
     "installing": "Instalando actualización...",
     "failed": "Error al actualizar. Reintentar",
-    "whatsNew": "Ver las novedades de v{{version}}",
-    "whatsNewDismiss": "Cerrar el aviso de actualización"
+    "whatsNewTitle": "ReadAware ahora está en v{{version}}",
+    "whatsNewBody": "Echa un vistazo a lo que cambió en esta versión.",
+    "whatsNewChangelog": "Ver el registro de cambios",
+    "whatsNewDone": "Entendido",
+    "whatsNewNew": "Novedades",
+    "whatsNewImproved": "Mejoras",
+    "whatsNewFixed": "Correcciones"
   },
   "error": {
     "title": "Algo interrumpió el flujo de lectura.",

@@ -20,6 +20,8 @@ export type GeneralSettings = {
   launchAtStartup: boolean;
   fileAssociations: boolean;
   autoUpdate: boolean;
+  /** Show the post-upgrade "what's new" dialog once per version change. */
+  whatsNewDialog: boolean;
 };
 
 export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
@@ -29,6 +31,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   launchAtStartup: false,
   fileAssociations: true,
   autoUpdate: true,
+  whatsNewDialog: true,
 };
 
 export function getGeneralSettings(): GeneralSettings {
@@ -43,6 +46,7 @@ export function getGeneralSettings(): GeneralSettings {
       launchAtStartup: parsed.launchAtStartup ?? DEFAULT_GENERAL_SETTINGS.launchAtStartup,
       fileAssociations: parsed.fileAssociations ?? DEFAULT_GENERAL_SETTINGS.fileAssociations,
       autoUpdate: parsed.autoUpdate ?? DEFAULT_GENERAL_SETTINGS.autoUpdate,
+      whatsNewDialog: parsed.whatsNewDialog ?? DEFAULT_GENERAL_SETTINGS.whatsNewDialog,
     };
   } catch {
     return DEFAULT_GENERAL_SETTINGS;

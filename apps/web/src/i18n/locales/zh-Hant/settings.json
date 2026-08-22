@@ -38,6 +38,10 @@
       "autoUpdate": {
         "title": "自動檢查更新",
         "description": "發現新版本時，在主介面安靜地顯示提示。"
+      },
+      "whatsNewDialog": {
+        "title": "更新後顯示「新內容」提示",
+        "description": "應用程式更新後，彈出一次小視窗提示可以在哪裡查看更新內容。"
       }
     },
     "languagePrivacy": "語言與隱私",
@@ -429,7 +433,8 @@
       "bookDownParts": "正在下載《{{title}}》（{{done}}/{{total}}）"
     },
     "indicator": {
-      "label": "同步狀態"
+      "label": "同步狀態",
+      "errorDismiss": "暫時忽略同步錯誤"
     },
     "deleteAll": {
       "title": "刪除全部資料",

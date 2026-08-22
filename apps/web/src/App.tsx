@@ -24,7 +24,7 @@ import { useContextHeaderActions } from "./features/context/hooks/useContextHead
 import { SyncIndicator } from "./features/sync/components/SyncIndicator";
 import { SyncReauthNotice } from "./features/sync/components/SyncReauthNotice";
 import { UpdateIndicator } from "./features/update/components/UpdateIndicator";
-import { WhatsNewNotice } from "./features/update/components/WhatsNewNotice";
+import { WhatsNewDialog } from "./features/update/components/WhatsNewDialog";
 import { useSoftwareUpdate } from "./features/update/hooks/useSoftwareUpdate";
 import { ShelfManagementMenu } from "./features/shelf/components/ShelfManagementMenu";
 import { useOpenBookRequestHandler } from "./features/ai/hooks/useOpenBookRequest";
@@ -563,7 +563,6 @@ function App() {
                 <SyncIndicator />
                 <SyncReauthNotice />
                 <UpdateIndicator />
-                <WhatsNewNotice />
               </>
             }
             viewControl={
@@ -638,6 +637,8 @@ function App() {
       )}
 
       {dropImportActive && <DropImportOverlay />}
+
+      <WhatsNewDialog />
 
       <PluginToastBridge />
       <PluginDialogHost />

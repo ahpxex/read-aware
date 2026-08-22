@@ -25,8 +25,13 @@
     "downloadingProgress": "Downloading {{progress}}%",
     "installing": "Installing update...",
     "failed": "Update failed. Retry",
-    "whatsNew": "See what's new in v{{version}}",
-    "whatsNewDismiss": "Dismiss update notes"
+    "whatsNewTitle": "ReadAware is now v{{version}}",
+    "whatsNewBody": "Take a look at what changed in this release.",
+    "whatsNewChangelog": "View changelog",
+    "whatsNewDone": "Got it",
+    "whatsNewNew": "New",
+    "whatsNewImproved": "Improved",
+    "whatsNewFixed": "Fixed"
   },
   "error": {
     "title": "Something interrupted the reading flow.",

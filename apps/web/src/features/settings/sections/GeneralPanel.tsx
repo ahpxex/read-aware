@@ -76,6 +76,19 @@ export function GeneralPanel() {
             />
           }
         />
+        <SettingsRow
+          title={t("general.desktopIntegration.whatsNewDialog.title")}
+          description={t("general.desktopIntegration.whatsNewDialog.description")}
+          control={
+            <Toggle
+              aria-label={t("general.desktopIntegration.whatsNewDialog.title")}
+              checked={settings.whatsNewDialog}
+              onChange={(whatsNewDialog) =>
+                setSettings({ ...settings, whatsNewDialog })
+              }
+            />
+          }
+        />
       </SettingsGroup>
 
       <SettingsGroup title={t("general.languagePrivacy")}>

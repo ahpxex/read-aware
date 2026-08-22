@@ -38,6 +38,10 @@
       "autoUpdate": {
         "title": "Rechercher automatiquement les mises à jour",
         "description": "Afficher un avis discret dans la fenêtre principale lorsqu’une nouvelle version est disponible."
+      },
+      "whatsNewDialog": {
+        "title": "Afficher la note « nouveautés » après les mises à jour",
+        "description": "Après une mise à jour, afficher une petite boîte de dialogue une seule fois."
       }
     },
     "languagePrivacy": "Langue et confidentialité",
@@ -437,7 +441,8 @@
       "bookDownParts": "Téléchargement de « {{title}} » ({{done}}/{{total}})"
     },
     "indicator": {
-      "label": "État de la synchronisation"
+      "label": "État de la synchronisation",
+      "errorDismiss": "Masquer temporairement l'erreur de synchronisation"
     },
     "deleteAll": {
       "title": "Supprimer toutes les données",

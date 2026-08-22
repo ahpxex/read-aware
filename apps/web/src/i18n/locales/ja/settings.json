@@ -38,6 +38,10 @@
       "autoUpdate": {
         "title": "アップデートを自動確認",
         "description": "新しいバージョンがあるとき、メイン画面に控えめな通知を表示します。"
+      },
+      "whatsNewDialog": {
+        "title": "アップデート後にお知らせを表示",
+        "description": "アップデートのあと、変更内容への案内を一度だけダイアログで表示します。"
       }
     },
     "languagePrivacy": "言語とプライバシー",
@@ -429,7 +433,8 @@
       "bookDownParts": "「{{title}}」をダウンロード中（{{done}}/{{total}}）"
     },
     "indicator": {
-      "label": "同期の状態"
+      "label": "同期の状態",
+      "errorDismiss": "同期エラーをしばらく非表示にする"
     },
     "deleteAll": {
       "title": "すべてのデータを削除",

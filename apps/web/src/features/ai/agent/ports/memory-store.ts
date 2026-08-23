@@ -16,28 +16,9 @@ function assertDesktop(): void {
 /** SQLite 侧 status 恒有值；pinned 恒为布尔。与 MemoryRecord 的可选字段兼容。 */
 type MemoryRow = MemoryRecord & { pinned: boolean; status: NonNullable<MemoryRecord["status"]> };
 
-function toRow(record: MemoryRecord): MemoryRow {
-  return {
-    ...record,
-    pinned: record.pinned ?? false,
-    status: record.status ?? "active",
-  };
-}
-
 export async function listAllMemoryRows(): Promise<MemoryRecord[]> {
   assertDesktop();
   return invoke<MemoryRow[]>("memories_list_all");
-}
-
-/**
- * Raw upsert. NOT a write path for the agent — memory changes are stated as
- * `memory.*` events and the store derives this table from them (see
- * memory-port.ts). Kept for the one-time import of pre-event-era memories in
- * platform/desktop-import.ts.
- */
-export async function putMemoryRow(record: MemoryRecord): Promise<void> {
-  assertDesktop();
-  await invoke("memory_put", { memory: toRow(record) });
 }
 
 export async function getMemoryRow(id: string): Promise<MemoryRecord | undefined> {

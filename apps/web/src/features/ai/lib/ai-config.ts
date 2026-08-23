@@ -334,10 +334,6 @@ export function clearAIConfig(): void {
   }
 }
 
-export function hasAIConfig(): boolean {
-  return getAIConfig() !== null;
-}
-
 // Default "smart" model for each provider (chat, onboarding, synthesis).
 export const DEFAULT_MODELS: Record<AIProvider, string> = {
   readaware: DEFAULT_READAWARE_MODEL,

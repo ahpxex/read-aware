@@ -172,33 +172,6 @@ export function addReadingTime(
   };
 }
 
-export type ReadingDayBucket = {
-  key: string;
-  date: Date;
-  ms: number;
-  isToday: boolean;
-};
-
-/**
- * The last `days` calendar days (oldest first, ending today) with each day's
- * recorded reading time — the series the weekly distribution chart renders.
- */
-export function weeklyReadingBuckets(
-  stats: BookReadingStats,
-  now: number,
-  days = 7,
-): ReadingDayBucket[] {
-  const todayKey = localDayKey(now);
-  const buckets: ReadingDayBucket[] = [];
-  for (let i = days - 1; i >= 0; i -= 1) {
-    const date = new Date(now);
-    date.setHours(0, 0, 0, 0);
-    date.setDate(date.getDate() - i);
-    const key = localDayKey(date.getTime());
-    buckets.push({ key, date, ms: stats.daily[key] ?? 0, isToday: key === todayKey });
-  }
-  return buckets;
-}
 
 /**
  * Compact human duration: `<1m`, `42m`, `3h`, `3h 20m`.

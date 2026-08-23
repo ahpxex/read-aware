@@ -61,8 +61,8 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        CFBundleShortVersionString: 0.5.0-5
-        CFBundleVersion: "0.5.0-5"
+        CFBundleShortVersionString: 0.5.0-6
+        CFBundleVersion: "0.5.0-6"
     entitlements:
       path: read-aware-desktop_iOS/read-aware-desktop_iOS.entitlements
     scheme:

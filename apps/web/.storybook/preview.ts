@@ -1,5 +1,6 @@
 import { createElement, type ReactNode } from "react";
 import { Provider as JotaiProvider } from "jotai";
+import { ToastProvider } from "@read-aware/ui";
 import type { Preview } from "@storybook/react-vite";
 import { initI18n } from "../src/i18n";
 import "../src/index.css";
@@ -49,16 +50,23 @@ const preview: Preview = {
       // against defaults instead of state another story left behind. (Writes
       // that go through storage-backed atoms still hit this origin's
       // localStorage — isolation here is for in-memory atom state.)
+      // The app mounts everything inside a ToastProvider (routes/__root), so
+      // surfaces that raise toasts assume one is there. Without it here, any
+      // story of such a surface fails to render at all.
       return createElement(
         JotaiProvider,
         null,
         createElement(
-          "div",
-          {
-            className: "bg-paper text-fg",
-            style: { minHeight: "100vh", padding: "2rem" },
-          },
-          Story() as ReactNode,
+          ToastProvider,
+          null,
+          createElement(
+            "div",
+            {
+              className: "bg-paper text-fg",
+              style: { minHeight: "100vh", padding: "2rem" },
+            },
+            Story() as ReactNode,
+          ),
         ),
       );
     },

@@ -1,14 +1,11 @@
 /**
- * The Sync group of the Data & Sync panel. Disconnected it is one quiet row
- * with a "Connect account" button — the whole sign-in flow lives in
- * SyncConnectDialog. Connected it follows the panel's row grammar, one
- * concern per row with its own control: Account (identity / disconnect),
- * Status (last sync / sync now, or the re-login), Plan (tier + usage /
- * upgrade or manage). The icon-strip detail stays in the header popover.
+ * The Sync group's container: the live connection, the relay's account info,
+ * the outbox backlogs, and the billing round-trips. The rows themselves are
+ * `SyncAccountGroupView`.
  */
 import { useEffect, useState } from "react";
 import { useAtom } from "jotai";
-import { Button, Dialog, useToast } from "@read-aware/ui";
+import { useToast } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { isTauri } from "../../../platform/environment";
 import { openExternalUrl } from "../../../platform/external-link";
@@ -16,19 +13,11 @@ import { createLogger } from "../../../platform/logger";
 import { siteBaseUrl } from "../../../platform/site-url";
 import { syncRelayClient } from "../../../platform/sync/sync-scheduler";
 import { syncLoginTokenAtom } from "../../../state/ui";
-import { PendingBadge } from "../components/PendingBadge";
-import { SettingsGroup } from "../components/SettingsGroup";
-import { SettingsRow } from "../components/SettingsRow";
-import { syncCycleFraction } from "../../sync/lib/sync-progress";
 import { useBlobBookTitle } from "../../sync/hooks/useBlobBookTitle";
-import {
-  useSyncBacklog,
-  useSyncBookBacklog,
-  type SyncBookBacklogRow,
-} from "../../sync/hooks/useSyncStatus";
+import { useSyncBacklog, useSyncBookBacklog } from "../../sync/hooks/useSyncStatus";
 import { useSyncAccountInfo } from "../hooks/useSyncAccountInfo";
 import { useSyncConnection } from "../hooks/useSyncConnection";
-import { SyncConnectDialog } from "./SyncConnectDialog";
+import { SyncAccountGroupView } from "./SyncAccountGroupView";
 
 const log = createLogger("sync");
 
@@ -51,20 +40,6 @@ const LANDING_LOCALE: Record<string, string> = {
 function pricingUrl(locale: string): string {
   const prefix = LANDING_LOCALE[locale];
   return prefix ? `${siteBaseUrl()}/${prefix}/pricing` : `${siteBaseUrl()}/pricing`;
-}
-
-/** "12 345 678" bytes → "11.8 MB": one decimal, sensible unit. */
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  const units = ["KB", "MB", "GB"] as const;
-  let value = bytes;
-  let unit: (typeof units)[number] = "KB";
-  for (const next of units) {
-    value /= 1024;
-    unit = next;
-    if (value < 1024) break;
-  }
-  return `${value >= 100 ? Math.round(value) : value.toFixed(1)} ${unit}`;
 }
 
 export function SyncAccountGroup() {
@@ -96,19 +71,6 @@ export function SyncAccountGroup() {
     }
     setConnectOpen(true);
   }, [linkToken, connected, sessionRejected, setLinkToken]);
-
-  // The web shell has no store and no sync — keep the pre-sync placeholder.
-  if (!isTauri()) {
-    return (
-      <SettingsGroup title={t("dataSync.sync")} aside={<PendingBadge>{t("dataSync.desktopBadge")}</PendingBadge>}>
-        <SettingsRow
-          borderless
-          title={t("dataSync.account.title")}
-          description={t("dataSync.account.description")}
-        />
-      </SettingsGroup>
-    );
-  }
 
   const handleSyncNow = async () => {
     try {
@@ -159,245 +121,26 @@ export function SyncAccountGroup() {
     }
   };
 
-  if (!sync.connected) {
-    return (
-      <SettingsGroup title={t("dataSync.sync")}>
-        <SettingsRow
-          borderless
-          title={t("dataSync.account.title")}
-          description={t("dataSync.account.description")}
-          control={
-            <Button size="sm" onClick={() => setConnectOpen(true)}>
-              {t("dataSync.connectAccount")}
-            </Button>
-          }
-        />
-        <SyncConnectDialog open={connectOpen} onClose={() => setConnectOpen(false)} sync={sync} />
-      </SettingsGroup>
-    );
-  }
-
-  const syncing = sync.status.state === "syncing";
-  // The email is the human name of the account; the opaque id only appears
-  // while the relay hasn't answered yet (offline), shortened to stay legible.
-  const accountLabel =
-    accountInfo?.email ?? `${(sync.profile?.remoteAccountId ?? "").slice(0, 8)}…`;
-
-  // The Status row's one-line description: exactly one voice at a time —
-  // a rejected session and a failed cycle speak in the warning tone.
-  const fraction = syncCycleFraction(sync.status);
-  const pending = backlog !== null && backlog.events + backlog.blobs > 0 ? backlog : null;
-  const statusDescription = sessionRejected ? (
-    <span className="text-red-700">{t("dataSync.syncStatus.signedOut")}</span>
-  ) : sync.status.state === "error" ? (
-    <span className="text-red-700">{sync.status.lastError ?? t("dataSync.syncStatus.error")}</span>
-  ) : syncing ? (
-    [
-      fraction === null
-        ? t("dataSync.syncStatus.syncing")
-        : `${t("dataSync.syncStatus.syncing")} ${Math.round(fraction * 100)}%`,
-      // Which book is moving right now, with part progress for chunked files.
-      movingBookTitle &&
-        sync.status.progress &&
-        (sync.status.progress.blobPartsTotal > 0
-          ? t(
-              sync.status.progress.blobDirection === "down"
-                ? "dataSync.progress.bookDownParts"
-                : "dataSync.progress.bookUpParts",
-              {
-                title: movingBookTitle,
-                done: sync.status.progress.blobPartsDone,
-                total: sync.status.progress.blobPartsTotal,
-              },
-            )
-          : t(
-              sync.status.progress.blobDirection === "down"
-                ? "dataSync.progress.bookDown"
-                : "dataSync.progress.bookUp",
-              { title: movingBookTitle },
-            )),
-    ]
-      .filter(Boolean)
-      .join(" · ")
-  ) : (
-    [
-      sync.status.lastSyncAt
-        ? t("dataSync.syncStatus.lastSync", {
-            time: new Date(sync.status.lastSyncAt).toLocaleTimeString(),
-          })
-        : t("dataSync.syncStatus.never"),
-      pending &&
-        t("dataSync.progress.pending", { events: pending.events, blobs: pending.blobs }),
-    ]
-      .filter(Boolean)
-      .join(" · ")
-  );
-
-  // A currently-paying account manages its plan in Stripe's portal. Free
-  // accounts get the upgrade menu even when a past customer exists (checkout
-  // reuses it — after a cancellation the portal has nothing left to manage).
-  // A paid tier WITHOUT billing was granted by the operator; staff plans are
-  // never sold, so staff sees no control at all.
-  const planControl =
-    accountInfo && accountInfo.tier !== "staff" ? (
-      accountInfo.tier !== "free" ? (
-        accountInfo.hasBilling ? (
-          <Button size="sm" variant="outline" onClick={() => void openPortal()}>
-            {t("dataSync.billing.manage")}
-          </Button>
-        ) : null
-      ) : (
-        // Plans are compared and bought on the landing's pricing page — the
-        // app doesn't reprint the catalog, it opens the one source of it.
-        <Button size="sm" variant="outline" onClick={() => void openUpgrade()}>
-          {t("dataSync.billing.upgrade")}
-        </Button>
-      )
-    ) : null;
-
-  const overLimit =
-    accountInfo?.limits?.maxAccountBlobBytes != null &&
-    accountInfo.blobBytesUsed > accountInfo.limits.maxAccountBlobBytes;
-
-  // The relay's refusals name quotas ("account blob quota exceeded", legacy
-  // "blob exceeds N bytes") — the one rejection class a user can act on
-  // (free space or upgrade). Anything else is surfaced verbatim.
-  const isQuotaRejection = (row: SyncBookBacklogRow) =>
-    row.pushState === "rejected" &&
-    ((row.lastError ?? "").includes("quota") || (row.lastError ?? "").includes("exceeds"));
-  const quotaBlocked = (bookBacklog ?? []).some(isQuotaRejection);
-
-  const bookStateLabel = (row: SyncBookBacklogRow): { text: string; tone?: "error" } => {
-    if (!row.localBytes) return { text: t("dataSync.books.awaitingOtherDevice") };
-    if (row.pushState === "pending") return { text: t("dataSync.books.pending") };
-    if (row.pushState === "failed") return { text: t("dataSync.books.failed") };
-    if (isQuotaRejection(row)) return { text: t("dataSync.books.rejectedQuota"), tone: "error" };
-    return {
-      text: row.lastError
-        ? t("dataSync.books.rejectedWith", { reason: row.lastError })
-        : t("dataSync.books.rejected"),
-      tone: "error",
-    };
-  };
-
   return (
-    <SettingsGroup title={t("dataSync.sync")}>
-      <SettingsRow
-        borderless
-        title={t("dataSync.account.title")}
-        description={accountLabel}
-        control={
-          <Button size="sm" variant="ghost" onClick={() => setDisconnectOpen(true)}>
-            {t("dataSync.connected.disconnect")}
-          </Button>
-        }
-      />
-      <SettingsRow
-        title={t("dataSync.connected.statusTitle")}
-        description={statusDescription}
-        control={
-          // A rejected session makes "sync now" a guaranteed 401 — its slot
-          // offers the re-login (the same connect dialog) instead.
-          sessionRejected ? (
-            <Button size="sm" onClick={() => setConnectOpen(true)}>
-              {t("dataSync.reauth.action")}
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={syncing}
-              onClick={() => void handleSyncNow()}
-            >
-              {syncing ? t("dataSync.syncStatus.syncing") : t("dataSync.connected.syncNow")}
-            </Button>
-          )
-        }
-      />
-      {/* Fetched from the relay, so quietly absent while offline. */}
-      {accountInfo && (
-        <SettingsRow
-          title={t("dataSync.connected.planTitle")}
-          description={
-            <>
-              {t(`dataSync.tier.${accountInfo.tier ?? "free"}`)}
-              {" · "}
-              <span className={overLimit ? "text-red-700" : undefined}>
-                {/* A self-hosted relay predating tiers sends no limits — fall
-                    back to the plain usage line rather than "of undefined". */}
-                {accountInfo.limits?.maxAccountBlobBytes != null
-                  ? t("dataSync.connected.storageUsedOfLimit", {
-                      used: formatBytes(accountInfo.blobBytesUsed),
-                      limit: formatBytes(accountInfo.limits.maxAccountBlobBytes),
-                    })
-                  : t("dataSync.connected.storageUsed", {
-                      used: formatBytes(accountInfo.blobBytesUsed),
-                    })}
-              </span>
-            </>
-          }
-          control={planControl}
-        />
-      )}
-      {/* Per-book upload backlog: which files the relay doesn't hold yet and
-          why. Absent entirely when every book's file made it — the panel says
-          nothing when there is nothing to say. */}
-      {bookBacklog !== null && (quotaBlocked || overLimit || bookBacklog.length > 0) && (
-        <SettingsRow
-          title={t("dataSync.books.title")}
-          description={
-            <span className="block space-y-1.5">
-              {(quotaBlocked || overLimit) && (
-                <span className="block text-red-700">{t("dataSync.books.quotaFull")}</span>
-              )}
-              {bookBacklog.map((row) => {
-                const state = bookStateLabel(row);
-                return (
-                  <span key={row.bookId} className="block">
-                    <span className="text-fg">{row.title}</span>
-                    {row.byteSize != null && ` · ${formatBytes(row.byteSize)}`}
-                    {" · "}
-                    <span className={state.tone === "error" ? "text-red-700" : undefined}>
-                      {state.text}
-                    </span>
-                  </span>
-                );
-              })}
-            </span>
-          }
-        />
-      )}
-      <SettingsRow
-        title={t("dataSync.e2e.title")}
-        description={t("dataSync.e2e.active")}
-      />
-      {/* Re-login for a rejected session: the same connect flow, reached from
-          the "sign in again" control above (or a deep-linked token). */}
-      <SyncConnectDialog open={connectOpen} onClose={() => setConnectOpen(false)} sync={sync} />
-      <Dialog
-        open={disconnectOpen}
-        onClose={() => setDisconnectOpen(false)}
-        title={t("dataSync.connected.disconnectTitle")}
-      >
-        <div className="space-y-4">
-          <p>{t("dataSync.connected.disconnectBody")}</p>
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setDisconnectOpen(false)}>
-              {t("dataSync.connected.cancel")}
-            </Button>
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => {
-                setDisconnectOpen(false);
-                void sync.disconnect();
-              }}
-            >
-              {t("dataSync.connected.disconnect")}
-            </Button>
-          </div>
-        </div>
-      </Dialog>
-    </SettingsGroup>
+    <SyncAccountGroupView
+      // The web shell has no store and no sync — keep the pre-sync placeholder.
+      supported={isTauri()}
+      connected={sync.connected}
+      status={sync.status}
+      profile={sync.profile}
+      accountInfo={accountInfo}
+      backlog={backlog}
+      bookBacklog={bookBacklog}
+      movingBookTitle={movingBookTitle}
+      connectOpen={connectOpen}
+      onConnectOpenChange={setConnectOpen}
+      disconnectOpen={disconnectOpen}
+      onDisconnectOpenChange={setDisconnectOpen}
+      onSyncNow={() => void handleSyncNow()}
+      onDisconnect={() => void sync.disconnect()}
+      onOpenPortal={() => void openPortal()}
+      onOpenUpgrade={() => void openUpgrade()}
+      sync={sync}
+    />
   );
 }

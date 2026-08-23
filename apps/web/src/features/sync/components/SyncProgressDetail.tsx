@@ -19,12 +19,17 @@ import type { ReactNode } from "react";
 import { useTranslation } from "../../../i18n";
 import type { SyncStatusSnapshot } from "../../../platform/sync/sync-scheduler";
 import type { SyncBacklog } from "../hooks/useSyncStatus";
-import { useBlobBookTitle } from "../hooks/useBlobBookTitle";
 import { syncCycleFraction } from "../lib/sync-progress";
 
 type SyncProgressDetailProps = {
   status: SyncStatusSnapshot;
   backlog: SyncBacklog | null;
+  /**
+   * Title of the book whose blob is moving, resolved by the caller (see
+   * `useBlobBookTitle`). Null when nothing is moving or the id is unknown —
+   * an unresolved title drops the line rather than showing a raw blob key.
+   */
+  movingTitle?: string | null;
 };
 
 function Item({ icon, tone, children }: { icon: ReactNode; tone?: "error"; children: ReactNode }) {
@@ -43,12 +48,15 @@ function Item({ icon, tone, children }: { icon: ReactNode; tone?: "error"; child
 
 const ICON = { size: 14, weight: "regular", "aria-hidden": true } as const;
 
-export function SyncProgressDetail({ status, backlog }: SyncProgressDetailProps) {
+export function SyncProgressDetail({
+  status,
+  backlog,
+  movingTitle = null,
+}: SyncProgressDetailProps) {
   const { t } = useTranslation("settings");
   const { progress } = status;
   const syncing = status.state === "syncing";
   const fraction = syncCycleFraction(status);
-  const movingTitle = useBlobBookTitle(syncing ? (progress?.blobKey ?? null) : null);
 
   const hasBacklog = backlog !== null && backlog.events + backlog.blobs > 0;
   const lastCycle = status.lastCycle;

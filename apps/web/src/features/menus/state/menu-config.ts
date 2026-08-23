@@ -57,7 +57,7 @@ export const CORE_MENU_DEFAULTS: Record<MenuSurface, string[]> = {
  * promotes unplaced core ids to visible, so these must be pre-placed in the
  * default layout rather than left for resolution to discover.
  */
-const CORE_OVERFLOW_DEFAULTS: Record<MenuSurface, string[]> = {
+export const CORE_OVERFLOW_DEFAULTS: Record<MenuSurface, string[]> = {
   primaryNav: ["core:stats"],
   shelfHeader: [],
   readerHeader: [],

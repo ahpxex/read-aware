@@ -1,15 +1,12 @@
 /**
- * 全局线程切换器，以 AppHeader 图标弹层呈现（与 AnnotationsPopover 同一
- * 交互与行样式）：头部只标明历史会话，行内 hover 删除（同 AnnotationRow
- * 的 Trash 模式）。新建会话是相邻的独立 header action，不藏在弹层里。
- * 列表每次打开时现取，当前未落库的新线程显示占位标题。
+ * 全局线程切换器的容器：线程列表的读取（每次打开时现取）与删除都在这里，
+ * 弹层本身是 `ThreadsPopoverView`。
+ *
+ * 删除 = 清空消息 + 会话行留墓碑（列表只列非空会话，所以随即消失）。
+ * 弹层保持打开，方便连续清理；删的是当前线程时切到下一个（或全新线程）。
  */
 import { useEffect, useState } from "react";
-import { ChatsCircle, Trash } from "@phosphor-icons/react";
 import { useAtom } from "jotai";
-import { Eyebrow, IconButton, Popover } from "@read-aware/ui";
-import { cn } from "@read-aware/ui/cn";
-import { useTranslation } from "../../../i18n";
 import { discardAgentThread } from "../../ai/agent/agent-runtime";
 import {
   clearConversation,
@@ -18,10 +15,9 @@ import {
   type ConversationSummary,
 } from "../../ai/lib/conversation-store";
 import { activeGlobalThreadAtom } from "../../ai/state/global-thread";
-import { contextHeaderActionClass } from "../lib/context-header-action";
+import { ThreadsPopoverView } from "./ThreadsPopoverView";
 
 export function ThreadsPopover() {
-  const { t } = useTranslation("ai");
   const [open, setOpen] = useState(false);
   const [threads, setThreads] = useState<ConversationSummary[]>([]);
   const [activeThreadId, setActiveThreadId] = useAtom(activeGlobalThreadAtom);
@@ -31,13 +27,6 @@ export function ThreadsPopover() {
     if (open) void listGlobalThreads().then(setThreads);
   }, [open]);
 
-  const select = (threadId: string) => {
-    setActiveThreadId(threadId);
-    setOpen(false);
-  };
-
-  // 删除 = 清空消息 + 会话行留墓碑（列表只列非空会话，所以随即消失）。
-  // 弹层保持打开，方便连续清理；删的是当前线程时切到下一个（或全新线程）。
   const remove = async (threadId: string) => {
     await Promise.all([
       clearConversation(threadId),
@@ -50,97 +39,14 @@ export function ThreadsPopover() {
     }
   };
 
-  const activeIsUnsaved = !threads.some(
-    (thread) => thread.id === activeThreadId,
-  );
-
   return (
-    <Popover
+    <ThreadsPopoverView
       open={open}
       onOpenChange={setOpen}
-      align="right"
-      triggerLabel={t("context.threads.title")}
-      triggerTooltip={t("context.threads.title")}
-      triggerTooltipAlign="end"
-      triggerClassName={cn(contextHeaderActionClass, open && "text-fg")}
-      trigger={
-        <ChatsCircle
-          size={16}
-          weight={open ? "fill" : "regular"}
-          aria-hidden="true"
-        />
-      }
-      panelClassName="flex max-h-[min(24rem,60vh)] w-[clamp(16rem,24vw,22rem)] flex-col overflow-hidden p-0"
-    >
-      <div className="flex shrink-0 items-center border-b border-border px-4 py-2.5">
-        <Eyebrow as="span">{t("context.threads.title")}</Eyebrow>
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="flex flex-col gap-0.5 px-2 py-2">
-          {activeIsUnsaved && (
-            <ThreadRow
-              title={t("context.threads.untitled")}
-              active
-              onSelect={() => select(activeThreadId)}
-            />
-          )}
-          {threads.map((thread) => (
-            <ThreadRow
-              key={thread.id}
-              title={thread.preview?.trim() || t("context.threads.untitled")}
-              active={thread.id === activeThreadId}
-              onSelect={() => select(thread.id)}
-              onDelete={() => void remove(thread.id)}
-              deleteLabel={t("context.threads.delete")}
-            />
-          ))}
-        </div>
-      </div>
-    </Popover>
-  );
-}
-
-function ThreadRow({
-  title,
-  active,
-  onSelect,
-  onDelete,
-  deleteLabel,
-}: {
-  title: string;
-  active: boolean;
-  onSelect: () => void;
-  onDelete?: () => void;
-  deleteLabel?: string;
-}) {
-  return (
-    <div
-      className={cn(
-        "group flex items-center gap-1 rounded-md transition-colors",
-        active ? "bg-fill-strong" : "hover:bg-fill",
-      )}
-    >
-      <button
-        type="button"
-        aria-current={active ? "true" : undefined}
-        onClick={onSelect}
-        className={cn(
-          "min-w-0 flex-1 truncate px-2 py-1.5 text-left font-sans text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
-          active ? "text-fg" : "text-fg-muted group-hover:text-fg",
-        )}
-      >
-        {title}
-      </button>
-      {onDelete && (
-        <IconButton
-          size="sm"
-          label={deleteLabel ?? ""}
-          onClick={onDelete}
-          className="shrink-0 text-fg-subtle opacity-0 hover:text-red-600 group-hover:opacity-100 pointer-coarse:opacity-100"
-          icon={<Trash size={12} weight="regular" />}
-        />
-      )}
-    </div>
+      threads={threads}
+      activeThreadId={activeThreadId}
+      onSelect={setActiveThreadId}
+      onDelete={(threadId) => void remove(threadId)}
+    />
   );
 }

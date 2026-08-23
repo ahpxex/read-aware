@@ -112,7 +112,7 @@ export function PluginCapabilityBrowser({
   }, [authority, copy.descriptions, copy.permissionFree, family, query]);
 
   return (
-    <div className="mt-6 border-y border-border-strong py-5">
+    <div data-doc-slot="capability-browser" className="mt-6 border-y border-border-strong py-5">
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_10rem_11rem]">
         <label className="block text-sm text-fg-muted">
           <span className="sr-only">{copy.searchLabel}</span>

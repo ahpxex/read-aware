@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, CaretDown, Check } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
+import { useSiteCopy } from "../i18n/use-site-copy";
 import {
   availableLocales,
   isBlogLocale,
   LOCALE_CHOICE_KEY,
   LOCALE_LABEL,
   LOCALE_LANG,
-  UI_STRINGS,
   hasLocaleVariants,
   localizePath,
   type Locale,
@@ -55,7 +55,7 @@ export function MoreMenu({
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const strings = UI_STRINGS[locale];
+  const strings = useSiteCopy("chrome");
   const pageLocales = availableLocales(pathname);
   const showLocales = hasLocaleVariants(pathname);
 

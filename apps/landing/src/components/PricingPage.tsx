@@ -2,12 +2,14 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Check, CircleNotch } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
+import { useSiteCopy } from "../i18n/use-site-copy";
 import { useDocumentLang } from "../hooks/useDocumentLang";
 import type { Locale } from "../lib/i18n";
-import { PRICING, type PricingPlan } from "../lib/pricing-content";
 import { CONTACT_EMAIL, RELAY_URL } from "../lib/site";
 import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
+
+type PricingPlanId = "free" | "sync" | "pro" | "max";
 
 /**
  * The pricing page, rendered from the PRICING registry — one component for
@@ -23,7 +25,7 @@ import { SiteHeader } from "./SiteHeader";
  */
 export function PricingPage({ locale }: { locale: Locale }) {
   useDocumentLang(locale);
-  const copy = PRICING[locale];
+  const copy = useSiteCopy("pricing");
 
   // Stripe bounces back here with ?purchase=success (prerendered HTML never
   // carries the query, so read it lazily on the client only).
@@ -39,10 +41,10 @@ export function PricingPage({ locale }: { locale: Locale }) {
       ? new URLSearchParams(window.location.hash.replace(/^#/, "")).get("upgrade")
       : null,
   );
-  const [busyPlan, setBusyPlan] = useState<PricingPlan["id"] | null>(null);
+  const [busyPlan, setBusyPlan] = useState<PricingPlanId | null>(null);
   const [checkoutError, setCheckoutError] = useState(false);
 
-  const startCheckout = async (plan: PricingPlan["id"]) => {
+  const startCheckout = async (plan: PricingPlanId) => {
     if (busyPlan) return;
     setBusyPlan(plan);
     setCheckoutError(false);
@@ -149,7 +151,7 @@ export function PricingPage({ locale }: { locale: Locale }) {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => void startCheckout(plan.id)}
+                      onClick={() => void startCheckout(plan.id as PricingPlanId)}
                       disabled={busyPlan !== null}
                       aria-busy={busyPlan === plan.id}
                       className={cn(

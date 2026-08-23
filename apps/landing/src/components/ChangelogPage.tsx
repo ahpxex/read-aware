@@ -1,36 +1,21 @@
 import { cn } from "@read-aware/ui/cn";
+import { useSiteCopy } from "../i18n/use-site-copy";
 import { useDocumentLang } from "../hooks/useDocumentLang";
-import { CHANGELOG, type ChangelogGroupKind } from "../lib/changelog";
-import { UI_STRINGS, LOCALE_LANG, type Locale } from "../lib/i18n";
+import { LOCALE_LANG, type Locale } from "../lib/i18n";
 import { REPO_URL } from "../lib/releases";
 import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
 
 /**
- * The changelog, rendered from the CHANGELOG registry. One component for all
- * three locales — unlike docs and blog posts, whose prose lives in the route
- * files, every word here comes from the registry, so the locale routes are
- * three-line wrappers and a new version needs no route work at all.
+ * The shared changelog renderer. Every locale reads the same resource shape,
+ * so a new release changes content only and never adds route implementation.
  */
-/**
- * What separates a run-in title from its sentence. A Latin full stop after
- * CJK text is wrong typography ("插件系统 . 完整的…"); both scripts use a
- * fullwidth colon for a label like this, and it carries its own spacing.
- */
-const LEAD_IN: Record<Locale, string> = {
-  en: ". ",
-  zh: "：",
-  "zh-hant": "：",
-  ja: "：",
-  fr: " : ",
-  de: ". ",
-  ru: ". ",
-  es: ". ",
-};
+type ChangelogGroupKind = "new" | "improved" | "fixed";
 
 export function ChangelogPage({ locale }: { locale: Locale }) {
   useDocumentLang(locale);
-  const strings = UI_STRINGS[locale];
+  const strings = useSiteCopy("chrome");
+  const copy = useSiteCopy("changelog");
 
   const groupHeading: Record<ChangelogGroupKind, string> = {
     new: strings.changelogNew,
@@ -50,8 +35,7 @@ export function ChangelogPage({ locale }: { locale: Locale }) {
             {strings.changelogLead}
           </p>
 
-          {CHANGELOG.map((entry) => {
-            const text = entry.text[locale];
+          {copy.entries.map((entry) => {
             return (
               <section key={entry.version} className="mt-14">
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-border pb-3">
@@ -85,13 +69,13 @@ export function ChangelogPage({ locale }: { locale: Locale }) {
                 </div>
 
                 <p className="mt-5 leading-relaxed text-fg-muted">
-                  {text.summary}
+                  {entry.summary}
                 </p>
 
-                {text.groups.map((group) => (
+                {entry.groups.map((group) => (
                   <div key={group.kind} className="mt-8">
                     <h3 className="text-[0.6875rem] font-medium uppercase tracking-[0.12em] text-fg-muted">
-                      {groupHeading[group.kind]}
+                      {groupHeading[group.kind as ChangelogGroupKind]}
                     </h3>
                     {/* Markers matter more than they look like they should:
                         without them every entry runs into the next and the
@@ -113,10 +97,10 @@ export function ChangelogPage({ locale }: { locale: Locale }) {
                           key={index}
                           className="pl-[0.15em] leading-relaxed text-fg-muted"
                         >
-                          {item.title && (
+                          {"title" in item && item.title && (
                             <strong className="font-medium text-fg">
                               {item.title}
-                              {LEAD_IN[locale]}
+                              {copy.leadIn}
                             </strong>
                           )}
                           {item.body}

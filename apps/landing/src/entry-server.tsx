@@ -9,16 +9,9 @@
  */
 import { renderToString } from "react-dom/server";
 import { RouterProvider, createMemoryHistory } from "@tanstack/react-router";
+import { createEnglishLandingI18n, createLandingI18n } from "./i18n";
+import { localeFromPathname } from "./lib/i18n";
 import { createAppRouter } from "./router";
-
-// The post registry rides along so the prerender script can emit BlogPosting
-// JSON-LD, article:published_time, and the RSS feed from the same source of
-// truth the pages render from.
-export { POSTS } from "./lib/posts";
-// The changelog registry rides along for the same reason: the prerender
-// script publishes it as /changelog.json, which the desktop app's
-// post-update dialog reads (features/update/lib/changelog-feed.ts).
-export { CHANGELOG } from "./lib/changelog";
 
 /**
  * Every concrete route path in the tree, "/" included. `routesByPath` keys
@@ -27,14 +20,17 @@ export { CHANGELOG } from "./lib/changelog";
  * skipped here and keeps working purely client-side.
  */
 export function staticPaths(): string[] {
-  const router = createAppRouter();
+  const router = createAppRouter({ i18n: createEnglishLandingI18n() });
   return Object.keys(router.routesByPath)
     .filter((path) => !path.includes("$"))
     .sort();
 }
 
 export async function render(url: string): Promise<string> {
+  const pathname = new URL(url, "https://readaware.app").pathname;
+  const i18n = await createLandingI18n(localeFromPathname(pathname));
   const router = createAppRouter({
+    i18n,
     history: createMemoryHistory({ initialEntries: [url] }),
   });
   await router.load();

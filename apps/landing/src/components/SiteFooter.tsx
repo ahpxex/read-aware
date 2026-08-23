@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { UI_STRINGS, type Locale } from "../lib/i18n";
+import { useSiteCopy } from "../i18n/use-site-copy";
+import type { Locale } from "../lib/i18n";
 import { CONTACT_EMAIL, HEADER_ICON_URL } from "../lib/site";
 import { TOPIC_PAGES } from "../lib/topic-pages";
 
@@ -17,7 +18,7 @@ import { TOPIC_PAGES } from "../lib/topic-pages";
  * footer carries the row.
  */
 export function SiteFooter({ locale = "en" }: { locale?: Locale }) {
-  const strings = UI_STRINGS[locale];
+  const strings = useSiteCopy("chrome");
 
   return (
     <footer className="mt-8 border-t border-border py-8 text-[0.9375rem] text-fg-muted">

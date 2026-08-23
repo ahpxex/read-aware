@@ -1,0 +1,432 @@
+{
+  "chrome": {
+    "docs": "Documentación",
+    "blog": "Blog",
+    "download": "Descargar",
+    "allPosts": "← Todas las publicaciones",
+    "tagline": "Local primero (local-first). Tuyo.",
+    "more": "Más",
+    "language": "Idioma",
+    "pricing": "Precios",
+    "changelog": "Registro de cambios",
+    "changelogTitle": "Registro de cambios",
+    "changelogLead": "Lo que cambió en cada versión, escrito para quienes la usan. Las notas completas y las descargas de cada versión viven en GitHub.",
+    "changelogNew": "Nuevo",
+    "changelogImproved": "Mejorado",
+    "changelogFixed": "Corregido",
+    "changelogOlder": "Versiones anteriores en GitHub →",
+    "changelogRelease": "Notas de la versión"
+  },
+  "docsNav": {
+    "ariaLabel": "Documentación",
+    "startTitle": "Inicio",
+    "pluginsTitle": "Plugins",
+    "labels": {
+      "overview": "Descripción general",
+      "install": "Descarga e instalación",
+      "gettingStarted": "Primeros pasos",
+      "pluginsOverview": "Sistema de plugins",
+      "pluginsDevelop": "Crear un plugin",
+      "pluginsCapabilities": "Capacidades y permisos",
+      "pluginsApi": "Referencia API de plugins",
+      "pluginsPublishing": "Publicar un plugin"
+    }
+  },
+  "home": {
+    "metaTitle": "ReadAware — Lector de ebooks gratuito y de código abierto que te conoce",
+    "metaDescription": "Un lector de ebooks gratuito y de código abierto para Windows, macOS, Linux y Android. Un solo lector para EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML y PDF que construye memoria a partir de tu lectura, crece con plugins y sincroniza cifrado de extremo a extremo: local primero (local-first) y privado.",
+    "heroTitle": "Un lector de ebooks que te conoce — y que tú extiendes",
+    "heroLead": "Pregunta por cualquier pasaje: ReadAware ya sabe qué subrayaste, qué preguntaste y qué leíste, en todos los libros de tu estantería. Ese conocimiento vive en tu dispositivo, crece con los plugins y te sigue —cifrado— a cada máquina.",
+    "shelfAlt": "La biblioteca de ReadAware: una cuadrícula de portadas de libros en varios idiomas y formatos.",
+    "shelfCaption": "Tu biblioteca: todos los formatos en un solo lugar.",
+    "readerTitle": "Un lugar tranquilo para leer cualquier cosa",
+    "readerBody": "Importa un archivo y empieza a leer. No hay conversión ni carga en la nube; tus subrayados, notas y tu posición en el libro permanecen con el texto original. Cuando quieras más concentración, lee frase a frase: la página se retira, una franja flotante te guía y la lectura en voz alta puede seguir el ritmo.",
+    "readerAlt": "Una página de Orgullo y prejuicio en el lector de ReadAware, con una frase en foco mientras el resto de la página se atenúa.",
+    "readerCaption": "Leyendo Orgullo y prejuicio frase a frase.",
+    "memoryTitle": "Sabe lo que has leído",
+    "memoryBody": "Pregunta por un pasaje, un libro o toda tu estantería. ReadAware responde desde tu propia lectura: la línea que marcaste hace tres libros, la pregunta de la semana pasada, el hilo que atraviesa toda tu estantería. No reproduce un historial de chat; guarda una memoria duradera de lo que importa y la trae de vuelta justo cuando es relevante.",
+    "contextAlt": "El asistente de ReadAware revisando la estantería del lector y sus lecturas recientes, y nombrando el hilo que las une.",
+    "contextCaption": "El asistente, respondiendo desde tu propia estantería.",
+    "pluginTitle": "Extendido desde adentro",
+    "pluginBody": "Los plugins en sandbox del marketplace integrado añaden voces de lectura, diccionarios, temas, fuentes que se leen como libros. Y llegan más hondo que las funciones: un plugin puede poner una nueva herramienta en manos del asistente, y este simplemente empieza a usarla. El lector no gana botones: aprende nuevas habilidades.",
+    "pluginAlt": "El panel de plugins de ReadAware: diccionario, temas y lector RSS, cada uno en su sandbox; algunos ponen nuevas herramientas en manos del asistente.",
+    "pluginCaption": "Voces, diccionarios, temas, fuentes — y herramientas que el asistente adopta.",
+    "syncTitle": "Tu lectura te sigue",
+    "syncBody": "Abre ReadAware en otra máquina y todo está ya ahí: tus libros, tus subrayados, tu posición en cada uno y la memoria construida a partir de todo ello. La sincronización está cifrada de extremo a extremo: el relay solo guarda texto cifrado, y nadie en el camino puede leer lo que lees. Escritorio y Android hoy; iOS está en camino.",
+    "inShortTitle": "En resumen",
+    "notes": [
+      {
+        "title": "Un solo motor, todos los formatos",
+        "body": "EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML y PDF se abren en el mismo lector, con la misma selección, subrayados y progreso. Nada se convierte; el archivo original es lo que conservas."
+      },
+      {
+        "title": "Atento, no archivador",
+        "body": "La lectura se convierte en memoria que la app puede usar. ReadAware guarda lo que importa y lo saca cuando es relevante: está presente en el momento, no guardado en un cajón."
+      },
+      {
+        "title": "Los plugins le enseñan trucos nuevos",
+        "body": "Los plugins del marketplace añaden voces, diccionarios, temas y fuentes — y ponen en manos del asistente herramientas que adopta y usa."
+      },
+      {
+        "title": "Código abierto, local primero, sincronización cifrada",
+        "body": "El código es público bajo AGPL-3.0, y todo vive en tu dispositivo. Aporta tu propia clave API; la nube es solo un relay cifrado entre tus máquinas."
+      }
+    ],
+    "freeLine": "Gratis, de código abierto y local primero (local-first).",
+    "freeLineWithTag": "Gratis, de código abierto y local primero (local-first). La última versión es {{tag}}.",
+    "download": {
+      "title": "Obtén ReadAware",
+      "intro": "Gratis, de código abierto y local primero (local-first). Aporta tu propia clave API; tu biblioteca y tu memoria permanecen en tu dispositivo.",
+      "yourPlatform": "— tu plataforma",
+      "comingSoon": "Próximamente",
+      "download": "Descargar",
+      "choosePlatform": "Elige una plataforma",
+      "signingNote": "Las versiones de escritorio aún no están firmadas con código; macOS y Windows pueden pedirte que confirmes la app al primer inicio.",
+      "latest": "La última versión es {{tag}}.",
+      "downloadFor": "Descargar para {{name}}"
+    }
+  },
+  "pricing": {
+    "metaTitle": "Precios — ReadAware",
+    "metaDescription": "La aplicación es gratuita y completa; los planes de pago añaden sincronización cifrada e IA integrada. Sync $5, Pro $20, Max $50 al mes.",
+    "title": "Precios",
+    "lead": "La aplicación es gratuita y completa por sí sola: todas las funciones de lectura, tu propia clave de IA, tus datos en tu disco. Los planes de pago añaden sincronización cifrada e IA integrada, con un principio: la suscripción nunca debe interponerse entre tú y tu biblioteca.",
+    "perMonth": "/mes",
+    "recommended": "Recomendado",
+    "ctaFree": "Descargar",
+    "ctaPaid": "Suscribirse",
+    "ctaPaidBusy": "Abriendo el pago…",
+    "purchaseSuccess": "Pago recibido: tu plan está activo. Inicia sesión en la aplicación con el correo que usaste al pagar.",
+    "checkoutFailed": "No se pudo iniciar el pago. Inténtalo de nuevo o escríbenos.",
+    "paidNote": "¿Preguntas sobre la facturación?",
+    "paidNoteLink": "Escríbenos",
+    "finePrintTitle": "La letra pequeña, en claro",
+    "finePrint": [
+      "Créditos de IA: 1 crédito = $0.001 de uso del modelo a precio de lista. Una pregunta típica cuesta 2–4 créditos; 5.000 créditos son alrededor de mil conversaciones. Se restablecen cada mes.",
+      "La IA con tu propia clave es gratis para siempre, en todos los planes: la suscripción es una comodidad, no un muro.",
+      "Los datos sincronizados van cifrados de extremo a extremo. El servidor solo guarda texto cifrado que no puede leer; la frase de contraseña nunca sale de tus dispositivos.",
+      "Las peticiones de la IA integrada pasan por nuestro relé hacia el proveedor del modelo por TLS y nunca se registran ni se almacenan: solo se miden los recuentos de tokens. Si ese equilibrio no te convence, usa tu propia clave.",
+      "Bajar de plan nunca borra nada. Las cuentas por encima de la cuota siguen leyendo y descargando sus datos; solo se pausan las subidas nuevas."
+    ],
+    "plans": [
+      {
+        "id": "free",
+        "name": "Gratis",
+        "price": "$0",
+        "tagline": "La aplicación de lectura completa, sin cuenta.",
+        "features": [
+          "Todas las funciones de lectura — EPUB, PDF, MOBI y más",
+          "Chat y memoria de IA con tu propia clave API",
+          "Todos los datos en local, en tu disco",
+          "50 MB de sincronización cifrada para probar el multidispositivo"
+        ]
+      },
+      {
+        "id": "sync",
+        "name": "Sync",
+        "price": "$5",
+        "tagline": "Tu biblioteca en todos tus dispositivos. La clave de IA la pones tú.",
+        "features": [
+          "10 GB de sincronización cifrada de extremo a extremo",
+          "Biblioteca completa, anotaciones, progreso, memoria",
+          "Dispositivos ilimitados",
+          "IA con tu propia clave"
+        ]
+      },
+      {
+        "id": "pro",
+        "name": "Pro",
+        "price": "$20",
+        "tagline": "Sincronización más IA integrada, sin configurar nada.",
+        "highlight": true,
+        "features": [
+          "Todo lo de Sync",
+          "IA integrada, sin configurar claves",
+          "5.000 créditos de IA al mes — unas mil conversaciones",
+          "Modelos DeepSeek V4 Flash y V4 Pro"
+        ]
+      },
+      {
+        "id": "max",
+        "name": "Max",
+        "price": "$50",
+        "tagline": "Para grandes lectores y grandes bibliotecas.",
+        "features": [
+          "Todo lo de Pro",
+          "30.000 créditos de IA al mes",
+          "100 GB de sincronización cifrada",
+          "Acceso prioritario a los nuevos modelos"
+        ]
+      }
+    ]
+  },
+  "changelog": {
+    "metaTitle": "Registro de cambios — ReadAware",
+    "metaDescription": "Lo que cambió en cada versión, escrito para quienes la usan. Las notas completas y las descargas de cada versión viven en GitHub.",
+    "leadIn": ". ",
+    "entries": [
+      {
+        "version": "0.4.2",
+        "date": "2026-08-12",
+        "summary": "Un parche que abre la puerta de entrada: los archivos de libros se abren directamente desde tu gestor de archivos, importación por arrastrar y soltar, y cada ilustración tiene un visor a pantalla completa.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Abrir con ReadAware",
+                "body": "Haz de ReadAware la aplicación predeterminada para tus archivos de libros y, al hacer doble clic en uno, entras directamente al lector, con el libro añadido a tu biblioteca de paso. Si la aplicación ya está abierta, la ventana existente se hace cargo — sin copias duplicadas."
+              },
+              {
+                "title": "Arrastra libros para importar",
+                "body": "Arrastra archivos de libros a cualquier parte de la ventana y se importarán al instante."
+              },
+              {
+                "title": "Una mirada más de cerca a las ilustraciones",
+                "body": "Toca una imagen en cualquier libro para verla a pantalla completa. Haz zoom alrededor del cursor con la rueda o con un pellizco, arrastra para desplazarte, haz doble clic para alternar el ajuste, y una pequeña barra de herramientas cubre el zoom, la rotación, copiar al portapapeles y cerrar."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "version": "0.4.1",
+        "date": "2026-08-11",
+        "summary": "Un parche para la página de estadísticas y el lector de frases: gráficos que puedes tocar, y un plugin que por fin mantiene sus ajustes — además de un indicador de progreso y un temporizador de sesión — bajo su propio techo.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Toca los gráficos",
+                "body": "Las barras de estadísticas de lectura ahora pasan el subrayado de tinta a la barra que toques — tanto en los gráficos diarios, por día de la semana y por hora del día — y se queda donde lo pongas."
+              },
+              {
+                "title": "El lector de frases guarda sus propios ajustes",
+                "body": "Unidad de paso, tocar para avanzar y deslizar para avanzar se movieron a la página de ajustes del propio plugin, junto con dos opciones nuevas: un indicador de posición en el capítulo (12 / 87) y un temporizador de sesión que se reinicia en cada entrada y nunca se guarda. Ambos viven en una pequeña pastilla flotante que puedes arrastrar a cualquier lugar."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Las descripciones emergentes de los gráficos cambiaron su tarjeta flotante por una etiqueta de tinta discreta fijada sobre las barras."
+              },
+              {
+                "body": "La página Acerca de muestra el nombre en clave de la serie junto a la versión."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "El encabezado de Tiempo total ya no se desborda en teléfonos, y tocar un gráfico ya no dibuja un anillo de enfoque."
+              },
+              {
+                "body": "Desactivar los indicadores en los ajustes se aplica sin reiniciar la app."
+              },
+              {
+                "body": "iOS ya no muestra dos menús de selección a la vez en el lector."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "version": "0.4.0",
+        "date": "2026-08-10",
+        "codename": "El Alto",
+        "summary": "La primera versión de la serie El Alto, y una versión sobre la distancia: las acciones que necesitas al leer se movieron a la propia frase, los paneles que vale la pena abrir quedaron a un toque de distancia, y el asistente dejó de tomar desvíos antes de responder.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Toca la frase",
+                "body": "En la lectura frase a frase o párrafo a párrafo, tocar la frase resaltada abre sus acciones justo ahí — copiar, subrayar, subrayar, nota, preguntar a IA, diccionario — en lugar de estirarte hacia la barra inferior."
+              },
+              {
+                "title": "Puertas en lugar de una barra de herramientas",
+                "body": "La franja flotante de navegación abre el índice, tus notas, la apariencia de lectura o el chat con un toque, y se pagina sola en teléfonos para que siempre quepa en una fila."
+              },
+              {
+                "title": "Las actualizaciones se presentan solas",
+                "body": "Después de que la app se actualice, un enlace discreto abre este registro de cambios en tu idioma. Ciérralo o déjalo que se desvanezca solo después de dos días."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "El asistente de lectura responde en el idioma en que escribes, informa el tiempo de lectura en horas y minutos en lugar de contadores directos, y ya no inventaría tus estadísticas antes de responder una pregunta sobre el libro."
+              },
+              {
+                "body": "La protección de spoilers ahora también delimita lo que el asistente pueda saber ya sobre una novela famosa — nada más allá de tu posición de lectura, a menos que pidas explícitamente que te lo revelen."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Los enlaces externos — el panel Acerca de, la puerta de novedades — ahora sí abren tu navegador."
+              },
+              {
+                "body": "Una clave API pegada se rechaza sin que se devuelva en la conversación."
+              },
+              {
+                "body": "Las tarjetas de libro ya no se pueden presentar dos veces en una sola respuesta."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "version": "0.3.1",
+        "date": "2026-08-10",
+        "summary": "Una versión sobre PDFs, y sobre el marco del lector sabiendo cuándo apartarse. Una página PDF es una imagen, así que el color de página nunca llegaba a ella y todo libro de diseño fijo permanecía en papel blanco dentro de una app oscura — eso está corregido, junto con los controles que esos libros ofrecían pero no podían honrar.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Los PDFs siguen el color de página",
+                "body": "Una paleta clara tiñe el papel mientras se dibuja la página, dejando cada tinta y fotografía exactamente como se imprimió. Una paleta oscura redibuja la página en dos tonos, para que el texto siga siendo legible en lugar de quedar como tinta negra sobre una hoja oscura."
+              },
+              {
+                "title": "Renderizado de página",
+                "body": "Mantén un libro en sus colores originales mientras todo lo demás sigue tu paleta. Se recuerda por libro, para el arte y la fotografía donde el color es el punto."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Los libros de diseño fijo ya no ofrecen tipografía que no pueden honrar. Un PDF o un cómic es una secuencia de páginas que alguien más ya maquetó, así que fuente, tamaño, peso, espaciado, alineación y márgenes desaparecen para esos libros. El color de página y el modo de lectura permanecen, porque ambos siguen haciendo un trabajo visible."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "La barra de herramientas del lector ya no parpadea y desaparece un momento después de tocar la página. Cualquier cosa que refluya el texto — el teclado suave, girar el dispositivo, cambiar el tamaño de fuente — se confundía con un paso de página."
+              },
+              {
+                "body": "El compositor de chat toma el cursor cuando abres el panel, no cada vez que reaparece la barra de herramientas. En un teléfono que había estado lanzando el teclado sobre una página que solo querías mirar."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "version": "0.3.0",
+        "date": "2026-08-07",
+        "summary": "La versión donde la app deja de ser un conjunto fijo de funciones y se convierte en algo que puedes ampliar. Los plugins corren en sandboxes reales, contribuyen en casi todas las superficies y se distribuyen a través de un marketplace. El agente gana herramientas y trazados, el lector gana un final, y tanto el libro como la conversación son ahora tuyos para maquetar.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Plugins",
+                "body": "Un sistema de plugins completo: workers en sandbox con capacidades limitadas por permisos, un camino de autoría centrado en TypeScript, y un marketplace con consentimiento en la instalación. Los plugins contribuyen menús de lector, encabezados, entradas de paleta de comandos, páginas completas, herramientas de IA, búsquedas en diccionario, temas y fuentes incluidas, motores de voz, tareas programadas e incluso libros virtuales que viven en tu estantería como cualquier otro título. Cinco vienen integrados: Diccionario, Lector RSS, Lector de Frases, Voces TTS y Temas Editoriales."
+              },
+              {
+                "title": "Lectura en voz alta",
+                "body": "El lector habla, siguiendo el mismo navegador de frases y párrafos por el que lees. Cualquier motor TTS puede conectarse, con voces por proveedor y endpoints personalizados."
+              },
+              {
+                "title": "Un final",
+                "body": "Terminar un libro ahora aterriza en una pantalla de fin de libro en lugar de un alto seco, con una mirada retrospectiva opcional escrita por el agente."
+              },
+              {
+                "title": "El agente como destino",
+                "body": "El agente tiene su propia página principal con múltiples hilos, anclaje en dónde estás realmente en el libro, trazados de ejecución expandibles y herramientas que pueden leer y cambiar tus ajustes de forma segura."
+              },
+              {
+                "title": "Más formatos",
+                "body": "CBZ, CBR, TXT y HTML se unen a EPUB, MOBI, AZW3, FB2 y PDF. Las portadas y metadatos se completan al importar."
+              },
+              {
+                "title": "Hazlo tuyo",
+                "body": "La navegación principal y cada superficie de menú se pueden reorganizar arrastrando. La paleta de comandos funciona mientras lees, y Mod+1..9 salta entre destinos."
+              },
+              {
+                "title": "Tipografía para la app, no solo para el libro",
+                "body": "Las respuestas de chat, notas y vistas de plugins tienen su propia fuente, tamaño e interlineado — siguiendo tus ajustes de lectura por defecto, o separados si prefieres. La alineación del texto también se convierte en un ajuste de lectura, con el valor por defecto que eligió el editor."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "La barra de progreso en el encabezado del lector es un control deslizante que puedes arrastrar."
+              },
+              {
+                "body": "Los libros de diseño fijo (PDF, cómics) aceptan anotaciones y pasos de página con deslizamiento."
+              },
+              {
+                "body": "La configuración del proveedor de IA es más simple, recuerda un modelo por proveedor y admite esfuerzo de pensamiento por nivel para modelos inteligentes y rápidos."
+              },
+              {
+                "body": "Tu clave API está cifrada en reposo, y las solicitudes de IA se enrutan a través de HTTP nativo en lugar del webview."
+              },
+              {
+                "body": "Todos los cambios de estado se registran por eventos: las proyecciones se reconstruyen desde un registro de solo añadido y se pueden verificar contra él."
+              },
+              {
+                "body": "La cuadrícula de la estantería llena ventanas anchas, y los títulos de libros desde nombres de archivo salen limpios."
+              },
+              {
+                "body": "La app de escritorio hereda el proxy del sistema macOS."
+              },
+              {
+                "body": "Las versiones de desarrollo tienen su propia identidad y directorio de datos, así que ya no comparten la biblioteca de la versión de lanzamiento."
+              },
+              {
+                "body": "La documentación y el blog en readaware.app están ahora disponibles en inglés, chino simplificado y japonés."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Los libros cuyas hojas de estilo fijan un color de texto casi negro ya no son invisibles sobre el color de página oscuro — toda una clase de EPUBs convertidos con calibre era ilegible en modo oscuro."
+              },
+              {
+                "body": "Los cuerpos de notas al pie en línea de EPUB 3 permanecen ocultos y se abren en un popover, en lugar de volcar un capítulo entero de notas en la prosa."
+              },
+              {
+                "body": "El ajuste de interlineado ahora funciona en libros que declaran su propia altura de línea en los párrafos, donde antes no hacía nada."
+              },
+              {
+                "body": "Se reconocen los encabezados de capítulo en archivos .txt del mundo real."
+              },
+              {
+                "body": "Android incluye sus plugins integrados y sirve los recursos de los plugins a través del esquema que realmente usa."
+              },
+              {
+                "body": "El marketplace recuerda el último espejo que funcionó."
+              },
+              {
+                "body": "Los toques sueltos en la barra de progreso del lector ya no buscan en dispositivos táctiles."
+              },
+              {
+                "body": "Las páginas de plugins se desplazan como páginas, las filas virtuales se re-miden cuando el contenido superior cambia, y los formularios de ajustes abiertos adoptan escrituras externas en lugar de ocultarlas."
+              },
+              {
+                "body": "Las rutas de archivo del marketplace se validan con listas blancas, cerrando un bypass de ruta relativa a unidad en Windows."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

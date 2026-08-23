@@ -1,0 +1,432 @@
+{
+  "chrome": {
+    "docs": "Dokumentation",
+    "blog": "Blog",
+    "download": "Download",
+    "allPosts": "← Alle Beiträge",
+    "tagline": "Local-First. Deins.",
+    "more": "Mehr",
+    "language": "Sprache",
+    "pricing": "Preise",
+    "changelog": "Änderungsprotokoll",
+    "changelogTitle": "Änderungsprotokoll",
+    "changelogLead": "Was sich in jeder Version geändert hat, geschrieben für die Menschen, die sie nutzen. Die vollständigen Notizen und Downloads jeder Version gibt es auf GitHub.",
+    "changelogNew": "Neu",
+    "changelogImproved": "Verbessert",
+    "changelogFixed": "Behoben",
+    "changelogOlder": "Ältere Versionen auf GitHub →",
+    "changelogRelease": "Versionshinweise"
+  },
+  "docsNav": {
+    "ariaLabel": "Dokumentation",
+    "startTitle": "Start",
+    "pluginsTitle": "Plugins",
+    "labels": {
+      "overview": "Übersicht",
+      "install": "Download & Installation",
+      "gettingStarted": "Erste Schritte",
+      "pluginsOverview": "Plugin-System",
+      "pluginsDevelop": "Plugin entwickeln",
+      "pluginsCapabilities": "Funktionen und Rechte",
+      "pluginsApi": "Plugin-API-Referenz",
+      "pluginsPublishing": "Ein Plugin veröffentlichen"
+    }
+  },
+  "home": {
+    "metaTitle": "ReadAware — Kostenloser Open-Source-E-Book-Reader, der dich kennt",
+    "metaDescription": "Ein kostenloser Open-Source-E-Book-Reader für Windows, macOS, Linux und Android. Ein Reader für EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML und PDF, der aus deinem Lesen Erinnerung aufbaut, durch Plugins wächst und Ende-zu-Ende-verschlüsselt synchronisiert — Local-First und privat.",
+    "heroTitle": "Ein E-Book-Reader, der dich kennt — und den du erweiterst",
+    "heroLead": "Frag nach irgendeiner Passage — ReadAware weiß bereits, was du markiert, gefragt und gelesen hast, über jedes Buch in deinem Regal hinweg. Dieses Wissen lebt auf deinem Gerät, wächst durch Plugins und folgt dir — verschlüsselt — auf jede Maschine.",
+    "shelfAlt": "Die ReadAware-Bibliothek — ein Raster aus Buchcovern in vielen Sprachen und Formaten.",
+    "shelfCaption": "Deine Bibliothek — alle Formate an einem Ort.",
+    "readerTitle": "Ein ruhiger Ort, um alles zu lesen",
+    "readerBody": "Importiere eine Datei und lies los. Es gibt keine Konvertierung und keinen Cloud-Upload; deine Markierungen, Notizen und dein Lesezeichen bleiben beim Originaltext. Wenn du dich besser konzentrieren willst, lies Satz für Satz — die Seite tritt zurück, ein schwebender Streifen führt dich durch, und das Vorlesen kann folgen.",
+    "readerAlt": "Eine Seite von „Stolz und Vorurteil“ im ReadAware-Reader, ein Satz im Fokus, während der Rest der Seite zurücktritt.",
+    "readerCaption": "„Stolz und Vorurteil“ Satz für Satz lesen.",
+    "memoryTitle": "Es weiß, was du gelesen hast",
+    "memoryBody": "Frag nach einer Passage, einem Buch oder deinem ganzen Regal. ReadAware antwortet aus deiner eigenen Lektüre — die Zeile, die du vor drei Büchern markiert hast, die Frage von letzter Woche, der Faden, der sich durch dein ganzes Regal zieht. Es spielt keine Chat-Historie ab; es behält eine dauerhafte Erinnerung an das Wichtige und bringt sie genau dann zurück, wenn sie relevant ist.",
+    "contextAlt": "Der ReadAware-Assistent, der das Regal und die letzten Lesefortschritte des Lesers betrachtet und den roten Faden benennt.",
+    "contextCaption": "Der Assistent, der aus deinem eigenen Regal antwortet.",
+    "pluginTitle": "Von innen erweitert",
+    "pluginBody": "Sandbox-Plugins aus dem eingebauten Marktplatz bringen Vorlesestimmen, Wörterbücher, Lesethemen, Feeds, die sich wie Bücher lesen. Und sie reichen tiefer als Features: Ein Plugin kann dem Assistenten ein neues Werkzeug in die Hand geben — und er benutzt es einfach. Der Reader bekommt nicht bloß Knöpfe dazu, er lernt Neues.",
+    "pluginAlt": "Das Plugin-Panel von ReadAware — Wörterbuch, Themes und RSS-Reader, jedes in seiner Sandbox, manche geben dem Assistenten neue Werkzeuge.",
+    "pluginCaption": "Stimmen, Wörterbücher, Themes, Feeds — und Werkzeuge für den Assistenten.",
+    "syncTitle": "Dein Lesen folgt dir",
+    "syncBody": "Öffne ReadAware auf einer anderen Maschine, und alles ist schon da — deine Bücher, deine Markierungen, deine Stelle in jedem von ihnen und die daraus gewachsene Erinnerung. Die Synchronisierung ist Ende-zu-Ende-verschlüsselt: Das Relay speichert ausschließlich Chiffretext, niemand dazwischen kann lesen, was du liest. Desktop und Android heute; iOS ist unterwegs.",
+    "inShortTitle": "Kurz gesagt",
+    "notes": [
+      {
+        "title": "Eine Engine, jedes Format",
+        "body": "EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML und PDF öffnen sich im selben Reader, mit derselben Auswahl, denselben Markierungen und demselben Fortschritt. Nichts wird konvertiert; die Originaldatei ist das, was du behältst."
+      },
+      {
+        "title": "Aufmerksam, nicht archivierend",
+        "body": "Lesen wird zu Erinnerung, mit der die App arbeiten kann. ReadAware behält das Wichtige und holt es hervor, wenn es relevant ist — präsent im Moment, nicht abgelegt."
+      },
+      {
+        "title": "Plugins bringen ihm Neues bei",
+        "body": "Marktplatz-Plugins ergänzen Stimmen, Wörterbücher, Themen und Feeds — und geben dem Assistenten Werkzeuge in die Hand, die er aufgreift und nutzt."
+      },
+      {
+        "title": "Open Source, Local-First, verschlüsselte Synchronisierung",
+        "body": "Der Code ist unter AGPL-3.0 öffentlich, und alles lebt auf deinem Gerät. Bring deinen eigenen API-Schlüssel mit; die Cloud ist nur ein verschlüsseltes Relay zwischen deinen Maschinen."
+      }
+    ],
+    "freeLine": "Kostenlos, Open Source und Local-First.",
+    "freeLineWithTag": "Kostenlos, Open Source und Local-First. Die neueste Version ist {{tag}}.",
+    "download": {
+      "title": "ReadAware herunterladen",
+      "intro": "Kostenlos, Open Source und Local-First. Bring deinen eigenen API-Schlüssel mit; deine Bibliothek und Erinnerung bleiben auf deinem Gerät.",
+      "yourPlatform": "— deine Plattform",
+      "comingSoon": "Bald verfügbar",
+      "download": "Download",
+      "choosePlatform": "Plattform wählen",
+      "signingNote": "Desktop-Builds sind noch nicht code-signiert; macOS und Windows bitten dich beim ersten Start möglicherweise, die App zu bestätigen.",
+      "latest": "Die neueste Version ist {{tag}}.",
+      "downloadFor": "Download für {{name}}"
+    }
+  },
+  "pricing": {
+    "metaTitle": "Preise — ReadAware",
+    "metaDescription": "Die App ist kostenlos und vollständig; Bezahltarife fügen verschlüsselte Synchronisation und integrierte KI hinzu. Sync 5 $, Pro 20 $, Max 50 $ im Monat.",
+    "title": "Preise",
+    "lead": "Die App ist kostenlos und für sich vollständig — alle Lesefunktionen, dein eigener KI-Schlüssel, deine Daten auf deiner Festplatte. Bezahlte Tarife fügen verschlüsselte Synchronisation und integrierte KI hinzu, nach einem Prinzip: Ein Abo darf nie zwischen dir und deiner Bibliothek stehen.",
+    "perMonth": "/Monat",
+    "recommended": "Empfohlen",
+    "ctaFree": "Herunterladen",
+    "ctaPaid": "Abonnieren",
+    "ctaPaidBusy": "Checkout wird geöffnet…",
+    "purchaseSuccess": "Zahlung eingegangen — dein Tarif ist aktiv. Melde dich in der App mit der E-Mail-Adresse aus dem Checkout an.",
+    "checkoutFailed": "Der Checkout konnte nicht gestartet werden. Versuche es erneut oder schreib uns.",
+    "paidNote": "Fragen zur Abrechnung?",
+    "paidNoteLink": "Schreib uns",
+    "finePrintTitle": "Das Kleingedruckte, klar gesagt",
+    "finePrint": [
+      "KI-Credits: 1 Credit = 0,001 $ Modellnutzung zum Listenpreis. Eine typische Frage kostet 2–4 Credits; 5.000 Credits sind rund tausend Gespräche. Monatlicher Reset.",
+      "KI mit eigenem Schlüssel bleibt für immer kostenlos, in jedem Tarif — das Abo ist Bequemlichkeit, keine Mauer.",
+      "Synchronisierte Daten sind Ende-zu-Ende-verschlüsselt. Der Server speichert nur unlesbaren Geheimtext; die Passphrase verlässt deine Geräte nie.",
+      "Anfragen der integrierten KI laufen über unser Relay per TLS zum Modellanbieter und werden nie protokolliert oder gespeichert — gemessen werden nur Token-Zahlen. Wenn dir dieser Kompromiss nicht passt, nimm deinen eigenen Schlüssel.",
+      "Ein Downgrade löscht niemals etwas. Konten über dem Kontingent lesen und laden weiter; nur neue Uploads pausieren."
+    ],
+    "plans": [
+      {
+        "id": "free",
+        "name": "Kostenlos",
+        "price": "0 $",
+        "tagline": "Die ganze Lese-App, ohne Konto.",
+        "features": [
+          "Alle Lesefunktionen — EPUB, PDF, MOBI und mehr",
+          "KI-Chat und Gedächtnis mit eigenem API-Schlüssel",
+          "Alle Daten lokal, auf deiner Festplatte",
+          "50 MB verschlüsselte Synchronisation zum Ausprobieren"
+        ]
+      },
+      {
+        "id": "sync",
+        "name": "Sync",
+        "price": "5 $",
+        "tagline": "Deine Bibliothek auf jedem Gerät. Den KI-Schlüssel bringst du mit.",
+        "features": [
+          "10 GB Ende-zu-Ende-verschlüsselte Synchronisation",
+          "Ganze Bibliothek, Anmerkungen, Fortschritt, Gedächtnis",
+          "Unbegrenzt viele Geräte",
+          "KI mit eigenem Schlüssel"
+        ]
+      },
+      {
+        "id": "pro",
+        "name": "Pro",
+        "price": "20 $",
+        "tagline": "Synchronisation plus integrierte KI — nichts zu konfigurieren.",
+        "highlight": true,
+        "features": [
+          "Alles aus Sync",
+          "Integrierte KI, keine Schlüssel-Einrichtung",
+          "5.000 KI-Credits im Monat — rund tausend Gespräche",
+          "DeepSeek V4 Flash und V4 Pro Modelle"
+        ]
+      },
+      {
+        "id": "max",
+        "name": "Max",
+        "price": "50 $",
+        "tagline": "Für Vielleser und große Bibliotheken.",
+        "features": [
+          "Alles aus Pro",
+          "30.000 KI-Credits im Monat",
+          "100 GB verschlüsselte Synchronisation",
+          "Neue Modelle zuerst"
+        ]
+      }
+    ]
+  },
+  "changelog": {
+    "metaTitle": "Änderungsprotokoll — ReadAware",
+    "metaDescription": "Was sich in jeder Version geändert hat, geschrieben für die Menschen, die sie nutzen. Die vollständigen Notizen und Downloads jeder Version gibt es auf GitHub.",
+    "leadIn": ". ",
+    "entries": [
+      {
+        "version": "0.4.2",
+        "date": "2026-08-12",
+        "summary": "Ein Patch, der die Haustür öffnet: Buchdateien öffnen direkt aus deinem Dateimanager, Import per Drag-and-drop, und jede Illustration bekommt einen Vollbild-Viewer.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Mit ReadAware öffnen",
+                "body": "Mach ReadAware zur Standard-App für deine Buchdateien, und ein Doppelklick auf eine Datei führt direkt in den Reader — das Buch wird dabei ins Regal aufgenommen. Wenn die App bereits läuft, übernimmt das bestehende Fenster — keine zweite Kopie."
+              },
+              {
+                "title": "Bücher per Drag-and-drop importieren",
+                "body": "Zieh Buchdateien an eine beliebige Stelle im Fenster und sie werden sofort importiert."
+              },
+              {
+                "title": "Ein genauerer Blick auf Illustrationen",
+                "body": "Tippe auf ein Bild in einem beliebigen Buch, um es im Vollbild zu betrachten. Zoome mit dem Mausrad oder einer Pinch-Geste um den Cursor, ziehe zum Verschieben, doppelklicke zum Umschalten der Ansicht, und eine kleine Symbolleiste deckt Zoomen, Drehen, Kopieren in die Zwischenablage und Schließen ab."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "version": "0.4.1",
+        "date": "2026-08-11",
+        "summary": "Ein Patch für die Statistikseite und den Satz-Reader: Diagramme, die du antippen kannst, und ein Plugin, das seine Einstellungen endlich unter einem eigenen Dach behält — plus eine Fortschrittsanzeige und einen Sitzungstimer.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Diagramme antippen",
+                "body": "Die Balken der Lesestatistik geben den Tinten-Highlight jetzt an den Balken weiter, den du antippst — bei Tages-, Wochentags- und Tageszeit-Diagrammen gleichermaßen — und er bleibt dort, wo du ihn platziert hast."
+              },
+              {
+                "title": "Der Satz-Reader behält seine eigenen Einstellungen",
+                "body": "Schrittgröße, Tippen zum Weitergehen und Wischen zum Schalten sind in die eigene Einstellungsseite des Plugins gewandert, ergänzt um zwei neue Optionen: eine Kapitel-Positionsanzeige (12 / 87) und einen Sitzungstimer, der bei jedem Eintritt neu startet und nie gespeichert wird. Beide leben auf einem kleinen schwebenden Chip, den du ziehen kannst."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Diagramm-Tooltips haben ihre schwebende Karte gegen ein dezentes Tinten-Label direkt über den Balken getauscht."
+              },
+              {
+                "body": "Die Über-Seite zeigt neben der Version den Codenamen der Serie."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Die Überschrift „Gesamtzeit“ läuft auf Telefonen nicht mehr über, und das Antippen eines Diagramms zeichnet keinen Fokusring mehr."
+              },
+              {
+                "body": "Das Deaktivieren der Anzeigen in den Einstellungen greift ohne Neustart der App."
+              },
+              {
+                "body": "Unter iOS erscheinen im Reader nicht mehr zwei Auswahlmenüs gleichzeitig."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "version": "0.4.0",
+        "date": "2026-08-10",
+        "codename": "El Alto",
+        "summary": "Die erste Version der El-Alto-Serie, und eine Version über Distanz: Die Aktionen, die du beim Lesen brauchst, sind auf den Satz selbst gewandert, die Panels, die sich lohnen, sind einen Tipp entfernt, und der Assistent macht keine Umwege mehr vor der Antwort.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Tippe auf den Satz",
+                "body": "Beim Satz- oder Absatz-Lesen öffnet das Antippen des hervorgehobenen Satzes seine Aktionen direkt dort — kopieren, markieren, unterstreichen, Notiz, KI fragen, Wörterbuch — statt eines Griffes zur unteren Leiste."
+              },
+              {
+                "title": "Türen statt einer Symbolleiste",
+                "body": "Der schwebende Navigationsstreifen öffnet das Inhaltsverzeichnis, deine Notizen, das Lese-Erscheinungsbild oder den Chat in einem Tipp und paginiert auf Telefonen, sodass er immer in eine Zeile passt."
+              },
+              {
+                "title": "Updates stellen sich vor",
+                "body": "Nach einem App-Update öffnet ein dezenter Link dieses Änderungsprotokoll in deiner Sprache. Schließe es oder lass es nach zwei Tagen von selbst verblassen."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Der Lese-Assistent antwortet in der Sprache, in der du schreibst, meldet die Lesezeit in Stunden und Minuten statt in rohen Zählern und inventarisiert deine Statistiken nicht mehr, bevor er eine Frage zum Buch beantwortet."
+              },
+              {
+                "body": "Der Spoiler-Schutz begrenzt jetzt auch, was der Assistent über einen berühmten Roman bereits wissen darf — nichts über deinen Lesestand hinaus, es sei denn, du fragst ausdrücklich nach Spoiler."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Externe Links — das Über-Panel, die Was-ist-neu-Tür — öffnen jetzt wirklich deinen Browser."
+              },
+              {
+                "body": "Ein eingefügter API-Schlüssel wird abgelehnt, ohne ins Gespräch zurückgegeben zu werden."
+              },
+              {
+                "body": "Buchkarten können nicht mehr zweimal in einer Antwort präsentiert werden."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "version": "0.3.1",
+        "date": "2026-08-10",
+        "summary": "Eine Version über PDFs und darüber, dass die Reader-Umgebung weiß, wann sie sich zurücknehmen soll. Eine PDF-Seite ist ein Bild, also erreichte die Seitenfarbe sie nie, und jedes feste Layout blieb in einer dunklen App auf weißem Papier — das ist behoben, zusammen mit den Bedienelementen, die diese Bücher anboten, aber nicht einhalten konnten.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "PDFs folgen der Seitenfarbe",
+                "body": "Eine helle Palette färbt das Papier, während die Seite gezeichnet wird, und lässt jede Tinte und jedes Foto exakt wie gedruckt. Eine dunkle Palette zeichnet die Seite in zwei Tönen neu, damit der Text lesbar bleibt, statt als schwarze Tinte auf dunklem Blatt zu sitzen."
+              },
+              {
+                "title": "Seitenwiedergabe",
+                "body": "Behalte ein Buch in den Originalfarben, während alles andere deiner Palette folgt. Pro Buch gespeichert, für die Kunst und Fotografie, bei denen es auf die Farbe ankommt."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Bücher mit festem Layout bieten keine Typografie mehr an, die sie nicht einhalten können. Ein PDF oder Comic ist eine Abfolge von Seiten, die jemand anderes bereits gesetzt hat, daher sind Schriftart, -größe, -stärke, Zeilenabstand, Ausrichtung und Ränder für diese Bücher verschwunden. Seitenfarbe und Lesemodus bleiben, weil beide sichtbare Arbeit leisten."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Die Reader-Symbolleiste erscheint nicht mehr kurz und verschwindet einen Moment nach dem Antippen der Seite. Alles, was den Text neu fließen lässt — die Soft-Tastatur, das Drehen des Geräts, die Änderung der Schriftgröße — wurde fälschlich für einen Seitenwechsel gehalten."
+              },
+              {
+                "body": "Der Chat-Editor übernimmt den Cursor, wenn du das Panel öffnest, nicht jedes Mal, wenn die Symbolleiste wieder erscheint. Auf einem Telefon, das die Tastatur über eine Seite geworfen hatte, die du nur ansehen wolltest."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "version": "0.3.0",
+        "date": "2026-08-07",
+        "summary": "Die Version, in der die App aufhört, eine feste Reihe von Funktionen zu sein, und etwas wird, das du erweiterst. Plugins laufen in echten Sandboxen, tragen zu fast jeder Oberfläche bei und werden über einen Marktplatz ausgeliefert. Der Agent bekommt Werkzeuge und Ablaufspuren, der Reader bekommt ein Ende, und sowohl das Buch als auch das Gespräch gehören jetzt dir zum Setzen.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Plugins",
+                "body": "Ein vollständiges Plugin-System: Sandbox-Worker mit permission-gesteuerten Fähigkeiten, ein TypeScript-First-Autorenpfad und ein Marktplatz mit Zustimmung bei der Installation. Plugins tragen zu Lesermenüs, Kopfzeilen, Befehlspaletten-Einträgen, ganzen Seiten, KI-Werkzeugen, Wörterbuch-Lookups, Themen und gebündelten Schriftarten, Sprach-Engines, geplanten Aufgaben und sogar virtuellen Büchern bei, die wie jeder andere Titel in deinem Regal leben. Fünf sind eingebaut — Wörterbuch, RSS-Reader, Satz-Reader, TTS-Stimmen und Redaktionelle Themen."
+              },
+              {
+                "title": "Vorlesen",
+                "body": "Der Reader spricht und folgt dabei demselben Satz- und Absatz-Navigator, mit dem du liest. Jede TTS-Engine kann sich anschließen, mit anbieterabhängigen Stimmen und benutzerdefinierten Endpunkten."
+              },
+              {
+                "title": "Ein Ende",
+                "body": "Ein Buch zu beenden, führt jetzt zu einem Bildschirm nach dem Buch statt zu einem toten Stopp, mit einem optionalen Rückblick, der vom Agenten geschrieben wurde."
+              },
+              {
+                "title": "Agent als Ziel",
+                "body": "Der Agent bekommt eine eigene primäre Seite mit mehreren Threads, Erdung in deinem tatsächlichen Stand im Buch, erweiterbaren Ausführungs-Traces und Werkzeugen, die deine Einstellungen sicher lesen und ändern können."
+              },
+              {
+                "title": "Mehr Formate",
+                "body": "CBZ, CBR, TXT und HTML gesellen sich zu EPUB, MOBI, AZW3, FB2 und PDF. Cover und Metadaten werden beim Import ausgefüllt."
+              },
+              {
+                "title": "Mach es zu deinem",
+                "body": "Die primäre Navigation und jede Menüfläche sind per Drag-and-Drop anordenbar. Die Befehlspalette funktioniert beim Lesen, und Mod+1..9 springt zwischen Zielen."
+              },
+              {
+                "title": "Typografie für die App, nicht nur für das Buch",
+                "body": "Chat-Antworten, Notizen und Plugin-Ansichten bekommen ihre eigene Schriftart, -größe und Zeilenabstand — standardmäßig deinen Leseeinstellungen folgend oder davon gelöst, wenn du es lieber magst. Textausrichtung wird ebenfalls zu einer Leseeinstellung, standardmäßig so, wie der Herausgeber es gewählt hat."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Die Fortschrittsleiste im Reader-Kopf ist jetzt ein ziehbarer Scrubber."
+              },
+              {
+                "body": "Bücher mit festem Layout (PDF, Comics) akzeptieren Anmerkungen und Wisch-Seitenwechsel."
+              },
+              {
+                "body": "Die KI-Anbieter-Einrichtung ist einfacher, merkt sich ein Modell pro Anbieter und unterstützt stufenbezogenes Denkaufwand für Smart- und Fast-Modelle."
+              },
+              {
+                "body": "Dein API-Schlüssel wird verschlüsselt gespeichert, und KI-Anfragen laufen über natives HTTP statt über die Webview."
+              },
+              {
+                "body": "Alle Zustandsänderungen sind Event-sourced: Projektionen werden aus einem Append-Only-Log neu aufgebaut und können gegen dieses verifiziert werden."
+              },
+              {
+                "body": "Das Regal-Raster füllt breite Fenster, und Buchtitel aus Dateinamen kommen sauber heraus."
+              },
+              {
+                "body": "Die Desktop-App übernimmt den macOS-Systemproxy."
+              },
+              {
+                "body": "Dev-Builds bekommen eine eigene Identität und ein eigenes Datenverzeichnis, sodass sie die Bibliothek der Release-App nicht mehr teilen."
+              },
+              {
+                "body": "Dokumentation und Blog auf readaware.app sind jetzt auf Englisch, vereinfachtem Chinesisch und Japanisch verfügbar."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Bücher, deren Stylesheets eine fast schwarze Textfarbe festnageln, sind auf der dunklen Seitenfarbe nicht mehr unsichtbar — eine ganze Klasse von Calibre-konvertierten EPUBs war im dunklen Modus unlesbar."
+              },
+              {
+                "body": "Inline-Fußnoten in EPUB 3 bleiben verborgen und öffnen sich in einem Popover, statt Kapitelweise Notizen in den Fließtext zu kippen."
+              },
+              {
+                "body": "Die Zeilenabstand-Einstellung funktioniert jetzt auch bei Büchern, die ihre eigene Zeilenhöhe für Absätze deklarieren, wo sie vorher gar nichts tat."
+              },
+              {
+                "body": "Kapitelüberschriften in echten .txt-Dateien werden erkannt."
+              },
+              {
+                "body": "Android wird mit seinen eingebauten Plugins ausgeliefert und serviert Plugin-Assets über das Schema, das es tatsächlich verwendet."
+              },
+              {
+                "body": "Der Marktplatz merkt sich den letzten funktionierenden Spiegel."
+              },
+              {
+                "body": "Versehentliche Tipps auf die Fortschrittsleiste des Readers lösen auf Touch-Geräten keine Suche mehr aus."
+              },
+              {
+                "body": "Plugin-Seiten scrollen als Seiten, virtuelle Zeilen werden neu gemessen, wenn sich Inhalte darüber ändern, und offene Einstellungsformulare übernehmen externe Schreibvorgänge, statt sie zu überblenden."
+              },
+              {
+                "body": "Marktplatz-Dateipfade werden gegen eine Zulassungsliste validiert, wodurch ein Windows-Laufwerks-relativer Pfad-Bypass geschlossen wird."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

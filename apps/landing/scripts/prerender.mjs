@@ -19,7 +19,7 @@ import { fileURLToPath } from "node:url";
 const appDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const distDir = join(appDir, "dist");
 
-const { render, staticPaths, POSTS, CHANGELOG } = await import(
+const { render, staticPaths } = await import(
   join(appDir, "dist-ssr", "entry-server.js")
 );
 
@@ -49,6 +49,47 @@ const LOCALES = [
   { locale: "ru", prefix: "/ru", hreflang: "ru", ogLocale: "ru_RU" },
   { locale: "es", prefix: "/es", hreflang: "es", ogLocale: "es_ES" },
 ];
+
+// RSS, BlogPosting metadata, and the desktop changelog feed are projections
+// of the same locale resources the pages render. Read them at build time so
+// the SSR entry does not statically bundle every language.
+const SITE_RESOURCES = Object.fromEntries(
+  await Promise.all(
+    LOCALES.map(async ({ locale }) => [
+      locale,
+      JSON.parse(
+        await readFile(
+          join(appDir, "src", "i18n", "resources", `${locale}.site.json`),
+          "utf8",
+        ),
+      ),
+    ]),
+  ),
+);
+const POSTS = Object.entries(SITE_RESOURCES.en.blog.posts).map(([slug, post]) => ({
+  slug,
+  date: post.date,
+  text: Object.fromEntries(
+    ["en", "zh", "ja"].map((locale) => {
+      const localized = SITE_RESOURCES[locale].blog.posts[slug];
+      return [locale, { title: localized.title, description: localized.description }];
+    }),
+  ),
+}));
+const CHANGELOG = SITE_RESOURCES.en.changelog.entries.map((entry, index) => ({
+  version: entry.version,
+  date: entry.date,
+  ...(entry.codename ? { codename: entry.codename } : {}),
+  text: Object.fromEntries(
+    LOCALES.map(({ locale }) => {
+      const localized = SITE_RESOURCES[locale].changelog.entries[index];
+      if (localized.version !== entry.version) {
+        throw new Error(`Changelog resources drifted at ${locale}/${entry.version}`);
+      }
+      return [locale, { summary: localized.summary, groups: localized.groups }];
+    }),
+  ),
+}));
 
 function localeOf(routePath) {
   return (

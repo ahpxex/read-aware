@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { DownloadMenu } from "./DownloadMenu";
 import { DownloadSection } from "./DownloadSection";
 import { Plate } from "./Plate";
@@ -6,7 +7,7 @@ import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
 import { useDocumentLang } from "../hooks/useDocumentLang";
 import { useLatestRelease } from "../hooks/useLatestRelease";
-import { HOME } from "../lib/home-content";
+import { useSiteCopy } from "../i18n/use-site-copy";
 import { LOCALES, LOCALE_CHOICE_KEY, type Locale } from "../lib/i18n";
 
 /**
@@ -57,8 +58,17 @@ function detectBrowserLocale(): Exclude<Locale, "en"> | null {
 export function HomePage({ locale }: { locale: Locale }) {
   useDocumentLang(locale);
   useBrowserLocaleRedirect(locale);
+  const { t } = useTranslation("site");
   const release = useLatestRelease();
-  const content = HOME[locale];
+  const content = useSiteCopy("home");
+  const downloadStrings = {
+    ...content.download,
+    latest: (tag: string) => t("home.download.latest", { tag }),
+    downloadFor: (name: string) => t("home.download.downloadFor", { name }),
+  };
+  const freeLine = release.tag
+    ? t("home.freeLineWithTag", { tag: release.tag })
+    : t("home.freeLine");
 
   return (
     <div className="min-h-screen bg-paper text-fg">
@@ -78,10 +88,10 @@ export function HomePage({ locale }: { locale: Locale }) {
               <DownloadMenu
                 downloads={release.downloads}
                 platform={release.platform}
-                strings={content.download}
+                strings={downloadStrings}
               />
               <span className="text-[0.9375rem] text-fg-muted">
-                {content.freeLine(release.tag)}
+                {freeLine}
               </span>
             </div>
           </section>
@@ -182,7 +192,7 @@ export function HomePage({ locale }: { locale: Locale }) {
             downloads={release.downloads}
             platform={release.platform}
             tag={release.tag}
-            strings={content.download}
+            strings={downloadStrings}
           />
         </main>
 

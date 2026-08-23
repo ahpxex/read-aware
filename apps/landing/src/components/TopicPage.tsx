@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { DownloadMenu } from "./DownloadMenu";
 import { DownloadSection } from "./DownloadSection";
 import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
 import { useDocumentLang } from "../hooks/useDocumentLang";
 import { useLatestRelease } from "../hooks/useLatestRelease";
-import { HOME } from "../lib/home-content";
+import { useSiteCopy } from "../i18n/use-site-copy";
 import { TOPIC_PAGES } from "../lib/topic-pages";
 
 export type TopicFaq = { question: string; answer: string };
@@ -31,8 +32,17 @@ export function TopicPage({
   children: ReactNode;
 }) {
   useDocumentLang("en");
+  const { t } = useTranslation("site");
   const release = useLatestRelease();
-  const content = HOME.en;
+  const content = useSiteCopy("home");
+  const downloadStrings = {
+    ...content.download,
+    latest: (tag: string) => t("home.download.latest", { tag }),
+    downloadFor: (name: string) => t("home.download.downloadFor", { name }),
+  };
+  const freeLine = release.tag
+    ? t("home.freeLineWithTag", { tag: release.tag })
+    : t("home.freeLine");
   const pathname = useLocation({ select: (location) => location.pathname });
   const currentPath = pathname.replace(/\/$/, "") || "/";
   const siblings = TOPIC_PAGES.filter((page) => page.path !== currentPath);
@@ -53,10 +63,10 @@ export function TopicPage({
                 <DownloadMenu
                   downloads={release.downloads}
                   platform={release.platform}
-                  strings={content.download}
+                  strings={downloadStrings}
                 />
                 <span className="text-[0.9375rem] text-fg-muted">
-                  {content.freeLine(release.tag)}
+                  {freeLine}
                 </span>
               </div>
             </header>
@@ -110,7 +120,7 @@ export function TopicPage({
             downloads={release.downloads}
             platform={release.platform}
             tag={release.tag}
-            strings={content.download}
+            strings={downloadStrings}
           />
         </main>
 

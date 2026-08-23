@@ -1,0 +1,432 @@
+{
+  "chrome": {
+    "docs": "Docs",
+    "blog": "Blog",
+    "download": "Télécharger",
+    "allPosts": "← Tous les articles",
+    "tagline": "Local d'abord. À vous.",
+    "more": "Plus",
+    "language": "Langue",
+    "pricing": "Tarifs",
+    "changelog": "Journal des modifications",
+    "changelogTitle": "Journal des modifications",
+    "changelogLead": "Ce qui a changé dans chaque version, écrit pour celles et ceux qui utilisent l'application. Les notes complètes et les téléchargements de chaque version sont sur GitHub.",
+    "changelogNew": "Nouveau",
+    "changelogImproved": "Amélioré",
+    "changelogFixed": "Corrigé",
+    "changelogOlder": "Versions précédentes sur GitHub →",
+    "changelogRelease": "Notes de version"
+  },
+  "docsNav": {
+    "ariaLabel": "Docs",
+    "startTitle": "Démarrer",
+    "pluginsTitle": "Extensions",
+    "labels": {
+      "overview": "Vue d'ensemble",
+      "install": "Téléchargement et installation",
+      "gettingStarted": "Démarrage rapide",
+      "pluginsOverview": "Système d'extensions",
+      "pluginsDevelop": "Créer une extension",
+      "pluginsCapabilities": "Capacités et autorisations",
+      "pluginsApi": "Référence de l'API Extension",
+      "pluginsPublishing": "Publier une extension"
+    }
+  },
+  "home": {
+    "metaTitle": "ReadAware — Lecteur d'ebooks gratuit et open source qui vous connaît",
+    "metaDescription": "Un lecteur d'ebooks gratuit et open source pour Windows, macOS, Linux et Android. Un seul lecteur pour EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML et PDF, qui construit une mémoire à partir de vos lectures, grandit par les plugins et se synchronise chiffré de bout en bout — local d'abord et privé.",
+    "heroTitle": "Un lecteur d'ebooks qui vous connaît — et que vous étendez",
+    "heroLead": "Interrogez n'importe quel passage — ReadAware sait déjà ce que vous avez surligné, questionné et lu, à travers tous les livres de votre bibliothèque. Cette connaissance vit sur votre appareil, grandit par les plugins et vous suit, chiffrée, sur chaque machine.",
+    "shelfAlt": "La bibliothèque ReadAware — une grille de couvertures de livres dans de nombreuses langues et formats.",
+    "shelfCaption": "Votre bibliothèque — tous les formats au même endroit.",
+    "readerTitle": "Un endroit calme pour lire n'importe quoi",
+    "readerBody": "Importez un fichier et commencez à lire. Pas de conversion ni d'envoi dans le cloud ; vos surlignages, notes et position dans le livre restent avec le texte original. Pour plus de concentration, lisez phrase par phrase — la page s'efface, une bande flottante vous guide, et la lecture à voix haute peut suivre.",
+    "readerAlt": "Une page d'Orgueil et Préjugés dans le lecteur ReadAware, une phrase en focus pendant que le reste de la page s'efface.",
+    "readerCaption": "Lire Orgueil et Préjugés une phrase à la fois.",
+    "memoryTitle": "Il sait ce que vous avez lu",
+    "memoryBody": "Interrogez un passage, un livre ou toute votre bibliothèque. ReadAware répond à partir de votre propre lecture — la ligne marquée trois livres plus tôt, la question posée la semaine dernière, le fil qui traverse toute votre étagère. Il ne rejoue pas un historique de discussion : il garde une mémoire durable de ce qui compte et la fait revenir au moment où c'est pertinent.",
+    "contextAlt": "L'assistant ReadAware qui examine la bibliothèque et les lectures récentes du lecteur, et nomme le fil qui les traverse.",
+    "contextCaption": "L'assistant, répondant à partir de votre propre bibliothèque.",
+    "pluginTitle": "Étendu de l'intérieur",
+    "pluginBody": "Les plugins sandboxés du marketplace intégré ajoutent des voix de lecture, des dictionnaires, des thèmes, des flux qui se lisent comme des livres. Et ils vont plus loin que les fonctionnalités : un plugin peut confier un nouvel outil à l'assistant, qui se met simplement à l'utiliser. Le lecteur ne gagne pas des boutons — il apprend de nouveaux savoir-faire.",
+    "pluginAlt": "Le panneau de plugins de ReadAware — dictionnaire, thèmes et lecteur RSS, chacun dans son bac à sable, certains confiant de nouveaux outils à l'assistant.",
+    "pluginCaption": "Voix, dictionnaires, thèmes, flux — et des outils que l'assistant adopte.",
+    "syncTitle": "Votre lecture vous suit",
+    "syncBody": "Ouvrez ReadAware sur une autre machine et tout est déjà là — vos livres, vos surlignages, votre position dans chacun d'eux, et la mémoire construite à partir de tout cela. La synchronisation est chiffrée de bout en bout : le relais ne stocke que du chiffré, personne en chemin ne peut lire ce que vous lisez. Bureau et Android aujourd'hui ; iOS arrive.",
+    "inShortTitle": "En bref",
+    "notes": [
+      {
+        "title": "Un seul moteur, tous les formats",
+        "body": "EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML et PDF s'ouvrent dans le même lecteur, avec la même sélection, les mêmes surlignages et la même progression. Rien n'est converti ; le fichier original est ce que vous gardez."
+      },
+      {
+        "title": "Attentif, pas archiviste",
+        "body": "La lecture devient une mémoire que l'application peut mobiliser. ReadAware garde ce qui compte et le ressort quand c'est pertinent — présent sur le moment, pas rangé dans un tiroir."
+      },
+      {
+        "title": "Les plugins lui apprennent de nouveaux tours",
+        "body": "Les plugins du marketplace ajoutent voix, dictionnaires, thèmes et flux — et confient à l'assistant des outils qu'il adopte aussitôt."
+      },
+      {
+        "title": "Open source, local d'abord, synchronisation chiffrée",
+        "body": "Le code est public sous licence AGPL-3.0, et tout vit sur votre appareil. Apportez votre clé API ; le cloud n'est qu'un relais chiffré entre vos machines."
+      }
+    ],
+    "freeLine": "Gratuit, open source et local d'abord.",
+    "freeLineWithTag": "Gratuit, open source et local d'abord. La dernière version est {{tag}}.",
+    "download": {
+      "title": "Obtenir ReadAware",
+      "intro": "Gratuit, open source et local d'abord. Apportez votre propre clé API ; votre bibliothèque et votre mémoire restent sur votre appareil.",
+      "yourPlatform": "— votre plateforme",
+      "comingSoon": "Bientôt disponible",
+      "download": "Télécharger",
+      "choosePlatform": "Choisissez une plateforme",
+      "signingNote": "Les builds de bureau ne sont pas encore signés ; macOS et Windows peuvent vous demander de confirmer l'application au premier lancement.",
+      "latest": "La dernière version est {{tag}}.",
+      "downloadFor": "Télécharger pour {{name}}"
+    }
+  },
+  "pricing": {
+    "metaTitle": "Tarifs — ReadAware",
+    "metaDescription": "L'application est gratuite et complète ; les offres payantes ajoutent la synchronisation chiffrée et l'IA intégrée. Sync 5 $, Pro 20 $, Max 50 $ par mois.",
+    "title": "Tarifs",
+    "lead": "L'application est gratuite et complète en elle-même — toutes les fonctions de lecture, votre propre clé d'IA, vos données sur votre disque. Les offres payantes ajoutent la synchronisation chiffrée et l'IA intégrée, avec un principe : l'abonnement ne doit jamais se dresser entre vous et votre bibliothèque.",
+    "perMonth": "/mois",
+    "recommended": "Recommandée",
+    "ctaFree": "Télécharger",
+    "ctaPaid": "S'abonner",
+    "ctaPaidBusy": "Ouverture du paiement…",
+    "purchaseSuccess": "Paiement reçu — votre offre est active. Connectez-vous à l'application avec l'e-mail utilisé lors du paiement.",
+    "checkoutFailed": "Impossible de démarrer le paiement. Réessayez ou écrivez-nous.",
+    "paidNote": "Des questions sur la facturation ?",
+    "paidNoteLink": "Écrivez-nous",
+    "finePrintTitle": "Les petites lignes, en clair",
+    "finePrint": [
+      "Crédits IA : 1 crédit = 0,001 $ d'usage du modèle au tarif public. Une question typique coûte 2 à 4 crédits ; 5 000 crédits représentent environ mille conversations. Remise à zéro chaque mois.",
+      "L'IA avec votre propre clé reste gratuite pour toujours, sur chaque offre — l'abonnement est un confort, pas un mur.",
+      "Les données synchronisées sont chiffrées de bout en bout. Le serveur ne stocke qu'un chiffrement illisible ; la phrase secrète ne quitte jamais vos appareils.",
+      "Les requêtes de l'IA intégrée transitent par notre relais vers le fournisseur du modèle en TLS et ne sont jamais journalisées ni stockées — seuls les décomptes de tokens sont mesurés. Si ce compromis ne vous convient pas, utilisez votre propre clé.",
+      "Rétrograder ne supprime jamais rien. Un compte au-dessus du quota continue de lire et de télécharger ses données ; seuls les nouveaux envois sont suspendus."
+    ],
+    "plans": [
+      {
+        "id": "free",
+        "name": "Gratuite",
+        "price": "0 $",
+        "tagline": "Toute l'application de lecture, sans compte.",
+        "features": [
+          "Toutes les fonctions de lecture — EPUB, PDF, MOBI et plus",
+          "Dialogue et mémoire IA avec votre propre clé API",
+          "Toutes les données en local, sur votre disque",
+          "50 Mo de synchronisation chiffrée pour essayer le multi-appareils"
+        ]
+      },
+      {
+        "id": "sync",
+        "name": "Sync",
+        "price": "5 $",
+        "tagline": "Votre bibliothèque sur chaque appareil. La clé d'IA est la vôtre.",
+        "features": [
+          "10 Go de synchronisation chiffrée de bout en bout",
+          "Bibliothèque, annotations, progression, mémoire",
+          "Appareils illimités",
+          "IA avec votre propre clé"
+        ]
+      },
+      {
+        "id": "pro",
+        "name": "Pro",
+        "price": "20 $",
+        "tagline": "La synchronisation plus l'IA intégrée — rien à configurer.",
+        "highlight": true,
+        "features": [
+          "Tout ce que contient Sync",
+          "IA intégrée, aucune clé à configurer",
+          "5 000 crédits IA par mois — environ mille conversations",
+          "Modèles DeepSeek V4 Flash et V4 Pro"
+        ]
+      },
+      {
+        "id": "max",
+        "name": "Max",
+        "price": "50 $",
+        "tagline": "Pour les grands lecteurs et les grandes bibliothèques.",
+        "features": [
+          "Tout ce que contient Pro",
+          "30 000 crédits IA par mois",
+          "100 Go de synchronisation chiffrée",
+          "Accès prioritaire aux nouveaux modèles"
+        ]
+      }
+    ]
+  },
+  "changelog": {
+    "metaTitle": "Journal des modifications — ReadAware",
+    "metaDescription": "Ce qui a changé dans chaque version, écrit pour celles et ceux qui utilisent l'application. Les notes complètes et les téléchargements de chaque version sont sur GitHub.",
+    "leadIn": " : ",
+    "entries": [
+      {
+        "version": "0.4.2",
+        "date": "2026-08-12",
+        "summary": "Un patch qui ouvre la porte d'entrée : les fichiers de livres s'ouvrent directement depuis votre gestionnaire de fichiers, l'import par glisser-déposer est disponible, et chaque illustration dispose d'une visionneuse plein écran.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Ouvrir avec ReadAware",
+                "body": "Faites de ReadAware l'application par défaut pour vos fichiers de livres : un double-clic ouvre directement le lecteur, en ajoutant le livre à votre bibliothèque au passage. Si l'application est déjà ouverte, la fenêtre existante prend le relais — pas de seconde copie."
+              },
+              {
+                "title": "Importer des livres par glisser-déposer",
+                "body": "Faites glisser des fichiers de livres n'importe où sur la fenêtre et ils sont importés sur-le-champ."
+              },
+              {
+                "title": "Un regard plus attentif sur les illustrations",
+                "body": "Appuyez sur une image dans un livre pour l'afficher en plein écran. Zoomez autour du curseur avec la molette ou un pincement, faites glisser pour vous déplacer, double-cliquez pour basculer en mode ajustement, et une petite barre d'outils couvre le zoom, la rotation, la copie dans le presse-papiers et la fermeture."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "version": "0.4.1",
+        "date": "2026-08-11",
+        "summary": "Un correctif pour la page de statistiques et le lecteur de phrases : des graphiques tactiles, et un plugin qui garde enfin ses réglages — plus un affichage de progression et une minuterie de session — sous son propre toit.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Touchez les graphiques",
+                "body": "Les barres de statistiques de lecture remettent maintenant l'encre de surlignage à la barre que vous touchez — quotidiens, hebdomadaires et horaires — et elle reste là où vous l'avez mise."
+              },
+              {
+                "title": "Le lecteur de phrases garde ses propres réglages",
+                "body": "L'unité de pas, le toucher pour avancer et le glissement pour passer sont déplacés dans la page de réglages du plugin, accompagnés de deux nouvelles options : un affichage de position dans le chapitre (12 / 87) et une minuterie de session qui redémarre à chaque entrée et n'est jamais enregistrée. Les deux vivent sur une petite puce flottante que vous pouvez déplacer n'importe où."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Les infobulles des graphiques ont échangé leur carte flottante contre une étiquette d'encre discrète épinglée au-dessus des barres."
+              },
+              {
+                "body": "La page À propos affiche le nom de code de la série à côté de la version."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Le titre « Temps total » ne déborde plus sur les téléphones, et toucher un graphique ne dessine plus d'anneau de focus."
+              },
+              {
+                "body": "Désactiver les affichages dans les réglages s'applique sans redémarrer l'application."
+              },
+              {
+                "body": "iOS n'affiche plus deux menus de sélection à la fois dans le lecteur."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "version": "0.4.0",
+        "date": "2026-08-10",
+        "codename": "El Alto",
+        "summary": "La première version de la série El Alto, et une version sur la distance : les actions nécessaires pendant la lecture sont déplacées sur la phrase elle-même, les panneaux qui valent la peine d'être ouverts sont à un toucher, et l'assistant a cessé de faire des détours avant de répondre.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Touchez la phrase",
+                "body": "En lecture phrase ou paragraphe, toucher la phrase surlignée ouvre ses actions juste là — copier, surligner, souligner, note, demander à l'IA, dictionnaire — au lieu d'atteindre la barre du bas."
+              },
+              {
+                "title": "Des portes au lieu d'une barre d'outils",
+                "body": "La bande de navigation flottante ouvre la table des matières, vos notes, l'apparence de lecture ou le chat en un toucher, et se pagine sur les téléphones pour tenir sur une seule rangée."
+              },
+              {
+                "title": "Les mises à jour se présentent",
+                "body": "Après la mise à jour de l'application, un lien discret ouvre ce journal des modifications dans votre langue. Fermez-le, ou laissez-le disparaître tout seul après deux jours."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "L'assistant de lecture répond dans la langue dans laquelle vous écrivez, rapporte le temps de lecture en heures et minutes plutôt qu'en compteurs bruts, et n'inventorie plus vos statistiques avant de répondre à une question sur le livre."
+              },
+              {
+                "body": "La protection contre les spoilers encadre désormais aussi ce que l'assistant pourrait déjà savoir d'un roman célèbre — rien au-delà de votre position de lecture, sauf si vous demandez explicitement à être spoilé."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Les liens externes — le panneau À propos, la porte des nouveautés — ouvrent maintenant réellement votre navigateur."
+              },
+              {
+                "body": "Une clé API collée est refusée sans être renvoyée en écho dans la conversation."
+              },
+              {
+                "body": "Les cartes de livre ne peuvent plus être présentées deux fois dans une même réponse."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "version": "0.3.1",
+        "date": "2026-08-10",
+        "summary": "Une version sur les PDF, et sur le chrome du lecteur qui sait quand s'effacer. Une page PDF est une image, donc la couleur de page ne l'atteignait jamais et chaque livre à mise en page fixe restait sur du papier blanc dans une application sombre — c'est corrigé, ainsi que les contrôles que ces livres proposaient mais ne pouvaient pas honorer.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Les PDF suivent la couleur de page",
+                "body": "Une palette claire teinte le papier pendant le dessin de la page, laissant chaque encre et photographie exactement comme imprimé. Une palette sombre redessine la page en deux tons, pour que le texte reste lisible au lieu de se trouver en encre noire sur une feuille sombre."
+              },
+              {
+                "title": "Rendu de page",
+                "body": "Gardez un livre dans ses couleurs originales pendant que tout le reste suit votre palette. Mémorisé par livre, pour l'art et la photographie où la couleur est essentielle."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Les livres à mise en page fixe ne proposent plus de typographie qu'ils ne peuvent pas honorer. Un PDF ou une BD est une séquence de pages déjà mis en pages par quelqu'un d'autre, donc la police, la taille, le poids, l'espacement, l'alignement et les marges sont supprimés pour ces livres. La couleur de page et le mode de lecture restent, car les deux font encore un travail visible."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "La barre d'outils du lecteur ne clignote plus et ne disparaît plus un instant après avoir touché la page. Tout ce qui re-flux le texte — le clavier logiciel, la rotation de l'appareil, le changement de taille de police — était pris pour un tour de page."
+              },
+              {
+                "body": "Le compositeur de chat prend le curseur lorsque vous ouvrez le panneau, pas à chaque réapparition de la barre d'outils. Sur un téléphone qui jetait le clavier sur une page que vous souhaitiez simplement regarder."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "version": "0.3.0",
+        "date": "2026-08-07",
+        "summary": "La version où l'application cesse d'être un ensemble fixe de fonctionnalités et devient quelque chose que vous étendez. Les plugins tournent dans de vrais sandbox, contribuent à presque toutes les surfaces et sont distribués via un marketplace. L'agent gagne des outils et des traces, le lecteur gagne une fin, et le livre comme la conversation sont désormais à vous de composer.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Plugins",
+                "body": "Un système de plugins complet : des workers sandboxés avec des capacités contrôlées par permissions, un chemin de création TypeScript-first, et un marketplace avec consentement à l'installation. Les plugins contribuent aux menus du lecteur, aux en-têtes, aux entrées de la palette de commandes, à des pages entières, à des outils IA, à des recherches dans le dictionnaire, à des thèmes et polices groupées, à des moteurs de voix, à des tâches planifiées, et même à des livres virtuels qui vivent sur votre étagère comme tout autre titre. Cinq sont inclus — Dictionnaire, Lecteur RSS, Lecteur de phrases, Voix TTS et Thèmes éditoriaux."
+              },
+              {
+                "title": "Lecture à voix haute",
+                "body": "Le lecteur parle, en suivant le même navigateur de phrases et de paragraphes que vous utilisez pour lire. N'importe quel moteur TTS peut se brancher, avec des voix par fournisseur et des points de terminaison personnalisés."
+              },
+              {
+                "title": "Une fin",
+                "body": "Terminer un livre mène maintenant à un écran de fin de livre au lieu d'un arrêt brutal, avec un regard en arrière optionnel écrit par l'agent."
+              },
+              {
+                "title": "L'agent comme destination",
+                "body": "L'agent obtient sa propre page principale avec plusieurs fils de discussion, un ancrage dans l'endroit où vous en êtes réellement dans le livre, des traces d'exécution dépliables et des outils qui peuvent lire et modifier vos réglages en toute sécurité."
+              },
+              {
+                "title": "Plus de formats",
+                "body": "CBZ, CBR, TXT et HTML rejoignent EPUB, MOBI, AZW3, FB2 et PDF. Les couvertures et métadonnées se remplissent à l'importation."
+              },
+              {
+                "title": "Faites-le vôtre",
+                "body": "La navigation principale et toutes les surfaces de menu sont réorganisables par glisser-déposer. La palette de commandes fonctionne pendant la lecture, et Mod+1..9 saute entre les destinations."
+              },
+              {
+                "title": "Typographie pour l'application, pas seulement pour le livre",
+                "body": "Les réponses du chat, les notes et les vues de plugin obtiennent leur propre police, taille et interligne — suivant vos réglages de lecture par défaut, ou détachés si vous préférez. L'alignement du texte devient aussi un réglage de lecture, par défaut selon le choix de l'éditeur."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "La barre de progression dans l'en-tête du lecteur est un curseur que vous pouvez faire glisser."
+              },
+              {
+                "body": "Les livres à mise en page fixe (PDF, BD) acceptent les annotations et les balayages pour tourner les pages."
+              },
+              {
+                "body": "La configuration du fournisseur IA est plus simple, mémorise un modèle par fournisseur et prend en charge l'effort de réflexion par niveau pour les modèles intelligents et rapides."
+              },
+              {
+                "body": "Votre clé API est chiffrée au repos, et les requêtes IA passent par HTTP natif au lieu de la webview."
+              },
+              {
+                "body": "Tous les changements d'état sont event-sourcés : les projections se reconstruisent à partir d'un journal append-only et peuvent être vérifiées par rapport à celui-ci."
+              },
+              {
+                "body": "La grille de l'étagère remplit les fenêtres larges, et les titres de livres issus de noms de fichiers sortent propres."
+              },
+              {
+                "body": "L'application de bureau hérite du proxy système macOS."
+              },
+              {
+                "body": "Les builds de développement ont leur propre identité et répertoire de données, afin de ne plus partager la bibliothèque de l'application de version."
+              },
+              {
+                "body": "Les docs et le blog sur readaware.app sont maintenant disponibles en anglais, chinois simplifié et japonais."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Les livres dont les feuilles de style fixent une couleur de texte quasi noire ne sont plus invisibles sur la couleur de page sombre — toute une classe d'EPUB convertis avec calibre était illisible en mode sombre."
+              },
+              {
+                "body": "Les corps de notes de bas de page en ligne EPUB 3 restent cachés et s'ouvrent dans une popover, au lieu de déverser un chapitre de notes dans la prose."
+              },
+              {
+                "body": "Le réglage d'interligne fonctionne maintenant sur les livres qui déclarent leur propre hauteur de ligne sur les paragraphes, où il ne faisait auparavant rien du tout."
+              },
+              {
+                "body": "Les titres de chapitres dans les vrais fichiers .txt sont reconnus."
+              },
+              {
+                "body": "Android est livré avec ses plugins intégrés et sert les ressources des plugins via le schéma qu'il utilise réellement."
+              },
+              {
+                "body": "Le marketplace se souvient du dernier miroir qui a fonctionné."
+              },
+              {
+                "body": "Les touchers parasites sur la barre de progression du lecteur ne cherchent plus sur les appareils tactiles."
+              },
+              {
+                "body": "Les pages de plugin défilent comme des pages, les rangées virtuelles se re-mesurent lorsque le contenu au-dessus change, et les formulaires de réglages ouverts adoptent les écritures externes au lieu de les masquer."
+              },
+              {
+                "body": "Les chemins de fichiers du marketplace sont validés par liste blanche, fermant un contournement de chemin relatif au lecteur Windows."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

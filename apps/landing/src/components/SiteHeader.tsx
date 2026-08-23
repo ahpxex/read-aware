@@ -1,5 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { localizePath, UI_STRINGS, type Locale } from "../lib/i18n";
+import { useSiteCopy } from "../i18n/use-site-copy";
+import { localizePath, type Locale } from "../lib/i18n";
 import { REPO_URL } from "../lib/releases";
 import { HEADER_ICON_URL } from "../lib/site";
 import { MoreMenu } from "./MoreMenu";
@@ -22,7 +23,7 @@ function docsPath(locale: Locale): string {
  */
 export function SiteHeader({ locale = "en" }: { locale?: Locale }) {
   const pathname = useLocation({ select: (location) => location.pathname });
-  const strings = UI_STRINGS[locale];
+  const strings = useSiteCopy("chrome");
 
   return (
     <header className="flex flex-wrap items-center justify-between gap-y-2 py-7">

@@ -1,13 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { HomePage } from "../../components/HomePage";
-import { HOME } from "../../lib/home-content";
+import { sitePageMeta } from "../../i18n";
 
 export const Route = createFileRoute("/ru/")({
-  head: () => ({
-    meta: [
-      { title: HOME["ru"].metaTitle },
-      { name: "description", content: HOME["ru"].metaDescription },
-    ],
-  }),
+  head: ({ match }) => sitePageMeta(match.context.i18n, "home"),
   component: () => <HomePage locale="ru" />,
 });

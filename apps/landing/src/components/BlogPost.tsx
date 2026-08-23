@@ -1,27 +1,36 @@
-import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { UI_STRINGS, type BlogLocale } from "../lib/i18n";
-import { formatPostDate, getPost } from "../lib/posts";
+import type { BlogPostSlug } from "../i18n";
+import { useSiteCopy } from "../i18n/use-site-copy";
+import { localizePath, type BlogLocale } from "../lib/i18n";
+import { MarkdownDoc } from "./MarkdownDoc";
 
-const INDEX_TO = { en: "/blog", zh: "/zh/blog", ja: "/ja/blog" } as const;
+const DATE_LOCALE: Record<BlogLocale, string> = {
+  en: "en-US",
+  zh: "zh-CN",
+  ja: "ja-JP",
+};
+
+export function formatPostDate(isoDate: string, locale: BlogLocale): string {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString(
+    DATE_LOCALE[locale],
+    { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" },
+  );
+}
 
 /**
- * The article frame every blog post renders inside: dateline, localized
- * title, prose body, and a way back to the index. Post metadata comes from
- * the registry in `lib/posts.ts`, so a post file only supplies its slug,
- * locale, and content.
+ * Shared article frame for every blog URL. The route supplies only a slug and
+ * locale; title, metadata, and Markdown body come from the i18next resource.
  */
 export function BlogPost({
   slug,
   locale = "en",
-  children,
 }: {
-  slug: string;
+  slug: BlogPostSlug;
   locale?: BlogLocale;
-  children: ReactNode;
 }) {
-  const post = getPost(slug);
-  const text = post.text[locale];
+  const copy = useSiteCopy("blog");
+  const post = copy.posts[slug];
 
   return (
     <article>
@@ -30,16 +39,18 @@ export function BlogPost({
           {formatPostDate(post.date, locale)}
         </time>
         <h1 className="mt-2 text-[clamp(1.75rem,3.6vw,2.2rem)] font-normal leading-[1.15] tracking-[-0.01em]">
-          {text.title}
+          {post.title}
         </h1>
       </header>
-      <div className="doc-prose mt-8">{children}</div>
+      <div className="doc-prose mt-8">
+        <MarkdownDoc>{post.body}</MarkdownDoc>
+      </div>
       <p className="mt-12 text-[0.9375rem]">
         <Link
-          to={INDEX_TO[locale]}
+          to={localizePath("/blog", locale) as never}
           className="text-fg-muted underline underline-offset-4 transition-colors hover:text-fg"
         >
-          {UI_STRINGS[locale].allPosts}
+          {copy.allPosts}
         </Link>
       </p>
     </article>

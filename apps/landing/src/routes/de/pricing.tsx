@@ -1,12 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PricingPage } from "../../components/PricingPage";
+import { sitePageMeta } from "../../i18n";
 
 export const Route = createFileRoute("/de/pricing")({
-  head: () => ({
-    meta: [
-      { title: "Preise — ReadAware" },
-      { name: "description", content: "Die App ist kostenlos und vollständig; Bezahltarife fügen verschlüsselte Synchronisation und integrierte KI hinzu. Sync 5 $, Pro 20 $, Max 50 $ im Monat." },
-    ],
-  }),
+  head: ({ match }) => sitePageMeta(match.context.i18n, "pricing"),
   component: () => <PricingPage locale="de" />,
 });

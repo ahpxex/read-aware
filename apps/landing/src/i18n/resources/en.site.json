@@ -1,0 +1,459 @@
+{
+  "chrome": {
+    "docs": "Docs",
+    "blog": "Blog",
+    "download": "Download",
+    "allPosts": "← All posts",
+    "tagline": "Local-first. Yours.",
+    "more": "More",
+    "language": "Language",
+    "pricing": "Pricing",
+    "changelog": "Changelog",
+    "changelogTitle": "Changelog",
+    "changelogLead": "What changed in each release, written for the people using it. Every version's complete notes and downloads live on GitHub.",
+    "changelogNew": "New",
+    "changelogImproved": "Improved",
+    "changelogFixed": "Fixed",
+    "changelogOlder": "Older releases on GitHub →",
+    "changelogRelease": "Release notes"
+  },
+  "docsNav": {
+    "ariaLabel": "Documentation",
+    "startTitle": "Start",
+    "pluginsTitle": "Plugins",
+    "labels": {
+      "overview": "Overview",
+      "install": "Download & install",
+      "gettingStarted": "Getting started",
+      "pluginsOverview": "Plugin system",
+      "pluginsDevelop": "Build a plugin",
+      "pluginsCapabilities": "Capabilities",
+      "pluginsApi": "API reference",
+      "pluginsPublishing": "Publishing"
+    }
+  },
+  "home": {
+    "metaTitle": "ReadAware — Free, Open-Source Ebook Reader That's Aware of You",
+    "metaDescription": "A free, open-source ebook reader for Windows, macOS, Linux, and Android. One reader for EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, and PDF that builds memory from your reading, grows through plugins, and syncs end-to-end encrypted — local-first and private.",
+    "heroTitle": "An ebook reader that's aware of you — and yours to extend",
+    "heroLead": "Ask about any passage — ReadAware already knows what you've highlighted, wondered about, and read, across every book on your shelf. That awareness lives on your device, grows through plugins, and follows you — encrypted — to every machine.",
+    "shelfAlt": "The ReadAware library — a grid of book covers across many languages and formats.",
+    "shelfCaption": "Your library — every format in one place.",
+    "readerTitle": "A calm place to read anything",
+    "readerBody": "Import a file and start reading. There is no conversion and no cloud upload; your highlights, notes, and place in the book stay with the original text. When you want more focus, read sentence by sentence — the page holds back, a floating strip steps you through, and read-aloud can follow along.",
+    "readerAlt": "A page of Pride and Prejudice in the ReadAware reader, one sentence held in focus while the rest of the page recedes.",
+    "readerCaption": "Reading Pride and Prejudice one sentence at a time.",
+    "memoryTitle": "It's aware of what you've read",
+    "memoryBody": "Ask about a passage, a book, or your whole shelf. ReadAware answers from your own reading — the line you marked three books ago, the question you asked last week, the thread that runs through everything on your shelf. It doesn't replay a chat history; it keeps a durable memory of what matters and brings it back at the moment it's relevant.",
+    "contextAlt": "The ReadAware assistant surveying the reader's shelf and recent reading, and naming the thread that runs through it.",
+    "contextCaption": "The assistant, answering from your own shelf.",
+    "pluginTitle": "Extended from the inside",
+    "pluginBody": "Sandboxed plugins from the built-in marketplace add read-aloud voices, dictionaries, reading themes, feeds that read like books. And they reach deeper than features: a plugin can hand the assistant a new tool, and it simply starts using it. The reader doesn't just gain buttons — it learns new skills.",
+    "pluginAlt": "The ReadAware plugin panel — dictionary, themes, and RSS reader installed, each in its own sandbox, some handing the assistant new tools.",
+    "pluginCaption": "Voices, dictionaries, themes, feeds — and tools the assistant picks up.",
+    "syncTitle": "Your reading follows you",
+    "syncBody": "Open ReadAware on another machine and everything is already there — your books, your highlights, your place in each of them, and the memory built from all of it. Sync is end-to-end encrypted: the relay only ever stores ciphertext, so nobody in the middle can read what you read. Desktop and Android today; iOS is on the way.",
+    "inShortTitle": "In short",
+    "notes": [
+      {
+        "title": "One engine, every format",
+        "body": "EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, and PDF open in the same reader, with the same selection, highlights, and progress. Nothing is converted; the original file is what you keep."
+      },
+      {
+        "title": "Aware, not archival",
+        "body": "Reading becomes memory the app can act on. ReadAware keeps what matters and surfaces it when it's relevant — it's there in the moment, not filed away."
+      },
+      {
+        "title": "Plugins teach it new skills",
+        "body": "Marketplace plugins add voices, dictionaries, themes, and feeds — and hand the assistant tools it picks up and uses."
+      },
+      {
+        "title": "Open source, local-first, encrypted sync",
+        "body": "The code is public under AGPL-3.0, and everything lives on your device. Bring your own API key; the cloud is only an encrypted relay between your machines."
+      }
+    ],
+    "freeLine": "Free, open source, local-first.",
+    "freeLineWithTag": "Free, open source, local-first. {{tag}}.",
+    "download": {
+      "title": "Get ReadAware",
+      "intro": "Free, open source, and local-first. Bring your own API key; your library and memory stay on your device.",
+      "yourPlatform": "— your platform",
+      "comingSoon": "Coming soon",
+      "download": "Download",
+      "choosePlatform": "Choose a platform",
+      "signingNote": "Desktop builds aren't code-signed yet; macOS and Windows may ask you to confirm the app on first launch.",
+      "latest": " The latest release is {{tag}}.",
+      "downloadFor": "Download for {{name}}"
+    }
+  },
+  "pricing": {
+    "metaTitle": "Pricing — ReadAware",
+    "metaDescription": "The app is free and complete; paid plans add encrypted sync and built-in AI. Sync $5, Pro $20, Max $50 a month.",
+    "title": "Pricing",
+    "lead": "The app is free and complete on its own — every reader feature, your own AI key, your data on your disk. Paid plans add encrypted sync and built-in AI, priced so a subscription is never the thing between you and your library.",
+    "perMonth": "/month",
+    "recommended": "Recommended",
+    "ctaFree": "Download",
+    "ctaPaid": "Subscribe",
+    "ctaPaidBusy": "Opening checkout…",
+    "purchaseSuccess": "Payment received — your plan is active. Sign in to the app with the email you used at checkout.",
+    "checkoutFailed": "Couldn't start checkout. Try again, or write to us.",
+    "paidNote": "Questions about billing?",
+    "paidNoteLink": "Write to us",
+    "finePrintTitle": "The fine print, in plain words",
+    "finePrint": [
+      "AI credits: 1 credit = $0.001 of model usage at list price. A typical question costs 2–4 credits, so 5,000 credits is roughly a thousand conversations. Credits reset monthly.",
+      "Bring-your-own-key AI is free forever, on every plan — the subscription is a convenience, not a wall.",
+      "Synced data is end-to-end encrypted. The server stores ciphertext it cannot read; the passphrase never leaves your devices.",
+      "Built-in AI requests pass through our relay to the model provider over TLS and are never logged or stored — only token counts are metered. If that trade-off isn't for you, use your own key.",
+      "Downgrading never deletes anything. Over-quota accounts keep reading and downloading their data; only new uploads pause."
+    ],
+    "plans": [
+      {
+        "id": "free",
+        "name": "Free",
+        "price": "$0",
+        "tagline": "The whole reading app, no account needed.",
+        "features": [
+          "Every reader feature — EPUB, PDF, MOBI and more",
+          "AI chat and memory with your own API key",
+          "All data local, on your disk",
+          "50 MB encrypted sync to try multi-device"
+        ]
+      },
+      {
+        "id": "sync",
+        "name": "Sync",
+        "price": "$5",
+        "tagline": "Your library on every device. You bring the AI key.",
+        "features": [
+          "10 GB end-to-end-encrypted sync",
+          "Whole library, annotations, progress, memory",
+          "Unlimited devices",
+          "Bring your own AI key"
+        ]
+      },
+      {
+        "id": "pro",
+        "name": "Pro",
+        "price": "$20",
+        "tagline": "Sync plus built-in AI — nothing to configure.",
+        "highlight": true,
+        "features": [
+          "Everything in Sync",
+          "Built-in AI, no key setup",
+          "5,000 AI credits a month — about a thousand conversations",
+          "DeepSeek V4 Flash and V4 Pro models"
+        ]
+      },
+      {
+        "id": "max",
+        "name": "Max",
+        "price": "$50",
+        "tagline": "For heavy readers and big libraries.",
+        "features": [
+          "Everything in Pro",
+          "30,000 AI credits a month",
+          "100 GB encrypted sync",
+          "First in line for new AI models"
+        ]
+      }
+    ]
+  },
+  "changelog": {
+    "metaTitle": "Changelog — ReadAware",
+    "metaDescription": "What changed in each ReadAware release, written for the people using it.",
+    "leadIn": ". ",
+    "entries": [
+      {
+        "version": "0.4.2",
+        "date": "2026-08-12",
+        "summary": "A patch that opens the front door: book files open straight from your file manager, drag-and-drop imports, and every illustration gets a full-screen viewer.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Open with ReadAware",
+                "body": "Make ReadAware the default app for your book files and double-clicking one lands directly in the reader, with the book added to your shelf on the way. If the app is already running, the existing window takes over — no second copy."
+              },
+              {
+                "title": "Drop books to import",
+                "body": "Drag book files anywhere onto the window and they import on the spot."
+              },
+              {
+                "title": "A closer look at illustrations",
+                "body": "Tap an image in any book to view it full screen. Zoom around the cursor with the wheel or a pinch, drag to pan, double-click to toggle fit, and a small toolbar covers zoom, rotation, copying to the clipboard, and closing."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "version": "0.4.1",
+        "date": "2026-08-11",
+        "summary": "A patch for the statistics page and the sentence reader: charts you can tap, and a plugin that finally keeps its settings — plus a progress readout and a session timer — under its own roof.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Tap the charts",
+                "body": "The reading-stats bars now hand the ink highlight to whichever bar you tap — daily, weekday, and time-of-day charts alike — and it stays where you put it."
+              },
+              {
+                "title": "The sentence reader keeps its own settings",
+                "body": "Step unit, tap to advance, and swipe to step moved into the plugin's own settings page, joined by two new options: a chapter position readout (12 / 87) and a session timer that restarts on every entry and is never saved. Both live on a small floating chip you can drag anywhere."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Chart tooltips traded their floating card for a quiet ink label pinned above the bars."
+              },
+              {
+                "body": "The About page shows the series codename beside the version."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "The Total time headline no longer overflows on phones, and tapping a chart no longer draws a focus ring."
+              },
+              {
+                "body": "Turning the readouts off in settings applies without restarting the app."
+              },
+              {
+                "body": "iOS no longer shows two selection menus at once in the reader."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "version": "0.4.0",
+        "date": "2026-08-10",
+        "codename": "El Alto",
+        "summary": "The first release of the El Alto series, and a release about distance: the actions you need while reading moved onto the sentence itself, the panels worth opening moved one tap away, and the assistant stopped taking detours before answering.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Tap the sentence",
+                "body": "In sentence or paragraph reading, tapping the highlighted sentence opens its actions right there — copy, highlight, underline, note, ask AI, dictionary — instead of a reach for the bottom bar."
+              },
+              {
+                "title": "Doors instead of a toolbar",
+                "body": "The floating navigator strip opens the table of contents, your notes, reading appearance, or chat in one tap, and pages itself on phones so it always fits one row."
+              },
+              {
+                "title": "Updates introduce themselves",
+                "body": "After the app updates, a quiet link opens this changelog in your language. Dismiss it, or let it fade on its own after two days."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "The reading assistant answers in the language you write in, reports reading time in hours and minutes rather than raw counters, and no longer inventories your stats before answering a question about the book."
+              },
+              {
+                "body": "Spoiler protection now also fences what the assistant may already know about a famous novel — nothing beyond your reading position, unless you explicitly ask to be spoiled."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "External links — the About panel, the what's-new door — actually open your browser now."
+              },
+              {
+                "body": "A pasted API key is refused without being echoed back into the conversation."
+              },
+              {
+                "body": "Book cards can no longer be presented twice in one reply."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "version": "0.3.1",
+        "date": "2026-08-10",
+        "summary": "A release about PDFs, and about the reader chrome knowing when to get out of the way. A PDF page is a picture, so the page color never reached it and every fixed-layout book stayed on white paper inside a dark app — that is fixed, along with the controls those books were offering but could not honor.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "PDFs follow the page color",
+                "body": "A light palette tints the paper as the page is drawn, leaving every ink and photograph exactly as printed. A dark palette redraws the page in two tones, so the text stays readable instead of sitting as black ink on a dark sheet."
+              },
+              {
+                "title": "Page Rendering",
+                "body": "Keep a book on its original colors while everything else follows your palette. Remembered per book, for the art and photography where the color is the point."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Fixed-layout books no longer offer typography they cannot honor. A PDF or comic is a sequence of pages someone else already typeset, so font, size, weight, spacing, alignment and margins are gone for those books. Page color and reading mode stay, because both still do visible work."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "The reader toolbar no longer flashes up and vanishes a moment after you tap the page. Anything that re-flows the text — the soft keyboard, rotating the device, changing the font size — was being mistaken for a page turn."
+              },
+              {
+                "body": "The chat composer takes the caret when you open the panel, not every time the toolbar reappears. On a phone that had been throwing the keyboard over a page you only meant to glance at."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "version": "0.3.0",
+        "date": "2026-08-07",
+        "summary": "The release where the app stops being a fixed set of features and becomes something you extend. Plugins run in real sandboxes, contribute to almost every surface, and ship through a marketplace. The agent grows tools and traces, the reader grows an ending, and both the book and the conversation are now yours to typeset.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Plugins",
+                "body": "A full plugin system: sandboxed workers with permission-gated capabilities, a TypeScript-first authoring path, and a marketplace with install-time consent. Plugins contribute reader menus, headers, command-palette entries, whole pages, AI tools, dictionary lookups, themes and bundled fonts, voice engines, scheduled tasks, and even virtual books that live on your shelf like any other title. Five ship built in — Dictionary, RSS Reader, Sentence Reader, TTS Voices, and Editorial Themes."
+              },
+              {
+                "title": "Read-aloud",
+                "body": "The reader speaks, following the same sentence and paragraph navigator you read by. Any TTS engine can plug in, with per-provider voices and custom endpoints."
+              },
+              {
+                "title": "An ending",
+                "body": "Finishing a book now lands on an end-of-book screen instead of a dead stop, with an optional look back written by the agent."
+              },
+              {
+                "title": "Agent as a destination",
+                "body": "The agent gets its own primary page with multiple threads, grounding in where you actually are in the book, expandable execution traces, and tools that can safely read and change your settings."
+              },
+              {
+                "title": "More formats",
+                "body": "CBZ, CBR, TXT, and HTML join EPUB, MOBI, AZW3, FB2, and PDF. Covers and metadata fill in at import."
+              },
+              {
+                "title": "Make it yours",
+                "body": "Primary navigation and every menu surface are drag-arrangeable. The command palette works while reading, and Mod+1..9 jumps between destinations."
+              },
+              {
+                "title": "Typography for the app, not just the book",
+                "body": "Chat replies, notes, and plugin views get their own font, size, and line spacing — following your reading settings by default, or detached if you'd rather. Text alignment becomes a reading setting too, defaulting to whatever the publisher chose."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "The progress bar in the reader header is a scrubber you can drag."
+              },
+              {
+                "body": "Fixed-layout books (PDF, comics) take annotations and swipe page turns."
+              },
+              {
+                "body": "AI provider setup is simpler, remembers a model per provider, and supports per-tier thinking effort for smart and fast models."
+              },
+              {
+                "body": "Your API key is encrypted at rest, and AI requests route through native HTTP instead of the webview."
+              },
+              {
+                "body": "All state changes are event-sourced: projections rebuild from an append-only log and can be verified against it."
+              },
+              {
+                "body": "The shelf grid fills wide windows, and book titles from file names come out clean."
+              },
+              {
+                "body": "The desktop app inherits your macOS system proxy."
+              },
+              {
+                "body": "Dev builds get their own identity and data directory, so they no longer share the release app's library."
+              },
+              {
+                "body": "Docs and blog on readaware.app are now available in English, Simplified Chinese, and Japanese."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Books whose stylesheets pin a near-black text color are no longer invisible on the dark page color — a whole class of calibre-converted EPUBs was unreadable in dark mode."
+              },
+              {
+                "body": "EPUB 3 inline footnote bodies stay hidden and open in a popover, instead of dumping a chapter's worth of notes into the prose."
+              },
+              {
+                "body": "The line-spacing setting now works on books that declare their own line height on paragraphs, where it previously did nothing at all."
+              },
+              {
+                "body": "Chapter headings in real-world .txt files are recognized."
+              },
+              {
+                "body": "Android ships with its built-in plugins, and serves plugin assets over the scheme it actually uses."
+              },
+              {
+                "body": "The marketplace remembers the last mirror that worked."
+              },
+              {
+                "body": "Stray taps on the reader's progress bar no longer seek on touch devices."
+              },
+              {
+                "body": "Plugin pages scroll as pages, virtual rows re-measure when content above them changes, and open settings forms adopt external writes instead of shadowing them."
+              },
+              {
+                "body": "Marketplace file paths are allowlist-validated, closing a Windows drive-relative path bypass."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "blog": {
+    "metaTitle": "Blog — ReadAware",
+    "metaDescription": "Notes from building ReadAware: reading, memory, local-first software, and plugins.",
+    "title": "Blog",
+    "lead": "Notes from building ReadAware — on reading, memory, and software that stays yours.",
+    "allPosts": "← All posts",
+    "posts": {
+      "plugins-v1": {
+        "date": "2026-07-22",
+        "title": "Plugins: the reader, extended",
+        "description": "ReadAware now has a plugin system and a community marketplace. Selection actions, native-looking pages, agent tools, and books that aren't files.",
+        "body": "ReadAware now has a plugin system. You can write a plugin in an evening, install it from a folder while you develop it, and submit it to a community marketplace where anyone can install it in one click.\n\n## What you can build\n\nA plugin is a folder with a manifest and one JavaScript module, and it can contribute:\n\n- **Selection actions** — select text in any book and act on it: send a word to Anki, translate a passage, post a quote to your notes app.\n- **Header buttons and pages** — a popover on the reader's top bar, or a full page on the shelf.\n- **Commands** — everything lands in the command palette automatically.\n- **Tools for the assistant** — this is the one we care most about. A plugin can hand the reading agent a new tool, and the agent decides when to call it mid-conversation. \"Which of these words are already in my Anki deck?\" becomes answerable.\n- **Books that aren't files** — a content provider serves chapters on demand, so an RSS feed can sit on your shelf and be read, highlighted, and discussed exactly like a book.\n\n## Native by construction\n\nWe took the interface philosophy from Raycast: plugins do not render their own UI. They declare views — markdown, lists, forms, structured blocks — and the app renders them with its own design system. A plugin page is indistinguishable from a built-in one, because it is built from the same parts. Plugin authors do zero design work; the app stays one calm surface.\n\nAnd you stay in charge of the furniture: plugins contribute capabilities, but Settings → Menus decides which buttons appear where, in what order. New plugin actions arrive in the overflow menu, not in your face.\n\n## Honest about trust\n\nThe trust model is Obsidian's, stated plainly: plugins run inside the app, and installing one is trusting its author. Manifests declare permissions — network, reading data, AI, clipboard — and the API enforces them, which catches accidents, not malice. So the app shows you every permission in plain language before a single file is copied, and the marketplace reviews every submission in the open, readable source required. No dark corners, no \"it's sandboxed\" theater.\n\n## Start here\n\nThe [API reference](/docs/plugins/api) documents the whole contract, and the [marketplace repository](https://github.com/ahpxex/readaware-plugins) has a TypeScript template plus the official plugins as working examples. Write one, and when it is good, [send it in](/docs/plugins/publishing) — the marketplace tab in Settings is waiting for its first community plugins."
+      },
+      "local-first": {
+        "date": "2026-07-14",
+        "title": "Your library is not a cloud feature",
+        "description": "Why ReadAware keeps your books, annotations, and memory on your device, and what the network is actually for.",
+        "body": "ReadAware stores your books, your annotations, and the memory it builds about your reading on your device. Not cached locally with a cloud copy as the real one — stored, as the source of truth, in a local database the app reads and writes directly.\n\nThis is unusual enough for a modern app that it deserves an explanation, because it is not an implementation detail. It is the design.\n\n## A reading app knows too much\n\nA library is one of the more intimate datasets a person has. What you read, what you underline, what you ask about a difficult passage at 1 a.m. — an app that watches you read holds something closer to a diary than to a media collection.\n\nReadAware's whole premise makes this sharper. The product is memory: it distills your highlights and conversations into a durable profile of what you read and how you think. Building that and then shipping it to someone else's server by default seemed, to put it mildly, like the wrong trade. So the rule is simple: the data lives with you, and the app must be fully usable offline. Import, read, annotate, search — none of it touches a network.\n\n## What the network is for\n\nTwo things, both optional:\n\n- **Inference.** The assistant runs on an API key you bring. Requests go from your machine to your provider — OpenAI, Anthropic, Google, a local-network endpoint, whoever you chose. There is no ReadAware server in the middle, which also means nobody to meter you, upsell you, or log your questions.\n- **Sync, eventually.** Multi-device sync is coming, and its design follows the same rule: the server is a dumb relay for end-to-end encrypted change logs. Your devices reconcile; the server stores ciphertext it cannot read. Since there is no server-side feature that needs your plaintext, there is nothing to trade away.\n\n## The quiet benefits\n\nPrivacy is the argument that fits in a sentence, but daily life with a local-first app is mostly about other things. Everything is fast, because every read is a local read. Nothing spins. The app works on a plane, in a dead zone, and in ten years — if we disappeared tomorrow, your library and every note in it still open on your machine, and your books are still the original files you imported.\n\nSoftware you rely on for thinking should be structured like something you own, not something you rent. This one is."
+      },
+      "reading-that-remembers": {
+        "date": "2026-07-08",
+        "title": "Reading that remembers",
+        "description": "ReadAware 0.1 is out. Why we built another reading app: highlights that go somewhere, and an assistant with a memory.",
+        "body": "ReadAware 0.1 is out today, for macOS, Windows, and Linux. It is a reading app — another one — and this post is about why we thought the world needed it anyway.\n\n## Highlights go nowhere\n\nEvery serious reader we know has the same ritual. You read, you mark the passages that matter, and the marks accumulate somewhere you will honestly never look again. The highlight was the point of contact — the moment a book actually changed what you were thinking — and the software treats it as an archive entry.\n\nThe AI chat era made this stranger, not better. You can now paste a chapter into a chatbot and have a genuinely good conversation about it. But the conversation evaporates. Next book, next chat, blank slate. The assistant that discussed Meditations with you last month has no idea it ever happened.\n\n## Memory, not transcripts\n\nReadAware is built around one idea: the unit of intelligence in a reading app is not the book, it is your reading — the trail of highlights, notes, questions, and conversations you leave across books. So the app is designed memory-first:\n\n- Every book has one continuous conversation. You never manage chat threads inside a book; you just keep talking.\n- The assistant does not reread an ever-growing transcript. What matters is distilled into durable memory — what you are reading, what you asked, what you keep coming back to — and recalled when it is relevant.\n- Your highlights and notes are not an archive. They are material the assistant actually works from.\n\nAsk \"how does this connect to the last book I read?\" and that question makes sense here. That is the product.\n\n## One reader, every format\n\nThe mundane half of the product had to be right, too. EPUB, MOBI, AZW3, FB2, and PDF all open in the same reader with the same selection, annotation, and progress model. Nothing is converted — the file you import is the file you keep. DRM-locked files are the one thing we cannot open.\n\n## Yours, on your machine\n\nYour library, annotations, and the memory the app builds all live on your device. AI runs on a key you bring, talking directly to your provider. There is no account and no server reading your books. More on this in a coming post — it is a deliberate architecture, not a temporary state.\n\nReadAware is free, and it is young — 0.1 means 0.1. If you read seriously and want your reading to accumulate into something, [install it](/docs/install) and tell us what breaks."
+      }
+    }
+  }
+}

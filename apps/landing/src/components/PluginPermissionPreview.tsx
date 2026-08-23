@@ -2,6 +2,7 @@ import { WarningCircle } from "@phosphor-icons/react";
 import { PLUGIN_PERMISSIONS, type PluginPermission } from "@read-aware/core";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { JsonCodeEditor } from "./JsonCodeEditor";
 
 type KnownPermission = PluginPermission;
 type RequirementFamily = "domains" | "contributions" | "services" | "schemas";
@@ -160,15 +161,14 @@ export function PluginPermissionPreview({
   }, [copy, source]);
 
   return (
-    <div className="mt-6 grid gap-5 border-y border-border-strong py-5 lg:grid-cols-2">
+    <div data-doc-slot="permission-preview" className="mt-6 grid gap-5 border-y border-border-strong py-5 lg:grid-cols-2">
       <label className="block min-w-0">
         <span className="text-sm font-medium text-fg">{copy.inputLabel}</span>
         <span className="mt-1 block text-sm text-fg-muted">{copy.inputHint}</span>
-        <textarea
+        <JsonCodeEditor
+          label={copy.inputLabel}
           value={source}
-          onChange={(event) => setSource(event.target.value)}
-          spellCheck={false}
-          className="mt-3 min-h-[30rem] w-full resize-y border border-border-strong bg-surface p-3 font-mono text-[0.8125rem] leading-6 text-fg outline-none focus:border-fg-muted"
+          onChange={setSource}
         />
       </label>
 

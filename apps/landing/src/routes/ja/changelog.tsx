@@ -1,12 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ChangelogPage } from "../../components/ChangelogPage";
+import { sitePageMeta } from "../../i18n";
 
 export const Route = createFileRoute("/ja/changelog")({
-  head: () => ({
-    meta: [
-      { title: "変更履歴 — ReadAware" },
-      { name: "description", content: "ReadAwareの各リリースで何が変わったかを、使う人に向けて書いています。" },
-    ],
-  }),
+  head: ({ match }) => sitePageMeta(match.context.i18n, "changelog"),
   component: () => <ChangelogPage locale="ja" />,
 });

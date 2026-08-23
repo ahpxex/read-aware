@@ -1,16 +1,20 @@
 import { createRouter, type RouterHistory } from "@tanstack/react-router";
+import type { LandingRouterContext } from "./i18n";
 import { routeTree } from "./routeTree.gen";
 
 /**
- * The browser SPA calls this bare; the prerender entry (entry-server.tsx)
- * passes a memory history to render a specific URL server-side.
+ * Every browser or SSR render receives an isolated locale instance. The
+ * prerender entry additionally passes memory history for the requested URL.
  */
-export function createAppRouter(options?: { history?: RouterHistory }) {
+export function createAppRouter(
+  options: LandingRouterContext & { history?: RouterHistory },
+) {
   return createRouter({
     routeTree,
+    context: { i18n: options.i18n },
     defaultPreload: "intent",
     scrollRestoration: true,
-    history: options?.history,
+    history: options.history,
   });
 }
 

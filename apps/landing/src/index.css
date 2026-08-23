@@ -45,6 +45,13 @@
   -moz-osx-font-smoothing: grayscale;
 
   --selection: rgb(38 36 32 / 0.12);
+  --syntax-comment: #6f6c62;
+  --syntax-keyword: #8a3535;
+  --syntax-string: #32633a;
+  --syntax-number: #66508f;
+  --syntax-function: #795018;
+  --syntax-property: #315f70;
+  --syntax-punctuation: #56534d;
 }
 
 /* The dark page: the same ink-on-paper voice with the values swapped — warm
@@ -68,6 +75,13 @@
     --color-fill-strong: #3a352f;
 
     --selection: rgb(236 233 228 / 0.2);
+    --syntax-comment: #948e84;
+    --syntax-keyword: #e69b9b;
+    --syntax-string: #9ecb9f;
+    --syntax-number: #c5afe8;
+    --syntax-function: #e0bd83;
+    --syntax-property: #8dc8d7;
+    --syntax-punctuation: #aaa49c;
   }
 }
 
@@ -146,6 +160,10 @@ button {
 }
 
 .doc-prose .lead {
+  color: var(--color-fg-muted);
+}
+
+.doc-prose > h1 + p {
   color: var(--color-fg-muted);
 }
 

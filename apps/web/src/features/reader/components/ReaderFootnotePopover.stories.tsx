@@ -1,5 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { BUILTIN_READER_PALETTES } from "../../settings/lib/reader-theme";
 import { ReaderFootnotePopover } from "./ReaderFootnotePopover";
+
+/** The book page's own colour, from the default reading theme — the reader
+    takes its palette from the reading theme, never from an app token. */
+const page = BUILTIN_READER_PALETTES.warm;
 
 /**
  * A footnote read in place, beside the reference that raised it, instead of
@@ -22,7 +27,10 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div className="relative h-[26rem] w-[36rem] overflow-hidden rounded-sm border border-border bg-paper p-8 font-serif text-sm leading-7 text-fg">
+      <div
+        className="relative h-[26rem] w-[36rem] overflow-hidden rounded-sm border border-border p-8 font-serif text-sm leading-7"
+        style={{ backgroundColor: page.bg, color: page.text }}
+      >
         <p>
           I was the shadow of the waxwing<sup>1</sup> slain by the false azure in
           the windowpane; I was the smudge of ashen fluff — and I lived on, flew

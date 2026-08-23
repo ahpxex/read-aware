@@ -134,7 +134,7 @@ const meta = {
   decorators: [
     withAtoms(seed(headerActionsAtom, [])),
     (Story) => (
-      <div className="min-h-64 bg-paper">
+      <div className="min-h-64 bg-[var(--ra-main-surface-color)]">
         <Story />
       </div>
     ),
@@ -220,7 +220,7 @@ export const WindowsChromeNarrow: Story = {
   decorators: [
     withShellAttrs("windows"),
     (Story) => (
-      <div className="w-[30rem] bg-paper">
+      <div className="w-[30rem] bg-[var(--ra-main-surface-color)]">
         <Story />
       </div>
     ),
@@ -299,7 +299,7 @@ export const PhoneWidth: Story = {
   parameters: { viewport: { defaultViewport: "mobile1" } },
   decorators: [
     (Story) => (
-      <div className="w-[22rem] bg-paper">
+      <div className="w-[22rem] bg-[var(--ra-main-surface-color)]">
         <Story />
       </div>
     ),

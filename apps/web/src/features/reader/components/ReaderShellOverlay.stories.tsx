@@ -2,7 +2,12 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { LibraryBook } from "../../library/lib/library-types";
 import type { RegisteredReaderMode } from "../../plugins/lib/plugin-types";
 import type { TocEntry } from "../lib/reader-types";
+import { BUILTIN_READER_PALETTES } from "../../settings/lib/reader-theme";
 import { ReaderShellOverlay } from "./ReaderShellOverlay";
+
+/** The book page's own colour, from the default reading theme — the reader
+    takes its palette from the reading theme, never from an app token. */
+const page = BUILTIN_READER_PALETTES.warm;
 
 const book: LibraryBook = {
   id: "book-pale-fire",
@@ -70,8 +75,11 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div className="relative h-[36rem] w-full overflow-hidden bg-paper">
-        <div className="px-16 py-24 font-serif text-sm leading-7 text-fg">
+      <div
+        className="relative h-[36rem] w-full overflow-hidden"
+        style={{ backgroundColor: page.bg, color: page.text }}
+      >
+        <div className="px-16 py-24 font-serif text-sm leading-7">
           <p>
             I was the shadow of the waxwing slain by the false azure in the
             windowpane; I was the smudge of ashen fluff — and I lived on, flew

@@ -1,6 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ReaderSelectionState } from "../lib/selection-overlay";
+import { BUILTIN_READER_PALETTES } from "../../settings/lib/reader-theme";
 import { ReaderSelectionHighlight } from "./ReaderSelectionHighlight";
+
+/** The book page's own colour, from the default reading theme — the reader
+    takes its palette from the reading theme, never from an app token. */
+const page = BUILTIN_READER_PALETTES.warm;
 
 /** A run of line rects, as the engine reports them for a multi-line selection. */
 function lines(count: number, top = 40, width = 380): ReaderSelectionState["rects"] {
@@ -38,7 +43,10 @@ const meta = {
   parameters: { layout: "padded" },
   decorators: [
     (Story) => (
-      <div className="relative h-64 w-[28rem] overflow-hidden rounded-sm border border-border bg-paper p-6 font-serif text-sm leading-[28px] text-fg">
+      <div
+        className="relative h-64 w-[28rem] overflow-hidden rounded-sm border border-border p-6 font-serif text-sm leading-[28px]"
+        style={{ backgroundColor: page.bg, color: page.text }}
+      >
         <p>
           I was the shadow of the waxwing slain by the false azure in the
           windowpane; I was the smudge of ashen fluff — and I lived on, flew on,

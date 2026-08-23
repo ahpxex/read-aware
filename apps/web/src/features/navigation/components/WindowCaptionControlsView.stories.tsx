@@ -48,7 +48,7 @@ export const Maximized: Story = {
 export const OnPaper: Story = {
   decorators: [
     (Story) => (
-      <div className="relative h-11 w-full max-w-3xl bg-paper">
+      <div className="relative h-11 w-full max-w-3xl bg-[var(--ra-main-surface-color)]">
         <Story />
       </div>
     ),

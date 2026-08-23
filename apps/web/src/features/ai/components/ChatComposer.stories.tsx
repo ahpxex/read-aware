@@ -16,7 +16,7 @@ const meta = {
   component: ChatComposer,
   decorators: [
     (Story) => (
-      <div className="max-w-md bg-paper pt-8">
+      <div className="max-w-md bg-[var(--ra-main-surface-color)] pt-8">
         <Story />
       </div>
     ),

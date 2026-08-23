@@ -37,7 +37,7 @@ const meta = {
   component: Markdown,
   decorators: [
     (Story) => (
-      <div className="max-w-xl bg-paper p-4">
+      <div className="max-w-xl bg-[var(--ra-main-surface-color)] p-4">
         <Story />
       </div>
     ),

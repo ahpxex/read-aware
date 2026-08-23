@@ -6,7 +6,7 @@ const meta = {
   component: ChatToolStep,
   decorators: [
     (Story) => (
-      <div className="max-w-md bg-paper p-4">
+      <div className="max-w-md bg-[var(--ra-main-surface-color)] p-4">
         <Story />
       </div>
     ),

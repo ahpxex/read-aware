@@ -22,7 +22,7 @@ const meta = {
   component: AttachmentChip,
   decorators: [
     (Story) => (
-      <div className="max-w-sm bg-paper p-4">
+      <div className="max-w-sm bg-[var(--ra-main-surface-color)] p-4">
         <Story />
       </div>
     ),

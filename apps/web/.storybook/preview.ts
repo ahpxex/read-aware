@@ -62,7 +62,11 @@ const preview: Preview = {
           createElement(
             "div",
             {
-              className: "bg-paper text-fg",
+              // The app shell's canvas (App.tsx), NOT `bg-paper`. The paper
+            // token is the :root/body background, but the shell covers it
+            // everywhere — painting it here showed every story on a warm
+            // ground the product never displays.
+            className: "bg-[var(--ra-main-surface-color)] text-fg",
               style: { minHeight: "100vh", padding: "2rem" },
             },
             Story() as ReactNode,

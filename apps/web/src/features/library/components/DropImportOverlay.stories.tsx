@@ -23,7 +23,7 @@ export const Default: Story = {};
 /** Over a populated shelf, which is what it actually veils. */
 export const OverTheShelf: Story = {
   render: (args) => (
-    <div className="min-h-screen bg-paper p-8">
+    <div className="min-h-screen bg-[var(--ra-main-surface-color)] p-8">
       <h1 className="font-serif text-2xl text-fg">Library</h1>
       <div className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(8rem,1fr))] gap-6">
         {Array.from({ length: 10 }, (_, i) => (

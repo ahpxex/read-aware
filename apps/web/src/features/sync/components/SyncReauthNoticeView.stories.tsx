@@ -32,11 +32,11 @@ export const InHeaderSlot: Story = {
   ),
 };
 
-/** On the paper canvas, which is what it actually sits on. */
-export const OnPaper: Story = {
+/** On the app shell's own canvas, which is what it actually sits on. */
+export const OnTheAppCanvas: Story = {
   decorators: [
     (Story) => (
-      <div className="rounded-md bg-paper px-3 py-2">
+      <div className="rounded-md bg-[var(--ra-main-surface-color)] px-3 py-2">
         <Story />
       </div>
     ),

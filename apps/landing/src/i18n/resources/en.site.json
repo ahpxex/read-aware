@@ -17,6 +17,10 @@
     "changelogOlder": "Older releases on GitHub →",
     "changelogRelease": "Release notes"
   },
+  "code": {
+    "copy": "Copy code",
+    "copied": "Copied"
+  },
   "docsNav": {
     "ariaLabel": "Documentation",
     "startTitle": "Start",

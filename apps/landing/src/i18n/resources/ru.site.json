@@ -17,6 +17,10 @@
     "changelogOlder": "Старые выпуски на GitHub →",
     "changelogRelease": "Примечания к выпуску"
   },
+  "code": {
+    "copy": "Копировать код",
+    "copied": "Скопировано"
+  },
   "docsNav": {
     "ariaLabel": "Документация",
     "startTitle": "Начало",

@@ -17,6 +17,10 @@
     "changelogOlder": "以前のリリースはGitHubで →",
     "changelogRelease": "リリースノート"
   },
+  "code": {
+    "copy": "コードをコピー",
+    "copied": "コピーしました"
+  },
   "docsNav": {
     "ariaLabel": "ドキュメント",
     "startTitle": "はじめに",

@@ -1,36 +1,26 @@
-import { Link } from "@tanstack/react-router";
+import { isValidElement, type ReactElement } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CodeBlock } from "./CodeBlock";
+import { markdownElements } from "./MarkdownElements";
 
 const components: Components = {
-  a({ href = "", children }) {
-    if (href.startsWith("/")) {
-      return <Link to={href as never}>{children}</Link>;
-    }
-    return (
-      <a href={href} target="_blank" rel="noopener noreferrer">
-        {children}
-      </a>
-    );
-  },
-  code({ className, children }) {
-    const code = String(children).replace(/\n$/, "");
-    const language = className?.match(/language-([^\s]+)/)?.[1];
-    if (language || code.includes("\n")) {
-      return <CodeBlock code={code} language={language ?? "text"} />;
-    }
-    return <code className={className}>{children}</code>;
-  },
+  ...markdownElements,
   pre({ children }) {
-    return <>{children}</>;
-  },
-  table({ children }) {
-    return (
-      <div className="overflow-x-auto">
-        <table>{children}</table>
-      </div>
-    );
+    if (isValidElement(children)) {
+      const codeElement = children as ReactElement<{
+        children?: unknown;
+        className?: string;
+      }>;
+      const language = codeElement.props.className?.match(/language-([^\s]+)/)?.[1];
+      return (
+        <CodeBlock
+          code={String(codeElement.props.children ?? "").replace(/\n$/, "")}
+          language={language ?? "text"}
+        />
+      );
+    }
+    return <CodeBlock code={String(children)} language="text" />;
   },
 };
 

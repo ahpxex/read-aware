@@ -45,13 +45,13 @@
   -moz-osx-font-smoothing: grayscale;
 
   --selection: rgb(38 36 32 / 0.12);
-  --syntax-comment: #6f6c62;
-  --syntax-keyword: #8a3535;
-  --syntax-string: #32633a;
-  --syntax-number: #66508f;
-  --syntax-function: #795018;
-  --syntax-property: #315f70;
-  --syntax-punctuation: #56534d;
+  --syntax-comment: #6e7781;
+  --syntax-keyword: #cf222e;
+  --syntax-string: #0a3069;
+  --syntax-number: #0550ae;
+  --syntax-function: #8250df;
+  --syntax-property: #953800;
+  --syntax-punctuation: #57606a;
 }
 
 /* The dark page: the same ink-on-paper voice with the values swapped — warm
@@ -75,13 +75,13 @@
     --color-fill-strong: #3a352f;
 
     --selection: rgb(236 233 228 / 0.2);
-    --syntax-comment: #948e84;
-    --syntax-keyword: #e69b9b;
-    --syntax-string: #9ecb9f;
-    --syntax-number: #c5afe8;
-    --syntax-function: #e0bd83;
-    --syntax-property: #8dc8d7;
-    --syntax-punctuation: #aaa49c;
+    --syntax-comment: #8b949e;
+    --syntax-keyword: #ff7b72;
+    --syntax-string: #a5d6ff;
+    --syntax-number: #79c0ff;
+    --syntax-function: #d2a8ff;
+    --syntax-property: #ffa657;
+    --syntax-punctuation: #e6edf3;
   }
 }
 
@@ -214,10 +214,8 @@ button {
 }
 
 .doc-prose pre {
-  margin: 1.25rem 0 0;
+  margin: 0;
   padding: 1rem 1.25rem;
-  border: 1px solid var(--color-border-strong);
-  background: var(--color-surface);
   overflow-x: auto;
   font-family: var(--font-mono);
   font-size: 0.875rem;
@@ -229,6 +227,48 @@ button {
   border-radius: 0;
   background: none;
   font-size: inherit;
+}
+
+.code-block {
+  margin: 1.25rem 0 0;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+}
+
+.code-block-toolbar {
+  min-height: 2.25rem;
+  padding: 0.2rem 0.35rem 0.2rem 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-fill);
+}
+
+.code-block-language {
+  color: var(--color-fg-subtle);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.code-block .shiki {
+  border: 0;
+  background-color: var(--color-surface) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .code-block .shiki,
+  .code-block .shiki span {
+    color: var(--shiki-dark) !important;
+    font-style: var(--shiki-dark-font-style) !important;
+    font-weight: var(--shiki-dark-font-weight) !important;
+    text-decoration: var(--shiki-dark-text-decoration) !important;
+  }
 }
 
 .doc-prose table {

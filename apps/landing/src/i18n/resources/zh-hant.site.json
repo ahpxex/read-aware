@@ -17,6 +17,10 @@
     "changelogOlder": "更早的版本在 GitHub 上 →",
     "changelogRelease": "版本說明"
   },
+  "code": {
+    "copy": "複製程式碼",
+    "copied": "已複製"
+  },
   "docsNav": {
     "ariaLabel": "文件",
     "startTitle": "開始",

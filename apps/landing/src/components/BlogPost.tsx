@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import type { BlogPostSlug } from "../i18n";
 import { useSiteCopy } from "../i18n/use-site-copy";
 import { localizePath, type BlogLocale } from "../lib/i18n";
-import { MarkdownDoc } from "./MarkdownDoc";
+import { MarkdownProse } from "./MarkdownProse";
 
 const DATE_LOCALE: Record<BlogLocale, string> = {
   en: "en-US",
@@ -43,7 +43,7 @@ export function BlogPost({
         </h1>
       </header>
       <div className="doc-prose mt-8">
-        <MarkdownDoc>{post.body}</MarkdownDoc>
+        <MarkdownProse>{post.body}</MarkdownProse>
       </div>
       <p className="mt-12 text-[0.9375rem]">
         <Link

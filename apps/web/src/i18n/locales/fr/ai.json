@@ -118,8 +118,6 @@
       "title": "Aucun contexte pour l’instant",
       "description": "Les surlignages et notes de vos lectures apparaîtront ici."
     },
-    "contextItems_many": "{{count}} éléments de contexte",
-    "books_many": "{{count}} livres",
     "annotations": {
       "title": "Surlignages et notes"
     },

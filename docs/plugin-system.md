@@ -1,535 +1,555 @@
-# ReadAware — 插件系统（设计）
+# ReadAware Plugins - Agent Architecture Reference
 
-> **状态：** V1 已实现（2026-07-21）。§11 的五个阶段全部落地并经
-> Tauri MCP 在运行中的桌面应用里实测（dev 构建；打包构建下的生产 CSP
-> 尚待一次 `bun run build:desktop` 验证）。第一方插件的可维护源码见
-> `plugins/`。参照模型：**Obsidian** 定插件的域与权限层
-> （信任模型、manifest、分发、生命周期），**Raycast** 定插件的界面层
-> （受限的 UI 词汇，一切插件界面都由应用的设计系统渲染）。
-
-> **勘误（2026-08-06）——本文是设计史，不是现行契约。** 现行契约的唯一
-> 事实源是 `packages/plugin-types/src/index.ts` 的类型与 JSDoc（市场仓
-> `types/plugin-api.d.ts` 为其镜像，用 `bun scripts/sync-plugin-dts.ts`
-> 再生成）。写作之后落地、且与下文相矛盾的关键演进：
+> Audience: coding agents and maintainers.
 >
-> - **§2 已被推翻：插件现在跑在 Worker 沙箱里**
->   （`plugin-sandbox.worker.ts`）。插件代码所在的 realm 没有
->   `window`、没有 `__TAURI_INTERNALS__`，唯一出口是 postMessage 到宿主，
->   宿主按 manifest 权限门控每一次调用。当年"不做沙箱是清醒取舍"的论证
->   已不成立——沙箱并没有牺牲插件的能力面。随之而来的两个硬约束：
->   Worker 里没有 DOM API（DOMParser 等——需要解析的插件自带纯 JS 解析器
->   打进 main.js），跨界参数必须可结构化克隆（fetch 的包装层负责摊平
->   URL/Headers/AbortSignal；FormData/Blob body 不支持）。
-> - **声明式设置成为一等面**：启用且声明 `settings` 的插件在设置对话框
->   拥有自己的分区；字段支持 `visibleWhen` 条件显示、`dynamicOptions`
->   运行时选项（`ctx.settings.provideOptions` 绑定，列不出即退回文本
->   输入；`allowManualEntry: false` 声明"这份列表就是全集"——主题、
->   已装字体这类闭集没有手输的意义，于是不给"手动输入"出口，空列表
->   就是没得选而非邀请你乱填）、`kind: "time"` 时刻字段（宿主渲染
->   时/分下拉，存 24 小时 `HH:MM`）、`kind: "secret"` 加密凭据字段
->   （直写 secret store，永不进明文设置与 agent 目录）；所有字段文案
->   接受 `PluginText` 本地化包。
-> - **新增贡献面**：manifest 声明的定时任务（`schedules` +
->   `ctx.schedule.on`，15 分钟下限）、朗读声音提供方
->   （`ctx.audio.registerVoiceProvider`，启用即选用、失败回退系统语音）、
->   受限 reader mode（`reader:modes`，保留给内置插件，激活期强制）、
->   声明式主题与字体（`ui:themes`）。
-> - **插件整页滚动模型**：整页 surface 随应用视口整页滚动
->   （renderer `scroll="flow"`），弹窗/popup 维持内含滚动；虚拟列表
->   绑定最近的宿主滚动容器，不再自建滚动框。
-
-## 目录
-
-1. [目标与非目标](#1-目标与非目标)
-2. [信任模型：Obsidian 式，不做沙箱](#2-信任模型obsidian-式不做沙箱)
-3. [插件形态：manifest + main.js](#3-插件形态manifest--mainjs)
-4. [权限域](#4-权限域)
-5. [挂载点矩阵](#5-挂载点矩阵)
-6. [UI 词汇：Raycast 式受限视图](#6-ui-词汇raycast-式受限视图)
-7. [摆放权：插件贡献能力，用户掌管布局](#7-摆放权插件贡献能力用户掌管布局)
-8. [AI 扩展点：插件工具](#8-ai-扩展点插件工具)
-9. [加载机制与 CSP](#9-加载机制与-csp)
-10. [现有代码的改造点](#10-现有代码的改造点)
-11. [实现阶段](#11-实现阶段)
-12. [风险与开放问题](#12-风险与开放问题)
-
-## 1. 目标与非目标
-
-目标：
-
-- 用户可以自己写插件、自己安装；官方也提供一批插件。
-- 插件能贡献：Reader 选区动作、Reader 顶栏按钮、书架顶栏按钮/整页、
-  受限 Reader Mode、命令面板命令、**AI agent 工具**、
-  **主题与自带字体**（`ui:themes`，声明式，见 §6 末尾）。
-- 插件界面永远看起来像原生功能 —— 观感由应用统治，插件只声明内容。
-  主题是这条规则里唯一一处有意开的口：插件可以声明**外观数据**
-  （固定 token 词汇上的调色板 + 字体文件），CSS 仍全部由宿主生成。
-
-非目标（刻意不做）：
-
-- 不做 VS Code 式的 extension host 进程隔离 / API 版本协商 / 市场审核。
-- 不让插件渲染任意 React / 任意 HTML。
-- ~~V1 不做插件市场、不做自动更新（安装 = 选择本地文件夹 / zip）。~~
-  **已落地**：插件市场（`ahpxex/readaware-plugins`）与自动更新检查已实现（见 §3 末尾）。
-- 不把 iframe 内部 DOM、foliate 引擎内部结构暴露给插件。
-
-## 2. 信任模型：Obsidian 式，不做沙箱
-
-插件运行在主 webview 里，与应用同一个 JS 上下文。**不做沙箱是清醒的
-取舍而不是偷懒**：插件的价值恰恰在于能读选中文本、读书籍数据、调 AI，
-沙箱住它就废掉大半用处；而 VS Code / Obsidian / Raycast 三者实际上也都
-不真正沙箱第三方代码。
-
-约束手段分两层，诚实地说明各自的强度：
-
-- **权限域（§4）是 API 级门控**：`ctx` 只暴露 manifest 声明且用户授予的
-  能力面。它防的是插件*无意的*越权，防不了恶意代码（同上下文里恶意代码
-  总能绕过 JS 门面）。
-- **安装即信任**：安装非官方插件时给一次明确警告（Obsidian 同款文案
-  策略——"社区插件可以读取你的数据，风险自担"）。这是真正的安全边界。
-
-底线保障来自现有架构本身：Tauri capabilities 没开任意文件读写，所有
-持久化走 IPC 且沙箱在 `<app_data>` 内 —— 插件再怎么越权也出不了这个圈。
-
-## 3. 插件形态：manifest + main.js
-
-一个插件 = 一个文件夹，放在 `<app_data>/plugins/<id>/` 下：
-
-```
-plugins/
-  anki-sync/
-    manifest.json
-    main.js          # 单文件 ES module（作者自己打包）
-```
-
-`manifest.json`（Obsidian 式）：
-
-```json
-{
-  "id": "anki-sync",
-  "name": "Anki Sync",
-  "version": "0.1.0",
-  "minAppVersion": "0.3.0",
-  "description": "把选中的生词发送到 Anki",
-  "author": "…",
-  "permissions": ["service:network", "agent:tools"],
-  "main": "main.js"
-}
-```
-
-`main.js` 默认导出生命周期对象：
-
-```ts
-export default {
-  activate(ctx: PluginContext): void | Promise<void>,
-  deactivate?(): void | Promise<void>,
-}
-```
-
-- `activate` 里通过 `ctx.register*` 注册贡献；每个注册返回 disposable，
-  应用在禁用/卸载时统一回收（`deactivate` 只处理插件自己的外部资源）。
-- 启用/禁用在设置页操作，即时生效，不要求重启。
-- 官方插件与第三方插件走同一套加载器、生命周期和公开类型；官方插件是 API
-  的第一批真实用户（dogfooding）。唯一暂时保留的特权能力是
-  `reader:modes`，因为它接入阅读引擎的实时生命周期，待契约稳定后再决定
-  是否开放给市场插件。
-
-**分发：插件市场（Raycast 模式）。** 社区插件收录在独立仓库
-[`ahpxex/readaware-plugins`](https://github.com/ahpxex/readaware-plugins)：
-插件代码直接住在仓库里，开发者以 Pull Request 提交/更新；CI
-（`scripts/validate.mjs`）强制 registry ↔ manifest 一致性、id 形状、
-权限白名单与文件存在性。应用内设置页分 **Installed / Marketplace**
-两个标签：市场读仓库的 `registry.json` 索引
-（raw.githubusercontent 优先，jsDelivr 镜像兜底），一键安装 = 前端
-拉取插件文本文件 → Rust `plugins_install_files` 落盘（严格路径白名单）
-→ 立即启用激活。安装前权限徽章先行可见。与内置插件同 id 的条目显示
-Built-in、不可安装（宿主两层拒绝）。应用每日在空闲时静默对照一次
-registry，已装插件有新版则 toast 提醒（每版本只提醒一次），更新动作
-仍由用户在 Marketplace 页发起。
-
-## 4. 数据 API 构造法与权限域
-
-插件的数据面不是在领域模型旁边手写的清单，而是**从领域模型推导**出来
-的。四条构造规则（这是整个插件系统的严谨性来源）：
-
-1. **数据面按领域生成。** 应用的每个领域（shelf、annotations、
-   conversations）在 `ctx` 上是一个命名空间，暴露三件套：**读**（该领域
-   投影的读模型）、**写**（恰好该领域的事件动词，以 command 形式发进
-   应用自己的双写管道——同一条 seam、不开后门）、**订阅**（该领域的
-   事件本身，`ctx.shelf.on("book.starred", …)` 用规范名，不再发明第二套
-   事件词汇）。shelf 是完整的书架管理面：books（含目录/章节全文的内容层
-   读取）、collections（分组）与 stats（阅读位置/状态/时长，单本或全局
-   聚合）三个子面共享一个领域与一份事件 roster。领域新增动词，插件面
-   机械地跟着长。实现上这不是插件专属的一层：数据面就是
-   `apps/web/src/domain` 的**共享领域 API 层**（读模型来自
-   @read-aware/core read-models.ts），agent 的端口以 origin `"agent"`
-   消费同一层（docs/agent-architecture.md §5）；`buildPluginContext`
-   只是它之上的权限门控壳。
-2. **权限 = 领域 × 读/写。** `shelf:read`、`annotations:write`……
-   同域内**写含读**（声明 `shelf:write` 即获得 shelf 的全部读面）。服务与
-   挂载各成一族（见下表）。
-3. **写入带来源。** 插件经数据 API 发出的每条领域事件都在信封上带
-   `origin: "plugin:<id>"`（`domain_events.origin` 列），与
-   `actor_id`（操作者身份）正交。审计、按插件排查、卸载后的补偿清理都
-   建立在这一列上。事件动词按行为体分类：用户意图动词（如
-   `book.starred`）插件可发；系统记录事实（`book.progressed`、
-   `book.timeRecorded`、`book.coverExtracted`）与 agent 痕迹
-   （`ask.recorded`）不开放写——shelf 的 stats 子面因此只读。
-4. **设备本地数据与呈现层由宿主掌管。** 视图偏好（书架布局/分组/排序）、
-   阅读外观、面板布局、BYOK 配置、blob 内部、同步运行态属于「世界 B」
-   （见 docs/data-model.md §7），不是插件面；呈现只走受限视图词汇
-   （§6）。Reader Mode 也不例外：插件声明文本单元语义、自带多语言文案、
-   宿主图标名与纯文本 offset 分段策略；iframe DOM、`Range`、CFI 映射、
-   Foliate 实例、输入接管、持久化与全部控件仍由应用持有。「自由但非无限」
-   的轴线始终是：**数据域按权限开放，呈现与引擎域不开放**。
-
-会话事实（`ctx.session.on`：`book-opened` / `book-closed` /
-`chapter-changed` / `reading-progress`）描述「屏幕上正开着什么」，是
-运行时状态而非领域事件，不进事件日志、不设权限。conversations 域的
-`on` 随 chat 层双写落地一并上线（`aiConversation.started` /
-`aiMessage.appended` / `aiMessage.removed` / `aiConversation.cleared`）。
-
-### 权限表
-
-manifest 声明，安装时逐条展示给用户，设置页里可整体启停插件。
-`storage`（命名空间 KV + **文档集合** `storage.collection(name)`：结构化
-插件私有数据，可带 bookId/anchor 出处索引、无书籍级联、随插件卸载清除；
-`storage.onChange(fn)` 在**插件之外**改写这个命名空间时触发——设置页、
-agent、任何写同一份设置对象的界面，插件自己的写入不回声）、
-UI 贡献、会话事实、应用语言（`ctx.locale`，随设置实时更新）、
-**加密凭据存储**（`ctx.secrets`：按插件命名空间隔离的 token 仓，
-落在应用加密 secret store 里——不进 SQLite、不进备份、卸载后保留）、
-文件导出（`ui.exportFile`，文本或二进制皆可）、阅读器
-环境控制（`ctx.reader.openBook/goTo`）不算权限，
-所有插件默认拥有。
-
-**内置插件（bundled plugins）**：垂直功能默认以插件形态构建（构造规则
-第五条），随应用打包分发（`bundled-plugins/` 资源目录）、默认启用、可禁
-用、不可卸载。目前的第一方住户是 **Dictionary**、**RSS Reader** 和
-**Sentence Reader**。Dictionary 拥有从引擎到数据的整个词典：查词
-prompt、词条 schema、查词缓存、语言偏好与生词本全在插件里
-（`llm.ask` 结构化模式 + 文档集合），agent 的 `lookup_word` 工具也由
-它注册；
-RSS Reader 通过内容提供者把 feed 映射成虚拟书；Sentence Reader 通过
-`reader:modes` 注册逐句/逐段分段策略，宿主沿用原有阅读器控件与交互。
-`reader:modes` 暂时只允许 bundled 插件使用，其余能力仍与第三方走完全相同
-的契约。
-
-第一方插件的可维护源码不放在 Tauri crate 里，而是各自作为 Bun/Turbo
-workspace 位于 `plugins/<id>/`。每个包以模块化 TypeScript 编写并产出
-`dist/main.js + dist/manifest.json`；桌面端的 dev/build 前置任务先构建这些
-产物，Tauri 只把产物映射到运行时的 `bundled-plugins/<id>/`。因此“内置”
-只是分发属性，不会形成另一套加载器、组件或 API。
-
-| 权限 | 授予的能力面 |
-|---|---|
-| `reader:modes` | `ctx.reader.modes.register`：注册宿主渲染的文本单元阅读模式；目前仅 bundled 插件 |
-| `ui:themes` | manifest 的 `themes` / `fonts` 声明式贡献：应用换肤 token、阅读页六色调色板、随插件分发的字体文件。唯一需要权限的 UI 贡献——它对全应用有视觉影响力，安装确认必须列出。纯数据，无运行时 API 面 |
-| `ui:appearance` | `ctx.appearance`：列出两个挂载面当前提供的全部主题值（内置 + 已启用插件贡献，标签按当前语言）、读当前外观、**切换**应用主题与阅读页配色。与 `ui:themes` 刻意分开：提供主题是被动的（选中才生效），切换主题是对整个应用的一次未经请求的改动，主题包不该顺带获得 |
-| `shelf:read` | `ctx.shelf`：书目读模型、目录、章节全文（内容层读取）、分组列表与成员、stats（单本 `stats.forBook` / 全体 `stats.list` / 全局聚合 `stats.overview`——stats 无写面，见规则 3） |
-| `shelf:write` | `ctx.shelf.books.write`：导入文件、改元数据、星标、标记读完、删除；**内容提供者**（`registerContentProvider` / `addVirtualBook`——虚拟书为设备本地，内容依赖本插件在场，刻意不进同步日志）。`ctx.shelf.collections.write`：建组、改名、删组、分配书籍 |
-| `annotations:read` | `ctx.annotations`：高亮/笔记/提问痕迹（判别联合读模型 + FTS 检索） |
-| `annotations:write` | `ctx.annotations.write`：高亮增删改色、笔记增改删（ask 仅 agent 可写） |
-| `conversations:read` | `ctx.conversations`：书内线程与全局线程（只读）+ 对话事件订阅 |
-| `agent:tools` | `ctx.agent.registerTool` —— 注册 agent 工具（§8） |
-| `service:network` | `ctx.network.fetch` —— 走 Rust HTTP 客户端（tauri-plugin-http），**无 CORS 约束**；作用域在 capability 文件（https + localhost），门控在 API 层；body 以二进制过沙盒边界 |
-| `service:llm` | `ctx.llm.ask` —— 用用户配置的模型做一次性调用（fast/smart 档，无线程无记忆无工具）。带 `schema` 时是**结构化模式**（宿主校验 + 携违例重试一次，插件拿已校验对象）；带 `onText` 时**流式**回调文本增量。两者互斥 |
-| `service:clipboard` | `ctx.clipboard.writeText` |
-
-（曾有的 `service:dictionary` 已随词典引擎整体搬入 Dictionary 插件而
-退役：prompt、词条 schema、查词缓存与解释语言偏好都归插件own，基于
-`llm.ask` 的结构化模式实现；agent 的 `lookup_word` 工具也由该插件经
-`agent:tools` 注册。判定规则：**宿主自己需要的能力才暴露成 service；
-宿主不需要的，插件基于 `llm.ask` 自建**。）
-
-（i18n 注：权限 id 含 `:`，而 `:` 是 i18next 的 namespace 分隔符，
-文案 catalog 键用 `_` 形式——`permissionLabelKey()` 统一映射。）
-
-**安装即明示**：所有安装路径（本地文件夹与市场）在复制任何文件、执行任何
-代码之前，都会弹出确认对话框，逐条列出 manifest 声明的权限及其人话描述,
-用户点「安装」才继续。这就是图 2 画的那道门,现已实装。
-
-选区文本不设独立权限：选区动作被用户手动触发时天然获得当次选区，
-这本身就是用户授权动作。
-
-## 5. 挂载点矩阵
-
-| 挂载点 | 插件注册什么 | 输入 | 允许的容器 |
-|---|---|---|---|
-| Reader 选区菜单 | 选区动作 | 选中文本 + CFI + 当前书元数据 | 无界面（执行 + Toast）／ Dialog |
-| Reader 顶栏 | Icon button | 当前书元数据 | 仅 Popup（Popover） |
-| Reader Mode | 文本单元分段策略 | 宿主提供的 block 纯文本、语言与粒度 | 宿主固定的顶栏 Toggle、浮动 Toolbar、设置与快捷键 |
-| 书架顶栏 | Icon button | — | Popup ／ Page |
-| 应用主题 | （manifest）token 覆写集 + 极性 | — | 设置 → Appearance 的主题选项；选中后宿主生成 `data-skin` 样式 |
-| 阅读页主题 | （manifest）六色调色板 + 可选排版预设 | — | 阅读外观的页面颜色选项；选中后进注入引擎的样式表 |
-| 阅读字体 | （manifest）字体文件（插件目录直出） | — | 字体选择器的应用侧列表 |
-| 命令面板 | （自动）所有插件动作自动注册进命令面板 | — | 随原动作 |
-| 快捷键 | （自动）每个 `registerCommand` 命令都可在 设置 → Shortcuts 绑键；命令可声明 `defaultShortcut`，用户覆盖优先，冲突检测横跨内置与插件 | — | 随原动作 |
-| AI agent | 工具 | agent 传入的参数 | 聊天内通用工具步呈现 |
-
-容器语义：
-
-- **Popup**：锚定在按钮上的 Popover，轻量、即开即关。
-- **Dialog**：模态居中，紧凑、`max-h` 限高不溢出（沿用既有设计习惯）。
-- **Page**：等同 Stats 那种整页 —— 占用顶部导航状态（`activeTopNav`），
-  有明确返回；**不是**路由意义上的新页面。仅书架侧可用；阅读中不允许
-  整页打断。
-- 术语说明：Reader 内的挂载点是"选中文本后的动作菜单"
-  （`ReaderSelectionMenu` / `ReaderAnnotationMenu` / `TextUnitNavigatorBar`
-  共享的那套动作），不是原生右键 contextmenu（应用里不存在后者）。
-
-## 6. UI 词汇：Raycast 式受限视图
-
-插件不写 JSX、不写 HTML、不传 `className` / `style`。它声明的是一棵
-**宿主组件树**：能力面类似 Raycast 的 React API，但传输形态是纯对象。
-每一个视觉原语和交互控件都由 `@read-aware/ui`（或应用已有的规范领域组件，
-如词典词条）渲染；插件只提供内容、语义变体和回调。
-
-顶层视图：
-
-- **Markdown 详情** —— 插件返回 Markdown 字符串，应用排版（复用聊天里
-  现成的 `Markdown` 组件）。覆盖大半场景：查词、翻译、AI 生成内容、
-  统计摘要。
-- **列表** —— 条目数组 `{id, title, subtitle?, timestamp?, icon?, keywords?,
-  accessories?, presentation?, onSelect?}`；宿主可提供搜索、空状态和下钻。
-  `searchable` 的过滤由宿主固定 debounce；`timeline` 会按本地日历提供
-  今天／本周／本月／全部筛选并按日期分组。列表项可用
-  `presentation: "dialog"` 在原列表上方打开宿主 Dialog，而不是创建子页面。
-  列表级 `actions` 也只声明语义；时间线会由宿主把它们渲染成 Tabs 同行最
-  右侧的 IconButton。
-- **表单** —— text / textarea / number / select / choice / checkbox /
-  toggle 全部映射到组件库控件；提交后可接结果视图或字段错误。
-- **Detail** —— Raycast 式主内容 + metadata + controls + actions。宿主把
-  `select` 等语义控件放在内容标题的 trailing 区域；Dialog 把来源、日期、
-  tags 等 metadata 压成标题下方的安静信息行，并把 actions 与宿主 Close
-  固定放进 Footer。
-  插件只能声明语义、选项与回调，不能决定按钮样式或自行排布控件。
-
-另一条路是**组合式 `blocks` 视图**：一串有序宿主组件，包括 text、
-markdown、heading、dictionary、keyValue、quote、actions、metric、
-progress、tags、alert、divider，以及嵌套 list / form。更丰富的界面靠
-扩充这套应用组件词汇，不靠插件自绘 UI。
-
-**布局：高组合度，但不开放裸 flex。** `group` 表达有间距档位的纵向组合，
-`section` 表达带标题/描述的内容组，`columns` 表达 2–4 个响应式列。插件可
-选择 `tight / normal / relaxed` 间距、cell 相对 `weight`、最小宽度档位与
-少量语义对齐；具体像素、换行算法、断点和 CSS 始终归 `@read-aware/ui`
-的 `Stack` / `Columns` / `Section` 管。column cell 可以继续装宿主块，
-因此组合能力足够高；运行时统一限制最大 6 层、块/控件数量并校验所有 kind，
-不会靠 TypeScript 假装边界存在。旧 `row` 保留兼容，新的插件应使用
-`columns`。
-
-配套约定：
-
-- 视图可以链式：列表项 → Markdown 详情；表单提交 → Markdown 结果。返回
-  `{ view, navigation: "replace" | "reset" }` 可以替换当前层，或在删除等
-  操作后回到一棵新的根视图；默认仍是 `push`。
-- 异步加载态（spinner / skeleton）由应用统一处理，插件只返回 Promise。
-  选区动作声明 `presentation: "dialog"` 时，宿主会在 `run` 完成前立刻打开
-  加载态 Dialog，查询完成后再填入同一次请求的视图。
-- 文本文件导出走 `ctx.ui.exportFile({ filename, content, mimeType? })`：插件
-  只生成 CSV / JSON / Markdown 等内容，宿主负责系统保存面板与实际写盘。
-- 图标只能按名字从 `@phosphor-icons/react` 选，不接受自绘 SVG
-  （与图标规则一致）。
-- 轻提示复用 `@read-aware/ui` 的 `Toast`。
-- 插件返回的每棵视图在进入 React 前都经过运行时 normalization；不合法
-  的组件、无限递归、超量 children 和非法布局值会被拒绝并显示原生错误态。
-
-插件作者失去"随便画界面"的自由，换来零设计成本与永远一致的观感 ——
-对编辑式克制的设计方向，这个交换是划算的。
-
-Reader Mode 同样遵守这条规则。`text-unit-navigator` 插件声明不透明的文本
-单元 id、默认单元、宿主图标名和自带多语言文案，并只返回每个宿主文本
-block 内的 `{start, end}` 半开区间；宿主校验 id、文案、有序、非重叠与边界
-后才映射成 DOM Range。遮罩、跨章节步进、滚轮/触摸/键盘/Android 音量键、
-标注/查词/Ask AI 动作、设置与快捷键界面全部是 ReadAware 自己的组件和
-引擎代码。宿主按 contribution key 隔离单元偏好与每本书的停留位置，不会让
-两个恰好复用同一 unit id 的模式串状态。插件不能注入 JSX、HTML、CSS、Flex、
-DOM Range 或 Foliate 实例。
-
-### 主题与字体（`ui:themes`）
-
-对"presentation 归宿主"公理的一次**有意识修订**（构造规则第 4 条的注脚）：
-被放宽的只是"外观数据的来源可以是插件"，渲染权、CSS 生成权仍然全部归宿主。
-插件从头到尾不产出一行样式表——它在 manifest 里声明纯数据，宿主校验后
-生成并注入 CSS：
-
-- **`themes`**：每个主题带 `id`、`name`（PluginText，可多语言）、
-  `polarity`（light/dark，驱动 `color-scheme`、`dark:` 变体、阅读页
-  `auto` 解析与未覆写 token 的极性默认值），以及两个**相互独立**的挂载部分：
-  - `app` —— 应用换肤：固定 token 词汇（`paper` / `fg` / `surface` /
-    `fill` … 共 13 个，映射到 index.css 的语义变量）上的颜色覆写集。
-    应用方式是 `<html data-skin="plugin:<id>:<themeId>">` 属性 + 一段
-    宿主生成的 `<style>`；极性仍走 `data-theme`，所以启动脚本、splash、
-    Tailwind `dark:` 全部照旧。启动闪烁靠 KV 里的 skin 快照消除
-    （`read-aware-app-skin`，Rust 的 `read_boot_theme` 也读它取极性）。
-  - `reader` —— 阅读页：与内置 light/warm/dark 同构的**六色调色板**
-    （bg/text/selection/rule/faint/muted），加可选的**排版预设**
-    （fontFamily/fontSize/fontWeight/lineSpacing/paragraphSpacing）。
-    预设在用户**选中主题那一刻**一次性落进普通阅读设置——之后用户随意改，
-    重新选中重新应用；绝不是运行时锁定。
-- **`fonts`**：随插件分发的字体文件（woff2/woff/ttf/otf，路径与 Rust 端
-  `valid_payload_path` 同构校验）。宿主生成 `@font-face`，`src` 直指
-  `raplugin://`（CSP `font-src` 已放行），同一串规则注入应用文档与
-  书内 iframe；字体以 `plugin:<pluginId>:<fontId>` 进入字体选择器。
-  市场安装路径为此支持二进制文件（base64 过 IPC）。
-
-安全边界：颜色值走**封闭语法白名单**（hex / rgb() / hsl()，函数体只允许
-数字类字符——`url(`、`var(` 在语法上不可表达，而非被过滤），字体族名沿用
-`sanitizeFamily` 前例。这是必须死守的一条：插件代码碰不到 DOM，但颜色
-字符串一旦被宿主拼进样式表就跨了回来，书内 iframe 里的 `url()` 足以构成
-阅读行为泄露信道。
-
-生效规则与摆放权（§7）同源：主题**注册只是出现在选项里**，绝不自动换肤；
-选中权永远在用户。插件禁用/卸载时选项消失、已选主题回退（app 侧回 system、
-阅读页回 warm），但用户的选择值保留——重新启用插件即恢复原样。
-首个第一方住户：**Editorial Themes**（Gutenberg 亮色 + Nocturne 暗色，
-自带 EB Garamond）。
-
-### 切换外观（`ui:appearance`）
-
-`ui:themes` 只解决"主题从哪来"，不解决"什么时候换"。按时间自动换主题这类
-需求（早晚不同的应用皮肤与阅读页配色）必须有人**主动写**这两个偏好，于是
-有了第二个、也是更强的一个权限：
-
-- `appearance.listThemes()` —— 两个挂载面当前提供的全部值合成一张表：内置
-  值（app：`system`/`light`/`dark`；阅读页：`auto`/`light`/`warm`/`dark`）
-  加所有已启用插件贡献的主题，每项带 `surfaces`（这个值能设到哪个面）、
-  `polarity`（`system`/`auto` 为 null——它们的极性取决于别处）和按当前
-  UI 语言解析好的 `label`。插件不必自己拼主题词汇表，也就不会与宿主漂移。
-- `appearance.get()` —— 读当前两个偏好，外加 `auto` 解析后的结果。
-- `appearance.setAppTheme(v)` / `setReaderTheme(v)` —— 写。值必须是
-  `listThemes()` 当下提供的：悬空 ref 作为**已存状态**是合法的（贡献它的
-  插件可能只是暂时禁用），作为**入站写入**则一律拒绝——调用方刚列过表，
-  静默存一个解析不出来的 ref 只会表现为回退配色而没有任何解释。
-
-实现上它不是第二条写路径：`features/settings/lib/appearance-control.ts`
-是唯一的接缝，写的就是设置面板写的那两个偏好，因此选中插件阅读主题时同样
-会一次性套用它声明的排版预设——与用户手点完全一致。被刻意排除在外的是
-**单本书的外观覆写**：用户为某本书钉死的配色不会被这条路径改掉，全局偏好
-才是这里变动的对象。agent 的设置目录也从同一份内置词汇表构建，两条程序化
-路径不可能给出不同的选项集。
-
-首个住户是不内置的第一方插件 **Theme Schedule**（市场仓
-`readaware-plugins`）：白天与夜间两段，各自选应用主题与阅读页配色，
-两者都可以选"不改变"。开始时刻用声明式设置的 `time` 字段——宿主渲染
-时/分两个下拉（`TimeField`），不给插件手输时间的机会：手输时间意味着
-"7pm"、地区格式歧义与半截状态，那些不该由插件来解析。
-
-## 7. 摆放权：插件贡献能力，用户掌管布局
-
-两层分离：
-
-1. **插件声明**它提供哪些动作（装了插件，能力就存在）。
-2. **用户决定**哪些动作以按钮形式钉在哪个顶栏、顺序如何。
-
-规则：
-
-- **设置 → Menus**：三个表面（书架顶栏、阅读器顶栏右簇、选区菜单）
-  各有"显示 / 更多菜单"两个拖拽区，内建项与插件项同场排布——用户拖动
-  决定顺序与去留，没放进一级的收进垂直三点溢出菜单。挂件类内建项
-  （书架视图、阅读外观）只能排序不能收起。每表面可一键恢复默认。
-- 新插件动作默认落在溢出区，安静登场；内建项默认全部一级。
-- 所有插件动作无条件进命令面板 —— 它是"装了但没钉按钮"的动作的
-  兜底入口（把 `buildCommands` 的闭合集合改成可追加注册表后近乎免费）。
-- 钉选与排序持久化在应用侧（`localKV`），不归插件管。
-
-## 8. AI 扩展点：插件工具
-
-**V1 就做。** 这是长远看最有价值的挂载点：ReadAware 是 AI-native
-阅读器，插件给 agent 提供工具（"查询我的 Anki 词库"、"读取我的豆瓣
-标记"），比贡献按钮的天花板高得多。
-
-现有形态恰好合拍（`packages/agent`）：agent 循环用
-`AgentTool = {name, label, description, parameters, execute}`，每轮由
-`buildAgentTools(scope, deps)` 组装；聊天 UI 已能通用渲染任意工具的
-调用步骤（`tool-step` → `ChatToolStep`）。因此：
-
-- 插件注册面：`ctx.agent.registerTool({name, label, description,
-  contexts?, parameters, execute})`（权限 `agent:tools`），`contexts` 可把工具
-  限定到 `book` / `global` agent surface（省略则两边都可用），`parameters` 用纯 JSON
-  Schema（TypeBox 产出的就是纯 JSON Schema 对象，内部兼容）。
-- 命名空间：注册后实际工具名为 `plugin_<pluginId>_<name>`，杜绝与
-  内置工具及其他插件冲突。
-- 装配点：`buildAgentTools` 按 surface 过滤后追加"当前启用插件的工具"；插件
-  启停触发 runtime 工具集刷新。
-- 呈现：插件工具调用走现成的通用工具步 UI（活动行标签取自注册表的
-  `label`），用户在聊天里看得见"正在调用 × 插件的 × 工具"（与显式
-  状态的架构哲学一致，不进 `SUPPRESSED_TOOLS`）。
-- **卡片结果**：工具的 `execute` 返回 `{ gist, wordCards }`
-  （`PluginToolWordCards`）时，聊天在工具位置渲染完整单词卡，模型只
-  收到 `gist` 一句要义——卡片即内容，杜绝模型复述。Dictionary 插件的
-  `lookup_word` 就是这条通路的第一个住户（词典工具不再内置于 agent）。
-- 开关：设置页里按插件整体启停其工具；更细粒度（按书/按线程）留作
-  后续。
-
-**V1 只做 pull 不做 push**：工具是 agent 主动拉取的上下文源，已覆盖
-绝大多数场景；"每轮自动注入上下文"的 push 式 context provider 涉及
-提示组装管线（`context/`），留到有真实需求再开，避免第一版 API 面
-过大收不回来。
-
-## 9. 加载机制与 CSP
-
-- 复用 foliate 已验证的范式：同源 ES module + 生产 CSP 下可行的加载
-  路径，不用 `eval`、不用 inline script。
-- 插件文件在 `<app_data>/plugins/` 下、不在 `'self'` 源内，需要一处
-  有意的 CSP 决策：**Rust 侧注册自定义 URI scheme（如
-  `raplugin://`）伺服插件目录，`script-src` 追加该 scheme**，前端
-  `import("raplugin://<id>/main.js")` 动态加载。这是整个系统里唯一一处
-  放宽安全姿态的地方，范围清晰可控。
-- 备选（不推荐）：IPC 读文件 → Blob URL → `import()`，需要
-  `script-src` 加 `blob:`，边界更模糊。
-- 安装流程：设置页 → 选择文件夹 / zip（`dialog:allow-open` 已有）→
-  Rust 命令校验 manifest 并拷入 `<app_data>/plugins/<id>/`。
-
-## 10. 现有代码的改造点
-
-调研结论（2026-07-21）：想挂载的位置目前全是硬编码 JSX，先做
-"菜单数据化"，应用自己的菜单项先吃同一套贡献模型的狗粮。
-
-| 现状 | 改造 |
-|---|---|
-| `ReaderShellOverlay` 顶栏按钮为独立 JSX + 回调 props | item 数组驱动 + 贡献点合并 |
-| `ReaderSelectionMenu` / `ReaderAnnotationMenu` / `TextUnitNavigatorBar` 三处共享动作但各自内联 | 统一的选区动作模型（声明式数组），三处消费同一数据 |
-| `AppHeader` 桌面布局硬编码按钮（仅 `viewControl` / `actions` 两个 ReactNode 插槽） | header action 注册表；插件按钮与钉选/溢出规则在此落地 |
-| `buildCommands` 返回闭合的 `CommandItem[]` | 改成可追加注册表；插件命令与自动注册在此接入 |
-| 无贡献点存储 | Jotai atom 做贡献注册表（响应式增删，启停即生效） |
-| `Toast`、`Markdown` 组件已存在 | 直接复用，无需新建 |
-
-数据侧无需放宽任何东西：插件持久化 = `localKV` 加 `plugin:<id>:`
-命名空间前缀（SQLite `app_kv` 表），不动 fs capability。
-
-## 11. 实现阶段
-
-全部属于 V1，仅为实施顺序：
-
-1. **菜单数据化 + 贡献点注册表**（纯内部重构，无用户可见变化；独立
-   成立，即使插件系统暂缓代码也变好）
-2. **插件运行时**：manifest 校验、Rust scheme + 加载器、
-   `activate/deactivate` 生命周期、权限域门控、设置页（安装/列表/
-   启停/权限展示/钉选摆放）、命名空间 KV
-3. **UI 词汇渲染器**：Popup / Dialog / Page 容器 + Markdown / List /
-   Form / Detail / 组合 Blocks 宿主组件树
-4. **AI 工具挂载点**：`ctx.agent.registerTool` → `buildAgentTools`
-   追加 + 启停刷新
-5. **官方插件 × 2–3 + 插件模板仓库**：既是功能也是 API 的真实性
-   检验（候选：导出 Markdown、查词典扩展、Anki 生词本）
-
-## 12. 风险与开放问题
-
-- **API 稳定性承诺**：一旦用户开始写插件，破坏性改动就有代价。V1 面
-  宁小勿大，只加不减。
-- **iframe 抽象泄漏**：选区事件横跨 foliate iframe 与主窗口两个时间
-  原点；插件 API 必须停在"选区事件 + 文本 + CFI"层，绝不暴露 iframe
-  DOM，否则引擎内部一动插件全崩。
-- ~~**插件自身设置**：插件大概率需要自己的配置项（如 Anki 地址）。
-  倾向复用表单视图声明一节“插件设置”，V1 先不承诺。~~ **已落地**：声明式设置已成为一等面（见勘误第二条）。
-- **插件 i18n**：插件字符串的多语言机制未定，V1 按插件自理。
-- **更新机制**：V1 手动重装；后续再议版本检查。
-- ~~**TypeScript 类型包**~~ **已落地**：`packages/plugin-types`
-  （`@read-aware/plugin-types`）是插件 API 的唯一真源，应用 re-export
-  它；市场仓库携带其声明镜像（`types/plugin-api.d.ts`）与 TS 模板
-  （`template/`，`bun build src/main.ts` 产出 `main.js`）。**TypeScript
-  是推荐的插件编写方式**，运行时装载的始终是构建产物 `main.js`；第一方
-  插件位于 `plugins/*` workspace，桌面 dev/build 自动构建其产物；每个
-  插件包提供独立的 `typecheck` 与 `test`，根 workspace 统一执行。
+> Decision status: approved on 2026-08-23. This document describes the target
+> architecture. The repository has not completed this migration yet; the
+> implementation-status section records the current gap.
+>
+> Compatibility policy: all existing plugins are first-party or bundled. A
+> breaking rewrite is allowed. Do not preserve the old API with adapters,
+> aliases, fallbacks, or compatibility shims.
+>
+> The concise human-facing version is [plugin-system.html](./plugin-system.html).
+
+## 1. Decision
+
+The plugin system has one capability model with three families:
+
+1. **Domain Registry** - application state and behavior that already exists.
+2. **Contribution Points** - new implementations or choices supplied by a
+   plugin.
+3. **Host Services** - bounded operating-system, infrastructure, and lifecycle
+   facilities supplied by the host.
+
+Every capability is defined once in its owning registry. Types, runtime
+exposure, permissions, validation, worker bridging, events, documentation, and
+tests must be derived from that definition rather than maintained as parallel
+manual lists.
+
+The plugin loader remains dynamic. Dynamic loading does not mean that arbitrary
+plugin code may invent host behavior. It means a plugin can discover allowed
+domains and register into existing contribution points without the host naming
+that plugin in advance.
+
+## 2. The Boundary Test
+
+Use this test before adding any plugin API:
+
+| Question | Capability family |
+| --- | --- |
+| Is this state or behavior ReadAware already owns? | Domain Registry |
+| Is the plugin supplying a new implementation, choice, action, or provider? | Contribution Point |
+| Does the plugin need the host to perform a bounded external operation? | Host Service |
+
+Examples:
+
+| Need | Correct owner |
+| --- | --- |
+| Read the active book | Reading domain |
+| Change the selected app theme | Settings domain |
+| Supply a new theme | Theme contribution |
+| Read the selected voice | Settings domain |
+| Supply a speech engine or voice | Voice-provider contribution |
+| Navigate to another chapter | Reading domain |
+| Add a selection action | Selection-action contribution |
+| Call a remote dictionary API | Network host service |
+| Store an API credential | Secrets host service |
+
+Do not turn the three families into one generic string-addressed API. They have
+different semantics, lifecycle, permission, and validation requirements. The
+unification is a shared registry architecture, not a single untyped bag.
+
+## 3. Domain Registry
+
+### 3.1 Definition
+
+A domain is a coherent slice of product behavior. A domain definition owns:
+
+- its public read models;
+- queries;
+- commands;
+- emitted events;
+- validation and business invariants;
+- actor access policy;
+- persistence and synchronization classification.
+
+Queries inspect state. Commands request state changes. Events report committed
+changes. Plugins never write projection tables, Jotai atoms, SQLite, or feature
+stores directly.
+
+### 3.2 Actor-scoped views
+
+The runtime resolves one registry into a view for an actor:
+
+- `user` - product UI;
+- `agent` - the core ReadAware agent;
+- `plugin:<id>` - one installed plugin;
+- `system` - trusted host pipelines.
+
+The actor view exposes only the allowed domains, operations, records, and
+fields. Permission checks happen again at invocation time; hiding an operation
+from the generated API is not the security boundary by itself.
+
+### 3.3 Target domain set
+
+| Domain | Owns | Initial plugin exposure |
+| --- | --- | --- |
+| Library | books, source files, metadata, table of contents, collections, import and removal | Scoped reads and explicit commands |
+| Reading | active reading session, location, navigation, progress, reading time, reader state | Reads, navigation, subscriptions |
+| Annotations | highlights, notes, bookmarks, vocabulary references | Scoped reads and explicit mutations |
+| Conversations | book and global threads, messages, conversation metadata | Narrow, consent-aware access |
+| Settings | settings catalog, resolved values, target overrides, change events | Path-scoped discovery/read/write |
+| Profile / Memory | user profile, derived memory, consolidation state | Internal at first; no broad plugin access |
+
+The current `shelf` domain is not retained as a compatibility surface. Its
+library concerns move to Library and its active-reading concerns move to
+Reading.
+
+New domains are added only when there is a real product ownership boundary.
+Features, pages, React components, and menu locations are not domains by
+default.
+
+### 3.4 A single source of truth
+
+One domain declaration must drive all of the following:
+
+- TypeScript contracts;
+- actor-facing API construction;
+- permission vocabulary and manifest validation;
+- worker RPC exposure;
+- command argument and result validation;
+- event subscription validation;
+- capability introspection;
+- generated reference documentation;
+- contract tests.
+
+Do not add a domain to the type package, plugin context, permission switch,
+worker bridge, and test fixtures separately. That is the incomplete shape the
+new registry replaces.
+
+## 4. Settings Is a Domain
+
+Settings is not a helper beside the Domain Registry. It is a first-class
+domain because ReadAware owns settings state, validation, persistence, targets,
+change semantics, and policy.
+
+Appearance is not a domain. It is a section of Settings.
+
+### 4.1 Settings sections
+
+The initial catalog is organized into stable sections:
+
+- General;
+- Appearance;
+- Reading;
+- Menus and shortcuts;
+- AI;
+- Sync;
+- Plugins.
+
+Sections organize discovery and UI. They do not create separate runtime APIs.
+
+### 4.2 Setting definitions
+
+Each setting is described by one catalog record containing at least:
+
+- stable path;
+- section;
+- value kind;
+- default value;
+- validation rules;
+- static options or an option-provider reference;
+- supported targets;
+- readable actors;
+- writable actors;
+- sensitivity classification;
+- local-only or synchronized persistence policy;
+- canonical query and commit behavior;
+- post-commit effects;
+- user-facing label and consent description where needed.
+
+Supported targets may include:
+
+- global;
+- all books;
+- one book;
+- one device.
+
+Target support is declared per setting. A plugin cannot invent an unsupported
+scope.
+
+### 4.3 Settings operations
+
+The Settings domain provides these semantic operations:
+
+- discover permitted setting definitions;
+- read resolved values;
+- update a value at an allowed target;
+- reset an override;
+- subscribe to committed changes.
+
+All writes use the same validation, persistence, event, and post-commit path as
+the product UI and the agent. Plugins do not receive a raw settings object.
+
+### 4.4 Permissions
+
+Settings access is granted by exact paths or intentionally bounded path groups.
+Installing a theme plugin must not imply write access to AI providers, sync,
+shortcuts, or unrelated reader preferences.
+
+The permission model must distinguish:
+
+- discover;
+- read;
+- write;
+- target scope;
+- sensitive versus non-sensitive settings.
+
+Secrets are never ordinary settings values. A setting may reference a secret
+slot, but secret material is read and written only through the Secrets host
+service.
+
+### 4.5 Settings and contributions
+
+Settings chooses among capabilities; contributions supply the choices.
+
+- selected application theme: Settings;
+- available application themes: Theme contributions;
+- selected reader font: Settings;
+- available reader fonts: Font contributions;
+- selected read-aloud voice: Settings;
+- available voices: Voice-provider contributions;
+- selected reader mode: Settings;
+- available modes: Reader-mode contributions.
+
+Settings definitions owned by a plugin are registered into the Settings domain
+under a plugin namespace. They are not a separate manifest-only configuration
+system. Their values use the same discovery, validation, targeting, events, and
+UI rendering rules as first-party settings.
+
+## 5. Contribution Points
+
+Contribution Points let plugins add implementations without taking ownership of
+host state or rendering arbitrary product UI.
+
+### 5.1 Initial roster
+
+| Contribution point | Plugin supplies | Host owns |
+| --- | --- | --- |
+| Selection action | label, icon reference, eligibility, handler | selection menu, ordering, invocation UX |
+| Header or page action | placement metadata and handler | toolbar/page layout and accessibility |
+| Command | command metadata and handler | command registry, palette, shortcuts |
+| Agent tool | schema, description, executor | tool approval, orchestration, result presentation |
+| Theme | semantic theme tokens and metadata | active selection, validation, application |
+| Font | font metadata and approved asset references | loading, caching, active selection |
+| Voice provider | voice discovery and synthesis operations | selected voice, playback UX, policy |
+| Reader mode | mode metadata and bounded reader behavior | active mode and reader lifecycle |
+| Content provider | virtual-source metadata and content operations | navigation, library integration, presentation |
+
+Plugin settings definitions belong to the Settings domain, not a fourth
+contribution architecture. Scheduled jobs belong to lifecycle services, not a
+visual mount point.
+
+### 5.2 Contribution contract
+
+Every contribution definition includes:
+
+- stable plugin-scoped ID;
+- contribution-point kind;
+- metadata required by the host consumer;
+- declared permissions;
+- lifecycle hooks where relevant;
+- validation rules;
+- deterministic disposal behavior.
+
+Registration returns a disposable handle. Deactivation, update failure, or
+uninstall removes every contribution without leaving listeners, shortcuts,
+styles, providers, or background work behind.
+
+### 5.3 What dynamic means
+
+The host does not enumerate plugin IDs. Any installed plugin may register a
+valid contribution into an existing point.
+
+A genuinely new kind of contribution still requires one explicit host consumer
+because the host must know how to render, invoke, secure, and dispose it. Once
+that point exists, plugins using it are loaded dynamically. Dynamic loading is
+not permission for plugins to inject arbitrary DOM or create unnamed mount
+points.
+
+## 6. Host Services
+
+Host Services expose bounded operations that cannot safely or consistently be
+implemented inside a worker.
+
+The initial service set is:
+
+- plugin-scoped durable storage;
+- secrets and credential slots;
+- permission-aware network requests;
+- approved LLM calls;
+- clipboard operations;
+- host-mediated file open, save, import, and export flows;
+- schedules and lifecycle jobs;
+- locale and non-sensitive environment metadata.
+
+Each service has its own typed request and result contract, permission policy,
+quotas where needed, cancellation behavior, and audit boundary. There is no
+generic host invocation escape hatch.
+
+Host Services must not expose:
+
+- raw filesystem paths or unrestricted filesystem APIs;
+- Tauri command invocation;
+- SQLite connections or SQL;
+- React, Jotai, or feature stores;
+- raw DOM or WebView access;
+- Foliate internals;
+- arbitrary process execution.
+
+## 7. Runtime Model
+
+### 7.1 Load and activation
+
+The runtime follows this sequence:
+
+1. Discover installed plugin packages from the bundled catalog or plugin
+   storage.
+2. Validate the manifest and declared capability requirements.
+3. Resolve permissions and user consent.
+4. Start the plugin in a worker sandbox.
+5. Construct an actor-scoped capability view from the registries.
+6. Run activation and collect every returned registration and subscription.
+7. Mark the plugin active only after activation completes successfully.
+
+Activation is atomic from the product's perspective. Partial registrations are
+disposed if any activation step fails.
+
+### 7.2 Deactivation and uninstall
+
+Deactivation cancels ongoing work and disposes:
+
+- domain subscriptions;
+- contributions;
+- schedules;
+- command and tool handlers;
+- provider registrations;
+- UI sessions;
+- in-flight host-service requests where possible.
+
+Uninstall additionally removes plugin-owned settings definitions and follows
+the declared policy for plugin-scoped data and secrets. Destructive cleanup
+must be explicit and consent-aware.
+
+### 7.3 Updates and rollback
+
+Never replace a running plugin in place.
+
+1. Install the candidate version separately.
+2. Validate its manifest and compatibility with the current host capability
+   versions.
+3. Run migration in a versioned transaction or recoverable staging area.
+4. Activate the candidate and perform a health check.
+5. Switch the active version only after success.
+6. Retain the previous version until the new version is confirmed healthy.
+7. Roll back code and recoverable data automatically on failure.
+
+## 8. Security and Trust
+
+First-party status reduces distribution risk; it does not remove the need for
+capability isolation. Plugins still execute behind a worker boundary and use
+least-privilege actor views.
+
+Permission enforcement has several layers:
+
+- manifest validation at install time;
+- user consent for meaningful capabilities;
+- actor-scoped API construction;
+- invocation-time authorization;
+- domain and service input validation;
+- host-owned rendering and file pickers;
+- lifecycle cleanup and cancellation;
+- audit events for sensitive actions.
+
+Permissions are semantic. Prefer `settings.write:appearance.theme` or a
+similarly exact generated scope over broad implementation-oriented permissions.
+Do not infer permission solely from whether a method happens to be present.
+
+## 9. Host-Owned Plugin UI
+
+Plugin UI remains declarative and host-rendered. Plugins provide view models,
+commands, and event handlers; ReadAware renders them with `@read-aware/ui`.
+
+This boundary provides:
+
+- visual consistency;
+- keyboard and accessibility guarantees;
+- theme compatibility;
+- controlled navigation;
+- permission-aware inputs and file flows;
+- cleanup when a plugin deactivates.
+
+Do not expose arbitrary JSX, HTML, CSS, iframes, DOM handles, React component
+registration, or WebView injection. A new UI need should extend the declarative
+view schema or add a real host contribution point.
+
+## 10. Capability Versioning and Discovery
+
+The host publishes capability-family versions independently. Domains,
+contribution points, host services, and declarative UI schemas do not have to
+share one global version.
+
+Before activation, the runtime checks the plugin's required capability ranges.
+At runtime, a plugin may introspect only the capabilities visible to its actor
+view. Discovery never reveals inaccessible setting paths, private fields, or
+internal domains.
+
+Because there are no third-party plugins today, migration should establish the
+clean versioning model directly rather than emulate the old surface.
+
+## 11. Current Implementation Status
+
+### 11.1 What already works
+
+The current system already has valuable pieces to retain:
+
+- plugins are discovered and loaded as modules rather than hard-coded by ID;
+- plugins run in a worker sandbox;
+- activation and disposal lifecycle exists;
+- several contributions are registered dynamically;
+- plugin UI is declarative and host-rendered;
+- permissions and install consent exist;
+- host services exist for storage, network, LLM, and related operations;
+- the agent settings implementation already models catalog metadata, targets,
+  validation, draft changes, and commit behavior.
+
+### 11.2 Structural problems to replace
+
+The system is not yet fully registry-driven:
+
+- `apps/web/src/domain/index.ts` manually composes only shelf, annotations, and
+  conversations;
+- domain type definitions, context construction, permission branches, worker
+  exposure, and tests repeat capability knowledge;
+- `ui:appearance` is exposed as a hand-built special case;
+- settings are split between product UI, plugin manifest configuration, option
+  providers, storage change listeners, and agent-only registries;
+- some contributions use the main registry while settings option providers and
+  virtual content providers use separate maps;
+- the worker bridge can derive callable methods only from the context already
+  assembled by the host, so it cannot repair a missing host capability;
+- the `shelf` domain combines library ownership with reading-session concerns.
+
+These are migration targets, not behavior to preserve.
+
+### 11.3 First-party plugins to migrate
+
+All current plugins move to the new contracts in the same migration:
+
+- Dictionary;
+- Editorial Themes;
+- RSS Reader;
+- Sentence Reader;
+- Text to Speech;
+- Theme Schedule, where present in the bundled or marketplace source tree.
+
+Do not ship parallel old and new plugin runtimes.
+
+## 12. Migration Plan
+
+### Phase 1: Freeze product behavior
+
+- Inventory every domain method, permission, contribution, service, setting,
+  plugin UI view, and lifecycle hook currently used by first-party plugins.
+- Add behavior-level contract tests around those user-visible workflows.
+- Record which old APIs are unused and can be deleted rather than migrated.
+
+### Phase 2: Build the capability runtime
+
+- Create the shared registry primitives and actor identity model.
+- Make permission vocabulary and capability discovery derive from registry
+  declarations.
+- Generate the plugin-facing context and worker RPC surface from the actor view.
+- Add invocation-time authorization, validation, cancellation, and disposal.
+
+### Phase 3: Promote Settings
+
+- Move the useful catalog model from the agent settings implementation into the
+  product-level Settings domain.
+- Route product UI and agent settings access through the same domain.
+- Add target resolution, reset, subscriptions, and exact permission scopes.
+- Register plugin-owned settings definitions under plugin namespaces.
+- Replace the special Appearance API with Settings paths and theme/font
+  contributions.
+
+### Phase 4: Rebuild product domains
+
+- Split shelf behavior into Library and Reading.
+- Register Annotations and Conversations through the same domain definition
+  mechanism.
+- Keep Profile / Memory internal until an explicit plugin contract is designed.
+- Route all domain changes through canonical event-sourced commands.
+
+### Phase 5: Unify contributions and services
+
+- Move every contribution point under one contribution registry abstraction.
+- Move option-provider and virtual-content registrations out of standalone maps.
+- Normalize IDs, validation, ownership, disposal, and introspection.
+- Give each Host Service a typed, independently permissioned contract.
+
+### Phase 6: Migrate plugins and delete the old API
+
+- Migrate all first-party plugins.
+- Remove old context types, manual permission switches, appearance special
+  cases, manifest-only settings behavior, duplicate registries, and obsolete
+  tests.
+- Do not add a compatibility adapter after deletion.
+
+### Phase 7: Verify the shipping product
+
+- Run unit, contract, type, and activation rollback tests.
+- Exercise every plugin in the Tauri desktop app, not the browser build.
+- Verify settings changes persist and emit events through SQLite/event sourcing.
+- Verify install, enable, disable, update failure, rollback, and uninstall.
+- Verify no plugin leaves registrations, schedules, or listeners after disposal.
+
+## 13. Acceptance Criteria
+
+The migration is complete only when all of these are true:
+
+- adding a domain operation requires changing one domain definition, not several
+  manual mirrors;
+- adding a setting makes it available to allowed UI, agent, and plugin actors
+  through the same catalog and command path;
+- Appearance has no standalone plugin API;
+- plugins receive exact settings scopes rather than a raw settings bag;
+- installed plugins are not named in host registration code;
+- all contribution points share ownership, validation, and disposal semantics;
+- the worker API is generated from the actor-scoped capability view;
+- every mutation crosses a domain command or bounded Host Service;
+- arbitrary DOM, React, filesystem, SQL, Tauri, and process access remain
+  unavailable;
+- activation is atomic and updates can roll back;
+- first-party plugins use only the new runtime;
+- obsolete plugin APIs and compatibility code are deleted;
+- the complete workflows pass in the Tauri desktop app.
+
+## 14. Rules for Future Agents
+
+1. Treat this document as the target architecture until a newer explicit
+   decision replaces it.
+2. Do not create a separate Settings registry beside the Domain Registry.
+3. Do not create an Appearance domain. Appearance is a Settings section.
+4. Do not solve a missing domain capability with plugin storage or a special
+   UI API.
+5. Do not treat a contribution as domain state or let a setting own provider
+   implementations.
+6. Do not duplicate capability lists across packages or runtime layers.
+7. Do not introduce a generic untyped invoke API.
+8. Do not preserve the old API for hypothetical third-party compatibility.
+9. Keep the worker sandbox and host-owned declarative UI.
+10. Keep secrets outside ordinary settings values.
+11. Keep plugin permissions exact, semantic, and enforced at invocation time.
+12. Verify product behavior in Tauri and verify persisted mutations through the
+    event-sourced storage path.

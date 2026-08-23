@@ -118,10 +118,6 @@
       "title": "Пока нет контекста",
       "description": "Здесь появятся выделения и заметки из вашего чтения."
     },
-    "contextItems_few": "{{count}} элемента контекста",
-    "contextItems_many": "{{count}} элементов контекста",
-    "books_few": "{{count}} книги",
-    "books_many": "{{count}} книг",
     "annotations": {
       "title": "Выделения и заметки"
     },

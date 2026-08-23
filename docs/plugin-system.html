@@ -1,1151 +1,774 @@
 <!doctype html>
 <html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ReadAware — 插件系统（设计）</title>
-<style>
-  :root {
-    --paper: #faf9f6;
-    --paper-warm: #f5f3ee;
-    --ink: #292524;
-    --ink-soft: #44403c;
-    --muted: #57534e;
-    --faint: #79716b;
-    --hairline: #e7e5e4;
-    --code-bg: #f0eeea;
-    --sel: #eadfbf;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --paper: #1c1917;
-      --paper-warm: #232019;
-      --ink: #e7e5e4;
-      --ink-soft: #d6d3d1;
-      --muted: #a8a29e;
-      --faint: #79716b;
-      --hairline: #37322e;
-      --code-bg: #26221f;
-      --sel: #4a4433;
-    }
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html { -webkit-text-size-adjust: 100%; }
-  body {
-    background: var(--paper);
-    color: var(--ink);
-    font-family: "Inter", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-    font-size: 16px;
-    line-height: 2;
-    padding: 4.5rem 1.5rem 8rem;
-  }
-  main { max-width: 44rem; margin: 0 auto; }
-  [hidden] { display: none !important; }
-  button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
-  button:focus-visible { outline: 1.5px solid var(--faint); outline-offset: 2px; }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="ReadAware 插件系统的目标架构：Domain Registry、Contribution Points 与 Host Services。"
+    />
+    <title>ReadAware Plugins</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #f4f5f1;
+        --surface: #ffffff;
+        --ink: #17211d;
+        --muted: #53625c;
+        --line: #cbd2cd;
+        --teal: #0d6965;
+        --teal-soft: #dcecea;
+        --rust: #9b432a;
+        --rust-soft: #f2e3dc;
+        --gold: #a97705;
+        --gold-soft: #f5ebc8;
+        --code: #edf0ec;
+        --radius: 7px;
+        --content: 1120px;
+      }
 
-  .eyebrow {
-    font-size: 11px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--faint);
-    margin-bottom: 1.2rem;
-  }
-  h1 {
-    font-family: Georgia, "Songti SC", "Noto Serif SC", serif;
-    font-weight: 500;
-    font-size: 2.35rem;
-    line-height: 1.15;
-    letter-spacing: -0.01em;
-    margin-bottom: 1.4rem;
-  }
-  .status {
-    color: var(--muted);
-    font-size: 0.9rem;
-    line-height: 1.9;
-    border-left: 2px solid var(--hairline);
-    padding-left: 1rem;
-    margin-bottom: 3.5rem;
-  }
+      * {
+        box-sizing: border-box;
+      }
 
-  h2 {
-    font-family: Georgia, "Songti SC", "Noto Serif SC", serif;
-    font-weight: 500;
-    font-size: 1.45rem;
-    line-height: 1.3;
-    margin: 4rem 0 1.1rem;
-    padding-top: 1.2rem;
-    border-top: 1px solid var(--hairline);
-  }
-  h2 .no {
-    color: var(--faint);
-    font-size: 0.85rem;
-    font-family: "Inter", -apple-system, "PingFang SC", sans-serif;
-    letter-spacing: 0.08em;
-    display: block;
-    margin-bottom: 0.35rem;
-  }
-  p { margin-bottom: 1.1rem; }
-  p, li { color: var(--ink-soft); }
-  strong { color: var(--ink); font-weight: 600; }
-  em { font-style: normal; border-bottom: 1px dotted var(--faint); }
+      html {
+        scroll-behavior: smooth;
+      }
 
-  ul, ol { padding-left: 1.4rem; margin-bottom: 1.2rem; }
-  li { margin-bottom: 0.45rem; }
-  li::marker { color: var(--faint); }
+      body {
+        margin: 0;
+        background: var(--canvas);
+        color: var(--ink);
+        font-family:
+          Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        font-size: 16px;
+        line-height: 1.65;
+        letter-spacing: 0;
+      }
 
-  .toc {
-    background: var(--paper-warm);
-    border: 1px solid var(--hairline);
-    border-radius: 6px;
-    padding: 1.4rem 1.8rem;
-    margin-bottom: 1rem;
-  }
-  .toc-title {
-    font-size: 11px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--faint);
-    margin-bottom: 0.8rem;
-  }
-  .toc ol { margin: 0; padding-left: 1.3rem; columns: 2; column-gap: 2.5rem; }
-  .toc li { margin-bottom: 0.15rem; break-inside: avoid; }
-  .toc a { color: var(--ink-soft); text-decoration: none; border-bottom: none; }
-  .toc a:hover { color: var(--ink); border-bottom: 1px solid var(--faint); }
-  @media (max-width: 600px) { .toc ol { columns: 1; } }
+      a {
+        color: var(--teal);
+        text-underline-offset: 3px;
+      }
 
-  a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--faint); }
+      a:hover {
+        color: var(--rust);
+      }
 
-  .tablewrap { overflow-x: auto; margin: 1.4rem 0 1.6rem; }
-  table { border-collapse: collapse; width: 100%; font-size: 0.9rem; line-height: 1.75; }
-  th, td {
-    text-align: left; vertical-align: top;
-    padding: 0.55rem 0.9rem;
-    border-bottom: 1px solid var(--hairline);
-  }
-  th {
-    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
-    font-weight: 600; color: var(--faint);
-    border-bottom: 1px solid var(--ink-soft);
-  }
-  td { color: var(--ink-soft); }
-  td:first-child { color: var(--ink); white-space: nowrap; }
+      code {
+        padding: 0.12rem 0.34rem;
+        border-radius: 4px;
+        background: var(--code);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.88em;
+      }
 
-  code {
-    font-family: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, monospace;
-    font-size: 0.84em;
-    background: var(--code-bg);
-    border-radius: 3px;
-    padding: 0.1em 0.35em;
-  }
-  pre {
-    background: var(--code-bg);
-    border: 1px solid var(--hairline);
-    border-radius: 6px;
-    padding: 1rem 1.2rem;
-    overflow-x: auto;
-    margin: 1.2rem 0 1.5rem;
-    line-height: 1.7;
-  }
-  pre code { background: none; padding: 0; font-size: 0.82rem; }
+      .wrap {
+        width: min(calc(100% - 40px), var(--content));
+        margin: 0 auto;
+      }
 
-  .note {
-    background: var(--paper-warm);
-    border-left: 2px solid var(--faint);
-    padding: 0.9rem 1.2rem;
-    margin: 1.4rem 0 1.6rem;
-    font-size: 0.92rem;
-    color: var(--muted);
-  }
-  .note p { margin-bottom: 0; color: var(--muted); }
+      .topbar {
+        border-bottom: 1px solid var(--line);
+        background: var(--surface);
+      }
 
-  /* ---------- figures ---------- */
-  .fig { margin: 2rem 0 2.4rem; }
-  .figcap {
-    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
-    color: var(--faint); text-align: center; margin-top: 1rem;
-  }
-  .figframe {
-    border: 1px solid var(--hairline);
-    border-radius: 8px;
-    background: var(--paper-warm);
-    padding: 1.6rem 1.4rem;
-    overflow-x: auto;
-  }
+      .topbar-inner {
+        display: flex;
+        min-height: 56px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+      }
 
-  /* fig 1 flow */
-  .flow { display: flex; flex-direction: column; align-items: center; font-size: 0.85rem; line-height: 1.7; }
-  .fbox {
-    border: 1px solid var(--hairline); border-radius: 6px;
-    background: var(--paper); color: var(--ink-soft);
-    padding: 0.55rem 1.1rem; text-align: center; max-width: 34rem;
-  }
-  .fline { width: 1px; height: 12px; background: var(--faint); }
-  .fhead { width: 0; height: 0; border-left: 3.5px solid transparent; border-right: 3.5px solid transparent; border-top: 5px solid var(--faint); }
-  .flabel { font-size: 0.72rem; color: var(--faint); margin: 0.1rem 0 0.15rem; text-align: center; }
-  .fanout { position: relative; margin-top: 14px; padding-top: 14px; display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
-  .fanout::before { content: ""; position: absolute; top: 0; left: 8%; right: 8%; height: 1px; background: var(--faint); }
-  .fanout::after { content: ""; position: absolute; top: -14px; left: 50%; width: 1px; height: 14px; background: var(--faint); }
-  .fchip {
-    position: relative;
-    border: 1px solid var(--hairline); border-radius: 999px;
-    background: var(--paper); color: var(--ink-soft);
-    padding: 0.15rem 0.8rem; font-size: 0.78rem; margin-top: 10px;
-  }
-  .fchip::before { content: ""; position: absolute; top: -11px; left: 50%; width: 1px; height: 10px; background: var(--faint); }
+      .brand {
+        margin: 0;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 20px;
+        font-weight: 700;
+      }
 
-  /* mock widgets shared */
-  .chip {
-    display: inline-block; border: 1px solid var(--hairline); border-radius: 999px;
-    padding: 0 0.6rem; font-size: 0.75rem; color: var(--muted); line-height: 1.7;
-    margin-right: 0.3rem; background: var(--paper);
-  }
-  .btn-solid {
-    background: var(--ink); color: var(--paper);
-    border-radius: 5px; padding: 0.3rem 1rem; font-size: 0.85rem;
-  }
-  .btn-ghost {
-    border: 1px solid var(--hairline); border-radius: 5px;
-    padding: 0.3rem 1rem; font-size: 0.85rem; color: var(--muted);
-  }
-  .tgl {
-    width: 34px; height: 20px; border-radius: 999px;
-    border: 1px solid var(--hairline); background: var(--code-bg);
-    position: relative; transition: background 0.15s ease; flex: none;
-  }
-  .tgl::after {
-    content: ""; position: absolute; top: 2px; left: 2px;
-    width: 14px; height: 14px; border-radius: 50%;
-    background: var(--paper); border: 1px solid var(--hairline);
-    transition: transform 0.15s ease;
-  }
-  .tgl.on { background: var(--ink); border-color: var(--ink); }
-  .tgl.on::after { transform: translateX(14px); border-color: var(--ink); }
-  .linklike { font-size: 0.82rem; color: var(--muted); border-bottom: 1px solid var(--hairline); }
+      .topbar a {
+        font-size: 14px;
+        font-weight: 650;
+      }
 
-  /* fig 2 install */
-  .mockdialog {
-    max-width: 26rem; margin: 0 auto;
-    border: 1px solid var(--hairline); border-radius: 8px;
-    background: var(--paper); padding: 1.3rem 1.5rem;
-    font-size: 0.9rem; line-height: 1.8;
-  }
-  .mockdialog h4 { font-size: 1rem; font-weight: 600; margin-bottom: 0.1rem; }
-  .md-sub { color: var(--faint); font-size: 0.8rem; margin-bottom: 0.8rem; }
-  .md-warn {
-    border-left: 2px solid var(--faint); background: var(--paper-warm);
-    padding: 0.5rem 0.9rem; font-size: 0.82rem; color: var(--muted);
-    margin-bottom: 1rem; line-height: 1.7;
-  }
-  .md-perm { list-style: none; padding: 0; margin: 0 0 1.2rem; }
-  .md-perm li {
-    display: flex; gap: 0.7rem; align-items: baseline;
-    padding: 0.4rem 0; margin: 0; border-bottom: 1px solid var(--hairline);
-    font-size: 0.84rem;
-  }
-  .md-perm li:last-child { border-bottom: none; }
-  .md-perm code { flex: none; }
-  .md-actions { display: flex; justify-content: flex-end; gap: 0.6rem; }
-  .md-row { display: flex; align-items: center; gap: 0.8rem; }
-  .md-row .grow { flex: 1; }
-  .md-state { color: var(--faint); font-size: 0.8rem; }
+      header {
+        padding: 68px 0 52px;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface);
+      }
 
-  /* fig 3 explorer */
-  .wf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
-  @media (max-width: 640px) { .wf-grid { grid-template-columns: 1fr; } }
-  .wf-cap { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); margin-bottom: 0.5rem; }
-  .wf-frame {
-    position: relative; border: 1px solid var(--hairline); border-radius: 8px;
-    background: var(--paper); overflow: hidden; font-size: 10px;
-  }
-  .wf-titlebar { display: flex; gap: 4px; padding: 7px 9px; border-bottom: 1px solid var(--hairline); }
-  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--hairline); }
-  .wf-header { display: flex; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--hairline); }
-  .wf-title { color: var(--muted); font-size: 10px; }
-  .wf-sp { flex: 1; }
-  .sq { width: 14px; height: 14px; border: 1px solid var(--hairline); border-radius: 3px; margin-left: 4px; background: var(--paper-warm); }
-  .wf-body { padding: 10px; }
-  .cmdk {
-    margin: 6px auto 10px; width: 72%;
-    border: 1px solid var(--hairline); border-radius: 5px; background: var(--paper-warm);
-    color: var(--faint); padding: 3px 8px; font-size: 9px;
-  }
-  .covers { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
-  .cover { aspect-ratio: 3/4; background: var(--code-bg); border-radius: 3px; }
-  .rd-cols { display: flex; gap: 10px; }
-  .rd-text { flex: 1; }
-  .ph { height: 5px; border-radius: 2px; background: var(--code-bg); margin-bottom: 6px; }
-  .ph.w60 { width: 60%; } .ph.w85 { width: 85%; } .ph.w75 { width: 75%; }
-  .rd-selline { margin-bottom: 6px; line-height: 1; font-size: 0; }
-  .rd-sel { display: inline-block; height: 5px; border-radius: 2px; background: var(--sel); width: 55%; }
-  .rd-selrest { display: inline-block; height: 5px; border-radius: 2px; background: var(--code-bg); width: 30%; margin-left: 4px; }
-  .minimenu {
-    display: inline-flex; gap: 6px; align-items: center;
-    border: 1px solid var(--hairline); border-radius: 999px; background: var(--paper);
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-    padding: 2px 8px; font-size: 8px; color: var(--muted); margin: 2px 0 8px;
-  }
-  .rd-chat { width: 32%; border-left: 1px solid var(--hairline); padding-left: 8px; }
-  .toolrow {
-    border: 1px solid var(--hairline); border-radius: 4px;
-    padding: 2px 5px; font-size: 7.5px; color: var(--faint); margin-bottom: 6px;
-    background: var(--paper-warm); white-space: nowrap; overflow: hidden;
-  }
-  .hs {
-    position: absolute; z-index: 2;
-    width: 20px; height: 20px; border-radius: 50%;
-    border: 1px solid var(--ink-soft); background: var(--paper);
-    color: var(--ink); font-size: 11px; line-height: 18px; text-align: center;
-    padding: 0;
-  }
-  .hs:hover { background: var(--paper-warm); }
-  .hs.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-  .hs-detail {
-    margin-top: 1.2rem; border: 1px solid var(--hairline); border-radius: 8px;
-    background: var(--paper); padding: 1rem 1.3rem; font-size: 0.88rem; line-height: 1.9;
-  }
-  .hs-detail h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; }
-  .hs-detail h4 span { color: var(--faint); font-weight: 400; font-size: 0.8rem; margin-left: 0.5rem; }
-  .hsd-row { display: flex; gap: 0.8rem; border-bottom: 1px solid var(--hairline); padding: 0.25rem 0; }
-  .hsd-row:last-of-type { border-bottom: none; }
-  .hsd-k { flex: none; width: 3.5em; color: var(--faint); font-size: 0.78rem; padding-top: 0.15em; }
-  .hsd-v { color: var(--ink-soft); }
-  .hsd-note { color: var(--muted); font-size: 0.82rem; margin-top: 0.5rem; }
+      .eyebrow {
+        margin: 0 0 14px;
+        color: var(--rust);
+        font-size: 12px;
+        font-weight: 750;
+        text-transform: uppercase;
+      }
 
-  /* fig 4 vocab */
-  .vtabs { display: flex; gap: 0.4rem; justify-content: center; margin-bottom: 1rem; }
-  .vtab {
-    border: 1px solid var(--hairline); border-radius: 999px;
-    padding: 0.15rem 0.9rem; font-size: 0.82rem; color: var(--muted); background: var(--paper);
-  }
-  .vtab.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-  .vdialog {
-    max-width: 24rem; margin: 0 auto;
-    border: 1px solid var(--hairline); border-radius: 8px; background: var(--paper);
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    overflow: hidden;
-  }
-  .vd-title {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0.55rem 1.1rem; border-bottom: 1px solid var(--hairline);
-    font-size: 0.82rem; color: var(--muted);
-  }
-  .vd-x { color: var(--faint); font-size: 0.9rem; }
-  .vd-body { padding: 1.1rem 1.3rem; font-size: 0.88rem; line-height: 1.85; min-height: 13rem; }
-  .vd-body h5 {
-    font-family: Georgia, "Songti SC", "Noto Serif SC", serif;
-    font-size: 1.25rem; font-weight: 500; margin-bottom: 0.1rem;
-  }
-  .vd-phon { color: var(--faint); font-size: 0.8rem; margin-bottom: 0.6rem; }
-  .vd-body ol { margin-bottom: 0.6rem; }
-  .vd-body li { font-size: 0.85rem; margin-bottom: 0.2rem; }
-  .vd-quote {
-    border-left: 2px solid var(--hairline); padding-left: 0.8rem;
-    color: var(--muted); font-size: 0.82rem;
-  }
-  .vlist { list-style: none; padding: 0; margin: 0; }
-  .vlist li { margin: 0; }
-  .vitem {
-    display: flex; align-items: center; gap: 0.8rem; width: 100%; text-align: left;
-    padding: 0.55rem 0.2rem; border-bottom: 1px solid var(--hairline); font-size: 0.86rem;
-  }
-  .vitem:hover { background: var(--paper-warm); }
-  .glyph {
-    flex: none; width: 26px; height: 26px; border: 1px solid var(--hairline); border-radius: 5px;
-    display: inline-flex; align-items: center; justify-content: center;
-    font-size: 12px; color: var(--muted); background: var(--paper-warm);
-  }
-  .vi-sub { display: block; color: var(--faint); font-size: 0.76rem; line-height: 1.4; }
-  .vi-arrow { margin-left: auto; color: var(--faint); }
-  .vback { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.6rem; display: inline-block; }
-  .vfield { margin-bottom: 0.9rem; }
-  .vfield label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 0.25rem; }
-  .mock-input {
-    width: 100%; border: 1px solid var(--hairline); border-radius: 5px;
-    background: var(--paper); color: var(--ink);
-    padding: 0.35rem 0.6rem; font-size: 0.85rem; font-family: inherit;
-  }
-  .mock-input:focus { outline: 1.5px solid var(--faint); outline-offset: 1px; }
-  .vrow { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-  .vfoot { display: flex; justify-content: flex-end; margin-top: 1.1rem; }
-  .vres { text-align: center; padding-top: 1.6rem; }
-  .vres .ok {
-    display: inline-flex; width: 30px; height: 30px; border-radius: 50%;
-    border: 1px solid var(--ink-soft); align-items: center; justify-content: center;
-    margin-bottom: 0.8rem;
-  }
-  .vocab-note { text-align: center; color: var(--faint); font-size: 0.8rem; margin-top: 0.9rem; }
+      h1,
+      h2,
+      h3 {
+        margin-top: 0;
+        letter-spacing: 0;
+      }
 
-  /* fig 5 pin */
-  .mock-toolbar {
-    display: flex; align-items: center; gap: 4px;
-    border: 1px solid var(--hairline); border-radius: 8px; background: var(--paper);
-    padding: 8px 12px; margin-bottom: 0.4rem; position: relative;
-  }
-  .mt-title { font-size: 0.82rem; color: var(--muted); margin-right: auto; }
-  .mbtn {
-    width: 26px; height: 26px; border: 1px solid transparent; border-radius: 5px;
-    display: inline-flex; align-items: center; justify-content: center;
-    color: var(--muted); font-size: 12px;
-  }
-  .mbtn:hover { background: var(--paper-warm); border-color: var(--hairline); }
-  .mbtn.plug { border-color: var(--hairline); background: var(--paper-warm); color: var(--ink-soft); }
-  .mt-div { width: 1px; height: 16px; background: var(--hairline); margin: 0 4px; }
-  .ovf-wrap { position: relative; }
-  .ovf-menu {
-    position: absolute; right: 0; top: 32px; z-index: 5; min-width: 11rem;
-    border: 1px solid var(--hairline); border-radius: 7px; background: var(--paper);
-    box-shadow: 0 3px 12px rgba(0,0,0,0.08); padding: 0.3rem;
-  }
-  .ovf-menu button {
-    display: flex; align-items: center; gap: 0.6rem; width: 100%; text-align: left;
-    padding: 0.35rem 0.6rem; border-radius: 5px; font-size: 0.82rem; color: var(--ink-soft);
-  }
-  .ovf-menu button:hover { background: var(--paper-warm); }
-  .ovf-empty { color: var(--faint); font-size: 0.78rem; padding: 0.35rem 0.6rem; }
-  .pin-hint {
-    font-size: 0.78rem; color: var(--muted);
-    border: 1px solid var(--hairline); border-radius: 5px; background: var(--paper-warm);
-    padding: 0.3rem 0.8rem; margin: 0.5rem 0; text-align: center;
-    opacity: 0; transition: opacity 0.25s ease;
-  }
-  .pin-hint.show { opacity: 1; }
-  .pin-list { list-style: none; padding: 0; margin: 0.8rem 0 0; }
-  .pin-list li {
-    display: flex; align-items: center; gap: 0.8rem; margin: 0;
-    padding: 0.5rem 0.2rem; border-bottom: 1px solid var(--hairline); font-size: 0.86rem;
-  }
-  .pin-list li:last-child { border-bottom: none; }
-  .pin-list .grow { flex: 1; }
-  .pin-src { color: var(--faint); font-size: 0.74rem; }
-  .pinbtn {
-    border: 1px solid var(--hairline); border-radius: 999px;
-    padding: 0.05rem 0.7rem; font-size: 0.76rem; color: var(--muted);
-  }
-  .pinbtn.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+      h1 {
+        max-width: 820px;
+        margin-bottom: 20px;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 54px;
+        line-height: 1.05;
+      }
 
-  /* fig 6 chat */
-  .chatdemo { max-width: 26rem; margin: 0 auto; font-size: 0.88rem; }
-  .chat-user {
-    background: var(--paper); border: 1px solid var(--hairline);
-    border-radius: 10px 10px 3px 10px;
-    padding: 0.5rem 0.9rem; margin-left: 4rem; margin-bottom: 0.9rem;
-    color: var(--ink-soft); line-height: 1.8;
-  }
-  .chat-tool {
-    display: flex; align-items: center; gap: 0.55rem;
-    font-size: 0.8rem; color: var(--muted); margin-bottom: 0.7rem;
-  }
-  .chat-tool .ct-name { color: var(--ink-soft); }
-  .chat-tool .ct-detail { color: var(--faint); }
-  .spin {
-    width: 12px; height: 12px; border-radius: 50%; flex: none;
-    border: 1.5px solid var(--hairline); border-top-color: var(--ink-soft);
-    animation: rot 0.8s linear infinite;
-  }
-  @keyframes rot { to { transform: rotate(360deg); } }
-  .ct-ok { flex: none; display: inline-flex; color: var(--ink-soft); }
-  .chat-text { color: var(--ink-soft); line-height: 1.95; min-height: 4.5rem; }
-  .chat-text .cursor { display: inline-block; width: 1px; height: 1em; background: var(--faint); vertical-align: -0.15em; animation: blink 1s step-end infinite; }
-  @keyframes blink { 50% { opacity: 0; } }
-  .chat-replay { display: flex; justify-content: center; margin-top: 0.8rem; }
+      h2 {
+        margin-bottom: 20px;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 30px;
+        line-height: 1.2;
+      }
 
-  /* fig 7 phases */
-  .phases { list-style: none; padding: 0; margin: 1.6rem 0 0.4rem; display: flex; gap: 0; }
-  .phases li { flex: 1; position: relative; text-align: center; padding: 0 0.4rem; margin: 0; }
-  .phases li::before {
-    content: ""; position: absolute; top: 13px; left: -50%; width: 100%; height: 1px; background: var(--hairline);
-  }
-  .phases li:first-child::before { display: none; }
-  .pnum {
-    position: relative; z-index: 1;
-    display: inline-flex; width: 27px; height: 27px; border-radius: 50%;
-    border: 1px solid var(--ink-soft); background: var(--paper);
-    align-items: center; justify-content: center; font-size: 12px; color: var(--ink);
-    margin-bottom: 0.5rem;
-  }
-  .pname { display: block; font-size: 0.82rem; color: var(--ink); font-weight: 600; line-height: 1.5; }
-  .psub { display: block; font-size: 0.72rem; color: var(--faint); line-height: 1.6; margin-top: 0.15rem; }
-  @media (max-width: 640px) {
-    .phases { flex-direction: column; gap: 1rem; }
-    .phases li { text-align: left; display: flex; gap: 0.9rem; align-items: baseline; }
-    .phases li::before { display: none; }
-    .pnum { flex: none; }
-  }
-</style>
-</head>
-<body>
-<main>
+      h3 {
+        margin-bottom: 10px;
+        font-size: 17px;
+        line-height: 1.35;
+      }
 
-<div class="eyebrow">ReadAware · Design Doc</div>
-<h1>插件系统（设计）</h1>
-<div class="status">
-  <strong>状态：</strong>V1 已实现（2026-07-21）。§11 的五个阶段全部落地,并经 Tauri MCP 在运行中的桌面应用里实测（dev 构建;打包构建下的生产 CSP 尚待验证）。第一方插件的可维护源码见 <code>plugins/</code>。<br>
-  参照模型：<strong>Obsidian</strong> 定插件的域与权限层（信任模型、manifest、分发、生命周期）；<strong>Raycast</strong> 定插件的界面层（受限的 UI 词汇，一切插件界面都由应用的设计系统渲染）。
-</div>
+      .lede {
+        max-width: 760px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 20px;
+        line-height: 1.55;
+      }
 
-<nav class="toc">
-  <div class="toc-title">目录</div>
-  <ol>
-    <li><a href="#s1">目标与非目标</a></li>
-    <li><a href="#s2">信任模型：Obsidian 式</a></li>
-    <li><a href="#s3">插件形态：manifest + main.js</a></li>
-    <li><a href="#s4">权限域</a></li>
-    <li><a href="#s5">挂载点矩阵</a></li>
-    <li><a href="#s6">UI 词汇：Raycast 式受限视图</a></li>
-    <li><a href="#s7">摆放权</a></li>
-    <li><a href="#s8">AI 扩展点：插件工具</a></li>
-    <li><a href="#s9">加载机制与 CSP</a></li>
-    <li><a href="#s10">现有代码的改造点</a></li>
-    <li><a href="#s11">实现阶段</a></li>
-    <li><a href="#s12">风险与开放问题</a></li>
-  </ol>
-</nav>
+      .status {
+        display: flex;
+        margin-top: 34px;
+        padding: 16px 18px;
+        border-left: 4px solid var(--gold);
+        background: var(--gold-soft);
+        gap: 12px;
+        align-items: baseline;
+      }
 
-<h2 id="s1"><span class="no">§ 1</span>目标与非目标</h2>
+      .status strong {
+        flex: 0 0 auto;
+      }
 
-<p><strong>目标：</strong></p>
-<ul>
-  <li>用户可以自己写插件、自己安装；官方也提供一批插件。</li>
-  <li>插件能贡献：Reader 选区动作、Reader 顶栏按钮、书架顶栏按钮或整页、受限 Reader Mode、命令面板命令与 <strong>AI agent 工具</strong>。</li>
-  <li>插件界面永远看起来像原生功能 —— 观感由应用统治，插件只声明内容。</li>
-</ul>
+      .status span {
+        color: #5d4a19;
+      }
 
-<p><strong>非目标（刻意不做）：</strong></p>
-<ul>
-  <li>不做 VS Code 式的 extension host 进程隔离、API 版本协商、市场审核。</li>
-  <li>不让插件渲染任意 React、任意 HTML。</li>
-  <li>V1 不做插件市场、不做自动更新（安装 = 选择本地文件夹或 zip）。</li>
-  <li>不把 iframe 内部 DOM、foliate 引擎内部结构暴露给插件。</li>
-</ul>
+      main section {
+        padding: 56px 0;
+        border-bottom: 1px solid var(--line);
+      }
 
-<h2 id="s2"><span class="no">§ 2</span>信任模型：Obsidian 式，不做沙箱</h2>
+      .section-intro {
+        max-width: 760px;
+        margin: -8px 0 30px;
+        color: var(--muted);
+      }
 
-<p>插件运行在主 webview 里，与应用同一个 JS 上下文。<strong>不做沙箱是清醒的取舍而不是偷懒</strong>：插件的价值恰恰在于能读选中文本、读书籍数据、调 AI，沙箱住它就废掉大半用处；而 VS Code、Obsidian、Raycast 三者实际上也都不真正沙箱第三方代码。</p>
+      .architecture {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
 
-<p>约束手段分两层，诚实地说明各自的强度：</p>
-<ul>
-  <li><strong>权限域（§4）是 API 级门控</strong>：<code>ctx</code> 只暴露 manifest 声明且用户授予的能力面。它防的是插件<em>无意的</em>越权，防不了恶意代码（同上下文里恶意代码总能绕过 JS 门面）。</li>
-  <li><strong>安装即信任</strong>：安装非官方插件时给一次明确警告（Obsidian 同款文案策略 ——「社区插件可以读取你的数据，风险自担」）。这是真正的安全边界。</li>
-</ul>
+      .capability {
+        min-height: 252px;
+        padding: 24px;
+        border: 1px solid var(--line);
+        border-top-width: 5px;
+        border-radius: var(--radius);
+        background: var(--surface);
+      }
 
-<div class="note"><p>底线保障来自现有架构本身：Tauri capabilities 没开任意文件读写，所有持久化走 IPC 且沙箱在 <code>&lt;app_data&gt;</code> 内 —— 插件再怎么越权也出不了这个圈。</p></div>
+      .capability.domain {
+        border-top-color: var(--teal);
+      }
 
-<h2 id="s3"><span class="no">§ 3</span>插件形态：manifest + main.js</h2>
+      .capability.contribution {
+        border-top-color: var(--rust);
+      }
 
-<p>一个插件 = 一个文件夹，放在 <code>&lt;app_data&gt;/plugins/&lt;id&gt;/</code> 下：</p>
+      .capability.service {
+        border-top-color: var(--gold);
+      }
 
-<pre><code>plugins/
-  anki-sync/
-    manifest.json
-    main.js          # 单文件 ES module（作者自己打包）</code></pre>
+      .capability .number {
+        display: block;
+        margin-bottom: 20px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 750;
+      }
 
-<p><code>manifest.json</code>（Obsidian 式）：</p>
+      .capability p {
+        margin: 0 0 16px;
+        color: var(--muted);
+      }
 
-<pre><code>{
-  "id": "anki-sync",
-  "name": "Anki Sync",
-  "version": "0.1.0",
-  "minAppVersion": "0.3.0",
-  "description": "把选中的生词发送到 Anki",
-  "author": "…",
-  "permissions": ["network", "reading-data", "ai"],
-  "main": "main.js"
-}</code></pre>
+      .capability ul,
+      .checklist,
+      .compact-list {
+        margin: 0;
+        padding-left: 20px;
+      }
 
-<p><code>main.js</code> 默认导出生命周期对象：</p>
+      .capability li,
+      .checklist li,
+      .compact-list li {
+        margin: 7px 0;
+      }
 
-<pre><code>export default {
-  activate(ctx: PluginContext): void | Promise&lt;void&gt;,
-  deactivate?(): void | Promise&lt;void&gt;,
-}</code></pre>
+      .rule {
+        margin-top: 18px;
+        padding: 18px 20px;
+        border: 1px solid #a9c9c6;
+        border-radius: var(--radius);
+        background: var(--teal-soft);
+        color: #174d4a;
+        font-weight: 650;
+      }
 
-<ul>
-  <li><code>activate</code> 里通过 <code>ctx.register*</code> 注册贡献；每个注册返回 disposable，应用在禁用或卸载时统一回收（<code>deactivate</code> 只处理插件自己的外部资源）。</li>
-  <li>启用、禁用在设置页操作，即时生效，不要求重启。</li>
-  <li>官方插件与第三方插件走同一套加载器、生命周期和公开类型；唯一暂时保留的特权能力是 <code>reader:modes</code>，待阅读引擎契约稳定后再决定是否开放给市场插件。</li>
-</ul>
+      .table-shell {
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--surface);
+      }
 
-<h3>分发：插件市场（Raycast 模式）</h3>
-<p>社区插件收录在独立仓库 <a href="https://github.com/ahpxex/readaware-plugins"><code>ahpxex/readaware-plugins</code></a>：插件代码直接住在仓库里，开发者以 Pull Request 提交与更新；CI（<code>scripts/validate.mjs</code>）强制 registry 与 manifest 的一致性、id 形状、权限白名单与文件存在性。</p>
-<p>应用内设置页分 <strong>Installed / Marketplace</strong> 两个标签：市场读仓库的 <code>registry.json</code> 索引（raw.githubusercontent 优先,jsDelivr 镜像兜底），一键安装 = 前端拉取插件文本文件 → Rust <code>plugins_install_files</code> 落盘（严格路径白名单）→ 立即启用激活。安装前权限徽章先行可见。</p>
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 700px;
+      }
 
-<div class="fig">
-  <div class="figframe">
-    <div class="flow">
-      <div class="fbox"><code>&lt;app_data&gt;/plugins/&lt;id&gt;/</code>&ensp;manifest.json + main.js</div>
-      <div class="flabel">Rust 自定义 scheme 伺服插件目录 · CSP <code>script-src</code> 追加</div>
-      <div class="fline"></div><div class="fhead"></div>
-      <div class="fbox"><code>import("raplugin://&lt;id&gt;/main.js")</code></div>
-      <div class="flabel">manifest 校验 · 按权限域装配 <code>ctx</code></div>
-      <div class="fline"></div><div class="fhead"></div>
-      <div class="fbox"><code>activate(ctx)</code> —— <code>ctx.register*</code>，每个注册返回 disposable</div>
-      <div class="flabel">启停即增删 · UI 响应式更新</div>
-      <div class="fline"></div><div class="fhead"></div>
-      <div class="fbox">贡献注册表（Jotai atoms）</div>
-      <div class="fanout">
-        <span class="fchip">Reader 选区菜单</span>
-        <span class="fchip">Reader 顶栏</span>
-        <span class="fchip">Reader Mode</span>
-        <span class="fchip">书架顶栏</span>
-        <span class="fchip">命令面板</span>
-        <span class="fchip">AI 工具</span>
+      th,
+      td {
+        padding: 15px 18px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: #e9ede9;
+        font-size: 13px;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      td:first-child {
+        font-weight: 700;
+      }
+
+      .settings-layout,
+      .runtime-layout {
+        display: grid;
+        grid-template-columns: 0.9fr 1.4fr;
+        gap: 36px;
+        align-items: start;
+      }
+
+      .statement {
+        padding: 25px;
+        border: 1px solid #ddb7a8;
+        border-radius: var(--radius);
+        background: var(--rust-soft);
+      }
+
+      .statement strong {
+        display: block;
+        margin-bottom: 9px;
+        color: var(--rust);
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 24px;
+        line-height: 1.25;
+      }
+
+      .statement p {
+        margin: 0;
+        color: #684132;
+      }
+
+      .settings-pairs {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .pair {
+        padding: 17px;
+        border-left: 3px solid var(--teal);
+        background: var(--surface);
+      }
+
+      .pair span {
+        display: block;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .pair strong {
+        display: block;
+        margin-top: 4px;
+      }
+
+      .runtime-steps {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: runtime;
+      }
+
+      .runtime-steps li {
+        position: relative;
+        min-height: 55px;
+        padding: 0 0 20px 52px;
+        counter-increment: runtime;
+      }
+
+      .runtime-steps li::before {
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: grid;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: var(--ink);
+        color: white;
+        content: counter(runtime);
+        font-size: 13px;
+        font-weight: 750;
+        place-items: center;
+      }
+
+      .runtime-steps li::after {
+        position: absolute;
+        top: 38px;
+        bottom: 4px;
+        left: 16px;
+        width: 1px;
+        background: var(--line);
+        content: "";
+      }
+
+      .runtime-steps li:last-child::after {
+        display: none;
+      }
+
+      .runtime-steps strong,
+      .runtime-steps span {
+        display: block;
+      }
+
+      .runtime-steps span {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .security {
+        padding: 24px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--surface);
+      }
+
+      .security p {
+        margin-top: 0;
+      }
+
+      .migration {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        border-top: 1px solid var(--line);
+        border-left: 1px solid var(--line);
+      }
+
+      .phase {
+        min-height: 150px;
+        padding: 19px;
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        background: var(--surface);
+      }
+
+      .phase b {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--rust);
+        font-size: 12px;
+        text-transform: uppercase;
+      }
+
+      .phase p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      footer {
+        padding: 38px 0 48px;
+        background: var(--ink);
+        color: #dce4df;
+      }
+
+      .footer-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+      }
+
+      footer p {
+        margin: 0;
+      }
+
+      footer a {
+        color: #84d2cc;
+        font-weight: 700;
+      }
+
+      @media (max-width: 840px) {
+        .architecture,
+        .migration {
+          grid-template-columns: 1fr;
+        }
+
+        .settings-layout,
+        .runtime-layout {
+          grid-template-columns: 1fr;
+        }
+
+        .capability {
+          min-height: 0;
+        }
+
+        .phase {
+          min-height: 0;
+        }
+      }
+
+      @media (max-width: 600px) {
+        .wrap {
+          width: min(calc(100% - 28px), var(--content));
+        }
+
+        .topbar-inner,
+        .footer-inner,
+        .status {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        header {
+          padding: 46px 0 38px;
+        }
+
+        h1 {
+          font-size: 40px;
+        }
+
+        .lede {
+          font-size: 18px;
+        }
+
+        main section {
+          padding: 42px 0;
+        }
+
+        .settings-pairs {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="topbar" aria-label="文档导航">
+      <div class="wrap topbar-inner">
+        <p class="brand">ReadAware Plugins</p>
+        <a href="./plugin-system.md">Agent 详细规范</a>
       </div>
-    </div>
-  </div>
-  <div class="figcap">图 1 · 从磁盘到挂载点：插件的一生</div>
-</div>
+    </nav>
 
-<h2 id="s4"><span class="no">§ 4</span>权限域</h2>
-
-<p>manifest 声明，安装时逐条展示给用户，设置页里可整体启停插件。<code>storage</code>（命名空间 KV）不算权限，所有插件默认拥有。</p>
-
-<div class="tablewrap">
-<table>
-  <tr><th>权限域</th><th>授予的能力面</th></tr>
-  <tr><td><code>reader:modes</code></td><td><code>ctx.reader.modes.register</code>：注册宿主渲染的文本单元阅读模式；插件声明单元、文案与宿主图标名并返回纯文本 offset，DOM、Foliate、输入与控件仍归应用</td></tr>
-  <tr><td><code>reading-data</code></td><td>读写阅读数据:书籍(读)、高亮/笔记(创建/删除)、内置生词本(读写,与阅读器词典同一份存储)</td></tr>
-  <tr><td><code>library-write</code></td><td><code>ctx.library.importBook</code>(导入文件)+ <strong>内容提供者</strong>:<code>registerContentProvider</code> / <code>addVirtualBook</code> —— 虚拟书:书架条目由插件在打开时供给 HTML 章节,免转换,阅读/标注/进度全原生(RSS 即此路)</td></tr>
-  <tr><td><code>network</code></td><td><code>ctx.fetch</code>（CSP <code>connect-src</code> 已含 <code>https:</code>，门控在 API 层）</td></tr>
-  <tr><td><code>ai</code></td><td>注册 agent 工具（§8）</td></tr>
-  <tr><td><code>dictionary</code></td><td>应用内置词典 <code>ctx.dictionary.lookUp</code>（与阅读器查词共享缓存；消耗用户 AI 额度）</td></tr>
-  <tr><td><code>llm</code></td><td><code>ctx.llm.ask</code> —— 用用户配置的模型做一次性调用（fast 档，无线程无记忆无工具）</td></tr>
-  <tr><td><code>clipboard</code></td><td>写剪贴板</td></tr>
-</table>
-</div>
-
-<p><strong>安装即明示：</strong>所有安装路径（本地文件夹与市场）在复制任何文件、执行任何代码之前，都会弹出确认对话框，逐条列出 manifest 声明的权限及其人话描述，用户点「安装」才继续 —— 即图 2 所画的那道门，现已实装。</p>
-
-<p>选区文本不设独立权限：选区动作被用户手动触发时天然获得当次选区，这本身就是用户授权动作。</p>
-
-<div class="fig">
-  <div class="figframe">
-    <div class="mockdialog" id="inst">
-      <div id="inst-s1">
-        <h4>安装第三方插件</h4>
-        <div class="md-sub">Douban Marks · v0.1.0 · 来源：本地文件夹</div>
-        <div class="md-warn">第三方插件与应用运行在同一环境，能够读取你的数据。仅安装你信任的来源，风险自担。</div>
-        <ul class="md-perm">
-          <li><code>network</code><span>访问网络（通过 <code>ctx.fetch</code>）</span></li>
-          <li><code>reading-data</code><span>读取书籍元数据、标注与笔记（只读）</span></li>
-          <li><code>ai</code><span>向阅读 agent 注册工具</span></li>
-        </ul>
-        <div class="md-actions">
-          <button class="btn-ghost" id="inst-cancel">取消</button>
-          <button class="btn-solid" id="inst-ok">仍要安装</button>
+    <header>
+      <div class="wrap">
+        <p class="eyebrow">Plugin Architecture</p>
+        <h1>能力只定义一次，按身份动态交付。</h1>
+        <p class="lede">
+          插件系统由 Domain Registry、Contribution Points 和 Host Services
+          组成。Settings 是 Domain；Appearance 只是 Settings 的一个 section。
+        </p>
+        <div class="status" role="status">
+          <strong>目标架构已确定</strong>
+          <span>2026-08-23。当前代码尚未完成迁移；本文不把“已经决定”写成“已经实现”。</span>
         </div>
       </div>
-      <div id="inst-s2" hidden>
-        <div class="md-row">
-          <span class="glyph">豆</span>
-          <div class="grow">
-            <div><strong>Douban Marks</strong></div>
-            <div class="md-state" id="inst-state">已安装 · 已启用</div>
+    </header>
+
+    <main>
+      <section aria-labelledby="architecture-title">
+        <div class="wrap">
+          <h2 id="architecture-title">一个模型，三类能力</h2>
+          <p class="section-intro">
+            三者共享同一种 registry 思想，但保留不同语义。不会收缩成一个松散的字符串调用接口。
+          </p>
+          <div class="architecture">
+            <article class="capability domain">
+              <span class="number">01 / HOST STATE</span>
+              <h3>Domain Registry</h3>
+              <p>ReadAware 已经拥有的状态与行为。</p>
+              <ul>
+                <li>查询、命令与事件</li>
+                <li>业务校验与持久化</li>
+                <li>按 actor 裁剪权限</li>
+              </ul>
+            </article>
+
+            <article class="capability contribution">
+              <span class="number">02 / PLUGIN SUPPLY</span>
+              <h3>Contribution Points</h3>
+              <p>插件提供的新实现、新选择或新动作。</p>
+              <ul>
+                <li>主题、字体与语音</li>
+                <li>命令、工具与阅读模式</li>
+                <li>注册、所有权与统一释放</li>
+              </ul>
+            </article>
+
+            <article class="capability service">
+              <span class="number">03 / BOUNDED ACCESS</span>
+              <h3>Host Services</h3>
+              <p>必须由宿主代为执行的受限外部操作。</p>
+              <ul>
+                <li>网络、LLM 与 secrets</li>
+                <li>文件选择、导出与剪贴板</li>
+                <li>插件存储与定时任务</li>
+              </ul>
+            </article>
           </div>
-          <button class="tgl on" id="inst-tgl" aria-label="启停插件"></button>
+          <p class="rule">
+            判断方法：宿主已有的是 Domain；插件新增的是 Contribution；需要宿主代办的是 Service。
+          </p>
         </div>
-        <div style="text-align:right; margin-top:0.9rem"><button class="linklike" id="inst-replay">重放安装流程</button></div>
-      </div>
-      <div id="inst-s0" hidden>
-        <div class="md-row">
-          <div class="grow"><span class="md-state">已取消安装。</span></div>
-          <button class="linklike" id="inst-replay0">重放安装流程</button>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="figcap">图 2 · 安装即信任：权限逐条展示（可点击）</div>
-</div>
+      </section>
 
-<h2 id="s5"><span class="no">§ 5</span>挂载点矩阵</h2>
-
-<div class="tablewrap">
-<table>
-  <tr><th>挂载点</th><th>插件注册什么</th><th>输入</th><th>允许的容器</th></tr>
-  <tr><td>Reader 选区菜单</td><td>选区动作</td><td>选中文本 + CFI + 当前书元数据</td><td>无界面（执行 + Toast）／ Dialog</td></tr>
-  <tr><td>Reader 顶栏</td><td>Icon button</td><td>当前书元数据</td><td>仅 Popup（Popover）</td></tr>
-  <tr><td>Reader Mode</td><td>文本单元、文案、宿主图标名与分段策略</td><td>宿主提供的 block 纯文本、语言与 unit id</td><td>宿主固定顶栏、浮动 Toolbar、设置与快捷键；状态按 contribution key 隔离</td></tr>
-  <tr><td>书架顶栏</td><td>Icon button</td><td>—</td><td>Popup ／ Page</td></tr>
-  <tr><td>命令面板</td><td>（自动）所有插件动作自动注册</td><td>—</td><td>随原动作</td></tr>
-  <tr><td>AI agent</td><td>工具</td><td>agent 传入的参数</td><td>聊天内通用工具步呈现</td></tr>
-</table>
-</div>
-
-<div class="fig">
-  <div class="figframe">
-    <div class="wf-grid">
-      <div>
-        <div class="wf-cap">书架</div>
-        <div class="wf-frame">
-          <div class="wf-titlebar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-          <div class="wf-header">
-            <span class="wf-title">我的书架</span>
-            <span class="wf-sp"></span>
-            <span class="sq"></span><span class="sq"></span><span class="sq"></span>
-            <button class="hs" data-hs="3" style="position:static; margin-left:6px">3</button>
+      <section aria-labelledby="domains-title">
+        <div class="wrap">
+          <h2 id="domains-title">目标 Domains</h2>
+          <div class="table-shell">
+            <table>
+              <thead>
+                <tr>
+                  <th>Domain</th>
+                  <th>负责什么</th>
+                  <th>插件初始开放</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Library</td>
+                  <td>书籍、源文件、元数据、目录与收藏</td>
+                  <td>受限读取与明确命令</td>
+                </tr>
+                <tr>
+                  <td>Reading</td>
+                  <td>当前阅读会话、位置、导航、进度与时长</td>
+                  <td>读取、导航、事件订阅</td>
+                </tr>
+                <tr>
+                  <td>Annotations</td>
+                  <td>高亮、笔记、书签与词汇引用</td>
+                  <td>受限读取与明确修改</td>
+                </tr>
+                <tr>
+                  <td>Conversations</td>
+                  <td>书内及全局对话与消息元数据</td>
+                  <td>窄范围、需知情同意</td>
+                </tr>
+                <tr>
+                  <td>Settings</td>
+                  <td>设置目录、解析值、作用域覆盖与变更事件</td>
+                  <td>按具体 path 授予发现、读、写</td>
+                </tr>
+                <tr>
+                  <td>Profile / Memory</td>
+                  <td>用户画像、长期记忆与巩固状态</td>
+                  <td>初期不对插件广泛开放</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-          <div class="wf-body">
-            <div style="position:relative">
-              <div class="cmdk">⌘K&ensp;命令面板…</div>
-              <button class="hs" data-hs="4" style="top:-4px; right:8%">4</button>
-            </div>
-            <div class="covers">
-              <span class="cover"></span><span class="cover"></span><span class="cover"></span>
-              <span class="cover"></span><span class="cover"></span><span class="cover"></span>
+          <p class="section-intro" style="margin-top: 18px; margin-bottom: 0">
+            旧的 <code>shelf</code> 不保留兼容层：书库职责进入 Library，阅读会话职责进入 Reading。
+          </p>
+        </div>
+      </section>
+
+      <section aria-labelledby="settings-title">
+        <div class="wrap settings-layout">
+          <div>
+            <h2 id="settings-title">Settings 就是 Domain</h2>
+            <div class="statement">
+              <strong>Appearance 不是独立 Domain。</strong>
+              <p>它只是 Settings 的一个 section，与 Reading、AI、Sync、Plugins 等并列。</p>
             </div>
           </div>
-        </div>
-      </div>
-      <div>
-        <div class="wf-cap">阅读器</div>
-        <div class="wf-frame">
-          <div class="wf-titlebar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-          <div class="wf-header">
-            <span class="wf-title">走出唯一真理观 · 42%</span>
-            <span class="wf-sp"></span>
-            <span class="sq"></span><span class="sq"></span>
-            <button class="hs" data-hs="2" style="position:static; margin-left:6px">2</button>
-          </div>
-          <div class="wf-body">
-            <div class="rd-cols">
-              <div class="rd-text" style="position:relative">
-                <div class="ph w85"></div>
-                <div class="ph"></div>
-                <div class="rd-selline"><span class="rd-sel"></span><span class="rd-selrest"></span></div>
-                <div class="minimenu"><span>复制</span><span>高亮</span><span>笔记</span><span>问 AI</span><span>⋯</span></div>
-                <button class="hs" data-hs="1" style="top:34px; left:58%">1</button>
-                <div class="ph w75"></div>
-                <div class="ph w60"></div>
+
+          <div>
+            <p class="section-intro">
+              Settings 统一负责目录发现、取值、校验、作用域、提交、重置与变更订阅。UI、Agent
+              和 Plugin 走同一条提交路径。
+            </p>
+            <div class="settings-pairs">
+              <div class="pair">
+                <span>当前使用哪个主题</span>
+                <strong>Settings</strong>
               </div>
-              <div class="rd-chat" style="position:relative">
-                <div class="ph w85"></div>
-                <div class="toolrow">调用工具 · anki_sync</div>
-                <div class="ph"></div>
-                <div class="ph w60"></div>
-                <button class="hs" data-hs="5" style="top:42px; right:6px">5</button>
+              <div class="pair">
+                <span>插件提供一个新主题</span>
+                <strong>Theme Contribution</strong>
+              </div>
+              <div class="pair">
+                <span>当前使用哪个语音</span>
+                <strong>Settings</strong>
+              </div>
+              <div class="pair">
+                <span>插件提供语音引擎</span>
+                <strong>Voice Contribution</strong>
               </div>
             </div>
+            <p class="section-intro" style="margin-top: 18px; margin-bottom: 0">
+              插件只获得明确的 setting paths；secrets 始终由独立 Host Service 管理。
+            </p>
           </div>
         </div>
-      </div>
-    </div>
-    <div class="hs-detail" id="hs-detail"></div>
-  </div>
-  <div class="figcap">图 3 · 挂载点分布 —— 点击编号查看该挂载点的契约</div>
-</div>
+      </section>
 
-<p><strong>容器语义：</strong></p>
-<ul>
-  <li><strong>Popup</strong>：锚定在按钮上的 Popover，轻量、即开即关。</li>
-  <li><strong>Dialog</strong>：模态居中，紧凑、<code>max-h</code> 限高不溢出（沿用既有设计习惯）。</li>
-  <li><strong>Page</strong>：等同 Stats 那种整页 —— 占用顶部导航状态（<code>activeTopNav</code>），有明确返回；<strong>不是</strong>路由意义上的新页面。仅书架侧可用；阅读中不允许整页打断。</li>
-</ul>
+      <section aria-labelledby="dynamic-title">
+        <div class="wrap runtime-layout">
+          <div>
+            <h2 id="dynamic-title">动态加载的准确含义</h2>
+            <p class="section-intro">
+              宿主不需要预先知道插件 ID。插件可发现被授权的 Domain，并注册到已有的 Contribution
+              Point。
+            </p>
+            <ol class="runtime-steps">
+              <li>
+                <strong>发现与校验</strong>
+                <span>读取插件包，验证 manifest 与能力版本。</span>
+              </li>
+              <li>
+                <strong>授权</strong>
+                <span>按 plugin actor 解析权限与用户同意。</span>
+              </li>
+              <li>
+                <strong>隔离启动</strong>
+                <span>在 worker 中启动插件。</span>
+              </li>
+              <li>
+                <strong>注入能力</strong>
+                <span>Registry 生成裁剪后的 Domain、Contribution 与 Service 视图。</span>
+              </li>
+              <li>
+                <strong>原子激活</strong>
+                <span>全部注册成功后才进入 active；失败则完整释放。</span>
+              </li>
+            </ol>
+          </div>
 
-<div class="note"><p>术语说明：Reader 内的挂载点是「选中文本后的动作菜单」（<code>ReaderSelectionMenu</code> / <code>ReaderAnnotationMenu</code> / <code>TextUnitNavigatorBar</code> 共享的那套动作），不是原生右键 contextmenu（应用里不存在后者）。</p></div>
-
-<h2 id="s6"><span class="no">§ 6</span>UI 词汇：Raycast 式受限视图</h2>
-
-<p>插件不写 JSX、不写 HTML，也不传 <code>className</code> / <code>style</code>。它声明宿主组件树；每一个视觉原语和交互控件都由 <code>@read-aware/ui</code> 或应用已有的规范领域组件渲染：</p>
-
-<ul>
-  <li><strong>Markdown 详情</strong> —— 插件返回 Markdown 字符串，应用排版（复用聊天里现成的 <code>Markdown</code> 组件）。覆盖大半场景：查词、翻译、AI 生成内容、统计摘要。</li>
-  <li><strong>列表</strong> —— 宿主提供带 debounce 的搜索、keywords、accessories、空状态与下钻；<code>timeline</code> 提供今天／本周／本月／全部筛选与日期分组，列表项可用 <code>presentation: "dialog"</code> 在原列表上打开宿主 Dialog。列表级 <code>actions</code> 由宿主渲染为 Tabs 同行最右侧的 IconButton；文本导出通过 <code>ctx.ui.exportFile</code> 交给系统保存面板。</li>
-  <li><strong>表单</strong> —— text / textarea / number / select / choice / checkbox / toggle 全部映射到组件库控件。</li>
-  <li><strong>Detail</strong> —— Raycast 式主内容、metadata、controls 与宿主 actions；语义控件在标题 trailing 区域，Dialog metadata 压成标题下方的安静信息行，actions 与宿主 Close 固定进入 Footer。</li>
-  <li><strong>Blocks</strong> —— typography、词典、引文、指标、进度、标签、提示、section、group 与响应式 columns。</li>
-</ul>
-
-<p><strong>布局不开放裸 flex。</strong> <code>group</code>、<code>section</code> 与 <code>columns</code> 只开放语义间距、相对 weight、最小宽度档位和少量对齐；像素、换行与断点归设计系统。所有声明进入 React 前都会运行时校验，并限制嵌套深度与 children 数量。</p>
-
-<p>视图默认以 <code>push</code> 下钻；返回 <code>{ view, navigation: "replace" | "reset" }</code> 可以替换当前层，或在删除等操作后回到一棵新的根视图。选区动作声明 <code>presentation: "dialog"</code> 时，宿主会先立即显示加载态 Dialog，再把异步结果填入同一次请求。</p>
-
-<div class="fig">
-  <div class="figframe">
-    <div class="vtabs">
-      <button class="vtab on" data-v="md">Markdown 详情</button>
-      <button class="vtab" data-v="list">列表</button>
-      <button class="vtab" data-v="form">表单</button>
-    </div>
-    <div class="vdialog">
-      <div class="vd-title"><span id="vd-name">Dictionary+ · 查词</span><span class="vd-x">×</span></div>
-      <div class="vd-body">
-        <div id="v-md">
-          <h5>serendipity</h5>
-          <div class="vd-phon">/ˌsɛrənˈdɪpɪti/ · 名词</div>
-          <ol>
-            <li>意外发现珍奇事物的运气；机缘巧合。</li>
-            <li>（文学）不期而遇的美好。</li>
-          </ol>
-          <div class="vd-quote">出自本书第 4 章你的选区：&ldquo;…a fortunate stroke of serendipity brought them together.&rdquo;</div>
+          <aside class="security">
+            <h3>动态不等于任意注入</h3>
+            <p>
+              新插件可以直接使用既有挂载点；一种全新的挂载点仍需宿主增加一次明确的 consumer，
+              因为宿主必须知道如何呈现、调用、授权和释放它。
+            </p>
+            <ul class="compact-list">
+              <li>保留 worker sandbox</li>
+              <li>保留宿主渲染的声明式 UI</li>
+              <li>不开放 DOM、React、SQLite、Tauri 与任意文件系统</li>
+              <li>更新采用候选版本、健康检查与自动回滚</li>
+            </ul>
+          </aside>
         </div>
-        <div id="v-list" hidden>
-          <ul class="vlist">
-            <li><button class="vitem" data-item="0"><span class="glyph">词</span><span>serendipity<span class="vi-sub">第 4 章 · 已加入生词本</span></span><span class="vi-arrow">›</span></button></li>
-            <li><button class="vitem" data-item="1"><span class="glyph">词</span><span>ephemeral<span class="vi-sub">第 5 章 · 出现 2 次</span></span><span class="vi-arrow">›</span></button></li>
-            <li><button class="vitem" data-item="2"><span class="glyph">词</span><span>ubiquitous<span class="vi-sub">第 7 章 · 昨天标注</span></span><span class="vi-arrow">›</span></button></li>
+      </section>
+
+      <section aria-labelledby="migration-title">
+        <div class="wrap">
+          <h2 id="migration-title">迁移路线</h2>
+          <p class="section-intro">
+            现在没有第三方兼容负担，因此一次迁移所有第一方插件，完成后删除旧 API，不运行双轨系统。
+          </p>
+          <div class="migration">
+            <article class="phase">
+              <b>Phase 1</b>
+              <h3>冻结现有行为</h3>
+              <p>盘点现有能力，并用行为测试保护真实工作流。</p>
+            </article>
+            <article class="phase">
+              <b>Phase 2</b>
+              <h3>建立 Registry Runtime</h3>
+              <p>从单一声明生成权限、actor view 与 worker API。</p>
+            </article>
+            <article class="phase">
+              <b>Phase 3</b>
+              <h3>提升 Settings</h3>
+              <p>让 UI、Agent、Plugin 共用目录、作用域与提交路径。</p>
+            </article>
+            <article class="phase">
+              <b>Phase 4</b>
+              <h3>重建 Domains</h3>
+              <p>拆分 Library 与 Reading，统一命令和事件。</p>
+            </article>
+            <article class="phase">
+              <b>Phase 5</b>
+              <h3>统一 Contributions</h3>
+              <p>统一注册、校验、所有权、发现与 disposal。</p>
+            </article>
+            <article class="phase">
+              <b>Phase 6</b>
+              <h3>全量迁移与验证</h3>
+              <p>迁移第一方插件，删除旧运行时，并在 Tauri 中验收。</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="done-title">
+        <div class="wrap">
+          <h2 id="done-title">什么时候算做完</h2>
+          <ul class="checklist">
+            <li>新增能力只修改一个权威定义，不再同步维护多份名单。</li>
+            <li>Settings 不再有旁路；Appearance 的特殊 API 被删除。</li>
+            <li>插件不在宿主注册代码里按 ID 出现。</li>
+            <li>所有 Contribution 都能被统一校验和完整释放。</li>
+            <li>全部第一方插件只使用新运行时，旧 API 与兼容代码被删除。</li>
+            <li>安装、启停、设置持久化、升级失败与回滚均通过 Tauri 桌面端验证。</li>
           </ul>
         </div>
-        <div id="v-list-detail" hidden>
-          <button class="vback" id="v-list-back">‹ 返回列表</button>
-          <h5 id="vld-word">ephemeral</h5>
-          <div class="vd-phon" id="vld-phon">/ɪˈfɛmərəl/ · 形容词</div>
-          <p style="font-size:0.85rem" id="vld-def">朝生暮死的；转瞬即逝的。</p>
-          <div class="vd-quote">列表项下钻到 Markdown 详情 —— 同一套视图词汇的链式跳转。</div>
-        </div>
-        <div id="v-form" hidden>
-          <div class="vfield"><label>Anki 连接地址</label><input class="mock-input" value="http://127.0.0.1:8765" /></div>
-          <div class="vfield"><label>目标牌组</label>
-            <select class="mock-input"><option>英语精读</option><option>默认牌组</option></select>
-          </div>
-          <div class="vrow"><label style="font-size:0.85rem; color:var(--ink-soft)">同时写入例句</label><button class="tgl on" id="vf-tgl" aria-label="同时写入例句"></button></div>
-          <div class="vfoot"><button class="btn-solid" id="vf-submit">提交</button></div>
-        </div>
-        <div id="v-form-result" hidden>
-          <div class="vres">
-            <span class="ok"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <p style="font-size:0.88rem">已加入 3 张卡片到「英语精读」。</p>
-            <button class="linklike" id="vf-again">重新填写</button>
-          </div>
-        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap footer-inner">
+        <p>ReadAware Plugin Architecture · 2026-08-23</p>
+        <a href="./plugin-system.md">阅读 Agent 实施规范</a>
       </div>
-    </div>
-    <div class="vocab-note">同一份声明可渲染进 Popup、Dialog 或 Page —— 容器由挂载点决定，内容词汇不变。</div>
-  </div>
-  <div class="figcap">图 4 · 宿主组件词汇与链式跳转（可交互）</div>
-</div>
-
-<p>插件作者失去「随便画界面」的自由，换来零设计成本与永远一致的观感 —— 对编辑式克制的设计方向，这个交换是划算的。</p>
-
-<h2 id="s7"><span class="no">§ 7</span>摆放权：插件贡献能力，用户掌管布局</h2>
-
-<p>两层分离：</p>
-<ol>
-  <li><strong>插件声明</strong>它提供哪些动作（装了插件，能力就存在）。</li>
-  <li><strong>用户决定</strong>哪些动作以按钮形式钉在哪个顶栏、顺序如何。</li>
-</ol>
-
-<p><strong>规则：</strong></p>
-<ul>
-  <li><strong>设置 → Menus</strong>：三个表面（书架顶栏、阅读器顶栏右簇、选区菜单）各有「显示 / 更多菜单」两个拖拽区，内建项与插件项同场排布——用户拖动决定顺序与去留，没放进一级的收进垂直三点溢出菜单。挂件类内建项只能排序不能收起；每表面可一键恢复默认。</li>
-  <li>新插件动作默认落在溢出区，安静登场；内建项默认全部一级。</li>
-  <li>所有插件动作无条件进命令面板 —— 它是「装了但没钉按钮」的动作的兜底入口（把 <code>buildCommands</code> 的闭合集合改成可追加注册表后近乎免费）。</li>
-  <li>钉选与排序持久化在应用侧（<code>localKV</code>），不归插件管。</li>
-</ul>
-
-<div class="fig">
-  <div class="figframe">
-    <div class="mock-toolbar">
-      <span class="mt-title">我的书架</span>
-      <span class="mbtn" title="搜索"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.3"/><path d="m10.5 10.5 3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span>
-      <span class="mbtn" title="导入"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 3v7M5 7.5 8 10.5 11 7.5M3.5 13h9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-      <span class="mt-div"></span>
-      <span id="pin-slots" style="display:inline-flex; gap:4px"></span>
-      <span class="ovf-wrap">
-        <button class="mbtn" id="ovf-btn" title="更多插件动作">⋯</button>
-        <div class="ovf-menu" id="ovf-menu" hidden></div>
-      </span>
-      <span class="mt-div"></span>
-      <span class="mbtn" title="设置"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 5h10M3 11h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6" cy="5" r="1.5" fill="var(--paper)" stroke="currentColor" stroke-width="1.3"/><circle cx="10" cy="11" r="1.5" fill="var(--paper)" stroke="currentColor" stroke-width="1.3"/></svg></span>
-    </div>
-    <div class="pin-hint" id="pin-hint">顶栏最多钉选 3 个插件按钮 —— 先取下一个，或让它留在溢出菜单里。</div>
-    <ul class="pin-list" id="pin-list"></ul>
-  </div>
-  <div class="figcap">图 5 · 摆放权在用户：钉选、上限与溢出（试试钉满三个再钉第四个）</div>
-</div>
-
-<h2 id="s8"><span class="no">§ 8</span>AI 扩展点：插件工具</h2>
-
-<p><strong>V1 就做。</strong>这是长远看最有价值的挂载点：ReadAware 是 AI-native 阅读器，插件给 agent 提供工具（「查询我的 Anki 词库」「读取我的豆瓣标记」），比贡献按钮的天花板高得多。</p>
-
-<p>现有形态恰好合拍（<code>packages/agent</code>）：agent 循环用 <code>AgentTool = {name, label, description, parameters, execute}</code>，每轮由 <code>buildThreadTools(scope, deps)</code> 组装；聊天 UI 已能通用渲染任意工具的调用步骤。因此：</p>
-
-<ul>
-  <li><strong>注册面</strong>：<code>ctx.ai.registerTool({name, label, description, parameters, execute})</code>，<code>parameters</code> 用纯 JSON Schema（TypeBox 产出的就是纯 JSON Schema 对象，内部兼容）。</li>
-  <li><strong>命名空间</strong>：注册后实际工具名为 <code>plugin_&lt;pluginId&gt;_&lt;name&gt;</code>，杜绝与内置工具及其他插件冲突。</li>
-  <li><strong>装配点</strong>：<code>buildThreadTools</code> 输出后追加「当前启用插件的工具」；插件启停触发 runtime 工具集刷新。</li>
-  <li><strong>呈现</strong>：插件工具调用走现成的通用工具步 UI，用户在聊天里看得见「正在调用 × 插件的 × 工具」（与显式状态的架构哲学一致，不进 <code>SUPPRESSED_TOOLS</code>）。</li>
-  <li><strong>开关</strong>：设置页里按插件整体启停其工具；更细粒度（按书、按线程）留作后续。</li>
-</ul>
-
-<div class="fig">
-  <div class="figframe">
-    <div class="chatdemo">
-      <div class="chat-user">帮我把这一章的生词都加进 Anki。</div>
-      <div class="chat-tool" id="ct-tool" hidden>
-        <span class="spin" id="ct-spin"></span>
-        <span class="ct-ok" id="ct-okmark" hidden><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 8.5 6.5 12 13 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <span class="ct-name">Anki Sync · add_notes</span>
-        <span class="ct-detail" id="ct-detail">12 个生词</span>
-      </div>
-      <div class="chat-text" id="ct-text"></div>
-      <div class="chat-replay"><button class="btn-ghost" id="ct-replay">重放这一轮</button></div>
-    </div>
-  </div>
-  <div class="figcap">图 6 · 插件工具在聊天中的呈现：调用过程始终可见（点击重放）</div>
-</div>
-
-<div class="note"><p><strong>V1 只做 pull 不做 push</strong>：工具是 agent 主动拉取的上下文源，已覆盖绝大多数场景；「每轮自动注入上下文」的 push 式 context provider 涉及提示组装管线，留到有真实需求再开，避免第一版 API 面过大收不回来。</p></div>
-
-<h2 id="s9"><span class="no">§ 9</span>加载机制与 CSP</h2>
-
-<ul>
-  <li>复用 foliate 已验证的范式：同源 ES module + 生产 CSP 下可行的加载路径，不用 <code>eval</code>、不用 inline script。</li>
-  <li>插件文件在 <code>&lt;app_data&gt;/plugins/</code> 下、不在 <code>'self'</code> 源内，需要一处有意的 CSP 决策：<strong>Rust 侧注册自定义 URI scheme（如 <code>raplugin://</code>）伺服插件目录，<code>script-src</code> 追加该 scheme</strong>，前端 <code>import("raplugin://&lt;id&gt;/main.js")</code> 动态加载。这是整个系统里唯一一处放宽安全姿态的地方，范围清晰可控。</li>
-  <li>备选（不推荐）：IPC 读文件 → Blob URL → <code>import()</code>，需要 <code>script-src</code> 加 <code>blob:</code>，边界更模糊。</li>
-  <li>安装流程：设置页 → 选择文件夹 / zip（<code>dialog:allow-open</code> 已有）→ Rust 命令校验 manifest 并拷入 <code>&lt;app_data&gt;/plugins/&lt;id&gt;/</code>。</li>
-</ul>
-
-<h2 id="s10"><span class="no">§ 10</span>现有代码的改造点</h2>
-
-<p>调研结论（2026-07-21）：想挂载的位置目前全是硬编码 JSX，先做「菜单数据化」，应用自己的菜单项先吃同一套贡献模型的狗粮。</p>
-
-<div class="tablewrap">
-<table>
-  <tr><th>现状</th><th>改造</th></tr>
-  <tr><td><code>ReaderShellOverlay</code></td><td>顶栏按钮为独立 JSX + 回调 props → item 数组驱动 + 贡献点合并</td></tr>
-  <tr><td>三处选区菜单</td><td><code>ReaderSelectionMenu</code> / <code>ReaderAnnotationMenu</code> / <code>TextUnitNavigatorBar</code> 共享动作但各自内联 → 统一的选区动作模型（声明式数组），三处消费同一数据</td></tr>
-  <tr><td><code>AppHeader</code></td><td>桌面布局硬编码按钮（仅 <code>viewControl</code> / <code>actions</code> 两个 ReactNode 插槽）→ header action 注册表；插件按钮与钉选、溢出规则在此落地</td></tr>
-  <tr><td><code>buildCommands</code></td><td>返回闭合的 <code>CommandItem[]</code> → 改成可追加注册表；插件命令与自动注册在此接入</td></tr>
-  <tr><td>贡献点存储</td><td>无 → Jotai atom 做贡献注册表（响应式增删，启停即生效）</td></tr>
-  <tr><td>基础件</td><td><code>Toast</code>、<code>Markdown</code> 组件已存在，直接复用，无需新建</td></tr>
-</table>
-</div>
-
-<p>数据侧无需放宽任何东西：插件持久化 = <code>localKV</code> 加 <code>plugin:&lt;id&gt;:</code> 命名空间前缀（SQLite <code>app_kv</code> 表），不动 fs capability。</p>
-
-<h2 id="s11"><span class="no">§ 11</span>实现阶段</h2>
-
-<p>全部属于 V1，仅为实施顺序：</p>
-
-<div class="fig">
-  <ol class="phases">
-    <li><span class="pnum">1</span><span class="pname">菜单数据化</span><span class="psub">贡献点注册表 · 纯内部重构</span></li>
-    <li><span class="pnum">2</span><span class="pname">插件运行时</span><span class="psub">加载 · 生命周期 · 权限 · 设置页</span></li>
-    <li><span class="pnum">3</span><span class="pname">UI 词汇渲染器</span><span class="psub">宿主组件树 × 三容器</span></li>
-    <li><span class="pnum">4</span><span class="pname">AI 工具挂载点</span><span class="psub">registerTool → buildThreadTools</span></li>
-    <li><span class="pnum">5</span><span class="pname">官方插件与模板</span><span class="psub">用真实插件检验 API</span></li>
-  </ol>
-  <div class="figcap">图 7 · 实施顺序 —— 阶段 1 独立成立，即使后续暂缓代码也变好</div>
-</div>
-
-<ol>
-  <li><strong>菜单数据化 + 贡献点注册表</strong> —— 纯内部重构，无用户可见变化；独立成立，即使插件系统暂缓代码也变好。</li>
-  <li><strong>插件运行时</strong> —— manifest 校验、Rust scheme + 加载器、<code>activate/deactivate</code> 生命周期、权限域门控、设置页（安装 / 列表 / 启停 / 权限展示 / 钉选摆放）、命名空间 KV。</li>
-  <li><strong>UI 词汇渲染器</strong> —— Popup / Dialog / Page 容器 + Markdown / List / Form / Detail / 组合 Blocks 宿主组件树。</li>
-  <li><strong>AI 工具挂载点</strong> —— <code>ctx.ai.registerTool</code> → <code>buildThreadTools</code> 追加 + 启停刷新。</li>
-  <li><strong>官方插件 × 2–3 + 插件模板仓库</strong> —— 既是功能也是 API 的真实性检验（候选：导出 Markdown、查词典扩展、Anki 生词本）。</li>
-</ol>
-
-<h2 id="s12"><span class="no">§ 12</span>风险与开放问题</h2>
-
-<ul>
-  <li><strong>API 稳定性承诺</strong>：一旦用户开始写插件，破坏性改动就有代价。V1 面宁小勿大，只加不减。</li>
-  <li><strong>iframe 抽象泄漏</strong>：选区事件横跨 foliate iframe 与主窗口两个时间原点；插件 API 必须停在「选区事件 + 文本 + CFI」层，绝不暴露 iframe DOM，否则引擎内部一动插件全崩。</li>
-  <li><strong>插件自身设置</strong>：插件大概率需要自己的配置项（如 Anki 地址）。倾向复用表单视图声明一节「插件设置」，V1 先不承诺。</li>
-  <li><strong>插件 i18n</strong>：插件字符串的多语言机制未定，V1 按插件自理。</li>
-  <li><strong>更新机制</strong>：V1 手动重装；后续再议版本检查。</li>
-  <li><strong>TypeScript 类型包 —— 已落地</strong>：<code>packages/plugin-types</code>（<code>@read-aware/plugin-types</code>）是插件 API 的唯一真源，应用 re-export 它；市场仓库携带其声明镜像与 TS 模板（<code>template/</code>，<code>bun build src/main.ts</code> 产出 <code>main.js</code>）。<strong>TypeScript 是推荐的插件编写方式</strong>，运行时装载的始终是构建产物 <code>main.js</code>；官方插件均以 TS 编写并连同构建产物一起提交，CI 对每个 PR 附加 <code>tsc --noEmit</code> 检查。</li>
-</ul>
-
-</main>
-
-<script>
-(function () {
-  "use strict";
-  function $(id) { return document.getElementById(id); }
-
-  /* ---------- fig 2: install click-through ---------- */
-  function instShow(state) {
-    $("inst-s1").hidden = state !== 1;
-    $("inst-s2").hidden = state !== 2;
-    $("inst-s0").hidden = state !== 0;
-  }
-  $("inst-ok").addEventListener("click", function () { instShow(2); });
-  $("inst-cancel").addEventListener("click", function () { instShow(0); });
-  $("inst-replay").addEventListener("click", function () { instShow(1); });
-  $("inst-replay0").addEventListener("click", function () { instShow(1); });
-  $("inst-tgl").addEventListener("click", function () {
-    this.classList.toggle("on");
-    $("inst-state").textContent = this.classList.contains("on") ? "已安装 · 已启用" : "已安装 · 已停用（贡献即时移除）";
-  });
-
-  /* ---------- fig 3: mount-point explorer ---------- */
-  var HS = {
-    1: {
-      title: "Reader 选区菜单", tag: "选中文本后的动作菜单",
-      reg: "选区动作（声明式：id · label · icon · onClick）",
-      input: "选中文本 + CFI + 当前书元数据",
-      containers: ["无界面 + Toast", "Dialog"],
-      note: "插件动作默认进溢出，用户在设置里提拔常用项。绝不暴露 iframe DOM —— API 停在「选区事件 + 文本 + CFI」层。"
-    },
-    2: {
-      title: "Reader 顶栏", tag: "ReaderShellOverlay",
-      reg: "Icon button（图标按名字取自 Phosphor）",
-      input: "当前书元数据",
-      containers: ["仅 Popup（Popover）"],
-      note: "阅读中不允许整页打断 —— 这是 Reader 侧不开放 Page 容器的原因。"
-    },
-    3: {
-      title: "书架顶栏", tag: "AppHeader",
-      reg: "Icon button",
-      input: "—",
-      containers: ["Popup", "Page"],
-      note: "Page 等同 Stats 整页：占用 activeTopNav、有明确返回，不是路由页面。钉选上限与溢出规则见 §7。"
-    },
-    4: {
-      title: "命令面板", tag: "buildCommands 注册表",
-      reg: "自动 —— 所有插件动作无条件注册进命令面板",
-      input: "—",
-      containers: ["随原动作"],
-      note: "「装了但没钉按钮」的动作的兜底入口，近乎零成本。"
-    },
-    5: {
-      title: "AI agent", tag: "buildThreadTools 追加",
-      reg: "工具：ctx.ai.registerTool({name, label, description, parameters, execute})",
-      input: "agent 传入的参数（JSON Schema 校验）",
-      containers: ["聊天内通用工具步呈现"],
-      note: "实际工具名带命名空间 plugin_<id>_<name>；调用过程在聊天里始终可见，不进 SUPPRESSED_TOOLS。"
-    }
-  };
-  function hsRender(n) {
-    var d = HS[n];
-    var chips = d.containers.map(function (c) { return '<span class="chip">' + c + "</span>"; }).join("");
-    $("hs-detail").innerHTML =
-      "<h4>" + n + " · " + d.title + "<span>" + d.tag + "</span></h4>" +
-      '<div class="hsd-row"><span class="hsd-k">注册物</span><span class="hsd-v">' + d.reg + "</span></div>" +
-      '<div class="hsd-row"><span class="hsd-k">输入</span><span class="hsd-v">' + d.input + "</span></div>" +
-      '<div class="hsd-row"><span class="hsd-k">容器</span><span class="hsd-v">' + chips + "</span></div>" +
-      '<div class="hsd-note">' + d.note + "</div>";
-    var all = document.querySelectorAll(".hs");
-    for (var i = 0; i < all.length; i++) {
-      all[i].classList.toggle("on", all[i].getAttribute("data-hs") === String(n));
-    }
-  }
-  var hsBtns = document.querySelectorAll(".hs");
-  for (var i = 0; i < hsBtns.length; i++) {
-    hsBtns[i].addEventListener("click", function () { hsRender(this.getAttribute("data-hs")); });
-  }
-  hsRender(1);
-
-  /* ---------- fig 4: UI vocabulary ---------- */
-  var vPanes = ["v-md", "v-list", "v-list-detail", "v-form", "v-form-result"];
-  var vNames = { md: "Dictionary+ · 查词", list: "Vocab Book · 本书生词", form: "Anki Sync · 设置目标" };
-  function vShow(pane) {
-    for (var i = 0; i < vPanes.length; i++) $(vPanes[i]).hidden = vPanes[i] !== pane;
-  }
-  var vtabs = document.querySelectorAll(".vtab");
-  function vTab(v) {
-    for (var i = 0; i < vtabs.length; i++) vtabs[i].classList.toggle("on", vtabs[i].getAttribute("data-v") === v);
-    $("vd-name").textContent = vNames[v];
-    vShow(v === "md" ? "v-md" : v === "list" ? "v-list" : "v-form");
-  }
-  for (var j = 0; j < vtabs.length; j++) {
-    vtabs[j].addEventListener("click", function () { vTab(this.getAttribute("data-v")); });
-  }
-  var WORDS = [
-    { w: "serendipity", p: "/ˌsɛrənˈdɪpɪti/ · 名词", d: "意外发现珍奇事物的运气；机缘巧合。" },
-    { w: "ephemeral", p: "/ɪˈfɛmərəl/ · 形容词", d: "朝生暮死的；转瞬即逝的。" },
-    { w: "ubiquitous", p: "/juːˈbɪkwɪtəs/ · 形容词", d: "无所不在的；普遍存在的。" }
-  ];
-  var vitems = document.querySelectorAll(".vitem");
-  for (var k = 0; k < vitems.length; k++) {
-    vitems[k].addEventListener("click", function () {
-      var it = WORDS[Number(this.getAttribute("data-item"))];
-      $("vld-word").textContent = it.w;
-      $("vld-phon").textContent = it.p;
-      $("vld-def").textContent = it.d;
-      vShow("v-list-detail");
-    });
-  }
-  $("v-list-back").addEventListener("click", function () { vShow("v-list"); });
-  $("vf-tgl").addEventListener("click", function () { this.classList.toggle("on"); });
-  $("vf-submit").addEventListener("click", function () { vShow("v-form-result"); });
-  $("vf-again").addEventListener("click", function () { vShow("v-form"); });
-
-  /* ---------- fig 5: pin & overflow ---------- */
-  var ACTIONS = [
-    { id: "anki", glyph: "词", name: "Anki 生词本", src: "Anki Sync" },
-    { id: "md", glyph: "导", name: "导出 Markdown", src: "MD Export" },
-    { id: "db", glyph: "豆", name: "豆瓣标记", src: "Douban Marks" },
-    { id: "tr", glyph: "译", name: "全文翻译", src: "Translate+" }
-  ];
-  var PIN_MAX = 3;
-  var pinned = ["anki", "md"];
-  var hintTimer = null;
-
-  function pinRender() {
-    var slots = "", menu = "", list = "";
-    for (var i = 0; i < ACTIONS.length; i++) {
-      var a = ACTIONS[i];
-      var isPinned = pinned.indexOf(a.id) !== -1;
-      if (isPinned) slots += '<span class="mbtn plug" title="' + a.name + '">' + a.glyph + "</span>";
-      else menu += '<button type="button"><span class="glyph">' + a.glyph + "</span>" + a.name + "</button>";
-      list +=
-        '<li><span class="glyph">' + a.glyph + "</span>" +
-        '<span class="grow">' + a.name + ' <span class="pin-src">· 来自 ' + a.src + "</span></span>" +
-        '<button class="pinbtn' + (isPinned ? " on" : "") + '" data-pin="' + a.id + '">' + (isPinned ? "已钉选" : "钉选") + "</button></li>";
-    }
-    $("pin-slots").innerHTML = slots;
-    $("ovf-menu").innerHTML = menu || '<div class="ovf-empty">全部已钉选</div>';
-    $("pin-list").innerHTML = list;
-    var btns = document.querySelectorAll("[data-pin]");
-    for (var b = 0; b < btns.length; b++) {
-      btns[b].addEventListener("click", function () {
-        var id = this.getAttribute("data-pin");
-        var at = pinned.indexOf(id);
-        if (at !== -1) { pinned.splice(at, 1); }
-        else if (pinned.length >= PIN_MAX) { pinHint(); return; }
-        else { pinned.push(id); }
-        pinRender();
-      });
-    }
-  }
-  function pinHint() {
-    var h = $("pin-hint");
-    h.classList.add("show");
-    if (hintTimer) clearTimeout(hintTimer);
-    hintTimer = setTimeout(function () { h.classList.remove("show"); }, 2600);
-  }
-  $("ovf-btn").addEventListener("click", function (e) {
-    e.stopPropagation();
-    $("ovf-menu").hidden = !$("ovf-menu").hidden;
-  });
-  document.addEventListener("click", function (e) {
-    if (!$("ovf-menu").hidden && !$("ovf-menu").contains(e.target)) $("ovf-menu").hidden = true;
-  });
-  pinRender();
-
-  /* ---------- fig 6: chat tool-step replay ---------- */
-  var CT_TEXT = "已把本章 12 个生词加入牌组「英语精读」。其中 3 个词在你过去的标注里出现过两次以上，我把你标注处的原句一并写进了卡片背面。";
-  var ctTimers = [];
-  function ctClear() {
-    for (var i = 0; i < ctTimers.length; i++) clearTimeout(ctTimers[i]);
-    ctTimers = [];
-    $("ct-tool").hidden = true;
-    $("ct-spin").hidden = false;
-    $("ct-okmark").hidden = true;
-    $("ct-text").innerHTML = "";
-  }
-  function ctPlay() {
-    ctClear();
-    ctTimers.push(setTimeout(function () { $("ct-tool").hidden = false; }, 350));
-    ctTimers.push(setTimeout(function () {
-      $("ct-spin").hidden = true;
-      $("ct-okmark").hidden = false;
-    }, 1900));
-    ctTimers.push(setTimeout(function () {
-      var el = $("ct-text"), n = 0;
-      var iv = setInterval(function () {
-        n++;
-        el.innerHTML = CT_TEXT.slice(0, n) + (n < CT_TEXT.length ? '<span class="cursor"></span>' : "");
-        if (n >= CT_TEXT.length) clearInterval(iv);
-      }, 26);
-      ctTimers.push(iv);
-    }, 2200));
-  }
-  $("ct-replay").addEventListener("click", ctPlay);
-  ctPlay();
-})();
-</script>
-</body>
+    </footer>
+  </body>
 </html>

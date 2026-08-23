@@ -6,8 +6,9 @@
  * contributions imperatively; surfaces subscribe with `useAtomValue` and update
  * reactively, which is what makes enable/disable instant.
  */
-import { atom, getDefaultStore, type PrimitiveAtom } from "jotai";
+import { atom, getDefaultStore } from "jotai";
 import { localKV } from "../../../platform/local-store";
+import type { VirtualBookContent } from "../../reader/lib/virtual-book";
 import type {
   ContributionKey,
   InstalledPlugin,
@@ -24,19 +25,37 @@ import type {
   RegisteredSelectionAction,
   RegisteredTool,
 } from "../lib/plugin-types";
+import { createContributionRegistry } from "./contribution-registry";
 
 const store = getDefaultStore();
 
 // ─── Contribution registries ─────────────────────────────────────────────────
 
-export const selectionActionsAtom = atom<RegisteredSelectionAction[]>([]);
-export const headerActionsAtom = atom<RegisteredHeaderAction[]>([]);
-export const readerModesAtom = atom<RegisteredReaderMode[]>([]);
-export const pluginCommandsAtom = atom<RegisteredCommand[]>([]);
-export const pluginToolsAtom = atom<RegisteredTool[]>([]);
-export const pluginThemesAtom = atom<RegisteredPluginTheme[]>([]);
-export const pluginFontsAtom = atom<RegisteredPluginFont[]>([]);
-export const voiceProvidersAtom = atom<RegisteredVoiceProvider[]>([]);
+const selectionActionsRegistry =
+  createContributionRegistry<RegisteredSelectionAction>("selection-actions");
+const headerActionsRegistry =
+  createContributionRegistry<RegisteredHeaderAction>("header-actions");
+const readerModesRegistry =
+  createContributionRegistry<RegisteredReaderMode>("reader-modes");
+const commandsRegistry =
+  createContributionRegistry<RegisteredCommand>("commands");
+const toolsRegistry =
+  createContributionRegistry<RegisteredTool>("agent-tools");
+const themesRegistry =
+  createContributionRegistry<RegisteredPluginTheme>("themes");
+const fontsRegistry =
+  createContributionRegistry<RegisteredPluginFont>("fonts");
+const voiceProvidersRegistry =
+  createContributionRegistry<RegisteredVoiceProvider>("voice-providers");
+
+export const selectionActionsAtom = selectionActionsRegistry.atom;
+export const headerActionsAtom = headerActionsRegistry.atom;
+export const readerModesAtom = readerModesRegistry.atom;
+export const pluginCommandsAtom = commandsRegistry.atom;
+export const pluginToolsAtom = toolsRegistry.atom;
+export const pluginThemesAtom = themesRegistry.atom;
+export const pluginFontsAtom = fontsRegistry.atom;
+export const voiceProvidersAtom = voiceProvidersRegistry.atom;
 
 /** Installed plugins (manifest + enabled + activation error), for settings. */
 export const installedPluginsAtom = atom<InstalledPlugin[]>([]);
@@ -53,74 +72,52 @@ export function markPluginsReady(): void {
   store.set(pluginsReadyAtom, true);
 }
 
-function register<T extends { key: ContributionKey }>(
-  target: PrimitiveAtom<T[]>,
-  item: T,
-): PluginDisposable {
-  // Re-registering a key replaces the stale entry (e.g. a hot re-activation).
-  store.set(target, [
-    ...store.get(target).filter((existing) => existing.key !== item.key),
-    item,
-  ]);
-  let disposed = false;
-  return {
-    dispose: () => {
-      if (disposed) return;
-      disposed = true;
-      store.set(
-        target,
-        store.get(target).filter((existing) => existing.key !== item.key),
-      );
-    },
-  };
-}
-
 export function registerSelectionActionContribution(
   item: RegisteredSelectionAction,
 ): PluginDisposable {
-  return register(selectionActionsAtom, item);
+  return selectionActionsRegistry.register(item);
 }
 
 export function registerHeaderActionContribution(
   item: RegisteredHeaderAction,
 ): PluginDisposable {
-  return register(headerActionsAtom, item);
+  return headerActionsRegistry.register(item);
 }
 
 export function registerReaderModeContribution(
   item: RegisteredReaderMode,
 ): PluginDisposable {
-  return register(readerModesAtom, item);
+  return readerModesRegistry.register(item);
 }
 
 export function registerCommandContribution(item: RegisteredCommand): PluginDisposable {
-  return register(pluginCommandsAtom, item);
+  return commandsRegistry.register(item);
 }
 
 export function registerToolContribution(item: RegisteredTool): PluginDisposable {
-  return register(pluginToolsAtom, item);
+  return toolsRegistry.register(item);
 }
 
 export function registerThemeContribution(
   item: RegisteredPluginTheme,
 ): PluginDisposable {
-  return register(pluginThemesAtom, item);
+  return themesRegistry.register(item);
 }
 
 export function registerFontContribution(item: RegisteredPluginFont): PluginDisposable {
-  return register(pluginFontsAtom, item);
+  return fontsRegistry.register(item);
 }
 
 export function registerVoiceProviderContribution(
   item: RegisteredVoiceProvider,
 ): PluginDisposable {
-  return register(voiceProvidersAtom, item);
+  return voiceProvidersRegistry.register(item);
 }
 
 /**
  * The bound options source of one declared `dynamicOptions` select field
- * (`ctx.contributions.settingsOptions.register`). Not an atom: nothing renders from the
- * registry itself — the settings form looks its provider up at resolve time.
+ * (`ctx.contributions.settingsOptions.register`). The settings form looks its
+ * provider up at resolve time; it still shares the same registry lifecycle.
  */
 export type RegisteredSettingsOptions = {
   key: ContributionKey;
@@ -129,34 +126,51 @@ export type RegisteredSettingsOptions = {
   resolve: (values: PluginFormValues) => Promise<PluginSelectOption[]>;
 };
 
-const settingsOptionsProviders = new Map<ContributionKey, RegisteredSettingsOptions>();
+const settingsOptionsRegistry =
+  createContributionRegistry<RegisteredSettingsOptions>("settings-options");
 
 export function registerSettingsOptionsContribution(
   item: RegisteredSettingsOptions,
 ): PluginDisposable {
-  settingsOptionsProviders.set(item.key, item);
-  let disposed = false;
-  return {
-    dispose: () => {
-      if (disposed) return;
-      disposed = true;
-      // Only remove our own registration — a re-activation may already have
-      // replaced the key with a fresh provider.
-      if (settingsOptionsProviders.get(item.key) === item) {
-        settingsOptionsProviders.delete(item.key);
-      }
-    },
-  };
+  return settingsOptionsRegistry.register(item);
 }
 
 export function getSettingsOptionsProvider(
   pluginId: string,
   fieldId: string,
 ): RegisteredSettingsOptions | null {
-  for (const provider of settingsOptionsProviders.values()) {
-    if (provider.pluginId === pluginId && provider.fieldId === fieldId) return provider;
-  }
-  return null;
+  return settingsOptionsRegistry.find(
+    (provider) =>
+      provider.pluginId === pluginId && provider.fieldId === fieldId,
+  );
+}
+
+export type RegisteredContentProvider = {
+  key: ContributionKey;
+  pluginId: string;
+  providerId: string;
+  load: (bookKey: string) => Promise<VirtualBookContent>;
+};
+
+const contentProvidersRegistry =
+  createContributionRegistry<RegisteredContentProvider>("content-providers");
+
+export const contentProvidersAtom = contentProvidersRegistry.atom;
+
+export function registerContentProviderContribution(
+  provider: RegisteredContentProvider,
+): PluginDisposable {
+  return contentProvidersRegistry.register(provider);
+}
+
+export function getContentProvider(
+  pluginId: string,
+  providerId: string,
+): RegisteredContentProvider | null {
+  return contentProvidersRegistry.find(
+    (provider) =>
+      provider.pluginId === pluginId && provider.providerId === providerId,
+  );
 }
 
 /** Refresh one provider's voice snapshot in place (settings changed). */
@@ -164,18 +178,16 @@ export function updateVoiceProviderVoices(
   key: ContributionKey,
   voices: RegisteredVoiceProvider["voices"],
 ): void {
-  store.set(
-    voiceProvidersAtom,
-    store
-      .get(voiceProvidersAtom)
-      .map((entry) => (entry.key === key ? { ...entry, voices } : entry)),
+  voiceProvidersRegistry.update(
+    key,
+    (entry) => ({ ...entry, voices }),
   );
 }
 
 /** Snapshot lookup for callers outside React's flow (style injection paths). */
 /** Snapshot of the enabled plugins' agent tools (read per agent build). */
 export function getRegisteredPluginTools(): RegisteredTool[] {
-  return store.get(pluginToolsAtom);
+  return toolsRegistry.list();
 }
 
 /** The single host-supported text-unit mode, or null while its plugin is off. */

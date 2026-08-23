@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import type { Id } from "@read-aware/core";
 import type { PluginDisposable } from "@read-aware/plugin-types";
 import { registerToolContribution } from "../state/plugin-store";
+import { inspectContributions } from "../state/contribution-registry";
 import { getPluginAgentTools } from "./plugin-tools";
 
 const disposables: PluginDisposable[] = [];
@@ -9,7 +10,7 @@ const disposables: PluginDisposable[] = [];
 function register(name: string, contexts?: Array<"book" | "global">): void {
   disposables.push(
     registerToolContribution({
-      key: `plugin:${name}`,
+      key: `scope-test:${name}`,
       pluginId: "scope-test",
       pluginName: "Scope Test",
       name,
@@ -44,6 +45,23 @@ describe("plugin agent tool scopes", () => {
     expect(global).toEqual([
       "plugin_scope_test_global_only",
       "plugin_scope_test_legacy_both",
+    ]);
+    expect(inspectContributions("scope-test")).toEqual([
+      {
+        point: "agent-tools",
+        key: "scope-test:book_only",
+        pluginId: "scope-test",
+      },
+      {
+        point: "agent-tools",
+        key: "scope-test:global_only",
+        pluginId: "scope-test",
+      },
+      {
+        point: "agent-tools",
+        key: "scope-test:legacy_both",
+        pluginId: "scope-test",
+      },
     ]);
   });
 });

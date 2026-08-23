@@ -35,7 +35,6 @@ import { openBookRequestAtom } from "../../ai/state/chat-intent";
 import {
   bindVirtualBook,
   findVirtualBookId,
-  registerContentProviderContribution,
   unbindVirtualBook,
 } from "../lib/virtual-books";
 import { showPluginToast } from "../lib/plugin-toast";
@@ -59,6 +58,7 @@ import {
 } from "./plugin-backend";
 import {
   registerCommandContribution,
+  registerContentProviderContribution,
   registerHeaderActionContribution,
   registerReaderModeContribution,
   registerSelectionActionContribution,

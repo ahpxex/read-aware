@@ -5,10 +5,12 @@
  * resolves at open time. Providers themselves register per activation into
  * the contribution store (disposed on disable, like every contribution).
  */
-import { atom, getDefaultStore } from "jotai";
 import { localKV } from "../../../platform/local-store";
 import type { VirtualBookRef } from "../../reader/lib/reader-types";
-import type { VirtualBookContent } from "../../reader/lib/virtual-book";
+import {
+  getContentProvider,
+  type RegisteredContentProvider,
+} from "../state/plugin-store";
 
 const REGISTRY_KEY = "read-aware-virtual-books";
 
@@ -57,49 +59,8 @@ export function unbindVirtualBook(bookId: string): void {
   localKV.setItem(REGISTRY_KEY, JSON.stringify(registry));
 }
 
-// ─── Content providers (live, per-activation) ────────────────────────────────
-
-export type RegisteredContentProvider = {
-  /** `${pluginId}:${providerId}` */
-  key: string;
-  pluginId: string;
-  providerId: string;
-  load: (bookKey: string) => Promise<VirtualBookContent>;
-};
-
-export const contentProvidersAtom = atom<RegisteredContentProvider[]>([]);
-
-export function registerContentProviderContribution(
-  provider: RegisteredContentProvider,
-): { dispose: () => void } {
-  const store = getDefaultStore();
-  store.set(contentProvidersAtom, [
-    ...store.get(contentProvidersAtom).filter((entry) => entry.key !== provider.key),
-    provider,
-  ]);
-  let disposed = false;
-  return {
-    dispose: () => {
-      if (disposed) return;
-      disposed = true;
-      store.set(
-        contentProvidersAtom,
-        store.get(contentProvidersAtom).filter((entry) => entry.key !== provider.key),
-      );
-    },
-  };
-}
-
 export function resolveContentProvider(
   binding: VirtualBookBinding,
 ): RegisteredContentProvider | null {
-  return (
-    getDefaultStore()
-      .get(contentProvidersAtom)
-      .find(
-        (provider) =>
-          provider.pluginId === binding.pluginId &&
-          provider.providerId === binding.providerId,
-      ) ?? null
-  );
+  return getContentProvider(binding.pluginId, binding.providerId);
 }

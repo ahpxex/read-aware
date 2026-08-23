@@ -8,11 +8,11 @@
  * On macOS a dev preview is available: `localStorage.setItem("ra-debug-os",
  * "windows")` + reload forces this chrome (and hides the real traffic lights
  * while mounted) so the layout can be exercised without a Windows machine.
- *
- * This half decides whether the chrome exists and what each button does; the
- * buttons are `WindowCaptionControlsView`.
  */
+import { CopySimple, Minus, Square, X } from "@phosphor-icons/react";
 import { useEffect } from "react";
+import { cn } from "@read-aware/ui/cn";
+import { useTranslation } from "../../../i18n";
 import {
   desktopChromeKind,
   isMacOS,
@@ -21,12 +21,14 @@ import {
 } from "../../../platform/environment";
 import { setTrafficLightsVisible } from "../../../platform/traffic-lights";
 import { useWindowMaximized } from "../hooks/useWindowMaximized";
-import { WindowCaptionControlsView } from "./WindowCaptionControlsView";
 
 async function currentWindow() {
   const { getCurrentWindow } = await import("@tauri-apps/api/window");
   return getCurrentWindow();
 }
+
+const buttonClass =
+  "flex h-full w-11 items-center justify-center text-fg-muted transition-colors hover:bg-fg/8 hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-fg";
 
 type WindowCaptionControlsProps = {
   /**
@@ -40,6 +42,7 @@ type WindowCaptionControlsProps = {
 export function WindowCaptionControls({
   chrome = desktopChromeKind(),
 }: WindowCaptionControlsProps = {}) {
+  const { t } = useTranslation("nav");
   const custom = chrome === "custom";
   const maximized = useWindowMaximized();
 
@@ -65,12 +68,36 @@ export function WindowCaptionControls({
   };
 
   return (
-    <WindowCaptionControlsView
-      maximized={maximized}
-      onMinimize={() => void currentWindow().then((w) => w.minimize())}
-      onToggleMaximize={() => void currentWindow().then((w) => w.toggleMaximize())}
-      onClose={() => void currentWindow().then((w) => w.close())}
-      onMaximizeHover={showSnapOverlay}
-    />
+    <div className="pointer-events-auto absolute inset-y-0 right-0 z-20 flex items-stretch">
+      <button
+        type="button"
+        aria-label={t("window.minimize")}
+        className={buttonClass}
+        onClick={() => void currentWindow().then((w) => w.minimize())}
+      >
+        <Minus size={14} weight="regular" aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        aria-label={maximized ? t("window.restore") : t("window.maximize")}
+        className={buttonClass}
+        onMouseEnter={showSnapOverlay}
+        onClick={() => void currentWindow().then((w) => w.toggleMaximize())}
+      >
+        {maximized ? (
+          <CopySimple size={14} weight="regular" aria-hidden="true" />
+        ) : (
+          <Square size={13} weight="regular" aria-hidden="true" />
+        )}
+      </button>
+      <button
+        type="button"
+        aria-label={t("window.close")}
+        className={cn(buttonClass, "hover:bg-red-600 hover:text-white")}
+        onClick={() => void currentWindow().then((w) => w.close())}
+      >
+        <X size={15} weight="regular" aria-hidden="true" />
+      </button>
+    </div>
   );
 }

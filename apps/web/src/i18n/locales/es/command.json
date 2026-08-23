@@ -27,10 +27,6 @@
       "title": "Estadísticas de lectura",
       "keywords": "estadísticas gráficos racha tiempo"
     },
-    "goContext": {
-      "title": "Preguntar a ReadAware",
-      "keywords": "agente ia chat preguntar contexto notas"
-    },
     "openSettings": {
       "title": "Ajustes",
       "keywords": "preferencias apariencia"
@@ -42,6 +38,10 @@
     "select": {
       "title": "Seleccionar libros",
       "keywords": "lote múltiples gestionar"
+    },
+    "goAgent": {
+      "title": "Preguntar a ReadAware",
+      "keywords": "agente ia chat preguntar contexto notas"
     }
   },
   "layout": {

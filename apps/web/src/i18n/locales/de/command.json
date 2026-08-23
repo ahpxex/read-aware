@@ -26,10 +26,6 @@
       "title": "Lesestatistik",
       "keywords": "statistik diagramme serie zeit"
     },
-    "goContext": {
-      "title": "ReadAware fragen",
-      "keywords": "agent ki chat fragen kontext notizen"
-    },
     "openSettings": {
       "title": "Einstellungen",
       "keywords": "einstellungen präferenzen darstellung"
@@ -41,6 +37,10 @@
     "select": {
       "title": "Bücher auswählen",
       "keywords": "stapel mehrere verwalten"
+    },
+    "goAgent": {
+      "title": "ReadAware fragen",
+      "keywords": "agent ki chat fragen kontext notizen"
     }
   },
   "layout": {

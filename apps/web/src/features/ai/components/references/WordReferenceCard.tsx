@@ -48,13 +48,13 @@ export function WordReferenceCard({ reference }: { reference: ChatWordReference 
         ))}
         {entry.contextualMeaning && (
           <div className="flex flex-col gap-0.5 border-t border-border pt-2">
-            <Eyebrow className="text-fg-subtle">{t("context.vocabulary.contextLabel")}</Eyebrow>
+            <Eyebrow className="text-fg-subtle">{t("agent.vocabulary.contextLabel")}</Eyebrow>
             <p className="leading-relaxed text-fg">{entry.contextualMeaning}</p>
           </div>
         )}
         {entry.etymology && (
           <div className="flex flex-col gap-0.5 border-t border-border pt-2">
-            <Eyebrow className="text-fg-subtle">{t("context.vocabulary.etymologyLabel")}</Eyebrow>
+            <Eyebrow className="text-fg-subtle">{t("agent.vocabulary.etymologyLabel")}</Eyebrow>
             <p className="leading-relaxed text-fg-muted">{entry.etymology}</p>
           </div>
         )}

@@ -4,7 +4,7 @@ import { PrimaryNavigation } from "./PrimaryNavigation";
 
 const defaultDestinations: PrimaryDestination[] = [
   { id: "core:library", topNav: "shelf", label: "Library" },
-  { id: "core:agent", topNav: "context", label: "Agent" },
+  { id: "core:agent", topNav: "agent", label: "Agent" },
 ];
 
 const meta = {
@@ -32,7 +32,7 @@ type Story = StoryObj<typeof meta>;
 export const LibraryActive: Story = {};
 
 export const AgentActive: Story = {
-  args: { activeTopNav: "context" },
+  args: { activeTopNav: "agent" },
 };
 
 export const Compact: Story = {

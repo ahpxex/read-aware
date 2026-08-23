@@ -106,27 +106,20 @@
   "annotation": {
     "delete": "Supprimer"
   },
-  "context": {
+  "agent": {
     "threads": {
       "title": "Fils",
       "new": "Nouvelle conversation",
       "untitled": "Nouvelle conversation",
       "delete": "Supprimer le fil"
     },
-    "loading": "Chargement du contexte…",
-    "title": "Contexte",
     "unknownBook": "Livre inconnu",
     "empty": {
       "title": "Aucun contexte pour l’instant",
       "description": "Les surlignages et notes de vos lectures apparaîtront ici."
     },
-    "contextItems_one": "{{count}} élément de contexte",
     "contextItems_many": "{{count}} éléments de contexte",
-    "contextItems_other": "{{count}} éléments de contexte",
-    "books_one": "{{count}} livre",
     "books_many": "{{count}} livres",
-    "books_other": "{{count}} livres",
-    "summary": "{{items}} dans {{books}}",
     "annotations": {
       "title": "Surlignages et notes"
     },

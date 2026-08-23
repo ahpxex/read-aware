@@ -12,7 +12,7 @@ import { Eyebrow, IconButton, Popover } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import type { ConversationSummary } from "../../ai/lib/conversation-store";
-import { contextHeaderActionClass } from "../lib/context-header-action";
+import { agentHeaderActionClass } from "../lib/agent-header-action";
 
 type ThreadsPopoverViewProps = {
   open: boolean;
@@ -47,10 +47,10 @@ export function ThreadsPopoverView({
       open={open}
       onOpenChange={onOpenChange}
       align="right"
-      triggerLabel={t("context.threads.title")}
-      triggerTooltip={t("context.threads.title")}
+      triggerLabel={t("agent.threads.title")}
+      triggerTooltip={t("agent.threads.title")}
       triggerTooltipAlign="end"
-      triggerClassName={cn(contextHeaderActionClass, open && "text-fg")}
+      triggerClassName={cn(agentHeaderActionClass, open && "text-fg")}
       trigger={
         <ChatsCircle
           size={16}
@@ -61,14 +61,14 @@ export function ThreadsPopoverView({
       panelClassName="flex max-h-[min(24rem,60vh)] w-[clamp(16rem,24vw,22rem)] flex-col overflow-hidden p-0"
     >
       <div className="flex shrink-0 items-center border-b border-border px-4 py-2.5">
-        <Eyebrow as="span">{t("context.threads.title")}</Eyebrow>
+        <Eyebrow as="span">{t("agent.threads.title")}</Eyebrow>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="flex flex-col gap-0.5 px-2 py-2">
           {activeIsUnsaved && (
             <ThreadRow
-              title={t("context.threads.untitled")}
+              title={t("agent.threads.untitled")}
               active
               onSelect={() => select(activeThreadId)}
             />
@@ -76,11 +76,11 @@ export function ThreadsPopoverView({
           {threads.map((thread) => (
             <ThreadRow
               key={thread.id}
-              title={thread.preview?.trim() || t("context.threads.untitled")}
+              title={thread.preview?.trim() || t("agent.threads.untitled")}
               active={thread.id === activeThreadId}
               onSelect={() => select(thread.id)}
               onDelete={() => onDelete(thread.id)}
-              deleteLabel={t("context.threads.delete")}
+              deleteLabel={t("agent.threads.delete")}
             />
           ))}
         </div>

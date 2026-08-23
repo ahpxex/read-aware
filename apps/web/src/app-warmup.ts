@@ -24,9 +24,9 @@ function onIdle(work: () => void, timeout: number): void {
 
 export function scheduleIdleWarmup(): void {
   onIdle(() => {
-    void import("./features/context/components/ContextWorkspace");
-    void import("./features/context/components/ThreadsPopover");
-    void import("./features/context/components/AnnotationsPopover");
+    void import("./features/agent/components/AgentWorkspace");
+    void import("./features/agent/components/ThreadsPopover");
+    void import("./features/agent/components/AnnotationsPopover");
 
     onIdle(() => {
       void import("./features/reader/components/ReaderWorkspace");

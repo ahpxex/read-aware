@@ -27,10 +27,6 @@
       "title": "Statistiques de lecture",
       "keywords": "statistiques graphiques série temps"
     },
-    "goContext": {
-      "title": "Demander à ReadAware",
-      "keywords": "agent ia discussion demander contexte notes"
-    },
     "openSettings": {
       "title": "Paramètres",
       "keywords": "préférences apparence"
@@ -42,6 +38,10 @@
     "select": {
       "title": "Sélectionner des livres",
       "keywords": "lot multiple gérer"
+    },
+    "goAgent": {
+      "title": "Demander à ReadAware",
+      "keywords": "agent ia discussion demander contexte notes"
     }
   },
   "layout": {

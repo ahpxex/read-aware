@@ -25,10 +25,6 @@
       "title": "阅读统计",
       "keywords": "statistics charts streak time 统计 图表 连续 时间"
     },
-    "goContext": {
-      "title": "问问 ReadAware",
-      "keywords": "agent AI 对话 问问 上下文 笔记"
-    },
     "openSettings": {
       "title": "设置",
       "keywords": "preferences appearance 偏好 外观 设置"
@@ -40,6 +36,10 @@
     "select": {
       "title": "选择书籍",
       "keywords": "batch multiple manage 批量 多选 管理"
+    },
+    "goAgent": {
+      "title": "问问 ReadAware",
+      "keywords": "agent AI 对话 问问 上下文 笔记"
     }
   },
   "layout": {

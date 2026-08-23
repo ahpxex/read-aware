@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { activeGlobalThreadAtom } from "../../ai/state/global-thread";
 import { seed, withAtoms } from "../../../story-support/atoms";
-import { ContextWorkspace } from "./ContextWorkspace";
+import { AgentWorkspace } from "./AgentWorkspace";
 
 /**
  * The Agent page: the home of the global, cross-book thread.
@@ -17,7 +17,7 @@ import { ContextWorkspace } from "./ContextWorkspace";
  */
 const meta = {
   title: "Interface/Agent/AgentWorkspace",
-  component: ContextWorkspace,
+  component: AgentWorkspace,
   parameters: { layout: "fullscreen" },
   decorators: [
     (Story) => (
@@ -26,7 +26,7 @@ const meta = {
       </div>
     ),
   ],
-} satisfies Meta<typeof ContextWorkspace>;
+} satisfies Meta<typeof AgentWorkspace>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

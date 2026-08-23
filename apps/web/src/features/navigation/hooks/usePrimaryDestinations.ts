@@ -25,7 +25,7 @@ export type PrimaryDestination = {
 
 const CORE_TOP_NAV: Record<string, TopNav> = {
   "core:library": "shelf",
-  "core:agent": "context",
+  "core:agent": "agent",
   "core:stats": "stats",
 };
 

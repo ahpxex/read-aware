@@ -106,25 +106,18 @@
   "annotation": {
     "delete": "Löschen"
   },
-  "context": {
+  "agent": {
     "threads": {
       "title": "Threads",
       "new": "Neue Unterhaltung",
       "untitled": "Neue Unterhaltung",
       "delete": "Thread löschen"
     },
-    "loading": "Kontext wird geladen...",
-    "title": "Kontext",
     "unknownBook": "Unbekanntes Buch",
     "empty": {
       "title": "Noch kein Kontext",
       "description": "Markierungen und Notizen aus deinem Lesen erscheinen hier."
     },
-    "contextItems_one": "{{count}} Kontextelement",
-    "contextItems_other": "{{count}} Kontextelemente",
-    "books_one": "{{count}} Buch",
-    "books_other": "{{count}} Bücher",
-    "summary": "{{items}} in {{books}}",
     "annotations": {
       "title": "Markierungen & Notizen"
     },

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { MenuOverflow } from "../../menus/components/MenuOverflow";
 import type { LibraryBook } from "../../library/lib/library-types";
-import { useContextHeaderActions } from "./useContextHeaderActions";
+import { useAgentHeaderActions } from "./useAgentHeaderActions";
 
 const book: LibraryBook = {
   id: "book-pale-fire",
@@ -43,7 +43,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 function Harness({ books }: { books: LibraryBook[] }) {
-  const entries = useContextHeaderActions({
+  const entries = useAgentHeaderActions({
     books,
     onOpenBook: () => {},
     onNewConversation: () => {},

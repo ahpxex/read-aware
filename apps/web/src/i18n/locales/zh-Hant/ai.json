@@ -106,23 +106,18 @@
   "annotation": {
     "delete": "刪除"
   },
-  "context": {
+  "agent": {
     "threads": {
       "title": "討論串",
       "new": "建立新對話",
       "untitled": "新對話",
       "delete": "刪除討論串"
     },
-    "loading": "正在載入上下文...",
-    "title": "上下文",
     "unknownBook": "不明書籍",
     "empty": {
       "title": "尚無上下文",
       "description": "你閱讀時的螢光標示與筆記將顯示於此。"
     },
-    "contextItems_other": "{{count}} 項上下文",
-    "books_other": "{{count}} 本書",
-    "summary": "{{items}}，共 {{books}}",
     "annotations": {
       "title": "高亮與筆記"
     },

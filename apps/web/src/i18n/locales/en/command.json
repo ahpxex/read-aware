@@ -26,10 +26,6 @@
       "title": "Reading stats",
       "keywords": "statistics charts streak time"
     },
-    "goContext": {
-      "title": "Ask ReadAware",
-      "keywords": "agent ai chat ask context notes"
-    },
     "openSettings": {
       "title": "Settings",
       "keywords": "preferences appearance"
@@ -41,6 +37,10 @@
     "select": {
       "title": "Select books",
       "keywords": "batch multiple manage"
+    },
+    "goAgent": {
+      "title": "Ask ReadAware",
+      "keywords": "agent ai chat ask context notes"
     }
   },
   "layout": {

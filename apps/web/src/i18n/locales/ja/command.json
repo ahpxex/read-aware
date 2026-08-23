@@ -25,10 +25,6 @@
       "title": "読書統計",
       "keywords": "統計 グラフ 連続 時間"
     },
-    "goContext": {
-      "title": "ReadAwareに聞く",
-      "keywords": "エージェント AI チャット 質問 コンテキスト メモ"
-    },
     "openSettings": {
       "title": "設定",
       "keywords": "環境設定 外観 設定"
@@ -40,6 +36,10 @@
     "select": {
       "title": "本を選択",
       "keywords": "一括 複数 管理 選択"
+    },
+    "goAgent": {
+      "title": "ReadAwareに聞く",
+      "keywords": "エージェント AI チャット 質問 コンテキスト メモ"
     }
   },
   "layout": {

@@ -20,7 +20,7 @@ import { BOOK_FILE_ACCEPT } from "./features/library/lib/pick-book-files";
 import type { LibraryBook } from "./features/library/lib/library-types";
 import { AppHeader } from "./features/navigation/components/AppHeader";
 import { usePrimaryDestinations } from "./features/navigation/hooks/usePrimaryDestinations";
-import { useContextHeaderActions } from "./features/context/hooks/useContextHeaderActions";
+import { useAgentHeaderActions } from "./features/agent/hooks/useAgentHeaderActions";
 import { SyncIndicator } from "./features/sync/components/SyncIndicator";
 import { SyncReauthNotice } from "./features/sync/components/SyncReauthNotice";
 import { UpdateIndicator } from "./features/update/components/UpdateIndicator";
@@ -62,9 +62,9 @@ const ReaderWorkspace = lazy(() =>
     default: m.ReaderWorkspace,
   })),
 );
-const ContextWorkspace = lazy(() =>
-  import("./features/context/components/ContextWorkspace").then((m) => ({
-    default: m.ContextWorkspace,
+const AgentWorkspace = lazy(() =>
+  import("./features/agent/components/AgentWorkspace").then((m) => ({
+    default: m.AgentWorkspace,
   })),
 );
 
@@ -170,7 +170,7 @@ function App() {
 
   const createGlobalConversation = useCallback(() => {
     setActiveGlobalThreadId(newGlobalThreadId());
-    setActiveTopNav("context");
+    setActiveTopNav("agent");
     if (reader.selectedBook) closeBook();
   }, [
     closeBook,
@@ -265,7 +265,7 @@ function App() {
     if (shelfHandoff === "idle") setHeldShelfBooks(null);
   }, [shelfHandoff]);
 
-  const contextHeaderActions = useContextHeaderActions({
+  const agentHeaderActions = useAgentHeaderActions({
     books: library.books,
     onOpenBook: handleOpenBook,
     onNewConversation: createGlobalConversation,
@@ -449,7 +449,7 @@ function App() {
       setActiveCollectionId(null);
       openAppSurface("shelf");
     },
-    goContext: () => openAppSurface("context"),
+    goAgent: () => openAppSurface("agent"),
     goStats: () => openAppSurface("stats"),
     openSettings: () => setSettingsOpen(true),
     importBook: () => {
@@ -569,7 +569,7 @@ function App() {
               activeTopNav === "shelf" ? <ShelfManagementMenu /> : undefined
             }
             actions={
-              activeTopNav === "context" ? contextHeaderActions : undefined
+              activeTopNav === "agent" ? agentHeaderActions : undefined
             }
           />
 
@@ -593,10 +593,10 @@ function App() {
                 onDeleteCollection={library.handleDeleteCollection}
                 onSetBooksCollection={library.handleSetBooksCollection}
               />
-            ) : activeTopNav === "context" ? (
-              <FeatureErrorBoundary surface="context" resetKey={activeTopNav}>
+            ) : activeTopNav === "agent" ? (
+              <FeatureErrorBoundary surface="agent" resetKey={activeTopNav}>
                 <Suspense fallback={<SurfaceFallback />}>
-                  <ContextWorkspace />
+                  <AgentWorkspace />
                 </Suspense>
               </FeatureErrorBoundary>
             ) : activeTopNav === "stats" ? (

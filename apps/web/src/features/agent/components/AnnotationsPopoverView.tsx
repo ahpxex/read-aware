@@ -12,7 +12,7 @@ import { formatNumber, useTranslation } from "../../../i18n";
 import { AnnotationRow } from "../../annotations/components/AnnotationRow";
 import type { Annotation } from "../../annotations/lib/annotation-types";
 import type { LibraryBook } from "../../library/lib/library-types";
-import { contextHeaderActionClass } from "../lib/context-header-action";
+import { agentHeaderActionClass } from "../lib/agent-header-action";
 
 type AnnotationsPopoverViewProps = {
   books: LibraryBook[];
@@ -46,10 +46,10 @@ export function AnnotationsPopoverView({
       open={open}
       onOpenChange={onOpenChange}
       align="right"
-      triggerLabel={t("context.annotations.title")}
-      triggerTooltip={t("context.annotations.title")}
+      triggerLabel={t("agent.annotations.title")}
+      triggerTooltip={t("agent.annotations.title")}
       triggerTooltipAlign="end"
-      triggerClassName={cn(contextHeaderActionClass, open && "text-fg")}
+      triggerClassName={cn(agentHeaderActionClass, open && "text-fg")}
       trigger={
         <Notebook
           size={16}
@@ -60,7 +60,7 @@ export function AnnotationsPopoverView({
       panelClassName="flex max-h-[min(28rem,70vh)] w-[clamp(18rem,28vw,26rem)] flex-col overflow-hidden p-0"
     >
       <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-2.5">
-        <Eyebrow as="span">{t("context.annotations.title")}</Eyebrow>
+        <Eyebrow as="span">{t("agent.annotations.title")}</Eyebrow>
         <span className="text-xs tabular-nums text-fg-subtle">
           {formatNumber(annotations.length)}
         </span>
@@ -69,7 +69,7 @@ export function AnnotationsPopoverView({
       {annotations.length === 0 ? (
         <div className="px-4 py-8">
           <Body className="text-center text-sm text-fg-muted">
-            {t("context.empty.description")}
+            {t("agent.empty.description")}
           </Body>
         </div>
       ) : (
@@ -90,7 +90,7 @@ export function AnnotationsPopoverView({
                     className="mb-1 rounded-md px-2 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
                   >
                     <Body className="font-serif text-sm text-fg hover:text-fg-muted">
-                      {book?.title ?? t("context.unknownBook")}
+                      {book?.title ?? t("agent.unknownBook")}
                     </Body>
                   </button>
                   <div className="flex flex-col gap-1">

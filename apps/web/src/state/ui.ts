@@ -55,7 +55,7 @@ import {
 } from "../features/settings/lib/shortcut-bindings";
 import type { ShortcutBindings } from "../features/settings/lib/shortcuts";
 
-export const topNavs = ["shelf", "context", "stats"] as const;
+export const topNavs = ["shelf", "agent", "stats"] as const;
 
 /**
  * The active top-level surface. Beyond the fixed three, a plugin page occupies

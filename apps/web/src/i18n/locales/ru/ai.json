@@ -106,29 +106,22 @@
   "annotation": {
     "delete": "Удалить"
   },
-  "context": {
+  "agent": {
     "threads": {
       "title": "Треды",
       "new": "Новый диалог",
       "untitled": "Новая беседа",
       "delete": "Удалить тред"
     },
-    "loading": "Загрузка контекста...",
-    "title": "Контекст",
     "unknownBook": "Неизвестная книга",
     "empty": {
       "title": "Пока нет контекста",
       "description": "Здесь появятся выделения и заметки из вашего чтения."
     },
-    "contextItems_one": "{{count}} элемент контекста",
     "contextItems_few": "{{count}} элемента контекста",
     "contextItems_many": "{{count}} элементов контекста",
-    "contextItems_other": "{{count}} элемента контекста",
-    "books_one": "{{count}} книга",
     "books_few": "{{count}} книги",
     "books_many": "{{count}} книг",
-    "books_other": "{{count}} книги",
-    "summary": "{{items}} · {{books}}",
     "annotations": {
       "title": "Выделения и заметки"
     },

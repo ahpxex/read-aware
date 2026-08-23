@@ -57,7 +57,7 @@ export type CommandActions = {
   openBook: (book: LibraryBook) => void;
   openCollection: (id: string) => void;
   goShelf: () => void;
-  goContext: () => void;
+  goAgent: () => void;
   goStats: () => void;
   openSettings: () => void;
   importBook: () => void;
@@ -117,15 +117,15 @@ export function buildCommands(
       perform: ctx.goStats,
     });
   }
-  if (ctx.activeTopNav !== "context") {
+  if (ctx.activeTopNav !== "agent") {
     items.push({
       id: "go-context",
       kind: "action",
       group: "goto",
-      title: t("actions.goContext.title"),
-      keywords: t("actions.goContext.keywords"),
+      title: t("actions.goAgent.title"),
+      keywords: t("actions.goAgent.keywords"),
       icon: icon(ChatCircleDots),
-      perform: ctx.goContext,
+      perform: ctx.goAgent,
     });
   }
   items.push({

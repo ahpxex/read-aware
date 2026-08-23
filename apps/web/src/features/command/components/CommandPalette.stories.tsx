@@ -79,7 +79,7 @@ const ctx: CommandContext = {
   openBook: noop,
   openCollection: noop,
   goShelf: noop,
-  goContext: noop,
+  goAgent: noop,
   goStats: noop,
   openSettings: noop,
   importBook: noop,

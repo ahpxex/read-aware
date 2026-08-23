@@ -106,23 +106,18 @@
   "annotation": {
     "delete": "删除"
   },
-  "context": {
+  "agent": {
     "threads": {
       "title": "线程",
       "new": "创建新对话",
       "untitled": "新对话",
       "delete": "删除线程"
     },
-    "loading": "正在加载上下文…",
-    "title": "上下文",
     "unknownBook": "未知书籍",
     "empty": {
       "title": "还没有上下文",
       "description": "你阅读时的高亮和笔记会显示在这里。"
     },
-    "contextItems_other": "{{count}} 个上下文条目",
-    "books_other": "{{count}} 本书",
-    "summary": "{{items}}，来自 {{books}}",
     "annotations": {
       "title": "高亮与笔记"
     },

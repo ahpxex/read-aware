@@ -106,23 +106,18 @@
   "annotation": {
     "delete": "削除"
   },
-  "context": {
+  "agent": {
     "threads": {
       "title": "スレッド",
       "new": "新しい会話",
       "untitled": "新しい会話",
       "delete": "スレッドを削除"
     },
-    "loading": "コンテキストを読み込み中...",
-    "title": "コンテキスト",
     "unknownBook": "不明な本",
     "empty": {
       "title": "まだコンテキストがありません",
       "description": "読書中のハイライトやメモがここに表示されます。"
     },
-    "contextItems_other": "{{count}}件のコンテキスト項目",
-    "books_other": "{{count}}冊の本",
-    "summary": "{{books}}で{{items}}",
     "annotations": {
       "title": "ハイライトとメモ"
     },

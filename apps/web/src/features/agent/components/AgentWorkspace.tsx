@@ -12,7 +12,7 @@ import { ChatTranscript } from "../../ai/components/ChatTranscript";
 import { useGlobalConversation } from "../../ai/hooks/useGlobalConversation";
 import { activeGlobalThreadAtom } from "../../ai/state/global-thread";
 
-export function ContextWorkspace() {
+export function AgentWorkspace() {
   const activeThreadId = useAtomValue(activeGlobalThreadAtom);
   const conversation = useGlobalConversation(activeThreadId);
   const composerRef = useRef<ChatComposerHandle | null>(null);

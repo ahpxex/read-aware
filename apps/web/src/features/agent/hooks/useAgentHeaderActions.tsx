@@ -4,7 +4,7 @@ import { IconButton, Tooltip } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import type { LibraryBook } from "../../library/lib/library-types";
 import type { HeaderActionEntry } from "../../navigation/lib/header-actions";
-import { contextHeaderActionClass } from "../lib/context-header-action";
+import { agentHeaderActionClass } from "../lib/agent-header-action";
 
 // Entry METADATA (ids, labels, icons) must exist synchronously for the
 // header's collapse math; only the popovers themselves are code-split.
@@ -25,7 +25,7 @@ const AnnotationsPopover = lazy(() =>
  * collapse independently into the dots menu on narrow windows — the popover
  * widgets ride along as `node` entries and open from the menu panel.
  */
-export function useContextHeaderActions({
+export function useAgentHeaderActions({
   books,
   onOpenBook,
   onNewConversation,
@@ -40,19 +40,19 @@ export function useContextHeaderActions({
     {
       id: "context:new-conversation",
       inline: (
-        <Tooltip content={t("context.threads.new")} side="bottom">
+        <Tooltip content={t("agent.threads.new")} side="bottom">
           <IconButton
             size="sm"
-            label={t("context.threads.new")}
+            label={t("agent.threads.new")}
             onClick={onNewConversation}
-            className={contextHeaderActionClass}
+            className={agentHeaderActionClass}
             icon={<Plus size={16} weight="regular" aria-hidden="true" />}
           />
         </Tooltip>
       ),
       overflow: {
         id: "context:new-conversation",
-        label: t("context.threads.new"),
+        label: t("agent.threads.new"),
         icon: <Plus size={16} weight="regular" aria-hidden="true" />,
         run: onNewConversation,
       },
@@ -66,7 +66,7 @@ export function useContextHeaderActions({
       ),
       overflow: {
         id: "context:threads",
-        label: t("context.threads.title"),
+        label: t("agent.threads.title"),
         icon: <ChatsCircle size={16} weight="regular" aria-hidden="true" />,
         node: (
           <Suspense fallback={null}>
@@ -84,7 +84,7 @@ export function useContextHeaderActions({
       ),
       overflow: {
         id: "context:annotations",
-        label: t("context.annotations.title"),
+        label: t("agent.annotations.title"),
         icon: <Notebook size={16} weight="regular" aria-hidden="true" />,
         node: (
           <Suspense fallback={null}>

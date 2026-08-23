@@ -25,7 +25,7 @@ const threads: ConversationSummary[] = [
  * Stories render it open, since the closed state is one icon.
  */
 const meta = {
-  title: "Interface/Context/ThreadsPopover",
+  title: "Interface/Agent/ThreadsPopover",
   component: ThreadsPopoverView,
   parameters: { layout: "centered" },
   args: {

@@ -4,7 +4,7 @@ import { seed, withAtoms } from "../../../story-support/atoms";
 import { ContextWorkspace } from "./ContextWorkspace";
 
 /**
- * The Context page: the home of the global, cross-book thread.
+ * The Agent page: the home of the global, cross-book thread.
  *
  * The page *is* the chat — there is no sidebar. Switching and creating threads
  * happens in the header's popovers, and the active thread reaches this surface
@@ -16,7 +16,7 @@ import { ContextWorkspace } from "./ContextWorkspace";
  * streaming states.
  */
 const meta = {
-  title: "Interface/Context/ContextWorkspace",
+  title: "Interface/Agent/AgentWorkspace",
   component: ContextWorkspace,
   parameters: { layout: "fullscreen" },
   decorators: [

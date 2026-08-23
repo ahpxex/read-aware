@@ -14,6 +14,11 @@ import { ChatPanel } from "./ChatPanel";
  * conversation store over Tauri IPC, so it renders empty here; `ChatTranscript`
  * and `ChatComposer` carry the message and streaming states in their own
  * stories.
+ *
+ * Hence only two stories. The panel's other props — the book title, the live
+ * reading cursor — change nothing you can see: the title belongs to the note
+ * panel's chrome, and the cursor is sampled at send time. Stories for them
+ * rendered byte-identical markup, which is worse than no story at all.
  */
 const meta = {
   title: "Interface/AI/ChatPanel",
@@ -33,34 +38,15 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /** A fresh book thread: empty transcript, composer ready. */
-export const Empty: Story = {};
+export const Default: Story = {};
 
 /**
- * The host reports the panel was just *opened* — and only that gesture puts the
- * caret in the composer. It is deliberately not a "panel is visible" flag: the
- * panel also returns to view whenever dismissed reader chrome comes back, and
- * focusing there would raise a phone's keyboard over a page the reader only
- * meant to look at.
+ * The one state this panel alone can show. The host reports the panel was just
+ * *opened*, and only that gesture puts the caret in the composer — it is
+ * deliberately not a "panel is visible" flag, because the panel also returns to
+ * view whenever dismissed reader chrome comes back, and focusing there would
+ * raise a phone's keyboard over a page the reader only meant to look at.
  */
-export const OpenedByTheReader: Story = {
+export const FocusedOnOpen: Story = {
   args: { focusRequestId: 1 },
-};
-
-/** With a live reading cursor, which rides along with the next question. */
-export const WithReadingCursor: Story = {
-  args: {
-    readingCursor: {
-      text: "I was the shadow of the waxwing slain by the false azure in the windowpane.",
-      chapterHref: "poem.xhtml",
-      chapterLabel: "Pale Fire: A Poem in Four Cantos",
-      fraction: 0.13,
-    } as never,
-  },
-};
-
-/** A long book title, which the panel must not let overflow its measure. */
-export const LongBookTitle: Story = {
-  args: {
-    bookTitle: "The Annals of the Former World: A Geological History of North America",
-  },
 };

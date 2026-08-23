@@ -52,7 +52,7 @@ const annotations: Annotation[] = [
 ];
 
 /**
- * Cross-book annotation browsing, as a header popover — the Context page's
+ * Cross-book annotation browsing, as a header popover — the Agent page's
  * counterpart to the reader's own notes popover, and deliberately the same
  * interaction and row styling.
  *
@@ -60,7 +60,7 @@ const annotations: Annotation[] = [
  * back into that book.
  */
 const meta = {
-  title: "Interface/Context/AnnotationsPopover",
+  title: "Interface/Agent/AnnotationsPopover",
   component: AnnotationsPopoverView,
   parameters: { layout: "centered" },
   args: {

@@ -227,7 +227,7 @@ export const WindowsChromeNarrow: Story = {
   ],
 };
 
-/** The Context (Agent) page. */
+/** The Agent page. */
 export const Context: Story = {
   args: { activeTopNav: "context" },
 };
@@ -268,7 +268,7 @@ export const WithLeadingStatus: Story = {
   },
 };
 
-/** The Context page's own actions, which replace the utility cluster wholesale. */
+/** The Agent page's own actions, which replace the utility cluster wholesale. */
 export const WithConversationActions: Story = {
   args: { activeTopNav: "context", actions: conversationActions },
 };

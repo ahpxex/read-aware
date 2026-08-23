@@ -9,8 +9,24 @@ const PASSAGE: ChatSelectionAttachment = {
   chapterHref: "chapter-2.xhtml",
 };
 
-// The composer draws its own top border and padding — the frame only supplies
-// the panel width it normally sits at the bottom of.
+// Long enough to overflow the attachment chip's three-line clamp.
+const LONG_PASSAGE: ChatSelectionAttachment = {
+  kind: "selection",
+  text: "It is a simple two-step process: decide the type of person you want to be, then prove it to yourself with small wins. Your habits are how you embody your identity — when you make your bed each day, you embody the identity of an organized person; when you write each day, you embody the identity of a creative person. The more you repeat a behavior, the more you reinforce the identity associated with that behavior.",
+  cfiRange: "epubcfi(/6/8!/4/2/22,/1:0,/3:118)",
+  chapterHref: "chapter-2.xhtml",
+};
+
+/**
+ * The composer, including the attachment chip.
+ *
+ * The chip has no stories of its own: it never appears alone — it is either
+ * pending in this composer (removable) or read-only on a sent turn, which is
+ * `ChatMessageItem`'s UserTurnWithAttachment.
+ *
+ * The composer draws its own top border and padding — the frame only supplies
+ * the panel width it normally sits at the bottom of.
+ */
 const meta = {
   title: "Interface/AI/ChatComposer",
   component: ChatComposer,
@@ -44,4 +60,13 @@ export const Streaming: Story = {
 /** A passage pulled in via "Ask AI about this": the chip above the input, removable before sending. */
 export const WithPendingAttachment: Story = {
   args: { pendingAttachment: PASSAGE },
+};
+
+/**
+ * A long passage. The chip clamps to three lines and keeps its remove button
+ * pinned top-right, so the composer cannot be pushed off screen by a greedy
+ * selection.
+ */
+export const WithLongAttachment: Story = {
+  args: { pendingAttachment: LONG_PASSAGE },
 };

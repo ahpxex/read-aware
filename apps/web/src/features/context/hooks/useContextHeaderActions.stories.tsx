@@ -21,7 +21,7 @@ const book: LibraryBook = {
 };
 
 /**
- * The Context page's header actions: new conversation, the thread switcher, and
+ * The Agent page's header actions: new conversation, the thread switcher, and
  * the annotations browser.
  *
  * They are *atomized* rather than one cluster, which is the point of the hook:
@@ -35,7 +35,7 @@ const book: LibraryBook = {
  * `AnnotationsPopoverView` carry the populated states.
  */
 const meta = {
-  title: "Interface/Context/ContextHeaderActions",
+  title: "Interface/Agent/AgentHeaderActions",
   parameters: { layout: "padded" },
 } satisfies Meta;
 

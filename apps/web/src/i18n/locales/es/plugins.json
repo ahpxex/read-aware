@@ -48,7 +48,6 @@
     "permissionName": {
       "reader_modes": "Modos de lectura",
       "ui_themes": "Temas",
-      "ui_appearance": "Cambiar temas",
       "shelf_read": "Leer estantería",
       "shelf_write": "Gestionar estantería",
       "annotations_read": "Leer anotaciones",
@@ -62,7 +61,6 @@
     "permission": {
       "reader_modes": "Añadir un modo de lectura guiada renderizado por la aplicación",
       "ui_themes": "Ofrecer temas para la aplicación y la lectura, con fuentes incluidas, que solo se aplican al seleccionarlos",
-      "ui_appearance": "Cambiar el tema que la aplicación y la página del libro usan ahora",
       "shelf_read": "Leer tu estantería: libros, colecciones, texto de capítulos y estadísticas de lectura",
       "shelf_write": "Gestionar tu estantería: añadir, editar y eliminar libros y colecciones",
       "annotations_read": "Leer tus subrayados, notas y preguntas",

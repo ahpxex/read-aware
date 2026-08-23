@@ -48,7 +48,6 @@
     "permissionName": {
       "reader_modes": "Lesemodi",
       "ui_themes": "Themes",
-      "ui_appearance": "Themes wechseln",
       "shelf_read": "Regal lesen",
       "shelf_write": "Regal verwalten",
       "annotations_read": "Anmerkungen lesen",
@@ -62,7 +61,6 @@
     "permission": {
       "reader_modes": "Einen von der App gerenderten geführten Lesemodus hinzufügen",
       "ui_themes": "App- und Lesethemen mit mitgelieferten Schriften anbieten, die erst bei Auswahl gelten",
-      "ui_appearance": "Das Theme ändern, das App und Buchseite gerade verwenden",
       "shelf_read": "Regal lesen: Bücher, Sammlungen, Kapiteltext und Lesestatistiken",
       "shelf_write": "Regal verwalten: Bücher und Sammlungen hinzufügen, bearbeiten und entfernen",
       "annotations_read": "Markierungen, Notizen und gestellte Fragen lesen",

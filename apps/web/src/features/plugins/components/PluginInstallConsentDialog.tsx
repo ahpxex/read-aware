@@ -14,6 +14,11 @@ export function PluginInstallConsentDialog() {
   const request = useAtomValue(pluginInstallConsentAtom);
   const manifest = request?.manifest;
   const permissions = manifest?.permissions ?? [];
+  const settingsAccess = manifest?.settingsAccess;
+  const settingGrants = (["discover", "read", "write"] as const).flatMap(
+    (operation) =>
+      (settingsAccess?.[operation] ?? []).map((path) => ({ operation, path })),
+  );
 
   return (
     <Dialog
@@ -37,17 +42,29 @@ export function PluginInstallConsentDialog() {
           </p>
 
           <div className="flex flex-col gap-1.5">
-            {permissions.length === 0 ? (
+            {permissions.length === 0 && settingGrants.length === 0 ? (
               <Caption className="text-fg-subtle">{t("settings.noPermissions")}</Caption>
             ) : (
-              permissions.map((permission) => (
-                <div key={permission} className="flex items-baseline gap-2">
-                  <Badge className="shrink-0 text-[11px]">{t(permissionNameKey(permission) as never)}</Badge>
-                  <span className="font-sans text-xs leading-5 text-fg-muted">
-                    {t(permissionLabelKey(permission) as never)}
-                  </span>
-                </div>
-              ))
+              <>
+                {permissions.map((permission) => (
+                  <div key={permission} className="flex items-baseline gap-2">
+                    <Badge className="shrink-0 text-[11px]">{t(permissionNameKey(permission) as never)}</Badge>
+                    <span className="font-sans text-xs leading-5 text-fg-muted">
+                      {t(permissionLabelKey(permission) as never)}
+                    </span>
+                  </div>
+                ))}
+                {settingGrants.map(({ operation, path }) => (
+                  <div key={`${operation}:${path}`} className="flex items-baseline gap-2">
+                    <Badge className="shrink-0 text-[11px]">
+                      {t(`settings.settingsAccess.${operation}` as never)}
+                    </Badge>
+                    <span className="font-mono text-xs leading-5 text-fg-muted">
+                      {path}
+                    </span>
+                  </div>
+                ))}
+              </>
             )}
           </div>
 

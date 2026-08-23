@@ -10,7 +10,7 @@
  */
 import { getDefaultStore } from "jotai";
 import { fetch as corsFreeFetch } from "@tauri-apps/plugin-http";
-import type { DomainEventType } from "@read-aware/core";
+import type { DomainEventType, SettingsAccessPolicy } from "@read-aware/core";
 import { DEFAULT_LOCALE, i18n, isAppLocale } from "../../../i18n";
 import { onAppEvent } from "../../../platform/app-events";
 import { exportTextFile } from "../../../platform/export-file";
@@ -23,6 +23,7 @@ import {
 } from "../../../platform/secret-store";
 import {
   LIBRARY_EVENTS,
+  createSettingsDomain,
   createDomainApi,
   type DomainEventSubscribe,
 } from "../../../domain";
@@ -35,12 +36,6 @@ import {
   unbindVirtualBook,
 } from "../lib/virtual-books";
 import { showPluginToast } from "../lib/plugin-toast";
-import {
-  listAppearanceThemes,
-  readAppearanceState,
-  setAppThemePreference,
-  setReaderThemePreference,
-} from "../../settings/lib/appearance-control";
 import { normalizeReaderMode } from "../lib/reader-mode";
 import { registerPluginSchedule } from "./plugin-scheduler";
 import {
@@ -137,7 +132,22 @@ export function buildPluginContext(
   disposables: PluginDisposable[],
 ): PluginContext {
   const permissions = new Set(manifest.permissions ?? []);
-  const domain = createDomainApi(`plugin:${manifest.id}`);
+  const selfOrigin = `plugin:${manifest.id}` as const;
+  const domain = createDomainApi(selfOrigin);
+  const ownSettingsPaths = (manifest.settings ?? [])
+    .filter(
+      (field) =>
+        field.kind !== "secret" &&
+        !(field.kind === "text" && field.inputMode === "password"),
+    )
+    .map((field) => `plugins.${manifest.id}.${field.id}`);
+  const requestedSettings = manifest.settingsAccess ?? {};
+  const settingsAccess: SettingsAccessPolicy = {
+    discover: [...(requestedSettings.discover ?? []), ...ownSettingsPaths],
+    read: [...(requestedSettings.read ?? []), ...ownSettingsPaths],
+    write: [...(requestedSettings.write ?? []), ...ownSettingsPaths],
+  };
+  const settingsDomain = createSettingsDomain(selfOrigin, settingsAccess);
   const storagePrefix = pluginStoragePrefix(manifest.id);
   const track = (disposable: PluginDisposable): PluginDisposable => {
     disposables.push(disposable);
@@ -149,7 +159,6 @@ export function buildPluginContext(
    * Domain `on` returns a bare unsubscribe; plugins get a tracked disposable,
    * plus the `ignoreSelf` option that mutes this plugin's own write echoes.
    */
-  const selfOrigin = `plugin:${manifest.id}`;
   const trackedOn = <E extends DomainEventType>(on: DomainEventSubscribe<E>) =>
     ((
       event: never,
@@ -361,6 +370,23 @@ export function buildPluginContext(
       },
     },
     settings: {
+      discover: settingsDomain.queries.discover,
+      read: settingsDomain.queries.read,
+      update: settingsDomain.commands.update,
+      onChange: (handler, options) =>
+        track({
+          dispose: settingsDomain.events.subscribe((event) => {
+            if (options?.ignoreSelf && event.origin === selfOrigin) return;
+            const report = (error: unknown) =>
+              log.error(`settings handler from "${manifest.id}" failed`, error);
+            try {
+              const result = handler(event) as unknown;
+              if (result instanceof Promise) result.catch(report);
+            } catch (error) {
+              report(error);
+            }
+          }),
+        }),
       provideOptions: (fieldId, provider) => {
         const id = String(fieldId);
         const declared = manifest.settings?.find((field) => field.id === id);
@@ -402,21 +428,6 @@ export function buildPluginContext(
       },
     },
   };
-
-  // ─── Appearance control ───────────────────────────────────────────────────
-  //
-  // Reading is ambient (what the user is looking at is not private data), but
-  // WRITING changes the whole app unprompted, so the pair sits behind one
-  // permission rather than splitting read from write.
-
-  if (permissions.has("ui:appearance")) {
-    ctx.appearance = {
-      listThemes: async () => listAppearanceThemes(),
-      get: async () => readAppearanceState(),
-      setAppTheme: async (value) => setAppThemePreference(value),
-      setReaderTheme: async (value) => setReaderThemePreference(value),
-    };
-  }
 
   // ─── Shelf (books + collections + stats) ──────────────────────────────────
 

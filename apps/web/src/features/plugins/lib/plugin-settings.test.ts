@@ -96,3 +96,56 @@ describe("time settings fields", () => {
     expect(view?.fields[0]).toMatchObject({ value: "21:30" });
   });
 });
+
+describe("settings access manifest", () => {
+  test("accepts exact paths and explicit section groups", () => {
+    const parsed = parseManifestJson(
+      JSON.stringify({
+        id: "theme-schedule",
+        name: "Theme Schedule",
+        version: "1.0.0",
+        settingsAccess: {
+          read: ["appearance.theme"],
+          write: ["appearance.*"],
+        },
+      }),
+    );
+
+    expect(parsed.settingsAccess).toEqual({
+      read: ["appearance.theme"],
+      write: ["appearance.*"],
+    });
+  });
+
+  test("rejects blanket, malformed, and unknown access declarations", () => {
+    for (const settingsAccess of [
+      { write: ["*"] },
+      { read: ["appearance..theme"] },
+      { mutate: ["appearance.theme"] },
+    ]) {
+      expect(() =>
+        parseManifestJson(
+          JSON.stringify({
+            id: "bad-access",
+            name: "Bad Access",
+            version: "1.0.0",
+            settingsAccess,
+          }),
+        ),
+      ).toThrow(/settingsAccess/);
+    }
+  });
+
+  test("the retired appearance permission is no longer accepted", () => {
+    expect(() =>
+      parseManifestJson(
+        JSON.stringify({
+          id: "old-theme-switcher",
+          name: "Old Theme Switcher",
+          version: "1.0.0",
+          permissions: ["ui:appearance"],
+        }),
+      ),
+    ).toThrow(/unknown permission/);
+  });
+});

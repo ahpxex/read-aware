@@ -15,6 +15,8 @@ import { isTimeOfDay } from "./time-of-day";
 export class PluginManifestError extends Error {}
 
 const ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
+const SETTINGS_PATH_PATTERN =
+  /^[a-z][a-zA-Z0-9-]*(?:\.[a-z][a-zA-Z0-9-]*)*(?:\.\*)?$/;
 
 /** Loose semver: "1", "1.2", "1.2.3" (extra labels ignored). */
 function parseVersion(value: string): number[] | null {
@@ -89,6 +91,42 @@ export function validateManifest(raw: unknown): PluginManifest {
       }
     }
     permissions = [...new Set(rawPermissions as PluginPermission[])];
+  }
+
+  let settingsAccess: PluginManifest["settingsAccess"];
+  if (record.settingsAccess != null) {
+    if (
+      typeof record.settingsAccess !== "object" ||
+      record.settingsAccess === null ||
+      Array.isArray(record.settingsAccess)
+    ) {
+      throw new PluginManifestError("manifest.settingsAccess must be an object");
+    }
+    const rawAccess = record.settingsAccess as Record<string, unknown>;
+    const unknown = Object.keys(rawAccess).filter(
+      (key) => key !== "discover" && key !== "read" && key !== "write",
+    );
+    if (unknown.length > 0) {
+      throw new PluginManifestError(
+        `manifest.settingsAccess has unknown operations: ${unknown.join(", ")}`,
+      );
+    }
+    settingsAccess = {};
+    for (const operation of ["discover", "read", "write"] as const) {
+      const paths = rawAccess[operation];
+      if (paths == null) continue;
+      if (
+        !Array.isArray(paths) ||
+        paths.some(
+          (path) => typeof path !== "string" || !SETTINGS_PATH_PATTERN.test(path),
+        )
+      ) {
+        throw new PluginManifestError(
+          `manifest.settingsAccess.${operation} must contain exact setting paths or section.* groups`,
+        );
+      }
+      settingsAccess[operation] = [...new Set(paths as string[])];
+    }
   }
 
   let settings: PluginManifest["settings"];
@@ -237,6 +275,7 @@ export function validateManifest(raw: unknown): PluginManifest {
     author: optionalString(record, "author"),
     minAppVersion: optionalString(record, "minAppVersion"),
     permissions,
+    settingsAccess,
     main,
     settings,
     schedules,

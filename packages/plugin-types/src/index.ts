@@ -58,6 +58,14 @@ import type {
   BookStats,
   NoteItem,
   ReadingStatus,
+  SettingCatalogEntry,
+  SettingChange,
+  SettingReadResult,
+  SettingsAccessPolicy,
+  SettingsChangedEvent,
+  SettingsQuery,
+  SettingsQueryTarget,
+  SettingsUpdateResult,
   StatsOverview,
   ThreadSummary,
 } from "@read-aware/core";
@@ -72,6 +80,14 @@ export type {
   HighlightColor,
   HighlightStyle,
   ReadingStatus,
+  SettingCatalogEntry,
+  SettingChange,
+  SettingReadResult,
+  SettingsAccessPolicy,
+  SettingsChangedEvent,
+  SettingsQuery,
+  SettingsQueryTarget,
+  SettingsUpdateResult,
 };
 
 // ─── Permissions ─────────────────────────────────────────────────────────────
@@ -87,11 +103,7 @@ export type {
  *   manifest. The only UI contribution that needs a permission: unlike
  *   actions and commands it has visual authority over the whole app, so the
  *   install consent must surface it.
- * - `ui:appearance` — read and CHANGE the appearance the user is currently
- *   looking at (app theme, reader page color). Deliberately separate from
- *   `ui:themes`: offering a theme is passive and applies only when the user
- *   picks it, whereas switching one is an unprompted change to the whole
- *   app, so a theme pack must not gain it by association.
+ * - Settings access is declared separately by exact path in `settingsAccess`.
  * - `agent:tools` — register tools on the reading agent.
  * - `service:*` — platform and AI services (network, one-shot LLM,
  *   clipboard).
@@ -102,7 +114,6 @@ export type {
 export const PLUGIN_PERMISSIONS = [
   "reader:modes",
   "ui:themes",
-  "ui:appearance",
   "shelf:read",
   "shelf:write",
   "annotations:read",
@@ -128,6 +139,8 @@ export type PluginManifest = {
   /** Lowest app version the plugin supports, e.g. "0.3.0". */
   minAppVersion?: string;
   permissions?: PluginPermission[];
+  /** Exact Settings Domain paths, or an explicit `section.*` group. */
+  settingsAccess?: SettingsAccessPolicy;
   /** Entry module relative to the plugin folder. Defaults to "main.js". */
   main?: string;
   /**
@@ -356,62 +369,6 @@ export type PluginFontContribution = {
   /** Chooses the generic fallback stack appended after the family. */
   kind?: "sans" | "serif" | "cjk";
   files: PluginFontFile[];
-};
-
-// ─── Appearance control (`ui:appearance`) ────────────────────────────────────
-
-/**
- * Stored app-chrome theme preference: a built-in, or a `plugin:<pluginId>:
- * <themeId>` ref for a theme some enabled plugin declares. `system` follows
- * the OS color scheme.
- */
-export type PluginAppThemeValue = "system" | "light" | "dark" | `plugin:${string}`;
-
-/**
- * Stored book-page color preference. `auto` follows the resolved app theme;
- * `light`/`warm`/`dark` are the built-in page colors; a ref selects a plugin
- * theme's reader palette.
- */
-export type PluginReaderThemeValue =
-  | "auto"
-  | "light"
-  | "warm"
-  | "dark"
-  | `plugin:${string}`;
-
-/** The two independent mount points a theme can be selected on. */
-export type PluginAppearanceSurface = "app" | "reader";
-
-/**
- * One selectable value, as the host's own appearance pickers list it —
- * built-ins first, then every theme enabled plugins contribute, labelled in
- * the app's current language. `polarity` is null for the two values that
- * have none of their own (`system`, `auto`).
- */
-export type PluginAppearanceThemeOption = {
-  value: string;
-  label: string;
-  polarity: PluginThemePolarity | null;
-  /** Where this value may be set — a theme may skin only one surface. */
-  surfaces: PluginAppearanceSurface[];
-  /** Set for plugin-contributed themes (this plugin's or another's). */
-  pluginId?: string;
-  pluginName?: string;
-};
-
-/** What the user is looking at right now. */
-export type PluginAppearanceState = {
-  app: {
-    /** The stored preference, exactly as `setAppTheme` takes it. */
-    theme: PluginAppThemeValue;
-    /** What it currently resolves to — `system` answered against the OS. */
-    polarity: PluginThemePolarity;
-  };
-  reader: {
-    theme: PluginReaderThemeValue;
-    /** `auto` resolved against the app polarity; never `auto` itself. */
-    resolved: Exclude<PluginReaderThemeValue, "auto">;
-  };
 };
 
 /** Returned by every `register*`/`on` call; disposing removes the contribution. */
@@ -1395,12 +1352,15 @@ export type PluginContext = {
   schedule: {
     on(scheduleId: string, run: () => void | Promise<void>): PluginDisposable;
   };
-  /**
-   * Bindings for `manifest.settings`. Like `schedule.on`, the manifest
-   * declares the shape and activate() supplies the behavior the declaration
-   * cannot carry.
-   */
+  /** Product and plugin-owned settings through the shared Settings Domain. */
   settings: {
+    discover(query?: SettingsQuery): Promise<SettingCatalogEntry[]>;
+    read(path: string, target?: SettingsQueryTarget): Promise<SettingReadResult>;
+    update(changes: SettingChange[]): Promise<SettingsUpdateResult>;
+    onChange(
+      handler: (event: SettingsChangedEvent) => void,
+      options?: { ignoreSelf?: boolean },
+    ): PluginDisposable;
     /**
      * Provide the options of a declared select field marked
      * `dynamicOptions: true` (binding any other field throws). Called with
@@ -1438,26 +1398,6 @@ export type PluginContext = {
     modes?: {
       register(mode: PluginReaderMode): PluginDisposable;
     };
-  };
-  /**
-   * `ui:appearance` — read and change the appearance in effect: the app
-   * chrome theme and the reader's page color, the same two preferences
-   * Settings → Appearance and the reader's page-color control write.
-   *
-   * Writes are the user's own selection path, not a parallel one: setting a
-   * reader theme applies that theme's typography preset exactly as picking
-   * it by hand would, and both values persist and roam like any other
-   * preference. A book the user pinned to its own appearance keeps it — a
-   * per-book override outranks the global page color, here as everywhere.
-   */
-  appearance?: {
-    /** Every value the host's pickers offer, labelled in the app's language. */
-    listThemes(): Promise<PluginAppearanceThemeOption[]>;
-    get(): Promise<PluginAppearanceState>;
-    /** Rejects a value `listThemes()` does not offer for the app surface. */
-    setAppTheme(value: PluginAppThemeValue): Promise<void>;
-    /** Rejects a value `listThemes()` does not offer for the reader surface. */
-    setReaderTheme(value: PluginReaderThemeValue): Promise<void>;
   };
   /** Session facts of the open reader (ambient, permission-free). */
   session: {

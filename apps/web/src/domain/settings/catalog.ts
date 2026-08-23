@@ -1,60 +1,62 @@
 import type {
-  AgentSettingDescriptor,
-  AgentSettingOption,
-  AgentSettingValue,
-  AgentSettingsQueryTarget,
-  AgentSettingsSection,
-  AgentSettingsTarget,
-  ThinkingLevel,
-} from "@read-aware/agent";
-import { LOCALES, LOCALE_LABELS } from "../../../../i18n/config";
-import { detectInitialLocale } from "../../../../i18n/detect";
+  SettingDescriptor,
+  SettingOption,
+  SettingValue,
+  SettingsQueryTarget,
+  SettingsSection,
+  SettingsTarget,
+} from "@read-aware/core";
+import type { CustomOpenAIApi, ThinkingLevel } from "@read-aware/agent";
+import { LOCALES, LOCALE_LABELS } from "../../i18n/config";
+import { detectInitialLocale } from "../../i18n/detect";
 import type {
   AppSettings,
   AppThemePreference,
-} from "../../../settings/lib/app-settings";
-import type { AIPreferences } from "../../../settings/lib/ai-preferences";
-import { AI_FEATURE_KEYS } from "../../../settings/lib/ai-preferences";
+} from "../../features/settings/lib/app-settings";
+import type { AIPreferences } from "../../features/settings/lib/ai-preferences";
+import { AI_FEATURE_KEYS } from "../../features/settings/lib/ai-preferences";
 import {
   CURATED_FONTS,
   getCuratedFont,
-} from "../../../settings/lib/curated-font-catalog";
-import type { GeneralSettings } from "../../../settings/lib/general-settings";
-import type { ReaderOverrides } from "../../../settings/lib/reader-overrides";
+} from "../../features/settings/lib/curated-font-catalog";
+import type { GeneralSettings } from "../../features/settings/lib/general-settings";
+import type { ReaderOverrides } from "../../features/settings/lib/reader-overrides";
 import type {
   ReaderFontFamily,
   ReaderSettingsPreferences,
   ReaderThemePreference,
-} from "../../../settings/lib/reader-settings";
-import { applyReaderThemeSelection } from "../../../settings/lib/reader-theme";
-import { builtinThemesFor } from "../../../settings/lib/appearance-control";
-import { contributionText } from "../../../plugins/lib/plugin-i18n";
-import { isTimeOfDay } from "../../../plugins/lib/time-of-day";
+} from "../../features/settings/lib/reader-settings";
+import { applyReaderThemeSelection } from "../../features/settings/lib/reader-theme";
+import { builtinThemesFor } from "../../features/settings/lib/appearance-control";
+import { contributionText } from "../../features/plugins/lib/plugin-i18n";
+import { isTimeOfDay } from "../../features/plugins/lib/time-of-day";
 import {
   findRegisteredByRef,
   toPluginRef,
-} from "../../../plugins/lib/plugin-theme";
+} from "../../features/plugins/lib/plugin-theme";
 import type {
   RegisteredPluginFont,
   RegisteredPluginTheme,
-} from "../../../plugins/lib/plugin-types";
-import { DEFAULT_THINKING_LEVEL, type AIConfig } from "../../lib/ai-config";
-import type { CustomOpenAIApi } from "@read-aware/agent";
+} from "../../features/plugins/lib/plugin-types";
+import {
+  DEFAULT_THINKING_LEVEL,
+  type AIConfig,
+} from "../../features/ai/lib/ai-config";
 import {
   knownSurfaceItems,
   resolvedSurfaceLayout,
   type MenuPluginState,
-} from "../../../menus/lib/agent-menu-items";
+} from "../../features/menus/lib/agent-menu-items";
 import {
   SURFACE_RULES,
   type MenuConfig,
   type MenuSurface,
-} from "../../../menus/state/menu-config";
-import type { AgentPluginSettings } from "../../../plugins/lib/plugin-settings";
+} from "../../features/menus/state/menu-config";
+import type { AgentPluginSettings } from "../../features/plugins/lib/plugin-settings";
 import type {
   PluginFormField,
   PluginFormValues,
-} from "../../../plugins/lib/plugin-types";
+} from "../../features/plugins/lib/plugin-types";
 
 export type SettingsDraft = {
   general: GeneralSettings;
@@ -81,52 +83,52 @@ export type SettingsDraft = {
 
 export type SettingDefinition = {
   path: string;
-  section: AgentSettingsSection;
+  section: SettingsSection;
   label: string;
   description?: string;
-  kind: AgentSettingDescriptor["kind"];
+  kind: SettingDescriptor["kind"];
   nullable?: boolean;
   options?:
-    AgentSettingOption[] | ((draft: SettingsDraft) => AgentSettingOption[]);
-  supportedTargets?: AgentSettingsTarget["kind"][];
+    SettingOption[] | ((draft: SettingsDraft) => SettingOption[]);
+  supportedTargets?: SettingsTarget["kind"][];
   read: (
     draft: SettingsDraft,
-    target: AgentSettingsQueryTarget,
-  ) => AgentSettingValue;
+    target: SettingsQueryTarget,
+  ) => SettingValue;
   write?: (
     draft: SettingsDraft,
-    value: AgentSettingValue,
-    target: AgentSettingsTarget,
+    value: SettingValue,
+    target: SettingsTarget,
   ) => void;
   validate?: (
-    value: AgentSettingValue,
+    value: SettingValue,
     draft: SettingsDraft,
-  ) => AgentSettingValue;
+  ) => SettingValue;
 };
 
-const GLOBAL_TARGETS: AgentSettingsTarget["kind"][] = ["global"];
-const READING_TARGETS: AgentSettingsTarget["kind"][] = [
+const GLOBAL_TARGETS: SettingsTarget["kind"][] = ["global"];
+const READING_TARGETS: SettingsTarget["kind"][] = [
   "global",
   "all-books",
   "book",
 ];
 
 function option(
-  value: AgentSettingValue,
+  value: SettingValue,
   label = String(value),
-): AgentSettingOption {
+): SettingOption {
   return { value, label };
 }
 
-function enumOptions(values: readonly string[]): AgentSettingOption[] {
+function enumOptions(values: readonly string[]): SettingOption[] {
   return values.map((value) => option(value));
 }
 
 /**
  * The agent names theme values in English regardless of the UI language —
  * its settings snapshot is model-facing, not user-facing. The VALUES come
- * from the shared appearance vocabulary (`appearance-control`), so the agent
- * and the `ui:appearance` plugin capability can never offer different sets.
+ * from the shared appearance vocabulary (`appearance-control`), so UI, Agent,
+ * and path-scoped plugin access can never offer different sets.
  */
 const BUILTIN_THEME_LABELS: Record<string, string> = {
   system: "System",
@@ -139,7 +141,7 @@ const BUILTIN_THEME_LABELS: Record<string, string> = {
 function themeOptions(
   draft: SettingsDraft,
   surface: "app" | "reader",
-): AgentSettingOption[] {
+): SettingOption[] {
   return [
     ...builtinThemesFor(surface).map((builtin) => ({
       value: builtin.value,
@@ -159,15 +161,15 @@ function themeOptions(
   ];
 }
 
-function appThemeOptions(draft: SettingsDraft): AgentSettingOption[] {
+function appThemeOptions(draft: SettingsDraft): SettingOption[] {
   return themeOptions(draft, "app");
 }
 
-function readerThemeOptions(draft: SettingsDraft): AgentSettingOption[] {
+function readerThemeOptions(draft: SettingsDraft): SettingOption[] {
   return themeOptions(draft, "reader");
 }
 
-function fontOptions(draft: SettingsDraft): AgentSettingOption[] {
+function fontOptions(draft: SettingsDraft): SettingOption[] {
   return [
     ...CURATED_FONTS.map((font) => option(`curated:${font.id}`, font.label)),
     ...draft.pluginFonts.map((font) => ({
@@ -181,9 +183,9 @@ function fontOptions(draft: SettingsDraft): AgentSettingOption[] {
 
 function enumValue(
   definition: SettingDefinition,
-  value: AgentSettingValue,
+  value: SettingValue,
   draft: SettingsDraft,
-): AgentSettingValue {
+): SettingValue {
   const options =
     typeof definition.options === "function"
       ? definition.options(draft)
@@ -198,9 +200,9 @@ function enumValue(
 
 export function validateSettingValue(
   definition: SettingDefinition,
-  value: AgentSettingValue,
+  value: SettingValue,
   draft: SettingsDraft,
-): AgentSettingValue {
+): SettingValue {
   if (value === null) {
     if (definition.nullable) return value;
     throw new Error(`${definition.path} cannot be null`);
@@ -228,7 +230,7 @@ export function validateSettingValue(
   return value;
 }
 
-function cleanModel(value: AgentSettingValue, path: string): string {
+function cleanModel(value: SettingValue, path: string): string {
   if (typeof value !== "string" || !value.trim()) {
     throw new Error(`${path} must be a non-empty string`);
   }
@@ -236,7 +238,7 @@ function cleanModel(value: AgentSettingValue, path: string): string {
 }
 
 function cleanFontFamily(
-  value: AgentSettingValue,
+  value: SettingValue,
   draft: SettingsDraft,
 ): ReaderFontFamily {
   if (typeof value !== "string") {
@@ -271,7 +273,7 @@ function cleanFontFamily(
 
 function readingPrefs(
   draft: SettingsDraft,
-  target: AgentSettingsQueryTarget,
+  target: SettingsQueryTarget,
 ): ReaderSettingsPreferences {
   if (target.kind !== "book") return draft.reading;
   const override = draft.readerOverrides[target.bookId];
@@ -280,7 +282,7 @@ function readingPrefs(
 
 function writeReading(
   draft: SettingsDraft,
-  target: AgentSettingsTarget,
+  target: SettingsTarget,
   update: (current: ReaderSettingsPreferences) => ReaderSettingsPreferences,
 ): void {
   if (target.kind === "global") {
@@ -304,7 +306,7 @@ function writeReading(
   draft.readerOverrides[bookId] = { scope: "book", settings: update(base) };
 }
 
-function assertThinkingLevel(value: AgentSettingValue): ThinkingLevel {
+function assertThinkingLevel(value: SettingValue): ThinkingLevel {
   const levels: ThinkingLevel[] = [
     "off",
     "minimal",
@@ -425,7 +427,7 @@ const MENU_SURFACES: Array<{
   { surface: "selection", label: "Selection menu" },
 ];
 
-function menuListValue(path: string, value: AgentSettingValue): string[] {
+function menuListValue(path: string, value: SettingValue): string[] {
   if (
     !Array.isArray(value) ||
     value.some((entry) => typeof entry !== "string")

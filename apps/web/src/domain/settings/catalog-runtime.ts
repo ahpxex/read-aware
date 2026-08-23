@@ -1,26 +1,26 @@
 import type {
-  AgentSettingChange,
-  AgentSettingDescriptor,
-  AgentSettingOption,
-  AgentSettingsOverrideSummary,
-  AgentSettingsQuery,
-  AgentSettingsSection,
-  AgentSettingsSnapshot,
-  AgentSettingsTarget,
-} from "@read-aware/agent";
+  SettingChange,
+  SettingDescriptor,
+  SettingOption,
+  SettingsOverrideSummary,
+  SettingsQuery,
+  SettingsSection,
+  SettingsSnapshot,
+  SettingsTarget,
+} from "@read-aware/core";
 import {
   buildSettingDefinitions,
   validateSettingValue,
   type SettingDefinition,
   type SettingsDraft,
-} from "./settings-catalog";
+} from "./catalog";
 
-export type { SettingsDraft } from "./settings-catalog";
+export type { SettingsDraft } from "./catalog";
 
 function definitionOptions(
   definition: SettingDefinition,
   draft: SettingsDraft,
-): AgentSettingOption[] | undefined {
+): SettingOption[] | undefined {
   if (!definition.options) return undefined;
   return typeof definition.options === "function"
     ? definition.options(draft)
@@ -29,8 +29,8 @@ function definitionOptions(
 
 function activeOverrides(
   draft: SettingsDraft,
-  section?: AgentSettingsSection,
-): AgentSettingsOverrideSummary[] {
+  section?: SettingsSection,
+): SettingsOverrideSummary[] {
   if (section && section !== "reading") return [];
   const paths = buildSettingDefinitions(draft)
     .filter((definition) => definition.section === "reading")
@@ -42,8 +42,8 @@ function activeOverrides(
 
 export function settingsSnapshotFromDraft(
   draft: SettingsDraft,
-  query: AgentSettingsQuery = {},
-): AgentSettingsSnapshot {
+  query: SettingsQuery = {},
+): SettingsSnapshot {
   const target = query.target ?? { kind: "global" as const };
   if (target.kind === "book" && query.section && query.section !== "reading") {
     throw new Error("book targets are available only for reading settings");
@@ -57,7 +57,7 @@ export function settingsSnapshotFromDraft(
         target.kind === "global" ||
         definition.supportedTargets?.includes("book"),
     )
-    .map<AgentSettingDescriptor>((definition) => {
+    .map<SettingDescriptor>((definition) => {
       const options = definitionOptions(definition, draft);
       return {
         path: definition.path,
@@ -134,14 +134,14 @@ function mutableFingerprint(draft: SettingsDraft): string {
   });
 }
 
-function targetKey(target: AgentSettingsTarget): string {
+function targetKey(target: SettingsTarget): string {
   return target.kind === "book" ? `book:${target.bookId}` : target.kind;
 }
 
 export function applySettingChangesToDraft(
   source: SettingsDraft,
-  changes: AgentSettingChange[],
-): { draft: SettingsDraft; changed: AgentSettingChange[] } {
+  changes: SettingChange[],
+): { draft: SettingsDraft; changed: SettingChange[] } {
   if (changes.length === 0) {
     throw new Error("at least one settings change is required");
   }
@@ -150,7 +150,7 @@ export function applySettingChangesToDraft(
     buildSettingDefinitions(draft).map((entry) => [entry.path, entry]),
   );
   const seen = new Set<string>();
-  const changed: AgentSettingChange[] = [];
+  const changed: SettingChange[] = [];
 
   for (const change of changes) {
     const definition = definitions.get(change.path);
@@ -163,7 +163,7 @@ export function applySettingChangesToDraft(
       );
     }
     const requestedTarget = change.target ?? { kind: "global" as const };
-    const target: AgentSettingsTarget =
+    const target: SettingsTarget =
       requestedTarget.kind === "book"
         ? { kind: "book", bookId: requestedTarget.bookId.trim() }
         : requestedTarget;

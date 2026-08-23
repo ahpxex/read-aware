@@ -48,7 +48,6 @@
     "permissionName": {
       "reader_modes": "阅读模式",
       "ui_themes": "主题",
-      "ui_appearance": "切换主题",
       "shelf_read": "读取书架",
       "shelf_write": "管理书架",
       "annotations_read": "读取标注",
@@ -62,7 +61,6 @@
     "permission": {
       "reader_modes": "添加由应用渲染并控制引导导航的阅读模式",
       "ui_themes": "提供应用与阅读页主题（可附带字体），仅在你选用后生效",
-      "ui_appearance": "直接更改应用与阅读页当前使用的主题",
       "shelf_read": "读取书架：书籍、分组、章节全文与阅读统计",
       "shelf_write": "管理书架：添加、编辑与删除书籍和分组",
       "annotations_read": "读取高亮、笔记与提问记录",

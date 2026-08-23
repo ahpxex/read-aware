@@ -1,5 +1,5 @@
 /** Single runtime registry for every active product domain. */
-import type { DomainEventType, EventOrigin } from "@read-aware/core";
+import type { EventOrigin } from "@read-aware/core";
 import { createAnnotationsDomain } from "./annotations";
 import { createConversationsDomain } from "./conversations";
 import {
@@ -10,6 +10,7 @@ import {
 } from "./events";
 import { createLibraryDomain } from "./library";
 import { createReadingDomain } from "./reading";
+import { createSettingsDomain } from "./settings/domain";
 
 type DomainSurface = {
   queries: object;
@@ -18,7 +19,7 @@ type DomainSurface = {
 };
 
 type DomainDefinition<TSurface extends DomainSurface = DomainSurface> = {
-  events: readonly DomainEventType[];
+  events: readonly string[];
   create(origin: EventOrigin): TSurface;
   pluginAccess: readonly DomainAccess[];
 };
@@ -51,6 +52,12 @@ export const DOMAIN_REGISTRY = defineDomainRegistry({
     events: CONVERSATION_EVENTS,
     create: createConversationsDomain,
     pluginAccess: ["read"],
+  },
+  settings: {
+    events: ["settings.changed"],
+    create: createSettingsDomain,
+    // Settings is granted by exact paths, not a blanket domain grant.
+    pluginAccess: [],
   },
 });
 

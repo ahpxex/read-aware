@@ -43,6 +43,10 @@ export {
   type ConversationsDomain,
 } from "./conversations";
 export {
+  createSettingsDomain,
+  type SettingsDomain,
+} from "./settings/domain";
+export {
   ANNOTATION_EVENTS,
   CONVERSATION_EVENTS,
   LIBRARY_EVENTS,

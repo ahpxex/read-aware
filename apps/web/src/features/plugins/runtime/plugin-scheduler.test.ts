@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { isScheduleDue } from "./plugin-scheduler";
+import {
+  inspectPluginSchedules,
+  isScheduleDue,
+  registerPluginSchedule,
+} from "./plugin-scheduler";
 
 const NOW = Date.parse("2026-08-05T12:00:00Z");
 const minutesAgo = (minutes: number) =>
@@ -25,5 +29,25 @@ describe("isScheduleDue", () => {
   test("garbled or future stamps never wedge the task", () => {
     expect(isScheduleDue("not-a-date", 60, NOW)).toBe(true);
     expect(isScheduleDue(minutesAgo(-120), 60, NOW)).toBe(true);
+  });
+});
+
+describe("schedule registration lifecycle", () => {
+  test("a stale disposable cannot remove a replacement schedule", () => {
+    const first = registerPluginSchedule(
+      "test-plugin",
+      { id: "refresh", label: "Refresh", everyMinutes: 60 },
+      () => {},
+    );
+    const second = registerPluginSchedule(
+      "test-plugin",
+      { id: "refresh", label: "Refresh", everyMinutes: 60 },
+      () => {},
+    );
+
+    first.dispose();
+    expect(inspectPluginSchedules()).toContain("test-plugin:refresh");
+    second.dispose();
+    expect(inspectPluginSchedules()).not.toContain("test-plugin:refresh");
   });
 });

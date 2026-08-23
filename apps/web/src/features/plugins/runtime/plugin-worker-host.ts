@@ -36,7 +36,8 @@ type WorkerMessage =
   | { t: "call"; id: number; method: string; args: unknown[] }
   | { t: "storage"; op: "set" | "remove"; key: string; value?: string }
   | { t: "result"; id: number; ok: true; value: unknown }
-  | { t: "result"; id: number; ok: false; error: string };
+  | { t: "result"; id: number; ok: false; error: string }
+  | { t: "healthy"; id: number };
 
 /** A `{ __fn: handle }` marker the Worker put where a function used to be. */
 type FnRef = { __fn: string };
@@ -45,7 +46,17 @@ const isFnRef = (value: unknown): value is FnRef =>
 
 export type SandboxedPlugin = {
   manifest: PluginManifest;
+  checkHealth(): Promise<void>;
   terminate(): Promise<void>;
+};
+
+export type StartPluginWorkerOptions = {
+  /** Alternate entry URL for a separately staged update candidate. */
+  moduleUrl?: string;
+  /** Distinguishes two simultaneous versions of one plugin. */
+  instanceId?: string;
+  /** Candidate failures must not overwrite the installed version's status. */
+  onRuntimeError?: (message: string) => void;
 };
 
 // ─── Host → worker state sync ────────────────────────────────────────────────
@@ -56,21 +67,24 @@ export type SandboxedPlugin = {
 // the app language switching), every live sandbox gets a `sync` patch, or
 // its mirror silently serves boot-time values forever.
 
-const liveWorkers = new Map<string, Worker>();
+const liveWorkers = new Map<string, { pluginId: string; worker: Worker }>();
 let syncWired = false;
 
 function wireHostSync(): void {
   if (syncWired) return;
   syncWired = true;
   onAppEvent("plugin-storage-changed", ({ pluginId }) => {
-    liveWorkers.get(pluginId)?.postMessage({
-      t: "sync",
-      patch: { storage: localKV.entries(pluginStoragePrefix(pluginId)) },
-    });
+    for (const live of liveWorkers.values()) {
+      if (live.pluginId !== pluginId) continue;
+      live.worker.postMessage({
+        t: "sync",
+        patch: { storage: localKV.entries(pluginStoragePrefix(pluginId)) },
+      });
+    }
   });
   i18n.on("languageChanged", () => {
     const locale = currentAppLocale();
-    for (const worker of liveWorkers.values()) {
+    for (const { worker } of liveWorkers.values()) {
       worker.postMessage({ t: "sync", patch: { locale } });
     }
   });
@@ -189,13 +203,15 @@ export function startPluginWorker(
   manifest: PluginManifest,
   appVersion: string,
   disposables: PluginDisposable[],
+  options: StartPluginWorkerOptions = {},
 ): Promise<SandboxedPlugin> {
   const worker = new Worker(new URL("./plugin-sandbox.worker.ts", import.meta.url), {
     type: "module",
     name: `plugin:${manifest.id}`,
   });
+  const instanceId = options.instanceId ?? manifest.id;
   wireHostSync();
-  liveWorkers.set(manifest.id, worker);
+  liveWorkers.set(instanceId, { pluginId: manifest.id, worker });
   const ctx = buildPluginContext(manifest, appVersion, disposables);
 
   let nextInvokeId = 1;
@@ -203,10 +219,22 @@ export function startPluginWorker(
     number,
     { resolve: (value: unknown) => void; reject: (error: Error) => void }
   >();
+  let nextHealthId = 1;
+  const pendingHealth = new Map<
+    number,
+    { resolve: () => void; reject: (error: Error) => void; timeout: ReturnType<typeof setTimeout> }
+  >();
   /** A dead worker answers nothing — fail its in-flight calls, don't strand them. */
   const failAllInvokes = (reason: string) => {
     for (const pending of pendingInvokes.values()) pending.reject(new Error(reason));
     pendingInvokes.clear();
+  };
+  const failAllHealthChecks = (reason: string) => {
+    for (const pending of pendingHealth.values()) {
+      clearTimeout(pending.timeout);
+      pending.reject(new Error(reason));
+    }
+    pendingHealth.clear();
   };
   /** Call a function the plugin kept inside the Worker. */
   const invokeHandle = (handle: string, args: unknown[]): Promise<unknown> => {
@@ -251,6 +279,14 @@ export function startPluginWorker(
 
   return new Promise<SandboxedPlugin>((resolve, reject) => {
     let settled = false;
+    const activationTimeout = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      liveWorkers.delete(instanceId);
+      worker.terminate();
+      failAllInvokes(`plugin "${manifest.id}" activation timed out`);
+      reject(new Error("plugin activation timed out"));
+    }, 10_000);
 
     worker.onerror = (event) => {
       if (settled) {
@@ -259,11 +295,14 @@ export function startPluginWorker(
         // settings panel shows it.
         const message = event.message || "plugin crashed at runtime";
         log.error(`runtime error in "${manifest.id}"`, message);
-        updateInstalledPlugin(manifest.id, { error: message });
+        failAllHealthChecks(message);
+        if (options.onRuntimeError) options.onRuntimeError(message);
+        else updateInstalledPlugin(manifest.id, { error: message });
         return;
       }
       settled = true;
-      liveWorkers.delete(manifest.id);
+      clearTimeout(activationTimeout);
+      liveWorkers.delete(instanceId);
       worker.terminate();
       reject(new Error(event.message || "plugin worker failed to start"));
     };
@@ -274,10 +313,27 @@ export function startPluginWorker(
         case "ready":
           if (!settled) {
             settled = true;
+            clearTimeout(activationTimeout);
             resolve({
               manifest,
+              checkHealth() {
+                const id = nextHealthId++;
+                return new Promise<void>((healthResolve, healthReject) => {
+                  const timeout = setTimeout(() => {
+                    pendingHealth.delete(id);
+                    healthReject(new Error("plugin health check timed out"));
+                  }, 2_000);
+                  pendingHealth.set(id, {
+                    resolve: healthResolve,
+                    reject: healthReject,
+                    timeout,
+                  });
+                  worker.postMessage({ t: "health", id });
+                });
+              },
               async terminate() {
-                liveWorkers.delete(manifest.id);
+                const live = liveWorkers.get(instanceId);
+                if (live?.worker === worker) liveWorkers.delete(instanceId);
                 worker.postMessage({ t: "deactivate" });
                 // Give deactivate() a moment to run its own cleanup, then take
                 // the realm down regardless — a plugin must not be able to
@@ -285,6 +341,7 @@ export function startPluginWorker(
                 await new Promise((done) => setTimeout(done, 50));
                 worker.terminate();
                 failAllInvokes(`plugin "${manifest.id}" was deactivated`);
+                failAllHealthChecks(`plugin "${manifest.id}" was deactivated`);
               },
             });
           }
@@ -293,7 +350,8 @@ export function startPluginWorker(
         case "failed":
           if (!settled) {
             settled = true;
-            liveWorkers.delete(manifest.id);
+            clearTimeout(activationTimeout);
+            liveWorkers.delete(instanceId);
             worker.terminate();
             failAllInvokes(`plugin "${manifest.id}" failed to start`);
             reject(new Error(message.error));
@@ -374,12 +432,21 @@ export function startPluginWorker(
           else pending.reject(new Error(message.error));
           return;
         }
+
+        case "healthy": {
+          const pending = pendingHealth.get(message.id);
+          if (!pending) return;
+          pendingHealth.delete(message.id);
+          clearTimeout(pending.timeout);
+          pending.resolve();
+          return;
+        }
       }
     };
 
     worker.postMessage({
       t: "boot",
-      url: pluginModuleUrl(manifest.id, manifest.main ?? "main.js"),
+      url: options.moduleUrl ?? pluginModuleUrl(manifest.id, manifest.main ?? "main.js"),
       manifest,
       appVersion,
       shape: describeContext(ctx),

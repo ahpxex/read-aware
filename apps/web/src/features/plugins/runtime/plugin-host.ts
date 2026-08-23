@@ -41,7 +41,11 @@ import {
   type PluginDiskEntry,
   type PluginFilePayload,
 } from "./plugin-backend";
-import { startPluginWorker, type SandboxedPlugin } from "./plugin-worker-host";
+import {
+  startPluginWorker,
+  type SandboxedPlugin,
+  type StartPluginWorkerOptions,
+} from "./plugin-worker-host";
 import { onAppEvent } from "../../../platform/app-events";
 import { unbindVirtualBook } from "../lib/virtual-books";
 
@@ -143,24 +147,52 @@ export async function initializePlugins(): Promise<void> {
 async function activatePlugin(manifest: PluginManifest): Promise<void> {
   if (active.has(manifest.id)) return;
   try {
-    if (manifest.minAppVersion && !versionSatisfies(appVersion, manifest.minAppVersion)) {
-      throw new Error(`requires app version ${manifest.minAppVersion} or newer`);
-    }
-    const installed = getInstalled().find((plugin) => plugin.manifest.id === manifest.id);
-    if (manifest.permissions?.includes("reader:modes") && !installed?.builtin) {
-      throw new Error("reader:modes is currently reserved for built-in plugins");
-    }
-    const disposables: PluginDisposable[] = [];
-    const sandbox = await startPluginWorker(manifest, appVersion, disposables);
-    // Declarative manifest contributions (themes, bundled fonts) register
-    // host-side — the sandbox never sees them. After the worker start so a
-    // failed activation registers nothing.
-    registerManifestContributions(manifest, disposables);
-    active.set(manifest.id, { manifest, sandbox, disposables });
+    active.set(manifest.id, await startPluginInstance(manifest));
     updateInstalledPlugin(manifest.id, { error: undefined });
   } catch (error) {
     log.error(`activation of "${manifest.id}" failed`, error);
     updateInstalledPlugin(manifest.id, { error: errorMessage(error) });
+  }
+}
+
+function assertManifestCanActivate(manifest: PluginManifest): void {
+  if (manifest.minAppVersion && !versionSatisfies(appVersion, manifest.minAppVersion)) {
+    throw new Error(`requires app version ${manifest.minAppVersion} or newer`);
+  }
+  const installed = getInstalled().find((plugin) => plugin.manifest.id === manifest.id);
+  if (manifest.permissions?.includes("reader:modes") && !installed?.builtin) {
+    throw new Error("reader:modes is currently reserved for built-in plugins");
+  }
+}
+
+/**
+ * Construct one fully healthy runtime instance or leave no registrations
+ * behind. This is also the primitive used by the update candidate path.
+ */
+async function startPluginInstance(
+  manifest: PluginManifest,
+  options: StartPluginWorkerOptions = {},
+): Promise<ActivePlugin> {
+  assertManifestCanActivate(manifest);
+  const disposables: PluginDisposable[] = [];
+  let sandbox: SandboxedPlugin | undefined;
+  try {
+    sandbox = await startPluginWorker(manifest, appVersion, disposables, options);
+    registerManifestContributions(manifest, disposables);
+    await sandbox.checkHealth();
+    return { manifest, sandbox, disposables };
+  } catch (error) {
+    for (const disposable of [...disposables].reverse()) {
+      try {
+        disposable.dispose();
+      } catch (disposeError) {
+        log.error(`activation rollback for "${manifest.id}" failed`, disposeError);
+      }
+    }
+    await sandbox?.terminate().catch((terminateError) => {
+      log.error(`activation sandbox rollback for "${manifest.id}" failed`, terminateError);
+    });
+    throw error;
   }
 }
 
@@ -211,6 +243,11 @@ async function deactivatePlugin(id: string): Promise<void> {
   const entry = active.get(id);
   if (!entry) return;
   active.delete(id);
+  await stopPluginInstance(entry);
+}
+
+async function stopPluginInstance(entry: ActivePlugin): Promise<void> {
+  const id = entry.manifest.id;
   for (const disposable of entry.disposables) {
     try {
       disposable.dispose();

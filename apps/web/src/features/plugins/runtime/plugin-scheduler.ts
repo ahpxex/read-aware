@@ -37,6 +37,11 @@ type ScheduledTask = {
 const tasks = new Map<string, ScheduledTask>();
 let loopStarted = false;
 
+/** Runtime introspection for diagnostics and lifecycle verification. */
+export function inspectPluginSchedules(): string[] {
+  return [...tasks.keys()].sort();
+}
+
 function runsKey(pluginId: string): string {
   return `read-aware-plugin.${pluginId}.schedule-runs`;
 }
@@ -110,13 +115,18 @@ export function registerPluginSchedule(
   run: () => void | Promise<void>,
 ): PluginDisposable {
   const key = `${pluginId}:${declaration.id}`;
-  tasks.set(key, {
+  const task: ScheduledTask = {
     pluginId,
     scheduleId: declaration.id,
     everyMinutes: Math.max(declaration.everyMinutes, MIN_SCHEDULE_MINUTES),
     run,
     running: false,
-  });
+  };
+  tasks.set(key, task);
   ensureLoop();
-  return { dispose: () => void tasks.delete(key) };
+  return {
+    dispose: () => {
+      if (tasks.get(key) === task) tasks.delete(key);
+    },
+  };
 }

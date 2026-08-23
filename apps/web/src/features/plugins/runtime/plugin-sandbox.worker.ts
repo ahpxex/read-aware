@@ -40,6 +40,7 @@ type HostMessage =
   | { t: "sync"; patch: { storage?: Record<string, string>; locale?: string } }
   | { t: "result"; id: number; ok: true; value: unknown }
   | { t: "result"; id: number; ok: false; error: string }
+  | { t: "health"; id: number }
   | { t: "deactivate" };
 
 type WorkerMessage =
@@ -49,7 +50,8 @@ type WorkerMessage =
   | { t: "call"; id: number; method: string; args: unknown[] }
   | { t: "storage"; op: "set" | "remove"; key: string; value?: string }
   | { t: "result"; id: number; ok: true; value: unknown }
-  | { t: "result"; id: number; ok: false; error: string };
+  | { t: "result"; id: number; ok: false; error: string }
+  | { t: "healthy"; id: number };
 
 const post = (message: WorkerMessage) => self.postMessage(message);
 
@@ -373,6 +375,11 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
       pendingCalls.delete(message.id);
       if (message.ok) pending.resolve(message.value);
       else pending.reject(new Error(message.error));
+      return;
+    }
+
+    case "health": {
+      post({ t: "healthy", id: message.id });
       return;
     }
 

@@ -1,10 +1,10 @@
 /** Canonical roster of product domains that may be exposed programmatically. */
 export const DOMAIN_CATALOG = {
-  library: { pluginAccess: ["read", "write"] },
-  reading: { pluginAccess: ["read", "write"] },
-  annotations: { pluginAccess: ["read", "write"] },
-  conversations: { pluginAccess: ["read"] },
-  settings: { pluginAccess: [] },
+  library: { version: "1.0.0", pluginAccess: ["read", "write"] },
+  reading: { version: "1.0.0", pluginAccess: ["read", "write"] },
+  annotations: { version: "1.0.0", pluginAccess: ["read", "write"] },
+  conversations: { version: "1.0.0", pluginAccess: ["read"] },
+  settings: { version: "1.0.0", pluginAccess: [] },
 } as const;
 
 export type DomainId = keyof typeof DOMAIN_CATALOG;

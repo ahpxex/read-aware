@@ -15,6 +15,7 @@ function plugin(
       id,
       name,
       version: "1.2.0",
+      requires: {},
       author: "ReadAware",
       description: `${name} — a first-party plugin.`,
       permissions: ["service:network"],

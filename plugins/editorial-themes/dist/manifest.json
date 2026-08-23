@@ -3,6 +3,13 @@
   "name": "Editorial Themes",
   "version": "1.0.0",
   "minAppVersion": "0.3.0",
+  "requires": {
+    "contributions": {
+      "themes": "^1.0.0",
+      "fonts": "^1.0.0"
+    },
+    "schemas": { "themes": "^1.0.0" }
+  },
   "description": "Two editorial themes for the whole app and the book page — Gutenberg, an aged-paper light theme, and Nocturne, a quiet ink-blue dark theme — set in the EB Garamond book face.",
   "author": "ReadAware",
   "permissions": ["ui:themes"],

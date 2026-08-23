@@ -3,6 +3,18 @@
   "name": "TTS Voices",
   "version": "0.5.0",
   "minAppVersion": "0.3.0",
+  "requires": {
+    "contributions": {
+      "settingsOptions": "^1.0.0",
+      "voiceProviders": "^1.0.0"
+    },
+    "services": {
+      "storage": "^1.0.0",
+      "secrets": "^1.0.0",
+      "network": "^1.0.0"
+    },
+    "schemas": { "settings": "^1.0.0" }
+  },
   "description": "Read-aloud voices from cloud and local TTS engines: ElevenLabs, Fish Audio, OpenAI, or any OpenAI-compatible endpoint (Kokoro, Piper, LocalAI…).",
   "author": "ReadAware",
   "permissions": [

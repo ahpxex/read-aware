@@ -3,6 +3,21 @@
   "name": "Dictionary",
   "version": "1.1.0",
   "minAppVersion": "0.3.0",
+  "requires": {
+    "contributions": {
+      "selectionActions": "^1.0.0",
+      "headerActions": "^1.0.0",
+      "commands": "^1.0.0",
+      "agentTools": "^1.0.0"
+    },
+    "services": {
+      "storage": "^1.0.0",
+      "ui": "^1.0.0",
+      "session": "^1.0.0",
+      "llm": "^1.0.0"
+    },
+    "schemas": { "views": "^1.0.0" }
+  },
   "description": "Look up words while you read, save them, and revisit full dictionary entries on a searchable timeline.",
   "author": "ReadAware",
   "permissions": [

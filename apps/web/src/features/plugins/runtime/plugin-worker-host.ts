@@ -146,7 +146,7 @@ function resolveMethod(
 export type ContextShape = { [key: string]: "fn" | ContextShape };
 
 /** Data (not callables) the Worker mirrors locally to keep sync reads sync. */
-const SHAPE_SKIP = new Set(["manifest", "appVersion", "locale"]);
+const SHAPE_SKIP = new Set(["manifest", "appVersion", "locale", "capabilities"]);
 
 function describeShape(value: unknown, depth = 0): ContextShape {
   const shape: ContextShape = {};
@@ -449,6 +449,7 @@ export function startPluginWorker(
       url: options.moduleUrl ?? pluginModuleUrl(manifest.id, manifest.main ?? "main.js"),
       manifest,
       appVersion,
+      capabilities: ctx.capabilities,
       shape: describeContext(ctx),
       storage: localKV.entries(pluginStoragePrefix(manifest.id)),
       locale: ctx.locale,

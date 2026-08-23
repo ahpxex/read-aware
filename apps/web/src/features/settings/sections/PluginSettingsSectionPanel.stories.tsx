@@ -6,6 +6,7 @@ const manifest: PluginManifest = {
   id: "story-dictionary",
   name: "Dictionary",
   version: "1.4.0",
+  requires: {},
   author: "ReadAware",
   description: "Look up words while reading and keep a vocabulary notebook.",
   permissions: ["annotations:write", "service:network"],

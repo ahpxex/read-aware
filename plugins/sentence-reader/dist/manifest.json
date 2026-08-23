@@ -3,6 +3,11 @@
   "name": "Sentence Reader",
   "version": "1.1.0",
   "minAppVersion": "0.3.0",
+  "requires": {
+    "contributions": { "readerModes": "^1.0.0" },
+    "services": { "storage": "^1.0.0" },
+    "schemas": { "settings": "^1.0.0" }
+  },
   "description": "Read reflowable books one sentence or paragraph at a time with guided focus and step controls.",
   "author": "ReadAware",
   "permissions": ["reader:modes"],

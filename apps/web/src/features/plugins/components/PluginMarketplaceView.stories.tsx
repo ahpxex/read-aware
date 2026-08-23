@@ -40,7 +40,13 @@ const entries: MarketplaceEntry[] = [
 function installed(id: string, version: string, builtin = false): InstalledPlugin {
   const entry = entries.find((e) => e.id === id)!;
   return {
-    manifest: { id: entry.id, name: entry.name, version, permissions: entry.permissions },
+    manifest: {
+      id: entry.id,
+      name: entry.name,
+      version,
+      requires: {},
+      permissions: entry.permissions,
+    },
     enabled: true,
     builtin,
   };

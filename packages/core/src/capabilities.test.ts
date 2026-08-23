@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   PLUGIN_PERMISSIONS,
+  HOST_CAPABILITY_CATALOG,
   canUseContribution,
   canUseHostService,
   permissionForContribution,
@@ -42,5 +43,13 @@ describe("plugin capability catalog", () => {
     expect(canUseHostService("storage", permissions)).toBe(true);
     expect(canUseHostService("network", permissions)).toBe(true);
     expect(canUseHostService("llm", permissions)).toBe(false);
+  });
+
+  test("versions every independently negotiable capability", () => {
+    for (const family of Object.values(HOST_CAPABILITY_CATALOG)) {
+      for (const capability of Object.values(family)) {
+        expect(capability.version).toMatch(/^\d+\.\d+\.\d+$/);
+      }
+    }
   });
 });

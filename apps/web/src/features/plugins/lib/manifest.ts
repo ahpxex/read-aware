@@ -4,9 +4,14 @@
  * human-readable reason (surfaced in settings and at install time).
  */
 import {
+  HOST_CAPABILITY_CATALOG,
+} from "@read-aware/core";
+import { validRange } from "semver";
+import {
   MIN_SCHEDULE_MINUTES,
   PLUGIN_PERMISSIONS,
   type PluginManifest,
+  type PluginCapabilityRequirements,
   type PluginPermission,
 } from "./plugin-types";
 import { validateFontContributions, validateThemeContributions } from "./plugin-theme";
@@ -58,6 +63,50 @@ function optionalString(raw: Record<string, unknown>, field: string): string | u
   return value.trim() || undefined;
 }
 
+function validateCapabilityRequirements(raw: unknown): PluginCapabilityRequirements {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    throw new PluginManifestError("manifest.requires must be an object");
+  }
+  const record = raw as Record<string, unknown>;
+  const families = Object.keys(HOST_CAPABILITY_CATALOG) as Array<
+    keyof PluginCapabilityRequirements
+  >;
+  const unknownFamilies = Object.keys(record).filter(
+    (family) => !families.includes(family as keyof PluginCapabilityRequirements),
+  );
+  if (unknownFamilies.length > 0) {
+    throw new PluginManifestError(
+      `manifest.requires has unknown families: ${unknownFamilies.join(", ")}`,
+    );
+  }
+
+  const requirements: Record<string, Record<string, string>> = {};
+  for (const family of families) {
+    const requested = record[family];
+    if (requested == null) continue;
+    if (typeof requested !== "object" || Array.isArray(requested)) {
+      throw new PluginManifestError(`manifest.requires.${family} must be an object`);
+    }
+    const catalog = HOST_CAPABILITY_CATALOG[family] as Record<string, { version: string }>;
+    const ranges: Record<string, string> = {};
+    for (const [id, range] of Object.entries(requested as Record<string, unknown>)) {
+      if (!(id in catalog)) {
+        throw new PluginManifestError(
+          `manifest.requires.${family} contains unknown capability "${id}"`,
+        );
+      }
+      if (typeof range !== "string" || validRange(range) === null) {
+        throw new PluginManifestError(
+          `manifest.requires.${family}.${id} must be a valid semver range`,
+        );
+      }
+      ranges[id] = range;
+    }
+    requirements[family] = ranges;
+  }
+  return requirements as PluginCapabilityRequirements;
+}
+
 export function validateManifest(raw: unknown): PluginManifest {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
     throw new PluginManifestError("manifest.json must be a JSON object");
@@ -76,6 +125,7 @@ export function validateManifest(raw: unknown): PluginManifest {
   if (!parseVersion(version)) {
     throw new PluginManifestError(`manifest.version "${version}" is not a version number`);
   }
+  const requires = validateCapabilityRequirements(record.requires);
 
   let permissions: PluginPermission[] | undefined;
   const rawPermissions = record.permissions;
@@ -274,6 +324,7 @@ export function validateManifest(raw: unknown): PluginManifest {
     description: optionalString(record, "description"),
     author: optionalString(record, "author"),
     minAppVersion: optionalString(record, "minAppVersion"),
+    requires,
     permissions,
     settingsAccess,
     main,

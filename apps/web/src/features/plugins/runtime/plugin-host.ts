@@ -57,6 +57,7 @@ import {
 import { onAppEvent } from "../../../platform/app-events";
 import { unbindVirtualBook } from "../lib/virtual-books";
 import { runPluginUpdateTransaction } from "./plugin-update-transaction";
+import { assertPluginCapabilityRequirements } from "./plugin-capabilities";
 
 const log = createLogger("plugins");
 
@@ -123,7 +124,7 @@ export async function initializePlugins(): Promise<void> {
     } catch (error) {
       // Keep the broken folder visible in settings instead of hiding it.
       installed.push({
-        manifest: { id: entry.id, name: entry.id, version: "0.0.0" },
+        manifest: { id: entry.id, name: entry.id, version: "0.0.0", requires: {} },
         enabled: false,
         error: errorMessage(error),
       });
@@ -169,6 +170,7 @@ function assertManifestCanActivate(manifest: PluginManifest): void {
   if (manifest.minAppVersion && !versionSatisfies(appVersion, manifest.minAppVersion)) {
     throw new Error(`requires app version ${manifest.minAppVersion} or newer`);
   }
+  assertPluginCapabilityRequirements(manifest);
   const installed = getInstalled().find((plugin) => plugin.manifest.id === manifest.id);
   if (manifest.permissions?.includes("reader:modes") && !installed?.builtin) {
     throw new Error("reader:modes is currently reserved for built-in plugins");

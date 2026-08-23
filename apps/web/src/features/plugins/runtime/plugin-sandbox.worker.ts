@@ -32,6 +32,7 @@ type HostMessage =
       url: string;
       manifest: PluginManifest;
       appVersion: string;
+      capabilities: PluginContext["capabilities"];
       shape: ContextShape;
       storage: Record<string, string>;
       locale: string;
@@ -159,6 +160,7 @@ let appLocale = "";
 function buildContext(
   manifest: PluginManifest,
   appVersion: string,
+  capabilities: PluginContext["capabilities"],
   shape: ContextShape,
 ): PluginContext {
   const { __collection: collectionShape = {}, ...namespaces } = shape;
@@ -168,6 +170,7 @@ function buildContext(
 
   ctx.manifest = manifest;
   ctx.appVersion = appVersion;
+  ctx.capabilities = capabilities;
   // Mirrored locally (boot + sync patches) so the read stays synchronous.
   Object.defineProperty(ctx, "locale", { get: () => appLocale, enumerable: true });
 
@@ -319,7 +322,14 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
         if (!plugin || typeof plugin.activate !== "function") {
           throw new Error("entry module must default-export an object with activate()");
         }
-        await plugin.activate(buildContext(message.manifest, message.appVersion, message.shape));
+        await plugin.activate(
+          buildContext(
+            message.manifest,
+            message.appVersion,
+            message.capabilities,
+            message.shape,
+          ),
+        );
         post({ t: "ready" });
       } catch (error) {
         post({ t: "failed", error: error instanceof Error ? error.message : String(error) });

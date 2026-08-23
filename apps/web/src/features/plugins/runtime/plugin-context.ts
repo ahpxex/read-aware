@@ -42,6 +42,7 @@ import {
 import { showPluginToast } from "../lib/plugin-toast";
 import { normalizeReaderMode } from "../lib/reader-mode";
 import { registerPluginSchedule } from "./plugin-scheduler";
+import { resolvePluginCapabilities } from "./plugin-capabilities";
 import {
   contributionKey,
   type PluginContext,
@@ -189,6 +190,7 @@ export function buildPluginContext(
     get locale() {
       return currentAppLocale();
     },
+    capabilities: resolvePluginCapabilities(manifest),
     domains: {
       settings: {
         queries: {

@@ -54,6 +54,9 @@ import type {
   DomainEventType,
   DomainId,
   DomainPermission,
+  DeclarativeSchemaId,
+  ContributionId,
+  HostServiceId,
   PluginPermission as CorePluginPermission,
   EventOrigin,
   HighlightColor,
@@ -83,6 +86,9 @@ export type {
   DomainEventType,
   DomainId,
   DomainPermission,
+  DeclarativeSchemaId,
+  ContributionId,
+  HostServiceId,
   EventOrigin,
   HighlightColor,
   HighlightStyle,
@@ -123,6 +129,20 @@ export type PluginPermission = CorePluginPermission;
 /** Runtime validation list, derived from the canonical capability catalogs. */
 export const PLUGIN_PERMISSIONS = CORE_PLUGIN_PERMISSIONS;
 
+export type PluginCapabilityRequirements = {
+  domains?: Partial<Record<DomainId, string>>;
+  contributions?: Partial<Record<ContributionId, string>>;
+  services?: Partial<Record<HostServiceId, string>>;
+  schemas?: Partial<Record<DeclarativeSchemaId, string>>;
+};
+
+export type PluginCapabilityView = {
+  domains: Partial<Record<DomainId, string>>;
+  contributions: Partial<Record<ContributionId, string>>;
+  services: Partial<Record<HostServiceId, string>>;
+  schemas: Partial<Record<DeclarativeSchemaId, string>>;
+};
+
 // ─── Manifest ────────────────────────────────────────────────────────────────
 
 export type PluginManifest = {
@@ -134,6 +154,8 @@ export type PluginManifest = {
   author?: string;
   /** Lowest app version the plugin supports, e.g. "0.3.0". */
   minAppVersion?: string;
+  /** Exact host capability contracts and semver ranges this plugin needs. */
+  requires: PluginCapabilityRequirements;
   permissions?: PluginPermission[];
   /** Exact Settings Domain paths, or an explicit `section.*` group. */
   settingsAccess?: SettingsAccessPolicy;
@@ -1394,6 +1416,8 @@ export type PluginContext = {
   readonly manifest: Readonly<PluginManifest>;
   readonly appVersion: string;
   readonly locale: string;
+  /** Only capabilities visible to this plugin actor, with host-side versions. */
+  readonly capabilities: Readonly<PluginCapabilityView>;
   domains: PluginDomains;
   contributions: PluginContributions;
   services: PluginHostServices;

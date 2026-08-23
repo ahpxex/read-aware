@@ -31,6 +31,7 @@ const repoRoot = resolve(import.meta.dir, "..");
 const marketRoot = resolve(process.argv[2] ?? join(repoRoot, "../readaware-plugins"));
 const sourcePath = join(repoRoot, "packages/plugin-types/src/index.ts");
 const coreDomainsPath = join(repoRoot, "packages/core/src/domains.ts");
+const coreCapabilitiesPath = join(repoRoot, "packages/core/src/capabilities.ts");
 const coreSettingsPath = join(repoRoot, "packages/core/src/settings.ts");
 const coreReadModelsPath = join(repoRoot, "packages/core/src/read-models.ts");
 const mirrorPath = join(marketRoot, "types/plugin-api.d.ts");
@@ -93,6 +94,23 @@ const domainPermissions = [...domainSource.matchAll(/pluginAccess: \[([^\]]*)\]/
       (access) => `${domainIds[index]}:${access[1]}`,
     ),
 );
+const capabilitySource = readFileSync(coreCapabilitiesPath, "utf8");
+const catalogIds = (start: string, end: string) =>
+  [...cut(capabilitySource, start, end).matchAll(/^  ([a-z][a-zA-Z]*): \{/gm)].map(
+    (match) => match[1],
+  );
+const contributionIds = catalogIds(
+  "export const CONTRIBUTION_CATALOG = {",
+  "export type ContributionId",
+);
+const hostServiceIds = catalogIds(
+  "export const HOST_SERVICE_CATALOG = {",
+  "export type HostServiceId",
+);
+const declarativeSchemaIds = catalogIds(
+  "export const DECLARATIVE_SCHEMA_CATALOG = {",
+  "export type DeclarativeSchemaId",
+);
 const domainVocabulary = `${GENERATED_CORE} ──────────────────────────────────────
 
 export type Id = string;
@@ -101,6 +119,11 @@ export type DomainId = ${domainIds.map((id) => `"${id}"`).join(" | ")};
 export type DomainAccess = "read" | "write";
 export type DomainPermission = ${domainPermissions
   .map((permission) => `"${permission}"`)
+  .join(" | ")};
+export type ContributionId = ${contributionIds.map((id) => `"${id}"`).join(" | ")};
+export type HostServiceId = ${hostServiceIds.map((id) => `"${id}"`).join(" | ")};
+export type DeclarativeSchemaId = ${declarativeSchemaIds
+  .map((id) => `"${id}"`)
   .join(" | ")};
 
 `;

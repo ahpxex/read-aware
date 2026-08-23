@@ -22,6 +22,7 @@ const manifest: PluginManifest = {
   id: "settings-test",
   name: "Settings Test",
   version: "1.0.0",
+  requires: {},
   settings: [
     { kind: "text", id: "endpoint", label: "Endpoint", value: "https://example.com" },
     { kind: "toggle", id: "enabled", label: "Enabled", value: true },
@@ -72,6 +73,7 @@ describe("time settings fields", () => {
     id: "time-test",
     name: "Time Test",
     version: "1.0.0",
+    requires: {},
     settings: [{ kind: "time", id: "start", label: "Starts at", value: "07:00" }],
   };
 
@@ -104,6 +106,7 @@ describe("settings access manifest", () => {
         id: "theme-schedule",
         name: "Theme Schedule",
         version: "1.0.0",
+        requires: {},
         settingsAccess: {
           read: ["appearance.theme"],
           write: ["appearance.*"],
@@ -129,6 +132,7 @@ describe("settings access manifest", () => {
             id: "bad-access",
             name: "Bad Access",
             version: "1.0.0",
+            requires: {},
             settingsAccess,
           }),
         ),
@@ -143,9 +147,48 @@ describe("settings access manifest", () => {
           id: "old-theme-switcher",
           name: "Old Theme Switcher",
           version: "1.0.0",
+          requires: {},
           permissions: ["ui:appearance"],
         }),
       ),
     ).toThrow(/unknown permission/);
+  });
+});
+
+describe("capability requirements manifest", () => {
+  const base = {
+    id: "requirements-test",
+    name: "Requirements Test",
+    version: "1.0.0",
+  };
+
+  test("requires an explicit capability contract", () => {
+    expect(() => parseManifestJson(JSON.stringify(base))).toThrow(/manifest\.requires/);
+  });
+
+  test("accepts known capabilities with semver ranges", () => {
+    const parsed = parseManifestJson(
+      JSON.stringify({
+        ...base,
+        requires: {
+          domains: { settings: "^1.0.0" },
+          services: { storage: ">=1.0.0 <2" },
+        },
+      }),
+    );
+    expect(parsed.requires.services?.storage).toBe(">=1.0.0 <2");
+  });
+
+  test("rejects unknown capability ids and invalid ranges", () => {
+    expect(() =>
+      parseManifestJson(
+        JSON.stringify({ ...base, requires: { domains: { shelf: "^1.0.0" } } }),
+      ),
+    ).toThrow(/unknown capability/);
+    expect(() =>
+      parseManifestJson(
+        JSON.stringify({ ...base, requires: { services: { storage: "tomorrow" } } }),
+      ),
+    ).toThrow(/semver range/);
   });
 });

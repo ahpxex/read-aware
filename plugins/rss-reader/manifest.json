@@ -3,6 +3,28 @@
   "name": "RSS Reader",
   "version": "0.7.0",
   "minAppVersion": "0.3.0",
+  "requires": {
+    "domains": {
+      "library": "^1.0.0",
+      "reading": "^1.0.0"
+    },
+    "contributions": {
+      "headerActions": "^1.0.0",
+      "commands": "^1.0.0",
+      "contentProviders": "^1.0.0",
+      "agentTools": "^1.0.0"
+    },
+    "services": {
+      "storage": "^1.0.0",
+      "ui": "^1.0.0",
+      "schedules": "^1.0.0",
+      "network": "^1.0.0"
+    },
+    "schemas": {
+      "views": "^1.0.0",
+      "settings": "^1.0.0"
+    }
+  },
   "description": "Subscribe to RSS/Atom feeds and read each one as a book on your shelf — articles become chapters.",
   "author": "ReadAware",
   "permissions": [

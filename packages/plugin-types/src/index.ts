@@ -39,7 +39,7 @@
  *    theme in Settings. Plugins still never hand the host a stylesheet.
  */
 
-import { DOMAIN_PERMISSIONS } from "@read-aware/core";
+import { PLUGIN_PERMISSIONS as CORE_PLUGIN_PERMISSIONS } from "@read-aware/core";
 import type {
   AnnotationItem,
   AskItem,
@@ -54,6 +54,7 @@ import type {
   DomainEventType,
   DomainId,
   DomainPermission,
+  PluginPermission as CorePluginPermission,
   EventOrigin,
   HighlightColor,
   HighlightItem,
@@ -117,24 +118,10 @@ export type {
  * Namespaced storage, UI contributions, session events, and ambient reader
  * control are not permissions — every plugin has them.
  */
-const HOST_PERMISSIONS = [
-  "reader:modes",
-  "ui:themes",
-  "agent:tools",
-  "service:network",
-  "service:llm",
-  "service:clipboard",
-] as const;
+export type PluginPermission = CorePluginPermission;
 
-export type PluginPermission =
-  | DomainPermission
-  | (typeof HOST_PERMISSIONS)[number];
-
-/** Runtime validation list, derived from the canonical Domain Catalog. */
-export const PLUGIN_PERMISSIONS: readonly PluginPermission[] = [
-  ...DOMAIN_PERMISSIONS,
-  ...HOST_PERMISSIONS,
-];
+/** Runtime validation list, derived from the canonical capability catalogs. */
+export const PLUGIN_PERMISSIONS = CORE_PLUGIN_PERMISSIONS;
 
 // ─── Manifest ────────────────────────────────────────────────────────────────
 

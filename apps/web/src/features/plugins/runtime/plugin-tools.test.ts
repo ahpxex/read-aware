@@ -48,17 +48,17 @@ describe("plugin agent tool scopes", () => {
     ]);
     expect(inspectContributions("scope-test")).toEqual([
       {
-        point: "agent-tools",
+        point: "agentTools",
         key: "scope-test:book_only",
         pluginId: "scope-test",
       },
       {
-        point: "agent-tools",
+        point: "agentTools",
         key: "scope-test:global_only",
         pluginId: "scope-test",
       },
       {
-        point: "agent-tools",
+        point: "agentTools",
         key: "scope-test:legacy_both",
         pluginId: "scope-test",
       },

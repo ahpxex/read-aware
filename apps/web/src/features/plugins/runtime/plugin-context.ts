@@ -11,6 +11,8 @@
 import { getDefaultStore } from "jotai";
 import { fetch as corsFreeFetch } from "@tauri-apps/plugin-http";
 import {
+  canUseContribution,
+  canUseHostService,
   domainGrantsFromPermissions,
   type DomainEventType,
   type SettingsAccessPolicy,
@@ -314,7 +316,7 @@ export function buildPluginContext(
             }),
           ),
       },
-      readerModes: permissions.has("reader:modes")
+      readerModes: canUseContribution("readerModes", permissions)
         ? {
             register: (mode) => {
               const normalized = normalizeReaderMode(mode);
@@ -328,7 +330,7 @@ export function buildPluginContext(
             },
           }
         : undefined,
-      agentTools: permissions.has("agent:tools")
+      agentTools: canUseContribution("agentTools", permissions)
         ? {
             register: (tool) =>
               track(
@@ -582,7 +584,7 @@ export function buildPluginContext(
 
   // ─── Services ─────────────────────────────────────────────────────────────
 
-  if (permissions.has("service:network")) {
+  if (canUseHostService("network", permissions)) {
     ctx.services.network = {
       // The Rust HTTP client (tauri-plugin-http), not webview fetch: plugin
       // requests must reach hosts that never heard of CORS. Scope lives in
@@ -591,7 +593,7 @@ export function buildPluginContext(
     };
   }
 
-  if (permissions.has("service:llm")) {
+  if (canUseHostService("llm", permissions)) {
     const ask = async (input: {
       prompt: string;
       system?: string;
@@ -617,7 +619,7 @@ export function buildPluginContext(
     ctx.services.llm = { ask } as PluginContext["services"]["llm"];
   }
 
-  if (permissions.has("service:clipboard")) {
+  if (canUseHostService("clipboard", permissions)) {
     ctx.services.clipboard = {
       writeText: (text) => navigator.clipboard.writeText(String(text)),
     };

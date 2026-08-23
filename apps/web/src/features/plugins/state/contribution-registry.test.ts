@@ -19,7 +19,7 @@ describe("contribution registry", () => {
   });
 
   test("rejects keys outside the declaring plugin namespace", () => {
-    const registry = createContributionRegistry("agent-tools", { catalog: false });
+    const registry = createContributionRegistry("agentTools", { catalog: false });
     expect(() =>
       registry.register({ key: "other:item", pluginId: "test" }),
     ).toThrow(/owned by plugin/);

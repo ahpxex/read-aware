@@ -1,4 +1,5 @@
 import { atom, getDefaultStore, type PrimitiveAtom } from "jotai";
+import type { ContributionId } from "@read-aware/core";
 import type { ContributionKey, PluginDisposable } from "../lib/plugin-types";
 
 export type ContributionIdentity = {
@@ -6,17 +7,7 @@ export type ContributionIdentity = {
   pluginId: string;
 };
 
-export type ContributionPoint =
-  | "selection-actions"
-  | "header-actions"
-  | "reader-modes"
-  | "commands"
-  | "agent-tools"
-  | "themes"
-  | "fonts"
-  | "voice-providers"
-  | "settings-options"
-  | "content-providers";
+export type ContributionPoint = ContributionId;
 
 export type ContributionSnapshot = {
   point: ContributionPoint;

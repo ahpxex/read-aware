@@ -32,21 +32,21 @@ const store = getDefaultStore();
 // ─── Contribution registries ─────────────────────────────────────────────────
 
 const selectionActionsRegistry =
-  createContributionRegistry<RegisteredSelectionAction>("selection-actions");
+  createContributionRegistry<RegisteredSelectionAction>("selectionActions");
 const headerActionsRegistry =
-  createContributionRegistry<RegisteredHeaderAction>("header-actions");
+  createContributionRegistry<RegisteredHeaderAction>("headerActions");
 const readerModesRegistry =
-  createContributionRegistry<RegisteredReaderMode>("reader-modes");
+  createContributionRegistry<RegisteredReaderMode>("readerModes");
 const commandsRegistry =
   createContributionRegistry<RegisteredCommand>("commands");
 const toolsRegistry =
-  createContributionRegistry<RegisteredTool>("agent-tools");
+  createContributionRegistry<RegisteredTool>("agentTools");
 const themesRegistry =
   createContributionRegistry<RegisteredPluginTheme>("themes");
 const fontsRegistry =
   createContributionRegistry<RegisteredPluginFont>("fonts");
 const voiceProvidersRegistry =
-  createContributionRegistry<RegisteredVoiceProvider>("voice-providers");
+  createContributionRegistry<RegisteredVoiceProvider>("voiceProviders");
 
 export const selectionActionsAtom = selectionActionsRegistry.atom;
 export const headerActionsAtom = headerActionsRegistry.atom;
@@ -127,7 +127,7 @@ export type RegisteredSettingsOptions = {
 };
 
 const settingsOptionsRegistry =
-  createContributionRegistry<RegisteredSettingsOptions>("settings-options");
+  createContributionRegistry<RegisteredSettingsOptions>("settingsOptions");
 
 export function registerSettingsOptionsContribution(
   item: RegisteredSettingsOptions,
@@ -153,7 +153,7 @@ export type RegisteredContentProvider = {
 };
 
 const contentProvidersRegistry =
-  createContributionRegistry<RegisteredContentProvider>("content-providers");
+  createContributionRegistry<RegisteredContentProvider>("contentProviders");
 
 export const contentProvidersAtom = contentProvidersRegistry.atom;
 

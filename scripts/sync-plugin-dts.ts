@@ -25,6 +25,7 @@
  */
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { PLUGIN_PERMISSIONS } from "../packages/core/src/capabilities";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const marketRoot = resolve(process.argv[2] ?? join(repoRoot, "../readaware-plugins"));
@@ -65,7 +66,9 @@ const mirrorPrefix = cut(
   "/**\n * MIRROR",
   "/**\n * @read-aware/plugin-types",
 );
-const contractIntro = src.slice(0, src.indexOf("import { DOMAIN_PERMISSIONS"));
+const sourceImports = src.indexOf("import {");
+if (sourceImports < 0) throw new Error("plugin contract import block missing");
+const contractIntro = src.slice(0, sourceImports);
 const baseCoreStart = existingHeader.indexOf(
   "// ─── Inlined @read-aware/core vocabulary",
 );
@@ -112,39 +115,17 @@ const coreReadModels = readFileSync(coreReadModelsPath, "utf8").replace(
 
 // ── Source sections, with the curated transformations ───────────────────────
 let perms = cut(src, "// ─── Permissions", "// ─── Manifest");
+const publicPluginPermissions = PLUGIN_PERMISSIONS.filter(
+  (permission) => permission !== "reader:modes",
+);
 perms = swap(
   perms,
-  `const HOST_PERMISSIONS = [
-  "reader:modes",
-  "ui:themes",
-  "agent:tools",
-  "service:network",
-  "service:llm",
-  "service:clipboard",
-] as const;
+  `export type PluginPermission = CorePluginPermission;
 
-export type PluginPermission =
-  | DomainPermission
-  | (typeof HOST_PERMISSIONS)[number];
-
-/** Runtime validation list, derived from the canonical Domain Catalog. */
-export const PLUGIN_PERMISSIONS: readonly PluginPermission[] = [
-  ...DOMAIN_PERMISSIONS,
-  ...HOST_PERMISSIONS,
-];`,
+/** Runtime validation list, derived from the canonical capability catalogs. */
+export const PLUGIN_PERMISSIONS = CORE_PLUGIN_PERMISSIONS;`,
   `export type PluginPermission =
-  | "ui:themes"
-  | "library:read"
-  | "library:write"
-  | "reading:read"
-  | "reading:write"
-  | "annotations:read"
-  | "annotations:write"
-  | "conversations:read"
-  | "agent:tools"
-  | "service:network"
-  | "service:llm"
-  | "service:clipboard";`,
+${publicPluginPermissions.map((permission) => `  | "${permission}"`).join("\n")};`,
 );
 perms = swap(
   perms,

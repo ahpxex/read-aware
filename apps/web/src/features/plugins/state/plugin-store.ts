@@ -173,10 +173,6 @@ export function updateVoiceProviderVoices(
 }
 
 /** Snapshot lookup for callers outside React's flow (style injection paths). */
-export function getRegisteredPluginFonts(): RegisteredPluginFont[] {
-  return store.get(pluginFontsAtom);
-}
-
 /** Snapshot of the enabled plugins' agent tools (read per agent build). */
 export function getRegisteredPluginTools(): RegisteredTool[] {
   return store.get(pluginToolsAtom);

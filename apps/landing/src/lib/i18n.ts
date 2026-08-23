@@ -37,10 +37,6 @@ export type DocsLocale = Locale;
 
 export const DOCS_LOCALES: readonly DocsLocale[] = LOCALES;
 
-export function isDocsLocale(locale: Locale): locale is DocsLocale {
-  return (DOCS_LOCALES as readonly Locale[]).includes(locale);
-}
-
 /** Blog mirrors exist only in this three-language subset. */
 export type BlogLocale = "en" | "zh" | "ja";
 

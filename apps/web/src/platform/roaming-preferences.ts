@@ -90,8 +90,6 @@ function roamingPolicyFor(key: string): RoamingPolicy | null {
   return null;
 }
 
-export const ROAMING_PREFERENCE_KEYS = Object.keys(ROAMING_POLICIES);
-
 export type RoamingPreferenceKey = string;
 
 // ── Roaming secrets ──────────────────────────────────────────────────────────

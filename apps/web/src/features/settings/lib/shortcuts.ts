@@ -227,10 +227,6 @@ export function chordSignature(chord: KeyChord): string {
     .join("+");
 }
 
-export function chordsEqual(a: KeyChord, b: KeyChord): boolean {
-  return chordSignature(a) === chordSignature(b);
-}
-
 const KEY_LABELS: Record<string, string> = {
   ArrowRight: "→",
   ArrowLeft: "←",

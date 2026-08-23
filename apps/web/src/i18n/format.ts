@@ -63,10 +63,6 @@ export function formatDuration(ms: number): string {
 }
 
 /** Relative day label (`today`, `yesterday`, `3 days ago`, `in 2 days`). */
-export function formatRelativeDays(days: number): string {
-  return new Intl.RelativeTimeFormat(currentLocale(), { numeric: "auto" }).format(days, "day");
-}
-
 /**
  * Localized weekday names indexed by `Date.getDay()` (0 = Sunday … 6 = Saturday).
  * Anchored to a known week in UTC so the labels are deterministic.

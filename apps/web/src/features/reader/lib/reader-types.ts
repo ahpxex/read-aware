@@ -56,12 +56,6 @@ export type ReadingCursor = {
   visibleText?: string;
 };
 
-/** A reading-order content document reference (foliate section index). */
-export type SpineEntry = {
-  href: string;
-  index: number;
-};
-
 /** A nested navigation item as produced by a book's table of contents. */
 export type TocNavItem = {
   id?: string;

@@ -77,11 +77,6 @@ export interface Collection {
   createdAt: string;
 }
 
-export interface StoredBookFile {
-  bookId: string;
-  blob: Blob;
-}
-
 export type ShelfSection = {
   label: string;
   books: LibraryBook[];

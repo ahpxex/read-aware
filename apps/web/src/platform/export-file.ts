@@ -10,8 +10,6 @@ export type FileExport = {
 };
 
 /** Back-compat alias for the text-only days. */
-export type TextFileExport = FileExport;
-
 function safeBasename(filename: string): string {
   const segments = filename.split(/[\\/]/);
   const basename = segments[segments.length - 1] ?? "";

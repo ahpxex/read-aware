@@ -5,18 +5,18 @@
  * the origin stamp and the list invalidation.
  */
 import type { AnnotationsPort } from "@read-aware/agent";
-import { createAnnotationsDomain } from "../../../../domain";
+import { createDomainApi } from "../../../../domain";
 
 export function createAnnotationsPort(): AnnotationsPort {
-  const annotations = createAnnotationsDomain("agent");
+  const annotations = createDomainApi("agent").annotations;
   return {
     listAnnotations: async (filter) =>
-      annotations.list({
+      annotations.queries.list({
         bookId: filter?.bookId ? String(filter.bookId) : undefined,
         query: filter?.query,
       }),
     createHighlight: async ({ bookId, text, anchor, chapter, color }) =>
-      annotations.createHighlight({
+      annotations.commands.createHighlight({
         bookId: String(bookId),
         text,
         anchor: anchor ?? null,
@@ -24,31 +24,32 @@ export function createAnnotationsPort(): AnnotationsPort {
         color,
       }),
     recolorHighlight: (highlightId, color) =>
-      annotations.recolorHighlight(String(highlightId), color),
+      annotations.commands.recolorHighlight(String(highlightId), color),
     createNote: async ({ bookId, body, quotedText, anchor, chapter }) =>
-      annotations.createNote({
+      annotations.commands.createNote({
         bookId: String(bookId),
         body,
         quotedText,
         anchor: anchor ?? null,
         chapterHref: chapter ?? null,
       }),
-    updateNote: (noteId, body) => annotations.updateNote(String(noteId), body),
+    updateNote: (noteId, body) =>
+      annotations.commands.updateNote(String(noteId), body),
     removeAnnotation: async (annotationId) => {
-      const target = (await annotations.list()).find(
+      const target = (await annotations.queries.list()).find(
         (annotation) => annotation.id === String(annotationId),
       );
       if (!target) throw new Error(`annotation not found: ${annotationId}`);
       if (target.kind === "highlight") {
-        await annotations.removeHighlight(String(annotationId));
+        await annotations.commands.removeHighlight(String(annotationId));
       } else if (target.kind === "note") {
-        await annotations.removeNote(String(annotationId));
+        await annotations.commands.removeNote(String(annotationId));
       } else {
-        await annotations.removeAsk(String(annotationId));
+        await annotations.commands.removeAsk(String(annotationId));
       }
     },
     recordAsk: async ({ bookId, question, anchor, chapter }) => {
-      await annotations.createAsk({
+      await annotations.commands.createAsk({
         bookId: String(bookId),
         text: question,
         anchor: anchor ?? null,

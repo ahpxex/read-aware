@@ -76,13 +76,15 @@ function bumpAnnotationsRevision(): void {
   store.set(annotationsRevisionAtom, store.get(annotationsRevisionAtom) + 1);
 }
 
-export type AnnotationsDomain = {
+export type AnnotationQueries = {
   list(filter?: {
     bookId?: string;
     kind?: "highlight" | "note" | "ask";
     query?: string;
   }): Promise<AnnotationItem[]>;
-  on: DomainEventSubscribe<(typeof ANNOTATION_EVENTS)[number]>;
+};
+
+export type AnnotationCommands = {
   createHighlight(input: {
     bookId: string;
     text: string;
@@ -116,6 +118,14 @@ export type AnnotationsDomain = {
   removeAsk(askId: string): Promise<void>;
 };
 
+export type AnnotationsDomain = {
+  queries: AnnotationQueries;
+  commands: AnnotationCommands;
+  events: {
+    subscribe: DomainEventSubscribe<(typeof ANNOTATION_EVENTS)[number]>;
+  };
+};
+
 export function createAnnotationsDomain(origin: EventOrigin): AnnotationsDomain {
   const requireHighlight = async (id: string) => {
     const existing = await getAnnotation(String(id));
@@ -132,7 +142,7 @@ export function createAnnotationsDomain(origin: EventOrigin): AnnotationsDomain 
     return existing;
   };
 
-  return {
+  const queries: AnnotationQueries = {
     list: async (filter) =>
       (
         await listAnnotations({
@@ -141,7 +151,9 @@ export function createAnnotationsDomain(origin: EventOrigin): AnnotationsDomain 
           searchQuery: filter?.query,
         })
       ).map(toAnnotationItem),
-    on: domainSubscribe(ANNOTATION_EVENTS, origin),
+  };
+
+  const commands: AnnotationCommands = {
     createHighlight: async (input) => {
       const highlight = await createHighlight(
         String(input.bookId),
@@ -208,5 +220,11 @@ export function createAnnotationsDomain(origin: EventOrigin): AnnotationsDomain 
       await deleteAnnotation(String(askId), origin);
       bumpAnnotationsRevision();
     },
+  };
+
+  return {
+    queries,
+    commands,
+    events: { subscribe: domainSubscribe(ANNOTATION_EVENTS, origin) },
   };
 }

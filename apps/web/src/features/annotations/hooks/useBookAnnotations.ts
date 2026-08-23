@@ -37,9 +37,13 @@ export function useBookAnnotations(bookId: string | null | undefined) {
       const target = annotations.find((a) => a.id === id);
       if (!target) return;
       // Domain commands own the revision bump and the origin stamp.
-      if (target.type === "highlight") await userDomain.annotations.removeHighlight(id);
-      else if (target.type === "note") await userDomain.annotations.removeNote(id);
-      else await userDomain.annotations.removeAsk(id);
+      if (target.type === "highlight") {
+        await userDomain.annotations.commands.removeHighlight(id);
+      } else if (target.type === "note") {
+        await userDomain.annotations.commands.removeNote(id);
+      } else {
+        await userDomain.annotations.commands.removeAsk(id);
+      }
       setAnnotations((prev) => prev.filter((a) => a.id !== id));
     },
     [annotations],

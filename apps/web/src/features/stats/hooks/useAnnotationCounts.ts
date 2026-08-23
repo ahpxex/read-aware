@@ -38,7 +38,7 @@ export function useAnnotationCounts(): AnnotationCounts {
   const refresh = useCallback(async () => {
     setIsLoading(true);
     try {
-      const all = await userDomain.annotations.list();
+      const all = await userDomain.annotations.queries.list();
       const byBook = new Map<string, BookAnnotationCounts>();
       let notes = 0;
       let highlights = 0;

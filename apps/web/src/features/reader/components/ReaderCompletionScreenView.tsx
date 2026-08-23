@@ -105,7 +105,7 @@ export function ReaderCompletionScreenView({
   const toggleFinished = useCallback(() => {
     const next = !finished;
     onFinishedChange(next);
-    void userDomain.shelf.books.setFinished(book.id, next).catch(() => {
+    void userDomain.reading.commands.setFinished(book.id, next).catch(() => {
       // Revert the optimistic flip if the store refused the write.
       onFinishedChange(!next);
     });

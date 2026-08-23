@@ -1,11 +1,11 @@
 /**
  * LibraryPort — the agent's BookOverview is a composition of two canonical
- * domain read models (BookSummary × BookStats), joined here from the shelf
- * domain. Field names and semantics stay canonical (progressPercent 0..100).
+ * domain read models (BookSummary x BookStats), joined from Library and
+ * Reading. Field names and semantics stay canonical (progressPercent 0..100).
  */
 import type { BookOverview, LibraryPort } from "@read-aware/agent";
 import type { BookStats, BookSummary, Id } from "@read-aware/core";
-import { createShelfDomain } from "../../../../domain";
+import { createDomainApi } from "../../../../domain";
 import { commitDomainEvents } from "../../../../platform/domain-events";
 
 function toOverview(book: BookSummary, state: BookStats | undefined): BookOverview {
@@ -26,10 +26,13 @@ function toOverview(book: BookSummary, state: BookStats | undefined): BookOvervi
 }
 
 export function createLibraryPort(): LibraryPort {
-  const shelf = createShelfDomain("agent");
+  const { library, reading } = createDomainApi("agent");
 
   const listOverviews = async (): Promise<BookOverview[]> => {
-    const [summaries, states] = await Promise.all([shelf.books.list(), shelf.stats.list()]);
+    const [summaries, states] = await Promise.all([
+      library.queries.books.list(),
+      reading.queries.stats.list(),
+    ]);
     const stateByBook = new Map(states.map((state) => [state.bookId, state]));
     return summaries.map((book) => toOverview(book, stateByBook.get(book.id)));
   };
@@ -38,15 +41,19 @@ export function createLibraryPort(): LibraryPort {
     listBooks: listOverviews,
     getBook: async (bookId) =>
       (await listOverviews()).find((book) => book.id === String(bookId)),
-    listCollections: () => shelf.collections.list(),
+    listCollections: () => library.queries.collections.list(),
     booksInCollection: async (collectionId) =>
-      (await shelf.collections.booksIn(collectionId)).map((bookId) => bookId as Id),
-    getBookStats: async (bookId) => (await shelf.stats.forBook(String(bookId))) ?? undefined,
-    listBookStats: () => shelf.stats.list(),
-    getStatsOverview: () => shelf.stats.overview(),
-    editBookMetadata: (bookId, patch) => shelf.books.editMetadata(String(bookId), patch),
-    setBookStarred: (bookId, starred) => shelf.books.setStarred(String(bookId), starred),
-    setBookFinished: (bookId, finished) => shelf.books.setFinished(String(bookId), finished),
+      (await library.queries.collections.booksIn(collectionId)).map((bookId) => bookId as Id),
+    getBookStats: async (bookId) =>
+      (await reading.queries.stats.forBook(String(bookId))) ?? undefined,
+    listBookStats: () => reading.queries.stats.list(),
+    getStatsOverview: () => reading.queries.stats.overview(),
+    editBookMetadata: (bookId, patch) =>
+      library.commands.books.editMetadata(String(bookId), patch),
+    setBookStarred: (bookId, starred) =>
+      library.commands.books.setStarred(String(bookId), starred),
+    setBookFinished: (bookId, finished) =>
+      reading.commands.setFinished(String(bookId), finished),
     // 管线接缝（与 book-memory-port 的 saveDigest 同构）：LLM 判定入事件流，
     // apply.rs 物化到 books.narrativity。
     setBookNarrativity: async (bookId, narrativity) => {
@@ -56,11 +63,12 @@ export function createLibraryPort(): LibraryPort {
         origin: "agent",
       });
     },
-    removeBook: (bookId) => shelf.books.remove(String(bookId)),
-    createCollection: (name) => shelf.collections.create(name),
-    renameCollection: (collectionId, name) => shelf.collections.rename(collectionId, name),
-    removeCollection: (collectionId) => shelf.collections.remove(collectionId),
+    removeBook: (bookId) => library.commands.books.remove(String(bookId)),
+    createCollection: (name) => library.commands.collections.create(name),
+    renameCollection: (collectionId, name) =>
+      library.commands.collections.rename(collectionId, name),
+    removeCollection: (collectionId) => library.commands.collections.remove(collectionId),
     assignBooksToCollection: (bookIds, collectionId) =>
-      shelf.collections.assignBooks(bookIds.map(String), collectionId),
+      library.commands.collections.assignBooks(bookIds.map(String), collectionId),
   };
 }

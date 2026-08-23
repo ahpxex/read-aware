@@ -36,10 +36,10 @@ export function AnnotationsPopover({ books, onOpenBook }: AnnotationsPopoverProp
       const target = annotations.find((a) => a.id === id);
       if (!target) return;
       if (target.type === "highlight")
-        await userDomain.annotations.removeHighlight(id);
+        await userDomain.annotations.commands.removeHighlight(id);
       else if (target.type === "note")
-        await userDomain.annotations.removeNote(id);
-      else await userDomain.annotations.removeAsk(id);
+        await userDomain.annotations.commands.removeNote(id);
+      else await userDomain.annotations.commands.removeAsk(id);
       setAnnotations((prev) => prev.filter((a) => a.id !== id));
     },
     [annotations],

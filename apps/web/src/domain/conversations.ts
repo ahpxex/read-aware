@@ -24,25 +24,35 @@ function toMessages(
     }));
 }
 
-export type ConversationsDomain = {
+export type ConversationQueries = {
   /** The book's persistent thread, oldest first; empty when none. */
   getBookThread(bookId: string): Promise<ChatMessageSummary[]>;
   /** User-created global (Context page) threads. */
   listThreads(): Promise<ThreadSummary[]>;
   getThread(threadId: string): Promise<ChatMessageSummary[]>;
-  on: DomainEventSubscribe<(typeof CONVERSATION_EVENTS)[number]>;
+};
+
+export type ConversationsDomain = {
+  queries: ConversationQueries;
+  commands: Record<string, never>;
+  events: {
+    subscribe: DomainEventSubscribe<(typeof CONVERSATION_EVENTS)[number]>;
+  };
 };
 
 export function createConversationsDomain(origin: EventOrigin): ConversationsDomain {
   return {
-    getBookThread: async (bookId) => toMessages(await loadConversation(String(bookId))),
-    listThreads: async () =>
-      (await listGlobalThreads()).map((thread) => ({
-        id: thread.id,
-        title: thread.preview,
-        updatedAt: thread.updatedAt,
-      })),
-    getThread: async (threadId) => toMessages(await loadConversation(String(threadId))),
-    on: domainSubscribe(CONVERSATION_EVENTS, origin),
+    queries: {
+      getBookThread: async (bookId) => toMessages(await loadConversation(String(bookId))),
+      listThreads: async () =>
+        (await listGlobalThreads()).map((thread) => ({
+          id: thread.id,
+          title: thread.preview,
+          updatedAt: thread.updatedAt,
+        })),
+      getThread: async (threadId) => toMessages(await loadConversation(String(threadId))),
+    },
+    commands: {},
+    events: { subscribe: domainSubscribe(CONVERSATION_EVENTS, origin) },
   };
 }

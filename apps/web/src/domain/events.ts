@@ -14,25 +14,25 @@ import { createLogger } from "../platform/logger";
 
 const log = createLogger("domain");
 
-/**
- * Everything library management emits: book lifecycle, collection membership,
- * and the recorded reading facts behind the stats face (`book.progressed`,
- * `book.timeRecorded`).
- */
-export const SHELF_EVENTS = [
+/** Book/file/catalog ownership. Reading-session facts live in READING_EVENTS. */
+export const LIBRARY_EVENTS = [
   "book.imported",
   "book.metadataEdited",
   "book.coverExtracted",
   "book.merged",
-  "book.opened",
   "book.starred",
-  "book.finished",
   "book.removed",
   "collection.created",
   "collection.renamed",
   "collection.removed",
   "book.addedToCollection",
   "book.removedFromCollection",
+] as const;
+
+/** Active-reading lifecycle, progress, verdicts, and recorded reading time. */
+export const READING_EVENTS = [
+  "book.opened",
+  "book.finished",
   "book.progressed",
   "book.timeRecorded",
 ] as const;

@@ -21,7 +21,11 @@ import {
   getPluginSecret,
   setPluginSecret,
 } from "../../../platform/secret-store";
-import { createDomainApi, type DomainEventSubscribe } from "../../../domain";
+import {
+  LIBRARY_EVENTS,
+  createDomainApi,
+  type DomainEventSubscribe,
+} from "../../../domain";
 import { getAgentRuntime } from "../../ai/agent/agent-runtime";
 import { openBookRequestAtom } from "../../ai/state/chat-intent";
 import {
@@ -419,29 +423,44 @@ export function buildPluginContext(
   if (permissions.has("shelf:read") || permissions.has("shelf:write")) {
     ctx.shelf = {
       books: {
-        list: domain.shelf.books.list,
-        get: domain.shelf.books.get,
-        getToc: domain.shelf.books.getToc,
-        getChapterText: domain.shelf.books.getChapterText,
+        list: domain.library.queries.books.list,
+        get: domain.library.queries.books.get,
+        getToc: domain.library.queries.books.getToc,
+        getChapterText: domain.library.queries.books.getChapterText,
       },
       collections: {
-        list: domain.shelf.collections.list,
-        booksIn: domain.shelf.collections.booksIn,
+        list: domain.library.queries.collections.list,
+        booksIn: domain.library.queries.collections.booksIn,
       },
       stats: {
-        forBook: domain.shelf.stats.forBook,
-        list: domain.shelf.stats.list,
-        overview: domain.shelf.stats.overview,
+        forBook: domain.reading.queries.stats.forBook,
+        list: domain.reading.queries.stats.list,
+        overview: domain.reading.queries.stats.overview,
       },
-      on: trackedOn(domain.shelf.on),
+      on: ((
+        event: DomainEventType,
+        handler: (broadcast: { origin?: string }) => void,
+        options?: { ignoreSelf?: boolean },
+      ) => {
+        const subscribe = (LIBRARY_EVENTS as readonly DomainEventType[]).includes(event)
+          ? (domain.library.events.subscribe as DomainEventSubscribe<DomainEventType>)
+          : (domain.reading.events.subscribe as DomainEventSubscribe<DomainEventType>);
+        const wrapped =
+          options?.ignoreSelf === true
+            ? (broadcast: { origin?: string }) => {
+                if (broadcast.origin !== selfOrigin) handler(broadcast);
+              }
+            : handler;
+        return track({ dispose: subscribe(event, wrapped as never) });
+      }) as never,
     };
     if (permissions.has("shelf:write")) {
       ctx.shelf.books.write = {
-        import: domain.shelf.books.importBook,
-        editMetadata: domain.shelf.books.editMetadata,
-        setStarred: domain.shelf.books.setStarred,
-        setFinished: domain.shelf.books.setFinished,
-        remove: domain.shelf.books.remove,
+        import: domain.library.commands.books.importBook,
+        editMetadata: domain.library.commands.books.editMetadata,
+        setStarred: domain.library.commands.books.setStarred,
+        setFinished: domain.reading.commands.setFinished,
+        remove: domain.library.commands.books.remove,
         registerContentProvider: (provider) =>
           track(
             registerContentProviderContribution({
@@ -461,9 +480,9 @@ export function buildPluginContext(
           if (existingId) {
             // The binding may be an orphan (book deleted before cleanup
             // existed, or through an untracked path) — verify the record.
-            const alive = await domain.shelf.books.get(existingId);
+            const alive = await domain.library.queries.books.get(existingId);
             if (alive) {
-              await domain.shelf.books.updateVirtualBookTitle(
+              await domain.library.commands.books.updateVirtualBookTitle(
                 existingId,
                 String(input.title),
                 input.author,
@@ -476,7 +495,7 @@ export function buildPluginContext(
             }
             unbindVirtualBook(existingId);
           }
-          const book = await domain.shelf.books.addVirtualBook({
+          const book = await domain.library.commands.books.addVirtualBook({
             title: String(input.title),
             author: input.author,
           });
@@ -491,7 +510,7 @@ export function buildPluginContext(
           });
           if (!bookId) return;
           try {
-            await domain.shelf.books.remove(bookId);
+            await domain.library.commands.books.remove(bookId);
           } catch (error) {
             log.error("virtual book removal failed", error);
           }
@@ -499,10 +518,10 @@ export function buildPluginContext(
         },
       };
       ctx.shelf.collections.write = {
-        create: domain.shelf.collections.create,
-        rename: domain.shelf.collections.rename,
-        remove: domain.shelf.collections.remove,
-        assignBooks: domain.shelf.collections.assignBooks,
+        create: domain.library.commands.collections.create,
+        rename: domain.library.commands.collections.rename,
+        remove: domain.library.commands.collections.remove,
+        assignBooks: domain.library.commands.collections.assignBooks,
       };
     }
   }
@@ -511,17 +530,17 @@ export function buildPluginContext(
 
   if (permissions.has("annotations:read") || permissions.has("annotations:write")) {
     ctx.annotations = {
-      list: domain.annotations.list,
-      on: trackedOn(domain.annotations.on),
+      list: domain.annotations.queries.list,
+      on: trackedOn(domain.annotations.events.subscribe),
     };
     if (permissions.has("annotations:write")) {
       ctx.annotations.write = {
-        createHighlight: domain.annotations.createHighlight,
-        recolorHighlight: domain.annotations.recolorHighlight,
-        removeHighlight: domain.annotations.removeHighlight,
-        createNote: domain.annotations.createNote,
-        updateNote: domain.annotations.updateNote,
-        removeNote: domain.annotations.removeNote,
+        createHighlight: domain.annotations.commands.createHighlight,
+        recolorHighlight: domain.annotations.commands.recolorHighlight,
+        removeHighlight: domain.annotations.commands.removeHighlight,
+        createNote: domain.annotations.commands.createNote,
+        updateNote: domain.annotations.commands.updateNote,
+        removeNote: domain.annotations.commands.removeNote,
       };
     }
   }
@@ -530,10 +549,10 @@ export function buildPluginContext(
 
   if (permissions.has("conversations:read")) {
     ctx.conversations = {
-      getBookThread: domain.conversations.getBookThread,
-      listThreads: domain.conversations.listThreads,
-      getThread: domain.conversations.getThread,
-      on: trackedOn(domain.conversations.on),
+      getBookThread: domain.conversations.queries.getBookThread,
+      listThreads: domain.conversations.queries.listThreads,
+      getThread: domain.conversations.queries.getThread,
+      on: trackedOn(domain.conversations.events.subscribe),
     };
   }
 

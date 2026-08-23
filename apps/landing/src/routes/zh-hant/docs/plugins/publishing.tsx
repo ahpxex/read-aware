@@ -4,12 +4,8 @@ import { MARKETPLACE_REPO_URL } from "../../../../lib/site";
 export const Route = createFileRoute("/zh-hant/docs/plugins/publishing")({
   head: () => ({
     meta: [
-      { title: "發佈上架 — ReadAware 文件" },
-      {
-        name: "description",
-        content:
-          "如何向 ReadAware 外掛市集提交外掛：儲存庫結構、校驗流程與審核要求。",
-      },
+      { title: "發佈外掛 — ReadAware 文件" },
+      { name: "description", content: "準備、驗證、審核並向公開市集儲存庫提交 ReadAware 外掛。" },
     ],
   }),
   component: PublishingPage,
@@ -19,85 +15,44 @@ function PublishingPage() {
   return (
     <article className="doc-prose">
       <h1>發佈外掛</h1>
-      <p className="lead">
-        外掛市集的運作方式與 Raycast 的擴充功能儲存庫類似：你的外掛存放在公開的{" "}
-        <a href={MARKETPLACE_REPO_URL} target="_blank" rel="noopener noreferrer">
-          readaware-plugins
-        </a>{" "}
-        儲存庫裡，透過 pull request 進入。合併之後，它就會出現在應用程式的「設定
-        → 外掛 → 外掛市集」中，一鍵即可安裝。
-      </p>
-
-      <h2>用 TypeScript 編寫</h2>
-      <p>
-        建議使用 TypeScript。儲存庫自帶一個 <code>template/</code>
-        ，已經接好型別化的 API（<code>types/plugin-api.d.ts</code>
-        ）——複製它，編寫 <code>src/main.ts</code>
-        ，再組建為單個自包含模組：
-      </p>
-      <pre>
-        <code>bun build src/main.ts --outfile main.js --format esm</code>
-      </pre>
-      <p>
-        最終上架的始終是組建出的 <code>main.js</code>；請保留{" "}
-        <code>src/</code> 的提交，讓審閱者能讀到真實程式碼。純 JavaScript
-        同樣被接受。<code>plugins/</code>{" "}
-        裡的官方外掛就是這樣寫成的——把它們當作活的範例。
-      </p>
-
+      <p className="lead">市集套件存放在公開的 <a href={MARKETPLACE_REPO_URL} target="_blank" rel="noopener noreferrer">readaware-plugins 儲存庫</a>中，並透過審核進入。目前目錄由官方外掛組成；這套流程也是未來接受外部提交時的契約。</p>
+      <h2>準備可審核的套件</h2>
+      <p>推薦使用 TypeScript。讓 <code>src/</code> 與建置出的自包含 <code>main.js</code> 並列，方便審核者比較原始碼和產物。提交每一項執行階段資源。不要載入遠端程式碼，不要把行為藏在產生的 blob 中，也不要依賴套件之外的檔案。</p>
+      <pre><code>{"plugins/my-plugin/\n  manifest.json\n  main.js\n  package.json\n  tsconfig.json\n  src/main.ts\n  assets/…"}</code></pre>
+      <h2>執行儲存庫檢查</h2>
+      <pre><code>{"bun run build\nbun run typecheck\nbun test\nbun run validate"}</code></pre>
+      <p>驗證會檢查註冊表與 manifest 的一致性、ID、版本、能力要求、權限、宣告檔案和套件形態。這些檢查是必要條件而非充分條件：提交前還要在 ReadAware 桌面應用程式中執行建置出的資料夾。</p>
       <h2>提交</h2>
       <ol>
-        <li>Fork 這個儲存庫。</li>
-        <li>
-          把 <code>template/</code> 複製為{" "}
-          <code>plugins/&lt;your-plugin-id&gt;/</code>，至少包含{" "}
-          <code>manifest.json</code> 和 <code>main.js</code>。資料夾名稱必須與
-          manifest 的 <code>id</code> 一致。
-        </li>
-        <li>
-          在 <code>registry.json</code> 中新增對應條目，保持陣列按 id 排序。
-        </li>
-        <li>
-          在本機執行與 CI 相同的檢查：
-          <pre>
-            <code>{`node scripts/validate.mjs
-npx tsc --noEmit`}</code>
-          </pre>
-        </li>
-        <li>
-          發起 pull
-          request，說明外掛做什麼，以及它宣告的每一項權限為什麼是必要的。
-        </li>
+        <li>Fork 公開儲存庫。</li>
+        <li>將範本複製到 <code>plugins/&lt;plugin-id&gt;/</code>，並保持資料夾名等於 manifest ID。</li>
+        <li>加入套件和所有必要的執行階段資源。</li>
+        <li>在 <code>registry.json</code> 中加入匹配且按 ID 排序的項目。</li>
+        <li>執行根目錄的四項檢查，並從建置出的資料夾測試本機安裝。</li>
+        <li>發起 pull request，說明行為、私有資料、外部服務，以及每項權限和設定授權的理由。</li>
       </ol>
-      <p>
-        CI 會強制檢查 registry 與 manifest 的一致性、id
-        的格式、權限白名單和檔案存在性，並對每個 TypeScript
-        外掛做型別檢查。
-      </p>
-
-      <h2>更新</h2>
-      <p>
-        流程相同：在同一個 pull request 裡同時提升 <code>manifest.json</code>{" "}
-        和 <code>registry.json</code> 中的 <code>version</code>
-        。注意應用程式透過 CDN 讀取
-        registry，合併後的更新可能要過一小段時間才會出現在外掛市集分頁裡。
-      </p>
-
-      <h2>審核要求</h2>
+      <h2>審核清單</h2>
       <ul>
-        <li>
-          只宣告最小權限。宣告的權限超出程式碼實際使用時，pull
-          request 會被退回——參見
-          <Link to="/zh-hant/docs/plugins/api">權限表</Link>。
-        </li>
-        <li>
-          <code>main.js</code> 必須可讀，或附帶打包它的原始碼。
-        </li>
-        <li>不接受混淆程式碼，不接受資料分析或追蹤，不接受遠端程式碼載入。</li>
+        <li>功能使用現有最窄的領域、貢獻和服務能力。</li>
+        <li><code>requires</code> 為每個使用的契約寫出有依據的 semver 範圍。</li>
+        <li>權限和 <code>settingsAccess</code> 與實際執行階段呼叫一致，不包含推測性的授權。</li>
+        <li><code>activate()</code> 註冊行為，但不執行任何業務或外部副作用。</li>
+        <li>外掛私有資料擁有穩定 schema，每次版本轉換都有經過測試的遷移。</li>
+        <li>用面向使用者的語言說明網路端點、LLM 使用、憑證、排程任務和資料保留。</li>
+        <li>宿主算繪的檢視支援鍵盤導覽、長文字、空資料以及淺色和深色主題。</li>
+        <li>原始碼可讀、產生產物可複現，且不存在分析、追蹤、混淆或遠端程式碼載入。</li>
       </ul>
-      <p>
-        外掛執行在應用程式內部，擁有與應用程式本身相同的存取能力。安裝是使用者對每個外掛逐一做出的信任決定，而這道審核是社群的第一道防線——請寫出那種即使來自陌生人、你自己也放心安裝的外掛。
-      </p>
+      <p><Link to="/zh-hant/docs/plugins/capabilities">權限預覽</Link>適合作為提交前檢查。儲存庫驗證和人工審核仍是正式檢查。</p>
+      <h2>更新和資料遷移</h2>
+      <p>同時提升 <code>manifest.json</code> 和 <code>registry.json</code> 中的套件版本。只有私有 KV 或資料形態變化時才提升 <code>schemaVersion</code>，並在同一候選版本中提供相應的 <code>migrate()</code>。</p>
+      <p>使用真實資料測試更新和刻意降級。ReadAware 會暫存並健康檢查候選版本、快照外掛檔案和資料、暫停舊執行階段以遷移，並只在成功後晉升。更新失敗必須讓之前的套件和資料仍可使用。</p>
+      <h2>權限變化</h2>
+      <p>把新增授權當作產品變更，而非 manifest 雜務。說明原本的權限集合為何不足、哪些使用者資料或外部操作變得可存取，以及使用者拒絕時會發生什麼。移除程式碼不再使用的權限。</p>
+      <h2>目前的散佈信任</h2>
+      <p>Worker 隔離和能力強制執行會減少越權，但安裝仍然是信任決策。在開放廣泛的第三方市集前，ReadAware 仍需要發佈者身分、確定性打包、簽名和完整性驗證、審核來源、撤銷機制、權限差異審核和安全回應路徑。</p>
+      <p>這些控制上線前，合併的儲存庫項目只能是審核證據，並不能從數學上保證任意惡意程式碼安全。</p>
+      <h2>發起 pull request 前</h2>
+      <p>重新閱讀<Link to="/zh-hant/docs/plugins/develop">建置外掛</Link>，在<Link to="/zh-hant/docs/plugins/capabilities">能力工具</Link>中比較最終 manifest，並確認套件遵循目前<Link to="/zh-hant/docs/plugins/api">API 契約</Link>，而非舊的 <code>shelf</code> 或 <code>appearance</code> 範例。</p>
     </article>
   );
 }

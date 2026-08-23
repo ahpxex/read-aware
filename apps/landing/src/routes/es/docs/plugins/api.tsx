@@ -4,11 +4,11 @@ import { MARKETPLACE_REPO_URL } from "../../../../lib/site";
 export const Route = createFileRoute("/es/docs/plugins/api")({
   head: () => ({
     meta: [
-      { title: "Referencia API de plugins — Documentación de ReadAware" },
+      { title: "Referencia de la API de plugins — Documentación de ReadAware" },
       {
         name: "description",
         content:
-          "El contrato de creación de plugins de ReadAware: manifest, ciclo de vida, permisos derivados del dominio, APIs de datos, contribuciones, vistas y eventos.",
+          "El contrato actual de plugins de ReadAware: manifest, capacidades, dominios, contribuciones, servicios, UI declarativa, ciclo de vida y migraciones.",
       },
     ],
   }),
@@ -18,843 +18,329 @@ export const Route = createFileRoute("/es/docs/plugins/api")({
 function PluginApiPage() {
   return (
     <article className="doc-prose">
-      <h1>Referencia API de plugins</h1>
+      <h1>Referencia de la API de plugins</h1>
       <p className="lead">
-        Un plugin es una carpeta que contiene un <code>manifest.json</code> y un
-        módulo JavaScript. Esta página es el contrato de creación; el mismo contrato
-        se envía como un archivo de declaración TypeScript
-        (<code>types/plugin-api.d.ts</code>) en el{" "}
+        Un plugin es una carpeta con <code>manifest.json</code> y un módulo ES
+        compilado. El contrato público exacto de TypeScript se distribuye como{" "}
+        <code>types/plugin-api.d.ts</code> en el{" "}
         <a href={MARKETPLACE_REPO_URL} target="_blank" rel="noopener noreferrer">
-          repositorio del Mercado
-        </a>
-        , por lo que los editores autocompletarán todo lo que sigue.
+          repositorio readaware-plugins
+        </a>. Esta página explica cómo encajan sus piezas.
       </p>
 
-      <h2>Anatomía</h2>
-      <pre>
-        <code>{`my-plugin/
+      <h2>Estructura del paquete</h2>
+      <pre><code>{`my-plugin/
   manifest.json
-  main.js        # un módulo ES autocontenido`}</code>
-      </pre>
+  main.js
+  src/main.ts       # recomendado y confirmado para revisión
+  assets/           # opcional, listado explícitamente para instalaciones desde el marketplace`}</code></pre>
       <p>
-        <code>main.js</code> exporta por defecto un objeto de ciclo de vida. Todo lo que
-        un plugin puede alcanzar viene a través del contexto entregado a{" "}
-        <code>activate</code>; cada llamada a <code>register*</code> y <code>on</code>{" "}
-        devuelve un desechable que la aplicación reclama cuando el plugin se deshabilita
-        o desinstala, por lo que <code>deactivate</code> solo necesita liberar los
-        recursos externos propios del plugin.
+        <code>main.js</code> exporta por defecto un objeto de ciclo de vida.
+        ReadAware lo ejecuta en un Worker de módulos dedicado y entrega a
+        <code>activate</code> un contexto delimitado por actor.
       </p>
-      <pre>
-        <code>{`export default {
+      <pre><code>{`export default {
   activate(ctx) {
-    // registrar contribuciones vía ctx
+    // Inspeccionar y registrar. Los efectos secundarios están bloqueados en esta fase.
+  },
+  migrate(storageCtx, change) {
+    // Opcional: transformar el KV privado y los documentos del plugin.
   },
   deactivate() {
-    // opcional: cerrar sockets, vaciar colas
+    // Opcional: liberar los recursos externos propios del plugin.
   },
-};`}</code>
-      </pre>
-      <p>
-        Habilitar y deshabilitar surte efecto inmediatamente — sin reiniciar la
-        aplicación. Escribe en TypeScript si quieres (recomendado; ver{" "}
-        <Link to="/es/docs/plugins/publishing">Publicación</Link>) — lo que la
-        aplicación carga es siempre el <code>main.js</code> compilado.
-      </p>
+};`}</code></pre>
 
-      <h2>manifest.json</h2>
-      <pre>
-        <code>{`{
-  "id": "anki-sync",
-  "name": "Anki Sync",
+      <h2>Manifiesto</h2>
+      <pre><code>{`{
+  "id": "theme-schedule",
+  "name": "Programación de temas",
   "version": "0.1.0",
+  "schemaVersion": 1,
   "minAppVersion": "0.3.0",
-  "description": "Send looked-up words to Anki.",
-  "author": "you",
-  "permissions": ["service:network", "annotations:read"],
+  "requires": {
+    "domains": { "settings": "^1.0.0" },
+    "contributions": {
+      "commands": "^1.0.0",
+      "settingsOptions": "^1.0.0"
+    },
+    "services": {
+      "storage": "^1.0.0",
+      "schedules": "^1.0.0",
+      "ui": "^1.0.0"
+    },
+    "schemas": { "settings": "^1.0.0" }
+  },
+  "settingsAccess": {
+    "discover": ["appearance.theme", "reading.theme"],
+    "write": ["appearance.theme", "reading.theme"]
+  },
   "main": "main.js"
-}`}</code>
-      </pre>
+}`}</code></pre>
       <div className="overflow-x-auto">
         <table>
-          <thead>
-            <tr>
-              <th>Campo</th>
-              <th>Significado</th>
-            </tr>
-          </thead>
+          <thead><tr><th>Campo</th><th>Contrato</th></tr></thead>
           <tbody>
-            <tr>
-              <td>
-                <code>id</code>
-              </td>
-              <td>
-                Letras minúsculas, dígitos, guiones (máx. 64). Debe igualar el nombre
-                de la carpeta; actúa como espacio de nombres para el almacenamiento y
-                herramientas del plugin.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>name</code>, <code>version</code>
-              </td>
-              <td>Mostrados en Ajustes → Plugins y el Mercado.</td>
-            </tr>
-            <tr>
-              <td>
-                <code>minAppVersion</code>
-              </td>
-              <td>
-                Versión mínima de aplicación que el plugin soporta. Este contrato
-                requiere <code>0.3.0</code> o más reciente.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>permissions</code>
-              </td>
-              <td>
-                Lo que usa el plugin (tabla abajo). Se muestra al usuario antes de la
-                instalación.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>main</code>
-              </td>
-              <td>
-                Módulo de entrada relativo a la carpeta; por defecto{" "}
-                <code>main.js</code>.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>settings</code>
-              </td>
-              <td>
-                Configuración declarativa opcional (mismas formas de campo que las
-                vistas de formulario, más <code>secret</code>). La aplicación las
-                renderiza como la propia sección del plugin en Ajustes y persiste los
-                valores como un objeto bajo la clave de almacenamiento{" "}
-                <code>settings</code> — ver{" "}
-                <a href="#storage-and-settings">Almacenamiento y configuración</a>.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>schedules</code>
-              </td>
-              <td>
-                Tareas recurrentes opcionales, declaradas para que los usuarios las
-                vean antes de instalar — ver <a href="#scheduled-work">Trabajo programado</a>.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>themes</code>, <code>fonts</code>
-              </td>
-              <td>
-                Temas declarativos opcionales y fuentes incluidas (requiere{" "}
-                <code>ui:themes</code>) — ver{" "}
-                <a href="#themes-and-bundled-fonts">Temas y fuentes incluidas</a>.
-              </td>
-            </tr>
+            <tr><td><code>id</code></td><td>Letras minúsculas, dígitos y guiones; máximo de 64 caracteres. Es el espacio de nombres permanente y debe coincidir con el nombre de la carpeta.</td></tr>
+            <tr><td><code>name</code>, <code>version</code></td><td>Nombre visible para el usuario y versión del paquete.</td></tr>
+            <tr><td><code>schemaVersion</code></td><td>Entero positivo obligatorio para el KV privado del plugin y los datos de documentos. Es independiente de la versión del paquete.</td></tr>
+            <tr><td><code>requires</code></td><td>Mapa obligatorio de IDs de capacidades a rangos semver, agrupados por dominios, contribuciones, servicios y esquemas.</td></tr>
+            <tr><td><code>permissions</code></td><td>Autoridad semántica opcional solicitada al usuario. Los valores desconocidos hacen fallar la validación.</td></tr>
+            <tr><td><code>settingsAccess</code></td><td>Concesiones opcionales de discover/read/write para rutas exactas de ajustes o grupos explícitos <code>section.*</code>.</td></tr>
+            <tr><td><code>minAppVersion</code></td><td>Límite inferior opcional de versión de la aplicación. Úsalo cuando el paquete dependa de una capacidad incorporada recientemente.</td></tr>
+            <tr><td><code>settings</code></td><td>Campos opcionales de ajustes del plugin renderizados por el host.</td></tr>
+            <tr><td><code>schedules</code></td><td>Tareas recurrentes opcionales, declaradas antes de vincular sus manejadores.</td></tr>
+            <tr><td><code>themes</code>, <code>fonts</code></td><td>Contribuciones declarativas opcionales de temas y fuentes; requieren <code>ui:themes</code>.</td></tr>
+            <tr><td><code>main</code></td><td>Módulo de entrada relativo a la carpeta; por defecto es <code>main.js</code>.</td></tr>
           </tbody>
         </table>
       </div>
-
-      <h2>El modelo de dominio</h2>
       <p>
-        La superficie de datos se deriva del modelo de dominio de la aplicación en lugar
-        de ser escrita junto a él. Cada dominio — <code>shelf</code> (la totalidad de la
-        gestión de biblioteca: libros, colecciones, estadísticas de lectura),{" "}
-        <code>annotations</code>, <code>conversations</code> — es un espacio de nombres
-        en <code>ctx</code> que expone tres cosas:
-      </p>
-      <ul>
-        <li>
-          <strong>lecturas</strong> — los modelos de lectura del dominio (lo que las
-          propias superficies de la aplicación renderizan);
-        </li>
-        <li>
-          <strong>escrituras</strong> — comandos bajo <code>.write</code> que reflejan
-          exactamente los verbos de eventos del dominio y pasan por la propia ruta de
-          escritura basada en eventos de la aplicación, estampados{" "}
-          <code>plugin:&lt;id&gt;</code> en el registro de eventos para que cada
-          escritura de plugin sea atribuible;
-        </li>
-        <li>
-          <strong>suscripciones</strong> — <code>.on(event, handler)</code> sobre los
-          eventos del dominio bajo sus nombres canónicos (<code>book.starred</code>,{" "}
-          <code>highlight.created</code>, …) — el mismo vocabulario que la aplicación
-          registra.
-        </li>
-      </ul>
-      <p>
-        Los permisos siguen la misma forma: <code>&lt;domain&gt;:read</code> /{" "}
-        <code>&lt;domain&gt;:write</code>, y dentro de un dominio{" "}
-        <strong>write implica read</strong>. El estado local del dispositivo
-        (preferencias de vista, apariencia del lector, internos de sincronización) y la
-        renderización de forma libre están deliberadamente fuera de la superficie de
-        plugins — la UI pasa por las vistas declarativas a continuación.
+        Usa el <Link to="/es/docs/plugins/capabilities">navegador de capacidades</Link>{" "}
+        para consultar el catálogo completo y el vocabulario de permisos. Un
+        requisito siempre es una afirmación de compatibilidad; nunca concede autoridad.
       </p>
 
-      <h2>Permisos</h2>
+      <h2>Contexto de ejecución</h2>
+      <div className="overflow-x-auto">
+        <table>
+          <thead><tr><th>Espacio de nombres</th><th>Contiene</th></tr></thead>
+          <tbody>
+            <tr><td><code>ctx.manifest</code></td><td>El manifest validado, de solo lectura.</td></tr>
+            <tr><td><code>ctx.appVersion</code>, <code>ctx.locale</code></td><td>Versión del host y locale actual de la UI.</td></tr>
+            <tr><td><code>ctx.lifecycle.phase</code></td><td><code>activating</code>, <code>migrating</code> o <code>active</code>.</td></tr>
+            <tr><td><code>ctx.capabilities</code></td><td>Solo las versiones de capacidades visibles para este actor del plugin.</td></tr>
+            <tr><td><code>ctx.domains</code></td><td>Estado y comportamiento de ReadAware concedidos al plugin.</td></tr>
+            <tr><td><code>ctx.contributions</code></td><td>Registros en los que el plugin puede proporcionar implementaciones.</td></tr>
+            <tr><td><code>ctx.services</code></td><td>Operaciones acotadas del host e infraestructura privada del plugin.</td></tr>
+          </tbody>
+        </table>
+      </div>
       <p>
-        Los grupos de capacidad en <code>ctx</code> simplemente están ausentes a menos
-        que su permiso esté declarado — control a nivel de API contra excesos
-        accidentales. El almacenamiento con espacio de nombres, las contribuciones de UI,
-        los eventos de sesión y la navegación del lector no son permisos; cada plugin los
-        tiene.
+        Los espacios de nombres protegidos por permisos están ausentes cuando no
+        se conceden. Cada llamada del Worker también se autoriza en el host;
+        ocultar un método no es la única comprobación. Los registros devuelven
+        un recurso desechable y se recuperan en orden inverso cuando falla la
+        activación o se desactiva el plugin.
+      </p>
+
+      <h2>Dominios</h2>
+      <p>
+        Un Dominio expone <code>queries</code>, <code>commands</code> opcionales y
+        <code>events.subscribe</code> para eventos confirmados. Los comandos
+        usan la misma ruta de escritura basada en eventos que ReadAware y se
+        atribuyen a <code>plugin:&lt;id&gt;</code>. El permiso de escritura implica
+        el de lectura.
       </p>
       <div className="overflow-x-auto">
         <table>
-          <thead>
-            <tr>
-              <th>Permiso</th>
-              <th>Otorga</th>
-            </tr>
-          </thead>
+          <thead><tr><th>Dominio</th><th>Consultas y comandos</th><th>Autoridad</th></tr></thead>
           <tbody>
             <tr>
-              <td>
-                <code>shelf:read</code>
-              </td>
-              <td>
-                <code>ctx.shelf</code> — libros (incl. tabla de contenidos de un libro
-                y texto de capítulo), colecciones y membresía, y estadísticas de lectura
-                (<code>stats.forBook</code> / <code>stats.list</code> /{" "}
-                <code>stats.overview</code> — las estadísticas no tienen cara de
-                escritura: sus eventos son hechos registrados de actividad del lector,
-                no comandos de usuario).
-              </td>
+              <td><code>library</code></td>
+              <td>Libros, metadatos, texto fuente de capítulos, TOC y colecciones; comandos para importar, editar, marcar, eliminar, gestionar libros virtuales y colecciones.</td>
+              <td><code>library:read</code> / <code>library:write</code></td>
             </tr>
             <tr>
-              <td>
-                <code>shelf:write</code>
-              </td>
-              <td>
-                <code>ctx.shelf.books.write</code> — importar archivos, editar
-                metadatos, marcar con estrella, marcar como terminado, eliminar;
-                proveedores de contenido y libros virtuales.{" "}
-                <code>ctx.shelf.collections.write</code> — crear, renombrar, eliminar,
-                asignar libros.
-              </td>
+              <td><code>reading</code></td>
+              <td>Estadísticas de lectura por libro y agregadas; marcar como terminado, abrir un libro y navegar a un CFI o href.</td>
+              <td><code>reading:read</code> / <code>reading:write</code></td>
             </tr>
             <tr>
-              <td>
-                <code>annotations:read</code> / <code>annotations:write</code>
-              </td>
-              <td>
-                <code>ctx.annotations</code> — subrayados, notas y preguntas hechas;
-                crear, recolorear, editar y eliminar subrayados y notas (las preguntas
-                son escritas por el agente, solo lectura).
-              </td>
+              <td><code>annotations</code></td>
+              <td>Filtrar resaltados, notas y registros de consultas pasivas; crear, editar, recolorear y eliminar resaltados o notas.</td>
+              <td><code>annotations:read</code> / <code>annotations:write</code></td>
             </tr>
             <tr>
-              <td>
-                <code>conversations:read</code>
-              </td>
-              <td>
-                <code>ctx.conversations</code> — hilos de IA por libro e hilos globales
-                (solo lectura).
-              </td>
+              <td><code>conversations</code></td>
+              <td>Leer hilos de libros, listar hilos globales y leer un hilo. Las escrituras permanecen en el runtime del chat.</td>
+              <td><code>conversations:read</code></td>
             </tr>
             <tr>
-              <td>
-                <code>ui:themes</code>
-              </td>
-              <td>
-                Los campos declarativos del manifest <code>themes</code> /{" "}
-                <code>fonts</code> (abajo) — temas de aplicación y lector con fuentes
-                incluidas. La única contribución de UI detrás de un permiso: tiene
-                autoridad visual sobre toda la aplicación, por lo que el consentimiento
-                de instalación debe mencionarlo.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>ui:appearance</code>
-              </td>
-              <td>
-                <code>ctx.appearance</code> — listar todos los temas que
-                ofrecen ambas superficies, leer la apariencia actual y cambiar
-                el tema de la aplicación o el color de página. Deliberadamente
-                separado de <code>ui:themes</code>: ofrecer un tema es pasivo,
-                cambiarlo no.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>agent:tools</code>
-              </td>
-              <td>
-                <code>ctx.agent.registerTool</code> — herramientas para el asistente de
-                lectura.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>service:network</code>
-              </td>
-              <td>
-                <code>ctx.network.fetch</code> — HTTP saliente a través del cliente
-                nativo de la aplicación (sin restricciones CORS).
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>service:llm</code>
-              </td>
-              <td>
-                <code>ctx.llm.ask</code> — llamadas únicas al modelo en la cuenta
-                configurada del usuario. Sin hilo, sin memoria, sin herramientas;
-                soporta salida JSON estructurada vía <code>schema</code> y streaming
-                vía <code>onText</code>.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>service:clipboard</code>
-              </td>
-              <td>
-                <code>ctx.clipboard.writeText</code>.
-              </td>
+              <td><code>settings</code></td>
+              <td>Descubrir entradas permitidas del catálogo, leer valores resueltos, actualizar objetivos compatibles y suscribirse a cambios confirmados.</td>
+              <td>Concesiones exactas de <code>settingsAccess</code></td>
             </tr>
           </tbody>
         </table>
       </div>
       <p>
-        (<code>reader:modes</code> — modos de lectura guiada renderizados por el host —
-        está actualmente reservado para los plugins de primera parte incluidos mientras
-        ese contrato privilegiado se asienta.)
+        No existe ningún dominio <code>shelf</code> ni <code>appearance</code>.
+        Los datos de la biblioteca y el comportamiento de lectura activa están
+        separados. Apariencia es una sección dentro de Ajustes.
       </p>
+
+      <h3>Acceso a Ajustes</h3>
+      <p>
+        <code>discover</code>, <code>read</code> y <code>write</code> son
+        independientes. Concede rutas exactas siempre que sea posible; usa un
+        grupo de sección como <code>appearance.*</code> solo cuando la función
+        necesite realmente toda la sección. Las actualizaciones pasan por la
+        validación del catálogo, la política de objetivos, la persistencia y los
+        efectos posteriores a la confirmación.
+      </p>
+      <pre><code>{`const entries = await ctx.domains.settings.queries.discover({
+  section: "appearance",
+});
+
+await ctx.domains.settings.commands.update([
+  {
+    path: "appearance.theme",
+    value: "dark",
+    target: { kind: "global" },
+  },
+]);`}</code></pre>
 
       <h2>Contribuciones</h2>
-
-      <h3>Acciones de selección</h3>
-      <p>
-        Entradas en los menús de selección y anotación del lector. El manejador recibe
-        el texto seleccionado, su rango CFI, el capítulo y el libro. Cuando está
-        disponible, <code>context</code> contiene el pasaje circundante. Dentro del
-        lector una acción se ejecuta silenciosamente (devuelve un toast) o abre un
-        diálogo (devuelve una vista) — esos son los únicos dos resultados. Declara{" "}
-        <code>presentation: "dialog"</code> cuando el manejador es async: el host abre
-        su shell de carga inmediatamente y llena la misma solicitud cuando{" "}
-        <code>run</code> se resuelve. Una acción estilo diccionario puede declarar{" "}
-        <code>role: "lookup"</code>; el host entonces enruta su comando de teclado
-        Buscar existente a esa acción de plugin en lugar de mantener una segunda ruta
-        de búsqueda incorporada.
-      </p>
-      <pre>
-        <code>{`ctx.ui.registerSelectionAction({
-  id: "save-quote",
-  title: "Save quote",
-  icon: "quotes",
-  presentation: "dialog",
-  run: (input) => {
-    // input: { text, context?, cfiRange, chapterHref, book, source }
-    return { toast: "Quote saved." };
-  },
-});`}</code>
-      </pre>
-
-      <h3>Acciones de encabezado</h3>
-      <p>
-        Un botón de icono en una barra superior. En la superficie del lector la vista se
-        abre como un popover anclado; en la estantería se abre como un popover o una
-        página completa, según <code>presentation</code>. El lector nunca permite
-        interrupciones de página completa.
-      </p>
-      <pre>
-        <code>{`ctx.ui.registerHeaderAction({
-  id: "reading-report",
-  title: "Reading report",
-  icon: "chart-line-up",
-  surface: "shelf",
-  presentation: "page",
-  view: async () => ({
-    kind: "markdown",
-    title: "This week",
-    markdown: "You read **4h 12m** across 3 books.",
-  }),
-});`}</code>
-      </pre>
-
-      <h3>Comandos</h3>
-      <p>
-        Una entrada de paleta de comandos. Todas las acciones de plugins también
-        aparecen en la paleta automáticamente; los comandos explícitos son para
-        acciones sin botón.
-      </p>
-      <pre>
-        <code>{`ctx.ui.registerCommand({
-  id: "sync-now",
-  title: "Anki Sync: sync now",
-  run: async () => ({ toast: "Synced." }),
-});`}</code>
-      </pre>
-
-      <h3>Herramientas de agente</h3>
-      <p>
-        Herramientas que el asistente de lectura puede llamar durante el chat (requiere{" "}
-        <code>agent:tools</code>). <code>parameters</code> es un JSON Schema simple para
-        el objeto de argumentos; omítelo para una herramienta sin argumentos. Las
-        herramientas tienen espacio de nombres{" "}
-        <code>plugin_&lt;pluginId&gt;_&lt;name&gt;</code> antes de llegar al modelo, y
-        las llamadas son visibles para el usuario como pasos de herramienta en el chat.
-      </p>
-      <pre>
-        <code>{`ctx.agent?.registerTool({
-  name: "search_deck",
-  label: "Searching your Anki deck",
-  description: "Search the user's Anki collection for a term.",
-  parameters: {
-    type: "object",
-    properties: { query: { type: "string" } },
-    required: ["query"],
-  },
-  execute: async ({ query }) => {
-    const res = await ctx.network.fetch("http://127.0.0.1:8765", {
-      method: "POST",
-      body: JSON.stringify({ action: "findNotes", query }),
-    });
-    return res.json();
-  },
-});`}</code>
-      </pre>
-
-      <h3>Proveedores de voz</h3>
-      <p>
-        <code>ctx.audio.registerVoiceProvider</code> conecta un motor de texto a voz en
-        la lectura en voz alta del lector. El plugin solo convierte texto en bytes de
-        audio codificado (mp3/wav — cualquier cosa que decodifique el webview); la
-        aplicación posee la reproducción, el ritmo de oraciones, la precarga y el
-        resaltado de seguimiento. El registro no necesita permiso propio — lo que el
-        proveedor necesite para sintetizar (red, claves) ya está controlado por sus
-        otros permisos.
-      </p>
-      <pre>
-        <code>{`ctx.audio.registerVoiceProvider({
-  id: "voices",
-  label: "My TTS",
-  listVoices: () => [{ id: "default", label: "My TTS · warm" }],
-  synthesize: async ({ text, voiceId }) => {
-    const res = await ctx.network.fetch("http://127.0.0.1:8880/v1/audio/speech", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ input: text, response_format: "mp3" }),
-    });
-    return res.arrayBuffer();
-  },
-});`}</code>
-      </pre>
-      <p>
-        Una voz registrada se adopta automáticamente — el usuario habilitando tu plugin
-        es la adhesión, no hay selector separado del lado del host — y una llamada de
-        síntesis fallida vuelve a la voz del sistema para esa oración, por lo que la
-        lectura se degrada en lugar de silenciarse. Las voces se relistan cada vez que
-        cambia la configuración del plugin.
-      </p>
-
-      <h3 id="scheduled-work">Trabajo programado</h3>
-      <p>
-        El manifest declara tareas recurrentes; <code>activate</code> vincula el
-        trabajo. La aplicación ejecuta cada horario AL MENOS cada{" "}
-        <code>everyMinutes</code> (piso de 15) mientras está abierta, con una ejecución
-        de recuperación poco después del inicio cuando está atrasada — nunca en tiempos
-        exactos, y nunca mientras la aplicación está cerrada. Las ejecuciones
-        superpuestas de un horario se omiten; una ejecución fallida solo espera la
-        siguiente cadencia.
-      </p>
-      <pre>
-        <code>{`// manifest.json
-"schedules": [{ "id": "refresh", "label": "Refresh feeds", "everyMinutes": 60 }]
-
-// main.js
-ctx.schedule.on("refresh", async () => {
-  // obtener, reconciliar, escribir a través de las APIs de dominio
-});`}</code>
-      </pre>
-
-      <h3 id="themes-and-bundled-fonts">Temas y fuentes incluidas</h3>
-      <p>
-        Con <code>ui:themes</code>, el manifest puede declarar temas para dos puntos de
-        montaje independientes — el chrome de la aplicación y la página del libro — más
-        archivos de fuente que se envían dentro de la carpeta del plugin. Esta
-        contribución son datos puros: la aplicación valida cada valor y genera todo el
-        CSS ella misma, y nada se aplica hasta que el usuario elige el tema en Ajustes →
-        Apariencia o el control de color de página del lector. El <code>main.js</code>{" "}
-        de un plugin solo de tema es simplemente{" "}
-        <code>{"export default { activate() {} }"}</code>.
-      </p>
-      <pre>
-        <code>{`{
-  "permissions": ["ui:themes"],
-  "fonts": [
-    {
-      "id": "my-serif",
-      "family": "My Serif",
-      "kind": "serif",
-      "files": [{ "path": "assets/my-serif-400.woff2", "weight": 400 }]
-    }
-  ],
-  "themes": [
-    {
-      "id": "dusk",
-      "name": { "default": "Dusk", "translations": { "zh-Hans": "暮色" } },
-      "polarity": "dark",
-      "app": { "paper": "#14171e", "fg": "#e3e6ec" },
-      "reader": {
-        "palette": {
-          "bg": "#161a22", "text": "#ccd2dd",
-          "selection": "rgba(154, 162, 177, 0.28)",
-          "rule": "rgba(204, 210, 221, 0.18)",
-          "faint": "rgba(204, 210, 221, 0.07)",
-          "muted": "rgba(204, 210, 221, 0.55)"
-        },
-        "typography": { "fontFamily": "plugin:my-serif", "fontSize": "large" }
-      }
-    }
-  ]
-}`}</code>
-      </pre>
-      <ul>
-        <li>
-          <code>polarity</code> — si el tema se lee como claro u oscuro. Maneja{" "}
-          <code>color-scheme</code>, los valores predeterminados de polaridad para los
-          tokens de aplicación que el tema deja sin configurar, y cómo se resuelve el
-          color de página Auto del lector mientras el tema está activo.
-        </li>
-        <li>
-          <code>app</code> — anulaciones en el vocabulario fijo de tokens de la
-          aplicación (lienzo, niveles de texto, superficies, rellenos, bordes — ver{" "}
-          <code>PluginAppThemeTokens</code> en las declaraciones). Los tokens no
-          configurados mantienen los valores propios de la polaridad.
-        </li>
-        <li>
-          <code>reader</code> — la misma paleta de seis colores que usan los colores de
-          página integrados (los seis requeridos), más un preset tipográfico opcional
-          aplicado una vez cuando el usuario selecciona el tema; el usuario puede
-          ajustar todo después.
-        </li>
-        <li>
-          <code>fonts</code> — caras <code>.woff2</code>/<code>.woff</code>/
-          <code>.ttf</code>/<code>.otf</code> servidas directamente desde la carpeta del
-          plugin; cada una aparece en el selector de fuentes del lector mientras el
-          plugin está habilitado. Un tema referencia sus propias fuentes como{" "}
-          <code>plugin:&lt;fontId&gt;</code>. Los plugins del Mercado deben listar
-          archivos de fuente en el <code>files</code> de la entrada del registro.
-        </li>
-        <li>
-          Los colores se validan contra gramáticas estrictas — hex simple o{" "}
-          <code>rgb()</code>/<code>rgba()</code>/<code>hsl()</code>/
-          <code>hsla()</code>; las palabras clave, <code>var()</code> y{" "}
-          <code>url()</code> se rechazan.
-        </li>
-      </ul>
-
-      <h2>Vistas</h2>
-      <p>
-        Los plugins declaran un árbol de componentes del host; la aplicación renderiza
-        cada primitiva visual y control. Los plugins nunca proporcionan JSX, HTML, CSS
-        o clases.
-      </p>
-      <ul>
-        <li>
-          <code>markdown</code> — una cadena markdown, compuesta por la aplicación.
-        </li>
-        <li>
-          <code>list</code> — listas de host con búsqueda con debounce fijo, palabras
-          clave, accesorios y estados vacíos. <code>timeline</code> agrega filtros Hoy /
-          Esta semana / Este mes / Todo y grupos de fecha local; un elemento puede usar{" "}
-          <code>presentation: "dialog"</code> para mostrar su vista devuelta sobre la
-          lista en lugar de empujar una página hija. Las <code>actions</code> a nivel de
-          lista son botones de icono renderizados por el host; las líneas de tiempo las
-          colocan a la derecha de la fila de pestañas.
-        </li>
-        <li>
-          <code>form</code> — controles text, textarea, number, time, select, choice, checkbox
-          y toggle de la biblioteca de componentes de ReadAware, más{" "}
-          <code>onSubmit</code>.
-        </li>
-        <li>
-          <code>detail</code> — contenido primario, metadatos y controles y acciones
-          renderizados por el host al estilo Raycast. Los controles de selección
-          semántica permanecen junto al encabezado de contenido; los diálogos mantienen
-          procedencia, fechas y etiquetas en una línea discreta debajo, mientras que las
-          acciones se sientan junto al botón Cerrar del host en un pie de página fijo.
-        </li>
-        <li>
-          <code>blocks</code> — tipografía del host, markdown, contenido de diccionario,
-          metadatos, citas, acciones, métricas, progreso, etiquetas, alertas, secciones,
-          grupos y <code>columns</code> responsivas. Las columnas solo exponen peso
-          acotado, espaciado, presets de ancho mínimo y alineación semántica. El CSS
-          exacto y el ajuste de línea permanecen dentro del sistema de diseño; las
-          declaraciones se validan en tiempo de ejecución y el anidamiento está limitado.
-        </li>
-      </ul>
-      <p>
-        Los manejadores (<code>run</code>, <code>onSelect</code>,{" "}
-        <code>onSubmit</code>) todos devuelven la misma forma de resultado:
-      </p>
-      <ul>
-        <li>
-          nada — la superficie permanece como está;
-        </li>
-        <li>
-          <code>{"{ toast: \"…\" }"}</code> — un aviso transitorio;
-        </li>
-        <li>
-          <code>{"{ view }"}</code> — abrir, o empujar sobre, la superficie;
-        </li>
-        <li>
-          <code>{'{ view, navigation: "replace" | "reset" }'}</code> — reemplazar la
-          vista actual, o volver a una nueva vista raíz;
-        </li>
-        <li>
-          <code>{"{ close: true }"}</code> — descartar la superficie (componible con{" "}
-          <code>toast</code>);
-        </li>
-        <li>
-          <code>{"{ fieldErrors }"}</code> — desde un envío de formulario: permanecer en
-          el formulario y mostrar errores bajo los campos.
-        </li>
-      </ul>
-      <p>
-        El trabajo async no es un evento: devuelve una promesa y la aplicación muestra
-        el estado de carga. Los iconos se eligen por nombre del conjunto Phosphor
-        curado de la aplicación — sin SVG personalizado.
-      </p>
-
-      <h2>Datos de dominio</h2>
-      <p>
-        Cada espacio de nombres de dominio otorgado ofrece lecturas, suscripciones de
-        eventos canónicos y (con el permiso de escritura) comandos. En resumen:
-      </p>
-      <ul>
-        <li>
-          <code>ctx.shelf.books</code> — <code>list()</code>, <code>get(id)</code>,{" "}
-          <code>getToc(id)</code>, <code>getChapterText(id, index)</code>; escritura:{" "}
-          <code>import</code>, <code>editMetadata</code>, <code>setStarred</code>,{" "}
-          <code>setFinished</code>, <code>remove</code>, más proveedores de contenido
-          (abajo).
-        </li>
-        <li>
-          <code>ctx.shelf.collections</code> — <code>list()</code>,{" "}
-          <code>booksIn(id)</code>; escritura: <code>create</code>, <code>rename</code>,{" "}
-          <code>remove</code>,{" "}
-          <code>assignBooks(bookIds, collectionId | null)</code>.
-        </li>
-        <li>
-          <code>ctx.shelf.stats</code> — <code>forBook(bookId)</code>,{" "}
-          <code>list()</code>, <code>overview()</code> (posiciones, estados y tiempo de
-          lectura activo; solo lectura para cada actor).
-        </li>
-        <li>
-          <code>ctx.annotations</code> —{" "}
-          <code>list({"{ bookId?, kind?, query? }"})</code> devuelve una unión
-          discriminada de subrayados, notas y preguntas; escritura:{" "}
-          <code>createHighlight</code>, <code>recolorHighlight</code>,{" "}
-          <code>removeHighlight</code>, <code>createNote</code>,{" "}
-          <code>updateNote</code>, <code>removeNote</code>.
-        </li>
-        <li>
-          <code>ctx.conversations</code> — <code>getBookThread(bookId)</code>,{" "}
-          <code>listThreads()</code>, <code>getThread(id)</code>; suscribir vía{" "}
-          <code>on</code> (<code>aiConversation.started</code>,{" "}
-          <code>aiMessage.appended</code>, <code>aiMessage.removed</code>,{" "}
-          <code>aiConversation.cleared</code>).
-        </li>
-      </ul>
-
-      <h2>Eventos</h2>
-      <p>
-        Dos clases, deliberadamente separadas. <strong>Eventos de dominio</strong> son
-        los hechos que la aplicación registra; suscríbete por dominio, bajo nombres
-        canónicos, con el permiso de lectura del dominio. Cada entrega es{" "}
-        <code>{"{ type, payload, createdAt, origin }"}</code> — origin dice qué actor de
-        software produjo el hecho (<code>user</code>, <code>agent</code>,{" "}
-        <code>system</code>, o <code>plugin:&lt;id&gt;</code>).
-      </p>
-      <pre>
-        <code>{`ctx.annotations?.on("highlight.created", ({ payload, origin }) => {
-  // payload: { highlightId, bookId, text, color?, … }
-});
-ctx.shelf?.on("book.removed", ({ payload }) => { /* { bookId } */ });
-`}</code>
-      </pre>
-      <p>
-        <strong>Hechos de sesión</strong> describen lo que está en pantalla ahora mismo.
-        Nunca entran al registro de eventos y no necesitan permiso:{" "}
-        <code>ctx.session.on(event, handler)</code>.
-      </p>
       <div className="overflow-x-auto">
         <table>
-          <thead>
-            <tr>
-              <th>Evento de sesión</th>
-              <th>Carga útil</th>
-            </tr>
-          </thead>
+          <thead><tr><th>Registro</th><th>El plugin proporciona</th><th>Permiso</th></tr></thead>
           <tbody>
-            <tr>
-              <td>
-                <code>book-opened</code>
-              </td>
-              <td>
-                <code>{"{ book: { id, title, author? } }"}</code>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>book-closed</code>
-              </td>
-              <td>
-                <code>{"{ bookId }"}</code>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>chapter-changed</code>
-              </td>
-              <td>
-                <code>{"{ bookId, chapterHref }"}</code>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>reading-progress</code>
-              </td>
-              <td>
-                <code>{"{ bookId, fraction }"}</code> — se dispara al pasar páginas,
-                fracción 0..1
-              </td>
-            </tr>
+            <tr><td><code>selectionActions</code></td><td>Acción de selección y manejador que devuelve un aviso o una vista renderizada por el host.</td><td>Ninguno</td></tr>
+            <tr><td><code>headerActions</code></td><td>Acción del lector o la biblioteca, metadatos de posición y callback de vista.</td><td>Ninguno</td></tr>
+            <tr><td><code>commands</code></td><td>Metadatos del comando y manejador.</td><td>Ninguno</td></tr>
+            <tr><td><code>settingsOptions</code></td><td>Opciones dinámicas para un campo de plugin declarado.</td><td>Ninguno</td></tr>
+            <tr><td><code>voiceProviders</code></td><td>Lista de voces y síntesis de audio codificado.</td><td>Ninguno</td></tr>
+            <tr><td><code>contentProviders</code></td><td>Secciones para una clave de libro virtual.</td><td>Ninguno</td></tr>
+            <tr><td><code>readerModes</code></td><td>Modo acotado de segmentación del lector; actualmente solo para plugins incluidos.</td><td><code>reader:modes</code></td></tr>
+            <tr><td><code>agentTools</code></td><td>Esquema de herramienta, etiqueta visible, descripción y ejecutor.</td><td><code>agent:tools</code></td></tr>
+            <tr><td><code>agentContextProviders</code></td><td>Bloques de referencia acotados para el turno actual.</td><td><code>agent:context</code></td></tr>
+            <tr><td><code>agentRetrievalProviders</code></td><td>Resultados de búsqueda de datos propios del plugin.</td><td><code>agent:retrieval</code></td></tr>
+            <tr><td><code>memoryCandidateProviders</code></td><td>Posibles hechos, preferencias, ideas o resúmenes persistentes.</td><td><code>agent:memory</code></td></tr>
+            <tr><td><code>themes</code>, <code>fonts</code></td><td>Datos semánticos de temas y fuentes declarados en el manifest.</td><td><code>ui:themes</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Cada ID de contribución tiene un espacio de nombres por plugin, cada
+        registro tiene propietario y se puede inspeccionar, y los recursos
+        desechables obsoletos no pueden eliminar un reemplazo más reciente. Un
+        nuevo tipo de contribución aún necesita un consumidor deliberado del
+        host; después, cualquier plugin compatible puede registrarse sin que la
+        aplicación tenga que nombrarlo.
+      </p>
+
+      <h3>Límites de extensión del agente</h3>
+      <ul>
+        <li><strong>Los proveedores de contexto</strong> se ejecutan durante un turno. El host añade procedencia, limita el tamaño y serializa la salida como datos de referencia no confiables.</li>
+        <li><strong>Los proveedores de recuperación</strong> se convierten en herramientas con espacio de nombres, un esquema <code>query</code>/<code>limit</code> propiedad del host y resultados recortados.</li>
+        <li><strong>Los proveedores de candidatos de memoria</strong> proponen candidatos acotados después de un turno; el host valida el ámbito, elimina duplicados y realiza cualquier escritura persistente.</li>
+      </ul>
+      <p>
+        Los plugins nunca reciben el puerto de Memoria, no pueden inyectar reglas
+        del sistema ni escribir directamente en la memoria a largo plazo.
+      </p>
+
+      <h2>Servicios del host</h2>
+      <div className="overflow-x-auto">
+        <table>
+          <thead><tr><th>Servicio</th><th>Contrato</th><th>Permiso</th></tr></thead>
+          <tbody>
+            <tr><td><code>storage</code></td><td>KV con espacio de nombres, colecciones de documentos y notificaciones de cambios externos.</td><td>Ninguno</td></tr>
+            <tr><td><code>secrets</code></td><td>Ranuras de credenciales cifradas con espacio de nombres.</td><td>Ninguno</td></tr>
+            <tr><td><code>ui</code></td><td>Aviso del host y flujo de guardado/exportación.</td><td>Ninguno</td></tr>
+            <tr><td><code>schedules</code></td><td>Vincular un manejador a una cadencia declarada en el manifest.</td><td>Ninguno</td></tr>
+            <tr><td><code>session</code></td><td>Suscribirse a hechos acotados de la sesión de lectura.</td><td>Ninguno</td></tr>
+            <tr><td><code>network</code></td><td>HTTP mediado por el host.</td><td><code>service:network</code></td></tr>
+            <tr><td><code>llm</code></td><td>Llamadas de una sola vez al modelo, de texto o limitadas por un esquema JSON, usando la configuración del usuario.</td><td><code>service:llm</code></td></tr>
+            <tr><td><code>clipboard</code></td><td>Escribir texto en el portapapeles del sistema.</td><td><code>service:clipboard</code></td></tr>
           </tbody>
         </table>
       </div>
 
-      <h2>Proveedores de contenido y libros virtuales</h2>
+      <h3>Almacenamiento</h3>
       <p>
-        Con <code>shelf:write</code>, un plugin puede poner libros reales en la
-        estantería. <code>import</code> toma los bytes de un archivo. Los proveedores de
-        contenido omiten el archivo por completo: registra un proveedor, agrega libros
-        virtuales vinculados a él, y sirve secciones HTML cuando se abre el libro. El
-        lector pagina, anota y rastrea el progreso en ellos como cualquier libro — un
-        feed RSS como libro es exactamente esto.
-      </p>
-      <pre>
-        <code>{`ctx.shelf?.books.write?.registerContentProvider({
-  id: "rss",
-  async load(key) {
-    const feed = await fetchFeed(key); // tu código, vía ctx.network.fetch
-    return {
-      title: feed.title,
-      sections: feed.items.map((item) => ({
-        title: item.title,
-        html: item.contentHtml,
-      })),
-    };
-  },
-});
-
-await ctx.shelf?.books.write?.addVirtualBook({
-  providerId: "rss",
-  key: "https://example.com/feed.xml",
-  title: "Example Weekly",
-});`}</code>
-      </pre>
-
-      <h2 id="storage-and-settings">Almacenamiento y configuración</h2>
-      <p>
-        <code>ctx.storage</code> es un almacén clave-valor con espacio de nombres
-        persistido con los datos locales de la aplicación — <code>get</code>,{" "}
-        <code>set</code>, <code>remove</code>. Si el manifest declara campos{" "}
-        <code>settings</code>, la aplicación los renderiza como la propia sección del
-        plugin en Ajustes y los valores llegan a{" "}
-        <code>ctx.storage.get("settings")</code> como un objeto. El asistente de lectura
-        también puede ver y cambiar estas configuraciones (los campos marcados{" "}
-        <code>agentHidden</code> permanecen fuera de su vista). Tres capacidades de
-        campo van más allá de un formulario simple:
-      </p>
-      <ul>
-        <li>
-          <code>visibleWhen: {"{ field, equals }"}</code> muestra un campo solo mientras
-          otro campo contiene uno de los valores dados. Los campos ocultos mantienen sus
-          valores almacenados — un objeto de configuración puede llevar un valor
-          configurado por variante (el plugin TTS mantiene una voz por proveedor de esta
-          manera).
-        </li>
-        <li>
-          Un <code>select</code> con <code>dynamicOptions: true</code> resuelve sus
-          opciones en tiempo de ejecución: vincula la fuente en <code>activate</code>{" "}
-          con{" "}
-          <code>ctx.settings.provideOptions(fieldId, async (values) =&gt; [...])</code>.
-          Cuando la fuente no produce nada (sin credenciales aún, endpoint inaccesible)
-          el campo vuelve a entrada de texto libre — listar es una conveniencia, nunca
-          una puerta.
-        </li>
-        <li>
-          <code>kind: "secret"</code> declara una credencial: la aplicación renderiza
-          una entrada de contraseña escribiendo al almacén secreto cifrado — el id del
-          campo ES la clave de <code>ctx.secrets</code> que tu código lee de vuelta —
-          nunca a configuración simple, y nunca en el catálogo del asistente. El valor
-          almacenado nunca se hace eco; el campo muestra un estado configurado y un
-          affordance claro.
-        </li>
-      </ul>
-      <p>
-        Para datos estructurados, <code>ctx.storage.collection(name)</code> abre una
-        colección de documentos con nombre — <code>put</code> / <code>get</code> /{" "}
-        <code>delete</code> / <code>list</code> sobre registros por documento, con
-        procedencia <code>bookId</code> / <code>anchor</code> opcional por la que puedes
-        filtrar. La procedencia es un índice, no propiedad: los documentos sobreviven la
-        eliminación del libro referenciado, y el ciclo de vida de la colección pertenece
-        al plugin (desinstalar la limpia). El plugin Dictionary incorporado y su línea
-        de tiempo de palabras guardadas están construidos completamente en este nivel.
+        Usa KV para ajustes pequeños y puntos de control. Usa una colección de
+        documentos con nombre para registros propios del plugin, con IDs estables
+        y procedencia opcional <code>bookId</code>/<code>anchor</code>. La
+        procedencia es un índice, no propiedad; un documento puede sobrevivir a
+        la eliminación del libro referenciado. La desinstalación vacía las
+        colecciones de documentos, pero conserva el KV, las ranuras de secretos y
+        los metadatos de esquema confirmados para reinstalar y migrar.
       </p>
 
-      <h2>Contexto ambiente</h2>
-      <p>Siempre disponible, sin permiso necesario:</p>
-      <ul>
-        <li>
-          <code>ctx.manifest</code>, <code>ctx.appVersion</code>,{" "}
-          <code>ctx.locale</code> (la locale BCP-47 actual de la UI de la aplicación —
-          léela al momento de uso, rastrea la configuración de idioma en vivo);
-        </li>
-        <li>
-          <code>ctx.ui.showToast(message)</code>;
-        </li>
-        <li>
-          <code>ctx.ui.exportFile({"{ filename, content, mimeType? }"})</code> abre el
-          flujo de guardado del host para texto generado (CSV, JSON, Markdown) o bytes
-          binarios;
-        </li>
-        <li>
-          <code>ctx.secrets</code> — almacenamiento de credenciales cifrado, con espacio
-          de nombres por plugin (tokens API y similares); vive fuera de SQLite y copias
-          de seguridad y sobrevive la desinstalación;
-        </li>
-        <li>
-          <code>ctx.session.on(…)</code> — los hechos de sesión arriba;
-        </li>
-        <li>
-          <code>ctx.reader.openBook(bookId)</code> y{" "}
-          <code>ctx.reader.goTo({"{ bookId?, cfi?, href? }"})</code> — navegar el lector
-          (control visible al usuario, sin exposición de datos).
-        </li>
-      </ul>
-
-      <h2>Estabilidad</h2>
+      <h3>Programaciones</h3>
       <p>
-        Este es el contrato v2, enviado en la aplicación 0.3.0 — una reconstrucción
-        rompedora deliberada que derivó toda la superficie del modelo de dominio (los
-        manifests v1 fallan la instalación con un error legible). Desde aquí la API
-        crece aditivamente: nuevos dominios, nuevos nombres de eventos, nuevos tipos de
-        bloques — los temas declarativos (<code>ui:themes</code>) son la primera de
-        esas adiciones. Los cambios rompedores a lo que está documentado aquí se tratan
-        como bugs. Declara <code>minAppVersion</code> para cualquier cosa que dependa de
-        una adición reciente.
+        El manifest declara <code>{`{ id, label, everyMinutes }`}</code> y la
+        activación vincula el manejador mediante
+        <code>ctx.services.schedules.bind</code>. La cadencia mínima es de 15
+        minutos. Las ejecuciones ocurren al menos con esa cadencia mientras la
+        aplicación está abierta, se ponen al día al iniciar cuando están
+        atrasadas y no se solapan. No es un trabajo de fondo duradero ni una
+        garantía de hora exacta.
+      </p>
+
+      <h2>UI declarativa y ajustes</h2>
+      <p>
+        Los plugins devuelven datos de vista versionados, no UI ejecutable. La
+        gramática de vistas incluye markdown, listas consultables, formularios,
+        diseños de detalle, resultados de diccionario y árboles de bloques
+        acotados. Los manejadores pueden conservar la superficie, mostrar un
+        aviso, abrir o reemplazar una vista, restablecer la navegación, cerrar la
+        superficie o devolver errores de campos. El host se encarga de los
+        estados de carga y error de las promesas.
+      </p>
+      <p>
+        Los ajustes del manifest usan controles del host para campos de texto,
+        textarea, número, hora, selección, opciones, casilla, interruptor y
+        secretos. Los campos condicionales usan <code>visibleWhen</code>; las
+        selecciones dinámicas usan un proveedor <code>settingsOptions</code>
+        registrado. Los campos secretos escriben directamente en ranuras de
+        secretos cifradas y nunca entran en el objeto de ajustes ordinario ni en
+        el catálogo visible para el agente.
+      </p>
+
+      <h2>Temas y fuentes</h2>
+      <p>
+        Los plugins de temas declaran datos semánticos en el manifest. Un tema de
+        la aplicación sobrescribe un vocabulario fijo de tokens del host; un tema
+        del lector proporciona la paleta de página obligatoria de seis colores y
+        valores tipográficos predeterminados opcionales. El host valida los
+        valores, genera CSS, carga archivos de fuentes locales aprobados y no
+        aplica nada hasta que el usuario lo selecciona.
+      </p>
+      <p>
+        Proporcionar opciones requiere <code>ui:themes</code>. Seleccionar una
+        requiere una concesión exacta de escritura en Ajustes, como
+        <code>appearance.theme</code> o <code>reading.theme</code>. Una no implica
+        la otra.
+      </p>
+
+      <h2>Fases del ciclo de vida</h2>
+      <ol>
+        <li><strong>Activación:</strong> las consultas y lecturas privadas del plugin están disponibles; los registros se preparan y los efectos secundarios están bloqueados.</li>
+        <li><strong>Migración:</strong> solo están disponibles el KV del plugin y las colecciones de documentos.</li>
+        <li><strong>Activo:</strong> los manejadores promocionados pueden usar sus dominios, contribuciones y servicios concedidos.</li>
+      </ol>
+      <p>
+        El host procesa las RPC de activación, comprueba la salud del Worker,
+        ejecuta cualquier migración de datos y después promociona todo el
+        conjunto preparado en un único punto explícito. Una activación fallida
+        elimina el trabajo preparado sin reemplazar el runtime actual.
+      </p>
+
+      <h2>Entorno del Worker</h2>
+      <p>
+        No hay acceso a React, Jotai, DOM, WebView, Tauri, SQLite, sistema de
+        archivos ni procesos. Las API ambientales <code>fetch</code>, WebSocket,
+        EventSource, XMLHttpRequest, BroadcastChannel, IndexedDB y Cache Storage
+        están desactivadas. Usa el contexto tipado para la red, la persistencia y
+        toda interacción con el host.
+      </p>
+
+      <h2>Compatibilidad y estabilidad</h2>
+      <p>
+        Los dominios, las contribuciones, los servicios y los esquemas
+        declarativos tienen cada uno una versión semántica independiente. Los
+        IDs desconocidos, los rangos semver inválidos, las capacidades requeridas
+        inaccesibles y las versiones incompatibles del host impiden la activación.
+        Las adiciones compatibles incrementan la capacidad propietaria, no un
+        único número global de API del plugin.
+      </p>
+      <p>
+        El ecosistema actual es propio, por lo que el contrato vigente respaldado
+        por el registro es la base. No dependas de las formas anteriores
+        <code>shelf</code>, <code>appearance</code> ni de las anteriores al registro.
       </p>
     </article>
   );

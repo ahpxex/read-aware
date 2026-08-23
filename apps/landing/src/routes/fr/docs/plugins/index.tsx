@@ -4,11 +4,11 @@ import { MARKETPLACE_REPO_URL } from "../../../../lib/site";
 export const Route = createFileRoute("/fr/docs/plugins/")({
   head: () => ({
     meta: [
-      { title: "Système d'extensions — Documentation ReadAware" },
+      { title: "Système de plugins — Documentation ReadAware" },
       {
         name: "description",
         content:
-          "Ce que les extensions ReadAware peuvent faire, comment fonctionne le modèle de confiance, et comment installer des extensions.",
+          "Comment les plugins ReadAware étendent les domaines du produit, ajoutent des capacités, utilisent les services de l’hôte et restent dans des limites de confiance explicites.",
       },
     ],
   }),
@@ -18,174 +18,130 @@ export const Route = createFileRoute("/fr/docs/plugins/")({
 function PluginsOverviewPage() {
   return (
     <article className="doc-prose">
-      <h1>Système d'extensions</h1>
+      <h1>Système de plugins</h1>
       <p className="lead">
-        Les extensions apportent de nouvelles actions, de nouvelles pages, et — surtout — de
-        nouveaux outils que l'assistant de lecture peut utiliser. Une extension est un petit
-        module JavaScript ; son interface est toujours rendue par le système de design de
-        l'application elle-même, donc la fonctionnalité d'une extension ressemble et se
-        comporte comme le natif.
+        Les plugins ReadAware peuvent utiliser les données de lecture, ajouter des actions natives et
+        des fournisseurs, étendre l’assistant de lecture et demander à l’hôte des
+        services limités. Les paquets installés sont chargés dynamiquement ; l’application n’a jamais besoin d’un
+        interrupteur pour chaque ID de plugin.
       </p>
 
-      <h2>Ce que les extensions peuvent contribuer</h2>
-      <ul>
-        <li>
-          <strong>Actions de sélection</strong> — des entrées dans le menu de sélection de texte
-          du lecteur. Envoyez un mot dans Anki, traduisez un paragraphe, enregistrez un extrait
-          n'importe où.
-        </li>
-        <li>
-          <strong>Boutons d'en-tête</strong>
-          — un bouton icône dans l'en-tête du lecteur ou de la bibliothèque : cliquez pour ouvrir
-          un panneau flottant, ou (dans la bibliothèque) une page complète.
-        </li>
-        <li>
-          <strong>Commandes</strong>
-          — des entrées dans la palette de commandes. Chaque action d'extension y apparaît
-          automatiquement ; les commandes explicites complètent les actions sans bouton.
-        </li>
-        <li>
-          <strong>Outils de l'assistant</strong>
-          — des fonctions que l'assistant de lecture peut appeler pendant une conversation.
-          C'est le point de montage au plafond le plus élevé : une extension peut permettre à
-          l'assistant d'interroger votre collection Anki, votre file RSS, ou n'importe quel
-          service que vous utilisez.
-        </li>
-        <li>
-          <strong>Fournisseurs de contenu</strong> — des livres virtuels dont les chapitres sont
-          fournis par l'extension à la demande. Un flux RSS peut résider sur votre étagère,
-          être lu, annoté et discuté comme n'importe quel livre.
-        </li>
-        <li>
-          <strong>Voix de lecture à haute voix</strong> — connecte des moteurs TTS à la fonction
-          de lecture à voix haute de la page de lecture. L'extension synthétise l'audio,
-          l'application le lit, et si une seule phrase échoue, elle revient à la voix système.
-        </li>
-        <li>
-          <strong>Paramètres et tâches planifiées</strong> — les paramètres déclaratifs deviennent
-          la propre section de l'extension dans Réglages (y compris les clés API, stockées
-          chiffrées) ; les tâches périodiques déclarées s'exécutent pendant que l'application
-          est ouverte.
-        </li>
-      </ul>
-
-      <h2>Apparence native, construite</h2>
+      <h2>Un modèle, trois familles de capacités</h2>
       <p>
-        Les extensions ne rendent jamais leur propre HTML. Elles déclarent des vues avec un petit
-        vocabulaire — markdown, listes, formulaires et quelques blocs structurés — et
-        l'application les rend avec ses propres composants. Les auteurs d'extensions abandonnent
-        le contrôle des pixels en échange de zéro travail de design et d'une application qui
-        reste toujours cohérente.
+        Chaque capacité exécutable d’un plugin prend l’une de trois formes. Choisir
+        la bonne forme est la première décision d’écriture.
+      </p>
+      <div className="overflow-x-auto">
+        <table>
+          <thead>
+            <tr><th>Famille</th><th>À utiliser lorsque</th><th>Exemples</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Domaine</strong></td>
+              <td>ReadAware possède déjà l’état ou le comportement.</td>
+              <td>Bibliothèque, lecture, annotations, conversations, paramètres</td>
+            </tr>
+            <tr>
+              <td><strong>Contribution</strong></td>
+              <td>Le plugin fournit un nouveau choix ou une nouvelle implémentation.</td>
+              <td>Actions, commandes, voix, contenu, thèmes, fournisseurs de l’agent</td>
+            </tr>
+            <tr>
+              <td><strong>Service</strong></td>
+              <td>L’hôte doit effectuer une opération externe limitée.</td>
+              <td>Stockage, secrets, tâches planifiées, réseau, LLM, presse-papiers</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Les schémas déclaratifs de vues, paramètres et thèmes complètent ces
+        familles. Ils décrivent des données rendues par l’hôte ; ils n’accordent aucune autre
+        source d’autorité.
       </p>
 
-      <h2>Modèle de confiance</h2>
+      <h2>Les réglages sont un domaine</h2>
       <p>
-        Les extensions s'exécutent à l'intérieur de l'application, partageant le même contexte
-        JavaScript que l'application — comme Obsidian, et contrairement au sandbox des extensions
-        de navigateur. Il y a deux couches de protection pragmatique :
+        L’apparence est une section des réglages, et non une API de plugin distincte. Un plugin
+        qui change le thème sélectionné demande des chemins de réglage précis tels que{" "}
+        <code>appearance.theme</code>. Un plugin qui fournit un nouveau thème utilise
+        la contribution <code>themes</code>. Choisir et fournir sont
+        volontairement des pouvoirs distincts.
       </p>
+
+      <h2>Ce que les plugins peuvent ajouter</h2>
       <ul>
-        <li>
-          <strong>Permissions</strong> — le manifest de l'extension déclare ce qu'elle veut
-          utiliser (réseau, lecture des données, IA, presse-papiers…), et l'API expose
-          uniquement la partie déclarée. Cela protège contre le dépassement involontaire.
-        </li>
-        <li>
-          <strong>L'installation elle-même est cette décision de confiance.</strong>
-          Avant que tout fichier ne soit copié ou exécuté, l'application affiche chaque permission
-          demandée par l'extension en langage clair et attend votre consentement. Traitez
-          l'installation d'extension comme l'installation d'un logiciel.
-        </li>
+        <li>Actions de sélection et d’en-tête, commandes de palette et vues rendues par l’hôte.</li>
+        <li>Voix, fournisseurs de contenu de livres virtuels, modes de lecture, thèmes et polices.</li>
+        <li>Outils d’agent, contexte par tour, sources privées consultables et candidats mémoire.</li>
+        <li>Paramètres de plugin, options dynamiques, tâches récurrentes, stockage et secrets chiffrés.</li>
+        <li>Lectures, commandes et abonnements aux événements validés dans les domaines accordés.</li>
       </ul>
       <p>
-        L'architecture de l'application elle-même limite également la portée : le stockage des
-        extensions est isolé par espace de noms dans le répertoire de données de l'application,
-        et le shell de bureau n'accorde pas d'accès arbitraire au système de fichiers.
+        Consultez la liste complète et versionnée dans le{" "}
+        <Link to="/fr/docs/plugins/capabilities">navigateur des capacités</Link>. Il
+        comprend également un aperçu des permissions pour <code>manifest.json</code>.
       </p>
 
-      <h2>Installer des extensions</h2>
-      <ul>
-        <li>
-          <strong>Marché d'extensions</strong> — « Réglages → Extensions → Marché d'extensions »
-          liste les extensions communautaires du{" "}
-          <a
-            href={MARKETPLACE_REPO_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            dépôt d'extensions
-          </a>{" "}
-          public ; installation en un clic, après avoir montré un résumé des permissions.
-        </li>
-        <li>
-          <strong>Installer depuis un dossier</strong> — « Réglages → Extensions » peut installer
-          n'importe quel dossier d'extension local. C'est la boucle de développement : pointez-la
-          vers votre répertoire de travail, et réinstallez après chaque modification.
-        </li>
-      </ul>
-
-      <h2>La disposition est à vous</h2>
+      <h2>Interface native, par construction</h2>
       <p>
-        Les extensions contribuent des capacités ; où vont les boutons, c'est vous qui décidez.
-        « Réglages → Personnaliser » vous permet d'organiser chaque surface (en-tête de la
-        bibliothèque, en-tête du lecteur, menu de sélection) : glissez des éléments entre la
-        zone affichée et le menu de débordement, réorganisez, ou restaurez les valeurs par défaut.
-        Les nouvelles actions d'extension atterrissent discrètement dans le menu de débordement, et
-        tout reste accessible depuis la palette de commandes.
+        Les plugins ne montent ni React, ni HTML, ni CSS, ni iframe ni DOM arbitraire. Ils
+        renvoient des données de vue et callbacks validés ; ReadAware gère la mise en page,
+        la navigation, l’accessibilité, la compatibilité des thèmes, les états de chargement et
+        le nettoyage. Toute nouvelle liberté visuelle arrive sous forme de schéma limité ou de véritable point hôte
+        de contribution, jamais comme échappatoire webview générique.
       </p>
 
-      <h2 id="read-aloud-tts">Lire à haute voix avec n'importe quelle voix TTS</h2>
+      <h2>La limite de confiance</h2>
       <p>
-        L'extension intégrée <strong>TTS Voices</strong> connecte la lecture à haute voix au
-        moteur de votre choix — ElevenLabs, Fish Audio, OpenAI, ou n'importe quel point de
-        terminaison compatible OpenAI (Kokoro, LocalAI, pont Edge TTS…). Tout se passe dans{" "}
-        <strong>Réglages → TTS Voices</strong> : choisissez un fournisseur, ses champs
-        apparaissent — la clé API va directement dans le stockage de clés chiffré ; quand le
-        fournisseur peut énumérer les voix, le champ de voix devient un menu déroulant (sinon,
-        vous pouvez toujours saisir manuellement un nom).
+        Chaque plugin s’exécute dans son propre Worker de module. Il n’a accès ni au DOM, ni à Tauri,
+        ni à SQLite, ni au système de fichiers, ni à un descripteur de processus ; le réseau ambiant et les API de persistance du navigateur
+        sont désactivés. Les appels de l’hôte traversent une frontière de messages et
+        sont résolus selon la vue de capacités de l’acteur du plugin.
       </p>
       <p>
-        Une solution gratuite populaire est d'utiliser les voix neuronales de Microsoft Edge
-        via{" "}
-        <a
-          href="https://github.com/travisvn/openai-edge-tts"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          openai-edge-tts
+        Cela limite les dépassements accidentels et directs, mais l’installation reste
+        une décision de confiance logicielle. Avant l’exécution du code, ReadAware affiche les
+        permissions sémantiques et les accès précis aux réglages. Les exigences de capacités sont
+        vérifiées séparément : la permission répond « peut-il le faire ? », tandis qu’une
+        exigence de version répond « peut-il utiliser correctement ce contrat ? »
+      </p>
+
+      <h2>L’activation et les mises à jour sont transactionnelles</h2>
+      <p>
+        <code>activate()</code> est une phase de lecture et de déclaration. Les enregistrements restent
+        invisibles pendant que l’hôte traite les appels et vérifie le Worker ;
+        les écritures, secrets, réseau, LLM, presse-papiers, effets UI et navigation
+        sont bloqués. Les changements persistants passent ensuite par un{" "}
+        <code>migrate()</code>. Seul un candidat sain et migré est promu.
+      </p>
+      <p>
+        Les mises à jour sauvegardent les fichiers, le KV du plugin, les collections de documents et les
+        métadonnées de schéma validées. Une activation ou migration échouée restaure les
+        fichiers et données précédents, puis redémarre l’ancien runtime si nécessaire.
+      </p>
+
+      <h2>Écosystème actuel</h2>
+      <p>
+        Les plugins distribués aujourd’hui sont intégrés ou développés par l’équipe : Dictionary,
+        Editorial Themes, RSS Reader, Sentence Reader, TTS Voices et Theme
+        Schedule. Le dépôt public{" "}
+        <a href={MARKETPLACE_REPO_URL} target="_blank" rel="noopener noreferrer">
+          readaware-plugins
         </a>{" "}
-        — un petit service local qui parle l'API audio OpenAI :
-      </p>
-      <ol>
-        <li>
-          Lancez le service localement — par exemple{" "}
-          <code>docker run -d -p 5050:5050 travisvn/openai-edge-tts</code> (pas besoin de clé
-          API par défaut).
-        </li>
-        <li>
-          Dans « Réglages → TTS Voices », réglez le fournisseur sur{" "}
-          <em>Personnalisé / Local (compatible OpenAI)</em>, et le point de terminaison sur{" "}
-          <code>http://127.0.0.1:5050/v1/audio/speech</code>.
-        </li>
-        <li>
-          Choisissez une voix dans la liste — l'application lit le catalogue du serveur, les voix
-          Edge complètes (telles que <code>zh-CN-XiaoxiaoNeural</code>,{" "}
-          <code>en-US-AriaNeural</code>) apparaissent aux côtés des alias de style OpenAI.
-        </li>
-      </ol>
-      <p>
-        Puis ouvrez un livre et commencez à lire : les phrases sont prononcées par votre voix
-        choisie, la phrase suivante est pré-chargée pendant la lecture de la phrase actuelle ; si
-        une seule synthèse échoue, elle revient à la voix système, sans interrompre la lecture.
+        contient le modèle d’écriture, les déclarations publiques, la validation et
+        le registre du marché. Aucune API tierce historique n’est à préserver ;
+        le contrat actuel constitue la référence.
       </p>
 
-      <h2>Écrire la vôtre</h2>
+      <h2>Commencer à créer</h2>
       <p>
-        Une extension est un dossier contenant un <code>manifest.json</code> et un seul fichier{" "}
-        <code>main.js</code>. La <Link to="/fr/docs/plugins/api">référence de l'API</Link>{" "}
-        couvre le contrat complet, et{" "}
-        <Link to="/fr/docs/plugins/publishing">Publication et distribution</Link> explique comment
-        la soumettre au marché d'extensions.
+        Suivez <Link to="/fr/docs/plugins/develop">Créer un plugin</Link> pour la
+        boucle locale, utilisez la <Link to="/fr/docs/plugins/api">référence de l’API</Link>{" "}
+        pendant l’implémentation, puis lisez{" "}
+        <Link to="/fr/docs/plugins/publishing">Publication</Link> avant de soumettre
+        une modification au registre.
       </p>
     </article>
   );

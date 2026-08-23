@@ -4,11 +4,11 @@ import { MARKETPLACE_REPO_URL } from "../../../../lib/site";
 export const Route = createFileRoute("/de/docs/plugins/")({
   head: () => ({
     meta: [
-      { title: "Plugin-System — ReadAware Dokumentation" },
+      { title: "Pluginsystem — ReadAware-Dokumentation" },
       {
         name: "description",
         content:
-          "Was ReadAware-Plugins leisten können, wie das Vertrauensmodell funktioniert und wie man sie installiert.",
+          "Wie ReadAware-Plugins Produktdomänen erweitern, neue Fähigkeiten beitragen, Host-Dienste nutzen und innerhalb klarer Vertrauensgrenzen bleiben.",
       },
     ],
   }),
@@ -18,187 +18,119 @@ export const Route = createFileRoute("/de/docs/plugins/")({
 function PluginsOverviewPage() {
   return (
     <article className="doc-prose">
-      <h1>Plugin-System</h1>
+      <h1>Pluginsystem</h1>
       <p className="lead">
-        Plugins erweitern ReadAware mit neuen Aktionen, neuen Seiten und — am
-        wichtigsten — neuen Werkzeugen für den Lese-Assistenten. Ein Plugin ist
-        ein kleines JavaScript-Modul; seine Oberfläche wird immer vom eigenen
-        Design-System der App gerendert, sodass Plugin-Features nativ aussehen
-        und sich so anfühlen.
+        ReadAware-Plugins können mit Lesedaten arbeiten, native Aktionen und Anbieter hinzufügen, den Leseassistenten erweitern und den Host um begrenzte Dienste bitten. Installierte Pakete werden dynamisch geladen; die App benötigt keinen Schalter für jede Plugin-ID.
       </p>
 
-      <h2>Was ein Plugin beitragen kann</h2>
-      <ul>
-        <li>
-          <strong>Auswahlaktionen</strong> — Einträge im Textauswahl-Menü des
-          Readers. Ein Wort an Anki senden, eine Passage übersetzen, ein Zitat
-          irgendwo speichern.
-        </li>
-        <li>
-          <strong>Kopfleisten-Buttons</strong> — Icon-Buttons in der Kopfleiste
-          des Readers oder Regals, die ein Popover öffnen — oder beim Regal
-          eine ganze Seite.
-        </li>
-        <li>
-          <strong>Befehle</strong> — Einträge in der Befehlspalette. Jede
-          Plugin-Aktion ist dort automatisch erreichbar; explizite Befehle
-          fügen weitere hinzu.
-        </li>
-        <li>
-          <strong>Agenten-Werkzeuge</strong> — Funktionen, die der
-          Lese-Assistent während des Chats aufrufen kann. Dies ist der
-          Erweiterungspunkt mit dem größten Potenzial: Ein Plugin kann dem
-          Assistenten erlauben, dein Anki-Deck, deinen RSS-Backlog oder jeden
-          Dienst, den du nutzt, abzufragen.
-        </li>
-        <li>
-          <strong>Inhaltsanbieter</strong> — virtuelle Bücher, deren Kapitel
-          das Plugin auf Anfrage liefert. Ein RSS-Feed kann auf deinem Regal
-          stehen und wie jedes Buch gelesen, annotiert und besprochen werden.
-        </li>
-        <li>
-          <strong>Vorlesestimmen</strong> — TTS-Engines für das Vorlesen des
-          Readers. Das Plugin synthetisiert Audio; die App besitzt die
-          Wiedergabe und fällt bei einem fehlgeschlagenen Aufruf auf die
-          Systemstimme zurück.
-        </li>
-        <li>
-          <strong>Einstellungen und Zeitpläne</strong> — deklarierte
-          Einstellungen werden zur eigenen Sektion des Plugins in den
-          Einstellungen (API-Schlüssel inklusive, verschlüsselt gespeichert),
-          und deklarierte Zeitpläne führen wiederkehrende Arbeit aus, während
-          die App offen ist.
-        </li>
-      </ul>
-
-      <h2>Plugins wirken systembedingt nativ</h2>
+      <h2>Ein Modell, drei Fähigkeitsfamilien</h2>
       <p>
-        Plugins rendern niemals eigenes HTML. Sie deklarieren Ansichten aus
-        einem kleinen Vokabular — Markdown, Listen, Formulare und ein paar
-        strukturierte Blöcke — und die App rendert sie mit ihren eigenen
-        Komponenten. Plugin-Autoren geben die Kontrolle über Pixel auf und
-        bekommen dafür null Design-Arbeit und eine dauerhaft konsistente App.
+        Jede ausführbare Plugin-Fähigkeit hat eine von drei Formen. Die richtige Form zu wählen, ist die erste Entscheidung beim Erstellen.
+      </p>
+      <div className="overflow-x-auto">
+        <table>
+          <thead>
+            <tr><th>Familie</th><th>Verwende sie, wenn</th><th>Beispiele</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Domäne</strong></td>
+              <td>ReadAware besitzt den Zustand oder das Verhalten bereits.</td>
+              <td>Bibliothek, Lesen, Anmerkungen, Unterhaltungen, Einstellungen</td>
+            </tr>
+            <tr>
+              <td><strong>Beitrag</strong></td>
+              <td>Das Plugin liefert eine neue Auswahl oder Implementierung.</td>
+              <td>Aktionen, Befehle, Stimmen, Inhalte, Designs, Agent-Anbieter</td>
+            </tr>
+            <tr>
+              <td><strong>Dienst</strong></td>
+              <td>Der Host muss eine begrenzte externe Operation ausführen.</td>
+              <td>Speicher, Geheimnisse, Zeitpläne, Netzwerk, LLM, Zwischenablage</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Deklarative Ansichts-, Einstellungs- und Designs­chemata stehen neben diesen Familien. Sie beschreiben vom Host gerenderte Daten; sie verleihen keine zusätzliche Autorität.
       </p>
 
-      <h2>Das Vertrauensmodell</h2>
+      <h2>Einstellungen sind eine Domäne</h2>
       <p>
-        Plugins laufen innerhalb der App im selben JavaScript-Kontext — wie
-        Obsidian, und anders als in einer Browser-Erweiterungs-Sandbox. Zwei
-        ehrliche Schutzebenen greifen:
+        Darstellung ist ein Abschnitt der Einstellungen, keine separate Plugin-API. Ein Plugin, das das ausgewählte Design ändert, fordert genaue Einstellungspfade an, etwa{" "}
+        <code>appearance.theme</code>. Ein Plugin, das ein neues Design bereitstellt, verwendet
+        den <code>themes</code>-Beitrag. Auswählen und Bereitstellen sind bewusst getrennte Befugnisse.
       </p>
+
+      <h2>Was Plugins hinzufügen können</h2>
       <ul>
-        <li>
-          <strong>Berechtigungen</strong> — das Manifest eines Plugins
-          deklariert, was es benutzt (Netzwerk, Lesedaten, KI,
-          Zwischenablage, …), und die API legt nur frei, was deklariert
-          wurde. Das schützt vor versehentlichen Übergriffen.
-        </li>
-        <li>
-          <strong>Die Installation ist die Vertrauensentscheidung.</strong>{" "}
-          Bevor irgendetwas kopiert oder ausgeführt wird, zeigt die App in
-          einfacher Sprache genau, welche Berechtigungen das Plugin verlangt,
-          und wartet auf deine Zustimmung. Installiere Plugins so, wie du
-          Software installieren würdest.
-        </li>
+        <li>Auswahl- und Kopfzeilenaktionen, Befehle der Befehlspalette und vom Host gerenderte Ansichten.</li>
+        <li>Stimmen, Inhaltsanbieter für virtuelle Bücher, Lesemodi, Designs und Schriftarten.</li>
+        <li>Agent-Werkzeuge, Kontext pro Runde, durchsuchbare private Quellen und Gedächtniskandidaten.</li>
+        <li>Plugin-Einstellungen, dynamische Optionen, wiederkehrende Aufgaben, Speicher und verschlüsselte Geheimnisse.</li>
+        <li>Lesezugriffe, Befehle und Abonnements für festgeschriebene Ereignisse in freigegebenen Produktdomänen.</li>
       </ul>
       <p>
-        Die Architektur der App begrenzt den Schaden: Der Plugin-Speicher liegt
-        unter eigenem Namensraum im Datenverzeichnis der App, und die
-        Desktop-Shell gewährt keinen beliebigen Dateisystemzugriff.
+        Die vollständige versionierte Liste findest du im{" "}
+        <Link to="/de/docs/plugins/capabilities">Fähigkeitsbrowser</Link>. Sie
+        enthält auch eine Berechtigungsvorschau für <code>manifest.json</code>.
       </p>
 
-      <h2>Plugins installieren</h2>
-      <ul>
-        <li>
-          <strong>Marktplatz</strong> — Einstellungen → Plugins → Marktplatz
-          listet Community-Plugins aus der öffentlichen{" "}
-          <a
-            href={MARKETPLACE_REPO_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Registry
-          </a>
-          ; die Installation ist ein Klick — die Berechtigungsübersicht kommt
-          zuerst.
-        </li>
-        <li>
-          <strong>Aus einem Ordner</strong> — Einstellungen → Plugins
-          installiert jeden lokalen Plugin-Ordner. Das ist der
-          Entwicklungs-Loop: Zeig auf dein Arbeitsverzeichnis und installiere
-          neu, um Änderungen zu übernehmen.
-        </li>
-      </ul>
-
-      <h2>Du bestimmst das Layout</h2>
+      <h2>Native UI, von Grund auf</h2>
       <p>
-        Plugins bringen Fähigkeiten mit; du entscheidest, wo Buttons leben.
-        Einstellungen → Anpassen ordnet jede Oberfläche (Regal-Kopfleiste,
-        Reader-Kopfleiste, Auswahlmenü): Zieh Einträge zwischen der sichtbaren
-        Reihe und dem Überlaufmenü hin und her, sortiere sie um oder setze sie
-        auf die Standardwerte zurück. Neue Plugin-Aktionen landen leise im
-        Überlaufmenü — und alles ist immer über die Befehlspalette erreichbar.
+        Plugins binden weder React, HTML, CSS, iframes noch beliebiges DOM ein.
+        Sie geben validierte Ansichtsdaten und Rückrufe zurück; ReadAware besitzt
+        Layout, Navigation, Barrierefreiheit, Design-Kompatibilität, Ladezustände
+        und Bereinigung. Neue visuelle Freiheit kommt als begrenztes Schema oder
+        echter Host-Beitragspunkt hinzu, nicht als allgemeiner Webview-Ausweg.
       </p>
 
-      <h2 id="read-aloud-tts">Vorlesen mit jeder TTS-Stimme</h2>
+      <h2>Die Vertrauensgrenze</h2>
       <p>
-        Das mitgelieferte <strong>TTS Voices</strong>-Plugin leitet das
-        Vorlesen durch die Engine deiner Wahl — ElevenLabs, Fish Audio, OpenAI
-        oder jeden OpenAI-kompatiblen Endpunkt (Kokoro, LocalAI, Edge
-        TTS-Bridges…). Alles lebt in{" "}
-        <strong>Einstellungen → TTS Voices</strong>: Wähle einen Anbieter, und
-        seine Felder erscheinen — API-Schlüssel gehen direkt in den
-        verschlüsselten Secret-Store, und wo der Anbieter Stimmen aufzählen
-        kann, wird das Stimmen-Feld zur Liste (trage sonst selbst einen Namen
-        ein).
+        Jedes Plugin läuft in einem eigenen Modul-Worker. Es hat keinen Zugriff
+        auf DOM, Tauri, SQLite, das Dateisystem oder Prozess-Handles; außerdem
+        sind Umgebungs-APIs für Netzwerk und Browser-Persistenz deaktiviert.
+        Host-Aufrufe überschreiten eine Nachrichtengrenze und werden anhand der
+        auf den Plugin-Aktor begrenzten Fähigkeitsansicht aufgelöst.
       </p>
       <p>
-        Ein beliebtes kostenloses Setup sind Microsofts Edge-Neural-Stimmen
-        über{" "}
-        <a
-          href="https://github.com/travisvn/openai-edge-tts"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          openai-edge-tts
-        </a>
-        , ein kleiner lokaler Server, der die OpenAI-Audio-API spricht:
-      </p>
-      <ol>
-        <li>
-          Führe den Server lokal aus — zum Beispiel{" "}
-          <code>docker run -d -p 5050:5050 travisvn/openai-edge-tts</code>
-          (standardmäßig ohne API-Schlüssel).
-        </li>
-        <li>
-          Setze in Einstellungen → TTS Voices den Anbieter auf{" "}
-          <em>Benutzerdefiniert / lokal (OpenAI-kompatibel)</em> und den
-          Endpunkt auf{" "}
-          <code>http://127.0.0.1:5050/v1/audio/speech</code>.
-        </li>
-        <li>
-          Wähle eine Stimme aus der Liste — die App liest den Katalog des
-          Servers, sodass das vollständige Edge-Set (z. B.{" "}
-          <code>zh-CN-XiaoxiaoNeural</code>,{" "}
-          <code>en-US-AriaNeural</code>) neben den OpenAI-Stil-Aliasen
-          erscheint.
-        </li>
-      </ol>
-      <p>
-        Öffne dann ein Buch und starte das Vorlesen: Sätze streamen durch die
-        gewählte Stimme, der nächste wird vorgeladen, während der aktuelle
-        läuft, und jeder fehlgeschlagene Aufruf fällt auf die Systemstimme
-        zurück, statt das Lesen zu stoppen.
+        Das begrenzt versehentliche und direkte Überschreitungen, aber die Installation bleibt eine Vertrauensentscheidung für Software. Bevor Code läuft, zeigt ReadAware semantische Berechtigungen und genaue Einstellungsfreigaben. Fähigkeitsanforderungen werden getrennt geprüft: Die Berechtigung beantwortet „Darf es das?“, die Versionsanforderung „Kann es diesen Vertrag korrekt verwenden?“
       </p>
 
-      <h2>Ein Plugin schreiben</h2>
+      <h2>Aktivierung und Aktualisierungen sind transaktional</h2>
       <p>
-        Ein Plugin ist ein Ordner mit einer <code>manifest.json</code> und
-        einer einzigen <code>main.js</code>. Die{" "}
-        <Link to="/de/docs/plugins/api">API-Referenz</Link> deckt den ganzen
-        Vertrag ab, und{" "}
-        <Link to="/de/docs/plugins/publishing">Veröffentlichen</Link> zeigt,
-        wie du es in den Marktplatz bringst.
+        <code>activate()</code> ist eine Lese- und Deklarationsphase. Registrierungen
+        bleiben unsichtbar, während der Host Aufrufe abarbeitet und den Worker
+        prüft; Schreibvorgänge, Geheimnisse, Netzwerk, LLM, Zwischenablage,
+        UI-Effekte und Navigation sind blockiert. Persistente Datenänderungen
+        werden später über ein speicherbegrenztes <code>migrate()</code>
+        ausgeführt. Nur ein gesunder, migrierter Kandidat wird aktiviert.
+      </p>
+      <p>
+        Aktualisierungen erstellen Snapshots von Dateien, Plugin-KV, Dokumentsammlungen und festgeschriebenen Schemadaten. Eine fehlgeschlagene Aktivierung oder Migration stellt die vorherigen Dateien und Daten wieder her und startet bei Bedarf die vorherige Laufzeit neu.
+      </p>
+
+      <h2>Aktuelles Ökosystem</h2>
+      <p>
+        Die heute ausgelieferten Plugins sind integriert oder stammen aus erster
+        Hand: Dictionary, Editorial Themes, RSS Reader, Sentence Reader, TTS
+        Voices und Theme Schedule. Das öffentliche{" "}
+        <a href={MARKETPLACE_REPO_URL} target="_blank" rel="noopener noreferrer">
+          readaware-plugins-Repository
+        </a>{" "}
+        enthält die Vorlage zur Plugin-Erstellung, öffentliche Deklarationen, die
+        Validierung und das Marketplace-Register. Es gibt keine veraltete
+        Drittanbieter-API, die erhalten werden müsste; der aktuelle Vertrag ist
+        die Grundlage.
+      </p>
+
+      <h2>Entwicklung beginnen</h2>
+      <p>
+        Folge <Link to="/de/docs/plugins/develop">Plugin erstellen</Link> für den
+        lokalen Entwicklungszyklus, nutze während der Implementierung die{" "}
+        <Link to="/de/docs/plugins/api">API-Referenz</Link> und lies{" "}
+        <Link to="/de/docs/plugins/publishing">Veröffentlichen</Link>, bevor du
+        eine Änderung am Marketplace einreichst.
       </p>
     </article>
   );

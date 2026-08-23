@@ -4,11 +4,11 @@ import { MARKETPLACE_REPO_URL } from "../../../../lib/site";
 export const Route = createFileRoute("/zh/docs/plugins/api")({
   head: () => ({
     meta: [
-      { title: "API 参考 — ReadAware 文档" },
+      { title: "插件 API 参考 — ReadAware 文档" },
       {
         name: "description",
         content:
-          "ReadAware 插件编写契约：manifest、生命周期、领域派生的权限、数据 API、贡献点、视图与事件。",
+          "当前 ReadAware 插件契约：manifest、能力、领域、贡献、服务、声明式 UI、生命周期和迁移。",
       },
     ],
   }),
@@ -20,765 +20,263 @@ function PluginApiPage() {
     <article className="doc-prose">
       <h1>插件 API 参考</h1>
       <p className="lead">
-        插件是一个文件夹，里面有一份 <code>manifest.json</code> 和一个
-        JavaScript 模块。本页就是编写契约；同一份契约以 TypeScript
-        声明文件（<code>types/plugin-api.d.ts</code>）的形式随
+        插件是一个包含 <code>manifest.json</code>和已构建 ES 模块的文件夹。完整的公开 TypeScript 契约以{" "}
+        <code>types/plugin-api.d.ts</code> in the{" "}
         <a href={MARKETPLACE_REPO_URL} target="_blank" rel="noopener noreferrer">
-          插件市场仓库
-        </a>
-        一起发布，编辑器可以对下文的一切自动补全。
+          readaware-plugins 仓库
+        </a>发布。本页说明各部分如何配合。
       </p>
 
-      <h2>结构</h2>
-      <pre>
-        <code>{`my-plugin/
+      <h2>软件包结构</h2>
+      <pre><code>{`my-plugin/
   manifest.json
-  main.js        # 单个自包含的 ES module`}</code>
-      </pre>
+  main.js
+  src/main.ts       # 推荐提交以供审核
+  assets/           # 可选，市场安装时需明确列出`}</code></pre>
       <p>
-        <code>main.js</code>{" "}
-        默认导出一个生命周期对象。插件能触及的一切都来自传给{" "}
-        <code>activate</code> 的上下文；每个 <code>register*</code> 与{" "}
-        <code>on</code> 调用都返回一个
-        disposable，插件被停用或卸载时由应用统一回收，因此{" "}
-        <code>deactivate</code> 只需释放插件自己的外部资源。
+        <code>main.js</code> 默认导出一个生命周期对象。ReadAware 在专用模块 Worker 中运行它，并向<code>activate</code>提供 actor 作用域的上下文。
       </p>
-      <pre>
-        <code>{`export default {
+      <pre><code>{`export default {
   activate(ctx) {
-    // 通过 ctx 注册贡献点
+    // 检查并注册。此阶段会阻止副作用。
+  },
+  migrate(storageCtx, change) {
+    // 可选：转换插件私有 KV 和文档。
   },
   deactivate() {
-    // 可选：关闭套接字、清空队列
+    // 可选：释放插件自己的外部资源。
   },
-};`}</code>
-      </pre>
-      <p>
-        启用与停用立即生效——无需重启应用。愿意的话可以用 TypeScript
-        编写（推荐；见<Link to="/zh/docs/plugins/publishing">发布上架</Link>）——应用加载的始终是构建出的{" "}
-        <code>main.js</code>。
-      </p>
+};`}</code></pre>
 
-      <h2>manifest.json</h2>
-      <pre>
-        <code>{`{
-  "id": "anki-sync",
-  "name": "Anki Sync",
+      <h2>Manifest 清单</h2>
+      <pre><code>{`{
+  "id": "theme-schedule",
+  "name": "主题计划",
   "version": "0.1.0",
+  "schemaVersion": 1,
   "minAppVersion": "0.3.0",
-  "description": "Send looked-up words to Anki.",
-  "author": "you",
-  "permissions": ["service:network", "annotations:read"],
+  "requires": {
+    "domains": { "settings": "^1.0.0" },
+    "contributions": {
+      "commands": "^1.0.0",
+      "settingsOptions": "^1.0.0"
+    },
+    "services": {
+      "storage": "^1.0.0",
+      "schedules": "^1.0.0",
+      "ui": "^1.0.0"
+    },
+    "schemas": { "settings": "^1.0.0" }
+  },
+  "settingsAccess": {
+    "discover": ["appearance.theme", "reading.theme"],
+    "write": ["appearance.theme", "reading.theme"]
+  },
   "main": "main.js"
-}`}</code>
-      </pre>
+}`}</code></pre>
       <div className="overflow-x-auto">
         <table>
-          <thead>
-            <tr>
-              <th>字段</th>
-              <th>含义</th>
-            </tr>
-          </thead>
+          <thead><tr><th>字段</th><th>契约</th></tr></thead>
           <tbody>
-            <tr>
-              <td>
-                <code>id</code>
-              </td>
-              <td>
-                小写字母、数字和连字符（最长
-                64）。必须与文件夹名一致；作为插件存储与工具的命名空间。
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>name</code>、<code>version</code>
-              </td>
-              <td>显示在“设置 → 插件”和插件市场中。</td>
-            </tr>
-            <tr>
-              <td>
-                <code>minAppVersion</code>
-              </td>
-              <td>
-                插件支持的最低应用版本。本契约要求 <code>0.3.0</code>{" "}
-                或更新的版本。
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>permissions</code>
-              </td>
-              <td>
-                插件使用的能力（见下表）。会在安装前展示给用户。
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>main</code>
-              </td>
-              <td>
-                相对于插件文件夹的入口模块；默认为 <code>main.js</code>。
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>settings</code>
-              </td>
-              <td>
-                可选的声明式设置（字段形态与表单视图相同，另有{" "}
-                <code>secret</code>）。应用会把它渲染成插件自己的设置分区，并把所有值作为一个对象持久化在存储键{" "}
-                <code>settings</code> 下——见{" "}
-                <a href="#storage-and-settings">存储与设置</a>。
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>schedules</code>
-              </td>
-              <td>
-                可选的周期任务，声明在此以便用户安装前可见——见{" "}
-                <a href="#scheduled-work">定时任务</a>。
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>themes</code>、<code>fonts</code>
-              </td>
-              <td>
-                可选的声明式主题与自带字体（需要 <code>ui:themes</code>{" "}
-                权限）——见<a href="#themes-and-bundled-fonts">主题与自带字体</a>。
-              </td>
-            </tr>
+            <tr><td><code>id</code></td><td>小写字母、数字和连字符，最长 64 个字符。它是永久命名空间，且必须与文件夹名一致。</td></tr>
+            <tr><td><code>name</code>, <code>version</code></td><td>面向用户的名称和软件包版本。</td></tr>
+            <tr><td><code>schemaVersion</code></td><td>插件私有 KV 和文档数据所需的正整数。独立于软件包版本。</td></tr>
+            <tr><td><code>requires</code></td><td>按领域、贡献、服务和 schema 分组的能力 ID 到 semver 范围的必填映射。</td></tr>
+            <tr><td><code>permissions</code></td><td>可选的语义授权请求，需经用户同意。未知值会导致校验失败。</td></tr>
+            <tr><td><code>settingsAccess</code></td><td>可选的 discover/read/write 授权，用于精确设置路径或明确的 <code>section.*</code> 分组。</td></tr>
+            <tr><td><code>minAppVersion</code></td><td>可选的最低应用版本。软件包依赖新发布能力时使用。</td></tr>
+            <tr><td><code>settings</code></td><td>可选的由宿主渲染的插件设置字段。</td></tr>
+            <tr><td><code>schedules</code></td><td>可选的周期任务，在绑定处理器前声明。</td></tr>
+            <tr><td><code>themes</code>, <code>fonts</code></td><td>可选的声明式主题和字体贡献；需要 <code>ui:themes</code>.</td></tr>
+            <tr><td><code>main</code></td><td>相对于文件夹的入口模块；默认为 <code>main.js</code>.</td></tr>
           </tbody>
         </table>
       </div>
-
-      <h2>领域模型</h2>
       <p>
-        数据表面派生自应用的领域模型，而不是在它旁边另行编写。每个领域——{" "}
-        <code>shelf</code>（书库管理的全部：书目、分组与阅读统计）、
-        <code>annotations</code>、<code>conversations</code>——都是{" "}
-        <code>ctx</code> 上的一个命名空间，暴露三样东西：
-      </p>
-      <ul>
-        <li>
-          <strong>读取</strong>——该领域的读模型（应用自己的界面渲染的正是它们）；
-        </li>
-        <li>
-          <strong>写入</strong>——<code>.write</code>{" "}
-          下的命令，与该领域的事件动词严格一一对应，并走应用自己的事件溯源写入路径，在事件日志中标记为{" "}
-          <code>plugin:&lt;id&gt;</code>
-          ，因此每一次插件写入都可追溯；
-        </li>
-        <li>
-          <strong>订阅</strong>——<code>.on(event, handler)</code>
-          ，以规范名称（<code>book.starred</code>、
-          <code>highlight.created</code>
-          ……）订阅该领域的事件——与应用自身记录事实所用的是同一套词汇。
-        </li>
-      </ul>
-      <p>
-        权限遵循同样的形态：<code>&lt;domain&gt;:read</code> /{" "}
-        <code>&lt;domain&gt;:write</code>，且在一个领域内，
-        <strong>写权限蕴含读权限</strong>
-        。设备本地状态（视图偏好、阅读器外观、同步内部数据）与自由渲染刻意不属于插件表面——UI
-        一律经由下文的声明式视图。
+        使用<Link to="/zh/docs/plugins/capabilities">能力浏览器</Link>{" "}
+        查看完整清单和权限词汇。要求始终是兼容性声明，绝不会授予权限。
       </p>
 
-      <h2>权限</h2>
+      <h2>运行时上下文</h2>
+      <div className="overflow-x-auto">
+        <table>
+          <thead><tr><th>命名空间</th><th>包含</th></tr></thead>
+          <tbody>
+            <tr><td><code>ctx.manifest</code></td><td>经过校验的只读 manifest。</td></tr>
+            <tr><td><code>ctx.appVersion</code>, <code>ctx.locale</code></td><td>宿主版本和当前 UI 区域设置。</td></tr>
+            <tr><td><code>ctx.lifecycle.phase</code></td><td><code>activating</code>, <code>migrating</code>, 或 <code>active</code>.</td></tr>
+            <tr><td><code>ctx.capabilities</code></td><td>仅对此插件 actor 可见的能力版本。</td></tr>
+            <tr><td><code>ctx.domains</code></td><td>已授予的 ReadAware 状态和行为。</td></tr>
+            <tr><td><code>ctx.contributions</code></td><td>插件可以向其中提供实现的注册表。</td></tr>
+            <tr><td><code>ctx.services</code></td><td>受限的宿主操作和插件私有基础设施。</td></tr>
+          </tbody>
+        </table>
+      </div>
       <p>
-        没有声明对应权限时，<code>ctx</code>{" "}
-        上的能力组干脆不存在——在 API
-        层面防范无意的越界。命名空间存储、UI
-        贡献点、会话事件和阅读器导航不是权限；每个插件都拥有它们。
+        未获授权时，受权限控制的命名空间不会出现。每次 Worker 调用也会在宿主侧授权；隐藏方法不是唯一检查。注册会返回可释放对象，激活失败或插件停用时按相反顺序回收。
+      </p>
+
+      <h2>领域</h2>
+      <p>
+        领域公开 <code>queries</code>，可选 <code>commands</code>，以及已提交的 <code>events.subscribe</code>。命令使用与 ReadAware 相同的事件溯源写入路径，并归属于{" "}
+        <code>plugin:&lt;id&gt;</code>. 写入权限包含读取权限。
       </p>
       <div className="overflow-x-auto">
         <table>
-          <thead>
-            <tr>
-              <th>权限</th>
-              <th>授予</th>
-            </tr>
-          </thead>
+          <thead><tr><th>领域</th><th>查询和命令</th><th>权限</th></tr></thead>
           <tbody>
             <tr>
-              <td>
-                <code>shelf:read</code>
-              </td>
-              <td>
-                <code>ctx.shelf</code>
-                ——书目（含一本书的目录与章节文本）、分组与归属，以及阅读统计（
-                <code>stats.forBook</code> / <code>stats.list</code> /{" "}
-                <code>stats.overview</code>
-                ——统计没有写入面：它的事件是阅读器活动被记录下来的事实，而非用户命令）。
-              </td>
+              <td><code>library</code></td>
+              <td>书籍、元数据、原始章节文本、目录、集合；导入、编辑、加星、移除、虚拟书籍和集合命令。</td>
+              <td><code>library:read</code> / <code>library:write</code></td>
             </tr>
             <tr>
-              <td>
-                <code>shelf:write</code>
-              </td>
-              <td>
-                <code>ctx.shelf.books.write</code>
-                ——导入文件、编辑元数据、星标、标记读完、移除；以及内容提供方与虚拟书籍。
-                <code>ctx.shelf.collections.write</code>
-                ——创建、重命名、移除、为书籍指派分组。
-              </td>
+              <td><code>reading</code></td>
+              <td>按书籍和汇总的阅读统计；标记完成、打开书籍并导航到 CFI 或 href。</td>
+              <td><code>reading:read</code> / <code>reading:write</code></td>
             </tr>
             <tr>
-              <td>
-                <code>annotations:read</code> / <code>annotations:write</code>
-              </td>
-              <td>
-                <code>ctx.annotations</code>
-                ——高亮、笔记与提问；创建、改色、编辑、删除高亮与笔记（提问由助手写入，只读）。
-              </td>
+              <td><code>annotations</code></td>
+              <td>筛选高亮、笔记和被动提问轨迹；创建、编辑、重新着色并移除高亮或笔记。</td>
+              <td><code>annotations:read</code> / <code>annotations:write</code></td>
             </tr>
             <tr>
-              <td>
-                <code>conversations:read</code>
-              </td>
-              <td>
-                <code>ctx.conversations</code>
-                ——每本书的 AI 线程与全局线程（只读）。
-              </td>
+              <td><code>conversations</code></td>
+              <td>读取书籍线程、列出全局线程并读取线程。写入仍由聊天运行时负责。</td>
+              <td><code>conversations:read</code></td>
             </tr>
             <tr>
-              <td>
-                <code>ui:themes</code>
-              </td>
-              <td>
-                manifest 中声明式的 <code>themes</code> / <code>fonts</code>{" "}
-                字段（见下文）——应用与阅读页主题，可附带字体。它是唯一需要权限的
-                UI 贡献点：它对整个应用有视觉影响力，安装确认必须把它亮出来。
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>ui:appearance</code>
-              </td>
-              <td>
-                <code>ctx.appearance</code> —— 列出两个外观面当前提供的全部主题、读当前外观、切换应用主题或阅读页配色。与{" "}
-                <code>ui:themes</code> 刻意分开：提供主题是被动的，切换主题不是。
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>agent:tools</code>
-              </td>
-              <td>
-                <code>ctx.agent.registerTool</code>——为阅读助手注册工具。
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>service:network</code>
-              </td>
-              <td>
-                <code>ctx.network.fetch</code>——对外的 HTTP
-                请求，走应用的原生客户端（没有 CORS 约束）。
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>service:llm</code>
-              </td>
-              <td>
-                <code>ctx.llm.ask</code>
-                ——使用用户配置的账号发起一次性模型调用。没有线程、没有记忆、没有工具；支持以{" "}
-                <code>schema</code> 输出结构化 JSON，或以 <code>onText</code>{" "}
-                流式接收文本。
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>service:clipboard</code>
-              </td>
-              <td>
-                <code>ctx.clipboard.writeText</code>。
-              </td>
+              <td><code>settings</code></td>
+              <td>发现获准的目录条目、读取解析后的值、更新受支持的目标并订阅已提交的变更。</td>
+              <td>精确 <code>settingsAccess</code> grants</td>
             </tr>
           </tbody>
         </table>
       </div>
       <p>
-        （<code>reader:modes</code>
-        ——宿主渲染的引导式阅读模式——在这份特权契约稳定下来之前，暂时仅限随应用内置的第一方插件使用。）
+        没有 <code>shelf</code> 或 <code>appearance</code> 领域。
+        书库数据和当前阅读行为彼此分离。外观是设置中的一个分区。
       </p>
 
-      <h2>贡献点</h2>
-
-      <h3>选区动作</h3>
+      <h3>设置访问</h3>
       <p>
-        阅读器选区菜单与标注菜单中的条目。处理函数会收到选中的文本、它的 CFI
-        范围、所在章节和书籍；当阅读器能够恢复时，<code>context</code>{" "}
-        还带有选区周围的上下文段落。在阅读器内，一个动作要么静默执行（返回
-        toast），要么打开对话框（返回视图）——只有这两种结果。
-        异步动作声明 <code>presentation: "dialog"</code> 后，宿主会立刻打开
-        加载态对话框，并在 <code>run</code> 完成时把结果填入同一次请求。
-        词典类动作可以声明 <code>role: "lookup"</code>：宿主会把现有的
-        「查词」键盘命令路由到该插件动作，而不是维护第二条内置查词路径。
+        <code>discover</code>、<code>read</code> 和 <code>write</code>彼此独立。尽可能授予精确路径；仅在功能确实需要整个分区时，才使用例如 <code>appearance.*</code>。更新会经过目录校验、目标策略、持久化和提交后效果。
       </p>
-      <pre>
-        <code>{`ctx.ui.registerSelectionAction({
-  id: "save-quote",
-  title: "Save quote",
-  icon: "quotes",
-  presentation: "dialog",
-  run: (input) => {
-    // input: { text, context?, cfiRange, chapterHref, book, source }
-    return { toast: "Quote saved." };
-  },
-});`}</code>
-      </pre>
-
-      <h3>顶栏动作</h3>
-      <p>
-        顶栏上的一个图标按钮。在阅读器界面，视图以锚定的弹出层打开；在书架上，则依{" "}
-        <code>presentation</code>{" "}
-        以弹出层或完整页面打开。阅读器永远不允许整页打断。
-      </p>
-      <pre>
-        <code>{`ctx.ui.registerHeaderAction({
-  id: "reading-report",
-  title: "Reading report",
-  icon: "chart-line-up",
-  surface: "shelf",
-  presentation: "page",
-  view: async () => ({
-    kind: "markdown",
-    title: "This week",
-    markdown: "You read **4h 12m** across 3 books.",
-  }),
-});`}</code>
-      </pre>
-
-      <h3>命令</h3>
-      <p>
-        命令面板中的一个条目。所有插件动作都会自动出现在面板里；显式命令用于那些没有按钮的动作。
-      </p>
-      <pre>
-        <code>{`ctx.ui.registerCommand({
-  id: "sync-now",
-  title: "Anki Sync: sync now",
-  run: async () => ({ toast: "Synced." }),
-});`}</code>
-      </pre>
-
-      <h3>助手工具</h3>
-      <p>
-        阅读助手在对话中可以调用的工具（需要 <code>agent:tools</code>{" "}
-        权限）。<code>parameters</code> 是描述参数对象的普通 JSON
-        Schema；无参数的工具可以省略。工具在送达模型之前会被命名空间化为{" "}
-        <code>plugin_&lt;pluginId&gt;_&lt;name&gt;</code>
-        ，调用过程会以工具步骤的形式在对话中对用户可见。
-      </p>
-      <pre>
-        <code>{`ctx.agent?.registerTool({
-  name: "search_deck",
-  label: "Searching your Anki deck",
-  description: "Search the user's Anki collection for a term.",
-  parameters: {
-    type: "object",
-    properties: { query: { type: "string" } },
-    required: ["query"],
-  },
-  execute: async ({ query }) => {
-    const res = await ctx.network.fetch("http://127.0.0.1:8765", {
-      method: "POST",
-      body: JSON.stringify({ action: "findNotes", query }),
-    });
-    return res.json();
-  },
-});`}</code>
-      </pre>
-
-      <h3>朗读声音提供方</h3>
-      <p>
-        <code>ctx.audio.registerVoiceProvider</code>{" "}
-        把一个文本转语音引擎接进阅读页的朗读功能。插件只负责把文本变成编码后的音频字节（mp3/wav——webview
-        能解码的都行）；播放、逐句推进、预取与跟读高亮全部由应用负责。注册本身不需要权限——合成所需的能力（网络、密钥）已由插件自己的其他权限门控。
-      </p>
-      <pre>
-        <code>{`ctx.audio.registerVoiceProvider({
-  id: "voices",
-  label: "My TTS",
-  listVoices: () => [{ id: "default", label: "My TTS · warm" }],
-  synthesize: async ({ text, voiceId }) => {
-    const res = await ctx.network.fetch("http://127.0.0.1:8880/v1/audio/speech", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ input: text, response_format: "mp3" }),
-    });
-    return res.arrayBuffer();
-  },
-});`}</code>
-      </pre>
-      <p>
-        注册的声音会被自动采用——用户启用你的插件即是选择，宿主不再另设选择器；某一句合成失败时会退回系统语音，朗读只会降级、不会中断。插件设置变化时会重新列举声音。
-      </p>
-
-      <h3 id="scheduled-work">定时任务</h3>
-      <p>
-        manifest 负责声明周期任务，<code>activate</code>{" "}
-        负责绑定实际工作。应用在打开期间至少每 <code>everyMinutes</code>{" "}
-        分钟（下限 15）运行一次，逾期未跑的会在启动后补一次——从不承诺精确时刻，应用关闭时也不会运行。同一任务的重叠运行会被跳过；失败的一次只需等待下个周期。
-      </p>
-      <pre>
-        <code>{`// manifest.json
-"schedules": [{ "id": "refresh", "label": "Refresh feeds", "everyMinutes": 60 }]
-
-// main.js
-ctx.schedule.on("refresh", async () => {
-  // 拉取、比对，经由领域 API 写回
-});`}</code>
-      </pre>
-
-      <h3 id="themes-and-bundled-fonts">主题与自带字体</h3>
-      <p>
-        声明 <code>ui:themes</code> 后，manifest
-        可以为两个相互独立的挂载点——应用界面与书页——声明主题，并附带随插件文件夹分发的字体文件。这类贡献是纯数据：应用校验每一个值并自行生成全部
-        CSS，且在用户于“设置 →
-        外观”或阅读器的页面颜色控件里选中之前，什么都不会生效。纯主题插件的{" "}
-        <code>main.js</code> 只需{" "}
-        <code>{"export default { activate() {} }"}</code>。
-      </p>
-      <pre>
-        <code>{`{
-  "permissions": ["ui:themes"],
-  "fonts": [
-    {
-      "id": "my-serif",
-      "family": "My Serif",
-      "kind": "serif",
-      "files": [{ "path": "assets/my-serif-400.woff2", "weight": 400 }]
-    }
-  ],
-  "themes": [
-    {
-      "id": "dusk",
-      "name": { "default": "Dusk", "translations": { "zh-Hans": "暮色" } },
-      "polarity": "dark",
-      "app": { "paper": "#14171e", "fg": "#e3e6ec" },
-      "reader": {
-        "palette": {
-          "bg": "#161a22", "text": "#ccd2dd",
-          "selection": "rgba(154, 162, 177, 0.28)",
-          "rule": "rgba(204, 210, 221, 0.18)",
-          "faint": "rgba(204, 210, 221, 0.07)",
-          "muted": "rgba(204, 210, 221, 0.55)"
-        },
-        "typography": { "fontFamily": "plugin:my-serif", "fontSize": "large" }
-      }
-    }
-  ]
-}`}</code>
-      </pre>
-      <ul>
-        <li>
-          <code>polarity</code>——主题读起来偏亮还是偏暗。它驱动{" "}
-          <code>color-scheme</code>、主题未覆写的应用 token
-          所继承的明暗默认值，以及主题生效期间阅读器“自动”页面颜色的解析。
-        </li>
-        <li>
-          <code>app</code>——对应用固定 token
-          词汇（画布、文字层级、表面、填充、边框——见类型声明中的{" "}
-          <code>PluginAppThemeTokens</code>）的覆写。未覆写的 token
-          保持对应明暗极性自己的值。
-        </li>
-        <li>
-          <code>reader</code>——与内置页面颜色同一套的六色调色板（六色缺一不可），外加一个可选的排版预设：在用户选中主题的那一刻一次性应用，之后用户可以随意调整。
-        </li>
-        <li>
-          <code>fonts</code>——<code>.woff2</code>/<code>.woff</code>/
-          <code>.ttf</code>/<code>.otf</code>{" "}
-          字型直接从插件文件夹提供服务；插件启用期间，每个字体都会出现在阅读器的字体选择器里。主题以{" "}
-          <code>plugin:&lt;fontId&gt;</code>{" "}
-          引用自己的字体。上架市场的插件必须把字体文件列进 registry 条目的{" "}
-          <code>files</code>。
-        </li>
-        <li>
-          颜色值按严格语法校验——纯 hex 或 <code>rgb()</code>/
-          <code>rgba()</code>/<code>hsl()</code>/<code>hsla()</code>
-          ；关键字、<code>var()</code> 与 <code>url()</code> 一律拒绝。
-        </li>
-      </ul>
-
-      <h2>视图</h2>
-      <p>
-        插件声明的是宿主组件树，由应用渲染所有视觉原语和控件；插件不能提供 JSX、HTML、CSS 或 className。
-      </p>
-      <ul>
-        <li>
-          <code>markdown</code>——一个 markdown 字符串，由应用排版。
-        </li>
-        <li>
-          <code>list</code>——宿主提供固定 debounce 的搜索、keywords、
-          accessories 与空状态；<code>timeline</code> 提供今天／本周／本月／
-          全部筛选和本地日期分组，条目可用 <code>presentation: "dialog"</code>
-          在列表上方打开返回视图，而不是下钻成子页面。
-        </li>
-        <li>
-          <code>form</code>——使用 ReadAware 组件库的 text、textarea、number、time、select、choice、checkbox、toggle，加上{" "}
-          <code>onSubmit</code>
-          ；后者接收表单值，可返回结果视图或字段错误。
-        </li>
-        <li>
-          <code>detail</code>——Raycast 式主内容、metadata 与宿主 actions；宿主把 actions 渲染成内容标题右侧的图标按钮，把来源、日期和 tags 等 metadata 收进安静的内容底部。
-        </li>
-        <li>
-          <code>blocks</code>
-          ——宿主 typography、markdown、词典、metadata、引文、动作、指标、进度、标签、提示、section、group 与响应式 <code>columns</code>。columns 只开放相对 weight、间距档位、最小宽度档位和语义对齐，具体 CSS 与换行仍归设计系统；所有声明都会在运行时校验并限制嵌套深度。
-        </li>
-      </ul>
-      <p>
-        处理函数（<code>run</code>、<code>onSelect</code>、
-        <code>onSubmit</code>）都返回同一种结果形态：
-      </p>
-      <ul>
-        <li>
-          什么都不返回——界面保持原样；
-        </li>
-        <li>
-          <code>{"{ toast: \"…\" }"}</code>——一条短暂的提示；
-        </li>
-        <li>
-          <code>{"{ view }"}</code>——打开界面，或在其上推入一层新视图；
-        </li>
-        <li>
-          <code>{'{ view, navigation: "replace" | "reset" }'}</code>
-          ——替换当前视图，或回到一棵新的根视图；
-        </li>
-        <li>
-          <code>{"{ close: true }"}</code>——关闭界面（可与{" "}
-          <code>toast</code> 组合）；
-        </li>
-        <li>
-          <code>{"{ fieldErrors }"}</code>
-          ——来自表单提交：停留在表单上，并在字段下方显示错误。
-        </li>
-      </ul>
-      <p>
-        异步工作不值一提：返回一个
-        promise，应用会显示加载状态。图标按名称从应用精选的 Phosphor
-        集合中选取——不支持自定义 SVG。
-      </p>
-
-      <h2>领域数据</h2>
-      <p>
-        每个已授权的领域命名空间都提供读取、规范事件订阅，以及（拥有写权限时）命令。概览：
-      </p>
-      <ul>
-        <li>
-          <code>ctx.shelf.books</code>——<code>list()</code>、
-          <code>get(id)</code>、<code>getToc(id)</code>、
-          <code>getChapterText(id, index)</code>
-          ；写入：<code>import</code>、<code>editMetadata</code>、
-          <code>setStarred</code>、<code>setFinished</code>、
-          <code>remove</code>，外加内容提供方（见下文）。
-        </li>
-        <li>
-          <code>ctx.shelf.collections</code>——<code>list()</code>、
-          <code>booksIn(id)</code>；写入：<code>create</code>、
-          <code>rename</code>、<code>remove</code>、
-          <code>assignBooks(bookIds, collectionId | null)</code>。
-        </li>
-        <li>
-          <code>ctx.shelf.stats</code>——<code>forBook(bookId)</code>、
-          <code>list()</code>、<code>overview()</code>
-          （阅读位置、阅读状态与实际阅读时长；对任何行动者都只读）。
-        </li>
-        <li>
-          <code>ctx.annotations</code>——{" "}
-          <code>list({"{ bookId?, kind?, query? }"})</code>{" "}
-          返回由高亮、笔记与提问构成的可辨识联合；写入：{" "}
-          <code>createHighlight</code>、<code>recolorHighlight</code>、
-          <code>removeHighlight</code>、<code>createNote</code>、
-          <code>updateNote</code>、<code>removeNote</code>。
-        </li>
-        <li>
-          <code>ctx.conversations</code>——<code>getBookThread(bookId)</code>、
-          <code>listThreads()</code>、<code>getThread(id)</code>；通过{" "}
-          <code>on</code> 订阅（<code>aiConversation.started</code>、
-          <code>aiMessage.appended</code>、<code>aiMessage.removed</code>、
-          <code>aiConversation.cleared</code>）。
-        </li>
-      </ul>
-
-      <h2>事件</h2>
-      <p>
-        两类事件，刻意分开。<strong>领域事件</strong>
-        是应用记录下来的事实；按领域订阅，使用规范名称，需要该领域的读权限。每次投递的形态是{" "}
-        <code>{"{ type, payload, createdAt, origin }"}</code>——origin
-        表明是哪个软件行动者产生了这条事实（<code>user</code>、
-        <code>agent</code>、<code>system</code>，或{" "}
-        <code>plugin:&lt;id&gt;</code>）。
-      </p>
-      <pre>
-        <code>{`ctx.annotations?.on("highlight.created", ({ payload, origin }) => {
-  // payload: { highlightId, bookId, text, color?, … }
-});
-ctx.shelf?.on("book.removed", ({ payload }) => { /* { bookId } */ });`}</code>
-      </pre>
-      <p>
-        <strong>会话事实</strong>
-        描述此刻屏幕上正在发生的事。它们从不进入事件日志，也无需任何权限：{" "}
-        <code>ctx.session.on(event, handler)</code>。
-      </p>
-      <div className="overflow-x-auto">
-        <table>
-          <thead>
-            <tr>
-              <th>会话事件</th>
-              <th>载荷</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>
-                <code>book-opened</code>
-              </td>
-              <td>
-                <code>{"{ book: { id, title, author? } }"}</code>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>book-closed</code>
-              </td>
-              <td>
-                <code>{"{ bookId }"}</code>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>chapter-changed</code>
-              </td>
-              <td>
-                <code>{"{ bookId, chapterHref }"}</code>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>reading-progress</code>
-              </td>
-              <td>
-                <code>{"{ bookId, fraction }"}</code>——翻页时触发，fraction
-                取值 0..1
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h2>内容提供方与虚拟书籍</h2>
-      <p>
-        声明 <code>shelf:write</code> 后，插件可以把真正的书放上书架。
-        <code>import</code>{" "}
-        接收文件字节。内容提供方则完全跳过文件：注册一个提供方，添加绑定到它的虚拟书籍，并在书被打开时提供
-        HTML
-        章节。阅读器会像对待任何书一样为它们分页、标注、记录进度——“把 RSS
-        订阅源当书读”正是这么实现的。
-      </p>
-      <pre>
-        <code>{`ctx.shelf?.books.write?.registerContentProvider({
-  id: "rss",
-  async load(key) {
-    const feed = await fetchFeed(key); // 你的代码，经由 ctx.network.fetch
-    return {
-      title: feed.title,
-      sections: feed.items.map((item) => ({
-        title: item.title,
-        html: item.contentHtml,
-      })),
-    };
-  },
+      <pre><code>{`const entries = await ctx.domains.settings.queries.discover({
+  section: "appearance",
 });
 
-await ctx.shelf?.books.write?.addVirtualBook({
-  providerId: "rss",
-  key: "https://example.com/feed.xml",
-  title: "Example Weekly",
-});`}</code>
-      </pre>
+await ctx.domains.settings.commands.update([
+  {
+    path: "appearance.theme",
+    value: "dark",
+    target: { kind: "global" },
+  },
+]);`}</code></pre>
 
-      <h2 id="storage-and-settings">存储与设置</h2>
+      <h2>贡献</h2>
+      <div className="overflow-x-auto">
+        <table>
+          <thead><tr><th>注册表</th><th>插件提供</th><th>权限</th></tr></thead>
+          <tbody>
+            <tr><td><code>selectionActions</code></td><td>选区动作及返回提示或宿主渲染视图的处理器。</td><td>无</td></tr>
+            <tr><td><code>headerActions</code></td><td>阅读器或书库动作、位置元数据和视图回调。</td><td>无</td></tr>
+            <tr><td><code>commands</code></td><td>命令元数据和处理器。</td><td>无</td></tr>
+            <tr><td><code>settingsOptions</code></td><td>一个已声明插件字段的动态选项。</td><td>无</td></tr>
+            <tr><td><code>voiceProviders</code></td><td>声音列表和编码音频合成。</td><td>无</td></tr>
+            <tr><td><code>contentProviders</code></td><td>虚拟书籍键的章节。</td><td>无</td></tr>
+            <tr><td><code>readerModes</code></td><td>受限阅读器分段模式；目前仅限内置插件。</td><td><code>reader:modes</code></td></tr>
+            <tr><td><code>agentTools</code></td><td>工具 schema、用户可读标签、描述和执行器。</td><td><code>agent:tools</code></td></tr>
+            <tr><td><code>agentContextProviders</code></td><td>受限的当前轮次参考区块。</td><td><code>agent:context</code></td></tr>
+            <tr><td><code>agentRetrievalProviders</code></td><td>来自插件数据的搜索结果。</td><td><code>agent:retrieval</code></td></tr>
+            <tr><td><code>memoryCandidateProviders</code></td><td>可能持久化的事实、偏好、洞察或摘要。</td><td><code>agent:memory</code></td></tr>
+            <tr><td><code>themes</code>, <code>fonts</code></td><td>manifest 声明的语义主题和字体数据。</td><td><code>ui:themes</code></td></tr>
+          </tbody>
+        </table>
+      </div>
       <p>
-        <code>ctx.storage</code>{" "}
-        是随应用本地数据一起持久化的命名空间键值存储——<code>get</code>、
-        <code>set</code>、<code>remove</code>。如果 manifest 声明了{" "}
-        <code>settings</code>{" "}
-        字段，应用会把它们渲染成插件自己的设置分区，所有值会以一个对象出现在{" "}
-        <code>ctx.storage.get("settings")</code>
-        。阅读助手也能查看和修改这些设置（标记{" "}
-        <code>agentHidden</code> 的字段对它不可见）。有三种超出普通表单的字段能力：
-      </p>
-      <ul>
-        <li>
-          <code>visibleWhen: {"{ field, equals }"}</code>{" "}
-          让字段只在另一字段取给定值时显示。隐藏字段的存量值会保留——一个设置对象即可按变体各存一套值（TTS
-          插件正是这样为每个提供方各记一个声音）。
-        </li>
-        <li>
-          <code>select</code> 配合 <code>dynamicOptions: true</code>{" "}
-          可以在运行时解析选项：在 <code>activate</code> 里用{" "}
-          <code>ctx.settings.provideOptions(fieldId, async (values) =&gt;
-          [...])</code>{" "}
-          绑定来源。来源给不出选项时（还没配密钥、端点不可达），字段会退回自由文本输入——列表是便利，绝不是门槛。
-        </li>
-        <li>
-          <code>kind: "secret"</code>{" "}
-          声明一个凭据字段：应用渲染密码输入框并直写加密的 secret
-          store——字段 id 就是你代码里 <code>ctx.secrets</code>{" "}
-          读回的键名——绝不进明文设置，也不进助手的目录。存量值从不回显；字段以“已配置”状态展示，并提供清除入口。
-        </li>
-      </ul>
-      <p>
-        对于结构化数据，<code>ctx.storage.collection(name)</code>{" "}
-        会打开一个具名的文档集合——对逐条文档记录进行 <code>put</code> /{" "}
-        <code>get</code> / <code>delete</code> / <code>list</code>
-        ，记录可选携带 <code>bookId</code> / <code>anchor</code>{" "}
-        出处信息，并可据此过滤。出处是索引而非所有权：被引用的书删除后，文档依然存在；而集合的生命周期归属于插件（卸载即清空）。内置的词汇表插件正是完全构建在这一层之上。
+        每个贡献 ID 都按插件划分命名空间，每次注册都有归属且可检查，过期的可释放对象不能移除较新的替代项。新的贡献类型仍需宿主有意提供消费者；之后任何兼容插件都能注册，无需在应用中逐一列出。
       </p>
 
-      <h2>常驻上下文</h2>
-      <p>始终可用，无需任何权限：</p>
+      <h3>助手扩展边界</h3>
       <ul>
-        <li>
-          <code>ctx.manifest</code>、<code>ctx.appVersion</code>、
-          <code>ctx.locale</code>（应用界面当前的 BCP-47
-          语言标签——用时再读，它随语言设置实时变化）；
-        </li>
-        <li>
-          <code>ctx.ui.showToast(message)</code>；
-        </li>
-        <li>
-          <code>ctx.ui.exportFile({"{ filename, content, mimeType? }"})</code>
-          ——打开宿主的保存流程，导出生成的文本（CSV、JSON、Markdown）或二进制字节；
-        </li>
-        <li>
-          <code>ctx.secrets</code>——按插件命名空间隔离的加密凭据存储（API
-          令牌等）；存放在 SQLite 与备份之外，卸载后依然保留；
-        </li>
-        <li>
-          <code>ctx.session.on(…)</code>——上文的会话事实；
-        </li>
-        <li>
-          <code>ctx.reader.openBook(bookId)</code> 与{" "}
-          <code>ctx.reader.goTo({"{ bookId?, cfi?, href? }"})</code>
-          ——导航阅读器（用户可见的控制，不暴露数据）。
-        </li>
+        <li><strong>上下文提供方</strong>运行一轮。宿主添加来源、限制大小，并将输出序列化为不可信参考数据。</li>
+        <li><strong>检索提供方</strong>成为命名空间工具，带有宿主拥有的 <code>query</code>/<code>limit</code> schema 和裁剪后的结果。</li>
+        <li><strong>记忆候选提供方</strong>在一轮之后提出受限候选；宿主校验范围、去重并执行任何持久写入。</li>
       </ul>
-
-      <h2>稳定性</h2>
       <p>
-        这是契约 v2，随应用 0.3.0
-        发布——一次有意为之的破坏性重建，把整个插件表面从领域模型派生出来（v1
-        的 manifest 会安装失败，并给出可读的错误信息）。自此 API
-        只做加法式增长：新的领域、新的事件名、新的区块类型——声明式主题（
-        <code>ui:themes</code>
-        ）就是第一个这样的新增。对本页已记载内容的破坏性变更会被当作 bug
-        处理。任何依赖较新增能力的插件，请声明 <code>minAppVersion</code>。
+        插件永远不会收到 Memory 端口，不能注入系统规则，也不能直接写入长期记忆。
+      </p>
+
+      <h2>宿主服务</h2>
+      <div className="overflow-x-auto">
+        <table>
+          <thead><tr><th>服务</th><th>契约</th><th>权限</th></tr></thead>
+          <tbody>
+            <tr><td><code>storage</code></td><td>命名空间 KV、文档集合和外部变更通知。</td><td>无</td></tr>
+            <tr><td><code>secrets</code></td><td>命名空间加密凭据槽。</td><td>无</td></tr>
+            <tr><td><code>ui</code></td><td>宿主提示和保存/导出流程。</td><td>无</td></tr>
+            <tr><td><code>schedules</code></td><td>将处理器绑定到 manifest 声明的频率。</td><td>无</td></tr>
+            <tr><td><code>session</code></td><td>订阅受限的阅读会话事实。</td><td>无</td></tr>
+            <tr><td><code>network</code></td><td>宿主中介的 HTTP。</td><td><code>service:network</code></td></tr>
+            <tr><td><code>llm</code></td><td>使用用户配置进行一次性文本或 JSON schema 约束的模型调用。</td><td><code>service:llm</code></td></tr>
+            <tr><td><code>clipboard</code></td><td>向系统剪贴板写入文本。</td><td><code>service:clipboard</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>存储</h3>
+      <p>
+        使用 KV 存储小型设置和检查点。使用命名文档集合保存具有稳定 ID 且可选包含{" "}
+        <code>bookId</code>/<code>anchor</code>来源信息的插件记录。来源信息是索引而非所有权；引用书籍被删除后文档仍可保留。卸载会清空文档集合，但保留 KV、密钥槽和已提交的 schema 元数据，以便重新安装和迁移。
+      </p>
+
+      <h3>定时任务</h3>
+      <p>
+        manifest 声明 <code>{`{ id, label, everyMinutes }`}</code>，激活通过
+        <code>ctx.services.schedules.bind</code>绑定处理器。最短频率为 15
+        分钟。应用打开时至少按此频率运行，逾期会在启动后补跑，任务不会重叠。这不是持久后台任务，也不保证精确时间。
+      </p>
+
+      <h2>声明式 UI 和设置</h2>
+      <p>
+        插件返回版本化的视图数据，而不是可执行 UI。视图语法包括 markdown、可搜索列表、表单、详情布局、词典结果和受限区块树。处理器可以保留界面、显示提示、打开或替换视图、重置导航、关闭界面或返回字段错误。宿主负责 promise 的加载和失败状态。
+      </p>
+      <p>
+        Manifest 设置使用宿主控件支持文本、文本域、数字、时间、选择、选项、复选框、开关和密钥字段。条件字段使用 <code>visibleWhen</code>；动态选择使用已注册的 <code>settingsOptions</code> 提供方。密钥字段直接写入加密密钥槽，永远不会进入普通设置对象或助手可见目录。
+      </p>
+
+      <h2>主题和字体</h2>
+      <p>
+        主题插件在 manifest 中声明语义数据。应用主题覆盖固定的宿主令牌词汇；阅读器主题提供所需的六色页面调色板和可选排版默认值。宿主校验值、生成 CSS、加载获批准的本地字体文件，并在用户选择前不应用任何内容。
+      </p>
+      <p>
+        提供选项需要 <code>ui:themes</code>。选择主题需要精确的设置写入授权，例如 <code>appearance.theme</code> 或{" "}
+        <code>reading.theme</code>。二者并不相互推导。
+      </p>
+
+      <h2>生命周期阶段</h2>
+      <ol>
+        <li><strong>激活中：</strong> 可使用查询和插件私有读取；注册会暂存；副作用被阻止。</li>
+        <li><strong>迁移中：</strong> 只能使用插件 KV 和文档集合。</li>
+        <li><strong>已激活：</strong> 已晋升的处理器可以使用获准的领域、贡献和服务。</li>
+      </ol>
+      <p>
+        宿主会排空激活 RPC、检查 Worker 健康状态、运行数据迁移，然后在一个明确的时点晋升全部暂存项。激活失败会释放暂存工作，不替换当前运行时。
+      </p>
+
+      <h2>Worker 环境</h2>
+      <p>
+        没有 React、Jotai、DOM、WebView、Tauri、SQLite、文件系统或进程访问。环境中的 <code>fetch</code>、WebSocket、EventSource、XMLHttpRequest、BroadcastChannel、IndexedDB 和 Cache Storage 均已禁用。网络、持久化和所有宿主交互都必须使用类型化上下文。
+      </p>
+
+      <h2>兼容性和稳定性</h2>
+      <p>
+        领域、贡献、服务和声明式 schema 各自拥有独立的语义版本。未知 ID、无效 semver 范围、无法访问的必需能力和不兼容的宿主版本都会阻止激活。兼容的新增内容提升所属能力的版本，而不是一个全局插件 API 编号。
+      </p>
+      <p>
+        当前生态是官方插件，因此当前由注册表支持的契约就是基线。不要依赖早期的 <code>shelf</code>,{" "}
+        <code>appearance</code> 或注册表之前的形态。
       </p>
     </article>
   );

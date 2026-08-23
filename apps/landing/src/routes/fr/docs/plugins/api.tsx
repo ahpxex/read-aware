@@ -4,11 +4,11 @@ import { MARKETPLACE_REPO_URL } from "../../../../lib/site";
 export const Route = createFileRoute("/fr/docs/plugins/api")({
   head: () => ({
     meta: [
-      { title: "Référence de l'API — Documentation ReadAware" },
+      { title: "Référence de l’API des plugins — Documentation ReadAware" },
       {
         name: "description",
         content:
-          "Contrat d'écriture d'extensions ReadAware : manifest, cycle de vie, permissions dérivées du domaine, API de données, points de contribution, vues et événements.",
+          "Contrat actuel des plugins ReadAware : manifeste, capacités, domaines, contributions, services, interface déclarative, cycle de vie et migrations.",
       },
     ],
   }),
@@ -18,834 +18,314 @@ export const Route = createFileRoute("/fr/docs/plugins/api")({
 function PluginApiPage() {
   return (
     <article className="doc-prose">
-      <h1>Référence de l'API Extension</h1>
+      <h1>Référence de l’API des plugins</h1>
       <p className="lead">
-        Une extension est un dossier contenant un <code>manifest.json</code> et un module
-        JavaScript. Cette page est le contrat d'écriture ; ce même contrat est publié sous forme
-        de fichier de déclarations TypeScript (<code>types/plugin-api.d.ts</code>) avec le{" "}
+        Un plugin est un dossier contenant <code>manifest.json</code> et un module ES compilé.
+        Le contrat TypeScript public exact est fourni avec{" "}
+        <code>types/plugin-api.d.ts</code>  dans le{" "}
         <a href={MARKETPLACE_REPO_URL} target="_blank" rel="noopener noreferrer">
-          dépôt du marché d'extensions
-        </a>
-        , pour la complétion automatique de l'éditeur sur tout ce qui suit.
+          dépôt readaware-plugins
+        </a>. Cette page explique comment ses éléments s’articulent.
       </p>
 
-      <h2>Structure</h2>
-      <pre>
-        <code>{`my-plugin/
+      <h2>Structure du paquet</h2>
+      <pre><code>{`my-plugin/
   manifest.json
-  main.js        # Un seul module ES autonome`}</code>
-      </pre>
+  main.js
+  src/main.ts       # recommended and committed for review
+  assets/           # optional, explicitly listed for marketplace installs`}</code></pre>
       <p>
-        <code>main.js</code>{" "}
-        exporte par défaut un objet de cycle de vie. Tout ce qu'une extension peut toucher
-        provient du contexte passé à <code>activate</code> ; chaque appel{" "}
-        <code>register*</code> et <code>on</code> renvoie un objet jetable, que l'application
-        nettoie uniformément quand l'extension est désactivée ou désinstallée, donc{" "}
-        <code>deactivate</code> ne doit libérer que les ressources externes propres à l'extension.
+        <code>main.js</code> exporte par défaut un objet de cycle de vie. ReadAware l’exécute
+        dans un Worker de module dédié et fournit à <code>activate</code> un
+        contexte limité à l’acteur.
       </p>
-      <pre>
-        <code>{`export default {
+      <pre><code>{`export default {
   activate(ctx) {
-    // Enregistrer des points de contribution via ctx
+    // Inspect and register. Side effects are blocked in this phase.
+  },
+  migrate(storageCtx, change) {
+    // Optional: transform plugin-private KV and documents.
   },
   deactivate() {
-    // Optionnel : fermer les sockets, vider les files d'attente
+    // Optional: release the plugin's own external resources.
   },
-};`}</code>
-      </pre>
-      <p>
-        L'activation et la désactivation prennent effet immédiatement — pas besoin de redémarrer
-        l'application. Écrivez en TypeScript si vous le souhaitez (recommandé ; voir{" "}
-        <Link to="/fr/docs/plugins/publishing">Publication et distribution</Link>) —
-        l'application charge toujours le <code>main.js</code> construit.
-      </p>
+};`}</code></pre>
 
-      <h2>manifest.json</h2>
-      <pre>
-        <code>{`{
-  "id": "anki-sync",
-  "name": "Anki Sync",
+      <h2>Manifeste</h2>
+      <pre><code>{`{
+  "id": "theme-schedule",
+  "name": "Planification des thèmes",
   "version": "0.1.0",
+  "schemaVersion": 1,
   "minAppVersion": "0.3.0",
-  "description": "Send looked-up words to Anki.",
-  "author": "you",
-  "permissions": ["service:network", "annotations:read"],
+  "requires": {
+    "domains": { "settings": "^1.0.0" },
+    "contributions": {
+      "commands": "^1.0.0",
+      "settingsOptions": "^1.0.0"
+    },
+    "services": {
+      "storage": "^1.0.0",
+      "schedules": "^1.0.0",
+      "ui": "^1.0.0"
+    },
+    "schemas": { "settings": "^1.0.0" }
+  },
+  "settingsAccess": {
+    "discover": ["appearance.theme", "reading.theme"],
+    "write": ["appearance.theme", "reading.theme"]
+  },
   "main": "main.js"
-}`}</code>
-      </pre>
+}`}</code></pre>
       <div className="overflow-x-auto">
         <table>
-          <thead>
-            <tr>
-              <th>Champ</th>
-              <th>Signification</th>
-            </tr>
-          </thead>
+          <thead><tr><th>Champ</th><th>Contrat</th></tr></thead>
           <tbody>
-            <tr>
-              <td>
-                <code>id</code>
-              </td>
-              <td>
-                Minuscules, chiffres et traits d'union (maximum 64). Doit correspondre au nom du
-                dossier ; sert d'espace de noms pour le stockage et les outils de l'extension.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>name</code>, <code>version</code>
-              </td>
-              <td>Affiché dans « Réglages → Extensions » et le marché d'extensions.</td>
-            </tr>
-            <tr>
-              <td>
-                <code>minAppVersion</code>
-              </td>
-              <td>
-                Version minimale de l'application supportée par l'extension. Ce contrat nécessite{" "}
-                <code>0.3.0</code> ou plus récent.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>permissions</code>
-              </td>
-              <td>
-                Les capacités utilisées par l'extension (voir tableau ci-dessous). Affiché à
-                l'utilisateur avant l'installation.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>main</code>
-              </td>
-              <td>
-                Module d'entrée relatif au dossier de l'extension ; par défaut{" "}
-                <code>main.js</code>.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>settings</code>
-              </td>
-              <td>
-                Paramètres déclaratifs optionnels (même forme de champ que les vues de formulaire,
-                plus <code>secret</code>). L'application les rend comme section propre à
-                l'extension, et persiste toutes les valeurs en tant qu'objet sous la clé de
-                stockage <code>settings</code> — voir{" "}
-                <a href="#storage-and-settings">Stockage et paramètres</a>.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>schedules</code>
-              </td>
-              <td>
-                Tâches périodiques optionnelles, déclarées ici pour que les utilisateurs puissent
-                les voir avant l'installation — voir{" "}
-                <a href="#scheduled-work">Tâches planifiées</a>.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>themes</code>, <code>fonts</code>
-              </td>
-              <td>
-                Thèmes déclaratifs optionnels et polices groupées (nécessite la permission{" "}
-                <code>ui:themes</code>) — voir{" "}
-                <a href="#themes-and-bundled-fonts">Thèmes et polices groupées</a>.
-              </td>
-            </tr>
+            <tr><td><code>id</code></td><td>Lettres minuscules, chiffres et traits d’union ; 64 caractères maximum. Il s’agit de l’espace de noms permanent et il doit correspondre au nom du dossier.</td></tr>
+            <tr><td><code>name</code>, <code>version</code></td><td>Nom visible par l’utilisateur et version du paquet.</td></tr>
+            <tr><td><code>schemaVersion</code></td><td>Entier positif requis pour les données KV et documents privés du plugin. Indépendant de la version du paquet.</td></tr>
+            <tr><td><code>requires</code></td><td>Tableau requis associant les ID de capacités à des plages semver, regroupées par domaines, contributions, services et schémas.</td></tr>
+            <tr><td><code>permissions</code></td><td>Autorité sémantique facultative demandée à l’utilisateur. Les valeurs inconnues échouent à la validation.</td></tr>
+            <tr><td><code>settingsAccess</code></td><td>Accords facultatifs de découverte/lecture/écriture pour des chemins de paramètres exacts ou des groupes <code>section.*</code> explicites.</td></tr>
+            <tr><td><code>minAppVersion</code></td><td>Version minimale facultative de l’application. À utiliser lorsque le paquet dépend d’une capacité récemment publiée.</td></tr>
+            <tr><td><code>settings</code></td><td>Champs de paramètres du plugin rendus par l’hôte.</td></tr>
+            <tr><td><code>schedules</code></td><td>Tâches récurrentes facultatives, déclarées avant la liaison de leurs gestionnaires.</td></tr>
+            <tr><td><code>themes</code>, <code>fonts</code></td><td>Contributions déclaratives facultatives de thèmes et de polices ; nécessite <code>ui:themes</code>.</td></tr>
+            <tr><td><code>main</code></td><td>Module d’entrée relatif au dossier ; prend par défaut la valeur <code>main.js</code>.</td></tr>
           </tbody>
         </table>
       </div>
-
-      <h2>Modèle de domaine</h2>
       <p>
-        La surface de données est dérivée du modèle de domaine de l'application, pas écrite à
-        côté. Chaque domaine — <code>shelf</code> (toute la gestion de la bibliothèque : catalogue
-        de livres, regroupements et statistiques de lecture), <code>annotations</code>,{" "}
-        <code>conversations</code> — est un espace de noms sur <code>ctx</code>, exposant trois
-        choses :
-      </p>
-      <ul>
-        <li>
-          <strong>Lectures</strong> — les modèles de lecture de ce domaine (sur lesquels
-          l'interface de l'application elle-même se rend) ;
-        </li>
-        <li>
-          <strong>Écritures</strong> — des commandes sous <code>.write</code>, en correspondance
-          stricte un-à-un avec les verbes d'événement de ce domaine, et passant par le propre
-          chemin d'écriture event-sourced de l'application, marqué dans le journal d'événements
-          comme <code>plugin:&lt;id&gt;</code>, donc chaque écriture d'extension est traçable ;
-        </li>
-        <li>
-          <strong>Abonnements</strong> — <code>.on(event, handler)</code>, abonnez-vous aux
-          événements de ce domaine par des noms canoniques (<code>book.starred</code>,{" "}
-          <code>highlight.created</code>…) — le même vocabulaire avec lequel l'application
-          elle-même enregistre les faits.
-        </li>
-      </ul>
-      <p>
-        Les permissions suivent la même forme : <code>&lt;domain&gt;:read</code> /{" "}
-        <code>&lt;domain&gt;:write</code>, et dans un domaine,{" "}
-        <strong>l'écriture implique la lecture</strong>. L'état local de l'appareil (préférences
-        de vue, apparence du lecteur, données internes de synchronisation) et le rendu libre sont
-        délibérément hors de la surface d'extension — toute l'UI passe par les vues déclaratives
-        ci-dessous.
+        Utilisez le <Link to="/fr/docs/plugins/capabilities">navigateur des capacités</Link>{" "}
+        pour consulter la liste complète et le vocabulaire des permissions. Une exigence
+        est toujours une déclaration de compatibilité ; elle n’accorde jamais d’autorité.
       </p>
 
-      <h2>Permissions</h2>
+      <h2>Contexte d’exécution</h2>
+      <div className="overflow-x-auto">
+        <table>
+          <thead><tr><th>Espace de noms</th><th>Contient</th></tr></thead>
+          <tbody>
+            <tr><td><code>ctx.manifest</code></td><td>Le manifeste validé, en lecture seule.</td></tr>
+            <tr><td><code>ctx.appVersion</code>, <code>ctx.locale</code></td><td>Version de l’hôte et langue actuelle de l’interface.</td></tr>
+            <tr><td><code>ctx.lifecycle.phase</code></td><td><code>activating</code>, <code>migrating</code> ou <code>active</code>.</td></tr>
+            <tr><td><code>ctx.capabilities</code></td><td>Uniquement les versions de capacités visibles pour cet acteur de plugin.</td></tr>
+            <tr><td><code>ctx.domains</code></td><td>État et comportement ReadAware accordés.</td></tr>
+            <tr><td><code>ctx.contributions</code></td><td>Registres auxquels le plugin peut fournir des implémentations.</td></tr>
+            <tr><td><code>ctx.services</code></td><td>Opérations d’hôte limitées et infrastructure privée du plugin.</td></tr>
+          </tbody>
+        </table>
+      </div>
       <p>
-        Sans la permission correspondante déclarée, le groupe de capacités sur <code>ctx</code>{" "}
-        n'existe tout simplement pas — protection au niveau de l'API contre le dépassement
-        involontaire. Le stockage par espace de noms, les points de contribution d'interface, les
-        événements de session et la navigation du lecteur ne sont pas des permissions ; chaque
-        extension les possède.
+        Les espaces de noms protégés par permission sont absents lorsqu’ils ne sont pas accordés. Chaque appel
+        du Worker est également autorisé côté hôte ; masquer une méthode n’est pas le seul
+        contrôle. Les enregistrements renvoient un objet libérable et sont récupérés dans l’ordre inverse
+        lorsque l’activation échoue ou que le plugin est désactivé.
+      </p>
+
+      <h2>Domaines</h2>
+      <p>
+        Un domaine expose <code>queries</code>, éventuellement <code>commands</code>,
+        et <code>events.subscribe</code> pour les événements validés. Les commandes
+        utilisent le même chemin d’écriture piloté par les événements que ReadAware et sont
+        attribuées à <code>plugin:&lt;id&gt;</code>. La permission d’écriture implique celle de lecture.
       </p>
       <div className="overflow-x-auto">
         <table>
-          <thead>
-            <tr>
-              <th>Permission</th>
-              <th>Accorde</th>
-            </tr>
-          </thead>
+          <thead><tr><th>Domaine</th><th>Requêtes et commandes</th><th>Autorité</th></tr></thead>
           <tbody>
             <tr>
-              <td>
-                <code>shelf:read</code>
-              </td>
-              <td>
-                <code>ctx.shelf</code>
-                — catalogue de livres (y compris le sommaire d'un livre et le texte des
-                chapitres), regroupements et affectations, et statistiques de lecture (
-                <code>stats.forBook</code> / <code>stats.list</code> /{" "}
-                <code>stats.overview</code>
-                — les statistiques n'ont pas de face d'écriture : leurs événements sont les faits
-                de l'activité du lecteur enregistrée, pas de commandes utilisateur).
-              </td>
+              <td><code>library</code></td>
+              <td>Livres, métadonnées, texte source des chapitres, table des matières, collections ; commandes d’importation, de modification, de mise en favori, de suppression, de livres virtuels et de collections.</td>
+              <td><code>library:read</code> / <code>library:write</code></td>
             </tr>
             <tr>
-              <td>
-                <code>shelf:write</code>
-              </td>
-              <td>
-                <code>ctx.shelf.books.write</code>
-                — importer des fichiers, modifier les métadonnées, marquer en vedette, marquer
-                comme terminé, supprimer ; et les fournisseurs de contenu et livres virtuels.
-                <code>ctx.shelf.collections.write</code>
-                — créer, renommer, supprimer, attribuer des livres aux collections.
-              </td>
+              <td><code>reading</code></td>
+              <td>Statistiques de lecture par livre et agrégées ; marquer un livre comme terminé, ouvrir un livre et naviguer vers un CFI ou un href.</td>
+              <td><code>reading:read</code> / <code>reading:write</code></td>
             </tr>
             <tr>
-              <td>
-                <code>annotations:read</code> / <code>annotations:write</code>
-              </td>
-              <td>
-                <code>ctx.annotations</code>
-                — surlignages, notes et questions ; créer, recolorer, modifier, supprimer les
-                surlignages et notes (les questions sont écrites par l'assistant, lecture seule).
-              </td>
+              <td><code>annotations</code></td>
+              <td>Filtrer les surlignages, notes et traces de questions passives ; créer, modifier, recolorer et supprimer des surlignages ou des notes.</td>
+              <td><code>annotations:read</code> / <code>annotations:write</code></td>
             </tr>
             <tr>
-              <td>
-                <code>conversations:read</code>
-              </td>
-              <td>
-                <code>ctx.conversations</code>
-                — les fils IA par livre et les fils globaux (lecture seule).
-              </td>
+              <td><code>conversations</code></td>
+              <td>Lire les fils de discussion de livres, lister les fils globaux et lire un fil. Les écritures restent dans le moteur de chat.</td>
+              <td><code>conversations:read</code></td>
             </tr>
             <tr>
-              <td>
-                <code>ui:themes</code>
-              </td>
-              <td>
-                Champs déclaratifs <code>themes</code> / <code>fonts</code> dans le manifest (voir
-                ci-dessous) — thèmes d'application et de lecture, avec des polices facultatives.
-                C'est le seul point de contribution d'UI nécessitant une permission : il a un
-                impact visuel sur toute l'application, la confirmation d'installation doit le
-                mettre en lumière.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>ui:appearance</code>
-              </td>
-              <td>
-                <code>ctx.appearance</code> — lister tous les thèmes proposés
-                par les deux surfaces, lire l’apparence actuelle et changer le
-                thème de l’application ou la couleur de page. Volontairement
-                distinct de <code>ui:themes</code> : proposer un thème est
-                passif, en changer ne l’est pas.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>agent:tools</code>
-              </td>
-              <td>
-                <code>ctx.agent.registerTool</code> — enregistrer des outils pour l'assistant de
-                lecture.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>service:network</code>
-              </td>
-              <td>
-                <code>ctx.network.fetch</code> — requêtes HTTP sortantes, via le client natif de
-                l'application (pas de contrainte CORS).
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>service:llm</code>
-              </td>
-              <td>
-                <code>ctx.llm.ask</code>
-                — faire un appel de modèle unique en utilisant le compte configuré de
-                l'utilisateur. Pas de fil, pas de mémoire, pas d'outils ; prend en charge la
-                sortie JSON structuré via <code>schema</code>, ou la réception de texte en flux
-                via <code>onText</code>.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>service:clipboard</code>
-              </td>
-              <td>
-                <code>ctx.clipboard.writeText</code>.
-              </td>
+              <td><code>settings</code></td>
+              <td>Découvrir les entrées de catalogue autorisées, lire les valeurs résolues, mettre à jour les cibles prises en charge et s’abonner aux changements validés.</td>
+              <td>Accords <code>settingsAccess</code> exacts</td>
             </tr>
           </tbody>
         </table>
       </div>
       <p>
-        (<code>reader:modes</code>
-        — modes de lecture guidés rendus par l'hôte — temporairement limité aux extensions de
-        première partie livrées avec l'application jusqu'à ce que ce contrat privilégié se
-        stabilise.)
+        Il n’existe aucun domaine <code>shelf</code> ou <code>appearance</code>.
+        Les données de bibliothèque et le comportement de lecture actif sont séparés. Appearance est une
+        section des réglages.
       </p>
 
-      <h2>Points de contribution</h2>
-
-      <h3>Actions de sélection</h3>
+      <h3>Accès aux paramètres</h3>
       <p>
-        Entrées dans le menu de sélection du lecteur et le menu d'annotation. Le gestionnaire
-        reçoit le texte sélectionné, sa plage CFI, le chapitre et le livre ; quand le lecteur
-        peut le récupérer, <code>context</code> porte également les paragraphes de contexte
-        autour de la sélection. À l'intérieur du lecteur, une action soit s'exécute silencieusement
-        (retourne un toast), soit ouvre un dialogue (retourne une vue) — seulement ces deux
-        résultats. Les actions asynchrones déclarant <code>presentation: "dialog"</code> font
-        que l'hôte ouvre immédiatement un dialogue en état de chargement, et remplit le résultat
-        dans la même requête quand <code>run</code> se termine. Les actions de type dictionnaire
-        peuvent déclarer <code>role: "lookup"</code> : l'hôte routera la commande clavier
-        « Chercher » existante vers cette action d'extension, au lieu de maintenir un second
-        chemin de recherche intégré.
+        <code>discover</code>, <code>read</code> et <code>write</code> sont
+        indépendants. Accordez des chemins exacts lorsque possible ; utilisez un groupe de section
+        tel que <code>appearance.*</code> uniquement lorsque la fonctionnalité a réellement besoin
+        de toute la section. Les mises à jour passent par la validation du catalogue, la politique de cible,
+        la persistance et les effets postérieurs à la validation.
       </p>
-      <pre>
-        <code>{`ctx.ui.registerSelectionAction({
-  id: "save-quote",
-  title: "Enregistrer la citation",
-  icon: "quotes",
-  presentation: "dialog",
-  run: (input) => {
-    // input: { text, context?, cfiRange, chapterHref, book, source }
-    return { toast: "Citation enregistrée." };
-  },
-});`}</code>
-      </pre>
-
-      <h3>Actions d'en-tête</h3>
-      <p>
-        Un bouton icône dans l'en-tête. Sur la surface du lecteur, la vue s'ouvre en panneau
-        ancré ; sur la bibliothèque, elle s'ouvre selon <code>presentation</code> en panneau ou
-        en page complète. Le lecteur ne permet jamais d'interruption en pleine page.
-      </p>
-      <pre>
-        <code>{`ctx.ui.registerHeaderAction({
-  id: "reading-report",
-  title: "Bilan de lecture",
-  icon: "chart-line-up",
-  surface: "shelf",
-  presentation: "page",
-  view: async () => ({
-    kind: "markdown",
-    title: "Cette semaine",
-    markdown: "Vous avez lu **4h 12m** sur 3 livres.",
-  }),
-});`}</code>
-      </pre>
-
-      <h3>Commandes</h3>
-      <p>
-        Une entrée dans la palette de commandes. Toutes les actions d'extension apparaissent
-        automatiquement dans la palette ; les commandes explicites servent pour les actions sans
-        bouton.
-      </p>
-      <pre>
-        <code>{`ctx.ui.registerCommand({
-  id: "sync-now",
-  title: "Anki Sync: synchroniser maintenant",
-  run: async () => ({ toast: "Synchronisé." }),
-});`}</code>
-      </pre>
-
-      <h3>Outils de l'assistant</h3>
-      <p>
-        Outils que l'assistant de lecture peut appeler pendant une conversation (nécessite la
-        permission <code>agent:tools</code>). <code>parameters</code> est un schéma JSON ordinaire
-        décrivant l'objet de paramètres ; les outils sans paramètres peuvent l'omettre. Les
-        outils sont préfixés par espace de noms en{" "}
-        <code>plugin_&lt;pluginId&gt;_&lt;name&gt;</code> avant d'être envoyés au modèle, et les
-        invocations apparaissent dans la conversation en tant qu'étapes d'outil pour
-        l'utilisateur.
-      </p>
-      <pre>
-        <code>{`ctx.agent?.registerTool({
-  name: "search_deck",
-  label: "Recherche de votre paquet Anki",
-  description: "Rechercher un terme dans la collection Anki de l'utilisateur.",
-  parameters: {
-    type: "object",
-    properties: { query: { type: "string" } },
-    required: ["query"],
-  },
-  execute: async ({ query }) => {
-    const res = await ctx.network.fetch("http://127.0.0.1:8765", {
-      method: "POST",
-      body: JSON.stringify({ action: "findNotes", query }),
-    });
-    return res.json();
-  },
-});`}</code>
-      </pre>
-
-      <h3>Fournisseurs de voix de lecture à haute voix</h3>
-      <p>
-        <code>ctx.audio.registerVoiceProvider</code>{" "}
-        connecte un moteur de synthèse vocale à la fonction de lecture à haute voix de la page de
-        lecture. L'extension synthétise uniquement le texte en octets audio encodés (mp3/wav —
-        tout ce que la webview peut décoder) ; la lecture, la progression phrase par phrase, la
-        pré-récupération et le surlignage de suivi sont tous gérés par l'application.
-        L'enregistrement lui-même ne nécessite pas de permission — les capacités requises pour
-        la synthèse (réseau, clés) sont déjà protégées par les propres autres permissions de
-        l'extension.
-      </p>
-      <pre>
-        <code>{`ctx.audio.registerVoiceProvider({
-  id: "voices",
-  label: "Mon TTS",
-  listVoices: () => [{ id: "default", label: "Mon TTS · chaleureux" }],
-  synthesize: async ({ text, voiceId }) => {
-    const res = await ctx.network.fetch("http://127.0.0.1:8880/v1/audio/speech", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ input: text, response_format: "mp3" }),
-    });
-    return res.arrayBuffer();
-  },
-});`}</code>
-      </pre>
-      <p>
-        Les voix enregistrées sont automatiquement adoptées — activer votre extension est le
-        choix, l'hôte ne maintient pas de sélecteur distinct ; si une seule synthèse échoue, elle
-        revient à la voix système, la lecture se dégrade seulement, sans interruption. Les
-        changements de paramètres d'extension déclenchent une réénumération des voix.
-      </p>
-
-      <h3 id="scheduled-work">Tâches planifiées</h3>
-      <p>
-        Le manifest déclare les tâches périodiques, <code>activate</code> lie le travail réel.
-        L'application exécute au moins toutes les <code>everyMinutes</code> minutes (minimum 15)
-        pendant qu'elle est ouverte, et rattrape une exécution manquée au démarrage —
-        jamais de promesse de moment précis, et aucune exécution si l'application est fermée. Les
-        exécutions simultanées de la même tâche sont ignorées ; un échec attend simplement la
-        période suivante.
-      </p>
-      <pre>
-        <code>{`// manifest.json
-"schedules": [{ "id": "refresh", "label": "Actualiser les flux", "everyMinutes": 60 }]
-
-// main.js
-ctx.schedule.on("refresh", async () => {
-  // récupérer, comparer, réécrire via les APIs de domaine
-});`}</code>
-      </pre>
-
-      <h3 id="themes-and-bundled-fonts">Thèmes et polices groupées</h3>
-      <p>
-        Avec <code>ui:themes</code> déclaré, le manifest peut déclarer des thèmes pour deux points
-        de montage indépendants — l'interface de l'application et les pages de livres — et grouper
-        des fichiers de polices distribués avec le dossier de l'extension. Ces contributions sont
-        purement des données : l'application valide chaque valeur et génère tout le CSS
-        elle-même, et rien ne prend effet avant que l'utilisateur ne sélectionne le thème dans
-        « Réglages → Apparence » ou le sélecteur de couleur de page du lecteur. Les extensions
-        purement thème ont juste besoin de{" "}
-        <code>{"export default { activate() {} }"}</code> dans <code>main.js</code>.
-      </p>
-      <pre>
-        <code>{`{
-  "permissions": ["ui:themes"],
-  "fonts": [
-    {
-      "id": "my-serif",
-      "family": "My Serif",
-      "kind": "serif",
-      "files": [{ "path": "assets/my-serif-400.woff2", "weight": 400 }]
-    }
-  ],
-  "themes": [
-    {
-      "id": "dusk",
-      "name": { "default": "Crépuscule", "translations": { "zh-Hans": "暮色" } },
-      "polarity": "dark",
-      "app": { "paper": "#14171e", "fg": "#e3e6ec" },
-      "reader": {
-        "palette": {
-          "bg": "#161a22", "text": "#ccd2dd",
-          "selection": "rgba(154, 162, 177, 0.28)",
-          "rule": "rgba(204, 210, 221, 0.18)",
-          "faint": "rgba(204, 210, 221, 0.07)",
-          "muted": "rgba(204, 210, 221, 0.55)"
-        },
-        "typography": { "fontFamily": "plugin:my-serif", "fontSize": "large" }
-      }
-    }
-  ]
-}`}</code>
-      </pre>
-      <ul>
-        <li>
-          <code>polarity</code> — si le thème lit clair ou sombre. Pilote{" "}
-          <code>color-scheme</code>, les valeurs par défaut de polarité claires/sombres dont les
-          tokens d'application non remplacés héritent, et la résolution de la couleur de page
-          « Auto » du lecteur pendant que le thème est actif.
-        </li>
-        <li>
-          <code>app</code> — remplace le vocabulaire de tokens fixes de l'application (toile,
-          hiérarchie de texte, surfaces, remplissage, bordures — voir{" "}
-          <code>PluginAppThemeTokens</code> dans la déclaration de type). Les tokens non remplacés
-          gardent les propres valeurs de polarité correspondantes.
-        </li>
-        <li>
-          <code>reader</code> — une palette à six couleurs (les six obligatoires) identique aux
-          couleurs de page intégrées, plus un préréglage de typographie optionnel : appliqué une
-          fois au moment où l'utilisateur sélectionne le thème, puis l'utilisateur peut ajuster
-          librement.
-        </li>
-        <li>
-          <code>fonts</code> — <code>.woff2</code>/<code>.woff</code>/<code>.ttf</code>/
-          <code>.otf</code> servis directement depuis le dossier de l'extension ; chaque police
-          apparaît dans le sélecteur de polices du lecteur pendant que l'extension est activée. Les
-          thèmes référencent leurs propres polices avec <code>plugin:&lt;fontId&gt;</code>. Les
-          extensions soumises au marché doivent lister les fichiers de police dans le champ{" "}
-          <code>files</code> de l'entrée de registre.
-        </li>
-        <li>
-          Les valeurs de couleur sont validées par syntaxe stricte — hex pur ou{" "}
-          <code>rgb()</code>/<code>rgba()</code>/<code>hsl()</code>/<code>hsla()</code> ; les
-          mots-clés, <code>var()</code> et <code>url()</code> sont rejetés.
-        </li>
-      </ul>
-
-      <h2>Vues</h2>
-      <p>
-        Les extensions déclarent des arbres de composants hôtes, l'application rend toutes les
-        primitives visuelles et contrôles ; les extensions ne peuvent pas fournir de JSX, HTML, CSS
-        ou className.
-      </p>
-      <ul>
-        <li>
-          <code>markdown</code> — une chaîne markdown, rendue par l'application.
-        </li>
-        <li>
-          <code>list</code> — l'hôte fournit la recherche avec debounce fixe, keywords,
-          accessories et état vide ; <code>timeline</code> fournit un filtre aujourd'hui / cette
-          semaine / ce mois / tout et un regroupement de dates locales, les éléments peuvent
-          utiliser <code>presentation: "dialog"</code> pour ouvrir une vue de retour au-dessus de
-          la liste, au lieu de descendre dans une sous-page.
-        </li>
-        <li>
-          <code>form</code> — text, textarea, number, time, select, choice, checkbox, toggle utilisant
-          la bibliothèque de composants ReadAware, plus <code>onSubmit</code> ; ce dernier reçoit
-          les valeurs du formulaire, peut retourner une vue de résultat ou des erreurs de champ.
-        </li>
-        <li>
-          <code>detail</code> — contenu principal, métadonnées et actions de style Raycast ;
-          l'hôte rend les actions comme boutons icônes à droite du titre du contenu, et affiche
-          discrètement les métadonnées source, date et tags au bas du contenu.
-        </li>
-        <li>
-          <code>blocks</code>
-          — typography hôte, markdown, dictionnaire, métadonnées, citation, actions, métrique,
-          progression, tags, avertissement, section, group et <code>columns</code> responsive. Les
-          colonnes exposent uniquement le weight relatif, les niveaux d'espacement, les niveaux de
-          largeur minimale et l'alignement sémantique, le CSS réel et le wrapping restent au
-          système de design ; toutes les déclarations sont validées au runtime et la profondeur
-          d'imbrication est limitée.
-        </li>
-      </ul>
-      <p>
-        Les gestionnaires (<code>run</code>, <code>onSelect</code>, <code>onSubmit</code>)
-        retournent tous la même forme de résultat :
-      </p>
-      <ul>
-        <li>
-          Ne retourner rien — l'UI reste comme elle est ;
-        </li>
-        <li>
-          <code>{"{ toast: \"…\" }"}</code> — un message bref ;
-        </li>
-        <li>
-          <code>{"{ view }"}</code> — ouvrir une UI, ou pousser une nouvelle couche de vue par-dessus ;
-        </li>
-        <li>
-          <code>{'{ view, navigation: "replace" | "reset" }'}</code>
-          — remplacer la vue actuelle, ou revenir à un nouvel arbre racine ;
-        </li>
-        <li>
-          <code>{"{ close: true }"}</code> — fermer l'UI (combinable avec <code>toast</code>) ;
-        </li>
-        <li>
-          <code>{"{ fieldErrors }"}</code>
-          — depuis la soumission de formulaire : rester dans le formulaire et afficher les erreurs
-          sous les champs.
-        </li>
-      </ul>
-      <p>
-        Le travail asynchrone n'est pas remarquable : retournez une promesse, l'application
-        affiche un état de chargement. Les icônes sont choisies par nom dans la collection Phosphor
-        sélectionnée par l'application — pas de SVG personnalisé pris en charge.
-      </p>
-
-      <h2>Données de domaine</h2>
-      <p>
-        Chaque espace de noms de domaine accordé fournit des lectures, des abonnements aux
-        événements canoniques, et (avec permission d'écriture) des commandes. Vue d'ensemble :
-      </p>
-      <ul>
-        <li>
-          <code>ctx.shelf.books</code> — <code>list()</code>, <code>get(id)</code>,{" "}
-          <code>getToc(id)</code>, <code>getChapterText(id, index)</code>
-          ; écritures : <code>import</code>, <code>editMetadata</code>, <code>setStarred</code>,{" "}
-          <code>setFinished</code>, <code>remove</code>, plus les fournisseurs de contenu (voir
-          ci-dessous).
-        </li>
-        <li>
-          <code>ctx.shelf.collections</code> — <code>list()</code>, <code>booksIn(id)</code>
-          ; écritures : <code>create</code>, <code>rename</code>, <code>remove</code>,{" "}
-          <code>assignBooks(bookIds, collectionId | null)</code>.
-        </li>
-        <li>
-          <code>ctx.shelf.stats</code> — <code>forBook(bookId)</code>, <code>list()</code>,{" "}
-          <code>overview()</code>
-          (position de lecture, état de lecture et durée de lecture réelle ; lecture seule pour
-          tout acteur).
-        </li>
-        <li>
-          <code>ctx.annotations</code> —{" "}
-          <code>list({"{ bookId?, kind?, query? }"})</code> retourne une union discriminée de
-          surlignages, notes et questions ; écritures : <code>createHighlight</code>,{" "}
-          <code>recolorHighlight</code>, <code>removeHighlight</code>, <code>createNote</code>,{" "}
-          <code>updateNote</code>, <code>removeNote</code>.
-        </li>
-        <li>
-          <code>ctx.conversations</code> — <code>getBookThread(bookId)</code>,{" "}
-          <code>listThreads()</code>, <code>getThread(id)</code> ; abonnez-vous via{" "}
-          <code>on</code> (<code>aiConversation.started</code>,{" "}
-          <code>aiMessage.appended</code>, <code>aiMessage.removed</code>,{" "}
-          <code>aiConversation.cleared</code>).
-        </li>
-      </ul>
-
-      <h2>Événements</h2>
-      <p>
-        Deux types d'événements, délibérément séparés. <strong>Les événements de domaine</strong>{" "}
-        sont les faits enregistrés par l'application ; abonnez-vous par domaine, utilisez des noms
-        canoniques, nécessite la permission de lecture de ce domaine. Chaque livraison est de la
-        forme <code>{"{ type, payload, createdAt, origin }"}</code> — origin montre quel acteur
-        logiciel a produit ce fait (<code>user</code>, <code>agent</code>, <code>system</code>, ou{" "}
-        <code>plugin:&lt;id&gt;</code>).
-      </p>
-      <pre>
-        <code>{`ctx.annotations?.on("highlight.created", ({ payload, origin }) => {
-  // payload: { highlightId, bookId, text, color?, … }
-});
-ctx.shelf?.on("book.removed", ({ payload }) => { /* { bookId } */ });`}</code>
-      </pre>
-      <p>
-        <strong>Les faits de session</strong> décrivent ce qui se passe à l'écran en ce moment.
-        Ils n'entrent jamais dans le journal d'événements, et ne nécessitent aucune permission :{" "}
-        <code>ctx.session.on(event, handler)</code>.
-      </p>
-      <div className="overflow-x-auto">
-        <table>
-          <thead>
-            <tr>
-              <th>Événement de session</th>
-              <th>Charge utile</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>
-                <code>book-opened</code>
-              </td>
-              <td>
-                <code>{"{ book: { id, title, author? } }"}</code>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>book-closed</code>
-              </td>
-              <td>
-                <code>{"{ bookId }"}</code>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>chapter-changed</code>
-              </td>
-              <td>
-                <code>{"{ bookId, chapterHref }"}</code>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>reading-progress</code>
-              </td>
-              <td>
-                <code>{"{ bookId, fraction }"}</code> — déclenché lors du tournage de page,
-                fraction dans 0..1
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h2>Fournisseurs de contenu et livres virtuels</h2>
-      <p>
-        Avec <code>shelf:write</code> déclaré, les extensions peuvent placer de vrais livres sur
-        la bibliothèque. <code>import</code> accepte des octets de fichier. Les fournisseurs de
-        contenu contournent complètement les fichiers : enregistrez un fournisseur, ajoutez des
-        livres virtuels liés à celui-ci, et fournissez des chapitres HTML à la demande lorsque le
-        livre est ouvert. Le lecteur les pagine, annote, enregistre la progression comme tout
-        livre — « lire un flux RSS comme un livre » est exactement ainsi implémenté.
-      </p>
-      <pre>
-        <code>{`ctx.shelf?.books.write?.registerContentProvider({
-  id: "rss",
-  async load(key) {
-    const feed = await fetchFeed(key); // votre code, via ctx.network.fetch
-    return {
-      title: feed.title,
-      sections: feed.items.map((item) => ({
-        title: item.title,
-        html: item.contentHtml,
-      })),
-    };
-  },
+      <pre><code>{`const entries = await ctx.domains.settings.queries.discover({
+  section: "appearance",
 });
 
-await ctx.shelf?.books.write?.addVirtualBook({
-  providerId: "rss",
-  key: "https://example.com/feed.xml",
-  title: "Example Weekly",
-});`}</code>
-      </pre>
+await ctx.domains.settings.commands.update([
+  {
+    path: "appearance.theme",
+    value: "dark",
+    target: { kind: "global" },
+  },
+]);`}</code></pre>
 
-      <h2 id="storage-and-settings">Stockage et paramètres</h2>
+      <h2>Contributions</h2>
+      <div className="overflow-x-auto">
+        <table>
+          <thead><tr><th>Registre</th><th>Le plugin fournit</th><th>Permission</th></tr></thead>
+          <tbody>
+            <tr><td><code>selectionActions</code></td><td>Action de sélection et gestionnaire renvoyant une notification ou une vue rendue par l’hôte.</td><td>Aucun</td></tr>
+            <tr><td><code>headerActions</code></td><td>Action de lecture ou de bibliothèque, métadonnées de placement et callback de vue.</td><td>Aucun</td></tr>
+            <tr><td><code>commands</code></td><td>Métadonnées de commande et gestionnaire.</td><td>Aucun</td></tr>
+            <tr><td><code>settingsOptions</code></td><td>Options dynamiques pour un champ de plugin déclaré.</td><td>Aucun</td></tr>
+            <tr><td><code>voiceProviders</code></td><td>Liste de voix et synthèse audio encodée.</td><td>Aucun</td></tr>
+            <tr><td><code>contentProviders</code></td><td>Sections pour une clé de livre virtuel.</td><td>Aucun</td></tr>
+            <tr><td><code>readerModes</code></td><td>Mode de segmentation de lecture limité ; actuellement réservé aux plugins intégrés.</td><td><code>reader:modes</code></td></tr>
+            <tr><td><code>agentTools</code></td><td>Schéma d’outil, libellé lisible, description et exécuteur.</td><td><code>agent:tools</code></td></tr>
+            <tr><td><code>agentContextProviders</code></td><td>Blocs de référence limités pour le tour en cours.</td><td><code>agent:context</code></td></tr>
+            <tr><td><code>agentRetrievalProviders</code></td><td>Résultats de recherche issus des données du plugin.</td><td><code>agent:retrieval</code></td></tr>
+            <tr><td><code>memoryCandidateProviders</code></td><td>Faits, préférences, informations ou résumés potentiellement durables.</td><td><code>agent:memory</code></td></tr>
+            <tr><td><code>themes</code>, <code>fonts</code></td><td>Données sémantiques de thèmes et de polices déclarées dans le manifeste.</td><td><code>ui:themes</code></td></tr>
+          </tbody>
+        </table>
+      </div>
       <p>
-        <code>ctx.storage</code>{" "}
-        est un stockage clé-valeur par espace de noms persisté avec les données locales de
-        l'application — <code>get</code>, <code>set</code>, <code>remove</code>. Si le manifest
-        déclare un champ <code>settings</code>, l'application les rend comme la propre section
-        de paramètres de l'extension, toutes les valeurs apparaissent comme un objet dans{" "}
-        <code>ctx.storage.get("settings")</code>. L'assistant de lecture peut également
-        voir et modifier ces paramètres (les champs marqués <code>agentHidden</code> lui sont
-        invisibles). Trois capacités de champ vont au-delà du formulaire ordinaire :
-      </p>
-      <ul>
-        <li>
-          <code>visibleWhen: {"{ field, equals }"}</code> affiche un champ seulement lorsqu'un
-          autre champ prend une valeur donnée. La valeur existante du champ masqué est conservée —
-          un objet de paramètres unique peut stocker un ensemble de valeurs pour chaque variante
-          (l'extension TTS stocke ainsi une voix pour chaque fournisseur).
-        </li>
-        <li>
-          <code>select</code> avec <code>dynamicOptions: true</code> résout les options au moment
-          de l'exécution : liez une source dans <code>activate</code> avec{" "}
-          <code>ctx.settings.provideOptions(fieldId, async (values) =&gt; [...])</code>. Quand la
-          source ne peut pas fournir d'options (pas encore de clé configurée, point de terminaison
-          inaccessible), le champ revient à la saisie de texte libre — la liste est une commodité,
-          jamais une barrière.
-        </li>
-        <li>
-          <code>kind: "secret"</code> déclare un champ d'identifiants : l'application rend une
-          entrée de mot de passe et écrit directement dans le stockage de secrets chiffré — l'id
-          du champ est la clé que vous lisez avec <code>ctx.secrets</code> dans votre code — ne va
-          jamais dans les paramètres en texte clair, ne va jamais dans le catalogue de l'assistant.
-          La valeur existante n'est jamais ré-affichée ; le champ se présente comme état
-          « configuré » avec une entrée de nettoyage.
-        </li>
-      </ul>
-      <p>
-        Pour les données structurées, <code>ctx.storage.collection(name)</code> ouvre une
-        collection de documents nommée — <code>put</code> / <code>get</code> / <code>delete</code>{" "}
-        / <code>list</code> les documents individuels, les documents peuvent facultativement
-        porter des informations de provenance <code>bookId</code> / <code>anchor</code> et peuvent
-        être filtrés par celles-ci. La provenance est un index, pas une propriété : les documents
-        survivent à la suppression du livre référencé ; et le cycle de vie de la collection
-        appartient à l'extension (désinstaller efface).
-        L'extension vocabulaire intégrée est entièrement construite sur cette couche.
+        Chaque ID de contribution est limité à l’espace de noms du plugin ; chaque enregistrement est
+        détenu et inspectable, et les objets libérables obsolètes ne peuvent pas supprimer un remplacement
+        plus récent. Un nouveau type de contribution nécessite toujours un consommateur hôte conçu à cet effet ;
+        ensuite, tout plugin compatible peut s’enregistrer sans être nommé par l’application.
       </p>
 
-      <h2>Contexte résident</h2>
-      <p>Toujours disponible, aucune permission nécessaire :</p>
+      <h3>Limites d’extension de l’agent</h3>
       <ul>
-        <li>
-          <code>ctx.manifest</code>, <code>ctx.appVersion</code>, <code>ctx.locale</code> (balise
-          de langue BCP-47 actuelle de l'interface de l'application — lire au moment de
-          l'utilisation, elle change avec le réglage de langue en temps réel) ;
-        </li>
-        <li>
-          <code>ctx.ui.showToast(message)</code> ;
-        </li>
-        <li>
-          <code>ctx.ui.exportFile({"{ filename, content, mimeType? }"})</code>
-          — ouvre le flux de sauvegarde de l'hôte, exporte du texte généré (CSV, JSON, Markdown)
-          ou des octets binaires ;
-        </li>
-        <li>
-          <code>ctx.secrets</code> — stockage d'identifiants chiffrés isolé par espace de noms de
-          l'extension (jetons API, etc.) ; stocké en dehors de SQLite et des sauvegardes, survit à
-          la désinstallation ;
-        </li>
-        <li>
-          <code>ctx.session.on(…)</code> — les faits de session ci-dessus ;
-        </li>
-        <li>
-          <code>ctx.reader.openBook(bookId)</code> et{" "}
-          <code>ctx.reader.goTo({"{ bookId?, cfi?, href? }"})</code>
-          — navigation dans le lecteur (contrôle visible de l'utilisateur, n'expose pas de
-          données).
-        </li>
+        <li><strong>Les fournisseurs de contexte</strong> s’exécutent pendant un tour. L’hôte ajoute la provenance, limite la taille et sérialise la sortie comme donnée de référence non fiable.</li>
+        <li><strong>Les fournisseurs de recherche</strong> deviennent des outils dans l’espace de noms du plugin, avec un schéma <code>query</code>/<code>limit</code> géré par l’hôte et des résultats tronqués.</li>
+        <li><strong>Les fournisseurs de candidats mémoire</strong> proposent des candidats limités après un tour ; l’hôte en vérifie la portée, les déduplique et effectue toute écriture durable.</li>
       </ul>
-
-      <h2>Stabilité</h2>
       <p>
-        Ceci est le contrat v2, livré avec l'application 0.3.0 — une refonte disruptive
-        intentionnelle qui dérive toute la surface d'extension du modèle de domaine (les manifests
-        v1 échoueront à l'installation avec des messages d'erreur lisibles). À partir de maintenant,
-        l'API ne fait que grandir additivement : nouveaux domaines, nouveaux noms d'événements,
-        nouveaux types de blocs — les thèmes déclaratifs (<code>ui:themes</code>) en sont le
-        premier ajout. Les modifications disruptives du contenu déjà documenté sur cette page
-        seront traitées comme des bugs. Toute extension dépendant d'une capacité plus récente
-        ajoutée devrait déclarer <code>minAppVersion</code>.
+        Les plugins ne reçoivent jamais le port de mémoire, ne peuvent pas injecter de règles système
+        et ne peuvent pas écrire directement dans la mémoire à long terme.
+      </p>
+
+      <h2>Services de l’hôte</h2>
+      <div className="overflow-x-auto">
+        <table>
+          <thead><tr><th>Service</th><th>Contrat</th><th>Permission</th></tr></thead>
+          <tbody>
+            <tr><td><code>storage</code></td><td>KV dans un espace de noms, collections de documents et notifications de changements externes.</td><td>Aucun</td></tr>
+            <tr><td><code>secrets</code></td><td>Emplacements d’identifiants chiffrés dans un espace de noms.</td><td>Aucun</td></tr>
+            <tr><td><code>ui</code></td><td>Notification de l’hôte et flux d’enregistrement/exportation.</td><td>Aucun</td></tr>
+            <tr><td><code>schedules</code></td><td>Lier un gestionnaire à une cadence déclarée dans le manifeste.</td><td>Aucun</td></tr>
+            <tr><td><code>session</code></td><td>S’abonner à des informations limitées sur la session de lecture.</td><td>Aucun</td></tr>
+            <tr><td><code>network</code></td><td>HTTP médié par l’hôte.</td><td><code>service:network</code></td></tr>
+            <tr><td><code>llm</code></td><td>Appels ponctuels du modèle produisant du texte ou respectant un schéma JSON, avec la configuration de l’utilisateur.</td><td><code>service:llm</code></td></tr>
+            <tr><td><code>clipboard</code></td><td>Écrire du texte dans le presse-papiers du système.</td><td><code>service:clipboard</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Stockage</h3>
+      <p>
+        Utilisez KV pour les petits paramètres et points de contrôle. Utilisez une collection de documents
+        nommée pour les enregistrements détenus par le plugin, avec des ID stables et une provenance
+        facultative <code>bookId</code>/<code>anchor</code>. La provenance est un
+        index, pas une propriété ; un document peut survivre à la suppression du livre référencé.
+        La désinstallation vide les collections de documents, mais conserve le KV, les emplacements
+        de secrets et les métadonnées de schéma validées pour la réinstallation et la migration.
+      </p>
+
+      <h3>Tâches planifiées</h3>
+      <p>
+        Le manifeste déclare <code>{`{ id, label, everyMinutes }`}</code> et
+        l’activation lie le gestionnaire via{" "}
+        <code>ctx.services.schedules.bind</code>. La cadence minimale est de 15
+        minutes. Les exécutions ont lieu au moins à cette cadence lorsque l’application est ouverte,
+        rattrapent leur retard au lancement et ne se chevauchent pas. Il ne s’agit pas d’une
+        tâche d’arrière-plan durable ni d’une garantie d’exécution à une heure exacte.
+      </p>
+
+      <h2>Interface déclarative et paramètres</h2>
+      <p>
+        Les plugins renvoient des données de vue versionnées, pas une UI exécutable. La grammaire des vues
+        comprend du markdown, des listes consultables, des formulaires, des mises en page détaillées,
+        des résultats de dictionnaire et des arbres de blocs limités. Les gestionnaires peuvent conserver
+        la surface, afficher une notification, ouvrir ou remplacer une vue, réinitialiser la navigation,
+        fermer la surface ou renvoyer des erreurs de champs. L’hôte gère les états de chargement et d’échec
+        des promesses.
+      </p>
+      <p>
+        Les paramètres du manifeste utilisent les contrôles de l’hôte pour les champs texte, zone de texte,
+        nombre, heure, sélection, choix, case à cocher, bascule et secret. Les champs conditionnels
+        utilisent <code>visibleWhen</code> ; les sélections dynamiques utilisent un fournisseur{" "}
+        <code>settingsOptions</code> enregistré. Les champs secrets écrivent directement dans les
+        emplacements de secrets chiffrés et n’entrent jamais dans l’objet de paramètres ordinaire
+        ni dans le catalogue visible par l’agent.
+      </p>
+
+      <h2>Thèmes et polices</h2>
+      <p>
+        Les plugins de thème déclarent des données sémantiques dans le manifeste. Un thème d’application
+        remplace un vocabulaire fixe de jetons de l’hôte ; un thème de lecture fournit la palette de page
+        obligatoire à six couleurs et des valeurs typographiques facultatives. L’hôte valide les valeurs,
+        génère le CSS, charge les fichiers de polices locaux approuvés et n’applique rien tant que
+        l’utilisateur ne l’a pas sélectionné.
+      </p>
+      <p>
+        Fournir des choix nécessite <code>ui:themes</code>. En sélectionner un nécessite un
+        accès précis en écriture à un réglage tel que <code>appearance.theme</code> ou{" "}
+        <code>reading.theme</code>. L’un n’implique pas l’autre.
+      </p>
+
+      <h2>Phases du cycle de vie</h2>
+      <ol>
+        <li><strong>Activation :</strong> les requêtes et lectures privées du plugin sont disponibles ; les enregistrements sont mis en attente ; les effets de bord sont bloqués.</li>
+        <li><strong>Migration :</strong> seuls le KV du plugin et les collections de documents sont disponibles.</li>
+        <li><strong>Actif :</strong> les gestionnaires promus peuvent utiliser leurs domaines, contributions et services accordés.</li>
+      </ol>
+      <p>
+        L’hôte traite les RPC d’activation, vérifie le Worker et exécute toute
+        migration, puis promeut l’ensemble mis en attente à un point explicite unique.
+        Une activation échouée libère le travail mis en attente sans remplacer le runtime actuel.
+      </p>
+
+      <h2>Environnement du Worker</h2>
+      <p>
+        Il n’existe aucun accès à React, Jotai, au DOM, à WebView, Tauri, SQLite, au système de fichiers
+        ou aux processus. Les API ambiantes <code>fetch</code>, WebSocket, EventSource,
+        XMLHttpRequest, BroadcastChannel, IndexedDB et Cache Storage sont désactivées. Utilisez le
+        contexte typé pour le réseau, la persistance et chaque interaction avec l’hôte.
+      </p>
+
+      <h2>Compatibilité et stabilité</h2>
+      <p>
+        Les domaines, contributions, services et schémas déclaratifs portent chacun une version
+        sémantique indépendante. Les ID inconnus, les plages semver invalides, les capacités requises
+        inaccessibles et les versions d’hôte incompatibles empêchent l’activation. Les ajouts compatibles
+        incrémentent la capacité concernée, et non un numéro global unique de l’API des plugins.
+      </p>
+      <p>
+        L’écosystème actuel est propriétaire ; le contrat actuel adossé au registre
+        constitue la référence. Ne vous appuyez pas sur les anciennes formes <code>shelf</code>,{" "}
+        <code>appearance</code> ou antérieures au registre.
       </p>
     </article>
   );

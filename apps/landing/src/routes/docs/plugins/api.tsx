@@ -8,7 +8,7 @@ export const Route = createFileRoute("/docs/plugins/api")({
       {
         name: "description",
         content:
-          "The ReadAware plugin authoring contract: manifest, lifecycle, domain-derived permissions, data APIs, contributions, views, and events.",
+          "The current ReadAware plugin contract: manifest, capabilities, domains, contributions, services, declarative UI, lifecycle, and migrations.",
       },
     ],
   }),
@@ -20,838 +20,316 @@ function PluginApiPage() {
     <article className="doc-prose">
       <h1>Plugin API reference</h1>
       <p className="lead">
-        A plugin is a folder holding a <code>manifest.json</code> and one
-        JavaScript module. This page is the authoring contract; the same
-        contract ships as a TypeScript declaration file
-        (<code>types/plugin-api.d.ts</code>) in the{" "}
+        A plugin is a folder with <code>manifest.json</code> and a built ES
+        module. The exact public TypeScript contract ships as{" "}
+        <code>types/plugin-api.d.ts</code> in the{" "}
         <a href={MARKETPLACE_REPO_URL} target="_blank" rel="noopener noreferrer">
-          marketplace repository
-        </a>
-        , so editors autocomplete everything below.
+          readaware-plugins repository
+        </a>. This page explains how its pieces fit together.
       </p>
 
-      <h2>Anatomy</h2>
-      <pre>
-        <code>{`my-plugin/
+      <h2>Package shape</h2>
+      <pre><code>{`my-plugin/
   manifest.json
-  main.js        # one self-contained ES module`}</code>
-      </pre>
+  main.js
+  src/main.ts       # recommended and committed for review
+  assets/           # optional, explicitly listed for marketplace installs`}</code></pre>
       <p>
-        <code>main.js</code> default-exports a lifecycle object. Everything a
-        plugin can reach comes through the context handed to{" "}
-        <code>activate</code>; every <code>register*</code> and{" "}
-        <code>on</code> call returns a disposable that the app reclaims when
-        the plugin is disabled or uninstalled, so <code>deactivate</code> only
-        needs to release the plugin's own external resources.
+        <code>main.js</code> default-exports a lifecycle object. ReadAware runs
+        it in a dedicated module Worker and hands <code>activate</code> an
+        actor-scoped context.
       </p>
-      <pre>
-        <code>{`export default {
+      <pre><code>{`export default {
   activate(ctx) {
-    // register contributions via ctx
+    // Inspect and register. Side effects are blocked in this phase.
+  },
+  migrate(storageCtx, change) {
+    // Optional: transform plugin-private KV and documents.
   },
   deactivate() {
-    // optional: close sockets, flush queues
+    // Optional: release the plugin's own external resources.
   },
-};`}</code>
-      </pre>
-      <p>
-        Enabling and disabling take effect immediately — no app restart. Write
-        in TypeScript if you like (recommended; see{" "}
-        <Link to="/docs/plugins/publishing">Publishing</Link>) — what the app
-        loads is always the built <code>main.js</code>.
-      </p>
+};`}</code></pre>
 
-      <h2>manifest.json</h2>
-      <pre>
-        <code>{`{
-  "id": "anki-sync",
-  "name": "Anki Sync",
+      <h2>Manifest</h2>
+      <pre><code>{`{
+  "id": "theme-schedule",
+  "name": "Theme Schedule",
   "version": "0.1.0",
+  "schemaVersion": 1,
   "minAppVersion": "0.3.0",
-  "description": "Send looked-up words to Anki.",
-  "author": "you",
-  "permissions": ["service:network", "annotations:read"],
+  "requires": {
+    "domains": { "settings": "^1.0.0" },
+    "contributions": {
+      "commands": "^1.0.0",
+      "settingsOptions": "^1.0.0"
+    },
+    "services": {
+      "storage": "^1.0.0",
+      "schedules": "^1.0.0",
+      "ui": "^1.0.0"
+    },
+    "schemas": { "settings": "^1.0.0" }
+  },
+  "settingsAccess": {
+    "discover": ["appearance.theme", "reading.theme"],
+    "write": ["appearance.theme", "reading.theme"]
+  },
   "main": "main.js"
-}`}</code>
-      </pre>
+}`}</code></pre>
       <div className="overflow-x-auto">
         <table>
-          <thead>
-            <tr>
-              <th>Field</th>
-              <th>Meaning</th>
-            </tr>
-          </thead>
+          <thead><tr><th>Field</th><th>Contract</th></tr></thead>
           <tbody>
-            <tr>
-              <td>
-                <code>id</code>
-              </td>
-              <td>
-                Lowercase letters, digits, hyphens (max 64). Must equal the
-                folder name; namespaces the plugin's storage and tools.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>name</code>, <code>version</code>
-              </td>
-              <td>Shown in Settings → Plugins and the marketplace.</td>
-            </tr>
-            <tr>
-              <td>
-                <code>minAppVersion</code>
-              </td>
-              <td>
-                Lowest app version the plugin supports. This contract requires{" "}
-                <code>0.3.0</code> or newer.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>permissions</code>
-              </td>
-              <td>
-                What the plugin uses (table below). Shown to the user before
-                installation.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>main</code>
-              </td>
-              <td>
-                Entry module relative to the folder; defaults to{" "}
-                <code>main.js</code>.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>settings</code>
-              </td>
-              <td>
-                Optional declarative settings (same field shapes as form
-                views, plus <code>secret</code>). The app renders them as the
-                plugin's own section in Settings and persists the values as
-                one object under the storage key <code>settings</code> — see{" "}
-                <a href="#storage-and-settings">Storage and settings</a>.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>schedules</code>
-              </td>
-              <td>
-                Optional recurring tasks, declared so users see them before
-                installing — see <a href="#scheduled-work">Scheduled work</a>.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>themes</code>, <code>fonts</code>
-              </td>
-              <td>
-                Optional declarative themes and bundled fonts (requires{" "}
-                <code>ui:themes</code>) — see{" "}
-                <a href="#themes-and-bundled-fonts">
-                  Themes and bundled fonts
-                </a>
-                .
-              </td>
-            </tr>
+            <tr><td><code>id</code></td><td>Lowercase letters, digits, and hyphens; maximum 64 characters. It is the permanent namespace and must equal the folder name.</td></tr>
+            <tr><td><code>name</code>, <code>version</code></td><td>User-facing name and package version.</td></tr>
+            <tr><td><code>schemaVersion</code></td><td>Required positive integer for plugin-private KV and document data. Independent of package version.</td></tr>
+            <tr><td><code>requires</code></td><td>Required map of capability IDs to semver ranges, grouped by domains, contributions, services, and schemas.</td></tr>
+            <tr><td><code>permissions</code></td><td>Optional semantic authority requested from the user. Unknown values fail validation.</td></tr>
+            <tr><td><code>settingsAccess</code></td><td>Optional discover/read/write grants for exact setting paths or explicit <code>section.*</code> groups.</td></tr>
+            <tr><td><code>minAppVersion</code></td><td>Optional app-version floor. Use it when the package depends on a newly shipped capability.</td></tr>
+            <tr><td><code>settings</code></td><td>Optional host-rendered plugin setting fields.</td></tr>
+            <tr><td><code>schedules</code></td><td>Optional recurring tasks, declared before their handlers are bound.</td></tr>
+            <tr><td><code>themes</code>, <code>fonts</code></td><td>Optional declarative theme and font contributions; requires <code>ui:themes</code>.</td></tr>
+            <tr><td><code>main</code></td><td>Entry module relative to the folder; defaults to <code>main.js</code>.</td></tr>
           </tbody>
         </table>
       </div>
-
-      <h2>The domain model</h2>
       <p>
-        The data surface is derived from the app's domain model rather than
-        authored beside it. Each domain — <code>shelf</code> (the whole of
-        library management: books, collections, reading stats),{" "}
-        <code>annotations</code>, <code>conversations</code> — is a namespace
-        on <code>ctx</code> exposing three things:
-      </p>
-      <ul>
-        <li>
-          <strong>reads</strong> — the domain's read models (what the app's own
-          surfaces render);
-        </li>
-        <li>
-          <strong>writes</strong> — commands under <code>.write</code> that
-          mirror exactly the domain's event verbs and go through the app's own
-          event-sourced write path, stamped{" "}
-          <code>plugin:&lt;id&gt;</code> in the event log so every plugin
-          write is attributable;
-        </li>
-        <li>
-          <strong>subscriptions</strong> — <code>.on(event, handler)</code>{" "}
-          over the domain's events under their canonical names (
-          <code>book.starred</code>, <code>highlight.created</code>, …) — the
-          same vocabulary the app itself records.
-        </li>
-      </ul>
-      <p>
-        Permissions follow the same shape: <code>&lt;domain&gt;:read</code> /{" "}
-        <code>&lt;domain&gt;:write</code>, and within a domain{" "}
-        <strong>write implies read</strong>. Device-local state (view
-        preferences, reader appearance, sync internals) and free-form
-        rendering are deliberately not plugin surface — UI goes through the
-        declarative views below.
+        Use the <Link to="/docs/plugins/capabilities">capability browser</Link>{" "}
+        for the complete roster and permission vocabulary. A requirement is
+        always a compatibility claim; it never grants authority.
       </p>
 
-      <h2>Permissions</h2>
+      <h2>Runtime context</h2>
+      <div className="overflow-x-auto">
+        <table>
+          <thead><tr><th>Namespace</th><th>Contains</th></tr></thead>
+          <tbody>
+            <tr><td><code>ctx.manifest</code></td><td>The validated manifest, read-only.</td></tr>
+            <tr><td><code>ctx.appVersion</code>, <code>ctx.locale</code></td><td>Host version and current UI locale.</td></tr>
+            <tr><td><code>ctx.lifecycle.phase</code></td><td><code>activating</code>, <code>migrating</code>, or <code>active</code>.</td></tr>
+            <tr><td><code>ctx.capabilities</code></td><td>Only the capability versions visible to this plugin actor.</td></tr>
+            <tr><td><code>ctx.domains</code></td><td>Granted ReadAware-owned state and behavior.</td></tr>
+            <tr><td><code>ctx.contributions</code></td><td>Registries into which the plugin may supply implementations.</td></tr>
+            <tr><td><code>ctx.services</code></td><td>Bounded host operations and plugin-private infrastructure.</td></tr>
+          </tbody>
+        </table>
+      </div>
       <p>
-        Capability groups on <code>ctx</code> are simply absent unless their
-        permission is declared — API-level gating against accidental overreach.
-        Namespaced storage, UI contributions, session events, and reader
-        navigation are not permissions; every plugin has them.
+        Permission-gated namespaces are absent when not granted. Every Worker
+        call is also authorized host-side; hiding a method is not the only
+        check. Registrations return a disposable and are reclaimed in reverse
+        order when activation fails or the plugin is disabled.
+      </p>
+
+      <h2>Domains</h2>
+      <p>
+        A Domain exposes <code>queries</code>, optional <code>commands</code>,
+        and committed <code>events.subscribe</code>. Commands use the same
+        event-sourced write path as ReadAware and are attributed to{" "}
+        <code>plugin:&lt;id&gt;</code>. Write permission implies read.
       </p>
       <div className="overflow-x-auto">
         <table>
-          <thead>
-            <tr>
-              <th>Permission</th>
-              <th>Grants</th>
-            </tr>
-          </thead>
+          <thead><tr><th>Domain</th><th>Queries and commands</th><th>Authority</th></tr></thead>
           <tbody>
             <tr>
-              <td>
-                <code>shelf:read</code>
-              </td>
-              <td>
-                <code>ctx.shelf</code> — books (incl. a book's table of
-                contents and chapter text), collections and membership, and
-                reading stats (<code>stats.forBook</code> /{" "}
-                <code>stats.list</code> / <code>stats.overview</code> — stats
-                have no write face: their events are recorded facts of reader
-                activity, not user commands).
-              </td>
+              <td><code>library</code></td>
+              <td>Books, metadata, source chapter text, TOC, collections; import, edit, star, remove, virtual books, and collection commands.</td>
+              <td><code>library:read</code> / <code>library:write</code></td>
             </tr>
             <tr>
-              <td>
-                <code>shelf:write</code>
-              </td>
-              <td>
-                <code>ctx.shelf.books.write</code> — import files, edit
-                metadata, star, mark finished, remove; content providers and
-                virtual books. <code>ctx.shelf.collections.write</code> —
-                create, rename, remove, assign books.
-              </td>
+              <td><code>reading</code></td>
+              <td>Per-book and aggregate reading stats; mark finished, open a book, and navigate to CFI or href.</td>
+              <td><code>reading:read</code> / <code>reading:write</code></td>
             </tr>
             <tr>
-              <td>
-                <code>annotations:read</code> / <code>annotations:write</code>
-              </td>
-              <td>
-                <code>ctx.annotations</code> — highlights, notes, and asked
-                questions; create, recolor, edit, and remove highlights and
-                notes (asks are agent-written, read-only).
-              </td>
+              <td><code>annotations</code></td>
+              <td>Filter highlights, notes, and passive ask traces; create, edit, recolor, and remove highlights or notes.</td>
+              <td><code>annotations:read</code> / <code>annotations:write</code></td>
             </tr>
             <tr>
-              <td>
-                <code>conversations:read</code>
-              </td>
-              <td>
-                <code>ctx.conversations</code> — per-book AI threads and global
-                threads (read-only).
-              </td>
+              <td><code>conversations</code></td>
+              <td>Read book threads, list global threads, and read a thread. Writes stay with the chat runtime.</td>
+              <td><code>conversations:read</code></td>
             </tr>
             <tr>
-              <td>
-                <code>ui:themes</code>
-              </td>
-              <td>
-                The declarative <code>themes</code> / <code>fonts</code>{" "}
-                manifest fields (below) — app and reader themes with bundled
-                fonts. The only UI contribution behind a permission: it has
-                visual authority over the whole app, so the install consent
-                must surface it.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>ui:appearance</code>
-              </td>
-              <td>
-                <code>ctx.appearance</code> — list everything both appearance
-                surfaces offer, read the current appearance, and switch the app
-                theme or the reader page color. Separate from{" "}
-                <code>ui:themes</code> on purpose: offering a theme is passive,
-                switching one is not.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>agent:tools</code>
-              </td>
-              <td>
-                <code>ctx.agent.registerTool</code> — tools for the reading
-                assistant.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>service:network</code>
-              </td>
-              <td>
-                <code>ctx.network.fetch</code> — outbound HTTP through the
-                app's native client (no CORS constraints).
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>service:llm</code>
-              </td>
-              <td>
-                <code>ctx.llm.ask</code> — one-shot model calls on the user's
-                configured account. No thread, no memory, no tools; supports
-                structured JSON output via <code>schema</code> and streaming
-                via <code>onText</code>.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>service:clipboard</code>
-              </td>
-              <td>
-                <code>ctx.clipboard.writeText</code>.
-              </td>
+              <td><code>settings</code></td>
+              <td>Discover permitted catalog entries, read resolved values, update supported targets, and subscribe to committed changes.</td>
+              <td>Exact <code>settingsAccess</code> grants</td>
             </tr>
           </tbody>
         </table>
       </div>
       <p>
-        (<code>reader:modes</code> — host-rendered guided reading modes — is
-        currently reserved for the bundled first-party plugins while that
-        privileged contract settles.)
+        There is no <code>shelf</code> or <code>appearance</code> domain.
+        Library data and active reading behavior are separate. Appearance is a
+        section inside Settings.
       </p>
+
+      <h3>Settings access</h3>
+      <p>
+        <code>discover</code>, <code>read</code>, and <code>write</code> are
+        independent. Grant exact paths whenever possible; use a section group
+        such as <code>appearance.*</code> only when the feature genuinely needs
+        the whole section. Updates go through the catalog's validation, target
+        policy, persistence, and post-commit effects.
+      </p>
+      <pre><code>{`const entries = await ctx.domains.settings.queries.discover({
+  section: "appearance",
+});
+
+await ctx.domains.settings.commands.update([
+  {
+    path: "appearance.theme",
+    value: "dark",
+    target: { kind: "global" },
+  },
+]);`}</code></pre>
 
       <h2>Contributions</h2>
-
-      <h3>Selection actions</h3>
-      <p>
-        Entries in the reader's selection and annotation menus. The handler
-        receives the selected text, its CFI range, the chapter, and the book.
-        When available, <code>context</code> contains the surrounding passage.
-        Inside the reader an action either runs silently (return a toast) or
-        opens a dialog (return a view) — those are the only two outcomes.
-        Declare <code>presentation: "dialog"</code> when the handler is async:
-        the host opens its loading shell immediately and fills the same request
-        when <code>run</code> resolves.
-        A dictionary-style action may declare <code>role: "lookup"</code>; the
-        host then routes its existing Look up keyboard command to that plugin
-        action instead of maintaining a second built-in lookup path.
-      </p>
-      <pre>
-        <code>{`ctx.ui.registerSelectionAction({
-  id: "save-quote",
-  title: "Save quote",
-  icon: "quotes",
-  presentation: "dialog",
-  run: (input) => {
-    // input: { text, context?, cfiRange, chapterHref, book, source }
-    return { toast: "Quote saved." };
-  },
-});`}</code>
-      </pre>
-
-      <h3>Header actions</h3>
-      <p>
-        An icon button on a top bar. On the reader surface the view opens as an
-        anchored popover; on the shelf it opens as a popover or a full page,
-        per <code>presentation</code>. The reader never allows full-page
-        interruptions.
-      </p>
-      <pre>
-        <code>{`ctx.ui.registerHeaderAction({
-  id: "reading-report",
-  title: "Reading report",
-  icon: "chart-line-up",
-  surface: "shelf",
-  presentation: "page",
-  view: async () => ({
-    kind: "markdown",
-    title: "This week",
-    markdown: "You read **4h 12m** across 3 books.",
-  }),
-});`}</code>
-      </pre>
-
-      <h3>Commands</h3>
-      <p>
-        A command-palette entry. All plugin actions also appear in the palette
-        automatically; explicit commands are for actions with no button.
-      </p>
-      <pre>
-        <code>{`ctx.ui.registerCommand({
-  id: "sync-now",
-  title: "Anki Sync: sync now",
-  run: async () => ({ toast: "Synced." }),
-});`}</code>
-      </pre>
-
-      <h3>Agent tools</h3>
-      <p>
-        Tools the reading assistant may call during chat (requires{" "}
-        <code>agent:tools</code>). <code>parameters</code> is plain JSON
-        Schema for the arguments object; omit it for a no-argument tool. Tools
-        are namespaced <code>plugin_&lt;pluginId&gt;_&lt;name&gt;</code> before
-        they reach the model, and calls are visible to the user as tool steps
-        in the chat.
-      </p>
-      <pre>
-        <code>{`ctx.agent?.registerTool({
-  name: "search_deck",
-  label: "Searching your Anki deck",
-  description: "Search the user's Anki collection for a term.",
-  parameters: {
-    type: "object",
-    properties: { query: { type: "string" } },
-    required: ["query"],
-  },
-  execute: async ({ query }) => {
-    const res = await ctx.network.fetch("http://127.0.0.1:8765", {
-      method: "POST",
-      body: JSON.stringify({ action: "findNotes", query }),
-    });
-    return res.json();
-  },
-});`}</code>
-      </pre>
-
-      <h3>Voice providers</h3>
-      <p>
-        <code>ctx.audio.registerVoiceProvider</code> plugs a text-to-speech
-        engine into the reader's read-aloud. The plugin only turns text into
-        encoded audio bytes (mp3/wav — anything the webview decodes); the app
-        owns playback, sentence pacing, prefetch, and the follow-along
-        highlight. Registration needs no permission of its own — whatever the
-        provider needs to synthesize (network, keys) is already gated by its
-        other permissions.
-      </p>
-      <pre>
-        <code>{`ctx.audio.registerVoiceProvider({
-  id: "voices",
-  label: "My TTS",
-  listVoices: () => [{ id: "default", label: "My TTS · warm" }],
-  synthesize: async ({ text, voiceId }) => {
-    const res = await ctx.network.fetch("http://127.0.0.1:8880/v1/audio/speech", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ input: text, response_format: "mp3" }),
-    });
-    return res.arrayBuffer();
-  },
-});`}</code>
-      </pre>
-      <p>
-        A registered voice is adopted automatically — the user enabling your
-        plugin is the opt-in, there is no separate host-side picker — and a
-        failed synthesis call falls back to the system voice for that
-        sentence, so reading degrades instead of falling silent. Voices are
-        re-listed whenever the plugin's settings change.
-      </p>
-
-      <h3 id="scheduled-work">Scheduled work</h3>
-      <p>
-        The manifest declares recurring tasks; <code>activate</code> binds the
-        work. The app runs each schedule AT LEAST every{" "}
-        <code>everyMinutes</code> (floored at 15) while it is open, with a
-        catch-up run shortly after launch when overdue — never at exact times,
-        and never while the app is closed. Overlapping runs of one schedule
-        are skipped; a failed run just waits for the next cadence.
-      </p>
-      <pre>
-        <code>{`// manifest.json
-"schedules": [{ "id": "refresh", "label": "Refresh feeds", "everyMinutes": 60 }]
-
-// main.js
-ctx.schedule.on("refresh", async () => {
-  // fetch, reconcile, write through the domain APIs
-});`}</code>
-      </pre>
-
-      <h3 id="themes-and-bundled-fonts">Themes and bundled fonts</h3>
-      <p>
-        With <code>ui:themes</code>, the manifest may declare themes for two
-        independent mount points — the app chrome and the book page — plus
-        font files that ship inside the plugin folder. This contribution is
-        pure data: the app validates every value and generates all CSS itself,
-        and nothing applies until the user picks the theme in Settings →
-        Appearance or the reader's page-color control. A theme-only plugin's{" "}
-        <code>main.js</code> is just{" "}
-        <code>{"export default { activate() {} }"}</code>.
-      </p>
-      <pre>
-        <code>{`{
-  "permissions": ["ui:themes"],
-  "fonts": [
-    {
-      "id": "my-serif",
-      "family": "My Serif",
-      "kind": "serif",
-      "files": [{ "path": "assets/my-serif-400.woff2", "weight": 400 }]
-    }
-  ],
-  "themes": [
-    {
-      "id": "dusk",
-      "name": { "default": "Dusk", "translations": { "zh-Hans": "暮色" } },
-      "polarity": "dark",
-      "app": { "paper": "#14171e", "fg": "#e3e6ec" },
-      "reader": {
-        "palette": {
-          "bg": "#161a22", "text": "#ccd2dd",
-          "selection": "rgba(154, 162, 177, 0.28)",
-          "rule": "rgba(204, 210, 221, 0.18)",
-          "faint": "rgba(204, 210, 221, 0.07)",
-          "muted": "rgba(204, 210, 221, 0.55)"
-        },
-        "typography": { "fontFamily": "plugin:my-serif", "fontSize": "large" }
-      }
-    }
-  ]
-}`}</code>
-      </pre>
-      <ul>
-        <li>
-          <code>polarity</code> — whether the theme reads as light or dark.
-          Drives <code>color-scheme</code>, the polarity defaults for app
-          tokens the theme leaves unset, and how the reader's Auto page color
-          resolves while the theme is active.
-        </li>
-        <li>
-          <code>app</code> — overrides on the app's fixed token vocabulary
-          (canvas, text tiers, surfaces, fills, borders — see{" "}
-          <code>PluginAppThemeTokens</code> in the typings). Unset tokens keep
-          the polarity's own values.
-        </li>
-        <li>
-          <code>reader</code> — the same six-color palette the built-in page
-          colors use (all six required), plus an optional typography preset
-          applied once when the user selects the theme; the user can adjust
-          everything afterwards.
-        </li>
-        <li>
-          <code>fonts</code> — <code>.woff2</code>/<code>.woff</code>/
-          <code>.ttf</code>/<code>.otf</code> faces served straight from the
-          plugin folder; each appears in the reader's font picker while the
-          plugin is enabled. A theme references its own fonts as{" "}
-          <code>plugin:&lt;fontId&gt;</code>. Marketplace plugins must list
-          font files in the registry entry's <code>files</code>.
-        </li>
-        <li>
-          Colors are validated against strict grammars — plain hex or{" "}
-          <code>rgb()</code>/<code>rgba()</code>/<code>hsl()</code>/
-          <code>hsla()</code>; keywords, <code>var()</code>, and{" "}
-          <code>url()</code> are rejected.
-        </li>
-      </ul>
-
-      <h2>Views</h2>
-      <p>
-        Plugins declare a tree of host components; the app renders every visual
-        primitive and control. Plugins never provide JSX, HTML, CSS, or classes.
-      </p>
-      <ul>
-        <li>
-          <code>markdown</code> — a markdown string, typeset by the app.
-        </li>
-        <li>
-          <code>list</code> — searchable host lists with fixed debounce,
-          keywords, accessories, and empty states. <code>timeline</code> adds
-          Today / This week / This month / All filters and local-date groups;
-          an item can use <code>presentation: "dialog"</code> to show its
-          returned view over the list instead of pushing a child page. List-level{" "}
-          <code>actions</code> are host-rendered icon buttons; timelines place
-          them at the far right of the tab row.
-        </li>
-        <li>
-          <code>form</code> — text, textarea, number, time, select, choice, checkbox,
-          and toggle controls from the ReadAware component library, plus{" "}
-          <code>onSubmit</code>.
-        </li>
-        <li>
-          <code>detail</code> — Raycast-style primary content, metadata, and
-          host-rendered controls and actions. Semantic select controls stay by
-          the content heading; dialogs keep provenance, dates, and tags in a
-          quiet line beneath it, while actions sit beside the host Close button
-          in a fixed footer.
-        </li>
-        <li>
-          <code>blocks</code> — host typography, markdown, dictionary content,
-          metadata, quotes, actions, metrics, progress, tags, alerts, sections,
-          groups, and responsive <code>columns</code>. Columns expose only
-          bounded weight, spacing, minimum-width presets, and semantic
-          alignment. Exact CSS and wrapping stay inside the design system;
-          declarations are runtime-validated and nesting is capped.
-        </li>
-      </ul>
-      <p>
-        Handlers (<code>run</code>, <code>onSelect</code>,{" "}
-        <code>onSubmit</code>) all return the same result shape:
-      </p>
-      <ul>
-        <li>
-          nothing — the surface stays as it is;
-        </li>
-        <li>
-          <code>{"{ toast: \"…\" }"}</code> — a transient notice;
-        </li>
-        <li>
-          <code>{"{ view }"}</code> — open, or push onto, the surface;
-        </li>
-        <li>
-          <code>{'{ view, navigation: "replace" | "reset" }'}</code> —
-          replace the current view, or return to a new root view;
-        </li>
-        <li>
-          <code>{"{ close: true }"}</code> — dismiss the surface (composable
-          with <code>toast</code>);
-        </li>
-        <li>
-          <code>{"{ fieldErrors }"}</code> — from a form submit: stay on the
-          form and show errors under the fields.
-        </li>
-      </ul>
-      <p>
-        Async work is a non-event: return a promise and the app shows the
-        loading state. Icons are chosen by name from the app's curated Phosphor
-        set — no custom SVG.
-      </p>
-
-      <h2>Domain data</h2>
-      <p>
-        Each granted domain namespace offers reads, canonical event
-        subscriptions, and (with the write permission) commands. In brief:
-      </p>
-      <ul>
-        <li>
-          <code>ctx.shelf.books</code> — <code>list()</code>,{" "}
-          <code>get(id)</code>, <code>getToc(id)</code>,{" "}
-          <code>getChapterText(id, index)</code>; write: <code>import</code>,{" "}
-          <code>editMetadata</code>, <code>setStarred</code>,{" "}
-          <code>setFinished</code>, <code>remove</code>, plus content
-          providers (below).
-        </li>
-        <li>
-          <code>ctx.shelf.collections</code> — <code>list()</code>,{" "}
-          <code>booksIn(id)</code>; write: <code>create</code>,{" "}
-          <code>rename</code>, <code>remove</code>,{" "}
-          <code>assignBooks(bookIds, collectionId | null)</code>.
-        </li>
-        <li>
-          <code>ctx.shelf.stats</code> — <code>forBook(bookId)</code>,{" "}
-          <code>list()</code>, <code>overview()</code> (positions, statuses,
-          and active reading time; read-only for every actor).
-        </li>
-        <li>
-          <code>ctx.annotations</code> —{" "}
-          <code>list({"{ bookId?, kind?, query? }"})</code> returns a
-          discriminated union of highlights, notes, and asks; write:{" "}
-          <code>createHighlight</code>, <code>recolorHighlight</code>,{" "}
-          <code>removeHighlight</code>, <code>createNote</code>,{" "}
-          <code>updateNote</code>, <code>removeNote</code>.
-        </li>
-        <li>
-          <code>ctx.conversations</code> — <code>getBookThread(bookId)</code>,{" "}
-          <code>listThreads()</code>, <code>getThread(id)</code>; subscribe via{" "}
-          <code>on</code> (<code>aiConversation.started</code>,{" "}
-          <code>aiMessage.appended</code>, <code>aiMessage.removed</code>,{" "}
-          <code>aiConversation.cleared</code>).
-        </li>
-      </ul>
-
-      <h2>Events</h2>
-      <p>
-        Two classes, deliberately separate. <strong>Domain events</strong> are
-        the facts the app records; subscribe per domain, under canonical names,
-        with the domain's read permission. Each delivery is{" "}
-        <code>{"{ type, payload, createdAt, origin }"}</code> — origin says
-        which software actor produced the fact (<code>user</code>,{" "}
-        <code>agent</code>, <code>system</code>, or{" "}
-        <code>plugin:&lt;id&gt;</code>).
-      </p>
-      <pre>
-        <code>{`ctx.annotations?.on("highlight.created", ({ payload, origin }) => {
-  // payload: { highlightId, bookId, text, color?, … }
-});
-ctx.shelf?.on("book.removed", ({ payload }) => { /* { bookId } */ });
-`}</code>
-      </pre>
-      <p>
-        <strong>Session facts</strong> describe what is on screen right now.
-        They never enter the event log and need no permission:{" "}
-        <code>ctx.session.on(event, handler)</code>.
-      </p>
       <div className="overflow-x-auto">
         <table>
-          <thead>
-            <tr>
-              <th>Session event</th>
-              <th>Payload</th>
-            </tr>
-          </thead>
+          <thead><tr><th>Registry</th><th>Plugin supplies</th><th>Permission</th></tr></thead>
           <tbody>
-            <tr>
-              <td>
-                <code>book-opened</code>
-              </td>
-              <td>
-                <code>{"{ book: { id, title, author? } }"}</code>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>book-closed</code>
-              </td>
-              <td>
-                <code>{"{ bookId }"}</code>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>chapter-changed</code>
-              </td>
-              <td>
-                <code>{"{ bookId, chapterHref }"}</code>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <code>reading-progress</code>
-              </td>
-              <td>
-                <code>{"{ bookId, fraction }"}</code> — fires on page turns,
-                fraction 0..1
-              </td>
-            </tr>
+            <tr><td><code>selectionActions</code></td><td>Selection action and handler returning a toast or host-rendered view.</td><td>None</td></tr>
+            <tr><td><code>headerActions</code></td><td>Reader or library action, placement metadata, and view callback.</td><td>None</td></tr>
+            <tr><td><code>commands</code></td><td>Command metadata and handler.</td><td>None</td></tr>
+            <tr><td><code>settingsOptions</code></td><td>Dynamic options for one declared plugin field.</td><td>None</td></tr>
+            <tr><td><code>voiceProviders</code></td><td>Voice list and encoded-audio synthesis.</td><td>None</td></tr>
+            <tr><td><code>contentProviders</code></td><td>Sections for a virtual book key.</td><td>None</td></tr>
+            <tr><td><code>readerModes</code></td><td>Bounded reader segmentation mode; currently bundled-only.</td><td><code>reader:modes</code></td></tr>
+            <tr><td><code>agentTools</code></td><td>Tool schema, human label, description, and executor.</td><td><code>agent:tools</code></td></tr>
+            <tr><td><code>agentContextProviders</code></td><td>Bounded current-turn reference blocks.</td><td><code>agent:context</code></td></tr>
+            <tr><td><code>agentRetrievalProviders</code></td><td>Search results from plugin-owned data.</td><td><code>agent:retrieval</code></td></tr>
+            <tr><td><code>memoryCandidateProviders</code></td><td>Possible durable facts, preferences, insights, or summaries.</td><td><code>agent:memory</code></td></tr>
+            <tr><td><code>themes</code>, <code>fonts</code></td><td>Manifest-declared semantic theme and font data.</td><td><code>ui:themes</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Every contribution ID is namespaced by plugin, every registration is
+        owned and inspectable, and stale disposables cannot remove a newer
+        replacement. A new contribution kind still needs a deliberate host
+        consumer; after that, any compatible plugin can register without being
+        named by the app.
+      </p>
+
+      <h3>Agent extension boundaries</h3>
+      <ul>
+        <li><strong>Context providers</strong> run for one turn. The host adds provenance, caps size, and serializes output as untrusted reference data.</li>
+        <li><strong>Retrieval providers</strong> become namespaced tools with a host-owned <code>query</code>/<code>limit</code> schema and clipped results.</li>
+        <li><strong>Memory candidate providers</strong> propose bounded candidates after a turn; the host validates scope, deduplicates, and performs any durable write.</li>
+      </ul>
+      <p>
+        Plugins never receive the Memory port, cannot inject system rules, and
+        cannot write long-term memory directly.
+      </p>
+
+      <h2>Host services</h2>
+      <div className="overflow-x-auto">
+        <table>
+          <thead><tr><th>Service</th><th>Contract</th><th>Permission</th></tr></thead>
+          <tbody>
+            <tr><td><code>storage</code></td><td>Namespaced KV, document collections, and external-change notifications.</td><td>None</td></tr>
+            <tr><td><code>secrets</code></td><td>Namespaced encrypted credential slots.</td><td>None</td></tr>
+            <tr><td><code>ui</code></td><td>Host toast and save/export flow.</td><td>None</td></tr>
+            <tr><td><code>schedules</code></td><td>Bind a handler to a manifest-declared cadence.</td><td>None</td></tr>
+            <tr><td><code>session</code></td><td>Subscribe to bounded reading-session facts.</td><td>None</td></tr>
+            <tr><td><code>network</code></td><td>Host-mediated HTTP.</td><td><code>service:network</code></td></tr>
+            <tr><td><code>llm</code></td><td>One-shot text or JSON-schema-constrained model calls using the user's configuration.</td><td><code>service:llm</code></td></tr>
+            <tr><td><code>clipboard</code></td><td>Write text to the system clipboard.</td><td><code>service:clipboard</code></td></tr>
           </tbody>
         </table>
       </div>
 
-      <h2>Content providers and virtual books</h2>
+      <h3>Storage</h3>
       <p>
-        With <code>shelf:write</code>, a plugin can put real books on the
-        shelf. <code>import</code> takes a file's bytes. Content providers
-        skip the file entirely: register a provider, add virtual books bound to
-        it, and serve HTML sections when the book is opened. The reader
-        paginates, annotates, and tracks progress on them like any book — an
-        RSS feed as a book is exactly this.
-      </p>
-      <pre>
-        <code>{`ctx.shelf?.books.write?.registerContentProvider({
-  id: "rss",
-  async load(key) {
-    const feed = await fetchFeed(key); // your code, via ctx.network.fetch
-    return {
-      title: feed.title,
-      sections: feed.items.map((item) => ({
-        title: item.title,
-        html: item.contentHtml,
-      })),
-    };
-  },
-});
-
-await ctx.shelf?.books.write?.addVirtualBook({
-  providerId: "rss",
-  key: "https://example.com/feed.xml",
-  title: "Example Weekly",
-});`}</code>
-      </pre>
-
-      <h2 id="storage-and-settings">Storage and settings</h2>
-      <p>
-        <code>ctx.storage</code> is a namespaced key-value store persisted with
-        the app's local data — <code>get</code>, <code>set</code>,{" "}
-        <code>remove</code>. If the manifest declares <code>settings</code>{" "}
-        fields, the app renders them as the plugin's own section in Settings
-        and the values arrive at <code>ctx.storage.get("settings")</code> as
-        one object. The reading assistant can view and change these settings
-        too (fields marked <code>agentHidden</code> stay out of its sight).
-        Three field capabilities go beyond a plain form:
-      </p>
-      <ul>
-        <li>
-          <code>visibleWhen: {"{ field, equals }"}</code> shows a field only
-          while another field holds one of the given values. Hidden fields
-          keep their stored values — one settings object can carry a value
-          set per variant (the TTS plugin keeps one voice per provider this
-          way).
-        </li>
-        <li>
-          A <code>select</code> with <code>dynamicOptions: true</code>{" "}
-          resolves its options at runtime: bind the source in{" "}
-          <code>activate</code> with{" "}
-          <code>ctx.settings.provideOptions(fieldId, async (values) =&gt;
-          [...])</code>. When the source yields nothing (no credentials yet,
-          endpoint unreachable) the field falls back to free text input —
-          listing is a convenience, never a gate.
-        </li>
-        <li>
-          <code>kind: "secret"</code> declares a credential: the app renders a
-          password input writing to the encrypted secret store — the field id
-          IS the <code>ctx.secrets</code> key your code reads back — never to
-          plain settings, and never into the assistant's catalog. The stored
-          value is never echoed; the field shows a configured state and a
-          clear affordance.
-        </li>
-      </ul>
-      <p>
-        For structured data, <code>ctx.storage.collection(name)</code> opens a
-        named document collection — <code>put</code> / <code>get</code> /{" "}
-        <code>delete</code> / <code>list</code> over per-document records, with
-        optional <code>bookId</code> / <code>anchor</code> provenance you can
-        filter by. Provenance is an index, not ownership: documents survive
-        the referenced book's deletion, and the collection's lifecycle belongs
-        to the plugin (uninstall clears it). The built-in Dictionary plugin and
-        its saved-word timeline are built entirely on this tier.
+        Use KV for small settings and checkpoints. Use a named document
+        collection for plugin-owned records with stable IDs and optional{" "}
+        <code>bookId</code>/<code>anchor</code> provenance. Provenance is an
+        index, not ownership; a document may survive deletion of the referenced
+        book. Uninstall clears document collections but retains KV, secret
+        slots, and committed schema metadata for reinstall and migration.
       </p>
 
-      <h2>Ambient context</h2>
-      <p>Always available, no permission needed:</p>
-      <ul>
-        <li>
-          <code>ctx.manifest</code>, <code>ctx.appVersion</code>,{" "}
-          <code>ctx.locale</code> (the app UI's current BCP-47 locale — read
-          it at use time, it tracks the language setting live);
-        </li>
-        <li>
-          <code>ctx.ui.showToast(message)</code>;
-        </li>
-        <li>
-          <code>ctx.ui.exportFile({"{ filename, content, mimeType? }"})</code>{" "}
-          opens the host save flow for generated text (CSV, JSON, Markdown) or
-          binary bytes;
-        </li>
-        <li>
-          <code>ctx.secrets</code> — encrypted credential storage, namespaced
-          per plugin (API tokens and similar); lives outside SQLite and
-          backups and survives uninstall;
-        </li>
-        <li>
-          <code>ctx.session.on(…)</code> — the session facts above;
-        </li>
-        <li>
-          <code>ctx.reader.openBook(bookId)</code> and{" "}
-          <code>ctx.reader.goTo({"{ bookId?, cfi?, href? }"})</code> — navigate
-          the reader (user-visible control, no data exposure).
-        </li>
-      </ul>
-
-      <h2>Stability</h2>
+      <h3>Schedules</h3>
       <p>
-        This is contract v2, shipped in app 0.3.0 — a deliberate breaking
-        rebuild that derived the whole surface from the domain model (v1
-        manifests fail installation with a readable error). From here the API
-        grows additively: new domains, new event names, new block kinds —
-        declarative themes (<code>ui:themes</code>) are the first such
-        addition. Breaking changes to what is documented here are treated as
-        bugs. Declare <code>minAppVersion</code> for anything that depends on
-        a recent addition.
+        The manifest declares <code>{`{ id, label, everyMinutes }`}</code> and
+        activation binds the handler through{" "}
+        <code>ctx.services.schedules.bind</code>. The minimum cadence is 15
+        minutes. Runs happen at least at that cadence while the app is open,
+        catch up after launch when overdue, and do not overlap. This is not a
+        durable background job or an exact-time guarantee.
+      </p>
+
+      <h2>Declarative UI and settings</h2>
+      <p>
+        Plugins return versioned view data, not executable UI. The view grammar
+        includes markdown, searchable lists, forms, detail layouts, dictionary
+        results, and bounded block trees. Handlers may keep the surface, show a
+        toast, open or replace a view, reset navigation, close the surface, or
+        return field errors. The host owns loading and failure states for
+        promises.
+      </p>
+      <p>
+        Manifest settings use host controls for text, textarea, number, time,
+        select, choice, checkbox, toggle, and secret fields. Conditional fields
+        use <code>visibleWhen</code>; dynamic selects use a registered{" "}
+        <code>settingsOptions</code> provider. Secret fields write directly to
+        encrypted secret slots and never enter the ordinary settings object or
+        the agent-visible catalog.
+      </p>
+
+      <h2>Themes and fonts</h2>
+      <p>
+        Theme plugins declare semantic data in the manifest. An app theme
+        overrides a fixed host token vocabulary; a reader theme supplies the
+        required six-color page palette and optional typography defaults. The
+        host validates values, generates CSS, loads approved local font files,
+        and applies nothing until the user selects it.
+      </p>
+      <p>
+        Supplying choices needs <code>ui:themes</code>. Selecting one needs an
+        exact Settings write grant such as <code>appearance.theme</code> or{" "}
+        <code>reading.theme</code>. One does not imply the other.
+      </p>
+
+      <h2>Lifecycle phases</h2>
+      <ol>
+        <li><strong>Activating:</strong> queries and plugin-private reads are available; registrations are staged; side effects are blocked.</li>
+        <li><strong>Migrating:</strong> only plugin KV and document collections are available.</li>
+        <li><strong>Active:</strong> promoted handlers may use their granted domains, contributions, and services.</li>
+      </ol>
+      <p>
+        The host drains activation RPCs, health-checks the Worker, runs any data
+        migration, then promotes the full staged set at one explicit point.
+        Failed activation disposes staged work without replacing the current
+        runtime.
+      </p>
+
+      <h2>Worker environment</h2>
+      <p>
+        There is no React, Jotai, DOM, WebView, Tauri, SQLite, filesystem, or
+        process access. Ambient <code>fetch</code>, WebSocket, EventSource,
+        XMLHttpRequest, BroadcastChannel, IndexedDB, and Cache Storage are
+        disabled. Use the typed context for network, persistence, and every
+        host interaction.
+      </p>
+
+      <h2>Compatibility and stability</h2>
+      <p>
+        Domains, contributions, services, and declarative schemas each carry
+        an independent semantic version. Unknown IDs, invalid semver ranges,
+        inaccessible required capabilities, and incompatible host versions
+        prevent activation. Compatible additions bump the owning capability,
+        not one global plugin API number.
+      </p>
+      <p>
+        The current ecosystem is first-party, so the present registry-backed
+        contract is the baseline. Do not rely on earlier <code>shelf</code>,{" "}
+        <code>appearance</code>, or pre-registry shapes.
       </p>
     </article>
   );

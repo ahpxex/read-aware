@@ -8,7 +8,7 @@ export const Route = createFileRoute("/zh/docs/plugins/")({
       {
         name: "description",
         content:
-          "ReadAware 插件能做什么、信任模型如何运作，以及如何安装插件。",
+          "ReadAware 插件如何扩展产品领域、贡献新能力、使用宿主服务，并处于明确的信任边界内。",
       },
     ],
   }),
@@ -20,145 +20,55 @@ function PluginsOverviewPage() {
     <article className="doc-prose">
       <h1>插件系统</h1>
       <p className="lead">
-        插件为 ReadAware
-        带来新的动作、新的页面，以及——最重要的——供阅读助手使用的新工具。插件是一个小小的
-        JavaScript
-        模块；它的界面始终由应用自己的设计系统渲染，因此插件功能在观感上与原生无异。
+        ReadAware 插件可以处理阅读数据、添加原生动作和提供方、扩展阅读助手，并向宿主请求受限服务。已安装的软件包会动态加载；应用无需为每个插件 ID 单独添加开关。
       </p>
 
-      <h2>插件可以贡献什么</h2>
+      <h2>一个模型，三类能力</h2>
+      <p>每个可执行的插件能力都属于以下三种形态之一。选择正确的形态，是编写插件时的第一项决策。</p>
+      <div className="overflow-x-auto">
+        <table>
+          <thead><tr><th>类别</th><th>适用场景</th><th>示例</th></tr></thead>
+          <tbody>
+            <tr><td><strong>领域</strong></td><td>ReadAware 已经拥有该状态或行为。</td><td>书库、阅读、标注、对话、设置</td></tr>
+            <tr><td><strong>贡献</strong></td><td>插件提供新的选择或实现。</td><td>动作、命令、声音、内容、主题、助手提供方</td></tr>
+            <tr><td><strong>服务</strong></td><td>宿主必须执行受限的外部操作。</td><td>存储、密钥、定时任务、网络、LLM、剪贴板</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>声明式视图、设置和主题 schema 与这些类别并列。它们描述由宿主渲染的数据，并不会授予另一种授权来源。</p>
+
+      <h2>设置属于一个领域</h2>
+      <p>外观是设置中的一个分区，而不是单独的插件 API。改变所选主题的插件请求的是诸如 <code>appearance.theme</code> 的精确设置路径。提供新主题的插件使用 <code>themes</code> 贡献。选择和提供是刻意分开的权限。</p>
+
+      <h2>插件可以添加什么</h2>
       <ul>
-        <li>
-          <strong>选区动作</strong>——阅读器文本选择菜单中的条目。把一个单词发进
-          Anki、翻译一个段落、把摘录保存到任何地方。
-        </li>
-        <li>
-          <strong>顶栏按钮</strong>
-          ——阅读器或书架顶栏上的图标按钮，点击后打开一个弹出层，或（在书架上）打开一个完整页面。
-        </li>
-        <li>
-          <strong>命令</strong>
-          ——命令面板中的条目。每个插件动作都会自动出现在那里；显式命令用来补充没有按钮的动作。
-        </li>
-        <li>
-          <strong>助手工具</strong>
-          ——阅读助手在对话中可以调用的函数。这是上限最高的挂载点：插件可以让助手查询你的
-          Anki 牌组、你的 RSS 积压，或你使用的任何服务。
-        </li>
-        <li>
-          <strong>内容提供方</strong>——章节由插件按需提供的虚拟书籍。一个 RSS
-          订阅源可以躺在你的书架上，像任何一本书那样被阅读、标注和讨论。
-        </li>
-        <li>
-          <strong>朗读声音</strong>——为阅读页朗读接入 TTS
-          引擎。插件负责合成音频，应用负责播放，单句失败时退回系统语音。
-        </li>
-        <li>
-          <strong>设置与定时任务</strong>——声明式设置会成为插件在“设置”里的专属分区（含
-          API 密钥，加密存储）；声明的周期任务会在应用打开期间定时运行。
-        </li>
+        <li>选区动作和顶栏动作、命令面板命令，以及由宿主渲染的视图。</li>
+        <li>声音、虚拟书内容提供方、阅读模式、主题和字体。</li>
+        <li>助手工具、每轮上下文、可搜索的私有来源，以及记忆候选。</li>
+        <li>插件设置、动态选项、周期性工作、存储和加密密钥。</li>
+        <li>在获授权的产品领域中读取数据、执行命令并订阅已提交的事件。</li>
       </ul>
+      <p>在<Link to="/zh/docs/plugins/capabilities">能力浏览器</Link>中查看完整的版本化清单。它也会预览 <code>manifest.json</code> 所请求的权限。</p>
 
-      <h2>原生外观，是构造出来的</h2>
-      <p>
-        插件从不渲染自己的
-        HTML。它们用一小套词汇声明视图——markdown、列表、表单和少量结构化区块——由应用用自己的组件渲染出来。插件作者放弃对像素的控制，换来的是零设计工作量，以及一个永远保持一致的应用。
-      </p>
+      <h2>原生 UI，源于构造</h2>
+      <p>插件不会挂载 React、HTML、CSS、iframe 或任意 DOM。它们返回经过校验的视图数据和回调；ReadAware 负责布局、导航、无障碍、主题兼容性、加载状态和清理。新的视觉自由度只能通过受限 schema 或真正的宿主贡献点加入，而不是通过通用 webview 逃生口。</p>
 
-      <h2>信任模型</h2>
-      <p>
-        插件运行在应用内部，与应用共享同一个 JavaScript 上下文——与 Obsidian
-        相同，而不同于浏览器扩展的沙箱。有两层务实的保护：
-      </p>
-      <ul>
-        <li>
-          <strong>权限</strong>——插件的 manifest
-          声明它要使用什么（网络、阅读数据、AI、剪贴板……），API
-          只暴露已声明的部分。这防范的是无意的越界。
-        </li>
-        <li>
-          <strong>安装本身就是那次信任决定。</strong>
-          在任何文件被复制或执行之前，应用会用平实的语言逐条展示插件申请的权限，并等待你的同意。请像安装软件一样对待插件的安装。
-        </li>
-      </ul>
-      <p>
-        应用自身的架构也限定了影响范围：插件存储被命名空间隔离在应用的数据目录内，桌面外壳不授予任意的文件系统访问。
+      <h2>信任边界</h2>
+      <p>每个插件都运行在自己的模块 Worker 中。它没有 DOM、Tauri、SQLite、文件系统或进程句柄，环境网络和浏览器持久化 API 也已禁用。宿主调用跨越消息边界，并根据插件的 actor 作用域能力视图解析。</p>
+      <p>这会限制意外越权和直接越权，但安装仍然是软件信任决策。在代码运行前，ReadAware 会展示语义权限和精确的设置授权。能力要求会单独检查：权限回答“它可以做这件事吗？”，版本要求回答“它能正确使用这份契约吗？”</p>
+
+      <h2>激活和更新都是事务性的</h2>
+      <p><code>activate()</code> 是读取并声明的阶段。在宿主排空调用并完成 Worker 健康检查之前，注册内容都不可见；写入、密钥、网络、LLM、剪贴板、UI 效果和导航都会被阻止。持久数据变化稍后通过仅限存储的 <code>migrate()</code> 执行。只有健康且完成迁移的候选版本才会晋升。</p>
+      <p>更新会对文件、插件 KV、文档集合和已提交的 schema 元数据做快照。激活或迁移失败时，会恢复之前的文件和数据，并在需要时重新启动之前的运行时。</p>
+
+      <h2>当前生态</h2>
+      <p>当前发布的插件都是内置的官方插件：Dictionary、Editorial Themes、RSS Reader、Sentence Reader、TTS Voices 和 Theme Schedule。公开的{" "}
+        <a href={MARKETPLACE_REPO_URL} target="_blank" rel="noopener noreferrer">readaware-plugins 仓库</a>{" "}
+        包含编写模板、公开声明、校验和市场注册表。没有需要保留的旧版第三方 API；当前契约就是基线。
       </p>
 
-      <h2>安装插件</h2>
-      <ul>
-        <li>
-          <strong>插件市场</strong>——“设置 → 插件 →
-          插件市场”列出来自公开
-          <a
-            href={MARKETPLACE_REPO_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            插件仓库
-          </a>
-          的社区插件；安装只需一次点击，并会先展示权限摘要。
-        </li>
-        <li>
-          <strong>从文件夹安装</strong>——“设置 →
-          插件”可以安装任何本地插件文件夹。这就是开发循环：把它指向你的工作目录，改动后重新安装即可。
-        </li>
-      </ul>
-
-      <h2>布局由你掌控</h2>
-      <p>
-        插件贡献能力；按钮放在哪里由你决定。“设置 →
-        自定义”可以编排每个界面（书架顶栏、阅读器顶栏、选区菜单）：在显示区与更多菜单之间拖动条目、调整顺序，或恢复默认。新的插件动作会安静地落在更多菜单里，而一切始终可以从命令面板触达。
-      </p>
-
-      <h2 id="read-aloud-tts">用任意 TTS 声音朗读</h2>
-      <p>
-        内置的 <strong>TTS Voices</strong> 插件把朗读接到你选择的引擎上——
-        ElevenLabs、Fish Audio、OpenAI，或任何 OpenAI 兼容端点（Kokoro、
-        LocalAI、Edge TTS 桥接……）。一切都在<strong>设置 → TTS Voices</strong>
-        里完成：选定提供方，它的字段随之出现——API
-        密钥直接写入加密的密钥存储；提供方能列举声音时，声音字段就是一个下拉列表（列不出来时也随时可以手动输入名称）。
-      </p>
-      <p>
-        一个流行的免费方案是通过{" "}
-        <a
-          href="https://github.com/travisvn/openai-edge-tts"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          openai-edge-tts
-        </a>{" "}
-        使用微软 Edge 的神经网络语音——它是一个说 OpenAI 音频 API 的本地小服务：
-      </p>
-      <ol>
-        <li>
-          在本地跑起服务——例如{" "}
-          <code>docker run -d -p 5050:5050 travisvn/openai-edge-tts</code>
-          （默认无需 API 密钥）。
-        </li>
-        <li>
-          在“设置 → TTS Voices”里，把提供方设为
-          <em>自定义 / 本地（OpenAI 兼容）</em>，端点填{" "}
-          <code>http://127.0.0.1:5050/v1/audio/speech</code>。
-        </li>
-        <li>
-          从列表里挑一个声音——应用会读取服务端目录，完整的 Edge 音色（如{" "}
-          <code>zh-CN-XiaoxiaoNeural</code>、<code>en-US-AriaNeural</code>
-          ）会和 OpenAI 风格的别名一起出现。
-        </li>
-      </ol>
-      <p>
-        然后打开一本书开始朗读：句子经由你选的声音播出，当前句播放时下一句已在预取；某一句合成失败会退回系统语音，朗读不会中断。
-      </p>
-
-      <h2>自己写一个</h2>
-      <p>
-        插件就是一个包含 <code>manifest.json</code> 和单个 <code>main.js</code>{" "}
-        的文件夹。<Link to="/zh/docs/plugins/api">API 参考</Link>
-        覆盖了完整的契约，
-        <Link to="/zh/docs/plugins/publishing">发布上架</Link>
-        介绍如何把它发到插件市场。
-      </p>
+      <h2>开始构建</h2>
+      <p>按照<Link to="/zh/docs/plugins/develop">构建插件</Link>完成本地循环，实现时参考<Link to="/zh/docs/plugins/api">API 参考</Link>，提交市场变更前阅读<Link to="/zh/docs/plugins/publishing">发布插件</Link>。</p>
     </article>
   );
 }

@@ -8,7 +8,7 @@ export const Route = createFileRoute("/docs/plugins/")({
       {
         name: "description",
         content:
-          "What ReadAware plugins can do, how the trust model works, and how to install them.",
+          "How ReadAware plugins extend product domains, contribute new capabilities, use host services, and stay inside explicit trust boundaries.",
       },
     ],
   }),
@@ -20,170 +20,128 @@ function PluginsOverviewPage() {
     <article className="doc-prose">
       <h1>Plugin system</h1>
       <p className="lead">
-        Plugins extend ReadAware with new actions, pages, and — most
-        importantly — new tools for the reading assistant. A plugin is a small
-        JavaScript module; its interface is always rendered by the app's own
-        design system, so plugin features look and feel native.
+        ReadAware plugins can work with reading data, add native actions and
+        providers, extend the reading assistant, and ask the host for bounded
+        services. Installed packages load dynamically; the app never needs a
+        switch for each plugin ID.
       </p>
 
-      <h2>What a plugin can contribute</h2>
-      <ul>
-        <li>
-          <strong>Selection actions</strong> — entries in the reader's
-          text-selection menu. Send a word to Anki, translate a passage, save a
-          quote anywhere.
-        </li>
-        <li>
-          <strong>Header buttons</strong> — icon buttons on the reader or shelf
-          top bar that open a popover, or (on the shelf) a full page.
-        </li>
-        <li>
-          <strong>Commands</strong> — entries in the command palette. Every
-          plugin action is reachable there automatically; explicit commands add
-          more.
-        </li>
-        <li>
-          <strong>Agent tools</strong> — functions the reading assistant can
-          call during chat. This is the highest-ceiling mount point: a plugin
-          can let the assistant query your Anki deck, your RSS backlog, or any
-          service you use.
-        </li>
-        <li>
-          <strong>Content providers</strong> — virtual books whose chapters the
-          plugin supplies on demand. An RSS feed can sit on your shelf and be
-          read, annotated, and discussed like any book.
-        </li>
-        <li>
-          <strong>Read-aloud voices</strong> — TTS engines for the reader's
-          read-aloud. The plugin synthesizes audio; the app owns playback and
-          falls back to the system voice when a call fails.
-        </li>
-        <li>
-          <strong>Settings and schedules</strong> — declared settings become
-          the plugin's own section in Settings (API keys included, stored
-          encrypted), and declared schedules run recurring work while the app
-          is open.
-        </li>
-      </ul>
-
-      <h2>Plugins look native, by construction</h2>
+      <h2>One model, three capability families</h2>
       <p>
-        Plugins never render their own HTML. They declare views from a small
-        vocabulary — markdown, lists, forms, and a few structured blocks — and
-        the app renders them with its own components. Plugin authors give up
-        pixel control and get zero design work and a permanently consistent
-        app in return.
+        Every executable plugin capability has one of three shapes. Choosing
+        the right shape is the first authoring decision.
+      </p>
+      <div className="overflow-x-auto">
+        <table>
+          <thead>
+            <tr><th>Family</th><th>Use it when</th><th>Examples</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Domain</strong></td>
+              <td>ReadAware already owns the state or behavior.</td>
+              <td>Library, reading, annotations, conversations, settings</td>
+            </tr>
+            <tr>
+              <td><strong>Contribution</strong></td>
+              <td>The plugin supplies a new choice or implementation.</td>
+              <td>Actions, commands, voices, content, themes, agent providers</td>
+            </tr>
+            <tr>
+              <td><strong>Service</strong></td>
+              <td>The host must perform a bounded external operation.</td>
+              <td>Storage, secrets, schedules, network, LLM, clipboard</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Declarative view, settings, and theme schemas sit beside these
+        families. They describe host-rendered data; they do not grant another
+        source of authority.
       </p>
 
-      <h2>The trust model</h2>
+      <h2>Settings is a domain</h2>
       <p>
-        Plugins run inside the app with the same JavaScript context — like
-        Obsidian, and unlike a browser extension sandbox. Two honest layers of
-        protection apply:
+        Appearance is a Settings section, not a separate plugin API. A plugin
+        that changes the selected theme requests exact Settings paths such as{" "}
+        <code>appearance.theme</code>. A plugin that supplies a new theme uses
+        the <code>themes</code> contribution. Choosing and supplying are
+        deliberately separate powers.
       </p>
+
+      <h2>What plugins can add</h2>
       <ul>
-        <li>
-          <strong>Permissions</strong> — a plugin's manifest declares what it
-          uses (network, reading data, AI, clipboard, …), and the API only
-          exposes what was declared. This guards against accidental overreach.
-        </li>
-        <li>
-          <strong>Installation is the trust decision.</strong> Before anything
-          is copied or executed, the app shows exactly which permissions the
-          plugin asks for, in plain language, and waits for your consent.
-          Install plugins the way you would install software.
-        </li>
+        <li>Selection and header actions, command-palette commands, and host-rendered views.</li>
+        <li>Voices, virtual-book content providers, reader modes, themes, and fonts.</li>
+        <li>Agent tools, per-turn context, searchable private sources, and memory candidates.</li>
+        <li>Plugin settings, dynamic options, recurring work, storage, and encrypted secrets.</li>
+        <li>Reads, commands, and committed event subscriptions across granted product domains.</li>
       </ul>
       <p>
-        The app's own architecture bounds the blast radius: plugin storage is
-        namespaced inside the app's data directory, and the desktop shell
-        grants no arbitrary filesystem access.
+        Browse the complete, versioned roster in the{" "}
+        <Link to="/docs/plugins/capabilities">capability browser</Link>. It
+        also includes a permission preview for <code>manifest.json</code>.
       </p>
 
-      <h2>Installing plugins</h2>
-      <ul>
-        <li>
-          <strong>Marketplace</strong> — Settings → Plugins → Marketplace lists
-          community plugins from the public{" "}
-          <a
-            href={MARKETPLACE_REPO_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            registry
-          </a>
-          ; installation is one click, with the permission summary first.
-        </li>
-        <li>
-          <strong>From a folder</strong> — Settings → Plugins can install any
-          local plugin folder. This is the development loop: point it at your
-          working directory, reinstall to pick up changes.
-        </li>
-      </ul>
-
-      <h2>You control the layout</h2>
+      <h2>Native UI, by construction</h2>
       <p>
-        Plugins contribute capabilities; you decide where buttons live.
-        Settings → Menus arranges each surface (shelf top bar, reader top bar,
-        selection menu): drag items between the visible row and the overflow
-        menu, reorder them, or reset to defaults. New plugin actions arrive in
-        the overflow menu — quietly — and everything is always reachable from
-        the command palette.
+        Plugins do not mount React, HTML, CSS, iframes, or arbitrary DOM. They
+        return validated view data and callbacks; ReadAware owns layout,
+        navigation, accessibility, theme compatibility, loading states, and
+        cleanup. New visual freedom arrives as a bounded schema or a real host
+        contribution point, not a generic webview escape hatch.
       </p>
 
-      <h2 id="read-aloud-tts">Read aloud with any TTS voice</h2>
+      <h2>The trust boundary</h2>
       <p>
-        The bundled <strong>TTS Voices</strong> plugin routes read-aloud
-        through the engine of your choice — ElevenLabs, Fish Audio, OpenAI, or
-        any OpenAI-compatible endpoint (Kokoro, LocalAI, Edge TTS bridges…).
-        Everything lives in <strong>Settings → TTS Voices</strong>: pick a
-        provider, and its fields follow — API keys go straight to the
-        encrypted secret store, and where the provider can enumerate voices
-        the Voice field becomes a list (type a name yourself when it can't).
+        Each plugin runs in its own module Worker. It has no DOM, Tauri,
+        SQLite, filesystem, or process handle, and ambient network and browser
+        persistence APIs are disabled. Host calls cross a message boundary and
+        are resolved against the plugin's actor-scoped capability view.
       </p>
       <p>
-        A popular free setup is Microsoft's Edge neural voices via{" "}
-        <a
-          href="https://github.com/travisvn/openai-edge-tts"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          openai-edge-tts
-        </a>
-        , a small local server that speaks the OpenAI audio API:
-      </p>
-      <ol>
-        <li>
-          Run the server locally — for example{" "}
-          <code>docker run -d -p 5050:5050 travisvn/openai-edge-tts</code> (no
-          API key required by default).
-        </li>
-        <li>
-          In Settings → TTS Voices, set Provider to{" "}
-          <em>Custom / local (OpenAI-compatible)</em> and the endpoint to{" "}
-          <code>http://127.0.0.1:5050/v1/audio/speech</code>.
-        </li>
-        <li>
-          Pick a voice from the list — the app reads the server's catalog, so
-          the full Edge set (e.g. <code>zh-CN-XiaoxiaoNeural</code>,{" "}
-          <code>en-US-AriaNeural</code>) appears alongside the OpenAI-style
-          aliases.
-        </li>
-      </ol>
-      <p>
-        Then open a book and start read-aloud: sentences stream through your
-        chosen voice, the next one prefetches while the current one plays, and
-        any failed call falls back to the system voice instead of stopping the
-        reading.
+        This limits accidental and direct overreach, but installation remains
+        a software trust decision. Before code runs, ReadAware shows semantic
+        permissions and exact Settings grants. Capability requirements are
+        checked separately: permission answers “may it do this?”, while a
+        version requirement answers “can it use this contract correctly?”
       </p>
 
-      <h2>Write one</h2>
+      <h2>Activation and updates are transactional</h2>
       <p>
-        A plugin is a folder with a <code>manifest.json</code> and a single{" "}
-        <code>main.js</code>. The <Link to="/docs/plugins/api">API
-        reference</Link> covers the whole contract, and{" "}
-        <Link to="/docs/plugins/publishing">Publishing</Link> shows how to ship
-        it to the marketplace.
+        <code>activate()</code> is a read-and-declare phase. Registrations stay
+        invisible while the host drains calls and health-checks the Worker;
+        writes, secrets, network, LLM, clipboard, UI effects, and navigation
+        are blocked. Persistent data changes run later through a storage-only{" "}
+        <code>migrate()</code>. Only a healthy, migrated candidate is promoted.
+      </p>
+      <p>
+        Updates snapshot files, plugin KV, document collections, and committed
+        schema metadata. A failed activation or migration restores the previous
+        files and data, then restarts the prior runtime when needed.
+      </p>
+
+      <h2>Current ecosystem</h2>
+      <p>
+        The plugins shipping today are built-in or first-party: Dictionary,
+        Editorial Themes, RSS Reader, Sentence Reader, TTS Voices, and Theme
+        Schedule. The public{" "}
+        <a href={MARKETPLACE_REPO_URL} target="_blank" rel="noopener noreferrer">
+          readaware-plugins repository
+        </a>{" "}
+        contains the authoring template, public declarations, validation, and
+        marketplace registry. There is no legacy third-party API to preserve;
+        the current contract is the baseline.
+      </p>
+
+      <h2>Start building</h2>
+      <p>
+        Follow <Link to="/docs/plugins/develop">Build a plugin</Link> for the
+        local loop, use the <Link to="/docs/plugins/api">API reference</Link>{" "}
+        while implementing, and read{" "}
+        <Link to="/docs/plugins/publishing">Publishing</Link> before submitting
+        a marketplace change.
       </p>
     </article>
   );

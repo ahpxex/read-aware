@@ -23,7 +23,12 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 @theme {
-  --color-paper: #f5f1e8;
+  /* The app canvas. It is deliberately NOT the reading page's colour: those
+     live in BUILTIN_READER_PALETTES (reader-theme.ts) and belong to the
+     reading theme alone. This token used to hold the warm page colour, which
+     the shell then covered everywhere — leaving a warm ground that only ever
+     showed through at the edges. */
+  --color-paper: #f5f5f4;
   --color-border: rgb(28 25 23 / 0.1);
 
   /* Semantic, theme-adaptive colors. Components reference these (text-fg,
@@ -76,7 +81,9 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  --ra-main-surface-color: #f5f5f4;
+  /* The shell's alias for the canvas — one value, two names, so the
+     many `bg-[var(--ra-main-surface-color)]` call sites keep working. */
+  --ra-main-surface-color: var(--color-paper);
   --ra-ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --ra-ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
   --ra-scrollbar-size: 3px;
@@ -120,9 +127,9 @@
    utilities follow automatically. */
 html[data-theme="dark"] {
   color-scheme: dark;
-  background-color: #1c1917;
+  background-color: #161311;
   color: #f5f5f4;
-  --color-paper: #1c1917;
+  --color-paper: #161311;
   --color-border: rgb(231 229 228 / 0.12);
   --color-fg: #f5f5f4;
   --color-fg-muted: #a8a29e;
@@ -132,12 +139,12 @@ html[data-theme="dark"] {
   --color-fill: #292524;
   --color-fill-strong: #44403c;
   --color-border-strong: rgb(231 229 228 / 0.18);
-  --ra-main-surface-color: #161311;
+  --ra-main-surface-color: var(--color-paper);
   --ra-scrollbar-color: rgb(231 229 228 / 0.4);
 }
 
 html[data-theme="dark"] body {
-  background-color: #1c1917;
+  background-color: #161311;
 }
 
 /* Forced reduced motion (Appearance → Motion = Reduced), independent of the OS

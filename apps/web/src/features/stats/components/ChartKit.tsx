@@ -46,7 +46,7 @@ export function DurationTooltip({ active, payload }: DurationTooltipProps) {
   if (!active || !payload?.length) return null;
   const row = payload[0].payload;
   return (
-    <div className="rounded-sm bg-fg px-2 py-1 text-xs text-paper">
+    <div className="rounded-sm bg-fg px-2 py-1 text-xs text-inverse-fg">
       <span className="font-medium tabular-nums">{formatReadingDuration(row.ms)}</span>
       {(row.sub ?? row.caption) && (
         <span className="tabular-nums opacity-70"> · {row.sub ?? row.caption}</span>

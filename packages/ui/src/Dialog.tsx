@@ -117,7 +117,14 @@ export function Dialog({
         aria-labelledby={title ? titleId : undefined}
         aria-label={!title ? ariaLabel : undefined}
         className={cn(
-          "relative w-full max-w-lg rounded-md border border-border bg-[var(--ra-main-surface-color)] p-8 font-sans text-fg",
+          // `outline-none`: the panel is focused programmatically on open so
+          // that Escape and screen readers land inside the dialog — it is not
+          // a control the user tabbed to. Left alone, the browser paints its
+          // own focus ring on it (a blue `outline: auto`), and only sometimes:
+          // :focus-visible matches programmatic focus after keyboard use but
+          // not after a click, so the ring appeared at random. The dialog is
+          // already unmistakable from its backdrop and elevation.
+          "relative w-full max-w-lg rounded-md border border-border bg-[var(--ra-main-surface-color)] p-8 font-sans text-fg outline-none",
           "transition-[opacity,transform] duration-280 ease-[var(--ra-ease-out-quint)] motion-reduce:transition-none",
           isVisible
             ? "translate-y-0 scale-100 opacity-100"

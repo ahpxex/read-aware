@@ -76,7 +76,9 @@ function debugOsOverride(): "windows" | "linux" | null {
  * - "custom": frameless window; we render caption controls on the header's right
  * - "none": browser or mobile — no window chrome of ours at all
  */
-export function desktopChromeKind(): "mac" | "custom" | "none" {
+export type DesktopChromeKind = "mac" | "custom" | "none";
+
+export function desktopChromeKind(): DesktopChromeKind {
   if (!isTauri() || isMobileOS()) return "none";
   if (debugOsOverride()) return "custom";
   if (isMacOS()) return "mac";

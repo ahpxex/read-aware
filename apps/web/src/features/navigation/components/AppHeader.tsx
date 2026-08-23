@@ -12,7 +12,10 @@ import { cn } from "@read-aware/ui/cn";
 import { usePhoneViewport } from "@read-aware/ui/media";
 import { useAtomValue } from "jotai";
 import { useTranslation } from "../../../i18n";
-import { desktopChromeKind } from "../../../platform/environment";
+import {
+  desktopChromeKind,
+  type DesktopChromeKind,
+} from "../../../platform/environment";
 import { activeCollectionAtom, type TopNav } from "../../../state/ui";
 import {
   MenuOverflow,
@@ -52,6 +55,12 @@ type AppHeaderProps = {
    *  windows collapse them one by one into the dots menu (never squeezing
    *  the primary navigation); on phones they render before that menu. */
   actions?: HeaderActionEntry[];
+  /**
+   * Which window chrome the shell draws. Defaults to the running platform's.
+   * On frameless Windows/Linux ("custom") the caption controls own the
+   * top-right, so the utility cluster moves to the LEFT.
+   */
+  chrome?: DesktopChromeKind;
 };
 
 const headerIconButtonClass =
@@ -76,13 +85,14 @@ export function AppHeader({
   leadingStatus,
   viewControl,
   actions,
+  chrome = desktopChromeKind(),
 }: AppHeaderProps) {
   const { t } = useTranslation("nav");
   const isPhone = usePhoneViewport();
   // Frameless Windows/Linux: the caption controls own the top-right corner, so
   // the icon cluster moves to the LEFT (the platform-native arrangement).
   // macOS keeps it on the right, mirroring the traffic lights.
-  const customChrome = desktopChromeKind() === "custom";
+  const customChrome = chrome === "custom";
   const statsActive = activeTopNav === "stats";
   const primaryDestinations = usePrimaryDestinations();
   const primaryTopNavs = primaryDestinations.map(
@@ -418,7 +428,7 @@ export function AppHeader({
             />
           </div>
         </div>
-        <WindowCaptionControls />
+        <WindowCaptionControls chrome={chrome} />
       </header>
     );
   }
@@ -549,7 +559,7 @@ export function AppHeader({
           />
         </div>
       </div>
-      <WindowCaptionControls />
+      <WindowCaptionControls chrome={chrome} />
     </header>
   );
 }

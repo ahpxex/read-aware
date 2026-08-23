@@ -1,4 +1,5 @@
-import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { Decorator, Meta, StoryObj } from "@storybook/react-vite";
+import { useEffect } from "react";
 import { ArrowsClockwise, Export, Trash } from "@phosphor-icons/react";
 import { IconButton } from "@read-aware/ui";
 import { seed, withAtoms } from "../../../story-support/atoms";
@@ -71,16 +72,52 @@ const conversationActions: HeaderActionEntry[] = [
 ];
 
 /**
+ * Stamps the shell attributes the desktop app sets on `<html>`.
+ *
+ * The window-chrome clearances are CSS, keyed off `data-tauri`/`data-os` — the
+ * 8.25rem reserved for self-drawn caption controls, the macOS traffic-light
+ * inset. Passing `chrome` alone would move the cluster but leave those insets
+ * at 0, so the bar would render a arrangement that never actually ships.
+ */
+// The values are the app's own (environment.ts writes `mac`, not `macos`) —
+// the CSS keys off these exact strings.
+const withShellAttrs = (os: "mac" | "windows" | "linux"): Decorator =>
+  function ShellAttrs(Story) {
+    useEffect(() => {
+      const html = document.documentElement;
+      const prevOs = html.getAttribute("data-os");
+      const prevTauri = html.getAttribute("data-tauri");
+      html.setAttribute("data-os", os);
+      html.setAttribute("data-tauri", "true");
+      return () => {
+        if (prevOs === null) html.removeAttribute("data-os");
+        else html.setAttribute("data-os", prevOs);
+        if (prevTauri === null) html.removeAttribute("data-tauri");
+        else html.setAttribute("data-tauri", prevTauri);
+      };
+    }, []);
+    return <Story />;
+  };
+
+/**
  * The app's single top bar: user-arranged primary destinations in the centre,
  * contextual and utility actions at the edges — never competing with the
  * navigation.
  *
- * The bar is also where platform differences land. On frameless Windows and
- * Linux the caption controls own the top-right corner, so the icon cluster
- * moves left; macOS mirrors the traffic lights instead. And as the window
- * narrows, utility actions collapse into the dots menu one at a time, so the
- * primary navigation is never the thing that gets squeezed — resize the
- * viewport on any story below to see it.
+ * The bar is also where platform differences land, and each platform gets its
+ * own story below. On frameless Windows and Linux the app draws its own
+ * caption controls, which own the top-right corner — so the whole utility
+ * cluster moves to the LEFT, the platform-native arrangement. macOS keeps the
+ * cluster on the right, mirroring the native traffic lights on the other side.
+ * The browser build has neither and reserves nothing.
+ *
+ * As the window narrows, utility actions collapse into the dots menu one at a
+ * time, so the primary navigation is never the thing that gets squeezed —
+ * resize the viewport on any story to see it.
+ *
+ * The caption buttons here are inert: their click handlers drive the real
+ * window through Tauri, which Storybook has no access to.
+ * `WindowCaptionControls` has its own stories for the buttons themselves.
  */
 const meta = {
   title: "Interface/Navigation/AppHeader",
@@ -107,8 +144,88 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** The shelf, the app's default destination. */
+/** The shelf, the app's default destination, as the browser build draws it. */
 export const Shelf: Story = {};
+
+// ── Window chrome, per platform ─────────────────────────────────────────────
+
+/**
+ * Frameless Windows: the app draws minimize / maximize / close itself, flush
+ * into the top-right corner. The utility cluster therefore sits on the LEFT,
+ * beside the back affordance, and 8.25rem is reserved on the right so nothing
+ * slides under the buttons.
+ */
+export const WindowsChrome: Story = {
+  args: {
+    chrome: "custom",
+    viewControl: (
+      <IconButton
+        size="sm"
+        label="Shelf view"
+        icon={<ArrowsClockwise size={16} weight="regular" aria-hidden="true" />}
+      />
+    ),
+  },
+  decorators: [withShellAttrs("windows")],
+};
+
+/** Linux is the same frameless arrangement — one undecorated GTK window. */
+export const LinuxChrome: Story = {
+  args: { chrome: "custom" },
+  decorators: [withShellAttrs("linux")],
+};
+
+/**
+ * macOS: the native traffic lights overlay the header's left, so the bar
+ * reserves an inset there and keeps its own cluster on the right.
+ */
+export const MacChrome: Story = {
+  args: {
+    chrome: "mac",
+    viewControl: (
+      <IconButton
+        size="sm"
+        label="Shelf view"
+        icon={<ArrowsClockwise size={16} weight="regular" aria-hidden="true" />}
+      />
+    ),
+  },
+  decorators: [withShellAttrs("mac")],
+};
+
+/** Windows chrome carrying a full cluster — the crowded left-hand case. */
+export const WindowsChromeCrowded: Story = {
+  args: {
+    chrome: "custom",
+    isImporting: true,
+    leadingStatus: <SyncReauthNoticeView onOpenSettings={() => {}} onDismiss={() => {}} />,
+    viewControl: (
+      <IconButton
+        size="sm"
+        label="Shelf view"
+        icon={<ArrowsClockwise size={16} weight="regular" aria-hidden="true" />}
+      />
+    ),
+  },
+  decorators: [withShellAttrs("windows"), withAtoms(seed(headerActionsAtom, pluginActions))],
+};
+
+/**
+ * A narrow frameless window. The compact layout uses an in-track spacer for
+ * the caption controls rather than the wide bar's, so the centre stays
+ * centred — this is where that arithmetic shows.
+ */
+export const WindowsChromeNarrow: Story = {
+  args: { chrome: "custom" },
+  decorators: [
+    withShellAttrs("windows"),
+    (Story) => (
+      <div className="w-[30rem] bg-paper">
+        <Story />
+      </div>
+    ),
+  ],
+};
 
 /** The Context (Agent) page. */
 export const Context: Story = {

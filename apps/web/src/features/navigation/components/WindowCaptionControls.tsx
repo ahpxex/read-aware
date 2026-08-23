@@ -13,7 +13,12 @@
  * buttons are `WindowCaptionControlsView`.
  */
 import { useEffect } from "react";
-import { desktopChromeKind, isMacOS, isWindows } from "../../../platform/environment";
+import {
+  desktopChromeKind,
+  isMacOS,
+  isWindows,
+  type DesktopChromeKind,
+} from "../../../platform/environment";
 import { setTrafficLightsVisible } from "../../../platform/traffic-lights";
 import { useWindowMaximized } from "../hooks/useWindowMaximized";
 import { WindowCaptionControlsView } from "./WindowCaptionControlsView";
@@ -23,8 +28,19 @@ async function currentWindow() {
   return getCurrentWindow();
 }
 
-export function WindowCaptionControls() {
-  const custom = desktopChromeKind() === "custom";
+type WindowCaptionControlsProps = {
+  /**
+   * Which chrome the shell draws. Defaults to the running platform's; the
+   * header passes its own resolved value so the decision is read once rather
+   * than in both places (and so a story can render another platform's bar).
+   */
+  chrome?: DesktopChromeKind;
+};
+
+export function WindowCaptionControls({
+  chrome = desktopChromeKind(),
+}: WindowCaptionControlsProps = {}) {
+  const custom = chrome === "custom";
   const maximized = useWindowMaximized();
 
   // Dev preview on a real Mac: the native traffic lights would double up with

@@ -7,7 +7,8 @@
   "author": "ReadAware",
   "permissions": [
     "service:network",
-    "shelf:write",
+    "library:write",
+    "reading:write",
     "agent:tools"
   ],
   "main": "main.js",

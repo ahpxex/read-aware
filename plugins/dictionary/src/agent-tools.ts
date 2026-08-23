@@ -7,14 +7,14 @@ import { saveWord, wordCollection } from "./words";
 export function registerAgentTools(ctx: DictionaryPluginContext): void {
   // The open book's title sharpens contextual senses; session facts carry it.
   let currentBookTitle: string | undefined;
-  ctx.session.on("book-opened", ({ book }) => {
+  ctx.services.session.subscribe("book-opened", ({ book }) => {
     currentBookTitle = book.title;
   });
-  ctx.session.on("book-closed", () => {
+  ctx.services.session.subscribe("book-closed", () => {
     currentBookTitle = undefined;
   });
 
-  ctx.agent.registerTool({
+  ctx.contributions.agentTools.register({
     name: "lookup_word",
     label: "Look up word",
     contexts: ["book", "global"],
@@ -59,7 +59,7 @@ export function registerAgentTools(ctx: DictionaryPluginContext): void {
     },
   });
 
-  ctx.agent.registerTool({
+  ctx.contributions.agentTools.register({
     name: "get_vocabulary",
     label: "Saved words",
     contexts: ["book", "global"],
@@ -99,7 +99,7 @@ export function registerAgentTools(ctx: DictionaryPluginContext): void {
     },
   });
 
-  ctx.agent.registerTool({
+  ctx.contributions.agentTools.register({
     name: "save_word",
     label: "Save word",
     contexts: ["book", "global"],

@@ -1,7 +1,7 @@
 /**
  * Declarative plugin settings (manifest.settings): the app renders the form,
  * values persist as ONE object under the plugin's storage key `settings`
- * (plugins read `ctx.storage.get("settings")`). The Plugins panel opens this
+ * (plugins read `ctx.services.storage.get("settings")`). The Plugins panel opens this
  * as a Dialog via the standard view pipeline.
  */
 import { emitAppEvent } from "../../../platform/app-events";
@@ -63,7 +63,7 @@ export function buildPluginSettingsView(
       writePluginSettingsValues(manifest.id, values);
     },
     // Dynamic selects resolve through the source the plugin bound at
-    // activate() (ctx.settings.provideOptions); an unbound field resolves
+    // activate() (ctx.contributions.settingsOptions.register); an unbound field resolves
     // empty and renders as free text input.
     resolveOptions: (fieldId, values) =>
       getSettingsOptionsProvider(manifest.id, fieldId)?.resolve(values) ?? [],
@@ -87,7 +87,7 @@ export function writePluginSettingsValues(
 ): void {
   localKV.setItem(storageKey(pluginId), JSON.stringify(values));
   // A running sandbox reads settings from its local snapshot; tell the
-  // worker host so `ctx.storage.get("settings")` reflects this change.
+  // worker host so `ctx.services.storage.get("settings")` reflects this change.
   emitAppEvent("plugin-storage-changed", { pluginId });
 }
 

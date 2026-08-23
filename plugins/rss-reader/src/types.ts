@@ -28,20 +28,34 @@ export type FeedResult = {
   content: PluginBookContent;
 };
 
-type ShelfWithWrite = NonNullable<PluginContext["shelf"]> & {
-  books: NonNullable<PluginContext["shelf"]>["books"] & {
-    write: NonNullable<NonNullable<PluginContext["shelf"]>["books"]["write"]>;
-  };
+type LibraryWithCommands = NonNullable<PluginContext["domains"]["library"]> & {
+  commands: NonNullable<
+    NonNullable<PluginContext["domains"]["library"]>["commands"]
+  >;
+};
+
+type ReadingWithCommands = NonNullable<PluginContext["domains"]["reading"]> & {
+  commands: NonNullable<
+    NonNullable<PluginContext["domains"]["reading"]>["commands"]
+  >;
 };
 
 export type RssPluginContext = PluginContext & {
-  shelf: ShelfWithWrite;
-  network: NonNullable<PluginContext["network"]>;
-  agent: NonNullable<PluginContext["agent"]>;
+  domains: PluginContext["domains"] & {
+    library: LibraryWithCommands;
+    reading: ReadingWithCommands;
+  };
+  contributions: PluginContext["contributions"] & {
+    agentTools: NonNullable<PluginContext["contributions"]["agentTools"]>;
+  };
+  services: PluginContext["services"] & {
+    network: NonNullable<PluginContext["services"]["network"]>;
+  };
 };
 
 export function assertPluginCapabilities(ctx: PluginContext): asserts ctx is RssPluginContext {
-  if (!ctx.network) throw new Error('RSS Reader requires the "service:network" permission');
-  if (!ctx.shelf?.books.write) throw new Error('RSS Reader requires the "shelf:write" permission');
-  if (!ctx.agent) throw new Error('RSS Reader requires the "agent:tools" permission');
+  if (!ctx.services.network) throw new Error('RSS Reader requires the "service:network" permission');
+  if (!ctx.domains.library?.commands) throw new Error('RSS Reader requires the "library:write" permission');
+  if (!ctx.domains.reading?.commands) throw new Error('RSS Reader requires the "reading:write" permission');
+  if (!ctx.contributions.agentTools) throw new Error('RSS Reader requires the "agent:tools" permission');
 }

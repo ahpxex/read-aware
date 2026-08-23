@@ -245,7 +245,7 @@ function segmentTextUnits({
 // src/index.ts
 var plugin = {
   activate(ctx) {
-    const modes = ctx.reader.modes;
+    const modes = ctx.contributions.readerModes;
     if (!modes)
       throw new Error("Sentence Reader requires the reader:modes capability");
     modes.register({

@@ -1,5 +1,9 @@
 /** Single runtime registry for every active product domain. */
-import type { EventOrigin } from "@read-aware/core";
+import type {
+  DomainGrants,
+  DomainId,
+  EventOrigin,
+} from "@read-aware/core";
 import { createAnnotationsDomain } from "./annotations";
 import { createConversationsDomain } from "./conversations";
 import {
@@ -21,47 +25,30 @@ type DomainSurface = {
 type DomainDefinition<TSurface extends DomainSurface = DomainSurface> = {
   events: readonly string[];
   create(origin: EventOrigin): TSurface;
-  pluginAccess: readonly DomainAccess[];
 };
 
-function defineDomainRegistry<
-  const TRegistry extends Record<string, DomainDefinition>,
->(registry: TRegistry): TRegistry {
-  return registry;
-}
-
-export type DomainAccess = "read" | "write";
-
-export const DOMAIN_REGISTRY = defineDomainRegistry({
+export const DOMAIN_REGISTRY = {
   library: {
     events: LIBRARY_EVENTS,
     create: createLibraryDomain,
-    pluginAccess: ["read", "write"],
   },
   reading: {
     events: READING_EVENTS,
     create: createReadingDomain,
-    pluginAccess: ["read", "write"],
   },
   annotations: {
     events: ANNOTATION_EVENTS,
     create: createAnnotationsDomain,
-    pluginAccess: ["read", "write"],
   },
   conversations: {
     events: CONVERSATION_EVENTS,
     create: createConversationsDomain,
-    pluginAccess: ["read"],
   },
   settings: {
     events: ["settings.changed"],
     create: createSettingsDomain,
-    // Settings is granted by exact paths, not a blanket domain grant.
-    pluginAccess: [],
   },
-});
-
-export type DomainId = keyof typeof DOMAIN_REGISTRY;
+} satisfies Record<DomainId, DomainDefinition>;
 
 export type DomainApi = {
   [K in DomainId]: ReturnType<(typeof DOMAIN_REGISTRY)[K]["create"]>;
@@ -77,8 +64,6 @@ export type ActorDomainView = Partial<{
   [K in DomainId]: DomainView<DomainApi[K]>;
 }>;
 
-export type DomainGrants = Partial<Record<DomainId, DomainAccess>>;
-
 export function createDomainApi(origin: EventOrigin): DomainApi {
   return Object.fromEntries(
     Object.entries(DOMAIN_REGISTRY).map(([id, definition]) => [
@@ -87,6 +72,8 @@ export function createDomainApi(origin: EventOrigin): DomainApi {
     ]),
   ) as DomainApi;
 }
+
+export type { DomainAccess, DomainGrants, DomainId } from "@read-aware/core";
 
 /**
  * Resolve the registry for a constrained actor. Read exposes queries/events;

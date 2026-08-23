@@ -14,11 +14,11 @@ const plugin: PluginModule = {
     // the document collection once.
     await migrateLegacyFeeds(ctx);
 
-    ctx.shelf.books.write.registerContentProvider({
+    ctx.contributions.contentProviders.register({
       id: PROVIDER_ID,
       load: async (url) => (await fetchFeed(ctx, url)).content,
     });
-    ctx.ui.registerHeaderAction({
+    ctx.contributions.headerActions.register({
       id: "feeds",
       title: "RSS Feeds",
       icon: "globe",
@@ -26,15 +26,15 @@ const plugin: PluginModule = {
       presentation: "page",
       view: () => rssPageView(ctx),
     });
-    ctx.shelf.on("book.removed", ({ payload: { bookId } }) => {
+    ctx.domains.library.events.subscribe("book.removed", ({ payload: { bookId } }) => {
       void (async () => {
         const feed = (await loadFeeds(ctx)).find((entry) => entry.bookId === bookId);
         if (!feed) return;
         await removeFeed(ctx, feed.url);
-        ctx.ui.showToast(tr(ctx.locale, "unsubscribedFrom", { title: feed.title }));
+        ctx.services.ui.showToast(tr(ctx.locale, "unsubscribedFrom", { title: feed.title }));
       })();
     });
-    ctx.ui.registerCommand({
+    ctx.contributions.commands.register({
       id: "subscribe",
       title: "RSS: subscriptions",
       icon: "globe",
@@ -44,7 +44,7 @@ const plugin: PluginModule = {
 
     // Declared in manifest.schedules: subscribed feeds stay fresh without a
     // manual refresh — hourly while the app is open, catch-up on launch.
-    ctx.schedule.on("refresh-feeds", async () => {
+    ctx.services.schedules.bind("refresh-feeds", async () => {
       await refreshAllFeeds(ctx);
     });
 

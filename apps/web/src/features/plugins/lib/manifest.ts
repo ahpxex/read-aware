@@ -175,8 +175,8 @@ export function validateManifest(raw: unknown): PluginManifest {
           "manifest.settings secret ids must be lowercase letters, digits, _ or - (max 64 chars)",
         );
       }
-      // A dynamic select gets its options at runtime (ctx.settings
-      // .provideOptions); the declaration may then omit the static list.
+      // A dynamic select gets its options from a settings-options
+      // contribution; the declaration may then omit the static list.
       const dynamicSelect = field.kind === "select" && field.dynamicOptions === true;
       if (dynamicSelect && !Array.isArray(field.options)) field.options = [];
       if ((field.kind === "select" || field.kind === "choice") && !Array.isArray(field.options)) {

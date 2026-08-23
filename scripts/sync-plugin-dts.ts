@@ -29,6 +29,9 @@ import { join, resolve } from "node:path";
 const repoRoot = resolve(import.meta.dir, "..");
 const marketRoot = resolve(process.argv[2] ?? join(repoRoot, "../readaware-plugins"));
 const sourcePath = join(repoRoot, "packages/plugin-types/src/index.ts");
+const coreDomainsPath = join(repoRoot, "packages/core/src/domains.ts");
+const coreSettingsPath = join(repoRoot, "packages/core/src/settings.ts");
+const coreReadModelsPath = join(repoRoot, "packages/core/src/read-models.ts");
 const mirrorPath = join(marketRoot, "types/plugin-api.d.ts");
 
 if (!existsSync(mirrorPath)) {
@@ -55,33 +58,86 @@ function swap(text: string, from: string, to: string): string {
 }
 
 // ── Preserved mirror-form sections ──────────────────────────────────────────
-const mirrorHeader = cut(mirror, "/**\n * MIRROR", "// ─── Permissions");
-const payloadMap = cut(mirror, "// ─── Events", "/** Everything library management emits");
-const readModels = cut(mirror, "// ─── Read models", "// ─── Domain APIs");
+const GENERATED_CORE = "// ─── Generated @read-aware/core vocabulary";
+const existingHeader = cut(mirror, "/**\n * MIRROR", "// ─── Permissions");
+const mirrorPrefix = cut(
+  existingHeader,
+  "/**\n * MIRROR",
+  "/**\n * @read-aware/plugin-types",
+);
+const contractIntro = src.slice(0, src.indexOf("import { DOMAIN_PERMISSIONS"));
+const baseCoreStart = existingHeader.indexOf(
+  "// ─── Inlined @read-aware/core vocabulary",
+);
+if (baseCoreStart < 0) throw new Error("inlined core vocabulary marker missing");
+const baseCoreEnd = existingHeader.includes(GENERATED_CORE)
+  ? existingHeader.indexOf(GENERATED_CORE)
+  : existingHeader.length;
+const mirrorHeader =
+  mirrorPrefix + contractIntro + existingHeader.slice(baseCoreStart, baseCoreEnd);
+const payloadTailAnchor = mirror.includes("/** Book, source, metadata")
+  ? "/** Book, source, metadata"
+  : "/** Everything library management emits";
+const payloadMap = cut(mirror, "// ─── Events", payloadTailAnchor);
+
+const domainSource = readFileSync(coreDomainsPath, "utf8");
+const domainIds = [...domainSource.matchAll(/^  ([a-z][a-zA-Z]*): \{/gm)].map(
+  (match) => match[1],
+);
+const domainPermissions = [...domainSource.matchAll(/pluginAccess: \[([^\]]*)\]/g)].flatMap(
+  (match, index) =>
+    [...match[1].matchAll(/"(read|write)"/g)].map(
+      (access) => `${domainIds[index]}:${access[1]}`,
+    ),
+);
+const domainVocabulary = `${GENERATED_CORE} ──────────────────────────────────────
+
+export type Id = string;
+export type IsoDate = string;
+export type DomainId = ${domainIds.map((id) => `"${id}"`).join(" | ")};
+export type DomainAccess = "read" | "write";
+export type DomainPermission = ${domainPermissions
+  .map((permission) => `"${permission}"`)
+  .join(" | ")};
+
+`;
+const settingsVocabulary = readFileSync(coreSettingsPath, "utf8").replace(
+  /import type \{ EventOrigin \} from "\.\/entities";\n\n/,
+  "",
+);
+const coreReadModels = readFileSync(coreReadModelsPath, "utf8").replace(
+  /import type \{[\s\S]*?\} from "\.\/entities";\n\n/,
+  "",
+);
 
 // ── Source sections, with the curated transformations ───────────────────────
 let perms = cut(src, "// ─── Permissions", "// ─── Manifest");
 perms = swap(
   perms,
-  `export const PLUGIN_PERMISSIONS = [
+  `const HOST_PERMISSIONS = [
   "reader:modes",
   "ui:themes",
-  "shelf:read",
-  "shelf:write",
-  "annotations:read",
-  "annotations:write",
-  "conversations:read",
   "agent:tools",
   "service:network",
   "service:llm",
   "service:clipboard",
 ] as const;
 
-export type PluginPermission = (typeof PLUGIN_PERMISSIONS)[number];`,
+export type PluginPermission =
+  | DomainPermission
+  | (typeof HOST_PERMISSIONS)[number];
+
+/** Runtime validation list, derived from the canonical Domain Catalog. */
+export const PLUGIN_PERMISSIONS: readonly PluginPermission[] = [
+  ...DOMAIN_PERMISSIONS,
+  ...HOST_PERMISSIONS,
+];`,
   `export type PluginPermission =
   | "ui:themes"
-  | "shelf:read"
-  | "shelf:write"
+  | "library:read"
+  | "library:write"
+  | "reading:read"
+  | "reading:write"
   | "annotations:read"
   | "annotations:write"
   | "conversations:read"
@@ -128,31 +184,32 @@ const contributions = cut(
   "/**\n * A key chord for a command's default binding.",
   "// ─── Events",
 );
-const eventsTail = cut(src, "/** Everything library management emits", "// ─── Read models");
+const eventsTail = cut(src, "/** Book, source, metadata", "// ─── Read models");
+const publicReadModels = cut(src, "// ─── Read models", "// ─── Domain APIs");
 const domainApis = cut(src, "// ─── Domain APIs", "// ─── Context handed to activate()");
 
 let context = src.slice(src.indexOf("// ─── Context handed to activate()"));
 context = swap(
   context,
-  `    goTo(target: { bookId?: string; cfi?: string; href?: string }): void;
-    /** \`reader:modes\` — bundled plugins may register a host-rendered reader mode. */
-    modes?: {
-      register(mode: PluginReaderMode): PluginDisposable;
-    };
-  };`,
-  `    goTo(target: { bookId?: string; cfi?: string; href?: string }): void;
-  };`,
+  `  readerModes?: {
+    register(mode: PluginReaderMode): PluginDisposable;
+  };
+`,
+  "",
 );
 
 const output =
   mirrorHeader +
+  domainVocabulary +
+  settingsVocabulary +
   perms +
   middle +
   localized +
   contributions +
   payloadMap +
   eventsTail +
-  readModels +
+  coreReadModels +
+  publicReadModels +
   domainApis +
   context;
 

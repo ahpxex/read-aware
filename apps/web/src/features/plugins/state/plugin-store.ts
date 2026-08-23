@@ -119,7 +119,7 @@ export function registerVoiceProviderContribution(
 
 /**
  * The bound options source of one declared `dynamicOptions` select field
- * (`ctx.settings.provideOptions`). Not an atom: nothing renders from the
+ * (`ctx.contributions.settingsOptions.register`). Not an atom: nothing renders from the
  * registry itself — the settings form looks its provider up at resolve time.
  */
 export type RegisteredSettingsOptions = {

@@ -18,7 +18,7 @@ const entries: MarketplaceEntry[] = [
     version: "0.9.2",
     author: "ReadAware",
     description: "Follow feeds and read new items in the app.",
-    permissions: ["service:network", "shelf:write"],
+    permissions: ["service:network", "library:write"],
   },
   {
     id: "focus-timer",
@@ -155,8 +155,8 @@ export const LongEntry: Story = {
           permissions: [
             "annotations:read",
             "annotations:write",
-            "shelf:read",
-            "shelf:write",
+            "library:read",
+            "library:write",
             "service:network",
             "service:llm",
             "service:clipboard",

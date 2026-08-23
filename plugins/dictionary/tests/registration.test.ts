@@ -10,17 +10,21 @@ describe("Dictionary contributions", () => {
     let selectionAction: PluginSelectionAction | null = null;
     const disposable = { dispose() {} };
     const context = {
-      ui: {
-        registerSelectionAction(action: PluginSelectionAction) {
-          selectionAction = action;
-          return disposable;
+      contributions: {
+        selectionActions: {
+          register(action: PluginSelectionAction) {
+            selectionAction = action;
+            return disposable;
+          },
         },
-        registerHeaderAction: () => disposable,
-        registerCommand: () => disposable,
+        headerActions: { register: () => disposable },
+        commands: { register: () => disposable },
+        agentTools: { register: () => disposable },
       },
-      llm: {},
-      agent: { registerTool: () => disposable },
-      session: { on: () => disposable },
+      services: {
+        llm: {},
+        session: { subscribe: () => disposable },
+      },
       locale: "en",
     } as unknown as PluginContext;
 

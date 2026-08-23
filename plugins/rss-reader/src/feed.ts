@@ -120,7 +120,7 @@ function feedShape(doc: Record<string, unknown>): FeedShape | null {
 
 /** The declared `articleLimit` setting, defended back to the default. */
 function articleLimit(ctx: RssPluginContext): number {
-  const settings = ctx.storage.get<Record<string, unknown>>("settings");
+  const settings = ctx.services.storage.get<Record<string, unknown>>("settings");
   const value = settings?.articleLimit;
   return typeof value === "number" && value >= 5 && value <= 100
     ? Math.floor(value)
@@ -185,7 +185,7 @@ export function parseFeed(
 }
 
 export async function fetchFeed(ctx: RssPluginContext, url: string): Promise<FeedResult> {
-  const response = await ctx.network.fetch(url, { signal: AbortSignal.timeout(15_000) });
+  const response = await ctx.services.network.fetch(url, { signal: AbortSignal.timeout(15_000) });
   if (!response.ok) throw new Error(`Feed returned ${response.status}`);
   return parseFeed(await response.text(), url, articleLimit(ctx));
 }
@@ -194,7 +194,7 @@ export async function ensureBook(
   ctx: RssPluginContext,
   feed: FeedSubscription,
 ): Promise<FeedSubscription> {
-  const book = await ctx.shelf.books.write.addVirtualBook({
+  const book = await ctx.domains.library.commands.books.addVirtualBook({
     providerId: PROVIDER_ID,
     key: feed.url,
     title: feed.title,
@@ -216,7 +216,7 @@ export async function subscribe(
 
   const existing = await getFeed(ctx, url);
   const { title, articles } = await fetchFeed(ctx, url);
-  const book = await ctx.shelf.books.write.addVirtualBook({
+  const book = await ctx.domains.library.commands.books.addVirtualBook({
     providerId: PROVIDER_ID,
     key: url,
     title,

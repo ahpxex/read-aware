@@ -10,7 +10,11 @@
  */
 import { getDefaultStore } from "jotai";
 import { fetch as corsFreeFetch } from "@tauri-apps/plugin-http";
-import type { DomainEventType, SettingsAccessPolicy } from "@read-aware/core";
+import {
+  domainGrantsFromPermissions,
+  type DomainEventType,
+  type SettingsAccessPolicy,
+} from "@read-aware/core";
 import { DEFAULT_LOCALE, i18n, isAppLocale } from "../../../i18n";
 import { onAppEvent } from "../../../platform/app-events";
 import { exportTextFile } from "../../../platform/export-file";
@@ -22,9 +26,8 @@ import {
   setPluginSecret,
 } from "../../../platform/secret-store";
 import {
-  LIBRARY_EVENTS,
+  createActorDomainView,
   createSettingsDomain,
-  createDomainApi,
   type DomainEventSubscribe,
 } from "../../../domain";
 import { getAgentRuntime } from "../../ai/agent/agent-runtime";
@@ -133,7 +136,10 @@ export function buildPluginContext(
 ): PluginContext {
   const permissions = new Set(manifest.permissions ?? []);
   const selfOrigin = `plugin:${manifest.id}` as const;
-  const domain = createDomainApi(selfOrigin);
+  const domain = createActorDomainView(
+    selfOrigin,
+    domainGrantsFromPermissions(manifest.permissions ?? []),
+  );
   const ownSettingsPaths = (manifest.settings ?? [])
     .filter(
       (field) =>
@@ -181,148 +187,89 @@ export function buildPluginContext(
     get locale() {
       return currentAppLocale();
     },
-    storage: {
-      get: (key) => {
-        const raw = localKV.getItem(storagePrefix + key);
-        if (raw == null) return null;
-        try {
-          return JSON.parse(raw);
-        } catch {
-          return null;
-        }
-      },
-      set: (key, value) => {
-        localKV.setItem(storagePrefix + key, JSON.stringify(value ?? null));
-      },
-      remove: (key) => {
-        localKV.removeItem(storagePrefix + key);
-      },
-      onChange: (handler) =>
-        track({
-          dispose: onAppEvent("plugin-storage-changed", ({ pluginId }) => {
-            if (pluginId !== manifest.id) return;
-            try {
-              handler();
-            } catch (error) {
-              log.error(`storage.onChange handler from "${manifest.id}" failed`, error);
-            }
-          }),
-        }),
-      collection: (name) => {
-        const collection = String(name);
-        if (!NAMESPACE_KEY.test(collection)) {
-          throw new Error(`invalid collection name: ${collection}`);
-        }
-        return {
-          put: (id, data, options) =>
-            pluginDocsPut(manifest.id, collection, String(id), JSON.stringify(data ?? null), {
-              bookId: options?.bookId,
-              anchor: options?.anchor,
+    domains: {
+      settings: {
+        queries: {
+          discover: settingsDomain.queries.discover,
+          read: settingsDomain.queries.read,
+        },
+        commands: { update: settingsDomain.commands.update },
+        events: {
+          subscribe: (handler, options) =>
+            track({
+              dispose: settingsDomain.events.subscribe((event) => {
+                if (options?.ignoreSelf && event.origin === selfOrigin) return;
+                const report = (error: unknown) =>
+                  log.error(`settings handler from "${manifest.id}" failed`, error);
+                try {
+                  const result = handler(event) as unknown;
+                  if (result instanceof Promise) result.catch(report);
+                } catch (error) {
+                  report(error);
+                }
+              }),
             }),
-          get: async (id) => {
-            const row = await pluginDocsGet(manifest.id, collection, String(id));
-            return (row ? toPluginDocument(row) : null) as never;
-          },
-          delete: (id) => pluginDocsDelete(manifest.id, collection, String(id)),
-          list: async (filter) =>
-            (
-              await pluginDocsList(manifest.id, collection, {
-                bookId: filter?.bookId,
-                limit: filter?.limit,
-                oldestFirst: filter?.oldestFirst,
-              })
-            ).map(toPluginDocument) as never,
-        };
+        },
       },
     },
-    secrets: {
-      get: (key) => {
-        requireSecretKey(key);
-        return getPluginSecret(manifest.id, key);
+    contributions: {
+      selectionActions: {
+        register: (action) =>
+          track(
+            registerSelectionActionContribution({
+              ...action,
+              ...brand,
+              key: contributionKey(manifest.id, action.id),
+            }),
+          ),
       },
-      set: async (key, value) => {
-        requireSecretKey(key);
-        await setPluginSecret(manifest.id, key, String(value));
+      headerActions: {
+        register: (action) =>
+          track(
+            registerHeaderActionContribution({
+              ...action,
+              ...brand,
+              presentation:
+                action.surface === "reader" ? "popup" : (action.presentation ?? "popup"),
+              key: contributionKey(manifest.id, action.id),
+            }),
+          ),
       },
-      remove: async (key) => {
-        requireSecretKey(key);
-        await deletePluginSecret(manifest.id, key);
+      commands: {
+        register: (command) =>
+          track(
+            registerCommandContribution({
+              ...command,
+              defaultShortcut: normalizeDefaultShortcut(command.defaultShortcut),
+              ...brand,
+              key: contributionKey(manifest.id, command.id),
+            }),
+          ),
       },
-    },
-    ui: {
-      registerSelectionAction: (action) =>
-        track(
-          registerSelectionActionContribution({
-            ...action,
-            ...brand,
-            key: contributionKey(manifest.id, action.id),
-          }),
-        ),
-      registerHeaderAction: (action) =>
-        track(
-          registerHeaderActionContribution({
-            ...action,
-            ...brand,
-            // The reader never allows full-page interruptions (§5).
-            presentation:
-              action.surface === "reader" ? "popup" : (action.presentation ?? "popup"),
-            key: contributionKey(manifest.id, action.id),
-          }),
-        ),
-      registerCommand: (command) =>
-        track(
-          registerCommandContribution({
-            ...command,
-            defaultShortcut: normalizeDefaultShortcut(command.defaultShortcut),
-            ...brand,
-            key: contributionKey(manifest.id, command.id),
-          }),
-        ),
-      showToast: (message) => showPluginToast(String(message)),
-      exportFile: (file) => {
-        const content = file?.content;
-        const binary = content instanceof Uint8Array || content instanceof ArrayBuffer;
-        if (!file || typeof file.filename !== "string" || (typeof content !== "string" && !binary)) {
-          throw new Error("exportFile requires a filename and text or binary content");
-        }
-        return exportTextFile({
-          filename: file.filename,
-          content,
-          mimeType: typeof file.mimeType === "string" ? file.mimeType : undefined,
-        });
-      },
-    },
-    reader: {
-      openBook: (bookId) => {
-        getDefaultStore().set(openBookRequestAtom, {
-          id: crypto.randomUUID(),
-          bookId: String(bookId),
-        });
-      },
-      goTo: (target) => {
-        requestPluginReaderNav({
-          bookId: target.bookId ? String(target.bookId) : undefined,
-          cfi: target.cfi ? String(target.cfi) : undefined,
-          href: target.href ? String(target.href) : undefined,
-        });
-      },
-      modes: permissions.has("reader:modes")
-        ? {
-            register: (mode) => {
-              const normalized = normalizeReaderMode(mode);
-              return track(
-                registerReaderModeContribution({
-                  ...normalized,
-                  ...brand,
-                  key: contributionKey(manifest.id, normalized.id),
-                }),
-              );
-            },
+      settingsOptions: {
+        register: (fieldId, provider) => {
+          const id = String(fieldId);
+          const declared = manifest.settings?.find((field) => field.id === id);
+          if (!declared || declared.kind !== "select" || declared.dynamicOptions !== true) {
+            throw new Error(
+              `settings field "${id}" is not declared as a dynamicOptions select in manifest.settings`,
+            );
           }
-        : undefined,
-    },
-    audio: {
-      registerVoiceProvider: (provider) => {
+          if (typeof provider !== "function") {
+            throw new Error("settingsOptions.register requires a provider function");
+          }
+          return track(
+            registerSettingsOptionsContribution({
+              key: contributionKey(manifest.id, `settings-options.${id}`),
+              pluginId: manifest.id,
+              fieldId: id,
+              resolve: (values) => Promise.resolve(provider(values)),
+            }),
+          );
+        },
+      },
+      voiceProviders: {
+        register: (provider) => {
         const key = contributionKey(manifest.id, provider.id);
         const registration = registerVoiceProviderContribution({
           ...provider,
@@ -354,62 +301,145 @@ export function buildPluginContext(
             registration.dispose();
           },
         });
+        },
       },
-    },
-    schedule: {
-      on: (scheduleId, run) => {
-        const declaration = manifest.schedules?.find(
-          (entry) => entry.id === scheduleId,
-        );
-        if (!declaration) {
-          throw new Error(
-            `schedule "${scheduleId}" is not declared in manifest.schedules`,
-          );
-        }
-        return track(registerPluginSchedule(manifest.id, declaration, run));
+      contentProviders: {
+        register: (provider) =>
+          track(
+            registerContentProviderContribution({
+              key: `${manifest.id}:${provider.id}`,
+              pluginId: manifest.id,
+              providerId: String(provider.id),
+              load: (bookKey: string) => Promise.resolve(provider.load(bookKey)),
+            }),
+          ),
       },
+      readerModes: permissions.has("reader:modes")
+        ? {
+            register: (mode) => {
+              const normalized = normalizeReaderMode(mode);
+              return track(
+                registerReaderModeContribution({
+                  ...normalized,
+                  ...brand,
+                  key: contributionKey(manifest.id, normalized.id),
+                }),
+              );
+            },
+          }
+        : undefined,
+      agentTools: permissions.has("agent:tools")
+        ? {
+            register: (tool) =>
+              track(
+                registerToolContribution({
+                  ...tool,
+                  ...brand,
+                  key: contributionKey(manifest.id, tool.name),
+                }),
+              ),
+          }
+        : undefined,
     },
-    settings: {
-      discover: settingsDomain.queries.discover,
-      read: settingsDomain.queries.read,
-      update: settingsDomain.commands.update,
-      onChange: (handler, options) =>
-        track({
-          dispose: settingsDomain.events.subscribe((event) => {
-            if (options?.ignoreSelf && event.origin === selfOrigin) return;
-            const report = (error: unknown) =>
-              log.error(`settings handler from "${manifest.id}" failed`, error);
-            try {
-              const result = handler(event) as unknown;
-              if (result instanceof Promise) result.catch(report);
-            } catch (error) {
-              report(error);
-            }
+    services: {
+      storage: {
+        get: (key) => {
+          const raw = localKV.getItem(storagePrefix + key);
+          if (raw == null) return null;
+          try {
+            return JSON.parse(raw);
+          } catch {
+            return null;
+          }
+        },
+        set: (key, value) => {
+          localKV.setItem(storagePrefix + key, JSON.stringify(value ?? null));
+        },
+        remove: (key) => {
+          localKV.removeItem(storagePrefix + key);
+        },
+        onChange: (handler) =>
+          track({
+            dispose: onAppEvent("plugin-storage-changed", ({ pluginId }) => {
+              if (pluginId !== manifest.id) return;
+              try {
+                handler();
+              } catch (error) {
+                log.error(`storage.onChange handler from "${manifest.id}" failed`, error);
+              }
+            }),
           }),
-        }),
-      provideOptions: (fieldId, provider) => {
-        const id = String(fieldId);
-        const declared = manifest.settings?.find((field) => field.id === id);
-        if (!declared || declared.kind !== "select" || declared.dynamicOptions !== true) {
-          throw new Error(
-            `settings field "${id}" is not declared as a dynamicOptions select in manifest.settings`,
-          );
-        }
-        if (typeof provider !== "function") {
-          throw new Error("provideOptions requires a provider function");
-        }
-        return track(
-          registerSettingsOptionsContribution({
-            key: contributionKey(manifest.id, `settings-options.${id}`),
-            pluginId: manifest.id,
-            fieldId: id,
-            resolve: (values) => Promise.resolve(provider(values)),
-          }),
-        );
+        collection: (name) => {
+          const collection = String(name);
+          if (!NAMESPACE_KEY.test(collection)) {
+            throw new Error(`invalid collection name: ${collection}`);
+          }
+          return {
+            put: (id, data, options) =>
+              pluginDocsPut(manifest.id, collection, String(id), JSON.stringify(data ?? null), {
+                bookId: options?.bookId,
+                anchor: options?.anchor,
+              }),
+            get: async (id) => {
+              const row = await pluginDocsGet(manifest.id, collection, String(id));
+              return (row ? toPluginDocument(row) : null) as never;
+            },
+            delete: (id) => pluginDocsDelete(manifest.id, collection, String(id)),
+            list: async (filter) =>
+              (
+                await pluginDocsList(manifest.id, collection, {
+                  bookId: filter?.bookId,
+                  limit: filter?.limit,
+                  oldestFirst: filter?.oldestFirst,
+                })
+              ).map(toPluginDocument) as never,
+          };
+        },
       },
-    },
-    session: {
-      on: (event, handler) => {
+      secrets: {
+        get: (key) => {
+          requireSecretKey(key);
+          return getPluginSecret(manifest.id, key);
+        },
+        set: async (key, value) => {
+          requireSecretKey(key);
+          await setPluginSecret(manifest.id, key, String(value));
+        },
+        remove: async (key) => {
+          requireSecretKey(key);
+          await deletePluginSecret(manifest.id, key);
+        },
+      },
+      ui: {
+        showToast: (message) => showPluginToast(String(message)),
+        exportFile: (file) => {
+          const content = file?.content;
+          const binary = content instanceof Uint8Array || content instanceof ArrayBuffer;
+          if (!file || typeof file.filename !== "string" || (typeof content !== "string" && !binary)) {
+            throw new Error("exportFile requires a filename and text or binary content");
+          }
+          return exportTextFile({
+            filename: file.filename,
+            content,
+            mimeType: typeof file.mimeType === "string" ? file.mimeType : undefined,
+          });
+        },
+      },
+      schedules: {
+        bind: (scheduleId, run) => {
+          const declaration = manifest.schedules?.find(
+            (entry) => entry.id === scheduleId,
+          );
+          if (!declaration) {
+            throw new Error(
+              `schedule "${scheduleId}" is not declared in manifest.schedules`,
+            );
+          }
+          return track(registerPluginSchedule(manifest.id, declaration, run));
+        },
+      },
+      session: {
+        subscribe: (event, handler) => {
         if (!SESSION_EVENTS.includes(event)) {
           throw new Error(`"${String(event)}" is not a session event`);
         }
@@ -425,63 +455,27 @@ export function buildPluginContext(
           }
         }) as never);
         return track({ dispose: off });
+        },
       },
     },
   };
 
-  // ─── Shelf (books + collections + stats) ──────────────────────────────────
-
-  if (permissions.has("shelf:read") || permissions.has("shelf:write")) {
-    ctx.shelf = {
-      books: {
-        list: domain.library.queries.books.list,
-        get: domain.library.queries.books.get,
-        getToc: domain.library.queries.books.getToc,
-        getChapterText: domain.library.queries.books.getChapterText,
-      },
-      collections: {
-        list: domain.library.queries.collections.list,
-        booksIn: domain.library.queries.collections.booksIn,
-      },
-      stats: {
-        forBook: domain.reading.queries.stats.forBook,
-        list: domain.reading.queries.stats.list,
-        overview: domain.reading.queries.stats.overview,
-      },
-      on: ((
-        event: DomainEventType,
-        handler: (broadcast: { origin?: string }) => void,
-        options?: { ignoreSelf?: boolean },
-      ) => {
-        const subscribe = (LIBRARY_EVENTS as readonly DomainEventType[]).includes(event)
-          ? (domain.library.events.subscribe as DomainEventSubscribe<DomainEventType>)
-          : (domain.reading.events.subscribe as DomainEventSubscribe<DomainEventType>);
-        const wrapped =
-          options?.ignoreSelf === true
-            ? (broadcast: { origin?: string }) => {
-                if (broadcast.origin !== selfOrigin) handler(broadcast);
-              }
-            : handler;
-        return track({ dispose: subscribe(event, wrapped as never) });
-      }) as never,
+  // The registry already applied domain permissions. This layer only adapts
+  // host-only details such as tracked subscriptions and virtual-book bindings.
+  if (domain.library) {
+    const library = domain.library;
+    ctx.domains.library = {
+      queries: library.queries,
+      events: { subscribe: trackedOn(library.events.subscribe) },
     };
-    if (permissions.has("shelf:write")) {
-      ctx.shelf.books.write = {
-        import: domain.library.commands.books.importBook,
-        editMetadata: domain.library.commands.books.editMetadata,
-        setStarred: domain.library.commands.books.setStarred,
-        setFinished: domain.reading.commands.setFinished,
-        remove: domain.library.commands.books.remove,
-        registerContentProvider: (provider) =>
-          track(
-            registerContentProviderContribution({
-              key: `${manifest.id}:${provider.id}`,
-              pluginId: manifest.id,
-              providerId: String(provider.id),
-              load: (bookKey: string) => Promise.resolve(provider.load(bookKey)),
-            }),
-          ),
-        addVirtualBook: async (input) => {
+    if (library.commands) {
+      ctx.domains.library.commands = {
+        books: {
+          importBook: library.commands.books.importBook,
+          editMetadata: library.commands.books.editMetadata,
+          setStarred: library.commands.books.setStarred,
+          remove: library.commands.books.remove,
+          addVirtualBook: async (input) => {
           const binding = {
             pluginId: manifest.id,
             providerId: String(input.providerId),
@@ -491,9 +485,9 @@ export function buildPluginContext(
           if (existingId) {
             // The binding may be an orphan (book deleted before cleanup
             // existed, or through an untracked path) — verify the record.
-            const alive = await domain.library.queries.books.get(existingId);
+            const alive = await library.queries.books.get(existingId);
             if (alive) {
-              await domain.library.commands.books.updateVirtualBookTitle(
+              await library.commands!.books.updateVirtualBookTitle(
                 existingId,
                 String(input.title),
                 input.author,
@@ -506,14 +500,14 @@ export function buildPluginContext(
             }
             unbindVirtualBook(existingId);
           }
-          const book = await domain.library.commands.books.addVirtualBook({
+          const book = await library.commands!.books.addVirtualBook({
             title: String(input.title),
             author: input.author,
           });
           bindVirtualBook(book.id, binding);
           return book;
         },
-        removeVirtualBook: async (input) => {
+          removeVirtualBook: async (input) => {
           const bookId = findVirtualBookId({
             pluginId: manifest.id,
             providerId: String(input.providerId),
@@ -521,71 +515,75 @@ export function buildPluginContext(
           });
           if (!bookId) return;
           try {
-            await domain.library.commands.books.remove(bookId);
+            await library.commands!.books.remove(bookId);
           } catch (error) {
             log.error("virtual book removal failed", error);
           }
           unbindVirtualBook(bookId);
+          },
+        },
+        collections: library.commands.collections,
+      };
+    }
+  }
+
+  if (domain.reading) {
+    const reading = domain.reading;
+    ctx.domains.reading = {
+      queries: reading.queries,
+      events: { subscribe: trackedOn(reading.events.subscribe) },
+    };
+    if (reading.commands) {
+      ctx.domains.reading.commands = {
+        setFinished: reading.commands.setFinished,
+        openBook: (bookId) => {
+          getDefaultStore().set(openBookRequestAtom, {
+            id: crypto.randomUUID(),
+            bookId: String(bookId),
+          });
+        },
+        goTo: (target) => {
+          requestPluginReaderNav({
+            bookId: target.bookId ? String(target.bookId) : undefined,
+            cfi: target.cfi ? String(target.cfi) : undefined,
+            href: target.href ? String(target.href) : undefined,
+          });
         },
       };
-      ctx.shelf.collections.write = {
-        create: domain.library.commands.collections.create,
-        rename: domain.library.commands.collections.rename,
-        remove: domain.library.commands.collections.remove,
-        assignBooks: domain.library.commands.collections.assignBooks,
+    }
+  }
+
+  if (domain.annotations) {
+    const annotations = domain.annotations;
+    ctx.domains.annotations = {
+      queries: annotations.queries,
+      events: { subscribe: trackedOn(annotations.events.subscribe) },
+    };
+    if (annotations.commands) {
+      ctx.domains.annotations.commands = {
+        createHighlight: annotations.commands.createHighlight,
+        recolorHighlight: annotations.commands.recolorHighlight,
+        removeHighlight: annotations.commands.removeHighlight,
+        createNote: annotations.commands.createNote,
+        updateNote: annotations.commands.updateNote,
+        removeNote: annotations.commands.removeNote,
       };
     }
   }
 
-  // ─── Annotations ──────────────────────────────────────────────────────────
-
-  if (permissions.has("annotations:read") || permissions.has("annotations:write")) {
-    ctx.annotations = {
-      list: domain.annotations.queries.list,
-      on: trackedOn(domain.annotations.events.subscribe),
-    };
-    if (permissions.has("annotations:write")) {
-      ctx.annotations.write = {
-        createHighlight: domain.annotations.commands.createHighlight,
-        recolorHighlight: domain.annotations.commands.recolorHighlight,
-        removeHighlight: domain.annotations.commands.removeHighlight,
-        createNote: domain.annotations.commands.createNote,
-        updateNote: domain.annotations.commands.updateNote,
-        removeNote: domain.annotations.commands.removeNote,
-      };
-    }
-  }
-
-  // ─── Conversations ────────────────────────────────────────────────────────
-
-  if (permissions.has("conversations:read")) {
-    ctx.conversations = {
-      getBookThread: domain.conversations.queries.getBookThread,
-      listThreads: domain.conversations.queries.listThreads,
-      getThread: domain.conversations.queries.getThread,
-      on: trackedOn(domain.conversations.events.subscribe),
-    };
-  }
-
-  // ─── Agent tools ──────────────────────────────────────────────────────────
-
-  if (permissions.has("agent:tools")) {
-    ctx.agent = {
-      registerTool: (tool) =>
-        track(
-          registerToolContribution({
-            ...tool,
-            ...brand,
-            key: contributionKey(manifest.id, tool.name),
-          }),
-        ),
+  if (domain.conversations) {
+    ctx.domains.conversations = {
+      queries: domain.conversations.queries,
+      events: {
+        subscribe: trackedOn(domain.conversations.events.subscribe),
+      },
     };
   }
 
   // ─── Services ─────────────────────────────────────────────────────────────
 
   if (permissions.has("service:network")) {
-    ctx.network = {
+    ctx.services.network = {
       // The Rust HTTP client (tauri-plugin-http), not webview fetch: plugin
       // requests must reach hosts that never heard of CORS. Scope lives in
       // the capability file (https + localhost), not in the webview CSP.
@@ -616,11 +614,11 @@ export function buildPluginContext(
         onText: typeof input.onText === "function" ? input.onText : undefined,
       });
     };
-    ctx.llm = { ask } as PluginContext["llm"];
+    ctx.services.llm = { ask } as PluginContext["services"]["llm"];
   }
 
   if (permissions.has("service:clipboard")) {
-    ctx.clipboard = {
+    ctx.services.clipboard = {
       writeText: (text) => navigator.clipboard.writeText(String(text)),
     };
   }

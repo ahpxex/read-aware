@@ -228,7 +228,7 @@ function parseVoiceList(payload) {
 
 // src/index.ts
 function readSettings(ctx) {
-  return normalizeSettings(ctx.storage.get("settings"));
+  return normalizeSettings(ctx.services.storage.get("settings"));
 }
 function secretName(vendor) {
   return `${vendor}-api-key`;
@@ -238,7 +238,7 @@ async function lookupVoiceName(ctx, network, settings) {
   const cacheKey = `${settings.vendor}\x00${settings.voiceId}\x00${settings.endpoint}`;
   if (voiceNameCache?.key === cacheKey)
     return voiceNameCache.name;
-  const apiKey = await ctx.secrets.get(secretName(settings.vendor));
+  const apiKey = await ctx.services.secrets.get(secretName(settings.vendor));
   const requests = buildVoiceListRequests(settings.vendor, { endpoint: settings.endpoint }, apiKey);
   for (const request of requests) {
     try {
@@ -274,10 +274,10 @@ var DYNAMIC_VOICE_FIELDS = [
 ];
 var plugin = {
   activate(ctx) {
-    const network = ctx.network;
+    const network = ctx.services.network;
     if (!network)
       return;
-    ctx.audio.registerVoiceProvider({
+    ctx.contributions.voiceProviders.register({
       id: "voices",
       label: "TTS",
       listVoices: async () => [
@@ -285,7 +285,7 @@ var plugin = {
       ],
       synthesize: async ({ text: text2 }) => {
         const settings = readSettings(ctx);
-        const apiKey = await ctx.secrets.get(secretName(settings.vendor));
+        const apiKey = await ctx.services.secrets.get(secretName(settings.vendor));
         if (vendorNeedsKey(settings.vendor) && !apiKey) {
           throw new Error(tr(ctx.locale, "keyMissing", { vendor: VENDOR_LABELS[settings.vendor] }));
         }
@@ -309,12 +309,12 @@ var plugin = {
       }
     });
     for (const { vendor, fieldId } of DYNAMIC_VOICE_FIELDS) {
-      ctx.settings.provideOptions(fieldId, async (values) => {
+      ctx.contributions.settingsOptions.register(fieldId, async (values) => {
         const endpoint = typeof values.customEndpoint === "string" ? values.customEndpoint : normalizeSettings({
-          ...ctx.storage.get("settings") ?? {},
+          ...ctx.services.storage.get("settings") ?? {},
           vendor: "custom"
         }).endpoint;
-        const apiKey = await ctx.secrets.get(secretName(vendor));
+        const apiKey = await ctx.services.secrets.get(secretName(vendor));
         const requests = buildVoiceListRequests(vendor, { endpoint }, apiKey);
         const listings = await Promise.all(requests.map(async (request) => {
           try {

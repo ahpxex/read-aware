@@ -7,7 +7,7 @@ import type { DictionaryContext, SavedWord, SaveWordInput } from "./types";
 const WORDS_COLLECTION = "words";
 
 export function wordCollection(ctx: DictionaryContext): PluginDocumentCollection {
-  return ctx.storage.collection(WORDS_COLLECTION);
+  return ctx.services.storage.collection(WORDS_COLLECTION);
 }
 
 export async function saveWord(

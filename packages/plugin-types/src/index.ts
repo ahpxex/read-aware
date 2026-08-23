@@ -10,14 +10,13 @@
  *
  * The contract is DERIVED from the app's domain model, not authored beside it:
  *
- * 1. **Data surface per domain.** Each domain (shelf — books, collections,
- *    and reading stats as one library-management surface — plus annotations
- *    and conversations) exposes three things:
- *    *reads* mirroring its projection read models, *writes* mirroring exactly
+ * 1. **Data surface per domain.** Library, reading, annotations,
+ *    conversations, and settings each expose the parts their domain owns:
+ *    *queries* mirroring projection read models, *commands* mirroring exactly
  *    its domain-event verbs (commands issued through the same event-sourced
- *    write path the app itself uses), and *subscriptions* to its domain
- *    events under their canonical names — one vocabulary, no parallel rename.
- * 2. **Permission = domain × access.** `shelf:read`, `annotations:write`, …
+ *    write path the app itself uses), and *events* under their canonical
+ *    names — one vocabulary, no parallel rename.
+ * 2. **Permission = domain × access.** `library:read`, `annotations:write`, …
  *    Write implies read within a domain. Services (`service:*`) and the agent
  *    tool mount (`agent:tools`) are separate permission families.
  * 3. **Origin on every write.** Plugin writes are stamped
@@ -40,6 +39,7 @@
  *    theme in Settings. Plugins still never hand the host a stylesheet.
  */
 
+import { DOMAIN_PERMISSIONS } from "@read-aware/core";
 import type {
   AnnotationItem,
   AskItem,
@@ -50,7 +50,10 @@ import type {
   CollectionSummary,
   DictionaryEntrySnapshot,
   DomainEvent,
+  DomainAccess,
   DomainEventType,
+  DomainId,
+  DomainPermission,
   EventOrigin,
   HighlightColor,
   HighlightItem,
@@ -75,7 +78,10 @@ import type {
 export type {
   BookFormat,
   DictionaryEntrySnapshot,
+  DomainAccess,
   DomainEventType,
+  DomainId,
+  DomainPermission,
   EventOrigin,
   HighlightColor,
   HighlightStyle,
@@ -96,8 +102,8 @@ export type {
  * Permission domains a manifest may declare (docs/plugin-system.md §4).
  *
  * - `<domain>:read` / `<domain>:write` — data access per domain; write
- *   implies the domain's read surface. `shelf` covers the whole of library
- *   management: books (incl. content reads), collections, and reading stats.
+ *   implies the domain's read surface. Library ownership and reading-state
+ *   ownership are separate domains.
  * - `reader:modes` — privileged host-rendered reader-mode registration.
  * - `ui:themes` — declare app/reader themes and bundled fonts in the
  *   manifest. The only UI contribution that needs a permission: unlike
@@ -111,21 +117,24 @@ export type {
  * Namespaced storage, UI contributions, session events, and ambient reader
  * control are not permissions — every plugin has them.
  */
-export const PLUGIN_PERMISSIONS = [
+const HOST_PERMISSIONS = [
   "reader:modes",
   "ui:themes",
-  "shelf:read",
-  "shelf:write",
-  "annotations:read",
-  "annotations:write",
-  "conversations:read",
   "agent:tools",
   "service:network",
   "service:llm",
   "service:clipboard",
 ] as const;
 
-export type PluginPermission = (typeof PLUGIN_PERMISSIONS)[number];
+export type PluginPermission =
+  | DomainPermission
+  | (typeof HOST_PERMISSIONS)[number];
+
+/** Runtime validation list, derived from the canonical Domain Catalog. */
+export const PLUGIN_PERMISSIONS: readonly PluginPermission[] = [
+  ...DOMAIN_PERMISSIONS,
+  ...HOST_PERMISSIONS,
+];
 
 // ─── Manifest ────────────────────────────────────────────────────────────────
 
@@ -146,7 +155,7 @@ export type PluginManifest = {
   /**
    * Declarative settings: rendered by the app from the Plugins panel; edits
    * write through as one object under the plugin's storage key `settings`
-   * (read with `ctx.storage.get("settings")`).
+   * (read with `ctx.services.storage.get("settings")`).
    */
   settings?: PluginFormField[];
   /**
@@ -154,7 +163,7 @@ export type PluginManifest = {
    * host runs each one AT LEAST every `everyMinutes` while the app is open,
    * with a catch-up run at launch when overdue — never an exact-time
    * guarantee, and nothing runs while the app is closed. The plugin binds
-   * the actual work at activate() via `ctx.schedule.on(id, run)`.
+   * the actual work at activate() via `ctx.services.schedules.bind(id, run)`.
    */
   schedules?: PluginScheduleDeclaration[];
   /**
@@ -437,7 +446,7 @@ export type PluginListView = {
  * Shared field attributes. `agentHidden` keeps a declared setting out of the
  * reading agent's settings catalog (the Plugins panel still shows it); text
  * fields with `inputMode: "password"` are agent-hidden automatically — and
- * real credentials belong in `ctx.secrets`, not in settings at all.
+ * real credentials belong in `ctx.services.secrets`, not in settings at all.
  *
  * `visibleWhen` renders the field only while another field of the same form
  * holds one of the given values (compared as strings). Hidden fields keep
@@ -515,7 +524,7 @@ export type PluginFormField = PluginFormFieldBase &
        * Options resolved at runtime instead of listed in the declaration —
        * for lists only the plugin can know (an account's voices, what a
        * local endpoint serves). Declared settings bind the source via
-       * `ctx.settings.provideOptions`; a plugin-authored form view carries
+       * `ctx.contributions.settingsOptions.register`; a plugin-authored form view carries
        * it as `resolveOptions`. While the source yields options the field
        * renders as a select (the stored value is kept selectable even when
        * the list no longer contains it); when it errors or yields none, the
@@ -539,13 +548,13 @@ export type PluginFormField = PluginFormFieldBase &
   | {
       /**
        * A credential field: host-rendered password input whose value lives in
-       * the ENCRYPTED secret store (`ctx.secrets`), never in the settings
+       * the ENCRYPTED secret store (`ctx.services.secrets`), never in the settings
        * object, the KV, or the agent's settings catalog. `id` IS the secret
-       * key the plugin reads back (`ctx.secrets.get(id)`); lowercase letters,
+       * key the plugin reads back (`ctx.services.secrets.get(id)`); lowercase letters,
        * digits, `_`/`-`. The field shows configured/empty state and a clear
        * affordance — it never echoes the stored value. Writes go through the
        * form's `secrets` adapter: declared settings get it from the host; a
-       * plugin-authored form view may supply its own bound to `ctx.secrets`.
+       * plugin-authored form view may supply its own bound to `ctx.services.secrets`.
        * A secret persists as soon as its input blurs, regardless of the
        * form's `submitMode` — credentials never sit in form state waiting
        * for a submit.
@@ -597,7 +606,7 @@ export type PluginFormView = {
    * the field's id and the form's CURRENT values (so a list may depend on a
    * sibling field, e.g. an endpoint URL) when the field becomes visible and
    * again when sibling values change. Declared settings forms get this wired
-   * by the host from `ctx.settings.provideOptions`.
+   * by the host from `ctx.contributions.settingsOptions.register`.
    */
   resolveOptions?: (
     fieldId: string,
@@ -607,7 +616,7 @@ export type PluginFormView = {
    * Storage adapter for this form's `secret` fields, keyed by field id.
    * Declared settings forms get one from the host, bound to the plugin's
    * encrypted secret namespace; a plugin-authored form may wire its own from
-   * `ctx.secrets`. Secret fields render disabled without an adapter.
+   * `ctx.services.secrets`. Secret fields render disabled without an adapter.
    */
   secrets?: {
     has(id: string): boolean | Promise<boolean>;
@@ -1028,21 +1037,24 @@ export type DomainSubscribe<E extends DomainEventType> = <K extends E>(
   },
 ) => PluginDisposable;
 
-/** Everything library management emits — books, collections, reading facts. */
-export type ShelfDomainEventType =
+/** Book, source, metadata, and collection changes. */
+export type LibraryDomainEventType =
   | "book.imported"
   | "book.metadataEdited"
   | "book.coverExtracted"
   | "book.merged"
-  | "book.opened"
   | "book.starred"
-  | "book.finished"
   | "book.removed"
   | "collection.created"
   | "collection.renamed"
   | "collection.removed"
   | "book.addedToCollection"
-  | "book.removedFromCollection"
+  | "book.removedFromCollection";
+
+/** Active-reading lifecycle, progress, verdicts, and time. */
+export type ReadingDomainEventType =
+  | "book.opened"
+  | "book.finished"
   | "book.progressed"
   | "book.timeRecorded";
 
@@ -1098,10 +1110,10 @@ export type PluginAsk = AskItem;
 
 export type PluginAnnotation = AnnotationItem;
 
-/** One book through the shelf's stats face: position, status, and time. */
+/** One book's reading position, status, and time. */
 export type PluginBookStats = BookStats;
 
-/** Whole-shelf aggregate over every book's recorded reading. */
+/** Aggregate over every book's recorded reading. */
 export type PluginStatsOverview = StatsOverview;
 
 /**
@@ -1127,94 +1139,75 @@ export type PluginBookContent = {
 
 // ─── Domain APIs ─────────────────────────────────────────────────────────────
 
-/**
- * Shelf — the whole of library management under one permission domain.
- * `shelf:read` grants the read surface; `shelf:write` additionally grants
- * the `write` faces (and implies read). Chapter text/TOC are content-layer
- * reads over the imported file (extraction runs on demand). Stats are
- * read-only for every actor: their domain events are recorded facts of
- * reader activity, not user-intent commands.
- */
-export type PluginShelfApi = {
-  books: {
-    list(): Promise<PluginBook[]>;
-    get(bookId: string): Promise<PluginBook | null>;
-    getToc(bookId: string): Promise<PluginChapterRef[]>;
-    /** Plain text of one chapter by its toc index; null when unavailable. */
-    getChapterText(bookId: string, chapterIndex: number): Promise<string | null>;
-    /** Present with `shelf:write`. Commands mirror the book domain-event verbs. */
-    write?: {
-      /** Import a real file; the result is a first-class book. */
-      import(input: { fileName: string; data: ArrayBuffer | Uint8Array }): Promise<PluginBook>;
+export type PluginLibraryDomain = {
+  queries: {
+    books: {
+      list(): Promise<PluginBook[]>;
+      get(bookId: string): Promise<PluginBook | null>;
+      getToc(bookId: string): Promise<PluginChapterRef[]>;
+      getChapterText(bookId: string, chapterIndex: number): Promise<string | null>;
+    };
+    collections: {
+      list(): Promise<PluginCollection[]>;
+      booksIn(collectionId: string): Promise<string[]>;
+    };
+  };
+  commands?: {
+    books: {
+      importBook(input: {
+        fileName: string;
+        data: ArrayBuffer | Uint8Array;
+      }): Promise<PluginBook>;
       editMetadata(bookId: string, patch: { title?: string; author?: string }): Promise<void>;
       setStarred(bookId: string, starred: boolean): Promise<void>;
-      /** The reader's "I finished this" verdict; sticky against further reading. */
-      setFinished(bookId: string, finished: boolean): Promise<void>;
-      /**
-       * Remove a book from the shelf — irreversible for the source file. The
-       * removal is logged with this plugin's origin.
-       */
       remove(bookId: string): Promise<void>;
-      /**
-       * Content-provider path — no file at all. Register a provider, then add
-       * virtual books bound to it: shelf entries whose content the plugin
-       * serves at open time (sections of HTML). The reader paginates,
-       * annotates, and tracks progress on them like any book. Virtual books
-       * are device-local (their content depends on this plugin being
-       * installed), so they stay outside the synced event log.
-       */
-      registerContentProvider(provider: {
-        id: string;
-        load(key: string): Promise<PluginBookContent>;
-      }): PluginDisposable;
       addVirtualBook(input: {
         providerId: string;
-        /** Stable identity within the provider (e.g. the feed URL). */
         key: string;
         title: string;
         author?: string;
       }): Promise<PluginBook>;
       removeVirtualBook(input: { providerId: string; key: string }): Promise<void>;
     };
-  };
-  /** The shelf's user-defined groups (single-membership today). */
-  collections: {
-    list(): Promise<PluginCollection[]>;
-    /** Ids of the books currently in a collection. */
-    booksIn(collectionId: string): Promise<string[]>;
-    /** Present with `shelf:write`. */
-    write?: {
+    collections: {
       create(name: string): Promise<PluginCollection>;
       rename(collectionId: string, name: string): Promise<void>;
-      /** Delete the collection; its books stay, ungrouped. */
       remove(collectionId: string): Promise<void>;
-      /** Assign books to a collection, or `null` to ungroup them. */
       assignBooks(bookIds: string[], collectionId: string | null): Promise<void>;
     };
   };
-  /** Positions, statuses, and active reading time — per book and aggregate. */
-  stats: {
-    forBook(bookId: string): Promise<PluginBookStats | null>;
-    list(): Promise<PluginBookStats[]>;
-    /** Whole-shelf aggregate: total time, per-day time, status counts. */
-    overview(): Promise<PluginStatsOverview>;
+  events: { subscribe: DomainSubscribe<LibraryDomainEventType> };
+};
+
+export type PluginReadingDomain = {
+  queries: {
+    stats: {
+      forBook(bookId: string): Promise<PluginBookStats | null>;
+      list(): Promise<PluginBookStats[]>;
+      overview(): Promise<PluginStatsOverview>;
+    };
   };
-  on: DomainSubscribe<ShelfDomainEventType>;
+  commands?: {
+    setFinished(bookId: string, finished: boolean): Promise<void>;
+    openBook(bookId: string): void;
+    goTo(target: { bookId?: string; cfi?: string; href?: string }): void;
+  };
+  events: { subscribe: DomainSubscribe<ReadingDomainEventType> };
 };
 
 /**
  * Annotations — highlights, notes, and asks. Asks are read-only: they are the
  * agent runtime's passive traces, not a plugin-writable kind.
  */
-export type PluginAnnotationsApi = {
-  list(filter?: {
-    bookId?: string;
-    kind?: "highlight" | "note" | "ask";
-    query?: string;
-  }): Promise<PluginAnnotation[]>;
-  on: DomainSubscribe<AnnotationDomainEventType>;
-  /** Present with `annotations:write`. */
-  write?: {
+export type PluginAnnotationsDomain = {
+  queries: {
+    list(filter?: {
+      bookId?: string;
+      kind?: "highlight" | "note" | "ask";
+      query?: string;
+    }): Promise<PluginAnnotation[]>;
+  };
+  commands?: {
     createHighlight(input: {
       bookId: string;
       text: string;
@@ -1235,6 +1228,7 @@ export type PluginAnnotationsApi = {
     updateNote(noteId: string, body: string): Promise<void>;
     removeNote(noteId: string): Promise<void>;
   };
+  events: { subscribe: DomainSubscribe<AnnotationDomainEventType> };
 };
 
 /**
@@ -1242,13 +1236,37 @@ export type PluginAnnotationsApi = {
  * thread per book, plus user-created global threads). Writes stay with the
  * chat runtime; its dual-write is what feeds `on`.
  */
-export type PluginConversationsApi = {
-  /** The book's persistent thread, oldest first; empty when none. */
-  getBookThread(bookId: string): Promise<PluginChatMessage[]>;
-  /** User-created global (Context page) threads. */
-  listThreads(): Promise<PluginThreadSummary[]>;
-  getThread(threadId: string): Promise<PluginChatMessage[]>;
-  on: DomainSubscribe<ConversationDomainEventType>;
+export type PluginConversationsDomain = {
+  queries: {
+    getBookThread(bookId: string): Promise<PluginChatMessage[]>;
+    listThreads(): Promise<PluginThreadSummary[]>;
+    getThread(threadId: string): Promise<PluginChatMessage[]>;
+  };
+  events: { subscribe: DomainSubscribe<ConversationDomainEventType> };
+};
+
+export type PluginSettingsDomain = {
+  queries: {
+    discover(query?: SettingsQuery): Promise<SettingCatalogEntry[]>;
+    read(path: string, target?: SettingsQueryTarget): Promise<SettingReadResult>;
+  };
+  commands: {
+    update(changes: SettingChange[]): Promise<SettingsUpdateResult>;
+  };
+  events: {
+    subscribe(
+      handler: (event: SettingsChangedEvent) => void,
+      options?: { ignoreSelf?: boolean },
+    ): PluginDisposable;
+  };
+};
+
+export type PluginDomains = {
+  library?: PluginLibraryDomain;
+  reading?: PluginReadingDomain;
+  annotations?: PluginAnnotationsDomain;
+  conversations?: PluginConversationsDomain;
+  settings: PluginSettingsDomain;
 };
 
 // ─── Context handed to activate() ────────────────────────────────────────────
@@ -1307,149 +1325,69 @@ export type PluginDocumentCollection = {
   }): Promise<PluginDocument<T>[]>;
 };
 
-/**
- * Everything a plugin can reach. Capability groups guarded by a permission
- * are absent unless the manifest declares it — API-level gating against
- * accidental overreach (the trust boundary is installation, see
- * docs/plugin-system.md §2). Within a data domain, `write` implies read.
- */
-export type PluginContext = {
-  readonly manifest: Readonly<PluginManifest>;
-  readonly appVersion: string;
-  /**
-   * The app UI's current locale (BCP-47, e.g. "zh-Hans"). Tracks the user's
-   * language setting live — read it at use time, don't copy it at activate().
-   */
-  readonly locale: string;
-  /** Namespaced key-value storage, persisted with the app's local data. */
-  storage: PluginStorage;
-  /**
-   * Encrypted credential storage, namespaced per plugin — for API tokens and
-   * similar. Values live in the app's encrypted secret store: outside SQLite,
-   * outside backups, invisible to other plugins. Like the KV, they survive
-   * uninstall so a reinstall finds its credentials again. Async by design —
-   * read at use time, not at activate().
-   */
-  secrets: {
-    get(key: string): Promise<string | null>;
-    set(key: string, value: string): Promise<void>;
-    remove(key: string): Promise<void>;
+export type PluginContributions = {
+  selectionActions: {
+    register(action: PluginSelectionAction): PluginDisposable;
   };
-  ui: {
-    registerSelectionAction(action: PluginSelectionAction): PluginDisposable;
-    registerHeaderAction(action: PluginHeaderAction): PluginDisposable;
-    registerCommand(command: PluginCommand): PluginDisposable;
-    showToast(message: string): void;
-    /** Open the host save flow for a plugin-generated text file. False means cancelled. */
-    exportFile(file: PluginExportFile): Promise<boolean>;
+  headerActions: {
+    register(action: PluginHeaderAction): PluginDisposable;
   };
-  /**
-   * Bind the work for a schedule declared in `manifest.schedules`. The host
-   * owns all timing (see the manifest field's contract); overlapping runs of
-   * one schedule are skipped, and a failed run simply waits for the next
-   * cadence. Binding an undeclared id throws.
-   */
-  schedule: {
-    on(scheduleId: string, run: () => void | Promise<void>): PluginDisposable;
+  commands: {
+    register(command: PluginCommand): PluginDisposable;
   };
-  /** Product and plugin-owned settings through the shared Settings Domain. */
-  settings: {
-    discover(query?: SettingsQuery): Promise<SettingCatalogEntry[]>;
-    read(path: string, target?: SettingsQueryTarget): Promise<SettingReadResult>;
-    update(changes: SettingChange[]): Promise<SettingsUpdateResult>;
-    onChange(
-      handler: (event: SettingsChangedEvent) => void,
-      options?: { ignoreSelf?: boolean },
-    ): PluginDisposable;
-    /**
-     * Provide the options of a declared select field marked
-     * `dynamicOptions: true` (binding any other field throws). Called with
-     * the settings form's current values; return the selectable options, or
-     * an empty list when they cannot be known (no credentials yet,
-     * unreachable endpoint) — the host then falls back to free text input
-     * for the field. Failures count as empty; never let a listing error
-     * take the setting hostage.
-     */
-    provideOptions(
+  settingsOptions: {
+    register(
       fieldId: string,
       provider: (
         values: PluginFormValues,
       ) => PluginSelectOption[] | Promise<PluginSelectOption[]>,
     ): PluginDisposable;
   };
-  /**
-   * Read-aloud voice providers. Registration is permission-free — a provider
-   * only answers the host's synthesize calls with audio bytes and never
-   * touches the speaker; whatever it needs to produce them (network,
-   * secrets) is already gated by its own permissions.
-   */
-  audio: {
-    registerVoiceProvider(provider: PluginVoiceProvider): PluginDisposable;
+  voiceProviders: {
+    register(provider: PluginVoiceProvider): PluginDisposable;
   };
-  /**
-   * Ambient reader control (user-visible, no data exposure): open a book,
-   * jump to a CFI or chapter href. `goTo` without `bookId` targets the open
-   * book; with one, it opens that book first.
-   */
-  reader: {
-    openBook(bookId: string): void;
-    goTo(target: { bookId?: string; cfi?: string; href?: string }): void;
-    /** `reader:modes` — bundled plugins may register a host-rendered reader mode. */
-    modes?: {
-      register(mode: PluginReaderMode): PluginDisposable;
-    };
+  contentProviders: {
+    register(provider: {
+      id: string;
+      load(key: string): Promise<PluginBookContent>;
+    }): PluginDisposable;
   };
-  /** Session facts of the open reader (ambient, permission-free). */
+  readerModes?: {
+    register(mode: PluginReaderMode): PluginDisposable;
+  };
+  agentTools?: {
+    register(tool: PluginToolDefinition): PluginDisposable;
+  };
+};
+
+export type PluginHostServices = {
+  storage: PluginStorage;
+  secrets: {
+    get(key: string): Promise<string | null>;
+    set(key: string, value: string): Promise<void>;
+    remove(key: string): Promise<void>;
+  };
+  ui: {
+    showToast(message: string): void;
+    exportFile(file: PluginExportFile): Promise<boolean>;
+  };
+  schedules: {
+    bind(scheduleId: string, run: () => void | Promise<void>): PluginDisposable;
+  };
   session: {
-    on<K extends PluginSessionEventName>(
+    subscribe<K extends PluginSessionEventName>(
       event: K,
       handler: (payload: PluginSessionEventMap[K]) => void,
     ): PluginDisposable;
   };
-  /** `shelf:read` or `shelf:write` — books, collections, and reading stats. */
-  shelf?: PluginShelfApi;
-  /** `annotations:read` or `annotations:write`. */
-  annotations?: PluginAnnotationsApi;
-  /** `conversations:read`. */
-  conversations?: PluginConversationsApi;
-  /** `agent:tools` — extend the reading agent. */
-  agent?: {
-    registerTool(tool: PluginToolDefinition): PluginDisposable;
-  };
-  /**
-   * `service:network` — fetch through the host's HTTP client (no CORS;
-   * https + localhost scope). The request crosses a realm boundary, so it
-   * must flatten to plain data: `string`/`URL`/`Request` inputs and
-   * `Headers` are handled for you; bodies must be strings or binary
-   * (`ArrayBuffer`/typed array) — `FormData`, `Blob`, and streams are not
-   * supported and fail loudly. An `AbortSignal` is honored locally: your
-   * await rejects on abort/timeout with fetch semantics, while the
-   * underlying host request runs to completion unobserved.
-   */
   network?: {
     fetch(input: string | URL | Request, init?: RequestInit): Promise<Response>;
   };
-  /**
-   * `service:llm` — a one-shot model call on the user's configured account
-   * (fast tier by default) — no thread, no memory, no tools. Rejects when AI
-   * is not configured.
-   *
-   * With `schema` (JSON Schema: type/properties/required/items/enum) the host
-   * runs structured mode: it instructs the model to answer with JSON only,
-   * parses and validates the reply, retries once with the violation list, and
-   * resolves with the parsed object — the plugin never sees raw model text.
-   *
-   * With `onText` the reply streams: the callback receives text deltas as
-   * they arrive and the promise still resolves with the full text. Streaming
-   * and `schema` are mutually exclusive.
-   */
   llm?: {
     ask(input: {
       prompt: string;
       system?: string;
-      /** Model tier on the user's account; defaults to "fast". */
       model?: "fast" | "smart";
-      /** Streams text deltas as they arrive; the promise resolves the full text. */
       onText?: (delta: string) => void;
     }): Promise<string>;
     ask(input: {
@@ -1459,10 +1397,19 @@ export type PluginContext = {
       schema: Record<string, unknown>;
     }): Promise<unknown>;
   };
-  /** `service:clipboard`. */
   clipboard?: {
     writeText(text: string): Promise<void>;
   };
+};
+
+/** The actor-scoped capability view handed to `activate()`. */
+export type PluginContext = {
+  readonly manifest: Readonly<PluginManifest>;
+  readonly appVersion: string;
+  readonly locale: string;
+  domains: PluginDomains;
+  contributions: PluginContributions;
+  services: PluginHostServices;
 };
 
 /** The default export of a plugin's entry module. */

@@ -9,7 +9,7 @@ export function feedToolLimit(value: unknown): number {
 }
 
 export function registerAgentTools(ctx: RssPluginContext): void {
-  ctx.agent.registerTool({
+  ctx.contributions.agentTools.register({
     name: "list_feeds",
     label: "RSS subscriptions",
     contexts: ["global"],
@@ -42,7 +42,7 @@ export function registerAgentTools(ctx: RssPluginContext): void {
     },
   });
 
-  ctx.agent.registerTool({
+  ctx.contributions.agentTools.register({
     name: "subscribe_feed",
     label: "Subscribe to RSS",
     contexts: ["global"],
@@ -72,7 +72,7 @@ export function registerAgentTools(ctx: RssPluginContext): void {
     },
   });
 
-  ctx.agent.registerTool({
+  ctx.contributions.agentTools.register({
     name: "refresh_feed",
     label: "Refresh RSS feed",
     contexts: ["global"],

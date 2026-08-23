@@ -1,5 +1,5 @@
 /**
- * Plugin → reader navigation channel: `ctx.reader.goTo` dispatches here; App
+ * Plugin → reader navigation channel: the Reading Domain dispatches here; App
  * consumes it (opening the target book first when needed) and forwards to the
  * reader session's chapter/annotation navigation. Same atom-bridge pattern as
  * the chat's open-book requests.

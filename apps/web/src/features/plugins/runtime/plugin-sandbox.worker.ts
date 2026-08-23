@@ -104,7 +104,7 @@ function encode(value: unknown): unknown {
  * `PluginDisposable` SYNCHRONOUSLY — and a synchronous return cannot cross a
  * realm. So every call hands back something that is both awaitable and
  * disposable: `await ctx.books.list()` resolves to the data, and
- * `ctx.ui.registerCommand(...).dispose()` works on the object it got back, with
+ * `ctx.contributions.commands.register(...).dispose()` works on the object it got back, with
  * the release travelling once the host answers.
  */
 type CallResult = Promise<unknown> & { dispose: () => void };
@@ -172,7 +172,8 @@ function buildContext(
   // Storage: reads answer from the snapshot the host shipped at boot, so the
   // plugin-facing API stays synchronous. Writes update it locally and tell the
   // host, mirroring how `localKV` behaves on the other side.
-  ctx.storage = {
+  const services = ctx.services as Record<string, unknown>;
+  services.storage = {
     get<T = unknown>(key: string): T | null {
       const raw = storageSnapshot.get(key);
       if (raw === undefined) return null;
@@ -194,28 +195,27 @@ function buildContext(
     // Host-side writes (settings page, agent) arrive as a `sync` patch and
     // then as this notification — in that order, so the mirror the handler
     // reads from is already fresh. The plugin's own writes do not echo.
-    onChange: (handler: () => void) => callHost("storage.onChange", [handler]),
+    onChange: (handler: () => void) =>
+      callHost("services.storage.onChange", [handler]),
     collection: (name: string) =>
-      remoteNamespace(`storage.collection(${name})`, collectionShape as ContextShape),
-  };
-
-  // `session` is skipped by the shape (its events are ambient, not a granted
-  // namespace), so it is proxied here — the handler crosses as an argument like
-  // any other function.
-  ctx.session = {
-    on: (event: string, handler: (payload: unknown) => void) =>
-      callHost("session.on", [event, handler]),
+      remoteNamespace(
+        `services.storage.collection(${name})`,
+        collectionShape as ContextShape,
+      ),
   };
 
   // `showToast` is fire-and-forget in the plugin API; don't hand back a promise.
-  const ui = ctx.ui as Record<string, unknown> | undefined;
+  const ui = services.ui as Record<string, unknown> | undefined;
   if (ui && typeof ui.showToast === "function") {
     const call = ui.showToast as (message: string) => Promise<unknown>;
     ui.showToast = (message: string) => {
       void call(message);
     };
   }
-  const reader = ctx.reader as Record<string, unknown> | undefined;
+  const reading = (ctx.domains as Record<string, unknown> | undefined)?.reading as
+    | Record<string, unknown>
+    | undefined;
+  const reader = reading?.commands as Record<string, unknown> | undefined;
   for (const method of ["openBook", "goTo"]) {
     if (reader && typeof reader[method] === "function") {
       const call = reader[method] as (...args: unknown[]) => Promise<unknown>;
@@ -230,7 +230,7 @@ function buildContext(
   // input, a Headers instance, an AbortSignal — so it is flattened to plain
   // data here; the response comes back flattened (body as ArrayBuffer, so
   // binary payloads survive) and is rebuilt into a real Response.
-  const network = ctx.network as Record<string, unknown> | undefined;
+  const network = services.network as Record<string, unknown> | undefined;
   if (network && typeof network.fetch === "function") {
     // Statuses the Response constructor refuses to pair with a body.
     const NULL_BODY_STATUSES = new Set([101, 204, 205, 304]);

@@ -98,9 +98,13 @@ function resolveMethod(
     Object.prototype.hasOwnProperty.call(target, key)
       ? (target as Record<string, unknown>)[key]
       : undefined;
-  const collection = method.match(/^storage\.collection\(([^)]*)\)\.(\w+)$/);
+  const collection = method.match(
+    /^services\.storage\.collection\(([^)]*)\)\.(\w+)$/,
+  );
   if (collection) {
-    const api = ctx.storage.collection(collection[1]) as unknown as Record<string, unknown>;
+    const api = ctx.services.storage.collection(
+      collection[1],
+    ) as unknown as Record<string, unknown>;
     const fn = step(api, collection[2]);
     return typeof fn === "function" ? (fn as (...a: unknown[]) => unknown).bind(api) : null;
   }
@@ -125,14 +129,14 @@ function resolveMethod(
  * that fails its own capability check. Deriving it means the sandbox exposes
  * exactly what `buildPluginContext` decided to grant, no more and no less.
  */
-type ContextShape = { [key: string]: "fn" | ContextShape };
+export type ContextShape = { [key: string]: "fn" | ContextShape };
 
 /** Data (not callables) the Worker mirrors locally to keep sync reads sync. */
-const SHAPE_SKIP = new Set(["manifest", "appVersion", "locale", "storage", "session"]);
+const SHAPE_SKIP = new Set(["manifest", "appVersion", "locale"]);
 
 function describeShape(value: unknown, depth = 0): ContextShape {
   const shape: ContextShape = {};
-  if (!value || typeof value !== "object" || depth > 3) return shape;
+  if (!value || typeof value !== "object" || depth > 8) return shape;
   for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
     if (typeof entry === "function") shape[key] = "fn";
     else if (entry && typeof entry === "object") shape[key] = describeShape(entry, depth + 1);
@@ -140,7 +144,7 @@ function describeShape(value: unknown, depth = 0): ContextShape {
   return shape;
 }
 
-function describeContext(ctx: PluginContext): ContextShape {
+export function describeContext(ctx: PluginContext): ContextShape {
   const shape: ContextShape = {};
   for (const [key, value] of Object.entries(ctx as unknown as Record<string, unknown>)) {
     if (SHAPE_SKIP.has(key)) continue;
@@ -150,7 +154,10 @@ function describeContext(ctx: PluginContext): ContextShape {
   // `storage.collection()` is a factory, so its methods are described from a
   // throwaway instance rather than discovered on the context itself.
   try {
-    shape.__collection = describeShape(ctx.storage.collection("probe"), 1);
+    shape.__collection = describeShape(
+      ctx.services.storage.collection("probe"),
+      1,
+    );
   } catch {
     shape.__collection = {};
   }
@@ -306,9 +313,9 @@ export function startPluginWorker(
 
         case "storage":
           if (message.op === "set" && message.value !== undefined) {
-            ctx.storage.set(message.key, JSON.parse(message.value));
+            ctx.services.storage.set(message.key, JSON.parse(message.value));
           } else if (message.op === "remove") {
-            ctx.storage.remove(message.key);
+            ctx.services.storage.remove(message.key);
           }
           return;
 

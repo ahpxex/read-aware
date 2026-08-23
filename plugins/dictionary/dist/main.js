@@ -74,11 +74,11 @@ function isTargetLanguage(value) {
 var LANGUAGE_KEY = "language";
 var LOOKUPS_COLLECTION = "lookups";
 function getTargetLanguage(ctx) {
-  const raw = ctx.storage.get(LANGUAGE_KEY);
+  const raw = ctx.services.storage.get(LANGUAGE_KEY);
   return isTargetLanguage(raw) ? raw : "auto";
 }
 function saveTargetLanguage(ctx, language) {
-  ctx.storage.set(LANGUAGE_KEY, language);
+  ctx.services.storage.set(LANGUAGE_KEY, language);
 }
 function resolveLanguageName(ctx, language) {
   const concrete = language === "auto" ? isTargetLanguage(ctx.locale) ? ctx.locale : "en" : language;
@@ -142,7 +142,7 @@ function cacheId(term, languageName, context) {
 async function lookUpTerm(ctx, input) {
   const term = input.term.trim();
   const languageName = resolveLanguageName(ctx, input.language ?? getTargetLanguage(ctx));
-  const cache = ctx.storage.collection(LOOKUPS_COLLECTION);
+  const cache = ctx.services.storage.collection(LOOKUPS_COLLECTION);
   const id = cacheId(term, languageName, input.context);
   const cached = await cache.get(id);
   if (cached?.data?.entry && Array.isArray(cached.data.entry.senses)) {
@@ -156,7 +156,7 @@ async function lookUpTerm(ctx, input) {
     "Keep the headword itself in its original language."
   ].filter(Boolean).join(`
 `);
-  const raw = await ctx.llm.ask({
+  const raw = await ctx.services.llm.ask({
     prompt,
     system: SYSTEM_PROMPT,
     schema: ENTRY_SCHEMA
@@ -175,7 +175,7 @@ async function lookUpTerm(ctx, input) {
 // src/words.ts
 var WORDS_COLLECTION = "words";
 function wordCollection(ctx) {
-  return ctx.storage.collection(WORDS_COLLECTION);
+  return ctx.services.storage.collection(WORDS_COLLECTION);
 }
 async function saveWord(ctx, input) {
   const term = input.text.trim().slice(0, 60);
@@ -229,13 +229,13 @@ async function changeWordLanguage(ctx, doc, targetLanguage) {
 // src/agent-tools.ts
 function registerAgentTools(ctx) {
   let currentBookTitle;
-  ctx.session.on("book-opened", ({ book }) => {
+  ctx.services.session.subscribe("book-opened", ({ book }) => {
     currentBookTitle = book.title;
   });
-  ctx.session.on("book-closed", () => {
+  ctx.services.session.subscribe("book-closed", () => {
     currentBookTitle = undefined;
   });
-  ctx.agent.registerTool({
+  ctx.contributions.agentTools.register({
     name: "lookup_word",
     label: "Look up word",
     contexts: ["book", "global"],
@@ -277,7 +277,7 @@ function registerAgentTools(ctx) {
       };
     }
   });
-  ctx.agent.registerTool({
+  ctx.contributions.agentTools.register({
     name: "get_vocabulary",
     label: "Saved words",
     contexts: ["book", "global"],
@@ -304,7 +304,7 @@ function registerAgentTools(ctx) {
       })).filter((word) => !needle || word.term.toLowerCase().includes(needle) || word.definition.toLowerCase().includes(needle)).slice(0, limit);
     }
   });
-  ctx.agent.registerTool({
+  ctx.contributions.agentTools.register({
     name: "save_word",
     label: "Save word",
     contexts: ["book", "global"],
@@ -339,10 +339,10 @@ function registerAgentTools(ctx) {
 
 // src/types.ts
 function assertPluginCapabilities(ctx) {
-  if (!ctx.llm) {
+  if (!ctx.services.llm) {
     throw new Error('Dictionary requires the "service:llm" permission');
   }
-  if (!ctx.agent) {
+  if (!ctx.contributions.agentTools) {
     throw new Error('Dictionary requires the "agent:tools" permission');
   }
 }
@@ -377,7 +377,7 @@ function savedWordsCsv(saved) {
 `)}`;
 }
 async function exportSavedWords(ctx, saved) {
-  const exported = await ctx.ui.exportFile({
+  const exported = await ctx.services.ui.exportFile({
     filename: `readaware-dictionary-${localDateStamp(new Date)}.csv`,
     content: savedWordsCsv(saved),
     mimeType: "text/csv;charset=utf-8"
@@ -486,7 +486,7 @@ async function notebookView(ctx) {
 var plugin = {
   activate(ctx) {
     assertPluginCapabilities(ctx);
-    ctx.ui.registerSelectionAction({
+    ctx.contributions.selectionActions.register({
       id: "lookup-save",
       title: "Look up",
       icon: "book-bookmark",
@@ -508,7 +508,7 @@ var plugin = {
         };
       }
     });
-    ctx.ui.registerHeaderAction({
+    ctx.contributions.headerActions.register({
       id: "vocabulary",
       title: "Dictionary",
       icon: "book-bookmark",
@@ -516,7 +516,7 @@ var plugin = {
       presentation: "page",
       view: () => notebookView(ctx)
     });
-    ctx.ui.registerCommand({
+    ctx.contributions.commands.register({
       id: "open",
       title: "Dictionary: saved words",
       icon: "book-bookmark",

@@ -633,7 +633,7 @@ describe("agent plugin settings", () => {
       { path: "plugins.rss-reader.articleLimit", value: 50 },
     ]);
     expect(result.changed).toHaveLength(1);
-    // The same object the plugin reads via ctx.storage.get("settings").
+    // The same object the plugin reads through its Storage host service.
     expect(readPluginSettingsValues("rss-reader").articleLimit).toBe(50);
   });
 

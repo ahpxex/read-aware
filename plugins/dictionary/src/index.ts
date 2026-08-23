@@ -16,7 +16,7 @@ const plugin: PluginModule = {
   activate(ctx) {
     assertPluginCapabilities(ctx);
 
-    ctx.ui.registerSelectionAction({
+    ctx.contributions.selectionActions.register({
       id: "lookup-save",
       title: "Look up",
       icon: "book-bookmark",
@@ -38,7 +38,7 @@ const plugin: PluginModule = {
       },
     });
 
-    ctx.ui.registerHeaderAction({
+    ctx.contributions.headerActions.register({
       // Kept stable so existing pinned-layout preferences continue to resolve.
       id: "vocabulary",
       title: "Dictionary",
@@ -48,7 +48,7 @@ const plugin: PluginModule = {
       view: () => notebookView(ctx),
     });
 
-    ctx.ui.registerCommand({
+    ctx.contributions.commands.register({
       id: "open",
       title: "Dictionary: saved words",
       icon: "book-bookmark",

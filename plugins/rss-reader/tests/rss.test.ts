@@ -31,7 +31,13 @@ function memoryStorage(kv: Record<string, unknown> = {}) {
         [...documents.entries()].map(([id, data]) => ({ id, data, updatedAt: "" })),
     }),
   };
-  return { storage: storage as unknown as PluginContext["storage"], kv, documents };
+  return {
+    services: {
+      storage: storage as unknown as PluginContext["services"]["storage"],
+    },
+    kv,
+    documents,
+  };
 }
 
 const RSS_FIXTURE = `<?xml version="1.0" encoding="UTF-8"?>
@@ -133,7 +139,7 @@ describe("RSS plugin data", () => {
   });
 
   test("reads stored subscriptions while dropping malformed documents", async () => {
-    const { storage, documents } = memoryStorage();
+    const { services, documents } = memoryStorage();
     documents.set("https://example.com/feed.xml", {
       url: "https://example.com/feed.xml",
       title: "Example",
@@ -144,7 +150,7 @@ describe("RSS plugin data", () => {
     });
     documents.set("broken", { title: "Broken" });
 
-    expect(await loadFeeds({ storage })).toEqual([
+    expect(await loadFeeds({ services })).toEqual([
       {
         url: "https://example.com/feed.xml",
         title: "Example",
@@ -173,7 +179,7 @@ describe("RSS plugin data", () => {
       lastFetched: "2026-07-24T00:00:00.000Z",
       articles: [],
     };
-    const { storage, kv, documents } = memoryStorage({
+    const { services, kv, documents } = memoryStorage({
       feeds: [legacyFeed, { title: "Broken" }],
     });
     documents.set("https://kept.example/feed", {
@@ -182,7 +188,7 @@ describe("RSS plugin data", () => {
       title: "Already migrated",
     });
 
-    await migrateLegacyFeeds({ storage });
+    await migrateLegacyFeeds({ services });
 
     expect(kv.feeds).toBeUndefined();
     expect(documents.size).toBe(2);
@@ -191,7 +197,7 @@ describe("RSS plugin data", () => {
     );
 
     // Running again must not resurrect the KV or duplicate documents.
-    await migrateLegacyFeeds({ storage });
+    await migrateLegacyFeeds({ services });
     expect(documents.size).toBe(2);
   });
 

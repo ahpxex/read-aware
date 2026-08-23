@@ -23,20 +23,24 @@ export type SaveWordInput = {
 
 /** The engine (lookup.ts) runs on the one-shot LLM service. */
 export type DictionaryContext = PluginContext & {
-  llm: NonNullable<PluginContext["llm"]>;
+  services: PluginContext["services"] & {
+    llm: NonNullable<PluginContext["services"]["llm"]>;
+  };
 };
 
 export type DictionaryPluginContext = DictionaryContext & {
-  agent: NonNullable<PluginContext["agent"]>;
+  contributions: PluginContext["contributions"] & {
+    agentTools: NonNullable<PluginContext["contributions"]["agentTools"]>;
+  };
 };
 
 export function assertPluginCapabilities(
   ctx: PluginContext,
 ): asserts ctx is DictionaryPluginContext {
-  if (!ctx.llm) {
+  if (!ctx.services.llm) {
     throw new Error('Dictionary requires the "service:llm" permission');
   }
-  if (!ctx.agent) {
+  if (!ctx.contributions.agentTools) {
     throw new Error('Dictionary requires the "agent:tools" permission');
   }
 }

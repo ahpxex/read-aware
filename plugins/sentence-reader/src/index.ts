@@ -4,7 +4,7 @@ import { segmentTextUnits } from "./segment";
 
 const plugin: PluginModule = {
   activate(ctx) {
-    const modes = ctx.reader.modes;
+    const modes = ctx.contributions.readerModes;
     if (!modes) throw new Error("Sentence Reader requires the reader:modes capability");
 
     modes.register({

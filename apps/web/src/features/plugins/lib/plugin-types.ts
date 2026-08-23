@@ -29,7 +29,7 @@ export function contributionKey(pluginId: string, id: string): ContributionKey {
 /**
  * i18n catalog key for a permission's one-sentence description. Permission
  * ids contain ":" (i18next's namespace separator), so catalog keys use the
- * "_" form: `shelf:read` → `settings.permission.shelf_read`.
+ * "_" form: `library:read` → `settings.permission.library_read`.
  */
 export function permissionLabelKey(permission: string): string {
   return `settings.permission.${permission.replace(/:/g, "_")}`;

@@ -146,7 +146,7 @@ export function feedDetailView(
     icon: "article",
     onSelect: async () => {
       const healed = await ensureBook(ctx, feed);
-      ctx.reader.goTo({ bookId: healed.bookId, href: article.id });
+      ctx.domains.reading.commands.goTo({ bookId: healed.bookId, href: article.id });
       return { close: true };
     },
   }));
@@ -175,7 +175,7 @@ export function feedDetailView(
         icon: "book-open",
         run: async () => {
           const healed = await ensureBook(ctx, feed);
-          ctx.reader.openBook(healed.bookId);
+          ctx.domains.reading.commands.openBook(healed.bookId);
           return { close: true };
         },
       },
@@ -198,7 +198,7 @@ export function feedDetailView(
         icon: "trash",
         variant: "danger",
         run: async () => {
-          await ctx.shelf.books.write.removeVirtualBook({
+          await ctx.domains.library.commands.books.removeVirtualBook({
             providerId: PROVIDER_ID,
             key: feed.url,
           });

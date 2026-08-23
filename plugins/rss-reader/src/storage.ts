@@ -9,7 +9,9 @@ import type { FeedArticle, FeedSubscription } from "./types";
 
 const COLLECTION = "feeds";
 
-type StorageCtx = Pick<PluginContext, "storage">;
+type StorageCtx = {
+  services: Pick<PluginContext["services"], "storage">;
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -54,7 +56,7 @@ export function readFeed(value: unknown): FeedSubscription | null {
 
 /** All subscriptions, newest write first (the collection's natural order). */
 export async function loadFeeds(ctx: StorageCtx): Promise<FeedSubscription[]> {
-  const documents = await ctx.storage.collection(COLLECTION).list<unknown>({ limit: 1000 });
+  const documents = await ctx.services.storage.collection(COLLECTION).list<unknown>({ limit: 1000 });
   return documents
     .map((document) => readFeed(document.data))
     .filter((feed): feed is FeedSubscription => feed !== null);
@@ -64,16 +66,16 @@ export async function getFeed(
   ctx: StorageCtx,
   url: string,
 ): Promise<FeedSubscription | null> {
-  const document = await ctx.storage.collection(COLLECTION).get<unknown>(url);
+  const document = await ctx.services.storage.collection(COLLECTION).get<unknown>(url);
   return document ? readFeed(document.data) : null;
 }
 
 export async function upsertFeed(ctx: StorageCtx, feed: FeedSubscription): Promise<void> {
-  await ctx.storage.collection(COLLECTION).put(feed.url, feed, { bookId: feed.bookId });
+  await ctx.services.storage.collection(COLLECTION).put(feed.url, feed, { bookId: feed.bookId });
 }
 
 export async function removeFeed(ctx: StorageCtx, url: string): Promise<void> {
-  await ctx.storage.collection(COLLECTION).delete(url);
+  await ctx.services.storage.collection(COLLECTION).delete(url);
 }
 
 /**
@@ -82,7 +84,7 @@ export async function removeFeed(ctx: StorageCtx, url: string): Promise<void> {
  * only after every entry landed.
  */
 export async function migrateLegacyFeeds(ctx: StorageCtx): Promise<void> {
-  const legacy = ctx.storage.get<unknown>("feeds");
+  const legacy = ctx.services.storage.get<unknown>("feeds");
   if (!Array.isArray(legacy)) return;
   for (const raw of legacy) {
     const feed = readFeed(raw);
@@ -90,5 +92,5 @@ export async function migrateLegacyFeeds(ctx: StorageCtx): Promise<void> {
     const existing = await getFeed(ctx, feed.url);
     if (!existing) await upsertFeed(ctx, feed);
   }
-  ctx.storage.remove("feeds");
+  ctx.services.storage.remove("feeds");
 }

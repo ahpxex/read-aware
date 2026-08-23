@@ -35,7 +35,7 @@ export async function exportSavedWords(
   ctx: PluginContext,
   saved: PluginDocument<SavedWord>[],
 ): Promise<{ toast: string } | undefined> {
-  const exported = await ctx.ui.exportFile({
+  const exported = await ctx.services.ui.exportFile({
     filename: `readaware-dictionary-${localDateStamp(new Date())}.csv`,
     content: savedWordsCsv(saved),
     mimeType: "text/csv;charset=utf-8",

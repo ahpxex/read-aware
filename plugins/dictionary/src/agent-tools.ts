@@ -14,6 +14,28 @@ export function registerAgentTools(ctx: DictionaryPluginContext): void {
     currentBookTitle = undefined;
   });
 
+  ctx.contributions.agentRetrievalProviders.register({
+    id: "saved-vocabulary",
+    label: "Search saved vocabulary",
+    description:
+      "Search words the reader saved in Dictionary, including their definitions and source passages.",
+    contexts: ["book", "global"],
+    retrieve: async ({ query, limit }) => {
+      const needle = query.trim().toLowerCase();
+      const saved = await wordCollection(ctx).list<SavedWord>();
+      return saved
+        .map(({ data: word }) => ({
+          title: word.term,
+          content: [definitionOf(word.entry), word.context].filter(Boolean).join(" — "),
+          location: word.bookTitle,
+        }))
+        .filter((item) =>
+          `${item.title} ${item.content}`.toLowerCase().includes(needle)
+        )
+        .slice(0, limit);
+    },
+  });
+
   ctx.contributions.agentTools.register({
     name: "lookup_word",
     label: "Look up word",

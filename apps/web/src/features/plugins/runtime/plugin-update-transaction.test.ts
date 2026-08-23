@@ -14,6 +14,9 @@ function transaction(log: string[], fail?: string) {
     verifyCandidate: () => step("verify-candidate"),
     commitFiles: () => step("commit"),
     verifyCommit: () => step("verify-commit"),
+    quiescePrevious: () => step("quiesce"),
+    migrateCandidate: () => step("migrate"),
+    promoteCandidate: () => step("promote"),
     accept: () => step("accept"),
     retirePrevious: () => step("retire"),
     cleanupCandidate: () => step("cleanup"),
@@ -34,6 +37,9 @@ describe("plugin update transaction", () => {
       "verify-candidate",
       "commit",
       "verify-commit",
+      "quiesce",
+      "migrate",
+      "promote",
       "accept",
       "retire",
     ]);
@@ -70,6 +76,26 @@ describe("plugin update transaction", () => {
       "verify-candidate",
       "commit",
       "verify-commit",
+      "cleanup",
+      "rollback-files",
+      "restore-data",
+      "restart-previous",
+    ]);
+  });
+
+  test("a migration failure restores files, data, and the quiesced runtime", async () => {
+    const log: string[] = [];
+
+    await expect(runPluginUpdateTransaction(transaction(log, "migrate"))).rejects.toThrow(
+      "migrate failed",
+    );
+    expect(log).toEqual([
+      "start",
+      "verify-candidate",
+      "commit",
+      "verify-commit",
+      "quiesce",
+      "migrate",
       "cleanup",
       "rollback-files",
       "restore-data",

@@ -14,6 +14,9 @@ export const CONTRIBUTION_CATALOG = {
   contentProviders: { version: "1.0.0", permission: null },
   readerModes: { version: "1.0.0", permission: "reader:modes" },
   agentTools: { version: "1.0.0", permission: "agent:tools" },
+  agentContextProviders: { version: "1.0.0", permission: "agent:context" },
+  agentRetrievalProviders: { version: "1.0.0", permission: "agent:retrieval" },
+  memoryCandidateProviders: { version: "1.0.0", permission: "agent:memory" },
   themes: { version: "1.0.0", permission: "ui:themes" },
   fonts: { version: "1.0.0", permission: "ui:themes" },
 } as const;

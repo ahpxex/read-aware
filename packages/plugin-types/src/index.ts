@@ -118,6 +118,8 @@ export type {
  *   install consent must surface it.
  * - Settings access is declared separately by exact path in `settingsAccess`.
  * - `agent:tools` — register tools on the reading agent.
+ * - `agent:context`, `agent:retrieval`, `agent:memory` — contribute bounded
+ *   reference data, searchable sources, or host-reviewed memory candidates.
  * - `service:*` — platform and AI services (network, one-shot LLM,
  *   clipboard).
  *
@@ -150,6 +152,12 @@ export type PluginManifest = {
   id: string;
   name: string;
   version: string;
+  /**
+   * Version of this plugin's private KV and document data. The host records
+   * the last committed value separately from plugin-owned storage and invokes
+   * migrate() before a different version becomes active.
+   */
+  schemaVersion: number;
   description?: string;
   author?: string;
   /** Lowest app version the plugin supports, e.g. "0.3.0". */
@@ -1302,6 +1310,22 @@ export type PluginStorage = {
   onChange(handler: () => void): PluginDisposable;
 };
 
+export type PluginMigrationStorage = Omit<PluginStorage, "onChange">;
+
+export type PluginLifecyclePhase = "activating" | "migrating" | "active";
+
+export type PluginMigration = {
+  fromVersion: number;
+  toVersion: number;
+  direction: "upgrade" | "downgrade";
+};
+
+export type PluginMigrationContext = {
+  readonly manifest: Readonly<PluginManifest>;
+  readonly lifecycle: { readonly phase: "migrating" };
+  readonly storage: PluginMigrationStorage;
+};
+
 export type PluginExportFile = {
   /** Suggested basename shown by the host save dialog. */
   filename: string;
@@ -1332,6 +1356,58 @@ export type PluginDocumentCollection = {
     limit?: number;
     oldestFirst?: boolean;
   }): Promise<PluginDocument<T>[]>;
+};
+
+export type PluginAgentScope =
+  | { kind: "global"; threadId: string }
+  | { kind: "book"; bookId: string };
+
+export type PluginAgentContextBlock = {
+  title?: string;
+  content: string;
+};
+
+export type PluginAgentContextProvider = {
+  id: string;
+  contexts?: Array<PluginAgentScope["kind"]>;
+  provide(input: {
+    scope: PluginAgentScope;
+    userText: string;
+  }): PluginAgentContextBlock[] | Promise<PluginAgentContextBlock[]>;
+};
+
+export type PluginAgentRetrievalItem = {
+  title?: string;
+  content: string;
+  location?: string;
+};
+
+export type PluginAgentRetrievalProvider = {
+  id: string;
+  label: string;
+  description: string;
+  contexts?: Array<PluginAgentScope["kind"]>;
+  retrieve(input: {
+    scope: PluginAgentScope;
+    query: string;
+    limit: number;
+  }): PluginAgentRetrievalItem[] | Promise<PluginAgentRetrievalItem[]>;
+};
+
+export type PluginMemoryCandidate = {
+  scope: "user" | "global" | "book";
+  kind: "fact" | "preference" | "insight" | "summary";
+  content: string;
+};
+
+export type PluginMemoryCandidateProvider = {
+  id: string;
+  contexts?: Array<PluginAgentScope["kind"]>;
+  propose(input: {
+    scope: PluginAgentScope;
+    userText: string;
+    assistantText: string;
+  }): PluginMemoryCandidate[] | Promise<PluginMemoryCandidate[]>;
 };
 
 export type PluginContributions = {
@@ -1366,6 +1442,15 @@ export type PluginContributions = {
   };
   agentTools?: {
     register(tool: PluginToolDefinition): PluginDisposable;
+  };
+  agentContextProviders?: {
+    register(provider: PluginAgentContextProvider): PluginDisposable;
+  };
+  agentRetrievalProviders?: {
+    register(provider: PluginAgentRetrievalProvider): PluginDisposable;
+  };
+  memoryCandidateProviders?: {
+    register(provider: PluginMemoryCandidateProvider): PluginDisposable;
   };
 };
 
@@ -1416,6 +1501,7 @@ export type PluginContext = {
   readonly manifest: Readonly<PluginManifest>;
   readonly appVersion: string;
   readonly locale: string;
+  readonly lifecycle: { readonly phase: PluginLifecyclePhase };
   /** Only capabilities visible to this plugin actor, with host-side versions. */
   readonly capabilities: Readonly<PluginCapabilityView>;
   domains: PluginDomains;
@@ -1426,5 +1512,7 @@ export type PluginContext = {
 /** The default export of a plugin's entry module. */
 export type PluginModule = {
   activate(ctx: PluginContext): void | Promise<void>;
+  /** Runs with storage-only authority before a changed data schema is committed. */
+  migrate?(ctx: PluginMigrationContext, migration: PluginMigration): void | Promise<void>;
   deactivate?(): void | Promise<void>;
 };

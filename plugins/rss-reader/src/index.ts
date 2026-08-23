@@ -10,10 +10,6 @@ import { refreshAllFeeds, rssPageView } from "./views";
 const plugin: PluginModule = {
   async activate(ctx) {
     assertPluginCapabilities(ctx);
-    // Pre-0.7 installs kept subscriptions as one KV array; adopt them into
-    // the document collection once.
-    await migrateLegacyFeeds(ctx);
-
     ctx.contributions.contentProviders.register({
       id: PROVIDER_ID,
       load: async (url) => (await fetchFeed(ctx, url)).content,
@@ -49,6 +45,11 @@ const plugin: PluginModule = {
     });
 
     registerAgentTools(ctx);
+  },
+  async migrate(ctx, migration) {
+    if (migration.direction === "upgrade" && migration.fromVersion === 0) {
+      await migrateLegacyFeeds({ services: { storage: ctx.storage } });
+    }
   },
 };
 

@@ -61,15 +61,19 @@ import {
 } from "./plugin-backend";
 import {
   registerCommandContribution,
+  registerAgentContextProviderContribution,
+  registerAgentRetrievalProviderContribution,
   registerContentProviderContribution,
   registerHeaderActionContribution,
   registerReaderModeContribution,
   registerSelectionActionContribution,
   registerSettingsOptionsContribution,
   registerToolContribution,
+  registerMemoryCandidateProviderContribution,
   registerVoiceProviderContribution,
   updateVoiceProviderVoices,
 } from "../state/plugin-store";
+import { PluginLifecycleController } from "./plugin-lifecycle";
 
 const log = createLogger("plugins");
 
@@ -132,11 +136,41 @@ function normalizeDefaultShortcut(
  */
 export const pluginStoragePrefix = (pluginId: string) => `read-aware-plugin.${pluginId}.`;
 
+export type PluginContextRuntime = {
+  context: PluginContext;
+  lifecycle: PluginLifecycleController;
+};
+
+function guardMutationTree<T extends object>(
+  value: T,
+  assertActive: (operation: string) => void,
+  path: string,
+): T {
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => {
+      const operation = `${path}.${key}`;
+      if (typeof entry === "function") {
+        return [
+          key,
+          (...args: unknown[]) => {
+            assertActive(operation);
+            return entry(...args);
+          },
+        ];
+      }
+      if (entry && typeof entry === "object") {
+        return [key, guardMutationTree(entry, assertActive, operation)];
+      }
+      return [key, entry];
+    }),
+  ) as T;
+}
+
 export function buildPluginContext(
   manifest: PluginManifest,
   appVersion: string,
   disposables: PluginDisposable[],
-): PluginContext {
+): PluginContextRuntime {
   const permissions = new Set(manifest.permissions ?? []);
   const selfOrigin = `plugin:${manifest.id}` as const;
   const domain = createActorDomainView(
@@ -158,10 +192,9 @@ export function buildPluginContext(
   };
   const settingsDomain = createSettingsDomain(selfOrigin, settingsAccess);
   const storagePrefix = pluginStoragePrefix(manifest.id);
-  const track = (disposable: PluginDisposable): PluginDisposable => {
-    disposables.push(disposable);
-    return disposable;
-  };
+  const lifecycle = new PluginLifecycleController(disposables);
+  const track = (factory: () => PluginDisposable): PluginDisposable =>
+    lifecycle.stage(factory);
   const brand = { pluginId: manifest.id, pluginName: manifest.name };
 
   /**
@@ -180,7 +213,7 @@ export function buildPluginContext(
               if (broadcast.origin !== selfOrigin) handler(broadcast);
             }
           : handler;
-      return track({ dispose: on(event, wrapped as never) });
+      return track(() => ({ dispose: on(event, wrapped as never) }));
     }) as never;
 
   const ctx: PluginContext = {
@@ -190,6 +223,11 @@ export function buildPluginContext(
     get locale() {
       return currentAppLocale();
     },
+    lifecycle: {
+      get phase() {
+        return lifecycle.phase;
+      },
+    },
     capabilities: resolvePluginCapabilities(manifest),
     domains: {
       settings: {
@@ -197,10 +235,15 @@ export function buildPluginContext(
           discover: settingsDomain.queries.discover,
           read: settingsDomain.queries.read,
         },
-        commands: { update: settingsDomain.commands.update },
+        commands: {
+          update: (...args) => {
+            lifecycle.assertActive("domains.settings.commands.update");
+            return settingsDomain.commands.update(...args);
+          },
+        },
         events: {
           subscribe: (handler, options) =>
-            track({
+            track(() => ({
               dispose: settingsDomain.events.subscribe((event) => {
                 if (options?.ignoreSelf && event.origin === selfOrigin) return;
                 const report = (error: unknown) =>
@@ -212,14 +255,14 @@ export function buildPluginContext(
                   report(error);
                 }
               }),
-            }),
+            })),
         },
       },
     },
     contributions: {
       selectionActions: {
         register: (action) =>
-          track(
+          track(() =>
             registerSelectionActionContribution({
               ...action,
               ...brand,
@@ -229,7 +272,7 @@ export function buildPluginContext(
       },
       headerActions: {
         register: (action) =>
-          track(
+          track(() =>
             registerHeaderActionContribution({
               ...action,
               ...brand,
@@ -241,7 +284,7 @@ export function buildPluginContext(
       },
       commands: {
         register: (command) =>
-          track(
+          track(() =>
             registerCommandContribution({
               ...command,
               defaultShortcut: normalizeDefaultShortcut(command.defaultShortcut),
@@ -262,7 +305,7 @@ export function buildPluginContext(
           if (typeof provider !== "function") {
             throw new Error("settingsOptions.register requires a provider function");
           }
-          return track(
+          return track(() =>
             registerSettingsOptionsContribution({
               key: contributionKey(manifest.id, `settings-options.${id}`),
               pluginId: manifest.id,
@@ -274,48 +317,45 @@ export function buildPluginContext(
       },
       voiceProviders: {
         register: (provider) => {
-        const key = contributionKey(manifest.id, provider.id);
-        let registeredProvider: Parameters<typeof registerVoiceProviderContribution>[0] = {
-          ...provider,
-          ...brand,
-          key,
-          voices: [],
-        };
-        const registration = registerVoiceProviderContribution(registeredProvider);
-        const refreshVoices = () => {
-          Promise.resolve(provider.listVoices())
-            .then((voices) => {
-              const replacement = updateVoiceProviderVoices(
-                key,
-                Array.isArray(voices) ? voices : [],
-                registeredProvider,
-              );
-              if (replacement) registeredProvider = replacement;
-            })
-            .catch((error) =>
-              log.warn(
-                `listVoices from "${manifest.id}" failed`,
-                error,
-              ),
-            );
-        };
-        refreshVoices();
-        // A vendor/voice switch in the plugin's settings changes what
-        // voices exist — re-list so pickers stay truthful.
-        const offStorage = onAppEvent("plugin-storage-changed", ({ pluginId }) => {
-          if (pluginId === manifest.id) refreshVoices();
-        });
-        return track({
-          dispose: () => {
-            offStorage();
-            registration.dispose();
-          },
-        });
+          return track(() => {
+            const key = contributionKey(manifest.id, provider.id);
+            let registeredProvider: Parameters<typeof registerVoiceProviderContribution>[0] = {
+              ...provider,
+              ...brand,
+              key,
+              voices: [],
+            };
+            const registration = registerVoiceProviderContribution(registeredProvider);
+            const refreshVoices = () => {
+              Promise.resolve(provider.listVoices())
+                .then((voices) => {
+                  const replacement = updateVoiceProviderVoices(
+                    key,
+                    Array.isArray(voices) ? voices : [],
+                    registeredProvider,
+                  );
+                  if (replacement) registeredProvider = replacement;
+                })
+                .catch((error) =>
+                  log.warn(`listVoices from "${manifest.id}" failed`, error),
+                );
+            };
+            refreshVoices();
+            const offStorage = onAppEvent("plugin-storage-changed", ({ pluginId }) => {
+              if (pluginId === manifest.id) refreshVoices();
+            });
+            return {
+              dispose: () => {
+                offStorage();
+                registration.dispose();
+              },
+            };
+          });
         },
       },
       contentProviders: {
         register: (provider) =>
-          track(
+          track(() =>
             registerContentProviderContribution({
               key: `${manifest.id}:${provider.id}`,
               pluginId: manifest.id,
@@ -328,7 +368,7 @@ export function buildPluginContext(
         ? {
             register: (mode) => {
               const normalized = normalizeReaderMode(mode);
-              return track(
+              return track(() =>
                 registerReaderModeContribution({
                   ...normalized,
                   ...brand,
@@ -341,11 +381,47 @@ export function buildPluginContext(
       agentTools: canUseContribution("agentTools", permissions)
         ? {
             register: (tool) =>
-              track(
+              track(() =>
                 registerToolContribution({
                   ...tool,
                   ...brand,
                   key: contributionKey(manifest.id, tool.name),
+                }),
+              ),
+          }
+        : undefined,
+      agentContextProviders: canUseContribution("agentContextProviders", permissions)
+        ? {
+            register: (provider) =>
+              track(() =>
+                registerAgentContextProviderContribution({
+                  ...provider,
+                  ...brand,
+                  key: contributionKey(manifest.id, provider.id),
+                }),
+              ),
+          }
+        : undefined,
+      agentRetrievalProviders: canUseContribution("agentRetrievalProviders", permissions)
+        ? {
+            register: (provider) =>
+              track(() =>
+                registerAgentRetrievalProviderContribution({
+                  ...provider,
+                  ...brand,
+                  key: contributionKey(manifest.id, provider.id),
+                }),
+              ),
+          }
+        : undefined,
+      memoryCandidateProviders: canUseContribution("memoryCandidateProviders", permissions)
+        ? {
+            register: (provider) =>
+              track(() =>
+                registerMemoryCandidateProviderContribution({
+                  ...provider,
+                  ...brand,
+                  key: contributionKey(manifest.id, provider.id),
                 }),
               ),
           }
@@ -363,13 +439,15 @@ export function buildPluginContext(
           }
         },
         set: (key, value) => {
+          lifecycle.assertStorageWrite("services.storage.set");
           localKV.setItem(storagePrefix + key, JSON.stringify(value ?? null));
         },
         remove: (key) => {
+          lifecycle.assertStorageWrite("services.storage.remove");
           localKV.removeItem(storagePrefix + key);
         },
         onChange: (handler) =>
-          track({
+          track(() => ({
             dispose: onAppEvent("plugin-storage-changed", ({ pluginId }) => {
               if (pluginId !== manifest.id) return;
               try {
@@ -378,23 +456,31 @@ export function buildPluginContext(
                 log.error(`storage.onChange handler from "${manifest.id}" failed`, error);
               }
             }),
-          }),
+          })),
         collection: (name) => {
           const collection = String(name);
           if (!NAMESPACE_KEY.test(collection)) {
             throw new Error(`invalid collection name: ${collection}`);
           }
           return {
-            put: (id, data, options) =>
-              pluginDocsPut(manifest.id, collection, String(id), JSON.stringify(data ?? null), {
-                bookId: options?.bookId,
-                anchor: options?.anchor,
-              }),
+            put: (id, data, options) => {
+              lifecycle.assertStorageWrite("services.storage.collection.put");
+              return pluginDocsPut(
+                manifest.id,
+                collection,
+                String(id),
+                JSON.stringify(data ?? null),
+                { bookId: options?.bookId, anchor: options?.anchor },
+              );
+            },
             get: async (id) => {
               const row = await pluginDocsGet(manifest.id, collection, String(id));
               return (row ? toPluginDocument(row) : null) as never;
             },
-            delete: (id) => pluginDocsDelete(manifest.id, collection, String(id)),
+            delete: (id) => {
+              lifecycle.assertStorageWrite("services.storage.collection.delete");
+              return pluginDocsDelete(manifest.id, collection, String(id));
+            },
             list: async (filter) =>
               (
                 await pluginDocsList(manifest.id, collection, {
@@ -408,21 +494,28 @@ export function buildPluginContext(
       },
       secrets: {
         get: (key) => {
+          lifecycle.assertActive("services.secrets.get");
           requireSecretKey(key);
           return getPluginSecret(manifest.id, key);
         },
         set: async (key, value) => {
+          lifecycle.assertActive("services.secrets.set");
           requireSecretKey(key);
           await setPluginSecret(manifest.id, key, String(value));
         },
         remove: async (key) => {
+          lifecycle.assertActive("services.secrets.remove");
           requireSecretKey(key);
           await deletePluginSecret(manifest.id, key);
         },
       },
       ui: {
-        showToast: (message) => showPluginToast(String(message)),
+        showToast: (message) => {
+          lifecycle.assertActive("services.ui.showToast");
+          showPluginToast(String(message));
+        },
         exportFile: (file) => {
+          lifecycle.assertActive("services.ui.exportFile");
           const content = file?.content;
           const binary = content instanceof Uint8Array || content instanceof ArrayBuffer;
           if (!file || typeof file.filename !== "string" || (typeof content !== "string" && !binary)) {
@@ -445,7 +538,7 @@ export function buildPluginContext(
               `schedule "${scheduleId}" is not declared in manifest.schedules`,
             );
           }
-          return track(registerPluginSchedule(manifest.id, declaration, run));
+          return track(() => registerPluginSchedule(manifest.id, declaration, run));
         },
       },
       session: {
@@ -453,18 +546,19 @@ export function buildPluginContext(
         if (!SESSION_EVENTS.includes(event)) {
           throw new Error(`"${String(event)}" is not a session event`);
         }
-        const off = onAppEvent(event, ((payload: PluginSessionEventMap[typeof event]) => {
-          const report = (error: unknown) =>
-            log.error(`event handler from "${manifest.id}" failed`, error);
-          try {
-            // Sandboxed handlers are async proxies; their failures reject.
-            const result = handler(payload as never) as unknown;
-            if (result instanceof Promise) result.catch(report);
-          } catch (error) {
-            report(error);
-          }
-        }) as never);
-        return track({ dispose: off });
+        return track(() => {
+          const off = onAppEvent(event, ((payload: PluginSessionEventMap[typeof event]) => {
+            const report = (error: unknown) =>
+              log.error(`event handler from "${manifest.id}" failed`, error);
+            try {
+              const result = handler(payload as never) as unknown;
+              if (result instanceof Promise) result.catch(report);
+            } catch (error) {
+              report(error);
+            }
+          }) as never);
+          return { dispose: off };
+        });
         },
       },
     },
@@ -479,13 +573,19 @@ export function buildPluginContext(
       events: { subscribe: trackedOn(library.events.subscribe) },
     };
     if (library.commands) {
-      ctx.domains.library.commands = {
+      const commands = {
         books: {
           importBook: library.commands.books.importBook,
           editMetadata: library.commands.books.editMetadata,
           setStarred: library.commands.books.setStarred,
           remove: library.commands.books.remove,
-          addVirtualBook: async (input) => {
+          addVirtualBook: async (
+            input: Parameters<
+              NonNullable<
+                NonNullable<PluginContext["domains"]["library"]>["commands"]
+              >["books"]["addVirtualBook"]
+            >[0],
+          ) => {
           const binding = {
             pluginId: manifest.id,
             providerId: String(input.providerId),
@@ -517,7 +617,13 @@ export function buildPluginContext(
           bindVirtualBook(book.id, binding);
           return book;
         },
-          removeVirtualBook: async (input) => {
+          removeVirtualBook: async (
+            input: Parameters<
+              NonNullable<
+                NonNullable<PluginContext["domains"]["library"]>["commands"]
+              >["books"]["removeVirtualBook"]
+            >[0],
+          ) => {
           const bookId = findVirtualBookId({
             pluginId: manifest.id,
             providerId: String(input.providerId),
@@ -534,6 +640,11 @@ export function buildPluginContext(
         },
         collections: library.commands.collections,
       };
+      ctx.domains.library.commands = guardMutationTree(
+        commands,
+        (operation) => lifecycle.assertActive(operation),
+        "domains.library.commands",
+      );
     }
   }
 
@@ -544,22 +655,26 @@ export function buildPluginContext(
       events: { subscribe: trackedOn(reading.events.subscribe) },
     };
     if (reading.commands) {
-      ctx.domains.reading.commands = {
+      ctx.domains.reading.commands = guardMutationTree(
+        {
         setFinished: reading.commands.setFinished,
-        openBook: (bookId) => {
+        openBook: (bookId: string) => {
           getDefaultStore().set(openBookRequestAtom, {
             id: crypto.randomUUID(),
             bookId: String(bookId),
           });
         },
-        goTo: (target) => {
+        goTo: (target: { bookId?: string; cfi?: string; href?: string }) => {
           requestPluginReaderNav({
             bookId: target.bookId ? String(target.bookId) : undefined,
             cfi: target.cfi ? String(target.cfi) : undefined,
             href: target.href ? String(target.href) : undefined,
           });
         },
-      };
+        },
+        (operation) => lifecycle.assertActive(operation),
+        "domains.reading.commands",
+      );
     }
   }
 
@@ -570,14 +685,18 @@ export function buildPluginContext(
       events: { subscribe: trackedOn(annotations.events.subscribe) },
     };
     if (annotations.commands) {
-      ctx.domains.annotations.commands = {
+      ctx.domains.annotations.commands = guardMutationTree(
+        {
         createHighlight: annotations.commands.createHighlight,
         recolorHighlight: annotations.commands.recolorHighlight,
         removeHighlight: annotations.commands.removeHighlight,
         createNote: annotations.commands.createNote,
         updateNote: annotations.commands.updateNote,
         removeNote: annotations.commands.removeNote,
-      };
+        },
+        (operation) => lifecycle.assertActive(operation),
+        "domains.annotations.commands",
+      );
     }
   }
 
@@ -597,7 +716,10 @@ export function buildPluginContext(
       // The Rust HTTP client (tauri-plugin-http), not webview fetch: plugin
       // requests must reach hosts that never heard of CORS. Scope lives in
       // the capability file (https + localhost), not in the webview CSP.
-      fetch: (input, init) => corsFreeFetch(input, init),
+      fetch: (input, init) => {
+        lifecycle.assertActive("services.network.fetch");
+        return corsFreeFetch(input, init);
+      },
     };
   }
 
@@ -609,6 +731,7 @@ export function buildPluginContext(
       schema?: Record<string, unknown>;
       onText?: (delta: string) => void;
     }) => {
+      lifecycle.assertActive("services.llm.ask");
       const runtime = getAgentRuntime();
       if (!runtime) throw new Error("AI is not configured");
       const base = {
@@ -629,9 +752,12 @@ export function buildPluginContext(
 
   if (canUseHostService("clipboard", permissions)) {
     ctx.services.clipboard = {
-      writeText: (text) => navigator.clipboard.writeText(String(text)),
+      writeText: (text) => {
+        lifecycle.assertActive("services.clipboard.writeText");
+        return navigator.clipboard.writeText(String(text));
+      },
     };
   }
 
-  return ctx;
+  return { context: ctx, lifecycle };
 }

@@ -189,6 +189,7 @@ describe("manifest gate", () => {
     id: "themer",
     name: "Themer",
     version: "1.0.0",
+    schemaVersion: 1,
     requires: {},
     themes: [VALID_THEME],
     fonts: [VALID_FONT],

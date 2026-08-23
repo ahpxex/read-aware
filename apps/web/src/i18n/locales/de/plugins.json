@@ -56,6 +56,9 @@
       "annotations_write": "Anmerkungen bearbeiten",
       "conversations_read": "Unterhaltungen lesen",
       "agent_tools": "Agent-Werkzeuge",
+      "agent_context": "Agent-Kontext",
+      "agent_retrieval": "Agent-Suche",
+      "agent_memory": "Erinnerungskandidaten",
       "service_network": "Netzwerk",
       "service_llm": "KI-Anfragen",
       "service_clipboard": "Zwischenablage"
@@ -71,6 +74,9 @@
       "annotations_write": "Markierungen und Notizen erstellen, bearbeiten und löschen",
       "conversations_read": "KI-Unterhaltungen lesen",
       "agent_tools": "Werkzeuge am Lese-Agenten registrieren",
+      "agent_context": "Begrenzten Referenzkontext für den Lese-Agenten bereitstellen",
+      "agent_retrieval": "Durchsuchbare Quellen für den Lese-Agenten hinzufügen",
+      "agent_memory": "Erinnerungen zur Prüfung und Speicherung vorschlagen",
       "service_network": "Auf das Netzwerk zugreifen",
       "service_llm": "KI-Anfragen mit deinem konfigurierten Modell stellen",
       "service_clipboard": "In die Zwischenablage schreiben"

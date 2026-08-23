@@ -176,6 +176,38 @@ describe("AgentThread", () => {
     expect(captured?.systemPrompt).toContain("42%");
   });
 
+  test("consumes bounded extension context and routes memory candidates through the host port", async () => {
+    const { faux, model } = makeFaux();
+    let captured: Context | undefined;
+    faux.setResponses([
+      (context) => {
+        captured = context;
+        return fauxAssistantMessage("A useful answer.");
+      },
+    ]);
+    const { deps, stores } = createInMemoryDeps({ books: BOOKS });
+    deps.extraContext = async () => [
+      { source: "Dictionary (dictionary/vocabulary)", content: "saved term context" },
+    ];
+    deps.extraMemoryCandidates = async () => [
+      { scope: "book:b1", kind: "insight", content: "A durable plugin insight." },
+    ];
+    const thread = makeThread(deps, model);
+
+    await collect(thread.sendTurn({ text: "connect this" }));
+    await thread.flushBackgroundWork();
+
+    expect(JSON.stringify(captured?.messages)).toContain("extension_context");
+    expect(JSON.stringify(captured?.messages)).toContain("saved term context");
+    expect(stores.savedMemoryInputs).toContainEqual({
+      scope: "book:b1",
+      kind: "insight",
+      content: "A durable plugin insight.",
+      origin: "plugin",
+      sourceThreadKey: "book:b1",
+    });
+  });
+
   test("rehydrates a previous selection with its quoted text and chapter", async () => {
     const { faux, model } = makeFaux();
     let captured: Context | undefined;

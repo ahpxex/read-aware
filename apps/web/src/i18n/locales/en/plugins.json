@@ -61,6 +61,9 @@
       "annotations_write": "Edit annotations",
       "conversations_read": "Read conversations",
       "agent_tools": "Agent tools",
+      "agent_context": "Agent context",
+      "agent_retrieval": "Agent retrieval",
+      "agent_memory": "Memory candidates",
       "service_network": "Network",
       "service_llm": "AI requests",
       "service_clipboard": "Clipboard"
@@ -76,6 +79,9 @@
       "annotations_write": "Create, edit, and delete highlights and notes",
       "conversations_read": "Read your AI conversations",
       "agent_tools": "Register tools on the reading agent",
+      "agent_context": "Supply bounded reference context to the reading agent",
+      "agent_retrieval": "Add searchable sources the reading agent may query",
+      "agent_memory": "Propose memory candidates for host validation and storage",
       "service_network": "Access the network",
       "service_llm": "Make AI requests with your configured model",
       "service_clipboard": "Write to the clipboard"

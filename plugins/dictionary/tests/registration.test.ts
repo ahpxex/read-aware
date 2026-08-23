@@ -20,6 +20,7 @@ describe("Dictionary contributions", () => {
         headerActions: { register: () => disposable },
         commands: { register: () => disposable },
         agentTools: { register: () => disposable },
+        agentRetrievalProviders: { register: () => disposable },
       },
       services: {
         llm: {},

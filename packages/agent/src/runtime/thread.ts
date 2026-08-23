@@ -36,6 +36,10 @@ import {
 } from "./history";
 import { buildGroundingContext } from "./grounding-context";
 import {
+  normalizeExternalMemoryCandidates,
+  renderExtensionContext,
+} from "./extension-context";
+import {
   inspectNarrativeEvidence,
   loadNarrativeBookIndex,
   normalizeEvidenceText,
@@ -432,6 +436,13 @@ export class AgentThread {
             narrativeFence: narrativeUnfinished,
           })
         : undefined;
+    const extensionContext = await this.deps.extraContext?.({
+      scope: this.scope,
+      userText: input.text,
+    }).then(renderExtensionContext).catch((error) => {
+      this.deps.log?.warn("plugin context providers failed", error);
+      return undefined;
+    });
     try {
       const agent = await this.ensureAgent();
       // 本轮所在章节：选区的章节优先于阅读位置（问哪段话,会话就属于哪章）。
@@ -477,7 +488,15 @@ export class AgentThread {
       input.signal?.addEventListener("abort", onAbort, { once: true });
 
       const userText = formatUserTurn(input.text, input.attachments);
-      const promptText = formatPromptTurn(input.text, input.attachments, cursor, groundingContext);
+      const basePromptText = formatPromptTurn(
+        input.text,
+        input.attachments,
+        cursor,
+        groundingContext,
+      );
+      const promptText = extensionContext
+        ? `${basePromptText}\n\n${extensionContext}`
+        : basePromptText;
       // UI 在流开始前就把本轮用户消息持久化（retry 的截断可见性依赖这一点）。
       // 全局线程水化 / 未来任何全量重建会把它带进 state，而 prompt() 马上又
       // 注入同一条 —— 尾部等值的 user 消息属于本轮，丢弃避免问题被喂两遍。
@@ -834,15 +853,41 @@ export class AgentThread {
           existing,
         });
         if (this.disposed) return;
+        const knownForExtensions = [...existing];
         for (const candidate of result.newMemories) {
-          await this.deps.memory.saveMemory({
+          const saved = await this.deps.memory.saveMemory({
             ...candidate,
             origin: "extraction",
             sourceThreadKey: this.key,
           });
+          knownForExtensions.push(saved);
         }
         for (const id of result.reinforcedIds) {
           await this.deps.memory.reinforceMemory(id);
+        }
+
+        const proposed = await this.deps.extraMemoryCandidates?.({
+          scope: this.scope,
+          userText,
+          assistantText,
+        }).catch((error) => {
+          this.deps.log?.warn("plugin memory candidate providers failed", error);
+          return [];
+        });
+        if (!this.disposed && proposed?.length) {
+          const candidates = normalizeExternalMemoryCandidates({
+            scope: this.scope,
+            candidates: proposed,
+            existing: knownForExtensions,
+          });
+          for (const candidate of candidates) {
+            const saved = await this.deps.memory.saveMemory({
+              ...candidate,
+              origin: "plugin",
+              sourceThreadKey: this.key,
+            });
+            knownForExtensions.push(saved);
+          }
         }
 
         const previous = previousInsights ?? bootstrapped;

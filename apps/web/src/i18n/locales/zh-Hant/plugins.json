@@ -56,6 +56,9 @@
       "annotations_write": "編輯標註",
       "conversations_read": "讀取對話",
       "agent_tools": "Agent 工具",
+      "agent_context": "Agent 上下文",
+      "agent_retrieval": "Agent 檢索",
+      "agent_memory": "記憶候選",
       "service_network": "網路",
       "service_llm": "AI 請求",
       "service_clipboard": "剪貼簿"
@@ -71,6 +74,9 @@
       "annotations_write": "建立、編輯與刪除螢光標記和筆記",
       "conversations_read": "讀取 AI 對話",
       "agent_tools": "為閱讀 agent 註冊工具",
+      "agent_context": "向閱讀 agent 提供有邊界的參考上下文",
+      "agent_retrieval": "加入可供閱讀 agent 查詢的檢索來源",
+      "agent_memory": "提交由宿主驗證並儲存的記憶候選",
       "service_network": "存取網路",
       "service_llm": "使用你設定的模型發起 AI 請求",
       "service_clipboard": "寫入剪貼簿"

@@ -11,7 +11,12 @@ import {
 import type { Id } from "@read-aware/core";
 import { getDefaultStore } from "jotai";
 import { appHttpFetch } from "../../../platform/http-client";
-import { pluginToolsAtom } from "../../plugins/state/plugin-store";
+import {
+  pluginAgentContextProvidersAtom,
+  pluginAgentRetrievalProvidersAtom,
+  pluginMemoryCandidateProvidersAtom,
+  pluginToolsAtom,
+} from "../../plugins/state/plugin-store";
 import { getAIConfig, type OpenRouterRoutingConfig } from "../lib/ai-config";
 import { accountFromConfig } from "./account";
 import { buildRuntimeDeps } from "./ports";
@@ -21,6 +26,15 @@ let cached: { key: string; runtime: AgentRuntime } | null = null;
 
 // 插件工具集变化（启停/安装）时，让所有线程下一轮以新工具快照重建 Agent。
 getDefaultStore().sub(pluginToolsAtom, () => {
+  cached?.runtime.invalidateAgents();
+});
+getDefaultStore().sub(pluginAgentRetrievalProvidersAtom, () => {
+  cached?.runtime.invalidateAgents();
+});
+getDefaultStore().sub(pluginAgentContextProvidersAtom, () => {
+  cached?.runtime.invalidateAgents();
+});
+getDefaultStore().sub(pluginMemoryCandidateProvidersAtom, () => {
   cached?.runtime.invalidateAgents();
 });
 

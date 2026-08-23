@@ -56,6 +56,9 @@
       "annotations_write": "注釈の編集",
       "conversations_read": "会話の読み取り",
       "agent_tools": "エージェントツール",
+      "agent_context": "エージェントコンテキスト",
+      "agent_retrieval": "エージェント検索",
+      "agent_memory": "メモリ候補",
       "service_network": "ネットワーク",
       "service_llm": "AI リクエスト",
       "service_clipboard": "クリップボード"
@@ -71,6 +74,9 @@
       "annotations_write": "ハイライトとメモの作成・編集・削除",
       "conversations_read": "AI との会話の読み取り",
       "agent_tools": "読書エージェントへのツール登録",
+      "agent_context": "読書エージェントに範囲制限された参考情報を提供する",
+      "agent_retrieval": "読書エージェントが検索できる情報源を追加する",
+      "agent_memory": "ホストが検証して保存するメモリ候補を提案する",
       "service_network": "ネットワークへのアクセス",
       "service_llm": "設定済みモデルでの AI リクエスト",
       "service_clipboard": "クリップボードへの書き込み"

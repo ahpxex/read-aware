@@ -3,6 +3,11 @@ export type PluginUpdateTransaction<TCandidate> = {
   verifyCandidate(candidate: TCandidate): void | Promise<void>;
   commitFiles(): Promise<void>;
   verifyCommit(candidate: TCandidate): void | Promise<void>;
+  /** Stop the old runtime before shared plugin data can change. */
+  quiescePrevious(): void | Promise<void>;
+  migrateCandidate(candidate: TCandidate): void | Promise<void>;
+  /** Explicit side-effect boundary: candidate contributions become live here. */
+  promoteCandidate(candidate: TCandidate): void | Promise<void>;
   accept(candidate: TCandidate): void | Promise<void>;
   retirePrevious(): void | Promise<void>;
   cleanupCandidate(candidate: TCandidate | undefined): void | Promise<void>;
@@ -42,6 +47,9 @@ export async function runPluginUpdateTransaction<TCandidate>(
     await transaction.commitFiles();
     committed = true;
     await transaction.verifyCommit(candidate);
+    await transaction.quiescePrevious();
+    await transaction.migrateCandidate(candidate);
+    await transaction.promoteCandidate(candidate);
     await transaction.accept(candidate);
     await transaction.retirePrevious();
     return candidate;

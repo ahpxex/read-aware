@@ -577,6 +577,7 @@ const RSS_PLUGIN: InstalledPlugin = {
     id: "rss-reader",
     name: "RSS Reader",
     version: "0.5.0",
+    schemaVersion: 1,
     requires: {},
     settings: [
       {

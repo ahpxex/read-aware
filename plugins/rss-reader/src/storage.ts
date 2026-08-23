@@ -2,15 +2,15 @@
  * Subscriptions live in the plugin document collection ("feeds", one document
  * per feed keyed by its URL) — the structured tier, so a large subscription
  * list never round-trips as one KV blob. Early versions stored a single KV
- * array under "feeds"; `migrateLegacyFeeds` adopts it once at activate.
+ * array under "feeds"; the schema migration adopts it before activation.
  */
-import type { PluginContext } from "@read-aware/plugin-types";
+import type { PluginMigrationStorage } from "@read-aware/plugin-types";
 import type { FeedArticle, FeedSubscription } from "./types";
 
 const COLLECTION = "feeds";
 
 type StorageCtx = {
-  services: Pick<PluginContext["services"], "storage">;
+  services: { storage: PluginMigrationStorage };
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -58,6 +58,7 @@ import { onAppEvent } from "../../../platform/app-events";
 import { unbindVirtualBook } from "../lib/virtual-books";
 import { runPluginUpdateTransaction } from "./plugin-update-transaction";
 import { assertPluginCapabilityRequirements } from "./plugin-capabilities";
+import { planPluginDataMigration } from "./plugin-data-migration";
 
 const log = createLogger("plugins");
 
@@ -66,9 +67,11 @@ type ActivePlugin = {
   sandbox: SandboxedPlugin;
   disposables: PluginDisposable[];
   candidateToken?: string;
+  promoted: boolean;
 };
 
 const active = new Map<string, ActivePlugin>();
+const PLUGIN_SCHEMA_KEY_PREFIX = "read-aware-plugin-host.schema.";
 let appVersion = "0.0.0";
 let initialized = false;
 
@@ -124,7 +127,13 @@ export async function initializePlugins(): Promise<void> {
     } catch (error) {
       // Keep the broken folder visible in settings instead of hiding it.
       installed.push({
-        manifest: { id: entry.id, name: entry.id, version: "0.0.0", requires: {} },
+        manifest: {
+          id: entry.id,
+          name: entry.id,
+          version: "0.0.0",
+          schemaVersion: 1,
+          requires: {},
+        },
         enabled: false,
         error: errorMessage(error),
       });
@@ -183,17 +192,30 @@ function assertManifestCanActivate(manifest: PluginManifest): void {
  */
 async function startPluginInstance(
   manifest: PluginManifest,
-  options: StartPluginWorkerOptions = {},
+  options: StartPluginWorkerOptions & { deferPromotion?: boolean } = {},
   candidateToken?: string,
 ): Promise<ActivePlugin> {
   assertManifestCanActivate(manifest);
   const disposables: PluginDisposable[] = [];
   let sandbox: SandboxedPlugin | undefined;
   try {
-    sandbox = await startPluginWorker(manifest, appVersion, disposables, options);
-    registerManifestContributions(manifest, disposables);
+    const { deferPromotion = false, ...workerOptions } = options;
+    sandbox = await startPluginWorker(manifest, appVersion, disposables, workerOptions);
     await sandbox.checkHealth();
-    return { manifest, sandbox, disposables, candidateToken };
+    const instance = { manifest, sandbox, disposables, candidateToken, promoted: false };
+    if (!deferPromotion) {
+      const storedSchema = getPluginDataSchemaVersion(manifest.id);
+      const snapshot =
+        storedSchema === manifest.schemaVersion ? undefined : await snapshotPluginData(manifest.id);
+      try {
+        await migratePluginInstance(instance, storedSchema);
+        promotePluginInstance(instance);
+      } catch (error) {
+        if (snapshot) await restorePluginData(manifest.id, snapshot);
+        throw error;
+      }
+    }
+    return instance;
   } catch (error) {
     for (const disposable of [...disposables].reverse()) {
       try {
@@ -207,6 +229,13 @@ async function startPluginInstance(
     });
     throw error;
   }
+}
+
+function promotePluginInstance(instance: ActivePlugin): void {
+  if (instance.promoted) return;
+  instance.sandbox.promote();
+  registerManifestContributions(instance.manifest, instance.disposables);
+  instance.promoted = true;
 }
 
 /**
@@ -305,12 +334,41 @@ function parseCandidate(entry: PluginCandidateDiskEntry): PluginManifest {
 type PluginDataSnapshot = {
   kv: Record<string, string>;
   documents: PluginDocumentSnapshotRow[];
+  schemaVersion: number | null;
 };
+
+function getPluginDataSchemaVersion(id: string): number | null {
+  const raw = localKV.getItem(PLUGIN_SCHEMA_KEY_PREFIX + id);
+  if (raw == null) return null;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isSafeInteger(parsed) && parsed >= 1 ? parsed : null;
+}
+
+function setPluginDataSchemaVersion(id: string, version: number | null): void {
+  const key = PLUGIN_SCHEMA_KEY_PREFIX + id;
+  if (version == null) localKV.removeItem(key);
+  else localKV.setItem(key, String(version));
+}
+
+async function migratePluginInstance(
+  instance: ActivePlugin,
+  storedVersion: number | null,
+): Promise<void> {
+  const target = instance.manifest.schemaVersion;
+  const migration = planPluginDataMigration({
+    storedVersion,
+    targetVersion: target,
+    hasMigration: instance.sandbox.hasMigration,
+  });
+  if (migration) await instance.sandbox.migrate(migration);
+  setPluginDataSchemaVersion(instance.manifest.id, target);
+}
 
 async function snapshotPluginData(id: string): Promise<PluginDataSnapshot> {
   return {
     kv: localKV.entries(`read-aware-plugin.${id}.`),
     documents: await pluginDocsSnapshot(id),
+    schemaVersion: getPluginDataSchemaVersion(id),
   };
 }
 
@@ -320,10 +378,10 @@ async function restorePluginData(id: string, snapshot: PluginDataSnapshot): Prom
     replaceLocalKVPrefix(prefix, snapshot.kv),
     pluginDocsRestore(id, snapshot.documents),
   ]);
+  setPluginDataSchemaVersion(id, snapshot.schemaVersion);
 }
 
 async function restartPreviousInstance(previous: ActivePlugin): Promise<void> {
-  await stopPluginInstance(previous);
   const restored = await startPluginInstance(previous.manifest);
   active.set(previous.manifest.id, restored);
 }
@@ -356,6 +414,7 @@ async function applyCandidate(entry: PluginCandidateDiskEntry): Promise<Installe
   let accepted = false;
   let candidateRuntimeError: string | undefined;
   let committed: Awaited<ReturnType<typeof commitPluginCandidate>> | undefined;
+  let previousQuiesced = false;
   const plugin: InstalledPlugin = { manifest, enabled: true };
 
   await runPluginUpdateTransaction<ActivePlugin>({
@@ -369,6 +428,7 @@ async function applyCandidate(entry: PluginCandidateDiskEntry): Promise<Installe
             if (accepted) updateInstalledPlugin(manifest.id, { error: message });
             else candidateRuntimeError = message;
           },
+          deferPromotion: true,
         },
         entry.token,
       ),
@@ -386,6 +446,14 @@ async function applyCandidate(entry: PluginCandidateDiskEntry): Promise<Installe
       }
       if (candidateRuntimeError) throw new Error(candidateRuntimeError);
     },
+    quiescePrevious: async () => {
+      if (!previous) return;
+      await stopPluginInstance(previous);
+      previousQuiesced = true;
+      if (active.get(manifest.id) === previous) active.delete(manifest.id);
+    },
+    migrateCandidate: (next) => migratePluginInstance(next, dataSnapshot.schemaVersion),
+    promoteCandidate: (next) => promotePluginInstance(next),
     accept: (next) => {
       active.set(manifest.id, next);
       setInstalledPlugins([
@@ -396,7 +464,7 @@ async function applyCandidate(entry: PluginCandidateDiskEntry): Promise<Installe
       accepted = true;
     },
     retirePrevious: async () => {
-      if (previous) await stopPluginInstance(previous);
+      if (previous && !previousQuiesced) await stopPluginInstance(previous);
     },
     cleanupCandidate: async (next) => {
       if (active.get(manifest.id) === next) active.delete(manifest.id);
@@ -409,7 +477,7 @@ async function applyCandidate(entry: PluginCandidateDiskEntry): Promise<Installe
     },
     restoreData: () => restorePluginData(manifest.id, dataSnapshot),
     restartPrevious: async () => {
-      if (previous) await restartPreviousInstance(previous);
+      if (previous && previousQuiesced) await restartPreviousInstance(previous);
     },
   });
 

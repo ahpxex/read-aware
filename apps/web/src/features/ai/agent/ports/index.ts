@@ -1,7 +1,11 @@
 /** RuntimeDeps 装配：全部端口都接产品存储。 */
 import type { RuntimeDeps } from "@read-aware/agent";
 import { createLogger } from "../../../../platform/logger";
-import { getPluginAgentTools } from "../../../plugins/runtime/plugin-tools";
+import {
+  getPluginAgentContext,
+  getPluginAgentTools,
+  getPluginMemoryCandidates,
+} from "../../../plugins/runtime/plugin-tools";
 import { createAnnotationsPort } from "./annotations-port";
 import { createBookMemoryPort } from "./book-memory-port";
 import { createBookTextPort } from "./book-text-port";
@@ -29,5 +33,7 @@ export function buildRuntimeDeps(): RuntimeDeps {
     settings: createSettingsPort(),
     log: createLogger("agent"),
     extraTools: getPluginAgentTools,
+    extraContext: getPluginAgentContext,
+    extraMemoryCandidates: getPluginMemoryCandidates,
   };
 }

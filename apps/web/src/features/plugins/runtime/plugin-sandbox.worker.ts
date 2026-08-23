@@ -22,7 +22,13 @@
  *     which cannot be cloned. They stay here; the host gets a serializable
  *     description plus a handle and calls back through `invoke`.
  */
-import type { PluginContext, PluginManifest } from "@read-aware/plugin-types";
+import type {
+  PluginContext,
+  PluginManifest,
+  PluginMigration,
+  PluginMigrationContext,
+  PluginModule,
+} from "@read-aware/plugin-types";
 
 // ─── Wire protocol ───────────────────────────────────────────────────────────
 
@@ -36,25 +42,61 @@ type HostMessage =
       shape: ContextShape;
       storage: Record<string, string>;
       locale: string;
+      phase: PluginContext["lifecycle"]["phase"];
     }
   | { t: "invoke"; id: number; handle: string; args: unknown[] }
-  | { t: "sync"; patch: { storage?: Record<string, string>; locale?: string } }
+  | {
+      t: "sync";
+      patch: {
+        storage?: Record<string, string>;
+        locale?: string;
+        phase?: PluginContext["lifecycle"]["phase"];
+      };
+    }
   | { t: "result"; id: number; ok: true; value: unknown }
   | { t: "result"; id: number; ok: false; error: string }
   | { t: "health"; id: number }
+  | { t: "migrate"; id: number; migration: PluginMigration }
   | { t: "deactivate" };
 
 type WorkerMessage =
-  | { t: "ready" }
+  | { t: "ready"; hasMigration: boolean }
   | { t: "failed"; error: string }
   | { t: "dispose"; handle: string }
   | { t: "call"; id: number; method: string; args: unknown[] }
   | { t: "storage"; op: "set" | "remove"; key: string; value?: string }
   | { t: "result"; id: number; ok: true; value: unknown }
   | { t: "result"; id: number; ok: false; error: string }
-  | { t: "healthy"; id: number };
+  | { t: "healthy"; id: number }
+  | { t: "migrated"; id: number; ok: true }
+  | { t: "migrated"; id: number; ok: false; error: string };
 
 const post = (message: WorkerMessage) => self.postMessage(message);
+
+function denyAmbientAuthority(name: string): void {
+  try {
+    Object.defineProperty(globalThis, name, {
+      configurable: false,
+      get() {
+        throw new Error(`${name} is unavailable in the plugin sandbox; use PluginContext`);
+      },
+    });
+  } catch {
+    // A missing/non-configurable API is already unavailable to plugin code.
+  }
+}
+
+for (const name of [
+  "fetch",
+  "WebSocket",
+  "EventSource",
+  "XMLHttpRequest",
+  "BroadcastChannel",
+  "indexedDB",
+  "caches",
+]) {
+  denyAmbientAuthority(name);
+}
 
 // ─── Host calls (plugin → host, async) ───────────────────────────────────────
 
@@ -63,6 +105,8 @@ const pendingCalls = new Map<
   number,
   { resolve: (value: unknown) => void; reject: (error: Error) => void }
 >();
+const inFlightHostCalls = new Set<Promise<unknown>>();
+const lifecycleCallErrors: unknown[] = [];
 
 /** Mirrors the host's `describeContext` output. */
 type ContextShape = { [key: string]: "fn" | ContextShape };
@@ -118,6 +162,14 @@ function callHost(method: string, args: unknown[]): CallResult {
     pendingCalls.set(id, { resolve, reject });
     post({ t: "call", id, method, args: encode(args) as unknown[] });
   });
+  inFlightHostCalls.add(promise);
+  void promise.then(
+    () => inFlightHostCalls.delete(promise),
+    (error) => {
+      inFlightHostCalls.delete(promise);
+      if (lifecyclePhase !== "active") lifecycleCallErrors.push(error);
+    },
+  );
   const result = promise as CallResult;
   result.dispose = () => {
     void promise
@@ -154,6 +206,26 @@ function remoteNamespace(path: string, shape: ContextShape): Record<string, unkn
 
 const storageSnapshot = new Map<string, string>();
 let appLocale = "";
+let lifecyclePhase: PluginContext["lifecycle"]["phase"] = "activating";
+
+function assertLocalStorageWrite(): void {
+  if (lifecyclePhase !== "active" && lifecyclePhase !== "migrating") {
+    throw new Error(`plugin storage writes are unavailable while plugin is ${lifecyclePhase}`);
+  }
+}
+
+async function drainActivationCalls(): Promise<void> {
+  while (inFlightHostCalls.size > 0) {
+    const results = await Promise.allSettled([...inFlightHostCalls]);
+    const failed = results.find(
+      (result): result is PromiseRejectedResult => result.status === "rejected",
+    );
+    if (failed) throw failed.reason;
+  }
+  const failed = lifecycleCallErrors.shift();
+  lifecycleCallErrors.length = 0;
+  if (failed) throw failed;
+}
 
 // ─── Context assembly ────────────────────────────────────────────────────────
 
@@ -173,6 +245,11 @@ function buildContext(
   ctx.capabilities = capabilities;
   // Mirrored locally (boot + sync patches) so the read stays synchronous.
   Object.defineProperty(ctx, "locale", { get: () => appLocale, enumerable: true });
+  ctx.lifecycle = {};
+  Object.defineProperty(ctx.lifecycle, "phase", {
+    get: () => lifecyclePhase,
+    enumerable: true,
+  });
 
   // Storage: reads answer from the snapshot the host shipped at boot, so the
   // plugin-facing API stays synchronous. Writes update it locally and tell the
@@ -189,11 +266,13 @@ function buildContext(
       }
     },
     set(key: string, value: unknown): void {
+      assertLocalStorageWrite();
       const raw = JSON.stringify(value ?? null);
       storageSnapshot.set(key, raw);
       post({ t: "storage", op: "set", key, value: raw });
     },
     remove(key: string): void {
+      assertLocalStorageWrite();
       storageSnapshot.delete(key);
       post({ t: "storage", op: "remove", key });
     },
@@ -303,7 +382,8 @@ function buildContext(
 
 // ─── Lifecycle ───────────────────────────────────────────────────────────────
 
-let plugin: { activate?: (ctx: PluginContext) => unknown; deactivate?: () => unknown } | null = null;
+let plugin: PluginModule | null = null;
+let pluginContext: PluginContext | null = null;
 
 self.onmessage = async (event: MessageEvent<HostMessage>) => {
   const message = event.data;
@@ -315,6 +395,7 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
           storageSnapshot.set(key, value);
         }
         appLocale = message.locale;
+        lifecyclePhase = message.phase;
         const loaded = (await import(/* @vite-ignore */ message.url)) as {
           default?: typeof plugin;
         };
@@ -322,15 +403,15 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
         if (!plugin || typeof plugin.activate !== "function") {
           throw new Error("entry module must default-export an object with activate()");
         }
-        await plugin.activate(
-          buildContext(
+        pluginContext = buildContext(
             message.manifest,
             message.appVersion,
             message.capabilities,
             message.shape,
-          ),
-        );
-        post({ t: "ready" });
+          );
+        await plugin.activate(pluginContext);
+        await drainActivationCalls();
+        post({ t: "ready", hasMigration: typeof plugin.migrate === "function" });
       } catch (error) {
         post({ t: "failed", error: error instanceof Error ? error.message : String(error) });
       }
@@ -376,6 +457,7 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
         }
       }
       if (message.patch.locale !== undefined) appLocale = message.patch.locale;
+      if (message.patch.phase !== undefined) lifecyclePhase = message.patch.phase;
       return;
     }
 
@@ -390,6 +472,38 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
 
     case "health": {
       post({ t: "healthy", id: message.id });
+      return;
+    }
+
+    case "migrate": {
+      try {
+        if (lifecyclePhase !== "migrating" || !pluginContext) {
+          throw new Error("plugin migration was requested outside the migrating phase");
+        }
+        if (typeof plugin?.migrate !== "function") {
+          throw new Error("plugin data schema changed but the plugin does not export migrate()");
+        }
+        const migrationContext: PluginMigrationContext = {
+          manifest: pluginContext.manifest,
+          lifecycle: { phase: "migrating" },
+          storage: {
+            get: pluginContext.services.storage.get,
+            set: pluginContext.services.storage.set,
+            remove: pluginContext.services.storage.remove,
+            collection: pluginContext.services.storage.collection,
+          },
+        };
+        await plugin.migrate(migrationContext, message.migration);
+        await drainActivationCalls();
+        post({ t: "migrated", id: message.id, ok: true });
+      } catch (error) {
+        post({
+          t: "migrated",
+          id: message.id,
+          ok: false,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
       return;
     }
 

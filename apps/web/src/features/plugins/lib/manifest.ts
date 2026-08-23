@@ -126,6 +126,10 @@ export function validateManifest(raw: unknown): PluginManifest {
     throw new PluginManifestError(`manifest.version "${version}" is not a version number`);
   }
   const requires = validateCapabilityRequirements(record.requires);
+  const schemaVersion = record.schemaVersion;
+  if (!Number.isSafeInteger(schemaVersion) || Number(schemaVersion) < 1) {
+    throw new PluginManifestError("manifest.schemaVersion must be a positive integer");
+  }
 
   let permissions: PluginPermission[] | undefined;
   const rawPermissions = record.permissions;
@@ -321,6 +325,7 @@ export function validateManifest(raw: unknown): PluginManifest {
     id,
     name,
     version,
+    schemaVersion: Number(schemaVersion),
     description: optionalString(record, "description"),
     author: optionalString(record, "author"),
     minAppVersion: optionalString(record, "minAppVersion"),

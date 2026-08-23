@@ -75,9 +75,12 @@ The architecture is split by responsibility:
 | Manifest validation | `apps/web/src/features/plugins/lib/manifest.ts` |
 | Actor capability resolution | `apps/web/src/features/plugins/runtime/plugin-capabilities.ts` |
 | Plugin context construction | `apps/web/src/features/plugins/runtime/plugin-context.ts` |
+| Activation barrier and staged registrations | `runtime/plugin-lifecycle.ts` |
 | Worker boundary and derived RPC shape | `plugin-worker-host.ts`, `plugin-sandbox.worker.ts` |
 | Contribution ownership and inspection | `state/contribution-registry.ts`, `state/plugin-store.ts` |
 | Install/update transaction | `runtime/plugin-update-transaction.ts`, desktop `plugins.rs` |
+| Data migration planning | `runtime/plugin-data-migration.ts` |
+| Agent extension consumers | `runtime/plugin-tools.ts`, `packages/agent/src/runtime/extension-context.ts` |
 
 Do not add a capability ID or permission in a feature-local switch. Extend the
 owning catalog and let its consumers derive the new vocabulary.
@@ -101,6 +104,7 @@ A plugin receives only its actor view. The view contains:
 - its validated manifest;
 - app version and locale;
 - visible capability versions;
+- the host-owned lifecycle phase;
 - allowed domains;
 - allowed contribution registries;
 - allowed host services.
@@ -111,7 +115,9 @@ not the only authorization check.
 
 The plugin runs in a module Worker. It has no React, Jotai, DOM, WebView,
 Tauri, SQLite, filesystem, or process handle. All host interaction crosses the
-typed context.
+typed context. Ambient Worker network and persistence APIs (`fetch`, WebSocket,
+IndexedDB, Cache Storage, BroadcastChannel, and related escape routes) are
+disabled; network and durable state must use granted host services.
 
 ## 5. Domains
 
@@ -198,6 +204,9 @@ The canonical contribution roster is:
 | `contentProviders` | virtual book content loader | library binding, navigation, presentation |
 | `readerModes` | bounded text segmentation behavior | reader lifecycle and controls |
 | `agentTools` | tool schema and executor | approval, orchestration, presentation |
+| `agentContextProviders` | bounded per-turn reference blocks | provenance, size limits, prompt placement |
+| `agentRetrievalProviders` | searchable private source | tool schema, query/limit bounds, result clipping |
+| `memoryCandidateProviders` | possible durable memories | scope validation, deduplication, persistence |
 | `themes` | semantic app/reader theme data | validation, selection, generated CSS |
 | `fonts` | metadata and approved font assets | loading, picker, active selection |
 
@@ -217,6 +226,27 @@ without being named by the host.
 
 Plugins do not register React components, JSX, HTML, CSS, iframes, arbitrary
 DOM, or unnamed mount points.
+
+### Agent intelligence contributions
+
+The three agent-facing providers are deliberately narrower than direct prompt
+or memory access:
+
+- A Context Provider receives the current thread scope and user text. Its
+  output is host-stamped with plugin provenance, clipped, capped, serialized as
+  untrusted reference data, and appended only to the current turn.
+- A Retrieval Provider becomes a namespaced agent tool. The host owns the
+  `query`/`limit` schema, caps item count and content length, and exposes the
+  plugin name in the tool description and result.
+- A Memory Candidate Provider runs after a completed turn. It may propose a
+  small set of `fact`, `preference`, `insight`, or `summary` candidates. The
+  host maps book scope, rejects cross-scope or malformed candidates, removes
+  exact duplicates, and writes accepted items through the canonical Memory
+  port with plugin provenance.
+
+Plugins never receive the product Memory port, cannot inject system rules, and
+cannot write a long-term memory directly. A contribution supplies evidence or
+a candidate; the host remains the consumer and decision boundary.
 
 ## 8. Host Services
 
@@ -243,7 +273,8 @@ The manifest permission vocabulary is derived from the catalogs:
 
 - Domains: `library:read`, `library:write`, `reading:read`, `reading:write`,
   `annotations:read`, `annotations:write`, `conversations:read`.
-- Contributions: `reader:modes`, `agent:tools`, `ui:themes`.
+- Contributions: `reader:modes`, `agent:tools`, `agent:context`,
+  `agent:retrieval`, `agent:memory`, `ui:themes`.
 - Services: `service:network`, `service:llm`, `service:clipboard`.
 - Settings: exact `settingsAccess` grants rather than a broad permission.
 
@@ -310,19 +341,50 @@ does not justify arbitrary web content or a plugin-owned React tree.
 2. Parse and validate the manifest.
 3. Validate capability requirements and permissions.
 4. Resolve install consent where needed.
-5. Construct the actor-scoped context.
+5. Construct the actor-scoped context in `activating` phase.
 6. Start the plugin Worker with an activation timeout.
-7. Collect registrations and subscriptions.
-8. Ping the Worker for health.
-9. Mark active only after activation and health both succeed.
+7. Run `activate(ctx)` as a read-and-declare pass. Registrations,
+   subscriptions, schedules, and providers stay staged and globally invisible.
+8. Drain every activation RPC and ping the Worker for health.
+9. Run a required data migration, if any, with storage-only authority.
+10. Cross the explicit promotion point: publish staged registrations and set
+    both host and Worker to `active`.
 
-Partial activation is rolled back in reverse registration order.
+During `activating`, domain commands, Settings updates, plugin storage writes,
+secret access, UI effects, network, LLM, clipboard, and reader navigation throw.
+Queries and plugin-private reads are available so a plugin can validate its
+environment. Partial promotion is rolled back in reverse registration order.
+No candidate contribution replaces the active version before promotion.
 
 ### Deactivation
 
-Deactivation removes subscriptions, contributions, schedules, commands, tools,
-provider registrations, UI sessions, and the Worker instance. Disposables are
+Deactivation first returns the context to a non-writing phase, then removes
+subscriptions, contributions, schedules, commands, tools, provider
+registrations, UI sessions, and the Worker instance. Disposables are
 generation-aware so an old runtime cannot remove a newer replacement.
+
+### Plugin data schemas
+
+Every manifest declares a positive integer `schemaVersion`, independent of the
+plugin package version. The host stores the last committed value in a
+host-owned namespace, outside plugin-writable KV.
+
+When the value changes, the candidate may export `migrate(ctx, change)`. The
+migration context exposes only plugin KV and document collections. It has no
+domains, Settings commands, secrets, network, UI, contributions, or agent
+surface. `change` contains `fromVersion`, `toVersion`, and an explicit
+`upgrade` or `downgrade` direction.
+
+The first runtime that introduces schema tracking adopts a plugin's declaration
+as its baseline when no migration exists. A plugin with a migration hook may
+handle that adoption as `0 -> schemaVersion`, which is how RSS moves its legacy
+KV array into documents. After a committed schema exists, any upgrade or
+downgrade without `migrate()` is rejected.
+
+Migrations must be deterministic and idempotent. On migration failure or
+timeout, the host restores the exact KV, document, schema-metadata, and file
+snapshots. Deliberately installing an older version uses the same protocol with
+`direction: "downgrade"`; a failed downgrade leaves the current version intact.
 
 ### Install and update
 
@@ -332,28 +394,29 @@ candidate flow. Staging is inert and does not replace the active plugin.
 For an update, the host:
 
 1. stages the candidate under a separate token;
-2. snapshots recoverable plugin KV and document data;
-3. starts and health-checks the candidate while the previous version remains
-   available;
+2. snapshots plugin KV, document data, and committed data-schema metadata;
+3. starts the candidate in read-only `activating` phase and health-checks it
+   while the previous version remains available;
 4. commits the candidate to the active on-disk slot;
 5. verifies the committed manifest and version;
-6. switches runtime ownership;
-7. retires the previous instance only after success.
+6. quiesces the previous runtime so it cannot race shared-data migration;
+7. runs upgrade/downgrade migration with storage-only authority;
+8. promotes the candidate's staged contributions;
+9. switches runtime ownership.
 
-On failure it stops the candidate, restores the previous files, restores the KV
-namespace and document collections, and restarts the previous runtime. Desktop
-startup also repairs an interrupted file switch when possible.
-
-Activation must not perform irreversible domain writes or secret migrations.
-KV and plugin documents are recoverable during the transaction; domain events
-and secret-store mutations are deliberately not treated as rollback storage.
+On failure it stops the candidate, restores the previous files, restores KV,
+documents and schema metadata, and restarts the previous runtime only when it
+had been quiesced. Desktop startup also repairs an interrupted file switch when
+possible. Domain events and secret mutations are not rollback storage; the
+activation barrier makes them impossible before the promotion boundary.
 
 ### Uninstall
 
 Built-in plugins cannot be uninstalled. For an installed plugin, uninstall
 deactivates it, removes active/candidate/rollback files, clears its document
-collections, and removes enablement state. KV settings and secret slots are
-retained so reinstall can recover user configuration.
+collections, and removes enablement state. KV settings, secret slots, and
+committed schema metadata are retained so reinstall can recover and migrate
+user configuration.
 
 ## 13. First-Party Coverage
 
@@ -361,12 +424,12 @@ The current first-party plugins all use the registry-backed contract:
 
 | Plugin | Primary capabilities |
 | --- | --- |
-| Dictionary | selection/header actions, commands, agent tools, storage, session, LLM, views |
+| Dictionary | selection/header actions, commands, agent tools, retrieval provider, storage, session, LLM, views |
 | Editorial Themes | theme/font contributions and theme schema |
 | RSS Reader | Library, Reading, content provider, commands, agent tools, storage, schedule, network, views/settings |
 | Sentence Reader | reader mode, storage, settings schema |
 | Text to Speech | voice/options providers, storage, secrets, network, settings schema |
-| Theme Schedule | Settings domain, options/commands, storage/UI, settings schema |
+| Theme Schedule | Settings domain, options/commands, storage/UI, committed schedule, settings schema |
 
 The host never switches on these plugin IDs. Product-specific behavior belongs
 in their packages and registered capabilities.
@@ -415,6 +478,9 @@ Before declaring plugin work complete, verify:
 - actor-domain and settings-scope tests;
 - contribution ownership and stale-generation tests;
 - Worker shape, activation timeout, and health tests;
+- activation-phase side-effect barrier and staged-registration tests;
+- schema upgrade, downgrade, timeout, and exact data-restore tests;
+- bounded agent context, retrieval, and memory-candidate consumer tests;
 - staged update and rollback tests;
 - plugin package tests and public declaration mirror validation;
 - root typecheck and test suites;
@@ -440,3 +506,7 @@ or Worker survives disposal.
 11. Keep plugin mutations on canonical domain commands or bounded services.
 12. Verify shipping behavior in Tauri and persisted writes through the real
     storage path.
+13. Keep `activate()` read-and-declare only; put data transformations in
+    `migrate()` and runtime work behind committed registrations.
+14. Agent extensions provide bounded data or candidates, never prompt or
+    Memory-port authority.

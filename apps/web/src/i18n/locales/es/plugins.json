@@ -56,6 +56,9 @@
       "annotations_write": "Editar anotaciones",
       "conversations_read": "Leer conversaciones",
       "agent_tools": "Herramientas del agente",
+      "agent_context": "Contexto del agente",
+      "agent_retrieval": "Búsqueda del agente",
+      "agent_memory": "Candidatos de memoria",
       "service_network": "Red",
       "service_llm": "Solicitudes de IA",
       "service_clipboard": "Portapapeles"
@@ -71,6 +74,9 @@
       "annotations_write": "Crear, editar y eliminar subrayados y notas",
       "conversations_read": "Leer tus conversaciones de IA",
       "agent_tools": "Registrar herramientas en el agente de lectura",
+      "agent_context": "Aportar contexto de referencia limitado al agente de lectura",
+      "agent_retrieval": "Añadir fuentes consultables por el agente de lectura",
+      "agent_memory": "Proponer recuerdos para que el anfitrión los valide y guarde",
       "service_network": "Acceder a la red",
       "service_llm": "Hacer solicitudes de IA con tu modelo configurado",
       "service_clipboard": "Escribir en el portapapeles"

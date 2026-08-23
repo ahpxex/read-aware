@@ -20,6 +20,9 @@ describe("plugin capability catalog", () => {
       "conversations:read",
       "reader:modes",
       "agent:tools",
+      "agent:context",
+      "agent:retrieval",
+      "agent:memory",
       "ui:themes",
       "service:network",
       "service:llm",
@@ -30,15 +33,18 @@ describe("plugin capability catalog", () => {
   test("keeps permission-free and consented capabilities explicit", () => {
     expect(permissionForContribution("commands")).toBeNull();
     expect(permissionForContribution("readerModes")).toBe("reader:modes");
+    expect(permissionForContribution("agentContextProviders")).toBe("agent:context");
     expect(permissionForHostService("storage")).toBeNull();
     expect(permissionForHostService("network")).toBe("service:network");
   });
 
   test("uses the catalogs for runtime capability gates", () => {
-    const permissions = new Set(["agent:tools", "service:network"]);
+    const permissions = new Set(["agent:tools", "agent:retrieval", "service:network"]);
 
     expect(canUseContribution("commands", permissions)).toBe(true);
     expect(canUseContribution("agentTools", permissions)).toBe(true);
+    expect(canUseContribution("agentRetrievalProviders", permissions)).toBe(true);
+    expect(canUseContribution("memoryCandidateProviders", permissions)).toBe(false);
     expect(canUseContribution("readerModes", permissions)).toBe(false);
     expect(canUseHostService("storage", permissions)).toBe(true);
     expect(canUseHostService("network", permissions)).toBe(true);

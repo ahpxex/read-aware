@@ -2,6 +2,7 @@
   "id": "rss-reader",
   "name": "RSS Reader",
   "version": "0.7.0",
+  "schemaVersion": 1,
   "minAppVersion": "0.3.0",
   "requires": {
     "domains": {

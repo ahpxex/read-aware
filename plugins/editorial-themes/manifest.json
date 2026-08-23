@@ -2,6 +2,7 @@
   "id": "editorial-themes",
   "name": "Editorial Themes",
   "version": "1.0.0",
+  "schemaVersion": 1,
   "minAppVersion": "0.3.0",
   "requires": {
     "contributions": {

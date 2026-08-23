@@ -44,6 +44,7 @@ function installed(id: string, version: string, builtin = false): InstalledPlugi
       id: entry.id,
       name: entry.name,
       version,
+      schemaVersion: 1,
       requires: {},
       permissions: entry.permissions,
     },

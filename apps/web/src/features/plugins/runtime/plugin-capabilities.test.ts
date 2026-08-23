@@ -10,6 +10,7 @@ function manifest(patch: Partial<PluginManifest> = {}): PluginManifest {
     id: "sample",
     name: "Sample",
     version: "1.0.0",
+    schemaVersion: 1,
     requires: {},
     ...patch,
   };

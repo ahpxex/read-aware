@@ -17,6 +17,7 @@
 import type {
   PluginContext,
   PluginDisposable,
+  PluginMigration,
   PluginManifest,
 } from "@read-aware/plugin-types";
 import { buildPluginContext, currentAppLocale, pluginStoragePrefix } from "./plugin-context";
@@ -30,14 +31,16 @@ import { updateInstalledPlugin } from "../state/plugin-store";
 const log = createLogger("plugins");
 
 type WorkerMessage =
-  | { t: "ready" }
+  | { t: "ready"; hasMigration: boolean }
   | { t: "failed"; error: string }
   | { t: "dispose"; handle: string }
   | { t: "call"; id: number; method: string; args: unknown[] }
   | { t: "storage"; op: "set" | "remove"; key: string; value?: string }
   | { t: "result"; id: number; ok: true; value: unknown }
   | { t: "result"; id: number; ok: false; error: string }
-  | { t: "healthy"; id: number };
+  | { t: "healthy"; id: number }
+  | { t: "migrated"; id: number; ok: true }
+  | { t: "migrated"; id: number; ok: false; error: string };
 
 /** A `{ __fn: handle }` marker the Worker put where a function used to be. */
 type FnRef = { __fn: string };
@@ -46,7 +49,10 @@ const isFnRef = (value: unknown): value is FnRef =>
 
 export type SandboxedPlugin = {
   manifest: PluginManifest;
+  readonly hasMigration: boolean;
   checkHealth(): Promise<void>;
+  migrate(migration: PluginMigration): Promise<void>;
+  promote(): void;
   terminate(): Promise<void>;
 };
 
@@ -146,7 +152,7 @@ function resolveMethod(
 export type ContextShape = { [key: string]: "fn" | ContextShape };
 
 /** Data (not callables) the Worker mirrors locally to keep sync reads sync. */
-const SHAPE_SKIP = new Set(["manifest", "appVersion", "locale", "capabilities"]);
+const SHAPE_SKIP = new Set(["manifest", "appVersion", "locale", "lifecycle", "capabilities"]);
 
 function describeShape(value: unknown, depth = 0): ContextShape {
   const shape: ContextShape = {};
@@ -212,7 +218,8 @@ export function startPluginWorker(
   const instanceId = options.instanceId ?? manifest.id;
   wireHostSync();
   liveWorkers.set(instanceId, { pluginId: manifest.id, worker });
-  const ctx = buildPluginContext(manifest, appVersion, disposables);
+  const runtime = buildPluginContext(manifest, appVersion, disposables);
+  const ctx = runtime.context;
 
   let nextInvokeId = 1;
   const pendingInvokes = new Map<
@@ -221,6 +228,11 @@ export function startPluginWorker(
   >();
   let nextHealthId = 1;
   const pendingHealth = new Map<
+    number,
+    { resolve: () => void; reject: (error: Error) => void; timeout: ReturnType<typeof setTimeout> }
+  >();
+  let nextMigrationId = 1;
+  const pendingMigrations = new Map<
     number,
     { resolve: () => void; reject: (error: Error) => void; timeout: ReturnType<typeof setTimeout> }
   >();
@@ -235,6 +247,13 @@ export function startPluginWorker(
       pending.reject(new Error(reason));
     }
     pendingHealth.clear();
+  };
+  const failAllMigrations = (reason: string) => {
+    for (const pending of pendingMigrations.values()) {
+      clearTimeout(pending.timeout);
+      pending.reject(new Error(reason));
+    }
+    pendingMigrations.clear();
   };
   /** Call a function the plugin kept inside the Worker. */
   const invokeHandle = (handle: string, args: unknown[]): Promise<unknown> => {
@@ -296,6 +315,7 @@ export function startPluginWorker(
         const message = event.message || "plugin crashed at runtime";
         log.error(`runtime error in "${manifest.id}"`, message);
         failAllHealthChecks(message);
+        failAllMigrations(message);
         if (options.onRuntimeError) options.onRuntimeError(message);
         else updateInstalledPlugin(manifest.id, { error: message });
         return;
@@ -304,6 +324,7 @@ export function startPluginWorker(
       clearTimeout(activationTimeout);
       liveWorkers.delete(instanceId);
       worker.terminate();
+      failAllMigrations(`plugin "${manifest.id}" failed to start`);
       reject(new Error(event.message || "plugin worker failed to start"));
     };
 
@@ -316,6 +337,7 @@ export function startPluginWorker(
             clearTimeout(activationTimeout);
             resolve({
               manifest,
+              hasMigration: message.hasMigration,
               checkHealth() {
                 const id = nextHealthId++;
                 return new Promise<void>((healthResolve, healthReject) => {
@@ -331,9 +353,39 @@ export function startPluginWorker(
                   worker.postMessage({ t: "health", id });
                 });
               },
+              migrate(migration) {
+                runtime.lifecycle.beginMigration();
+                worker.postMessage({ t: "sync", patch: { phase: "migrating" } });
+                const id = nextMigrationId++;
+                return new Promise<void>((migrationResolve, migrationReject) => {
+                  const timeout = setTimeout(() => {
+                    pendingMigrations.delete(id);
+                    runtime.lifecycle.finishMigration();
+                    worker.postMessage({ t: "sync", patch: { phase: "activating" } });
+                    migrationReject(new Error("plugin data migration timed out"));
+                  }, 30_000);
+                  pendingMigrations.set(id, {
+                    resolve: migrationResolve,
+                    reject: migrationReject,
+                    timeout,
+                  });
+                  worker.postMessage({ t: "migrate", id, migration });
+                });
+              },
+              promote() {
+                worker.postMessage({ t: "sync", patch: { phase: "active" } });
+                try {
+                  runtime.lifecycle.promote();
+                } catch (error) {
+                  worker.postMessage({ t: "sync", patch: { phase: "activating" } });
+                  throw error;
+                }
+              },
               async terminate() {
                 const live = liveWorkers.get(instanceId);
                 if (live?.worker === worker) liveWorkers.delete(instanceId);
+                runtime.lifecycle.suspend();
+                worker.postMessage({ t: "sync", patch: { phase: "activating" } });
                 worker.postMessage({ t: "deactivate" });
                 // Give deactivate() a moment to run its own cleanup, then take
                 // the realm down regardless — a plugin must not be able to
@@ -342,6 +394,7 @@ export function startPluginWorker(
                 worker.terminate();
                 failAllInvokes(`plugin "${manifest.id}" was deactivated`);
                 failAllHealthChecks(`plugin "${manifest.id}" was deactivated`);
+                failAllMigrations(`plugin "${manifest.id}" was deactivated`);
               },
             });
           }
@@ -370,10 +423,16 @@ export function startPluginWorker(
         }
 
         case "storage":
-          if (message.op === "set" && message.value !== undefined) {
-            ctx.services.storage.set(message.key, JSON.parse(message.value));
-          } else if (message.op === "remove") {
-            ctx.services.storage.remove(message.key);
+          try {
+            if (message.op === "set" && message.value !== undefined) {
+              ctx.services.storage.set(message.key, JSON.parse(message.value));
+            } else if (message.op === "remove") {
+              ctx.services.storage.remove(message.key);
+            }
+          } catch (error) {
+            const detail = error instanceof Error ? error.message : String(error);
+            log.error(`storage write from "${manifest.id}" rejected`, detail);
+            options.onRuntimeError?.(detail);
           }
           return;
 
@@ -400,7 +459,6 @@ export function startPluginWorker(
             ) {
               const handle = `d${nextDisposableId++}`;
               heldDisposables.set(handle, value as PluginDisposable);
-              disposables.push(value as PluginDisposable);
               worker.postMessage({
                 t: "result",
                 id: message.id,
@@ -441,6 +499,18 @@ export function startPluginWorker(
           pending.resolve();
           return;
         }
+
+        case "migrated": {
+          const pending = pendingMigrations.get(message.id);
+          if (!pending) return;
+          pendingMigrations.delete(message.id);
+          clearTimeout(pending.timeout);
+          runtime.lifecycle.finishMigration();
+          worker.postMessage({ t: "sync", patch: { phase: "activating" } });
+          if (message.ok) pending.resolve();
+          else pending.reject(new Error(message.error));
+          return;
+        }
       }
     };
 
@@ -453,6 +523,7 @@ export function startPluginWorker(
       shape: describeContext(ctx),
       storage: localKV.entries(pluginStoragePrefix(manifest.id)),
       locale: ctx.locale,
+      phase: runtime.lifecycle.phase,
     });
   });
 }

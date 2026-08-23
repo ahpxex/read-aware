@@ -22,6 +22,7 @@ const manifest: PluginManifest = {
   id: "settings-test",
   name: "Settings Test",
   version: "1.0.0",
+  schemaVersion: 1,
   requires: {},
   settings: [
     { kind: "text", id: "endpoint", label: "Endpoint", value: "https://example.com" },
@@ -73,6 +74,7 @@ describe("time settings fields", () => {
     id: "time-test",
     name: "Time Test",
     version: "1.0.0",
+    schemaVersion: 1,
     requires: {},
     settings: [{ kind: "time", id: "start", label: "Starts at", value: "07:00" }],
   };
@@ -106,6 +108,7 @@ describe("settings access manifest", () => {
         id: "theme-schedule",
         name: "Theme Schedule",
         version: "1.0.0",
+        schemaVersion: 1,
         requires: {},
         settingsAccess: {
           read: ["appearance.theme"],
@@ -132,6 +135,7 @@ describe("settings access manifest", () => {
             id: "bad-access",
             name: "Bad Access",
             version: "1.0.0",
+            schemaVersion: 1,
             requires: {},
             settingsAccess,
           }),
@@ -147,6 +151,7 @@ describe("settings access manifest", () => {
           id: "old-theme-switcher",
           name: "Old Theme Switcher",
           version: "1.0.0",
+          schemaVersion: 1,
           requires: {},
           permissions: ["ui:appearance"],
         }),
@@ -160,6 +165,7 @@ describe("capability requirements manifest", () => {
     id: "requirements-test",
     name: "Requirements Test",
     version: "1.0.0",
+    schemaVersion: 1,
   };
 
   test("requires an explicit capability contract", () => {
@@ -190,5 +196,23 @@ describe("capability requirements manifest", () => {
         JSON.stringify({ ...base, requires: { services: { storage: "tomorrow" } } }),
       ),
     ).toThrow(/semver range/);
+  });
+});
+
+describe("plugin data schema manifest", () => {
+  test("requires a positive integer schema version", () => {
+    for (const schemaVersion of [undefined, 0, -1, 1.5, "1"]) {
+      expect(() =>
+        parseManifestJson(
+          JSON.stringify({
+            id: "schema-test",
+            name: "Schema Test",
+            version: "1.0.0",
+            schemaVersion,
+            requires: {},
+          }),
+        ),
+      ).toThrow(/schemaVersion/);
+    }
   });
 });

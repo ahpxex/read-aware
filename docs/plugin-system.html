@@ -165,7 +165,7 @@
           读写产品状态走 Domain，扩展产品选择走 Contribution，需要宿主代办的外部操作走 Service。
           插件动态加载，但权力边界由宿主定义。
         </p>
-        <div class="status"><strong>已实现：</strong>统一目录、Settings Domain、能力版本协商、Worker 隔离与可回滚更新。</div>
+        <div class="status"><strong>已实现：</strong>统一目录、Settings Domain、只读候选激活、数据迁移、Agent 扩展与可回滚更新。</div>
       </div>
     </header>
 
@@ -219,6 +219,7 @@
             <ul class="compact">
               <li>Selection / Header Actions</li>
               <li>Commands / Agent Tools</li>
+              <li>Agent Context / Retrieval / Memory Candidates</li>
               <li>Settings Options</li>
               <li>Voice / Content Providers</li>
               <li>Reader Modes</li>
@@ -239,9 +240,26 @@
 
       <section>
         <div class="wrap">
+          <h2>Agent 智能扩展</h2>
+          <p class="intro">插件只能提供有边界的数据与候选，不能接管系统提示词或直接写长期记忆。</p>
+          <div class="table-shell">
+            <table>
+              <thead><tr><th>Contribution</th><th>插件提供</th><th>宿主把关</th></tr></thead>
+              <tbody>
+                <tr><td>Context Provider</td><td>当前问题相关的参考块</td><td>来源标记、数量与长度限制、按轮注入</td></tr>
+                <tr><td>Retrieval Provider</td><td>可搜索的插件私有数据</td><td>标准查询工具、结果裁剪、按需调用</td></tr>
+                <tr><td>Memory Candidate</td><td>可能值得记住的事实或洞见</td><td>scope 校验、去重、正式 Memory 写入</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="wrap">
           <h2>版本与权限</h2>
           <p class="intro">
-            每个 Domain、Contribution、Service 和声明式 UI schema 独立版本化。插件清单必须声明 semver 范围；启动前按实际授权后的可见能力检查。
+            每个 Domain、Contribution、Service 和声明式 UI schema 独立版本化。插件清单声明能力 semver 范围，也用整数 schemaVersion 管理自己的 KV 与文档数据。
           </p>
           <div class="split">
             <div>
@@ -261,9 +279,10 @@
           <h2>安全更新</h2>
           <div class="flow">
             <div class="step"><div><strong>独立暂存</strong><span>候选版本不会覆盖当前插件。</span></div></div>
-            <div class="step"><div><strong>先启动再切换</strong><span>候选 Worker 完成激活与健康检查，上一版仍可用。</span></div></div>
-            <div class="step"><div><strong>原子提交</strong><span>文件切换后再次核对清单和版本，再转移运行时所有权。</span></div></div>
-            <div class="step"><div><strong>自动恢复</strong><span>失败时恢复上一版文件、KV、文档数据和运行实例。</span></div></div>
+            <div class="step"><div><strong>只读候选</strong><span>activate 只能读取和声明；挂载点先暂存，写数据、密钥、网络和业务命令都被阻止。</span></div></div>
+            <div class="step"><div><strong>提交与迁移</strong><span>文件核对后暂停上一版，以 storage-only 权限执行 schema 升级或降级。</span></div></div>
+            <div class="step"><div><strong>显式提升</strong><span>健康与迁移都成功后，候选贡献才一次性进入全局 Registry。</span></div></div>
+            <div class="step"><div><strong>自动恢复</strong><span>失败时恢复上一版文件、KV、文档、schema 元数据和运行实例。</span></div></div>
             <div class="step"><div><strong>彻底释放</strong><span>订阅、贡献、任务、Provider 和 Worker 按代际安全销毁。</span></div></div>
           </div>
         </div>

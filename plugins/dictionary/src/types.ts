@@ -31,6 +31,9 @@ export type DictionaryContext = PluginContext & {
 export type DictionaryPluginContext = DictionaryContext & {
   contributions: PluginContext["contributions"] & {
     agentTools: NonNullable<PluginContext["contributions"]["agentTools"]>;
+    agentRetrievalProviders: NonNullable<
+      PluginContext["contributions"]["agentRetrievalProviders"]
+    >;
   };
 };
 
@@ -42,5 +45,8 @@ export function assertPluginCapabilities(
   }
   if (!ctx.contributions.agentTools) {
     throw new Error('Dictionary requires the "agent:tools" permission');
+  }
+  if (!ctx.contributions.agentRetrievalProviders) {
+    throw new Error('Dictionary requires the "agent:retrieval" permission');
   }
 }

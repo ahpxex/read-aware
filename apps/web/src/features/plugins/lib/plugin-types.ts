@@ -9,6 +9,9 @@ import type {
   PluginFontContribution,
   PluginHeaderAction,
   PluginManifest,
+  PluginAgentContextProvider,
+  PluginAgentRetrievalProvider,
+  PluginMemoryCandidateProvider,
   PluginReaderMode,
   PluginSelectionAction,
   PluginThemeContribution,
@@ -80,6 +83,24 @@ export type RegisteredCommand = PluginCommand & {
 };
 
 export type RegisteredTool = PluginToolDefinition & {
+  key: ContributionKey;
+  pluginId: string;
+  pluginName: string;
+};
+
+export type RegisteredAgentContextProvider = PluginAgentContextProvider & {
+  key: ContributionKey;
+  pluginId: string;
+  pluginName: string;
+};
+
+export type RegisteredAgentRetrievalProvider = PluginAgentRetrievalProvider & {
+  key: ContributionKey;
+  pluginId: string;
+  pluginName: string;
+};
+
+export type RegisteredMemoryCandidateProvider = PluginMemoryCandidateProvider & {
   key: ContributionKey;
   pluginId: string;
   pluginName: string;

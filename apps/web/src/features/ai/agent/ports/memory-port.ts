@@ -47,7 +47,8 @@ export function createMemoryPort(): MemoryPort {
         scope: input.scope,
         kind: input.kind,
         content: input.content,
-        importance: input.origin === "extraction" ? 0.35 : 0.5,
+        importance:
+          input.origin === "extraction" || input.origin === "plugin" ? 0.35 : 0.5,
         evidenceCount: 1,
         status: "active",
         createdAt: now,

@@ -223,7 +223,7 @@ export interface NewMemoryInput {
   kind: MemoryKind;
   content: string;
   /** extraction = 逐轮提炼；agent = remember 工具；onboarding = 冷启动种子 */
-  origin: "extraction" | "agent" | "onboarding";
+  origin: "extraction" | "plugin" | "agent" | "onboarding";
   sourceThreadKey: string;
 }
 
@@ -409,6 +409,30 @@ export interface AgentLogPort {
   error(message: string, detail?: unknown): void;
 }
 
+export interface AgentExtensionContextBlock {
+  /** Host-stamped provenance; plugin output cannot impersonate another source. */
+  source: string;
+  title?: string;
+  content: string;
+}
+
+export interface AgentExtensionContextRequest {
+  scope: ThreadScope;
+  userText: string;
+}
+
+export interface ExternalMemoryCandidate {
+  scope: MemoryScope;
+  kind: MemoryKind;
+  content: string;
+}
+
+export interface ExternalMemoryCandidateRequest {
+  scope: ThreadScope;
+  userText: string;
+  assistantText: string;
+}
+
 export interface RuntimeDeps {
   library: LibraryPort;
   annotations: AnnotationsPort;
@@ -427,4 +451,12 @@ export interface RuntimeDeps {
    * 让下一轮重建。
    */
   extraTools?: (scope: ThreadScope) => AgentTool[];
+  /** Bounded, provenance-stamped data blocks appended to the current user turn. */
+  extraContext?: (
+    request: AgentExtensionContextRequest,
+  ) => Promise<AgentExtensionContextBlock[]>;
+  /** Candidates only: AgentThread validates and writes them through MemoryPort. */
+  extraMemoryCandidates?: (
+    request: ExternalMemoryCandidateRequest,
+  ) => Promise<ExternalMemoryCandidate[]>;
 }

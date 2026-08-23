@@ -4414,7 +4414,6 @@ async function rssPageView(ctx) {
 var plugin = {
   async activate(ctx) {
     assertPluginCapabilities(ctx);
-    await migrateLegacyFeeds(ctx);
     ctx.contributions.contentProviders.register({
       id: PROVIDER_ID,
       load: async (url) => (await fetchFeed(ctx, url)).content
@@ -4447,6 +4446,11 @@ var plugin = {
       await refreshAllFeeds(ctx);
     });
     registerAgentTools(ctx);
+  },
+  async migrate(ctx, migration) {
+    if (migration.direction === "upgrade" && migration.fromVersion === 0) {
+      await migrateLegacyFeeds({ services: { storage: ctx.storage } });
+    }
   }
 };
 var src_default = plugin;

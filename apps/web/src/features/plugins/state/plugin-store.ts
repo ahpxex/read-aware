@@ -17,6 +17,8 @@ import type {
   PluginSelectOption,
   PluginView,
   RegisteredCommand,
+  RegisteredAgentContextProvider,
+  RegisteredAgentRetrievalProvider,
   RegisteredHeaderAction,
   RegisteredPluginFont,
   RegisteredVoiceProvider,
@@ -24,6 +26,7 @@ import type {
   RegisteredReaderMode,
   RegisteredSelectionAction,
   RegisteredTool,
+  RegisteredMemoryCandidateProvider,
 } from "../lib/plugin-types";
 import { createContributionRegistry } from "./contribution-registry";
 
@@ -41,6 +44,12 @@ const commandsRegistry =
   createContributionRegistry<RegisteredCommand>("commands");
 const toolsRegistry =
   createContributionRegistry<RegisteredTool>("agentTools");
+const agentContextProvidersRegistry =
+  createContributionRegistry<RegisteredAgentContextProvider>("agentContextProviders");
+const agentRetrievalProvidersRegistry =
+  createContributionRegistry<RegisteredAgentRetrievalProvider>("agentRetrievalProviders");
+const memoryCandidateProvidersRegistry =
+  createContributionRegistry<RegisteredMemoryCandidateProvider>("memoryCandidateProviders");
 const themesRegistry =
   createContributionRegistry<RegisteredPluginTheme>("themes");
 const fontsRegistry =
@@ -53,6 +62,9 @@ export const headerActionsAtom = headerActionsRegistry.atom;
 export const readerModesAtom = readerModesRegistry.atom;
 export const pluginCommandsAtom = commandsRegistry.atom;
 export const pluginToolsAtom = toolsRegistry.atom;
+export const pluginAgentContextProvidersAtom = agentContextProvidersRegistry.atom;
+export const pluginAgentRetrievalProvidersAtom = agentRetrievalProvidersRegistry.atom;
+export const pluginMemoryCandidateProvidersAtom = memoryCandidateProvidersRegistry.atom;
 export const pluginThemesAtom = themesRegistry.atom;
 export const pluginFontsAtom = fontsRegistry.atom;
 export const voiceProvidersAtom = voiceProvidersRegistry.atom;
@@ -96,6 +108,24 @@ export function registerCommandContribution(item: RegisteredCommand): PluginDisp
 
 export function registerToolContribution(item: RegisteredTool): PluginDisposable {
   return toolsRegistry.register(item);
+}
+
+export function registerAgentContextProviderContribution(
+  item: RegisteredAgentContextProvider,
+): PluginDisposable {
+  return agentContextProvidersRegistry.register(item);
+}
+
+export function registerAgentRetrievalProviderContribution(
+  item: RegisteredAgentRetrievalProvider,
+): PluginDisposable {
+  return agentRetrievalProvidersRegistry.register(item);
+}
+
+export function registerMemoryCandidateProviderContribution(
+  item: RegisteredMemoryCandidateProvider,
+): PluginDisposable {
+  return memoryCandidateProvidersRegistry.register(item);
 }
 
 export function registerThemeContribution(
@@ -192,6 +222,18 @@ export function updateVoiceProviderVoices(
 /** Snapshot of the enabled plugins' agent tools (read per agent build). */
 export function getRegisteredPluginTools(): RegisteredTool[] {
   return toolsRegistry.list();
+}
+
+export function getRegisteredAgentContextProviders(): RegisteredAgentContextProvider[] {
+  return agentContextProvidersRegistry.list();
+}
+
+export function getRegisteredAgentRetrievalProviders(): RegisteredAgentRetrievalProvider[] {
+  return agentRetrievalProvidersRegistry.list();
+}
+
+export function getRegisteredMemoryCandidateProviders(): RegisteredMemoryCandidateProvider[] {
+  return memoryCandidateProvidersRegistry.list();
 }
 
 /** The single host-supported text-unit mode, or null while its plugin is off. */

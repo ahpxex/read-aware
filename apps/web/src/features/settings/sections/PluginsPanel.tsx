@@ -13,16 +13,11 @@ import { isTauri } from "../../../platform/environment";
 import { settingsSectionRequestAtom } from "../../../state/ui";
 import { PluginMarketplace } from "../../plugins/components/PluginMarketplace";
 import { PluginSearchInput } from "../../plugins/components/PluginSearchInput";
-import { parseManifestJson } from "../../plugins/lib/manifest";
 import { matchesPluginQuery } from "../../plugins/lib/search";
 import { permissionNameKey, type PluginPermission } from "../../plugins/lib/plugin-types";
 import {
-  readPluginManifestFromDir,
-  readPluginManifestFromZip,
-} from "../../plugins/runtime/plugin-backend";
-import {
-  installPlugin,
-  installPluginZip,
+  preparePluginInstall,
+  preparePluginZipInstall,
   setPluginEnabled,
   uninstallPlugin,
 } from "../../plugins/runtime/plugin-host";
@@ -54,14 +49,21 @@ export function PluginsPanel() {
     try {
       const picked = await openFileDialog({ directory: true, multiple: false });
       if (typeof picked === "string" && picked) {
-        // Consent before any copy: read + validate the manifest in place.
-        const manifest = parseManifestJson(await readPluginManifestFromDir(picked));
-        if (!(await requestInstallConsent(manifest))) return;
-        const plugin = await installPlugin(picked);
-        toast({
-          description: t("settings.installedToast", { name: plugin.manifest.name }),
-          variant: "success",
-        });
+        const candidate = await preparePluginInstall(picked);
+        try {
+          if (!(await requestInstallConsent(candidate.manifest))) {
+            await candidate.discard();
+            return;
+          }
+          const plugin = await candidate.complete();
+          toast({
+            description: t("settings.installedToast", { name: plugin.manifest.name }),
+            variant: "success",
+          });
+        } catch (error) {
+          await candidate.discard().catch(() => {});
+          throw error;
+        }
       }
     } catch (error) {
       toast({
@@ -81,14 +83,21 @@ export function PluginsPanel() {
         filters: [{ name: "Plugin archive", extensions: ["zip"] }],
       });
       if (typeof picked === "string" && picked) {
-        // Consent before any extraction: read the manifest inside the zip.
-        const manifest = parseManifestJson(await readPluginManifestFromZip(picked));
-        if (!(await requestInstallConsent(manifest))) return;
-        const plugin = await installPluginZip(picked);
-        toast({
-          description: t("settings.installedToast", { name: plugin.manifest.name }),
-          variant: "success",
-        });
+        const candidate = await preparePluginZipInstall(picked);
+        try {
+          if (!(await requestInstallConsent(candidate.manifest))) {
+            await candidate.discard();
+            return;
+          }
+          const plugin = await candidate.complete();
+          toast({
+            description: t("settings.installedToast", { name: plugin.manifest.name }),
+            variant: "success",
+          });
+        } catch (error) {
+          await candidate.discard().catch(() => {});
+          throw error;
+        }
       }
     } catch (error) {
       toast({

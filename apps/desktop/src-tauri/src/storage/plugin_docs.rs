@@ -20,6 +20,19 @@ pub struct PluginDocumentRow {
     pub updated_at: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PluginDocumentSnapshotRow {
+    pub collection: String,
+    pub id: String,
+    pub json: String,
+    #[serde(default)]
+    pub book_id: Option<String>,
+    #[serde(default)]
+    pub anchor: Option<String>,
+    pub updated_at: String,
+}
+
 pub(crate) fn row_to_plugin_document(row: &rusqlite::Row) -> rusqlite::Result<PluginDocumentRow> {
     Ok(PluginDocumentRow {
         id: row.get("id")?,
@@ -100,7 +113,11 @@ pub fn plugin_docs_list(
     db: State<'_, Db>,
 ) -> Result<Vec<PluginDocumentRow>, String> {
     let conn = db.0.lock().map_err(|e| e.to_string())?;
-    let order = if oldest_first.unwrap_or(false) { "ASC" } else { "DESC" };
+    let order = if oldest_first.unwrap_or(false) {
+        "ASC"
+    } else {
+        "DESC"
+    };
     let sql = format!(
         "SELECT id, json, book_id, anchor, updated_at FROM plugin_documents
          WHERE plugin_id = ?1 AND collection = ?2
@@ -130,6 +147,84 @@ pub fn plugin_docs_clear(plugin_id: String, db: State<'_, Db>) -> Result<(), Str
     )
     .map_err(|e| e.to_string())?;
     Ok(())
+}
+
+#[tauri::command]
+pub fn plugin_docs_snapshot(
+    plugin_id: String,
+    db: State<'_, Db>,
+) -> Result<Vec<PluginDocumentSnapshotRow>, String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    plugin_docs_snapshot_inner(&conn, &plugin_id)
+}
+
+pub(crate) fn plugin_docs_snapshot_inner(
+    conn: &Connection,
+    plugin_id: &str,
+) -> Result<Vec<PluginDocumentSnapshotRow>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT collection, id, json, book_id, anchor, updated_at
+             FROM plugin_documents WHERE plugin_id = ?1
+             ORDER BY collection, id",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map(params![plugin_id], |row| {
+            Ok(PluginDocumentSnapshotRow {
+                collection: row.get(0)?,
+                id: row.get(1)?,
+                json: row.get(2)?,
+                book_id: row.get(3)?,
+                anchor: row.get(4)?,
+                updated_at: row.get(5)?,
+            })
+        })
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+    Ok(rows)
+}
+
+#[tauri::command]
+pub fn plugin_docs_restore(
+    plugin_id: String,
+    rows: Vec<PluginDocumentSnapshotRow>,
+    db: State<'_, Db>,
+) -> Result<(), String> {
+    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+    plugin_docs_restore_inner(&mut conn, &plugin_id, rows)
+}
+
+pub(crate) fn plugin_docs_restore_inner(
+    conn: &mut Connection,
+    plugin_id: &str,
+    rows: Vec<PluginDocumentSnapshotRow>,
+) -> Result<(), String> {
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+    tx.execute(
+        "DELETE FROM plugin_documents WHERE plugin_id = ?1",
+        params![plugin_id],
+    )
+    .map_err(|e| e.to_string())?;
+    for row in rows {
+        tx.execute(
+            "INSERT INTO plugin_documents
+                (plugin_id, collection, id, json, book_id, anchor, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                plugin_id,
+                row.collection,
+                row.id,
+                row.json,
+                row.book_id,
+                row.anchor,
+                row.updated_at
+            ],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+    tx.commit().map_err(|e| e.to_string())
 }
 
 /// One-time migration: the retired core vocabulary projection moves into the
@@ -188,4 +283,3 @@ pub fn vocabulary_migrate_to_plugin_documents(db: State<'_, Db>) -> Result<i64, 
     tx.commit().map_err(|e| e.to_string())?;
     Ok(moved)
 }
-

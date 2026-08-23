@@ -249,5 +249,39 @@ pub fn delete_kv(key: String, db: State<'_, Db>) -> Result<(), String> {
     Ok(())
 }
 
+pub(crate) fn replace_kv_prefix_inner(
+    conn: &mut Connection,
+    prefix: &str,
+    entries: std::collections::HashMap<String, String>,
+) -> Result<(), String> {
+    let tx = conn.transaction().map_err(|e| e.to_string())?;
+    tx.execute(
+        "DELETE FROM app_kv WHERE substr(key, 1, length(?1)) = ?1",
+        params![prefix],
+    )
+    .map_err(|e| e.to_string())?;
+    for (suffix, value) in entries {
+        tx.execute(
+            "INSERT INTO app_kv (key, value_json, updated_at)
+             VALUES (?1, ?2, strftime('%Y-%m-%dT%H:%M:%fZ','now'))",
+            params![format!("{prefix}{suffix}"), value],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+    tx.commit().map_err(|e| e.to_string())
+}
+
+/// Replace one namespaced KV snapshot in a single transaction. Plugin update
+/// recovery uses this instead of racing individual fire-and-forget writes.
+#[tauri::command]
+pub fn replace_kv_prefix(
+    prefix: String,
+    entries: std::collections::HashMap<String, String>,
+    db: State<'_, Db>,
+) -> Result<(), String> {
+    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+    replace_kv_prefix_inner(&mut conn, &prefix, entries)
+}
+
 #[cfg(test)]
 mod tests;

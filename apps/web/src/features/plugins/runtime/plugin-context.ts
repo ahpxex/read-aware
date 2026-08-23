@@ -273,17 +273,23 @@ export function buildPluginContext(
       voiceProviders: {
         register: (provider) => {
         const key = contributionKey(manifest.id, provider.id);
-        const registration = registerVoiceProviderContribution({
+        let registeredProvider: Parameters<typeof registerVoiceProviderContribution>[0] = {
           ...provider,
           ...brand,
           key,
           voices: [],
-        });
+        };
+        const registration = registerVoiceProviderContribution(registeredProvider);
         const refreshVoices = () => {
           Promise.resolve(provider.listVoices())
-            .then((voices) =>
-              updateVoiceProviderVoices(key, Array.isArray(voices) ? voices : []),
-            )
+            .then((voices) => {
+              const replacement = updateVoiceProviderVoices(
+                key,
+                Array.isArray(voices) ? voices : [],
+                registeredProvider,
+              );
+              if (replacement) registeredProvider = replacement;
+            })
             .catch((error) =>
               log.warn(
                 `listVoices from "${manifest.id}" failed`,

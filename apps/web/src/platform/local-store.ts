@@ -216,3 +216,27 @@ export async function restoreLocalKV(entries: Record<string, string>): Promise<v
   }
   for (const [key, value] of Object.entries(entries)) localStorage.setItem(key, value);
 }
+
+/** Atomically replace one namespaced KV snapshot and then mirror it in memory. */
+export async function replaceLocalKVPrefix(
+  prefix: string,
+  entries: Record<string, string>,
+): Promise<void> {
+  if (!isTauri()) {
+    for (const suffix of Object.keys(localKV.entries(prefix))) {
+      localStorage.removeItem(prefix + suffix);
+    }
+    for (const [suffix, value] of Object.entries(entries)) {
+      localStorage.setItem(prefix + suffix, value);
+    }
+    return;
+  }
+
+  await invoke("replace_kv_prefix", { prefix, entries });
+  for (const key of [...(snapshot ?? new Map()).keys()]) {
+    if (key.startsWith(prefix)) snapshot?.delete(key);
+  }
+  for (const [suffix, value] of Object.entries(entries)) {
+    (snapshot ??= new Map()).set(prefix + suffix, value);
+  }
+}

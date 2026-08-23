@@ -2118,3 +2118,78 @@ fn a_declared_finish_survives_further_reading() {
         "reading"
     );
 }
+
+#[test]
+fn plugin_document_snapshot_restores_the_pre_update_state_atomically() {
+    let mut conn = migrated_conn();
+    conn.execute(
+        "INSERT INTO plugin_documents
+            (plugin_id, collection, id, json, book_id, anchor, updated_at)
+         VALUES ('sample', 'items', 'old', '{\"value\":1}', 'b1', 'cfi', '2026-01-01T00:00:00Z')",
+        [],
+    )
+    .unwrap();
+    let snapshot = plugin_docs_snapshot_inner(&conn, "sample").unwrap();
+
+    conn.execute("DELETE FROM plugin_documents WHERE plugin_id = 'sample'", [])
+        .unwrap();
+    conn.execute(
+        "INSERT INTO plugin_documents
+            (plugin_id, collection, id, json, updated_at)
+         VALUES ('sample', 'items', 'new', '{\"value\":2}', '2026-02-01T00:00:00Z')",
+        [],
+    )
+    .unwrap();
+
+    plugin_docs_restore_inner(&mut conn, "sample", snapshot).unwrap();
+
+    let rows = plugin_docs_snapshot_inner(&conn, "sample").unwrap();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].id, "old");
+    assert_eq!(rows[0].book_id.as_deref(), Some("b1"));
+    assert_eq!(rows[0].updated_at, "2026-01-01T00:00:00Z");
+}
+
+#[test]
+fn namespaced_kv_restore_replaces_only_the_target_namespace() {
+    let mut conn = migrated_conn();
+    conn.execute(
+        "INSERT INTO app_kv (key, value_json, updated_at) VALUES
+         ('plugin.sample.old', 'old', '2026-01-01T00:00:00Z'),
+         ('plugin.other.keep', 'keep', '2026-01-01T00:00:00Z')",
+        [],
+    )
+    .unwrap();
+
+    replace_kv_prefix_inner(
+        &mut conn,
+        "plugin.sample.",
+        std::collections::HashMap::from([("new".to_string(), "restored".to_string())]),
+    )
+    .unwrap();
+
+    let old_count: i64 = conn
+        .query_row(
+            "SELECT count(*) FROM app_kv WHERE key = 'plugin.sample.old'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let restored: String = conn
+        .query_row(
+            "SELECT value_json FROM app_kv WHERE key = 'plugin.sample.new'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let untouched: String = conn
+        .query_row(
+            "SELECT value_json FROM app_kv WHERE key = 'plugin.other.keep'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(old_count, 0);
+    assert_eq!(restored, "restored");
+    assert_eq!(untouched, "keep");
+}

@@ -21,7 +21,7 @@ export type ContributionRegistry<T extends ContributionIdentity> = {
   register(item: T): PluginDisposable;
   list(): T[];
   find(predicate: (item: T) => boolean): T | null;
-  update(key: ContributionKey, update: (item: T) => T): void;
+  update(key: ContributionKey, update: (item: T) => T): T | null;
 };
 
 type InspectableRegistry = {
@@ -75,12 +75,18 @@ export function createContributionRegistry<T extends ContributionIdentity>(
     list: () => store.get(entriesAtom),
     find: (predicate) => store.get(entriesAtom).find(predicate) ?? null,
     update: (key, update) => {
+      let updated: T | null = null;
       store.set(
         entriesAtom,
         store
           .get(entriesAtom)
-          .map((entry) => (entry.key === key ? update(entry) : entry)),
+          .map((entry) => {
+            if (entry.key !== key) return entry;
+            updated = update(entry);
+            return updated;
+          }),
       );
+      return updated;
     },
   };
   if (catalog) {

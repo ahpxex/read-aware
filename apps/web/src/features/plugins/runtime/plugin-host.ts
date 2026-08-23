@@ -11,6 +11,7 @@
 import { getVersion } from "@tauri-apps/api/app";
 import { getDefaultStore } from "jotai";
 import { isTauri } from "../../../platform/environment";
+import { localKV, replaceLocalKVPrefix } from "../../../platform/local-store";
 import { createLogger } from "../../../platform/logger";
 import { PluginManifestError, parseManifestJson, versionSatisfies } from "../lib/manifest";
 import type {
@@ -32,13 +33,20 @@ import {
 import { contributionKey } from "../lib/plugin-types";
 import { toPluginRef } from "../lib/plugin-theme";
 import {
-  installPluginFilesCmd,
-  installPluginFromDir,
-  installPluginFromZip,
+  commitPluginCandidate,
+  discardPluginCandidate,
   listPluginEntries,
+  pluginCandidateModuleUrl,
   pluginDocsClear,
+  pluginDocsRestore,
+  pluginDocsSnapshot,
+  rollbackPluginFiles,
+  stagePluginFiles,
+  stagePluginFromDir,
+  stagePluginFromZip,
   uninstallPluginFiles,
-  type PluginDiskEntry,
+  type PluginCandidateDiskEntry,
+  type PluginDocumentSnapshotRow,
   type PluginFilePayload,
 } from "./plugin-backend";
 import {
@@ -48,6 +56,7 @@ import {
 } from "./plugin-worker-host";
 import { onAppEvent } from "../../../platform/app-events";
 import { unbindVirtualBook } from "../lib/virtual-books";
+import { runPluginUpdateTransaction } from "./plugin-update-transaction";
 
 const log = createLogger("plugins");
 
@@ -55,6 +64,7 @@ type ActivePlugin = {
   manifest: PluginManifest;
   sandbox: SandboxedPlugin;
   disposables: PluginDisposable[];
+  candidateToken?: string;
 };
 
 const active = new Map<string, ActivePlugin>();
@@ -172,6 +182,7 @@ function assertManifestCanActivate(manifest: PluginManifest): void {
 async function startPluginInstance(
   manifest: PluginManifest,
   options: StartPluginWorkerOptions = {},
+  candidateToken?: string,
 ): Promise<ActivePlugin> {
   assertManifestCanActivate(manifest);
   const disposables: PluginDisposable[] = [];
@@ -180,7 +191,7 @@ async function startPluginInstance(
     sandbox = await startPluginWorker(manifest, appVersion, disposables, options);
     registerManifestContributions(manifest, disposables);
     await sandbox.checkHealth();
-    return { manifest, sandbox, disposables };
+    return { manifest, sandbox, disposables, candidateToken };
   } catch (error) {
     for (const disposable of [...disposables].reverse()) {
       try {
@@ -248,7 +259,7 @@ async function deactivatePlugin(id: string): Promise<void> {
 
 async function stopPluginInstance(entry: ActivePlugin): Promise<void> {
   const id = entry.manifest.id;
-  for (const disposable of entry.disposables) {
+  for (const disposable of [...entry.disposables].reverse()) {
     try {
       disposable.dispose();
     } catch (error) {
@@ -259,6 +270,11 @@ async function stopPluginInstance(entry: ActivePlugin): Promise<void> {
     await entry.sandbox.terminate();
   } catch (error) {
     log.error(`terminating "${id}" failed`, error);
+  }
+  if (entry.candidateToken) {
+    await discardPluginCandidate(entry.candidateToken).catch((error) => {
+      log.warn(`candidate cleanup for "${id}" failed`, error);
+    });
   }
 }
 
@@ -274,60 +290,182 @@ export async function setPluginEnabled(id: string, enabled: boolean): Promise<vo
   }
 }
 
-/**
- * Adopt a freshly written plugin folder: validate the manifest properly,
- * replace any running instance, enable, and activate. Shared by both install
- * paths (local folder and marketplace). Throws with a readable message — the
- * settings panel surfaces it.
- */
-async function adoptDiskEntry(entry: PluginDiskEntry): Promise<InstalledPlugin> {
+function parseCandidate(entry: PluginCandidateDiskEntry): PluginManifest {
   const manifest = parseManifestJson(entry.manifest);
   if (manifest.id !== entry.id) {
     throw new PluginManifestError(
       `manifest.id "${manifest.id}" does not match folder name "${entry.id}"`,
     );
   }
+  return manifest;
+}
 
-  // A bundled plugin's id is not installable-over: the built-in cannot be
-  // uninstalled, so adopting this copy would leave two same-id plugins with
-  // no clean way out. The files were already written — remove them again.
+type PluginDataSnapshot = {
+  kv: Record<string, string>;
+  documents: PluginDocumentSnapshotRow[];
+};
+
+async function snapshotPluginData(id: string): Promise<PluginDataSnapshot> {
+  return {
+    kv: localKV.entries(`read-aware-plugin.${id}.`),
+    documents: await pluginDocsSnapshot(id),
+  };
+}
+
+async function restorePluginData(id: string, snapshot: PluginDataSnapshot): Promise<void> {
+  const prefix = `read-aware-plugin.${id}.`;
+  await Promise.all([
+    replaceLocalKVPrefix(prefix, snapshot.kv),
+    pluginDocsRestore(id, snapshot.documents),
+  ]);
+}
+
+async function restartPreviousInstance(previous: ActivePlugin): Promise<void> {
+  await stopPluginInstance(previous);
+  const restored = await startPluginInstance(previous.manifest);
+  active.set(previous.manifest.id, restored);
+}
+
+/**
+ * Blue-green install/update: activate and probe the staged candidate while the
+ * previous version still owns the durable on-disk slot. Only then commit the
+ * candidate, switch runtime ownership, and retire the previous sandbox.
+ */
+async function applyCandidate(entry: PluginCandidateDiskEntry): Promise<InstalledPlugin> {
+  let manifest: PluginManifest;
+  try {
+    manifest = parseCandidate(entry);
+  } catch (error) {
+    await discardPluginCandidate(entry.token).catch(() => {});
+    throw error;
+  }
   const existing = getInstalled().find((plugin) => plugin.manifest.id === manifest.id);
+
   if (existing?.builtin) {
-    await uninstallPluginFiles(manifest.id).catch(() => {});
+    await discardPluginCandidate(entry.token).catch(() => {});
     throw new Error(`"${manifest.id}" is a built-in plugin and cannot be replaced`);
   }
 
-  // Replacing a running plugin: tear the old instance down first.
-  await deactivatePlugin(manifest.id);
-
+  const previous = active.get(manifest.id);
+  const dataSnapshot = await snapshotPluginData(manifest.id).catch(async (error) => {
+    await discardPluginCandidate(entry.token).catch(() => {});
+    throw error;
+  });
+  let accepted = false;
+  let candidateRuntimeError: string | undefined;
+  let committed: Awaited<ReturnType<typeof commitPluginCandidate>> | undefined;
   const plugin: InstalledPlugin = { manifest, enabled: true };
-  setInstalledPlugins([
-    ...getInstalled().filter((existing) => existing.manifest.id !== manifest.id),
-    plugin,
-  ]);
-  persistPluginEnabled(manifest.id, true);
-  await activatePlugin(manifest);
 
-  const after = getInstalled().find((existing) => existing.manifest.id === manifest.id);
-  return after ?? plugin;
+  await runPluginUpdateTransaction<ActivePlugin>({
+    startCandidate: () =>
+      startPluginInstance(
+        manifest,
+        {
+          moduleUrl: pluginCandidateModuleUrl(entry.token, manifest.main ?? "main.js"),
+          instanceId: `${manifest.id}@candidate:${entry.token}`,
+          onRuntimeError: (message) => {
+            if (accepted) updateInstalledPlugin(manifest.id, { error: message });
+            else candidateRuntimeError = message;
+          },
+        },
+        entry.token,
+      ),
+    verifyCandidate: () => {
+      if (candidateRuntimeError) throw new Error(candidateRuntimeError);
+    },
+    commitFiles: async () => {
+      committed = await commitPluginCandidate(entry.token);
+    },
+    verifyCommit: () => {
+      if (!committed) throw new Error("plugin candidate was not committed");
+      const committedManifest = parseManifestJson(committed.manifest);
+      if (committed.id !== manifest.id || committedManifest.version !== manifest.version) {
+        throw new Error("committed plugin candidate does not match the health-checked version");
+      }
+      if (candidateRuntimeError) throw new Error(candidateRuntimeError);
+    },
+    accept: (next) => {
+      active.set(manifest.id, next);
+      setInstalledPlugins([
+        ...getInstalled().filter((installed) => installed.manifest.id !== manifest.id),
+        plugin,
+      ]);
+      persistPluginEnabled(manifest.id, true);
+      accepted = true;
+    },
+    retirePrevious: async () => {
+      if (previous) await stopPluginInstance(previous);
+    },
+    cleanupCandidate: async (next) => {
+      if (active.get(manifest.id) === next) active.delete(manifest.id);
+      if (next) await stopPluginInstance(next);
+      else await discardPluginCandidate(entry.token);
+    },
+    rollbackFiles: async () => {
+      if (existing) await rollbackPluginFiles(manifest.id);
+      else await uninstallPluginFiles(manifest.id);
+    },
+    restoreData: () => restorePluginData(manifest.id, dataSnapshot),
+    restartPrevious: async () => {
+      if (previous) await restartPreviousInstance(previous);
+    },
+  });
+
+  return plugin;
 }
 
-/** Install (or replace) from a local folder picked by the user. */
-export function installPlugin(srcDir: string): Promise<InstalledPlugin> {
-  return installPluginFromDir(srcDir).then(adoptDiskEntry);
+export type PreparedPluginInstall = {
+  manifest: PluginManifest;
+  complete(): Promise<InstalledPlugin>;
+  discard(): Promise<void>;
+};
+
+function preparedCandidate(entry: PluginCandidateDiskEntry): PreparedPluginInstall {
+  const manifest = parseCandidate(entry);
+  let consumed = false;
+  return {
+    manifest,
+    async complete() {
+      if (consumed) throw new Error("plugin candidate has already been consumed");
+      consumed = true;
+      return applyCandidate(entry);
+    },
+    async discard() {
+      if (consumed) return;
+      consumed = true;
+      await discardPluginCandidate(entry.token);
+    },
+  };
 }
 
-/** Install (or replace) from a zip archive picked by the user. */
-export function installPluginZip(zipPath: string): Promise<InstalledPlugin> {
-  return installPluginFromZip(zipPath).then(adoptDiskEntry);
+async function prepareStagedCandidate(
+  staged: Promise<PluginCandidateDiskEntry>,
+): Promise<PreparedPluginInstall> {
+  const entry = await staged;
+  try {
+    return preparedCandidate(entry);
+  } catch (error) {
+    await discardPluginCandidate(entry.token).catch(() => {});
+    throw error;
+  }
+}
+
+/** Stage a local folder before the consent gate; it is inert until complete. */
+export async function preparePluginInstall(srcDir: string): Promise<PreparedPluginInstall> {
+  return prepareStagedCandidate(stagePluginFromDir(srcDir));
+}
+
+/** Stage a zip before the consent gate; it is inert until complete. */
+export async function preparePluginZipInstall(zipPath: string): Promise<PreparedPluginInstall> {
+  return prepareStagedCandidate(stagePluginFromZip(zipPath));
 }
 
 /** Install (or replace) from fetched file contents (the marketplace path). */
-export function installPluginFiles(
+export async function installPluginFiles(
   id: string,
   files: PluginFilePayload[],
 ): Promise<InstalledPlugin> {
-  return installPluginFilesCmd(id, files).then(adoptDiskEntry);
+  return applyCandidate(await stagePluginFiles(id, files));
 }
 
 /**

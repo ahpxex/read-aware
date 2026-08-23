@@ -12,22 +12,18 @@ export function listPluginEntries(): Promise<PluginDiskEntry[]> {
   return invoke<PluginDiskEntry[]>("plugins_list");
 }
 
-export function installPluginFromDir(srcDir: string): Promise<PluginDiskEntry> {
-  return invoke<PluginDiskEntry>("plugins_install", { srcDir });
+export type PluginCandidateDiskEntry = {
+  token: string;
+  id: string;
+  manifest: string;
+};
+
+export function stagePluginFromDir(srcDir: string): Promise<PluginCandidateDiskEntry> {
+  return invoke<PluginCandidateDiskEntry>("plugins_stage_dir", { srcDir });
 }
 
-/** Raw manifest.json text of a candidate folder — read before consent/copy. */
-export function readPluginManifestFromDir(srcDir: string): Promise<string> {
-  return invoke<string>("plugins_read_manifest", { srcDir });
-}
-
-export function installPluginFromZip(zipPath: string): Promise<PluginDiskEntry> {
-  return invoke<PluginDiskEntry>("plugins_install_zip", { zipPath });
-}
-
-/** Raw manifest.json text inside a candidate zip — read before consent/extract. */
-export function readPluginManifestFromZip(zipPath: string): Promise<string> {
-  return invoke<string>("plugins_read_zip_manifest", { zipPath });
+export function stagePluginFromZip(zipPath: string): Promise<PluginCandidateDiskEntry> {
+  return invoke<PluginCandidateDiskEntry>("plugins_stage_zip", { zipPath });
 }
 
 export type PluginFilePayload = {
@@ -37,11 +33,23 @@ export type PluginFilePayload = {
   encoding?: "base64";
 };
 
-export function installPluginFilesCmd(
+export function stagePluginFiles(
   id: string,
   files: PluginFilePayload[],
-): Promise<PluginDiskEntry> {
-  return invoke<PluginDiskEntry>("plugins_install_files", { id, files });
+): Promise<PluginCandidateDiskEntry> {
+  return invoke<PluginCandidateDiskEntry>("plugins_stage_files", { id, files });
+}
+
+export function commitPluginCandidate(token: string): Promise<PluginDiskEntry> {
+  return invoke<PluginDiskEntry>("plugins_commit_candidate", { token });
+}
+
+export function discardPluginCandidate(token: string): Promise<void> {
+  return invoke("plugins_discard_candidate", { token });
+}
+
+export function rollbackPluginFiles(id: string): Promise<PluginDiskEntry> {
+  return invoke<PluginDiskEntry>("plugins_rollback", { id });
 }
 
 export function uninstallPluginFiles(id: string): Promise<void> {
@@ -57,6 +65,10 @@ export type PluginDocumentRow = {
   bookId?: string;
   anchor?: string;
   updatedAt: string;
+};
+
+export type PluginDocumentSnapshotRow = PluginDocumentRow & {
+  collection: string;
 };
 
 export function pluginDocsPut(
@@ -111,6 +123,17 @@ export function pluginDocsClear(pluginId: string): Promise<void> {
   return invoke("plugin_docs_clear", { pluginId });
 }
 
+export function pluginDocsSnapshot(pluginId: string): Promise<PluginDocumentSnapshotRow[]> {
+  return invoke<PluginDocumentSnapshotRow[]>("plugin_docs_snapshot", { pluginId });
+}
+
+export function pluginDocsRestore(
+  pluginId: string,
+  rows: PluginDocumentSnapshotRow[],
+): Promise<void> {
+  return invoke("plugin_docs_restore", { pluginId, rows });
+}
+
 let loadCounter = 0;
 
 /**
@@ -136,4 +159,11 @@ export function pluginAssetUrl(id: string, path: string): string {
 export function pluginModuleUrl(id: string, main: string): string {
   loadCounter += 1;
   return `${pluginAssetUrl(id, main)}?v=${loadCounter}-${Date.now()}`;
+}
+
+/** Entry URL for a separately staged update candidate. */
+export function pluginCandidateModuleUrl(token: string, main: string): string {
+  loadCounter += 1;
+  const base = pluginAssetUrl("__candidate", `${token}/${main}`);
+  return `${base}?v=${loadCounter}-${Date.now()}`;
 }

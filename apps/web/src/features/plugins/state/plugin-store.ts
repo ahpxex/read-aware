@@ -177,11 +177,15 @@ export function getContentProvider(
 export function updateVoiceProviderVoices(
   key: ContributionKey,
   voices: RegisteredVoiceProvider["voices"],
-): void {
-  voiceProvidersRegistry.update(
-    key,
-    (entry) => ({ ...entry, voices }),
-  );
+  expected: RegisteredVoiceProvider,
+): RegisteredVoiceProvider | null {
+  let replacement: RegisteredVoiceProvider | null = null;
+  voiceProvidersRegistry.update(key, (entry) => {
+    if (entry !== expected) return entry;
+    replacement = { ...entry, voices };
+    return replacement;
+  });
+  return replacement;
 }
 
 /** Snapshot lookup for callers outside React's flow (style injection paths). */

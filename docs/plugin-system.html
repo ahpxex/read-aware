@@ -5,770 +5,286 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="ReadAware 插件系统的目标架构：Domain Registry、Contribution Points 与 Host Services。"
+      content="ReadAware 插件系统：Domains、Contributions、Services 与安全更新。"
     />
     <title>ReadAware Plugins</title>
     <style>
       :root {
         color-scheme: light;
-        --canvas: #f4f5f1;
+        --canvas: #f3f5f2;
         --surface: #ffffff;
-        --ink: #17211d;
-        --muted: #53625c;
-        --line: #cbd2cd;
-        --teal: #0d6965;
+        --ink: #18201c;
+        --muted: #59645f;
+        --line: #cbd1cd;
+        --teal: #0b6964;
         --teal-soft: #dcecea;
         --rust: #9b432a;
-        --rust-soft: #f2e3dc;
-        --gold: #a97705;
-        --gold-soft: #f5ebc8;
-        --code: #edf0ec;
-        --radius: 7px;
-        --content: 1120px;
+        --rust-soft: #f3e4dd;
+        --gold: #8a6509;
+        --gold-soft: #f4ebce;
+        --code: #e9eeea;
       }
 
-      * {
-        box-sizing: border-box;
-      }
-
-      html {
-        scroll-behavior: smooth;
-      }
-
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
       body {
         margin: 0;
         background: var(--canvas);
         color: var(--ink);
-        font-family:
-          Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
-          sans-serif;
+        font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         font-size: 16px;
         line-height: 1.65;
         letter-spacing: 0;
       }
-
-      a {
-        color: var(--teal);
-        text-underline-offset: 3px;
-      }
-
-      a:hover {
-        color: var(--rust);
-      }
-
+      a { color: var(--teal); text-underline-offset: 3px; }
       code {
-        padding: 0.12rem 0.34rem;
-        border-radius: 4px;
+        padding: 0.1rem 0.32rem;
+        border-radius: 3px;
         background: var(--code);
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
         font-size: 0.88em;
       }
-
-      .wrap {
-        width: min(calc(100% - 40px), var(--content));
-        margin: 0 auto;
-      }
-
-      .topbar {
-        border-bottom: 1px solid var(--line);
-        background: var(--surface);
-      }
-
-      .topbar-inner {
-        display: flex;
+      .wrap { width: min(calc(100% - 40px), 1040px); margin: 0 auto; }
+      nav { border-bottom: 1px solid var(--line); background: var(--surface); }
+      .nav-inner {
         min-height: 56px;
+        display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 24px;
+        gap: 20px;
       }
-
-      .brand {
-        margin: 0;
-        font-family: Georgia, "Times New Roman", serif;
-        font-size: 20px;
-        font-weight: 700;
-      }
-
-      .topbar a {
-        font-size: 14px;
-        font-weight: 650;
-      }
-
+      .brand { font-family: Georgia, serif; font-size: 19px; font-weight: 700; }
+      .nav-inner a { font-size: 14px; font-weight: 650; }
       header {
-        padding: 68px 0 52px;
+        padding: 64px 0 48px;
         border-bottom: 1px solid var(--line);
         background: var(--surface);
       }
-
       .eyebrow {
-        margin: 0 0 14px;
+        margin: 0 0 12px;
         color: var(--rust);
         font-size: 12px;
         font-weight: 750;
         text-transform: uppercase;
       }
-
-      h1,
-      h2,
-      h3 {
-        margin-top: 0;
-        letter-spacing: 0;
-      }
-
+      h1, h2, h3 { margin-top: 0; letter-spacing: 0; }
       h1 {
-        max-width: 820px;
-        margin-bottom: 20px;
-        font-family: Georgia, "Times New Roman", serif;
-        font-size: 54px;
+        max-width: 760px;
+        margin-bottom: 18px;
+        font-family: Georgia, serif;
+        font-size: 52px;
         line-height: 1.05;
       }
-
-      h2 {
-        margin-bottom: 20px;
-        font-family: Georgia, "Times New Roman", serif;
-        font-size: 30px;
-        line-height: 1.2;
-      }
-
-      h3 {
-        margin-bottom: 10px;
-        font-size: 17px;
-        line-height: 1.35;
-      }
-
-      .lede {
-        max-width: 760px;
-        margin: 0;
-        color: var(--muted);
-        font-size: 20px;
-        line-height: 1.55;
-      }
-
+      h2 { margin-bottom: 18px; font-family: Georgia, serif; font-size: 29px; line-height: 1.2; }
+      h3 { margin-bottom: 8px; font-size: 17px; }
+      .lede { max-width: 740px; margin: 0; color: var(--muted); font-size: 20px; }
       .status {
-        display: flex;
-        margin-top: 34px;
-        padding: 16px 18px;
-        border-left: 4px solid var(--gold);
-        background: var(--gold-soft);
-        gap: 12px;
-        align-items: baseline;
-      }
-
-      .status strong {
-        flex: 0 0 auto;
-      }
-
-      .status span {
-        color: #5d4a19;
-      }
-
-      main section {
-        padding: 56px 0;
-        border-bottom: 1px solid var(--line);
-      }
-
-      .section-intro {
-        max-width: 760px;
-        margin: -8px 0 30px;
-        color: var(--muted);
-      }
-
-      .architecture {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 14px;
-      }
-
-      .capability {
-        min-height: 252px;
-        padding: 24px;
-        border: 1px solid var(--line);
-        border-top-width: 5px;
-        border-radius: var(--radius);
-        background: var(--surface);
-      }
-
-      .capability.domain {
-        border-top-color: var(--teal);
-      }
-
-      .capability.contribution {
-        border-top-color: var(--rust);
-      }
-
-      .capability.service {
-        border-top-color: var(--gold);
-      }
-
-      .capability .number {
-        display: block;
-        margin-bottom: 20px;
-        color: var(--muted);
-        font-size: 12px;
-        font-weight: 750;
-      }
-
-      .capability p {
-        margin: 0 0 16px;
-        color: var(--muted);
-      }
-
-      .capability ul,
-      .checklist,
-      .compact-list {
-        margin: 0;
-        padding-left: 20px;
-      }
-
-      .capability li,
-      .checklist li,
-      .compact-list li {
-        margin: 7px 0;
-      }
-
-      .rule {
-        margin-top: 18px;
-        padding: 18px 20px;
-        border: 1px solid #a9c9c6;
-        border-radius: var(--radius);
+        margin-top: 28px;
+        padding: 14px 18px;
+        border-left: 4px solid var(--teal);
         background: var(--teal-soft);
-        color: #174d4a;
-        font-weight: 650;
+        color: #164b48;
       }
-
-      .table-shell {
-        overflow-x: auto;
+      section { padding: 48px 0; border-bottom: 1px solid var(--line); }
+      .intro { max-width: 760px; margin: -6px 0 26px; color: var(--muted); }
+      .families { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+      .family {
+        padding: 22px;
         border: 1px solid var(--line);
-        border-radius: var(--radius);
+        border-top: 5px solid var(--teal);
+        border-radius: 7px;
         background: var(--surface);
       }
-
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        min-width: 700px;
+      .family:nth-child(2) { border-top-color: var(--rust); }
+      .family:nth-child(3) { border-top-color: var(--gold); }
+      .family p { margin: 0; color: var(--muted); }
+      .table-shell { overflow-x: auto; border: 1px solid var(--line); background: var(--surface); }
+      table { width: 100%; min-width: 680px; border-collapse: collapse; }
+      th, td { padding: 13px 16px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+      th { color: var(--muted); font-size: 12px; text-transform: uppercase; }
+      tr:last-child td { border-bottom: 0; }
+      .callout {
+        margin-top: 22px;
+        padding: 18px 20px;
+        border: 1px solid #d9c17f;
+        background: var(--gold-soft);
+        color: #55440f;
       }
-
-      th,
-      td {
-        padding: 15px 18px;
+      .split { display: grid; grid-template-columns: 1fr 1fr; gap: 34px; }
+      ul, ol { margin: 0; padding-left: 21px; }
+      li { margin: 7px 0; }
+      .compact { color: var(--muted); }
+      .flow { counter-reset: step; display: grid; gap: 0; }
+      .step {
+        display: grid;
+        grid-template-columns: 38px 1fr;
+        gap: 14px;
+        padding: 15px 0;
         border-bottom: 1px solid var(--line);
-        text-align: left;
-        vertical-align: top;
       }
-
-      th {
-        background: #e9ede9;
-        font-size: 13px;
-      }
-
-      tr:last-child td {
-        border-bottom: 0;
-      }
-
-      td:first-child {
-        font-weight: 700;
-      }
-
-      .settings-layout,
-      .runtime-layout {
+      .step:last-child { border-bottom: 0; }
+      .step::before {
+        counter-increment: step;
+        content: counter(step);
+        width: 30px;
+        height: 30px;
         display: grid;
-        grid-template-columns: 0.9fr 1.4fr;
-        gap: 36px;
-        align-items: start;
-      }
-
-      .statement {
-        padding: 25px;
-        border: 1px solid #ddb7a8;
-        border-radius: var(--radius);
-        background: var(--rust-soft);
-      }
-
-      .statement strong {
-        display: block;
-        margin-bottom: 9px;
-        color: var(--rust);
-        font-family: Georgia, "Times New Roman", serif;
-        font-size: 24px;
-        line-height: 1.25;
-      }
-
-      .statement p {
-        margin: 0;
-        color: #684132;
-      }
-
-      .settings-pairs {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
-      }
-
-      .pair {
-        padding: 17px;
-        border-left: 3px solid var(--teal);
-        background: var(--surface);
-      }
-
-      .pair span {
-        display: block;
-        color: var(--muted);
-        font-size: 13px;
-      }
-
-      .pair strong {
-        display: block;
-        margin-top: 4px;
-      }
-
-      .runtime-steps {
-        margin: 0;
-        padding: 0;
-        list-style: none;
-        counter-reset: runtime;
-      }
-
-      .runtime-steps li {
-        position: relative;
-        min-height: 55px;
-        padding: 0 0 20px 52px;
-        counter-increment: runtime;
-      }
-
-      .runtime-steps li::before {
-        position: absolute;
-        top: 0;
-        left: 0;
-        display: grid;
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        background: var(--ink);
-        color: white;
-        content: counter(runtime);
-        font-size: 13px;
-        font-weight: 750;
         place-items: center;
-      }
-
-      .runtime-steps li::after {
-        position: absolute;
-        top: 38px;
-        bottom: 4px;
-        left: 16px;
-        width: 1px;
-        background: var(--line);
-        content: "";
-      }
-
-      .runtime-steps li:last-child::after {
-        display: none;
-      }
-
-      .runtime-steps strong,
-      .runtime-steps span {
-        display: block;
-      }
-
-      .runtime-steps span {
-        color: var(--muted);
-        font-size: 14px;
-      }
-
-      .security {
-        padding: 24px;
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        background: var(--surface);
-      }
-
-      .security p {
-        margin-top: 0;
-      }
-
-      .migration {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        border-top: 1px solid var(--line);
-        border-left: 1px solid var(--line);
-      }
-
-      .phase {
-        min-height: 150px;
-        padding: 19px;
-        border-right: 1px solid var(--line);
-        border-bottom: 1px solid var(--line);
-        background: var(--surface);
-      }
-
-      .phase b {
-        display: block;
-        margin-bottom: 8px;
+        border-radius: 50%;
+        background: var(--rust-soft);
         color: var(--rust);
-        font-size: 12px;
-        text-transform: uppercase;
+        font-weight: 750;
       }
+      .step strong { display: block; }
+      .step span { color: var(--muted); }
+      footer { padding: 34px 0 52px; color: var(--muted); font-size: 14px; }
 
-      .phase p {
-        margin: 0;
-        color: var(--muted);
-        font-size: 14px;
-      }
-
-      footer {
-        padding: 38px 0 48px;
-        background: var(--ink);
-        color: #dce4df;
-      }
-
-      .footer-inner {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 24px;
-      }
-
-      footer p {
-        margin: 0;
-      }
-
-      footer a {
-        color: #84d2cc;
-        font-weight: 700;
-      }
-
-      @media (max-width: 840px) {
-        .architecture,
-        .migration {
-          grid-template-columns: 1fr;
-        }
-
-        .settings-layout,
-        .runtime-layout {
-          grid-template-columns: 1fr;
-        }
-
-        .capability {
-          min-height: 0;
-        }
-
-        .phase {
-          min-height: 0;
-        }
-      }
-
-      @media (max-width: 600px) {
-        .wrap {
-          width: min(calc(100% - 28px), var(--content));
-        }
-
-        .topbar-inner,
-        .footer-inner,
-        .status {
-          align-items: flex-start;
-          flex-direction: column;
-        }
-
-        header {
-          padding: 46px 0 38px;
-        }
-
-        h1 {
-          font-size: 40px;
-        }
-
-        .lede {
-          font-size: 18px;
-        }
-
-        main section {
-          padding: 42px 0;
-        }
-
-        .settings-pairs {
-          grid-template-columns: 1fr;
-        }
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        html {
-          scroll-behavior: auto;
-        }
+      @media (max-width: 760px) {
+        .wrap { width: min(calc(100% - 28px), 1040px); }
+        header { padding: 48px 0 38px; }
+        h1 { font-size: 40px; }
+        .lede { font-size: 18px; }
+        .families, .split { grid-template-columns: 1fr; }
+        section { padding: 40px 0; }
       }
     </style>
   </head>
   <body>
-    <nav class="topbar" aria-label="文档导航">
-      <div class="wrap topbar-inner">
-        <p class="brand">ReadAware Plugins</p>
+    <nav>
+      <div class="wrap nav-inner">
+        <div class="brand">ReadAware Plugins</div>
         <a href="./plugin-system.md">Agent 详细规范</a>
       </div>
     </nav>
 
     <header>
       <div class="wrap">
-        <p class="eyebrow">Plugin Architecture</p>
-        <h1>能力只定义一次，按身份动态交付。</h1>
+        <p class="eyebrow">Capability Architecture</p>
+        <h1>插件能力，只有三种形状</h1>
         <p class="lede">
-          插件系统由 Domain Registry、Contribution Points 和 Host Services
-          组成。Settings 是 Domain；Appearance 只是 Settings 的一个 section。
+          读写产品状态走 Domain，扩展产品选择走 Contribution，需要宿主代办的外部操作走 Service。
+          插件动态加载，但权力边界由宿主定义。
         </p>
-        <div class="status" role="status">
-          <strong>目标架构已确定</strong>
-          <span>2026-08-23。当前代码尚未完成迁移；本文不把“已经决定”写成“已经实现”。</span>
-        </div>
+        <div class="status"><strong>已实现：</strong>统一目录、Settings Domain、能力版本协商、Worker 隔离与可回滚更新。</div>
       </div>
     </header>
 
     <main>
-      <section aria-labelledby="architecture-title">
+      <section>
         <div class="wrap">
-          <h2 id="architecture-title">一个模型，三类能力</h2>
-          <p class="section-intro">
-            三者共享同一种 registry 思想，但保留不同语义。不会收缩成一个松散的字符串调用接口。
-          </p>
-          <div class="architecture">
-            <article class="capability domain">
-              <span class="number">01 / HOST STATE</span>
-              <h3>Domain Registry</h3>
-              <p>ReadAware 已经拥有的状态与行为。</p>
-              <ul>
-                <li>查询、命令与事件</li>
-                <li>业务校验与持久化</li>
-                <li>按 actor 裁剪权限</li>
-              </ul>
+          <h2>统一能力模型</h2>
+          <div class="families">
+            <article class="family">
+              <h3>Domain</h3>
+              <p>ReadAware 已经拥有的状态和行为：查询、命令、事件、验证与持久化。</p>
             </article>
-
-            <article class="capability contribution">
-              <span class="number">02 / PLUGIN SUPPLY</span>
-              <h3>Contribution Points</h3>
-              <p>插件提供的新实现、新选择或新动作。</p>
-              <ul>
-                <li>主题、字体与语音</li>
-                <li>命令、工具与阅读模式</li>
-                <li>注册、所有权与统一释放</li>
-              </ul>
+            <article class="family">
+              <h3>Contribution</h3>
+              <p>插件提供的新动作、主题、语音、模式或内容实现；宿主负责消费和呈现。</p>
             </article>
-
-            <article class="capability service">
-              <span class="number">03 / BOUNDED ACCESS</span>
-              <h3>Host Services</h3>
-              <p>必须由宿主代为执行的受限外部操作。</p>
-              <ul>
-                <li>网络、LLM 与 secrets</li>
-                <li>文件选择、导出与剪贴板</li>
-                <li>插件存储与定时任务</li>
-              </ul>
+            <article class="family">
+              <h3>Service</h3>
+              <p>网络、模型、密钥、存储、计划任务等有边界的宿主能力，不是原生逃生口。</p>
             </article>
           </div>
-          <p class="rule">
-            判断方法：宿主已有的是 Domain；插件新增的是 Contribution；需要宿主代办的是 Service。
-          </p>
         </div>
       </section>
 
-      <section aria-labelledby="domains-title">
+      <section>
         <div class="wrap">
-          <h2 id="domains-title">目标 Domains</h2>
+          <h2>Domains</h2>
+          <p class="intro">插件只看到权限允许的 actor view。所有写入都经过正式命令，并记录来源。</p>
           <div class="table-shell">
             <table>
-              <thead>
-                <tr>
-                  <th>Domain</th>
-                  <th>负责什么</th>
-                  <th>插件初始开放</th>
-                </tr>
-              </thead>
+              <thead><tr><th>Domain</th><th>负责什么</th><th>插件范围</th></tr></thead>
               <tbody>
-                <tr>
-                  <td>Library</td>
-                  <td>书籍、源文件、元数据、目录与收藏</td>
-                  <td>受限读取与明确命令</td>
-                </tr>
-                <tr>
-                  <td>Reading</td>
-                  <td>当前阅读会话、位置、导航、进度与时长</td>
-                  <td>读取、导航、事件订阅</td>
-                </tr>
-                <tr>
-                  <td>Annotations</td>
-                  <td>高亮、笔记、书签与词汇引用</td>
-                  <td>受限读取与明确修改</td>
-                </tr>
-                <tr>
-                  <td>Conversations</td>
-                  <td>书内及全局对话与消息元数据</td>
-                  <td>窄范围、需知情同意</td>
-                </tr>
-                <tr>
-                  <td>Settings</td>
-                  <td>设置目录、解析值、作用域覆盖与变更事件</td>
-                  <td>按具体 path 授予发现、读、写</td>
-                </tr>
-                <tr>
-                  <td>Profile / Memory</td>
-                  <td>用户画像、长期记忆与巩固状态</td>
-                  <td>初期不对插件广泛开放</td>
-                </tr>
+                <tr><td>Library</td><td>书、文件、元数据、目录、集合、导入与删除</td><td>read / write</td></tr>
+                <tr><td>Reading</td><td>当前阅读会话、位置、导航、进度与时长</td><td>read / write</td></tr>
+                <tr><td>Annotations</td><td>高亮与笔记</td><td>read / write</td></tr>
+                <tr><td>Conversations</td><td>书籍与全局对话摘要</td><td>read</td></tr>
+                <tr><td>Settings</td><td>设置目录、目标、校验、解析值与变更事件</td><td>精确路径授权</td></tr>
               </tbody>
             </table>
           </div>
-          <p class="section-intro" style="margin-top: 18px; margin-bottom: 0">
-            旧的 <code>shelf</code> 不保留兼容层：书库职责进入 Library，阅读会话职责进入 Reading。
-          </p>
-        </div>
-      </section>
-
-      <section aria-labelledby="settings-title">
-        <div class="wrap settings-layout">
-          <div>
-            <h2 id="settings-title">Settings 就是 Domain</h2>
-            <div class="statement">
-              <strong>Appearance 不是独立 Domain。</strong>
-              <p>它只是 Settings 的一个 section，与 Reading、AI、Sync、Plugins 等并列。</p>
-            </div>
-          </div>
-
-          <div>
-            <p class="section-intro">
-              Settings 统一负责目录发现、取值、校验、作用域、提交、重置与变更订阅。UI、Agent
-              和 Plugin 走同一条提交路径。
-            </p>
-            <div class="settings-pairs">
-              <div class="pair">
-                <span>当前使用哪个主题</span>
-                <strong>Settings</strong>
-              </div>
-              <div class="pair">
-                <span>插件提供一个新主题</span>
-                <strong>Theme Contribution</strong>
-              </div>
-              <div class="pair">
-                <span>当前使用哪个语音</span>
-                <strong>Settings</strong>
-              </div>
-              <div class="pair">
-                <span>插件提供语音引擎</span>
-                <strong>Voice Contribution</strong>
-              </div>
-            </div>
-            <p class="section-intro" style="margin-top: 18px; margin-bottom: 0">
-              插件只获得明确的 setting paths；secrets 始终由独立 Host Service 管理。
-            </p>
+          <div class="callout">
+            <strong>Appearance 不是 Domain。</strong>它是 Settings 的一个 section。选择主题属于 Settings，提供主题属于 Theme Contribution。
           </div>
         </div>
       </section>
 
-      <section aria-labelledby="dynamic-title">
-        <div class="wrap runtime-layout">
+      <section>
+        <div class="wrap split">
           <div>
-            <h2 id="dynamic-title">动态加载的准确含义</h2>
-            <p class="section-intro">
-              宿主不需要预先知道插件 ID。插件可发现被授权的 Domain，并注册到已有的 Contribution
-              Point。
-            </p>
-            <ol class="runtime-steps">
-              <li>
-                <strong>发现与校验</strong>
-                <span>读取插件包，验证 manifest 与能力版本。</span>
-              </li>
-              <li>
-                <strong>授权</strong>
-                <span>按 plugin actor 解析权限与用户同意。</span>
-              </li>
-              <li>
-                <strong>隔离启动</strong>
-                <span>在 worker 中启动插件。</span>
-              </li>
-              <li>
-                <strong>注入能力</strong>
-                <span>Registry 生成裁剪后的 Domain、Contribution 与 Service 视图。</span>
-              </li>
-              <li>
-                <strong>原子激活</strong>
-                <span>全部注册成功后才进入 active；失败则完整释放。</span>
-              </li>
-            </ol>
-          </div>
-
-          <aside class="security">
-            <h3>动态不等于任意注入</h3>
-            <p>
-              新插件可以直接使用既有挂载点；一种全新的挂载点仍需宿主增加一次明确的 consumer，
-              因为宿主必须知道如何呈现、调用、授权和释放它。
-            </p>
-            <ul class="compact-list">
-              <li>保留 worker sandbox</li>
-              <li>保留宿主渲染的声明式 UI</li>
-              <li>不开放 DOM、React、SQLite、Tauri 与任意文件系统</li>
-              <li>更新采用候选版本、健康检查与自动回滚</li>
+            <h2>Contributions</h2>
+            <ul class="compact">
+              <li>Selection / Header Actions</li>
+              <li>Commands / Agent Tools</li>
+              <li>Settings Options</li>
+              <li>Voice / Content Providers</li>
+              <li>Reader Modes</li>
+              <li>Themes / Fonts</li>
             </ul>
-          </aside>
-        </div>
-      </section>
-
-      <section aria-labelledby="migration-title">
-        <div class="wrap">
-          <h2 id="migration-title">迁移路线</h2>
-          <p class="section-intro">
-            现在没有第三方兼容负担，因此一次迁移所有第一方插件，完成后删除旧 API，不运行双轨系统。
-          </p>
-          <div class="migration">
-            <article class="phase">
-              <b>Phase 1</b>
-              <h3>冻结现有行为</h3>
-              <p>盘点现有能力，并用行为测试保护真实工作流。</p>
-            </article>
-            <article class="phase">
-              <b>Phase 2</b>
-              <h3>建立 Registry Runtime</h3>
-              <p>从单一声明生成权限、actor view 与 worker API。</p>
-            </article>
-            <article class="phase">
-              <b>Phase 3</b>
-              <h3>提升 Settings</h3>
-              <p>让 UI、Agent、Plugin 共用目录、作用域与提交路径。</p>
-            </article>
-            <article class="phase">
-              <b>Phase 4</b>
-              <h3>重建 Domains</h3>
-              <p>拆分 Library 与 Reading，统一命令和事件。</p>
-            </article>
-            <article class="phase">
-              <b>Phase 5</b>
-              <h3>统一 Contributions</h3>
-              <p>统一注册、校验、所有权、发现与 disposal。</p>
-            </article>
-            <article class="phase">
-              <b>Phase 6</b>
-              <h3>全量迁移与验证</h3>
-              <p>迁移第一方插件，删除旧运行时，并在 Tauri 中验收。</p>
-            </article>
+          </div>
+          <div>
+            <h2>Services</h2>
+            <ul class="compact">
+              <li>Storage / Secrets</li>
+              <li>UI export / Toast</li>
+              <li>Schedules / Session Events</li>
+              <li>Network / LLM / Clipboard</li>
+            </ul>
           </div>
         </div>
       </section>
 
-      <section aria-labelledby="done-title">
+      <section>
         <div class="wrap">
-          <h2 id="done-title">什么时候算做完</h2>
-          <ul class="checklist">
-            <li>新增能力只修改一个权威定义，不再同步维护多份名单。</li>
-            <li>Settings 不再有旁路；Appearance 的特殊 API 被删除。</li>
-            <li>插件不在宿主注册代码里按 ID 出现。</li>
-            <li>所有 Contribution 都能被统一校验和完整释放。</li>
-            <li>全部第一方插件只使用新运行时，旧 API 与兼容代码被删除。</li>
-            <li>安装、启停、设置持久化、升级失败与回滚均通过 Tauri 桌面端验证。</li>
+          <h2>版本与权限</h2>
+          <p class="intro">
+            每个 Domain、Contribution、Service 和声明式 UI schema 独立版本化。插件清单必须声明 semver 范围；启动前按实际授权后的可见能力检查。
+          </p>
+          <div class="split">
+            <div>
+              <h3>权限控制“能不能做”</h3>
+              <p class="compact">Domain 读写、网络、LLM、剪贴板、全局主题等需要语义化授权；Settings 使用精确路径。</p>
+            </div>
+            <div>
+              <h3>版本控制“能不能正确做”</h3>
+              <p class="compact">未知能力、无效范围、未获授权的依赖或不兼容版本都会阻止激活。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="wrap">
+          <h2>安全更新</h2>
+          <div class="flow">
+            <div class="step"><div><strong>独立暂存</strong><span>候选版本不会覆盖当前插件。</span></div></div>
+            <div class="step"><div><strong>先启动再切换</strong><span>候选 Worker 完成激活与健康检查，上一版仍可用。</span></div></div>
+            <div class="step"><div><strong>原子提交</strong><span>文件切换后再次核对清单和版本，再转移运行时所有权。</span></div></div>
+            <div class="step"><div><strong>自动恢复</strong><span>失败时恢复上一版文件、KV、文档数据和运行实例。</span></div></div>
+            <div class="step"><div><strong>彻底释放</strong><span>订阅、贡献、任务、Provider 和 Worker 按代际安全销毁。</span></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="wrap">
+          <h2>始终不开放</h2>
+          <p class="intro">插件运行在 Worker 中，界面由宿主声明式渲染。</p>
+          <ul>
+            <li>任意 React、HTML、CSS、DOM、iframe 或 WebView 注入</li>
+            <li>原始文件系统路径、SQLite、Tauri 命令与进程执行</li>
+            <li>Foliate 内部对象或通用未类型化 invoke</li>
+            <li>绕过 Domain 命令直接修改产品状态</li>
           </ul>
         </div>
       </section>
     </main>
 
     <footer>
-      <div class="wrap footer-inner">
-        <p>ReadAware Plugin Architecture · 2026-08-23</p>
-        <a href="./plugin-system.md">阅读 Agent 实施规范</a>
-      </div>
+      <div class="wrap">ReadAware Plugin System · 2026-08-23 · 详细扩展规则与验证清单见 Agent 规范。</div>
     </footer>
   </body>
 </html>

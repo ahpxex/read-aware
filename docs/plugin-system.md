@@ -1,555 +1,442 @@
-# ReadAware Plugins - Agent Architecture Reference
+# ReadAware Plugins - Agent Reference
 
 > Audience: coding agents and maintainers.
 >
-> Decision status: approved on 2026-08-23. This document describes the target
-> architecture. The repository has not completed this migration yet; the
-> implementation-status section records the current gap.
+> Status: implemented architecture as of 2026-08-23. This is a description of
+> the running contract, not a migration proposal.
 >
-> Compatibility policy: all existing plugins are first-party or bundled. A
-> breaking rewrite is allowed. Do not preserve the old API with adapters,
-> aliases, fallbacks, or compatibility shims.
+> Compatibility policy: the current ecosystem is first-party. Do not add old
+> API aliases, adapters, fallbacks, or compatibility shims.
 >
-> The concise human-facing version is [plugin-system.html](./plugin-system.html).
+> Concise human-facing version: [plugin-system.html](./plugin-system.html).
 
-## 1. Decision
+## 1. The Model
 
-The plugin system has one capability model with three families:
+ReadAware has one plugin capability model with three semantic families:
 
-1. **Domain Registry** - application state and behavior that already exists.
-2. **Contribution Points** - new implementations or choices supplied by a
-   plugin.
-3. **Host Services** - bounded operating-system, infrastructure, and lifecycle
-   facilities supplied by the host.
+1. **Domains** expose state and behavior ReadAware already owns.
+2. **Contributions** let a plugin supply a new implementation, action, choice,
+   or provider to a host-owned extension point.
+3. **Services** let a plugin ask the host to perform a bounded platform,
+   infrastructure, or lifecycle operation.
 
-Every capability is defined once in its owning registry. Types, runtime
-exposure, permissions, validation, worker bridging, events, documentation, and
-tests must be derived from that definition rather than maintained as parallel
-manual lists.
+Declarative UI grammars are versioned contracts alongside those families, but
+they are not a fourth source of application authority.
 
-The plugin loader remains dynamic. Dynamic loading does not mean that arbitrary
-plugin code may invent host behavior. It means a plugin can discover allowed
-domains and register into existing contribution points without the host naming
-that plugin in advance.
+Every capability identity, permission, and version is declared in a canonical
+catalog. The runtime derives manifest permission validation, actor visibility,
+compatibility checks, and discovery from those catalogs. The worker bridge
+derives its callable shape from the actor-scoped context rather than maintaining
+another method list.
 
-## 2. The Boundary Test
+Dynamic loading means the host does not name installed plugin IDs. It does not
+mean a plugin can invent arbitrary host behavior, UI mount points, or native
+operations.
+
+## 2. Boundary Test
 
 Use this test before adding any plugin API:
 
-| Question | Capability family |
+| Question | Owner |
 | --- | --- |
-| Is this state or behavior ReadAware already owns? | Domain Registry |
-| Is the plugin supplying a new implementation, choice, action, or provider? | Contribution Point |
-| Does the plugin need the host to perform a bounded external operation? | Host Service |
+| Is this state or behavior ReadAware already owns? | Domain |
+| Is the plugin supplying a new implementation or choice? | Contribution |
+| Must the host perform a bounded external operation? | Service |
 
 Examples:
 
-| Need | Correct owner |
+| Need | Correct shape |
 | --- | --- |
 | Read the active book | Reading domain |
 | Change the selected app theme | Settings domain |
-| Supply a new theme | Theme contribution |
+| Supply a new app or reader theme | Theme contribution |
 | Read the selected voice | Settings domain |
-| Supply a speech engine or voice | Voice-provider contribution |
+| Supply a speech engine and voices | Voice-provider contribution |
 | Navigate to another chapter | Reading domain |
-| Add a selection action | Selection-action contribution |
-| Call a remote dictionary API | Network host service |
-| Store an API credential | Secrets host service |
+| Add an action for selected text | Selection-action contribution |
+| Call a remote API | Network service |
+| Store a credential | Secrets service |
 
-Do not turn the three families into one generic string-addressed API. They have
-different semantics, lifecycle, permission, and validation requirements. The
-unification is a shared registry architecture, not a single untyped bag.
+Do not merge the families into a generic string-addressed invoke API. Their
+ownership, lifecycle, validation, and permission semantics are different. The
+shared part is the registry architecture.
 
-## 3. Domain Registry
+## 3. Canonical Sources
 
-### 3.1 Definition
+The architecture is split by responsibility:
 
-A domain is a coherent slice of product behavior. A domain definition owns:
+| Responsibility | Canonical location |
+| --- | --- |
+| Domain IDs, access levels, versions | `packages/core/src/domains.ts` |
+| Contribution/service/schema IDs, permissions, versions | `packages/core/src/capabilities.ts` |
+| Public plugin contract | `packages/plugin-types/src/index.ts` |
+| Runtime domain definitions | `apps/web/src/domain/registry.ts` |
+| Settings catalog and behavior | `apps/web/src/domain/settings/` |
+| Manifest validation | `apps/web/src/features/plugins/lib/manifest.ts` |
+| Actor capability resolution | `apps/web/src/features/plugins/runtime/plugin-capabilities.ts` |
+| Plugin context construction | `apps/web/src/features/plugins/runtime/plugin-context.ts` |
+| Worker boundary and derived RPC shape | `plugin-worker-host.ts`, `plugin-sandbox.worker.ts` |
+| Contribution ownership and inspection | `state/contribution-registry.ts`, `state/plugin-store.ts` |
+| Install/update transaction | `runtime/plugin-update-transaction.ts`, desktop `plugins.rs` |
 
-- its public read models;
-- queries;
-- commands;
-- emitted events;
-- validation and business invariants;
-- actor access policy;
-- persistence and synchronization classification.
+Do not add a capability ID or permission in a feature-local switch. Extend the
+owning catalog and let its consumers derive the new vocabulary.
 
-Queries inspect state. Commands request state changes. Events report committed
-changes. Plugins never write projection tables, Jotai atoms, SQLite, or feature
-stores directly.
+Domain operation contracts remain owned by their domain modules and the public
+type package. A new operation normally changes the owning domain contract,
+implementation, plugin adapter, and contract tests. It must not require a new
+permission list, worker method list, or installed-plugin switch.
 
-### 3.2 Actor-scoped views
+## 4. Actor-Scoped Runtime
 
-The runtime resolves one registry into a view for an actor:
+The same product capabilities are resolved for distinct actors:
 
-- `user` - product UI;
-- `agent` - the core ReadAware agent;
-- `plugin:<id>` - one installed plugin;
-- `system` - trusted host pipelines.
+- `user` for product UI;
+- `agent` for the core ReadAware agent;
+- `plugin:<id>` for one installed plugin;
+- `system` for trusted host pipelines.
 
-The actor view exposes only the allowed domains, operations, records, and
-fields. Permission checks happen again at invocation time; hiding an operation
-from the generated API is not the security boundary by itself.
+A plugin receives only its actor view. The view contains:
 
-### 3.3 Target domain set
+- its validated manifest;
+- app version and locale;
+- visible capability versions;
+- allowed domains;
+- allowed contribution registries;
+- allowed host services.
 
-| Domain | Owns | Initial plugin exposure |
+Unavailable capabilities are absent. Invocation still crosses the worker
+boundary and resolves against the host-side actor context, so hiding a method is
+not the only authorization check.
+
+The plugin runs in a module Worker. It has no React, Jotai, DOM, WebView,
+Tauri, SQLite, filesystem, or process handle. All host interaction crosses the
+typed context.
+
+## 5. Domains
+
+A domain owns read models, queries, commands, events, validation, business
+invariants, and persistence semantics. Queries inspect state, commands request
+state changes, and events report committed changes.
+
+The current public roster is:
+
+| Domain | Owns | Plugin exposure |
 | --- | --- | --- |
-| Library | books, source files, metadata, table of contents, collections, import and removal | Scoped reads and explicit commands |
-| Reading | active reading session, location, navigation, progress, reading time, reader state | Reads, navigation, subscriptions |
-| Annotations | highlights, notes, bookmarks, vocabulary references | Scoped reads and explicit mutations |
-| Conversations | book and global threads, messages, conversation metadata | Narrow, consent-aware access |
-| Settings | settings catalog, resolved values, target overrides, change events | Path-scoped discovery/read/write |
-| Profile / Memory | user profile, derived memory, consolidation state | Internal at first; no broad plugin access |
+| Library | books, source files, metadata, TOC, collections, import and removal | `library:read`, `library:write` |
+| Reading | active session, navigation, location, progress, reading time | `reading:read`, `reading:write` |
+| Annotations | highlights and notes | `annotations:read`, `annotations:write` |
+| Conversations | book/global threads and message summaries | `conversations:read` |
+| Settings | catalog, resolved values, targets, validation, change events | exact path grants |
 
-The current `shelf` domain is not retained as a compatibility surface. Its
-library concerns move to Library and its active-reading concerns move to
-Reading.
+Profile and Memory remain internal. A page, React feature, menu, or route is not
+a domain merely because it has a name.
 
-New domains are added only when there is a real product ownership boundary.
-Features, pages, React components, and menu locations are not domains by
-default.
+There is no `shelf` domain. Library ownership and active reading behavior are
+separate. Do not restore `shelf` as an alias.
 
-### 3.4 A single source of truth
+Every domain write uses the same canonical command path as the product and is
+stamped with origin `plugin:<id>`. Plugins never mutate projections, feature
+stores, or SQLite directly.
 
-One domain declaration must drive all of the following:
+## 6. Settings Is a Domain
 
-- TypeScript contracts;
-- actor-facing API construction;
-- permission vocabulary and manifest validation;
-- worker RPC exposure;
-- command argument and result validation;
-- event subscription validation;
-- capability introspection;
-- generated reference documentation;
-- contract tests.
+Settings is not a helper beside the domain system. It is a first-class domain
+because ReadAware owns settings state, catalog metadata, validation, target
+resolution, persistence, and change effects.
 
-Do not add a domain to the type package, plugin context, permission switch,
-worker bridge, and test fixtures separately. That is the incomplete shape the
-new registry replaces.
+Appearance is a Settings section, not a domain and not a service.
 
-## 4. Settings Is a Domain
+Current stable sections include General, Appearance, Reading, Menus and
+Shortcuts, AI, Sync, and Plugins. Sections organize discovery and UI; they do
+not create separate APIs.
 
-Settings is not a helper beside the Domain Registry. It is a first-class
-domain because ReadAware owns settings state, validation, persistence, targets,
-change semantics, and policy.
+Each setting definition owns:
 
-Appearance is not a domain. It is a section of Settings.
-
-### 4.1 Settings sections
-
-The initial catalog is organized into stable sections:
-
-- General;
-- Appearance;
-- Reading;
-- Menus and shortcuts;
-- AI;
-- Sync;
-- Plugins.
-
-Sections organize discovery and UI. They do not create separate runtime APIs.
-
-### 4.2 Setting definitions
-
-Each setting is described by one catalog record containing at least:
-
-- stable path;
-- section;
-- value kind;
-- default value;
-- validation rules;
-- static options or an option-provider reference;
+- stable path and section;
+- value kind and default;
+- validation and option source;
 - supported targets;
-- readable actors;
-- writable actors;
-- sensitivity classification;
-- local-only or synchronized persistence policy;
-- canonical query and commit behavior;
-- post-commit effects;
-- user-facing label and consent description where needed.
+- actor read/write policy;
+- sensitivity and persistence policy;
+- canonical read, update, and post-commit behavior.
 
-Supported targets may include:
+Settings operations are:
 
-- global;
-- all books;
-- one book;
-- one device.
-
-Target support is declared per setting. A plugin cannot invent an unsupported
-scope.
-
-### 4.3 Settings operations
-
-The Settings domain provides these semantic operations:
-
-- discover permitted setting definitions;
+- discover permitted definitions;
 - read resolved values;
-- update a value at an allowed target;
-- reset an override;
+- update permitted paths at supported targets;
 - subscribe to committed changes.
 
-All writes use the same validation, persistence, event, and post-commit path as
-the product UI and the agent. Plugins do not receive a raw settings object.
+Plugin access is declared in `settingsAccess` with exact paths or explicit
+`section.*` groups. `discover`, `read`, and `write` are separate grants. An app
+theme scheduler can write `appearance.theme` without gaining access to AI,
+sync, shortcuts, or unrelated reader settings.
 
-### 4.4 Permissions
+Secrets are never settings values. Secret fields reference plugin-scoped
+secret slots and are fulfilled only through the Secrets service.
 
-Settings access is granted by exact paths or intentionally bounded path groups.
-Installing a theme plugin must not imply write access to AI providers, sync,
-shortcuts, or unrelated reader preferences.
+Plugin-owned setting definitions are declared in the manifest and enter the
+same Settings catalog under `plugins.<plugin-id>.*`. The host renders them and
+routes changes through the same validation and notification machinery.
 
-The permission model must distinguish:
+Settings chooses among capabilities; contributions supply choices. The active
+theme, font, voice, and reader mode are settings. The available themes, fonts,
+voices, and modes are contributions.
 
-- discover;
-- read;
-- write;
-- target scope;
-- sensitive versus non-sensitive settings.
+## 7. Contributions
 
-Secrets are never ordinary settings values. A setting may reference a secret
-slot, but secret material is read and written only through the Secrets host
-service.
+The canonical contribution roster is:
 
-### 4.5 Settings and contributions
-
-Settings chooses among capabilities; contributions supply the choices.
-
-- selected application theme: Settings;
-- available application themes: Theme contributions;
-- selected reader font: Settings;
-- available reader fonts: Font contributions;
-- selected read-aloud voice: Settings;
-- available voices: Voice-provider contributions;
-- selected reader mode: Settings;
-- available modes: Reader-mode contributions.
-
-Settings definitions owned by a plugin are registered into the Settings domain
-under a plugin namespace. They are not a separate manifest-only configuration
-system. Their values use the same discovery, validation, targeting, events, and
-UI rendering rules as first-party settings.
-
-## 5. Contribution Points
-
-Contribution Points let plugins add implementations without taking ownership of
-host state or rendering arbitrary product UI.
-
-### 5.1 Initial roster
-
-| Contribution point | Plugin supplies | Host owns |
+| ID | Plugin supplies | Host owns |
 | --- | --- | --- |
-| Selection action | label, icon reference, eligibility, handler | selection menu, ordering, invocation UX |
-| Header or page action | placement metadata and handler | toolbar/page layout and accessibility |
-| Command | command metadata and handler | command registry, palette, shortcuts |
-| Agent tool | schema, description, executor | tool approval, orchestration, result presentation |
-| Theme | semantic theme tokens and metadata | active selection, validation, application |
-| Font | font metadata and approved asset references | loading, caching, active selection |
-| Voice provider | voice discovery and synthesis operations | selected voice, playback UX, policy |
-| Reader mode | mode metadata and bounded reader behavior | active mode and reader lifecycle |
-| Content provider | virtual-source metadata and content operations | navigation, library integration, presentation |
-
-Plugin settings definitions belong to the Settings domain, not a fourth
-contribution architecture. Scheduled jobs belong to lifecycle services, not a
-visual mount point.
-
-### 5.2 Contribution contract
-
-Every contribution definition includes:
-
-- stable plugin-scoped ID;
-- contribution-point kind;
-- metadata required by the host consumer;
-- declared permissions;
-- lifecycle hooks where relevant;
-- validation rules;
-- deterministic disposal behavior.
-
-Registration returns a disposable handle. Deactivation, update failure, or
-uninstall removes every contribution without leaving listeners, shortcuts,
-styles, providers, or background work behind.
-
-### 5.3 What dynamic means
-
-The host does not enumerate plugin IDs. Any installed plugin may register a
-valid contribution into an existing point.
-
-A genuinely new kind of contribution still requires one explicit host consumer
-because the host must know how to render, invoke, secure, and dispose it. Once
-that point exists, plugins using it are loaded dynamically. Dynamic loading is
-not permission for plugins to inject arbitrary DOM or create unnamed mount
-points.
-
-## 6. Host Services
-
-Host Services expose bounded operations that cannot safely or consistently be
-implemented inside a worker.
-
-The initial service set is:
-
-- plugin-scoped durable storage;
-- secrets and credential slots;
-- permission-aware network requests;
-- approved LLM calls;
-- clipboard operations;
-- host-mediated file open, save, import, and export flows;
-- schedules and lifecycle jobs;
-- locale and non-sensitive environment metadata.
-
-Each service has its own typed request and result contract, permission policy,
-quotas where needed, cancellation behavior, and audit boundary. There is no
-generic host invocation escape hatch.
-
-Host Services must not expose:
-
-- raw filesystem paths or unrestricted filesystem APIs;
-- Tauri command invocation;
-- SQLite connections or SQL;
-- React, Jotai, or feature stores;
-- raw DOM or WebView access;
-- Foliate internals;
-- arbitrary process execution.
-
-## 7. Runtime Model
-
-### 7.1 Load and activation
-
-The runtime follows this sequence:
+| `selectionActions` | selection action and handler | selection menu and invocation UX |
+| `headerActions` | reader/library action and view | toolbar/page placement and accessibility |
+| `commands` | command metadata and handler | registry, palette, shortcuts |
+| `settingsOptions` | dynamic options for a declared plugin field | settings form and validation |
+| `voiceProviders` | voice discovery and synthesis | selected voice, playback, fallback |
+| `contentProviders` | virtual book content loader | library binding, navigation, presentation |
+| `readerModes` | bounded text segmentation behavior | reader lifecycle and controls |
+| `agentTools` | tool schema and executor | approval, orchestration, presentation |
+| `themes` | semantic app/reader theme data | validation, selection, generated CSS |
+| `fonts` | metadata and approved font assets | loading, picker, active selection |
 
-1. Discover installed plugin packages from the bundled catalog or plugin
-   storage.
-2. Validate the manifest and declared capability requirements.
-3. Resolve permissions and user consent.
-4. Start the plugin in a worker sandbox.
-5. Construct an actor-scoped capability view from the registries.
-6. Run activation and collect every returned registration and subscription.
-7. Mark the plugin active only after activation completes successfully.
-
-Activation is atomic from the product's perspective. Partial registrations are
-disposed if any activation step fails.
-
-### 7.2 Deactivation and uninstall
-
-Deactivation cancels ongoing work and disposes:
+All contribution registries use the same ownership rules:
 
-- domain subscriptions;
-- contributions;
-- schedules;
-- command and tool handlers;
-- provider registrations;
-- UI sessions;
-- in-flight host-service requests where possible.
-
-Uninstall additionally removes plugin-owned settings definitions and follows
-the declared policy for plugin-scoped data and secrets. Destructive cleanup
-must be explicit and consent-aware.
+- IDs are namespaced by plugin ID;
+- registrations are validated and inspectable;
+- registration returns a disposable;
+- replacing a registration cannot be undone by a stale disposable;
+- deactivation and failed activation dispose in reverse order;
+- late asynchronous results from a retired generation cannot overwrite its
+  replacement.
 
-### 7.3 Updates and rollback
+A genuinely new contribution kind needs a deliberate host consumer. After that
+consumer and registry entry exist, any installed plugin may register into it
+without being named by the host.
 
-Never replace a running plugin in place.
+Plugins do not register React components, JSX, HTML, CSS, iframes, arbitrary
+DOM, or unnamed mount points.
 
-1. Install the candidate version separately.
-2. Validate its manifest and compatibility with the current host capability
-   versions.
-3. Run migration in a versioned transaction or recoverable staging area.
-4. Activate the candidate and perform a health check.
-5. Switch the active version only after success.
-6. Retain the previous version until the new version is confirmed healthy.
-7. Roll back code and recoverable data automatically on failure.
+## 8. Host Services
 
-## 8. Security and Trust
+The current host services are:
 
-First-party status reduces distribution risk; it does not remove the need for
-capability isolation. Plugins still execute behind a worker boundary and use
-least-privilege actor views.
+| ID | Contract | Permission |
+| --- | --- | --- |
+| `storage` | plugin-scoped KV and document collections | built in |
+| `secrets` | plugin-scoped credential slots | built in |
+| `ui` | host toast and save/export flow | built in |
+| `schedules` | bind a manifest-declared periodic task | built in |
+| `session` | subscribe to bounded reading-session events | built in |
+| `network` | host HTTP client | `service:network` |
+| `llm` | approved one-shot/structured model calls | `service:llm` |
+| `clipboard` | write text to clipboard | `service:clipboard` |
 
-Permission enforcement has several layers:
+Services are not a native escape hatch. Never expose raw paths, unrestricted
+filesystem access, Tauri invocation, SQL, Foliate internals, arbitrary process
+execution, or a generic host invoke method.
 
-- manifest validation at install time;
-- user consent for meaningful capabilities;
-- actor-scoped API construction;
-- invocation-time authorization;
-- domain and service input validation;
-- host-owned rendering and file pickers;
-- lifecycle cleanup and cancellation;
-- audit events for sensitive actions.
+## 9. Permissions
 
-Permissions are semantic. Prefer `settings.write:appearance.theme` or a
-similarly exact generated scope over broad implementation-oriented permissions.
-Do not infer permission solely from whether a method happens to be present.
+The manifest permission vocabulary is derived from the catalogs:
 
-## 9. Host-Owned Plugin UI
+- Domains: `library:read`, `library:write`, `reading:read`, `reading:write`,
+  `annotations:read`, `annotations:write`, `conversations:read`.
+- Contributions: `reader:modes`, `agent:tools`, `ui:themes`.
+- Services: `service:network`, `service:llm`, `service:clipboard`.
+- Settings: exact `settingsAccess` grants rather than a broad permission.
 
-Plugin UI remains declarative and host-rendered. Plugins provide view models,
-commands, and event handlers; ReadAware renders them with `@read-aware/ui`.
+Write implies read within a domain. Permission-free contributions and services
+are still explicit catalog entries; they are not ambient undocumented powers.
 
-This boundary provides:
+`reader:modes` is currently restricted to bundled plugins at activation time.
 
-- visual consistency;
-- keyboard and accessibility guarantees;
-- theme compatibility;
-- controlled navigation;
-- permission-aware inputs and file flows;
-- cleanup when a plugin deactivates.
+Meaningful permissions are shown in install consent. Capability compatibility
+and permission are separate: a plugin must both request authority and declare a
+compatible contract version.
 
-Do not expose arbitrary JSX, HTML, CSS, iframes, DOM handles, React component
-registration, or WebView injection. A new UI need should extend the declarative
-view schema or add a real host contribution point.
+## 10. Capability Versions
 
-## 10. Capability Versioning and Discovery
+Each domain, contribution, service, and declarative schema has its own semantic
+version in the host catalog. They do not share one global plugin API version.
 
-The host publishes capability-family versions independently. Domains,
-contribution points, host services, and declarative UI schemas do not have to
-share one global version.
+Every valid manifest must contain `requires`, grouped by:
 
-Before activation, the runtime checks the plugin's required capability ranges.
-At runtime, a plugin may introspect only the capabilities visible to its actor
-view. Discovery never reveals inaccessible setting paths, private fields, or
-internal domains.
+- `domains`;
+- `contributions`;
+- `services`;
+- `schemas` (`views`, `settings`, `themes`).
 
-Because there are no third-party plugins today, migration should establish the
-clean versioning model directly rather than emulate the old surface.
+Each entry is a semver range. Manifest validation rejects unknown families,
+unknown IDs, and invalid ranges. Activation then resolves the plugin actor's
+visible capability versions and rejects:
 
-## 11. Current Implementation Status
+- a requirement the actor has not been granted;
+- a requirement outside the host version range.
 
-### 11.1 What already works
+The same filtered version map is exposed read-only at runtime. Discovery does
+not reveal internal domains, inaccessible settings, or permission-gated
+capabilities.
 
-The current system already has valuable pieces to retain:
+When changing a capability:
 
-- plugins are discovered and loaded as modules rather than hard-coded by ID;
-- plugins run in a worker sandbox;
-- activation and disposal lifecycle exists;
-- several contributions are registered dynamically;
-- plugin UI is declarative and host-rendered;
-- permissions and install consent exist;
-- host services exist for storage, network, LLM, and related operations;
-- the agent settings implementation already models catalog metadata, targets,
-  validation, draft changes, and commit behavior.
+- patch for compatible fixes;
+- minor for backward-compatible additions;
+- major for a breaking contract change.
 
-### 11.2 Structural problems to replace
+Do not bump unrelated capabilities to avoid thinking about ownership.
 
-The system is not yet fully registry-driven:
+## 11. Declarative UI
 
-- `apps/web/src/domain/index.ts` manually composes only shelf, annotations, and
-  conversations;
-- domain type definitions, context construction, permission branches, worker
-  exposure, and tests repeat capability knowledge;
-- `ui:appearance` is exposed as a hand-built special case;
-- settings are split between product UI, plugin manifest configuration, option
-  providers, storage change listeners, and agent-only registries;
-- some contributions use the main registry while settings option providers and
-  virtual content providers use separate maps;
-- the worker bridge can derive callable methods only from the context already
-  assembled by the host, so it cannot repair a missing host capability;
-- the `shelf` domain combines library ownership with reading-session concerns.
-
-These are migration targets, not behavior to preserve.
-
-### 11.3 First-party plugins to migrate
-
-All current plugins move to the new contracts in the same migration:
-
-- Dictionary;
-- Editorial Themes;
-- RSS Reader;
-- Sentence Reader;
-- Text to Speech;
-- Theme Schedule, where present in the bundled or marketplace source tree.
-
-Do not ship parallel old and new plugin runtimes.
-
-## 12. Migration Plan
-
-### Phase 1: Freeze product behavior
-
-- Inventory every domain method, permission, contribution, service, setting,
-  plugin UI view, and lifecycle hook currently used by first-party plugins.
-- Add behavior-level contract tests around those user-visible workflows.
-- Record which old APIs are unused and can be deleted rather than migrated.
-
-### Phase 2: Build the capability runtime
-
-- Create the shared registry primitives and actor identity model.
-- Make permission vocabulary and capability discovery derive from registry
-  declarations.
-- Generate the plugin-facing context and worker RPC surface from the actor view.
-- Add invocation-time authorization, validation, cancellation, and disposal.
-
-### Phase 3: Promote Settings
-
-- Move the useful catalog model from the agent settings implementation into the
-  product-level Settings domain.
-- Route product UI and agent settings access through the same domain.
-- Add target resolution, reset, subscriptions, and exact permission scopes.
-- Register plugin-owned settings definitions under plugin namespaces.
-- Replace the special Appearance API with Settings paths and theme/font
-  contributions.
-
-### Phase 4: Rebuild product domains
-
-- Split shelf behavior into Library and Reading.
-- Register Annotations and Conversations through the same domain definition
-  mechanism.
-- Keep Profile / Memory internal until an explicit plugin contract is designed.
-- Route all domain changes through canonical event-sourced commands.
-
-### Phase 5: Unify contributions and services
-
-- Move every contribution point under one contribution registry abstraction.
-- Move option-provider and virtual-content registrations out of standalone maps.
-- Normalize IDs, validation, ownership, disposal, and introspection.
-- Give each Host Service a typed, independently permissioned contract.
-
-### Phase 6: Migrate plugins and delete the old API
-
-- Migrate all first-party plugins.
-- Remove old context types, manual permission switches, appearance special
-  cases, manifest-only settings behavior, duplicate registries, and obsolete
-  tests.
-- Do not add a compatibility adapter after deletion.
-
-### Phase 7: Verify the shipping product
-
-- Run unit, contract, type, and activation rollback tests.
-- Exercise every plugin in the Tauri desktop app, not the browser build.
-- Verify settings changes persist and emit events through SQLite/event sourcing.
-- Verify install, enable, disable, update failure, rollback, and uninstall.
-- Verify no plugin leaves registrations, schedules, or listeners after disposal.
-
-## 13. Acceptance Criteria
-
-The migration is complete only when all of these are true:
-
-- adding a domain operation requires changing one domain definition, not several
-  manual mirrors;
-- adding a setting makes it available to allowed UI, agent, and plugin actors
-  through the same catalog and command path;
-- Appearance has no standalone plugin API;
-- plugins receive exact settings scopes rather than a raw settings bag;
-- installed plugins are not named in host registration code;
-- all contribution points share ownership, validation, and disposal semantics;
-- the worker API is generated from the actor-scoped capability view;
-- every mutation crosses a domain command or bounded Host Service;
-- arbitrary DOM, React, filesystem, SQL, Tauri, and process access remain
-  unavailable;
-- activation is atomic and updates can roll back;
-- first-party plugins use only the new runtime;
-- obsolete plugin APIs and compatibility code are deleted;
-- the complete workflows pass in the Tauri desktop app.
-
-## 14. Rules for Future Agents
-
-1. Treat this document as the target architecture until a newer explicit
-   decision replaces it.
-2. Do not create a separate Settings registry beside the Domain Registry.
-3. Do not create an Appearance domain. Appearance is a Settings section.
-4. Do not solve a missing domain capability with plugin storage or a special
-   UI API.
-5. Do not treat a contribution as domain state or let a setting own provider
-   implementations.
-6. Do not duplicate capability lists across packages or runtime layers.
-7. Do not introduce a generic untyped invoke API.
-8. Do not preserve the old API for hypothetical third-party compatibility.
-9. Keep the worker sandbox and host-owned declarative UI.
-10. Keep secrets outside ordinary settings values.
-11. Keep plugin permissions exact, semantic, and enforced at invocation time.
-12. Verify product behavior in Tauri and verify persisted mutations through the
-    event-sourced storage path.
+Plugin UI is data rendered by the host design system. Plugins provide validated
+view models and callbacks. The host owns layout, focus, accessibility,
+navigation, theme compatibility, and cleanup.
+
+The versioned schema families are:
+
+- `views` for plugin result and page views;
+- `settings` for plugin setting forms;
+- `themes` for semantic theme and font declarations.
+
+A new UI need extends a bounded schema or creates a real contribution point. It
+does not justify arbitrary web content or a plugin-owned React tree.
+
+## 12. Lifecycle
+
+### Discovery and activation
+
+1. Enumerate bundled and installed plugin packages dynamically.
+2. Parse and validate the manifest.
+3. Validate capability requirements and permissions.
+4. Resolve install consent where needed.
+5. Construct the actor-scoped context.
+6. Start the plugin Worker with an activation timeout.
+7. Collect registrations and subscriptions.
+8. Ping the Worker for health.
+9. Mark active only after activation and health both succeed.
+
+Partial activation is rolled back in reverse registration order.
+
+### Deactivation
+
+Deactivation removes subscriptions, contributions, schedules, commands, tools,
+provider registrations, UI sessions, and the Worker instance. Disposables are
+generation-aware so an old runtime cannot remove a newer replacement.
+
+### Install and update
+
+Local folders, zip archives, and marketplace payloads all enter the same staged
+candidate flow. Staging is inert and does not replace the active plugin.
+
+For an update, the host:
+
+1. stages the candidate under a separate token;
+2. snapshots recoverable plugin KV and document data;
+3. starts and health-checks the candidate while the previous version remains
+   available;
+4. commits the candidate to the active on-disk slot;
+5. verifies the committed manifest and version;
+6. switches runtime ownership;
+7. retires the previous instance only after success.
+
+On failure it stops the candidate, restores the previous files, restores the KV
+namespace and document collections, and restarts the previous runtime. Desktop
+startup also repairs an interrupted file switch when possible.
+
+Activation must not perform irreversible domain writes or secret migrations.
+KV and plugin documents are recoverable during the transaction; domain events
+and secret-store mutations are deliberately not treated as rollback storage.
+
+### Uninstall
+
+Built-in plugins cannot be uninstalled. For an installed plugin, uninstall
+deactivates it, removes active/candidate/rollback files, clears its document
+collections, and removes enablement state. KV settings and secret slots are
+retained so reinstall can recover user configuration.
+
+## 13. First-Party Coverage
+
+The current first-party plugins all use the registry-backed contract:
+
+| Plugin | Primary capabilities |
+| --- | --- |
+| Dictionary | selection/header actions, commands, agent tools, storage, session, LLM, views |
+| Editorial Themes | theme/font contributions and theme schema |
+| RSS Reader | Library, Reading, content provider, commands, agent tools, storage, schedule, network, views/settings |
+| Sentence Reader | reader mode, storage, settings schema |
+| Text to Speech | voice/options providers, storage, secrets, network, settings schema |
+| Theme Schedule | Settings domain, options/commands, storage/UI, settings schema |
+
+The host never switches on these plugin IDs. Product-specific behavior belongs
+in their packages and registered capabilities.
+
+## 14. Extension Procedure
+
+When adding a domain:
+
+1. Prove it owns coherent product state or behavior.
+2. Add its ID, access policy, and version to the domain catalog.
+3. Add its runtime definition to the exhaustive domain registry.
+4. Define typed queries, commands, and events in the owning domain module.
+5. Expose the actor-safe contract in plugin types and context construction.
+6. Add permission, actor-view, worker-shape, and domain contract tests.
+7. Regenerate the marketplace declaration mirror.
+
+When adding a contribution:
+
+1. Define the host consumer and why an existing point is insufficient.
+2. Add the catalog entry, version, and permission policy.
+3. Use the shared contribution registry with plugin-scoped identity.
+4. Define validation, invocation, and disposal semantics.
+5. Add host rendering/invocation and stale-generation tests.
+
+When adding a service:
+
+1. Keep the operation bounded and typed.
+2. Add the catalog entry, version, and permission policy.
+3. Implement host-side validation and the Worker bridge.
+4. Define cancellation, quotas, audit behavior, and failure semantics.
+5. Do not add a generic native escape hatch.
+
+When adding a setting:
+
+1. Add one Settings catalog definition.
+2. Declare supported targets, validation, options, sensitivity, and actor policy.
+3. Route product UI, agent, and plugin access through the same domain path.
+4. Add exact scope and committed-event tests.
+
+## 15. Verification Contract
+
+Before declaring plugin work complete, verify:
+
+- core capability catalog tests;
+- manifest and semver negotiation tests;
+- actor-domain and settings-scope tests;
+- contribution ownership and stale-generation tests;
+- Worker shape, activation timeout, and health tests;
+- staged update and rollback tests;
+- plugin package tests and public declaration mirror validation;
+- root typecheck and test suites;
+- the real Tauri desktop app, never only the browser build.
+
+For lifecycle changes, exercise install, enable, disable, update success, update
+failure, rollback, and uninstall. Confirm no contribution, listener, schedule,
+or Worker survives disposal.
+
+## 16. Non-Negotiable Rules
+
+1. Settings stays inside the Domain Registry.
+2. Appearance stays a Settings section.
+3. Do not solve missing product behavior with plugin storage or a special UI
+   API.
+4. Do not let a setting own provider implementations.
+5. Do not duplicate capability IDs, permissions, or versions.
+6. Do not introduce a generic untyped invoke API.
+7. Do not restore obsolete APIs for hypothetical compatibility.
+8. Keep the Worker boundary and host-rendered declarative UI.
+9. Keep secrets outside ordinary settings values.
+10. Enforce exact semantic permissions at invocation time.
+11. Keep plugin mutations on canonical domain commands or bounded services.
+12. Verify shipping behavior in Tauri and persisted writes through the real
+    storage path.

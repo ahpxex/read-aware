@@ -24,10 +24,11 @@
   "vars": {
     // 生产绝不能开 MAGIC_LINK_ECHO（等于任何人可冒充任何邮箱）；
     // 本地开发的回显由 `bun run dev` 脚本以 --var 注入。
-    // 邮件链路（可选）：`wrangler secret put RESEND_API_KEY` + 此处 MAIL_FROM。
+    // 邮件链路：`RESEND_API_KEY` 存 Worker Secret，发件人限制在已验证域名。
     // OAuth：`wrangler secret put GOOGLE_CLIENT_ID/SECRET、GITHUB_CLIENT_ID/SECRET`。
     // 档位管理（可选）：`wrangler secret put ADMIN_TOKEN` 启用 /v1/admin/tier。
     // Bundled AI（可选）：`wrangler secret put DEEPSEEK_API_KEY` 启用 /v1/ai/*。
-    "APP_ORIGIN": "https://readaware.app"
+    "APP_ORIGIN": "https://readaware.app",
+    "MAIL_FROM": "ReadAware <login@noreply.readaware.app>"
   }
 }

@@ -61,6 +61,11 @@ export type AuthVerifyBody = { token: string };
 export type AuthVerifyResponse = {
   session: string;
   accountId: string;
+  /** The account the token opened. The client MUST surface this to the user
+   *  before asking for the encryption passphrase — a sign-in token can be
+   *  delivered by a third party (deep link, paste), and the identity is the
+   *  only thing that distinguishes "my account" from an attacker's. */
+  email: string;
   /** null until the first device publishes key material. */
   keys: SyncKeyMaterial | null;
 };

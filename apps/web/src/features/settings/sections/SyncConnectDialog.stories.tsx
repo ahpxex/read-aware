@@ -14,7 +14,10 @@ function connection(
     connected: false,
     busy: false,
     sendLink: async () => null,
-    connect: async () => {},
+    verifyToken: async () => {
+      throw new Error("stories: verifyToken is not wired");
+    },
+    finishConnect: async () => {},
     disconnect: async () => {},
     requestSyncNow: async () => {},
     ...patch,
@@ -55,6 +58,28 @@ export const EmailEntered: Story = {
 /** A request in flight: the controls disable until the relay answers. */
 export const Busy: Story = {
   args: { sync: connection({ busy: true }) },
+};
+
+/** The identity gate: the account a token opened, in full, BEFORE the
+ *  passphrase field appears — the login-CSRF defense in its visible form. */
+export const ConfirmedIdentity: Story = {
+  args: {
+    sync: connection({
+      verifyToken: async () => ({
+        session: "sess_story",
+        accountId: "acct_story",
+        email: "attacker@example.com",
+        keys: null,
+      }),
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    await userEvent.click(body.getByRole("button", { name: /Google/ }));
+    await userEvent.type(body.getByRole("textbox"), "story-sign-in-token");
+    // Exact match: the OAuth buttons also start with "Continue".
+    await userEvent.click(body.getByRole("button", { name: /^Continue$/ }));
+  },
 };
 
 /**

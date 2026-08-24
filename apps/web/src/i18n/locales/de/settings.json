@@ -398,7 +398,11 @@
       "orEmail": "oder per E-Mail",
       "oauthStarted": "Schließe die Anmeldung im Browser ab und füge das angezeigte Token unten ein.",
       "back": "Zurück",
-      "linkReady": "Du bist angemeldet. Lege zum Abschluss deine Verschlüsselungs-Passphrase fest."
+      "tokenContinue": "Weiter",
+      "verifying": "Wird geprüft…",
+      "tokenInvalid": "Dieser Anmelde-Link oder Token hat nicht funktioniert — er ist möglicherweise abgelaufen oder bereits verwendet. Fordere einen neuen an.",
+      "signedInAs": "Verbindung als",
+      "freshAccount": "Für dieses Konto ist noch keine Verschlüsselungspassphrase festgelegt — dieses Gerät legt sie fest. Stelle sicher, dass es dein Konto ist: Nach dem Verbinden wird die Bibliothek dieses Geräts dorthin synchronisiert."
     },
     "connected": {
       "statusTitle": "Status",

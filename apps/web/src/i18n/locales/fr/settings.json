@@ -402,7 +402,11 @@
       "orEmail": "ou par e-mail",
       "oauthStarted": "Terminez la connexion dans le navigateur, puis collez le jeton affiché ci-dessous.",
       "back": "Retour",
-      "linkReady": "Vous êtes connecté. Définissez votre phrase de chiffrement pour terminer."
+      "tokenContinue": "Continuer",
+      "verifying": "Vérification…",
+      "tokenInvalid": "Ce lien ou jeton de connexion n'a pas fonctionné — il a peut-être expiré ou déjà été utilisé. Demandez-en un nouveau.",
+      "signedInAs": "Connexion en tant que",
+      "freshAccount": "Ce compte n'a pas encore de phrase secrète de chiffrement — cet appareil la définira. Assurez-vous que c'est votre compte : une fois connecté, la bibliothèque de cet appareil y sera synchronisée."
     },
     "connected": {
       "statusTitle": "État",

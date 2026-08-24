@@ -402,7 +402,11 @@
       "orEmail": "o con correo",
       "oauthStarted": "Termina el acceso en el navegador y pega abajo el token que muestra.",
       "back": "Volver",
-      "linkReady": "Has iniciado sesión. Establece tu frase de cifrado para terminar."
+      "tokenContinue": "Continuar",
+      "verifying": "Verificando…",
+      "tokenInvalid": "Ese enlace o token de inicio de sesión no funcionó: puede haber expirado o ya haberse usado. Solicita uno nuevo.",
+      "signedInAs": "Conectando como",
+      "freshAccount": "Esta cuenta aún no tiene frase de contraseña de cifrado; este dispositivo la establecerá. Asegúrate de que es tu cuenta: al conectarte, la biblioteca de este dispositivo se sincronizará con ella."
     },
     "connected": {
       "statusTitle": "Estado",

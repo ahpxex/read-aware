@@ -6,8 +6,12 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { i18n } from "../../../i18n";
 import { isTauri } from "../../../platform/environment";
-import { getSecret } from "../../../platform/secret-store";
-import { connectAccount, WrongPassphraseError } from "../../../platform/sync/connect";
+import {
+  establishEncryption,
+  verifySignInToken,
+  WrongPassphraseError,
+  type SignInVerification,
+} from "../../../platform/sync/connect";
 import { createRelayClient } from "../../../platform/sync/relay-client";
 import {
   disconnectSync,
@@ -62,27 +66,46 @@ export function useSyncConnection() {
     }
   }, []);
 
-  const connect = useCallback(
-    async (tokenInput: string, passphrase: string): Promise<void> => {
+  /** Phase 1: burn the token, learn WHICH account it opened. The dialog
+   *  shows `email` to the user before ever asking for a passphrase — a token
+   *  can be delivered by a third party (deep link, paste), and the identity
+   *  is the only thing that makes an attacker's account look like one. */
+  const verifyToken = useCallback(async (tokenInput: string): Promise<SignInVerification> => {
+    setBusy(true);
+    try {
+      return await verifySignInToken(
+        createRelayClient({ baseUrl: relayBaseUrl(), session: () => null }),
+        parseMagicToken(tokenInput),
+      );
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  /** Phase 2: passphrase → master key → durable connection. Takes the
+   *  verification phase 1 returned — there is no path to a passphrase that
+   *  didn't pass through the email being shown. */
+  const finishConnect = useCallback(
+    async (verification: SignInVerification, passphrase: string): Promise<void> => {
       setBusy(true);
       try {
         // The fresh session lives in this closure until the whole connect
-        // succeeds — publishKeys inside connectAccount must already carry it,
-        // while nothing durable is written before persistConnection.
-        let freshSession: string | null = null;
-        const relay = createRelayClient({
-          baseUrl: relayBaseUrl(),
-          session: () => freshSession ?? (getSecret("sync.session") || null),
-        });
-        const result = await connectAccount({
-          relay,
-          token: parseMagicToken(tokenInput),
+        // succeeds — establishEncryption's publishKeys must already carry it
+        // (the regression that once burned a live sign-in token), while
+        // nothing durable is written before persistConnection.
+        const masterKeyBase64 = await establishEncryption(
+          createRelayClient({
+            baseUrl: relayBaseUrl(),
+            session: () => verification.session,
+          }),
+          verification,
           passphrase,
-          onSession: (session) => {
-            freshSession = session;
-          },
+        );
+        await persistConnection({
+          session: verification.session,
+          accountId: verification.accountId,
+          masterKeyBase64,
         });
-        await persistConnection(result);
         await reloadProfile();
       } finally {
         setBusy(false);
@@ -105,5 +128,5 @@ export function useSyncConnection() {
     await syncNow();
   }, []);
 
-  return { status, profile, connected, busy, sendLink, connect, disconnect, requestSyncNow };
+  return { status, profile, connected, busy, sendLink, verifyToken, finishConnect, disconnect, requestSyncNow };
 }

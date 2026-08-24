@@ -1,10 +1,15 @@
 /**
  * The connect-account dialog: choose a sign-in door (OAuth or magic link),
- * then paste the one-time token and set the E2E passphrase. Pulling the whole
+ * paste the one-time token, CONFIRM WHICH ACCOUNT it opened, then set the E2E
+ * passphrase. The confirmation step is the login-CSRF defense and may not be
+ * skipped: a sign-in token can be delivered by any web page
+ * (readaware://sync/login/<token>) or pasted from anywhere, and the moment a
+ * passphrase lands, this device's whole library adopts that account — so the
+ * email is shown before the passphrase field ever appears. Pulling the whole
  * flow out of the settings page keeps Data & Sync a list of quiet rows, and a
- * stacked single-column dialog can't overflow on narrow screens the way the
- * old inline form did. Form state lives here and survives the user leaving to
- * fetch their token; it resets only on a successful connect.
+ * stacked single-column dialog can't overflow on narrow screens. Form state
+ * lives here and survives the user leaving to fetch their token; it resets
+ * only on a successful connect.
  */
 import { useEffect, useState } from "react";
 import { useAtom } from "jotai";
@@ -13,6 +18,7 @@ import { Button, Caption, Dialog, TextField, useToast } from "@read-aware/ui";
 import { i18n, useTranslation } from "../../../i18n";
 import { openExternalUrl } from "../../../platform/external-link";
 import { createLogger } from "../../../platform/logger";
+import type { SignInVerification } from "../../../platform/sync/connect";
 import { relayBaseUrl } from "../../../platform/sync/sync-scheduler";
 import { syncLoginTokenAtom } from "../../../state/ui";
 import {
@@ -33,37 +39,65 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
   const { t } = useTranslation("settings");
   const { toast } = useToast();
 
-  const [step, setStep] = useState<"signIn" | "verify">("signIn");
+  type Step = "signIn" | "token" | "confirm";
+  const [step, setStep] = useState<Step>("signIn");
   /**
-   * Which door the user walked through — decides the verify-step hint, and
-   * "link" (a deep-linked token, no pasting involved) hides the token field.
+   * Which door the user walked through — decides the token-step hint; "link"
+   * (a deep-linked token) skips the paste field by auto-verifying.
    */
   const [signInVia, setSignInVia] = useState<"email" | "oauth" | "link">("email");
   const [email, setEmail] = useState("");
   const [token, setToken] = useState("");
+  const [tokenError, setTokenError] = useState<string | null>(null);
+  const [verification, setVerification] = useState<SignInVerification | null>(null);
   const [passphrase, setPassphrase] = useState("");
   const [passphraseError, setPassphraseError] = useState<string | null>(null);
-
-  // A sign-in link the OS handed us: the token is already here, so the only
-  // thing left to ask for is the passphrase. Consumed once, on open.
-  const [linkToken, setLinkToken] = useAtom(syncLoginTokenAtom);
-  useEffect(() => {
-    if (!open || !linkToken) return;
-    setToken(linkToken);
-    setSignInVia("link");
-    setStep("verify");
-    setPassphraseError(null);
-    setLinkToken(null);
-  }, [open, linkToken, setLinkToken]);
 
   const reset = () => {
     setStep("signIn");
     setSignInVia("email");
     setEmail("");
     setToken("");
+    setTokenError(null);
+    setVerification(null);
     setPassphrase("");
     setPassphraseError(null);
   };
+
+  /** Phase 1: burn the token, learn the account, land on the confirm step. */
+  const verifyToken = async (rawToken: string, via: "email" | "oauth" | "link") => {
+    setTokenError(null);
+    try {
+      const verified = await sync.verifyToken(rawToken);
+      setVerification(verified);
+      setSignInVia(via);
+      setStep("confirm");
+      setPassphraseError(null);
+    } catch (error) {
+      log.error("sign-in token verification failed", error);
+      // The token is single-use and short-lived: anything from a typo to a
+      // spent link lands here. Show it on the token field (or on the link
+      // notice when a deep link delivered it) and let the user request anew.
+      setSignInVia(via);
+      if (via === "link") {
+        setToken("");
+        setStep("token");
+      }
+      setTokenError(t("dataSync.connect.tokenInvalid"));
+    }
+  };
+
+  // A sign-in link the OS handed us: verify it right away — the email it
+  // opens must be on screen before any passphrase is asked for. Consumed
+  // once, on open.
+  const [linkToken, setLinkToken] = useAtom(syncLoginTokenAtom);
+  useEffect(() => {
+    if (!open || !linkToken) return;
+    setLinkToken(null);
+    void verifyToken(linkToken, "link");
+    // Fires exactly once per delivered link token (consumed above); the
+    // verifyToken closure is recreated per render, which is fine here.
+  }, [open, linkToken, setLinkToken]);
 
   const handleOauth = (provider: "google" | "github") => {
     // The dance finishes in the system browser: the relay's finish page fires
@@ -74,7 +108,7 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
       `${relayBaseUrl()}/v1/auth/oauth/${provider}/start?lang=${encodeURIComponent(i18n.language)}`,
     );
     setSignInVia("oauth");
-    setStep("verify");
+    setStep("token");
   };
 
   const handleSend = async () => {
@@ -82,7 +116,7 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
       const devToken = await sync.sendLink(email);
       setSignInVia("email");
       if (devToken) setToken(devToken);
-      setStep("verify");
+      setStep("token");
     } catch (error) {
       log.error("magic link request failed", error);
       toast({
@@ -94,13 +128,14 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
   };
 
   const handleConnect = async () => {
+    if (!verification) return;
     if (passphrase.length < MIN_PASSPHRASE_LENGTH) {
       setPassphraseError(t("dataSync.connect.passphraseTooShort"));
       return;
     }
     setPassphraseError(null);
     try {
-      await sync.connect(token, passphrase);
+      await sync.finishConnect(verification, passphrase);
       reset();
       onClose();
       toast({
@@ -163,22 +198,47 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
             {sync.busy ? t("dataSync.connect.sending") : t("dataSync.connect.send")}
           </Button>
         </div>
-      ) : (
+      ) : step === "token" ? (
         <div className="mt-4 space-y-4">
           <Caption className="text-fg-muted">
-            {signInVia === "link"
-              ? t("dataSync.connect.linkReady")
-              : signInVia === "oauth"
-                ? t("dataSync.connect.oauthStarted")
-                : t("dataSync.connect.sent")}
+            {signInVia === "oauth"
+              ? t("dataSync.connect.oauthStarted")
+              : t("dataSync.connect.sent")}
           </Caption>
-          {signInVia !== "link" && (
-            <TextField
-              label={t("dataSync.connect.tokenLabel")}
-              value={token}
-              onChange={(event) => setToken(event.target.value)}
-              autoComplete="off"
-            />
+          <TextField
+            label={t("dataSync.connect.tokenLabel")}
+            value={token}
+            onChange={(event) => {
+              setToken(event.target.value);
+              setTokenError(null);
+            }}
+            error={tokenError ?? undefined}
+            autoComplete="off"
+          />
+          <div className="flex items-center justify-between gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setStep("signIn")}>
+              {t("dataSync.connect.back")}
+            </Button>
+            <Button
+              size="sm"
+              disabled={sync.busy || token.trim().length === 0}
+              onClick={() => void verifyToken(token, signInVia)}
+            >
+              {sync.busy ? t("dataSync.connect.verifying") : t("dataSync.connect.tokenContinue")}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-4 space-y-4">
+          {/* The identity gate: this account, in full, before the passphrase. */}
+          <div className="rounded-md border border-border bg-paper-warm px-3 py-2.5">
+            <Caption className="text-fg-muted">{t("dataSync.connect.signedInAs")}</Caption>
+            <p className="mt-0.5 font-medium break-all">{verification?.email}</p>
+          </div>
+          {verification?.keys == null && (
+            <p className="text-caption leading-relaxed text-fg-muted">
+              {t("dataSync.connect.freshAccount")}
+            </p>
           )}
           <TextField
             label={t("dataSync.connect.passphraseLabel")}
@@ -190,12 +250,12 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
             autoComplete="new-password"
           />
           <div className="flex items-center justify-between gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setStep("signIn")}>
+            <Button variant="ghost" size="sm" onClick={() => setStep("token")}>
               {t("dataSync.connect.back")}
             </Button>
             <Button
               size="sm"
-              disabled={sync.busy || token.trim().length === 0}
+              disabled={sync.busy || !verification}
               onClick={() => void handleConnect()}
             >
               {sync.busy ? t("dataSync.connect.connecting") : t("dataSync.connect.connect")}

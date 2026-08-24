@@ -394,7 +394,11 @@
       "orEmail": "或使用邮箱",
       "oauthStarted": "在浏览器里完成登录，然后把页面显示的令牌粘贴到下面。",
       "back": "返回",
-      "linkReady": "已通过链接登录。设置加密口令即可完成连接。"
+      "tokenContinue": "继续",
+      "verifying": "验证中…",
+      "tokenInvalid": "登录链接或令牌无效——可能已过期或已被使用，请重新申请。",
+      "signedInAs": "即将连接的账号",
+      "freshAccount": "该账号尚未设定加密口令，将由本设备设定。请确认这是你本人的账号：连接后，本设备的书库会同步到该账号。"
     },
     "connected": {
       "statusTitle": "状态",

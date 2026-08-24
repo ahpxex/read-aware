@@ -398,7 +398,11 @@
       "orEmail": "or use email",
       "oauthStarted": "Finish signing in in the browser, then paste the token it shows below.",
       "back": "Back",
-      "linkReady": "You're signed in. Set your encryption passphrase to finish."
+      "tokenContinue": "Continue",
+      "verifying": "Verifying…",
+      "tokenInvalid": "That sign-in link or token didn't work — it may have expired or already have been used. Request a new one.",
+      "signedInAs": "Signing in as",
+      "freshAccount": "This account has no encryption passphrase yet — this device will set it. Make sure this is your account: once you connect, this device's library syncs to it."
     },
     "connected": {
       "statusTitle": "Status",

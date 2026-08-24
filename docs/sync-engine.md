@@ -143,7 +143,7 @@ WebSocket 顺手就有（§4），协议不用改。
 | 加密 blob（书文件） | R2，key = `<account_id>/<blob_key>` |
 | `server_seq` 发号 | 同一个 Durable Object（单线程执行，天然串行化） |
 | Magic link 邮件 | Resend HTTP API（一个 fetch，无 SDK；Cloudflare Email Sending GA 后换回，只动 `src/email.ts` 一个文件）；dev 用 `MAGIC_LINK_ECHO=1` 直接回显 token |
-| 用量与滥用防护 | Worker 内配额检查（§5 账号表记 `bytes_used`）+ Cloudflare 自带的 rate limiting |
+| 用量与滥用防护 | 双层：**代码内固定窗口限流**（`rate-limit-store.ts`，D1 `rate_windows` 表——未认证端点全覆盖：sign-in 邮件按邮箱 3 封/15 分钟 + 按 IP 30 次/小时，OAuth start 与匿名 checkout 按 IP 60/10 次每小时；IP 为 v6 时折叠到 /64 再哈希）+ Cloudflare WAF/rate limiting 作外层腰带（runbook 见 §12）|
 
 > **落地偏差**（2026-08-13）：事件密文没有存 D1，而是存进每账号邮筒 DO
 > 自己的 SQLite——发号与存储合一，单条 `AUTOINCREMENT` 即是 `server_seq`，
@@ -194,12 +194,23 @@ session，而是铸造一个与 magic link 同表、同 TTL、同哈希存储的
 ### Magic link 流程
 
 1. 用户输 email → Worker 生成一次性 token（随机 256-bit），存 D1，15 分钟过期；
+   该端点按邮箱 + 按 IP 限流（§4），邮件轰炸与 D1 无界增长都堵在这里；
 2. Email Sending 发链接（深链回 app，`readaware://auth/<token>` + 网页兜底）；
 3. app 携 token 调 `POST /v1/auth/verify` → Worker 验证并作废 token，
-   签发长期 session token（opaque，存 D1，可服务端吊销）；
+   签发长期 session token（opaque，存 D1，可服务端吊销）；**响应携带
+   token 打开的账号 email**（见下方登录 CSRF 防御）；
 4. 之后所有请求带 `Authorization: Bearer <session>`。
 
-session 被盗的最坏后果是**配额被人占用**，而非数据泄露——小偷拿到的
+**登录 CSRF 防御（2026-08-24 增补，已落地）**：一次性 token 可以被第三方
+投递——任意网页可触发 `readaware://sync/login/<token>` 深链，邮件/钓鱼可
+诱导粘贴。因此连接流拆成两段（`platform/sync/connect.ts`）：
+`verifySignInToken`（烧 token、取回 email）与 `establishEncryption`
+（口令派生/发布）之间隔着一道**用户可见的身份门**——UI 必须先展示
+「即将连接为 <email>」（新账号附后果声明），用户确认后才出现口令输入。
+没有先展示 email，就不存在向用户要口令的路径；把受害者的库注入攻击者
+账号的链条被这道门拦断。
+
+session 被盗的最坏后果仍是**配额被人占用**，而非数据泄露——小偷拿到的
 只是一堆打不开的密文。这是"auth 可以这么薄"的根据。
 
 ### 口令派生密钥
@@ -467,7 +478,12 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
 6. 生产 `wrangler.jsonc` 删掉 `MAGIC_LINK_ECHO`；配自定义域
    `relay.readaware.app`（Workers 控制台 Custom Domains，DNS 本就在
    Cloudflare）；
-7. `bun run deploy`。
+7. `bun run deploy`；
+8. **WAF 限流规则（外层腰带，可选但建议）**：代码内限流（`rate_windows`）
+   已在应用层生效，但挡不住分布式低速攻击——Cloudflare 控制台
+   Security → WAF → Rate limiting rules 加一条"`/v1/auth/request` 每分钟
+   每 IP 10 次"即可补位。规则只存在于 dashboard、不随仓库部署，换账号
+   重建时需重建，故在此记录，不要让它成为无人知晓的隐性依赖。
 
 **客户端 relay 解析顺序**（`apps/web/src/platform/sync/sync-scheduler.ts`
 `defaultRelayUrl` 与 `platform/app-identity.ts`，提交 059f380）：

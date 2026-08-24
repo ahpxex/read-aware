@@ -92,6 +92,15 @@ async function webhook(handle: Handle, event: unknown, nowMs = BASE_NOW, secret 
 const accountOf = async (handle: Handle, session: string): Promise<AccountResponse> =>
   (await (await handle(get("/v1/account", session))).json()) as AccountResponse;
 
+function checkout(
+  body: { plan: "sync" | "pro" | "max"; ticket?: string },
+  options: { session?: string; ip?: string } = {},
+): Request {
+  const request = post("/v1/billing/checkout", body, options.session);
+  request.headers.set("cf-connecting-ip", options.ip ?? "203.0.113.10");
+  return request;
+}
+
 describe("checkout", () => {
   test("answers 501 when billing is not configured", async () => {
     const { handle } = makeRelay();
@@ -362,17 +371,43 @@ describe("the portal", () => {
 });
 
 describe("checkout throttles", () => {
-  test("anonymous checkouts are capped per IP; signed-in ones are not", async () => {
-    const { handle, stripe } = relayWithStripe({ config: { checkoutPerIpPerHour: 2 } });
-    const anonymous = () => handle(post("/v1/billing/checkout", { plan: "pro" }));
-    expect((await anonymous()).status).toBe(200);
-    expect((await anonymous()).status).toBe(200);
-    expect((await anonymous()).status).toBe(429);
-    // The cap never touched Stripe for the refused call.
-    expect(stripe.calls.filter((c) => c.url.includes("/v1/checkout/sessions")).length).toBe(2);
-    // A bearer session is the metered-free door: it still checks out.
+  test("the per-IP cap covers anonymous and bearer doors", async () => {
+    const { handle, stripe } = relayWithStripe({
+      config: { checkoutPerIpPerHour: 2, checkoutPerAccountPerHour: 10 },
+    });
+    expect((await handle(checkout({ plan: "pro" }))).status).toBe(200);
+    expect((await handle(checkout({ plan: "pro" }))).status).toBe(200);
+
     const { session } = await login(handle, "reader@example.com");
-    const res = await handle(post("/v1/billing/checkout", { plan: "pro" }, session));
-    expect(res.status).toBe(200);
+    expect((await handle(checkout({ plan: "pro" }, { session, ip: "203.0.113.10" }))).status).toBe(
+      429,
+    );
+    expect((await handle(checkout({ plan: "pro" }, { session, ip: "203.0.113.11" }))).status).toBe(
+      200,
+    );
+
+    // The blocked bearer call never reached Stripe.
+    expect(stripe.calls.filter((c) => c.url.includes("/v1/checkout/sessions")).length).toBe(3);
+  });
+
+  test("bearer and reusable ticket checkouts share one account cap across IPs", async () => {
+    const { handle, stripe } = relayWithStripe({
+      config: { checkoutPerIpPerHour: 10, checkoutPerAccountPerHour: 2 },
+    });
+    const { session } = await login(handle, "reader@example.com");
+    expect((await handle(checkout({ plan: "pro" }, { session, ip: "203.0.113.20" }))).status).toBe(
+      200,
+    );
+
+    const minted = await handle(post("/v1/billing/ticket", {}, session));
+    const { ticket } = (await minted.json()) as { ticket: string };
+    expect((await handle(checkout({ plan: "pro", ticket }, { ip: "203.0.113.21" }))).status).toBe(
+      200,
+    );
+    expect((await handle(checkout({ plan: "pro", ticket }, { ip: "203.0.113.22" }))).status).toBe(
+      429,
+    );
+
+    expect(stripe.calls.filter((c) => c.url.includes("/v1/checkout/sessions")).length).toBe(2);
   });
 });

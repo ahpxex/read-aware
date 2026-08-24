@@ -164,8 +164,8 @@ export interface AccountStore {
   findByStripeCustomer(customerId: string): Promise<Account | null>;
   deleteAccount(id: string): Promise<void>;
   /** Drop expired magic tokens, OAuth states, and watch tickets. Rows past
-   *  their expiry were already unusable — this only reclaims space, so it
-   *  rides along opportunistically on a throttled path instead of a cron. */
+   *  their expiry were already unusable — the relay's hourly Cron Trigger
+   *  calls this only to reclaim space. */
   cleanupExpired(nowMs: number): Promise<void>;
 }
 
@@ -291,15 +291,15 @@ export type RelayConfig = {
   maxReportBytes: number;
   /** Diagnostic reports per IP per rolling day — the endpoint is unauthenticated. */
   maxReportsPerIpPerDay: number;
-  /** Unauthenticated-endpoint throttles (fixed windows, hashed subjects):
-   *  sign-in mails per EMAIL per 15 minutes (the mail-bombing guard), and the
-   *  per-IP hourly caps for the same endpoint, OAuth starts, and anonymous
-   *  checkouts. Window sizes are fixed in the router; the counters live in
-   *  D1 (rate_windows) so they deploy and test with the code. */
+  /** Abuse throttles (fixed windows, hashed subjects): sign-in mails per EMAIL
+   *  per 15 minutes; per-IP hourly caps for sign-in, OAuth, and checkout; and
+   *  per-ACCOUNT checkout caps. Window sizes are fixed in the router; the
+   *  counters live in D1 (rate_windows) so they deploy and test with the code. */
   authMailPerEmailPer15Min: number;
   authRequestPerIpPerHour: number;
   oauthStartPerIpPerHour: number;
   checkoutPerIpPerHour: number;
+  checkoutPerAccountPerHour: number;
 };
 
 export const DEFAULT_CONFIG: RelayConfig = {
@@ -327,6 +327,7 @@ export const DEFAULT_CONFIG: RelayConfig = {
   authRequestPerIpPerHour: 30,
   oauthStartPerIpPerHour: 60,
   checkoutPerIpPerHour: 10,
+  checkoutPerAccountPerHour: 10,
 };
 
 /** Stripe billing wiring; null ⇒ /v1/billing/* answers 501. */

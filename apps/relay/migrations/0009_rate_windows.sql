@@ -1,8 +1,8 @@
 -- Code-level rate limiting (docs/sync-engine.md §4): fixed windows, counted
 -- atomically by an upsert-increment keyed on (bucket, subject_hash, window).
--- Subjects are SHA-256 hashes (email or client IP) — a leaked database yields
--- nothing identifying. The table stays small: opportunistic cleanup drops
--- windows older than the retention horizon on the same paths that bump it.
+-- Subjects are SHA-256 hashes (email, account id, or client IP), so the table
+-- does not store raw identifiers. An hourly Cron Trigger drops windows older
+-- than the retention horizon independently of request traffic.
 CREATE TABLE IF NOT EXISTS rate_windows (
   bucket         TEXT NOT NULL,
   subject_hash   TEXT NOT NULL,

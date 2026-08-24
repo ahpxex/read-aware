@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { userEvent, within } from "storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 import { idle, unauthenticated } from "../../sync/components/sync.fixtures";
 import type { useSyncConnection } from "../hooks/useSyncConnection";
 import { SyncConnectDialog } from "./SyncConnectDialog";
@@ -79,6 +79,21 @@ export const ConfirmedIdentity: Story = {
     await userEvent.type(body.getByRole("textbox"), "story-sign-in-token");
     // Exact match: the OAuth buttons also start with "Continue".
     await userEvent.click(body.getByRole("button", { name: /^Continue$/ }));
+    await expect(body.getByText("attacker@example.com")).toBeVisible();
+    // Identity confirmation is a separate action: no password control exists
+    // until the user explicitly continues from the displayed account.
+    expect(body.queryByLabelText("Encryption passphrase")).not.toBeInTheDocument();
+  },
+};
+
+/** The encryption secret appears only after the visible identity gate. */
+export const PassphraseStep: Story = {
+  args: ConfirmedIdentity.args,
+  play: async (context) => {
+    await ConfirmedIdentity.play?.(context);
+    const body = within(context.canvasElement.ownerDocument.body);
+    await userEvent.click(body.getByRole("button", { name: /^Continue$/ }));
+    await expect(body.getByLabelText("Encryption passphrase")).toBeVisible();
   },
 };
 

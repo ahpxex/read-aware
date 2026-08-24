@@ -198,10 +198,10 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
 
   // ── Code-level throttles (docs/sync-engine.md §4) ─────────────────────────
   //
-  // Fixed windows counted in D1: the WAF can only belt-and-braces these, never
-  // replace them (dashboard rules are invisible to review and vanish on a
-  // rebuild). Subjects are hashed; refusals still count, so a sustained flood
-  // keeps its window saturated instead of slipping one request per reset.
+  // Exact business windows counted in D1. Edge WAF rules absorb coarse bursts
+  // before the Worker, but cannot replace email/account identities or these
+  // longer windows. Subjects are hashed; refusals still count, so a sustained
+  // flood keeps its window saturated instead of slipping through on retries.
   const MINUTE = 60_000;
   const HOUR = 60 * MINUTE;
   /** Count a hit; false when the subject is over its cap for this window. */
@@ -294,10 +294,6 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
       return failure(400, "a valid email is required");
     }
     const normalized = email.trim().toLowerCase();
-    // Housekeeping rides along on this throttled path: counters and dead
-    // tokens are tiny tables, but they are append-mostly without this.
-    await ports.rateLimits.cleanup(ports.now() - 24 * HOUR);
-    await accounts.cleanupExpired(ports.now());
     // The mail-bombing guard: a victim's inbox must not be reachable through
     // our sender, so a handful of mails per address per window is plenty for
     // any human. Skipped in echo mode only because nothing is sent — the per-IP
@@ -651,6 +647,12 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
     if (typeof body !== "object" || body === null) return failure(400, "a JSON body is required");
     const { plan, locale, ticket } = body as Record<string, unknown>;
     if (!isBillingPlan(plan)) return failure(400, "unknown plan");
+    // Every door reaches Stripe after this point. Bound the source before any
+    // ticket/session lookup so bogus tickets and account rotation cannot turn
+    // the optional-auth surface back into an unmetered upstream proxy.
+    if (!(await ipThrottled(req, "checkout-ip", HOUR, config.checkoutPerIpPerHour))) {
+      return failure(429, "too many checkout attempts from this address; try again later");
+    }
     // Three doors, one handler: a billing ticket (the pricing page opened
     // FROM the app — bind that account and return the buyer to the app), a
     // bearer session (in-app callers), or neither (a web visitor — Stripe
@@ -664,15 +666,25 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
       );
       if (!accountId) return failure(401, "invalid or expired upgrade ticket");
       account = await accounts.get(accountId);
+      if (!account) return failure(401, "the upgrade account no longer exists");
       appInitiated = true;
     } else {
       account = await authenticate(req);
-      // The anonymous door (the landing's pricing page): each call reaches
-      // Stripe's API, so this is where a flood would spend someone else's
-      // rate budget — and stall real checkouts. Signed calls are unmetered.
-      if (!account && !(await ipThrottled(req, "checkout-ip", HOUR, config.checkoutPerIpPerHour))) {
-        return failure(429, "too many checkout attempts from this address; try again later");
-      }
+    }
+    // IP limits slow account rotation; this stable account bucket closes the
+    // inverse bypass (one signed-in account rotating IPs). Billing tickets are
+    // reusable across cancel/retry, so they deliberately land in the same
+    // account counter instead of becoming a fourth, unmetered identity.
+    if (
+      account &&
+      !(await allow(
+        "checkout-account",
+        await tokenHash(account.id),
+        HOUR,
+        config.checkoutPerAccountPerHour,
+      ))
+    ) {
+      return failure(429, "too many checkout attempts for this account; try again later");
     }
     const pricingUrl = `${config.webAppOrigin}${localePrefix(locale)}/pricing`;
     const lang = resolveLang(isString(locale) ? locale : null);

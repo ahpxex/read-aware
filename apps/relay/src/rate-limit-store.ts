@@ -1,9 +1,9 @@
 /**
  * Code-level rate limiting over the D1-shaped database — the source of truth
- * for abuse control (docs/sync-engine.md §4 revisited). The dashboard WAF is
- * a fine outer belt against volume, but it is invisible to code review and
- * evaporates on a redeploy from scratch; these counters deploy with the code,
- * run under the test suite, and cost one indexed statement per hit.
+ * for exact business limits (docs/sync-engine.md §4 revisited). Cloudflare WAF
+ * rules should reject bursts before the Worker; these longer email/account
+ * windows remain in code because they depend on identities the edge cannot
+ * reliably derive, deploy with the application, and run under the test suite.
  *
  * Fixed windows: `window_start_ms` is `floor(now / windowMs) * windowMs`.
  * Deliberately not sliding/tokens — the guarded endpoints (magic-link mail,
@@ -19,7 +19,7 @@ export interface RateLimitStore {
    * decrement a limit nor lose a hit.
    */
   hit(bucket: string, subjectHash: string, windowStartMs: number): Promise<number>;
-  /** Drop windows that ended before `beforeMs` (retention horizon). */
+  /** Drop windows that ended before `beforeMs` (hourly Cron housekeeping). */
   cleanup(beforeMs: number): Promise<void>;
 }
 

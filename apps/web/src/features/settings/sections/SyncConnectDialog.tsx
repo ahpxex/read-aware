@@ -11,10 +11,10 @@
  * lives here and survives the user leaving to fetch their token; it resets
  * only on a successful connect.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAtom } from "jotai";
 import { GithubLogo, GoogleLogo } from "@phosphor-icons/react";
-import { Button, Caption, Dialog, TextField, useToast } from "@read-aware/ui";
+import { Button, Caption, Dialog, Spinner, TextField, useToast } from "@read-aware/ui";
 import { i18n, useTranslation } from "../../../i18n";
 import { openExternalUrl } from "../../../platform/external-link";
 import { createLogger } from "../../../platform/logger";
@@ -39,7 +39,7 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
   const { t } = useTranslation("settings");
   const { toast } = useToast();
 
-  type Step = "signIn" | "token" | "confirm";
+  type Step = "signIn" | "token" | "verifying" | "confirm" | "passphrase";
   const [step, setStep] = useState<Step>("signIn");
   /**
    * Which door the user walked through — decides the token-step hint; "link"
@@ -52,6 +52,7 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
   const [verification, setVerification] = useState<SignInVerification | null>(null);
   const [passphrase, setPassphrase] = useState("");
   const [passphraseError, setPassphraseError] = useState<string | null>(null);
+  const verificationAttempt = useRef(0);
 
   const reset = () => {
     setStep("signIn");
@@ -66,25 +67,52 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
 
   /** Phase 1: burn the token, learn the account, land on the confirm step. */
   const verifyToken = async (rawToken: string, via: "email" | "oauth" | "link") => {
+    const attempt = ++verificationAttempt.current;
     setTokenError(null);
+    setVerification(null);
+    // A new token means a new identity. No secret typed for the previous
+    // identity may survive across this boundary — especially when a deep link
+    // arrives while the confirmation screen is already open.
+    setPassphrase("");
+    setPassphraseError(null);
+    setSignInVia(via);
+    setStep("verifying");
     try {
       const verified = await sync.verifyToken(rawToken);
+      if (attempt !== verificationAttempt.current) return;
       setVerification(verified);
-      setSignInVia(via);
       setStep("confirm");
-      setPassphraseError(null);
     } catch (error) {
+      if (attempt !== verificationAttempt.current) return;
       log.error("sign-in token verification failed", error);
       // The token is single-use and short-lived: anything from a typo to a
       // spent link lands here. Show it on the token field (or on the link
       // notice when a deep link delivered it) and let the user request anew.
-      setSignInVia(via);
       if (via === "link") {
         setToken("");
-        setStep("token");
       }
+      setStep("token");
       setTokenError(t("dataSync.connect.tokenInvalid"));
     }
+  };
+
+  const handleClose = () => {
+    // Password fields should never linger in mounted dialog state after the
+    // user dismisses the surface. A verified identity may survive, but it must
+    // be confirmed again before the password field can reappear.
+    setPassphrase("");
+    setPassphraseError(null);
+    if (verification) setStep("confirm");
+    onClose();
+  };
+
+  const restartSignIn = () => {
+    setStep("signIn");
+    setToken("");
+    setTokenError(null);
+    setVerification(null);
+    setPassphrase("");
+    setPassphraseError(null);
   };
 
   // A sign-in link the OS handed us: verify it right away — the email it
@@ -160,7 +188,7 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       title={t("dataSync.connectAccount")}
       className="max-h-full overflow-y-auto"
     >
@@ -228,9 +256,15 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
             </Button>
           </div>
         </div>
-      ) : (
+      ) : step === "verifying" ? (
+        <div className="mt-6 flex min-h-24 items-center justify-center gap-2 text-fg-muted">
+          <Spinner size="sm" />
+          <Caption>{t("dataSync.connect.verifying")}</Caption>
+        </div>
+      ) : step === "confirm" ? (
         <div className="mt-4 space-y-4">
-          {/* The identity gate: this account, in full, before the passphrase. */}
+          {/* The identity gate is its own user action. No passphrase input is
+              mounted until the user explicitly continues from this account. */}
           <div className="rounded-md border border-border bg-paper-warm px-3 py-2.5">
             <Caption className="text-fg-muted">{t("dataSync.connect.signedInAs")}</Caption>
             <p className="mt-0.5 font-medium break-all">{verification?.email}</p>
@@ -240,6 +274,21 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
               {t("dataSync.connect.freshAccount")}
             </p>
           )}
+          <div className="flex items-center justify-between gap-2">
+            <Button variant="ghost" size="sm" onClick={restartSignIn}>
+              {t("dataSync.connect.back")}
+            </Button>
+            <Button size="sm" disabled={!verification} onClick={() => setStep("passphrase")}>
+              {t("dataSync.connect.tokenContinue")}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-4 space-y-4">
+          <div className="rounded-md border border-border bg-paper-warm px-3 py-2.5">
+            <Caption className="text-fg-muted">{t("dataSync.connect.signedInAs")}</Caption>
+            <p className="mt-0.5 font-medium break-all">{verification?.email}</p>
+          </div>
           <TextField
             label={t("dataSync.connect.passphraseLabel")}
             type="password"
@@ -250,7 +299,15 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
             autoComplete="new-password"
           />
           <div className="flex items-center justify-between gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setStep("token")}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setPassphrase("");
+                setPassphraseError(null);
+                setStep("confirm");
+              }}
+            >
               {t("dataSync.connect.back")}
             </Button>
             <Button

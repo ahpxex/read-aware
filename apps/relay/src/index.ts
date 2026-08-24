@@ -9,6 +9,7 @@ import { deepseekModels } from "./ai-proxy";
 import { SqlAiUsageStore } from "./ai-usage-store";
 import { AccountMailbox, stubMailbox } from "./do-mailbox";
 import { resendMagicLinkSender } from "./email";
+import { cleanupRelayStorage } from "./housekeeping";
 import { githubProvider, googleProvider } from "./oauth";
 import { SqlRateLimitStore } from "./rate-limit-store";
 import { DEFAULT_CONFIG, type BlobStore, type OAuthProvider, type RelayPorts } from "./ports";
@@ -149,5 +150,18 @@ export default {
     ctx: { waitUntil(promise: Promise<unknown>): void },
   ): Promise<Response> {
     return createRelayHandler(portsFromEnv(env, ctx))(request);
+  },
+  async scheduled(
+    controller: { scheduledTime: number },
+    env: Env,
+    ctx: { waitUntil(promise: Promise<unknown>): void },
+  ): Promise<void> {
+    ctx.waitUntil(
+      cleanupRelayStorage(
+        new SqlAccountStore(env.DB),
+        new SqlRateLimitStore(env.DB),
+        controller.scheduledTime,
+      ),
+    );
   },
 };

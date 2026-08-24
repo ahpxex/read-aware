@@ -99,7 +99,7 @@ Cross-device sync is planned. Today, ReadAware is local-first: books, reading
 progress, annotations, conversations, and memory stay on the device, while
 remote model inference remains optional and provider-controlled.
 
-## How it works
+## Architecture
 
 ReadAware uses one agent to orchestrate retrieval, context assembly, tool use,
 and memory updates. Chat transcripts are source material rather than the memory
@@ -129,9 +129,7 @@ every read, write, and event carries its origin — the user, a plugin, or the
 agent. What the agent can do today, a plugin can extend tomorrow, and vice
 versa.
 
-## Repository
-
-ReadAware is a Bun workspace monorepo orchestrated by Turborepo.
+The repository itself is a Bun workspace monorepo orchestrated by Turborepo.
 
 | Path | Responsibility |
 | --- | --- |
@@ -150,38 +148,23 @@ Architecture decisions and target data contracts live in
 publishing guide live at
 [readaware.app/docs/plugins](https://readaware.app/docs/plugins).
 
-## Run locally
-
-Prerequisites: [Bun](https://bun.sh/), the Rust toolchain, and the native
-dependencies required by Tauri for your platform.
-
-```bash
-bun install
-bun run dev
-```
-
-Useful workspace commands:
-
-| Command | Purpose |
-| --- | --- |
-| `bun run dev` | Run the Tauri app in development |
-| `bun run dev:web` | Run only the UI shell in Vite |
-| `bun run storybook` | Browse the design system and feature stories |
-| `bun run typecheck` | Type-check all workspaces |
-| `bun run build` | Build and type-check the application frontend |
-| `bun run build:desktop` | Produce native desktop release bundles |
-| `bun run build:landing` | Build the public website |
-
-Product behavior must be verified in Tauri. A plain browser does not provide
-the native IPC, SQLite, filesystem, book-blob, or production CSP paths used by
-the shipped application.
-
 ## Releases
 
 Version tags build macOS, Windows, Linux, and Android artifacts through
 `.github/workflows/release.yml`. See the
 [latest release](https://github.com/ahpxex/read-aware/releases/latest) for
 current downloads and installation files.
+
+## Sponsors
+
+ReadAware is free and open source. A heartfelt thank-you to the sponsors
+who help keep it that way:
+
+- [ikeba Inc.](https://www.ikeba.jp/) — a Tokyo-based technology company
+  building AI and medical businesses.
+
+Interested in sponsoring ReadAware? Say hello on the
+[ReadAware Discord](https://discord.gg/whDrKXwHWU).
 
 ## Community
 

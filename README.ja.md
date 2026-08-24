@@ -101,7 +101,7 @@ ReadAware は macOS、Windows、Linux、Android、iOS で使える無料のオ�
 進捗、注釈、会話、記憶はデバイスに残り、リモートのモデル推論はオプションで、
 プロバイダーは自分で選べます。
 
-## 仕組み
+## アーキテクチャ
 
 ReadAware は 1 つのエージェントが検索、コンテキストの組み立て、ツール使用、
 記憶の更新をオーケストレーションします。チャット履歴は記憶システムそのもの
@@ -131,10 +131,8 @@ ReadAware アプリ
 エージェント——が刻まれます。今日エージェントにできることは、明日プラグイン
 が拡張できます。その逆もまた然り。
 
-## リポジトリ
-
-ReadAware は Turborepo でオーケストレーションされた Bun workspace のモノレポ
-です。
+リポジトリ自体は Turborepo でオーケストレーションされた Bun workspace の
+モノレポです。
 
 | パス | 責務 |
 | --- | --- |
@@ -154,32 +152,6 @@ ReadAware は Turborepo でオーケストレーションされた Bun workspace
 [readaware.app/ja/docs/plugins](https://readaware.app/ja/docs/plugins) に
 あります。
 
-## ローカルで動かす
-
-前提条件：[Bun](https://bun.sh/)、Rust ツールチェーン、そして Tauri がお使い
-のプラットフォームで必要とするネイティブ依存。
-
-```bash
-bun install
-bun run dev
-```
-
-よく使うコマンド：
-
-| コマンド | 用途 |
-| --- | --- |
-| `bun run dev` | Tauri アプリを開発モードで起動 |
-| `bun run dev:web` | UI シェルのみを Vite で起動 |
-| `bun run storybook` | デザインシステムと機能ストーリーを閲覧 |
-| `bun run typecheck` | 全ワークスペースの型チェック |
-| `bun run build` | アプリのフロントエンドをビルドし型チェック |
-| `bun run build:desktop` | ネイティブデスクトップのリリースバンドルを生成 |
-| `bun run build:landing` | 公式サイトをビルド |
-
-プロダクトの挙動は Tauri 上で検証する必要があります。通常のブラウザには、
-リリース版アプリが使うネイティブ IPC、SQLite、ファイルシステム、book blob、
-本番 CSP のパスがありません。
-
 ## リリース
 
 バージョンタグを打つと `.github/workflows/release.yml` が macOS、Windows、
@@ -188,6 +160,17 @@ Linux、Android のアーティファクトをビルドします。最新のダ�
 [latest release](https://github.com/ahpxex/read-aware/releases/latest) を
 参照してください。
 
+## スポンサー
+
+ReadAware は無料のオープンソースです。それを支えてくださるスポンサーの
+皆さまに、心から感謝します。
+
+- [ikeba株式会社](https://www.ikeba.jp/) — AI 事業と医療事業を展開する東京の
+  テクノロジー企業。
+
+ReadAware のスポンサーに興味がありますか？
+[ReadAware Discord](https://discord.gg/whDrKXwHWU) までお声がけください。
+
 ## コミュニティ
 
 質問、アイデア、バグ報告、読書の話——どれも
@@ -195,4 +178,8 @@ Linux、Android のアーティファクトをビルドします。最新のダ�
 
 ## ライセンス
 
-ReadAware は [MIT License](LICENSE) の下で無料かつオープンソースです。
+ReadAware は [GNU AGPL-3.0](LICENSE) の下で無料かつオープンソースです。
+
+公開プラグイン API の
+[`@read-aware/plugin-types`](packages/plugin-types/LICENSE) は MIT ライセンス
+のため、サードパーティプラグインは任意のライセンスを選べます。

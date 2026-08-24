@@ -87,7 +87,7 @@ iOS。它的中心是一个 agent——能调用工具、结合上下文回答�
 跨设备同步在计划中。目前 ReadAware 是 local-first 的：书籍、阅读进度、批注、
 对话和记忆都留在设备上，远程模型推理是可选的，且由你选择的服务商控制。
 
-## 工作原理
+## 架构
 
 ReadAware 用一个 agent 编排检索、上下文组装、工具调用和记忆更新。聊天记录
 是原始素材而非记忆系统本身：持久上下文来自读者跨书籍的持续痕迹。
@@ -111,9 +111,7 @@ Source of truth 在本地。原始领域事件构成可同步的记录；记忆�
 插件和 agent 通过同一层领域 API 触达产品，每一次读、写和事件都带着来源——
 用户、某个插件，或是 agent。今天 agent 能做的，明天插件就能扩展，反之亦然。
 
-## 仓库结构
-
-ReadAware 是一个由 Turborepo 编排的 Bun workspace monorepo。
+仓库本身是一个由 Turborepo 编排的 Bun workspace monorepo。
 
 | 路径 | 职责 |
 | --- | --- |
@@ -131,36 +129,21 @@ ReadAware 是一个由 Turborepo 编排的 Bun workspace monorepo。
 [`docs/data-model.md`](docs/data-model.md)。插件 API 参考与发布指南见
 [readaware.app/zh/docs/plugins](https://readaware.app/zh/docs/plugins)。
 
-## 本地运行
-
-前置依赖：[Bun](https://bun.sh/)、Rust 工具链，以及 Tauri 在你的平台上需要
-的原生依赖。
-
-```bash
-bun install
-bun run dev
-```
-
-常用命令：
-
-| 命令 | 用途 |
-| --- | --- |
-| `bun run dev` | 以开发模式运行 Tauri 应用 |
-| `bun run dev:web` | 只在 Vite 里跑 UI 外壳 |
-| `bun run storybook` | 浏览设计系统与功能 stories |
-| `bun run typecheck` | 对所有 workspace 做类型检查 |
-| `bun run build` | 构建并类型检查应用前端 |
-| `bun run build:desktop` | 产出原生桌面发布包 |
-| `bun run build:landing` | 构建官网 |
-
-产品行为必须在 Tauri 里验证。普通浏览器不具备正式应用所使用的原生 IPC、
-SQLite、文件系统、书籍 blob 和生产 CSP 路径。
-
 ## 发布
 
 版本 tag 会通过 `.github/workflows/release.yml` 构建 macOS、Windows、Linux
 和 Android 产物。最新下载与安装文件见
 [latest release](https://github.com/ahpxex/read-aware/releases/latest)。
+
+## 赞助商
+
+ReadAware 免费且开源。真诚感谢支持它一直走下去的赞助商们：
+
+- [ikeba株式会社](https://www.ikeba.jp/)——一家来自东京的科技公司，
+  深耕 AI 与医疗两个方向。
+
+有意赞助 ReadAware？欢迎在
+[ReadAware Discord](https://discord.gg/whDrKXwHWU) 联系我们。
 
 ## 社区
 
@@ -171,4 +154,7 @@ SQLite、文件系统、书籍 blob 和生产 CSP 路径。
 
 ## 许可证
 
-ReadAware 基于 [MIT License](LICENSE) 免费开源。
+ReadAware 基于 [GNU AGPL-3.0](LICENSE) 免费开源。
+
+公开的插件 API [`@read-aware/plugin-types`](packages/plugin-types/LICENSE)
+采用 MIT 许可，因此第三方插件可以自由选择任何许可证。

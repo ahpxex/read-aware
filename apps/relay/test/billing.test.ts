@@ -39,7 +39,9 @@ function fakeStripe(options: { activeSubs?: number } = {}) {
   return { fetchFn, calls };
 }
 
-function relayWithStripe(options: { activeSubs?: number } = {}) {
+function relayWithStripe(
+  options: { activeSubs?: number; config?: Partial<RelayPorts["config"]> } = {},
+) {
   const stripe = fakeStripe(options);
   const ports: RelayPorts["stripe"] = {
     secretKey: "sk_test_fake",
@@ -48,7 +50,15 @@ function relayWithStripe(options: { activeSubs?: number } = {}) {
   };
   // relayOrigin is CONFIG, never req.url — wrangler dev rewrites the request
   // host to the production route domain, which is exactly the bug this guards.
-  return { ...makeRelay({ relayOrigin: "https://relay.test" }, {}, {}, ports), stripe };
+  return {
+    ...makeRelay(
+      { relayOrigin: "https://relay.test", ...options.config },
+      {},
+      {},
+      ports,
+    ),
+    stripe,
+  };
 }
 
 const encoder = new TextEncoder();
@@ -348,5 +358,21 @@ describe("the portal", () => {
     const res = await handle(post("/v1/billing/portal", {}, session));
     expect(res.status).toBe(200);
     expect(((await res.json()) as { url: string }).url).toContain("billing.stripe.com");
+  });
+});
+
+describe("checkout throttles", () => {
+  test("anonymous checkouts are capped per IP; signed-in ones are not", async () => {
+    const { handle, stripe } = relayWithStripe({ config: { checkoutPerIpPerHour: 2 } });
+    const anonymous = () => handle(post("/v1/billing/checkout", { plan: "pro" }));
+    expect((await anonymous()).status).toBe(200);
+    expect((await anonymous()).status).toBe(200);
+    expect((await anonymous()).status).toBe(429);
+    // The cap never touched Stripe for the refused call.
+    expect(stripe.calls.filter((c) => c.url.includes("/v1/checkout/sessions")).length).toBe(2);
+    // A bearer session is the metered-free door: it still checks out.
+    const { session } = await login(handle, "reader@example.com");
+    const res = await handle(post("/v1/billing/checkout", { plan: "pro" }, session));
+    expect(res.status).toBe(200);
   });
 });

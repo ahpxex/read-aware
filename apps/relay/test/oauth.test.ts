@@ -147,3 +147,12 @@ describe("oauth sign-in", () => {
     ).toBe(502);
   });
 });
+
+describe("oauth throttles", () => {
+  test("starts are capped per IP; the callback itself is not", async () => {
+    const { handle } = makeRelay({ oauthStartPerIpPerHour: 2 }, { google: fakeProvider() });
+    expect((await handle(get("/v1/auth/oauth/google/start"))).status).toBe(302);
+    expect((await handle(get("/v1/auth/oauth/google/start"))).status).toBe(302);
+    expect((await handle(get("/v1/auth/oauth/google/start"))).status).toBe(429);
+  });
+});

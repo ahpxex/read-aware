@@ -10,6 +10,7 @@ import { SqlAiUsageStore } from "./ai-usage-store";
 import { AccountMailbox, stubMailbox } from "./do-mailbox";
 import { resendMagicLinkSender } from "./email";
 import { githubProvider, googleProvider } from "./oauth";
+import { SqlRateLimitStore } from "./rate-limit-store";
 import { DEFAULT_CONFIG, type BlobStore, type OAuthProvider, type RelayPorts } from "./ports";
 import { SqlReportStore } from "./report-store";
 import { createRelayHandler } from "./router";
@@ -101,6 +102,7 @@ function portsFromEnv(env: Env, ctx?: { waitUntil(promise: Promise<unknown>): vo
   }
   return {
     accounts: new SqlAccountStore(env.DB),
+    rateLimits: new SqlRateLimitStore(env.DB),
     mailboxFor: (accountId) => stubMailbox(env.MAILBOX.get(env.MAILBOX.idFromName(accountId))),
     blobs: r2BlobStore(env.BLOBS),
     aiUsage: new SqlAiUsageStore(env.DB),

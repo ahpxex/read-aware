@@ -12,6 +12,7 @@ import type {
 } from "@read-aware/core";
 import type { AiModel } from "./ai-proxy";
 import type { RelayLang } from "./i18n";
+import type { RateLimitStore } from "./rate-limit-store";
 
 export const ACCOUNT_TIERS: readonly SyncTier[] = ["free", "sync", "pro", "max", "staff"];
 
@@ -162,6 +163,10 @@ export interface AccountStore {
   setStripeCustomer(id: string, customerId: string): Promise<void>;
   findByStripeCustomer(customerId: string): Promise<Account | null>;
   deleteAccount(id: string): Promise<void>;
+  /** Drop expired magic tokens, OAuth states, and watch tickets. Rows past
+   *  their expiry were already unusable — this only reclaims space, so it
+   *  rides along opportunistically on a throttled path instead of a cron. */
+  cleanupExpired(nowMs: number): Promise<void>;
 }
 
 /** One account's numbered ciphertext mailbox. */
@@ -286,6 +291,15 @@ export type RelayConfig = {
   maxReportBytes: number;
   /** Diagnostic reports per IP per rolling day — the endpoint is unauthenticated. */
   maxReportsPerIpPerDay: number;
+  /** Unauthenticated-endpoint throttles (fixed windows, hashed subjects):
+   *  sign-in mails per EMAIL per 15 minutes (the mail-bombing guard), and the
+   *  per-IP hourly caps for the same endpoint, OAuth starts, and anonymous
+   *  checkouts. Window sizes are fixed in the router; the counters live in
+   *  D1 (rate_windows) so they deploy and test with the code. */
+  authMailPerEmailPer15Min: number;
+  authRequestPerIpPerHour: number;
+  oauthStartPerIpPerHour: number;
+  checkoutPerIpPerHour: number;
 };
 
 export const DEFAULT_CONFIG: RelayConfig = {
@@ -309,6 +323,10 @@ export const DEFAULT_CONFIG: RelayConfig = {
   relayOrigin: "https://relay.readaware.app",
   maxReportBytes: 512 * 1024,
   maxReportsPerIpPerDay: 10,
+  authMailPerEmailPer15Min: 3,
+  authRequestPerIpPerHour: 30,
+  oauthStartPerIpPerHour: 60,
+  checkoutPerIpPerHour: 10,
 };
 
 /** Stripe billing wiring; null ⇒ /v1/billing/* answers 501. */
@@ -321,6 +339,8 @@ export type StripePorts = {
 
 export type RelayPorts = {
   accounts: AccountStore;
+  /** Fixed-window abuse counters for the unauthenticated surfaces. */
+  rateLimits: RateLimitStore;
   mailboxFor(accountId: string): Mailbox;
   blobs: BlobStore;
   reports: ReportStore;

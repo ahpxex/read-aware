@@ -36,6 +36,13 @@ export type CustomOpenAIProviderConfig = {
   supportsThinking?: boolean;
   /** Undefined means the upstream chooses its own output limit. */
   maxOutputTokens?: number;
+  /**
+   * Provider id stamped onto every built model. Defaults to the user-configured
+   * "custom-openai" provider; named providers that merely REUSE this adapter
+   * (Ollama Cloud) must pass their own id, or the runtime dispatches the model
+   * to a provider that is not registered ("Unknown provider: custom-openai").
+   */
+  providerId?: string;
 };
 
 export function isCustomOpenAIApi(value: unknown): value is CustomOpenAIApi {
@@ -85,7 +92,7 @@ export function createCustomOpenAIModel(
     id,
     name: id,
     api: config.api,
-    provider: CUSTOM_OPENAI_PROVIDER_ID,
+    provider: config.providerId ?? CUSTOM_OPENAI_PROVIDER_ID,
     baseUrl: normalizeCustomOpenAIBaseUrl(config.baseUrl),
     reasoning: Boolean(config.supportsThinking),
     input: ["text"] as ("text" | "image")[],

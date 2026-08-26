@@ -34,6 +34,7 @@ export type AIProvider =
   | "groq"
   | "mistral"
   | "moonshotai"
+  | "ollama-cloud"
   | "custom";
 
 /**
@@ -348,6 +349,7 @@ export const DEFAULT_MODELS: Record<AIProvider, string> = {
   groq: "openai/gpt-oss-120b",
   mistral: "mistral-large-latest",
   moonshotai: "kimi-k3",
+  "ollama-cloud": "deepseek-v4-flash:0731",
   custom: "",
 };
 
@@ -366,6 +368,7 @@ export const SUGGESTED_FAST_MODELS: Record<AIProvider, string> = {
   groq: "openai/gpt-oss-20b",
   mistral: "mistral-small-latest",
   moonshotai: "kimi-k2.7-code-highspeed",
+  "ollama-cloud": "gpt-oss:20b",
   custom: "",
 };
 
@@ -447,6 +450,14 @@ const RECOMMENDED_MODEL_IDS = {
     "kimi-k2.7-code",
     "kimi-k2.6",
   ],
+  "ollama-cloud": [
+    "deepseek-v4-flash:0731",
+    "gpt-oss:120b",
+    "gpt-oss:20b",
+    "minimax-m3",
+    "kimi-k2.6",
+    "qwen3.5:397b",
+  ],
 } as const satisfies Record<ByoProviderId, readonly string[]>;
 
 function recommendedModelOptions(provider: ByoProviderId) {
@@ -480,6 +491,7 @@ export const PROVIDER_MODELS: Record<
   groq: recommendedModelOptions("groq"),
   mistral: recommendedModelOptions("mistral"),
   moonshotai: recommendedModelOptions("moonshotai"),
+  "ollama-cloud": recommendedModelOptions("ollama-cloud"),
   custom: [],
 };
 
@@ -496,6 +508,7 @@ export const PROVIDER_LABELS: Record<AIProvider, string> = {
   groq: "Groq",
   mistral: "Mistral",
   moonshotai: "Moonshot (Kimi)",
+  "ollama-cloud": "Ollama Cloud",
   custom: "Custom (OpenAI-compatible)",
 };
 
@@ -510,4 +523,5 @@ export const PROVIDER_KEY_URLS: Partial<Record<AIProvider, string>> = {
   groq: "https://console.groq.com/keys",
   mistral: "https://console.mistral.ai/api-keys",
   moonshotai: "https://platform.moonshot.ai/console/api-keys",
+  "ollama-cloud": "https://ollama.com/settings/keys",
 };

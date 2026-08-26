@@ -22,6 +22,8 @@ bun run eval:agent <suite> \
   --candidate ds=deepseek:deepseek-chat           # 多 provider 同 run 对比：全部变体进同一并发池
                                                   # 真并行；summary 出配对比较，viewer Run 页出
                                                   # 变体对比矩阵（场景 × 变体）
+                                                  # provider 另含 ollama-cloud（Ollama 托管 API，
+                                                  # key 在 OLLAMA_API_KEY 或 auth.json 的 ollama-cloud 条目）
 bun run eval:agent <suite> --gate                # 行为失败也变非零退出码（CI 用）
 ```
 

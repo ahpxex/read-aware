@@ -19,6 +19,7 @@ const ENV_KEYS: Record<SpikeConfig["provider"], string> = {
   groq: "GROQ_API_KEY",
   mistral: "MISTRAL_API_KEY",
   moonshotai: "MOONSHOTAI_API_KEY",
+  "ollama-cloud": "OLLAMA_API_KEY",
 };
 
 const DEFAULT_MODELS: Record<SpikeConfig["provider"], string> = {
@@ -34,6 +35,7 @@ const DEFAULT_MODELS: Record<SpikeConfig["provider"], string> = {
   groq: "llama-3.1-8b-instant",
   mistral: "ministral-8b-latest",
   moonshotai: "kimi-k2-turbo-preview",
+  "ollama-cloud": "deepseek-v4-flash:0731",
 };
 
 const provider = (process.argv[2] ?? "zai-coding-cn") as SpikeConfig["provider"];

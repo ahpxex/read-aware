@@ -244,6 +244,16 @@ expensive; this preference is eval-only and
 never leaks into the product, where OpenRouter users own their account
 routing. `--provider deepseek` still works for the old direct path.
 
+**Ollama Cloud** (`--provider ollama-cloud`) talks to ollama.com's hosted
+OpenAI-compatible API (`https://ollama.com/v1`, key `OLLAMA_API_KEY` or the
+`ollama-cloud` entry in `~/.pi/agent/auth.json`, made at
+https://ollama.com/settings/keys). Default model `deepseek-v4-flash:0731` —
+the same model/snapshot as the OpenRouter baseline on a different host, so
+cross-provider runs stay comparable. It rides the same custom
+OpenAI-completions adapter as `custom`, with a curated cloud catalog from
+`/v1/models` (see `models/ollama-cloud.ts`); Ollama retires old cloud models,
+so the default may need bumping.
+
 Thinking defaults to **medium** — the tier regressions should be measured at.
 Pass `--thinking off` only for a deliberately cheap smoke pass. Tool discipline
 is measurably worse at `off` (zero-retrieval turns, prose instead of ask_user);

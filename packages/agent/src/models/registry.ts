@@ -11,6 +11,7 @@ import { xaiProvider } from "@earendil-works/pi-ai/providers/xai";
 import { groqProvider } from "@earendil-works/pi-ai/providers/groq";
 import { mistralProvider } from "@earendil-works/pi-ai/providers/mistral";
 import { moonshotaiProvider } from "@earendil-works/pi-ai/providers/moonshotai";
+import { ollamaCloudProvider } from "./ollama-cloud";
 
 /** 目前接入的 provider；扩展时同步更新 buildProviderRegistry。 */
 export const KNOWN_PROVIDERS = [
@@ -26,6 +27,7 @@ export const KNOWN_PROVIDERS = [
   "groq",
   "mistral",
   "moonshotai",
+  "ollama-cloud",
 ] as const;
 export type KnownProviderId = (typeof KNOWN_PROVIDERS)[number];
 
@@ -53,6 +55,7 @@ export function buildProviderRegistry(options?: Parameters<typeof createModels>[
   models.setProvider(groqProvider());
   models.setProvider(mistralProvider());
   models.setProvider(moonshotaiProvider());
+  models.setProvider(ollamaCloudProvider());
   return models;
 }
 

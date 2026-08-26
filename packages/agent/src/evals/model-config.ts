@@ -36,6 +36,7 @@ const envKeys: Record<KnownProviderId, string> = {
   groq: "GROQ_API_KEY",
   mistral: "MISTRAL_API_KEY",
   moonshotai: "MOONSHOTAI_API_KEY",
+  "ollama-cloud": "OLLAMA_API_KEY",
 };
 
 export interface ResolvedEvalModel {
@@ -59,6 +60,9 @@ const EVAL_DEFAULT_MODELS: Partial<Record<KnownProviderId, string>> = {
   "zai-coding-cn": "glm-5.3",
   // Codex 订阅（pi CLI oauth）：不钉住会落到目录第一个 reasoning 模型。
   "openai-codex": "gpt-5.6-luna",
+  // Ollama Cloud：与 OpenRouter eval 基线同模型同快照（deepseek-v4-flash
+  // 0731），跨 host 结果才可比。
+  "ollama-cloud": "deepseek-v4-flash:0731",
 };
 
 /**

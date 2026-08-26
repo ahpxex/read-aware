@@ -146,6 +146,12 @@ export function makeRelay(
     async settleBackground() {
       await Promise.all(background.splice(0));
     },
+    rateWindowRows(bucket: string): number {
+      const row = db
+        .query(`SELECT COUNT(*) AS count FROM rate_windows WHERE bucket = ?1`)
+        .get(bucket) as { count: number };
+      return Number(row.count);
+    },
     reportPayloads,
   };
 }

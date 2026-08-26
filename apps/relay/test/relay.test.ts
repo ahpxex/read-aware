@@ -475,6 +475,26 @@ describe("unauthenticated throttles (docs/sync-engine.md §4)", () => {
     expect((await ask(handle, "reader@example.com")).status).toBe(200);
   });
 
+  test("a blocked IP cannot allocate fresh per-email windows", async () => {
+    const { handle, rateWindowRows } = makeRelay(
+      {
+        echoMagicToken: false,
+        authRequestPerIpPerHour: 1,
+        authMailPerEmailPer15Min: 10,
+      },
+      {},
+      {},
+      null,
+      { send: async () => {} },
+    );
+    expect((await ask(handle, "first@example.com")).status).toBe(200);
+    expect(rateWindowRows("auth-mail")).toBe(1);
+
+    expect((await ask(handle, "second@example.com")).status).toBe(429);
+    expect((await ask(handle, "third@example.com")).status).toBe(429);
+    expect(rateWindowRows("auth-mail")).toBe(1);
+  });
+
   test("client IPs fold for throttling: v4 passes through, v6 collapses to /64", () => {
     expect(foldClientIp("203.0.113.7")).toBe("203.0.113.7");
     expect(foldClientIp("::ffff:203.0.113.7")).toBe("203.0.113.7");

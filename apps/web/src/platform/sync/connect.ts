@@ -51,6 +51,63 @@ export class WrongPassphraseError extends Error {
   }
 }
 
+/** A 2xx response that cannot safely cross the user-visible identity gate. */
+export class InvalidSignInResponseError extends Error {
+  constructor() {
+    super("sync: sign-in verification response is missing a valid account identity");
+    this.name = "InvalidSignInResponseError";
+  }
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+// Keep this aligned with the relay's account identifier contract, with one
+// additional display-safety fence: format/control code points can make a value
+// look blank or reorder what the confirmation gate speaks and paints.
+const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_HIDDEN_CODE_POINT = /[\p{Cc}\p{Default_Ignorable_Code_Point}]/u;
+
+function isEmailIdentity(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    EMAIL_SHAPE.test(value) &&
+    !EMAIL_HIDDEN_CODE_POINT.test(value)
+  );
+}
+
+function isKeyMaterial(value: unknown): value is SyncKeyMaterial {
+  if (typeof value !== "object" || value === null) return false;
+  const keys = value as Record<string, unknown>;
+  if (!isNonEmptyString(keys.kdfSalt) || !isNonEmptyString(keys.keyCheck)) return false;
+  if (typeof keys.kdfParams !== "object" || keys.kdfParams === null) return false;
+  const params = keys.kdfParams as Record<string, unknown>;
+  return (
+    params.algo === "argon2id" &&
+    typeof params.t === "number" &&
+    Number.isFinite(params.t) &&
+    params.t > 0 &&
+    typeof params.m === "number" &&
+    Number.isFinite(params.m) &&
+    params.m > 0 &&
+    typeof params.p === "number" &&
+    Number.isFinite(params.p) &&
+    params.p > 0
+  );
+}
+
+function isSignInVerification(value: unknown): value is SignInVerification {
+  if (typeof value !== "object" || value === null) return false;
+  const response = value as Record<string, unknown>;
+  return (
+    isNonEmptyString(response.session) &&
+    isNonEmptyString(response.accountId) &&
+    isEmailIdentity(response.email) &&
+    (response.keys === null || isKeyMaterial(response.keys))
+  );
+}
+
 /** Injectable for tests (Argon2id at production cost is deliberately slow). */
 export type DeriveFn = (passphrase: string, salt: string, params: KdfParams) => Uint8Array;
 
@@ -64,8 +121,22 @@ export async function verifySignInToken(
   relay: Pick<RelayClient, "verifyMagicLink">,
   token: string,
 ): Promise<SignInVerification> {
-  const { session, accountId, email, keys } = await relay.verifyMagicLink(token);
-  return { session, accountId, email, keys };
+  // The HTTP client is typed, but JSON is still untrusted at runtime. Version
+  // skew with an older relay used to produce `email: undefined`, rendering a
+  // blank identity card while leaving phase 2 enabled — exactly the boundary
+  // this flow exists to enforce. A malformed 2xx therefore fails closed.
+  let response: unknown;
+  try {
+    response = await relay.verifyMagicLink(token);
+  } catch (error) {
+    // `verifyMagicLink` parses a 2xx JSON body. Invalid JSON is a malformed
+    // success response, not a network failure; the relay may already have
+    // consumed the one-time token, so the UI must not promise a retry.
+    if (error instanceof SyntaxError) throw new InvalidSignInResponseError();
+    throw error;
+  }
+  if (!isSignInVerification(response)) throw new InvalidSignInResponseError();
+  return response;
 }
 
 /**

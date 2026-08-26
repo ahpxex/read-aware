@@ -1,7 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import type { HlcStamp } from "@read-aware/core";
 import { deriveMasterKey, sealEvent, type PlainEvent } from "../sync-envelope";
-import { establishEncryption, verifySignInToken, WrongPassphraseError } from "./connect";
+import {
+  establishEncryption,
+  InvalidSignInResponseError,
+  verifySignInToken,
+  WrongPassphraseError,
+} from "./connect";
 import { RelayError } from "./relay-client";
 import {
   createSyncEngine,
@@ -526,6 +531,40 @@ describe("connect flow", () => {
     const verification = await verifySignInToken(relay, "t1");
     expect(verification.email).toBe("acc-1@example.com");
     expect(verification.keys).toBeNull();
+  });
+
+  test("phase 1 fails closed when the relay omits or cannot visibly identify the account", async () => {
+    for (const email of [
+      undefined,
+      "not-an-email",
+      "\u200b@\u200b.\u200b",
+      "\u034f@\u034f.\u034f",
+    ]) {
+      const malformedRelay = {
+        async verifyMagicLink() {
+          return {
+            session: "sess",
+            accountId: "acc-legacy",
+            email: email as string,
+            keys: null,
+          };
+        },
+      };
+      await expect(verifySignInToken(malformedRelay, "t1")).rejects.toThrow(
+        InvalidSignInResponseError,
+      );
+    }
+  });
+
+  test("phase 1 treats invalid 2xx JSON as a consumed, malformed response", async () => {
+    const malformedRelay = {
+      async verifyMagicLink(): Promise<never> {
+        throw new SyntaxError("Unexpected end of JSON input");
+      },
+    };
+    await expect(verifySignInToken(malformedRelay, "t1")).rejects.toThrow(
+      InvalidSignInResponseError,
+    );
   });
 
   test("first device mints; second device with the right passphrase joins; wrong one is refused", async () => {

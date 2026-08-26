@@ -294,18 +294,27 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
       return failure(400, "a valid email is required");
     }
     const normalized = email.trim().toLowerCase();
-    // The mail-bombing guard: a victim's inbox must not be reachable through
-    // our sender, so a handful of mails per address per window is plenty for
-    // any human. Skipped in echo mode only because nothing is sent — the per-IP
-    // cap below still bounds even local hammering.
-    if (
-      !config.echoMagicToken &&
-      !(await allow("auth-mail", await tokenHash(normalized), 15 * MINUTE, config.authMailPerEmailPer15Min))
-    ) {
-      return failure(429, "too many sign-in emails requested for this address; try again later");
-    }
+    // Reject a saturated source BEFORE allocating an email-subject row. If the
+    // email bucket ran first, one blocked IP could keep presenting fresh email
+    // strings and grow rate_windows without bound even though every request
+    // ultimately 429ed.
     if (!(await ipThrottled(req, "auth-ip", HOUR, config.authRequestPerIpPerHour))) {
       return failure(429, "too many sign-in requests from this address; try again later");
+    }
+    // The mail-bombing guard: a victim's inbox must not be reachable through
+    // our sender, so a handful of mails per address per window is plenty for
+    // any human. Skipped in echo mode only because nothing is sent — the IP cap
+    // above still bounds even local hammering.
+    if (
+      !config.echoMagicToken &&
+      !(await allow(
+        "auth-mail",
+        await tokenHash(normalized),
+        15 * MINUTE,
+        config.authMailPerEmailPer15Min,
+      ))
+    ) {
+      return failure(429, "too many sign-in emails requested for this address; try again later");
     }
     const token = randomToken();
     await accounts.putMagicToken(

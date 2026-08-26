@@ -18,11 +18,16 @@ import { Button, Caption, Dialog, Spinner, TextField, useToast } from "@read-awa
 import { i18n, useTranslation } from "../../../i18n";
 import { openExternalUrl } from "../../../platform/external-link";
 import { createLogger } from "../../../platform/logger";
-import type { SignInVerification } from "../../../platform/sync/connect";
+import {
+  InvalidSignInResponseError,
+  type SignInVerification,
+} from "../../../platform/sync/connect";
+import { RelayError } from "../../../platform/sync/relay-client";
 import { relayBaseUrl } from "../../../platform/sync/sync-scheduler";
 import { syncLoginTokenAtom } from "../../../state/ui";
 import {
   MIN_PASSPHRASE_LENGTH,
+  SyncConnectionBusyError,
   WrongPassphraseError,
   type useSyncConnection,
 } from "../hooks/useSyncConnection";
@@ -68,6 +73,7 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
   /** Phase 1: burn the token, learn the account, land on the confirm step. */
   const verifyToken = async (rawToken: string, via: "email" | "oauth" | "link") => {
     const attempt = ++verificationAttempt.current;
+    setToken(rawToken);
     setTokenError(null);
     setVerification(null);
     // A new token means a new identity. No secret typed for the previous
@@ -84,15 +90,29 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
       setStep("confirm");
     } catch (error) {
       if (attempt !== verificationAttempt.current) return;
-      log.error("sign-in token verification failed", error);
-      // The token is single-use and short-lived: anything from a typo to a
-      // spent link lands here. Show it on the token field (or on the link
-      // notice when a deep link delivered it) and let the user request anew.
-      if (via === "link") {
-        setToken("");
+      if (error instanceof SyncConnectionBusyError) {
+        // A deep link that raced another operation keeps its token visible for
+        // an explicit retry; it must never start a second persistence flow.
+        setStep("token");
+        return;
       }
+      log.error("sign-in token verification failed", error);
       setStep("token");
-      setTokenError(t("dataSync.connect.tokenInvalid"));
+      if (error instanceof InvalidSignInResponseError) {
+        // A malformed 2xx may already have redeemed the one-time token. Never
+        // label it retryable and, above all, never cross a blank identity gate.
+        setToken("");
+        setTokenError(t("dataSync.connect.tokenInvalid"));
+        return;
+      }
+      // Only the relay's definitive token rejections mean "request another".
+      // Network failures and 5xx responses keep the raw token in the field so
+      // the user can retry instead of losing a still-valid deep link.
+      const tokenRejected =
+        error instanceof RelayError && (error.status === 400 || error.status === 401);
+      setTokenError(
+        t(tokenRejected ? "dataSync.connect.tokenInvalid" : "dataSync.connect.tokenRetry"),
+      );
     }
   };
 
@@ -120,14 +140,15 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
   // once, on open.
   const [linkToken, setLinkToken] = useAtom(syncLoginTokenAtom);
   useEffect(() => {
-    if (!open || !linkToken) return;
+    if (!open || !linkToken || sync.busy) return;
     setLinkToken(null);
     void verifyToken(linkToken, "link");
     // Fires exactly once per delivered link token (consumed above); the
     // verifyToken closure is recreated per render, which is fine here.
-  }, [open, linkToken, setLinkToken]);
+  }, [open, linkToken, setLinkToken, sync.busy]);
 
   const handleOauth = (provider: "google" | "github") => {
+    if (sync.busy) return;
     // The dance finishes in the system browser: the relay's finish page fires
     // the readaware:// deep link back into the app (with a copyable token as
     // fallback — the same token field the magic link uses). `lang` makes that
@@ -136,6 +157,11 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
       `${relayBaseUrl()}/v1/auth/oauth/${provider}/start?lang=${encodeURIComponent(i18n.language)}`,
     );
     setSignInVia("oauth");
+    setToken("");
+    setTokenError(null);
+    setVerification(null);
+    setPassphrase("");
+    setPassphraseError(null);
     setStep("token");
   };
 
@@ -143,7 +169,11 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
     try {
       const devToken = await sync.sendLink(email);
       setSignInVia("email");
-      if (devToken) setToken(devToken);
+      setToken(devToken ?? "");
+      setTokenError(null);
+      setVerification(null);
+      setPassphrase("");
+      setPassphraseError(null);
       setStep("token");
     } catch (error) {
       log.error("magic link request failed", error);
@@ -172,6 +202,7 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
         description: t("dataSync.connect.connected"),
       });
     } catch (error) {
+      if (error instanceof SyncConnectionBusyError) return;
       if (error instanceof WrongPassphraseError) {
         setPassphraseError(t("dataSync.connect.wrongPassphrase"));
         return;
@@ -196,11 +227,19 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
         <div className="mt-4 space-y-4">
           <Caption className="text-fg-muted">{t("dataSync.account.description")}</Caption>
           <div className="grid gap-2 sm:grid-cols-2">
-            <Button variant="outline" onClick={() => handleOauth("google")}>
+            <Button
+              variant="outline"
+              disabled={sync.busy}
+              onClick={() => handleOauth("google")}
+            >
               <GoogleLogo size={16} aria-hidden="true" />
               {t("dataSync.connect.google")}
             </Button>
-            <Button variant="outline" onClick={() => handleOauth("github")}>
+            <Button
+              variant="outline"
+              disabled={sync.busy}
+              onClick={() => handleOauth("github")}
+            >
               <GithubLogo size={16} aria-hidden="true" />
               {t("dataSync.connect.github")}
             </Button>
@@ -244,7 +283,7 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
             autoComplete="off"
           />
           <div className="flex items-center justify-between gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setStep("signIn")}>
+            <Button variant="ghost" size="sm" onClick={restartSignIn}>
               {t("dataSync.connect.back")}
             </Button>
             <Button
@@ -278,7 +317,11 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
             <Button variant="ghost" size="sm" onClick={restartSignIn}>
               {t("dataSync.connect.back")}
             </Button>
-            <Button size="sm" disabled={!verification} onClick={() => setStep("passphrase")}>
+            <Button
+              size="sm"
+              disabled={sync.busy || !verification}
+              onClick={() => setStep("passphrase")}
+            >
               {t("dataSync.connect.tokenContinue")}
             </Button>
           </div>

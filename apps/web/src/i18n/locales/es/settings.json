@@ -405,6 +405,7 @@
       "tokenContinue": "Continuar",
       "verifying": "Verificando…",
       "tokenInvalid": "Ese enlace o token de inicio de sesión no funcionó: puede haber expirado o ya haberse usado. Solicita uno nuevo.",
+      "tokenRetry": "No pudimos verificar este token ahora. Comprueba tu conexión e inténtalo de nuevo; el token se conserva abajo.",
       "signedInAs": "Conectando como",
       "freshAccount": "Esta cuenta aún no tiene frase de contraseña de cifrado; este dispositivo la establecerá. Asegúrate de que es tu cuenta: al conectarte, la biblioteca de este dispositivo se sincronizará con ella."
     },

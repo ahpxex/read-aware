@@ -60,6 +60,26 @@ export const Busy: Story = {
   args: { sync: connection({ busy: true }) },
 };
 
+/** A transient verification failure keeps the token available to retry. */
+export const VerificationRetry: Story = {
+  args: {
+    sync: connection({
+      verifyToken: async () => {
+        throw new Error("relay temporarily unavailable");
+      },
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    await userEvent.click(body.getByRole("button", { name: /Google/ }));
+    const token = body.getByRole("textbox");
+    await userEvent.type(token, "still-valid-token");
+    await userEvent.click(body.getByRole("button", { name: /^Continue$/ }));
+    await expect(body.getByRole("textbox")).toHaveValue("still-valid-token");
+    await expect(body.getByText(/couldn't verify this token right now/i)).toBeVisible();
+  },
+};
+
 /** The identity gate: the account a token opened, in full, BEFORE the
  *  passphrase field appears — the login-CSRF defense in its visible form. */
 export const ConfirmedIdentity: Story = {

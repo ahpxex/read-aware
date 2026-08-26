@@ -401,6 +401,7 @@
       "tokenContinue": "Continue",
       "verifying": "Verifying…",
       "tokenInvalid": "That sign-in link or token didn't work — it may have expired or already have been used. Request a new one.",
+      "tokenRetry": "We couldn't verify this token right now. Check your connection and try again — the token has been kept below.",
       "signedInAs": "Signing in as",
       "freshAccount": "This account has no encryption passphrase yet — this device will set it. Make sure this is your account: once you connect, this device's library syncs to it."
     },

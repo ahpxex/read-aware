@@ -1,0 +1,16 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "read-aware-site",
+  "compatibility_date": "2026-08-01",
+  // The landing build prerenders every concrete route into dist/<path>/index.html.
+  // Keep the trailing-slash behavior aligned with its canonical URLs and sitemap.
+  "assets": {
+    "directory": "./dist",
+    "html_handling": "auto-trailing-slash",
+    // Preserve the old Pages SPA fallback for unknown client-side routes during
+    // the hosting migration. Every public route is still prerendered at build time.
+    "not_found_handling": "single-page-application"
+  },
+  "workers_dev": true,
+  "preview_urls": true
+}

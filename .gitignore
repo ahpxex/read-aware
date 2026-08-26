@@ -17,8 +17,9 @@ storybook-static
 *.local
 .eval/
 
-# Turborepo
+# Turborepo / Cloudflare local state
 .turbo
+.wrangler
 
 # Tauri / Rust
 apps/desktop/src-tauri/target

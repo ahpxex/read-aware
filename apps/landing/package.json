@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build && vite build --ssr src/entry-server.tsx --outDir dist-ssr && bun scripts/prerender.mjs && tsc --noEmit",
+    "deploy": "bun run build && wrangler deploy",
     "preview": "vite preview",
+    "preview:worker": "bun run build && wrangler dev",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -40,6 +42,7 @@
     "@vitejs/plugin-react": "^4.6.0",
     "tailwindcss": "^4.2.1",
     "typescript": "~5.8.3",
-    "vite": "^7.0.4"
+    "vite": "^7.0.4",
+    "wrangler": "^4.33.1"
   }
 }

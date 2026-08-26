@@ -17,6 +17,7 @@
     "build": "turbo run build --filter=@read-aware/web",
     "build:desktop": "turbo run build --filter=@read-aware/desktop",
     "build:landing": "turbo run build --filter=@read-aware/landing",
+    "check:marketplace": "bun scripts/check-marketplace-contract.ts",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
     "eval:agent": "bun packages/agent/src/eval-run.ts",

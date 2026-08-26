@@ -53,9 +53,10 @@ type Env = {
   ADMIN_TOKEN?: string;
   /** Enables the bundled-AI proxy's DeepSeek catalog. Unset ⇒ /v1/ai answers 501. */
   DEEPSEEK_API_KEY?: string;
-  /** Both required to enable /v1/billing/* (unset ⇒ 501). */
+  /** Key + webhook secret enable billing; the portal id gates portal only. */
   STRIPE_SECRET_KEY?: string;
   STRIPE_WEBHOOK_SECRET?: string;
+  STRIPE_PORTAL_CONFIGURATION_ID?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   GITHUB_CLIENT_ID?: string;
@@ -110,7 +111,11 @@ function portsFromEnv(env: Env, ctx?: { waitUntil(promise: Promise<unknown>): vo
     aiModels: env.DEEPSEEK_API_KEY ? deepseekModels(env.DEEPSEEK_API_KEY) : [],
     stripe:
       env.STRIPE_SECRET_KEY && env.STRIPE_WEBHOOK_SECRET
-        ? { secretKey: env.STRIPE_SECRET_KEY, webhookSecret: env.STRIPE_WEBHOOK_SECRET }
+        ? {
+            secretKey: env.STRIPE_SECRET_KEY,
+            webhookSecret: env.STRIPE_WEBHOOK_SECRET,
+            portalConfigurationId: env.STRIPE_PORTAL_CONFIGURATION_ID,
+          }
         : null,
     // Payloads live beside the sync blobs under a prefix no account id can
     // collide with (account ids are UUIDs; "_reports" is not).

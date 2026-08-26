@@ -3,7 +3,8 @@
  * dependency-free. Three surfaces (docs/sync-engine.md §11):
  *
  * - checkout: mint a Stripe Checkout session for a plan. Prices are looked
- *   up by lookup_key (sync_monthly / pro_monthly / max_monthly) so the code
+ *   up by namespaced lookup_key (readaware_sync_monthly /
+ *   readaware_pro_monthly / readaware_max_monthly) so the code
  *   never hardcodes price ids — rebuilding the catalog in live mode changes
  *   nothing here.
  * - webhook: THE tier write path for paying users. Signature-verified;
@@ -28,10 +29,49 @@ export const isBillingPlan = (v: unknown): v is BillingPlan =>
 
 /** Price lookup_keys — the stable names seeded in the Stripe catalog. */
 const PLAN_LOOKUP_KEY: Record<BillingPlan, string> = {
-  sync: "sync_monthly",
-  pro: "pro_monthly",
-  max: "max_monthly",
+  sync: "readaware_sync_monthly",
+  pro: "readaware_pro_monthly",
+  max: "readaware_max_monthly",
 };
+
+const PLAN_PRICE_CENTS: Record<BillingPlan, number> = {
+  sync: 500,
+  pro: 2_000,
+  max: 5_000,
+};
+
+/**
+ * This Stripe account hosts more than one product. Every mutable billing
+ * object ReadAware creates carries this marker; webhook traffic without it is
+ * somebody else's and must be acknowledged without touching our accounts.
+ */
+const STRIPE_APP = "readaware";
+const asRecord = (v: unknown): Record<string, unknown> | null =>
+  typeof v === "object" && v !== null ? (v as Record<string, unknown>) : null;
+const belongsToReadAware = (object: unknown): boolean =>
+  asRecord(asRecord(object)?.metadata)?.application === STRIPE_APP;
+
+function planOfCanonicalPrice(value: unknown, requireExpandedProduct: boolean): BillingPlan | null {
+  const price = asRecord(value);
+  const recurring = asRecord(price?.recurring);
+  const plan = (Object.entries(PLAN_LOOKUP_KEY) as [BillingPlan, string][]).find(
+    ([, lookupKey]) => price?.lookup_key === lookupKey,
+  )?.[0];
+  if (
+    !price ||
+    !plan ||
+    !belongsToReadAware(price) ||
+    asRecord(price.metadata)?.tier !== plan ||
+    price.currency !== "usd" ||
+    price.unit_amount !== PLAN_PRICE_CENTS[plan] ||
+    recurring?.interval !== "month" ||
+    recurring.interval_count !== 1 ||
+    (requireExpandedProduct && !belongsToReadAware(price.product))
+  ) {
+    return null;
+  }
+  return plan;
+}
 
 export class StripeError extends Error {
   constructor(
@@ -52,6 +92,7 @@ async function stripeApi(
   method: "GET" | "POST",
   path: string,
   params: Record<string, string> = {},
+  options: { idempotencyKey?: string } = {},
 ): Promise<Record<string, unknown>> {
   const fetchFn = stripe.fetch ?? fetch;
   const encoded = new URLSearchParams(params).toString();
@@ -61,6 +102,7 @@ async function stripeApi(
     headers: {
       authorization: `Bearer ${stripe.secretKey}`,
       ...(method === "POST" ? { "content-type": "application/x-www-form-urlencoded" } : {}),
+      ...(options.idempotencyKey ? { "idempotency-key": options.idempotencyKey } : {}),
     },
     body: method === "POST" ? encoded : undefined,
   });
@@ -92,13 +134,53 @@ async function priceIdFor(ctx: BillingContext, plan: BillingPlan): Promise<strin
   if (cached) return cached;
   const listed = await stripeApi(ctx.stripe, "GET", "/v1/prices", {
     "lookup_keys[]": PLAN_LOOKUP_KEY[plan],
+    "expand[]": "data.product",
     active: "true",
     limit: "1",
   });
-  const price = (listed.data as { id: string }[] | undefined)?.[0];
-  if (!price) throw new StripeError(500, `no active price with lookup_key ${PLAN_LOOKUP_KEY[plan]}`);
+  const price = asRecord((listed.data as unknown[] | undefined)?.[0]);
+  if (
+    !price ||
+    typeof price.id !== "string" ||
+    planOfCanonicalPrice(price, true) !== plan
+  ) {
+    throw new StripeError(500, `no valid ReadAware price with lookup_key ${PLAN_LOOKUP_KEY[plan]}`);
+  }
   ctx.priceIds.set(plan, price.id);
   return price.id;
+}
+
+const TERMINAL_SUBSCRIPTION_STATUSES = new Set(["canceled", "incomplete_expired"]);
+
+async function hasCurrentReadAwareSubscription(
+  ctx: BillingContext,
+  customerId: string,
+): Promise<boolean> {
+  let startingAfter: string | undefined;
+  do {
+    const listed = await stripeApi(ctx.stripe, "GET", "/v1/subscriptions", {
+      customer: customerId,
+      status: "all",
+      limit: "100",
+      ...(startingAfter ? { starting_after: startingAfter } : {}),
+    });
+    const subscriptions = (listed.data as unknown[] | undefined) ?? [];
+    if (
+      subscriptions.some((subscription) => {
+        const object = asRecord(subscription);
+        return (
+          belongsToReadAware(object) &&
+          !TERMINAL_SUBSCRIPTION_STATUSES.has(String(object?.status ?? ""))
+        );
+      })
+    ) {
+      return true;
+    }
+    if (listed.has_more !== true || subscriptions.length === 0) return false;
+    const last = asRecord(subscriptions[subscriptions.length - 1]);
+    if (typeof last?.id !== "string") return false;
+    startingAfter = last.id;
+  } while (true);
 }
 
 export type CheckoutRequest = {
@@ -120,13 +202,11 @@ export async function createCheckoutSession(
 ): Promise<{ url: string }> {
   const account = request.account;
   if (account?.stripeCustomerId) {
-    const subs = await stripeApi(ctx.stripe, "GET", "/v1/subscriptions", {
-      customer: account.stripeCustomerId,
-      status: "active",
-      limit: "1",
-    });
-    if (((subs.data as unknown[]) ?? []).length > 0) {
-      throw new StripeError(409, "an active subscription exists; manage it in the portal");
+    // Stripe cannot filter subscription lists by metadata. Walk every page
+    // and reject only a non-terminal ReadAware subscription, never another
+    // product's or a canceled/expired historical object.
+    if (await hasCurrentReadAwareSubscription(ctx, account.stripeCustomerId)) {
+      throw new StripeError(409, "a ReadAware subscription exists; manage it in the portal");
     }
   }
 
@@ -136,17 +216,28 @@ export async function createCheckoutSession(
     "line_items[0][quantity]": "1",
     success_url: request.successUrl,
     cancel_url: request.cancelUrl,
-    // Our own fulfillment hint, read back in checkout.session.completed.
+    // Both the one-shot Checkout Session and durable Subscription are scoped:
+    // the account also processes payments for unrelated products.
+    "metadata[application]": STRIPE_APP,
     "metadata[tier]": request.plan,
+    "subscription_data[metadata][application]": STRIPE_APP,
     "subscription_data[metadata][tier]": request.plan,
-    allow_promotion_codes: "true",
+    // Promotion codes are account-global. Leave them disabled until every
+    // allowed code is explicitly product-restricted to ReadAware.
   };
   if (account) {
     params.client_reference_id = account.id;
     if (account.stripeCustomerId) params.customer = account.stripeCustomerId;
     else params.customer_email = account.email;
   }
-  const session = await stripeApi(ctx.stripe, "POST", "/v1/checkout/sessions", params);
+  const idempotencyKey = account
+    ? `readaware-checkout-${await sha256Hex(
+        `${account.id}\n${request.plan}\n${request.successUrl}\n${request.cancelUrl}`,
+      )}`
+    : undefined;
+  const session = await stripeApi(ctx.stripe, "POST", "/v1/checkout/sessions", params, {
+    idempotencyKey,
+  });
   if (typeof session.url !== "string") throw new StripeError(500, "checkout session has no url");
   return { url: session.url };
 }
@@ -156,9 +247,15 @@ export async function createPortalSession(
   customerId: string,
   returnUrl: string,
 ): Promise<{ url: string }> {
+  if (!ctx.stripe.portalConfigurationId) {
+    throw new StripeError(500, "ReadAware billing portal is not configured");
+  }
   const session = await stripeApi(ctx.stripe, "POST", "/v1/billing_portal/sessions", {
     customer: customerId,
     return_url: returnUrl,
+    // Never use the account-wide default: other products share this Stripe
+    // account and keep independent plan-change/cancellation policy.
+    configuration: ctx.stripe.portalConfigurationId,
   });
   if (typeof session.url !== "string") throw new StripeError(500, "portal session has no url");
   return { url: session.url };
@@ -167,6 +264,11 @@ export async function createPortalSession(
 // ── Webhook ─────────────────────────────────────────────────────────────────
 
 const encoder = new TextEncoder();
+
+async function sha256Hex(message: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", encoder.encode(message));
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
 
 async function hmacSha256Hex(secret: string, message: string): Promise<string> {
   const key = await crypto.subtle.importKey(
@@ -217,21 +319,12 @@ export async function verifyStripeSignature(
 
 type StripeEvent = { type?: unknown; data?: { object?: unknown } };
 
-const asRecord = (v: unknown): Record<string, unknown> | null =>
-  typeof v === "object" && v !== null ? (v as Record<string, unknown>) : null;
-
-/** The plan a subscription pays for, read off its price (metadata, then lookup_key). */
+/** A subscription is one exact, canonical ReadAware monthly price. */
 function planOfSubscription(sub: Record<string, unknown>): BillingPlan | null {
   const items = asRecord(sub.items);
-  const first = asRecord((items?.data as unknown[] | undefined)?.[0]);
-  const price = asRecord(first?.price);
-  if (!price) return null;
-  const metaTier = asRecord(price.metadata)?.tier;
-  if (isBillingPlan(metaTier)) return metaTier;
-  const byLookup = (Object.entries(PLAN_LOOKUP_KEY) as [BillingPlan, string][]).find(
-    ([, key]) => key === price.lookup_key,
-  );
-  return byLookup?.[0] ?? null;
+  const data = (items?.data as unknown[] | undefined) ?? [];
+  if (data.length !== 1) return null;
+  return planOfCanonicalPrice(asRecord(data[0])?.price, false);
 }
 
 /** Newer API versions moved current_period_end onto the subscription item. */
@@ -251,10 +344,14 @@ function periodEndMs(sub: Record<string, unknown>): number | null {
  */
 export async function applyStripeEvent(accounts: AccountStore, event: StripeEvent, nowIso: string): Promise<void> {
   const object = asRecord(event.data?.object);
-  if (!object) return;
+  if (!object || !belongsToReadAware(object)) return;
 
   if (event.type === "checkout.session.completed") {
     if (object.mode !== "subscription") return;
+    const tier = asRecord(object.metadata)?.tier;
+    // Validate the complete fulfillment claim before creating or linking an
+    // account. A malformed/foreign event must leave no partial billing row.
+    if (!isBillingPlan(tier) || typeof object.customer !== "string") return;
     const accountId = typeof object.client_reference_id === "string" ? object.client_reference_id : null;
     let account = accountId ? await accounts.get(accountId) : null;
     if (!account) {
@@ -265,11 +362,12 @@ export async function applyStripeEvent(accounts: AccountStore, event: StripeEven
       if (typeof email !== "string" || !email) return;
       account = await accounts.findOrCreateByEmail(email.trim().toLowerCase(), nowIso);
     }
-    if (typeof object.customer === "string") {
-      await accounts.setStripeCustomer(account.id, object.customer);
-    }
-    const tier = asRecord(object.metadata)?.tier;
-    if (isBillingPlan(tier)) await accounts.setTierById(account.id, tier, null);
+    // A signed-out buyer can type any email into Checkout. Never let that
+    // rebind an account which already owns a different billing customer; the
+    // verified account must use its in-app checkout/portal instead.
+    if (account.stripeCustomerId && account.stripeCustomerId !== object.customer) return;
+    await accounts.setStripeCustomer(account.id, object.customer);
+    await accounts.setTierById(account.id, tier, null);
     return;
   }
 

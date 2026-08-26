@@ -334,6 +334,8 @@ export const DEFAULT_CONFIG: RelayConfig = {
 export type StripePorts = {
   secretKey: string;
   webhookSecret: string;
+  /** Dedicated configuration: the Stripe account also serves other apps. */
+  portalConfigurationId?: string;
   /** Injectable so tests fake api.stripe.com. */
   fetch?: typeof fetch;
 };

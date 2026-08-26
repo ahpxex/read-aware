@@ -429,9 +429,16 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
   `POST /v1/billing/webhook`（签名校验 = 手写 HMAC-SHA256 + 5 分钟重放
   fence；付费用户的 tier 唯一写入路径，走与 /v1/admin/tier 相同接缝；
   幂等靠纯覆盖写）、`POST /v1/billing/portal`（改套餐/退订全交给 Stripe
-  托管页，relay 自己从不改订阅）。价格按 lookup_key 解析（sync_monthly /
-  pro_monthly / max_monthly），永不硬编码 price id。生命周期语义：
+  托管页，relay 自己从不改订阅）。价格按账号级命名空间的 lookup_key 解析
+  （readaware_sync_monthly / readaware_pro_monthly /
+  readaware_max_monthly），并校验价格、币种、周期及 product/price metadata，
+  永不硬编码 price id。生命周期语义：
   `checkout.session.completed` → 升档并挂接 customer（迁移 0008）；
+  Stripe 账号与其他产品共用，因此 Checkout Session 与 Subscription 都带
+  `metadata.application=readaware`，webhook 对无标记事件一律确认但忽略；已有
+  customer 的订阅检查也只认该标记，不会被同账号其他产品阻塞或误降档；
+  account-global promotion codes 默认关闭，只有未来建立 product-restricted 优惠码
+  后才能显式开放。
   `subscription.updated` 按价格重定档,cancel_at_period_end 写
   tier_expires_at_ms（兼容新 API 版本里 current_period_end 落在
   subscription item 上）；`deleted`/`canceled`/`unpaid` → free;`past_due`
@@ -468,32 +475,39 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
 4. OAuth 应用注册：Google Cloud Console 建 OAuth Web 客户端、GitHub
    Settings → Developer settings 建 OAuth App，回调 URL 均为
    `https://<relay 域>/v1/auth/oauth/{google|github}/callback`；
-5. `bunx wrangler secret put GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET /
+5. 共用 Stripe 账号时先建 ReadAware 独立 live catalog：三个 product/price
+   分别为 Sync $5、Pro $20、Max $50，USD 月付；lookup key 必须是
+   `readaware_sync_monthly` / `readaware_pro_monthly` /
+   `readaware_max_monthly`。每个 product 与 price 都写
+   `metadata.application=readaware` 和对应 `metadata.tier`。另建 ReadAware
+   专用 Customer Portal configuration，只 allowlist 这三个 product/price，
+   不修改账号默认 portal；runtime key 优先用最小权限的 ReadAware restricted
+   key，不复用其他项目的 key。Webhooks 添加 endpoint
+   `https://relay.readaware.app/v1/billing/webhook`，只订阅
+   `checkout.session.completed`、`customer.subscription.updated`、
+   `customer.subscription.deleted`；
+6. `bunx wrangler secret put GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET /
    GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET`（邮件链路可选：
    `RESEND_API_KEY` + `MAIL_FROM`——有 OAuth 后可以晚配；档位管理可选：
    `ADMIN_TOKEN`，不配则 `/v1/admin/*` 一律 501；bundled AI 可选：
    `DEEPSEEK_API_KEY`，不配则 `/v1/ai/*` 一律 501；计费可选：
-   `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` 双双配齐才启用
-   `/v1/billing/*`（生产 webhook secret 来自 Stripe Dashboard →
-   Webhooks 添加 endpoint `https://relay.readaware.app/v1/billing/webhook`，
-   订阅 `checkout.session.completed`、`customer.subscription.updated`、
-   `customer.subscription.deleted` 三类事件；本地联调用
-   `stripe listen --project-name readaware --forward-to
-   localhost:8787/v1/billing/webhook` 打印的 whsec 填 .dev.vars）。
-   升降级示例：
+   `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` 配齐即启用 checkout/webhook；
+   `STRIPE_PORTAL_CONFIGURATION_ID` 只控制 portal，缺失时不能拖垮 webhook
+   履约。本地联调用 `stripe listen --project-name readaware --forward-to
+   localhost:8787/v1/billing/webhook` 打印的 whsec 填 .dev.vars）。升降级示例：
    `curl -X POST https://relay.readaware.app/v1/admin/tier -H "authorization: Bearer $ADMIN_TOKEN" -H "content-type: application/json" -d '{"email":"reader@example.com","tier":"pro","expiresAtMs":1787000000000}'`）；
-6. 生产 `wrangler.jsonc` 删掉 `MAGIC_LINK_ECHO`；配自定义域
+7. 生产 `wrangler.jsonc` 删掉 `MAGIC_LINK_ECHO`；配自定义域
    `relay.readaware.app`（Workers 控制台 Custom Domains，DNS 本就在
    Cloudflare）；
-7. `bun run deploy`；
-8. **WAF 限流规则（外层容量保护）**：用 zone-level Rate Limiting Rules 给
+8. `bun run deploy`；
+9. **WAF 限流规则（外层容量保护）**：用 zone-level Rate Limiting Rules 给
    `/v1/auth/request`、`/v1/auth/oauth/*/start`、`/v1/billing/checkout` 设置按
    `cf.colo.id + ip.src` 的套餐所支持短窗口 block。优先用 Cloudflare
    Rulesets API / Terraform `cloudflare_ruleset` 管理；若暂时在 Dashboard
    手工配置，它只能算
    待迁移的运维状态，不能成为无人知晓的唯一防线。边缘计数按数据中心且允许
    少量超发，所以它不替代上面的 D1 邮箱/账号合同。
-9. `wrangler.jsonc` 的 `7 * * * *` Cron 每小时清理过期 magic token、OAuth
+10. `wrangler.jsonc` 的 `7 * * * *` Cron 每小时清理过期 magic token、OAuth
    state、watch/billing ticket 与超过 24 小时的 rate window；部署后在
    Workers → Triggers 确认该 Cron 存在。
 

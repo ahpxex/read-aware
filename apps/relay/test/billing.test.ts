@@ -15,18 +15,80 @@ const BASE_NOW = 1_755_000_000_000;
 type Handle = (req: Request) => Promise<Response>;
 
 /** A fake api.stripe.com; records every call's path and form body. */
-function fakeStripe(options: { activeSubs?: number } = {}) {
-  const calls: { url: string; form: URLSearchParams | null }[] = [];
+function fakeStripe(
+  options: {
+    activeSubs?: number;
+    foreignActiveSubs?: number;
+    readAwareStatus?: string;
+    foreignPrice?: boolean;
+    paginatedOwnedSubscription?: boolean;
+  } = {},
+) {
+  const calls: { url: string; form: URLSearchParams | null; idempotencyKey: string | null }[] = [];
   const fetchFn = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     const form = init?.body ? new URLSearchParams(String(init.body)) : null;
-    calls.push({ url, form });
+    const idempotencyKey = new Headers(init?.headers).get("idempotency-key");
+    calls.push({ url, form, idempotencyKey });
     if (url.includes("/v1/prices")) {
-      const lookup = new URL(url).searchParams.get("lookup_keys[]");
-      return Response.json({ data: [{ id: `price_fake_${lookup}` }] });
+      const lookup = new URL(url).searchParams.get("lookup_keys[]") ?? "";
+      const tier = lookup.match(/^readaware_(sync|pro|max)_monthly$/)?.[1];
+      const cents = { sync: 500, pro: 2_000, max: 5_000 }[tier as "sync" | "pro" | "max"];
+      return Response.json({
+        data: [
+          {
+            id: `price_fake_${lookup}`,
+            lookup_key: lookup,
+            currency: "usd",
+            unit_amount: cents,
+            recurring: { interval: "month", interval_count: 1 },
+            metadata: {
+              application: options.foreignPrice ? "another-product" : "readaware",
+              tier,
+            },
+            product: { metadata: { application: "readaware", tier } },
+          },
+        ],
+      });
     }
     if (url.includes("/v1/subscriptions")) {
-      return Response.json({ data: Array(options.activeSubs ?? 0).fill({ id: "sub_1" }) });
+      const startingAfter = new URL(url).searchParams.get("starting_after");
+      if (options.paginatedOwnedSubscription && !startingAfter) {
+        return Response.json({
+          data: Array.from({ length: 100 }, (_, index) => ({
+            id: `sub_foreign_${index}`,
+            status: "active",
+            metadata: { application: "another-product" },
+          })),
+          has_more: true,
+        });
+      }
+      if (options.paginatedOwnedSubscription) {
+        return Response.json({
+          data: [
+            {
+              id: "sub_readaware_second_page",
+              status: "active",
+              metadata: { application: "readaware" },
+            },
+          ],
+          has_more: false,
+        });
+      }
+      return Response.json({
+        data: [
+          ...Array(options.activeSubs ?? 0).fill({
+            id: "sub_readaware",
+            status: options.readAwareStatus ?? "active",
+            metadata: { application: "readaware" },
+          }),
+          ...Array(options.foreignActiveSubs ?? 0).fill({
+            id: "sub_other",
+            status: "active",
+            metadata: { application: "another-product" },
+          }),
+        ],
+      });
     }
     if (url.includes("/v1/checkout/sessions")) {
       return Response.json({ id: "cs_1", url: "https://checkout.stripe.com/c/pay/cs_1" });
@@ -40,12 +102,24 @@ function fakeStripe(options: { activeSubs?: number } = {}) {
 }
 
 function relayWithStripe(
-  options: { activeSubs?: number; config?: Partial<RelayPorts["config"]> } = {},
+  options: {
+    activeSubs?: number;
+    foreignActiveSubs?: number;
+    readAwareStatus?: string;
+    foreignPrice?: boolean;
+    paginatedOwnedSubscription?: boolean;
+    portalConfigurationId?: string | null;
+    config?: Partial<RelayPorts["config"]>;
+  } = {},
 ) {
   const stripe = fakeStripe(options);
   const ports: RelayPorts["stripe"] = {
     secretKey: "sk_test_fake",
     webhookSecret: WHSEC,
+    portalConfigurationId:
+      options.portalConfigurationId === null
+        ? undefined
+        : (options.portalConfigurationId ?? "bpc_readaware"),
     fetch: stripe.fetchFn,
   };
   // relayOrigin is CONFIG, never req.url — wrangler dev rewrites the request
@@ -114,12 +188,20 @@ describe("checkout", () => {
     expect(((await res.json()) as { url: string }).url).toContain("checkout.stripe.com");
 
     const created = stripe.calls.find((c) => c.url.includes("/v1/checkout/sessions"))!;
-    expect(created.form?.get("line_items[0][price]")).toBe("price_fake_pro_monthly");
+    expect(created.form?.get("line_items[0][price]")).toBe("price_fake_readaware_pro_monthly");
+    expect(created.form?.get("metadata[application]")).toBe("readaware");
     expect(created.form?.get("metadata[tier]")).toBe("pro");
+    expect(created.form?.get("subscription_data[metadata][application]")).toBe("readaware");
+    expect(created.form?.get("allow_promotion_codes")).toBeNull();
     expect(created.form?.get("customer_email")).toBeNull();
     expect(created.form?.get("client_reference_id")).toBeNull();
     // The locale rides into the return URLs.
     expect(created.form?.get("success_url")).toBe("https://readaware.app/zh/pricing?purchase=success");
+  });
+
+  test("fails closed when the lookup key points at another product's price", async () => {
+    const { handle } = relayWithStripe({ foreignPrice: true });
+    expect((await handle(post("/v1/billing/checkout", { plan: "pro" }))).status).toBe(502);
   });
 
   test("signed-in checkout binds the account and locks the email", async () => {
@@ -130,6 +212,7 @@ describe("checkout", () => {
     const created = stripe.calls.find((c) => c.url.includes("/v1/checkout/sessions"))!;
     expect(created.form?.get("customer_email")).toBe("reader@example.com");
     expect(created.form?.get("client_reference_id")).toBe(accountId);
+    expect(created.idempotencyKey).toMatch(/^readaware-checkout-[a-f0-9]{64}$/);
   });
 
   test("an already-subscribed account is sent to the portal instead", async () => {
@@ -143,11 +226,65 @@ describe("checkout", () => {
           mode: "subscription",
           client_reference_id: accountId,
           customer: "cus_1",
-          metadata: { tier: "pro" },
+          metadata: { application: "readaware", tier: "pro" },
         },
       },
     });
     expect((await handle(post("/v1/billing/checkout", { plan: "max" }, session))).status).toBe(409);
+  });
+
+  test.each(["trialing", "past_due", "incomplete", "unpaid", "paused"])(
+    "a %s ReadAware subscription blocks a duplicate checkout",
+    async (status) => {
+      const { handle } = relayWithStripe({ activeSubs: 1, readAwareStatus: status });
+      const { session, accountId } = await login(handle, "reader@example.com");
+      await webhook(handle, {
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            mode: "subscription",
+            client_reference_id: accountId,
+            customer: "cus_1",
+            metadata: { application: "readaware", tier: "pro" },
+          },
+        },
+      });
+      expect((await handle(post("/v1/billing/checkout", { plan: "max" }, session))).status).toBe(409);
+    },
+  );
+
+  test("finds a ReadAware subscription after a full foreign first page", async () => {
+    const { handle } = relayWithStripe({ paginatedOwnedSubscription: true });
+    const { session, accountId } = await login(handle, "reader@example.com");
+    await webhook(handle, {
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          mode: "subscription",
+          client_reference_id: accountId,
+          customer: "cus_1",
+          metadata: { application: "readaware", tier: "pro" },
+        },
+      },
+    });
+    expect((await handle(post("/v1/billing/checkout", { plan: "max" }, session))).status).toBe(409);
+  });
+
+  test("another product's subscription does not block ReadAware checkout", async () => {
+    const { handle } = relayWithStripe({ foreignActiveSubs: 1 });
+    const { session, accountId } = await login(handle, "reader@example.com");
+    await webhook(handle, {
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          mode: "subscription",
+          client_reference_id: accountId,
+          customer: "cus_1",
+          metadata: { application: "readaware", tier: "pro" },
+        },
+      },
+    });
+    expect((await handle(post("/v1/billing/checkout", { plan: "max" }, session))).status).toBe(200);
   });
 
   test("refuses an unknown plan", async () => {
@@ -237,15 +374,37 @@ describe("fulfillment", () => {
         client_reference_id: accountId,
         customer: "cus_1",
         customer_details: email ? { email } : undefined,
-        metadata: { tier },
+        metadata: { application: "readaware", tier },
       },
     },
+  });
+
+  test("a foreign checkout cannot create or upgrade a ReadAware account", async () => {
+    const { handle } = relayWithStripe();
+    const { session, accountId } = await login(handle, "reader@example.com");
+    const event = completed(accountId, null);
+    event.data.object.metadata = { application: "another-product", tier: "pro" };
+    expect((await webhook(handle, event)).status).toBe(200);
+    const account = await accountOf(handle, session);
+    expect(account.tier).toBe("free");
+    expect(account.hasBilling).toBe(false);
   });
 
   test("signed-in purchase upgrades the account and links the customer", async () => {
     const { handle } = relayWithStripe();
     const { session, accountId } = await login(handle, "reader@example.com");
     expect((await webhook(handle, completed(accountId, null))).status).toBe(200);
+    const account = await accountOf(handle, session);
+    expect(account.tier).toBe("pro");
+    expect(account.hasBilling).toBe(true);
+  });
+
+  test("an anonymous purchase cannot rebind an existing billing customer", async () => {
+    const { handle } = relayWithStripe();
+    const { session } = await paidAccount(handle);
+    const event = completed(null, "reader@example.com", "max");
+    event.data.object.customer = "cus_attacker";
+    expect((await webhook(handle, event)).status).toBe(200);
     const account = await accountOf(handle, session);
     expect(account.tier).toBe("pro");
     expect(account.hasBilling).toBe(true);
@@ -269,7 +428,20 @@ describe("fulfillment", () => {
         customer: "cus_1",
         status: "active",
         cancel_at_period_end: false,
-        items: { data: [{ price: { lookup_key: "pro_monthly", metadata: { tier: "pro" } } }] },
+        metadata: { application: "readaware" },
+        items: {
+          data: [
+            {
+              price: {
+                lookup_key: "readaware_pro_monthly",
+                currency: "usd",
+                unit_amount: 2_000,
+                recurring: { interval: "month", interval_count: 1 },
+                metadata: { application: "readaware", tier: "pro" },
+              },
+            },
+          ],
+        },
         ...overrides,
       },
     },
@@ -287,10 +459,46 @@ describe("fulfillment", () => {
     await webhook(
       handle,
       subscriptionEvent("customer.subscription.updated", {
-        items: { data: [{ price: { lookup_key: "max_monthly", metadata: { tier: "max" } } }] },
+        items: {
+          data: [
+            {
+              price: {
+                lookup_key: "readaware_max_monthly",
+                currency: "usd",
+                unit_amount: 5_000,
+                recurring: { interval: "month", interval_count: 1 },
+                metadata: { application: "readaware", tier: "max" },
+              },
+            },
+          ],
+        },
       }),
     );
     expect((await accountOf(handle, session)).tier).toBe("max");
+  });
+
+  test("a mis-tagged sibling price cannot re-tier a ReadAware account", async () => {
+    const { handle } = relayWithStripe();
+    const { session } = await paidAccount(handle);
+    await webhook(
+      handle,
+      subscriptionEvent("customer.subscription.updated", {
+        items: {
+          data: [
+            {
+              price: {
+                lookup_key: "readaware_max_monthly",
+                currency: "usd",
+                unit_amount: 5_000,
+                recurring: { interval: "month", interval_count: 1 },
+                metadata: { application: "another-product", tier: "max" },
+              },
+            },
+          ],
+        },
+      }),
+    );
+    expect((await accountOf(handle, session)).tier).toBe("pro");
   });
 
   test("cancel-at-period-end keeps the tier until the period turns", async () => {
@@ -306,7 +514,13 @@ describe("fulfillment", () => {
           data: [
             {
               current_period_end: periodEnd,
-              price: { lookup_key: "pro_monthly", metadata: { tier: "pro" } },
+              price: {
+                lookup_key: "readaware_pro_monthly",
+                currency: "usd",
+                unit_amount: 2_000,
+                recurring: { interval: "month", interval_count: 1 },
+                metadata: { application: "readaware", tier: "pro" },
+              },
             },
           ],
         },
@@ -315,6 +529,18 @@ describe("fulfillment", () => {
     expect((await accountOf(handle, session)).tier).toBe("pro");
     advance(8 * 24 * 60 * 60 * 1000);
     expect((await accountOf(handle, session)).tier).toBe("free");
+  });
+
+  test("another product's deletion cannot downgrade a ReadAware subscription", async () => {
+    const { handle } = relayWithStripe();
+    const { session } = await paidAccount(handle);
+    await webhook(
+      handle,
+      subscriptionEvent("customer.subscription.deleted", {
+        metadata: { application: "another-product" },
+      }),
+    );
+    expect((await accountOf(handle, session)).tier).toBe("pro");
   });
 
   test("subscription deletion drops the account to free; data quotas follow", async () => {
@@ -350,8 +576,8 @@ describe("the portal", () => {
     expect((await handle(post("/v1/billing/portal", {}, session))).status).toBe(404);
   });
 
-  test("hands back the hosted portal URL for a paying account", async () => {
-    const { handle } = relayWithStripe();
+  test("missing portal configuration disables only the portal", async () => {
+    const { handle } = relayWithStripe({ portalConfigurationId: null });
     const { session, accountId } = await login(handle, "reader@example.com");
     await webhook(handle, {
       type: "checkout.session.completed",
@@ -360,13 +586,33 @@ describe("the portal", () => {
           mode: "subscription",
           client_reference_id: accountId,
           customer: "cus_1",
-          metadata: { tier: "pro" },
+          metadata: { application: "readaware", tier: "pro" },
+        },
+      },
+    });
+    expect((await accountOf(handle, session)).tier).toBe("pro");
+    expect((await handle(post("/v1/billing/portal", {}, session))).status).toBe(502);
+  });
+
+  test("hands back the hosted portal URL for a paying account", async () => {
+    const { handle, stripe } = relayWithStripe();
+    const { session, accountId } = await login(handle, "reader@example.com");
+    await webhook(handle, {
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          mode: "subscription",
+          client_reference_id: accountId,
+          customer: "cus_1",
+          metadata: { application: "readaware", tier: "pro" },
         },
       },
     });
     const res = await handle(post("/v1/billing/portal", {}, session));
     expect(res.status).toBe(200);
     expect(((await res.json()) as { url: string }).url).toContain("billing.stripe.com");
+    const created = stripe.calls.find((call) => call.url.includes("/v1/billing_portal/sessions"));
+    expect(created?.form?.get("configuration")).toBe("bpc_readaware");
   });
 });
 

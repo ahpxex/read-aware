@@ -1,0 +1,25 @@
+/*
+  Access-Control-Allow-Origin: *
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/fonts/*
+  Cache-Control: public, max-age=14400, must-revalidate
+
+/screenshots/*
+  Cache-Control: public, max-age=14400, must-revalidate
+
+/favicon.ico
+  Cache-Control: public, max-age=14400, must-revalidate
+
+/favicon.png
+  Cache-Control: public, max-age=14400, must-revalidate
+
+/apple-touch-icon.png
+  Cache-Control: public, max-age=14400, must-revalidate
+
+/og.jpg
+  Cache-Control: public, max-age=14400, must-revalidate

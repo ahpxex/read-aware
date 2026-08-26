@@ -12,5 +12,6 @@
     "not_found_handling": "single-page-application"
   },
   "workers_dev": true,
-  "preview_urls": true
+  "preview_urls": true,
+  "routes": [{ "pattern": "readaware.app", "custom_domain": true }]
 }

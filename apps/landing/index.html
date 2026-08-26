@@ -27,5 +27,12 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <!-- Explicit rather than host-injected: the standalone sync/login page must
+         never load third-party JavaScript that could inspect its token fragment. -->
+    <script
+      defer
+      src="https://static.cloudflareinsights.com/beacon.min.js"
+      data-cf-beacon='{"token":"85248630a3af4dea851fab0356df1f6a"}'
+    ></script>
   </body>
 </html>

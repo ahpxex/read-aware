@@ -143,7 +143,7 @@ WebSocket 顺手就有（§4），协议不用改。
 | 加密 blob（书文件） | R2，key = `<account_id>/<blob_key>` |
 | `server_seq` 发号 | 同一个 Durable Object（单线程执行，天然串行化） |
 | Magic link 邮件 | Resend HTTP API（一个 fetch，无 SDK；Cloudflare Email Sending GA 后换回，只动 `src/email.ts` 一个文件）；dev 用 `MAGIC_LINK_ECHO=1` 直接回显 token |
-| 用量与滥用防护 | Worker 内配额检查（§5 账号表记 `bytes_used`）+ Cloudflare 自带的 rate limiting |
+| 用量与滥用防护 | 双层：**代码内精确业务限流**（`rate-limit-store.ts`，D1 `rate_windows`：sign-in 邮件按邮箱 3 封/15 分钟 + IP 30 次/小时，OAuth start 按 IP 60 次/小时，checkout 的所有入口按 IP 10 次/小时且已绑定账号再按账号 10 次/小时；IPv6 折叠到 /64 后哈希）+ **Cloudflare WAF Rate Limiting Rules** 在 Worker 前挡短时 IP 洪峰（runbook 见 §12）。过期窗口/令牌由每小时 Cron Trigger 清理，不依赖某条请求路径。|
 
 > **落地偏差**（2026-08-13）：事件密文没有存 D1，而是存进每账号邮筒 DO
 > 自己的 SQLite——发号与存储合一，单条 `AUTOINCREMENT` 即是 `server_seq`，
@@ -151,6 +151,11 @@ WebSocket 顺手就有（§4），协议不用改。
 > 另外响应全带 CORS 头（webview fetch 需要预检；auth 是显式 bearer，
 > `*` 无 cookie 风险）。relay 的业务面（router）与存储 SQL 完全跑在
 > bun:test 下（bun:sqlite 通过 D1/DO 形状的适配器执行同一份 SQL）。
+
+这里不把 Workers Rate Limiting binding 当权威计数器：它只支持 10/60 秒
+窗口、按 Cloudflare 数据中心分片且最终一致，适合低延迟削峰，不适合“某邮箱
+15 分钟最多收 3 封”或“某账号一小时最多建 10 次 checkout”这类跨入口业务
+合同。WAF/Workers binding 是外层容量保护；D1 是邮箱/账号语义的确定性底线。
 
 服务端代码放 `apps/relay/`（workspace 内新 app，wrangler 项目）。
 **服务端不持有任何业务逻辑**：它不解密、不校验事件 schema、不理解
@@ -194,12 +199,24 @@ session，而是铸造一个与 magic link 同表、同 TTL、同哈希存储的
 ### Magic link 流程
 
 1. 用户输 email → Worker 生成一次性 token（随机 256-bit），存 D1，15 分钟过期；
+   该端点按邮箱 + 按 IP 限流（§4），邮件轰炸与 D1 无界增长都堵在这里；
 2. Email Sending 发链接（深链回 app，`readaware://auth/<token>` + 网页兜底）；
 3. app 携 token 调 `POST /v1/auth/verify` → Worker 验证并作废 token，
-   签发长期 session token（opaque，存 D1，可服务端吊销）；
+   签发长期 session token（opaque，存 D1，可服务端吊销）；**响应携带
+   token 打开的账号 email**（见下方登录 CSRF 防御）；
 4. 之后所有请求带 `Authorization: Bearer <session>`。
 
-session 被盗的最坏后果是**配额被人占用**，而非数据泄露——小偷拿到的
+**登录 CSRF 防御（2026-08-24 增补，已落地）**：一次性 token 可以被第三方
+投递——任意网页可触发 `readaware://sync/login/<token>` 深链，邮件/钓鱼可
+诱导粘贴。因此连接流拆成两段（`platform/sync/connect.ts`）：
+`verifySignInToken`（烧 token、取回 email）与 `establishEncryption`
+（口令派生/发布）之间隔着一道**用户可见且需显式继续的身份门**——UI 先单独
+展示「即将连接为 <email>」（新账号附后果声明）；用户点击继续后才挂载口令
+输入。任一新 token/deep link 会先卸载并清空已有口令，再重新走身份门；关闭
+弹窗也清空口令并撤回到身份确认。没有先确认 email，就不存在向用户要口令
+的路径；把受害者的库注入攻击者账号的链条被这道门拦断。
+
+session 被盗的最坏后果仍是**配额被人占用**，而非数据泄露——小偷拿到的
 只是一堆打不开的密文。这是"auth 可以这么薄"的根据。
 
 ### 口令派生密钥
@@ -441,11 +458,12 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
 
 ## 12. 部署 runbook
 
-一次性（在 `apps/relay/`，需先 `bunx wrangler login`）：
+初始化（在 `apps/relay/`，需先 `bunx wrangler login`）：
 
 1. `bunx wrangler d1 create read-aware-relay` → 把输出的 `database_id`
    填进 `wrangler.jsonc`；
-2. `bunx wrangler d1 migrations apply read-aware-relay --remote`；
+2. `bunx wrangler d1 migrations apply read-aware-relay --remote`（此后每次带新
+   migration 的部署也必须先执行一次）；
 3. `bunx wrangler r2 bucket create read-aware-relay-blobs`；
 4. OAuth 应用注册：Google Cloud Console 建 OAuth Web 客户端、GitHub
    Settings → Developer settings 建 OAuth App，回调 URL 均为
@@ -467,7 +485,17 @@ observe(remote): wallMs = max(local.wallMs, remote.wallMs, now)
 6. 生产 `wrangler.jsonc` 删掉 `MAGIC_LINK_ECHO`；配自定义域
    `relay.readaware.app`（Workers 控制台 Custom Domains，DNS 本就在
    Cloudflare）；
-7. `bun run deploy`。
+7. `bun run deploy`；
+8. **WAF 限流规则（外层容量保护）**：用 zone-level Rate Limiting Rules 给
+   `/v1/auth/request`、`/v1/auth/oauth/*/start`、`/v1/billing/checkout` 设置按
+   `cf.colo.id + ip.src` 的套餐所支持短窗口 block。优先用 Cloudflare
+   Rulesets API / Terraform `cloudflare_ruleset` 管理；若暂时在 Dashboard
+   手工配置，它只能算
+   待迁移的运维状态，不能成为无人知晓的唯一防线。边缘计数按数据中心且允许
+   少量超发，所以它不替代上面的 D1 邮箱/账号合同。
+9. `wrangler.jsonc` 的 `7 * * * *` Cron 每小时清理过期 magic token、OAuth
+   state、watch/billing ticket 与超过 24 小时的 rate window；部署后在
+   Workers → Triggers 确认该 Cron 存在。
 
 **客户端 relay 解析顺序**（`apps/web/src/platform/sync/sync-scheduler.ts`
 `defaultRelayUrl` 与 `platform/app-identity.ts`，提交 059f380）：

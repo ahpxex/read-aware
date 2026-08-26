@@ -5,6 +5,10 @@
   "compatibility_date": "2026-08-01",
   // 自定义域：zone（readaware.app）在同一账号，部署时自动配 DNS + 证书。
   "routes": [{ "pattern": "relay.readaware.app", "custom_domain": true }],
+  // Expired auth artifacts and old rate windows are reclaimed independently
+  // of request traffic; OAuth-only deployments must not depend on magic-link
+  // requests for housekeeping.
+  "triggers": { "crons": ["7 * * * *"] },
   // 三个存储件（docs/sync-engine.md §4）：D1 = 账号/令牌/会话，
   // DO(SQLite) = 每账号一个编号密文邮筒，R2 = 加密 blob。
   // database_id 在首次部署前用 `wrangler d1 create read-aware-relay` 生成后填入。

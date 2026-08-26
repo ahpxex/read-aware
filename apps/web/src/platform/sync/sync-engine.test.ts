@@ -1,7 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import type { HlcStamp } from "@read-aware/core";
 import { deriveMasterKey, sealEvent, type PlainEvent } from "../sync-envelope";
-import { connectAccount, WrongPassphraseError } from "./connect";
+import {
+  establishEncryption,
+  InvalidSignInResponseError,
+  verifySignInToken,
+  WrongPassphraseError,
+} from "./connect";
 import { RelayError } from "./relay-client";
 import {
   createSyncEngine,
@@ -487,22 +492,30 @@ describe("two devices through one relay", () => {
 });
 
 describe("connect flow", () => {
-  const material = new Map<string, { kdfSalt: string; kdfParams: typeof TEST_KDF; keyCheck: string }>();
+  const material = new Map<
+    string,
+    { kdfSalt: string; kdfParams: typeof TEST_KDF; keyCheck: string }
+  >();
   function fakeAuthRelay(accountId: string) {
     // Session enforcement mirrors production: publishKeys is an authed call,
-    // and the session only exists AFTER verify — a connect flow that fails to
-    // start serving the fresh session before publishing must fail here too
-    // (the exact bug the first live connect hit).
-    let sessionServed = false;
+    // and the session only exists AFTER verify — a connect flow that hands
+    // phase 2 a client not serving the fresh session must fail here too.
+    let servedSession: string | null = null;
     return {
-      markSessionServed: () => {
-        sessionServed = true;
+      /** What useSyncConnection wires into the phase-2 relay client. */
+      serveSession: (session: string | null) => {
+        servedSession = session;
       },
       async verifyMagicLink(_token: string) {
-        return { session: "sess", accountId, keys: material.get(accountId) ?? null };
+        return {
+          session: "sess",
+          accountId,
+          email: `${accountId}@example.com`,
+          keys: material.get(accountId) ?? null,
+        };
       },
       async publishKeys(keys: { kdfSalt: string; kdfParams: typeof TEST_KDF; keyCheck: string }) {
-        if (!sessionServed) throw new Error("relay 401: authentication required");
+        if (servedSession !== "sess") throw new Error("relay 401: authentication required");
         if (material.has(accountId)) {
           return { outcome: "conflict" as const, keys: material.get(accountId) ?? null };
         }
@@ -511,50 +524,77 @@ describe("connect flow", () => {
       },
     };
   }
+  const derive = (p: string, s: string) => deriveMasterKey(p, s, TEST_KDF);
+
+  test("phase 1 reports the account email — the identity the UI must show", async () => {
+    const relay = fakeAuthRelay("acc-1");
+    const verification = await verifySignInToken(relay, "t1");
+    expect(verification.email).toBe("acc-1@example.com");
+    expect(verification.keys).toBeNull();
+  });
+
+  test("phase 1 fails closed when the relay omits or cannot visibly identify the account", async () => {
+    for (const email of [
+      undefined,
+      "not-an-email",
+      "\u200b@\u200b.\u200b",
+      "\u034f@\u034f.\u034f",
+    ]) {
+      const malformedRelay = {
+        async verifyMagicLink() {
+          return {
+            session: "sess",
+            accountId: "acc-legacy",
+            email: email as string,
+            keys: null,
+          };
+        },
+      };
+      await expect(verifySignInToken(malformedRelay, "t1")).rejects.toThrow(
+        InvalidSignInResponseError,
+      );
+    }
+  });
+
+  test("phase 1 treats invalid 2xx JSON as a consumed, malformed response", async () => {
+    const malformedRelay = {
+      async verifyMagicLink(): Promise<never> {
+        throw new SyntaxError("Unexpected end of JSON input");
+      },
+    };
+    await expect(verifySignInToken(malformedRelay, "t1")).rejects.toThrow(
+      InvalidSignInResponseError,
+    );
+  });
 
   test("first device mints; second device with the right passphrase joins; wrong one is refused", async () => {
     material.clear();
     const relay = fakeAuthRelay("acc-1");
-    const first = await connectAccount({
-      relay,
-      token: "t1",
-      passphrase: "鲸鱼在唱歌",
-      onSession: relay.markSessionServed,
-      derive: (p, s) => deriveMasterKey(p, s, TEST_KDF),
-    });
-    const second = await connectAccount({
-      relay,
-      token: "t2",
-      passphrase: "鲸鱼在唱歌",
-      onSession: relay.markSessionServed,
-      derive: (p, s) => deriveMasterKey(p, s, TEST_KDF),
-    });
-    expect(second.masterKeyBase64).toBe(first.masterKeyBase64);
+    const firstVerification = await verifySignInToken(relay, "t1");
+    relay.serveSession(firstVerification.session);
+    const first = await establishEncryption(relay, firstVerification, "鲸鱼在唱歌", { derive });
 
+    const secondVerification = await verifySignInToken(relay, "t2");
+    relay.serveSession(secondVerification.session);
+    const second = await establishEncryption(relay, secondVerification, "鲸鱼在唱歌", { derive });
+    expect(second).toBe(first);
+
+    const thirdVerification = await verifySignInToken(relay, "t3");
+    relay.serveSession(thirdVerification.session);
     await expect(
-      connectAccount({
-        relay,
-        token: "t3",
-        passphrase: "打错了",
-        onSession: relay.markSessionServed,
-        derive: (p, s) => deriveMasterKey(p, s, TEST_KDF),
-      }),
+      establishEncryption(relay, thirdVerification, "打错了", { derive }),
     ).rejects.toThrow(WrongPassphraseError);
   });
 
   test("the first device's key publish already carries the fresh session", async () => {
     material.clear();
     const relay = fakeAuthRelay("acc-3");
-    // Without onSession wiring the publish goes out unauthenticated — the
-    // regression that burned a live sign-in token on first deploy.
-    await expect(
-      connectAccount({
-        relay,
-        token: "t",
-        passphrase: "鲸鱼在唱歌",
-        derive: (p, s) => deriveMasterKey(p, s, TEST_KDF),
-      }),
-    ).rejects.toThrow(/401/);
+    const verification = await verifySignInToken(relay, "t");
+    // No serveSession — the exact regression that burned a live sign-in
+    // token on first deploy: publishing before the session is served 401s.
+    await expect(establishEncryption(relay, verification, "鲸鱼在唱歌", { derive })).rejects.toThrow(
+      /401/,
+    );
   });
 
   test("losing the publish race falls back to verifying the winner's material", async () => {
@@ -566,7 +606,7 @@ describe("connect flow", () => {
     const { makeKeyCheck } = await import("../sync-envelope");
     const race = {
       async verifyMagicLink() {
-        return { session: "sess", accountId: "acc-2", keys: null }; // looked empty…
+        return { session: "sess", accountId: "acc-2", email: "acc-2@example.com", keys: null }; // looked empty…
       },
       async publishKeys() {
         // …but someone else landed first.
@@ -576,16 +616,10 @@ describe("connect flow", () => {
         };
       },
     };
-    const result = await connectAccount({
-      relay: race,
-      token: "t",
-      passphrase: "共享口令",
-      derive: (p, s) => deriveMasterKey(p, s, TEST_KDF),
-    });
+    const verification = await verifySignInToken(race, "t");
+    const result = await establishEncryption(race, verification, "共享口令", { derive });
     // The loser ends with the WINNER's key (their salt), not its own minting.
-    expect(result.masterKeyBase64).toBe(
-      Buffer.from(winnerKey).toString("base64"),
-    );
+    expect(result).toBe(Buffer.from(winnerKey).toString("base64"));
   });
 });
 

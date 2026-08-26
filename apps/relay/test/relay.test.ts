@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { del, get, login, makeRelay, post, putBytes, sealed } from "./harness";
+import { foldClientIp } from "../src/rate-limit-store";
 
 const KEYS = {
   kdfSalt: "c2FsdA==",
@@ -10,9 +11,13 @@ const KEYS = {
 describe("magic-link auth", () => {
   test("request → verify issues a working session; first login has no keys", async () => {
     const { handle } = makeRelay();
-    const { session, accountId, keys } = await login(handle, "reader@example.com");
+    const { session, accountId, email, keys } = await login(handle, "reader@example.com");
     expect(session.length).toBeGreaterThan(20);
     expect(keys).toBeNull();
+    // The email rides home with the session: the client shows WHICH account a
+    // token opened before it ever asks for the encryption passphrase (the
+    // login-CSRF defense — an injected token must present its own identity).
+    expect(email).toBe("reader@example.com");
     const account = await handle(get("/v1/account", session));
     expect(account.status).toBe(200);
     expect(await account.json()).toMatchObject({ accountId, email: "reader@example.com" });
@@ -426,5 +431,81 @@ describe("diagnostic reports", () => {
     expect((await handle(report({}, "203.0.113.10"))).status).toBe(200);
     advance(24 * 60 * 60 * 1000 + 1);
     expect((await handle(report({}, "203.0.113.9"))).status).toBe(200);
+  });
+});
+
+describe("unauthenticated throttles (docs/sync-engine.md §4)", () => {
+  const ask = (handle: (req: Request) => Promise<Response>, email: string) =>
+    handle(post("/v1/auth/request", { email }));
+
+  test("the mail guard: over the per-email cap the request 429s, other inboxes are unaffected", async () => {
+    const { handle } = makeRelay(
+      { echoMagicToken: false, authMailPerEmailPer15Min: 2 },
+      {},
+      {},
+      null,
+      { send: async () => {} },
+    );
+    expect((await ask(handle, "reader@example.com")).status).toBe(200);
+    expect((await ask(handle, "reader@example.com")).status).toBe(200);
+    expect((await ask(handle, "reader@example.com")).status).toBe(429);
+    expect((await ask(handle, "other@example.com")).status).toBe(200);
+  });
+
+  test("the mail guard resets with the window", async () => {
+    const { handle, advance } = makeRelay(
+      { echoMagicToken: false, authMailPerEmailPer15Min: 1 },
+      {},
+      {},
+      null,
+      { send: async () => {} },
+    );
+    expect((await ask(handle, "reader@example.com")).status).toBe(200);
+    expect((await ask(handle, "reader@example.com")).status).toBe(429);
+    advance(16 * 60 * 1000);
+    expect((await ask(handle, "reader@example.com")).status).toBe(200);
+  });
+
+  test("the per-IP cap bounds echo mode too, and a new hour clears it", async () => {
+    const { handle, advance } = makeRelay({ authRequestPerIpPerHour: 2 });
+    expect((await ask(handle, "reader@example.com")).status).toBe(200);
+    expect((await ask(handle, "reader@example.com")).status).toBe(200);
+    expect((await ask(handle, "reader@example.com")).status).toBe(429);
+    advance(61 * 60 * 1000);
+    expect((await ask(handle, "reader@example.com")).status).toBe(200);
+  });
+
+  test("a blocked IP cannot allocate fresh per-email windows", async () => {
+    const { handle, rateWindowRows } = makeRelay(
+      {
+        echoMagicToken: false,
+        authRequestPerIpPerHour: 1,
+        authMailPerEmailPer15Min: 10,
+      },
+      {},
+      {},
+      null,
+      { send: async () => {} },
+    );
+    expect((await ask(handle, "first@example.com")).status).toBe(200);
+    expect(rateWindowRows("auth-mail")).toBe(1);
+
+    expect((await ask(handle, "second@example.com")).status).toBe(429);
+    expect((await ask(handle, "third@example.com")).status).toBe(429);
+    expect(rateWindowRows("auth-mail")).toBe(1);
+  });
+
+  test("client IPs fold for throttling: v4 passes through, v6 collapses to /64", () => {
+    expect(foldClientIp("203.0.113.7")).toBe("203.0.113.7");
+    expect(foldClientIp("::ffff:203.0.113.7")).toBe("203.0.113.7");
+    const rotated = [
+      "2001:db8:85a3:1234:5678:8a2e:370:7334",
+      "2001:db8:85a3:1234:ffff::1",
+      "2001:0db8:85a3:1234:0000:0000:0000:0001",
+    ].map(foldClientIp);
+    expect(new Set(rotated).size).toBe(1);
+    expect(rotated[0]).toBe("2001:0db8:85a3:1234:/64");
+    // A different /64 stays a different subject.
+    expect(foldClientIp("2001:db8:85a3:9999::1")).not.toBe(rotated[0]);
   });
 });

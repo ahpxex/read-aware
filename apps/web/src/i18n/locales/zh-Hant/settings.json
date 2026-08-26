@@ -394,7 +394,12 @@
       "orEmail": "或使用電子郵件",
       "oauthStarted": "在瀏覽器完成登入，然後把頁面顯示的權杖貼到下方。",
       "back": "返回",
-      "linkReady": "已透過連結登入。設定加密口令即可完成連接。"
+      "tokenContinue": "繼續",
+      "verifying": "驗證中…",
+      "tokenInvalid": "登入連結或權杖無效——可能已過期或已被使用，請重新申請。",
+      "tokenRetry": "暫時無法驗證該權杖。請檢查網路後重試，權杖已保留在下方。",
+      "signedInAs": "即將連結的帳號",
+      "freshAccount": "該帳號尚未設定加密口令，將由本裝置設定。請確認這是你本人的帳號：連結後，本裝置的書庫會同步到該帳號。"
     },
     "connected": {
       "statusTitle": "狀態",

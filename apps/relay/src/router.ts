@@ -28,6 +28,7 @@ import {
   StripeError,
 } from "./billing";
 import { isAccountTier, quotasForTier, resolveTier, type Account, type RelayPorts } from "./ports";
+import { foldClientIp, windowStartMs } from "./rate-limit-store";
 import { BILLING_PAGE, PAGE, resolveLang, type RelayLang } from "./i18n";
 
 /**
@@ -135,6 +136,12 @@ export async function tokenHash(token: string): Promise<string> {
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/** The throttle subject for a request's client address: folded to its /64
+ *  (IPv6 rotation otherwise mints unlimited "distinct" addresses), hashed. */
+async function clientIpHash(req: Request): Promise<string> {
+  return tokenHash(foldClientIp(req.headers.get("cf-connecting-ip") ?? "unknown"));
+}
+
 async function readJson(req: Request): Promise<unknown | null> {
   try {
     return await req.json();
@@ -189,6 +196,27 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
   const nowIso = () => new Date(ports.now()).toISOString();
   const billing = ports.stripe ? createBillingContext(ports.stripe) : null;
 
+  // ── Code-level throttles (docs/sync-engine.md §4) ─────────────────────────
+  //
+  // Exact business windows counted in D1. Edge WAF rules absorb coarse bursts
+  // before the Worker, but cannot replace email/account identities or these
+  // longer windows. Subjects are hashed; refusals still count, so a sustained
+  // flood keeps its window saturated instead of slipping through on retries.
+  const MINUTE = 60_000;
+  const HOUR = 60 * MINUTE;
+  /** Count a hit; false when the subject is over its cap for this window. */
+  const allow = (
+    bucket: string,
+    subjectHash: string,
+    windowMs: number,
+    max: number,
+  ): Promise<boolean> =>
+    ports.rateLimits
+      .hit(bucket, subjectHash, windowStartMs(ports.now(), windowMs))
+      .then((count) => count <= max);
+  const ipThrottled = (req: Request, bucket: string, windowMs: number, max: number) =>
+    clientIpHash(req).then((ip) => allow(bucket, ip, windowMs, max));
+
   /**
    * User-initiated diagnostic report (Settings → export/report diagnostics).
    * Unauthenticated by design — the user most in need of reporting is the one
@@ -218,9 +246,9 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
       return failure(400, "bundle is required");
     }
 
-    // Workers put the client address in cf-connecting-ip; hashing keeps the
-    // row throttle-able without storing an identifier.
-    const ipHash = await tokenHash(req.headers.get("cf-connecting-ip") ?? "unknown");
+    // Workers put the client address in cf-connecting-ip; folding to /64 and
+    // hashing keeps the row throttle-able without storing an identifier.
+    const ipHash = await tokenHash(foldClientIp(req.headers.get("cf-connecting-ip") ?? "unknown"));
     const dayAgo = ports.now() - 24 * 60 * 60 * 1000;
     if ((await ports.reports.countSince(ipHash, dayAgo)) >= config.maxReportsPerIpPerDay) {
       return failure(429, "too many reports from this address; try again tomorrow");
@@ -266,6 +294,28 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
       return failure(400, "a valid email is required");
     }
     const normalized = email.trim().toLowerCase();
+    // Reject a saturated source BEFORE allocating an email-subject row. If the
+    // email bucket ran first, one blocked IP could keep presenting fresh email
+    // strings and grow rate_windows without bound even though every request
+    // ultimately 429ed.
+    if (!(await ipThrottled(req, "auth-ip", HOUR, config.authRequestPerIpPerHour))) {
+      return failure(429, "too many sign-in requests from this address; try again later");
+    }
+    // The mail-bombing guard: a victim's inbox must not be reachable through
+    // our sender, so a handful of mails per address per window is plenty for
+    // any human. Skipped in echo mode only because nothing is sent — the IP cap
+    // above still bounds even local hammering.
+    if (
+      !config.echoMagicToken &&
+      !(await allow(
+        "auth-mail",
+        await tokenHash(normalized),
+        15 * MINUTE,
+        config.authMailPerEmailPer15Min,
+      ))
+    ) {
+      return failure(429, "too many sign-in emails requested for this address; try again later");
+    }
     const token = randomToken();
     await accounts.putMagicToken(
       await tokenHash(token),
@@ -297,6 +347,11 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
     const redirectUri = `${url.origin}/v1/auth/oauth/${providerId}/callback`;
 
     if (action === "start" && req.method === "GET") {
+      // Every start mints a state row — an anonymous, unbounded loop would
+      // grow D1 for free. The cap is generous: a human starts one or two.
+      if (!(await ipThrottled(req, "oauth-ip", HOUR, config.oauthStartPerIpPerHour))) {
+        return failure(429, "too many sign-in attempts from this address; try again later");
+      }
       const client = url.searchParams.get("client") === "web" ? "web" : "app";
       // The finish page renders in the app's locale, but the callback only
       // carries `state` — so the language travels with the state row.
@@ -400,7 +455,11 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
     const account = await accounts.findOrCreateByEmail(email, nowIso());
     const session = randomToken();
     await accounts.putSession(await tokenHash(session), account.id, nowIso());
-    return json(200, { session, accountId: account.id, keys: account.keys });
+    // `email` is the login-CSRF defense: the client can only ask the user for
+    // an encryption passphrase AFTER showing which account the token opened
+    // (docs/sync-engine.md §5). A token for an attacker's account must never
+    // be connectable while looking like "just finish signing in".
+    return json(200, { session, accountId: account.id, email: account.email, keys: account.keys });
   }
 
   async function handlePushEvents(account: Account, req: Request): Promise<Response> {
@@ -597,6 +656,12 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
     if (typeof body !== "object" || body === null) return failure(400, "a JSON body is required");
     const { plan, locale, ticket } = body as Record<string, unknown>;
     if (!isBillingPlan(plan)) return failure(400, "unknown plan");
+    // Every door reaches Stripe after this point. Bound the source before any
+    // ticket/session lookup so bogus tickets and account rotation cannot turn
+    // the optional-auth surface back into an unmetered upstream proxy.
+    if (!(await ipThrottled(req, "checkout-ip", HOUR, config.checkoutPerIpPerHour))) {
+      return failure(429, "too many checkout attempts from this address; try again later");
+    }
     // Three doors, one handler: a billing ticket (the pricing page opened
     // FROM the app — bind that account and return the buyer to the app), a
     // bearer session (in-app callers), or neither (a web visitor — Stripe
@@ -610,9 +675,25 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
       );
       if (!accountId) return failure(401, "invalid or expired upgrade ticket");
       account = await accounts.get(accountId);
+      if (!account) return failure(401, "the upgrade account no longer exists");
       appInitiated = true;
     } else {
       account = await authenticate(req);
+    }
+    // IP limits slow account rotation; this stable account bucket closes the
+    // inverse bypass (one signed-in account rotating IPs). Billing tickets are
+    // reusable across cancel/retry, so they deliberately land in the same
+    // account counter instead of becoming a fourth, unmetered identity.
+    if (
+      account &&
+      !(await allow(
+        "checkout-account",
+        await tokenHash(account.id),
+        HOUR,
+        config.checkoutPerAccountPerHour,
+      ))
+    ) {
+      return failure(429, "too many checkout attempts for this account; try again later");
     }
     const pricingUrl = `${config.webAppOrigin}${localePrefix(locale)}/pricing`;
     const lang = resolveLang(isString(locale) ? locale : null);

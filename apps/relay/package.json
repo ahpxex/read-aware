@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --var MAGIC_LINK_ECHO:1",
-    "deploy": "wrangler deploy",
+    "deploy": "bun run deploy:migrations && wrangler deploy",
+    "deploy:migrations": "wrangler d1 migrations apply read-aware-relay --remote",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },

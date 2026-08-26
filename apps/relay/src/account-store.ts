@@ -266,4 +266,16 @@ export class SqlAccountStore implements AccountStore {
     await this.db.prepare(`DELETE FROM sessions WHERE account_id = ?1`).bind(id).run();
     await this.db.prepare(`DELETE FROM accounts WHERE id = ?1`).bind(id).run();
   }
+
+  async cleanupExpired(nowMs: number): Promise<void> {
+    await this.db.prepare(`DELETE FROM magic_tokens WHERE expires_at_ms <= ?1`).bind(nowMs).run();
+    await this.db
+      .prepare(`DELETE FROM oauth_states WHERE expires_at_ms <= ?1`)
+      .bind(nowMs)
+      .run();
+    await this.db
+      .prepare(`DELETE FROM watch_tickets WHERE expires_at_ms <= ?1`)
+      .bind(nowMs)
+      .run();
+  }
 }

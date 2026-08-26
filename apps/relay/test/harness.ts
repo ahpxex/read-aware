@@ -13,6 +13,7 @@ import type { AiModel } from "../src/ai-proxy";
 import { SqlAiUsageStore } from "../src/ai-usage-store";
 import { MailboxCore, type SqlExec } from "../src/mailbox-core";
 import { SqlReportStore } from "../src/report-store";
+import { SqlRateLimitStore } from "../src/rate-limit-store";
 import {
   DEFAULT_CONFIG,
   type BlobStore,
@@ -96,6 +97,7 @@ export function makeRelay(
   oauthProviders: Record<string, OAuthProvider> = {},
   ai: { models?: AiModel[]; fetch?: typeof fetch } = {},
   stripe: RelayPorts["stripe"] = null,
+  magicLink: RelayPorts["magicLink"] = null,
 ) {
   const db = new Database(":memory:");
   for (const migration of MIGRATIONS) db.exec(migration);
@@ -106,6 +108,7 @@ export function makeRelay(
   const background: Promise<unknown>[] = [];
   const ports: RelayPorts = {
     accounts: new SqlAccountStore(d1Over(db)),
+    rateLimits: new SqlRateLimitStore(d1Over(db)),
     reports: new SqlReportStore(d1Over(db), {
       put: async (id, payload) => {
         reportPayloads.set(id, payload);
@@ -126,7 +129,7 @@ export function makeRelay(
     aiModels: ai.models ?? [],
     aiFetch: ai.fetch,
     stripe,
-    magicLink: null,
+    magicLink,
     oauthProviders,
     config: { ...DEFAULT_CONFIG, echoMagicToken: true, ...config },
     now: () => nowMs,
@@ -142,6 +145,12 @@ export function makeRelay(
     /** Await the accounting writes a streamed AI response left behind. */
     async settleBackground() {
       await Promise.all(background.splice(0));
+    },
+    rateWindowRows(bucket: string): number {
+      const row = db
+        .query(`SELECT COUNT(*) AS count FROM rate_windows WHERE bucket = ?1`)
+        .get(bucket) as { count: number };
+      return Number(row.count);
     },
     reportPayloads,
   };
@@ -188,6 +197,7 @@ export async function login(handle: Handle, email: string) {
   return (await verified.json()) as {
     session: string;
     accountId: string;
+    email: string;
     keys: { kdfSalt: string; keyCheck: string } | null;
   };
 }

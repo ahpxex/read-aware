@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { userEvent, within } from "storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 import { idle, unauthenticated } from "../../sync/components/sync.fixtures";
 import type { useSyncConnection } from "../hooks/useSyncConnection";
 import { SyncConnectDialog } from "./SyncConnectDialog";
@@ -14,7 +14,10 @@ function connection(
     connected: false,
     busy: false,
     sendLink: async () => null,
-    connect: async () => {},
+    verifyToken: async () => {
+      throw new Error("stories: verifyToken is not wired");
+    },
+    finishConnect: async () => {},
     disconnect: async () => {},
     requestSyncNow: async () => {},
     ...patch,
@@ -55,6 +58,63 @@ export const EmailEntered: Story = {
 /** A request in flight: the controls disable until the relay answers. */
 export const Busy: Story = {
   args: { sync: connection({ busy: true }) },
+};
+
+/** A transient verification failure keeps the token available to retry. */
+export const VerificationRetry: Story = {
+  args: {
+    sync: connection({
+      verifyToken: async () => {
+        throw new Error("relay temporarily unavailable");
+      },
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    await userEvent.click(body.getByRole("button", { name: /Google/ }));
+    const token = body.getByRole("textbox");
+    await userEvent.type(token, "still-valid-token");
+    await userEvent.click(body.getByRole("button", { name: /^Continue$/ }));
+    await expect(body.getByRole("textbox")).toHaveValue("still-valid-token");
+    await expect(body.getByText(/couldn't verify this token right now/i)).toBeVisible();
+  },
+};
+
+/** The identity gate: the account a token opened, in full, BEFORE the
+ *  passphrase field appears — the login-CSRF defense in its visible form. */
+export const ConfirmedIdentity: Story = {
+  args: {
+    sync: connection({
+      verifyToken: async () => ({
+        session: "sess_story",
+        accountId: "acct_story",
+        email: "attacker@example.com",
+        keys: null,
+      }),
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    await userEvent.click(body.getByRole("button", { name: /Google/ }));
+    await userEvent.type(body.getByRole("textbox"), "story-sign-in-token");
+    // Exact match: the OAuth buttons also start with "Continue".
+    await userEvent.click(body.getByRole("button", { name: /^Continue$/ }));
+    await expect(body.getByText("attacker@example.com")).toBeVisible();
+    // Identity confirmation is a separate action: no password control exists
+    // until the user explicitly continues from the displayed account.
+    expect(body.queryByLabelText("Encryption passphrase")).not.toBeInTheDocument();
+  },
+};
+
+/** The encryption secret appears only after the visible identity gate. */
+export const PassphraseStep: Story = {
+  args: ConfirmedIdentity.args,
+  play: async (context) => {
+    await ConfirmedIdentity.play?.(context);
+    const body = within(context.canvasElement.ownerDocument.body);
+    await userEvent.click(body.getByRole("button", { name: /^Continue$/ }));
+    await expect(body.getByLabelText("Encryption passphrase")).toBeVisible();
+  },
 };
 
 /**

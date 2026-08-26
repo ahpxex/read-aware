@@ -9,7 +9,9 @@ import { deepseekModels } from "./ai-proxy";
 import { SqlAiUsageStore } from "./ai-usage-store";
 import { AccountMailbox, stubMailbox } from "./do-mailbox";
 import { resendMagicLinkSender } from "./email";
+import { cleanupRelayStorage } from "./housekeeping";
 import { githubProvider, googleProvider } from "./oauth";
+import { SqlRateLimitStore } from "./rate-limit-store";
 import { DEFAULT_CONFIG, type BlobStore, type OAuthProvider, type RelayPorts } from "./ports";
 import { SqlReportStore } from "./report-store";
 import { createRelayHandler } from "./router";
@@ -101,6 +103,7 @@ function portsFromEnv(env: Env, ctx?: { waitUntil(promise: Promise<unknown>): vo
   }
   return {
     accounts: new SqlAccountStore(env.DB),
+    rateLimits: new SqlRateLimitStore(env.DB),
     mailboxFor: (accountId) => stubMailbox(env.MAILBOX.get(env.MAILBOX.idFromName(accountId))),
     blobs: r2BlobStore(env.BLOBS),
     aiUsage: new SqlAiUsageStore(env.DB),
@@ -147,5 +150,18 @@ export default {
     ctx: { waitUntil(promise: Promise<unknown>): void },
   ): Promise<Response> {
     return createRelayHandler(portsFromEnv(env, ctx))(request);
+  },
+  async scheduled(
+    controller: { scheduledTime: number },
+    env: Env,
+    ctx: { waitUntil(promise: Promise<unknown>): void },
+  ): Promise<void> {
+    ctx.waitUntil(
+      cleanupRelayStorage(
+        new SqlAccountStore(env.DB),
+        new SqlRateLimitStore(env.DB),
+        controller.scheduledTime,
+      ),
+    );
   },
 };

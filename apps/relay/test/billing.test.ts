@@ -39,7 +39,9 @@ function fakeStripe(options: { activeSubs?: number } = {}) {
   return { fetchFn, calls };
 }
 
-function relayWithStripe(options: { activeSubs?: number } = {}) {
+function relayWithStripe(
+  options: { activeSubs?: number; config?: Partial<RelayPorts["config"]> } = {},
+) {
   const stripe = fakeStripe(options);
   const ports: RelayPorts["stripe"] = {
     secretKey: "sk_test_fake",
@@ -48,7 +50,15 @@ function relayWithStripe(options: { activeSubs?: number } = {}) {
   };
   // relayOrigin is CONFIG, never req.url — wrangler dev rewrites the request
   // host to the production route domain, which is exactly the bug this guards.
-  return { ...makeRelay({ relayOrigin: "https://relay.test" }, {}, {}, ports), stripe };
+  return {
+    ...makeRelay(
+      { relayOrigin: "https://relay.test", ...options.config },
+      {},
+      {},
+      ports,
+    ),
+    stripe,
+  };
 }
 
 const encoder = new TextEncoder();
@@ -81,6 +91,15 @@ async function webhook(handle: Handle, event: unknown, nowMs = BASE_NOW, secret 
 
 const accountOf = async (handle: Handle, session: string): Promise<AccountResponse> =>
   (await (await handle(get("/v1/account", session))).json()) as AccountResponse;
+
+function checkout(
+  body: { plan: "sync" | "pro" | "max"; ticket?: string },
+  options: { session?: string; ip?: string } = {},
+): Request {
+  const request = post("/v1/billing/checkout", body, options.session);
+  request.headers.set("cf-connecting-ip", options.ip ?? "203.0.113.10");
+  return request;
+}
 
 describe("checkout", () => {
   test("answers 501 when billing is not configured", async () => {
@@ -348,5 +367,47 @@ describe("the portal", () => {
     const res = await handle(post("/v1/billing/portal", {}, session));
     expect(res.status).toBe(200);
     expect(((await res.json()) as { url: string }).url).toContain("billing.stripe.com");
+  });
+});
+
+describe("checkout throttles", () => {
+  test("the per-IP cap covers anonymous and bearer doors", async () => {
+    const { handle, stripe } = relayWithStripe({
+      config: { checkoutPerIpPerHour: 2, checkoutPerAccountPerHour: 10 },
+    });
+    expect((await handle(checkout({ plan: "pro" }))).status).toBe(200);
+    expect((await handle(checkout({ plan: "pro" }))).status).toBe(200);
+
+    const { session } = await login(handle, "reader@example.com");
+    expect((await handle(checkout({ plan: "pro" }, { session, ip: "203.0.113.10" }))).status).toBe(
+      429,
+    );
+    expect((await handle(checkout({ plan: "pro" }, { session, ip: "203.0.113.11" }))).status).toBe(
+      200,
+    );
+
+    // The blocked bearer call never reached Stripe.
+    expect(stripe.calls.filter((c) => c.url.includes("/v1/checkout/sessions")).length).toBe(3);
+  });
+
+  test("bearer and reusable ticket checkouts share one account cap across IPs", async () => {
+    const { handle, stripe } = relayWithStripe({
+      config: { checkoutPerIpPerHour: 10, checkoutPerAccountPerHour: 2 },
+    });
+    const { session } = await login(handle, "reader@example.com");
+    expect((await handle(checkout({ plan: "pro" }, { session, ip: "203.0.113.20" }))).status).toBe(
+      200,
+    );
+
+    const minted = await handle(post("/v1/billing/ticket", {}, session));
+    const { ticket } = (await minted.json()) as { ticket: string };
+    expect((await handle(checkout({ plan: "pro", ticket }, { ip: "203.0.113.21" }))).status).toBe(
+      200,
+    );
+    expect((await handle(checkout({ plan: "pro", ticket }, { ip: "203.0.113.22" }))).status).toBe(
+      429,
+    );
+
+    expect(stripe.calls.filter((c) => c.url.includes("/v1/checkout/sessions")).length).toBe(2);
   });
 });

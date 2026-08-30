@@ -1,14 +1,16 @@
 ---
 name: publishing
-description: ReadAware 发版流水线：bump 版本号 → 打 tag 推送 → 盯 release CI → 重写 GitHub release changelog → 更新官网 changelog（三语）→ 同步 landing 文档/blog。触发词："bump 版本"、"发版"、"发布新版本"、"发个版"、"bump version"、"cut a release"、"release vX.Y.Z"。
+description: ReadAware 发版流水线：bump 版本号 → 打 tag 推送 → 盯 release CI → 重写 GitHub release changelog → 机翻更新官网 changelog（全 8 语）→ 同步 landing 文档/blog → wrangler 部署官网。触发词："bump 版本"、"发版"、"发布新版本"、"发个版"、"bump version"、"cut a release"、"release vX.Y.Z"。
 ---
 
 # ReadAware 发版流水线
 
 一次发版 = 版本号 bump commit + `vX.Y.Z` tag 推送触发 `release.yml` 全平台构建，
-CI 绿后人工整理 GitHub release changelog、更新官网三语 changelog，并检查
-landing 文档是否需要跟着这次版本更新。
-landing（readaware.app）是 CF Pages 跟随 push 自动部署，无需单独发布动作。
+CI 绿后人工整理 GitHub release changelog、更新官网 changelog（英文手写、其余
+7 语机翻+复核），并检查 landing 文档是否需要跟着这次版本更新。
+**landing（readaware.app）已从 CF Pages 切到 Workers（2026-08-26，bd41978）：
+push 不再自动部署**，站点更新后必须 `cd apps/landing && bun run deploy`
+（wrangler，网络走代理前缀）。
 
 网络命令（git push、gh）一律加代理前缀
 `http_proxy=http://127.0.0.1:7890 https_proxy=http://127.0.0.1:7890 no_proxy=localhost,127.0.0.1,::1`。
@@ -111,8 +113,8 @@ git ls-remote --tags origin | grep 'vX.Y.Z$'   # 没输出就是没推上去
 此处保留 lightweight + 显式推，与既往 tag 的形态一致。）
 
 tag 推上去即触发 `.github/workflows/release.yml`（android / ios / desktop
-三平台矩阵 / updater-manifest 四组 job）；push main 同时触发 CF Pages
-重新部署 landing。
+三平台矩阵 / updater-manifest 四组 job）。landing 不随 push 部署——第 5/6 步
+改完站点后要手动 `bun run deploy`。
 
 ## 3. 盯 CI（约 15 分钟）
 
@@ -150,39 +152,47 @@ CI 的每个 job 都带 `generate_release_notes: true`，会把 release body 追
    `**Full Changelog**: https://github.com/ahpxex/read-aware/compare/vPREV...vX.Y.Z`
 4. 写入：`gh release edit vX.Y.Z --notes-file <scratchpad 里的文件>`。
 
-## 5. 官网 changelog（全语言，正式版必做）
+## 5. 官网 changelog（全 8 语，正式版必做；英文手写，其余机翻）
 
-`readaware.app/changelog`（+ `/zh` `/ja`）由 `apps/landing/src/lib/changelog.ts`
-渲染，是手写的**给人读的**版本，不是 GitHub release 的翻译：可以丢掉一次发版
-里不可感知的部分，只留用户真会注意到的。GitHub release 保持完整记录，两者
-互不替代。
+`readaware.app/changelog`（8 语路由：`/changelog` + `/zh` `/zh-hant` `/ja`
+`/de` `/es` `/fr` `/ru`）的数据在
+**`apps/landing/src/i18n/resources/<locale>.site.json` 的 `changelog.entries`**
+（2026-08 从旧的 `lib/changelog.ts` CHANGELOG 数组迁移过来；每条 =
+`{version, date, summary, groups: [{kind: new|improved|fixed, items:
+[{title, body}]}]}`）。这是手写的**给人读的**版本，不是 GitHub release 的
+翻译：丢掉不可感知的部分，只留用户真会注意到的。
 
-- **加一个版本 = 在 `CHANGELOG` 数组开头加一条**（`version` / `date` /
-  `text.<全部 8 语>`：en / zh / zh-hant / ja / fr / de / ru / es——类型强制，
-  缺语言直接 typecheck 失败），不需要动任何路由文件——页面渲染整个数组。
-- 术语对齐 `apps/web/src/i18n/locales/` 的产品词表（书架 / 智能助理 / 上下文 /
-  词典 / 命令面板 …）。
-- **先机翻出底稿再校对**：`bun run translate <file|-> --to all --style changelog`
-  （`packages/agent/src/translate-run.ts`，走 deepseek-v4-flash，key 取
-  `DEEPSEEK_API_KEY` 或 pi CLI auth，~20 秒出全部 7 语）。英文定稿后把 JSON/文本
-  喂给它，拿回的译文**必须过一遍**——重点核对术语（脚本内置词表，遇到带偏的
-  就地补词表）、title 后无标点、语感翻译腔。文档镜像（仅 en/zh/ja 存在）同理
-  可用 `--style docs`。首页文案在 `apps/landing/src/lib/home-content.ts`，
-  站点 chrome 在 `lib/i18n.ts` 的 `UI_STRINGS`——两处也都是全 8 语。
-- 内容通常是第 4 步 release changelog 的精简改写，可以直接拿英文那份改。
-  分组 `new` / `improved` / `fixed` 与第 4 步一致；组标题不写在数据里
-  （在 `UI_STRINGS`）。
-- `new` 的条目可带 `title`（加粗引导词），`improved` / `fixed` 只写 `body`。
-  **`title` 后面不要自己写标点**——分隔符由渲染器按语言给（英文 `. `，
-  中日文全角 `：`），写了会重复。同理，中日文 `body` 的开头不要再用冒号。
+流程（**agent 只手写英文，7 个非英语语言一律机翻，不许自己手写**）：
+
+1. 在 `en.site.json` 的 `changelog.entries` 开头加英文条目（通常是第 4 步
+   release changelog 的精简改写；title 是无标点引导短语，body 完整句子，
+   照抄既有条目的形态）。
+2. `bun scripts/translate-changelog.ts --version X.Y.Z` —— 走 pi CLI +
+   Ollama Cloud（模型梯队 glm-5.3-flash → glm-5.3），带结构校验、单次超时
+   + 重试（Ollama Cloud 会间歇性无限卡死，2026-08-30 实测；deepseek flash
+   会思考空转，都别用裸调）、以目标语言**既有条目**为风格锚点，直接写回
+   7 个 locale 文件。串行跑（同 key 并发长生成会互相饿死），全量约 8 分钟，
+   正好与盯 CI 重叠。
+3. **复核机翻 diff**（这步不能省）：术语对齐 `apps/web/src/i18n/locales/`
+   的产品词表（书架 / 智能助理 / 划线 / 命令面板 …）、中日文全角标点、
+   翻译腔。有带偏的就地改 —— 复核是人/主 agent 的活，翻译不是。
+4. 零散文本（首页 `home`、chrome、pricing 也都在 `<locale>.site.json`）要
+   机翻时用 `bun run translate <file|-> --to all --style changelog|docs`
+   （`packages/agent/src/translate-run.ts`，内置词表，输出到 stdout 由你
+   粘回；`--provider ollama-cloud --model glm-5.3-flash` 实测 ~7s/语言，
+   缺省 deepseek API）。
 - pre-release 跳过这一步（和文档同步一样，留给正式版）。
-- 验证：`cd apps/landing && bun run build`，确认预渲染路由数含
-  `/changelog` `/zh/changelog` `/ja/changelog`。
+- 验证：`cd apps/landing && bun run build`，确认预渲染含 8 个 changelog
+  路由；然后 **`bun run deploy`**（站点不会自己部署）。
 
-## 6. 同步 landing 文档 / blog（三语）
+## 6. 同步 landing 文档 / blog
 
-用 `git diff vPREV..vX.Y.Z --stat` 圈出用户可感知的变更，对照检查
-（文档都是 `apps/landing/src/routes/` 下的 TSX，纯手写，无框架）：
+用 `git diff vPREV..vX.Y.Z --stat` 圈出用户可感知的变更，对照检查。
+**文档正文已迁到数据文件**：`apps/landing/src/i18n/resources/<locale>.docs.json`
+的 `pages.<page>.body`（markdown，全 8 语；routes 下的 TSX 只是壳）。改文档 =
+改 `en.docs.json` 对应 body，再机翻同步其余 7 语（同第 5 步的纪律：机翻 +
+人工复核，别手写翻译；`bun run translate - --style docs` 或照
+`scripts/translate-changelog.ts` 的调法喂 pi CLI）。
 
 | 变更类型 | 要看的页面 |
 |---|---|
@@ -192,21 +202,14 @@ CI 的每个 job 都带 `generate_release_notes: true`，会把 release body 追
 | 市场提交流程变化 | `docs/plugins/publishing.tsx` |
 | 值得发声的大版本 | 写 blog：`routes/blog/<slug>.tsx` + `lib/posts.ts` 注册一条 |
 
-**多语言是文档更新的一部分，不是可选项。** 站点三语：英文为源
-（`routes/docs|blog/`），简体中文与日文是逐页镜像
-（`routes/zh/...`、`routes/ja/...`）。流程：
-
-1. 先改英文源页。
-2. 把同一处改动同步翻译到 zh/ja 镜像页（可各派一个 subagent 并行；
-   术语对齐 `apps/web/src/i18n/locales/zh-Hans|ja/` 的产品词表；
-   翻译只动人类可见文本，代码结构/className/逻辑保持一致）。
-3. 新增文档页 = 英文路由文件 + zh/ja 镜像 + `lib/docs-nav.ts` 三个语言
-   各加一条；发 blog = 三个语言的路由文件 + `lib/posts.ts` 一条
-   （其中 `text.en/zh/ja` 的标题与描述都在这一条里）。日期用真实日期。
-4. 预渲染会自动纳入全部新路由并生成 hreflang 互链，无需额外配置。
+**多语言是文档更新的一部分，不是可选项——但翻译是模型的活，复核才是你的活。**
+docs 全 8 语（resources 数据）；blog 仍是 en/zh/ja 三语路由镜像
+（`routes/blog/` + `routes/zh|ja/blog/`），发 blog 时 zh/ja 镜像同样先机翻
+再校对。日期用真实日期。
 
 - 验证：`cd apps/landing && bun run build`（含预渲染与 typecheck）。
-- 有改动则单独提交（`docs(landing): ...`）并推送，CF Pages 自动部署。
+- 有改动则单独提交（`docs(landing): ...`）并推送，然后
+  **`cd apps/landing && bun run deploy`**（Workers，push 不会自动部署）。
   没有需要更新的就明说"本次无文档变更"，不要为改而改。
 - changelog（GitHub release）只写英文，不用翻译；官网 changelog（第 5 步）
   才是三语的。

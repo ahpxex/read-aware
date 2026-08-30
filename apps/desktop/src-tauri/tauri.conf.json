@@ -40,52 +40,79 @@
     "createUpdaterArtifacts": true,
     "fileAssociations": [
       {
-        "ext": ["epub"],
+        "ext": [
+          "epub"
+        ],
         "name": "EPUB",
         "description": "EPUB e-book",
         "mimeType": "application/epub+zip",
         "role": "Viewer"
       },
       {
-        "ext": ["mobi", "prc"],
+        "ext": [
+          "mobi",
+          "prc"
+        ],
         "name": "MOBI",
         "description": "Mobipocket e-book",
         "mimeType": "application/x-mobipocket-ebook",
         "role": "Viewer"
       },
       {
-        "ext": ["azw3", "azw", "kf8"],
+        "ext": [
+          "azw3",
+          "azw",
+          "kf8"
+        ],
         "name": "AZW",
         "description": "Kindle e-book",
         "mimeType": "application/vnd.amazon.ebook",
         "role": "Viewer"
       },
       {
-        "ext": ["fb2", "fbz"],
+        "ext": [
+          "fb2",
+          "fbz"
+        ],
         "name": "FB2",
         "description": "FictionBook e-book",
         "mimeType": "application/x-fictionbook+xml",
         "role": "Viewer"
       },
       {
-        "ext": ["cbz"],
+        "ext": [
+          "cbz"
+        ],
         "name": "CBZ",
         "description": "Comic book archive",
         "mimeType": "application/vnd.comicbook+zip",
         "role": "Viewer"
       },
       {
-        "ext": ["cbr"],
+        "ext": [
+          "cbr"
+        ],
         "name": "CBR",
         "description": "Comic book archive",
         "mimeType": "application/vnd.comicbook-rar",
         "role": "Viewer"
       },
       {
-        "ext": ["pdf"],
+        "ext": [
+          "pdf"
+        ],
         "name": "PDF",
         "description": "PDF document",
         "mimeType": "application/pdf",
+        "role": "Viewer"
+      },
+      {
+        "ext": [
+          "txt"
+        ],
+        "name": "TXT",
+        "description": "Plain text book",
+        "mimeType": "text/plain",
         "role": "Viewer"
       }
     ],
@@ -120,11 +147,15 @@
   "plugins": {
     "deep-link": {
       "desktop": {
-        "schemes": ["readaware"]
+        "schemes": [
+          "readaware"
+        ]
       },
       "mobile": [
         {
-          "scheme": ["readaware"],
+          "scheme": [
+            "readaware"
+          ],
           "appLink": false
         }
       ]

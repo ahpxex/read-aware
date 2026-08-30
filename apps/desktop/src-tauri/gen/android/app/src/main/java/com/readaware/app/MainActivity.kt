@@ -216,12 +216,20 @@ class MainActivity : TauriActivity() {
           putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
           putExtra(
             Intent.EXTRA_MIME_TYPES,
+            // Must cover every importable format (mirror BOOK_FILE_ACCEPT in
+            // pick-book-files.ts): SAF greys out anything not listed here.
+            // txt/html/cbz/cbr were missing for months after those formats
+            // landed — "Android can't import TXT" was this list, not the app.
             arrayOf(
               "application/epub+zip",
               "application/pdf",
               "application/x-mobipocket-ebook",
               "application/vnd.amazon.ebook",
               "application/x-fictionbook+xml",
+              "application/vnd.comicbook+zip",
+              "application/vnd.comicbook-rar",
+              "text/plain",
+              "text/html",
               "application/octet-stream",
             ),
           )

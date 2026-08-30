@@ -87,16 +87,32 @@
 			<array>
 				<string>pdf</string>
 			</array>
-			<key>LSItemContentTypes</key>
-			<array>
-				<string>com.adobe.pdf</string>
-			</array>
 			<key>CFBundleTypeName</key>
 			<string>PDF</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSHandlerRank</key>
 			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.adobe.pdf</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>txt</string>
+			</array>
+			<key>CFBundleTypeName</key>
+			<string>TXT</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.plain-text</string>
+			</array>
 		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
@@ -114,12 +130,12 @@
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
+			<key>CFBundleURLName</key>
+			<string>readaware</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>readaware</string>
 			</array>
-			<key>CFBundleURLName</key>
-			<string>readaware</string>
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>

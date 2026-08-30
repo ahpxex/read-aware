@@ -81,9 +81,6 @@
   "dictionary": {
     "title": "词典",
     "loading": "正在查询…",
-    "error": "查询失败。请检查设置里的 AI 提供方后重试。",
-    "retry": "重试",
-    "unconfigured": "在设置里连接一个 AI 提供方即可启用释义。",
     "empty": "未找到该词条的释义。",
     "contextLabel": "在此段落中",
     "etymologyLabel": "词源",

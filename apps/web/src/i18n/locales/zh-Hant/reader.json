@@ -81,9 +81,6 @@
   "dictionary": {
     "title": "字典",
     "loading": "正在查詢…",
-    "error": "查詢失敗。請檢查設定裡的 AI 供應商後重試。",
-    "retry": "重試",
-    "unconfigured": "在設定裡連接一個 AI 供應商即可啟用釋義。",
     "empty": "找不到這個詞條的釋義。",
     "contextLabel": "在此段落中",
     "etymologyLabel": "詞源",

@@ -81,9 +81,6 @@
   "dictionary": {
     "title": "Dictionary",
     "loading": "Looking it up…",
-    "error": "Couldn't look this up. Check your AI provider in Settings and try again.",
-    "retry": "Try again",
-    "unconfigured": "Connect an AI provider in Settings to enable definitions.",
     "empty": "No definition found for this term.",
     "contextLabel": "In this passage",
     "etymologyLabel": "Origin",

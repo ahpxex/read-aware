@@ -81,9 +81,6 @@
   "dictionary": {
     "title": "Diccionario",
     "loading": "Buscando…",
-    "error": "No se pudo buscar. Revisa tu proveedor de IA en Ajustes e inténtalo de nuevo.",
-    "retry": "Reintentar",
-    "unconfigured": "Conecta un proveedor de IA en Ajustes para activar las definiciones.",
     "empty": "No se encontró ninguna definición para este término.",
     "contextLabel": "En este pasaje",
     "etymologyLabel": "Origen",

@@ -81,9 +81,6 @@
   "dictionary": {
     "title": "Dictionnaire",
     "loading": "Recherche en cours…",
-    "error": "Recherche impossible. Vérifiez votre fournisseur d'IA dans les Réglages, puis réessayez.",
-    "retry": "Réessayer",
-    "unconfigured": "Connectez un fournisseur d'IA dans les Réglages pour activer les définitions.",
     "empty": "Aucune définition trouvée pour ce terme.",
     "contextLabel": "Dans ce passage",
     "etymologyLabel": "Origine",

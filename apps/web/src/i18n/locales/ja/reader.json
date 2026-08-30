@@ -81,9 +81,6 @@
   "dictionary": {
     "title": "辞書",
     "loading": "調べています…",
-    "error": "調べられませんでした。設定で AI プロバイダーを確認して、もう一度お試しください。",
-    "retry": "再試行",
-    "unconfigured": "設定で AI プロバイダーを接続すると、語義を表示できます。",
     "empty": "この語の語義が見つかりませんでした。",
     "contextLabel": "この文脈での意味",
     "etymologyLabel": "語源",

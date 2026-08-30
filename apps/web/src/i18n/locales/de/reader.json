@@ -81,9 +81,6 @@
   "dictionary": {
     "title": "Wörterbuch",
     "loading": "Wird nachgeschlagen…",
-    "error": "Konnte nicht nachgeschlagen werden. Prüfe deinen KI-Anbieter in den Einstellungen und versuche es erneut.",
-    "retry": "Erneut versuchen",
-    "unconfigured": "Verbinde in den Einstellungen einen KI-Anbieter, um Definitionen zu aktivieren.",
     "empty": "Keine Definition für diesen Begriff gefunden.",
     "contextLabel": "In dieser Passage",
     "etymologyLabel": "Herkunft",

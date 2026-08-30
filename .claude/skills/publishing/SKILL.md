@@ -1,6 +1,6 @@
 ---
 name: publishing
-description: ReadAware 发版流水线：bump 版本号 → 打 tag 推送 → 盯 release CI → 重写 GitHub release changelog → 机翻更新官网 changelog（全 8 语）→ 同步 landing 文档/blog → wrangler 部署官网。触发词："bump 版本"、"发版"、"发布新版本"、"发个版"、"bump version"、"cut a release"、"release vX.Y.Z"。
+description: ReadAware 发版流水线：bump 版本号 → 打 tag 推送 → 盯 release CI → 重写 GitHub release changelog → 机翻更新官网 changelog（全 8 语）→ 同步 landing 文档/blog（push 自动部署）。触发词："bump 版本"、"发版"、"发布新版本"、"发个版"、"bump version"、"cut a release"、"release vX.Y.Z"。
 ---
 
 # ReadAware 发版流水线
@@ -8,9 +8,10 @@ description: ReadAware 发版流水线：bump 版本号 → 打 tag 推送 → �
 一次发版 = 版本号 bump commit + `vX.Y.Z` tag 推送触发 `release.yml` 全平台构建，
 CI 绿后人工整理 GitHub release changelog、更新官网 changelog（英文手写、其余
 7 语机翻+复核），并检查 landing 文档是否需要跟着这次版本更新。
-**landing（readaware.app）已从 CF Pages 切到 Workers（2026-08-26，bd41978）：
-push 不再自动部署**，站点更新后必须 `cd apps/landing && bun run deploy`
-（wrangler，网络走代理前缀）。
+landing（readaware.app）是 Workers 部署（2026-08-26 从 CF Pages 切过来）；
+push main 触发 `.github/workflows/landing.yml`（paths 过滤 apps/landing/** 与
+workspace 依赖包）自动 build + `wrangler deploy`（`gh run list
+--workflow=landing.yml` 可盯）。手动兜底：`cd apps/landing && bun run deploy`。
 
 网络命令（git push、gh）一律加代理前缀
 `http_proxy=http://127.0.0.1:7890 https_proxy=http://127.0.0.1:7890 no_proxy=localhost,127.0.0.1,::1`。
@@ -113,8 +114,8 @@ git ls-remote --tags origin | grep 'vX.Y.Z$'   # 没输出就是没推上去
 此处保留 lightweight + 显式推，与既往 tag 的形态一致。）
 
 tag 推上去即触发 `.github/workflows/release.yml`（android / ios / desktop
-三平台矩阵 / updater-manifest 四组 job）。landing 不随 push 部署——第 5/6 步
-改完站点后要手动 `bun run deploy`。
+三平台矩阵 / updater-manifest 四组 job）；第 5/6 步改动 landing 后 push 会
+另触发 landing.yml 自动部署站点。
 
 ## 3. 盯 CI（约 15 分钟）
 
@@ -168,22 +169,22 @@ CI 的每个 job 都带 `generate_release_notes: true`，会把 release body 追
    release changelog 的精简改写；title 是无标点引导短语，body 完整句子，
    照抄既有条目的形态）。
 2. `bun scripts/translate-changelog.ts --version X.Y.Z` —— 走 pi CLI +
-   Ollama Cloud（模型梯队 glm-5.3-flash → glm-5.3），带结构校验、单次超时
-   + 重试（Ollama Cloud 会间歇性无限卡死，2026-08-30 实测；deepseek flash
-   会思考空转，都别用裸调）、以目标语言**既有条目**为风格锚点，直接写回
-   7 个 locale 文件。串行跑（同 key 并发长生成会互相饿死），全量约 8 分钟，
-   正好与盯 CI 重叠。
+   智谱 coding plan（provider `zai-coding-cn`，模型梯队 glm-5.3 →
+   glm-5.3-flash，~45-55s/语言），带结构校验、单次超时 + 重试（托管端点
+   会间歇性无限卡死，2026-08-30 在 Ollama Cloud 实测过；别裸调）、以目标
+   语言**既有条目**为风格锚点，直接写回 7 个 locale 文件。串行跑（同 key
+   并发长生成会互相饿死），全量约 6 分钟，正好与盯 CI 重叠。
+   前提：`pi auth check --provider zai-coding-cn` 是 ready。
 3. **复核机翻 diff**（这步不能省）：术语对齐 `apps/web/src/i18n/locales/`
    的产品词表（书架 / 智能助理 / 划线 / 命令面板 …）、中日文全角标点、
    翻译腔。有带偏的就地改 —— 复核是人/主 agent 的活，翻译不是。
 4. 零散文本（首页 `home`、chrome、pricing 也都在 `<locale>.site.json`）要
    机翻时用 `bun run translate <file|-> --to all --style changelog|docs`
    （`packages/agent/src/translate-run.ts`，内置词表，输出到 stdout 由你
-   粘回；`--provider ollama-cloud --model glm-5.3-flash` 实测 ~7s/语言，
-   缺省 deepseek API）。
+   粘回；加 `--provider zai-coding-cn --model glm-5.3`，缺省是 deepseek API）。
 - pre-release 跳过这一步（和文档同步一样，留给正式版）。
 - 验证：`cd apps/landing && bun run build`，确认预渲染含 8 个 changelog
-  路由；然后 **`bun run deploy`**（站点不会自己部署）。
+  路由；push 后盯 landing.yml 部署绿、再按下方 curl 姿势验证线上内容。
 
 ## 6. 同步 landing 文档 / blog
 
@@ -208,9 +209,9 @@ docs 全 8 语（resources 数据）；blog 仍是 en/zh/ja 三语路由镜像
 再校对。日期用真实日期。
 
 - 验证：`cd apps/landing && bun run build`（含预渲染与 typecheck）。
-- 有改动则单独提交（`docs(landing): ...`）并推送，然后
-  **`cd apps/landing && bun run deploy`**（Workers，push 不会自动部署）。
-  没有需要更新的就明说"本次无文档变更"，不要为改而改。
+- 有改动则单独提交（`docs(landing): ...`）并推送——landing.yml 会自动
+  build + 部署（`gh run watch` 盯绿）。没有需要更新的就明说"本次无文档
+  变更"，不要为改而改。
 - changelog（GitHub release）只写英文，不用翻译；官网 changelog（第 5 步）
   才是三语的。
 - **验证部署要看内容，不能看状态码。** CF Pages 对未知路径走 SPA 回退，

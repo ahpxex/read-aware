@@ -193,7 +193,10 @@ CI 的每个 job 都带 `generate_release_notes: true`，会把 release body 追
 的 `pages.<page>.body`（markdown，全 8 语；routes 下的 TSX 只是壳）。改文档 =
 改 `en.docs.json` 对应 body，再机翻同步其余 7 语（同第 5 步的纪律：机翻 +
 人工复核，别手写翻译；`bun run translate - --style docs` 或照
-`scripts/translate-changelog.ts` 的调法喂 pi CLI）。
+`scripts/translate-changelog.ts` 的调法喂 pi CLI）。给译文写自动校验时用
+**结构判据**（以 `## ` 开头、含段落分隔），别按英文长度比例卡——CJK 压缩率
+2-3 倍，0.5.0 时按 40% 长度卡过一次，把整批完美译文全判了不合格。
+另外 coding plan 连发后会限流出空响应，重试间隔要留 15s+。
 
 | 变更类型 | 要看的页面 |
 |---|---|

@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import type { Annotation } from "../../annotations/lib/annotation-types";
 import { listAnnotations } from "../../annotations/lib/annotation-db";
+import { createLogger } from "../../../platform/logger";
+
+const log = createLogger("reader");
 
 /**
  * The marks a READER left in a book — highlights and notes, never `ask`
@@ -12,27 +15,33 @@ import { listAnnotations } from "../../annotations/lib/annotation-db";
  * marked passages, and feed it back as a marked passage the next time they
  * asked.
  *
- * Returns `null` until the first load settles, so a caller can tell "not loaded
- * yet" from "nothing marked"; a failed read resolves to an empty list rather
- * than stranding the surface.
+ * `marks` stays `null` until the first load settles, so a caller can tell
+ * "not loaded yet" from "nothing marked"; a failed read sets `failed` instead
+ * of masquerading as an empty list.
  */
-export function useBookMarks(bookId: string): Annotation[] | null {
+export function useBookMarks(bookId: string): { marks: Annotation[] | null; failed: boolean } {
   const [marks, setMarks] = useState<Annotation[] | null>(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setMarks(null);
+    setFailed(false);
     void listAnnotations({ bookId })
       .then((list) => {
         if (!cancelled) setMarks(list.filter((entry) => entry.type !== "ask"));
       })
-      .catch(() => {
-        if (!cancelled) setMarks([]);
+      .catch((error) => {
+        log.error("listing book marks failed", error);
+        if (!cancelled) {
+          setMarks([]);
+          setFailed(true);
+        }
       });
     return () => {
       cancelled = true;
     };
   }, [bookId]);
 
-  return marks;
+  return { marks, failed };
 }

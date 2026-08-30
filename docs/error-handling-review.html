@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReadAware · 全局错误处理审计与统一化方案</title>
+<style>
+  :root {
+    --paper: #faf9f7; --paper-warm: #f5f3ef; --ink: #1c1917;
+    --stone-700: #44403c; --stone-600: #57534e; --stone-500: #78716c;
+    --stone-400: #a8a29e; --stone-300: #d6d3d1; --border: #e7e5e4;
+    --accent: #7c2d12; --good: #3f6212;
+    --serif: Charter, "Iowan Old Style", "Source Serif 4", Georgia, "Songti SC", serif;
+    --sans: Inter, -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
+    --mono: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans);
+         font-size: 16px; line-height: 1.75; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 88px 32px 140px; }
+
+  .eyebrow { font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+             color: var(--stone-500); font-weight: 500; margin: 0 0 20px; }
+  h1 { font-family: var(--serif); font-weight: 400; font-size: 46px; line-height: 1.08;
+       letter-spacing: -.02em; margin: 0 0 20px; }
+  .standfirst { font-family: var(--serif); font-size: 19px; line-height: 1.65;
+                color: var(--stone-600); margin: 0 0 28px; max-width: 62ch; }
+  .masthead-meta { display: flex; flex-wrap: wrap; gap: 8px 28px; font-size: 12px;
+                   color: var(--stone-500); padding-top: 24px; border-top: 1px solid var(--border); }
+  .masthead-meta b { font-weight: 500; color: var(--stone-700); }
+
+  h2 { font-family: var(--serif); font-weight: 400; font-size: 30px; line-height: 1.2;
+       letter-spacing: -.015em; margin: 76px 0 8px; padding-top: 30px; border-top: 1px solid var(--border); }
+  h2 .num { display: block; font-family: var(--sans); font-size: 11px; letter-spacing: .14em;
+            text-transform: uppercase; color: var(--stone-400); font-weight: 500; margin-bottom: 12px; }
+  h3 { font-family: var(--sans); font-weight: 600; font-size: 16px; margin: 38px 0 10px; }
+  h4 { font-family: var(--sans); font-weight: 600; font-size: 12px; letter-spacing: .06em;
+       text-transform: uppercase; color: var(--stone-500); margin: 24px 0 8px; }
+  p { margin: 0 0 16px; max-width: 68ch; }
+  ul, ol { margin: 0 0 16px; padding-left: 22px; max-width: 68ch; }
+  li { margin-bottom: 7px; } li::marker { color: var(--stone-400); }
+  code { font-family: var(--mono); font-size: .855em; background: var(--paper-warm);
+         border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; color: var(--stone-700);
+         overflow-wrap: break-word; }
+
+  .verdict { background: var(--paper-warm); border: 1px solid var(--border); border-radius: 4px;
+             padding: 28px 32px; margin: 40px 0 8px; }
+  .verdict p:last-child { margin-bottom: 0; }
+  .verdict .lede { font-family: var(--serif); font-size: 18px; line-height: 1.6; }
+
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: 1px;
+             background: var(--border); border: 1px solid var(--border); border-radius: 4px;
+             overflow: hidden; margin: 28px 0 36px; }
+  .metric { background: var(--paper); padding: 18px 16px; }
+  .metric .v { font-family: var(--serif); font-size: 26px; line-height: 1.1; letter-spacing: -.02em; display: block; }
+  .metric .l { font-size: 11px; color: var(--stone-500); margin-top: 5px; display: block; }
+  .metric.bad .v { color: var(--accent); }
+  .metric.good .v { color: var(--good); }
+
+  .item { border: 1px solid var(--border); border-radius: 4px; padding: 26px 30px; margin: 0 0 20px; background: #fff; }
+  .item > :last-child { margin-bottom: 0; }
+  .item-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .item-head h3 { margin: 0; font-size: 17px; }
+  .badge { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+           padding: 3px 8px; border-radius: 3px; white-space: nowrap; }
+  .badge.p0 { background: var(--accent); color: #fff; }
+  .badge.p1 { background: #a16207; color: #fff; }
+  .badge.p2 { background: var(--stone-500); color: #fff; }
+  .badge.ok { background: var(--good); color: #fff; }
+  .tag { font-size: 11px; color: var(--stone-500); border: 1px solid var(--border); padding: 2px 7px; border-radius: 3px; }
+
+  .tbl-wrap { overflow-x: auto; margin: 20px 0 28px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 460px; }
+  th { text-align: left; font-weight: 600; font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+       color: var(--stone-500); padding: 0 14px 9px 0; border-bottom: 1px solid var(--stone-300); white-space: nowrap; }
+  td { padding: 9px 14px 9px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+  td.mono { font-family: var(--mono); font-size: 12px; }
+  .was { color: var(--accent); } .now { color: var(--good); font-weight: 500; }
+
+  .note { border-left: 2px solid var(--stone-400); background: var(--paper-warm); padding: 16px 20px;
+          margin: 20px 0; border-radius: 0 4px 4px 0; font-size: 14.5px; color: var(--stone-700); }
+  .note > :last-child { margin-bottom: 0; }
+  .note b { color: var(--ink); }
+  .note.correction { border-left-color: var(--accent); }
+
+  footer { margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--border);
+           font-size: 12px; color: var(--stone-500); }
+  @media (max-width: 640px) { .wrap { padding: 56px 20px 100px; } h1 { font-size: 34px; } h2 { font-size: 25px; } .item { padding: 20px 18px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<p class="eyebrow">ReadAware · 工程评审</p>
+<h1>全局错误处理审计与统一化方案</h1>
+<p class="standfirst">
+逐层扫描了错误的产生（Rust/IPC、AI、异步管线）、传播（分类与映射）和呈现（inline、toast、dialog、boundary）。
+结论：捕获层扎实，分类层几乎不存在，呈现层碎成了十一种各自为政的写法。统一化完全可行，方案按四层给出。
+</p>
+<div class="masthead-meta">
+  <span><b>日期</b> 2026-08-30</span>
+  <span><b>范围</b> apps/web · apps/desktop · packages/agent · plugins</span>
+  <span><b>方法</b> 三路并行静态扫描（呈现面 / 吞错误 / 基础设施）</span>
+</div>
+
+<div class="verdict">
+  <p class="lede">
+  这不是「补几个 catch」的问题，而是中间缺了一整层：错误从产生地（Rust 命令、AI provider、后台管线）到呈现地（toast、行内文案、错误屏）之间，没有任何统一的<b>分类与映射</b>。
+  于是每个呈现点只能二选一——要么把 <code>error.message</code> 原样丢给用户（14 处），要么干脆不说（8 处用户该知情却沉默的位置，含 1 条真实的数据丢失路径）。
+  </p>
+  <p>
+  好消息是地基已经打好：日志接缝（<code>logger.ts</code>）、滚动文件日志、诊断包、双层 error boundary、全局 <code>unhandledrejection</code> 捕获都在且质量不错。
+  要补的是中间的「错误词表 + 单一映射函数」，再把呈现收敛到三种（toast / 行内 / 表单字段），改造是收敛式的而非推倒重来。
+  </p>
+</div>
+
+<div class="metrics">
+  <div class="metric bad"><span class="v">11 种</span><span class="l">各自为政的错误呈现写法</span></div>
+  <div class="metric bad"><span class="v">14 处</span><span class="l">raw error.message 直达用户</span></div>
+  <div class="metric bad"><span class="v">131/131</span><span class="l">Rust 命令返回 Result&lt;T, String&gt;</span></div>
+  <div class="metric bad"><span class="v">199 处</span><span class="l">裸 invoke()，无统一包装</span></div>
+  <div class="metric bad"><span class="v">1 个</span><span class="l">AI 层现存的错误码</span></div>
+  <div class="metric good"><span class="v">0 处</span><span class="l">用 Dialog 弹错误（应保持）</span></div>
+</div>
+
+<h2><span class="num">Section 01</span>现状：好的部分，先说清楚</h2>
+
+<p>统一化不是从零开始。这些设施已经在位，方案会直接依赖它们：</p>
+<ul>
+  <li><b>日志接缝</b>：<code>apps/web/src/platform/logger.ts</code> 的 <code>createLogger(module)</code>，info/warn/error 同时进 console 与 Tauri 滚动文件日志（4×5MB），92 个调用点、26 个模块标签。日志里「只放 id 与错误文本、不放用户内容」的约定写在文件头。</li>
+  <li><b>全局兜底</b>：<code>global-error-log.ts</code> 捕 <code>window.error</code> 与 <code>unhandledrejection</code>；<code>boot-failure.ts</code> 处理启动失败（纯 DOM，不依赖可能已挂掉的 React/i18n）；Rust 侧 <code>install_panic_log_hook</code> 记 panic 与 backtrace。</li>
+  <li><b>双层 boundary</b>：路由根部 <code>RootErrorBoundary</code> + 四个 <code>FeatureErrorBoundary</code>（reader / agent / stats / plugin-page），带 <code>resetKey</code> 与重试。</li>
+  <li><b>诊断包</b>：日志尾部 + 投影完整性自检，导出或自愿上报（<code>/v1/report</code>），一切出设备的动作都经用户确认。</li>
+  <li><b>两个模范样本</b>：<code>DataSyncPanel.tsx:49</code> 明确注释「raw 进日志、用户看本地化文案」；<code>useLibraryController.ts:77</code> 的 <code>reportError</code> 是「log 原因 + toast 摘要」的正确形状——但它们都只是局部习惯，没升级成全局设施。</li>
+  <li><b>表单字段错误</b>：<code>TextField / Select / TextArea</code> 的 <code>error</code> prop（含 <code>aria-describedby</code>）是全应用唯一真正一致的错误呈现，各处文案也都本地化了。保持不动。</li>
+</ul>
+
+<h2><span class="num">Section 02</span>病灶一：吞错误</h2>
+
+<div class="item">
+  <div class="item-head"><h3>数据丢失路径：旧会话导入失败被当成成功，随后删除源数据</h3><span class="badge p0">P0</span></div>
+  <p><code>desktop-import.ts:163</code> 里 <code>importKvConversationsIntoSqlite</code> 遇到 <code>JSON.parse</code> 失败会静默 return——形同成功；调用方 <code>local-store.ts:166</code> 紧接着 <code>delete_kv</code> 删掉旧数据。一个损坏的 legacy blob 意味着 v6 之前的全部聊天记录被永久删除，无日志、无提示。同目录的姊妹迁移（<code>interim-projections.ts:84/128</code>）都做对了：失败时记日志并保留原 key 等待重试。</p>
+</div>
+
+<div class="item">
+  <div class="item-head"><h3>读失败被渲染成「空」，与「没有数据」不可区分</h3><span class="badge p1">P1</span></div>
+  <p>数据库锁死、迁移失败、FTS 出错时，这些界面显示的是一个看起来很正常的空列表或 0：</p>
+  <ul>
+    <li><code>useBookAnnotations.ts:24</code> — 标注列表 <code>catch → []</code></li>
+    <li><code>useAnnotationCounts.ts:59</code> — 统计页全部归零</li>
+    <li><code>AnnotationsPopover.tsx:24</code> — 全局标注浮层</li>
+    <li><code>useBookMarks.ts:29</code> — 完读页书签列表</li>
+    <li><code>system-fonts.ts:29</code> — 字体列表变空、<code>usePluginFieldOptions.ts:82</code> — 插件下拉变空</li>
+  </ul>
+</div>
+
+<div class="item">
+  <div class="item-head"><h3>写失败无提示：用户以为保存了，其实没有</h3><span class="badge p1">P1</span></div>
+  <ul>
+    <li><code>useReaderTextActions.ts:235/324/344/462</code> — <b>高亮、改色、删除、笔记</b>保存失败只进日志，笔记内容直接丢弃。这是与 library 层 <code>reportError</code> 最刺眼的不一致。</li>
+    <li><code>local-store.ts:76/88</code>、<code>secret-store.ts:74-111</code> — KV / API key / 同步主密钥落盘失败，但内存快照已更新：界面显示已保存，重启后消失。</li>
+    <li><code>ReaderCompletionScreenView.tsx:108</code> — 标记完读失败，开关静默弹回。</li>
+  </ul>
+</div>
+
+<div class="item">
+  <div class="item-head"><h3>packages/agent 的 memory 管线整层无日志</h3><span class="badge p1">P1</span></div>
+  <p><code>thread.ts</code> 已有可选注入的 <code>deps.log</code>，但 <code>memory/*</code>（extraction、consolidation、rolling-summary、narrativity、graph-upkeep）全部 <code>catch → 空值</code>。最隐蔽的是 <code>graph-upkeep.ts</code>：tick 失败返回 0，<code>digestBookCatchUp</code> 把 0 理解成「backlog 清完了」直接停手——一本书的图谱可能永远建不起来，且无任何痕迹。</p>
+</div>
+
+<h2><span class="num">Section 03</span>病灶二：没价值的 diagnose 信息直达用户</h2>
+
+<p>根因在传播层的两处结构塌缩，14 个呈现点只是下游症状：</p>
+<ol>
+  <li><b>IPC 边界</b>：131 个 Tauri 命令全部 <code>Result&lt;T, String&gt;</code>，零错误枚举。rejected <code>invoke()</code> 抛出的是<b>裸 string 而非 Error 实例</b>——前端遍地的 <code>err instanceof Error ? err.message : String(err)</code> 对 IPC 失败全部走后一个分支，且调用方只能靠子串匹配区分「文件不存在」和「磁盘满」。</li>
+  <li><b>AI 边界</b>：<code>packages/agent/src/runtime/thread.ts:645</code> 把 provider 失败重新包成 <code>new Error(errorMessage)</code>——HTTP 状态、错误类型、可重试性在这一行全部丢失。整个 AI 栈只有一个错误码（<code>ai-not-configured</code>）；429 限流、401 鉴权失败与网络抖动不可区分，重试按钮对永久性错误也照样出现。</li>
+</ol>
+
+<h4>Raw 文案直达用户的 14 处</h4>
+<div class="tbl-wrap"><table>
+  <tr><th>位置</th><th>用户看到什么</th></tr>
+  <tr><td class="mono">FeatureErrorBoundary.tsx:67</td><td>友好标题下附 mono 字体的 raw message（根 boundary 却不显示——两层自相矛盾）</td></tr>
+  <tr><td class="mono">formatLibraryError.ts:9 → ReaderWorkspace / useLibraryController</td><td><code>error.message</code> 优先、本地化文案仅作兜底——顺序反了</td></tr>
+  <tr><td class="mono">format-reader-error.ts:4 → FoliateReaderView:2281</td><td>同上；且该错误屏<b>没有任何重试或返回按钮</b></td></tr>
+  <tr><td class="mono">ChatMessageActions.tsx:99</td><td>未识别错误码时聊天气泡里显示 raw 抛出文本</td></tr>
+  <tr><td class="mono">SyncAccountGroupView.tsx:140 · SyncProgressDetail.tsx:86</td><td>raw <code>lastError</code>（relay/网络原文）两处直出</td></tr>
+  <tr><td class="mono">PluginsPanel.tsx:70/104/121/190 · PluginMarketplace.tsx:67</td><td>「Install failed: {raw}」，:121 甚至无标题裸 message</td></tr>
+  <tr><td class="mono">PluginViewRenderer:171/180 · PluginPageHost:54/75 · PluginHeaderCluster:182</td><td>插件异常原文；且经 <code>PluginToastBridge.tsx:12</code> 走 <b>default variant</b>——失败 toast 和成功 toast 长得一样</td></tr>
+  <tr><td class="mono">UpdateIndicator.tsx:38 · AboutPanel.tsx:88</td><td>更新失败原文藏在 tooltip / 拼进状态行字符串</td></tr>
+  <tr><td class="mono">AIConfigPanel.tsx:281</td><td>连接测试显示 provider/HTTP 原文（诊断面，可豁免但应走同一映射）</td></tr>
+</table></div>
+
+<h2><span class="num">Section 04</span>病灶三：呈现碎片化</h2>
+
+<p>同类错误在不同 feature 里长成了 11 种样子。仅红色就用了三档（<code>red-600/700/800</code>）；同一个同步失败在三处渲染成三种完全不同的组件；AI 聊天有全应用最好的错误卡（错误码 → 本地化文案 → 行内修复链接 → 重试），却是私有组件，别处用不上。</p>
+
+<div class="tbl-wrap"><table>
+  <tr><th>#</th><th>写法</th><th>使用者</th><th>问题</th></tr>
+  <tr><td>1</td><td>destructive toast</td><td>settings / sync / library</td><td>只能关闭，无重试位</td></tr>
+  <tr><td>2</td><td><b>default</b> toast 报失败</td><td>插件桥</td><td>与成功提示无法区分</td></tr>
+  <tr><td>3</td><td>自绘 ChatMessageError 卡</td><td>AI 聊天</td><td>最完善却私有，未复用 Alert</td></tr>
+  <tr><td>4</td><td>Alert 组件</td><td>仅插件（2 处）</td><td>应用自身代码零使用</td></tr>
+  <tr><td>5</td><td>行内红 span</td><td>sync / plugins 设置行</td><td>5 处、3 种红、无重试</td></tr>
+  <tr><td>6</td><td>Caption + 重试链接</td><td>FontField / 插件市场</td><td>一红一灰，各自手搓</td></tr>
+  <tr><td>7</td><td>红色 role="status" 段落</td><td>AI 连接测试</td><td>一次性写法</td></tr>
+  <tr><td>8</td><td>表单 error prop</td><td>连接对话框 / AI 配置 / 插件表单</td><td class="now">唯一一致的，保留</td></tr>
+  <tr><td>9</td><td>整面 fallback 屏</td><td>2 个 boundary + 2 个 reader 变体</td><td>四处四种排版，一处无出口</td></tr>
+  <tr><td>10</td><td>tooltip / 状态行拼接</td><td>更新指示器 / 关于页</td><td>错误几乎不可见</td></tr>
+  <tr><td>11</td><td>完全沉默</td><td>朗读失败 / 复制图片失败</td><td>TTS 插件写好的失败文案从未被引用</td></tr>
+</table></div>
+
+<div class="note">
+  <p><b>Dialog 的答案：现状恰好是对的。</b>全仓库 13 个 Dialog 全是确认、表单和内容查看，<b>没有一处用 modal 弹错误</b>——这符合产品的编辑式克制，应升格为明文规则：错误不打断（不用 Dialog / window.alert），例外只有启动失败与根 boundary 这两个「整个应用已不可用」的场景。</p>
+</div>
+
+<h2><span class="num">Section 05</span>统一化方案：四层</h2>
+
+<div class="item">
+  <div class="item-head"><h3>第一层 · 错误分类：AppError + 稳定错误码词表</h3><span class="badge p2">地基</span></div>
+  <p>新建 <code>apps/web/src/platform/errors.ts</code>（词表类型放 <code>packages/core</code> 供 agent 包共享）：</p>
+  <ul>
+    <li><code>AppError</code> 基类：<code>code</code>（稳定字符串，如 <code>db/locked</code>、<code>fs/not-found</code>、<code>ai/rate-limited</code>、<code>sync/quota-full</code>）、<code>retryable</code>、<code>cause</code>。现有 10 个孤立 Error 子类（RelayError、WrongPassphraseError…）归入该基类，各自领一个 code。</li>
+    <li><b>IPC 包装</b>：唯一入口 <code>invokeIpc()</code> 替换 199 处裸 <code>invoke()</code>，把裸 string 拒绝统一包成 <code>IpcError extends AppError</code>——一次性根治「rejected invoke 不是 Error」的类型陷阱。</li>
+    <li><b>Rust 侧分两步</b>：先在高失败价值的域（library 导入、annotations、sync、secrets）引入 <code>thiserror</code> 枚举、serde 序列化为 <code>{ code, message }</code>，<code>invokeIpc</code> 识别该形状还原成带码的 <code>IpcError</code>；其余命令保持 String、落入 <code>ipc/unknown</code>，随后按域渐进迁移。131 个命令一次全改不划算也不必要——码只在「UI 需要区分处理」时才有价值。</li>
+    <li><b>AI 层</b>：在 <code>thread.ts:645</code> 结构塌缩点就地分类（限流 / 鉴权 / 网络 / 上下文超限 / 终态），扩充 <code>ai-errors.ts</code> 现成的码表机制；重试按钮只对 <code>retryable</code> 出现，鉴权失败改为「打开设置」链接（该交互 ChatMessageError 已实现，只差码）。</li>
+  </ul>
+</div>
+
+<div class="item">
+  <div class="item-head"><h3>第二层 · 消息映射：唯一的 describeError()</h3><span class="badge p2">核心</span></div>
+  <p><code>describeError(error, t) → { title, body, retryable, action? }</code>：有码走本地化码表；无码给通用文案、raw 只进文件日志。以下全部删除并改走它：4 个重复的私有 <code>errorMessage()</code>、<code>formatLibraryError</code>、<code>formatReaderError</code>。<b>铁律：raw <code>error.message</code> 永不进 JSX，诊断细节的唯一去处是文件日志与诊断包</b>（boundary fallback 提供「复制详情 / 打开日志目录」替代当前的 mono 直出）。</p>
+</div>
+
+<div class="item">
+  <div class="item-head"><h3>第三层 · 呈现收敛：三种 surface，一条禁令</h3><span class="badge p2">UI</span></div>
+  <ul>
+    <li><b>Toast（操作失败）</b>：给 <code>ToastOptions</code> 加 <code>action</code> 槽（Alert 已有先例），失败一律 <code>destructive</code>——修掉插件桥的 default variant。用于保存 / 导入 / 同步这类「动作没成」。</li>
+    <li><b>InlineError（面内错误，新组件进 @read-aware/ui）</b>：以 ChatMessageError 为蓝本、基于 Alert 实现：<code>role="alert"</code>、标题 + 本地化正文 + 可选重试 / 修复链接，统一一档红。替换 11 种写法里的 3–7、9、10：行内红 span、Caption 手搓、reader 错误屏（并给 <code>FoliateReaderView:2281</code> 补上重试 + 返回书架的出口）、boundary fallback、更新指示器。</li>
+    <li><b>表单 error prop</b>：已一致，保持。</li>
+    <li><b>禁令：Dialog 不用于错误</b>。写进规则，现状已满足。</li>
+  </ul>
+</div>
+
+<div class="item">
+  <div class="item-head"><h3>第四层 · 规则固化（CLAUDE.md + 本文档）</h3><span class="badge p2">防回潮</span></div>
+  <ol>
+    <li>raw 错误文本永不给用户；用户看 <code>describeError</code>，日志看 raw。</li>
+    <li>catch 三选一：注明 best-effort 理由 / 记日志 / 上报 UI——不存在第四种。</li>
+    <li>读失败 ≠ 空状态：加载失败必须渲染 InlineError，不许 <code>catch → []</code>。</li>
+    <li>写失败必须让用户知道（toast），且不得先改内存快照后落盘失败装无事。</li>
+    <li>后台管线（memory / digest / 插件任务）必须持有注入的 logger。</li>
+  </ol>
+</div>
+
+<h2><span class="num">Section 06</span>随行必修清单与实施顺序</h2>
+
+<p>以下是扫描中发现、应随本次改造一并处理的具体缺陷：</p>
+<div class="tbl-wrap"><table>
+  <tr><th>级别</th><th>事项</th></tr>
+  <tr><td><span class="badge p0">P0</span></td><td><code>desktop-import.ts:163</code> 导入失败改为抛出，保住 legacy key 供重试（唯一数据丢失路径）</td></tr>
+  <tr><td><span class="badge p1">P1</span></td><td>标注 / 笔记写失败接入 toast（对齐 library 层 <code>reportError</code>）；四处「读失败装空」改为 failed 态</td></tr>
+  <tr><td><span class="badge p1">P1</span></td><td><code>PluginToastBridge</code> 失败走 destructive；<code>FoliateReaderView</code> 错误屏补出口</td></tr>
+  <tr><td><span class="badge p1">P1</span></td><td><code>memory/*</code> 接入 <code>deps.log</code>；<code>graph-upkeep</code> 失败不再伪装成「backlog 清完」</td></tr>
+  <tr><td><span class="badge p2">P2</span></td><td>秘钥 / KV 落盘失败时回滚内存快照；LibraryWorkspace 补 FeatureErrorBoundary</td></tr>
+  <tr><td><span class="badge p2">P2</span></td><td>接线或移除两处死代码：<code>crashReports</code> 开关（持久化但无人读取）、<code>dictionary.error</code> 文案（写好但无人引用）——<b>去留请拍板</b></td></tr>
+</table></div>
+
+<h4>建议实施顺序</h4>
+<ol>
+  <li><b>P0 数据丢失修复</b>——独立小改动，先落。</li>
+  <li><b>分类 + 映射层</b>：AppError / 错误码词表 / <code>invokeIpc</code> / <code>describeError</code>，AI 层分类。此时 14 处 raw 泄漏自然被截断。</li>
+  <li><b>呈现收敛</b>：Toast action 槽、InlineError 组件，逐 feature 替换 11 种写法。</li>
+  <li><b>吞错误清理 + Rust 高价值域 thiserror 化</b>，规则写入 CLAUDE.md。</li>
+</ol>
+
+<footer>ReadAware 工程评审 · 2026-08-30 · 全局错误处理审计。行号为审计当日快照，实施时以当前代码为准。</footer>
+
+</div>
+</body>
+</html>

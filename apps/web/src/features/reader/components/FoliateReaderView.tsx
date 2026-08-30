@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TFunction } from "i18next";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { Body, Spinner } from "@read-aware/ui";
+import { Body, Button, Spinner } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
-import { useTranslation } from "../../../i18n";
+import { describeError, useTranslation } from "../../../i18n";
 import { textUnitModeSettingsAtom, shortcutBindingsAtom } from "../../../state/ui";
 import { chordMatchesEvent, resolveBinding } from "../../settings/lib/shortcuts";
 import type { LibraryBook, ReaderProgress } from "../../library/lib/library-types";
-import { formatReaderError } from "../lib/format-reader-error";
+import { createLogger } from "../../../platform/logger";
 import { resolveReaderModeUnit } from "../../plugins/lib/reader-mode";
 import {
   getNormalizedSelectionText,
@@ -144,6 +144,8 @@ type FoliateReaderViewProps = {
     requestId: number;
   } | null;
 };
+
+const log = createLogger("reader");
 
 const SELECTION_CLICK_SUPPRESSION_MS = 180;
 const SHELL_TAP_MAX_DURATION_MS = 220;
@@ -338,7 +340,7 @@ export function FoliateReaderView({
   annotationNavigationRequest = null,
   fractionNavigationRequest = null,
 }: FoliateReaderViewProps) {
-  const { t } = useTranslation("reader");
+  const { t } = useTranslation(["reader", "common"]);
   // Resolved page-color palette (built-in or plugin-contributed).
   const readerPalette = useReaderPalette(readerSettings.theme);
   // Held in a ref so the stable, mount-once engine effects and callbacks can
@@ -469,6 +471,11 @@ export function FoliateReaderView({
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Log the raw failure, hand back localized copy (never the raw message). */
+  const describeReaderFailure = useCallback((raw: unknown) => {
+    log.error("reader failure", raw);
+    return describeError(raw, { fallback: tRef.current("reader:loadError") }).body;
+  }, []);
   // Only surface the loader once a load is genuinely slow, so fast opens (the
   // common case) fade straight in without a flashed indicator.
   const showLoader = useDelayedFlag(isLoading, 250);
@@ -780,7 +787,7 @@ export function FoliateReaderView({
       clearSelection();
       await view.goTo(href);
     } catch (nextError) {
-      setError(formatReaderError(nextError, tRef.current));
+      setError(describeReaderFailure(nextError));
     }
   }, [clearSelection]);
 
@@ -801,7 +808,7 @@ export function FoliateReaderView({
       try {
         await viewRef.current?.goToFraction(Math.min(1, Math.max(0, fraction)));
       } catch (nextError) {
-        setError(formatReaderError(nextError, tRef.current));
+        setError(describeReaderFailure(nextError));
       }
     });
     suppressShellDismissRef.current = false;
@@ -2089,7 +2096,7 @@ export function FoliateReaderView({
           onBookReadyRef.current?.(book);
         }
       } catch (nextError) {
-        if (!cancelled) setError(formatReaderError(nextError, tRef.current));
+        if (!cancelled) setError(describeReaderFailure(nextError));
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -2278,7 +2285,21 @@ export function FoliateReaderView({
 
       {error && (
         <div className="absolute inset-0 flex items-center justify-center bg-inherit px-8 text-center">
-          <Body className="max-w-md text-sm text-fg-muted">{error}</Body>
+          <div className="max-w-md space-y-4" role="alert">
+            <Body className="text-sm text-fg-muted">{error}</Body>
+            {/* A navigation failure leaves the page beneath intact — dismiss
+                resumes reading; a load failure needs a way back out. */}
+            <div className="flex items-center justify-center gap-2">
+              <Button size="sm" variant="outline" onClick={() => setError(null)}>
+                {t("common:actions.dismiss")}
+              </Button>
+              {onCloseReader && (
+                <Button size="sm" variant="ghost" onClick={onCloseReader}>
+                  {t("reader:backToLibrary")}
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

@@ -8,7 +8,7 @@
  * focus pulls (the other device may have moved while we were away); failures
  * back off exponentially (nextSyncDelayMs) instead of hammering the relay.
  */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../ipc";
 import { isTauri } from "../environment";
 import { emitAppEvent } from "../app-events";
 import { reconcileDuplicateBooks } from "../book-dedupe";
@@ -18,6 +18,7 @@ import { createLogger } from "../logger";
 import { refreshRoamingPreferences, republishRoamingSecrets } from "../roaming-preferences";
 import { deleteSecret, getSecret, setSecret } from "../secret-store";
 import { fromBase64 } from "../sync-envelope";
+import { classifySyncError } from "./classify-sync-error";
 import { clearReauthNoticeDismissal } from "./reauth-notice";
 import { createRelayClient, RelayError, RelayMisdirectedError, type RelayClient } from "./relay-client";
 import {
@@ -116,7 +117,8 @@ export type SyncStatusSnapshot = {
   /** The local profile and both credentials identify a connected account. */
   accountConnected: boolean;
   lastSyncAt: number | null;
-  lastError: string | null;
+  /** Stable code for the last failure (classify-sync-error); raw text is log-only. */
+  lastErrorCode: string | null;
   /** Live counters while `state === "syncing"`, null otherwise. */
   progress: SyncCycleProgress | null;
   /**
@@ -133,7 +135,7 @@ let status: SyncStatusSnapshot = {
   state: "disabled",
   accountConnected: false,
   lastSyncAt: null,
-  lastError: null,
+  lastErrorCode: null,
   progress: null,
   cycleTotals: null,
   lastCycle: null,
@@ -231,7 +233,7 @@ async function runCycle(): Promise<void> {
     setStatus({
       state: "idle",
       lastSyncAt: Date.now(),
-      lastError: null,
+      lastErrorCode: null,
       progress: null,
       cycleTotals: null,
       lastCycle: { pulled, pushed, blobs },
@@ -305,9 +307,10 @@ export async function syncNow(): Promise<void> {
   try {
     await runCycle();
   } catch (error) {
+    log.error("manual sync failed", error);
     setStatus({
       state: isAuthRejection(error) ? "unauthenticated" : "error",
-      lastError: error instanceof Error ? error.message : String(error),
+      lastErrorCode: classifySyncError(error),
       progress: null,
       cycleTotals: null,
     });
@@ -328,7 +331,7 @@ export function startSyncScheduler(): () => void {
     state: "disabled",
     accountConnected: false,
     lastSyncAt: null,
-    lastError: null,
+    lastErrorCode: null,
     progress: null,
     cycleTotals: null,
     lastCycle: null,
@@ -365,7 +368,7 @@ export function startSyncScheduler(): () => void {
     watchSocket = null;
     setStatus({
       state: "unauthenticated",
-      lastError: null,
+      lastErrorCode: null,
       progress: null,
       cycleTotals: null,
     });
@@ -384,9 +387,10 @@ export function startSyncScheduler(): () => void {
           return;
         }
         failures += 1;
+        log.error("sync cycle failed", error);
         setStatus({
           state: "error",
-          lastError: error instanceof Error ? error.message : String(error),
+          lastErrorCode: classifySyncError(error),
           progress: null,
           cycleTotals: null,
         });

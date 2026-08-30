@@ -11,8 +11,11 @@
  * feature modules now resolve to SQLite on desktop and would no longer see them.
  * Desktop-only: `hydrateLocalStore()` only calls this under Tauri.
  */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./ipc";
+import { createLogger } from "./logger";
 import { putDesktopBlob } from "./blob-store";
+
+const log = createLogger("migration");
 
 const MIGRATED_FLAG = "read-aware-migrated-v1";
 const AI_CONFIG_KEY = "read-aware-ai-config";
@@ -84,8 +87,10 @@ async function importLocalStorage(): Promise<void> {
           await invoke("secret_set", { key: "ai-api-key", value: apiKey });
           localStorage.removeItem(AI_KEY_KEY);
         }
-      } catch {
-        // Malformed — skip.
+      } catch (error) {
+        // Malformed legacy blob: the connection fields are re-enterable, but
+        // record that the carried-over key (if any) was NOT migrated.
+        log.warn("legacy AI config blob unreadable; skipped", error);
       }
       continue;
     }
@@ -160,8 +165,12 @@ export async function importKvConversationsIntoSqlite(raw: string): Promise<void
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
-  } catch {
-    return; // malformed blob — nothing to carry forward
+  } catch (err) {
+    // Must NOT resolve here: the caller deletes the kv key once this returns,
+    // and a malformed blob may still be a truncated-but-recoverable transcript
+    // store. Throwing keeps the key in place for the next launch (and for
+    // manual recovery); the sibling migrations follow the same rule.
+    throw new Error("legacy conversations blob is not valid JSON", { cause: err });
   }
   if (!parsed || typeof parsed !== "object") return;
   for (const [conversationId, messages] of Object.entries(parsed as Record<string, unknown>)) {

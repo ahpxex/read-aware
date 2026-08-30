@@ -3,6 +3,7 @@
 //!
 //! Split out of `storage/mod.rs`; `use super::*` keeps the shared types in
 //! scope, so this is a move rather than a rewrite.
+use crate::error::CommandError;
 use super::*;
 
 // --- AI chat transcripts (per-book conversations + the global thread) ---
@@ -42,8 +43,8 @@ pub(crate) fn row_to_ai_message(row: &rusqlite::Row) -> rusqlite::Result<AiMessa
 }
 
 #[tauri::command]
-pub fn ai_chat_load(conversation_id: String, db: State<'_, Db>) -> Result<Vec<AiMessage>, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn ai_chat_load(conversation_id: String, db: State<'_, Db>) -> Result<Vec<AiMessage>, CommandError> {
+    let conn = db.0.lock()?;
     let mut stmt = conn
         // seq alone is not unique across devices (each device numbers its own
         // transcript); created_at then id break ties deterministically so
@@ -52,29 +53,29 @@ pub fn ai_chat_load(conversation_id: String, db: State<'_, Db>) -> Result<Vec<Ai
             "SELECT * FROM ai_messages WHERE conversation_id = ?1
              ORDER BY seq, created_at, id",
         )
-        .map_err(|e| e.to_string())?;
+        ?;
     let rows = stmt
         .query_map(params![conversation_id], row_to_ai_message)
-        .map_err(|e| e.to_string())?;
+        ?;
     let mut out = Vec::new();
     for r in rows {
-        out.push(r.map_err(|e| e.to_string())?);
+        out.push(r?);
     }
     Ok(out)
 }
 
 #[tauri::command]
-pub fn ai_chat_load_all(db: State<'_, Db>) -> Result<Vec<AiMessage>, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn ai_chat_load_all(db: State<'_, Db>) -> Result<Vec<AiMessage>, CommandError> {
+    let conn = db.0.lock()?;
     let mut stmt = conn
         .prepare("SELECT * FROM ai_messages ORDER BY conversation_id, seq, created_at, id")
-        .map_err(|e| e.to_string())?;
+        ?;
     let rows = stmt
         .query_map([], row_to_ai_message)
-        .map_err(|e| e.to_string())?;
+        ?;
     let mut out = Vec::new();
     for r in rows {
-        out.push(r.map_err(|e| e.to_string())?);
+        out.push(r?);
     }
     Ok(out)
 }
@@ -98,8 +99,8 @@ pub fn ai_chat_replace(
     conversation_id: String,
     messages: Vec<AiMessage>,
     db: State<'_, Db>,
-) -> Result<(), String> {
-    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+) -> Result<(), CommandError> {
+    let mut conn = db.0.lock()?;
     ai_chat_replace_inner(&mut conn, &conversation_id, &messages)
 }
 
@@ -107,8 +108,8 @@ pub(crate) fn ai_chat_replace_inner(
     conn: &mut Connection,
     conversation_id: &str,
     messages: &[AiMessage],
-) -> Result<(), String> {
-    let tx = conn.transaction().map_err(|e| e.to_string())?;
+) -> Result<(), CommandError> {
+    let tx = conn.transaction()?;
     tx.execute(
         "INSERT INTO ai_conversations (id, created_at, updated_at, cleared_at)
          VALUES (?1, strftime('%Y-%m-%dT%H:%M:%fZ','now'),
@@ -117,12 +118,12 @@ pub(crate) fn ai_chat_replace_inner(
             updated_at = excluded.updated_at, cleared_at = NULL",
         params![conversation_id],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     tx.execute(
         "DELETE FROM ai_messages WHERE conversation_id = ?1 AND error IS NOT NULL",
         params![conversation_id],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     for (seq, message) in messages.iter().enumerate() {
         tx.execute(
             "INSERT INTO ai_messages
@@ -146,9 +147,9 @@ pub(crate) fn ai_chat_replace_inner(
                 message.error,
             ],
         )
-        .map_err(|e| e.to_string())?;
+        ?;
     }
-    tx.commit().map_err(|e| e.to_string())
+    Ok(tx.commit()?)
 }
 
 /// One row per non-empty conversation, newest-activity first: id, activity
@@ -163,8 +164,8 @@ pub struct AiChatSummary {
 }
 
 #[tauri::command]
-pub fn ai_chat_list(db: State<'_, Db>) -> Result<Vec<AiChatSummary>, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn ai_chat_list(db: State<'_, Db>) -> Result<Vec<AiChatSummary>, CommandError> {
+    let conn = db.0.lock()?;
     let mut stmt = conn
         .prepare(
             "SELECT c.id, c.updated_at, COUNT(m.id) AS message_count,
@@ -177,7 +178,7 @@ pub fn ai_chat_list(db: State<'_, Db>) -> Result<Vec<AiChatSummary>, String> {
              HAVING COUNT(m.id) > 0
              ORDER BY c.updated_at DESC",
         )
-        .map_err(|e| e.to_string())?;
+        ?;
     let rows = stmt
         .query_map([], |row| {
             Ok(AiChatSummary {
@@ -187,10 +188,10 @@ pub fn ai_chat_list(db: State<'_, Db>) -> Result<Vec<AiChatSummary>, String> {
                 preview: row.get(3)?,
             })
         })
-        .map_err(|e| e.to_string())?;
+        ?;
     let mut out = Vec::new();
     for r in rows {
-        out.push(r.map_err(|e| e.to_string())?);
+        out.push(r?);
     }
     Ok(out)
 }
@@ -198,13 +199,13 @@ pub fn ai_chat_list(db: State<'_, Db>) -> Result<Vec<AiChatSummary>, String> {
 /// Clear = delete the messages, keep the conversation row with a `cleared_at`
 /// tombstone (cross-device clear semantics per docs/sqlite-schema.sql).
 #[tauri::command]
-pub fn ai_chat_clear(conversation_id: String, db: State<'_, Db>) -> Result<(), String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn ai_chat_clear(conversation_id: String, db: State<'_, Db>) -> Result<(), CommandError> {
+    let conn = db.0.lock()?;
     conn.execute(
         "DELETE FROM ai_messages WHERE conversation_id = ?1",
         params![conversation_id],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     conn.execute(
         "UPDATE ai_conversations
          SET cleared_at = strftime('%Y-%m-%dT%H:%M:%fZ','now'),
@@ -212,7 +213,7 @@ pub fn ai_chat_clear(conversation_id: String, db: State<'_, Db>) -> Result<(), S
          WHERE id = ?1",
         params![conversation_id],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     Ok(())
 }
 

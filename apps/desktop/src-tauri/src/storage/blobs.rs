@@ -7,6 +7,7 @@
 //!
 //! Split out of `storage/mod.rs`; `use super::*` keeps the shared types in
 //! scope, so this is a move rather than a rewrite.
+use crate::error::CommandError;
 use super::*;
 
 // --- Filesystem blob store ----------------------------------------------------
@@ -73,16 +74,16 @@ pub(crate) fn put_blob_inner(
     key: &str,
     mime_type: Option<&str>,
     data: &[u8],
-) -> Result<BlobPutResult, String> {
+) -> Result<BlobPutResult, CommandError> {
     let blobs_dir = data_dir.join("blobs");
-    std::fs::create_dir_all(&blobs_dir).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&blobs_dir)?;
     let file_name = blob_file_name(key);
     // Write-then-rename so a crash mid-write never leaves a torn blob behind
     // a committed registry row.
     let tmp_path = blobs_dir.join(format!("{file_name}.tmp"));
     let final_path = blobs_dir.join(&file_name);
-    std::fs::write(&tmp_path, data).map_err(|e| e.to_string())?;
-    std::fs::rename(&tmp_path, &final_path).map_err(|e| e.to_string())?;
+    std::fs::write(&tmp_path, data)?;
+    std::fs::rename(&tmp_path, &final_path)?;
 
     let sha256 = format!("{:x}", Sha256::digest(data));
     let byte_size = data.len() as i64;
@@ -96,7 +97,7 @@ pub(crate) fn register_blob_inner(
     byte_size: i64,
     sha256: String,
     file_name: String,
-) -> Result<BlobPutResult, String> {
+) -> Result<BlobPutResult, CommandError> {
     let (kind, sync_required) = blob_kind(key);
     let storage_uri = format!("blobs/{file_name}");
     conn.execute(
@@ -121,7 +122,7 @@ pub(crate) fn register_blob_inner(
             sync_required as i64
         ],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     if sync_required {
         // (Re)writes reset the outbox: changed content must push again.
         conn.execute(
@@ -133,7 +134,7 @@ pub(crate) fn register_blob_inner(
                 updated_at = excluded.updated_at",
             params![key],
         )
-        .map_err(|e| e.to_string())?;
+        ?;
     }
     Ok(BlobPutResult { sha256, byte_size })
 }
@@ -147,30 +148,30 @@ fn copy_blob_from_file(
     data_dir: &Path,
     key: &str,
     source_path: &Path,
-) -> Result<(String, i64, String), String> {
+) -> Result<(String, i64, String), CommandError> {
     let blobs_dir = data_dir.join("blobs");
-    std::fs::create_dir_all(&blobs_dir).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&blobs_dir)?;
     let file_name = blob_file_name(key);
     let tmp_path = blobs_dir.join(format!("{file_name}.tmp"));
     let final_path = blobs_dir.join(&file_name);
 
-    let copy_result = (|| -> Result<(String, i64), String> {
+    let copy_result = (|| -> Result<(String, i64), CommandError> {
         let byte_size = std::fs::copy(source_path, &tmp_path).map_err(|e| {
             format!("Failed to copy selected book {}: {e}", source_path.display())
         })?;
-        let staged = std::fs::File::open(&tmp_path).map_err(|e| e.to_string())?;
+        let staged = std::fs::File::open(&tmp_path)?;
         let mut reader = BufReader::new(staged);
         let mut hasher = Sha256::new();
         let mut buffer = vec![0_u8; 1024 * 1024];
 
         loop {
-            let read = reader.read(&mut buffer).map_err(|e| e.to_string())?;
+            let read = reader.read(&mut buffer)?;
             if read == 0 {
                 break;
             }
             hasher.update(&buffer[..read]);
         }
-        std::fs::rename(&tmp_path, &final_path).map_err(|e| e.to_string())?;
+        std::fs::rename(&tmp_path, &final_path)?;
         Ok((format!("{:x}", hasher.finalize()), byte_size as i64))
     })();
 
@@ -191,7 +192,7 @@ pub(crate) fn put_blob_from_file_inner(
     key: &str,
     mime_type: Option<&str>,
     source_path: &Path,
-) -> Result<BlobPutResult, String> {
+) -> Result<BlobPutResult, CommandError> {
     let (sha256, byte_size, file_name) = copy_blob_from_file(data_dir, key, source_path)?;
     register_blob_inner(conn, key, mime_type, byte_size, sha256, file_name)
 }
@@ -200,7 +201,7 @@ pub(crate) fn get_blob_record_inner(
     conn: &Connection,
     data_dir: &Path,
     key: &str,
-) -> Result<Option<(PathBuf, BlobInfo)>, String> {
+) -> Result<Option<(PathBuf, BlobInfo)>, CommandError> {
     let record: Option<(String, Option<String>)> = conn
         .query_row(
             "SELECT storage_uri, mime_type FROM blob_objects
@@ -211,7 +212,7 @@ pub(crate) fn get_blob_record_inner(
         .map(Some)
         .or_else(|e| match e {
             rusqlite::Error::QueryReturnedNoRows => Ok(None),
-            other => Err(other.to_string()),
+            other => Err(CommandError::from(other)),
         })?;
     let Some((storage_uri, mime_type)) = record else {
         return Ok(None);
@@ -228,14 +229,14 @@ pub(crate) fn get_blob_record_inner(
             )
         })
     {
-        return Err(format!("Invalid managed blob path for {key}"));
+        return Err(CommandError::internal(format!("Invalid managed blob path for {key}")));
     }
 
     let path = data_dir.join(relative);
     let metadata = match std::fs::metadata(&path) {
         Ok(metadata) => metadata,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(e) => return Err(e.to_string()),
+        Err(e) => return Err(e.into()),
     };
     Ok(Some((
         path,
@@ -248,11 +249,11 @@ pub(crate) fn get_blob_record_inner(
 
 /// Empty vec means "no such blob" (the raw-response contract; no real payload
 /// is zero-length). A registry row whose file went missing is treated the same.
-pub(crate) fn get_blob_inner(conn: &Connection, data_dir: &Path, key: &str) -> Result<Vec<u8>, String> {
+pub(crate) fn get_blob_inner(conn: &Connection, data_dir: &Path, key: &str) -> Result<Vec<u8>, CommandError> {
     let Some((path, _)) = get_blob_record_inner(conn, data_dir, key)? else {
         return Ok(Vec::new());
     };
-    std::fs::read(path).map_err(|e| e.to_string())
+    Ok(std::fs::read(path)?)
 }
 
 pub(crate) fn get_blob_range_inner(
@@ -261,7 +262,7 @@ pub(crate) fn get_blob_range_inner(
     key: &str,
     offset: u64,
     length: u64,
-) -> Result<Vec<u8>, String> {
+) -> Result<Vec<u8>, CommandError> {
     let Some((path, info)) = get_blob_record_inner(conn, data_dir, key)? else {
         return Ok(Vec::new());
     };
@@ -272,20 +273,20 @@ pub(crate) fn get_blob_range_inner(
     let read_len = length.min(info.byte_size - offset);
     let capacity = usize::try_from(read_len)
         .map_err(|_| format!("Requested blob range is too large: {read_len} bytes"))?;
-    let mut file = std::fs::File::open(path).map_err(|e| e.to_string())?;
+    let mut file = std::fs::File::open(path)?;
     file.seek(SeekFrom::Start(offset))
-        .map_err(|e| e.to_string())?;
+        ?;
     let mut bytes = Vec::with_capacity(capacity);
     file.take(read_len)
         .read_to_end(&mut bytes)
-        .map_err(|e| e.to_string())?;
+        ?;
     Ok(bytes)
 }
 
 /// Remove the bytes and tombstone the registry row (`deleted_at` set,
 /// `storage_uri` cleared, outbox row dropped). The tombstone keeps sync and
 /// backup-restore from resurrecting a deliberately deleted file.
-pub(crate) fn delete_blob_inner(conn: &Connection, data_dir: &Path, key: &str) -> Result<(), String> {
+pub(crate) fn delete_blob_inner(conn: &Connection, data_dir: &Path, key: &str) -> Result<(), CommandError> {
     let storage_uri: Option<String> = conn
         .query_row(
             "SELECT storage_uri FROM blob_objects WHERE key = ?1",
@@ -294,13 +295,13 @@ pub(crate) fn delete_blob_inner(conn: &Connection, data_dir: &Path, key: &str) -
         )
         .or_else(|e| match e {
             rusqlite::Error::QueryReturnedNoRows => Ok(None),
-            other => Err(other.to_string()),
+            other => Err(CommandError::from(other)),
         })?;
     if let Some(uri) = storage_uri {
         match std::fs::remove_file(data_dir.join(&uri)) {
             Ok(()) => {}
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-            Err(e) => return Err(e.to_string()),
+            Err(e) => return Err(e.into()),
         }
     }
     conn.execute(
@@ -310,12 +311,12 @@ pub(crate) fn delete_blob_inner(conn: &Connection, data_dir: &Path, key: &str) -
          WHERE key = ?1",
         params![key],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     conn.execute(
         "DELETE FROM blob_sync_state WHERE blob_key = ?1",
         params![key],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     Ok(())
 }
 
@@ -325,37 +326,37 @@ pub(crate) fn delete_blob_inner(conn: &Connection, data_dir: &Path, key: &str) -
 /// under crashes: file writes are keyed deterministically and registry rows are
 /// upserts, so a re-run after a partial pass simply overwrites its own work
 /// before dropping the table.
-pub(crate) fn externalize_inline_blobs(conn: &Connection, data_dir: &Path) -> Result<(), String> {
+pub(crate) fn externalize_inline_blobs(conn: &Connection, data_dir: &Path) -> Result<(), CommandError> {
     let has_inline_table: bool = conn
         .query_row(
             "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'blobs')",
             [],
             |row| row.get(0),
         )
-        .map_err(|e| e.to_string())?;
+        ?;
     if !has_inline_table {
         return Ok(());
     }
     {
         let mut stmt = conn
             .prepare("SELECT key, data FROM blobs")
-            .map_err(|e| e.to_string())?;
+            ?;
         let rows = stmt
             .query_map([], |row| {
                 Ok((row.get::<_, String>(0)?, row.get::<_, Vec<u8>>(1)?))
             })
-            .map_err(|e| e.to_string())?;
+            ?;
         for row in rows {
-            let (key, data) = row.map_err(|e| e.to_string())?;
+            let (key, data) = row?;
             put_blob_inner(conn, data_dir, &key, None, &data)?;
         }
     }
     conn.execute_batch("DROP TABLE blobs;")
-        .map_err(|e| e.to_string())?;
+        ?;
     // The inline pages are gone but the file doesn't shrink by itself; with the
     // library's book bytes leaving the database this is the one reclaim that is
     // actually worth a VACUUM.
-    conn.execute_batch("VACUUM;").map_err(|e| e.to_string())?;
+    conn.execute_batch("VACUUM;")?;
     Ok(())
 }
 
@@ -363,10 +364,10 @@ pub(crate) fn externalize_inline_blobs(conn: &Connection, data_dir: &Path) -> Re
 /// baseline (WAL et al — see `apply_connection_pragmas`), run migrations,
 /// externalize any pre-v3 inline blobs, and ensure the device identity row.
 /// Returns the connection plus the app-data dir the blob store roots at.
-pub fn init_db(app: &AppHandle) -> Result<(Connection, PathBuf), String> {
-    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    let mut conn = Connection::open(dir.join("read-aware.db")).map_err(|e| e.to_string())?;
+pub fn init_db(app: &AppHandle) -> Result<(Connection, PathBuf), CommandError> {
+    let dir = app.path().app_data_dir()?;
+    std::fs::create_dir_all(&dir)?;
+    let mut conn = Connection::open(dir.join("read-aware.db"))?;
     apply_connection_pragmas(&conn)?;
     register_sql_functions(&conn)?;
     run_migrations(&mut conn)?;
@@ -383,7 +384,7 @@ pub fn put_blob(
     request: tauri::ipc::Request<'_>,
     db: State<'_, Db>,
     data_dir: State<'_, DataDir>,
-) -> Result<BlobPutResult, String> {
+) -> Result<BlobPutResult, CommandError> {
     let key = request
         .headers()
         .get(BLOB_KEY_HEADER)
@@ -404,7 +405,7 @@ pub fn put_blob(
         tauri::ipc::InvokeBody::Json(value) => serde_json::from_value(value.clone())
             .map_err(|e| format!("put_blob: unsupported JSON body: {e}"))?,
     };
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    let conn = db.0.lock()?;
     put_blob_inner(&conn, &data_dir.0, &key, mime_type.as_deref(), &data)
 }
 
@@ -417,14 +418,14 @@ pub async fn put_blob_from_file(
     path: String,
     key: String,
     mime_type: Option<String>,
-) -> Result<BlobPutResult, String> {
+) -> Result<BlobPutResult, CommandError> {
     tauri::async_runtime::spawn_blocking(move || {
         let source = crate::native_path::materialize(&app, &path)?;
         let data_dir = app.state::<DataDir>().0.clone();
         let (sha256, byte_size, file_name) =
             copy_blob_from_file(&data_dir, &key, &source.path)?;
         let db = app.state::<Db>();
-        let conn = db.0.lock().map_err(|e| e.to_string())?;
+        let conn = db.0.lock()?;
         register_blob_inner(
             &conn,
             &key,
@@ -447,8 +448,8 @@ pub fn get_blob(
     key: String,
     db: State<'_, Db>,
     data_dir: State<'_, DataDir>,
-) -> Result<tauri::ipc::Response, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+) -> Result<tauri::ipc::Response, CommandError> {
+    let conn = db.0.lock()?;
     get_blob_inner(&conn, &data_dir.0, &key).map(tauri::ipc::Response::new)
 }
 
@@ -458,8 +459,8 @@ pub fn get_blob(
 /// rows; the lazy-fetch decision needs to see them, without a network probe
 /// per miss.
 #[tauri::command]
-pub fn blob_manifest_exists(key: String, db: State<'_, Db>) -> Result<bool, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn blob_manifest_exists(key: String, db: State<'_, Db>) -> Result<bool, CommandError> {
+    let conn = db.0.lock()?;
     conn.query_row(
         "SELECT 1 FROM blob_objects WHERE key = ?1 AND deleted_at IS NULL",
         params![key],
@@ -468,7 +469,7 @@ pub fn blob_manifest_exists(key: String, db: State<'_, Db>) -> Result<bool, Stri
     .map(|_| true)
     .or_else(|e| match e {
         rusqlite::Error::QueryReturnedNoRows => Ok(false),
-        other => Err(other.to_string()),
+        other => Err(other.into()),
     })
 }
 
@@ -479,8 +480,8 @@ pub fn get_blob_info(
     key: String,
     db: State<'_, Db>,
     data_dir: State<'_, DataDir>,
-) -> Result<Option<BlobInfo>, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+) -> Result<Option<BlobInfo>, CommandError> {
+    let conn = db.0.lock()?;
     Ok(get_blob_record_inner(&conn, &data_dir.0, &key)?.map(|(_, info)| info))
 }
 
@@ -493,11 +494,11 @@ pub async fn get_blob_range(
     key: String,
     offset: u64,
     length: u64,
-) -> Result<tauri::ipc::Response, String> {
+) -> Result<tauri::ipc::Response, CommandError> {
     let bytes = tauri::async_runtime::spawn_blocking(move || {
         let db = app.state::<Db>();
         let data_dir = app.state::<DataDir>();
-        let conn = db.0.lock().map_err(|e| e.to_string())?;
+        let conn = db.0.lock()?;
         get_blob_range_inner(&conn, &data_dir.0, &key, offset, length)
     })
     .await
@@ -510,8 +511,8 @@ pub fn delete_blob(
     key: String,
     db: State<'_, Db>,
     data_dir: State<'_, DataDir>,
-) -> Result<(), String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+) -> Result<(), CommandError> {
+    let conn = db.0.lock()?;
     delete_blob_inner(&conn, &data_dir.0, &key)
 }
 
@@ -542,9 +543,9 @@ pub fn blob_read_open(
     sessions: State<'_, BlobReadSessions>,
     db: State<'_, Db>,
     data_dir: State<'_, DataDir>,
-) -> Result<usize, String> {
+) -> Result<usize, CommandError> {
     let bytes = {
-        let conn = db.0.lock().map_err(|e| e.to_string())?;
+        let conn = db.0.lock()?;
         get_blob_inner(&conn, &data_dir.0, &key)?
     };
     let len = bytes.len();
@@ -552,7 +553,7 @@ pub fn blob_read_open(
         sessions
             .0
             .lock()
-            .map_err(|e| e.to_string())?
+            ?
             .insert(key, bytes);
     }
     Ok(len)
@@ -565,8 +566,8 @@ pub fn blob_read_chunk(
     offset: usize,
     length: usize,
     sessions: State<'_, BlobReadSessions>,
-) -> Result<tauri::ipc::Response, String> {
-    let map = sessions.0.lock().map_err(|e| e.to_string())?;
+) -> Result<tauri::ipc::Response, CommandError> {
+    let map = sessions.0.lock()?;
     let bytes = map
         .get(&key)
         .ok_or_else(|| format!("blob_read_chunk: no open session for {key}"))?;
@@ -580,8 +581,8 @@ pub fn blob_read_chunk(
 pub fn blob_read_close(
     key: String,
     sessions: State<'_, BlobReadSessions>,
-) -> Result<(), String> {
-    sessions.0.lock().map_err(|e| e.to_string())?.remove(&key);
+) -> Result<(), CommandError> {
+    sessions.0.lock()?.remove(&key);
     Ok(())
 }
 
@@ -590,11 +591,11 @@ pub fn blob_read_close(
 pub fn blob_write_open(
     key: String,
     sessions: State<'_, BlobWriteSessions>,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     sessions
         .0
         .lock()
-        .map_err(|e| e.to_string())?
+        ?
         .insert(key, Vec::new());
     Ok(())
 }
@@ -605,12 +606,12 @@ pub fn blob_write_chunk(
     key: String,
     chunk_base64: String,
     sessions: State<'_, BlobWriteSessions>,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     use base64::Engine;
     let chunk = base64::engine::general_purpose::STANDARD
         .decode(chunk_base64.as_bytes())
         .map_err(|e| format!("blob_write_chunk: invalid base64: {e}"))?;
-    let mut map = sessions.0.lock().map_err(|e| e.to_string())?;
+    let mut map = sessions.0.lock()?;
     let buffer = map
         .get_mut(&key)
         .ok_or_else(|| format!("blob_write_chunk: no open session for {key}"))?;
@@ -626,7 +627,7 @@ pub fn blob_write_chunk(
 pub fn blob_write_chunk_raw(
     request: tauri::ipc::Request<'_>,
     sessions: State<'_, BlobWriteSessions>,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     let key = request
         .headers()
         .get(BLOB_KEY_HEADER)
@@ -638,7 +639,7 @@ pub fn blob_write_chunk_raw(
         tauri::ipc::InvokeBody::Json(value) => serde_json::from_value(value.clone())
             .map_err(|e| format!("blob_write_chunk_raw: unsupported JSON body: {e}"))?,
     };
-    let mut map = sessions.0.lock().map_err(|e| e.to_string())?;
+    let mut map = sessions.0.lock()?;
     let buffer = map
         .get_mut(&key)
         .ok_or_else(|| format!("blob_write_chunk_raw: no open session for {key}"))?;
@@ -654,14 +655,14 @@ pub fn blob_write_commit(
     sessions: State<'_, BlobWriteSessions>,
     db: State<'_, Db>,
     data_dir: State<'_, DataDir>,
-) -> Result<BlobPutResult, String> {
+) -> Result<BlobPutResult, CommandError> {
     let data = sessions
         .0
         .lock()
-        .map_err(|e| e.to_string())?
+        ?
         .remove(&key)
         .ok_or_else(|| format!("blob_write_commit: no open session for {key}"))?;
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    let conn = db.0.lock()?;
     put_blob_inner(&conn, &data_dir.0, &key, mime_type.as_deref(), &data)
 }
 
@@ -670,8 +671,8 @@ pub fn blob_write_commit(
 pub fn blob_write_abort(
     key: String,
     sessions: State<'_, BlobWriteSessions>,
-) -> Result<(), String> {
-    sessions.0.lock().map_err(|e| e.to_string())?.remove(&key);
+) -> Result<(), CommandError> {
+    sessions.0.lock()?.remove(&key);
     Ok(())
 }
 

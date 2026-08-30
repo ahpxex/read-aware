@@ -15,7 +15,7 @@ const base: SyncStatusSnapshot = {
   state: "idle",
   accountConnected: true,
   lastSyncAt: LAST_SYNC,
-  lastError: null,
+  lastErrorCode: null,
   progress: null,
   cycleTotals: null,
   lastCycle: { pulled: 12, pushed: 4, blobs: 1 },
@@ -109,11 +109,11 @@ export const singleBlobNoTotals = snapshot({
 /** The cycle failed; the relay's own message is what surfaces. */
 export const failed = snapshot({
   state: "error",
-  lastError: "Upload rejected: file exceeds the 50 MB relay limit",
+  lastErrorCode: "sync/quota",
 });
 
 /** A failure with no message to show — the generic wording stands in. */
-export const failedWithoutMessage = snapshot({ state: "error", lastError: null });
+export const failedWithoutMessage = snapshot({ state: "error", lastErrorCode: null });
 
 /** The relay rejected the session (401). Terminal: no retry heals it. */
 export const unauthenticated = snapshot({ state: "unauthenticated" });

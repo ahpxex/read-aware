@@ -93,10 +93,10 @@ export const Loading: Story = {
   args: { state: { status: "loading" } },
 };
 
-/** The registry could not be reached; the message is the fetch's own. */
+/** The registry could not be reached; localized copy plus retry — the raw fetch error lives in the log. */
 export const LoadError: Story = {
   args: {
-    state: { status: "error", message: "Network request timed out after 8000ms" },
+    state: { status: "error" },
   },
 };
 

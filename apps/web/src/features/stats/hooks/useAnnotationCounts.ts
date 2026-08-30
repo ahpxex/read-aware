@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { userDomain } from "../../../domain";
+import { createLogger } from "../../../platform/logger";
 
 /** Note + highlight tallies for a single book. */
 export type BookAnnotationCounts = {
@@ -14,6 +15,8 @@ export type AnnotationCounts = {
   total: number;
   byBook: Map<string, BookAnnotationCounts>;
   isLoading: boolean;
+  /** The read failed — the zeros above are absence of data, not data. */
+  loadFailed: boolean;
   refresh: () => Promise<void>;
 };
 
@@ -26,14 +29,18 @@ const EMPTY: BookAnnotationCounts = { notes: 0, highlights: 0, total: 0 };
  * the counts stay fresh without a reactive store. Only notes and highlights are
  * tallied; any legacy `ai-chat` records still in storage are skipped.
  */
+const log = createLogger("stats");
+
 export function useAnnotationCounts(): AnnotationCounts {
-  const [counts, setCounts] = useState<Omit<AnnotationCounts, "isLoading" | "refresh">>({
+  const [counts, setCounts] = useState<Omit<AnnotationCounts, "isLoading" | "loadFailed" | "refresh">>({
     notes: 0,
     highlights: 0,
     total: 0,
     byBook: new Map(),
   });
   const [isLoading, setIsLoading] = useState(true);
+  /** Failed reads must not render as a plausible all-zero stats page. */
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -56,8 +63,11 @@ export function useAnnotationCounts(): AnnotationCounts {
         byBook.set(annotation.bookId, prev);
       }
       setCounts({ notes, highlights, total: notes + highlights, byBook });
-    } catch {
+      setLoadFailed(false);
+    } catch (error) {
+      log.error("listing annotation counts failed", error);
       setCounts({ notes: 0, highlights: 0, total: 0, byBook: new Map() });
+      setLoadFailed(true);
     } finally {
       setIsLoading(false);
     }
@@ -67,5 +77,5 @@ export function useAnnotationCounts(): AnnotationCounts {
     void refresh();
   }, [refresh]);
 
-  return { ...counts, isLoading, refresh };
+  return { ...counts, isLoading, loadFailed, refresh };
 }

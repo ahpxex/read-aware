@@ -14,7 +14,7 @@
  *  4. clear the webview's own storage (that same legacy data);
  * then the caller reloads, and boot runs as a fresh install.
  */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../../platform/ipc";
 import { isTauri } from "../../../platform/environment";
 import { createLogger } from "../../../platform/logger";
 import { syncRelayClient } from "../../../platform/sync/sync-scheduler";

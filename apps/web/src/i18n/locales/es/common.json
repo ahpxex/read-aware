@@ -7,6 +7,34 @@
   "errorBoundary": {
     "title": "Esta vista ha tenido un problema",
     "body": "El error ha quedado registrado. El resto de ReadAware sigue funcionando; puedes volver a intentarlo.",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "copyDetails": "Copiar detalles",
+    "copied": "Copiado"
+  },
+  "errors": {
+    "generic": "Algo salió mal. Los detalles están en el registro de la aplicación.",
+    "fsNotFound": "Falta un archivo que ReadAware necesita.",
+    "fsPermission": "ReadAware no tiene permiso para acceder a un archivo necesario.",
+    "fsNoSpace": "El disco está lleno. Libera espacio e inténtalo de nuevo.",
+    "dbLocked": "La base de datos local está ocupada. Inténtalo de nuevo en un momento.",
+    "dbError": "La base de datos local tuvo un problema.",
+    "secretsUnavailable": "No se puede abrir el almacén de credenciales, así que las claves no se pueden guardar ni leer.",
+    "aiNotConfigured": "La IA aún no está configurada: añade una clave de API para empezar a conversar.",
+    "aiAuth": "El proveedor de IA rechazó la clave de API. Revísala en Ajustes.",
+    "aiRateLimited": "El proveedor de IA está limitando las solicitudes. Espera un momento e inténtalo de nuevo.",
+    "aiQuota": "Tu cuenta de IA se quedó sin crédito o cuota. Revisa tu cuenta del proveedor.",
+    "aiNetwork": "No se pudo conectar con el proveedor de IA. Comprueba tu conexión e inténtalo de nuevo.",
+    "aiProvider": "El proveedor de IA tuvo un problema temporal. Inténtalo de nuevo en breve.",
+    "aiContextOverflow": "Esta solicitud es demasiado grande para el modelo.",
+    "aiUnknown": "La solicitud de IA falló. Los detalles están en el registro de la aplicación.",
+    "syncNetwork": "No se puede conectar con el servidor de sincronización. Se reintentará automáticamente.",
+    "syncServer": "El servidor de sincronización no está disponible temporalmente. Se reintentará automáticamente.",
+    "syncRateLimited": "La sincronización está siendo limitada. Se reintentará automáticamente.",
+    "syncUnauthorized": "Tu sesión de sincronización expiró. Inicia sesión de nuevo.",
+    "syncMisdirected": "La dirección del servidor de sincronización respondió como otro servicio. Revisa la URL del relay.",
+    "syncPassphrase": "La frase de cifrado de extremo a extremo no coincide.",
+    "syncQuota": "Tu almacenamiento de sincronización está lleno.",
+    "localSaveFailedTitle": "Cambio no guardado",
+    "localSaveFailed": "Este cambio no se pudo escribir en el almacenamiento local y podría perderse tras reiniciar."
   }
 }

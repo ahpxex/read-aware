@@ -5,7 +5,7 @@
  * 读路径走 chapter_digests_list 命令；browser（非 Tauri）下静默空集，
  * 与其他投影读端的降级姿态一致。
  */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../../../platform/ipc";
 import type {
   BookMemoryPort,
   ChapterDigest,

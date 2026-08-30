@@ -8,7 +8,7 @@ import {
   openPluginDialog,
   resolvePluginDialog,
 } from "../state/plugin-store";
-import { showPluginToast } from "./plugin-toast";
+import { showPluginFailureToast } from "./plugin-toast";
 import type { HeaderActionInput, RegisteredHeaderAction } from "./plugin-types";
 import { createLogger } from "../../../platform/logger";
 
@@ -29,8 +29,6 @@ export async function openHeaderActionDialog(
   } catch (error) {
     closePluginDialog(requestId);
     log.error(`header action "${action.key}" failed`, error);
-    showPluginToast(
-      `${action.pluginName}: ${error instanceof Error ? error.message : String(error)}`,
-    );
+    showPluginFailureToast(action.pluginName);
   }
 }

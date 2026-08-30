@@ -9,7 +9,6 @@ const base: SoftwareUpdateState = {
   currentVersion: "0.5.2",
   availableVersion: null,
   progress: null,
-  error: null,
   errorStage: null,
 };
 
@@ -68,7 +67,7 @@ export const Installing: Story = {
 /** A failed check, which surfaces here even though the header stays silent. */
 export const CheckFailed: Story = {
   decorators: [
-    updateState({ phase: "error", errorStage: "check", error: "Network unreachable" }),
+    updateState({ phase: "error", errorStage: "check" }),
   ],
 };
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Notebook } from "@phosphor-icons/react";
-import { Body, Eyebrow, Popover } from "@read-aware/ui";
+import { Body, Eyebrow, Popover, InlineError } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { formatNumber, useTranslation } from "../../../i18n";
 import { AnnotationRow } from "../../annotations/components/AnnotationRow";
@@ -10,6 +10,9 @@ import type { TocEntry } from "../lib/reader-types";
 
 type ReaderNotesPopoverProps = {
   annotations: Annotation[];
+  /** The read failed — render an error state, never "no annotations yet". */
+  loadFailed?: boolean;
+  onRetryLoad?: () => void;
   tocEntries: TocEntry[];
   onNavigate: (cfiRange: string) => void;
   onDelete: (id: string) => void;
@@ -50,13 +53,15 @@ function groupByTocOrder(annotations: Annotation[], tocEntries: TocEntry[]): Gro
  */
 export function ReaderNotesPopover({
   annotations,
+  loadFailed = false,
+  onRetryLoad,
   tocEntries,
   onNavigate,
   onDelete,
   open: controlledOpen,
   onOpenChange,
 }: ReaderNotesPopoverProps) {
-  const { t } = useTranslation("reader");
+  const { t } = useTranslation(["reader", "common"]);
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const open = controlledOpen ?? uncontrolledOpen;
   const setOpen = onOpenChange ?? setUncontrolledOpen;
@@ -83,7 +88,13 @@ export function ReaderNotesPopover({
         </span>
       </div>
 
-      {annotations.length === 0 ? (
+      {loadFailed ? (
+        <div className="px-4 py-6">
+          <InlineError onRetry={onRetryLoad} retryLabel={t("common:errorBoundary.retry")}>
+            {t("common:errors.generic")}
+          </InlineError>
+        </div>
+      ) : annotations.length === 0 ? (
         <div className="px-4 py-8">
           <Body className="text-center text-sm text-fg-muted">
             {t("emptyNotes")}

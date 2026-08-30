@@ -16,7 +16,7 @@ import { digestMissingChapters } from "./chapter-digest";
 import { classifyNarrativity } from "./narrativity";
 
 export interface DigestBookTickInput {
-  deps: Pick<RuntimeDeps, "library" | "bookText" | "bookMemory">;
+  deps: Pick<RuntimeDeps, "library" | "bookText" | "bookMemory" | "log">;
   complete: CompleteFn;
   model: Model<Api>;
   bookId: Id;
@@ -38,18 +38,25 @@ async function ensureNarrativity(
   const book = await input.deps.library.getBook(input.bookId);
   if (!book) return undefined;
   if (book.narrativity) return book.narrativity;
-  const toc = await input.deps.bookText.getToc(input.bookId).catch(() => undefined);
+  const toc = await input.deps.bookText.getToc(input.bookId).catch((error) => {
+    input.deps.log?.warn("narrativity sampling: toc unavailable", error);
+    return undefined;
+  });
   if (!toc?.length) return undefined;
   // 正文样本：跳过版权页等空转小节，取第一段像样的实文。
   let sampleText = "";
   for (let index = 0; index < Math.min(toc.length, 8) && sampleText.length < 600; index++) {
     const text = await input.deps.bookText
       .getChapterText(input.bookId, index)
-      .catch(() => undefined);
+      .catch((error) => {
+        input.deps.log?.warn("narrativity sampling: chapter text unavailable", error);
+        return undefined;
+      });
     if (text && text.trim().length > sampleText.length) sampleText = text.trim();
   }
   if (!sampleText) return undefined;
   const narrativity = await classifyNarrativity({
+    log: input.deps.log,
     complete: input.complete,
     model: input.model,
     title: book.title,
@@ -60,7 +67,8 @@ async function ensureNarrativity(
   if (!narrativity) return undefined;
   try {
     await input.deps.library.setBookNarrativity(input.bookId, narrativity);
-  } catch {
+  } catch (error) {
+    input.deps.log?.warn("recording narrativity failed; will reclassify next tick", error);
     return undefined;
   }
   return narrativity;
@@ -74,16 +82,29 @@ export async function digestBookTick(input: DigestBookTickInput): Promise<number
   // 边界：显式 href → 书的进度 chapterHref（聊天时阅读器未开）→ 读完全书。
   const href =
     input.throughChapterHref ??
-    (await deps.library.getBookStats(input.bookId).catch(() => undefined))?.chapterHref;
+    (
+      await deps.library.getBookStats(input.bookId).catch((error) => {
+        deps.log?.warn("digest tick: book stats unavailable", error);
+        return undefined;
+      })
+    )?.chapterHref;
   let beforeChapterIndex: number | undefined;
   if (href) {
-    const toc = await deps.bookText.getToc(input.bookId).catch(() => undefined);
+    const toc = await deps.bookText.getToc(input.bookId).catch((error) => {
+      deps.log?.warn("digest tick: toc unavailable", error);
+      return undefined;
+    });
     const chapter = toc ? findChapterByHref(toc, href) : undefined;
     beforeChapterIndex = chapter?.index;
   }
   if (beforeChapterIndex === undefined) {
     if (book.status !== "finished") return 0;
-    const toc = await deps.bookText.getToc(input.bookId).catch(() => undefined);
+    // A failed toc read here returns 0, which the catch-up loop reads as
+    // "backlog cleared" — the warn is what keeps that from being silent.
+    const toc = await deps.bookText.getToc(input.bookId).catch((error) => {
+      deps.log?.warn("digest tick: toc unavailable; treating as no backlog", error);
+      return undefined;
+    });
     beforeChapterIndex = toc?.length ?? 0;
   }
   // 纪要口径跟着书的叙事性走。未分类的书先分类；分类失败本节拍按

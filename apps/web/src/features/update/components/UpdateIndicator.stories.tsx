@@ -9,7 +9,6 @@ const base: SoftwareUpdateState = {
   currentVersion: "0.5.2",
   availableVersion: null,
   progress: null,
-  error: null,
   errorStage: null,
 };
 
@@ -83,7 +82,6 @@ export const InstallFailed: Story = {
     updateState({
       phase: "error",
       errorStage: "install",
-      error: "Could not replace the app bundle: permission denied",
       availableVersion: "0.6.0",
     }),
   ],
@@ -110,6 +108,6 @@ export const UpToDateIsSilent: Story = {
  */
 export const CheckFailureIsSilent: Story = {
   decorators: [
-    updateState({ phase: "error", errorStage: "check", error: "Network unreachable" }),
+    updateState({ phase: "error", errorStage: "check" }),
   ],
 };

@@ -20,7 +20,8 @@ import {
   normalizePluginView,
   PluginViewError,
 } from "../lib/plugin-view";
-import { showPluginToast } from "../lib/plugin-toast";
+import { showPluginFailureToast, showPluginToast } from "../lib/plugin-toast";
+import { createLogger } from "../../../platform/logger";
 import type { PluginView, PluginViewResult } from "../lib/plugin-types";
 import { PluginBlocks } from "./PluginBlockRenderer";
 import { PluginActionGroup } from "./PluginActionGroup";
@@ -28,6 +29,8 @@ import { PluginDetailViewBody } from "./PluginDetailViewBody";
 import { PluginFormViewBody } from "./PluginFormViewBody";
 import { PluginListViewBody } from "./PluginListViewBody";
 import type { PluginResultOptions, PluginResultRunner } from "./plugin-view-types";
+
+const log = createLogger("plugins");
 
 type PluginViewRendererProps = {
   /** The root view, or null while the container is still fetching it. */
@@ -58,15 +61,14 @@ type DetailDialogState = {
   view: PluginView | null;
 };
 
-function normalizeSafely(view: PluginView | null): { view: PluginView | null; error: string | null } {
-  if (!view) return { view: null, error: null };
+function normalizeSafely(view: PluginView | null): { view: PluginView | null; error: boolean } {
+  if (!view) return { view: null, error: false };
   try {
-    return { view: normalizePluginView(view), error: null };
+    return { view: normalizePluginView(view), error: false };
   } catch (error) {
-    return {
-      view: null,
-      error: error instanceof Error ? error.message : String(error),
-    };
+    // The validation detail is for the plugin developer — log file, not UI.
+    log.error("plugin view failed validation", error);
+    return { view: null, error: true };
   }
 }
 
@@ -80,10 +82,10 @@ export function PluginViewRenderer({
   scroll = "contained",
   className,
 }: PluginViewRendererProps) {
-  const { t } = useTranslation("plugins");
+  const { t } = useTranslation(["plugins", "common"]);
   const initial = normalizeSafely(view);
   const [stack, setStack] = useState<PluginView[]>(initial.view ? [initial.view] : []);
-  const [viewError, setViewError] = useState<string | null>(initial.error);
+  const [viewError, setViewError] = useState(initial.error);
   const [busy, setBusy] = useState(false);
   const [detailDialog, setDetailDialog] = useState<DetailDialogState | null>(null);
   const dialogRequestIdRef = useRef(0);
@@ -168,7 +170,8 @@ export function PluginViewRenderer({
       if (opensDialog) {
         setDetailDialog((current) => current?.requestId === requestId ? null : current);
       }
-      showPluginToast(error instanceof Error ? error.message : String(error));
+      log.error("plugin action failed", error);
+      showPluginFailureToast();
       return null;
     } finally {
       if (!opensDialog && !runsInBackground) setBusy(false);
@@ -178,7 +181,7 @@ export function PluginViewRenderer({
   if (viewError) {
     return (
       <Alert variant="destructive" title={t("viewer.invalidView")} className={className}>
-        {viewError}
+        {t("common:errors.generic")}
       </Alert>
     );
   }

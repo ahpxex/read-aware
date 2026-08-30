@@ -14,7 +14,7 @@ import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import { openHeaderActionDialog } from "../lib/open-header-action";
 import { renderPluginIcon } from "../lib/plugin-icons";
-import { showPluginToast } from "../lib/plugin-toast";
+import { showPluginFailureToast } from "../lib/plugin-toast";
 import type {
   HeaderActionInput,
   PluginHeaderSurface,
@@ -178,9 +178,7 @@ function PluginHeaderPopupButton({
       })
       .catch((error) => {
         log.error(`header action "${action.key}" failed`, error);
-        showPluginToast(
-          `${action.pluginName}: ${error instanceof Error ? error.message : String(error)}`,
-        );
+        showPluginFailureToast(action.pluginName);
         if (!cancelled) setOpen(false);
       });
     return () => {

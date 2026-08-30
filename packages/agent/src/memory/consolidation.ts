@@ -7,7 +7,7 @@
  */
 import type { Api, AssistantMessage, Model } from "@earendil-works/pi-ai";
 import type { CompleteFn } from "../models/complete";
-import type { MemoryChange, MemoryPort, MemoryRecord } from "../ports";
+import type { AgentLogPort, MemoryChange, MemoryPort, MemoryRecord } from "../ports";
 
 // ---- 衰减（纯函数，可独立测试） --------------------------------------------
 
@@ -72,6 +72,7 @@ async function judgementChanges(
   memories: MemoryRecord[],
   complete: CompleteFn,
   model: Model<Api>,
+  log?: AgentLogPort,
 ): Promise<MemoryChange[]> {
   if (memories.length < 2) return [];
   const listing = memories
@@ -87,10 +88,16 @@ async function judgementChanges(
       messages: [{ role: "user", content: listing, timestamp: Date.now() }],
     });
     parsed = parseJson(messageText(message));
-  } catch {
+  } catch (error) {
+    // "No changes" is a safe degradation, but a dead consolidation pass must
+    // not be indistinguishable from a quiet one.
+    log?.warn("memory consolidation judgement failed", error);
     return [];
   }
-  if (!parsed) return [];
+  if (!parsed) {
+    log?.warn("memory consolidation output was not parseable JSON");
+    return [];
+  }
 
   const byId = new Map(memories.map((memory) => [memory.id, memory]));
   const changes: MemoryChange[] = [];
@@ -142,6 +149,7 @@ export interface ConsolidationReport {
 }
 
 export interface RunConsolidationInput {
+  log?: AgentLogPort;
   memory: MemoryPort;
   complete: CompleteFn;
   model: Model<Api>;
@@ -158,7 +166,7 @@ export async function runConsolidation(input: RunConsolidationInput): Promise<Co
     decay.filter((change) => change.type === "forget").map((change) => change.id),
   );
   const remaining = memories.filter((memory) => !forgottenIds.has(memory.id));
-  const judged = await judgementChanges(remaining, input.complete, input.model);
+  const judged = await judgementChanges(remaining, input.complete, input.model, input.log);
 
   const changes = [...decay, ...judged];
   if (changes.length) await input.memory.applyMemoryChanges(changes);

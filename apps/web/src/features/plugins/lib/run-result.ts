@@ -9,7 +9,7 @@ import {
   openPluginDialog,
   resolvePluginDialog,
 } from "../state/plugin-store";
-import { showPluginToast } from "./plugin-toast";
+import { showPluginFailureToast, showPluginToast } from "./plugin-toast";
 import type { PluginViewResult } from "./plugin-types";
 import { createLogger } from "../../../platform/logger";
 
@@ -30,7 +30,7 @@ export async function runPluginContribution(
   } catch (error) {
     if (pendingDialogId) closePluginDialog(pendingDialogId);
     log.error(`contribution from "${pluginId}" failed`, error);
-    showPluginToast(`${pluginName}: ${error instanceof Error ? error.message : String(error)}`);
+    showPluginFailureToast(pluginName);
     return;
   }
   if (!result) {

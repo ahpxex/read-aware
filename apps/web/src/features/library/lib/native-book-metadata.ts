@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../../platform/ipc";
 import { createLogger } from "../../../platform/logger";
 import type { BookFormat } from "./library-types";
 

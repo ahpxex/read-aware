@@ -15,7 +15,7 @@
  * reviewed on their own.
  */
 import { Button, Dialog } from "@read-aware/ui";
-import { useTranslation } from "../../../i18n";
+import { useTranslation, describeErrorCode } from "../../../i18n";
 import type { SyncProfile } from "../../../platform/sync/sync-store";
 import type { SyncStatusSnapshot } from "../../../platform/sync/sync-scheduler";
 import { PendingBadge } from "../components/PendingBadge";
@@ -137,7 +137,9 @@ export function SyncAccountGroupView({
   const statusDescription = sessionRejected ? (
     <span className="text-red-700">{t("dataSync.syncStatus.signedOut")}</span>
   ) : status.state === "error" ? (
-    <span className="text-red-700">{status.lastError ?? t("dataSync.syncStatus.error")}</span>
+    <span className="text-red-700">
+      {describeErrorCode(status.lastErrorCode ?? undefined)?.body ?? t("dataSync.syncStatus.error")}
+    </span>
   ) : syncing ? (
     [
       fraction === null

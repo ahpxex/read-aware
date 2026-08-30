@@ -10,6 +10,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { X } from "@phosphor-icons/react";
+import { Button } from "./Button";
 import { IconButton } from "./IconButton";
 import { cn } from "./lib/cn";
 
@@ -19,6 +20,12 @@ export interface ToastOptions {
   variant?: "default" | "destructive" | "success";
   /** Auto-dismiss delay in ms. Pass 0 to keep the toast until closed. */
   duration?: number;
+  /**
+   * One follow-up affordance (retry, undo, open settings…), rendered under the
+   * description. Selecting it dismisses the toast. Label is localized by the
+   * caller.
+   */
+  action?: { label: string; onClick: () => void };
 }
 
 interface ToastRecord extends ToastOptions {
@@ -122,6 +129,19 @@ export function ToastProvider({
                   </p>
                 )}
                 <div>{entry.description}</div>
+                {entry.action && (
+                  <Button
+                    size="sm"
+                    variant="link"
+                    className="mt-1 h-auto p-0 text-xs underline underline-offset-2"
+                    onClick={() => {
+                      dismiss(entry.id);
+                      entry.action?.onClick();
+                    }}
+                  >
+                    {entry.action.label}
+                  </Button>
+                )}
               </div>
               <IconButton
                 size="sm"

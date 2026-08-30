@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { ChatMessageError } from "./ChatMessageActions";
 
-// ChatMessageError is the app's canonical quiet error card — stone palette,
-// icon + title carry the semantics, no red tint. These stories double as the
-// error-style reference.
+// ChatMessageError renders the shared InlineError card with copy resolved
+// from the turn's stable errorCode — the raw thrown message never shows.
+// These stories double as the error-style reference.
 const meta = {
   title: "Interface/AI/ChatMessageError",
   component: ChatMessageError,
@@ -15,7 +15,6 @@ const meta = {
     ),
   ],
   args: {
-    message: "network error: connection reset",
     onRetry: () => {},
   },
 } satisfies Meta<typeof ChatMessageError>;
@@ -23,26 +22,26 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** An unrecognized failure: the raw thrown detail is the only clue, so it shows verbatim, with retry. */
+/** No code (legacy rows, unclassified throw): the generic localized line, with retry. */
 export const UnknownFailure: Story = {};
 
-/** Recognized code (no API key): localized copy plus the open-settings fix replace the raw message. */
+/** Recognized code (no API key): localized copy plus the open-settings fix. */
 export const NotConfigured: Story = {
   args: {
-    message: "AI is not configured — add an API key in Settings → AI.",
-    code: "ai-not-configured",
+    code: "ai/not-configured",
   },
 };
 
-/** A long multi-line detail clamps to three lines (full text on hover) — a stack trace can't swallow the panel. */
-export const LongDetail: Story = {
+/** Rate limited: transient-failure copy; retry is honest advice here. */
+export const RateLimited: Story = {
   args: {
-    message: [
-      "400 invalid_request_error: max_tokens must be less than or equal to the model's output limit (8192) for this request",
-      "    at PiClient.request (pi-client.ts:212:15)",
-      "    at async PiChatTransport.send (pi-chat-transport.ts:88:9)",
-      "    at async runTurn (useBookConversation.ts:141:5)",
-      "    at async handleSend (ChatPanel.tsx:64:3)",
-    ].join("\n"),
+    code: "ai/rate-limited",
+  },
+};
+
+/** Auth failure: the key is wrong — copy points at Settings, with the fix link. */
+export const AuthFailure: Story = {
+  args: {
+    code: "ai/auth",
   },
 };

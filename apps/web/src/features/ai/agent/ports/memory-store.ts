@@ -3,7 +3,7 @@
  * docs/data-model.md §5.2 的 v1）。无浏览器降级 —— agent 只在桌面壳里运行，
  * 浏览器构建是纯 UI（mock transport），真跑到这里就该炸出来而不是静默降级。
  */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../../../platform/ipc";
 import type { MemoryRecord } from "@read-aware/agent";
 import { isTauri } from "../../../../platform/environment";
 

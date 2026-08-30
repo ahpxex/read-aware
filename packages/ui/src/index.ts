@@ -43,6 +43,7 @@ export { Spinner } from "./Spinner";
 export { Checkbox } from "./Checkbox";
 export { Radio } from "./Radio";
 export { Alert } from "./Alert";
+export { InlineError } from "./InlineError";
 export { ToastProvider, useToast, type ToastOptions } from "./Toast";
 export { Tag } from "./Tag";
 export { DropdownMenu } from "./DropdownMenu";

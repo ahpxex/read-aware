@@ -158,7 +158,8 @@
     "summaryDetail": "{{perDay}} al día de media · racha más larga {{streak}} días",
     "backToBook": "Volver al libro",
     "lookBack": "Mirar atrás sobre este libro",
-    "lookBackPrompt": "Acabo de terminar {{title}}. Mira atrás conmigo: repasa lo que marqué y dime qué llamó mi atención y qué hilos recorren esos pasajes. Cíñete a lo que hay en mis marcas; sin resumen del argumento."
+    "lookBackPrompt": "Acabo de terminar {{title}}. Mira atrás conmigo: repasa lo que marqué y dime qué llamó mi atención y qué hilos recorren esos pasajes. Cíñete a lo que hay en mis marcas; sin resumen del argumento.",
+    "finishedSaveFailed": "No se pudo guardar el estado de terminado"
   },
   "readAloud": {
     "start": "Leer en voz alta",
@@ -175,5 +176,11 @@
     "unreachable": "El archivo de este libro está en tu biblioteca en la nube, pero ahora mismo no se puede contactar con el servidor de sincronización.",
     "undecodable": "El archivo descargado no se pudo descifrar con la frase de sincronización de este dispositivo.",
     "reimport": "Importar el archivo"
+  },
+  "annotations": {
+    "saveFailed": "No se pudo guardar el subrayado",
+    "noteSaveFailed": "No se pudo guardar la nota",
+    "updateFailed": "No se pudo actualizar el subrayado",
+    "deleteFailed": "No se pudo eliminar la anotación"
   }
 }

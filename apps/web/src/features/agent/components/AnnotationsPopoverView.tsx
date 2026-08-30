@@ -6,7 +6,7 @@
  * 因此空态、多书分组、书已删除等状态都能单独渲染。
  */
 import { Notebook } from "@phosphor-icons/react";
-import { Body, Eyebrow, Popover } from "@read-aware/ui";
+import { Body, Eyebrow, Popover, InlineError } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { formatNumber, useTranslation } from "../../../i18n";
 import { AnnotationRow } from "../../annotations/components/AnnotationRow";
@@ -17,6 +17,9 @@ import { agentHeaderActionClass } from "../lib/agent-header-action";
 type AnnotationsPopoverViewProps = {
   books: LibraryBook[];
   annotations: Annotation[];
+  /** The read failed — render an error state, never an empty list. */
+  loadFailed?: boolean;
+  onRetryLoad?: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onOpenBook: (book: LibraryBook) => void;
@@ -26,12 +29,14 @@ type AnnotationsPopoverViewProps = {
 export function AnnotationsPopoverView({
   books,
   annotations,
+  loadFailed = false,
+  onRetryLoad,
   open,
   onOpenChange,
   onOpenBook,
   onDelete,
 }: AnnotationsPopoverViewProps) {
-  const { t } = useTranslation("ai");
+  const { t } = useTranslation(["ai", "common"]);
 
   const bookMap = new Map(books.map((b) => [b.id, b]));
   const grouped = new Map<string, Annotation[]>();
@@ -66,7 +71,13 @@ export function AnnotationsPopoverView({
         </span>
       </div>
 
-      {annotations.length === 0 ? (
+      {loadFailed ? (
+        <div className="px-4 py-6">
+          <InlineError onRetry={onRetryLoad} retryLabel={t("common:errorBoundary.retry")}>
+            {t("common:errors.generic")}
+          </InlineError>
+        </div>
+      ) : annotations.length === 0 ? (
         <div className="px-4 py-8">
           <Body className="text-center text-sm text-fg-muted">
             {t("agent.empty.description")}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAtomValue } from "jotai";
 import { NotePencil } from "@phosphor-icons/react";
-import { Body, Button, Caption, Dialog, Progress, TextField } from "@read-aware/ui";
+import { Body, Button, Caption, Dialog, Progress, TextField, InlineError } from "@read-aware/ui";
 import { Trans, formatPercent, useTranslation } from "../../../i18n";
 import { readingStatsAtom } from "../../../state/ui";
 import { formatReadingDuration, getBookReadingStats } from "../../reader/lib/reading-stats";
@@ -63,11 +63,11 @@ function DetailStat({ label, value }: { label: string; value: string | number })
  * the book's highlights and notes. The exhaustive breakdown lives on the Stats page.
  */
 export function BookDetailsDialog({ book, open, onClose, onUpdateMetadata }: BookDetailsDialogProps) {
-  const { t } = useTranslation("shelf");
+  const { t } = useTranslation(["shelf", "common"]);
   const store = useAtomValue(readingStatsAtom);
   const readingTime = formatReadingDuration(getBookReadingStats(store, book.id).totalMs);
   // Only read annotations while the dialog is open.
-  const { annotations } = useBookAnnotations(open ? book.id : null);
+  const { annotations, loadFailed: annotationsLoadFailed } = useBookAnnotations(open ? book.id : null);
   const highlightCount = annotations.filter((a) => a.type === "highlight").length;
   const noteCount = annotations.filter((a) => a.type === "note").length;
 
@@ -160,6 +160,11 @@ export function BookDetailsDialog({ book, open, onClose, onUpdateMetadata }: Boo
         </div>
 
         {/* Highlights & notes preview */}
+        {annotationsLoadFailed && (
+          <div className="border-t border-border pt-4">
+            <InlineError compact>{t("common:errors.generic")}</InlineError>
+          </div>
+        )}
         {annotations.length > 0 && (
           <div className="border-t border-border pt-4">
             <Caption className="mb-1.5 block text-fg-subtle">{t("details.annotations")}</Caption>

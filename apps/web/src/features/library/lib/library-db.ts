@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../../platform/ipc";
 import type { EventOrigin } from "@read-aware/core";
 import type { TFunction } from "i18next";
 import {

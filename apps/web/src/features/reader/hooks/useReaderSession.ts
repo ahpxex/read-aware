@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAtomValue } from "jotai";
-import { useTranslation } from "../../../i18n";
+import { describeError, useTranslation } from "../../../i18n";
 import { useLocalAtom } from "@read-aware/ui/state";
 import { askAiRequestAtom } from "../../ai/state/chat-intent";
 import { readerPanelIntentAtom } from "../state/panel-intent";
@@ -10,7 +10,7 @@ import {
   updateLibraryBookProgress,
   type BookFileMissingReason,
 } from "../../library/lib/library-db";
-import { formatLibraryError } from "../../library/lib/format-library-error";
+import { createLogger } from "../../../platform/logger";
 import { createProgressPatch } from "../../library/lib/library-progress";
 import type {
   BookFormat,
@@ -43,13 +43,15 @@ type UseReaderSessionOptions = {
   reportError: (error: unknown) => void;
 };
 
+const log = createLogger("reader");
+
 export function useReaderSession({
   applyOptimisticProgress,
   replaceBookInState,
   reportError,
 }: UseReaderSessionOptions) {
-  // For localizing load-failure fallbacks (formatLibraryError's generic line).
-  const { t } = useTranslation("shelf");
+  // For localizing load-failure fallbacks (describeError's shelf fallback).
+  const { t } = useTranslation(["shelf", "common"]);
   const [selectedBook, setSelectedBook] = useState<LibraryBook | null>(null);
   const [readerSource, setReaderSource] = useState<ReaderSource>(null);
   const [readerLoadError, setReaderLoadError] = useState<ReaderLoadError | null>(null);
@@ -221,7 +223,11 @@ export function useReaderSession({
           });
       } catch (error) {
         if (readerLoadRequestIdRef.current !== requestId) return;
-        setReaderLoadError({ kind: "generic", message: formatLibraryError(error, t) });
+        log.error("opening book failed", error);
+        setReaderLoadError({
+          kind: "generic",
+          message: describeError(error, { fallback: t("shelf:errors.generic") }).body,
+        });
         setIsReaderLoading(false);
       }
     })();

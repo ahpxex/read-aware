@@ -34,9 +34,7 @@ export function UpdateIndicator() {
   const tooltip =
     installReady && state.availableVersion
       ? t("update.availableVersion", { version: state.availableVersion })
-      : installFailed && state.error
-        ? state.error
-        : label;
+      : label;
 
   const busy = state.phase === "downloading" || state.phase === "installing";
   const handleClick = () => {

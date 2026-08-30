@@ -31,6 +31,13 @@ export type AppEventMap = {
    * than keep saving its stale in-memory view.
    */
   "conversations-changed": Record<string, never>;
+  /**
+   * A durable local write (app_kv or the secret store) failed AFTER the
+   * in-memory snapshot was rolled back. The UI layer toasts a generic
+   * "couldn't save" so the user doesn't believe a lost change stuck; the raw
+   * cause is already in the log at the failure site.
+   */
+  "local-write-failed": { kind: "kv" | "secret"; code?: string };
 };
 
 export type AppEventName = keyof AppEventMap;

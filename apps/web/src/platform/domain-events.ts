@@ -18,7 +18,7 @@
  * Desktop-only: outside Tauri (vite dev / Storybook) every append is a no-op —
  * the browser shell has no event log, and its IndexedDB paths are dev scaffolding.
  */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./ipc";
 import type {
   DomainEvent,
   DomainEventEnvelope,

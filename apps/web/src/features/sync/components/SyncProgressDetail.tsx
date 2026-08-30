@@ -16,7 +16,7 @@ import {
 } from "@phosphor-icons/react";
 import { Caption, Progress, ProgressRing } from "@read-aware/ui";
 import type { ReactNode } from "react";
-import { useTranslation } from "../../../i18n";
+import { useTranslation, describeErrorCode } from "../../../i18n";
 import type { SyncStatusSnapshot } from "../../../platform/sync/sync-scheduler";
 import type { SyncBacklog } from "../hooks/useSyncStatus";
 import { syncCycleFraction } from "../lib/sync-progress";
@@ -83,7 +83,7 @@ export function SyncProgressDetail({
           </Item>
         ) : status.state === "error" ? (
           <Item tone="error" icon={<WarningCircle {...ICON} />}>
-            {status.lastError ?? t("dataSync.syncStatus.error")}
+            {describeErrorCode(status.lastErrorCode ?? undefined)?.body ?? t("dataSync.syncStatus.error")}
           </Item>
         ) : (
           <Item icon={<ClockCounterClockwise {...ICON} />}>

@@ -37,7 +37,7 @@
     "installing": "Installation…",
     "installedToast": "{{name}} installée et activée",
     "updateAvailableToast": "Mise à jour disponible : {{name}} v{{version}} — Réglages → Plugins → Marché",
-    "installFailed": "Échec de l'installation : {{message}}",
+    "installFailed": "L'installation a échoué. Les détails sont dans le journal de l'application.",
     "empty": "Aucune extension installée. Une extension est un dossier contenant manifest.json et main.js.",
     "uninstall": "Désinstaller",
     "uninstallConfirm": "Désinstaller {{name}} ? Ses fichiers seront supprimés ; ses données conservées.",
@@ -81,7 +81,7 @@
       "service_llm": "Envoyer des requêtes IA avec votre modèle configuré",
       "service_clipboard": "Écrire dans le presse-papiers"
     },
-    "activationError": "Échec de l'activation : {{message}}",
+    "activationError": "L'activation a échoué. Les détails sont dans le journal de l'application.",
     "placement": "Boutons épinglés",
     "placementHint": "Les actions épinglées apparaissent comme boutons ; le reste va dans le menu de dépassement et la palette de commandes.",
     "surface": {
@@ -95,7 +95,7 @@
     "uninstallConfirmShort": "Confirmer",
     "tabInstalled": "Installées",
     "tabMarketplace": "Marché",
-    "marketplaceError": "Impossible de charger le marché : {{message}}",
+    "marketplaceError": "Impossible de charger le marché des plugins.",
     "retry": "Réessayer",
     "refresh": "Actualiser",
     "installFromMarketplace": "Installer",
@@ -111,6 +111,11 @@
       "cancel": "Annuler"
     },
     "configure": "Réglages",
-    "builtin": "Intégré"
+    "builtin": "Intégré",
+    "installFailedManifest": "Ce fichier n'est pas un paquet de plugin valide.",
+    "uninstallFailed": "La désinstallation a échoué. Les détails sont dans le journal de l'application."
+  },
+  "runtime": {
+    "actionFailed": "Ce plugin a rencontré un problème. Les détails sont dans le journal de l'application."
   }
 }

@@ -5,7 +5,7 @@
  * Rust suite covers; this file stays a translation layer with nothing to test
  * but names.
  */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../ipc";
 import type { HlcStamp } from "@read-aware/core";
 import { getDesktopBlob, openDesktopBlobWriter, putDesktopBlob } from "../blob-store";
 import type { PlainEvent } from "../sync-envelope";

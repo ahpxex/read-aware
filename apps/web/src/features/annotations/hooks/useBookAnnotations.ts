@@ -3,11 +3,17 @@ import { useAtomValue } from "jotai";
 import type { Annotation } from "../lib/annotation-types";
 import { listAnnotations } from "../lib/annotation-db";
 import { userDomain } from "../../../domain";
+import { createLogger } from "../../../platform/logger";
 import { annotationsRevisionAtom } from "../state/annotations-revision";
+
+const log = createLogger("annotations");
 
 export function useBookAnnotations(bookId: string | null | undefined) {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  /** A failed READ must not masquerade as "no annotations" — surfaces render
+   *  an error state (with refresh as the retry) instead of an empty list. */
+  const [loadFailed, setLoadFailed] = useState(false);
   // Re-read whenever annotations change anywhere (e.g. a mark made in the
   // reader), so this list stays live without a remount.
   const revision = useAtomValue(annotationsRevisionAtom);
@@ -21,8 +27,11 @@ export function useBookAnnotations(bookId: string | null | undefined) {
     try {
       const results = await listAnnotations({ bookId });
       setAnnotations(results);
-    } catch {
+      setLoadFailed(false);
+    } catch (error) {
+      log.error("listing annotations failed", error);
       setAnnotations([]);
+      setLoadFailed(true);
     } finally {
       setIsLoading(false);
     }
@@ -49,5 +58,5 @@ export function useBookAnnotations(bookId: string | null | undefined) {
     [annotations],
   );
 
-  return { annotations, isLoading, refresh, remove };
+  return { annotations, isLoading, loadFailed, refresh, remove };
 }

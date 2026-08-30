@@ -210,6 +210,7 @@ export const sampleAnnotations: AnnotationCounts = {
     ["book-sea", { notes: 2, highlights: 16, total: 18 }],
   ]),
   isLoading: false,
+  loadFailed: false,
   refresh: async () => {},
 };
 
@@ -220,5 +221,6 @@ export const emptyAnnotations: AnnotationCounts = {
   total: 0,
   byBook: new Map(),
   isLoading: false,
+  loadFailed: false,
   refresh: async () => {},
 };

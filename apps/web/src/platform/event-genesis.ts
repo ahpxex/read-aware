@@ -18,7 +18,7 @@
  * historical millis for the HLC could collide with stamps already handed out
  * (see the envelope contract in @read-aware/core events.ts).
  */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./ipc";
 import type {
   BookFormat,
   HighlightColor,

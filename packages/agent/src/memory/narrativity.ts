@@ -10,7 +10,7 @@
  */
 import type { Api, AssistantMessage, Model } from "@earendil-works/pi-ai";
 import type { CompleteFn } from "../models/complete";
-import type { ChapterRef } from "../ports";
+import type { AgentLogPort, ChapterRef } from "../ports";
 
 /** 目录样本上限：够看出体裁（"第一章 xxx" vs "3.2 配置参数"），不必全量。 */
 const MAX_TOC_TITLES = 60;
@@ -32,6 +32,7 @@ Output STRICT JSON only, no prose, no code fences:
 const MIN_CONFIDENCE = 0.6;
 
 export interface ClassifyNarrativityInput {
+  log?: AgentLogPort;
   complete: CompleteFn;
   model: Model<Api>;
   title: string;
@@ -68,7 +69,10 @@ export async function classifyNarrativity(
       systemPrompt: CLASSIFY_PROMPT,
       messages: [{ role: "user", content: evidence, timestamp: Date.now() }],
     });
-  } catch {
+  } catch (error) {
+    // The book simply stays unclassified (digests fall back to "narrative"),
+    // but the failure must be visible or classification looks perpetually idle.
+    input.log?.warn("narrativity classification failed", error);
     return undefined;
   }
   const raw = extractText(message).replace(/```(?:json)?/g, "").trim();

@@ -7,6 +7,7 @@
 //!
 //! Split out of `storage/mod.rs`; `use super::*` keeps the shared types in
 //! scope, so this is a move rather than a rewrite.
+use crate::error::CommandError;
 use super::*;
 
 pub(crate) fn row_to_event(row: &rusqlite::Row) -> rusqlite::Result<EventRow> {
@@ -49,8 +50,8 @@ pub(crate) fn insert_event_row(
     tx: &Transaction<'_>,
     ev: &EventRow,
     source: EventSource,
-) -> Result<bool, String> {
-    let payload = serde_json::to_string(&ev.payload).map_err(|e| e.to_string())?;
+) -> Result<bool, CommandError> {
+    let payload = serde_json::to_string(&ev.payload)?;
     // `?4` (HLC wall ms) is reused to derive created_at when the caller
     // didn't stamp one.
     let inserted = tx
@@ -77,7 +78,7 @@ pub(crate) fn insert_event_row(
                 ev.created_at,
             ],
         )
-        .map_err(|e| e.to_string())?;
+        ?;
     // Locally-appended events enter the push outbox; ignored duplicates
     // (already logged, possibly already pushed) must not re-enter it.
     if inserted > 0 && source == EventSource::Local {
@@ -86,17 +87,17 @@ pub(crate) fn insert_event_row(
              VALUES (?1, strftime('%Y-%m-%dT%H:%M:%fZ','now'))",
             params![ev.id],
         )
-        .map_err(|e| e.to_string())?;
+        ?;
     }
     Ok(inserted > 0)
 }
 
-pub(crate) fn append_events_inner(conn: &mut Connection, events: &[EventRow]) -> Result<(), String> {
-    let tx = conn.transaction().map_err(|e| e.to_string())?;
+pub(crate) fn append_events_inner(conn: &mut Connection, events: &[EventRow]) -> Result<(), CommandError> {
+    let tx = conn.transaction()?;
     for ev in events {
         insert_event_row(&tx, ev, EventSource::Local)?;
     }
-    tx.commit().map_err(|e| e.to_string())?;
+    tx.commit()?;
     Ok(())
 }
 
@@ -107,8 +108,8 @@ pub(crate) fn append_events_inner(conn: &mut Connection, events: &[EventRow]) ->
 /// applying would be redundant. Every path that changes state uses
 /// `commit_events` instead.
 #[tauri::command]
-pub fn append_events(events: Vec<EventRow>, db: State<'_, Db>) -> Result<(), String> {
-    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn append_events(events: Vec<EventRow>, db: State<'_, Db>) -> Result<(), CommandError> {
+    let mut conn = db.0.lock()?;
     append_events_inner(&mut conn, &events)
 }
 
@@ -126,8 +127,8 @@ pub struct CommitReport {
 pub(crate) fn commit_events_inner(
     conn: &mut Connection,
     events: &[EventRow],
-) -> Result<CommitReport, String> {
-    let tx = conn.transaction().map_err(|e| e.to_string())?;
+) -> Result<CommitReport, CommandError> {
+    let tx = conn.transaction()?;
     let mut report = CommitReport {
         appended: 0,
         applied: 0,
@@ -144,7 +145,7 @@ pub(crate) fn commit_events_inner(
             report.applied += 1;
         }
     }
-    tx.commit().map_err(|e| e.to_string())?;
+    tx.commit()?;
     Ok(report)
 }
 
@@ -156,8 +157,8 @@ pub(crate) fn commit_events_inner(
 /// two disagreeing with nothing to detect or repair it. Now the log leads and
 /// the tables derive from it: both land, or neither does.
 #[tauri::command]
-pub fn commit_events(events: Vec<EventRow>, db: State<'_, Db>) -> Result<CommitReport, String> {
-    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn commit_events(events: Vec<EventRow>, db: State<'_, Db>) -> Result<CommitReport, CommandError> {
+    let mut conn = db.0.lock()?;
     commit_events_inner(&mut conn, &events)
 }
 
@@ -176,7 +177,7 @@ pub struct MergeReport {
 }
 
 /// The log's newest HLC stamp, as an ordering key. None on an empty log.
-fn max_hlc_key(tx: &Transaction<'_>) -> Result<Option<(i64, i64, String)>, String> {
+fn max_hlc_key(tx: &Transaction<'_>) -> Result<Option<(i64, i64, String)>, CommandError> {
     tx.query_row(
         "SELECT hlc_wall_ms, hlc_counter, hlc_device FROM domain_events
          ORDER BY hlc_wall_ms DESC, hlc_counter DESC, hlc_device DESC LIMIT 1",
@@ -186,7 +187,7 @@ fn max_hlc_key(tx: &Transaction<'_>) -> Result<Option<(i64, i64, String)>, Strin
     .map(Some)
     .or_else(|e| match e {
         rusqlite::Error::QueryReturnedNoRows => Ok(None),
-        other => Err(other.to_string()),
+        other => Err(other.into()),
     })
 }
 
@@ -197,8 +198,8 @@ fn hlc_key(ev: &EventRow) -> (i64, i64, String) {
 pub(crate) fn apply_remote_events_inner(
     conn: &mut Connection,
     events: &[EventRow],
-) -> Result<MergeReport, String> {
-    let tx = conn.transaction().map_err(|e| e.to_string())?;
+) -> Result<MergeReport, CommandError> {
+    let tx = conn.transaction()?;
     let horizon = max_hlc_key(&tx)?;
 
     let mut fresh: Vec<&EventRow> = Vec::new();
@@ -213,7 +214,7 @@ pub(crate) fn apply_remote_events_inner(
         replayed: false,
     };
     if fresh.is_empty() {
-        tx.commit().map_err(|e| e.to_string())?;
+        tx.commit()?;
         return Ok(report);
     }
 
@@ -242,14 +243,14 @@ pub(crate) fn apply_remote_events_inner(
         replay_into(&tx)?;
         report.replayed = true;
     }
-    tx.commit().map_err(|e| e.to_string())?;
+    tx.commit()?;
     Ok(report)
 }
 
 // ─── Staged merge (batched backlog replay) ───────────────────────────────────
 
 /// Read the deferred-replay marker (missing sync_profile row = not stale).
-fn projections_stale(tx: &Transaction<'_>) -> Result<bool, String> {
+fn projections_stale(tx: &Transaction<'_>) -> Result<bool, CommandError> {
     tx.query_row(
         "SELECT projections_stale FROM sync_profile WHERE id = 1",
         [],
@@ -258,11 +259,11 @@ fn projections_stale(tx: &Transaction<'_>) -> Result<bool, String> {
     .map(|v| v != 0)
     .or_else(|e| match e {
         rusqlite::Error::QueryReturnedNoRows => Ok(false),
-        other => Err(other.to_string()),
+        other => Err(other.into()),
     })
 }
 
-fn set_projections_stale(tx: &Transaction<'_>, stale: bool) -> Result<(), String> {
+fn set_projections_stale(tx: &Transaction<'_>, stale: bool) -> Result<(), CommandError> {
     tx.execute(
         "INSERT INTO sync_profile (id, projections_stale, updated_at)
          VALUES (1, ?1, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
@@ -271,7 +272,7 @@ fn set_projections_stale(tx: &Transaction<'_>, stale: bool) -> Result<(), String
             updated_at = excluded.updated_at",
         params![stale as i64],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     Ok(())
 }
 
@@ -289,8 +290,8 @@ fn set_projections_stale(tx: &Transaction<'_>, stale: bool) -> Result<(), String
 pub(crate) fn stage_remote_events_inner(
     conn: &mut Connection,
     events: &[EventRow],
-) -> Result<usize, String> {
-    let tx = conn.transaction().map_err(|e| e.to_string())?;
+) -> Result<usize, CommandError> {
+    let tx = conn.transaction()?;
     let mut appended = 0usize;
     for ev in events {
         if insert_event_row(&tx, ev, EventSource::Remote)? {
@@ -300,15 +301,15 @@ pub(crate) fn stage_remote_events_inner(
     if appended > 0 {
         set_projections_stale(&tx, true)?;
     }
-    tx.commit().map_err(|e| e.to_string())?;
+    tx.commit()?;
     Ok(appended)
 }
 
 #[tauri::command]
-pub async fn stage_remote_events(events: Vec<EventRow>, app: AppHandle) -> Result<usize, String> {
+pub async fn stage_remote_events(events: Vec<EventRow>, app: AppHandle) -> Result<usize, CommandError> {
     tauri::async_runtime::spawn_blocking(move || {
         let db = app.state::<Db>();
-        let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+        let mut conn = db.0.lock()?;
         stage_remote_events_inner(&mut conn, &events)
     })
     .await
@@ -321,22 +322,22 @@ pub async fn stage_remote_events(events: Vec<EventRow>, app: AppHandle) -> Resul
 /// which makes it safe to call defensively.
 pub(crate) fn finalize_staged_events_inner(
     conn: &mut Connection,
-) -> Result<Option<RebuildReport>, String> {
-    let tx = conn.transaction().map_err(|e| e.to_string())?;
+) -> Result<Option<RebuildReport>, CommandError> {
+    let tx = conn.transaction()?;
     if !projections_stale(&tx)? {
         return Ok(None);
     }
     let report = replay_into(&tx)?;
     set_projections_stale(&tx, false)?;
-    tx.commit().map_err(|e| e.to_string())?;
+    tx.commit()?;
     Ok(Some(report))
 }
 
 #[tauri::command]
-pub async fn finalize_staged_events(app: AppHandle) -> Result<Option<RebuildReport>, String> {
+pub async fn finalize_staged_events(app: AppHandle) -> Result<Option<RebuildReport>, CommandError> {
     tauri::async_runtime::spawn_blocking(move || {
         let db = app.state::<Db>();
-        let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+        let mut conn = db.0.lock()?;
         finalize_staged_events_inner(&mut conn)
     })
     .await
@@ -353,12 +354,12 @@ pub async fn finalize_staged_events(app: AppHandle) -> Result<Option<RebuildRepo
 /// (the pull loop) is responsible for `hlc.observe()`-ing every stamp BEFORE
 /// invoking this, and for advancing `sync_cursors` after it returns.
 #[tauri::command]
-pub async fn apply_remote_events(events: Vec<EventRow>, app: AppHandle) -> Result<MergeReport, String> {
+pub async fn apply_remote_events(events: Vec<EventRow>, app: AppHandle) -> Result<MergeReport, CommandError> {
     // Same threading note as `rebuild_projections`: the replay fallback is
     // unbounded work and must stay off the main thread.
     tauri::async_runtime::spawn_blocking(move || {
         let db = app.state::<Db>();
-        let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+        let mut conn = db.0.lock()?;
         apply_remote_events_inner(&mut conn, &events)
     })
     .await
@@ -366,8 +367,8 @@ pub async fn apply_remote_events(events: Vec<EventRow>, app: AppHandle) -> Resul
 }
 
 #[tauri::command]
-pub fn read_events_since(after: Option<Hlc>, db: State<'_, Db>) -> Result<Vec<EventRow>, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn read_events_since(after: Option<Hlc>, db: State<'_, Db>) -> Result<Vec<EventRow>, CommandError> {
+    let conn = db.0.lock()?;
     let mut out = Vec::new();
     match after {
         Some(a) => {
@@ -377,12 +378,12 @@ pub fn read_events_since(after: Option<Hlc>, db: State<'_, Db>) -> Result<Vec<Ev
                      WHERE (hlc_wall_ms, hlc_counter, hlc_device) > (?1, ?2, ?3)
                      ORDER BY hlc_wall_ms, hlc_counter, hlc_device",
                 )
-                .map_err(|e| e.to_string())?;
+                ?;
             let iter = stmt
                 .query_map(params![a.wall_ms, a.counter, a.device_id], row_to_event)
-                .map_err(|e| e.to_string())?;
+                ?;
             for r in iter {
-                out.push(r.map_err(|e| e.to_string())?);
+                out.push(r?);
             }
         }
         None => {
@@ -391,12 +392,12 @@ pub fn read_events_since(after: Option<Hlc>, db: State<'_, Db>) -> Result<Vec<Ev
                     "SELECT * FROM domain_events
                      ORDER BY hlc_wall_ms, hlc_counter, hlc_device",
                 )
-                .map_err(|e| e.to_string())?;
+                ?;
             let iter = stmt
                 .query_map([], row_to_event)
-                .map_err(|e| e.to_string())?;
+                ?;
             for r in iter {
-                out.push(r.map_err(|e| e.to_string())?);
+                out.push(r?);
             }
         }
     }
@@ -410,25 +411,25 @@ pub fn read_events_since(after: Option<Hlc>, db: State<'_, Db>) -> Result<Vec<Ev
 pub fn list_event_aggregate_ids(
     types: Vec<String>,
     db: State<'_, Db>,
-) -> Result<Vec<String>, String> {
+) -> Result<Vec<String>, CommandError> {
     if types.is_empty() {
         return Ok(Vec::new());
     }
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    let conn = db.0.lock()?;
     let placeholders = vec!["?"; types.len()].join(", ");
     let sql = format!(
         "SELECT DISTINCT aggregate_id FROM domain_events
          WHERE aggregate_id IS NOT NULL AND type IN ({placeholders})"
     );
-    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+    let mut stmt = conn.prepare(&sql)?;
     let iter = stmt
         .query_map(rusqlite::params_from_iter(types.iter()), |row| {
             row.get::<_, String>(0)
         })
-        .map_err(|e| e.to_string())?;
+        ?;
     let mut out = Vec::new();
     for r in iter {
-        out.push(r.map_err(|e| e.to_string())?);
+        out.push(r?);
     }
     Ok(out)
 }
@@ -449,11 +450,11 @@ pub struct RebuildReport {
 /// `books.cover_url` / `cover_checked` survive the wipe: they cache work done
 /// on object-storage content, not domain facts, and re-extracting every cover
 /// is pure waste (see storage::apply's module header).
-pub(crate) fn replay_into(tx: &Transaction<'_>) -> Result<RebuildReport, String> {
+pub(crate) fn replay_into(tx: &Transaction<'_>) -> Result<RebuildReport, CommandError> {
     let cache_columns = apply::BOOK_LOCAL_CACHE_COLUMNS;
     let cached: Vec<(String, Vec<rusqlite::types::Value>)> = {
         let sql = format!("SELECT id, {} FROM books", cache_columns.join(", "));
-        let mut stmt = tx.prepare(&sql).map_err(|e| e.to_string())?;
+        let mut stmt = tx.prepare(&sql)?;
         let iter = stmt
             .query_map([], |row| {
                 let id: String = row.get(0)?;
@@ -463,14 +464,14 @@ pub(crate) fn replay_into(tx: &Transaction<'_>) -> Result<RebuildReport, String>
                 }
                 Ok((id, values))
             })
-            .map_err(|e| e.to_string())?;
+            ?;
         iter.collect::<rusqlite::Result<Vec<_>>>()
-            .map_err(|e| e.to_string())?
+            ?
     };
 
     for table in apply::DERIVED_TABLES {
         tx.execute(&format!("DELETE FROM {table}"), [])
-            .map_err(|e| e.to_string())?;
+            ?;
     }
 
     // Collected up front so the statement's borrow of `tx` ends before
@@ -482,10 +483,10 @@ pub(crate) fn replay_into(tx: &Transaction<'_>) -> Result<RebuildReport, String>
                 "SELECT * FROM domain_events
                  ORDER BY hlc_wall_ms, hlc_counter, hlc_device",
             )
-            .map_err(|e| e.to_string())?;
-        let iter = stmt.query_map([], row_to_event).map_err(|e| e.to_string())?;
+            ?;
+        let iter = stmt.query_map([], row_to_event)?;
         iter.collect::<rusqlite::Result<Vec<_>>>()
-            .map_err(|e| e.to_string())?
+            ?
     };
 
     let mut applied = 0usize;
@@ -503,14 +504,14 @@ pub(crate) fn replay_into(tx: &Transaction<'_>) -> Result<RebuildReport, String>
             .collect::<Vec<_>>()
             .join(", ");
         let sql = format!("UPDATE books SET {assignments} WHERE id = ?1");
-        let mut stmt = tx.prepare(&sql).map_err(|e| e.to_string())?;
+        let mut stmt = tx.prepare(&sql)?;
         for (id, values) in &cached {
             let mut bound: Vec<&dyn rusqlite::ToSql> = Vec::with_capacity(values.len() + 1);
             bound.push(id);
             for value in values {
                 bound.push(value);
             }
-            stmt.execute(bound.as_slice()).map_err(|e| e.to_string())?;
+            stmt.execute(bound.as_slice())?;
         }
     }
 
@@ -518,7 +519,7 @@ pub(crate) fn replay_into(tx: &Transaction<'_>) -> Result<RebuildReport, String>
     for table in apply::DERIVED_TABLES {
         let count: i64 = tx
             .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |r| r.get(0))
-            .map_err(|e| e.to_string())?;
+            ?;
         rows.insert((*table).to_string(), count);
     }
 
@@ -538,13 +539,13 @@ pub(crate) fn replay_into(tx: &Transaction<'_>) -> Result<RebuildReport, String>
 /// the log), and a synchronous command would run it on the main thread and
 /// freeze the window for its duration.
 #[tauri::command]
-pub async fn rebuild_projections(app: AppHandle) -> Result<RebuildReport, String> {
+pub async fn rebuild_projections(app: AppHandle) -> Result<RebuildReport, CommandError> {
     tauri::async_runtime::spawn_blocking(move || {
         let db = app.state::<Db>();
-        let mut conn = db.0.lock().map_err(|e| e.to_string())?;
-        let tx = conn.transaction().map_err(|e| e.to_string())?;
+        let mut conn = db.0.lock()?;
+        let tx = conn.transaction()?;
         let report = replay_into(&tx)?;
-        tx.commit().map_err(|e| e.to_string())?;
+        tx.commit()?;
         Ok(report)
     })
     .await
@@ -592,16 +593,16 @@ fn value_to_json(v: rusqlite::types::ValueRef<'_>) -> Value {
 pub(crate) fn snapshot_table(
     tx: &Transaction<'_>,
     spec: &apply::DiffSpec,
-) -> Result<std::collections::BTreeMap<String, i64>, String> {
+) -> Result<std::collections::BTreeMap<String, i64>, CommandError> {
     let sql = match spec.domain_rows {
         Some(filter) => format!("SELECT * FROM {} WHERE {filter}", spec.table),
         None => format!("SELECT * FROM {}", spec.table),
     };
-    let mut stmt = tx.prepare(&sql).map_err(|e| e.to_string())?;
+    let mut stmt = tx.prepare(&sql)?;
     let columns: Vec<String> = stmt.column_names().iter().map(|c| c.to_string()).collect();
     let mut out = std::collections::BTreeMap::new();
-    let mut rows = stmt.query([]).map_err(|e| e.to_string())?;
-    while let Some(row) = rows.next().map_err(|e| e.to_string())? {
+    let mut rows = stmt.query([])?;
+    while let Some(row) = rows.next()? {
         let mut obj = serde_json::Map::new();
         for (i, name) in columns.iter().enumerate() {
             if spec.local_columns.contains(&name.as_str()) {
@@ -609,7 +610,7 @@ pub(crate) fn snapshot_table(
             }
             obj.insert(
                 name.clone(),
-                value_to_json(row.get_ref(i).map_err(|e| e.to_string())?),
+                value_to_json(row.get_ref(i)?),
             );
         }
         *out.entry(Value::Object(obj).to_string()).or_insert(0) += 1;
@@ -626,16 +627,16 @@ pub(crate) fn snapshot_table(
 /// Same threading note as `rebuild_projections`: this replays the whole log
 /// (twice over, counting the snapshots), so it must stay off the main thread.
 #[tauri::command]
-pub async fn verify_projections(app: AppHandle) -> Result<VerifyReport, String> {
+pub async fn verify_projections(app: AppHandle) -> Result<VerifyReport, CommandError> {
     tauri::async_runtime::spawn_blocking(move || verify_inner(&app))
         .await
         .map_err(|e| format!("verify_projections task failed: {e}"))?
 }
 
-pub(crate) fn verify_inner(app: &AppHandle) -> Result<VerifyReport, String> {
+pub(crate) fn verify_inner(app: &AppHandle) -> Result<VerifyReport, CommandError> {
     let db = app.state::<Db>();
-    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
-    let tx = conn.transaction().map_err(|e| e.to_string())?;
+    let mut conn = db.0.lock()?;
+    let tx = conn.transaction()?;
 
     let mut live = std::collections::BTreeMap::new();
     for spec in apply::DIFF_SPECS {
@@ -686,7 +687,7 @@ pub(crate) fn verify_inner(app: &AppHandle) -> Result<VerifyReport, String> {
     }
 
     // Diagnosis only — never mutate. The rollback undoes the replay.
-    tx.rollback().map_err(|e| e.to_string())?;
+    tx.rollback()?;
 
     Ok(VerifyReport {
         consistent: drift.is_empty(),

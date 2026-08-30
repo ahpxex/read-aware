@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../../platform/ipc";
 import { isTauri } from "../../../platform/environment";
 import { commitDomainEvents, type DomainEventDraft } from "../../../platform/domain-events";
 import { createLogger } from "../../../platform/logger";

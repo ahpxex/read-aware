@@ -26,7 +26,7 @@
  * Desktop-only — browser dev builds keep their IndexedDB paths in
  * `library-db.ts` and never call these.
  */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./ipc";
 import { isMobileOS } from "./environment";
 import { createLogger } from "./logger";
 

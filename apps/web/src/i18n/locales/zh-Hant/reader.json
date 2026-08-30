@@ -158,7 +158,8 @@
     "summaryDetail": "平均每天 {{perDay}} · 最長連續 {{streak}} 天",
     "backToBook": "回到正文",
     "lookBack": "回顧這本書",
-    "lookBackPrompt": "我剛讀完《{{title}}》。陪我回顧一下——過一遍我標註的內容，說說是什麼吸引了我的注意，這些段落之間貫穿著什麼線索。只依據我實際標註的內容，不要複述情節。"
+    "lookBackPrompt": "我剛讀完《{{title}}》。陪我回顧一下——過一遍我標註的內容，說說是什麼吸引了我的注意，這些段落之間貫穿著什麼線索。只依據我實際標註的內容，不要複述情節。",
+    "finishedSaveFailed": "無法儲存讀畢狀態"
   },
   "readAloud": {
     "start": "朗讀",
@@ -175,5 +176,11 @@
     "unreachable": "這本書的檔案在雲端書庫中，但目前無法連接同步伺服器。",
     "undecodable": "已下載的檔案無法用此裝置的同步口令解密。",
     "reimport": "重新匯入檔案"
+  },
+  "annotations": {
+    "saveFailed": "無法儲存螢光標記",
+    "noteSaveFailed": "無法儲存筆記",
+    "updateFailed": "無法更新螢光標記",
+    "deleteFailed": "無法刪除標註"
   }
 }

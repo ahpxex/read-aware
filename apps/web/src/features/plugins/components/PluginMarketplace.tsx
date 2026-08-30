@@ -12,6 +12,7 @@ import { useAtomValue } from "jotai";
 import { useToast } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { isTauri } from "../../../platform/environment";
+import { createLogger } from "../../../platform/logger";
 import {
   fetchMarketplaceRegistry,
   prepareMarketplaceInstall,
@@ -23,9 +24,7 @@ import {
   type MarketplaceLoadState,
 } from "./PluginMarketplaceView";
 
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
+const log = createLogger("plugins");
 
 type PluginMarketplaceProps = {
   /** Bumped by the hosting panel's Refresh action to re-fetch the registry. */
@@ -45,7 +44,8 @@ export function PluginMarketplace({ refreshToken = 0 }: PluginMarketplaceProps) 
     try {
       setState({ status: "ready", entries: await fetchMarketplaceRegistry() });
     } catch (error) {
-      setState({ status: "error", message: errorMessage(error) });
+      log.error("marketplace registry fetch failed", error);
+      setState({ status: "error" });
     }
   }, []);
 
@@ -64,10 +64,8 @@ export function PluginMarketplace({ refreshToken = 0 }: PluginMarketplaceProps) 
         variant: "success",
       });
     } catch (error) {
-      toast({
-        description: t("settings.installFailed", { message: errorMessage(error) }),
-        variant: "destructive",
-      });
+      log.error("marketplace install failed", error);
+      toast({ description: t("settings.installFailed"), variant: "destructive" });
     } finally {
       setBusyId(null);
     }

@@ -5,6 +5,7 @@
  * fetched, once per mount, and quietly absent while offline.
  */
 import { useEffect, useState } from "react";
+import { createLogger } from "../../../platform/logger";
 import type { SyncTier, SyncTierLimits } from "@read-aware/core";
 import { isTauri } from "../../../platform/environment";
 import { syncRelayClient } from "../../../platform/sync/sync-scheduler";
@@ -18,6 +19,8 @@ export type SyncAccountInfo = {
   hasBilling: boolean;
   limits: SyncTierLimits;
 };
+
+const log = createLogger("sync");
 
 export function useSyncAccountInfo(connected: boolean): SyncAccountInfo | null {
   const [info, setInfo] = useState<SyncAccountInfo | null>(null);
@@ -43,8 +46,10 @@ export function useSyncAccountInfo(connected: boolean): SyncAccountInfo | null {
           });
         }
       })
-      .catch(() => {
-        // Offline or expired session: the panel falls back to the account id.
+      .catch((error) => {
+        // Offline or expired session: the panel falls back to the account id,
+        // but leave a trace so "quota numbers never load" is diagnosable.
+        log.warn("sync account info fetch failed", error);
       });
     return () => {
       cancelled = true;

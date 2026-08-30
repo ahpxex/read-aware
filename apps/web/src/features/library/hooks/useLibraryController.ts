@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
 import type { TFunction } from "i18next";
 import { useToast } from "@read-aware/ui";
-import { useTranslation } from "../../../i18n";
-import { formatLibraryError } from "../lib/format-library-error";
+import { useTranslation, describeError } from "../../../i18n";
 import { deleteBookText, ensureBookTextExtracted } from "../lib/book-text-store";
 import { catchUpBookGraph } from "../../ai/agent/maintenance";
 import {
@@ -82,7 +81,7 @@ export function useLibraryController() {
       toast({
         variant: "destructive",
         title: tRef.current("workspace.errorTitle"),
-        description: formatLibraryError(error, tRef.current),
+        description: describeError(error, { fallback: tRef.current("errors.generic") }).body,
       });
     },
     [toast],

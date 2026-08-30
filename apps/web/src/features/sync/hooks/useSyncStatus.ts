@@ -5,7 +5,7 @@
  * consumer is actually looking at it.
  */
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../../platform/ipc";
 import { isTauri } from "../../../platform/environment";
 import { createLogger } from "../../../platform/logger";
 import {

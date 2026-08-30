@@ -37,6 +37,7 @@ pub use reading_time::*;
 mod preferences;
 pub use preferences::*;
 
+use crate::error::CommandError;
 use std::io::{BufReader, Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -92,7 +93,7 @@ pub struct DataDir(pub PathBuf);
 
 /// Ensure the single `local_device` row exists and return its stable device id,
 /// generating one on first run. Bumps `last_opened_at` on every boot.
-pub fn ensure_local_device(conn: &Connection) -> Result<String, String> {
+pub fn ensure_local_device(conn: &Connection) -> Result<String, CommandError> {
     let existing: Option<String> = conn
         .query_row(
             "SELECT device_id FROM local_device WHERE id = 1",
@@ -110,7 +111,7 @@ pub fn ensure_local_device(conn: &Connection) -> Result<String, String> {
              WHERE id = 1",
             [],
         )
-        .map_err(|e| e.to_string())?;
+        ?;
         return Ok(device_id);
     }
     let device_id = uuid::Uuid::new_v4().to_string();
@@ -120,7 +121,7 @@ pub fn ensure_local_device(conn: &Connection) -> Result<String, String> {
                  strftime('%Y-%m-%dT%H:%M:%fZ','now'))",
         params![device_id],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     Ok(device_id)
 }
 
@@ -141,8 +142,8 @@ pub struct LocalDeviceInfo {
 }
 
 #[tauri::command]
-pub fn local_device_get(db: State<'_, Db>) -> Result<LocalDeviceInfo, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn local_device_get(db: State<'_, Db>) -> Result<LocalDeviceInfo, CommandError> {
+    let conn = db.0.lock()?;
     let device_id = ensure_local_device(&conn)?;
     let last = conn
         .query_row(
@@ -206,19 +207,19 @@ pub fn read_boot_theme(conn: &Connection) -> Option<&'static str> {
 /// Load the entire `app_kv` store as a `{ key: value_json }` map. Called once at
 /// boot to hydrate the synchronous in-memory snapshot the settings modules read.
 #[tauri::command]
-pub fn load_kv_all(db: State<'_, Db>) -> Result<std::collections::HashMap<String, String>, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn load_kv_all(db: State<'_, Db>) -> Result<std::collections::HashMap<String, String>, CommandError> {
+    let conn = db.0.lock()?;
     let mut stmt = conn
         .prepare("SELECT key, value_json FROM app_kv")
-        .map_err(|e| e.to_string())?;
+        ?;
     let rows = stmt
         .query_map([], |row| {
             Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
         })
-        .map_err(|e| e.to_string())?;
+        ?;
     let mut map = std::collections::HashMap::new();
     for row in rows {
-        let (key, value) = row.map_err(|e| e.to_string())?;
+        let (key, value) = row?;
         map.insert(key, value);
     }
     Ok(map)
@@ -226,8 +227,8 @@ pub fn load_kv_all(db: State<'_, Db>) -> Result<std::collections::HashMap<String
 
 /// Upsert one config key (write-through from `localKV.setItem`).
 #[tauri::command]
-pub fn set_kv(key: String, value: String, db: State<'_, Db>) -> Result<(), String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn set_kv(key: String, value: String, db: State<'_, Db>) -> Result<(), CommandError> {
+    let conn = db.0.lock()?;
     conn.execute(
         "INSERT INTO app_kv (key, value_json, updated_at)
          VALUES (?1, ?2, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
@@ -236,16 +237,16 @@ pub fn set_kv(key: String, value: String, db: State<'_, Db>) -> Result<(), Strin
             updated_at = excluded.updated_at",
         params![key, value],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     Ok(())
 }
 
 /// Delete one config key (write-through from `localKV.removeItem`).
 #[tauri::command]
-pub fn delete_kv(key: String, db: State<'_, Db>) -> Result<(), String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn delete_kv(key: String, db: State<'_, Db>) -> Result<(), CommandError> {
+    let conn = db.0.lock()?;
     conn.execute("DELETE FROM app_kv WHERE key = ?1", params![key])
-        .map_err(|e| e.to_string())?;
+        ?;
     Ok(())
 }
 
@@ -253,22 +254,22 @@ pub(crate) fn replace_kv_prefix_inner(
     conn: &mut Connection,
     prefix: &str,
     entries: std::collections::HashMap<String, String>,
-) -> Result<(), String> {
-    let tx = conn.transaction().map_err(|e| e.to_string())?;
+) -> Result<(), CommandError> {
+    let tx = conn.transaction()?;
     tx.execute(
         "DELETE FROM app_kv WHERE substr(key, 1, length(?1)) = ?1",
         params![prefix],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     for (suffix, value) in entries {
         tx.execute(
             "INSERT INTO app_kv (key, value_json, updated_at)
              VALUES (?1, ?2, strftime('%Y-%m-%dT%H:%M:%fZ','now'))",
             params![format!("{prefix}{suffix}"), value],
         )
-        .map_err(|e| e.to_string())?;
+        ?;
     }
-    tx.commit().map_err(|e| e.to_string())
+    Ok(tx.commit()?)
 }
 
 /// Replace one namespaced KV snapshot in a single transaction. Plugin update
@@ -278,8 +279,8 @@ pub fn replace_kv_prefix(
     prefix: String,
     entries: std::collections::HashMap<String, String>,
     db: State<'_, Db>,
-) -> Result<(), String> {
-    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+) -> Result<(), CommandError> {
+    let mut conn = db.0.lock()?;
     replace_kv_prefix_inner(&mut conn, &prefix, entries)
 }
 

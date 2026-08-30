@@ -37,7 +37,7 @@
     "installing": "Wird installiert…",
     "installedToast": "{{name}} installiert und aktiviert",
     "updateAvailableToast": "Update verfügbar: {{name}} v{{version}} — Einstellungen → Plugins → Marktplatz",
-    "installFailed": "Installation fehlgeschlagen: {{message}}",
+    "installFailed": "Installation fehlgeschlagen. Details stehen im App-Protokoll.",
     "empty": "Keine Plugins installiert. Ein Plugin ist ein Ordner mit manifest.json und main.js.",
     "uninstall": "Deinstallieren",
     "uninstallConfirm": "{{name}} deinstallieren? Die Dateien werden entfernt; gespeicherte Daten bleiben erhalten.",
@@ -81,7 +81,7 @@
       "service_llm": "KI-Anfragen mit deinem konfigurierten Modell stellen",
       "service_clipboard": "In die Zwischenablage schreiben"
     },
-    "activationError": "Aktivierung fehlgeschlagen: {{message}}",
+    "activationError": "Aktivierung fehlgeschlagen. Details stehen im App-Protokoll.",
     "placement": "Angeheftete Schaltflächen",
     "placementHint": "Angeheftete Aktionen erscheinen als Schaltflächen; alles andere bleibt im Überlaufmenü und in der Befehlspalette.",
     "surface": {
@@ -95,7 +95,7 @@
     "uninstallConfirmShort": "Wirklich entfernen",
     "tabInstalled": "Installiert",
     "tabMarketplace": "Marktplatz",
-    "marketplaceError": "Marktplatz konnte nicht geladen werden: {{message}}",
+    "marketplaceError": "Der Marktplatz konnte nicht geladen werden.",
     "retry": "Erneut versuchen",
     "refresh": "Aktualisieren",
     "installFromMarketplace": "Installieren",
@@ -111,6 +111,11 @@
       "cancel": "Abbrechen"
     },
     "configure": "Einstellungen",
-    "builtin": "Integriert"
+    "builtin": "Integriert",
+    "installFailedManifest": "Diese Datei ist kein gültiges Plugin-Paket.",
+    "uninstallFailed": "Deinstallation fehlgeschlagen. Details stehen im App-Protokoll."
+  },
+  "runtime": {
+    "actionFailed": "Dieses Plugin hatte ein Problem. Details stehen im App-Protokoll."
   }
 }

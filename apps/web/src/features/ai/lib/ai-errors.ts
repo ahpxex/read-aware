@@ -1,18 +1,17 @@
 /**
  * Typed failures thrown by the AI entry points (chat transport, dictionary
- * lookup). UI code matches on `code` and renders localized, actionable copy —
- * `message` is a developer-facing English fallback for logs and unknown
- * consumers, never something to show verbatim in a localized surface.
+ * lookup). All AI failures are `AppError`s carrying a stable `ai/*` code from
+ * @read-aware/core: provider failures get theirs from `classifyModelFailure`
+ * in @read-aware/agent, and the one pre-flight case — nothing configured at
+ * all — is thrown here. UI code renders localized copy per code via
+ * `describeErrorCode`; the `message` is developer-facing English for the log,
+ * never something to show verbatim.
  */
+import { AppError, ERR_AI_NOT_CONFIGURED } from "@read-aware/core";
 
-/** No provider/API key configured — fixable by the user in Settings → AI. */
-export const AI_NOT_CONFIGURED = "ai-not-configured";
-
-export class AiNotConfiguredError extends Error {
-  readonly code = AI_NOT_CONFIGURED;
-
+export class AiNotConfiguredError extends AppError {
   constructor() {
-    super("AI is not configured — add an API key in Settings → AI.");
+    super(ERR_AI_NOT_CONFIGURED, "AI is not configured — add an API key in Settings → AI.");
     this.name = "AiNotConfiguredError";
   }
 }

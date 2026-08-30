@@ -3,7 +3,7 @@
  * for the `raplugin://` protocol. Nothing here parses manifests — that's
  * lib/manifest.ts's job.
  */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../../platform/ipc";
 
 /** A plugin folder on disk: its id (folder name) and raw manifest text. */
 export type PluginDiskEntry = { id: string; manifest: string; builtin?: boolean };

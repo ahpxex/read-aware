@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../../platform/ipc";
 import { listen } from "@tauri-apps/api/event";
 import { fileNameFromPath } from "./pick-book-files";
 import type { BookImportSource } from "./library-types";

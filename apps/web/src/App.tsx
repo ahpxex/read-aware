@@ -575,6 +575,7 @@ function App() {
 
           <ScrollArea className="h-full min-h-0 flex-1">
             {activeTopNav === "shelf" ? (
+              <FeatureErrorBoundary surface="library" resetKey={activeTopNav}>
               <LibraryWorkspace
                 isReady={library.libraryReady}
                 books={heldShelfBooks ?? library.books}
@@ -593,6 +594,7 @@ function App() {
                 onDeleteCollection={library.handleDeleteCollection}
                 onSetBooksCollection={library.handleSetBooksCollection}
               />
+              </FeatureErrorBoundary>
             ) : activeTopNav === "agent" ? (
               <FeatureErrorBoundary surface="agent" resetKey={activeTopNav}>
                 <Suspense fallback={<SurfaceFallback />}>

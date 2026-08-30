@@ -4,6 +4,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { userDomain } from "../../../domain";
+import { createLogger } from "../../../platform/logger";
 import { listAnnotations } from "../../annotations/lib/annotation-db";
 import type { Annotation } from "../../annotations/lib/annotation-types";
 import type { LibraryBook } from "../../library/lib/library-types";
@@ -14,15 +15,21 @@ type AnnotationsPopoverProps = {
   onOpenBook: (book: LibraryBook) => void;
 };
 
+const log = createLogger("annotations");
+
 export function AnnotationsPopover({ books, onOpenBook }: AnnotationsPopoverProps) {
   const [open, setOpen] = useState(false);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const load = useCallback(async () => {
     try {
       setAnnotations(await listAnnotations());
-    } catch {
+      setLoadFailed(false);
+    } catch (error) {
+      log.error("listing annotations failed", error);
       setAnnotations([]);
+      setLoadFailed(true);
     }
   }, []);
 
@@ -49,6 +56,8 @@ export function AnnotationsPopover({ books, onOpenBook }: AnnotationsPopoverProp
     <AnnotationsPopoverView
       books={books}
       annotations={annotations}
+      loadFailed={loadFailed}
+      onRetryLoad={() => void load()}
       open={open}
       onOpenChange={setOpen}
       onOpenBook={onOpenBook}

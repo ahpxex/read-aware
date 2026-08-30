@@ -35,6 +35,8 @@ import { applyHighlight, applyNote, removeHighlight } from "../lib/highlight-ren
 import type { FoliateView } from "../lib/foliate-engine";
 import type { LibraryBook } from "../../library/lib/library-types";
 import type { SelectionOverlayRect } from "../lib/selection-overlay";
+import { useToast } from "@read-aware/ui";
+import { describeError, useTranslation } from "../../../i18n";
 import { createLogger } from "../../../platform/logger";
 
 const log = createLogger("reader");
@@ -95,6 +97,23 @@ export function useReaderTextActions({
   notesRef,
   currentChapterHrefRef,
 }: Options) {
+  const { toast } = useToast();
+  const { t: tErrors } = useTranslation(["reader", "common"]);
+  // Ref so the failure toasts stay out of every callback's dep list.
+  type AnnotationFailureKey =
+    | "annotations.saveFailed"
+    | "annotations.noteSaveFailed"
+    | "annotations.updateFailed"
+    | "annotations.deleteFailed";
+  const failToastRef = useRef<(titleKey: AnnotationFailureKey, error: unknown) => void>(() => {});
+  failToastRef.current = (titleKey, error) => {
+    toast({
+      variant: "destructive",
+      title: tErrors(`reader:${titleKey}`),
+      description: describeError(error).body,
+    });
+  };
+
   const bumpAnnotationsRevision = useSetAtom(annotationsRevisionAtom);
   const dispatchAskAi = useSetAtom(askAiRequestAtom);
   const pluginSelectionActions = useAtomValue(selectionActionsAtom);
@@ -233,6 +252,7 @@ export function useReaderTextActions({
         return true;
       } catch (highlightError) {
         log.error("failed to save highlight", highlightError);
+        failToastRef.current("annotations.saveFailed", highlightError);
         return false;
       }
     },
@@ -322,6 +342,7 @@ export function useReaderTextActions({
         bumpAnnotationsRevision((c) => c + 1);
       } catch (recolorError) {
         log.error("failed to recolor annotation", recolorError);
+        failToastRef.current("annotations.updateFailed", recolorError);
       }
       setActiveAnnotation(null);
     },
@@ -342,6 +363,7 @@ export function useReaderTextActions({
       bumpAnnotationsRevision((c) => c + 1);
     } catch (removeError) {
       log.error("failed to remove annotation", removeError);
+      failToastRef.current("annotations.deleteFailed", removeError);
     }
     setActiveAnnotation(null);
   }, [activeAnnotation, bumpAnnotationsRevision, highlightsRef, setActiveAnnotation, viewRef]);
@@ -459,7 +481,9 @@ export function useReaderTextActions({
         setCurrentNote(null);
         clearSelection();
       } catch (noteError) {
+        // The editor stays open with the draft intact; the toast says why.
         log.error("failed to save note", noteError);
+        failToastRef.current("annotations.noteSaveFailed", noteError);
       }
     },
     [

@@ -158,7 +158,8 @@
     "summaryDetail": "平均每天 {{perDay}} · 最长连续 {{streak}} 天",
     "backToBook": "回到正文",
     "lookBack": "回顾这本书",
-    "lookBackPrompt": "我刚读完《{{title}}》。陪我回顾一下——过一遍我标注的内容，说说是什么吸引了我的注意，这些段落之间贯穿着什么线索。只依据我实际标注的内容，不要复述情节。"
+    "lookBackPrompt": "我刚读完《{{title}}》。陪我回顾一下——过一遍我标注的内容，说说是什么吸引了我的注意，这些段落之间贯穿着什么线索。只依据我实际标注的内容，不要复述情节。",
+    "finishedSaveFailed": "无法保存完读状态"
   },
   "readAloud": {
     "start": "朗读",
@@ -175,5 +176,11 @@
     "unreachable": "这本书的文件在云端书库中，但目前无法连接同步服务器。",
     "undecodable": "已下载的文件无法用此设备的同步口令解密。",
     "reimport": "重新导入文件"
+  },
+  "annotations": {
+    "saveFailed": "无法保存高亮",
+    "noteSaveFailed": "无法保存笔记",
+    "updateFailed": "无法更新高亮",
+    "deleteFailed": "无法删除标注"
   }
 }

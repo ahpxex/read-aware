@@ -37,7 +37,7 @@
     "installing": "安装中…",
     "installedToast": "{{name}} 已安装并启用",
     "updateAvailableToast": "插件有更新：{{name}} v{{version}}——设置 → 插件 → 插件市场",
-    "installFailed": "安装失败:{{message}}",
+    "installFailed": "安装失败，详情已写入应用日志。",
     "empty": "尚未安装插件。插件是一个包含 manifest.json 和 main.js 的文件夹。",
     "uninstall": "卸载",
     "uninstallConfirm": "卸载 {{name}}?插件文件将被删除,其存储的数据会保留。",
@@ -81,7 +81,7 @@
       "service_llm": "使用你配置的模型发起 AI 请求",
       "service_clipboard": "写入剪贴板"
     },
-    "activationError": "启用失败:{{message}}",
+    "activationError": "启用失败，详情已写入应用日志。",
     "placement": "钉选按钮",
     "placementHint": "钉选的动作以按钮显示,其余收在溢出菜单和命令面板中。",
     "surface": {
@@ -95,7 +95,7 @@
     "uninstallConfirmShort": "确认卸载",
     "tabInstalled": "已安装",
     "tabMarketplace": "插件市场",
-    "marketplaceError": "无法加载插件市场:{{message}}",
+    "marketplaceError": "无法加载插件市场。",
     "retry": "重试",
     "refresh": "刷新",
     "installFromMarketplace": "安装",
@@ -111,6 +111,11 @@
       "cancel": "取消"
     },
     "configure": "设置",
-    "builtin": "内置"
+    "builtin": "内置",
+    "installFailedManifest": "这个文件不是有效的插件包。",
+    "uninstallFailed": "卸载失败，详情已写入应用日志。"
+  },
+  "runtime": {
+    "actionFailed": "这个插件出了点问题，详情已写入应用日志。"
   }
 }

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { errorCode } from "@read-aware/core";
 import { useTranslation } from "../../../i18n";
 import { onAppEvent } from "../../../platform/app-events";
+import { createLogger } from "../../../platform/logger";
 import { discardAgentThread } from "../agent/agent-runtime";
-import { AiNotConfiguredError } from "../lib/ai-errors";
 import { appendStreamChunk, finalizeParts, partsText } from "../lib/chat-stream";
 import { getChatTransport } from "../lib/chat-transport";
 import type {
@@ -46,6 +47,8 @@ export interface BookConversation {
  * assistant message carrying `error` (possibly with a partial reply), and the
  * transcript renders the inline error row + retry on it.
  */
+const log = createLogger("ai");
+
 export function useBookConversation(
   bookId: string,
   bookTitle: string,
@@ -178,9 +181,13 @@ export function useBookConversation(
             controller.signal.aborted ||
             (err instanceof DOMException && err.name === "AbortError");
           if (!aborted) {
+            // Raw detail goes to the log and (as diagnostics context) into the
+            // message's `error` column; the UI renders localized copy from the
+            // stable `errorCode` instead of ever showing the raw text.
+            log.error("chat turn failed", err);
             failure =
               err instanceof Error && err.message ? err.message : t("chat.error.generic");
-            if (err instanceof AiNotConfiguredError) failureCode = err.code;
+            failureCode = errorCode(err);
           }
         } finally {
           // Commit whatever was produced — even a partial reply after a stop —

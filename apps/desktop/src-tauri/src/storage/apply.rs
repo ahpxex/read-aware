@@ -43,6 +43,7 @@
 //! into the log, but the consolidation pipeline that would own their projection
 //! is not built yet.
 
+use crate::error::CommandError;
 use rusqlite::{params, Transaction};
 use serde_json::Value;
 
@@ -122,8 +123,8 @@ fn json_number(value: f64) -> Value {
 /// A payload field a projection column needs and cannot default. Missing means
 /// the event is malformed; the caller decides whether that aborts a commit or
 /// merely skips one row during a rebuild.
-fn require(p: &Value, key: &str, event_type: &str) -> Result<String, String> {
-    str_of(p, key).ok_or_else(|| format!("event {event_type}: missing required field `{key}`"))
+fn require(p: &Value, key: &str, event_type: &str) -> Result<String, CommandError> {
+    str_of(p, key).ok_or_else(|| CommandError::internal(format!("event {event_type}: missing required field `{key}`")))
 }
 
 // ─── The mapping ─────────────────────────────────────────────────────────────
@@ -134,7 +135,7 @@ fn require(p: &Value, key: &str, event_type: &str) -> Result<String, String> {
 /// unknowns, and the not-yet-projected profile/entity family), `Ok(true)` when
 /// it was handled.
 /// `merged_id → keep_id`, single hop (merge flattens chains at write time).
-fn resolve_book_alias(tx: &Transaction<'_>, id: &str) -> Result<Option<String>, String> {
+fn resolve_book_alias(tx: &Transaction<'_>, id: &str) -> Result<Option<String>, CommandError> {
     tx.query_row(
         "SELECT keep_id FROM book_aliases WHERE merged_id = ?1",
         params![id],
@@ -143,11 +144,11 @@ fn resolve_book_alias(tx: &Transaction<'_>, id: &str) -> Result<Option<String>, 
     .map(Some)
     .or_else(|e| match e {
         rusqlite::Error::QueryReturnedNoRows => Ok(None),
-        other => Err(other.to_string()),
+        other => Err(other.into()),
     })
 }
 
-pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> {
+pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, CommandError> {
     // A late event addressed to a merged-away book (progress from a device
     // that hadn't seen the merge yet) re-routes to the keeper. One central
     // rewrite of the payload's `bookId` — every handler below then applies
@@ -190,7 +191,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                     at,
                 ],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
             if let Some(key) = str_of(p, "sourceBlobKey") {
                 ensure_blob_manifest(
                     tx,
@@ -213,7 +214,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                   WHERE id = ?1",
                 params![id, str_of(p, "title"), str_of(p, "author"), at],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
         }
         "book.opened" => {
             let id = require(p, "bookId", t)?;
@@ -221,7 +222,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                 "UPDATE books SET last_opened_at = ?2, updated_at = ?2 WHERE id = ?1",
                 params![id, at],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
         }
         "book.starred" => {
             let id = require(p, "bookId", t)?;
@@ -232,7 +233,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                 "UPDATE books SET starred = ?2 WHERE id = ?1",
                 params![id, bool_of(p, "starred").unwrap_or(false) as i64],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
         }
         "book.finished" => {
             let id = require(p, "bookId", t)?;
@@ -255,18 +256,18 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                     params![id, at],
                 )
             }
-            .map_err(|e| e.to_string())?;
+            ?;
         }
         "book.removed" => {
             let id = require(p, "bookId", t)?;
             // The book's annotations go with it; their own `*.removed` events
             // are not emitted per-annotation on a book delete.
             tx.execute("DELETE FROM annotations WHERE book_id = ?1", params![id])
-                .map_err(|e| e.to_string())?;
+                ?;
             tx.execute("DELETE FROM chapter_digests WHERE book_id = ?1", params![id])
-                .map_err(|e| e.to_string())?;
+                ?;
             tx.execute("DELETE FROM books WHERE id = ?1", params![id])
-                .map_err(|e| e.to_string())?;
+                ?;
         }
         // Two records, one content (same source sha256): everything the merged
         // record accrued folds into the keeper, and the alias re-routes any
@@ -286,17 +287,17 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                 "INSERT OR REPLACE INTO book_aliases (merged_id, keep_id) VALUES (?1, ?2)",
                 params![merged, keep],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
             tx.execute(
                 "UPDATE book_aliases SET keep_id = ?2 WHERE keep_id = ?1",
                 params![merged, keep],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
             tx.execute(
                 "UPDATE annotations SET book_id = ?2 WHERE book_id = ?1",
                 params![merged, keep],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
             // Reading time is additive: same-key rows sum, then the old rows go.
             tx.execute(
                 "INSERT INTO reading_time_totals (book_id, total_ms, first_started_at, last_read_at)
@@ -312,7 +313,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                         COALESCE(excluded.last_read_at, reading_time_totals.last_read_at))",
                 params![merged, keep],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
             tx.execute(
                 "INSERT INTO reading_time_daily (book_id, local_day, ms)
                     SELECT ?2, local_day, ms FROM reading_time_daily WHERE book_id = ?1
@@ -320,7 +321,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                     ms = reading_time_daily.ms + excluded.ms",
                 params![merged, keep],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
             tx.execute(
                 "INSERT INTO reading_time_hourly (book_id, local_hour, ms)
                     SELECT ?2, local_hour, ms FROM reading_time_hourly WHERE book_id = ?1
@@ -328,16 +329,16 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                     ms = reading_time_hourly.ms + excluded.ms",
                 params![merged, keep],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
             tx.execute(
                 "DELETE FROM reading_time_totals WHERE book_id = ?1",
                 params![merged],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
             tx.execute("DELETE FROM reading_time_daily WHERE book_id = ?1", params![merged])
-                .map_err(|e| e.to_string())?;
+                ?;
             tx.execute("DELETE FROM reading_time_hourly WHERE book_id = ?1", params![merged])
-                .map_err(|e| e.to_string())?;
+                ?;
             // Chapter digests describe the same content on both records: the
             // keeper's own rows win per chapter, the merged record fills gaps.
             tx.execute(
@@ -349,9 +350,9 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                       FROM chapter_digests WHERE book_id = ?1",
                 params![merged, keep],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
             tx.execute("DELETE FROM chapter_digests WHERE book_id = ?1", params![merged])
-                .map_err(|e| e.to_string())?;
+                ?;
             // The keeper's metadata wins; reading STATE takes whichever record
             // got further (progress trio moves together), stars are sticky,
             // and an unfiled keeper adopts the merged record's shelf.
@@ -375,9 +376,9 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                  WHERE id = ?2",
                 params![merged, keep],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
             tx.execute("DELETE FROM books WHERE id = ?1", params![merged])
-                .map_err(|e| e.to_string())?;
+                ?;
         }
         // Membership changes leave updated_at alone for the same reason as
         // starring — regrouping a shelf is not reading activity.
@@ -387,7 +388,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                 "UPDATE books SET collection_id = ?2 WHERE id = ?1",
                 params![id, require(p, "collectionId", t)?],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
         }
         "book.removedFromCollection" => {
             let id = require(p, "bookId", t)?;
@@ -398,7 +399,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                   WHERE id = ?1 AND collection_id = ?2",
                 params![id, require(p, "collectionId", t)?],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
         }
 
         // ── Collections ─────────────────────────────────────────────────────
@@ -408,14 +409,14 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                  ON CONFLICT(id) DO UPDATE SET name = excluded.name",
                 params![require(p, "collectionId", t)?, require(p, "name", t)?, at],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
         }
         "collection.renamed" => {
             tx.execute(
                 "UPDATE collections SET name = ?2 WHERE id = ?1",
                 params![require(p, "collectionId", t)?, require(p, "name", t)?],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
         }
         "collection.removed" => {
             let id = require(p, "collectionId", t)?;
@@ -423,9 +424,9 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                 "UPDATE books SET collection_id = NULL WHERE collection_id = ?1",
                 params![id],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
             tx.execute("DELETE FROM collections WHERE id = ?1", params![id])
-                .map_err(|e| e.to_string())?;
+                ?;
         }
 
         // ── Reading ─────────────────────────────────────────────────────────
@@ -466,7 +467,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                     at,
                 ],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
         }
         "book.timeRecorded" => {
             let id = require(p, "bookId", t)?;
@@ -486,7 +487,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                                        excluded.last_read_at)",
                 params![id, ms, at_epoch],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
             // localDay / localHour are stamped by the RECORDING device; deriving
             // them here would shift history when a rebuild runs in another
             // timezone (see the event contract in @read-aware/core).
@@ -496,7 +497,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                      ON CONFLICT(book_id, local_day) DO UPDATE SET ms = ms + excluded.ms",
                     params![id, day, ms],
                 )
-                .map_err(|e| e.to_string())?;
+                ?;
             }
             if let Some(hour) = i64_of(p, "localHour") {
                 tx.execute(
@@ -504,7 +505,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                      ON CONFLICT(book_id, local_hour) DO UPDATE SET ms = ms + excluded.ms",
                     params![id, hour, ms],
                 )
-                .map_err(|e| e.to_string())?;
+                ?;
             }
         }
 
@@ -533,7 +534,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                     at
                 ],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
         }
         "note.created" => {
             upsert_annotation(
@@ -558,7 +559,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                     at
                 ],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
         }
         "ask.recorded" => {
             upsert_annotation(
@@ -582,7 +583,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                 "DELETE FROM annotations WHERE id = ?1",
                 params![require(p, key, t)?],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
         }
 
         // ── AI conversations ────────────────────────────────────────────────
@@ -593,7 +594,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                  ON CONFLICT(id) DO NOTHING",
                 params![require(p, "conversationId", t)?, at],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
         }
         "aiMessage.appended" => {
             let conversation_id = require(p, "conversationId", t)?;
@@ -603,7 +604,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                  VALUES (?1, ?2, ?2) ON CONFLICT(id) DO NOTHING",
                 params![conversation_id, at],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
             // Event attachments use `anchor`; the projection column has always
             // held the reader's `cfiRange` spelling. Translate, don't leak.
             let attachments = p.get("attachments").and_then(Value::as_array).map(|list| {
@@ -636,19 +637,19 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                     attachments,
                 ],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
             tx.execute(
                 "UPDATE ai_conversations SET updated_at = ?2 WHERE id = ?1",
                 params![conversation_id, at],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
         }
         "aiMessage.removed" => {
             tx.execute(
                 "DELETE FROM ai_messages WHERE id = ?1",
                 params![require(p, "messageId", t)?],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
         }
         "aiConversation.cleared" => {
             let id = require(p, "conversationId", t)?;
@@ -656,14 +657,14 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                 "DELETE FROM ai_messages WHERE conversation_id = ?1",
                 params![id],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
             // Tombstone, not a row delete — the sync semantics in
             // docs/sqlite-schema.sql keep the conversation with a cleared_at.
             tx.execute(
                 "UPDATE ai_conversations SET cleared_at = ?2, updated_at = ?2 WHERE id = ?1",
                 params![id, at],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
         }
 
         // ── Memory ──────────────────────────────────────────────────────────
@@ -700,7 +701,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                     at,
                 ],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
         }
         "memory.revised" => {
             let id = require(p, "memoryId", t)?;
@@ -726,21 +727,21 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                     at
                 ],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
         }
         "memory.superseded" => {
             tx.execute(
                 "UPDATE memories SET status = 'superseded', updated_at = ?2 WHERE id = ?1",
                 params![require(p, "memoryId", t)?, at],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
         }
         "memory.forgotten" => {
             tx.execute(
                 "UPDATE memories SET status = 'forgotten', updated_at = ?2 WHERE id = ?1",
                 params![require(p, "memoryId", t)?, at],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
         }
         "memory.feedback" => {
             let id = require(p, "memoryId", t)?;
@@ -750,14 +751,14 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                         "UPDATE memories SET pinned = 1, updated_at = ?2 WHERE id = ?1",
                         params![id, at],
                     )
-                    .map_err(|e| e.to_string())?;
+                    ?;
                 }
                 Some("unpin") => {
                     tx.execute(
                         "UPDATE memories SET pinned = 0, updated_at = ?2 WHERE id = ?1",
                         params![id, at],
                     )
-                    .map_err(|e| e.to_string())?;
+                    ?;
                 }
                 // "useful" / "not_useful" nudge ranking; the importance model
                 // that consumes them lands with the consolidation pipeline.
@@ -778,7 +779,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                         updated_at = excluded.updated_at",
                     params![key, value.to_string(), at],
                 )
-                .map_err(|e| e.to_string())?;
+                ?;
             }
         }
 
@@ -831,7 +832,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                     at,
                 ],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
         }
         // 叙事性分类（剧透围栏与纪要口径的分流信号）：空闲管线的 LLM 判定，
         // 与 chapterDigested 同理入事件——不可确定性重算，重放可复原。
@@ -842,7 +843,7 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, String> 
                 "UPDATE books SET narrativity = ?2, updated_at = ?3 WHERE id = ?1",
                 params![id, narrativity, at],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
         }
         // profile/entity: no projection table until the consolidation pipeline.
         "profile.updated" | "entity.resolved" | "entity.merged" => return Ok(false),
@@ -879,7 +880,7 @@ fn ensure_blob_manifest(
     byte_size: Option<i64>,
     sha256: Option<&str>,
     at: &str,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     let (kind, sync_required) = super::blob_kind(key);
     tx.execute(
         "INSERT OR IGNORE INTO blob_objects
@@ -887,7 +888,7 @@ fn ensure_blob_manifest(
          VALUES (?1, ?2, ?3, ?4, ?5, NULL, ?6, ?7)",
         params![key, kind, mime_type, byte_size, sha256, sync_required as i64, at],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     Ok(())
 }
 
@@ -903,7 +904,7 @@ fn upsert_annotation(
     text: String,
     content: Option<String>,
     at: &str,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     tx.execute(
         "INSERT INTO annotations
             (id, book_id, type, cfi_range, chapter_href, text, color, style,
@@ -927,7 +928,7 @@ fn upsert_annotation(
             at,
         ],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     Ok(())
 }
 

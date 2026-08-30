@@ -10,6 +10,7 @@ import {
   type CustomOpenAIApi,
 } from "@read-aware/agent";
 import { appHttpFetch } from "../../../platform/http-client";
+import { createLogger } from "../../../platform/logger";
 import {
   Accordion,
   Button,
@@ -23,7 +24,7 @@ import {
 } from "@read-aware/ui";
 import { Eye, EyeSlash } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
-import { Trans, useTranslation } from "../../../i18n";
+import { Trans, useTranslation, describeError } from "../../../i18n";
 import { useReactiveSetting } from "../../../hooks/useReactiveSetting";
 import { useSyncAccountInfo } from "../hooks/useSyncAccountInfo";
 import { useSyncConnection } from "../hooks/useSyncConnection";
@@ -63,6 +64,8 @@ function parsePositiveInteger(value: string): number | undefined {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
 }
+
+const log = createLogger("settings");
 
 export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
   const { t } = useTranslation("settings");
@@ -276,9 +279,12 @@ export function AIConfigPanel({ advancedContent }: AIConfigPanelProps) {
         });
       }
     } catch (error) {
+      // This is a diagnostic surface, but the same rule applies: the raw
+      // provider text goes to the log; the panel shows the classified copy.
+      log.error("AI connection test failed", error);
       setTestResult({
         success: false,
-        message: error instanceof Error ? error.message : t("aiConfig.testUnknownError"),
+        message: describeError(error, { fallback: t("aiConfig.testUnknownError") }).body,
       });
     } finally {
       setIsTesting(false);

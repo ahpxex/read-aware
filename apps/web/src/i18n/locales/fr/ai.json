@@ -88,8 +88,7 @@
       "description": "Sélectionnez un passage et choisissez Demander à l’IA, ou commencez simplement à écrire. Cette conversation reste liée au livre."
     },
     "error": {
-      "generic": "Une erreur s’est produite lors de l’obtention d’une réponse.",
-      "notConfigured": "L'IA n'est pas encore configurée — ajoutez une clé API pour commencer à discuter."
+      "generic": "Une erreur s’est produite lors de l’obtention d’une réponse."
     }
   },
   "note": {

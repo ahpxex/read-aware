@@ -3,6 +3,7 @@
 //!
 //! Split out of `storage/mod.rs`; `use super::*` keeps the shared types in
 //! scope, so this is a move rather than a rewrite.
+use crate::error::CommandError;
 use super::*;
 
 // --- Plugin documents (migration v10) ---
@@ -52,8 +53,8 @@ pub fn plugin_docs_put(
     book_id: Option<String>,
     anchor: Option<String>,
     db: State<'_, Db>,
-) -> Result<(), String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+) -> Result<(), CommandError> {
+    let conn = db.0.lock()?;
     conn.execute(
         "INSERT INTO plugin_documents
             (plugin_id, collection, id, json, book_id, anchor, updated_at)
@@ -63,7 +64,7 @@ pub fn plugin_docs_put(
             updated_at=excluded.updated_at",
         params![plugin_id, collection, id, json, book_id, anchor],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     Ok(())
 }
 
@@ -73,8 +74,8 @@ pub fn plugin_docs_get(
     collection: String,
     id: String,
     db: State<'_, Db>,
-) -> Result<Option<PluginDocumentRow>, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+) -> Result<Option<PluginDocumentRow>, CommandError> {
+    let conn = db.0.lock()?;
     match conn.query_row(
         "SELECT id, json, book_id, anchor, updated_at FROM plugin_documents
          WHERE plugin_id = ?1 AND collection = ?2 AND id = ?3",
@@ -83,7 +84,7 @@ pub fn plugin_docs_get(
     ) {
         Ok(row) => Ok(Some(row)),
         Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-        Err(e) => Err(e.to_string()),
+        Err(e) => Err(e.into()),
     }
 }
 
@@ -93,13 +94,13 @@ pub fn plugin_docs_delete(
     collection: String,
     id: String,
     db: State<'_, Db>,
-) -> Result<(), String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+) -> Result<(), CommandError> {
+    let conn = db.0.lock()?;
     conn.execute(
         "DELETE FROM plugin_documents WHERE plugin_id = ?1 AND collection = ?2 AND id = ?3",
         params![plugin_id, collection, id],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     Ok(())
 }
 
@@ -111,8 +112,8 @@ pub fn plugin_docs_list(
     limit: Option<i64>,
     oldest_first: Option<bool>,
     db: State<'_, Db>,
-) -> Result<Vec<PluginDocumentRow>, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+) -> Result<Vec<PluginDocumentRow>, CommandError> {
+    let conn = db.0.lock()?;
     let order = if oldest_first.unwrap_or(false) {
         "ASC"
     } else {
@@ -125,27 +126,27 @@ pub fn plugin_docs_list(
          ORDER BY updated_at {order}
          LIMIT ?4"
     );
-    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+    let mut stmt = conn.prepare(&sql)?;
     let rows = stmt
         .query_map(
             params![plugin_id, collection, book_id, limit.unwrap_or(i64::MAX)],
             row_to_plugin_document,
         )
-        .map_err(|e| e.to_string())?
+        ?
         .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| e.to_string())?;
+        ?;
     Ok(rows)
 }
 
 /// Uninstall wipe — documents die with the plugin (their declared lifecycle).
 #[tauri::command]
-pub fn plugin_docs_clear(plugin_id: String, db: State<'_, Db>) -> Result<(), String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn plugin_docs_clear(plugin_id: String, db: State<'_, Db>) -> Result<(), CommandError> {
+    let conn = db.0.lock()?;
     conn.execute(
         "DELETE FROM plugin_documents WHERE plugin_id = ?1",
         params![plugin_id],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     Ok(())
 }
 
@@ -153,22 +154,22 @@ pub fn plugin_docs_clear(plugin_id: String, db: State<'_, Db>) -> Result<(), Str
 pub fn plugin_docs_snapshot(
     plugin_id: String,
     db: State<'_, Db>,
-) -> Result<Vec<PluginDocumentSnapshotRow>, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+) -> Result<Vec<PluginDocumentSnapshotRow>, CommandError> {
+    let conn = db.0.lock()?;
     plugin_docs_snapshot_inner(&conn, &plugin_id)
 }
 
 pub(crate) fn plugin_docs_snapshot_inner(
     conn: &Connection,
     plugin_id: &str,
-) -> Result<Vec<PluginDocumentSnapshotRow>, String> {
+) -> Result<Vec<PluginDocumentSnapshotRow>, CommandError> {
     let mut stmt = conn
         .prepare(
             "SELECT collection, id, json, book_id, anchor, updated_at
              FROM plugin_documents WHERE plugin_id = ?1
              ORDER BY collection, id",
         )
-        .map_err(|e| e.to_string())?;
+        ?;
     let rows = stmt
         .query_map(params![plugin_id], |row| {
             Ok(PluginDocumentSnapshotRow {
@@ -180,9 +181,9 @@ pub(crate) fn plugin_docs_snapshot_inner(
                 updated_at: row.get(5)?,
             })
         })
-        .map_err(|e| e.to_string())?
+        ?
         .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| e.to_string())?;
+        ?;
     Ok(rows)
 }
 
@@ -191,8 +192,8 @@ pub fn plugin_docs_restore(
     plugin_id: String,
     rows: Vec<PluginDocumentSnapshotRow>,
     db: State<'_, Db>,
-) -> Result<(), String> {
-    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+) -> Result<(), CommandError> {
+    let mut conn = db.0.lock()?;
     plugin_docs_restore_inner(&mut conn, &plugin_id, rows)
 }
 
@@ -200,13 +201,13 @@ pub(crate) fn plugin_docs_restore_inner(
     conn: &mut Connection,
     plugin_id: &str,
     rows: Vec<PluginDocumentSnapshotRow>,
-) -> Result<(), String> {
-    let tx = conn.transaction().map_err(|e| e.to_string())?;
+) -> Result<(), CommandError> {
+    let tx = conn.transaction()?;
     tx.execute(
         "DELETE FROM plugin_documents WHERE plugin_id = ?1",
         params![plugin_id],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     for row in rows {
         tx.execute(
             "INSERT INTO plugin_documents
@@ -222,18 +223,18 @@ pub(crate) fn plugin_docs_restore_inner(
                 row.updated_at
             ],
         )
-        .map_err(|e| e.to_string())?;
+        ?;
     }
-    tx.commit().map_err(|e| e.to_string())
+    Ok(tx.commit()?)
 }
 
 /// One-time migration: the retired core vocabulary projection moves into the
 /// built-in dictionary plugin's document collection (dictionary/words), then
 /// the source rows are deleted. Idempotent (second run finds no rows).
 #[tauri::command]
-pub fn vocabulary_migrate_to_plugin_documents(db: State<'_, Db>) -> Result<i64, String> {
-    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
-    let tx = conn.transaction().map_err(|e| e.to_string())?;
+pub fn vocabulary_migrate_to_plugin_documents(db: State<'_, Db>) -> Result<i64, CommandError> {
+    let mut conn = db.0.lock()?;
+    let tx = conn.transaction()?;
     let moved: i64;
     {
         let mut stmt = tx
@@ -241,7 +242,7 @@ pub fn vocabulary_migrate_to_plugin_documents(db: State<'_, Db>) -> Result<i64, 
                 "SELECT id, term, language, entry_json, context, book_id, book_title, added_at
                  FROM vocabulary_entries WHERE removed_at IS NULL",
             )
-            .map_err(|e| e.to_string())?;
+            ?;
         let rows = stmt
             .query_map([], |row| {
                 Ok((
@@ -255,9 +256,9 @@ pub fn vocabulary_migrate_to_plugin_documents(db: State<'_, Db>) -> Result<i64, 
                     row.get::<_, String>(7)?,
                 ))
             })
-            .map_err(|e| e.to_string())?
+            ?
             .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| e.to_string())?;
+            ?;
         moved = rows.len() as i64;
         for (id, term, language, entry_json, context, book_id, book_title, added_at) in rows {
             let entry: Value = serde_json::from_str(&entry_json).unwrap_or(Value::Null);
@@ -275,11 +276,11 @@ pub fn vocabulary_migrate_to_plugin_documents(db: State<'_, Db>) -> Result<i64, 
                  VALUES ('dictionary', 'words', ?1, ?2, ?3, NULL, ?4)",
                 params![id, doc.to_string(), book_id, added_at],
             )
-            .map_err(|e| e.to_string())?;
+            ?;
         }
     }
     tx.execute("DELETE FROM vocabulary_entries", [])
-        .map_err(|e| e.to_string())?;
-    tx.commit().map_err(|e| e.to_string())?;
+        ?;
+    tx.commit()?;
     Ok(moved)
 }

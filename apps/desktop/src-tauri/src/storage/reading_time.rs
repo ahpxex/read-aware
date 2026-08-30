@@ -4,6 +4,7 @@
 //! Split out of `storage/mod.rs`, which had grown to hold fourteen unrelated
 //! domains in one file. `use super::*` keeps the parent's shared types (`Db`,
 //! `EventRow`, the apply helpers) in scope, so this is a move, not a rewrite.
+use crate::error::CommandError;
 use super::*;
 
 // --- Reading-time projection (migration v9) ---
@@ -60,8 +61,8 @@ pub struct ReadingTimeWire {
 ///
 /// Idempotent: it does nothing once the log contains any `book.timeRecorded`.
 #[tauri::command]
-pub fn reading_time_genesis(db: State<'_, Db>) -> Result<usize, String> {
-    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn reading_time_genesis(db: State<'_, Db>) -> Result<usize, CommandError> {
+    let mut conn = db.0.lock()?;
     reading_time_genesis_inner(&mut conn)
 }
 
@@ -73,7 +74,7 @@ type ReadingTimeShape = (
     std::collections::BTreeMap<String, (Option<i64>, Option<i64>)>,
 );
 
-fn read_reading_time_shape(conn: &Connection) -> Result<ReadingTimeShape, String> {
+fn read_reading_time_shape(conn: &Connection) -> Result<ReadingTimeShape, CommandError> {
     let mut daily: std::collections::BTreeMap<String, Vec<(String, i64)>> = Default::default();
     let mut hourly: std::collections::BTreeMap<String, Vec<(i64, i64)>> = Default::default();
     let mut bounds: std::collections::BTreeMap<String, (Option<i64>, Option<i64>)> =
@@ -84,41 +85,41 @@ fn read_reading_time_shape(conn: &Connection) -> Result<ReadingTimeShape, String
                 "SELECT book_id, local_day, ms FROM reading_time_daily
                  WHERE ms > 0 ORDER BY local_day",
             )
-            .map_err(|e| e.to_string())?;
-        let mut rows = stmt.query([]).map_err(|e| e.to_string())?;
-        while let Some(row) = rows.next().map_err(|e| e.to_string())? {
-            let book: String = row.get(0).map_err(|e| e.to_string())?;
+            ?;
+        let mut rows = stmt.query([])?;
+        while let Some(row) = rows.next()? {
+            let book: String = row.get(0)?;
             daily.entry(book).or_default().push((
-                row.get(1).map_err(|e| e.to_string())?,
-                row.get(2).map_err(|e| e.to_string())?,
+                row.get(1)?,
+                row.get(2)?,
             ));
         }
     }
     {
         let mut stmt = conn
             .prepare("SELECT book_id, local_hour, ms FROM reading_time_hourly WHERE ms > 0")
-            .map_err(|e| e.to_string())?;
-        let mut rows = stmt.query([]).map_err(|e| e.to_string())?;
-        while let Some(row) = rows.next().map_err(|e| e.to_string())? {
-            let book: String = row.get(0).map_err(|e| e.to_string())?;
+            ?;
+        let mut rows = stmt.query([])?;
+        while let Some(row) = rows.next()? {
+            let book: String = row.get(0)?;
             hourly.entry(book).or_default().push((
-                row.get(1).map_err(|e| e.to_string())?,
-                row.get(2).map_err(|e| e.to_string())?,
+                row.get(1)?,
+                row.get(2)?,
             ));
         }
     }
     {
         let mut stmt = conn
             .prepare("SELECT book_id, first_started_at, last_read_at FROM reading_time_totals")
-            .map_err(|e| e.to_string())?;
-        let mut rows = stmt.query([]).map_err(|e| e.to_string())?;
-        while let Some(row) = rows.next().map_err(|e| e.to_string())? {
-            let book: String = row.get(0).map_err(|e| e.to_string())?;
+            ?;
+        let mut rows = stmt.query([])?;
+        while let Some(row) = rows.next()? {
+            let book: String = row.get(0)?;
             bounds.insert(
                 book,
                 (
-                    row.get(1).map_err(|e| e.to_string())?,
-                    row.get(2).map_err(|e| e.to_string())?,
+                    row.get(1)?,
+                    row.get(2)?,
                 ),
             );
         }
@@ -126,7 +127,7 @@ fn read_reading_time_shape(conn: &Connection) -> Result<ReadingTimeShape, String
     Ok((daily, hourly, bounds))
 }
 
-pub(crate) fn reading_time_genesis_inner(conn: &mut Connection) -> Result<usize, String> {
+pub(crate) fn reading_time_genesis_inner(conn: &mut Connection) -> Result<usize, CommandError> {
     let device_id = ensure_local_device(conn)?;
 
     // What the tables hold today — the truth to preserve.
@@ -140,14 +141,14 @@ pub(crate) fn reading_time_genesis_inner(conn: &mut Connection) -> Result<usize,
     // double-count exactly those. Measured by replaying them into wiped tables
     // inside a transaction that is then rolled back, so nothing is disturbed.
     let (covered_daily, covered_hourly) = {
-        let tx = conn.transaction().map_err(|e| e.to_string())?;
+        let tx = conn.transaction()?;
         for table in [
             "reading_time_totals",
             "reading_time_daily",
             "reading_time_hourly",
         ] {
             tx.execute(&format!("DELETE FROM {table}"), [])
-                .map_err(|e| e.to_string())?;
+                ?;
         }
         let logged: Vec<EventRow> = {
             let mut stmt = tx
@@ -155,16 +156,16 @@ pub(crate) fn reading_time_genesis_inner(conn: &mut Connection) -> Result<usize,
                     "SELECT * FROM domain_events WHERE type = 'book.timeRecorded'
                      ORDER BY hlc_wall_ms, hlc_counter, hlc_device",
                 )
-                .map_err(|e| e.to_string())?;
-            let iter = stmt.query_map([], row_to_event).map_err(|e| e.to_string())?;
+                ?;
+            let iter = stmt.query_map([], row_to_event)?;
             iter.collect::<rusqlite::Result<Vec<_>>>()
-                .map_err(|e| e.to_string())?
+                ?
         };
         for event in &logged {
             apply::apply_event(&tx, event)?;
         }
         let (d, h, _) = read_reading_time_shape(&tx)?;
-        tx.rollback().map_err(|e| e.to_string())?;
+        tx.rollback()?;
         (d, h)
     };
 
@@ -353,21 +354,21 @@ pub(crate) fn reading_time_genesis_inner(conn: &mut Connection) -> Result<usize,
     // these events exist so a future replay can arrive at the same place.
     // Applying them here would add the deficit on top of the sums it was
     // computed from.
-    let tx = conn.transaction().map_err(|e| e.to_string())?;
+    let tx = conn.transaction()?;
     for event in &events {
         insert_event_row(&tx, event, EventSource::Local)?;
     }
-    tx.commit().map_err(|e| e.to_string())?;
+    tx.commit()?;
     Ok(events.len())
 }
 
 #[tauri::command]
-pub fn reading_time_load(db: State<'_, Db>) -> Result<ReadingTimeWire, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn reading_time_load(db: State<'_, Db>) -> Result<ReadingTimeWire, CommandError> {
+    let conn = db.0.lock()?;
     let totals = {
         let mut stmt = conn
             .prepare("SELECT book_id, total_ms, first_started_at, last_read_at FROM reading_time_totals")
-            .map_err(|e| e.to_string())?;
+            ?;
         let rows = stmt
             .query_map([], |row| {
                 Ok(ReadingTimeTotalRow {
@@ -377,15 +378,15 @@ pub fn reading_time_load(db: State<'_, Db>) -> Result<ReadingTimeWire, String> {
                     last_read_at: row.get(3)?,
                 })
             })
-            .map_err(|e| e.to_string())?
+            ?
             .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| e.to_string())?;
+            ?;
         rows
     };
     let daily = {
         let mut stmt = conn
             .prepare("SELECT book_id, local_day, ms FROM reading_time_daily")
-            .map_err(|e| e.to_string())?;
+            ?;
         let rows = stmt
             .query_map([], |row| {
                 Ok(ReadingTimeDailyRow {
@@ -394,15 +395,15 @@ pub fn reading_time_load(db: State<'_, Db>) -> Result<ReadingTimeWire, String> {
                     ms: row.get(2)?,
                 })
             })
-            .map_err(|e| e.to_string())?
+            ?
             .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| e.to_string())?;
+            ?;
         rows
     };
     let hourly = {
         let mut stmt = conn
             .prepare("SELECT book_id, local_hour, ms FROM reading_time_hourly")
-            .map_err(|e| e.to_string())?;
+            ?;
         let rows = stmt
             .query_map([], |row| {
                 Ok(ReadingTimeHourlyRow {
@@ -411,9 +412,9 @@ pub fn reading_time_load(db: State<'_, Db>) -> Result<ReadingTimeWire, String> {
                     ms: row.get(2)?,
                 })
             })
-            .map_err(|e| e.to_string())?
+            ?
             .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| e.to_string())?;
+            ?;
         rows
     };
     Ok(ReadingTimeWire { totals, daily, hourly })
@@ -426,7 +427,7 @@ pub(crate) fn reading_time_record_inner(
     at_epoch_ms: i64,
     local_day: &str,
     local_hour: i64,
-) -> Result<(), String> {
+) -> Result<(), CommandError> {
     conn.execute(
         "INSERT INTO reading_time_totals (book_id, total_ms, first_started_at, last_read_at)
          VALUES (?1, ?2, ?3, ?3)
@@ -436,19 +437,19 @@ pub(crate) fn reading_time_record_inner(
             last_read_at = MAX(COALESCE(last_read_at, 0), excluded.last_read_at)",
         params![book_id, ms, at_epoch_ms],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     conn.execute(
         "INSERT INTO reading_time_daily (book_id, local_day, ms) VALUES (?1, ?2, ?3)
          ON CONFLICT(book_id, local_day) DO UPDATE SET ms = ms + excluded.ms",
         params![book_id, local_day, ms],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     conn.execute(
         "INSERT INTO reading_time_hourly (book_id, local_hour, ms) VALUES (?1, ?2, ?3)
          ON CONFLICT(book_id, local_hour) DO UPDATE SET ms = ms + excluded.ms",
         params![book_id, local_hour, ms],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     Ok(())
 }
 
@@ -461,45 +462,45 @@ pub fn reading_time_record(
     local_day: String,
     local_hour: i64,
     db: State<'_, Db>,
-) -> Result<(), String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+) -> Result<(), CommandError> {
+    let conn = db.0.lock()?;
     reading_time_record_inner(&conn, &book_id, ms, at_epoch_ms, &local_day, local_hour)
 }
 
 /// Bulk replace (one-time app_kv migration; the stats demo seed).
 #[tauri::command]
-pub fn reading_time_import(wire: ReadingTimeWire, db: State<'_, Db>) -> Result<(), String> {
-    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
-    let tx = conn.transaction().map_err(|e| e.to_string())?;
+pub fn reading_time_import(wire: ReadingTimeWire, db: State<'_, Db>) -> Result<(), CommandError> {
+    let mut conn = db.0.lock()?;
+    let tx = conn.transaction()?;
     tx.execute_batch(
         "DELETE FROM reading_time_totals;
          DELETE FROM reading_time_daily;
          DELETE FROM reading_time_hourly;",
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     for row in &wire.totals {
         tx.execute(
             "INSERT INTO reading_time_totals (book_id, total_ms, first_started_at, last_read_at)
              VALUES (?1,?2,?3,?4)",
             params![row.book_id, row.total_ms, row.first_started_at, row.last_read_at],
         )
-        .map_err(|e| e.to_string())?;
+        ?;
     }
     for row in &wire.daily {
         tx.execute(
             "INSERT INTO reading_time_daily (book_id, local_day, ms) VALUES (?1,?2,?3)",
             params![row.book_id, row.local_day, row.ms],
         )
-        .map_err(|e| e.to_string())?;
+        ?;
     }
     for row in &wire.hourly {
         tx.execute(
             "INSERT INTO reading_time_hourly (book_id, local_hour, ms) VALUES (?1,?2,?3)",
             params![row.book_id, row.local_hour, row.ms],
         )
-        .map_err(|e| e.to_string())?;
+        ?;
     }
-    tx.commit().map_err(|e| e.to_string())?;
+    tx.commit()?;
     Ok(())
 }
 

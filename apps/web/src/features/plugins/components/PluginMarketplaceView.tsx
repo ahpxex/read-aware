@@ -16,7 +16,7 @@ import { PluginSearchInput } from "./PluginSearchInput";
 
 export type MarketplaceLoadState =
   | { status: "loading" }
-  | { status: "error"; message: string }
+  | { status: "error" }
   | { status: "ready"; entries: MarketplaceEntry[] };
 
 type PluginMarketplaceViewProps = {
@@ -56,9 +56,7 @@ export function PluginMarketplaceView({
   if (state.status === "error") {
     return (
       <div className="flex flex-col items-start gap-3 py-6">
-        <Caption className="text-fg-muted">
-          {t("settings.marketplaceError", { message: state.message })}
-        </Caption>
+        <Caption className="text-fg-muted">{t("settings.marketplaceError")}</Caption>
         <Button size="sm" variant="outline" onClick={onRetry}>
           {t("settings.retry")}
         </Button>

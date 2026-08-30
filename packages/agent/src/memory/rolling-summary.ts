@@ -7,7 +7,7 @@
  */
 import type { Api, Model } from "@earendil-works/pi-ai";
 import type { CompleteFn } from "../models/complete";
-import type { TurnRecord } from "../ports";
+import type { AgentLogPort, TurnRecord } from "../ports";
 
 const SUMMARY_PROMPT = `You maintain a rolling summary of one conversation between a reader and their reading assistant. Fold the newest exchange into the summary.
 
@@ -34,6 +34,7 @@ export function formatTurnsForFolding(turns: TurnRecord[]): string {
 }
 
 export interface BootstrapSummaryInput {
+  log?: AgentLogPort;
   complete: CompleteFn;
   model: Model<Api>;
   /** 领养窗口：调用方截好的历史尾部（不含当前轮）。 */
@@ -66,12 +67,14 @@ export async function bootstrapSummaryFromHistory(
       .join("")
       .trim();
     return text || undefined;
-  } catch {
+  } catch (error) {
+    input.log?.warn("transcript folding failed", error);
     return undefined;
   }
 }
 
 export interface UpdateSummaryInput {
+  log?: AgentLogPort;
   complete: CompleteFn;
   model: Model<Api>;
   previous: string | undefined;
@@ -97,7 +100,10 @@ export async function updateRollingSummary(input: UpdateSummaryInput): Promise<s
       .join("")
       .trim();
     return text || input.previous;
-  } catch {
+  } catch (error) {
+    // Keeping the previous summary is safe, but the stall must be visible —
+    // a summary frozen weeks ago changes what the agent knows.
+    input.log?.warn("rolling summary update failed", error);
     return input.previous;
   }
 }

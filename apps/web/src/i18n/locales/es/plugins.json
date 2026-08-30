@@ -37,7 +37,7 @@
     "installing": "Instalando…",
     "installedToast": "{{name}} instalado y activado",
     "updateAvailableToast": "Actualización disponible: {{name}} v{{version}} — Ajustes → Plugins → Mercado",
-    "installFailed": "Error al instalar: {{message}}",
+    "installFailed": "La instalación falló. Los detalles están en el registro de la aplicación.",
     "empty": "No hay plugins instalados. Un plugin es una carpeta con manifest.json y main.js.",
     "uninstall": "Desinstalar",
     "uninstallConfirm": "¿Desinstalar {{name}}? Se eliminarán sus archivos; sus datos guardados se conservan.",
@@ -81,7 +81,7 @@
       "service_llm": "Hacer solicitudes de IA con tu modelo configurado",
       "service_clipboard": "Escribir en el portapapeles"
     },
-    "activationError": "Error al activar: {{message}}",
+    "activationError": "La activación falló. Los detalles están en el registro de la aplicación.",
     "placement": "Botones fijados",
     "placementHint": "Las acciones fijadas aparecen como botones; el resto queda en el menú de desbordamiento y la paleta de comandos.",
     "surface": {
@@ -95,7 +95,7 @@
     "uninstallConfirmShort": "Confirmar",
     "tabInstalled": "Instalados",
     "tabMarketplace": "Mercado",
-    "marketplaceError": "No se pudo cargar el mercado: {{message}}",
+    "marketplaceError": "No se pudo cargar el mercado de plugins.",
     "retry": "Reintentar",
     "refresh": "Actualizar",
     "installFromMarketplace": "Instalar",
@@ -111,6 +111,11 @@
       "cancel": "Cancelar"
     },
     "configure": "Ajustes",
-    "builtin": "Integrado"
+    "builtin": "Integrado",
+    "installFailedManifest": "Este archivo no es un paquete de plugin válido.",
+    "uninstallFailed": "La desinstalación falló. Los detalles están en el registro de la aplicación."
+  },
+  "runtime": {
+    "actionFailed": "Este plugin tuvo un problema. Los detalles están en el registro de la aplicación."
   }
 }

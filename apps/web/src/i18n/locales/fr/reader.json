@@ -158,7 +158,8 @@
     "summaryDetail": "{{perDay}} par jour en moyenne · plus longue série {{streak}} jours",
     "backToBook": "Retour au livre",
     "lookBack": "Revenir sur ce livre",
-    "lookBackPrompt": "Je viens de terminer {{title}}. Revenons dessus ensemble : parcours ce que j'ai marqué et dis-moi ce qui a retenu mon attention et quels fils traversent ces passages. Tiens-t'en à mes marques ; pas de résumé de l'intrigue."
+    "lookBackPrompt": "Je viens de terminer {{title}}. Revenons dessus ensemble : parcours ce que j'ai marqué et dis-moi ce qui a retenu mon attention et quels fils traversent ces passages. Tiens-t'en à mes marques ; pas de résumé de l'intrigue.",
+    "finishedSaveFailed": "Impossible d'enregistrer l'état terminé"
   },
   "readAloud": {
     "start": "Lire à voix haute",
@@ -175,5 +176,11 @@
     "unreachable": "Le fichier de ce livre est dans votre bibliothèque cloud, mais le serveur de synchronisation est injoignable pour le moment.",
     "undecodable": "Le fichier téléchargé n'a pas pu être déchiffré avec la phrase secrète de synchronisation de cet appareil.",
     "reimport": "Importer le fichier"
+  },
+  "annotations": {
+    "saveFailed": "Impossible d'enregistrer le surlignage",
+    "noteSaveFailed": "Impossible d'enregistrer la note",
+    "updateFailed": "Impossible de mettre à jour le surlignage",
+    "deleteFailed": "Impossible de supprimer l'annotation"
   }
 }

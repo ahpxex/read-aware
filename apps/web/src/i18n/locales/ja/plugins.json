@@ -37,7 +37,7 @@
     "installing": "インストール中…",
     "installedToast": "{{name}} をインストールして有効化しました",
     "updateAvailableToast": "アップデート可能：{{name}} v{{version}}（設定 → プラグイン → マーケットプレイス）",
-    "installFailed": "インストールに失敗しました:{{message}}",
+    "installFailed": "インストールに失敗しました。詳細はアプリのログに記録されています。",
     "empty": "プラグインはまだありません。プラグインは manifest.json と main.js を含むフォルダです。",
     "uninstall": "アンインストール",
     "uninstallConfirm": "{{name}} をアンインストールしますか?ファイルは削除されますが、保存されたデータは残ります。",
@@ -81,7 +81,7 @@
       "service_llm": "設定済みモデルでの AI リクエスト",
       "service_clipboard": "クリップボードへの書き込み"
     },
-    "activationError": "有効化に失敗しました:{{message}}",
+    "activationError": "有効化に失敗しました。詳細はアプリのログに記録されています。",
     "placement": "ピン留めボタン",
     "placementHint": "ピン留めした操作はボタンとして表示され、それ以外はオーバーフローメニューとコマンドパレットに入ります。",
     "surface": {
@@ -95,7 +95,7 @@
     "uninstallConfirmShort": "削除を確認",
     "tabInstalled": "インストール済み",
     "tabMarketplace": "マーケットプレイス",
-    "marketplaceError": "マーケットプレイスを読み込めませんでした:{{message}}",
+    "marketplaceError": "マーケットプレイスを読み込めませんでした。",
     "retry": "再試行",
     "refresh": "更新",
     "installFromMarketplace": "インストール",
@@ -111,6 +111,11 @@
       "cancel": "キャンセル"
     },
     "configure": "設定",
-    "builtin": "内蔵"
+    "builtin": "内蔵",
+    "installFailedManifest": "このファイルは有効なプラグインパッケージではありません。",
+    "uninstallFailed": "アンインストールに失敗しました。詳細はアプリのログに記録されています。"
+  },
+  "runtime": {
+    "actionFailed": "このプラグインで問題が発生しました。詳細はアプリのログに記録されています。"
   }
 }

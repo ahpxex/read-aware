@@ -6,6 +6,7 @@
 import type { AssistantMessage } from "@earendil-works/pi-ai";
 import { createModelResolver, type LlmAccount } from "./accounts";
 import { createCompleteFn } from "./complete";
+import { classifyModelFailure } from "./failure";
 import { buildProviderRegistry } from "./registry";
 import type { AgentFetch } from "./transport";
 
@@ -32,7 +33,7 @@ export async function testLlmConnection(
   });
   // completeSimple 不 reject：失败 resolve 成 stopReason "error"/"aborted" 的消息
   if (message.stopReason === "error" || message.stopReason === "aborted") {
-    throw new Error(message.errorMessage ?? "connection test failed");
+    throw classifyModelFailure(message.errorMessage ?? "connection test failed");
   }
   return extractText(message).trim();
 }

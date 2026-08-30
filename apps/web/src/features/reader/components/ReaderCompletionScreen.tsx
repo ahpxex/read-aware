@@ -11,10 +11,10 @@ import { ReaderCompletionScreenView } from "./ReaderCompletionScreenView";
 
 type ReaderCompletionScreenProps = Omit<
   ComponentProps<typeof ReaderCompletionScreenView>,
-  "marks"
+  "marks" | "marksFailed"
 >;
 
 export function ReaderCompletionScreen(props: ReaderCompletionScreenProps) {
-  const marks = useBookMarks(props.book.id);
-  return <ReaderCompletionScreenView {...props} marks={marks} />;
+  const { marks, failed } = useBookMarks(props.book.id);
+  return <ReaderCompletionScreenView {...props} marks={marks} marksFailed={failed} />;
 }

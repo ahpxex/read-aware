@@ -8,7 +8,7 @@
  * (migration wave 4; see hydrateLocalStore). Desktop-only — in the browser
  * shell the feature libs keep their localStorage fallbacks.
  */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./ipc";
 import { isTauri } from "./environment";
 import { createLogger } from "./logger";
 

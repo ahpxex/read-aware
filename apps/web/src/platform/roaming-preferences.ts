@@ -19,7 +19,7 @@
  * language. Credentials DO roam, but only sealed — see "Roaming secrets"
  * below: plaintext never enters the log or any queryable table.
  */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./ipc";
 import { emitAppEvent } from "./app-events";
 import { commitDomainEvents } from "./domain-events";
 import { isTauri } from "./environment";

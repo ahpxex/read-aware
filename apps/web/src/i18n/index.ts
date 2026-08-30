@@ -71,4 +71,5 @@ export function useLocale(): AppLocale {
 export { i18n };
 export { useTranslation, Trans } from "react-i18next";
 export * from "./config";
+export * from "./describe-error";
 export * from "./format";

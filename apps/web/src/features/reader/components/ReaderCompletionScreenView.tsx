@@ -21,9 +21,9 @@ import type { MouseEvent as ReactMouseEvent } from "react";
 import type { TFunction } from "i18next";
 import { useAtomValue, useSetAtom } from "jotai";
 import { ArrowLeft, CheckCircle, Sparkle, X } from "@phosphor-icons/react";
-import { Body, Button, Caption, Display, Heading, IconButton } from "@read-aware/ui";
+import { Body, Button, Caption, Display, Heading, IconButton, InlineError, useToast } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
-import { useTranslation } from "../../../i18n";
+import { useTranslation, describeError } from "../../../i18n";
 import { readingStatsAtom } from "../../../state/ui";
 import { computeBookInsights } from "../../stats/lib/reading-insights";
 import { emptyBookStats } from "../lib/reading-stats";
@@ -32,7 +32,10 @@ import type { ReaderSettings } from "../../settings/lib/reader-settings";
 import type { LibraryBook } from "../../library/lib/library-types";
 import type { Annotation } from "../../annotations/lib/annotation-types";
 import { userDomain } from "../../../domain";
+import { createLogger } from "../../../platform/logger";
 import { askAiRequestAtom } from "../../ai/state/chat-intent";
+
+const log = createLogger("reader");
 
 type Props = {
   book: LibraryBook;
@@ -42,6 +45,8 @@ type Props = {
    * an empty one.
    */
   marks: Annotation[] | null;
+  /** The marks read failed — say so instead of rendering "no marks". */
+  marksFailed?: boolean;
   /** Drives the palette so this screen matches the page behind it. */
   theme: ReaderSettings["theme"];
   /** Drives the fade; the parent keeps this mounted until it finishes. */
@@ -81,6 +86,7 @@ function formatDuration(ms: number, t: TFunction<"reader">): string {
 export function ReaderCompletionScreenView({
   book,
   marks: loadedMarks,
+  marksFailed = false,
   theme,
   visible,
   shellVisible,
@@ -93,8 +99,9 @@ export function ReaderCompletionScreenView({
   onLookBackAsked,
   onDismiss,
 }: Props) {
-  const { t } = useTranslation("reader");
+  const { t } = useTranslation(["reader", "common"]);
   const palette = useReaderPalette(theme);
+  const { toast } = useToast();
   const stats = useAtomValue(readingStatsAtom);
   const dispatchAskAi = useSetAtom(askAiRequestAtom);
   const insights = useMemo(
@@ -105,11 +112,18 @@ export function ReaderCompletionScreenView({
   const toggleFinished = useCallback(() => {
     const next = !finished;
     onFinishedChange(next);
-    void userDomain.reading.commands.setFinished(book.id, next).catch(() => {
-      // Revert the optimistic flip if the store refused the write.
+    void userDomain.reading.commands.setFinished(book.id, next).catch((error) => {
+      // Revert the optimistic flip if the store refused the write — and say
+      // so, or the snapped-back toggle reads as a ghost tap.
+      log.error("saving finished state failed", error);
       onFinishedChange(!next);
+      toast({
+        variant: "destructive",
+        title: t("reader:completion.finishedSaveFailed"),
+        description: describeError(error).body,
+      });
     });
-  }, [book.id, finished, onFinishedChange]);
+  }, [book.id, finished, onFinishedChange, toast, t]);
 
 
   /**
@@ -257,7 +271,11 @@ export function ReaderCompletionScreenView({
           </div>
 
           {/* The reader's own marks — the substance of the screen, so it leads. */}
-          {marks.length > 0 ? (
+          {marksFailed ? (
+            <div className="mt-14 border-t pt-8" style={rule}>
+              <InlineError>{t("common:errors.generic")}</InlineError>
+            </div>
+          ) : marks.length > 0 ? (
             <div className="mt-14 border-t pt-8" style={rule}>
               <Heading size="xl" className="font-serif font-normal text-current">
                 {t("completion.marksTitle", { count: marks.length })}

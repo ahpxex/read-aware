@@ -24,6 +24,7 @@ export {
   type ProviderModelCatalogEntry,
 } from "./models/registry";
 export type { CompleteFn } from "./models/complete";
+export { classifyModelFailure } from "./models/failure";
 export type { AgentFetch } from "./models/transport";
 export { testLlmConnection } from "./models/test-connection";
 export { extractJsonObject, schemaViolations } from "./structured";

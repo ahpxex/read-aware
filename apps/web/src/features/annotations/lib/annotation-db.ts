@@ -6,7 +6,7 @@
  * empty states, writes throw instead of pretending to persist.
  */
 
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../../platform/ipc";
 import type { EventOrigin } from "@read-aware/core";
 import type { Annotation, AnnotationFilters, Ask, Highlight, Note } from "./annotation-types";
 import { isTauri } from "../../../platform/environment";

@@ -7,6 +7,7 @@
 import { getDefaultStore } from "jotai";
 import { i18n } from "../../../i18n";
 import { localKV } from "../../../platform/local-store";
+import { createLogger } from "../../../platform/logger";
 import { showPluginToast } from "../lib/plugin-toast";
 import { installedPluginsAtom } from "../state/plugin-store";
 import { fetchMarketplaceRegistry } from "./marketplace";
@@ -52,6 +53,8 @@ export function versionNewer(candidate: string, current: string): boolean {
   return false;
 }
 
+const log = createLogger("plugins");
+
 export async function checkPluginUpdates(): Promise<void> {
   const state = readState();
   const now = Date.now();
@@ -61,8 +64,11 @@ export async function checkPluginUpdates(): Promise<void> {
   let entries;
   try {
     entries = await fetchMarketplaceRegistry();
-  } catch {
-    // Offline or registry hiccup — cool down, try again later, never nag.
+  } catch (error) {
+    // Offline or registry hiccup — cool down, try again later, never nag the
+    // user. The warn is what separates "quiet" from "permanently broken":
+    // a mirror that 404s forever shows up here on every expired cooldown.
+    log.warn("plugin update check failed; cooling down", error);
     localKV.setItem(
       CHECK_KEY,
       JSON.stringify({ ...state, failedAt: now } satisfies CheckState),

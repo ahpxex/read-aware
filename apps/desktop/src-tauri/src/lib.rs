@@ -3,6 +3,7 @@ mod book_metadata;
 mod desktop_update;
 mod comic_metadata;
 mod diagnostics;
+mod error;
 mod external_open;
 mod fb2_metadata;
 mod metadata;
@@ -858,7 +859,7 @@ pub fn run() {
                     let result = db
                         .0
                         .lock()
-                        .map_err(|e| e.to_string())
+                        .map_err(error::CommandError::from)
                         .and_then(|mut conn| storage::finalize_staged_events_inner(&mut conn));
                     match result {
                         Ok(Some(report)) => log::info!(

@@ -7,6 +7,34 @@
   "errorBoundary": {
     "title": "该界面出现了问题",
     "body": "错误已写入日志。ReadAware 的其余部分不受影响,你可以重试。",
-    "retry": "重试"
+    "retry": "重试",
+    "copyDetails": "复制详情",
+    "copied": "已复制"
+  },
+  "errors": {
+    "generic": "出了点问题，详情已写入应用日志。",
+    "fsNotFound": "ReadAware 需要的文件不见了。",
+    "fsPermission": "ReadAware 没有权限访问所需的文件。",
+    "fsNoSpace": "磁盘已满，请清理空间后重试。",
+    "dbLocked": "本地数据库正忙，请稍后重试。",
+    "dbError": "本地数据库出现了问题。",
+    "secretsUnavailable": "无法打开凭据存储，密钥暂时无法保存或读取。",
+    "aiNotConfigured": "尚未配置 AI——添加 API 密钥即可开始对话。",
+    "aiAuth": "AI 服务商拒绝了这个 API 密钥，请在设置中检查。",
+    "aiRateLimited": "AI 服务商正在限流，请稍等片刻再试。",
+    "aiQuota": "AI 账户额度或余额已用完，请检查你的服务商账户。",
+    "aiNetwork": "无法连接 AI 服务商，请检查网络后重试。",
+    "aiProvider": "AI 服务商暂时出了问题，请稍后重试。",
+    "aiContextOverflow": "这次请求对模型来说过长了。",
+    "aiUnknown": "AI 请求失败，详情已写入应用日志。",
+    "syncNetwork": "无法连接同步服务器，稍后会自动重试。",
+    "syncServer": "同步服务器暂时不可用，稍后会自动重试。",
+    "syncRateLimited": "同步请求被限流，稍后会自动重试。",
+    "syncUnauthorized": "同步登录已过期，请重新登录。",
+    "syncMisdirected": "同步服务器地址指向了别的服务，请检查 relay 地址。",
+    "syncPassphrase": "端到端加密口令不匹配。",
+    "syncQuota": "同步空间已满。",
+    "localSaveFailedTitle": "更改未保存",
+    "localSaveFailed": "这次更改没能写入本地存储，重启后可能丢失。"
   }
 }

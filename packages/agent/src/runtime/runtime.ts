@@ -12,6 +12,7 @@ import {
   type RoleModels,
 } from "../models/accounts";
 import { createCompleteFn, createStreamFn, type CompleteFn, type StreamFn } from "../models/complete";
+import { classifyModelFailure } from "../models/failure";
 import { buildProviderRegistry } from "../models/registry";
 import type { ModelRole, RoleThinking } from "../models/roles";
 import type { AgentFetch } from "../models/transport";
@@ -201,8 +202,11 @@ export class AgentRuntime {
         message = await this.completeFns[role](model, context);
       }
       // completeSimple 不 reject：失败 resolve 成 stopReason "error"/"aborted"。
-      if (message.stopReason === "error" || message.stopReason === "aborted") {
-        throw new Error(message.errorMessage ?? "ask failed");
+      if (message.stopReason === "error") {
+        throw classifyModelFailure(message.errorMessage ?? "ask failed");
+      }
+      if (message.stopReason === "aborted") {
+        throw new Error(message.errorMessage ?? "ask aborted");
       }
       return message.content
         .filter((block): block is { type: "text"; text: string } => block.type === "text")
@@ -312,6 +316,7 @@ export class AgentRuntime {
       const revision = this.memoryRevision;
       const report = await runConsolidation({
         // The pass's own merge/decay writes should not mark a second pass dirty.
+        log: this.options.deps.log,
         memory: this.options.deps.memory,
         complete: this.completeFns.fast,
         model: this.resolveModel("fast"),

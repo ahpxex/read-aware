@@ -5,6 +5,7 @@
 //! module only answers "what still owes the relay a push" and records what the
 //! relay has confirmed. Nothing here talks to the network, and nothing here
 //! writes a projection — the pull path lands through `apply_remote_events`.
+use crate::error::CommandError;
 use super::*;
 
 // ── sync_profile (single row) ────────────────────────────────────────────────
@@ -33,7 +34,7 @@ impl Default for SyncProfile {
     }
 }
 
-pub(crate) fn sync_profile_get_inner(conn: &Connection) -> Result<SyncProfile, String> {
+pub(crate) fn sync_profile_get_inner(conn: &Connection) -> Result<SyncProfile, CommandError> {
     conn.query_row(
         "SELECT sync_enabled, remote_account_id, encryption_key_ref, last_push_at, last_pull_at
            FROM sync_profile WHERE id = 1",
@@ -50,17 +51,17 @@ pub(crate) fn sync_profile_get_inner(conn: &Connection) -> Result<SyncProfile, S
     )
     .or_else(|e| match e {
         rusqlite::Error::QueryReturnedNoRows => Ok(SyncProfile::default()),
-        other => Err(other.to_string()),
+        other => Err(other.into()),
     })
 }
 
 #[tauri::command]
-pub fn sync_profile_get(db: State<'_, Db>) -> Result<SyncProfile, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn sync_profile_get(db: State<'_, Db>) -> Result<SyncProfile, CommandError> {
+    let conn = db.0.lock()?;
     sync_profile_get_inner(&conn)
 }
 
-pub(crate) fn sync_profile_set_inner(conn: &Connection, profile: &SyncProfile) -> Result<(), String> {
+pub(crate) fn sync_profile_set_inner(conn: &Connection, profile: &SyncProfile) -> Result<(), CommandError> {
     conn.execute(
         "INSERT INTO sync_profile
             (id, sync_enabled, remote_account_id, encryption_key_ref,
@@ -81,26 +82,26 @@ pub(crate) fn sync_profile_set_inner(conn: &Connection, profile: &SyncProfile) -
             profile.last_pull_at,
         ],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn sync_profile_set(profile: SyncProfile, db: State<'_, Db>) -> Result<(), String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn sync_profile_set(profile: SyncProfile, db: State<'_, Db>) -> Result<(), CommandError> {
+    let conn = db.0.lock()?;
     sync_profile_set_inner(&conn, &profile)
 }
 
 /// Stamp `last_push_at` / `last_pull_at` = now without racing a full
 /// profile write from another part of the loop.
 #[tauri::command]
-pub fn sync_profile_touch(field: String, db: State<'_, Db>) -> Result<(), String> {
+pub fn sync_profile_touch(field: String, db: State<'_, Db>) -> Result<(), CommandError> {
     let column = match field.as_str() {
         "push" => "last_push_at",
         "pull" => "last_pull_at",
-        other => return Err(format!("sync_profile_touch: unknown field `{other}`")),
+        other => return Err(CommandError::internal(format!("sync_profile_touch: unknown field `{other}`"))),
     };
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    let conn = db.0.lock()?;
     conn.execute(
         &format!(
             "UPDATE sync_profile SET {column} = strftime('%Y-%m-%dT%H:%M:%fZ','now'),
@@ -109,7 +110,7 @@ pub fn sync_profile_touch(field: String, db: State<'_, Db>) -> Result<(), String
         ),
         [],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     Ok(())
 }
 
@@ -129,7 +130,7 @@ pub struct SyncCursor {
 pub(crate) fn sync_cursor_get_inner(
     conn: &Connection,
     feed: &str,
-) -> Result<Option<SyncCursor>, String> {
+) -> Result<Option<SyncCursor>, CommandError> {
     conn.query_row(
         "SELECT remote_cursor, hlc_wall_ms, hlc_counter, hlc_device
            FROM sync_cursors WHERE feed_name = ?1",
@@ -153,17 +154,17 @@ pub(crate) fn sync_cursor_get_inner(
     .map(Some)
     .or_else(|e| match e {
         rusqlite::Error::QueryReturnedNoRows => Ok(None),
-        other => Err(other.to_string()),
+        other => Err(other.into()),
     })
 }
 
 #[tauri::command]
-pub fn sync_cursor_get(feed: String, db: State<'_, Db>) -> Result<Option<SyncCursor>, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn sync_cursor_get(feed: String, db: State<'_, Db>) -> Result<Option<SyncCursor>, CommandError> {
+    let conn = db.0.lock()?;
     sync_cursor_get_inner(&conn, &feed)
 }
 
-pub(crate) fn sync_cursor_set_inner(conn: &Connection, cursor: &SyncCursor) -> Result<(), String> {
+pub(crate) fn sync_cursor_set_inner(conn: &Connection, cursor: &SyncCursor) -> Result<(), CommandError> {
     conn.execute(
         "INSERT INTO sync_cursors
             (feed_name, remote_cursor, hlc_wall_ms, hlc_counter, hlc_device, updated_at)
@@ -182,13 +183,13 @@ pub(crate) fn sync_cursor_set_inner(conn: &Connection, cursor: &SyncCursor) -> R
             cursor.hlc.as_ref().map(|h| h.device_id.clone()),
         ],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn sync_cursor_set(cursor: SyncCursor, db: State<'_, Db>) -> Result<(), String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn sync_cursor_set(cursor: SyncCursor, db: State<'_, Db>) -> Result<(), CommandError> {
+    let conn = db.0.lock()?;
     sync_cursor_set_inner(&conn, &cursor)
 }
 
@@ -200,7 +201,7 @@ pub fn sync_cursor_set(cursor: SyncCursor, db: State<'_, Db>) -> Result<(), Stri
 pub(crate) fn sync_outbox_events_inner(
     conn: &Connection,
     limit: i64,
-) -> Result<Vec<EventRow>, String> {
+) -> Result<Vec<EventRow>, CommandError> {
     let mut stmt = conn
         .prepare(
             "SELECT de.* FROM domain_events de
@@ -209,20 +210,20 @@ pub(crate) fn sync_outbox_events_inner(
              ORDER BY de.hlc_wall_ms, de.hlc_counter, de.hlc_device
              LIMIT ?1",
         )
-        .map_err(|e| e.to_string())?;
+        ?;
     let iter = stmt
         .query_map(params![limit], events::row_to_event)
-        .map_err(|e| e.to_string())?;
+        ?;
     let mut out = Vec::new();
     for row in iter {
-        out.push(row.map_err(|e| e.to_string())?);
+        out.push(row?);
     }
     Ok(out)
 }
 
 #[tauri::command]
-pub fn sync_outbox_events(limit: i64, db: State<'_, Db>) -> Result<Vec<EventRow>, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn sync_outbox_events(limit: i64, db: State<'_, Db>) -> Result<Vec<EventRow>, CommandError> {
+    let conn = db.0.lock()?;
     sync_outbox_events_inner(&conn, limit)
 }
 
@@ -230,8 +231,8 @@ pub fn sync_outbox_events(limit: i64, db: State<'_, Db>) -> Result<Vec<EventRow>
 pub(crate) fn sync_mark_events_pushed_inner(
     conn: &mut Connection,
     assigned: &[(String, i64)],
-) -> Result<(), String> {
-    let tx = conn.transaction().map_err(|e| e.to_string())?;
+) -> Result<(), CommandError> {
+    let tx = conn.transaction()?;
     for (event_id, seq) in assigned {
         tx.execute(
             "UPDATE event_sync_state
@@ -241,9 +242,9 @@ pub(crate) fn sync_mark_events_pushed_inner(
               WHERE event_id = ?1",
             params![event_id, seq.to_string()],
         )
-        .map_err(|e| e.to_string())?;
+        ?;
     }
-    tx.commit().map_err(|e| e.to_string())?;
+    tx.commit()?;
     Ok(())
 }
 
@@ -251,8 +252,8 @@ pub(crate) fn sync_mark_events_pushed_inner(
 pub fn sync_mark_events_pushed(
     assigned: Vec<(String, i64)>,
     db: State<'_, Db>,
-) -> Result<(), String> {
-    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+) -> Result<(), CommandError> {
+    let mut conn = db.0.lock()?;
     sync_mark_events_pushed_inner(&mut conn, &assigned)
 }
 
@@ -260,8 +261,8 @@ pub(crate) fn sync_mark_events_failed_inner(
     conn: &mut Connection,
     event_ids: &[String],
     error: &str,
-) -> Result<(), String> {
-    let tx = conn.transaction().map_err(|e| e.to_string())?;
+) -> Result<(), CommandError> {
+    let tx = conn.transaction()?;
     for event_id in event_ids {
         tx.execute(
             "UPDATE event_sync_state
@@ -270,9 +271,9 @@ pub(crate) fn sync_mark_events_failed_inner(
               WHERE event_id = ?1",
             params![event_id, error],
         )
-        .map_err(|e| e.to_string())?;
+        ?;
     }
-    tx.commit().map_err(|e| e.to_string())?;
+    tx.commit()?;
     Ok(())
 }
 
@@ -281,8 +282,8 @@ pub fn sync_mark_events_failed(
     event_ids: Vec<String>,
     error: String,
     db: State<'_, Db>,
-) -> Result<(), String> {
-    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+) -> Result<(), CommandError> {
+    let mut conn = db.0.lock()?;
     sync_mark_events_failed_inner(&mut conn, &event_ids, &error)
 }
 
@@ -302,7 +303,7 @@ pub struct SyncBlobTask {
 pub(crate) fn sync_outbox_blobs_inner(
     conn: &Connection,
     limit: i64,
-) -> Result<Vec<SyncBlobTask>, String> {
+) -> Result<Vec<SyncBlobTask>, CommandError> {
     let mut stmt = conn
         .prepare(
             "SELECT bo.key, bo.byte_size, bo.mime_type FROM blob_objects bo
@@ -314,7 +315,7 @@ pub(crate) fn sync_outbox_blobs_inner(
              ORDER BY bs.updated_at
              LIMIT ?1",
         )
-        .map_err(|e| e.to_string())?;
+        ?;
     let iter = stmt
         .query_map(params![limit], |row| {
             Ok(SyncBlobTask {
@@ -323,17 +324,17 @@ pub(crate) fn sync_outbox_blobs_inner(
                 mime_type: row.get(2)?,
             })
         })
-        .map_err(|e| e.to_string())?;
+        ?;
     let mut out = Vec::new();
     for row in iter {
-        out.push(row.map_err(|e| e.to_string())?);
+        out.push(row?);
     }
     Ok(out)
 }
 
 #[tauri::command]
-pub fn sync_outbox_blobs(limit: i64, db: State<'_, Db>) -> Result<Vec<SyncBlobTask>, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn sync_outbox_blobs(limit: i64, db: State<'_, Db>) -> Result<Vec<SyncBlobTask>, CommandError> {
+    let conn = db.0.lock()?;
     sync_outbox_blobs_inner(&conn, limit)
 }
 
@@ -342,8 +343,8 @@ pub(crate) fn sync_mark_blobs_inner(
     keys: &[String],
     state: &str,
     error: Option<&str>,
-) -> Result<(), String> {
-    let tx = conn.transaction().map_err(|e| e.to_string())?;
+) -> Result<(), CommandError> {
+    let tx = conn.transaction()?;
     for key in keys {
         tx.execute(
             "INSERT INTO blob_sync_state (blob_key, push_state, last_error, pushed_at, updated_at)
@@ -357,9 +358,9 @@ pub(crate) fn sync_mark_blobs_inner(
                 updated_at = excluded.updated_at",
             params![key, state, error],
         )
-        .map_err(|e| e.to_string())?;
+        ?;
     }
-    tx.commit().map_err(|e| e.to_string())?;
+    tx.commit()?;
     Ok(())
 }
 
@@ -367,8 +368,8 @@ pub(crate) fn sync_mark_blobs_inner(
 /// fetch lands through `put_blob` (which enqueues it), the puller immediately
 /// marks it synced.
 #[tauri::command]
-pub fn sync_mark_blobs_pushed(keys: Vec<String>, db: State<'_, Db>) -> Result<(), String> {
-    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn sync_mark_blobs_pushed(keys: Vec<String>, db: State<'_, Db>) -> Result<(), CommandError> {
+    let mut conn = db.0.lock()?;
     sync_mark_blobs_inner(&mut conn, &keys, "synced", None)
 }
 
@@ -381,8 +382,8 @@ pub fn sync_mark_blobs_rejected(
     keys: Vec<String>,
     error: String,
     db: State<'_, Db>,
-) -> Result<(), String> {
-    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+) -> Result<(), CommandError> {
+    let mut conn = db.0.lock()?;
     sync_mark_blobs_inner(&mut conn, &keys, "rejected", Some(&error))
 }
 
@@ -391,8 +392,8 @@ pub fn sync_mark_blobs_failed(
     keys: Vec<String>,
     error: String,
     db: State<'_, Db>,
-) -> Result<(), String> {
-    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+) -> Result<(), CommandError> {
+    let mut conn = db.0.lock()?;
     sync_mark_blobs_inner(&mut conn, &keys, "failed", Some(&error))
 }
 
@@ -408,15 +409,15 @@ pub struct SyncOutboxCounts {
 }
 
 #[tauri::command]
-pub fn sync_outbox_counts(db: State<'_, Db>) -> Result<SyncOutboxCounts, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn sync_outbox_counts(db: State<'_, Db>) -> Result<SyncOutboxCounts, CommandError> {
+    let conn = db.0.lock()?;
     let events: i64 = conn
         .query_row(
             "SELECT COUNT(*) FROM event_sync_state WHERE push_state IN ('pending','failed')",
             [],
             |row| row.get(0),
         )
-        .map_err(|e| e.to_string())?;
+        ?;
     let blobs: i64 = conn
         .query_row(
             "SELECT COUNT(*) FROM blob_objects bo
@@ -428,7 +429,7 @@ pub fn sync_outbox_counts(db: State<'_, Db>) -> Result<SyncOutboxCounts, String>
             [],
             |row| row.get(0),
         )
-        .map_err(|e| e.to_string())?;
+        ?;
     Ok(SyncOutboxCounts { events, blobs })
 }
 
@@ -450,8 +451,8 @@ pub struct SyncBookBacklogRow {
 }
 
 #[tauri::command]
-pub fn sync_book_backlog(db: State<'_, Db>) -> Result<Vec<SyncBookBacklogRow>, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn sync_book_backlog(db: State<'_, Db>) -> Result<Vec<SyncBookBacklogRow>, CommandError> {
+    let conn = db.0.lock()?;
     let mut stmt = conn
         .prepare(
             "SELECT substr(bo.key, length('bookfile:') + 1),
@@ -475,7 +476,7 @@ pub fn sync_book_backlog(db: State<'_, Db>) -> Result<Vec<SyncBookBacklogRow>, S
                        END,
                        bo.byte_size DESC",
         )
-        .map_err(|e| e.to_string())?;
+        ?;
     let rows = stmt
         .query_map([], |row| {
             Ok(SyncBookBacklogRow {
@@ -487,9 +488,9 @@ pub fn sync_book_backlog(db: State<'_, Db>) -> Result<Vec<SyncBookBacklogRow>, S
                 local_bytes: row.get(5)?,
             })
         })
-        .map_err(|e| e.to_string())?
+        ?
         .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| e.to_string())?;
+        ?;
     Ok(rows)
 }
 
@@ -510,7 +511,7 @@ pub fn sync_book_backlog(db: State<'_, Db>) -> Result<Vec<SyncBookBacklogRow>, S
 pub(crate) fn sync_adopt_account_inner(
     conn: &mut Connection,
     account_id: &str,
-) -> Result<bool, String> {
+) -> Result<bool, CommandError> {
     let current: Option<String> = conn
         .query_row(
             "SELECT bookkeeping_account_id FROM sync_profile WHERE id = 1",
@@ -519,12 +520,12 @@ pub(crate) fn sync_adopt_account_inner(
         )
         .or_else(|e| match e {
             rusqlite::Error::QueryReturnedNoRows => Ok(None),
-            other => Err(other.to_string()),
+            other => Err(CommandError::from(other)),
         })?;
     if current.as_deref() == Some(account_id) {
         return Ok(false);
     }
-    let tx = conn.transaction().map_err(|e| e.to_string())?;
+    let tx = conn.transaction()?;
     tx.execute_batch(
         "INSERT OR IGNORE INTO event_sync_state (event_id, updated_at)
              SELECT id, strftime('%Y-%m-%dT%H:%M:%fZ','now') FROM domain_events;
@@ -539,7 +540,7 @@ pub(crate) fn sync_adopt_account_inner(
                 last_error = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now');
          DELETE FROM sync_cursors;",
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     tx.execute(
         "INSERT INTO sync_profile (id, bookkeeping_account_id, updated_at)
          VALUES (1, ?1, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
@@ -550,13 +551,13 @@ pub(crate) fn sync_adopt_account_inner(
             updated_at = excluded.updated_at",
         params![account_id],
     )
-    .map_err(|e| e.to_string())?;
-    tx.commit().map_err(|e| e.to_string())?;
+    ?;
+    tx.commit()?;
     Ok(true)
 }
 
 #[tauri::command]
-pub fn sync_adopt_account(account_id: String, db: State<'_, Db>) -> Result<bool, String> {
-    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn sync_adopt_account(account_id: String, db: State<'_, Db>) -> Result<bool, CommandError> {
+    let mut conn = db.0.lock()?;
     sync_adopt_account_inner(&mut conn, &account_id)
 }

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useAtomValue, useSetAtom } from "jotai";
 import { ChartLineUp } from "@phosphor-icons/react";
-import { Body, EmptyState, Heading, Tabs } from "@read-aware/ui";
+import { Body, EmptyState, Heading, Tabs, InlineError } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { readingStatsAtom } from "../../../state/ui";
 import type { LibraryBook } from "../../library/lib/library-types";
@@ -20,7 +20,7 @@ type StatsWorkspaceProps = {
 };
 
 export function StatsWorkspace({ books, onOpenBook }: StatsWorkspaceProps) {
-  const { t, i18n } = useTranslation("stats");
+  const { t, i18n } = useTranslation(["stats", "common"]);
   const store = useAtomValue(readingStatsAtom);
   const setStore = useSetAtom(readingStatsAtom);
   const annotations = useAnnotationCounts();
@@ -92,6 +92,16 @@ export function StatsWorkspace({ books, onOpenBook }: StatsWorkspaceProps) {
         </Body>
       </div>
 
+      {annotations.loadFailed && (
+        <div className="mb-4">
+          <InlineError
+            onRetry={() => void annotations.refresh()}
+            retryLabel={t("common:errorBoundary.retry")}
+          >
+            {t("common:errors.generic")}
+          </InlineError>
+        </div>
+      )}
       <Tabs items={tabs} variant="underline" ariaLabel={t("periodTablist")} />
     </div>
   );

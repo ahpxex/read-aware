@@ -7,6 +7,34 @@
   "errorBoundary": {
     "title": "Un problème est survenu dans cette vue",
     "body": "L'erreur a été consignée dans le journal. Le reste de ReadAware continue de fonctionner — vous pouvez réessayer.",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "copyDetails": "Copier les détails",
+    "copied": "Copié"
+  },
+  "errors": {
+    "generic": "Un problème est survenu. Les détails sont dans le journal de l'application.",
+    "fsNotFound": "Un fichier nécessaire à ReadAware est introuvable.",
+    "fsPermission": "ReadAware n'a pas l'autorisation d'accéder à un fichier nécessaire.",
+    "fsNoSpace": "Le disque est plein. Libérez de l'espace puis réessayez.",
+    "dbLocked": "La base de données locale est occupée. Réessayez dans un instant.",
+    "dbError": "La base de données locale a rencontré un problème.",
+    "secretsUnavailable": "Le coffre d'identifiants ne peut pas s'ouvrir ; les clés ne peuvent momentanément être ni enregistrées ni lues.",
+    "aiNotConfigured": "L'IA n'est pas encore configurée — ajoutez une clé d'API pour commencer à discuter.",
+    "aiAuth": "Le fournisseur d'IA a refusé la clé d'API. Vérifiez-la dans les réglages.",
+    "aiRateLimited": "Le fournisseur d'IA limite les requêtes pour le moment. Patientez un instant puis réessayez.",
+    "aiQuota": "Le crédit ou le quota de votre compte IA est épuisé. Vérifiez votre compte fournisseur.",
+    "aiNetwork": "Impossible de joindre le fournisseur d'IA. Vérifiez votre connexion puis réessayez.",
+    "aiProvider": "Le fournisseur d'IA a rencontré un problème temporaire. Réessayez sous peu.",
+    "aiContextOverflow": "Cette requête est trop volumineuse pour le modèle.",
+    "aiUnknown": "La requête IA a échoué. Les détails sont dans le journal de l'application.",
+    "syncNetwork": "Impossible de joindre le serveur de synchronisation. Nouvel essai automatique.",
+    "syncServer": "Le serveur de synchronisation est temporairement indisponible. Nouvel essai automatique.",
+    "syncRateLimited": "La synchronisation est limitée pour le moment. Nouvel essai automatique.",
+    "syncUnauthorized": "Votre session de synchronisation a expiré. Reconnectez-vous.",
+    "syncMisdirected": "L'adresse du serveur de synchronisation a répondu comme un autre service. Vérifiez l'URL du relais.",
+    "syncPassphrase": "La phrase secrète de chiffrement de bout en bout ne correspond pas.",
+    "syncQuota": "Votre espace de synchronisation est plein.",
+    "localSaveFailedTitle": "Modification non enregistrée",
+    "localSaveFailed": "Cette modification n'a pas pu être écrite dans le stockage local et pourrait être perdue après un redémarrage."
   }
 }

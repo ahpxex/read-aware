@@ -158,7 +158,8 @@
     "summaryDetail": "{{perDay}} a day on average · longest streak {{streak}} days",
     "backToBook": "Back to the book",
     "lookBack": "Look back on this book",
-    "lookBackPrompt": "I've just finished {{title}}. Look back on it with me — go through what I marked and tell me what drew my attention and what threads run between those passages. Stay with what's actually in my marks; no plot summary."
+    "lookBackPrompt": "I've just finished {{title}}. Look back on it with me — go through what I marked and tell me what drew my attention and what threads run between those passages. Stay with what's actually in my marks; no plot summary.",
+    "finishedSaveFailed": "Couldn't save the finished state"
   },
   "readAloud": {
     "start": "Read aloud",
@@ -175,5 +176,11 @@
     "unreachable": "This book's file is in your cloud library, but the sync server can't be reached right now.",
     "undecodable": "The downloaded file couldn't be decrypted with this device's sync passphrase.",
     "reimport": "Import the file"
+  },
+  "annotations": {
+    "saveFailed": "Couldn't save the highlight",
+    "noteSaveFailed": "Couldn't save the note",
+    "updateFailed": "Couldn't update the highlight",
+    "deleteFailed": "Couldn't delete the annotation"
   }
 }

@@ -10,7 +10,7 @@
  * the self-check reports row COUNTS plus event type/id samples — so the
  * bundle stays safe to share by construction.
  */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../../platform/ipc";
 import { readCurrentAppVersion } from "../../update/lib/software-update";
 import {
   isAndroid,

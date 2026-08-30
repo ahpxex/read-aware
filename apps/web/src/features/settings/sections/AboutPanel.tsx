@@ -84,9 +84,7 @@ export function AboutPanel() {
               : update.state.phase === "installer-open"
                 ? t("about.updateStatus.installerOpen")
                 : update.state.phase === "error"
-                  ? update.state.error
-                    ? `${t("about.updateStatus.failed")} — ${update.state.error}`
-                    : t("about.updateStatus.failed")
+                  ? t("about.updateStatus.failed")
                   : null;
 
   return (

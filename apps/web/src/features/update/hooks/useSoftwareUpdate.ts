@@ -6,14 +6,13 @@ import {
   installSoftwareUpdate,
   readCurrentAppVersion,
 } from "../lib/software-update";
+import { createLogger } from "../../../platform/logger";
 import { softwareUpdateAtom } from "../state/software-update";
+
+const log = createLogger("update");
 
 let activeCheck: Promise<void> | null = null;
 let activeInstall: Promise<void> | null = null;
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
 
 export function useSoftwareUpdate() {
   const [state, setState] = useAtom(softwareUpdateAtom);
@@ -47,7 +46,6 @@ export function useSoftwareUpdate() {
         ...previous,
         phase: "checking",
         progress: null,
-        error: null,
         errorStage: null,
       }));
       try {
@@ -65,14 +63,13 @@ export function useSoftwareUpdate() {
           currentVersion: update.currentVersion,
           availableVersion: update.version,
           progress: null,
-          error: null,
           errorStage: null,
         });
       } catch (error) {
+        log.error("update check failed", error);
         setState((previous) => ({
           ...previous,
           phase: "error",
-          error: errorMessage(error),
           errorStage: "check",
         }));
       } finally {
@@ -91,7 +88,6 @@ export function useSoftwareUpdate() {
         ...previous,
         phase: "downloading",
         progress: null,
-        error: null,
         errorStage: null,
       }));
       try {
@@ -104,10 +100,10 @@ export function useSoftwareUpdate() {
           progress: null,
         }));
       } catch (error) {
+        log.error("update install failed", error);
         setState((previous) => ({
           ...previous,
           phase: "error",
-          error: errorMessage(error),
           errorStage: "install",
         }));
       } finally {

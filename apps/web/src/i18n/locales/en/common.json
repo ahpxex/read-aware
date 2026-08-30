@@ -7,6 +7,34 @@
   "errorBoundary": {
     "title": "This view ran into a problem",
     "body": "The error has been logged. The rest of ReadAware keeps working — you can try again.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "copyDetails": "Copy details",
+    "copied": "Copied"
+  },
+  "errors": {
+    "generic": "Something went wrong. Details are in the app log.",
+    "fsNotFound": "A file ReadAware needs is missing.",
+    "fsPermission": "ReadAware doesn't have permission to access a needed file.",
+    "fsNoSpace": "The disk is full. Free up space and try again.",
+    "dbLocked": "The local database is busy. Try again in a moment.",
+    "dbError": "The local database ran into a problem.",
+    "secretsUnavailable": "The credential store can't be opened, so keys can't be saved or read.",
+    "aiNotConfigured": "AI isn't set up yet — add an API key to start chatting.",
+    "aiAuth": "The AI provider rejected the API key. Check it in Settings.",
+    "aiRateLimited": "The AI provider is limiting requests right now. Wait a moment and try again.",
+    "aiQuota": "Your AI account is out of credit or quota. Check your provider account.",
+    "aiNetwork": "Couldn't reach the AI provider. Check your connection and try again.",
+    "aiProvider": "The AI provider had a temporary problem. Try again shortly.",
+    "aiContextOverflow": "This request is too large for the model.",
+    "aiUnknown": "The AI request failed. Details are in the app log.",
+    "syncNetwork": "Can't reach the sync server. It will retry automatically.",
+    "syncServer": "The sync server is temporarily unavailable. It will retry automatically.",
+    "syncRateLimited": "Syncing is being rate-limited. It will retry automatically.",
+    "syncUnauthorized": "Your sync session has expired. Sign in again.",
+    "syncMisdirected": "The sync server address answered as a different service. Check the relay URL.",
+    "syncPassphrase": "The end-to-end encryption passphrase doesn't match.",
+    "syncQuota": "Your sync storage is full.",
+    "localSaveFailedTitle": "Change not saved",
+    "localSaveFailed": "This change couldn't be written to local storage and may be lost after a restart."
   }
 }

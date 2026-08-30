@@ -13,7 +13,9 @@
  * `secrets.rs` (AES-256-GCM with a separate `0600` key file); read its header
  * for why the OS keychain is deliberately not used.
  */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./ipc";
+import { errorCode } from "@read-aware/core";
+import { emitAppEvent } from "./app-events";
 import { isTauri } from "./environment";
 import { createLogger } from "./logger";
 
@@ -93,10 +95,16 @@ export function setSecret(key: SecretKey, value: string): void {
     deleteSecret(key);
     return;
   }
+  const previous = snapshot.get(key);
   snapshot.set(key, value);
   if (!isTauri()) return;
   void invoke("secret_set", { key, value }).catch((error) => {
+    // Roll back so the UI can't claim a credential is stored when the next
+    // launch won't have it; the app layer toasts off this event.
     log.error(`failed to persist "${key}"`, error);
+    if (previous === undefined) snapshot.delete(key);
+    else snapshot.set(key, previous);
+    emitAppEvent("local-write-failed", { kind: "secret", code: errorCode(error) });
   });
 }
 
@@ -106,10 +114,13 @@ export function listSecretSlots(prefix: string): SecretKey[] {
 }
 
 export function deleteSecret(key: SecretKey): void {
+  const previous = snapshot.get(key);
   snapshot.delete(key);
   if (!isTauri()) return;
   void invoke("secret_delete", { key }).catch((error) => {
     log.error(`failed to delete "${key}"`, error);
+    if (previous !== undefined) snapshot.set(key, previous);
+    emitAppEvent("local-write-failed", { kind: "secret", code: errorCode(error) });
   });
 }
 

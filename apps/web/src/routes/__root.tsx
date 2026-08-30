@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { HeadContent, Outlet, createRootRoute, useRouter } from "@tanstack/react-router";
 import { Button, ToastProvider } from "@read-aware/ui";
+import { LocalWriteFailureToasts } from "../components/LocalWriteFailureToasts";
 import { dismissBootSplash } from "../boot-splash";
 import { i18n, useTranslation } from "../i18n";
 import { WindowResizeEdges } from "../features/navigation/components/WindowResizeEdges";
@@ -33,6 +34,7 @@ function RootComponent() {
     <>
       <HeadContent />
       <ToastProvider closeLabel={t("actions.dismiss")}>
+        <LocalWriteFailureToasts />
         <Outlet />
       </ToastProvider>
       <WindowResizeEdges />

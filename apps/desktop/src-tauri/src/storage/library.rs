@@ -5,6 +5,7 @@
 //!
 //! Split out of `storage/mod.rs`; `use super::*` keeps the shared types in
 //! scope, so this is a move rather than a rewrite.
+use crate::error::CommandError;
 use super::*;
 
 // --- Library projection (books + collections; book-file bytes via blob store) ---
@@ -82,24 +83,24 @@ pub(crate) fn row_to_library_book(row: &rusqlite::Row) -> rusqlite::Result<Libra
 }
 
 #[tauri::command]
-pub fn library_load(db: State<'_, Db>) -> Result<Vec<LibraryBook>, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn library_load(db: State<'_, Db>) -> Result<Vec<LibraryBook>, CommandError> {
+    let conn = db.0.lock()?;
     let mut stmt = conn
         .prepare("SELECT * FROM books")
-        .map_err(|e| e.to_string())?;
+        ?;
     let rows = stmt
         .query_map([], row_to_library_book)
-        .map_err(|e| e.to_string())?;
+        ?;
     let mut out = Vec::new();
     for r in rows {
-        out.push(r.map_err(|e| e.to_string())?);
+        out.push(r?);
     }
     Ok(out)
 }
 
 #[tauri::command]
-pub fn library_get_book(id: String, db: State<'_, Db>) -> Result<Option<LibraryBook>, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn library_get_book(id: String, db: State<'_, Db>) -> Result<Option<LibraryBook>, CommandError> {
+    let conn = db.0.lock()?;
     match conn.query_row(
         "SELECT * FROM books WHERE id = ?1",
         params![id],
@@ -107,13 +108,13 @@ pub fn library_get_book(id: String, db: State<'_, Db>) -> Result<Option<LibraryB
     ) {
         Ok(book) => Ok(Some(book)),
         Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-        Err(e) => Err(e.to_string()),
+        Err(e) => Err(e.into()),
     }
 }
 
 #[tauri::command]
-pub fn library_put_book(book: LibraryBook, db: State<'_, Db>) -> Result<(), String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn library_put_book(book: LibraryBook, db: State<'_, Db>) -> Result<(), CommandError> {
+    let conn = db.0.lock()?;
     let progress_json = if book.progress.is_null() {
         None
     } else {
@@ -155,7 +156,7 @@ pub fn library_put_book(book: LibraryBook, db: State<'_, Db>) -> Result<(), Stri
             book.narrativity,
         ],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     Ok(())
 }
 
@@ -171,13 +172,13 @@ pub fn library_set_book_cover(
     cover_url: Option<String>,
     cover_checked: bool,
     db: State<'_, Db>,
-) -> Result<(), String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+) -> Result<(), CommandError> {
+    let conn = db.0.lock()?;
     conn.execute(
         "UPDATE books SET cover_url = ?2, cover_checked = ?3 WHERE id = ?1",
         params![id, cover_url, cover_checked as i64],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     Ok(())
 }
 
@@ -191,8 +192,8 @@ pub fn library_release_book_files(
     ids: Vec<String>,
     db: State<'_, Db>,
     data_dir: State<'_, DataDir>,
-) -> Result<(), String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+) -> Result<(), CommandError> {
+    let conn = db.0.lock()?;
     for id in &ids {
         delete_blob_inner(&conn, &data_dir.0, &format!("bookfile:{id}"))?;
     }
@@ -200,11 +201,11 @@ pub fn library_release_book_files(
 }
 
 #[tauri::command]
-pub fn library_list_collections(db: State<'_, Db>) -> Result<Vec<Collection>, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn library_list_collections(db: State<'_, Db>) -> Result<Vec<Collection>, CommandError> {
+    let conn = db.0.lock()?;
     let mut stmt = conn
         .prepare("SELECT id, name, created_at FROM collections")
-        .map_err(|e| e.to_string())?;
+        ?;
     let rows = stmt
         .query_map([], |row| {
             Ok(Collection {
@@ -213,10 +214,10 @@ pub fn library_list_collections(db: State<'_, Db>) -> Result<Vec<Collection>, St
                 created_at: row.get(2)?,
             })
         })
-        .map_err(|e| e.to_string())?;
+        ?;
     let mut out = Vec::new();
     for r in rows {
-        out.push(r.map_err(|e| e.to_string())?);
+        out.push(r?);
     }
     Ok(out)
 }
@@ -224,14 +225,14 @@ pub fn library_list_collections(db: State<'_, Db>) -> Result<Vec<Collection>, St
 /// Upsert a collection. On conflict the original `created_at` is preserved, so
 /// this doubles as rename.
 #[tauri::command]
-pub fn library_put_collection(collection: Collection, db: State<'_, Db>) -> Result<(), String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn library_put_collection(collection: Collection, db: State<'_, Db>) -> Result<(), CommandError> {
+    let conn = db.0.lock()?;
     conn.execute(
         "INSERT INTO collections (id, name, created_at) VALUES (?1, ?2, ?3)
          ON CONFLICT(id) DO UPDATE SET name = excluded.name",
         params![collection.id, collection.name, collection.created_at],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     Ok(())
 }
 
@@ -250,8 +251,8 @@ pub fn library_find_book_by_sha(
     sha256: String,
     exclude_id: Option<String>,
     db: State<'_, Db>,
-) -> Result<Option<String>, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+) -> Result<Option<String>, CommandError> {
+    let conn = db.0.lock()?;
     conn.query_row(
         "SELECT b.id FROM books b
          JOIN blob_objects bo ON bo.key = 'bookfile:' || b.id
@@ -264,7 +265,7 @@ pub fn library_find_book_by_sha(
     .map(Some)
     .or_else(|e| match e {
         rusqlite::Error::QueryReturnedNoRows => Ok(None),
-        other => Err(other.to_string()),
+        other => Err(other.into()),
     })
 }
 
@@ -281,8 +282,8 @@ pub struct DuplicateBookEntry {
 #[tauri::command]
 pub fn library_duplicate_book_groups(
     db: State<'_, Db>,
-) -> Result<Vec<Vec<DuplicateBookEntry>>, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+) -> Result<Vec<Vec<DuplicateBookEntry>>, CommandError> {
+    let conn = db.0.lock()?;
     let mut stmt = conn
         .prepare(
             "SELECT bo.sha256, b.id, b.created_at
@@ -296,7 +297,7 @@ pub fn library_duplicate_book_groups(
                  GROUP BY bo2.sha256 HAVING COUNT(*) > 1)
              ORDER BY bo.sha256, b.created_at, b.id",
         )
-        .map_err(|e| e.to_string())?;
+        ?;
     let rows = stmt
         .query_map([], |row| {
             Ok((
@@ -304,11 +305,11 @@ pub fn library_duplicate_book_groups(
                 DuplicateBookEntry { id: row.get(1)?, created_at: row.get(2)? },
             ))
         })
-        .map_err(|e| e.to_string())?;
+        ?;
     let mut groups: Vec<Vec<DuplicateBookEntry>> = Vec::new();
     let mut current_sha: Option<String> = None;
     for row in rows {
-        let (sha, entry) = row.map_err(|e| e.to_string())?;
+        let (sha, entry) = row?;
         if current_sha.as_deref() != Some(&sha) {
             current_sha = Some(sha);
             groups.push(Vec::new());

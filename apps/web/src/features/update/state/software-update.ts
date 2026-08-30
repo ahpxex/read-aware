@@ -16,7 +16,7 @@ export type SoftwareUpdateState = {
   currentVersion: string | null;
   availableVersion: string | null;
   progress: number | null;
-  error: string | null;
+  /** Which step failed; the raw error goes to the log, not into state. */
   errorStage: "check" | "install" | null;
 };
 
@@ -25,6 +25,5 @@ export const softwareUpdateAtom = atom<SoftwareUpdateState>({
   currentVersion: null,
   availableVersion: null,
   progress: null,
-  error: null,
   errorStage: null,
 });

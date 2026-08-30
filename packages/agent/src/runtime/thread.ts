@@ -17,6 +17,7 @@ import {
   updateRollingSummary,
 } from "../memory/rolling-summary";
 import type { CompleteFn, StreamFn } from "../models/complete";
+import { classifyModelFailure } from "../models/failure";
 import type { ResolveModel } from "../models/roles";
 import type { RuntimeDeps, TurnAttachment } from "../ports";
 import { findChapterByHref } from "../text/chapter-lookup";
@@ -641,8 +642,10 @@ export class AgentThread {
         }
       }
       await run;
-      if (runError) throw runError;
-      if (agent.state.errorMessage) throw new Error(agent.state.errorMessage);
+      // 结构化状态码在 pi-ai 层已折叠成文本 —— 在这里（结构最后可见处）分类出
+      // 稳定错误码，UI 据此决定文案与重试可见性，而不是转发 provider 原文。
+      if (runError) throw classifyModelFailure(runError);
+      if (agent.state.errorMessage) throw classifyModelFailure(agent.state.errorMessage);
 
       let answer = lastAssistantText(agent.state.messages);
       let discardUnsafeAgent = false;
@@ -791,6 +794,7 @@ export class AgentThread {
     if (history.length < 2) return undefined;
     const window = history.slice(-AgentThread.ADOPTION_WINDOW_TURNS);
     const summary = await bootstrapSummaryFromHistory({
+      log: this.deps.log,
       complete: this.completeFn,
       model: fast(),
       turns: window,
@@ -801,6 +805,7 @@ export class AgentThread {
       limit: 20,
     });
     const inherited = await extractMemoriesFromTranscript({
+      log: this.deps.log,
       complete: this.completeFn,
       model: fast(),
       scope: this.scope,
@@ -845,6 +850,7 @@ export class AgentThread {
           limit: 20,
         });
         const result = await extractMemories({
+          log: this.deps.log,
           complete: this.completeFn,
           model: fast(),
           scope: this.scope,
@@ -892,6 +898,7 @@ export class AgentThread {
 
         const previous = previousInsights ?? bootstrapped;
         const summary = await updateRollingSummary({
+          log: this.deps.log,
           complete: this.completeFn,
           model: fast(),
           previous,

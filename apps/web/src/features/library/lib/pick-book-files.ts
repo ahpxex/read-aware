@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../../platform/ipc";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { TFunction } from "i18next";
 import { isAndroid, isTauri } from "../../../platform/environment";

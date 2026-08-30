@@ -4,6 +4,7 @@
 //! Split out of `storage/mod.rs`. The migration list alone is several hundred
 //! lines and changes for entirely different reasons than the query code that
 //! used to sit beside it.
+use crate::error::CommandError;
 use super::*;
 
 /// Ordered schema migrations. Each `(version, name, sql)` is applied once, in
@@ -534,7 +535,7 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
 
 /// Apply migrations newer than the highest recorded version, up to `max_version`
 /// (`i64::MAX` in production; tests use lower caps to stage old databases).
-pub(crate) fn run_migrations_up_to(conn: &mut Connection, max_version: i64) -> Result<(), String> {
+pub(crate) fn run_migrations_up_to(conn: &mut Connection, max_version: i64) -> Result<(), CommandError> {
     conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS schema_migrations (
             version    INTEGER PRIMARY KEY,
@@ -542,30 +543,30 @@ pub(crate) fn run_migrations_up_to(conn: &mut Connection, max_version: i64) -> R
             applied_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
          );",
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     let current: i64 = conn
         .query_row(
             "SELECT COALESCE(MAX(version), 0) FROM schema_migrations",
             [],
             |row| row.get(0),
         )
-        .map_err(|e| e.to_string())?;
+        ?;
     for (version, name, sql) in MIGRATIONS {
         if *version > current && *version <= max_version {
-            let tx = conn.transaction().map_err(|e| e.to_string())?;
-            tx.execute_batch(sql).map_err(|e| e.to_string())?;
+            let tx = conn.transaction()?;
+            tx.execute_batch(sql)?;
             tx.execute(
                 "INSERT INTO schema_migrations (version, name) VALUES (?1, ?2)",
                 params![version, name],
             )
-            .map_err(|e| e.to_string())?;
-            tx.commit().map_err(|e| e.to_string())?;
+            ?;
+            tx.commit()?;
         }
     }
     Ok(())
 }
 
-pub(crate) fn run_migrations(conn: &mut Connection) -> Result<(), String> {
+pub(crate) fn run_migrations(conn: &mut Connection) -> Result<(), CommandError> {
     run_migrations_up_to(conn, i64::MAX)
 }
 
@@ -577,18 +578,17 @@ pub(crate) fn run_migrations(conn: &mut Connection) -> Result<(), String> {
 ///   - busy_timeout: a second process (or a checkpoint) briefly holding the
 ///     lock waits instead of failing with SQLITE_BUSY.
 ///   - foreign_keys: per-connection flag; the schema's FKs are inert without it.
-pub(crate) fn apply_connection_pragmas(conn: &Connection) -> Result<(), String> {
+pub(crate) fn apply_connection_pragmas(conn: &Connection) -> Result<(), CommandError> {
     // journal_mode returns the resulting mode as a row, so query it.
     conn.query_row("PRAGMA journal_mode = WAL", [], |row| {
         row.get::<_, String>(0)
     })
-    .map_err(|e| e.to_string())?;
-    conn.execute_batch(
+    ?;
+    Ok(conn.execute_batch(
         "PRAGMA synchronous = NORMAL;
          PRAGMA busy_timeout = 5000;
          PRAGMA foreign_keys = ON;",
-    )
-    .map_err(|e| e.to_string())
+    )?)
 }
 
 // --- FTS segmentation (CJK bigrams + word tokens) -----------------------------
@@ -713,7 +713,7 @@ pub(crate) fn fts_match_expr(query: &str) -> Option<String> {
 
 /// Register app SQL functions on a connection. Must run BEFORE migrations
 /// (v4's initial populate and the FTS triggers call `ra_fts_segment`).
-pub fn register_sql_functions(conn: &Connection) -> Result<(), String> {
+pub fn register_sql_functions(conn: &Connection) -> Result<(), CommandError> {
     use rusqlite::functions::FunctionFlags;
     conn.create_scalar_function(
         "ra_fts_segment",
@@ -723,8 +723,8 @@ pub fn register_sql_functions(conn: &Connection) -> Result<(), String> {
             let text: String = ctx.get(0)?;
             Ok(fts_segment(&text))
         },
-    )
-    .map_err(|e| e.to_string())
+    )?;
+    Ok(())
 }
 
 
@@ -735,15 +735,15 @@ pub fn register_sql_functions(conn: &Connection) -> Result<(), String> {
 /// Skipped: SQLite internals, `schema_migrations` (the schema itself is not
 /// user data), and virtual-table shadow tables — wiping a shadow directly
 /// corrupts its FTS index, while `DELETE FROM <vtab>` clears them properly.
-fn wipeable_tables(conn: &Connection) -> Result<Vec<String>, String> {
+fn wipeable_tables(conn: &Connection) -> Result<Vec<String>, CommandError> {
     let mut stmt = conn
         .prepare("SELECT name, sql FROM sqlite_master WHERE type = 'table'")
-        .map_err(|e| e.to_string())?;
+        ?;
     let rows: Vec<(String, Option<String>)> = stmt
         .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
-        .map_err(|e| e.to_string())?
+        ?
         .collect::<Result<_, _>>()
-        .map_err(|e| e.to_string())?;
+        ?;
     let virtual_tables: Vec<String> = rows
         .iter()
         .filter(|(_, sql)| {
@@ -772,25 +772,25 @@ fn wipeable_tables(conn: &Connection) -> Result<Vec<String>, String> {
 /// caller reloads the webview afterwards — in-memory JS state is stale by
 /// definition once this returns.
 #[tauri::command]
-pub fn wipe_all_data(db: State<'_, Db>, data_dir: State<'_, DataDir>) -> Result<(), String> {
-    let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn wipe_all_data(db: State<'_, Db>, data_dir: State<'_, DataDir>) -> Result<(), CommandError> {
+    let mut conn = db.0.lock()?;
     wipe_all_data_inner(&mut conn, &data_dir.0)
 }
 
-pub(crate) fn wipe_all_data_inner(conn: &mut Connection, data_dir: &Path) -> Result<(), String> {
+pub(crate) fn wipe_all_data_inner(conn: &mut Connection, data_dir: &Path) -> Result<(), CommandError> {
     let tables = wipeable_tables(conn)?;
-    let tx = conn.transaction().map_err(|e| e.to_string())?;
+    let tx = conn.transaction()?;
     // FK order problems are sidestepped wholesale: defer enforcement to commit,
     // by which point every referencing row is gone too.
     tx.execute_batch("PRAGMA defer_foreign_keys = ON;")
-        .map_err(|e| e.to_string())?;
+        ?;
     for table in &tables {
         tx.execute(&format!("DELETE FROM \"{table}\""), [])
             .map_err(|e| format!("wiping {table}: {e}"))?;
     }
     ensure_local_device(&tx)?;
-    tx.commit().map_err(|e| e.to_string())?;
-    conn.execute_batch("VACUUM;").map_err(|e| e.to_string())?;
+    tx.commit()?;
+    conn.execute_batch("VACUUM;")?;
 
     let blobs_dir = data_dir.join("blobs");
     if blobs_dir.exists() {

@@ -158,7 +158,8 @@
     "summaryDetail": "durchschnittlich {{perDay}} pro Tag · längste Serie {{streak}} Tage",
     "backToBook": "Zurück zum Buch",
     "lookBack": "Auf dieses Buch zurückblicken",
-    "lookBackPrompt": "Ich habe {{title}} gerade beendet. Blicke mit mir zurück — geh durch, was ich markiert habe, und sag mir, was meine Aufmerksamkeit gefesselt hat und welche Fäden sich durch diese Stellen ziehen. Bleib bei dem, was tatsächlich in meinen Markierungen steht; keine Inhaltsangabe."
+    "lookBackPrompt": "Ich habe {{title}} gerade beendet. Blicke mit mir zurück — geh durch, was ich markiert habe, und sag mir, was meine Aufmerksamkeit gefesselt hat und welche Fäden sich durch diese Stellen ziehen. Bleib bei dem, was tatsächlich in meinen Markierungen steht; keine Inhaltsangabe.",
+    "finishedSaveFailed": "Der Gelesen-Status konnte nicht gespeichert werden"
   },
   "readAloud": {
     "start": "Vorlesen",
@@ -175,5 +176,11 @@
     "unreachable": "Die Datei dieses Buches liegt in deiner Cloud-Bibliothek, aber der Sync-Server ist gerade nicht erreichbar.",
     "undecodable": "Die heruntergeladene Datei konnte mit der Sync-Passphrase dieses Geräts nicht entschlüsselt werden.",
     "reimport": "Datei importieren"
+  },
+  "annotations": {
+    "saveFailed": "Markierung konnte nicht gespeichert werden",
+    "noteSaveFailed": "Notiz konnte nicht gespeichert werden",
+    "updateFailed": "Markierung konnte nicht aktualisiert werden",
+    "deleteFailed": "Anmerkung konnte nicht gelöscht werden"
   }
 }

@@ -10,7 +10,7 @@
  * means two devices detecting the same duplicate emit IDENTICAL merge
  * events, and applying the second is a no-op. No coordination needed.
  */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./ipc";
 import { emitAppEvent } from "./app-events";
 import { commitDomainEvents } from "./domain-events";
 import { isTauri } from "./environment";

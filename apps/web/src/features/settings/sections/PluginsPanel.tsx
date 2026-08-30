@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { useAtomValue, useSetAtom } from "jotai";
-import { Badge, Button, Caption, Tabs, Toggle, useToast } from "@read-aware/ui";
+import { Badge, Button, Caption, Tabs, Toggle, useToast, InlineError } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { isTauri } from "../../../platform/environment";
 import { settingsSectionRequestAtom } from "../../../state/ui";
@@ -25,12 +25,12 @@ import {
   installedPluginsAtom,
   requestInstallConsent,
 } from "../../plugins/state/plugin-store";
+import { createLogger } from "../../../platform/logger";
+import { PluginManifestError } from "../../plugins/lib/manifest";
 import { SettingsPage } from "../components/SettingsPage";
 import { SettingsRow } from "../components/SettingsRow";
 
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
+const log = createLogger("plugins");
 
 export function PluginsPanel() {
   const { t } = useTranslation("plugins");
@@ -43,6 +43,13 @@ export function PluginsPanel() {
   const [confirmingUninstall, setConfirmingUninstall] = useState<string | null>(null);
   const [marketRefreshToken, setMarketRefreshToken] = useState(0);
   const desktop = isTauri();
+
+  /** A bad package is the one cause the user can act on; the rest is log-only. */
+  function installFailureCopy(error: unknown): string {
+    return error instanceof PluginManifestError
+      ? t("settings.installFailedManifest")
+      : t("settings.installFailed");
+  }
 
   async function handleInstall() {
     setInstalling(true);
@@ -66,10 +73,8 @@ export function PluginsPanel() {
         }
       }
     } catch (error) {
-      toast({
-        description: t("settings.installFailed", { message: errorMessage(error) }),
-        variant: "destructive",
-      });
+      log.error("plugin install failed", error);
+      toast({ description: installFailureCopy(error), variant: "destructive" });
     } finally {
       setInstalling(false);
     }
@@ -100,10 +105,8 @@ export function PluginsPanel() {
         }
       }
     } catch (error) {
-      toast({
-        description: t("settings.installFailed", { message: errorMessage(error) }),
-        variant: "destructive",
-      });
+      log.error("plugin install failed", error);
+      toast({ description: installFailureCopy(error), variant: "destructive" });
     } finally {
       setInstalling(false);
     }
@@ -118,7 +121,8 @@ export function PluginsPanel() {
     try {
       await uninstallPlugin(id);
     } catch (error) {
-      toast({ description: errorMessage(error), variant: "destructive" });
+      log.error("plugin uninstall failed", error);
+      toast({ description: t("settings.uninstallFailed"), variant: "destructive" });
     }
   }
 
@@ -187,9 +191,7 @@ export function PluginsPanel() {
                       </Caption>
                     ))}
                     {plugin.error && (
-                      <span className="text-xs text-red-700 dark:text-red-400">
-                        {t("settings.activationError", { message: plugin.error })}
-                      </span>
+                      <InlineError compact>{t("settings.activationError")}</InlineError>
                     )}
                   </span>
                 }

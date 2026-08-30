@@ -3,8 +3,9 @@ import { useAtomValue } from "jotai";
 import { CaretLeft, ChatCircle, ListBullets } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { usePhoneViewport } from "@read-aware/ui/media";
-import { Body, IconButton, ScrollArea, Tooltip } from "@read-aware/ui";
-import { formatPercent, useLocale, useTranslation } from "../../../i18n";
+import { Body, IconButton, ScrollArea, Tooltip, useToast } from "@read-aware/ui";
+import { describeError, formatPercent, useLocale, useTranslation } from "../../../i18n";
+import { createLogger } from "../../../platform/logger";
 import { ChatPanel } from "../../ai/components/ChatPanel";
 import { askAiRequestAtom } from "../../ai/state/chat-intent";
 import { useBookAnnotations } from "../../annotations/hooks/useBookAnnotations";
@@ -62,6 +63,8 @@ type ReaderShellOverlayProps = {
    */
   fixedLayout?: boolean;
 };
+
+const log = createLogger("reader");
 
 export function ReaderShellOverlay({
   visible,
@@ -151,7 +154,13 @@ export function ReaderShellOverlay({
 
   // The book's highlights and notes, shown in a popover opened from the header.
   // Kept live as marks are made via the shared revision in useBookAnnotations.
-  const { annotations, remove: removeAnnotation } = useBookAnnotations(bookId);
+  const {
+    annotations,
+    loadFailed: annotationsLoadFailed,
+    refresh: refreshAnnotations,
+    remove: removeAnnotation,
+  } = useBookAnnotations(bookId);
+  const { toast } = useToast();
 
   // User-arranged right cluster (settings → Menus).
   const { t: tMenus } = useTranslation("settings");
@@ -404,9 +413,20 @@ export function ReaderShellOverlay({
             </Tooltip>
             <ReaderNotesPopover
               annotations={annotations}
+              loadFailed={annotationsLoadFailed}
+              onRetryLoad={() => void refreshAnnotations()}
               tocEntries={tocEntries}
               onNavigate={(cfiRange) => onAnnotationSelect?.(cfiRange)}
-              onDelete={(id) => void removeAnnotation(id)}
+              onDelete={(id) =>
+                void removeAnnotation(id).catch((error) => {
+                  log.error("failed to remove annotation", error);
+                  toast({
+                    variant: "destructive",
+                    title: t("annotations.deleteFailed"),
+                    description: describeError(error).body,
+                  });
+                })
+              }
               open={annotationsOpen}
               onOpenChange={setAnnotationsOpen}
             />

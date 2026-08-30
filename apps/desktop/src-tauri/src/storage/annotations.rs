@@ -3,6 +3,7 @@
 //!
 //! Split out of `storage/mod.rs`; `use super::*` keeps the shared types in
 //! scope, so this is a move rather than a rewrite.
+use crate::error::CommandError;
 use super::*;
 
 // --- Annotations projection (highlights + notes + asks; one typed table) ---
@@ -47,24 +48,24 @@ pub(crate) fn row_to_annotation(row: &rusqlite::Row) -> rusqlite::Result<Annotat
 }
 
 #[tauri::command]
-pub fn annotations_list(db: State<'_, Db>) -> Result<Vec<Annotation>, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn annotations_list(db: State<'_, Db>) -> Result<Vec<Annotation>, CommandError> {
+    let conn = db.0.lock()?;
     let mut stmt = conn
         .prepare("SELECT * FROM annotations")
-        .map_err(|e| e.to_string())?;
+        ?;
     let rows = stmt
         .query_map([], row_to_annotation)
-        .map_err(|e| e.to_string())?;
+        ?;
     let mut out = Vec::new();
     for r in rows {
-        out.push(r.map_err(|e| e.to_string())?);
+        out.push(r?);
     }
     Ok(out)
 }
 
 #[tauri::command]
-pub fn annotation_get(id: String, db: State<'_, Db>) -> Result<Option<Annotation>, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn annotation_get(id: String, db: State<'_, Db>) -> Result<Option<Annotation>, CommandError> {
+    let conn = db.0.lock()?;
     match conn.query_row(
         "SELECT * FROM annotations WHERE id = ?1",
         params![id],
@@ -72,13 +73,13 @@ pub fn annotation_get(id: String, db: State<'_, Db>) -> Result<Option<Annotation
     ) {
         Ok(a) => Ok(Some(a)),
         Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-        Err(e) => Err(e.to_string()),
+        Err(e) => Err(e.into()),
     }
 }
 
 #[tauri::command]
-pub fn annotation_put(annotation: Annotation, db: State<'_, Db>) -> Result<(), String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn annotation_put(annotation: Annotation, db: State<'_, Db>) -> Result<(), CommandError> {
+    let conn = db.0.lock()?;
     conn.execute(
         "INSERT INTO annotations
             (id, book_id, type, cfi_range, chapter_href, text, color, style, content,
@@ -103,15 +104,15 @@ pub fn annotation_put(annotation: Annotation, db: State<'_, Db>) -> Result<(), S
             annotation.updated_at,
         ],
     )
-    .map_err(|e| e.to_string())?;
+    ?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn annotation_delete(id: String, db: State<'_, Db>) -> Result<(), String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+pub fn annotation_delete(id: String, db: State<'_, Db>) -> Result<(), CommandError> {
+    let conn = db.0.lock()?;
     conn.execute("DELETE FROM annotations WHERE id = ?1", params![id])
-        .map_err(|e| e.to_string())?;
+        ?;
     Ok(())
 }
 
@@ -120,7 +121,7 @@ pub(crate) fn annotations_search_inner(
     query: &str,
     book_id: Option<&str>,
     kind: Option<&str>,
-) -> Result<Vec<Annotation>, String> {
+) -> Result<Vec<Annotation>, CommandError> {
     let Some(expr) = fts_match_expr(query) else {
         // Nothing indexable in the query (punctuation only) — no matches.
         return Ok(Vec::new());
@@ -140,13 +141,13 @@ pub(crate) fn annotations_search_inner(
         sql.push_str(&format!(" AND a.type = ?{}", binds.len()));
     }
     sql.push_str(" ORDER BY bm25(annotations_fts)");
-    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+    let mut stmt = conn.prepare(&sql)?;
     let rows = stmt
         .query_map(rusqlite::params_from_iter(binds.iter()), row_to_annotation)
-        .map_err(|e| e.to_string())?;
+        ?;
     let mut out = Vec::new();
     for r in rows {
-        out.push(r.map_err(|e| e.to_string())?);
+        out.push(r?);
     }
     Ok(out)
 }
@@ -160,8 +161,8 @@ pub fn annotations_search(
     book_id: Option<String>,
     kind: Option<String>,
     db: State<'_, Db>,
-) -> Result<Vec<Annotation>, String> {
-    let conn = db.0.lock().map_err(|e| e.to_string())?;
+) -> Result<Vec<Annotation>, CommandError> {
+    let conn = db.0.lock()?;
     annotations_search_inner(&conn, &query, book_id.as_deref(), kind.as_deref())
 }
 

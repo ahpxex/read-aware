@@ -18,7 +18,9 @@
  * atoms synchronously) is imported — see main.tsx. Until it resolves under
  * Tauri, the snapshot is empty and reads fall back to defaults.
  */
-import { invoke } from "@tauri-apps/api/core";
+import { errorCode } from "@read-aware/core";
+import { invoke } from "./ipc";
+import { emitAppEvent } from "./app-events";
 import { isTauri } from "./environment";
 import {
   importDesktopDataIntoSqlite,
@@ -72,9 +74,16 @@ export const localKV = {
       localStorage.setItem(key, value);
       return;
     }
+    const previous = snapshot?.get(key) ?? null;
     (snapshot ??= new Map()).set(key, value);
     void invoke("set_kv", { key, value }).catch((err) => {
+      // Roll the snapshot back so the UI stops claiming a save that will not
+      // survive a restart, and let the app layer tell the user.
       log.error(`set_kv failed for "${key}"`, err);
+      if (previous === null) snapshot?.delete(key);
+      else snapshot?.set(key, previous);
+      notifyWrite(key, previous);
+      emitAppEvent("local-write-failed", { kind: "kv", code: errorCode(err) });
     });
     notifyWrite(key, value);
   },
@@ -84,9 +93,15 @@ export const localKV = {
       localStorage.removeItem(key);
       return;
     }
+    const previous = snapshot?.get(key) ?? null;
     snapshot?.delete(key);
     void invoke("delete_kv", { key }).catch((err) => {
       log.error(`delete_kv failed for "${key}"`, err);
+      if (previous !== null) {
+        snapshot?.set(key, previous);
+        notifyWrite(key, previous);
+      }
+      emitAppEvent("local-write-failed", { kind: "kv", code: errorCode(err) });
     });
     notifyWrite(key, null);
   },

@@ -7,6 +7,34 @@
   "errorBoundary": {
     "title": "In dieser Ansicht ist ein Fehler aufgetreten",
     "body": "Der Fehler wurde im Protokoll festgehalten. Der Rest von ReadAware funktioniert weiter – du kannst es erneut versuchen.",
-    "retry": "Erneut versuchen"
+    "retry": "Erneut versuchen",
+    "copyDetails": "Details kopieren",
+    "copied": "Kopiert"
+  },
+  "errors": {
+    "generic": "Etwas ist schiefgelaufen. Details stehen im App-Protokoll.",
+    "fsNotFound": "Eine von ReadAware benötigte Datei fehlt.",
+    "fsPermission": "ReadAware hat keine Berechtigung für eine benötigte Datei.",
+    "fsNoSpace": "Die Festplatte ist voll. Bitte Speicherplatz freigeben und erneut versuchen.",
+    "dbLocked": "Die lokale Datenbank ist ausgelastet. Bitte gleich noch einmal versuchen.",
+    "dbError": "In der lokalen Datenbank ist ein Problem aufgetreten.",
+    "secretsUnavailable": "Der Schlüsselspeicher lässt sich nicht öffnen; Schlüssel können derzeit weder gespeichert noch gelesen werden.",
+    "aiNotConfigured": "KI ist noch nicht eingerichtet — füge einen API-Schlüssel hinzu, um loszulegen.",
+    "aiAuth": "Der KI-Anbieter hat den API-Schlüssel abgelehnt. Bitte in den Einstellungen prüfen.",
+    "aiRateLimited": "Der KI-Anbieter begrenzt gerade die Anfragen. Bitte kurz warten und erneut versuchen.",
+    "aiQuota": "Guthaben oder Kontingent des KI-Kontos ist aufgebraucht. Bitte das Anbieterkonto prüfen.",
+    "aiNetwork": "Der KI-Anbieter ist nicht erreichbar. Bitte Verbindung prüfen und erneut versuchen.",
+    "aiProvider": "Beim KI-Anbieter gab es ein vorübergehendes Problem. Bitte gleich noch einmal versuchen.",
+    "aiContextOverflow": "Diese Anfrage ist zu groß für das Modell.",
+    "aiUnknown": "Die KI-Anfrage ist fehlgeschlagen. Details stehen im App-Protokoll.",
+    "syncNetwork": "Der Sync-Server ist nicht erreichbar. Es wird automatisch erneut versucht.",
+    "syncServer": "Der Sync-Server ist vorübergehend nicht verfügbar. Es wird automatisch erneut versucht.",
+    "syncRateLimited": "Die Synchronisierung wird gerade gedrosselt. Es wird automatisch erneut versucht.",
+    "syncUnauthorized": "Die Sync-Sitzung ist abgelaufen. Bitte erneut anmelden.",
+    "syncMisdirected": "Die Sync-Server-Adresse antwortete als ein anderer Dienst. Bitte die Relay-URL prüfen.",
+    "syncPassphrase": "Die Ende-zu-Ende-Passphrase stimmt nicht überein.",
+    "syncQuota": "Der Sync-Speicher ist voll.",
+    "localSaveFailedTitle": "Änderung nicht gespeichert",
+    "localSaveFailed": "Diese Änderung konnte nicht lokal gespeichert werden und geht nach einem Neustart möglicherweise verloren."
   }
 }

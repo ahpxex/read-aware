@@ -7,7 +7,7 @@
  */
 import type { Api, AssistantMessage, Model } from "@earendil-works/pi-ai";
 import type { CompleteFn } from "../models/complete";
-import type { MemoryKind, MemoryRecord, MemoryScope } from "../ports";
+import type { AgentLogPort, MemoryKind, MemoryRecord, MemoryScope } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 
 export interface MemoryCandidate {
@@ -83,6 +83,7 @@ function normalizeScope(raw: unknown, scope: ThreadScope): MemoryScope | undefin
 }
 
 export interface ExtractMemoriesInput {
+  log?: AgentLogPort;
   complete: CompleteFn;
   model: Model<Api>;
   scope: ThreadScope;
@@ -99,6 +100,7 @@ export function extractMemories(input: ExtractMemoriesInput): Promise<Extraction
 }
 
 export interface ExtractFromTranscriptInput {
+  log?: AgentLogPort;
   complete: CompleteFn;
   model: Model<Api>;
   scope: ThreadScope;
@@ -119,7 +121,7 @@ export function extractMemoriesFromTranscript(
 }
 
 async function runExtraction(
-  input: Pick<ExtractMemoriesInput, "complete" | "model" | "scope" | "existing">,
+  input: Pick<ExtractMemoriesInput, "complete" | "model" | "scope" | "existing" | "log">,
   content: string,
 ): Promise<ExtractionResult> {
   let message: AssistantMessage;
@@ -134,12 +136,19 @@ async function runExtraction(
         },
       ],
     });
-  } catch {
+  } catch (error) {
+    // Degrading to "nothing extracted" is the right behavior, but the failure
+    // must leave a trace — a silently dead extraction pipeline looks exactly
+    // like a reader whose conversations contain nothing memorable.
+    input.log?.warn("memory extraction failed", error);
     return EMPTY;
   }
 
   const parsed = parseJson(extractText(message));
-  if (!parsed || typeof parsed !== "object") return EMPTY;
+  if (!parsed || typeof parsed !== "object") {
+    input.log?.warn("memory extraction output was not parseable JSON");
+    return EMPTY;
+  }
   const { new: rawNew, reinforced: rawReinforced } = parsed as {
     new?: unknown;
     reinforced?: unknown;

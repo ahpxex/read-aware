@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAtomValue } from "jotai";
 import { Caption, Heading, Stack } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
-import { showPluginToast } from "../lib/plugin-toast";
+import { showPluginFailureToast } from "../lib/plugin-toast";
 import type { PluginView } from "../lib/plugin-types";
 import { headerActionsAtom } from "../state/plugin-store";
 import { PluginViewRenderer } from "./PluginViewRenderer";
@@ -50,9 +50,7 @@ export function PluginPageHost({ navKey, onExit }: PluginPageHostProps) {
       })
       .catch((error) => {
         log.error(`page "${key}" failed`, error);
-        showPluginToast(
-          `${action.pluginName}: ${error instanceof Error ? error.message : String(error)}`,
-        );
+        showPluginFailureToast(action.pluginName);
         if (loadRequestIdRef.current === requestId) onExit();
       });
     return () => {
@@ -71,9 +69,7 @@ export function PluginPageHost({ navKey, onExit }: PluginPageHostProps) {
       })
       .catch((error) => {
         log.error(`page "${key}" refresh failed`, error);
-        showPluginToast(
-          `${action.pluginName}: ${error instanceof Error ? error.message : String(error)}`,
-        );
+        showPluginFailureToast(action.pluginName);
       });
   };
 

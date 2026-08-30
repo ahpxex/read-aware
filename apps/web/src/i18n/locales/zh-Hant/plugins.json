@@ -37,7 +37,7 @@
     "installing": "安裝中…",
     "installedToast": "{{name}} 已安裝並啟用",
     "updateAvailableToast": "外掛有更新:{{name}} v{{version}}——設定 → 外掛 → 外掛市集",
-    "installFailed": "安裝失敗:{{message}}",
+    "installFailed": "安裝失敗，詳情已寫入應用程式日誌。",
     "empty": "尚未安裝外掛。外掛是一個包含 manifest.json 和 main.js 的資料夾。",
     "uninstall": "解除安裝",
     "uninstallConfirm": "解除安裝 {{name}}?外掛檔案將被刪除,其儲存的資料會保留。",
@@ -81,7 +81,7 @@
       "service_llm": "使用你設定的模型發起 AI 請求",
       "service_clipboard": "寫入剪貼簿"
     },
-    "activationError": "啟用失敗:{{message}}",
+    "activationError": "啟用失敗，詳情已寫入應用程式日誌。",
     "placement": "釘選按鈕",
     "placementHint": "釘選的動作以按鈕顯示,其餘收在溢位選單和命令面板中。",
     "surface": {
@@ -95,7 +95,7 @@
     "uninstallConfirmShort": "確認解除安裝",
     "tabInstalled": "已安裝",
     "tabMarketplace": "外掛市集",
-    "marketplaceError": "無法載入外掛市集:{{message}}",
+    "marketplaceError": "無法載入外掛市集。",
     "retry": "重試",
     "refresh": "重新整理",
     "installFromMarketplace": "安裝",
@@ -111,6 +111,11 @@
       "cancel": "取消"
     },
     "configure": "設定",
-    "builtin": "內建"
+    "builtin": "內建",
+    "installFailedManifest": "這個檔案不是有效的外掛套件。",
+    "uninstallFailed": "解除安裝失敗，詳情已寫入應用程式日誌。"
+  },
+  "runtime": {
+    "actionFailed": "這個外掛發生了問題，詳情已寫入應用程式日誌。"
   }
 }

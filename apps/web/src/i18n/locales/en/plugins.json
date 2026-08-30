@@ -37,7 +37,7 @@
     "installing": "Installing…",
     "installedToast": "{{name}} installed and enabled",
     "updateAvailableToast": "Update available: {{name}} v{{version}} — Settings → Plugins → Marketplace",
-    "installFailed": "Install failed: {{message}}",
+    "installFailed": "Install failed. Details are in the app log.",
     "empty": "No plugins installed. A plugin is a folder with a manifest.json and a main.js.",
     "uninstall": "Uninstall",
     "uninstallConfirm": "Uninstall {{name}}? Its files are removed; its stored data is kept.",
@@ -86,7 +86,7 @@
       "service_llm": "Make AI requests with your configured model",
       "service_clipboard": "Write to the clipboard"
     },
-    "activationError": "Activation failed: {{message}}",
+    "activationError": "Activation failed. Details are in the app log.",
     "placement": "Pinned buttons",
     "placementHint": "Pinned actions show as buttons; everything else stays in the overflow menu and the command palette.",
     "surface": {
@@ -100,7 +100,7 @@
     "uninstallConfirmShort": "Confirm uninstall",
     "tabInstalled": "Installed",
     "tabMarketplace": "Marketplace",
-    "marketplaceError": "Could not load the marketplace: {{message}}",
+    "marketplaceError": "Could not load the marketplace.",
     "retry": "Retry",
     "refresh": "Refresh",
     "installFromMarketplace": "Install",
@@ -116,6 +116,11 @@
       "cancel": "Cancel"
     },
     "configure": "Settings",
-    "builtin": "Built-in"
+    "builtin": "Built-in",
+    "installFailedManifest": "This file isn't a valid plugin package.",
+    "uninstallFailed": "Uninstall failed. Details are in the app log."
+  },
+  "runtime": {
+    "actionFailed": "This plugin ran into a problem. Details are in the app log."
   }
 }

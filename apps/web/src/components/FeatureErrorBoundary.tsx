@@ -20,6 +20,8 @@ type FallbackStrings = {
   title: string;
   body: string;
   retry: string;
+  copyDetails: string;
+  copied: string;
 };
 
 type BoundaryProps = {
@@ -36,13 +38,14 @@ type BoundaryProps = {
 
 type BoundaryState = {
   error: Error | null;
+  copied: boolean;
 };
 
 class Boundary extends Component<BoundaryProps, BoundaryState> {
-  state: BoundaryState = { error: null };
+  state: BoundaryState = { error: null, copied: false };
 
   static getDerivedStateFromError(error: Error): BoundaryState {
-    return { error };
+    return { error, copied: false };
   }
 
   componentDidCatch(error: Error, info: { componentStack?: string | null }) {
@@ -51,9 +54,21 @@ class Boundary extends Component<BoundaryProps, BoundaryState> {
 
   componentDidUpdate(prev: BoundaryProps) {
     if (this.state.error !== null && prev.resetKey !== this.props.resetKey) {
-      this.setState({ error: null });
+      this.setState({ error: null, copied: false });
     }
   }
+
+  /** Hand the technical detail over without rendering it — same stance as the
+   *  diagnostics bundle: the user chooses to share it, the UI stays clean. */
+  copyDetails = () => {
+    const { error } = this.state;
+    if (!error) return;
+    const detail = [`${error.name}: ${error.message}`, error.stack ?? ""].filter(Boolean).join("\n");
+    navigator.clipboard?.writeText(detail).then(
+      () => this.setState({ copied: true }),
+      () => {},
+    );
+  };
 
   render() {
     const { error } = this.state;
@@ -64,10 +79,12 @@ class Boundary extends Component<BoundaryProps, BoundaryState> {
         <div className="max-w-md space-y-3">
           <h2 className="font-serif text-2xl leading-display text-fg">{strings.title}</h2>
           <p className="text-sm leading-6 text-fg-muted">{strings.body}</p>
-          <p className="break-words font-mono text-xs text-fg-subtle">{error.message}</p>
-          <div className="pt-2">
-            <Button size="sm" onClick={() => this.setState({ error: null })}>
+          <div className="flex items-center justify-center gap-2 pt-2">
+            <Button size="sm" onClick={() => this.setState({ error: null, copied: false })}>
               {strings.retry}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={this.copyDetails}>
+              {this.state.copied ? strings.copied : strings.copyDetails}
             </Button>
           </div>
         </div>
@@ -90,6 +107,8 @@ export function FeatureErrorBoundary(props: {
         title: t("errorBoundary.title"),
         body: t("errorBoundary.body"),
         retry: t("errorBoundary.retry"),
+        copyDetails: t("errorBoundary.copyDetails"),
+        copied: t("errorBoundary.copied"),
       }}
     >
       {props.children}

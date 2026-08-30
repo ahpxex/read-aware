@@ -55,6 +55,7 @@ import { Route as DeChangelogRouteImport } from './routes/de/changelog'
 import { Route as BlogReadingThatRemembersRouteImport } from './routes/blog/reading-that-remembers'
 import { Route as BlogPluginsV1RouteImport } from './routes/blog/plugins-v1'
 import { Route as BlogLocalFirstRouteImport } from './routes/blog/local-first'
+import { Route as BlogLakeBaikalRouteImport } from './routes/blog/lake-baikal'
 import { Route as ZhDocsIndexRouteImport } from './routes/zh/docs/index'
 import { Route as ZhBlogIndexRouteImport } from './routes/zh/blog/index'
 import { Route as ZhHantDocsIndexRouteImport } from './routes/zh-hant/docs/index'
@@ -70,6 +71,7 @@ import { Route as ZhDocsGettingStartedRouteImport } from './routes/zh/docs/getti
 import { Route as ZhBlogReadingThatRemembersRouteImport } from './routes/zh/blog/reading-that-remembers'
 import { Route as ZhBlogPluginsV1RouteImport } from './routes/zh/blog/plugins-v1'
 import { Route as ZhBlogLocalFirstRouteImport } from './routes/zh/blog/local-first'
+import { Route as ZhBlogLakeBaikalRouteImport } from './routes/zh/blog/lake-baikal'
 import { Route as ZhHantDocsInstallRouteImport } from './routes/zh-hant/docs/install'
 import { Route as ZhHantDocsGettingStartedRouteImport } from './routes/zh-hant/docs/getting-started'
 import { Route as RuDocsInstallRouteImport } from './routes/ru/docs/install'
@@ -79,6 +81,7 @@ import { Route as JaDocsGettingStartedRouteImport } from './routes/ja/docs/getti
 import { Route as JaBlogReadingThatRemembersRouteImport } from './routes/ja/blog/reading-that-remembers'
 import { Route as JaBlogPluginsV1RouteImport } from './routes/ja/blog/plugins-v1'
 import { Route as JaBlogLocalFirstRouteImport } from './routes/ja/blog/local-first'
+import { Route as JaBlogLakeBaikalRouteImport } from './routes/ja/blog/lake-baikal'
 import { Route as FrDocsInstallRouteImport } from './routes/fr/docs/install'
 import { Route as FrDocsGettingStartedRouteImport } from './routes/fr/docs/getting-started'
 import { Route as EsDocsInstallRouteImport } from './routes/es/docs/install'
@@ -356,6 +359,11 @@ const BlogLocalFirstRoute = BlogLocalFirstRouteImport.update({
   path: '/local-first',
   getParentRoute: () => BlogRoute,
 } as any)
+const BlogLakeBaikalRoute = BlogLakeBaikalRouteImport.update({
+  id: '/lake-baikal',
+  path: '/lake-baikal',
+  getParentRoute: () => BlogRoute,
+} as any)
 const ZhDocsIndexRoute = ZhDocsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -432,6 +440,11 @@ const ZhBlogLocalFirstRoute = ZhBlogLocalFirstRouteImport.update({
   path: '/local-first',
   getParentRoute: () => ZhBlogRoute,
 } as any)
+const ZhBlogLakeBaikalRoute = ZhBlogLakeBaikalRouteImport.update({
+  id: '/lake-baikal',
+  path: '/lake-baikal',
+  getParentRoute: () => ZhBlogRoute,
+} as any)
 const ZhHantDocsInstallRoute = ZhHantDocsInstallRouteImport.update({
   id: '/install',
   path: '/install',
@@ -477,6 +490,11 @@ const JaBlogPluginsV1Route = JaBlogPluginsV1RouteImport.update({
 const JaBlogLocalFirstRoute = JaBlogLocalFirstRouteImport.update({
   id: '/local-first',
   path: '/local-first',
+  getParentRoute: () => JaBlogRoute,
+} as any)
+const JaBlogLakeBaikalRoute = JaBlogLakeBaikalRouteImport.update({
+  id: '/lake-baikal',
+  path: '/lake-baikal',
   getParentRoute: () => JaBlogRoute,
 } as any)
 const FrDocsInstallRoute = FrDocsInstallRouteImport.update({
@@ -724,6 +742,7 @@ export interface FileRoutesByFullPath {
   '/epub-reader-for-windows': typeof EpubReaderForWindowsRoute
   '/open-source-ebook-reader': typeof OpenSourceEbookReaderRoute
   '/pricing': typeof PricingRoute
+  '/blog/lake-baikal': typeof BlogLakeBaikalRoute
   '/blog/local-first': typeof BlogLocalFirstRoute
   '/blog/plugins-v1': typeof BlogPluginsV1Route
   '/blog/reading-that-remembers': typeof BlogReadingThatRemembersRoute
@@ -771,6 +790,7 @@ export interface FileRoutesByFullPath {
   '/es/docs/install': typeof EsDocsInstallRoute
   '/fr/docs/getting-started': typeof FrDocsGettingStartedRoute
   '/fr/docs/install': typeof FrDocsInstallRoute
+  '/ja/blog/lake-baikal': typeof JaBlogLakeBaikalRoute
   '/ja/blog/local-first': typeof JaBlogLocalFirstRoute
   '/ja/blog/plugins-v1': typeof JaBlogPluginsV1Route
   '/ja/blog/reading-that-remembers': typeof JaBlogReadingThatRemembersRoute
@@ -780,6 +800,7 @@ export interface FileRoutesByFullPath {
   '/ru/docs/install': typeof RuDocsInstallRoute
   '/zh-hant/docs/getting-started': typeof ZhHantDocsGettingStartedRoute
   '/zh-hant/docs/install': typeof ZhHantDocsInstallRoute
+  '/zh/blog/lake-baikal': typeof ZhBlogLakeBaikalRoute
   '/zh/blog/local-first': typeof ZhBlogLocalFirstRoute
   '/zh/blog/plugins-v1': typeof ZhBlogPluginsV1Route
   '/zh/blog/reading-that-remembers': typeof ZhBlogReadingThatRemembersRoute
@@ -839,6 +860,7 @@ export interface FileRoutesByTo {
   '/epub-reader-for-windows': typeof EpubReaderForWindowsRoute
   '/open-source-ebook-reader': typeof OpenSourceEbookReaderRoute
   '/pricing': typeof PricingRoute
+  '/blog/lake-baikal': typeof BlogLakeBaikalRoute
   '/blog/local-first': typeof BlogLocalFirstRoute
   '/blog/plugins-v1': typeof BlogPluginsV1Route
   '/blog/reading-that-remembers': typeof BlogReadingThatRemembersRoute
@@ -877,6 +899,7 @@ export interface FileRoutesByTo {
   '/es/docs/install': typeof EsDocsInstallRoute
   '/fr/docs/getting-started': typeof FrDocsGettingStartedRoute
   '/fr/docs/install': typeof FrDocsInstallRoute
+  '/ja/blog/lake-baikal': typeof JaBlogLakeBaikalRoute
   '/ja/blog/local-first': typeof JaBlogLocalFirstRoute
   '/ja/blog/plugins-v1': typeof JaBlogPluginsV1Route
   '/ja/blog/reading-that-remembers': typeof JaBlogReadingThatRemembersRoute
@@ -886,6 +909,7 @@ export interface FileRoutesByTo {
   '/ru/docs/install': typeof RuDocsInstallRoute
   '/zh-hant/docs/getting-started': typeof ZhHantDocsGettingStartedRoute
   '/zh-hant/docs/install': typeof ZhHantDocsInstallRoute
+  '/zh/blog/lake-baikal': typeof ZhBlogLakeBaikalRoute
   '/zh/blog/local-first': typeof ZhBlogLocalFirstRoute
   '/zh/blog/plugins-v1': typeof ZhBlogPluginsV1Route
   '/zh/blog/reading-that-remembers': typeof ZhBlogReadingThatRemembersRoute
@@ -948,6 +972,7 @@ export interface FileRoutesById {
   '/epub-reader-for-windows': typeof EpubReaderForWindowsRoute
   '/open-source-ebook-reader': typeof OpenSourceEbookReaderRoute
   '/pricing': typeof PricingRoute
+  '/blog/lake-baikal': typeof BlogLakeBaikalRoute
   '/blog/local-first': typeof BlogLocalFirstRoute
   '/blog/plugins-v1': typeof BlogPluginsV1Route
   '/blog/reading-that-remembers': typeof BlogReadingThatRemembersRoute
@@ -995,6 +1020,7 @@ export interface FileRoutesById {
   '/es/docs/install': typeof EsDocsInstallRoute
   '/fr/docs/getting-started': typeof FrDocsGettingStartedRoute
   '/fr/docs/install': typeof FrDocsInstallRoute
+  '/ja/blog/lake-baikal': typeof JaBlogLakeBaikalRoute
   '/ja/blog/local-first': typeof JaBlogLocalFirstRoute
   '/ja/blog/plugins-v1': typeof JaBlogPluginsV1Route
   '/ja/blog/reading-that-remembers': typeof JaBlogReadingThatRemembersRoute
@@ -1004,6 +1030,7 @@ export interface FileRoutesById {
   '/ru/docs/install': typeof RuDocsInstallRoute
   '/zh-hant/docs/getting-started': typeof ZhHantDocsGettingStartedRoute
   '/zh-hant/docs/install': typeof ZhHantDocsInstallRoute
+  '/zh/blog/lake-baikal': typeof ZhBlogLakeBaikalRoute
   '/zh/blog/local-first': typeof ZhBlogLocalFirstRoute
   '/zh/blog/plugins-v1': typeof ZhBlogPluginsV1Route
   '/zh/blog/reading-that-remembers': typeof ZhBlogReadingThatRemembersRoute
@@ -1067,6 +1094,7 @@ export interface FileRouteTypes {
     | '/epub-reader-for-windows'
     | '/open-source-ebook-reader'
     | '/pricing'
+    | '/blog/lake-baikal'
     | '/blog/local-first'
     | '/blog/plugins-v1'
     | '/blog/reading-that-remembers'
@@ -1114,6 +1142,7 @@ export interface FileRouteTypes {
     | '/es/docs/install'
     | '/fr/docs/getting-started'
     | '/fr/docs/install'
+    | '/ja/blog/lake-baikal'
     | '/ja/blog/local-first'
     | '/ja/blog/plugins-v1'
     | '/ja/blog/reading-that-remembers'
@@ -1123,6 +1152,7 @@ export interface FileRouteTypes {
     | '/ru/docs/install'
     | '/zh-hant/docs/getting-started'
     | '/zh-hant/docs/install'
+    | '/zh/blog/lake-baikal'
     | '/zh/blog/local-first'
     | '/zh/blog/plugins-v1'
     | '/zh/blog/reading-that-remembers'
@@ -1182,6 +1212,7 @@ export interface FileRouteTypes {
     | '/epub-reader-for-windows'
     | '/open-source-ebook-reader'
     | '/pricing'
+    | '/blog/lake-baikal'
     | '/blog/local-first'
     | '/blog/plugins-v1'
     | '/blog/reading-that-remembers'
@@ -1220,6 +1251,7 @@ export interface FileRouteTypes {
     | '/es/docs/install'
     | '/fr/docs/getting-started'
     | '/fr/docs/install'
+    | '/ja/blog/lake-baikal'
     | '/ja/blog/local-first'
     | '/ja/blog/plugins-v1'
     | '/ja/blog/reading-that-remembers'
@@ -1229,6 +1261,7 @@ export interface FileRouteTypes {
     | '/ru/docs/install'
     | '/zh-hant/docs/getting-started'
     | '/zh-hant/docs/install'
+    | '/zh/blog/lake-baikal'
     | '/zh/blog/local-first'
     | '/zh/blog/plugins-v1'
     | '/zh/blog/reading-that-remembers'
@@ -1290,6 +1323,7 @@ export interface FileRouteTypes {
     | '/epub-reader-for-windows'
     | '/open-source-ebook-reader'
     | '/pricing'
+    | '/blog/lake-baikal'
     | '/blog/local-first'
     | '/blog/plugins-v1'
     | '/blog/reading-that-remembers'
@@ -1337,6 +1371,7 @@ export interface FileRouteTypes {
     | '/es/docs/install'
     | '/fr/docs/getting-started'
     | '/fr/docs/install'
+    | '/ja/blog/lake-baikal'
     | '/ja/blog/local-first'
     | '/ja/blog/plugins-v1'
     | '/ja/blog/reading-that-remembers'
@@ -1346,6 +1381,7 @@ export interface FileRouteTypes {
     | '/ru/docs/install'
     | '/zh-hant/docs/getting-started'
     | '/zh-hant/docs/install'
+    | '/zh/blog/lake-baikal'
     | '/zh/blog/local-first'
     | '/zh/blog/plugins-v1'
     | '/zh/blog/reading-that-remembers'
@@ -1764,6 +1800,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogLocalFirstRouteImport
       parentRoute: typeof BlogRoute
     }
+    '/blog/lake-baikal': {
+      id: '/blog/lake-baikal'
+      path: '/lake-baikal'
+      fullPath: '/blog/lake-baikal'
+      preLoaderRoute: typeof BlogLakeBaikalRouteImport
+      parentRoute: typeof BlogRoute
+    }
     '/zh/docs/': {
       id: '/zh/docs/'
       path: '/'
@@ -1869,6 +1912,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ZhBlogLocalFirstRouteImport
       parentRoute: typeof ZhBlogRoute
     }
+    '/zh/blog/lake-baikal': {
+      id: '/zh/blog/lake-baikal'
+      path: '/lake-baikal'
+      fullPath: '/zh/blog/lake-baikal'
+      preLoaderRoute: typeof ZhBlogLakeBaikalRouteImport
+      parentRoute: typeof ZhBlogRoute
+    }
     '/zh-hant/docs/install': {
       id: '/zh-hant/docs/install'
       path: '/install'
@@ -1930,6 +1980,13 @@ declare module '@tanstack/react-router' {
       path: '/local-first'
       fullPath: '/ja/blog/local-first'
       preLoaderRoute: typeof JaBlogLocalFirstRouteImport
+      parentRoute: typeof JaBlogRoute
+    }
+    '/ja/blog/lake-baikal': {
+      id: '/ja/blog/lake-baikal'
+      path: '/lake-baikal'
+      fullPath: '/ja/blog/lake-baikal'
+      preLoaderRoute: typeof JaBlogLakeBaikalRouteImport
       parentRoute: typeof JaBlogRoute
     }
     '/fr/docs/install': {
@@ -2251,6 +2308,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface BlogRouteChildren {
+  BlogLakeBaikalRoute: typeof BlogLakeBaikalRoute
   BlogLocalFirstRoute: typeof BlogLocalFirstRoute
   BlogPluginsV1Route: typeof BlogPluginsV1Route
   BlogReadingThatRemembersRoute: typeof BlogReadingThatRemembersRoute
@@ -2258,6 +2316,7 @@ interface BlogRouteChildren {
 }
 
 const BlogRouteChildren: BlogRouteChildren = {
+  BlogLakeBaikalRoute: BlogLakeBaikalRoute,
   BlogLocalFirstRoute: BlogLocalFirstRoute,
   BlogPluginsV1Route: BlogPluginsV1Route,
   BlogReadingThatRemembersRoute: BlogReadingThatRemembersRoute,
@@ -2366,6 +2425,7 @@ const FrDocsRouteWithChildren =
   FrDocsRoute._addFileChildren(FrDocsRouteChildren)
 
 interface JaBlogRouteChildren {
+  JaBlogLakeBaikalRoute: typeof JaBlogLakeBaikalRoute
   JaBlogLocalFirstRoute: typeof JaBlogLocalFirstRoute
   JaBlogPluginsV1Route: typeof JaBlogPluginsV1Route
   JaBlogReadingThatRemembersRoute: typeof JaBlogReadingThatRemembersRoute
@@ -2373,6 +2433,7 @@ interface JaBlogRouteChildren {
 }
 
 const JaBlogRouteChildren: JaBlogRouteChildren = {
+  JaBlogLakeBaikalRoute: JaBlogLakeBaikalRoute,
   JaBlogLocalFirstRoute: JaBlogLocalFirstRoute,
   JaBlogPluginsV1Route: JaBlogPluginsV1Route,
   JaBlogReadingThatRemembersRoute: JaBlogReadingThatRemembersRoute,
@@ -2459,6 +2520,7 @@ const ZhHantDocsRouteWithChildren = ZhHantDocsRoute._addFileChildren(
 )
 
 interface ZhBlogRouteChildren {
+  ZhBlogLakeBaikalRoute: typeof ZhBlogLakeBaikalRoute
   ZhBlogLocalFirstRoute: typeof ZhBlogLocalFirstRoute
   ZhBlogPluginsV1Route: typeof ZhBlogPluginsV1Route
   ZhBlogReadingThatRemembersRoute: typeof ZhBlogReadingThatRemembersRoute
@@ -2466,6 +2528,7 @@ interface ZhBlogRouteChildren {
 }
 
 const ZhBlogRouteChildren: ZhBlogRouteChildren = {
+  ZhBlogLakeBaikalRoute: ZhBlogLakeBaikalRoute,
   ZhBlogLocalFirstRoute: ZhBlogLocalFirstRoute,
   ZhBlogPluginsV1Route: ZhBlogPluginsV1Route,
   ZhBlogReadingThatRemembersRoute: ZhBlogReadingThatRemembersRoute,

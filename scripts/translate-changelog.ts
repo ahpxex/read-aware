@@ -7,12 +7,9 @@
  * bun scripts/translate-changelog.ts [--version 0.5.0] [--locales ja,de,...]
  *
  * Why the harness looks paranoid (all behaviors observed live, 2026-08-30):
- * - Ollama Cloud completions INTERMITTENTLY stall forever (a run that
- *   normally takes ~70s sometimes produces nothing for 6+ minutes), so every
- *   attempt gets a hard timeout and retries.
- * - deepseek-v4-flash reliably completes short prompts but thinking-spirals
- *   on this task, so the model ladder starts at glm-5.3-flash and escalates
- *   to glm-5.3.
+ * - Hosted completion endpoints INTERMITTENTLY stall forever (Ollama Cloud
+ *   produced nothing for 6+ minutes on a task that normally takes ~70s), so
+ *   every attempt gets a hard timeout and retries regardless of provider.
  * - Long generations must not run concurrently on one key (parallel runs
  *   starve each other in the cloud queue); locales run SERIALLY.
  * - Output is validated structurally (same JSON shape as the English entry,
@@ -23,17 +20,17 @@
  * EXISTING entry, so terminology and tone follow the site's established
  * voice instead of the model's defaults.
  *
- * Machine prerequisite: the pi CLI needs an `ollama-cloud` provider defined
- * in ~/.pi/agent/models.json (OpenAI-compat, baseUrl https://ollama.com/v1,
- * models glm-5.3-flash / glm-5.3) plus an ollama-cloud key in its auth store
- * (`pi auth check --provider ollama-cloud` must say ready).
+ * Machine prerequisite: `pi auth check --provider zai-coding-cn` must say
+ * ready (the Zhipu coding-plan key in the pi CLI auth store). Verified live
+ * 2026-08-30: glm-5.3 does the full entry in ~55s with correct structure.
  */
 import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const RESOURCES = join(import.meta.dir, "../apps/landing/src/i18n/resources");
-const MODEL_LADDER = ["glm-5.3-flash", "glm-5.3"];
+const PROVIDER = "zai-coding-cn";
+const MODEL_LADDER = ["glm-5.3", "glm-5.3-flash"];
 const ATTEMPT_TIMEOUT_S = 180;
 const ATTEMPTS_PER_MODEL = 2;
 
@@ -71,6 +68,7 @@ function buildPrompt(language: string, styleAnchor: Entry | undefined, entry: En
     '- Product name "ReadAware" stays in Latin script. UI terms should match the app\'s conventions visible in the style sample.',
     "- Tone: match the style sample — plain, precise, quietly enthusiastic release notes; no marketing fluff.",
     "- For Chinese and Japanese, use full-width CJK punctuation (，。：；！？——) exactly as the style sample does; never half-width commas or periods in prose.",
+    "- Do not add quotation marks, brackets, or any decoration around \"title\" values — they are bare phrases.",
     ...(styleAnchor
       ? [
           "",
@@ -124,7 +122,7 @@ function attempt(model: string, prompt: string): Entry | null {
       String(ATTEMPT_TIMEOUT_S),
       "pi",
       "--provider",
-      "ollama-cloud",
+      PROVIDER,
       "--model",
       model,
       "--no-session",

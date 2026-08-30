@@ -1,0 +1,46 @@
+# Deploys readaware.app (apps/landing → the read-aware-site Worker) on every
+# push that touches the site or the workspace packages it builds against.
+#
+# Exists because the Workers cutover (bd41978) ended the CF-Pages era of
+# "push and the site updates itself" — this restores that contract. The
+# monorepo build must run from the repo root (landing depends on
+# @read-aware/core and @read-aware/ui via workspace:*), which is also why
+# Cloudflare's own Workers Builds (root-directory-scoped) wasn't used.
+#
+# Manual escape hatch stays: `cd apps/landing && bun run deploy` locally, or
+# trigger this via workflow_dispatch.
+name: landing
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/landing/**"
+      - "packages/ui/**"
+      - "packages/core/**"
+      - "bun.lock"
+      - ".github/workflows/landing.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: landing-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install
+        run: bun install --frozen-lockfile
+      - name: Build (vite + SSR prerender + typecheck)
+        working-directory: apps/landing
+        run: bun run build
+      - name: Deploy to Cloudflare Workers
+        working-directory: apps/landing
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: a657a3e85e3a60cc228b04ba1966c656
+        run: bunx wrangler deploy

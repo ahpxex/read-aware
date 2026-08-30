@@ -170,6 +170,67 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.5.0",
+        "date": "2026-08-30",
+        "codename": "Lake Baikal",
+        "summary": "Deine Bibliothek lernt zu reisen. Ende-zu-Ende-verschlüsselter Sync bringt Bücher, Lesefortschritt, Anmerkungen und KI-Gespräche von Gerät zu Gerät; das Buchgedächtnis entsteht beim Lesen; und jeder Fehler in der App spricht jetzt wie ein Mensch.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Geräteübergreifender Sync",
+                "body": "Melde dich mit Google oder GitHub an, lege eine Passphrase fest, und deine Bücher, Lesepositionen, Markierungen, Notizen, KI-Gespräche und Cover folgen dir — Ende-zu-Ende-verschlüsselt, der Server sieht also ausschließlich Chiffriertext. Änderungen kommen live an, große Bücher reisen in fortsetzbaren Teilstücken, und ein Panel pro Buch zeigt genau, was bereits in der Cloud angekommen ist."
+              },
+              {
+                "title": "Einstellungen, die mitreisen",
+                "body": "Themes, Typografie, KI-Anbieter-Einstellungen und API-Schlüssel reisen mit deinem Konto mit. Eine Neuinstallation fühlt sich eine Minute nach dem Anmelden wie deine eigene an."
+              },
+              {
+                "title": "Ein Buchgedächtnis, das Schritt hält",
+                "body": "Der Charakter- und Konzeptgraph baut sich jetzt in den ersten Minuten nach dem Öffnen eines Buches auf — statt über Stunden im Leerlauf. Der Assistent befragt ihn bei Bedarf, unterscheidet erzählende von sachlichen Büchern, führt Spitznamen von Figuren zusammen und schöpft aus deinen älteren Gesprächen Erinnerungen, statt sie zu vergessen."
+              },
+              {
+                "title": "Zwei Update-Kanäle",
+                "body": "Wähle Stable oder Beta unter Einstellungen → Über, und ein Dialog „Was ist neu“ führt dich durch jedes Upgrade."
+              },
+              {
+                "title": "Absturz-Nachbereitung",
+                "body": "Wenn ReadAware abstürzt, bietet der nächste Start an, einen Diagnosebericht zu senden — mit Vorschau und nie ohne deine Bestätigung."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Jeder Fehler in der App wurde neu gebaut, um klar zu sprechen: lokalisierte, konkrete Meldungen statt roher Fehlerausgaben, Wiederholen nur angeboten, wenn ein erneuter Versuch helfen kann, und ein direkter Link zur Lösung, wenn es eine gibt."
+              },
+              {
+                "body": "Die OpenRouter-Modellauswahl durchsucht jetzt den gesamten Katalog mit direkt angezeigten Preisen, und Ollama Cloud kommt zur Anbieterliste hinzu."
+              },
+              {
+                "body": "Plugin-Updates werden gestaffelt eingespielt, mit automatischem Rollback, und Plugins können jetzt eigene App- und Reader-Themes mitbringen."
+              },
+              {
+                "body": "Bei gescannten PDFs wird der Text extrahiert, sodass der Assistent sie endlich lesen kann. Im Seitenmodus funktioniert das Umblättern jetzt auch per Mausrad."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Android kann endlich TXT-Dateien importieren — der Typfilter der Systemauswahl stammte aus der Zeit vor der TXT-Unterstützung und zeigte sie ausgegraut. TXT-Dateien bieten ReadAware auf jeder Plattform zusätzlich unter „Öffnen mit“ an."
+              },
+              {
+                "body": "Wenn dasselbe Buch zweimal importiert wird, wird das Duplikat jetzt erkannt und nur eine Kopie behalten."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.4.2",
         "date": "2026-08-12",
         "summary": "Ein Patch, der die Haustür öffnet: Buchdateien öffnen direkt aus deinem Dateimanager, Import per Drag-and-drop, und jede Illustration bekommt einen Vollbild-Viewer.",

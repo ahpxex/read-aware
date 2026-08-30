@@ -170,6 +170,67 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.5.0",
+        "date": "2026-08-30",
+        "codename": "Lake Baikal",
+        "summary": "Your library learns to travel. End-to-end encrypted sync carries books, progress, annotations, and AI conversations across devices; the book memory builds while you read; and every error in the app now speaks like a person.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Sync across devices",
+                "body": "Sign in with Google or GitHub, set a passphrase, and your books, reading positions, highlights, notes, AI conversations, and covers follow you — end-to-end encrypted, so the server only ever sees ciphertext. Changes arrive live, big books travel in resumable chunks, and a per-book panel shows exactly what has reached the cloud."
+              },
+              {
+                "title": "Settings that roam",
+                "body": "Themes, typography, AI provider settings, and API keys travel with your account. A fresh install feels like your own within a minute of signing in."
+              },
+              {
+                "title": "A book memory that keeps up",
+                "body": "The character and concept graph now builds in the first minutes after you open a book instead of over hours of idle time. The assistant queries it on demand, tells narrative books from expository ones, merges character nicknames, and mines your older conversations for memories instead of forgetting them."
+              },
+              {
+                "title": "Two update channels",
+                "body": "Choose Stable or Beta in Settings → About, and a What's New dialog walks you through each upgrade."
+              },
+              {
+                "title": "Crash follow-up",
+                "body": "If ReadAware crashes, the next launch offers to send a diagnostics report — with a preview, and never without your confirmation."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Every error in the app was rebuilt to speak plainly: localized, actionable messages instead of raw error dumps, retry offered only when retrying can help, and a direct link to the fix when one exists."
+              },
+              {
+                "body": "The OpenRouter model picker now searches the full catalog with pricing shown inline, and Ollama Cloud joins the provider list."
+              },
+              {
+                "body": "Plugin updates stage with automatic rollback, and plugins can now ship their own app and reader themes."
+              },
+              {
+                "body": "Scanned PDFs get their text extracted, so the assistant can finally read them. Page turns work from the mouse wheel in paginated mode."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Android can finally import TXT files — the system picker's type filter predated TXT support and greyed them out. TXT files also offer ReadAware in \"Open with\" on every platform."
+              },
+              {
+                "body": "Importing the same book twice now recognizes the duplicate and keeps one copy."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.4.2",
         "date": "2026-08-12",
         "summary": "A patch that opens the front door: book files open straight from your file manager, drag-and-drop imports, and every illustration gets a full-screen viewer.",

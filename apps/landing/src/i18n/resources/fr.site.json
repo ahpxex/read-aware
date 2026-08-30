@@ -170,6 +170,67 @@
     "leadIn": " : ",
     "entries": [
       {
+        "version": "0.5.0",
+        "date": "2026-08-30",
+        "codename": "Lake Baikal",
+        "summary": "Votre bibliothèque apprend à voyager. La synchronisation chiffrée de bout en bout transporte vos livres, votre progression, vos annotations et vos conversations IA d'un appareil à l'autre ; la mémoire du livre se construit pendant que vous lisez ; et chaque erreur de l'application s'exprime désormais comme une personne.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Synchronisation entre vos appareils",
+                "body": "Connectez-vous avec Google ou GitHub, choisissez une phrase secrète, et vos livres, positions de lecture, surlignages, notes, conversations IA et couvertures vous suivent — le tout chiffré de bout en bout, si bien que le serveur ne voit jamais rien d'autre que du texte chiffré. Les changements arrivent en direct, les gros livres voyagent en blocs reprenables, et un panneau par livre montre exactement ce qui a rejoint le cloud."
+              },
+              {
+                "title": "Des réglages qui voyagent",
+                "body": "Thèmes, typographie, réglages du fournisseur d'IA et clés d'API voyagent avec votre compte. Une installation toute neuve devient la vôtre en à peine une minute après la connexion."
+              },
+              {
+                "title": "Une mémoire du livre qui tient la cadence",
+                "body": "Le graphe de personnages et de concepts se construit désormais dans les premières minutes qui suivent l'ouverture d'un livre, au lieu de s'étaler sur des heures d'inactivité. L'assistant l'interroge à la demande, distingue les livres narratifs des ouvrages explicatifs, fusionne les surnoms de personnages et exploite vos anciennes conversations pour en tirer des souvenirs au lieu de les oublier."
+              },
+              {
+                "title": "Deux canaux de mise à jour",
+                "body": "Choisissez Stable ou Beta dans Réglages → À propos, et une boîte de dialogue « Nouveautés » vous accompagne à chaque montée de version."
+              },
+              {
+                "title": "Suivi après un plantage",
+                "body": "Si ReadAware plante, le lancement suivant propose d'envoyer un rapport de diagnostic — avec un aperçu, et jamais sans votre confirmation."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Toutes les erreurs de l'application ont été reconstruites pour parler clairement : des messages localisés et concrets plutôt que des erreurs brutes déversées telles quelles, la possibilité de réessayer proposée uniquement quand réessayer peut servir, et un lien direct vers le correctif quand il existe."
+              },
+              {
+                "body": "Le sélecteur de modèles d'OpenRouter recherche désormais dans tout le catalogue, avec les prix affichés directement dans la liste, et Ollama Cloud s'ajoute à la liste des fournisseurs."
+              },
+              {
+                "body": "Les mises à jour de plugins se déploient par étapes avec retour arrière automatique, et les plugins peuvent désormais fournir leurs propres thèmes pour l'application et le lecteur."
+              },
+              {
+                "body": "Les PDF numérisés voient leur texte extrait, si bien que l'assistant peut enfin les lire. En mode paginé, la molette de la souris tourne désormais les pages."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Android peut enfin importer des fichiers TXT — le filtre de types du sélecteur système datait d'avant la prise en charge des TXT et les affichait en gris. Les fichiers TXT proposent aussi ReadAware dans « Ouvrir avec » sur toutes les plateformes."
+              },
+              {
+                "body": "Importer deux fois le même livre est désormais reconnu comme un doublon, et une seule copie est conservée."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.4.2",
         "date": "2026-08-12",
         "summary": "Un patch qui ouvre la porte d'entrée : les fichiers de livres s'ouvrent directement depuis votre gestionnaire de fichiers, l'import par glisser-déposer est disponible, et chaque illustration dispose d'une visionneuse plein écran.",

@@ -170,6 +170,67 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.5.0",
+        "date": "2026-08-30",
+        "codename": "Lake Baikal",
+        "summary": "Tu biblioteca aprende a viajar. La sincronización cifrada de extremo a extremo lleva libros, progreso, anotaciones y conversaciones de IA entre dispositivos; la memoria del libro se construye mientras lees; y cada error de la aplicación ahora habla como una persona.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Sincronización entre dispositivos",
+                "body": "Inicia sesión con Google o GitHub, establece una frase de contraseña, y tus libros, posiciones de lectura, resaltados, notas, conversaciones de IA y portadas te siguen — todo cifrado de extremo a extremo, así que el servidor nunca ve nada más que texto cifrado. Los cambios llegan en vivo, los libros grandes viajan en fragmentos reanudables, y un panel por libro muestra exactamente qué ha llegado a la nube."
+              },
+              {
+                "title": "Ajustes que viajan contigo",
+                "body": "Los temas, la tipografía, la configuración del proveedor de IA y las claves API viajan con tu cuenta. Una instalación nueva se siente tuya al cabo de un minuto de iniciar sesión."
+              },
+              {
+                "title": "Una memoria del libro que sigue tu ritmo",
+                "body": "El grafo de personajes y conceptos ahora se construye en los primeros minutos tras abrir un libro, en lugar de a lo largo de horas de inactividad. El asistente lo consulta bajo demanda, distingue los libros narrativos de los expositivos, fusiona los apodos de los personajes, y extrae recuerdos de tus conversaciones antiguas en lugar de olvidarlas."
+              },
+              {
+                "title": "Dos canales de actualización",
+                "body": "Elige Estable o Beta en Ajustes → Acerca de, y un diálogo de novedades te guía a través de cada actualización."
+              },
+              {
+                "title": "Seguimiento tras un fallo",
+                "body": "Si ReadAware se cierra de forma inesperada, el siguiente inicio ofrece enviar un informe de diagnóstico — con vista previa, y nunca sin tu confirmación."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Cada error de la aplicación se reconstruyó para hablar con claridad: mensajes localizados y accionables en lugar de volcados de error en bruto, la opción de reintentar aparece solo cuando reintentar sirve de algo, y un enlace directo a la solución cuando existe una."
+              },
+              {
+                "body": "El selector de modelos de OpenRouter ahora busca en el catálogo completo con los precios junto a cada modelo, y Ollama Cloud se suma a la lista de proveedores."
+              },
+              {
+                "body": "Las actualizaciones de plugins se despliegan por etapas con reversión automática, y los plugins ahora pueden traer sus propios temas para la aplicación y el lector."
+              },
+              {
+                "body": "Ahora se extrae el texto de los PDF escaneados, así el asistente por fin puede leerlos. El paso de páginas funciona con la rueda del ratón en modo paginado."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Android por fin puede importar archivos TXT — el filtro de tipos del selector del sistema era anterior a la compatibilidad con TXT y los mostraba en gris. Los archivos TXT también ofrecen ReadAware en «Abrir con» en todas las plataformas."
+              },
+              {
+                "body": "Importar el mismo libro dos veces ahora reconoce el duplicado y conserva una sola copia."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.4.2",
         "date": "2026-08-12",
         "summary": "Un parche que abre la puerta de entrada: los archivos de libros se abren directamente desde tu gestor de archivos, importación por arrastrar y soltar, y cada ilustración tiene un visor a pantalla completa.",

@@ -207,9 +207,12 @@ CI 的每个 job 都带 `generate_release_notes: true`，会把 release body 追
 | 值得发声的大版本 | 写 blog：`routes/blog/<slug>.tsx` + `lib/posts.ts` 注册一条 |
 
 **多语言是文档更新的一部分，不是可选项——但翻译是模型的活，复核才是你的活。**
-docs 全 8 语（resources 数据）；blog 仍是 en/zh/ja 三语路由镜像
-（`routes/blog/` + `routes/zh|ja/blog/`），发 blog 时 zh/ja 镜像同样先机翻
-再校对。日期用真实日期。
+docs 全 8 语（resources 数据）；blog 是 en/zh/ja 三语：正文在
+`<locale>.site.json` 的 `blog.posts.<slug>`，路由只是 8 行壳
+（`routes/blog/<slug>.tsx` + zh/ja 镜像，抄现有文件改 slug 即可，
+feed/sitemap/索引页全自动）。zh/ja 先机翻再校对；**整篇博客（4K+）一次性
+翻译会超出模型舒适输出长度直接超时（0.5.0 实测），要按 ## 分节逐段翻，
+每段带上一段译文做滚动风格锚点**。日期用真实日期。
 
 - 验证：`cd apps/landing && bun run build`（含预渲染与 typecheck）。
 - 有改动则单独提交（`docs(landing): ...`）并推送——landing.yml 会自动

@@ -36,5 +36,10 @@
     "syncQuota": "同期ストレージが満杯です。",
     "localSaveFailedTitle": "変更が保存されていません",
     "localSaveFailed": "この変更をローカルストレージに書き込めませんでした。再起動後に失われる可能性があります。"
+  },
+  "crashPrompt": {
+    "title": "前回 ReadAware に問題が発生しました",
+    "body": "診断レポートを送信すると修正に役立ちます。",
+    "action": "確認して送信"
   }
 }

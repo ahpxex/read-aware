@@ -1,3 +1,4 @@
+import { markCrash } from "./platform/crash-marker";
 /**
  * The screen of last resort for a failed boot. If anything in main.tsx's boot
  * sequence throws, React never mounts, the router's error boundary never
@@ -20,6 +21,8 @@ function describeBootError(error: unknown): string {
 }
 
 export function showBootFailure(error: unknown): void {
+  // The next healthy launch reads this and offers a diagnostics report.
+  markCrash("boot");
   const details = describeBootError(error);
 
   const host = document.getElementById("ra-splash") ?? document.body;

@@ -668,7 +668,7 @@ export function buildSettingDefinitions(
     }),
     ...(
       [
-        ["general.crashReports", "Crash reports", "crashReports"],
+        ["general.crashPrompt", "Ask to send a report after a crash", "crashPrompt"],
         ["general.launchAtStartup", "Launch at startup", "launchAtStartup"],
         ["general.fileAssociations", "File associations", "fileAssociations"],
         ["general.autoUpdate", "Automatic updates", "autoUpdate"],

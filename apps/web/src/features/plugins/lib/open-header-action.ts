@@ -4,11 +4,11 @@
  * header menu. Fetch errors surface as a toast.
  */
 import {
-  closePluginDialog,
+  failPluginDialog,
   openPluginDialog,
   resolvePluginDialog,
 } from "../state/plugin-store";
-import { showPluginFailureToast } from "./plugin-toast";
+import { errorCode } from "@read-aware/core";
 import type { HeaderActionInput, RegisteredHeaderAction } from "./plugin-types";
 import { createLogger } from "../../../platform/logger";
 
@@ -27,8 +27,12 @@ export async function openHeaderActionDialog(
     const view = await action.view(input);
     resolvePluginDialog(requestId, view);
   } catch (error) {
-    closePluginDialog(requestId);
     log.error(`header action "${action.key}" failed`, error);
-    showPluginFailureToast(action.pluginName);
+    // Fail in place: the dialog is already on screen, so the error state (and
+    // its retry) belongs inside it, not in a corner toast.
+    failPluginDialog(requestId, {
+      code: errorCode(error),
+      retry: () => void openHeaderActionDialog(action, input),
+    });
   }
 }

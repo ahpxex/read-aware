@@ -6,9 +6,11 @@
  */
 import {
   closePluginDialog,
+  failPluginDialog,
   openPluginDialog,
   resolvePluginDialog,
 } from "../state/plugin-store";
+import { errorCode } from "@read-aware/core";
 import { showPluginFailureToast, showPluginToast } from "./plugin-toast";
 import type { PluginViewResult } from "./plugin-types";
 import { createLogger } from "../../../platform/logger";
@@ -28,9 +30,17 @@ export async function runPluginContribution(
   try {
     result = await run();
   } catch (error) {
-    if (pendingDialogId) closePluginDialog(pendingDialogId);
     log.error(`contribution from "${pluginId}" failed`, error);
-    showPluginFailureToast(pluginName);
+    if (pendingDialogId) {
+      // The user is looking at the dialog — fail it in place (with retry and
+      // code-specific copy) instead of snapping it away for a corner toast.
+      failPluginDialog(pendingDialogId, {
+        code: errorCode(error),
+        retry: () => void runPluginContribution(pluginId, pluginName, run, options),
+      });
+    } else {
+      showPluginFailureToast(pluginName);
+    }
     return;
   }
   if (!result) {

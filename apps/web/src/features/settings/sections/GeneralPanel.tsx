@@ -106,13 +106,13 @@ export function GeneralPanel() {
         </div>
         <SettingsRow
           borderless
-          title={t("general.crashReports.title")}
-          description={t("general.crashReports.description")}
+          title={t("general.crashPrompt.title")}
+          description={t("general.crashPrompt.description")}
           control={
             <Toggle
-              aria-label={t("general.crashReports.title")}
-              checked={settings.crashReports}
-              onChange={(crashReports) => setSettings({ ...settings, crashReports })}
+              aria-label={t("general.crashPrompt.title")}
+              checked={settings.crashPrompt}
+              onChange={(crashPrompt) => setSettings({ ...settings, crashPrompt })}
             />
           }
         />

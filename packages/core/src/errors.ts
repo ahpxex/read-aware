@@ -35,6 +35,11 @@ export const ERR_SYNC_UNAUTHORIZED = "sync/unauthorized";
 export const ERR_SYNC_MISDIRECTED = "sync/misdirected";
 export const ERR_SYNC_PASSPHRASE = "sync/passphrase";
 export const ERR_SYNC_QUOTA = "sync/quota";
+export const ERR_SYNC_FILE_TOO_LARGE = "sync/file-too-large";
+/** The relay refused a blob for a reason with no more specific code (4xx). */
+export const ERR_SYNC_REJECTED = "sync/rejected";
+/** Manifest-only row: this device has no bytes to upload (bookkeeping state). */
+export const ERR_SYNC_NO_LOCAL_BYTES = "sync/no-local-bytes";
 export const ERR_SYNC_RATE_LIMITED = "sync/rate-limited";
 
 /** AI provider failure codes (classified in @read-aware/agent). */

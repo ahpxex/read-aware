@@ -33,6 +33,7 @@ import {
   type DomainEventSubscribe,
 } from "../../../domain";
 import { getAgentRuntime } from "../../ai/agent/agent-runtime";
+import { AiNotConfiguredError } from "../../ai/lib/ai-errors";
 import { openBookRequestAtom } from "../../ai/state/chat-intent";
 import {
   bindVirtualBook,
@@ -733,7 +734,10 @@ export function buildPluginContext(
     }) => {
       lifecycle.assertActive("services.llm.ask");
       const runtime = getAgentRuntime();
-      if (!runtime) throw new Error("AI is not configured");
+      // Typed so the code survives the sandbox bridge and surfaces (e.g. the
+      // dictionary dialog) can render "connect a provider" copy with a
+      // settings link instead of a generic failure.
+      if (!runtime) throw new AiNotConfiguredError();
       const base = {
         prompt: String(input.prompt),
         system: input.system,

@@ -46,9 +46,9 @@
     },
     "languagePrivacy": "Langue et confidentialité",
     "language": "Langue",
-    "crashReports": {
-      "title": "Envoyer des rapports d’incident anonymes",
-      "description": "Partager les diagnostics d’incident pour aider à corriger les problèmes de stabilité. Désactivé par défaut."
+    "crashPrompt": {
+      "title": "Proposer d'envoyer un rapport après un plantage",
+      "description": "Si ReadAware plante, l'envoi d'un rapport de diagnostic sera proposé au prochain démarrage. Rien n'est envoyé sans votre confirmation."
     }
   },
   "appearance": {
@@ -464,11 +464,11 @@
       "title": "Fichiers de livres",
       "pending": "En attente d'envoi",
       "failed": "Échec de l'envoi — nouvelle tentative à venir",
-      "rejectedQuota": "Stockage du forfait dépassé — non envoyé",
-      "rejected": "Refusé par le serveur",
-      "rejectedWith": "Refusé : {{reason}}",
+      "rejectedQuota": "Le stockage cloud est plein — passez à un forfait supérieur pour plus d'espace, ou supprimez des livres.",
+      "rejected": "Le serveur de synchronisation a refusé ce fichier. Les détails sont dans le journal.",
       "awaitingOtherDevice": "En attente de l'appareil qui détient le fichier",
-      "quotaFull": "Stockage cloud plein — les prochains livres restent sur cet appareil jusqu'à libérer de l'espace ou changer de forfait."
+      "quotaFull": "Stockage cloud plein — les prochains livres restent sur cet appareil jusqu'à libérer de l'espace ou changer de forfait.",
+      "rejectedTooLarge": "Ce fichier dépasse la taille maximale par livre de votre forfait — la mise à niveau l'augmente."
     }
   },
   "about": {

@@ -36,5 +36,10 @@
     "syncQuota": "Tu almacenamiento de sincronización está lleno.",
     "localSaveFailedTitle": "Cambio no guardado",
     "localSaveFailed": "Este cambio no se pudo escribir en el almacenamiento local y podría perderse tras reiniciar."
+  },
+  "crashPrompt": {
+    "title": "ReadAware tuvo un problema la última vez",
+    "body": "Enviar un informe de diagnóstico ayuda a solucionarlo.",
+    "action": "Revisar y enviar"
   }
 }

@@ -36,5 +36,10 @@
     "syncQuota": "Votre espace de synchronisation est plein.",
     "localSaveFailedTitle": "Modification non enregistrée",
     "localSaveFailed": "Cette modification n'a pas pu être écrite dans le stockage local et pourrait être perdue après un redémarrage."
+  },
+  "crashPrompt": {
+    "title": "ReadAware a rencontré un problème la dernière fois",
+    "body": "Envoyer un rapport de diagnostic aide à le corriger.",
+    "action": "Vérifier et envoyer"
   }
 }

@@ -36,5 +36,10 @@
     "syncQuota": "同步空間已滿。",
     "localSaveFailedTitle": "變更未儲存",
     "localSaveFailed": "這次變更沒能寫入本機儲存空間，重新啟動後可能遺失。"
+  },
+  "crashPrompt": {
+    "title": "ReadAware 上次執行發生了問題",
+    "body": "傳送一份診斷報告有助於修復它。",
+    "action": "檢視並傳送"
   }
 }

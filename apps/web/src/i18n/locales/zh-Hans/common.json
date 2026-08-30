@@ -36,5 +36,10 @@
     "syncQuota": "同步空间已满。",
     "localSaveFailedTitle": "更改未保存",
     "localSaveFailed": "这次更改没能写入本地存储，重启后可能丢失。"
+  },
+  "crashPrompt": {
+    "title": "ReadAware 上次运行出了问题",
+    "body": "发送一份诊断报告可以帮助修复它。",
+    "action": "查看并发送"
   }
 }

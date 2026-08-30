@@ -15,6 +15,7 @@
  * reviewed on their own.
  */
 import { Button, Dialog } from "@read-aware/ui";
+import { ERR_SYNC_FILE_TOO_LARGE, ERR_SYNC_QUOTA } from "@read-aware/core";
 import { useTranslation, describeErrorCode } from "../../../i18n";
 import type { SyncProfile } from "../../../platform/sync/sync-store";
 import type { SyncStatusSnapshot } from "../../../platform/sync/sync-scheduler";
@@ -208,25 +209,31 @@ export function SyncAccountGroupView({
     accountInfo?.limits?.maxAccountBlobBytes != null &&
     accountInfo.blobBytesUsed > accountInfo.limits.maxAccountBlobBytes;
 
-  // The relay's refusals name quotas ("account blob quota exceeded", legacy
-  // "blob exceeds N bytes") — the one rejection class a user can act on
-  // (free space or upgrade). Anything else is surfaced verbatim.
+  // The engine stores a stable code in `lastError` (classifyBlobRejection);
+  // rows written before that carry the relay's raw wording, mapped here once.
+  const rejectionCode = (row: SyncBookBacklogRow): string | null => {
+    const raw = row.lastError ?? "";
+    if (/^[a-z-]+\/[a-z-]+$/.test(raw)) return raw;
+    if (raw.includes("quota")) return ERR_SYNC_QUOTA;
+    if (raw.includes("exceeds")) return ERR_SYNC_FILE_TOO_LARGE;
+    return null;
+  };
   const isQuotaRejection = (row: SyncBookBacklogRow) =>
-    row.pushState === "rejected" &&
-    ((row.lastError ?? "").includes("quota") || (row.lastError ?? "").includes("exceeds"));
+    row.pushState === "rejected" && rejectionCode(row) === ERR_SYNC_QUOTA;
   const quotaBlocked = (bookBacklog ?? []).some(isQuotaRejection);
 
   const bookStateLabel = (row: SyncBookBacklogRow): { text: string; tone?: "error" } => {
     if (!row.localBytes) return { text: t("dataSync.books.awaitingOtherDevice") };
     if (row.pushState === "pending") return { text: t("dataSync.books.pending") };
     if (row.pushState === "failed") return { text: t("dataSync.books.failed") };
-    if (isQuotaRejection(row)) return { text: t("dataSync.books.rejectedQuota"), tone: "error" };
-    return {
-      text: row.lastError
-        ? t("dataSync.books.rejectedWith", { reason: row.lastError })
-        : t("dataSync.books.rejected"),
-      tone: "error",
-    };
+    const code = rejectionCode(row);
+    if (code === ERR_SYNC_QUOTA) {
+      return { text: t("dataSync.books.rejectedQuota"), tone: "error" };
+    }
+    if (code === ERR_SYNC_FILE_TOO_LARGE) {
+      return { text: t("dataSync.books.rejectedTooLarge"), tone: "error" };
+    }
+    return { text: t("dataSync.books.rejected"), tone: "error" };
   };
 
   return (

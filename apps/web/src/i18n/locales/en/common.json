@@ -36,5 +36,10 @@
     "syncQuota": "Your sync storage is full.",
     "localSaveFailedTitle": "Change not saved",
     "localSaveFailed": "This change couldn't be written to local storage and may be lost after a restart."
+  },
+  "crashPrompt": {
+    "title": "ReadAware had a problem last time",
+    "body": "Sending a diagnostics report helps get it fixed.",
+    "action": "Review & send"
   }
 }

@@ -36,5 +36,10 @@
     "syncQuota": "Der Sync-Speicher ist voll.",
     "localSaveFailedTitle": "Änderung nicht gespeichert",
     "localSaveFailed": "Diese Änderung konnte nicht lokal gespeichert werden und geht nach einem Neustart möglicherweise verloren."
+  },
+  "crashPrompt": {
+    "title": "ReadAware hatte beim letzten Mal ein Problem",
+    "body": "Ein Diagnosebericht hilft, es zu beheben.",
+    "action": "Prüfen & senden"
   }
 }

@@ -46,9 +46,9 @@
     },
     "languagePrivacy": "Language & privacy",
     "language": "Language",
-    "crashReports": {
-      "title": "Send anonymous crash reports",
-      "description": "Share crash diagnostics to help fix stability issues. Off by default."
+    "crashPrompt": {
+      "title": "Ask to send a report after a crash",
+      "description": "If ReadAware crashes, offer to send a diagnostics report on the next launch. Nothing is ever sent without your confirmation."
     }
   },
   "appearance": {
@@ -460,11 +460,11 @@
       "title": "Book files",
       "pending": "Waiting to upload",
       "failed": "Upload failed — will retry",
-      "rejectedQuota": "Over the plan's storage — not uploaded",
-      "rejected": "Refused by the relay",
-      "rejectedWith": "Refused: {{reason}}",
+      "rejectedQuota": "Cloud storage is full — upgrade your plan for more space, or remove some books.",
+      "rejected": "The sync server declined this file. Details are in the app log.",
       "awaitingOtherDevice": "Waiting for the device that holds the file",
-      "quotaFull": "Cloud storage is full — further books stay on this device until space frees up or the plan grows."
+      "quotaFull": "Cloud storage is full — further books stay on this device until space frees up or the plan grows.",
+      "rejectedTooLarge": "This file is over your plan's per-book size limit — upgrading raises it."
     }
   },
   "about": {

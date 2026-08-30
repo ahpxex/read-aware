@@ -46,9 +46,9 @@
     },
     "languagePrivacy": "语言与隐私",
     "language": "语言",
-    "crashReports": {
-      "title": "发送匿名崩溃报告",
-      "description": "分享崩溃诊断信息，帮助修复稳定性问题。默认关闭。"
+    "crashPrompt": {
+      "title": "崩溃后询问是否发送报告",
+      "description": "如果 ReadAware 崩溃，下次启动时会提议发送诊断报告。未经你确认，什么都不会发送。"
     }
   },
   "appearance": {
@@ -456,11 +456,11 @@
       "title": "书籍文件",
       "pending": "等待上传",
       "failed": "上传失败，稍后重试",
-      "rejectedQuota": "云端容量不足，未上传",
-      "rejected": "被云端拒绝",
-      "rejectedWith": "被拒绝：{{reason}}",
+      "rejectedQuota": "云端空间已满——升级方案可获得更多空间，或删除一些书。",
+      "rejected": "同步服务器拒绝了这个文件，详情已写入应用日志。",
       "awaitingOtherDevice": "等待持有文件的设备上传",
-      "quotaFull": "云端容量已满——腾出空间或升级方案之前，之后的书只保留在本设备。"
+      "quotaFull": "云端容量已满——腾出空间或升级方案之前，之后的书只保留在本设备。",
+      "rejectedTooLarge": "这本书超过了当前方案的单文件大小上限——升级后可同步更大的文件。"
     }
   },
   "about": {

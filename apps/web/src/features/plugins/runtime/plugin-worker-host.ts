@@ -20,6 +20,7 @@ import type {
   PluginMigration,
   PluginManifest,
 } from "@read-aware/plugin-types";
+import { AppError, errorCode } from "@read-aware/core";
 import { buildPluginContext, currentAppLocale, pluginStoragePrefix } from "./plugin-context";
 import { pluginModuleUrl } from "./plugin-backend";
 import { i18n } from "../../../i18n";
@@ -37,7 +38,7 @@ type WorkerMessage =
   | { t: "call"; id: number; method: string; args: unknown[] }
   | { t: "storage"; op: "set" | "remove"; key: string; value?: string }
   | { t: "result"; id: number; ok: true; value: unknown }
-  | { t: "result"; id: number; ok: false; error: string }
+  | { t: "result"; id: number; ok: false; error: string; code?: string }
   | { t: "healthy"; id: number }
   | { t: "migrated"; id: number; ok: true }
   | { t: "migrated"; id: number; ok: false; error: string };
@@ -474,6 +475,10 @@ export function startPluginWorker(
               id: message.id,
               ok: false,
               error: error instanceof Error ? error.message : String(error),
+              // Stable codes (AppError) survive the boundary as data — the
+              // worker rebuilds an Error carrying `code`, so a plugin rethrow
+              // keeps it and the host can render code-specific copy.
+              code: errorCode(error),
             });
           }
           return;
@@ -487,7 +492,12 @@ export function startPluginWorker(
           // returns carries functions of its own (a view's control `onChange`),
           // and they arrive as handles that have to become callable here.
           if (message.ok) pending.resolve(decode(message.value));
-          else pending.reject(new Error(message.error));
+          else
+            pending.reject(
+              message.code
+                ? new AppError(message.code, message.error)
+                : new Error(message.error),
+            );
           return;
         }
 

@@ -14,7 +14,14 @@
  * one replay instead of one per page (§11 攒页重放). Push and pull never
  * conflict-resolve anything: projections are a pure function of the log.
  */
-import type { HlcStamp } from "@read-aware/core";
+import {
+  ERR_SYNC_FILE_TOO_LARGE,
+  ERR_SYNC_NO_LOCAL_BYTES,
+  ERR_SYNC_QUOTA,
+  ERR_SYNC_REJECTED,
+  type HlcStamp,
+} from "@read-aware/core";
+import { createLogger } from "../logger";
 import {
   BLOB_CHUNK_BYTES,
   decodeBlobHead,
@@ -29,6 +36,23 @@ import {
 } from "../sync-envelope";
 
 export type MergeReport = { appended: number; applied: number; replayed: boolean };
+
+const log = createLogger("sync");
+
+/**
+ * Stable code for a relay blob refusal — this is what lands in
+ * `blob_sync_state.last_error` (and thus the per-book backlog UI), so the
+ * settings panel can render localized, actionable copy. The relay's raw
+ * wording goes to the log at the catch site, never into the row.
+ */
+function classifyBlobRejection(error: unknown): string {
+  const status = (error as { status?: number }).status;
+  const message = error instanceof Error ? error.message : String(error);
+  if (status === 413) {
+    return /account blob quota/i.test(message) ? ERR_SYNC_QUOTA : ERR_SYNC_FILE_TOO_LARGE;
+  }
+  return ERR_SYNC_REJECTED;
+}
 
 /** The local (SQLite-over-IPC) side the engine drives. */
 export type SyncLocalStore = {
@@ -273,7 +297,7 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
         const bytes = await store.readBlob(task.key);
         if (!bytes) {
           // Manifest-only or vanished bytes: nothing to push, ever.
-          await store.markBlobsRejected([task.key], "no local bytes to upload");
+          await store.markBlobsRejected([task.key], ERR_SYNC_NO_LOCAL_BYTES);
           continue;
         }
         await uploadBlob(key, task.key, bytes);
@@ -287,7 +311,8 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
         // queue behind it.
         const status = (error as { status?: number }).status;
         if (typeof status === "number" && status >= 400 && status < 500) {
-          await store.markBlobsRejected([task.key], message);
+          log.warn(`blob upload rejected (${status})`, error);
+          await store.markBlobsRejected([task.key], classifyBlobRejection(error));
         } else {
           await store.markBlobsFailed([task.key], message);
         }

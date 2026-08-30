@@ -54,7 +54,7 @@ type HostMessage =
       };
     }
   | { t: "result"; id: number; ok: true; value: unknown }
-  | { t: "result"; id: number; ok: false; error: string }
+  | { t: "result"; id: number; ok: false; error: string; code?: string }
   | { t: "health"; id: number }
   | { t: "migrate"; id: number; migration: PluginMigration }
   | { t: "deactivate" };
@@ -66,12 +66,28 @@ type WorkerMessage =
   | { t: "call"; id: number; method: string; args: unknown[] }
   | { t: "storage"; op: "set" | "remove"; key: string; value?: string }
   | { t: "result"; id: number; ok: true; value: unknown }
-  | { t: "result"; id: number; ok: false; error: string }
+  | { t: "result"; id: number; ok: false; error: string; code?: string }
   | { t: "healthy"; id: number }
   | { t: "migrated"; id: number; ok: true }
   | { t: "migrated"; id: number; ok: false; error: string };
 
 const post = (message: WorkerMessage) => self.postMessage(message);
+
+/**
+ * Stable error codes (see @read-aware/core errors.ts) survive the boundary as
+ * a plain `code` field: Error instances lose custom properties to structured
+ * clone, so both failure directions carry the code explicitly and rebuild it.
+ */
+const codeOf = (error: unknown): string | undefined => {
+  if (typeof error === "object" && error !== null && "code" in error) {
+    const code = (error as { code: unknown }).code;
+    if (typeof code === "string" && code.length > 0) return code;
+  }
+  return undefined;
+};
+
+const codedError = (message: string, code?: string): Error =>
+  code ? Object.assign(new Error(message), { code }) : new Error(message);
 
 function denyAmbientAuthority(name: string): void {
   try {
@@ -444,6 +460,7 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
           id: message.id,
           ok: false,
           error: error instanceof Error ? error.message : String(error),
+          code: codeOf(error),
         });
       }
       return;
@@ -466,7 +483,7 @@ self.onmessage = async (event: MessageEvent<HostMessage>) => {
       if (!pending) return;
       pendingCalls.delete(message.id);
       if (message.ok) pending.resolve(message.value);
-      else pending.reject(new Error(message.error));
+      else pending.reject(codedError(message.error, message.code));
       return;
     }
 

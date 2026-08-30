@@ -1,8 +1,10 @@
 import { useEffect } from "react";
 import { HeadContent, Outlet, createRootRoute, useRouter } from "@tanstack/react-router";
 import { Button, ToastProvider } from "@read-aware/ui";
+import { CrashFollowUpPrompt } from "../components/CrashFollowUpPrompt";
 import { LocalWriteFailureToasts } from "../components/LocalWriteFailureToasts";
 import { dismissBootSplash } from "../boot-splash";
+import { markCrash } from "../platform/crash-marker";
 import { i18n, useTranslation } from "../i18n";
 import { WindowResizeEdges } from "../features/navigation/components/WindowResizeEdges";
 import { useAppearance } from "../features/settings/hooks/useAppearance";
@@ -35,6 +37,7 @@ function RootComponent() {
       <HeadContent />
       <ToastProvider closeLabel={t("actions.dismiss")}>
         <LocalWriteFailureToasts />
+        <CrashFollowUpPrompt />
         <Outlet />
       </ToastProvider>
       <WindowResizeEdges />
@@ -46,9 +49,11 @@ function RootErrorBoundary() {
   const { t } = useTranslation(["nav", "common"]);
 
   // A boot failure means App never mounts — clear the splash overlay here so
-  // it can't mask the error screen.
+  // it can't mask the error screen. Also drop the crash marker: the next
+  // healthy launch offers to send a diagnostics report (CrashFollowUpPrompt).
   useEffect(() => {
     dismissBootSplash();
+    markCrash("render");
   }, []);
 
   return (

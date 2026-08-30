@@ -46,9 +46,9 @@
     },
     "languagePrivacy": "Idioma y privacidad",
     "language": "Idioma",
-    "crashReports": {
-      "title": "Enviar informes de fallos anónimos",
-      "description": "Comparte diagnósticos de fallos para ayudar a mejorar la estabilidad. Desactivado de forma predeterminada."
+    "crashPrompt": {
+      "title": "Preguntar si enviar un informe tras un fallo",
+      "description": "Si ReadAware falla, en el siguiente inicio se ofrecerá enviar un informe de diagnóstico. Nunca se envía nada sin tu confirmación."
     }
   },
   "appearance": {
@@ -464,11 +464,11 @@
       "title": "Archivos de libros",
       "pending": "Pendiente de subir",
       "failed": "Error al subir — se reintentará",
-      "rejectedQuota": "Supera el almacenamiento del plan — no subido",
-      "rejected": "Rechazado por el servidor",
-      "rejectedWith": "Rechazado: {{reason}}",
+      "rejectedQuota": "El almacenamiento en la nube está lleno: mejora tu plan para más espacio o elimina algunos libros.",
+      "rejected": "El servidor de sincronización rechazó este archivo. Los detalles están en el registro.",
       "awaitingOtherDevice": "Esperando al dispositivo que tiene el archivo",
-      "quotaFull": "El almacenamiento en la nube está lleno: los próximos libros permanecen en este dispositivo hasta liberar espacio o ampliar el plan."
+      "quotaFull": "El almacenamiento en la nube está lleno: los próximos libros permanecen en este dispositivo hasta liberar espacio o ampliar el plan.",
+      "rejectedTooLarge": "Este archivo supera el límite de tamaño por libro de tu plan; mejorarlo lo aumenta."
     }
   },
   "about": {

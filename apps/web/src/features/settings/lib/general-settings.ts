@@ -15,7 +15,12 @@ export type AppLanguage = AppLocale | null;
 export type GeneralSettings = {
   startView: StartView;
   language: AppLanguage;
-  crashReports: boolean;
+  /**
+   * Offer (ask, never auto-send) a diagnostics report after a crash.
+   * Fresh field name on purpose: the retired `crashReports` toggle was wired
+   * to nothing, so its persisted value carries no user intent and is ignored.
+   */
+  crashPrompt: boolean;
   /** Desktop-shell preferences — persisted here, applied by the Tauri shell. */
   launchAtStartup: boolean;
   fileAssociations: boolean;
@@ -27,7 +32,7 @@ export type GeneralSettings = {
 export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   startView: "shelf",
   language: null,
-  crashReports: false,
+  crashPrompt: true,
   launchAtStartup: false,
   fileAssociations: true,
   autoUpdate: true,
@@ -42,7 +47,7 @@ export function getGeneralSettings(): GeneralSettings {
     return {
       startView: parsed.startView ?? DEFAULT_GENERAL_SETTINGS.startView,
       language: parsed.language ?? DEFAULT_GENERAL_SETTINGS.language,
-      crashReports: parsed.crashReports ?? DEFAULT_GENERAL_SETTINGS.crashReports,
+      crashPrompt: parsed.crashPrompt ?? DEFAULT_GENERAL_SETTINGS.crashPrompt,
       launchAtStartup: parsed.launchAtStartup ?? DEFAULT_GENERAL_SETTINGS.launchAtStartup,
       fileAssociations: parsed.fileAssociations ?? DEFAULT_GENERAL_SETTINGS.fileAssociations,
       autoUpdate: parsed.autoUpdate ?? DEFAULT_GENERAL_SETTINGS.autoUpdate,

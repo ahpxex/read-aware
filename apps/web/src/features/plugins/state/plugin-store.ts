@@ -351,6 +351,13 @@ export type PluginDialogRequest = {
   pluginName: string;
   /** Null while the contribution is still resolving its host-rendered view. */
   view: PluginView | null;
+  /**
+   * The contribution failed: the dialog renders an in-place error state
+   * (localized via the failure's stable `code` when it carries one) with a
+   * retry, instead of vanishing into a corner toast. Raw error text is
+   * logged at the catch site, never stored here.
+   */
+  failure?: { code?: string; retry?: () => void };
 };
 
 export const pluginDialogAtom = atom<PluginDialogRequest | null>(null);
@@ -367,7 +374,18 @@ export function openPluginDialog(
 export function resolvePluginDialog(requestId: string, view: PluginView): boolean {
   const current = store.get(pluginDialogAtom);
   if (current?.requestId !== requestId) return false;
-  store.set(pluginDialogAtom, { ...current, view });
+  store.set(pluginDialogAtom, { ...current, view, failure: undefined });
+  return true;
+}
+
+/** Mark a pending Dialog failed (in-place error state) if it's still this request's. */
+export function failPluginDialog(
+  requestId: string,
+  failure: { code?: string; retry?: () => void },
+): boolean {
+  const current = store.get(pluginDialogAtom);
+  if (current?.requestId !== requestId) return false;
+  store.set(pluginDialogAtom, { ...current, view: null, failure });
   return true;
 }
 

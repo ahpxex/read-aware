@@ -46,9 +46,9 @@
     },
     "languagePrivacy": "Sprache & Datenschutz",
     "language": "Sprache",
-    "crashReports": {
-      "title": "Anonyme Absturzberichte senden",
-      "description": "Absturzdiagnosen teilen, um Stabilitätsprobleme zu beheben. Standardmäßig deaktiviert."
+    "crashPrompt": {
+      "title": "Nach einem Absturz fragen, ob ein Bericht gesendet werden soll",
+      "description": "Stürzt ReadAware ab, wird beim nächsten Start angeboten, einen Diagnosebericht zu senden. Ohne deine Bestätigung wird nichts gesendet."
     }
   },
   "appearance": {
@@ -460,11 +460,11 @@
       "title": "Buchdateien",
       "pending": "Wartet auf Upload",
       "failed": "Upload fehlgeschlagen — wird erneut versucht",
-      "rejectedQuota": "Speicherplatz überschritten — nicht hochgeladen",
-      "rejected": "Vom Server abgelehnt",
-      "rejectedWith": "Abgelehnt: {{reason}}",
+      "rejectedQuota": "Der Cloud-Speicher ist voll — mit einem Upgrade gibt es mehr Platz, oder entferne einige Bücher.",
+      "rejected": "Der Sync-Server hat diese Datei abgelehnt. Details stehen im App-Protokoll.",
       "awaitingOtherDevice": "Wartet auf das Gerät mit der Datei",
-      "quotaFull": "Cloud-Speicher voll — weitere Bücher bleiben auf diesem Gerät, bis Platz frei wird oder der Tarif wächst."
+      "quotaFull": "Cloud-Speicher voll — weitere Bücher bleiben auf diesem Gerät, bis Platz frei wird oder der Tarif wächst.",
+      "rejectedTooLarge": "Diese Datei überschreitet das Größenlimit deines Tarifs — ein Upgrade erhöht es."
     }
   },
   "about": {

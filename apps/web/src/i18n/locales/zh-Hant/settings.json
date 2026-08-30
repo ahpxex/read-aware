@@ -46,9 +46,9 @@
     },
     "languagePrivacy": "語言與隱私",
     "language": "語言",
-    "crashReports": {
-      "title": "傳送匿名當機報告",
-      "description": "分享當機診斷資訊以協助修復穩定性問題。預設為關閉。"
+    "crashPrompt": {
+      "title": "當機後詢問是否傳送報告",
+      "description": "如果 ReadAware 當機，下次啟動時會提議傳送診斷報告。未經你確認，不會傳送任何內容。"
     }
   },
   "appearance": {
@@ -456,11 +456,11 @@
       "title": "書籍檔案",
       "pending": "等待上傳",
       "failed": "上傳失敗，稍後重試",
-      "rejectedQuota": "雲端容量不足，未上傳",
-      "rejected": "被雲端拒絕",
-      "rejectedWith": "被拒絕：{{reason}}",
+      "rejectedQuota": "雲端空間已滿——升級方案可獲得更多空間，或移除一些書。",
+      "rejected": "同步伺服器拒絕了這個檔案，詳情已寫入應用程式日誌。",
       "awaitingOtherDevice": "等待持有檔案的裝置上傳",
-      "quotaFull": "雲端容量已滿——騰出空間或升級方案之前，之後的書只保留在本裝置。"
+      "quotaFull": "雲端容量已滿——騰出空間或升級方案之前，之後的書只保留在本裝置。",
+      "rejectedTooLarge": "這本書超過了目前方案的單一檔案大小上限——升級後可同步更大的檔案。"
     }
   },
   "about": {

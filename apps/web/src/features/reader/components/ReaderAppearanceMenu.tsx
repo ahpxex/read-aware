@@ -160,12 +160,25 @@ export function ReaderAppearanceMenu({
 
         <Divider />
 
-        <ChoiceGroup
-          label={t("readingMode")}
-          value={prefs.readingMode}
-          options={readingModeOptions(t)}
-          onChange={(readingMode) => updatePrefs({ ...prefs, readingMode })}
-        />
+        {/* Fixed-layout books (PDF, comics) read on their own mode axis, so a
+            layout chosen here never drags novels along — and vice versa. */}
+        {fixedLayout ? (
+          <ChoiceGroup
+            label={t("readingMode")}
+            value={prefs.fixedLayoutReadingMode}
+            options={readingModeOptions(t)}
+            onChange={(fixedLayoutReadingMode) =>
+              updatePrefs({ ...prefs, fixedLayoutReadingMode })
+            }
+          />
+        ) : (
+          <ChoiceGroup
+            label={t("readingMode")}
+            value={prefs.readingMode}
+            options={readingModeOptions(t)}
+            onChange={(readingMode) => updatePrefs({ ...prefs, readingMode })}
+          />
+        )}
       </div>
     </Popover>
   );

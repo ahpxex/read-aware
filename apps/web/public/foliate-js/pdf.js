@@ -168,6 +168,82 @@ const applyPageColors = (context, canvas, pageColors) => {
     context.restore()
 }
 
+// READAWARE: per-document selection manager for the text layer — the WebKit
+// path of PDF.js's text_layer_builder (PR #17923), adapted to our one page
+// per iframe document. Two cooperating tricks:
+//
+//  - `.selecting` rides on the text layer for the duration of any pointer
+//    drag — registered on the DOCUMENT, so a drag that starts on blank paper
+//    still counts. The vendored CSS expands `.endOfContent` from "parked
+//    below the page" (inset 100% 0 0) to covering it (top: 0), giving the
+//    native selection a continuous surface instead of span islands.
+//  - on every selectionchange, `.endOfContent` is re-inserted in DOM order
+//    next to the selection's MOVING edge, so the boundary the browser
+//    extends from always has a contiguous neighbor — the inter-span gaps
+//    disappear from the selection model's point of view.
+//
+// One listener set per document; re-renders (zoom, palette) only swap which
+// container/divider the state points at.
+const selectionFixStates = new WeakMap()
+const bindSelectionFixes = (doc, container, endOfContent) => {
+    const existing = selectionFixStates.get(doc)
+    if (existing) {
+        existing.container = container
+        existing.end = endOfContent
+        existing.prevRange = null
+        return
+    }
+    const state = { container, end: endOfContent, prevRange: null }
+    selectionFixStates.set(doc, state)
+    const reset = () => {
+        state.container.classList.remove('selecting')
+        state.prevRange = null
+        // Park the divider back below the page (last in DOM order).
+        if (state.end.parentElement) state.container.append(state.end)
+    }
+    doc.addEventListener('pointerdown', () => state.container.classList.add('selecting'))
+    doc.addEventListener('pointerup', reset)
+    doc.addEventListener('pointercancel', reset)
+    doc.defaultView.addEventListener('blur', reset)
+    doc.addEventListener('selectionchange', () => {
+        const selection = doc.getSelection()
+        if (!selection || selection.rangeCount === 0) {
+            state.prevRange = null
+            return
+        }
+        const range = selection.getRangeAt(0)
+        // Which edge is moving? If the end boundary matches the previous
+        // selection, the user is dragging the start backwards.
+        const modifyStart = state.prevRange
+            && (range.compareBoundaryPoints(Range.END_TO_END, state.prevRange) === 0
+                || range.compareBoundaryPoints(Range.START_TO_END, state.prevRange) === 0)
+        let anchor = modifyStart ? range.startContainer : range.endContainer
+        if (anchor.nodeType === Node.TEXT_NODE) anchor = anchor.parentNode
+        // A selection ending exactly at an element boundary anchors on the
+        // PREVIOUS element (upstream's walk, bounded to the layer).
+        if (!modifyStart && range.endOffset === 0) {
+            do {
+                while (!anchor.previousSibling && anchor !== state.container) {
+                    anchor = anchor.parentNode
+                }
+                if (anchor === state.container) break
+                anchor = anchor.previousSibling
+            } while (anchor && !anchor.childNodes.length && anchor !== state.end)
+        }
+        if (
+            anchor
+            && anchor !== state.container
+            && anchor !== state.end
+            && anchor.parentElement
+            && state.container.contains(anchor)
+        ) {
+            anchor.parentElement.insertBefore(
+                state.end, modifyStart ? anchor : anchor.nextSibling)
+        }
+        state.prevRange = range.cloneRange()
+    })
+}
+
 // READAWARE: the raster budget, in canvas pixels. `zoom × devicePixelRatio`
 // is unbounded — fit-width on a large Retina window asks a tall scan for a
 // 20-megapixel canvas (~90 MB of RGBA) per page, which is where scrolling
@@ -275,14 +351,16 @@ const render = async (page, doc, zoom, onRendered, pageColors, signal) => {
             display: 'none',
         })
 
-    // fix text selection
-    // https://github.com/mozilla/pdf.js/blob/642b9a5ae67ef642b9a8808fd9efd447e8c350e2/web/text_layer_builder.js#L105-L107
+    // READAWARE: WebKit-grade text selection, ported from PDF.js's own
+    // text_layer_builder (PR #17923) and adapted to one page per iframe
+    // document. The previous class toggle "only works in Firefox" (its own
+    // TODO said so): the text layer is sparse absolutely-positioned spans,
+    // and WebKit's native selection stalls in the gaps — a drag that starts
+    // slightly off a line selects nothing, extending across lines glitches.
     const endOfContent = document.createElement('div')
     endOfContent.className = 'endOfContent'
     container.append(endOfContent)
-    // TODO: this only works in Firefox; see https://github.com/mozilla/pdf.js/pull/17923
-    container.onpointerdown = () => container.classList.add('selecting')
-    container.onpointerup = () => container.classList.remove('selecting')
+    bindSelectionFixes(doc, container, endOfContent)
 
     throwIfAborted()
     const div = doc.querySelector('.annotationLayer')

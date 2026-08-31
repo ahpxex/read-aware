@@ -99,6 +99,13 @@ export type ReaderPageMargins = "narrow" | "medium" | "wide";
  */
 export type ReadingMode = "scroll" | "paginated-single" | "paginated-double";
 
+const READING_MODES: readonly ReadingMode[] = ["scroll", "paginated-single", "paginated-double"];
+
+/** Coerce a persisted reading-mode value; junk becomes null for the caller's default. */
+export function normalizeReadingMode(value: unknown): ReadingMode | null {
+  return READING_MODES.includes(value as ReadingMode) ? (value as ReadingMode) : null;
+}
+
 /**
  * Body-text alignment.
  *
@@ -136,6 +143,14 @@ export type ReaderSettings = {
   pageMargins: ReaderPageMargins;
   textAlign: ReaderTextAlign;
   readingMode: ReadingMode;
+  /**
+   * Fixed-layout books (PDF, comics) carry their own mode axis: their pages
+   * are typeset sheets, and continuous scroll is how every PDF reader on
+   * earth presents those — while reflowable books keep the device-split
+   * paginated default. One shared mode forced PDFs into whatever the reader
+   * chose for novels.
+   */
+  fixedLayoutReadingMode: ReadingMode;
   fixedLayoutColor: FixedLayoutColor;
 };
 
@@ -159,6 +174,7 @@ export const DEFAULT_READER_SETTINGS: ReaderSettings = {
   // two-page spread (the renderer already folds a spread to one column while
   // the viewport is portrait, so narrow desktop windows stay readable).
   readingMode: hasCoarsePointer() ? "paginated-single" : "paginated-double",
+  fixedLayoutReadingMode: "scroll",
   // Most fixed-layout reading is text on paper, where following the palette is
   // the whole point of choosing one; readers of photography and art books can
   // turn it off per book.
@@ -264,7 +280,14 @@ export function getReaderPreferences(): ReaderSettingsPreferences {
       paragraphSpacing: parsed.paragraphSpacing ?? DEFAULT_READER_PREFERENCES.paragraphSpacing,
       pageMargins: normalizePageMargins(parsed.pageMargins),
       textAlign: normalizeTextAlign(parsed.textAlign),
-      readingMode: parsed.readingMode ?? DEFAULT_READER_PREFERENCES.readingMode,
+      readingMode:
+        normalizeReadingMode(parsed.readingMode) ?? DEFAULT_READER_PREFERENCES.readingMode,
+      // Absent in every store written before the split — which is exactly the
+      // migration: existing installs' PDFs adopt continuous scroll, and only
+      // an explicit later choice writes anything else.
+      fixedLayoutReadingMode:
+        normalizeReadingMode(parsed.fixedLayoutReadingMode)
+        ?? DEFAULT_READER_PREFERENCES.fixedLayoutReadingMode,
       fixedLayoutColor:
         parsed.fixedLayoutColor === "original"
           ? "original"

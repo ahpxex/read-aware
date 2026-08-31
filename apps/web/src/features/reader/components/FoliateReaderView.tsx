@@ -26,6 +26,7 @@ import {
   createFoliateView,
   createFootnoteHandler,
   isFixedLayout as isFixedLayoutBook,
+  isFixedLayoutFormat,
   type FoliateFootnoteBeforeRenderDetail,
   type FoliateFootnoteHandler,
   type FoliateFootnoteRenderDetail,
@@ -384,7 +385,13 @@ export function FoliateReaderView({
   // New one-click marks use this colour; recoloring a mark updates it (persisted).
   const isFixedLayoutRef = useRef(false);
 
-  const readingMode = readerSettings.readingMode;
+  // Fixed-layout books read on their own mode axis (default: continuous
+  // scroll). Derived from the library FORMAT, not the parsed book — the mode
+  // keys the open effect, and a value that flipped mid-parse would tear the
+  // engine down and open the book twice.
+  const readingMode = isFixedLayoutFormat(selectedBook?.format)
+    ? readerSettings.fixedLayoutReadingMode
+    : readerSettings.readingMode;
   const readingModeRef = useRef(readingMode);
   useEffect(() => { readingModeRef.current = readingMode; }, [readingMode]);
 

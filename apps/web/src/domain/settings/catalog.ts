@@ -788,6 +788,12 @@ export function buildSettingDefinitions(
           "readingMode",
           ["scroll", "paginated-single", "paginated-double"],
         ],
+        [
+          "reading.fixedLayoutReadingMode",
+          "Reading mode for fixed-layout books (PDF, comics)",
+          "fixedLayoutReadingMode",
+          ["scroll", "paginated-single", "paginated-double"],
+        ],
       ] as const
     ).map(([path, label, key, values]) =>
       readingDefinition({

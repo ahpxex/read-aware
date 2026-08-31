@@ -370,6 +370,16 @@ export function foliateAuthor(book: FoliateBook): string {
   return one(author).trim();
 }
 
+/**
+ * Fixed-layout by library FORMAT — decidable before the file is parsed, which
+ * is what the reader needs to pick the reading-mode axis without reopening.
+ * A pre-paginated EPUB is only detectable after parsing and deliberately
+ * stays on the reflowable axis.
+ */
+export function isFixedLayoutFormat(format: string | null | undefined): boolean {
+  return format === "pdf" || format === "cbz" || format === "cbr";
+}
+
 /** A book is fixed-layout (PDF/CBZ) when its rendition layout is pre-paginated. */
 export function isFixedLayout(book: FoliateBook): boolean {
   return book.rendition?.layout === "pre-paginated";

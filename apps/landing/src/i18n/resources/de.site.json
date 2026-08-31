@@ -170,6 +170,63 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.5.1",
+        "date": "2026-08-31",
+        "codename": "Lake Baikal",
+        "summary": "Sync wird selbst gehostet, und PDFs werden erwachsen. Ein neues WebDAV-Plugin synchronisiert deine verschlüsselte Bibliothek über deinen eigenen Server; PDFs öffnen sich in rund einer Sekunde, scrollen als ein durchgehendes Dokument und lassen sich präzise markieren; und das Regal lernt Drag-and-drop.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Sync über deinen eigenen Server",
+                "body": "Das neue WebDAV-Sync-Plugin macht aus jedem WebDAV-Server — Nextcloud, 坚果云 und weitere — ein Sync-Backend. Deine Bibliothek wird Ende-zu-Ende verschlüsselt, bevor sie das Gerät verlässt; der Server speichert also nur versiegelte Daten, die er nicht lesen kann. Verbinde jedes Gerät mit demselben Server und derselben Passphrase, und alles findet zusammen — Bücher inklusive."
+              },
+              {
+                "title": "Sync-Backends als Plugins",
+                "body": "Plugin-Entwickler bekommen eine neue sync:transport-Fähigkeit: Die App behält Verschlüsselung, Ereignisprotokoll und Zusammenführung, während ein Plugin nur versiegelte Daten an ein Ziel seiner Wahl trägt. WebDAV ist der erste, der einzieht."
+              },
+              {
+                "title": "PDFs scrollen wie PDFs",
+                "body": "Der Scroll-Modus für PDFs und Comics ist jetzt ein durchgehendes Dokument: Die Bildlaufleiste überspannt sämtliche Seiten, Sprünge landen sofort an jeder Stelle, und die Seiten fließen vorbei, ohne dass der Bildschirm wechselt. Scrollen ist jetzt die Standardeinstellung für diese Bücher, und ihre Layoutwahl wird separat gemerkt — Blättern im Roman und Scrollen im Paper streiten sich also nicht mehr um eine Einstellung."
+              },
+              {
+                "title": "Drag-and-drop im Regal",
+                "body": "Bücher lassen sich direkt auf eine Sammlung ziehen, und während du ziehst, erscheint ein Dock mit allen Sammlungen plus „Neue Sammlung“ und „Entfernen“ als Ablagezonen. Ziehst du ein ausgewähltes Buch, nimmt es die gesamte Auswahl mit."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Große PDFs öffnen sich in rund einer Sekunde. Ein großer Scan-Band konnte vorher eine halbe Minute brauchen, bevor seine erste Seite erschien, und stockte erneut bei der Gliederung; der Reader lädt jetzt nur die Bytes, die die sichtbare Seite braucht."
+              },
+              {
+                "body": "Umblättern im Ein- und Doppelseitenmodus geschieht sofort: Nahe Seiten werden im Voraus gerendert, kürzlich gelesene bleiben warm. Kurze Dokumente bleiben vollständig gerendert."
+              },
+              {
+                "body": "Textauswahl in PDFs ruckelt nicht mehr, wenn das Ziehen etwas neben den Buchstaben beginnt — die Auswahl folgt jetzt dem Zeiger, wie sie soll."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Der Netzwerkzugriff von Plugins brach in 0.5.0 — RSS-Feed-Aktualisierung und Text-to-Speech scheiterten mit einem Berechtigungsfehler, den keine Berechtigung beheben konnte. Beides funktioniert wieder."
+              },
+              {
+                "body": "PDFs, die importiert wurden, während das Fenster verdeckt war oder auf einem anderen Space lag, blieben bis zum ersten Öffnen ohne Cover; Covers werden jetzt in jedem Fall gerendert."
+              },
+              {
+                "body": "Wer ein Buch innerhalb des Regals zieht, löst nicht mehr das Overlay zum Importieren per Ablegen aus."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.5.0",
         "date": "2026-08-30",
         "codename": "Lake Baikal",

@@ -170,6 +170,63 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.5.1",
+        "date": "2026-08-31",
+        "codename": "Lake Baikal",
+        "summary": "La sincronización se vuelve autoalojada y los PDF maduran. Un nuevo plugin de WebDAV sincroniza tu biblioteca cifrada a través de tu propio servidor; los PDF se abren en un segundo escaso, se desplazan como un documento continuo y permiten seleccionar texto con precisión; y la estantería aprende a arrastrar y soltar.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Sincronización a través de tu propio servidor",
+                "body": "El nuevo plugin WebDAV Sync convierte cualquier servidor WebDAV — Nextcloud, 坚果云, y compañía — en un backend de sincronización. Tu biblioteca se cifra de extremo a extremo antes de salir del dispositivo, así que el servidor solo almacena datos sellados que no puede leer; conecta cada dispositivo con el mismo servidor y la misma frase de contraseña, y todo converge, libros incluidos."
+              },
+              {
+                "title": "Backends de sincronización como plugins",
+                "body": "Los desarrolladores de plugins reciben una nueva capacidad sync:transport: la aplicación conserva el cifrado, el registro de eventos y la fusión, mientras que un plugin solo transporta datos sellados al destino remoto que elija. WebDAV es el primer inquilino."
+              },
+              {
+                "title": "Los PDF se desplazan como PDF",
+                "body": "El modo de desplazamiento para PDF y cómics es ahora un único documento continuo: la barra de desplazamiento abarca todas las páginas, los saltos llegan al instante a cualquier punto, y las páginas fluyen sin cambiar de pantalla. El desplazamiento es ahora el modo predeterminado para estos libros, y su preferencia de diseño se recuerda por separado, así que pasar las páginas de una novela y desplazarse por un artículo ya no compiten por una misma configuración."
+              },
+              {
+                "title": "Arrastrar y soltar en la estantería",
+                "body": "Los libros se arrastran directamente a una colección, y mientras arrastras aparece un dock con todas las colecciones, más «nueva colección» y «quitar» como zonas donde soltar. Arrastrar un libro seleccionado lleva consigo toda la selección."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Los PDF grandes se abren en un segundo escaso. Un libro escaneado voluminoso podía tardar medio minuto en mostrar su primera página y volvía a atascarse al cargar su índice; el lector ahora recupera solo los bytes que necesita la página visible."
+              },
+              {
+                "body": "El paso de páginas en los modos de página simple y doble página es instantáneo: las páginas cercanas se renderizan por adelantado y las recién leídas se mantienen listas. Los documentos cortos permanecen completamente renderizados."
+              },
+              {
+                "body": "Seleccionar texto en un PDF ya no da problemas cuando el arrastre empieza un poco desviado de las letras — la selección sigue tu puntero como debe."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "El acceso a la red de los plugins se rompió en 0.5.0 — la actualización de canales RSS y la síntesis de voz fallaban con un error de permisos que ningún permiso podía arreglar. Ambas vuelven a funcionar."
+              },
+              {
+                "body": "Los PDF importados mientras la ventana estaba cubierta o en otro Espacio quedaban sin portada hasta su primera apertura; ahora las portadas se renderizan de todos modos."
+              },
+              {
+                "body": "Arrastrar un libro dentro de la estantería ya no hace aparecer la superposición de soltar para importar."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.5.0",
         "date": "2026-08-30",
         "codename": "Lake Baikal",

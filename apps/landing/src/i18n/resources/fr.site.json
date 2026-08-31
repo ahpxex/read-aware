@@ -170,6 +170,63 @@
     "leadIn": " : ",
     "entries": [
       {
+        "version": "0.5.1",
+        "date": "2026-08-31",
+        "codename": "Lake Baikal",
+        "summary": "La synchronisation passe à l'auto-hébergement et les PDF gagnent en maturité. Un nouveau plugin WebDAV synchronise votre bibliothèque chiffrée via votre propre serveur ; les PDF s'ouvrent en environ une seconde, défilent comme un seul document continu et permettent une sélection précise du texte ; et la bibliothèque apprend le glisser-déposer.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Synchronisation via votre propre serveur",
+                "body": "Le nouveau plugin WebDAV Sync transforme n'importe quel hôte WebDAV — Nextcloud, 坚果云 et compagnie — en backend de synchronisation. Votre bibliothèque est chiffrée de bout en bout avant de quitter l'appareil, si bien que le serveur ne stocke que des données scellées qu'il ne peut pas lire ; connectez chaque appareil au même serveur avec la même phrase secrète, et tout converge, livres compris."
+              },
+              {
+                "title": "Les backends de synchronisation deviennent des plugins",
+                "body": "Les développeurs de plugins disposent d'une nouvelle capacité sync:transport : l'application conserve le chiffrement, le journal d'événements et la fusion, tandis que le plugin se contente de transporter des données scellées vers la destination distante de son choix. WebDAV est le premier à s'installer."
+              },
+              {
+                "title": "Les PDF défilent comme des PDF",
+                "body": "Le mode défilement des PDF et des bandes dessinées forme désormais un seul document continu : la barre de défilement couvre toutes les pages, les sauts atterrissent instantanément n'importe où dans le document, et les pages s'enchaînent sans que l'écran bascule. Le défilement devient le mode par défaut pour ces livres, et leur choix de mise en page est mémorisé à part, si bien que tourner les pages d'un roman et faire défiler un article ne se disputent plus le même réglage."
+              },
+              {
+                "title": "Glisser-déposer sur la bibliothèque",
+                "body": "Les livres se glissent directement sur une collection, et pendant le glissement, un dock apparaît avec toutes les collections, plus « Nouvelle collection » et « Retirer » comme zones de dépôt. Faire glisser un livre sélectionné emporte toute la sélection avec lui."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Les gros PDF s'ouvrent en environ une seconde. Un gros livre numérisé pouvait mettre une trentaine de secondes avant que sa première page apparaisse, puis caler à nouveau sur sa table des matières ; le lecteur ne récupère désormais que les octets nécessaires à la page visible."
+              },
+              {
+                "body": "Changer de page est instantané en mode page simple comme en mode double page : les pages voisines se préparent devant vous et les pages récemment lues restent chaudes. Les documents courts restent intégralement rendus."
+              },
+              {
+                "body": "Sélectionner du texte dans un PDF ne cafouille plus quand le glissement démarre un peu à côté des lettres — la sélection suit votre curseur comme il se doit."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "L'accès réseau des plugins s'est cassé dans la version 0.5.0 — le rafraîchissement des flux RSS et la synthèse vocale échouaient avec une erreur de permissions qu'aucune permission ne pouvait corriger. Les deux refonctionnent."
+              },
+              {
+                "body": "Les PDF importés pendant que la fenêtre était masquée ou se trouvait dans un autre Space se retrouvaient sans couverture jusqu'à leur première ouverture ; les couvertures s'affichent désormais quoi qu'il arrive."
+              },
+              {
+                "body": "Faire glisser un livre dans la bibliothèque ne fait plus apparaître la superposition « Déposer pour importer »."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.5.0",
         "date": "2026-08-30",
         "codename": "Lake Baikal",

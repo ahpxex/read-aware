@@ -170,6 +170,63 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.5.1",
+        "date": "2026-08-31",
+        "codename": "Lake Baikal",
+        "summary": "Sync goes self-hosted and PDFs grow up. A new WebDAV plugin syncs your encrypted library through your own server; PDFs open in about a second, scroll as one continuous document, and select text precisely; and the shelf learns drag and drop.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Sync through your own server",
+                "body": "The new WebDAV Sync plugin turns any WebDAV host — Nextcloud, 坚果云, and friends — into a sync backend. Your library is end-to-end encrypted before it leaves the device, so the server only ever stores sealed data it cannot read; connect each device with the same server and passphrase and everything converges, books included."
+              },
+              {
+                "title": "Sync backends as plugins",
+                "body": "Plugin developers get a new sync:transport capability: the app keeps encryption, the event log, and merge, while a plugin only carries sealed data to the remote of its choosing. WebDAV is the first tenant."
+              },
+              {
+                "title": "PDFs scroll like PDFs",
+                "body": "Scroll mode for PDFs and comics is now one continuous document: the scrollbar spans every page, jumps land anywhere instantly, and pages flow past without swapping screens. Scroll is now the default for these books, and their layout choice is remembered separately, so paging through a novel and scrolling a paper no longer fight over one setting."
+              },
+              {
+                "title": "Drag and drop on the shelf",
+                "body": "Books drag straight onto a collection, and while you drag, a dock appears with every collection plus new collection and remove as drop zones. Dragging a selected book carries the whole selection along."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "body": "Big PDFs open in about a second. A large scanned book could take half a minute before its first page appeared and stall again on its outline; the reader now fetches only the bytes the visible page needs."
+              },
+              {
+                "body": "Page turns in single and double-page modes are instant: nearby pages render ahead of you and recently read ones stay warm. Short documents stay fully rendered."
+              },
+              {
+                "body": "Selecting text in a PDF no longer glitches when the drag starts a little off the letters — the selection follows your pointer the way it should."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "body": "Plugin network access broke in 0.5.0 — RSS feed refresh and text-to-speech failed with a permissions error no permission could fix. Both work again."
+              },
+              {
+                "body": "PDFs imported while the window was covered or in another Space ended up coverless until first opened; covers now render regardless."
+              },
+              {
+                "body": "Dragging a book inside the shelf no longer summons the drop-to-import overlay."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.5.0",
         "date": "2026-08-30",
         "codename": "Lake Baikal",

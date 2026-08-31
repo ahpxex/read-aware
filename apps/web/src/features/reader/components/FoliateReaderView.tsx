@@ -7,6 +7,7 @@ import { describeError, useTranslation } from "../../../i18n";
 import { textUnitModeSettingsAtom, shortcutBindingsAtom } from "../../../state/ui";
 import { chordMatchesEvent, resolveBinding } from "../../settings/lib/shortcuts";
 import type { LibraryBook, ReaderProgress } from "../../library/lib/library-types";
+import { emitAppEvent } from "../../../platform/app-events";
 import { createLogger } from "../../../platform/logger";
 import { resolveReaderModeUnit } from "../../plugins/lib/reader-mode";
 import {
@@ -1895,6 +1896,14 @@ export function FoliateReaderView({
               );
             })
           : null;
+        if (fixedLayout && view.renderer) {
+          // Every finished page raster keeps the busy signal fresh while the
+          // stack prerenders around a scrolling reader.
+          const rendererTarget = view.renderer as unknown as EventTarget;
+          const onRendered = () => emitAppEvent("reader-demand-activity", {});
+          rendererTarget.addEventListener("rendered", onRendered);
+          cleanups.push(() => rendererTarget.removeEventListener("rendered", onRendered));
+        }
         {
           // The margin preset drives the text measure and the paginator gap
           // together (see reader-css.ts). Portrait containers render a single
@@ -1923,6 +1932,9 @@ export function FoliateReaderView({
 
         const onRelocate = (event: Event) => {
           if (cancelled) return;
+          // Tell background pipelines (text extraction) the reader is busy —
+          // the page being read must win the PDF worker and the blob channel.
+          emitAppEvent("reader-demand-activity", {});
           const detail = (event as CustomEvent<FoliateRelocateDetail>).detail;
           clearSelection();
           setActiveAnnotation(null);

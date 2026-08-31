@@ -86,7 +86,9 @@ export class FixedLayout extends HTMLElement {
     // { slot, frame, framePromise, width, height, sized }.
     #stack = null
     #stackCurrent = 0
-    #stackToken = 0
+    #stackLive = new Set()
+    #stackWanted = new Set()
+    #stackDraining = false
     #stackScrollTimer = 0
     #stackReportTimer = 0
     #stackDefaultDims = null
@@ -237,23 +239,60 @@ export class FixedLayout extends HTMLElement {
         }))
     }
     // READAWARE: kick a lazily rendered frame (PDF) at a given scale if its
-    // raster is stale, tracking the promise so navigation and preloading can
-    // sequence behind in-flight renders instead of racing the PDF worker.
+    // raster is stale. Bookkeeping is success-based: `renderedScale` is only
+    // set when a render COMPLETES, `renderingScale` marks the one in flight,
+    // and a cancelled or failed render leaves the frame retryable — the old
+    // requested-marks-done bookkeeping turned any transient failure into a
+    // permanently blank page. Renders are cancellable through the signal the
+    // PDF layer honors; a stale in-flight render (scale or palette changed)
+    // is cancelled rather than raced.
     #renderFrameAt(frame, scale) {
-        if (!frame?.onZoom || frame.renderedScale === scale) return
-        frame.renderedScale = scale
+        if (!frame?.onZoom) return
+        if (frame.renderedScale === scale || frame.renderingScale === scale) return
+        // Two strikes at one scale and the page stops hammering a render that
+        // cannot succeed; a scale change resets the count.
+        if (frame.failedScale === scale && (frame.failCount ?? 0) >= 2) return
+        this.#cancelFrameRender(frame)
+        const controller = new AbortController()
+        frame.renderAbort = controller
+        frame.renderingScale = scale
         frame.renderPromise = frame.onZoom({
             doc: frame.iframe.contentDocument,
             scale,
             pageColors: this.#pageColors,
+            signal: controller.signal,
         })
             .then(() => {
+                frame.renderedScale = scale
+                frame.failedScale = null
+                frame.failCount = 0
                 this.dispatchEvent(new Event('rendered'))
                 // The render rebuilt the text layer, so the overlayer's
                 // ranges are detached — start it over.
                 this.#createOverlayer(frame)
             })
-            .catch(error => console.error(error))
+            .catch(error => {
+                if (error?.name === 'RenderCancelledError') return
+                if (frame.failedScale === scale) frame.failCount = (frame.failCount ?? 0) + 1
+                else { frame.failedScale = scale; frame.failCount = 1 }
+                console.error(error)
+            })
+            .finally(() => {
+                if (frame.renderAbort === controller) {
+                    frame.renderAbort = null
+                    frame.renderingScale = null
+                }
+            })
+    }
+    /** Cancel a frame's in-flight render (no-op when idle). Synchronous
+     *  bookkeeping, so a follow-up `#renderFrameAt` never dedupes against a
+     *  corpse. */
+    #cancelFrameRender(frame) {
+        const controller = frame?.renderAbort
+        if (!controller) return
+        frame.renderAbort = null
+        frame.renderingScale = null
+        controller.abort()
     }
     // READAWARE: cached spreads stay in the DOM; only the current one
     // participates in layout and paints. `visibility` (not `display`) so the
@@ -360,7 +399,8 @@ export class FixedLayout extends HTMLElement {
         const pending = this.#framePromises.get(spreadIndex)
         if (pending) return pending
         const spread = this.#spreads[spreadIndex]
-        const promise = (async () => {
+        let promise
+        promise = (async () => {
             let frames
             if (spread.center) {
                 const index = this.book.sections.indexOf(spread.center)
@@ -376,6 +416,11 @@ export class FixedLayout extends HTMLElement {
                     right: await this.#createFrame({ index: indexR, src: srcR }),
                 }
             }
+            // An evict may have raced this creation (dropping the map rows
+            // while the iframes loaded). The frames are real and the caller
+            // may be about to show them — re-register unconditionally; the
+            // next evict sweep applies the cap again.
+            this.#framePromises.set(spreadIndex, promise)
             this.#liveFrames.set(spreadIndex, frames)
             // Into the recency order at creation — a preloaded spread the
             // reader never visits must still be evictable.
@@ -434,7 +479,10 @@ export class FixedLayout extends HTMLElement {
             if (this.#liveFrames.size <= cap) break
             if (keep.has(victim)) continue
             const frames = this.#liveFrames.get(victim)
-            if (frames) this.#eachFrame(frames, frame => frame.element.remove())
+            if (frames) this.#eachFrame(frames, frame => {
+                this.#cancelFrameRender(frame)
+                frame.element.remove()
+            })
             this.#liveFrames.delete(victim)
             this.#framePromises.delete(victim)
             this.#lru.splice(this.#lru.indexOf(victim), 1)
@@ -555,9 +603,11 @@ export class FixedLayout extends HTMLElement {
     }
     #teardownStack() {
         if (!this.#stack) return
-        this.#stackToken++
+        for (const i of [...this.#stackLive]) this.#demoteStackFrame(i)
         for (const entry of this.#stack) entry.slot.remove()
         this.#stack = null
+        this.#stackLive.clear()
+        this.#stackWanted.clear()
         if (this.#stackReportTimer) clearTimeout(this.#stackReportTimer)
     }
     /** The stack entry whose slot contains the viewport's center line. */
@@ -576,16 +626,22 @@ export class FixedLayout extends HTMLElement {
         const entry = this.#stack?.[entryIndex]
         if (!entry) return null
         if (entry.framePromise) return entry.framePromise
+        this.#stackLive.add(entryIndex)
         const spread = this.#spreads[entryIndex]
         const sectionIndex = this.book.sections.indexOf(
             spread.center ?? spread.left ?? spread.right)
-        const promise = (async () => {
+        let promise
+        promise = (async () => {
             const section = spread.center ?? spread.left ?? spread.right
             const src = await section?.load?.()
             const frame = await this.#createFrame(
                 { index: sectionIndex, src }, entry.slot)
-            // The stack may have been torn down (mode switch) mid-flight.
-            if (this.#stack?.[entryIndex] !== entry) {
+            // The stack may have been torn down (mode switch), or this entry
+            // demoted (scrolled far away), while the iframe was loading — a
+            // demoted creation must NOT resurrect itself, or the frame
+            // becomes an orphan no sweep tracks. The drain re-creates it if
+            // the reader comes back.
+            if (this.#stack?.[entryIndex] !== entry || entry.framePromise !== promise) {
                 frame.element.remove()
                 return null
             }
@@ -625,6 +681,7 @@ export class FixedLayout extends HTMLElement {
             if (this.#stack?.[entryIndex] === entry) {
                 entry.framePromise = null
                 entry.frame = null
+                this.#stackLive.delete(entryIndex)
             }
         })
         return promise
@@ -649,23 +706,33 @@ export class FixedLayout extends HTMLElement {
         })
         if (!frame.onZoom) frame.overlayer?.redraw()
     }
-    #demoteStackFrame(entry) {
-        if (!entry.frame && !entry.framePromise) return
+    #demoteStackFrame(entryIndex) {
+        const entry = this.#stack?.[entryIndex]
+        if (!entry || (!entry.frame && !entry.framePromise)) return
         const frame = entry.frame
-        if (frame) frame.element.remove()
+        if (frame) {
+            this.#cancelFrameRender(frame)
+            frame.element.remove()
+        }
         entry.frame = null
         entry.framePromise = null
+        this.#stackLive.delete(entryIndex)
     }
     #layoutStack() {
         if (!this.#stack) return
         for (const entry of this.#stack) this.#sizeSlot(entry)
         this.#restackTops()
-        for (const entry of this.#stack) this.#layoutStackFrame(entry)
+        for (const i of this.#stackLive) {
+            const entry = this.#stack[i]
+            if (entry) this.#layoutStackFrame(entry)
+        }
         this.#updateStackWindow('layout')
     }
-    // READAWARE: the heart of the scrolled flow — called on scroll (rAF-
-    // throttled), on resize, and after navigations. Reports the new reading
-    // position and keeps the window of live pages centered on it.
+    // READAWARE: the heart of the scrolled flow — called on scroll (throttled),
+    // on resize, and after navigations. Reports the new reading position,
+    // recomputes the wanted window (binary search over slot offsets, never a
+    // full sweep of thousands of entries), demotes what fell out of the keep
+    // range, and kicks the drain loop that does the actual work.
     #updateStackWindow(reason) {
         if (!this.#stack?.length) return
         const height = this.clientHeight
@@ -684,43 +751,91 @@ export class FixedLayout extends HTMLElement {
         }
 
         const full = this.#stack.length <= FULL_RENDER_MAX_SPREADS
-        const aheadEdge = top + height * (1 + STACK_AHEAD_VIEWPORTS)
-        const behindEdge = top - height * STACK_BEHIND_VIEWPORTS
-        const keepAhead = top + height * (1 + STACK_KEEP_AHEAD_VIEWPORTS)
-        const keepBehind = top - height * STACK_KEEP_BEHIND_VIEWPORTS
-
-        const wanted = []
-        for (let i = 0; i < this.#stack.length; i++) {
-            const entry = this.#stack[i]
-            const slotTop = entry.top
-            const slotBottom = slotTop + entry.pixelHeight
-            if (full || (slotBottom > behindEdge && slotTop < aheadEdge)) {
-                wanted.push(i)
-            } else if (!(slotBottom > keepBehind && slotTop < keepAhead)) {
-                this.#demoteStackFrame(entry)
+        const wanted = new Set()
+        if (full) {
+            for (let i = 0; i < this.#stack.length; i++) wanted.add(i)
+        } else {
+            const first = this.#stackIndexAt(top - height * STACK_BEHIND_VIEWPORTS)
+            const last = this.#stackIndexAt(top + height * (1 + STACK_AHEAD_VIEWPORTS))
+            for (let i = first; i <= last; i++) wanted.add(i)
+            const keepFirst = this.#stackIndexAt(top - height * STACK_KEEP_BEHIND_VIEWPORTS)
+            const keepLast = this.#stackIndexAt(top + height * (1 + STACK_KEEP_AHEAD_VIEWPORTS))
+            for (const i of [...this.#stackLive]) {
+                if (i < keepFirst || i > keepLast) this.#demoteStackFrame(i)
+                // Kept but no longer wanted: stop spending the main thread on
+                // its raster — the reader is moving away from it.
+                else if (!wanted.has(i)) this.#cancelFrameRender(this.#stack[i]?.frame)
             }
         }
-        // Nearest to the reading position first, so what the reader is about
-        // to see always wins the PDF worker.
-        wanted.sort((a, b) => Math.abs(a - current) - Math.abs(b - current))
-
-        const token = ++this.#stackToken
-        void (async () => {
-            for (const i of wanted) {
-                if (token !== this.#stackToken) return
+        this.#stackWanted = wanted
+        void this.#drainStack()
+    }
+    /**
+     * READAWARE: the single consumer that builds and renders wanted pages,
+     * nearest-to-the-reader first. It re-picks after every await, so a scroll
+     * that moved the window mid-render simply changes what gets picked next —
+     * no restarts, no lost work, and the current page always wins the PDF
+     * worker. Lives until nothing in the wanted set needs work.
+     */
+    async #drainStack() {
+        if (this.#stackDraining) return
+        this.#stackDraining = true
+        try {
+            for (;;) {
                 if (!this.#stack) return
+                const current = this.#stackCurrent
+                let best = null
+                let bestDistance = Infinity
+                for (const i of this.#stackWanted) {
+                    const entry = this.#stack[i]
+                    if (!entry || !this.#stackEntryNeedsWork(entry)) continue
+                    const distance = Math.abs(i - current)
+                    if (distance < bestDistance) {
+                        bestDistance = distance
+                        best = i
+                    }
+                }
+                if (best === null) {
+                    // Nothing to start — but renders may be in flight; wait
+                    // for one to settle and re-check rather than exiting with
+                    // work outstanding.
+                    const inflight = [...this.#stackWanted]
+                        .map(i => this.#stack[i]?.frame)
+                        .filter(frame => frame?.renderingScale != null)
+                        .map(frame => frame.renderPromise)
+                    if (inflight.length === 0) return
+                    await Promise.race(inflight)
+                    continue
+                }
+                const entry = this.#stack[best]
                 try {
-                    const frame = await this.#ensureStackFrame(i)
-                    if (token !== this.#stackToken || !this.#stack) return
-                    if (frame && this.#stack[i]?.frame === frame) {
-                        this.#layoutStackFrame(this.#stack[i])
+                    const frame = await this.#ensureStackFrame(best)
+                    if (!this.#stack || this.#stack[best] !== entry) continue
+                    if (frame && entry.frame === frame) {
+                        this.#layoutStackFrame(entry)
                         await frame.renderPromise
                     }
                 } catch (error) {
                     console.error(error)
                 }
             }
-        })()
+        } finally {
+            this.#stackDraining = false
+        }
+    }
+    /** Needs creating, or needs (re)rendering at the current scale and hasn't
+     *  struck out. Mirrors `#renderFrameAt`'s own guards so the drain loop
+     *  cannot spin on a page it would refuse to render. */
+    #stackEntryNeedsWork(entry) {
+        const frame = entry.frame
+        // No frame yet: creating (or waiting to create) — the drain awaits
+        // the shared creation promise and then kicks the render.
+        if (!frame) return true
+        if (frame.blank || !frame.onZoom) return false
+        const scale = this.#stackScale(entry)
+        if (frame.renderedScale === scale || frame.renderingScale === scale) return false
+        if (frame.failedScale === scale && (frame.failCount ?? 0) >= 2) return false
+        return true
     }
     async #goToStack(index, reason) {
         if (!this.#stack) return
@@ -749,7 +864,10 @@ export class FixedLayout extends HTMLElement {
     #clearFrameCache() {
         this.#preloadToken++
         for (const frames of this.#liveFrames.values())
-            this.#eachFrame(frames, frame => frame.element.remove())
+            this.#eachFrame(frames, frame => {
+                this.#cancelFrameRender(frame)
+                frame.element.remove()
+            })
         this.#liveFrames.clear()
         this.#framePromises.clear()
         this.#lru = []
@@ -860,9 +978,15 @@ export class FixedLayout extends HTMLElement {
             && next?.foreground === this.#pageColors?.foreground) return
         this.#pageColors = next
         for (const frames of this.#liveFrames.values())
-            this.#eachFrame(frames, frame => frame.renderedScale = null)
+            this.#eachFrame(frames, frame => {
+                this.#cancelFrameRender(frame)
+                frame.renderedScale = null
+            })
         if (this.#stack) for (const entry of this.#stack) {
-            if (entry.frame) entry.frame.renderedScale = null
+            if (entry.frame) {
+                this.#cancelFrameRender(entry.frame)
+                entry.frame.renderedScale = null
+            }
             this.#sizeSlot(entry)
         }
         this.#render()

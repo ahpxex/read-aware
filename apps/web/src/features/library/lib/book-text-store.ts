@@ -7,6 +7,7 @@
  * 无浏览器持久化 —— agent 只在桌面壳里运行，浏览器构建是纯 UI；非 Tauri 下
  * 读返回 null、写是空操作（抽取仍可跑，只是不落盘，靠端口的会话缓存）。
  */
+import { onAppEvent } from "../../../platform/app-events";
 import { deleteDesktopBlob, getDesktopBlob, putDesktopBlob } from "../../../platform/blob-store";
 import { isTauri } from "../../../platform/environment";
 import { flattenToc } from "../../reader/lib/epub-utils";
@@ -118,7 +119,34 @@ const yieldToUi = (() => {
       waiters.push(resolve);
       channel.port2.postMessage(null);
     });
-})();
+})()
+
+/**
+ * 读者优先闸门。抽取与阅读器共用同一个 PDF worker、同一条 blob IPC 通道和
+ * 主线程 —— 抽取"后台"跑起来时，正在被阅读的那一页的取数与光栅化会排在
+ * 抽取的队伍后面，读者看到的就是首页迟迟不出、翻页卡顿。信号来自阅读器
+ * 真实的按需活动（relocate 与每次页面光栅化完成，见 FoliateReaderView 的
+ * reader-demand-activity），抽取在每个 section 之前等到安静窗口再动手；
+ * 读者停在一页上看书 = 安静 = 抽取继续推进，永远不会饿死。
+ */
+const READER_IDLE_MS = 1500
+let lastReaderDemandAt = 0
+let readerActivityWired = false
+function wireReaderActivity(): void {
+  if (readerActivityWired) return
+  readerActivityWired = true
+  onAppEvent("reader-demand-activity", () => {
+    lastReaderDemandAt = Date.now()
+  })
+}
+async function waitForReaderIdle(): Promise<void> {
+  wireReaderActivity()
+  for (;;) {
+    const quiet = Date.now() - lastReaderDemandAt
+    if (quiet >= READER_IDLE_MS) return
+    await new Promise((resolve) => setTimeout(resolve, READER_IDLE_MS - quiet))
+  }
+};
 
 /** 断点落盘节流：每抽完这么多 section 存一次 checkpoint（只对长书生效）。 */
 const CHECKPOINT_EVERY_SECTIONS = 25;
@@ -209,6 +237,7 @@ async function extract(bookId: string, preopened?: unknown): Promise<ExtractOutc
       section.linear === "no" ||
       (typeof section.getText !== "function" && typeof section.createDocument !== "function")
     ) continue;
+    await waitForReaderIdle();
     await yieldToUi();
     let text = "";
     let failed = false;

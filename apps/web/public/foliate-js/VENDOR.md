@@ -137,6 +137,28 @@ The typed wrapper that consumes this lives at
   `attachDocListeners` the same way. `getContents()` returns the page being
   read first (consumers index `[0]`), followed by other live frames so
   annotation edits reach warm pages. Re-apply after any upstream update.
+- **`pdf.js` — demand-driven data supply, cancellable renders, raster
+  budget:** every PDF.js range request crosses the Tauri IPC bridge to a disk
+  read, and PDF.js's HTTP-era defaults (64 KiB chunks + an eager background
+  fetch of the entire file) turned a 175 MB scan into thousands of serialized
+  bridge round-trips that starved the visible page's own fetches — the
+  first page took >30 s to appear. `getDocument` now runs with
+  `disableAutoFetch`, `disableStream`, and a 1 MiB `rangeChunkSize`
+  (first page ≈ 0.9 s on the same book). `render()` accepts an
+  `AbortSignal` (cancels the PDF.js render task and the text layer;
+  throws a recognizable `RenderCancelledError`), and the raster scale is
+  capped by a 12-megapixel canvas budget with the document transform
+  generalized from `1/devicePixelRatio` to `zoom/rasterScale` — pixel-exact
+  at normal window sizes, bounded on huge ones. The fixed-layout renderer's
+  bookkeeping is success-based (a cancelled or failed render stays
+  retryable; two strikes per scale stop a hopeless page from spinning), and
+  its scrolled flow drains work through a single priority loop — nearest
+  page first, re-picked after every await, renders of pages the reader
+  scrolled away from cancelled — instead of restarting a chain per scroll
+  tick. Creation races are settled explicitly: a stack page demoted while
+  its iframe was still loading discards itself (never resurrects as an
+  untracked orphan), and a paged spread evicted mid-creation re-registers.
+  Re-apply after any upstream update.
 - Otherwise all engine modules and `vendor/` are byte-for-byte upstream.
 
 ## Updating

@@ -17,6 +17,14 @@ export type AppEventMap = {
   "book-closed": { bookId: string };
   "chapter-changed": { bookId: string; chapterHref: string | null };
   "reading-progress": { bookId: string; fraction: number };
+  /**
+   * The reader just did demand-driven work (a relocation, a page render).
+   * Background pipelines that share the reader's resources — the PDF worker,
+   * the blob IPC channel, the main thread — yield while these are fresh so
+   * the page the user is looking at always wins (see book-text-store's
+   * reader-idle gate).
+   */
+  "reader-demand-activity": Record<string, never>;
   /** A book row was deleted (any path — shelf UI included). */
   "book-removed": { bookId: string };
   /** Library contents changed outside the controller (e.g. plugin import). */

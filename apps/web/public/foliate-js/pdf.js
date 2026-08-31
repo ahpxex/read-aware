@@ -168,9 +168,39 @@ const applyPageColors = (context, canvas, pageColors) => {
     context.restore()
 }
 
-const render = async (page, doc, zoom, onRendered, pageColors) => {
-    const scale = zoom * devicePixelRatio
-    doc.documentElement.style.transform = `scale(${1 / devicePixelRatio})`
+// READAWARE: the raster budget, in canvas pixels. `zoom × devicePixelRatio`
+// is unbounded — fit-width on a large Retina window asks a tall scan for a
+// 20-megapixel canvas (~90 MB of RGBA) per page, which is where scrolling
+// jank and compositor memory pressure come from. Above the budget the page
+// rasters at the largest scale that fits and the (generalized) document
+// transform upscales the difference; at typical window sizes the budget is
+// never hit and rendering is pixel-exact as before.
+const MAX_RENDER_PIXELS = 12 * 1024 * 1024
+
+// READAWARE: renders are cancellable (see the fixed-layout scheduler): a page
+// scrolled out of the window before its raster finished must release the main
+// thread and the PDF worker to pages the reader is actually approaching. A
+// cancelled render throws this recognizable name; callers treat it as "not
+// rendered", never as damage.
+class RenderCancelledError extends Error {
+    constructor() {
+        super('pdf render cancelled')
+        this.name = 'RenderCancelledError'
+    }
+}
+
+const render = async (page, doc, zoom, onRendered, pageColors, signal) => {
+    const throwIfAborted = () => {
+        if (signal?.aborted) throw new RenderCancelledError()
+    }
+    throwIfAborted()
+    const natural = page.getViewport({ scale: 1 })
+    let scale = zoom * devicePixelRatio
+    const maxScale = Math.sqrt(MAX_RENDER_PIXELS / (natural.width * natural.height))
+    if (scale > maxScale) scale = maxScale
+    // Generalized from `1 / devicePixelRatio`: displayed size = raster × t,
+    // and the display target is the layout size (zoom).
+    doc.documentElement.style.transform = `scale(${zoom / scale})`
     doc.documentElement.style.transformOrigin = 'top left'
     doc.documentElement.style.setProperty('--scale-factor', scale)
     const viewport = page.getViewport({ scale })
@@ -184,18 +214,31 @@ const render = async (page, doc, zoom, onRendered, pageColors) => {
     // READAWARE: paint the page document to match, so the moment between the
     // old canvas being replaced and the new one appearing does not flash white.
     doc.documentElement.style.background = pageColors?.background ?? ''
-    await page.render({
+    const task = page.render({
         canvasContext, viewport,
         // Only the light case is a render parameter; the dark case is a filter
         // over the finished page (see above).
         ...(pageColors?.background && !pageColors.foreground
             ? { background: pageColors.background }
             : {}),
-    }).promise
+    })
+    const abortRaster = () => task.cancel()
+    signal?.addEventListener('abort', abortRaster, { once: true })
+    try {
+        await task.promise
+    } catch (error) {
+        if (signal?.aborted || error?.name === 'RenderingCancelledException') {
+            throw new RenderCancelledError()
+        }
+        throw error
+    } finally {
+        signal?.removeEventListener('abort', abortRaster)
+    }
     // The cover thumbnail reuses this canvas, so hand it over before the remap
     // — a cover should look like the book.
     onRendered?.(canvas)
     applyPageColors(canvasContext, canvas, pageColors)
+    throwIfAborted()
     doc.querySelector('#canvas').replaceChildren(doc.adoptNode(canvas))
 
     // READAWARE: `TextLayer.render()` APPENDS. Every zoom/resize re-renders the
@@ -209,7 +252,16 @@ const render = async (page, doc, zoom, onRendered, pageColors) => {
         textContentSource: await page.streamTextContent(),
         container, viewport,
     })
-    await textLayer.render()
+    const abortText = () => textLayer.cancel()
+    signal?.addEventListener('abort', abortText, { once: true })
+    try {
+        await textLayer.render()
+    } catch (error) {
+        if (signal?.aborted) throw new RenderCancelledError()
+        throw error
+    } finally {
+        signal?.removeEventListener('abort', abortText)
+    }
 
     // hide "offscreen" canvases appended to docuemnt when rendering text layer
     // https://github.com/mozilla/pdf.js/blob/642b9a5ae67ef642b9a8808fd9efd447e8c350e2/web/pdf_viewer.css#L51-L58
@@ -232,6 +284,7 @@ const render = async (page, doc, zoom, onRendered, pageColors) => {
     container.onpointerdown = () => container.classList.add('selecting')
     container.onpointerup = () => container.classList.remove('selecting')
 
+    throwIfAborted()
     const div = doc.querySelector('.annotationLayer')
     const linkService = {
         goToDestination: () => {},
@@ -270,8 +323,8 @@ const renderPage = async (page, onRendered) => {
         <div class="textLayer"></div>
         <div class="annotationLayer"></div>
     `], { type: 'text/html' }))
-    const onZoom = ({ doc, scale, pageColors }) =>
-        render(page, doc, scale, onRendered, pageColors)
+    const onZoom = ({ doc, scale, pageColors, signal }) =>
+        render(page, doc, scale, onRendered, pageColors, signal)
     return { src, onZoom }
 }
 
@@ -290,6 +343,17 @@ export const makePDF = async file => {
     }
     const pdf = await pdfjsLib.getDocument({
         range: transport,
+        // READAWARE: every range request is a disk read across the IPC bridge.
+        // The defaults are built for HTTP: 64 KiB chunks and an eager
+        // background fetch of the ENTIRE file "while idle" — for a 175 MB
+        // scan that is ~2700 sequential bridge round-trips flooding the same
+        // channel the visible page's render is trying to use, which is
+        // exactly the "first page takes forever" starvation. Demand-driven
+        // fetches only, in chunks big enough that one page's image costs a
+        // couple of round-trips.
+        disableAutoFetch: true,
+        disableStream: true,
+        rangeChunkSize: 1 << 20,
         cMapUrl: pdfjsPath('cmaps/'),
         standardFontDataUrl: pdfjsPath('standard_fonts/'),
         wasmUrl: pdfjsPath('wasm/'),

@@ -61,7 +61,8 @@
       "agent_memory": "Candidatos de memoria",
       "service_network": "Red",
       "service_llm": "Solicitudes de IA",
-      "service_clipboard": "Portapapeles"
+      "service_clipboard": "Portapapeles",
+      "sync_transport": "Backend de sincronización"
     },
     "permission": {
       "reader_modes": "Añadir un modo de lectura guiada renderizado por la aplicación",
@@ -79,7 +80,8 @@
       "agent_memory": "Proponer recuerdos para que el anfitrión los valide y guarde",
       "service_network": "Acceder a la red",
       "service_llm": "Hacer solicitudes de IA con tu modelo configurado",
-      "service_clipboard": "Escribir en el portapapeles"
+      "service_clipboard": "Escribir en el portapapeles",
+      "sync_transport": "Proporcionar un backend de sincronización que almacena tus datos cifrados de extremo a extremo en un servidor de tu elección"
     },
     "activationError": "La activación falló. Los detalles están en el registro de la aplicación.",
     "placement": "Botones fijados",

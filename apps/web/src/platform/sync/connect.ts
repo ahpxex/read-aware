@@ -22,6 +22,7 @@
  * — including the publish race between two first devices — runs under bun:test.
  */
 import type { SyncKeyMaterial } from "@read-aware/core";
+import type { PluginSyncTransportSession } from "@read-aware/plugin-types";
 import {
   DEFAULT_KDF_PARAMS,
   deriveMasterKey,
@@ -140,19 +141,28 @@ export async function verifySignInToken(
 }
 
 /**
- * Phase 2: passphrase → master key. `relay` MUST already serve
- * `verification.session` (its 409-conflict path calls the authenticated
- * account endpoint); wire the client with the session provider before
- * calling — the regression this once caused burned a live sign-in token.
- *
- * A later device (the account has key material) verifies, never mints. The
- * first device mints salt + key + check and publishes them; if it loses the
- * publish race (409), the other device's material is canonical and the
- * passphrase must open THAT or the connect fails.
+ * Where an account's key material lives, seen from the passphrase ritual:
+ * what is already published, and a publish that loses first-writer-wins races
+ * explicitly. The relay implements this over its keys endpoint; a plugin
+ * transport implements it over a create-only meta object on dumb storage.
  */
-export async function establishEncryption(
-  relay: Pick<RelayClient, "publishKeys">,
-  verification: SignInVerification,
+export type KeyMaterialStore = {
+  load(): Promise<SyncKeyMaterial | null>;
+  publish(
+    keys: SyncKeyMaterial,
+  ): Promise<{ outcome: "set" } | { outcome: "conflict"; keys: SyncKeyMaterial | null }>;
+};
+
+/**
+ * The passphrase ritual against any key-material store.
+ *
+ * A later device (the store has material) verifies, never mints. The first
+ * device mints salt + key + check and publishes them; if it loses the publish
+ * race, the other device's material is canonical and the passphrase must open
+ * THAT or the connect fails.
+ */
+export async function establishEncryptionWithStore(
+  store: KeyMaterialStore,
   passphrase: string,
   options: { derive?: DeriveFn; kdfParams?: KdfParams } = {},
 ): Promise<string> {
@@ -163,16 +173,13 @@ export async function establishEncryption(
     return key;
   };
 
-  if (verification.keys) {
-    return toBase64(verifyAgainst(verification.keys));
-  }
+  const existing = await store.load();
+  if (existing) return toBase64(verifyAgainst(existing));
 
   const params = options.kdfParams ?? DEFAULT_KDF_PARAMS;
   const salt = newKdfSalt();
   const key = derive(passphrase, salt, params);
-  // Called on the relay object (not a detached reference): publishKeys uses
-  // `this.account()` on its 409 path.
-  const published = await relay.publishKeys({
+  const published = await store.publish({
     kdfSalt: salt,
     kdfParams: params,
     keyCheck: makeKeyCheck(key),
@@ -184,4 +191,70 @@ export async function establishEncryption(
     return toBase64(verifyAgainst(published.keys));
   }
   return toBase64(key);
+}
+
+/**
+ * Phase 2: passphrase → master key. `relay` MUST already serve
+ * `verification.session` (its 409-conflict path calls the authenticated
+ * account endpoint); wire the client with the session provider before
+ * calling — the regression this once caused burned a live sign-in token.
+ */
+export async function establishEncryption(
+  relay: Pick<RelayClient, "publishKeys">,
+  verification: SignInVerification,
+  passphrase: string,
+  options: { derive?: DeriveFn; kdfParams?: KdfParams } = {},
+): Promise<string> {
+  return establishEncryptionWithStore(
+    {
+      // Phase 1 already fetched the account's material; re-asking the relay
+      // here would burn a request for the same answer.
+      load: async () => verification.keys,
+      // Called on the relay object (not a detached reference): publishKeys
+      // uses `this.account()` on its 409 path.
+      publish: (keys) => relay.publishKeys(keys),
+    },
+    passphrase,
+    options,
+  );
+}
+
+/** The meta object name a transport's key material lives under. */
+export const TRANSPORT_KEYS_META = "keys";
+
+/**
+ * Key material on a plugin transport's dumb storage: one JSON meta object,
+ * created with first-writer-wins (`putMetaIfAbsent`), immutable afterwards —
+ * the same contract the relay's keys endpoint enforces server-side.
+ */
+export function transportKeyMaterialStore(
+  session: Pick<PluginSyncTransportSession, "getMeta" | "putMetaIfAbsent">,
+): KeyMaterialStore {
+  const load = async (): Promise<SyncKeyMaterial | null> => {
+    const bytes = await session.getMeta(TRANSPORT_KEYS_META);
+    if (!bytes) return null;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(new TextDecoder().decode(bytes));
+    } catch {
+      throw new Error("sync: the transport's key material object is not valid JSON");
+    }
+    if (!isKeyMaterial(parsed)) {
+      throw new Error("sync: the transport's key material object has an invalid shape");
+    }
+    return parsed;
+  };
+  return {
+    load,
+    async publish(keys) {
+      const outcome = await session.putMetaIfAbsent(
+        TRANSPORT_KEYS_META,
+        new TextEncoder().encode(JSON.stringify(keys)),
+      );
+      if (outcome === "stored") return { outcome: "set" };
+      // Lost the first-writer race (or material predates this connect):
+      // whatever is stored is canonical.
+      return { outcome: "conflict", keys: await load() };
+    },
+  };
 }

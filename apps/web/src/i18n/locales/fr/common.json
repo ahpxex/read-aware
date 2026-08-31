@@ -34,6 +34,8 @@
     "syncMisdirected": "L'adresse du serveur de synchronisation a répondu comme un autre service. Vérifiez l'URL du relais.",
     "syncPassphrase": "La phrase secrète de chiffrement de bout en bout ne correspond pas.",
     "syncQuota": "Votre espace de synchronisation est plein.",
+    "syncTransportUnavailable": "Le plugin fournissant cette connexion de synchronisation n'est pas disponible. Activez le plugin, puis réessayez.",
+    "syncTransportMismatch": "Les paramètres du serveur du plugin de synchronisation ont changé après la connexion. Reconnectez-vous pour adopter le nouveau serveur.",
     "localSaveFailedTitle": "Modification non enregistrée",
     "localSaveFailed": "Cette modification n'a pas pu être écrite dans le stockage local et pourrait être perdue après un redémarrage."
   },

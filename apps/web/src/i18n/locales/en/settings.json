@@ -417,6 +417,20 @@
       "storageUsedOfLimit": "{{used}} of {{limit}} stored on the relay",
       "plan": "Plan: {{tier}}"
     },
+    "transport": {
+      "backendTitle": "Sync backend",
+      "description": "Sync through your own server — provided by the {{plugin}} plugin.",
+      "connect": "Connect",
+      "connectTitle": "Connect {{label}}",
+      "checking": "Checking the server…",
+      "checkFailed": "Could not reach the server. Check the plugin's settings, then try again.",
+      "settingsHint": "The server address and credentials are set in the plugin's settings.",
+      "retry": "Try again",
+      "freshRemote": "This server holds no synced data yet — this device will set its encryption passphrase.",
+      "existingRemote": "This server already holds encrypted data. Enter the same passphrase that created it.",
+      "wrongPassphrase": "That passphrase doesn't match this server's data.",
+      "connectedVia": "{{label}} · via the {{plugin}} plugin"
+    },
     "tier": {
       "free": "Free",
       "sync": "Sync",

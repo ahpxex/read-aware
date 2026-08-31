@@ -52,6 +52,7 @@ import {
   type PluginSessionEventMap,
   type PluginSessionEventName,
 } from "../lib/plugin-types";
+import { registerSyncTransport } from "../../../platform/sync/transport-registry";
 import { requestPluginReaderNav } from "../state/reader-nav";
 import {
   pluginDocsDelete,
@@ -425,6 +426,25 @@ export function buildPluginContext(
                   key: contributionKey(manifest.id, provider.id),
                 }),
               ),
+          }
+        : undefined,
+      syncTransports: canUseContribution("syncTransports", permissions)
+        ? {
+            register: (transport) => {
+              if (!NAMESPACE_KEY.test(String(transport?.id))) {
+                throw new Error(`invalid sync transport id: ${String(transport?.id)}`);
+              }
+              if (typeof transport.open !== "function") {
+                throw new Error("syncTransports.register requires an open() function");
+              }
+              return track(() => ({
+                dispose: registerSyncTransport(manifest.id, {
+                  id: String(transport.id),
+                  label: transport.label,
+                  open: transport.open,
+                }),
+              }));
+            },
           }
         : undefined,
     },

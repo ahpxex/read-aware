@@ -61,7 +61,8 @@
       "agent_memory": "メモリ候補",
       "service_network": "ネットワーク",
       "service_llm": "AI リクエスト",
-      "service_clipboard": "クリップボード"
+      "service_clipboard": "クリップボード",
+      "sync_transport": "同期バックエンド"
     },
     "permission": {
       "reader_modes": "アプリが描画するガイド付き読書モードの追加",
@@ -79,7 +80,8 @@
       "agent_memory": "ホストが検証して保存するメモリ候補を提案する",
       "service_network": "ネットワークへのアクセス",
       "service_llm": "設定済みモデルでの AI リクエスト",
-      "service_clipboard": "クリップボードへの書き込み"
+      "service_clipboard": "クリップボードへの書き込み",
+      "sync_transport": "エンドツーエンド暗号化された同期データを任意のサーバーに保存する同期バックエンドを提供"
     },
     "activationError": "有効化に失敗しました。詳細はアプリのログに記録されています。",
     "placement": "ピン留めボタン",

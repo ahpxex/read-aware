@@ -413,6 +413,20 @@
       "storageUsedOfLimit": "云端已用 {{used}} / {{limit}}",
       "plan": "方案:{{tier}}"
     },
+    "transport": {
+      "backendTitle": "同步后端",
+      "description": "通过你自己的服务器同步——由 {{plugin}} 插件提供。",
+      "connect": "连接",
+      "connectTitle": "连接{{label}}",
+      "checking": "正在检查服务器…",
+      "checkFailed": "无法连接服务器。请检查插件设置后重试。",
+      "settingsHint": "服务器地址与凭据在插件设置中配置。",
+      "retry": "重试",
+      "freshRemote": "这个服务器上还没有同步数据——将由本设备设定加密口令。",
+      "existingRemote": "这个服务器上已有加密数据。请输入创建时使用的同一口令。",
+      "wrongPassphrase": "口令与该服务器上的数据不匹配。",
+      "connectedVia": "{{label}} · 由 {{plugin}} 插件提供"
+    },
     "tier": {
       "free": "免费",
       "sync": "Sync",

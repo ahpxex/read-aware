@@ -4,10 +4,13 @@
  * All policy lives in platform/sync — this hook is the React adapter.
  */
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { AppError, ERR_SYNC_TRANSPORT_UNAVAILABLE } from "@read-aware/core";
 import { i18n } from "../../../i18n";
 import { isTauri } from "../../../platform/environment";
 import {
   establishEncryption,
+  establishEncryptionWithStore,
+  transportKeyMaterialStore,
   verifySignInToken,
   WrongPassphraseError,
   type SignInVerification,
@@ -23,12 +26,20 @@ import {
   disconnectSync,
   getSyncStatusSnapshot,
   persistConnection,
+  persistTransportConnection,
   relayBaseUrl,
   subscribeSyncStatus,
   syncNow,
   syncRelayClient,
 } from "../../../platform/sync/sync-scheduler";
 import { getSyncProfile, type SyncProfile } from "../../../platform/sync/sync-store";
+import {
+  findSyncTransport,
+  listSyncTransports,
+  onSyncTransportsChanged,
+  parseTransportAccountId,
+  type RegisteredSyncTransport,
+} from "../../../platform/sync/transport-registry";
 
 export { SyncConnectionBusyError, WrongPassphraseError };
 
@@ -66,6 +77,19 @@ export function useSyncConnection() {
   }, [busy, reloadProfile]);
 
   const connected = Boolean(profile?.syncEnabled && profile.remoteAccountId);
+  /** Non-null when the connection is a plugin transport, not the relay. */
+  const connectedTransport = connected
+    ? parseTransportAccountId(profile?.remoteAccountId)
+    : null;
+
+  // Plugin-provided sync backends, live against plugin enable/disable.
+  const [transports, setTransports] = useState<RegisteredSyncTransport[]>(() =>
+    listSyncTransports(),
+  );
+  useEffect(
+    () => onSyncTransportsChanged(() => setTransports(listSyncTransports())),
+    [],
+  );
 
   const sendLink = useCallback(
     (email: string): Promise<string | null> =>
@@ -130,6 +154,51 @@ export function useSyncConnection() {
     [reloadProfile],
   );
 
+  const openTransport = async (ref: string) => {
+    const transport = findSyncTransport(ref);
+    if (!transport) {
+      throw new AppError(
+        ERR_SYNC_TRANSPORT_UNAVAILABLE,
+        `sync transport "${ref}" is not registered`,
+      );
+    }
+    return transport.open();
+  };
+
+  /** Reachability + credential check against the transport's CURRENT
+   *  settings, reporting whether the remote already holds key material —
+   *  which decides the passphrase step's wording (set vs. re-enter). */
+  const probeTransport = useCallback(
+    (ref: string): Promise<{ hasKeys: boolean }> =>
+      runSyncConnectionOperation(async () => {
+        const session = await openTransport(ref);
+        await session.probe();
+        const keys = await transportKeyMaterialStore(session).load();
+        return { hasKeys: keys !== null };
+      }),
+    [],
+  );
+
+  /** The transport counterpart of `finishConnect`: passphrase ritual against
+   *  the remote's key-material object, then a durable profile binding. */
+  const connectTransport = useCallback(
+    (ref: string, passphrase: string): Promise<void> =>
+      runSyncConnectionOperation(async () => {
+        const session = await openTransport(ref);
+        const masterKeyBase64 = await establishEncryptionWithStore(
+          transportKeyMaterialStore(session),
+          passphrase,
+        );
+        await persistTransportConnection({
+          ref,
+          endpointId: session.endpointId,
+          masterKeyBase64,
+        });
+        await reloadProfile();
+      }),
+    [reloadProfile],
+  );
+
   const requestSyncNow = useCallback(async (): Promise<void> => {
     await syncNow();
   }, []);
@@ -138,10 +207,14 @@ export function useSyncConnection() {
     status,
     profile,
     connected,
+    connectedTransport,
+    transports,
     busy,
     sendLink,
     verifyToken,
     finishConnect,
+    probeTransport,
+    connectTransport,
     disconnect,
     requestSyncNow,
   };

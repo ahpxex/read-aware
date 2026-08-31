@@ -41,6 +41,12 @@ export const ERR_SYNC_REJECTED = "sync/rejected";
 /** Manifest-only row: this device has no bytes to upload (bookkeeping state). */
 export const ERR_SYNC_NO_LOCAL_BYTES = "sync/no-local-bytes";
 export const ERR_SYNC_RATE_LIMITED = "sync/rate-limited";
+/** The sync backend is a plugin transport that is not registered right now
+ *  (plugin disabled, failed to start, or uninstalled). */
+export const ERR_SYNC_TRANSPORT_UNAVAILABLE = "sync/transport-unavailable";
+/** The plugin transport's endpoint no longer matches the connected one (its
+ *  settings changed since connect) — the user must reconnect. */
+export const ERR_SYNC_TRANSPORT_MISMATCH = "sync/transport-mismatch";
 
 /** AI provider failure codes (classified in @read-aware/agent). */
 export const ERR_AI_NOT_CONFIGURED = "ai/not-configured";

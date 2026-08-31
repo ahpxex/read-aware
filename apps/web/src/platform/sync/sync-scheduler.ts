@@ -8,11 +8,13 @@
  * focus pulls (the other device may have moved while we were away); failures
  * back off exponentially (nextSyncDelayMs) instead of hammering the relay.
  */
+import { AppError, ERR_SYNC_TRANSPORT_MISMATCH, ERR_SYNC_TRANSPORT_UNAVAILABLE } from "@read-aware/core";
+import type { PluginSyncTransportSession } from "@read-aware/plugin-types";
 import { invoke } from "../ipc";
 import { isTauri } from "../environment";
 import { emitAppEvent } from "../app-events";
 import { reconcileDuplicateBooks } from "../book-dedupe";
-import { observeRemoteHlcStamps, onDomainEventBroadcast } from "../domain-events";
+import { localDeviceId, observeRemoteHlcStamps, onDomainEventBroadcast } from "../domain-events";
 import { localKV } from "../local-store";
 import { createLogger } from "../logger";
 import { refreshRoamingPreferences, republishRoamingSecrets } from "../roaming-preferences";
@@ -28,6 +30,14 @@ import {
   type SyncEngine,
 } from "./sync-engine";
 import { adoptSyncAccount, createIpcSyncStore, getSyncProfile, setSyncProfile } from "./sync-store";
+import {
+  findSyncTransport,
+  onSyncTransportsChanged,
+  parseTransportAccountId,
+  transportAccountId,
+  type TransportAccountRef,
+} from "./transport-registry";
+import { createTransportFeedRelay, type TransportFeedJournal } from "./transport-feed";
 import { isDevBundle } from "../app-identity";
 import { lastSuccessfulSyncAt } from "./sync-status";
 
@@ -116,6 +126,12 @@ export type SyncStatusSnapshot = {
   state: "disabled" | "idle" | "syncing" | "error" | "unauthenticated";
   /** The local profile and both credentials identify a connected account. */
   accountConnected: boolean;
+  /** Which remote the scheduler is bound to: the first-party relay, a
+   *  plugin-provided transport, or nothing (disconnected). */
+  backend: "relay" | "transport" | null;
+  /** Registry ref (`plugin:<id>:<transport>`) when `backend === "transport"`
+   *  — the UI resolves it to the transport's label. */
+  transportRef: string | null;
   lastSyncAt: number | null;
   /** Stable code for the last failure (classify-sync-error); raw text is log-only. */
   lastErrorCode: string | null;
@@ -134,6 +150,8 @@ export type SyncStatusSnapshot = {
 let status: SyncStatusSnapshot = {
   state: "disabled",
   accountConnected: false,
+  backend: null,
+  transportRef: null,
   lastSyncAt: null,
   lastErrorCode: null,
   progress: null,
@@ -161,10 +179,91 @@ export function syncRelayClient(): RelayClient {
   });
 }
 
-function buildEngine(): SyncEngine {
-  return createSyncEngine({
+// ── Plugin-transport backend plumbing ────────────────────────────────────────
+
+/** Journal for the transport feed (see transport-feed.ts) — device-local
+ *  bookkeeping, wiped with the rest of the KV by "Delete all data". */
+const TRANSPORT_JOURNAL_KV_KEY = "read-aware-sync-transport-journal";
+
+const transportJournalStore = {
+  load(): TransportFeedJournal | null {
+    const raw = localKV.getItem(TRANSPORT_JOURNAL_KV_KEY);
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw) as TransportFeedJournal;
+      return typeof parsed?.endpointId === "string" &&
+        Array.isArray(parsed.devices) &&
+        Array.isArray(parsed.order)
+        ? parsed
+        : null;
+    } catch {
+      // Corrupt bookkeeping heals by re-listing + idempotent re-apply.
+      return null;
+    }
+  },
+  save(journal: TransportFeedJournal): void {
+    localKV.setItem(TRANSPORT_JOURNAL_KV_KEY, JSON.stringify(journal));
+  },
+};
+
+/**
+ * The live transport session, memoized across engine calls and dropped on
+ * failure or on any registry change (plugin restart, update) so the next call
+ * re-resolves against whatever is registered NOW. `open()` is contractually
+ * network-free, so re-opening is cheap.
+ */
+let transportSession: Promise<PluginSyncTransportSession> | null = null;
+onSyncTransportsChanged(() => {
+  transportSession = null;
+});
+
+function transportSessionFor(
+  connection: TransportAccountRef,
+): Promise<PluginSyncTransportSession> {
+  if (!transportSession) {
+    const opened = (async () => {
+      const transport = findSyncTransport(connection.ref);
+      if (!transport) {
+        throw new AppError(
+          ERR_SYNC_TRANSPORT_UNAVAILABLE,
+          `sync transport "${connection.ref}" is not registered (plugin disabled or failed)`,
+        );
+      }
+      const session = await transport.open();
+      if (session.endpointId !== connection.endpointId) {
+        throw new AppError(
+          ERR_SYNC_TRANSPORT_MISMATCH,
+          `sync transport "${connection.ref}" now points at a different endpoint — reconnect to adopt it`,
+        );
+      }
+      return session;
+    })();
+    transportSession = opened;
+    opened.catch(() => {
+      // Never memoize a failure; the next call re-resolves.
+      if (transportSession === opened) transportSession = null;
+    });
+  }
+  return transportSession;
+}
+
+let engine: SyncEngine | null = null;
+
+async function resolveEngine(): Promise<SyncEngine> {
+  if (engine) return engine;
+  const profile = await getSyncProfile();
+  const connection = parseTransportAccountId(profile.remoteAccountId);
+  const relay = connection
+    ? createTransportFeedRelay({
+        session: () => transportSessionFor(connection),
+        deviceId: await localDeviceId(),
+        endpointId: connection.endpointId,
+        store: transportJournalStore,
+      })
+    : syncRelayClient();
+  engine ??= createSyncEngine({
     store: createIpcSyncStore(),
-    relay: syncRelayClient(),
+    relay,
     masterKey: () => {
       const b64 = getSecret("sync.master-key");
       return b64 ? fromBase64(b64) : null;
@@ -174,10 +273,8 @@ function buildEngine(): SyncEngine {
     // header indicator and the Data & Sync panel subscribe to.
     onProgress: (progress) => setStatus({ progress }),
   });
+  return engine;
 }
-
-let engine: SyncEngine | null = null;
-const getEngine = (): SyncEngine => (engine ??= buildEngine());
 
 /** 401 = the relay no longer knows this session; nothing but a re-login helps. */
 const isAuthRejection = (error: unknown): boolean =>
@@ -213,7 +310,7 @@ async function runCycle(): Promise<void> {
     cycleTotals,
   });
   try {
-    const { pulled, pushed, blobs } = await getEngine().syncOnce();
+    const { pulled, pushed, blobs } = await (await resolveEngine()).syncOnce();
     if (pulled > 0) {
       // Another device may have imported content this shelf already holds —
       // collapse same-sha records BEFORE announcing, so the reload that
@@ -268,17 +365,20 @@ export type RemoteBlobFetch =
 
 export async function fetchRemoteBlob(key: string): Promise<RemoteBlobFetch> {
   if (!isTauri()) return { outcome: "unavailable", reason: "not-tauri" };
-  if (!getSecret("sync.master-key") || !getSecret("sync.session")) {
-    return { outcome: "unavailable", reason: "not-connected" };
-  }
   const profile = await getSyncProfile();
   if (!profile.syncEnabled) return { outcome: "unavailable", reason: "sync-off" };
+  // A transport connection has no relay session — the master key plus the
+  // profile binding are its whole credential set.
+  const viaTransport = parseTransportAccountId(profile.remoteAccountId) !== null;
+  if (!getSecret("sync.master-key") || (!viaTransport && !getSecret("sync.session"))) {
+    return { outcome: "unavailable", reason: "not-connected" };
+  }
   // Surface the download like any sync activity: the indicator ring narrates
   // "syncing <book> n/m" while parts stream in, then yields to the prior state.
   const restoreState = status.state === "syncing" ? null : status.state;
   setStatus({ state: "syncing" });
   try {
-    const result = await getEngine().fetchBlob(key);
+    const result = await (await resolveEngine()).fetchBlob(key);
     return result === "fetched" ? { outcome: "fetched" } : { outcome: "missing" };
   } catch (error) {
     log.warn(`remote blob fetch failed for "${key}"`, error);
@@ -330,6 +430,8 @@ export function startSyncScheduler(): () => void {
   setStatus({
     state: "disabled",
     accountConnected: false,
+    backend: null,
+    transportRef: null,
     lastSyncAt: null,
     lastErrorCode: null,
     progress: null,
@@ -463,28 +565,47 @@ export function startSyncScheduler(): () => void {
     if (document.visibilityState === "visible") tick();
   };
 
+  let offTransports: (() => void) | null = null;
+
   void (async () => {
     const profile = await getSyncProfile().catch(() => null);
     if (disposed) return;
-    if (
-      !profile?.syncEnabled ||
-      !profile.remoteAccountId ||
-      !getSecret("sync.session") ||
-      !getSecret("sync.master-key")
-    ) {
+    const connection = parseTransportAccountId(profile?.remoteAccountId ?? null);
+    // A transport connection has no relay session; the master key plus the
+    // profile binding are its whole credential set.
+    const credentialed = connection
+      ? Boolean(getSecret("sync.master-key"))
+      : Boolean(getSecret("sync.session") && getSecret("sync.master-key"));
+    if (!profile?.syncEnabled || !profile.remoteAccountId || !credentialed) {
       return;
     }
     window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
     setStatus({
       state: "idle",
       accountConnected: true,
+      backend: connection ? "transport" : "relay",
+      transportRef: connection?.ref ?? null,
       lastSyncAt: lastSuccessfulSyncAt(profile),
     });
     // Duplicates that predate this build (or arrived while sync was off)
     // reconcile once at start; pull-time detection covers everything after.
     void reconcileDuplicateBooks();
-    void openWatch();
-    tick();
+    if (!connection) {
+      // The doorbell socket is a relay feature; transports poll.
+      void openWatch();
+      tick();
+      return;
+    }
+    // Plugin activation races scheduler start: when the bound transport is
+    // not registered yet, wait for the registry instead of opening with a
+    // guaranteed "transport unavailable" error. The interval stays as the
+    // safety net; a registration (or plugin restart) ticks immediately.
+    offTransports = onSyncTransportsChanged(() => {
+      if (!disposed && findSyncTransport(connection.ref)) tick();
+    });
+    if (findSyncTransport(connection.ref)) tick();
+    else schedule(PULL_INTERVAL_MS);
   })();
 
   disposeScheduler = () => {
@@ -496,6 +617,7 @@ export function startSyncScheduler(): () => void {
     watchSocket?.close();
     watchSocket = null;
     offBroadcast();
+    offTransports?.();
     window.removeEventListener("focus", onFocus);
     document.removeEventListener("visibilitychange", onVisible);
     disposeScheduler = null;
@@ -506,6 +628,7 @@ export function startSyncScheduler(): () => void {
 /** After connect/disconnect: rebuild the engine (new session/key) and rerun. */
 export function restartSyncScheduler(): void {
   engine = null;
+  transportSession = null;
   startSyncScheduler();
 }
 
@@ -541,20 +664,58 @@ export async function persistConnection(options: {
 }
 
 export async function disconnectSync(): Promise<void> {
-  try {
-    await syncRelayClient().logout();
-  } catch {
-    // Best effort — the local teardown must succeed regardless.
+  const profile = await getSyncProfile();
+  // Only a relay connection has a server session to revoke; a transport
+  // connection tears down locally (its remote is dumb storage).
+  if (!parseTransportAccountId(profile.remoteAccountId)) {
+    try {
+      await syncRelayClient().logout();
+    } catch {
+      // Best effort — the local teardown must succeed regardless.
+    }
   }
   deleteSecret("sync.session");
   deleteSecret("sync.master-key");
   clearReauthNoticeDismissal();
-  const profile = await getSyncProfile();
   await setSyncProfile({
     ...profile,
     syncEnabled: false,
     remoteAccountId: null,
     encryptionKeyRef: null,
   });
+  restartSyncScheduler();
+}
+
+/**
+ * Bind sync to a plugin transport's mailbox — the transport-mode counterpart
+ * of `persistConnection`. The caller has already run the passphrase ritual
+ * against the transport's key material (`establishEncryptionWithStore`);
+ * this persists the outcome and hands the cadence over to the scheduler.
+ * Mutual exclusion with the relay is structural: one profile row, one
+ * master key, one outbox binding.
+ */
+export async function persistTransportConnection(options: {
+  ref: string;
+  endpointId: string;
+  masterKeyBase64: string;
+}): Promise<void> {
+  setSecret("sync.master-key", options.masterKeyBase64);
+  // No relay session in transport mode; a leftover one must not linger as a
+  // phantom credential.
+  deleteSecret("sync.session");
+  // Different mailbox ⇒ wholesale outbox/cursor reset, same as switching
+  // relay accounts — "already pushed" was only ever true of the old remote.
+  await adoptSyncAccount(transportAccountId(options.ref, options.endpointId));
+  const profile = await getSyncProfile();
+  await setSyncProfile({
+    ...profile,
+    syncEnabled: true,
+    remoteAccountId: transportAccountId(options.ref, options.endpointId),
+    encryptionKeyRef: "sync.master-key",
+  });
+  // Credentials that predate this connection (an API key entered while
+  // offline) get sealed into the log now, so they roam without waiting for
+  // their next edit.
+  republishRoamingSecrets();
   restartSyncScheduler();
 }

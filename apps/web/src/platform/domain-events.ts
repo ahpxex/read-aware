@@ -121,6 +121,12 @@ function getDeviceInfo(): Promise<LocalDeviceInfo> {
   return devicePromise;
 }
 
+/** This install's device id (also seeds the HLC clock on first ask) — the
+ *  identity sync backends key per-device state on. */
+export async function localDeviceId(): Promise<string> {
+  return (await getDeviceInfo()).deviceId;
+}
+
 const nextHlc = (deviceId: string): HlcStamp => clock.next(deviceId);
 
 function toEventRow(draft: DomainEventDraft, deviceId: string): EventRowWire {

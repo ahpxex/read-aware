@@ -421,6 +421,20 @@
       "storageUsedOfLimit": "{{used}} sur {{limit}} stockés sur le relais",
       "plan": "Offre : {{tier}}"
     },
+    "transport": {
+      "backendTitle": "Backend de synchronisation",
+      "description": "Synchronisez via votre propre serveur — fourni par le plugin {{plugin}}.",
+      "connect": "Connecter",
+      "connectTitle": "Connecter {{label}}",
+      "checking": "Vérification du serveur…",
+      "checkFailed": "Impossible de joindre le serveur. Vérifiez les paramètres du plugin, puis réessayez.",
+      "settingsHint": "L'adresse du serveur et les identifiants se configurent dans les paramètres du plugin.",
+      "retry": "Réessayer",
+      "freshRemote": "Ce serveur ne contient encore aucune donnée synchronisée — cet appareil définira sa phrase secrète de chiffrement.",
+      "existingRemote": "Ce serveur contient déjà des données chiffrées. Saisissez la phrase secrète qui les a créées.",
+      "wrongPassphrase": "Cette phrase secrète ne correspond pas aux données de ce serveur.",
+      "connectedVia": "{{label}} · via le plugin {{plugin}}"
+    },
     "tier": {
       "free": "Gratuite",
       "sync": "Sync",

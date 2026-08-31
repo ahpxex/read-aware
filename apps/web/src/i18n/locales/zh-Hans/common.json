@@ -34,6 +34,8 @@
     "syncMisdirected": "同步服务器地址指向了别的服务，请检查 relay 地址。",
     "syncPassphrase": "端到端加密口令不匹配。",
     "syncQuota": "同步空间已满。",
+    "syncTransportUnavailable": "提供此同步连接的插件当前不可用。请启用该插件后重试。",
+    "syncTransportMismatch": "同步插件的服务器设置在连接后发生了变化。请重新连接以采用新服务器。",
     "localSaveFailedTitle": "更改未保存",
     "localSaveFailed": "这次更改没能写入本地存储，重启后可能丢失。"
   },

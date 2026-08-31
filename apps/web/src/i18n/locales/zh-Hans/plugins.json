@@ -61,7 +61,8 @@
       "agent_memory": "记忆候选",
       "service_network": "网络",
       "service_llm": "AI 请求",
-      "service_clipboard": "剪贴板"
+      "service_clipboard": "剪贴板",
+      "sync_transport": "同步后端"
     },
     "permission": {
       "reader_modes": "添加由应用渲染并控制引导导航的阅读模式",
@@ -79,7 +80,8 @@
       "agent_memory": "提交由宿主校验并保存的记忆候选",
       "service_network": "访问网络",
       "service_llm": "使用你配置的模型发起 AI 请求",
-      "service_clipboard": "写入剪贴板"
+      "service_clipboard": "写入剪贴板",
+      "sync_transport": "提供同步后端，把端到端加密的同步数据存储到你选择的服务器"
     },
     "activationError": "启用失败，详情已写入应用日志。",
     "placement": "钉选按钮",

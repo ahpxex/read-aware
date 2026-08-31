@@ -19,6 +19,7 @@ import {
   ERR_SYNC_NO_LOCAL_BYTES,
   ERR_SYNC_QUOTA,
   ERR_SYNC_REJECTED,
+  errorCode,
   type HlcStamp,
 } from "@read-aware/core";
 import { createLogger } from "../logger";
@@ -40,12 +41,34 @@ export type MergeReport = { appended: number; applied: number; replayed: boolean
 const log = createLogger("sync");
 
 /**
- * Stable code for a relay blob refusal — this is what lands in
+ * Codes a backend may throw to say "this blob will never be accepted" — the
+ * transport-side (coded) counterpart of the relay's 4xx statuses. Anything
+ * else coded or uncoded is treated as transient and retried.
+ */
+const PERMANENT_BLOB_CODES: ReadonlySet<string> = new Set([
+  ERR_SYNC_QUOTA,
+  ERR_SYNC_FILE_TOO_LARGE,
+  ERR_SYNC_REJECTED,
+]);
+
+/** A refusal the outbox must not retry: an HTTP 4xx from the relay, or a
+ *  permanent `sync/*` code from a plugin transport. */
+function isPermanentBlobRefusal(error: unknown): boolean {
+  const status = (error as { status?: number }).status;
+  if (typeof status === "number" && status >= 400 && status < 500) return true;
+  const code = errorCode(error);
+  return code !== undefined && PERMANENT_BLOB_CODES.has(code);
+}
+
+/**
+ * Stable code for a blob refusal — this is what lands in
  * `blob_sync_state.last_error` (and thus the per-book backlog UI), so the
- * settings panel can render localized, actionable copy. The relay's raw
+ * settings panel can render localized, actionable copy. The backend's raw
  * wording goes to the log at the catch site, never into the row.
  */
 function classifyBlobRejection(error: unknown): string {
+  const code = errorCode(error);
+  if (code !== undefined && PERMANENT_BLOB_CODES.has(code)) return code;
   const status = (error as { status?: number }).status;
   const message = error instanceof Error ? error.message : String(error);
   if (status === 413) {
@@ -305,13 +328,12 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
         uploaded += 1;
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        // A 4xx is the relay's final word (quota, malformed) — retrying
-        // re-uploads the whole file into a guaranteed refusal every cycle.
-        // Only transient failures stay queued. One stuck blob never dams the
-        // queue behind it.
-        const status = (error as { status?: number }).status;
-        if (typeof status === "number" && status >= 400 && status < 500) {
-          log.warn(`blob upload rejected (${status})`, error);
+        // A permanent refusal (the relay's 4xx, a transport's coded
+        // rejection: quota, malformed) — retrying re-uploads the whole file
+        // into a guaranteed refusal every cycle. Only transient failures stay
+        // queued. One stuck blob never dams the queue behind it.
+        if (isPermanentBlobRefusal(error)) {
+          log.warn("blob upload rejected", error);
           await store.markBlobsRejected([task.key], classifyBlobRejection(error));
         } else {
           await store.markBlobsFailed([task.key], message);

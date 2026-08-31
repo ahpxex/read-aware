@@ -413,6 +413,20 @@
       "storageUsedOfLimit": "リレー使用量 {{used}} / {{limit}}",
       "plan": "プラン: {{tier}}"
     },
+    "transport": {
+      "backendTitle": "同期バックエンド",
+      "description": "自分のサーバー経由で同期 — {{plugin}} プラグインが提供。",
+      "connect": "接続",
+      "connectTitle": "{{label}}に接続",
+      "checking": "サーバーを確認しています…",
+      "checkFailed": "サーバーに接続できませんでした。プラグインの設定を確認してから再試行してください。",
+      "settingsHint": "サーバーのアドレスと認証情報はプラグインの設定で指定します。",
+      "retry": "再試行",
+      "freshRemote": "このサーバーにはまだ同期データがありません。このデバイスが暗号化パスフレーズを設定します。",
+      "existingRemote": "このサーバーには暗号化されたデータがあります。作成時と同じパスフレーズを入力してください。",
+      "wrongPassphrase": "パスフレーズがこのサーバーのデータと一致しません。",
+      "connectedVia": "{{label}} · {{plugin}} プラグイン提供"
+    },
     "tier": {
       "free": "無料",
       "sync": "Sync",

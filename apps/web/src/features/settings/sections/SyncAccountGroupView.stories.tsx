@@ -10,6 +10,7 @@ import {
   uploadingBook,
 } from "../../sync/components/sync.fixtures";
 import type { SyncBookBacklogRow } from "../../sync/hooks/useSyncStatus";
+import type { RegisteredSyncTransport } from "../../../platform/sync/transport-registry";
 import type { SyncAccountInfo } from "../hooks/useSyncAccountInfo";
 import type { useSyncConnection } from "../hooks/useSyncConnection";
 import { SyncAccountGroupView } from "./SyncAccountGroupView";
@@ -69,12 +70,25 @@ const inertSync = {
   status: idle,
   profile,
   connected: true,
+  connectedTransport: null,
+  transports: [],
   busy: false,
   sendLink: async () => null,
   connect: async () => {},
+  probeTransport: async () => ({ hasKeys: false }),
+  connectTransport: async () => {},
   disconnect: async () => {},
   requestSyncNow: async () => {},
 } as unknown as ReturnType<typeof useSyncConnection>;
+
+/** A registered plugin backend, for the rows that list transports. */
+const webdavTransport: RegisteredSyncTransport = {
+  ref: "plugin:webdav-sync:webdav",
+  pluginId: "webdav-sync",
+  transportId: "webdav",
+  label: "WebDAV",
+  open: () => Promise.reject(new Error("storybook stand-in")),
+};
 
 /**
  * The Sync group of Data & Sync — the app's most state-rich settings surface.
@@ -101,6 +115,8 @@ const meta = {
     bookBacklog: [],
     movingBookTitle: null,
     connectOpen: false,
+    transportDialogRef: null,
+    onTransportDialogChange: () => {},
     disconnectOpen: false,
     onConnectOpenChange: () => {},
     onDisconnectOpenChange: () => {},
@@ -250,4 +266,33 @@ export const ConnectDialogOpen: Story = {
 /** The same dialog reached from a rejected session, which is a re-login. */
 export const ReloginDialogOpen: Story = {
   args: { status: unauthenticated, connectOpen: true },
+};
+
+/** Disconnected, with a plugin-provided backend offering its own row. */
+export const TransportAvailable: Story = {
+  args: {
+    connected: false,
+    accountInfo: null,
+    profile: null,
+    sync: { ...inertSync, connected: false, transports: [webdavTransport] },
+  },
+};
+
+/** Connected through a plugin transport: no account, no plan — just sync. */
+export const ConnectedViaTransport: Story = {
+  args: {
+    accountInfo: null,
+    profile: {
+      ...profile,
+      remoteAccountId: "transport:webdav-sync:webdav:dav.example.com/readaware",
+    },
+    sync: {
+      ...inertSync,
+      transports: [webdavTransport],
+      connectedTransport: {
+        ref: webdavTransport.ref,
+        endpointId: "dav.example.com/readaware",
+      },
+    },
+  },
 };

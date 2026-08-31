@@ -34,6 +34,8 @@
     "syncMisdirected": "同步伺服器位址指向了其他服務，請檢查 relay 位址。",
     "syncPassphrase": "端對端加密口令不相符。",
     "syncQuota": "同步空間已滿。",
+    "syncTransportUnavailable": "提供此同步連線的外掛目前不可用。請啟用該外掛後重試。",
+    "syncTransportMismatch": "同步外掛的伺服器設定在連線後已變更。請重新連線以採用新伺服器。",
     "localSaveFailedTitle": "變更未儲存",
     "localSaveFailed": "這次變更沒能寫入本機儲存空間，重新啟動後可能遺失。"
   },

@@ -61,7 +61,8 @@
       "agent_memory": "Candidats mémoire",
       "service_network": "Réseau",
       "service_llm": "Requêtes IA",
-      "service_clipboard": "Presse-papiers"
+      "service_clipboard": "Presse-papiers",
+      "sync_transport": "Backend de synchronisation"
     },
     "permission": {
       "reader_modes": "Ajouter un mode de lecture guidée rendu par l’application",
@@ -79,7 +80,8 @@
       "agent_memory": "Proposer des souvenirs que l'hôte valide et enregistre",
       "service_network": "Accéder au réseau",
       "service_llm": "Envoyer des requêtes IA avec votre modèle configuré",
-      "service_clipboard": "Écrire dans le presse-papiers"
+      "service_clipboard": "Écrire dans le presse-papiers",
+      "sync_transport": "Fournir un backend de synchronisation qui stocke vos données chiffrées de bout en bout sur un serveur de votre choix"
     },
     "activationError": "L'activation a échoué. Les détails sont dans le journal de l'application.",
     "placement": "Boutons épinglés",

@@ -421,6 +421,20 @@
       "storageUsedOfLimit": "{{used}} de {{limit}} almacenados en el relé",
       "plan": "Plan: {{tier}}"
     },
+    "transport": {
+      "backendTitle": "Backend de sincronización",
+      "description": "Sincroniza a través de tu propio servidor — proporcionado por el plugin {{plugin}}.",
+      "connect": "Conectar",
+      "connectTitle": "Conectar {{label}}",
+      "checking": "Comprobando el servidor…",
+      "checkFailed": "No se pudo contactar con el servidor. Revisa la configuración del plugin y vuelve a intentarlo.",
+      "settingsHint": "La dirección del servidor y las credenciales se configuran en los ajustes del plugin.",
+      "retry": "Reintentar",
+      "freshRemote": "Este servidor aún no contiene datos sincronizados: este dispositivo establecerá su frase de cifrado.",
+      "existingRemote": "Este servidor ya contiene datos cifrados. Introduce la misma frase con la que se crearon.",
+      "wrongPassphrase": "Esa frase no coincide con los datos de este servidor.",
+      "connectedVia": "{{label}} · a través del plugin {{plugin}}"
+    },
     "tier": {
       "free": "Gratis",
       "sync": "Sync",

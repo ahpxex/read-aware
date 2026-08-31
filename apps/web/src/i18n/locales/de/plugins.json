@@ -61,7 +61,8 @@
       "agent_memory": "Erinnerungskandidaten",
       "service_network": "Netzwerk",
       "service_llm": "KI-Anfragen",
-      "service_clipboard": "Zwischenablage"
+      "service_clipboard": "Zwischenablage",
+      "sync_transport": "Sync-Backend"
     },
     "permission": {
       "reader_modes": "Einen von der App gerenderten geführten Lesemodus hinzufügen",
@@ -79,7 +80,8 @@
       "agent_memory": "Erinnerungen zur Prüfung und Speicherung vorschlagen",
       "service_network": "Auf das Netzwerk zugreifen",
       "service_llm": "KI-Anfragen mit deinem konfigurierten Modell stellen",
-      "service_clipboard": "In die Zwischenablage schreiben"
+      "service_clipboard": "In die Zwischenablage schreiben",
+      "sync_transport": "Ein Sync-Backend bereitstellen, das Ende-zu-Ende-verschlüsselte Sync-Daten auf einem Server deiner Wahl speichert"
     },
     "activationError": "Aktivierung fehlgeschlagen. Details stehen im App-Protokoll.",
     "placement": "Angeheftete Schaltflächen",

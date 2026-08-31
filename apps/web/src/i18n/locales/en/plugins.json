@@ -66,7 +66,8 @@
       "agent_memory": "Memory candidates",
       "service_network": "Network",
       "service_llm": "AI requests",
-      "service_clipboard": "Clipboard"
+      "service_clipboard": "Clipboard",
+      "sync_transport": "Sync backend"
     },
     "permission": {
       "reader_modes": "Add a host-rendered reading mode that controls guided navigation",
@@ -84,7 +85,8 @@
       "agent_memory": "Propose memory candidates for host validation and storage",
       "service_network": "Access the network",
       "service_llm": "Make AI requests with your configured model",
-      "service_clipboard": "Write to the clipboard"
+      "service_clipboard": "Write to the clipboard",
+      "sync_transport": "Provide a sync backend that stores your end-to-end encrypted sync data on a server you choose"
     },
     "activationError": "Activation failed. Details are in the app log.",
     "placement": "Pinned buttons",

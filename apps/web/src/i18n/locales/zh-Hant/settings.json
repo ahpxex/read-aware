@@ -413,6 +413,20 @@
       "storageUsedOfLimit": "雲端已用 {{used}} / {{limit}}",
       "plan": "方案:{{tier}}"
     },
+    "transport": {
+      "backendTitle": "同步後端",
+      "description": "透過你自己的伺服器同步——由 {{plugin}} 外掛提供。",
+      "connect": "連線",
+      "connectTitle": "連線{{label}}",
+      "checking": "正在檢查伺服器…",
+      "checkFailed": "無法連線伺服器。請檢查外掛設定後重試。",
+      "settingsHint": "伺服器位址與憑證在外掛設定中設定。",
+      "retry": "重試",
+      "freshRemote": "這個伺服器上還沒有同步資料——將由本裝置設定加密口令。",
+      "existingRemote": "這個伺服器上已有加密資料。請輸入建立時使用的同一口令。",
+      "wrongPassphrase": "口令與該伺服器上的資料不相符。",
+      "connectedVia": "{{label}} · 由 {{plugin}} 外掛提供"
+    },
     "tier": {
       "free": "免費",
       "sync": "Sync",

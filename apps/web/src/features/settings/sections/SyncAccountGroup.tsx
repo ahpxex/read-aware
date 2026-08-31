@@ -48,10 +48,13 @@ export function SyncAccountGroup() {
   const sync = useSyncConnection();
 
   const [connectOpen, setConnectOpen] = useState(false);
+  const [transportDialogRef, setTransportDialogRef] = useState<string | null>(null);
   const [disconnectOpen, setDisconnectOpen] = useState(false);
   const backlog = useSyncBacklog(sync.connected);
   const bookBacklog = useSyncBookBacklog(sync.connected);
-  const accountInfo = useSyncAccountInfo(sync.connected);
+  // Account info (email, plan, usage) is the relay's — a transport connection
+  // has no account to ask about.
+  const accountInfo = useSyncAccountInfo(sync.connected && sync.connectedTransport === null);
   const movingBookTitle = useBlobBookTitle(
     sync.status.state === "syncing" ? (sync.status.progress?.blobKey ?? null) : null,
   );
@@ -134,6 +137,8 @@ export function SyncAccountGroup() {
       movingBookTitle={movingBookTitle}
       connectOpen={connectOpen}
       onConnectOpenChange={setConnectOpen}
+      transportDialogRef={transportDialogRef}
+      onTransportDialogChange={setTransportDialogRef}
       disconnectOpen={disconnectOpen}
       onDisconnectOpenChange={setDisconnectOpen}
       onSyncNow={() => void handleSyncNow()}

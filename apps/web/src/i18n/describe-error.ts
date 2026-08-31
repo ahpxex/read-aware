@@ -26,6 +26,8 @@ import {
   ERR_SYNC_QUOTA,
   ERR_SYNC_RATE_LIMITED,
   ERR_SYNC_SERVER,
+  ERR_SYNC_TRANSPORT_MISMATCH,
+  ERR_SYNC_TRANSPORT_UNAVAILABLE,
   ERR_SYNC_UNAUTHORIZED,
   ERR_AI_AUTH,
   ERR_AI_CONTEXT_OVERFLOW,
@@ -81,6 +83,8 @@ const CODE_COPY: Record<string, CopyEntry> = {
   [ERR_SYNC_MISDIRECTED]: { key: "syncMisdirected", retryable: false },
   [ERR_SYNC_PASSPHRASE]: { key: "syncPassphrase", retryable: false },
   [ERR_SYNC_QUOTA]: { key: "syncQuota", retryable: false },
+  [ERR_SYNC_TRANSPORT_UNAVAILABLE]: { key: "syncTransportUnavailable", retryable: false },
+  [ERR_SYNC_TRANSPORT_MISMATCH]: { key: "syncTransportMismatch", retryable: false },
   [ERR_AI_NOT_CONFIGURED]: { key: "aiNotConfigured", retryable: false, action: AI_SETTINGS },
   // Legacy alias: chat rows persisted before the shared code vocabulary carry
   // the old spelling in their errorCode column. Never remove.

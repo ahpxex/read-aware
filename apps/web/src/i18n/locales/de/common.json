@@ -34,6 +34,8 @@
     "syncMisdirected": "Die Sync-Server-Adresse antwortete als ein anderer Dienst. Bitte die Relay-URL prüfen.",
     "syncPassphrase": "Die Ende-zu-Ende-Passphrase stimmt nicht überein.",
     "syncQuota": "Der Sync-Speicher ist voll.",
+    "syncTransportUnavailable": "Das Plugin für diese Sync-Verbindung ist nicht verfügbar. Bitte das Plugin aktivieren und erneut versuchen.",
+    "syncTransportMismatch": "Die Servereinstellungen des Sync-Plugins haben sich nach dem Verbinden geändert. Bitte neu verbinden, um den neuen Server zu übernehmen.",
     "localSaveFailedTitle": "Änderung nicht gespeichert",
     "localSaveFailed": "Diese Änderung konnte nicht lokal gespeichert werden und geht nach einem Neustart möglicherweise verloren."
   },

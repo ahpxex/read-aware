@@ -24,6 +24,7 @@ describe("plugin capability catalog", () => {
       "agent:retrieval",
       "agent:memory",
       "ui:themes",
+      "sync:transport",
       "service:network",
       "service:llm",
       "service:clipboard",

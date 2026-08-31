@@ -14,6 +14,8 @@ export const LAST_SYNC = new Date(2026, 5, 28, 20, 14).getTime();
 const base: SyncStatusSnapshot = {
   state: "idle",
   accountConnected: true,
+  backend: "relay",
+  transportRef: null,
   lastSyncAt: LAST_SYNC,
   lastErrorCode: null,
   progress: null,
@@ -122,6 +124,8 @@ export const unauthenticated = snapshot({ state: "unauthenticated" });
 export const disabled = snapshot({
   state: "disabled",
   accountConnected: false,
+  backend: null,
+  transportRef: null,
   lastSyncAt: null,
   lastCycle: null,
 });

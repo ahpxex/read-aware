@@ -24,9 +24,11 @@ import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsRow } from "../components/SettingsRow";
 import { syncCycleFraction } from "../../sync/lib/sync-progress";
 import type { SyncBacklog, SyncBookBacklogRow } from "../../sync/hooks/useSyncStatus";
+import { contributionText } from "../../plugins/lib/plugin-i18n";
 import type { SyncAccountInfo } from "../hooks/useSyncAccountInfo";
 import type { useSyncConnection } from "../hooks/useSyncConnection";
 import { SyncConnectDialog } from "./SyncConnectDialog";
+import { TransportConnectDialog } from "./TransportConnectDialog";
 
 /** "12 345 678" bytes → "11.8 MB": one decimal, sensible unit. */
 export function formatBytes(bytes: number): string {
@@ -56,6 +58,9 @@ type SyncAccountGroupViewProps = {
   movingBookTitle: string | null;
   connectOpen: boolean;
   onConnectOpenChange: (open: boolean) => void;
+  /** Registry ref of the transport whose connect dialog is open; null = none. */
+  transportDialogRef: string | null;
+  onTransportDialogChange: (ref: string | null) => void;
   disconnectOpen: boolean;
   onDisconnectOpenChange: (open: boolean) => void;
   onSyncNow: () => void;
@@ -77,6 +82,8 @@ export function SyncAccountGroupView({
   movingBookTitle,
   connectOpen,
   onConnectOpenChange,
+  transportDialogRef,
+  onTransportDialogChange,
   disconnectOpen,
   onDisconnectOpenChange,
   onSyncNow,
@@ -104,6 +111,8 @@ export function SyncAccountGroupView({
   }
 
   if (!connected) {
+    const dialogTransport =
+      sync.transports.find((entry) => entry.ref === transportDialogRef) ?? null;
     return (
       <SettingsGroup title={t("dataSync.sync")}>
         <SettingsRow
@@ -116,9 +125,33 @@ export function SyncAccountGroupView({
             </Button>
           }
         />
+        {/* Plugin-provided backends (sync:transport) — one quiet row each. */}
+        {sync.transports.map((transport) => (
+          <SettingsRow
+            key={transport.ref}
+            title={contributionText(transport.label)}
+            description={t("dataSync.transport.description", {
+              plugin: transport.pluginId,
+            })}
+            control={
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onTransportDialogChange(transport.ref)}
+              >
+                {t("dataSync.transport.connect")}
+              </Button>
+            }
+          />
+        ))}
         <SyncConnectDialog
           open={connectOpen}
           onClose={() => onConnectOpenChange(false)}
+          sync={sync}
+        />
+        <TransportConnectDialog
+          transport={dialogTransport}
+          onClose={() => onTransportDialogChange(null)}
           sync={sync}
         />
       </SettingsGroup>
@@ -126,10 +159,23 @@ export function SyncAccountGroupView({
   }
 
   const syncing = status.state === "syncing";
+  // Connected through a plugin transport: the backend's label is the human
+  // name of the remote (the registered transport may be momentarily absent
+  // while its plugin restarts — the ref keeps the row honest meanwhile).
+  const viaTransport = sync.connectedTransport;
+  const transportEntry = viaTransport
+    ? (sync.transports.find((entry) => entry.ref === viaTransport.ref) ?? null)
+    : null;
   // The email is the human name of the account; the opaque id only appears
   // while the relay hasn't answered yet (offline), shortened to stay legible.
-  const accountLabel =
-    accountInfo?.email ?? `${(profile?.remoteAccountId ?? "").slice(0, 8)}…`;
+  const accountLabel = viaTransport
+    ? t("dataSync.transport.connectedVia", {
+        label: transportEntry
+          ? contributionText(transportEntry.label)
+          : viaTransport.ref,
+        plugin: viaTransport.ref.split(":")[1] ?? viaTransport.ref,
+      })
+    : (accountInfo?.email ?? `${(profile?.remoteAccountId ?? "").slice(0, 8)}…`);
 
   // The Status row's one-line description: exactly one voice at a time —
   // a rejected session and a failed cycle speak in the warning tone.
@@ -240,7 +286,9 @@ export function SyncAccountGroupView({
     <SettingsGroup title={t("dataSync.sync")}>
       <SettingsRow
         borderless
-        title={t("dataSync.account.title")}
+        title={
+          viaTransport ? t("dataSync.transport.backendTitle") : t("dataSync.account.title")
+        }
         description={accountLabel}
         control={
           <Button size="sm" variant="ghost" onClick={() => onDisconnectOpenChange(true)}>

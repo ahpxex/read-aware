@@ -61,7 +61,8 @@
       "agent_memory": "記憶候選",
       "service_network": "網路",
       "service_llm": "AI 請求",
-      "service_clipboard": "剪貼簿"
+      "service_clipboard": "剪貼簿",
+      "sync_transport": "同步後端"
     },
     "permission": {
       "reader_modes": "新增由應用程式渲染並控制引導導覽的閱讀模式",
@@ -79,7 +80,8 @@
       "agent_memory": "提交由宿主驗證並儲存的記憶候選",
       "service_network": "存取網路",
       "service_llm": "使用你設定的模型發起 AI 請求",
-      "service_clipboard": "寫入剪貼簿"
+      "service_clipboard": "寫入剪貼簿",
+      "sync_transport": "提供同步後端，把端對端加密的同步資料儲存到你選擇的伺服器"
     },
     "activationError": "啟用失敗，詳情已寫入應用程式日誌。",
     "placement": "釘選按鈕",

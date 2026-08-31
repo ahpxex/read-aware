@@ -209,6 +209,7 @@ The canonical contribution roster is:
 | `memoryCandidateProviders` | possible durable memories | scope validation, deduplication, persistence |
 | `themes` | semantic app/reader theme data | validation, selection, generated CSS |
 | `fonts` | metadata and approved font assets | loading, picker, active selection |
+| `syncTransports` | a ciphertext mailbox on a remote of the plugin's choosing (WebDAV, S3, …) | encryption, event log, cursors, merge, connect ritual, scheduling |
 
 All contribution registries use the same ownership rules:
 
@@ -248,6 +249,36 @@ Plugins never receive the product Memory port, cannot inject system rules, and
 cannot write a long-term memory directly. A contribution supplies evidence or
 a candidate; the host remains the consumer and decision boundary.
 
+### Sync transports
+
+`syncTransports` (`sync:transport`) lets a plugin provide an alternative sync
+backend. The boundary is drawn at ciphertext: the host's sync engine seals
+every event and blob before they reach the plugin and opens them only after
+they come back, so a transport never sees event types, payloads, book bytes,
+keys, or the roaming secrets sealed in the log — only opaque envelopes plus
+their routing fields (event id, HLC stamp).
+
+The transport contract is dumb storage, not a protocol peer:
+
+- per-device, dense, immutable event batches (`listEventBatches` /
+  `getEventBatch` / create-only `putEventBatch`);
+- blobs in the engine's v1/v2 envelope formats (main object, sealed parts,
+  and a commit that must verify completeness before writing the descriptor);
+- small named meta objects with create-only `putMetaIfAbsent` — the
+  first-writer-wins ritual key material relies on.
+
+Everything order-sensitive stays host-side: `platform/sync/transport-feed.ts`
+folds the per-device batches into the engine's single monotonic pull cursor
+through a locally persisted append-only journal (loss of which costs a
+re-download, never data), and `platform/sync/transport-registry.ts` is where
+registrations land. Connecting runs the same passphrase ritual as the relay
+(`establishEncryptionWithStore`), binds the profile to the session's
+`endpointId`, and is mutually exclusive with a relay account — one outbox, one
+mailbox. Transports classify failures by throwing errors with stable `sync/*`
+codes; uncoded failures are retried with backoff.
+
+First party: `plugins/webdav-sync` (marketplace-distributed, not bundled).
+
 ## 8. Host Services
 
 The current host services are:
@@ -274,7 +305,7 @@ The manifest permission vocabulary is derived from the catalogs:
 - Domains: `library:read`, `library:write`, `reading:read`, `reading:write`,
   `annotations:read`, `annotations:write`, `conversations:read`.
 - Contributions: `reader:modes`, `agent:tools`, `agent:context`,
-  `agent:retrieval`, `agent:memory`, `ui:themes`.
+  `agent:retrieval`, `agent:memory`, `ui:themes`, `sync:transport`.
 - Services: `service:network`, `service:llm`, `service:clipboard`.
 - Settings: exact `settingsAccess` grants rather than a broad permission.
 
@@ -430,6 +461,7 @@ The current first-party plugins all use the registry-backed contract:
 | Sentence Reader | reader mode, storage, settings schema |
 | Text to Speech | voice/options providers, storage, secrets, network, settings schema |
 | Theme Schedule | Settings domain, options/commands, storage/UI, committed schedule, settings schema |
+| WebDAV Sync | sync transport, storage, secrets, network, settings schema |
 
 The host never switches on these plugin IDs. Product-specific behavior belongs
 in their packages and registered capabilities.

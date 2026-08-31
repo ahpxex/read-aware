@@ -417,6 +417,20 @@
       "storageUsedOfLimit": "{{used}} von {{limit}} auf dem Relay belegt",
       "plan": "Tarif: {{tier}}"
     },
+    "transport": {
+      "backendTitle": "Sync-Backend",
+      "description": "Synchronisierung über den eigenen Server — bereitgestellt vom Plugin {{plugin}}.",
+      "connect": "Verbinden",
+      "connectTitle": "{{label}} verbinden",
+      "checking": "Server wird geprüft…",
+      "checkFailed": "Server nicht erreichbar. Bitte die Plugin-Einstellungen prüfen und erneut versuchen.",
+      "settingsHint": "Serveradresse und Zugangsdaten werden in den Plugin-Einstellungen festgelegt.",
+      "retry": "Erneut versuchen",
+      "freshRemote": "Dieser Server enthält noch keine Sync-Daten — dieses Gerät legt die Verschlüsselungs-Passphrase fest.",
+      "existingRemote": "Dieser Server enthält bereits verschlüsselte Daten. Bitte dieselbe Passphrase eingeben, mit der sie erstellt wurden.",
+      "wrongPassphrase": "Die Passphrase passt nicht zu den Daten auf diesem Server.",
+      "connectedVia": "{{label}} · über das Plugin {{plugin}}"
+    },
     "tier": {
       "free": "Kostenlos",
       "sync": "Sync",

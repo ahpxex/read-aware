@@ -1,0 +1,132 @@
+{
+  "id": "webdav-sync",
+  "name": "WebDAV Sync",
+  "version": "0.1.0",
+  "schemaVersion": 1,
+  "minAppVersion": "0.5.1",
+  "requires": {
+    "contributions": {
+      "syncTransports": "^1.0.0"
+    },
+    "services": {
+      "storage": "^1.0.0",
+      "secrets": "^1.0.0",
+      "network": "^1.0.0"
+    },
+    "schemas": {
+      "settings": "^1.0.0"
+    }
+  },
+  "description": "Sync your end-to-end encrypted library through your own WebDAV server (Nextcloud, 坚果云, …) instead of the ReadAware relay.",
+  "author": "ReadAware",
+  "permissions": [
+    "service:network",
+    "sync:transport"
+  ],
+  "main": "main.js",
+  "settings": [
+    {
+      "kind": "text",
+      "id": "serverUrl",
+      "inputMode": "url",
+      "label": {
+        "default": "Server URL",
+        "translations": {
+          "zh-Hans": "服务器地址",
+          "zh-Hant": "伺服器位址",
+          "ja": "サーバーURL",
+          "fr": "URL du serveur",
+          "de": "Server-URL",
+          "ru": "URL сервера",
+          "es": "URL del servidor"
+        }
+      },
+      "placeholder": "https://dav.example.com/dav",
+      "helperText": {
+        "default": "The WebDAV endpoint, including any path your provider requires (e.g. Nextcloud's remote.php/dav/files/USERNAME).",
+        "translations": {
+          "zh-Hans": "WebDAV 端点，包含服务商要求的路径（如 Nextcloud 的 remote.php/dav/files/用户名，坚果云的 https://dav.jianguoyun.com/dav）。",
+          "zh-Hant": "WebDAV 端點，包含服務商要求的路徑（如 Nextcloud 的 remote.php/dav/files/使用者名稱）。",
+          "ja": "WebDAV エンドポイント。プロバイダが必要とするパスも含めます（例：Nextcloud の remote.php/dav/files/ユーザー名）。",
+          "fr": "Le point d'accès WebDAV, chemin requis par votre fournisseur inclus (p. ex. remote.php/dav/files/UTILISATEUR pour Nextcloud).",
+          "de": "Der WebDAV-Endpunkt einschließlich des vom Anbieter geforderten Pfads (z. B. Nextclouds remote.php/dav/files/BENUTZER).",
+          "ru": "Точка входа WebDAV, включая путь, требуемый провайдером (например, remote.php/dav/files/ИМЯ для Nextcloud).",
+          "es": "El punto de acceso WebDAV, incluida la ruta que exija tu proveedor (p. ej. remote.php/dav/files/USUARIO en Nextcloud)."
+        }
+      }
+    },
+    {
+      "kind": "text",
+      "id": "username",
+      "label": {
+        "default": "Username",
+        "translations": {
+          "zh-Hans": "用户名",
+          "zh-Hant": "使用者名稱",
+          "ja": "ユーザー名",
+          "fr": "Nom d'utilisateur",
+          "de": "Benutzername",
+          "ru": "Имя пользователя",
+          "es": "Nombre de usuario"
+        }
+      }
+    },
+    {
+      "kind": "secret",
+      "id": "password",
+      "label": {
+        "default": "Password",
+        "translations": {
+          "zh-Hans": "密码",
+          "zh-Hant": "密碼",
+          "ja": "パスワード",
+          "fr": "Mot de passe",
+          "de": "Passwort",
+          "ru": "Пароль",
+          "es": "Contraseña"
+        }
+      },
+      "helperText": {
+        "default": "Many providers require an app-specific password for WebDAV (Nextcloud app password, 坚果云应用密码).",
+        "translations": {
+          "zh-Hans": "许多服务商的 WebDAV 需要专用应用密码（如坚果云的应用密码、Nextcloud 的 App password）。",
+          "zh-Hant": "許多服務商的 WebDAV 需要專用應用程式密碼（如 Nextcloud 的 App password）。",
+          "ja": "多くのプロバイダでは WebDAV 用のアプリパスワードが必要です（Nextcloud のアプリパスワードなど）。",
+          "fr": "Beaucoup de fournisseurs exigent un mot de passe d'application pour WebDAV (mot de passe d'application Nextcloud).",
+          "de": "Viele Anbieter verlangen für WebDAV ein App-spezifisches Passwort (z. B. Nextcloud-App-Passwort).",
+          "ru": "Многие провайдеры требуют для WebDAV отдельный пароль приложения (например, пароль приложения Nextcloud).",
+          "es": "Muchos proveedores exigen una contraseña de aplicación para WebDAV (contraseña de aplicación de Nextcloud)."
+        }
+      }
+    },
+    {
+      "kind": "text",
+      "id": "basePath",
+      "label": {
+        "default": "Folder",
+        "translations": {
+          "zh-Hans": "文件夹",
+          "zh-Hant": "資料夾",
+          "ja": "フォルダー",
+          "fr": "Dossier",
+          "de": "Ordner",
+          "ru": "Папка",
+          "es": "Carpeta"
+        }
+      },
+      "placeholder": "ReadAware",
+      "helperText": {
+        "default": "Created on the server if it doesn't exist. Everything ReadAware stores lives under it.",
+        "translations": {
+          "zh-Hans": "服务器上不存在时会自动创建，ReadAware 的所有数据都存放在这个文件夹下。",
+          "zh-Hant": "伺服器上不存在時會自動建立，ReadAware 的所有資料都存放在這個資料夾下。",
+          "ja": "サーバーに存在しない場合は作成されます。ReadAware が保存するすべてのデータがこの下に置かれます。",
+          "fr": "Créé sur le serveur s'il n'existe pas. Tout ce que ReadAware stocke s'y trouve.",
+          "de": "Wird auf dem Server angelegt, falls nicht vorhanden. Alles, was ReadAware speichert, liegt darunter.",
+          "ru": "Создаётся на сервере, если не существует. Всё, что хранит ReadAware, находится внутри неё.",
+          "es": "Se crea en el servidor si no existe. Todo lo que ReadAware almacena vive dentro."
+        }
+      }
+    }
+  ]
+}

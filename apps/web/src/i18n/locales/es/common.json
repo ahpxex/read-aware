@@ -34,6 +34,8 @@
     "syncMisdirected": "La dirección del servidor de sincronización respondió como otro servicio. Revisa la URL del relay.",
     "syncPassphrase": "La frase de cifrado de extremo a extremo no coincide.",
     "syncQuota": "Tu almacenamiento de sincronización está lleno.",
+    "syncTransportUnavailable": "El plugin que proporciona esta conexión de sincronización no está disponible. Activa el plugin y vuelve a intentarlo.",
+    "syncTransportMismatch": "La configuración del servidor del plugin de sincronización cambió después de conectar. Vuelve a conectarte para adoptar el nuevo servidor.",
     "localSaveFailedTitle": "Cambio no guardado",
     "localSaveFailed": "Este cambio no se pudo escribir en el almacenamiento local y podría perderse tras reiniciar."
   },

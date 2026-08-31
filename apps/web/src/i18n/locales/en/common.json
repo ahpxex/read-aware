@@ -34,6 +34,8 @@
     "syncMisdirected": "The sync server address answered as a different service. Check the relay URL.",
     "syncPassphrase": "The end-to-end encryption passphrase doesn't match.",
     "syncQuota": "Your sync storage is full.",
+    "syncTransportUnavailable": "The plugin providing this sync connection isn't available. Enable the plugin, then try again.",
+    "syncTransportMismatch": "The sync plugin's server settings changed after connecting. Reconnect to adopt the new server.",
     "localSaveFailedTitle": "Change not saved",
     "localSaveFailed": "This change couldn't be written to local storage and may be lost after a restart."
   },

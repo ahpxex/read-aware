@@ -352,7 +352,10 @@ function buildContext(
       }
 
       const call = (async () => {
-        const result = (await callHost("network.fetch", [url, plainInit])) as {
+        // The context path, verbatim: the capability moved from `ctx.network`
+        // to `ctx.services.network` in the v2 contract, and this hardcoded
+        // string silently refused every plugin fetch until it followed.
+        const result = (await callHost("services.network.fetch", [url, plainInit])) as {
           status: number;
           statusText: string;
           url: string;

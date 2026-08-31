@@ -555,8 +555,11 @@ export class FixedLayout extends HTMLElement {
         }
         return { width: 1000, height: 1414 }
     }
-    #stackScale(entry) {
-        const width = this.clientWidth
+    // READAWARE: `width` may be passed by batch callers — reading
+    // `clientWidth` forces a synchronous reflow, and doing that once per slot
+    // while appending thousands of slots is O(n²) layout (9 s of the open
+    // time of a 3,246-page book, measured).
+    #stackScale(entry, width = this.clientWidth) {
         const dims = this.#stackDims(entry)
         return (width / dims.width) || 1
     }
@@ -570,20 +573,24 @@ export class FixedLayout extends HTMLElement {
             width: 0,
             height: 0,
         }))
+        // One width read and one DOM insertion for the whole stack.
+        const width = this.clientWidth
+        const fragment = document.createDocumentFragment()
         for (const entry of this.#stack) {
             Object.assign(entry.slot.style, {
                 position: 'relative',
                 flexShrink: '0',
                 overflow: 'hidden',
             })
-            this.#sizeSlot(entry)
-            this.#root.append(entry.slot)
+            this.#sizeSlot(entry, width)
+            fragment.append(entry.slot)
         }
+        this.#root.append(fragment)
         this.#restackTops()
     }
-    #sizeSlot(entry) {
+    #sizeSlot(entry, width = this.clientWidth) {
         const dims = this.#stackDims(entry)
-        const scale = this.#stackScale(entry)
+        const scale = this.#stackScale(entry, width)
         entry.pixelHeight = dims.height * scale
         entry.slot.style.width = `${dims.width * scale}px`
         entry.slot.style.height = `${entry.pixelHeight}px`
@@ -720,7 +727,8 @@ export class FixedLayout extends HTMLElement {
     }
     #layoutStack() {
         if (!this.#stack) return
-        for (const entry of this.#stack) this.#sizeSlot(entry)
+        const width = this.clientWidth
+        for (const entry of this.#stack) this.#sizeSlot(entry, width)
         this.#restackTops()
         for (const i of this.#stackLive) {
             const entry = this.#stack[i]
@@ -982,12 +990,15 @@ export class FixedLayout extends HTMLElement {
                 this.#cancelFrameRender(frame)
                 frame.renderedScale = null
             })
-        if (this.#stack) for (const entry of this.#stack) {
-            if (entry.frame) {
-                this.#cancelFrameRender(entry.frame)
-                entry.frame.renderedScale = null
+        if (this.#stack) {
+            const width = this.clientWidth
+            for (const entry of this.#stack) {
+                if (entry.frame) {
+                    this.#cancelFrameRender(entry.frame)
+                    entry.frame.renderedScale = null
+                }
+                this.#sizeSlot(entry, width)
             }
-            this.#sizeSlot(entry)
         }
         this.#render()
         // Repaint the warm window in the new colors behind the visible page.

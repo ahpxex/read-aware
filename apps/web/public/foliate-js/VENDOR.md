@@ -159,6 +159,22 @@ The typed wrapper that consumes this lives at
   its iframe was still loading discards itself (never resurrects as an
   untracked orphan), and a paged spread evicted mid-creation re-registers.
   Re-apply after any upstream update.
+- **`view.js` / `progress.js` — deferred, parallel TOC progress:** upstream's
+  `TOCProgress.init` awaited `splitTOCHref` serially per flattened TOC entry,
+  and `View.open` awaited both inits before creating the renderer. For PDFs
+  each entry costs worker round-trips (`getDestination` + `getPageIndex`), so
+  a 15 MB book with a large outline stalled for seconds before first paint.
+  Entries now resolve in parallel (a failed entry drops out instead of
+  failing the index), init runs off the open critical path, and once ready
+  the last relocation is re-announced (reason `anchor`) so chapter labels
+  and the TOC highlight fill themselves in. Re-apply after any upstream
+  update.
+- **`fixed-layout.js` — stack build without layout thrash:** sizing each of
+  thousands of slots read `clientWidth` per slot (a forced reflow of an
+  ever-growing flex container — O(n²): 9 s of a 3,246-page book's open time,
+  measured) and appended them one by one. Batch passes read the width once
+  and the build lands in a single `DocumentFragment` insertion (38 ms for
+  the same book). Re-apply after any upstream update.
 - Otherwise all engine modules and `vendor/` are byte-for-byte upstream.
 
 ## Updating

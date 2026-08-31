@@ -229,6 +229,9 @@ export class View extends HTMLElement {
     // overlayer on the same long-lived document; its hit-testing click
     // listener must replace the previous one, not stack on it.
     #overlayerClickHandlers = new WeakMap()
+    // READAWARE: raw detail of the last relocation, for the deferred TOC
+    // progress init to re-announce once its data is ready.
+    #lastRelocateDetail = null
     isFixedLayout = false
     lastLocation
     history = new History()
@@ -252,11 +255,24 @@ export class View extends HTMLElement {
             const splitHref = book.splitTOCHref.bind(book)
             const getFragment = book.getTOCFragment.bind(book)
             this.#tocProgress = new TOCProgress()
-            await this.#tocProgress.init({
-                toc: book.toc ?? [], ids, splitHref, getFragment })
             this.#pageProgress = new TOCProgress()
-            await this.#pageProgress.init({
-                toc: book.pageList ?? [], ids, splitHref, getFragment })
+            // READAWARE: deferred, off the open critical path. Resolving a TOC
+            // entry costs worker round-trips for PDFs (getDestination +
+            // getPageIndex), and a large outline serialized those ahead of the
+            // first paint — a 15 MB book with hundreds of outline entries took
+            // seconds to open on exactly this loop. Progress lookups answer
+            // undefined until ready; once ready, the current location is
+            // re-announced as a re-layout ('anchor') so chapter labels and the
+            // TOC highlight fill themselves in.
+            void Promise.all([
+                this.#tocProgress.init({
+                    toc: book.toc ?? [], ids, splitHref, getFragment }),
+                this.#pageProgress.init({
+                    toc: book.pageList ?? [], ids, splitHref, getFragment }),
+            ]).then(() => {
+                if (this.#lastRelocateDetail) this.#onRelocate(
+                    { ...this.#lastRelocateDetail, reason: 'anchor' })
+            }).catch(error => console.error(error))
         }
 
         this.isFixedLayout = this.book.rendition?.layout === 'pre-paginated'
@@ -336,6 +352,7 @@ export class View extends HTMLElement {
         return this.dispatchEvent(new CustomEvent(name, { detail, cancelable }))
     }
     #onRelocate({ reason, range, index, fraction, size }) {
+        this.#lastRelocateDetail = { reason, range, index, fraction, size }
         const progress = this.#sectionProgress?.getProgress(index, fraction, size) ?? {}
         const tocItem = this.#tocProgress?.getProgress(index, range)
         const pageItem = this.#pageProgress?.getProgress(index, range)

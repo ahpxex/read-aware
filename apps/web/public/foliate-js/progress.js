@@ -19,9 +19,16 @@ export class TOCProgress {
     async init({ toc, ids, splitHref, getFragment }) {
         assignIDs(toc)
         const items = flatten(toc)
+        // READAWARE: resolve every entry in parallel — the serial loop paid
+        // one (PDF: two) worker round-trips per entry, one entry at a time.
+        // A failed entry drops out instead of failing the whole index.
+        const splits = await Promise.all(items.map(item =>
+            Promise.resolve()
+                .then(() => splitHref(item?.href))
+                .catch(() => null)))
         const grouped = new Map()
         for (const [i, item] of items.entries()) {
-            const [id, fragment] = await splitHref(item?.href) ?? []
+            const [id, fragment] = splits[i] ?? []
             const value = { fragment, item }
             if (grouped.has(id)) grouped.get(id).items.push(value)
             else grouped.set(id, { prev: items[i - 1], items: [value] })

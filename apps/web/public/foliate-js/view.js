@@ -220,6 +220,15 @@ export class View extends HTMLElement {
     #searchDrawOptions
     #cursorAutohider = new CursorAutohider(this, () =>
         this.hasAttribute('autohide-cursor'))
+    // READAWARE: the fixed-layout renderer keeps section documents alive in
+    // its spread cache and re-announces 'load' each time one becomes current
+    // again. Per-document setup (link handling, cursor autohide) must run
+    // once per document, not once per announcement.
+    #docsSetup = new WeakSet()
+    // READAWARE: a re-rendered page (PDF zoom, palette change) gets a fresh
+    // overlayer on the same long-lived document; its hit-testing click
+    // listener must replace the previous one, not stack on it.
+    #overlayerClickHandlers = new WeakMap()
     isFixedLayout = false
     lastLocation
     history = new History()
@@ -345,8 +354,13 @@ export class View extends HTMLElement {
         if (!this.language.isCJK)
             doc.documentElement.dir ||= this.language.direction ?? ''
 
-        this.#handleLinks(doc, index)
-        this.#cursorAutohider.cloneFor(doc.documentElement)
+        // READAWARE: once per document — a cached spread re-announces the
+        // same document on every return to it (see fixed-layout.js).
+        if (!this.#docsSetup.has(doc)) {
+            this.#docsSetup.add(doc)
+            this.#handleLinks(doc, index)
+            this.#cursorAutohider.cloneFor(doc.documentElement)
+        }
 
         this.#emit('load', { doc, index })
     }
@@ -410,12 +424,19 @@ export class View extends HTMLElement {
     }
     #createOverlayer({ doc, index }) {
         const overlayer = new Overlayer()
-        doc.addEventListener('click', e => {
+        // READAWARE: one hit-testing listener per document, always bound to
+        // the newest overlayer — re-renders on a long-lived document (PDF
+        // zoom, page colors) would otherwise stack a listener per render.
+        const previous = this.#overlayerClickHandlers.get(doc)
+        if (previous) doc.removeEventListener('click', previous, false)
+        const onClick = e => {
             const [value, range] = overlayer.hitTest(e)
             if (value && !value.startsWith(SEARCH_PREFIX)) {
                 this.#emit('show-annotation', { value, index, range })
             }
-        }, false)
+        }
+        this.#overlayerClickHandlers.set(doc, onClick)
+        doc.addEventListener('click', onClick, false)
 
         const list = this.#searchResults.get(index)
         if (list) for (const item of list) this.addAnnotation(item)

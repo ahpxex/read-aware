@@ -351,6 +351,10 @@ export function FoliateReaderView({
   const readerRootRef = useRef<HTMLElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<FoliateView | null>(null);
+  /** Documents that already carry the reader's listeners — the fixed-layout
+   *  spread cache re-announces 'load' for a document every time its page
+   *  becomes current again, and the listeners must not stack. */
+  const docsWithListenersRef = useRef(new WeakSet<Document>());
   const lastLocationTargetRef = useRef<string | null>(null);
   const initialFractionRef = useRef(0);
   const loadedBookRef = useRef<LoadedBook | null>(null);
@@ -1984,7 +1988,16 @@ export function FoliateReaderView({
 
         const onLoad = (event: Event) => {
           const { doc, index } = (event as CustomEvent<FoliateLoadDetail>).detail;
-          attachDocListeners(doc, index);
+          // The fixed-layout renderer keeps section documents alive in its
+          // spread cache and re-announces 'load' whenever one becomes current
+          // again — listeners attach once per document (a duplicate keydown
+          // listener would turn one keypress into two page turns), while the
+          // text-unit navigator re-syncs on every announcement, exactly as it
+          // did when each navigation produced a fresh document.
+          if (!docsWithListenersRef.current.has(doc)) {
+            docsWithListenersRef.current.add(doc);
+            attachDocListeners(doc, index);
+          }
           textUnitNavigatorRef.current.handleSectionLoad(doc, index);
         };
 

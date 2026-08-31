@@ -29,10 +29,32 @@ const getViewport = (doc, viewport) => {
     return { width: 1000, height: 2000 }
 }
 
+// READAWARE: rendering budgets, canvas-memory driven. A PDF page rastered at
+// fit-width on a Retina display runs ~12–17 MB of RGBA; a dozen live pages
+// ≈ 150–200 MB, which WKWebView tolerates — rastering a whole 200-page scan
+// would not be. Documents at or under FULL_RENDER_MAX_SPREADS keep every page
+// alive once rendered; larger ones keep a window around the reading position.
+const FULL_RENDER_MAX_SPREADS = 12
+
+// Paged flows: spreads prerendered around the current one, and the LRU cap on
+// live cached spreads beyond which the farthest are dropped.
+const PRELOAD_SPREADS_AHEAD = 2
+const PRELOAD_SPREADS_BEHIND = 1
+const CACHE_MAX_SPREADS = 10
+
+// Scrolled flow (a continuous stack of pages): how far beyond the viewport
+// pages are kept rendered, in viewport heights. Promotion is what gets built
+// as the reader approaches; demotion is where a live page is torn back down
+// to its placeholder — wider, so scrolling back and forth doesn't churn.
+const STACK_AHEAD_VIEWPORTS = 2.5
+const STACK_BEHIND_VIEWPORTS = 1.5
+const STACK_KEEP_AHEAD_VIEWPORTS = 5
+const STACK_KEEP_BEHIND_VIEWPORTS = 3
+
 export class FixedLayout extends HTMLElement {
     static observedAttributes = ['zoom', 'flow', 'max-column-count']
     #root = this.attachShadow({ mode: 'closed' })
-    #observer = new ResizeObserver(() => this.#render())
+    #observer = new ResizeObserver(() => this.#onResize())
     #spreads
     #index = -1
     defaultViewport
@@ -49,6 +71,35 @@ export class FixedLayout extends HTMLElement {
     // Page colors are baked in at render time rather than filtered afterwards,
     // so changing them has to redraw every live frame — see setPageColors.
     #pageColors = null
+    // READAWARE: paged-flow spread cache. `#framePromises` holds in-flight and
+    // settled creations (a preload and a navigation racing on the same spread
+    // share one set of iframes); `#liveFrames` holds settled ones — what
+    // rendering, page colors, and eviction iterate. `#lru` orders spread
+    // indexes by recency for eviction.
+    #framePromises = new Map()
+    #liveFrames = new Map()
+    #lru = []
+    #preloadToken = 0
+    // READAWARE: scrolled-flow page stack. One sized slot per spread keeps the
+    // scrollbar honest for the whole document; a slot holds a live frame only
+    // while the reader is near it. `#stack` entries:
+    // { slot, frame, framePromise, width, height, sized }.
+    #stack = null
+    #stackCurrent = 0
+    #stackToken = 0
+    #stackScrollTimer = 0
+    #stackReportTimer = 0
+    #stackDefaultDims = null
+    // READAWARE: trailing setTimeout throttle, deliberately not rAF — WKWebView
+    // suspends animation frames entirely while the window is occluded, and the
+    // window logic must not silently die with them.
+    #onStackScroll = () => {
+        if (!this.#stack || this.#stackScrollTimer) return
+        this.#stackScrollTimer = setTimeout(() => {
+            this.#stackScrollTimer = 0
+            this.#updateStackWindow('scroll')
+        }, 32)
+    }
     constructor() {
         super()
 
@@ -63,19 +114,21 @@ export class FixedLayout extends HTMLElement {
             overflow: auto;
         }
         :host([flow="scrolled"]) {
+            flex-direction: column;
             justify-content: flex-start;
-            align-items: flex-start;
+            align-items: center;
             overscroll-behavior: contain;
         }`)
 
         this.#observer.observe(this)
+        this.addEventListener('scroll', this.#onStackScroll, { passive: true })
     }
     attributeChangedCallback(name, _, value) {
         switch (name) {
             case 'zoom':
                 this.#zoom = value !== 'fit-width' && value !== 'fit-page'
                     ? parseFloat(value) : value
-                this.#render()
+                this.#onResize()
                 break
             case 'flow':
                 if (value === this.#flow) break
@@ -92,7 +145,9 @@ export class FixedLayout extends HTMLElement {
                 break
         }
     }
-    async #createFrame({ index, src: srcOption }) {
+    // READAWARE: `parent` — paged frames mount on the shadow root, scrolled
+    // frames mount inside their page's slot.
+    async #createFrame({ index, src: srcOption }, parent = this.#root) {
         const srcOptionIsString = typeof srcOption === 'string'
         const src = srcOptionIsString ? srcOption : srcOption?.src
         const onZoom = srcOptionIsString ? null : srcOption?.onZoom
@@ -100,6 +155,11 @@ export class FixedLayout extends HTMLElement {
         element.setAttribute('dir', 'ltr')
         // READAWARE: annotation overlays are positioned against this box.
         element.style.position = 'relative'
+        // READAWARE: frames are born invisible; `#showFrames` (paged) or the
+        // stack layout (scrolled) reveals them. `visibility` instead of
+        // `display` keeps the composited layers of a cached page alive, so
+        // revealing it cannot flash.
+        element.style.visibility = 'hidden'
         const iframe = document.createElement('iframe')
         element.append(iframe)
         // READAWARE: the overlayer's SVG lives in the host document, above the
@@ -126,8 +186,8 @@ export class FixedLayout extends HTMLElement {
         iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts')
         iframe.setAttribute('scrolling', 'no')
         iframe.setAttribute('part', 'filter')
-        this.#root.append(element)
-        if (!src) return { blank: true, element, iframe, overlay, index }
+        parent.append(element)
+        if (!src) return { blank: true, hidden: true, element, iframe, overlay, index }
         return new Promise(resolve => {
             iframe.addEventListener('load', () => {
                 const doc = iframe.contentDocument
@@ -136,10 +196,16 @@ export class FixedLayout extends HTMLElement {
                     event.preventDefault()
                     this.scrollBy({ top: event.deltaY, left: event.deltaX })
                 }, { passive: false })
-                this.dispatchEvent(new CustomEvent('load', { detail: { doc, index } }))
+                // READAWARE: no 'load' event here. Upstream announced a frame
+                // the moment its iframe loaded, which was per-navigation only
+                // because frames died on navigation. Paged flows announce from
+                // `#showFrames` each time a spread becomes current; the
+                // scrolled stack announces once per created frame. Consumers
+                // attach per-document listeners on 'load' and must dedupe.
                 const { width, height } = getViewport(doc, this.defaultViewport)
                 const frame = {
                     element, iframe, overlay, index, doc,
+                    hidden: true,
                     width: parseFloat(width),
                     height: parseFloat(height),
                     onZoom,
@@ -170,37 +236,77 @@ export class FixedLayout extends HTMLElement {
             },
         }))
     }
-    #render(side = this.#side) {
-        if (!side) return
-        const left = this.#left ?? {}
-        const right = this.#center ?? this.#right ?? {}
-        const target = side === 'left' ? left : right
+    // READAWARE: kick a lazily rendered frame (PDF) at a given scale if its
+    // raster is stale, tracking the promise so navigation and preloading can
+    // sequence behind in-flight renders instead of racing the PDF worker.
+    #renderFrameAt(frame, scale) {
+        if (!frame?.onZoom || frame.renderedScale === scale) return
+        frame.renderedScale = scale
+        frame.renderPromise = frame.onZoom({
+            doc: frame.iframe.contentDocument,
+            scale,
+            pageColors: this.#pageColors,
+        })
+            .then(() => {
+                this.dispatchEvent(new Event('rendered'))
+                // The render rebuilt the text layer, so the overlayer's
+                // ranges are detached — start it over.
+                this.#createOverlayer(frame)
+            })
+            .catch(error => console.error(error))
+    }
+    // READAWARE: cached spreads stay in the DOM; only the current one
+    // participates in layout and paints. `visibility` (not `display`) so the
+    // compositor keeps the hidden page's layers — revealing is then a
+    // property flip, never a repaint flash.
+    #setFrameHidden(frame, hidden) {
+        frame.hidden = hidden
+        Object.assign(frame.element.style, hidden
+            ? { visibility: 'hidden', position: 'absolute', top: '0', left: '0', pointerEvents: 'none' }
+            : { visibility: 'visible', position: 'relative', top: '', left: '', pointerEvents: '' })
+    }
+    // ─── Paged flows (single page / spreads) ─────────────────────────────────
+    // READAWARE: the scale a spread renders at, extracted from `#render` so
+    // background prerendering computes the same answer for a hidden spread.
+    #scaleFor(left, right, center, side) {
+        const l = left ?? {}
+        const r = center ?? right ?? {}
+        const target = side === 'left' ? l : r
         const { width, height } = this.getBoundingClientRect()
         const portrait = !this.scrolled
             && this.spread !== 'both' && this.spread !== 'portrait'
             && height > width
-        this.#portrait = portrait
-        const blankWidth = left.width ?? right.width ?? 0
-        const blankHeight = left.height ?? right.height ?? 0
+        const blankWidth = l.width ?? r.width ?? 0
+        const blankHeight = l.height ?? r.height ?? 0
 
         const scale = this.scrolled
             ? width / (target.width ?? blankWidth)
             : typeof this.#zoom === 'number' && !isNaN(this.#zoom)
                 ? this.#zoom
                 : (this.#zoom === 'fit-width'
-                    ? (portrait || this.#center
+                    ? (portrait || center
                         ? width / (target.width ?? blankWidth)
-                        : width / ((left.width ?? blankWidth) + (right.width ?? blankWidth)))
-                    : (portrait || this.#center
+                        : width / ((l.width ?? blankWidth) + (r.width ?? blankWidth)))
+                    : (portrait || center
                         ? Math.min(
                             width / (target.width ?? blankWidth),
                             height / (target.height ?? blankHeight))
                         : Math.min(
-                            width / ((left.width ?? blankWidth) + (right.width ?? blankWidth)),
+                            width / ((l.width ?? blankWidth) + (r.width ?? blankWidth)),
                             height / Math.max(
-                                left.height ?? blankHeight,
-                                right.height ?? blankHeight)))
+                                l.height ?? blankHeight,
+                                r.height ?? blankHeight)))
                 ) || 1
+        return { scale, portrait, target, blankWidth, blankHeight }
+    }
+    #render(side = this.#side) {
+        if (this.scrolled) return this.#layoutStack()
+        if (!side) return
+        const left = this.#left ?? {}
+        const right = this.#center ?? this.#right ?? {}
+        const { scale, portrait, target, blankWidth, blankHeight } =
+            this.#scaleFor(this.#left, this.#right, this.#center, side)
+        this.#portrait = portrait
 
         const transform = frame => {
             let { element, iframe, overlay, width, height, blank, onZoom } = frame
@@ -208,21 +314,7 @@ export class FixedLayout extends HTMLElement {
             // READAWARE: re-render only when the scale actually changed. A
             // ResizeObserver tick that leaves the scale alone would otherwise
             // redraw the whole page and rebuild its overlayer for nothing.
-            if (onZoom && frame.renderedScale !== scale) {
-                frame.renderedScale = scale
-                onZoom({
-                    doc: frame.iframe.contentDocument,
-                    scale,
-                    pageColors: this.#pageColors,
-                })
-                    .then(() => {
-                        this.dispatchEvent(new Event('rendered'))
-                        // The render rebuilt the text layer, so the overlayer's
-                        // ranges are detached — start it over.
-                        this.#createOverlayer(frame)
-                    })
-                    .catch(error => console.error(error))
-            }
+            this.#renderFrameAt(frame, scale)
             const iframeScale = onZoom ? scale : 1
             Object.assign(iframe.style, {
                 width: `${width * iframeScale}px`,
@@ -261,22 +353,412 @@ export class FixedLayout extends HTMLElement {
             transform(right)
         }
     }
-    async #showSpread({ left, right, center, side }) {
-        this.#root.replaceChildren()
+    // READAWARE: create (or reuse) the frames of one spread. Creations are
+    // memoized by promise so a background preload and a user navigation
+    // arriving at the same spread share one set of iframes.
+    #framesFor(spreadIndex) {
+        const pending = this.#framePromises.get(spreadIndex)
+        if (pending) return pending
+        const spread = this.#spreads[spreadIndex]
+        const promise = (async () => {
+            let frames
+            if (spread.center) {
+                const index = this.book.sections.indexOf(spread.center)
+                const src = await spread.center?.load?.()
+                frames = { center: await this.#createFrame({ index, src }) }
+            } else {
+                const indexL = this.book.sections.indexOf(spread.left)
+                const indexR = this.book.sections.indexOf(spread.right)
+                const srcL = await spread.left?.load?.()
+                const srcR = await spread.right?.load?.()
+                frames = {
+                    left: await this.#createFrame({ index: indexL, src: srcL }),
+                    right: await this.#createFrame({ index: indexR, src: srcR }),
+                }
+            }
+            this.#liveFrames.set(spreadIndex, frames)
+            // Into the recency order at creation — a preloaded spread the
+            // reader never visits must still be evictable.
+            this.#touchLRU(spreadIndex)
+            return frames
+        })()
+        this.#framePromises.set(spreadIndex, promise)
+        promise.catch(() => {
+            // A failed creation must not poison the spread forever.
+            this.#framePromises.delete(spreadIndex)
+            this.#liveFrames.delete(spreadIndex)
+        })
+        return promise
+    }
+    #eachFrame(frames, fn) {
+        for (const frame of [frames?.left, frames?.right, frames?.center])
+            if (frame) fn(frame)
+    }
+    #showFrames(frames, side) {
+        const next = new Set([frames.left, frames.right, frames.center])
+        for (const frame of [this.#left, this.#right, this.#center])
+            if (frame && !next.has(frame)) this.#setFrameHidden(frame, true)
+        this.#left = frames.left ?? null
+        this.#right = frames.right ?? null
+        this.#center = frames.center ?? null
+        this.#eachFrame(frames, frame => this.#setFrameHidden(frame, false))
+        this.#side = frames.center ? 'center'
+            : this.#left?.blank ? 'right'
+                : this.#right?.blank ? 'left' : side
+        // READAWARE: announce the spread's documents on every show — the same
+        // per-navigation 'load' consumers always got, now decoupled from
+        // iframe creation so cached spreads keep the contract. Listeners that
+        // attach to the document must dedupe (the doc may be the same one).
+        this.#eachFrame(frames, frame => {
+            if (frame.doc) this.dispatchEvent(new CustomEvent('load', {
+                detail: { doc: frame.doc, index: frame.index },
+            }))
+        })
+        this.#render()
+    }
+    #touchLRU(spreadIndex) {
+        const at = this.#lru.indexOf(spreadIndex)
+        if (at >= 0) this.#lru.splice(at, 1)
+        this.#lru.push(spreadIndex)
+    }
+    #evict() {
+        const cap = this.#spreads.length <= FULL_RENDER_MAX_SPREADS
+            ? Infinity : CACHE_MAX_SPREADS
+        if (this.#liveFrames.size <= cap) return
+        // Never evict the spread being read or its immediate window — those
+        // are exactly the ones a turn is about to need.
+        const keep = new Set()
+        for (let i = this.#index - PRELOAD_SPREADS_BEHIND;
+            i <= this.#index + PRELOAD_SPREADS_AHEAD; i++) keep.add(i)
+        for (const victim of [...this.#lru]) {
+            if (this.#liveFrames.size <= cap) break
+            if (keep.has(victim)) continue
+            const frames = this.#liveFrames.get(victim)
+            if (frames) this.#eachFrame(frames, frame => frame.element.remove())
+            this.#liveFrames.delete(victim)
+            this.#framePromises.delete(victim)
+            this.#lru.splice(this.#lru.indexOf(victim), 1)
+        }
+    }
+    // READAWARE: warm the spreads a reader is about to turn to. Small books
+    // (≤ FULL_RENDER_MAX_SPREADS) prerender completely, nearest first; larger
+    // books keep a sliding window. Strictly sequential, and starting only
+    // after the visible spread's own renders settle, so preloading never
+    // competes with the page being read for the PDF worker. A newer
+    // navigation bumps the token and the stale chain stops where it is —
+    // anything it already built stays cached.
+    #schedulePreload() {
+        const token = ++this.#preloadToken
+        const origin = this.#index
+        const total = this.#spreads?.length ?? 0
+        if (origin < 0 || total === 0) return
+        const order = []
+        if (total <= FULL_RENDER_MAX_SPREADS) {
+            for (let d = 1; d < total; d++) {
+                if (origin + d < total) order.push(origin + d)
+                if (origin - d >= 0) order.push(origin - d)
+            }
+        } else {
+            for (let d = 1; d <= PRELOAD_SPREADS_AHEAD; d++)
+                if (origin + d < total) order.push(origin + d)
+            for (let d = 1; d <= PRELOAD_SPREADS_BEHIND; d++)
+                if (origin - d >= 0) order.push(origin - d)
+        }
+        void (async () => {
+            const current = [this.#left, this.#right, this.#center]
+            await Promise.allSettled(current.map(frame => frame?.renderPromise))
+            for (const spreadIndex of order) {
+                if (token !== this.#preloadToken) return
+                if (spreadIndex === this.#index) continue
+                try {
+                    const frames = await this.#framesFor(spreadIndex)
+                    if (token !== this.#preloadToken) return
+                    const spread = this.#spreads[spreadIndex]
+                    const side = spread.center ? 'center'
+                        : this.rtl ? 'right' : 'left'
+                    const { scale } = this.#scaleFor(
+                        frames.left, frames.right, frames.center, side)
+                    this.#eachFrame(frames, frame => this.#renderFrameAt(frame, scale))
+                    await Promise.allSettled(
+                        [frames.left, frames.right, frames.center]
+                            .map(frame => frame?.renderPromise))
+                } catch (error) {
+                    console.error(error)
+                }
+                if (token !== this.#preloadToken) return
+                this.#evict()
+            }
+        })()
+    }
+    // ─── Scrolled flow: a continuous stack of pages ──────────────────────────
+    // READAWARE: upstream's scrolled flow was still one spread at a time —
+    // scrolling reached the bottom of a page and the next one replaced it
+    // wholesale. This is a real continuous scroller instead: every page owns
+    // a correctly-sized slot (so the scrollbar and jump targets are honest
+    // for the whole document), and only slots near the viewport hold live,
+    // rendered frames. Far pages tear back down to their placeholders.
+    #stackDims(entry) {
+        if (entry.width && entry.height) return entry
+        if (this.#stackDefaultDims) return this.#stackDefaultDims
+        const viewport = typeof this.defaultViewport === 'object'
+            ? this.defaultViewport : null
+        if (viewport?.width && viewport.height) return {
+            width: parseFloat(viewport.width), height: parseFloat(viewport.height),
+        }
+        return { width: 1000, height: 1414 }
+    }
+    #stackScale(entry) {
+        const width = this.clientWidth
+        const dims = this.#stackDims(entry)
+        return (width / dims.width) || 1
+    }
+    #buildStack() {
+        this.#teardownStack()
+        const total = this.#spreads.length
+        this.#stack = Array.from({ length: total }, () => ({
+            slot: document.createElement('div'),
+            frame: null,
+            framePromise: null,
+            width: 0,
+            height: 0,
+        }))
+        for (const entry of this.#stack) {
+            Object.assign(entry.slot.style, {
+                position: 'relative',
+                flexShrink: '0',
+                overflow: 'hidden',
+            })
+            this.#sizeSlot(entry)
+            this.#root.append(entry.slot)
+        }
+        this.#restackTops()
+    }
+    #sizeSlot(entry) {
+        const dims = this.#stackDims(entry)
+        const scale = this.#stackScale(entry)
+        entry.pixelHeight = dims.height * scale
+        entry.slot.style.width = `${dims.width * scale}px`
+        entry.slot.style.height = `${entry.pixelHeight}px`
+        // A slot whose page isn't rastered yet shows as sheet-colored paper,
+        // not a white slab in a dark room.
+        entry.slot.style.background = this.#pageColors?.background ?? ''
+    }
+    // READAWARE: slot offsets are tracked arithmetically — `offsetTop` is not
+    // dependable across a shadow boundary, and a 3000-slot layout read per
+    // scroll frame would thrash anyway.
+    #restackTops() {
+        let top = 0
+        for (const entry of this.#stack) {
+            entry.top = top
+            top += entry.pixelHeight
+        }
+    }
+    #teardownStack() {
+        if (!this.#stack) return
+        this.#stackToken++
+        for (const entry of this.#stack) entry.slot.remove()
+        this.#stack = null
+        if (this.#stackReportTimer) clearTimeout(this.#stackReportTimer)
+    }
+    /** The stack entry whose slot contains the viewport's center line. */
+    #stackIndexAt(scrollCenter) {
+        if (!this.#stack?.length) return 0
+        let lo = 0, hi = this.#stack.length - 1
+        while (lo < hi) {
+            const mid = (lo + hi) >> 1
+            const entry = this.#stack[mid]
+            if (entry.top + entry.pixelHeight <= scrollCenter) lo = mid + 1
+            else hi = mid
+        }
+        return lo
+    }
+    async #ensureStackFrame(entryIndex) {
+        const entry = this.#stack?.[entryIndex]
+        if (!entry) return null
+        if (entry.framePromise) return entry.framePromise
+        const spread = this.#spreads[entryIndex]
+        const sectionIndex = this.book.sections.indexOf(
+            spread.center ?? spread.left ?? spread.right)
+        const promise = (async () => {
+            const section = spread.center ?? spread.left ?? spread.right
+            const src = await section?.load?.()
+            const frame = await this.#createFrame(
+                { index: sectionIndex, src }, entry.slot)
+            // The stack may have been torn down (mode switch) mid-flight.
+            if (this.#stack?.[entryIndex] !== entry) {
+                frame.element.remove()
+                return null
+            }
+            entry.frame = frame
+            if (!frame.blank) {
+                // First real page dimensions become the placeholder default,
+                // and this page's own slot takes its exact size. Growth above
+                // the viewport would shove the reading position — compensate.
+                this.#stackDefaultDims ??= { width: frame.width, height: frame.height }
+                const before = entry.pixelHeight
+                entry.width = frame.width
+                entry.height = frame.height
+                this.#sizeSlot(entry)
+                const delta = entry.pixelHeight - before
+                if (delta !== 0) {
+                    this.#restackTops()
+                    // Growth above the reading position would shove the page
+                    // under the reader — keep the view anchored.
+                    if (entry.top < this.scrollTop) this.scrollTop += delta
+                }
+            }
+            Object.assign(frame.element.style, {
+                position: 'absolute',
+                top: '0',
+                left: '0',
+                visibility: 'visible',
+            })
+            frame.hidden = false
+            if (frame.doc) this.dispatchEvent(new CustomEvent('load', {
+                detail: { doc: frame.doc, index: frame.index },
+            }))
+            this.#layoutStackFrame(entry)
+            return frame
+        })()
+        entry.framePromise = promise
+        promise.catch(() => {
+            if (this.#stack?.[entryIndex] === entry) {
+                entry.framePromise = null
+                entry.frame = null
+            }
+        })
+        return promise
+    }
+    #layoutStackFrame(entry) {
+        const frame = entry.frame
+        if (!frame || frame.blank) return
+        const scale = this.#stackScale(entry)
+        this.#renderFrameAt(frame, scale)
+        const iframeScale = frame.onZoom ? scale : 1
+        Object.assign(frame.iframe.style, {
+            width: `${frame.width * iframeScale}px`,
+            height: `${frame.height * iframeScale}px`,
+            transform: frame.onZoom ? 'none' : `scale(${scale})`,
+            transformOrigin: 'top left',
+            display: 'block',
+        })
+        Object.assign(frame.overlay.style, {
+            width: `${frame.width * iframeScale}px`,
+            height: `${frame.height * iframeScale}px`,
+            transform: frame.onZoom ? 'none' : `scale(${scale})`,
+        })
+        if (!frame.onZoom) frame.overlayer?.redraw()
+    }
+    #demoteStackFrame(entry) {
+        if (!entry.frame && !entry.framePromise) return
+        const frame = entry.frame
+        if (frame) frame.element.remove()
+        entry.frame = null
+        entry.framePromise = null
+    }
+    #layoutStack() {
+        if (!this.#stack) return
+        for (const entry of this.#stack) this.#sizeSlot(entry)
+        this.#restackTops()
+        for (const entry of this.#stack) this.#layoutStackFrame(entry)
+        this.#updateStackWindow('layout')
+    }
+    // READAWARE: the heart of the scrolled flow — called on scroll (rAF-
+    // throttled), on resize, and after navigations. Reports the new reading
+    // position and keeps the window of live pages centered on it.
+    #updateStackWindow(reason) {
+        if (!this.#stack?.length) return
+        const height = this.clientHeight
+        const top = this.scrollTop
+        const center = top + height / 2
+        const current = this.#stackIndexAt(center)
+        if (current !== this.#stackCurrent || this.#index < 0) {
+            this.#stackCurrent = current
+            this.#index = current
+            // Debounced: a fling crosses many pages; report where it rests.
+            if (this.#stackReportTimer) clearTimeout(this.#stackReportTimer)
+            this.#stackReportTimer = setTimeout(() => {
+                this.#stackReportTimer = 0
+                this.#reportLocation(reason === 'layout' ? 'page' : reason)
+            }, 120)
+        }
+
+        const full = this.#stack.length <= FULL_RENDER_MAX_SPREADS
+        const aheadEdge = top + height * (1 + STACK_AHEAD_VIEWPORTS)
+        const behindEdge = top - height * STACK_BEHIND_VIEWPORTS
+        const keepAhead = top + height * (1 + STACK_KEEP_AHEAD_VIEWPORTS)
+        const keepBehind = top - height * STACK_KEEP_BEHIND_VIEWPORTS
+
+        const wanted = []
+        for (let i = 0; i < this.#stack.length; i++) {
+            const entry = this.#stack[i]
+            const slotTop = entry.top
+            const slotBottom = slotTop + entry.pixelHeight
+            if (full || (slotBottom > behindEdge && slotTop < aheadEdge)) {
+                wanted.push(i)
+            } else if (!(slotBottom > keepBehind && slotTop < keepAhead)) {
+                this.#demoteStackFrame(entry)
+            }
+        }
+        // Nearest to the reading position first, so what the reader is about
+        // to see always wins the PDF worker.
+        wanted.sort((a, b) => Math.abs(a - current) - Math.abs(b - current))
+
+        const token = ++this.#stackToken
+        void (async () => {
+            for (const i of wanted) {
+                if (token !== this.#stackToken) return
+                if (!this.#stack) return
+                try {
+                    const frame = await this.#ensureStackFrame(i)
+                    if (token !== this.#stackToken || !this.#stack) return
+                    if (frame && this.#stack[i]?.frame === frame) {
+                        this.#layoutStackFrame(this.#stack[i])
+                        await frame.renderPromise
+                    }
+                } catch (error) {
+                    console.error(error)
+                }
+            }
+        })()
+    }
+    async #goToStack(index, reason) {
+        if (!this.#stack) return
+        const clamped = Math.max(0, Math.min(index, this.#stack.length - 1))
+        const entry = this.#stack[clamped]
+        this.#stackCurrent = clamped
+        this.#index = clamped
+        this.scrollTop = entry.top
+        this.#updateStackWindow('navigation')
+        this.#reportLocation(reason ?? 'navigation')
+        await this.#ensureStackFrame(clamped)
+    }
+    #onResize() {
+        if (this.scrolled && this.#stack) {
+            // Keep the reading position anchored while every slot resizes.
+            const entry = this.#stack[this.#stackCurrent]
+            const offset = entry
+                ? (this.scrollTop - entry.top) / Math.max(1, entry.pixelHeight)
+                : 0
+            this.#layoutStack()
+            if (entry) this.scrollTop = entry.top + offset * entry.pixelHeight
+            return
+        }
+        this.#render()
+    }
+    #clearFrameCache() {
+        this.#preloadToken++
+        for (const frames of this.#liveFrames.values())
+            this.#eachFrame(frames, frame => frame.element.remove())
+        this.#liveFrames.clear()
+        this.#framePromises.clear()
+        this.#lru = []
         this.#left = null
         this.#right = null
         this.#center = null
-        if (center) {
-            this.#center = await this.#createFrame(center)
-            this.#side = 'center'
-            this.#render()
-        } else {
-            this.#left = await this.#createFrame(left)
-            this.#right = await this.#createFrame(right)
-            this.#side = this.#left.blank ? 'right'
-                : this.#right.blank ? 'left' : side
-            this.#render()
-        }
+        this.#teardownStack()
+        this.#stackDefaultDims = null
+        this.#root.replaceChildren()
     }
     #goLeft() {
         if (this.#center || this.#left?.blank) return
@@ -305,6 +787,7 @@ export class FixedLayout extends HTMLElement {
         this.rtl = rtl
 
         this.#buildSpreads()
+        if (this.scrolled) this.#buildStack()
     }
     #buildSpreads() {
         if (!this.book) return
@@ -358,22 +841,33 @@ export class FixedLayout extends HTMLElement {
         if (!this.book) return
         const currentIndex = this.index
         this.#buildSpreads()
+        // READAWARE: the spread composition (or the flow) changed, so every
+        // cached frame belongs to a layout that no longer exists.
+        this.#clearFrameCache()
+        if (this.scrolled) this.#buildStack()
         this.#index = -1
         if (currentIndex >= 0) void this.goTo({ index: currentIndex })
     }
     // READAWARE: page colors for lazily rendered frames (PDF), as
     // `{ background, foreground? }` — see pdf.js for what each one means — or
     // null to render the page as authored. Baked into the render, so a change
-    // invalidates every frame's cached scale to force a redraw. Set it before
-    // the first navigation and the opening render already has it.
+    // invalidates every live frame's cached scale to force a redraw — cached
+    // hidden spreads included, or turning a page after a palette change would
+    // flash the old colors.
     setPageColors(pageColors) {
         const next = pageColors?.background ? pageColors : null
         if (next?.background === this.#pageColors?.background
             && next?.foreground === this.#pageColors?.foreground) return
         this.#pageColors = next
-        for (const frame of [this.#left, this.#right, this.#center])
-            if (frame) frame.renderedScale = null
+        for (const frames of this.#liveFrames.values())
+            this.#eachFrame(frames, frame => frame.renderedScale = null)
+        if (this.#stack) for (const entry of this.#stack) {
+            if (entry.frame) entry.frame.renderedScale = null
+            this.#sizeSlot(entry)
+        }
         this.#render()
+        // Repaint the warm window in the new colors behind the visible page.
+        if (!this.scrolled) this.#schedulePreload()
     }
     setLayout(flow, maxColumnCount) {
         this.#flow = flow
@@ -395,7 +889,7 @@ export class FixedLayout extends HTMLElement {
         return this.scrollHeight
     }
     get index() {
-        const spread = this.#spreads[this.#index]
+        const spread = this.#spreads?.[this.#index]
         if (!spread) return -1
         const section = spread.center ?? (this.#side === 'left'
             ? spread.left ?? spread.right : spread.right ?? spread.left)
@@ -416,26 +910,21 @@ export class FixedLayout extends HTMLElement {
     }
     async goToSpread(index, side, reason) {
         if (index < 0 || index > this.#spreads.length - 1) return
+        if (this.scrolled) return this.#goToStack(index, reason)
         if (index === this.#index) {
             this.#render(side)
             return
         }
         this.#index = index
-        const spread = this.#spreads[index]
-        if (spread.center) {
-            const index = this.book.sections.indexOf(spread.center)
-            const src = await spread.center?.load?.()
-            await this.#showSpread({ center: { index, src } })
-        } else {
-            const indexL = this.book.sections.indexOf(spread.left)
-            const indexR = this.book.sections.indexOf(spread.right)
-            const srcL = await spread.left?.load?.()
-            const srcR = await spread.right?.load?.()
-            const left = { index: indexL, src: srcL }
-            const right = { index: indexR, src: srcR }
-            await this.#showSpread({ left, right, side })
-        }
+        const frames = await this.#framesFor(index)
+        // READAWARE: a newer navigation landed while the frames were loading —
+        // it owns the display now.
+        if (this.#index !== index) return
+        this.#showFrames(frames, side)
         this.#reportLocation(reason)
+        this.#touchLRU(index)
+        this.#evict()
+        this.#schedulePreload()
     }
     async select(target) {
         await this.goTo(target)
@@ -450,28 +939,50 @@ export class FixedLayout extends HTMLElement {
         await this.goToSpread(index, side)
     }
     async next() {
+        if (this.scrolled)
+            return this.#goToStack(this.#stackCurrent + 1, 'page')
         const s = this.rtl ? this.#goLeft() : this.#goRight()
-        if (!s) {
-            await this.goToSpread(this.#index + 1, this.rtl ? 'right' : 'left', 'page')
-            if (this.scrolled) this.scrollTop = 0
-        }
+        if (!s) await this.goToSpread(this.#index + 1, this.rtl ? 'right' : 'left', 'page')
     }
     async prev() {
+        if (this.scrolled)
+            return this.#goToStack(this.#stackCurrent - 1, 'page')
         const s = this.rtl ? this.#goRight() : this.#goLeft()
-        if (!s) {
-            await this.goToSpread(this.#index - 1, this.rtl ? 'left' : 'right', 'page')
-            if (this.scrolled) this.scrollTop = Math.max(0, this.scrollHeight - this.clientHeight)
-        }
+        if (!s) await this.goToSpread(this.#index - 1, this.rtl ? 'left' : 'right', 'page')
     }
     // READAWARE: report the frames themselves rather than raw iframes, so the
     // view can find the section index and overlayer an annotation belongs to.
+    // The page being read comes first — `getContents()[0]` is "the current
+    // page" to consumers — followed by the other live frames, so annotation
+    // edits reach warm cached pages too.
     getContents() {
-        return [this.#left, this.#right, this.#center]
+        if (this.scrolled && this.#stack) {
+            const current = this.#stackCurrent
+            return this.#stack
+                .map((entry, i) => ({ entry, distance: Math.abs(i - current) }))
+                .filter(({ entry }) => entry.frame?.doc)
+                .sort((a, b) => a.distance - b.distance)
+                .map(({ entry }) => ({
+                    doc: entry.frame.doc,
+                    index: entry.frame.index,
+                    overlayer: entry.frame.overlayer,
+                }))
+        }
+        const current = [this.#left, this.#right, this.#center]
             .filter(frame => frame?.doc)
+        const seen = new Set(current)
+        const cached = []
+        for (const frames of this.#liveFrames.values())
+            this.#eachFrame(frames, frame => {
+                if (frame.doc && !seen.has(frame)) cached.push(frame)
+            })
+        return [...current, ...cached]
             .map(({ doc, index, overlayer }) => ({ doc, index, overlayer }))
     }
     destroy() {
         this.#observer.unobserve(this)
+        this.removeEventListener('scroll', this.#onStackScroll)
+        this.#clearFrameCache()
     }
 }
 

@@ -108,6 +108,35 @@ The typed wrapper that consumes this lives at
   still reports the CFI. This lets ReadAware's navigator focus layer coexist
   with a saved mark on the exact same sentence. Re-apply after any upstream
   update.
+- **`fixed-layout.js` / `view.js` — continuous scroll, spread cache, and
+  prerender:** upstream tore down every iframe on navigation (`#showSpread`
+  began with `replaceChildren()`), so a PDF paid an iframe boot, a canvas
+  raster, and a text layer on every page turn — and its "scrolled" flow was
+  still one page at a time. Two rebuilt flows now share one frame model:
+  - **Scrolled flow is a real continuous stack.** Every page owns a
+    correctly-sized placeholder slot (arithmetically tracked — `offsetTop` is
+    not dependable across a shadow boundary), so the scrollbar and jump
+    targets are honest for the whole document; slots near the viewport hold
+    live rendered frames (promote ~2.5 viewports ahead / 1.5 behind, demote
+    beyond ~5/3), the reading position is derived from the scroll position
+    (binary search, trailing-`setTimeout` throttled — never rAF, which
+    WKWebView suspends entirely while the window is occluded), and
+    `next()`/`prev()` scroll page-by-page.
+  - **Paged flows keep a spread cache.** Frames stay alive per spread hidden
+    via `visibility` (compositor layers survive, so revealing cannot flash),
+    neighbors prerender after the visible page settles (ahead 2 / behind 1),
+    and an LRU evicts beyond 10 live spreads. Books at or under 12 spreads
+    render completely and stay resident — budgets sized against Retina-scale
+    canvas memory (~12–17 MB per page).
+  Contract changes: `load` is dispatched when a spread is SHOWN (paged;
+  repeatedly for a cached document) or when a stack frame is created
+  (scrolled), never by paged preloading — per-document listeners must dedupe.
+  `view.js` guards its link handling/cursor autohide with a per-document
+  WeakSet, replaces the overlayer hit-test click listener per document
+  instead of stacking one per re-render, and the app's reader guards
+  `attachDocListeners` the same way. `getContents()` returns the page being
+  read first (consumers index `[0]`), followed by other live frames so
+  annotation edits reach warm pages. Re-apply after any upstream update.
 - Otherwise all engine modules and `vendor/` are byte-for-byte upstream.
 
 ## Updating

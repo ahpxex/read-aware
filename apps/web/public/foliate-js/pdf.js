@@ -53,7 +53,14 @@ const renderCoverPage = async (page, deadline) => {
     const canvasContext = canvas.getContext('2d', { alpha: false })
     canvasContext.fillStyle = '#fff'
     canvasContext.fillRect(0, 0, canvas.width, canvas.height)
-    const task = page.render({ canvasContext, viewport })
+    // READAWARE: `intent: "print"` — display-intent rendering paces itself
+    // with requestAnimationFrame, which WKWebView suspends entirely while
+    // the window is occluded. A cover is an offscreen thumbnail extracted at
+    // import time; drag a batch of PDFs in and switch away, and every cover
+    // would silently time out against its budget, leaving the shelf blank
+    // until each book's first open. Print intent renders without the
+    // animation-frame dependency.
+    const task = page.render({ canvasContext, viewport, intent: 'print' })
     const remaining = deadline - performance.now()
     if (remaining <= 0) return { blob: null, meaningful: false, timedOut: true }
     const timeout = setTimeout(() => task.cancel(), remaining)

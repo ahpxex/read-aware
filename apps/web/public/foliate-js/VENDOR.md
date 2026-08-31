@@ -175,6 +175,12 @@ The typed wrapper that consumes this lives at
   measured) and appended them one by one. Batch passes read the width once
   and the build lands in a single `DocumentFragment` insertion (38 ms for
   the same book). Re-apply after any upstream update.
+- **`pdf.js` — occlusion-proof cover extraction:** import-time PDF covers
+  render with `intent: "print"`. Display-intent rendering paces itself with
+  `requestAnimationFrame`, which WKWebView suspends entirely while the window
+  is occluded — drag a batch of PDFs in and switch away, and every cover
+  silently timed out against its 2.5 s budget, leaving the shelf coverless
+  until each book's first open. Re-apply after any upstream update.
 - Otherwise all engine modules and `vendor/` are byte-for-byte upstream.
 
 ## Updating

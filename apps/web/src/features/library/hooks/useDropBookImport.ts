@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { dragCarriesBooks } from "../../shelf/lib/book-drag";
 import { BOOK_FILE_EXTENSIONS } from "../lib/pick-book-files";
 import type { BookImportSource } from "../lib/library-types";
 
@@ -13,8 +14,9 @@ function isBookFile(file: File): boolean {
  * Window-wide drag-and-drop book import. Works because the Tauri window has
  * `dragDropEnabled: false` (native interception off for the menus feature's
  * HTML5 drags), which leaves OS file drops to arrive as plain HTML5 drop
- * events. Only OS file drags carry the "Files" type, so in-app HTML5 drags
- * never trigger the overlay or the importer.
+ * events. "Files" alone doesn't prove an OS drop: WebKit tags a native image
+ * drag (a shelf cover) with "Files" too, so drags carrying the shelf's own
+ * book payload are excluded explicitly.
  *
  * Returns whether a file drag is currently hovering the window (drives the
  * drop overlay).
@@ -31,7 +33,8 @@ export function useDropBookImport(
     // overlay survives moving across children and clears on leaving the window.
     let depth = 0;
     const hasFiles = (event: DragEvent) =>
-      event.dataTransfer?.types.includes("Files") ?? false;
+      (event.dataTransfer?.types.includes("Files") ?? false) &&
+      !dragCarriesBooks(event.dataTransfer);
 
     function onDragEnter(event: DragEvent) {
       if (!hasFiles(event)) return;

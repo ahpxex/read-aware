@@ -136,5 +136,10 @@
   "errors": {
     "generic": "Algo salió mal al actualizar tu biblioteca.",
     "unsupportedFormat": "Tipo de archivo no compatible: {{name}}. Formatos compatibles: EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, PDF."
+  },
+  "dragDock": {
+    "newCollectionTitle_one": "Nueva colección para {{count}} libro",
+    "newCollectionTitle_many": "Nueva colección para {{count}} libros",
+    "newCollectionTitle_other": "Nueva colección para {{count}} libros"
   }
 }

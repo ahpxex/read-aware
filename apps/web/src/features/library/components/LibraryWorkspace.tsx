@@ -1,14 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import { Books } from "@phosphor-icons/react";
 import { Body, Button, EmptyState, Skeleton } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { useTranslation } from "../../../i18n";
 import { Shelf } from "../../shelf/components/Shelf";
+import { BooksRemoveDialog } from "../../shelf/components/BookDialogs";
 import { CollectionHeader } from "../../shelf/components/CollectionHeader";
 import type { CollectionTileData } from "../../shelf/components/CollectionTile";
+import { NewCollectionDialog } from "../../shelf/components/NewCollectionDialog";
+import { ShelfDragDock } from "../../shelf/components/ShelfDragDock";
 import { ShelfSelectionToolbar } from "../../shelf/components/ShelfSelectionToolbar";
 import { deriveShelfView } from "../../shelf/lib/derive-shelf-view";
+import { useShelfBookDrag } from "../../shelf/hooks/useShelfBookDrag";
 import { useShelfSelection } from "../../shelf/hooks/useShelfSelection";
 import { activeCollectionAtom, shelfViewAtom } from "../../../state/ui";
 import type { BookMetadataPatch, Collection, LibraryBook } from "../lib/library-types";
@@ -58,6 +62,37 @@ export function LibraryWorkspace({
   const [activeCollectionId, setActiveCollectionId] = useAtom(activeCollectionAtom);
   const { active, ids, selectedIds, exit, clear, toggle, selectAll } = useShelfSelection();
   const [showPendingBooks, setShowPendingBooks] = useState(false);
+  const bookDragActive = useShelfBookDrag();
+  // A drop on "new collection" / "remove" hands its book ids to a confirming
+  // dialog; the pending drop lives here until the dialog resolves it.
+  const [dragAction, setDragAction] = useState<
+    { kind: "new-collection" | "remove"; ids: string[] } | null
+  >(null);
+
+  // A selected card drags the whole selection; anything else drags itself.
+  const dragIdsFor = useCallback(
+    (book: LibraryBook) =>
+      active && selectedIds.has(book.id) && ids.length > 0 ? ids : [book.id],
+    [active, selectedIds, ids],
+  );
+
+  // Selection mode ends when the dragged books were the selection — its books
+  // just left the visible shelf slice, so a lingering toolbar would act on ids
+  // the user can no longer see.
+  const exitSelectionFor = useCallback(
+    (draggedIds: string[]) => {
+      if (active && draggedIds.some((id) => selectedIds.has(id))) exit();
+    },
+    [active, selectedIds, exit],
+  );
+
+  const assignDraggedBooks = useCallback(
+    (draggedIds: string[], collectionId: string | null) => {
+      onSetBooksCollection(draggedIds, collectionId);
+      exitSelectionFor(draggedIds);
+    },
+    [onSetBooksCollection, exitSelectionFor],
+  );
 
   // Native imports normally finish before feedback is useful. Slow imports use
   // their fully prepared book record as a sorted placeholder, so the reserved
@@ -153,7 +188,10 @@ export function LibraryWorkspace({
         active ? "pb-28" : "pb-8 sm:pb-10",
       )}
     >
-      {active && books.length > 0 && (
+      {/* While a drag is in flight the dock takes the toolbar's spot — both
+          are fixed bottom-center, and mid-drag the drop zones are the only
+          actionable surface anyway. */}
+      {active && books.length > 0 && !bookDragActive && (
         <ShelfSelectionToolbar
           count={ids.length}
           total={visible.length}
@@ -224,6 +262,10 @@ export function LibraryWorkspace({
               collections={collectionTiles}
               pendingBookIds={pendingBookIds}
               openingBookId={openingBookId}
+              getDragIds={dragIdsFor}
+              onDropBooksOnCollection={(collectionId, droppedIds) =>
+                assignDraggedBooks(droppedIds, collectionId)
+              }
               onOpenCollection={(id) => setActiveCollectionId(id)}
               selecting={active}
               selectedIds={selectedIds}
@@ -236,6 +278,46 @@ export function LibraryWorkspace({
           )}
         </div>
       )}
+
+      {bookDragActive && (
+        <ShelfDragDock
+          collections={
+            activeCollection
+              ? collections.filter((c) => c.id !== activeCollection.id)
+              : collections
+          }
+          inCollection={Boolean(activeCollection)}
+          onAssign={assignDraggedBooks}
+          onNewCollection={(droppedIds) => setDragAction({ kind: "new-collection", ids: droppedIds })}
+          onDelete={(droppedIds) => setDragAction({ kind: "remove", ids: droppedIds })}
+        />
+      )}
+
+      <NewCollectionDialog
+        open={dragAction?.kind === "new-collection"}
+        count={dragAction?.kind === "new-collection" ? dragAction.ids.length : 0}
+        onClose={() => setDragAction(null)}
+        onCreate={async (name) => {
+          if (dragAction?.kind !== "new-collection") return false;
+          const collection = await onCreateCollection(name);
+          if (!collection) return false;
+          assignDraggedBooks(dragAction.ids, collection.id);
+          setDragAction(null);
+          return true;
+        }}
+      />
+      <BooksRemoveDialog
+        open={dragAction?.kind === "remove"}
+        count={dragAction?.kind === "remove" ? dragAction.ids.length : 0}
+        onClose={() => setDragAction(null)}
+        onConfirm={() => {
+          if (dragAction?.kind === "remove") {
+            onBulkRemove(dragAction.ids);
+            exitSelectionFor(dragAction.ids);
+          }
+          setDragAction(null);
+        }}
+      />
     </div>
   );
 }

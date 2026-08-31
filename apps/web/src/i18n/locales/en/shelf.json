@@ -130,5 +130,9 @@
   "errors": {
     "generic": "Something went wrong while updating your library.",
     "unsupportedFormat": "Unsupported file type: {{name}}. Supported formats: EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, PDF."
+  },
+  "dragDock": {
+    "newCollectionTitle_one": "New collection for {{count}} book",
+    "newCollectionTitle_other": "New collection for {{count}} books"
   }
 }

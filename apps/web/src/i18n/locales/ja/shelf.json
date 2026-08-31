@@ -124,5 +124,8 @@
   "errors": {
     "generic": "ライブラリの更新中に問題が発生しました。",
     "unsupportedFormat": "サポートされていないファイル形式：{{name}}。対応形式：EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML、PDF。"
+  },
+  "dragDock": {
+    "newCollectionTitle_other": "{{count}}冊の本で新しいコレクションを作成"
   }
 }

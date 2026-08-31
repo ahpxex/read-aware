@@ -136,5 +136,10 @@
   "errors": {
     "generic": "Une erreur s’est produite lors de la mise à jour de votre bibliothèque.",
     "unsupportedFormat": "Type de fichier non pris en charge : {{name}}. Formats pris en charge : EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, PDF."
+  },
+  "dragDock": {
+    "newCollectionTitle_one": "Nouvelle collection pour {{count}} livre",
+    "newCollectionTitle_many": "Nouvelle collection pour {{count}} livres",
+    "newCollectionTitle_other": "Nouvelle collection pour {{count}} livres"
   }
 }

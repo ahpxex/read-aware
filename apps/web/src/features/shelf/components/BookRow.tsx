@@ -4,6 +4,7 @@ import { cn } from "@read-aware/ui/cn";
 import { useLocalAtom } from "@read-aware/ui/state";
 import { formatPercent, useTranslation } from "../../../i18n";
 import type { BookMetadataPatch, LibraryBook } from "../../library/lib/library-types";
+import { setBookDragPayload } from "../lib/book-drag";
 import { BookCoverPlaceholder } from "./BookCoverPlaceholder";
 import { BookDetailsDialog, BookRemoveDialog } from "./BookDialogs";
 
@@ -16,6 +17,11 @@ type BookRowProps = {
   onToggleStar?: () => void;
   onUpdateMetadata?: (patch: BookMetadataPatch) => void;
   onToggleSelect?: () => void;
+  /**
+   * Ids this row drags (selection-aware — a selected row drags the whole
+   * selection). Absence leaves the row non-draggable.
+   */
+  getDragIds?: () => string[];
   /** This book is being opened: show a quiet spinner over the thumbnail. */
   opening?: boolean;
   className?: string;
@@ -30,6 +36,7 @@ export function BookRow({
   onToggleStar,
   onUpdateMetadata,
   onToggleSelect,
+  getDragIds,
   opening = false,
   className,
 }: BookRowProps) {
@@ -50,6 +57,16 @@ export function BookRow({
         onClick={selecting ? onToggleSelect : onClick}
         aria-pressed={selecting ? selected : undefined}
         className="flex min-w-0 flex-1 items-center gap-4 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg rounded-sm"
+        draggable={Boolean(getDragIds)}
+        onDragStart={(event) => {
+          const ids = getDragIds?.();
+          if (!ids || ids.length === 0) {
+            event.preventDefault();
+            return;
+          }
+          setBookDragPayload(event.dataTransfer, ids);
+          event.dataTransfer.effectAllowed = "move";
+        }}
       >
         {selecting && (
           <span
@@ -64,7 +81,9 @@ export function BookRow({
         )}
         <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-sm shadow-sm">
           {book.coverUrl ? (
-            <img src={book.coverUrl} alt="" className="h-full w-full object-cover" />
+            // draggable=false: the row is the drag source, and a default image
+            // drag would carry "Files" and read as an OS drop to the importer.
+            <img src={book.coverUrl} alt="" draggable={false} className="h-full w-full object-cover" />
           ) : (
             <BookCoverPlaceholder title={book.title} author={book.author} format={book.format} />
           )}

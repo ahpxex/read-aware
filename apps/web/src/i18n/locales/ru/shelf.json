@@ -142,5 +142,11 @@
   "errors": {
     "generic": "Что-то пошло не так при обновлении библиотеки.",
     "unsupportedFormat": "Неподдерживаемый тип файла: {{name}}. Поддерживаемые форматы: EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, PDF."
+  },
+  "dragDock": {
+    "newCollectionTitle_one": "Новая коллекция для {{count}} книги",
+    "newCollectionTitle_few": "Новая коллекция для {{count}} книг",
+    "newCollectionTitle_many": "Новая коллекция для {{count}} книг",
+    "newCollectionTitle_other": "Новая коллекция для {{count}} книги"
   }
 }

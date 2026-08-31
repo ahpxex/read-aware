@@ -24,6 +24,10 @@ type SectionBodyProps = {
   onToggleStar?: (book: LibraryBook) => void;
   onUpdateMetadata?: (book: LibraryBook, patch: BookMetadataPatch) => void;
   onToggleSelect?: (book: LibraryBook) => void;
+  /** Ids a card drags for this book (selection-aware); absence disables dragging. */
+  getDragIds?: (book: LibraryBook) => string[];
+  /** Books dragged from the shelf were dropped on a collection tile. */
+  onDropBooksOnCollection?: (collectionId: string, ids: string[]) => void;
   /** Book currently being opened (spinner feedback on its cover). */
   openingBookId?: string | null;
 };
@@ -65,6 +69,8 @@ function SectionBody({
   onToggleStar,
   onUpdateMetadata,
   onToggleSelect,
+  getDragIds,
+  onDropBooksOnCollection,
   openingBookId,
 }: SectionBodyProps) {
   const tiles = collections.map((data) => (
@@ -73,6 +79,11 @@ function SectionBody({
       data={data}
       layout={layout}
       onOpen={() => onOpenCollection?.(data.id)}
+      onDropBooks={
+        onDropBooksOnCollection
+          ? (ids) => onDropBooksOnCollection(data.id, ids)
+          : undefined
+      }
     />
   ));
 
@@ -87,6 +98,7 @@ function SectionBody({
             <BookRow
               key={book.id}
               book={book}
+              getDragIds={getDragIds ? () => getDragIds(book) : undefined}
               selecting={selecting}
               selected={selectedIds?.has(book.id) ?? false}
               opening={book.id === openingBookId}
@@ -114,6 +126,7 @@ function SectionBody({
           <BookCover
             key={book.id}
             book={book}
+            getDragIds={getDragIds ? () => getDragIds(book) : undefined}
             selecting={selecting}
             selected={selectedIds?.has(book.id) ?? false}
             opening={book.id === openingBookId}
@@ -144,6 +157,10 @@ type ShelfProps = {
   onToggleStar?: (book: LibraryBook) => void;
   onUpdateMetadata?: (book: LibraryBook, patch: BookMetadataPatch) => void;
   onToggleSelect?: (book: LibraryBook) => void;
+  /** Ids a card drags for this book (selection-aware); absence disables dragging. */
+  getDragIds?: (book: LibraryBook) => string[];
+  /** Books dragged from the shelf were dropped on a collection tile. */
+  onDropBooksOnCollection?: (collectionId: string, ids: string[]) => void;
   /** Book currently being opened (spinner feedback on its cover). */
   openingBookId?: string | null;
   className?: string;
@@ -162,6 +179,8 @@ export function Shelf({
   onToggleStar,
   onUpdateMetadata,
   onToggleSelect,
+  getDragIds,
+  onDropBooksOnCollection,
   openingBookId,
   className,
 }: ShelfProps) {
@@ -192,6 +211,8 @@ export function Shelf({
             onToggleStar={onToggleStar}
             onUpdateMetadata={onUpdateMetadata}
             onToggleSelect={onToggleSelect}
+            getDragIds={getDragIds}
+            onDropBooksOnCollection={onDropBooksOnCollection}
             openingBookId={openingBookId}
           />
         </section>

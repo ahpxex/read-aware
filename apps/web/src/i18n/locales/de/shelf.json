@@ -130,5 +130,9 @@
   "errors": {
     "generic": "Beim Aktualisieren deiner Bibliothek ist etwas schiefgelaufen.",
     "unsupportedFormat": "Nicht unterstützter Dateityp: {{name}}. Unterstützte Formate: EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, PDF."
+  },
+  "dragDock": {
+    "newCollectionTitle_one": "Neue Sammlung für {{count}} Buch",
+    "newCollectionTitle_other": "Neue Sammlung für {{count}} Bücher"
   }
 }

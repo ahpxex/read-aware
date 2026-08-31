@@ -5,6 +5,7 @@ import { useLocalAtom } from "@read-aware/ui/state";
 import { formatPercent, useTranslation } from "../../../i18n";
 import type { BookMetadataPatch, LibraryBook } from "../../library/lib/library-types";
 import { useLongPress } from "../hooks/useLongPress";
+import { setBookDragPayload } from "../lib/book-drag";
 import { BookCoverPlaceholder } from "./BookCoverPlaceholder";
 import { BookDetailsDialog, BookRemoveDialog } from "./BookDialogs";
 
@@ -17,6 +18,11 @@ type BookCoverProps = {
   onToggleStar?: () => void;
   onUpdateMetadata?: (patch: BookMetadataPatch) => void;
   onToggleSelect?: () => void;
+  /**
+   * Ids this card drags (selection-aware — a selected card drags the whole
+   * selection). Absence leaves the card non-draggable.
+   */
+  getDragIds?: () => string[];
   /** This book is being opened: show a quiet spinner over the cover. */
   opening?: boolean;
   className?: string;
@@ -31,6 +37,7 @@ export function BookCover({
   onToggleStar,
   onUpdateMetadata,
   onToggleSelect,
+  getDragIds,
   opening = false,
   className,
 }: BookCoverProps) {
@@ -56,6 +63,16 @@ export function BookCover({
         onClick={selecting ? onToggleSelect : onClick}
         aria-pressed={selecting ? selected : undefined}
         className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg focus-visible:ring-offset-2 focus-visible:ring-offset-fill"
+        draggable={Boolean(getDragIds)}
+        onDragStart={(event) => {
+          const ids = getDragIds?.();
+          if (!ids || ids.length === 0) {
+            event.preventDefault();
+            return;
+          }
+          setBookDragPayload(event.dataTransfer, ids);
+          event.dataTransfer.effectAllowed = "move";
+        }}
         {...longPress}
       >
         {/* Hover shadow is a pointer-fine affordance; on touch a tap's focus
@@ -65,6 +82,9 @@ export function BookCover({
             <img
               src={book.coverUrl}
               alt={t("book.cover", { title: book.title })}
+              // The card is the drag source; a default image drag would carry
+              // "Files" and read as an OS drop to the import listener.
+              draggable={false}
               className="h-full w-full object-cover"
             />
           ) : (

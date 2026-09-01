@@ -15,7 +15,8 @@
     "changelogImproved": "改善",
     "changelogFixed": "修正",
     "changelogOlder": "更早的版本在 GitHub 上 →",
-    "changelogRelease": "版本說明"
+    "changelogRelease": "版本說明",
+    "privacy": "隱私政策"
   },
   "code": {
     "copy": "複製程式碼",

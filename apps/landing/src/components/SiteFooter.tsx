@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useSiteCopy } from "../i18n/use-site-copy";
-import type { Locale } from "../lib/i18n";
+import { localizePath, type Locale } from "../lib/i18n";
 import { CONTACT_EMAIL, HEADER_ICON_URL } from "../lib/site";
 import { TOPIC_PAGES } from "../lib/topic-pages";
 
@@ -47,6 +47,12 @@ export function SiteFooter({ locale = "en" }: { locale?: Locale }) {
           <span className="text-fg">ReadAware</span>
         </div>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
+          <Link
+            to={localizePath("/privacy", locale) as never}
+            className="transition-colors hover:text-fg"
+          >
+            {strings.privacy}
+          </Link>
           <a
             href={`mailto:${CONTACT_EMAIL}`}
             className="transition-colors hover:text-fg"

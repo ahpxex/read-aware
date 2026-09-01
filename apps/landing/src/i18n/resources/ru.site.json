@@ -15,7 +15,8 @@
     "changelogImproved": "Улучшено",
     "changelogFixed": "Исправлено",
     "changelogOlder": "Старые выпуски на GitHub →",
-    "changelogRelease": "Примечания к выпуску"
+    "changelogRelease": "Примечания к выпуску",
+    "privacy": "Конфиденциальность"
   },
   "code": {
     "copy": "Копировать код",

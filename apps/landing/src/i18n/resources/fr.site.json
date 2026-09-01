@@ -15,7 +15,8 @@
     "changelogImproved": "Amélioré",
     "changelogFixed": "Corrigé",
     "changelogOlder": "Versions précédentes sur GitHub →",
-    "changelogRelease": "Notes de version"
+    "changelogRelease": "Notes de version",
+    "privacy": "Confidentialité"
   },
   "code": {
     "copy": "Copier le code",

@@ -15,7 +15,8 @@
     "changelogImproved": "改善",
     "changelogFixed": "修正",
     "changelogOlder": "以前のリリースはGitHubで →",
-    "changelogRelease": "リリースノート"
+    "changelogRelease": "リリースノート",
+    "privacy": "プライバシー"
   },
   "code": {
     "copy": "コードをコピー",

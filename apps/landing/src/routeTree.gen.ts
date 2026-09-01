@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as OpenSourceEbookReaderRouteImport } from './routes/open-source-ebook-reader'
 import { Route as EpubReaderForWindowsRouteImport } from './routes/epub-reader-for-windows'
@@ -27,28 +28,35 @@ import { Route as EsIndexRouteImport } from './routes/es/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as DeIndexRouteImport } from './routes/de/index'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
+import { Route as ZhPrivacyRouteImport } from './routes/zh/privacy'
 import { Route as ZhPricingRouteImport } from './routes/zh/pricing'
 import { Route as ZhDocsRouteImport } from './routes/zh/docs'
 import { Route as ZhChangelogRouteImport } from './routes/zh/changelog'
 import { Route as ZhBlogRouteImport } from './routes/zh/blog'
+import { Route as ZhHantPrivacyRouteImport } from './routes/zh-hant/privacy'
 import { Route as ZhHantPricingRouteImport } from './routes/zh-hant/pricing'
 import { Route as ZhHantDocsRouteImport } from './routes/zh-hant/docs'
 import { Route as ZhHantChangelogRouteImport } from './routes/zh-hant/changelog'
+import { Route as RuPrivacyRouteImport } from './routes/ru/privacy'
 import { Route as RuPricingRouteImport } from './routes/ru/pricing'
 import { Route as RuDocsRouteImport } from './routes/ru/docs'
 import { Route as RuChangelogRouteImport } from './routes/ru/changelog'
+import { Route as JaPrivacyRouteImport } from './routes/ja/privacy'
 import { Route as JaPricingRouteImport } from './routes/ja/pricing'
 import { Route as JaDocsRouteImport } from './routes/ja/docs'
 import { Route as JaChangelogRouteImport } from './routes/ja/changelog'
 import { Route as JaBlogRouteImport } from './routes/ja/blog'
+import { Route as FrPrivacyRouteImport } from './routes/fr/privacy'
 import { Route as FrPricingRouteImport } from './routes/fr/pricing'
 import { Route as FrDocsRouteImport } from './routes/fr/docs'
 import { Route as FrChangelogRouteImport } from './routes/fr/changelog'
+import { Route as EsPrivacyRouteImport } from './routes/es/privacy'
 import { Route as EsPricingRouteImport } from './routes/es/pricing'
 import { Route as EsDocsRouteImport } from './routes/es/docs'
 import { Route as EsChangelogRouteImport } from './routes/es/changelog'
 import { Route as DocsInstallRouteImport } from './routes/docs/install'
 import { Route as DocsGettingStartedRouteImport } from './routes/docs/getting-started'
+import { Route as DePrivacyRouteImport } from './routes/de/privacy'
 import { Route as DePricingRouteImport } from './routes/de/pricing'
 import { Route as DeDocsRouteImport } from './routes/de/docs'
 import { Route as DeChangelogRouteImport } from './routes/de/changelog'
@@ -128,6 +136,11 @@ import { Route as DeDocsPluginsDevelopRouteImport } from './routes/de/docs/plugi
 import { Route as DeDocsPluginsCapabilitiesRouteImport } from './routes/de/docs/plugins/capabilities'
 import { Route as DeDocsPluginsApiRouteImport } from './routes/de/docs/plugins/api'
 
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
@@ -218,6 +231,11 @@ const BlogIndexRoute = BlogIndexRouteImport.update({
   path: '/',
   getParentRoute: () => BlogRoute,
 } as any)
+const ZhPrivacyRoute = ZhPrivacyRouteImport.update({
+  id: '/zh/privacy',
+  path: '/zh/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ZhPricingRoute = ZhPricingRouteImport.update({
   id: '/zh/pricing',
   path: '/zh/pricing',
@@ -238,6 +256,11 @@ const ZhBlogRoute = ZhBlogRouteImport.update({
   path: '/zh/blog',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ZhHantPrivacyRoute = ZhHantPrivacyRouteImport.update({
+  id: '/zh-hant/privacy',
+  path: '/zh-hant/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ZhHantPricingRoute = ZhHantPricingRouteImport.update({
   id: '/zh-hant/pricing',
   path: '/zh-hant/pricing',
@@ -253,6 +276,11 @@ const ZhHantChangelogRoute = ZhHantChangelogRouteImport.update({
   path: '/zh-hant/changelog',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RuPrivacyRoute = RuPrivacyRouteImport.update({
+  id: '/ru/privacy',
+  path: '/ru/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RuPricingRoute = RuPricingRouteImport.update({
   id: '/ru/pricing',
   path: '/ru/pricing',
@@ -266,6 +294,11 @@ const RuDocsRoute = RuDocsRouteImport.update({
 const RuChangelogRoute = RuChangelogRouteImport.update({
   id: '/ru/changelog',
   path: '/ru/changelog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JaPrivacyRoute = JaPrivacyRouteImport.update({
+  id: '/ja/privacy',
+  path: '/ja/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JaPricingRoute = JaPricingRouteImport.update({
@@ -288,6 +321,11 @@ const JaBlogRoute = JaBlogRouteImport.update({
   path: '/ja/blog',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FrPrivacyRoute = FrPrivacyRouteImport.update({
+  id: '/fr/privacy',
+  path: '/fr/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FrPricingRoute = FrPricingRouteImport.update({
   id: '/fr/pricing',
   path: '/fr/pricing',
@@ -301,6 +339,11 @@ const FrDocsRoute = FrDocsRouteImport.update({
 const FrChangelogRoute = FrChangelogRouteImport.update({
   id: '/fr/changelog',
   path: '/fr/changelog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EsPrivacyRoute = EsPrivacyRouteImport.update({
+  id: '/es/privacy',
+  path: '/es/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EsPricingRoute = EsPricingRouteImport.update({
@@ -327,6 +370,11 @@ const DocsGettingStartedRoute = DocsGettingStartedRouteImport.update({
   id: '/getting-started',
   path: '/getting-started',
   getParentRoute: () => DocsRoute,
+} as any)
+const DePrivacyRoute = DePrivacyRouteImport.update({
+  id: '/de/privacy',
+  path: '/de/privacy',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const DePricingRoute = DePricingRouteImport.update({
   id: '/de/pricing',
@@ -742,6 +790,7 @@ export interface FileRoutesByFullPath {
   '/epub-reader-for-windows': typeof EpubReaderForWindowsRoute
   '/open-source-ebook-reader': typeof OpenSourceEbookReaderRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/blog/lake-baikal': typeof BlogLakeBaikalRoute
   '/blog/local-first': typeof BlogLocalFirstRoute
   '/blog/plugins-v1': typeof BlogPluginsV1Route
@@ -749,28 +798,35 @@ export interface FileRoutesByFullPath {
   '/de/changelog': typeof DeChangelogRoute
   '/de/docs': typeof DeDocsRouteWithChildren
   '/de/pricing': typeof DePricingRoute
+  '/de/privacy': typeof DePrivacyRoute
   '/docs/getting-started': typeof DocsGettingStartedRoute
   '/docs/install': typeof DocsInstallRoute
   '/es/changelog': typeof EsChangelogRoute
   '/es/docs': typeof EsDocsRouteWithChildren
   '/es/pricing': typeof EsPricingRoute
+  '/es/privacy': typeof EsPrivacyRoute
   '/fr/changelog': typeof FrChangelogRoute
   '/fr/docs': typeof FrDocsRouteWithChildren
   '/fr/pricing': typeof FrPricingRoute
+  '/fr/privacy': typeof FrPrivacyRoute
   '/ja/blog': typeof JaBlogRouteWithChildren
   '/ja/changelog': typeof JaChangelogRoute
   '/ja/docs': typeof JaDocsRouteWithChildren
   '/ja/pricing': typeof JaPricingRoute
+  '/ja/privacy': typeof JaPrivacyRoute
   '/ru/changelog': typeof RuChangelogRoute
   '/ru/docs': typeof RuDocsRouteWithChildren
   '/ru/pricing': typeof RuPricingRoute
+  '/ru/privacy': typeof RuPrivacyRoute
   '/zh-hant/changelog': typeof ZhHantChangelogRoute
   '/zh-hant/docs': typeof ZhHantDocsRouteWithChildren
   '/zh-hant/pricing': typeof ZhHantPricingRoute
+  '/zh-hant/privacy': typeof ZhHantPrivacyRoute
   '/zh/blog': typeof ZhBlogRouteWithChildren
   '/zh/changelog': typeof ZhChangelogRoute
   '/zh/docs': typeof ZhDocsRouteWithChildren
   '/zh/pricing': typeof ZhPricingRoute
+  '/zh/privacy': typeof ZhPrivacyRoute
   '/blog/': typeof BlogIndexRoute
   '/de/': typeof DeIndexRoute
   '/docs/': typeof DocsIndexRoute
@@ -860,26 +916,34 @@ export interface FileRoutesByTo {
   '/epub-reader-for-windows': typeof EpubReaderForWindowsRoute
   '/open-source-ebook-reader': typeof OpenSourceEbookReaderRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/blog/lake-baikal': typeof BlogLakeBaikalRoute
   '/blog/local-first': typeof BlogLocalFirstRoute
   '/blog/plugins-v1': typeof BlogPluginsV1Route
   '/blog/reading-that-remembers': typeof BlogReadingThatRemembersRoute
   '/de/changelog': typeof DeChangelogRoute
   '/de/pricing': typeof DePricingRoute
+  '/de/privacy': typeof DePrivacyRoute
   '/docs/getting-started': typeof DocsGettingStartedRoute
   '/docs/install': typeof DocsInstallRoute
   '/es/changelog': typeof EsChangelogRoute
   '/es/pricing': typeof EsPricingRoute
+  '/es/privacy': typeof EsPrivacyRoute
   '/fr/changelog': typeof FrChangelogRoute
   '/fr/pricing': typeof FrPricingRoute
+  '/fr/privacy': typeof FrPrivacyRoute
   '/ja/changelog': typeof JaChangelogRoute
   '/ja/pricing': typeof JaPricingRoute
+  '/ja/privacy': typeof JaPrivacyRoute
   '/ru/changelog': typeof RuChangelogRoute
   '/ru/pricing': typeof RuPricingRoute
+  '/ru/privacy': typeof RuPrivacyRoute
   '/zh-hant/changelog': typeof ZhHantChangelogRoute
   '/zh-hant/pricing': typeof ZhHantPricingRoute
+  '/zh-hant/privacy': typeof ZhHantPrivacyRoute
   '/zh/changelog': typeof ZhChangelogRoute
   '/zh/pricing': typeof ZhPricingRoute
+  '/zh/privacy': typeof ZhPrivacyRoute
   '/blog': typeof BlogIndexRoute
   '/de': typeof DeIndexRoute
   '/docs': typeof DocsIndexRoute
@@ -972,6 +1036,7 @@ export interface FileRoutesById {
   '/epub-reader-for-windows': typeof EpubReaderForWindowsRoute
   '/open-source-ebook-reader': typeof OpenSourceEbookReaderRoute
   '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
   '/blog/lake-baikal': typeof BlogLakeBaikalRoute
   '/blog/local-first': typeof BlogLocalFirstRoute
   '/blog/plugins-v1': typeof BlogPluginsV1Route
@@ -979,28 +1044,35 @@ export interface FileRoutesById {
   '/de/changelog': typeof DeChangelogRoute
   '/de/docs': typeof DeDocsRouteWithChildren
   '/de/pricing': typeof DePricingRoute
+  '/de/privacy': typeof DePrivacyRoute
   '/docs/getting-started': typeof DocsGettingStartedRoute
   '/docs/install': typeof DocsInstallRoute
   '/es/changelog': typeof EsChangelogRoute
   '/es/docs': typeof EsDocsRouteWithChildren
   '/es/pricing': typeof EsPricingRoute
+  '/es/privacy': typeof EsPrivacyRoute
   '/fr/changelog': typeof FrChangelogRoute
   '/fr/docs': typeof FrDocsRouteWithChildren
   '/fr/pricing': typeof FrPricingRoute
+  '/fr/privacy': typeof FrPrivacyRoute
   '/ja/blog': typeof JaBlogRouteWithChildren
   '/ja/changelog': typeof JaChangelogRoute
   '/ja/docs': typeof JaDocsRouteWithChildren
   '/ja/pricing': typeof JaPricingRoute
+  '/ja/privacy': typeof JaPrivacyRoute
   '/ru/changelog': typeof RuChangelogRoute
   '/ru/docs': typeof RuDocsRouteWithChildren
   '/ru/pricing': typeof RuPricingRoute
+  '/ru/privacy': typeof RuPrivacyRoute
   '/zh-hant/changelog': typeof ZhHantChangelogRoute
   '/zh-hant/docs': typeof ZhHantDocsRouteWithChildren
   '/zh-hant/pricing': typeof ZhHantPricingRoute
+  '/zh-hant/privacy': typeof ZhHantPrivacyRoute
   '/zh/blog': typeof ZhBlogRouteWithChildren
   '/zh/changelog': typeof ZhChangelogRoute
   '/zh/docs': typeof ZhDocsRouteWithChildren
   '/zh/pricing': typeof ZhPricingRoute
+  '/zh/privacy': typeof ZhPrivacyRoute
   '/blog/': typeof BlogIndexRoute
   '/de/': typeof DeIndexRoute
   '/docs/': typeof DocsIndexRoute
@@ -1094,6 +1166,7 @@ export interface FileRouteTypes {
     | '/epub-reader-for-windows'
     | '/open-source-ebook-reader'
     | '/pricing'
+    | '/privacy'
     | '/blog/lake-baikal'
     | '/blog/local-first'
     | '/blog/plugins-v1'
@@ -1101,28 +1174,35 @@ export interface FileRouteTypes {
     | '/de/changelog'
     | '/de/docs'
     | '/de/pricing'
+    | '/de/privacy'
     | '/docs/getting-started'
     | '/docs/install'
     | '/es/changelog'
     | '/es/docs'
     | '/es/pricing'
+    | '/es/privacy'
     | '/fr/changelog'
     | '/fr/docs'
     | '/fr/pricing'
+    | '/fr/privacy'
     | '/ja/blog'
     | '/ja/changelog'
     | '/ja/docs'
     | '/ja/pricing'
+    | '/ja/privacy'
     | '/ru/changelog'
     | '/ru/docs'
     | '/ru/pricing'
+    | '/ru/privacy'
     | '/zh-hant/changelog'
     | '/zh-hant/docs'
     | '/zh-hant/pricing'
+    | '/zh-hant/privacy'
     | '/zh/blog'
     | '/zh/changelog'
     | '/zh/docs'
     | '/zh/pricing'
+    | '/zh/privacy'
     | '/blog/'
     | '/de/'
     | '/docs/'
@@ -1212,26 +1292,34 @@ export interface FileRouteTypes {
     | '/epub-reader-for-windows'
     | '/open-source-ebook-reader'
     | '/pricing'
+    | '/privacy'
     | '/blog/lake-baikal'
     | '/blog/local-first'
     | '/blog/plugins-v1'
     | '/blog/reading-that-remembers'
     | '/de/changelog'
     | '/de/pricing'
+    | '/de/privacy'
     | '/docs/getting-started'
     | '/docs/install'
     | '/es/changelog'
     | '/es/pricing'
+    | '/es/privacy'
     | '/fr/changelog'
     | '/fr/pricing'
+    | '/fr/privacy'
     | '/ja/changelog'
     | '/ja/pricing'
+    | '/ja/privacy'
     | '/ru/changelog'
     | '/ru/pricing'
+    | '/ru/privacy'
     | '/zh-hant/changelog'
     | '/zh-hant/pricing'
+    | '/zh-hant/privacy'
     | '/zh/changelog'
     | '/zh/pricing'
+    | '/zh/privacy'
     | '/blog'
     | '/de'
     | '/docs'
@@ -1323,6 +1411,7 @@ export interface FileRouteTypes {
     | '/epub-reader-for-windows'
     | '/open-source-ebook-reader'
     | '/pricing'
+    | '/privacy'
     | '/blog/lake-baikal'
     | '/blog/local-first'
     | '/blog/plugins-v1'
@@ -1330,28 +1419,35 @@ export interface FileRouteTypes {
     | '/de/changelog'
     | '/de/docs'
     | '/de/pricing'
+    | '/de/privacy'
     | '/docs/getting-started'
     | '/docs/install'
     | '/es/changelog'
     | '/es/docs'
     | '/es/pricing'
+    | '/es/privacy'
     | '/fr/changelog'
     | '/fr/docs'
     | '/fr/pricing'
+    | '/fr/privacy'
     | '/ja/blog'
     | '/ja/changelog'
     | '/ja/docs'
     | '/ja/pricing'
+    | '/ja/privacy'
     | '/ru/changelog'
     | '/ru/docs'
     | '/ru/pricing'
+    | '/ru/privacy'
     | '/zh-hant/changelog'
     | '/zh-hant/docs'
     | '/zh-hant/pricing'
+    | '/zh-hant/privacy'
     | '/zh/blog'
     | '/zh/changelog'
     | '/zh/docs'
     | '/zh/pricing'
+    | '/zh/privacy'
     | '/blog/'
     | '/de/'
     | '/docs/'
@@ -1444,29 +1540,37 @@ export interface RootRouteChildren {
   EpubReaderForWindowsRoute: typeof EpubReaderForWindowsRoute
   OpenSourceEbookReaderRoute: typeof OpenSourceEbookReaderRoute
   PricingRoute: typeof PricingRoute
+  PrivacyRoute: typeof PrivacyRoute
   DeChangelogRoute: typeof DeChangelogRoute
   DeDocsRoute: typeof DeDocsRouteWithChildren
   DePricingRoute: typeof DePricingRoute
+  DePrivacyRoute: typeof DePrivacyRoute
   EsChangelogRoute: typeof EsChangelogRoute
   EsDocsRoute: typeof EsDocsRouteWithChildren
   EsPricingRoute: typeof EsPricingRoute
+  EsPrivacyRoute: typeof EsPrivacyRoute
   FrChangelogRoute: typeof FrChangelogRoute
   FrDocsRoute: typeof FrDocsRouteWithChildren
   FrPricingRoute: typeof FrPricingRoute
+  FrPrivacyRoute: typeof FrPrivacyRoute
   JaBlogRoute: typeof JaBlogRouteWithChildren
   JaChangelogRoute: typeof JaChangelogRoute
   JaDocsRoute: typeof JaDocsRouteWithChildren
   JaPricingRoute: typeof JaPricingRoute
+  JaPrivacyRoute: typeof JaPrivacyRoute
   RuChangelogRoute: typeof RuChangelogRoute
   RuDocsRoute: typeof RuDocsRouteWithChildren
   RuPricingRoute: typeof RuPricingRoute
+  RuPrivacyRoute: typeof RuPrivacyRoute
   ZhHantChangelogRoute: typeof ZhHantChangelogRoute
   ZhHantDocsRoute: typeof ZhHantDocsRouteWithChildren
   ZhHantPricingRoute: typeof ZhHantPricingRoute
+  ZhHantPrivacyRoute: typeof ZhHantPrivacyRoute
   ZhBlogRoute: typeof ZhBlogRouteWithChildren
   ZhChangelogRoute: typeof ZhChangelogRoute
   ZhDocsRoute: typeof ZhDocsRouteWithChildren
   ZhPricingRoute: typeof ZhPricingRoute
+  ZhPrivacyRoute: typeof ZhPrivacyRoute
   DeIndexRoute: typeof DeIndexRoute
   EsIndexRoute: typeof EsIndexRoute
   FrIndexRoute: typeof FrIndexRoute
@@ -1478,6 +1582,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pricing': {
       id: '/pricing'
       path: '/pricing'
@@ -1604,6 +1715,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogIndexRouteImport
       parentRoute: typeof BlogRoute
     }
+    '/zh/privacy': {
+      id: '/zh/privacy'
+      path: '/zh/privacy'
+      fullPath: '/zh/privacy'
+      preLoaderRoute: typeof ZhPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/zh/pricing': {
       id: '/zh/pricing'
       path: '/zh/pricing'
@@ -1632,6 +1750,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ZhBlogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/zh-hant/privacy': {
+      id: '/zh-hant/privacy'
+      path: '/zh-hant/privacy'
+      fullPath: '/zh-hant/privacy'
+      preLoaderRoute: typeof ZhHantPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/zh-hant/pricing': {
       id: '/zh-hant/pricing'
       path: '/zh-hant/pricing'
@@ -1653,6 +1778,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ZhHantChangelogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ru/privacy': {
+      id: '/ru/privacy'
+      path: '/ru/privacy'
+      fullPath: '/ru/privacy'
+      preLoaderRoute: typeof RuPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ru/pricing': {
       id: '/ru/pricing'
       path: '/ru/pricing'
@@ -1672,6 +1804,13 @@ declare module '@tanstack/react-router' {
       path: '/ru/changelog'
       fullPath: '/ru/changelog'
       preLoaderRoute: typeof RuChangelogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ja/privacy': {
+      id: '/ja/privacy'
+      path: '/ja/privacy'
+      fullPath: '/ja/privacy'
+      preLoaderRoute: typeof JaPrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ja/pricing': {
@@ -1702,6 +1841,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JaBlogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/fr/privacy': {
+      id: '/fr/privacy'
+      path: '/fr/privacy'
+      fullPath: '/fr/privacy'
+      preLoaderRoute: typeof FrPrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/fr/pricing': {
       id: '/fr/pricing'
       path: '/fr/pricing'
@@ -1721,6 +1867,13 @@ declare module '@tanstack/react-router' {
       path: '/fr/changelog'
       fullPath: '/fr/changelog'
       preLoaderRoute: typeof FrChangelogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/es/privacy': {
+      id: '/es/privacy'
+      path: '/es/privacy'
+      fullPath: '/es/privacy'
+      preLoaderRoute: typeof EsPrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/es/pricing': {
@@ -1757,6 +1910,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/docs/getting-started'
       preLoaderRoute: typeof DocsGettingStartedRouteImport
       parentRoute: typeof DocsRoute
+    }
+    '/de/privacy': {
+      id: '/de/privacy'
+      path: '/de/privacy'
+      fullPath: '/de/privacy'
+      preLoaderRoute: typeof DePrivacyRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/de/pricing': {
       id: '/de/pricing'
@@ -2573,29 +2733,37 @@ const rootRouteChildren: RootRouteChildren = {
   EpubReaderForWindowsRoute: EpubReaderForWindowsRoute,
   OpenSourceEbookReaderRoute: OpenSourceEbookReaderRoute,
   PricingRoute: PricingRoute,
+  PrivacyRoute: PrivacyRoute,
   DeChangelogRoute: DeChangelogRoute,
   DeDocsRoute: DeDocsRouteWithChildren,
   DePricingRoute: DePricingRoute,
+  DePrivacyRoute: DePrivacyRoute,
   EsChangelogRoute: EsChangelogRoute,
   EsDocsRoute: EsDocsRouteWithChildren,
   EsPricingRoute: EsPricingRoute,
+  EsPrivacyRoute: EsPrivacyRoute,
   FrChangelogRoute: FrChangelogRoute,
   FrDocsRoute: FrDocsRouteWithChildren,
   FrPricingRoute: FrPricingRoute,
+  FrPrivacyRoute: FrPrivacyRoute,
   JaBlogRoute: JaBlogRouteWithChildren,
   JaChangelogRoute: JaChangelogRoute,
   JaDocsRoute: JaDocsRouteWithChildren,
   JaPricingRoute: JaPricingRoute,
+  JaPrivacyRoute: JaPrivacyRoute,
   RuChangelogRoute: RuChangelogRoute,
   RuDocsRoute: RuDocsRouteWithChildren,
   RuPricingRoute: RuPricingRoute,
+  RuPrivacyRoute: RuPrivacyRoute,
   ZhHantChangelogRoute: ZhHantChangelogRoute,
   ZhHantDocsRoute: ZhHantDocsRouteWithChildren,
   ZhHantPricingRoute: ZhHantPricingRoute,
+  ZhHantPrivacyRoute: ZhHantPrivacyRoute,
   ZhBlogRoute: ZhBlogRouteWithChildren,
   ZhChangelogRoute: ZhChangelogRoute,
   ZhDocsRoute: ZhDocsRouteWithChildren,
   ZhPricingRoute: ZhPricingRoute,
+  ZhPrivacyRoute: ZhPrivacyRoute,
   DeIndexRoute: DeIndexRoute,
   EsIndexRoute: EsIndexRoute,
   FrIndexRoute: FrIndexRoute,

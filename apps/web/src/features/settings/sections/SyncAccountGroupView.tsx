@@ -63,6 +63,16 @@ type SyncAccountGroupViewProps = {
   onTransportDialogChange: (ref: string | null) => void;
   disconnectOpen: boolean;
   onDisconnectOpenChange: (open: boolean) => void;
+  /**
+   * Account deletion (Apple guideline 5.1.1(v): in-app account creation
+   * demands in-app deletion). The control is hidden for plugin-transport
+   * connections — a WebDAV remote has no relay account to delete.
+   */
+  deleteAccountOpen: boolean;
+  onDeleteAccountOpenChange: (open: boolean) => void;
+  /** True while the relay wipes the account — locks the dialog meanwhile. */
+  deletingAccount: boolean;
+  onDeleteAccount: () => void;
   onSyncNow: () => void;
   onDisconnect: () => void;
   /**
@@ -92,6 +102,10 @@ export function SyncAccountGroupView({
   onTransportDialogChange,
   disconnectOpen,
   onDisconnectOpenChange,
+  deleteAccountOpen,
+  onDeleteAccountOpenChange,
+  deletingAccount,
+  onDeleteAccount,
   onSyncNow,
   onDisconnect,
   purchaseAllowed,
@@ -300,9 +314,21 @@ export function SyncAccountGroupView({
         }
         description={accountLabel}
         control={
-          <Button size="sm" variant="ghost" onClick={() => onDisconnectOpenChange(true)}>
-            {t("dataSync.connected.disconnect")}
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button size="sm" variant="ghost" onClick={() => onDisconnectOpenChange(true)}>
+              {t("dataSync.connected.disconnect")}
+            </Button>
+            {!viaTransport && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-red-700 hover:text-red-800"
+                onClick={() => onDeleteAccountOpenChange(true)}
+              >
+                {t("dataSync.deleteAccount.action")}
+              </Button>
+            )}
+          </div>
         }
       />
       <SettingsRow
@@ -403,6 +429,34 @@ export function SyncAccountGroupView({
               }}
             >
               {t("dataSync.connected.disconnect")}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+      <Dialog
+        open={deleteAccountOpen}
+        onClose={() => {
+          if (!deletingAccount) onDeleteAccountOpenChange(false);
+        }}
+        title={t("dataSync.deleteAccount.title")}
+      >
+        <div className="space-y-4">
+          <p>{t("dataSync.deleteAccount.body")}</p>
+          {/* Only paying accounts hear about billing; the relay cancels the
+              subscription in the same request. */}
+          {accountInfo?.hasBilling && <p>{t("dataSync.deleteAccount.billingNote")}</p>}
+          <p>{t("dataSync.deleteAccount.localNote")}</p>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={deletingAccount}
+              onClick={() => onDeleteAccountOpenChange(false)}
+            >
+              {t("dataSync.connected.cancel")}
+            </Button>
+            <Button variant="danger" size="sm" disabled={deletingAccount} onClick={onDeleteAccount}>
+              {deletingAccount ? t("dataSync.working") : t("dataSync.deleteAccount.confirm")}
             </Button>
           </div>
         </div>

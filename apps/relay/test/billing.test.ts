@@ -7,7 +7,7 @@
 import { describe, expect, test } from "bun:test";
 import type { AccountResponse } from "@read-aware/core";
 import type { RelayPorts } from "../src/ports";
-import { get, login, makeRelay, post } from "./harness";
+import { del, get, login, makeRelay, post } from "./harness";
 
 const WHSEC = "whsec_test_secret";
 const BASE_NOW = 1_755_000_000_000;
@@ -22,14 +22,21 @@ function fakeStripe(
     readAwareStatus?: string;
     foreignPrice?: boolean;
     paginatedOwnedSubscription?: boolean;
+    failSubscriptionCancel?: boolean;
   } = {},
 ) {
-  const calls: { url: string; form: URLSearchParams | null; idempotencyKey: string | null }[] = [];
+  const calls: {
+    url: string;
+    method: string;
+    form: URLSearchParams | null;
+    idempotencyKey: string | null;
+  }[] = [];
   const fetchFn = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
+    const method = init?.method ?? "GET";
     const form = init?.body ? new URLSearchParams(String(init.body)) : null;
     const idempotencyKey = new Headers(init?.headers).get("idempotency-key");
-    calls.push({ url, form, idempotencyKey });
+    calls.push({ url, method, form, idempotencyKey });
     if (url.includes("/v1/prices")) {
       const lookup = new URL(url).searchParams.get("lookup_keys[]") ?? "";
       const tier = lookup.match(/^readaware_(sync|pro|max)_monthly$/)?.[1];
@@ -50,6 +57,12 @@ function fakeStripe(
           },
         ],
       });
+    }
+    if (url.includes("/v1/subscriptions") && method === "DELETE") {
+      if (options.failSubscriptionCancel) {
+        return Response.json({ error: { message: "cancel exploded" } }, { status: 500 });
+      }
+      return Response.json({ id: url.split("/").pop(), status: "canceled" });
     }
     if (url.includes("/v1/subscriptions")) {
       const startingAfter = new URL(url).searchParams.get("starting_after");
@@ -108,6 +121,7 @@ function relayWithStripe(
     readAwareStatus?: string;
     foreignPrice?: boolean;
     paginatedOwnedSubscription?: boolean;
+    failSubscriptionCancel?: boolean;
     portalConfigurationId?: string | null;
     config?: Partial<RelayPorts["config"]>;
   } = {},
@@ -655,5 +669,53 @@ describe("checkout throttles", () => {
     );
 
     expect(stripe.calls.filter((c) => c.url.includes("/v1/checkout/sessions")).length).toBe(2);
+  });
+});
+
+describe("account deletion", () => {
+  const bindCustomer = async (handle: Handle, accountId: string) =>
+    webhook(handle, {
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          mode: "subscription",
+          client_reference_id: accountId,
+          customer: "cus_1",
+          metadata: { application: "readaware", tier: "pro" },
+        },
+      },
+    });
+
+  test("cancels the account's ReadAware subscriptions and only those", async () => {
+    const { handle, stripe } = relayWithStripe({ activeSubs: 1, foreignActiveSubs: 1 });
+    const { session, accountId } = await login(handle, "reader@example.com");
+    await bindCustomer(handle, accountId);
+
+    expect((await handle(del("/v1/account", session))).status).toBe(204);
+
+    const cancels = stripe.calls.filter(
+      (c) => c.method === "DELETE" && c.url.includes("/v1/subscriptions/"),
+    );
+    expect(cancels.map((c) => c.url.split("/").pop())).toEqual(["sub_readaware"]);
+    // The session died with the account.
+    expect((await handle(get("/v1/account", session))).status).toBe(401);
+  });
+
+  test("an account with no billing profile deletes without calling Stripe", async () => {
+    const { handle, stripe } = relayWithStripe();
+    const { session } = await login(handle, "reader@example.com");
+    expect((await handle(del("/v1/account", session))).status).toBe(204);
+    expect(stripe.calls.some((c) => c.url.includes("/v1/subscriptions"))).toBe(false);
+  });
+
+  test("a Stripe cancel failure aborts the deletion — no wiped-but-billing account", async () => {
+    const { handle, stripe } = relayWithStripe({ activeSubs: 1, failSubscriptionCancel: true });
+    const { session, accountId } = await login(handle, "reader@example.com");
+    await bindCustomer(handle, accountId);
+
+    expect((await handle(del("/v1/account", session))).status).toBe(502);
+    expect(stripe.calls.some((c) => c.method === "DELETE")).toBe(true);
+    // Account and session both survive; the user can retry.
+    expect((await handle(get("/v1/account", session))).status).toBe(200);
   });
 });

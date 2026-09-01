@@ -118,8 +118,12 @@ const meta = {
     transportDialogRef: null,
     onTransportDialogChange: () => {},
     disconnectOpen: false,
+    deleteAccountOpen: false,
+    deletingAccount: false,
     onConnectOpenChange: () => {},
     onDisconnectOpenChange: () => {},
+    onDeleteAccountOpenChange: () => {},
+    onDeleteAccount: () => {},
     onSyncNow: () => {},
     onDisconnect: () => {},
     purchaseAllowed: true,
@@ -148,6 +152,14 @@ export const ConnectedFree: Story = {};
  */
 export const PurchaseLinksForbidden: Story = {
   args: { purchaseAllowed: false },
+};
+
+/**
+ * The account-deletion confirmation for a paying account — the billing line
+ * appears only when a subscription exists to cancel.
+ */
+export const DeleteAccountDialog: Story = {
+  args: { deleteAccountOpen: true, accountInfo: account("pro") },
 };
 
 /** Not connected yet: one row, one button, and the flow lives in the dialog. */

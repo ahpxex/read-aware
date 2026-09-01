@@ -51,6 +51,8 @@ export function SyncAccountGroup() {
   const [connectOpen, setConnectOpen] = useState(false);
   const [transportDialogRef, setTransportDialogRef] = useState<string | null>(null);
   const [disconnectOpen, setDisconnectOpen] = useState(false);
+  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const backlog = useSyncBacklog(sync.connected);
   const bookBacklog = useSyncBookBacklog(sync.connected);
   // Account info (email, plan, usage) is the relay's — a transport connection
@@ -107,6 +109,31 @@ export function SyncAccountGroup() {
     }
   };
 
+  // Deletion order matters: the relay wipes first (needs the session), the
+  // local disconnect follows. Local books and annotations stay — deletion is
+  // about the server copy and the account itself.
+  const deleteAccount = async () => {
+    setDeletingAccount(true);
+    try {
+      await syncRelayClient().deleteAccount();
+      await sync.disconnect();
+      setDeleteAccountOpen(false);
+      toast({
+        title: t("dataSync.noticeDone"),
+        description: t("dataSync.deleteAccount.done"),
+      });
+    } catch (error) {
+      log.error("account deletion failed", error);
+      toast({
+        variant: "destructive",
+        title: t("dataSync.noticeError"),
+        description: t("dataSync.deleteAccount.failed"),
+      });
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
+
   const openUpgrade = async () => {
     let target = pricingUrl(i18n.language);
     try {
@@ -143,6 +170,10 @@ export function SyncAccountGroup() {
       onTransportDialogChange={setTransportDialogRef}
       disconnectOpen={disconnectOpen}
       onDisconnectOpenChange={setDisconnectOpen}
+      deleteAccountOpen={deleteAccountOpen}
+      onDeleteAccountOpenChange={setDeleteAccountOpen}
+      deletingAccount={deletingAccount}
+      onDeleteAccount={() => void deleteAccount()}
       onSyncNow={() => void handleSyncNow()}
       onDisconnect={() => void sync.disconnect()}
       purchaseAllowed={purchaseAllowed}

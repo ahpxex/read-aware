@@ -369,6 +369,16 @@
     "export": "Exporter",
     "working": "En cours…",
     "dangerZone": "Zone sensible",
+    "deleteAccount": {
+      "action": "Supprimer le compte…",
+      "title": "Supprimer ce compte ?",
+      "body": "Cette action supprime définitivement votre compte de synchronisation et toutes les données synchronisées sur le serveur — le journal d'événements chiffré et tous les fichiers de livres téléversés. Les autres appareils connectés à ce compte cesseront de se synchroniser.",
+      "billingNote": "Votre abonnement est résilié avec le compte ; aucun prélèvement ultérieur.",
+      "localNote": "Les livres, notes et l'historique de lecture sur cet appareil ne sont pas affectés.",
+      "confirm": "Supprimer le compte",
+      "done": "Votre compte et ses données synchronisées ont été supprimés.",
+      "failed": "Impossible de supprimer le compte. Vérifiez votre connexion et réessayez."
+    },
     "syncStatus": {
       "idle": "Synchronisé",
       "syncing": "Synchronisation…",

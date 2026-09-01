@@ -365,6 +365,16 @@
     "export": "Exportieren",
     "working": "Wird ausgeführt…",
     "dangerZone": "Gefahrenzone",
+    "deleteAccount": {
+      "action": "Konto löschen …",
+      "title": "Dieses Konto löschen?",
+      "body": "Damit werden dein Sync-Konto und sämtliche synchronisierten Daten auf dem Server endgültig gelöscht — das verschlüsselte Ereignisprotokoll und alle hochgeladenen Buchdateien. Andere mit diesem Konto angemeldete Geräte synchronisieren nicht mehr.",
+      "billingNote": "Dein Abonnement wird zusammen mit dem Konto gekündigt; es fallen keine weiteren Kosten an.",
+      "localNote": "Bücher, Notizen und Leseverlauf auf diesem Gerät bleiben unberührt.",
+      "confirm": "Konto löschen",
+      "done": "Dein Konto und seine synchronisierten Daten wurden gelöscht.",
+      "failed": "Das Konto konnte nicht gelöscht werden. Prüfe deine Verbindung und versuche es erneut."
+    },
     "syncStatus": {
       "idle": "Synchronisiert",
       "syncing": "Synchronisiere…",

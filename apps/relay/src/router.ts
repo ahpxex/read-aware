@@ -20,6 +20,7 @@ import {
 } from "./ai-proxy";
 import {
   applyStripeEvent,
+  cancelReadAwareSubscriptions,
   createBillingContext,
   createCheckoutSession,
   createPortalSession,
@@ -941,6 +942,16 @@ export function createRelayHandler(ports: RelayPorts): (req: Request) => Promise
       return json(200, { ok: true });
     }
     if (req.method === "DELETE" && path === "/v1/account") {
+      // Billing first, and a Stripe failure aborts the whole deletion: a
+      // wiped account with a live subscription would keep charging a user
+      // who can no longer reach the portal. Retrying deletion is cheap.
+      if (billing && account.stripeCustomerId) {
+        try {
+          await cancelReadAwareSubscriptions(billing, account.stripeCustomerId);
+        } catch (error) {
+          return stripeFailure(error);
+        }
+      }
       await ports.mailboxFor(account.id).wipe();
       await blobs.wipe(account.id);
       await accounts.deleteAccount(account.id);

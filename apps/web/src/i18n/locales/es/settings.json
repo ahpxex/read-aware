@@ -369,6 +369,16 @@
     "export": "Exportar",
     "working": "Trabajando…",
     "dangerZone": "Zona de peligro",
+    "deleteAccount": {
+      "action": "Eliminar cuenta…",
+      "title": "¿Eliminar esta cuenta?",
+      "body": "Esto elimina de forma permanente tu cuenta de sincronización y todos los datos sincronizados en el servidor: el registro de eventos cifrado y todos los archivos de libros subidos. Los demás dispositivos con esta cuenta dejarán de sincronizarse.",
+      "billingNote": "Tu suscripción se cancela junto con la cuenta; no habrá más cargos.",
+      "localNote": "Los libros, las notas y el historial de lectura de este dispositivo no se ven afectados.",
+      "confirm": "Eliminar cuenta",
+      "done": "Tu cuenta y sus datos sincronizados se han eliminado.",
+      "failed": "No se pudo eliminar la cuenta. Comprueba tu conexión e inténtalo de nuevo."
+    },
     "syncStatus": {
       "idle": "Sincronizado",
       "syncing": "Sincronizando…",

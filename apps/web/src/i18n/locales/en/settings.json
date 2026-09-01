@@ -365,6 +365,16 @@
     "export": "Export",
     "working": "Working…",
     "dangerZone": "Danger zone",
+    "deleteAccount": {
+      "action": "Delete account…",
+      "title": "Delete this account?",
+      "body": "This permanently deletes your sync account and every synced copy of your data on the server — the encrypted event log and all uploaded book files. Other devices signed in to this account stop syncing.",
+      "billingNote": "Your subscription is canceled along with the account; there are no further charges.",
+      "localNote": "Books, notes, and reading history on this device are not affected.",
+      "confirm": "Delete account",
+      "done": "Your account and its synced data were deleted.",
+      "failed": "Could not delete the account. Check your connection and try again."
+    },
     "syncStatus": {
       "idle": "Synced",
       "syncing": "Syncing…",

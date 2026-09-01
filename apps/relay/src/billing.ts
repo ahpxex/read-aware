@@ -89,7 +89,7 @@ export class StripeError extends Error {
  */
 async function stripeApi(
   stripe: StripePorts,
-  method: "GET" | "POST",
+  method: "GET" | "POST" | "DELETE",
   path: string,
   params: Record<string, string> = {},
   options: { idempotencyKey?: string } = {},
@@ -179,6 +179,43 @@ async function hasCurrentReadAwareSubscription(
     if (listed.has_more !== true || subscriptions.length === 0) return false;
     const last = asRecord(subscriptions[subscriptions.length - 1]);
     if (typeof last?.id !== "string") return false;
+    startingAfter = last.id;
+  } while (true);
+}
+
+/**
+ * Account deletion's billing half: immediately cancel every non-terminal
+ * ReadAware subscription on the customer. Ordinary cancellation stays in the
+ * portal ("the relay never mutates subscriptions itself"), but deletion is
+ * the exception that proves the rule — it destroys the session that reaches
+ * the portal, and a surviving subscription would keep billing for a wiped
+ * account. Only subscriptions carrying our application marker are touched:
+ * this Stripe account hosts other products, and a shared customer must not
+ * lose theirs.
+ */
+export async function cancelReadAwareSubscriptions(
+  ctx: BillingContext,
+  customerId: string,
+): Promise<void> {
+  let startingAfter: string | undefined;
+  do {
+    const listed = await stripeApi(ctx.stripe, "GET", "/v1/subscriptions", {
+      customer: customerId,
+      status: "all",
+      limit: "100",
+      ...(startingAfter ? { starting_after: startingAfter } : {}),
+    });
+    const subscriptions = (listed.data as unknown[] | undefined) ?? [];
+    for (const subscription of subscriptions) {
+      const object = asRecord(subscription);
+      if (!belongsToReadAware(object)) continue;
+      if (TERMINAL_SUBSCRIPTION_STATUSES.has(String(object?.status ?? ""))) continue;
+      if (typeof object?.id !== "string") continue;
+      await stripeApi(ctx.stripe, "DELETE", `/v1/subscriptions/${object.id}`);
+    }
+    if (listed.has_more !== true || subscriptions.length === 0) return;
+    const last = asRecord(subscriptions[subscriptions.length - 1]);
+    if (typeof last?.id !== "string") return;
     startingAfter = last.id;
   } while (true);
 }

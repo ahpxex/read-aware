@@ -13,6 +13,7 @@ mod pdf_metadata;
 mod plugins;
 mod secrets;
 mod storage;
+mod storefront;
 
 use std::sync::Mutex;
 
@@ -1031,6 +1032,7 @@ pub fn run() {
             set_status_bar_hidden,
             sync_safe_area,
             set_volume_key_capture,
+            storefront::app_store_storefront,
             move_task_to_back,
             book_pick_start,
             book_pick_poll,

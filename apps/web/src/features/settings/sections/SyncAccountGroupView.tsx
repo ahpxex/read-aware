@@ -65,6 +65,12 @@ type SyncAccountGroupViewProps = {
   onDisconnectOpenChange: (open: boolean) => void;
   onSyncNow: () => void;
   onDisconnect: () => void;
+  /**
+   * Whether external purchase links may be shown at all — false on iOS
+   * storefronts where Apple forbids them (platform/purchase-gate). False
+   * hides BOTH plan controls; sync itself is untouched.
+   */
+  purchaseAllowed: boolean;
   onOpenPortal: () => void;
   onOpenUpgrade: () => void;
   /** Handed straight to the connect dialog, which drives the sign-in flow. */
@@ -88,6 +94,7 @@ export function SyncAccountGroupView({
   onDisconnectOpenChange,
   onSyncNow,
   onDisconnect,
+  purchaseAllowed,
   onOpenPortal,
   onOpenUpgrade,
   sync,
@@ -233,9 +240,11 @@ export function SyncAccountGroupView({
   // accounts get the upgrade menu even when a past customer exists (checkout
   // reuses it — after a cancellation the portal has nothing left to manage).
   // A paid tier WITHOUT billing was granted by the operator; staff plans are
-  // never sold, so staff sees no control at all.
+  // never sold, so staff sees no control at all. When external purchase
+  // links are forbidden entirely (non-US iOS storefronts), the plan row
+  // keeps its facts but loses both controls.
   const planControl =
-    accountInfo && accountInfo.tier !== "staff" ? (
+    purchaseAllowed && accountInfo && accountInfo.tier !== "staff" ? (
       accountInfo.tier !== "free" ? (
         accountInfo.hasBilling ? (
           <Button size="sm" variant="outline" onClick={onOpenPortal}>

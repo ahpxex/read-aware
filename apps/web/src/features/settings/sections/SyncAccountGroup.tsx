@@ -15,6 +15,7 @@ import { syncRelayClient } from "../../../platform/sync/sync-scheduler";
 import { syncLoginTokenAtom } from "../../../state/ui";
 import { useBlobBookTitle } from "../../sync/hooks/useBlobBookTitle";
 import { useSyncBacklog, useSyncBookBacklog } from "../../sync/hooks/useSyncStatus";
+import { useExternalPurchaseAllowed } from "../hooks/useExternalPurchaseAllowed";
 import { useSyncAccountInfo } from "../hooks/useSyncAccountInfo";
 import { useSyncConnection } from "../hooks/useSyncConnection";
 import { SyncAccountGroupView } from "./SyncAccountGroupView";
@@ -55,6 +56,7 @@ export function SyncAccountGroup() {
   // Account info (email, plan, usage) is the relay's — a transport connection
   // has no account to ask about.
   const accountInfo = useSyncAccountInfo(sync.connected && sync.connectedTransport === null);
+  const purchaseAllowed = useExternalPurchaseAllowed();
   const movingBookTitle = useBlobBookTitle(
     sync.status.state === "syncing" ? (sync.status.progress?.blobKey ?? null) : null,
   );
@@ -143,6 +145,7 @@ export function SyncAccountGroup() {
       onDisconnectOpenChange={setDisconnectOpen}
       onSyncNow={() => void handleSyncNow()}
       onDisconnect={() => void sync.disconnect()}
+      purchaseAllowed={purchaseAllowed}
       onOpenPortal={() => void openPortal()}
       onOpenUpgrade={() => void openUpgrade()}
       sync={sync}

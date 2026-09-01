@@ -122,6 +122,7 @@ const meta = {
     onDisconnectOpenChange: () => {},
     onSyncNow: () => {},
     onDisconnect: () => {},
+    purchaseAllowed: true,
     onOpenPortal: () => {},
     onOpenUpgrade: () => {},
     sync: inertSync,
@@ -140,6 +141,14 @@ type Story = StoryObj<typeof meta>;
 
 /** Connected on the free plan, settled — the everyday state. */
 export const ConnectedFree: Story = {};
+
+/**
+ * Non-US iOS storefront: Apple forbids external purchase links, so the plan
+ * row keeps its facts but shows neither Upgrade nor Manage.
+ */
+export const PurchaseLinksForbidden: Story = {
+  args: { purchaseAllowed: false },
+};
 
 /** Not connected yet: one row, one button, and the flow lives in the dialog. */
 export const Disconnected: Story = {

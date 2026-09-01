@@ -1,8 +1,11 @@
 name: read-aware-desktop
 options:
   bundleIdPrefix: com.readaware.app
+  # 15.0: App Store Connect warns (90068) that Spring 2027 makes 15.0 the
+  # upload floor; iOS 15 also guarantees StoreKit's storefront API used by
+  # the purchase gate.
   deploymentTarget:
-    iOS: 14.0
+    iOS: 15.0
 fileGroups: [../../src]
 configs:
   debug: debug
@@ -67,6 +70,10 @@ targets:
         # exempt under App Store export compliance, so uploads skip the
         # per-build encryption questionnaire.
         ITSAppUsesNonExemptEncryption: false
+        # Declared file types require this (ASC warning 90737). NO is the
+        # honest value: import materializes a private copy (native_path),
+        # nothing is edited in place.
+        LSSupportsOpeningDocumentsInPlace: false
     entitlements:
       path: read-aware-desktop_iOS/read-aware-desktop_iOS.entitlements
     scheme:

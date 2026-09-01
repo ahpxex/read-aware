@@ -124,15 +124,15 @@
         "background": "./dmg/background.png",
         "windowSize": {
           "width": 660,
-          "height": 471
+          "height": 333
         },
         "appPosition": {
           "x": 180,
-          "y": 170
+          "y": 160
         },
         "applicationFolderPosition": {
           "x": 480,
-          "y": 170
+          "y": 160
         }
       }
     },

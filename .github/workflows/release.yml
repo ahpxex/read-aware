@@ -22,7 +22,21 @@
 #   ANDROID_KEYSTORE_PASSWORD — store/key password (alias is "readaware")
 # Desktop updater artifacts are signed through TAURI_SIGNING_PRIVATE_KEY and
 # TAURI_SIGNING_PRIVATE_KEY_PASSWORD. The matching public key is embedded in
-# tauri.conf.json. Desktop OS code signing is still not configured.
+# tauri.conf.json. macOS OS-level code signing + notarization come from six
+# repository secrets consumed by the tauri CLI during `tauri build`:
+#   APPLE_CERTIFICATE          — base64 of the Developer ID Application .p12
+#   APPLE_CERTIFICATE_PASSWORD — password of that .p12 export
+#   APPLE_SIGNING_IDENTITY     — "Developer ID Application: <name> (<team id>)"
+#   APPLE_API_ISSUER           — App Store Connect API issuer id (UUID)
+#   APPLE_API_KEY              — App Store Connect API key id
+#   APPLE_API_KEY_B64          — base64 of the API key .p8 private key
+# The CLI imports the certificate into a throwaway keychain, signs the .app
+# with the hardened runtime, submits it to Apple's notary service, waits, and
+# staples the ticket before the DMG is assembled — so the DMG, the .app zip
+# and the updater .app.tar.gz all carry the same notarized bundle. A verify
+# step asserts Gatekeeper acceptance so an unsigned build fails the job
+# instead of shipping silently. Windows/Linux OS signing is still not
+# configured.
 #
 # Every `uses:` is pinned to a full commit SHA with the human-readable version
 # in a trailing comment — a floating tag like `@v3` can be repointed at any
@@ -279,18 +293,56 @@ jobs:
             exit 1
           fi
 
+      - name: Require Apple signing secrets
+        if: startsWith(matrix.platform, 'macos')
+        run: |
+          if [ -z "${{ secrets.APPLE_CERTIFICATE }}" ] \
+            || [ -z "${{ secrets.APPLE_CERTIFICATE_PASSWORD }}" ] \
+            || [ -z "${{ secrets.APPLE_SIGNING_IDENTITY }}" ] \
+            || [ -z "${{ secrets.APPLE_API_ISSUER }}" ] \
+            || [ -z "${{ secrets.APPLE_API_KEY }}" ] \
+            || [ -z "${{ secrets.APPLE_API_KEY_B64 }}" ]; then
+            echo "APPLE_* signing/notarization secrets are missing (see the header comment)" >&2
+            exit 1
+          fi
+
+      # The tauri CLI reads the notary key from a file path (APPLE_API_KEY_PATH),
+      # so the .p8 secret is materialized outside the workspace first. The path
+      # itself is not secret — only the key content is, and that stays in the
+      # secret store / RUNNER_TEMP.
+      - name: Stage the App Store Connect API key
+        if: startsWith(matrix.platform, 'macos')
+        env:
+          APPLE_API_KEY_B64: ${{ secrets.APPLE_API_KEY_B64 }}
+        run: |
+          echo "$APPLE_API_KEY_B64" | base64 -d > "$RUNNER_TEMP/apple-api-key.p8"
+          echo "APPLE_API_KEY_PATH=$RUNNER_TEMP/apple-api-key.p8" >> "$GITHUB_ENV"
+
       - name: Build desktop bundles
         working-directory: apps/desktop
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
         run: bun run tauri build --target ${{ matrix.target }}
 
-      # Tauri cannot place extra files inside the DMG, so the Gatekeeper help
-      # file is injected as a post-step (see dmg/finalize-dmg.sh).
-      - name: Inject Gatekeeper notes into the DMG
+      # tauri signed the .app with the hardened runtime, notarized it and
+      # stapled the ticket before assembling the DMG. Trust but verify: assert
+      # Gatekeeper acceptance so a silently-unsigned build fails the job
+      # instead of shipping.
+      - name: Verify signature and notarization
         if: startsWith(matrix.platform, 'macos')
-        run: apps/desktop/src-tauri/dmg/finalize-dmg.sh apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+        run: |
+          APP="apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/macos/ReadAware.app"
+          DMG=(apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg)
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          xcrun stapler validate "$APP"
+          spctl --assess --type execute --verbose=2 "$APP"
+          codesign --verify --verbose=2 "${DMG[0]}"
 
       # One naming scheme for everything on the release page:
       #   ReadAware-vX.Y.Z-<platform>-<arch>.<ext>

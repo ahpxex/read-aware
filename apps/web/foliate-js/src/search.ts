@@ -1,6 +1,12 @@
 // length for context in excerpts
 const CONTEXT_LENGTH = 50
 
+type SearchOptions = {
+    locales?: string | string[]
+    granularity?: Intl.SegmenterOptions['granularity']
+    sensitivity?: Intl.CollatorOptions['sensitivity']
+}
+
 const normalizeWhitespace = str => str.replace(/\s+/g, ' ')
 
 const makeExcerpt = (strs, { startIndex, startOffset, endIndex, endOffset }) => {
@@ -20,7 +26,7 @@ const makeExcerpt = (strs, { startIndex, startOffset, endIndex, endOffset }) => 
     return { pre, match, post }
 }
 
-const simpleSearch = function* (strs, query, options = {}) {
+const simpleSearch = function* (strs, query, options: SearchOptions = {}) {
     const { locales = 'en', sensitivity } = options
     const matchCase = sensitivity === 'variant'
     const haystack = strs.join('')
@@ -46,15 +52,15 @@ const simpleSearch = function* (strs, query, options = {}) {
     } while (index > -1)
 }
 
-const segmenterSearch = function* (strs, query, options = {}) {
+const segmenterSearch = function* (strs, query, options: SearchOptions = {}) {
     const { locales = 'en', granularity = 'word', sensitivity = 'base' } = options
     let segmenter, collator
     try {
-        segmenter = new Intl.Segmenter(locales, { usage: 'search', granularity })
+        segmenter = new Intl.Segmenter(locales, { granularity })
         collator = new Intl.Collator(locales, { sensitivity })
     } catch (e) {
         console.warn(e)
-        segmenter = new Intl.Segmenter('en', { usage: 'search', granularity })
+        segmenter = new Intl.Segmenter('en', { granularity })
         collator = new Intl.Collator('en', { sensitivity })
     }
     const queryLength = Array.from(segmenter.segment(query)).length
@@ -100,7 +106,7 @@ const segmenterSearch = function* (strs, query, options = {}) {
     }
 }
 
-export const search = (strs, query, options) => {
+export const search = (strs, query, options: SearchOptions = {}) => {
     const { granularity = 'grapheme', sensitivity = 'base' } = options
     if (!Intl?.Segmenter || granularity === 'grapheme'
     && (sensitivity === 'variant' || sensitivity === 'accent'))

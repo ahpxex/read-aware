@@ -1,8 +1,8 @@
 const decoder = new TextDecoder()
 const decode = decoder.decode.bind(decoder)
 
-const concatTypedArray = (a, b) => {
-    const result = new a.constructor(a.length + b.length)
+const concatTypedArray = (a: Uint8Array, b: Uint8Array) => {
+    const result = new Uint8Array(a.length + b.length)
     result.set(a)
     result.set(b, a.length)
     return result
@@ -23,7 +23,7 @@ class DictZip {
         if (header.getUint8(0) !== 31 || header.getUint8(1) !== 139
         || header.getUint8(2) !== 8) throw new Error('Not a DictZip file')
         const flg = header.getUint8(3)
-        if (!flg & 0b100) throw new Error('Missing FEXTRA flag')
+        if (!(flg & 0b100)) throw new Error('Missing FEXTRA flag')
 
         const xlen = header.getUint16(10, true)
         const extra = new DataView(await file.slice(12, 12 + xlen).arrayBuffer())
@@ -74,7 +74,9 @@ class DictZip {
     }
 }
 
-class Index {
+abstract class Index {
+    abstract words: unknown[]
+    abstract getWord(i: number): string | undefined
     strcmp = strcmp
     // binary search
     bisect(query, start = 0, end = this.words.length - 1) {
@@ -123,6 +125,14 @@ const decodeBase64Number = str => {
 }
 
 class DictdIndex extends Index {
+    declare words: Array<any>;
+    declare offsets: Array<number>;
+    declare sizes: Array<number>;
+    declare strcmp: (a: any, b: any) => 0 | 1 | -1;
+    declare bisect: (query: any, start?: number, end?: number) => any;
+    declare checkAdjacent: (query: any, i: any) => Array<any>;
+    declare lookup: (query: any) => Array<any>;
+
     getWord(i) {
         return this.words[i]
     }
@@ -164,6 +174,14 @@ export class DictdDict {
 }
 
 class StarDictIndex extends Index {
+    declare words: Array<Array<number>>;
+    declare offsets: Array<number>;
+    declare sizes: Array<number>;
+    declare strcmp: (a: any, b: any) => 0 | 1 | -1;
+    declare bisect: (query: any, start?: number, end?: number) => any;
+    declare checkAdjacent: (query: any, i: any) => Array<any>;
+    declare lookup: (query: any) => Array<any>;
+
     isSyn
     #arr
     getWord(i) {
@@ -198,6 +216,8 @@ class StarDictIndex extends Index {
 }
 
 export class StarDict {
+    declare ifo: { [k: string]: any; };
+
     #dict = new DictZip()
     #idx = new StarDictIndex()
     #syn = Object.assign(new StarDictIndex(), { isSyn: true })

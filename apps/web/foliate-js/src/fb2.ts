@@ -5,6 +5,7 @@ const normalizeWhitespace = str => str ? str
 const getElementText = el => normalizeWhitespace(el?.textContent)
 
 const NS = {
+    XHTML: 'http://www.w3.org/1999/xhtml',
     XLINK: 'http://www.w3.org/1999/xlink',
     EPUB: 'http://www.idpf.org/2007/ops',
 }
@@ -12,7 +13,7 @@ const NS = {
 const MIME = {
     XML: 'application/xml',
     XHTML: 'application/xhtml+xml',
-}
+} as const
 
 const STYLE = {
     'strong': ['strong', 'self'],
@@ -33,7 +34,7 @@ const TABLE = {
     }, ['align']],
 }
 
-const POEM = {
+const POEM: any = {
     'epigraph': ['blockquote'],
     'subtitle': ['h2', STYLE],
     'text-author': ['p', STYLE],
@@ -71,6 +72,10 @@ const BODY = {
 }
 
 class FB2Converter {
+    declare fb2: XMLDocument;
+    declare doc: XMLDocument;
+    declare bins: Map<any, any>;
+
     constructor(fb2) {
         this.fb2 = fb2
         this.doc = document.implementation.createDocument(NS.XHTML, 'html')
@@ -159,7 +164,7 @@ const parseXML = async blob => {
     const str = new TextDecoder('utf-8').decode(buffer)
     const parser = new DOMParser()
     const doc = parser.parseFromString(str, MIME.XML)
-    const encoding = doc.xmlEncoding
+    const encoding = (doc as XMLDocument & { xmlEncoding?: string }).xmlEncoding
         // `Document.xmlEncoding` is deprecated, and already removed in Firefox
         // so parse the XML declaration manually
         || str.match(/^<\?xml\s+version\s*=\s*["']1.\d+"\s+encoding\s*=\s*["']([A-Za-z0-9._-]*)["']/)?.[1]
@@ -230,7 +235,7 @@ const template = html => `<?xml version="1.0" encoding="utf-8"?>
 const dataID = 'data-foliate-id'
 
 export const makeFB2 = async blob => {
-    const book = {}
+    const book: any = {}
     const doc = await parseXML(blob)
     const converter = new FB2Converter(doc)
 
@@ -275,8 +280,8 @@ export const makeFB2 = async blob => {
     } else book.getCover = () => null
 
     // get convert each body
-    const bodyData = Array.from(doc.querySelectorAll('body'), body => {
-        const converted = converter.convert(body, { body: ['body', BODY] })
+    const bodyData: any[] = Array.from(doc.querySelectorAll('body'), body => {
+        const converted = converter.convert(body, { body: ['body', BODY] }) as HTMLElement
         return [Array.from(converted.children, el => {
             // get list of IDs in the section
             const ids = [el, ...el.querySelectorAll('[id]')].map(el => el.id)
@@ -291,8 +296,8 @@ export const makeFB2 = async blob => {
             // set up titles for TOC
             const titles = Array.from(
                 el.querySelectorAll(':scope > section > .title'),
-                (el, index) => {
-                    el.setAttribute(dataID, index)
+                (el: Element, index) => {
+                    el.setAttribute(dataID, String(index))
                     return { title: getElementText(el), index }
                 })
             return { ids, titles, el }
@@ -316,7 +321,7 @@ export const makeFB2 = async blob => {
                 createDocument: () => new DOMParser().parseFromString(str, MIME.XHTML),
                 // doo't count image data as it'd skew the size too much
                 size: blob.size - Array.from(el.querySelectorAll('[src]'),
-                    el => el.getAttribute('src')?.length ?? 0)
+                    (el: Element) => el.getAttribute('src')?.length ?? 0)
                     .reduce((a, b) => a + b, 0),
                 linear,
             }

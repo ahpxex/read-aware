@@ -50,14 +50,19 @@ const extractFootnote = (doc, anchor) => {
     return el
 }
 
+type FootnoteView = HTMLElement & {
+    open(book: any): Promise<void>
+    goTo(target: number): Promise<unknown>
+}
+
 export class FootnoteHandler extends EventTarget {
     detectFootnotes = true
     #showFragment(book, { index, anchor }, href) {
-        const view = document.createElement('foliate-view')
-        return new Promise((resolve, reject) => {
+        const view = document.createElement('foliate-view') as FootnoteView
+        return new Promise<void>((resolve, reject) => {
             view.addEventListener('load', e => {
                 try {
-                    const { doc } = e.detail
+                    const { doc } = (e as CustomEvent).detail
                     const el = anchor(doc)
                     const type = getReferencedType(el)
                     const hidden = el?.matches?.('aside') && type === 'footnote'

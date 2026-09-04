@@ -23,7 +23,7 @@ export const makeComicBook = ({ entries, loadBlob, getSize }, file) => {
         .sort(new Intl.Collator([], { numeric: true }).compare)
     if (!files.length) throw new Error('No supported image files in archive')
 
-    const book = {}
+    const book: any = {}
     book.getCover = () => loadBlob(files[0])
     book.metadata = { title: file.name }
     book.sections = files.map(name => ({

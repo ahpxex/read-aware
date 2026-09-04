@@ -1,4 +1,12 @@
-const createSVGElement = tag =>
+type DrawOptions = {
+    color?: string
+    width?: number
+    writingMode?: string
+    radius?: number
+    src?: string
+}
+
+const createSVGElement = (tag: string): SVGElement =>
     document.createElementNS('http://www.w3.org/2000/svg', tag)
 
 export class Overlayer {
@@ -49,58 +57,58 @@ export class Overlayer {
         }
         return []
     }
-    static underline(rects, options = {}) {
+    static underline(rects, options: DrawOptions = {}) {
         const { color = 'red', width: strokeWidth = 2, writingMode } = options
         const g = createSVGElement('g')
         g.setAttribute('fill', color)
         if (writingMode === 'vertical-rl' || writingMode === 'vertical-lr')
             for (const { right, top, height } of rects) {
                 const el = createSVGElement('rect')
-                el.setAttribute('x', right - strokeWidth)
-                el.setAttribute('y', top)
-                el.setAttribute('height', height)
-                el.setAttribute('width', strokeWidth)
+                el.setAttribute('x', String(right - strokeWidth))
+                el.setAttribute('y', String(top))
+                el.setAttribute('height', String(height))
+                el.setAttribute('width', String(strokeWidth))
                 g.append(el)
             }
         else for (const { left, bottom, width } of rects) {
             const el = createSVGElement('rect')
-            el.setAttribute('x', left)
-            el.setAttribute('y', bottom - strokeWidth)
-            el.setAttribute('height', strokeWidth)
-            el.setAttribute('width', width)
+            el.setAttribute('x', String(left))
+            el.setAttribute('y', String(bottom - strokeWidth))
+            el.setAttribute('height', String(strokeWidth))
+            el.setAttribute('width', String(width))
             g.append(el)
         }
         return g
     }
-    static strikethrough(rects, options = {}) {
+    static strikethrough(rects, options: DrawOptions = {}) {
         const { color = 'red', width: strokeWidth = 2, writingMode } = options
         const g = createSVGElement('g')
         g.setAttribute('fill', color)
         if (writingMode === 'vertical-rl' || writingMode === 'vertical-lr')
             for (const { right, left, top, height } of rects) {
                 const el = createSVGElement('rect')
-                el.setAttribute('x', (right + left) / 2)
-                el.setAttribute('y', top)
-                el.setAttribute('height', height)
-                el.setAttribute('width', strokeWidth)
+                el.setAttribute('x', String((right + left) / 2))
+                el.setAttribute('y', String(top))
+                el.setAttribute('height', String(height))
+                el.setAttribute('width', String(strokeWidth))
                 g.append(el)
             }
         else for (const { left, top, bottom, width } of rects) {
             const el = createSVGElement('rect')
-            el.setAttribute('x', left)
-            el.setAttribute('y', (top + bottom) / 2)
-            el.setAttribute('height', strokeWidth)
-            el.setAttribute('width', width)
+            el.setAttribute('x', String(left))
+            el.setAttribute('y', String((top + bottom) / 2))
+            el.setAttribute('height', String(strokeWidth))
+            el.setAttribute('width', String(width))
             g.append(el)
         }
         return g
     }
-    static squiggly(rects, options = {}) {
+    static squiggly(rects, options: DrawOptions = {}) {
         const { color = 'red', width: strokeWidth = 2, writingMode } = options
         const g = createSVGElement('g')
         g.setAttribute('fill', 'none')
         g.setAttribute('stroke', color)
-        g.setAttribute('stroke-width', strokeWidth)
+        g.setAttribute('stroke-width', String(strokeWidth))
         const block = strokeWidth * 1.5
         if (writingMode === 'vertical-rl' || writingMode === 'vertical-lr')
             for (const { right, top, height } of rects) {
@@ -123,7 +131,7 @@ export class Overlayer {
         }
         return g
     }
-    static highlight(rects, options = {}) {
+    static highlight(rects, options: DrawOptions = {}) {
         const { color = 'red' } = options
         const g = createSVGElement('g')
         g.setAttribute('fill', color)
@@ -131,27 +139,27 @@ export class Overlayer {
         g.style.mixBlendMode = 'var(--overlayer-highlight-blend-mode, normal)'
         for (const { left, top, height, width } of rects) {
             const el = createSVGElement('rect')
-            el.setAttribute('x', left)
-            el.setAttribute('y', top)
-            el.setAttribute('height', height)
-            el.setAttribute('width', width)
+            el.setAttribute('x', String(left))
+            el.setAttribute('y', String(top))
+            el.setAttribute('height', String(height))
+            el.setAttribute('width', String(width))
             g.append(el)
         }
         return g
     }
-    static outline(rects, options = {}) {
+    static outline(rects, options: DrawOptions = {}) {
         const { color = 'red', width: strokeWidth = 3, radius = 3 } = options
         const g = createSVGElement('g')
         g.setAttribute('fill', 'none')
         g.setAttribute('stroke', color)
-        g.setAttribute('stroke-width', strokeWidth)
+        g.setAttribute('stroke-width', String(strokeWidth))
         for (const { left, top, height, width } of rects) {
             const el = createSVGElement('rect')
-            el.setAttribute('x', left)
-            el.setAttribute('y', top)
-            el.setAttribute('height', height)
-            el.setAttribute('width', width)
-            el.setAttribute('rx', radius)
+            el.setAttribute('x', String(left))
+            el.setAttribute('y', String(top))
+            el.setAttribute('height', String(height))
+            el.setAttribute('width', String(width))
+            el.setAttribute('rx', String(radius))
             g.append(el)
         }
         return g
@@ -160,15 +168,15 @@ export class Overlayer {
     // one can then apply filters to the entire element, without affecting them;
     // it's a bit silly and probably better to just invert images twice
     // (though the color will be off in that case if you do heu-rotate)
-    static copyImage([rect], options = {}) {
+    static copyImage([rect], options: DrawOptions = {}) {
         const { src } = options
         const image = createSVGElement('image')
         const { left, top, height, width } = rect
         image.setAttribute('href', src)
-        image.setAttribute('x', left)
-        image.setAttribute('y', top)
-        image.setAttribute('height', height)
-        image.setAttribute('width', width)
+        image.setAttribute('x', String(left))
+        image.setAttribute('y', String(top))
+        image.setAttribute('height', String(height))
+        image.setAttribute('width', String(width))
         return image
     }
 }

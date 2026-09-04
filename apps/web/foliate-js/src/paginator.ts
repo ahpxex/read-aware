@@ -1,6 +1,6 @@
-const wait = ms => new Promise(resolve => setTimeout(resolve, ms))
+const wait = ms => new Promise<void>(resolve => setTimeout(resolve, ms))
 
-const debounce = (f, wait, immediate) => {
+const debounce = (f, wait, immediate = false) => {
     let timeout
     return (...args) => {
         const later = () => {
@@ -16,7 +16,7 @@ const debounce = (f, wait, immediate) => {
 
 const lerp = (min, max, x) => x * (max - min) + min
 const easeOutQuad = x => 1 - (1 - x) * (1 - x)
-const animate = (a, b, duration, ease, render) => new Promise(resolve => {
+const animate = (a, b, duration, ease, render) => new Promise<void>(resolve => {
     let start
     const step = now => {
         if (document.hidden) {
@@ -208,6 +208,9 @@ const setStylesImportant = (el, styles) => {
 }
 
 class View {
+    declare container: any;
+    declare onExpand: any;
+
     #observer = new ResizeObserver(() => this.expand())
     #element = document.createElement('div')
     #iframe = document.createElement('iframe')
@@ -217,7 +220,7 @@ class View {
     #rtl = false
     #column = true
     #size
-    #layout = {}
+    #layout: { width?: number; height?: number; margin?: number } = {}
     constructor({ container, onExpand }) {
         this.container = container
         this.onExpand = onExpand
@@ -252,7 +255,7 @@ class View {
     }
     async load(src, afterLoad, beforeRender) {
         if (typeof src !== 'string') throw new Error(`${src} is not string`)
-        return new Promise(resolve => {
+        return new Promise<void>(resolve => {
             this.#iframe.addEventListener('load', () => {
                 const doc = this.document
                 afterLoad?.(doc)
@@ -428,6 +431,11 @@ class View {
 
 // NOTE: everything here assumes the so-called "negative scroll type" for RTL
 export class Paginator extends HTMLElement {
+    declare bookDir: any;
+    declare sections: any;
+    declare heads: Array<Element>;
+    declare feet: Array<Element>;
+
     static observedAttributes = [
         'flow', 'gap', 'margin',
         'max-inline-size', 'max-block-size', 'max-column-count',
@@ -596,13 +604,15 @@ export class Paginator extends HTMLElement {
         this.addEventListener('touchstart', this.#onTouchStart.bind(this), opts)
         this.addEventListener('touchmove', this.#onTouchMove.bind(this), opts)
         this.addEventListener('touchend', this.#onTouchEnd.bind(this))
-        this.addEventListener('load', ({ detail: { doc } }) => {
+        this.addEventListener('load', event => {
+            const { doc } = (event as CustomEvent).detail
             doc.addEventListener('touchstart', this.#onTouchStart.bind(this), opts)
             doc.addEventListener('touchmove', this.#onTouchMove.bind(this), opts)
             doc.addEventListener('touchend', this.#onTouchEnd.bind(this))
         })
 
-        this.addEventListener('relocate', ({ detail }) => {
+        this.addEventListener('relocate', event => {
+            const { detail } = event as CustomEvent
             if (detail.reason === 'selection') setSelectionTo(this.#anchor, 0)
             else if (detail.reason === 'navigation') {
                 if (this.#anchor === 1) setSelectionTo(detail.range, 1)
@@ -620,7 +630,8 @@ export class Paginator extends HTMLElement {
             else if (!backward && selRange.compareBoundaryPoints(Range.END_TO_END, range) > 0)
                 this.next()
         }, 700)
-        this.addEventListener('load', ({ detail: { doc } }) => {
+        this.addEventListener('load', event => {
+            const { doc } = (event as CustomEvent).detail
             let isPointerSelecting = false
             doc.addEventListener('pointerdown', () => isPointerSelecting = true)
             doc.addEventListener('pointerup', () => isPointerSelecting = false)
@@ -703,7 +714,11 @@ export class Paginator extends HTMLElement {
         this.#container.append(this.#view.element)
         return this.#view
     }
-    #beforeRender({ vertical, rtl, background }) {
+    #beforeRender({ vertical, rtl, background }: {
+        vertical: boolean
+        rtl: boolean
+        background?: string
+    }) {
         this.#vertical = vertical
         this.#rtl = rtl
         this.#top.classList.toggle('vertical', vertical)
@@ -818,7 +833,11 @@ export class Paginator extends HTMLElement {
     get pages() {
         return Math.round(this.viewSize / this.size)
     }
-    scrollBy(dx, dy) {
+    scrollBy(options?: ScrollToOptions): void
+    scrollBy(x: number, y: number): void
+    scrollBy(dxOrOptions: number | ScrollToOptions = 0, dy = 0) {
+        const dx = typeof dxOrOptions === 'number' ? dxOrOptions : dxOrOptions.left ?? 0
+        if (typeof dxOrOptions !== 'number') dy = dxOrOptions.top ?? 0
         const delta = this.#vertical ? dy : dx
         const element = this.#container
         const { scrollProp } = this
@@ -916,7 +935,7 @@ export class Paginator extends HTMLElement {
         const offset = this.#getRectMapper()(rect).left
         return this.#scrollToPage(Math.floor(offset / this.size) + (this.#rtl ? -1 : 1), reason)
     }
-    async #scrollTo(offset, reason, smooth) {
+    async #scrollTo(offset, reason, smooth = false) {
         const element = this.#container
         const { scrollProp, size } = this
         if (element[scrollProp] === offset) {
@@ -939,7 +958,7 @@ export class Paginator extends HTMLElement {
             this.#afterScroll(reason)
         }
     }
-    async #scrollToPage(page, reason, smooth) {
+    async #scrollToPage(page, reason, smooth = false) {
         const offset = this.size * (this.#rtl ? -page : page)
         return this.#scrollTo(offset, reason, smooth)
     }
@@ -953,7 +972,7 @@ export class Paginator extends HTMLElement {
         if (rects) {
             // when the start of the range is immediately after a hyphen in the
             // previous column, there is an extra zero width rect in that column
-            const rect = Array.from(rects)
+            const rect = (Array.from(rects) as DOMRect[])
                 .find(r => r.width > 0 && r.height > 0) || rects[0]
             if (!rect) return
             await this.#scrollToRect(rect, reason)
@@ -986,7 +1005,13 @@ export class Paginator extends HTMLElement {
         else this.#justAnchored = true
 
         const index = this.#index
-        const detail = { reason, range, index }
+        const detail: {
+            reason: any
+            range: any
+            index: number
+            fraction?: number
+            size?: number
+        } = { reason, range, index }
         if (this.scrolled) detail.fraction = this.start / this.viewSize
         else if (this.pages > 0) {
             const { page, pages } = this
@@ -1029,7 +1054,7 @@ export class Paginator extends HTMLElement {
     #canGoToIndex(index) {
         return index >= 0 && index <= this.sections.length - 1
     }
-    async #goTo({ index, anchor, select}) {
+    async #goTo({ index, anchor, select }: { index: number; anchor: any; select?: boolean }) {
         if (index === this.#index) await this.#display({ index, anchor, select })
         else {
             const oldIndex = this.#index
@@ -1097,10 +1122,10 @@ export class Paginator extends HTMLElement {
         if (shouldGo || !this.hasAttribute('animated')) await wait(100)
         this.#locked = false
     }
-    prev(distance) {
+    prev(distance = 1) {
         return this.#turnPage(-1, distance)
     }
-    next(distance) {
+    next(distance = 1) {
         return this.#turnPage(1, distance)
     }
     prevSection() {

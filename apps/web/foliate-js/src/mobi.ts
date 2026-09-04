@@ -11,7 +11,7 @@ const MIME = {
     HTML: 'text/html',
     CSS: 'text/css',
     SVG: 'image/svg+xml',
-}
+} as const
 
 const PDB_HEADER = {
     name: [0, 32, 'string'],
@@ -165,14 +165,14 @@ const MOBI_LANG = {
     87: ['kok'], 97: ['ne'], 98: ['fy'],
 }
 
-const concatTypedArray = (a, b) => {
-    const result = new a.constructor(a.length + b.length)
+const concatTypedArray = (a: Uint8Array, b: Uint8Array) => {
+    const result = new Uint8Array(a.length + b.length)
     result.set(a)
     result.set(b, a.length)
     return result
 }
-const concatTypedArray3 = (a, b, c) => {
-    const result = new a.constructor(a.length + b.length + c.length)
+const concatTypedArray3 = (a: Uint8Array, b: Uint8Array, c: Uint8Array) => {
+    const result = new Uint8Array(a.length + b.length + c.length)
     result.set(a)
     result.set(b, a.length)
     result.set(c, a.length + b.length)
@@ -187,7 +187,8 @@ const getUint = buffer => {
     const func = l === 4 ? 'getUint32' : l === 2 ? 'getUint16' : 'getUint8'
     return new DataView(buffer)[func](0)
 }
-const getStruct = (def, buffer) => Object.fromEntries(Array.from(Object.entries(def))
+const getStruct = (def: any, buffer: ArrayBuffer): Record<string, any> =>
+    Object.fromEntries((Object.entries(def) as Array<[string, any]>)
     .map(([key, [start, len, type]]) => [key,
         (type === 'string' ? getString : getUint)(buffer.slice(start, start + len))]))
 
@@ -439,7 +440,7 @@ const getEXTH = (buf, encoding) => {
     const { magic, count } = getStruct(EXTH_HEADER, buf)
     if (magic !== 'EXTH') throw new Error('Invalid EXTH header')
     const decoder = getDecoder(encoding)
-    const results = {}
+    const results: Record<string, any> = {}
     let offset = 12
     for (let i = 0; i < count; i++) {
         const type = getUint(buf.slice(offset, offset + 4))
@@ -485,9 +486,9 @@ export const isMOBI = async file => {
 
 class PDB {
     #file
-    #offsets
+    #offsets: Array<[number, number?]> = []
     pdb
-    async open(file) {
+    async open(file): Promise<any> {
         this.#file = file
         const pdb = getStruct(PDB_HEADER, await file.slice(0, 78).arrayBuffer())
         this.pdb = pdb
@@ -509,6 +510,10 @@ class PDB {
 }
 
 export class MOBI extends PDB {
+    declare unzlib: any;
+    declare headers: any;
+    declare pdb: any;
+
     #start = 0
     #resourceStart
     #decoder
@@ -668,13 +673,20 @@ function rawBytesToString(uint8Array) {
 }
 
 class MOBI6 {
+    declare mobi: any;
+    declare sections: any;
+    declare landmarks: Array<{ label: string; type: Array<string>; href: string; }>;
+    declare toc: any;
+    declare metadata: any;
+    declare getCover: any;
+
     parser = new DOMParser()
     serializer = new XMLSerializer()
     #resourceCache = new Map()
     #textCache = new Map()
     #cache = new Map()
-    #sections
-    #fileposList = []
+    #sections: any[] = []
+    #fileposList: Array<{ filepos: string; number: number }> = []
     #type = MIME.HTML
     constructor(mobi) {
         this.mobi = mobi
@@ -703,7 +715,12 @@ class MOBI6 {
             .concat(Array.from(str.matchAll(mbpPagebreakRegex), m => m.index))
             .map((start, i, a) => {
                 const end = a[i + 1] ?? array.length
-                return { book: this, raw: array.subarray(start, end) }
+                return {
+                    book: this,
+                    raw: array.subarray(start, end),
+                    start: 0,
+                    end: 0,
+                }
             })
             // get start and end filepos for each section
             .map((section, i, arr) => {
@@ -741,8 +758,10 @@ class MOBI6 {
                 let lastIndent = 0
                 const lastLevelOfIndent = new Map()
                 const lastParentOfLevel = new Map()
-                this.toc = Array.from(doc.querySelectorAll('a[filepos]'))
-                    .reduce((arr, a) => {
+                this.toc = (Array.from(
+                    doc.querySelectorAll('a[filepos]'),
+                ) as HTMLAnchorElement[])
+                    .reduce((arr: any[], a) => {
                         const indent = getIndent(a)
                         const item = {
                             label: a.innerText?.trim() ?? '',
@@ -956,20 +975,29 @@ const getPageSpread = properties => {
 }
 
 class KF8 {
+    declare mobi: any;
+    declare sections: any;
+    declare toc: any;
+    declare landmarks: Array<{ label: any; type: Array<string>; href: string; }>;
+    declare dir: any;
+    declare rendition: { layout: string; viewport: { [k: string]: any; }; };
+    declare metadata: any;
+    declare getCover: any;
+
     parser = new DOMParser()
     serializer = new XMLSerializer()
     transformTarget = new EventTarget()
     #cache = new Map()
     #fragmentOffsets = new Map()
     #fragmentSelectors = new Map()
-    #tables = {}
+    #tables: Record<string, any> = {}
     #sections
     #fullRawLength
     #rawHead = new Uint8Array()
     #rawTail = new Uint8Array()
     #lastLoadedHead = -1
     #lastLoadedTail = -1
-    #type = MIME.XHTML
+    #type: DOMParserSupportedType = MIME.XHTML
     #inlineMap = new Map()
     constructor(mobi) {
         this.mobi = mobi
@@ -1018,7 +1046,8 @@ class KF8 {
             return arr.concat({ skel, frags, fragEnd, length, totalLength })
         }, [])
 
-        const resources = await this.getResourcesByMagic(['RESC', 'PAGE'])
+        const resources: Record<string, number> =
+            await this.getResourcesByMagic(['RESC', 'PAGE'])
         const pageSpreads = new Map()
         if (resources.RESC) {
             const buf = await this.mobi.loadRecord(resources.RESC)
@@ -1075,7 +1104,7 @@ class KF8 {
     }
     // is this really the only way of getting to RESC, PAGE, etc.?
     async getResourcesByMagic(keys) {
-        const results = {}
+        const results: Record<string, number> = {}
         const start = this.mobi.headers.kf8.resourceStart
         const end = this.mobi.pdb.numRecords
         for (let i = start; i < end; i++) {
@@ -1099,7 +1128,7 @@ class KF8 {
             }))
         }
     }
-    async loadResourceBlob(str) {
+    async loadResourceBlob(str): Promise<[Blob, Element | null]> {
         const { resourceType, id, type } = parseResourceURI(str)
         const raw = resourceType === 'flow' ? await this.loadFlow(id)
             : await this.mobi.loadResource(id - 1)
@@ -1111,7 +1140,7 @@ class KF8 {
         const newData = await event.detail.data
         const newType = await event.detail.type
         const doc = newType === MIME.SVG ? this.parser.parseFromString(newData, newType) : null
-        return [new Blob([newData], { newType }),
+        return [new Blob([newData], { type: newType }),
             // SVG wrappers need to be inlined
             // as browsers don't allow external resources when loading SVG as an image
             doc?.getElementsByTagNameNS('http://www.w3.org/2000/svg', 'image')?.length
@@ -1159,7 +1188,7 @@ class KF8 {
     }
     loadFlow(index) {
         if (index < 0xffffffff)
-            return this.loadRaw(...this.#tables.fdstTable[index])
+            return this.loadRaw(...this.#tables.fdstTable[index] as [number, number])
     }
     async loadText(section) {
         const { skel, frags, length } = section

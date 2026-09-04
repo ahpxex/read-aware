@@ -51,11 +51,46 @@ const STACK_BEHIND_VIEWPORTS = 1.5
 const STACK_KEEP_AHEAD_VIEWPORTS = 5
 const STACK_KEEP_BEHIND_VIEWPORTS = 3
 
+type FixedFrame = {
+    blank?: boolean
+    hidden: boolean
+    element: HTMLDivElement
+    iframe: HTMLIFrameElement
+    overlay: HTMLDivElement
+    index: number
+    doc?: Document | null
+    width?: number
+    height?: number
+    onZoom?: ((options: any) => Promise<void>) | null
+    overlayer?: any
+    renderedScale?: number | null
+    renderingScale?: number | null
+    failedScale?: number | null
+    failCount?: number
+    renderAbort?: AbortController | null
+    renderPromise?: Promise<void>
+}
+
+type FixedSpread = { left?: any; right?: any; center?: any }
+
+type StackEntry = {
+    slot: HTMLDivElement
+    frame: FixedFrame | null
+    framePromise: Promise<FixedFrame | null> | null
+    width: number
+    height: number
+    pixelHeight?: number
+    top?: number
+}
+
 export class FixedLayout extends HTMLElement {
+    declare book: any;
+    declare rtl: boolean;
+
     static observedAttributes = ['zoom', 'flow', 'max-column-count']
     #root = this.attachShadow({ mode: 'closed' })
     #observer = new ResizeObserver(() => this.#onResize())
-    #spreads
+    #spreads: FixedSpread[] = []
     #index = -1
     defaultViewport
     spread
@@ -84,13 +119,13 @@ export class FixedLayout extends HTMLElement {
     // scrollbar honest for the whole document; a slot holds a live frame only
     // while the reader is near it. `#stack` entries:
     // { slot, frame, framePromise, width, height, sized }.
-    #stack = null
+    #stack: StackEntry[] | null = null
     #stackCurrent = 0
-    #stackLive = new Set()
-    #stackWanted = new Set()
+    #stackLive = new Set<number>()
+    #stackWanted = new Set<number>()
     #stackDraining = false
-    #stackScrollTimer = 0
-    #stackReportTimer = 0
+    #stackScrollTimer: ReturnType<typeof setTimeout> | 0 = 0
+    #stackReportTimer: ReturnType<typeof setTimeout> | 0 = 0
     #stackDefaultDims = null
     // READAWARE: trailing setTimeout throttle, deliberately not rAF — WKWebView
     // suspends animation frames entirely while the window is occluded, and the
@@ -149,7 +184,10 @@ export class FixedLayout extends HTMLElement {
     }
     // READAWARE: `parent` — paged frames mount on the shadow root, scrolled
     // frames mount inside their page's slot.
-    async #createFrame({ index, src: srcOption }, parent = this.#root) {
+    async #createFrame(
+        { index, src: srcOption },
+        parent: ShadowRoot | HTMLDivElement = this.#root,
+    ): Promise<FixedFrame> {
         const srcOptionIsString = typeof srcOption === 'string'
         const src = srcOptionIsString ? srcOption : srcOption?.src
         const onZoom = srcOptionIsString ? null : srcOption?.onZoom
@@ -190,7 +228,7 @@ export class FixedLayout extends HTMLElement {
         iframe.setAttribute('part', 'filter')
         parent.append(element)
         if (!src) return { blank: true, hidden: true, element, iframe, overlay, index }
-        return new Promise(resolve => {
+        return new Promise<FixedFrame>(resolve => {
             iframe.addEventListener('load', () => {
                 const doc = iframe.contentDocument
                 doc.addEventListener('wheel', event => {
@@ -759,7 +797,7 @@ export class FixedLayout extends HTMLElement {
         }
 
         const full = this.#stack.length <= FULL_RENDER_MAX_SPREADS
-        const wanted = new Set()
+        const wanted = new Set<number>()
         if (full) {
             for (let i = 0; i < this.#stack.length; i++) wanted.add(i)
         } else {
@@ -792,7 +830,7 @@ export class FixedLayout extends HTMLElement {
             for (;;) {
                 if (!this.#stack) return
                 const current = this.#stackCurrent
-                let best = null
+                let best: number | null = null
                 let bestDistance = Infinity
                 for (const i of this.#stackWanted) {
                     const entry = this.#stack[i]
@@ -934,7 +972,7 @@ export class FixedLayout extends HTMLElement {
             const last = arr[arr.length - 1]
             const { pageSpread } = section
             const newSpread = () => {
-                const spread = {}
+                const spread: FixedSpread = {}
                 arr.push(spread)
                 return spread
             }
@@ -961,7 +999,7 @@ export class FixedLayout extends HTMLElement {
                 else last.right = section
             }
             return arr
-        }, [{}])
+        }, [{} as FixedSpread])
     }
     #rebuildSpreads() {
         if (!this.book) return
@@ -1043,7 +1081,7 @@ export class FixedLayout extends HTMLElement {
             if (center === section) return { index, side: 'center' }
         }
     }
-    async goToSpread(index, side, reason) {
+    async goToSpread(index, side, reason = 'navigation') {
         if (index < 0 || index > this.#spreads.length - 1) return
         if (this.scrolled) return this.#goToStack(index, reason)
         if (index === this.#index) {

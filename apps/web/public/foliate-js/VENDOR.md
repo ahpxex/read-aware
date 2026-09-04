@@ -10,7 +10,19 @@ contract `view.open()` accepts.
 - **Pinned commit:** `78914aef4466eb960965702401634c2cb348e9b1` (2026-05-01)
 - **License:** MIT (see `LICENSE`)
 
-## Why it lives in `public/` (served, not bundled)
+## Source and generated runtime tree
+
+The canonical engine source is TypeScript under `apps/web/foliate-js/src/`.
+`bun --filter @read-aware/web build:foliate` type-checks it and emits the
+browser-native ES modules in this directory. The generated top-level `*.js`
+files are committed so Vite dev, Storybook, tests, and packaged builds all use
+the same runtime tree. Do not edit those generated files directly.
+
+The files below `vendor/` remain the upstream distribution artifacts: PDF.js,
+zip.js, fflate, CMaps, fonts, and WASM. They have local declaration files beside
+the TypeScript engine source, but are not rewritten or rebundled.
+
+## Why the generated tree lives in `public/` (served, not bundled)
 
 foliate-js resolves its lazily-loaded parsers and PDF.js assets at **runtime** via
 relative paths and `new URL(..., import.meta.url)` (see `pdf.js`). Letting Vite bundle
@@ -19,7 +31,7 @@ Serving the tree statically and importing it at runtime (`import("/foliate-js/vi
 keeps every relative path correct in dev, production, and the Tauri webview, and keeps
 the ~5.6 MB engine out of the JS bundle (only the modules for the opened format load).
 
-The typed wrapper that consumes this lives at
+The app-facing loader and narrower product contract live at
 `apps/web/src/features/reader/lib/foliate-engine.ts`.
 
 ## What was changed from upstream
@@ -198,11 +210,14 @@ The typed wrapper that consumes this lives at
   anchor inside it / its first fragment), which the app's TOC synthesis uses
   to add entries for books whose nav covers too little of the spine.
   Re-apply after any upstream update.
-- Otherwise all engine modules and `vendor/` are byte-for-byte upstream.
+- Otherwise the TypeScript engine follows the pinned upstream modules, while
+  `vendor/` stays byte-for-byte upstream.
 
 ## Updating
 
-Re-clone upstream at the desired commit, copy the top-level `*.js` modules (minus the
-demo/config) and `vendor/`, replace the PDF.js modern build with the same version's
-official legacy build, include its `wasm/` assets, drop the `.map` files, and update
-the pinned commit above.
+Re-clone upstream at the desired commit, port the top-level `*.js` changes (minus
+the demo/config) into `apps/web/foliate-js/src/*.ts`, and copy `vendor/`. Replace
+the PDF.js modern build with the same version's official legacy build, include
+its `wasm/` assets, drop the `.map` files, and reapply the ReadAware patches
+above. Then run `bun --filter @read-aware/web build:foliate` and update the
+pinned commit above.

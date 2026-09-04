@@ -16,6 +16,10 @@ const flatten = items => items
     .flat()
 
 export class TOCProgress {
+    declare ids: any;
+    declare map: Map<any, any>;
+    declare getFragment: any;
+
     async init({ toc, ids, splitHref, getFragment }) {
         assignIDs(toc)
         const items = flatten(toc)
@@ -63,6 +67,12 @@ export class TOCProgress {
 }
 
 export class SectionProgress {
+    declare sizes: any;
+    declare sizePerLoc: any;
+    declare sizePerTimeUnit: any;
+    declare sizeTotal: any;
+    declare sectionFractions: Array<number>;
+
     constructor(sections, sizePerLoc, sizePerTimeUnit) {
         this.sizes = sections.map(s => s.linear != 'no' && s.size > 0 ? s.size : 0)
         this.sizePerLoc = sizePerLoc

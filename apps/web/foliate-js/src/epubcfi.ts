@@ -1,7 +1,7 @@
-const findIndices = (arr, f) => arr
+const findIndices = (arr: any[], f: (value: any, index: number, arr: any[]) => boolean) => arr
     .map((x, i, a) => f(x, i, a) ? i : null).filter(x => x != null)
-const splitAt = (arr, is) => [-1, ...is, arr.length].reduce(({ xs, a }, b) =>
-    ({ xs: xs?.concat([arr.slice(a + 1, b)]) ?? [], a: b }), {}).xs
+const splitAt = (arr: any[], is: number[]) => [-1, ...is, arr.length].reduce(({ xs, a }, b) =>
+    ({ xs: xs.concat([arr.slice(a + 1, b)]), a: b }), { xs: [] as any[][], a: -1 }).xs
 const concatArrays = (a, b) =>
     a.slice(0, -1).concat([a[a.length - 1].concat(b[0])]).concat(b.slice(1))
 
@@ -15,8 +15,8 @@ const lift = f => (...xs) =>
     `epubcfi(${f(...xs.map(x => x.match(isCFI)?.[1] ?? x))})`
 export const joinIndir = lift((...xs) => xs.join('!'))
 
-const tokenizer = str => {
-    const tokens = []
+const tokenizer = (str: string) => {
+    const tokens: any[] = []
     let state, escape, value = ''
     const push = x => (tokens.push(x), state = null, value = '')
     const cat = x => (value += x, escape = false)
@@ -131,7 +131,7 @@ const toInnerString = parsed => parsed.parent
 
 const toString = parsed => wrap(toInnerString(parsed))
 
-export const collapse = (x, toEnd) => typeof x === 'string'
+export const collapse = (x, toEnd = false) => typeof x === 'string'
     ? toString(collapse(parse(x), toEnd))
     : x.parent ? concatArrays(x.parent, x[toEnd ? 'end' : 'start']) : x
 
@@ -188,8 +188,8 @@ export const compare = (a, b) => {
 const isTextNode = ({ nodeType }) => nodeType === 3 || nodeType === 4
 const isElementNode = ({ nodeType }) => nodeType === 1
 
-const getChildNodes = (node, filter) => {
-    const nodes = Array.from(node.childNodes)
+const getChildNodes = (node: any, filter?: (node: Node) => number): any[] => {
+    const nodes = (Array.from(node.childNodes) as Node[])
         // "content other than element and character data is ignored"
         .filter(node => isTextNode(node) || isElementNode(node))
     return filter ? nodes.map(node => {
@@ -205,7 +205,7 @@ const getChildNodes = (node, filter) => {
 // regardless of the actual structure in the document;
 // so multiple text nodes need to be combined, and nonexistent ones counted;
 // see "Step Reference to Child Element or Character Data (/)" in EPUB CFI spec
-const indexChildNodes = (node, filter) => {
+const indexChildNodes = (node: any, filter?: (node: Node) => number): any[] => {
     const nodes = getChildNodes(node, filter)
         .reduce((arr, node) => {
             let last = arr[arr.length - 1]
@@ -231,7 +231,7 @@ const indexChildNodes = (node, filter) => {
     return nodes
 }
 
-const partsToNode = (node, parts, filter) => {
+const partsToNode = (node, parts, filter?: (node: Node) => number) => {
     const { id } = parts[parts.length - 1]
     if (id) {
         const el = node.ownerDocument.getElementById(id)
@@ -257,7 +257,7 @@ const partsToNode = (node, parts, filter) => {
     }
 }
 
-const nodeToParts = (node, offset, filter) => {
+const nodeToParts = (node, offset = 0, filter?: (node: Node) => number) => {
     let { id, parentNode } = node
     while (filter && parentNode
         && parentNode !== node.ownerDocument.documentElement
@@ -285,7 +285,7 @@ const nodeToParts = (node, offset, filter) => {
         .filter(x => x.index !== -1)
 }
 
-export const fromRange = (range, filter) => {
+export const fromRange = (range, filter?: (node: Node) => number) => {
     const { startContainer, startOffset, endContainer, endOffset } = range
     const start = nodeToParts(startContainer, startOffset, filter)
     if (range.collapsed) return toString([start])
@@ -293,7 +293,7 @@ export const fromRange = (range, filter) => {
     return buildRange([start], [end])
 }
 
-export const toRange = (doc, parts, filter) => {
+export const toRange = (doc, parts, filter?: (node: Node) => number) => {
     const startParts = collapse(parts)
     const endParts = collapse(parts, true)
 
@@ -338,7 +338,7 @@ export const fake = {
 // get CFI from Calibre bookmarks
 // see https://github.com/johnfactotum/foliate/issues/849
 export const fromCalibrePos = pos => {
-    const [parts] = parse(pos)
+    const [parts] = parse(pos) as any[][]
     const item = parts.shift()
     parts.shift()
     return toString([[{ index: 6 }, item], parts])

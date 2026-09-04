@@ -21,7 +21,7 @@ const MIME = {
     CSS: 'text/css',
     SVG: 'image/svg+xml',
     JS: /\/(x-)?(javascript|ecmascript)/,
-}
+} as const
 
 // https://www.w3.org/TR/epub-33/#sec-reserved-prefixes
 const PREFIX = {
@@ -66,7 +66,7 @@ const normalizeWhitespace = str => str ? str
     .replace(/^[\t\n\f\r ]+/, '')
     .replace(/[\t\n\f\r ]+$/, '') : ''
 
-const filterAttribute = (attr, value, isList) => isList
+const filterAttribute = (attr, value, isList = false) => isList
     ? el => el.getAttribute(attr)?.split(/\s/)?.includes(value)
     : typeof value === 'function'
         ? el => value(el.getAttribute(attr))
@@ -175,14 +175,15 @@ const getMetadata = opf => {
     const $metadata = $(opf.documentElement, 'metadata')
 
     // first pass: convert to JS objects
-    const els = Object.groupBy($metadata.children, el =>
+    const metadataChildren = Array.from($metadata.children) as Element[]
+    const els = Object.groupBy(metadataChildren, el =>
         el.namespaceURI === NS.DC ? 'dc'
         : el.namespaceURI === NS.OPF && el.localName === 'meta' ?
             (el.hasAttribute('name') ? 'legacyMeta' : 'meta') : '')
     const baseLang = $metadata.getAttribute('xml:lang')
         ?? opf.documentElement.getAttribute('xml:lang') ?? 'und'
     const prefixes = getPrefixes(opf)
-    const parse = el => {
+    const parse = (el: Element) => {
         const property = el.getAttribute('property')
         const scheme = el.getAttribute('scheme')
         return {
@@ -198,7 +199,7 @@ const getMetadata = opf => {
         }
     }
     const refines = Map.groupBy(els.meta ?? [], el => el.getAttribute('refines'))
-    const getProperties = el => {
+    const getProperties = (el?: Element) => {
         const els = refines.get(el ? '#' + el.getAttribute('id') : null)
         if (!els) return null
         return Object.groupBy(els.map(parse), x => x.property)
@@ -300,8 +301,8 @@ const getMetadata = opf => {
     if (metadata.altIdentifier === metadata.identifier)
         delete metadata.altIdentifier
 
-    const rendition = {}
-    const media = {}
+    const rendition: Record<string, any> = {}
+    const media: Record<string, any> = {}
     for (const [key, val] of Object.entries(properties)) {
         if (key.startsWith(PREFIX.rendition))
             rendition[camel(key.replace(PREFIX.rendition, ''))] = one(val)
@@ -325,8 +326,8 @@ const parseNav = (doc, resolve = f => f) => {
         if (getType) result.type = $a?.getAttributeNS(NS.EPUB, 'type')?.split(/\s/)
         return result
     }
-    const parseOL = ($ol, getType) => $ol ? $$($ol, 'li').map(parseLI(getType)) : null
-    const parseNav = ($nav, getType) => parseOL($($nav, 'ol'), getType)
+    const parseOL = ($ol, getType = false) => $ol ? $$($ol, 'li').map(parseLI(getType)) : null
+    const parseNav = ($nav, getType = false) => parseOL($($nav, 'ol'), getType)
 
     const $$nav = $$$(doc, 'nav')
     let toc = null, pageList = null, landmarks = null, others = []
@@ -393,6 +394,9 @@ const parseClock = str => {
 }
 
 class MediaOverlay extends EventTarget {
+    declare book: any;
+    declare loadXML: any;
+
     #entries
     #lastMediaOverlayItem
     #sectionIndex
@@ -492,7 +496,7 @@ class MediaOverlay extends EventTarget {
             audio.play().catch(e => this.#error(e))
         }, { once: true })
     }
-    async start(sectionIndex, filter = () => true) {
+    async start(sectionIndex, filter: (...args: any[]) => boolean = () => true) {
         this.#audio?.pause()
         const section = this.book.sections[sectionIndex]
         const href = section?.id
@@ -603,7 +607,7 @@ class Encryption {
     constructor(algorithms) {
         this.#algorithms = algorithms
     }
-    async init(encryption, opf) {
+    async init(encryption: Document | null, opf: Document) {
         if (!encryption) return
         const data = Array.from(
             encryption.getElementsByTagNameNS(NS.ENC, 'EncryptedData'), el => ({
@@ -631,6 +635,17 @@ class Encryption {
 }
 
 class Resources {
+    declare opf: any;
+    declare manifest: Array<any>;
+    declare manifestById: Map<any, any>;
+    declare spine: Array<any>;
+    declare pageProgressionDirection: any;
+    declare navPath: any;
+    declare ncxPath: any;
+    declare guide: Array<{ label: any; type: any; href: any; }>;
+    declare cover: any;
+    declare cfis: Array<any>;
+
     constructor({ opf, resolveHref }) {
         this.opf = opf
         const { $, $$, $$$ } = childGetter(opf, NS.OPF)
@@ -686,7 +701,7 @@ class Resources {
         return this.manifest.find(item => item.properties?.includes(prop))
     }
     resolveCFI(cfi) {
-        const parts = CFI.parse(cfi)
+        const parts: any = CFI.parse(cfi)
         const top = (parts.parent ?? parts).shift()
         let $itemref = CFI.toElement(this.opf, top)
         // make sure it's an idref; if not, try again without the ID assertion
@@ -704,6 +719,11 @@ class Resources {
 }
 
 class Loader {
+    declare loadText: any;
+    declare loadBlob: any;
+    declare manifest: any;
+    declare assets: any;
+
     #cache = new Map()
     #children = new Map()
     #refCount = new Map()
@@ -816,7 +836,7 @@ class Loader {
             // change to HTML if it's not valid XHTML
             if (mediaType === MIME.XHTML && (doc.querySelector('parsererror')
             || !doc.documentElement?.namespaceURI)) {
-                console.warn(doc.querySelector('parsererror')?.innerText ?? 'Invalid XHTML')
+                console.warn(doc.querySelector('parsererror')?.textContent ?? 'Invalid XHTML')
                 item.mediaType = MIME.HTML
                 doc = new DOMParser().parseFromString(str, item.mediaType)
             }
@@ -930,10 +950,29 @@ const getDisplayOptions = doc => {
 }
 
 export class EPUB {
+    declare loadText: any;
+    declare loadBlob: any;
+    declare getSize: any;
+    declare resources: Resources;
+    declare transformTarget: any;
+    declare sections: Array<{ id: any; load: () => any; unload: () => any; createDocument: () => Promise<Document>; size: any; cfi: any; linear: any; pageSpread: string; resolveHref: (href: any) => any; mediaOverlay: any; }>;
+    declare toc: any;
+    declare pageList: any;
+    declare landmarks: any;
+    declare metadata: { identifier: any; title: any; sortAs: any; subtitle: any; language: Array<any>; description: any; publisher: Array<{ name: any; sortAs: any; role: any; code: any; scheme: any; }>; published: any; modified: any; subject: Array<{ name: any; sortAs: any; role: any; code: any; scheme: any; }>; belongsTo: { collection: Array<{ name: any; position: any; }>; series: { name: any; position: number; }; }; altIdentifier: Array<any>; source: Array<any>; rights: any; pageBreakSource: any; };
+    declare rendition: Record<string, any>;
+    declare media: Record<string, any>;
+    declare dir: any;
+
     parser = new DOMParser()
     #loader
     #encryption
-    constructor({ loadText, loadBlob, getSize, sha1 }) {
+    constructor({ loadText, loadBlob, getSize, sha1 }: {
+        loadText: any
+        loadBlob: any
+        getSize: any
+        sha1?: any
+    }) {
         this.loadText = loadText
         this.loadBlob = loadBlob
         this.getSize = getSize
@@ -945,7 +984,7 @@ export class EPUB {
         const doc = this.parser.parseFromString(str, MIME.XML)
         if (doc.querySelector('parsererror'))
             throw new Error(`XML parsing error: ${uri}
-${doc.querySelector('parsererror').innerText}`)
+${doc.querySelector('parsererror')?.textContent}`)
         return doc
     }
     async init() {

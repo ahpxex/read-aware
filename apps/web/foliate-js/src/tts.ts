@@ -21,7 +21,10 @@ const getAlphabet = el => {
     return x ? x : el.parentElement ? getAlphabet(el.parentElement) : null
 }
 
-const getSegmenter = (lang = 'en', granularity = 'word') => {
+const getSegmenter = (
+    lang = 'en',
+    granularity: Intl.SegmenterOptions['granularity'] = 'word',
+) => {
     const segmenter = new Intl.Segmenter(lang, { granularity })
     const granularityIsWord = granularity === 'word'
     return function* (strs, makeRange) {
@@ -203,6 +206,9 @@ class ListIterator {
 }
 
 export class TTS {
+    declare doc: any;
+    declare highlight: any;
+
     #list
     #ranges
     #lastMark
@@ -216,11 +222,11 @@ export class TTS {
             return [ssml, range]
         })
     }
-    #getMarkElement(doc, mark) {
+    #getMarkElement(doc, mark?) {
         if (!mark) return null
         return doc.querySelector(`mark[name="${CSS.escape(mark)}"`)
     }
-    #speak(doc, getNode) {
+    #speak(doc, getNode?) {
         if (!doc) return
         if (!getNode) return this.#serializer.serializeToString(doc)
         const ssml = document.implementation.createDocument(NS.SSML, 'speak')
@@ -244,13 +250,13 @@ export class TTS {
         if (!doc) return this.next()
         return this.#speak(doc, ssml => this.#getMarkElement(ssml, this.#lastMark))
     }
-    prev(paused) {
+    prev(paused = false) {
         this.#lastMark = null
         const [doc, range] = this.#list.prev() ?? []
         if (paused && range) this.highlight(range.cloneRange())
         return this.#speak(doc)
     }
-    next(paused) {
+    next(paused = false) {
         this.#lastMark = null
         const [doc, range] = this.#list.next() ?? []
         if (paused && range) this.highlight(range.cloneRange())

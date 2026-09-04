@@ -1,58 +1,48 @@
-const pdfjsPath = path => new URL(`vendor/pdfjs/${path}`, import.meta.url).toString()
-
-import './vendor/pdfjs/pdf.mjs'
-const pdfjsLib = globalThis.pdfjsLib
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsPath('pdf.worker.mjs')
-
-const fetchText = async url => await (await fetch(url)).text()
-
+const pdfjsPath = path => new URL(`vendor/pdfjs/${path}`, import.meta.url).toString();
+import './vendor/pdfjs/pdf.mjs';
+const pdfjsLib = globalThis.pdfjsLib;
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsPath('pdf.worker.mjs');
+const fetchText = async (url) => await (await fetch(url)).text();
 // https://raw.githubusercontent.com/mozilla/pdf.js/refs/tags/v5.5.207/web/text_layer_builder.css
-const textLayerBuilderCSS = await fetchText(pdfjsPath('text_layer_builder.css'))
-
+const textLayerBuilderCSS = await fetchText(pdfjsPath('text_layer_builder.css'));
 // https://raw.githubusercontent.com/mozilla/pdf.js/refs/tags/v5.5.207/web/annotation_layer_builder.css
-const annotationLayerBuilderCSS = await fetchText(pdfjsPath('annotation_layer_builder.css'))
-
-const COVER_MAX_EDGE = 480
-const COVER_SCAN_PAGES = 5
-const COVER_RENDER_BUDGET_MS = 2500
-
-const canvasToBlob = canvas => new Promise((resolve, reject) =>
-    canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Unable to render PDF cover')),
-        'image/png'))
-
-const thumbnailFromCanvas = async source => {
-    const scale = Math.min(1, COVER_MAX_EDGE / Math.max(source.width, source.height))
-    const canvas = document.createElement('canvas')
-    canvas.height = Math.max(1, Math.round(source.height * scale))
-    canvas.width = Math.max(1, Math.round(source.width * scale))
-    const context = canvas.getContext('2d', { alpha: false })
-    context.fillStyle = '#fff'
-    context.fillRect(0, 0, canvas.width, canvas.height)
-    context.drawImage(source, 0, 0, canvas.width, canvas.height)
-
-    const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data
-    let ink = 0
+const annotationLayerBuilderCSS = await fetchText(pdfjsPath('annotation_layer_builder.css'));
+const COVER_MAX_EDGE = 480;
+const COVER_SCAN_PAGES = 5;
+const COVER_RENDER_BUDGET_MS = 2500;
+const canvasToBlob = canvas => new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Unable to render PDF cover')), 'image/png'));
+const thumbnailFromCanvas = async (source) => {
+    const scale = Math.min(1, COVER_MAX_EDGE / Math.max(source.width, source.height));
+    const canvas = document.createElement('canvas');
+    canvas.height = Math.max(1, Math.round(source.height * scale));
+    canvas.width = Math.max(1, Math.round(source.width * scale));
+    const context = canvas.getContext('2d', { alpha: false });
+    context.fillStyle = '#fff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(source, 0, 0, canvas.width, canvas.height);
+    const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    let ink = 0;
     for (let i = 0; i < pixels.length; i += 16) {
-        if (pixels[i] < 245 || pixels[i + 1] < 245 || pixels[i + 2] < 245) ink++
+        if (pixels[i] < 245 || pixels[i + 1] < 245 || pixels[i + 2] < 245)
+            ink++;
     }
-    const samples = pixels.length / 16
+    const samples = pixels.length / 16;
     return {
         blob: await canvasToBlob(canvas),
         meaningful: ink >= Math.max(24, samples * 0.001),
         timedOut: false,
-    }
-}
-
+    };
+};
 const renderCoverPage = async (page, deadline) => {
-    const natural = page.getViewport({ scale: 1 })
-    const scale = Math.min(1, COVER_MAX_EDGE / Math.max(natural.width, natural.height))
-    const viewport = page.getViewport({ scale })
-    const canvas = document.createElement('canvas')
-    canvas.height = Math.max(1, Math.round(viewport.height))
-    canvas.width = Math.max(1, Math.round(viewport.width))
-    const canvasContext = canvas.getContext('2d', { alpha: false })
-    canvasContext.fillStyle = '#fff'
-    canvasContext.fillRect(0, 0, canvas.width, canvas.height)
+    const natural = page.getViewport({ scale: 1 });
+    const scale = Math.min(1, COVER_MAX_EDGE / Math.max(natural.width, natural.height));
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement('canvas');
+    canvas.height = Math.max(1, Math.round(viewport.height));
+    canvas.width = Math.max(1, Math.round(viewport.width));
+    const canvasContext = canvas.getContext('2d', { alpha: false });
+    canvasContext.fillStyle = '#fff';
+    canvasContext.fillRect(0, 0, canvas.width, canvas.height);
     // READAWARE: `intent: "print"` — display-intent rendering paces itself
     // with requestAnimationFrame, which WKWebView suspends entirely while
     // the window is occluded. A cover is an offscreen thumbnail extracted at
@@ -60,46 +50,50 @@ const renderCoverPage = async (page, deadline) => {
     // would silently time out against its budget, leaving the shelf blank
     // until each book's first open. Print intent renders without the
     // animation-frame dependency.
-    const task = page.render({ canvasContext, viewport, intent: 'print' })
-    const remaining = deadline - performance.now()
-    if (remaining <= 0) return { blob: null, meaningful: false, timedOut: true }
-    const timeout = setTimeout(() => task.cancel(), remaining)
+    const task = page.render({ canvasContext, viewport, intent: 'print' });
+    const remaining = deadline - performance.now();
+    if (remaining <= 0)
+        return { blob: null, meaningful: false, timedOut: true };
+    const timeout = setTimeout(() => task.cancel(), remaining);
     try {
-        await task.promise
-    } catch (error) {
-        if (performance.now() >= deadline || error?.name === 'RenderingCancelledException')
-            return { blob: null, meaningful: false, timedOut: true }
-        throw error
-    } finally {
-        clearTimeout(timeout)
+        await task.promise;
     }
-
-    return thumbnailFromCanvas(canvas)
-}
-
-const extractPageText = async page => {
-    let text = ''
+    catch (error) {
+        if (performance.now() >= deadline
+            || error instanceof Error && error.name === 'RenderingCancelledException')
+            return { blob: null, meaningful: false, timedOut: true };
+        throw error;
+    }
+    finally {
+        clearTimeout(timeout);
+    }
+    return thumbnailFromCanvas(canvas);
+};
+const extractPageText = async (page) => {
+    let text = '';
     // `PDFPageProxy.getTextContent()` consumes the stream with `for await`;
     // older WKWebView releases lack ReadableStream's async iterator even when
     // using PDF.js's legacy build. Reading through the stable reader API keeps
     // extraction on the same compatibility baseline as page rendering.
-    const reader = page.streamTextContent().getReader()
+    const reader = page.streamTextContent().getReader();
     try {
         while (true) {
-            const { value, done } = await reader.read()
-            if (done) break
+            const { value, done } = await reader.read();
+            if (done)
+                break;
             for (const item of value?.items ?? []) {
-                if (typeof item?.str !== 'string') continue
-                text += item.str
-                text += item.hasEOL ? '\n' : ' '
+                if (typeof item?.str !== 'string')
+                    continue;
+                text += item.str;
+                text += item.hasEOL ? '\n' : ' ';
             }
         }
-    } finally {
-        reader.releaseLock()
     }
-    return text.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim()
-}
-
+    finally {
+        reader.releaseLock();
+    }
+    return text.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+};
 // READAWARE: page colors, in two forms.
 //
 // `background` alone is painted before the page is drawn on top of it
@@ -130,51 +124,50 @@ const extractPageText = async page => {
 // on the GPU. They run once per render — a page turn, a zoom, a palette change
 // — never per frame.
 const rgbChannels = color => {
-    const hex = String(color).trim().replace(/^#/, '')
+    const hex = String(color).trim().replace(/^#/, '');
     const full = hex.length === 3 || hex.length === 4
         ? [...hex.slice(0, 3)].map(c => c + c).join('')
-        : hex.slice(0, 6)
-    if (!/^[0-9a-fA-F]{6}$/.test(full)) return null
-    return [0, 2, 4].map(i => parseInt(full.slice(i, i + 2), 16))
-}
-
-const clampChannel = value => Math.max(0, Math.min(255, Math.round(value)))
-
+        : hex.slice(0, 6);
+    if (!/^[0-9a-fA-F]{6}$/.test(full))
+        return null;
+    return [0, 2, 4].map(i => parseInt(full.slice(i, i + 2), 16));
+};
+const clampChannel = value => Math.max(0, Math.min(255, Math.round(value)));
 // The remap, as four composite operations over the finished page. Each one is
 // a plain fill the compositor can run on the GPU; the equivalent pixel loop
 // costs a third of a second on a Retina-scale page, which a page turn cannot
 // afford. Endpoints land exactly: white paper comes out as `background`, black
 // ink as `foreground`.
 const applyPageColors = (context, canvas, pageColors) => {
-    if (!pageColors?.foreground || !pageColors?.background) return
-    const fg = rgbChannels(pageColors.foreground)
-    const bg = rgbChannels(pageColors.background)
-    if (!fg || !bg) return
-    const { width, height } = canvas
+    if (!pageColors?.foreground || !pageColors?.background)
+        return;
+    const fg = rgbChannels(pageColors.foreground);
+    const bg = rgbChannels(pageColors.background);
+    if (!fg || !bg)
+        return;
+    const { width, height } = canvas;
     const fill = style => {
-        context.fillStyle = style
-        context.fillRect(0, 0, width, height)
-    }
-
-    context.save()
+        context.fillStyle = style;
+        context.fillRect(0, 0, width, height);
+    };
+    context.save();
     // Drop the color, keeping each pixel's luminosity.
-    context.globalCompositeOperation = 'saturation'
-    fill('hsl(0, 0%, 50%)')
+    context.globalCompositeOperation = 'saturation';
+    fill('hsl(0, 0%, 50%)');
     // Invert, so paper sits at 0 and ink at 1.
-    context.globalCompositeOperation = 'difference'
-    fill('#ffffff')
+    context.globalCompositeOperation = 'difference';
+    fill('#ffffff');
     // Scale that range down to the distance between the two colors. A palette
     // whose text is darker than its paper in some channel would ask for a
     // negative scale, which cannot be expressed — clamping flattens that
     // channel rather than wrapping it.
-    context.globalCompositeOperation = 'multiply'
-    fill(`rgb(${fg.map((c, i) => clampChannel(c - bg[i])).join(', ')})`)
+    context.globalCompositeOperation = 'multiply';
+    fill(`rgb(${fg.map((c, i) => clampChannel(c - bg[i])).join(', ')})`);
     // And lift the result onto the background color.
-    context.globalCompositeOperation = 'lighter'
-    fill(`rgb(${bg.map(clampChannel).join(', ')})`)
-    context.restore()
-}
-
+    context.globalCompositeOperation = 'lighter';
+    fill(`rgb(${bg.map(clampChannel).join(', ')})`);
+    context.restore();
+};
 // READAWARE: per-document selection manager for the text layer — the WebKit
 // path of PDF.js's text_layer_builder (PR #17923), adapted to our one page
 // per iframe document. Two cooperating tricks:
@@ -191,66 +184,65 @@ const applyPageColors = (context, canvas, pageColors) => {
 //
 // One listener set per document; re-renders (zoom, palette) only swap which
 // container/divider the state points at.
-const selectionFixStates = new WeakMap()
+const selectionFixStates = new WeakMap();
 const bindSelectionFixes = (doc, container, endOfContent) => {
-    const existing = selectionFixStates.get(doc)
+    const existing = selectionFixStates.get(doc);
     if (existing) {
-        existing.container = container
-        existing.end = endOfContent
-        existing.prevRange = null
-        return
+        existing.container = container;
+        existing.end = endOfContent;
+        existing.prevRange = null;
+        return;
     }
-    const state = { container, end: endOfContent, prevRange: null }
-    selectionFixStates.set(doc, state)
+    const state = { container, end: endOfContent, prevRange: null };
+    selectionFixStates.set(doc, state);
     const reset = () => {
-        state.container.classList.remove('selecting')
-        state.prevRange = null
+        state.container.classList.remove('selecting');
+        state.prevRange = null;
         // Park the divider back below the page (last in DOM order).
-        if (state.end.parentElement) state.container.append(state.end)
-    }
-    doc.addEventListener('pointerdown', () => state.container.classList.add('selecting'))
-    doc.addEventListener('pointerup', reset)
-    doc.addEventListener('pointercancel', reset)
-    doc.defaultView.addEventListener('blur', reset)
+        if (state.end.parentElement)
+            state.container.append(state.end);
+    };
+    doc.addEventListener('pointerdown', () => state.container.classList.add('selecting'));
+    doc.addEventListener('pointerup', reset);
+    doc.addEventListener('pointercancel', reset);
+    doc.defaultView.addEventListener('blur', reset);
     doc.addEventListener('selectionchange', () => {
-        const selection = doc.getSelection()
+        const selection = doc.getSelection();
         if (!selection || selection.rangeCount === 0) {
-            state.prevRange = null
-            return
+            state.prevRange = null;
+            return;
         }
-        const range = selection.getRangeAt(0)
+        const range = selection.getRangeAt(0);
         // Which edge is moving? If the end boundary matches the previous
         // selection, the user is dragging the start backwards.
         const modifyStart = state.prevRange
             && (range.compareBoundaryPoints(Range.END_TO_END, state.prevRange) === 0
-                || range.compareBoundaryPoints(Range.START_TO_END, state.prevRange) === 0)
-        let anchor = modifyStart ? range.startContainer : range.endContainer
-        if (anchor.nodeType === Node.TEXT_NODE) anchor = anchor.parentNode
+                || range.compareBoundaryPoints(Range.START_TO_END, state.prevRange) === 0);
+        let anchor = modifyStart ? range.startContainer : range.endContainer;
+        if (anchor.nodeType === Node.TEXT_NODE)
+            anchor = anchor.parentNode;
         // A selection ending exactly at an element boundary anchors on the
         // PREVIOUS element (upstream's walk, bounded to the layer).
         if (!modifyStart && range.endOffset === 0) {
             do {
                 while (!anchor.previousSibling && anchor !== state.container) {
-                    anchor = anchor.parentNode
+                    anchor = anchor.parentNode;
                 }
-                if (anchor === state.container) break
-                anchor = anchor.previousSibling
-            } while (anchor && !anchor.childNodes.length && anchor !== state.end)
+                if (anchor === state.container)
+                    break;
+                anchor = anchor.previousSibling;
+            } while (anchor && !anchor.childNodes.length && anchor !== state.end);
         }
-        if (
-            anchor
+        if (anchor
             && anchor !== state.container
             && anchor !== state.end
             && anchor.parentElement
-            && state.container.contains(anchor)
-        ) {
-            anchor.parentElement.insertBefore(
-                state.end, modifyStart ? anchor : anchor.nextSibling)
+            && state.container.contains(anchor)) {
+            anchor.parentElement.insertBefore(state.end, modifyStart ? anchor : anchor.nextSibling);
         }
-        state.prevRange = range.cloneRange()
-    })
-}
-
+        state.prevRange = range.cloneRange();
+    });
+};
 // READAWARE: the raster budget, in canvas pixels. `zoom × devicePixelRatio`
 // is unbounded — fit-width on a large Retina window asks a tall scan for a
 // 20-megapixel canvas (~90 MB of RGBA) per page, which is where scrolling
@@ -258,8 +250,7 @@ const bindSelectionFixes = (doc, container, endOfContent) => {
 // rasters at the largest scale that fits and the (generalized) document
 // transform upscales the difference; at typical window sizes the budget is
 // never hit and rendering is pixel-exact as before.
-const MAX_RENDER_PIXELS = 12 * 1024 * 1024
-
+const MAX_RENDER_PIXELS = 12 * 1024 * 1024;
 // READAWARE: renders are cancellable (see the fixed-layout scheduler): a page
 // scrolled out of the window before its raster finished must release the main
 // thread and the PDF worker to pages the reader is actually approaching. A
@@ -267,36 +258,36 @@ const MAX_RENDER_PIXELS = 12 * 1024 * 1024
 // rendered", never as damage.
 class RenderCancelledError extends Error {
     constructor() {
-        super('pdf render cancelled')
-        this.name = 'RenderCancelledError'
+        super('pdf render cancelled');
+        this.name = 'RenderCancelledError';
     }
 }
-
 const render = async (page, doc, zoom, onRendered, pageColors, signal) => {
     const throwIfAborted = () => {
-        if (signal?.aborted) throw new RenderCancelledError()
-    }
-    throwIfAborted()
-    const natural = page.getViewport({ scale: 1 })
-    let scale = zoom * devicePixelRatio
-    const maxScale = Math.sqrt(MAX_RENDER_PIXELS / (natural.width * natural.height))
-    if (scale > maxScale) scale = maxScale
+        if (signal?.aborted)
+            throw new RenderCancelledError();
+    };
+    throwIfAborted();
+    const natural = page.getViewport({ scale: 1 });
+    let scale = zoom * devicePixelRatio;
+    const maxScale = Math.sqrt(MAX_RENDER_PIXELS / (natural.width * natural.height));
+    if (scale > maxScale)
+        scale = maxScale;
     // Generalized from `1 / devicePixelRatio`: displayed size = raster × t,
     // and the display target is the layout size (zoom).
-    doc.documentElement.style.transform = `scale(${zoom / scale})`
-    doc.documentElement.style.transformOrigin = 'top left'
-    doc.documentElement.style.setProperty('--scale-factor', scale)
-    const viewport = page.getViewport({ scale })
-
+    doc.documentElement.style.transform = `scale(${zoom / scale})`;
+    doc.documentElement.style.transformOrigin = 'top left';
+    doc.documentElement.style.setProperty('--scale-factor', scale);
+    const viewport = page.getViewport({ scale });
     // the canvas must be in the `PDFDocument`'s `ownerDocument`
     // (`globalThis.document` by default); that's where the fonts are loaded
-    const canvas = document.createElement('canvas')
-    canvas.height = viewport.height
-    canvas.width = viewport.width
-    const canvasContext = canvas.getContext('2d')
+    const canvas = document.createElement('canvas');
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+    const canvasContext = canvas.getContext('2d');
     // READAWARE: paint the page document to match, so the moment between the
     // old canvas being replaced and the new one appearing does not flash white.
-    doc.documentElement.style.background = pageColors?.background ?? ''
+    doc.documentElement.style.background = pageColors?.background ?? '';
     const task = page.render({
         canvasContext, viewport,
         // Only the light case is a render parameter; the dark case is a filter
@@ -304,48 +295,52 @@ const render = async (page, doc, zoom, onRendered, pageColors, signal) => {
         ...(pageColors?.background && !pageColors.foreground
             ? { background: pageColors.background }
             : {}),
-    })
-    const abortRaster = () => task.cancel()
-    signal?.addEventListener('abort', abortRaster, { once: true })
+    });
+    const abortRaster = () => task.cancel();
+    signal?.addEventListener('abort', abortRaster, { once: true });
     try {
-        await task.promise
-    } catch (error) {
-        if (signal?.aborted || error?.name === 'RenderingCancelledException') {
-            throw new RenderCancelledError()
+        await task.promise;
+    }
+    catch (error) {
+        if (signal?.aborted
+            || error instanceof Error && error.name === 'RenderingCancelledException') {
+            throw new RenderCancelledError();
         }
-        throw error
-    } finally {
-        signal?.removeEventListener('abort', abortRaster)
+        throw error;
+    }
+    finally {
+        signal?.removeEventListener('abort', abortRaster);
     }
     // The cover thumbnail reuses this canvas, so hand it over before the remap
     // — a cover should look like the book.
-    onRendered?.(canvas)
-    applyPageColors(canvasContext, canvas, pageColors)
-    throwIfAborted()
-    doc.querySelector('#canvas').replaceChildren(doc.adoptNode(canvas))
-
+    onRendered?.(canvas);
+    applyPageColors(canvasContext, canvas, pageColors);
+    throwIfAborted();
+    doc.querySelector('#canvas').replaceChildren(doc.adoptNode(canvas));
     // READAWARE: `TextLayer.render()` APPENDS. Every zoom/resize re-renders the
     // page, so without clearing first the spans stack up — text selects twice
     // over, and, worse, the DOM shape a stored CFI was measured against stops
     // being reproducible. Rebuilding from empty keeps it deterministic.
-    const container = doc.querySelector('.textLayer')
-    container.replaceChildren()
-    doc.querySelector('.annotationLayer').replaceChildren()
+    const container = doc.querySelector('.textLayer');
+    container.replaceChildren();
+    doc.querySelector('.annotationLayer').replaceChildren();
     const textLayer = new pdfjsLib.TextLayer({
         textContentSource: await page.streamTextContent(),
         container, viewport,
-    })
-    const abortText = () => textLayer.cancel()
-    signal?.addEventListener('abort', abortText, { once: true })
+    });
+    const abortText = () => textLayer.cancel();
+    signal?.addEventListener('abort', abortText, { once: true });
     try {
-        await textLayer.render()
-    } catch (error) {
-        if (signal?.aborted) throw new RenderCancelledError()
-        throw error
-    } finally {
-        signal?.removeEventListener('abort', abortText)
+        await textLayer.render();
     }
-
+    catch (error) {
+        if (signal?.aborted)
+            throw new RenderCancelledError();
+        throw error;
+    }
+    finally {
+        signal?.removeEventListener('abort', abortText);
+    }
     // hide "offscreen" canvases appended to docuemnt when rendering text layer
     // https://github.com/mozilla/pdf.js/blob/642b9a5ae67ef642b9a8808fd9efd447e8c350e2/web/pdf_viewer.css#L51-L58
     for (const canvas of document.querySelectorAll('.hiddenCanvasElement'))
@@ -356,32 +351,29 @@ const render = async (page, doc, zoom, onRendered, pageColors, signal) => {
             width: '0',
             height: '0',
             display: 'none',
-        })
-
+        });
     // READAWARE: WebKit-grade text selection, ported from PDF.js's own
     // text_layer_builder (PR #17923) and adapted to one page per iframe
     // document. The previous class toggle "only works in Firefox" (its own
     // TODO said so): the text layer is sparse absolutely-positioned spans,
     // and WebKit's native selection stalls in the gaps — a drag that starts
     // slightly off a line selects nothing, extending across lines glitches.
-    const endOfContent = document.createElement('div')
-    endOfContent.className = 'endOfContent'
-    container.append(endOfContent)
-    bindSelectionFixes(doc, container, endOfContent)
-
-    throwIfAborted()
-    const div = doc.querySelector('.annotationLayer')
+    const endOfContent = document.createElement('div');
+    endOfContent.className = 'endOfContent';
+    container.append(endOfContent);
+    bindSelectionFixes(doc, container, endOfContent);
+    throwIfAborted();
+    const div = doc.querySelector('.annotationLayer');
     const linkService = {
-        goToDestination: () => {},
+        goToDestination: () => { },
         getDestinationHash: dest => JSON.stringify(dest),
         addLinkAttributes: (link, url) => link.href = url,
-    }
+    };
     await new pdfjsLib.AnnotationLayer({ page, viewport, div, linkService })
-        .render({ annotations: await page.getAnnotations() })
-}
-
+        .render({ annotations: await page.getAnnotations() });
+};
 const renderPage = async (page, onRendered) => {
-    const viewport = page.getViewport({ scale: 1 })
+    const viewport = page.getViewport({ scale: 1 });
     const src = URL.createObjectURL(new Blob([`
         <!DOCTYPE html>
         <html lang="en">
@@ -407,25 +399,22 @@ const renderPage = async (page, onRendered) => {
         <div id="canvas"></div>
         <div class="textLayer"></div>
         <div class="annotationLayer"></div>
-    `], { type: 'text/html' }))
-    const onZoom = ({ doc, scale, pageColors, signal }) =>
-        render(page, doc, scale, onRendered, pageColors, signal)
-    return { src, onZoom }
-}
-
+    `], { type: 'text/html' }));
+    const onZoom = ({ doc, scale, pageColors, signal }) => render(page, doc, scale, onRendered, pageColors, signal);
+    return { src, onZoom };
+};
 const makeTOCItem = item => ({
     label: item.title,
     href: JSON.stringify(item.dest),
     subitems: item.items.length ? item.items.map(makeTOCItem) : null,
-})
-
-export const makePDF = async file => {
-    const transport = new pdfjsLib.PDFDataRangeTransport(file.size, [])
+});
+export const makePDF = async (file) => {
+    const transport = new pdfjsLib.PDFDataRangeTransport(file.size, []);
     transport.requestDataRange = (begin, end) => {
         file.slice(begin, end).arrayBuffer().then(chunk => {
-            transport.onDataRange(begin, chunk)
-        })
-    }
+            transport.onDataRange(begin, chunk);
+        });
+    };
     const pdf = await pdfjsLib.getDocument({
         range: transport,
         // READAWARE: every range request is a disk read across the IPC bridge.
@@ -443,11 +432,9 @@ export const makePDF = async file => {
         standardFontDataUrl: pdfjsPath('standard_fonts/'),
         wasmUrl: pdfjsPath('wasm/'),
         isEvalSupported: false,
-    }).promise
-
-    const book = { rendition: { layout: 'pre-paginated' } }
-
-    const { metadata, info } = await pdf.getMetadata() ?? {}
+    }).promise;
+    const book = { rendition: { layout: 'pre-paginated' } };
+    const { metadata, info } = await pdf.getMetadata() ?? {};
     // TODO: for better results, parse `metadata.getRaw()`
     book.metadata = {
         title: metadata?.get('dc:title') ?? info?.Title,
@@ -460,61 +447,62 @@ export const makePDF = async file => {
         identifier: metadata?.get('dc:identifier'),
         source: metadata?.get('dc:source'),
         rights: metadata?.get('dc:rights'),
-    }
-
-    const outline = await pdf.getOutline()
-    book.toc = outline?.map(makeTOCItem)
-
-    const cache = new Map()
-    const renderedCovers = new Map()
+    };
+    const outline = await pdf.getOutline();
+    book.toc = outline?.map(makeTOCItem);
+    const cache = new Map();
+    const renderedCovers = new Map();
     book.sections = Array.from({ length: pdf.numPages }).map((_, i) => ({
         id: `page:${i + 1}`,
         load: async () => {
-            const cached = cache.get(i)
-            if (cached) return cached
+            const cached = cache.get(i);
+            if (cached)
+                return cached;
             const url = await renderPage(await pdf.getPage(i + 1), canvas => {
                 if (!renderedCovers.has(i))
-                    renderedCovers.set(i, thumbnailFromCanvas(canvas).catch(() => null))
-            })
-            cache.set(i, url)
-            return url
+                    renderedCovers.set(i, thumbnailFromCanvas(canvas).catch(() => null));
+            });
+            cache.set(i, url);
+            return url;
         },
         getText: async () => extractPageText(await pdf.getPage(i + 1)),
         size: 1000,
-    }))
-    book.isExternal = uri => /^\w+:/i.test(uri)
-    book.resolveHref = async href => {
-        const parsed = JSON.parse(href)
+    }));
+    book.isExternal = uri => /^\w+:/i.test(uri);
+    book.resolveHref = async (href) => {
+        const parsed = JSON.parse(href);
         const dest = typeof parsed === 'string'
-            ? await pdf.getDestination(parsed) : parsed
-        const index = await pdf.getPageIndex(dest[0])
-        return { index }
-    }
-    book.splitTOCHref = async href => {
-        const parsed = JSON.parse(href)
+            ? await pdf.getDestination(parsed) : parsed;
+        const index = await pdf.getPageIndex(dest[0]);
+        return { index };
+    };
+    book.splitTOCHref = async (href) => {
+        const parsed = JSON.parse(href);
         const dest = typeof parsed === 'string'
-            ? await pdf.getDestination(parsed) : parsed
-        const index = await pdf.getPageIndex(dest[0])
-        return [index, null]
-    }
-    book.getTOCFragment = doc => doc.documentElement
+            ? await pdf.getDestination(parsed) : parsed;
+        const index = await pdf.getPageIndex(dest[0]);
+        return [index, null];
+    };
+    book.getTOCFragment = doc => doc.documentElement;
     book.getCover = async () => {
         // The first visible page has already paid the decode cost. Reuse its
         // canvas when possible rather than decoding a large scan twice.
         for (let i = 0; i < COVER_SCAN_PAGES; i++) {
-            const cached = await renderedCovers.get(i)
-            if (cached?.meaningful) return cached.blob
+            const cached = await renderedCovers.get(i);
+            if (cached?.meaningful)
+                return cached.blob;
         }
-
-        const count = Math.min(pdf.numPages, COVER_SCAN_PAGES)
-        const deadline = performance.now() + COVER_RENDER_BUDGET_MS
+        const count = Math.min(pdf.numPages, COVER_SCAN_PAGES);
+        const deadline = performance.now() + COVER_RENDER_BUDGET_MS;
         for (let i = 1; i <= count; i++) {
-            const rendered = await renderCoverPage(await pdf.getPage(i), deadline)
-            if (rendered.meaningful) return rendered.blob
-            if (rendered.timedOut) break
+            const rendered = await renderCoverPage(await pdf.getPage(i), deadline);
+            if (rendered.meaningful)
+                return rendered.blob;
+            if (rendered.timedOut)
+                break;
         }
-        return null
-    }
-    book.destroy = () => pdf.destroy()
-    return book
-}
+        return null;
+    };
+    book.destroy = () => pdf.destroy();
+    return book;
+};

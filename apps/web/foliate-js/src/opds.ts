@@ -69,12 +69,12 @@ export const isOPDSCatalog = str => {
 }
 
 // ignore the namespace if it doesn't appear in document at all
-const useNS = (doc, ns) =>
+const useNS = (doc: Document, ns: string) =>
     doc.lookupNamespaceURI(null) === ns || doc.lookupPrefix(ns) ? ns : null
 
-const filterNS = ns => ns
-    ? name => el => el.namespaceURI === ns && el.localName === name
-    : name => el => el.localName === name
+const filterNS = (ns: string | null) => ns
+    ? (name: string) => (el: Element) => el.namespaceURI === ns && el.localName === name
+    : (name: string) => (el: Element) => el.localName === name
 
 const getContent = el => {
     if (!el) return
@@ -136,7 +136,7 @@ const getPerson = person => {
     }
 }
 
-export const getPublication = entry => {
+export const getPublication = (entry: Element) => {
     const filter = filterNS(useNS(entry.ownerDocument, NS.ATOM))
     const children = Array.from(entry.children)
     const filterDCEL = filterNS(NS.DC)
@@ -172,7 +172,7 @@ export const getPublication = entry => {
     }
 }
 
-export const getFeed = doc => {
+export const getFeed = (doc: Document) => {
     const ns = useNS(doc, NS.ATOM)
     const filter = filterNS(ns)
     const children = Array.from(doc.documentElement.children)
@@ -245,7 +245,7 @@ export const getSearch = async link => {
     }
 }
 
-export const getOpenSearch = doc => {
+export const getOpenSearch = (doc: Document) => {
     const defaultNS = doc.documentElement.namespaceURI
     const filter = filterNS(defaultNS)
     const children = Array.from(doc.documentElement.children)

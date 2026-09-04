@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "ReadAware foliate engine",
+  "compilerOptions": {
+    "target": "ESNext",
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "rootDir": "foliate-js/src",
+    "outDir": "public/foliate-js",
+    "declaration": false,
+    "sourceMap": false,
+    "removeComments": false,
+    "noEmit": false,
+    "noEmitOnError": true,
+    "skipLibCheck": true,
+    "strict": true,
+    // Foliate's format parsers intentionally accept polymorphic upstream data.
+    // Keep those internals gradual while retaining the other strict checks.
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "useDefineForClassFields": true
+  },
+  "include": ["foliate-js/src/**/*.ts", "foliate-js/src/**/*.d.ts"]
+}

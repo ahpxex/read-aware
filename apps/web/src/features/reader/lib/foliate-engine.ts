@@ -1,11 +1,12 @@
 /**
  * Typed loader + thin wrapper around the vendored foliate-js engine.
  *
- * foliate-js is served as a static ES-module tree from `public/foliate-js` (see
- * that folder's VENDOR.md for why it is not bundled). We import it at runtime so
- * its relative parser imports and `import.meta.url` PDF asset resolution stay
- * correct in dev, production, and the Tauri webview. The engine is untyped JS,
- * so the interfaces below cover only the surface this app uses.
+ * foliate-js is authored in TypeScript under `apps/web/foliate-js/src` and
+ * emitted as a static ES-module tree in `public/foliate-js` (see that folder's
+ * VENDOR.md for why it is not bundled). We import the generated modules at
+ * runtime so relative parser imports and `import.meta.url` PDF asset resolution
+ * stay correct in dev, production, and the Tauri webview. The interfaces below
+ * deliberately describe only the narrower surface the product consumes.
  */
 
 import type { BookFileSource } from "./reader-types";

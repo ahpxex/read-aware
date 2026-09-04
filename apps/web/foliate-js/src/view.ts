@@ -5,6 +5,16 @@ import { textWalker } from './text-walker.js'
 
 const SEARCH_PREFIX = 'foliate-search:'
 
+type Renderer = HTMLElement & {
+    open(book: any): Promise<void> | void
+    goTo(target: any): Promise<any>
+    getContents(): any[]
+    destroy(): void
+    prev(distance?: number): Promise<void>
+    next(distance?: number): Promise<void>
+    scrollToAnchor(anchor: any, select?: boolean): Promise<void>
+}
+
 const isZip = async file => {
     const arr = new Uint8Array(await file.slice(0, 4).arrayBuffer())
     return arr[0] === 0x50 && arr[1] === 0x4b && arr[2] === 0x03 && arr[3] === 0x04
@@ -42,9 +52,9 @@ const makeZipLoader = async file => {
     return { entries, loadText, loadBlob, getSize }
 }
 
-const getFileEntries = async entry => entry.isFile ? entry
+const getFileEntries = async (entry: any): Promise<any> => entry.isFile ? entry
     : (await Promise.all(Array.from(
-        await new Promise((resolve, reject) => entry.createReader()
+        await new Promise<any[]>((resolve, reject) => entry.createReader()
             .readEntries(entries => resolve(entries), error => reject(error))),
         getFileEntries))).flat()
 
@@ -202,7 +212,12 @@ const languageInfo = lang => {
         const canonical = Intl.getCanonicalLocales(lang)[0]
         const locale = new Intl.Locale(canonical)
         const isCJK = ['zh', 'ja', 'kr'].includes(locale.language)
-        const direction = (locale.getTextInfo?.() ?? locale.textInfo)?.direction
+        const localeWithTextInfo = locale as Intl.Locale & {
+            getTextInfo?: () => { direction?: string }
+            textInfo?: { direction?: string }
+        }
+        const direction = (localeWithTextInfo.getTextInfo?.()
+            ?? localeWithTextInfo.textInfo)?.direction
         return { canonical, locale, isCJK, direction }
     } catch (e) {
         console.warn(e)
@@ -211,6 +226,12 @@ const languageInfo = lang => {
 }
 
 export class View extends HTMLElement {
+    declare book: any;
+    declare language: { canonical?: undefined; locale?: undefined; isCJK?: undefined; direction?: undefined; } | { canonical: string; locale: Intl.Locale; isCJK: boolean; direction: any; };
+    declare renderer: Renderer;
+    declare mediaOverlay: any;
+    declare tts: any;
+
     #root = this.attachShadow({ mode: 'closed' })
     #sectionProgress
     #tocProgress
@@ -237,7 +258,8 @@ export class View extends HTMLElement {
     history = new History()
     constructor() {
         super()
-        this.history.addEventListener('popstate', ({ detail }) => {
+        this.history.addEventListener('popstate', event => {
+            const { detail } = event as CustomEvent
             const resolved = this.resolveNavigation(detail.state)
             this.renderer.goTo(resolved)
         })
@@ -278,16 +300,20 @@ export class View extends HTMLElement {
         this.isFixedLayout = this.book.rendition?.layout === 'pre-paginated'
         if (this.isFixedLayout) {
             await import('./fixed-layout.js')
-            this.renderer = document.createElement('foliate-fxl')
+            this.renderer = document.createElement('foliate-fxl') as Renderer
         } else {
             await import('./paginator.js')
-            this.renderer = document.createElement('foliate-paginator')
+            this.renderer = document.createElement('foliate-paginator') as Renderer
         }
         this.renderer.setAttribute('exportparts', 'head,foot,filter')
-        this.renderer.addEventListener('load', e => this.#onLoad(e.detail))
-        this.renderer.addEventListener('relocate', e => this.#onRelocate(e.detail))
-        this.renderer.addEventListener('create-overlayer', e =>
-            e.detail.attach(this.#createOverlayer(e.detail)))
+        this.renderer.addEventListener('load', event =>
+            this.#onLoad((event as CustomEvent).detail))
+        this.renderer.addEventListener('relocate', event =>
+            this.#onRelocate((event as CustomEvent).detail))
+        this.renderer.addEventListener('create-overlayer', event => {
+            const { detail } = event as CustomEvent
+            detail.attach(this.#createOverlayer(detail))
+        })
         this.renderer.open(book)
         this.#root.append(this.renderer)
 
@@ -296,12 +322,12 @@ export class View extends HTMLElement {
             const playbackActiveClass = book.media.playbackActiveClass
             this.mediaOverlay = book.getMediaOverlay()
             let lastActive
-            this.mediaOverlay.addEventListener('highlight', e => {
+            this.mediaOverlay.addEventListener('highlight', (e: CustomEvent) => {
                 const resolved = this.resolveNavigation(e.detail.text)
                 this.renderer.goTo(resolved)
                     .then(() => {
                         const { doc } = this.renderer.getContents()
-                            .find(x => x.index = resolved.index)
+                            .find(x => x.index === resolved.index)
                         const el = resolved.anchor(doc)
                         el.classList.add(activeClass)
                         if (playbackActiveClass) el.ownerDocument
@@ -348,7 +374,7 @@ export class View extends HTMLElement {
             await this.next()
         }
     }
-    #emit(name, detail, cancelable) {
+    #emit(name, detail, cancelable = false) {
         return this.dispatchEvent(new CustomEvent(name, { detail, cancelable }))
     }
     #onRelocate({ reason, range, index, fraction, size }) {
@@ -399,7 +425,7 @@ export class View extends HTMLElement {
                 .catch(e => console.error(e))
         })
     }
-    async addAnnotation(annotation, remove) {
+    async addAnnotation(annotation, remove = false) {
         const { value, overlayKey = value } = annotation
         if (value.startsWith(SEARCH_PREFIX)) {
             const cfi = value.replace(SEARCH_PREFIX, '')
@@ -480,7 +506,7 @@ export class View extends HTMLElement {
         if (this.book.resolveCFI)
             return this.book.resolveCFI(cfi)
         else {
-            const parts = CFI.parse(cfi)
+            const parts: any = CFI.parse(cfi)
             const index = CFI.fake.toIndex((parts.parent ?? parts).shift())
             const anchor = doc => CFI.toRange(doc, parts)
             return { index, anchor }
@@ -534,7 +560,7 @@ export class View extends HTMLElement {
         return (this.#sectionProgress?.sectionFractions ?? [])
             .map(x => x + Number.EPSILON)
     }
-    getProgressOf(index, range) {
+    getProgressOf(index, range?) {
         const tocItem = this.#tocProgress?.getProgress(index, range)
         const pageItem = this.#pageProgress?.getProgress(index, range)
         return { tocItem, pageItem }
@@ -553,10 +579,10 @@ export class View extends HTMLElement {
             console.error(`Could not get ${target}`)
         }
     }
-    async prev(distance) {
+    async prev(distance = 1) {
         await this.renderer.prev(distance)
     }
-    async next(distance) {
+    async next(distance = 1) {
         await this.renderer.next(distance)
     }
     goLeft() {
@@ -594,10 +620,10 @@ export class View extends HTMLElement {
             ? this.#searchSection(matcher, query, index)
             : this.#searchBook(matcher, query)
 
-        const list = []
+        const list: any[] = []
         this.#searchResults.set(index, list)
 
-        for await (const result of iter) {
+        for await (const result of iter as AsyncGenerator<any>) {
             if (result.subitems){
                 const list = result.subitems
                     .map(({ cfi }) => ({ value: SEARCH_PREFIX + cfi }))

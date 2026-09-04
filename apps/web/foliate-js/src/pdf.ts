@@ -67,7 +67,8 @@ const renderCoverPage = async (page, deadline) => {
     try {
         await task.promise
     } catch (error) {
-        if (performance.now() >= deadline || error?.name === 'RenderingCancelledException')
+        if (performance.now() >= deadline
+        || error instanceof Error && error.name === 'RenderingCancelledException')
             return { blob: null, meaningful: false, timedOut: true }
         throw error
     } finally {
@@ -266,6 +267,8 @@ const MAX_RENDER_PIXELS = 12 * 1024 * 1024
 // cancelled render throws this recognizable name; callers treat it as "not
 // rendered", never as damage.
 class RenderCancelledError extends Error {
+    declare name: string;
+
     constructor() {
         super('pdf render cancelled')
         this.name = 'RenderCancelledError'
@@ -310,7 +313,8 @@ const render = async (page, doc, zoom, onRendered, pageColors, signal) => {
     try {
         await task.promise
     } catch (error) {
-        if (signal?.aborted || error?.name === 'RenderingCancelledException') {
+        if (signal?.aborted
+        || error instanceof Error && error.name === 'RenderingCancelledException') {
             throw new RenderCancelledError()
         }
         throw error
@@ -348,7 +352,7 @@ const render = async (page, doc, zoom, onRendered, pageColors, signal) => {
 
     // hide "offscreen" canvases appended to docuemnt when rendering text layer
     // https://github.com/mozilla/pdf.js/blob/642b9a5ae67ef642b9a8808fd9efd447e8c350e2/web/pdf_viewer.css#L51-L58
-    for (const canvas of document.querySelectorAll('.hiddenCanvasElement'))
+    for (const canvas of document.querySelectorAll<HTMLCanvasElement>('.hiddenCanvasElement'))
         Object.assign(canvas.style, {
             position: 'absolute',
             top: '0',
@@ -445,7 +449,7 @@ export const makePDF = async file => {
         isEvalSupported: false,
     }).promise
 
-    const book = { rendition: { layout: 'pre-paginated' } }
+    const book: any = { rendition: { layout: 'pre-paginated' } }
 
     const { metadata, info } = await pdf.getMetadata() ?? {}
     // TODO: for better results, parse `metadata.getRaw()`

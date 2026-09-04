@@ -58,7 +58,7 @@ customElements.define('foliate-quoteimage', class extends HTMLElement {
     async getBlob({ title, author, text }) {
         this.#root.querySelector('#title').textContent = title
         this.#root.querySelector('#author').textContent = author
-        this.#root.querySelector('#text').innerText = text
+        ;(this.#root.querySelector('#text') as HTMLElement).innerText = text
 
         fit(this.#root.querySelector('main'))
 
@@ -75,8 +75,8 @@ customElements.define('foliate-quoteimage', class extends HTMLElement {
             const doc = document.implementation.createDocument(SVG_NS, 'svg')
             doc.documentElement.setAttribute('viewBox', `0 0 ${width} ${height}`)
             const obj = doc.createElementNS(SVG_NS, 'foreignObject')
-            obj.setAttribute('width', width)
-            obj.setAttribute('height', height)
+            obj.setAttribute('width', String(width))
+            obj.setAttribute('height', String(height))
             obj.append(doc.importNode(this.#root.querySelector('main'), true))
             doc.documentElement.append(obj)
             img.src = 'data:image/svg+xml;charset=utf-8,'

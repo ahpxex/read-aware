@@ -34,7 +34,7 @@ export const RELEASES_URL = `${REPO_URL}/releases/latest`;
  * already touches this repo's copy on every release. Display only — download
  * links stay version-free stable aliases.
  */
-export const CURRENT_RELEASE_TAG = "v0.5.1";
+export const CURRENT_RELEASE_TAG = "v0.5.2";
 
 export type PlatformId = "macos" | "windows" | "linux" | "android" | "ios";
 

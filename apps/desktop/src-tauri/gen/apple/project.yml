@@ -64,8 +64,8 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        CFBundleShortVersionString: 0.5.1
-        CFBundleVersion: "0.5.1"
+        CFBundleShortVersionString: 0.5.2
+        CFBundleVersion: "0.5.2"
         # Only HTTPS and standard algorithms (AES-GCM) protect user data —
         # exempt under App Store export compliance, so uploads skip the
         # per-build encryption questionnaire.

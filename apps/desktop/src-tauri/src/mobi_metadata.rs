@@ -32,6 +32,9 @@ struct Palm {
     records: Vec<(u64, u64)>,
 }
 
+/// Resource records the coverless fallback inspects, from the first one.
+const FALLBACK_RESOURCE_RECORDS: usize = 48;
+
 struct Headers {
     title: Option<String>,
     author: Option<String>,
@@ -77,6 +80,10 @@ impl Palm {
             .collect();
 
         Ok(Self { file, records })
+    }
+
+    fn record_count(&self) -> usize {
+        self.records.len()
     }
 
     fn read_record(&mut self, index: usize, max_bytes: u64) -> Result<Vec<u8>, String> {
@@ -228,6 +235,22 @@ pub fn extract_mobi_metadata_from_path(path: &Path) -> Result<BookMetadata, Stri
             let bytes = palm.read_record(index, MAX_COVER_BYTES).ok()?;
             cover_image(bytes)
         });
+    // No declared cover: the first sizeable image among the resource records
+    // (they follow the text records in book order, so this is the first
+    // picture a reader would meet).
+    let cover = cover.or_else(|| {
+        if resource_start >= NOT_SET {
+            return None;
+        }
+        let first = resource_start as usize;
+        let last = first.saturating_add(FALLBACK_RESOURCE_RECORDS).min(palm.record_count());
+        (first..last).find_map(|index| {
+            let bytes = palm.read_record(index, MAX_COVER_BYTES).ok()?;
+            crate::covers::plausible_cover(&bytes)
+                .then(|| cover_image(bytes))
+                .flatten()
+        })
+    });
 
     Ok(BookMetadata {
         title: headers.title,
@@ -362,6 +385,31 @@ mod tests {
 
         let metadata = extract_mobi_metadata_from_path(&path).unwrap();
         assert_eq!(metadata.title.as_deref(), Some("KF8 Title"));
+    }
+
+    #[test]
+    fn a_book_without_a_declared_cover_uses_its_first_sizeable_resource_image() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("book.mobi");
+        let mut picture = std::io::Cursor::new(Vec::new());
+        image::RgbImage::from_pixel(240, 320, image::Rgb([1, 2, 3]))
+            .write_to(&mut picture, image::ImageFormat::Png)
+            .unwrap();
+        let picture = picture.into_inner();
+        let mut ornament = std::io::Cursor::new(Vec::new());
+        image::RgbImage::from_pixel(20, 20, image::Rgb([1, 2, 3]))
+            .write_to(&mut ornament, image::ImageFormat::Png)
+            .unwrap();
+        // No EXTH cover offset at all; resources start at record 2: a font,
+        // an ornament, then the picture.
+        let zero = record_zero(6, "Title", &[]);
+        write_palm(
+            &path,
+            &[zero, vec![b'x'; 16], b"FONT\0\0\0\0".to_vec(), ornament.into_inner(), picture.clone()],
+        );
+
+        let metadata = extract_mobi_metadata_from_path(&path).unwrap();
+        assert_eq!(metadata.cover.unwrap().bytes, picture);
     }
 
     #[test]

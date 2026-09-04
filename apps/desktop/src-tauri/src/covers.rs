@@ -32,6 +32,23 @@ const KEEP_ORIGINAL_MAX_BYTES: usize = 512 * 1024;
 const SVG_MAX_BYTES: usize = 1024 * 1024;
 const JPEG_QUALITY: u8 = 85;
 
+/// Shortest side an in-book image must have to stand in as a cover when the
+/// book declares none. Rules out spacer GIFs, drop caps and ornaments while
+/// letting a modest frontispiece through.
+pub const FALLBACK_MIN_SIDE: u32 = 120;
+
+/// Whether bytes could serve as a fallback cover: a decodable raster at
+/// least [`FALLBACK_MIN_SIDE`] on its shorter side, or a small SVG.
+pub fn plausible_cover(bytes: &[u8]) -> bool {
+    if image_mime(bytes) == Some("image/svg+xml") {
+        return bytes.len() <= SVG_MAX_BYTES;
+    }
+    match image::load_from_memory(bytes) {
+        Ok(decoded) => decoded.width().min(decoded.height()) >= FALLBACK_MIN_SIDE,
+        Err(_) => false,
+    }
+}
+
 /// Blob key that holds a book's cover.
 pub fn cover_blob_key(book_id: &str) -> String {
     format!("cover:{book_id}")
@@ -329,6 +346,14 @@ mod tests {
             normalized.bytes.len(),
             started.elapsed().as_millis()
         );
+    }
+
+    #[test]
+    fn plausibility_rejects_ornaments_and_accepts_frontispieces() {
+        assert!(!plausible_cover(&png(40, 40)));
+        assert!(!plausible_cover(&png(600, 8)));
+        assert!(plausible_cover(&png(200, 300)));
+        assert!(!plausible_cover(b"not an image"));
     }
 
     #[test]

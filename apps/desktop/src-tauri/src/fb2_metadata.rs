@@ -112,6 +112,9 @@ fn parse_fb2(xml: &str) -> Result<BookMetadata, String> {
     let mut field: Option<&'static str> = None;
     let mut binary: Option<(String, String)> = None;
     let mut cover: Option<Vec<u8>> = None;
+    // Coverless fallback: the first sizeable image binary in the file.
+    let mut in_fallback_binary = false;
+    let mut fallback: Option<Vec<u8>> = None;
 
     loop {
         match reader.read_event().map_err(|error| error.to_string())? {
@@ -132,6 +135,8 @@ fn parse_fb2(xml: &str) -> Result<BookMetadata, String> {
                         .is_some_and(|wanted| wanted == id.trim_start_matches('#'))
                     {
                         binary = Some((id, content_type));
+                    } else if fallback.is_none() && content_type.starts_with("image/") {
+                        in_fallback_binary = true;
                     }
                 }
                 _ => {}
@@ -159,6 +164,13 @@ fn parse_fb2(xml: &str) -> Result<BookMetadata, String> {
                         .decode(packed)
                         .ok()
                         .filter(|bytes| bytes.len() <= MAX_COVER_BYTES);
+                } else if in_fallback_binary && fallback.is_none() {
+                    let packed: String = value.split_whitespace().collect();
+                    fallback = STANDARD
+                        .decode(packed)
+                        .ok()
+                        .filter(|bytes| bytes.len() <= MAX_COVER_BYTES)
+                        .filter(|bytes| crate::covers::plausible_cover(bytes));
                 }
             }
             // Entity references arrive as their own event; a title like
@@ -189,6 +201,7 @@ fn parse_fb2(xml: &str) -> Result<BookMetadata, String> {
                         break;
                     }
                     binary = None;
+                    in_fallback_binary = false;
                 }
                 _ => field = None,
             },
@@ -196,8 +209,10 @@ fn parse_fb2(xml: &str) -> Result<BookMetadata, String> {
             _ => {}
         }
 
-        // Nothing after the cover binary can change the answer.
-        if cover.is_some() {
+        // Nothing after the cover binary can change the answer; a book that
+        // names no cover is settled by its first sizeable image just the same
+        // (binaries sit past the description, so the title is complete).
+        if cover.is_some() || (info.cover_id.is_none() && fallback.is_some()) {
             break;
         }
     }
@@ -205,7 +220,7 @@ fn parse_fb2(xml: &str) -> Result<BookMetadata, String> {
     Ok(BookMetadata {
         title: clean(&info.title),
         author: clean(info.author_parts.join(" ")),
-        cover: cover.and_then(cover_image),
+        cover: cover.or(fallback).and_then(cover_image),
     })
 }
 
@@ -274,6 +289,31 @@ mod tests {
         let metadata = extract_fb2_metadata_from_path(&path).unwrap();
         assert_eq!(metadata.title.as_deref(), Some("Отцы & дети"));
         assert_eq!(metadata.cover, None);
+    }
+
+    #[test]
+    fn a_book_without_a_coverpage_falls_back_to_its_first_sizeable_image() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("book.fb2");
+        let mut picture = std::io::Cursor::new(Vec::new());
+        image::RgbImage::from_pixel(200, 260, image::Rgb([5, 5, 5]))
+            .write_to(&mut picture, image::ImageFormat::Png)
+            .unwrap();
+        let picture = picture.into_inner();
+        let mut ornament = std::io::Cursor::new(Vec::new());
+        image::RgbImage::from_pixel(16, 16, image::Rgb([5, 5, 5]))
+            .write_to(&mut ornament, image::ImageFormat::Png)
+            .unwrap();
+        let xml = format!(
+            r#"<FictionBook><description><title-info><book-title>T</book-title></title-info></description><body/><binary id="o.png" content-type="image/png">{}</binary><binary id="p.png" content-type="image/png">{}</binary></FictionBook>"#,
+            STANDARD.encode(ornament.into_inner()),
+            STANDARD.encode(&picture)
+        );
+        File::create(&path).unwrap().write_all(xml.as_bytes()).unwrap();
+
+        let metadata = extract_fb2_metadata_from_path(&path).unwrap();
+        assert_eq!(metadata.title.as_deref(), Some("T"));
+        assert_eq!(metadata.cover.unwrap().bytes, picture);
     }
 
     #[test]

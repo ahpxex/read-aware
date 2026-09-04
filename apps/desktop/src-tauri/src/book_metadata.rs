@@ -86,7 +86,21 @@ enum CoverRef {
     Page { href: String },
 }
 
-type PackageMetadata = (Option<String>, Option<String>, Option<CoverRef>);
+/// Title, author, the declared cover (if any), and the manifest + spine so a
+/// coverless book can fall back to its first in-book image.
+struct PackageMetadata {
+    title: Option<String>,
+    author: Option<String>,
+    cover: Option<CoverRef>,
+    items: Vec<ManifestItem>,
+    spine: Vec<String>,
+}
+
+/// How many spine documents / manifest images the fallback inspects. The
+/// first image of a book sits in its opening pages; scanning further would
+/// only find chapter art.
+const FALLBACK_SPINE_DOCS: usize = 8;
+const FALLBACK_MANIFEST_IMAGES: usize = 12;
 
 fn parse_package(opf: &str) -> Result<PackageMetadata, String> {
     let mut reader = Reader::from_str(opf);
@@ -99,6 +113,7 @@ fn parse_package(opf: &str) -> Result<PackageMetadata, String> {
     let mut cover_id = None;
     let mut guide_cover = None;
     let mut items = Vec::new();
+    let mut spine = Vec::new();
 
     loop {
         match reader.read_event().map_err(|error| error.to_string())? {
@@ -116,9 +131,19 @@ fn parse_package(opf: &str) -> Result<PackageMetadata, String> {
                         guide_cover.get_or_insert(href);
                     }
                 }
+                b"itemref" => {
+                    if let Some(idref) = attribute(&element, &reader, b"idref")? {
+                        spine.push(idref);
+                    }
+                }
                 _ => {}
             },
             Event::Empty(element) => match element.local_name().as_ref() {
+                b"itemref" => {
+                    if let Some(idref) = attribute(&element, &reader, b"idref")? {
+                        spine.push(idref);
+                    }
+                }
                 b"item" => items.push(parse_manifest_item(&element, &reader)?),
                 b"meta" => {
                     if attribute(&element, &reader, b"name")?.as_deref() == Some("cover") {
@@ -223,7 +248,7 @@ fn parse_package(opf: &str) -> Result<PackageMetadata, String> {
 
     let title = (!title.trim().is_empty()).then(|| title.trim().to_owned());
     let author = (!author.trim().is_empty()).then(|| author.trim().to_owned());
-    Ok((title, author, cover))
+    Ok(PackageMetadata { title, author, cover, items, spine })
 }
 
 /// `<guide><reference type="cover" href="…"/>` — EPUB 2's way of naming the
@@ -312,6 +337,53 @@ fn resolve_archive_path(package_path: &str, href: &str) -> Result<String, String
     Ok(segments.join("/"))
 }
 
+/// A book that declares no cover shows its first image instead: the first
+/// image any of the opening spine documents displays, else the first image
+/// the manifest lists. Only images large enough to be artwork qualify
+/// (`covers::plausible_cover`), so a spacer or an ornament never wins.
+fn first_image_fallback(
+    archive: &mut ZipArchive<File>,
+    package_path: &str,
+    items: &[ManifestItem],
+    spine: &[String],
+) -> Option<CoverImage> {
+    let mut seen = std::collections::HashSet::new();
+    let mut try_path = |archive: &mut ZipArchive<File>, path: String| -> Option<CoverImage> {
+        if !seen.insert(path.clone()) {
+            return None;
+        }
+        let bytes = read_entry(archive, &path, MAX_COVER_BYTES).ok()?;
+        crate::covers::plausible_cover(&bytes).then(|| {
+            let mime = crate::metadata::image_mime(&bytes).unwrap_or("image/jpeg").to_owned();
+            CoverImage { bytes, mime }
+        })
+    };
+
+    let pages = spine
+        .iter()
+        .filter_map(|idref| items.iter().find(|item| &item.id == idref))
+        .filter(|item| item.media_type == "application/xhtml+xml" || item.media_type == "text/html")
+        .take(FALLBACK_SPINE_DOCS);
+    for page in pages {
+        let Ok(page_path) = resolve_archive_path(package_path, &page.href) else { continue };
+        let Ok(bytes) = read_entry(archive, &page_path, MAX_XML_BYTES) else { continue };
+        let Some(image_href) = first_image_in_page(&String::from_utf8_lossy(&bytes)) else { continue };
+        let Ok(image_path) = resolve_archive_path(&page_path, &image_href) else { continue };
+        if let Some(cover) = try_path(archive, image_path) {
+            return Some(cover);
+        }
+    }
+
+    items
+        .iter()
+        .filter(|item| item.media_type.starts_with("image/"))
+        .take(FALLBACK_MANIFEST_IMAGES)
+        .find_map(|item| {
+            let path = resolve_archive_path(package_path, &item.href).ok()?;
+            try_path(archive, path)
+        })
+}
+
 pub fn extract_epub_metadata_from_path(path: &Path) -> Result<BookMetadata, String> {
     let file = File::open(path)
         .map_err(|error| format!("Failed to open EPUB {}: {error}", path.display()))?;
@@ -321,7 +393,7 @@ pub fn extract_epub_metadata_from_path(path: &Path) -> Result<BookMetadata, Stri
     let package_path = parse_package_path(&container)?;
     let package_bytes = read_entry(&mut archive, &package_path, MAX_XML_BYTES)?;
     let package = String::from_utf8(package_bytes).map_err(|error| error.to_string())?;
-    let (title, author, cover) = parse_package(&package)?;
+    let PackageMetadata { title, author, cover, items, spine } = parse_package(&package)?;
     let cover_entry: Option<(String, Option<String>)> = match cover {
         Some(CoverRef::Image { href, media_type }) => {
             Some((resolve_archive_path(&package_path, &href)?, Some(media_type)))
@@ -357,6 +429,7 @@ pub fn extract_epub_metadata_from_path(path: &Path) -> Result<BookMetadata, Stri
         },
         None => None,
     };
+    let cover = cover.or_else(|| first_image_fallback(&mut archive, &package_path, &items, &spine));
     Ok(BookMetadata { title, author, cover })
 }
 
@@ -432,6 +505,71 @@ mod tests {
         writer.finish().unwrap();
         let metadata = extract_epub_metadata_from_path(&path).unwrap();
         assert_eq!(metadata.cover.unwrap().bytes, [0xff, 0xd8, 0xff, 0xe0, 9]);
+    }
+
+    fn png(width: u32, height: u32) -> Vec<u8> {
+        let mut out = std::io::Cursor::new(Vec::new());
+        image::RgbImage::from_pixel(width, height, image::Rgb([7, 7, 7]))
+            .write_to(&mut out, image::ImageFormat::Png)
+            .unwrap();
+        out.into_inner()
+    }
+
+    #[test]
+    fn a_coverless_book_falls_back_to_its_first_sizeable_image() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("plain.epub");
+        let mut writer = ZipWriter::new(File::create(&path).unwrap());
+        let options = SimpleFileOptions::default().compression_method(CompressionMethod::Stored);
+        writer.start_file("META-INF/container.xml", options).unwrap();
+        writer.write_all(br#"<container><rootfiles><rootfile full-path="OEBPS/content.opf"/></rootfiles></container>"#).unwrap();
+        writer.start_file("OEBPS/content.opf", options).unwrap();
+        // Manifest order lists the big frontispiece AFTER an ornament; the
+        // spine's first page shows the ornament, the second the frontispiece.
+        writer.write_all(br#"<package><metadata><dc:title xmlns:dc="dc">Plain</dc:title></metadata><manifest><item id="orn" href="img/ornament.png" media-type="image/png"/><item id="front" href="img/front.png" media-type="image/png"/><item id="p1" href="p1.xhtml" media-type="application/xhtml+xml"/><item id="p2" href="p2.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="p1"/><itemref idref="p2"/></spine></package>"#).unwrap();
+        writer.start_file("OEBPS/p1.xhtml", options).unwrap();
+        writer.write_all(br#"<html><body><img src="img/ornament.png"/></body></html>"#).unwrap();
+        writer.start_file("OEBPS/p2.xhtml", options).unwrap();
+        writer.write_all(br#"<html><body><p>Text</p><img src="img/front.png"/></body></html>"#).unwrap();
+        writer.start_file("OEBPS/img/ornament.png", options).unwrap();
+        writer.write_all(&png(30, 30)).unwrap();
+        writer.start_file("OEBPS/img/front.png", options).unwrap();
+        writer.write_all(&png(300, 450)).unwrap();
+        writer.finish().unwrap();
+
+        let metadata = extract_epub_metadata_from_path(&path).unwrap();
+        let cover = metadata.cover.expect("frontispiece as cover");
+        assert_eq!(cover.mime, "image/png");
+        assert_eq!(cover.bytes, png(300, 450));
+
+        // No spine page shows an image: the first sizeable manifest image wins.
+        let path = dir.path().join("manifest-only.epub");
+        let mut writer = ZipWriter::new(File::create(&path).unwrap());
+        writer.start_file("META-INF/container.xml", options).unwrap();
+        writer.write_all(br#"<container><rootfiles><rootfile full-path="content.opf"/></rootfiles></container>"#).unwrap();
+        writer.start_file("content.opf", options).unwrap();
+        writer.write_all(br#"<package><metadata/><manifest><item id="orn" href="ornament.png" media-type="image/png"/><item id="art" href="art.png" media-type="image/png"/><item id="p1" href="p1.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="p1"/></spine></package>"#).unwrap();
+        writer.start_file("p1.xhtml", options).unwrap();
+        writer.write_all(br#"<html><body><p>No pictures here</p></body></html>"#).unwrap();
+        writer.start_file("ornament.png", options).unwrap();
+        writer.write_all(&png(30, 30)).unwrap();
+        writer.start_file("art.png", options).unwrap();
+        writer.write_all(&png(200, 200)).unwrap();
+        writer.finish().unwrap();
+        let metadata = extract_epub_metadata_from_path(&path).unwrap();
+        assert_eq!(metadata.cover.unwrap().bytes, png(200, 200));
+
+        // Nothing sizeable anywhere: honestly no cover.
+        let path = dir.path().join("none.epub");
+        let mut writer = ZipWriter::new(File::create(&path).unwrap());
+        writer.start_file("META-INF/container.xml", options).unwrap();
+        writer.write_all(br#"<container><rootfiles><rootfile full-path="content.opf"/></rootfiles></container>"#).unwrap();
+        writer.start_file("content.opf", options).unwrap();
+        writer.write_all(br#"<package><metadata/><manifest><item id="orn" href="ornament.png" media-type="image/png"/></manifest><spine/></package>"#).unwrap();
+        writer.start_file("ornament.png", options).unwrap();
+        writer.write_all(&png(30, 30)).unwrap();
+        writer.finish().unwrap();
+        assert_eq!(extract_epub_metadata_from_path(&path).unwrap().cover, None);
     }
 
     #[test]

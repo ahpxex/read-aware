@@ -207,6 +207,51 @@ async function applyParsedBook(request: EnrichmentRequest, parsed: FoliateBook):
   emitAppEvent("book-changed", { bookId: request.bookId });
 }
 
+/** Sections the coverless fallback opens looking for the book's first image. */
+const FALLBACK_SECTIONS = 6;
+/** Shortest side an in-book image needs to pass as a cover (mirrors covers.rs). */
+const FALLBACK_MIN_SIDE = 120;
+
+type SectionLike = { linear?: string; createDocument?: () => Promise<Document> | Document };
+
+/**
+ * A book that declares no cover shows its first image instead: the first
+ * `<img>` (or SVG `<image>`) any of the opening sections displays, provided it
+ * is large enough to be artwork rather than an ornament. The engine has
+ * already rewritten resource URLs to blob: URLs, so the bytes are one fetch
+ * away.
+ */
+async function firstInBookImage(parsed: FoliateBook): Promise<Blob | null> {
+  const sections = ((parsed.sections ?? []) as SectionLike[])
+    .filter((section) => section.linear !== "no" && typeof section.createDocument === "function")
+    .slice(0, FALLBACK_SECTIONS);
+  for (const section of sections) {
+    let doc: Document;
+    try {
+      doc = await section.createDocument!();
+    } catch {
+      continue;
+    }
+    const element = doc.querySelector("img[src], image");
+    const src =
+      element?.getAttribute("src") ??
+      element?.getAttribute("href") ??
+      element?.getAttribute("xlink:href");
+    if (!src || !src.startsWith("blob:")) continue;
+    try {
+      const blob = await (await fetch(src)).blob();
+      if (blob.size === 0) continue;
+      const bitmap = await createImageBitmap(blob);
+      const shortSide = Math.min(bitmap.width, bitmap.height);
+      bitmap.close();
+      if (shortSide >= FALLBACK_MIN_SIDE) return blob;
+    } catch {
+      // Undecodable or unreachable: not a cover candidate; keep looking.
+    }
+  }
+  return null;
+}
+
 async function storeParsedCover(bookId: string, parsed: FoliateBook): Promise<StoredCover> {
   let blob: Blob | null = null;
   try {
@@ -215,6 +260,7 @@ async function storeParsedCover(bookId: string, parsed: FoliateBook): Promise<St
     log.warn(`engine could not extract a cover for ${bookId}`, error);
     return null;
   }
+  if (!blob || blob.size === 0) blob = await firstInBookImage(parsed);
   if (!blob || blob.size === 0) return null;
   const bytes = new Uint8Array(await blob.arrayBuffer());
   return invoke<StoredCover>("library_put_cover", bytes, {

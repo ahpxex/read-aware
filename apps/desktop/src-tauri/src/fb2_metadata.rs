@@ -12,7 +12,7 @@ use base64::{engine::general_purpose::STANDARD, Engine as _};
 use quick_xml::{escape::resolve_xml_entity, events::Event, Reader};
 use zip::ZipArchive;
 
-use crate::metadata::{clean, image_mime, BookMetadata};
+use crate::metadata::{clean, cover_image, BookMetadata};
 
 /// FB2 books are single XML documents; a very large one is still bounded.
 const MAX_XML_BYTES: u64 = 96 * 1024 * 1024;
@@ -202,15 +202,10 @@ fn parse_fb2(xml: &str) -> Result<BookMetadata, String> {
         }
     }
 
-    let cover_url = cover.and_then(|bytes| {
-        let mime = image_mime(&bytes)?;
-        Some(format!("data:{mime};base64,{}", STANDARD.encode(&bytes)))
-    });
-
     Ok(BookMetadata {
         title: clean(&info.title),
         author: clean(info.author_parts.join(" ")),
-        cover_url,
+        cover: cover.and_then(cover_image),
     })
 }
 
@@ -223,18 +218,6 @@ fn attribute(element: &quick_xml::events::BytesStart<'_>, wanted: &[u8]) -> Opti
         .map(|attribute| String::from_utf8_lossy(&attribute.value).into_owned())
 }
 
-#[tauri::command]
-pub async fn extract_fb2_metadata(
-    app: tauri::AppHandle,
-    path: String,
-) -> Result<BookMetadata, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let source = crate::native_path::materialize(&app, &path)?;
-        extract_fb2_metadata_from_path(&source.path)
-    })
-    .await
-    .map_err(|error| format!("extract_fb2_metadata task failed: {error}"))?
-}
 
 #[cfg(test)]
 mod tests {
@@ -276,10 +259,7 @@ mod tests {
         let metadata = extract_fb2_metadata_from_path(&path).unwrap();
         assert_eq!(metadata.title.as_deref(), Some("Отцы & дети"));
         assert_eq!(metadata.author.as_deref(), Some("Иван Тургенев"));
-        assert!(metadata
-            .cover_url
-            .unwrap()
-            .starts_with("data:image/jpeg;base64,"));
+        assert_eq!(metadata.cover.unwrap().mime, "image/jpeg");
     }
 
     #[test]
@@ -293,7 +273,7 @@ mod tests {
 
         let metadata = extract_fb2_metadata_from_path(&path).unwrap();
         assert_eq!(metadata.title.as_deref(), Some("Отцы & дети"));
-        assert_eq!(metadata.cover_url, None);
+        assert_eq!(metadata.cover, None);
     }
 
     #[test]
@@ -313,6 +293,6 @@ mod tests {
 
         let metadata = extract_fb2_metadata_from_path(&path).unwrap();
         assert_eq!(metadata.title.as_deref(), Some("Отцы & дети"));
-        assert!(metadata.cover_url.is_some());
+        assert!(metadata.cover.is_some());
     }
 }

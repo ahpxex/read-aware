@@ -139,62 +139,34 @@ pub(crate) fn register_blob_inner(
     Ok(BlobPutResult { sha256, byte_size })
 }
 
-/// Copy a user-selected desktop file straight into the managed blob directory,
-/// then hash the staged copy. `std::fs::copy` deliberately stays intact here:
-/// it uses fclonefileat/fcopyfile on macOS, copy_file_range on Linux, and
-/// CopyFileEx on Windows instead of forcing every platform through a userspace
-/// read/write loop.
-fn copy_blob_from_file(
+/// Copy a file into the managed blob directory under `key` and return its
+/// size plus the file name it landed as. `std::fs::copy` deliberately stays
+/// intact: it uses fclonefileat/fcopyfile on macOS, copy_file_range on Linux,
+/// and CopyFileEx on Windows instead of forcing every platform through a
+/// userspace read/write loop. Hashing is the caller's business (the import
+/// path hashes the SOURCE once, before deciding whether to copy at all).
+pub(crate) fn copy_blob_file(
     data_dir: &Path,
     key: &str,
     source_path: &Path,
-) -> Result<(String, i64, String), CommandError> {
+) -> Result<(i64, String), CommandError> {
     let blobs_dir = data_dir.join("blobs");
     std::fs::create_dir_all(&blobs_dir)?;
     let file_name = blob_file_name(key);
     let tmp_path = blobs_dir.join(format!("{file_name}.tmp"));
     let final_path = blobs_dir.join(&file_name);
-
-    let copy_result = (|| -> Result<(String, i64), CommandError> {
-        let byte_size = std::fs::copy(source_path, &tmp_path).map_err(|e| {
-            format!("Failed to copy selected book {}: {e}", source_path.display())
-        })?;
-        let staged = std::fs::File::open(&tmp_path)?;
-        let mut reader = BufReader::new(staged);
-        let mut hasher = Sha256::new();
-        let mut buffer = vec![0_u8; 1024 * 1024];
-
-        loop {
-            let read = reader.read(&mut buffer)?;
-            if read == 0 {
-                break;
-            }
-            hasher.update(&buffer[..read]);
-        }
-        std::fs::rename(&tmp_path, &final_path)?;
-        Ok((format!("{:x}", hasher.finalize()), byte_size as i64))
-    })();
-
-    let (sha256, byte_size) = match copy_result {
-        Ok(result) => result,
+    let staged = std::fs::copy(source_path, &tmp_path)
+        .and_then(|byte_size| std::fs::rename(&tmp_path, &final_path).map(|()| byte_size));
+    match staged {
+        Ok(byte_size) => Ok((byte_size as i64, file_name)),
         Err(error) => {
             let _ = std::fs::remove_file(&tmp_path);
-            return Err(error);
+            Err(CommandError::from(format!(
+                "Failed to copy selected book {}: {error}",
+                source_path.display()
+            )))
         }
-    };
-    Ok((sha256, byte_size, file_name))
-}
-
-#[cfg(test)]
-pub(crate) fn put_blob_from_file_inner(
-    conn: &Connection,
-    data_dir: &Path,
-    key: &str,
-    mime_type: Option<&str>,
-    source_path: &Path,
-) -> Result<BlobPutResult, CommandError> {
-    let (sha256, byte_size, file_name) = copy_blob_from_file(data_dir, key, source_path)?;
-    register_blob_inner(conn, key, mime_type, byte_size, sha256, file_name)
+    }
 }
 
 pub(crate) fn get_blob_record_inner(
@@ -370,10 +342,73 @@ pub fn init_db(app: &AppHandle) -> Result<(Connection, PathBuf), CommandError> {
     let mut conn = Connection::open(dir.join("read-aware.db"))?;
     apply_connection_pragmas(&conn)?;
     register_sql_functions(&conn)?;
+    // Covers moved out of the books table (v24/v25). The data-URL rows must
+    // be lifted into the blob store while both column sets exist, so the
+    // migrations pause at v24 for that pass and finish afterwards.
+    run_migrations_up_to(&mut conn, COVER_PROJECTION_VERSION)?;
+    materialize_legacy_covers(&conn, &dir)?;
     run_migrations(&mut conn)?;
     externalize_inline_blobs(&conn, &dir)?;
     ensure_local_device(&conn)?;
     Ok((conn, dir))
+}
+
+/// Lift pre-v24 inline covers (`books.cover_url` data URLs) into `cover:`
+/// blobs and point `cover_status`/`cover_blob_key` at them. No-op once the
+/// column is gone (v25) or no row is marked 'legacy'. A row whose cover blob
+/// already exists locally (imports since coverExtracted had a producer wrote
+/// both) just gets its status flipped; undecodable data URLs fall back to
+/// 'unchecked' so the engine job re-extracts from the book file.
+///
+/// The `book.coverExtracted` events these rows lack are synthesized by the
+/// boot-time genesis pass (platform/event-genesis.ts), which reads the
+/// projection this pass leaves behind.
+pub(crate) fn materialize_legacy_covers(conn: &Connection, data_dir: &Path) -> Result<(), CommandError> {
+    let has_cover_url: bool = conn.query_row(
+        "SELECT EXISTS(SELECT 1 FROM pragma_table_info('books') WHERE name = 'cover_url')",
+        [],
+        |row| row.get(0),
+    )?;
+    if !has_cover_url {
+        return Ok(());
+    }
+    let legacy: Vec<(String, String)> = {
+        let mut stmt = conn.prepare(
+            "SELECT id, cover_url FROM books WHERE cover_status = 'legacy' AND cover_url IS NOT NULL",
+        )?;
+        let rows = stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?;
+        rows.collect::<rusqlite::Result<Vec<_>>>()?
+    };
+    if legacy.is_empty() {
+        return Ok(());
+    }
+    let mut lifted = 0usize;
+    for (book_id, data_url) in legacy {
+        let key = crate::covers::cover_blob_key(&book_id);
+        let already_stored = get_blob_record_inner(conn, data_dir, &key)?.is_some();
+        let stored = already_stored
+            || crate::covers::cover_from_data_url(&data_url)
+                .as_ref()
+                .and_then(crate::covers::normalize_cover)
+                .map(|cover| crate::covers::store_cover(conn, data_dir, &book_id, &cover))
+                .transpose()?
+                .is_some();
+        if stored {
+            conn.execute(
+                "UPDATE books SET cover_status = 'ready', cover_blob_key = ?2, cover_url = NULL
+                  WHERE id = ?1",
+                params![book_id, key],
+            )?;
+            lifted += 1;
+        } else {
+            conn.execute(
+                "UPDATE books SET cover_status = 'unchecked', cover_url = NULL WHERE id = ?1",
+                params![book_id],
+            )?;
+        }
+    }
+    log::info!("lifted {lifted} inline cover(s) into the blob store");
+    Ok(())
 }
 
 
@@ -409,36 +444,6 @@ pub fn put_blob(
     put_blob_inner(&conn, &data_dir.0, &key, mime_type.as_deref(), &data)
 }
 
-/// Native import path on every platform. File copying and hashing run on
-/// Tauri's blocking pool, not the window thread, and no source bytes cross
-/// IPC; Android `content://` picks are staged by `native_path::materialize`.
-#[tauri::command]
-pub async fn put_blob_from_file(
-    app: AppHandle,
-    path: String,
-    key: String,
-    mime_type: Option<String>,
-) -> Result<BlobPutResult, CommandError> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let source = crate::native_path::materialize(&app, &path)?;
-        let data_dir = app.state::<DataDir>().0.clone();
-        let (sha256, byte_size, file_name) =
-            copy_blob_from_file(&data_dir, &key, &source.path)?;
-        let db = app.state::<Db>();
-        let conn = db.0.lock()?;
-        register_blob_inner(
-            &conn,
-            &key,
-            mime_type.as_deref(),
-            byte_size,
-            sha256,
-            file_name,
-        )
-    })
-    .await
-    .map_err(|e| format!("put_blob_from_file task failed: {e}"))?
-}
-
 /// Returns the blob's bytes as a raw (non-JSON) IPC response. A missing key
 /// yields an EMPTY body — the JS wrapper maps zero length back to `null`.
 /// (A raw `Response` cannot express `Option`, and no real payload here is
@@ -453,25 +458,6 @@ pub fn get_blob(
     get_blob_inner(&conn, &data_dir.0, &key).map(tauri::ipc::Response::new)
 }
 
-/// Does the registry know this key at all — locally present OR manifest-only
-/// ("exists remotely, bytes not fetched", the row a replayed blob-referencing
-/// event leaves behind)? `get_blob_info` deliberately hides manifest-only
-/// rows; the lazy-fetch decision needs to see them, without a network probe
-/// per miss.
-#[tauri::command]
-pub fn blob_manifest_exists(key: String, db: State<'_, Db>) -> Result<bool, CommandError> {
-    let conn = db.0.lock()?;
-    conn.query_row(
-        "SELECT 1 FROM blob_objects WHERE key = ?1 AND deleted_at IS NULL",
-        params![key],
-        |_| Ok(()),
-    )
-    .map(|_| true)
-    .or_else(|e| match e {
-        rusqlite::Error::QueryReturnedNoRows => Ok(false),
-        other => Err(other.into()),
-    })
-}
 
 /// Metadata-only lookup used to create a random-access book source in the
 /// webview without first transferring the whole file.

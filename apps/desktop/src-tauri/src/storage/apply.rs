@@ -32,12 +32,12 @@
 //!     event-sourced. That is everything below.
 //!   - **Book content** — the original file and anything extracted from it
 //!     (covers) — travels as a blob through object storage, never through the
-//!     log. `book.coverExtracted` records that an extraction produced a
-//!     `cover:` blob (so other devices fetch the artwork instead of
-//!     re-parsing a book they may not hold), but the event applies to no
-//!     projection column: `books.cover_url` / `cover_checked` are a LOCAL
-//!     DERIVED CACHE materialized from that blob on each device, preserved
-//!     by rebuild (see `rebuild_projections`).
+//!     log. `book.coverExtracted` records the VERDICT of an extraction — a
+//!     `cover:` blob exists (`ready`), or the book has none (`none`) — and
+//!     projects it to `books.cover_status` / `cover_blob_key`, so every device
+//!     knows whether artwork exists before any bytes arrive and never probes
+//!     for a cover the importing device already ruled out. The bytes stay in
+//!     the device-local blob registry (`blob_objects`), outside rebuild's wipe.
 //!
 //! `profile.updated` / `entity.*` likewise apply to nothing: they are accepted
 //! into the log, but the consolidation pipeline that would own their projection
@@ -172,9 +172,8 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, CommandE
             tx.execute(
                 "INSERT INTO books
                     (id, title, author, format, file_name, mime_type, file_size,
-                     cover_url, cover_checked, created_at, updated_at,
-                     progress_percent, reading_status, starred)
-                 VALUES (?1,?2,?3,?4,?5,?6,?7, NULL, 0, ?8, ?8, 0, 'unread', 0)
+                     created_at, updated_at, progress_percent, reading_status, starred)
+                 VALUES (?1,?2,?3,?4,?5,?6,?7, ?8, ?8, 0, 'unread', 0)
                  ON CONFLICT(id) DO UPDATE SET
                     title=excluded.title, author=excluded.author,
                     format=excluded.format, file_name=excluded.file_name,
@@ -339,6 +338,17 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, CommandE
                 ?;
             tx.execute("DELETE FROM reading_time_hourly WHERE book_id = ?1", params![merged])
                 ?;
+            // Same content, same artwork: a keeper still waiting on a cover
+            // inherits the merged record's verdict instead of re-extracting.
+            tx.execute(
+                "UPDATE books SET
+                    cover_status = (SELECT cover_status FROM books WHERE id = ?1),
+                    cover_blob_key = (SELECT cover_blob_key FROM books WHERE id = ?1)
+                  WHERE id = ?2 AND cover_status = 'unchecked'
+                    AND (SELECT cover_status FROM books WHERE id = ?1) IN ('ready', 'none')",
+                params![merged, keep],
+            )
+            ?;
             // Chapter digests describe the same content on both records: the
             // keeper's own rows win per chapter, the merged record fills gaps.
             tx.execute(
@@ -783,16 +793,31 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, CommandE
             }
         }
 
-        // ── Accepted into the log, applies to no projection ─────────────────
-        // coverExtracted: local extraction bookkeeping over object-storage
-        // content, not a domain fact (see the module header). It DOES leave a
-        // blob-manifest row behind: a fresh device replaying the log needs to
-        // know the cover exists remotely before any bytes arrive.
+        // coverExtracted: the verdict of a cover extraction. `ready` names the
+        // synced blob (and leaves a manifest row so a fresh device knows the
+        // cover exists remotely before any bytes arrive); `none` closes the
+        // question for every device. Anything else ('failed' from older
+        // builds) leaves the row unchecked so the engine job may retry.
         "book.coverExtracted" => {
-            if let Some(key) = str_of(p, "coverBlobKey") {
-                ensure_blob_manifest(tx, &key, None, None, None, &at)?;
+            let id = require(p, "bookId", t)?;
+            let status = str_of(p, "status").unwrap_or_default();
+            let key = str_of(p, "coverBlobKey");
+            match (status.as_str(), key) {
+                ("ready", Some(key)) => {
+                    ensure_blob_manifest(tx, &key, None, None, None, &at)?;
+                    tx.execute(
+                        "UPDATE books SET cover_status = 'ready', cover_blob_key = ?2 WHERE id = ?1",
+                        params![id, key],
+                    )?;
+                }
+                ("none", _) => {
+                    tx.execute(
+                        "UPDATE books SET cover_status = 'none', cover_blob_key = NULL WHERE id = ?1",
+                        params![id],
+                    )?;
+                }
+                _ => return Ok(false),
             }
-            return Ok(false);
         }
         // 章节读毕提炼：LLM 产物不可确定性重算，因此以事件为准物化整行；
         // 同章后到的事件（管线升版重算）整行覆盖。
@@ -932,11 +957,6 @@ fn upsert_annotation(
     Ok(())
 }
 
-/// Book columns that are a LOCAL CACHE over object-storage content rather than
-/// event-sourced domain facts. A rebuild carries them across the wipe so it
-/// doesn't force a re-extraction pass over every book file.
-pub const BOOK_LOCAL_CACHE_COLUMNS: &[&str] = &["cover_url", "cover_checked"];
-
 /// How a projection table is compared against a fresh replay.
 ///
 /// Not every column in a projection table is event-derived, and pretending
@@ -977,7 +997,7 @@ pub const DIFF_SPECS: &[DiffSpec] = &[
     },
     DiffSpec {
         table: "books",
-        local_columns: BOOK_LOCAL_CACHE_COLUMNS,
+        local_columns: &[],
         domain_rows: None,
     },
     DiffSpec {

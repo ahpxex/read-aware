@@ -1,7 +1,8 @@
 //! Books and collections — the shelf's read model.
 //!
-//! Rows are derived from the log by `apply.rs`; the writes here are the two
-//! paths that legitimately bypass it (backup restore and the cover cache).
+//! Rows are derived from the log by `apply.rs`; the one write here that
+//! bypasses it is the verbatim restore (backup import, legacy IndexedDB
+//! sweep), whose rows get their events from the boot-time genesis pass.
 //!
 //! Split out of `storage/mod.rs`; `use super::*` keeps the shared types in
 //! scope, so this is a move rather than a rewrite.
@@ -23,10 +24,22 @@ pub struct LibraryBook {
     #[serde(default)]
     pub mime_type: String,
     pub file_size: i64,
+    /// `book.coverExtracted` projection: 'unchecked' | 'ready' | 'none'.
+    #[serde(default = "default_cover_status")]
+    pub cover_status: String,
     #[serde(default)]
+    pub cover_blob_key: Option<String>,
+    /// Whether the cover bytes are on this device (a synced-in book knows its
+    /// cover exists before the relay hands the bytes over). Read-only.
+    #[serde(default)]
+    pub cover_local: bool,
+    /// Content hash of the stored cover — the shelf's cache-busting token.
+    #[serde(default)]
+    pub cover_version: Option<String>,
+    /// Pre-v24 wire shape (backup files, the IndexedDB sweep): an inline
+    /// data-URL cover. Accepted on write and lifted into the blob store.
+    #[serde(default, skip_serializing)]
     pub cover_url: Option<String>,
-    #[serde(default)]
-    pub cover_checked: Option<bool>,
     pub created_at: String,
     pub updated_at: String,
     #[serde(default)]
@@ -42,6 +55,10 @@ pub struct LibraryBook {
     /// 叙事性分类（book.narrativityClassified 的物化）；None = 未分类。
     #[serde(default)]
     pub narrativity: Option<String>,
+}
+
+fn default_cover_status() -> String {
+    "unchecked".to_owned()
 }
 
 /// Mirrors `Collection` in library-types.ts.
@@ -68,8 +85,11 @@ pub(crate) fn row_to_library_book(row: &rusqlite::Row) -> rusqlite::Result<Libra
             .get::<_, Option<String>>("mime_type")?
             .unwrap_or_default(),
         file_size: row.get("file_size")?,
-        cover_url: row.get("cover_url")?,
-        cover_checked: Some(row.get::<_, i64>("cover_checked")? != 0),
+        cover_status: row.get("cover_status")?,
+        cover_blob_key: row.get("cover_blob_key")?,
+        cover_local: row.get::<_, Option<i64>>("cover_local")?.unwrap_or(0) != 0,
+        cover_version: row.get("cover_version")?,
+        cover_url: None,
         created_at: row.get("created_at")?,
         updated_at: row.get("updated_at")?,
         last_opened_at: row.get("last_opened_at")?,
@@ -82,11 +102,22 @@ pub(crate) fn row_to_library_book(row: &rusqlite::Row) -> rusqlite::Result<Libra
     })
 }
 
+/// The shelf's read model, joined with the cover blob's local presence and
+/// hash. Explicit columns: the payload is exactly what the shelf lists, and
+/// never carries image bytes.
+const BOOK_SELECT: &str = "SELECT b.id, b.title, b.author, b.format, b.file_name, b.mime_type,
+        b.file_size, b.cover_status, b.cover_blob_key,
+        (bo.storage_uri IS NOT NULL) AS cover_local, bo.sha256 AS cover_version,
+        b.created_at, b.updated_at, b.last_opened_at, b.progress_percent,
+        b.reading_status, b.progress_json, b.starred, b.collection_id, b.narrativity
+   FROM books b
+   LEFT JOIN blob_objects bo ON bo.key = b.cover_blob_key AND bo.deleted_at IS NULL";
+
 #[tauri::command]
 pub fn library_load(db: State<'_, Db>) -> Result<Vec<LibraryBook>, CommandError> {
     let conn = db.0.lock()?;
     let mut stmt = conn
-        .prepare("SELECT * FROM books")
+        .prepare(BOOK_SELECT)
         ?;
     let rows = stmt
         .query_map([], row_to_library_book)
@@ -102,7 +133,7 @@ pub fn library_load(db: State<'_, Db>) -> Result<Vec<LibraryBook>, CommandError>
 pub fn library_get_book(id: String, db: State<'_, Db>) -> Result<Option<LibraryBook>, CommandError> {
     let conn = db.0.lock()?;
     match conn.query_row(
-        "SELECT * FROM books WHERE id = ?1",
+        &format!("{BOOK_SELECT} WHERE b.id = ?1"),
         params![id],
         row_to_library_book,
     ) {
@@ -112,25 +143,53 @@ pub fn library_get_book(id: String, db: State<'_, Db>) -> Result<Option<LibraryB
     }
 }
 
+/// Upsert a row verbatim (id preserved) — backup restore and the legacy
+/// IndexedDB sweep. Cover state is NOT taken from the input: a restored row
+/// is 'ready' only if this device holds its cover blob (a pre-v24 record's
+/// inline data URL is lifted into the store first); anything else starts
+/// 'unchecked' and the engine job re-extracts from the book file.
 #[tauri::command]
-pub fn library_put_book(book: LibraryBook, db: State<'_, Db>) -> Result<(), CommandError> {
+pub fn library_put_book(
+    book: LibraryBook,
+    db: State<'_, Db>,
+    data_dir: State<'_, DataDir>,
+) -> Result<(), CommandError> {
     let conn = db.0.lock()?;
     let progress_json = if book.progress.is_null() {
         None
     } else {
         Some(book.progress.to_string())
     };
+    let cover_key = crate::covers::cover_blob_key(&book.id);
+    let mut cover_present = get_blob_record_inner(&conn, &data_dir.0, &cover_key)?.is_some();
+    if !cover_present {
+        if let Some(cover) = book
+            .cover_url
+            .as_deref()
+            .and_then(crate::covers::cover_from_data_url)
+            .as_ref()
+            .and_then(crate::covers::normalize_cover)
+        {
+            crate::covers::store_cover(&conn, &data_dir.0, &book.id, &cover)?;
+            cover_present = true;
+        }
+    }
+    let (cover_status, cover_blob_key) = if cover_present {
+        ("ready", Some(cover_key))
+    } else {
+        ("unchecked", None)
+    };
     conn.execute(
         "INSERT INTO books
-            (id, title, author, format, file_name, mime_type, file_size, cover_url,
-             cover_checked, created_at, updated_at, last_opened_at, progress_percent,
+            (id, title, author, format, file_name, mime_type, file_size, cover_status,
+             cover_blob_key, created_at, updated_at, last_opened_at, progress_percent,
              reading_status, progress_json, starred, collection_id, narrativity)
          VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18)
          ON CONFLICT(id) DO UPDATE SET
             title=excluded.title, author=excluded.author, format=excluded.format,
             file_name=excluded.file_name, mime_type=excluded.mime_type,
-            file_size=excluded.file_size, cover_url=excluded.cover_url,
-            cover_checked=excluded.cover_checked, created_at=excluded.created_at,
+            file_size=excluded.file_size, cover_status=excluded.cover_status,
+            cover_blob_key=excluded.cover_blob_key, created_at=excluded.created_at,
             updated_at=excluded.updated_at, last_opened_at=excluded.last_opened_at,
             progress_percent=excluded.progress_percent, reading_status=excluded.reading_status,
             progress_json=excluded.progress_json, starred=excluded.starred,
@@ -143,8 +202,8 @@ pub fn library_put_book(book: LibraryBook, db: State<'_, Db>) -> Result<(), Comm
             book.file_name,
             book.mime_type,
             book.file_size,
-            book.cover_url,
-            book.cover_checked.unwrap_or(false) as i64,
+            cover_status,
+            cover_blob_key,
             book.created_at,
             book.updated_at,
             book.last_opened_at,
@@ -155,28 +214,6 @@ pub fn library_put_book(book: LibraryBook, db: State<'_, Db>) -> Result<(), Comm
             book.collection_id,
             book.narrativity,
         ],
-    )
-    ?;
-    Ok(())
-}
-
-/// Write a book's cover cache.
-///
-/// Covers are extracted locally from object-storage content, so they are NOT
-/// domain facts and never enter the event log — this is the one projection
-/// write that legitimately bypasses `commit_events`. `rebuild_projections`
-/// preserves these columns for the same reason.
-#[tauri::command]
-pub fn library_set_book_cover(
-    id: String,
-    cover_url: Option<String>,
-    cover_checked: bool,
-    db: State<'_, Db>,
-) -> Result<(), CommandError> {
-    let conn = db.0.lock()?;
-    conn.execute(
-        "UPDATE books SET cover_url = ?2, cover_checked = ?3 WHERE id = ?1",
-        params![id, cover_url, cover_checked as i64],
     )
     ?;
     Ok(())
@@ -196,6 +233,7 @@ pub fn library_release_book_files(
     let conn = db.0.lock()?;
     for id in &ids {
         delete_blob_inner(&conn, &data_dir.0, &format!("bookfile:{id}"))?;
+        delete_blob_inner(&conn, &data_dir.0, &crate::covers::cover_blob_key(id))?;
     }
     Ok(())
 }
@@ -242,17 +280,15 @@ pub fn library_put_collection(collection: Collection, db: State<'_, Db>) -> Resu
 
 // ── Content identity (dedup) ─────────────────────────────────────────────────
 
-/// A book already holding this exact source file, if any — the import gate:
-/// re-importing content the shelf has (including a copy synced in from
-/// another device, whose manifest row carries the sha before any bytes do)
-/// is a duplicate, not a new book.
-#[tauri::command]
-pub fn library_find_book_by_sha(
-    sha256: String,
-    exclude_id: Option<String>,
-    db: State<'_, Db>,
+/// A book already holding this exact source file, if any — the import gate
+/// (import.rs): re-importing content the shelf has (including a copy synced
+/// in from another device, whose manifest row carries the sha before any
+/// bytes do) is a duplicate, not a new book.
+pub(crate) fn find_book_by_sha_inner(
+    conn: &Connection,
+    sha256: &str,
+    exclude_id: Option<&str>,
 ) -> Result<Option<String>, CommandError> {
-    let conn = db.0.lock()?;
     conn.query_row(
         "SELECT b.id FROM books b
          JOIN blob_objects bo ON bo.key = 'bookfile:' || b.id

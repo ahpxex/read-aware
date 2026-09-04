@@ -1,5 +1,7 @@
 mod android_update;
 mod book_metadata;
+mod covers;
+mod import;
 mod desktop_update;
 mod comic_metadata;
 mod diagnostics;
@@ -801,6 +803,11 @@ pub fn run() {
         .register_uri_scheme_protocol("raplugin", |ctx, request| {
             plugins::serve_plugin_asset(ctx.app_handle(), request)
         })
+        // Book covers: the shelf's <img src> reads straight from the blob
+        // store (rablob://localhost/cover/<bookId>) — no base64 through IPC.
+        .register_uri_scheme_protocol("rablob", |ctx, request| {
+            covers::serve_blob(ctx.app_handle(), request)
+        })
         .manage(android_update::AndroidUpdateState::default())
         .manage(desktop_update::DesktopUpdateState::default())
         .manage(external_open::ExternalOpenQueue(Mutex::new(launch_open_paths)))
@@ -929,11 +936,9 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            book_metadata::extract_epub_metadata,
-            comic_metadata::extract_comic_metadata,
-            fb2_metadata::extract_fb2_metadata,
-            mobi_metadata::extract_mobi_metadata,
-            pdf_metadata::extract_pdf_metadata,
+            import::library_stage_import,
+            covers::library_put_cover,
+            covers::library_cover_backlog,
             storage::append_events,
             storage::commit_events,
             storage::apply_remote_events,
@@ -962,10 +967,8 @@ pub fn run() {
             storage::sync_mark_blobs_failed,
             storage::sync_mark_blobs_rejected,
             storage::put_blob,
-            storage::put_blob_from_file,
             storage::get_blob,
             storage::get_blob_info,
-            storage::blob_manifest_exists,
             storage::get_blob_range,
             storage::delete_blob,
             storage::blob_read_open,
@@ -987,11 +990,9 @@ pub fn run() {
             storage::library_load,
             storage::library_get_book,
             storage::library_put_book,
-            storage::library_set_book_cover,
             storage::library_release_book_files,
             storage::library_list_collections,
             storage::library_put_collection,
-            storage::library_find_book_by_sha,
             storage::library_duplicate_book_groups,
             storage::annotations_list,
             storage::annotations_search,

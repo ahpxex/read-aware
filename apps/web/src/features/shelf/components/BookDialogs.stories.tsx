@@ -16,7 +16,10 @@ const book: LibraryBook = {
   fileSize: 1_480_000,
   coverUrl:
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='360'%3E%3Crect width='240' height='360' fill='%231c1917'/%3E%3Ctext x='20' y='52' fill='%23f5f1e8' font-family='Georgia' font-size='24' font-weight='bold'%3EPale Fire%3C/text%3E%3Ctext x='20' y='80' fill='%23a8a29e' font-family='Georgia' font-size='15'%3ENabokov%3C/text%3E%3C/svg%3E",
-  coverChecked: true,
+  coverStatus: "none",
+  coverBlobKey: null,
+  coverLocal: false,
+  coverVersion: null,
   createdAt: "2026-01-02T09:00:00.000Z",
   updatedAt: "2026-06-28T19:00:00.000Z",
   lastOpenedAt: "2026-06-28T19:00:00.000Z",

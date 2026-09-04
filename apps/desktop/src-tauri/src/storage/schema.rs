@@ -531,7 +531,34 @@ pub(crate) const MIGRATIONS: &[(i64, &str, &str)] = &[
         // 都会按它补一次重放,幂等。
         "ALTER TABLE sync_profile ADD COLUMN projections_stale INTEGER NOT NULL DEFAULT 0;",
     ),
+    (
+        24,
+        "book_cover_projection",
+        // Covers become a projection of `book.coverExtracted` instead of a
+        // device-local data-URL cache: `cover_status` is what the log says
+        // ('unchecked' | 'ready' | 'none'), `cover_blob_key` names the synced
+        // `cover:` blob. The transient 'legacy' status marks rows whose
+        // artwork still sits inline in `cover_url`; `materialize_legacy_covers`
+        // moves it into the blob store right after this migration, and v25
+        // retires the old columns.
+        "ALTER TABLE books ADD COLUMN cover_status TEXT NOT NULL DEFAULT 'unchecked';
+         ALTER TABLE books ADD COLUMN cover_blob_key TEXT;
+         UPDATE books SET cover_status = CASE
+            WHEN cover_url IS NOT NULL AND cover_url != '' THEN 'legacy'
+            WHEN cover_checked = 1 THEN 'none'
+            ELSE 'unchecked' END;",
+    ),
+    (
+        25,
+        "books_drop_cover_cache",
+        "ALTER TABLE books DROP COLUMN cover_url;
+         ALTER TABLE books DROP COLUMN cover_checked;",
+    ),
 ];
+
+/// The migration after which `materialize_legacy_covers` must run: the cover
+/// projection columns exist, the inline data-URL column still does.
+pub(crate) const COVER_PROJECTION_VERSION: i64 = 24;
 
 /// Apply migrations newer than the highest recorded version, up to `max_version`
 /// (`i64::MAX` in production; tests use lower caps to stage old databases).

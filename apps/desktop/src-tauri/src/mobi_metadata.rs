@@ -13,7 +13,7 @@ use std::{
     path::Path,
 };
 
-use crate::metadata::{clean, cover_data_url, unescape_entities, BookMetadata};
+use crate::metadata::{clean, cover_image, unescape_entities, BookMetadata};
 
 /// Headers plus EXTH; well short of where the text records begin.
 const MAX_RECORD_BYTES: u64 = 256 * 1024;
@@ -219,35 +219,23 @@ pub fn extract_mobi_metadata_from_path(path: &Path) -> Result<BookMetadata, Stri
         }
     }
 
-    let cover_url = headers
+    let cover = headers
         .cover_offset
         .filter(|offset| *offset < NOT_SET)
         .filter(|_| resource_start < NOT_SET)
         .and_then(|offset| {
             let index = resource_start.checked_add(offset)? as usize;
             let bytes = palm.read_record(index, MAX_COVER_BYTES).ok()?;
-            cover_data_url(&bytes)
+            cover_image(bytes)
         });
 
     Ok(BookMetadata {
         title: headers.title,
         author: headers.author,
-        cover_url,
+        cover,
     })
 }
 
-#[tauri::command]
-pub async fn extract_mobi_metadata(
-    app: tauri::AppHandle,
-    path: String,
-) -> Result<BookMetadata, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let source = crate::native_path::materialize(&app, &path)?;
-        extract_mobi_metadata_from_path(&source.path)
-    })
-    .await
-    .map_err(|error| format!("extract_mobi_metadata task failed: {error}"))?
-}
 
 #[cfg(test)]
 mod tests {
@@ -338,7 +326,7 @@ mod tests {
         let metadata = extract_mobi_metadata_from_path(&path).unwrap();
         assert_eq!(metadata.title.as_deref(), Some("EXTH & Title"));
         assert_eq!(metadata.author.as_deref(), Some("A. Writer"));
-        assert!(metadata.cover_url.unwrap().starts_with("data:image/jpeg;base64,"));
+        assert_eq!(metadata.cover.unwrap().mime, "image/jpeg");
     }
 
     #[test]
@@ -350,7 +338,7 @@ mod tests {
         let metadata = extract_mobi_metadata_from_path(&path).unwrap();
         assert_eq!(metadata.title.as_deref(), Some("Header Title"));
         assert_eq!(metadata.author, None);
-        assert_eq!(metadata.cover_url, None);
+        assert_eq!(metadata.cover, None);
     }
 
     #[test]
@@ -387,6 +375,6 @@ mod tests {
         );
         write_palm(&path, &[zero, vec![b'x'; 16], b"FONT\0\0\0\0".to_vec()]);
 
-        assert_eq!(extract_mobi_metadata_from_path(&path).unwrap().cover_url, None);
+        assert_eq!(extract_mobi_metadata_from_path(&path).unwrap().cover, None);
     }
 }

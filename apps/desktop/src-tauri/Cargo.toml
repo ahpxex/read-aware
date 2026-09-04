@@ -32,6 +32,10 @@ base64 = "0.22"
 rusqlite = { version = "0.32", features = ["bundled", "functions"] }
 # Content hashes for the blob registry (dedupe, integrity, sync reconciliation).
 sha2 = "0.10"
+# Cover normalization (covers.rs): every extracted cover is bounded to a
+# shelf-sized JPEG before it is stored or synced. Same crate tauri already
+# pulls for its PNG handling; only the decoders covers can arrive in.
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "bmp", "webp"] }
 # Authenticated encryption for the stored API key (see secrets.rs). Pure Rust,
 # no system dependency and no OS credential store — that trade is explained in
 # the module header.
@@ -126,6 +130,25 @@ debug = 0
 # only sha2 keeps normal debug compilation fast while avoiding a 10x+ debug-mode
 # penalty that made an 88 MB import take seconds instead of milliseconds.
 [profile.dev.package.sha2]
+opt-level = 3
+
+# Same reasoning for cover normalization (covers.rs): decoding a
+# print-resolution cover and resampling it to shelf size is tens of megapixels
+# of arithmetic, which unoptimized dependency code turns from ~50 ms into
+# seconds on every import in `tauri dev`.
+[profile.dev.package.image]
+opt-level = 3
+[profile.dev.package.zune-jpeg]
+opt-level = 3
+[profile.dev.package.zune-core]
+opt-level = 3
+[profile.dev.package.png]
+opt-level = 3
+[profile.dev.package.fdeflate]
+opt-level = 3
+[profile.dev.package.miniz_oxide]
+opt-level = 3
+[profile.dev.package.flate2]
 opt-level = 3
 
 # Android only: reach MainActivity over JNI to toggle the system status bar

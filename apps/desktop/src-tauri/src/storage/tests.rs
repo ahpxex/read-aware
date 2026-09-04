@@ -392,15 +392,21 @@ fn blob_file_import_uses_native_copy_and_registers_hash() {
     std::fs::write(&source_path, &payload).expect("write source");
     let conn = migrated_conn();
 
-    let result = put_blob_from_file_inner(
+    // The import path: hash the source once, then copy without re-reading.
+    let (sha256, hashed_size) = crate::import::hash_file(&source_path).expect("hash");
+    let (byte_size, file_name) =
+        copy_blob_file(data_dir.path(), "bookfile:streamed", &source_path).expect("copy");
+    let result = register_blob_inner(
         &conn,
-        data_dir.path(),
         "bookfile:streamed",
         Some("application/epub+zip"),
-        &source_path,
+        byte_size,
+        sha256,
+        file_name,
     )
-    .expect("stream import");
+    .expect("register");
 
+    assert_eq!(hashed_size, payload.len() as i64);
     assert_eq!(result.byte_size, payload.len() as i64);
     assert_eq!(
         result.sha256,
@@ -789,7 +795,7 @@ fn a_failed_event_rolls_back_the_whole_commit() {
 }
 
 #[test]
-fn rebuild_reproduces_projections_and_keeps_cover_cache() {
+fn rebuild_reproduces_projections_including_cover_verdicts() {
     let mut conn = migrated_conn();
     commit_events_inner(
         &mut conn,
@@ -805,13 +811,13 @@ fn rebuild_reproduces_projections_and_keeps_cover_cache() {
                 }),
             ),
             ev("e4", 1_003, "book.removed", serde_json::json!({ "bookId": "b2" })),
+            ev(
+                "e5",
+                1_004,
+                "book.coverExtracted",
+                serde_json::json!({ "bookId": "b1", "status": "ready", "coverBlobKey": "cover:b1" }),
+            ),
         ],
-    )
-    .unwrap();
-    // Covers are extracted locally from object-storage content, not replayed.
-    conn.execute(
-        "UPDATE books SET cover_url = 'data:image/png;base64,AAA', cover_checked = 1 WHERE id='b1'",
-        [],
     )
     .unwrap();
 
@@ -823,7 +829,7 @@ fn rebuild_reproduces_projections_and_keeps_cover_cache() {
         r
     };
 
-    assert_eq!(report.events_replayed, 4);
+    assert_eq!(report.events_replayed, 5);
     assert_eq!(scalar::<i64>(&conn, "SELECT COUNT(*) FROM books"), before_books);
     // book.removed replayed: b2 stays gone, and so do its annotations.
     assert_eq!(scalar::<i64>(&conn, "SELECT COUNT(*) FROM books WHERE id='b2'"), 0);
@@ -835,15 +841,141 @@ fn rebuild_reproduces_projections_and_keeps_cover_cache() {
         scalar::<String>(&conn, "SELECT text FROM annotations WHERE id='n1'"),
         "引用"
     );
-    // The local cache survived the wipe — no re-extraction pass needed.
+    // The cover verdict is a projection now: replay reproduces it from the log.
     assert_eq!(
-        scalar::<String>(&conn, "SELECT cover_url FROM books WHERE id='b1'"),
-        "data:image/png;base64,AAA"
+        scalar::<String>(&conn, "SELECT cover_status FROM books WHERE id='b1'"),
+        "ready"
     );
     assert_eq!(
-        scalar::<i64>(&conn, "SELECT cover_checked FROM books WHERE id='b1'"),
-        1
+        scalar::<String>(&conn, "SELECT cover_blob_key FROM books WHERE id='b1'"),
+        "cover:b1"
     );
+}
+
+#[test]
+fn cover_verdicts_project_and_a_merge_adopts_them() {
+    let mut conn = migrated_conn();
+    commit_events_inner(
+        &mut conn,
+        &[
+            imported("e1", 1_000, "b1", "沙丘"),
+            imported("e2", 1_001, "b2", "沙丘（副本）"),
+            ev(
+                "e3",
+                1_002,
+                "book.coverExtracted",
+                serde_json::json!({ "bookId": "b2", "status": "ready", "coverBlobKey": "cover:b2" }),
+            ),
+        ],
+    )
+    .unwrap();
+    assert_eq!(
+        scalar::<String>(&conn, "SELECT cover_status FROM books WHERE id='b1'"),
+        "unchecked"
+    );
+    assert_eq!(
+        scalar::<String>(&conn, "SELECT cover_status FROM books WHERE id='b2'"),
+        "ready"
+    );
+    // The blob manifest row follows the verdict on a device without the bytes.
+    assert_eq!(
+        scalar::<String>(&conn, "SELECT kind FROM blob_objects WHERE key='cover:b2'"),
+        "cover_image"
+    );
+
+    // Same content: the keeper inherits the merged record's cover verdict.
+    commit_events_inner(
+        &mut conn,
+        &[ev(
+            "e4",
+            1_003,
+            "book.merged",
+            serde_json::json!({ "keepId": "b1", "mergedId": "b2" }),
+        )],
+    )
+    .unwrap();
+    assert_eq!(
+        scalar::<String>(&conn, "SELECT cover_status FROM books WHERE id='b1'"),
+        "ready"
+    );
+    assert_eq!(
+        scalar::<String>(&conn, "SELECT cover_blob_key FROM books WHERE id='b1'"),
+        "cover:b2"
+    );
+
+    // 'none' closes the question and clears the key.
+    commit_events_inner(
+        &mut conn,
+        &[ev(
+            "e5",
+            1_004,
+            "book.coverExtracted",
+            serde_json::json!({ "bookId": "b1", "status": "none" }),
+        )],
+    )
+    .unwrap();
+    assert_eq!(
+        scalar::<String>(&conn, "SELECT cover_status FROM books WHERE id='b1'"),
+        "none"
+    );
+    assert!(scalar::<Option<String>>(&conn, "SELECT cover_blob_key FROM books WHERE id='b1'").is_none());
+}
+
+#[test]
+fn legacy_inline_covers_are_lifted_into_the_blob_store() {
+    let data_dir = tempfile::tempdir().expect("data dir");
+    let mut conn = test_conn();
+    run_migrations_up_to(&mut conn, COVER_PROJECTION_VERSION - 1).expect("migrate to v23");
+    conn.execute(
+        "INSERT INTO books (id, title, author, format, file_name, mime_type, file_size,
+             cover_url, cover_checked, created_at, updated_at, progress_percent,
+             reading_status, starred)
+         VALUES ('b1', 'T', 'A', 'epub', 'b.epub', '', 1, ?1, 1, 'x', 'x', 0, 'unread', 0),
+                ('b2', 'T2', 'A', 'epub', 'c.epub', '', 1, NULL, 1, 'x', 'x', 0, 'unread', 0),
+                ('b3', 'T3', 'A', 'epub', 'd.epub', '', 1, NULL, 0, 'x', 'x', 0, 'unread', 0),
+                ('b4', 'T4', 'A', 'epub', 'e.epub', '', 1, 'data:image/png;base64,AAAA', 1, 'x', 'x', 0, 'unread', 0)",
+        params![{
+            use base64::{engine::general_purpose::STANDARD, Engine as _};
+            let mut out = std::io::Cursor::new(Vec::new());
+            image::RgbImage::from_pixel(8, 12, image::Rgb([9, 9, 9]))
+                .write_to(&mut out, image::ImageFormat::Png)
+                .unwrap();
+            format!("data:image/png;base64,{}", STANDARD.encode(out.into_inner()))
+        }],
+    )
+    .unwrap();
+
+    run_migrations_up_to(&mut conn, COVER_PROJECTION_VERSION).expect("migrate to v24");
+    materialize_legacy_covers(&conn, data_dir.path()).expect("lift covers");
+    run_migrations(&mut conn).expect("finish migrations");
+
+    // b1: artwork lifted, verdict ready, blob registered and queued for push.
+    assert_eq!(scalar::<String>(&conn, "SELECT cover_status FROM books WHERE id='b1'"), "ready");
+    assert_eq!(
+        scalar::<String>(&conn, "SELECT cover_blob_key FROM books WHERE id='b1'"),
+        "cover:b1"
+    );
+    assert!(get_blob_record_inner(&conn, data_dir.path(), "cover:b1").unwrap().is_some());
+    assert_eq!(
+        scalar::<String>(&conn, "SELECT push_state FROM blob_sync_state WHERE blob_key='cover:b1'"),
+        "pending"
+    );
+    // b2: checked, no cover → none. b3: never checked → unchecked.
+    assert_eq!(scalar::<String>(&conn, "SELECT cover_status FROM books WHERE id='b2'"), "none");
+    assert_eq!(scalar::<String>(&conn, "SELECT cover_status FROM books WHERE id='b3'"), "unchecked");
+    // b4: an undecodable data URL is not a cover — back to unchecked, not junk.
+    assert_eq!(scalar::<String>(&conn, "SELECT cover_status FROM books WHERE id='b4'"), "unchecked");
+    // The inline columns are gone.
+    let has_cover_url: bool = conn
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM pragma_table_info('books') WHERE name = 'cover_url')",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert!(!has_cover_url);
+    // Running the lift again is a no-op.
+    materialize_legacy_covers(&conn, data_dir.path()).expect("idempotent");
 }
 
 #[test]

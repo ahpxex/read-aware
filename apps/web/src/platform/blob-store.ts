@@ -204,14 +204,6 @@ export async function deleteDesktopBlob(key: string): Promise<void> {
   await invoke("delete_blob", { key });
 }
 
-/**
- * Is the key in the registry at all — including manifest-only rows ("exists
- * remotely, bytes not fetched")? The cheap local gate before a lazy fetch:
- * no row means no event ever referenced the blob, so there is nothing to pull.
- */
-export function desktopBlobManifestExists(key: string): Promise<boolean> {
-  return invoke<boolean>("blob_manifest_exists", { key });
-}
 
 /** Metadata for a locally-present blob (null while manifest-only or absent). */
 export function getDesktopBlobInfo(key: string): Promise<BlobInfo | null> {
@@ -305,15 +297,3 @@ export async function putDesktopBlob(
   });
 }
 
-/** Copy a native file into managed storage without sending its bytes through JS. */
-export function putDesktopBlobFromPath(
-  key: string,
-  path: string,
-  mimeType?: string,
-): Promise<BlobPutResult> {
-  return invoke<BlobPutResult>("put_blob_from_file", {
-    key,
-    path,
-    mimeType: mimeType ?? null,
-  });
-}

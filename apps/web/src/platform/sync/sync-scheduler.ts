@@ -13,6 +13,7 @@ import type { PluginSyncTransportSession } from "@read-aware/plugin-types";
 import { invoke } from "../ipc";
 import { isTauri } from "../environment";
 import { emitAppEvent } from "../app-events";
+import { hydrateMissingCovers, stopCoverHydration } from "./cover-hydrator";
 import { reconcileDuplicateBooks } from "../book-dedupe";
 import { localDeviceId, observeRemoteHlcStamps, onDomainEventBroadcast } from "../domain-events";
 import { localKV } from "../local-store";
@@ -335,6 +336,10 @@ async function runCycle(): Promise<void> {
       cycleTotals: null,
       lastCycle: { pulled, pushed, blobs },
     });
+    // Covers other devices extracted: fetch whatever the shelf still lacks.
+    // Runs after EVERY cycle (not just pulls) because the peer's cover upload
+    // produces no event to pull — only its bytes appearing on the relay.
+    void hydrateMissingCovers(fetchRemoteBlob, { reset: pulled > 0 });
   } finally {
     running = false;
   }
@@ -618,6 +623,7 @@ export function startSyncScheduler(): () => void {
     watchSocket = null;
     offBroadcast();
     offTransports?.();
+    stopCoverHydration();
     window.removeEventListener("focus", onFocus);
     document.removeEventListener("visibilitychange", onVisible);
     disposeScheduler = null;

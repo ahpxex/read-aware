@@ -15,12 +15,10 @@ import { i18n } from "../i18n";
 import { emitAppEvent } from "../platform/app-events";
 import {
   addVirtualLibraryBook,
-  commitBookImport,
   createCollection,
   deleteCollection,
   listCollections,
   listLibraryBooks,
-  prepareBookImport,
   removeLibraryBook,
   removeLibraryBooks,
   renameCollection,
@@ -29,6 +27,7 @@ import {
   updateBookMetadata,
   updateVirtualLibraryBookTitle,
 } from "../features/library/lib/library-db";
+import { importBook } from "../features/library/lib/book-import";
 import type { LibraryBook } from "../features/library/lib/library-types";
 import {
   ensureBookTextExtracted,
@@ -157,19 +156,12 @@ export function createLibraryDomain(origin: EventOrigin): LibraryDomain {
     books: {
       importBook: async (input) => {
         const file = new File([input.data], String(input.fileName));
-        const t = i18n.getFixedT(null, "shelf");
-        const existing = await listLibraryBooks();
-        const result = await prepareBookImport({ kind: "file", file }, t, existing);
-        if (result.status === "prepared") {
-          const commit = await commitBookImport(result.book, { kind: "file", file }, origin);
-          if (commit.status === "duplicate") {
-            const original = existing.find((entry) => entry.id === commit.existingId);
-            if (original) return toBookSummary(original);
-          } else {
-            notifyLibraryChanged();
-          }
-        }
-        return toBookSummary(result.book);
+        const outcome = await importBook(
+          { kind: "file", file },
+          { t: i18n.getFixedT(null, "shelf"), knownBooks: await listLibraryBooks(), origin },
+        );
+        if (outcome.status === "imported") notifyLibraryChanged();
+        return toBookSummary(outcome.book);
       },
       editMetadata: async (bookId, patch) => {
         await updateBookMetadata(

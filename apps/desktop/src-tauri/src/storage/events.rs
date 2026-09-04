@@ -445,30 +445,11 @@ pub struct RebuildReport {
     pub rows: std::collections::BTreeMap<String, i64>,
 }
 
-/// Replay the whole log into the derived tables, inside `tx`.
-///
-/// `books.cover_url` / `cover_checked` survive the wipe: they cache work done
-/// on object-storage content, not domain facts, and re-extracting every cover
-/// is pure waste (see storage::apply's module header).
+/// Replay the whole log into the derived tables, inside `tx`. Every column of
+/// every derived table comes back from the log — covers included, since
+/// `book.coverExtracted` projects them; the bytes they point at live in the
+/// device-local blob registry, which the wipe never touches.
 pub(crate) fn replay_into(tx: &Transaction<'_>) -> Result<RebuildReport, CommandError> {
-    let cache_columns = apply::BOOK_LOCAL_CACHE_COLUMNS;
-    let cached: Vec<(String, Vec<rusqlite::types::Value>)> = {
-        let sql = format!("SELECT id, {} FROM books", cache_columns.join(", "));
-        let mut stmt = tx.prepare(&sql)?;
-        let iter = stmt
-            .query_map([], |row| {
-                let id: String = row.get(0)?;
-                let mut values = Vec::with_capacity(cache_columns.len());
-                for i in 0..cache_columns.len() {
-                    values.push(row.get::<_, rusqlite::types::Value>(i + 1)?);
-                }
-                Ok((id, values))
-            })
-            ?;
-        iter.collect::<rusqlite::Result<Vec<_>>>()
-            ?
-    };
-
     for table in apply::DERIVED_TABLES {
         tx.execute(&format!("DELETE FROM {table}"), [])
             ?;
@@ -493,25 +474,6 @@ pub(crate) fn replay_into(tx: &Transaction<'_>) -> Result<RebuildReport, Command
     for ev in &events {
         if apply::apply_event(tx, ev)? {
             applied += 1;
-        }
-    }
-
-    {
-        let assignments = cache_columns
-            .iter()
-            .enumerate()
-            .map(|(i, column)| format!("{column} = ?{}", i + 2))
-            .collect::<Vec<_>>()
-            .join(", ");
-        let sql = format!("UPDATE books SET {assignments} WHERE id = ?1");
-        let mut stmt = tx.prepare(&sql)?;
-        for (id, values) in &cached {
-            let mut bound: Vec<&dyn rusqlite::ToSql> = Vec::with_capacity(values.len() + 1);
-            bound.push(id);
-            for value in values {
-                bound.push(value);
-            }
-            stmt.execute(bound.as_slice())?;
         }
     }
 

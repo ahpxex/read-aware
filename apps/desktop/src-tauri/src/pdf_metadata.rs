@@ -1,15 +1,16 @@
+//! Import-time PDF cover.
+//!
+//! macOS renders the first meaningful page through PDFKit. Every other
+//! platform answers "nothing native here" — an `Ok` with no cover, not an
+//! error — and the webview's cover job renders page one with the reading
+//! engine's PDF adapter instead. Title/author come from that same job on
+//! every platform (the Info dictionary is read once the document is parsed).
+
 use std::path::Path;
 
-use base64::{engine::general_purpose::STANDARD, Engine as _};
-use serde::Serialize;
-
-#[derive(Debug, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PdfMetadata {
-    pub title: Option<String>,
-    pub author: Option<String>,
-    pub cover_url: Option<String>,
-}
+use crate::metadata::BookMetadata;
+#[cfg(target_os = "macos")]
+use crate::metadata::CoverImage;
 
 #[cfg(target_os = "macos")]
 #[link(name = "PDFKit", kind = "framework")]
@@ -96,7 +97,7 @@ unsafe fn page_thumbnail_png(page: cocoa::base::id) -> Result<Option<Vec<u8>>, S
 }
 
 #[cfg(target_os = "macos")]
-pub fn extract_pdf_metadata_from_path(path: &Path) -> Result<PdfMetadata, String> {
+pub fn extract_pdf_metadata_from_path(path: &Path) -> Result<BookMetadata, String> {
     use cocoa::{
         base::{id, nil},
         foundation::{NSAutoreleasePool, NSString},
@@ -116,7 +117,7 @@ pub fn extract_pdf_metadata_from_path(path: &Path) -> Result<PdfMetadata, String
             }
 
             let page_count: usize = msg_send![document, pageCount];
-            let mut cover_url = None;
+            let mut cover = None;
             let mut thumbnail_error = None;
             for index in 0..page_count.min(5) {
                 let page: id = msg_send![document, pageAtIndex: index];
@@ -125,7 +126,7 @@ pub fn extract_pdf_metadata_from_path(path: &Path) -> Result<PdfMetadata, String
                 }
                 match page_thumbnail_png(page) {
                     Ok(Some(png)) => {
-                        cover_url = Some(format!("data:image/png;base64,{}", STANDARD.encode(png)));
+                        cover = Some(CoverImage { bytes: png, mime: "image/png".to_owned() });
                         break;
                     }
                     Ok(None) => {}
@@ -139,10 +140,10 @@ pub fn extract_pdf_metadata_from_path(path: &Path) -> Result<PdfMetadata, String
             if let Some(error) = thumbnail_error {
                 return Err(error);
             }
-            Ok(PdfMetadata {
+            Ok(BookMetadata {
                 title: None,
                 author: None,
-                cover_url,
+                cover,
             })
         })();
         pool.drain();
@@ -151,22 +152,10 @@ pub fn extract_pdf_metadata_from_path(path: &Path) -> Result<PdfMetadata, String
 }
 
 #[cfg(not(target_os = "macos"))]
-pub fn extract_pdf_metadata_from_path(_path: &Path) -> Result<PdfMetadata, String> {
-    Err("Native PDF cover extraction is not available on this platform".into())
+pub fn extract_pdf_metadata_from_path(_path: &Path) -> Result<BookMetadata, String> {
+    Ok(BookMetadata::default())
 }
 
-#[tauri::command]
-pub async fn extract_pdf_metadata(
-    app: tauri::AppHandle,
-    path: String,
-) -> Result<PdfMetadata, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let source = crate::native_path::materialize(&app, &path)?;
-        extract_pdf_metadata_from_path(&source.path)
-    })
-    .await
-    .map_err(|error| format!("extract_pdf_metadata task failed: {error}"))?
-}
 
 #[cfg(all(test, target_os = "macos"))]
 mod tests {
@@ -220,8 +209,9 @@ mod tests {
             .unwrap();
 
         let metadata = extract_pdf_metadata_from_path(&path).unwrap();
-        let cover = metadata.cover_url.expect("PDF cover");
-        assert!(cover.starts_with("data:image/png;base64,iVBORw0K"));
-        assert!(cover.len() > 200);
+        let cover = metadata.cover.expect("PDF cover");
+        assert_eq!(cover.mime, "image/png");
+        assert!(cover.bytes.starts_with(&[0x89, b'P', b'N', b'G']));
+        assert!(cover.bytes.len() > 150);
     }
 }

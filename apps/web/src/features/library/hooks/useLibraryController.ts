@@ -1,74 +1,28 @@
-import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
-import type { TFunction } from "i18next";
+import { useCallback, useRef } from "react";
 import { useToast } from "@read-aware/ui";
 import { useTranslation, describeError } from "../../../i18n";
-import { deleteBookText, ensureBookTextExtracted } from "../lib/book-text-store";
 import { catchUpBookGraph } from "../../ai/agent/maintenance";
-import {
-  commitBookImport,
-  enrichOpenedBook,
-  hydrateSyncedCover,
-  listCollections,
-  listLibraryBooks,
-  prepareBookImport,
-} from "../lib/library-db";
-import { userDomain } from "../../../domain";
-import { createProgressPatch } from "../lib/library-progress";
-import { canUseNativeFilePicker, pickBookFilesNative } from "../lib/pick-book-files";
-import type {
-  BookMetadataPatch,
-  BookImportSource,
-  BookProgress,
-  Collection,
-  LibraryBook,
-} from "../lib/library-types";
 import type { FoliateBook } from "../../reader/lib/foliate-engine";
-import { onAppEvent } from "../../../platform/app-events";
+import { enrichFromOpenBook } from "../lib/book-enrichment";
+import { ensureBookTextExtracted } from "../lib/book-text-store";
+import type { LibraryBook } from "../lib/library-types";
 import { createLogger } from "../../../platform/logger";
+import { useBookImport } from "./useBookImport";
+import { useLibraryCommands } from "./useLibraryCommands";
+import { useLibraryStore } from "./useLibraryStore";
+
+export type { ImportOutcome } from "../lib/book-import";
 
 const log = createLogger("library");
 
 /**
- * Per-source result of an import batch. A duplicate carries the EXISTING shelf
- * book it matched, so callers (external "open with" flow) can open it anyway.
+ * The shelf's controller: composes the store (load + live updates), the
+ * import pipeline, and the user commands behind one facade for the app
+ * shell, and owns the one cross-feature hook — what happens when the reader
+ * has parsed a book.
  */
-export type ImportOutcome = {
-  status: "imported" | "duplicate";
-  book: LibraryBook;
-};
-
-function formatImportNotice(
-  imported: number,
-  duplicates: string[],
-  t: TFunction<"shelf">,
-): string {
-  const skipped = t("importNotice.duplicate", {
-    count: duplicates.length,
-    title: duplicates[0],
-  });
-  return imported > 0 ? t("importNotice.combined", { skipped, count: imported }) : skipped;
-}
-
 export function useLibraryController() {
-  const [books, setBooks] = useState<LibraryBook[]>([]);
-  const booksRef = useRef(books);
-  booksRef.current = books;
-  // Prepared imports carry their final id and metadata while their source file
-  // is still being copied. Rendering them through the normal shelf sorter keeps
-  // the reserved slot identical to the committed book's final slot.
-  const [pendingBooks, setPendingBooks] = useState<LibraryBook[]>([]);
-  const [collections, setCollections] = useState<Collection[]>([]);
-  const [libraryReady, setLibraryReady] = useState(false);
-  // Files still in the import pipeline drive the header's disabled state and
-  // keep an empty library out of its empty state. Prepared records below drive
-  // any delayed shelf feedback at their real sorted positions.
-  const [importingCount, setImportingCount] = useState(0);
-  const isImporting = importingCount > 0;
-  const importInputRef = useRef<HTMLInputElement | null>(null);
   const { toast } = useToast();
-
-  // Keep the latest translator in a ref so the callbacks below stay stable
-  // (deps free of `t`) yet always format errors/notices in the active language.
   const { t } = useTranslation("shelf");
   const tRef = useRef(t);
   tRef.current = t;
@@ -87,342 +41,50 @@ export function useLibraryController() {
     [toast],
   );
 
-  const replaceBookInState = useCallback((nextBook: LibraryBook) => {
-    setBooks((currentBooks) => {
-      const hasMatch = currentBooks.some((book) => book.id === nextBook.id);
-      if (!hasMatch) return [nextBook, ...currentBooks];
-
-      return currentBooks.map((book) => (
-        book.id === nextBook.id ? nextBook : book
-      ));
-    });
-  }, []);
-
-  const applyOptimisticProgress = useCallback((bookId: string, progress: BookProgress) => {
-    const timestamp = new Date().toISOString();
-
-    setBooks((currentBooks) => currentBooks.map((book) => (
-      book.id === bookId ? createProgressPatch(book, progress, timestamp) : book
-    )));
-  }, []);
-
-  const loadLibrary = useCallback(async () => {
-    try {
-      const [loadedBooks, loadedCollections] = await Promise.all([
-        listLibraryBooks(),
-        listCollections(),
-      ]);
-      setBooks(loadedBooks);
-      setCollections(loadedCollections);
-      // Books that arrived through sync carry a cover blob but an empty
-      // data-URL cache — fill it now (local bytes, or one lazy fetch), and
-      // patch each shelf tile as its artwork lands. `coverChecked` flips in
-      // the store, so every book takes this path at most once.
-      for (const book of loadedBooks) {
-        if (book.coverUrl || book.coverChecked) continue;
-        void hydrateSyncedCover(book).then((hydrated) => {
-          if (!hydrated) return;
-          setBooks((current) =>
-            current.map((entry) => (entry.id === hydrated.id ? hydrated : entry)),
-          );
-        });
-      }
-    } catch (error) {
-      reportError(error);
-    } finally {
-      setLibraryReady(true);
-    }
-  }, [reportError]);
-
-  // Plugin imports (and any out-of-band writer) announce via the event bus.
-  useEffect(() => onAppEvent("library-changed", () => void loadLibrary()), [loadLibrary]);
-
-  const sortCollections = (list: Collection[]) =>
-    [...list].sort((a, b) => a.name.localeCompare(b.name));
-
-  const handleCreateCollection = useCallback(
-    async (name: string): Promise<Collection | null> => {
-      try {
-        const collection = await userDomain.library.commands.collections.create(name);
-        setCollections((current) => sortCollections([...current, collection]));
-        return collection;
-      } catch (error) {
-        reportError(error);
-        return null;
-      }
-    },
-    [reportError],
-  );
-
-  const handleRenameCollection = useCallback((id: string, name: string) => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    setCollections((current) =>
-      sortCollections(current.map((c) => (c.id === id ? { ...c, name: trimmed } : c))),
-    );
-    void userDomain.library.commands.collections.rename(id, trimmed).catch((error) => {
-      void loadLibrary();
-      reportError(error);
-    });
-  }, [loadLibrary, reportError]);
-
-  const handleDeleteCollection = useCallback((id: string) => {
-    setCollections((current) => current.filter((c) => c.id !== id));
-    setBooks((current) =>
-      current.map((book) => (book.collectionId === id ? { ...book, collectionId: null } : book)),
-    );
-    void userDomain.library.commands.collections.remove(id).catch((error) => {
-      void loadLibrary();
-      reportError(error);
-    });
-  }, [loadLibrary, reportError]);
-
-  const handleSetBooksCollection = useCallback(
-    (ids: string[], collectionId: string | null) => {
-      if (ids.length === 0) return;
-      const idSet = new Set(ids);
-      setBooks((current) =>
-        current.map((book) => (idSet.has(book.id) ? { ...book, collectionId } : book)),
-      );
-      void userDomain.library.commands.collections.assignBooks(ids, collectionId).catch((error) => {
-        void loadLibrary();
-        reportError(error);
-      });
-    },
-    [loadLibrary, reportError],
-  );
-
-  useEffect(() => {
-    void loadLibrary();
-  }, [loadLibrary]);
+  const store = useLibraryStore({ reportError });
+  const importer = useBookImport({ reportError });
+  const commands = useLibraryCommands({ reportError, reload: store.loadLibrary });
 
   const bookReadyPendingRef = useRef(new Set<string>());
 
   /**
-   * Metadata, cover, and text enrichment now reuse the reader's parsed book.
-   * Import never runs foliate on the UI thread just because a file was picked.
+   * The reader has parsed the book: reuse that parse for everything that
+   * wants one — a still-open cover question (rare: import settles covers
+   * natively or through the engine job), full-text extraction for the agent,
+   * and the book graph catch-up.
    */
   const handleBookReady = useCallback((book: LibraryBook, foliateBook: FoliateBook) => {
     if (bookReadyPendingRef.current.has(book.id)) return;
     bookReadyPendingRef.current.add(book.id);
     void (async () => {
-      if (!book.coverChecked) {
-        const result = await enrichOpenedBook(book, foliateBook);
-        if (result.status === "removed") return;
-        if (result.status === "duplicate") {
-          setBooks((current) => current.filter((entry) => entry.id !== book.id));
-          toast({
-            title: tRef.current("workspace.importTitle"),
-            description: formatImportNotice(0, [result.book.title], tRef.current),
-          });
-          return;
-        }
-        setBooks((current) =>
-          current.map((entry) => (entry.id === book.id ? result.book : entry)),
-        );
-      }
+      await enrichFromOpenBook(book, foliateBook);
       // Text extraction always starts on first open, reusing the reader's
       // already-parsed book. It yields between sections and (for long books)
       // checkpoints its progress, so a big scanned PDF neither freezes the UI
-      // nor loses its work when the reader closes mid-pass — the old
-      // size/page-count gate that skipped exactly the scanned-book profile
-      // (and left the agent to re-parse from scratch on demand) is gone.
+      // nor loses its work when the reader closes mid-pass.
       await ensureBookTextExtracted(book.id, foliateBook);
       // 正文就绪后立刻并行追平这本书的图谱欠账（读者在读 = 这本书的图
       // 最值得建）。存量进度从开卷起补，不等空闲节拍或聊天。
       catchUpBookGraph(book.id, book.progress?.href ?? undefined);
     })()
-      .catch((error) => log.warn("lazy enrich failed", error))
+      .catch((error) => log.warn("post-open enrichment failed", error))
       .finally(() => bookReadyPendingRef.current.delete(book.id));
-  }, [toast]);
-
-  const importSources = useCallback(async (sources: BookImportSource[]): Promise<ImportOutcome[]> => {
-    if (sources.length === 0) return [];
-
-    setImportingCount(sources.length);
-
-    let imported = 0;
-    const duplicates: string[] = [];
-    const outcomes: ImportOutcome[] = [];
-    const knownBooks = [...booksRef.current];
-    try {
-      for (const source of sources) {
-        let pendingBookId: string | null = null;
-        try {
-          const result = await prepareBookImport(source, tRef.current, knownBooks);
-          if (result.status === "duplicate") {
-            duplicates.push(result.book.title);
-            outcomes.push({ status: "duplicate", book: result.book });
-          } else {
-            pendingBookId = result.book.id;
-            setPendingBooks((current) => [...current, result.book]);
-            const commit = await commitBookImport(result.book, source);
-            if (commit.status === "duplicate") {
-              // The content gate caught what metadata couldn't: this exact
-              // file is already on the shelf (possibly synced in under a
-              // different title). Nothing new was created.
-              const existing =
-                knownBooks.find((entry) => entry.id === commit.existingId) ?? result.book;
-              duplicates.push(existing.title);
-              outcomes.push({ status: "duplicate", book: existing });
-            } else {
-              imported += 1;
-              outcomes.push({ status: "imported", book: result.book });
-              // Swap the pending entry for the durable book in one React batch.
-              // The id and all sort fields stay identical, so its grid slot does not move.
-              setBooks((current) => [result.book, ...current]);
-              knownBooks.unshift(result.book);
-            }
-          }
-        } finally {
-          if (pendingBookId) {
-            setPendingBooks((current) => current.filter((book) => book.id !== pendingBookId));
-          }
-          setImportingCount((current) => Math.max(0, current - 1));
-        }
-      }
-
-      if (duplicates.length > 0) {
-        toast({
-          title: tRef.current("workspace.importTitle"),
-          description: formatImportNotice(imported, duplicates, tRef.current),
-        });
-      }
-    } catch (error) {
-      reportError(error);
-    } finally {
-      setImportingCount(0);
-    }
-    return outcomes;
-  }, [reportError, toast]);
-
-  // One native picker at a time: a re-trigger while a dialog is pending would
-  // start a second concurrent import flow, and the import dedupe reads
-  // the library before either flow has written — the same book lands twice.
-  // (Safe to guard on the promise: Android routes around the dialog plugin's
-  // lossy response channel via park-and-poll in pick-book-files.ts, so the
-  // pick always settles — including on cancel.)
-  const pickerPendingRef = useRef(false);
-
-  const openImportPicker = useCallback(() => {
-    // Desktop: the webview ignores the <input accept> filter, so drive the
-    // native OS dialog (with a real Books format filter) instead. Web/dev falls
-    // back to the hidden file input.
-    if (canUseNativeFilePicker()) {
-      if (pickerPendingRef.current) return;
-      pickerPendingRef.current = true;
-      void pickBookFilesNative(tRef.current)
-        .then(importSources)
-        .catch(reportError)
-        .finally(() => {
-          pickerPendingRef.current = false;
-        });
-      return;
-    }
-
-    importInputRef.current?.click();
-  }, [importSources, reportError]);
-
-  const handleImportSelection = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
-    const input = event.currentTarget;
-    const sources: BookImportSource[] = Array.from(input.files ?? [])
-      .map((file) => ({ kind: "file", file }));
-    input.value = "";
-    await importSources(sources);
-  }, [importSources]);
-
-  const handleToggleStar = useCallback((book: LibraryBook) => {
-    const nextStarred = !book.starred;
-    // Optimistic: flip in state immediately so the shelf re-pins without waiting
-    // on IndexedDB; roll back if the write fails.
-    setBooks((currentBooks) =>
-      currentBooks.map((entry) => (entry.id === book.id ? { ...entry, starred: nextStarred } : entry)),
-    );
-    void userDomain.library.commands.books.setStarred(book.id, nextStarred).catch((error) => {
-      setBooks((currentBooks) =>
-        currentBooks.map((entry) => (entry.id === book.id ? { ...entry, starred: book.starred } : entry)),
-      );
-      reportError(error);
-    });
-  }, [reportError]);
-
-  const handleUpdateBookMetadata = useCallback(
-    (book: LibraryBook, patch: BookMetadataPatch) => {
-      const title = patch.title?.trim() || book.title;
-      const author = patch.author?.trim() || book.author;
-      if (title === book.title && author === book.author) return;
-
-      // Optimistic: reflect the edit immediately; roll back if the write fails.
-      setBooks((currentBooks) =>
-        currentBooks.map((entry) =>
-          entry.id === book.id ? { ...entry, title, author } : entry,
-        ),
-      );
-      void userDomain.library.commands.books.editMetadata(book.id, { title, author }).catch((error) => {
-        setBooks((currentBooks) =>
-          currentBooks.map((entry) =>
-            entry.id === book.id
-              ? { ...entry, title: book.title, author: book.author }
-              : entry,
-          ),
-        );
-        reportError(error);
-      });
-    },
-    [reportError],
-  );
-
-  const handleRemoveBook = useCallback((book: LibraryBook) => {
-    void userDomain.library.commands.books.remove(book.id)
-      .then(() => {
-        setBooks((currentBooks) => currentBooks.filter((entry) => entry.id !== book.id));
-        // Best-effort: a failure strands orphaned full-text rows, not user data.
-        void deleteBookText([book.id]).catch((error: unknown) => {
-          log.warn("full-text cleanup failed after book removal", error);
-        });
-      })
-      .catch((error) => {
-        reportError(error);
-      });
-  }, [reportError]);
-
-  const handleRemoveMany = useCallback((ids: string[]) => {
-    if (ids.length === 0) return;
-    const idSet = new Set(ids);
-    void userDomain.library.commands.books.removeMany(ids)
-      .then(() => {
-        setBooks((currentBooks) => currentBooks.filter((entry) => !idSet.has(entry.id)));
-        // Best-effort: a failure strands orphaned full-text rows, not user data.
-        void deleteBookText(ids).catch((error: unknown) => {
-          log.warn("full-text cleanup failed after bulk removal", error);
-        });
-      })
-      .catch((error) => {
-        reportError(error);
-      });
-  }, [reportError]);
+  }, []);
 
   return {
-    books,
-    pendingBooks,
-    collections,
-    libraryReady,
-    isImporting,
-    importingCount,
-    importInputRef,
-    importSources,
-    openImportPicker,
-    handleImportSelection,
-    handleRemoveBook,
-    handleToggleStar,
-    handleUpdateBookMetadata,
-    handleRemoveMany,
-    handleCreateCollection,
-    handleRenameCollection,
-    handleDeleteCollection,
-    handleSetBooksCollection,
-    replaceBookInState,
-    applyOptimisticProgress,
+    books: store.books,
+    collections: store.collections,
+    libraryReady: store.libraryReady,
+    replaceBookInState: store.replaceBookInState,
+    applyOptimisticProgress: store.applyOptimisticProgress,
+    pendingBooks: importer.pendingBooks,
+    importingCount: importer.importingCount,
+    isImporting: importer.isImporting,
+    importInputRef: importer.importInputRef,
+    importSources: importer.importSources,
+    openImportPicker: importer.openImportPicker,
+    handleImportSelection: importer.handleImportSelection,
+    ...commands,
     handleBookReady,
     reportError,
   };

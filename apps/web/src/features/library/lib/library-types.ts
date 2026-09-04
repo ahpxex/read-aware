@@ -14,6 +14,14 @@ export type BookImportSource =
 export type ReadingStatus = "unread" | "reading" | "finished";
 
 /**
+ * The cover verdict, projected from `book.coverExtracted`:
+ * - `unchecked` — no device has decided yet (the engine job will)
+ * - `ready`     — a `cover:` blob exists (here or on the relay)
+ * - `none`      — the book was inspected and carries no cover
+ */
+export type CoverStatus = "unchecked" | "ready" | "none";
+
+/**
  * Reading position for any format. Reflowable books (EPUB/MOBI/AZW3/FB2) carry a
  * CFI anchor; fixed-layout books (PDF) leave `cfi` null and rely on the location
  * index. `currentLocation`/`totalLocations` drive the "page/loc X of N" readout.
@@ -28,7 +36,8 @@ export type ReaderProgress = {
 
 export type BookProgress = ReaderProgress | null;
 
-export interface LibraryBook {
+/** The `books` projection row as Rust serves it (no derived fields). */
+export interface LibraryBookRow {
   id: string;
   title: string;
   author: string;
@@ -36,13 +45,13 @@ export interface LibraryBook {
   fileName: string;
   mimeType: string;
   fileSize: number;
-  coverUrl?: string | null;
-  /**
-   * Whether cover extraction has been attempted. A false/absent value is
-   * enriched from the reader's parsed book on first open; true also covers the
-   * terminal "this file has no cover" result.
-   */
-  coverChecked?: boolean;
+  coverStatus: CoverStatus;
+  /** Blob key of the cover (`cover:<id>`) when `coverStatus` is `ready`. */
+  coverBlobKey: string | null;
+  /** Whether the cover bytes are on this device (false = still on the relay). */
+  coverLocal: boolean;
+  /** Content hash of the local cover bytes; busts the image cache on re-extraction. */
+  coverVersion: string | null;
   createdAt: string;
   updatedAt: string;
   lastOpenedAt: string | null;
@@ -59,6 +68,16 @@ export interface LibraryBook {
    * books an unfenced concept graph. Absent/null = not yet classified.
    */
   narrativity?: "narrative" | "expository" | null;
+}
+
+/**
+ * A shelf book: the projection row plus the one derived field every surface
+ * paints — the cover URL (`rablob://…`, resolved by the shell straight from
+ * the blob store; null until the bytes are here). Stories and fixtures set
+ * `coverUrl` directly.
+ */
+export interface LibraryBook extends LibraryBookRow {
+  coverUrl: string | null;
 }
 
 /**

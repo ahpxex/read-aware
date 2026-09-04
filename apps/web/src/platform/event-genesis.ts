@@ -26,8 +26,6 @@ import type {
   ReadingStatus,
 } from "@read-aware/core";
 import { isTauri } from "./environment";
-import { putDesktopBlob } from "./blob-store";
-import { dataUrlToBytes } from "./data-url";
 import {
   appendDomainEvents,
   listEventAggregateIds,
@@ -60,7 +58,8 @@ type BookRow = {
   fileName: string;
   mimeType: string;
   fileSize: number;
-  coverUrl?: string | null;
+  coverStatus: "unchecked" | "ready" | "none";
+  coverBlobKey: string | null;
   createdAt: string;
   updatedAt: string;
   progressPercent: number;
@@ -343,21 +342,26 @@ export async function reconcileGenesisEvents(): Promise<void> {
     if (covered.has(book.id)) continue;
     drafts.push(...bookDrafts(book));
   }
-  // Covers extracted before coverExtracted had a producer: the cache holds the
-  // artwork but the log never heard of it, so other devices can't inherit it.
-  // Lift each data-URL cover into its synced blob and give it its event. The
-  // covered set is the idempotency guard, same as every genesis pass.
+  // Cover verdicts the log never heard of: rows whose cover was extracted
+  // before coverExtracted had a producer (the v24 migration lifted their
+  // inline artwork into `cover:` blobs), or restored from a backup. Give each
+  // its event so other devices inherit the verdict and a rebuild reproduces
+  // it. The covered set is the idempotency guard, same as every genesis pass.
   for (const book of byCreatedAt(books)) {
     if (coveredCovers.has(book.id)) continue;
-    const decoded = book.coverUrl?.startsWith("data:") ? dataUrlToBytes(book.coverUrl) : null;
-    if (!decoded) continue;
-    const coverBlobKey = `cover:${book.id}`;
-    await putDesktopBlob(coverBlobKey, decoded.bytes, decoded.mimeType);
-    drafts.push({
-      type: "book.coverExtracted",
-      createdAt: book.updatedAt || book.createdAt,
-      payload: { bookId: book.id, status: "ready", coverBlobKey },
-    });
+    if (book.coverStatus === "ready" && book.coverBlobKey) {
+      drafts.push({
+        type: "book.coverExtracted",
+        createdAt: book.updatedAt || book.createdAt,
+        payload: { bookId: book.id, status: "ready", coverBlobKey: book.coverBlobKey },
+      });
+    } else if (book.coverStatus === "none") {
+      drafts.push({
+        type: "book.coverExtracted",
+        createdAt: book.updatedAt || book.createdAt,
+        payload: { bookId: book.id, status: "none" },
+      });
+    }
   }
   for (const annotation of byCreatedAt(annotations)) {
     if (covered.has(annotation.id)) continue;

@@ -5,21 +5,28 @@
 //! enters the webview and the reading engine never starts; the shelf paints a
 //! real cover the moment a file is imported.
 
-use base64::{engine::general_purpose::STANDARD, Engine as _};
-use serde::Serialize;
-
-#[derive(Debug, Default, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
+/// What an extractor found. The cover stays RAW BYTES: it never crosses IPC —
+/// `import.rs` normalizes it (downscale + re-encode) and files it in the blob
+/// store, and the shelf paints it through the `rablob://` scheme.
+#[derive(Debug, Default, PartialEq)]
 pub struct BookMetadata {
     pub title: Option<String>,
     pub author: Option<String>,
-    pub cover_url: Option<String>,
+    pub cover: Option<CoverImage>,
 }
 
-/// Cover images are handed to the webview as data URLs, like EPUB covers.
-pub fn cover_data_url(bytes: &[u8]) -> Option<String> {
-    let mime = image_mime(bytes)?;
-    Some(format!("data:{mime};base64,{}", STANDARD.encode(bytes)))
+/// An image as the book carried it, with the MIME its magic number reveals.
+#[derive(Debug, PartialEq)]
+pub struct CoverImage {
+    pub bytes: Vec<u8>,
+    pub mime: String,
+}
+
+/// Wrap extracted bytes as a cover — or reject them: an unrecognized blob is
+/// not a cover (a MOBI resource record can just as well hold a font).
+pub fn cover_image(bytes: Vec<u8>) -> Option<CoverImage> {
+    let mime = image_mime(&bytes)?.to_owned();
+    Some(CoverImage { bytes, mime })
 }
 
 /// Identify an image by its magic number. An unrecognized blob is not a cover:

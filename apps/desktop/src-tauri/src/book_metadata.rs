@@ -1,25 +1,17 @@
 use std::{fs::File, io::Read, path::Path};
 
-use base64::{engine::general_purpose::STANDARD, Engine as _};
 use percent_encoding::percent_decode_str;
 use quick_xml::{
     escape::resolve_xml_entity,
     events::{BytesStart, Event},
     Reader,
 };
-use serde::Serialize;
 use zip::ZipArchive;
+
+use crate::metadata::{BookMetadata, CoverImage};
 
 const MAX_XML_BYTES: u64 = 2 * 1024 * 1024;
 const MAX_COVER_BYTES: u64 = 20 * 1024 * 1024;
-
-#[derive(Debug, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct EpubMetadata {
-    pub title: Option<String>,
-    pub author: Option<String>,
-    pub cover_url: Option<String>,
-}
 
 #[derive(Debug)]
 struct ManifestItem {
@@ -84,7 +76,17 @@ fn parse_package_path(container: &str) -> Result<String, String> {
     }
 }
 
-type PackageMetadata = (Option<String>, Option<String>, Option<(String, String)>);
+/// Where the package says the cover is: an image item, or a page (EPUB 2
+/// `<guide><reference type="cover">`, or a `cover.xhtml` the metadata points
+/// at) whose first image is the cover — the same fallback ladder Calibre and
+/// the reading engine walk, so the shelf and the reader agree.
+#[derive(Debug, PartialEq)]
+enum CoverRef {
+    Image { href: String, media_type: String },
+    Page { href: String },
+}
+
+type PackageMetadata = (Option<String>, Option<String>, Option<CoverRef>);
 
 fn parse_package(opf: &str) -> Result<PackageMetadata, String> {
     let mut reader = Reader::from_str(opf);
@@ -95,6 +97,7 @@ fn parse_package(opf: &str) -> Result<PackageMetadata, String> {
     let mut title = String::new();
     let mut author = String::new();
     let mut cover_id = None;
+    let mut guide_cover = None;
     let mut items = Vec::new();
 
     loop {
@@ -108,6 +111,11 @@ fn parse_package(opf: &str) -> Result<PackageMetadata, String> {
                         cover_id = attribute(&element, &reader, b"content")?;
                     }
                 }
+                b"reference" => {
+                    if let Some(href) = guide_cover_reference(&element, &reader)? {
+                        guide_cover.get_or_insert(href);
+                    }
+                }
                 _ => {}
             },
             Event::Empty(element) => match element.local_name().as_ref() {
@@ -115,6 +123,11 @@ fn parse_package(opf: &str) -> Result<PackageMetadata, String> {
                 b"meta" => {
                     if attribute(&element, &reader, b"name")?.as_deref() == Some("cover") {
                         cover_id = attribute(&element, &reader, b"content")?;
+                    }
+                }
+                b"reference" => {
+                    if let Some(href) = guide_cover_reference(&element, &reader)? {
+                        guide_cover.get_or_insert(href);
                     }
                 }
                 _ => {}
@@ -163,32 +176,100 @@ fn parse_package(opf: &str) -> Result<PackageMetadata, String> {
         }
     }
 
-    let cover = items
+    let is_image = |item: &&ManifestItem| item.media_type.starts_with("image/");
+    let is_page = |item: &&ManifestItem| {
+        item.media_type == "application/xhtml+xml" || item.media_type == "text/html"
+    };
+    let names_cover = |item: &&ManifestItem| {
+        item.id.to_ascii_lowercase().contains("cover")
+            || item.href.to_ascii_lowercase().contains("cover")
+    };
+    // `<meta name="cover">` should carry an item id; plenty of files put the
+    // image's href there instead, so both readings are tried.
+    let meta_item = cover_id.as_deref().and_then(|id| {
+        items
+            .iter()
+            .find(|item| item.id == id)
+            .or_else(|| items.iter().find(|item| item.href == id))
+    });
+
+    let cover_image = items
         .iter()
         .find(|item| {
             item.properties
                 .split_whitespace()
                 .any(|value| value == "cover-image")
         })
-        .or_else(|| {
-            cover_id.as_deref().and_then(|id| {
+        .or_else(|| meta_item.filter(is_image))
+        .or_else(|| items.iter().find(|item| is_image(item) && names_cover(item)));
+
+    let cover = match cover_image {
+        Some(item) => Some(CoverRef::Image {
+            href: item.href.clone(),
+            media_type: item.media_type.clone(),
+        }),
+        None => meta_item
+            .filter(is_page)
+            .map(|item| item.href.clone())
+            .or(guide_cover)
+            .or_else(|| {
                 items
                     .iter()
-                    .find(|item| item.id == id && item.media_type.starts_with("image/"))
+                    .find(|item| is_page(item) && names_cover(item))
+                    .map(|item| item.href.clone())
             })
-        })
-        .or_else(|| {
-            items.iter().find(|item| {
-                item.media_type.starts_with("image/")
-                    && (item.id.to_ascii_lowercase().contains("cover")
-                        || item.href.to_ascii_lowercase().contains("cover"))
-            })
-        });
+            .map(|href| CoverRef::Page { href }),
+    };
 
     let title = (!title.trim().is_empty()).then(|| title.trim().to_owned());
     let author = (!author.trim().is_empty()).then(|| author.trim().to_owned());
-    let cover = cover.map(|item| (item.href.clone(), item.media_type.clone()));
     Ok((title, author, cover))
+}
+
+/// `<guide><reference type="cover" href="…"/>` — EPUB 2's way of naming the
+/// cover page. `type` may carry several words ("cover title-page").
+fn guide_cover_reference(
+    element: &BytesStart<'_>,
+    reader: &Reader<&[u8]>,
+) -> Result<Option<String>, String> {
+    let kind = attribute(element, reader, b"type")?.unwrap_or_default();
+    if !kind.split_whitespace().any(|word| word.eq_ignore_ascii_case("cover")) {
+        return Ok(None);
+    }
+    Ok(attribute(element, reader, b"href")?.filter(|href| !href.is_empty()))
+}
+
+/// The first image a cover page shows: `<img src>` or SVG `<image href>`
+/// (xlink or plain). Returns the href as written, relative to the page.
+fn first_image_in_page(page: &str) -> Option<String> {
+    let mut reader = Reader::from_str(page);
+    loop {
+        let event = match reader.read_event() {
+            Ok(event) => event,
+            // Cover pages are frequently not well-formed XML; whatever was
+            // parsed before the error is all there is.
+            Err(_) => return None,
+        };
+        match event {
+            Event::Start(element) | Event::Empty(element) => {
+                let name = element.local_name();
+                let wanted: &[&[u8]] = match name.as_ref() {
+                    b"img" => &[b"src"],
+                    b"image" => &[b"href"],
+                    _ => continue,
+                };
+                for attribute_name in wanted {
+                    if let Ok(Some(value)) = attribute(&element, &reader, attribute_name) {
+                        if !value.is_empty() {
+                            return Some(value);
+                        }
+                    }
+                }
+            }
+            Event::Eof => return None,
+            _ => {}
+        }
+    }
 }
 
 fn parse_manifest_item(
@@ -231,7 +312,7 @@ fn resolve_archive_path(package_path: &str, href: &str) -> Result<String, String
     Ok(segments.join("/"))
 }
 
-pub fn extract_epub_metadata_from_path(path: &Path) -> Result<EpubMetadata, String> {
+pub fn extract_epub_metadata_from_path(path: &Path) -> Result<BookMetadata, String> {
     let file = File::open(path)
         .map_err(|error| format!("Failed to open EPUB {}: {error}", path.display()))?;
     let mut archive = ZipArchive::new(file).map_err(|error| error.to_string())?;
@@ -241,36 +322,44 @@ pub fn extract_epub_metadata_from_path(path: &Path) -> Result<EpubMetadata, Stri
     let package_bytes = read_entry(&mut archive, &package_path, MAX_XML_BYTES)?;
     let package = String::from_utf8(package_bytes).map_err(|error| error.to_string())?;
     let (title, author, cover) = parse_package(&package)?;
-    let cover_url = match cover {
-        Some((cover_href, cover_media_type)) => {
-            let cover_path = resolve_archive_path(&package_path, &cover_href)?;
-            let cover = read_entry(&mut archive, &cover_path, MAX_COVER_BYTES)?;
-            Some(format!(
-                "data:{cover_media_type};base64,{}",
-                STANDARD.encode(cover)
-            ))
+    let cover_entry: Option<(String, Option<String>)> = match cover {
+        Some(CoverRef::Image { href, media_type }) => {
+            Some((resolve_archive_path(&package_path, &href)?, Some(media_type)))
+        }
+        Some(CoverRef::Page { href }) => {
+            let page_path = resolve_archive_path(&package_path, &href)?;
+            match read_entry(&mut archive, &page_path, MAX_XML_BYTES) {
+                Ok(bytes) => match first_image_in_page(&String::from_utf8_lossy(&bytes)) {
+                    Some(image_href) => Some((resolve_archive_path(&page_path, &image_href)?, None)),
+                    None => None,
+                },
+                // A dangling guide reference is a broken file, not a broken
+                // import: the book simply has no cover we can find.
+                Err(_) => None,
+            }
         }
         None => None,
     };
-    Ok(EpubMetadata {
-        title,
-        author,
-        cover_url,
-    })
+    let cover = match cover_entry {
+        Some((cover_path, declared_type)) => match read_entry(&mut archive, &cover_path, MAX_COVER_BYTES) {
+            Ok(bytes) => {
+                // The manifest's media-type is the EPUB's own claim; the
+                // sniffed MIME wins when the bytes say otherwise, and
+                // unrecognized bytes keep the declared type (an SVG cover,
+                // say) — the normalizer downstream decides what it can do
+                // with them.
+                crate::metadata::image_mime(&bytes)
+                    .map(str::to_owned)
+                    .or(declared_type)
+                    .map(|mime| CoverImage { bytes, mime })
+            }
+            Err(_) => None,
+        },
+        None => None,
+    };
+    Ok(BookMetadata { title, author, cover })
 }
 
-#[tauri::command]
-pub async fn extract_epub_metadata(
-    app: tauri::AppHandle,
-    path: String,
-) -> Result<EpubMetadata, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let source = crate::native_path::materialize(&app, &path)?;
-        extract_epub_metadata_from_path(&source.path)
-    })
-    .await
-    .map_err(|error| format!("extract_epub_metadata task failed: {error}"))?
-}
 
 #[cfg(test)]
 mod tests {
@@ -304,10 +393,45 @@ mod tests {
         let metadata = extract_epub_metadata_from_path(&path).unwrap();
         assert_eq!(metadata.title.as_deref(), Some("A & B"));
         assert_eq!(metadata.author.as_deref(), Some("Reader"));
-        assert_eq!(
-            metadata.cover_url.as_deref(),
-            Some("data:image/jpeg;base64,Y292ZXIgYnl0ZXM=")
-        );
+        let cover = metadata.cover.expect("cover");
+        assert_eq!(cover.bytes, b"cover bytes");
+        assert_eq!(cover.mime, "image/jpeg");
+    }
+
+    #[test]
+    fn a_cover_page_yields_its_first_image_and_meta_content_may_be_an_href() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("sample.epub");
+        let mut writer = ZipWriter::new(File::create(&path).unwrap());
+        let options = SimpleFileOptions::default().compression_method(CompressionMethod::Stored);
+        writer.start_file("META-INF/container.xml", options).unwrap();
+        writer.write_all(br#"<container><rootfiles><rootfile full-path="OEBPS/content.opf"/></rootfiles></container>"#).unwrap();
+        writer.start_file("OEBPS/content.opf", options).unwrap();
+        // No image is declared as the cover; the guide names the cover page.
+        writer.write_all(br#"<package><metadata><dc:title xmlns:dc="dc">T</dc:title></metadata><manifest><item id="cover" href="cover.xhtml" media-type="application/xhtml+xml"/><item id="i1" href="Images/9780.jpg" media-type="image/jpeg"/></manifest><guide><reference type="cover" title="Cover" href="cover.xhtml"/></guide></package>"#).unwrap();
+        writer.start_file("OEBPS/cover.xhtml", options).unwrap();
+        writer.write_all(br#"<html xmlns="http://www.w3.org/1999/xhtml"><body><div><img src="Images/9780.jpg" alt="cover"/></div></body></html>"#).unwrap();
+        writer.start_file("OEBPS/Images/9780.jpg", options).unwrap();
+        writer.write_all(&[0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]).unwrap();
+        writer.finish().unwrap();
+
+        let metadata = extract_epub_metadata_from_path(&path).unwrap();
+        let cover = metadata.cover.expect("cover from the guide's cover page");
+        assert_eq!(cover.mime, "image/jpeg");
+        assert_eq!(cover.bytes, [0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]);
+
+        // `<meta name="cover" content="Images/9780.jpg">` — an href, not an id.
+        let path = dir.path().join("meta-href.epub");
+        let mut writer = ZipWriter::new(File::create(&path).unwrap());
+        writer.start_file("META-INF/container.xml", options).unwrap();
+        writer.write_all(br#"<container><rootfiles><rootfile full-path="OEBPS/content.opf"/></rootfiles></container>"#).unwrap();
+        writer.start_file("OEBPS/content.opf", options).unwrap();
+        writer.write_all(br#"<package><metadata><meta name="cover" content="Images/9780.jpg"/></metadata><manifest><item id="i1" href="Images/9780.jpg" media-type="image/jpeg"/></manifest></package>"#).unwrap();
+        writer.start_file("OEBPS/Images/9780.jpg", options).unwrap();
+        writer.write_all(&[0xff, 0xd8, 0xff, 0xe0, 9]).unwrap();
+        writer.finish().unwrap();
+        let metadata = extract_epub_metadata_from_path(&path).unwrap();
+        assert_eq!(metadata.cover.unwrap().bytes, [0xff, 0xd8, 0xff, 0xe0, 9]);
     }
 
     #[test]
@@ -328,9 +452,8 @@ mod tests {
         writer.finish().unwrap();
 
         let metadata = extract_epub_metadata_from_path(&path).unwrap();
-        assert_eq!(
-            metadata.cover_url.as_deref(),
-            Some("data:image/png;base64,cG5n")
-        );
+        let cover = metadata.cover.expect("cover");
+        assert_eq!(cover.bytes, b"png");
+        assert_eq!(cover.mime, "image/png");
     }
 }

@@ -300,6 +300,11 @@ pub struct SyncBlobTask {
 /// Blobs still owing the relay their bytes. `storage_uri IS NOT NULL` — a
 /// manifest row from replay ("known remotely, not fetched") has nothing to
 /// push; `sync_required = 1` — derivable caches never cross the wire.
+///
+/// Covers go first. They are tiny and they are what another device's shelf
+/// paints; queued behind a multi-hundred-megabyte book file they would land
+/// minutes after the book's row did, and the peer shelf would sit coverless
+/// exactly that long.
 pub(crate) fn sync_outbox_blobs_inner(
     conn: &Connection,
     limit: i64,
@@ -312,7 +317,8 @@ pub(crate) fn sync_outbox_blobs_inner(
                AND bo.sync_required = 1
                AND bo.deleted_at IS NULL
                AND bo.storage_uri IS NOT NULL
-             ORDER BY bs.updated_at
+             ORDER BY CASE WHEN bo.kind = 'cover_image' THEN 0 ELSE 1 END,
+                      bs.updated_at
              LIMIT ?1",
         )
         ?;

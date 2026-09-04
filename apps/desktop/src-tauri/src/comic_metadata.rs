@@ -8,7 +8,7 @@ use std::{fs::File, io::Read, path::Path};
 
 use zip::ZipArchive;
 
-use crate::metadata::{cover_data_url, BookMetadata};
+use crate::metadata::{cover_image, BookMetadata};
 
 const MAX_COVER_BYTES: u64 = 20 * 1024 * 1024;
 
@@ -42,7 +42,7 @@ pub fn extract_comic_metadata_from_path(path: &Path) -> Result<BookMetadata, Str
     entry.read_to_end(&mut bytes).map_err(|e| e.to_string())?;
 
     Ok(BookMetadata {
-        cover_url: cover_data_url(&bytes),
+        cover: cover_image(bytes),
         ..BookMetadata::default()
     })
 }
@@ -86,18 +86,6 @@ fn take_number(chars: &mut std::iter::Peekable<std::str::Chars<'_>>) -> u64 {
     value
 }
 
-#[tauri::command]
-pub async fn extract_comic_metadata(
-    app: tauri::AppHandle,
-    path: String,
-) -> Result<BookMetadata, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let source = crate::native_path::materialize(&app, &path)?;
-        extract_comic_metadata_from_path(&source.path)
-    })
-    .await
-    .map_err(|error| format!("extract_comic_metadata task failed: {error}"))?
-}
 
 #[cfg(test)]
 mod tests {
@@ -127,16 +115,10 @@ mod tests {
         writer.finish().unwrap();
 
         let metadata = extract_comic_metadata_from_path(&path).unwrap();
-        let cover = metadata.cover_url.expect("cover");
-        assert!(cover.starts_with("data:image/png;base64,"));
+        let cover = metadata.cover.expect("cover");
+        assert_eq!(cover.mime, "image/png");
         // page2 sorts before page10, and its payload ends with the byte 2.
-        let encoded =
-            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, {
-                let mut bytes = PNG.to_vec();
-                bytes.push(2);
-                bytes
-            });
-        assert!(cover.ends_with(&encoded));
+        assert_eq!(cover.bytes.last(), Some(&2));
     }
 
     #[test]

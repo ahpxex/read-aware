@@ -38,7 +38,7 @@ mod preferences;
 pub use preferences::*;
 
 use crate::error::CommandError;
-use std::io::{BufReader, Read, Seek, SeekFrom};
+use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 

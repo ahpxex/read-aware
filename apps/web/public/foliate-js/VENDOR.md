@@ -181,6 +181,23 @@ The typed wrapper that consumes this lives at
   is occluded — drag a batch of PDFs in and switch away, and every cover
   silently timed out against its 2.5 s budget, leaving the shelf coverless
   until each book's first open. Re-apply after any upstream update.
+- **`paginator.js` — document-less views are a no-op:** `View.render()` and
+  `View.expand()` return early when the iframe has no document. A typography
+  attribute change (`max-inline-size` re-renders explicitly) or a resize that
+  lands between two books — the previous view's iframe already torn down,
+  the next not yet loaded — used to throw `null is not an object
+  (evaluating 'doc.documentElement')` as an uncaught error; the load path
+  renders the new document itself once it exists. Re-apply after any
+  upstream update.
+- **`mobi.js` — tolerant href resolution + `getSectionHref`:** `resolveHref` /
+  `splitTOCHref` (MOBI 6 and KF8) return "unresolved" for hrefs that are not
+  `filepos:` / `kindle:pos:` links instead of throwing `null is not an object`
+  out of an async resolver — a synthesized or foreign TOC entry used to surface
+  as an unhandled rejection per entry. Both book classes gain
+  `getSectionHref(index)`, a navigable href for a section (a real `filepos`
+  anchor inside it / its first fragment), which the app's TOC synthesis uses
+  to add entries for books whose nav covers too little of the spine.
+  Re-apply after any upstream update.
 - Otherwise all engine modules and `vendor/` are byte-for-byte upstream.
 
 ## Updating

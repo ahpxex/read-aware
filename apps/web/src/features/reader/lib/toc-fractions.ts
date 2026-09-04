@@ -19,16 +19,32 @@ export function attachTocFractions(view: FoliateView, entries: TocEntry[]): TocE
   const sectionFractions = view.getSectionFractions?.() ?? [];
   if (sectionFractions.length === 0) return entries;
 
+  const splitTOCHref = view.book?.splitTOCHref?.bind(view.book);
   return entries.map((entry) => {
-    let resolved: FoliateResolved | Promise<unknown> | null | undefined;
-    try {
-      resolved = view.resolveNavigation?.(entry.href);
-    } catch {
-      resolved = null;
+    let index: number | undefined;
+    // The engine's TOC splitter is synchronous for every format and answers
+    // with a section index for MOBI/KF8, whose `resolveHref` is async (and
+    // would leave those books without chapter marks).
+    if (splitTOCHref) {
+      try {
+        const first = splitTOCHref(entry.href)?.[0];
+        if (typeof first === "number" && first >= 0) index = first;
+      } catch {
+        index = undefined;
+      }
     }
-    if (!resolved || isThenable(resolved)) return entry;
+    if (index === undefined) {
+      let resolved: FoliateResolved | Promise<unknown> | null | undefined;
+      try {
+        resolved = view.resolveNavigation?.(entry.href);
+      } catch {
+        resolved = null;
+      }
+      if (!resolved || isThenable(resolved)) return entry;
+      index = resolved.index;
+    }
 
-    const fraction = sectionFractions[resolved.index];
+    const fraction = sectionFractions[index];
     return typeof fraction === "number" ? { ...entry, fraction } : entry;
   });
 }

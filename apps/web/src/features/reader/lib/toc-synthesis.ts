@@ -26,6 +26,15 @@ type NavItemLike = {
 type BookLike = {
   toc?: NavItemLike[];
   sections?: SectionLike[];
+  /**
+   * The engine's own href → section mapping (MOBI/KF8 return a numeric
+   * section index; EPUB returns a file path). Authoritative when it yields an
+   * index — those formats' hrefs (`filepos:`, `kindle:pos:`) carry no file
+   * name to match against.
+   */
+  splitTOCHref?: (href: string) => unknown[] | null | undefined;
+  /** A navigable href for a section, for formats whose hrefs are not file paths. */
+  getSectionHref?: (index: number) => string | undefined;
 };
 
 /** Beyond this many sections, scanning every document is too costly — and a
@@ -53,17 +62,36 @@ function flattenNav(items: NavItemLike[] | undefined): NavItemLike[] {
   ]);
 }
 
-/** Map each nav entry (with an href) to the first section whose id matches its file. */
-function sectionIndexesCoveredByNav(nav: NavItemLike[], sections: SectionLike[]): Map<number, NavItemLike[]> {
+/** The section a nav href points at, by the engine's own mapping when it has one. */
+function sectionIndexOfHref(book: BookLike, href: string, sections: SectionLike[]): number {
+  if (typeof book.splitTOCHref === "function") {
+    let split: unknown[] | null | undefined;
+    try {
+      split = book.splitTOCHref(href);
+    } catch {
+      split = null;
+    }
+    const first = split?.[0];
+    if (typeof first === "number") return first >= 0 && first < sections.length ? first : -1;
+  }
+  const file = fileOf(href);
+  return sections.findIndex((section) => {
+    if (section.id == null) return false;
+    const sectionFile = fileOf(String(section.id));
+    return sectionFile === file || sectionFile.endsWith(file) || file.endsWith(sectionFile);
+  });
+}
+
+/** Map each nav entry (with an href) to the section it lands in. */
+function sectionIndexesCoveredByNav(
+  book: BookLike,
+  nav: NavItemLike[],
+  sections: SectionLike[],
+): Map<number, NavItemLike[]> {
   const covered = new Map<number, NavItemLike[]>();
   for (const item of nav) {
     if (!item.href) continue;
-    const file = fileOf(item.href);
-    const index = sections.findIndex((section) => {
-      if (section.id == null) return false;
-      const sectionFile = fileOf(String(section.id));
-      return sectionFile === file || sectionFile.endsWith(file) || file.endsWith(sectionFile);
-    });
+    const index = sectionIndexOfHref(book, item.href, sections);
     if (index < 0) continue;
     const existing = covered.get(index);
     if (existing) existing.push(item);
@@ -111,7 +139,7 @@ export async function ensureUsableToc(book: unknown): Promise<boolean> {
   if (linearIndexes.length > MAX_SYNTHESIZED_SECTIONS) return false;
 
   const flatNav = flattenNav(target.toc);
-  const covered = sectionIndexesCoveredByNav(flatNav, sections);
+  const covered = sectionIndexesCoveredByNav(target, flatNav, sections);
   const coverage = covered.size / linearIndexes.length;
   if (flatNav.length > 0 && coverage >= MIN_SPINE_COVERAGE) return false;
 
@@ -126,11 +154,22 @@ export async function ensureUsableToc(book: unknown): Promise<boolean> {
       continue;
     }
     const section = sections[index];
+    // The entry must be something the engine can navigate to: the engine's
+    // own href for the section when it minted one (MOBI/KF8), else the
+    // section's file path (EPUB). A section with neither gets no entry —
+    // an unresolvable href is worse than a missing one.
+    const href =
+      typeof target.getSectionHref === "function"
+        ? target.getSectionHref(index)
+        : section.id != null && typeof target.splitTOCHref !== "function"
+          ? String(section.id)
+          : undefined;
+    if (!href) continue;
     try {
       const doc = await section.createDocument!();
       const label = labelFromDocument(doc);
-      if (!label || section.id == null) continue;
-      synthesized.push({ label, href: String(section.id) });
+      if (!label) continue;
+      synthesized.push({ label, href });
       added++;
     } catch {
       // An unparseable section contributes no entry; its text still reads fine.

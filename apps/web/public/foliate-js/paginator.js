@@ -284,6 +284,10 @@ class View {
     }
     render(layout) {
         if (!layout) return
+        // READAWARE: a view whose iframe has no document yet (still loading)
+        // or no longer (torn down while the next book opens) has nothing to
+        // lay out; the load path renders once the document exists.
+        if (!this.document) return
         this.#column = layout.flow !== 'scrolled'
         this.#layout = layout
         if (this.#column) this.columnize(layout)
@@ -360,6 +364,8 @@ class View {
         }
     }
     expand() {
+        // READAWARE: see render() — no document, nothing to measure.
+        if (!this.document) return
         const { documentElement } = this.document
         if (this.#column) {
             const side = this.#vertical ? 'height' : 'width'

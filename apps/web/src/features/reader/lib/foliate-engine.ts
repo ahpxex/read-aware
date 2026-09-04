@@ -38,6 +38,10 @@ export type FoliateBook = {
   rendition?: { layout?: string };
   dir?: string;
   getCover?: () => Promise<Blob | null> | Blob | null;
+  /** `[sectionIndexOrFile, fragment]` for a TOC href — synchronous in every format. */
+  splitTOCHref?: (href: string) => unknown[] | null | undefined;
+  /** Local patch (see public/foliate-js/VENDOR.md): a navigable href for a section. */
+  getSectionHref?: (index: number) => string | undefined;
 };
 
 /**

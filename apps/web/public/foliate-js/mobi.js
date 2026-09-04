@@ -870,17 +870,30 @@ class MOBI6 {
         return url
     }
     resolveHref(href) {
-        const filepos = href.match(/filepos:(.*)/)[1]
+        // READAWARE: tolerate hrefs that are not `filepos:` links.
+        const filepos = href?.match?.(/filepos:(.*)/)?.[1]
+        if (filepos == null) return
         const number = Number(filepos)
         const index = this.#sections.findIndex(section => section.end > number)
         const anchor = doc => doc.getElementById(`filepos${filepos}`)
         return { index, anchor }
     }
     splitTOCHref(href) {
-        const filepos = href.match(/filepos:(.*)/)[1]
+        const filepos = href?.match?.(/filepos:(.*)/)?.[1]
+        if (filepos == null) return [-1, null]
         const number = Number(filepos)
         const index = this.#sections.findIndex(section => section.end > number)
         return [index, `filepos${filepos}`]
+    }
+    // READAWARE: a navigable href for a section (TOC synthesis for books whose
+    // own nav covers too little of the spine). Prefers a real `filepos` anchor
+    // inside the section so the jump lands on an element the book declares.
+    getSectionHref(index) {
+        const section = this.#sections[index]
+        if (!section) return
+        const anchor = this.#fileposList.find(({ number }) =>
+            number >= section.start && number < section.end)
+        return `filepos:${anchor?.filepos ?? String(section.start).padStart(10, '0')}`
     }
     getTOCFragment(doc, id) {
         return doc.getElementById(id)
@@ -901,8 +914,12 @@ const parseResourceURI = str => {
     const [resourceType, id, type] = str.match(kindleResourceRegex).slice(1)
     return { resourceType, id: parseInt(id, 32), type }
 }
+// READAWARE: a non-`kindle:pos:` href (a synthesized or foreign TOC entry)
+// yields null instead of throwing from inside an async resolver.
 const parsePosURI = str => {
-    const [fid, off] = str.match(kindlePosRegex).slice(1)
+    const match = typeof str === 'string' ? str.match(kindlePosRegex) : null
+    if (!match) return null
+    const [fid, off] = match.slice(1)
     return { fid: parseInt(fid, 32), off: parseInt(off, 32) }
 }
 const makePosURI = (fid = 0, off = 0) =>
@@ -1203,7 +1220,9 @@ class KF8 {
         }
     }
     async resolveHref(href) {
-        const { fid, off } = parsePosURI(href)
+        const pos = parsePosURI(href)
+        if (!pos) return
+        const { fid, off } = pos
         const index = this.getIndexByFID(fid)
         if (index < 0) return
 
@@ -1222,12 +1241,20 @@ class KF8 {
     }
     splitTOCHref(href) {
         const pos = parsePosURI(href)
+        if (!pos) return [-1, null]
         const index = this.getIndexByFID(pos.fid)
         return [index, pos]
     }
-    getTOCFragment(doc, { fid, off }) {
-        const selector = this.#fragmentSelectors.get(fid)?.get(off)
-        return doc.querySelector(selector)
+    getTOCFragment(doc, pos) {
+        if (!pos) return null
+        const selector = this.#fragmentSelectors.get(pos.fid)?.get(pos.off)
+        return selector ? doc.querySelector(selector) : null
+    }
+    // READAWARE: a navigable `kindle:pos:` href for a section — its first
+    // fragment at offset 0 (see MOBI6's getSectionHref for the why).
+    getSectionHref(index) {
+        const fid = this.#sections[index]?.frags?.[0]?.index
+        return fid == null ? undefined : makePosURI(fid, 0)
     }
     isExternal(uri) {
         return /^(?!blob|kindle)\w+:/i.test(uri)

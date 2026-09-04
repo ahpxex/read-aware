@@ -171,6 +171,73 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.5.2",
+        "date": "2026-09-05",
+        "codename": "Lake Baikal",
+        "summary": "La importación se vuelve instantánea y las portadas dejan de esconderse. Los libros llegan a la estantería con su portada en una fracción de segundo, las portadas alcanzan ahora tus otros dispositivos sin abrir nada, los libros en formato Kindle vuelven a abrirse sin errores, y las compilaciones de macOS están firmadas y notarizadas.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Firmada y notarizada en macOS",
+                "body": "ReadAware para macOS está ahora firmada con un Developer ID y notarizada por Apple, así que se abre la primera vez como cualquier otra aplicación — sin «Abrir de todos modos» ni trucos con la Terminal."
+              },
+              {
+                "title": "Una portada para cada libro",
+                "body": "Un libro que no declara portada muestra ahora su primera ilustración interior en la estantería — EPUB, MOBI, AZW3 y FB2 por igual —, así que los archivos de conversores y escaneos dejan de aparecer como fichas vacías."
+              },
+              {
+                "title": "Eliminar tu cuenta desde la aplicación",
+                "body": "Ajustes → Datos y sincronización permite eliminar tu cuenta de sincronización por completo. El relay cancela cualquier facturación y borra todo lo que guardaba para ti."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "title": "Importar en un abrir y cerrar de ojos",
+                "body": "Elegir un libro lo copia, comprueba duplicados por contenido, lee sus metadatos y registra su portada en un único paso nativo; un EPUB de 36 MB llega a la estantería en apenas una décima de segundo, con su título, autor y portada reales ya en su sitio. Importar un libro que ya tienes se reconoce incluso con un nombre de archivo distinto y no se copia nada."
+              },
+              {
+                "title": "Portadas y títulos de PDF en todas las plataformas",
+                "body": "Windows, Linux, iOS y Android renderizan la portada de un PDF justo después de importarlo, en vez de esperar a que lo abras, y los títulos y autores de los PDF se leen del documento en todas partes."
+              },
+              {
+                "title": "Las portadas siguen a tus libros entre dispositivos",
+                "body": "Los libros sincronizados solían quedarse sin portada hasta que los abrías. Las portadas ahora viajan por delante del archivo del libro, y cada dispositivo sigue descargando las que le faltan tras cada sincronización, repintando la ficha en cuanto llega una."
+              },
+              {
+                "title": "Una estantería más ligera",
+                "body": "Las imágenes de portada ya no viajan dentro de los datos de la biblioteca; cada ficha carga su portada directamente desde el almacenamiento local, así que las bibliotecas grandes se abren más rápido y usan mucha menos memoria."
+              },
+              {
+                "title": "Marcas de capítulo para libros Kindle",
+                "body": "La barra de progreso ahora muestra también los límites de capítulo en los libros MOBI y AZW3."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "Los libros MOBI y AZW3 se abren sin errores",
+                "body": "La reparación de contenidos confundía cualquier libro en formato Kindle con uno sin un índice utilizable y lo rellenaba con entradas que el lector no podía resolver, provocando un error por capítulo nada más abrir el libro."
+              },
+              {
+                "title": "Cambiar de libro dentro del lector",
+                "body": "Abrir otro archivo mientras un libro está abierto ya no provoca errores de maquetación por el libro que se está cerrando."
+              },
+              {
+                "title": "Portadas de EPUB de estilo antiguo",
+                "body": "Una página de portada listada en la guía, o una entrada de portada que apunta a una ruta de imagen en lugar de a un id, se encuentra ahora al importar, en lugar de mostrar un marcador de posición hasta la primera apertura."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.5.1",
         "date": "2026-08-31",
         "codename": "Lake Baikal",

@@ -171,6 +171,73 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.5.2",
+        "date": "2026-09-05",
+        "codename": "Lake Baikal",
+        "summary": "Importing gets instant and covers stop hiding. Books land on the shelf with their cover in a fraction of a second, covers now reach your other devices without opening anything, Kindle-format books open cleanly again, and macOS builds are signed and notarized.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Signed and notarized on macOS",
+                "body": "ReadAware for macOS is now signed with a Developer ID and notarized by Apple, so it opens on first launch like any other app — no Open Anyway, no Terminal workaround."
+              },
+              {
+                "title": "A cover for every book",
+                "body": "A book that declares no cover now shows its first in-book illustration on the shelf — EPUB, MOBI, AZW3 and FB2 alike — so files from converters and scans stop landing as blank tiles."
+              },
+              {
+                "title": "Delete your account in the app",
+                "body": "Settings → Data & Sync can delete your sync account outright. The relay cancels any billing and erases everything it held for you."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "title": "Import in a blink",
+                "body": "Picking a book copies it, checks for duplicates by content, reads its metadata and files its cover in one native step; a 36 MB EPUB reaches the shelf in about a tenth of a second, with its real title, author and cover already in place. Importing a book you already have is recognized even under a different file name and copies nothing."
+              },
+              {
+                "title": "PDF covers and titles on every platform",
+                "body": "Windows, Linux, iOS and Android render a PDF's cover right after import instead of waiting for you to open it, and PDF titles and authors are read from the document everywhere."
+              },
+              {
+                "title": "Covers follow your books across devices",
+                "body": "Synced books used to sit coverless until you opened them. Covers now travel ahead of the book file, and each device keeps fetching the ones it is missing after every sync, repainting the tile the moment one arrives."
+              },
+              {
+                "title": "A lighter shelf",
+                "body": "Cover artwork no longer rides inside the library data; each tile loads its cover straight from local storage, so large libraries open faster and use far less memory."
+              },
+              {
+                "title": "Chapter marks for Kindle books",
+                "body": "The progress bar now shows chapter boundaries for MOBI and AZW3 books too."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "MOBI and AZW3 books open without errors",
+                "body": "The contents repair mistook every Kindle-format book for one without a usable table of contents and filled it with entries the reader could not resolve, raising an error per chapter the moment the book opened."
+              },
+              {
+                "title": "Switching books inside the reader",
+                "body": "Opening another file while a book is open no longer throws layout errors from the book being closed."
+              },
+              {
+                "title": "Old-style EPUB covers",
+                "body": "A cover page listed in the guide, or a cover entry pointing at an image path instead of an id, is now found at import instead of showing a placeholder until first open."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.5.1",
         "date": "2026-08-31",
         "codename": "Lake Baikal",

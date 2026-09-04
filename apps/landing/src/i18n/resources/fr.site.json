@@ -171,6 +171,73 @@
     "leadIn": " : ",
     "entries": [
       {
+        "version": "0.5.2",
+        "date": "2026-09-05",
+        "codename": "Lake Baikal",
+        "summary": "L'importation devient instantanée et les couvertures cessent de se cacher. Les livres arrivent sur l'étagère avec leur couverture en une fraction de seconde, les couvertures rejoignent vos autres appareils sans que vous ouvriez quoi que ce soit, les livres au format Kindle s'ouvrent de nouveau sans erreur, et les versions macOS sont signées et notariées.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Signé et notarié sur macOS",
+                "body": "ReadAware pour macOS est désormais signé avec un Developer ID et notarié par Apple, si bien qu'il s'ouvre au premier lancement comme n'importe quelle application — fini le « Ouvrir quand même », fini le détour par le Terminal."
+              },
+              {
+                "title": "Une couverture pour chaque livre",
+                "body": "Un livre qui ne déclare aucune couverture affiche désormais sa première illustration intérieure sur l'étagère — EPUB, MOBI, AZW3 et FB2 compris — si bien que les fichiers issus de convertisseurs et de numérisations cessent d'atterrir en tuiles vides."
+              },
+              {
+                "title": "Suppression de votre compte dans l'app",
+                "body": "Réglages → Données et synchronisation permet de supprimer purement et simplement votre compte de synchronisation. Le relais annule toute facturation en cours et efface tout ce qu'il détenait pour vous."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "title": "L'importation en un clin d'œil",
+                "body": "Choisir un livre le copie, vérifie les doublons par contenu, lit ses métadonnées et range sa couverture en une seule étape native ; un EPUB de 36 Mo atteint l'étagère en un dixième de seconde environ, avec son vrai titre, son auteur et sa couverture déjà en place. L'importation d'un livre que vous possédez déjà est reconnue même sous un autre nom de fichier, et ne copie rien."
+              },
+              {
+                "title": "Couvertures et titres des PDF sur toutes les plateformes",
+                "body": "Windows, Linux, iOS et Android affichent la couverture d'un PDF dès l'importation au lieu d'attendre que vous l'ouvriez, et les titres et auteurs des PDF sont désormais lus depuis le document, partout."
+              },
+              {
+                "title": "Les couvertures suivent vos livres d'un appareil à l'autre",
+                "body": "Les livres synchronisés restaient auparavant sans couverture jusqu'à ce que vous les ouvriez. Les couvertures voyagent désormais avant le fichier du livre, et chaque appareil récupère après chaque synchronisation celles qui lui manquent, en repeignant la tuile dès qu'une couverture arrive."
+              },
+              {
+                "title": "Une étagère plus légère",
+                "body": "Les visuels de couverture ne sont plus embarqués dans les données de la bibliothèque ; chaque tuile charge sa couverture directement depuis le stockage local, si bien que les grosses bibliothèques s'ouvrent plus vite et consomment bien moins de mémoire."
+              },
+              {
+                "title": "Repères de chapitres pour les livres Kindle",
+                "body": "La barre de progression affiche désormais aussi les repères de chapitres pour les livres MOBI et AZW3."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "Les livres MOBI et AZW3 s'ouvrent sans erreur",
+                "body": "La réparation des contenus prenait chaque livre au format Kindle pour un livre sans table des matières exploitable et la remplissait d'entrées que le lecteur ne pouvait résoudre, déclenchant une erreur par chapitre dès l'ouverture du livre."
+              },
+              {
+                "title": "Changer de livre dans le lecteur",
+                "body": "Ouvrir un autre fichier pendant qu'un livre est ouvert ne déclenche plus d'erreurs de mise en page dues à la fermeture du livre en cours."
+              },
+              {
+                "title": "Couvertures EPUB à l'ancienne",
+                "body": "Une page de couverture listée dans le guide, ou une entrée de couverture pointant vers un chemin d'image plutôt qu'un identifiant, est désormais repérée à l'importation, au lieu d'attendre la première ouverture avec un visuel de substitution."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.5.1",
         "date": "2026-08-31",
         "codename": "Lake Baikal",

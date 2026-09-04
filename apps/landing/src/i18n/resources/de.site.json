@@ -171,6 +171,73 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.5.2",
+        "date": "2026-09-05",
+        "codename": "Lake Baikal",
+        "summary": "Importe werden blitzschnell, und Covers verstecken sich nicht mehr. Bücher landen mit ihrem Cover in einem Bruchteil einer Sekunde im Regal, Covers erreichen deine anderen Geräte, ohne dass du irgendetwas öffnen musst, Bücher im Kindle-Format öffnen sich wieder sauber, und macOS-Builds sind signiert und notarisiert.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Signiert und notarisiert auf macOS",
+                "body": "ReadAware für macOS ist jetzt mit einer Developer ID signiert und von Apple notarisiert und öffnet sich beim ersten Start wie jede andere App — kein „Trotzdem öffnen“, kein Umweg über das Terminal."
+              },
+              {
+                "title": "Ein Cover für jedes Buch",
+                "body": "Ein Buch, das kein Cover deklariert, zeigt jetzt seine erste Illustration aus dem Buchinneren im Regal — bei EPUB, MOBI, AZW3 und FB2 gleichermaßen —, sodass Dateien aus Konvertern und Scans nicht mehr als leere Kacheln landen."
+              },
+              {
+                "title": "Konto in der App löschen",
+                "body": "Einstellungen → Daten & Sync kann dein Sync-Konto endgültig löschen. Das Relay beendet etwaige Abrechnungen und löscht alles, was es für dich vorgehalten hat."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "title": "Import in einem Wimpernschlag",
+                "body": "Wählst du ein Buch aus, wird es kopiert, anhand seines Inhalts auf Duplikate geprüft, seine Metadaten werden gelesen und sein Cover abgelegt — alles in einem einzigen nativen Schritt. Ein 36 MB großer EPUB erreicht das Regal in rund einer Zehntelsekunde, mit echtem Titel, Autor und Cover schon an Ort und Stelle. Ein Buch, das du bereits hast, wird auch unter anderem Dateinamen erkannt — und nichts wird kopiert."
+              },
+              {
+                "title": "PDF-Covers und -Titel auf allen Plattformen",
+                "body": "Windows, Linux, iOS und Android rendern das Cover eines PDFs direkt nach dem Import, statt zu warten, bis du es öffnest, und PDF-Titel und -Autoren werden überall aus dem Dokument gelesen."
+              },
+              {
+                "title": "Covers folgen deinen Büchern auf jedes Gerät",
+                "body": "Synchronisierte Bücher lagen bisher ohne Cover im Regal, bis du sie geöffnet hast. Covers reisen jetzt der Buchdatei voraus, und jedes Gerät holt nach jedem Sync weiterhin die fehlenden ab — die Kachel wird neu gezeichnet, sobald eines ankommt."
+              },
+              {
+                "title": "Ein leichteres Regal",
+                "body": "Cover-Bilddaten liegen nicht mehr innerhalb der Bibliotheksdaten; jede Kachel lädt ihr Cover direkt aus dem lokalen Speicher, sodass große Bibliotheken schneller öffnen und deutlich weniger Arbeitsspeicher belegen."
+              },
+              {
+                "title": "Kapitelmarken für Kindle-Bücher",
+                "body": "Der Fortschrittsbalken zeigt jetzt auch bei MOBI- und AZW3-Büchern Kapitelgrenzen an."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "MOBI- und AZW3-Bücher öffnen sich fehlerfrei",
+                "body": "Die Inhaltsreparatur hielt jedes Buch im Kindle-Format für eines ohne brauchbares Inhaltsverzeichnis und füllte es mit Einträgen, die der Reader nicht auflösen konnte — beim Öffnen des Buchs trat so pro Kapitel ein Fehler auf."
+              },
+              {
+                "title": "Bücherwechsel im Reader",
+                "body": "Eine andere Datei zu öffnen, während ein Buch offen ist, löst keine Layoutfehler mehr aus, die vom Schließen des bisherigen Buchs herrühren."
+              },
+              {
+                "title": "EPUB-Covers im alten Stil",
+                "body": "Eine im Guide gelistete Cover-Seite oder ein Cover-Eintrag, der auf einen Bildpfad statt auf eine ID zeigt, wird jetzt schon beim Import gefunden, statt bis zum ersten Öffnen einen Platzhalter zu zeigen."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.5.1",
         "date": "2026-08-31",
         "codename": "Lake Baikal",

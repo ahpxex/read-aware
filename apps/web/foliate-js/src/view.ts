@@ -579,10 +579,10 @@ export class View extends HTMLElement {
             console.error(`Could not get ${target}`)
         }
     }
-    async prev(distance = 1) {
+    async prev(distance?: number) {
         await this.renderer.prev(distance)
     }
-    async next(distance = 1) {
+    async next(distance?: number) {
         await this.renderer.next(distance)
     }
     goLeft() {

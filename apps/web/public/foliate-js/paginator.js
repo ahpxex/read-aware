@@ -1114,10 +1114,10 @@ export class Paginator extends HTMLElement {
             await wait(100);
         this.#locked = false;
     }
-    prev(distance = 1) {
+    prev(distance) {
         return this.#turnPage(-1, distance);
     }
-    next(distance = 1) {
+    next(distance) {
         return this.#turnPage(1, distance);
     }
     prevSection() {

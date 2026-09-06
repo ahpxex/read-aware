@@ -15,8 +15,9 @@ contract `view.open()` accepts.
 The canonical engine source is TypeScript under `apps/web/foliate-js/src/`.
 `bun --filter @read-aware/web build:foliate` type-checks it and emits the
 browser-native ES modules in this directory. The generated top-level `*.js`
-files are committed so Vite dev, Storybook, tests, and packaged builds all use
-the same runtime tree. Do not edit those generated files directly.
+files are Git-ignored build outputs. Vite dev, Storybook, tests, and packaged
+builds generate them before use; Turbo caches them with those build/test tasks.
+Do not edit or commit those generated files directly.
 
 The files below `vendor/` remain the upstream distribution artifacts: PDF.js,
 zip.js, fflate, CMaps, fonts, and WASM. They have local declaration files beside
@@ -37,7 +38,7 @@ maintain a separate handwritten approximation of the engine API.
 
 The engine now uses full TypeScript strict mode. Its checked build also rejects
 explicit/contextual `any`, unsafe double assertions, and suppression comments.
-`check:foliate` verifies committed output parity without writing. See
+`check:foliate` checks the sources without requiring or writing generated JS. See
 `apps/web/foliate-js/README.md` for build/watch and native regression commands.
 
 ## What was changed from upstream

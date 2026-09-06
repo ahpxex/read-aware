@@ -1,7 +1,7 @@
 # Foliate Engine Maintenance
 
 `src/` is the canonical TypeScript engine. `../public/foliate-js/*.js` is its
-committed, generated runtime, not a second source tree. The engine is loaded
+Git-ignored, generated runtime, not a second source tree. The engine is loaded
 as native ES modules inside Tauri; application imports of engine contracts
 must be type-only. The original pin, license, third-party assets, and local
 behavior changes are documented in `../public/foliate-js/VENDOR.md`.
@@ -12,12 +12,18 @@ From `apps/web`:
 
 - `bun run build:foliate` checks strict types and the no-any policy, emits
   changed modules, and removes orphaned generated top-level modules.
-- `bun run check:foliate` performs the same checks without writing, including
-  byte-for-byte source/output parity. It is part of `typecheck`.
+- `bun run check:foliate` checks strict source types and the no-any policy
+  without reading or writing generated modules. It is part of `typecheck`
+  and works before the first build in a fresh checkout.
 - `bun run watch:foliate` repeats the checked build when sources change.
   Both `dev` and `storybook` perform an initial build and supervise this
   watcher together with their frontend server.
 - `bun run test` builds the engine before running unit tests.
+
+Only TypeScript sources, build scripts, documentation, licenses, and upstream
+`vendor/` assets are tracked. Dev, tests, production, and Storybook builds emit
+the runtime first; Turbo also caches the generated modules with their producing
+tasks. A clean checkout does not need a manually committed runtime snapshot.
 
 The additional compiler-API check rejects explicit `any`, inferred binding
 and return types containing `any` (including collection/iterator defaults and

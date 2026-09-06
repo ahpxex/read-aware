@@ -14,6 +14,8 @@ dist-ssr
 !plugins/*/dist/**
 .tanstack
 storybook-static
+# Foliate runtime is emitted from apps/web/foliate-js/src; vendor/ stays tracked.
+/apps/web/public/foliate-js/*.js
 *.local
 .eval/
 

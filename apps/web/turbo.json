@@ -1,0 +1,15 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "outputs": ["dist/**", "public/foliate-js/*.js"]
+    },
+    "test": {
+      "outputs": ["public/foliate-js/*.js"]
+    },
+    "build-storybook": {
+      "outputs": ["storybook-static/**", "public/foliate-js/*.js"]
+    }
+  }
+}

@@ -32,6 +32,10 @@ function build(program: ts.Program): boolean {
   const diagnostics = [...ts.getPreEmitDiagnostics(program), ...checkFoliateTypes(program, files)];
   report(diagnostics);
   if (diagnostics.length) return false;
+  if (check) {
+    console.log('Foliate: strict source types and no-any policy verified.');
+    return true;
+  }
   const generated = new Map<string, string>();
   const emitted = program.emit(undefined, (file, text) => generated.set(resolve(file), text));
   report(emitted.diagnostics);
@@ -40,23 +44,21 @@ function build(program: ts.Program): boolean {
     console.error('Refusing to update an empty or out-of-tree Foliate build.');
     return false;
   }
-  let matches = true;
   for (const [file, text] of generated) {
     const prior = ts.sys.readFile(file);
     if (prior === text) continue;
-    if (check) { console.error('Stale or missing generated module: ' + relative(web, file)); matches = false; }
-    else { mkdirSync(dirname(file), { recursive: true }); writeFileSync(file, text); }
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, text);
   }
   // Top-level JS is exclusively generated. vendor/ remains byte-for-byte untouched.
   for (const entry of readdirSync(output, { withFileTypes: true })) {
     if (!entry.isFile() || !entry.name.endsWith('.js')) continue;
     const file = resolve(output, entry.name);
     if (generated.has(file)) continue;
-    if (check) { console.error('Orphaned generated module: ' + relative(web, file)); matches = false; }
-    else unlinkSync(file);
+    unlinkSync(file);
   }
-  if (matches) console.log('Foliate: strict types, no any, ' + generated.size + ' static modules' + (check ? ' verified.' : ' built.'));
-  return matches;
+  console.log('Foliate: strict types, no any, ' + generated.size + ' static modules built.');
+  return true;
 }
 
 if (watch) {

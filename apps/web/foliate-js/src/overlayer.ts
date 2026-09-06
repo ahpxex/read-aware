@@ -6,7 +6,7 @@ export type DrawOptions = {
     src?: string
 }
 
-export type DrawFunction = (rects: Iterable<DOMRect>, options: DrawOptions) => SVGElement
+export type DrawFunction = (rects: Iterable<DOMRect, void, unknown>, options: DrawOptions) => SVGElement
 type Overlay = {
     range: Range
     draw: DrawFunction
@@ -68,7 +68,7 @@ export class Overlayer {
         }
         return []
     }
-    static underline(rects: Iterable<DOMRect>, options: DrawOptions = {}) {
+    static underline(rects: Iterable<DOMRect, void, unknown>, options: DrawOptions = {}) {
         const { color = 'red', width: strokeWidth = 2, writingMode } = options
         const g = createSVGElement('g')
         g.setAttribute('fill', color)
@@ -91,7 +91,7 @@ export class Overlayer {
         }
         return g
     }
-    static strikethrough(rects: Iterable<DOMRect>, options: DrawOptions = {}) {
+    static strikethrough(rects: Iterable<DOMRect, void, unknown>, options: DrawOptions = {}) {
         const { color = 'red', width: strokeWidth = 2, writingMode } = options
         const g = createSVGElement('g')
         g.setAttribute('fill', color)
@@ -114,7 +114,7 @@ export class Overlayer {
         }
         return g
     }
-    static squiggly(rects: Iterable<DOMRect>, options: DrawOptions = {}) {
+    static squiggly(rects: Iterable<DOMRect, void, unknown>, options: DrawOptions = {}) {
         const { color = 'red', width: strokeWidth = 2, writingMode } = options
         const g = createSVGElement('g')
         g.setAttribute('fill', 'none')
@@ -142,7 +142,7 @@ export class Overlayer {
         }
         return g
     }
-    static highlight(rects: Iterable<DOMRect>, options: DrawOptions = {}) {
+    static highlight(rects: Iterable<DOMRect, void, unknown>, options: DrawOptions = {}) {
         const { color = 'red' } = options
         const g = createSVGElement('g')
         g.setAttribute('fill', color)
@@ -158,7 +158,7 @@ export class Overlayer {
         }
         return g
     }
-    static outline(rects: Iterable<DOMRect>, options: DrawOptions = {}) {
+    static outline(rects: Iterable<DOMRect, void, unknown>, options: DrawOptions = {}) {
         const { color = 'red', width: strokeWidth = 3, radius = 3 } = options
         const g = createSVGElement('g')
         g.setAttribute('fill', 'none')
@@ -179,7 +179,7 @@ export class Overlayer {
     // one can then apply filters to the entire element, without affecting them;
     // it's a bit silly and probably better to just invert images twice
     // (though the color will be off in that case if you do heu-rotate)
-    static copyImage([rect]: Iterable<DOMRect>, options: DrawOptions = {}) {
+    static copyImage([rect]: Iterable<DOMRect, void, unknown>, options: DrawOptions = {}) {
         const { src = '' } = options
         if (!rect) throw new Error('Cannot copy an image without its rectangle')
         const image = createSVGElement('image')

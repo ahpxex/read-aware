@@ -15,7 +15,7 @@ export const makeComicBook = ({ entries, loadBlob, getSize }, file) => {
             const page = URL.createObjectURL(new Blob([`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin: 0"><img src="${src}"></body></html>`], { type: 'text/html' }));
             urls.set(name, [src, page]);
             return page;
-        }).catch(error => {
+        }).catch((error) => {
             if (cache.get(name) === pending)
                 cache.delete(name);
             throw error;

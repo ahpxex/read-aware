@@ -27,7 +27,7 @@ export class ViewMedia {
                 if (activeClass) element.classList.add(activeClass)
                 if (playbackActiveClass) element.ownerDocument.documentElement.classList.add(playbackActiveClass)
                 this.#active = new WeakRef(element)
-            }).catch(error => console.error('Could not highlight media overlay', error))
+            }).catch((error: unknown) => console.error('Could not highlight media overlay', error))
         }, { signal: this.#controller.signal })
         this.overlay?.addEventListener('unhighlight', () => {
             this.#generation++

@@ -7,7 +7,7 @@ export type BookSearchResult = SearchHit | { progress: number } | { index: numbe
 
 export async function* searchBook(book: Book, query: string, index: number | undefined,
     options: SearchMatcherOptions, getCFI: (index: number, range: Range) => string,
-    signal: AbortSignal): AsyncGenerator<BookSearchResult> {
+    signal: AbortSignal): AsyncGenerator<BookSearchResult, void, unknown> {
     const { searchMatcher } = await import('./search.js')
     const matcher = searchMatcher(textWalker, options)
     const indices = index == null ? Array.from(book.sections.keys()) : [index]

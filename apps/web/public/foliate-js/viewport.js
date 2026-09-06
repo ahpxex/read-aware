@@ -8,8 +8,12 @@ export const parseViewport = (value) => {
         return;
     if (typeof value !== 'string')
         return dimensions(value.width, value.height);
-    const parts = Object.fromEntries(value.split(/[,;\s]/).filter(Boolean)
-        .map(part => part.split('=').map(value => value.trim())));
+    const parts = {};
+    for (const part of value.split(/[,;\s]/).filter(Boolean)) {
+        const [key, value] = part.split('=').map(value => value.trim());
+        if (key && value)
+            parts[key] = value;
+    }
     return dimensions(parts.width, parts.height);
 };
 export const getViewport = (doc, viewport) => {

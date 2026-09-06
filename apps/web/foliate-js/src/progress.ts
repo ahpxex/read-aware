@@ -43,7 +43,7 @@ export class TOCProgress<Id = string | number, Fragment = string | number | null
         const splits = await Promise.all(items.map(item =>
             Promise.resolve()
                 .then(() => item.href ? splitHref(item.href) : null)
-                .catch(error => { console.warn('Could not resolve TOC entry', error); return null })))
+                .catch((error: unknown) => { console.warn('Could not resolve TOC entry', error); return null })))
         const grouped = new Map<Id, TOCGroup<Fragment>>()
         for (const [i, item] of items.entries()) {
             const [id, fragment] = splits[i] ?? []

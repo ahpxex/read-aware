@@ -17,7 +17,7 @@ import { searchBook, type SearchHit } from './book-search.js'
 
 export { makeBook, ResponseError, NotFoundError, UnsupportedTypeError } from './book-loader.js'
 export type Renderer = Paginator | FixedLayout
-export type Annotation = { value: string; overlayKey?: string; color?: string }
+export type Annotation = { value: string; overlayKey?: string; color?: string; style?: string; id?: string }
 export type DrawAnnotationDetail = {
     draw: (func: DrawFunction, options?: DrawOptions) => void
     annotation: Annotation
@@ -82,7 +82,7 @@ export class View extends HTMLElement {
         super()
         this.history.addEventListener('popstate', event => {
             const { state } = (event as CustomEvent<HistoryDetail>).detail
-            void this.#navigate(state).catch(error => console.error('Could not restore navigation history', error))
+            void this.#navigate(state).catch((error: unknown) => console.error('Could not restore navigation history', error))
         })
     }
     async open(input: Book | BookInput): Promise<void> {
@@ -138,7 +138,7 @@ export class View extends HTMLElement {
         ]).then(() => {
             if (generation === this.#generation && this.#lastRelocateDetail)
                 this.#onRelocate({ ...this.#lastRelocateDetail, reason: 'anchor' })
-        }).catch(error => console.error('Could not initialize reading progress', error))
+        }).catch((error: unknown) => console.error('Could not initialize reading progress', error))
     }
     close(): Promise<void> {
         this.#generation++
@@ -213,7 +213,7 @@ export class View extends HTMLElement {
             if (book.isExternal?.(href)) {
                 if (this.#emit('external-link', { a, href, href_: raw }, true)) globalThis.open(href, '_blank')
             } else if (this.#emit<LinkDetail>('link', { a, href }, true))
-                void this.goTo(href).catch(error => console.error('Could not follow book link', error))
+                void this.goTo(href).catch((error: unknown) => console.error('Could not follow book link', error))
         }, { signal: this.#events.signal })
     }
     async addAnnotation(annotation: Annotation, remove = false) {
@@ -255,7 +255,7 @@ export class View extends HTMLElement {
         this.#overlayerClickHandlers.set(doc, onClick)
         doc.addEventListener('click', onClick, { signal: this.#events.signal })
         for (const item of this.#searchResults.get(index) ?? [])
-            void this.addAnnotation(item).catch(error => console.error('Could not restore search highlight', error))
+            void this.addAnnotation(item).catch((error: unknown) => console.error('Could not restore search highlight', error))
         this.#emit('create-overlay', { index })
         return overlayer
     }
@@ -331,7 +331,7 @@ export class View extends HTMLElement {
     async next(distance?: number) { this.#navigation++; await this.#requireRenderer().next(distance) }
     goLeft() { return this.#requireBook().dir === 'rtl' ? this.next() : this.prev() }
     goRight() { return this.#requireBook().dir === 'rtl' ? this.prev() : this.next() }
-    async *search(options: ViewSearchOptions): AsyncGenerator<ViewSearchResult> {
+    async *search(options: ViewSearchOptions): AsyncGenerator<ViewSearchResult, void, unknown> {
         this.clearSearch()
         const { signal } = this.#searchController
         this.#searchDraw = options.draw ?? Overlayer.outline
@@ -374,7 +374,7 @@ export class View extends HTMLElement {
         if (generation !== this.#generation) return
         this.tts = new TTS(content.doc, textWalker, highlight ?? (range => {
             void renderer.goTo({ index: content.index, anchor: range, select: true })
-                .catch(error => console.error('Could not follow spoken text', error))
+                .catch((error: unknown) => console.error('Could not follow spoken text', error))
         }), granularity)
     }
     startMediaOverlay() {

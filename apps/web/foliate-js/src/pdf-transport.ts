@@ -13,7 +13,7 @@ export class BookRangeTransport extends PDFDataRangeTransport {
             if (this.#aborted) return
             if (chunk.byteLength !== end - begin) throw new Error('Incomplete PDF byte range')
             this.onDataRange(begin, new Uint8Array(chunk))
-        }).catch(error => {
+        }).catch((error: unknown) => {
             if (!this.#aborted) { this.#aborted = true; this.onError(error) }
         })
     }

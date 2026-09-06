@@ -539,7 +539,7 @@ export class FixedLayout extends HTMLElement {
         const origin = this.#index
         const total = this.#spreads?.length ?? 0
         if (origin < 0 || total === 0) return
-        const order = []
+        const order: number[] = []
         if (total <= FULL_RENDER_MAX_SPREADS) {
             for (let d = 1; d < total; d++) {
                 if (origin + d < total) order.push(origin + d)

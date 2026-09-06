@@ -408,7 +408,7 @@ export const getIndexData = async (indxIndex: number, loadRecord: LoadRecord) =>
 
             const tagMap: IndexEntry['tagMap'] = {}
             for (const [tag, valueCount, valueBytes, numValues] of tags) {
-                const values = []
+                const values: number[] = []
                 if (valueCount != null) {
                     for (let i = 0; i < valueCount * numValues; i++) {
                         const { value, length } = getVarLen(array, pos)

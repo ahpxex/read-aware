@@ -168,6 +168,10 @@ export class EPUB {
         const [path, hash] = href.split('#');
         return [decodeURI(path), hash ? decodeURIComponent(hash) : undefined];
     }
+    getSectionHref(index) {
+        const section = this.sections[index];
+        return section ? String(section.id) : undefined;
+    }
     getTOCFragment(doc, id) {
         return typeof id === 'string' ? getHTMLFragment(doc, id) : doc.documentElement;
     }

@@ -41,7 +41,7 @@ const makeExcerpt = (strs: string[], { startIndex, startOffset, endIndex, endOff
     return { pre, match, post }
 }
 
-const simpleSearch = function* (strs: string[], query: string, options: SearchOptions = {}): Generator<SearchResult> {
+const simpleSearch = function* (strs: string[], query: string, options: SearchOptions = {}): Generator<SearchResult, void, unknown> {
     const { locales = 'en', sensitivity } = options
     const matchCase = sensitivity === 'variant'
     const indexed = indexText(strs)
@@ -61,7 +61,7 @@ const simpleSearch = function* (strs: string[], query: string, options: SearchOp
 
 type Segment = { start: number; end: number; text: string }
 
-function* segmentsOf(segmenter: Intl.Segmenter, text: string): Generator<Segment> {
+function* segmentsOf(segmenter: Intl.Segmenter, text: string): Generator<Segment, void, unknown> {
     let whitespace: Segment | undefined
     for (const { index, segment } of segmenter.segment(text)) {
         if (!/[^\p{Format}]/u.test(segment)) continue
@@ -76,9 +76,9 @@ function* segmentsOf(segmenter: Intl.Segmenter, text: string): Generator<Segment
     if (whitespace) yield whitespace
 }
 
-const segmenterSearch = function* (strs: string[], query: string, options: SearchOptions = {}): Generator<SearchResult> {
+const segmenterSearch = function* (strs: string[], query: string, options: SearchOptions = {}): Generator<SearchResult, void, unknown> {
     const { locales = 'en', granularity = 'grapheme', sensitivity = 'base' } = options
-    let segmenter, collator
+    let segmenter: Intl.Segmenter, collator: Intl.Collator
     try {
         segmenter = new Intl.Segmenter(locales, { granularity })
         collator = new Intl.Collator(locales, { sensitivity })
@@ -103,7 +103,7 @@ const segmenterSearch = function* (strs: string[], query: string, options: Searc
     }
 }
 
-export function* search(strs: string[], query: string, options: SearchOptions = {}): Generator<SearchResult> {
+export function* search(strs: string[], query: string, options: SearchOptions = {}): Generator<SearchResult, void, unknown> {
     if (!strs.length || !query.length) return
     const { granularity = 'grapheme', sensitivity = 'base' } = options
     if (!Intl?.Segmenter || granularity === 'grapheme'
@@ -114,7 +114,7 @@ export function* search(strs: string[], query: string, options: SearchOptions = 
 
 export const searchMatcher = (textWalker: TextWalker, opts: SearchMatcherOptions) => {
     const { defaultLocale, matchCase, matchDiacritics, matchWholeWords, acceptNode } = opts
-    return function* (doc: Document, query: string): Generator<SearchResult<Range>> {
+    return function* (doc: Document, query: string): Generator<SearchResult<Range>, void, unknown> {
         const iter = textWalker(doc, function* (strs, makeRange) {
             for (const result of search(strs, query, {
                 locales: doc.body?.lang || doc.documentElement.lang || defaultLocale || 'en',

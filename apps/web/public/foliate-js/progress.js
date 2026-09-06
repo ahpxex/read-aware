@@ -28,7 +28,7 @@ export class TOCProgress {
         // A failed entry drops out instead of failing the whole index.
         const splits = await Promise.all(items.map(item => Promise.resolve()
             .then(() => item.href ? splitHref(item.href) : null)
-            .catch(error => { console.warn('Could not resolve TOC entry', error); return null; })));
+            .catch((error) => { console.warn('Could not resolve TOC entry', error); return null; })));
         const grouped = new Map();
         for (const [i, item] of items.entries()) {
             const [id, fragment] = splits[i] ?? [];

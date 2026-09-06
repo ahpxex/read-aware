@@ -80,7 +80,7 @@ export class MediaOverlay extends EventTarget {
             if (active?.end != null && time > active.end) {
                 this.#unhighlight()
                 if (this.#itemIndex === entry.items.length - 1) {
-                    void this.#play(this.#audioIndex + 1, 0).catch(error => this.#error(error))
+                    void this.#play(this.#audioIndex + 1, 0).catch((error: unknown) => this.#error(error))
                     return
                 }
             }
@@ -94,7 +94,7 @@ export class MediaOverlay extends EventTarget {
         audio.addEventListener('playing', () => { if (audio === this.#audio) this.#highlight() })
         audio.addEventListener('ended', () => {
             if (audio !== this.#audio) return
-            void this.#play(audioIndex + 1, 0).catch(error => this.#error(error))
+            void this.#play(audioIndex + 1, 0).catch((error: unknown) => this.#error(error))
         })
         audio.addEventListener('canplaythrough', () => {
             if (audio !== this.#audio) return
@@ -102,7 +102,7 @@ export class MediaOverlay extends EventTarget {
             audio.currentTime = item.begin
             if (this.#state !== 'paused') {
                 this.#state = 'playing'
-                void audio.play().catch(error => this.#error(error))
+                void audio.play().catch((error: unknown) => this.#error(error))
             }
         }, { once: true })
         if (this.#state === 'paused') { this.#highlight(); audio.currentTime = item.begin }
@@ -135,12 +135,12 @@ export class MediaOverlay extends EventTarget {
         this.#state = 'stopped'
     }
     start(sectionIndex: number, filter: ItemFilter = () => true): Promise<void> {
-        return this.#start(sectionIndex, filter).catch(error => this.#error(error))
+        return this.#start(sectionIndex, filter).catch((error: unknown) => this.#error(error))
     }
     pause() { this.#state = 'paused'; this.#audio?.pause() }
     resume() {
         this.#state = 'playing'
-        void this.#audio?.play().catch(error => this.#error(error))
+        void this.#audio?.play().catch((error: unknown) => this.#error(error))
     }
     #stopAudio() {
         const audio = this.#audio
@@ -156,9 +156,9 @@ export class MediaOverlay extends EventTarget {
         const result = this.#itemIndex > 0 ? this.#play(this.#audioIndex, this.#itemIndex - 1)
             : previous ? this.#play(this.#audioIndex - 1, previous.items.length - 1)
             : this.#start(this.#sectionIndex - 1, () => true, true)
-        return result.catch(error => this.#error(error))
+        return result.catch((error: unknown) => this.#error(error))
     }
-    next(): Promise<void> { return this.#play(this.#audioIndex, this.#itemIndex + 1).catch(error => this.#error(error)) }
+    next(): Promise<void> { return this.#play(this.#audioIndex, this.#itemIndex + 1).catch((error: unknown) => this.#error(error)) }
     setVolume(volume: number) {
         this.#volume = volume
         if (this.#audio) this.#audio.volume = volume

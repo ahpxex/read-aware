@@ -335,12 +335,12 @@ export class Paginator extends HTMLElement {
                 // unprefix as most of the props are (only) supported unprefixed
                 .replace(/(?<=[{\s;])-epub-/gi, '')
                 // replace vw and vh as they cause problems with layout
-                .replace(/(\d*\.?\d+)vw/gi, (_, d) => parseFloat(d) * w / 100 + 'px')
-                .replace(/(\d*\.?\d+)vh/gi, (_, d) => parseFloat(d) * h / 100 + 'px')
+                .replace(/(\d*\.?\d+)vw/gi, (_: string, d: string) => parseFloat(d) * w / 100 + 'px')
+                .replace(/(\d*\.?\d+)vh/gi, (_: string, d: string) => parseFloat(d) * h / 100 + 'px')
                 // `page-break-*` unsupported in columns; replace with `column-break-*`
-                .replace(/page-break-(after|before|inside)\s*:/gi, (_, x) =>
+                .replace(/page-break-(after|before|inside)\s*:/gi, (_: string, x: string) =>
                     `-webkit-column-break-${x}:`)
-                .replace(/break-(after|before|inside)\s*:\s*(avoid-)?page/gi, (_, x, y) =>
+                .replace(/break-(after|before|inside)\s*:\s*(avoid-)?page/gi, (_: string, x: string, y: string | undefined) =>
                     `break-${x}: ${y ?? ''}column`))
         }, { signal: this.#transformController.signal })
     }

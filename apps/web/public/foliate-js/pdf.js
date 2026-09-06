@@ -410,7 +410,7 @@ export const makePDF = async (file) => {
         failure.reject(error);
         // PDF.js has no range-error callback. Destroying the task rejects its
         // pending worker requests rather than leaving the reader waiting forever.
-        void loadingTask?.destroy().catch(error => console.error(error));
+        void loadingTask?.destroy().catch((error) => console.error(error));
     });
     loadingTask = pdfjsLib.getDocument({
         range: transport,
@@ -456,7 +456,7 @@ export const makePDF = async (file) => {
                 return cached;
             const pending = pdf.getPage(i + 1).then(page => renderPage(page, canvas => {
                 if (!destroyed && !renderedCovers.has(i))
-                    renderedCovers.set(i, thumbnailFromCanvas(canvas).catch(error => {
+                    renderedCovers.set(i, thumbnailFromCanvas(canvas).catch((error) => {
                         console.warn('Could not capture rendered PDF cover', error);
                         return null;
                     }));
@@ -467,7 +467,7 @@ export const makePDF = async (file) => {
                 }
                 urls.add(page.src);
                 return page;
-            }).catch(error => {
+            }).catch((error) => {
                 cache.delete(i);
                 throw error;
             });

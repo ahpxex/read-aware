@@ -32,7 +32,7 @@ const getSegmenter = (
 ): TextProcessor<[string, Range]> => {
     const segmenter = new Intl.Segmenter(lang, { granularity })
     const granularityIsWord = granularity === 'word'
-    return function* (strs, makeRange): Generator<[string, Range]> {
+    return function* (strs, makeRange): Generator<[string, Range], void, unknown> {
         const indexed = indexText(strs)
         const str = indexed.text
         let name = 0
@@ -122,7 +122,7 @@ const getFragmentWithMarks = (range: Range, textWalker: TextWalker, granularity:
 
 const rangeIsEmpty = (range: Range) => !range.toString().trim()
 
-function* getBlocks(doc: Document): Generator<Range> {
+function* getBlocks(doc: Document): Generator<Range, void, unknown> {
     let last: Range | undefined
     const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_ELEMENT)
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
@@ -146,10 +146,10 @@ function* getBlocks(doc: Document): Generator<Range> {
 
 class ListIterator<Value, Result> {
     #arr: Value[] = []
-    #iter: Iterator<Value>
+    #iter: Iterator<Value, void, unknown>
     #index = -1
     #f: (value: Value) => Result
-    constructor(iter: Iterator<Value>, f: (value: Value) => Result) {
+    constructor(iter: Iterator<Value, void, unknown>, f: (value: Value) => Result) {
         this.#iter = iter
         this.#f = f
     }

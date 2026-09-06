@@ -249,7 +249,7 @@ export class KF8 {
             else
                 this.#urls.add(url);
             return url;
-        }).catch(error => { this.#resourceCache.delete(str); throw error; });
+        }).catch((error) => { this.#resourceCache.delete(str); throw error; });
         this.#resourceCache.set(str, pending);
         return pending;
     }
@@ -346,7 +346,7 @@ export class KF8 {
         const cached = this.#sectionCache.get(section);
         if (cached)
             return cached;
-        const pending = this.#loadSection(section).catch(error => { this.#sectionCache.delete(section); throw error; });
+        const pending = this.#loadSection(section).catch((error) => { this.#sectionCache.delete(section); throw error; });
         this.#sectionCache.set(section, pending);
         return pending;
     }

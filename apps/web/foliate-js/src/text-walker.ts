@@ -1,5 +1,5 @@
 export type MakeTextRange = (startIndex: number, startOffset: number, endIndex: number, endOffset: number) => Range
-export type TextProcessor<T> = (strings: string[], makeRange: MakeTextRange) => Iterable<T>
+export type TextProcessor<T> = (strings: string[], makeRange: MakeTextRange) => Iterable<T, void, unknown>
 export type TextWalker = typeof textWalker
 
 const isDocument = (node: Node): node is Document => node.nodeType === 9
@@ -30,7 +30,7 @@ const acceptNode = (node: Node): number => {
     return NodeFilter.FILTER_ACCEPT
 }
 
-export function* textWalker<T>(x: Node | Range, func: TextProcessor<T>, filterFunc?: (node: Node) => number): Generator<T> {
+export function* textWalker<T>(x: Node | Range, func: TextProcessor<T>, filterFunc?: (node: Node) => number): Generator<T, void, unknown> {
     const isRange = 'commonAncestorContainer' in x
     const root = isRange ? x.commonAncestorContainer : isDocument(x) ? x.body ?? x : x
     const doc = root.ownerDocument ?? (isDocument(root) ? root : null)

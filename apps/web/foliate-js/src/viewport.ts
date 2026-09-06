@@ -10,8 +10,11 @@ const dimensions = (width: string | number | undefined, height: string | number 
 export const parseViewport = (value: Rendition['viewport'] | null): Dimensions | undefined => {
     if (!value) return
     if (typeof value !== 'string') return dimensions(value.width, value.height)
-    const parts = Object.fromEntries(value.split(/[,;\s]/).filter(Boolean)
-        .map(part => part.split('=').map(value => value.trim())))
+    const parts: Record<string, string> = {}
+    for (const part of value.split(/[,;\s]/).filter(Boolean)) {
+        const [key, value] = part.split('=').map(value => value.trim())
+        if (key && value) parts[key] = value
+    }
     return dimensions(parts.width, parts.height)
 }
 

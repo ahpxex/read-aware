@@ -48,7 +48,7 @@ export class MOBI6 implements Book {
     #type = MIME.HTML
     constructor(readonly mobi: MOBI) {}
     async init() {
-        const recordBuffers = []
+        const recordBuffers: Uint8Array[] = []
         for (let i = 0; i < this.mobi.headers.palmdoc.numTextRecords; i++) {
             const buf = await this.mobi.loadText(i)
             recordBuffers.push(buf)
@@ -169,7 +169,7 @@ export class MOBI6 implements Book {
             const url = URL.createObjectURL(new Blob([raw]))
             this.#urls.add(url)
             return url
-        }).catch(error => { this.#resourceCache.delete(index); throw error })
+        }).catch((error: unknown) => { this.#resourceCache.delete(index); throw error })
         this.#resourceCache.set(index, pending)
         return pending
     }
@@ -232,7 +232,7 @@ export class MOBI6 implements Book {
         if (this.#closed) return Promise.reject(new Error('MOBI was closed'))
         const cached = this.#cache.get(section)
         if (cached) return cached
-        const pending = this.#loadSection(section).catch(error => { this.#cache.delete(section); throw error })
+        const pending = this.#loadSection(section).catch((error: unknown) => { this.#cache.delete(section); throw error })
         this.#cache.set(section, pending)
         return pending
     }

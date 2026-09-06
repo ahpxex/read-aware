@@ -243,7 +243,7 @@ export class KF8 implements Book {
             if (inline) this.#inlineMap.set(url, inline)
             else this.#urls.add(url)
             return url
-        }).catch(error => { this.#resourceCache.delete(str); throw error })
+        }).catch((error: unknown) => { this.#resourceCache.delete(str); throw error })
         this.#resourceCache.set(str, pending)
         return pending
     }
@@ -333,7 +333,7 @@ export class KF8 implements Book {
         if (this.#closed) return Promise.reject(new Error('KF8 was closed'))
         const cached = this.#sectionCache.get(section)
         if (cached) return cached
-        const pending = this.#loadSection(section).catch(error => { this.#sectionCache.delete(section); throw error })
+        const pending = this.#loadSection(section).catch((error: unknown) => { this.#sectionCache.delete(section); throw error })
         this.#sectionCache.set(section, pending)
         return pending
     }

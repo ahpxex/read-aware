@@ -99,7 +99,7 @@ export const getVisibleRange = (doc: Document, start: number, end: number, mapRe
         return FILTER_SKIP
     }
     const walker = doc.createTreeWalker(doc.body, filter, { acceptNode })
-    const nodes = []
+    const nodes: Node[] = []
     for (let node = walker.nextNode(); node; node = walker.nextNode())
         nodes.push(node)
 
@@ -141,7 +141,7 @@ export const selectionIsBackward = (sel: Selection): boolean => {
 
 export const setSelectionTo = (target: Anchor | null, collapse: -1 | 0 | 1) => {
     if (target === null || typeof target === 'number') return
-    let range
+    let range: Range
     if ('startContainer' in target) range = target.cloneRange()
     else {
         range = target.ownerDocument.createRange()

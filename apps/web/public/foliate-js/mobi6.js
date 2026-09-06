@@ -168,7 +168,7 @@ export class MOBI6 {
             const url = URL.createObjectURL(new Blob([raw]));
             this.#urls.add(url);
             return url;
-        }).catch(error => { this.#resourceCache.delete(index); throw error; });
+        }).catch((error) => { this.#resourceCache.delete(index); throw error; });
         this.#resourceCache.set(index, pending);
         return pending;
     }
@@ -238,7 +238,7 @@ export class MOBI6 {
         const cached = this.#cache.get(section);
         if (cached)
             return cached;
-        const pending = this.#loadSection(section).catch(error => { this.#cache.delete(section); throw error; });
+        const pending = this.#loadSection(section).catch((error) => { this.#cache.delete(section); throw error; });
         this.#cache.set(section, pending);
         return pending;
     }

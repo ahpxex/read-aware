@@ -144,6 +144,10 @@ export class EPUB implements Book {
         const [path, hash] = href.split('#')
         return [decodeURI(path), hash ? decodeURIComponent(hash) : undefined]
     }
+    getSectionHref(index: number) {
+        const section = this.sections[index]
+        return section ? String(section.id) : undefined
+    }
     getTOCFragment(doc: Document, id: TOCFragment | undefined) {
         return typeof id === 'string' ? getHTMLFragment(doc, id) : doc.documentElement
     }

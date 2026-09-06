@@ -2,9 +2,15 @@ import type * as CFI from "../../foliate-js/src/epubcfi";
 import type { View } from "../../foliate-js/src/view";
 
 type Result = { name: string; passed: boolean; details?: string };
+type FoundationModules = {
+  search: typeof import("../../foliate-js/src/search");
+  walker: typeof import("../../foliate-js/src/text-walker");
+  tts: typeof import("../../foliate-js/src/tts");
+  quote: typeof import("../../foliate-js/src/quote-image");
+};
 
 /** Execute inside Tauri, after reloading the frontend's generated engine modules. */
-export async function runFoliateRegressions(cfi: typeof CFI): Promise<Result[]> {
+export async function runFoliateRegressions(cfi: typeof CFI, foundation?: FoundationModules): Promise<Result[]> {
   if (!("__TAURI_INTERNALS__" in window)) throw new Error("Run this suite inside Tauri");
   const results: Result[] = [];
   const check = async (name: string, run: () => void | Promise<void>) => {
@@ -41,6 +47,58 @@ export async function runFoliateRegressions(cfi: typeof CFI): Promise<Result[]> 
       equal(cfi.toRange(doc, cfi.parse(cfi.fromRange(range))).toString(), String(index));
     }
   });
+
+  if (foundation) {
+    await check("search and TTS preserve ranges across native CDATA and inline elements", () => {
+      const doc = xhtml('<p lang="en">Hello <![CDATA[wo]]><em>rld</em>. Next sentence.</p>');
+      const match = [...foundation.search.searchMatcher(foundation.walker.textWalker,
+        { matchWholeWords: true })(doc, "world")];
+      equal(match.length, 1);
+      equal(match[0].range.toString(), "world");
+      let highlighted = "";
+      const tts = new foundation.tts.TTS(doc, foundation.walker.textWalker,
+        range => { highlighted = range.toString(); });
+      const speech = new DOMParser().parseFromString(tts.start() ?? "", "application/xml");
+      equal(speech.documentElement.textContent, "Hello world. Next sentence.");
+      tts.setMark("1");
+      equal(highlighted, "world");
+      equal(new DOMParser().parseFromString(tts.resume() ?? "", "application/xml")
+        .documentElement.textContent, "world. Next sentence.");
+    });
+
+    await check("quote export produces a nonblank PNG in the desktop webview", async () => {
+      const quote = new foundation.quote.QuoteImage();
+      document.body.append(quote);
+      let url: string | undefined;
+      try {
+        const blob = await quote.getBlob({ title: "A #title", author: "Writer", text: "A quote & its punctuation." });
+        equal(blob.type, "image/png");
+        url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.src = url;
+        await img.decode();
+        equal(img.naturalWidth, 1080);
+        equal(img.naturalHeight, 1080);
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const context = canvas.getContext("2d");
+        if (!context) throw new Error("Missing canvas context");
+        context.drawImage(img, 0, 0);
+        const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+        let light = 0, dark = 0;
+        for (let i = 0; i < pixels.length; i += 4) {
+          if (pixels[i + 3] < 128) continue;
+          if (pixels[i] > 240) light++;
+          if (pixels[i] < 80) dark++;
+        }
+        if (light < 10000 || dark < 100) throw new Error(`Blank export: light=${light}, dark=${dark}`);
+      } finally {
+        quote.remove();
+        if (url) URL.revokeObjectURL(url);
+      }
+    });
+  }
 
   await check("default scrolled next/prev move a viewport; explicit distances stay pixels", async () => {
     const view = document.createElement("foliate-view") as View;

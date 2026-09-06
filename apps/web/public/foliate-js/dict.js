@@ -11,8 +11,8 @@ const strcmp = (a, b) => {
     return a < b ? -1 : a > b ? 1 : 0;
 };
 class DictZip {
-    #chlen;
-    #chunks;
+    #chlen = 0;
+    #chunks = [];
     #compressed;
     inflate;
     async load(file) {
@@ -58,10 +58,19 @@ class DictZip {
         this.#compressed = file.slice(offset);
     }
     async read(offset, size) {
+        if (!this.#compressed || !this.inflate || !this.#chlen)
+            throw new Error('Dictionary data is not loaded');
+        if (!Number.isInteger(offset) || !Number.isInteger(size) || offset < 0 || size < 0)
+            throw new RangeError('Invalid dictionary data range');
+        if (!size)
+            return new Uint8Array();
         const chunks = this.#chunks;
         const startIndex = Math.trunc(offset / this.#chlen);
-        const endIndex = Math.trunc((offset + size) / this.#chlen);
-        const buf = await this.#compressed.slice(chunks[startIndex][0], chunks[endIndex][0] + chunks[endIndex][1]).arrayBuffer();
+        const endIndex = Math.trunc((offset + size - 1) / this.#chlen);
+        const startChunk = chunks[startIndex], endChunk = chunks[endIndex];
+        if (!startChunk || !endChunk)
+            throw new RangeError('Dictionary range exceeds its chunks');
+        const buf = await this.#compressed.slice(startChunk[0], endChunk[0] + endChunk[1]).arrayBuffer();
         let arr = new Uint8Array();
         for (let pos = 0, i = startIndex; i <= endIndex; i++) {
             const data = new Uint8Array(buf, pos, chunks[i][1]);
@@ -76,27 +85,27 @@ class Index {
     strcmp = strcmp;
     // binary search
     bisect(query, start = 0, end = this.words.length - 1) {
-        if (end - start === 1) {
-            if (!this.strcmp(query, this.getWord(start)))
-                return start;
-            if (!this.strcmp(query, this.getWord(end)))
-                return end;
-            return null;
+        while (start <= end) {
+            const mid = Math.floor(start + (end - start) / 2);
+            const word = this.getWord(mid);
+            if (word === undefined)
+                return null;
+            const cmp = this.strcmp(query, word);
+            if (cmp < 0)
+                end = mid - 1;
+            else if (cmp > 0)
+                start = mid + 1;
+            else
+                return mid;
         }
-        const mid = Math.floor(start + (end - start) / 2);
-        const cmp = this.strcmp(query, this.getWord(mid));
-        if (cmp < 0)
-            return this.bisect(query, start, mid);
-        if (cmp > 0)
-            return this.bisect(query, mid, end);
-        return mid;
+        return null;
     }
     // check for multiple definitions
     checkAdjacent(query, i) {
         if (i == null)
             return [];
         let j = i;
-        const equals = i => {
+        const equals = (i) => {
             const word = this.getWord(i);
             return word ? this.strcmp(query, word) === 0 : false;
         };
@@ -111,7 +120,7 @@ class Index {
         return this.checkAdjacent(query, this.bisect(query));
     }
 }
-const decodeBase64Number = str => {
+const decodeBase64Number = (str) => {
     const { length } = str;
     let n = 0;
     for (let i = 0; i < length; i++) {
@@ -126,6 +135,9 @@ const decodeBase64Number = str => {
     return n;
 };
 class DictdIndex extends Index {
+    words = [];
+    offsets = [];
+    sizes = [];
     getWord(i) {
         return this.words[i];
     }
@@ -134,7 +146,11 @@ class DictdIndex extends Index {
         const offsets = [];
         const sizes = [];
         for (const line of decode(await file.arrayBuffer()).split('\n')) {
+            if (!line)
+                continue;
             const a = line.split('\t');
+            if (a.length < 3)
+                throw new Error('Invalid dictionary index entry');
             words.push(a[0]);
             offsets.push(decodeBase64Number(a[1]));
             sizes.push(decodeBase64Number(a[2]));
@@ -151,8 +167,13 @@ export class DictdDict {
         this.#dict.inflate = inflate;
         return this.#dict.load(file);
     }
+    loadIdx(file) {
+        return this.#idx.load(file);
+    }
     async #readWord(i) {
         const word = this.#idx.getWord(i);
+        if (word === undefined)
+            throw new Error('Dictionary index entry does not exist');
         const offset = this.#idx.offsets[i];
         const size = this.#idx.sizes[i];
         return { word, data: ['m', this.#dict.read(offset, size)] };
@@ -165,8 +186,11 @@ export class DictdDict {
     }
 }
 class StarDictIndex extends Index {
-    isSyn;
-    #arr;
+    words = [];
+    offsets = [];
+    sizes = [];
+    isSyn = false;
+    #arr = new Uint8Array();
     getWord(i) {
         const word = this.words[i];
         if (!word)
@@ -201,17 +225,18 @@ class StarDictIndex extends Index {
     }
 }
 export class StarDict {
+    ifo = {};
     #dict = new DictZip();
     #idx = new StarDictIndex();
     #syn = Object.assign(new StarDictIndex(), { isSyn: true });
     async loadIfo(file) {
         const str = decode(await file.arrayBuffer());
-        this.ifo = Object.fromEntries(str.split('\n').map(line => {
+        this.ifo = Object.fromEntries(str.split('\n').flatMap(line => {
             const sep = line.indexOf('=');
             if (sep < 0)
-                return;
-            return [line.slice(0, sep), line.slice(sep + 1)];
-        }).filter(x => x));
+                return [];
+            return [[line.slice(0, sep), line.slice(sep + 1)]];
+        }));
     }
     loadDict(file, inflate) {
         this.#dict.inflate = inflate;
@@ -226,6 +251,8 @@ export class StarDict {
     }
     async #readWord(i) {
         const word = this.#idx.getWord(i);
+        if (word === undefined)
+            throw new Error('Dictionary index entry does not exist');
         const offset = this.#idx.offsets[i];
         const size = this.#idx.sizes[i];
         const data = await this.#dict.read(offset, size);

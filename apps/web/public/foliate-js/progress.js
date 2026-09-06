@@ -1,7 +1,7 @@
 // assign a unique ID for each TOC item
-const assignIDs = toc => {
+const assignIDs = (toc) => {
     let id = 0;
-    const assignID = item => {
+    const assignID = (item) => {
         item.id = id++;
         if (item.subitems)
             for (const subitem of item.subitems)
@@ -11,12 +11,15 @@ const assignIDs = toc => {
         assignID(item);
     return toc;
 };
-const flatten = items => items
+const flatten = (items) => items
     .map(item => item.subitems?.length
     ? [item, flatten(item.subitems)].flat()
     : item)
     .flat();
 export class TOCProgress {
+    ids;
+    map = new Map();
+    getFragment;
     async init({ toc, ids, splitHref, getFragment }) {
         assignIDs(toc);
         const items = flatten(toc);
@@ -25,13 +28,16 @@ export class TOCProgress {
         // A failed entry drops out instead of failing the whole index.
         const splits = await Promise.all(items.map(item => Promise.resolve()
             .then(() => splitHref(item?.href))
-            .catch(() => null)));
+            .catch(error => { console.warn('Could not resolve TOC entry', error); return null; })));
         const grouped = new Map();
         for (const [i, item] of items.entries()) {
             const [id, fragment] = splits[i] ?? [];
+            if (id == null)
+                continue;
             const value = { fragment, item };
-            if (grouped.has(id))
-                grouped.get(id).items.push(value);
+            const group = grouped.get(id);
+            if (group)
+                group.items.push(value);
             else
                 grouped.set(id, { prev: items[i - 1], items: [value] });
         }
@@ -47,7 +53,7 @@ export class TOCProgress {
         this.getFragment = getFragment;
     }
     getProgress(index, range) {
-        if (!this.ids)
+        if (!this.ids || !this.getFragment)
             return;
         const id = this.ids[index];
         const obj = this.map.get(id);
@@ -58,7 +64,9 @@ export class TOCProgress {
             return prev;
         if (!range || items.length === 1 && !items[0].fragment)
             return items[0].item;
-        const doc = range.startContainer.getRootNode();
+        const doc = range.startContainer.ownerDocument;
+        if (!doc)
+            return null;
         for (const [i, { fragment }] of items.entries()) {
             const el = this.getFragment(doc, fragment);
             if (!el)
@@ -70,8 +78,13 @@ export class TOCProgress {
     }
 }
 export class SectionProgress {
+    sizes;
+    sizePerLoc;
+    sizePerTimeUnit;
+    sizeTotal;
+    sectionFractions;
     constructor(sections, sizePerLoc, sizePerTimeUnit) {
-        this.sizes = sections.map(s => s.linear != 'no' && s.size > 0 ? s.size : 0);
+        this.sizes = sections.map(s => s.linear !== 'no' && (s.size ?? 0) > 0 ? s.size ?? 0 : 0);
         this.sizePerLoc = sizePerLoc;
         this.sizePerTimeUnit = sizePerTimeUnit;
         this.sizeTotal = this.sizes.reduce((a, b) => a + b, 0);
@@ -82,11 +95,11 @@ export class SectionProgress {
         const results = [0];
         let sum = 0;
         for (const size of this.sizes)
-            results.push((sum += size) / sizeTotal);
+            results.push(sizeTotal > 0 ? (sum += size) / sizeTotal : 0);
         return results;
     }
     // get progress given index of and fractions within a section
-    getProgress(index, fractionInSection, pageFraction = 0) {
+    getProgress(index, fractionInSection = 0, pageFraction = 0) {
         const { sizes, sizePerLoc, sizePerTimeUnit, sizeTotal } = this;
         const sizeInSection = sizes[index] ?? 0;
         const sizeBefore = sizes.slice(0, index).reduce((a, b) => a + b, 0);
@@ -95,7 +108,7 @@ export class SectionProgress {
         const remainingTotal = sizeTotal - size;
         const remainingSection = (1 - fractionInSection) * sizeInSection;
         return {
-            fraction: nextSize / sizeTotal,
+            fraction: sizeTotal > 0 ? nextSize / sizeTotal : 0,
             section: {
                 current: index,
                 total: sizes.length,
@@ -114,6 +127,8 @@ export class SectionProgress {
     // the inverse of `getProgress`
     // get index of and fraction in section based on total fraction
     getSection(fraction) {
+        if (!this.sizes.length || this.sizeTotal <= 0)
+            return [0, 0];
         if (fraction <= 0)
             return [0, 0];
         if (fraction >= 1)

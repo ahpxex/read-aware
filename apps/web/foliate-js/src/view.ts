@@ -650,7 +650,7 @@ export class View extends HTMLElement {
             for (const item of list) this.deleteAnnotation(item)
         this.#searchResults.clear()
     }
-    async initTTS(granularity = 'word', highlight) {
+    async initTTS(granularity: Intl.SegmenterOptions['granularity'] = 'word', highlight?: (range: Range) => void) {
         const doc = this.renderer.getContents()[0].doc
         if (this.tts && this.tts.doc === doc) return
         const { TTS } = await import('./tts.js')

@@ -23,9 +23,10 @@ export class Overlayer {
         this.#map.set(key, { range, draw, options, element, rects, hitValue });
     }
     remove(key) {
-        if (!this.#map.has(key))
+        const overlay = this.#map.get(key);
+        if (!overlay)
             return;
-        this.#svg.removeChild(this.#map.get(key).element);
+        this.#svg.removeChild(overlay.element);
         this.#map.delete(key);
     }
     redraw() {
@@ -163,7 +164,9 @@ export class Overlayer {
     // it's a bit silly and probably better to just invert images twice
     // (though the color will be off in that case if you do heu-rotate)
     static copyImage([rect], options = {}) {
-        const { src } = options;
+        const { src = '' } = options;
+        if (!rect)
+            throw new Error('Cannot copy an image without its rectangle');
         const image = createSVGElement('image');
         const { left, top, height, width } = rect;
         image.setAttribute('href', src);

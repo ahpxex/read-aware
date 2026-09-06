@@ -1,16 +1,32 @@
-export const makeComicBook = ({ entries, loadBlob, getSize }, file) => {
-    const cache = new Map()
-    const urls = new Map()
-    const load = async name => {
-        if (cache.has(name)) return cache.get(name)
-        const src = URL.createObjectURL(await loadBlob(name))
-        const page = URL.createObjectURL(
-            new Blob([`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin: 0"><img src="${src}"></body></html>`], { type: 'text/html' }))
-        urls.set(name, [src, page])
-        cache.set(name, page)
-        return page
+export type ComicArchiveLoader = {
+    entries: Array<{ filename: string }>
+    loadBlob: (name: string) => Blob | null | Promise<Blob | null>
+    getSize: (name: string) => number
+}
+
+export const makeComicBook = ({ entries, loadBlob, getSize }: ComicArchiveLoader, file: { name?: string }) => {
+    const cache = new Map<string, Promise<string>>()
+    const urls = new Map<string, string[]>()
+    const load = (name: string): Promise<string> => {
+        const cached = cache.get(name)
+        if (cached) return cached
+        const pending: Promise<string> = Promise.resolve().then(async () => {
+            const blob = await loadBlob(name)
+            if (!blob) throw new Error(`Comic page is missing: ${name}`)
+            if (cache.get(name) !== pending) throw new Error('Comic page load was cancelled')
+            const src = URL.createObjectURL(blob)
+            const page = URL.createObjectURL(
+                new Blob([`<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin: 0"><img src="${src}"></body></html>`], { type: 'text/html' }))
+            urls.set(name, [src, page])
+            return page
+        }).catch(error => {
+            if (cache.get(name) === pending) cache.delete(name)
+            throw error
+        })
+        cache.set(name, pending)
+        return pending
     }
-    const unload = name => {
+    const unload = (name: string) => {
         urls.get(name)?.forEach?.(url => URL.revokeObjectURL(url))
         urls.delete(name)
         cache.delete(name)
@@ -23,23 +39,23 @@ export const makeComicBook = ({ entries, loadBlob, getSize }, file) => {
         .sort(new Intl.Collator([], { numeric: true }).compare)
     if (!files.length) throw new Error('No supported image files in archive')
 
-    const book: any = {}
-    book.getCover = () => loadBlob(files[0])
-    book.metadata = { title: file.name }
-    book.sections = files.map(name => ({
+    const sections = files.map(name => ({
         id: name,
         load: () => load(name),
         unload: () => unload(name),
         size: getSize(name),
     }))
-    book.toc = files.map(name => ({ label: name, href: name }))
-    book.rendition = { layout: 'pre-paginated' }
-    book.resolveHref = href => ({ index: book.sections.findIndex(s => s.id === href) })
-    book.splitTOCHref = href => [href, null]
-    book.getTOCFragment = doc => doc.documentElement
-    book.destroy = () => {
-        for (const arr of urls.values())
-            for (const url of arr) URL.revokeObjectURL(url)
+    return {
+        getCover: () => loadBlob(files[0]),
+        metadata: { title: file.name },
+        sections,
+        toc: files.map(name => ({ label: name, href: name })),
+        rendition: { layout: 'pre-paginated' as const },
+        resolveHref: (href: string) => ({ index: sections.findIndex(s => s.id === href) }),
+        splitTOCHref: (href: string): [string, null] => [href, null],
+        getTOCFragment: (doc: Document) => doc.documentElement,
+        destroy: () => {
+            for (const name of cache.keys()) unload(name)
+        },
     }
-    return book
 }

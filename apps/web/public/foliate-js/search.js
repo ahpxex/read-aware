@@ -1,13 +1,14 @@
+import { indexText } from './text-index.js';
 // length for context in excerpts
 const CONTEXT_LENGTH = 50;
-const normalizeWhitespace = str => str.replace(/\s+/g, ' ');
+const normalizeWhitespace = (str) => str.replace(/\s+/g, ' ');
 const makeExcerpt = (strs, { startIndex, startOffset, endIndex, endOffset }) => {
     const start = strs[startIndex];
     const end = strs[endIndex];
-    const match = start === end
+    const match = startIndex === endIndex
         ? start.slice(startOffset, endOffset)
         : start.slice(startOffset)
-            + strs.slice(start + 1, end).join('')
+            + strs.slice(startIndex + 1, endIndex).join('')
             + end.slice(0, endOffset);
     const trimmedStart = normalizeWhitespace(start.slice(0, startOffset)).trimStart();
     const trimmedEnd = normalizeWhitespace(end.slice(endOffset)).trimEnd();
@@ -20,32 +21,43 @@ const makeExcerpt = (strs, { startIndex, startOffset, endIndex, endOffset }) => 
 const simpleSearch = function* (strs, query, options = {}) {
     const { locales = 'en', sensitivity } = options;
     const matchCase = sensitivity === 'variant';
-    const haystack = strs.join('');
+    const indexed = indexText(strs);
+    const haystack = indexed.text;
     const lowerHaystack = matchCase ? haystack : haystack.toLocaleLowerCase(locales);
     const needle = matchCase ? query : query.toLocaleLowerCase(locales);
     const needleLength = needle.length;
     let index = -1;
-    let strIndex = -1;
-    let sum = 0;
     do {
         index = lowerHaystack.indexOf(needle, index + 1);
         if (index > -1) {
-            while (sum <= index)
-                sum += strs[++strIndex].length;
-            const startIndex = strIndex;
-            const startOffset = index - (sum - strs[strIndex].length);
-            const end = index + needleLength;
-            while (sum <= end)
-                sum += strs[++strIndex].length;
-            const endIndex = strIndex;
-            const endOffset = end - (sum - strs[strIndex].length);
-            const range = { startIndex, startOffset, endIndex, endOffset };
+            const range = indexed.range(index, index + needleLength);
             yield { range, excerpt: makeExcerpt(strs, range) };
         }
     } while (index > -1);
 };
+function* segmentsOf(segmenter, text) {
+    let whitespace;
+    for (const { index, segment } of segmenter.segment(text)) {
+        if (!/[^\p{Format}]/u.test(segment))
+            continue;
+        if (/^\s+$/u.test(segment)) {
+            if (whitespace)
+                whitespace.end = index + segment.length;
+            else
+                whitespace = { start: index, end: index + segment.length, text: ' ' };
+            continue;
+        }
+        if (whitespace) {
+            yield whitespace;
+            whitespace = undefined;
+        }
+        yield { start: index, end: index + segment.length, text: segment };
+    }
+    if (whitespace)
+        yield whitespace;
+}
 const segmenterSearch = function* (strs, query, options = {}) {
-    const { locales = 'en', granularity = 'word', sensitivity = 'base' } = options;
+    const { locales = 'en', granularity = 'grapheme', sensitivity = 'base' } = options;
     let segmenter, collator;
     try {
         segmenter = new Intl.Segmenter(locales, { granularity });
@@ -56,63 +68,39 @@ const segmenterSearch = function* (strs, query, options = {}) {
         segmenter = new Intl.Segmenter('en', { granularity });
         collator = new Intl.Collator('en', { sensitivity });
     }
-    const queryLength = Array.from(segmenter.segment(query)).length;
-    const substrArr = [];
-    let strIndex = 0;
-    let segments = segmenter.segment(strs[strIndex])[Symbol.iterator]();
-    main: while (strIndex < strs.length) {
-        while (substrArr.length < queryLength) {
-            const { done, value } = segments.next();
-            if (done) {
-                // the current string is exhausted
-                // move on to the next string
-                strIndex++;
-                if (strIndex < strs.length) {
-                    segments = segmenter.segment(strs[strIndex])[Symbol.iterator]();
-                    continue;
-                }
-                else
-                    break main;
-            }
-            const { index, segment } = value;
-            // ignore formatting characters
-            if (!/[^\p{Format}]/u.test(segment))
-                continue;
-            // normalize whitespace
-            if (/\s/u.test(segment)) {
-                if (!/\s/u.test(substrArr[substrArr.length - 1]?.segment))
-                    substrArr.push({ strIndex, index, segment: ' ' });
-                continue;
-            }
-            value.strIndex = strIndex;
-            substrArr.push(value);
-        }
-        const substr = substrArr.map(x => x.segment).join('');
-        if (collator.compare(query, substr) === 0) {
-            const endIndex = strIndex;
-            const lastSeg = substrArr[substrArr.length - 1];
-            const endOffset = lastSeg.index + lastSeg.segment.length;
-            const startIndex = substrArr[0].strIndex;
-            const startOffset = substrArr[0].index;
-            const range = { startIndex, startOffset, endIndex, endOffset };
+    const querySegments = [...segmentsOf(segmenter, query)];
+    if (!querySegments.length)
+        return;
+    const normalizedQuery = querySegments.map(segment => segment.text).join('');
+    const indexed = indexText(strs);
+    const window = [];
+    for (const segment of segmentsOf(segmenter, indexed.text)) {
+        window.push(segment);
+        if (window.length < querySegments.length)
+            continue;
+        if (collator.compare(normalizedQuery, window.map(part => part.text).join('')) === 0) {
+            const range = indexed.range(window[0].start, segment.end);
             yield { range, excerpt: makeExcerpt(strs, range) };
         }
-        substrArr.shift();
+        window.shift();
     }
 };
-export const search = (strs, query, options = {}) => {
+export function* search(strs, query, options = {}) {
+    if (!strs.length || !query.length)
+        return;
     const { granularity = 'grapheme', sensitivity = 'base' } = options;
     if (!Intl?.Segmenter || granularity === 'grapheme'
-        && (sensitivity === 'variant' || sensitivity === 'accent'))
-        return simpleSearch(strs, query, options);
-    return segmenterSearch(strs, query, options);
-};
+        && sensitivity === 'variant')
+        yield* simpleSearch(strs, query, options);
+    else
+        yield* segmenterSearch(strs, query, options);
+}
 export const searchMatcher = (textWalker, opts) => {
     const { defaultLocale, matchCase, matchDiacritics, matchWholeWords, acceptNode } = opts;
     return function* (doc, query) {
         const iter = textWalker(doc, function* (strs, makeRange) {
             for (const result of search(strs, query, {
-                locales: doc.body.lang || doc.documentElement.lang || defaultLocale || 'en',
+                locales: doc.body?.lang || doc.documentElement.lang || defaultLocale || 'en',
                 granularity: matchWholeWords ? 'word' : 'grapheme',
                 sensitivity: matchDiacritics && matchCase ? 'variant'
                     : matchDiacritics && !matchCase ? 'accent'
@@ -120,8 +108,7 @@ export const searchMatcher = (textWalker, opts) => {
                             : 'base',
             })) {
                 const { startIndex, startOffset, endIndex, endOffset } = result.range;
-                result.range = makeRange(startIndex, startOffset, endIndex, endOffset);
-                yield result;
+                yield { ...result, range: makeRange(startIndex, startOffset, endIndex, endOffset) };
             }
         }, acceptNode);
         for (const result of iter)

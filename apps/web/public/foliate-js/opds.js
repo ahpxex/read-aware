@@ -24,17 +24,16 @@ export const REL = {
         'x-stanza-cover-image-thumbnail', // Lexcycle Stanza legacy
     ],
 };
-export const SYMBOL = {
-    SUMMARY: Symbol('summary'),
-    CONTENT: Symbol('content'),
-};
+const SUMMARY = Symbol('summary');
+const CONTENT = Symbol('content');
+export const SYMBOL = { SUMMARY, CONTENT };
 const FACET_GROUP = Symbol('facetGroup');
 const groupByArray = (arr, f) => {
     const map = new Map();
     if (arr)
         for (const el of arr) {
             const keys = f(el);
-            for (const key of [keys].flat()) {
+            for (const key of Array.isArray(keys) ? keys : [keys]) {
                 const group = map.get(key);
                 if (group)
                     group.push(el);
@@ -45,7 +44,7 @@ const groupByArray = (arr, f) => {
     return map;
 };
 // https://www.rfc-editor.org/rfc/rfc7231#section-3.1.1
-const parseMediaType = str => {
+const parseMediaType = (str) => {
     if (!str)
         return null;
     const [mediaType, ...ps] = str.split(/ *; */);
@@ -57,7 +56,7 @@ const parseMediaType = str => {
         })),
     };
 };
-export const isOPDSCatalog = str => {
+export const isOPDSCatalog = (str) => {
     const parsed = parseMediaType(str);
     if (!parsed)
         return false;
@@ -71,38 +70,38 @@ const useNS = (doc, ns) => doc.lookupNamespaceURI(null) === ns || doc.lookupPref
 const filterNS = (ns) => ns
     ? (name) => (el) => el.namespaceURI === ns && el.localName === name
     : (name) => (el) => el.localName === name;
-const getContent = el => {
+const getContent = (el) => {
     if (!el)
         return;
     const type = el.getAttribute('type') ?? 'text';
     const value = type === 'xhtml' ? el.innerHTML
-        : type === 'html' ? el.textContent
+        : type === 'html' ? (el.textContent ?? '')
             .replaceAll('&lt;', '<')
             .replaceAll('&gt;', '>')
             .replaceAll('&amp;', '&')
-            : el.textContent;
+            : el.textContent ?? '';
     return { value, type };
 };
-const getTextContent = el => {
+const getTextContent = (el) => {
     const content = getContent(el);
     if (content?.type === 'text')
         return content?.value;
 };
 const getSummary = (a, b) => getTextContent(a) ?? getTextContent(b);
-const getPrice = link => {
+const getPrice = (link) => {
     const price = link.getElementsByTagNameNS(NS.OPDS, 'price')[0];
     return price ? {
         currency: price.getAttribute('currencycode'),
         value: price.textContent,
     } : null;
 };
-const getIndirectAcquisition = el => {
+const getIndirectAcquisition = (el) => {
     const ia = el.getElementsByTagNameNS(NS.OPDS, 'indirectAcquisition')[0];
     if (!ia)
         return [];
     return [{ type: ia.getAttribute('type') }, ...getIndirectAcquisition(ia)];
 };
-const getLink = link => {
+const getLink = (link) => {
     const obj = {
         rel: link.getAttribute('rel')?.split(/ +/),
         href: link.getAttribute('href'),
@@ -119,7 +118,7 @@ const getLink = link => {
         obj.rel = [obj.rel ?? []].flat().concat('self');
     return obj;
 };
-const getPerson = person => {
+const getPerson = (person) => {
     const NS = person.namespaceURI;
     const uri = person.getElementsByTagNameNS(NS, 'uri')[0]?.textContent;
     return {
@@ -132,9 +131,9 @@ export const getPublication = (entry) => {
     const children = Array.from(entry.children);
     const filterDCEL = filterNS(NS.DC);
     const filterDCTERMS = filterNS(NS.DCTERMS);
-    const filterDC = x => {
+    const filterDC = (x) => {
         const a = filterDCEL(x), b = filterDCTERMS(x);
-        return y => a(y) || b(y);
+        return (y) => a(y) || b(y);
     };
     const links = children.filter(filter('link')).map(getLink);
     const linksByRel = groupByArray(links, link => link.rel);
@@ -159,7 +158,7 @@ export const getPublication = (entry) => {
         },
         links,
         images: REL.COVER.concat(REL.THUMBNAIL)
-            .map(R => linksByRel.get(R)?.[0]).filter(x => x),
+            .map(R => linksByRel.get(R)?.[0]).filter((link) => link !== undefined),
     };
 };
 export const getFeed = (doc) => {
@@ -188,24 +187,32 @@ export const getFeed = (doc) => {
                 title: children.find(filter('title'))?.textContent,
                 [SYMBOL.SUMMARY]: getSummary(children.find(filter('summary')), children.find(filter('content'))),
             });
-        const arr = groupedItems.get(groupLink?.href ?? null);
+        const key = groupLink?.href ?? null;
+        const arr = groupedItems.get(key);
         if (arr)
             arr.push(item);
         else
-            groupedItems.set(groupLink.href, [item]);
+            groupedItems.set(key, [item]);
     }
     const [items, ...groups] = Array.from(groupedItems, ([key, items]) => {
-        const itemsKey = items[0]?.metadata ? 'publications' : 'navigation';
+        const publications = items.filter((item) => 'metadata' in item);
+        const navigation = items.filter((item) => !('metadata' in item));
+        const content = {
+            ...(publications.length ? { publications } : {}),
+            ...(navigation.length || !publications.length ? { navigation } : {}),
+        };
         if (key == null)
-            return { [itemsKey]: items };
+            return content;
         const link = groupLinkMap.get(key);
+        if (!link)
+            return content;
         return {
             metadata: {
                 title: link.title,
                 numberOfItems: link.properties.numberOfItems,
             },
             links: [{ rel: 'self', href: link.href, type: link.type }],
-            [itemsKey]: items,
+            ...content,
         };
     });
     return {
@@ -225,7 +232,7 @@ export const getSearch = async (link) => {
         metadata: {
             title: link.title,
         },
-        search: map => replace(link.href, map.get(null)),
+        search: (map) => replace(link.href, map.get(null) ?? new Map()),
         params: Array.from(getVariables(link.href), name => ({ name })),
     };
 };
@@ -247,12 +254,14 @@ export const getOpenSearch = (doc) => {
         ['outputEncoding', 'UTF-8'],
     ]);
     const template = $url.getAttribute('template');
+    if (!template)
+        throw new Error('OpenSearch Url must contain a template');
     return {
         metadata: {
             title: (children.find(filter('LongName')) ?? children.find(filter('ShortName')))?.textContent,
             description: children.find(filter('Description'))?.textContent,
         },
-        search: map => template.replace(regex, (_, prefix, param) => {
+        search: (map) => template.replace(regex, (_, prefix, param) => {
             const namespace = prefix ? $url.lookupNamespaceURI(prefix) : null;
             const ns = namespace === defaultNS ? null : namespace;
             const val = map.get(ns)?.get(param);

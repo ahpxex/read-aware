@@ -1,7 +1,7 @@
 const SVG_NS = 'http://www.w3.org/2000/svg'
 
 // bisect
-const fit = (el, a = 1, b = 50) => {
+const fit = (el: HTMLElement, a = 1, b = 50): void => {
     const c = Math.floor(a + (b - a) / 2)
     el.style.fontSize = `${c}px`
     if (b - a === 1) return
@@ -49,38 +49,50 @@ const html = `<style>
 </main>`
 
 // TODO: lang, vertical writing
-customElements.define('foliate-quoteimage', class extends HTMLElement {
+export class QuoteImage extends HTMLElement {
     #root = this.attachShadow({ mode: 'closed' })
     constructor() {
         super()
         this.#root.innerHTML = html
     }
-    async getBlob({ title, author, text }) {
-        this.#root.querySelector('#title').textContent = title
-        this.#root.querySelector('#author').textContent = author
-        ;(this.#root.querySelector('#text') as HTMLElement).innerText = text
+    async getBlob({ title, author, text }: { title: string; author: string; text: string }): Promise<Blob> {
+        const titleElement = this.#root.querySelector('#title')
+        const authorElement = this.#root.querySelector('#author')
+        const textElement = this.#root.querySelector<HTMLElement>('#text')
+        const main = this.#root.querySelector('main')
+        if (!titleElement || !authorElement || !textElement || !main)
+            throw new Error('Quote image template is incomplete')
+        titleElement.textContent = title
+        authorElement.textContent = author
+        textElement.innerText = text
 
-        fit(this.#root.querySelector('main'))
+        fit(main)
 
         const img = document.createElement('img')
-        return new Promise(resolve => {
+        return new Promise<Blob>((resolve, reject) => {
             img.onload = () => {
-                const canvas = document.createElement('canvas')
-                canvas.width = pixelRatio * width
-                canvas.height = pixelRatio * height
-                const ctx = canvas.getContext('2d')
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-                canvas.toBlob(resolve)
+                try {
+                    const canvas = document.createElement('canvas')
+                    canvas.width = pixelRatio * width
+                    canvas.height = pixelRatio * height
+                    const ctx = canvas.getContext('2d')
+                    if (!ctx) throw new Error('Could not create a quote image canvas')
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+                    canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Could not encode quote image')))
+                } catch (error) { reject(error) }
             }
+            img.onerror = () => reject(new Error('Could not render quote image'))
             const doc = document.implementation.createDocument(SVG_NS, 'svg')
             doc.documentElement.setAttribute('viewBox', `0 0 ${width} ${height}`)
             const obj = doc.createElementNS(SVG_NS, 'foreignObject')
             obj.setAttribute('width', String(width))
             obj.setAttribute('height', String(height))
-            obj.append(doc.importNode(this.#root.querySelector('main'), true))
+            obj.append(doc.importNode(main, true))
             doc.documentElement.append(obj)
             img.src = 'data:image/svg+xml;charset=utf-8,'
-                + new XMLSerializer().serializeToString(doc)
+                + encodeURIComponent(new XMLSerializer().serializeToString(doc))
         })
     }
-})
+}
+
+customElements.define('foliate-quoteimage', QuoteImage)

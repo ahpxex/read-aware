@@ -1,4 +1,4 @@
-type DrawOptions = {
+export type DrawOptions = {
     color?: string
     width?: number
     writingMode?: string
@@ -6,12 +6,22 @@ type DrawOptions = {
     src?: string
 }
 
+export type DrawFunction = (rects: Iterable<DOMRect>, options: DrawOptions) => SVGElement
+type Overlay = {
+    range: Range
+    draw: DrawFunction
+    options: DrawOptions
+    element: SVGElement
+    rects: DOMRectList
+    hitValue: string
+}
+
 const createSVGElement = (tag: string): SVGElement =>
     document.createElementNS('http://www.w3.org/2000/svg', tag)
 
 export class Overlayer {
     #svg = createSVGElement('svg')
-    #map = new Map()
+    #map = new Map<string, Overlay>()
     constructor() {
         Object.assign(this.#svg.style, {
             position: 'absolute', top: '0', left: '0',
@@ -22,7 +32,7 @@ export class Overlayer {
     get element() {
         return this.#svg
     }
-    add(key, range, draw, options, hitValue = key) {
+    add(key: string, range: Range | ((root: Node) => Range), draw: DrawFunction, options: DrawOptions, hitValue = key) {
         if (this.#map.has(key)) this.remove(key)
         if (typeof range === 'function') range = range(this.#svg.getRootNode())
         const rects = range.getClientRects()
@@ -30,9 +40,10 @@ export class Overlayer {
         this.#svg.append(element)
         this.#map.set(key, { range, draw, options, element, rects, hitValue })
     }
-    remove(key) {
-        if (!this.#map.has(key)) return
-        this.#svg.removeChild(this.#map.get(key).element)
+    remove(key: string) {
+        const overlay = this.#map.get(key)
+        if (!overlay) return
+        this.#svg.removeChild(overlay.element)
         this.#map.delete(key)
     }
     redraw() {
@@ -46,7 +57,7 @@ export class Overlayer {
             obj.rects = rects
         }
     }
-    hitTest({ x, y }) {
+    hitTest({ x, y }: { x: number; y: number }): [string, Range] | [] {
         const arr = Array.from(this.#map.entries())
         // loop in reverse to hit more recently added items first
         for (let i = arr.length - 1; i >= 0; i--) {
@@ -57,7 +68,7 @@ export class Overlayer {
         }
         return []
     }
-    static underline(rects, options: DrawOptions = {}) {
+    static underline(rects: Iterable<DOMRect>, options: DrawOptions = {}) {
         const { color = 'red', width: strokeWidth = 2, writingMode } = options
         const g = createSVGElement('g')
         g.setAttribute('fill', color)
@@ -80,7 +91,7 @@ export class Overlayer {
         }
         return g
     }
-    static strikethrough(rects, options: DrawOptions = {}) {
+    static strikethrough(rects: Iterable<DOMRect>, options: DrawOptions = {}) {
         const { color = 'red', width: strokeWidth = 2, writingMode } = options
         const g = createSVGElement('g')
         g.setAttribute('fill', color)
@@ -103,7 +114,7 @@ export class Overlayer {
         }
         return g
     }
-    static squiggly(rects, options: DrawOptions = {}) {
+    static squiggly(rects: Iterable<DOMRect>, options: DrawOptions = {}) {
         const { color = 'red', width: strokeWidth = 2, writingMode } = options
         const g = createSVGElement('g')
         g.setAttribute('fill', 'none')
@@ -131,7 +142,7 @@ export class Overlayer {
         }
         return g
     }
-    static highlight(rects, options: DrawOptions = {}) {
+    static highlight(rects: Iterable<DOMRect>, options: DrawOptions = {}) {
         const { color = 'red' } = options
         const g = createSVGElement('g')
         g.setAttribute('fill', color)
@@ -147,7 +158,7 @@ export class Overlayer {
         }
         return g
     }
-    static outline(rects, options: DrawOptions = {}) {
+    static outline(rects: Iterable<DOMRect>, options: DrawOptions = {}) {
         const { color = 'red', width: strokeWidth = 3, radius = 3 } = options
         const g = createSVGElement('g')
         g.setAttribute('fill', 'none')
@@ -168,8 +179,9 @@ export class Overlayer {
     // one can then apply filters to the entire element, without affecting them;
     // it's a bit silly and probably better to just invert images twice
     // (though the color will be off in that case if you do heu-rotate)
-    static copyImage([rect], options: DrawOptions = {}) {
-        const { src } = options
+    static copyImage([rect]: Iterable<DOMRect>, options: DrawOptions = {}) {
+        const { src = '' } = options
+        if (!rect) throw new Error('Cannot copy an image without its rectangle')
         const image = createSVGElement('image')
         const { left, top, height, width } = rect
         image.setAttribute('href', src)

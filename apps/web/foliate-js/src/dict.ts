@@ -1,6 +1,9 @@
 const decoder = new TextDecoder()
 const decode = decoder.decode.bind(decoder)
 
+type Inflate = (data: Uint8Array) => Uint8Array | Promise<Uint8Array>
+type Definition = { word: string; data: Array<[string, Uint8Array]> }
+
 const concatTypedArray = (a: Uint8Array, b: Uint8Array) => {
     const result = new Uint8Array(a.length + b.length)
     result.set(a)
@@ -8,17 +11,17 @@ const concatTypedArray = (a: Uint8Array, b: Uint8Array) => {
     return result
 }
 
-const strcmp = (a, b) => {
+const strcmp = (a: string, b: string): -1 | 0 | 1 => {
     a = a.toLowerCase(), b = b.toLowerCase()
     return a < b ? -1 : a > b ? 1 : 0
 }
 
 class DictZip {
-    #chlen
-    #chunks
-    #compressed
-    inflate
-    async load(file) {
+    #chlen = 0
+    #chunks: Array<[number, number]> = []
+    #compressed: Blob | undefined
+    inflate: Inflate | undefined
+    async load(file: Blob): Promise<void> {
         const header = new DataView(await file.slice(0, 12).arrayBuffer())
         if (header.getUint8(0) !== 31 || header.getUint8(1) !== 139
         || header.getUint8(2) !== 8) throw new Error('Not a DictZip file')
@@ -57,13 +60,19 @@ class DictZip {
         if (flg & 0b10) offset += 2 // fhcrc
         this.#compressed = file.slice(offset)
     }
-    async read(offset, size) {
+    async read(offset: number, size: number): Promise<Uint8Array> {
+        if (!this.#compressed || !this.inflate || !this.#chlen)
+            throw new Error('Dictionary data is not loaded')
+        if (!Number.isInteger(offset) || !Number.isInteger(size) || offset < 0 || size < 0)
+            throw new RangeError('Invalid dictionary data range')
+        if (!size) return new Uint8Array()
         const chunks = this.#chunks
         const startIndex = Math.trunc(offset / this.#chlen)
-        const endIndex = Math.trunc((offset + size) / this.#chlen)
-        const buf = await this.#compressed.slice(chunks[startIndex][0],
-            chunks[endIndex][0] + chunks[endIndex][1]).arrayBuffer()
-        let arr = new Uint8Array()
+        const endIndex = Math.trunc((offset + size - 1) / this.#chlen)
+        const startChunk = chunks[startIndex], endChunk = chunks[endIndex]
+        if (!startChunk || !endChunk) throw new RangeError('Dictionary range exceeds its chunks')
+        const buf = await this.#compressed.slice(startChunk[0], endChunk[0] + endChunk[1]).arrayBuffer()
+        let arr: Uint8Array = new Uint8Array()
         for (let pos = 0, i = startIndex; i <= endIndex; i++) {
             const data = new Uint8Array(buf, pos, chunks[i][1])
             arr = concatTypedArray(arr, await this.inflate(data))
@@ -74,28 +83,28 @@ class DictZip {
     }
 }
 
-abstract class Index {
-    abstract words: unknown[]
+abstract class Index<Word> {
+    abstract words: Word[]
     abstract getWord(i: number): string | undefined
     strcmp = strcmp
     // binary search
-    bisect(query, start = 0, end = this.words.length - 1) {
-        if (end - start === 1) {
-            if (!this.strcmp(query, this.getWord(start))) return start
-            if (!this.strcmp(query, this.getWord(end))) return end
-            return null
+    bisect(query: string, start = 0, end = this.words.length - 1): number | null {
+        while (start <= end) {
+            const mid = Math.floor(start + (end - start) / 2)
+            const word = this.getWord(mid)
+            if (word === undefined) return null
+            const cmp = this.strcmp(query, word)
+            if (cmp < 0) end = mid - 1
+            else if (cmp > 0) start = mid + 1
+            else return mid
         }
-        const mid = Math.floor(start + (end - start) / 2)
-        const cmp = this.strcmp(query, this.getWord(mid))
-        if (cmp < 0) return this.bisect(query, start, mid)
-        if (cmp > 0) return this.bisect(query, mid, end)
-        return mid
+        return null
     }
     // check for multiple definitions
-    checkAdjacent(query, i) {
+    checkAdjacent(query: string, i: number | null): number[] {
         if (i == null) return []
         let j = i
-        const equals = i => {
+        const equals = (i: number) => {
             const word = this.getWord(i)
             return word ? this.strcmp(query, word) === 0 : false
         }
@@ -104,12 +113,12 @@ abstract class Index {
         while (equals(k + 1)) k++
         return j === k ? [i] : Array.from({ length: k + 1 - j }, (_, i) => j + i)
     }
-    lookup(query) {
+    lookup(query: string) {
         return this.checkAdjacent(query, this.bisect(query))
     }
 }
 
-const decodeBase64Number = str => {
+const decodeBase64Number = (str: string): number => {
     const { length } = str
     let n = 0
     for (let i = 0; i < length; i++) {
@@ -124,24 +133,22 @@ const decodeBase64Number = str => {
     return n
 }
 
-class DictdIndex extends Index {
-    declare words: Array<any>;
-    declare offsets: Array<number>;
-    declare sizes: Array<number>;
-    declare strcmp: (a: any, b: any) => 0 | 1 | -1;
-    declare bisect: (query: any, start?: number, end?: number) => any;
-    declare checkAdjacent: (query: any, i: any) => Array<any>;
-    declare lookup: (query: any) => Array<any>;
+class DictdIndex extends Index<string> {
+    words: string[] = []
+    offsets: number[] = []
+    sizes: number[] = []
 
-    getWord(i) {
+    getWord(i: number): string | undefined {
         return this.words[i]
     }
-    async load(file) {
-        const words = []
-        const offsets = []
-        const sizes = []
+    async load(file: Blob): Promise<void> {
+        const words: string[] = []
+        const offsets: number[] = []
+        const sizes: number[] = []
         for (const line of decode(await file.arrayBuffer()).split('\n')) {
+            if (!line) continue
             const a = line.split('\t')
+            if (a.length < 3) throw new Error('Invalid dictionary index entry')
             words.push(a[0])
             offsets.push(decodeBase64Number(a[1]))
             sizes.push(decodeBase64Number(a[2]))
@@ -155,49 +162,49 @@ class DictdIndex extends Index {
 export class DictdDict {
     #dict = new DictZip()
     #idx = new DictdIndex()
-    loadDict(file, inflate) {
+    loadDict(file: Blob, inflate: Inflate) {
         this.#dict.inflate = inflate
         return this.#dict.load(file)
     }
-    async #readWord(i) {
+    loadIdx(file: Blob) {
+        return this.#idx.load(file)
+    }
+    async #readWord(i: number): Promise<{ word: string; data: [string, Promise<Uint8Array>] }> {
         const word = this.#idx.getWord(i)
+        if (word === undefined) throw new Error('Dictionary index entry does not exist')
         const offset = this.#idx.offsets[i]
         const size = this.#idx.sizes[i]
         return { word, data: ['m', this.#dict.read(offset, size)] }
     }
-    #readWords(arr) {
+    #readWords(arr: number[]) {
         return Promise.all(arr.map(this.#readWord.bind(this)))
     }
-    lookup(query) {
+    lookup(query: string) {
         return this.#readWords(this.#idx.lookup(query))
     }
 }
 
-class StarDictIndex extends Index {
-    declare words: Array<Array<number>>;
-    declare offsets: Array<number>;
-    declare sizes: Array<number>;
-    declare strcmp: (a: any, b: any) => 0 | 1 | -1;
-    declare bisect: (query: any, start?: number, end?: number) => any;
-    declare checkAdjacent: (query: any, i: any) => Array<any>;
-    declare lookup: (query: any) => Array<any>;
+class StarDictIndex extends Index<[number, number]> {
+    words: Array<[number, number]> = []
+    offsets: number[] = []
+    sizes: number[] = []
 
-    isSyn
-    #arr
-    getWord(i) {
+    isSyn = false
+    #arr = new Uint8Array()
+    getWord(i: number): string | undefined {
         const word = this.words[i]
         if (!word) return
         return decode(this.#arr.subarray(word[0], word[1]))
     }
-    async load(file) {
+    async load(file: Blob): Promise<void> {
         const { isSyn } = this
         const buf = await file.arrayBuffer()
         const arr = new Uint8Array(buf)
         this.#arr = arr
         const view = new DataView(buf)
-        const words = []
-        const offsets = []
-        const sizes = []
+        const words: Array<[number, number]> = []
+        const offsets: number[] = []
+        const sizes: number[] = []
         for (let i = 0; i < arr.length;) {
             const newI = arr.subarray(0, i + 256).indexOf(0, i)
             if (newI < 0) throw new Error('Word too big')
@@ -216,31 +223,32 @@ class StarDictIndex extends Index {
 }
 
 export class StarDict {
-    declare ifo: { [k: string]: any; };
+    ifo: Record<string, string> = {}
 
     #dict = new DictZip()
     #idx = new StarDictIndex()
     #syn = Object.assign(new StarDictIndex(), { isSyn: true })
-    async loadIfo(file) {
+    async loadIfo(file: Blob): Promise<void> {
         const str = decode(await file.arrayBuffer())
-        this.ifo = Object.fromEntries(str.split('\n').map(line => {
+        this.ifo = Object.fromEntries(str.split('\n').flatMap(line => {
             const sep = line.indexOf('=')
-            if (sep < 0) return
-            return [line.slice(0, sep), line.slice(sep + 1)]
-        }).filter(x => x))
+            if (sep < 0) return []
+            return [[line.slice(0, sep), line.slice(sep + 1)]]
+        }))
     }
-    loadDict(file, inflate) {
+    loadDict(file: Blob, inflate: Inflate) {
         this.#dict.inflate = inflate
         return this.#dict.load(file)
     }
-    loadIdx(file) {
+    loadIdx(file: Blob) {
         return this.#idx.load(file)
     }
-    loadSyn(file) {
+    loadSyn(file?: Blob | null) {
         if (file) return this.#syn.load(file)
     }
-    async #readWord(i) {
+    async #readWord(i: number): Promise<Definition> {
         const word = this.#idx.getWord(i)
+        if (word === undefined) throw new Error('Dictionary index entry does not exist')
         const offset = this.#idx.offsets[i]
         const size = this.#idx.sizes[i]
         const data = await this.#dict.read(offset, size)
@@ -249,13 +257,13 @@ export class StarDict {
         if (seq.length === 1) return { word, data: [[seq[0], data]] }
         throw new Error('TODO')
     }
-    #readWords(arr) {
+    #readWords(arr: number[]) {
         return Promise.all(arr.map(this.#readWord.bind(this)))
     }
-    lookup(query) {
+    lookup(query: string) {
         return this.#readWords(this.#idx.lookup(query))
     }
-    synonyms(query) {
+    synonyms(query: string) {
         return this.#readWords(this.#syn.lookup(query).map(i => this.#syn.offsets[i]))
     }
 }

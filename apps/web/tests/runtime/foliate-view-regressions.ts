@@ -81,6 +81,33 @@ export async function runViewRegressions(modules: Modules): Promise<Result[]> {
     } finally { await view.close(); view.remove(); await book.destroy?.(); }
   });
 
+  for (const { name, flow, style } of [
+    { name: 'scrolled', flow: 'scrolled', style: '' },
+    { name: 'paginated', flow: 'paginated', style: '' },
+    { name: 'RTL paginated', flow: 'paginated', style: 'direction: rtl;' },
+    { name: 'vertical paginated', flow: 'paginated', style: 'writing-mode: vertical-rl;' },
+  ]) await check(`restoring a ${name} CFI repeatedly preserves the first visible text`, async () => {
+    const { book } = fixture([`<style>body { font: 18px/30px monospace; ${style} } p { margin: 0; }</style><p>${'Readable words on a stable line. '.repeat(800)}</p>`]);
+    const view = mount();
+    try {
+      await view.open(book);
+      view.renderer?.setAttribute('flow', flow);
+      await view.goToFraction(0.3);
+      const initial = view.lastLocation;
+      if (!initial) throw new Error('Missing initial reading location');
+      const startOffset = initial.range.startOffset;
+      for (let attempt = 0; attempt < 4; attempt++) {
+        const cfi = view.lastLocation?.cfi;
+        if (!cfi) throw new Error('Missing saved CFI');
+        await view.close();
+        await view.open(book);
+        view.renderer?.setAttribute('flow', flow);
+        await view.init({ lastLocation: cfi });
+        equal(view.lastLocation?.range.startOffset, startOffset);
+      }
+    } finally { await view.close(); view.remove(); await book.destroy?.(); }
+  });
+
   await check('View search draws and clears typed annotations without TOC metadata', async () => {
     const { book } = fixture();
     const view = mount();

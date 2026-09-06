@@ -25,18 +25,16 @@ const makeRange = (doc, node, start, end = start) => {
     range.setEnd(node, end);
     return range;
 };
-// use binary search to find an offset value in a text node
-const bisectNode = (doc, node, cb, start = 0, end = node.nodeValue?.length ?? 0) => {
-    if (end <= start)
-        return start;
-    if (end - start === 1) {
-        const result = cb(makeRange(doc, node, start), makeRange(doc, node, end));
-        return result < 0 ? start : end;
+const firstMatchingOffset = (length, matches) => {
+    let start = 0, end = length;
+    while (start < end) {
+        const mid = Math.floor(start + (end - start) / 2);
+        if (matches(mid))
+            end = mid;
+        else
+            start = mid + 1;
     }
-    const mid = Math.floor(start + (end - start) / 2);
-    const result = cb(makeRange(doc, node, start, mid), makeRange(doc, node, mid, end));
-    return result < 0 ? bisectNode(doc, node, cb, start, mid)
-        : result > 0 ? bisectNode(doc, node, cb, mid, end) : mid;
+    return start;
 };
 const { SHOW_ELEMENT, SHOW_TEXT, SHOW_CDATA_SECTION, FILTER_ACCEPT, FILTER_REJECT, FILTER_SKIP } = NodeFilter;
 const filter = SHOW_ELEMENT | SHOW_TEXT | SHOW_CDATA_SECTION;
@@ -95,23 +93,12 @@ export const getVisibleRange = (doc, start, end, mapRect) => {
     // we're only interested in the first and last visible nodes
     const from = nodes[0] ?? doc.body;
     const to = nodes[nodes.length - 1] ?? from;
-    // find the offset at which visibility changes
+    // Compare glyph extents, not collapsed carets: every character on a scrolled
+    // line has the same top, and choosing its last caret drifts on every restore.
     const startOffset = from.nodeType === 1 ? 0
-        : bisectNode(doc, from, (a, b) => {
-            const p = mapRect(getBoundingClientRect(a));
-            const q = mapRect(getBoundingClientRect(b));
-            if (p.right < start && q.left > start)
-                return 0;
-            return q.left > start ? -1 : 1;
-        });
+        : firstMatchingOffset(from.nodeValue?.length ?? 0, offset => mapRect(getBoundingClientRect(makeRange(doc, from, 0, offset + 1))).right > start);
     const endOffset = to.nodeType === 1 ? 0
-        : bisectNode(doc, to, (a, b) => {
-            const p = mapRect(getBoundingClientRect(a));
-            const q = mapRect(getBoundingClientRect(b));
-            if (p.right < end && q.left > end)
-                return 0;
-            return q.left > end ? -1 : 1;
-        });
+        : firstMatchingOffset(to.nodeValue?.length ?? 0, offset => mapRect(getBoundingClientRect(makeRange(doc, to, offset, to.nodeValue?.length ?? 0))).left >= end);
     const range = doc.createRange();
     range.setStart(from, startOffset);
     range.setEnd(to, endOffset);

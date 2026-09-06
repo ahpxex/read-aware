@@ -83,6 +83,11 @@ export type Rendition = {
     flow?: string
     viewport?: string | { width?: string | number; height?: string | number }
 }
+export type ResourceTransformDetail = {
+    name: string
+    type: string
+    data: MaybePromise<string | Blob>
+}
 
 export interface Book {
     sections: BookSection[]
@@ -92,6 +97,7 @@ export interface Book {
     landmarks?: TOCItem[] | null
     rendition?: Rendition
     dir?: string | null
+    transformTarget?: EventTarget
     getCover?: () => MaybePromise<Blob | null | undefined>
     resolveHref?: (href: string) => MaybePromise<ResolvedNavigation | null | undefined>
     resolveCFI?: (cfi: string) => ResolvedNavigation

@@ -48,7 +48,7 @@ export async function runEPUBRegressions(modules: Modules): Promise<Result[]> {
 
   for (const name of ["santi", "karamazov", "lebon", "refactoring", "berger"]) {
     await check(`EPUB existing fixture ${name}: ZIP, first chapter, resources and CFI`, async () => {
-      const response = await fetch(`/@fs/Users/ahpx/Code/read-aware/packages/agent/fixtures/${name}.epub`);
+      const response = await fetch(new URL(`../../../../packages/agent/fixtures/${name}.epub`, import.meta.url));
       if (!response.ok) throw new Error(`Fixture read failed: ${response.status}`);
       const book: Book = await modules.view.makeBook(new File([await response.blob()], `${name}.epub`));
       const view = mount();

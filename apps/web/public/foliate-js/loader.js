@@ -6,7 +6,7 @@
 // relative imports resolve here under `/foliate-js/`, and it registers the
 // `<foliate-view>` custom element (side effect of importing view.js) and hangs
 // the entry points off the global for the app to pick up.
-import { makeBook } from "./view.js";
+import { makeBook, View } from "./view.js";
 import { Overlayer } from "./overlayer.js";
 import { FootnoteHandler } from "./footnotes.js";
-globalThis.__readawareFoliate = { makeBook, Overlayer, FootnoteHandler };
+globalThis.__readawareFoliate = { makeBook, View, Overlayer, FootnoteHandler };

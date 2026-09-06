@@ -11,7 +11,7 @@ type Styles = string | [string, string] | null | undefined
 
 type TouchState = { x: number; y: number; t: number; vx: number; vy: number; pinched?: boolean }
 
-type DisplayTarget = ResolvedNavigation & { src?: string; onLoad?: (detail: LoadDetail) => void }
+type DisplayTarget = ResolvedNavigation & { src?: string; release?: () => void; onLoad?: (detail: LoadDetail) => void }
 
 const wait = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms))
 
@@ -76,6 +76,7 @@ export class Paginator extends HTMLElement {
     #header: HTMLElement
     #footer: HTMLElement
     #view: SectionView | null = null
+    #releaseSection: (() => void) | undefined
     #vertical = false
     #rtl = false
     #margin = 0
@@ -660,13 +661,16 @@ export class Paginator extends HTMLElement {
         this.dispatchEvent(new CustomEvent('relocate', { detail }))
     }
     async #display(promise: MaybePromise<DisplayTarget>, navigation: number) {
-        const { index, src, anchor, onLoad, select } = await promise
-        if (navigation !== this.#navigation) return
+        const { index, src, anchor, onLoad, select, release } = await promise
+        if (navigation !== this.#navigation) { release?.(); return }
         this.#index = index
         const hasFocus = this.#view?.document?.hasFocus()
         if (src) {
             const view = this.#createView()
+            this.#releaseSection?.()
+            this.#releaseSection = release
             const afterLoad = (doc: Document) => {
+                if (navigation !== this.#navigation) return
                 if (doc.head) {
                     const $styleBefore = doc.createElement('style')
                     doc.head.prepend($styleBefore)
@@ -679,6 +683,13 @@ export class Paginator extends HTMLElement {
             const beforeRender = this.#beforeRender.bind(this)
             try { await view.load(src, afterLoad, beforeRender) }
             catch (error) {
+                if (this.#view === view) {
+                    view.destroy()
+                    view.element.remove()
+                    this.#view = null
+                    this.#releaseSection?.()
+                    this.#releaseSection = undefined
+                }
                 // A superseding navigation or close deliberately cancels this view.
                 if (navigation !== this.#navigation) return
                 throw error
@@ -705,16 +716,22 @@ export class Paginator extends HTMLElement {
         if (!this.#canGoToIndex(index)) return
         if (index === this.#index && this.#view?.ready) await this.#display({ index, anchor, select }, navigation)
         else {
-            const oldIndex = this.#index
             const onLoad = (detail: LoadDetail) => {
-                this.sections[oldIndex]?.unload?.()
                 this.setStyles(this.#styles)
                 this.dispatchEvent(new CustomEvent('load', { detail }))
             }
-            await this.#display(Promise.resolve(this.sections[index].load())
+            const section = this.sections[index]
+            await this.#display(Promise.resolve(section.load())
                 .then(src => {
-                    if (typeof src !== 'string') throw new Error('Reflowable section must load a document URL')
-                    return { index, src, anchor, onLoad, select }
+                    if (typeof src !== 'string') {
+                        section.unload?.()
+                        throw new Error('Reflowable section must load a document URL')
+                    }
+                    let released = false
+                    const release = () => {
+                        if (!released) { released = true; section.unload?.() }
+                    }
+                    return { index, src, anchor, onLoad, select, release }
                 }), navigation)
         }
     }
@@ -833,7 +850,8 @@ export class Paginator extends HTMLElement {
         this.#view?.destroy()
         this.#view?.element.remove()
         this.#view = null
-        this.sections[this.#index]?.unload?.()
+        this.#releaseSection?.()
+        this.#releaseSection = undefined
         this.#mediaQuery.removeEventListener('change', this.#mediaQueryListener)
     }
 }

@@ -58,6 +58,7 @@ export class Paginator extends HTMLElement {
     #header;
     #footer;
     #view = null;
+    #releaseSection;
     #vertical = false;
     #rtl = false;
     #margin = 0;
@@ -645,14 +646,20 @@ export class Paginator extends HTMLElement {
         this.dispatchEvent(new CustomEvent('relocate', { detail }));
     }
     async #display(promise, navigation) {
-        const { index, src, anchor, onLoad, select } = await promise;
-        if (navigation !== this.#navigation)
+        const { index, src, anchor, onLoad, select, release } = await promise;
+        if (navigation !== this.#navigation) {
+            release?.();
             return;
+        }
         this.#index = index;
         const hasFocus = this.#view?.document?.hasFocus();
         if (src) {
             const view = this.#createView();
+            this.#releaseSection?.();
+            this.#releaseSection = release;
             const afterLoad = (doc) => {
+                if (navigation !== this.#navigation)
+                    return;
                 if (doc.head) {
                     const $styleBefore = doc.createElement('style');
                     doc.head.prepend($styleBefore);
@@ -667,6 +674,13 @@ export class Paginator extends HTMLElement {
                 await view.load(src, afterLoad, beforeRender);
             }
             catch (error) {
+                if (this.#view === view) {
+                    view.destroy();
+                    view.element.remove();
+                    this.#view = null;
+                    this.#releaseSection?.();
+                    this.#releaseSection = undefined;
+                }
                 // A superseding navigation or close deliberately cancels this view.
                 if (navigation !== this.#navigation)
                     return;
@@ -699,17 +713,25 @@ export class Paginator extends HTMLElement {
         if (index === this.#index && this.#view?.ready)
             await this.#display({ index, anchor, select }, navigation);
         else {
-            const oldIndex = this.#index;
             const onLoad = (detail) => {
-                this.sections[oldIndex]?.unload?.();
                 this.setStyles(this.#styles);
                 this.dispatchEvent(new CustomEvent('load', { detail }));
             };
-            await this.#display(Promise.resolve(this.sections[index].load())
+            const section = this.sections[index];
+            await this.#display(Promise.resolve(section.load())
                 .then(src => {
-                if (typeof src !== 'string')
+                if (typeof src !== 'string') {
+                    section.unload?.();
                     throw new Error('Reflowable section must load a document URL');
-                return { index, src, anchor, onLoad, select };
+                }
+                let released = false;
+                const release = () => {
+                    if (!released) {
+                        released = true;
+                        section.unload?.();
+                    }
+                };
+                return { index, src, anchor, onLoad, select, release };
             }), navigation);
         }
     }
@@ -844,7 +866,8 @@ export class Paginator extends HTMLElement {
         this.#view?.destroy();
         this.#view?.element.remove();
         this.#view = null;
-        this.sections[this.#index]?.unload?.();
+        this.#releaseSection?.();
+        this.#releaseSection = undefined;
         this.#mediaQuery.removeEventListener('change', this.#mediaQueryListener);
     }
 }

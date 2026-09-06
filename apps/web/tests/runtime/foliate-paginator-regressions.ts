@@ -62,8 +62,9 @@ export async function runPaginatorRegressions(PaginatorClass: typeof Paginator):
     let complete: (url: string) => void = () => { throw new Error("Load not started"); };
     const loading = new Promise<string>(resolve => { complete = resolve; });
     const renderer = mount();
+    let released = 0;
     try {
-      renderer.open({ sections: [{ id: 0, size: 10, load: () => loading }, { id: 1, size: 10, load: () => urls[1] }] });
+      renderer.open({ sections: [{ id: 0, size: 10, load: () => loading, unload: () => { released++; } }, { id: 1, size: 10, load: () => urls[1] }] });
       const first = renderer.goTo({ index: 0 });
       await Promise.resolve();
       await renderer.goTo({ index: 1 });
@@ -71,6 +72,7 @@ export async function runPaginatorRegressions(PaginatorClass: typeof Paginator):
       await first;
       equal(renderer.getContents()[0]?.index, 1);
       equal(renderer.getContents()[0]?.doc.querySelector("p")?.textContent, "Current");
+      equal(released, 1);
     } finally { dispose(renderer, urls); }
   });
 

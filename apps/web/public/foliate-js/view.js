@@ -1,642 +1,409 @@
 import * as CFI from './epubcfi.js';
+import { makeBook } from './book-loader.js';
 import { TOCProgress, SectionProgress } from './progress.js';
 import { Overlayer } from './overlayer.js';
 import { textWalker } from './text-walker.js';
+import { History } from './history.js';
+import { CursorAutohider } from './cursor-autohider.js';
+import { anchorRange, anchorValue, eventElement, languageInfo } from './navigation.js';
+import { ViewMedia } from './view-media.js';
+import { searchBook } from './book-search.js';
+export { makeBook, ResponseError, NotFoundError, UnsupportedTypeError } from './book-loader.js';
 const SEARCH_PREFIX = 'foliate-search:';
-const isZip = async (file) => {
-    const arr = new Uint8Array(await file.slice(0, 4).arrayBuffer());
-    return arr[0] === 0x50 && arr[1] === 0x4b && arr[2] === 0x03 && arr[3] === 0x04;
-};
-const isPDF = async (file) => {
-    const arr = new Uint8Array(await file.slice(0, 5).arrayBuffer());
-    return arr[0] === 0x25
-        && arr[1] === 0x50 && arr[2] === 0x44 && arr[3] === 0x46
-        && arr[4] === 0x2d;
-};
-const isCBZ = ({ name, type }) => type === 'application/vnd.comicbook+zip' || name.endsWith('.cbz');
-const isFB2 = ({ name, type }) => type === 'application/x-fictionbook+xml' || name.endsWith('.fb2');
-const isFBZ = ({ name, type }) => type === 'application/x-zip-compressed-fb2'
-    || name.endsWith('.fb2.zip') || name.endsWith('.fbz');
-const makeZipLoader = async (file) => {
-    const { configure, ZipReader, BlobReader, TextWriter, BlobWriter } = await import('./vendor/zip.js');
-    configure({ useWebWorkers: false });
-    const reader = new ZipReader(new BlobReader(file));
-    const entries = await reader.getEntries();
-    const map = new Map(entries.map(entry => [entry.filename, entry]));
-    const load = f => (name, ...args) => map.has(name) ? f(map.get(name), ...args) : null;
-    const loadText = load(entry => entry.getData(new TextWriter()));
-    const loadBlob = load((entry, type) => entry.getData(new BlobWriter(type)));
-    const getSize = name => map.get(name)?.uncompressedSize ?? 0;
-    return { entries, loadText, loadBlob, getSize };
-};
-const getFileEntries = async (entry) => entry.isFile ? entry
-    : (await Promise.all(Array.from(await new Promise((resolve, reject) => entry.createReader()
-        .readEntries(entries => resolve(entries), error => reject(error))), getFileEntries))).flat();
-const makeDirectoryLoader = async (entry) => {
-    const entries = await getFileEntries(entry);
-    const files = await Promise.all(entries.map(entry => new Promise((resolve, reject) => entry.file(file => resolve([file, entry.fullPath]), error => reject(error)))));
-    const map = new Map(files.map(([file, path]) => [path.replace(entry.fullPath + '/', ''), file]));
-    const decoder = new TextDecoder();
-    const decode = x => x ? decoder.decode(x) : null;
-    const getBuffer = name => map.get(name)?.arrayBuffer() ?? null;
-    const loadText = async (name) => decode(await getBuffer(name));
-    const loadBlob = name => map.get(name);
-    const getSize = name => map.get(name)?.size ?? 0;
-    return { loadText, loadBlob, getSize };
-};
-export class ResponseError extends Error {
-}
-export class NotFoundError extends Error {
-}
-export class UnsupportedTypeError extends Error {
-}
-const fetchFile = async (url) => {
-    const res = await fetch(url);
-    if (!res.ok)
-        throw new ResponseError(`${res.status} ${res.statusText}`, { cause: res });
-    return new File([await res.blob()], new URL(res.url).pathname);
-};
-export const makeBook = async (file) => {
-    if (typeof file === 'string')
-        file = await fetchFile(file);
-    let book;
-    if (file.isDirectory) {
-        const loader = await makeDirectoryLoader(file);
-        const { EPUB } = await import('./epub.js');
-        book = await new EPUB(loader).init();
-    }
-    else if (!file.size)
-        throw new NotFoundError('File not found');
-    else if (await isZip(file)) {
-        const loader = await makeZipLoader(file);
-        if (isCBZ(file)) {
-            const { makeComicBook } = await import('./comic-book.js');
-            book = makeComicBook(loader, file);
-        }
-        else if (isFBZ(file)) {
-            const { makeFB2 } = await import('./fb2.js');
-            const { entries } = loader;
-            const entry = entries.find(entry => entry.filename.endsWith('.fb2'));
-            const blob = await loader.loadBlob((entry ?? entries[0]).filename);
-            book = await makeFB2(blob);
-        }
-        else {
-            const { EPUB } = await import('./epub.js');
-            book = await new EPUB(loader).init();
-        }
-    }
-    else if (await isPDF(file)) {
-        const { makePDF } = await import('./pdf.js');
-        book = await makePDF(file);
-    }
-    else {
-        const { isMOBI, MOBI } = await import('./mobi.js');
-        if (await isMOBI(file)) {
-            const fflate = await import('./vendor/fflate.js');
-            book = await new MOBI({ unzlib: fflate.unzlibSync }).open(file);
-        }
-        else if (isFB2(file)) {
-            const { makeFB2 } = await import('./fb2.js');
-            book = await makeFB2(file);
-        }
-    }
-    if (!book)
-        throw new UnsupportedTypeError('File type not supported');
-    return book;
-};
-class CursorAutohider {
-    #timeout;
-    #el;
-    #check;
-    #state;
-    constructor(el, check, state = {}) {
-        this.#el = el;
-        this.#check = check;
-        this.#state = state;
-        if (this.#state.hidden)
-            this.hide();
-        this.#el.addEventListener('mousemove', ({ screenX, screenY }) => {
-            // check if it actually moved
-            if (screenX === this.#state.x && screenY === this.#state.y)
-                return;
-            this.#state.x = screenX, this.#state.y = screenY;
-            this.show();
-            if (this.#timeout)
-                clearTimeout(this.#timeout);
-            if (check())
-                this.#timeout = setTimeout(this.hide.bind(this), 1000);
-        }, false);
-    }
-    cloneFor(el) {
-        return new CursorAutohider(el, this.#check, this.#state);
-    }
-    hide() {
-        this.#el.style.cursor = 'none';
-        this.#state.hidden = true;
-    }
-    show() {
-        this.#el.style.removeProperty('cursor');
-        this.#state.hidden = false;
-    }
-}
-class History extends EventTarget {
-    #arr = [];
-    #index = -1;
-    pushState(x) {
-        const last = this.#arr[this.#index];
-        if (last === x || last?.fraction && last.fraction === x.fraction)
-            return;
-        this.#arr[++this.#index] = x;
-        this.#arr.length = this.#index + 1;
-        this.dispatchEvent(new Event('index-change'));
-    }
-    replaceState(x) {
-        const index = this.#index;
-        this.#arr[index] = x;
-    }
-    back() {
-        const index = this.#index;
-        if (index <= 0)
-            return;
-        const detail = { state: this.#arr[index - 1] };
-        this.#index = index - 1;
-        this.dispatchEvent(new CustomEvent('popstate', { detail }));
-        this.dispatchEvent(new Event('index-change'));
-    }
-    forward() {
-        const index = this.#index;
-        if (index >= this.#arr.length - 1)
-            return;
-        const detail = { state: this.#arr[index + 1] };
-        this.#index = index + 1;
-        this.dispatchEvent(new CustomEvent('popstate', { detail }));
-        this.dispatchEvent(new Event('index-change'));
-    }
-    get canGoBack() {
-        return this.#index > 0;
-    }
-    get canGoForward() {
-        return this.#index < this.#arr.length - 1;
-    }
-    clear() {
-        this.#arr = [];
-        this.#index = -1;
-    }
-}
-const languageInfo = lang => {
-    if (!lang)
-        return {};
-    try {
-        const canonical = Intl.getCanonicalLocales(lang)[0];
-        const locale = new Intl.Locale(canonical);
-        const isCJK = ['zh', 'ja', 'kr'].includes(locale.language);
-        const localeWithTextInfo = locale;
-        const direction = (localeWithTextInfo.getTextInfo?.()
-            ?? localeWithTextInfo.textInfo)?.direction;
-        return { canonical, locale, isCJK, direction };
-    }
-    catch (e) {
-        console.warn(e);
-        return {};
-    }
-};
+const aborted = () => new DOMException('View was closed or replaced', 'AbortError');
 export class View extends HTMLElement {
+    #book;
+    #ownedBook;
+    #renderer;
     #root = this.attachShadow({ mode: 'closed' });
+    #generation = 0;
+    #navigation = 0;
+    #events = new AbortController();
     #sectionProgress;
     #tocProgress;
     #pageProgress;
+    #searchController = new AbortController();
     #searchResults = new Map();
-    #searchDraw;
-    #searchDrawOptions;
+    #searchDraw = Overlayer.outline;
+    #searchDrawOptions = {};
     #cursorAutohider = new CursorAutohider(this, () => this.hasAttribute('autohide-cursor'));
-    // READAWARE: the fixed-layout renderer keeps section documents alive in
-    // its spread cache and re-announces 'load' each time one becomes current
-    // again. Per-document setup (link handling, cursor autohide) must run
-    // once per document, not once per announcement.
+    #documentCursors = new Set();
     #docsSetup = new WeakSet();
-    // READAWARE: a re-rendered page (PDF zoom, palette change) gets a fresh
-    // overlayer on the same long-lived document; its hit-testing click
-    // listener must replace the previous one, not stack on it.
     #overlayerClickHandlers = new WeakMap();
-    // READAWARE: raw detail of the last relocation, for the deferred TOC
-    // progress init to re-announce once its data is ready.
-    #lastRelocateDetail = null;
+    #lastRelocateDetail;
+    #media;
+    language = {};
     isFixedLayout = false;
-    lastLocation;
+    lastLocation = null;
+    tts;
     history = new History();
+    get book() { return this.#book; }
+    get renderer() { return this.#renderer; }
+    get mediaOverlay() { return this.#media?.overlay; }
+    #requireBook() {
+        if (!this.#book)
+            throw new Error('No book is open');
+        return this.#book;
+    }
+    #requireRenderer() {
+        if (!this.#renderer)
+            throw new Error('No renderer is open');
+        return this.#renderer;
+    }
     constructor() {
         super();
         this.history.addEventListener('popstate', event => {
-            const { detail } = event;
-            const resolved = this.resolveNavigation(detail.state);
-            this.renderer.goTo(resolved);
+            const { state } = event.detail;
+            void this.#navigate(state).catch(error => console.error('Could not restore navigation history', error));
         });
     }
-    async open(book) {
-        if (typeof book === 'string'
-            || typeof book.arrayBuffer === 'function'
-            || book.isDirectory)
-            book = await makeBook(book);
-        this.book = book;
+    async open(input) {
+        const closing = this.close();
+        const generation = this.#generation;
+        await closing;
+        if (generation !== this.#generation)
+            throw aborted();
+        const owned = typeof input === 'string' || !('sections' in input);
+        const book = typeof input === 'string' || !('sections' in input) ? await makeBook(input) : input;
+        if (generation !== this.#generation) {
+            if (owned)
+                await book.destroy?.();
+            throw aborted();
+        }
+        this.#book = book;
+        this.#ownedBook = owned ? book : undefined;
         this.language = languageInfo(book.metadata?.language);
-        if (book.splitTOCHref && book.getTOCFragment) {
-            const ids = book.sections.map(s => s.id);
-            this.#sectionProgress = new SectionProgress(book.sections, 1500, 1600);
-            const splitHref = book.splitTOCHref.bind(book);
-            const getFragment = book.getTOCFragment.bind(book);
-            this.#tocProgress = new TOCProgress();
-            this.#pageProgress = new TOCProgress();
-            // READAWARE: deferred, off the open critical path. Resolving a TOC
-            // entry costs worker round-trips for PDFs (getDestination +
-            // getPageIndex), and a large outline serialized those ahead of the
-            // first paint — a 15 MB book with hundreds of outline entries took
-            // seconds to open on exactly this loop. Progress lookups answer
-            // undefined until ready; once ready, the current location is
-            // re-announced as a re-layout ('anchor') so chapter labels and the
-            // TOC highlight fill themselves in.
-            void Promise.all([
-                this.#tocProgress.init({
-                    toc: book.toc ?? [], ids, splitHref, getFragment
-                }),
-                this.#pageProgress.init({
-                    toc: book.pageList ?? [], ids, splitHref, getFragment
-                }),
-            ]).then(() => {
-                if (this.#lastRelocateDetail)
-                    this.#onRelocate({ ...this.#lastRelocateDetail, reason: 'anchor' });
-            }).catch(error => console.error(error));
+        this.#sectionProgress = new SectionProgress(book.sections, 1500, 1600);
+        this.isFixedLayout = book.rendition?.layout === 'pre-paginated';
+        try {
+            const renderer = this.isFixedLayout
+                ? new (await import('./fixed-layout.js')).FixedLayout()
+                : new (await import('./paginator.js')).Paginator();
+            if (generation !== this.#generation) {
+                renderer.destroy();
+                throw aborted();
+            }
+            this.#renderer = renderer;
+            renderer.setAttribute('exportparts', 'head,foot,filter');
+            const options = { signal: this.#events.signal };
+            renderer.addEventListener('load', event => this.#onLoad(event.detail), options);
+            renderer.addEventListener('relocate', event => this.#onRelocate(event.detail), options);
+            renderer.addEventListener('create-overlayer', event => {
+                const detail = event.detail;
+                detail.attach(this.#createOverlayer(detail));
+            }, options);
+            renderer.open(book);
+            this.#root.append(renderer);
+            this.#initProgress(book, generation);
+            if (book.sections.some(section => section.mediaOverlay))
+                this.#media = new ViewMedia(book, href => this.#navigate(href), () => renderer.getContents());
         }
-        this.isFixedLayout = this.book.rendition?.layout === 'pre-paginated';
-        if (this.isFixedLayout) {
-            await import('./fixed-layout.js');
-            this.renderer = document.createElement('foliate-fxl');
+        catch (error) {
+            if (generation === this.#generation)
+                await this.close();
+            throw error;
         }
-        else {
-            await import('./paginator.js');
-            this.renderer = document.createElement('foliate-paginator');
-        }
-        this.renderer.setAttribute('exportparts', 'head,foot,filter');
-        this.renderer.addEventListener('load', event => this.#onLoad(event.detail));
-        this.renderer.addEventListener('relocate', event => this.#onRelocate(event.detail));
-        this.renderer.addEventListener('create-overlayer', event => {
-            const { detail } = event;
-            detail.attach(this.#createOverlayer(detail));
-        });
-        this.renderer.open(book);
-        this.#root.append(this.renderer);
-        if (book.sections.some(section => section.mediaOverlay)) {
-            const activeClass = book.media.activeClass;
-            const playbackActiveClass = book.media.playbackActiveClass;
-            this.mediaOverlay = book.getMediaOverlay();
-            let lastActive;
-            this.mediaOverlay.addEventListener('highlight', (e) => {
-                const resolved = this.resolveNavigation(e.detail.text);
-                this.renderer.goTo(resolved)
-                    .then(() => {
-                    const { doc } = this.renderer.getContents()
-                        .find(x => x.index === resolved.index);
-                    const el = resolved.anchor(doc);
-                    el.classList.add(activeClass);
-                    if (playbackActiveClass)
-                        el.ownerDocument
-                            .documentElement.classList.add(playbackActiveClass);
-                    lastActive = new WeakRef(el);
-                });
-            });
-            this.mediaOverlay.addEventListener('unhighlight', () => {
-                const el = lastActive?.deref();
-                if (el) {
-                    el.classList.remove(activeClass);
-                    if (playbackActiveClass)
-                        el.ownerDocument
-                            .documentElement.classList.remove(playbackActiveClass);
-                }
-            });
-        }
+    }
+    #initProgress(book, generation) {
+        if (!book.splitTOCHref || !book.getTOCFragment)
+            return;
+        const ids = book.sections.map(section => section.id);
+        const splitHref = book.splitTOCHref.bind(book), getFragment = book.getTOCFragment.bind(book);
+        const toc = this.#tocProgress = new TOCProgress();
+        const pages = this.#pageProgress = new TOCProgress();
+        // Outline resolution must not block the first page or update a replacement book.
+        void Promise.all([
+            toc.init({ toc: book.toc ?? [], ids, splitHref, getFragment }),
+            pages.init({ toc: book.pageList ?? [], ids, splitHref, getFragment }),
+        ]).then(() => {
+            if (generation === this.#generation && this.#lastRelocateDetail)
+                this.#onRelocate({ ...this.#lastRelocateDetail, reason: 'anchor' });
+        }).catch(error => console.error('Could not initialize reading progress', error));
     }
     close() {
-        this.renderer?.destroy();
-        this.renderer?.remove();
-        this.#sectionProgress = null;
-        this.#tocProgress = null;
-        this.#pageProgress = null;
-        this.#searchResults = new Map();
+        this.#generation++;
+        this.#navigation++;
+        this.clearSearch();
+        this.#media?.destroy();
+        this.#media = undefined;
+        this.#events.abort();
+        this.#events = new AbortController();
+        for (const cursor of this.#documentCursors)
+            cursor.destroy();
+        this.#documentCursors.clear();
+        this.#cursorAutohider.show();
+        this.#renderer?.destroy();
+        this.#renderer?.remove();
+        this.#renderer = undefined;
+        this.#docsSetup = new WeakSet();
+        this.#overlayerClickHandlers = new WeakMap();
+        this.#sectionProgress = undefined;
+        this.#tocProgress = this.#pageProgress = undefined;
+        this.#lastRelocateDetail = undefined;
         this.lastLocation = null;
         this.history.clear();
-        this.tts = null;
-        this.mediaOverlay = null;
+        this.tts = undefined;
+        const owned = this.#ownedBook;
+        this.#book = this.#ownedBook = undefined;
+        this.language = {};
+        this.isFixedLayout = false;
+        return Promise.resolve(owned?.destroy?.());
     }
     goToTextStart() {
-        return this.goTo(this.book.landmarks
-            ?.find(m => m.type.includes('bodymatter') || m.type.includes('text'))
-            ?.href ?? this.book.sections.findIndex(s => s.linear !== 'no'));
+        const book = this.#requireBook();
+        return this.goTo(book.landmarks?.find(item => item.type?.some(type => type === 'bodymatter' || type === 'text'))?.href
+            ?? book.sections.findIndex(section => section.linear !== 'no'));
     }
-    async init({ lastLocation, showTextStart }) {
-        const resolved = lastLocation ? this.resolveNavigation(lastLocation) : null;
-        if (resolved) {
-            await this.renderer.goTo(resolved);
-            this.history.pushState(lastLocation);
-        }
-        else if (showTextStart)
+    async init({ lastLocation, showTextStart = false } = {}) {
+        if (lastLocation != null && await this.goTo(lastLocation))
+            return;
+        if (showTextStart)
             await this.goToTextStart();
-        else {
-            this.history.pushState(0);
-            await this.next();
-        }
+        else
+            await this.goTo(this.#requireBook().sections.findIndex(section => section.linear !== 'no'));
     }
     #emit(name, detail, cancelable = false) {
         return this.dispatchEvent(new CustomEvent(name, { detail, cancelable }));
     }
-    #onRelocate({ reason, range, index, fraction, size }) {
-        this.#lastRelocateDetail = { reason, range, index, fraction, size };
-        const progress = this.#sectionProgress?.getProgress(index, fraction, size) ?? {};
-        const tocItem = this.#tocProgress?.getProgress(index, range);
-        const pageItem = this.#pageProgress?.getProgress(index, range);
+    #onRelocate(detail) {
+        if (!this.#sectionProgress || !this.#book?.sections[detail.index])
+            return;
+        const { reason, range, index, fraction, size } = detail;
+        this.#lastRelocateDetail = detail;
+        const progress = this.#sectionProgress.getProgress(index, fraction, size);
+        const { tocItem, pageItem } = this.getProgressOf(index, range);
         const cfi = this.getCFI(index, range);
         this.lastLocation = { ...progress, tocItem, pageItem, cfi, range };
         if (reason === 'snap' || reason === 'page' || reason === 'scroll')
             this.history.replaceState(cfi);
-        // ReadAware patch: forward the renderer's `reason` so consumers can tell a
-        // real navigation from a re-layout (see VENDOR.md). `lastLocation` stays a
-        // pure location — the reason belongs to the event, not to the position.
         this.#emit('relocate', { ...this.lastLocation, reason });
     }
     #onLoad({ doc, index }) {
-        // set language and dir if not already set
         doc.documentElement.lang ||= this.language.canonical ?? '';
         if (!this.language.isCJK)
             doc.documentElement.dir ||= this.language.direction ?? '';
-        // READAWARE: once per document — a cached spread re-announces the
-        // same document on every return to it (see fixed-layout.js).
         if (!this.#docsSetup.has(doc)) {
             this.#docsSetup.add(doc);
             this.#handleLinks(doc, index);
-            this.#cursorAutohider.cloneFor(doc.documentElement);
+            this.#documentCursors.add(this.#cursorAutohider.cloneFor(doc.documentElement));
         }
         this.#emit('load', { doc, index });
     }
     #handleLinks(doc, index) {
-        const { book } = this;
-        const section = book.sections[index];
-        doc.addEventListener('click', e => {
-            const a = e.target.closest('a[href]');
-            if (!a)
+        const book = this.#requireBook(), section = book.sections[index];
+        doc.addEventListener('click', event => {
+            const a = eventElement(event.target)?.closest('a[href]');
+            const raw = a?.getAttribute('href');
+            if (!a || raw == null)
                 return;
-            e.preventDefault();
-            const href_ = a.getAttribute('href');
-            const href = section?.resolveHref?.(href_) ?? href_;
-            if (book?.isExternal?.(href))
-                Promise.resolve(this.#emit('external-link', { a, href_ }, true))
-                    .then(x => x ? globalThis.open(href_, '_blank') : null)
-                    .catch(e => console.error(e));
-            else
-                Promise.resolve(this.#emit('link', { a, href }, true))
-                    .then(x => x ? this.goTo(href) : null)
-                    .catch(e => console.error(e));
-        });
+            event.preventDefault();
+            const href = section?.resolveHref?.(raw) ?? raw;
+            if (book.isExternal?.(href)) {
+                if (this.#emit('external-link', { a, href, href_: raw }, true))
+                    globalThis.open(href, '_blank');
+            }
+            else if (this.#emit('link', { a, href }, true))
+                void this.goTo(href).catch(error => console.error('Could not follow book link', error));
+        }, { signal: this.#events.signal });
     }
     async addAnnotation(annotation, remove = false) {
+        const generation = this.#generation, searchSignal = this.#searchController.signal;
         const { value, overlayKey = value } = annotation;
-        if (value.startsWith(SEARCH_PREFIX)) {
-            const cfi = value.replace(SEARCH_PREFIX, '');
-            const { index, anchor } = await this.resolveNavigation(cfi);
-            const obj = this.#getOverlayer(index);
-            if (obj) {
-                const { overlayer, doc } = obj;
-                if (remove) {
-                    overlayer.remove(overlayKey);
-                    return;
-                }
-                const range = doc ? anchor(doc) : anchor;
-                overlayer.add(overlayKey, range, this.#searchDraw, this.#searchDrawOptions, value);
-            }
+        const search = value.startsWith(SEARCH_PREFIX);
+        const resolved = await this.resolveNavigation(search ? value.slice(SEARCH_PREFIX.length) : value);
+        if (!resolved || generation !== this.#generation || search && searchSignal.aborted)
             return;
-        }
-        const { index, anchor } = await this.resolveNavigation(value);
-        const obj = this.#getOverlayer(index);
-        if (obj) {
-            const { overlayer, doc } = obj;
+        const { index, anchor } = resolved;
+        const content = this.#getOverlayer(index);
+        if (content) {
+            const { overlayer, doc } = content;
             overlayer.remove(overlayKey);
             if (!remove) {
-                const range = doc ? anchor(doc) : anchor;
-                const draw = (func, opts) => overlayer.add(overlayKey, range, func, opts, value);
-                this.#emit('draw-annotation', { draw, annotation, doc, range });
+                const range = anchorRange(doc, anchorValue(doc, anchor));
+                if (range) {
+                    const draw = (func, options = {}) => overlayer.add(overlayKey, range, func, options, value);
+                    if (search)
+                        draw(this.#searchDraw, this.#searchDrawOptions);
+                    else
+                        this.#emit('draw-annotation', { draw, annotation, doc, range });
+                }
             }
         }
-        const label = this.#tocProgress.getProgress(index)?.label ?? '';
-        return { index, label };
+        return { index, label: this.#tocProgress?.getProgress(index)?.label ?? '' };
     }
-    deleteAnnotation(annotation) {
-        return this.addAnnotation(annotation, true);
-    }
+    deleteAnnotation(annotation) { return this.addAnnotation(annotation, true); }
     #getOverlayer(index) {
-        return this.renderer.getContents()
-            .find(x => x.index === index && x.overlayer);
+        return this.#renderer?.getContents().find((content) => content.index === index && !!content.overlayer);
     }
     #createOverlayer({ doc, index }) {
         const overlayer = new Overlayer();
-        // READAWARE: one hit-testing listener per document, always bound to
-        // the newest overlayer — re-renders on a long-lived document (PDF
-        // zoom, page colors) would otherwise stack a listener per render.
         const previous = this.#overlayerClickHandlers.get(doc);
         if (previous)
-            doc.removeEventListener('click', previous, false);
-        const onClick = e => {
-            const [value, range] = overlayer.hitTest(e);
-            if (value && !value.startsWith(SEARCH_PREFIX)) {
+            doc.removeEventListener('click', previous);
+        const onClick = (event) => {
+            const [value, range] = overlayer.hitTest(event);
+            if (value && range && !value.startsWith(SEARCH_PREFIX))
                 this.#emit('show-annotation', { value, index, range });
-            }
         };
         this.#overlayerClickHandlers.set(doc, onClick);
-        doc.addEventListener('click', onClick, false);
-        const list = this.#searchResults.get(index);
-        if (list)
-            for (const item of list)
-                this.addAnnotation(item);
+        doc.addEventListener('click', onClick, { signal: this.#events.signal });
+        for (const item of this.#searchResults.get(index) ?? [])
+            void this.addAnnotation(item).catch(error => console.error('Could not restore search highlight', error));
         this.#emit('create-overlay', { index });
         return overlayer;
     }
-    async showAnnotation(annotation) {
-        const { value } = annotation;
+    async showAnnotation({ value }) {
         const resolved = await this.goTo(value);
-        if (resolved) {
-            const { index, anchor } = resolved;
-            const { doc } = this.#getOverlayer(index);
-            const range = anchor(doc);
-            this.#emit('show-annotation', { value, index, range });
-        }
+        if (!resolved)
+            return;
+        const content = this.#getOverlayer(resolved.index);
+        const range = content && anchorRange(content.doc, anchorValue(content.doc, resolved.anchor));
+        if (range)
+            this.#emit('show-annotation', { value, index: resolved.index, range });
     }
     getCFI(index, range) {
-        const baseCFI = this.book.sections[index].cfi ?? CFI.fake.fromIndex(index);
-        if (!range)
-            return baseCFI;
-        return CFI.joinIndir(baseCFI, CFI.fromRange(range));
+        const section = this.#requireBook().sections[index];
+        if (!section)
+            throw new RangeError('Invalid CFI section: ' + index);
+        const base = section.cfi ?? CFI.fake.fromIndex(index);
+        return range ? CFI.joinIndir(base, CFI.fromRange(range)) : base;
     }
     resolveCFI(cfi) {
-        if (this.book.resolveCFI)
-            return this.book.resolveCFI(cfi);
-        else {
-            const parts = CFI.parse(cfi);
-            const index = CFI.fake.toIndex((parts.parent ?? parts).shift());
-            const anchor = doc => CFI.toRange(doc, parts);
-            return { index, anchor };
-        }
+        const book = this.#requireBook();
+        if (book.resolveCFI)
+            return book.resolveCFI(cfi);
+        const parts = CFI.parse(cfi);
+        const parent = Array.isArray(parts) ? parts : parts.parent;
+        const base = parent.shift();
+        if (!base)
+            throw new Error('CFI has no section path');
+        const index = CFI.fake.toIndex(base);
+        return { index, anchor: doc => CFI.toRange(doc, parts) };
     }
-    resolveNavigation(target) {
-        try {
-            if (typeof target === 'number')
-                return { index: target };
-            if (typeof target.fraction === 'number') {
-                const [index, anchor] = this.#sectionProgress.getSection(target.fraction);
-                return { index, anchor };
+    async resolveNavigation(target) {
+        const book = this.#requireBook();
+        let resolved;
+        if (typeof target === 'number')
+            resolved = { index: target };
+        else if (typeof target === 'object') {
+            if ('fraction' in target) {
+                if (!Number.isFinite(target.fraction))
+                    return;
+                const position = this.#sectionProgress?.getSection(target.fraction);
+                if (position)
+                    resolved = { index: position[0], anchor: position[1] };
             }
-            if (CFI.isCFI.test(target))
-                return this.resolveCFI(target);
-            return this.book.resolveHref(target);
+            else
+                resolved = target;
         }
-        catch (e) {
-            console.error(e);
-            console.error(`Could not resolve target ${target}`);
-        }
+        else
+            resolved = CFI.isCFI.test(target) ? this.resolveCFI(target) : await book.resolveHref?.(target);
+        if (resolved && Number.isInteger(resolved.index) && book.sections[resolved.index])
+            return resolved;
+    }
+    async #navigate(target, select = false) {
+        const renderer = this.#requireRenderer(), generation = this.#generation, navigation = ++this.#navigation;
+        const resolved = await this.resolveNavigation(target);
+        if (!resolved || generation !== this.#generation || navigation !== this.#navigation)
+            return;
+        await renderer.goTo(select ? { ...resolved, select: true } : resolved);
+        if (generation === this.#generation && navigation === this.#navigation)
+            return resolved;
     }
     async goTo(target) {
-        const resolved = this.resolveNavigation(target);
-        try {
-            await this.renderer.goTo(resolved);
+        const resolved = await this.#navigate(target);
+        if (resolved)
             this.history.pushState(target);
-            return resolved;
-        }
-        catch (e) {
-            console.error(e);
-            console.error(`Could not go to ${target}`);
-        }
+        return resolved;
     }
-    async goToFraction(frac) {
-        const [index, anchor] = this.#sectionProgress.getSection(frac);
-        await this.renderer.goTo({ index, anchor });
-        this.history.pushState({ fraction: frac });
-    }
+    async goToFraction(fraction) { await this.goTo({ fraction }); }
     async select(target) {
-        try {
-            const obj = await this.resolveNavigation(target);
-            await this.renderer.goTo({ ...obj, select: true });
+        if (await this.#navigate(target, true))
             this.history.pushState(target);
-        }
-        catch (e) {
-            console.error(e);
-            console.error(`Could not go to ${target}`);
-        }
     }
     deselect() {
-        for (const { doc } of this.renderer.getContents())
-            doc.defaultView.getSelection().removeAllRanges();
+        for (const { doc } of this.#requireRenderer().getContents())
+            doc.defaultView?.getSelection()?.removeAllRanges();
     }
-    getSectionFractions() {
-        return (this.#sectionProgress?.sectionFractions ?? [])
-            .map(x => x + Number.EPSILON);
-    }
+    getSectionFractions() { return (this.#sectionProgress?.sectionFractions ?? []).map(value => value + Number.EPSILON); }
     getProgressOf(index, range) {
-        const tocItem = this.#tocProgress?.getProgress(index, range);
-        const pageItem = this.#pageProgress?.getProgress(index, range);
-        return { tocItem, pageItem };
+        return { tocItem: this.#tocProgress?.getProgress(index, range), pageItem: this.#pageProgress?.getProgress(index, range) };
     }
     async getTOCItemOf(target) {
-        try {
-            const { index, anchor } = await this.resolveNavigation(target);
-            const doc = await this.book.sections[index].createDocument();
-            const frag = anchor(doc);
-            const isRange = frag instanceof Range;
-            const range = isRange ? frag : doc.createRange();
-            if (!isRange)
-                range.selectNodeContents(frag);
-            return this.#tocProgress.getProgress(index, range);
-        }
-        catch (e) {
-            console.error(e);
-            console.error(`Could not get ${target}`);
-        }
+        const book = this.#requireBook(), generation = this.#generation;
+        const resolved = await this.resolveNavigation(target);
+        if (!resolved)
+            return;
+        const doc = await book.sections[resolved.index].createDocument?.();
+        if (generation !== this.#generation)
+            return;
+        const range = doc ? anchorRange(doc, anchorValue(doc, resolved.anchor)) : null;
+        return this.#tocProgress?.getProgress(resolved.index, range);
     }
-    async prev(distance) {
-        await this.renderer.prev(distance);
-    }
-    async next(distance) {
-        await this.renderer.next(distance);
-    }
-    goLeft() {
-        return this.book.dir === 'rtl' ? this.next() : this.prev();
-    }
-    goRight() {
-        return this.book.dir === 'rtl' ? this.prev() : this.next();
-    }
-    async *#searchSection(matcher, query, index) {
-        const doc = await this.book.sections[index].createDocument();
-        for (const { range, excerpt } of matcher(doc, query))
-            yield { cfi: this.getCFI(index, range), excerpt };
-    }
-    async *#searchBook(matcher, query) {
-        const { sections } = this.book;
-        for (const [index, { createDocument }] of sections.entries()) {
-            if (!createDocument)
-                continue;
-            const doc = await createDocument();
-            const subitems = Array.from(matcher(doc, query), ({ range, excerpt }) => ({ cfi: this.getCFI(index, range), excerpt }));
-            const progress = (index + 1) / sections.length;
-            yield { progress };
-            if (subitems.length)
-                yield { index, subitems };
-        }
-    }
-    async *search(opts) {
+    async prev(distance) { this.#navigation++; await this.#requireRenderer().prev(distance); }
+    async next(distance) { this.#navigation++; await this.#requireRenderer().next(distance); }
+    goLeft() { return this.#requireBook().dir === 'rtl' ? this.next() : this.prev(); }
+    goRight() { return this.#requireBook().dir === 'rtl' ? this.prev() : this.next(); }
+    async *search(options) {
         this.clearSearch();
-        this.#searchDraw = opts.draw ?? Overlayer.outline;
-        this.#searchDrawOptions = opts.drawOptions;
-        const { searchMatcher } = await import('./search.js');
-        const { query, index } = opts;
-        const matcher = searchMatcher(textWalker, { defaultLocale: this.language, ...opts });
-        const iter = index != null
-            ? this.#searchSection(matcher, query, index)
-            : this.#searchBook(matcher, query);
+        const { signal } = this.#searchController;
+        this.#searchDraw = options.draw ?? Overlayer.outline;
+        this.#searchDrawOptions = options.drawOptions ?? {};
         const list = [];
-        this.#searchResults.set(index, list);
+        if (options.index != null)
+            this.#searchResults.set(options.index, list);
+        const iter = searchBook(this.#requireBook(), options.query, options.index, { defaultLocale: this.language.canonical, ...options }, (index, range) => this.getCFI(index, range), signal);
         for await (const result of iter) {
-            if (result.subitems) {
-                const list = result.subitems
-                    .map(({ cfi }) => ({ value: SEARCH_PREFIX + cfi }));
-                this.#searchResults.set(result.index, list);
-                for (const item of list)
-                    this.addAnnotation(item);
-                yield {
-                    label: this.#tocProgress.getProgress(result.index)?.label ?? '',
-                    subitems: result.subitems,
-                };
+            if (signal.aborted)
+                return;
+            if ('subitems' in result) {
+                const items = result.subitems.map(({ cfi }) => ({ value: SEARCH_PREFIX + cfi }));
+                this.#searchResults.set(result.index, items);
+                for (const item of items) {
+                    if (signal.aborted)
+                        return;
+                    await this.addAnnotation(item);
+                }
+                yield { label: this.#tocProgress?.getProgress(result.index)?.label ?? '', subitems: result.subitems };
             }
             else {
-                if (result.cfi) {
+                if ('cfi' in result) {
                     const item = { value: SEARCH_PREFIX + result.cfi };
                     list.push(item);
-                    this.addAnnotation(item);
+                    await this.addAnnotation(item);
                 }
+                if (signal.aborted)
+                    return;
                 yield result;
             }
         }
-        yield 'done';
+        if (!signal.aborted)
+            yield 'done';
     }
     clearSearch() {
-        for (const list of this.#searchResults.values())
-            for (const item of list)
-                this.deleteAnnotation(item);
+        this.#searchController.abort();
+        this.#searchController = new AbortController();
+        for (const { overlayer, index } of this.#renderer?.getContents() ?? [])
+            for (const item of this.#searchResults.get(index) ?? [])
+                overlayer?.remove(item.overlayKey ?? item.value);
         this.#searchResults.clear();
     }
     async initTTS(granularity = 'word', highlight) {
-        const doc = this.renderer.getContents()[0].doc;
-        if (this.tts && this.tts.doc === doc)
+        const renderer = this.#requireRenderer(), generation = this.#generation;
+        const content = renderer.getContents()[0];
+        if (!content || this.tts?.doc === content.doc)
             return;
         const { TTS } = await import('./tts.js');
-        this.tts = new TTS(doc, textWalker, highlight || (range => this.renderer.scrollToAnchor(range, true)), granularity);
+        if (generation !== this.#generation)
+            return;
+        this.tts = new TTS(content.doc, textWalker, highlight ?? (range => {
+            void renderer.goTo({ index: content.index, anchor: range, select: true })
+                .catch(error => console.error('Could not follow spoken text', error));
+        }), granularity);
     }
     startMediaOverlay() {
-        const { index } = this.renderer.getContents()[0];
-        return this.mediaOverlay.start(index);
+        const content = this.#requireRenderer().getContents()[0];
+        return content ? this.mediaOverlay?.start(content.index) : undefined;
     }
 }
 customElements.define('foliate-view', View);

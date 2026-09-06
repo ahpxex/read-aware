@@ -15,10 +15,6 @@
     "noEmitOnError": true,
     "skipLibCheck": true,
     "strict": true,
-    // Foliate's format parsers intentionally accept polymorphic upstream data.
-    // Keep those internals gradual while retaining the other strict checks.
-    "noImplicitAny": false,
-    "strictNullChecks": false,
     "useDefineForClassFields": true
   },
   "include": ["foliate-js/src/**/*.ts", "foliate-js/src/**/*.d.ts"]

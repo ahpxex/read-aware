@@ -1,3 +1,4 @@
+import { anchorElement, anchorRange, anchorValue, isRange } from './navigation.js';
 import { getViewport, parseViewport } from './viewport.js';
 // READAWARE: rendering budgets, canvas-memory driven. A PDF page rastered at
 // fit-width on a Retina display runs ~12–17 MB of RGBA; a dozen live pages
@@ -1135,8 +1136,9 @@ export class FixedLayout extends HTMLElement {
         this.#schedulePreload();
     }
     async select(target) {
-        await this.goTo(target);
-        // TODO
+        const resolved = await target;
+        if (resolved)
+            await this.goTo({ ...resolved, select: true });
     }
     async goTo(target) {
         const { book } = this;
@@ -1151,6 +1153,29 @@ export class FixedLayout extends HTMLElement {
             return;
         const { index, side } = spread;
         await this.goToSpread(index, side);
+        if (book !== this.book)
+            return;
+        const content = this.getContents().find(content => content.index === resolved.index);
+        if (content) {
+            const anchor = anchorValue(content.doc, resolved.anchor);
+            if (anchor != null)
+                await this.scrollToAnchor(anchor, resolved.select);
+        }
+    }
+    async scrollToAnchor(anchor, select = false) {
+        if (typeof anchor === 'number')
+            return;
+        const doc = isRange(anchor) ? anchor.startContainer.ownerDocument : anchor.ownerDocument;
+        if (!doc || !this.getContents().some(content => content.doc === doc))
+            return;
+        if (select) {
+            const range = anchorRange(doc, anchor), selection = doc.defaultView?.getSelection();
+            if (range && selection) {
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
+        }
+        anchorElement(anchor)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
     async next() {
         if (this.scrolled)

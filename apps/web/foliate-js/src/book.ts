@@ -1,3 +1,5 @@
+import type { MediaOverlay } from './media-overlay.js'
+
 export type MaybePromise<T> = T | Promise<T>
 
 /** Includes native random-access files; callers need not materialize a Blob. */
@@ -103,6 +105,8 @@ export interface Book {
     rendition?: Rendition
     dir?: string | null
     transformTarget?: EventTarget
+    media?: MediaMetadata
+    getMediaOverlay?: () => MediaOverlay
     getCover?: () => MaybePromise<Blob | null | undefined>
     resolveHref?: (href: string) => MaybePromise<ResolvedNavigation | null | undefined>
     resolveCFI?: (cfi: string) => ResolvedNavigation

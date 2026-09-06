@@ -1,4 +1,5 @@
-import type { Book, BookSection, MaybePromise, PageColors, PageSource, Rendition, ResolvedNavigation } from './book.js'
+import type { Anchor, Book, BookSection, MaybePromise, PageColors, PageSource, Rendition, ResolvedNavigation } from './book.js'
+import { anchorElement, anchorRange, anchorValue, isRange } from './navigation.js'
 import type { Overlayer } from './overlayer.js'
 import type { Content, RelocateReason } from './renderer.js'
 import { getViewport, parseViewport, type Dimensions } from './viewport.js'
@@ -1100,8 +1101,8 @@ export class FixedLayout extends HTMLElement {
         this.#schedulePreload()
     }
     async select(target: MaybePromise<ResolvedNavigation | null | undefined>) {
-        await this.goTo(target)
-        // TODO
+        const resolved = await target
+        if (resolved) await this.goTo({ ...resolved, select: true })
     }
     async goTo(target: MaybePromise<ResolvedNavigation | null | undefined>) {
         const { book } = this
@@ -1113,6 +1114,22 @@ export class FixedLayout extends HTMLElement {
         if (!spread) return
         const { index, side } = spread
         await this.goToSpread(index, side)
+        if (book !== this.book) return
+        const content = this.getContents().find(content => content.index === resolved.index)
+        if (content) {
+            const anchor = anchorValue(content.doc, resolved.anchor)
+            if (anchor != null) await this.scrollToAnchor(anchor, resolved.select)
+        }
+    }
+    async scrollToAnchor(anchor: Anchor, select = false) {
+        if (typeof anchor === 'number') return
+        const doc = isRange(anchor) ? anchor.startContainer.ownerDocument : anchor.ownerDocument
+        if (!doc || !this.getContents().some(content => content.doc === doc)) return
+        if (select) {
+            const range = anchorRange(doc, anchor), selection = doc.defaultView?.getSelection()
+            if (range && selection) { selection.removeAllRanges(); selection.addRange(range) }
+        }
+        anchorElement(anchor)?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
     }
     async next() {
         if (this.scrolled)

@@ -4,9 +4,12 @@ export interface ZipEntry {
   getData<T>(writer: T): Promise<T extends TextWriter ? string : Blob>;
 }
 
-export class TextWriter {}
+export class TextWriter {
+  private readonly writerType: 'text';
+}
 
 export class BlobWriter {
+  private readonly writerType: 'blob';
   constructor(type?: string);
 }
 

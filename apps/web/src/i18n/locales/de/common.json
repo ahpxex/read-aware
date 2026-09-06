@@ -12,6 +12,7 @@
     "copied": "Kopiert"
   },
   "errors": {
+    "bookEncryption": "Dieses Buch ist verschlüsselt oder DRM-geschützt und kann nicht geöffnet werden. Verwende eine ungeschützte Kopie.",
     "generic": "Etwas ist schiefgelaufen. Details stehen im App-Protokoll.",
     "fsNotFound": "Eine von ReadAware benötigte Datei fehlt.",
     "fsPermission": "ReadAware hat keine Berechtigung für eine benötigte Datei.",

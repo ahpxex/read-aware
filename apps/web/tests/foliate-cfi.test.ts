@@ -88,6 +88,30 @@ describe("CFI paths and ranges", () => {
 });
 
 describe("CFI DOM round trips", () => {
+  test("element child offsets retain full selections and image-only ranges", () => {
+    const doc = xhtml('<p id="text">Hello <em>EPUB</em> world.</p><p id="images"><img src="first"/><img src="second"/></p>');
+    for (const element of [doc.querySelector("em")!, doc.querySelector("#text")!]) {
+      const range = doc.createRange();
+      range.selectNodeContents(element);
+      expect(CFI.toRange(doc, CFI.parse(CFI.fromRange(range))).toString()).toBe(element.textContent!);
+    }
+    const images = doc.querySelector("#images")!;
+    const imageRange = doc.createRange();
+    imageRange.setStart(images, 0);
+    imageRange.setEnd(images, 1);
+    const restored = CFI.toRange(doc, CFI.parse(CFI.fromRange(imageRange)));
+    expect(restored.cloneContents().querySelectorAll("img")).toHaveLength(1);
+    expect(restored.cloneContents().querySelector("img")?.getAttribute("src")).toBe("first");
+  });
+
+  test("virtual elements and empty text chunks resolve within their parent", () => {
+    const doc = xhtml('<p>Hello</p><p><em>A</em><strong>B</strong></p>');
+    expect(CFI.toRange(doc, CFI.parse('/4/2,/0,/2')).toString()).toBe("Hello");
+    const empty = CFI.toRange(doc, CFI.parse('/4/4/3:0'));
+    expect(empty.startContainer).toBe(doc.querySelectorAll("p")[1]);
+    expect(empty.startOffset).toBe(1);
+  });
+
   test("restores the exact selection, not an empty range", () => {
     const doc = xhtml("<p>Hello world, test selection.</p>");
     const text = doc.querySelector("p")!.firstChild!;

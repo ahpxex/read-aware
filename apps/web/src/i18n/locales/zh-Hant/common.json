@@ -12,6 +12,7 @@
     "copied": "已複製"
   },
   "errors": {
+    "bookEncryption": "這本書已加密或受 DRM 保護，無法開啟。請使用未加密的副本。",
     "generic": "出了點問題，詳情已寫入應用程式日誌。",
     "fsNotFound": "ReadAware 需要的檔案不見了。",
     "fsPermission": "ReadAware 沒有權限存取所需的檔案。",

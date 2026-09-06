@@ -309,7 +309,10 @@ export class Paginator extends HTMLElement {
                 break;
         }
     }
+    #transformController;
     open(book) {
+        this.#transformController?.abort();
+        this.#transformController = new AbortController();
         this.bookDir = book.dir;
         this.sections = book.sections;
         book.transformTarget?.addEventListener('data', event => {
@@ -327,7 +330,7 @@ export class Paginator extends HTMLElement {
                 // `page-break-*` unsupported in columns; replace with `column-break-*`
                 .replace(/page-break-(after|before|inside)\s*:/gi, (_, x) => `-webkit-column-break-${x}:`)
                 .replace(/break-(after|before|inside)\s*:\s*(avoid-)?page/gi, (_, x, y) => `break-${x}: ${y ?? ''}column`));
-        });
+        }, { signal: this.#transformController.signal });
     }
     #createView() {
         if (this.#view) {
@@ -836,6 +839,7 @@ export class Paginator extends HTMLElement {
     }
     destroy() {
         this.#navigation++;
+        this.#transformController?.abort();
         this.#observer.disconnect();
         this.#view?.destroy();
         this.#view?.element.remove();

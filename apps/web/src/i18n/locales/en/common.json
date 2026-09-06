@@ -12,6 +12,7 @@
     "copied": "Copied"
   },
   "errors": {
+    "bookEncryption": "This book is encrypted or DRM-protected and cannot be opened. Use an unprotected copy.",
     "generic": "Something went wrong. Details are in the app log.",
     "fsNotFound": "A file ReadAware needs is missing.",
     "fsPermission": "ReadAware doesn't have permission to access a needed file.",

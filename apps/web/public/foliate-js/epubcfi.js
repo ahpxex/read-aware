@@ -269,6 +269,8 @@ const indexChildNodes = (node, filter) => {
     // "the last chunk is located after the last child element"
     if (last && typeof last !== 'string' && !Array.isArray(last) && isElementNode(last))
         nodes.push('last');
+    if (!nodes.length)
+        nodes.push(null);
     // "'virtual' elements"
     nodes.unshift('before'); // "0 is a valid index"
     nodes.push('after'); // "n+2 is a valid index"
@@ -287,16 +289,23 @@ const partsToNode = (root, parts, filter) => {
     for (const { index } of parts) {
         if (!node || Array.isArray(node))
             throw new Error('Invalid CFI: path does not resolve');
-        const newNode = indexChildNodes(node, filter)[index];
+        const indexed = indexChildNodes(node, filter);
+        const newNode = indexed[index];
         // handle non-existent nodes
-        if (newNode === 'first')
-            return { node: node.firstChild ?? node, offset: 0 };
-        if (newNode === 'last')
-            return { node: node.lastChild ?? node, offset: 0 };
         if (newNode === 'before')
-            return { node, offset: 0, before: true };
+            return { node, offset: 0 };
         if (newNode === 'after')
-            return { node, offset: 0, after: true };
+            return { node, offset: node.childNodes.length };
+        if (newNode === null || newNode === 'first' || newNode === 'last') {
+            const previous = indexed[index - 1], next = indexed[index + 1];
+            const adjacent = previous && typeof previous !== 'string' && !Array.isArray(previous)
+                ? previous : next && typeof next !== 'string' && !Array.isArray(next) ? next : null;
+            if (!adjacent?.parentNode)
+                return { node, offset: 0 };
+            return { node: adjacent.parentNode,
+                offset: Array.from(adjacent.parentNode.childNodes).indexOf(adjacent)
+                    + (adjacent === previous ? 1 : 0) };
+        }
         node = newNode;
     }
     if (!node)
@@ -346,12 +355,41 @@ const nodeToParts = (node, offset = null, filter) => {
         // remove ignored nodes
         .filter(x => x.index !== -1);
 };
+// DOM element offsets count child nodes, not characters. Encode their boundary
+// in an adjacent logical text chunk rather than discarding that offset.
+const boundaryToParts = (node, offset, filter) => {
+    if (isTextNode(node))
+        return nodeToParts(node, offset, filter);
+    const doc = node.ownerDocument;
+    if (!doc)
+        throw new Error('Cannot create a CFI without a content document');
+    const point = doc.createRange();
+    point.setStart(node, offset);
+    point.collapse(true);
+    const children = getChildNodes(node, filter);
+    const nextIndex = children.findIndex(child => point.comparePoint(child, 0) >= 0);
+    const next = children[nextIndex];
+    const previous = children[nextIndex < 0 ? children.length - 1 : nextIndex - 1];
+    if (next && isTextNode(next))
+        return nodeToParts(next, 0, filter);
+    if (previous && isTextNode(previous))
+        return nodeToParts(previous, previous.length, filter);
+    const adjacent = next ?? previous;
+    if (!adjacent)
+        return nodeToParts(node, null, filter).concat({ index: 1, offset: 0 });
+    const parts = nodeToParts(adjacent, null, filter);
+    const last = parts.at(-1);
+    if (!last)
+        throw new Error('Cannot create a CFI for an ignored boundary');
+    parts[parts.length - 1] = { index: last.index + (next ? -1 : 1), offset: 0 };
+    return parts;
+};
 export const fromRange = (range, filter) => {
     const { startContainer, startOffset, endContainer, endOffset } = range;
-    const start = nodeToParts(startContainer, startOffset, filter);
+    const start = boundaryToParts(startContainer, startOffset, filter);
     if (range.collapsed)
         return toString([start]);
-    const end = nodeToParts(endContainer, endOffset, filter);
+    const end = boundaryToParts(endContainer, endOffset, filter);
     return buildRange([start], [end]);
 };
 export const toRange = (doc, parts, filter) => {

@@ -12,6 +12,7 @@
     "copied": "已复制"
   },
   "errors": {
+    "bookEncryption": "这本书已加密或受 DRM 保护，无法打开。请使用未加密的副本。",
     "generic": "出了点问题，详情已写入应用日志。",
     "fsNotFound": "ReadAware 需要的文件不见了。",
     "fsPermission": "ReadAware 没有权限访问所需的文件。",

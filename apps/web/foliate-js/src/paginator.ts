@@ -319,7 +319,10 @@ export class Paginator extends HTMLElement {
                 break
         }
     }
+    #transformController: AbortController | undefined
     open(book: Book) {
+        this.#transformController?.abort()
+        this.#transformController = new AbortController()
         this.bookDir = book.dir
         this.sections = book.sections
         book.transformTarget?.addEventListener('data', event => {
@@ -338,7 +341,7 @@ export class Paginator extends HTMLElement {
                     `-webkit-column-break-${x}:`)
                 .replace(/break-(after|before|inside)\s*:\s*(avoid-)?page/gi, (_, x, y) =>
                     `break-${x}: ${y ?? ''}column`))
-        })
+        }, { signal: this.#transformController.signal })
     }
     #createView() {
         if (this.#view) {
@@ -825,6 +828,7 @@ export class Paginator extends HTMLElement {
     }
     destroy() {
         this.#navigation++
+        this.#transformController?.abort()
         this.#observer.disconnect()
         this.#view?.destroy()
         this.#view?.element.remove()

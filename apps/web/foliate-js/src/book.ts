@@ -22,7 +22,7 @@ export type Contributors = Contributor | Contributor[]
 export type ContributorRole = 'author' | 'contributor' | 'artist' | 'colorist'
     | 'editor' | 'illustrator' | 'narrator' | 'translator' | 'publisher'
 export type Identifier = string | { scheme: string; value: string }
-export type Collection = { name: LocalizedText; position?: number | null }
+export type Collection = { name: LocalizedText; position?: number | string | null }
 export type BookMetadata = Partial<Record<ContributorRole, Contributors>> & {
     title?: LocalizedText
     sortAs?: LocalizedText | null
@@ -43,7 +43,7 @@ export type BookMetadata = Partial<Record<ContributorRole, Contributors>> & {
 export type TOCItem = {
     id?: number
     label?: string
-    href: string
+    href: string | null
     subitems?: TOCItem[] | null
     type?: string[]
 }
@@ -83,9 +83,14 @@ export type Rendition = {
     flow?: string
     viewport?: string | { width?: string | number; height?: string | number }
 }
+export type MediaMetadata = {
+    duration?: number
+    activeClass?: string
+    playbackActiveClass?: string
+}
 export type ResourceTransformDetail = {
-    name: string
-    type: string
+    readonly name: string
+    type: MaybePromise<string>
     data: MaybePromise<string | Blob>
 }
 

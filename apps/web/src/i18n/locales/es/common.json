@@ -12,6 +12,7 @@
     "copied": "Copiado"
   },
   "errors": {
+    "bookEncryption": "Este libro está cifrado o protegido por DRM y no se puede abrir. Usa una copia sin protección.",
     "generic": "Algo salió mal. Los detalles están en el registro de la aplicación.",
     "fsNotFound": "Falta un archivo que ReadAware necesita.",
     "fsPermission": "ReadAware no tiene permiso para acceder a un archivo necesario.",

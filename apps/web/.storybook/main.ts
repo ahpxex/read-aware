@@ -1,6 +1,7 @@
 import type { StorybookConfig } from "@storybook/react-vite";
 
 const config: StorybookConfig = {
+  staticDirs: ["../public"],
   stories: [
     // Design system lives in @read-aware/ui; feature stories live in apps/web.
     "../../../packages/ui/src/**/*.mdx",

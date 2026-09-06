@@ -126,7 +126,7 @@ export function useReaderTypography({
           ? pluginFontFaceCss(pluginFont)
           : "";
       const palette = resolveReaderPalette(settings.theme, pluginThemes);
-      renderer?.setStyles?.(
+      if (renderer && 'setStyles' in renderer) renderer.setStyles(
         buildReaderContentCss(settings, { palette, fontFaceCss, pluginFont }),
       );
     },
@@ -135,7 +135,7 @@ export function useReaderTypography({
 
   const applyPageColors = useCallback(
     (settings: ReaderSettings, renderer = viewRef.current?.renderer) => {
-      if (!renderer?.setPageColors) return;
+      if (!renderer || !('setPageColors' in renderer)) return;
       renderer.setPageColors(
         fixedLayoutPageColors(
           resolveReaderPalette(settings.theme, pluginThemes),

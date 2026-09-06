@@ -25,7 +25,7 @@ describe("ensureUsableToc with engine-mapped hrefs (MOBI / KF8)", () => {
     return {
       toc: Array.from({ length: tocCount }, (_, index) => ({ label: `第${index}章`, href: href(index) })),
       sections: sections(sectionCount, (index) => index),
-      splitTOCHref: (value: string) => {
+      splitTOCHref: (value: string): [number, null] => {
         const match = /kindle:pos:fid:(\w+):off:/.exec(value);
         return match ? [parseInt(match[1]!, 32), null] : [-1, null];
       },

@@ -21,18 +21,18 @@ export async function parseBookFile(file: BookFileSource): Promise<FoliateBook> 
 
   if (HTML_EXTENSIONS.some((ext) => name.endsWith(ext)) || type === "text/html") {
     const bytes = new Uint8Array(await file.arrayBuffer());
-    return buildHtmlFoliateBook(bytes, file.name ?? "") as FoliateBook;
+    return buildHtmlFoliateBook(bytes, file.name ?? "");
   }
   if (TEXT_EXTENSIONS.some((ext) => name.endsWith(ext)) || type === "text/plain") {
     const bytes = new Uint8Array(await file.arrayBuffer());
-    return buildPlainTextFoliateBook(bytes, file.name ?? "") as FoliateBook;
+    return buildPlainTextFoliateBook(bytes, file.name ?? "");
   }
   if (name.endsWith(".cbr") || (await isRarArchive(file))) {
     // The RAR decoder is a ~1 MB WASM asset; load it only for a comic that
     // actually needs it.
     const { buildComicArchiveBook } = await import("./comic-archive");
-    const source = file instanceof File ? file : new File([file as BlobPart], file.name ?? "comic.cbr");
-    return (await buildComicArchiveBook(source)) as FoliateBook;
+    const source = file instanceof File ? file : new File([await file.arrayBuffer()], file.name ?? "comic.cbr", { type: file.type });
+    return buildComicArchiveBook(source);
   }
   return makeFoliateBook(file);
 }

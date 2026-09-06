@@ -11,6 +11,7 @@
  */
 import { Archive } from "libarchive.js";
 import { escapeHtml } from "./section-document";
+import type { FoliateBook } from './foliate-engine';
 
 /** Served as a static asset, like the reading engine — see its `VENDOR.md`. */
 const WORKER_URL = "/libarchive/worker-bundle.js";
@@ -62,7 +63,7 @@ const pageHtml = (src: string) =>
   `<!DOCTYPE html><html><head><meta charset="utf-8"></head>` +
   `<body style="margin: 0"><img src="${escapeHtml(src)}"></body></html>`;
 
-export async function buildComicArchiveBook(file: File): Promise<unknown> {
+export async function buildComicArchiveBook(file: File): Promise<FoliateBook> {
   ensureInitialized();
   const archive = await Archive.open(file);
   const entries: string[] = [];

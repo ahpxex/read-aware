@@ -5,6 +5,7 @@
  * pagination, selection, CFI annotations, and progress model.
  */
 import { wrapSectionHtml } from "./section-document";
+import type { FoliateBook } from './foliate-engine';
 
 export type VirtualBookContent = {
   title?: string;
@@ -13,7 +14,7 @@ export type VirtualBookContent = {
   sections: { id?: string; title?: string; html: string }[];
 };
 
-export function buildVirtualFoliateBook(content: VirtualBookContent): unknown {
+export function buildVirtualFoliateBook(content: VirtualBookContent): FoliateBook {
   const language = content.language ?? "en";
   const ids = content.sections.map((section, index) => section.id || `sec-${index}`);
   const docs = content.sections.map((section) =>

@@ -31,8 +31,14 @@ Serving the tree statically and importing it at runtime (`import("/foliate-js/vi
 keeps every relative path correct in dev, production, and the Tauri webview, and keeps
 the ~5.6 MB engine out of the JS bundle (only the modules for the opened format load).
 
-The app-facing loader and narrower product contract live at
-`apps/web/src/features/reader/lib/foliate-engine.ts`.
+The app-facing loader lives at `apps/web/src/features/reader/lib/foliate-engine.ts`.
+It imports the canonical engine contracts with type-only imports; it does not
+maintain a separate handwritten approximation of the engine API.
+
+The engine now uses full TypeScript strict mode. Its checked build also rejects
+explicit/contextual `any`, unsafe double assertions, and suppression comments.
+`check:foliate` verifies committed output parity without writing. See
+`apps/web/foliate-js/README.md` for build/watch and native regression commands.
 
 ## What was changed from upstream
 
@@ -210,8 +216,21 @@ The app-facing loader and narrower product contract live at
   anchor inside it / its first fragment), which the app's TOC synthesis uses
   to add entries for books whose nav covers too little of the spine.
   Re-apply after any upstream update.
-- Otherwise the TypeScript engine follows the pinned upstream modules, while
-  `vendor/` stays byte-for-byte upstream.
+- **Strict migration and lifecycle corrections:** source modules now separate
+  EPUB metadata/resources/media, MOBI binary/MOBI6/KF8 parsing, PDF transport
+  and metadata, paginator geometry/document ownership, and View orchestration.
+  CFI element-boundary and logical-text offsets, viewport-sized scroll turns,
+  async navigation, directory batches, concurrent resource loads, failed range
+  reads, and close/reopen races have focused regression coverage. The PDF range
+  transport uses the SDK's subclass extension point, not runtime method
+  replacement. Footnotes handle Element and Range anchors; media highlighting
+  awaits navigation and is cancelled on close.
+- **Application ownership and directory marks:** the app consumes the engine's
+  real asynchronous contracts, resolves chapter marks off the first-paint path,
+  and shares parser lifetimes explicitly with background extraction. These are
+  source-level changes, not prototype patches or global DOM interception.
+- `vendor/` remains the pinned upstream distribution artifacts (including the
+  official legacy PDF.js replacement described above).
 
 ## Updating
 

@@ -13,7 +13,8 @@ import { isTauri } from "../../../platform/environment";
 import { flattenToc } from "../../reader/lib/epub-utils";
 import { parseBookFile } from "../../reader/lib/parse-book";
 import { ensureUsableToc } from "../../reader/lib/toc-synthesis";
-import type { TocNavItem } from "../../reader/lib/reader-types";
+import type { FoliateBook } from "../../reader/lib/foliate-engine";
+import { retainBook } from "../../reader/lib/book-lifetime";
 import { getStoredBookFile } from "./library-db";
 
 export interface ExtractedChapter {
@@ -85,21 +86,6 @@ export async function deleteBookText(bookIds: string[]): Promise<void> {
 }
 
 // ── 抽取 ──
-
-type FoliateSectionLike = {
-  id?: string | number;
-  createDocument?: () => Promise<Document> | Document;
-  getText?: () => Promise<string> | string;
-  linear?: string;
-};
-
-type FoliateResolvedLike = { index?: number } | null | undefined;
-
-type FoliateBookLike = {
-  toc?: unknown;
-  sections?: FoliateSectionLike[];
-  resolveHref?: (href: string) => FoliateResolvedLike | Promise<FoliateResolvedLike>;
-};
 
 /**
  * 让出主线程一拍 —— 抽取是后台活，逐章喘气比冻住 UI 重要。
@@ -173,20 +159,23 @@ interface ExtractOutcome {
  * 不会白费。失败的 section 计数上报——调用方据此区分"抽完了确实没字"
  * （纯图扫描版的定论）与"这次没抽全"（下次重试）。
  */
-async function extract(bookId: string, preopened?: unknown): Promise<ExtractOutcome> {
-  let book: FoliateBookLike;
-  if (preopened) {
-    // 阅读器传来的 book 已经过 ensureUsableToc（开卷前修复残缺目录）。
-    book = preopened as FoliateBookLike;
-  } else {
-    const file = await getStoredBookFile(bookId);
-    if (!file) return { chapters: [], sectionsFailed: 0 };
-    book = (await parseBookFile(file)) as FoliateBookLike;
-    // 懒回填路径同样先修目录，否则残缺 nav 会把整本书合并成一章。
+async function extract(bookId: string, preopened?: FoliateBook): Promise<ExtractOutcome> {
+  if (preopened) return extractParsedBook(bookId, preopened);
+  const file = await getStoredBookFile(bookId);
+  if (!file) return { chapters: [], sectionsFailed: 0 };
+  const book = await parseBookFile(file);
+  const releaseBook = retainBook(book);
+  try {
     await ensureUsableToc(book);
+    return await extractParsedBook(bookId, book);
+  } finally {
+    await releaseBook();
   }
+}
+
+async function extractParsedBook(bookId: string, book: FoliateBook): Promise<ExtractOutcome> {
   const sections = book.sections ?? [];
-  const entries = flattenToc((book.toc ?? []) as TocNavItem[]);
+  const entries = flattenToc(book.toc ?? []);
 
   // section → 归属 TOC 条目：条目解析到的 section 先到先得（指进同一文件的
   // 子条目不抢所有权）,没有条目直指的 section 归前一个有主的条目（跨文件章节）。
@@ -389,7 +378,7 @@ export async function getBookTextStatus(bookId: string): Promise<BookTextStatus>
  */
 export async function ensureBookTextExtracted(
   bookId: string,
-  preopened?: unknown,
+  preopened?: FoliateBook,
 ): Promise<ExtractedChapter[]> {
   // Virtual (plugin-provided) books have no blob to extract from.
   let format: string | undefined;

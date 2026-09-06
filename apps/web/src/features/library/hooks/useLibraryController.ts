@@ -3,6 +3,7 @@ import { useToast } from "@read-aware/ui";
 import { useTranslation, describeError } from "../../../i18n";
 import { catchUpBookGraph } from "../../ai/agent/maintenance";
 import type { FoliateBook } from "../../reader/lib/foliate-engine";
+import { retainBook } from '../../reader/lib/book-lifetime';
 import { enrichFromOpenBook } from "../lib/book-enrichment";
 import { ensureBookTextExtracted } from "../lib/book-text-store";
 import type { LibraryBook } from "../lib/library-types";
@@ -56,6 +57,7 @@ export function useLibraryController() {
   const handleBookReady = useCallback((book: LibraryBook, foliateBook: FoliateBook) => {
     if (bookReadyPendingRef.current.has(book.id)) return;
     bookReadyPendingRef.current.add(book.id);
+    const releaseBook = retainBook(foliateBook);
     void (async () => {
       await enrichFromOpenBook(book, foliateBook);
       // Text extraction always starts on first open, reusing the reader's
@@ -68,7 +70,10 @@ export function useLibraryController() {
       catchUpBookGraph(book.id, book.progress?.href ?? undefined);
     })()
       .catch((error) => log.warn("post-open enrichment failed", error))
-      .finally(() => bookReadyPendingRef.current.delete(book.id));
+      .finally(async () => {
+        bookReadyPendingRef.current.delete(book.id);
+        await releaseBook().catch(error => log.warn('Could not close parsed book', error));
+      });
   }, []);
 
   return {

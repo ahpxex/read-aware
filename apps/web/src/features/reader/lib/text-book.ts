@@ -8,6 +8,7 @@
  * an EPUB. Nothing here touches the vendored engine.
  */
 import { decodeTextBook } from "./decode-text";
+import type { FoliateBook } from './foliate-engine';
 import { escapeHtml, wrapSectionHtml } from "./section-document";
 import {
   labelFromOpeningWords,
@@ -27,7 +28,7 @@ type BuiltSection = {
 /** Plain text arrives with no styling of its own; give it readable defaults. */
 const TEXT_SECTION_STYLE = "p { margin: 0 0 1em; text-indent: 2em; }";
 
-export function buildPlainTextFoliateBook(bytes: Uint8Array, fileName: string): unknown {
+export function buildPlainTextFoliateBook(bytes: Uint8Array, fileName: string): FoliateBook {
   const text = decodeTextBook(bytes);
   const chapters = splitTextIntoChapters(text);
   const built: BuiltSection[] = chapters.map((chapter, index) => ({
@@ -48,7 +49,7 @@ export function buildPlainTextFoliateBook(bytes: Uint8Array, fileName: string): 
   });
 }
 
-export function buildHtmlFoliateBook(bytes: Uint8Array, fileName: string): unknown {
+export function buildHtmlFoliateBook(bytes: Uint8Array, fileName: string): FoliateBook {
   const doc = new DOMParser().parseFromString(decodeTextBook(bytes), "text/html");
   const title = doc.querySelector("title")?.textContent?.trim();
   const author = doc
@@ -115,7 +116,7 @@ function splitHtmlBody(doc: Document): BuiltSection[] {
 function assembleBook(
   built: BuiltSection[],
   meta: { title: string; author?: string; language: string; sectionStyle: string },
-): unknown {
+): FoliateBook {
   const sections = built.length ? built : [{ id: "text-0", html: "" }];
   const docs = sections.map((section) =>
     wrapSectionHtml(section.html, section.title, meta.language, meta.sectionStyle),

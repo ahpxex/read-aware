@@ -1,13 +1,8 @@
 import type { BookFormat } from "../../library/lib/library-types";
+import type { BookFile } from '../../../../foliate-js/src/book';
 
 /** Minimal Blob/File surface consumed by foliate's format sniffers and parsers. */
-export interface BookFileSource {
-  readonly name?: string;
-  readonly size: number;
-  readonly type: string;
-  arrayBuffer(): Promise<ArrayBuffer>;
-  slice(start?: number, end?: number, contentType?: string): BookFileSource;
-}
+export type BookFileSource = BookFile;
 
 /**
  * A book file pulled from local storage, ready to hand to the foliate engine
@@ -36,9 +31,7 @@ export type TocEntry = {
   label: string;
   depth: number;
   spineIndex: number;
-  /** Position in the book as a 0..1 fraction (the scale `goToFraction` uses).
-   *  Absent when the engine cannot place the entry synchronously — see
-   *  `attachTocFractions`. */
+  /** Position in the book as a 0..1 fraction, filled after href resolution. */
   fraction?: number;
 };
 
@@ -58,8 +51,8 @@ export type ReadingCursor = {
 
 /** A nested navigation item as produced by a book's table of contents. */
 export type TocNavItem = {
-  id?: string;
-  href?: string;
+  id?: string | number;
+  href?: string | null;
   label?: string;
-  subitems?: TocNavItem[];
+  subitems?: TocNavItem[] | null;
 };

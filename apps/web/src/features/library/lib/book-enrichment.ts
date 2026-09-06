@@ -155,7 +155,7 @@ async function runJob(request: EnrichmentRequest): Promise<void> {
   try {
     await applyParsedBook({ ...request, cover: needsCover }, parsed);
   } finally {
-    (parsed as { destroy?: () => void }).destroy?.();
+    await parsed.destroy?.();
   }
 }
 
@@ -212,7 +212,6 @@ const FALLBACK_SECTIONS = 6;
 /** Shortest side an in-book image needs to pass as a cover (mirrors covers.rs). */
 const FALLBACK_MIN_SIDE = 120;
 
-type SectionLike = { linear?: string; createDocument?: () => Promise<Document> | Document };
 
 /**
  * A book that declares no cover shows its first image instead: the first
@@ -222,7 +221,7 @@ type SectionLike = { linear?: string; createDocument?: () => Promise<Document> |
  * away.
  */
 async function firstInBookImage(parsed: FoliateBook): Promise<Blob | null> {
-  const sections = ((parsed.sections ?? []) as SectionLike[])
+  const sections = parsed.sections
     .filter((section) => section.linear !== "no" && typeof section.createDocument === "function")
     .slice(0, FALLBACK_SECTIONS);
   for (const section of sections) {

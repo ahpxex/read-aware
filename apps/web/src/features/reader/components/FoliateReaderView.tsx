@@ -21,7 +21,8 @@ import { flattenToc, findTocIndexForHref } from "../lib/epub-utils";
 import { attachTocFractions } from "../lib/toc-fractions";
 import { chapterProgressAt, normalizeReadingCursorText } from "../lib/reading-cursor";
 import { relocateDismissesShell } from "../lib/shell-dismissal";
-import type { LoadedBook, ReadingCursor, TocEntry, TocNavItem } from "../lib/reader-types";
+import type { LoadedBook, ReadingCursor, TocEntry } from "../lib/reader-types";
+import { retainBook } from '../lib/book-lifetime';
 import {
   createFoliateView,
   createFootnoteHandler,
@@ -466,7 +467,8 @@ export function FoliateReaderView({
       // Fade out first, then land on the passage — arriving mid-fade would show
       // the jump happening behind the screen.
       dismissCompletion();
-      window.setTimeout(() => void viewRef.current?.goTo(cfiRange), COMPLETION_FADE_MS);
+      window.setTimeout(() => void viewRef.current?.goTo(cfiRange)
+        .catch(error => setError(describeReaderFailure(error))), COMPLETION_FADE_MS);
     },
     [dismissCompletion],
   );
@@ -599,7 +601,7 @@ export function FoliateReaderView({
         .trim();
       // Done with the engine's view — detach it from the stage and tear it down.
       footnoteStageRef.current?.replaceChildren();
-      detail.view.renderer?.destroy?.();
+      void detail.view.close().catch(error => log.warn('Could not close footnote view', error));
       if (!text) return;
       setFootnote({
         anchorRect: footnoteAnchorRectRef.current,
@@ -1407,8 +1409,8 @@ export function FoliateReaderView({
           // Visual direction: swiping the content leftwards reveals the page
           // on the right, and vice versa — correct under RTL too.
           const view = viewRef.current;
-          if (dx < 0) void view?.goRight();
-          else void view?.goLeft();
+          void (dx < 0 ? view?.goRight() : view?.goLeft())
+            ?.catch(error => setError(describeReaderFailure(error)));
         },
         { passive: true },
       );
@@ -1818,6 +1820,7 @@ export function FoliateReaderView({
 
     let cancelled = false;
     let view: FoliateView | null = null;
+    let releaseBook: (() => Promise<void>) | undefined;
     const cleanups: Array<() => void> = [];
 
     clearSelection();
@@ -1843,7 +1846,7 @@ export function FoliateReaderView({
         container.append(view);
 
         await registerHighlightDrawing(view);
-        let parsedBook: unknown;
+        let parsedBook: FoliateBook;
         if (initialBook.virtual) {
           // Plugin-provided book: resolve the content provider and build a
           // foliate-conforming object — no file, no parser.
@@ -1861,16 +1864,18 @@ export function FoliateReaderView({
           if (!source) throw new Error("Missing book file.");
           const file = typeof source.name === "string"
             ? source
-            : new File([source as Blob], initialBook.fileName, { type: source.type });
+            : new File([await source.arrayBuffer()], initialBook.fileName, { type: source.type });
           // Parse first, then repair a deficient nav BEFORE the view opens —
           // foliate builds its TOC progress (relocate's tocItem) from book.toc
           // at open time, so the synthesized map has to be in place already.
           parsedBook = await parseBookFile(file);
-          if (cancelled) return;
+          releaseBook = retainBook(parsedBook);
+          if (cancelled) { await releaseBook(); return; }
           await ensureUsableToc(parsedBook);
         }
-        if (cancelled) return;
-        await view.open(parsedBook as FoliateBook);
+        releaseBook ??= retainBook(parsedBook);
+        if (cancelled) { await releaseBook(); return; }
+        await view.open(parsedBook);
         if (cancelled) return;
 
         const book = view.book;
@@ -1885,7 +1890,7 @@ export function FoliateReaderView({
         // Before the first navigation, so the opening render already draws the
         // page in the reader's palette instead of flashing white and redrawing.
         if (fixedLayout) applyReaderPageColors(readerSettingsRef.current, view.renderer);
-        if (fixedLayout && view.renderer?.setLayout) {
+        if (fixedLayout && view.renderer && 'setLayout' in view.renderer) {
           // WebKit may defer custom-element attribute reactions until after the
           // first navigation. Configure fixed layout atomically so that first
           // paint cannot race against the old, paired-spread model.
@@ -1896,7 +1901,7 @@ export function FoliateReaderView({
         }
         const firstFixedLayoutRender = fixedLayout && view.renderer
           ? new Promise<void>((resolve) => {
-              (view?.renderer as unknown as EventTarget).addEventListener(
+              view?.renderer?.addEventListener(
                 "rendered",
                 () => resolve(),
                 { once: true },
@@ -1906,7 +1911,7 @@ export function FoliateReaderView({
         if (fixedLayout && view.renderer) {
           // Every finished page raster keeps the busy signal fresh while the
           // stack prerenders around a scrolling reader.
-          const rendererTarget = view.renderer as unknown as EventTarget;
+          const rendererTarget = view.renderer;
           const onRendered = () => emitAppEvent("reader-demand-activity", {});
           rendererTarget.addEventListener("rendered", onRendered);
           cleanups.push(() => rendererTarget.removeEventListener("rendered", onRendered));
@@ -1930,12 +1935,13 @@ export function FoliateReaderView({
         // is reduced). The runtime watcher effect keeps this in sync afterwards.
         syncRendererAnimated(view.renderer);
 
-        const entries = attachTocFractions(
-          view,
-          flattenToc((book?.toc ?? []) as unknown as TocNavItem[])
-            .map((entry, entryIndex) => ({ ...entry, spineIndex: entryIndex })),
-        );
+        let entries = flattenToc(book?.toc ?? []);
         if (!cancelled) setTocEntries(entries);
+        void attachTocFractions(view, entries).then(resolved => {
+          if (cancelled) return;
+          entries = resolved;
+          setTocEntries(resolved);
+        }).catch(error => log.warn('Could not prepare chapter marks', error));
 
         const onRelocate = (event: Event) => {
           if (cancelled) return;
@@ -1988,7 +1994,7 @@ export function FoliateReaderView({
             shellVisibleRef.current &&
             readingModeRef.current !== "scroll" &&
             relocateDismissesShell({
-              reason: detail.reason,
+              reason: detail.reason ?? undefined,
               previous: prevReadingLocationRef.current,
               next: { current, cfi },
             })
@@ -2071,7 +2077,8 @@ export function FoliateReaderView({
           const detail = (event as CustomEvent<FoliateLinkDetail>).detail;
           if (detail?.a) footnoteAnchorRectRef.current = anchorRectForElement(detail.a);
           const handler = footnoteHandlerRef.current;
-          if (handler && book) void handler.handle(book, event);
+          if (handler && book) void handler.handle(book, event as CustomEvent<FoliateLinkDetail>)
+            ?.catch(error => log.warn('Could not render footnote', error));
         };
 
         view.addEventListener("relocate", onRelocate);
@@ -2108,7 +2115,7 @@ export function FoliateReaderView({
           }
         };
         if (target) {
-          await view.goTo(target).catch(restoreByFraction);
+          await view.goTo(target).then(resolved => resolved ? undefined : restoreByFraction(), restoreByFraction);
         } else {
           await restoreByFraction();
         }
@@ -2129,6 +2136,8 @@ export function FoliateReaderView({
         }
       } catch (nextError) {
         if (!cancelled) setError(describeReaderFailure(nextError));
+        await view?.close().catch(error => log.warn('Could not close failed reader', error));
+        await releaseBook?.().catch(error => log.warn('Could not close failed book', error));
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -2139,11 +2148,8 @@ export function FoliateReaderView({
       for (const cleanup of cleanups) cleanup();
       highlightsRef.current = [];
       notesRef.current = [];
-      try {
-        view?.renderer?.destroy?.();
-      } catch {
-        // Ignore teardown races.
-      }
+      void view?.close().catch(error => log.warn('Could not close reader', error));
+      void releaseBook?.().catch(error => log.warn('Could not close parsed book', error));
       view?.remove();
       if (viewRef.current === view) viewRef.current = null;
     };
@@ -2161,7 +2167,7 @@ export function FoliateReaderView({
   useEffect(() => {
     const cfiRange = annotationNavigationRequest?.cfiRange;
     if (!cfiRange) return;
-    void viewRef.current?.goTo(cfiRange);
+    void viewRef.current?.goTo(cfiRange).catch(error => setError(describeReaderFailure(error)));
   }, [annotationNavigationRequest?.cfiRange, annotationNavigationRequest?.requestId]);
 
   useEffect(() => {

@@ -11,31 +11,13 @@
  * so rewriting first aligns the engine and the app on the same synthesized map.
  */
 
-type SectionLike = {
-  id?: string | number;
-  linear?: string;
-  createDocument?: () => Promise<Document> | Document;
-};
+import type { Book, BookSection, TOCItem } from "../../../../foliate-js/src/book";
+import { createLogger } from "../../../platform/logger";
 
-type NavItemLike = {
-  label?: string;
-  href?: string;
-  subitems?: NavItemLike[] | null;
-};
-
-type BookLike = {
-  toc?: NavItemLike[];
-  sections?: SectionLike[];
-  /**
-   * The engine's own href → section mapping (MOBI/KF8 return a numeric
-   * section index; EPUB returns a file path). Authoritative when it yields an
-   * index — those formats' hrefs (`filepos:`, `kindle:pos:`) carry no file
-   * name to match against.
-   */
-  splitTOCHref?: (href: string) => unknown[] | null | undefined;
-  /** A navigable href for a section, for formats whose hrefs are not file paths. */
-  getSectionHref?: (index: number) => string | undefined;
-};
+type SectionLike = Pick<BookSection, "id" | "linear" | "createDocument">;
+type NavItemLike = TOCItem;
+type BookLike = Pick<Book, "toc" | "splitTOCHref" | "getSectionHref" | "resolveHref"> & { sections?: SectionLike[] };
+const log = createLogger("toc-synthesis");
 
 /** Beyond this many sections, scanning every document is too costly — and a
  *  book that large with a tiny nav is practically nonexistent. */
@@ -55,7 +37,7 @@ function fileOf(href: string): string {
     .replace(/^\/+/, "");
 }
 
-function flattenNav(items: NavItemLike[] | undefined): NavItemLike[] {
+function flattenNav(items: NavItemLike[] | null | undefined): NavItemLike[] {
   return (items ?? []).flatMap((item) => [
     item,
     ...flattenNav(item.subitems ?? undefined),
@@ -63,12 +45,13 @@ function flattenNav(items: NavItemLike[] | undefined): NavItemLike[] {
 }
 
 /** The section a nav href points at, by the engine's own mapping when it has one. */
-function sectionIndexOfHref(book: BookLike, href: string, sections: SectionLike[]): number {
+async function sectionIndexOfHref(book: BookLike, href: string, sections: SectionLike[]): Promise<number> {
   if (typeof book.splitTOCHref === "function") {
-    let split: unknown[] | null | undefined;
+    let split: Awaited<ReturnType<NonNullable<Book['splitTOCHref']>>>;
     try {
-      split = book.splitTOCHref(href);
-    } catch {
+      split = await book.splitTOCHref(href);
+    } catch (error) {
+      log.warn("Could not resolve TOC section", error);
       split = null;
     }
     const first = split?.[0];
@@ -83,15 +66,15 @@ function sectionIndexOfHref(book: BookLike, href: string, sections: SectionLike[
 }
 
 /** Map each nav entry (with an href) to the section it lands in. */
-function sectionIndexesCoveredByNav(
+async function sectionIndexesCoveredByNav(
   book: BookLike,
   nav: NavItemLike[],
   sections: SectionLike[],
-): Map<number, NavItemLike[]> {
+): Promise<Map<number, NavItemLike[]>> {
   const covered = new Map<number, NavItemLike[]>();
   for (const item of nav) {
     if (!item.href) continue;
-    const index = sectionIndexOfHref(book, item.href, sections);
+    const index = await sectionIndexOfHref(book, item.href, sections);
     if (index < 0) continue;
     const existing = covered.get(index);
     if (existing) existing.push(item);
@@ -128,8 +111,7 @@ function truncateLabel(text: string): string {
  * with no readable text stay out (a chapter spanning several files keeps a
  * single entry at its first file — the rest just continue it).
  */
-export async function ensureUsableToc(book: unknown): Promise<boolean> {
-  const target = book as BookLike;
+export async function ensureUsableToc(target: BookLike): Promise<boolean> {
   const sections = target.sections ?? [];
   const linearIndexes = sections
     .map((section, index) => ({ section, index }))
@@ -139,7 +121,7 @@ export async function ensureUsableToc(book: unknown): Promise<boolean> {
   if (linearIndexes.length > MAX_SYNTHESIZED_SECTIONS) return false;
 
   const flatNav = flattenNav(target.toc);
-  const covered = sectionIndexesCoveredByNav(target, flatNav, sections);
+  const covered = await sectionIndexesCoveredByNav(target, flatNav, sections);
   const coverage = covered.size / linearIndexes.length;
   if (flatNav.length > 0 && coverage >= MIN_SPINE_COVERAGE) return false;
 
@@ -171,8 +153,8 @@ export async function ensureUsableToc(book: unknown): Promise<boolean> {
       if (!label) continue;
       synthesized.push({ label, href });
       added++;
-    } catch {
-      // An unparseable section contributes no entry; its text still reads fine.
+    } catch (error) {
+      log.warn("Could not synthesize a chapter label", error);
     }
   }
 

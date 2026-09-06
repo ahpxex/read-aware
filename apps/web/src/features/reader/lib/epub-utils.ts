@@ -52,7 +52,7 @@ export function flattenToc(
   for (const item of items) {
     if (item.href) {
       flattened.push({
-        id: item.id ?? `${item.href}-${depth}`,
+        id: String(item.id ?? `${item.href}-${depth}`),
         href: item.href,
         label: item.label?.trim() || "Untitled chapter",
         depth,
@@ -64,6 +64,5 @@ export function flattenToc(
     }
   }
 
-  return flattened as TocEntry[];
+  return flattened.map((item, spineIndex) => ({ ...item, spineIndex }));
 }
-

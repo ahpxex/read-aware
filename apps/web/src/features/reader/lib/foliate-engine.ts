@@ -1,203 +1,30 @@
 /**
- * Typed loader + thin wrapper around the vendored foliate-js engine.
- *
- * foliate-js is authored in TypeScript under `apps/web/foliate-js/src` and
- * emitted as a static ES-module tree in `public/foliate-js` (see that folder's
- * VENDOR.md for why it is not bundled). We import the generated modules at
- * runtime so relative parser imports and `import.meta.url` PDF asset resolution
- * stay correct in dev, production, and the Tauri webview. The interfaces below
- * deliberately describe only the narrower surface the product consumes.
+ * Type-only contracts come from the canonical engine sources. Runtime modules
+ * stay under /foliate-js/ so PDF workers and other relative assets remain static.
  */
-
 import type { BookFileSource } from "./reader-types";
+import type { Book as FoliateBook, LanguageMap as FoliateLanguageMap } from "../../../../foliate-js/src/book";
+import type { View as FoliateView, Renderer as FoliateRenderer } from "../../../../foliate-js/src/view";
+import type { EngineAPI } from "../../../../foliate-js/src/engine-api";
+import type { DrawFunction } from "../../../../foliate-js/src/overlayer";
 
+export type { FoliateBook, FoliateLanguageMap, FoliateView, FoliateRenderer };
+export type { BookMetadata as FoliateMetadata, TOCItem as FoliateTocItem, ResolvedNavigation as FoliateResolved } from "../../../../foliate-js/src/book";
+export type { RelocateReason as FoliateRelocateReason, LoadDetail as FoliateLoadDetail, Content as FoliateContent } from "../../../../foliate-js/src/renderer";
+export type {
+  Annotation as FoliateAnnotation, DrawAnnotationDetail as FoliateDrawAnnotationDetail,
+  ShowAnnotationDetail as FoliateShowAnnotationDetail, LinkDetail as FoliateLinkDetail,
+  ViewRelocateDetail as FoliateRelocateDetail,
+} from "../../../../foliate-js/src/view";
+export type {
+  FootnoteHandler as FoliateFootnoteHandler, FootnoteRenderDetail as FoliateFootnoteRenderDetail,
+  FootnoteBeforeRenderDetail as FoliateFootnoteBeforeRenderDetail,
+} from "../../../../foliate-js/src/footnotes";
+import type { FootnoteHandler as FoliateFootnoteHandler } from "../../../../foliate-js/src/footnotes";
+export type { Overlayer as FoliateOverlayer } from "../../../../foliate-js/src/overlayer";
+export type FoliateHighlightFn = DrawFunction;
+export type FoliateDrawFns = Pick<EngineAPI["Overlayer"], "highlight" | "underline">;
 const FOLIATE_BASE = "/foliate-js";
-
-// ---- Engine type surface (minimal, hand-written) ---------------------------
-
-export type FoliateLanguageMap = Record<string, string>;
-
-export type FoliateMetadata = {
-  title?: string | FoliateLanguageMap;
-  author?:
-    | string
-    | { name?: string | FoliateLanguageMap }
-    | Array<string | { name?: string | FoliateLanguageMap }>;
-  language?: unknown;
-};
-
-export type FoliateTocItem = {
-  label?: string;
-  href?: string;
-  subitems?: FoliateTocItem[] | null;
-};
-
-export type FoliateBook = {
-  metadata?: FoliateMetadata;
-  toc?: FoliateTocItem[] | null;
-  sections?: unknown[];
-  rendition?: { layout?: string };
-  dir?: string;
-  getCover?: () => Promise<Blob | null> | Blob | null;
-  /** `[sectionIndexOrFile, fragment]` for a TOC href — synchronous in every format. */
-  splitTOCHref?: (href: string) => unknown[] | null | undefined;
-  /** Local patch (see public/foliate-js/VENDOR.md): a navigable href for a section. */
-  getSectionHref?: (index: number) => string | undefined;
-};
-
-/**
- * Why the reader relocated. `page` / `snap` / `scroll` are the reader actually
- * moving (edge buttons and keys / a swipe or trackpad snap / continuous
- * scrolling); `anchor` is a re-layout holding the same position (resize, soft
- * keyboard, font change); `navigation` and `selection` are programmatic jumps.
- * Forwarded by a local patch to the vendored `view.js` — see its VENDOR.md.
- */
-export type FoliateRelocateReason =
-  | "page"
-  | "snap"
-  | "scroll"
-  | "anchor"
-  | "navigation"
-  | "selection";
-
-export type FoliateRelocateDetail = {
-  fraction?: number;
-  location?: { current?: number; total?: number };
-  tocItem?: { href?: string; label?: string } | null;
-  pageItem?: { label?: string } | null;
-  cfi?: string;
-  range?: Range;
-  index?: number;
-  reason?: FoliateRelocateReason;
-};
-
-export type FoliateLoadDetail = { doc: Document; index: number };
-
-export type FoliateAnnotation = {
-  value: string;
-  color?: string;
-  /** Optional render identity when multiple visual layers share one anchor. */
-  overlayKey?: string;
-  [key: string]: unknown;
-};
-
-export type FoliateDrawAnnotationDetail = {
-  draw: (func: unknown, options?: Record<string, unknown>) => void;
-  annotation: FoliateAnnotation;
-  doc: Document;
-  range: Range;
-};
-
-export type FoliateShowAnnotationDetail = { value: string; index: number; range: Range };
-
-export type FoliateResolved = { index: number; anchor: unknown };
-
-export type FoliateOverlayer = {
-  /** Returns `[cfiValue, range]` for an annotation under the point, else `[]`. */
-  hitTest: (point: { x: number; y: number }) => [string, Range] | [];
-  element: SVGElement;
-};
-
-export type FoliateContent = {
-  index: number;
-  overlayer?: FoliateOverlayer;
-  doc?: Document;
-};
-
-export type FoliateRenderer = {
-  setAttribute: (name: string, value: string) => void;
-  removeAttribute: (name: string) => void;
-  /** Atomically configure a fixed-layout renderer before its first navigation. */
-  setLayout?: (flow: string, maxColumnCount: number) => void;
-  /**
-   * Fixed-layout only: the colors its pages are drawn with, or null for the
-   * page as authored. Baked into the render, so this redraws (see the local
-   * patch documented in the vendored VENDOR.md).
-   */
-  setPageColors?: (colors: { background: string; foreground?: string } | null) => void;
-  setStyles?: (css: string) => void;
-  next: () => Promise<void> | void;
-  destroy?: () => void;
-  /** Currently-rendered section contents (each with its overlayer + document). */
-  getContents?: () => FoliateContent[];
-  /** Bring an in-section anchor into view: flips to its page when paginated,
-   *  scrolls its start to the viewport top in scrolled mode. */
-  scrollToAnchor?: (anchor: Range | Element | number) => Promise<void> | void;
-  /** True while the paginator runs the continuous-scroll flow. */
-  scrolled?: boolean;
-};
-
-export type FoliateView = HTMLElement & {
-  open: (book: BookFileSource | string | FoliateBook) => Promise<void>;
-  book?: FoliateBook;
-  renderer?: FoliateRenderer;
-  goTo: (target: string | number | FoliateResolved) => Promise<FoliateResolved | undefined>;
-  goToFraction: (fraction: number) => Promise<void>;
-  /** Cumulative 0..1 start fractions of the spine sections (length: sections + 1),
-   *  on the same size-proportional scale as `goToFraction`. */
-  getSectionFractions?: () => number[];
-  /** Resolve a navigation target to a section index. Synchronous for reflowable
-   *  formats; PDF resolves hrefs asynchronously and returns a promise. */
-  resolveNavigation?: (
-    target: string | number | { fraction: number },
-  ) => FoliateResolved | Promise<FoliateResolved> | null | undefined;
-  /** Turn to the next page; crosses into (and lazily loads) the next section at its end. */
-  next: (distance?: number) => Promise<void>;
-  /** Turn to the previous page; crosses into the previous section at its start. */
-  prev: (distance?: number) => Promise<void>;
-  /** Direction-aware page turn (maps to next/prev based on the book's reading direction). */
-  goLeft: () => Promise<void> | void;
-  goRight: () => Promise<void> | void;
-  getCFI: (index: number, range: Range) => string;
-  addAnnotation: (
-    annotation: FoliateAnnotation,
-    remove?: boolean,
-  ) => Promise<{ index: number; label: string } | undefined>;
-  deleteAnnotation: (annotation: FoliateAnnotation) => Promise<unknown>;
-};
-
-export type FoliateHighlightFn = unknown;
-
-/** `link` event detail emitted by `<foliate-view>` for an in-book link click. */
-export type FoliateLinkDetail = { a: HTMLAnchorElement; href: string };
-
-/** `render` event detail from `FootnoteHandler` once a footnote is extracted. */
-export type FoliateFootnoteRenderDetail = {
-  /** A detached `<foliate-view>` holding the rendered footnote fragment. */
-  view: FoliateView;
-  href: string;
-  /** `footnote` | `endnote` | `note` | `definition` | `biblioentry` | null. */
-  type: string | null;
-  hidden: boolean;
-  target: Element | null;
-};
-
-/** `before-render` detail — fires before the footnote fragment is laid out. */
-export type FoliateFootnoteBeforeRenderDetail = { view: FoliateView };
-
-/**
- * foliate-js footnote engine: given a `link` event, it decides whether the link
- * is a footnote/endnote reference, extracts the target fragment (loading another
- * section if needed), and dispatches `before-render` then `render` with a view
- * holding the content. Regular links are left to navigate normally.
- */
-export interface FoliateFootnoteHandler extends EventTarget {
-  detectFootnotes: boolean;
-  handle: (book: FoliateBook, event: Event) => Promise<unknown> | undefined;
-}
-
-type FoliateGlobal = {
-  makeBook: (file: BookFileSource | string) => Promise<FoliateBook>;
-  Overlayer: { highlight: FoliateHighlightFn; underline: FoliateHighlightFn };
-  FootnoteHandler: new () => FoliateFootnoteHandler;
-};
-
-/** The overlay draw functions used by the `draw-annotation` event. */
-export type FoliateDrawFns = {
-  highlight: FoliateHighlightFn;
-  underline: FoliateHighlightFn;
-};
-
 // ---- Runtime loading -------------------------------------------------------
 //
 // foliate-js is served as static ES modules from `public/foliate-js`. Vite
@@ -209,17 +36,16 @@ export type FoliateDrawFns = {
 // 'self'` CSP.
 
 const FOLIATE_LOADER_URL = `${FOLIATE_BASE}/loader.js`;
-const FOLIATE_GLOBAL_KEY = "__readawareFoliate";
 
-let enginePromise: Promise<FoliateGlobal> | null = null;
+let enginePromise: Promise<EngineAPI> | null = null;
 
-function readEngineGlobal(): FoliateGlobal | undefined {
-  return (globalThis as unknown as Record<string, FoliateGlobal | undefined>)[FOLIATE_GLOBAL_KEY];
+function readEngineGlobal(): EngineAPI | undefined {
+  return globalThis.__readawareFoliate;
 }
 
-function loadEngine(): Promise<FoliateGlobal> {
+function loadEngine(): Promise<EngineAPI> {
   if (enginePromise) return enginePromise;
-  enginePromise = new Promise<FoliateGlobal>((resolve, reject) => {
+  enginePromise = new Promise<EngineAPI>((resolve, reject) => {
     const existing = readEngineGlobal();
     if (existing) {
       resolve(existing);
@@ -267,8 +93,8 @@ export async function makeFoliateBook(file: BookFileSource): Promise<FoliateBook
 
 /** Create a fresh `<foliate-view>` element (engine modules are loaded first). */
 export async function createFoliateView(): Promise<FoliateView> {
-  await loadEngine();
-  return document.createElement("foliate-view") as FoliateView;
+  const { View } = await loadEngine();
+  return new View();
 }
 
 /** Create a footnote handler for resolving in-book footnote/endnote links. */
@@ -276,30 +102,6 @@ export async function createFootnoteHandler(): Promise<FoliateFootnoteHandler> {
   const { FootnoteHandler } = await loadEngine();
   return new FootnoteHandler();
 }
-
-// The paginator renders into a *closed* shadow root, so its scroll container is
-// unreachable from the app. Instead we read the renderer's public geometry
-// getters (`start`/`end`/`viewSize`) to tell when continuous scroll has reached
-// the top/bottom of the current section — the cue to lazily load the adjacent
-// one. foliate is pinned vendor code (see public/foliate-js/VENDOR.md), so this
-// coupling to its getter surface is acceptable.
-type FoliateScrollGeometry = {
-  scrolled?: boolean;
-  start?: number;
-  end?: number;
-  viewSize?: number;
-  /**
-   * The engine's "nothing follows this" flag: no further linear section, and the
-   * position within two pages of the last. The two-page slack exists because the
-   * paginator uses it to stop reserving scroll overshoot — it is NOT a precise
-   * last-page test, so `isAtEndOfBook` tightens it.
-   */
-  atEnd?: boolean;
-  /** Current page index within the loaded flow. */
-  page?: number;
-  /** Total pages in the loaded flow. */
-  pages?: number;
-};
 
 const SCROLL_EDGE_EPSILON = 2;
 
@@ -318,8 +120,8 @@ const SCROLL_EDGE_EPSILON = 2;
  * the page comparison supplies the precision.
  */
 export function isAtEndOfBook(view: FoliateView | null | undefined): boolean {
-  const renderer = view?.renderer as unknown as FoliateScrollGeometry | undefined;
-  if (renderer?.atEnd !== true) return false;
+  const renderer = view?.renderer;
+  if (!renderer || !("atEnd" in renderer) || renderer.atEnd !== true) return false;
   const pages = renderer.pages ?? 0;
   if (pages <= 1) return true; // single screen: showing it is reaching the end
   return (renderer.page ?? 0) >= pages - 1;
@@ -332,7 +134,7 @@ export function isAtEndOfBook(view: FoliateView | null | undefined): boolean {
 export function getScrollEdges(
   view: FoliateView | null | undefined,
 ): { atTop: boolean; atBottom: boolean } | null {
-  const renderer = view?.renderer as unknown as FoliateScrollGeometry | undefined;
+  const renderer = view?.renderer;
   if (!renderer?.scrolled) return null;
   try {
     const start = renderer.start ?? 0;
@@ -356,11 +158,11 @@ function firstLanguageValue(value: string | FoliateLanguageMap | undefined): str
   return keys.length ? value[keys[0]] : "";
 }
 
-export function foliateTitle(book: FoliateBook): string {
+export function foliateTitle(book: Pick<FoliateBook, "metadata">): string {
   return firstLanguageValue(book.metadata?.title).trim();
 }
 
-export function foliateAuthor(book: FoliateBook): string {
+export function foliateAuthor(book: Pick<FoliateBook, "metadata">): string {
   const author = book.metadata?.author;
   if (!author) return "";
   const one = (
@@ -386,6 +188,6 @@ export function isFixedLayoutFormat(format: string | null | undefined): boolean 
 }
 
 /** A book is fixed-layout (PDF/CBZ) when its rendition layout is pre-paginated. */
-export function isFixedLayout(book: FoliateBook): boolean {
+export function isFixedLayout(book: Pick<FoliateBook, "rendition">): boolean {
   return book.rendition?.layout === "pre-paginated";
 }
